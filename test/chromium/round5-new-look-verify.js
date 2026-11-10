@@ -80,31 +80,42 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       { rows, card: card.slice(0, 60), btns, line, tabs, paperEnd });
   } catch (e) { check('2 Before you sign', false, String(e).slice(0, 200)); }
 
-  /* 3 · Obligations */
+  /* 3 · Obligations, the project list (owner picked "The SAP Way, the project list", 10 Nov 2026;
+     re-pointed from round 5's box-and-tabs-on-one-line and its pop-up desk) */
   try {
     await page.evaluate(() => setView('obligations'));
     const up = await until(page, () => !!document.querySelector('.obn-page .obn-table'), null, 15000);
-    const tabs = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => b.getAttribute('data-obn-tab'))) : [];
-    const box = up ? await page.evaluate(() => !!document.querySelector('.obn-bar #obn-q')) : false;
-    const late = up ? await page.evaluate(() => { const g = document.querySelector('.obn-table tr.obn-g'); const r = g && g.nextElementSibling; return { g: g ? g.innerText.trim() : '', q: r ? !!r.querySelector('.obn-q i') : false, act: r ? (r.querySelector('.obn-act button') || {}).innerText : '' }; }) : null;
+    const pills = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => b.getAttribute('data-obn-tab'))) : [];
+    const box = up ? await page.evaluate(() => !!document.querySelector('.obn-bar2r #obn-q') && !document.querySelector('.obn-bar #obn-q')) : false;
+    const row = up ? await page.evaluate(() => { const r = document.querySelector('.obn-table tr.obn-r'); if (!r) return null;
+      const c1 = r.querySelector('td.obn-c1'), ch = r.querySelector('.obn-ch');
+      return { band: c1 ? getComputedStyle(c1).borderLeftWidth : '', tone: ch ? ch.className : '', when: ch ? ch.textContent.trim() : '',
+        who: (r.querySelector('.obn-who') || {}).textContent, act: (r.querySelector('.obn-act .obn-pill') || {}).innerText || '' }; }) : null;
+    const foot = up ? await txt(page, '.obn-pager .obn-pg-say') : '';
     await shot('3-obligations');
-    check('3 Obligations: the box and the tabs on one line, Proposed among them; Late first, the words it rests on, Mark done',
-      up && box && tabs.join('|') === 'open|ours|theirs|done|proposed' && !!late && /^late/i.test(late.g) && late.q && /mark done/i.test(late.act || ''), { tabs, box, late });
+    check('3 Obligations: three pills over the filter line; a row carries its stream band, its day as a tone chip and one act; the foot says where in the book you are',
+      up && box && pills.includes('open') && pills.includes('prop') && !!row && row.band === '3px' && /obn-ch is-(ruby|amber|green|gray)/.test(row.tone)
+      && !!String(row.who || '').trim() && /mark done|chase|decide/i.test(row.act) && /showing 1/i.test(foot), { pills, box, row, foot });
   } catch (e) { check('3 Obligations', false, String(e).slice(0, 200)); }
 
-  /* 4 · Proposed */
+  /* 4 · Proposals by agreement, answered where the row stands */
   try {
-    await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="proposed"]'); if (b) b.click(); });
-    const up = await until(page, () => !!document.querySelector('#modal-root [data-dlg-bare] #obd'), null, 10000);
-    const under = up ? await until(page, () => { const bar = document.querySelector('.obn-bar'), p = document.querySelector('#modal-root [data-dlg-bare]'), f = p && p.parentElement; return !!(bar && f && Math.abs(f.getBoundingClientRect().top - bar.getBoundingClientRect().bottom) < 4); }, null, 5000) : false;
-    const at = await page.evaluate(() => { const bar = document.querySelector('.obn-bar'), p = document.querySelector('#modal-root [data-dlg-bare]'); return { bar: bar ? Math.round(bar.getBoundingClientRect().bottom) : null, page: p ? Math.round(p.parentElement.getBoundingClientRect().top) : null }; });
-    const whose = up ? await page.evaluate(() => document.querySelectorAll('#obd .obd-switch [data-obd-whose]').length) : 0;
-    const remind = /reminder/i.test(await txt(page, '#obd .obd-facts'));
-    const side = /how this works/i.test(await txt(page, '#ins-panel'));
-    await shot('4-proposed');
-    check('4 Proposed stands under the tabs, Whose job has three answers, the Reminder row, the panel says how it works', up && under && whose === 3 && remind && side, { up, under, at, whose, remind, side });
-    await page.evaluate(() => { const x = document.getElementById('or-cancel'); if (x) x.click(); });
-  } catch (e) { check('4 Proposed', false, String(e).slice(0, 200)); }
+    await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
+    const up = await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), null, 10000);
+    const heads = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-table.is-proj thead th')].map(t => t.textContent.trim()).filter(Boolean)) : [];
+    const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: !!r.querySelector('.obn-ring'), bar: !!r.querySelector('.obn-bar2 i'),
+      said: (r.querySelector('.obn-pgb small') || {}).textContent, status: (r.querySelector('.obn-stt .obn-ch') || {}).textContent,
+      open: (r.querySelector('[data-obn-open]') || {}).innerText, add: (r.querySelector('[data-obn-addall]') || {}).innerText } : null; }) : null;
+    await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
+    await until(page, () => !!document.querySelector('.obn-dr'), null, 5000);
+    const duty = await page.evaluate(() => { const r = document.querySelector('.obn-dr'); return r ? { whose: r.querySelectorAll('[data-obn-whose]').length,
+      on: !!r.querySelector('.obn-wh.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-q i') } : null; });
+    const side = /start with|nothing is waiting/i.test(await txt(page, '#ins-panel'));
+    await shot('4-proposals');
+    check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel says where to start',
+      up && heads.length === 5 && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && /^open/i.test(pr.open || '')
+      && /^add all/i.test(pr.add || '') && !!duty && duty.whose === 3 && duty.on && duty.skip && side, { heads, pr, duty, side });
+  } catch (e) { check('4 Proposals', false, String(e).slice(0, 200)); }
 
   /* 5 · Calendar */
   try {

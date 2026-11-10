@@ -36559,3 +36559,48 @@ The owner re-ran the Explorer exam ("Run the Explorer exam again"): 32 of 32, si
 HORIZON, THE SAP WAY (owner's pick by name, 10 Nov 2026, from three drawn on the real page: The SAP Way · The Legora Way · Weather band; "SAP way for the calendar"). The owner's words: "the horizon page is dull". Every bar had been the one accent green. Now each new-look row wears `calHzTone(r.days)` (t-ruby ≤30 · t-amber ≤90 · t-green), the ladder's own bands: the bar takes the tone's dot, the decision is a pill (amber while the row is red or amber or its window is open, green once decided, grey otherwise), the five boxes above are soft-filled by band (`cal-lad-<k>`, their top rule gone). The detail lines (party · ref · money, the date note, the decision's small line, the box's money) are grey, and on Week the run's count, the day labels and the hours — the gap the f982/f984 rounds left on the Calendar. f987.
 
 THE QUIET REPAINT, AND JAMBO'S FINDS COUNTED ONCE (owner, 10 Nov 2026: "the agenda page seems to be slow"; their book: 164 contracts, 592 of Jambo's finds). Built after THE CALENDAR IS QUICK (PR #614, another session: the sheet once, the panel kept on a view-only press, own events only when they brought something, dates once per draw) had landed; this adds the two causes it left. (1) Every time the book moved (a save landing, a background refresh) hbRender redrew the whole Calendar: it now asks `renderCalendar({ifMoved:true})`, which compares the page it would draw with the one on screen (`host._calHtml`) and, when they are the same, leaves the DOM, its wiring and anything typed alone (on Home it still repaints the dock). (2) Jambo's "This week" line matched every find against every duty on every contract on every paint (obwFinds → obReviewWaiting → obligationAlreadyOn, twice per find): `obwFindN` keeps each contract's count while its reading (`o.found`), its duties (the array and their words), the review's answers (`c.obReview`, RAW — obReviewOf hashes the whole wording) and `c._v` are the same. My own "draw once on opening" was dropped as #614's calMineBrought already does it. f988; calendar-quiet-repaint-verify prints the time of five quiet repaints.
+## OBLIGATIONS
+THE PAGE IS A PROJECT LIST (owner picked "The SAP Way, the project list", 10 Nov 2026).
+
+The owner's own words on the page as it stood: *"the whole page needs a redesign. The page is slow so maybe the
+obligations should be in pages so that whole entire list is not trying to load at once. Also, the page is very dull
+with no color injection. On the proposed, the structure is confusing. It should be proposals by agreement in a
+format that is easy to follow almost in a project management style."*
+
+Before that they asked what was wrong with the page. The read given back named: 592 proposals reachable only one
+contract at a time, with no order of importance and no way to see which agreements they sat on; "6 late" the
+quietest number on a page led by two numbers nobody must act on; three answers to "whose job is this?" on one
+screen (the column said Both sides, the switch said Us, the sentence said both-but-ours); a black button reading
+"Tick one to add" that could not be pressed, beside a live "Add all 3"; the same three duties listed four times
+(tabs, group headings, rows, and again in the panel with their quotes); counts said twice; "Nothing is saved until
+you add it" said twice; empty rows (Amount —, Document No) above the rows that mattered; three scrollbars; and no
+reference, party or stage to say what was being decided about.
+
+THREE DESIGNS WERE DRAWN, full screens in HaTi's own look, each with a Proposals and a Tracked screen: The SAP Way
+(the project list), The Legora Way (the agreement file — a paged list left, the chosen agreement opened as a file
+of tick-lines right) and The board (cards in four columns: Not started · Being decided · Ready to add · Added this
+week). The owner picked THE SAP WAY BY NAME.
+
+WHAT WAS BUILT, against the drawing: the head leads with what is late; three pills (Late · Tracked · Proposals N on
+M agreements) over one line carrying the filter box, whose job and the state; the tracked list flat and read down,
+every row carrying its stream's own band (listStreamTone — the list language's tones, no new colour invented), its
+day as a tone chip (ruby late, amber this week, green further out, grey done) and one act; the foot says
+"Showing 1–20 of 297 duties" and offers 20 · 50 · 100 a page. Proposals is one row per agreement, oldest wait
+first, with a ring in the stream's tone, the other side, how long it waited and a status (Not started · N left ·
+Ready to add · All skipped); the row opens where it stands and its duties stand underneath, each with Jambo's words
+over the words it rests on, three answers and Skip; Add all adds every undecided duty the way the answers say. The
+pop-up desk no longer opens on this page; the desk on a contract's own tab is unchanged and now mints through the
+same writer (obAddFound).
+
+DEPARTURES FROM THE DRAWING, told to the owner in the summary: (1) Chase is drawn on every row but is offered only
+on the other side's duties — chasing ourselves is not what the act does; ours carry Mark done. (2) The tracked row
+keeps the words the duty rests on, which the drawing left out and the page already had. (3) "Twenty a page" is
+built as the drawing promises — only the page's own rows are drawn — but the book is still loaded as before, so
+this is a drawing cost saved, not a fetching one; paging the book on the server is its own job.
+
+WHAT THE RING COUNTS: a duty counts as decided once the reader has said whose job it is (this sitting) or skipped
+it (kept on the record, as the desk keeps it). An added duty leaves the proposals altogether, which is why an
+agreement's row disappears when Add all is pressed.
+
+RE-POINTED: round5-new-look-verify 3 and 4, which pinned the box-and-tabs-on-one-line and the pop-up desk the pick
+reverses. NEW: test/chromium/obligations-project-list-verify.js, every check red at 9be1391b.

@@ -18900,6 +18900,69 @@
   html.lg-new .obn-none{color:var(--color-quiet);padding:24px 0}
   html.lg-new .obn-table tr[data-ins-row]{cursor:pointer}
   html.lg-new .obn-table tr[data-ins-row].is-sel td,html.lg-new .obn-table tr[data-ins-row][aria-selected="true"] td{background:var(--surface-2)}
+  /* ---- THE PROJECT LIST (owner picked "The SAP Way, the project list", 10 Nov 2026) ----
+     Three pills over a second line of controls; every row carries its stream's own band; the day is a
+     tone chip; the foot says where in the book you are. Tones are the status tokens, never new colours. */
+  html.lg-new .obn-bar{gap:8px;border-bottom:0;padding-top:2px}
+  html.lg-new .obn-bar2r{gap:10px;padding:0 0 2px;margin-bottom:10px}
+  html.lg-new .obn-tab{height:30px;padding:0 14px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new .obn-tab.is-on{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .obn-tab.is-late{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .obn-tab.is-late::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--st-ruby-dot);margin-right:7px;vertical-align:1px}
+  html.lg-new .obn-tab.is-late.is-on{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .obn-sel{height:30px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12.5px;color:var(--color-text);padding:0 10px}
+  html.lg-new .obn-said{font-size:12px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-new .obn-table .obn-what{font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .obn-table .obn-who{font-size:12.5px;white-space:nowrap}
+  html.lg-new .obn-table td.obn-c1{padding-left:12px}
+  html.lg-new .obn-table td.obn-when{white-space:nowrap}
+  html.lg-new .obn-ch{display:inline-block;font-size:11.5px;line-height:16px;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  html.lg-new .obn-ch.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .obn-ch.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .obn-ch.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .obn-ch.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .obn-ch.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .obn-ch.obn-lt{margin-left:2px}
+  html.lg-new .obn-pill{height:28px;padding:0 12px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12.5px;color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new .obn-pill.is-on{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
+  html.lg-new .obn-act .obn-open{margin-left:10px}
+  /* THE FOOT: where you are in the book, and how much of it is built */
+  html.lg-new .obn-pager{display:flex;align-items:center;gap:6px;padding:10px 0 2px;border-top:1px solid var(--color-divider);font-size:12px;color:var(--color-quiet)}
+  html.lg-new .obn-pg-sp{flex:1}
+  html.lg-new .obn-pn{min-width:26px;height:26px;padding:0 7px;border:1px solid var(--color-divider);border-radius:7px;background:var(--color-surface);font:inherit;font-size:12px;color:var(--color-text);cursor:pointer}
+  html.lg-new .obn-pn.is-on{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
+  html.lg-new .obn-pn:disabled{color:var(--color-neutral-300);cursor:default}
+  html.lg-new .obn-pe{padding:0 2px}
+  html.lg-new .obn-per select{height:26px;border:1px solid var(--color-divider);border-radius:7px;background:var(--color-surface);font:inherit;font-size:12px;color:var(--color-text);padding:0 6px;margin-left:8px}
+  /* THE PROGRESS A ROW CARRIES: a ring of the stream's own tone, the bar under its words */
+  html.lg-new .obn-pgw{display:flex;align-items:center;gap:9px}
+  html.lg-new .obn-pgb{flex:1;min-width:0}
+  html.lg-new .obn-ring{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--obc) var(--obr),var(--color-neutral-100) 0)}
+  html.lg-new .obn-ring>span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--color-surface);font-size:10.5px;color:var(--color-text)}
+  html.lg-new .obn-bar2{display:block;height:6px;border-radius:999px;background:var(--color-neutral-100);overflow:hidden}
+  html.lg-new .obn-bar2 i{display:block;height:100%}
+  html.lg-new .obn-pgb small{display:block;font-size:11.5px;color:var(--color-quiet);margin-top:4px;white-space:nowrap}
+  html.lg-new .obn-table.is-proj td{vertical-align:middle}
+  html.lg-new .obn-table.is-proj td.obn-pt,html.lg-new .obn-table.is-proj td.obn-age{font-size:12.5px}
+  html.lg-new .obn-table .obn-pr.is-open td{background:var(--color-chat-bg)}
+  /* A DUTY UNDERNEATH ITS AGREEMENT: answered on its own line, nothing saved until Add all */
+  html.lg-new .obn-table .obn-dr td{background:var(--color-chat-bg);padding-top:11px;padding-bottom:11px}
+  html.lg-new .obn-table .obn-dr .obn-dn{font-size:12.6px;font-weight:var(--w-label)}
+  html.lg-new .obn-table .obn-dr td.obn-dc{padding-left:26px}
+  html.lg-new .obn-table .obn-dr.is-done .obn-dn{color:var(--color-quiet)}
+  html.lg-new .obn-dw{text-align:right;white-space:nowrap}
+  html.lg-new .obn-wh{height:28px;padding:0 11px;margin-left:6px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12px;color:var(--color-text);cursor:pointer}
+  html.lg-new .obn-wh.is-on{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
+  html.lg-new .obn-wh:disabled{opacity:.55;cursor:default}
+  html.lg-new .obn-dec{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .obn-dec.is-ok{color:var(--st-green-fg)}
+  html.lg-new .obn-pjl{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:5px 0}
+  html.lg-new .obn-pjl b{margin-left:auto;font-weight:var(--w-label)}
+  html.lg-new .obn-dot{width:8px;height:8px;border-radius:50%;flex:none}
+  html.lg-new .obn-dot.is-ruby{background:var(--st-ruby-dot)}
+  html.lg-new .obn-dot.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .obn-dot.is-green{background:var(--st-green-dot)}
+  html.lg-new .obn-dot.is-gray{background:var(--st-gray-dot)}
   /* Proposed, where the list stands: Jambo's line, the kinds as plain tabs, the table and the item beside it */
   html.lg-new [data-dlg-bare] .dlg-pg-head{display:none}
   html.lg-new [data-dlg-bare] .dlg-pg-body{padding:16px 24px 0}
