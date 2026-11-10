@@ -68,6 +68,9 @@ const PAGES = [
   { k: 'people', view: 'directory', rowSel: '#dir-tbody [data-dir-row]', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
     box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .ctf-hf' },
   /* job 7: Reads. Its three tabs draw the one table; All's pack lines are rows inside the same body */
+  /* job 8: Requests. Its four tabs draw the one table; a tab at 0 steps out */
+  { k: 'requests', view: 'intake', rowSel: '.ikn-page .ikn-table tbody tr', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab',
+    box: '#ikn-q', home: 'open', word: 'supply', wholeSel: '.ikn-page .ikn-table thead th', pageSel: '.ikn-page', facts: '.ikn-page .cun-head .ctf-hf' },
   { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
     box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
 ];
@@ -112,7 +115,10 @@ const PAGES = [
           /* Proposed is left out on purpose: it stands a different thing where the
              list stands and brings its own panel, so it is a whole-page press by
              design, not a rows one. */
-          const b = [...document.querySelectorAll(sel)].find(x => !/is-on/.test(x.className) && !['proposed', 'prop'].includes(x.getAttribute(key)));
+          /* a page whose other tabs are at 0 shows only its lit one (a 0 tab steps out): pressing that is still a
+             rows-only press, and the frame, box and panel must still stand */
+          const all = [...document.querySelectorAll(sel)].filter(x => !['proposed', 'prop'].includes(x.getAttribute(key)));
+          const b = all.find(x => !/is-on/.test(x.className)) || all.find(x => /is-on/.test(x.className));
           if (!b) return null;
           const k = b.getAttribute(key);
           b.click();
