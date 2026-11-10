@@ -179,7 +179,7 @@ const openSettings = async (page, tab) => {
     check('a short password is refused with a red toast (the setup for D13)', await p2.evaluate(() => !!document.querySelector('#toast-root [data-toast-kind="err"]')));
     await p2.fill('#su-pass', 'a-good-password-1');
     await p2.click('#su-go');
-    await until(p2, () => !document.getElementById('su-org') && typeof window.state === 'object' && state.view === 'dashboard', null, 15000);
+    await until(p2, () => !document.getElementById('su-org') && typeof window.state === 'object' && (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 15000);
     await p2.waitForTimeout(800);
     check('D13 Home after a good try carries no red toast from the failed one',
       await p2.evaluate(() => !document.querySelector('#toast-root [data-toast-kind="err"]')));

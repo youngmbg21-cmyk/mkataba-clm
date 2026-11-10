@@ -42,7 +42,7 @@ const check = (name, pass, detail) => {
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2, null, { timeout: 20000 });
     /* signing in lands on the Counter since 17 Oct 2026: measure once it has landed, not while the sign-in screen still covers the bar */
-    await page.waitForFunction(() => !document.body.classList.contains('pre-auth') && state.view === 'dashboard', null, { timeout: 20000 }).catch(() => {});
+    await page.waitForFunction(() => !document.body.classList.contains('pre-auth') && (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, { timeout: 20000 }).catch(() => {});
     /* any language control left in the bar, or anywhere outside Settings › You */
     const switches = () => page.evaluate(() => {
       const bar = document.getElementById('top-header');

@@ -89,9 +89,9 @@ const blocked = [];
       }
 
       /* ---- Q1b · every "/" list's place rows end in "Open ›" (25 Oct 2026, item 1 after the picks): one builder,
-             four lists — Home's box, the Board's, a list page's panel, and every other box's (Settings' Jambo) ---- */
+             three lists — the Board's, a list page's panel, and every other box's (Settings' Jambo) ---- */
       for (const [name, go, box, list, only] of [
-        ['Home', () => setView('counter'), '#igd-input', '#cn-pop'],
+        /* (Home's box went with Home, 10 Nov 2026: the Board's below is where you land) */
         /* the Board's list also carries its own moves (/compare, /trend…), which fill a question: no "Open" there */
         ['the Board', () => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} }, '#igd-input', '#hb-askpop', '[data-hb-pop-kind="place"]'],
         ['Approvals\' panel', () => setView('approvals'), '#jl-q', '[data-jl-pop]'],

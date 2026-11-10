@@ -69,7 +69,7 @@ const BOOK = FIXTURES.concat([
     await page.waitForFunction(n => window.state && state.contracts && state.contracts.length >= n, BOOK.length, { timeout: 20000 });
     /* signing in on a computer lands on the Counter a moment later; turning to
        Explorer before that landing would be undone by it */
-    await until(() => state.view === 'dashboard', null, 10000);
+    await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 10000);
     await page.evaluate(() => { state.aiConfigured = true; setView('dashboard'); hbSetFace('explorer'); });
     const onMap = await until(() => hbFace() === 'explorer' && window.IG && IG.contracts && IG.contracts.length > 0 && !!document.getElementById('igd-input'));
     check('0 Explorer is up, its dock\'s box ready', !!onMap);

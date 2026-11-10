@@ -43,7 +43,7 @@ async function until(page, fn, arg, ms = 8000){
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
     await until(P, () => !!(window.state && state.contracts && state.contracts.length && typeof openNewAgreement === 'function'), null, 20000);
-    const home = async () => { await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); }); await until(P, () => state.view === 'dashboard'); };
+    const home = async () => { await P.evaluate(() => { try { closeModal(); } catch (_){} setView('counter'); }); await until(P, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead'))); };
     const sheet = async () => { await P.evaluate(() => openNewAgreement()); return until(P, () => !!document.querySelector('#na-root.na-one') && state.view === 'dashboard'); };
 
     /* ---- 1 the bar's list stands in front ---- */
@@ -67,7 +67,7 @@ async function until(page, fn, arg, ms = 8000){
     await P.click('#dk-page'); await until(P, () => !(document.getElementById('dk-recent') || { hidden: true }).hidden);
     const home1 = await P.$('#dk-recent [data-dk-counter], #dk-recent .dk-r-home');
     if (home1){ await home1.click(); } else { await P.keyboard.press('Escape'); }
-    check('1d a press inside the list is a press of the list (Home row lands on Home)', !home1 || !!(await until(P, () => state.view === 'dashboard' ? true : null)), home1 ? '' : 'no Home row drawn');
+    check('1d a press inside the list is a press of the list (Home row lands on Home)', !home1 || !!(await until(P, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) ? true : null)), home1 ? '' : 'no Home row drawn');
 
     /* ---- 2 moving away puts the sheet away ---- */
     const away = [

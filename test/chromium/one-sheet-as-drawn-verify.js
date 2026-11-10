@@ -105,7 +105,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       if (!up) return null;
       /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip
          asks (counterAsk) with the box focused as typing leaves it (unfocused, the panel stayed on Overview) */
-      await page.focus('#igd-input'); await page.evaluate(s => caAskAnywhere(s, { all: true }), SAY);
+      await page.focus('#igd-input'); await page.evaluate(s => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(s), SAY);
       return until(() => !!document.getElementById('na-root') && !!document.querySelector('#ig-dock .ca-dr-said'), null, 12000); };
     const SHEET = () => { const panel = document.querySelector('[data-dlg-page]'), head = panel && panel.querySelector('.dlg-pg-head');
       const vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
@@ -312,7 +312,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     await page.evaluate(() => caDraftForm());
     await until(() => document.getElementById('na-root') ? true : null, null, 6000);
     await page.click('#dk-mark');
-    const H17a = await until(() => !document.getElementById('na-root') && state.view === 'dashboard' ? true : null, null, 4000);
+    const H17a = await until(() => !document.getElementById('na-root') && (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) ? true : null, null, 4000);
     await page.evaluate(() => setView('register'));
     await until(() => document.getElementById('ig-dock') ? true : null, null, 6000);
     await page.evaluate(() => caDraftForm());
@@ -321,7 +321,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     await page.click('#dk-mark');
     const asked17 = await until(() => { const b = [...document.querySelectorAll('button')].find(x => x.getClientRects().length && /^Discard my answers$/.test(x.textContent.trim())); return b ? true : null; }, null, 4000);
     await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.getClientRects().length && /^Discard my answers$/.test(x.textContent.trim())); if (b) b.click(); });
-    const H17b = await until(() => !document.getElementById('na-root') && state.view === 'dashboard' ? true : null, null, 4000);
+    const H17b = await until(() => !document.getElementById('na-root') && (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) ? true : null, null, 4000);
     check('17 HA puts the page away first: untyped it goes and Home is in front; typed it asks, and "Discard my answers" lands on Home', !!H17a && !!asked17 && !!H17b, JSON.stringify({ H17a, asked17, H17b }));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {

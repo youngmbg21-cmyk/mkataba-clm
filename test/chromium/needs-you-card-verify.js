@@ -95,12 +95,13 @@ const CONTRACTS = [
     const drawn = await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
     const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#hm-agents [data-cn-need]').length, list: hbNeedsList().length, n: counterNeedsCount(),
       mine: ndRead().you.filter(r => r.y && r.y.k === 'c').length, all: ndRead().n,
-      shown: window.CN_ROWS, cnt: Number((document.querySelector('#hm-agents .cn-cnt') || {}).textContent || 0) }));
+      shown: window.ND_PAGE, cnt: Number(((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').match(/\d+/) || 0) }));
     ok('1a the Counter lists what is owed', drawn && one.rows > 0, JSON.stringify(one));
     /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): Home draws CN_ROWS rows
        (3, round 23 as drawn by lane G — "Show 3 more · …" holds the rest),
        not seven; the number is still the Counter's and the list the book's */
     ok('1b its rows are the checklist\'s own reading over the book (what Jambo prepared for is his row), its number the one reading\'s', book >= 4 && one.list === book && one.cnt === one.n && one.n === one.all && typeof one.shown === 'number' && one.rows === Math.min(one.mine, one.shown), JSON.stringify({ book, ...one }));
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the Board's card, twelve rows a page (ND_PAGE), its head's number */
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
 
     /* ===== 2. JAMBO ON THE BOARD SAYS WHERE IT IS ===== */
@@ -165,7 +166,7 @@ const CONTRACTS = [
 
     /* ===== 6. "needs me" OPENS THE COUNTER ===== */
     await page.evaluate(() => { if (typeof intelAsk === 'function') intelAsk('needs me'); });
-    const back = await until(page, () => state.view === 'dashboard' && !!document.querySelector('#hm-agents.is-landed [data-cn-need]'));
+    const back = await until(page, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) && !!document.querySelector('#hm-agents.is-landed [data-cn-need]'));
     ok('6a the word opens Home and LANDS on Needs you — in view, lit (landOn)', back, await page.evaluate(() => state.view + ' ' + ((document.getElementById('cn-needs') || {}).className || '')));
 
     /* ===== 7. NOTHING WAITING IS SAID, AND THE TAB IS QUIET ===== */

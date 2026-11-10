@@ -65,7 +65,7 @@ const check = (name, pass, detail) => {
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const toExplorer = async () => {
-      await until(() => state.view === 'dashboard', null, 10000);
+      await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 10000);
       await page.evaluate(() => { intel.cam = null; intel.tab = 'map'; intel.dockOpen = true; setView('dashboard'); hbSetFace('explorer'); });
       await until(() => hbFace() === 'explorer' && window.IG && IG.hubs && IG.hubs.length >= 1 && !!document.getElementById('igd-input'));
     };

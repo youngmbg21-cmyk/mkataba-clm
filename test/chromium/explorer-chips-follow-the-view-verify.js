@@ -72,7 +72,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 5, null, { timeout: 15000 });
     /* signing in lands on Home's counter first; Explorer is opened once that has settled */
-    await until(() => state.view === 'dashboard');
+    await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')));
     await page.waitForTimeout(1500);
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.igViews'); } catch (_) {} intel.cam = null; intel.tab = 'map'; setView('dashboard'); hbSetFace('explorer'); });
     await until(() => hbFace() === 'explorer' && window.IG && IG.hubs && IG.hubs.length >= 2 && !!document.getElementById('igd-input'));

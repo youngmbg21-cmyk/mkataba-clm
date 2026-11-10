@@ -54,8 +54,8 @@ const ok = (name, good, detail) => {
     const way = await page.evaluate(() => ({ menu: getComputedStyle(document.getElementById('side-nav')).display, place: (caReadPlace('brain') || {}).place,
       slash: caSlashRows('', { max: 99 }).map(r => r.k) }));
     ok('1a the left menu is gone; the Brain is a place in Jambo\'s "/" list', way.menu === 'none' && way.place === 'brain' && way.slash.includes('brain'), JSON.stringify(way));
-    ok('1c HaTi opens on the Counter', await page.evaluate(() => state.view === 'dashboard'));
-    await page.evaluate(w => { setView('counter'); caAskAnywhere(w, { all: true }); }, 'brain');
+    ok('1c HaTi opens on the Counter', await page.evaluate(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead'))));
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'brain');
     await page.waitForTimeout(2200);
     const onPage = await page.evaluate(() => state.view === 'brain' && !!document.getElementById('br-cv'));
     ok('1d pressing it opens the Brain page', onPage);

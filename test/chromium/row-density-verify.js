@@ -147,7 +147,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     return !!t && t.getAttribute('data-reg-density') === 'compact'
         && t.style.getPropertyValue('--reg-row-h') === '36px';
   }));
-  /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); caAskAnywhere(w, { all: true }); }, 'negotiations');
+  /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'negotiations');
   await page.waitForTimeout(1000);
   const neg = await page.evaluate(() => {
     const t = document.querySelector('.reg-table');

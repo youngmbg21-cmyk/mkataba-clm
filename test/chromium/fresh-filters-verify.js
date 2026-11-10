@@ -150,7 +150,7 @@ function book(){
     const noSeeAll = await page.evaluate(() => !document.querySelector('[data-hm-go="needsyou"]'));
     check('A2 Home has no See all onto a named set any more', noSeeAll);
     /* the rail's Contracts is the fold's opener since its item went (step 7) */
-    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(() => { setView('counter'); caAskAnywhere('contracts', { all: true }); }).catch(() => {});
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(() => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })('contracts'); }).catch(() => {});
     await page.waitForTimeout(900);
 
     /* ================ B. STALE PAGE FILTERS UNDER THE STAGE BAR ============ */

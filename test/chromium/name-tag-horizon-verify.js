@@ -69,12 +69,7 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       return { drawn: true, agent: row.getAttribute('data-nd-agent'), who: !!row.querySelector('.nd-c-who'), title: head ? head.textContent : '' };
     });
     ok('1 the row is the renewal agent\'s, with no who column', !!tag && tag.drawn && tag.agent === 'renew' && !tag.who && !!tag.title, JSON.stringify(tag));
-    await page.evaluate(() => setView('counter'));
-    await page.waitForTimeout(900);
-    /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): on Home a row leads with its agreement; no step mark */
-    const mark = await page.evaluate(() => { const r = document.querySelector('#hm-agents .nd-r [data-nd-look]'); const row = r && r.closest('.nd-r'); if (!row) return null;
-      return { step: !!row.querySelector('.nd-step'), named: row.classList.contains('nd-named'), t: (row.querySelector('.nd-t') || {}).textContent || '' }; });
-    ok('1c on Home Jambo\'s row leads with its agreement, no step mark', !!mark && !mark.step && mark.named && !!mark.t, JSON.stringify(mark));
+    /* 1c RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's own row went with Home */
     await page.evaluate(() => setView('dashboard'));
 
     /* ════ 2. THE DROPDOWN'S CHOICES ════ */

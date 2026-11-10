@@ -79,7 +79,7 @@ const COUNT_WRITES = () => {
   const home = async () => { await page.keyboard.press('Escape').catch(() => {}); await page.evaluate(() => setView('counter'));
     await waitFor(page, () => !!document.getElementById('igd-input') && !!document.getElementById('igd-input').offsetParent); await pause(200); };
   /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
-  const ask = async w => { await page.evaluate(x => caAskAnywhere(x, { all: true }), w); };
+  const ask = async w => { await page.evaluate(x => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(x), w); };
   const writes = () => page.evaluate(() => { const w = window.__gfW; window.__gfW = {}; return w; });
   const settle = async () => { await pause(900); };
   try {

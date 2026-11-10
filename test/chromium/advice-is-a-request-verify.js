@@ -120,7 +120,7 @@ const READ = () => {
       { door: s.doorN, intake: s.intakeN, advice: s.adviceN });
 
     /* ---- 2 · REQUESTS OPENS ON CONTRACTS ---- */
-    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); caAskAnywhere(w, { all: true }); }, 'requests');
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'requests');
     await until(page, () => state.view === 'intake' && !!document.querySelector('#content [data-lh-seat="intake"] [role="tablist"]'));
     s = await page.evaluate(READ);
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is

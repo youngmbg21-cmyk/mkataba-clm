@@ -73,7 +73,7 @@ const check = (name, pass, detail) => {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-N7'), null, { timeout: 15000 });
-    await until(() => state.view === 'dashboard', null, 10000);
+    await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 10000);
     await page.evaluate(() => { intel.cam = null; intel.tab = 'map'; intel.dockOpen = true; setView('dashboard'); hbSetFace('explorer'); });
     await until(() => hbFace() === 'explorer' && window.IG && IG.hubs && IG.hubs.length >= 3 && !!document.getElementById('igd-input'));
 

@@ -140,10 +140,10 @@ const check = (name, pass, detail) => {
         hints: document.querySelectorAll('.jb-hint, .cn-hint, #ai-hint').length, perch: document.querySelectorAll('.jb-perch, .jb-bird').length,
         chip: chip ? { b: cs.borderTopWidth, bg: cs.backgroundColor, deco: cs.textDecorationLine } : null };
     });
-    check('4a Home\'s question reads from the left, in the serif at 500, 28px', home.align === 'left' && /^"?Source Serif 4/.test(home.face) && home.w === '500' && home.size === '28px', JSON.stringify(home));
-    check('4b the ✦ mark stands over the question; no bird anywhere on a computer', home.mark && home.birds === 0, JSON.stringify(home));
+    /* 4a, 4d RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's question and its chips went with
+       Home; what stays is asked of every page: no bird, no hint line, no perch */
+    check('4b no bird anywhere on a computer', home.birds === 0, JSON.stringify(home));
     check('4c no hint line under the box, no perch', home.hints === 0 && home.perch === 0, JSON.stringify(home));
-    check('4d a suggestion is a link: no edge, no ground, underlined', !!home.chip && home.chip.b === '0px' && /rgba\(0, 0, 0, 0\)|transparent/.test(home.chip.bg) && /underline/.test(home.chip.deco), JSON.stringify(home.chip));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(400); await page.screenshot({ path: path.join(OUT, `home-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
 
@@ -307,10 +307,11 @@ const check = (name, pass, detail) => {
        Every claim off the real page. RED AT THE PARENT: all of them. */
     const GREY = 'rgb(240, 240, 243)', INK = 'rgb(29, 29, 31)';
     const pill = r => parseFloat(r) >= 100;
-    await page.evaluate(() => { if (typeof deskGoCounter === 'function') deskGoCounter(); else setView('counter'); });
-    await until(() => !!document.querySelector('#cn-page .cn-ask .jb-card'));
-    const hm = await page.evaluate(() => { const b = [...document.querySelectorAll('#cn-page .ui-btn')].find(x => !x.classList.contains('ui-btn-primary') && !x.classList.contains('ui-btn-plain') && x.getBoundingClientRect().width);
-      const bs = b && getComputedStyle(b), jb = document.querySelector('#cn-page .cn-ask .jb-card'), js = jb && getComputedStyle(jb);
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): measured on the Board, where you land — its Needs you buttons and Jambo's box */
+    await page.evaluate(() => { if (typeof deskGoCounter === 'function') deskGoCounter(); else setView('dashboard'); });
+    await until(() => !!document.querySelector('#ig-dock .jb-card') && !!document.querySelector('#hm-agents .ui-btn'));
+    const hm = await page.evaluate(() => { const b = [...document.querySelectorAll('#hm-agents .ui-btn')].find(x => !x.classList.contains('ui-btn-primary') && !x.classList.contains('ui-btn-plain') && x.getBoundingClientRect().width);
+      const bs = b && getComputedStyle(b), jb = document.querySelector('#ig-dock .jb-card'), js = jb && getComputedStyle(jb);
       return { ground: getComputedStyle(document.getElementById('app-shell')).backgroundColor, btn: bs ? { r: bs.borderTopLeftRadius, bg: bs.backgroundColor, edge: bs.borderTopColor } : null,
         jb: js ? { r: js.borderTopLeftRadius, img: js.backgroundImage.slice(0, 240), edge: js.borderTopColor } : null }; });
     check('12a the page\'s ground is the soft cool grey #F5F5F7', hm.ground === 'rgb(245, 245, 247)', hm.ground);

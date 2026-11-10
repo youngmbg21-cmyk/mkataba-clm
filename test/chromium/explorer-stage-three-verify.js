@@ -81,7 +81,7 @@ const check = (name, pass, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-W7'), null, { timeout: 15000 });
-    await until(() => state.view === 'dashboard', null, 10000);
+    await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 10000);
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.igViews'); } catch (_) {} state.aiConfigured = true; intel.cam = null; intel.tab = 'map'; setView('dashboard'); hbSetFace('explorer'); });
     await until(() => hbFace() === 'explorer' && window.IG && IG.hubs && IG.hubs.length >= 3 && !!document.getElementById('igd-input'));
     await page.evaluate(() => igSetView(0)); await settle(0);

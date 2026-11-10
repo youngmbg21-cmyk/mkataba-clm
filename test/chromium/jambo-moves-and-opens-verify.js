@@ -89,7 +89,7 @@ const BODY = TEXT.split('\n\n').map(p => /^\d+\./.test(p) ? `<h2>${p}</h2>` : `<
       const box = await until(s => { const el = document.querySelector(s); return el && el.getBoundingClientRect().width > 0; }, sel, 8000);
       if (!box) return false;
       /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
-      if (sel === '#igd-input'){ await page.evaluate(w => caAskAnywhere(w, { all: true }), words); return true; }
+      if (sel === '#igd-input'){ await page.evaluate(w => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w), words); return true; }
       /* RE-PINNED 28 Oct 2026 ("Door above the box"): the panel's box too, asked as a chip asks */
       await page.fill(sel, words); await chipEnter(page, sel); return true; };
     const face = () => until(() => state.panelOpen && typeof panelFace === 'function' ? panelFace() : null, null, 5000);
