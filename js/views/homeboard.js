@@ -7585,7 +7585,7 @@ function hbApplyFace(){
   /* the Calendar tab draws the calendar into its own cover over the stage */
   const cal = document.getElementById('hb-cal');
   if (cal){ cal.hidden = s.face !== 'calendar';
-    if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar(); } catch (_){}
+    if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar({ fromFace: true }); } catch (_){}  /* the panel Home's opening painted a moment ago is not painted again (the calendar's speed, 10 Nov 2026) */
     else if (s.face !== 'calendar') cal.innerHTML = ''; }
 }
 /* Home on the desktop. The page is Explorer's (renderIntel draws it with
