@@ -1690,7 +1690,7 @@ function igRecipeNow(){
     floorsBy:intel.floorsBy||null, columnsBy:intel.columnsBy||null, colourBy:intel.colourBy||null, sizeBy:intel.sizeBy||null,
     labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, view:igbCam().view,
     names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, shadeBy:intel.shadeBy||null, lobeShade:intel.lobeShade||null, lobeSize:intel.lobeSize||null, tlUntil:intel.tlUntil||null, asOf:intel.asOf||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
-    bundles:Array.isArray(intel.bundles)?intel.bundles.map(x=>({ ...x })):null, edgeNames:intel.edgeNames===true||null, lens:intel.lens||null, rv:IG_RECIPE_V };
+    bundles:Array.isArray(intel.bundles)?intel.bundles.map(x=>({ ...x })):null, edgeNames:intel.edgeNames===true||null, lens:intel.lens||null, groupOrder:intel.groupOrder?{ ...intel.groupOrder }:null, rv:IG_RECIPE_V };
 }
 /* THE RECIPE'S EDITION. A place kept by an older edition is not put back:
    the map lands on its starting view ONCE (Young, 4 Oct 2026 — a map left
@@ -1723,6 +1723,7 @@ function igRecipeSet(r){
   intel.cellOpen=(r.cellOpen&&typeof r.cellOpen==='object')?{ ...r.cellOpen }:{};
   intel.bundles=Array.isArray(r.bundles)&&r.bundles.length?r.bundles.filter(x=>x&&x.q).slice(0,IG_BUNDLES_MAX).map(x=>({ q:String(x.q), label:String(x.label||x.q) })):null;
   intel.edgeNames=r.edgeNames===true?true:null;
+  intel.groupOrder=r.groupOrder?igGroupOrderClean(r.groupOrder):null;
   intel.lens=IG_LENSES.includes(r.lens)&&igLensMay(r.lens)?r.lens:null; igLensBarPaint();
   intel.walk=null;
   igSetView(r.view==null?igbCam().view:r.view);
@@ -2018,9 +2019,9 @@ function igTopIds(n, by, per, base, dir){
    the 5 biggest contracts IN EACH stream): the groups ranked by their total, the N biggest kept whole, the rest said by
    name. Only the groupings a person names as things — streams, parties, stages, types, owners. */
 const IG_TOPG_KEYS=['folder','counterparty','status','kind','owner'];
-const IG_TOPG_BY=['value','obligations'];
+const IG_TOPG_BY=['value','obligations','count'];
 function igTopGroups(n, by, per, base, dir){
-  const read=IG_TOP_BY[IG_TOPG_BY.includes(by)?by:'value'], tot={}, ids={};
+  const read=by==='count'?(()=>1):IG_TOP_BY[IG_TOPG_BY.includes(by)&&IG_TOP_BY[by]?by:'value'], tot={}, ids={};
   (base||state.contracts||[]).forEach(c=>{ if(!c||c.archived) return; const g=groupLabelOf(c,per,null);
     (ids[g]||(ids[g]=[])).push(c.id); const v=read(c); tot[g]=(tot[g]||0)+(v!=null&&isFinite(v)?Number(v):0); });
   const order=Object.keys(ids).sort((a,b)=>(dir==='up'?tot[a]-tot[b]:tot[b]-tot[a])||a.localeCompare(b));
@@ -2036,15 +2037,17 @@ function igTopClean(x){
   const groups=!!x.groups&&IG_TOPG_KEYS.includes(per||intel.groupBy);
   if(groups&&!per) per=intel.groupBy;
   const by=groups?(IG_TOPG_BY.includes(x.by)?x.by:'value'):(IG_TOP_BY[x.by]?x.by:'value');
-  return { n, by, per, groups, dir };
+  /* …AND THE N BIGGEST IN EACH OF THEM ("the biggest 3 value streams and the top 2 contracts in each") */
+  const e=groups&&x.each&&typeof x.each==='object'&&Number(x.each.n)>0?{ n:Math.max(1,Math.min(200,Math.round(Number(x.each.n)))), by:IG_TOP_BY[x.each.by]?x.each.by:'value' }:null;
+  return Object.assign({ n, by, per, groups, dir }, e?{ each:e }:{});
 }
-function igTopSame(a,b){ const A=igTopClean(a), B=igTopClean(b); return !!A&&!!B&&A.n===B.n&&A.by===B.by&&A.groups===B.groups&&(A.per||null)===(B.per||null)&&A.dir===B.dir; }
+function igTopSame(a,b){ const A=igTopClean(a), B=igTopClean(b); return !!A&&!!B&&A.n===B.n&&A.by===B.by&&A.groups===B.groups&&(A.per||null)===(B.per||null)&&A.dir===B.dir&&JSON.stringify(A.each||null)===JSON.stringify(B.each||null); }
 function igTopShape(t){ return !t?null:t.groups?'groups':t.per?'per':'all'; }
 function igGroupsWord(k){ return i18t('int_gp_'+k); }
 /* the set's ONE label (the chip over the map and the line under it) */
 function igTopLabel(t){
   if(!t) return '';
-  if(t.groups) return i18t(t.dir==='up'?'int_topg_small_label':'int_topg_label',{ n:t.n, gs:igGroupsWord(t.per), x:igSortWord(t.by) });
+  if(t.groups) return i18t(t.dir==='up'?'int_topg_small_label':'int_topg_label',{ n:t.n, gs:igGroupsWord(t.per), x:igSortWord(t.by) })+(t.each?' · '+i18t('int_topg_each',{ n:t.each.n, x:igSortWord(t.each.by) }):'');
   return i18t(t.dir==='up'?'int_bottom_label':'int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
 }
 /* the groups left out, by name — a cut is a fact (three named, the rest counted) */
@@ -2056,18 +2059,43 @@ function igTopHiddenSaid(hidden){
 function igTopRun(t, base){
   if(t.groups){ const G=igTopGroups(t.n,t.by,t.per,base,t.dir);
     if(intel.groupBy!==t.per&&intel.columnsBy!==t.per&&intel.floorsBy!==t.per){ intel.groupBy=t.per; intel.groups=null; igPaintGroupSelect(); }
+    /* the groups stand in their ranked order too */
+    intel.groupOrder={ by:t.by==='count'?'count':'value', dir:t.dir==='up'?'up':'down' };
+    if(t.each){ const keep=new Set(G.ids); return { ids:igTopIds(t.each.n,t.each.by,t.per,(base||state.contracts||[]).filter(c=>keep.has(c.id)),'down'), hidden:G.hidden }; }
     return { ids:G.ids, hidden:G.hidden }; }
   return { ids:igTopIds(t.n,t.by,t.per,base,t.dir), hidden:[] };
 }
 /* the grouping named right after a top-N's number, or null: "top 5 folders", "5 biggest value streams", "topp 3
    kunderna" — never a grouping word that only describes contracts ("supplier contracts", "customer deals") */
-const IG_TOPG_HEAD_RE=/\b(?:top|topp|biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta|de)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:(?:biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+)?(.+)$/;
+const IG_TOPG_HEAD_RE=/\b(?:top|topp|bottom|biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta|de)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:(?:biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+)?(.+)$/;
 const IG_TOPG_HEAD2_RE=/(?:^|\s)(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+(.+)$/;
+const IG_TOPG_ONE_RE=/\b(?:which|what)\s+(.+?)\s+(?:has|have|holds?|carr(?:y|ies)|is|are)\s+(?:the\s+)?(?:most|biggest|largest|highest|fewest|smallest|lowest)\b|\b(?:the\s+)?(?:biggest|largest|smallest)\s+(value stream|stream|folder|counterparty|customer|supplier|party|stage|owner|contract type)\b/;
+function igTopOneGroup(text){
+  const m=_igNorm(text).match(IG_TOPG_ONE_RE); if(!m) return null;
+  const f=igFactFind(m[1]||m[2]); return f&&IG_TOPG_KEYS.includes(f.key)&&!/s$/.test(f.word)?f:null;
+}
 function igTopGroupsWord(text){
   const t=_igNorm(text), m=t.match(IG_TOPG_HEAD_RE)||t.match(IG_TOPG_HEAD2_RE); if(!m) return null;
   const f=igFactFind(m[1]); if(!f||!IG_TOPG_KEYS.includes(f.key)) return null;
   if(/^(?:contracts?|deals?|agreements?|avtal(?:en)?|kontrakt(?:en)?)\b/.test(m[1].replace(/^(?:(?:the|their|its|our|a|de|dess|sina|sin|våra|vår)\s+)+/,'').slice(f.len).trim())) return null;
   return f;
+}
+/* THE GROUPS IN THE ORDER ASKED: by total value, by how many, or by name; biggest first unless asked the other way */
+function igGroupOrderClean(o){ o=o||{}; return { by:['value','count','name'].includes(o.by)?o.by:'value', dir:o.dir==='up'?'up':'down' }; }
+function igGroupOrderSaid(o){ o=igGroupOrderClean(o); return i18t('int_go_said_'+o.by+'_'+o.dir); }
+/* "rank them from left to right by highest to lowest value", "order the columns from biggest to smallest", "sort the
+   groups by total value", "rank the streams by number of contracts": an ORDER of the groups, never a top N — a
+   direction or a grouping named beside the verb, and no number */
+const IG_GO_VERB_RE=/\b(?:rank|order|sort|arrange|line (?:them )?up|rangordna|sortera|ordna)\b/;
+const IG_GO_DIR_RE=/\b(?:left to right|right to left|(?:biggest|largest|highest|most|smallest|lowest|fewest|least) to (?:the )?(?:biggest|largest|highest|most|smallest|lowest|fewest|least)|ascending|descending|a to z|alphabetical(?:ly)?|vänster till höger|störst till minst|minst till störst)\b/;
+const IG_GO_NOUN_RE=/\b(?:groups?|columns?|lanes?|buckets?|streams?|value streams?|folders?|parties|counterparties|customers|suppliers|stages|types|owners|grupper(?:na)?|kolumner(?:na)?)\b/;
+function igGroupOrderRead(q){
+  const t=_igNorm(q); if(!IG_GO_VERB_RE.test(t)) return null;
+  if(/\b(?:top|bottom|topp)\s*\d+|\b\d+\s+(?:biggest|largest|smallest|highest|lowest)\b/.test(t)) return null;
+  if(!IG_GO_DIR_RE.test(t)&&!IG_GO_NOUN_RE.test(t)) return null;
+  const by=/\b(?:number of|count|how many|most contracts|antal)\b/.test(t)?'count':/\b(?:name|a to z|alphabet\w*|namn)\b/.test(t)?'name':'value';
+  const up=/\b(?:(?:smallest|lowest|fewest|least) to|ascending|minst till störst|right to left)\b/.test(t)&&!/\b(?:biggest|largest|highest|most) to\b/.test(t);
+  return [{ groupOrder:{ by, dir:by==='name'?(up?'up':'down'):(up?'up':'down') } }];
 }
 function igSortWord(k){ return i18t('int_sort_'+k); }
 /* ---- READING A SENTENCE INTO RECIPE CHANGES — free, in the browser ----
@@ -2374,6 +2402,9 @@ function igRecipeParse(qRaw){
   { const t=igUntilRead(q0); if(t) return { acts:t, rest:'' }; }
   { const t=igSoleRead(q0); if(t) return { acts:t, rest:'' }; }
   { const t=igWhoFactRead(q); if(t) return { acts:t, rest:'' }; }
+  /* a grouping asked with its order: "group by counterparty and sort the groups by total value" */
+  { const go=igGroupOrderRead(q); if(go){ const m=q.match(/^(.+?)\s+(?:and|och)\s+(?:then\s+)?(?=(?:rank|order|sort|arrange|rangordna|sortera|ordna)\b)/); const head=m?igRecipeParse(m[1]):null;
+      return { acts:(head&&head.acts.length&&!head.rest?head.acts:[]).concat(go), rest:'' }; } }
   /* follow-ups: narrow what is showing rather than start again */
   let follow=false;
   const fm=q.match(/^(?:and|also|now|then|plus|of (?:those|these|them)|among (?:those|these|them)|from (?:those|these)|och|också|nu|sedan|av (?:dem|dessa)|bland (?:dem|dessa))\b[\s,]*(?:only\s+|just\s+|bara\s+|endast\s+)?/);
@@ -2414,12 +2445,14 @@ function igRecipeParse(qRaw){
     /* "what is the biggest dot", "the largest deal": ONE asked for, said by name (stage 3d) — a plural or a number keeps the top ten */
     const one=!/\b\d+\b/.test(rest)&&!nw2&&IG_TOP_ONE_RE.test(rest);
     const n=one?1:Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
-    const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':'value';
+    const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':/\b(?:number of|count|most contracts|how many|antal|flest)\b/.test(rest)?'count':'value';
     const perM=rest.match(/\b(?:in each|per|for each|within each|by each|i varje|för varje|per)\s+(.+)$/); const per=perM?igFactFind(perM[1]):null;
     /* THE N BIGGEST GROUPS: a grouping named right after the number ("top 5 folders by value", "the 3 biggest
        customers", "de 5 största värdeströmmarna") keeps those groups whole; "top 5 supplier contracts" stays contracts */
     const gw=!perM?igTopGroupsWord(rest):null;
-    acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by:gw&&!IG_TOPG_BY.includes(by)?'value':by, per:gw?gw.key:per?per.key:null }, gw?{ groups:true }:{}, up&&by==='value'?{ dir:'up' }:{}) });
+    /* "which counterparty has the most contracts", "the biggest value stream": ONE group asked for (a singular, no number) */
+    const gOne=!gw&&!perM&&!/\b\d+\b/.test(rest)&&!nw2?igTopOneGroup(rest):null;
+    { const G=gw||gOne; acts.push({ top:Object.assign({ n:gOne?1:Math.max(1,Math.min(200,n)), by:G?(IG_TOPG_BY.includes(by)?by:'value'):(by==='count'?'value':by), per:G?G.key:per?per.key:null }, G?{ groups:true }:{}, up&&by==='value'?{ dir:'up' }:{}) }); }
     rest=rest.replace(/\b(?:in each|per|for each|within each|i varje|för varje)\s+.+$/,'');
   }
   /* sort */
@@ -2544,7 +2577,7 @@ function igViewFind(name){ const n=_igNorm(name), L=igViewsRead().slice().revers
    grouped by value stream, small dots, names on, nothing folded by a person,
    no bundle, no names on the edges. The lenses are "everything"'s. */
 function igLandingSet(){
-  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','shadeBy','lobeShade','lobeSize','tlUntil','asOf','bundles','edgeNames','foldWant','lens'].forEach(k=>{ intel[k]=null; });
+  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','shadeBy','lobeShade','lobeSize','tlUntil','asOf','bundles','edgeNames','foldWant','lens','groupOrder'].forEach(k=>{ intel[k]=null; });
   intel.dotScale=1; intel.groupBy='folder'; intel.groups=null; intel.folds={}; intel.cellOpen={};
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
@@ -2675,6 +2708,10 @@ function igRecipeRun(parsed, opts){
       igPaintGroupSelect(); said.push(i18t('int_did_ungroup',{ x:graphGroupingWord('folder') })); changed=true; continue; }
     /* a grouping asked with its view ("floors grouped by customer") shows on that view, unless the floors were named too */
     if(a.view!=null){ igSetView(a.view); if(!acts.some(x=>x.role==='floors'||x.role==='columns')&&acts.some(x=>x.role==='group')) igGroupShows(intel.groupBy); changed=true; continue; }
+    if(a.groupOrder){ intel.groupOrder=igGroupOrderClean(a.groupOrder);
+      /* left to right is a thing of columns: the brain and the wiring have none, so the grid shows it */
+      if(igbCam().view<=1) igSetView(3);
+      said.push(igGroupOrderSaid(intel.groupOrder)+'.'); changed=true; continue; }
     if(a.sort){ intel.sortBy=a.sort; said.push(i18t('int_says_sort',{ x:igSortWord(a.sort) }).replace(/^./,ch=>ch.toUpperCase())+'.'); changed=true; continue; }
     if(a.narrow){ const n=a.narrow, label=n.conds.map(x=>x.label).join(' · ');
       const hit=igIdsWhere(n.conds);
@@ -2691,7 +2728,7 @@ function igRecipeRun(parsed, opts){
       /* one top N at a time: a new one (or a chip's re-read) replaces the last, never narrows inside it */
       intel.lenses=intel.lenses.filter(l=>!l.top).filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter', top:t });
       { const L=intel.lenses.find(l=>l.on&&l.top===t); if(L) L.topBase=new Set(base.map(c=>c.id)); }
-      intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label+(run.hidden.length?' · '+igTopHiddenSaid(run.hidden):''); list=ids; listTitle=label; changed=true;
+      if(IG_TOP_BY[t.by]) intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label+(run.hidden.length?' · '+igTopHiddenSaid(run.hidden):''); list=ids; listTitle=label; changed=true;
       /* one asked for is named: the dot left is said by its name and number, not only counted */
       if(t.n===1&&ids.length===1){ const c1=getContract(ids[0]); if(c1) lensNote+=': '+[c1.name,c1.counterparty].filter(Boolean).join(' · ')+' ('+((typeof caRef==='function'&&caRef(c1))||c1.id)+')'; }
       /* CHART FIRST on the board (Young, 3 Oct 2026): the list arrives in its
@@ -2777,7 +2814,7 @@ function igLookActs(look){
      only what was asked"); what it left out goes back to the AI ONCE, named; still missing, the reader is asked with
      two buttons, the free reading first (igChoicesTwoWays) — never a guess. */
 const IG_STEP_DOS=['lens','dateLine','dateLineOff','asOf','asOfOff','compare','whatIf','single','families','linked',
-  'undo','reset','showAll','save','open','sort','cliff','yourDay','explain','walk','outliers'];
+  'undo','reset','showAll','save','open','sort','cliff','yourDay','explain','walk','outliers','orderGroups'];
 const IG_STEP_FIRST=['undo','reset','showAll'];
 const IG_SORT_KEYS=['value','payterms','obligations','renewal'];
 /* a party named in words, the way the what-if reader finds one */
@@ -2818,6 +2855,7 @@ function igStepActs(steps){
     if(k==='open'){ if(!s.name){ unread.push(k); return; } acts.push({ open:String(s.name).trim() }); return; }
     if(k==='sort'){ if(!IG_SORT_KEYS.includes(s.by)){ unread.push(String(s.by||k)); return; } acts.push({ sort:s.by }); return; }
     if(k==='cliff'){ acts.push({ role:'group', fact:'decision' }); return; }
+    if(k==='orderGroups'){ acts.push({ groupOrder:igGroupOrderClean({ by:s.by, dir:s.dir }) }); return; }
     acts.push({ door:k });
   });
   return { acts, unread };
@@ -2856,7 +2894,7 @@ function igActKind(a){
   if(a.until) return a.until==='none'?'dateLineOff':'dateLine';
   if(a.asOf) return a.asOf==='none'?'asOfOff':'asOf'; if(a.asOfNo) return 'asOf';
   if(a.compare) return 'compare'; if(a.whatIf) return 'whatIf'; if(a.sole) return 'single'; if(a.families) return 'families';
-  if(a.linked||a.linkedParty) return 'linked'; if(a.top) return 'top'; if(a.sort) return 'sort'; if(a.narrow) return 'narrow';
+  if(a.linked||a.linkedParty) return 'linked'; if(a.groupOrder) return 'orderGroups'; if(a.top) return 'top'; if(a.sort) return 'sort'; if(a.narrow) return 'narrow';
   if(a.role) return 'role:'+a.role; if(a.view!=null) return 'view:'+IGB_VIEWS[a.view];
   if('names' in a||a.dots||a.small||a.fold||a.bundle||a.unbundle||'edgeNames' in a||a.ungroup||a.bubbleBy||a.shadeBy||a.lobeShade||a.lobeSize) return 'look';
   return null;
@@ -2939,6 +2977,7 @@ function igActWord(a){
   if(k==='save') return i18t('int_step_save',{ x:a.save||'' }).trim();
   if(k==='open') return i18t('int_step_open',{ x:a.open });
   if(k==='sort') return i18t('int_says_sort',{ x:igSortWord(a.sort) }).replace(/^./,c=>c.toUpperCase());
+  if(k==='orderGroups') return igGroupOrderSaid(a.groupOrder);
   if(k==='top') return i18t(a.top.dir==='up'?'int_bottom_label':'int_top_label',{ n:a.top.n, x:igSortWord(a.top.by) });
   if(k==='narrow') return a.narrow.conds.map(x=>x.label).join(' · ');
   if(k.startsWith('role:')) return igRoleSays(a.role,a.fact).replace(/\.$/,'');
@@ -2970,6 +3009,7 @@ function graphWhereLabel(where){
   const money=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(Number(v)):String(v);
   const out=[];
   ['counterparty','folder','status','kind'].forEach(k=>{ const v=L(where[k]); if(v.length) out.push(v.join(', ')); });
+  if(where.side==='supplier'||where.side==='customer') out.push(i18t('int_wl_side_'+where.side));
   if(Number(where.valueAbove)>0) out.push(i18t('int_wl_above',{ x:money(where.valueAbove) }));
   if(Number(where.valueBelow)>0) out.push(i18t('int_wl_below',{ x:money(where.valueBelow) }));
   if(Number(where.expiringWithinDays)>0) out.push(i18t('int_wl_ends',{ n:Number(where.expiringWithinDays) }));
@@ -3016,6 +3056,28 @@ function igSentencesOf(text){
   return out;
 }
 /* A STRAY QUOTE MARK at the end (or start) of Jambo's sentence — one with no partner — is not his words */
+/* A SENTENCE ABOUT WHAT IS NOT ON THE MAP IS NOT PRINTED (the analyst exam, 10 Nov 2026: the map kept Sales,
+   Warehousing and Manufacturing and the sentence praised Procurement; "Juno and Kevian each appear 10 times" over
+   12 and 9): with a set on the map, a sentence naming a group the set left out goes; so does one stating a count of
+   contracts HaTi did not draw (the book, what is shown, one group's size). */
+function igMapSentenceHonest(text, total){
+  const t=String(text||'').trim(); if(!t) return '';
+  let shown=null, all=null, drawn=null;
+  try{ const act=intelActive(), key=intel.columnsBy||intel.groupBy, own=key===intel.groupBy?intel.groups:null;
+    if(act.ids&&act.action==='filter'&&key&&key!=='custom'){ shown=new Set(); all=new Set();
+      (state.contracts||[]).forEach(c=>{ if(!c||c.archived) return; const g=groupLabelOf(c,key,own); all.add(g); if(act.ids.has(c.id)) shown.add(g); }); }
+    drawn=igCountsDrawn(total); }catch(_){ shown=null; }
+  const names=l=>[String(l)].concat(String(l).split(/\s*(?:&|\band\b)\s*/)).map(x=>x.trim()).filter(x=>x.length>=5);
+  const gone=shown?[...all].filter(l=>!shown.has(l)).flatMap(names).filter(n=>![...shown].some(sl=>names(sl).includes(n))):[];
+  const ok=snt=>{
+    const low=snt.toLowerCase();
+    if(gone.some(n=>low.includes(n.toLowerCase()))) return false;
+    if(drawn){ const re=/\b(\d[\d,.]*)\s+(?:live\s+|signed\s+|open\s+)?(?:contracts?|agreements?|deals?|times)\b/gi; let m;
+      while((m=re.exec(snt))){ const n=Number(String(m[1]).replace(/[^\d]/g,'')); if(isFinite(n)&&!drawn.has(n)) return false; } }
+    return true; };
+  /* line by line, so a list stays a list */
+  return igStrayQuoteOff(t.split('\n').map(line=>igSentencesOf(line).filter(x=>!x.trim()||ok(x)).join(' ')).join('\n').replace(/\n{3,}/g,'\n\n').trim());
+}
 function igStrayQuoteOff(text){
   let t=String(text||'');
   const odd=x=>((x.match(/"/g)||[]).length%2)===1;
@@ -3181,8 +3243,9 @@ function igMapReadNext(t){
   if(igbCam().view!==4) out.push({ label:i18t('int_rd_nx_time'), acts:[{ view:4 }] });
   return out.slice(0, IG_MR_NEXT_MAX);
 }
-function igMapReadHtml(m, i){
+function igMapReadHtml(m, i, opts){
   const R=m.mapRead; if(!R||!R.top) return '';
+  const part=(opts&&opts.part)||null;
   const t=R.top, live=igMapReadLive(i), open=live?intel.mrOpen:null, caret=IG_MR_CARET;
   const tick='<b aria-hidden="true">✓</b>';
   const item=(part,v,word,cur)=>`<button type="button" role="menuitemradio" aria-checked="${cur}" data-ig-mrset="${i}:${part}:${igEsc(v)}"><span>${igEsc(word)}</span>${cur?tick:''}</button>`;
@@ -3203,7 +3266,10 @@ function igMapReadHtml(m, i){
   const chips=[chip('keep',i18t('int_rd_keep'),igKeepWords(t,igTopShape(t),false),R.doubt==='keep'), chip('by',i18t('int_rd_by'),igSortWord(t.by),R.doubt==='by')];
   if(R.word&&(t.groups||t.per)) chips.push(chip('word','"'+R.word.say+'"',igGroupsWord(R.word.key),false));
   const next=live?igMapReadNext(t):[];
-  return `<div class="hb-rd${live?'':' is-still'}" role="group" data-ig-mr-turn="${i}" aria-label="${igEsc(i18t('int_rd_label'))}">${chips.join('')}${next.length?`<div class="ig-mr-next">${next.map((x,j)=>`<button type="button" class="ui-link" data-ig-mrnext="${i}:${j}">${igEsc(x.label)}</button>`).join('')}</div>`:''}</div>`;
+  const nextHtml=next.map((x,j)=>`<button type="button" class="ui-link" data-ig-mrnext="${i}:${j}">${igEsc(x.label)}</button>`).join('');
+  if(part==='next') return nextHtml;
+  const chipsHtml=`<div class="hb-rd${live?'':' is-still'}" role="group" data-ig-mr-turn="${i}" aria-label="${igEsc(i18t('int_rd_label'))}">${chips.join('')}${(part==='chips'||!next.length)?'':`<div class="ig-mr-next">${nextHtml}</div>`}</div>`;
+  return chipsHtml;
 }
 /* a press on a chip's menu: the same set, read the other way, in place — the line above says what the map now shows */
 function igMapReadSet(i, part, v){
@@ -3529,7 +3595,31 @@ async function intelAsk(qRaw, opts){
 /* the Board's Jambo tab's one path (igBoardTalkFirst): the chat with the Board in its context, then what every
    chat answer on the Board gets — the next questions under the words, the AI's own door (goto), a set it names
    drawn on the Board with the reply written from what the Board now draws, its reading and the Right / Wrong marks */
-async function igBoardTalkAsk(q){ return igTalkRun(q, ()=>intelChatAsk(q, { draw:true })); }
+async function igBoardTalkAsk(q){
+  /* THE BOARD DRAWS FIRST (hbAnalyticAsk, js/views/homeboard.js): a ranking, a breakdown, a comparison or a picture is
+     drawn by the Board's drawing model with HaTi's own counts and the reader stays on the Board; a question among
+     them is then explained under the chart, from the drawn numbers. Anything else is the brain's whole answer. */
+  if(typeof window.hbAnalyticAsk==='function'&&hbAnalyticAsk(q)) return igTalkRun(q, async ()=>{
+    /* WHAT THE BOARD LOOKS LIKE NOW: the cards on it AND the chart that is open — a card ADDED opens no list, so a
+       reading's key alone would read as "nothing drawn" and ask the brain the same question a second time (f999). */
+    const board=()=>{ try{ return (typeof window.hbS==='function')?JSON.stringify((hbS().panels||[]).map(p=>[p&&p.key,p&&p.title,p&&p.recipe])):''; }catch(_){ return ''; } };
+    const h0=intel.history.length, key0=(typeof window.hbOpenListKey==='function')?hbOpenListKey():null, sig0=(typeof window.hbReadingSnap==='function')?hbReadingSnap().sig:'', b0=board(), c0=intel.chatAsks||0;
+    await intelGraphAsk(q);
+    const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant');
+    const snap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():{ key:null, sig:'' };
+    const drew=(!!snap.key&&(snap.key!==key0||snap.sig!==sig0))||board()!==b0;
+    /* A QUESTION ASKED IN WORDS THE MAP'S READER KNOWS IS NOT NARROWED FOR ("which stream carries the most weight"
+       is answered by Jambo's sentence over the whole map, explorer-stage-three 4): only the explicit "the biggest
+       value stream" keeps one group (igTopOneGroup, in the top-N branch). */
+    /* NOTHING DRAWN, NOTHING TO CHOOSE: the brain answers after all (it may draw too), never a dead end — but ONE
+       QUESTION IS ASKED ONCE: where the map's own route already handed it to the brain (intel.chatAsks moved), that
+       answer stands; asking again would spend twice and overwrite it (board-talk-first I). */
+    const said=!!(last&&(last.preview||(last.choices&&last.choices.length)||(last.listIds&&last.listIds.length)));
+    if(!drew&&!said&&intel.chatAsks===c0){ intel.history.length=h0; await intelChatAsk(q, { draw:true }); return; }
+    if(drew&&typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q)){ try{ await intelChatAsk(q, { explain:true }); }catch(_){} }
+  }, { stay:true });
+  return igTalkRun(q, ()=>intelChatAsk(q, { draw:true }));
+}
 /* the other faces' Jambo tab: each face's OWN brain, its own controls with it — a contract on the paper (or held) is
    asked with its wording (igPaperAsk), any other question goes to the chat; Explorer's is the map's own (intelGraphAsk:
    it regroups and narrows the map, and hands wording to the chat itself); the Contracts place and the sheet the chat,
@@ -3544,7 +3634,7 @@ async function igPageTalkAsk(q){
     return intelChatAsk(q, { controls:true });
   });
 }
-async function igTalkRun(q, run){
+async function igTalkRun(q, run, opts){
   const h0=intel.history.length, goSince=Date.now();
   const rdSnap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
   const topBefore=(igTopLensNow()||{}).top||null; intel.topDoubt=null;
@@ -3558,7 +3648,7 @@ async function igTalkRun(q, run){
   catch(e){ intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true}); }
   igNextUnderWords(h0);
   intel.busy=false;
-  { const g=(typeof window.aiGotoTake==='function')?aiGotoTake(goSince):null; if(g&&typeof window.aiGotoRun==='function') try{ aiGotoRun(g, q); }catch(_){} }
+  { const g=(typeof window.aiGotoTake==='function')?aiGotoTake(goSince):null; if(g&&!(opts&&opts.stay)&&typeof window.aiGotoRun==='function') try{ aiGotoRun(g, q); }catch(_){} }
   if(typeof window.jpPressOf==='function'){ const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
     if(m&&!m.press&&!m.act){ try{ const p=jpPressOf({ ids:igAnswerIds(m), q, text:m.text, noShow:true }); if(p) m.press=p; }catch(_){} } }
   igMapReadAfter(h0, q, topBefore);
@@ -3607,6 +3697,7 @@ function graphCopilotCard(c){
   let move=null; try{ if(typeof negWhoseMove==='function'){ const w=negWhoseMove(c); move=(w&&w.k)||null; } }catch(_){}
   let live=null; try{ if(typeof negoIsLive==='function') live=!!negoIsLive(c); }catch(_){}
   const card={ id:c.id, name:c.name, counterparty:c.counterparty||'', folder:FOLDERS[c.folder]?.name||'', kind:cKind(c), status:c.status||'',
+    side:(typeof paySide==='function'?paySide(c):null)||'',
     currency:(typeof contractCurrency==='function')?contractCurrency(c):'',
     expiry:_gExpiryDay(c)||'', signedAt:_gSignedDay(c)||'', createdAt:_gCreatedDay(c)||'',
     decisionDate:dec?String(dec).slice(0,10):'', noticeDays:(m.noticePeriodDays!=null&&m.noticePeriodDays!=='')?Number(m.noticePeriodDays):null, effDate:m.effectiveDate?String(m.effectiveDate).slice(0,10):'',
@@ -3633,7 +3724,7 @@ function graphCopilotCard(c){
    condition reads the card the model was sent; a card carrying no value never
    matches a money cut (an absence is stated, not guessed). Returns null where
    nothing in `where` narrows. */
-const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived','imported'];
+const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived','imported','side'];
 function graphWhereIds(where){
   /* THE PREDICATE IS SHARED (js/graphwhere.js, Copilot audit phase 4): the
      chat's list_portfolio applies the same one on the server over its own
@@ -3758,7 +3849,7 @@ async function intelGraphAsk(q){
          after the number, they win; either way the Keep chip is amber, so the other reading is one press away. */
       const ft=free.acts.find(a=>a.top);
       if(ft&&res.top&&!igTopSame(ft.top,res.top)){ intel.topDoubt=igTopShape(igTopClean(ft.top))!==igTopShape(igTopClean(res.top))?'keep':'by';
-        if(ft.top.groups) res=Object.assign({}, res, { top:Object.assign({}, ft.top) }); }
+        if(ft.top.groups) res=Object.assign({}, res, { top:Object.assign({}, ft.top, res.top.each&&!ft.top.each?{ each:res.top.each }:{}) }); }
     }
   }
   /* COPILOT DECIDED IT IS ABOUT WORDING: the reading chat answers it, and
@@ -3800,7 +3891,7 @@ async function intelGraphAsk(q){
 function igGapNote(free, gap){
   const words=free.acts.filter(a=>gap.includes(igActKind(a))).map(igActWord).filter(Boolean);
   return 'HaTi\'s own reader read these parts of the request, which your answer leaves out: '+(words.join('; ')||gap.join('; '))
-    +'. Add each with its field or step (lens, dateLine, asOf, compare, whatIf, single, families, linked, undo, reset, showAll, save, open, sort, cliff, yourDay, explain, walk, outliers), unless the request clearly does not ask for it. Change nothing else.';
+    +'. Add each with its field or step (lens, dateLine, asOf, compare, whatIf, single, families, linked, undo, reset, showAll, save, open, sort, orderGroups, cliff, yourDay, explain, walk, outliers), unless the request clearly does not ask for it. Change nothing else.';
 }
 /* ============================================================
    C-1 · THE ANSWER IS WRITTEN FROM WHAT THE MAP DID (ruling 5)
@@ -3900,7 +3991,7 @@ function intelGraphApply(q, res, opts){
   if(topT){
     const run=igTopRun(topT,null), tIds=run.ids; ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
     res._top=igTopLabel(topT); res._topSpec=topT; res._topHidden=run.hidden;
-    res.note=res.note||res._top; intel.sortBy=topT.by; }
+    res.note=res.note||res._top; if(IG_TOP_BY[topT.by]) intel.sortBy=topT.by; }
   let choices=Array.isArray(res.ask)?res.ask.slice(0,3).filter(o=>o&&IG_RECIPE_ROLES.includes(o.role)&&(o.role==='size'?IGB_SIZE_KEYS.includes(o.fact):o.role==='time'?IG_TIME_KEYS.includes(o.fact):GRAPH_GROUP_KEYS.includes(o.fact)))
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
   const action=res.action==='highlight'?'highlight':'filter';
@@ -3970,7 +4061,7 @@ function intelGraphApply(q, res, opts){
   const didHere=!!(groupBy||(ids&&ids.length)||roleSaid.length||vw>=0||(choices&&choices.length)||(lookDid&&lookDid.changed)||stepChanged||stepSaid.length||stepDoor);
   /* on the map the sentence never describes the map: HaTi's line says what it did (igMapSentenceKept); a door
      (Your day, explain this view, a walk, the outliers) says its own words, so the sentence is not put beside it */
-  const own=(!didHere||lookDid)&&IG_CLAIM_RE.test(ownN)?'':(onMap?(stepDoor?'':igMapSentenceKept(ownN)):ownN);
+  const own=(!didHere||lookDid)&&IG_CLAIM_RE.test(ownN)?'':(onMap?(stepDoor?'':igMapSentenceHonest(igMapSentenceKept(ownN), total)):ownN);
   if(stepDoor&&!parts.length){ if(!doorSpoke){ const d=stepRead.acts.find(a=>a.door); if(d) intel.history.push({ role:'assistant', text:igEsc(igActWord(d)) }); }
     return { refused:false, groupBy, ids }; }
   const ownHtml=own?(rich?aiRichText(own):igEsc(own)):'';
@@ -4000,7 +4091,7 @@ function intelGraphApply(q, res, opts){
   }
   /* on the map Jambo's own words ride apart from HaTi's line, so they — and only
      they — have their figures checked; the names of the map's parts point (stage 3) */
-  intel.history.push({ role:'assistant', text:line, how, point:!!own&&!onBoard, own:own&&!onBoard?own:null, cardIds:(ids||stepList||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():(stepList&&stepList.length?stepList.slice():null), listTitle:onMap?((ids&&ids.length)?setLabel:stepTitle):(igBoardTitle(q,res)||(res.note?String(res.note):null)), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
+  intel.history.push({ role:'assistant', text:line, how, point:!!own&&!onBoard, own:own&&!onBoard?own:null, cardIds:(ids||stepList||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():(stepList&&stepList.length?stepList.slice():null), listTitle:onMap?((ids&&ids.length)?setLabel:stepTitle):(igBoardTitle(q,res)||(res.note?String(res.note):null)), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:(!onMap&&res&&((res._topSpec&&!res._topSpec.groups)||/\b(?:top|bottom|biggest|largest|smallest)\s+\d+\s+(?:contracts|agreements|deals)\b/i.test(String(q||'')))?{ pic:'list' }:null), choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
@@ -4121,6 +4212,9 @@ function intelPushChatResult(res, q){
 // With no Copilot key, comparisons still work via the deterministic local table;
 // other free-form questions get a clear nudge instead of silence.
 async function intelChatAsk(q, opts){
+  /* THE BRAIN WAS ASKED (f999): counted so the Board-draws-first route never asks the same question a second time
+     when the map's own route handed it to the brain itself (board-talk-first I). */
+  intel.chatAsks=(intel.chatAsks||0)+1;
   const ids=(String(q).match(/(?:MK|RL)-\d+/gi)||[]).map(s=>s.toUpperCase())
     .map(r=>{ const x=(state.contracts||[]).find(y=>y.id===r||y.contractNo===r); return x?x.id:r; }).filter((v,i,a)=>a.indexOf(v)===i);
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){
@@ -4654,6 +4748,14 @@ function igbAxes(G, hubs, order){
     const { shown, rest }=igbHubsCapped(cs);
     cols=shown.map(h=>({ label:h.label, col:h.col, hub:h })); shown.forEach((h,i)=>h.kids.forEach(n=>{ n._col=i; }));
     if(rest.length){ cols.push({ label:i18t('int_axis_rest',{ n:rest.length }), col:IGB_OTHER, hubs:rest, rest:true }); rest.forEach(h=>h.kids.forEach(n=>{ n._col=cols.length-1; })); } }
+  /* THE GROUPS IN THE ORDER ASKED (the analyst exam, 10 Nov 2026: "rank them from left to right by highest to lowest
+     value" had no tool): intel.groupOrder { by value|count|name, dir down|up } orders the columns and lanes; the
+     "Other" column keeps the end */
+  if(intel.groupOrder&&cols.length>1){ const o=intel.groupOrder, tot=cols.map(()=>({ n:0, v:0 }));
+    kids.forEach(n=>{ const t=tot[n._col]; if(!t) return; t.n++; const h=igHomeValue(n.c); if(h!=null) t.v+=h; });
+    const idx=cols.map((c,i)=>i), key=i=>o.by==='count'?tot[i].n:o.by==='name'?0:tot[i].v, sgn=o.dir==='up'?1:-1;
+    idx.sort((a,b)=>(!!cols[a].rest-!!cols[b].rest)||(o.by==='name'?sgn*-1*String(cols[a].label).localeCompare(String(cols[b].label)):sgn*(key(a)-key(b)))||(a-b));
+    const to=[]; idx.forEach((oldI,newI)=>{ to[oldI]=newI; }); cols=idx.map(i=>cols[i]); kids.forEach(n=>{ if(to[n._col]!=null) n._col=to[n._col]; }); }
   /* FLOORS AND COLUMNS BY ONE FACT say the same thing twice (floors of value
      streams over value-stream columns fill one diagonal), so the floors keep
      the fact and the columns step aside: every floor spreads its contracts
@@ -5766,6 +5868,10 @@ function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
 /* WHAT JAMBO UNDERSTOOD: an open chip menu closes on a press outside it and on Esc (bound once, at load) */
 document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return; intel.mrOpen=null; renderIntelDock(); },true);
+/* THE SAP WAY's More: a press outside it, or Esc, closes it */
+document.addEventListener('click',e=>{ if(!intel||!intel.sapOpen) return; if(e.target&&e.target.closest&&e.target.closest('.igd-sap-wrap')) return; intel.sapOpen=null; renderIntelDock(); },true);
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.sapOpen) return; e.stopPropagation(); const k=intel.sapOpen; intel.sapOpen=null; renderIntelDock();
+  const b=document.querySelector(`[data-ig-sap-more="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.mrOpen) return; e.stopPropagation(); const k=intel.mrOpen; intel.mrOpen=null; renderIntelDock();
   const b=document.querySelector(`[data-ig-mr="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
 document.addEventListener('change',e=>{ const s=e.target; if(!s||s.id!=='ig-group') return; intel.groupBy=s.value; intel.groups=null; igGroupShows(s.value); rebuildIntelGraph(); });
@@ -6235,6 +6341,8 @@ function igGuideRows(){
   if(igLensMay('risk')) row(every,'int_gd_t_lensthen',i18t('int_gd_q_lensthen'),q=>{ const A=acts(q); return A.some(a=>a.lens==='risk')&&A.some(a=>a.asOf&&a.asOf!=='none'); },intel.lens==='risk'&&!!intel.asOf);
   /* THE N BIGGEST GROUPS (owner picked "Board Twin", 10 Nov 2026): the groups ranked by their total, the rest hidden */
   row(every,'int_gd_t_topg',i18t('int_gd_q_topg'),q=>acts(q).some(a=>a.top&&a.top.groups),lensOn(l=>l.top&&l.top.groups));
+  /* THE GROUPS IN ORDER (the analyst exam, 10 Nov 2026) */
+  row(every,'int_gd_t_order',i18t('int_gd_q_order'),q=>acts(q).some(a=>a.groupOrder),!!intel.groupOrder);
   row(every,'int_gd_t_brief',i18t('int_brief_ask'),q=>IG_BRIEF_RE.test(q),false);
   row(every,'int_gd_t_tour',i18t('int_tour_ask'),q=>IG_TOUR_RE.test(q),!!intel.tour);
   row(every,'int_gd_t_undo',i18t('int_gd_q_undo'),q=>acts(q).some(a=>a.undo),false);
@@ -9540,6 +9648,54 @@ function igExportList(ids){
     document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
   }catch(_){ if(typeof toast==='function') toast(i18t('int_export_failed'),'err'); }
 }
+/* ---- THE SAP WAY: ONE TOOLBAR UNDER AN ANSWER (owner picked it by name, 10 Nov 2026: "the jambo panel seems
+   extremely crowed due to the extra features… they need to be more clean and structured") ----
+   Up to seven rows of controls stood under one answer — the reading chips, the next steps, Explain / Pin / Copy
+   picture, two buttons, two more links, the source line. They are now ONE bordered toolbar with three LABELLED
+   rows, each saying what its controls are for:
+     Understood — the chips that correct what Jambo read (his reading, and the map's Keep · Ranked by · the word);
+     Next       — his checked next steps, side by side;
+     Open       — ONE filled button, and everything else under More.
+   NOTHING IS LOST: every control the answer carried keeps its own press and its own words, in a row or in More.
+   A row with nothing in it is not drawn, and with nothing at all there is no toolbar. The More menu's rows stay in
+   the page while it is shut (a reader's own press opens it; Esc and a press outside close it). */
+const IG_SAP_MENU_MIN=1;
+function igSapMoreHtml(i, rows){
+  if(!rows.length) return '';
+  const open=intel.sapOpen===String(i);
+  return `<span class="igd-sap-wrap"><button type="button" class="igd-sap-more${open?' is-open':''}" data-ig-sap-more="${i}" aria-haspopup="menu" aria-expanded="${open}">${igEsc(i18t('int_sap_more'))}${IG_MR_CARET}</button>`
+    +`<div class="igd-sap-menu${open?' is-open':''}" role="menu" aria-label="${igEsc(i18t('int_sap_more'))}">${rows.join('')}</div></span>`;
+}
+function igSapHtml(m,i){
+  if(!Number.isInteger(i)||!m||m.role!=='assistant') return '';
+  const last=i===intel.history.length-1&&!m.err;
+  /* UNDERSTOOD: what he read, as chips you can change */
+  const und=[];
+  if(m.reading&&typeof window.hbReadingHtml==='function') und.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
+  if(m.mapRead) und.push(igMapReadHtml(m,i,{ part:'chips' }));
+  /* NEXT: the steps he checked would change what is on screen. The reading's OWN next questions come here too —
+     hbReadingHtml would draw them inside the chips, which is the Understood row's job, so it is told noNext and
+     they are asked for by the same key (f514, f935 (4)); a turn whose questions moved under Jambo's words
+     (nextMoved) carries them as m.nextKey instead. */
+  const nxt=[];
+  if(m.mapRead) nxt.push(igMapReadHtml(m,i,{ part:'next' }));
+  if(m.reading&&m.reading.key&&!m.nextMoved&&hbReadingLive(i)&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.reading.key));
+  if(m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.nextKey));
+  /* OPEN: the one filled button, the rest under More */
+  const lead=igDoorsHtml(m,i,{ part:'lead' }), rest=igDoorsHtml(m,i,{ part:'rest' });
+  const more=[];
+  if(rest) more.push(rest);
+  if(last&&!m.tour&&igTourOffered()) more.push(`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`);
+  if(last&&igPinOffered()) more.push(`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`);
+  if(last&&(igTourOffered()||igPinOffered())) more.push(`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`);
+  const rows=[];
+  const row=(k,html)=>{ if(html) rows.push(`<div class="igd-sap-r" data-ig-sap-r="${k}"><span class="igd-sap-l">${igEsc(i18t('int_sap_'+k))}</span><span class="igd-sap-v">${html}</span></div>`); };
+  row('understood',und.filter(Boolean).join(''));
+  row('next',nxt.filter(Boolean).join(''));
+  row('open',(lead||'')+(more.length>=IG_SAP_MENU_MIN?igSapMoreHtml(i,more):''));
+  if(!rows.length) return '';
+  return `<div class="igd-sap" data-ig-sap="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">${rows.join('')}</div>`;
+}
 function igMsgHTML(m,i){
   if(m.role==='user')
     return `<div class="ai-msg flex justify-end"><div class="ai-bub ig-bub-me max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
@@ -9557,8 +9713,6 @@ function igMsgHTML(m,i){
     ${igFaceHtml('hello')}
     <div class="min-w-0 flex-1 space-y-1.5">
       ${m.text?`<div class="ai-bub ${m.err?'rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-rose-50 border-rose-200 text-rose-800':'jl-bub'}">${igSafeHtml(m.text)}${cites}</div>`:''}
-      ${''/* WHAT JAMBO UNDERSTOOD (Board Twin): right under the words it reads, before any door */}
-      ${(Number.isInteger(i)&&m.mapRead)?igMapReadHtml(m,i):''}
       ${''/* THE ANSWER IS A WORKLIST DOOR (the brain drawing, 28 Sep 2026): the
              set a map answer drew opens on the Contracts page as that list
              (regShowOnly, the one named-set door), or leaves as a file. */}
@@ -9569,20 +9723,19 @@ function igMsgHTML(m,i){
              with ticks, and Undo for an answer that changed the board */}
       ${(Number.isInteger(i)&&m.tour)?igTourHtml(i):''}
       ${(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&m.role==='assistant')?igWhatIfLinksHtml():''}
-      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}${igTourOffered()||igPinOffered()?`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`:''}</div>`):''}
+      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):''}
       ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
       ${(m.wholeBook&&typeof window.aiWorklistHtml==='function')?aiWorklistHtml(null,{ wholeBook:true }):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
-      ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:!!m.nextMoved }):''}
-      ${(Number.isInteger(i)&&m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function')?hbNextHtml(m.nextKey):''}
+      ${''/* THE SAP WAY (owner's pick, 10 Nov 2026): the answer's controls in ONE toolbar, three labelled rows */}
+      ${igSapHtml(m,i)}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
       ${(Number.isInteger(i)&&m.how)?`<div class="igd-how" title="${igEsc(m.how)}">${igEsc(i18t('int_how_drawn'))}</div>`:''}
-      ${Number.isInteger(i)?igDoorsHtml(m,i):''}
       ${''/* the one prepared press, a watch proposed and Your watches (js/jambopress.js, one builder for both hosts) */}
       ${(Number.isInteger(i)&&m.press&&typeof window.jpHtml==='function')?jpHtml(m.press,'ig:'+i):''}
       ${(Number.isInteger(i)&&m.watchAsk&&typeof window.watchAskHtml==='function')?watchAskHtml(m,'ig:'+i):''}
@@ -9601,24 +9754,29 @@ function igAnswerIds(m){
   const L=Array.isArray(m.listIds)&&m.listIds.length?m.listIds:(Array.isArray(m.cardIds)?m.cardIds:[]);
   return L.filter(id=>getContract(id));
 }
-function igDoorsHtml(m,i){
+function igDoorsHtml(m,i,opts){
+  const part=(opts&&opts.part)||null;
   if(!m||m.role!=='assistant'||m.err) return '';
   const ids=igAnswerIds(m); if(!ids.length) return '';
   const list=Array.isArray(m.listIds)&&m.listIds.length;
   const small=list?`<div class="igd-small"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:'';
-  if(!(window.state&&state.view==='dashboard')) return list?small.replace('igd-small','igd-list'):'';
+  if(!(window.state&&state.view==='dashboard')) return part==='lead'?'':(list?small.replace('igd-small','igd-list'):'');
   const one=ids.length===1, c=one?getContract(ids[0]):null;
   /* NO DOOR TO WHERE YOU ARE (owner, 15 Oct 2026: "a button that will not
      take you anywhere is a waste — simply give a reason"): the one contract
      already on Home's paper is said, not offered */
   if(one&&c&&typeof igHomePaperFace==='function'&&igHomePaperFace()===true&&typeof intel!=='undefined'&&intel.paper&&String(intel.paper.id)===String(c.id))
-    return `<p class="igd-here">${igEsc(i18t('int_already_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }))}</p>${small}`;
+    return part==='lead'?`<p class="igd-here">${igEsc(i18t('int_already_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }))}</p>`:(part==='rest'?small:`<p class="igd-here">${igEsc(i18t('int_already_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }))}</p>${small}`);
   const lead=one?i18t('int_open_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }):i18tn('int_read_on_paper',ids.length,{ n:ids.length });
   /* ONLY THE DOORS THAT FIT WHAT WAS FOUND (Young, 8 Oct 2026): one contract
      is one press, Open on Paper; a board of one shows nothing the paper does
      not, so "Show on the Board" is drawn only for a set — two doors never
      lead to the same place, and the count says how many will be walked. */
-  return `<div class="igd-doors"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ig-paper-go="${i}">${igEsc(lead)}</button>${one?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-board-go="${i}">${igEsc(i18t('int_show_on_board'))}</button>`}</div>${small}`;
+  const leadBtn=`<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ig-paper-go="${i}">${igEsc(lead)}</button>`;
+  const boardBtn=one?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-board-go="${i}">${igEsc(i18t('int_show_on_board'))}</button>`;
+  if(part==='lead') return leadBtn;
+  if(part==='rest') return boardBtn+small;
+  return `<div class="igd-doors">${leadBtn}${boardBtn}</div>${small}`;
 }
 /* WALK A SET ON THE PAPER: one contract at a time, Previous / k of n / Next
    in the strip; the set is the answer's own (or a Board card's). Picking a
@@ -10077,6 +10235,12 @@ function renderIntelDock(){
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
   }
+  /* THE SAP WAY's More: a press opens it, again closes it (Esc and a press outside close it too, bound at load) */
+  dock.querySelectorAll('[data-ig-sap-more]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const k=b.getAttribute('data-ig-sap-more'); intel.sapOpen=intel.sapOpen===k?null:k; renderIntelDock();
+    const fresh=document.querySelector(`[data-ig-sap-more="${k}"]`); if(fresh&&intel.sapOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); }));
+  /* a press on anything inside the menu closes it: the act is the answer */
+  dock.querySelectorAll('.igd-sap-menu button').forEach(b=>b.addEventListener('click',()=>{ intel.sapOpen=null; },true));
   /* WHAT JAMBO UNDERSTOOD (Board Twin): a chip opens its menu, again closes it; a choice re-reads the set in place */
   dock.querySelectorAll('[data-ig-mr]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const k=b.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; renderIntelDock();
@@ -12026,6 +12190,6 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
 Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
-Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igGapNote, graphRecipeOnScreen,
-  IG_TOPG_KEYS, IG_TOPG_BY, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord,
-  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach });
+Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
+  IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
+  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igSapHtml, igSapMoreHtml });

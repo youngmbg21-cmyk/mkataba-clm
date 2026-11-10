@@ -22043,5 +22043,35 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - FIXED · round6-new-look-verify step 1 failed: it pinned the folders' old card wording ("N contracts"). The owner's picked design (Views first) makes the row say "5 · KES 86.30M · 3 need you", so the check was re-pointed to the new shape and now also reads the view tiles. The design was not changed to suit the check.
 - NOT A FAULT: owed-first-verify and read-table-verify, which failed on the previous push, both passed on this run with no change. Timing, not a break.
 
+## 10 Nov 2026 — The analyst exam: Board and Explorer take rankings as asked
+- Fixed (Explorer): "rank them left to right" forced "Top 10 by value" (HaTi's own check read "highest" as a top N); no ranking by number of contracts; no "top N groups and top N in each"; no supplier/customer filter; Jambo's sentence named groups the map had hidden.
+- Fixed (Board): ranking / breakdown / comparison requests were answered in prose with the model's own counts; they now draw a chart with HaTi's counts and stay on the Board. Cards with no split, groups ranked in the map's language, follow-ups to the chart just drawn, time across, filters in the words are mended from the words.
+- Noticed, not fixed: on the Board "remove that chart" and any two-card answer still ask to confirm first (the big-build rule, hbIsBig), though Undo exists.
+- Noticed, not fixed: a change_card that changes the split keeps the old card's top N.
+- Noticed, not fixed: fast typing on the Board can reach HaTi's per-minute Jambo limit (a draw-first question spends up to three calls: draw, one repair, explain).
+- Noticed, not fixed: CLAUDE.md is 83 KB, over its 80 KB mark; a trim needs the owner's yes.
+- 10 Nov 2026, the analyst exam's PR, GitHub's browser checks: three reds were this change's. (1) the new mend took a chart-only answer for the open card ("league table of our partners") as a new card: a model's own `chart` is now left alone. (2) "which stream carries the most weight?" was read as "keep one group" and asked "which did you mean?": a question is no longer narrowed by the free reader. (3) board-talk-first H expected the chat to draw; re-pointed to the drawing model (the Board draws first). Also: nothing drawn and nothing to confirm now falls back to the chat.
+
+## The Board draws first: one question, one answer (10 Nov 2026, f999)
+Fixed. On the Board, a request that drew a CARD was read as "nothing drawn" (the check only looked at the chart
+that is open, and a new card opens no chart), so HaTi threw its own line away and asked the brain the same
+question a second time — the reader saw the model's words instead of "Added ...", and the turn cost twice.
+The Board's cards are now part of the check, and a question the map's own route already handed to the brain is
+never asked again (intel.chatAsks). board-talk-first-verify H1, H3 and I1 were red on this.
+
+## The Jambo panel, the SAP way (10 Nov 2026, f1000)
+Built. The owner: the panel "seems extremely crowed". Three drawings were shown; the owner picked "The SAP way".
+Under an answer, up to seven loose rows of controls are now ONE small toolbar with three labelled rows:
+Understood (the chips that correct what Jambo read), Next (his checked next steps) and Open (one black button;
+Show on the Board, Open list, Export, Explain this view, Pin this finding and Copy picture under More).
+Nothing lost: every press kept its own words. The menu opens upward, because dropped downward it fell off the
+window at 1536x730. Noticed, not fixed: the page links above the box and the "Read from Explorer and your book"
+line are drawn by builders shared with every other Jambo panel, so they were left for a round of their own.
+
+## Noticed, not fixed (10 Nov 2026)
+- the-read-bar-and-notes-verify failed on the middle screen only in run 42911527959 (the read never opened there;
+  the same steps passed on the other two screens in the same run, and it was green before and after). Flaky.
+- negotiate-new-look-verify stopped in run 42914860955 at negoClauseList on a contract that was not loaded yet
+  (step 8). Green in the run before. Flaky.
 ## Fixed (10 Nov 2026, overnight run job 3)
 - Needs you's two counts (Explorer "183" vs the Board "98"): every door now says the Board's row count (counterNeedsCount → ndOnBoard). f999.

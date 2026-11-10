@@ -8578,10 +8578,104 @@ function hbRepairNote(bad){
 function hbActionTitle(a){ const t = a && (a.title || (a.recipe && a.recipe.title)); return t ? String(t).slice(0, HB_TITLE_MAX) : (a && a.card ? String(a.card) : i18t('hb_chk_card')); }
 /* COPILOT'S ANSWER, CHECKED: the good actions apply; the bad go back ONCE;
    what still fails is said and not applied */
+/* HaTi MENDS THE DRAWING MODEL'S CARD FROM THE WORDS (the analyst exam, 10 Nov 2026): "rank the value streams by
+   number of contracts" came back titled "Contracts by value stream" with no split, so it drew by stage; "top 4
+   customers by number of contracts" came back in the MAP's language (top N groups), which the Board drew as the 4
+   biggest contracts. Before a card is checked: a split the words name and the recipe lacks is filled in; a
+   two-split picture gets its second split; "number of" is a count; a top N of GROUPS becomes a card split by that
+   group, measured and sorted as asked, cut to N. Nothing the recipe already says is overwritten. */
+const HB_MEND_FACTS = [['folder', /\b(?:value streams?|streams?|folders?|functions?|departments?|business units?)\b/], ['counterparty', /\b(?:counterpart(?:y|ies)|customers?|suppliers?|vendors?|clients?|part(?:y|ies)|partners?)\b/],
+  ['payterms', /\bpayment (?:terms?|days)\b/], ['status', /\b(?:stages?|status(?:es)?)\b/], ['kind', /\b(?:contract types?|types?|kinds?)\b/], ['owner', /\bowners?\b/], ['side', /\b(?:side|suppliers? (?:and|vs\.?|versus|against) customers?|customers? (?:and|vs\.?|versus|against) suppliers?)\b/]];
+const HB_MEND_TWO = ['stack', 'grouped', 'heat', 'multi'];
+function hbMendFacts(words){
+  const t = ' ' + String(words || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ') + ' ';
+  return HB_MEND_FACTS.map(([k, re]) => { const m = re.exec(t); return m ? { k, at: m.index } : null; }).filter(Boolean).sort((a, b) => a.at - b.at).map(x => x.k)
+    .filter((k, i, a) => !(k === 'counterparty' && a.includes('side')));
+}
+function hbRecipeMend(recipe, words){
+  const r = Object.assign({}, recipe || {}), t = String(words || '').toLowerCase();
+  const facts = hbMendFacts(words), has = k => (r.split && r.split.by === k) || (r.split2 && r.split2.by === k);
+  if (!r.split && facts.length) r.split = { by: facts[0] };
+  if (HB_MEND_TWO.includes(r.pic) && r.split && !r.split2){ const k = facts.find(f => !has(f)); if (k) r.split2 = { by: k }; }
+  if (/\b(?:number of|count of|how many|most contracts|by count)\b/.test(t) && (!r.measure || r.measure === 'value') && !/\b(?:value|worth|money|spend)\b/.test(t)) r.measure = 'count';
+  if (r.top == null){ const m = t.match(/\b(top|bottom)\s+(\d{1,2})\b/); if (m && r.split){ r.top = Number(m[2]); if (!r.sort) r.sort = { by: r.measure === 'count' ? 'count' : 'value', dir: m[1] === 'bottom' ? 'up' : 'down' }; } }
+  return r;
+}
+const HB_TOPG_SPLIT = { folder: 'folder', counterparty: 'counterparty', status: 'status', kind: 'kind', owner: 'owner' };
+/* the picture the words name, in the Board's own words; the conditions the words carry (a stream, a stage, a type) */
+const HB_MEND_PICS = [['heat', /\bheat ?map\b/], ['ring', /\b(?:pie|ring|donut|doughnut)\b/], ['cols', /\bcolumns?\b/], ['bars', /\bbars?\b/], ['list', /\b(?:table|list)\b/], ['blocks', /\b(?:blocks|tree ?map)\b/], ['bubbles', /\bbubbles?\b/]];
+function hbMendPic(words){ const t = String(words || '').toLowerCase(); const hit = HB_MEND_PICS.find(([, re]) => re.test(t)); return hit ? hit[0] : null; }
+function hbMendWhich(words){
+  let c = []; try { c = (typeof igConditions === 'function') ? igConditions(String(words || '').toLowerCase()) : []; } catch (_){ c = []; }
+  const hits = c.filter(x => ['folder', 'status', 'kind'].includes(x.field) && x.hit).map(x => x.hit);
+  return hits.length ? { q: hits.join(' ') } : { all: true };
+}
+/* "each quarter next year", "by month for the next 12 months": time across, in the period asked */
+function hbMendTime(words){
+  const t = String(words || '').toLowerCase();
+  const m = t.match(/\b(?:each|every|by|per)\s+(month|quarter|year)\b/); if (!m) return null;
+  const unit = m[1][0] === 'q' ? 'q' : m[1][0] === 'y' ? 'y' : 'm';
+  const date = /\b(?:sign(?:ed|ing)?)\b/.test(t) ? 'signed' : /\brenew|decision\b/.test(t) ? 'decision' : 'end';
+  const split = { by: 'date', unit, date }; let window = null;
+  const y = Number(hbToday().slice(0, 4));
+  const nx = t.match(/\b(?:next|coming|upcoming)\s+(\d{1,2})\s+(month|quarter|year)s?\b/);
+  if (/\bnext year\b/.test(t)) window = { from: (y + 1) + '-01-01', to: (y + 1) + '-12-31', date };
+  else if (/\bthis year\b/.test(t)) window = { from: y + '-01-01', to: y + '-12-31', date };
+  else if (nx) window = { next: Number(nx[1]), unit: nx[2][0] === 'q' ? 'q' : nx[2][0] === 'y' ? 'y' : 'm', date };
+  return { split, window };
+}
+function hbResMend(res, q){
+  if (!res || typeof res !== 'object') return res;
+  const words = String(q || '');
+  const count = /\b(?:number of|count|how many|most contracts)\b/i.test(words) && !/\b(?:value|worth|money|spend)\b/i.test(words);
+  let actions = Array.isArray(res.actions) && res.actions.length ? res.actions : null;
+  /* the model's own chart for the card on screen is its answer (this-is-the-open-chart): nothing to mend */
+  if (!actions && res.chart && typeof res.chart === 'object') return res;
+  let last = null; try { last = hbCardRef('open'); } catch (_){ last = null; }
+  const edit = !!(last && last.key) && HB_CARD_EDIT_RE.test(words) && !/^\s*(?:show|draw)\b/i.test(words);
+  /* a top N of GROUPS, said in the map's language: one card, split by the group — or, for a change to the chart on
+     screen ("make it a bar chart"), that chart changed, its own split kept */
+  /* "bottom 3 counterparties by value" answered as a top N of contracts: the words name the GROUPS, so it is one */
+  if (!actions && res.top && !res.top.groups && Number(res.top.n) > 0 && typeof igTopGroupsWord === 'function'){ let g = null; try { g = igTopGroupsWord(words.toLowerCase()); } catch (_){ g = null; }
+    if (g && HB_TOPG_SPLIT[g.key]) res = Object.assign({}, res, { top: Object.assign({}, res.top, { groups: true, per: g.key }) }); }
+  if (!actions && res.top && res.top.groups && Number(res.top.n) > 0){
+    const by = HB_TOPG_SPLIT[res.top.per] || hbMendFacts(words)[0] || null, cnt = res.top.by === 'count' || count, pic = hbMendPic(words);
+    const n = Math.min(20, Math.round(Number(res.top.n)));
+    if (edit){ const ms = /\b(?:number of|count|value|worth|money)\b/i.test(words);
+      const recipe = Object.assign({}, pic ? { pic } : {}, by ? { split: { by } } : {}, /\b(?:top|bottom|\d+)\b/i.test(words) ? { top: n } : {}, ms ? { measure: cnt ? 'count' : 'value', sort: { by: cnt ? 'count' : 'value', dir: res.top.dir === 'up' ? 'up' : 'down' } } : {});
+      if (Object.keys(recipe).length) return Object.assign({}, res, { actions: [{ do: 'change_card', card: 'open', recipe }], top: null }); }
+    if (by) return Object.assign({}, res, { top: null, actions: [{ do: 'add_card', which: hbMendWhich(words),
+      recipe: { pic: pic || 'bars', split: { by }, measure: cnt ? 'count' : 'value', sort: { by: cnt ? 'count' : 'value', dir: res.top.dir === 'up' ? 'up' : 'down' }, top: n } }] });
+  }
+  /* time across, asked in words, answered with a bare set: columns over the period */
+  if (!actions && !res.top){ const T = hbMendTime(words);
+    if (T) return Object.assign({}, res, { where: null, visibleIds: null, actions: [{ do: 'add_card', which: hbMendWhich(words), recipe: Object.assign({ pic: 'cols', measure: count || !/\b(?:value|worth|money|spend)\b/i.test(words) ? 'count' : 'value', split: T.split }, T.window ? { window: T.window } : {}) }] }); }
+  /* a picture and what it shows named in the words, and nothing came back to draw ("a heatmap of value stream
+     against payment terms"): the card the words describe */
+  if (!actions && !res.top && !(Array.isArray(res.visibleIds) && res.visibleIds.length) && !res.where){ const pic = hbMendPic(words), facts = hbMendFacts(words);
+    if (pic && facts.length && !(pic === 'heat' && facts.length < 2)) return Object.assign({}, res, { groupBy: null, actions: [{ do: 'add_card', which: hbMendWhich(words),
+      recipe: Object.assign({ pic, split: { by: facts[0] }, measure: /\b(?:value|worth|money|spend)\b/i.test(words) ? 'value' : 'count' }, pic === 'heat' ? { split2: { by: facts[1] } } : {}) }] }); }
+  /* two things named against each other and nothing came back to draw ("contracts by stage and value stream") */
+  if (!actions && !res.top && !(Array.isArray(res.visibleIds) && res.visibleIds.length) && !res.where){ const facts = hbMendFacts(words);
+    if (facts.length >= 2 && /\b(?:by|per|against|versus|vs)\b/i.test(words)) return Object.assign({}, res, { groupBy: null, actions: [{ do: 'add_card', which: hbMendWhich(words),
+      recipe: { pic: 'stack', split: { by: facts[0] }, split2: { by: facts[1] }, measure: /\b(?:value|worth|money|spend)\b/i.test(words) ? 'value' : 'count' } }] }); }
+  /* a grouping said in the map's language ("contracts by type" → groupBy kind): a card split by it */
+  if (!actions && !res.top && HB_TOPG_SPLIT[res.groupBy] && !(Array.isArray(res.visibleIds) && res.visibleIds.length) && !res.where)
+    return Object.assign({}, res, { groupBy: null, actions: [{ do: 'add_card', which: hbMendWhich(words), recipe: { pic: hbMendPic(words) || 'bars', split: { by: HB_TOPG_SPLIT[res.groupBy] }, measure: /\b(?:value|worth|money|spend)\b/i.test(words) ? 'value' : 'count' } }] });
+  if (!actions) return res;
+  return Object.assign({}, res, { actions: actions.map(a => {
+    if (!a || a.do !== 'add_card' || !a.recipe) return a;
+    const r = hbRecipeMend(a.recipe, [a.title, a.recipe.title, words].filter(Boolean).join(' . '));
+    /* time runs across in time order: a sort by size cannot be drawn over it */
+    if (r.split && r.split.by === 'date' && r.sort) delete r.sort;
+    const which = (!a.which || a.which === 'all' || a.which.all) ? hbMendWhich(words) : a.which;
+    return Object.assign({}, a, { recipe: r, which }); }) });
+}
 async function hbBoardTakesChecked(res, retry, q){
   _hbMeta = null;
   if (q != null) _hbAskQ = String(q);
   const s = hbS(); if (s.face !== 'board' || !res) return null;
+  res = hbResMend(res, _hbAskQ);
   /* Copilot was unsure: up to three readings, each a press (nothing applied) */
   if ((!Array.isArray(res.actions) || !res.actions.length) && Array.isArray(res.choices) && res.choices.length){
     const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [], q: _hbAskQ })).filter(c => c.label && c.board.length);
@@ -8596,6 +8690,7 @@ async function hbBoardTakesChecked(res, retry, q){
   if (typeof retry === 'function'){
     let res2 = null;
     try { res2 = await retry(hbRepairNote(bad)); ran = true; } catch (_){ res2 = null; ran = true; }
+    res2 = hbResMend(res2, _hbAskQ);
     const again = res2 && Array.isArray(res2.actions) ? res2.actions : [];
     const bad2 = hbActionsCheck(again);
     fixed = again.filter((a, i) => !bad2.some(b => b.i === i));
@@ -9754,6 +9849,24 @@ const HB_CMD_RE = /^\s*(?:please\s+|snälla\s+|can you\s+|could you\s+|kan du\s+
 /* a sentence that asks the BRAIN for words — never the Board's reader, whatever it could draw */
 const HB_BRAIN_VERB_RE = /^\s*(?:please\s+|snälla\s+|can you\s+|could you\s+|kan du\s+|jambo[,:]?\s+)?(?:tell|explain|create|make|build|write|give|describe|analy[sz]e|summari[sz]e|compare|advise|help|suggest|recommend|assess|review|check|think|berätta|förklara|skapa|gör|bygg|skriv|ge|beskriv|analysera|sammanfatta|jämför|hjälp|föreslå|rekommendera|bedöm|granska)(?=[\s.,!:]|$)/i;
 function hbBrainVerb(q){ return HB_BRAIN_VERB_RE.test(String(q || '')); }
+/* THE BOARD DRAWS FIRST (owner, 10 Nov 2026, the analyst exam: 18 of 30 "top 5 suppliers by value" / "rank the
+   streams" / "share of value per stream" came back as a paragraph, the numbers the model's own and different each
+   time; "Yes" to a chart first, reversing "a typed question on the Board is the brain's whole answer" for these).
+   Words that ask for a RANKING, a BREAKDOWN, a COMPARISON or a PICTURE go to the Board's drawing model, which draws
+   with HaTi's own counts; a question among them is then explained under the chart. A why / should / advice question
+   stays the brain's. With a chart open, a short change to it ("make it a bar chart", "now by count", "sort it",
+   "remove that chart", "top 4 not 5") is the drawing model's too. */
+const HB_ANALYTIC_RE = /\b(?:top|bottom|biggest|largest|smallest|highest|lowest|most|fewest|least|rank(?:ed|ing)?|sort(?:ed)?|order(?:ed)?|compare|versus|vs\.?|against|break ?down|split|share|percent(?:age)?|proportion|distribution|average|mean|median|total|sum|count|number of|how many|per|by (?:value|count|stage|status|stream|value stream|counterparty|customer|supplier|party|type|owner|month|quarter|year|payment terms?)|each|side by side|trend|over time|concentrat\w*|heat ?map|table of|största|minsta|flest|rangordna|sortera|jämför|fördelning|andel|genomsnitt|antal|per)\b/i;
+const HB_ADVICE_RE = /^\s*(?:why|should|what should|how should|how do i|how can i|can i|is it|are we|do we|explain|advise|recommend|what does|what is the meaning|varför|bör|ska vi|förklara)\b/i;
+const HB_CARD_EDIT_RE = /^\s*(?:please\s+)?(?:(?:now|instead|and now|then|also|no|nu)\b|(?:make|turn|change|switch|sort|order|remove|delete|drop|close|rename|call|name|flip|reverse|gör|ändra|byt|sortera|ta bort)\b|you are showing|that is|that's|it shows|i (?:said|asked|want(?:ed)?))|\b(?:it|that chart|this chart|the chart|instead)\b/i;
+function hbAnalyticAsk(q){
+  const t = String(q || '').trim(); if (!t) return false;
+  if (HB_ADVICE_RE.test(t)) return false;
+  if (hbChartWords(t) || HB_ANALYTIC_RE.test(t)) return true;
+  /* a short change to the chart that is open */
+  let open = null; try { const C = hbCardRef('open'); open = C && C.key; } catch (_){ open = null; }
+  return !!open && t.split(/\s+/).length <= 12 && HB_CARD_EDIT_RE.test(t);
+}
 /* words that ask for a PICTURE the free reader could not read whole ("bubble chart of value for the grumpy
    suppliers"): the Board's drawing model (the graph route) reads them, never the chat */
 const HB_CHART_WORD_RE = /\b(chart|graph|plot|bubbles?|pie|bars?|columns?|timeline|blocks|ring|donut|heat ?map|diagram|dashboard|board|cards?|picture|visual\w*|stor(?:y|ies)|berättelse\w*|stapl\w*|cirkel\w*|tidslinje|kurva|tavla\w*|kort)\b/i;
@@ -11400,7 +11513,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
 }
 
 Object.assign(window, { hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml, hbDnaUp, hbDnaHtml, hbDnaOf, hbDnaRows, hbDnaPanelHtml, hbDnaBtnHtml });
-Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
+Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

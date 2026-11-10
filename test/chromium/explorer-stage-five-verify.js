@@ -68,7 +68,12 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); /* asked as a chip asks: typed words are the brain's (Door above the box, 28 Oct 2026) */ await page.evaluate(w => intelAsk(w), q);
     await until(k => !intel.busy && intel.history.length >= k + 2, n); await page.waitForTimeout(300); };
   const said = () => page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = String((intel.history[intel.history.length - 1] || {}).text || ''); return d.textContent.replace(/\s+/g, ' ').trim(); });
-  const press = async sel => { if (await page.locator(sel).count()) { await page.click(sel); return true; } return false; };
+  /* THE SAP WAY (10 Nov 2026): the rare acts (Explain this view, Pin this finding, Copy picture) live under More on
+     the answer's own toolbar — the row is in the page but not shown, so a press opens More first */
+  const press = async sel => { if (!(await page.locator(sel).count())) return false;
+    if (!(await page.locator(sel).first().isVisible())){ const m = page.locator('#ig-dock [data-ig-sap-more]').last();
+      if (await m.count()) { await m.click(); await page.waitForTimeout(150); } }
+    await page.click(sel); return true; };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
