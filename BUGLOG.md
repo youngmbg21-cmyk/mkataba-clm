@@ -22056,3 +22056,12 @@ that is open, and a new card opens no chart), so HaTi threw its own line away an
 question a second time — the reader saw the model's words instead of "Added ...", and the turn cost twice.
 The Board's cards are now part of the check, and a question the map's own route already handed to the brain is
 never asked again (intel.chatAsks). board-talk-first-verify H1, H3 and I1 were red on this.
+
+## The Jambo panel, the SAP way (10 Nov 2026, f1000)
+Built. The owner: the panel "seems extremely crowed". Three drawings were shown; the owner picked "The SAP way".
+Under an answer, up to seven loose rows of controls are now ONE small toolbar with three labelled rows:
+Understood (the chips that correct what Jambo read), Next (his checked next steps) and Open (one black button;
+Show on the Board, Open list, Export, Explain this view, Pin this finding and Copy picture under More).
+Nothing lost: every press kept its own words. The menu opens upward, because dropped downward it fell off the
+window at 1536x730. Noticed, not fixed: the page links above the box and the "Read from Explorer and your book"
+line are drawn by builders shared with every other Jambo panel, so they were left for a round of their own.

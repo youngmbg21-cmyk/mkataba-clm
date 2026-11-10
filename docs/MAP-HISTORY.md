@@ -36746,3 +36746,37 @@ THE EXAM: 30 analyst requests a page, typed to the real model over a book where 
 BUILT: Explorer — `orderGroups` step and `igGroupOrderRead` (an order is never a top N), `intel.groupOrder` in igbAxes and the recipe; top by `count`; `top.each`; `where.side` in the one predicate (js/graphwhere.js) on both hosts; "which X has the most…" is one group; `igMapSentenceHonest`; prompt rules ("them" = what the map shows now; never answer with nothing). Board — `hbAnalyticAsk` routes a ranking, breakdown, comparison or picture to the drawing model (igBoardTalkAsk), explains a question under the chart, and never walks off the Board (`{stay}`); `hbResMend` / `hbRecipeMend` mend the card from the words (split, split2, count, top N of groups → one card, time across with its period, a filter in `which`, a picture named, a change to the chart drawn last).
 AFTER (same 30, real model): Explorer about 28 of 30 (left: "top 5 suppliers" also filters to the supplier side; one owner / one type in the exam's book). Board about 25 of 30 drew the right picture (left: "count and value side by side" is offered as two cards to confirm; "remove that chart" asks first — both the existing big-build rule; "which suppliers have the longest payment terms" is answered in words). WHAT STAYS DIFFERENT from a chat model drawing freely: HaTi draws only the pictures it has built and counts every figure itself; a picture it has no tool for gets the nearest one.
 THE PANEL: three layouts drawn for the crowded controls under an answer (The SAP Way, The Legora Way, One Row); awaiting the owner's pick; nothing built.
+
+## THE SHELL — RAIL, BAR, PANELS
+### THE SAP WAY: ONE TOOLBAR UNDER A JAMBO ANSWER (owner picked it by name, 10 Nov 2026)
+The owner, with two screenshots of Explorer and the Board: "Finally, the jambo panel seems extremely crowed due to
+the extra features like the added drop downs to the panel to support navigation. They are fine but they need to be
+more clean and structured. Provide proposals of how they should look like in the jambo panel."
+
+Three drawings were shown full size on the real page, one at a time, in one Artifact with a switcher: "The SAP Way"
+(a bordered toolbar with labelled rows), "The Legora Way" (one quiet line, no frame) and "The Quiet Shelf". The
+owner answered: "2, SAP way" — so only that one was built.
+
+WHAT WAS CROWDING IT. Under one answer on Explorer stood, loose, each on its own line: the reading chips (Keep ·
+Ranked by · the word), the checked next steps, "Explain this view", "Pin this finding", "Copy picture", the filled
+button (Open on paper / Read all N in Workspace), "Show on the Board", "Open list (N)", "Export", and the source
+line. Up to seven rows for one answer.
+
+AS DRAWN, AS BUILT. ONE bordered toolbar, three rows, each with its own label saying what the controls are FOR:
+  Understood — the chips that correct what Jambo read, so a wrong reading is one press from right;
+  Next       — his checked next steps, side by side;
+  Open       — ONE filled button, and everything else under More.
+Nothing was removed: every control keeps its own press and its own words, in a row or in the More menu, and the
+menu's rows stay in the page while it is shut, so a check that reads them still reads them. A row with nothing in
+it is not drawn, and an answer with nothing under it has no toolbar. The menu opens UPWARD: the toolbar sits low in
+the panel and a menu dropped downward fell off the window at 1536x730 (measured, then fixed).
+
+The builders were SPLIT, not rewritten: `igMapReadHtml(m,i,{part:'chips'|'next'})` and
+`igDoorsHtml(m,i,{part:'lead'|'rest'})` hand back their own pieces, so not one data attribute or press changed.
+f1000 (5) pins that: every press and every door survives the split.
+
+LEFT FOR A LATER ROUND, AND SAID TO THE OWNER: the page links row above Jambo's box (`jamboWaysSync`,
+js/components.js) and the source line under the answer ("Read from Explorer and your book") are drawn by other,
+SHARED builders used on every Jambo panel in HaTi; moving them overnight, with browser checks only runnable on
+GitHub, was the kind of change that breaks five pages to tidy one.
+

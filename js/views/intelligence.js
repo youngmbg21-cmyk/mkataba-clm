@@ -3243,8 +3243,9 @@ function igMapReadNext(t){
   if(igbCam().view!==4) out.push({ label:i18t('int_rd_nx_time'), acts:[{ view:4 }] });
   return out.slice(0, IG_MR_NEXT_MAX);
 }
-function igMapReadHtml(m, i){
+function igMapReadHtml(m, i, opts){
   const R=m.mapRead; if(!R||!R.top) return '';
+  const part=(opts&&opts.part)||null;
   const t=R.top, live=igMapReadLive(i), open=live?intel.mrOpen:null, caret=IG_MR_CARET;
   const tick='<b aria-hidden="true">✓</b>';
   const item=(part,v,word,cur)=>`<button type="button" role="menuitemradio" aria-checked="${cur}" data-ig-mrset="${i}:${part}:${igEsc(v)}"><span>${igEsc(word)}</span>${cur?tick:''}</button>`;
@@ -3265,7 +3266,10 @@ function igMapReadHtml(m, i){
   const chips=[chip('keep',i18t('int_rd_keep'),igKeepWords(t,igTopShape(t),false),R.doubt==='keep'), chip('by',i18t('int_rd_by'),igSortWord(t.by),R.doubt==='by')];
   if(R.word&&(t.groups||t.per)) chips.push(chip('word','"'+R.word.say+'"',igGroupsWord(R.word.key),false));
   const next=live?igMapReadNext(t):[];
-  return `<div class="hb-rd${live?'':' is-still'}" role="group" data-ig-mr-turn="${i}" aria-label="${igEsc(i18t('int_rd_label'))}">${chips.join('')}${next.length?`<div class="ig-mr-next">${next.map((x,j)=>`<button type="button" class="ui-link" data-ig-mrnext="${i}:${j}">${igEsc(x.label)}</button>`).join('')}</div>`:''}</div>`;
+  const nextHtml=next.map((x,j)=>`<button type="button" class="ui-link" data-ig-mrnext="${i}:${j}">${igEsc(x.label)}</button>`).join('');
+  if(part==='next') return nextHtml;
+  const chipsHtml=`<div class="hb-rd${live?'':' is-still'}" role="group" data-ig-mr-turn="${i}" aria-label="${igEsc(i18t('int_rd_label'))}">${chips.join('')}${(part==='chips'||!next.length)?'':`<div class="ig-mr-next">${nextHtml}</div>`}</div>`;
+  return chipsHtml;
 }
 /* a press on a chip's menu: the same set, read the other way, in place — the line above says what the map now shows */
 function igMapReadSet(i, part, v){
@@ -5864,6 +5868,10 @@ function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
 /* WHAT JAMBO UNDERSTOOD: an open chip menu closes on a press outside it and on Esc (bound once, at load) */
 document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return; intel.mrOpen=null; renderIntelDock(); },true);
+/* THE SAP WAY's More: a press outside it, or Esc, closes it */
+document.addEventListener('click',e=>{ if(!intel||!intel.sapOpen) return; if(e.target&&e.target.closest&&e.target.closest('.igd-sap-wrap')) return; intel.sapOpen=null; renderIntelDock(); },true);
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.sapOpen) return; e.stopPropagation(); const k=intel.sapOpen; intel.sapOpen=null; renderIntelDock();
+  const b=document.querySelector(`[data-ig-sap-more="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.mrOpen) return; e.stopPropagation(); const k=intel.mrOpen; intel.mrOpen=null; renderIntelDock();
   const b=document.querySelector(`[data-ig-mr="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
 document.addEventListener('change',e=>{ const s=e.target; if(!s||s.id!=='ig-group') return; intel.groupBy=s.value; intel.groups=null; igGroupShows(s.value); rebuildIntelGraph(); });
@@ -9638,6 +9646,50 @@ function igExportList(ids){
     document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
   }catch(_){ if(typeof toast==='function') toast(i18t('int_export_failed'),'err'); }
 }
+/* ---- THE SAP WAY: ONE TOOLBAR UNDER AN ANSWER (owner picked it by name, 10 Nov 2026: "the jambo panel seems
+   extremely crowed due to the extra features… they need to be more clean and structured") ----
+   Up to seven rows of controls stood under one answer — the reading chips, the next steps, Explain / Pin / Copy
+   picture, two buttons, two more links, the source line. They are now ONE bordered toolbar with three LABELLED
+   rows, each saying what its controls are for:
+     Understood — the chips that correct what Jambo read (his reading, and the map's Keep · Ranked by · the word);
+     Next       — his checked next steps, side by side;
+     Open       — ONE filled button, and everything else under More.
+   NOTHING IS LOST: every control the answer carried keeps its own press and its own words, in a row or in More.
+   A row with nothing in it is not drawn, and with nothing at all there is no toolbar. The More menu's rows stay in
+   the page while it is shut (a reader's own press opens it; Esc and a press outside close it). */
+const IG_SAP_MENU_MIN=1;
+function igSapMoreHtml(i, rows){
+  if(!rows.length) return '';
+  const open=intel.sapOpen===String(i);
+  return `<span class="igd-sap-wrap"><button type="button" class="igd-sap-more${open?' is-open':''}" data-ig-sap-more="${i}" aria-haspopup="menu" aria-expanded="${open}">${igEsc(i18t('int_sap_more'))}${IG_MR_CARET}</button>`
+    +`<div class="igd-sap-menu${open?' is-open':''}" role="menu" aria-label="${igEsc(i18t('int_sap_more'))}">${rows.join('')}</div></span>`;
+}
+function igSapHtml(m,i){
+  if(!Number.isInteger(i)||!m||m.role!=='assistant') return '';
+  const last=i===intel.history.length-1&&!m.err;
+  /* UNDERSTOOD: what he read, as chips you can change */
+  const und=[];
+  if(m.reading&&typeof window.hbReadingHtml==='function') und.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
+  if(m.mapRead) und.push(igMapReadHtml(m,i,{ part:'chips' }));
+  /* NEXT: the steps he checked would change what is on screen */
+  const nxt=[];
+  if(m.mapRead) nxt.push(igMapReadHtml(m,i,{ part:'next' }));
+  if(m.nextKey&&igNextLive(i)&&!m.nextMoved&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.nextKey));
+  /* OPEN: the one filled button, the rest under More */
+  const lead=igDoorsHtml(m,i,{ part:'lead' }), rest=igDoorsHtml(m,i,{ part:'rest' });
+  const more=[];
+  if(rest) more.push(rest);
+  if(last&&!m.tour&&igTourOffered()) more.push(`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`);
+  if(last&&igPinOffered()) more.push(`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`);
+  if(last&&(igTourOffered()||igPinOffered())) more.push(`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`);
+  const rows=[];
+  const row=(k,html)=>{ if(html) rows.push(`<div class="igd-sap-r" data-ig-sap-r="${k}"><span class="igd-sap-l">${igEsc(i18t('int_sap_'+k))}</span><span class="igd-sap-v">${html}</span></div>`); };
+  row('understood',und.filter(Boolean).join(''));
+  row('next',nxt.filter(Boolean).join(''));
+  row('open',(lead||'')+(more.length>=IG_SAP_MENU_MIN?igSapMoreHtml(i,more):''));
+  if(!rows.length) return '';
+  return `<div class="igd-sap" data-ig-sap="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">${rows.join('')}</div>`;
+}
 function igMsgHTML(m,i){
   if(m.role==='user')
     return `<div class="ai-msg flex justify-end"><div class="ai-bub ig-bub-me max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
@@ -9655,8 +9707,6 @@ function igMsgHTML(m,i){
     ${igFaceHtml('hello')}
     <div class="min-w-0 flex-1 space-y-1.5">
       ${m.text?`<div class="ai-bub ${m.err?'rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-rose-50 border-rose-200 text-rose-800':'jl-bub'}">${igSafeHtml(m.text)}${cites}</div>`:''}
-      ${''/* WHAT JAMBO UNDERSTOOD (Board Twin): right under the words it reads, before any door */}
-      ${(Number.isInteger(i)&&m.mapRead)?igMapReadHtml(m,i):''}
       ${''/* THE ANSWER IS A WORKLIST DOOR (the brain drawing, 28 Sep 2026): the
              set a map answer drew opens on the Contracts page as that list
              (regShowOnly, the one named-set door), or leaves as a file. */}
@@ -9667,20 +9717,19 @@ function igMsgHTML(m,i){
              with ticks, and Undo for an answer that changed the board */}
       ${(Number.isInteger(i)&&m.tour)?igTourHtml(i):''}
       ${(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&m.role==='assistant')?igWhatIfLinksHtml():''}
-      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}${igTourOffered()||igPinOffered()?`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`:''}</div>`):''}
+      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):''}
       ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
       ${(m.wholeBook&&typeof window.aiWorklistHtml==='function')?aiWorklistHtml(null,{ wholeBook:true }):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
-      ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:!!m.nextMoved }):''}
-      ${(Number.isInteger(i)&&m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function')?hbNextHtml(m.nextKey):''}
+      ${''/* THE SAP WAY (owner's pick, 10 Nov 2026): the answer's controls in ONE toolbar, three labelled rows */}
+      ${igSapHtml(m,i)}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
       ${(Number.isInteger(i)&&m.how)?`<div class="igd-how" title="${igEsc(m.how)}">${igEsc(i18t('int_how_drawn'))}</div>`:''}
-      ${Number.isInteger(i)?igDoorsHtml(m,i):''}
       ${''/* the one prepared press, a watch proposed and Your watches (js/jambopress.js, one builder for both hosts) */}
       ${(Number.isInteger(i)&&m.press&&typeof window.jpHtml==='function')?jpHtml(m.press,'ig:'+i):''}
       ${(Number.isInteger(i)&&m.watchAsk&&typeof window.watchAskHtml==='function')?watchAskHtml(m,'ig:'+i):''}
@@ -9699,24 +9748,29 @@ function igAnswerIds(m){
   const L=Array.isArray(m.listIds)&&m.listIds.length?m.listIds:(Array.isArray(m.cardIds)?m.cardIds:[]);
   return L.filter(id=>getContract(id));
 }
-function igDoorsHtml(m,i){
+function igDoorsHtml(m,i,opts){
+  const part=(opts&&opts.part)||null;
   if(!m||m.role!=='assistant'||m.err) return '';
   const ids=igAnswerIds(m); if(!ids.length) return '';
   const list=Array.isArray(m.listIds)&&m.listIds.length;
   const small=list?`<div class="igd-small"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:'';
-  if(!(window.state&&state.view==='dashboard')) return list?small.replace('igd-small','igd-list'):'';
+  if(!(window.state&&state.view==='dashboard')) return part==='lead'?'':(list?small.replace('igd-small','igd-list'):'');
   const one=ids.length===1, c=one?getContract(ids[0]):null;
   /* NO DOOR TO WHERE YOU ARE (owner, 15 Oct 2026: "a button that will not
      take you anywhere is a waste — simply give a reason"): the one contract
      already on Home's paper is said, not offered */
   if(one&&c&&typeof igHomePaperFace==='function'&&igHomePaperFace()===true&&typeof intel!=='undefined'&&intel.paper&&String(intel.paper.id)===String(c.id))
-    return `<p class="igd-here">${igEsc(i18t('int_already_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }))}</p>${small}`;
+    return part==='lead'?`<p class="igd-here">${igEsc(i18t('int_already_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }))}</p>`:(part==='rest'?small:`<p class="igd-here">${igEsc(i18t('int_already_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }))}</p>${small}`);
   const lead=one?i18t('int_open_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }):i18tn('int_read_on_paper',ids.length,{ n:ids.length });
   /* ONLY THE DOORS THAT FIT WHAT WAS FOUND (Young, 8 Oct 2026): one contract
      is one press, Open on Paper; a board of one shows nothing the paper does
      not, so "Show on the Board" is drawn only for a set — two doors never
      lead to the same place, and the count says how many will be walked. */
-  return `<div class="igd-doors"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ig-paper-go="${i}">${igEsc(lead)}</button>${one?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-board-go="${i}">${igEsc(i18t('int_show_on_board'))}</button>`}</div>${small}`;
+  const leadBtn=`<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ig-paper-go="${i}">${igEsc(lead)}</button>`;
+  const boardBtn=one?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-board-go="${i}">${igEsc(i18t('int_show_on_board'))}</button>`;
+  if(part==='lead') return leadBtn;
+  if(part==='rest') return boardBtn+small;
+  return `<div class="igd-doors">${leadBtn}${boardBtn}</div>${small}`;
 }
 /* WALK A SET ON THE PAPER: one contract at a time, Previous / k of n / Next
    in the strip; the set is the answer's own (or a Board card's). Picking a
@@ -10175,6 +10229,12 @@ function renderIntelDock(){
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
   }
+  /* THE SAP WAY's More: a press opens it, again closes it (Esc and a press outside close it too, bound at load) */
+  dock.querySelectorAll('[data-ig-sap-more]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const k=b.getAttribute('data-ig-sap-more'); intel.sapOpen=intel.sapOpen===k?null:k; renderIntelDock();
+    const fresh=document.querySelector(`[data-ig-sap-more="${k}"]`); if(fresh&&intel.sapOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); }));
+  /* a press on anything inside the menu closes it: the act is the answer */
+  dock.querySelectorAll('.igd-sap-menu button').forEach(b=>b.addEventListener('click',()=>{ intel.sapOpen=null; },true));
   /* WHAT JAMBO UNDERSTOOD (Board Twin): a chip opens its menu, again closes it; a choice re-reads the set in place */
   dock.querySelectorAll('[data-ig-mr]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const k=b.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; renderIntelDock();
@@ -12126,4 +12186,4 @@ Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFir
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
-  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach });
+  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igSapHtml, igSapMoreHtml });

@@ -12033,6 +12033,23 @@
   .hb-rd-menu-note{margin-top:4px;padding:6px 9px 4px;border-top:1px solid var(--color-divider);font-size:var(--t-micro);color:var(--color-quiet);white-space:normal}
   .ig-mr-next{flex-basis:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:2px}
   .ig-mr-next .ui-link{font-size:var(--t-meta)}
+  /* THE SAP WAY: ONE TOOLBAR UNDER AN ANSWER (owner picked it by name, 10 Nov 2026) — three labelled rows,
+     the rare acts under More. Nothing spills: every row wraps inside the card, and the menu is 16px inside it. */
+  .igd-sap{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:visible}
+  .igd-sap-r{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--color-divider)}
+  .igd-sap-r:last-child{border-bottom:0}
+  .igd-sap-l{font-size:var(--t-micro);color:var(--color-quiet);line-height:1.3}
+  .igd-sap-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+  .igd-sap-v .hb-rd,.igd-sap-v .hb-nx,.igd-sap-v .igd-doors,.igd-sap-v .igd-small{display:contents}
+  .igd-sap-v .hb-nx-l{display:none}/* the row's own label already says Next */
+  .igd-sap-wrap{position:relative;display:inline-flex}
+  .igd-sap-more{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:inherit;font:inherit;font-size:var(--t-meta);font-weight:500;white-space:nowrap;cursor:pointer}
+  .igd-sap-more:hover,.igd-sap-more.is-open{border-color:var(--accent-fill,var(--color-accent-600))}
+  .igd-sap-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  .igd-sap-menu{display:none;position:absolute;bottom:calc(100% + 4px);right:0;/* UPWARD: the toolbar sits low in the panel, so a menu dropped down would fall off the window */z-index:30;min-width:208px;max-width:260px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
+  .igd-sap-menu.is-open{display:flex}
+  .igd-sap-menu .ui-btn,.igd-sap-menu .ui-link{display:block;width:100%;height:auto;padding:7px 9px;border:0;border-radius:var(--radius);background:none;text-align:left;white-space:normal;font-size:var(--t-meta)}
+  .igd-sap-menu .ui-btn:hover,.igd-sap-menu .ui-link:hover{background:var(--color-accent-50,rgba(0,0,0,.05))}
   /* three next questions under the live reply (Part 5) */
   .hb-nx{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
   .hb-nx-l{font-size:var(--t-micro);color:var(--color-quiet)}
