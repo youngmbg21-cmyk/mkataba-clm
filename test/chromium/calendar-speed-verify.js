@@ -49,9 +49,10 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     check(up, '0 the calendar opens, with Jambo\'s panel beside it');
     check(n0 >= 0 && n1 - n0 <= 1, '3 opening the calendar paints Jambo\'s panel at most once', { before: n0, after: n1, paints: n1 - n0 });
 
-    /* mark what must survive the presses */
+    /* mark what must survive the presses (the calendar's own sheet is the one that sets --cal-side-w; index.html's sheet
+       names .cal-page too, so a match on that would count two) */
     const m0 = await P.evaluate(() => {
-      const sheets = [...document.querySelectorAll('style')].filter(s => (s.textContent || '').includes('.cal-page{'));
+      const sheets = [...document.querySelectorAll('style')].filter(s => (s.textContent || '').includes('--cal-side-w:'));
       if (sheets[0]) sheets[0]._calMark = 1;
       const plan = document.getElementById('cal-plan'); if (plan) plan._calMark = 1;
       return { sheets: sheets.length, id: sheets[0] && sheets[0].id, paints: typeof igDockPaintCount === 'function' ? igDockPaintCount() : -1 };
@@ -66,7 +67,7 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
       await el.click(); await settled(P); pressed.push(sel);
     }
     const m1 = await P.evaluate(() => {
-      const sheets = [...document.querySelectorAll('style')].filter(s => (s.textContent || '').includes('.cal-page{'));
+      const sheets = [...document.querySelectorAll('style')].filter(s => (s.textContent || '').includes('--cal-side-w:'));
       const plan = document.getElementById('cal-plan');
       return { sheets: sheets.length, same: !!(sheets[0] && sheets[0]._calMark === 1), plan: !!plan, samePanel: !!(plan && plan._calMark === 1),
         paints: typeof igDockPaintCount === 'function' ? igDockPaintCount() : -1, view: typeof calView === 'function' ? calView() : '' };

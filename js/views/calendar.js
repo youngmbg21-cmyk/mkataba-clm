@@ -1070,6 +1070,9 @@ function calAgendaViewHtml(evs){
    per draw (calEventsOnce) and each date's words are written by a kept formatter (calDateWords). */
 function renderCalendar(opts){
   const keepPanel=!!(opts&&opts.keepPanel===true);
+  /* only Home's opening (hbApplyFace) may lean on a panel painted a moment ago: a repaint for Jambo's own work (his
+     thinking dots, his answer — calPlanRepaint) always paints the panel, however recently it was painted */
+  const fromFace=!!(opts&&opts.fromFace===true);
   const onHome=window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&!!document.getElementById('hb-cal');
   const host=onHome?document.getElementById('hb-cal'):document.getElementById('content');
   if(!host) return;
@@ -1192,7 +1195,7 @@ function renderCalendar(opts){
   /* on Home its Copilot is Home's one panel, painted (and wired) there */
   if(onHome){
     /* the panel stands as it is when only the view changed, or when Home's opening painted it a moment ago */
-    if((keepPanel||_calPanelFresh)&&document.getElementById('cal-plan')) calWireOwn();
+    if((keepPanel||(fromFace&&_calPanelFresh))&&document.getElementById('cal-plan')) calWireOwn();
     else if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
     else calWireOwn();
   }
