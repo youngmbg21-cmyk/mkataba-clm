@@ -21973,3 +21973,12 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 ### Noticed, not fixed
 - The same whole-page-on-every-keystroke pattern is still on Requests, People, Parties, Reads, Import, My notes, the template library and the contract room's History. Same shape of fix, page by page.
 - _obwPaintBook is set on every obligations paint and never cleared, so obwBookNow() always reuses the last paint's book. It is refreshed by each paint so nothing stale has been seen, but it is a cache with no way to say it has gone off.
+
+## 10 Nov 2026 — the rest of the list pages redraw only their rows (owner: "do the remaining eight pages")
+- FIXED on Requests, People, Parties, Reads, Import and My notes: each drew the whole of #content on every tab press and every letter typed in its search box. One shared swap now rewrites the table and the bar's counts and leaves the frame, the box and the panel standing.
+- ONE BUILDER, not six: listRowsSwap / listRowsSwapHtml / listCaretAt / listCaretPut in js/listlang.js. A false return always means "draw the whole page", so a page can never be left half redrawn and a new tab can never be missed.
+- EIGHT WAS MY COUNT AND TWO WERE WRONG: the template library repaints only its book section and the contract room's History only its own pane. Neither touches #content, so neither has this fault. They keep a smaller one (their box is inside the pane they swap, so the caret is still restored) and were left alone, not counted as done.
+- CAUGHT BY DRIVING THE PAGES: on Reads and Requests the call to the new-look renderer sits in a different function from the page entry, so the option was out of scope and the browser threw "o is not defined" on arrival. Lint cannot see across that gap.
+### Noticed, not fixed
+- Import takes the same swap but could not be exercised here: its page is only drawn once files have been brought in, and seeding an import queue is its own job. It is not in the browser check either, deliberately, rather than appearing covered.
+- The template library and the contract room's History still rebuild their own pane, search box included, on every keystroke. Smaller than the page rebuild, and History sits inside the contract room, so it is its own job.

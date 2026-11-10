@@ -36626,3 +36626,26 @@ whole inside (colgroup, heads, body) is rewritten inside its own node so the hea
 and every fallback restores the caret. Both pages carry the safety net.
 STILL TO DO, page by page, the same shape on each: Requests, People, Parties, Reads, Import, My notes, the template
 library and the contract room's History all rebuild their whole page on every keystroke.
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE (the rest of the lists, 10 Nov 2026)
+The owner: "do the remaining eight pages". Eight was MY count, from a grep for the pages that restore a caret after
+drawing, and two of them were wrong: the template library repaints only `[data-tpl-sec="book"]` and the contract
+room's History only `#ws-history-pane`. Neither touches #content, so neither carries the fault this work is about.
+They keep a smaller cost — their search box sits inside the pane they swap, so the caret still has to be put back —
+and they were left alone rather than counted as done. Six pages really had it: Requests, People, Parties, Reads,
+Import and My notes, each drawing the WHOLE of #content on every tab press and every letter typed.
+ONE SWAP, NOT SIX. js/listlang.js gained `listRowsSwap` (the caller hands over the pieces) and `listRowsSwapHtml` (the
+caller hands over the page it just built and the swap reads the pieces back out of it), plus `listCaretAt`/
+`listCaretPut`. The second exists because several of these pages build their screen as one long nested template, and
+cutting the table and the foot out of five of them by hand is five chances to cut in the wrong place; parsing the
+finished markup into a detached <template> costs a parse and nothing else — no styles, no layout, no paint — while
+skipping the part that was expensive, which was handing it to #content. The contract is the return value: FALSE means
+"draw the whole page", so a page can never be left half redrawn and a new tab can never be missed.
+WHAT IT COST TO GET RIGHT. A first pass added the option to each page's ENTRY function and changed the call to the
+new-look renderer — but on Reads and Requests that call sits in a different function (renderReadsDraw,
+renderIntakeInspector), so `o` was not in scope and the browser threw "o is not defined" on arrival. Caught by driving
+the real pages, not by lint, which cannot see across that gap. The chains were completed and the pages re-driven.
+MEASURED, at 1440×780, driving each page: a tab press and a typed word both keep the frame, the box and the panel
+standing on Requests, People, Parties, Reads and My notes, with no page errors. IMPORT TAKES THE SAME SWAP BUT WAS NOT
+DRIVEN: its page is only drawn once files have been brought in, and seeding an import queue is its own job. Said in
+the check's notes and in BUGLOG rather than left looking covered.
