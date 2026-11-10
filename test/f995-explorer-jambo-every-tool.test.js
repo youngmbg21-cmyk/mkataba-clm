@@ -192,6 +192,12 @@ test('f995 (6) "Eight contracts" over two shown is not printed; a sentence that 
   assert.equal(w2.igMapSentenceKept('**Two renew soon.** Kabras on 30 Sep.\n\n- Kabras: give notice by 1 Sep\n- Nandi: no notice clause'),
     '**Two renew soon.** Kabras on 30 Sep.\n\n- Kabras: give notice by 1 Sep\n- Nandi: no notice clause');
   assert.equal(w2.igMapSentenceKept('Here\'s the grid view.\n- Bidco leads'), '- Bidco leads');
+  /* the exam re-run (10 Nov 2026): a cut at "e.g." inside brackets kept the tail of a dropped claim, and a stray quote
+     closed the sentence — the whole claim goes, the quote goes, a quote that belongs stays */
+  assert.equal(w2.igMapSentenceKept('Marked 31 March on the timeline (e.g. Cold Chain Logistics with Bidco) cluster right around that date. Bidco leads.'), 'Bidco leads.');
+  assert.equal(w2.igMapSentenceKept('Bidco\'s signed book spans three deals, the largest at KES 94M."'), 'Bidco\'s signed book spans three deals, the largest at KES 94M.');
+  assert.equal(w2.igMapSentenceKept('Twiga calls it "the old lease" in its notes.'), 'Twiga calls it "the old lease" in its notes.');
+  assert.deepEqual(JSON.parse(JSON.stringify(w2.igSentencesOf('Bidco leads (i.e. by value). Naivas follows, e.g. in Sales. Done!'))), ['Bidco leads (i.e. by value).', 'Naivas follows, e.g. in Sales.', 'Done!']);
 });
 
 /* ---------- (7) THE CHECK ---------- */

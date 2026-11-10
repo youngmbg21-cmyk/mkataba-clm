@@ -2934,9 +2934,30 @@ function igMapSentenceKept(s){
      empty by the cut goes, the rest keep their own line */
   const kept=String(s||'').split('\n').map(line=>{ if(!line.trim()) return line;
     const lead=(line.match(/^\s*(?:[-*•]|\d+[.)])\s+/)||[''])[0], body=line.slice(lead.length);
-    const parts=body.split(/(?<=[.!?])\s+/).filter(x=>x.trim()).filter(x=>!IG_MAP_CLAIM_RE.test(x));
+    const parts=igSentencesOf(body).filter(x=>x.trim()).filter(x=>!IG_MAP_CLAIM_RE.test(x));
     return parts.length?lead+parts.join(' '):null; }).filter(x=>x!==null);
-  return kept.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  return igStrayQuoteOff(kept.join('\n').replace(/\n{3,}/g,'\n\n').trim());
+}
+/* SENTENCES, NOT FULL STOPS (the owner's exam re-run, 10 Nov 2026: "…(e.g. Cold Chain Logistics with Bidco) cluster…"
+   was cut at "e.g." and its tail kept after its head was dropped): a sentence ends at . ! ? before a space, but never
+   inside brackets and never after a short abbreviation (e.g., i.e., etc., vs., Ltd., a single letter) */
+const IG_ABBREV_RE=/(?:^|[\s(])(?:e\.g|i\.e|etc|vs|incl|approx|ltd|co|inc|no|nr|cf|al|[a-z])\.$/i;
+function igSentencesOf(text){
+  const t=String(text||''), out=[]; let depth=0, from=0;
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(ch==='('||ch==='[') depth++; else if((ch===')'||ch===']')&&depth>0) depth--;
+    else if(/[.!?]/.test(ch)&&depth===0&&/\s/.test(t[i+1]||'')&&!(ch==='.'&&IG_ABBREV_RE.test(t.slice(from,i+1)))){
+      out.push(t.slice(from,i+1).trim()); from=i+1; } }
+  if(t.slice(from).trim()) out.push(t.slice(from).trim());
+  return out;
+}
+/* A STRAY QUOTE MARK at the end (or start) of Jambo's sentence — one with no partner — is not his words */
+function igStrayQuoteOff(text){
+  let t=String(text||'');
+  const odd=x=>((x.match(/"/g)||[]).length%2)===1;
+  if(odd(t)&&/"\s*$/.test(t)) t=t.replace(/"\s*$/,'');
+  else if(odd(t)&&/^\s*"/.test(t)) t=t.replace(/^\s*"/,'');
+  return t.trim();
 }
 /* A sentence that says the map did something. Printed only where the map did. */
 const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|i(?:'ve| have)? (?:updated|changed|set|turned|made|grouped|folded|hidden|removed)|regrouped|grouped|folded|unfolded|opened (?:up|out)|collapsed|bundled|resized|turned (?:off|on)|switched (?:off|on)|labell?ed|colou?red|sized|dold|gömd|ändrat|grupperat|ihopfälld|ihopfällda|fällt ihop|fällde ihop|utfälld)\b/i;
@@ -11738,4 +11759,4 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
 Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
-Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, igGapNote, graphRecipeOnScreen });
+Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igGapNote, graphRecipeOnScreen });
