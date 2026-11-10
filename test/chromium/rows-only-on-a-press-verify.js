@@ -63,7 +63,7 @@ const PAGES = [
   { k: 'approvals', view: 'approvals', rowSel: '.apn-table [data-ap-row]', tabSel: '[data-apn-tab]', tabKey: 'data-apn-tab',
     box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th' },
   { k: 'obligations', view: 'obligations', rowSel: '#obn-body [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
-    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '#obn-body tr.obn-g' },
+    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obn-table.is-two-line thead th' },
 ];
 
 (async () => {
@@ -106,7 +106,7 @@ const PAGES = [
           /* Proposed is left out on purpose: it stands a different thing where the
              list stands and brings its own panel, so it is a whole-page press by
              design, not a rows one. */
-          const b = [...document.querySelectorAll(sel)].find(x => !/is-on/.test(x.className) && x.getAttribute(key) !== 'proposed');
+          const b = [...document.querySelectorAll(sel)].find(x => !/is-on/.test(x.className) && !['proposed', 'prop'].includes(x.getAttribute(key)));
           if (!b) return null;
           const k = b.getAttribute(key);
           b.click();
@@ -116,7 +116,8 @@ const PAGES = [
         const tab = await page.evaluate(([sel, key, rs]) => ({
           rows: document.querySelectorAll(rs).length,
           live: [...document.querySelectorAll(sel)].filter(b => /is-on/.test(b.className)).map(b => b.getAttribute(key)),
-          counts: [...document.querySelectorAll(sel)].map(b => ((b.querySelector('span') || {}).textContent || '').trim()),
+          /* a pill's count sits in its own span (Approvals) or inside its words (Obligations, "Late 3") */
+          counts: [...document.querySelectorAll(sel)].map(b => ((b.querySelector('span') || b).textContent || '').replace(/[^0-9]/g, '')),
           page: (document.querySelector('.apn-page, .obn-page') || {}).dataset.rowsMark === 'page',
           box: (document.querySelector('#apn-q, #obn-q') || {}).dataset.rowsMark === 'box',
           panel: (document.getElementById('ins-panel') || {}).dataset.rowsMark === 'panel',
