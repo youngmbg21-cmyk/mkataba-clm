@@ -2109,7 +2109,8 @@ function regCtFootHtml(cs){
    full set, its narrow set, or the answers' shape while Ask a column stands
    — and a column the reader hid pays its share to the agreement, the
    column with the give, so the widths still sum to 100 */
-const REG_COL_W_NL={ standing:12, stream:11, standards:19, expiry:12, value:11, owner:10 };
+/* stream 13 (its chip's whole word), standards 17 (the Scorecard's one line) — owner's pick, 10 Nov 2026 */
+const REG_COL_W_NL={ standing:12, stream:13, standards:17, expiry:12, value:11, owner:10 };
 function regHomeColW(keys){
   const ask=keys.filter(k=>String(k).startsWith('ask:'));
   if(regNl()&&!regHomeNarrow()){
@@ -2870,7 +2871,7 @@ function regRowsHtml(cs){
     /* "NON-MONETARY", NOT "n/m" (26 Sep 2026, the list options' floor):
        shorthand a reader had to decode, on the one cell whose whole job is to
        be read at a glance. The word is the book's own (reg_non_monetary_word). */
-    const val=!isMonetary(c)?esc(i18t('reg_non_monetary_word')):(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—');
+    const val=!isMonetary(c)?esc(i18t((typeof newLookOn==='function'&&newLookOn())?'reg_no_money':'reg_non_monetary_word')):(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—');
     /* ---- THE CELLS ARE BUILT BY KEY AND EMITTED IN THE SEAT'S ORDER (second
        pass, 21 Sep 2026) ---- the head does the same off the same list, so a
        column can never sit under the wrong heading. THE TITLE IS TWO LINES
@@ -2985,14 +2986,15 @@ function regRowsHtml(cs){
           the `name` column's reason below. regStreamName stays: the sort by
           stream (in the dropdown) still reads it, and the CSV export keeps
           its own Folder column. */
-    CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'font-family:inherit;color:var(--color-neutral-600)'}"${isMonetary(c)?'':` title="${esc(i18t('reg_non_monetary'))}"`}>${val}</td>`;
+    CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'font-family:inherit;color:'+((typeof newLookOn==='function'&&newLookOn())?'var(--color-neutral-400)':'var(--color-neutral-600)')}"${isMonetary(c)?'':` title="${esc(i18t('reg_non_monetary'))}"`}>${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
     /* THE LIST LANGUAGE (27 Oct 2026): the stream a soft chip, the standards in words (stdRowWordsHtml) */
     CELL.stream=`<td style="white-space:nowrap;overflow:hidden">${(()=>{ const n=regStreamName(c); if(!n||!window.listChipHtml) return '<span class="reg-dash">—</span>';
       /* the stream's short word where the house has one (STREAM_SHORT), its whole name on the hover */
       const short=(window.STREAM_SHORT&&STREAM_SHORT[c.folder])||n;
       return listChipHtml(listStreamTone(c.folder),short).replace(/ title="[^"]*"/,` title="${esc(n)}"`); })()}</td>`;
-    CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}${regNl()?regStdMissHtml(c):''}</td>`;
+    /* the Scorecard (10 Nov 2026) names what is missing on its hover, so the cell is one line (regStdMissHtml no longer drawn here) */
+    CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}</td>`;
     if(regNl()){ const st=regStageTone(c); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)">${esc((st.m&&st.m.label)||'')}</td>`; }
     /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
        7: in Home's narrower column "· in 25 days" was cut on every screen) —

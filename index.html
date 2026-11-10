@@ -17307,6 +17307,16 @@
   .ls-lamp i{width:7px;height:7px;border-radius:50%;flex:none}
   .ls-lamp.is-off{background:var(--surface-2);color:var(--color-neutral-400);font-weight:var(--w-label)}
   .ls-lamp.is-off i{background:var(--color-neutral-400);opacity:.45}
+  /* THE SCORECARD (owner's pick by name, 10 Nov 2026; stdRowWordsHtml in the new look): one slim bar split red · amber ·
+     green by share, its three counts beside it, on one line, centred in its row */
+  html.lg-new .ls-score{display:inline-flex;align-items:center;gap:10px;white-space:nowrap;vertical-align:middle;max-width:100%}
+  html.lg-new .ls-score-bar{display:flex;flex:none;width:84px;height:8px;border-radius:4px;overflow:hidden;background:var(--color-neutral-200)}
+  html.lg-new .ls-score-bar i{display:block;height:100%;flex:none}
+  html.lg-new .ls-score-n{font-style:normal;font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums}
+  html.lg-new .ls-score-n u{text-decoration:none;font-weight:var(--w-label)}
+  html.lg-new .ls-score-n u.is-ruby{color:var(--st-ruby-fg)}
+  html.lg-new .ls-score-n u.is-amber{color:var(--st-amber-fg)}
+  html.lg-new .ls-score-n u.is-green{color:var(--st-green-fg)}
   .ls-av{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;font-size:11px;font-weight:var(--w-strong);border-radius:50%}
   .ls-av.is-square{border-radius:6px}
   /* -- JAMBO'S CARDS, THE LEGORA WAY (owner picked it by name, 24 Oct 2026: "the card … should be slightly
