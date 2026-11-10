@@ -275,6 +275,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- THE FOLDERS, VIEWS FIRST (10 Nov 2026): `test/f998-views-first.test.js` (6 checks, red at the parent; the reading is run with real records: the number is the list, both ends of the 90 days, a view with nothing not drawn, money walled) ; f983 (2) re-pointed (the Legora-way rows are reversed). Browser: white-sheet-verify CUT holds Contracts (the folders scroll).
 - THE COMPANY LEADS THE ROW (owner, 10 Nov 2026): f874 3a (re-pointed; red at the parent) — company over "agreement · ref", the hover company first, the sort reads the company; counterparty-leads-verify 1b–1e, contracts-page-verify 1c–1e and the sort checks unchanged.
 - The wall's ways in (`CA_CHIPS_WALL`): upload · draft · reads · calendar, no board (owner, 28 Oct 2026) — f672 4c, f679 2a/2c, draft-upload-glance-verify 1e/1f ("reads" lands on the Reads page).
 - VALUE SORTS IN ONE CURRENCY (bug log batch 3, 26 Oct 2026): f944 (new; red at the parent) — REG_CMP.value ranks by fxHome, an unrated value last both ways; negoBandCounts adds an unstamped contract to "neither". With contracts-page-verify.

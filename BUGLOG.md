@@ -21969,3 +21969,11 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - FIXED · THE WALL DREW AN OLDER RING (owner-reported, a picture). The wall's papers, and a party's own list of agreements, drew a dotted or half-filled outline while the list draws the filled SAP way mark. Both now draw the list's mark from the list's own reading. f997.
 ### Noticed, not fixed
 - The wall's fourth paper in a row is cut at the right edge and the wall scrolls sideways at 1536 wide with Jambo's panel open (also in the owner's picture); "no panel scrolls sideways" says it should not.
+
+## 10 Nov 2026 — Contracts' folders rebuilt: Views first (the owner's pick by name)
+- BUILT · Views across every folder on top (my approval, out for signature, ending in 90 days, above 10M), the folders as two compact columns under them; a view opens the list on exactly its contracts. Reverses the Legora-way folder rows of 9 Nov. f998.
+- A BAND REMOVED, said to the owner: the folders' key line (Signed · In review · Drafting) went with the bars it explained.
+### Noticed, not fixed
+- The Handbook's Contracts chapter still describes the row's mark in the older words (a ticked circle, a half circle, a dashed circle); the list and the wall now wear the SAP way mark.
+- The Handbook's pictures for Contracts were not re-taken here (the picture tool is a browser check; it runs on GitHub).
+- With a view open, the page head still counts the whole book ("29 · … on paper") while the list shows the view's 15.
