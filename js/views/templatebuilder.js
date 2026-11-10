@@ -3338,7 +3338,7 @@ async function tbPaintBranding() {
   host.innerHTML = `<details class="tb-bf"${_tbBrandOpen ? ' open' : ''}>
     <summary style="display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none">
       <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tb_branding')}</h4>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('tb_org_wide')}</span>
+      <span style="font-size:var(--t-label);color:${(typeof newLookOn==='function'&&newLookOn())?'var(--color-neutral-400)':'var(--color-neutral-600)'}">${i18t('tb_org_wide')}</span>
       <span style="flex:1"></span>${icon('chevD', 'w-3.5 h-3.5')}
     </summary>
     <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-top:10px">

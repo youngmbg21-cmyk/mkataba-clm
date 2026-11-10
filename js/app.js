@@ -980,15 +980,38 @@ function navCounts(){
   return _navCounts;
 }
 
-function updateSidebarCounts(){
-  const cs=state.contracts;
-  const nc=navCounts();
-  /* the book's size, still read by the earned doors below */
-  const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
-  /* THE CONTRACTS COUNT WENT WITH ITS ITEM (the overnight work order, step 7):
-     the fold keeps Negotiations and Parties; the place's own head says how
-     many are live (regHeadFactsHtml) */
-  const counts={
+/* ---------- THE DOORS' NUMBERS ARE COUNTED ONCE A TURN ----------
+   (10 Nov 2026, off the owner's "why is the app slow" review.)
+
+   WHAT IT COST. Each number beside a page name is its own reading of the WHOLE
+   book, and updateSidebarCounts asks for all of them. That function is called
+   from forty-seven places — every page move and after most acts — so one turn
+   that repaints twice walked the book eighteen times. navCounts above already
+   learnt this lesson for three of the figures (its note records 1,132 walks for
+   one paint of Home, brought down to 3); these are the rest of them.
+
+   WHY THIS MEMO CAN NEVER BE STALE, which is the only interesting question,
+   because a door whose number disagrees with the list behind it is the fault
+   this codebase refuses hardest. It is cleared on a MICROTASK, exactly as
+   navCounts is: nothing a person presses and no answer from the server can be
+   processed before the clear runs, so the cache cannot outlive the state it was
+   counted from. It removes repeated counting WITHIN one turn and nothing else.
+   A cache that survived the turn would have to know when the book moved, and
+   nothing here knows that reliably — so it is not attempted.
+
+   RE-ENTRANCY, the trap navCounts fell into and recorded: approvalsDoorCount
+   draws its rows through readings that can ask for these counts again. The flag
+   answers zeros to the inner caller rather than recomputing, and the outer one
+   still finishes and stores its own count. */
+let _doorCounts = null, _doorBusy = false;
+function doorCountsClear(){ _doorCounts = null; }
+function doorCounts(nc){
+  if(_doorCounts) return _doorCounts;
+  if(_doorBusy) return { customers:0, pipeline:0, intake:0, obligations:0, approvals:0, agents:0,
+    mynotes:0, calendar:0, migration:0, negotiations:0, templates:0 };
+  _doorBusy = true;
+  try{
+    _doorCounts = {
     /* HOW MANY CUSTOMERS — the list the Customers page draws (cuDoorCount), so the door and the page cannot disagree. A size, never amber. */
     customers: (typeof cuDoorCount==='function')?cuDoorCount():0,
     pipeline: nc.pipeline,
@@ -1025,7 +1048,21 @@ function updateSidebarCounts(){
     negotiations: nc.negotiations,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
       + (window.tplLibCount?tplLibCount():0),
-  };
+    };
+  } finally { _doorBusy = false; }
+  try{ Promise.resolve().then(doorCountsClear); }catch(_){ doorCountsClear(); }
+  return _doorCounts;
+}
+
+function updateSidebarCounts(){
+  const cs=state.contracts;
+  const nc=navCounts();
+  /* the book's size, still read by the earned doors below */
+  const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
+  /* THE CONTRACTS COUNT WENT WITH ITS ITEM (the overnight work order, step 7):
+     the fold keeps Negotiations and Parties; the place's own head says how
+     many are live (regHeadFactsHtml) */
+  const counts = doorCounts(nc);
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */

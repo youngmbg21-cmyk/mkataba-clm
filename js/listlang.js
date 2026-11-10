@@ -81,6 +81,18 @@ function stdRowWordsHtml(c){
   if (!r || !r.total) return `<span class="ls-quiet">${T('std_row_unchecked')}</span>`;
   const said = [r.miss ? Tn('std_row_missing', r.miss, { n: r.miss }) : '', r.off ? Tn('std_row_differ', r.off, { n: r.off }) : '',
     T('std_row_of', { met: r.met, total: r.total })].filter(Boolean).join(' \u00b7 ');
+  /* THE SCORECARD (owner's pick by name, 10 Nov 2026, for the Contracts list; the Approvals list wears the same, one
+     builder): in the new look the three lamps become ONE slim bar split red · amber · green by share, its three counts
+     beside it on the same line; what is missing is named on the hover (and in Jambo's panel) */
+  if (typeof newLookOn === 'function' && newLookOn()) {
+    const vs = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+    const miss = vs.filter(v => v && v.status === 'missing').map(v => String(v.category || v.name || '').toLowerCase()).filter(Boolean);
+    const hover = said + (miss.length ? ' \u2014 ' + T('reg_std_missing', { list: miss.join(', ') }) : '');
+    const pc = n => (n / r.total * 100).toFixed(1) + '%';
+    const seg = (tone, n) => n ? `<i style="width:${pc(n)};background:var(--st-${tone}-dot)"></i>` : '';
+    return `<span class="ls-score" role="img" aria-label="${_lsE(hover)}" title="${_lsE(hover)}"><b class="ls-score-bar">${seg('ruby', r.miss)}${seg('amber', r.off)}${seg('green', r.met)}</b>`
+      + `<em class="ls-score-n"><u class="is-ruby">${r.miss}</u> \u00b7 <u class="is-amber">${r.off}</u> \u00b7 <u class="is-green">${r.met}</u></em></span>`;
+  }
   const lamp = (tone, n) => n
     ? `<span class="ls-lamp" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)"><i style="background:var(--st-${tone}-dot)"></i>${n}</span>`
     : '<span class="ls-lamp is-off"><i></i>0</span>';

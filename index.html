@@ -12026,6 +12026,13 @@
   .hb-rd-menu button small{margin-left:auto;font-size:var(--t-micro);color:var(--color-quiet)}
   .hb-rd-menu button b{margin-left:auto}
   .hb-rd-menu-h{padding:8px 9px 3px;font-size:var(--t-micro);font-weight:600;color:var(--color-quiet)}
+  /* WHAT JAMBO UNDERSTOOD ON THE MAP (owner picked "Board Twin", 10 Nov 2026): the Board's own reading chips; the part
+     the two readers did not agree on wears amber; the note under a menu says how a word was read; checked next steps */
+  .hb-rd-chip.is-doubt{border-color:var(--st-amber-line);background:var(--st-amber-bg)}
+  .hb-rd-chip.is-doubt i{color:var(--st-amber-fg)}
+  .hb-rd-menu-note{margin-top:4px;padding:6px 9px 4px;border-top:1px solid var(--color-divider);font-size:var(--t-micro);color:var(--color-quiet);white-space:normal}
+  .ig-mr-next{flex-basis:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:2px}
+  .ig-mr-next .ui-link{font-size:var(--t-meta)}
   /* three next questions under the live reply (Part 5) */
   .hb-nx{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
   .hb-nx-l{font-size:var(--t-micro);color:var(--color-quiet)}
@@ -17317,6 +17324,16 @@
   .ls-lamp i{width:7px;height:7px;border-radius:50%;flex:none}
   .ls-lamp.is-off{background:var(--surface-2);color:var(--color-neutral-400);font-weight:var(--w-label)}
   .ls-lamp.is-off i{background:var(--color-neutral-400);opacity:.45}
+  /* THE SCORECARD (owner's pick by name, 10 Nov 2026; stdRowWordsHtml in the new look): one slim bar split red · amber ·
+     green by share, its three counts beside it, on one line, centred in its row */
+  html.lg-new .ls-score{display:inline-flex;align-items:center;gap:10px;white-space:nowrap;vertical-align:middle;max-width:100%}
+  html.lg-new .ls-score-bar{display:flex;flex:none;width:84px;height:8px;border-radius:4px;overflow:hidden;background:var(--color-neutral-200)}
+  html.lg-new .ls-score-bar i{display:block;height:100%;flex:none}
+  html.lg-new .ls-score-n{font-style:normal;font-size:12px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums}
+  html.lg-new .ls-score-n u{text-decoration:none;font-weight:var(--w-label)}
+  html.lg-new .ls-score-n u.is-ruby{color:var(--st-ruby-fg)}
+  html.lg-new .ls-score-n u.is-amber{color:var(--st-amber-fg)}
+  html.lg-new .ls-score-n u.is-green{color:var(--st-green-fg)}
   .ls-av{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;font-size:11px;font-weight:var(--w-strong);border-radius:50%}
   .ls-av.is-square{border-radius:6px}
   /* -- JAMBO'S CARDS, THE LEGORA WAY (owner picked it by name, 24 Oct 2026: "the card … should be slightly
@@ -18675,6 +18692,17 @@
   html.lg-new .apn-table tr.apn-group td{padding:16px 0 8px;font-size:13px;font-weight:var(--w-label);border-bottom:1px solid var(--color-divider)}
   html.lg-new .apn-table tr.is-done td{color:var(--color-quiet)}
   html.lg-new .apn-table tr.is-sel{background:var(--color-bg)}
+  /* THE HEAD STAYS AT THE TOP, AND THE CHOSEN ROW KEEPS ITS ROOM (owner's screenshots, 10 Nov 2026). The sheet is the
+     scroller and carries 20px above its first line: a head stuck at 0 stops 20px short, and rows showed through the gap
+     above it, so it sticks at minus that room. Its hairline is a shadow, since a collapsed table's border does not
+     travel with a stuck cell. The chosen row's fill and bar (and a hovered row's fill) reach 12px left of the mark,
+     into the sheet's margin, so the bar never touches the mark; one grey, the row's own (drawn by the first cell, since a
+     collapsed table's cell paints no outer shadow) */
+  html.lg-new #ap-scroll .apn-table th{top:-20px;border-bottom:0;box-shadow:inset 0 -1px 0 var(--color-divider)}
+  html.lg-new #ap-scroll .apn-table tbody tr.is-sel td{background:var(--color-bg)}
+  html.lg-new #ap-scroll .apn-table tbody tr[data-ap-row] td:first-child{position:relative;overflow:visible;box-shadow:none}
+  html.lg-new #ap-scroll .apn-table tbody tr.is-sel td:first-child::before{content:"";position:absolute;top:0;bottom:0;left:-14px;width:12px;background:var(--color-bg);border-left:2px solid var(--color-text)}
+  @media (hover:hover){ html.lg-new #ap-scroll .apn-table tbody tr[data-ap-row]:not(.is-sel):hover td:first-child::before{content:"";position:absolute;top:0;bottom:0;left:-12px;width:12px;background:var(--surface-2)} }
   html.lg-new .apn-none{color:var(--color-quiet)}
   html.lg-new .apn-foot{margin-top:auto;padding:14px 0;border-top:1px solid var(--color-divider);font-size:12.5px;font-weight:var(--w-label)}
   /* THE CALENDAR, AS DRAWN (round 5): one white page, the name in the serif with its four views as words beside it,
@@ -19737,6 +19765,8 @@
   html.lg-new .ctfp-rk-b i{display:block;height:100%;border-radius:4px}
   html.lg-new .ctfp-rk-b i.is-amber{background:var(--st-amber-dot)}
   html.lg-new .ctfp-rk-b i.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .ctfp-rk-b i.is-ink{background:var(--color-text)}
+  html.lg-new .ctfp-rk-b i.is-grey{background:var(--color-neutral-300)}
   html.lg-new .ctfp-rk b{text-align:right;font-weight:var(--w-label);font-variant-numeric:tabular-nums;white-space:nowrap}
   @media (hover:hover){ html.lg-new .ctfp-rk:hover .ctfp-rk-n{text-decoration:underline} }
   html.lg-new #pd-glance :is(.pd2-l,.pd2-read,.pd2-card-say){color:var(--color-neutral-400)}
@@ -19781,6 +19811,18 @@
   html.lg-new .stn-pill.is-need{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   /* Settings reads like the contract's facts: a setting's label grey, what it is set to ink; its small heads grey */
   html.lg-new #set-page :is(.stn-l,.stn-h,.stn-mh),html.lg-new .stn-pp{color:var(--color-neutral-400)}
+  /* THE SWEEP (owner, 10 Nov 2026: "add black and grey … across the platform"): the pages the f982/f984 rounds did not
+     reach. Names, figures, titles and buttons stay ink; the line under a name, a count's word, a page's sub-title, a
+     panel's label, a caption, a time, a side and a hint go grey. */
+  html.lg-new #pu-page :is(.pu-sub,.pu-facts,.pu-rk small,.pu-meta,.pu-meta .pu-pty,.pu-sc small,.pu-cap){color:var(--color-neutral-400)}
+  html.lg-new :is(.hist-cap,.hist-day-h small),html.lg-new .hist-trail.is-table .hist-c-time .hist-time,html.lg-new .hist-sd:is(.is-ours,.is-theirs,.is-none){color:var(--color-neutral-400)}
+  html.lg-new [data-share-sap] .sh-lt.is-sap .sh-lt-say2,html.lg-new :is([data-share-sap],#pd-sendface) .sh-lt-card>h4{color:var(--color-neutral-400)}
+  html.lg-new :is(.na-not-yet,.na-file-cost),html.lg-new #na-root.na-one .na-lr-t .na-pick-m,html.lg-new #modal-root .na-why{color:var(--color-neutral-400)}
+  html.lg-new :is(.hbkn-card .ctf-hf,.hbkn-eye),html.lg-new #hbk-page .hbk-fig figcaption{color:var(--color-neutral-400)}
+  html.lg-new :is(#jh-total-l,.jh-note,.jh-none){color:var(--color-neutral-400)}
+  html.lg-new :is(.ce-stat .ce-none,.ce-foot #ce-draft,.ce-rowpath){color:var(--color-neutral-400)}
+  html.lg-new .ce-rowpath b{color:var(--color-text)}
+  html.lg-new :is(.tb-railfoot>span,.tb-fchip>.k){color:var(--color-neutral-400)}
   html.lg-new :is(#ig-dock,#ins-panel) :is(.jov-k,.jov-head,.ac-meta,.ac-disc-m){color:var(--color-neutral-400)}
   html.lg-new :is(#ig-dock,#ins-panel) .jov-head b{color:var(--color-text)}
   /* THE SAP WAY MARK (listSapMarkHtml, owner 9 Nov 2026: at the head of every row): a 20px filled circle in the house's
@@ -19928,6 +19970,45 @@
   html.lg-new #ig-dock .igd-foot > .hb-pre:empty{display:none}
   html.lg-new #ct-place .ct-page .ct-wall{flex:1 1 0%;min-height:0;overflow-y:auto}
   html.lg-new #ct-place .ct-page .ct-wall > *{flex:none}
+  /* THE FOLDERS SCROLL TOO (owner, 10 Nov 2026: "the page does not scroll"): the place clips what it holds, and the
+     folders page had no part that scrolls inside it, so every folder past the window's foot was cut off and out of
+     reach. Its list (and the tiles) take the room left under the head and scroll there, as the wall and the list do;
+     the count line stays at the foot. THE LESSON: a frame that clips needs a scroller inside it (white-sheet-verify, CUT). */
+  html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid){flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ctf-page > .ctf-list > *{flex:none}
+  html.lg-new #ct-place .ctf-page > .ctf-grid{align-content:start}
+  /* VIEWS FIRST (owner's pick by name, 10 Nov 2026; regFolderRowsHtml, regFolderViewsHtml): up to four view tiles in one
+     row, each one quiet tone read off what the view is about (your move amber, with someone else steel, time running out
+     ruby, money green), the number in the tone's ink, the words ink and grey; under them the folders, two compact columns.
+     The panel beside them keeps plain bars (ink, grey), so its colours are never read as the tiles'. */
+  html.lg-new .ctf-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-quiet);margin:0 0 8px}
+  html.lg-new .ctf-views{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px}
+  html.lg-new .ctf-view{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:16px;border:0;border-radius:var(--radius);background:var(--surface-2);font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .ctf-view b{font-size:24px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;margin-bottom:4px}
+  html.lg-new .ctf-view :is(span,small){max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-view span{font-size:13px}
+  html.lg-new .ctf-view small{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .ctf-view.is-amber{background:color-mix(in srgb,var(--st-amber-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-steel{background:color-mix(in srgb,var(--st-steel-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-ruby{background:color-mix(in srgb,var(--st-ruby-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-green{background:color-mix(in srgb,var(--st-green-bg) 60%,var(--color-surface))}
+  html.lg-new .ctf-view.is-amber b{color:var(--st-amber-fg)}
+  html.lg-new .ctf-view.is-steel b{color:var(--st-steel-fg)}
+  html.lg-new .ctf-view.is-ruby b{color:var(--st-ruby-fg)}
+  html.lg-new .ctf-view.is-green b{color:var(--st-green-fg)}
+  @media (hover:hover){ html.lg-new .ctf-view:hover{box-shadow:inset 0 0 0 1px var(--color-text)} }
+  html.lg-new .ctf-list.is-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:32px;align-content:start;border-top:0}
+  html.lg-new .ctf-row.is-compact{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 4px}
+  html.lg-new .ctf-row.is-compact .ctf-name{flex:1 1 auto;min-width:0;padding-right:0}
+  html.lg-new .ctf-row.is-compact .ctf-rl{flex:none}
+  html.lg-new .ctf-row.is-compact .ctf-rn{font-size:inherit}
+  @media (max-width:1100px){ html.lg-new .ctf-list.is-two{grid-template-columns:minmax(0,1fr)} }
+  /* A SEARCH BOX WEARS NO RING (owner, 10 Nov 2026: "the search areas should never have outlines. They should be like
+     the jambo entry fields where you simply type in an empty field"): the box you type a search or a filter into shows
+     the caret and nothing else, pressed or keyed to; neither the field nor the line that holds it draws an outline or
+     a glow. The house ring is an outline AND a shadow, so both go (the folders' box had only the outline taken off). */
+  html.lg-new :is(input[type="search"], .apn-box input, .lh-ask input, .jl-box input, .st-search input, .hist-q input, .ik-search input, .cmd-search input):is(:focus, :focus-visible){outline:none;box-shadow:none}
+  html.lg-new :is(.apn-box, .lh-ask, .st-search, .hist-q, .ik-search, .cmd-search):focus-within{outline:none;box-shadow:none}
   html.lg-new .tpln{height:auto;min-height:100%}
   html.lg-new .tpln .tpln-sheet{position:sticky;top:8px;align-self:start}
   /* ==== ONE WHITE SHEET, THE FIX ROUND (owner, 9 Nov 2026: Settings, a template's page and the builder "build", drawn

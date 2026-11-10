@@ -237,10 +237,18 @@ describe('f495 (4) the door is the sum of the tabs it opens', () => {
     assert.equal(a().textContent, '2', 'repainted without a page paint');
     assert.equal(a().hidden, false);
     assert.equal(win.document.querySelectorAll('#band .rq-kinds').length, 1, 'the row is drawn again in its place, once');
+    /* THE REGION MOVED, THE RULE DID NOT (10 Nov 2026, f997): the nine door
+       numbers were each walking the whole book on every one of
+       updateSidebarCounts' forty-seven callers, so they were lifted into
+       doorCounts, which counts them once a turn. The rail still asks that one
+       reading and the same paint still writes the tabs; what this pins is that
+       the intake door is the ONE sum and not a second count of its own. */
     const fn = strip(fnBody(APP, 'updateSidebarCounts'));
-    assert.match(fn, /intake: \(typeof requestsDoorCount==='function'\)\?requestsDoorCount\(\)/, 'the door asks the one sum');
+    const doors = strip(fnBody(APP, 'doorCounts'));
+    assert.match(fn, /const counts = doorCounts\(nc\)/, 'the rail asks the one reading');
+    assert.match(doors, /intake: \(typeof requestsDoorCount==='function'\)\?requestsDoorCount\(\)/, 'the door asks the one sum');
     assert.match(fn, /rqPaintKindCounts\(\)/, 'and the same paint writes the tabs');
-    assert.ok(!/\badvice:/.test(fn), 'no count is kept for a door that is gone');
+    assert.ok(!/\badvice:/.test(fn) && !/\badvice:/.test(doors), 'no count is kept for a door that is gone');
   });
 });
 

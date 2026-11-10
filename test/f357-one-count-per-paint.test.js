@@ -73,10 +73,19 @@ describe('f357 (1) one count per paint', () => {
     assert.ok(!/cs\.filter\(c=>c\.migration&&c\.migration\.needsReview\)/.test(APP),
       'and so is its twin');
   });
+  /* THE REGION MOVED, THE RULE DID NOT (10 Nov 2026, f997): the nine other door
+     numbers were each walking the whole book on every one of updateSidebarCounts'
+     forty-seven callers, so they were lifted into doorCounts, which counts once a
+     turn — and the three figures navCounts already shared went with them. The rail
+     still asks navCounts once and hands the answer on; what this pins is that
+     nobody recounts those three for themselves. */
   test('1f the rail reads it', () => {
     const fn = (APP.match(/function updateSidebarCounts\(\)\{[\s\S]*?\n\}/) || [''])[0];
     assert.ok(/navCounts\(\)/.test(fn), 'the rail asks the shared reading');
-    assert.ok(/nc\.negotiations/.test(fn) && /nc\.pipeline/.test(fn) && /nc\.migration/.test(fn));
+    assert.ok(/doorCounts\(nc\)/.test(fn), 'and hands it to the door count, which is where the three are read');
+    const doors = (APP.match(/function doorCounts\(nc\)\{[\s\S]*?\n\}/) || APP.match(/function doorCounts\(nc\)\s*\{[\s\S]*?\n\}/) || [''])[0];
+    assert.ok(/nc\.negotiations/.test(doors) && /nc\.pipeline/.test(doors) && /nc\.migration/.test(doors),
+      'the three ride through the shared reading, never counted again');
   });
   test('1g Home reads it', () => {
     assert.ok(/navCounts\(\)\.negotiations/.test(HOME),

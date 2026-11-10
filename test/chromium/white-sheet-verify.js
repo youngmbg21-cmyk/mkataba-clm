@@ -76,6 +76,9 @@ const WHITE_KNOWN = [
      channel, white since the fix round (index.html, ONE WHITE SHEET) */
 ];
 
+/* THE PLACES HELD TO "NOTHING IS CUT OFF OUT OF REACH" (CUT). Only grows: a place joins when its fault is fixed. */
+const CUT_HELD = ['contracts'];
+
 /* THE PINS: a place's own column that must never scroll by itself. Each answers null, or why it fails. */
 const PINS = {
   settings: async () => {
@@ -173,7 +176,24 @@ const MEASURE = `(() => {
     if (inner.closest(PAPER)) continue; /* the paper scrolls inside its desk by design */
     nested.push({ outer: who(outer), inner: who(inner), innerAt: Math.round(R(inner).left) + ',' + Math.round(R(inner).top) + ' ' + Math.round(R(inner).width) + '×' + Math.round(R(inner).height), over: inner.scrollHeight - inner.clientHeight });
   }
-  return { ground, edge, nested, panel: panel ? who(panel) : null, right: Math.round(right) };
+  /* CUT — a frame that clips what it holds (overflow hidden) while what it holds runs on below it, with no scroller to
+     reach the rest: the reader sees a page that stops and cannot scroll (Contracts' folders, the owner's picture of
+     10 Nov 2026: eleven folders, seven in sight, no way to the others) */
+  const cut = [];
+  for (const el of document.querySelectorAll('*')) {
+    if (inPanel(el) || skipTree(el) || !vis(el)) continue;
+    const c = cs(el); if (!/(hidden|clip)/.test(c.overflowY)) continue;
+    if (el.clientHeight < 200 || el.scrollHeight <= el.clientHeight + 24) continue;
+    if (el.matches(PAPER) || el.closest(PAPER)) continue;
+    /* only where something a person reads or presses lies wholly below the frame's foot */
+    const foot = R(el).bottom;
+    const lost = [...el.querySelectorAll('button, a, tr, li, [role="row"], p, h2, h3')].find(k => { const r = R(k); return r.height > 0 && r.width > 0 && r.top >= foot - 1 && cs(k).visibility !== 'hidden'; });
+    if (!lost) continue;
+    if (cut.some(k => k.el.contains(el))) continue;
+    cut.push({ el, who: who(el), over: el.scrollHeight - el.clientHeight, lost: who(lost) + ' "' + (lost.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 40) + '"' });
+  }
+  cut.forEach(k => { delete k.el; });
+  return { ground, edge, nested, cut, panel: panel ? who(panel) : null, right: Math.round(right) };
 })()`;
 
 /* THE SELF-CHECK: one of each fault planted, so a kind that reports nothing is known to be looking. */
@@ -181,7 +201,8 @@ const PLANT = `(() => {
   const d = document.createElement('div'); d.id = 'white-sheet-plant'; d.setAttribute('data-white-plant', '1');
   d.style.cssText = 'position:fixed;left:40px;top:120px;z-index:99999;font:13px system-ui';
   d.innerHTML = '<div style="background:#F5F5F7;width:400px;height:120px;padding:12px">PLANT ground</div>'
-    + '<div data-plant-outer style="overflow-y:auto;width:400px;height:160px;margin-top:12px;background:#fff;border:1px solid #ccc"><div data-plant-inner style="overflow-y:auto;width:360px;height:120px;border:1px solid #ddd"><div style="height:600px">PLANT nested inner</div></div><div style="height:400px">PLANT nested outer</div></div>';
+    + '<div data-plant-outer style="overflow-y:auto;width:400px;height:160px;margin-top:12px;background:#fff;border:1px solid #ccc"><div data-plant-inner style="overflow-y:auto;width:360px;height:120px;border:1px solid #ddd"><div style="height:600px">PLANT nested inner</div></div><div style="height:400px">PLANT nested outer</div></div>'
+    + '<div data-plant-cut style="overflow:hidden;width:400px;height:220px;margin-top:12px;background:#fff;border:1px solid #ccc"><div style="height:260px">PLANT cut</div><button type="button">PLANT cut, out of reach</button></div>';
   document.body.appendChild(d);
   const pn = [...document.querySelectorAll('#ig-dock, #ins-panel, #st-side, #tb-rail, #cal-plan')].find(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none'; });
   const at = pn ? pn.getBoundingClientRect().left : innerWidth;
@@ -225,7 +246,9 @@ const only = (process.env.HATI_WHITE_ONLY || '').split(',').map(s => s.trim()).f
       check('0 — the planted grey block is seen', sawGround, sawGround ? undefined : JSON.stringify(m && m.ground));
       check('0 — the planted nested scroller is seen', sawNested, sawNested ? undefined : JSON.stringify(m && m.nested));
       check('0 — the planted 10px strip beside the panel is seen', sawEdge, sawEdge ? undefined : JSON.stringify(m && m.edge));
-      if (!(sawGround && sawNested && sawEdge) && !process.env.HATI_WHITE_ANYWAY) throw new Error('the instrument is blind — nothing else was measured');
+      const sawCut = !!(m && m.cut.some(k => /PLANT cut, out of reach/.test(k.lost)));
+      check('0 — the planted cut-off block is seen', sawCut, sawCut ? undefined : JSON.stringify(m && m.cut));
+      if (!(sawGround && sawNested && sawEdge && sawCut) && !process.env.HATI_WHITE_ANYWAY) throw new Error('the instrument is blind — nothing else was measured');
     }
     for (const S of SCREENS) {
       await page.setViewportSize({ width: S.w, height: S.h });
@@ -251,6 +274,8 @@ const only = (process.env.HATI_WHITE_ONLY || '').split(',').map(s => s.trim()).f
         for (const e of m.edge) { const a = allowed('edge') || allowed('ground'); if (a) { fired.add(a); console.log(`      KNOWN     EDGE ${e.who} ${e.w}px wide, ${e.rows} rows · ${a.why}`); } else faults.push(`EDGE ${e.who} ${e.w}px wide beside the panel, ${e.rows} rows, from x=${e.at} (${e.tone})`); }
         const pin = PINS[P.k]; if (pin) { const why = await drive(page, pin, undefined, 'the pin threw'); if (why) faults.push('PIN ' + why); }
         for (const n of m.nested) { const a = allowed('nested'); if (a) { fired.add(a); console.log(`      KNOWN     NESTED ${n.inner} inside ${n.outer} · ${n.over}px more than fits · ${a.why}`); } else faults.push(`NESTED ${n.inner} (${n.innerAt}, ${n.over}px more than fits) inside ${n.outer}`); }
+        /* CUT is a fault on the places held to it; elsewhere it is printed, for the owner to rule on (never fixed unasked) */
+        for (const k of (m.cut || [])) { if (CUT_HELD.includes(P.k)) faults.push(`CUT ${k.who} clips ${k.over}px with no scroller: ${k.lost} cannot be reached`); else console.log(`      NOTED     CUT ${S.k} · ${P.name}: ${k.who} clips ${k.over}px with no scroller: ${k.lost}`); }
         if (faults.length) await page.screenshot({ path: path.join(OUT, `${S.k}-${P.k}.png`) }).catch(() => {});
         check(`${S.k} · ${P.name} — one white sheet`, faults.length === 0, faults.length ? faults.join(' · ') : `panel ${m.panel || 'none'} · ${m.ground.length} grey, ${m.nested.length} nested, all allowed`);
         for (const f of faults) console.log(`      ${f}`);

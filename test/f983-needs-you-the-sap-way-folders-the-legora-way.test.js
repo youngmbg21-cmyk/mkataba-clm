@@ -26,14 +26,13 @@ test('1 · Needs you, the SAP way: smaller words, the gap gone', () => {
   assert.match(CSS, /html\.lg-new \.nd-cols\{min-height:32px\}/);
 });
 
-test('2 · the folders, the Legora way: one quiet list, the most work first', () => {
+/* RE-POINTED 10 Nov 2026: the owner picked "Views first" for the folders (f998), which reverses the Legora-way rows;
+   what stands from this ruling is the one builder, the most work first and the folder's own door */
+test('2 · the folders: one builder, the most work first, the folder\'s own door (the rows themselves are f998\'s)', () => {
   assert.match(fnBody(REG, 'regFoldersHtml'), /if \(regNl\(\)\) return regFolderRowsHtml\(live, fids, ended, endIds, isAdmin\);/);
   const f = fnBody(REG, 'regFolderRowsHtml');
-  assert.match(f, /listSapMarkHtml\(k\)/, 'the mark leads');
   assert.match(f, /sort\(\(a, b\) => b\.r\.needN - a\.r\.needN \|\| b\.r\.n - a\.r\.n\)/, 'the most work first');
-  assert.match(f, /CTF_WORDS\[k\] \? i18tn\(CTF_WORDS\[k\], n, \{ n \}\)/, 'what waits, in words');
   assert.match(f, /data-ctf-folder="\$\{esc\(x\.fid\)\}"/, 'the folder\'s own door');
-  assert.match(f, /<div class="ctf-list">/);
   assert.match(CSS, /html\.lg-new \.ctf-rl\{[^}]*color:var\(--color-neutral-400\)/, 'the line is the detail grey');
 });
 

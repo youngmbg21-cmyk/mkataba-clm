@@ -1564,7 +1564,7 @@ function cunPartyRender(host, INS, key){
     let m2 = null; try { m2 = (typeof regStageTone === 'function') ? regStageTone(c) : null; } catch (_){ m2 = null; }
     const so = cunStandsOut(c);
     const sub = [ref, c.signedAt ? i18t('cun_pp_signed_on', { d: cuDay(String(c.signedAt).slice(0, 10)) }) : ''].filter(Boolean).join(' \u00b7 ');
-    return `<tr data-cu-ag="${E(c.id)}"><td class="cunp-mk">${typeof regStageMarkHtml === 'function' ? regStageMarkHtml(c) : ''}</td><td><div class="cun-name">${E(c.name || ref)}</div><div class="cun-sub">${E(sub)}</div></td>
+    return `<tr data-cu-ag="${E(c.id)}"><td class="cunp-mk">${typeof regSapMarkHtml === 'function' ? regSapMarkHtml(c) : (typeof regStageMarkHtml === 'function' ? regStageMarkHtml(c) : '')}</td><td><div class="cun-name">${E(c.name || ref)}</div><div class="cun-sub">${E(sub)}</div></td>
       <td style="color:var(--st-${(m2 && m2.tone) || 'gray'}-fg)" class="cun-wait">${E((m2 && m2.m && m2.m.label) || c.status || '')}</td>
       <td class="cun-wait${so.amber ? ' cunp-amb' : ''}">${E(so.t || '\u2014')}</td><td class="cun-wait">${E(c.expiry ? cuDay(String(c.expiry).slice(0, 10)) : '\u2014')}</td>
       <td class="cun-wait" style="text-align:right">${money && Number(c.value) && typeof fmtMoneyShortOf === 'function' ? E(fmtMoneyShortOf(c)) : '\u2014'}</td></tr>`;

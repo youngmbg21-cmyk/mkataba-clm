@@ -1069,7 +1069,7 @@ function renderApprovalsPage(o){
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */
   const foot=n&&typeof lhFootHtml==='function'?lhFootHtml('approvals',n,n,0,{ cls:'ap-foot ap-wl-foot' }):'';
   /* THE NEW LOOK, AS DRAWN (round 5): its own head and its own table — the switch's page, the old one untouched */
-  if(INS&&typeof newLookOn==='function'&&newLookOn()) return apnRender(W);
+  if(INS&&typeof newLookOn==='function'&&newLookOn()) return apnRender(W, (o&&o.rows)?{ rows:true }:null);
   const page=document.querySelector('#content .ap-page[data-ins-page="approvals"]');
   const sec=document.getElementById('ap-scroll');
   if(listOnly&&page&&sec&&page.getAttribute('data-ins')===(INS?'1':'0')){
@@ -1155,7 +1155,28 @@ function apnRowHtml(r){
     <td>${listSapCellHtml(r.done||r.type==='receipt'?'done':(r._mine||r.mine)?'you':'them', `<div class="apn-name">${esc(c.name||'')}</div><div class="apn-sub">${sub}</div>`, r.type==='receipt'?'':apTurnText(r))}</td>
     <td class="apn-rests">${rests}</td><td class="apn-rule">${rule}</td><td class="apn-wait">${waited}</td><td class="apn-acts">${acts}</td></tr>`;
 }
-function apnRender(W){
+/* ---- A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS ----
+   (10 Nov 2026, off the owner's "why is the app slow" review; the same change
+   Obligations took, and this is the page their screenshots came from.)
+
+   This drew the WHOLE page on every call — frame, title, search box, tabs,
+   table, foot and panel — and the typed box called it ON EVERY LETTER, which
+   is why the lines below had to put the focus and the caret back by hand: the
+   box was being thrown away under the reader's fingers. A tab did the same.
+   Swapping #content also makes the browser read 11,837 style rules against the
+   new tree, 164 of them `:has()` anchored at the shell while looking inside
+   #content, so the cost does not fall with the number of rows.
+
+   `{ rows: true }` now replaces the table body, sets each tab's own count and
+   which is lit, rewrites the foot's one line, and repaints the head's facts.
+   The box is never replaced, so there is nothing to restore.
+
+   IT FALLS BACK TO THE WHOLE PAGE where the frame it would leave standing is
+   no longer the right frame — a tab appearing or leaving the bar, and the
+   moment "What it rests on" starts or stops reading the same on every row,
+   because that column steps out of the table and the heads and widths change
+   with it. Both are checked for below rather than assumed. */
+function apnRender(W, o){
   const q=String(_apnQ||'').trim().toLowerCase();
   const all=apnTabRows(W).filter(r=>!q||[r.c.name,r.c.counterparty,r.c.id,r.c.contractNo].some(v=>String(v||'').toLowerCase().includes(q)));
   const ap=all.filter(r=>r.type==='approval'), sg=all.filter(r=>r.type!=='approval');
@@ -1176,30 +1197,58 @@ function apnRender(W){
   const cols=same?4:5;
   const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}</th>${same?'':`<th>${esc(i18t('apn_col_rests'))}</th>`}<th>${esc(i18t('apn_col_rule'))}</th><th>${esc(i18t('apn_col_waited'))}</th><th></th></tr></thead>`;
   const group=sg.length&&ap.length&&_apnTab!=='done'?`<tr class="apn-group"><td colspan="${cols}">${esc(i18t('apn_group_sign'))}</td></tr>`:'';
-  const body=all.length?`<tbody>${rowsA.join('')}${group}${rowsS.join('')}</tbody>`:`<tbody><tr><td colspan="${cols}" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr></tbody>`;
+  const bodyInner=all.length?`${rowsA.join('')}${group}${rowsS.join('')}`:`<tr><td colspan="${cols}" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr>`;
+  const body=`<tbody>${bodyInner}</tbody>`;
   const shown=ap.concat(sg);
-  const table=`<table class="ap-table ap-ins apn-table" data-list-seat="approvals"><colgroup><col>${same?'':'<col style="width:36%">'}<col style="width:140px"><col style="width:96px"><col style="width:170px"></colgroup>${th}${body}</table>`;
+  const colg=`<colgroup><col>${same?'':'<col style="width:36%">'}<col style="width:140px"><col style="width:96px"><col style="width:170px"></colgroup>`;
+  const table=`<table class="ap-table ap-ins apn-table" data-list-seat="approvals">${colg}${th}${body}</table>`;
   const nYours=W.all.yours.filter(r=>!r.done).length;
   const foot=`<div class="apn-foot">${esc([i18tn('apn_for_you',nYours,{ n:nYours }), sameWords?i18t('apn_foot_same',{ w:sameWords.charAt(0).toLowerCase()+sameWords.slice(1) }):''].filter(Boolean).join(' · '))}</div>`;
   /* ONE HEAD (the harmony review, owner's yes 9 Nov 2026): the page draws its own title as every new-look list does —
      the serif title, its facts beside it, Approval rules at its end; apPaintHead fills the facts and the button */
   const title=`<div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_approvals'))}</h2><span class="ctf-hf" id="page-head-facts"></span><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div>`;
-  document.getElementById('content').innerHTML=`
+  const tbl=document.querySelector('#ap-scroll .apn-table');
+  const pills=document.querySelectorAll('.apn-page [data-apn-tab]');
+  /* THE WHOLE TABLE IS INSIDE ITS OWN NODE, columns and heads with it: "What it
+     rests on" steps out of the table the moment it reads the same on every row,
+     and that happens WHILE SOMEBODY IS TYPING — the first letter can narrow the
+     list to rows that agree. A rows paint that could not change the heads would
+     have handed those presses straight back to the whole-page paint, which is
+     the thing being fixed. So it rewrites the table's inside and the bar's
+     counts, and still leaves the frame, the box and the panel standing. */
+  const rowsOnly=!!(o&&o.rows)&&!!tbl
+    &&pills.length===tabs.length&&[...pills].every((b,i)=>b.getAttribute('data-apn-tab')===tabs[i][0]);
+  /* THE SAFETY NET: where it does fall back to the whole page — a tab appearing
+     or leaving the bar — the box goes with it, so the caret is put back. Typing
+     must never lose a letter because a paint took a different road. */
+  const qEl=document.getElementById('apn-q');
+  const qAt=(qEl&&typeof document!=='undefined'&&document.activeElement===qEl)?qEl.selectionStart:null;
+  if(rowsOnly){
+    tbl.innerHTML=colg+th+body;
+    pills.forEach((b,i)=>{ b.classList.toggle('is-on',tabs[i][0]===_apnTab);
+      const n=b.querySelector('span'); if(n) n.textContent=String(tabs[i][2]); });
+    const ft=document.querySelector('#ap-scroll .apn-foot'); if(ft) ft.outerHTML=foot;
+  } else {
+    document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="approvals" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card" id="ap-scroll">${title}${head}${table}${foot}</section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>
   </div>`;
+    if(qAt!=null){ const n=document.getElementById('apn-q'); if(n){ n.focus(); try{ n.setSelectionRange(qAt,qAt); }catch(_){} } }
+  }
   apPaintHead();
   apInsPaint(shown);
+  if(rowsOnly) return;
   if(typeof insWatchWidth==='function') insWatchWidth();
   setActiveNav('approvals');
   const box=document.getElementById('apn-q');
-  if(box) box.addEventListener('input',()=>{ _apnQ=box.value; const caret=box.selectionStart; apnRender(W); const b2=document.getElementById('apn-q'); if(b2){ b2.focus(); try{ b2.setSelectionRange(caret,caret); }catch(_){} } });
+  /* THE BOX IS NOT REDRAWN UNDER THE READER'S CARET, so nothing has to be put back after a letter */
+  if(box) box.addEventListener('input',()=>{ _apnQ=box.value; apnRender(W,{ rows:true }); });
 }
 if(typeof document!=='undefined'&&document.addEventListener&&!document._apnWired){
   document._apnWired=true;
   document.addEventListener('click',e=>{
     const t=e.target&&e.target.closest?e.target:null; if(!t) return;
-    const tab=t.closest('.apn-page [data-apn-tab]'); if(tab){ e.preventDefault(); _apnTab=tab.getAttribute('data-apn-tab'); renderApprovalsPage(); return; }
+    const tab=t.closest('.apn-page [data-apn-tab]'); if(tab){ e.preventDefault(); _apnTab=tab.getAttribute('data-apn-tab'); renderApprovalsPage({ rows:true }); return; }
     const no=t.closest('.apn-table [data-ap-refuse]'); if(no){ e.preventDefault(); e.stopPropagation(); apDecide(no.getAttribute('data-ap-refuse'),'refused'); return; }
     const op=t.closest('.apn-table [data-ap-open]'); if(op){ e.preventDefault(); e.stopPropagation(); apOpenSigning(op.getAttribute('data-ap-open')); return; }
   });

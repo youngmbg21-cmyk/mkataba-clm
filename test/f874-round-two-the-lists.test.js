@@ -77,12 +77,14 @@ describe('f874 (2) the Board', () => {
 
 describe('f874 (3) Contracts', () => {
   const REG = R('js/views/register.js');
-  test('3a the agreement leads, "party · ref" under it; its column sorts by what it says', () => {
-    /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, Negotiations as drawn): that list's bold line is "party · agreement" */
-    assert.match(REG, /\$\{coded\?regTitleOf\(c\):placeRows\?esc\(regShortTitle\(c\)\):\(neg&&insOn\)\?`\$\{esc\(cpName\)\}<span class="reg-t-dot"> · <\/span>\$\{esc\(regShortTitle\(c\)\)\}`:esc\(cpName\)\}/);
-    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stage and when it last moved follow the reference */
-    assert.match(REG, /<span class="reg-sub">\$\{placeRows\?`\$\{coded\?esc\(i18t\('igw_kept_list'\)\):esc\(cpName\)\} · \$\{refLine\}\$\{regStageLineHtml\(c\)\}\$\{stageMove\}\$\{lives\}`/ /* RE-POINTED 28 Oct 2026: where a working file lives, and whose move, ride the grey line */);
-    assert.match(REG, /const A=String\(byName\?regShortTitle\(a\):\(a\.counterparty\|\|''\)\)\.trim\(\)/);
+  test('3a the company leads, "agreement · ref" under it; its column sorts by what it says', () => {
+    /* RE-POINTED 10 Nov 2026 (owner: the company or counterparty name on top, "agreement type · number" the smaller
+       line; reverses Part 8's title-over-party): the title leads only with no company yet, or where the party is a
+       column of its own (regHomeWide). Negotiations keeps "party · agreement" (28 Oct 2026) */
+    assert.match(REG, /\$\{coded\?regTitleOf\(c\):placeRows\?esc\(spreadOn\|\|!cpName\?regShortTitle\(c\):cpName\):\(neg&&insOn\)\?`\$\{esc\(cpName\)\}<span class="reg-t-dot"> · <\/span>\$\{esc\(regShortTitle\(c\)\)\}`:esc\(cpName\)\}/);
+    assert.match(REG, /<span class="reg-sub">\$\{placeRows\?`\$\{coded\?esc\(i18t\('igw_kept_list'\)\)\+' · ':cpName\?esc\(regShortTitle\(c\)\)\+' · ':''\}\$\{refLine\}\$\{regStageLineHtml\(c\)\}\$\{stageMove\}\$\{lives\}`/);
+    assert.match(REG, /title="\$\{placeRows\?`\$\{esc\(pyAll\|\|cpName\)\} · \$\{regTitleOf\(c\)\}`/, 'the hover names the company first');
+    assert.match(REG, /const lead=x=>byName&&\(regHomeWide\(\)\|\|!x\.counterparty\)\?regShortTitle\(x\):\(x\.counterparty\|\|''\);/, 'the sort reads the company');
   });
   test('3b one count, said plainly at the foot; the box carries none', () => {
     const f = fnRegion(REG, 'regCtFootHtml');
