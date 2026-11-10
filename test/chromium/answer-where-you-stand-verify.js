@@ -137,9 +137,10 @@ const check = (name, pass, detail) => {
     check('4e and no model was asked on the list', (await page.evaluate(() => window.__ai.length)) === 0);
 
     console.log('\n5 · where no contracts are shown, the words go to the page');
-    await page.evaluate(() => setView('counter')); await until(() => !!document.getElementById('igd-input'));
+    /* RE-POINTED (owner, 10 Nov 2026: the Home page was deleted): asked from My notes, a page with no contracts on it */
+    await page.evaluate(() => setView('mynotes')); await until(() => state.view === 'mynotes');
     /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */ await page.evaluate(() => caAskAnywhere('show me all imports', { all: true }));
-    check('5 from Home it opens Import contracts', !!(await until(() => state.view === 'migration')), await page.evaluate(() => state.view));
+    check('5 from a page with no contracts it opens Import contracts', !!(await until(() => state.view === 'migration')), await page.evaluate(() => state.view));
     check('7 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
     check('the run stopped', false, e && e.message);

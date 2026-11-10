@@ -186,15 +186,15 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'my saved views'); if (b) b.click(); });
     const said = await until(() => { const t = [...document.querySelectorAll('#igd-feed .ai-bub')].map(b => b.textContent.trim()).find(x => /^You have 1 saved view:/.test(x)); return t || null; }, null, 8000);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('6 asked, he lists the saved views with their counts and says where they are, no cost', !!said && /“Whole book” \d+\./.test(said) && /press one to open it on Explorer/.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said), said);
+    check('6 asked, he lists the saved views with their counts and says where they are, no cost', !!said && /“Whole book” \d+\./.test(said) && /in my panel on Explorer, under Your day/.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said), said);
 
-    console.log('\n5f · "what needs me" lands on Home\'s Needs you');
+    console.log('\n5f · "what needs me" lands on the Board\'s Needs you');
     /* the Overview tab brings the landing back from the talk (RE-POINTED 26 Oct 2026, the two tabs) */
     await page.evaluate(() => { if (typeof intel !== 'undefined') intel.history = []; if (typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){} renderIntelDock(); });
     await until(() => !!document.querySelector('#ig-dock .hb-jb-hello'), null, 6000);
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.getAttribute('data-igsug') === 'what needs me'); if (b) b.click(); });
     const cn = await until(() => state.view === 'dashboard' && !!document.querySelector('#hm-agents.is-landed'), null, 8000);
-    check('5f "what needs me" opens Home and lands on Needs you, lit (landOn)', !!cn);
+    check('5f "what needs me" lands on the Board\'s Needs you (landOn; Home was deleted 10 Nov 2026)', !!cn);
 
     console.log('\n7 · the owner\'s three screens');
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
