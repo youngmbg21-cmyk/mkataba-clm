@@ -130,14 +130,14 @@ const PAGE = () => {
     /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): Settings is
        everyone's now, and for a member it is their OWN settings — no roster,
        no Company tab — which is still why the roster lives here. */
-    const settingsDoor = await page.evaluate(() => { const ok = (caReadPlace('settings') || {}).place === 'settings'; if (ok){ setView('counter'); counterAsk('settings'); } return { ok, why: ok ? 'opened by "settings"' : 'not a place' }; });
+    const settingsDoor = await page.evaluate(() => { const ok = (caReadPlace('settings') || {}).place === 'settings'; if (ok){ setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })('settings'); } return { ok, why: ok ? 'opened by "settings"' : 'not a place' }; });
     await page.waitForTimeout(800);
     const theirFace = await page.evaluate(() => (typeof settingsTab === 'function') ? settingsTab() : '');
     check('Settings is theirs too, and it opens on their own settings — which is why the roster lives here',
       settingsDoor.ok && theirFace === 'you', settingsDoor.why + ' · ' + theirFace);
 
     /* PRESSED, not called. */
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await page.waitForTimeout(1200);
     const card = await page.evaluate(VISIBLE, '#dir-page .dir-card');
     check('pressing it lands on a page with the table on it', card.ok, card.why);
@@ -205,7 +205,7 @@ const PAGE = () => {
     }
 
     /* ---- THE EDGE, AND THE REFRESH ---- */
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await page.waitForTimeout(1000);
     const back = await page.evaluate(PAGE);
     check('the rail brings you back to the side you were on', back.tab === 'theirs', back.tab);
@@ -228,7 +228,7 @@ const PAGE = () => {
     await signIn(pv, h.base, 'vera@example.co.ke', 'their-own-pass-9');
     const vDoor = await pv.evaluate(() => (caReadPlace('people') || {}).place);
     check('a Viewer has the place too', vDoor === 'people', String(vDoor));
-    await pv.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
+    await pv.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await pv.waitForTimeout(1200);
     await pv.click('#dir-page [role="tab"][data-dir-tab="ours"]');
     await pv.waitForTimeout(600);
@@ -244,7 +244,7 @@ const PAGE = () => {
     const pa = await ctxA.newPage();
     pa.on('pageerror', e => errors.push('admin: ' + e.message));
     await signIn(pa, h.base, 'admin@example.co.ke', 'adminpassword1');
-    await pa.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
+    await pa.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await pa.waitForTimeout(1200);
     const manage = await pa.evaluate(VISIBLE, '#dir-manage');
     check('an admin is pointed at Settings → People', manage.ok, manage.why);

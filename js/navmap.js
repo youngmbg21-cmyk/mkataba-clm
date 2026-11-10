@@ -311,8 +311,14 @@ function navGoPlace(n){
   if (k === 'findings') return (typeof igFindingsShow === 'function') ? igFindingsShow() : false;
   if (k === 'watches') return (typeof watchListOpen === 'function') ? watchListOpen() : false;
   if (k === 'savedviews'){
-    if (typeof caHomeFace === 'function') caHomeFace('board');
-    return navLandWhen(() => document.querySelector('.hb-bh-views'), _nvT('nav_no_savedviews'));
+    /* they stand in Jambo's panel on Explorer, under Your day (owner, 10 Nov 2026): the face, the tab, then the list */
+    if (typeof caHomeFace === 'function') caHomeFace('explorer');
+    let turned = false;
+    return navLandWhen(() => {
+      const el = document.querySelector('#ig-sv'); if (el) return el;
+      if (!turned && typeof window.igDayTabOn === 'function' && igDayTabOn() && typeof window.igBriefStart === 'function'){ turned = true; igBriefStart(); }
+      return document.querySelector('#ig-sv');
+    }, _nvT('nav_no_savedviews'));
   }
   if (k === 'archived'){
     if (typeof regPlaceSet !== 'function' || typeof caHomeWall !== 'function') return false;

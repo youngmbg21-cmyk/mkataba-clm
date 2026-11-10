@@ -89,22 +89,22 @@ const BODY = TEXT.split('\n\n').map(p => /^\d+\./.test(p) ? `<h2>${p}</h2>` : `<
       const box = await until(s => { const el = document.querySelector(s); return el && el.getBoundingClientRect().width > 0; }, sel, 8000);
       if (!box) return false;
       /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
-      if (sel === '#cn-q'){ await page.evaluate(w => counterAsk(w), words); return true; }
+      if (sel === '#igd-input'){ await page.evaluate(w => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w), words); return true; }
       /* RE-PINNED 28 Oct 2026 ("Door above the box"): the panel's box too, asked as a chip asks */
       await page.fill(sel, words); await chipEnter(page, sel); return true; };
     const face = () => until(() => state.panelOpen && typeof panelFace === 'function' ? panelFace() : null, null, 5000);
     await page.evaluate(() => { state.panelOpen = false; if (typeof applyPanelLayout === 'function') applyPanelLayout(); setView('counter'); });
-    const typed = await ask('#cn-q', 'show me the guide');
+    const typed = await ask('#igd-input', 'show me the guide');
     check('3a Home\'s box takes the words', typed);
     const f1 = await face();
     check('3b the panel opens on the Guide', f1 === 'guide', f1);
     await shot(page, '3-guide');
-    await ask('#cn-q', 'show me the guide');
+    await ask('#igd-input', 'show me the guide');
     await page.waitForTimeout(400);
     check('3c asked again it stays open on the Guide', await page.evaluate(() => !!state.panelOpen && panelFace() === 'guide'));
-    await ask('#cn-q', 'activity');
+    await ask('#igd-input', 'activity');
     check('3d "activity" turns it to Activity', (await until(() => state.panelOpen && panelFace() === 'activity' ? 'activity' : null)) === 'activity');
-    await ask('#cn-q', 'open my alerts');
+    await ask('#igd-input', 'open my alerts');
     check('3e "open my alerts" turns it to Alerts', (await until(() => state.panelOpen && panelFace() === 'alerts' ? 'alerts' : null)) === 'alerts');
     /* Jambo's panel beside the Board: the same words */
     await page.evaluate(() => { state.panelOpen = false; if (typeof applyPanelLayout === 'function') applyPanelLayout(); setView('dashboard'); });

@@ -123,22 +123,25 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"): the views
        are CHIPS in the Board's head, each with how many it shows; a chip
        opens Explorer with that view. No list to open or shut. */
-    const CHIP = '#hb-bhead .hb-sv-chip[data-hb-sview="Law floors"]';
-    const toBoard = async () => { await page.evaluate(() => hbSetFace('board')); await until(() => hbFace() === 'board' && !!document.querySelector('.hb-note') ? true : null); };
-    await toBoard();
+    /* RE-POINTED (owner, 10 Nov 2026: "the saved views to appear on the highlighted area in the jambo panel and not on
+       the board"; blue underlined links): the views are LINKS under Your day in Jambo's panel on Explorer, each with
+       how many it shows; a link lays the view over the map beside it. None on the Board's head. */
+    const CHIP = '#ig-sv .ig-sv-a[data-ig-sv="Law floors"]';
+    const toDay = async () => { await page.evaluate(() => { if (hbFace() !== 'explorer') hbSetFace('explorer'); if (typeof igDayShows === 'function' && !igDayShows()) igBriefStart(); }); await until(() => document.getElementById('ig-sv') ? true : null); };
+    await toDay();
     const row = await until(sel => { const b = document.querySelector(sel); return b ? b.textContent.replace(/\s+/g, ' ').trim() : null; }, CHIP);
-    const dock = await page.evaluate(() => !!document.querySelector('#ig-dock [data-ig-views], #ig-dock [data-ig-saved]'));
-    check('6a "save this view as Law floors" keeps it: a chip under Saved views on the Board, none left in Jambo\'s panel', /Law floors/.test(row || '') && !dock, JSON.stringify({ row, dock }));
-    check('6a2 the chip stands in the head without a press, its count beside it', /^Law floors\s*\d+$/.test(row || ''), row);
+    const dock = await page.evaluate(() => { hbSetFace('board'); return !!document.querySelector('#hb-bhead .hb-sv-chip, #hb-bhead [data-hb-sview]'); });
+    check('6a "save this view as Law floors" keeps it: a link under Saved views in Jambo\'s panel on Explorer, none on the Board\'s head', /Law floors/.test(row || '') && !dock, JSON.stringify({ row, dock }));
+    check('6a2 the link stands under Your day without a press, its count beside it', /^Law floors\s*\d+$/.test(row || ''), row);
     await page.evaluate(() => hbSetFace('explorer'));
     await ask('floors by owner');
-    await toBoard();
+    await toDay();
     await until(sel => document.querySelector(sel) ? true : null, CHIP);
     const said0 = await page.evaluate(() => intel.history.length);
     if (await page.$(CHIP)) await page.click(CHIP);
     const back = await until(() => hbFace() === 'explorer' && intel.floorsBy === 'law' ? intel.floorsBy : null);
     const said1 = await page.evaluate(() => intel.history.length);
-    check('6b a chip opens Explorer with the saved view on the map, and says nothing in Jambo\'s conversation', back === 'law' && said1 === said0, JSON.stringify({ back, said0, said1 }));
+    check('6b a link lays the saved view over the map, and says nothing in Jambo\'s conversation', back === 'law' && said1 === said0, JSON.stringify({ back, said0, said1 }));
     await page.screenshot({ path: path.join(OUT, '6-saved-view.png') });
     /* a view saved twice without a name is ONE view (the panel showed "Value" twice) */
     await ask('save this view'); await ask('save this view');

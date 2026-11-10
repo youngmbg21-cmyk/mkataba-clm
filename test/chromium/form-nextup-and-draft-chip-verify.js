@@ -46,7 +46,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 0, null, { timeout: 20000 });
       await page.waitForLoadState('networkidle');
       /* the app has landed on Home (its box drawn) before anything is opened */
-      await page.waitForFunction(() => !!document.getElementById('cn-q') && typeof caDraftForm === 'function', null, { timeout: 20000 }).catch(() => {});
+      await page.waitForFunction(() => !!document.getElementById('igd-input') && typeof caDraftForm === 'function', null, { timeout: 20000 }).catch(() => {});
       return page;
     };
     const until = async (page, fn, arg, ms = 8000) => { let v; const t0 = Date.now();

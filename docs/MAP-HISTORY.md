@@ -36555,6 +36555,101 @@ The owner ran the Explorer exam against the real model ("Run the Explorer exam a
 
 ## INSIGHTS — EXPLORER'S JAMBO: REAL SENTENCES, NO STRAY QUOTE (owner, 10 Nov 2026)
 The owner re-ran the Explorer exam ("Run the Explorer exam again"): 32 of 32, single-sourced lit at once. Two cosmetic faults showed in Jambo's own sentences: a stray closing quote on three answers ("put a line on the timeline at 31 March", "show only signed contracts with Bidco", "show me the renewal cliff"), and a broken tail ("Cold Chain Logistics with Bidco) cluster right around that date.") — `igMapSentenceKept` split at every ". " so it cut at "e.g." inside brackets, dropped the head as a claim ("Marked…") and kept the tail. Logged in BUGLOG, then the owner: "Fix it, push and merge to main when green". BUILT: `igSentencesOf` (a sentence ends at . ! ? before a space, never inside brackets, never after a short abbreviation `IG_ABBREV_RE`) and `igStrayQuoteOff` (an unpaired quote at the end or start goes; paired quotes stay), both inside `igMapSentenceKept`, map path only. f995 (6).
+
+## THE SAP BENCHMARK, BATCH 1 — THE LISTS (Approvals: the head and the chosen row, 10 Nov 2026)
+The owner sent two screenshots of Approvals & signing in the new look. (1) The chosen row's black bar sat right on the
+row's amber mark, the grey fill starting flush at the mark with no room. (2) Scrolled, the column head stopped about
+20px below the top of the sheet and the rows travelled visibly through the strip above it (and the head lost its line).
+Cause of (2): the sheet (`#ap-scroll`) is the scroller and carries 20px of padding above its first line; a head stuck
+at `top:0` sticks at the padding's inner edge, not the sheet's. It now sticks at -20px; its hairline is an inset shadow
+because a collapsed table's border does not travel with a stuck cell. Cause of (1): the old look's inset bar on a first
+cell that has no left padding in the new look. A first try with an outer box-shadow painted nothing (a collapsed
+table's cell paints no outer shadow in Chromium); the fill and bar are now the first cell's `::before`, reaching 12px
+into the sheet's 40px margin, and a hovered row's fill reaches the same 12px. Looked for on the sibling new-look lists
+(Requests, People, Parties, Reads, Import): none has a stuck head, so only Approvals was changed. Photos at the three
+screens before and after. Check: approvals-head-and-chosen-row-verify (not run in the chat: browser checks run on GitHub).
+Noticed, not fixed (BUGLOG): on a hovered or chosen row the grey Approve / Decline pills are the row's own grey and lose
+their outline. The design round that followed (three options, a touch of colour) was shown, not built.
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE (the delivery and the doors, 10 Nov 2026)
+The owner asked, in the chat, why the app feels slow — "especially where there are lists when I try to press and
+navigate within the pages", naming Obligations. A read of the whole front end, the page-drawing code, the stylesheet
+and the server found four causes stacked: (1) every press rebuilds the WHOLE page and re-attaches its listeners, and
+keepScroll reads scrollTop off every element with an id first; (2) the stylesheet is 1.75 MB and 11,837 rules, 164 of
+them using `:has()` anchored at `#app-shell` or `body` while looking inside `#content` — the most expensive kind, and
+a full rebuild is what triggers the re-check; (3) every page move recounts nine door numbers, each a full walk of the
+book, from forty-seven call sites; (4) 18.8 MB of JavaScript in 136 modules plus a 1.82 MB index.html, all
+uncompressed, then up to 5,000 contracts pulled 200 at a time. Reported in the chat; the owner picked the two that
+lift every page and cannot change what is on screen.
+BUILT. (a) One gzip middleware before the routes, node's own zlib, no dependency, the house rule the ZIP writer
+already follows. Measured: js 18.8 MB -> 6.0 MB (68%), index.html 1,818,854 -> 448,920 bytes (75%). The first draft
+HUNG — ten bytes of gzip header and then nothing: a file is PIPED to the response, pipe pauses its source when write()
+answers false and then waits for the RESPONSE to say 'drain', and once write goes to the compressor it is the
+compressor that drains. Forwarding `gz.on('drain')` to `res.emit('drain')` is the whole fix, and f996's test 1 caught
+it. text/event-stream is refused BY NAME before the allow-list (`text/` would match it), and f996 drives a real AI
+chat stream to prove the live feeds still arrive frame by frame. (b) `doorCounts(nc)`: the nine figures counted once a
+turn, cleared on a microtask exactly as navCounts is, so it can never outlive the state it counted — a door whose
+number disagrees with its list is the fault this codebase refuses hardest, and a cache surviving the turn would need
+to know when the book moved, which nothing here knows reliably. f357's 1f re-pointed: the three navCounts figures
+moved into doorCounts with the rest, and the rule it pins (nobody recounts them) is unchanged.
+NOT BUILT, AND THE OWNER WAS TOLD WHY. "Stop sending the contract wording in list rows" was the other half of the
+first fix and is NOT safe as a speed change: the wording is `c.redlineText`, read in 126 places across 24 files, and
+two of them — the approval-lapse hashes in js/approvals.js and js/signapproval.js — hash the wording to decide whether
+a yes has lapsed. On a row with no wording those hash an empty string, so an approval that gates SIGNING would lapse,
+or fail to lapse, wrongly. The honest route is to send a hash of the wording on the row instead and teach those two
+readers to use it — a change to a signing gate, which is its own job with its own checks, never a line slipped into a
+speed fix.
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE (a press redraws only the rows, 10 Nov 2026)
+The owner, on the speed review: "do the per-press redraw work". Obligations first, as they named it, then Approvals &
+signing, which their original screenshots came from.
+THE FIRST TRY WAS ON THE WRONG RENDERER, and the photographs are what said so. js/obligations.js holds TWO obligations
+pages: the week list (obw*, `.obw-ins`, `#obw-scroll`) and, behind the new-look switch, obnRender (`.obn-page`,
+`#obn-body`). renderObligationsList hands straight to obnRender when newLookOn(), so the old one is never drawn — and
+"THE NEW LOOK IS THE ONLY LOOK" says nothing is fixed on the old. Ten presses had already been routed through a new
+obwRepaintCut before a photograph of the real page showed `obn-page` in the markup. Reverted whole; the work moved to
+obnRender. The duplication warning in the Bug Fix Rules is exactly this, and reading the code was not enough to catch
+it: drawing the page was.
+WHAT BOTH PAGES DID. Each drew the WHOLE of #content on every call, and the typed box called it on EVERY LETTER —
+which is why each had lines putting the focus and the caret back afterwards. That is the tell: the box was being
+thrown away under the reader's fingers. Swapping #content also re-reads 11,837 style rules against the new tree, 164
+of them `:has()` anchored at the shell while looking inside #content, so the cost does not fall with the row count.
+WHAT THEY DO NOW. `{ rows: true }` rewrites the table inside its own node, sets each tab's count and which is lit, and
+rewrites the foot's line; the frame, the box and the panel stand. The panel is left as it is unless the row it is about
+has gone — the rule the week list already followed. Measured in a browser at the three screens: a tab press and a typed
+word both keep the frame, the box and the panel, with no page errors.
+THE FAULT THE CHECK CAUGHT, and it was a real regression. On Approvals "What it rests on" steps out of the table the
+moment it reads the same on every row — which happens WHILE SOMEBODY IS TYPING, because the first letter can narrow the
+list to rows that agree. The first draft refused the rows paint whenever the column count moved and fell back to the
+whole page, which replaced the box mid-word: "carton" arrived as "ca" and the focus was gone. Two changes: the table's
+whole inside (colgroup, heads, body) is rewritten inside its own node so the heads can change without the frame going,
+and every fallback restores the caret. Both pages carry the safety net.
+STILL TO DO, page by page, the same shape on each: Requests, People, Parties, Reads, Import, My notes, the template
+library and the contract room's History all rebuild their whole page on every keystroke.
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE (the rest of the lists, 10 Nov 2026)
+The owner: "do the remaining eight pages". Eight was MY count, from a grep for the pages that restore a caret after
+drawing, and two of them were wrong: the template library repaints only `[data-tpl-sec="book"]` and the contract
+room's History only `#ws-history-pane`. Neither touches #content, so neither carries the fault this work is about.
+They keep a smaller cost — their search box sits inside the pane they swap, so the caret still has to be put back —
+and they were left alone rather than counted as done. Six pages really had it: Requests, People, Parties, Reads,
+Import and My notes, each drawing the WHOLE of #content on every tab press and every letter typed.
+ONE SWAP, NOT SIX. js/listlang.js gained `listRowsSwap` (the caller hands over the pieces) and `listRowsSwapHtml` (the
+caller hands over the page it just built and the swap reads the pieces back out of it), plus `listCaretAt`/
+`listCaretPut`. The second exists because several of these pages build their screen as one long nested template, and
+cutting the table and the foot out of five of them by hand is five chances to cut in the wrong place; parsing the
+finished markup into a detached <template> costs a parse and nothing else — no styles, no layout, no paint — while
+skipping the part that was expensive, which was handing it to #content. The contract is the return value: FALSE means
+"draw the whole page", so a page can never be left half redrawn and a new tab can never be missed.
+WHAT IT COST TO GET RIGHT. A first pass added the option to each page's ENTRY function and changed the call to the
+new-look renderer — but on Reads and Requests that call sits in a different function (renderReadsDraw,
+renderIntakeInspector), so `o` was not in scope and the browser threw "o is not defined" on arrival. Caught by driving
+the real pages, not by lint, which cannot see across that gap. The chains were completed and the pages re-driven.
+MEASURED, at 1440×780, driving each page: a tab press and a typed word both keep the frame, the box and the panel
+standing on Requests, People, Parties, Reads and My notes, with no page errors. IMPORT TAKES THE SAME SWAP BUT WAS NOT
+DRIVEN: its page is only drawn once files have been brought in, and seeding an import queue is its own job. Said in
+the check's notes and in BUGLOG rather than left looking covered.
+
 ## CALENDAR
 HORIZON, THE SAP WAY (owner's pick by name, 10 Nov 2026, from three drawn on the real page: The SAP Way · The Legora Way · Weather band; "SAP way for the calendar"). The owner's words: "the horizon page is dull". Every bar had been the one accent green. Now each new-look row wears `calHzTone(r.days)` (t-ruby ≤30 · t-amber ≤90 · t-green), the ladder's own bands: the bar takes the tone's dot, the decision is a pill (amber while the row is red or amber or its window is open, green once decided, grey otherwise), the five boxes above are soft-filled by band (`cal-lad-<k>`, their top rule gone). The detail lines (party · ref · money, the date note, the decision's small line, the box's money) are grey, and on Week the run's count, the day labels and the hours — the gap the f982/f984 rounds left on the Calendar. f987.
 
@@ -36604,6 +36699,20 @@ agreement's row disappears when Add all is pressed.
 
 RE-POINTED: round5-new-look-verify 3 and 4, which pinned the box-and-tabs-on-one-line and the pop-up desk the pick
 reverses. NEW: test/chromium/obligations-project-list-verify.js, every check red at 9be1391b.
+
+
+## HOME — THE BOARD AND THE MAP (js/views/homeboard.js) — YOU LAND ON THE BOARD, AND SAVED VIEWS MOVE TO JAMBO'S PANEL (10 Nov 2026)
+The owner, off two screenshots: "Image 1, I want the creating of a saved view to be easy and the saved views to appear on the highlighted area in the jambo panel and not on the board. Image 2, I want board to be the home page where you land once you log in. The top highlighted area is where the greetings will be with a note on what the latest is. This area shoud also include the summarize my board, read down, and explorer. DNA will be phased out but include it for now as well. Below this new card will be the same structure as how the board is designed there your book card is next then needs you."
+Three named options each were shown on one page (The SAP Way · The Legora Way · More Tiles; The SAP Way · The Legora Way · Headlines): https://claude.ai/artifact/Nx1rAenyJLm3upn1iPrnFG
+The owner's picks: "legora way for part 2. But for part 1, the saved view should be like the green underlined links but in blue and also you should be able to edit the name when saving it the saved view".
+BUILT: the Board's new-look head is the greeting (Home's own cn2Greet), one counted sentence (what moved since the Board's comparison day: more past their end date, value come under contract; then late, the oldest, what Jambo prepared; no AI call), the four pills, the day, Live and counted. It no longer stays at the top while scrolling (measured about 133px against 56px for the old strip). Signing in lands on the Board (was the Counter, 17 Oct 2026); the Counter page was NOT removed (the owner was asked whether it retires and had not answered). Saved views: blue (steel token) underlined links under Your day in Jambo's panel on Explorer; "+ Save this view" opens a name box filled with the view's own name; the map's own "Save view" link opens the same box. REVERSED: the chips in the Board's head (15 and 18 Oct 2026; hbSavedViewChipsHtml, hbOpenSavedView, hbViewsChanged, .hb-sv-chip are STALE names). Drawn with a departure the owner should know: where nothing is late and nothing prepared but things wait, the sentence says "N wait on you" rather than "Nothing waits on you".
+KNOWN COST: many browser checks sign in and wait for Home; they are re-pointed after GitHub's first run.
+
+
+## HOME — THE BOARD AND THE MAP (js/views/homeboard.js) — THE HOME PAGE IS DELETED (10 Nov 2026)
+The owner: "Home page should be removed / deleted. Then, there has to be a better way on this 'Some GitHub checks will go red. About 30 browser checks sign in and expect to land on the old Home…'". Asked how to check it, the owner picked "Run them here, once": the standing rule BROWSER CHECKS RUN ONLY ON GITHUB was lifted for THIS JOB ONLY; it stands for every other job.
+WHAT WENT: the Counter's page (renderCounter, counterHtml, the new look's cn2 page: cn2Html, cn2JlSay, cn2PanelPaint, renderCounter2, cn2FirstDayHtml), its box and "/" list (counterAsk, counterTalk*, counterPop*, #cn-q), its chips (cnLikely, cnLikelyWords, cnChipsHtml — THE BOX PREDICTS), its counts and week line (cnCountsHtml, cnWeek*, cn2CountsHtml, cn2Signed), ndHomeHtml, counterRepaint/counterFollow, and every style scoped to #cn-page or #cn2-page (about 150 lines; six fewer hand-typed colours). The place word 'counter' is gone from CA_PLACES, "/", the page words and CA_GO; "home", "start", "hem" and "startsidan" are the Board's words now. FLOW_MAP: the Board took Home's stage (arrive) and its likely next. The Guide's top row is the Board (it left the "see" stage). The handbook's first chapter is the Board. All are STALE names now.
+WHAT STAYED: the one desk's readings the Board, the bell and the phone use (ndRead, ndParts, ndBoardHtml, ndPanelHtml, ndBellNlHtml, cn2Rows, cn2Say, cn2Greet, cn2QuoteHtml, cnRows, cnNeedShort), the bar (deskGoCounter now goes to the Board; DK_HOME_KEY 'home:board'; Recent's first row says "Board"), and setView('counter') as a redirect so an old link or a kept place lands on the Board. The phone's own Home (js/mobile-screens.js) was NOT touched: the phone never had the computer's Home page.
 
 ## THE LIST HEAD (js/views/listhead.js)
 OUR STANDARDS AS A SCORECARD (owner's pick by name, 10 Nov 2026, from three drawn on the real Contracts page: The SAP Way · The Legora Way · Scorecard; the owner: "It looks very condensed and the highlighted area, the features are touching the lines which brings tension to the page"). The cause: the standards cell was two lines (three lamps, then regStdMissHtml's "missing: …") in rows of one, so its lamps rode the top of the row against the line above; streams were cut ("Procurem…"), and "Non-monetary" too. Built, new look only: stdRowWordsHtml draws `.ls-score` — one 84px bar split red · amber · green by share, the three counts beside it (each in its tone, the dots grey), the sentence and what is missing on the hover and for a screen reader — so the Approvals list, which reads the same builder, follows; the Contracts cell drops the "missing:" line (regStdMissHtml stays, no longer drawn there); a non-monetary agreement says "No money" (`reg_no_money`, grey); REG_COL_W_NL gives Stream 13 and standards 17. The old look keeps its lamps (f953). Handbook chapter's sentence rewritten in both books ("a scorecard"). f989; round6-new-look-verify 2 re-pointed.

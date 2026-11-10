@@ -102,6 +102,9 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
 
     /* ---- 2. THE PLACE WORDS, READ: each word reads as its own place ---- */
     if (!ONLY || ONLY === 'ca'){
+      /* RE-POINTED (owner, 10 Nov 2026: Home deleted): signing in lands on the Board now, whose own reader keeps the words it
+         draws; the place words are read from a list page, as Home (which drew nothing of its own) used to let them be */
+      await P.evaluate(() => setView('approvals')); await settle();
       for (const p of lists.ca){
         const q = p.one ? `${p.w} MK-A2` : p.w;
         const got = await P.evaluate(q => { let a = null; try { a = caUnderstand(q, { box: 'list' }) || caActOf(q); } catch (_){ a = null; }
@@ -131,7 +134,9 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
     const typed = DOOR_EXAM.filter(x => x.spot && (!ONLY || x.door.startsWith(ONLY + ':'))).concat(st);
     for (const L of typed){
       /* a Settings page asked by name in Settings' own box is the finder's answer there (Settings lands, never presses) */
-      const boxes = DOOR_BOXES.filter(b => !(b === 'settings' && (L.door.startsWith('st:') || (L.spot.page === 'settings'))));
+      /* boardSays: the Board's own box answers these words where it stands (its free reading, e.g. "saved views" listed
+         with where they live, hbSavedViewsSay), so that one box is not asked to move */
+      const boxes = DOOR_BOXES.filter(b => !(b === 'settings' && (L.door.startsWith('st:') || (L.spot.page === 'settings'))) && !(b === 'board' && L.spot.boardSays));
       for (const box of boxes){
         let why = [];
         try {

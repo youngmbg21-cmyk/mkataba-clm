@@ -33,12 +33,12 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
   try {
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
-    await until(P, () => !!(window.state && Array.isArray(state.contracts) && state.contracts.length && document.getElementById('cn-q')), null, 20000);
+    await until(P, () => !!(window.state && Array.isArray(state.contracts) && state.contracts.length && document.getElementById('igd-input')), null, 20000);
     await P.evaluate(() => { state.aiConfigured = true; });
 
     /* ---- 1 · Home's box ---- */
     const b0 = brain;
-    await P.fill('#cn-q', 'MK-HB4'); await P.press('#cn-q', 'Enter');
+    await P.fill('#igd-input', 'MK-HB4'); await P.press('#igd-input', 'Enter');
     check(await onPaper('MK-HB4'), '1a "MK-HB4" typed on Home lands on its paper with the Dossier beside it');
     await P.waitForTimeout(600);
     check(brain === b0, '1b and Jambo\'s brain was not asked', { calls: brain - b0 });
@@ -58,17 +58,17 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
 
     /* ---- 3 · a number nobody here can open ---- */
     await P.evaluate(() => setView('counter'));
-    await until(P, () => !!document.getElementById('cn-q'), null, 8000);
+    await until(P, () => !!document.getElementById('igd-input'), null, 8000);
     const v0 = await P.evaluate(() => state.view);
     const b2 = brain;
-    await P.fill('#cn-q', 'MK-999'); await P.press('#cn-q', 'Enter');
+    await P.fill('#igd-input', 'MK-999'); await P.press('#igd-input', 'Enter');
     const said = await until(P, () => [...document.querySelectorAll('[class*=toast]')].some(t => /No contract MK-999 that you can open/.test(t.textContent)), null, 5000);
     check(said, '3a "MK-999" is answered "No contract MK-999 that you can open."');
     await P.waitForTimeout(400);
     check(await P.evaluate(() => state.view) === v0 && brain === b2, '3b nothing moved and nothing was spent', { view: await P.evaluate(() => state.view), calls: brain - b2 });
 
     /* ---- 4 · a number inside a question ---- */
-    await P.fill('#cn-q', 'MK-HB4 when does it end?'); await P.press('#cn-q', 'Enter');
+    await P.fill('#igd-input', 'MK-HB4 when does it end?'); await P.press('#igd-input', 'Enter');
     check(await onPaper('MK-HB4'), '4a "MK-HB4 when does it end?" opens MK-HB4 first');
     const asked = await until(P, () => (window.intel && Array.isArray(intel.history) ? intel.history : []).some(m => m && m.role === 'user' && /when does it end/i.test(String(m.text || ''))), null, 8000);
     check(asked, '4b and asks Jambo the question there, beside it');

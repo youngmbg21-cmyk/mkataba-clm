@@ -10,7 +10,7 @@
      3 · the bar in the drawn order: Jambo · the bell · the Guide ("?") · recent · you · sign out; your initials on a light disc
      4 · ONE LINE TO JAMBO (owner, 31 Oct 2026): the panel's edge is the only hairline; the slider lies on it, drawing
          nothing at rest, a green line two pixels wide while hovered
-     5 · the Board joined: the panel square against the window's edge with one hairline, the head a white strip 56 tall,
+     5 · the Board joined: the panel square against the window's edge with one hairline, the head the white greeting,
          the first card 12 under it
      6 · nothing sideways
    And the switch itself:
@@ -123,8 +123,9 @@ const FRAME = () => {
       const BD = await page.evaluate(() => { const d = document.getElementById('ig-dock').getBoundingClientRect(), dc = getComputedStyle(document.getElementById('ig-dock'));
         const hd = document.getElementById('hb-bhead'), hb = hd.getBoundingClientRect(), first = hd.nextElementSibling.getBoundingClientRect(), bar = document.getElementById('top-header').getBoundingClientRect().bottom;
         return { right: Math.round(innerWidth - d.right), top: Math.round(d.top - bar), bottom: Math.round(innerHeight - d.bottom), radius: dc.borderTopLeftRadius, line: dc.borderLeftWidth, headTop: Math.round(hb.top - bar), headH: Math.round(hb.height), headToPanel: Math.round(d.left - hb.right), firstGap: Math.round(first.top - hb.bottom), white: getComputedStyle(hd).backgroundColor }; });
-      check(`${nm} 5 the Board joined: the panel square at the window's edge behind one hairline; the head a white strip 56 to the panel; the first card 12 under it`,
-        BD.right === 0 && BD.top === 0 && BD.bottom === 0 && BD.radius === '0px' && BD.line === '1px' && BD.headTop === 0 && BD.headH === 56 && BD.headToPanel <= 1 && BD.firstGap === 12 && BD.white === 'rgb(255, 255, 255)', BD);
+      /* RE-POINTED (owner picked "The Legora Way", 10 Nov 2026): the head is the greeting (taller than the 56 strip, and it scrolls) */
+      check(`${nm} 5 the Board joined: the panel square at the window's edge behind one hairline; the head the white greeting to the panel; the first card 12 under it`,
+        BD.right === 0 && BD.top === 0 && BD.bottom === 0 && BD.radius === '0px' && BD.line === '1px' && BD.headTop === 0 && BD.headH >= 100 && BD.headH <= 200 && BD.headToPanel <= 1 && BD.firstGap === 12 && BD.white === 'rgb(255, 255, 255)', BD);
       await page.screenshot({ path: path.join(OUT, `${nm}-board.png`) });
       await page.evaluate(async () => { await stNewLookSet(false); });
       await page.close();

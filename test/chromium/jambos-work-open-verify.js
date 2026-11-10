@@ -69,7 +69,9 @@ const WHERE = () => {
   const click = sel => page.click(sel, { timeout: 3000 }).then(() => true, () => false);
   /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Home's door onto Jambo's work is his group's "Show all N" */
   const home = async () => { await page.evaluate(() => setView('counter')); return waitFor(page, () => !!document.querySelector('[data-nd-all="jambo"]'), 8000); };
-  const openFromHome = async () => { if (!(await home())) return null; if (!(await click('[data-nd-all="jambo"]'))) return null;
+  /* RE-POINTED (owner, 10 Nov 2026: Home deleted): Home's "Show all" on Jambo's group went with Home; Jambo's work is opened
+     by its own door ("jambo's work", caGo → hbOpenAgent), from wherever the reader stands */
+  const openFromHome = async () => { await page.evaluate(() => caGo({ kind: 'go', place: 'work' }));
     return waitFor(page, () => { const t = document.getElementById('hm-agents'); return t && t.classList.contains('is-landed') ? true : null; }, 6000); };
   try {
     check('0 six contracts read on arrival are staged', staged);

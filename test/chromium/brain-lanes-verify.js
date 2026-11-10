@@ -48,7 +48,7 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); }); await page.waitForTimeout(400);
     /* re-pointed 17 Oct 2026: a computer draws no left menu (the owner's
        "Desk tabs"); the Brain is a place Jambo opens from the Counter */
-    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'brain');
+    await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'brain');
     await page.waitForFunction(() => window.state && state.view === 'brain' && !!document.getElementById('br-cv'), null, { timeout: 15000 }).catch(() => {});
 
     /* ---- 1. the fourth view ---- */

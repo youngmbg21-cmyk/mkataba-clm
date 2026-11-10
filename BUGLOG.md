@@ -21954,7 +21954,61 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - (noticed 9 Nov 2026, Board-as-Home drawing, not fixed) On the Board (new look, handbook world, admin), Jambo's Overview panel says "Needs you 15 things · 4 prepared by Jambo" while the Board's own Needs you card and Home both say 11; the panel's count (`hbBoardHelloHtml` → `counterNeedsCount`) and the list behind its "Show all" disagree — rule 6, the number on a door matches the list behind it.
 - (noticed 10 Nov 2026, Explorer exam re-run, not fixed) On Explorer, a few of Jambo's own sentences end with a stray closing quote (`&quot;`) — "put a line on the timeline at 31 March", "show only signed contracts with Bidco", "show me the renewal cliff"; and in the first, the claim cut (`igMapSentenceKept`) left a broken fragment ("Cold Chain Logistics with Bidco) cluster right around that date."): the sentence splitter cuts at a full stop inside a bracket, keeping the tail of a sentence whose head it dropped.
 - (fixed 10 Nov 2026, owner's "Fix it") The Explorer stray quote and the cut sentence's tail noted just above: `igSentencesOf` and `igStrayQuoteOff` inside `igMapSentenceKept`; f995 (6).
+
+## 10 Nov 2026 — Approvals & signing: the head and the chosen row (owner's screenshots)
+- FIXED: scrolled, the column head stopped 20px below the sheet's top and rows showed through above it; it lost its line. The sheet is the scroller and has 20px top padding; the head now sticks at -20px, its hairline a shadow.
+- FIXED: the chosen row's bar touched the row's mark, the fill starting flush at it. Bar and fill now reach 12px into the sheet's margin (first cell's ::before); a hovered row's fill the same.
+- Only Approvals has a stuck head among the new-look lists (looked at Requests, People, Parties, Reads, Import).
+### Noticed, not fixed
+- Approvals (new look): on a hovered or chosen row the grey Approve / Decline pills are the same grey as the row, so the pill shape disappears (Decline on the chosen row reads as bare words).
+- Approvals (new look): a chosen row's cells carry the old look's green-tinted fill rule (`.ap-table tbody tr.is-sel td`) under the new one; now overridden for this page, the old rule itself left alone.
+
+## 10 Nov 2026 — the speed review's first two fixes (owner asked for both in the chat)
+- FIXED: nothing on the server had ever set Content-Encoding. One gzip middleware (built-in zlib, no new dependency) before the routes. Measured: js 18.8 MB to 6.0 MB, index.html 1.82 MB to 449 KB. The live feeds (text/event-stream) are excluded by name and proved still streaming.
+- FOUND WHILE BUILDING IT: the first draft stalled after ten bytes. A piped file waits for the RESPONSE to emit 'drain', and once write goes to the compressor it is the compressor that drains. Forwarding drain to the response is the fix. Pinned by f996 test 1.
+- FIXED: the nine door numbers beside the page names each walked the whole book, from 47 call sites. Now doorCounts(nc), counted once a turn, cleared on a microtask so it can never be stale. f357's 1f re-pointed to the moved region.
+### Noticed, not fixed
+- Stripping the contract wording from list rows would be the bigger half of the payload win, but it is NOT a safe speed change: the approval-lapse hashes (js/approvals.js, js/signapproval.js) hash c.redlineText, so a row without it would hash an empty string and an approval gating SIGNING would lapse, or not lapse, wrongly. Route: send a hash on the row and teach those two readers to use it - its own job, it touches a signing gate.
+- Every press still rebuilds the whole page and re-attaches its listeners; keepScroll reads scrollTop off every element with an id first. This is the dominant cause of press lag on long lists and is per-page work.
+- The stylesheet is 1.75 MB / 11,837 rules, 164 of them :has() anchored at #app-shell or body while looking inside #content. A full rebuild re-triggers all of it.
+- The browser pulls up to 5,000 contracts at sign-in, 200 at a time - up to 25 sequential round trips before the app is usable.
+- index.html and every js file are served Cache-Control: no-cache (a deliberate 03 Aug 2026 decision so a deploy is never missed), so all 137 are revalidated on every load. Left alone; the owner's deploy-visibility reason still holds.
+
+## 10 Nov 2026 — a press that only changes which rows show redraws only the rows (owner asked for the per-press redraw work)
+- FIXED on Obligations and Approvals & signing (the new look): both drew the whole of #content on every tab press and on EVERY LETTER typed in the search box. Now the table is rewritten inside its own node, with each tab's count and the foot; the frame, the box and the panel stand. No caret is put back because the box is never replaced.
+- WRONG RENDERER FIRST: js/obligations.js holds two obligations pages, and the new look draws the other one (obnRender). Ten presses were routed through a new funnel on the old week list before a photograph of the real page showed it. Reverted whole and redone on obnRender. Reading the code did not catch it; drawing the page did.
+- REGRESSION CAUGHT BY THE NEW CHECK: on Approvals the "What it rests on" column steps out of the table while somebody is typing, and the first draft fell back to the whole page when it did — replacing the box mid-word, so "carton" arrived as "ca" with the focus lost. The table's whole inside is now rewritten in place, and every fallback restores the caret.
+### Noticed, not fixed
+- The same whole-page-on-every-keystroke pattern is still on Requests, People, Parties, Reads, Import, My notes, the template library and the contract room's History. Same shape of fix, page by page.
+- _obwPaintBook is set on every obligations paint and never cleared, so obwBookNow() always reuses the last paint's book. It is refreshed by each paint so nothing stale has been seen, but it is a cache with no way to say it has gone off.
+
+## 10 Nov 2026 — the rest of the list pages redraw only their rows (owner: "do the remaining eight pages")
+- FIXED on Requests, People, Parties, Reads, Import and My notes: each drew the whole of #content on every tab press and every letter typed in its search box. One shared swap now rewrites the table and the bar's counts and leaves the frame, the box and the panel standing.
+- ONE BUILDER, not six: listRowsSwap / listRowsSwapHtml / listCaretAt / listCaretPut in js/listlang.js. A false return always means "draw the whole page", so a page can never be left half redrawn and a new tab can never be missed.
+- EIGHT WAS MY COUNT AND TWO WERE WRONG: the template library repaints only its book section and the contract room's History only its own pane. Neither touches #content, so neither has this fault. They keep a smaller one (their box is inside the pane they swap, so the caret is still restored) and were left alone, not counted as done.
+- CAUGHT BY DRIVING THE PAGES: on Reads and Requests the call to the new-look renderer sits in a different function from the page entry, so the option was out of scope and the browser threw "o is not defined" on arrival. Lint cannot see across that gap.
+### Noticed, not fixed
+- Import takes the same swap but could not be exercised here: its page is only drawn once files have been brought in, and seeding an import queue is its own job. It is not in the browser check either, deliberately, rather than appearing covered.
+- The template library and the contract room's History still rebuild their own pane, search box included, on every keystroke. Smaller than the page rebuild, and History sits inside the contract room, so it is its own job.
+
+## 10 Nov 2026 — GitHub's run named a second test that slices updateSidebarCounts
+- FIXED: f495 (4c) asserted the intake door's sum was inside updateSidebarCounts. The nine door numbers moved into doorCounts, so the slice no longer held it. Re-pointed the same way f357's 1f was: the rail asks the one reading, and the sum is read inside doorCounts. The rule it pins is unchanged.
+- I had found f357 by grepping and stopped there. Lint cannot see a test that slices a function body by name, so the second one only showed up when the whole suite ran on GitHub. 15,409 of 15,410 passed; this was the one.
+- NOT MINE: contract-new-look-verify failed on the same run with "createTreeWalker: parameter 1 is not of type Node" — its own wait is for the Dossier panel, not the paper, so it reads the paper before it exists. It passed on the very next run with the same code. Left alone as a flaky check with an unguarded wait.
+
+## 10 Nov 2026 — the six-page rows-only change is REVERTED (GitHub's run found it)
+- REVERTED: the rows-only redraw on Requests, People, Parties, Reads, Import and My notes, and the shared swap in js/listlang.js with it. Approvals and Obligations keep theirs; those two are proved green on GitHub.
+- WHY: a rows paint is safe only where EVERY tab of a page draws the same shape. Parties' Folders tab draws cards where its other tabs draw a table, so swapping the table alone left the cards stale and the Folders tab drew nothing. round6-new-look-verify 4 caught it. I assumed the shape was the same on all six without reading each page's tabs.
+- ALSO BROKEN BY IT: f979 pins renderReads by its exact signature, and the change added an argument.
+- MY LOCAL CHECK DID NOT COVER IT: I drove each page and pressed one tab, but never the tab that draws a different shape. A page's OWN existing browser check would have; six pages at once is what made that too slow to do, which is the argument for one page at a time.
+### Noticed, not fixed
+- buglog-fixes-nov6-verify 5 failed on the same run ("a history or status send hides the stays-here cards"). Not looked into: it is outside this work and may be the same flakiness as contract-new-look-verify. Left for its own job.
 - 10 Nov 2026 — f982 test 3 still looked for `listSapCellHtml(obnSapKey` after #618 rewrote `obnRowHtml` (mark key now `mk`), red on main at cf35ae9; re-pointed in #619 with the owner's yes ("fix it in yours"). Nothing a person sees changed.
+
+## Noticed, not fixed (10 Nov 2026, the Home and saved views proposals)
+- Seen on the owner's two screenshots, not checked in code: Explorer's Your day tile says "183 Need you" while the Board's Needs you card says "98 things" (and the Board's own Jambo panel says "183 things" beside it). One list should give one count (ndRead / alertCount); to be measured.
+- 10 Nov 2026 (deleting Home): opening a contract from the Board (its number typed or a row) draws Jambo's panel twice every time, not once after the first (glitch-fixes-verify's "once the next time" measure). Measured the same on main 6906fd5 with the Board as the starting page, so it predates this change; it only matters more now that the Board is where you land.
+- 10 Nov 2026 (deleting Home): one-sheet-as-drawn-verify 7b — opening the new-agreement sheet from a contract's paper and leaving by the bar's ‹ with "Discard my answers" may land on the Board instead of that contract. Seen once; the check now opens the sheet from the Board, as it did from Home. Not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) Opening the Send screen on MK-HB4 (handed over for signature, handbook world) shows a red toast "Not saved: MK-HB4 has been handed over for signature, so its wording is locked…" — opening Send appears to try a save on a frozen contract (reading must not write), seen while photographing; not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) The other side's page (portal) was not part of the sweep: it carries its own look switch (`outsideLook`) and needs a share link to open; its detail lines were not measured.
 

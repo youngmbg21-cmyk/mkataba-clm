@@ -4759,7 +4759,16 @@ function obnProjPanel(list){
   insPaintPanel(Object.assign({ host: 'ins-panel', item: { id: 'proposals' }, solo: true, body,
     jlLinks: `<button type="button" class="jb-way" data-obn-tab="open">${_obEsc(i18t('obn_l_out'))}</button><button type="button" class="jb-way" data-jb-way="calendar">${_obEsc(i18t('obn_l_cal'))}</button>${first ? `<button type="button" class="jb-way" data-obn-paper="${_obEsc(first.c.id)}">${_obEsc(i18t('obn_l_paper'))}</button>` : ''}` }, obPanelJl()));
 }
-function obnRender(host){
+/* ---- A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS (10 Nov 2026) ----
+   Off the owner's "why is the app slow" review, which named this page. `{ rows: true }`
+   rewrites the table's body, each pill's words and which is lit, the line beside the
+   filters and the foot, and touches nothing else: the frame, the box and the panel stand,
+   so a typed letter costs the rows and nothing more.
+   A ROWS PAINT IS SAFE ONLY WHERE THE TABS DRAW THE SAME SHAPE. Late and Tracked draw the
+   duty table; Proposals draws the agreements table with its own head and panel, and hides
+   the box. So a press that arrives at or leaves Proposals, or a pill that comes or goes,
+   draws the whole page — checked below, never assumed — and that road puts the caret back. */
+function obnRender(host, o){
   const book = obnRows();
   const projects = obnProjects();
   const proposedN = projects.reduce((s, x) => s + x.tally.left, 0);
@@ -4806,8 +4815,27 @@ function obnRender(host){
   const pager = _obnTab === 'prop'
     ? obnPagerHtml(projects.length, _obnPropPage, _obnPer, i18tn('obn_w_ag', projects.length, { n: projects.length }))
     : obnPagerHtml(rows.length, _obnPage, _obnPer, i18tn('obn_w_duty', rows.length, { n: rows.length }));
-  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page cun-page" data-ins-page="obligations" data-ins="1">
+  const pillKeys = [lateN || _obnTab === 'late' ? 'late' : '', 'open', projects.length ? 'prop' : ''].filter(Boolean);
+  const pills = host.querySelectorAll('[data-obn-tab]');
+  const rowsOnly = !!(o && o.rows) && _obnTab !== 'prop' && !!host.querySelector('table.obn-table.is-two-line #obn-body')
+    && !!host.querySelector('.obn-page .obn-pager') && !!host.querySelector('.obn-said')
+    && pills.length === pillKeys.length && [...pills].every((b, i) => b.getAttribute('data-obn-tab') === pillKeys[i]);
+  const qEl = (typeof document !== 'undefined') ? document.getElementById('obn-q') : null;
+  const qAt = (qEl && document.activeElement === qEl) ? qEl.selectionStart : null;
+  if(rowsOnly){
+    const tmp = document.createElement('div');
+    tmp.innerHTML = bar + pager;
+    const fresh = tmp.querySelectorAll('[data-obn-tab]');
+    pills.forEach((b, i) => { const f = fresh[i]; if(!f) return; b.className = f.className; b.textContent = f.textContent; });
+    const said = host.querySelector('.obn-said'), said2 = tmp.querySelector('.obn-said'); if(said && said2) said.textContent = said2.textContent;
+    const pg0 = host.querySelector('.obn-page .obn-pager'), pg1 = tmp.querySelector('.obn-pager'); if(pg0 && pg1) pg0.replaceWith(pg1);
+    host.querySelector('#obn-body').innerHTML = body;
+  } else {
+    host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page cun-page" data-ins-page="obligations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card" id="obn-scroll">${title}${bar}<div class="obn-list" id="obn-list">${table}</div>${pager}</section><aside id="ins-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside></div></div>`;
+    /* the fallback replaced the box with everything else: put the caret back so no letter is lost */
+    if(qAt != null){ const n = document.getElementById('obn-q'); if(n){ n.focus(); try{ n.setSelectionRange(qAt, qAt); }catch(_){} } }
+  }
   obwPaintHead();
   if(_obnTab === 'prop'){ obnProjPanel(projects); }
   else {
@@ -4821,18 +4849,22 @@ function obnRender(host){
     const keys = shown.map(r => r._key);
     const id = typeof insPick === 'function' ? insPick('obligations', keys, { none: true }) : null;
     if(tb && typeof insMarkRow === 'function') insMarkRow(tb, '[data-ins-row]', idOf, id);
-    paint(id);
+    /* the panel stays as it stands while the rows move, unless the row it is about has gone */
+    if(!rowsOnly || id !== _obwPanelKey) paint(id);
     if(tb && typeof insListWire === 'function') insListWire(tb, { rowSel: '[data-ins-row]', idOf,
       onSelect: k => { insSelect('obligations', k); insMarkRow(tb, '[data-ins-row]', idOf, k); paint(k); },
       onOpen: k => { const r = byKey.get(k); if(r && r._dec){ if(typeof window.needsYouGo === 'function') needsYouGo('renewal', r.cid); return; } if(r) obOpenContract(r.cid, k); } });
   }
-  const qi = host.querySelector('#obn-q');
-  if(qi) qi.addEventListener('input', () => { _obnQ = qi.value; _obnPage = 1; const at = qi.selectionStart; obnRender(host); const n = document.getElementById('obn-q'); if(n){ n.focus(); try{ n.setSelectionRange(at, at); }catch(_){} } });
-  const sel = (id2, set) => { const s = host.querySelector(id2); if(s) s.addEventListener('change', () => { set(s.value); obnRender(host); }); };
-  sel('#obn-who', v => { _obnWho = v; _obnPage = 1; });
-  sel('#obn-state', v => { _obnState = v; _obnPage = 1; });
+  const sel = (id2, set, rows) => { const s = host.querySelector(id2); if(s) s.addEventListener('change', () => { set(s.value); obnRender(host, rows ? { rows: true } : undefined); }); };
+  /* the foot is new on every paint, so its page-size list is wired every time */
   sel('#obn-per', v => { _obnPer = Number(v) || 20; _obnPage = 1; _obnPropPage = 1; });
   if(typeof selectMenuSweep === 'function') try{ selectMenuSweep(host); }catch(_){}
+  if(rowsOnly) return;
+  const qi = host.querySelector('#obn-q');
+  /* THE BOX IS NOT REDRAWN UNDER THE READER'S CARET: every letter moves the rows and leaves the box alone */
+  if(qi) qi.addEventListener('input', () => { _obnQ = qi.value; _obnPage = 1; obnRender(host, { rows: true }); });
+  sel('#obn-who', v => { _obnWho = v; _obnPage = 1; }, true);
+  sel('#obn-state', v => { _obnState = v; _obnPage = 1; }, true);
   if(typeof insWatchWidth === 'function') insWatchWidth();
   if(window.setActiveNav) setActiveNav('obligations');
 }
@@ -4861,7 +4893,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if(!t) return;
     const tab = t.closest('[data-obn-tab]');
-    if(tab){ e.preventDefault(); _obnTab = tab.getAttribute('data-obn-tab'); _obnPage = 1; obnRepaint(); return; }
+    if(tab){ e.preventDefault(); _obnTab = tab.getAttribute('data-obn-tab'); _obnPage = 1; const h = document.getElementById('content'); if(h && h.querySelector('.obn-page')) obnRender(h, { rows: true }); return; }
     const pg = t.closest('[data-obn-page]');
     if(pg){ e.preventDefault(); const n = Number(pg.getAttribute('data-obn-page')) || 1;
       if(_obnTab === 'prop') _obnPropPage = Math.max(1, n); else _obnPage = Math.max(1, n);

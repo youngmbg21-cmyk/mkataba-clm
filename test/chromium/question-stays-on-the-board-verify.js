@@ -6,7 +6,7 @@
    asked for still goes. Driven with a scripted model.
      A  asked in the Board's panel: still Home's Board, never the Home page; one chat call
      C  the answer is in the panel, its conversation in front
-     B  "take me to what needs me" still opens Home's Needs you (board-as-drawn 5f)
+     B  "take me to what needs me" opens the Board's Needs you (board-as-drawn 5f)
      F–G the same question beside Explorer and in the ✦ window off Home stays where it was asked
      E  photos at the owner's three screens; no page errors
    Run: node test/chromium/question-stays-on-the-board-verify.js */
@@ -67,8 +67,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     ai.reset();
     /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free trip is a reader's, asked as a chip asks (typed, the long form is the brain's) */
     await page.evaluate(w => intelAsk(w), 'take me to what needs me');
-    const B = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs') ? state.view : null, null, 10000);
-    check('B "take me to what needs me" opens Home\'s Needs you, nothing spent', B === 'counter' && ai.calls.length === 0, `${B} · ${ai.calls.length}×`);
+    const B = await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) && !!document.querySelector('#hm-agents') ? state.view : null, null, 10000);
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): Needs you is the Board's card */
+    check('B "take me to what needs me" opens the Board\'s Needs you, nothing spent', B === 'dashboard' && ai.calls.length === 0, `${B} · ${ai.calls.length}×`);
 
     console.log('\nF–G · the same question on other pages stays where it was asked (the server drops the trip, f928)');
     const askOn = async (where, box, go) => {

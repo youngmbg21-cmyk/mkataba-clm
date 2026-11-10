@@ -92,15 +92,16 @@ const CONTRACTS = [
     /* ===== 1. THE COUNTER LISTS IT, COUNTING THE CHECKLIST'S OWN ===== */
     const book = await page.evaluate(() => (state.contracts || []).filter(c => c && !c.archived).reduce((a, c) => a + ((typeof needsYouOf === 'function') ? needsYouOf(c).length : 0), 0));
     await page.evaluate(() => setView('counter'));
-    const drawn = await until(page, () => !!document.querySelector('#cn-needs [data-cn-need]'));
-    const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#cn-needs [data-cn-need]').length, list: hbNeedsList().length, n: counterNeedsCount(),
+    const drawn = await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
+    const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#hm-agents [data-cn-need]').length, list: hbNeedsList().length, n: counterNeedsCount(),
       mine: ndRead().you.filter(r => r.y && r.y.k === 'c').length, all: ndRead().n,
-      shown: window.CN_ROWS, cnt: Number((document.querySelector('#cn-needs .cn-cnt') || {}).textContent || 0) }));
+      shown: window.ND_PAGE, cnt: Number(((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').match(/\d+/) || 0) }));
     ok('1a the Counter lists what is owed', drawn && one.rows > 0, JSON.stringify(one));
     /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): Home draws CN_ROWS rows
        (3, round 23 as drawn by lane G — "Show 3 more · …" holds the rest),
        not seven; the number is still the Counter's and the list the book's */
     ok('1b its rows are the checklist\'s own reading over the book (what Jambo prepared for is his row), its number the one reading\'s', book >= 4 && one.list === book && one.cnt === one.n && one.n === one.all && typeof one.shown === 'number' && one.rows === Math.min(one.mine, one.shown), JSON.stringify({ book, ...one }));
+    /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the Board's card, twelve rows a page (ND_PAGE), its head's number */
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
 
     /* ===== 2. JAMBO ON THE BOARD SAYS WHERE IT IS ===== */
@@ -132,9 +133,9 @@ const CONTRACTS = [
       persist(c); return 'ok';
     });
     await page.evaluate(() => setView('counter'));
-    const looked = asked === 'ok' && await until(page, () => !!document.querySelector('#cn-needs [data-cn-need="look"]'));
+    const looked = asked === 'ok' && await until(page, () => !!document.querySelector('#hm-agents [data-cn-need="look"]'));
     const four = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#cn-needs [data-cn-need]')].map(b => ({ kind: b.getAttribute('data-cn-need'), id: b.getAttribute('data-cn-id') }));
+      const rows = [...document.querySelectorAll('#hm-agents [data-cn-need]')].map(b => ({ kind: b.getAttribute('data-cn-need'), id: b.getAttribute('data-cn-id') }));
       const D = ndRead();
       return { rows: rows.slice(0, 3), n: counterNeedsCount(), jambo0: D.jambo[0] ? { kind: D.jambo[0].it.kind, id: D.jambo[0].it.cid || (D.jambo[0].it.c && D.jambo[0].it.c.id), late: D.jambo[0].late } : null }; });
     ok('4a the look is on the Counter', looked, asked);
@@ -155,8 +156,8 @@ const CONTRACTS = [
 
     /* ===== 5. A BUTTON IS THE CHECKLIST'S OWN DOOR ===== */
     await page.evaluate(() => setView('counter'));
-    await until(page, () => !!document.querySelector('#cn-needs [data-cn-need]'));
-    const det = await page.$('#cn-needs [data-cn-need="details"]');
+    await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
+    const det = await page.$('#hm-agents [data-cn-need="details"]');
     if (det) await det.click();
     /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the paper's Still owed grid, a row in the hand */
     const filled = det && await until(page, () => { const a = document.activeElement; return !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#pd-og')); });
@@ -165,7 +166,7 @@ const CONTRACTS = [
 
     /* ===== 6. "needs me" OPENS THE COUNTER ===== */
     await page.evaluate(() => { if (typeof intelAsk === 'function') intelAsk('needs me'); });
-    const back = await until(page, () => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed [data-cn-need]'));
+    const back = await until(page, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')) && !!document.querySelector('#hm-agents.is-landed [data-cn-need]'));
     ok('6a the word opens Home and LANDS on Needs you — in view, lit (landOn)', back, await page.evaluate(() => state.view + ' ' + ((document.getElementById('cn-needs') || {}).className || '')));
 
     /* ===== 7. NOTHING WAITING IS SAID, AND THE TAB IS QUIET ===== */
@@ -175,7 +176,7 @@ const CONTRACTS = [
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
     const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && [...o.querySelectorAll('.jov-fact')].find(x => (x.querySelector('.jov-k') || {}).textContent === 'Needs you');
       return { where: f ? f.querySelector('.jov-v').textContent.trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')), n: counterNeedsCount() }; });
-    ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you on Home.' && !seven.chip, JSON.stringify(seven));
+    ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you right now.' && !seven.chip, JSON.stringify(seven));
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });
     await page.evaluate(() => { window.needsYouOf = window.__ny; window.hbAgentsData = window.__ag; window.counterNeedsCount = window.__cn; });
 

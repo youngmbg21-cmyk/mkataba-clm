@@ -443,12 +443,9 @@ describe('f705 (8) the wiring', () => {
   /* RE-POINTED 18 Oct 2026 (Jambo the same on every page): Home's box reads
      through the one reader every Jambo box uses, caAskAnywhere, with {all};
      the map is asked there, after the place words, before the hand to Jambo */
-  test('8c Home\'s box asks the map before it hands the words to Jambo beside the Board', () => {
-    /* RE-POINTED 27 Oct 2026 (Home's box reads with the brain first): words TYPED there go to the Board's Jambo
-       tab (counterTalkAsk); a chip, a "/" row and no key still reach the one reader, caAskAnywhere */
-    const body = strip(R('js/views/counter.js')).match(/function counterAsk\(text, opts = \{\}\)\{([\s\S]*?)\n\}/)[1];
-    assert.ok(body.indexOf('counterTalkFirst()') > -1 && body.indexOf('counterTalkFirst()') < body.indexOf('caAskAnywhere('));
-    assert.match(body, /caAskAnywhere\(text, \{ all: true \}\)/);
+  /* RE-POINTED (owner, 10 Nov 2026: the Home page and its box were deleted): what stays is the one reader */
+  test('8c the one reader asks the map before it hands the words to Jambo beside the Board', () => {
+    assert.ok(!/function counterAsk\(/.test(R('js/views/counter.js')), 'Home\'s box is gone with Home');
     const any = strip(ACTS).match(/function caAskAnywhere\(text, opts = \{\}\)\{([\s\S]*?)\n\}/)[1];
     const tail = any.slice(any.indexOf('let a = null'));
     assert.ok(tail.indexOf('jmRead(') > tail.indexOf('caReadPlace(') && tail.indexOf('jmRead(') < tail.indexOf('caHandHome('));
