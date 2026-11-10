@@ -4,7 +4,10 @@
    question read over a folder, a second one whose one answer stands apart, the parties' own facts, three notes, two
    requests and four imported files.
    With the switch on, at the owner's first screen:
-     1 · Contracts opens on its folders: a card per stream with its facts, Ended & archived its own card
+     1 · Contracts opens on its folders: the views across every folder, then a row per stream with its facts
+          (RE-POINTED 10 Nov 2026, the owner picked "Views first", f998: the cards became two compact columns and the
+           row says "5 · KES 86.30M · 3 need you", the count as a figure, so "N contracts" is gone), Ended & archived
+           keeps its own door
      2 · A folder's list: Standing, the kept question (with its count line), Our standards with what is missing; the
          tabs All · Needs you · Signed; the panel reads the folder (Unusual for you, the kept question, Ask)
      3 · The Wall: both parties on each paper; a press chooses and the panel reads it off its paper (Doors, free)
@@ -56,7 +59,10 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const cards = up ? await page.evaluate(() => [...document.querySelectorAll('[data-ctf-folder]')].map(b => b.innerText.replace(/\s+/g, ' ').trim())) : [];
     const ended = up ? await page.evaluate(() => !!document.querySelector('[data-ctf-ended]')) : false;
     await shot('1-folders');
-    check('1 Contracts opens on its folders, Ended & archived its own card', up && cards.some(t => /Procurement/.test(t) && /\d+ contracts/.test(t) && /need you/.test(t)) && ended, cards.slice(0, 3));
+    const views = up ? await page.evaluate(() => [...document.querySelectorAll('[data-ctf-view]')].map(b => b.innerText.replace(/\s+/g, ' ').trim())) : [];
+    check('1 Contracts opens on its folders: the views, then the folders with their facts, Ended & archived its own door',
+      up && cards.some(t => /Procurement/.test(t) && /\d+ · /.test(t) && /need you/.test(t)) && ended && views.length >= 1 && views.every(t => /^\d+ /.test(t)),
+      JSON.stringify({ views, cards: cards.slice(0, 3) }));
   } catch (e) { check('1 Contracts opens on its folders', false, String(e).slice(0, 200)); }
 
   /* 2 · a folder's list */
@@ -70,7 +76,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const heads = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-table thead th')].map(x => x.innerText.trim().toLowerCase().split('\n')[0].trim()).filter(Boolean));
     const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
-    const miss = await txt(page, '#ct-place .reg-std-miss');
+    /* RE-POINTED (owner's pick, 10 Nov 2026: the Scorecard): what is missing is named on the standards bar's hover, the cell one line */
+    const miss = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ls-score')].map(x => x.getAttribute('title') || '').join(' | '));
     /* RE-POINTED (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; the Reads & Contracts drawing):
        the folder's panel is This folder · Columns you asked; the kept question stands there, on this list, with Remove from list */
     const panel = await until(page, () => /Columns you asked/i.test((document.querySelector('.rfp-panel') || {}).innerText || '') && /on this list/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);

@@ -7612,7 +7612,7 @@ function hbRender(){
          only when that book moved, so a quiet beat keeps the reader's scroll */
       if (s.face === 'paper' && typeof window.regHomeStale === 'function' && regHomeStale() && typeof window.igPlacePaint === 'function') try { igPlacePaint(); } catch (_){}
       /* the book moved under the Calendar tab: the calendar reads it again */
-      if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar(); } catch (_){} }
+      if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar({ ifMoved: true }); } catch (_){} }
     return;
   }
   hbMount();

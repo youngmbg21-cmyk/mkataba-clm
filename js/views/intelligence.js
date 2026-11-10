@@ -1443,9 +1443,9 @@ function addLens(l){
      its action follows the latest ask (the owner saw the chip twice when
      "Show these on the map" narrowed what Copilot had lit, 3 Oct 2026) */
   const same=intel.lenses.find(x=>x.label===(l.label||ids.length+' matches') && x.ids.slice().sort().join('|')===key);
-  if(same){ same.on=true; same.action=l.action||'filter'; if(l.badges) same.badges=l.badges; if(l.kind) same.kind=l.kind; renderIntelDock(); return; }
+  if(same){ same.on=true; same.action=l.action||'filter'; if(l.badges) same.badges=l.badges; if(l.kind) same.kind=l.kind; if(l.top) same.top=l.top; renderIntelDock(); return; }
   intel.lenses.push({ id:'lens'+(intel.seq++), on:true, action:l.action||'filter',
-    label:l.label||l.ids.length+' matches', ids:[...l.ids], badges:l.badges||null, kind:l.kind||null });
+    label:l.label||l.ids.length+' matches', ids:[...l.ids], badges:l.badges||null, kind:l.kind||null, top:l.top||null });
   renderIntelDock();
 }
 
@@ -1777,7 +1777,7 @@ function igRecipeSays(){
    as "terms", nor "expiry year" as "expiry". A word here for a key the map
    cannot cut would be a promise it cannot keep (f427 pins every key). */
 const IG_FACT_WORDS={
-  folder:['value streams','value stream','business units','business unit','departments','department','functions','function','streams','stream','categories','category','värdeströmmar','värdeström','avdelningar','avdelning','kategorier','kategori'],
+  folder:['value streams','value stream','business units','business unit','departments','department','functions','function','folders','folder','streams','stream','categories','category','värdeströmmar','värdeström','avdelningar','avdelning','kategorier','kategori','mapparna','mappar','mapp'],
   counterparty:['counterparties','counterparty','customers','customer','clients','client','suppliers','supplier','vendors','vendor','parties','party','partners','partner','motparterna','motparten','motparter','motpart','parterna','parten','parter','kunderna','kunden','kunder','kund','leverantörerna','leverantören','leverantörer','leverantör'],
   status:['lifecycle stage','lifecycle','statuses','status','stages','stage','phases','phase','steg','fas','faser','skede'],
   valueBand:['contract value','value band','values','value','sizes','size','amounts','amount','worth','money','värde','belopp','storlek'],
@@ -2013,6 +2013,61 @@ function igTopIds(n, by, per, base, dir){
   if(!per) return pickN(cs);
   const by2={}; cs.forEach(c=>{ const g=groupLabelOf(c,per,null); (by2[g]||(by2[g]=[])).push(c); });
   return Object.values(by2).flatMap(pickN);
+}
+/* THE N BIGGEST GROUPS (the owner's Explorer screenshot, 10 Nov 2026: "only include the top 5 folders by value" kept
+   the 5 biggest contracts IN EACH stream): the groups ranked by their total, the N biggest kept whole, the rest said by
+   name. Only the groupings a person names as things — streams, parties, stages, types, owners. */
+const IG_TOPG_KEYS=['folder','counterparty','status','kind','owner'];
+const IG_TOPG_BY=['value','obligations'];
+function igTopGroups(n, by, per, base, dir){
+  const read=IG_TOP_BY[IG_TOPG_BY.includes(by)?by:'value'], tot={}, ids={};
+  (base||state.contracts||[]).forEach(c=>{ if(!c||c.archived) return; const g=groupLabelOf(c,per,null);
+    (ids[g]||(ids[g]=[])).push(c.id); const v=read(c); tot[g]=(tot[g]||0)+(v!=null&&isFinite(v)?Number(v):0); });
+  const order=Object.keys(ids).sort((a,b)=>(dir==='up'?tot[a]-tot[b]:tot[b]-tot[a])||a.localeCompare(b));
+  const kept=order.slice(0,n);
+  return { ids:kept.flatMap(g=>ids[g]), kept, hidden:order.slice(n) };
+}
+/* ONE top-N spec for the three shapes — the N biggest overall, in each group, or the N biggest groups — from the free
+   reader, the AI or a press on the reading chips; anything it does not know falls back, never guessed past */
+function igTopClean(x){
+  if(!x||typeof x!=='object'||!(Number(x.n)>0)) return null;
+  const n=Math.max(1,Math.min(200,Math.round(Number(x.n)))), dir=x.dir==='up'?'up':'down';
+  let per=GRAPH_GROUP_KEYS.includes(x.per)?x.per:null;
+  const groups=!!x.groups&&IG_TOPG_KEYS.includes(per||intel.groupBy);
+  if(groups&&!per) per=intel.groupBy;
+  const by=groups?(IG_TOPG_BY.includes(x.by)?x.by:'value'):(IG_TOP_BY[x.by]?x.by:'value');
+  return { n, by, per, groups, dir };
+}
+function igTopSame(a,b){ const A=igTopClean(a), B=igTopClean(b); return !!A&&!!B&&A.n===B.n&&A.by===B.by&&A.groups===B.groups&&(A.per||null)===(B.per||null)&&A.dir===B.dir; }
+function igTopShape(t){ return !t?null:t.groups?'groups':t.per?'per':'all'; }
+function igGroupsWord(k){ return i18t('int_gp_'+k); }
+/* the set's ONE label (the chip over the map and the line under it) */
+function igTopLabel(t){
+  if(!t) return '';
+  if(t.groups) return i18t(t.dir==='up'?'int_topg_small_label':'int_topg_label',{ n:t.n, gs:igGroupsWord(t.per), x:igSortWord(t.by) });
+  return i18t(t.dir==='up'?'int_bottom_label':'int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
+}
+/* the groups left out, by name — a cut is a fact (three named, the rest counted) */
+function igTopHiddenSaid(hidden){
+  if(!hidden||!hidden.length) return '';
+  return i18t('int_topg_hidden',{ x:hidden.slice(0,3).join(', ')+(hidden.length>3?' '+i18t('int_topg_more',{ n:hidden.length-3 }):'') });
+}
+/* the contracts a spec keeps, the groups it hides, and the grouping it needs on screen */
+function igTopRun(t, base){
+  if(t.groups){ const G=igTopGroups(t.n,t.by,t.per,base,t.dir);
+    if(intel.groupBy!==t.per&&intel.columnsBy!==t.per&&intel.floorsBy!==t.per){ intel.groupBy=t.per; intel.groups=null; igPaintGroupSelect(); }
+    return { ids:G.ids, hidden:G.hidden }; }
+  return { ids:igTopIds(t.n,t.by,t.per,base,t.dir), hidden:[] };
+}
+/* the grouping named right after a top-N's number, or null: "top 5 folders", "5 biggest value streams", "topp 3
+   kunderna" — never a grouping word that only describes contracts ("supplier contracts", "customer deals") */
+const IG_TOPG_HEAD_RE=/\b(?:top|topp|biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta|de)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:(?:biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+)?(.+)$/;
+const IG_TOPG_HEAD2_RE=/(?:^|\s)(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+(.+)$/;
+function igTopGroupsWord(text){
+  const t=_igNorm(text), m=t.match(IG_TOPG_HEAD_RE)||t.match(IG_TOPG_HEAD2_RE); if(!m) return null;
+  const f=igFactFind(m[1]); if(!f||!IG_TOPG_KEYS.includes(f.key)) return null;
+  if(/^(?:contracts?|deals?|agreements?|avtal(?:en)?|kontrakt(?:en)?)\b/.test(m[1].replace(/^(?:(?:the|their|its|our|a|de|dess|sina|sin|våra|vår)\s+)+/,'').slice(f.len).trim())) return null;
+  return f;
 }
 function igSortWord(k){ return i18t('int_sort_'+k); }
 /* ---- READING A SENTENCE INTO RECIPE CHANGES — free, in the browser ----
@@ -2285,7 +2340,8 @@ function igWhoFactRead(q0){
   return f&&(wo||_igNorm(wq[1]).length<=f.len+1)?[{ role:'group', fact:f.key }]:null;
 }
 function igRecipeParse(qRaw){
-  const q0=String(qRaw||'').trim(); if(!q0) return null;
+  /* the company's own words first (the Board's word book): "BUs" is read as the stream it means */
+  const q0=String((typeof window.hbWordsApply==='function'&&qRaw)?hbWordsApply(String(qRaw)):(qRaw||'')).trim(); if(!q0) return null;
   const q=_igNorm(q0.replace(/[,;]/g,' and '));
   const acts=[]; let rest=q;
   /* a question about what a contract says is not for the map */
@@ -2360,7 +2416,10 @@ function igRecipeParse(qRaw){
     const n=one?1:Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
     const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':'value';
     const perM=rest.match(/\b(?:in each|per|for each|within each|by each|i varje|för varje|per)\s+(.+)$/); const per=perM?igFactFind(perM[1]):null;
-    acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by, per:per?per.key:null }, up&&by==='value'?{ dir:'up' }:{}) });
+    /* THE N BIGGEST GROUPS: a grouping named right after the number ("top 5 folders by value", "the 3 biggest
+       customers", "de 5 största värdeströmmarna") keeps those groups whole; "top 5 supplier contracts" stays contracts */
+    const gw=!perM?igTopGroupsWord(rest):null;
+    acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by:gw&&!IG_TOPG_BY.includes(by)?'value':by, per:gw?gw.key:per?per.key:null }, gw?{ groups:true }:{}, up&&by==='value'?{ dir:'up' }:{}) });
     rest=rest.replace(/\b(?:in each|per|for each|within each|i varje|för varje)\s+.+$/,'');
   }
   /* sort */
@@ -2624,10 +2683,15 @@ function igRecipeRun(parsed, opts){
       else if(n.mode==='highlight'){ addLens({ label, ids:hit, action:'highlight' }); lensNote=i18t('int_did_highlighted',{ n:hit.length, t:igBookTotal() })+' · '+label; list=hit; listTitle=label; }
       else { addLens({ label, ids:hit, action:'filter' }); lensNote=hit.length?i18t('int_did_showing',{ n:intelActive().ids?intelActive().ids.size:hit.length, t:igBookTotal() })+' · '+label:i18t('int_did_nomatch'); list=hit; listTitle=label; }
       changed=true; continue; }
-    if(a.top){ const t=a.top, base=(()=>{ const act=intelActive(); return (state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id)); })();
-      const ids=igTopIds(t.n,t.by,t.per,base,t.dir), label=i18t(t.dir==='up'?'int_bottom_label':'int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
-      intel.lenses=intel.lenses.filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter' });
-      intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label; list=ids; listTitle=label; changed=true;
+    if(a.top){ const t=igTopClean(a.top); if(!t) continue;
+      /* a top N of what is shown narrows the set on screen; a press on the reading chips re-reads the same set (a.top.again) */
+      const prev=a.top.again?(intel.lenses||[]).find(l=>l.on&&l.top):null;
+      const base=prev?(state.contracts||[]).filter(c=>!(prev.topBase instanceof Set)||prev.topBase.has(c.id)):(()=>{ const act=intelActive(); return (state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id)); })();
+      const run=igTopRun(t,base), ids=run.ids, label=igTopLabel(t);
+      /* one top N at a time: a new one (or a chip's re-read) replaces the last, never narrows inside it */
+      intel.lenses=intel.lenses.filter(l=>!l.top).filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter', top:t });
+      { const L=intel.lenses.find(l=>l.on&&l.top===t); if(L) L.topBase=new Set(base.map(c=>c.id)); }
+      intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label+(run.hidden.length?' · '+igTopHiddenSaid(run.hidden):''); list=ids; listTitle=label; changed=true;
       /* one asked for is named: the dot left is said by its name and number, not only counted */
       if(t.n===1&&ids.length===1){ const c1=getContract(ids[0]); if(c1) lensNote+=': '+[c1.name,c1.counterparty].filter(Boolean).join(' · ')+' ('+((typeof caRef==='function'&&caRef(c1))||c1.id)+')'; }
       /* CHART FIRST on the board (Young, 3 Oct 2026): the list arrives in its
@@ -3050,6 +3114,123 @@ function igNextLive(i){
   for(let j=h.length-1;j>i;j--) if(h[j]&&(h[j].reading||h[j].nextKey)) return false;
   return true;
 }
+/* ---- WHAT JAMBO UNDERSTOOD, ON THE MAP (owner picked "Board Twin", 10 Nov 2026) ----
+   Under a map answer that kept a top N, the Board's own reading chips (.hb-rd): Keep · Ranked by · the word that named
+   the grouping, each a dropdown that re-reads the SAME set the other way in one press. The part the AI and HaTi's own
+   reader did not agree on wears amber (intel.topDoubt). Under them up to three checked next steps, each a press of the
+   map's own tools. Read off what the MAP DID (the top lens), never off the model's words. */
+const IG_GROUP_OWN={ folder:['value streams','value stream','streams','stream','värdeströmmar','värdeström'], counterparty:['counterparties','counterparty','parties','party','motparter','motpart','parter','part'],
+  status:['stages','stage','steg'], kind:['contract types','contract type','types','type','avtalstyper','avtalstyp','typer','typ'], owner:['owners','owner','ägare'] };
+const IG_MR_NEXT_MAX=3;
+const IG_MR_CARET='<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5"/></svg>';
+function igTopLensNow(){ return (intel.lenses||[]).find(l=>l&&l.on&&l.top)||null; }
+/* the word in the typed words that named the grouping, when it is not the grouping's own name: a word the company
+   taught (the Board's word book), one HaTi reads built in ("folders", "functions"), or one only the AI read */
+function igMapWordOf(q, key){
+  if(!key||!IG_TOPG_KEYS.includes(key)) return null;
+  const t=' '+_igNorm(q)+' ', has=w=>t.includes(' '+_igNorm(w)+' ');
+  const taught=(typeof window.hbWords==='function'?hbWords():[]).filter(w=>w.means&&w.means.kind==='split'&&w.means.value===key).sort((a,b)=>String(b.say).length-String(a.say).length).find(w=>has(w.say));
+  if(taught) return { say:String(taught.say).trim(), key, taught:true };
+  const own=(IG_GROUP_OWN[key]||[]);
+  const built=(IG_FACT_WORDS[key]||[]).slice().sort((a,b)=>b.length-a.length).find(has);
+  if(built) return own.includes(built)?null:{ say:built, key, builtIn:true };
+  const m=_igNorm(q).match(IG_TOPG_HEAD_RE)||_igNorm(q).match(IG_TOPG_HEAD2_RE); if(!m) return null;
+  const noun=m[1].replace(/^(?:(?:the|their|its|our|a|de|dess|sina|sin|våra|vår)\s+)+/,'').split(/\s+(?:by|efter|in|with|that|which|och|and|i|med|som)\s+/)[0].trim().split(/\s+/).slice(0,2).join(' ');
+  if(!noun||igFactFind(noun)||/^(?:contracts?|deals?|agreements?|avtal(?:en)?|kontrakt(?:en)?|ones?)$/.test(noun)) return null;
+  return { say:noun, key, unknown:true };
+}
+function igMapReadOf(q, L){
+  if(!L||!L.top) return null; const t=Object.assign({}, L.top);
+  return { top:t, word:(t.groups||t.per)?igMapWordOf(q, t.per):null, doubt:intel.topDoubt||null };
+}
+/* after a typed turn: the reply that drew or changed a top N carries its reading */
+function igMapReadAfter(h0, q, before){
+  const doubt=intel.topDoubt; intel.topDoubt=null;
+  if(igBoardNow()||igPaperInFront()) return;
+  const L=igTopLensNow(); if(!L||L.top===before) return;
+  const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+  if(!last||last.mapRead) return;
+  intel.topDoubt=doubt; last.mapRead=igMapReadOf(q, L); intel.topDoubt=null;
+}
+/* live while its set is the one on the map and no later answer carries a reading */
+function igMapReadLive(i){
+  const h=intel.history, m=h[i]; if(!m||!m.mapRead) return false;
+  for(let j=h.length-1;j>i;j--) if(h[j]&&(h[j].mapRead||h[j].reading)) return false;
+  const L=igTopLensNow(); return !!L&&!igBoardNow()&&igTopSame(L.top, m.mapRead.top);
+}
+function igTopWordKey(t){ return t.dir==='up'?'small':t.by==='value'?'big':'top'; }
+function igKeepWords(t, shape, long){
+  const g=t.per||intel.groupBy, w=igTopWordKey(t), wd=i18t('int_rd_w_'+w), sfx=w==='top'?'_top':'';
+  const vars={ n:t.n, w:wd, g:graphGroupingWord(g), gs:igGroupsWord(g) };
+  if(!long) return i18t('int_rd_short_'+shape+sfx, vars);
+  return i18t('int_rd_keep_'+shape+sfx, vars);
+}
+/* the shapes a press may change to: a grouping must be on the map for "in each", and one a person names for "the N biggest" */
+function igKeepShapes(t){
+  const g=t.per||intel.groupBy, out=[];
+  if(g&&g!=='custom'&&GRAPH_GROUP_KEYS.includes(g)) out.push('per');
+  if(IG_TOPG_KEYS.includes(g)) out.push('groups');
+  out.push('all'); return out;
+}
+/* up to three next steps, each CHECKED: a press of the map's own tools that changes what is on screen */
+function igMapReadNext(t){
+  const out=[];
+  if(t.n>3){ const w=igTopWordKey(t), sfx=w==='top'?'_top':'';
+    out.push({ label:i18t((t.groups?'int_rd_nx_fewer_g':'int_rd_nx_fewer')+sfx,{ n:3, w:i18t('int_rd_w_'+w), gs:t.groups?igGroupsWord(t.per):'' }), acts:[{ top:Object.assign({}, t, { n:3, again:true }) }] }); }
+  if(intel.colourBy!=='status') out.push({ label:i18t('int_rd_nx_colour'), acts:[{ role:'colour', fact:'status' }] });
+  if(igbCam().view!==4) out.push({ label:i18t('int_rd_nx_time'), acts:[{ view:4 }] });
+  return out.slice(0, IG_MR_NEXT_MAX);
+}
+function igMapReadHtml(m, i){
+  const R=m.mapRead; if(!R||!R.top) return '';
+  const t=R.top, live=igMapReadLive(i), open=live?intel.mrOpen:null, caret=IG_MR_CARET;
+  const tick='<b aria-hidden="true">✓</b>';
+  const item=(part,v,word,cur)=>`<button type="button" role="menuitemradio" aria-checked="${cur}" data-ig-mrset="${i}:${part}:${igEsc(v)}"><span>${igEsc(word)}</span>${cur?tick:''}</button>`;
+  const note=R.word?(R.word.taught?i18t('int_rd_word_taught',{ w:R.word.say, gs:igGroupsWord(R.word.key) }):i18t('int_rd_word_note',{ w:R.word.say, gs:igGroupsWord(R.word.key) })):'';
+  const menus={
+    keep:()=>`<div class="hb-rd-menu-h" role="presentation">${igEsc(i18t('int_rd_keep'))}</div>`+igKeepShapes(t).map(sh=>item('keep',sh,igKeepWords(t,sh,true),sh===igTopShape(t))).join('')+(note?`<div class="hb-rd-menu-note">${igEsc(note)}</div>`:''),
+    by:()=>`<div class="hb-rd-menu-h" role="presentation">${igEsc(i18t('int_rd_by'))}</div>`+(t.groups?IG_TOPG_BY:Object.keys(IG_TOP_BY)).map(k=>item('by',k,igSortWord(k),k===t.by)).join(''),
+    word:()=>`<div class="hb-rd-menu-h" role="presentation">${igEsc(i18t('int_rd_read_as',{ w:R.word.say }))}</div>`+IG_TOPG_KEYS.map(k=>item('word',k,igGroupsWord(k),k===R.word.key)).join('')
+      +((R.word.unknown&&typeof isAdmin==='function'&&isAdmin())?`<button type="button" data-ig-mrteach="${i}"><span>${igEsc(i18t('int_rd_teach',{ w:R.word.say, gs:igGroupsWord(R.word.key) }))}</span></button>`:'')
+      +(note&&!R.word.unknown?`<div class="hb-rd-menu-note">${igEsc(note)}</div>`:'')
+  };
+  const chip=(part,label,value,doubt)=>{
+    const cls='hb-rd-chip'+(doubt?' is-doubt':'');
+    if(!live) return `<span class="${cls} is-still"><i>${igEsc(label)}</i>${igEsc(value)}</span>`;
+    const isOpen=open===i+':'+part;
+    return `<span class="hb-rd-wrap"><button type="button" class="${cls}${isOpen?' is-open':''}" data-ig-mr="${i}:${part}" aria-haspopup="menu" aria-expanded="${isOpen}"><i>${igEsc(label)}</i>${igEsc(value)}${caret}</button>${isOpen?`<div class="hb-rd-menu" role="menu" aria-label="${igEsc(label)}">${menus[part]()}</div>`:''}</span>`;
+  };
+  const chips=[chip('keep',i18t('int_rd_keep'),igKeepWords(t,igTopShape(t),false),R.doubt==='keep'), chip('by',i18t('int_rd_by'),igSortWord(t.by),R.doubt==='by')];
+  if(R.word&&(t.groups||t.per)) chips.push(chip('word','"'+R.word.say+'"',igGroupsWord(R.word.key),false));
+  const next=live?igMapReadNext(t):[];
+  return `<div class="hb-rd${live?'':' is-still'}" role="group" data-ig-mr-turn="${i}" aria-label="${igEsc(i18t('int_rd_label'))}">${chips.join('')}${next.length?`<div class="ig-mr-next">${next.map((x,j)=>`<button type="button" class="ui-link" data-ig-mrnext="${i}:${j}">${igEsc(x.label)}</button>`).join('')}</div>`:''}</div>`;
+}
+/* a press on a chip's menu: the same set, read the other way, in place — the line above says what the map now shows */
+function igMapReadSet(i, part, v){
+  const m=intel.history[i], R=m&&m.mapRead; if(!R||!igMapReadLive(i)) return false;
+  const t=R.top, g=t.per||intel.groupBy; let nt=null;
+  if(part==='keep'){ if(!igKeepShapes(t).includes(v)) return false; nt=Object.assign({}, t, { groups:v==='groups', per:v==='all'?null:g }); if(v==='groups'&&!IG_TOPG_BY.includes(nt.by)) nt.by='value'; }
+  else if(part==='by'){ if(!(t.groups?IG_TOPG_BY.includes(v):!!IG_TOP_BY[v])) return false; nt=Object.assign({}, t, { by:v }); }
+  else if(part==='word'){ if(!IG_TOPG_KEYS.includes(v)||!R.word) return false; nt=Object.assign({}, t, { per:v }); R.word=Object.assign({}, R.word, { key:v }); }
+  if(!nt) return false;
+  const r=igRecipeRun({ acts:[{ top:Object.assign({}, nt, { again:true }) }] },{ quiet:true, report:true });
+  const L=igTopLensNow(); if(L) R.top=Object.assign({}, L.top);
+  R.doubt=null; intel.mrOpen=null;
+  if(r&&r.said&&r.said.length){ m.text=igEsc(r.said.filter(Boolean).join(' ')); m.listIds=r.list&&r.list.length?r.list.slice():null; m.listTitle=r.listTitle||null; m.cardIds=r.list?r.list.slice(0,5):[]; }
+  return true;
+}
+/* an admin's press: the word joins the company's word book (the Board's one list, PUT /api/settings/board-words), so
+   the Board and the map read it so from now on */
+async function igMapReadTeach(i){
+  const m=intel.history[i], w=m&&m.mapRead&&m.mapRead.word; if(!w||!w.unknown) return;
+  try{
+    const r=await api('settings/board-words','PUT',{ say:w.say, lang:(typeof langId==='function'&&langId()==='sv')?'sv':'en', means:{ kind:'split', value:w.key } });
+    state.settings=state.settings||{}; state.settings.boardWords=(r&&r.boardWords)||[];
+    m.mapRead.word=Object.assign({}, w, { unknown:false, taught:true }); intel.mrOpen=null;
+    toast(i18t('int_rd_taught',{ w:w.say, gs:igGroupsWord(w.key) }),'ok');
+  }catch(e){ toast((e&&e.message)||i18t('int_rd_teach_failed'),'err'); }
+  renderIntelDock();
+}
 async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
   if(!q) return;
@@ -3255,6 +3436,7 @@ async function intelAsk(qRaw, opts){
   /* THE AI TAKES YOU THERE (owner, 22 Oct 2026): an answer that names a place
      opens it after the answer is drawn (aiGotoRun, js/ai.js) */
   const goSince=Date.now();
+  const topBefore=(igTopLensNow()||{}).top||null; intel.topDoubt=null;
   /* A TYPED QUESTION ON THE BOARD STARTS AFRESH (the honest reply, 5 Oct
      2026): a set an earlier question left on the map no longer narrows the
      next one ("Top 10 by value" drawing 2) — the board's own count stays */
@@ -3327,6 +3509,7 @@ async function intelAsk(qRaw, opts){
     const list=here.page==='contracts'&&!here.all;
     const ownDoor=list&&!!m&&Array.isArray(m.listIds)&&m.listIds.length>0;
     if(m&&!m.act&&!ownDoor&&!(list&&!(ids&&ids.length))) m.act=Object.assign({}, here, list?{ ids }:{}); }
+  igMapReadAfter(h0, q, topBefore);
   rebuildIntelGraph(); renderIntelDock();
   /* ASKED ON HOME'S BOARD, ANSWERED ON THE BOARD (4 Oct 2026): a list that
      came back from Copilot or the map is drawn on the board as well. */
@@ -3364,6 +3547,7 @@ async function igPageTalkAsk(q){
 async function igTalkRun(q, run){
   const h0=intel.history.length, goSince=Date.now();
   const rdSnap=(typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
+  const topBefore=(igTopLensNow()||{}).top||null; intel.topDoubt=null;
   /* ON EXPLORER THE SET ON SCREEN STAYS until the answer replaces it (Explorer's Jambo audit, 9 Nov 2026): it was
      cleared before the question was sent, so "of those" asked of nothing; a new set now replaces it in
      intelGraphApply unless the words narrowed it (within) */
@@ -3377,6 +3561,7 @@ async function igTalkRun(q, run){
   { const g=(typeof window.aiGotoTake==='function')?aiGotoTake(goSince):null; if(g&&typeof window.aiGotoRun==='function') try{ aiGotoRun(g, q); }catch(_){} }
   if(typeof window.jpPressOf==='function'){ const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
     if(m&&!m.press&&!m.act){ try{ const p=jpPressOf({ ids:igAnswerIds(m), q, text:m.text, noShow:true }); if(p) m.press=p; }catch(_){} } }
+  igMapReadAfter(h0, q, topBefore);
   rebuildIntelGraph(); renderIntelDock();
   if(state.view!=='dashboard'||typeof window.hbShowFound!=='function') return;
   const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
@@ -3514,7 +3699,7 @@ function graphRecipeOnScreen(){
 function graphAskScreen(){
   return { groupBy:intel.groupBy, custom:!!intel.groups, recipe:graphRecipeOnScreen(), lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
     lang:(typeof langPromptName==='function')?langPromptName():'', currency:(typeof jxCurrency==='function')?jxCurrency():'',
-    board:igBoardNow(), guide:igBoardGuide() };
+    board:igBoardNow(), guide:igBoardGuide(), words:(!igBoardNow()&&typeof window.hbWordsGuide==='function')?(hbWordsGuide()||''):'' };
 }
 /* THE DATA GUIDE RIDES BESIDE THE BOARD (work order Part 3): what each field
    holds, so Copilot picks fields that work; on the board only */
@@ -3568,6 +3753,12 @@ async function intelGraphAsk(q){
       if(gap.length&&!(res&&res.kind==='wording')&&!igResKinds(res).size){ igRecipeRun({ acts:free.acts }); return; }
       if(gap.length){ igChoicesTwoWays(q, free, res); return; }
       res=igTrimToAsked(res, free, q);
+      /* TOP OF WHAT (the owner's "top 5 folders by value", 10 Nov 2026): both read a top N but not the same one — the
+         N biggest groups, the N biggest in each group, the N biggest overall. Where the words name the groups right
+         after the number, they win; either way the Keep chip is amber, so the other reading is one press away. */
+      const ft=free.acts.find(a=>a.top);
+      if(ft&&res.top&&!igTopSame(ft.top,res.top)){ intel.topDoubt=igTopShape(igTopClean(ft.top))!==igTopShape(igTopClean(res.top))?'keep':'by';
+        if(ft.top.groups) res=Object.assign({}, res, { top:Object.assign({}, ft.top) }); }
     }
   }
   /* COPILOT DECIDED IT IS ABOUT WORDING: the reading chat answers it, and
@@ -3705,11 +3896,11 @@ function intelGraphApply(q, res, opts){
   else if(res.floorsBy&&intel.floorsBy===res.floorsBy) igSetView(res.columnsBy?3:2);
   else if(res.columnsBy&&intel.columnsBy===res.columnsBy) igSetView(3);
   if(groupBy&&!res.floorsBy&&!res.columnsBy) igGroupShows(groupBy);
-  if(res.top&&typeof res.top==='object'&&Number(res.top.n)>0){
-    const by=IG_TOP_BY[res.top.by]?res.top.by:'value', per=GRAPH_GROUP_KEYS.includes(res.top.per)?res.top.per:null, n=Math.min(200,Math.round(Number(res.top.n))), dir=res.top.dir==='up'?'up':'down';
-    const tIds=igTopIds(n,by,per,null,dir); ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
-    res._top=i18t(dir==='up'?'int_bottom_label':'int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'');
-    res.note=res.note||res._top; intel.sortBy=by; }
+  const topT=onMap||!(res.top&&res.top.groups)?igTopClean(res.top):igTopClean(Object.assign({}, res.top, { groups:false }));
+  if(topT){
+    const run=igTopRun(topT,null), tIds=run.ids; ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
+    res._top=igTopLabel(topT); res._topSpec=topT; res._topHidden=run.hidden;
+    res.note=res.note||res._top; intel.sortBy=topT.by; }
   let choices=Array.isArray(res.ask)?res.ask.slice(0,3).filter(o=>o&&IG_RECIPE_ROLES.includes(o.role)&&(o.role==='size'?IGB_SIZE_KEYS.includes(o.fact):o.role==='time'?IG_TIME_KEYS.includes(o.fact):GRAPH_GROUP_KEYS.includes(o.fact)))
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
   const action=res.action==='highlight'?'highlight':'filter';
@@ -3723,7 +3914,7 @@ function intelGraphApply(q, res, opts){
   const setLabel=onMap?([res._top, graphWhereLabel(res.where)].filter(Boolean).join(' · ')||String(res.note||'').trim().slice(0,60)||i18t('int_jambo_set')):null;
   if(ids&&ids.length&&onMap&&!res.within) intel.lenses=intel.lenses.filter(l=>l.hb||l.kind);
   if(ids&&ids.length)
-    addLens({ label:onMap?setLabel:(igBoardTitle(q,res)||res.note||ids.length+' matches'), ids, action, badges:res.badges||null });
+    addLens({ label:onMap?setLabel:(igBoardTitle(q,res)||res.note||ids.length+' matches'), ids, action, badges:res.badges||null, top:onMap&&res._topSpec&&!res.where&&!res.within?res._topSpec:null });
   stepRun(stepLater);
   if(stepChoices&&!(choices&&choices.length)) choices=stepChoices;
   /* Composed off the built model — counts, never a sentence the model wrote. */
@@ -3735,7 +3926,7 @@ function intelGraphApply(q, res, opts){
     const g=graphGroupingOf(groupBy);
     if(g&&g.none){ const k=model.nodes.filter(n=>n.kind==='contract'&&n.group===g.none).length; if(k) parts.push(i18t('int_did_in',{ n:k, label:g.none })); }
   }
-  if(ids&&ids.length) parts.push(i18t(action==='highlight'?'int_did_highlighted':'int_did_showing',{ n:ids.length, t:total })+(onMap?' · '+setLabel:(res.note?' · '+String(res.note):'')));
+  if(ids&&ids.length) parts.push(i18t(action==='highlight'?'int_did_highlighted':'int_did_showing',{ n:ids.length, t:total })+(onMap?' · '+setLabel:(res.note?' · '+String(res.note):''))+(onMap&&res._topHidden&&res._topHidden.length?' · '+igTopHiddenSaid(res._topHidden):''));
   else if(ids&&!ids.length&&!groupBy) parts.push(i18t('int_did_nomatch'));
   const capSaid=(opts.capped&&opts.capped.total>opts.capped.sent)?i18t('int_did_capped',{ n:opts.capped.sent, t:opts.capped.total }):'';
   if(capSaid) parts.push(capSaid);
@@ -5573,6 +5764,10 @@ function igGroupOptsHtml(){
 function igGroupInLine(){ return !!(window.state&&state.view==='dashboard'&&typeof window.deskShellOn==='function'&&deskShellOn()); }
 function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(i18t('hb_group_by'))}">${igGroupOptsHtml()}</select>`; }
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
+/* WHAT JAMBO UNDERSTOOD: an open chip menu closes on a press outside it and on Esc (bound once, at load) */
+document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return; intel.mrOpen=null; renderIntelDock(); },true);
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.mrOpen) return; e.stopPropagation(); const k=intel.mrOpen; intel.mrOpen=null; renderIntelDock();
+  const b=document.querySelector(`[data-ig-mr="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
 document.addEventListener('change',e=>{ const s=e.target; if(!s||s.id!=='ig-group') return; intel.groupBy=s.value; intel.groups=null; igGroupShows(s.value); rebuildIntelGraph(); });
 function igPaintGroupSelect(){
   const sel=document.getElementById('ig-group'); if(!sel) return;
@@ -6038,6 +6233,8 @@ function igGuideRows(){
     if(x) row(mine,'int_gd_t_whatif',i18t('int_gd_q_whatif',{ x }),q=>igWhatIfRead(q)===x,lensOn(l=>l.kind==='whatif'&&l.party===x)); }
   if(vw===4) row(mine,'int_gd_t_cliff',i18t('int_gd_q_cliff'),q=>acts(q).some(a=>a.role==='time'&&a.fact==='decision'),(intel.timeBy||'decision')==='decision');
   if(igLensMay('risk')) row(every,'int_gd_t_lensthen',i18t('int_gd_q_lensthen'),q=>{ const A=acts(q); return A.some(a=>a.lens==='risk')&&A.some(a=>a.asOf&&a.asOf!=='none'); },intel.lens==='risk'&&!!intel.asOf);
+  /* THE N BIGGEST GROUPS (owner picked "Board Twin", 10 Nov 2026): the groups ranked by their total, the rest hidden */
+  row(every,'int_gd_t_topg',i18t('int_gd_q_topg'),q=>acts(q).some(a=>a.top&&a.top.groups),lensOn(l=>l.top&&l.top.groups));
   row(every,'int_gd_t_brief',i18t('int_brief_ask'),q=>IG_BRIEF_RE.test(q),false);
   row(every,'int_gd_t_tour',i18t('int_tour_ask'),q=>IG_TOUR_RE.test(q),!!intel.tour);
   row(every,'int_gd_t_undo',i18t('int_gd_q_undo'),q=>acts(q).some(a=>a.undo),false);
@@ -9307,6 +9504,8 @@ function igMsgHTML(m,i){
     ${igFaceHtml('hello')}
     <div class="min-w-0 flex-1 space-y-1.5">
       ${m.text?`<div class="ai-bub ${m.err?'rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-rose-50 border-rose-200 text-rose-800':'jl-bub'}">${igSafeHtml(m.text)}${cites}</div>`:''}
+      ${''/* WHAT JAMBO UNDERSTOOD (Board Twin): right under the words it reads, before any door */}
+      ${(Number.isInteger(i)&&m.mapRead)?igMapReadHtml(m,i):''}
       ${''/* THE ANSWER IS A WORKLIST DOOR (the brain drawing, 28 Sep 2026): the
              set a map answer drew opens on the Contracts page as that list
              (regShowOnly, the one named-set door), or leaves as a file. */}
@@ -9826,6 +10025,22 @@ function renderIntelDock(){
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
   }
+  /* WHAT JAMBO UNDERSTOOD (Board Twin): a chip opens its menu, again closes it; a choice re-reads the set in place */
+  dock.querySelectorAll('[data-ig-mr]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const k=b.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; renderIntelDock();
+    const fresh=dock.querySelector(`[data-ig-mr="${k}"]`); if(fresh&&intel.mrOpen) try{ fresh.focus({ preventScroll:true, focusVisible:false }); }catch(_){} }));
+  dock.querySelectorAll('[data-ig-mrset]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const v=String(b.getAttribute('data-ig-mrset')||''), a=v.indexOf(':'), z=v.indexOf(':',a+1);
+    if(igMapReadSet(Number(v.slice(0,a)), v.slice(a+1,z), v.slice(z+1))){ renderIntelDock(); updateIntelNote(); } else { intel.mrOpen=null; renderIntelDock(); } }));
+  dock.querySelectorAll('[data-ig-mrteach]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igMapReadTeach(Number(b.getAttribute('data-ig-mrteach'))); }));
+  dock.querySelectorAll('[data-ig-mrnext]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const [t,k]=String(b.getAttribute('data-ig-mrnext')||'').split(':').map(Number); const m=intel.history[t], R=m&&m.mapRead;
+    if(!R||!igMapReadLive(t)) return; const x=igMapReadNext(R.top)[k]; if(!x) return;
+    const h0=intel.history.length;
+    intel.history.push({ role:'user', text:x.label }); igRecipeRun({ acts:x.acts });
+    const L=igTopLensNow(), last=intel.history[intel.history.length-1];
+    if(L&&last&&last.role==='assistant'&&intel.history.length>h0+1) last.mapRead={ top:Object.assign({}, L.top), word:R.word, doubt:null };
+    intel.mrOpen=null; renderIntelDock(); updateIntelNote(); }));
   dock.querySelectorAll('[data-ig-choice]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-choice')||'').split(':').map(Number); const m=intel.history[t], c=m&&m.choices&&m.choices[k];
     if(!c) return; intel.history.push({ role:'user', text:c.label });
@@ -10766,7 +10981,7 @@ function igWallCardHtml(c,need){
   /* THE WALL AS DRAWN (the new look, round 6): each paper a sheet, its stage's mark at its corner, the party and the
      value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel) */
   if(window.newLookOn&&newLookOn()){
-    const mark=typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'';
+    const mark=typeof window.regSapMarkHtml==='function'?regSapMarkHtml(c):(typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'');
     return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>
     <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span><i style="background:${dot}"></i>${igEsc(word)}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></span></button>`;
@@ -11759,4 +11974,6 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
 Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
-Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igGapNote, graphRecipeOnScreen });
+Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igGapNote, graphRecipeOnScreen,
+  IG_TOPG_KEYS, IG_TOPG_BY, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord,
+  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach });

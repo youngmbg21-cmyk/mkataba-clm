@@ -8,7 +8,8 @@
    Red at the parent (65bd18c): 1 (the route dropped the lens), 5c (red at 60d5200: one button, "which did you mean?"), 2 (no date-line step), 3 (the number opened the
    paper), 4 (no second ask), 5 (no two-ways buttons), 6 (the grid came with floors and size nobody asked for),
    7 (the tag read "Naivas excluded" and "Eight contracts" was printed), 8 (the set was cleared before the follow-up),
-   9 (no undo step). Waits ask for the state, bounded.
+   9 (no undo step), 5d (red at 1f23131: "top 2 folders" kept 2 contracts in each stream, no chips).
+   Waits ask for the state, bounded.
 
    Screenshots go to test/chromium/shots/explorer-jambo-typed/ (or HATI_SHOT_DIR).
    Run: node test/chromium/explorer-jambo-typed-verify.js */
@@ -51,6 +52,8 @@ const SCRIPT = (q, again) => {
   if (q === 'show Naivas only') return { note: 'Naivas excluded', answer: 'Eight contracts sit with Naivas.', where: { counterparty: ['Naivas'] } };
   if (q === 'now only the signed ones') return { note: 'x', answer: '', within: true, where: { status: ['Signed'] } };
   if (q === 'undo that') return { note: 'x', answer: '', steps: [{ do: 'undo' }] };
+  /* the owner's screenshot (10 Nov 2026): the AI read "top 5 folders" as the 5 biggest IN EACH stream */
+  if (q === 'only include the top 2 folders by value') return { note: 'x', answer: '', top: { n: 2, by: 'value', per: 'folder' } };
   return { note: 'x', answer: '' };
 };
 
@@ -136,6 +139,27 @@ const SCRIPT = (q, again) => {
     await fresh(); await type('which contracts are single-sourced');
     const l5c = await until(() => { const m = intel.history[intel.history.length - 1]; return m && !intel.busy ? { sole: intel.lenses.some(l => l.kind === 'sole'), choices: !!(m.choices && m.choices.length), said: String(m.text || '').replace(/<[^>]+>/g, ' ').trim() } : null; });
     check('5c "which contracts are single-sourced" with an AI answer that does nothing: lit at once, no "which did you mean?"', !!l5c && l5c.sole && !l5c.choices && !/two ways/.test(l5c.said), JSON.stringify(l5c));
+
+    /* ================= 5d. THE N BIGGEST GROUPS, AND WHAT JAMBO UNDERSTOOD (owner picked "Board Twin", 10 Nov 2026) =================
+       the AI kept the 2 biggest IN EACH stream; the words name the streams: the 2 biggest streams are kept whole, the Keep
+       chip is amber, and one press on its menu reads the same set the other way, in place */
+    await fresh(); await type('only include the top 2 folders by value');
+    const l5d = await until(() => { const L = intel.lenses.find(l => l.on && l.top); if (!L) return null;
+      const streams = new Set([...intelActive().ids].map(id => (getContract(id) || {}).folder));
+      return { label: L.label, streams: streams.size, groups: !!L.top.groups }; });
+    check('5d-1 "top 2 folders by value" keeps the 2 biggest value streams whole, not 2 contracts in each', !!l5d && l5d.groups && l5d.streams === 2 && l5d.label === 'Top 2 value streams by value', JSON.stringify(l5d));
+    const chip = await until(() => { const b = document.querySelector('#ig-dock [data-ig-mr$=":keep"]'); if (!b) return null; const r = b.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { amber: b.classList.contains('is-doubt'), text: b.textContent.trim(), painted: !!hit && b.contains(hit),
+        word: (document.querySelector('#ig-dock [data-ig-mr$=":word"]') || {}).textContent || '' }; });
+    check('5d-2 under the answer: Keep (amber, the part the two readings did not agree on) · Ranked by · "folders"', !!chip && chip.amber && chip.painted && /2 biggest value streams/.test(chip.text) && /folders/.test(chip.word), JSON.stringify(chip));
+    await shot('5d-what-jambo-understood');
+    const turns = await page.evaluate(() => intel.history.length);
+    await page.click('#ig-dock [data-ig-mr$=":keep"]');
+    await until(() => !!document.querySelector('#ig-dock .hb-rd-menu [data-ig-mrset$=":keep:per"]'));
+    await shot('5d-keep-menu');
+    await page.click('#ig-dock .hb-rd-menu [data-ig-mrset$=":keep:per"]');
+    const l5e = await until(k => { const L = intel.lenses.find(l => l.on && l.top); return L && !L.top.groups ? { label: L.label, turns: intel.history.length === k, amber: !!document.querySelector('#ig-dock .hb-rd-chip.is-doubt') } : null; }, turns);
+    check('5d-3 one press reads the same set as "the 2 biggest in each value stream", in place, and the amber is gone', !!l5e && /in each value stream/.test(l5e.label) && l5e.turns && !l5e.amber, JSON.stringify(l5e));
 
     /* ================= 6. CHANGE ONLY WHAT WAS ASKED ================= */
     await fresh(); await type('switch to the grid view');

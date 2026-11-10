@@ -719,6 +719,8 @@ function calHorizonDecision(r){
   if(r.notice) return { k:'is-open', text:i18t('cal_hz_dec_open',{date:window.regDotDate?regDotDate(r.notice):r.notice}) };
   return { k:'is-none', text:i18t('cal_hz_dec_none') };
 }
+/* the time-left tone of a Horizon row: the ladder's first band red, the next two amber, the rest green */
+function calHzTone(days){ return days<=30?'t-ruby':days<=90?'t-amber':'t-green'; }
 function calHorizonHtml(){
   const rows=calHorizonRows();
   const nl=typeof window.newLookOn==='function'&&newLookOn();
@@ -734,7 +736,7 @@ function calHorizonHtml(){
     const lo=i?CAL_LADDER[i-1].max:-1;
     const inBand=rows.filter(r=>r.days>lo && r.days<=b.max);
     const val=inBand.reduce((s,r)=>s+(r.value||0),0);
-    return `<div class="cal-lad" style="border-top-color:${b.tone}">
+    return `<div class="cal-lad cal-lad-${b.k}" style="border-top-color:${b.tone}">
       <div class="cal-lad-k">${_esc(b.label)}</div>
       <div class="cal-lad-n" style="color:${b.tone}">${inBand.length}</div>
       <div class="cal-lad-v">${val?_esc(window.fmtMoneyShort?fmtMoneyShort(val):String(val)):'&mdash;'}</div>
@@ -770,7 +772,9 @@ function calHorizonHtml(){
         ((typeof canViewValues!=='function'||canViewValues())&&Number(r.c.value)>0)?_esc(window.fmtMoneyShortOf?fmtMoneyShortOf(r.c):fmtMoneyShort(r.c.value)):''].filter(Boolean).join(' · ');
       const noteTxt=_esc(window.regDotDate?regDotDate(r.exp):r.exp)+' · '+(beyond?_esc(i18t('cal_hz_beyond')):_esc(i18t('cal_nl_hz_d',{ n:r.days })));
       const decHtml=beyond?_esc(i18t('cal_hz_beyond')):('<b>'+_esc(decWord)+'</b>'+(decSub?'<small>'+_esc(decSub)+'</small>':''));
-      return '<div class="cal-hz-row is-nl'+(beyond?' is-far':'')+'" data-sel="'+_esc(r.c.id)+'" role="button" tabindex="0">'
+      /* THE SAP WAY (owner's pick by name, 10 Nov 2026): the row wears the tone of its time left — red inside 30 days,
+         amber to 90, green beyond (calHzTone, the ladder's own bands) — on its bar and, while undecided, on its pill */
+      return '<div class="cal-hz-row is-nl '+calHzTone(r.days)+(beyond?' is-far':'')+'" data-sel="'+_esc(r.c.id)+'" role="button" tabindex="0">'
         +'<div class="cal-hz-lab"><span class="n">'+_esc(r.c.name)+'</span><span class="m">'+meta+'</span></div>'
         +'<div class="cal-hz-track"><div class="cal-hz-rm">'+heads.join('')+'</div>'
         +(beyond?'':'<span class="cal-hz-bar" style="width:'+(end*100).toFixed(2)+'%"></span>'+nip)
@@ -1068,6 +1072,9 @@ function calAgendaViewHtml(evs){
    ({keepPanel:true}); the panel painted a moment ago by Home's own opening is not painted again (_calPanelFresh);
    your own events and notes repaint the page only when loading them brought something; the dates are counted once
    per draw (calEventsOnce) and each date's words are written by a kept formatter (calDateWords). */
+/* A QUIET REPAINT THAT CHANGES NOTHING DRAWS NOTHING (owner, 10 Nov 2026: "the agenda page seems to be slow"): the book
+   moving underneath the page (a save landing, a background refresh) asks renderCalendar({ifMoved:true}); when the page it
+   would draw is the one already on screen, the DOM, its wiring and anything typed into it are left alone */
 function renderCalendar(opts){
   const keepPanel=!!(opts&&opts.keepPanel===true);
   /* only Home's opening (hbApplyFace) may lean on a panel painted a moment ago: a repaint for Jambo's own work (his
@@ -1149,7 +1156,7 @@ function renderCalendar(opts){
      parts are still the layers' switches (calKeyHtml). */
   const cardTitle=view==='week'?calWeekCardTitle():title;
   calStyleEnsure();
-  host.innerHTML=`
+  const html=`
   <div class="view-enter cal-page${onHome?' is-home':''}${nl?' is-nl':''}">
     ${nl?`<div class="cal-head is-nl">
       <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
@@ -1190,6 +1197,9 @@ function renderCalendar(opts){
       </section>
     </div>
   </div>`;
+  const same=!!(opts&&opts.ifMoved)&&host._calHtml===html&&!!host.querySelector('.cal-page');
+  if(same){ if(onHome&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } return; }
+  host.innerHTML=html; host._calHtml=html;
 
   wireCalendar(evs, byDay, p);
   /* on Home its Copilot is Home's one panel, painted (and wired) there */
@@ -2676,4 +2686,4 @@ Object.assign(window,{calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,C
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,CAL_AGENDA_VIEW_DAYS,CAL_AGENDA_VIEW_ROWS,calAgendaViewHtml,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
-  calLayers,calChipAct,calChipGo,calWkmFit,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});
+  calLayers,calChipAct,calChipGo,calWkmFit,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff,calHzTone});
