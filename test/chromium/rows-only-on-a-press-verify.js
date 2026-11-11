@@ -152,15 +152,17 @@ const PAGES = [
           return k;
         }, [P.tabSel, P.tabKey, P.skip]);
         await page.waitForTimeout(500);
-        const tab = await page.evaluate(([sel, key, rs, pg, bx]) => ({
+        /* a tab the page leaves out of the rows press by name (Parties' Folders) carries no count by design */
+        const tab = await page.evaluate(([sel, key, rs, pg, bx, skip]) => ({
           rows: document.querySelectorAll(rs).length,
           live: [...document.querySelectorAll(sel)].filter(b => /is-on/.test(b.className)).map(b => b.getAttribute(key)),
           /* a pill's count sits in its own span (Approvals) or inside its words (Obligations, "Late 3") */
-          counts: [...document.querySelectorAll(sel)].map(b => ((b.querySelector('span') || b).textContent || '').replace(/[^0-9]/g, '')),
+          counts: [...document.querySelectorAll(sel)].filter(b => !(skip || []).includes(b.getAttribute(key)))
+            .map(b => ((b.querySelector('span') || b).textContent || '').replace(/[^0-9]/g, '')),
           page: (document.querySelector(pg) || {}).dataset.rowsMark === 'page',
           box: (document.querySelector(bx) || {}).dataset.rowsMark === 'box',
           panel: (document.getElementById('ins-panel') || {}).dataset.rowsMark === 'panel',
-        }), [P.tabSel, P.tabKey, P.rowSel, P.pageSel, P.box]);
+        }), [P.tabSel, P.tabKey, P.rowSel, P.pageSel, P.box, P.skip]);
         await page.screenshot({ path: path.join(OUT, `${w}-${P.k}-2-tab.png`) });
         check(`${at} ${P.k} 1 · a tab press keeps the frame, the box and the panel, and still moves the rows`,
           !!pressed && tab.page && tab.box && tab.panel && tab.live.length === 1 && tab.live[0] === pressed
