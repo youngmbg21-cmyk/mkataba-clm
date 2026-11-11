@@ -18225,6 +18225,9 @@
      text size (.hb-why-b); a dashed line parts it from Jambo's paragraph, which is marked with his name */
   html.lg-new .hb-why .hb-why-since + .hb-why-b,html.lg-new .hb-why .hb-why-since + .hb-quiet,html.lg-new .hb-why .hb-why-since + p{margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider)}
   html.lg-new .hb-why-who{font-weight:var(--w-strong);color:var(--hb-amber)}
+  /* on the Board the card is one of the column's cards: the column's own gap spaces it, so its margin is dropped (a 24px
+     band of grey ground showed under it with the side list open, white-sheet-verify board-sheet, 11 Nov 2026) */
+  html.lg-new #ig-page[data-hb-side="board"] #hb-board > .hb-why{margin:0}
   html.lg-new #hb-bhead.is-greet .hb-bh-r{margin-top:14px;flex-wrap:wrap;row-gap:var(--s-2)}
   html.lg-new #hb-bhead.is-greet .hb-bh-day{white-space:nowrap;color:var(--color-neutral-400)}
   html.lg-new .hb-gr-a{all:unset;box-sizing:border-box;cursor:pointer;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--color-accent-300)}
