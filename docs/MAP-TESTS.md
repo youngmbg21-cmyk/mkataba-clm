@@ -671,5 +671,5 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - test/f1002-the-seals-only-a-page-can-draw.test.js — the first page an editor opens draws the copies the server cannot (`sealCatchUpPage`).
 
 ## THE LIGHT LIST — A TYPED ANSWER IS NEVER TAKEN BACK (11 Nov 2026)
-- node --test test/f1004-a-typed-answer-is-never-taken-back.test.js test/f327-copilot-reads-and-fills-on-arrival.test.js
+- node --test test/f1005-a-typed-answer-is-never-taken-back.test.js test/f327-copilot-reads-and-fills-on-arrival.test.js
 - browser (GitHub): owed-first-verify (2b)

@@ -36936,7 +36936,7 @@ The owner, off two screenshots: "Instead of having the highlighted area as desig
 The owner: "I received the email in image 2 today but as you can see in image one, it was executed a while back." MK-243 was signed by both sides on 30 Jul 2026 and sealed on 10 Nov 2026 — the "Fully executed" mail went out at the seal. Cause: `runSealCatchUp` only looked for records carrying "Seal waiting", a note written from 9 Oct; anything every signer signed before that was never looked at. PR #627 (owner's yes): the round also seals any record whose signing route is all signed (`srvSealRouteDone`); the executed mail says "was signed by all parties on D and sealed on D2" (`srvExecutedSentence`), never "is now fully signed". The gap left, said to the owner: a paper drawn from a template and never edited stores no wording, so the server cannot draw its copy. Then "fix the template contracts gap too": the first page an editor opens, once per sitting, draws the copy for every visible contract with every signature in and no seal and saves it; the server seals on that save (`sealCatchUpPage`, `sealCatchUpDue`). It is still not without a browser: drawing a template's paper on the server would mean porting the page's renderer.
 
 
-### CLAUDE.MD TRIM, 11 Nov 2026 (second) — room for the lesson of f1004
+### CLAUDE.MD TRIM, 11 Nov 2026 (second) — room for the lesson of f1005
 One line condensed (verbatim before):
 
 ```
@@ -36954,7 +36954,7 @@ fresh server copy into state.contracts when the version moves — so the read's 
 stale copy, over the answer typed into the new one. The probe's swap could also take off the screen an answer typed
 during its own GET. The fix, in three places: contractBlankSet writes the LIVE record (`blankLiveOf`) and a quiet
 fill never writes over a box filled since; persist queues `getContract(id)`; the probe swaps only when no save of
-the contract is pending (`contractSavePending`, now published — agentruns.js already called it bare). f1004 fails
+the contract is pending (`contractSavePending`, now published — agentruns.js already called it bare). f1005 fails
 5 of 5 on the parent.
 The LIGHT LIST line before (verbatim): "- **THE LIGHT LIST**: in server mode `state.contracts` is light (transport facts `_raisedBy`, `_hasBrief`… stripped on save); `restoreHeavyFields` fills only what is missing; `ensureFull` sends a pending edit first (`contractSavePending`) and keeps one typed during its read (`fillHeavyFrom`)."
 
@@ -37008,3 +37008,19 @@ when they bite. Every limiter written with a number of its own is untouched, the
 signing code's attempt wall among them: those are brute-force protection, not cost control, and "remove the
 rate limits" was never a request to take the locks off the doors. f1004 pins both halves.
 
+
+### CLAUDE.MD TRIM, 11 Nov 2026 (fourth), after main grew the file to 80,646 bytes (verbatim before):
+
+```
+THE SAP WAY: a FORM (To · What goes · What they can do · Send by) over Subject · From · the words; "Before you send" beside, VERDICT first (`shareVerdictPaint`). THE WORDS ARE ONE MODULE, BOTH HOSTS: js/sharemail.js — a new email sentence goes THERE. EVERY send door opens it (`letterDoor`, `pdSendOpen`). A COLLEAGUE: `caPassSend`, `passMailOf`. Typed subject → `subject` (`shareSubjectTyped`). JAMBO WRITES ONLY THE NOTE (`AI_SEND_NOTE_RULE`, `shareNoteFill` sends nothing). f939, f962.
+```
+```
+A HOME TAB (`setView('calendar')` → `hbOpenCalendar`; `renderCalendar` into `#hb-cal`). Mon–Fri (`CAL_WEEK_DAYS`), this week + five (`CAL_WEEKS_SHOWN`); `calToday()` via `todayISO`. Chips `calChipLook`, `calChipGo`. POST /api/ai/plan (`planBlocksCheck` ≤8). ONE writer `calLevelSet`. Bookings → `calHandOff`. It OPENS on the AGENDA (90 days, empty weeks one line; `calAgendaViewHtml`, `calState.view`). HORIZON THE SAP WAY: time left colours bar, pill, box (`calHzTone`, f987).
+```
+```
+`navRead(q,{box})` FIRST in `caUnderstand`; moves only through existing doors (`navGo`, `landOn`/`navLandWhen`), never a final act; steps aside where the screen answers and for questions, counts, plans, new paper. `navReadCompare`/`navGoCompare`; `nav_walled_admin`; `navReadNone`; `goto.spot`. Exam test/nav-exam.js (`NAV_EXAM_FLOOR`). EVERY DOOR BY NAME: `NAV_ACTS` → `navGoAct`, `NAV_PLACES` → `navGoPlace`, `navStTitles`; a new door needs a sentence (door-exam-verify).
+```
+```
+`detailsOf(c)` the ONE reading of what is owed (counts, checklist, bell `details`, `mDetHtml`). FILL IN: the Dossier's line "Details" and the Next card's button → `pdFillOpen` → tab `form` (`pdFormHtml`, ONE Save `pdFormSave`); Key terms in THE MIDDLE (`pdKtMid`); an empty owed box AMBER (`needMark`). SPINE: six stages, then ONE EVEN LIST (`DOSSIER_STAGE_OF`; `dossierGo`, `pdNeedGridRowHtml`; dossier-rows-verify), the stage's two acts at the foot (`DOSSIER_MQ_ACTS`).
+```
+Size after: CLAUDE.md 80071 bytes.

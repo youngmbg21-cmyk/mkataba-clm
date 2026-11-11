@@ -1,4 +1,4 @@
-/* f1004 — A TYPED ANSWER IS NEVER TAKEN BACK
+/* f1005 — A TYPED ANSWER IS NEVER TAKEN BACK
    =========================================
    The owner, 11 Nov 2026: "fix the still owed bug too".
 
@@ -21,7 +21,7 @@
      4 · the live probe does not swap a contract out while a save of it is pending
      5 · contractSavePending is published, so the files that ask it can
 
-   Run: node --test test/f1004-a-typed-answer-is-never-taken-back.test.js */
+   Run: node --test test/f1005-a-typed-answer-is-never-taken-back.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -58,7 +58,7 @@ function stage() {
   return { win, live, saved };
 }
 
-describe('f1004 — a typed answer is never taken back', () => {
+describe('f1005 — a typed answer is never taken back', () => {
   test('1 · a fill handed a stale copy lands on the live record', () => {
     const { win, live } = stage();
     /* a reading began on this object; a refresh has since swapped it out */

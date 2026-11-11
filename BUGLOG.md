@@ -22121,3 +22121,4 @@ Jambo window limits (light 40, deep 15, OCR 400 per 15 minutes) default to 0. Th
 floor of 1, so they could only be lowered, never switched off; they take 0 now and say so in both books.
 NOT removed, and said to the owner: the daily request ceiling and the daily spend ceiling, which are the money
 backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.
+- (renumbered a third time: the typed-answer test is f1005, f1004 having gone to the rate limits', 11 Nov 2026)
