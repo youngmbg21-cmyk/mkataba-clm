@@ -36783,12 +36783,24 @@ the panel and a menu dropped downward fell off the window at 1536x730 (measured,
 
 The builders were SPLIT, not rewritten: `igMapReadHtml(m,i,{part:'chips'|'next'})` and
 `igDoorsHtml(m,i,{part:'lead'|'rest'})` hand back their own pieces, so not one data attribute or press changed.
-f1000 (5) pins that: every press and every door survives the split.
+f1003 (5) pins that: every press and every door survives the split. (The test was f1000, then f1002; main gave
+both numbers away the same nights — the Brain's reading and the seals — so the SAP toolbar's is f1003.)
 
 LEFT FOR A LATER ROUND, AND SAID TO THE OWNER: the page links row above Jambo's box (`jamboWaysSync`,
 js/components.js) and the source line under the answer ("Read from Explorer and your book") are drawn by other,
 SHARED builders used on every Jambo panel in HaTi; moving them overnight, with browser checks only runnable on
 GitHub, was the kind of change that breaks five pages to tidy one.
+
+THE LAST TWO PARTS, 11 Nov 2026 (owner: "finish the two deferred parts"). THE SOURCE LINE is now More's last row
+(`.igd-sap-src`, kept `data-ai-read` so `jamboTurnHtml` can see it was said and not say it again); it is a line,
+never a press, and it never brings a toolbar into being on its own — an answer with nothing under it keeps the
+quiet line where it always stood, and every other host (the side panel, Settings, the list panels) is untouched.
+THE PAGE LINKS now ride the way-back line, after the back and before the bin: `jamboDoorHtml` draws them with the
+row (`.jb-ways.is-in-door`, one line, at most three), `jamboWaysSync` keeps them in step there and adds no row of
+its own, and Explorer's panel stops drawing the above-foot row while the way back is up. The older rules still
+win in order: a contract's own chips row, then a face's own links, then the way back's line, then the old row
+above the box where there is no way back drawn. Measured in jambo-panel-sap-verify 4 and 5; photographed at the
+three screens.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING: ONE COUNT (10 Nov 2026, the overnight run, job 3)
 The owner's screenshots showed Explorer's Your day saying "183 Need you" while the Board's Needs you card said "98 things" (and the Board's own Jambo panel 183 beside it). Cause: the Board counts the ROWS it draws (`ndOnBoard`, `ndRowsN`; owner, 9 Nov 2026, "count rows" — four details owed are one bundled row), while `counterNeedsCount` returned `ndRead().n`, the sum of the things inside the rows, and `igBriefNeeds` summed its own. Now `counterNeedsCount` is `ndOnBoard(ndRead()).n` and Explorer's tile asks it; the panel button (`alertCount`), the Guide, Jambo's panels and the house all read that one number. The setup row is the Board's own door (`hbSetupDoorHtml`), not counted. The owner chose "fix it first" in the questionnaire of 10 Nov 2026. f999.
@@ -36916,3 +36928,6 @@ The owner, 10 Nov 2026: "delete the DNA page and button from HaTi". Removed: the
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES — THE OTHER CLAUSE'S ASK, EVERYWHERE (11 Nov 2026)
 After the first round the 8.3 part of Jambo's advice showed only in the clause editor; the Playbook review window and Prepare redlines left it out without a word. Drawn (artifact "The Other Clause, Everywhere": the review window with the editor's box; Prepare redlines in three options, File it too · On the card (the Legora Way) · In the message (the SAP Way)). The owner picked **"File it too"**. Built: ONE box builder `rlAlsoHtml` for the editor and the review window (its CSS moved from the editor's sheet to index.html as `.rl-also`), its Open closing the window and opening the editor through `rlWithEditorDoor` with `carry`; ONE clause finder `negoClauseByRef` (reads only where a negotiation exists, `{init:true}` when filing); ONE placing `pbPlaceAt` (the editor's carried card now uses it too); Prepare redlines files each `also` as that clause's own unsent draft through `rlFilePlaybookProposal` (the one door f295 pins), never over a draft of ours already waiting there (`alsoBusy`), never twice for the same words, and says it in its one message ("1 of them on 8.3, from Jambo's advice on 3.3"). The rules file was already trimmed to under 80 KB by another session the same morning, so the plan's item 4 was done.
+
+## THE OVERNIGHT RUN (9 Oct) — THE LATE SEAL (10 Nov 2026)
+The owner: "I received the email in image 2 today but as you can see in image one, it was executed a while back." MK-243 was signed by both sides on 30 Jul 2026 and sealed on 10 Nov 2026 — the "Fully executed" mail went out at the seal. Cause: `runSealCatchUp` only looked for records carrying "Seal waiting", a note written from 9 Oct; anything every signer signed before that was never looked at. PR #627 (owner's yes): the round also seals any record whose signing route is all signed (`srvSealRouteDone`); the executed mail says "was signed by all parties on D and sealed on D2" (`srvExecutedSentence`), never "is now fully signed". The gap left, said to the owner: a paper drawn from a template and never edited stores no wording, so the server cannot draw its copy. Then "fix the template contracts gap too": the first page an editor opens, once per sitting, draws the copy for every visible contract with every signature in and no seal and saves it; the server seals on that save (`sealCatchUpPage`, `sealCatchUpDue`). It is still not without a browser: drawing a template's paper on the server would mean porting the page's renderer.

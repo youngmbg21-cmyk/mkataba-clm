@@ -9718,6 +9718,11 @@ function igSapHtml(m,i){
   if(last&&!m.tour&&igTourOffered()) more.push(`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`);
   if(last&&igPinOffered()) more.push(`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`);
   if(last&&(igTourOffered()||igPinOffered())) more.push(`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`);
+  /* WHERE THIS WAS READ, last in the menu (the drawing): the source line the panel used to print under every
+     answer. It says something, it does nothing — so it is a line, never a press; jamboTurnHtml sees it here
+     (data-ai-read) and does not print a second one. It never brings a toolbar of its own into being: an answer
+     with nothing under it keeps the quiet line where it always stood. */
+  if(m.read&&m.read.text&&(und.length||nxt.length||lead||more.length)) more.push(`<div class="igd-sap-src" data-ai-read>${igEsc(m.read.text)}</div>`);
   const rows=[];
   const row=(k,html)=>{ if(html) rows.push(`<div class="igd-sap-r" data-ig-sap-r="${k}"><span class="igd-sap-l">${igEsc(i18t('int_sap_'+k))}</span><span class="igd-sap-v">${html}</span></div>`); };
   row('understood',und.filter(Boolean).join(''));
@@ -10140,7 +10145,7 @@ function renderIntelDock(){
            tab asks"): Dossier, Clauses, Obligations, Findings and the Guide all
            carry the box; words asked turn the panel to the conversation over
            the tab (pdTalkSync), its back returns to the tab as it was left. */}
-    ${''/* the doors above the box (round 1), drawn WITH the panel so a repaint keeps its height and its scroll */}${''/* THE CONTRACT'S ONE ROW (the contract round, 31 Oct 2026, as drawn): where the paper's own next-step links stand, they ARE the row; no second row of doors */}${!_igCaChipsDrawn && typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function' ? jamboWaysHtml(jamboWaysHere(), 'is-above-foot') : ''}
+    ${''/* the doors above the box (round 1), drawn WITH the panel so a repaint keeps its height and its scroll */}${''/* THE CONTRACT'S ONE ROW (the contract round, 31 Oct 2026, as drawn): where the paper's own next-step links stand, they ARE the row; no second row of doors */}${''/* THE SAP WAY (owner's pick, 10 Nov 2026): with the way back drawn, the page links ride ITS line instead */}${!_igCaChipsDrawn && !talk && typeof jamboWaysHtml === 'function' && typeof jamboWaysHere === 'function' ? jamboWaysHtml(jamboWaysHere(), 'is-above-foot') : ''}
     ${`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a

@@ -22087,3 +22087,16 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
 ## Noticed, not fixed (11 Nov 2026, the other clause's ask round)
 - Playbook review window, "Jambo's draft" preview: a numbered paragraph reads "3.1Delivery Terms." (no space after the number) and the preview shows the whole clause rather than only the changed part; already so before this round.
 - Clause editor, after Apply (not typing): a changed paragraph is drawn without its bold title ("3.3 Late Delivery Liquidated Damages." plain) while the applied wording itself keeps <strong>; the resting redline drawing of a touched block is word-based. Not caused by the other-clause round.
+## The Jambo panel: the last two parts, and the f1000 clash (11 Nov 2026, f1002)
+Built. The source line ("Read from Explorer and your book") is now the last row of the More menu, a line and not
+a press; it is said once (the panel no longer prints it under the answer too) and it never makes a toolbar appear
+on its own. The page links (board, contracts ...) now sit on the way-back line at the panel's foot, after the
+back and before the bin, instead of a row of their own above the box; a contract's own chips row and a face's own
+links still win where they are drawn.
+Renamed: the SAP toolbar's test was f1000, and main gave f1000 to the Brain the same night. It is f1002 now
+(f1001 was taken by saved views, renumbered for the same reason). The BUGLOG line above still says f1000.
+
+## The SAP toolbar's test is f1003 (11 Nov 2026)
+Renamed again: while this branch waited, main gave f1002 to the seals check, as it had given f1000 to the Brain.
+The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shared by two test files already
+(f893, f934, f946, f954, f956, f962, f996, f997, f999), so a shared number is not an error here, only a muddle.
