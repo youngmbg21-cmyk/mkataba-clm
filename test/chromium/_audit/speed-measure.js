@@ -11,6 +11,7 @@
      panel     how many times Jambo's panel was written whole
      notes     how many times the notes beside the paper were laid out
      track     how many times the track of dots was written
+     patch     what the paper's last refresh did: blocks put back of how many (null = drawn whole)
      top       the functions the time went to (a CPU profile)
    and, on the list pages with a big book, what ONE small change costs the
    browser with the page-wide ":has" style rules in place and with them gone.
@@ -94,7 +95,9 @@ async function measure(p, cdp, label, act, arg){
       const painted = performance.now() - t0;
       await new Promise(res => setTimeout(res, 700));
       const M = window.__sm;
-      return { ok: ok !== false, sync: Math.round(sync), painted: Math.round(painted), long: M.lt.slice(), papers: M.papers, panel: M.panel, notes: M.notes, track: M.track };
+      /* `patch`: what the paper's last refresh did (blocks put back of how many), null where it was drawn whole */
+      let patch; try { patch = typeof igPaperLastPatch === 'function' ? igPaperLastPatch() : undefined; } catch (_) { patch = undefined; }
+      return { ok: ok !== false, sync: Math.round(sync), painted: Math.round(painted), long: M.lt.slice(), papers: M.papers, panel: M.panel, notes: M.notes, track: M.track, patch };
     }, { src: act.toString(), arg: arg === undefined ? null : arg });
   } catch (e) { r = { err: String(e && e.message || e).slice(0, 160) }; }
   try { prof = (await cdp.send('Profiler.stop')).profile; } catch (_){}

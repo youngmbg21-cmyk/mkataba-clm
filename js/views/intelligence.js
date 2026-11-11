@@ -11614,6 +11614,64 @@ function igCleanOnRed(c){ return !igSignOn(c)&&!igRedOn(c)&&igHomePaperFace()!==
    what the other side reads, nothing to press */
 function igTheirsOn(c){ return igRedOn(c)&&!!(intel.paper&&intel.paper.red==='theirs'); }
 function igPaperKey(c){ return c.id+(igSignOn(c)?':sign':igTheirsOn(c)?':theirs':igRedOn(c)?':red':igCleanOnRed(c)?':clean':''); }
+/* the negotiated paper's wording, as drawn for this seat and this switch (Clean leaves every open change out): ONE
+   builder for the first drawing (igPaperHtml) and for the clause-by-clause redraw after it (igPaperPatch) */
+function igRedBodyHtml(c,clean){
+  const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='accepted').map(x=>x.id):null;
+  try{ return redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true }:{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) })||''; }catch(_){ return ''; }
+}
+/* ---- ONLY THE CLAUSES THAT MOVED ARE DRAWN AGAIN (owner, 11 Nov 2026: "time it on GitHub first, then fix Accept and
+   Reject") ----
+   MEASURED on GitHub (speed-measure, a 40-section contract): one Accept froze the page about 125 ms, of which the
+   decision itself was 6. The rest was the whole paper thrown away and built, laid out and cut into pages again for
+   one clause's words.
+
+   SO A REFRESH OF THE SAME PAPER COMPARES, CLAUSE BY CLAUSE. When the paper is first drawn each block of the wording
+   (the head, each clause, the foot) is stamped with the markup it was built from, BEFORE anything is painted on it.
+   A refresh builds the wording again with the same builder, which costs little, and puts on the page only the blocks
+   whose markup differs. Every other block stays where it is, with its place on the page.
+
+   IT NEVER GUESSES. Anything but "the same blocks, in the same order, a few of them changed" is drawn whole, as
+   before: another switch position or face (the key differs), a clause added or taken out (the count or an id
+   differs), the sheet's own dress changed, a block with no stamp, our amendment's ruled lines on the paper, or more
+   than a third of the blocks moved. The words on the page after a patch are, block for block, the markup a whole
+   drawing would have made (switch-draws-once's sibling check on GitHub compares them). */
+const IG_PATCH_SHARE=1/3;
+function igPaperDoc(host){ return host?host.querySelector('#ig-canvas .rl-zoom > .rl-paper'):null; }
+const igPaperBlocks=doc=>Array.from(doc.children).filter(x=>!x.hasAttribute('data-pg-layer'));
+const igPaperDress=doc=>{ const z=doc.parentElement; return (z?z.cloneNode(false).outerHTML:'')+'|'+doc.cloneNode(false).outerHTML; };
+/* stamped once, straight after the markup is on the page and before any painter touches it */
+function igPaperStamp(host){
+  const doc=igPaperDoc(host); if(!doc) return;
+  doc._igDress=igPaperDress(doc);
+  for(const ch of doc.children) ch._igSrc=ch.outerHTML;
+}
+let _igPatchLay=false;   // a patch moved a clause: the pages are cut again on this paint (igPaperPaginate)
+function igPaperPatch(c){
+  const host=document.getElementById('ig-paper'); if(!host||!c) return null;
+  if(host.dataset.for!==igPaperKey(c)) return null;
+  const clean=igCleanOnRed(c);
+  if(!(igRedOn(c)||clean)) return null;
+  if(typeof window.ownBlanksLive==='function'&&ownBlanksLive(c)) return null;
+  const doc=igPaperDoc(host); if(!doc||typeof doc._igDress!=='string') return null;
+  const html=igRedBodyHtml(c,clean); if(!html) return null;
+  const t=document.createElement('template'); t.innerHTML=html;
+  const fresh=t.content.querySelector('.rl-zoom > .rl-paper'); if(!fresh) return null;
+  if(igPaperDress(fresh)!==doc._igDress) return null;
+  const A=igPaperBlocks(doc), B=Array.from(fresh.children);
+  if(!A.length||A.length!==B.length) return null;
+  const swaps=[];
+  for(let i=0;i<A.length;i++){
+    const a=A[i], b=B[i];
+    if(typeof a._igSrc!=='string'||a.tagName!==b.tagName||(a.getAttribute('data-clause')||'')!==(b.getAttribute('data-clause')||'')) return null;
+    const src=b.outerHTML;
+    if(src!==a._igSrc) swaps.push([a,b,src]);
+  }
+  if(swaps.length>Math.max(3,Math.floor(A.length*IG_PATCH_SHARE))) return null;
+  swaps.forEach(([a,b,src])=>{ b._igSrc=src; a.replaceWith(b); });
+  if(swaps.length) _igPatchLay=true;
+  return { n:swaps.length, of:A.length };
+}
 function igPaperHtml(c){
   let sheet='';
   const clean=igCleanOnRed(c);
@@ -11622,8 +11680,7 @@ function igPaperHtml(c){
   else if(igRedOn(c)||clean){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
-    const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='accepted').map(x=>x.id):null;
-    let body=''; try{ body=redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true }:{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
+    const body=igRedBodyHtml(c,clean);
     sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }
   else if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });
@@ -11679,7 +11736,11 @@ function igApplyZoom(){
    it as ever */
 function igPaperPaginate(c){
   const host=document.getElementById('ig-paper'); const sheet=host&&(host.querySelector('.pg-sheet:not(.pg-sign)')||host.querySelector('.ig-redpaper .rl-zoom > .rl-paper')||host.querySelector('.ig-redpaper > article.rl-paper'));
-  if(!sheet||!window.pagesWatch||sheet._pgRO) return;
+  if(!sheet||!window.pagesWatch) return;
+  /* a watched sheet is cut once; a clause put back on it by igPaperPatch may be taller or shorter: cut again now, not
+     when the watcher hears of it a moment later */
+  if(sheet._pgRO){ if(_igPatchLay&&typeof window.pagesRefresh==='function'){ _igPatchLay=false; try{ pagesRefresh(sheet); }catch(_){ } } return; }
+  _igPatchLay=false;
   try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
     name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }
 }
@@ -11692,10 +11753,18 @@ function igPaperPaginate(c){
 function igPaperRefresh(){
   const host=document.getElementById('ig-paper'); if(!host) return;
   const sc=document.getElementById('ig-paper-scroll'); const top=sc?sc.scrollTop:0;
-  delete host.dataset.for;
+  /* the same paper, a few clauses moved: only those are put on the page (igPaperPatch); anything else is drawn whole */
+  let patched=null; const p=intel.paper, c=p?getContract(p.id):null;
+  try{ patched=c?igPaperPatch(c):null; }catch(_){ patched=null; }
+  _igPaperPatched=patched;
+  if(!patched) delete host.dataset.for;
   igPaintPaper();
+  /* a patch after which the blanks' marks are owed on the clean paper's new blocks (the whole drawing paints them) */
+  if(patched&&patched.n&&c&&!igRedOn(c)&&!igSignOn(c)){ const cv=document.getElementById('ig-canvas'); try{ if(cv&&window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } }
   const sc2=document.getElementById('ig-paper-scroll'); if(sc2) sc2.scrollTop=top;
 }
+let _igPaperPatched=null;   // what the last refresh did: { n, of } blocks put back, or null where the paper was drawn whole
+const igPaperLastPatch=()=>_igPaperPatched;
 let _igPaperPaints=0;   // how many times the paper's painter ran (the switch asks whether an opening already drew it)
 function igPaintPaper(){
   _igPaperPaints++;
@@ -11745,6 +11814,8 @@ function igPaintPaper(){
   const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':(head.id==='hb-head'?'':'flex');
   if(!up){ host.hidden=true; return; }
   if(host.dataset.for!==igPaperKey(c)){ host.innerHTML=igPaperHtml(c); host.dataset.for=igPaperKey(c); igPaperWire(host);
+    /* each block of the wording keeps the markup it was built from (igPaperPatch compares against it) */
+    try{ igPaperStamp(host); }catch(_){ }
     /* born at the width its notes leave it, before anything measures it (pd2SheetPre: one layout a press, not two) */
     if(typeof window.pd2SheetPre==='function') try{ pd2SheetPre(c); }catch(_){ }
     /* THE BLANKS ARE MARKED HERE TOO (11 Oct 2026, the Document tab gone): an
@@ -12226,7 +12297,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igStripRepaint,igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
+Object.assign(window,{igPaperPatch,igPaperLastPatch,igRedBodyHtml,igStripRepaint,igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
 Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockBatch,igDockPaintCount,igPaperDown,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
