@@ -22111,3 +22111,6 @@ Jambo window limits (light 40, deep 15, OCR 400 per 15 minutes) default to 0. Th
 floor of 1, so they could only be lowered, never switched off; they take 0 now and say so in both books.
 NOT removed, and said to the owner: the daily request ceiling and the daily spend ceiling, which are the money
 backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.
+
+## Correction (11 Nov 2026)
+- The 10 Nov line "Clauses tab, an open row: the Plain English pill … cut off at the top" was a FALSE ALARM: measured, the open row's body slides open in 0.24s (doc-th-body grid-template-rows 0fr→1fr) and settles fully open (0,7,21,30,34px then 34px steady for 4s, no replay); the photo had been taken mid-slide. Nothing to fix.
