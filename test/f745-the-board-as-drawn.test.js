@@ -96,7 +96,7 @@ describe('f745 (1) the Board\'s head is one card', () => {
     assert.match(body, /const pack = s\.panels\.some\(p => p\.kind === 'view'\) \? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>/);
     /* (deskScr, the Board's Light | Dark, left with dark mode: Chambers, 20 Oct 2026) */
     /* RE-POINTED (owner, 10 Nov 2026: the head greets you and says the latest): what moved and since when ride along */
-    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits, \{ moved, since: base && base\.at \}\)\}\s*\$\{hbGreetOn\(\) \? '' : bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
+    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits, \{ moved, since: base && base\.at \}\)\}\s*\$\{bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
   });
 });
 
@@ -505,7 +505,10 @@ describe('f745 (7) the Board greets you and says the latest', () => {
      greeting and opens "Your board, in brief" at the card's own size; the greeting goes straight to the pills */
   /* RE-POINTED 11 Nov 2026 (owner: "nothing written … only once you press"; picked "Card Inside" by name): before
      Summarise the brief draws NOTHING; once pressed it stands inside the greeting, right under the buttons */
-  test('7a the greeting, then the pills and Live; nothing under them until Summarise; pressed, the brief stands inside the greeting', () => {
+  /* RE-POINTED AGAIN 11 Nov 2026 (owner: "move the summary back to having its own card like in image 2 but with an exit
+     (x) button on the top right … It should also only appear once you have pressed summarize my board"; reverses Card
+     Inside): the greeting holds no brief; the brief is its own card under it (hbBoardHtml), with a × (hbBriefShut) */
+  test('7a the greeting, then the pills and Live; nothing under them until Summarise; pressed, the brief is its own card with a ×', () => {
     const w = greetWorld({ late: 2, oldest: 36, jambo: [{}, {}, {}], you: [{}] });
     const latest = { moved: { past: M(5), value: M(1000000) }, since: ago(1) };
     const since = w.hbGreetSayHtml(latest.moved, latest.since);
@@ -515,7 +518,10 @@ describe('f745 (7) the Board greets you and says the latest', () => {
     assert.ok(!/hb-gr-say|hb-gr-a|class="hb-why/.test(html), 'nothing under the buttons before the press');
     const box = '<div class="hb-why"><div class="hb-why-h">x</div><p class="hb-why-b hb-why-since" id="hb-gr-say">' + since + '</p></div>';
     const inside = w.hbBoardHeadHtml('08:02', '', { btn: '', box }, '', '', latest);
-    assert.ok(inside.endsWith(box + '</section>'), 'pressed, the card stands inside the greeting, under the buttons');
+    assert.ok(!inside.includes('class="hb-why') && inside.endsWith('</div></section>'), 'pressed, the greeting still holds no brief: it is its own card');
+    assert.match(code(HB), /<span class="hb-read-src">\$\{_hbE\(i18t\('hb_cx_when', \{ at: kept\.at \}\)\)\}<\/span>\$\{x\}<\/div>/, 'the kept brief carries the × at its head\'s right end');
+    assert.match(code(HB), /const x = `<button type="button" class="hb-ib hb-x hb-why-x" data-hb-bs-x /, 'the × is the board\'s own close button');
+    assert.match(code(HB), /if \(\(el = on\('\[data-hb-bs-x\]'\)\)\)\{ hbBriefShut\(\); return; \}/, 'pressing it shuts the brief');
     assert.match(code(HB), /else if \(kept\) box = [^\n]*\n\s*\$\{lead\}<div class="hb-why-b">\$\{who\}/, 'the kept summary carries the counted sentence first, Jambo marked');
     assert.ok(!/is-since/.test(code(HB)), 'no card before the press');
     const say = since;
@@ -523,6 +529,14 @@ describe('f745 (7) the Board greets you and says the latest', () => {
     assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
     assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer[\s\S]*<span class="hb-grow"><\/span><span class="hb-bh-day">[^<]+<\/span><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the pills, then the day, Live and when it was counted; .hb-note stays');
     assert.ok(!/hb-bh-s"/.test(html), 'no "your book against six months ago" in the greeting');
+  });
+  test('7a2 the × lets the brief go: nothing is written until Summarise is pressed again', () => {
+    const w = greetWorld({ late: 0, oldest: 0, jambo: [], you: [] });
+    const S = w.hbS(); S.why = S.why || {};
+    S.why[w.HB_BOARD_KEY] = { day: 'x', sig: 'y', text: 'Your book holds 3.', dropped: 0, at: '11:38', notice: '' };
+    w.hbBriefShut();
+    assert.equal(w.hbS().why[w.HB_BOARD_KEY], undefined, 'the kept brief is gone');
+    assert.equal(w.hbBoardSumHtml('').box, '', 'and nothing is written');
   });
   test('7b a fact at nought is not said; things waiting are never "nothing"; nothing waiting says so', () => {
     const say = (nd, latest) => { const w = greetWorld(nd); return w.hbGreetSayHtml(latest && latest.moved, latest && latest.since).replace(/<[^>]+>/g, ''); };
