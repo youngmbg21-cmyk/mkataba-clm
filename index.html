@@ -18231,6 +18231,11 @@
      not on nothing — the see-through tint let the Board's grey ground show through the whole card (white-sheet-verify
      board-sheet, 11 Nov 2026; it now stands before Summarise is pressed, so the check meets it) */
   html.lg-new #ig-page[data-hb-side="board"] #hb-board > .hb-why{margin:0;background:var(--hb-why-fill)}
+  /* the brief stands 12 under the greeting, on the greeting's own white: the head carries a white band the height of
+     the column's gap below itself, so the Board's grey does not open between them (white-sheet-verify, Board · side
+     list, 11 Nov 2026); the head's box is unchanged, so the first card still measures 12 under it */
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet:has(+ .hb-why)::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--well-g);background:var(--color-surface)}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet:has(+ .hb-why){position:relative}
   html.lg-new #hb-bhead.is-greet .hb-bh-r{margin-top:14px;flex-wrap:wrap;row-gap:var(--s-2)}
   html.lg-new #hb-bhead.is-greet .hb-bh-day{white-space:nowrap;color:var(--color-neutral-400)}
   html.lg-new .hb-gr-a{all:unset;box-sizing:border-box;cursor:pointer;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--color-accent-300)}
