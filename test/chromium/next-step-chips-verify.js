@@ -135,14 +135,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* 5 an answer about the contract already open */
     /* RE-POINTED 10 Nov 2026 ("The SAP way"), and again 11 Nov 2026 ("Keep the words"): only the NEWEST answer
        carries a row, so the two cases are measured one at a time rather than side by side. */
-    const row = text => page.evaluate(t => {
+    const rowOf = text => page.evaluate(t => {
       intel.history.push({ role: 'assistant', text: t.say, cardIds: [t.id] });
       renderIntelDock();
       const x = [...document.querySelectorAll('#igd-feed .igd-one')].pop();
       return x ? (x.querySelector('.igd-here') ? 'igd-here' : x.querySelector('[data-ig-paper-go]') ? 'igd-doors' : 'none') + ':' + x.textContent.trim() : 'no row';
     }, text);
-    const d5a = await row({ id: 'MK-B1', say: 'MK-B1 has no amendment on file.' });
-    const d5b = await row({ id: 'MK-B2', say: 'MK-B2 is the coast supply.' });
+    const d5a = await rowOf({ id: 'MK-B1', say: 'MK-B1 has no amendment on file.' });
+    const d5b = await rowOf({ id: 'MK-B2', say: 'MK-B2 is the coast supply.' });
     ok('5 the contract already open is said, not offered; another contract keeps its door',
       /igd-here/.test(d5a) && /MK-B1/.test(d5a) && /igd-doors/.test(d5b) && /MK-B2/.test(d5b), JSON.stringify([d5a, d5b]));
     await shoot('5-already-open');
