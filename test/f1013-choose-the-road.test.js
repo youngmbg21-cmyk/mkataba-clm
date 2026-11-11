@@ -33,6 +33,8 @@ test('f1013 (1) the road stands only once filled in and before anything has gone
   assert.match(of, /negoExecuted\(c\)/, 'nor an executed one');
   assert.match(of, /signRouteOf\(c\) === 'outside'/, 'nor one signed outside');
   assert.match(of, /if \(!pdNeverShared\(c\)\) return null;/, 'nothing has gone to them');
+  assert.match(of, /sharesKnown\(c\)\)\{ pd2RoadWarm\(c\); return null; \}/, 'never sent is read only once the sent links are known (the audit)');
+  assert.match(fn('pd2RoadWarm'), /_pd2RoadWarmed\.has\(id\)[\s\S]*ensureSharesCached\(c\)[\s\S]*pdGlanceRepaint\(\)/, 'fetched once, drawn again once');
   assert.match(of, /x\.k === 'fill'[\s\S]*if \(fill && fill\.n\) return null;/, 'nothing left to fill');
   assert.match(of, /r\.kind === 'share' \|\| r\.kind === 'ask' \|\| r\.kind === 'signer'/, 'no change waiting, no ask of theirs, someone named to sign');
 });
