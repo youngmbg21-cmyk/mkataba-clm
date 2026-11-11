@@ -22080,3 +22080,6 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
   the save landed (one fewer owed), then about a second after the blur detailsOf listed it as owed again (the form row
   back to "is-read", not in Key terms). Seen twice in GitHub runs 42945203967 and 42952364814, green in others. Looks
   like a later save or reply putting back the older record. Not fixed tonight; the check now prints detailsOf's state.
+- Correction to the line above (same night): the next run's print showed "left" fell by one while the notice period
+  stayed owed, so "6 months" most likely answered ANOTHER owed box (the click landing while the form settled), not a
+  lost save. owed-first 2 now waits, bounded, for the caret to be in the notice box before typing.
