@@ -71,6 +71,9 @@ const PAGES = [
   /* job 8: Requests. Its four tabs draw the one table; a tab at 0 steps out */
   { k: 'requests', view: 'intake', rowSel: '.ikn-page .ikn-table tbody tr', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab',
     box: '#ikn-q', home: 'open', word: 'supply', wholeSel: '.ikn-page .ikn-table thead th', pageSel: '.ikn-page', facts: '.ikn-page .cun-head .ctf-hf' },
+  /* job 9: Import. Its three tabs draw the one table */
+  { k: 'import', view: 'migration', rowSel: '.mign-page .mign-table tbody tr', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab',
+    box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .cun-head .ctf-hf' },
   { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
     box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
 ];
@@ -80,7 +83,9 @@ const PAGES = [
   const h = await startHati();
   const extra = NAMES.map((n, i) => Object.assign(
     fixtureContract('MK-1' + (10 + i), n[0], n[1], 'proc', 21000000 + i * 1300000, 'Under Review'),
-    { lastAction: iso(-(116 - i * 3)) }));
+    { lastAction: iso(-(116 - i * 3)) },
+    /* job 9: three of them came in through Import, so its page is drawn (one still needs a look) */
+    i < 3 ? { upload: { fileName: n[0] + '.pdf' }, migration: { importedAt: iso(-3), batch: 'b-rows', needsReview: i === 0 } } : {}));
   await seedWorkspace(h, { contracts: r5Contracts().concat(extra), approvalRules: R5_RULES });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
 
