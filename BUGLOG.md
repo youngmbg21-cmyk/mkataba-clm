@@ -22043,3 +22043,10 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 
 ## Fixed (10 Nov 2026, overnight run job 3)
 - Needs you's two counts (Explorer "183" vs the Board "98"): every door now says the Board's row count (counterNeedsCount → ndOnBoard). f999.
+
+## 11 Nov 2026 — The Dossier's Signer "Change" does nothing (owner-reported, a picture: MK-382)
+### Noticed, not fixed (on the fix list, waiting for the owner's go)
+- THE SIGNER ROW'S "CHANGE" IS A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES. In the new look the Dossier's facts (`pd2Facts`) draw Signer · Change with `data-pd-og-route`, but the one listener for that attribute (js/paperdesk.js, the `#pd-og` click handler) only answers inside the old fill form (`#pd-og`) or the old Next card (`#pd-glance .ds-nx`). The new look's facts sit in `#pd-glance .pd2-facts`, so the press reaches no one. Second cause in the same handler: it finds the contract through `pdOgContract()`, which reads the fill form's own host (`data-pd-og-for`) and answers null when the form is not open, so widening the selector alone would still do nothing.
+- SAME FAULT, SECOND PLACE: when the stage is "Name who signs", the Dossier's one black button (`pd2CardHtml` → `dossierNextOf` → `data-pd-og-route`) sits in `.pd2-card`, also outside both selectors, so it is dead too (read in code, not pressed).
+- THE FIX WHEN ASKED: answer `[data-pd-og-route]` anywhere in `#pd-glance` (both the facts row and the card), take the contract from the button's own attribute (`getContract(id)`), then open the one signer door `openSignerPlanEditor` as today. A browser check must press both buttons on the new look and see the signing-order window open, and must fail on main first.
+- The Stream row shows "filed" with no press, so it is not affected.
