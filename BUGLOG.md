@@ -22158,3 +22158,9 @@ re-pointed, because an older answer has no chips to find still. The fold's build
 its words are all gone, and int_one_shown is inert in both books.
 ## Removed on the owner's word (11 Nov 2026)
 - The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.
+
+## Shorten the chips (11 Nov 2026)
+Done, on the owner's instruction. The chip's label already says what the value was repeating: "Ranked by value"
+is "By value", "2 biggest value streams" is "2 value streams", and on the Board "Blocks, sized by value" is
+"Blocks" (the Measure chip beside it says the rest). The menus and the drawn line keep the whole words.
+Measured and said to the owner: the row is still two lines — the button's label is what is left over.

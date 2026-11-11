@@ -151,7 +151,8 @@ const SCRIPT = (q, again) => {
     const chip = await until(() => { const b = document.querySelector('#ig-dock [data-ig-mr$=":keep"]'); if (!b) return null; const r = b.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { amber: b.classList.contains('is-doubt'), text: b.textContent.trim(), painted: !!hit && b.contains(hit),
         word: (document.querySelector('#ig-dock [data-ig-mr$=":word"]') || {}).textContent || '' }; });
-    check('5d-2 under the answer: Keep (amber, the part the two readings did not agree on) · Ranked by · "folders"', !!chip && chip.amber && chip.painted && /2 biggest value streams/.test(chip.text) && /folders/.test(chip.word), JSON.stringify(chip));
+    /* RE-POINTED 11 Nov 2026 (the owner: "shorten the chips"): the row carries the short reading, the menu the whole */
+    check('5d-2 under the answer: Keep (amber, the part the two readings did not agree on) · By · "folders"', !!chip && chip.amber && chip.painted && /2 value streams/.test(chip.text) && /folders/.test(chip.word), JSON.stringify(chip));
     await shot('5d-what-jambo-understood');
     const turns = await page.evaluate(() => intel.history.length);
     await page.click('#ig-dock [data-ig-mr$=":keep"]');

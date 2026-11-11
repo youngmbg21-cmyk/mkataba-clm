@@ -37097,3 +37097,18 @@ Size after: CLAUDE.md 80071 bytes.
 The owner, off a screenshot of the Calendar's Jambo panel: "review why when i try to press between the buttons there is a delay. Review this and other similar buttons in the jambo page. Also why the panel stutters flashing the green links to other pages that are supposed to be above the jumbo entry field which are currently missing from the reads page, obligations page and possibly more." Then "yes, fix both".
 THE DELAY: `calLevelSet` awaited `mineSave` (a server round trip) and a full `renderCalendar` before the pressed button lit; the agents' levels (`agentLevelMineSet`, jambohouse's change handler and `jhnMaySet`) did the same. Measured with the server held 600ms: lit after ~630ms before, ~20ms after. Now the pref is taken at once (`mineSave` for kind 'pref', `calLevelLight`), drawn, and a refusal puts the old one back and says why (toast 'err').
 THE LINKS: the "Jambo ›" line (`jamboFwdHtml`, class `jb-door`) carried no `.jb-door-sp`, so `jamboWaysSync` removed the row above the box and had nowhere to put it — the links vanished on Reads, Obligations, Calendar, People, My notes. Every panel repaint (`jlAskHtml`) drew the row again and the sync removed it a beat later — the flash. Now `jamboFwdHtml` carries the ways (`is-in-door`) and the sync no longer removes the above-foot row; the sheet hides it while a line is shown (`.jb-ways.is-above-foot:has(+ * .jb-door:not([hidden]))`). f1006 (6 of 7 red at the parent).
+
+### SHORTEN THE CHIPS (owner, 11 Nov 2026)
+With One Row built, the chips still read long enough to take the line above the button. The owner: "shorten the
+chips." THE LABEL ALREADY SAYS IT, so the value no longer repeats it: the map's `int_rd_by` is "By" (was
+"Ranked by") and `int_rd_short_groups` is "{n} {gs}" (was "{n} {w} {gs}"), so "Keep 2 biggest value streams ·
+Ranked by value" reads "Keep 2 value streams · By value". On the Board the Measure chip beside it already says
+what the picture is sized by, so the Picture chip says the picture alone (`hb_picshort_blocks`,
+`hb_picshort_bubbles`, `hbPicWord(P, short)`, asked for by the chips only): "Blocks, sized by value" reads
+"Blocks". THE MENUS AND THE DRAWN LINE KEEP THE WHOLE WORDS — only the row is short.
+
+MEASURED, AND SAID TO THE OWNER: the row is still TWO lines. On Explorer the chips now fit one line together and
+the button takes the next; on the Board three chips fill the line. The thing still standing between this and a
+true single line is the button's own label ("Read all 25 in Workspace"), which is a door's words used elsewhere
+— offered to the owner, not taken. Re-pointed with the reason: f996 (6), explorer-jambo-typed 5d-2.
+
