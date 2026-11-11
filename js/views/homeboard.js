@@ -6116,12 +6116,10 @@ function hbBoardHeadHtml(time, cut, bs, pack, deskBits, latest){
   const live = `<span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span class="hb-bh-at">${_hbE('· ' + at)}</span>${deskBits || ''}`;
   const acts = `${pack || ''}${bs.btn}${hbPulseBtnHtml()}${hbExplorerBtnHtml()}`;
   if (hbGreetOn()){
-    const L = latest || {};
+    void latest;   /* its counted sentence moved into the brief card (hbBoardSumHtml), 10 Nov 2026 */
     let hello = ''; try { hello = (typeof window.cn2Greet === 'function') ? cn2Greet() : ''; } catch (_){ hello = ''; }
-    let say = ''; try { say = hbGreetSayHtml(L.moved, L.since); } catch (_){ say = ''; }
     let day = ''; try { day = new Date().toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()); } catch (_){ day = ''; }
     return `<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">${_hbE(hello || i18t('hb_face_board'))}</h2>`
-      + (say ? `<p class="hb-gr-say" id="hb-gr-say">${say}</p>` : '')
       + `<div class="hb-note hb-bh-r">${acts}<span class="hb-grow"></span><span class="hb-bh-day">${_hbE(day)}</span>${live}</div></section>`;
   }
   return `<section class="hb-card hb-bhead" id="hb-bhead"><div class="hb-note hb-bh-r"><h2 class="hb-bh-t">${_hbE(i18t('hb_face_board'))}</h2><span class="hb-bh-s">${_hbE(i18t('hb_bh_sub'))}</span>`
@@ -6289,7 +6287,11 @@ function hbBoardHtml(){
   /* and the freshness line too: WHEN it was counted is a fact the reader
      cannot know; "all contracts" is one they chose. */
   const cut = [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ');
-  const bs = hbBoardSumHtml();
+  /* THE COUNTED SENTENCE LIVES IN THE BRIEF (owner picked "The Legora Way", 10 Nov 2026): "Since Monday: … 10 things
+     are late … I prepared 53 for you." left the greeting and opens "Your board, in brief", at the card's own size;
+     counted with no Jambo call, every fact a door, as before (hbGreetSayHtml) */
+  let since = ''; if (hbGreetOn()) try { since = hbGreetSayHtml(moved, base && base.at); } catch (_){ since = ''; }
+  const bs = hbBoardSumHtml(since);
   /* THE BOARD: its head, Your book, then ALL of Needs you (Round A, the
      owner's yes of 22 Oct 2026: Home keeps the top three of each group and
      "Show all" lands here; it took the place of Jambo's work card), Today's
@@ -6556,7 +6558,7 @@ function hbBoardSrc(lens){
   return { key: HB_BOARD_KEY, title: i18t('hb_bs_title'), head: 'The whole HaTi Home board, as it stands now.', data,
     reading: { lines: [], counts, keys: [] }, cs, sig: hbWhySigOf('board', cs) };
 }
-function hbBoardSumHtml(){
+function hbBoardSumHtml(since){
   const src = hbBoardSrc(); const key = HB_BOARD_KEY;
   const kept = hbWhyKept(key, src.sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
   const live = typeof copilotAvailable === 'function' && copilotAvailable();
@@ -6567,11 +6569,16 @@ function hbBoardSumHtml(){
      costs when the pointer rests on it, and nothing is spent until it is pressed */
   const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE([i18t('hb_bs_cost'), i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) })].filter(Boolean).join(' · '))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
   let box = '';
-  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
-  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p>${_hbE(err)}</p></div>`;
+  /* the counted sentence leads the card, word for word, at the card's own size; Jambo's paragraph follows, marked */
+  const lead = since ? `<p class="hb-why-b hb-why-since" id="hb-gr-say">${since}</p>` : '';
+  const who = since ? `<b class="hb-why-who">${_hbE(i18t('cn2_jambo'))}:</b> ` : '';
+  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}<p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
+  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}<p>${_hbE(err)}</p></div>`;
   else if (kept) box = `<div class="hb-why"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span></div>
-    <div class="hb-why-b">${hbSay(kept.text)}</div>
+    ${lead}<div class="hb-why-b">${who}${hbSay(kept.text)}</div>
     <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span></div></div>`;
+  /* before Summarise is pressed the card is its title and the sentence: one quiet line, nothing spent */
+  else if (lead) box = `<div class="hb-why is-since"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}</div>`;
   return { btn, box };
 }
 
