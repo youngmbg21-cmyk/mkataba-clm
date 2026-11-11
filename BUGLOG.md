@@ -22187,3 +22187,5 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - FIXED (same change, said to the owner): CLAUDE.md carried live merge conflict markers committed in d4e24d3.
   The One Row side kept, the retired three-row-toolbar side dropped.
 - Noticed, not fixed: CLAUDE.md is 81.5 KB, a little over the ~80 KB rule; a trim needs the owner's yes.
+- FIXED (same round): `int_rd_short_groups` is '{n} {gs}' — a number and a word that is translated elsewhere,
+  so it has no words of its own and is the same in both books. Named in f148's SAME_IN_BOTH.
