@@ -267,6 +267,7 @@ PRIVATE: one store `mineLoad`/`mineSave`/`mineDelete` over /api/me/items (`my_it
 - AN NDA: `c.nda`, ONE writer `ndaSet`, door `ndaEditOpen`; `ndaRead` never writes; never travels.
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
 `detailsOf(c)` the ONE reading of what is owed (checklist, bell `details`, `mDetHtml`). FILL IN: the Dossier's "Details" → `pdFillOpen` → tab `form` (`pdFormHtml`, ONE Save `pdFormSave`); Key terms in THE MIDDLE (`pdKtMid`); an empty owed box AMBER (`needMark`). SPINE: six stages, then ONE EVEN LIST (`DOSSIER_STAGE_OF`). dossier-rows-verify.
+FILL IN ON THE PAPER (owner picked "The Legora Way", 11 Nov 2026): the black "Fill in the contract" opens the paper (`pdFillGo` → `pd2FillStart`); blanks typed where they stand (`PD2_BL_SEL`), signature lines take names (one writer `saveSignerPlan`); Enter walks `pd2FillWalk`, the last saves and returns; what has no place on the paper → the form. Planned signers print on the signing copy (`pagesSignRows` `planned`). f1012.
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU (owner, 21 Oct 2026)
 On a computer Jambo's work (`pdMidWork` → `agOpenItem(key,{mid})`), the obligations review and Key terms (`pdKtMid`) stand where the paper was (`pdMidPage`); the Dossier never moves; ONE way back `pdMidClose` ("‹ Paper", Esc, the bar's ‹, "paper", the line again).
 DEAL = THE CLOSE PLAN: `rlHeadDealHtml` → `dealViewHtml` (`pdDealOpen`), ONE reading `dealPlanOf` (no AI); doors only Send, Open clause, Chase, Ask an admin (`dealRowToggle`). f939.
