@@ -22172,3 +22172,7 @@ its words are all gone, and int_one_shown is inert in both books.
 - The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.
 - 11 Nov 2026 · Correction to the line above: the test that holds `BARE_HAS_KNOWN` is f1007 (the switch draws once), renumbered when main took f1006; the notes test is f1008.
 - 11 Nov 2026 · Noticed, not fixed: CLAUDE.md on main carries merge-conflict markers (<<<<<<< HEAD … >>>>>>> origin/main) around the two Shell lines "THE WAY BACK" / "ONE ROW UNDER THE NEWEST ANSWER" against "ONE TOOLBAR UNDER AN ANSWER"; they arrived with pull request 651, so both the reversed ruling and the one it replaced are being read every session. Which side stands is the owner's call.
+
+## 11 Nov 2026 — CLAUDE.md carried a merge's clash markers (owner: "yes, tidy it up after the merge")
+- FIXED · main's CLAUDE.md held `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/main` around two versions of THE SHELL's lines on Jambo's answer bar (arrived with #647). Kept the newer one (ONE ROW UNDER THE NEWEST ANSWER, `igOneHtml`, which the code uses); dropped the older three-labelled-rows lines (`igSapHtml`, which no longer exists in the code). No other tracked file carried markers (the fix list itself was not searched; reading it is denied).
+- Noticed, not fixed: js/components.js still names `igSapHtml` in a comment.
