@@ -248,6 +248,22 @@ const READ = () => {
         const opened = pressed && await until(page, () => !!document.getElementById('clause-editor') && !!document.querySelector('#clause-editor [data-ce-act="row-back"]'), null, 10000);
         const Fr = await page.evaluate(() => ({ flashed: (window.__fr || []).filter(f => !f[0] && f[1]).length,
           back: ((document.querySelector('#clause-editor [data-ce-act="row-back"]') || {}).textContent || '').trim() }));
+        /* 13f CAME FROM "WHAT TO WATCH" (owner picked "Legora with ticks", 11 Nov 2026): Jambo's panel lists the clause's
+           point ticked, no number, its words highlighted on the clause; unticking takes the highlight off and greys the one button */
+        const Pt = opened ? await page.evaluate(async () => {
+          const hl = () => (CSS.highlights && CSS.highlights.get('ce-watch')) ? CSS.highlights.get('ce-watch').size : 0;
+          const rows = [...document.querySelectorAll('#clause-editor .ce-pts .ce-pt')];
+          const a = { rows: rows.length, on: rows.filter(r => r.classList.contains('is-on')).length, nums: document.querySelectorAll('#clause-editor .ce-pts .n, #clause-editor .ce-pts .ce-pt-n').length,
+            say: ((document.querySelector('#clause-editor .ce-pts .t') || {}).textContent || '').trim(), hl: hl(),
+            btn: ((document.querySelector('#clause-editor [data-ce-act="pts-draft"]') || {}).textContent || '').trim() };
+          const t = document.querySelector('#clause-editor .ce-pt-tick'); if (t) t.click();
+          await new Promise(r => setTimeout(r, 200));
+          const g = document.querySelector('#clause-editor [data-ce-act="pts-draft"]');
+          a.offHl = hl(); a.offGrey = !!(g && g.disabled);
+          const t2 = document.querySelector('#clause-editor .ce-pt-tick'); if (t2) t2.click();
+          return a; }) : null;
+        check('13f the editor says why you came: the point ticked (no number), its words highlighted, untick takes it off and greys Draft a fix',
+          !!Pt && Pt.rows === 1 && Pt.on === 1 && Pt.nums === 0 && /You came from What to watch on 3/.test(Pt.say) && Pt.hl === 1 && /^Draft a fix for 1 point$/.test(Pt.btn) && Pt.offHl === 0 && Pt.offGrey, Pt);
         await page.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="row-back"]'); if (b) b.click(); });
         const home = opened && await until(page, () => !document.getElementById('clause-editor') && !(window.pdRedShows && pdRedShows())
           && /Quality/.test(((document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-name') || {}).textContent || '')), null, 10000);

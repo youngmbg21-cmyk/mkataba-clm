@@ -118,6 +118,8 @@ let _ceThread = [];         /* the conversation, this sitting only */
    or '' when the rail is its ordinary self. Per sitting, never stored. */
 /* The Risks tab's answer card, kept so a vote on it survives a repaint. */
 let _ceRiskCard = null;
+/* the points "Start redlining" came with from What to watch (ceOfferPoints): [{t,q,s,on}], for this sitting only */
+let _cePts = null;
 let _ceBusy = false;
 let _ceSavedAt = null;
 let _ceScan = null;         /* the playbook review, once run */
@@ -872,6 +874,24 @@ function clauseEditorCss(){
   .ce-read li{list-style:none; display:block; font-size:var(--t-meta); line-height:1.5}
   .ce-read li b{display:block; font-weight:var(--w-title); font-size:var(--t-label); color:var(--color-text)}
   .ce-read li span{display:block; min-width:0}
+  /* CAME FROM "WHAT TO WATCH" (ceOfferPoints): a tick box, the point, its words quoted; one black button, Not now */
+  .ce-pts .t{margin:0 0 var(--s-2)}
+  .ce-pts-list{margin:0; padding:0; border-top:1px solid var(--color-divider)}
+  .ce-pt{list-style:none; display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--color-divider)}
+  .ce-pt-tick{flex:none; width:16px; height:16px; margin-top:2px; padding:0; border:0; border-radius:4px; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; background:var(--color-surface); color:var(--color-surface);
+    box-shadow:inset 0 0 0 1.5px var(--color-neutral-400)}
+  .ce-pt.is-on .ce-pt-tick{background:var(--color-text); box-shadow:none}
+  .ce-pt-tick:focus-visible{outline:2px solid var(--accent-ink); outline-offset:2px}
+  .ce-pt-w{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; font-size:var(--t-meta); line-height:1.5}
+  .ce-pt-t{color:var(--color-text)}
+  .ce-pt:not(.is-on) .ce-pt-t{color:var(--color-quiet)}
+  .ce-pt-q{font-family:var(--font-doc); font-style:italic; color:var(--color-quiet); quotes:"“" "”"}
+  .ce-pts-acts{display:flex; align-items:center; gap:16px; margin:var(--s-3) 0 var(--s-4)}
+  .ce-pts-acts .ui-btn{white-space:nowrap}
+  .ce-pts-acts .ui-link{text-decoration:underline; text-underline-offset:3px; white-space:nowrap}
+  .ce-pts-mk{color:var(--accent-ink); font-weight:var(--w-title)}
+  ::highlight(ce-watch){background-color:var(--st-amber-bg); text-decoration:underline 2px var(--st-amber-line); text-underline-offset:3px}
 
   /* ONE CARD SHAPE, whether it comes from the chat or from the scan. On a
      white lane a white card needs its edge to do the work the ground used to
@@ -2539,6 +2559,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   /* the card's own reading is Jambo's first line here, so the question and its answer stand on what the card said */
   if (askWhy && askWhy.said) _ceThread.push({ who: 'ai', text: String(askWhy.said), read: [] });
   _ceRiskCard = null;
+  _cePts = null;
   _ceScan = null;
   _ceSpellList = []; _ceSpellFor = null;
   /* ---- THE RAIL OPENS ON THE FINDING IT IS ALREADY HOLDING ----
@@ -2738,6 +2759,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null; _ceNew = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null; _ceWhole = false;
   _ceRiskCard = null;
+  _cePts = null; cePointsUnpaint();
   _cePrep = null;
   _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false;
@@ -5161,7 +5183,8 @@ function ceRenderTabs(){
   if (ask) ask.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
   /* from a Redlines row the prepared questions are the Ask Jambo card's one
      press (ceRowCardsHtml), so the chips row stands down on Playbook */
-  if (chips) chips.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
+  /* the points from What to watch stand in for the quick asks while they are out (as drawn, 11 Nov 2026) */
+  if (chips) chips.style.display = ((_ceTab === 'chat' && !_cePts) || rk) ? '' : 'none';
   if (scope) scope.style.display = (_ceTab === 'chat' || (rk && !_ceSel && !_ceWhole && !ceIsNew())) ? '' : 'none';
   ceRenderChips(); ceRenderScope();
 }
@@ -5183,10 +5206,12 @@ function ceRenderLane(){
      worked out, not asked for. */
   /* from a Redlines row too (owner, 20 Oct 2026): round 9's cards stand down
      (ceRowCardsHtml kept, not drawn) */
-  lane.innerHTML = (_cePrep ? '' : ceLadderCardHtml()) + ceTurnsWithWho(_ceThread.map(ceTurnHtml), _ceThread)
+  lane.innerHTML = cePointsHtml() + (_cePrep ? '' : ceLadderCardHtml()) + ceTurnsWithWho(_ceThread.map(ceTurnHtml), _ceThread)
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
-  if (last) lane.scrollTop = Math.max(0, last.offsetTop - lane.offsetTop - 4);
+  /* the points stand at the top until an answer comes under them */
+  if (last) lane.scrollTop = (_cePts && !_ceThread.length) ? 0 : Math.max(0, last.offsetTop - lane.offsetTop - 4);
+  cePointsPaint();
   ceRenderFull();
 }
 /* ---- THE RISK'S ANSWER IS THE CLAUSE'S ANSWER (Young, 5 Oct 2026) ----
@@ -5576,6 +5601,93 @@ function ceOfferAsk(words, quote){
   ceRenderTabs(); ceRenderLane();
   return true;
 }
+/* ---- CAME FROM "WHAT TO WATCH": THE POINTS, TICKED (owner picked "Legora with ticks", 11 Nov 2026: "why is it
+   when i press start redline … there is no reference moving to editor asking jambo what to edit?"; then "the
+   numbers are wasting valuable space so delete them. The check box should do the job highlight which sentences in
+   the clauses that are in question") ----
+   Start redlining on the Clauses tab carries the clause's points (stkRedlineGo → land.points → rlLandOn). Here they
+   are Jambo's first words: one row each, a tick box (all ticked) in front, what is at stake, its words on the paper
+   quoted. The ticked points' words are highlighted on the clause (a CSS Custom Highlight, nothing in the box moves);
+   unticking a row takes its highlight off. ONE black button drafts for the ticked set through the ONE ask door
+   (ceAsk; the points ride in the playbook line, cePointsAsk) and its answer is the usual Apply · Discard card;
+   Not now (or the ask box's × on "N points") puts them away. Nothing is spent or filed until a press. */
+const CE_PTS_HL = 'ce-watch';
+function ceOfferPoints(points){
+  if (!clauseEditorOpen() || ceNoAi()) return false;
+  const list = (Array.isArray(points) ? points : []).map(p => ({ t: String((p && p.t) || '').trim(), q: String((p && p.q) || '').trim(),
+    s: p && p.s === 'need' ? 'need' : 'look', on: true })).filter(p => p.t);
+  if (!list.length) return false;
+  _cePts = { list };
+  _ceTab = 'chat';
+  ceRenderTabs(); ceRenderLane(); ceRenderScope();
+  return true;
+}
+const cePtsTicked = () => (_cePts ? _cePts.list.filter(p => p.on) : []);
+function cePointsHtml(){
+  if (!_cePts || _ceTab !== 'chat') return '';
+  const list = _cePts.list, k = cePtsTicked().length;
+  const lab = ceClauseLabel(ceClause()) || '';
+  const m = /^\s*(\d+(?:\.\d+)*)/.exec(lab);
+  const tick = '<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+  /* "✦ You came from What to watch on 3 · 4 points…", the place named in bold, as drawn */
+  const say = _cee(_cetn('ce_pts_say', list.length, { n: list.length, clause: m ? m[1] : lab, what: '\u0001' })).replace('\u0001', `<b>${_cee(_cet('stk_watch_h'))}</b>`);
+  return `<div class="ce-ai ce-pts" data-ce-pts><p class="t"><b class="ce-pts-mk" aria-hidden="true">✦</b> ${say}</p>
+    <ul class="ce-pts-list">${list.map((p, i) => `<li class="ce-pt${p.on ? ' is-on' : ''}"><button type="button" class="ce-pt-tick" role="checkbox" aria-checked="${p.on}" data-ce-pt="${i}" aria-label="${_ceea(_cet('ce_pts_tick'))}">${p.on ? tick : ''}</button><div class="ce-pt-w"><span class="ce-pt-t">${_cee(p.t)}</span>${p.q ? `<q class="ce-pt-q">${_cee(p.q)}</q>` : ''}</div></li>`).join('')}</ul>
+    <div class="ce-pts-acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="pts-draft"${k ? '' : ` disabled aria-disabled="true" title="${_ceea(_cet('ce_pts_none'))}"`}>${_cee(k ? _cetn('ce_pts_draft', k, { n: k }) : _cet('ce_pts_none'))}</button><button type="button" class="ui-link" data-ce-act="pts-off">${_cee(_cet('ce_pts_off'))}</button></div></div>`;
+}
+/* the ticked points, told to Jambo beside the question (the playbook line) — never shown as the reader's words */
+function cePointsAsk(){
+  const on = cePtsTicked(); if (!on.length) return '';
+  return _cet('ce_pts_prompt') + '\n' + on.map(p => '- ' + p.t + (p.q ? ' (the words: "' + p.q + '")' : '')).join('\n');
+}
+function cePointsToggle(i){
+  const p = _cePts && _cePts.list[Number(i)]; if (!p) return;
+  p.on = !p.on;
+  ceRenderLane(); ceRenderScope();
+}
+function cePointsOff(){
+  if (!_cePts) return;
+  _cePts = null;
+  cePointsUnpaint(); ceRenderTabs(); ceRenderLane(); ceRenderScope();
+}
+function cePointsDraft(){
+  const k = cePtsTicked().length; if (!k || _ceBusy) return;
+  ceAsk(_cetn('ce_pts_draft_q', k, { n: k }));
+}
+function cePointsUnpaint(){
+  try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete(CE_PTS_HL); } catch (_){}
+}
+/* the ticked points' words on the clause, found across the box's text nodes (struck runs left out), whitespace folded */
+function cePointsPaint(){
+  if (typeof CSS === 'undefined' || !CSS.highlights || typeof globalThis.Highlight !== 'function') return 0;
+  const on = cePtsTicked().filter(p => p.q);
+  const root = clauseEditorOpen() ? (_ceQ('#ce-clausebody') || _ceQ(`#ce-doc [data-clause="${(window.CSS && CSS.escape) ? CSS.escape(String(_ceClauseId)) : _ceClauseId}"]`)) : null;
+  if (!on.length || !root){ cePointsUnpaint(); return 0; }
+  ceEnsureStyle();
+  const map = []; let txt = '';
+  const walk = document.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */);
+  while (walk.nextNode()){
+    const n = walk.currentNode, el = n.parentElement;
+    if (el && el.closest && el.closest('del, [data-ce-mark="del"]')) continue;
+    const v = String(n.nodeValue || '');
+    for (let j = 0; j < v.length; j++){
+      const ch = /\s/.test(v[j]) ? ' ' : v[j];
+      if (ch === ' ' && txt.endsWith(' ')) continue;
+      txt += ch; map.push([n, j]);
+    }
+  }
+  const fold = x => x.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+  const hay = fold(txt).toLowerCase();
+  const ranges = [];
+  on.forEach(p => {
+    const nd = fold(p.q.replace(/\s+/g, ' ').trim()).toLowerCase(); if (nd.length < 4) return;
+    const at = hay.indexOf(nd); if (at < 0) return;
+    const a = map[at], b = map[at + nd.length - 1]; if (!a || !b) return;
+    try { const r = document.createRange(); r.setStart(a[0], a[1]); r.setEnd(b[0], b[1] + 1); ranges.push(r); } catch (_){}
+  });
+  if (ranges.length) CSS.highlights.set(CE_PTS_HL, new globalThis.Highlight(...ranges)); else cePointsUnpaint();
+  return ranges.length;
+}
 /* ---- "OPEN 8.3" ARRIVES WITH JAMBO'S WORDING (owner, 10 Nov 2026) ----
    The other clause's ask from a draft (pbDraftRead's `also`) is put on a card
    here, as the ask you came with is (ceOfferAsk): one line saying where you
@@ -5859,7 +5971,7 @@ async function ceAsk(question, opts = {}){
       clauseLabel: whole ? '' : ceClauseLabel(cl),
       party: (window.contractParty ? contractParty(_ceC) : (window.FIRST_PARTY || '')) || '',
       law: window.jxLaw ? jxLaw() : '',
-      playbook: whole ? '' : [cePlaybookLine(), cePrecedentLine(), ceTheirAsk()].filter(Boolean).join('\n'),
+      playbook: whole ? '' : [cePlaybookLine(), cePrecedentLine(), ceTheirAsk(), scope ? '' : cePointsAsk()].filter(Boolean).join('\n'),
       history,
       context: whole ? ceWholeContext() : undefined,
     });
@@ -6462,6 +6574,15 @@ function ceRenderScope(){
     contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' }[state]);
   if (!box) return;
   box.className = 'ce-tag' + (asking ? ' is-asking' : '');
+  /* the ticked points ride in the box (ceOfferPoints): "N points ×", whose × puts them away */
+  const pk = state === 'clause' ? cePtsTicked().length : 0;
+  if (pk){
+    if (ask) ask.placeholder = _cet('ce_ask_ph_points');
+    box.title = cePtsTicked().map(p => p.t).join('\n');
+    box.innerHTML = `<span class="w">${_cee(_cetn('ce_pts_tag', pk, { n: pk }))}</span><button type="button" data-ce-act="pts-off"
+      title="${_ceea(_cet('ce_pts_off'))}" aria-label="${_ceea(_cet('ce_pts_off'))}">${CE_TAG_X()}</button>`;
+    return;
+  }
   if (state === 'clause'){
     box.title = ceClauseLabel(ceClause()) || _cet('ce_this_clause');
     box.innerHTML = `<span class="w">${_cee(_cet('ce_tag_clause'))}</span><button type="button" data-ce-act="scope-contract"
@@ -6809,6 +6930,8 @@ function ceSpellAfter(){
   return ceWords(n ? n.text : _ceText) + '\n' + String((n ? n.head : _ceHead) || '');
 }
 function ceSpellMark(soon){
+  /* the points' highlights are drawn over the box's text too, so a new mount draws them again */
+  if (_cePts) cePointsPaint();
   if (typeof window.spellUnderline !== 'function') return;
   if (!clauseEditorOpen() || !ceIsTyping()){ spellUnderlineClear(); return; }
   const roots = [_ceQ('#ce-clausebody'), _ceQ('#ce-clausehead')].filter(Boolean);
@@ -7601,6 +7724,8 @@ function ceWirePage(page){
       ceFocusTyping();
       return;
     }
+    const pt = hit('[data-ce-pt]');
+    if (pt){ ev.preventDefault(); cePointsToggle(pt.getAttribute('data-ce-pt')); return; }
     const act = hit('[data-ce-act]');
     if (!act) return;
     ev.preventDefault();
@@ -7611,6 +7736,8 @@ function ceWirePage(page){
       case 'close': ceLeaveGuard(() => rlCloseClauseEditor()); break;
       /* ‹ REDLINES: the same way out, landing on the row it came from */
       case 'row-back': ceRowBack(); break;
+      case 'pts-draft': cePointsDraft(); break;
+      case 'pts-off': cePointsOff(); break;
       case 'undo': ceUndo(); break;
       case 'discard': ceDiscard(); break;
       case 'prep-out': cePrepOut(); break;
@@ -7964,7 +8091,7 @@ Object.assign(window, {
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
   ceLadderCardHtml, ceLadderLaneHtml, ceLadderRow,
-  ceRowMode, ceTrailOn, ceTrailRisk, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowIsCounter, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
+  ceOfferPoints, cePointsPaint, ceRowMode, ceTrailOn, ceTrailRisk, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowIsCounter, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
   ceMarksPlanOf, ceMarksPaintBox, ceAtomWall, ceAtomSkipIn, ceInlineSeed, ceBoxHtml,
 });

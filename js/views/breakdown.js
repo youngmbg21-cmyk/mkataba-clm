@@ -763,7 +763,16 @@ function stkRedlineGo(c, opts){
   if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f }, row });
   if (typeof openRedlineWorkbench !== 'function') return;
   const q = opts && opts.question ? String(opts.question) : '';
-  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause) || ((_stk.nums || [])[p.at] || ''), ask: q ? '' : String(p.ask || p.stdAsk || ''), question: q } : null });
+  /* THE CLAUSE'S POINTS GO WITH IT (owner picked "Legora with ticks", 11 Nov 2026): every point to watch on this
+     clause's row — not a blank, not missing; the ones not yet reviewed, else all — so the editor says why you came
+     (ceOfferPoints). Words only: what is at stake and the words it was read from. */
+  let points = [];
+  if (p && !p.missing && row >= 0 && b){
+    const same = stkShown(c, b).filter(x => x && !x.missing && !x.blank && stkAt(x, _stk.nums || [], _stk.rows) === row);
+    const open = same.filter(x => !x.done);
+    points = (open.length ? open : same).map(x => ({ t: String(x.stake || x.title || ''), q: String(x.quote || ''), s: x.status === 'need' ? 'need' : 'look' }));
+  }
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause) || ((_stk.nums || [])[p.at] || ''), ask: q ? '' : String(p.ask || p.stdAsk || ''), question: q, points } : null });
 }
 /* the way back puts the deep dive where the reader left it */
 function stkResume(f){

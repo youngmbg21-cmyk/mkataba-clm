@@ -9341,6 +9341,8 @@ function rlLandOn(c, land){
     if (!door.open(cl.clauseId, { fromClauses: true })) return;
     /* the ask waits on a card in Jambo's panel, Apply · Discard (ceOfferAsk);
        a question from "Ask Jambo about this" waits in his ask box, unsent */
+    /* the clause's points to watch come first, ticked (ceOfferPoints; owner picked "Legora with ticks", 11 Nov 2026) */
+    if (Array.isArray(land.points) && land.points.length && window.ceOfferPoints) ceOfferPoints(land.points);
     if (land.ask && window.ceOfferAsk) ceOfferAsk(land.ask, land.quote);
     if (land.question) setTimeout(() => {
       const box = document.getElementById('ce-ask'); if (!box) return;
