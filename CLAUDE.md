@@ -373,7 +373,7 @@ PAST THE MARK THE PANEL SLIDES OVER (reverses "the page keeps restMin"): the pag
 - COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
 - OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint` (GET /api/brain `stack`). Reading the code blocks the server: each file indexed ONCE (`brainDefIndex`, `brainNewlines`), never a search per name (f1000).
 ## THE OVERNIGHT RUN (9 Oct)
-SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`); the rest in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)"; f570, f580–f626, f651.
+SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`); late seals `runSealCatchUp`, `sealCatchUpPage`, `srvExecutedSentence`; the rest in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)"; f570, f580–f626, f651.
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
 EVERY TEXT ANSWER GOES OUT COMPRESSED: one gzip middleware; `ZIP_NEVER` keeps live feeds streaming; a piped file needs `drain` forwarded. f996.
 DOOR NUMBERS COUNTED ONCE A TURN: `doorCounts(nc)`. f997.

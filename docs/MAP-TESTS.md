@@ -662,3 +662,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## INSIGHTS — SAVED VIEWS FOLLOW YOU (10 Nov 2026)
 - test/f1001-saved-views-follow-you.test.js — kept on the server for the person only (an admin's list carries no one else's), refused in words when broken, read back on sign-in; the browser reads and writes through the one preference writer.
+
+## THE OVERNIGHT RUN (9 Oct)
+- test/f580-the-seal-is-the-servers.test.js — the server seals, as HaTi.
+- test/f651-their-link-renewal-term-and-the-copy-the-server-draws.test.js — C3–C5: the reminder round seals "Seal waiting" AND a finished route with no note; the executed email says the day signed (and sealed).
+- test/f1002-the-seals-only-a-page-can-draw.test.js — the first page an editor opens draws the copies the server cannot (`sealCatchUpPage`).
