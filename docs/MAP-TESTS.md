@@ -88,6 +88,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SHELL — RAIL, BAR, PANELS
 - THE SAP WAY: ONE TOOLBAR UNDER A JAMBO ANSWER (owner's pick by name, 10 Nov 2026): `node test/chromium/jambo-panel-sap-verify.js` — 1a one toolbar under the answer, 1b its three rows Understood · Next · Open labelled and in order, 1c one filled button and a More, 2a the rare acts in the page but not on the panel, 2b one press opens More and all three can be seen (red at the parent: there is no toolbar at all), 2c the same press closes it, 2d Esc, 2e a press outside, 3a nothing spills at the owner's three screens, 3b one compact block. 4a/4b the source line is More's last row, a line not a press, said once; 5a/5b/5c the page links on the way-back line before the bin, no row of their own (red at the parent: there was one), one line inside the panel. Unit test `node --test test/f1003-the-sap-way-toolbar.test.js` (8; renumbered from f1000 and f1002, which main gave the Brain and the seals the same nights). RE-POINTED: explorer-stage-three, -four and -five press More before Explain this view / Pin this finding / Copy picture.
+- ONE ROW UNDER THE NEWEST ANSWER (owner's picks by name, 11 Nov 2026): `node test/chromium/jambo-one-row-verify.js` — 1a one row and no three-row toolbar, 1b the chips + one filled button + ⋯ all on it, 1c a row not a stack, 2a/2b/2c every question still on the panel with what Jambo said to each, nothing folded, only the newest carrying controls (red at the parent: three labelled rows under every answer), 4a–4d ⋯ holds the next steps, the doors, Explain · Pin · Copy picture and the source line, 5a nothing spills at the three screens, 6a/6b the source line said once, 7a/7b the page links on the way-back line, 8a/8b the BOARD draws the same row and its earlier answer keeps its words. Unit test `node --test test/f1005-one-row-on-explorer.test.js` (8). CUT: jambo-panel-sap-verify and f1003 — their subject (the three-row toolbar) is retired; their live cases moved into f1005 (6)(7)(8). RE-POINTED: home-first 1a/1b, next-step-chips 5, reading-chips 4 and 6a/6b, explorer-stage-three/-four/-five (the rare acts are under ⋯).
 - THE ONE PANEL BUTTON (9 Nov 2026, owner picked "The SAP Way"): nav-panel-door-verify rewritten (red at the parent: one button, the panel's mark, no ? and no clock, Alerts with something waiting, again closes, the tabs choose); f187 (1)/(3), alerts-and-activity 3, glitch-fixes 4d, notes-two-rooms (Activity), type-and-symbols, new-look-frame 3, _audit/glitch-audit re-pointed; f798 and requests-and-notes-as-drawn 6b read "in your Alerts".
 - ONE ROW ABOVE JAMBO'S BOX, EVERYWHERE (owner, 6 Nov 2026): one-row-above-the-box-verify 1–3 (new, red at the parent on 1 and 3: Contracts' folders and wall drew a doors row AND a chips row); RE-POINTED doors-verify 3 (on Contracts the chips are the row, no doors row).
 - One box, no rivals (round 1, 29 Oct 2026): keyboard-reach-verify (⌘K → Jambo's box), legora-lists-verify (1c/7f/7g), contracts-page-verify 16b, negotiations-door-verify 11, jambo-map-verify 7, settings-as-drawn-4-verify 1d; f861, f739, f938 (keep handbook words short).
@@ -177,6 +178,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - clauses-legora-way-verify 1c: on every tab (All · Needs you · Worth a look · Fine) the spine starts at the first dot shown and ends at the last (red at the parent: −17 / +15px on the filtered tabs).
 - MARQUEE (23 Oct 2026): clauses-legora-way-verify 1/1b (headline, sentence, tabs with counts; Worth a look narrows, All lets go), clause-list-fixed-verify 6a/6b (Needs you tab), stakes-verify 2, 3b–3d, 3k, 3l (Found by behind Filter, one dropdown per touch), 5c/5e (the tab survives the editor trip), 9 — all re-pointed from the three boxes.
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
@@ -378,6 +380,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## SIGN LINKS, SIGNERS AND THE SIGNING ROUTE
 - THE PHONE'S MARK KEEPS ITS SHAPE (bug log batch 3, 26 Oct 2026): phone-fits-verify 12b (new; red at the parent, canvas 3.06 against a 1.58 box) — the signature canvas takes its box's shape before drawing; the computer's pad stays 520×170.
 - f182, f185, f897, f398, sign-links, signing-route-timeline verify.
+- THE DOSSIER'S SIGNER DOOR (owner-reported 11 Nov 2026): dossier-signer-change-verify (new; red at the parent, the window never opens) — the new look's Signer · Change and the card's Name open the signing-order window; the one listener answers `[data-pd-og-route]` anywhere in `#pd-glance` and reads the contract off the button.
 
 ## SIGNING ON THE PAPER
 - f256, signing-on-paper-verify.
@@ -660,11 +663,11 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - test/f999-one-needs-you-count.test.js — every door's Needs you number is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`); Explorer's Your day asks it.
 
 ## COPILOT READS A CONTRACT ON ARRIVAL — THE NOTES FOLLOW THE WORDING (11 Nov 2026)
-- f1007 (new, 8 checks, all red at the parent): negoResolve tells `triageWordingMoved` after the commit; never-read is not read; no key / their page / a viewer / a private stream start nothing; four decisions are one timer; unmoved wording reads nothing; moved wording reads once, marked `agreed`, the clause review after it; a running reading is waited for; `pd2_read_agreed` in both books.
+- f1008 (new, 8 checks, all red at the parent): negoResolve tells `triageWordingMoved` after the commit; never-read is not read; no key / their page / a viewer / a private stream start nothing; four decisions are one timer; unmoved wording reads nothing; moved wording reads once, marked `agreed`, the clause review after it; a running reading is waited for; `pd2_read_agreed` in both books.
 - notes-follow-the-wording-verify (new, GitHub): 1 the Clean paper carries the agreed words at once, 2 the readings are asked for again once and marked agreed (the reading stood in for, no call), 3 unmoved wording asks nothing more, 4 never-read is not read.
 
 ## PERFORMANCE — THE SWITCH DRAWS ONCE, NO PAGE-WIDE :has (11 Nov 2026)
-- f1006 (new, 7 checks, all red at the parent): no `body:has(#ig-dock …)`; `igDockMarks` at each of renderIntelDock's writes; no `:has(> #sh-lt-goes)` (`sh-lt-hasgoes`); a `:has` with nothing named in front is not added (`BARE_HAS_KNOWN` only shrinks); the notes' watcher asks `isConnected` first; Their view's press opens the panel before any paint; `pd2SheetPre` before `igPaperPaginate`.
+- f1007 (new, 7 checks, all red at the parent): no `body:has(#ig-dock …)`; `igDockMarks` at each of renderIntelDock's writes; no `:has(> #sh-lt-goes)` (`sh-lt-hasgoes`); a `:has` with nothing named in front is not added (`BARE_HAS_KNOWN` only shrinks); the notes' watcher asks `isConnected` first; Their view's press opens the panel before any paint; `pd2SheetPre` before `igPaperPaginate`.
 - switch-draws-once-verify (new, GitHub): 1–2 one paper and one notes layout per press, 3 Their view builds the paper once with its panel open, 4 the page carries `data-igd-head` / `data-igd-door` and the paper's line keeps its height. Counted, never timed.
 
 ## PERFORMANCE — ROWS ONLY ON A PRESS (10 Nov 2026)
@@ -681,3 +684,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE LIGHT LIST — A TYPED ANSWER IS NEVER TAKEN BACK (11 Nov 2026)
 - node --test test/f1005-a-typed-answer-is-never-taken-back.test.js test/f327-copilot-reads-and-fills-on-arrival.test.js
 - browser (GitHub): owed-first-verify (2b)
+
+## THE SHELL — A PRESS SHOWS AT ONCE, THE PAGE LINKS RIDE THE LINE (11 Nov 2026)
+- node --test test/f1006-a-press-shows-at-once-and-the-links-ride-the-line.test.js test/f793-jambo-may-change-my-calendar.test.js
+
+## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
+- node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
+- browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)

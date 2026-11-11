@@ -5949,11 +5949,19 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       pdOgSaveIn(tb, c); return; }
     const sa = t.closest('#pd-og [data-pd-og-saveall]');
     if (sa){ e.preventDefault(); const c = pdOgContract(); if (!c) return; pdOgSaveIn(sa.closest('#pd-og'), c); return; }
-    const rt = t.closest('#pd-og [data-pd-og-route], #pd-glance .ds-nx [data-pd-og-route]');
-    if (rt){ e.preventDefault(); const c = pdOgContract(); if (!c || typeof openSignerPlanEditor !== 'function') return;
-      const id = c.id; pdSgListClose();
-      openSignerPlanEditor((typeof getContract === 'function' && getContract(id)) || c,
-        { onDone(){ pdOgRepaint(); pdOgLand(id, 'signers'); } });
+    /* THE ONE SIGNER DOOR, WHEREVER IT IS DRAWN (owner-reported 11 Nov 2026: the new look's Signer · Change did
+       nothing): the form's rows, the old Next card, and the new look's Dossier (its facts row and its one card) all
+       carry data-pd-og-route with the contract's id. The contract is read off the button itself, not the form's host
+       (pdOgContract answers null when the form is not open). Pressed in the form, it lands back on the form's signers;
+       pressed on the Dossier, the Dossier is drawn again with the names it now has. */
+    const rt = t.closest('#pd-og [data-pd-og-route], #pd-glance [data-pd-og-route]');
+    if (rt){ e.preventDefault(); if (typeof openSignerPlanEditor !== 'function') return;
+      const id = rt.getAttribute('data-pd-og-route');
+      const c = (id && typeof getContract === 'function' && getContract(id)) || pdOgContract(); if (!c) return;
+      const inForm = !!rt.closest('#pd-og'); pdSgListClose();
+      openSignerPlanEditor(c, { onDone(){
+        if (inForm){ pdOgRepaint(); pdOgLand(c.id, 'signers'); return; }
+        try { pdGlanceRepaint(); } catch (_){} } });
       return; }
     const ok = t.closest('#pd-og [data-pd-og-ok]');
     if (ok){ e.preventDefault(); const c = pdOgContract(); if (c) pdOgConfirm(c, ok.getAttribute('data-pd-og-ok')); return; }
@@ -7610,7 +7618,9 @@ function pd2ClauseTint(){
   const row = document.querySelector('#ig-dock #pd-thread .doc-th-row.is-open'); if (!row) return;
   const name = (row.querySelector('.doc-th-name') || row).textContent.replace(/\s+/g, ' ').trim().toLowerCase();
   const sec = pd2WalkSections(cv).find(x => x.head && name.indexOf(String(x.head.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()) === 0);
-  if (sec) sec.els.forEach(e => { if (e !== sec.head) e.classList.add('pd2-cl-on'); });
+  /* THE PAPER STAYS WHITE (owner, 11 Nov 2026: "Drop it"): no amber wash on the open clause's words; the note
+     beside it and its row in the panel carry the link (below) */
+  void sec;
   /* THE NOTE BESIDE IT AND ITS ROW LIGHT WITH IT (owner, 10 Nov 2026): one thing, one amber outline in three places; painted,
      never stored */
   const fold = t => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();

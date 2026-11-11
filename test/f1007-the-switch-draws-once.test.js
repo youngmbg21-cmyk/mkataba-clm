@@ -1,4 +1,4 @@
-/* f1006 — THE CLEAN | REDLINE | THEIR VIEW SWITCH DRAWS ONCE
+/* f1007 — THE CLEAN | REDLINE | THEIR VIEW SWITCH DRAWS ONCE
    ==========================================================
    The owner, 11 Nov 2026: "why is the press from clean to redlines and so
    forth have a delay?"
@@ -27,7 +27,7 @@
      6 · the switch does not draw the paper before opening Their view's panel
      7 · the paper takes its notes' width before it is cut into pages
 
-   Run: node --test test/f1006-the-switch-draws-once.test.js */
+   Run: node --test test/f1007-the-switch-draws-once.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -59,7 +59,7 @@ function fnBody(src, name) {
    BUGLOG 11 Nov 2026) may leave; none may join. */
 const BARE_HAS_KNOWN = [':has(> #ins-panel.is-jambo)', ':has(> .lh-foot)'];
 
-describe('f1006 — the Clean | Redline | Their view switch draws once', () => {
+describe('f1007 — the Clean | Redline | Their view switch draws once', () => {
   test('1 · no rule asks the whole body what the panel is: the page carries it', () => {
     assert.ok(!/body:has\(\s*#ig-dock/.test(CSS), 'no body:has(#ig-dock …) in index.html');
     assert.match(CSS, /#ig-page\[data-igd-head="paper"\]/, 'the paper head is read off #ig-page');

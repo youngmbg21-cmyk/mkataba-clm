@@ -1,4 +1,4 @@
-/* f1007 — THE NOTES FOLLOW THE WORDING
+/* f1008 — THE NOTES FOLLOW THE WORDING
    ====================================
    The owner, 11 Nov 2026: "walk me through … what happens to the notes once
    the counterparty accepts the changes … Do the notes disappear, when does the
@@ -21,7 +21,7 @@
          `agreed`, and the kept clause review after them, never beside them
      7 · the run stamps `agreed` and the Dossier says so, in both books
 
-   Run: node --test test/f1007-the-notes-follow-the-wording.test.js */
+   Run: node --test test/f1008-the-notes-follow-the-wording.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -59,7 +59,7 @@ function stage(over) {
 const readIt = (win, c) => { c.triage = { at: 'x', steps: {}, hash: win.triageWordingHash(c) }; };
 const move = c => { c.upload.extractedText = c.upload.extractedText.replace(/thirty days/g, 'sixty days'); };
 
-describe('f1007 — the notes follow the wording', () => {
+describe('f1008 — the notes follow the wording', () => {
   test('1 · negoResolve tells the arrival read after it rewrites the paper', () => {
     const src = strip(read('js/negotiation.js'));
     const at = src.indexOf('function negoResolve(');

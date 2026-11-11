@@ -72,19 +72,21 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        toolbar with three labelled rows — the Open row leads with the filled button, and the rest (Show on the
        Board, the Contracts page, Export) is under More, in the page but not on the panel until it is pressed. */
     const doors = await page.evaluate(() => {
-      const row = document.querySelector('#ig-dock [data-ig-sap-r="open"] .igd-sap-v');
-      const lead = row ? [...row.children].filter(x => x.tagName === 'BUTTON' && !x.hasAttribute('data-ig-sap-more')) : [];
-      const menu = row ? row.querySelector('.igd-sap-menu') : null;
+      /* RE-POINTED 11 Nov 2026 (One Row): the doors stand on the answer's one row — the filled button on it,
+         the rest under ⋯ */
+      const row = document.querySelector('#ig-dock .igd-one');
+      const lead = row ? [...row.children].filter(x => x.tagName === 'BUTTON') : [];
+      const menu = row ? row.querySelector('.igd-more-menu') : null;
       return { btns: lead.map(b => b.textContent.trim() + (b.classList.contains('ui-btn-primary') ? '*' : '')),
-        more: !!(row && row.querySelector('[data-ig-sap-more]')),
+        more: !!(row && row.querySelector('[data-ig-more]')),
         under: menu ? [...menu.querySelectorAll('button')].map(b => b.textContent.trim()) : [],
         menuShut: !!menu && !menu.classList.contains('is-open') };
     });
     /* the tab is called Workspace since 15 Oct 2026 (owner), so the door names it */
-    ok('1a the Open row leads with Read all 3 in Workspace, filled, and a More beside it (Paper was called Document 11 Oct 2026, Workspace 15 Oct)',
+    ok('1a the row leads with Read all 3 in Workspace, filled, and ⋯ beside it (Paper was called Document 11 Oct 2026, Workspace 15 Oct)',
       doors.btns.join('|') === 'Read all 3 in Workspace*' && doors.more, JSON.stringify(doors));
-    ok('1b Show on the Board, the Contracts page and Export are under More, shut',
-      doors.menuShut && doors.under.length >= 3 && /Show on the Board/.test(doors.under[0]) && doors.under.some(x => /Contracts page/.test(x)) && doors.under.some(x => /Export/.test(x)), JSON.stringify(doors.under));
+    ok('1b Show on the Board, the Contracts page and Export are under ⋯, shut',
+      doors.menuShut && ['Show on the Board', 'Contracts page', 'Export'].every(w => doors.under.some(x => x.includes(w))), JSON.stringify(doors.under));
     await page.screenshot({ path: path.join(OUT, '1-answer.png') });
 
     /* ===== 2. WALK THE SET ON PAPER ===== */

@@ -62,17 +62,31 @@ const mineGet = id => [..._mine.event, ..._mine.note].find(x => String(x.id) ===
 /* THE ONE WRITER. Returns the stored item, or throws with the server's words. */
 async function mineSave(kind, item, id){
   let out;
+  /* A SETTING SHOWS AT ONCE (owner, 11 Nov 2026: "when i try to press between the buttons there is a delay"): a
+     person's own pref is theirs alone, so it is taken here before the server answers and the page drawn once;
+     the server's answer then only replaces it, and a refusal puts the old one back and is said by the caller */
+  const prefWas = kind === 'pref' ? _mine.pref : null;
+  if (kind === 'pref' && mineServer()){ _mine.pref = { ...(_mine.pref || {}), ...item }; mineChanged(); }
   if (mineServer()){
-    const r = id ? await api('me/items/' + encodeURIComponent(id), 'PUT', { item })
-      : await api('me/items', 'POST', { kind, item });
+    let r;
+    try {
+      r = id ? await api('me/items/' + encodeURIComponent(id), 'PUT', { item })
+        : await api('me/items', 'POST', { kind, item });
+    } catch (e){ if (kind === 'pref'){ _mine.pref = prefWas; mineChanged(); } throw e; }
     out = r && r.item;
+    if (!out && kind === 'pref'){ _mine.pref = prefWas; mineChanged(); }
   } else {
     const prev = id ? mineGet(id) : null;
     out = { ...(prev || {}), ...item, kind, id: id || (kind === 'pref' ? 'pref:local' : (kind === 'event' ? 'ev_' : 'nt_') + Math.random().toString(36).slice(2, 10)),
       updatedAt: new Date().toISOString(), createdAt: (prev && prev.createdAt) || new Date().toISOString() };
   }
   if (!out) throw new Error('Not saved');
-  if (kind === 'pref') _mine.pref = out;
+  if (kind === 'pref'){
+    /* already drawn with the person's choice: drawn again only where the server's copy says otherwise */
+    const same = mineServer() && JSON.stringify(Object.keys(item).map(k => [k, out[k]])) === JSON.stringify(Object.keys(item).map(k => [k, item[k]]));
+    _mine.pref = out;
+    if (same){ return out; }
+  }
   else { const list = _mine[kind] || (_mine[kind] = []); const i = list.findIndex(x => String(x.id) === String(out.id));
     if (i >= 0) list[i] = out; else list.unshift(out); }
   if (!mineServer()) mineLocalWrite();

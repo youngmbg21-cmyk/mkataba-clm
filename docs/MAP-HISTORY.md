@@ -37008,6 +37008,74 @@ when they bite. Every limiter written with a number of its own is untouched, the
 signing code's attempt wall among them: those are brute-force protection, not cost control, and "remove the
 rate limits" was never a request to take the locks off the doors. f1004 pins both halves.
 
+## THE SHELL — RAIL, BAR, PANELS
+### ONE ROW ON EXPLORER (owner picked it by name, 11 Nov 2026)
+Of the three layouts drawn on 10 November, the owner picked The SAP Way for the panel and it was built. A day
+later, with Explorer in front of them: "for the explorer, build one row." So the two faces now differ on
+purpose — the Board's talk is a question or two and keeps the SAP toolbar's three labelled rows; Explorer's runs
+ten questions deep, and three rows under each answer push the newest off the screen.
+
+BUILT AS DRAWN: the answers BEFORE the newest fold to one line each — the words you asked, and how many that
+answer put on the map (`igFoldHtml`; the count prints only where the answer drew a set, as the map's own rule
+has it, so a question that drew nothing folds to its words alone). A press opens one where it stands and the
+same press folds it back (`intel.oneOpen`). The newest answer carries ONE row: the chips, the one filled
+button, and ⋯ — which is the SAP menu under another face (`igSapMoreHtml(i,rows,{dots:true})`), so its press,
+its Esc, its press-outside and its contents are the ones already measured. THE PIECES ARE THE SAME ONES
+(`igMapReadHtml`, `hbReadingHtml`, `igDoorsHtml`, `hbNextHtml`): not one press or door changed. Measured at
+50px against the SAP toolbar's 172px on the same answer.
+
+NOT BUILT AS DRAWN, AND ASKED: the drawing shortened the chips to "Keep 3 streams · By value" and the button to
+"Read all 82". Those exact words were the owner's own pick in the Board Twin round ("Keep · Ranked by · the
+word") and the door's own label, so they were left as they are — which means at 1440 the chips take the line
+above the button rather than sitting beside it. The owner was asked whether to shorten the chips on Explorer.
+
+## THE SHELL — RAIL, BAR, PANELS
+### ONE ROW IS THE PANEL'S ONE LAYOUT (owner, 11 Nov 2026; reverses the SAP toolbar of 10 Nov)
+One Row was built for Explorer in the morning. The owner then asked to see the Board doing the same job; it was
+photographed two questions deep, and the answer before the newest was still taking the top of the panel — its
+Open row, its More, its Undo — with the toolbar measuring 168px against Explorer's new 50px. The owner:
+"build one row on the board too, and push."
+
+So One Row is now the panel's ONE layout and the three labelled rows are DELETED, not left beside it: a second
+way of showing the same controls is the thing the round was meant to end. `igSapHtml`, `.igd-sap*` and the
+`igOneRowOn()` face switch are gone; `igSapMoreHtml` came back as `igMoreHtml` (the ⋯ menu), and the names that
+said SAP now say what they are — `.igd-more-menu`, `.igd-more-wrap`, `.igd-src`, `data-ig-more`,
+`intel.moreOpen`. The three row labels (int_sap_understood / _next / _open) are left inert in both books.
+
+CUT WITH IT: jambo-panel-sap-verify and f1003, whose subject no longer exists. Their cases that are still true
+— the pieces splitting without changing a press, the source line said once, the page links on the way-back line
+— moved into f1005 as (6), (7) and (8), and into the One Row check as 6 and 7. Re-pointed with the reason:
+home-first, next-step-chips, reading-chips, and the three explorer-stage checks.
+
+STILL ASKED, NOT DECIDED: the drawing shortened the chips ("Keep 3 streams", "By value") and the button ("Read
+all 82"). Those words are the owner's own earlier picks, so they stand, and the chips take the line above the
+button at 1440.
+
+### KEEP THE WORDS (owner picked it by name, 11 Nov 2026)
+One Row folded every answer before the newest to a single line. The first run of the checks said what that
+really costs: FIVE checks written over months — f840 (2c), jambo-tab-and-back (1g, 1m, 2b), reading-chips (4),
+explorer-stage-three (4e) — assert that the whole conversation is DRAWN: what was said beside one contract is
+still there beside the next, an older answer's figures and chips are still on the panel. Folding put all of
+that behind a press. The owner's new pick and their older ruling disagreed, so the round STOPPED and three ways
+were drawn on the real panel, four questions deep (claude.ai/artifact/ShmF1uW2MGxM39z87CajUh): "Fold it all"
+(about 230px), "Keep the words" (about 480px), "Last two open" (about 330px). The recommendation was Last two
+open; the owner picked "keep the words".
+
+BUILT: `igOneHtml` draws for the NEWEST answer only; every answer above it keeps its bubble, its words, its
+figures line and its Undo, and loses only its row of controls. Nothing folds — `igFoldHtml`, `igTurnsHtml`,
+`intel.oneOpen`, the `.igd-fold*` styles and the fold's press are all gone, and `int_one_shown` is inert in
+both books. The five checks pass as written, because the conversation is drawn again. ONE was re-pointed with
+the reason: reading-chips 4 measured an older answer's chips drawn plain, and an older answer has no chips now
+— it measures that the older answer's WORDS are drawn and only the newest carries chips.
+
+ALSO FIXED FROM THAT RUN: the ⋯ printed a typed mark (f966 forbids it; the drawn `more` icon now), and the ⋯
+and the fold were wired inside renderIntelDock while the turns are repainted in place, so the listeners died
+with their nodes — the ⋯ is delegated on document at load.
+
+
+## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ — ONE "WHAT TO WATCH", THE PAPER LINES UP, THE PAPER STAYS WHITE (11 Nov 2026)
+The owner, off MK-382's Clauses tab with four "What to watch" blocks (twelve links) on clause 3: combine them. Drawn three ways (artifact "One What to Watch", the page at 1440 × 780): One list (the Legora Way) · Pick and act (the SAP Way) · One sentence; the owner picked **One list**. Built in the new look only: `stkRowCardsHtml` → `stkGroupHtml` ("What to watch · N points", a line per point, one Start redlining · Deep dive · Mark all reviewed; `data-stk-review-all` runs `stkMarkReviewed` per point; blanks keep their own card). Two parts differ from the drawing and were put to the owner before merge: no quoted words under each line (the 23 Oct ruling "no wording in the panel" stands), and Deep dive opens the first open point with ‹ › walking the rest (no clause-wide dive exists).
+The owner also: "the clauses on the page and the panel do not line up". Measured: scrolling on Clauses already followed; the two mismatches were (1) the first open of the clause that needs you left the paper where it was (stkDecorate's firstOpen, "the paper is not moved") and (2) a paper scrolled on the Dossier tab came back to Clauses with the old clause open (the follow listens only while the list is up). Fixed: the first open glides (`docThreadGoTo`; reverses "the paper is not moved"), and `docThreadPaint` opens the clause at the line when the paper moved since the open row was decided (`_docThreadSyncTop`, set by every `docThreadOpen`). The owner asked whether the paper's amber wash should stay; their answer was "Drop it": `pd2ClauseTint` no longer sets `pd2-cl-on` and its rule is gone; the note and the row still light. contract-new-look-verify 13 re-pointed (paper white) and 13b added (the first open is at the paper's line).
 
 ### CLAUDE.MD TRIM, 11 Nov 2026 (fourth), after main grew the file to 80,646 bytes (verbatim before):
 
@@ -37025,6 +37093,15 @@ A HOME TAB (`setView('calendar')` → `hbOpenCalendar`; `renderCalendar` into `#
 ```
 Size after: CLAUDE.md 80071 bytes.
 
+## THE SHELL — A PRESS SHOWS AT ONCE, THE PAGE LINKS RIDE THE LINE (11 Nov 2026)
+The owner, off a screenshot of the Calendar's Jambo panel: "review why when i try to press between the buttons there is a delay. Review this and other similar buttons in the jambo page. Also why the panel stutters flashing the green links to other pages that are supposed to be above the jumbo entry field which are currently missing from the reads page, obligations page and possibly more." Then "yes, fix both".
+THE DELAY: `calLevelSet` awaited `mineSave` (a server round trip) and a full `renderCalendar` before the pressed button lit; the agents' levels (`agentLevelMineSet`, jambohouse's change handler and `jhnMaySet`) did the same. Measured with the server held 600ms: lit after ~630ms before, ~20ms after. Now the pref is taken at once (`mineSave` for kind 'pref', `calLevelLight`), drawn, and a refusal puts the old one back and says why (toast 'err').
+THE LINKS: the "Jambo ›" line (`jamboFwdHtml`, class `jb-door`) carried no `.jb-door-sp`, so `jamboWaysSync` removed the row above the box and had nowhere to put it — the links vanished on Reads, Obligations, Calendar, People, My notes. Every panel repaint (`jlAskHtml`) drew the row again and the sync removed it a beat later — the flash. Now `jamboFwdHtml` carries the ways (`is-in-door`) and the sync no longer removes the above-foot row; the sheet hides it while a line is shown (`.jb-ways.is-above-foot:has(+ * .jb-door:not([hidden]))`). f1006 (6 of 7 red at the parent).
+
+## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
+The owner, off three screenshots (the brief inside the greeting; the earlier own card; a chart card's ×): "move the summary back to having its own card like in image 2 but with an exit (x) button on the top right like image 3. It should also only appear once you have pressed summarize my board." REVERSES "Card Inside" (picked the same morning). `hbBoardHeadHtml` holds no brief; `hbBoardHtml` draws `bs.box` under the head in both looks; the kept brief and a failure carry `.hb-why-x` (`data-hb-bs-x`, the board's own `hb-ib hb-x` with `_hbX`) at the head's right end; `hbBriefShut` deletes the kept brief (`s.why[HB_BOARD_KEY]`) and the failure, so nothing is written until Summarise is pressed again (the button reads "Summarise my board" again). No × while it is being written. Card Inside's CSS rule removed. Handbook Board chapter, both books. f745 7a re-pointed, 7a2 new (red at the parent: no hbBriefShut). Photos at the three screens: own card, × 9px from the right edge, 7px from the top.
+Then, off a photo of it: "there needs to be space between the card and the top bar just like the spaces between cards in the baord". The greeting's white band (`#hb-bhead.is-greet::after`, kept for white-sheet-verify) filled the 12px gap, so the card looked stuck to the top. With a brief under it the band steps aside (`#hb-bhead.is-greet:has(+ .hb-why)::after{display:none}`): the gap is the Board's grey, 12 as between every card (measured at the three screens). Before the press there is no brief, so white-sheet still meets the band.
+
 ## PERFORMANCE — THE SWITCH DRAWS ONCE, NO PAGE-WIDE :has (11 Nov 2026)
 Owner, with a screenshot of MK-382: "why is the press from clean to redlines and so forth have a delay?" Asked how to find the slow step, the owner picked "Time it here, once" (a one-time lift of the no-measuring-in-a-chat rule, for this switch only).
 
@@ -37039,7 +37116,7 @@ BUILT. (1) `igDockMarks(head, door)` writes `data-igd-head` / `data-igd-door` on
 AFTER, same contract: Clean → Redline 78–87 ms, Redline → Clean 154–228 ms, → Their view 196–215 ms, Their view → Redline 186–196 ms. A class change 0.3 ms, an added element 7 ms. The same saving reaches every other act on a long paper (a note opened, a tab, a page mark), since the cost was the page's, not the switch's.
 
 LEFT ALONE, said to the owner: two more unnamed `:has` rules that do not stand over the paper (`#content :has(> #ins-panel.is-jambo)`, `… :has(> .lh-foot)`), and the other `body:has(…)` / `#app-shell:has(…)` rules (about 40), which measured cheap on this page. What is left of a press is one honest layout of the new paper and its pages; making Clean | Redline a show/hide of marks on one kept paper would be the next step and was not attempted (the Clean paper is built by leaving open changes out, and a wrong word on Clean is worse than 150 ms).
-Tests: f1006 (7, red at the parent); switch-draws-once-verify (new, for GitHub).
+Tests: f1007 (7, red at the parent); switch-draws-once-verify (new, for GitHub).
 
 ## COPILOT READS A CONTRACT ON ARRIVAL — THE NOTES FOLLOW THE WORDING (11 Nov 2026)
 Owner, with a screenshot of MK-382's paper and the notes beside it: "walk me through the process of what happens to the notes once the counterparty accepts the changes to worth a look or any notes related to mismatch to company standards. Do the notes disappear, when does the paper update with the latest changes to reflect the accepted changes that remove your concerns from the paper?"
@@ -37051,4 +37128,4 @@ Asked when Jambo should read again (Automatically · Only when you accept · Nev
 BUILT. `negoResolve` calls `triageWordingMoved(c)` (js/triage.js) after the commit. It starts, or restarts, a 2.5-second timer per contract (`TRIAGE_MOVED_MS`), so a run of decisions is one reading. At the timer's end `triageMovedRun` takes the live record and asks again: are the arrival readings of other words now (`triageMovedDue`: a stamped reading exists and the wording's hash differs), is the kept clause review (`bdStale`). Then, in turn and never side by side: `triageAndPaint(c, { agreed: true })`, whose own once-per-wording guard and private-stream wall still stand, then `bdRun`. Home's paper, notes and Dossier are repainted after each. Nothing is started for a contract nobody has read (an upload's unticked box still means no reading), with no AI key, on their page, for a viewer, or behind a private stream's wall. The run stamps `t.agreed`, and the Dossier's line then reads "Jambo read the paper again after an agreed change · nothing filed" (`pd2_read_agreed`, both books) instead of "once on arrival". The Handbook's chapter 3.1 says it in its tip.
 
 KNOWN LIMITS, said to the owner: the reading is made in the browser that recorded the decision (their answer is applied by whichever of our browsers picks it up); two people recording decisions on one contract within seconds of each other could each start a reading. The next send finds the reading already made and does not read again.
-Tests: f1007 (8, red at the parent); notes-follow-the-wording-verify (new, for GitHub).
+Tests: f1008 (8, red at the parent); notes-follow-the-wording-verify (new, for GitHub).

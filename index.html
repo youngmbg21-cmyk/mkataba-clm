@@ -12044,24 +12044,24 @@
   .ig-mr-next .ui-link{font-size:var(--t-meta)}
   /* THE SAP WAY: ONE TOOLBAR UNDER AN ANSWER (owner picked it by name, 10 Nov 2026) — three labelled rows,
      the rare acts under More. Nothing spills: every row wraps inside the card, and the menu is 16px inside it. */
-  .igd-sap{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:visible}
-  .igd-sap-r{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--color-divider)}
-  .igd-sap-r:last-child{border-bottom:0}
-  .igd-sap-l{font-size:var(--t-micro);color:var(--color-quiet);line-height:1.3}
-  .igd-sap-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
-  .igd-sap-v .hb-rd,.igd-sap-v .hb-nx,.igd-sap-v .igd-doors,.igd-sap-v .igd-small{display:contents}
-  .igd-sap-v .hb-nx-l{display:none}/* the row's own label already says Next */
-  .igd-sap-wrap{position:relative;display:inline-flex}
-  .igd-sap-more{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:inherit;font:inherit;font-size:var(--t-meta);font-weight:500;white-space:nowrap;cursor:pointer}
-  .igd-sap-more:hover,.igd-sap-more.is-open{border-color:var(--accent-fill,var(--color-accent-600))}
-  .igd-sap-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
-  .igd-sap-menu{display:none;position:absolute;bottom:calc(100% + 4px);right:0;/* UPWARD: the toolbar sits low in the panel, so a menu dropped down would fall off the window */z-index:30;min-width:208px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
-  .igd-sap-menu.is-open{display:flex}
+  .igd-one-v .hb-rd,.igd-one-v .hb-nx,.igd-one-v .igd-doors,.igd-one-v .igd-small{display:contents}
+  /* ONE ROW (owner's pick for Explorer, 11 Nov 2026): the controls on ONE line, and the answers before the
+     the answers above it keeping every word. Nothing spills: the row wraps inside the panel, chips give way first. */
+  .igd-one{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0}
+  .igd-one-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0;flex:1 1 auto}
+  .igd-one-v .hb-rd{display:contents}
+  .igd-one .ui-btn{flex:none}
+  .igd-one-more{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);padding:0;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-quiet);font:inherit;font-size:15px;line-height:1;cursor:pointer}
+  .igd-one-more:hover,.igd-one-more.is-open{border-color:var(--accent-fill,var(--color-accent-600));color:inherit}
+  .igd-one-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  .igd-more-wrap{position:relative;display:inline-flex}
+  .igd-more-menu{display:none;position:absolute;bottom:calc(100% + 4px);right:0;/* UPWARD: the toolbar sits low in the panel, so a menu dropped down would fall off the window */z-index:30;min-width:208px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
+  .igd-more-menu.is-open{display:flex}
   /* a row is one line: a button's words never wrap (f386), so the menu is as wide as its longest label */
   /* the source line: what the answer was read from — a line in the menu, not a press */
-  .igd-sap-src{padding:7px 9px;color:var(--color-quiet);font-size:var(--t-micro);line-height:1.35;border-top:1px solid var(--color-divider);margin-top:2px}
-  .igd-sap-menu .ui-btn,.igd-sap-menu .ui-link{display:block;width:100%;height:auto;padding:7px 9px;border:0;border-radius:var(--radius);background:none;text-align:left;font-size:var(--t-meta)}
-  .igd-sap-menu .ui-btn:hover,.igd-sap-menu .ui-link:hover{background:var(--color-accent-50,rgba(0,0,0,.05))}
+  .igd-src{padding:7px 9px;color:var(--color-quiet);font-size:var(--t-micro);line-height:1.35;border-top:1px solid var(--color-divider);margin-top:2px}
+  .igd-more-menu .ui-btn,.igd-more-menu .ui-link{display:block;width:100%;height:auto;padding:7px 9px;border:0;border-radius:var(--radius);background:none;text-align:left;font-size:var(--t-meta)}
+  .igd-more-menu .ui-btn:hover,.igd-more-menu .ui-link:hover{background:var(--color-accent-50,rgba(0,0,0,.05))}
   /* three next questions under the live reply (Part 5) */
   .hb-nx{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
   .hb-nx-l{font-size:var(--t-micro);color:var(--color-quiet)}
@@ -14901,6 +14901,8 @@
      just above a panel's foot (the foot keeps its 56); on Home at the end of the counts' line */
   .jb-ways{display:flex;flex-wrap:wrap;gap:4px 12px;flex:none;min-width:0}
   .jb-ways.is-above-foot{padding:8px var(--jb-g,16px) 6px;background:var(--color-surface)}
+  /* while a line (the way back, or "Jambo ›") stands above the box it carries the links; the row waits hidden, in either look (f1006) */
+  .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])){display:none}
   .jb-ways.is-home{margin-left:auto;align-items:center}
   /* THE SAP WAY (owner's pick, 10 Nov 2026): the page links ride the way-back line, at its right end before the
      bin — one line, never wrapped, at most three shown so nothing is squeezed out of the panel. */
@@ -18245,14 +18247,16 @@
      not on nothing — the see-through tint let the Board's grey ground show through the whole card (white-sheet-verify
      board-sheet, 11 Nov 2026; it now stands before Summarise is pressed, so the check meets it) */
   html.lg-new #ig-page[data-hb-side="board"] #hb-board > .hb-why{margin:0;background:var(--hb-why-fill)}
-  /* CARD INSIDE (owner picked it by name, 11 Nov 2026): once Summarise is pressed, the brief stands inside the greeting,
-     right under its buttons, on the greeting's own white */
-  html.lg-new #hb-bhead.is-greet > .hb-why{margin:14px 0 0;background:var(--hb-why-fill)}
+  /* ITS OWN CARD, WITH A × TOP RIGHT (owner, 11 Nov 2026; reverses Card Inside): the × sits at the head's right end */
+  html.lg-new .hb-why .hb-why-x{margin:-4px -6px -4px 0}
   /* the strip between the greeting and the first card is the greeting's own white, not the Board's grey: a white band
      one column gap high under the head (its box unchanged, so the first card still measures 12 under it; white-sheet-verify,
      Board · side list, 11 Nov 2026) */
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet{position:relative}
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--well-g);background:var(--color-surface)}
+  /* with the brief under it, the gap is the Board's own, as between its cards (owner, 11 Nov 2026: "there needs to be
+     space between the card and the top bar just like the spaces between cards in the board") */
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet:has(+ .hb-why)::after{display:none}
   html.lg-new #hb-bhead.is-greet .hb-bh-r{margin-top:14px;flex-wrap:wrap;row-gap:var(--s-2)}
   html.lg-new #hb-bhead.is-greet .hb-bh-day{white-space:nowrap;color:var(--color-neutral-400)}
   html.lg-new .hb-gr-a{all:unset;box-sizing:border-box;cursor:pointer;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--color-accent-300)}
@@ -18272,6 +18276,10 @@
   /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
   html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
   html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  /* THE LINKS RIDE THE LINE (11 Nov 2026): while the way back or "Jambo ›" stands above the box it carries the page
+     links, so the row above the box is hidden, not removed (removing it after every repaint flashed it), and the foot
+     keeps its own top line */
+  html.lg-new .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])) + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:var(--color-divider)}
   /* on a contract the row above the box is the paper's own links (the one row, as drawn): the same line above it, none under it */
   html.lg-new #ig-dock.pd-face-up [data-ig-chips]:has([data-ca-chip="rl_ladder"]){display:flex}
   html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]){border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0;background:var(--color-surface)}
@@ -18469,7 +18477,6 @@
   html.lg-new #ig-dock .pd2-wk-nx{display:flex;align-items:baseline;gap:8px;padding:5px 0}
   @media (prefers-reduced-motion: reduce){ html.lg-new #ig-canvas .pd2-wk-on, html.lg-new .pd2-wk-bar > i{transition:none} }
   /* the wash reaches 10 past the clause's words (Round 0: "0px from the side"): painted as a glow, so the paper's words never move */
-  html.lg-new #ig-canvas .pd2-cl-on{background:var(--st-amber-bg);box-shadow:0 0 0 10px var(--st-amber-bg)}
   /* the note beside the open clause, and its row, wear the clause's amber (10 Nov 2026); an outline moves nothing */
   /* JAMBO'S ASK FOR ANOTHER CLAUSE: one box, the clause editor and the Playbook review window alike (rlAlsoHtml, 11 Nov 2026) */
   html.lg-new .rl-also{margin:var(--s-3) 0; border:1px solid var(--color-divider); border-radius:var(--radius); padding:var(--s-3) var(--s-4); background:var(--color-surface)}
@@ -18508,6 +18515,12 @@
   html.lg-new #ig-dock .pd-th .stk-pre{position:relative}
   html.lg-new #ig-dock .pd-th .doc-th-row .doc-th-cost{font-size:11.5px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq{border:0;box-shadow:none;background:none;padding:2px 0 8px;margin:0}
+  /* ONE "WHAT TO WATCH" PER CLAUSE (owner picked "One list", 11 Nov 2026): one short line per point, one row of links */
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-glist{margin:0 0 6px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-gi{display:flex;align-items:baseline;gap:8px;font-size:12.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-gi > .stk-d8{flex:none;position:relative;top:-1px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-gi.is-done > span{color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-gdone{font-style:normal;font-size:11.5px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-ct{display:none}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-st{margin:0 0 6px;font-size:12.5px;line-height:1.45;color:var(--color-text)}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-cacts{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-left:0}
