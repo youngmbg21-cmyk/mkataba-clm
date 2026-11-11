@@ -48,9 +48,13 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.screenshot({ path: path.join(OUT, '3-moved.png') });
     check('3 the choice moves the open card, and the chip follows', !!s3, JSON.stringify(s3));
     await page.evaluate(async () => { await intelAsk('Juno contracts by owner'); });
-    const s4 = await until(() => { const rows = [...document.querySelectorAll('.hb-rd')]; if (rows.length < 2) return null; return { first: rows[0].classList.contains('is-still') && !rows[0].querySelector('button'), last: !!rows[rows.length - 1].querySelector('button') }; });
+    /* RE-POINTED 11 Nov 2026 (the owner picked "Keep the words"): an older answer keeps every word Jambo said and
+       loses only its controls, so the chips belong to the NEWEST answer alone — there is no second chip row to
+       find still. What is measured now: the older answer's words are drawn, and only the newest carries chips. */
+    const s4 = await until(() => { const rows = [...document.querySelectorAll('.hb-rd')]; const said = document.querySelectorAll('#ig-dock .jl-bub').length;
+      return said >= 2 ? { first: rows.length === 1, last: !!rows[0] && !!rows[0].querySelector('button'), said } : null; });
     await page.screenshot({ path: path.join(OUT, '4-old-reply-still.png') });
-    check('4 an older reply\'s chips are plain; the newest is live', !!s4 && s4.first && s4.last, JSON.stringify(s4));
+    check('4 an older reply keeps its words and loses its chips; the newest carries the live ones', !!s4 && s4.first && s4.last, JSON.stringify(s4));
     /* THREE NEXT QUESTIONS (Part 5): under the live reply, each draws, free */
     /* RE-POINTED 10 Nov 2026 ("The SAP way"), and again 11 Nov 2026 (One Row): the chips are on the answer's one
        row and the next questions are under its ⋯, never inside the chip row */

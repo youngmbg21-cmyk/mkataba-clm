@@ -12039,7 +12039,7 @@
      the rare acts under More. Nothing spills: every row wraps inside the card, and the menu is 16px inside it. */
   .igd-one-v .hb-rd,.igd-one-v .hb-nx,.igd-one-v .igd-doors,.igd-one-v .igd-small{display:contents}
   /* ONE ROW (owner's pick for Explorer, 11 Nov 2026): the controls on ONE line, and the answers before the
-     newest folded to one line each. Nothing spills: the row wraps inside the panel, the chips give way first. */
+     the answers above it keeping every word. Nothing spills: the row wraps inside the panel, chips give way first. */
   .igd-one{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0}
   .igd-one-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0;flex:1 1 auto}
   .igd-one-v .hb-rd{display:contents}
@@ -12047,12 +12047,6 @@
   .igd-one-more{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);padding:0;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-quiet);font:inherit;font-size:15px;line-height:1;cursor:pointer}
   .igd-one-more:hover,.igd-one-more.is-open{border-color:var(--accent-fill,var(--color-accent-600));color:inherit}
   .igd-one-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
-  .igd-fold{display:flex;align-items:baseline;gap:10px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid var(--color-divider);background:none;color:inherit;font:inherit;font-size:var(--t-meta);text-align:left;cursor:pointer}
-  .igd-fold:hover{color:var(--accent-ink)}
-  .igd-fold:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
-  .igd-fold-q{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .igd-fold-n{flex:none;display:inline-flex;align-items:center;gap:3px;color:var(--color-quiet);font-size:var(--t-micro);white-space:nowrap}
-  .igd-fold.is-open .igd-fold-n svg,.igd-fold.is-open .igd-fold-n .hb-rd-caret{transform:rotate(180deg)}
   .igd-more-wrap{position:relative;display:inline-flex}
   .igd-more-menu{display:none;position:absolute;bottom:calc(100% + 4px);right:0;/* UPWARD: the toolbar sits low in the panel, so a menu dropped down would fall off the window */z-index:30;min-width:208px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
   .igd-more-menu.is-open{display:flex}

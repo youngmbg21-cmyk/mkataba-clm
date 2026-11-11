@@ -5898,12 +5898,9 @@ function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
 /* WHAT JAMBO UNDERSTOOD: an open chip menu closes on a press outside it and on Esc (bound once, at load) */
 document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return; intel.mrOpen=null; renderIntelDock(); },true);
-/* ONE ROW: the fold and the ⋯ sit on nodes the turns repaint in place (JB_TURN_HOSTS, jamboTurnsTake), so their
-   presses are DELEGATED on document at load — a listener bound inside renderIntelDock dies with its node. */
+/* ONE ROW: the ⋯ sits on a node the turns repaint in place (JB_TURN_HOSTS, jamboTurnsTake), so its press is
+   DELEGATED on document at load — a listener bound inside renderIntelDock dies with its node. */
 document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target||!e.target.closest) return;
-  const f=e.target.closest('#ig-dock [data-ig-fold]');
-  if(f){ e.stopPropagation(); const k=Number(f.getAttribute('data-ig-fold')); intel.oneOpen=intel.oneOpen===k?null:k; renderIntelDock();
-    const fresh=document.querySelector(`[data-ig-fold="${k}"]`); if(fresh&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); return; }
   const b=e.target.closest('#ig-dock [data-ig-more]');
   if(b){ e.stopPropagation(); const k=b.getAttribute('data-ig-more'); intel.moreOpen=intel.moreOpen===k?null:k; renderIntelDock();
     const fresh=document.querySelector(`[data-ig-more="${k}"]`); if(fresh&&intel.moreOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); return; }
@@ -9701,15 +9698,20 @@ function igMoreHtml(i, rows){
 /* ---- ONE ROW — THE PANEL'S ONE LAYOUT (owner, 11 Nov 2026: "for the explorer, build one row", then, shown the
    Board doing the same job, "build one row on the board too") ----
    The talk runs long and three labelled rows under each answer push the newest one off the screen — two
-   questions in, on the Board, the answer before it was still taking the top of the panel. As drawn: the answers
-   before the newest FOLD to one line each (igFoldHtml), and the newest carries ONE row — the chips that correct
-   what he read, the one filled button, and ⋯ for everything else.
+   questions in, on the Board, the answer before it was still taking the top of the panel. THE NEWEST answer
+   carries ONE row — the chips that correct what he read, the one filled button, and ⋯ for everything else — and
+   the answers above it KEEP EVERY WORD and lose only their controls (the owner picked "Keep the words" over
+   folding them away, 11 Nov 2026: what Jambo said is never put behind a press).
    RETIRES the SAP toolbar's three rows (owner's pick of 10 Nov, replaced by their own pick of 11 Nov): one
    builder for every face of the panel, so the controls never look two ways.
    THE PIECES ARE THE SAME ONES (igMapReadHtml, hbReadingHtml, igDoorsHtml, hbNextHtml): not a press changes. */
 function igOneHtml(m,i){
   if(!Number.isInteger(i)||!m||m.role!=='assistant') return '';
   const last=i===intel.history.length-1&&!m.err;
+  /* KEEP THE WORDS (the owner picked it by name, 11 Nov 2026, over folding the older answers away): an answer
+     that is no longer the newest keeps EVERYTHING Jambo said and loses only its row of controls — the panel
+     stays short without putting what he told you behind a press. The conversation is drawn, as it always was. */
+  if(!last) return '';
   /* ON THE ROW: what he understood, then the one filled button */
   const chips=[];
   if(m.reading&&typeof window.hbReadingHtml==='function') chips.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
@@ -9730,32 +9732,6 @@ function igOneHtml(m,i){
   if(!had) return '';
   return `<div class="igd-one" data-ig-one="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">`
     +`<span class="igd-one-v">${chips.filter(Boolean).join('')}</span>${lead||''}${more.length?igMoreHtml(i,more):''}</div>`;
-}
-/* AN OLDER ANSWER IS ONE LINE: the words you asked, and how many it put on the map; a press opens it where it
-   stands, a second press folds it back. The count is the answer's own set, never a number nothing drew. */
-function igFoldHtml(a,k,e){
-  const q=String((a[k]&&a[k].text)||'').trim(); if(!q) return '';
-  const open=intel.oneOpen===k;
-  let n=0;
-  for(let j=k+1;j<e;j++){ const m=a[j]; if(!m||m.role!=='assistant') continue; const ids=igAnswerIds(m); if(ids.length>n) n=ids.length; }
-  const said=n?igEsc(i18t('int_one_shown',{ n })):'';
-  return `<button type="button" class="igd-fold${open?' is-open':''}" data-ig-fold="${k}" aria-expanded="${open}">`
-    +`<span class="igd-fold-q">${igEsc(q)}</span><span class="igd-fold-n">${said}${IG_MR_CARET}</span></button>`;
-}
-/* the feed, folded: everything before the newest question is one line each (Explorer only) */
-function igTurnsHtml(a){
-  const one=(m,i)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a);
-  let lastUser=-1; for(let k=a.length-1;k>=0;k--){ if(a[k]&&a[k].role==='user'){ lastUser=k; break; } }
-  const out=[];
-  for(let k=0;k<a.length;){
-    if(a[k]&&a[k].role==='user'&&k<lastUser){
-      let e=k+1; while(e<a.length&&a[e]&&a[e].role!=='user') e++;
-      const fold=igFoldHtml(a,k,e);
-      if(fold){ out.push(fold); if(intel.oneOpen===k) for(let j=k+1;j<e;j++) out.push(one(a[j],j)); k=e; continue; }
-    }
-    out.push(one(a[k],k)); k++;
-  }
-  return out.join('');
 }
 function igMsgHTML(m,i){
   if(m.role==='user')
@@ -10034,7 +10010,7 @@ function renderIntelDock(){
   const _popped=!!(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped()));
   if(say&&_popped&&typeof window.renderAIFeed==='function') try{ renderAIFeed(!!intel.busy); }catch(_){ }
   const msgs=!say?'':_popped?`<p class="igd-popped">${igEsc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${igEsc(i18t('jb_bring_back'))}</button></p>`
-    :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${igTurnsHtml(intel.history)}</div>`;
+    :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${intel.history.map((m,i,a)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a)).join('')}</div>`;
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
       ${igFaceHtml('think')}
@@ -12247,4 +12223,4 @@ Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFir
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
-  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igMoreHtml, igOneHtml, igFoldHtml, igTurnsHtml });
+  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igMoreHtml, igOneHtml });

@@ -1,11 +1,12 @@
-/* f1005 — ONE ROW ON EXPLORER (the owner, 11 Nov 2026, of the three layouts drawn the day before: "for the
-   explorer, build one row"). Explorer's talk runs long, so the answers before the newest fold to one line each
-   and the newest carries ONE row; the Board keeps the SAP toolbar it was given.
-     (1) Explorer draws one row, the Board the three labelled rows — the same pieces either way
+/* f1005 — ONE ROW, AND THE WORDS ABOVE IT (the owner, 11 Nov 2026: "for the explorer, build one row", then
+   "build one row on the board too", then, shown three ways of treating the older answers, "keep the words").
+   The NEWEST answer carries one row of controls; every answer above it keeps everything Jambo said and loses
+   only its controls. Nothing is folded away, so the conversation is drawn, as the panel's own rule has it.
+     (1) one row on every face, and the three-row toolbar retired
      (2) the row: the chips, ONE filled button, and ⋯; everything else is under it
-     (3) the answers before the newest fold to one line: the words asked, and how many that answer drew
-     (4) a count is printed only where the answer drew a set, and a press opens that one where it stands
-     (5) both books carry the folded line's words */
+     (3) only the newest answer carries the row; the ones above keep their words
+     (4) an answer with nothing under it draws no row at all
+     (5) the ⋯ holds the next steps and the rarer acts, and its rows stay in the page while it is shut */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -77,39 +78,42 @@ test('f1005 (2) the chips, one filled button and ⋯ are on the row; the rest is
   assert.match(win.igOneHtml(m, i), /class="igd-one-more is-open"[^>]*aria-expanded="true"/);
 });
 
-/* ---------- (3) + (4) THE FOLD ---------- */
-test('f1005 (3) the answers before the newest fold to one line, the newest keeps its bubble', () => {
+/* ---------- (3) + (4) THE WORDS ABOVE THE NEWEST ---------- */
+test('f1005 (3) only the newest answer carries the row; the ones above keep their words', () => {
   const win = world('explorer');
   answer(win, 'top 5 counterparties by value');
+  const older = win.eval('intel.history.length-1');
   answer(win, 'only include the top 2 folders by value');
-  const feed = win.igTurnsHtml(win.eval('intel.history'));
-  const folds = [...String(feed).matchAll(/data-ig-fold="(\d+)"/g)].map(x => x[1]);
-  assert.deepEqual(folds, ['0'], 'the first question folded, the newest not');
-  assert.match(feed, /<span class="igd-fold-q">top 5 counterparties by value<\/span>/);
-  assert.equal((String(feed).match(/ig-bub-me/g) || []).length, 1, 'one question bubble: the newest');
-});
-
-test('f1005 (4) a count prints only where the answer drew a set, and a press opens that one', () => {
-  const win = world('explorer');
-  answer(win, 'top 5 counterparties by value');
-  answer(win, 'only include the top 2 folders by value');
+  const newest = win.eval('intel.history.length-1');
   const a = win.eval('intel.history');
-  assert.match(win.igFoldHtml(a, 0, 2), /<span class="igd-fold-n">2 shown/, 'the set it drew');
-  win.eval("intel.history[1].listIds=[]; intel.history[1].cardIds=[]");
-  assert.ok(!/igd-fold-n">\d/.test(win.igFoldHtml(win.eval('intel.history'), 0, 2)), 'nothing drawn, no count');
-  /* opened, the folded line says so and its answers stand under it */
-  win.eval('intel.oneOpen=0');
-  const feed = win.igTurnsHtml(win.eval('intel.history'));
-  assert.match(feed, /data-ig-fold="0" aria-expanded="true"/);
-  assert.match(feed, /data-ig-turn="1"/, 'its answer is drawn under it');
+  assert.equal(win.igOneHtml(a[older], older), '', 'the older answer has no row');
+  assert.match(win.igOneHtml(a[newest], newest), /class="igd-one"/, 'the newest does');
+  /* and nothing folds: every turn is drawn, words and all */
+  const IG = fs.readFileSync(path.join(ROOT, 'js/views/intelligence.js'), 'utf8');
+  assert.ok(!/igFoldHtml|data-ig-fold|oneOpen/.test(IG), 'no answer is folded away');
+  assert.match(IG, /intel\.history\.map\(\(m,i,a\)=>\(typeof window\.jamboTurnHtml/, 'the feed draws every turn');
 });
 
-/* ---------- (5) BOTH BOOKS ---------- */
-test('f1005 (5) both books carry the folded line\'s words', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8');
-  const lines = src.split('\n').filter(l => l.includes('int_one_shown:'));
-  assert.equal(lines.length, 2, 'in English and Swedish');
-  for (const l of lines) assert.match(l, /\{n\}/, 'the count is the one the answer drew');
+test('f1005 (4) an answer with nothing under it draws no row at all', () => {
+  const win = world('explorer');
+  const { i, m } = answer(win);
+  win.eval("delete intel.history[intel.history.length-1].mapRead; intel.history[intel.history.length-1].listIds=[]; intel.history[intel.history.length-1].cardIds=[]");
+  win.eval("intel.history[intel.history.length-1].read={ text:'Read from Explorer and your book' }");
+  assert.equal(win.igOneHtml(win.eval('intel.history[intel.history.length-1]'), i), '', 'nothing to show, no row — and the source line never makes one');
+  assert.ok(m, 'the answer itself is untouched');
+});
+
+/* ---------- (5) WHAT ⋯ HOLDS ---------- */
+test('f1005 (5) ⋯ holds the next steps and the rarer acts, and its rows stay in the page while it is shut', () => {
+  const win = world('explorer');
+  try { win.eval('IG = { nodes:[{ id:"MK-1" }], hubs:[] }'); } catch (_){ /* the map's own object may be fixed */ }
+  const { i, m } = answer(win);
+  const html = win.igOneHtml(m, i);
+  const menu = String(html).split('igd-more-menu')[1] || '';
+  assert.ok(!/is-open/.test(String(html).split('igd-more-menu')[0]), 'shut to begin with');
+  const rare = win.eval('!!(IG && IG.nodes)') ? ['data-ig-tour-open', 'data-ig-pin-open', 'data-ig-pic'] : [];
+  for (const a of rare.concat(['data-ig-mrnext', 'data-ig-list', 'data-ig-export']))
+    assert.match(menu, new RegExp(a), a + ' is in the page while ⋯ is shut');
 });
 
 /* ---------- (6) THE PIECES SPLIT WITHOUT CHANGING A PRESS (was f1003 (5)) ---------- */
@@ -161,4 +165,3 @@ test('f1005 (8) the page links stand on the way-back line, before the bin, and n
   assert.ok(door.indexOf('jb-ways') < door.indexOf('jb-bin'), 'and before the bin');
   assert.ok(!/is-above-foot/.test(door), 'never the row of its own');
 });
-

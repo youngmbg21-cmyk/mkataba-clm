@@ -36998,3 +36998,24 @@ STILL ASKED, NOT DECIDED: the drawing shortened the chips ("Keep 3 streams", "By
 all 82"). Those words are the owner's own earlier picks, so they stand, and the chips take the line above the
 button at 1440.
 
+### KEEP THE WORDS (owner picked it by name, 11 Nov 2026)
+One Row folded every answer before the newest to a single line. The first run of the checks said what that
+really costs: FIVE checks written over months — f840 (2c), jambo-tab-and-back (1g, 1m, 2b), reading-chips (4),
+explorer-stage-three (4e) — assert that the whole conversation is DRAWN: what was said beside one contract is
+still there beside the next, an older answer's figures and chips are still on the panel. Folding put all of
+that behind a press. The owner's new pick and their older ruling disagreed, so the round STOPPED and three ways
+were drawn on the real panel, four questions deep (claude.ai/artifact/ShmF1uW2MGxM39z87CajUh): "Fold it all"
+(about 230px), "Keep the words" (about 480px), "Last two open" (about 330px). The recommendation was Last two
+open; the owner picked "keep the words".
+
+BUILT: `igOneHtml` draws for the NEWEST answer only; every answer above it keeps its bubble, its words, its
+figures line and its Undo, and loses only its row of controls. Nothing folds — `igFoldHtml`, `igTurnsHtml`,
+`intel.oneOpen`, the `.igd-fold*` styles and the fold's press are all gone, and `int_one_shown` is inert in
+both books. The five checks pass as written, because the conversation is drawn again. ONE was re-pointed with
+the reason: reading-chips 4 measured an older answer's chips drawn plain, and an older answer has no chips now
+— it measures that the older answer's WORDS are drawn and only the newest carries chips.
+
+ALSO FIXED FROM THAT RUN: the ⋯ printed a typed mark (f966 forbids it; the drawn `more` icon now), and the ⋯
+and the fold were wired inside renderIntelDock while the turns are repainted in place, so the listeners died
+with their nodes — the ⋯ is delegated on document at load.
+

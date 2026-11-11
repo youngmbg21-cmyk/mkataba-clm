@@ -2,13 +2,13 @@
    =======================================================
    The owner, 11 Nov 2026, of the three layouts drawn on 10 November: "for the explorer, build one row."
 
-   As drawn: Explorer's talk runs long, so the answers BEFORE the newest fold to one line each — the words you
-   asked, and how many the answer put on the map — and the newest answer carries ONE row: the chips that correct
-   what Jambo read, the one filled button, and ⋯ for everything else (the next steps, the other doors, Explain
-   this view, Pin this finding, Copy picture, and the line saying where it was read). It is the panel's ONE
-   layout: the three-row toolbar of 10 November is retired, so the Board draws the same row (section 6).
+   The NEWEST answer carries ONE row: the chips that correct what Jambo read, the one filled button, and ⋯ for
+   everything else (the next steps, the other doors, Explain this view, Pin this finding, Copy picture, and the
+   line saying where it was read). The answers ABOVE it keep every word Jambo said and lose only their controls
+   — the owner picked "Keep the words" over folding them away, so the conversation is still drawn. It is the
+   panel's ONE layout: the three-row toolbar of 10 November is retired, so the Board draws the same row (8).
 
-   Red at the parent: the panel draws the three labelled rows, nothing folds, and there is no ⋯.
+   Red at the parent: the panel draws the three labelled rows under EVERY answer, and there is no ⋯.
 
    Screenshots go to test/chromium/shots/jambo-one-row/ (or HATI_SHOT_DIR).
    Run: node test/chromium/jambo-one-row-verify.js */
@@ -54,13 +54,13 @@ const check = (name, pass, detail) => {
     const vis = el => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el);
       return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden'; };
     const R = [...document.querySelectorAll('#ig-dock .igd-one')].slice(-1)[0];
-    const folds = [...document.querySelectorAll('#ig-dock .igd-fold')];
     const dock = document.getElementById('ig-dock');
     const box = R ? R.getBoundingClientRect() : null, dr = dock ? dock.getBoundingClientRect() : null;
     return {
       rows: document.querySelectorAll('#ig-dock .igd-one').length,
+      folds: document.querySelectorAll('#ig-dock .igd-fold').length,
       sap: document.querySelectorAll('#ig-dock .igd-sap, #ig-dock [data-ig-sap-r]').length,
-      folds: folds.map(b => ({ q: (b.querySelector('.igd-fold-q') || {}).textContent || '', n: ((b.querySelector('.igd-fold-n') || {}).textContent || '').trim(), open: b.getAttribute('aria-expanded') === 'true' })),
+      said: [...document.querySelectorAll('#ig-dock .jl-bub')].map(b => b.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)),
       bubbles: document.querySelectorAll('#ig-dock .ig-bub-me').length,
       chips: R ? R.querySelectorAll('.hb-rd-chip').length : 0,
       lead: R ? R.querySelectorAll('.ui-btn-primary').length : 0,
@@ -94,21 +94,14 @@ const check = (name, pass, detail) => {
     check('1b the chips, the one filled button and ⋯ are all on it', !!P && P.chips >= 1 && P.lead === 1 && P.dots, JSON.stringify(P && { chips: P.chips, lead: P.lead, dots: P.dots }));
     check('1c and it is a row, not a stack', !!P && P.h > 0 && P.h <= 80, P && P.h + 'px tall');
 
-    console.log('\n2 · THE ANSWERS BEFORE IT ARE ONE LINE EACH');
-    check('2a the two earlier questions are folded, the newest keeps its bubble',
-      !!P && P.folds.length === 2 && P.bubbles === 1, JSON.stringify(P && { folds: P.folds.map(f => f.q), bubbles: P.bubbles }));
-    check('2b a folded line says the words you asked', !!P && /counterparties/.test(P.folds[0].q) && /payment terms/.test(P.folds[1].q), JSON.stringify(P && P.folds.map(f => f.q)));
-    check('2c and how many that answer put on the map, where it drew a set', !!P && /\d+/.test(P.folds[0].n), JSON.stringify(P && P.folds.map(f => f.n)));
+    console.log('\n2 · THE ANSWERS ABOVE IT KEEP EVERY WORD');
+    check('2a all three questions are on the panel, and nothing is folded away',
+      !!P && P.bubbles === 3 && P.folds === 0, JSON.stringify(P && { bubbles: P.bubbles, folds: P.folds }));
+    check('2b what Jambo said to each of them is still drawn', !!P && P.said.length === 3 && P.said.every(t => t.length > 10), JSON.stringify(P && P.said));
+    check('2c and only the newest carries a row of controls', !!P && P.rows === 1, JSON.stringify(P && { rows: P.rows }));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `one-row-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
-
-    console.log('\n3 · A FOLDED ANSWER OPENS WHERE IT STANDS, AND FOLDS BACK');
-    await page.click('#ig-dock [data-ig-fold]'); await page.waitForTimeout(300);
-    const O = await panel();
-    check('3a one press opens it and it says so', !!O && O.folds[0].open, JSON.stringify(O && O.folds.map(f => f.open)));
-    await page.click('#ig-dock [data-ig-fold]'); await page.waitForTimeout(300);
-    const C = await panel();
-    check('3b the same press folds it back', !!C && !C.folds[0].open, JSON.stringify(C && C.folds.map(f => f.open)));
+    const C = P;
 
     console.log('\n4 · ⋯ HOLDS EVERYTHING ELSE');
     check('4a nothing of the menu is on the panel while it is shut', !!C && !C.menuOpen && C.underSeen === 0, JSON.stringify(C && { open: C.menuOpen, seen: C.underSeen }));
@@ -165,7 +158,7 @@ const check = (name, pass, detail) => {
     await ask('chart value by stream');
     const B = await panel();
     check('8a the Board draws one row too, and no three-row toolbar anywhere', !!B && B.rows === 1 && B.sap === 0, JSON.stringify(B && { rows: B.rows, sap: B.sap }));
-    check('8b and its earlier answers fold the same way', !!B && B.folds.length >= 1, JSON.stringify(B && { folds: B.folds.length }));
+    check('8b and its earlier answer keeps its words, with no row of its own', !!B && B.rows === 1 && B.bubbles >= 2 && B.folds === 0, JSON.stringify(B && { rows: B.rows, bubbles: B.bubbles, folds: B.folds }));
     await page.screenshot({ path: path.join(OUT, 'one-row-board.png') });
 
     check('F no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

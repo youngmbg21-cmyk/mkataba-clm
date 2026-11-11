@@ -22138,3 +22138,10 @@ STOPPED AND ASKED, not decided: folding an older answer to one line hides what J
 written over months assert that the whole conversation is DRAWN (f840 2c, jambo-tab-and-back 1g/1m/2b,
 reading-chips 4, explorer-stage-three 4e). The owner's new pick and their older ruling disagree; the owner
 chooses, the branch stays red until they do.
+
+## Keep the words (11 Nov 2026, f1005)
+Built, on the owner's pick of three drawn ways. Nothing folds any more: every answer keeps its bubble, its
+words and its figures, and loses only its row of controls — only the newest answer carries the row. The five
+checks that watch for the whole conversation being drawn pass as written again; one (reading-chips 4) was
+re-pointed, because an older answer has no chips to find still. The fold's builder, its styles, its press and
+its words are all gone, and int_one_shown is inert in both books.
