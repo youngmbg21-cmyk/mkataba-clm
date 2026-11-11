@@ -64,6 +64,45 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     opened = await until(page, at => { const g = document.querySelector(`#pd2-notes .pd2-mg[data-pd2-at="${at}"]`); return !!g && !g.classList.contains('is-folded') && [...g.querySelectorAll('.pd2-mg-i')].every(i => i.getBoundingClientRect().height > 0); }, folded.at, 5000); }
   const G2 = await read(); const overlap2 = G2.some((g, i) => i && g.top < G2[i - 1].bottom - 1);
   check('5 many notes: none overlap; a drifted group folds to "+ N more here", which opens it in place (and still none overlap)', !overlap && !!folded && opened && !overlap2, { overlap, folded: folded && folded.h, opened, overlap2 });
+  /* 5b · SHOW LESS (owner, 11 Nov 2026): the opened group folds back, and "+ N more here" stands again */
+  try {
+    const at = folded ? folded.at : null; const sel = `#pd2-notes .pd2-mg[data-pd2-at="${at}"]`;
+    const has = at != null && await page.evaluate(q => { const b = document.querySelector(q + ' [data-pd2-fold]'); return !!b && b.getBoundingClientRect().height > 0 && /Show less/.test(b.textContent); }, sel);
+    let back = false;
+    if (has){ await page.click(sel + ' [data-pd2-fold]');
+      back = await until(page, q => { const g = document.querySelector(q); const m = g && g.querySelector('[data-pd2-unfold]'), l = g && g.querySelector('[data-pd2-fold]');
+        return !!g && g.classList.contains('is-folded') && !!m && m.getBoundingClientRect().height > 0 && !!l && l.getBoundingClientRect().height === 0
+          && [...g.querySelectorAll('.pd2-mg-i.is-more')].every(i => i.getBoundingClientRect().height === 0); }, sel, 5000); }
+    const G3 = await read(); const overlap3 = G3.some((g, i) => i && g.top < G3[i - 1].bottom - 1);
+    check('5b an opened group says "Show less"; pressed, it folds to its first line and "+ N more here" (none overlap)', has && back && !overlap3, { has, back, overlap3 });
+  } catch (e) { check('5b show less', false, String(e).slice(0, 200)); }
+  /* 9 · THE × ON JAMBO'S GREY CARD (owner, 11 Nov 2026): the card goes, the reader stays on the same contract */
+  try {
+    const drawn = await page.evaluate(() => { if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history)) return 'no history';
+      /* a real move's record (what caAct writes when typed words move the reader), then the panel as it lands */
+      const a = { kind: 'go', place: 'history', cid: 'MK-110', state: 'ready', said: 'show me history for contract 110', from: null }; intel.history.push({ role: 'user', text: a.said }, { role: 'assistant', text: caGoSay(a), act: a }); if (typeof pdTalkClose === 'function') pdTalkClose(); renderIntelDock();
+      const x = document.querySelector('.ca-echo-top .jb-say-x'); if (!x) return document.querySelector('.ca-echo-top') ? 'card without x' : 'no card';
+      const cr = x.closest('.jb-say').getBoundingClientRect(), r = x.getBoundingClientRect();
+      return { right: cr.right - r.right, top: r.top - cr.top, w: r.width, hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === x || x.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)) }; });
+    let gone = false, stays = false;
+    if (drawn && drawn.hit){ await page.click('.ca-echo-top .jb-say-x');
+      gone = await until(page, () => !document.querySelector('.ca-echo-top'), null, 5000);
+      stays = await page.evaluate(() => { if (typeof renderIntelDock === 'function') renderIntelDock(); return !document.querySelector('.ca-echo-top') && String((pdContract() || {}).id) === 'MK-110'; }); }
+    check('9 the grey card has a × top right; pressed, the card is gone, stays gone on a repaint, and the contract is the same', !!drawn && drawn.hit === true && drawn.right >= 8 && drawn.right <= 24 && drawn.top >= 8 && drawn.top <= 24 && gone && stays, { drawn, gone, stays });
+  } catch (e) { check('9 the x on the card', false, String(e).slice(0, 200)); }
+  /* 10 · ASK JAMBO WITH THE PANEL FOLDED (owner, 11 Nov 2026: "nothing happens"): the panel opens, the words are in the box */
+  try {
+    await page.evaluate(() => { intel.dockOpen = false; renderIntelDock(); if (typeof igSyncDockWidth === 'function') igSyncDockWidth(); });
+    const foldedNow = await until(page, () => !!document.getElementById('igd-expand'), null, 5000);
+    const menu = foldedNow && await page.evaluate(() => { const el = document.querySelector('#ig-canvas [data-anchor]'); if (!el) return 'no clause';
+      const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      if (typeof caSelOpen !== 'function') return 'no caSelOpen'; caSelOpen();
+      const b = [...document.querySelectorAll('.nego-selmenu button')].find(x => /Ask Jambo/.test(x.textContent)); if (!b) return 'no menu'; const br = b.getBoundingClientRect(); return { x: br.left + br.width / 2, y: br.top + br.height / 2 }; });
+    if (menu && menu.x){ await page.mouse.click(menu.x, menu.y); }
+    const openNow = !!(menu && menu.x) && await until(page, () => intel.dockOpen === true && !document.getElementById('igd-expand') && !!document.getElementById('igd-input')
+      && /^About/.test(document.getElementById('igd-input').value) && document.getElementById('igd-input').getBoundingClientRect().width > 100, null, 8000);
+    check('10 the panel folded: Ask Jambo over selected words opens it with the words in his box, nothing sent', foldedNow && !!(menu && menu.x) && openNow, { foldedNow, menu, openNow });
+  } catch (e) { check('10 ask jambo folded', false, String(e).slice(0, 200)); }
   check('6 nothing guessed: the point with no place on the paper is not drawn', !G.some(g => g.items.some(i => /No data protection/.test(i.line))));
   /* 7 · Open in Clauses */
   try {

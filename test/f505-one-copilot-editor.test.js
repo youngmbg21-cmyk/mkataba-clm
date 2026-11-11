@@ -75,7 +75,7 @@ describe('f505 (B) one set of rows', () => {
        so the chips row stands down on Playbook there (ceRowMode) */
     /* RE-POINTED AGAIN 20 Oct 2026 (owner: "bring the old one back"): from a row the chips row is back */
     /* RE-POINTED 11 Nov 2026 (owner picked "Legora with ticks"): the quick asks step aside while the points from
-       What to watch are out (f1008); otherwise the same rows */
+       What to watch are out (f1011); otherwise the same rows */
     assert.match(tabs, /chips\.style\.display = \(\(_ceTab === 'chat' && !_cePts\) \|\| rk\)/);
   });
   /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): ONE foot on every

@@ -5897,12 +5897,120 @@ function igGroupInLine(){ return !!(window.state&&state.view==='dashboard'&&type
 function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(i18t('hb_group_by'))}">${igGroupOptsHtml()}</select>`; }
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
 /* WHAT JAMBO UNDERSTOOD: an open chip menu closes on a press outside it and on Esc (bound once, at load) */
-document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return; intel.mrOpen=null; renderIntelDock(); },true);
-/* THE SAP WAY's More: a press outside it, or Esc, closes it */
-document.addEventListener('click',e=>{ if(!intel||!intel.sapOpen) return; if(e.target&&e.target.closest&&e.target.closest('.igd-sap-wrap')) return; intel.sapOpen=null; renderIntelDock(); },true);
-document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.sapOpen) return; e.stopPropagation(); const k=intel.sapOpen; intel.sapOpen=null; renderIntelDock();
-  const b=document.querySelector(`[data-ig-sap-more="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
-document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.mrOpen) return; e.stopPropagation(); const k=intel.mrOpen; intel.mrOpen=null; renderIntelDock();
+document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return;
+  const i=Number(String(intel.mrOpen).split(':')[0]); intel.mrOpen=null; if(typeof igMrRepaint==='function') igMrRepaint(i); else renderIntelDock(); },true);
+/* WHERE THE MENU SITS IS MEASURED, NOT ASSUMED (owner, 11 Nov 2026: "the pop up is cut off"): hung off the ⋯
+   it ran out past the panel's edge, where the feed's own scroller clipped it — three of its eight rows were
+   never painted. It is PLACED now: as wide as the answer's row, above the row where there is room and under it
+   where there is not, and lifted off the foot on a short screen. Fixed to the window, so the feed cannot clip
+   it; a scroll moves it with its row. A rect is not a painted pixel, so the check that guards this asks
+   elementFromPoint for every row. ONE PLACER for every menu the panel opens: the one row's ⋯ and the chips. */
+const IG_MENU_MIN_W=240;
+/* A MENU IS NOT SHOWN UNTIL IT IS PLACED (measured, 11 Nov 2026): the panel GLIDES on a repaint, so the chip a
+   menu hangs off is still sliding when the press lands — measured then, the menu was put 700px off the screen
+   and only a later scroll brought it back. That journey IS the flash the owner saw. It is kept invisible until
+   its chip has come to rest inside the panel, and re-measured every frame until it has. */
+let _igMenuTicks=0;
+function igMorePlace(){
+  const dock=document.getElementById('ig-dock'); if(!dock) return;
+  const d=dock.getBoundingClientRect(); if(!d.height) return;
+  const EDGE=8, GAP=4; let waiting=false;
+  const put=(m,anchor,wantW)=>{
+    if(!m||!anchor) return;
+    const q=anchor.getBoundingClientRect();
+    if(q.width<1){ m.classList.remove('is-set'); waiting=true; return; }
+    m.style.position='fixed'; m.style.right='auto'; m.style.bottom='auto';
+    m.style.maxHeight=Math.max(120,Math.round(d.height-EDGE*2))+'px';
+    const w=Math.round(Math.max(q.width, wantW||0));
+    m.style.width=w+'px';
+    let left=Math.round(q.left);
+    if(left+w>d.right-EDGE) left=Math.round(d.right-EDGE-w);
+    if(left<d.left+EDGE) left=Math.round(d.left+EDGE);
+    m.style.left=left+'px';
+    const h=m.offsetHeight;
+    let top=q.top-GAP-h;                                   // above the row, as drawn
+    if(top<d.top+EDGE) top=q.bottom+GAP;                   // no room above: under it
+    if(top+h>d.bottom-EDGE) top=d.bottom-EDGE-h;           // over the foot: lifted
+    if(top<d.top+EDGE) top=d.top+EDGE;                     // never past the head
+    m.style.top=Math.round(top)+'px';
+    /* WHERE IT LANDS IS WHAT COUNTS: a panel mid-glide carries its own transform, and a fixed box inside one is
+       placed against THAT, not the window — so the menu was thrown 700px clear of the screen and only came back
+       when the glide ended. The box itself is asked where it ended up; off the panel, it waits a frame. */
+    const r=m.getBoundingClientRect();
+    if(r.left<d.left-1||r.right>d.right+1||r.top<d.top-1||r.bottom>d.bottom+1){ m.classList.remove('is-set'); waiting=true; return; }
+    m.classList.add('is-set');
+  };
+  const one=dock.querySelector('.igd-more-menu.is-open');
+  if(one) put(one, one.closest('.igd-one'), 0);
+  /* THE CHIP MENUS SIT ON THE SAME LAST LINE (owner, 11 Nov 2026: "the drop down from the chips not appearing
+     and only flashing"): drawn UNDER a chip that stands at the foot of the feed, the whole menu fell outside the
+     feed's own scroller, which clipped it away — open, unseen, and gone again on the next repaint. They are
+     placed here too: never narrower than IG_MENU_MIN_W, never wider than the row, flipped above the chip where
+     there is no room under it, and never past the panel's own edges. */
+  dock.querySelectorAll('.hb-rd-wrap .hb-rd-menu').forEach(m=>{
+    const row=m.closest('.igd-one'), rw=row?row.getBoundingClientRect().width:0;
+    put(m, m.closest('.hb-rd-wrap'), rw?Math.min(IG_MENU_MIN_W, rw):IG_MENU_MIN_W);
+  });
+  if(waiting&&_igMenuTicks<60&&typeof requestAnimationFrame==='function'){ _igMenuTicks++; requestAnimationFrame(()=>{ try{ igMorePlace(); }catch(_){ } }); }
+  else if(!waiting) _igMenuTicks=0;
+}
+/* A CHIP'S MENU DOES NOT REBUILD THE PANEL (owner, 11 Nov 2026: "the page stutters"): a full repaint glides
+   every turn into place, and a menu measured mid-glide is carried right off the screen — it was drawn 700px
+   clear of the panel and only came back when the glide ended, which is the flash. Opening or shutting a menu
+   redraws ONE chip group, where it stands. A change to what the map shows still repaints the panel. */
+function igOneRepaint(i){
+  const r=document.querySelector(`#ig-dock .igd-one[data-ig-one="${i}"]`), m=intel.history[i];
+  if(!r||!m||typeof igOneHtml!=='function'){ renderIntelDock(); return; }
+  const html=igOneHtml(m,i); if(!html){ renderIntelDock(); return; }
+  r.outerHTML=html; try{ igMorePlace(); }catch(_){ }
+}
+function igMrRepaint(i){
+  const g=document.querySelector(`#ig-dock [data-ig-mr-turn="${i}"]`), m=intel.history[i];
+  if(!g||!m||!m.mapRead||typeof igMapReadHtml!=='function'){ renderIntelDock(); return; }
+  g.outerHTML=igMapReadHtml(m,i,{ part:'chips' });
+  try{ igMorePlace(); }catch(_){ }
+}
+/* THE TURNS ARE MOVED, NOT REBUILT (jamboTurnsTake: one conversation, taken off the other hosts), so a node
+   inside them outlives the render that bound a listener to it — bind twice and one press toggles twice, which
+   is a menu that flashes open and shut. The house rule: bound ONCE, or DELEGATED on document at load. These
+   are delegated; the dock's own frame keeps its per-render wiring, because that frame is rebuilt each time. */
+document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target||!e.target.closest) return;
+  const dock=document.getElementById('ig-dock'); if(!dock) return;
+  const c=e.target.closest('#ig-dock [data-ig-mr]');
+  if(c){ e.stopPropagation(); const k=c.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; igMrRepaint(Number(String(k).split(':')[0]));
+    const fresh=document.querySelector(`#ig-dock [data-ig-mr="${k}"]`); if(fresh&&intel.mrOpen) try{ fresh.focus({ preventScroll:true, focusVisible:false }); }catch(_){} return; }
+  const st=e.target.closest('#ig-dock [data-ig-mrset]');
+  if(st){ e.stopPropagation(); const v=String(st.getAttribute('data-ig-mrset')||''), a=v.indexOf(':'), z=v.indexOf(':',a+1);
+    if(igMapReadSet(Number(v.slice(0,a)), v.slice(a+1,z), v.slice(z+1))){ renderIntelDock(); updateIntelNote(); } else { intel.mrOpen=null; renderIntelDock(); } return; }
+  const tc=e.target.closest('#ig-dock [data-ig-mrteach]');
+  if(tc){ e.stopPropagation(); igMapReadTeach(Number(tc.getAttribute('data-ig-mrteach'))); } });
+/* ONE ROW: the ⋯ sits on a node the turns repaint in place (JB_TURN_HOSTS, jamboTurnsTake), so its press is
+   DELEGATED on document at load — a listener bound inside renderIntelDock dies with its node. */
+document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target||!e.target.closest) return;
+  const b=e.target.closest('#ig-dock [data-ig-more]');
+  if(b){ e.stopPropagation(); const k=b.getAttribute('data-ig-more'); intel.moreOpen=intel.moreOpen===k?null:k; igOneRepaint(Number(k));
+    const fresh=document.querySelector(`[data-ig-more="${k}"]`); if(fresh&&intel.moreOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); return; }
+  /* a press on anything inside the menu closes it: the act is the answer */
+  /* a press on a row INSIDE the menu only takes the latch off: the row's own act repaints. Repainting HERE
+     detaches the pressed button before the delegated handlers further down the page read it, and
+     `closest('#ig-dock …')` on a detached node finds nothing — Pin this finding and Copy picture went dead
+     (GitHub, 11 Nov 2026: explorer-stage-four 1b, explorer-stage-five 2e). */
+  if(e.target.closest('#ig-dock .igd-more-menu button')) intel.moreOpen=null; });
+/* A SCROLL MOVES IT, IT DOES NOT CLOSE IT (measured, 11 Nov 2026): opening the menu repaints the panel and the
+   feed lands on the newest answer, which IS a scroll — closing on one shut the menu in the same breath as
+   opening it, which is the flash a reader sees. It follows its row instead. */
+document.addEventListener('scroll',e=>{ const t=e.target;
+  if(!t||t.nodeType!==1||!t.closest||!t.closest('#ig-dock')) return;
+  /* a scroll with no menu open costs one query and stops here */
+  const dk=document.getElementById('ig-dock');
+  if(!dk||!dk.querySelector('.hb-rd-menu,.igd-more-menu.is-open')) return;
+  try{ igMorePlace(); }catch(_){ } },true);
+/* ONE ROW's ⋯: a press outside it, or Esc, closes it */
+document.addEventListener('click',e=>{ if(!intel||!intel.moreOpen) return; if(e.target&&e.target.closest&&e.target.closest('.igd-more-wrap')) return;
+  const i=Number(intel.moreOpen); intel.moreOpen=null; if(typeof igOneRepaint==='function') igOneRepaint(i); else renderIntelDock(); },true);
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.moreOpen) return; e.stopPropagation(); const k=intel.moreOpen; intel.moreOpen=null; igOneRepaint(Number(k));
+  const b=document.querySelector(`[data-ig-more="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.mrOpen) return; e.stopPropagation(); const k=intel.mrOpen; intel.mrOpen=null; igMrRepaint(Number(String(k).split(':')[0]));
   const b=document.querySelector(`[data-ig-mr="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
 document.addEventListener('change',e=>{ const s=e.target; if(!s||s.id!=='ig-group') return; intel.groupBy=s.value; intel.groups=null; igGroupShows(s.value); rebuildIntelGraph(); });
 function igPaintGroupSelect(){
@@ -9678,58 +9786,52 @@ function igExportList(ids){
     document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },0);
   }catch(_){ if(typeof toast==='function') toast(i18t('int_export_failed'),'err'); }
 }
-/* ---- THE SAP WAY: ONE TOOLBAR UNDER AN ANSWER (owner picked it by name, 10 Nov 2026: "the jambo panel seems
-   extremely crowed due to the extra features… they need to be more clean and structured") ----
-   Up to seven rows of controls stood under one answer — the reading chips, the next steps, Explain / Pin / Copy
-   picture, two buttons, two more links, the source line. They are now ONE bordered toolbar with three LABELLED
-   rows, each saying what its controls are for:
-     Understood — the chips that correct what Jambo read (his reading, and the map's Keep · Ranked by · the word);
-     Next       — his checked next steps, side by side;
-     Open       — ONE filled button, and everything else under More.
-   NOTHING IS LOST: every control the answer carried keeps its own press and its own words, in a row or in More.
-   A row with nothing in it is not drawn, and with nothing at all there is no toolbar. The More menu's rows stay in
-   the page while it is shut (a reader's own press opens it; Esc and a press outside close it). */
-const IG_SAP_MENU_MIN=1;
-function igSapMoreHtml(i, rows){
+/* ⋯ — THE REST OF AN ANSWER'S CONTROLS (owner, 11 Nov 2026): one menu under the row. Its rows stay in the page
+   while it is shut, so a press is all it takes; it opens UPWARD, because the row sits low in the panel and a menu
+   dropped downward fell off the window at the shortest screen. Esc and a press outside close it. */
+function igMoreHtml(i, rows){
   if(!rows.length) return '';
-  const open=intel.sapOpen===String(i);
-  return `<span class="igd-sap-wrap"><button type="button" class="igd-sap-more${open?' is-open':''}" data-ig-sap-more="${i}" aria-haspopup="menu" aria-expanded="${open}">${igEsc(i18t('int_sap_more'))}${IG_MR_CARET}</button>`
-    +`<div class="igd-sap-menu${open?' is-open':''}" role="menu" aria-label="${igEsc(i18t('int_sap_more'))}">${rows.join('')}</div></span>`;
+  const open=intel.moreOpen===String(i);
+  return `<span class="igd-more-wrap"><button type="button" class="igd-one-more${open?' is-open':''}" data-ig-more="${i}" aria-haspopup="menu" aria-expanded="${open}" title="${igEsc(i18t('int_sap_more'))}" aria-label="${igEsc(i18t('int_sap_more'))}">${typeof icon==='function'?icon('more'):''}</button>`
+    +`<div class="igd-more-menu${open?' is-open':''}" role="menu" aria-label="${igEsc(i18t('int_sap_more'))}">${rows.join('')}</div></span>`;
 }
-function igSapHtml(m,i){
+/* ---- ONE ROW — THE PANEL'S ONE LAYOUT (owner, 11 Nov 2026: "for the explorer, build one row", then, shown the
+   Board doing the same job, "build one row on the board too") ----
+   The talk runs long and three labelled rows under each answer push the newest one off the screen — two
+   questions in, on the Board, the answer before it was still taking the top of the panel. THE NEWEST answer
+   carries ONE row — the chips that correct what he read, the one filled button, and ⋯ for everything else — and
+   the answers above it KEEP EVERY WORD and lose only their controls (the owner picked "Keep the words" over
+   folding them away, 11 Nov 2026: what Jambo said is never put behind a press).
+   RETIRES the SAP toolbar's three rows (owner's pick of 10 Nov, replaced by their own pick of 11 Nov): one
+   builder for every face of the panel, so the controls never look two ways.
+   THE PIECES ARE THE SAME ONES (igMapReadHtml, hbReadingHtml, igDoorsHtml, hbNextHtml): not a press changes. */
+function igOneHtml(m,i){
   if(!Number.isInteger(i)||!m||m.role!=='assistant') return '';
   const last=i===intel.history.length-1&&!m.err;
-  /* UNDERSTOOD: what he read, as chips you can change */
-  const und=[];
-  if(m.reading&&typeof window.hbReadingHtml==='function') und.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
-  if(m.mapRead) und.push(igMapReadHtml(m,i,{ part:'chips' }));
-  /* NEXT: the steps he checked would change what is on screen. The reading's OWN next questions come here too —
-     hbReadingHtml would draw them inside the chips, which is the Understood row's job, so it is told noNext and
-     they are asked for by the same key (f514, f935 (4)); a turn whose questions moved under Jambo's words
-     (nextMoved) carries them as m.nextKey instead. */
-  const nxt=[];
-  if(m.mapRead) nxt.push(igMapReadHtml(m,i,{ part:'next' }));
-  if(m.reading&&m.reading.key&&!m.nextMoved&&hbReadingLive(i)&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.reading.key));
-  if(m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function') nxt.push(hbNextHtml(m.nextKey));
-  /* OPEN: the one filled button, the rest under More */
-  const lead=igDoorsHtml(m,i,{ part:'lead' }), rest=igDoorsHtml(m,i,{ part:'rest' });
+  /* KEEP THE WORDS (the owner picked it by name, 11 Nov 2026, over folding the older answers away): an answer
+     that is no longer the newest keeps EVERYTHING Jambo said and loses only its row of controls — the panel
+     stays short without putting what he told you behind a press. The conversation is drawn, as it always was. */
+  if(!last) return '';
+  /* ON THE ROW: what he understood, then the one filled button */
+  const chips=[];
+  if(m.reading&&typeof window.hbReadingHtml==='function') chips.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
+  if(m.mapRead) chips.push(igMapReadHtml(m,i,{ part:'chips' }));
+  const lead=igDoorsHtml(m,i,{ part:'lead' });
+  /* UNDER ⋯: the next steps, the other doors, and the rarer acts — in the order the SAP menu has them */
   const more=[];
+  if(m.mapRead){ const n=igMapReadHtml(m,i,{ part:'next' }); if(n) more.push(n); }
+  if(m.reading&&m.reading.key&&!m.nextMoved&&hbReadingLive(i)&&typeof window.hbNextHtml==='function') more.push(hbNextHtml(m.reading.key));
+  if(m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function') more.push(hbNextHtml(m.nextKey));
+  const rest=igDoorsHtml(m,i,{ part:'rest' });
   if(rest) more.push(rest);
   if(last&&!m.tour&&igTourOffered()) more.push(`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`);
   if(last&&igPinOffered()) more.push(`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`);
   if(last&&(igTourOffered()||igPinOffered())) more.push(`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`);
-  /* WHERE THIS WAS READ, last in the menu (the drawing): the source line the panel used to print under every
-     answer. It says something, it does nothing — so it is a line, never a press; jamboTurnHtml sees it here
-     (data-ai-read) and does not print a second one. It never brings a toolbar of its own into being: an answer
-     with nothing under it keeps the quiet line where it always stood. */
-  if(m.read&&m.read.text&&(und.length||nxt.length||lead||more.length)) more.push(`<div class="igd-sap-src" data-ai-read>${igEsc(m.read.text)}</div>`);
-  const rows=[];
-  const row=(k,html)=>{ if(html) rows.push(`<div class="igd-sap-r" data-ig-sap-r="${k}"><span class="igd-sap-l">${igEsc(i18t('int_sap_'+k))}</span><span class="igd-sap-v">${html}</span></div>`); };
-  row('understood',und.filter(Boolean).join(''));
-  row('next',nxt.filter(Boolean).join(''));
-  row('open',(lead||'')+(more.length>=IG_SAP_MENU_MIN?igSapMoreHtml(i,more):''));
-  if(!rows.length) return '';
-  return `<div class="igd-sap" data-ig-sap="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">${rows.join('')}</div>`;
+  const had=chips.length||lead||more.length;
+  if(m.read&&m.read.text&&had) more.push(`<div class="igd-src" data-ai-read>${igEsc(m.read.text)}</div>`);
+  if(!had) return '';
+  return `<div class="igd-one" data-ig-one="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">`
+    +`<span class="igd-one-v">${chips.filter(Boolean).join('')}</span>${lead||''}${more.length?igMoreHtml(i,more):''}</div>`;
 }
 function igMsgHTML(m,i){
   if(m.role==='user')
@@ -9765,8 +9867,8 @@ function igMsgHTML(m,i){
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
-      ${''/* THE SAP WAY (owner's pick, 10 Nov 2026): the answer's controls in ONE toolbar, three labelled rows */}
-      ${igSapHtml(m,i)}
+      ${''/* ONE ROW (owner, 11 Nov 2026): the answer's controls on one line, everything else under ⋯ */}
+      ${igOneHtml(m,i)}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
@@ -9921,6 +10023,16 @@ function igDockBatch(fn){
   try{ return fn(); }
   finally{ if(--_igDockHold===0&&_igDockOwed){ _igDockOwed=false; try{ renderIntelDock(); }catch(e){ console.error(e); } } }
 }
+/* WHAT THE PANEL IS, WRITTEN ON THE PAGE (owner, 11 Nov 2026, the Clean | Redline delay): the paper's styles used to
+   ask body:has(#ig-dock > .igd-head[data-pd-head="paper"]) and body:has(#ig-dock > .igd-door[class]), which made the
+   browser read the whole page's styles again on every small change. The same two facts are written on #ig-page at each
+   of this painter's three writes, and index.html reads them there (data-igd-head, data-igd-door). Written only when
+   they move. */
+function igDockMarks(head, door){
+  const pg=document.getElementById('ig-page'); if(!pg) return;
+  if(head){ if(pg.getAttribute('data-igd-head')!==head) pg.setAttribute('data-igd-head',head); } else if(pg.hasAttribute('data-igd-head')) pg.removeAttribute('data-igd-head');
+  if(door){ if(!pg.hasAttribute('data-igd-door')) pg.setAttribute('data-igd-door',''); } else if(pg.hasAttribute('data-igd-door')) pg.removeAttribute('data-igd-door');
+}
 function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   if(_igDockHold>0){ _igDockOwed=true; return; }
@@ -9956,6 +10068,7 @@ function renderIntelDock(){
        owner's "No", round 3). */
     const _dn=(typeof window.pdTabCount==='function')?pdTabCount('copilot',(window.pdOnPaper&&pdOnPaper()&&window.pdContract)?pdContract():null):null;
     const _df=(typeof window.jamboFaceHtml==='function')?jamboFaceHtml('hello',28,'igd-door-face').replace('<img','<img data-ink-exempt'):icon('sparkle','w-5 h-5');
+    igDockMarks('',true);
     dock.innerHTML=`
       <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${igEsc(_dn?i18t('pd_tab_n',{ name:i18t('int_copilot_panel'), n:_dn.n }):i18t('int_open_panel'))}">
         <span class="igd-door-i">${_df}${_dn?`<span class="pd-tab-n is-${_dn.tone}">${_dn.n>99?'99+':_dn.n}</span>`:''}</span><span class="igd-door-w">${i18t('int_copilot_panel')}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>
@@ -10024,6 +10137,7 @@ function renderIntelDock(){
      the panel went on saying "This week is clear"), as it does over the Board (pdJamboTopHtml); Cancel brings
      the Calendar's own back */
   if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'&&!(window.naSheetUp&&naSheetUp())){
+    igDockMarks('',false);
     dock.innerHTML=calPlanHtml();
     const head=dock.querySelector('.cal-plan-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
@@ -10032,6 +10146,7 @@ function renderIntelDock(){
     if(typeof window.calWireOwn==='function') calWireOwn();
     return;
   }
+  igDockMarks((window.pdOnPaper&&pdOnPaper())?'paper':'off',false);
   dock.innerHTML=`
     ${''/* HEADER ICONS (Young, 8 Oct 2026): the title row is the panel's tabs —
            Copilot, then the contract's own tabs while the Paper holds one. The
@@ -10270,20 +10385,8 @@ function renderIntelDock(){
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
   }
-  /* THE SAP WAY's More: a press opens it, again closes it (Esc and a press outside close it too, bound at load) */
-  dock.querySelectorAll('[data-ig-sap-more]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const k=b.getAttribute('data-ig-sap-more'); intel.sapOpen=intel.sapOpen===k?null:k; renderIntelDock();
-    const fresh=document.querySelector(`[data-ig-sap-more="${k}"]`); if(fresh&&intel.sapOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); }));
-  /* a press on anything inside the menu closes it: the act is the answer */
-  dock.querySelectorAll('.igd-sap-menu button').forEach(b=>b.addEventListener('click',()=>{ intel.sapOpen=null; },true));
-  /* WHAT JAMBO UNDERSTOOD (Board Twin): a chip opens its menu, again closes it; a choice re-reads the set in place */
-  dock.querySelectorAll('[data-ig-mr]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const k=b.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; renderIntelDock();
-    const fresh=dock.querySelector(`[data-ig-mr="${k}"]`); if(fresh&&intel.mrOpen) try{ fresh.focus({ preventScroll:true, focusVisible:false }); }catch(_){} }));
-  dock.querySelectorAll('[data-ig-mrset]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const v=String(b.getAttribute('data-ig-mrset')||''), a=v.indexOf(':'), z=v.indexOf(':',a+1);
-    if(igMapReadSet(Number(v.slice(0,a)), v.slice(a+1,z), v.slice(z+1))){ renderIntelDock(); updateIntelNote(); } else { intel.mrOpen=null; renderIntelDock(); } }));
-  dock.querySelectorAll('[data-ig-mrteach]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igMapReadTeach(Number(b.getAttribute('data-ig-mrteach'))); }));
+  /* the ⋯ menu is measured against the panel once it is painted, and flipped where it does not fit */
+  try{ igMorePlace(); }catch(_){ }
   dock.querySelectorAll('[data-ig-mrnext]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-mrnext')||'').split(':').map(Number); const m=intel.history[t], R=m&&m.mapRead;
     if(!R||!igMapReadLive(t)) return; const x=igMapReadNext(R.top)[k]; if(!x) return;
@@ -11558,12 +11661,18 @@ function igStripWire(){
     if(e.target.closest('[data-ig-pick-again]')){ igPickAgain(); return; }
     const wk=e.target.closest('[data-ig-walk]'); if(wk){ igWalkStep(Number(wk.getAttribute('data-ig-walk'))); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
-    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'), was=p.red==='theirs'; p.red=v==='theirs'?'theirs':v==='1'; _igRedFrom=igRedThumbAt(); igPaintPaper();
+    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'), was=p.red==='theirs'; p.red=v==='theirs'?'theirs':v==='1'; _igRedFrom=igRedThumbAt();
+      /* ONE PRESS, ONE PAPER (owner, 11 Nov 2026: the delay on this switch; measured: Their view drew the whole paper
+         twice, once here and once when its panel opened): where the press opens the Redlines panel, that opening draws
+         the paper (pdRedPaper); only where it drew none (a wall, a question first) is it drawn here */
+      const opens=p.red==='theirs'&&typeof window.pdRedOpen==='function'&&!(typeof window.pdRedShows==='function'&&pdRedShows()&&pdRedFor()===String(p.id));
+      const n0=_igPaperPaints;
+      if(opens){ try{ pdRedOpen(p.id); }catch(_){ } if(_igPaperPaints===n0) igPaintPaper(); return; }
+      igPaintPaper();
       /* THEIR VIEW TURNS THE PANEL TOO (owner, 25 Oct 2026): their paper here, their Redlines column in
          Jambo's panel (pdRedOpts reads igTheirsOn), read-only; leaving it puts our column back */
       const faceUp=typeof window.pdRedShows==='function'&&pdRedShows()&&pdRedFor()===String(p.id);
-      if(p.red==='theirs'&&!faceUp&&typeof window.pdRedOpen==='function') pdRedOpen(p.id);
-      else if((p.red==='theirs')!==was&&faceUp) renderIntelDock();
+      if((p.red==='theirs')!==was&&faceUp) renderIntelDock();
       return; }
     const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
   });
@@ -11681,7 +11790,9 @@ function igPaperRefresh(){
   igPaintPaper();
   const sc2=document.getElementById('ig-paper-scroll'); if(sc2) sc2.scrollTop=top;
 }
+let _igPaperPaints=0;   // how many times the paper's painter ran (the switch asks whether an opening already drew it)
 function igPaintPaper(){
+  _igPaperPaints++;
   const strip=document.getElementById('ig-strip'), host=document.getElementById('ig-paper'), page=document.getElementById('ig-page');
   /* the paper put up (or put down) is the desk's tab in front (Round 2, 17 Oct 2026; js/views/counter.js) */
   if(typeof window.deskTabsSync==='function') setTimeout(window.deskTabsSync,0);
@@ -11728,6 +11839,8 @@ function igPaintPaper(){
   const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':(head.id==='hb-head'?'':'flex');
   if(!up){ host.hidden=true; return; }
   if(host.dataset.for!==igPaperKey(c)){ host.innerHTML=igPaperHtml(c); host.dataset.for=igPaperKey(c); igPaperWire(host);
+    /* born at the width its notes leave it, before anything measures it (pd2SheetPre: one layout a press, not two) */
+    if(typeof window.pd2SheetPre==='function') try{ pd2SheetPre(c); }catch(_){ }
     /* THE BLANKS ARE MARKED HERE TOO (11 Oct 2026, the Document tab gone): an
        upload's placeholders and our amendment's ruled lines, painted on the
        paper the Overview tab's form fills — never stored, as on the room's. */
@@ -12227,4 +12340,4 @@ Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFir
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
-  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igSapHtml, igSapMoreHtml });
+  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igMoreHtml, igMorePlace, igMrRepaint, igOneRepaint, IG_MENU_MIN_W, igOneHtml });

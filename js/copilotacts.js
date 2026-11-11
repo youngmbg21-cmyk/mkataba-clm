@@ -1644,6 +1644,9 @@ async function caSelPick(c, act, text, clauseId){
   caSelKill();
   const quote = text.slice(0, 600);
   if (act.id === 'ask'){
+    /* THE PANEL FOLDED TO ITS STRIP (owner, 11 Nov 2026: "nothing happens"): its own opener is pressed first, then
+       the words go in the box as they do when it stands open */
+    if (typeof intel === 'object' && intel && !intel.dockOpen){ const door = document.getElementById('igd-expand'); if (door) door.click(); }
     const inp = (typeof igAskBox === 'function') ? igAskBox() : document.getElementById('igd-input'); if (!inp) return;
     inp.value = _caT('ca_sel_ask_fill', { q: quote.length > 240 ? quote.slice(0, 240) + '…' : quote });
     try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_){}
@@ -3218,11 +3221,13 @@ function caEchoHtml(){
   const line = _caT('ca_echo_said', { words: a.said }) + ' ' + caGoSay(a);
   const foot = `<button type="button" class="ui-btn ui-btn-sm" data-ca-act="goback" data-ca-turn="${i}">${_caE(_caT('ca_echo_back'))}</button>`
     + `<button type="button" class="ui-link" data-ca-act="reword" data-ca-turn="${i}">${_caE(_caT('ca_echo_reword'))}</button>`;
-  return `<div class="ca-echo-top">${jamboSayCardHtml({ text: line, foot, attrs: ' data-ca-echo' })}</div>`;
+  return `<div class="ca-echo-top">${jamboSayCardHtml({ text: line, foot, attrs: ' data-ca-echo', close: `data-ca-act="echoshut" data-ca-turn="${i}"` })}</div>`;
 }
 function caGoPress(a, act){
   /* round 4: "Not this, go back" returns to where the words were typed; "Change what I said" puts the words back in
      the box, ready to edit, and sends nothing */
+  /* THE × (owner, 11 Nov 2026): the card goes, the reader stays where they are; nothing else is pressed */
+  if (act === 'echoshut'){ a.said = ''; document.querySelectorAll('.ca-echo-top').forEach(n => n.remove()); return true; }
   if (act === 'goback'){ a.said = '';
     /* back to where the words were typed (a.from, read as they were sent) */
     const ok = a.from ? caPlaceGo(a.from) : caGo({ kind: 'go', place: 'back', state: 'ready' });

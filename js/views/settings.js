@@ -3293,6 +3293,7 @@ function stJbWhyCardHtml(c, t){
   const card=(head,body,acts,fine)=>`<div class="st-jb-card st-jb-ai"><div class="st-jb-ch">${head}</div>${body?`<div class="st-jb-cb">${body}</div>`:''}${acts?`<div class="st-jb-ca">${acts}</div>`:''}${fine?`<p class="st-jb-fine">${fine}</p>`:''}</div>`;
   const id=t&&t.id, w=t&&t.ai;
   if(!stJbAiOn()) return c.loose?'':card(esc(i18t('st_jb_why_h')), `<p>${esc(i18t('st_jb_why_noai'))}</p>`, '', '');
+  if(w&&w.state==='handed') return '';   // handed to the chat: no card left asking to be pressed again
   if(!w) return card(esc(i18t('st_jb_why_h')), `<p>${esc(i18t(stIsAdmin()?'st_jb_why_b':'st_jb_why_b_you'))}</p>`,
     btn(`data-st-jb-why="${id}"`, i18t('st_jb_why_go'), true)+(c.loose?'':btn(`data-st-jb-drop="${id}"`, i18t('st_jb_not_now'), false)),
     esc(i18t('st_jb_why_cost')));
@@ -3317,6 +3318,8 @@ async function stJbWhyRun(id){
   t.ai={ state:'busy' }; stJbTurnRepaint(t);
   try{
     const r=await api('ai/settings-why','POST',{ q:t.q });
+    /* not about settings at all (owner, 11 Nov 2026): the chat answers it in the one conversation, with the whole book */
+    if(r&&r.kind==='elsewhere'&&typeof aiAskWords==='function'){ t.ai={ state:'handed' }; stJbTurnRepaint(t); stJbAskJambo(t.q); return; }
     t.ai={ state:'done', answer:r||{} };
   }catch(e){ t.ai={ state:'err', error:(e&&e.message)||i18t('st_jb_why_failed') }; }
   stJbTurnRepaint(t);

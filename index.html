@@ -9612,10 +9612,17 @@
      then the copilot bar should then align with it"): on Board, Paper and Explorer the
      panel is ONE plain white column below the greeting row, with its own left line —
      no lifted card on a grey ground (reverses LIFTED, 8 Oct). The paper keeps its ground. */
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
+  /* THE PANEL'S STATE IS WRITTEN ON #ig-page, NEVER ASKED OF THE WHOLE BODY (owner, 11 Nov 2026: "why is the press
+     from clean to redlines … have a delay?"). Measured on a 40-section contract: these eight rules asked
+     body:has(#ig-dock > …), so ANY small change anywhere on the page (a class, a note, a page mark) made the browser
+     read every style on the page again, about 25 ms a time against 0.2 ms without them, several times a press.
+     renderIntelDock now writes what they asked on the page itself (igDockMarks: data-igd-head, data-igd-door) and the
+     rules read it there. body:is(*, …) always matches and only keeps each rule the weight it had; the mark stands
+     inside :where() so it adds none. A page-wide body:has() in front of the paper is never written again. */
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) :where(#ig-page[data-igd-head="paper"]) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
   /* THE SAME WITH JAMBO'S PANEL FOLDED (owner, 8 Nov 2026: "when you minimize jambo panel, the top bar should remain the same
      size and the back drop should always remain the brownish color"): on the paper, the folded door stands for the head */
-  body:has(#ig-dock > .igd-door[class]):where(:has(#ig-page[data-hb-side="paper"]:not(.hb-dark))) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
+  body:is(*, #ig-dock > .igd-door[class]) :where(#ig-page[data-igd-door][data-hb-side="paper"]:not(.hb-dark)) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
   #ig-dock{background:var(--color-surface)}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]){box-shadow:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{gap:0}
@@ -9630,10 +9637,10 @@
      height under one line, the white panel below it. The bar's extra height is taken
      from the ground above the sheet, so the wording does not move (Six Questions 3). */
   #ig-page{--ig-bar-h:47px}
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-strip{height:var(--ig-bar-h)}
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
-  body:has(#ig-dock > .igd-door[class]):where(:has(#ig-page[data-hb-side="paper"]:not(.hb-dark))) #ig-strip{height:var(--ig-bar-h)}
-  body:has(#ig-dock > .igd-door[class]):where(:has(#ig-page[data-hb-side="paper"]:not(.hb-dark))) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) :where(#ig-page[data-igd-head="paper"]) #ig-strip{height:var(--ig-bar-h)}
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) :where(#ig-page[data-igd-head="paper"]) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
+  body:is(*, #ig-dock > .igd-door[class]) :where(#ig-page[data-igd-door][data-hb-side="paper"]:not(.hb-dark)) #ig-strip{height:var(--ig-bar-h)}
+  body:is(*, #ig-dock > .igd-door[class]) :where(#ig-page[data-igd-door][data-hb-side="paper"]:not(.hb-dark)) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{height:var(--ig-bar-h);padding:0 6px 0 4px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) .pd-tab.on::after{bottom:-1px}
   /* CHASE MANY AT ONCE (8 Oct 2026): a ticked list over the late promises' work */
@@ -10203,6 +10210,9 @@
   .jb-say-h{display:flex;align-items:baseline;gap:8px;justify-content:space-between;font-size:12px;color:var(--color-neutral-600)}
   .jb-say-h b{display:inline-flex;align-items:baseline;gap:6px;color:var(--color-text);font-weight:var(--w-label)}
   .jb-say-i{color:var(--accent-ink)}
+  /* the card's × (top right, only where a caller gives it a press) */
+  .jb-say-x{width:24px;height:24px;flex:none;display:grid;place-items:center;align-self:center;margin-left:auto;border:0;border-radius:var(--radius);background:none;color:var(--color-quiet);cursor:pointer}
+  .jb-say-x:hover{background:var(--color-neutral-200);color:var(--color-text)}
   .jb-say-b{font-size:13.5px;line-height:1.5}
   .jb-say-b p{margin:0}
   .jb-say-b p+p{margin-top:6px}
@@ -12020,6 +12030,9 @@
   .hb-rd-chip.is-open{background:var(--color-accent-50)}
   .hb-rd-chip.is-still{cursor:default;opacity:.75}
   .hb-rd-chip:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  /* a menu in Jambo's panel is placed by measurement (igMorePlace) and stays unseen until it is */
+  #ig-dock .hb-rd-menu,#ig-dock .igd-more-menu.is-open{visibility:hidden}
+  #ig-dock .hb-rd-menu.is-set,#ig-dock .igd-more-menu.is-open.is-set{visibility:visible}
   .hb-rd-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;max-height:300px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px -10px rgba(0,0,0,.35)}
   .hb-rd-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:6px 9px;border:0;border-radius:var(--radius);background:none;color:inherit;font:inherit;font-size:var(--t-meta);text-align:left;cursor:pointer}
   .hb-rd-menu button:hover:not(:disabled){background:var(--color-accent-50,rgba(0,0,0,.05))}
@@ -12037,24 +12050,28 @@
   .ig-mr-next .ui-link{font-size:var(--t-meta)}
   /* THE SAP WAY: ONE TOOLBAR UNDER AN ANSWER (owner picked it by name, 10 Nov 2026) — three labelled rows,
      the rare acts under More. Nothing spills: every row wraps inside the card, and the menu is 16px inside it. */
-  .igd-sap{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:visible}
-  .igd-sap-r{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 8px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--color-divider)}
-  .igd-sap-r:last-child{border-bottom:0}
-  .igd-sap-l{font-size:var(--t-micro);color:var(--color-quiet);line-height:1.3}
-  .igd-sap-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
-  .igd-sap-v .hb-rd,.igd-sap-v .hb-nx,.igd-sap-v .igd-doors,.igd-sap-v .igd-small{display:contents}
-  .igd-sap-v .hb-nx-l{display:none}/* the row's own label already says Next */
-  .igd-sap-wrap{position:relative;display:inline-flex}
-  .igd-sap-more{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:inherit;font:inherit;font-size:var(--t-meta);font-weight:500;white-space:nowrap;cursor:pointer}
-  .igd-sap-more:hover,.igd-sap-more.is-open{border-color:var(--accent-fill,var(--color-accent-600))}
-  .igd-sap-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
-  .igd-sap-menu{display:none;position:absolute;bottom:calc(100% + 4px);right:0;/* UPWARD: the toolbar sits low in the panel, so a menu dropped down would fall off the window */z-index:30;min-width:208px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
-  .igd-sap-menu.is-open{display:flex}
+  .igd-one-v .hb-rd,.igd-one-v .hb-nx,.igd-one-v .igd-doors,.igd-one-v .igd-small{display:contents}
+  /* ONE ROW (owner's pick for Explorer, 11 Nov 2026): the controls on ONE line, and the answers before the
+     the answers above it keeping every word. Nothing spills: the row wraps inside the panel, chips give way first. */
+  .igd-one{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0}
+  .igd-one-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0;flex:1 1 auto}
+  .igd-one-v .hb-rd{display:contents}
+  .igd-one .ui-btn{flex:none}
+  .igd-one-more{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);padding:0;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-quiet);font:inherit;font-size:15px;line-height:1;cursor:pointer}
+  .igd-one-more:hover,.igd-one-more.is-open{border-color:var(--accent-fill,var(--color-accent-600));color:inherit}
+  .igd-one-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  .igd-more-wrap{display:inline-flex}
+  /* THE MENU IS THE ROW'S, NOT THE DOTS' (owner, 11 Nov 2026: "the pop up is cut off"): hung off the ⋯ it was
+     wider than the room to its left and ran out past the panel's edge, where the feed's own scroller clipped it
+     — three of its rows were not painted at all. Hung off the ROW it can never be wider than the panel. It still
+     opens UPWARD, because the row sits low and a menu dropped downward fell off the window. */
+  .igd-more-menu{display:none;position:fixed;z-index:30;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
+  .igd-more-menu.is-open{display:flex}
   /* a row is one line: a button's words never wrap (f386), so the menu is as wide as its longest label */
   /* the source line: what the answer was read from — a line in the menu, not a press */
-  .igd-sap-src{padding:7px 9px;color:var(--color-quiet);font-size:var(--t-micro);line-height:1.35;border-top:1px solid var(--color-divider);margin-top:2px}
-  .igd-sap-menu .ui-btn,.igd-sap-menu .ui-link{display:block;width:100%;height:auto;padding:7px 9px;border:0;border-radius:var(--radius);background:none;text-align:left;font-size:var(--t-meta)}
-  .igd-sap-menu .ui-btn:hover,.igd-sap-menu .ui-link:hover{background:var(--color-accent-50,rgba(0,0,0,.05))}
+  .igd-src{padding:7px 9px;color:var(--color-quiet);font-size:var(--t-micro);line-height:1.35;border-top:1px solid var(--color-divider);margin-top:2px}
+  .igd-more-menu .ui-btn,.igd-more-menu .ui-link{display:block;width:100%;height:auto;padding:7px 9px;border:0;border-radius:var(--radius);background:none;text-align:left;font-size:var(--t-meta)}
+  .igd-more-menu .ui-btn:hover,.igd-more-menu .ui-link:hover{background:var(--color-accent-50,rgba(0,0,0,.05))}
   /* three next questions under the live reply (Part 5) */
   .hb-nx{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
   .hb-nx-l{font-size:var(--t-micro);color:var(--color-quiet)}
@@ -17490,8 +17507,8 @@
      line, 47px → 39px (its buttons are 28), never from the room above the sheet, so the zoom keeps its 6px
      and the sheet its 40px under the line, as on every other paper (one-zoom 6, one-paper-everywhere 1) */
   #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:39px}
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark) #ig-paper-scroll{padding-top:9px}
-  body:has(#ig-dock > .igd-door[class]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark) #ig-paper-scroll{padding-top:9px}
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):where([data-igd-head="paper"]) #ig-paper-scroll{padding-top:9px}
+  body:is(*, #ig-dock > .igd-door[class]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):where([data-igd-door]) #ig-paper-scroll{padding-top:9px}
   /* ==== THE LEGORA LOOK, STAGE 2 (owner, 23 Oct 2026: "start stage 2" — the six drawn pages matched) ====
      A CARD HAS NO OUTLINE: it floats on the grey by its lift alone, as drawn (the 1px edge stays, transparent,
      so nothing moves by a pixel). Explorer's dark stage is not reached. */
@@ -18240,14 +18257,16 @@
      not on nothing — the see-through tint let the Board's grey ground show through the whole card (white-sheet-verify
      board-sheet, 11 Nov 2026; it now stands before Summarise is pressed, so the check meets it) */
   html.lg-new #ig-page[data-hb-side="board"] #hb-board > .hb-why{margin:0;background:var(--hb-why-fill)}
-  /* CARD INSIDE (owner picked it by name, 11 Nov 2026): once Summarise is pressed, the brief stands inside the greeting,
-     right under its buttons, on the greeting's own white */
-  html.lg-new #hb-bhead.is-greet > .hb-why{margin:14px 0 0;background:var(--hb-why-fill)}
+  /* ITS OWN CARD, WITH A × TOP RIGHT (owner, 11 Nov 2026; reverses Card Inside): the × sits at the head's right end */
+  html.lg-new .hb-why .hb-why-x{margin:-4px -6px -4px 0}
   /* the strip between the greeting and the first card is the greeting's own white, not the Board's grey: a white band
      one column gap high under the head (its box unchanged, so the first card still measures 12 under it; white-sheet-verify,
      Board · side list, 11 Nov 2026) */
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet{position:relative}
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--well-g);background:var(--color-surface)}
+  /* with the brief under it, the gap is the Board's own, as between its cards (owner, 11 Nov 2026: "there needs to be
+     space between the card and the top bar just like the spaces between cards in the board") */
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet:has(+ .hb-why)::after{display:none}
   html.lg-new #hb-bhead.is-greet .hb-bh-r{margin-top:14px;flex-wrap:wrap;row-gap:var(--s-2)}
   html.lg-new #hb-bhead.is-greet .hb-bh-day{white-space:nowrap;color:var(--color-neutral-400)}
   html.lg-new .hb-gr-a{all:unset;box-sizing:border-box;cursor:pointer;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--color-accent-300)}
@@ -18352,6 +18371,9 @@
   html.lg-new #pd2-notes .pd2-mg .pd2-mg-more{display:none;font-size:12px}
   html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
   html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-more{display:inline}
+  /* SHOW LESS: on an open group of two or more; gone once folded */
+  html.lg-new #pd2-notes .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
+  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-less{display:none}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
@@ -18664,11 +18686,17 @@
   html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note textarea{border:0;padding:0;background:none;box-shadow:none;font-family:var(--font-doc);font-size:15px;line-height:1.55;resize:none}
   html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap #sh-lt-subject{border:0;background:none;padding:0;box-shadow:none}
   /* Before you send as drawn: Goes first, then the rest */
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes){display:flex;flex-direction:column}
+  /* THE HOLDER SAYS IT ITSELF, NO ":has" (owner, 11 Nov 2026, the Clean | Redline delay). These four rules asked
+     ":has(> #sh-lt-goes) > *" with nothing named in front, so the browser held every element on the page answerable to
+     it: adding one small thing anywhere, a note beside the paper, a page mark, made it read the whole page's styles
+     again (measured on a 40-section contract: about 25 ms a time against 4 ms). The side column now carries a class
+     where it holds "What goes" (js/core.js: sh-lt-hasgoes on #share-step-1), read inside :where() so each rule weighs
+     what it weighed. A ":has" followed by "> *", or with no class or id in front of it, is never written again. */
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes){display:flex;flex-direction:column}
   html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-goes{order:-1}
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > *{align-self:stretch}
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-jb{order:-3}
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-verdict{order:-2}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes) > *{align-self:stretch}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes) > .sh-lt-jb{order:-3}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes) > .sh-lt-verdict{order:-2}
   html.lg-new .rl-pile.rl-pile-nlfold:not(.is-open) > :not(.rl-band){display:none}
   html.lg-new #ig-dock .rl-band.rl-band-nl{display:flex;align-items:center;width:100%;gap:8px;padding:10px 0;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer}
   html.lg-new #ig-dock .rl-band.rl-band-nl span{flex:1}

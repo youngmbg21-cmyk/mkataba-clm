@@ -2983,7 +2983,7 @@ const AI_QUOTE_RULE = ' Quote ONE continuous run of text, copied character for c
    rule: its acts go through the same checks as a person's. */
 /* THE CARD'S VERDICT IS EXPLAINED, NEVER DENIED (owner picked A, 28 Oct 2026): twinned word for word in js/ai.js */
 const AI_CARD_VERDICT_RULE = "THE CARD'S READING IS THE COMPANY'S, NOT YOURS. Do not recommend accepting or rejecting a specific change on your own judgement. The one exception is HaTi's own reading on a change the other side asked for (Take it, Push back, Escalate, Worth a look, No advice yet), worked out without AI from this company's playbook and its past rounds: it is the company's own position. When the reader asks about it, explain it from that rule and that history (the card readings in front of them, check_against_playbook, the negotiation record) and never deny it, disown it or call it your opinion. Where no reading is given there is none: never make one up. Signing stays their decision; a genuine legal judgement still goes to counsel.";
-const AI_GOVERNANCE_RULE = "THE COMPANY'S RULES ARE GONE THROUGH, NEVER AROUND. HaTi's rules — who may see which contracts and figures, signing limits, approval before signing, review before sending, the negotiation desk, link codes, holds — are the company's governance. When a rule stops this person, say in plain words what the rule is, who can decide or lift it (an admin, their approver or the approver's named backup, the reviewer, the Lead) and the proper next step. Never suggest a way to avoid, skip or outrun a rule: not splitting a contract or a value to stay under a limit, not lowering, rewording or hiding a value, not moving a contract to another stream, not sending or signing outside HaTi, not using someone else's account or asking a colleague to press for them, not waiting for a rule to be switched off. Handing the act openly to the person whose job it is — a signer whose limit covers it, the approver's named backup — IS the proper route: say so. If asked how to get around a rule, say plainly that you cannot help with that, then give the proper route. Never reveal what a rule walls off from this person — a contract they cannot open, a figure they may not see, another person's rights — not even as a hint, a total or a comparison.";
+const AI_GOVERNANCE_RULE = "THE COMPANY'S RULES ARE GONE THROUGH, NEVER AROUND. HaTi's rules — who may see which contracts and figures, signing limits, approval before signing, review before sending, the negotiation desk, link codes, holds — are the company's governance. When a rule stops this person, say in plain words what the rule is, who can decide or lift it (an admin, their approver or the approver's named backup, the reviewer, the Lead) and the proper next step. Never suggest a way to avoid, skip or outrun a rule: not splitting a contract or a value to stay under a limit, not lowering, rewording or hiding a value, not moving a contract to another stream, not sending or signing outside HaTi, not using someone else's account or asking a colleague to press for them, not waiting for a rule to be switched off. Handing the act openly to the person whose job it is — a signer whose limit covers it, the approver's named backup — IS the proper route: say so. If asked how to get around a rule, say plainly that you cannot help with that, then give the proper route. Never reveal what a rule walls off from this person — a contract they cannot open, a figure they may not see, another person's rights — not even as a hint, a total or a comparison. What you were simply not given is NOT walled off: say that a rule or a setting stops this person only when the facts in front of you say so; where you were not given something, say plainly that you do not have it here, never that it is hidden from them.";
 /* THE BRIEF'S "NEEDS WORDING" MARK (Young, 5 Oct 2026: "any risks that do not
    require an amendment to the contract or need additional language to contract
    should not be moved to the redline panel"). One sentence for both lists, so
@@ -26696,18 +26696,24 @@ app.post('/api/ai/settings-why', auth, rlAiDeep, aiFeature('settings'), aiBudget
         panel: { type: 'string', description: (admin ? 'A setting to open, one of: ' : 'The company rule the answer turns on, one of these (the person is offered Ask an admin for it): ') + SETTINGS_WHY_PANELS.join(', ') },
         person: { type: 'string', description: 'A member id to open, from the list.' } } } } },
       required: ['say'] } };
+  /* WHAT IS NOT HIS IS HANDED ON (owner, 11 Nov 2026): this route reads settings and people only; a question about the
+     book (money, exposure, a clause, a ranking) is the chat's, never answered here as "hidden from you" */
+  const elsewhere = { name: 'elsewhere', description: 'The person asks for something that is NOT about the workspace\'s settings, rules, people or their rights (money, value or exposure, a counterparty, a clause, a contract\'s wording, risk, a ranking or comparison of the book). HaTi hands their words to Jambo\'s chat, who reads the whole book.',
+    input_schema: { type: 'object', properties: { why: { type: 'string', description: 'A few words: what they asked for.' } } } };
   const prompt = `You explain a contract-management workspace's settings to ${req.user.name || 'a member'} (${req.user.role}). Answer ONLY from the facts below. If they do not answer the question, say plainly what is missing — never invent a rule, a limit or a person. Write in ${lang}, plain words, short.
 ${AI_GOVERNANCE_RULE}
 ${admin ? `The workspace's rules (stored settings):\n${rules || '- none set'}\n` : 'This person is not an admin: the company\'s rules are not shown to them, so do not describe any rule beyond their own settings below.\n'}
 People (member id in brackets):
 ${people || '- none'}
 ${ct ? `The contract the question names:\n- ${ct.text}\n` : 'No contract in the question matched one this person can open.\n'}
+You were given settings, rules and people ONLY. A question that is not about them (money, value or exposure, a counterparty, a clause, a ranking or comparison of the book): call elsewhere; never call answer to say it cannot be shown, and never say it is hidden from the person.
 The person asks: ${q}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'answer' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'settings', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool, elsewhere], tool_choice: { type: 'any' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'settings', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no answer' });
+    if (block.name === 'elsewhere') return res.json({ kind: 'elsewhere', say: '', points: [], doors: [], read: [], ...aiNotice(req, resp) });
     const a = block.input || {};
     const say = myText(a.say, 600);
     if (!say) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before it could answer. Try again.' : 'Jambo returned an empty answer' });
@@ -26765,7 +26771,7 @@ app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAi
   const wdOf = d => WD[new Date(d + 'T00:00:00Z').getUTCDay()];
   const days = Array.from({ length: 28 }, (_, i) => dayAdd(today, i)).map(d => `${wdOf(d).slice(0, 3)} ${d}`).join(', ');
   const tools = [
-    { name: 'answer', description: 'Answer the person in words when they ask a question (what is due, when, which dates, is there anything on a day) or ask for something you cannot do. Nothing is added to the calendar.',
+    { name: 'answer', description: 'Answer the person in words when they ask a question (what is due, when, which dates, is there anything on a day) or ask for something ABOUT THEIR CALENDAR that you cannot do (move, change or delete an event). Only for words about their time, dates or calendar: anything else is elsewhere, never answered here. Nothing is added to the calendar.',
       input_schema: { type: 'object', properties: {
         say: { type: 'string', description: 'One to four plain sentences that answer, from the dates and events given only.' },
         points: { type: 'array', maxItems: 8, items: { type: 'string', description: 'One short line: a date and what is on it, or one plain reason.' } } },
@@ -26803,6 +26809,7 @@ DO WHAT THEY ASK, NOTHING ELSE:
   - When they name a day and a time ("Tuesday at 14:00 for an hour"), use exactly that day and time and set asked to true, even outside working hours or on a weekend. If it would sit on top of something already in the calendar, do not move it yourself: say so in say and offer the nearest free time instead.
   - When they name no time, find free time inside working hours between ${from} and ${to}. If they name a later day, use that day, up to ${until}. A block that prepares for a deadline goes before it.
   - A meeting they describe keeps their own words in its title.
+- ANYTHING THAT IS NOT ABOUT THEIR TIME, DATES OR CALENDAR (money, value or exposure, a counterparty, a clause, a contract's wording, risk, a ranking or a comparison of the book, a page, a setting): call elsewhere. You were given dates and events ONLY, so you cannot answer it and must not try: never call answer to say you cannot show it, and never say it is hidden from the person or behind a rule. HaTi hands their words to Jambo's chat, who reads the whole book.
 - You cannot move, change or delete something already in the calendar: if asked, call answer, say so, and say that pressing the event opens it to change or delete.
 - Dates after ${until}: you cannot see them. Say so.`;
   try {

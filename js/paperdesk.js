@@ -5949,11 +5949,19 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       pdOgSaveIn(tb, c); return; }
     const sa = t.closest('#pd-og [data-pd-og-saveall]');
     if (sa){ e.preventDefault(); const c = pdOgContract(); if (!c) return; pdOgSaveIn(sa.closest('#pd-og'), c); return; }
-    const rt = t.closest('#pd-og [data-pd-og-route], #pd-glance .ds-nx [data-pd-og-route]');
-    if (rt){ e.preventDefault(); const c = pdOgContract(); if (!c || typeof openSignerPlanEditor !== 'function') return;
-      const id = c.id; pdSgListClose();
-      openSignerPlanEditor((typeof getContract === 'function' && getContract(id)) || c,
-        { onDone(){ pdOgRepaint(); pdOgLand(id, 'signers'); } });
+    /* THE ONE SIGNER DOOR, WHEREVER IT IS DRAWN (owner-reported 11 Nov 2026: the new look's Signer · Change did
+       nothing): the form's rows, the old Next card, and the new look's Dossier (its facts row and its one card) all
+       carry data-pd-og-route with the contract's id. The contract is read off the button itself, not the form's host
+       (pdOgContract answers null when the form is not open). Pressed in the form, it lands back on the form's signers;
+       pressed on the Dossier, the Dossier is drawn again with the names it now has. */
+    const rt = t.closest('#pd-og [data-pd-og-route], #pd-glance [data-pd-og-route]');
+    if (rt){ e.preventDefault(); if (typeof openSignerPlanEditor !== 'function') return;
+      const id = rt.getAttribute('data-pd-og-route');
+      const c = (id && typeof getContract === 'function' && getContract(id)) || pdOgContract(); if (!c) return;
+      const inForm = !!rt.closest('#pd-og'); pdSgListClose();
+      openSignerPlanEditor(c, { onDone(){
+        if (inForm){ pdOgRepaint(); pdOgLand(c.id, 'signers'); return; }
+        try { pdGlanceRepaint(); } catch (_){} } });
       return; }
     const ok = t.closest('#pd-og [data-pd-og-ok]');
     if (ok){ e.preventDefault(); const c = pdOgContract(); if (c) pdOgConfirm(c, ok.getAttribute('data-pd-og-ok')); return; }
@@ -7356,7 +7364,7 @@ function pd2CardHtml(c, D){
   const readHere = !R.read && may && !(b && /data-pd-ds-read/.test(b.attr));
   const hasBrief = !!(R.brief || (c._brief && c._brief.data && c._brief.data.overview));
   /* nothing is said about Jambo calls (owner, 8 Nov 2026: "remove all information related to jambo calls") */
-  const sayRead = R.read ? _pdT('pd2_read_once') : _pdT('pd2_read_not');
+  const sayRead = R.read ? _pdT((c.triage && c.triage.agreed) ? 'pd2_read_agreed' : 'pd2_read_once') : _pdT('pd2_read_not');
   const links = [readHere ? `<button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('pd2_card_read_it'))}</button>` : '',
     `<button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button>`,
     hasBrief ? `<button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''].filter(Boolean).join('<span class="pd2-card-sep" aria-hidden="true">|</span>');
@@ -7388,6 +7396,8 @@ function pd2ClausePoints(c, cv){
 const PD2_FOLD_DRIFT = 60;
 /* the groups the reader opened, per contract, for this sitting: a repaint keeps them open */
 const _pd2Unfolded = new Set();
+/* SHOW LESS (owner, 11 Nov 2026): a group the reader folded themselves stays folded, whatever its drift */
+const _pd2Shut = new Set();
 const PD2_NOTE_GAP = 12, PD2_SHEET_LEFT = 40, PD2_NOTES_MIN = 220, PD2_NOTES_MAX = 320, PD2_NOTES_GUTTER = 32, PD2_SHEET_MIN = 480;
 function pd2Notes(c){
   const E = _pdE, out = [];
@@ -7623,7 +7633,22 @@ function pd2ClauseTint(){
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   if (e.target && e.target.closest && e.target.closest('#ig-dock #pd-thread') && pd2On()) setTimeout(pd2ClauseTint, 0);
 });
+/* THE PAPER IS BORN AT THE WIDTH ITS NOTES LEAVE IT (owner, 11 Nov 2026: "why is the press from clean to redlines …
+   have a delay?"; measured: a press laid the whole contract out, cut it into pages, THEN the notes narrowed the sheet
+   and the browser laid it all out again). While the notes stand beside this contract's paper, a paper drawn again takes
+   the sheet's last width and left edge BEFORE anything measures it; pd2NotesPaint works them out as ever and, where
+   they are the same, moves nothing. Notes put away forget it (pd2NotesOff). */
+let _pd2Geo = null;
+const PD2_SHEET_SEL = ':scope > .pg-sheet, :scope > .blueprint, :scope > .ig-redpaper > article';
+function pd2SheetPre(c){
+  const g = _pd2Geo; if (!g || !c || g.id !== String(c.id) || typeof document === 'undefined') return false;
+  const zoom = document.querySelector('#ig-paper .ig-zoom'); if (!zoom || zoom.querySelector('.ig-signpaper')) return false;
+  zoom.classList.add('has-pd2'); zoom.style.setProperty('--doc-sheet-max', g.sheetW + 'px');
+  const sh = zoom.querySelector(PD2_SHEET_SEL); if (sh){ sh.style.marginLeft = g.left + 'px'; sh.setAttribute('data-pd2-left', '1'); }
+  return true;
+}
 function pd2NotesOff(){
+  _pd2Geo = null;
   document.querySelectorAll('#ig-paper .ig-zoom.has-pd2').forEach(z => { z.classList.remove('has-pd2'); z.style.removeProperty('--doc-sheet-max'); });
   document.querySelectorAll('#ig-paper [data-pd2-left]').forEach(sh => { sh.style.marginLeft = 'auto'; sh.removeAttribute('data-pd2-left'); });
   document.querySelectorAll('#pd2-notes').forEach(n => n.remove());
@@ -7666,9 +7691,12 @@ function pd2NotesPaint(c){
   const room = W - left - PD2_NOTES_GUTTER - 16;
   const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
   const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));
-  zoom.classList.add('has-pd2'); zoom.style.setProperty('--doc-sheet-max', sheetW + 'px');
+  /* written only where it moved: a paper born at this width (pd2SheetPre) is not laid out a second time */
+  if (!zoom.classList.contains('has-pd2')) zoom.classList.add('has-pd2');
+  if (zoom.style.getPropertyValue('--doc-sheet-max') !== sheetW + 'px') zoom.style.setProperty('--doc-sheet-max', sheetW + 'px');
   /* the sheet's own margin is written on it (margin:0 auto), so its left is moved where it is written, and given back on the way out */
-  const sh = zoom.querySelector(':scope > .pg-sheet, :scope > .blueprint, :scope > .ig-redpaper > article'); if (sh){ sh.style.marginLeft = left + 'px'; sh.setAttribute('data-pd2-left', '1'); }
+  const sh = zoom.querySelector(PD2_SHEET_SEL); if (sh){ if (sh.style.marginLeft !== left + 'px') sh.style.marginLeft = left + 'px'; if (!sh.hasAttribute('data-pd2-left')) sh.setAttribute('data-pd2-left', '1'); }
+  _pd2Geo = { id: String(c.id), left, sheetW };
   let host = document.getElementById('pd2-notes');
   if (!host){ host = document.createElement('div'); host.id = 'pd2-notes'; host.className = 'pd2-notes'; host.setAttribute('aria-label', _pdT('pd2_notes')); zoom.appendChild(host); }
   host.setAttribute('data-pd2-for', String(c.id));
@@ -7692,7 +7720,11 @@ function pd2NotesPaint(c){
   } catch (_){}
   /* again once the fonts are in (the line a note stands by moves when they land), and when the paper's width moves */
   if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { const z = document.querySelector('#ig-paper .ig-zoom'); const h = document.getElementById('pd2-notes'); if (z && h && h.getAttribute('data-pd2-for') === String(c.id)){ if (red) pd2NotesPlace(notes, z, h, parseFloat(z.style.zoom) || 1); else pd2GroupsPlace(groups, z, h, parseFloat(z.style.zoom) || 1); } });
-  if (!zoom._pd2RO && typeof ResizeObserver === 'function'){ let w0 = zoom.clientWidth; zoom._pd2RO = new ResizeObserver(() => { if (zoom.clientWidth === w0) return; w0 = zoom.clientWidth; const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); }); zoom._pd2RO.observe(zoom); }
+  if (!zoom._pd2RO && typeof ResizeObserver === 'function'){ let w0 = zoom.clientWidth; zoom._pd2RO = new ResizeObserver(() => {
+      /* A PAPER TAKEN OFF THE PAGE IS NOT A WIDTH THAT MOVED (owner, 11 Nov 2026, the switch's delay; measured: the old
+         paper's watcher heard itself leave as "width 0" and laid every note out a second time on each press) */
+      if (!zoom.isConnected){ try { zoom._pd2RO.disconnect(); } catch (_){} zoom._pd2RO = null; return; }
+      if (zoom.clientWidth === w0) return; w0 = zoom.clientWidth; const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); }); zoom._pd2RO.observe(zoom); }
 }
 /* "Show their reason": their own words, opened in the note (a reading; nothing pressed) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
@@ -7725,28 +7757,38 @@ function pd2GroupHtml(g, i){
   /* on Clauses the clause is already shown there: the same door, said as what it does there (lands on its row) */
   const open = g.items.some(x => x.clause) && g.at >= 0 ? `<div class="pd2-mn-a"><button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${g.at}">${E(_pdT(_pdTab === 'doc' ? 'pd2_g_shown' : 'pd2_g_open'))}</button></div>` : '';
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
-  const kept = _pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '';
-  return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${open}</div>`;
+  const less = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-less" data-pd2-fold>${E(_pdT('pd2_g_less'))}</button>` : '';
+  const kept = (_pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '') + (_pd2Shut.has(String(g.cid) + '|' + g.at) ? ' data-pd2-shut="1"' : '');
+  return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${less}${open}</div>`;
 }
 /* each group at its clause's height, pushed down past the one above; one that would drift more than a few lines from its
    clause folds to its first line and "+ N more here" (opened in place, then laid out again) */
 function pd2GroupsPlace(groups, zoom, host, f){
   const top0 = zoom.getBoundingClientRect().top;
+  /* every clause's height is read before any note is moved (the notes float beside the paper and move none of it) */
+  const rs = groups.map(g => g.hit.el ? g.hit.el.getBoundingClientRect() : g.hit.range.getBoundingClientRect());
   let floor = 0;
   groups.forEach((g, i) => {
     const el = host.querySelector(`[data-pd2-note="${i}"]`); if (!el) return;
-    const r = g.hit.el ? g.hit.el.getBoundingClientRect() : g.hit.range.getBoundingClientRect();
+    const r = rs[i];
     const want = Math.max(0, (r.top - top0) / f - 2);
     const at = Math.max(want, floor);
-    el.classList.toggle('is-folded', !el.hasAttribute('data-pd2-open') && g.items.length > 1 && at - want > PD2_FOLD_DRIFT);
+    el.classList.toggle('is-folded', !el.hasAttribute('data-pd2-open') && g.items.length > 1 && (el.hasAttribute('data-pd2-shut') || at - want > PD2_FOLD_DRIFT));
     el.style.top = at + 'px';
     floor = at + el.offsetHeight + PD2_NOTE_GAP;
   });
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-unfold]') : null; if (!b) return;
-  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.classList.remove('is-folded');
-  if (h) _pd2Unfolded.add(String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'));
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.removeAttribute('data-pd2-shut'); g.classList.remove('is-folded');
+  if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.add(key); _pd2Shut.delete(key); }
+  const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
+});
+/* SHOW LESS: the group folds back to its first line and "+ N more here"; the notes are laid out again */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-fold]') : null; if (!b) return;
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.removeAttribute('data-pd2-open'); g.setAttribute('data-pd2-shut', '1'); g.classList.add('is-folded');
+  if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.delete(key); _pd2Shut.add(key); }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
 /* OPEN IN CLAUSES: the clause's own row on the Clauses tab, opened, and the paper glides there (the paper track's door:
@@ -7765,14 +7807,18 @@ function pd2OpenInClauses(c, at){
 /* each note at its line's height, pushed down past the one above so none overlap */
 function pd2NotesPlace(notes, zoom, host, f){
   const top0 = zoom.getBoundingClientRect().top;
+  /* READ, THEN WRITE: where each note's words stand and how tall each note is, all read before any is moved (a note's
+     height does not follow its place), so the paper is measured once, not once a note */
+  const els = notes.map((n, i) => host.querySelector(`[data-pd2-note="${i}"]`));
+  const rs = notes.map(n => n.hit.el ? n.hit.el.getBoundingClientRect() : n.hit.range.getBoundingClientRect());
+  const hs = els.map(el => el ? el.offsetHeight : 0);
   let floor = 0;
   notes.forEach((n, i) => {
-    const el = host.querySelector(`[data-pd2-note="${i}"]`); if (!el) return;
-    const r = n.hit.el ? n.hit.el.getBoundingClientRect() : n.hit.range.getBoundingClientRect();
-    const want = Math.max(0, (r.top - top0) / f - 2);
+    const el = els[i]; if (!el) return;
+    const want = Math.max(0, (rs[i].top - top0) / f - 2);
     const at = Math.max(want, floor);
     el.style.top = at + 'px';
-    floor = at + el.offsetHeight + PD2_NOTE_GAP;
+    floor = at + hs[i] + PD2_NOTE_GAP;
   });
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
@@ -8431,7 +8477,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
-Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff });
+Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
