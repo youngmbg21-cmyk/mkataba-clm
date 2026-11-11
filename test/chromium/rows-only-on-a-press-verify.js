@@ -74,6 +74,9 @@ const PAGES = [
   /* job 9: Import. Its three tabs draw the one table */
   { k: 'import', view: 'migration', rowSel: '.mign-page .mign-table tbody tr', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab',
     box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .cun-head .ctf-hf' },
+  /* job 10: My notes. Its tabs draw the one table; the foot comes and goes with the rows */
+  { k: 'mynotes', view: 'mynotes', rowSel: '#mn-page .mnn-table tbody tr', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab',
+    box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .cun-head .ctf-hf' },
   { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
     box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
 ];
@@ -103,6 +106,20 @@ const PAGES = [
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
 
       for (const P of PAGES) {
+        /* job 10: an empty My notes hides its box and tabs on purpose (nothing to filter), so the page is given three
+           notes first — one late, one reviewed, one with no day — once for the whole run (they are the person's own) */
+        if (P.k === 'mynotes') {
+          const seeded = await page.evaluate(async () => {
+            if (typeof mineLoad === 'function') await mineLoad(true);
+            if ((mineList('note') || []).length) return 'kept';
+            const past = new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10);
+            await mineSave('note', { title: 'Call the supplier about pallets', body: 'Call the supplier about pallets', reviewBy: past });
+            await mineSave('note', { title: 'Check the notice period', body: 'Check the notice period', reviewedAt: new Date().toISOString() });
+            await mineSave('note', { title: 'Read the annex again', body: 'Read the annex again' });
+            return (mineList('note') || []).length;
+          });
+          if (!seeded) { check(`${at} mynotes: three notes to filter`, false); continue; }
+        }
         await page.evaluate(v => setView(v), P.view);
         const drawn = await until(page, s => !!document.querySelector(s), P.rowSel, 15000);
         if (!drawn) { check(`${at} ${P.k}: the list is drawn`, false); continue; }
