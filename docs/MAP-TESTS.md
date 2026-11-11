@@ -375,6 +375,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## SIGN LINKS, SIGNERS AND THE SIGNING ROUTE
 - THE PHONE'S MARK KEEPS ITS SHAPE (bug log batch 3, 26 Oct 2026): phone-fits-verify 12b (new; red at the parent, canvas 3.06 against a 1.58 box) — the signature canvas takes its box's shape before drawing; the computer's pad stays 520×170.
 - f182, f185, f897, f398, sign-links, signing-route-timeline verify.
+- THE DOSSIER'S SIGNER DOOR (owner-reported 11 Nov 2026): dossier-signer-change-verify (new; red at the parent, the window never opens) — the new look's Signer · Change and the card's Name open the signing-order window; the one listener answers `[data-pd-og-route]` anywhere in `#pd-glance` and reads the contract off the button.
 
 ## SIGNING ON THE PAPER
 - f256, signing-on-paper-verify.

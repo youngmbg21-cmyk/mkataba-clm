@@ -5949,11 +5949,19 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       pdOgSaveIn(tb, c); return; }
     const sa = t.closest('#pd-og [data-pd-og-saveall]');
     if (sa){ e.preventDefault(); const c = pdOgContract(); if (!c) return; pdOgSaveIn(sa.closest('#pd-og'), c); return; }
-    const rt = t.closest('#pd-og [data-pd-og-route], #pd-glance .ds-nx [data-pd-og-route]');
-    if (rt){ e.preventDefault(); const c = pdOgContract(); if (!c || typeof openSignerPlanEditor !== 'function') return;
-      const id = c.id; pdSgListClose();
-      openSignerPlanEditor((typeof getContract === 'function' && getContract(id)) || c,
-        { onDone(){ pdOgRepaint(); pdOgLand(id, 'signers'); } });
+    /* THE ONE SIGNER DOOR, WHEREVER IT IS DRAWN (owner-reported 11 Nov 2026: the new look's Signer · Change did
+       nothing): the form's rows, the old Next card, and the new look's Dossier (its facts row and its one card) all
+       carry data-pd-og-route with the contract's id. The contract is read off the button itself, not the form's host
+       (pdOgContract answers null when the form is not open). Pressed in the form, it lands back on the form's signers;
+       pressed on the Dossier, the Dossier is drawn again with the names it now has. */
+    const rt = t.closest('#pd-og [data-pd-og-route], #pd-glance [data-pd-og-route]');
+    if (rt){ e.preventDefault(); if (typeof openSignerPlanEditor !== 'function') return;
+      const id = rt.getAttribute('data-pd-og-route');
+      const c = (id && typeof getContract === 'function' && getContract(id)) || pdOgContract(); if (!c) return;
+      const inForm = !!rt.closest('#pd-og'); pdSgListClose();
+      openSignerPlanEditor(c, { onDone(){
+        if (inForm){ pdOgRepaint(); pdOgLand(c.id, 'signers'); return; }
+        try { pdGlanceRepaint(); } catch (_){} } });
       return; }
     const ok = t.closest('#pd-og [data-pd-og-ok]');
     if (ok){ e.preventDefault(); const c = pdOgContract(); if (c) pdOgConfirm(c, ok.getAttribute('data-pd-og-ok')); return; }
