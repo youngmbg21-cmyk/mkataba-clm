@@ -189,6 +189,13 @@ const ceRowMode = () => !!(_ceOpts && _ceOpts.fromRow) && ceSide() === 'owner' &
 const ceTheirTrail = () => ceSide() === 'counterparty' && typeof window.portalOutOn === 'function' && !!window.portalOutOn();
 const ceTrailOn = () => ceSide() === 'owner' || ceTheirTrail();
 const ceTrailRisk = () => !ceRowMode() && !!(_ceOpts && (_ceOpts.risk || _ceOpts.tab === 'risks'));
+/* OPENED FROM THE CLAUSES TAB (owner, 11 Nov 2026: "when i press back from editor, it takes me to redlines tab
+   as opposed to clauses tab where i started"): Start redlining's landing (rlLandOn) opens this page with
+   fromClauses, and while that trip stands (rlCameFrom) the way back is ‹ Clauses — the button, Esc and the
+   bar's ‹ all go through ceRowBack to rlBackToClauses */
+const ceFromClauses = () => !!(_ceOpts && _ceOpts.fromClauses && _ceC && typeof window !== 'undefined'
+  && typeof window.rlCameFrom === 'function' && window.rlCameFrom(_ceC.id));
+const ceBackWord = () => _cet(ceFromClauses() ? 'pd_tab_clauses' : 'ce_row_back');
 
 const clauseEditorOpen = () => !!_ceClauseId;
 const clauseEditorClauseId = () => _ceClauseId;
@@ -3366,8 +3373,8 @@ function ceRowHeadPaint(){
      hover) */
   /* ONE TRAIL (owner, 20 Oct 2026: "the way you get back … is not the
      same"): the panel trail's own look — the back, then where you are */
-  const where = (ceTheirTrail() ? [_cet('ce_row_back')] : [_cet('pd_tab_copilot'), _cet('ce_row_back')]).map(_cee).join('<i aria-hidden="true"> / </i>') + `<i aria-hidden="true"> / </i><b>${_cee(ceRowTitle())}</b>`;
-  const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(_cet('pd_trail_back', { to: _cet('ce_row_back') }))}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_cee(_cet('ce_row_back'))}</button>`
+  const where = (ceTheirTrail() ? [_cet('ce_row_back')] : [_cet('pd_tab_copilot'), ceBackWord()]).map(_cee).join('<i aria-hidden="true"> / </i>') + `<i aria-hidden="true"> / </i><b>${_cee(ceRowTitle())}</b>`;
+  const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(_cet('pd_trail_back', { to: ceBackWord() }))}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_cee(ceBackWord())}</button>`
     + `<span class="ce-rowpath" title="${_ceea(ceRowSub())}">${where}</span>`;
   if (host.innerHTML !== html) host.innerHTML = html;
   /* the bar's ‹ is ‹ Redlines while this editor stands over a row (ONE TRAIL) */
@@ -3455,6 +3462,8 @@ function ceRowAsks(){
 /* ‹ REDLINES: the page's own way out (its leave question asked), then the
    column lands on the row it came from, lit */
 function ceRowBack(){
+  /* a trip begun on the Clauses tab goes back there (rlBackToClauses asks the leave question itself) */
+  if (ceFromClauses() && window.rlBackToClauses && window.rlBackToClauses()) return;
   ceLeaveGuard(() => {
     const c = _ceC, id = _ceLead ? String(_ceLead.id) : '';
     const rk = ceTrailRisk() && _ceOpts && _ceOpts.risk ? String(_ceOpts.risk) : '';

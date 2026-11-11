@@ -319,7 +319,10 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     /* RE-POINTED AGAIN 20 Oct 2026 (owner: "the way you get back … is not the
        same"): the panel trail's look — the back, then "Jambo / Redlines /
        <act · clause>", on its own row above the full shelf */
-    assert.match(head, /class="ce-rowback" data-ce-act="row-back"[^>]*><svg[\s\S]*?<\/svg>\$\{_cee\(_cet\('ce_row_back'\)\)\}<\/button>/);
+    /* RE-POINTED 11 Nov 2026 (owner: back from the editor goes to Clauses where the trip began there): the word
+       is ceBackWord() — 'ce_row_back' (Redlines), or the Clauses tab's word on a trip from Clauses (f1006) */
+    assert.match(head, /class="ce-rowback" data-ce-act="row-back"[^>]*><svg[\s\S]*?<\/svg>\$\{_cee\(ceBackWord\(\)\)\}<\/button>/);
+    assert.match(CE, /const ceBackWord = \(\) => _cet\(ceFromClauses\(\) \? 'pd_tab_clauses' : 'ce_row_back'\)/);
     assert.match(head, /<span class="ce-rowpath"/);
     assert.match(head, /<b>\$\{_cee\(ceRowTitle\(\)\)\}<\/b>/);
     assert.match(CE, /#clause-editor\.ce-trailed \.ce-rowhead\{display:flex;[^}]*flex:1 0 100%/, 'its own row');
