@@ -1322,6 +1322,8 @@
   :root{ --btn-edge:var(--rule-strong); }
   /* THE REDLINE AS DRAWN (the new look, round 5's History with the wording): the review room's own red and green */
   :root{ --rl2-del-ink:#BE123C; --rl2-del-bg:#FFE4E6; --rl2-ins-ink:#047857; --rl2-ins-bg:#E4F1EA; }
+  /* the board's brief on the Board: its 7% amber laid on white, as one solid colour (11 Nov 2026) */
+  :root{ --hb-why-fill:#F7F3EE; }
   /* ---- SAID TO A SCREEN READER, DRAWN FOR NOBODY ---- (25 Aug 2026)
      A keyboard affordance nobody is told about is one nobody uses, and some
      of those sentences have no visible home — the KPI row's Alt+Arrow reorder
@@ -18228,7 +18230,7 @@
   /* on the Board the card is one of the column's cards: the column's own gap spaces it, and its amber is laid on WHITE,
      not on nothing — the see-through tint let the Board's grey ground show through the whole card (white-sheet-verify
      board-sheet, 11 Nov 2026; it now stands before Summarise is pressed, so the check meets it) */
-  html.lg-new #ig-page[data-hb-side="board"] #hb-board > .hb-why{margin:0;background:color-mix(in srgb,var(--hb-amber) 7%,var(--color-surface))}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-board > .hb-why{margin:0;background:var(--hb-why-fill)}
   html.lg-new #hb-bhead.is-greet .hb-bh-r{margin-top:14px;flex-wrap:wrap;row-gap:var(--s-2)}
   html.lg-new #hb-bhead.is-greet .hb-bh-day{white-space:nowrap;color:var(--color-neutral-400)}
   html.lg-new .hb-gr-a{all:unset;box-sizing:border-box;cursor:pointer;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--color-accent-300)}
