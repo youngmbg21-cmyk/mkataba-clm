@@ -28,8 +28,11 @@ const PD = R('js/paperdesk.js'), IG = R('js/views/intelligence.js'), I = R('inde
 
 describe('f878 their view turns the panel', () => {
   test('1 the switch opens or repaints the Redlines face', () => {
-    assert.match(IG, /if\(p\.red==='theirs'&&!faceUp&&typeof window\.pdRedOpen==='function'\) pdRedOpen\(p\.id\);/);
-    assert.match(IG, /else if\(\(p\.red==='theirs'\)!==was&&faceUp\) renderIntelDock\(\);/);
+    /* RE-POINTED 11 Nov 2026 (the switch draws once, f1007): the same two acts, in the order that draws the paper once.
+       Their view with the face shut opens it (and that opening draws the paper); with the face up the panel is repainted. */
+    assert.match(IG, /const opens=p\.red==='theirs'&&typeof window\.pdRedOpen==='function'&&!\(typeof window\.pdRedShows==='function'&&pdRedShows\(\)&&pdRedFor\(\)===String\(p\.id\)\);/);
+    assert.match(IG, /if\(opens\)\{ try\{ pdRedOpen\(p\.id\); \}catch\(_\)\{ \}/);
+    assert.match(IG, /if\(\(p\.red==='theirs'\)!==was&&faceUp\) renderIntelDock\(\);/);
   });
   test('2 the face draws their seat, read-only, with no notices or Send', () => {
     assert.match(fnRegion(PD, 'pdRedTheirs'), /igTheirsOn\(c\)/);
