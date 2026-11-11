@@ -22168,3 +22168,7 @@ re-pointed, because an older answer has no chips to find still. The fold's build
 its words are all gone, and int_one_shown is inert in both books.
 ## Removed on the owner's word (11 Nov 2026)
 - The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.
+
+## 11 Nov 2026 — CLAUDE.md carried a merge's clash markers (owner: "yes, tidy it up after the merge")
+- FIXED · main's CLAUDE.md held `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/main` around two versions of THE SHELL's lines on Jambo's answer bar (arrived with #647). Kept the newer one (ONE ROW UNDER THE NEWEST ANSWER, `igOneHtml`, which the code uses); dropped the older three-labelled-rows lines (`igSapHtml`, which no longer exists in the code). No other tracked file carried markers (the fix list itself was not searched; reading it is denied).
+- Noticed, not fixed: js/components.js still names `igSapHtml` in a comment.
