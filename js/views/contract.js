@@ -2217,7 +2217,7 @@ function triageAndPaint(c, opts){
      meet several at once — can wait for it. Every older caller ignores it, as
      it always ignored the undefined this returned. */
   return Promise.resolve(onServer).catch(()=>{}).then(()=>{
-    try{ return triageRun(c,{ fresh:!!(opts&&opts.fresh), onStep:x=>{
+    try{ return triageRun(c,{ fresh:!!(opts&&opts.fresh), agreed:!!(opts&&opts.agreed), onStep:x=>{
       /* EVERY SURFACE THE READING JUST MOVED, and the side column is the one
          that was missing (owner-reported 9 Sep 2026: the Contract brief card
          still read "Not written yet" with the brief already on the record).

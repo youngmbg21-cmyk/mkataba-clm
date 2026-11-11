@@ -7356,7 +7356,7 @@ function pd2CardHtml(c, D){
   const readHere = !R.read && may && !(b && /data-pd-ds-read/.test(b.attr));
   const hasBrief = !!(R.brief || (c._brief && c._brief.data && c._brief.data.overview));
   /* nothing is said about Jambo calls (owner, 8 Nov 2026: "remove all information related to jambo calls") */
-  const sayRead = R.read ? _pdT('pd2_read_once') : _pdT('pd2_read_not');
+  const sayRead = R.read ? _pdT((c.triage && c.triage.agreed) ? 'pd2_read_agreed' : 'pd2_read_once') : _pdT('pd2_read_not');
   const links = [readHere ? `<button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('pd2_card_read_it'))}</button>` : '',
     `<button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button>`,
     hasBrief ? `<button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''].filter(Boolean).join('<span class="pd2-card-sep" aria-hidden="true">|</span>');
