@@ -28,6 +28,8 @@ const SECTIONS = +process.env.HATI_SM_SECTIONS || 40;
 const BOOK = +process.env.HATI_SM_BOOK || 1500;
 const until = async (p, fn, a, ms = 15000) => { try { await p.waitForFunction(fn, a, { timeout: ms }); return true; } catch (_) { return false; } };
 const say = (...a) => console.log(...a);
+/* functions whose time is also printed line by line */
+const LINES_OF = ['pagesLayout', 'pagesClear', 'pagesAtoms', 'igPaperPatch', 'igPaintPaper', 'pd2NotesPaint', 'renderIntelDock'];
 
 /* ---- THE LONG CONTRACT: 40 sections, two blanks, a clause review of ten points ---- */
 const lorem = 'The Customer shall pay all rates and charges specified in the applicable rate schedules and appendices to this Agreement, and where no agreed rate exists the provider shall provide a written quotation before performing the requested service. ';
@@ -113,6 +115,16 @@ async function measure(p, cdp, label, act, arg){
   }
   say(`ACT | ${label} | ${JSON.stringify(r)}`);
   if (top.length) say(`    top(ms): ${top.join(' · ')}`);
+  /* WHICH LINES of the page-cutter and the patch the time sat on (the profile's own line ticks; a tick is one sample) */
+  if (prof && r && !r.err){
+    const us = prof.timeDeltas.length ? prof.timeDeltas.reduce((a, z) => a + z, 0) / prof.timeDeltas.length : 250;
+    for (const want of LINES_OF){
+      const lines = new Map();
+      prof.nodes.forEach(n => { if (n.callFrame.functionName !== want) return; (n.positionTicks || []).forEach(t => lines.set(t.line, (lines.get(t.line) || 0) + t.ticks)); });
+      const rows = [...lines].sort((a, z) => z[1] - a[1]).filter(x => x[1] * us >= 1500).slice(0, 6).map(([line, ticks]) => `line ${line}: ${Math.round(ticks * us / 1000)}`);
+      if (rows.length) say(`    ${want} by line (ms): ${rows.join(' · ')}`);
+    }
+  }
   return r;
 }
 
