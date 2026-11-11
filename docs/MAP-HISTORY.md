@@ -36783,12 +36783,24 @@ the panel and a menu dropped downward fell off the window at 1536x730 (measured,
 
 The builders were SPLIT, not rewritten: `igMapReadHtml(m,i,{part:'chips'|'next'})` and
 `igDoorsHtml(m,i,{part:'lead'|'rest'})` hand back their own pieces, so not one data attribute or press changed.
-f1000 (5) pins that: every press and every door survives the split.
+f1002 (5) pins that: every press and every door survives the split. (The test was f1000 until 11 Nov 2026, when
+main gave that number to the Brain's reading the same night; the SAP toolbar's is f1002.)
 
 LEFT FOR A LATER ROUND, AND SAID TO THE OWNER: the page links row above Jambo's box (`jamboWaysSync`,
 js/components.js) and the source line under the answer ("Read from Explorer and your book") are drawn by other,
 SHARED builders used on every Jambo panel in HaTi; moving them overnight, with browser checks only runnable on
 GitHub, was the kind of change that breaks five pages to tidy one.
+
+THE LAST TWO PARTS, 11 Nov 2026 (owner: "finish the two deferred parts"). THE SOURCE LINE is now More's last row
+(`.igd-sap-src`, kept `data-ai-read` so `jamboTurnHtml` can see it was said and not say it again); it is a line,
+never a press, and it never brings a toolbar into being on its own — an answer with nothing under it keeps the
+quiet line where it always stood, and every other host (the side panel, Settings, the list panels) is untouched.
+THE PAGE LINKS now ride the way-back line, after the back and before the bin: `jamboDoorHtml` draws them with the
+row (`.jb-ways.is-in-door`, one line, at most three), `jamboWaysSync` keeps them in step there and adds no row of
+its own, and Explorer's panel stops drawing the above-foot row while the way back is up. The older rules still
+win in order: a contract's own chips row, then a face's own links, then the way back's line, then the old row
+above the box where there is no way back drawn. Measured in jambo-panel-sap-verify 4 and 5; photographed at the
+three screens.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING: ONE COUNT (10 Nov 2026, the overnight run, job 3)
 The owner's screenshots showed Explorer's Your day saying "183 Need you" while the Board's Needs you card said "98 things" (and the Board's own Jambo panel 183 beside it). Cause: the Board counts the ROWS it draws (`ndOnBoard`, `ndRowsN`; owner, 9 Nov 2026, "count rows" — four details owed are one bundled row), while `counterNeedsCount` returned `ndRead().n`, the sum of the things inside the rows, and `igBriefNeeds` summed its own. Now `counterNeedsCount` is `ndOnBoard(ndRead()).n` and Explorer's tile asks it; the panel button (`alertCount`), the Guide, Jambo's panels and the house all read that one number. The setup row is the Board's own door (`hbSetupDoorHtml`), not counted. The owner chose "fix it first" in the questionnaire of 10 Nov 2026. f999.

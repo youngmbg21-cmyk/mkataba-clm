@@ -9,6 +9,10 @@
    bordered toolbar with three LABELLED rows: Understood (the chips that correct what Jambo read), Next (his
    checked next steps) and Open (ONE filled button, everything else under More).
 
+   Two more parts of the drawing, built 11 Nov 2026: the source line ("Read from Explorer and your book") moves
+   into More as its last row, a line and not a press; and the page links ride the way-back line at the panel's
+   foot, at its right end before the bin, instead of standing in a row of their own above the box.
+
    Measured here, on the real page: the toolbar is drawn once under the answer; its three rows are labelled and in
    order; the rare acts are NOT on the panel until More is pressed; the same press closes it again, and so do Esc
    and a press outside; every row stays INSIDE the panel (nothing spills sideways) at the owner's three screens;
@@ -85,7 +89,7 @@ const check = (name, pass, detail) => {
   await page.click('#li-go');
   await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-S7'), null, { timeout: 20000 });
   await until(() => state.view === 'dashboard' && !document.body.classList.contains('pre-auth'));
-  await page.evaluate(() => { try { const p = JSON.parse(localStorage.getItem('hati.v1.prefs') || '{}'); p.newLook = true; localStorage.setItem('hati.v1.prefs', JSON.stringify(p)); } catch (_){}
+  await page.evaluate(async () => { try { await stPrefSet('newLook', true); } catch (_){ } try { newLookApply(); } catch (_){ }
     state.aiConfigured = true; intel.cam = null; intel.tab = 'map'; setView('dashboard'); hbSetFace('explorer'); });
   await until(() => typeof hbFace === 'function' && hbFace() === 'explorer' && !!document.getElementById('igd-input'));
     await ask('group by value stream and only include the top 2 value streams by value');
@@ -124,6 +128,39 @@ const check = (name, pass, detail) => {
     }
     check('3a the toolbar stays inside Jambo\'s panel and scrolls nowhere sideways', spills.length === 0, spills.join(' | ') || 'all three clean');
     check('3b and it is one compact block, not a stack of loose lines', !!B && B.lines > 0 && B.lines <= 220, B && B.lines + 'px tall');
+    console.log('\n4 · THE SOURCE LINE IS IN THE MENU, AND SAID ONCE');
+    await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
+    const S = await page.evaluate(() => {
+      const T = [...document.querySelectorAll('#ig-dock .igd-sap')].slice(-1)[0];
+      const turn = T && T.closest('.jb-turn');
+      const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none'; };
+      const src = T ? T.querySelector('.igd-sap-src') : null;
+      return { there: !!src, text: src ? src.textContent.trim() : '', seen: !!(src && vis(src)),
+        press: !!(src && src.closest('button')), inMenu: !!(src && src.closest('.igd-sap-menu')),
+        all: turn ? turn.querySelectorAll('[data-ai-read]').length : -1 };
+    });
+    check('4a the source line is the last row of More, a line and not a press', !!S && S.there && S.inMenu && !S.press && /\S/.test(S.text), JSON.stringify(S));
+    check('4b it is said once for the answer, and not under it while More is shut', !!S && S.all === 1 && !S.seen, JSON.stringify(S));
+
+    console.log('\n5 · THE PAGE LINKS RIDE THE WAY-BACK LINE');
+    const W = await page.evaluate(() => {
+      const foot = document.querySelector('#ig-dock .igd-foot'); if (!foot) return null;
+      const door = foot.querySelector('.jb-door:not([hidden])'), ways = door && door.querySelector('.jb-ways');
+      const bin = door && door.querySelector('.jb-bin'), back = door && door.querySelector('.jb-door-back');
+      const own = [...document.querySelectorAll('#ig-dock .jb-ways.is-above-foot')].filter(e => e.getBoundingClientRect().height > 0);
+      const r = ways && ways.getBoundingClientRect(), br = back && back.getBoundingClientRect(), nr = bin && bin.getBoundingClientRect();
+      return { door: !!door, ways: !!ways, links: ways ? [...ways.querySelectorAll('[data-jb-way]')].map(b => b.textContent.trim()) : [],
+        ownRows: own.length, sameLine: !!(r && br) && Math.abs(Math.round(r.top - br.top)) <= 14,
+        beforeBin: !!(r && nr) && r.right <= nr.left + 1, inside: !!r && r.right <= foot.getBoundingClientRect().right + 1,
+        lines: ways ? Math.round(r.height) : 0 };
+    });
+    check('5a the links stand on the way-back line, after the back and before the bin',
+      !!W && W.door && W.ways && W.links.length >= 1 && W.sameLine && W.beforeBin, JSON.stringify(W));
+    check('5b and there is no row of their own above the box (red at the parent: there was one)', !!W && W.ownRows === 0, JSON.stringify(W && { ownRows: W.ownRows }));
+    check('5c one line, inside the panel', !!W && W.inside && W.lines > 0 && W.lines <= 30, JSON.stringify(W && { inside: W.inside, lines: W.lines }));
+    for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `sap-foot-${w}x${hh}.png`) }); }
+    await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
+
     check('F no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('the run stopped', false, String(e && e.message || e).slice(0, 200));

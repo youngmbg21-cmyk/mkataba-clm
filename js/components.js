@@ -603,12 +603,25 @@ function jamboWaysSync(){
   for (const sel of JB_WAY_FEET){
     document.querySelectorAll(sel).forEach(foot => {
       if (!foot.querySelector('.jb-card')) return;
+      /* THE SAP WAY (owner's pick, 10 Nov 2026): where the way back is drawn, the page links ride ITS line
+         (jamboDoorHtml) and no row of their own is added; here they are kept in step with the page. */
+      const door = foot.querySelector('.jb-door:not([hidden])');
+      const dropInDoor = () => { const c = door && door.querySelector('.jb-ways'); if (c) c.remove(); };
       /* THE CONTRACT'S ONE ROW (the contract round, as drawn): its own next-step links stand above the box instead */
       /* …and on the Contracts place too, its folders included (owner, 6 Nov 2026: the folders page showed both rows) */
-      if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); return; }
+      if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); dropInDoor(); return; }
       const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
       /* a chosen row's or a face's own links (jlOwnPaint, jamboOwnWays) stand there instead, while what drew them stands */
-      if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)) return; }
+      if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)){ dropInDoor(); return; } }
+      if (door){
+        if (old) old.remove();
+        const cur = door.querySelector('.jb-ways');
+        if (cur && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length) return;
+        if (cur) cur.remove();
+        const inHtml = jamboWaysHtml(here, 'is-in-door'), sp = door.querySelector('.jb-door-sp');
+        if (inHtml && sp) sp.insertAdjacentHTML('afterend', inHtml);
+        return;
+      }
       if (old && old.getAttribute('data-jb-ways') === here.k && old.childElementCount === here.doors.length) return;
       if (old) old.remove();
       const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
@@ -1297,7 +1310,11 @@ function jamboDoorHtml(o){
   const tr = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
   const to = o.to || tr('pd_tab_overview');
   const tip = tr('pd_trail_back', { to });
-  return `<div class="jb-door" data-jb-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back" ${o.attr || 'data-jt-back'}="${e(o.back || '')}" title="${e(tip)}" aria-label="${e(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg><span>${e(to)}</span></button><span class="jb-door-sp"></span>${o.bin || ''}</div>`;
+  /* THE SAP WAY (the owner picked it by name, 10 Nov 2026): the page links ride THIS line, at its right end
+     before the bin — not a row of their own above the box. jamboWaysSync keeps them in step with the page. */
+  let ways = '';
+  try { if (o.ways !== false && typeof window.jamboWaysHtml === 'function' && typeof window.jamboWaysHere === 'function') ways = window.jamboWaysHtml(window.jamboWaysHere(), 'is-in-door'); } catch (_){ ways = ''; }
+  return `<div class="jb-door" data-jb-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back" ${o.attr || 'data-jt-back'}="${e(o.back || '')}" title="${e(tip)}" aria-label="${e(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg><span>${e(to)}</span></button><span class="jb-door-sp"></span>${ways}${o.bin || ''}</div>`;
 }
 /* …AND ITS MIRROR ON THE LANDING (owner picked "\"Jambo ›\" above the box", 28 Oct 2026): once something has been
    said, the same spot above the box reads "Jambo ›" and opens the conversation as it was — free, no question asked;
@@ -1398,7 +1415,9 @@ function jamboTurnHtml(m, i, H, host){
   } catch (_){ inner = ''; }
   if (!inner) return '';
   /* the side panel's builder says what it read itself; the others say it here */
-  const read = (born !== 'ai' && m.read && m.read.text) ? `<div class="ai-read jb-read is-${born}" data-ai-read>${String(m.read.text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : '';
+  /* THE SAP WAY: the toolbar under an answer carries the source line inside its More menu (igSapHtml); a builder
+     that has already said it is not given a second line here. */
+  const read = (born !== 'ai' && m.read && m.read.text && !/data-ai-read/.test(inner)) ? `<div class="ai-read jb-read is-${born}" data-ai-read>${String(m.read.text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : '';
   return `<div class="jb-turn" data-jb-turn="${i}" data-jb-born="${born}" data-jb-host="${host}">${inner}${read}</div>`;
 }
 var JB_TURN_HOSTS = { ai: ['#ai-feed', '#jl-feed'], ig: ['#ig-dock [data-jb-turns]'], st: ['#st-jb-feed [data-st-jb-talk]'] };
