@@ -2841,8 +2841,14 @@ function rateLimit(bucket, max, windowMs, opts = {}) {
   return (req, res, next) => {
     const key = rlKeyFor(bucket, req, keyFn);
     const nowMs = Date.now();
+    /* NOUGHT MEANS NO LIMIT (owner, 11 Nov 2026: "Remove rate limits for now"), exactly as the daily ceiling
+       already reads 0 — nothing is counted and nothing is refused. Every limiter written with a number of its
+       own (the sign-in guesses, a signing code's attempts, the reminders) passes a literal above 0 and is
+       untouched; only the ones an admin can set can be turned off this way. */
+    const lim = limitOf(req);
+    if (!(lim > 0)) return next();
     const arr = (rlHits.get(key) || []).filter(t => nowMs - t < windowMs);
-    if (arr.length >= limitOf(req)) {
+    if (arr.length >= lim) {
       const retry = Math.ceil(windowMs / 1000);
       res.setHeader('Retry-After', retry);
       return res.status(429).json({ error: message, kind: 'rateLimit', retryAfter: retry });
@@ -2926,8 +2932,14 @@ const intSetting = (key, envVar, def) => {
 // obligations — larger prompts + the Sonnet-class model) is tighter than LIGHT
 // (search, graph, template, extract). Keyed by user id so an office behind one
 // IP isn't a single shared budget and a signed-in abuser can't dodge it by
-// switching networks. Defaults: LIGHT 40 / DEEP 15 per 15 min — generous for a
-// real demo or a busy reviewer, but a runaway client loop is stopped fast.
+// switching networks. They were LIGHT 40 / DEEP 15 per 15 min — a number chosen
+// for a demo or a busy reviewer, before the Board could draw.
+// OFF BY DEFAULT (owner, 11 Nov 2026: "Remove rate limits for now"): an analyst
+// asking for ranking after ranking is a heavier reader than that number was set
+// for, and the 15-minute wall read as a breakdown. A number typed in Team &
+// Settings (or AI_RATE_LIGHT / AI_RATE_DEEP) turns each back on. WHAT STILL
+// GUARDS THE MONEY: the daily request ceiling and the daily SPEND ceiling, both
+// below, and both still on.
 const AI_WINDOW_MS = 15 * 60 * 1000;
 const aiUserKey = req => 'u:' + ((req.user && req.user.id) || clientIp(req) || 'unknown');
 const AI_LIMIT_MSG = 'Jambo limit reached — try again in a few minutes';
@@ -2936,8 +2948,8 @@ const AI_LIMIT_MSG = 'Jambo limit reached — try again in a few minutes';
    turn to answer; at five a book of 161 gave up with "I wasn't able to finish
    that". Mirrored in js/ai.js (f305 pins the two equal). */
 const AI_CHAT_STEPS = 8;
-const rlAiLight = rateLimit('ai-light', () => intSetting('aiRateLight', 'AI_RATE_LIGHT', 40), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
-const rlAiDeep  = rateLimit('ai-deep',  () => intSetting('aiRateDeep',  'AI_RATE_DEEP',  15), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
+const rlAiLight = rateLimit('ai-light', () => intSetting('aiRateLight', 'AI_RATE_LIGHT', 0), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
+const rlAiDeep  = rateLimit('ai-deep',  () => intSetting('aiRateDeep',  'AI_RATE_DEEP',  0), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
 
 // FIX 2 — per-request input caps (a backstop over the 15mb global json limit).
 // Defaults sit above what the client sends, so genuine use is never trimmed,
@@ -3997,8 +4009,8 @@ if (MAPPER_TOKEN) {
     console.log(`[pulse] served to ${clientIp(req) || 'unknown'} at ${now()}.`);
     res.json({
       caps: {
-        aiRateLight: intSetting('aiRateLight', 'AI_RATE_LIGHT', 40),
-        aiRateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 15),
+        aiRateLight: intSetting('aiRateLight', 'AI_RATE_LIGHT', 0),
+        aiRateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 0),
         aiDailyLimit: aiDailyLimit(),
         aiMaxChars: intSetting('aiMaxChars', 'AI_MAX_CHARS', 60000),
         aiDocChars: aiDocChars(),
@@ -7637,9 +7649,9 @@ app.get('/api/ai/config', auth, (req, res) => {
     model: aiModelForTier('fast'), // legacy field for older clients
     // FIX 1/2/3: cost-control limits + today's usage (visible before it bites)
     limits: {
-      rateLight: intSetting('aiRateLight', 'AI_RATE_LIGHT', 40),
-      rateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 15),
-      rateOcr: intSetting('aiRateOcr', 'AI_RATE_OCR', 400),
+      rateLight: intSetting('aiRateLight', 'AI_RATE_LIGHT', 0),
+      rateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 0),
+      rateOcr: intSetting('aiRateOcr', 'AI_RATE_OCR', 0),
       windowMinutes: Math.round(AI_WINDOW_MS / 60000),
       dailySpendLimit: aiDailySpendLimit(),   // 0 = disabled — the PRIMARY control
       dailyLimit: aiDailyLimit(),             // 0 = disabled — blunt secondary guard
@@ -7782,9 +7794,9 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
     if (!Number.isFinite(n) || n < (min ?? 0) || Math.floor(n) !== n) { badNum.push(field); return; }
     setSetting(field, n);
   };
-  setNum('aiRateLight', rateLight, 1);
-  setNum('aiRateDeep', rateDeep, 1);
-  setNum('aiRateOcr', rateOcr, 1);
+  setNum('aiRateLight', rateLight, 0);
+  setNum('aiRateDeep', rateDeep, 0);
+  setNum('aiRateOcr', rateOcr, 0);
   setNum('aiDailyLimit', dailyLimit, 0);
   setNum('aiMaxChars', maxChars, 1000);
   setNum('aiDocChars', docChars, 1000);
@@ -8394,7 +8406,7 @@ app.post('/api/board/analyst', auth, rlAiLight, aiFeature('graph'), aiBudgetGuar
 
    Metering: one *request* per document (the client sets `first` on page 1) but
    every page's tokens count toward spend and toward ocrMaxPages. */
-const rlAiOcr = rateLimit('ai-ocr', () => intSetting('aiRateOcr', 'AI_RATE_OCR', 400), AI_WINDOW_MS,
+const rlAiOcr = rateLimit('ai-ocr', () => intSetting('aiRateOcr', 'AI_RATE_OCR', 0), AI_WINDOW_MS,
   { keyFn: aiUserKey, message: 'OCR limit reached — try again in a few minutes' });
 
 const OCR_PROMPT = `Transcribe this page of a contract EXACTLY as it appears.

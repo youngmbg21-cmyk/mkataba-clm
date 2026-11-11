@@ -36926,6 +36926,9 @@ Size after: CLAUDE.md 79996 bytes (was 81,469 right after the merge).
 ## HOME — THE BOARD AND THE MAP: THE DNA PAGE IS DELETED (10 Nov 2026, the overnight run, job 15)
 The owner, 10 Nov 2026: "delete the DNA page and button from HaTi". Removed: the DNA button beside Read down in the Board's head (`hbDnaBtnHtml`), its page on the Board (`hbDnaHtml`, `hbDnaRows`, `hbDnaOf`, `HB_DNA_MAX`, `_hbDna`, `hbDnaUp`), its face in Jambo's panel (`hbDnaPanelHtml` in `pdJamboTopHtml`), its presses (`data-hb-dna`, `data-dna-back`, `data-dna-show`, `data-dna-open`) and its styles (index.html "DNA BY CONTRACT, AS DRAWN"). All are STALE names now. The `dna_*` sentences stay inert in both books for the tidy-up job. KEPT, being other features: the DNA strand in a contract's margin (js/views/contract.js) and the Pulse board's strands (`.pu-dna`). round6-new-look-verify 11 and round9-new-look-verify 2a re-pointed to its absence.
 
+## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES — THE OTHER CLAUSE'S ASK, EVERYWHERE (11 Nov 2026)
+After the first round the 8.3 part of Jambo's advice showed only in the clause editor; the Playbook review window and Prepare redlines left it out without a word. Drawn (artifact "The Other Clause, Everywhere": the review window with the editor's box; Prepare redlines in three options, File it too · On the card (the Legora Way) · In the message (the SAP Way)). The owner picked **"File it too"**. Built: ONE box builder `rlAlsoHtml` for the editor and the review window (its CSS moved from the editor's sheet to index.html as `.rl-also`), its Open closing the window and opening the editor through `rlWithEditorDoor` with `carry`; ONE clause finder `negoClauseByRef` (reads only where a negotiation exists, `{init:true}` when filing); ONE placing `pbPlaceAt` (the editor's carried card now uses it too); Prepare redlines files each `also` as that clause's own unsent draft through `rlFilePlaybookProposal` (the one door f295 pins), never over a draft of ours already waiting there (`alsoBusy`), never twice for the same words, and says it in its one message ("1 of them on 8.3, from Jambo's advice on 3.3"). The rules file was already trimmed to under 80 KB by another session the same morning, so the plan's item 4 was done.
+
 ## HOME — THE BOARD AND THE MAP: THE COUNTED SENTENCE OPENS THE BRIEF (10 Nov 2026, the overnight run, job 14)
 The owner, off two screenshots: "Instead of having the highlighted area as designed, add that information in the summarize my board card … build proposals". Three options were drawn (The SAP Way · The Legora Way · In the card's head; artifact 1rVmFCWDQCoT32Y69jhw7x); the owner picked "The Legora Way", "but reduce the font size to match the rest of the card's fonts". Built: the greeting keeps only its name line; `hbGreetSayHtml` is counted in the Board's paint and handed to `hbBoardSumHtml(since)`, whose card ("Your board, in brief") opens with it as `.hb-why-b.hb-why-since` (the card's own text size, `--t-body`; id `hb-gr-say` kept). Before Summarise is pressed the card is its title and the sentence (`.hb-why.is-since`), nothing spent; after, a dashed line parts it from Jambo's paragraph, marked "Jambo:" (`.hb-why-who`). The one Summarise door stays in the head (the drawing's in-card button was not built: a second door onto the same press). f745 (7a) re-pointed; the Handbook's Board chapter says so in both books.
 
@@ -36984,3 +36987,24 @@ Summarise the brief draws nothing (hbBoardSumHtml returns no box); once pressed 
 (hbBoardHeadHtml appends it in the new look), the counted sentence first, then "Jambo:" and his paragraph. Photographed
 at 1440×780, 1536×730 and 1366×950: the card's top 149, inside the white. The CLAUDE.md line's earlier form: "head =
 `cn2Greet` · one counted sentence of links (`hbGreetSayHtml`, `data-hb-gr` → `ndOpenBoard`) · pills · Live."
+
+## THE LEGAL AND LAUNCH AUDITS' FIXES
+### JAMBO'S 15-MINUTE RATE LIMITS ARE OFF (owner, 11 Nov 2026)
+Asked after the analyst rounds: the owner read that fast typing could hit Jambo's per-minute limit and asked why
+there was one at all. The honest answer: every Jambo question is a paid call, and the limiter is the seatbelt
+against a runaway client loop spending the budget overnight; the two tiers (LIGHT 40, DEEP 15 per 15 minutes,
+per person) were set for "a real demo or a busy reviewer" — a number chosen BEFORE the Board could draw. An
+analyst asking for ranking after ranking, each one a drawing call, is heavier than whoever that number was for.
+The owner: "Remove rate limits for now."
+
+BUILT: a limit of NOUGHT now means no limit in `rateLimit` itself (`if (!(lim > 0)) return next()`), exactly as
+the daily request ceiling has always read 0, and `aiRateLight`, `aiRateDeep` and `aiRateOcr` default to 0; the
+Settings boxes take 0 (they had a floor of 1, so they could only be lowered to 1, never turned off) and both
+books say "0 turns it off" under each.
+
+WHAT WAS NOT REMOVED, and said to the owner: the daily request ceiling (5,000) and the daily SPEND ceiling
+($10) still stand — they are the money backstops, and they already say "an admin can raise this in Settings"
+when they bite. Every limiter written with a number of its own is untouched, the sign-in wrong-guess wall and a
+signing code's attempt wall among them: those are brute-force protection, not cost control, and "remove the
+rate limits" was never a request to take the locks off the doors. f1004 pins both halves.
+

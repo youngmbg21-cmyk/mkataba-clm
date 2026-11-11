@@ -15977,15 +15977,58 @@ async function rlPrepareRedlinesRun(c, again, onYes){
     if (bag.refused || already) n.here++;
     else n.refused++;
   }
+  /* ---- "FILE IT TOO" (owner's pick, 11 Nov 2026) ----
+     Jambo's advice on one clause that also asks for a change to another
+     ("… Also amend Section 8.3 to add: '…'", pbDraftRead's `also`) is filed as
+     that clause's OWN unsent draft, like every other fix this press makes: the
+     ONE placing (pbPlaceAt — added after its block, nothing struck), through
+     the funnel (negoEditClause). Never over a draft of ours already waiting on
+     that clause (counted, said), never twice for the same words, and never
+     where the clause cannot be found or already says it (counted, said). */
+  const alsoRefs = new Set(), alsoFrom = new Set(), alsoSeen = new Set();
+  n.also = 0; n.alsoBusy = 0; n.alsoLost = 0;
+  for (const it of items){
+    if (it.landing !== 'edit' || !Array.isArray(it.draftAlso) || !it.draftAlso.length) continue;
+    for (const a of it.draftAlso){
+      const key = String(a.ref) + '|' + String(a.words || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (!a || !a.ref || !a.words || alsoSeen.has(key)) continue;
+      alsoSeen.add(key);
+      const cl = negoClauseByRef(c, a.ref, { init: true });
+      if (!cl || !cl.clauseId){ n.alsoLost++; continue; }
+      const busy = (c.changes || []).some(x => x && String(x.clauseId) === String(cl.clauseId) && x.status === 'pending'
+        && x.authorSide === 'owner' && !x.withdrawn);
+      if (busy){ n.alsoBusy++; continue; }
+      const placed = window.pbPlaceAt ? pbPlaceAt(String(cl.bodyHtml || ''), a.ref, a.words, !!a.add) : null;
+      if (!placed){ n.here++; continue; }
+      /* where the advice came from, by the clause's own number ("3.3"): the quoted block's, else its heading's */
+      let srcCl = null;
+      try{ srcCl = (typeof negoClauseList === 'function' ? negoClauseList(c) : []).find(x => x && String(x.clauseId) === String(it.clauseId)) || null; }catch(_){ srcCl = null; }
+      const from = (window.pbOwnRefs ? pbOwnRefs(srcCl || { headingText: it.clauseLabel, bodyHtml: it.oldHtml }, it.v && it.v.quote) : []).slice(-1)[0]
+        || String(it.clauseLabel || '');
+      /* THROUGH THE ONE DOOR (rlFilePlaybookProposal), as that clause's own
+         fitted proposal, so its walls and its note are the same as every other */
+      const alsoItem = { v: { ...(it.v || {}), position: `Jambo's advice on ${from}, for ${a.ref}`, escalate: false },
+        clauseId: cl.clauseId, clauseLabel: window.negoClauseLabel ? negoClauseLabel(cl) : String(a.ref), landing: 'edit',
+        oldText: String(cl.text || ''), oldHtml: String(cl.bodyHtml || ''), fit: { kind: 'draft', text: placed.text, html: placed.html } };
+      const bag = { quiet: true };
+      let ch = null;
+      try{ ch = await rlFilePlaybookProposal(c, alsoItem, placed.text, bag); }catch(_){ ch = null; }
+      if (ch){ n.filed++; n.also++; alsoRefs.add(String(a.ref)); if (from) alsoFrom.add(from); }
+      else n.refused++;
+    }
+  }
   if (window.aiTraceSave) aiTraceSave(c);
   if (window.logAudit) logAudit(c, 'Playbook',
-    `Redlines prepared from the playbook — ${n.filed} draft${n.filed === 1 ? '' : 's'} filed unsent, ${n.here} already here, ${n.unplaced} not placed, ${n.refused} refused, ${n.fallback} fallback only, ${n.broad} too broad to file unattended`);
+    `Redlines prepared from the playbook — ${n.filed} draft${n.filed === 1 ? '' : 's'} filed unsent${n.also ? ` (${n.also} on another clause Jambo named: ${[...alsoRefs].join(', ')})` : ''}, ${n.here} already here, ${n.unplaced} not placed, ${n.refused} refused, ${n.fallback} fallback only, ${n.broad} too broad to file unattended`);
   if (window.persist) persist(c);
   /* SAY WHAT HAPPENED, ONCE. One 'ok' line with the counts; nothing filed is a
      'warn' that says why. No band, no strip — the column repainting is the
      confirmation. A count of zero is left off the line: a sentence listing
      four zeros is furniture. */
   const parts = [];
+  if (n.also) parts.push(i18tn('ng_prepare_also', n.also, { n: n.also, refs: [...alsoRefs].join(', '), from: [...alsoFrom].join(', ') }));
+  if (n.alsoBusy) parts.push(i18tn('ng_prepare_also_busy', n.alsoBusy, { n: n.alsoBusy }));
+  if (n.alsoLost) parts.push(i18tn('ng_prepare_also_lost', n.alsoLost, { n: n.alsoLost }));
   if (n.here) parts.push(i18t('ng_prepare_here', { n: n.here }));
   if (n.unplaced) parts.push(i18t('ng_prepare_unplaced', { n: n.unplaced }));
   if (n.refused) parts.push(i18t('ng_prepare_refused', { n: n.refused }));
@@ -16257,6 +16300,9 @@ async function rlOpenPlaybookReview(c, again){
       ${it.draft ? `<button data-pbr-draft="${i}" class="ui-btn ui-btn-sm${(it.fit && it.fit.kind === 'draft') ? ' ui-btn-accent' : ''}" title="${_nea(i18t('ng_file_draft_title'))}">${i18t('ng_file_draft')}</button>` : ''}
       ${(it.fit && it.fit.kind === 'figure') ? `<button data-pbr-fit="${i}" class="ui-btn ui-btn-sm ui-btn-accent" title="${_nea(i18t('ng_file_fit_title'))}">${i18t('ng_file_fit')}</button>` : ''}
     </div>`}
+    ${''/* JAMBO'S ASK FOR ANOTHER CLAUSE (owner, 11 Nov 2026): the clause editor's
+           own box, from the ONE builder; its Open carries the wording there */}
+    ${(Array.isArray(it.draftAlso) ? it.draftAlso : []).map((a, k) => rlAlsoHtml(a, (negoClauseByRef(c, a.ref) || {}).clauseId || null, k)).join('')}
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">&#10022; ${i18tn('ng_playbook_review',items.length,{n:items.length})}</h2>
@@ -16326,6 +16372,43 @@ async function rlOpenPlaybookReview(c, again){
   root.querySelectorAll('[data-pbr-skip]').forEach(b => b.addEventListener('click', () =>
     settle(Number(b.getAttribute('data-pbr-skip')), 'Skipped', 'var(--color-neutral-500)')));
   root.querySelector('#pbr-close')?.addEventListener('click', () => { if (window.closeModal) closeModal(); });
+  /* OPEN 8.3: the window closes and the clause editor opens on 8.3 with the
+     wording waiting on a card, Apply · Discard (ceOfferCarried) — the door the
+     clause editor's own box uses. Nothing is filed from here. */
+  root.querySelectorAll('[data-ce-also-go]').forEach(b => b.addEventListener('click', () => {
+    const box = b.closest('[id^="pbr-item-"]');
+    const it = box ? items[Number(box.id.slice('pbr-item-'.length))] : null;
+    const a = it && Array.isArray(it.draftAlso) ? it.draftAlso[Number(b.getAttribute('data-ce-also-k')) || 0] : null;
+    const id = b.getAttribute('data-ce-also-go');
+    if (!a || !id) return;
+    const from = (window.clauseNameShown && it.clauseLabel) ? clauseNameShown(it.clauseLabel) : String(it.clauseLabel || '');
+    if (window.closeModal) closeModal();
+    rlWithEditorDoor(c, d => d.open(id, { carry: { ref: a.ref, words: a.words, add: !!a.add, from } }));
+  }));
+}
+/* ---- JAMBO'S ASK FOR ANOTHER CLAUSE: ONE BOX, ONE READING (owner, 11 Nov
+   2026) ---- rlAlsoHtml draws the box wherever an `also` from pbDraftRead is
+   shown (the clause editor's card, the Playbook review window); its Open
+   carries `data-ce-also-go` (the clause) and `data-ce-also-k` (which ask).
+   negoClauseByRef finds the clause by its number: the clause whose heading
+   carries it ("8.3"), else the one it sits under ("8"). It READS ONLY where a
+   negotiation already exists (negoClauseList starts one), unless the caller
+   is filing ({init:true}); null where no clause carries the number. */
+function negoClauseByRef(c, ref, opts){
+  const r = String(ref || '').replace(/\.$/, ''); if (!r || !c) return null;
+  if (!c.negotiation && !(opts && opts.init)) return null;
+  let list = [];
+  try{ list = (typeof negoClauseList === 'function') ? negoClauseList(c) : []; }catch(_){ list = []; }
+  const numOf = cl => { const m = /^\s*\(?(\d+(?:\.\d+)*)/.exec(String((cl && (cl.headingText || cl.num)) || '')); return m ? m[1] : ''; };
+  const exact = list.find(cl => numOf(cl) === r);
+  if (exact) return exact;
+  return list.filter(cl => numOf(cl) && r.startsWith(numOf(cl) + '.'))
+    .sort((a, b) => numOf(b).length - numOf(a).length)[0] || null;
+}
+function rlAlsoHtml(a, clauseId, k){
+  if (!a || !a.ref || !a.words) return '';
+  return `<div class="rl-also"><p class="h">${_ne(i18t('ce_also_h', { ref: a.ref }))}</p>
+    <p class="q">\u201c${_ne(a.words)}\u201d</p>${clauseId ? `<div class="av"><button type="button" class="ui-btn ui-btn-sm" data-ce-also-go="${_nea(String(clauseId))}" data-ce-also-k="${Number(k) || 0}">${_ne(i18t('ce_also_open', { ref: a.ref }))}</button></div>` : ''}</div>`;
 }
 /* ============================================================
    THE VIEW WALL — what each side of the toggle is allowed to see
@@ -23784,7 +23867,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlLadderGoClause,
   negoBlanksOpen, negoBlanksAsk, negoBlanksFill, NG_BLANKS_NAMED,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
-  rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
+  negoClauseByRef, rlAlsoHtml, rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlPrepareRedlines, rlPrepareRowHtml, rlEmptyColumnActsHtml, rlFirstClauseId, dealMemoSend,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,

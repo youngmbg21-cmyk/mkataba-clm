@@ -29,6 +29,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
 - The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
 ## THE LEGAL AND LAUNCH AUDITS' FIXES
+- JAMBO'S RATE LIMITS ARE OFF (owner, 11 Nov 2026): `node --test test/f1004-the-jambo-rate-limits-are-off.test.js` (4) — 46 Jambo calls in a row are never refused (red at the parent: 429 at the 41st), the daily request and SPEND ceilings keep their numbers, wrong sign-in guesses are still walled, and both books say what 0 does.
 - f202, f204, f226, f396 (1c), test/audit/* (sim-d-server-attacks: 0 of 18).
 
 ## GAP MAP, PHASE 2 AND 3 SERVICES
@@ -450,6 +451,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f558.
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
+- f996 (3) (the other clause's ask: the review window's box, Prepare redlines files it as that clause's own draft).
 - f996 (Jambo's instruction is not wording: pbDraftRead, pbFitAdd, draftFit, the applied card marked against what stands); contract-new-look-verify 13 (the notes stay on Clauses).
 - OUR STANDARDS BESIDE THE PAPER (new look, owner picked "Beside the paper" 6 Nov 2026): standards-beside-paper-verify 1–5 (new, red at the parent: no standards in the margin, the Dossier's Standards line opened the old side panel), 6 (look off: the side panel as before).
 - UNDO UNDOES (bug log batch 2, 26 Oct 2026): f942 (new; red at the parent) — toast() presses onClick; every toast action in js/ is handed as onClick (sdLearnApply's Undo was `run`).

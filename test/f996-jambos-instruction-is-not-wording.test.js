@@ -88,3 +88,82 @@ describe('f996 (2) "Open 8.3" carries Jambo\'s wording (owner, 10 Nov 2026)', ()
     assert.equal(fit.html, '<p>8.1 <b>Convenience.</b> Ninety days\' notice.</p><p>8.2 Insolvency ends it.</p><p>8.3 <b>Cause.</b> Material breach unremedied in 30 days. A failure to keep 95% OTIF is a material breach.</p>');
   });
 });
+
+/* ---- (3) THE OTHER CLAUSE'S ASK, EVERYWHERE (owner picked "File it too", 11 Nov 2026) ----
+   The Playbook review window shows the clause editor's own box (one builder,
+   rlAlsoHtml) whose Open carries the wording to that clause; Prepare redlines
+   files it as that clause's OWN unsent draft through the funnel, added after
+   its block, and says so in its one message. */
+describe('f996 (3) the other clause\'s ask: the review window shows it, Prepare redlines files it', () => {
+  const NEG = fs.readFileSync(path.join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+  const CE = fs.readFileSync(path.join(__dirname, '..', 'js/views/clauseeditor.js'), 'utf8');
+  const ME = { id: 'u_me', name: 'Young Mbagaya', role: 'legal', email: 'y@w.co.ke' };
+  const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nordkust Industri AB</p>'
+    + '<h2>1. Supply</h2><p>The Supplier shall supply the goods to the specification.</p>'
+    + '<h2>2. Payment</h2><p>The Buyer shall pay each undisputed invoice within sixty (60) days of receipt.</p>'
+    + '<h2>3. Termination</h2><p>Either party may terminate on ninety (90) days\' written notice.</p>';
+  const ASK = 'Amend Section 2 to add: "Late payment carries interest at 2% per month." Also amend Section 3 to add: "Either party may terminate at once for an unpaid invoice older than ninety (90) days."';
+  function world(){
+    const w = buildWorld({ user: ME, negotiationView: true, contractView: true, playbook: true });
+    const win = w.win;
+    win.state = { settings: {}, contracts: [] };
+    win.getUsers = () => [ME]; win.userById = () => ME; win.saveSettings = () => {}; win.persist = () => {};
+    w.toasts = []; win.toast = (m, k) => w.toasts.push({ kind: k || 'ok', text: String(m) });
+    win.confirmDialog = async () => true;
+    win.simhash64 = t => 'h' + String(t || '').length + ':' + String(t || '').slice(0, 40);
+    if (typeof win.cKind !== 'function') win.cKind = () => 'Raw Material Supply Agreement';
+    win.clauseLibrary = () => [];
+    win.runPlaybookReview = async c => {
+      const std = win.pbStandardsFor(c).standards;
+      return { key: 'supply', label: 'Supply', source: 'ai', standards: std.length, checked: std.length, categories: std.map(x => x.category),
+        wordingHash: win.playbookHashOf(win.playbookText(c)),
+        verdicts: [{ category: 'Payment terms', status: 'deviation', quote: 'pay each undisputed invoice within sixty (60) days', position: 'Interest on late payment', redline: ASK, escalate: false }] };
+    };
+    return w;
+  }
+  const contract = () => ({ id: 'MK-F996', name: 'Supply Agreement', counterparty: 'Nordkust Industri AB',
+    status: 'Under Review', folder: 'proc', source: 'upload', fields: {}, metadata: {}, audit: [], rounds: [],
+    versions: [], signatures: [], comments: [], value: 480000, redlineText: BODY, format: 'rich',
+    upload: { name: 'x.docx', extractedText: 'x'.repeat(200) } });
+
+  test('ONE box builder and ONE clause finder for both places; the window\'s Open carries the wording through the editor\'s door', () => {
+    assert.match(CE, /rlAlsoHtml\(a, ceClauseIdByRef\(a\.ref\), k\)/, 'the clause editor draws the shared box');
+    assert.match(CE, /negoClauseByRef\(_ceC, ref\)/, 'and finds the clause the shared way');
+    assert.match(CE, /pbPlaceAt\(_ceText, ref, w, !!carry\.add\)/, 'and places it the shared way');
+    assert.match(NEG, /it\.draftAlso : \[\]\)\.map\(\(a, k\) => rlAlsoHtml\(a,/, 'the review window draws the same box');
+    assert.match(NEG, /rlWithEditorDoor\(c, d => d\.open\(id, \{ carry: \{ ref: a\.ref, words: a\.words, add: !!a\.add, from \} \}\)\)/, 'its Open opens the editor with the wording carried');
+    const w = world().win;
+    const html = w.rlAlsoHtml({ ref: '8.3', words: 'A failure is a breach.', add: true }, 'cl-8', 0);
+    assert.match(html, /class="rl-also"/); assert.match(html, /data-ce-also-go="cl-8"/); assert.match(html, /Open 8\.3/);
+    assert.doesNotMatch(w.rlAlsoHtml({ ref: '8.3', words: 'x', add: true }, null, 0), /data-ce-also-go/, 'no clause found, no dead button');
+  });
+  test('pbPlaceAt: added after the numbered block; "to read" replaces that block keeping its number; nothing to change is null', () => {
+    const w = W();
+    const body = '<p>8.1 Notice.</p><p>8.2 <b>Cause.</b> Material breach.</p>';
+    assert.equal(w.pbPlaceAt(body, '8.2', 'Late delivery is a breach.', true).html, '<p>8.1 Notice.</p><p>8.2 <b>Cause.</b> Material breach. Late delivery is a breach.</p>');
+    assert.equal(w.pbPlaceAt(body, '8.2', 'Any breach.', false).html, '<p>8.1 Notice.</p><p>8.2 Any breach.</p>');
+    assert.equal(w.pbPlaceAt(body, '8.9', 'Any breach.', false), null, 'a replace with no block named changes nothing');
+    assert.equal(w.pbPlaceAt(body, '8.2', 'Material breach.', true), null, 'already says it');
+  });
+  test('Prepare redlines files the other clause\'s ask as its OWN unsent draft, added, and says so once', async () => {
+    const w = world(); const c = contract(); w.win.state.contracts.push(c);
+    const out = await w.win.rlPrepareRedlines(c);
+    assert.equal(out.filed, 2, 'clause 2 and clause 3'); assert.equal(out.also, 1);
+    const drafts = (c.changes || []).filter(x => x.status === 'pending' && x.authorSide === 'owner' && !x.withdrawn);
+    assert.equal(drafts.length, 2);
+    const two = drafts.find(x => /sixty \(60\) days/.test(x.newText)), three = drafts.find(x => /ninety \(90\) days' written notice/.test(x.newText));
+    assert.ok(two && /Late payment carries interest at 2% per month\./.test(two.newText) && !/Amend|Section 3/.test(two.newText), 'clause 2: only its own sentence');
+    assert.ok(three && /written notice\. Either party may terminate at once for an unpaid invoice/.test(three.newText), 'clause 3: its own draft, ADDED after its wording');
+    assert.equal(w.win.negoUnsentAsks(c, 'owner').length, 2, 'both unsent');
+    assert.equal(w.toasts.length, 1);
+    assert.match(w.toasts[0].text, /^2 drafts filed under Your drafts — nothing sent · 1 of them on 3, from Jambo’s advice on 2/);
+  });
+  test('a second press files nothing new for the other clause: its own draft is already waiting there', async () => {
+    const w = world(); const c = contract(); w.win.state.contracts.push(c);
+    await w.win.rlPrepareRedlines(c);
+    const n = (c.changes || []).length;
+    const out = await w.win.rlPrepareRedlines(c);
+    assert.equal((c.changes || []).length, n, 'nothing new filed');
+    assert.equal(out.also, 0); assert.equal(out.alsoBusy, 1);
+  });
+});

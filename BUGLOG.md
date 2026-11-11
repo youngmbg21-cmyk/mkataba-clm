@@ -22088,6 +22088,9 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
   not the check's click — likely a second save of the same contract putting back older answers. The check now also
   prints every item still owed and the stored up_notice_period value. Not fixed (scope rules); for the owner.
 
+## Noticed, not fixed (11 Nov 2026, the other clause's ask round)
+- Playbook review window, "Jambo's draft" preview: a numbered paragraph reads "3.1Delivery Terms." (no space after the number) and the preview shows the whole clause rather than only the changed part; already so before this round.
+- Clause editor, after Apply (not typing): a changed paragraph is drawn without its bold title ("3.3 Late Delivery Liquidated Damages." plain) while the applied wording itself keeps <strong>; the resting redline drawing of a touched block is word-based. Not caused by the other-clause round.
 ## The Jambo panel: the last two parts, and the f1000 clash (11 Nov 2026, f1002)
 Built. The source line ("Read from Explorer and your book") is now the last row of the More menu, a line and not
 a press; it is said once (the panel no longer prints it under the answer too) and it never makes a toolbar appear
@@ -22111,3 +22114,10 @@ The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shar
 - The board's brief no longer stands before Summarise is pressed (owner: "nothing written … only once you press");
   pressed, it opens inside the white greeting under the buttons. The card that stood between the greeting and Your book
   before the press is removed (a band taken off: this line).
+
+## Jambo's 15-minute rate limits are off (11 Nov 2026, f1004)
+Done, on the owner's instruction ("Remove rate limits for now"). A limit of 0 now means no limit, and the three
+Jambo window limits (light 40, deep 15, OCR 400 per 15 minutes) default to 0. The Settings boxes used to have a
+floor of 1, so they could only be lowered, never switched off; they take 0 now and say so in both books.
+NOT removed, and said to the owner: the daily request ceiling and the daily spend ceiling, which are the money
+backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.

@@ -955,10 +955,6 @@ function clauseEditorCss(){
   /* APPLIED: the card wears the paper's own mark colour round it (10 Nov 2026) */
   .ce-card.ce-sug:has(> .av[data-st="applied"], > .av[data-st="undoable"]){box-shadow:inset 0 0 0 2px var(--accent-ink); border-radius:var(--radius); padding:var(--s-3) var(--s-4)}
   .ce-card.ce-sug .av .ce-show{margin-left:auto; background:none; border:0; padding:0; color:var(--accent-ink); font-weight:var(--w-label); text-decoration:underline; text-underline-offset:2px; cursor:pointer; white-space:nowrap}
-  .ce-card.ce-also{margin-bottom:var(--s-3); border:1px solid var(--color-divider); border-radius:var(--radius); padding:var(--s-3) var(--s-4)}
-  .ce-card.ce-also .h{margin:0 0 4px; font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-text)}
-  .ce-card.ce-also .q{margin:0; font-family:var(--font-doc); color:var(--color-text)}
-  .ce-card.ce-also .av{margin-top:var(--s-2)}
   .ce-rail .ce-card.ce-sug .pv{max-height:none; overflow:visible; border:0; padding:0;
     background:none; margin-top:var(--s-2)}
   .ce-card.ce-sug .pv .ce-sug-left{display:block; margin-top:6px; font-size:var(--t-label); color:var(--color-neutral-500); font-style:italic}
@@ -5345,24 +5341,14 @@ function ceCardAlso(card){
   return (it && Array.isArray(it.draftAlso)) ? it.draftAlso.filter(a => a && a.ref && a.words) : [];
 }
 function ceCardAlsoHtml(card){
-  return ceCardAlso(card).map((a, k) => {
-    const id = ceClauseIdByRef(a.ref);
-    return `<div class="ce-card ce-also"><p class="h">${_cee(_cet('ce_also_h', { ref: a.ref }))}</p>
-      <p class="q">“${_cee(a.words)}”</p>${id ? `<div class="av"><button type="button" class="ui-btn ui-btn-sm" data-ce-also-go="${_ceea(id)}" data-ce-also-k="${k}">${_cee(_cet('ce_also_open', { ref: a.ref }))}</button></div>` : ''}</div>`;
-  }).join('');
+  /* ONE builder, shared with the review window (rlAlsoHtml) */
+  return ceCardAlso(card).map((a, k) => window.rlAlsoHtml ? rlAlsoHtml(a, ceClauseIdByRef(a.ref), k) : '').join('');
 }
-/* A CLAUSE BY ITS NUMBER: the clause whose heading carries it ("8.3"), else
-   the clause it sits under ("8"). Null where none does. */
+/* A CLAUSE BY ITS NUMBER: the one reading, negoClauseByRef */
 function ceClauseIdByRef(ref){
-  const r = String(ref || '').replace(/\.$/, ''); if (!r || !_ceC) return null;
-  let list = [];
-  try{ list = window.negoClauseList ? negoClauseList(_ceC) : []; }catch(_){ list = []; }
-  const numOf = cl => { const m = /^\s*\(?(\d+(?:\.\d+)*)/.exec(String((cl && (cl.headingText || cl.num)) || '')); return m ? m[1] : ''; };
-  const exact = list.find(cl => numOf(cl) === r);
-  if (exact) return String(exact.clauseId);
-  const under = list.filter(cl => numOf(cl) && r.startsWith(numOf(cl) + '.'))
-    .sort((a, b) => numOf(b).length - numOf(a).length)[0];
-  return under ? String(under.clauseId) : null;
+  if (!_ceC || !window.negoClauseByRef) return null;
+  const cl = negoClauseByRef(_ceC, ref);
+  return cl ? String(cl.clauseId) : null;
 }
 /* ---- APPLY · DISCARD, THEN APPLIED · UNDO (Young, 10 Oct 2026, "one
    Copilot panel" — the same card on Playbook and Risks) ----
@@ -5593,19 +5579,9 @@ function ceOfferCarried(carry){
   const w = String(carry.words || '').trim(); if (!w) return false;
   cePullText();
   const ref = String(carry.ref || '').replace(/\.$/, '');
-  let at = -1;
-  try{ const blocks = window.pbClauseBlocks ? pbClauseBlocks(_ceText) : null;
-    const re = new RegExp('^\\(?' + ref.replace(/\./g, '\\.') + '(?![\\d.]\\d)');
-    at = blocks ? blocks.findIndex(t => re.test(t)) : -1;
-  }catch(_){ at = -1; }
+  /* the ONE placing (pbPlaceAt), shared with the review window and Prepare redlines */
   let html = null;
-  try{
-    if (carry.add){ const f = window.pbFitAdd ? pbFitAdd(_ceText, '', w, at) : null; html = f ? f.html : null; }
-    else if (at >= 0 && window.pbSwapBlock && window.pbClauseBlocks){
-      const num = /^\s*(\(?\d+(?:\.\d+)*\)?\.?)\s+/.exec(pbClauseBlocks(_ceText)[at]);
-      html = pbSwapBlock(_ceText, at, (num && !w.startsWith(num[1]) ? num[1] + ' ' : '') + w);
-    }
-  }catch(_){ html = null; }
+  try{ const f = window.pbPlaceAt ? pbPlaceAt(_ceText, ref, w, !!carry.add) : null; html = f ? f.html : null; }catch(_){ html = null; }
   const text = html || w;
   const label = (() => { try{ return ceClauseLabel(ceClause()) || ''; }catch(_){ return ''; } })();
   _ceThread.push({ who: 'ai', text: _cet('ce_carried_say', { from: String(carry.from || '').trim() || _cet('ce_this_clause'), ref }), read: [],
@@ -7472,7 +7448,7 @@ function ceWirePage(page){
     const also = hit('[data-ce-also-go]');
     if (also){ ev.preventDefault();
       /* the suggestion goes WITH the press: 8.3 opens with it on a card, Apply · Discard (ceOfferCarried) */
-      let host = also.closest('.ce-also'); while (host && !host.classList.contains('ce-sug')) host = host.previousElementSibling;
+      let host = also.closest('.rl-also'); while (host && !host.classList.contains('ce-sug')) host = host.previousElementSibling;
       const av = host && host.querySelector('.av[data-ce-card]');
       const card = av ? ceCardAt(av.getAttribute('data-ce-card')) : null;
       const a = card ? ceCardAlso(card)[Number(also.getAttribute('data-ce-also-k')) || 0] : null;
