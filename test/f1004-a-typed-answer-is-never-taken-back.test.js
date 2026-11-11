@@ -79,6 +79,10 @@ describe('f1004 — a typed answer is never taken back', () => {
     /* a person's own change still goes through */
     assert.equal(win.contractBlankSet(live, 'up_notice_period', '2 months'), true);
     assert.equal(live.fields.up_notice_period, '2 months');
+    /* clearing a box on purpose is not a reading's fill: it goes through, quiet or not (contract-new-look-verify 13b
+       empties one to reopen it) */
+    assert.equal(win.contractBlankSet(live, 'up_notice_period', '', { quiet: true }), true);
+    assert.equal(live.fields.up_notice_period, '');
   });
 
   test('3 · persist queues the live record, never the copy it was handed', () => {

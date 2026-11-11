@@ -567,7 +567,7 @@ function contractBlankSet(c, key, value, opts){
   if(String(was == null ? '' : was) === now) return false;   // nothing changed is not an edit
   /* A READING NEVER WRITES OVER A PERSON'S ANSWER: a quiet fill (the record's or Jambo's, decided on what was open
      when it began) stands down where the box has been filled since */
-  if(o.quiet && String(was == null ? '' : was).trim()) return false;
+  if(o.quiet && now.trim() && String(was == null ? '' : was).trim()) return false;   // a fill, never a deliberate clear
   c.fields[key] = now;
   if(stale !== c){ stale.fields = stale.fields || {}; stale.fields[key] = now; }
   if(typeof todayStr === 'function') c.lastAction = todayStr();
