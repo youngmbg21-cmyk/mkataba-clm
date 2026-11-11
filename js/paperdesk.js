@@ -1403,9 +1403,14 @@ function pdRedRepaint(){
   if (!pdRedShows()) return;
   if (pdMidUp('deal:' + _pdRed)) pdDealRepaint();
   const top = pdRedScrollOf();
-  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
-  _pdRedTop = top;
-  if (typeof renderIntelDock === 'function') renderIntelDock();
+  /* ONE PRESS, ONE PANEL (owner, 11 Nov 2026; measured on GitHub: a decision wrote Jambo's panel twice, once when the
+     paper's own paint found no Dossier under the face and once here): both asks are held and answered once (igDockBatch) */
+  const both = () => {
+    if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+    _pdRedTop = top;
+    if (typeof renderIntelDock === 'function') renderIntelDock();
+  };
+  if (typeof igDockBatch === 'function') igDockBatch(both); else both();
 }
 let _pdRedTop = null;        // a scroll the next paint puts back, once
 /* after renderIntelDock drew the face: the Negotiate page's own wiring,

@@ -237,7 +237,10 @@ describe('f676 (6) the paper\'s line takes the contract\'s acts', () => {
     const s = strip(fnBody(IG, 'igStripHtml'));
     assert.match(s, /data-ig-red="theirs"/);
     assert.match(strip(fnBody(IG, 'igTheirsOn')), /intel\.paper\.red==='theirs'/);
-    assert.match(strip(fnBody(IG, 'igPaperHtml')), /igTheirsOn\(c\)\?\{ side:'counterparty', readonly:true, preview:true \}/);
+    /* RE-POINTED 11 Nov 2026 (f1010): the paper's wording is built in ONE place, igRedBodyHtml, which the first
+       drawing (igPaperHtml) and the clause-by-clause redraw both ask */
+    assert.match(strip(fnBody(IG, 'igPaperHtml')), /igRedBodyHtml\(c,clean\)/);
+    assert.match(strip(fnBody(IG, 'igRedBodyHtml')), /igTheirsOn\(c\)\?\{ side:'counterparty', readonly:true, preview:true \}/);
   });
 });
 

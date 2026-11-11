@@ -926,8 +926,22 @@ function playbookText(c){ return isUpload(c) ? (c.upload&&c.upload.extractedText
    model's and the heuristic's — rather than at the four sites that store the
    result, because a stamp at the stores is a stamp that will be forgotten at
    the fifth. */
+/* THE SAME WORDS ARE FINGERPRINTED ONCE (owner, 11 Nov 2026; measured on GitHub: the Clauses tab on a 40-section
+   contract spent 27 ms of one press fingerprinting the same wording again and again, because every reading that asks
+   "is this still the wording I read" came through here). The last few wordings keep their fingerprint; a wording
+   that differs by one letter is a different string and is worked out afresh. Nothing but the answer is kept. */
+const PB_HASH_KEEP = 6;
+const _pbHashMemo = [];
 function playbookHashOf(text){
-  try{ return (typeof window.simhash64 === 'function') ? String(simhash64(String(text || ''))) : null; }
+  try{
+    if (typeof window.simhash64 !== 'function') return null;
+    const t = String(text || '');
+    for (const m of _pbHashMemo) if (m.t === t) return m.h;
+    const h = String(simhash64(t));
+    _pbHashMemo.unshift({ t, h });
+    if (_pbHashMemo.length > PB_HASH_KEEP) _pbHashMemo.length = PB_HASH_KEEP;
+    return h;
+  }
   catch(_){ return null; }
 }
 /* THE ONE READING OF "the review on file is about older wording".

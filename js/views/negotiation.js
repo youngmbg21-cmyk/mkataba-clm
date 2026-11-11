@@ -11909,8 +11909,12 @@ function rlLiveHere(id){
 }
 function rlLiveRepaint(){
   if (window.state && state.view === 'dashboard' && typeof window.pdRedRepaint === 'function'){
+    /* THE PAPER IS DRAWN ONCE (owner, 11 Nov 2026): the face's own repaint refreshes the paper beside it, so the
+       second refresh that stood here drew the whole contract twice for one arriving change; it is kept only for
+       the case the face is not up, where pdRedRepaint draws nothing */
+    const faceUp = typeof window.pdRedShows === 'function' && window.pdRedShows();
     pdRedRepaint();
-    if (typeof window.igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+    if (!faceUp && typeof window.igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
     return;
   }
   renderRedline();
