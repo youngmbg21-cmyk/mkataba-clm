@@ -37008,6 +37008,70 @@ when they bite. Every limiter written with a number of its own is untouched, the
 signing code's attempt wall among them: those are brute-force protection, not cost control, and "remove the
 rate limits" was never a request to take the locks off the doors. f1004 pins both halves.
 
+## THE SHELL — RAIL, BAR, PANELS
+### ONE ROW ON EXPLORER (owner picked it by name, 11 Nov 2026)
+Of the three layouts drawn on 10 November, the owner picked The SAP Way for the panel and it was built. A day
+later, with Explorer in front of them: "for the explorer, build one row." So the two faces now differ on
+purpose — the Board's talk is a question or two and keeps the SAP toolbar's three labelled rows; Explorer's runs
+ten questions deep, and three rows under each answer push the newest off the screen.
+
+BUILT AS DRAWN: the answers BEFORE the newest fold to one line each — the words you asked, and how many that
+answer put on the map (`igFoldHtml`; the count prints only where the answer drew a set, as the map's own rule
+has it, so a question that drew nothing folds to its words alone). A press opens one where it stands and the
+same press folds it back (`intel.oneOpen`). The newest answer carries ONE row: the chips, the one filled
+button, and ⋯ — which is the SAP menu under another face (`igSapMoreHtml(i,rows,{dots:true})`), so its press,
+its Esc, its press-outside and its contents are the ones already measured. THE PIECES ARE THE SAME ONES
+(`igMapReadHtml`, `hbReadingHtml`, `igDoorsHtml`, `hbNextHtml`): not one press or door changed. Measured at
+50px against the SAP toolbar's 172px on the same answer.
+
+NOT BUILT AS DRAWN, AND ASKED: the drawing shortened the chips to "Keep 3 streams · By value" and the button to
+"Read all 82". Those exact words were the owner's own pick in the Board Twin round ("Keep · Ranked by · the
+word") and the door's own label, so they were left as they are — which means at 1440 the chips take the line
+above the button rather than sitting beside it. The owner was asked whether to shorten the chips on Explorer.
+
+## THE SHELL — RAIL, BAR, PANELS
+### ONE ROW IS THE PANEL'S ONE LAYOUT (owner, 11 Nov 2026; reverses the SAP toolbar of 10 Nov)
+One Row was built for Explorer in the morning. The owner then asked to see the Board doing the same job; it was
+photographed two questions deep, and the answer before the newest was still taking the top of the panel — its
+Open row, its More, its Undo — with the toolbar measuring 168px against Explorer's new 50px. The owner:
+"build one row on the board too, and push."
+
+So One Row is now the panel's ONE layout and the three labelled rows are DELETED, not left beside it: a second
+way of showing the same controls is the thing the round was meant to end. `igSapHtml`, `.igd-sap*` and the
+`igOneRowOn()` face switch are gone; `igSapMoreHtml` came back as `igMoreHtml` (the ⋯ menu), and the names that
+said SAP now say what they are — `.igd-more-menu`, `.igd-more-wrap`, `.igd-src`, `data-ig-more`,
+`intel.moreOpen`. The three row labels (int_sap_understood / _next / _open) are left inert in both books.
+
+CUT WITH IT: jambo-panel-sap-verify and f1003, whose subject no longer exists. Their cases that are still true
+— the pieces splitting without changing a press, the source line said once, the page links on the way-back line
+— moved into f1005 as (6), (7) and (8), and into the One Row check as 6 and 7. Re-pointed with the reason:
+home-first, next-step-chips, reading-chips, and the three explorer-stage checks.
+
+STILL ASKED, NOT DECIDED: the drawing shortened the chips ("Keep 3 streams", "By value") and the button ("Read
+all 82"). Those words are the owner's own earlier picks, so they stand, and the chips take the line above the
+button at 1440.
+
+### KEEP THE WORDS (owner picked it by name, 11 Nov 2026)
+One Row folded every answer before the newest to a single line. The first run of the checks said what that
+really costs: FIVE checks written over months — f840 (2c), jambo-tab-and-back (1g, 1m, 2b), reading-chips (4),
+explorer-stage-three (4e) — assert that the whole conversation is DRAWN: what was said beside one contract is
+still there beside the next, an older answer's figures and chips are still on the panel. Folding put all of
+that behind a press. The owner's new pick and their older ruling disagreed, so the round STOPPED and three ways
+were drawn on the real panel, four questions deep (claude.ai/artifact/ShmF1uW2MGxM39z87CajUh): "Fold it all"
+(about 230px), "Keep the words" (about 480px), "Last two open" (about 330px). The recommendation was Last two
+open; the owner picked "keep the words".
+
+BUILT: `igOneHtml` draws for the NEWEST answer only; every answer above it keeps its bubble, its words, its
+figures line and its Undo, and loses only its row of controls. Nothing folds — `igFoldHtml`, `igTurnsHtml`,
+`intel.oneOpen`, the `.igd-fold*` styles and the fold's press are all gone, and `int_one_shown` is inert in
+both books. The five checks pass as written, because the conversation is drawn again. ONE was re-pointed with
+the reason: reading-chips 4 measured an older answer's chips drawn plain, and an older answer has no chips now
+— it measures that the older answer's WORDS are drawn and only the newest carries chips.
+
+ALSO FIXED FROM THAT RUN: the ⋯ printed a typed mark (f966 forbids it; the drawn `more` icon now), and the ⋯
+and the fold were wired inside renderIntelDock while the turns are repainted in place, so the listeners died
+with their nodes — the ⋯ is delegated on document at load.
+
 
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ — ONE "WHAT TO WATCH", THE PAPER LINES UP, THE PAPER STAYS WHITE (11 Nov 2026)
 The owner, off MK-382's Clauses tab with four "What to watch" blocks (twelve links) on clause 3: combine them. Drawn three ways (artifact "One What to Watch", the page at 1440 × 780): One list (the Legora Way) · Pick and act (the SAP Way) · One sentence; the owner picked **One list**. Built in the new look only: `stkRowCardsHtml` → `stkGroupHtml` ("What to watch · N points", a line per point, one Start redlining · Deep dive · Mark all reviewed; `data-stk-review-all` runs `stkMarkReviewed` per point; blanks keep their own card). Two parts differ from the drawing and were put to the owner before merge: no quoted words under each line (the 23 Oct ruling "no wording in the panel" stands), and Deep dive opens the first open point with ‹ › walking the rest (no clause-wide dive exists).

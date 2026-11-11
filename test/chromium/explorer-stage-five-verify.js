@@ -71,7 +71,7 @@ const check = (name, pass, detail) => {
   /* THE SAP WAY (10 Nov 2026): the rare acts (Explain this view, Pin this finding, Copy picture) live under More on
      the answer's own toolbar — the row is in the page but not shown, so a press opens More first */
   const press = async sel => { if (!(await page.locator(sel).count())) return false;
-    if (!(await page.locator(sel).first().isVisible())){ const m = page.locator('#ig-dock [data-ig-sap-more]').last();
+    if (!(await page.locator(sel).first().isVisible())){ const m = page.locator('#ig-dock [data-ig-more]').last();
       if (await m.count()) { await m.click(); await page.waitForTimeout(150); } }
     await page.click(sel); return true; };
   try {

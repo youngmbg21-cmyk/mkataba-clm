@@ -2394,12 +2394,16 @@ const STRINGS = {
     int_did_asof_off: 'Back to now.',
     int_asof_none: 'The map is already as of today.',
     int_pic_copy: 'Copy picture',
-    /* THE SAP WAY: the answer's controls in one labelled toolbar (owner's pick, 10 Nov 2026) */
+    /* THE SAP WAY: the answer's controls in one labelled toolbar (owner's pick, 10 Nov 2026).
+       RETIRED 11 Nov 2026 (One Row): the three row labels are no longer called; int_sap_more names ⋯. */
     int_sap_label: 'What to do with this answer',
     int_sap_understood: 'Understood',
     int_sap_next: 'Next',
     int_sap_open: 'Open',
     int_sap_more: 'More',
+    /* ONE ROW (owner's pick, 11 Nov 2026). RETIRED the same day: the owner picked "Keep the words" over folding
+       an older answer to a line, so nothing says "{n} shown"; left inert in both books. */
+    int_one_shown: '{n} shown',
     int_pic_making: 'Making the picture…',
     int_pic_copied: 'Picture copied. Paste it into an email or a slide.',
     int_pic_saved: 'Picture saved as {x}.',
@@ -26179,12 +26183,15 @@ const STRINGS = {
     int_did_asof_off: 'Tillbaka till nu.',
     int_asof_none: 'Kartan är redan per i dag.',
     int_pic_copy: 'Kopiera bild',
-    /* SAP-SÄTTET: svarets kontroller i en märkt rad (ägarens val, 10 nov 2026) */
+    /* SAP-SÄTTET: svarets kontroller i en märkt rad (ägarens val, 10 nov 2026).
+       UTGÅNGEN 11 nov 2026 (En rad): de tre radetiketterna anropas inte längre; int_sap_more namnger ⋯. */
     int_sap_label: 'Vad du kan göra med svaret',
     int_sap_understood: 'Uppfattat',
     int_sap_next: 'Nästa',
     int_sap_open: 'Öppna',
     int_sap_more: 'Mer',
+    /* EN RAD (ägarens val, 11 nov 2026). UTGÅNGEN samma dag: ägaren valde "Behåll orden"; inert i båda böckerna. */
+    int_one_shown: '{n} visas',
     int_pic_making: 'Gör bilden…',
     int_pic_copied: 'Bilden är kopierad. Klistra in den i ett mejl eller en bild.',
     int_pic_saved: 'Bilden sparades som {x}.',

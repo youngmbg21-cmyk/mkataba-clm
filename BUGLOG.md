@@ -22123,8 +22123,38 @@ NOT removed, and said to the owner: the daily request ceiling and the daily spen
 backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.
 - (renumbered a third time: the typed-answer test is f1005, f1004 having gone to the rate limits', 11 Nov 2026)
 
+## One Row on Explorer (11 Nov 2026, f1005)
+Built, on the owner's pick. Explorer's panel now folds every answer before the newest to one line (the words
+asked, and how many that answer drew) and carries ONE row under the newest: the chips, one filled button, and ⋯
+for everything else. The Board keeps the SAP toolbar. Measured 50px against 172px on the same answer.
+Asked, not decided: the drawing also shortened the chip words ("Keep 3 streams", "By value") and the button
+("Read all 82"); those are the owner's earlier picks, so they were left alone and the row wraps at 1440.
+Noticed, not fixed: Jambo's panel does not repaint while idle, while typing or while scrolling (measured, zero
+repaints over 4 seconds in each case), so the stutter the owner reports is not the panel redrawing itself.
 ## Correction (11 Nov 2026)
 - The 10 Nov line "Clauses tab, an open row: the Plain English pill … cut off at the top" was a FALSE ALARM: measured, the open row's body slides open in 0.24s (doc-th-body grid-template-rows 0fr→1fr) and settles fully open (0,7,21,30,34px then 34px steady for 4s, no replay); the photo had been taken mid-slide. Nothing to fix.
 
+## One Row is the panel's one layout (11 Nov 2026, f1005)
+Done, on the owner's instruction after seeing the Board photographed. One Row now draws on every face of Jambo's
+panel and the three-row toolbar built the day before is DELETED rather than kept beside it — two ways of showing
+the same controls was the problem, not the solution. The names that said "SAP" were renamed to say what they are.
+Cut with it: the SAP browser check and f1003; their still-true cases moved into f1005 and the One Row check.
+
+## One Row: the glyph, the delegation, and a conflict for the owner (11 Nov 2026)
+Fixed from the first run: the ⋯ button printed a typed mark, which the house rule forbids — it is the drawn
+"more" icon now (f966); the fold and the ⋯ were wired inside renderIntelDock, but the turns are repainted in
+place, so the listeners died with their nodes — both are delegated on document at load now; home-first 1b
+expected the doors first in the menu, where the next steps now come first.
+STOPPED AND ASKED, not decided: folding an older answer to one line hides what Jambo said, and five checks
+written over months assert that the whole conversation is DRAWN (f840 2c, jambo-tab-and-back 1g/1m/2b,
+reading-chips 4, explorer-stage-three 4e). The owner's new pick and their older ruling disagree; the owner
+chooses, the branch stays red until they do.
+
+## Keep the words (11 Nov 2026, f1005)
+Built, on the owner's pick of three drawn ways. Nothing folds any more: every answer keeps its bubble, its
+words and its figures, and loses only its row of controls — only the newest answer carries the row. The five
+checks that watch for the whole conversation being drawn pass as written again; one (reading-chips 4) was
+re-pointed, because an older answer has no chips to find still. The fold's builder, its styles, its press and
+its words are all gone, and int_one_shown is inert in both books.
 ## Removed on the owner's word (11 Nov 2026)
 - The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.
