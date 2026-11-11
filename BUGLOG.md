@@ -22092,3 +22092,8 @@ back and before the bin, instead of a row of their own above the box; a contract
 links still win where they are drawn.
 Renamed: the SAP toolbar's test was f1000, and main gave f1000 to the Brain the same night. It is f1002 now
 (f1001 was taken by saved views, renumbered for the same reason). The BUGLOG line above still says f1000.
+
+## The SAP toolbar's test is f1003 (11 Nov 2026)
+Renamed again: while this branch waited, main gave f1002 to the seals check, as it had given f1000 to the Brain.
+The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shared by two test files already
+(f893, f934, f946, f954, f956, f962, f996, f997, f999), so a shared number is not an error here, only a muddle.

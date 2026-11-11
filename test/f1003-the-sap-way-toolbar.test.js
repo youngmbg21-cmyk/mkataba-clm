@@ -1,4 +1,4 @@
-/* f1002 — THE SAP WAY: ONE TOOLBAR UNDER A JAMBO ANSWER (the owner, 10 Nov 2026: "the jambo panel seems extremely
+/* f1003 — THE SAP WAY: ONE TOOLBAR UNDER A JAMBO ANSWER (the owner, 10 Nov 2026: "the jambo panel seems extremely
    crowed due to the extra features… they are fine but they need to be more clean and structured"; the owner then
    picked "The SAP way" by name out of three drawings).
      (1) three LABELLED rows — Understood · Next · Open — in that order, and nothing loose beside them
@@ -54,7 +54,7 @@ function answer(win) {
 const rows = html => [...String(html).matchAll(/data-ig-sap-r="([a-z]+)"/g)].map(m => m[1]);
 
 /* ---------- (1) + (2) THE THREE LABELLED ROWS ---------- */
-test('f1002 (1) one toolbar, three labelled rows in order: Understood · Next · Open', () => {
+test('f1003 (1) one toolbar, three labelled rows in order: Understood · Next · Open', () => {
   const win = world();
   const { i, m } = answer(win);
   const html = win.igSapHtml(m, i);
@@ -65,7 +65,7 @@ test('f1002 (1) one toolbar, three labelled rows in order: Understood · Next ·
   assert.match(html, /<span class="igd-sap-l">Open<\/span>/);
 });
 
-test('f1002 (2) the chips are in Understood, the next steps in Next, the one filled button in Open', () => {
+test('f1003 (2) the chips are in Understood, the next steps in Next, the one filled button in Open', () => {
   const win = world();
   const { i, m } = answer(win);
   const html = win.igSapHtml(m, i);
@@ -78,7 +78,7 @@ test('f1002 (2) the chips are in Understood, the next steps in Next, the one fil
 });
 
 /* ---------- (3) THE RARE ACTS, UNDER MORE ---------- */
-test('f1002 (3) Explain this view, Pin this finding and Copy picture are under More, and the shut menu keeps them', () => {
+test('f1003 (3) Explain this view, Pin this finding and Copy picture are under More, and the shut menu keeps them', () => {
   const win = world();
   try { win.eval('IG = { nodes:[{ id:"MK-1" }], hubs:[] }'); } catch (_){ /* the map's own object may be fixed: More then carries the doors only */ }
   const { i, m } = answer(win);
@@ -97,7 +97,7 @@ test('f1002 (3) Explain this view, Pin this finding and Copy picture are under M
 });
 
 /* ---------- (4) AN EMPTY ROW IS NOT DRAWN ---------- */
-test('f1002 (4) a row with nothing in it is not drawn, and an answer with nothing under it has no toolbar', () => {
+test('f1003 (4) a row with nothing in it is not drawn, and an answer with nothing under it has no toolbar', () => {
   const win = world();
   const { i, m } = answer(win);
   win.eval("delete intel.history[intel.history.length-1].mapRead");
@@ -110,7 +110,7 @@ test('f1002 (4) a row with nothing in it is not drawn, and an answer with nothin
 });
 
 /* ---------- (5) THE SPLIT CHANGES NO PRESS ---------- */
-test('f1002 (5) the two builders split into pieces without changing a press', () => {
+test('f1003 (5) the two builders split into pieces without changing a press', () => {
   const win = world();
   const { i, m } = answer(win);
   const whole = win.igMapReadHtml(m, i), chips = win.igMapReadHtml(m, i, { part: 'chips' }), next = win.igMapReadHtml(m, i, { part: 'next' });
@@ -125,7 +125,7 @@ test('f1002 (5) the two builders split into pieces without changing a press', ()
 });
 
 /* ---------- (7) THE SOURCE LINE, IN THE MENU ---------- */
-test('f1002 (7) the source line is the last row of More, a line not a press, and never printed twice', () => {
+test('f1003 (7) the source line is the last row of More, a line not a press, and never printed twice', () => {
   const win = world();
   const { i } = answer(win);
   win.eval("intel.history[intel.history.length-1].read={ text:'Read from Explorer and your book' }");
@@ -145,7 +145,7 @@ test('f1002 (7) the source line is the last row of More, a line not a press, and
 });
 
 /* ---------- (8) THE PAGE LINKS RIDE THE WAY BACK ---------- */
-test('f1002 (8) the page links stand on the way-back line, before the bin, and not in a row of their own', () => {
+test('f1003 (8) the page links stand on the way-back line, before the bin, and not in a row of their own', () => {
   const win = world();
   const C = fs.readFileSync(path.join(ROOT, 'js/components.js'), 'utf8');
   const a = C.indexOf('const JB_WAY_FEET'), b = C.indexOf('Object.assign(window,{', a);
@@ -168,7 +168,7 @@ test('f1002 (8) the page links stand on the way-back line, before the bin, and n
 });
 
 /* ---------- (6) BOTH BOOKS ---------- */
-test('f1002 (6) both books carry the row labels', () => {
+test('f1003 (6) both books carry the row labels', () => {
   const src = fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8');
   for (const k of ['int_sap_label', 'int_sap_understood', 'int_sap_next', 'int_sap_open', 'int_sap_more'])
     assert.equal((src.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in English and Swedish');

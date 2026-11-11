@@ -36783,8 +36783,8 @@ the panel and a menu dropped downward fell off the window at 1536x730 (measured,
 
 The builders were SPLIT, not rewritten: `igMapReadHtml(m,i,{part:'chips'|'next'})` and
 `igDoorsHtml(m,i,{part:'lead'|'rest'})` hand back their own pieces, so not one data attribute or press changed.
-f1002 (5) pins that: every press and every door survives the split. (The test was f1000 until 11 Nov 2026, when
-main gave that number to the Brain's reading the same night; the SAP toolbar's is f1002.)
+f1003 (5) pins that: every press and every door survives the split. (The test was f1000, then f1002; main gave
+both numbers away the same nights — the Brain's reading and the seals — so the SAP toolbar's is f1003.)
 
 LEFT FOR A LATER ROUND, AND SAID TO THE OWNER: the page links row above Jambo's box (`jamboWaysSync`,
 js/components.js) and the source line under the answer ("Read from Explorer and your book") are drawn by other,
