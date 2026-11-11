@@ -54,16 +54,22 @@ const NAMES = [['E-commerce Distribution Agreement', 'Copia Global'], ['Digital 
 /* THE MARKS ARE THE WHOLE METHOD: stamp the frame, the box and the panel, press
    something, then ask whether those same elements are still the ones on screen.
    A redraw of the whole page mints new ones and the stamps go with the old. */
-const MARK = () => {
+const MARK = ([pg, bx]) => {
   const put = (sel, k) => { const el = document.querySelector(sel); if (el) el.dataset.rowsMark = k; return !!el; };
-  return { page: put('.apn-page, .obn-page', 'page'), box: put('#apn-q, #obn-q', 'box'), panel: put('#ins-panel', 'panel') };
+  return { page: put(pg, 'page'), box: put(bx, 'box'), panel: put('#ins-panel', 'panel') };
 };
 
 const PAGES = [
   { k: 'approvals', view: 'approvals', rowSel: '.apn-table [data-ap-row]', tabSel: '[data-apn-tab]', tabKey: 'data-apn-tab',
-    box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th' },
+    box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th', pageSel: '.apn-page' },
   { k: 'obligations', view: 'obligations', rowSel: '#obn-body [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
-    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obn-table.is-two-line thead th' },
+    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obn-table.is-two-line thead th', pageSel: '.obn-page' },
+  /* the overnight run, job 6 (10 Nov 2026): People. Every tab draws the one table (they only pick which people) */
+  { k: 'people', view: 'directory', rowSel: '#dir-tbody [data-dir-row]', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
+    box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .ctf-hf' },
+  /* job 7: Reads. Its three tabs draw the one table; All's pack lines are rows inside the same body */
+  { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
+    box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
 ];
 
 (async () => {
@@ -98,7 +104,7 @@ const PAGES = [
         /* a row chosen, so the panel has something to lose */
         const row = await page.$(P.rowSel);
         if (row) { await row.click(); await page.waitForTimeout(350); }
-        await page.evaluate(MARK);
+        await page.evaluate(MARK, [P.pageSel, P.box]);
         const rows0 = await page.evaluate(s => document.querySelectorAll(s).length, P.rowSel);
 
         /* 1 · a tab */
@@ -113,15 +119,15 @@ const PAGES = [
           return k;
         }, [P.tabSel, P.tabKey]);
         await page.waitForTimeout(500);
-        const tab = await page.evaluate(([sel, key, rs]) => ({
+        const tab = await page.evaluate(([sel, key, rs, pg, bx]) => ({
           rows: document.querySelectorAll(rs).length,
           live: [...document.querySelectorAll(sel)].filter(b => /is-on/.test(b.className)).map(b => b.getAttribute(key)),
           /* a pill's count sits in its own span (Approvals) or inside its words (Obligations, "Late 3") */
           counts: [...document.querySelectorAll(sel)].map(b => ((b.querySelector('span') || b).textContent || '').replace(/[^0-9]/g, '')),
-          page: (document.querySelector('.apn-page, .obn-page') || {}).dataset.rowsMark === 'page',
-          box: (document.querySelector('#apn-q, #obn-q') || {}).dataset.rowsMark === 'box',
+          page: (document.querySelector(pg) || {}).dataset.rowsMark === 'page',
+          box: (document.querySelector(bx) || {}).dataset.rowsMark === 'box',
           panel: (document.getElementById('ins-panel') || {}).dataset.rowsMark === 'panel',
-        }), [P.tabSel, P.tabKey, P.rowSel]);
+        }), [P.tabSel, P.tabKey, P.rowSel, P.pageSel, P.box]);
         await page.screenshot({ path: path.join(OUT, `${w}-${P.k}-2-tab.png`) });
         check(`${at} ${P.k} 1 · a tab press keeps the frame, the box and the panel, and still moves the rows`,
           !!pressed && tab.page && tab.box && tab.panel && tab.live.length === 1 && tab.live[0] === pressed
@@ -134,27 +140,27 @@ const PAGES = [
           if (b) b.click();
         }, [P.tabSel, P.tabKey, P.home]);
         await page.waitForTimeout(400);
-        await page.evaluate(MARK);
+        await page.evaluate(MARK, [P.pageSel, P.box]);
         await page.click(P.box);
         await page.type(P.box, P.word, { delay: 55 });
         await page.waitForTimeout(450);
-        const typed = await page.evaluate(([bx, rs]) => {
+        const typed = await page.evaluate(([bx, rs, pg]) => {
           const el = document.querySelector(bx);
           return {
             value: el ? el.value : '', focused: !!el && document.activeElement === el, caret: el ? el.selectionStart : -1,
             rows: document.querySelectorAll(rs).length,
-            page: (document.querySelector('.apn-page, .obn-page') || {}).dataset.rowsMark === 'page',
-            box: (document.querySelector('#apn-q, #obn-q') || {}).dataset.rowsMark === 'box',
+            page: (document.querySelector(pg) || {}).dataset.rowsMark === 'page',
+            box: (document.querySelector(bx) || {}).dataset.rowsMark === 'box',
           };
-        }, [P.box, P.rowSel]);
+        }, [P.box, P.rowSel, P.pageSel]);
         await page.screenshot({ path: path.join(OUT, `${w}-${P.k}-3-typed.png`) });
         check(`${at} ${P.k} 2 · every letter reaches the box, which is never redrawn under the caret`,
           typed.value === P.word && typed.focused && typed.caret === P.word.length && typed.box && typed.page,
           typed);
 
         /* 3 · the page is still whole */
-        const whole = await page.evaluate(ws => ({ marks: document.querySelectorAll(ws).length,
-          facts: ((document.getElementById('page-head-facts') || {}).textContent || '').trim() }), P.wholeSel);
+        const whole = await page.evaluate(([ws, fs]) => ({ marks: document.querySelectorAll(ws).length,
+          facts: ((document.querySelector(fs) || {}).textContent || '').trim() }), [P.wholeSel, P.facts || '#page-head-facts']);
         check(`${at} ${P.k} 3 · the page is still whole after both presses — its column heads or group lines, and the head's facts`,
           whole.marks > 0 && whole.facts.length > 0, whole);
 
