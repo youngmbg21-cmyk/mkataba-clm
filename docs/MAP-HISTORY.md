@@ -36976,3 +36976,25 @@ NOT BUILT AS DRAWN, AND ASKED: the drawing shortened the chips to "Keep 3 stream
 word") and the door's own label, so they were left as they are — which means at 1440 the chips take the line
 above the button rather than sitting beside it. The owner was asked whether to shorten the chips on Explorer.
 
+## THE SHELL — RAIL, BAR, PANELS
+### ONE ROW IS THE PANEL'S ONE LAYOUT (owner, 11 Nov 2026; reverses the SAP toolbar of 10 Nov)
+One Row was built for Explorer in the morning. The owner then asked to see the Board doing the same job; it was
+photographed two questions deep, and the answer before the newest was still taking the top of the panel — its
+Open row, its More, its Undo — with the toolbar measuring 168px against Explorer's new 50px. The owner:
+"build one row on the board too, and push."
+
+So One Row is now the panel's ONE layout and the three labelled rows are DELETED, not left beside it: a second
+way of showing the same controls is the thing the round was meant to end. `igSapHtml`, `.igd-sap*` and the
+`igOneRowOn()` face switch are gone; `igSapMoreHtml` came back as `igMoreHtml` (the ⋯ menu), and the names that
+said SAP now say what they are — `.igd-more-menu`, `.igd-more-wrap`, `.igd-src`, `data-ig-more`,
+`intel.moreOpen`. The three row labels (int_sap_understood / _next / _open) are left inert in both books.
+
+CUT WITH IT: jambo-panel-sap-verify and f1003, whose subject no longer exists. Their cases that are still true
+— the pieces splitting without changing a press, the source line said once, the page links on the way-back line
+— moved into f1005 as (6), (7) and (8), and into the One Row check as 6 and 7. Re-pointed with the reason:
+home-first, next-step-chips, reading-chips, and the three explorer-stage checks.
+
+STILL ASKED, NOT DECIDED: the drawing shortened the chips ("Keep 3 streams", "By value") and the button ("Read
+all 82"). Those words are the owner's own earlier picks, so they stand, and the chips take the line above the
+button at 1440.
+

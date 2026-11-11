@@ -2394,7 +2394,8 @@ const STRINGS = {
     int_did_asof_off: 'Back to now.',
     int_asof_none: 'The map is already as of today.',
     int_pic_copy: 'Copy picture',
-    /* THE SAP WAY: the answer's controls in one labelled toolbar (owner's pick, 10 Nov 2026) */
+    /* THE SAP WAY: the answer's controls in one labelled toolbar (owner's pick, 10 Nov 2026).
+       RETIRED 11 Nov 2026 (One Row): the three row labels are no longer called; int_sap_more names ⋯. */
     int_sap_label: 'What to do with this answer',
     int_sap_understood: 'Understood',
     int_sap_next: 'Next',
@@ -26176,7 +26177,8 @@ const STRINGS = {
     int_did_asof_off: 'Tillbaka till nu.',
     int_asof_none: 'Kartan är redan per i dag.',
     int_pic_copy: 'Kopiera bild',
-    /* SAP-SÄTTET: svarets kontroller i en märkt rad (ägarens val, 10 nov 2026) */
+    /* SAP-SÄTTET: svarets kontroller i en märkt rad (ägarens val, 10 nov 2026).
+       UTGÅNGEN 11 nov 2026 (En rad): de tre radetiketterna anropas inte längre; int_sap_more namnger ⋯. */
     int_sap_label: 'Vad du kan göra med svaret',
     int_sap_understood: 'Uppfattat',
     int_sap_next: 'Nästa',

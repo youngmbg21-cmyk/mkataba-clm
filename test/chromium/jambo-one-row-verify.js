@@ -5,10 +5,10 @@
    As drawn: Explorer's talk runs long, so the answers BEFORE the newest fold to one line each — the words you
    asked, and how many the answer put on the map — and the newest answer carries ONE row: the chips that correct
    what Jambo read, the one filled button, and ⋯ for everything else (the next steps, the other doors, Explain
-   this view, Pin this finding, Copy picture, and the line saying where it was read). The Board keeps the SAP
-   toolbar (jambo-panel-sap-verify); the two faces are measured apart.
+   this view, Pin this finding, Copy picture, and the line saying where it was read). It is the panel's ONE
+   layout: the three-row toolbar of 10 November is retired, so the Board draws the same row (section 6).
 
-   Red at the parent: Explorer draws the SAP toolbar's three labelled rows, nothing folds, and there is no ⋯.
+   Red at the parent: the panel draws the three labelled rows, nothing folds, and there is no ⋯.
 
    Screenshots go to test/chromium/shots/jambo-one-row/ (or HATI_SHOT_DIR).
    Run: node test/chromium/jambo-one-row-verify.js */
@@ -59,16 +59,16 @@ const check = (name, pass, detail) => {
     const box = R ? R.getBoundingClientRect() : null, dr = dock ? dock.getBoundingClientRect() : null;
     return {
       rows: document.querySelectorAll('#ig-dock .igd-one').length,
-      sap: document.querySelectorAll('#ig-dock .igd-sap').length,
+      sap: document.querySelectorAll('#ig-dock .igd-sap, #ig-dock [data-ig-sap-r]').length,
       folds: folds.map(b => ({ q: (b.querySelector('.igd-fold-q') || {}).textContent || '', n: ((b.querySelector('.igd-fold-n') || {}).textContent || '').trim(), open: b.getAttribute('aria-expanded') === 'true' })),
       bubbles: document.querySelectorAll('#ig-dock .ig-bub-me').length,
       chips: R ? R.querySelectorAll('.hb-rd-chip').length : 0,
       lead: R ? R.querySelectorAll('.ui-btn-primary').length : 0,
       dots: !!(R && R.querySelector('.igd-one-more')),
-      menuOpen: !!(R && R.querySelector('.igd-sap-menu.is-open')),
-      under: R ? ['[data-ig-mrnext]', '[data-ig-board-go]', '[data-ig-list]', '[data-ig-tour-open]', '[data-ig-pin-open]', '[data-ig-pic]', '.igd-sap-src']
-        .filter(s => !!R.querySelector('.igd-sap-menu ' + s)) : [],
-      underSeen: R ? [...R.querySelectorAll('.igd-sap-menu > *')].filter(vis).length : 0,
+      menuOpen: !!(R && R.querySelector('.igd-more-menu.is-open')),
+      under: R ? ['[data-ig-mrnext]', '[data-ig-board-go]', '[data-ig-list]', '[data-ig-tour-open]', '[data-ig-pin-open]', '[data-ig-pic]', '.igd-src']
+        .filter(s => !!R.querySelector('.igd-more-menu ' + s)) : [],
+      underSeen: R ? [...R.querySelectorAll('.igd-more-menu > *')].filter(vis).length : 0,
       h: box ? Math.round(box.height) : 0,
       spill: !!(box && dr && (box.right > dr.right + 1 || box.left < dr.left - 1)),
       sideways: document.documentElement.scrollWidth - innerWidth
@@ -113,7 +113,7 @@ const check = (name, pass, detail) => {
     console.log('\n4 · ⋯ HOLDS EVERYTHING ELSE');
     check('4a nothing of the menu is on the panel while it is shut', !!C && !C.menuOpen && C.underSeen === 0, JSON.stringify(C && { open: C.menuOpen, seen: C.underSeen }));
     check('4b the next steps, the other doors, Explain · Pin · Copy picture and the source line are all in it',
-      !!C && C.under.includes('[data-ig-tour-open]') && C.under.includes('[data-ig-pin-open]') && C.under.includes('[data-ig-pic]') && C.under.includes('.igd-sap-src'),
+      !!C && C.under.includes('[data-ig-tour-open]') && C.under.includes('[data-ig-pin-open]') && C.under.includes('[data-ig-pic]') && C.under.includes('.igd-src'),
       JSON.stringify(C && C.under));
     await page.click('#ig-dock .igd-one-more'); await page.waitForTimeout(300);
     const M = await panel();
@@ -129,6 +129,45 @@ const check = (name, pass, detail) => {
       const S = await panel(); if (!S || S.spill || S.sideways > 0) spills.push(`${w}x${hh}: ${JSON.stringify(S && { spill: S.spill, sideways: S.sideways })}`);
     }
     check('5a the row stays inside Jambo\'s panel at the owner\'s three screens, and the page never scrolls sideways', spills.length === 0, spills.join(' | ') || 'all three clean');
+    console.log('\n6 · THE SOURCE LINE IS IN ⋯, AND SAID ONCE');
+    await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
+    await page.evaluate(() => { if (typeof intel !== 'undefined' && intel.moreOpen){ intel.moreOpen = null; renderIntelDock(); } });
+    await page.waitForTimeout(250);
+    const S = await page.evaluate(() => {
+      const R = [...document.querySelectorAll('#ig-dock .igd-one')].slice(-1)[0]; const turn = R && R.closest('.jb-turn');
+      const src = R ? R.querySelector('.igd-src') : null;
+      const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none'; };
+      return { there: !!src, inMenu: !!(src && src.closest('.igd-more-menu')), press: !!(src && src.closest('button')),
+        seen: !!(src && vis(src)), all: turn ? turn.querySelectorAll('[data-ai-read]').length : -1 };
+    });
+    check('6a the source line is a row of ⋯, a line and not a press', !!S && S.there && S.inMenu && !S.press, JSON.stringify(S));
+    check('6b it is said once, and not under the answer while ⋯ is shut', !!S && S.all === 1 && !S.seen, JSON.stringify(S));
+
+    console.log('\n7 · THE PAGE LINKS RIDE THE WAY-BACK LINE');
+    const W = await page.evaluate(() => {
+      const foot = document.querySelector('#ig-dock .igd-foot'); if (!foot) return null;
+      const door = foot.querySelector('.jb-door:not([hidden])'), ways = door && door.querySelector('.jb-ways');
+      const bin = door && door.querySelector('.jb-bin'), back = door && door.querySelector('.jb-door-back');
+      const r = ways && ways.getBoundingClientRect(), br = back && back.getBoundingClientRect(), nr = bin && bin.getBoundingClientRect();
+      return { door: !!door, links: ways ? [...ways.querySelectorAll('[data-jb-way]')].map(b => b.textContent.trim()) : [],
+        own: [...document.querySelectorAll('#ig-dock .jb-ways.is-above-foot')].filter(e => e.getBoundingClientRect().height > 0).length,
+        sameLine: !!(r && br) && Math.abs(Math.round(r.top - br.top)) <= 14, beforeBin: !!(r && nr) && r.right <= nr.left + 1 };
+    });
+    check('7a the links stand on the way-back line, after the back and before the bin',
+      !!W && W.door && W.links.length >= 1 && W.sameLine && W.beforeBin, JSON.stringify(W));
+    check('7b and never in a row of their own above the box', !!W && W.own === 0, JSON.stringify(W && { own: W.own }));
+
+    console.log('\n8 · THE BOARD DRAWS THE SAME ROW');
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_b', name: 'render_graph', input: { note: 'Value by stream', answer: '',
+      actions: [{ do: 'add_card', which: { all: true }, recipe: { pic: 'bars', split: { by: 'folder' }, measure: 'value' }, title: 'Value by stream' }] } }]);
+    await page.evaluate(() => { hbSetFace('board'); });
+    await until(() => typeof hbFace === 'function' && hbFace() === 'board' && !!document.getElementById('igd-input'));
+    await ask('chart value by stream');
+    const B = await panel();
+    check('8a the Board draws one row too, and no three-row toolbar anywhere', !!B && B.rows === 1 && B.sap === 0, JSON.stringify(B && { rows: B.rows, sap: B.sap }));
+    check('8b and its earlier answers fold the same way', !!B && B.folds.length >= 1, JSON.stringify(B && { folds: B.folds.length }));
+    await page.screenshot({ path: path.join(OUT, 'one-row-board.png') });
+
     check('F no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('the run stopped', false, String(e && e.message || e).slice(0, 200));

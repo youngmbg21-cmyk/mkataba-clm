@@ -137,8 +137,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       intel.history.push({ role: 'assistant', text: 'MK-B1 has no amendment on file.', cardIds: ['MK-B1'] }, { role: 'assistant', text: 'MK-B2 is the coast supply.', cardIds: ['MK-B2'] });
       renderIntelDock();
       /* RE-POINTED 10 Nov 2026 ("The SAP way"): the doors stand in the toolbar's Open row, the said-not-offered
-         sentence in its place — one row per answer either way */
-      const ms = document.querySelectorAll('#igd-feed [data-ig-sap-r="open"] .igd-sap-v');
+         sentence in its place — one row per answer either way (RE-POINTED again 11 Nov 2026: One Row) */
+      const ms = document.querySelectorAll('#igd-feed .igd-one');
       return [...ms].slice(-2).map(x => (x.querySelector('.igd-here') ? 'igd-here' : x.querySelector('[data-ig-paper-go]') ? 'igd-doors' : 'none') + ':' + x.textContent.trim());
     });
     ok('5 the contract already open is said, not offered; another contract keeps its door',
