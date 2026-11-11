@@ -545,15 +545,31 @@ function contractOpenFieldNames(c){
    they already have a writer with a repaint, a status check and an audit line
    of their own (wireDocumentSync). A second one here would be the fault this
    function exists to prevent, one field along. */
+/* THE LIVE RECORD, NOT A COPY SOMEONE KEPT (11 Nov 2026, the owner: "fix the still owed bug"). A reload of the
+   book replaces every contract object in state.contracts; a reading that began before it (the arrival read,
+   runFillBlanks) still held the OLD object, wrote its fills there and saved it — over the answer a person had just
+   typed into the new one (owed-first-verify 2b: the notice period typed, the start date filled, the notice period
+   owed again). Every write here lands on the contract as it stands now. */
+function blankLiveOf(c){
+  let live = null;
+  try{ live = (typeof window !== 'undefined' && typeof window.getContract === 'function' && c && c.id != null) ? window.getContract(c.id) : null; }catch(_){ live = null; }
+  return live || c;
+}
 function contractBlankSet(c, key, value, opts){
   const o = opts || {};
   if(!c || !key) return false;
   if(key === 'counterparty' || key === 'value') return false;
+  const stale = c;
+  c = blankLiveOf(c);
   c.fields = c.fields || {};
   const was = c.fields[key];
   const now = value == null ? '' : String(value);
   if(String(was == null ? '' : was) === now) return false;   // nothing changed is not an edit
+  /* A READING NEVER WRITES OVER A PERSON'S ANSWER: a quiet fill (the record's or Jambo's, decided on what was open
+     when it began) stands down where the box has been filled since */
+  if(o.quiet && String(was == null ? '' : was).trim()) return false;
   c.fields[key] = now;
+  if(stale !== c){ stale.fields = stale.fields || {}; stale.fields[key] = now; }
   if(typeof todayStr === 'function') c.lastAction = todayStr();
   /* Copilot's own fills are audited by the reading that made them, in one
      line naming all of them — forty lines saying "Updated field" would bury
@@ -682,7 +698,7 @@ if(typeof window !== 'undefined') Object.assign(window, {
   BLANK_USUAL_MIN, BLANK_MAX, BLANK_NEVER_FILLED,
   contractHasBlanks, contractBlanks, contractBlanksOpen, contractBoxesOpen, blankLabel,
   BLANK_NONE_REASONS, contractBlanksNone, contractOpenFieldNames,
-  contractBlankSet, contractBlankUsual, fillBlanksFromRecord, blanksAskPayload,
+  contractBlankSet, blankLiveOf, contractBlankUsual, fillBlanksFromRecord, blanksAskPayload,
   OWN_RULE_RE, OWN_KEY_RE, ownBlanksOn, ownBlanksTouched, ownBlanksLive, ownBlanksWalk, ownBlanksRead,
   ownBlankSet, ownBlanksPaint, ownBlankPaint,
 });

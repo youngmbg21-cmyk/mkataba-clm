@@ -22101,3 +22101,9 @@ Renamed: the SAP toolbar's test was f1000, and main gave f1000 to the Brain the 
 Renamed again: while this branch waited, main gave f1002 to the seals check, as it had given f1000 to the Brain.
 The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shared by two test files already
 (f893, f934, f946, f954, f956, f962, f996, f997, f999), so a shared number is not an error here, only a muddle.
+## Fixed (11 Nov 2026, the owner: "fix the still owed bug too")
+- The still-owed form losing a typed answer: a reading (the arrival read's record fill) and the live probe held an
+  older copy of the contract and saved it / swapped it over the new one. Fills now land on the live record and never
+  over a filled box, persist saves the live record, the probe waits while a save is pending. f1002.
+- (renumbered: the test is f1003, f1002 being the seal catch-up's, 11 Nov 2026)
+- (renumbered again: the test is f1004, f1003 having gone to the SAP toolbar's, 11 Nov 2026)

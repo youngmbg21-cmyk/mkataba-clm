@@ -36931,3 +36931,46 @@ The owner, off two screenshots: "Instead of having the highlighted area as desig
 
 ## THE OVERNIGHT RUN (9 Oct) — THE LATE SEAL (10 Nov 2026)
 The owner: "I received the email in image 2 today but as you can see in image one, it was executed a while back." MK-243 was signed by both sides on 30 Jul 2026 and sealed on 10 Nov 2026 — the "Fully executed" mail went out at the seal. Cause: `runSealCatchUp` only looked for records carrying "Seal waiting", a note written from 9 Oct; anything every signer signed before that was never looked at. PR #627 (owner's yes): the round also seals any record whose signing route is all signed (`srvSealRouteDone`); the executed mail says "was signed by all parties on D and sealed on D2" (`srvExecutedSentence`), never "is now fully signed". The gap left, said to the owner: a paper drawn from a template and never edited stores no wording, so the server cannot draw its copy. Then "fix the template contracts gap too": the first page an editor opens, once per sitting, draws the copy for every visible contract with every signature in and no seal and saves it; the server seals on that save (`sealCatchUpPage`, `sealCatchUpDue`). It is still not without a browser: drawing a template's paper on the server would mean porting the page's renderer.
+
+
+### CLAUDE.MD TRIM, 11 Nov 2026 (second) — room for the lesson of f1004
+One line condensed (verbatim before):
+
+```
+THE COMPACT ROW (30 Oct 2026; the one exception to "a long name takes two lines"): the name ONE line with …, ref · party · stage under it (`.pu-meta`), strand 34px, rows 51px. pulse-verify 7.
+```
+Size after: CLAUDE.md 80000 bytes.
+
+## THE LIGHT LIST — A TYPED ANSWER IS NEVER TAKEN BACK (11 Nov 2026)
+The owner, 11 Nov 2026, after the overnight run's morning report: "fix the still owed bug too". Measured on GitHub
+across the night (owed-first-verify 2b failed in five runs, passed in others): "6 months" typed into the notice
+period was stored (one fewer owed), then about a second later the notice period was owed again while the START DATE
+had been filled. The arrival read (triageRun → runFillBlanks → fillBlanksFromRecord) fills effDate from the record
+and saves; it began on the object it was handed, and the Redlines live probe (rlLive, every few seconds) swaps a
+fresh server copy into state.contracts when the version moves — so the read's fills and its persist went from a
+stale copy, over the answer typed into the new one. The probe's swap could also take off the screen an answer typed
+during its own GET. The fix, in three places: contractBlankSet writes the LIVE record (`blankLiveOf`) and a quiet
+fill never writes over a box filled since; persist queues `getContract(id)`; the probe swaps only when no save of
+the contract is pending (`contractSavePending`, now published — agentruns.js already called it bare). f1004 fails
+5 of 5 on the parent.
+The LIGHT LIST line before (verbatim): "- **THE LIGHT LIST**: in server mode `state.contracts` is light (transport facts `_raisedBy`, `_hasBrief`… stripped on save); `restoreHeavyFields` fills only what is missing; `ensureFull` sends a pending edit first (`contractSavePending`) and keeps one typed during its read (`fillHeavyFrom`)."
+
+And after main's seal catch-up line landed the same morning (verbatim before):
+
+```
+AS DRAWN, THE NEW LOOK (8 Nov 2026): `regFolderPanelHtml`, `askColFormDrawnHtml`, `askColDoneDrawnHtml`, the head's ⋯ `askColThMenuOpen`; Reads `rdnRender`. reads-and-columns-as-drawn-verify.
+```
+```
+THE READING DESK (`askColDeskHeadHtml`): reads go out in tens and stop at once (`AC_BATCH`, `askColStop`); a counting question is never a column (`COLUMN_PORTFOLIO_RE` = `AC_PORTFOLIO_RE`).
+```
+Size after: CLAUDE.md 79992 bytes.
+
+And once more on 11 Nov 2026, after main had grown the file to 80,294 bytes (verbatim before):
+
+```
+- THE BOARD DRAWS FIRST (owner, 10 Nov 2026; reverses "typed on the Board is the brain's whole answer" for these): a ranking, breakdown, comparison or picture typed (`hbAnalyticAsk`) goes to the drawing model and stays on the Board (`igBoardTalkAsk`, `{stay}`); HaTi mends its card from the words (`hbResMend`, `hbRecipeMend`); why / should stays the brain's. f999.
+```
+```
+- THE WAY BACK is where the reader last stood (`caTrailSeen`); the page IN FRONT is the one the box names (`igPaperInFront`, f978). A question turns the panel to his talk with ONE way back and THE BIN (`jamboDoorHtml`). A page's name typed moves free (`jamboPageGo`, f955); he says what he did (`caEchoHtml`). f949, f950.
+```
+Size after: CLAUDE.md 80036 bytes.
