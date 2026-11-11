@@ -4263,6 +4263,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
        row has to know whether to print money. */
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(u => {
       const p = publicUser(u);
+      /* A PERSON'S SAVED VIEWS ARE THEIRS ALONE (10 Nov 2026): nobody else's row carries them, an admin's list included */
+      if (u.id !== req.user.id && p.prefs) delete p.prefs.igViews;
       if (req.user.role !== 'admin' && u.id !== req.user.id) {
         for (const k of ADMIN_ONLY_USER_FIELDS) delete p[k];
         /* A COLLEAGUE'S PREFERENCES ARE THEIRS (bug log, 27 Oct 2026): what they put away, their Jambo levels,
@@ -22820,10 +22822,41 @@ app.put('/api/me/prefs', auth, (req, res) => {
     else if (AGENTS_LOOKS.includes(v)) prefs.agentsLook = v;
     else return res.status(400).json({ error: 'agentsLook must be one of: ' + AGENTS_LOOKS.join(', ') });
   }
+  /* SAVED VIEWS FOLLOW THE PERSON (owner, 10 Nov 2026: "Should saved views follow you to other computers?" — Yes).
+     Explorer's saved views were kept in one browser; they are this person's own, so they live with their other
+     preferences and every computer they sign in on reads them. Only theirs: prefs never travel to anybody else.
+     A list that breaks the rules is REFUSED in words, never trimmed (a cap is a fact); null clears it. */
+  if ('igViews' in (req.body || {})) {
+    const v = req.body.igViews;
+    if (v === null) delete prefs.igViews;
+    else {
+      const c = igViewsClean(v);
+      if (c.error) return res.status(400).json({ error: c.error });
+      prefs.igViews = c.list;
+    }
+  }
   db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
   res.json({ ok: true, prefs });
 });
 const AGENTS_LOOKS = ['plan', 'drawing'];
+/* Explorer's saved views, as js/views/intelligence.js keeps them: at most IG_VIEWS_MAX, each a name, the map's
+   recipe and the day it was saved; the whole list small enough to ride a person's preferences. */
+const IG_VIEWS_MAX = 12, IG_VIEW_NAME_MAX = 60, IG_VIEWS_BYTES_MAX = 64000;
+function igViewsClean(v){
+  if (!Array.isArray(v)) return { error: 'igViews must be a list of saved views.' };
+  if (v.length > IG_VIEWS_MAX) return { error: `At most ${IG_VIEWS_MAX} saved views can be kept.` };
+  const list = [];
+  for (const x of v) {
+    if (!x || typeof x !== 'object' || Array.isArray(x)) return { error: 'Each saved view needs a name and its map.' };
+    const name = typeof x.name === 'string' ? x.name.replace(/\s+/g, ' ').trim() : '';
+    if (!name || name.length > IG_VIEW_NAME_MAX) return { error: `A saved view's name must be 1 to ${IG_VIEW_NAME_MAX} characters.` };
+    if (!x.recipe || typeof x.recipe !== 'object' || Array.isArray(x.recipe)) return { error: 'Each saved view needs its map.' };
+    const at = typeof x.at === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.at) ? x.at : '';
+    list.push({ name, recipe: x.recipe, at });
+  }
+  if (JSON.stringify(list).length > IG_VIEWS_BYTES_MAX) return { error: 'These saved views are too large to keep. Remove one and try again.' };
+  return { list };
+}
 /* the places a contract may open on, besides Jambo (js/core.js OPENS_ON) */
 const OPENS_ON_SRV = ['fill', 'red', 'clauses', 'signing'];
 

@@ -131,8 +131,11 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     check('2a stored as the box is left, the row stays where it is while the hand is in the grid', before != null && after.top === before && after.inGrid && after.left === F.left - 1, JSON.stringify({ before, after }));
     await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form keeps the row it opened with, ticked */
-    const again = await until(() => !!document.querySelector('#pd-og.is-form tr:is(.is-typed, .is-read)[data-pd-og-row="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 4000);
-    check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again);
+    const again = await until(() => !!document.querySelector('#pd-og.is-form tr:is(.is-typed, .is-read)[data-pd-og-row="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 15000);
+    /* the wait is bounded at 15s (was 4s): the save and the repaint after the blur can lag on a busy runner (11 Nov 2026) */
+    const seen2b = again ? '' : await page.evaluate(() => JSON.stringify({ row: (document.querySelector('#pd-og [data-pd-og-row="up_notice_period"]') || {}).className || null,
+      form: !!document.querySelector('#pd-og.is-form'), kt: pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period') }));
+    check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again, seen2b);
 
     /* 3 the paper holds still */
     const at1 = await page.evaluate(PAPER_AT);

@@ -659,3 +659,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## PERFORMANCE — ROWS ONLY ON A PRESS (10 Nov 2026)
 - test/chromium/rows-only-on-a-press-verify.js — Approvals, Obligations, People, Requests, Import, My notes, Parties, Reads: a tab press and a typed word keep the frame, the box and the panel; Parties' Folders draws its cards (4a) and the list comes back (4b).
+
+## INSIGHTS — SAVED VIEWS FOLLOW YOU (10 Nov 2026)
+- test/f1001-saved-views-follow-you.test.js — kept on the server for the person only (an admin's list carries no one else's), refused in words when broken, read back on sign-in; the browser reads and writes through the one preference writer.
