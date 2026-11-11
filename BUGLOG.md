@@ -22144,6 +22144,8 @@ repaints over 4 seconds in each case), so the stutter the owner reports is not t
 ## Correction (11 Nov 2026)
 - The 10 Nov line "Clauses tab, an open row: the Plain English pill … cut off at the top" was a FALSE ALARM: measured, the open row's body slides open in 0.24s (doc-th-body grid-template-rows 0fr→1fr) and settles fully open (0,7,21,30,34px then 34px steady for 4s, no replay); the photo had been taken mid-slide. Nothing to fix.
 
+- 11 Nov 2026 · Noticed, not fixed (while timing the Clean | Redline switch): two more `:has` rules in index.html have nothing named in front of them (`#content :has(> #ins-panel.is-jambo)`, `… :has(> .lh-foot)`), and about 40 `body:has(…)` / `#app-shell:has(…)` rules remain. On the paper page they measured cheap (an added element 7 ms against 4.4 ms with every `:has` gone), so they were left; the same measurement has not been made on the list pages, Settings or the Board. f1006's `BARE_HAS_KNOWN` holds the two.
+- 11 Nov 2026 · Noticed, not fixed: js/core.js writes two `class` attributes on `#share-step-1` when both `opts.letter` and `opts.hiddenStart` are set (`class="sh-lt-side…"` then `class="hidden"`); a browser keeps the first, so "hidden" is lost.
 ## One Row is the panel's one layout (11 Nov 2026, f1005)
 Done, on the owner's instruction after seeing the Board photographed. One Row now draws on every face of Jambo's
 panel and the three-row toolbar built the day before is DELETED rather than kept beside it — two ways of showing
@@ -22168,6 +22170,8 @@ re-pointed, because an older answer has no chips to find still. The fold's build
 its words are all gone, and int_one_shown is inert in both books.
 ## Removed on the owner's word (11 Nov 2026)
 - The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.
+- 11 Nov 2026 · Correction to the line above: the test that holds `BARE_HAS_KNOWN` is f1007 (the switch draws once), renumbered when main took f1006; the notes test is f1008.
+- 11 Nov 2026 · Noticed, not fixed: CLAUDE.md on main carries merge-conflict markers (<<<<<<< HEAD … >>>>>>> origin/main) around the two Shell lines "THE WAY BACK" / "ONE ROW UNDER THE NEWEST ANSWER" against "ONE TOOLBAR UNDER AN ANSWER"; they arrived with pull request 651, so both the reversed ruling and the one it replaced are being read every session. Which side stands is the owner's call.
 
 ## 11 Nov 2026 — CLAUDE.md carried a merge's clash markers (owner: "yes, tidy it up after the merge")
 - FIXED · main's CLAUDE.md held `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/main` around two versions of THE SHELL's lines on Jambo's answer bar (arrived with #647). Kept the newer one (ONE ROW UNDER THE NEWEST ANSWER, `igOneHtml`, which the code uses); dropped the older three-labelled-rows lines (`igSapHtml`, which no longer exists in the code). No other tracked file carried markers (the fix list itself was not searched; reading it is denied).

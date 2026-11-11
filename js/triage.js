@@ -533,6 +533,8 @@ async function triageRun(c, opts = {}){
   const t = { at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
     by: (typeof currentUser === 'function' && currentUser()) ? currentUser().name : '',
     steps: {}, seenAt: null };
+  /* read again because an agreed change moved the wording (triageWordingMoved): the Dossier says so instead of "once on arrival" */
+  if (opts.agreed) t.agreed = true;
   c.triage = t;
   /* ---- IS THERE A DOCUMENT TO READ AT ALL? ----
      A scanned lease whose text never came out of the file is the commonest
@@ -789,6 +791,82 @@ function triageNeedsRead(c){
   if (!t) return true;
   const was = t.hash, now = triageWordingHash(c);
   return !!(was && now && was !== now);
+}
+
+/* ---- THE NOTES FOLLOW THE WORDING (owner, 11 Nov 2026) ----
+   Asked: "what happens to the notes once the counterparty accepts the changes
+   … do the notes disappear, when does the paper update". Found: the paper took
+   the agreed words at once, but the risks, the standards check and the clause
+   review went on describing the OLD words until the next send or until
+   somebody opened Clauses. Offered three ways; the owner picked
+   "Automatically", which lifts "Jambo spends only on a press" for this one
+   door, by name.
+
+   SO A DECISION THAT MOVED THE WORDING READS IT AGAIN, ONCE. negoResolve calls
+   triageWordingMoved after it rewrites the paper. Nothing runs there: a timer
+   is (re)started, so accepting four changes in a row is ONE reading, made of
+   the words that stand when the run of decisions ends.
+
+   WHAT IT WILL NOT DO:
+     · read a contract nobody has read (an upload whose box was left unticked
+       stays unread: a reading with a stamped wording must already exist);
+     · read where the wording did not move (a rejection, a reopen that puts the
+       same words back): the hashes are compared when the timer fires;
+     · read behind the wall (a private stream waits for a press, jamboOnPress),
+       on their page (PORTAL_MODE), for a viewer, or with no AI key;
+     · spend twice: triageAndPaint's own once-per-wording guard is the door, so
+       the next send finds the reading already made.
+   The clause review (c.breakdown) is read again too where one was kept and is
+   now of other words, AFTER the arrival readings, never beside them. */
+const TRIAGE_MOVED_MS = 2500;
+const _triMoved = new Map();
+function triageMovedMay(c){
+  if (!c || !c.id) return false;
+  if (typeof window !== 'undefined' && window.PORTAL_MODE === true) return false;
+  if (!(typeof API_MODE === 'function' && API_MODE() && typeof state === 'object' && state && state.aiConfigured)) return false;
+  if (typeof canEdit === 'function' && !canEdit()) return false;
+  if (typeof jamboOnPress === 'function' && jamboOnPress(c)) return false;
+  return true;
+}
+/* the arrival readings are of other words now (a reading exists, both wordings known, and they differ) */
+function triageMovedDue(c){
+  const t = triageOf(c); if (!t || !t.hash) return false;
+  const now = triageWordingHash(c);
+  return !!(now && now !== t.hash);
+}
+/* the kept clause review is of other words now */
+function triageMovedClauses(c){
+  try { return typeof bdStale === 'function' && !!bdStale(c); } catch (_){ return false; }
+}
+function triageWordingMoved(c){
+  if (!triageMovedMay(c)) return false;
+  /* nothing was ever read: nothing to keep true */
+  if (!(triageOf(c) && triageOf(c).hash) && !(c.breakdown && c.breakdown.ok)) return false;
+  const id = String(c.id);
+  if (_triMoved.has(id)) clearTimeout(_triMoved.get(id));
+  _triMoved.set(id, setTimeout(() => { _triMoved.delete(id); try { triageMovedRun(id); } catch (_){ /* the card says what a reading could not do */ } }, TRIAGE_MOVED_MS));
+  return true;
+}
+/* the timer's end: the LIVE record (a refresh may have swapped the object), asked again, then read in turn */
+function triageMovedRun(id){
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  if (!c || !triageMovedMay(c)) return Promise.resolve(false);
+  /* a reading is running: ask again when it has had time to end */
+  if (c._triaging){ triageWordingMoved(c); return Promise.resolve(false); }
+  const due = triageMovedDue(c), clauses = triageMovedClauses(c);
+  if (!due && !clauses) return Promise.resolve(false);
+  const repaint = () => { try {
+    const on = (typeof window !== 'undefined' && typeof window.pdContract === 'function') ? window.pdContract() : null;
+    /* Home's paper, its notes and its Dossier (the room's own surfaces are repainted by the reading itself) */
+    if (on && String(on.id) === id && typeof window.igPaintPaper === 'function') window.igPaintPaper();
+  } catch (_){} };
+  const first = (due && typeof triageAndPaint === 'function') ? triageAndPaint(c, { agreed: true }) : null;
+  return Promise.resolve(first).catch(() => null).then(() => {
+    repaint();
+    const live = (typeof getContract === 'function' && getContract(id)) || c;
+    if (!triageMovedClauses(live) || typeof bdRun !== 'function' || !triageMovedMay(live)) return true;
+    return Promise.resolve(bdRun(live)).catch(() => null).then(() => { repaint(); return true; });
+  });
 }
 
 /* ---- THE DOOR AT CREATION (Young ruled 17 Sep 2026) ----
@@ -1173,7 +1251,7 @@ function firstReadPress(ch, m){
   return false;
 }
 
-Object.assign(window, { FIRST_READ_SHOW, firstReadOf, firstReadTurns, firstReadOwe, firstReadDue, firstReadPress, firstDraftOwe, firstDraftOwed, firstDraftDrop, firstDraftOf, firstDraftList, firstDraftTurns, TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
+Object.assign(window, { TRIAGE_MOVED_MS, triageWordingMoved, triageMovedRun, triageMovedDue, triageMovedMay, FIRST_READ_SHOW, firstReadOf, firstReadTurns, firstReadOwe, firstReadDue, firstReadPress, firstDraftOwe, firstDraftOwed, firstDraftDrop, firstDraftOf, firstDraftList, firstDraftTurns, TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageWordingHash, triageNeedsRead, contractArrived,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
   triageWhy, triageFail,

@@ -3103,6 +3103,11 @@ function negoResolve(c, id, status, opts = {}){
   ch.reply = String(opts.reply || ch.reply || '').slice(0, 2000) || null;
 
   negoCommitBody(c, negoResolvedBody(c));
+  /* THE NOTES FOLLOW THE WORDING (owner, 11 Nov 2026: "when does the paper update … to reflect the accepted changes
+     that remove your concerns", then "Automatically"): a decision may have moved the words Jambo's readings were made
+     of; js/triage.js asks, a little later and once for a run of decisions, whether they did, and reads again only
+     then. Absent on a stage without it (their page, a test world), where nothing happens. */
+  try { if (typeof window !== 'undefined' && typeof window.triageWordingMoved === 'function') window.triageWordingMoved(c); } catch (_){}
 
   const verb = status === 'accepted' ? 'accepted' : status === 'rejected' ? 'rejected' : 'reopened';
   if (window.logAudit) logAudit(c, 'Negotiation',
