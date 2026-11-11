@@ -6686,6 +6686,9 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       return; }
     /* Risks to look at › Open: the Redlines face, landed ON its "Risks to look at" list (owner,
        23 Oct 2026; it opened the clause editor on the first risk) — the list's own Edit opens a risk */
+    /* CHOOSE THE ROAD: a road's press opens its door (pd2RoadGo) */
+    const rdg = t.closest('[data-pd2-road]');
+    if (rdg){ e.preventDefault(); const cc = pdContract(); if (cc) pd2RoadGo(getContract(cc.id) || cc, rdg.getAttribute('data-pd2-road')); return; }
     if (t.closest('[data-pd-gl-risks]')){ e.preventDefault(); const cc = pdContract(); if (!cc) return;
       if (pdRedOpen(cc.id) && typeof landOn === 'function') landOn('#ig-dock #rl-risks', { block: 'start', focus: false });
       return; }
@@ -7346,8 +7349,87 @@ function pd2Html(c){
    its label), the next step as its heading, one sentence of what it does and what follows, the step's own door as the
    panel's one black button, and Jambo's read at the foot — one line saying where it stands and what reading costs,
    then its doors as links. Every word is a reading the Dossier already makes (dossierOf, dossierNextOf); no new door. */
+/* ---- CHOOSE THE ROAD (owner picked "The Legora Way", 11 Nov 2026, over the card drawn for their paper, our paper and our
+   paper with notes) ----
+   Once nothing is left to fill in, someone is named to sign, and nothing has gone to the other side, the card asks how the contract goes out:
+   one row a road, each with its reason read off the paper (the risks' own words quoted, the approval's rule), the
+   recommended road carrying the panel's one black button and the other a green link. THE RULE IS ONE: anything still
+   open on the paper makes fixing it the recommended road; nothing open, sending is. Every press ends in a door that is
+   already there (the Redlines face on its risks, the Send screen with what they can do already chosen); nothing is
+   stored, nothing is sent from the card, and once anything has gone the card says what it always said. */
+const PD2_RD_QUOTES = 2;
+function pd2RoadPaper(c){ return (c && (c.upload || c.source === 'upload')) ? 'theirs' : 'ours'; }
+function pd2RoadOf(c, D){
+  if (!c || !D) return null;
+  if ((typeof canEdit === 'function') && !canEdit()) return null;
+  if (c.status === 'Signed' || c.status === 'Declined') return null;
+  try { if (typeof negoExecuted === 'function' && negoExecuted(c)) return null; } catch (_){ return null; }
+  try { if (typeof signRouteOf === 'function' && signRouteOf(c) === 'outside') return null; } catch (_){ /* inside */ }
+  if (!pdNeverShared(c)) return null;
+  const fill = D.stages.find(x => x.k === 'fill');
+  if (fill && fill.n) return null;
+  if (D.owed.some(r => r.kind === 'share' || r.kind === 'ask' || r.kind === 'signer')) return null;
+  let notes = []; try { notes = (typeof riskOpenOf === 'function') ? (riskOpenOf(c) || []) : []; } catch (_){ notes = []; }
+  let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+  const rule = ap && ap.required && !ap.ok ? String((ap.next && ap.next.name) || '') : '';
+  return { paper: pd2RoadPaper(c), notes, apOwed: !!(ap && ap.required && !ap.ok), rule, who: String(c.counterparty || '').trim() };
+}
+function pd2RoadHtml(c, D, R){
+  const E = _pdE, who = R.who || _pdT('pd2_rd_party'), n = R.notes.length;
+  const chip = t => `<span class="pd2-rd-chip">${E(t)}</span>`;
+  const black = (attr, word) => `<button type="button" class="ui-btn ui-btn-primary pd2-rd-go" ${attr}>${E(word)}</button>`;
+  const link = (attr, word) => `<button type="button" class="ui-link pd2-rd-link" ${attr}>${E(word)}</button>`;
+  const quotes = () => R.notes.slice(0, PD2_RD_QUOTES).map(it => {
+    const q = String(it.quote || '').replace(/\s+/g, ' ').trim(), why = (typeof riskWhyOf === 'function') ? String(riskWhyOf(it) || '') : String(it.why || '');
+    const t = (typeof riskTitleOf === 'function') ? String(riskTitleOf(it) || '') : String(it.title || '');
+    return `<p class="pd2-rd-q">${q ? `“${E(q)}”` : E(t)}${why ? ` · ${E(why.replace(/\.$/, ''))}` : ''}</p>`; }).join('')
+    + (n > PD2_RD_QUOTES ? `<p class="pd2-rd-more">${link('data-pd-gl-risks', _pdTn('pd2_rd_more', n - PD2_RD_QUOTES, { n: n - PD2_RD_QUOTES }))}</p>` : '');
+  const apChip = R.apOwed ? chip(_pdT('pd2_rd_ap')) : '';
+  const apLine = R.apOwed && R.rule ? `<p class="pd2-rd-q">${E(_pdT('pd2_rd_ap_rule', { rule: R.rule }))}</p>` : '';
+  const row = (k, name, chips, body, door) => `<div class="pd2-rd-row" data-pd2-rd="${k}"><p class="pd2-rd-name"><b>${E(name)}</b>${chips}</p>${body}${door}</div>`;
+  const rows = [];
+  if (R.paper === 'theirs'){
+    const nego = row('nego', _pdT('pd2_rd_nego'), n ? chip(_pdTn('pd2_rd_risks', n, { n })) : '',
+      n ? quotes() + `<p class="pd2-rd-why">${E(_pdT('pd2_rd_nego_why'))}</p>` : `<p class="pd2-rd-why">${E(_pdT('pd2_rd_nego_none'))}</p>`,
+      n ? black('data-pd-gl-risks', _pdT('pd2_rd_nego_go')) : link('data-pd2-road="nego"', _pdT('pd2_rd_nego_go')));
+    const asis = row('sign', _pdT('pd2_rd_asis'), apChip, `<p class="pd2-rd-why">${E(_pdT('pd2_rd_asis_why', { who }))}</p>${apLine}`,
+      n ? link('data-pd2-road="sign"', _pdT('pd2_rd_asis_go')) : black('data-pd2-road="sign"', _pdT('pd2_rd_asis_go')));
+    rows.push(n ? nego + asis : asis + nego);
+  } else if (n){
+    rows.push(row('fix', _pdT('pd2_rd_fix'), chip(_pdTn('pd2_rd_notes', n, { n })), quotes(), black('data-pd-gl-risks', _pdT('pd2_rd_fix_go'))));
+    rows.push(row('markup', _pdT('pd2_rd_markup'), chip(_pdTn('pd2_rd_open', n, { n })), `<p class="pd2-rd-why">${E(_pdT('pd2_rd_markup_open', { who }))}</p>`, link('data-pd2-road="markup"', _pdT('pd2_rd_markup_anyway'))));
+    rows.push(row('sign', _pdT('pd2_rd_sign'), chip(_pdTn('pd2_rd_open', n, { n })) + apChip, apLine, link('data-pd2-road="sign"', _pdT('pd2_rd_sign_go'))));
+  } else {
+    rows.push(row('markup', _pdT('pd2_rd_markup'), '', `<p class="pd2-rd-why">${E(_pdT('pd2_rd_markup_why', { who }))}</p>`, black('data-pd2-road="markup"', _pdT('pd2_rd_markup_go', { who }))));
+    rows.push(row('sign', _pdT('pd2_rd_sign'), apChip, `<p class="pd2-rd-why">${E(_pdT('pd2_rd_sign_why', { who }))}</p>${apLine}`, link('data-pd2-road="sign"', _pdT('pd2_rd_sign_go'))));
+  }
+  return `<div class="pd2-rd" data-pd2-road-for="${E(c.id)}">${rows.join('')}</div>`;
+}
+/* a road's press: the door that is already there (the Redlines face; the one Send screen, what they can do chosen) */
+function pd2RoadGo(c, k){
+  if (!c) return false;
+  if (k === 'nego') return pdRedOpen(c.id);
+  const purpose = k === 'sign' ? 'sign' : k === 'markup' ? 'negotiate' : null;
+  if (purpose && typeof openShareModal === 'function'){ openShareModal(c, { purpose }); return true; }
+  return false;
+}
+function pd2RoadCardHtml(c, D, R){
+  const E = _pdE, stName = k => _pdT('dos_st_' + k);
+  const dots = D.stages.map(x => `<i class="is-${x.k === 'nego' ? 'focus' : x.state}" title="${E(x.n ? _pdT('pd2_st_owed', { name: stName(x.k), n: x.n }) : stName(x.k))}"></i>`).join('');
+  const words = D.stages.map(x => x.n ? _pdT('pd2_st_owed', { name: stName(x.k), n: x.n }) : stName(x.k)).join(' · ');
+  return `<div class="pd2-card is-road" data-pd2-card><div class="pd2-card-top"><span>${E(_pdT('pd2_rd_at'))}</span><span class="pd2-spine" data-pd2-spine role="img" aria-label="${E(words)}">${dots}</span></div>
+    <p class="pd2-next" data-pd2-next>${E(_pdT('pd2_rd_head'))}</p>${pd2RoadHtml(c, D, R)}${pd2RoadReadHtml(c, D)}</div>`;
+}
+/* Jambo not yet read: the notes are not counted yet, so the read's own door stays at the foot (the card's own foot) */
+function pd2RoadReadHtml(c, D){
+  const RR = D.read || {}; if (RR.read) return '';
+  const E = _pdE;
+  return `<div class="pd2-card-foot"><p class="pd2-read">${E(_pdT('pd2_read_not'))}</p><p class="pd2-card-links"><button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('pd2_card_read_it'))}</button><span class="pd2-card-sep" aria-hidden="true">|</span><button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button></p></div>`;
+}
 function pd2CardHtml(c, D){
   const E = _pdE, focus = dossierFocusOf(D), N = dossierNextOf(c, D, focus), b = N.btns[0];
+  const RD = pd2RoadOf(c, D);
+  if (RD) return pd2RoadCardHtml(c, D, RD);
   const stName = k => _pdT('dos_st_' + k);
   const st = D.stages.find(x => x.k === focus) || { k: focus, n: 0 };
   const at = st.n ? _pdT('pd2_card_at_owed', { name: stName(st.k), n: st.n }) : stName(st.k);
@@ -8817,7 +8899,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
-Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre });
+Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
