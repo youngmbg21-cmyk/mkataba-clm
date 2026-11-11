@@ -662,6 +662,14 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE ONE DESK — ONE COUNT (10 Nov 2026)
 - test/f999-one-needs-you-count.test.js — every door's Needs you number is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`); Explorer's Your day asks it.
 
+## COPILOT READS A CONTRACT ON ARRIVAL — THE NOTES FOLLOW THE WORDING (11 Nov 2026)
+- f1008 (new, 8 checks, all red at the parent): negoResolve tells `triageWordingMoved` after the commit; never-read is not read; no key / their page / a viewer / a private stream start nothing; four decisions are one timer; unmoved wording reads nothing; moved wording reads once, marked `agreed`, the clause review after it; a running reading is waited for; `pd2_read_agreed` in both books.
+- notes-follow-the-wording-verify (new, GitHub): 1 the Clean paper carries the agreed words at once, 2 the readings are asked for again once and marked agreed (the reading stood in for, no call), 3 unmoved wording asks nothing more, 4 never-read is not read.
+
+## PERFORMANCE — THE SWITCH DRAWS ONCE, NO PAGE-WIDE :has (11 Nov 2026)
+- f1007 (new, 7 checks, all red at the parent): no `body:has(#ig-dock …)`; `igDockMarks` at each of renderIntelDock's writes; no `:has(> #sh-lt-goes)` (`sh-lt-hasgoes`); a `:has` with nothing named in front is not added (`BARE_HAS_KNOWN` only shrinks); the notes' watcher asks `isConnected` first; Their view's press opens the panel before any paint; `pd2SheetPre` before `igPaperPaginate`.
+- switch-draws-once-verify (new, GitHub): 1–2 one paper and one notes layout per press, 3 Their view builds the paper once with its panel open, 4 the page carries `data-igd-head` / `data-igd-door` and the paper's line keeps its height. Counted, never timed.
+
 ## PERFORMANCE — ROWS ONLY ON A PRESS (10 Nov 2026)
 - test/chromium/rows-only-on-a-press-verify.js — Approvals, Obligations, People, Requests, Import, My notes, Parties, Reads: a tab press and a typed word keep the frame, the box and the panel; Parties' Folders draws its cards (4a) and the list comes back (4b).
 

@@ -26,7 +26,7 @@
    `noShot` says plainly why there is none.
    ========================================================================== */
 /* the day a person last read the whole book against the running app (the rule's foot line) */
-const HANDBOOK_CHECKED = '2026-11-10';
+const HANDBOOK_CHECKED = '2026-11-11';
 
 /* THE PARTS, in the Guide's order: a part with `gd` takes its name and its
    line from the Guide's own words (gd_s_<k>, gd_s_<k>_w: one fact, one home) */
@@ -340,7 +340,7 @@ const HANDBOOK_CHAPTERS = [
       { en: '"{ui:rl_read_more}" opens the clause editor on this change and asks its Jambo why, with the card\'s reading as his first line.', sv: '"{ui:rl_read_more}" öppnar klausredigeraren på denna ändring och frågar dess Jambo varför, med kortets bedömning som hans första rad.' }],
     read: { key: [{ tone: 'ok', en: 'inside our rule', sv: 'inom vår regel' }, { tone: 'warn', en: 'one-sided or unusual', sv: 'ensidig eller ovanlig' }, { tone: 'risk', en: 'outside our rule', sv: 'utanför vår regel' }, { tone: 'none', en: 'no advice yet (no rule, no precedent)', sv: 'inget råd än (ingen regel, inget prejudikat)' }],
       en: 'One proposal stands per clause: a counter measured against the standing text replaces the rival, and the list shows the lead first.', sv: 'Ett förslag står per klausul: ett motbud mätt mot gällande text ersätter rivalen, och listan visar det ledande först.' },
-    tip: { en: 'Once anyone has signed, the wording is frozen: no change can be filed. A refusal names the clause.', sv: 'När någon har signerat är texten fryst: ingen ändring kan registreras. Ett avslag namnger klausulen.' },
+    tip: { en: 'Once anyone has signed, the wording is frozen: no change can be filed. A refusal names the clause. When an agreed change moves the wording, the paper takes the new words at once and Jambo reads it again by himself, so the risks, the standards check and the clause notes follow the words that now stand.', sv: 'När någon har signerat är texten fryst: ingen ändring kan registreras. Ett avslag namnger klausulen. När en överenskommen ändring flyttar texten tar papperet de nya orden direkt och Jambo läser det igen på egen hand, så att riskerna, standardkontrollen och klausulnoteringarna följer orden som nu gäller.' },
     cost: { en: 'Free; "Ask Jambo more" says its cost', sv: 'Gratis; "Fråga Jambo mer" säger sin kostnad' }, doors: ['redline', 'negotiations'], acts: ['ladder'],
     words: { en: ['redlines', 'their changes', 'accept a change', 'reject a change', 'counter', 'negotiation memory', 'what they asked for'], sv: ['ändringar', 'deras ändringar', 'godta', 'avslå', 'motbud', 'förhandlingsminne'] },
     shots: [

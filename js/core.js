@@ -6177,7 +6177,7 @@ function shareSummaryStepHtml(c, opts={}){
         sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c), { compact:one })
       }${shareAdviseBlockHtml(c, opts.purposeSel)}</div>`;
   return `
-    <div${opts.letter?' class="sh-lt-side"':''} id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
+    <div${opts.letter?` class="sh-lt-side${opts.oneScreen?' sh-lt-hasgoes':''}"`:''} id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
       ${''/* ---- THE ORDER ON ONE SCREEN IS THE OWNER'S DRAWING ---- (the pop-up
              diet, 13 Sep 2026): title, what travels, what this round is for,
              then the recipient and the note, which live in step 2. The pieces
