@@ -22120,3 +22120,5 @@ Asked, not decided: the drawing also shortened the chip words ("Keep 3 streams",
 ("Read all 82"); those are the owner's earlier picks, so they were left alone and the row wraps at 1440.
 Noticed, not fixed: Jambo's panel does not repaint while idle, while typing or while scrolling (measured, zero
 repaints over 4 seconds in each case), so the stutter the owner reports is not the panel redrawing itself.
+## Correction (11 Nov 2026)
+- The 10 Nov line "Clauses tab, an open row: the Plain English pill … cut off at the top" was a FALSE ALARM: measured, the open row's body slides open in 0.24s (doc-th-body grid-template-rows 0fr→1fr) and settles fully open (0,7,21,30,34px then 34px steady for 4s, no replay); the photo had been taken mid-slide. Nothing to fix.
