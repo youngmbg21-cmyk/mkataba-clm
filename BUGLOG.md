@@ -22075,3 +22075,8 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
   (step 8). Green in the run before. Flaky.
 ## Fixed (10 Nov 2026, overnight run job 3)
 - Needs you's two counts (Explorer "183" vs the Board "98"): every door now says the Board's row count (counterNeedsCount → ndOnBoard). f999.
+## Noticed, not fixed (11 Nov 2026, overnight run job 15)
+- The contract's "still owed" form can lose a typed answer: owed-first-verify 2b typed "6 months" into Notice period,
+  the save landed (one fewer owed), then about a second after the blur detailsOf listed it as owed again (the form row
+  back to "is-read", not in Key terms). Seen twice in GitHub runs 42945203967 and 42952364814, green in others. Looks
+  like a later save or reply putting back the older record. Not fixed tonight; the check now prints detailsOf's state.
