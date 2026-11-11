@@ -6000,7 +6000,11 @@ document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target|
    feed lands on the newest answer, which IS a scroll — closing on one shut the menu in the same breath as
    opening it, which is the flash a reader sees. It follows its row instead. */
 document.addEventListener('scroll',e=>{ const t=e.target;
-  if(t&&t.nodeType===1&&t.closest&&t.closest('#ig-dock')) try{ igMorePlace(); }catch(_){ } },true);
+  if(!t||t.nodeType!==1||!t.closest||!t.closest('#ig-dock')) return;
+  /* a scroll with no menu open costs one query and stops here */
+  const dk=document.getElementById('ig-dock');
+  if(!dk||!dk.querySelector('.hb-rd-menu,.igd-more-menu.is-open')) return;
+  try{ igMorePlace(); }catch(_){ } },true);
 /* ONE ROW's ⋯: a press outside it, or Esc, closes it */
 document.addEventListener('click',e=>{ if(!intel||!intel.moreOpen) return; if(e.target&&e.target.closest&&e.target.closest('.igd-more-wrap')) return;
   const i=Number(intel.moreOpen); intel.moreOpen=null; if(typeof igOneRepaint==='function') igOneRepaint(i); else renderIntelDock(); },true);
