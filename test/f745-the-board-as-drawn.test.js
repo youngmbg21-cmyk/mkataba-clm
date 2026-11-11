@@ -522,6 +522,7 @@ describe('f745 (7) the Board greets you and says the latest', () => {
     assert.match(code(HB), /<span class="hb-read-src">\$\{_hbE\(i18t\('hb_cx_when', \{ at: kept\.at \}\)\)\}<\/span>\$\{x\}<\/div>/, 'the kept brief carries the × at its head\'s right end');
     assert.match(code(HB), /const x = `<button type="button" class="hb-ib hb-x hb-why-x" data-hb-bs-x /, 'the × is the board\'s own close button');
     assert.match(code(HB), /if \(\(el = on\('\[data-hb-bs-x\]'\)\)\)\{ hbBriefShut\(\); return; \}/, 'pressing it shuts the brief');
+    assert.match(read('index.html'), /html\.lg-new #ig-page\[data-hb-side="board"\] #hb-bhead\.is-greet:has\(\+ \.hb-why\)::after\{display:none\}/, 'under the greeting, the Board\'s own gap, as between its cards');
     assert.match(code(HB), /else if \(kept\) box = [^\n]*\n\s*\$\{lead\}<div class="hb-why-b">\$\{who\}/, 'the kept summary carries the counted sentence first, Jambo marked');
     assert.ok(!/is-since/.test(code(HB)), 'no card before the press');
     const say = since;
