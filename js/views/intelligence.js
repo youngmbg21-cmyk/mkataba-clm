@@ -5898,6 +5898,39 @@ function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
 /* WHAT JAMBO UNDERSTOOD: an open chip menu closes on a press outside it and on Esc (bound once, at load) */
 document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return; intel.mrOpen=null; renderIntelDock(); },true);
+/* WHERE THE MENU SITS IS MEASURED, NOT ASSUMED (owner, 11 Nov 2026: "the pop up is cut off"): hung off the ⋯
+   it ran out past the panel's edge, where the feed's own scroller clipped it — three of its eight rows were
+   never painted. It is PLACED now: as wide as the answer's row, above the row where there is room and under it
+   where there is not, and lifted off the foot on a short screen. Fixed to the window, so the feed cannot clip
+   it; a scroll closes it, since the row it belongs to has moved. A rect is not a painted pixel, so the check
+   that guards this asks elementFromPoint for every row. */
+function igMorePlace(){
+  const m=document.querySelector('#ig-dock .igd-more-menu.is-open'); if(!m) return;
+  const dock=document.getElementById('ig-dock'), row=m.closest('.igd-one'); if(!dock||!row) return;
+  const d=dock.getBoundingClientRect(), q=row.getBoundingClientRect();
+  m.style.position='fixed'; m.style.right='auto'; m.style.bottom='auto';
+  m.style.left=Math.round(q.left)+'px'; m.style.width=Math.round(q.width)+'px';
+  const h=m.offsetHeight, GAP=4, EDGE=8;
+  let top=q.top-GAP-h;                                   // above the row, as drawn
+  if(top<d.top+EDGE) top=q.bottom+GAP;                   // no room above: under it
+  if(top+h>d.bottom-EDGE) top=d.bottom-EDGE-h;           // over the foot: lifted
+  if(top<d.top+EDGE) top=d.top+EDGE;                     // never past the head
+  m.style.top=Math.round(top)+'px';
+}
+/* THE TURNS ARE MOVED, NOT REBUILT (jamboTurnsTake: one conversation, taken off the other hosts), so a node
+   inside them outlives the render that bound a listener to it — bind twice and one press toggles twice, which
+   is a menu that flashes open and shut. The house rule: bound ONCE, or DELEGATED on document at load. These
+   are delegated; the dock's own frame keeps its per-render wiring, because that frame is rebuilt each time. */
+document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target||!e.target.closest) return;
+  const dock=document.getElementById('ig-dock'); if(!dock) return;
+  const c=e.target.closest('#ig-dock [data-ig-mr]');
+  if(c){ e.stopPropagation(); const k=c.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; renderIntelDock();
+    const fresh=document.querySelector(`#ig-dock [data-ig-mr="${k}"]`); if(fresh&&intel.mrOpen) try{ fresh.focus({ preventScroll:true, focusVisible:false }); }catch(_){} return; }
+  const st=e.target.closest('#ig-dock [data-ig-mrset]');
+  if(st){ e.stopPropagation(); const v=String(st.getAttribute('data-ig-mrset')||''), a=v.indexOf(':'), z=v.indexOf(':',a+1);
+    if(igMapReadSet(Number(v.slice(0,a)), v.slice(a+1,z), v.slice(z+1))){ renderIntelDock(); updateIntelNote(); } else { intel.mrOpen=null; renderIntelDock(); } return; }
+  const tc=e.target.closest('#ig-dock [data-ig-mrteach]');
+  if(tc){ e.stopPropagation(); igMapReadTeach(Number(tc.getAttribute('data-ig-mrteach'))); } });
 /* ONE ROW: the ⋯ sits on a node the turns repaint in place (JB_TURN_HOSTS, jamboTurnsTake), so its press is
    DELEGATED on document at load — a listener bound inside renderIntelDock dies with its node. */
 document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target||!e.target.closest) return;
@@ -5906,6 +5939,11 @@ document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target|
     const fresh=document.querySelector(`[data-ig-more="${k}"]`); if(fresh&&intel.moreOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); return; }
   /* a press on anything inside the menu closes it: the act is the answer */
   if(e.target.closest('#ig-dock .igd-more-menu button')) intel.moreOpen=null; });
+/* A SCROLL MOVES IT, IT DOES NOT CLOSE IT (measured, 11 Nov 2026): opening the menu repaints the panel and the
+   feed lands on the newest answer, which IS a scroll — closing on one shut the menu in the same breath as
+   opening it, which is the flash a reader sees. It follows its row instead. */
+document.addEventListener('scroll',e=>{ if(typeof intel==='undefined'||!intel.moreOpen) return;
+  const t=e.target; if(t&&t.nodeType===1&&t.closest&&t.closest('#ig-dock')) try{ igMorePlace(); }catch(_){ } },true);
 /* ONE ROW's ⋯: a press outside it, or Esc, closes it */
 document.addEventListener('click',e=>{ if(!intel||!intel.moreOpen) return; if(e.target&&e.target.closest&&e.target.closest('.igd-more-wrap')) return; intel.moreOpen=null; renderIntelDock(); },true);
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.moreOpen) return; e.stopPropagation(); const k=intel.moreOpen; intel.moreOpen=null; renderIntelDock();
@@ -10272,14 +10310,8 @@ function renderIntelDock(){
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
   }
-  /* WHAT JAMBO UNDERSTOOD (Board Twin): a chip opens its menu, again closes it; a choice re-reads the set in place */
-  dock.querySelectorAll('[data-ig-mr]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const k=b.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; renderIntelDock();
-    const fresh=dock.querySelector(`[data-ig-mr="${k}"]`); if(fresh&&intel.mrOpen) try{ fresh.focus({ preventScroll:true, focusVisible:false }); }catch(_){} }));
-  dock.querySelectorAll('[data-ig-mrset]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const v=String(b.getAttribute('data-ig-mrset')||''), a=v.indexOf(':'), z=v.indexOf(':',a+1);
-    if(igMapReadSet(Number(v.slice(0,a)), v.slice(a+1,z), v.slice(z+1))){ renderIntelDock(); updateIntelNote(); } else { intel.mrOpen=null; renderIntelDock(); } }));
-  dock.querySelectorAll('[data-ig-mrteach]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igMapReadTeach(Number(b.getAttribute('data-ig-mrteach'))); }));
+  /* the ⋯ menu is measured against the panel once it is painted, and flipped where it does not fit */
+  if(intel.moreOpen) try{ igMorePlace(); }catch(_){ }
   dock.querySelectorAll('[data-ig-mrnext]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-mrnext')||'').split(':').map(Number); const m=intel.history[t], R=m&&m.mapRead;
     if(!R||!igMapReadLive(t)) return; const x=igMapReadNext(R.top)[k]; if(!x) return;
@@ -12223,4 +12255,4 @@ Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFir
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
-  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igMoreHtml, igOneHtml });
+  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igMoreHtml, igMorePlace, igOneHtml });

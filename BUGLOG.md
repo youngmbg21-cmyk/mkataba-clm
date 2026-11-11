@@ -22164,3 +22164,14 @@ Done, on the owner's instruction. The chip's label already says what the value w
 is "By value", "2 biggest value streams" is "2 value streams", and on the Board "Blocks, sized by value" is
 "Blocks" (the Measure chip beside it says the rest). The menus and the drawn line keep the whole words.
 Measured and said to the owner: the row is still two lines — the button's label is what is left over.
+
+## The ⋯ pop-up was cut off; a scroll closed it as it opened (11 Nov 2026)
+Fixed, both measured. The menu hung off the ⋯ and ran 27px outside the panel, where the feed's scroller clipped
+it: three of its eight rows were never painted. It is placed by measurement now — fixed to the window, as wide
+as the row, above or under it, lifted off the foot on a short screen; all three screens show every row painted.
+The first attempt closed it on any scroll in the panel, and opening it repaints the panel and lands the feed,
+which IS a scroll — so it shut as it opened. It follows its row instead.
+The chips' presses are delegated on document now (the turns are moved between hosts, not rebuilt, so a node can
+outlive the render that bound to it and collect a second listener — one press, two toggles, a flash).
+CORRECTION: the earlier note that the panel does not repaint while idle was measured with a wrapper around
+window.renderIntelDock, which the module never calls. It measured nothing; the claim is withdrawn.

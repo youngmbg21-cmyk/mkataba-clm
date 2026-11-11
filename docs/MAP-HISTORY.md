@@ -37112,3 +37112,27 @@ the button takes the next; on the Board three chips fill the line. The thing sti
 true single line is the button's own label ("Read all 25 in Workspace"), which is a door's words used elsewhere
 — offered to the owner, not taken. Re-pointed with the reason: f996 (6), explorer-jambo-typed 5d-2.
 
+### THE POP-UP WAS CUT OFF, AND A PRESS THAT FLASHED (owner, 11 Nov 2026, with two screenshots)
+"When I press the highlighted button, the page stutters and the drop down flashes open then closes immediately.
+And… when you press on the 3 dots, the pop up is cut off."
+
+THE CUT-OFF MENU, measured: hung off the ⋯ (absolute, right-aligned) the menu was wider than the room to its
+left, so its left edge sat 27px OUTSIDE the panel, where the feed's own scroller clipped it — three of its eight
+rows were not painted at all, though every rect said they were there. Anchoring it to the ROW fixed the width
+but not the height: eight rows opening upward from a row partway down ran off the panel's head. It is PLACED by
+measurement now (`igMorePlace`): fixed to the window so the feed cannot clip it, as wide as the row, above the
+row where there is room and under it where there is not, lifted off the foot on the shortest screen. All three
+screens: inside, and every row painted (the check asks elementFromPoint, because a rect is not a painted pixel).
+
+A SCROLL MOVES IT, IT DOES NOT CLOSE IT: the first fix closed the menu on any scroll in the panel, and opening
+the menu repaints the panel, which lands the feed on the newest answer — a scroll. The menu shut in the same
+breath as it opened, which is exactly the flash the owner described. It follows its row instead.
+
+THE FLASHING CHIP: not reproduced here at 30 contracts, with the toggle instrumented (one press, one toggle).
+What was found and fixed on the way is the class of fault that produces it: the dock's turns are MOVED between
+hosts rather than rebuilt (`jamboTurnsTake`), so a node inside a turn outlives the render that bound a listener
+to it — bind twice and one press toggles twice. The chips' presses are delegated on document now, as the house
+rule has it. A CORRECTION OWED TO THE OWNER: the earlier measurement reported here as "the panel does not
+repaint while idle" was taken with a wrapper around `window.renderIntelDock`, which the module never calls — it
+measured nothing. The claim is withdrawn.
+

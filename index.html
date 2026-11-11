@@ -12040,15 +12040,19 @@
   .igd-one-v .hb-rd,.igd-one-v .hb-nx,.igd-one-v .igd-doors,.igd-one-v .igd-small{display:contents}
   /* ONE ROW (owner's pick for Explorer, 11 Nov 2026): the controls on ONE line, and the answers before the
      the answers above it keeping every word. Nothing spills: the row wraps inside the panel, chips give way first. */
-  .igd-one{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0}
+  .igd-one{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0}
   .igd-one-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0;flex:1 1 auto}
   .igd-one-v .hb-rd{display:contents}
   .igd-one .ui-btn{flex:none}
   .igd-one-more{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);padding:0;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-quiet);font:inherit;font-size:15px;line-height:1;cursor:pointer}
   .igd-one-more:hover,.igd-one-more.is-open{border-color:var(--accent-fill,var(--color-accent-600));color:inherit}
   .igd-one-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
-  .igd-more-wrap{position:relative;display:inline-flex}
-  .igd-more-menu{display:none;position:absolute;bottom:calc(100% + 4px);right:0;/* UPWARD: the toolbar sits low in the panel, so a menu dropped down would fall off the window */z-index:30;min-width:208px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
+  .igd-more-wrap{display:inline-flex}
+  /* THE MENU IS THE ROW'S, NOT THE DOTS' (owner, 11 Nov 2026: "the pop up is cut off"): hung off the ⋯ it was
+     wider than the room to its left and ran out past the panel's edge, where the feed's own scroller clipped it
+     — three of its rows were not painted at all. Hung off the ROW it can never be wider than the panel. It still
+     opens UPWARD, because the row sits low and a menu dropped downward fell off the window. */
+  .igd-more-menu{display:none;position:fixed;z-index:30;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
   .igd-more-menu.is-open{display:flex}
   /* a row is one line: a button's words never wrap (f386), so the menu is as wide as its longest label */
   /* the source line: what the answer was read from — a line in the menu, not a press */
