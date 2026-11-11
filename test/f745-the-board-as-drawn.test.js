@@ -501,11 +501,17 @@ describe('f745 (7) the Board greets you and says the latest', () => {
   const greetWorld = (nd) => { const x = world(); x.w.newLookOn = () => true; x.w.cn2Greet = () => 'Good morning, Maria.';
     x.w.ndRead = () => nd; x.w.ndOnBoard = D => ({ jambo: D.jambo, you: D.you, n: D.jambo.length + D.you.length }); return x.w; };
   const M = (d) => ({ d, added: [], gone: [] });
-  test('7a the greeting, the sentence with each fact a link onto its own door, then the pills and Live', () => {
+  /* RE-POINTED 10 Nov 2026 (owner picked "The Legora Way" for the board's brief): the counted sentence left the
+     greeting and opens "Your board, in brief" at the card's own size; the greeting goes straight to the pills */
+  test('7a the greeting, then the pills and Live; the sentence, each fact a link onto its own door, opens the brief card', () => {
     const w = greetWorld({ late: 2, oldest: 36, jambo: [{}, {}, {}], you: [{}] });
-    const html = w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '', '', { moved: { past: M(5), value: M(1000000) }, since: ago(1) });
-    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><p class="hb-gr-say" id="hb-gr-say">/);
-    const say = html.slice(html.indexOf('<p class="hb-gr-say"'), html.indexOf('</p>'));
+    const latest = { moved: { past: M(5), value: M(1000000) }, since: ago(1) };
+    const box = w.hbBoardSumHtml(w.hbGreetSayHtml(latest.moved, latest.since)).box;
+    const html = w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '', '', latest);
+    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><div class="hb-note hb-bh-r">/);
+    assert.ok(!/hb-gr-say|hb-gr-a/.test(html), 'no sentence left in the greeting');
+    assert.match(box, /^<div class="hb-why is-since"><div class="hb-why-h">[\s\S]*?<\/div><p class="hb-why-b hb-why-since" id="hb-gr-say">/, 'the sentence leads the brief, at the card\'s own text size');
+    const say = box.slice(box.indexOf('<p class="hb-why-b hb-why-since"'), box.indexOf('</p>'));
     assert.match(say, /Since [^:<]+: <button type="button" class="hb-gr-a" data-hb-dig="mv:past">5 more contracts passed their end date<\/button> and <button type="button" class="hb-gr-a" data-hb-dig="mv:value">[^<]+ came under contract<\/button>\./);
     assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
     assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer[\s\S]*<span class="hb-grow"><\/span><span class="hb-bh-day">[^<]+<\/span><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the pills, then the day, Live and when it was counted; .hb-note stays');

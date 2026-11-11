@@ -146,7 +146,9 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     const seen2b = again ? '' : await page.evaluate(() => JSON.stringify({ row: (document.querySelector('#pd-og [data-pd-og-row="up_notice_period"]') || {}).className || null,
       form: !!document.querySelector('#pd-og.is-form'), kt: pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'),
       owed: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.key === 'up_notice_period').map(x => ({ open: !!x.open, kind: x.kind })),
-      left: (detailsOf(pdContract()) || {}).left }));
+      left: (detailsOf(pdContract()) || {}).left,
+      openNow: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.open).map(x => x.key),
+      field: JSON.stringify(((pdContract() || {}).fields || {}).up_notice_period === undefined ? null : pdContract().fields.up_notice_period).slice(0, 60) }));
     check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again, seen2b);
 
     /* 3 the paper holds still */
