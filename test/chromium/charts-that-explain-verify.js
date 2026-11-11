@@ -108,7 +108,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     const bs = await until(() => { const b = document.querySelector('.hb-note [data-hb-why="board:all"]'); return b ? b.textContent.replace((b.querySelector('.hb-bs-cost') || {}).textContent || '', '').trim() : null; });
     check('4a "Summarise my board" sits on the board\'s top line', bs === 'Summarise my board', bs);
     if (bs){ await page.evaluate(() => document.querySelector('.hb-note [data-hb-why="board:all"]').click());
-      const box = await until(() => { const n = document.getElementById('hb-bhead'); const w = n && n.nextElementSibling; return w && w.classList.contains('hb-why') && w.querySelector('.hb-why-b') ? w.textContent.replace(/\s+/g, ' ').trim() : null; });
+      const box = await until(() => { const n = document.getElementById('hb-bhead'); /* Card Inside (owner, 11 Nov 2026): in the new look the brief stands inside the greeting */ const w = n && (n.querySelector(':scope > .hb-why') || n.nextElementSibling); return w && w.classList.contains('hb-why') && w.querySelector('.hb-why-b') ? w.textContent.replace(/\s+/g, ' ').trim() : null; });
       check('4b its answer is under the top line, checked', !!box && !/37%/.test(box), box && box.slice(0, 140)); }
     await page.screenshot({ path: path.join(OUT, '3-board-summary.png') });
 

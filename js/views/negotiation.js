@@ -11987,9 +11987,18 @@ function rlStartLivePoll(c){
            stopped moving under them never reads as a page that has stalled. */
         const fresh = await api('contracts/' + id);
         const i = state.contracts.findIndex(x => x && x.id === id);
+        /* AN ANSWER TYPED WHILE THE FRESH COPY WAS OUT IS NOT DROPPED (11 Nov 2026, the owner: "fix the still owed
+           bug"): a box left during this GET wrote the row now in hand and queued its save; swapping in `fresh` took
+           that answer off the screen, and the next save of the swapped row sent it away. While a save of this
+           contract is pending the swap waits — the next beat compares again, after our own save has moved the
+           version — exactly as ensureFull keeps an edit typed during its read. */
+        const held = state.contracts[i];
+        const waits = i >= 0 && !!held && typeof window.contractSavePending === 'function' && window.contractSavePending(held);
         /* A contract object swapped in place: same array, same length, so the
            family index's O(1) guard cannot see it. Raise the stamp. */
-        if (i >= 0){ state.contracts[i] = fresh; if(window.familyIndexDirty) familyIndexDirty(); }
+        if (i >= 0 && !waits){ state.contracts[i] = fresh; if(window.familyIndexDirty) familyIndexDirty(); }
+        if (waits){ /* nothing redrawn: this row still holds the answer; the next beat looks again */ }
+        else
         if (rlEditorOpen()){
           _rlLivePending = true;
           if (window.toast) toast(i18t('ng_live_held_for_editor', { id: window.contractRef ? contractRef(fresh) : id }), 'warn');

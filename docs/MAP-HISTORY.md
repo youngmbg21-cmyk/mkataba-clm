@@ -36935,6 +36935,59 @@ The owner, off two screenshots: "Instead of having the highlighted area as desig
 ## THE OVERNIGHT RUN (9 Oct) — THE LATE SEAL (10 Nov 2026)
 The owner: "I received the email in image 2 today but as you can see in image one, it was executed a while back." MK-243 was signed by both sides on 30 Jul 2026 and sealed on 10 Nov 2026 — the "Fully executed" mail went out at the seal. Cause: `runSealCatchUp` only looked for records carrying "Seal waiting", a note written from 9 Oct; anything every signer signed before that was never looked at. PR #627 (owner's yes): the round also seals any record whose signing route is all signed (`srvSealRouteDone`); the executed mail says "was signed by all parties on D and sealed on D2" (`srvExecutedSentence`), never "is now fully signed". The gap left, said to the owner: a paper drawn from a template and never edited stores no wording, so the server cannot draw its copy. Then "fix the template contracts gap too": the first page an editor opens, once per sitting, draws the copy for every visible contract with every signature in and no seal and saves it; the server seals on that save (`sealCatchUpPage`, `sealCatchUpDue`). It is still not without a browser: drawing a template's paper on the server would mean porting the page's renderer.
 
+
+### CLAUDE.MD TRIM, 11 Nov 2026 (second) — room for the lesson of f1005
+One line condensed (verbatim before):
+
+```
+THE COMPACT ROW (30 Oct 2026; the one exception to "a long name takes two lines"): the name ONE line with …, ref · party · stage under it (`.pu-meta`), strand 34px, rows 51px. pulse-verify 7.
+```
+Size after: CLAUDE.md 80000 bytes.
+
+## THE LIGHT LIST — A TYPED ANSWER IS NEVER TAKEN BACK (11 Nov 2026)
+The owner, 11 Nov 2026, after the overnight run's morning report: "fix the still owed bug too". Measured on GitHub
+across the night (owed-first-verify 2b failed in five runs, passed in others): "6 months" typed into the notice
+period was stored (one fewer owed), then about a second later the notice period was owed again while the START DATE
+had been filled. The arrival read (triageRun → runFillBlanks → fillBlanksFromRecord) fills effDate from the record
+and saves; it began on the object it was handed, and the Redlines live probe (rlLive, every few seconds) swaps a
+fresh server copy into state.contracts when the version moves — so the read's fills and its persist went from a
+stale copy, over the answer typed into the new one. The probe's swap could also take off the screen an answer typed
+during its own GET. The fix, in three places: contractBlankSet writes the LIVE record (`blankLiveOf`) and a quiet
+fill never writes over a box filled since; persist queues `getContract(id)`; the probe swaps only when no save of
+the contract is pending (`contractSavePending`, now published — agentruns.js already called it bare). f1005 fails
+5 of 5 on the parent.
+The LIGHT LIST line before (verbatim): "- **THE LIGHT LIST**: in server mode `state.contracts` is light (transport facts `_raisedBy`, `_hasBrief`… stripped on save); `restoreHeavyFields` fills only what is missing; `ensureFull` sends a pending edit first (`contractSavePending`) and keeps one typed during its read (`fillHeavyFrom`)."
+
+And after main's seal catch-up line landed the same morning (verbatim before):
+
+```
+AS DRAWN, THE NEW LOOK (8 Nov 2026): `regFolderPanelHtml`, `askColFormDrawnHtml`, `askColDoneDrawnHtml`, the head's ⋯ `askColThMenuOpen`; Reads `rdnRender`. reads-and-columns-as-drawn-verify.
+```
+```
+THE READING DESK (`askColDeskHeadHtml`): reads go out in tens and stop at once (`AC_BATCH`, `askColStop`); a counting question is never a column (`COLUMN_PORTFOLIO_RE` = `AC_PORTFOLIO_RE`).
+```
+Size after: CLAUDE.md 79992 bytes.
+
+And once more on 11 Nov 2026, after main had grown the file to 80,294 bytes (verbatim before):
+
+```
+- THE BOARD DRAWS FIRST (owner, 10 Nov 2026; reverses "typed on the Board is the brain's whole answer" for these): a ranking, breakdown, comparison or picture typed (`hbAnalyticAsk`) goes to the drawing model and stays on the Board (`igBoardTalkAsk`, `{stay}`); HaTi mends its card from the words (`hbResMend`, `hbRecipeMend`); why / should stays the brain's. f999.
+```
+```
+- THE WAY BACK is where the reader last stood (`caTrailSeen`); the page IN FRONT is the one the box names (`igPaperInFront`, f978). A question turns the panel to his talk with ONE way back and THE BIN (`jamboDoorHtml`). A page's name typed moves free (`jamboPageGo`, f955); he says what he did (`caEchoHtml`). f949, f950.
+```
+Size after: CLAUDE.md 80036 bytes.
+
+## HOME — THE BOARD AND THE MAP: CARD INSIDE (11 Nov 2026)
+The owner, off a screenshot of the Board: "The written brief card in reddish color needs to appear inside the white top
+bar but right below the summarise my board press. Show drawings for this." Three were drawn (Card Inside, The SAP Way,
+The Legora Way). Then: "There should be nothing written such as I prepared for you etc. you should only see them once
+you press" (reverses the card standing before the press, 10 Nov), and the pick by name: "Card Inside". Built: before
+Summarise the brief draws nothing (hbBoardSumHtml returns no box); once pressed it stands inside the greeting
+(hbBoardHeadHtml appends it in the new look), the counted sentence first, then "Jambo:" and his paragraph. Photographed
+at 1440×780, 1536×730 and 1366×950: the card's top 149, inside the white. The CLAUDE.md line's earlier form: "head =
+`cn2Greet` · one counted sentence of links (`hbGreetSayHtml`, `data-hb-gr` → `ndOpenBoard`) · pills · Live."
+
 ## THE LEGAL AND LAUNCH AUDITS' FIXES
 ### JAMBO'S 15-MINUTE RATE LIMITS ARE OFF (owner, 11 Nov 2026)
 Asked after the analyst rounds: the owner read that fast typing could hit Jambo's per-minute limit and asked why
@@ -36955,3 +37008,19 @@ when they bite. Every limiter written with a number of its own is untouched, the
 signing code's attempt wall among them: those are brute-force protection, not cost control, and "remove the
 rate limits" was never a request to take the locks off the doors. f1004 pins both halves.
 
+
+### CLAUDE.MD TRIM, 11 Nov 2026 (fourth), after main grew the file to 80,646 bytes (verbatim before):
+
+```
+THE SAP WAY: a FORM (To · What goes · What they can do · Send by) over Subject · From · the words; "Before you send" beside, VERDICT first (`shareVerdictPaint`). THE WORDS ARE ONE MODULE, BOTH HOSTS: js/sharemail.js — a new email sentence goes THERE. EVERY send door opens it (`letterDoor`, `pdSendOpen`). A COLLEAGUE: `caPassSend`, `passMailOf`. Typed subject → `subject` (`shareSubjectTyped`). JAMBO WRITES ONLY THE NOTE (`AI_SEND_NOTE_RULE`, `shareNoteFill` sends nothing). f939, f962.
+```
+```
+A HOME TAB (`setView('calendar')` → `hbOpenCalendar`; `renderCalendar` into `#hb-cal`). Mon–Fri (`CAL_WEEK_DAYS`), this week + five (`CAL_WEEKS_SHOWN`); `calToday()` via `todayISO`. Chips `calChipLook`, `calChipGo`. POST /api/ai/plan (`planBlocksCheck` ≤8). ONE writer `calLevelSet`. Bookings → `calHandOff`. It OPENS on the AGENDA (90 days, empty weeks one line; `calAgendaViewHtml`, `calState.view`). HORIZON THE SAP WAY: time left colours bar, pill, box (`calHzTone`, f987).
+```
+```
+`navRead(q,{box})` FIRST in `caUnderstand`; moves only through existing doors (`navGo`, `landOn`/`navLandWhen`), never a final act; steps aside where the screen answers and for questions, counts, plans, new paper. `navReadCompare`/`navGoCompare`; `nav_walled_admin`; `navReadNone`; `goto.spot`. Exam test/nav-exam.js (`NAV_EXAM_FLOOR`). EVERY DOOR BY NAME: `NAV_ACTS` → `navGoAct`, `NAV_PLACES` → `navGoPlace`, `navStTitles`; a new door needs a sentence (door-exam-verify).
+```
+```
+`detailsOf(c)` the ONE reading of what is owed (counts, checklist, bell `details`, `mDetHtml`). FILL IN: the Dossier's line "Details" and the Next card's button → `pdFillOpen` → tab `form` (`pdFormHtml`, ONE Save `pdFormSave`); Key terms in THE MIDDLE (`pdKtMid`); an empty owed box AMBER (`needMark`). SPINE: six stages, then ONE EVEN LIST (`DOSSIER_STAGE_OF`; `dossierGo`, `pdNeedGridRowHtml`; dossier-rows-verify), the stage's two acts at the foot (`DOSSIER_MQ_ACTS`).
+```
+Size after: CLAUDE.md 80071 bytes.
