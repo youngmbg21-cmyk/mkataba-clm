@@ -22087,3 +22087,17 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
   once more (left fell by one, the notice period still owed). So the first reading stands: an intermittent HaTi fault,
   not the check's click — likely a second save of the same contract putting back older answers. The check now also
   prints every item still owed and the stored up_notice_period value. Not fixed (scope rules); for the owner.
+
+## The Jambo panel: the last two parts, and the f1000 clash (11 Nov 2026, f1002)
+Built. The source line ("Read from Explorer and your book") is now the last row of the More menu, a line and not
+a press; it is said once (the panel no longer prints it under the answer too) and it never makes a toolbar appear
+on its own. The page links (board, contracts ...) now sit on the way-back line at the panel's foot, after the
+back and before the bin, instead of a row of their own above the box; a contract's own chips row and a face's own
+links still win where they are drawn.
+Renamed: the SAP toolbar's test was f1000, and main gave f1000 to the Brain the same night. It is f1002 now
+(f1001 was taken by saved views, renumbered for the same reason). The BUGLOG line above still says f1000.
+
+## The SAP toolbar's test is f1003 (11 Nov 2026)
+Renamed again: while this branch waited, main gave f1002 to the seals check, as it had given f1000 to the Brain.
+The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shared by two test files already
+(f893, f934, f946, f954, f956, f962, f996, f997, f999), so a shared number is not an error here, only a muddle.

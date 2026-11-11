@@ -12051,6 +12051,8 @@
   .igd-sap-menu{display:none;position:absolute;bottom:calc(100% + 4px);right:0;/* UPWARD: the toolbar sits low in the panel, so a menu dropped down would fall off the window */z-index:30;min-width:208px;padding:6px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px rgba(0,0,0,.14);flex-direction:column;gap:2px}
   .igd-sap-menu.is-open{display:flex}
   /* a row is one line: a button's words never wrap (f386), so the menu is as wide as its longest label */
+  /* the source line: what the answer was read from — a line in the menu, not a press */
+  .igd-sap-src{padding:7px 9px;color:var(--color-quiet);font-size:var(--t-micro);line-height:1.35;border-top:1px solid var(--color-divider);margin-top:2px}
   .igd-sap-menu .ui-btn,.igd-sap-menu .ui-link{display:block;width:100%;height:auto;padding:7px 9px;border:0;border-radius:var(--radius);background:none;text-align:left;font-size:var(--t-meta)}
   .igd-sap-menu .ui-btn:hover,.igd-sap-menu .ui-link:hover{background:var(--color-accent-50,rgba(0,0,0,.05))}
   /* three next questions under the live reply (Part 5) */
@@ -14893,6 +14895,11 @@
   .jb-ways{display:flex;flex-wrap:wrap;gap:4px 12px;flex:none;min-width:0}
   .jb-ways.is-above-foot{padding:8px var(--jb-g,16px) 6px;background:var(--color-surface)}
   .jb-ways.is-home{margin-left:auto;align-items:center}
+  /* THE SAP WAY (owner's pick, 10 Nov 2026): the page links ride the way-back line, at its right end before the
+     bin — one line, never wrapped, at most three shown so nothing is squeezed out of the panel. */
+  .jb-ways.is-in-door{flex:0 1 auto;flex-wrap:nowrap;overflow:hidden;gap:12px;margin-right:4px;align-items:center}
+  .jb-ways.is-in-door .jb-way{font-size:13px}
+  .jb-ways.is-in-door .jb-way:nth-of-type(n+4){display:none}
   .jb-way{background:none;border:0;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer;white-space:nowrap}
   @media (hover:hover){ .jb-way:hover{color:var(--accent-ink-700)} }
   .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}  /* Chambers: a hairline box with square-ish corners (20 Oct 2026; was a 20px pill) */
