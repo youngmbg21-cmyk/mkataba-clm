@@ -197,14 +197,22 @@ const READ = () => {
         /* the clause that needs you opens first (as drawn), by itself */
         const firstOpen = await until(page, () => /Quality/.test(((document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-name') || {}).textContent || '')), null, 10000);
         check('13a Clauses opens on the clause that needs you', firstOpen);
-        const tinted = await until(page, () => [...document.querySelectorAll('#ig-canvas .pd2-cl-on')].some(e => /rejected within 3 days/.test(e.textContent)), null, 10000);
+        /* RE-POINTED 11 Nov 2026 (owner: "Drop it"): the paper stays white — no amber wash on the open clause */
+        const tinted = await page.evaluate(() => !document.querySelector('#ig-canvas .pd2-cl-on'));
+        /* THE PAPER AND THE PANEL LINE UP (owner, 11 Nov 2026): the clause that opened first is the clause at the paper's line */
+        const lined = await until(page, () => { const sc = document.getElementById('ig-paper-scroll'), cv = document.getElementById('ig-canvas');
+          const h = cv && [...cv.querySelectorAll('h1,h2,h3,h4,p')].find(e => /^\s*3\.\s*Quality/.test(e.textContent));
+          if (!sc || !h) return false; const d = h.getBoundingClientRect().top - sc.getBoundingClientRect().top;
+          /* at the line, or the paper moved as far as it can (the last clauses of a short paper are held) */
+          return (d >= -4 && d <= 80) || (sc.scrollTop > 0 && sc.scrollTop >= sc.scrollHeight - sc.clientHeight - 2); }, null, 6000);
+        check('13b the clause that opens first is the clause at the paper\'s line (the paper glides there)', lined);
         /* THE NOTES STAY ON CLAUSES (owner, 10 Nov 2026; reverses "no notes beside the paper" here): the open clause's note
            lights with its row, and its link says it is shown here */
         await until(page, () => !!document.querySelector('#pd2-notes .pd2-mg.is-on'), null, 8000);
         const Cl = await page.evaluate(() => ({ notes: !!document.querySelector('#pd2-notes .pd2-mg'), lit: !!document.querySelector('#pd2-notes .pd2-mg.is-on') && !!document.querySelector('#pd-thread .doc-th-row.is-open.pd2-lit'),
           shown: [...document.querySelectorAll('#pd2-notes [data-pd2-go="clause"]')].map(b => b.textContent.trim()),
           rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')) }));
-        check('13 Clauses: the notes stay beside the paper, the open clause\'s note and row lit, "Shown in Clauses", the one row of links, the open clause tinted',
+        check('13 Clauses: the notes stay beside the paper, the open clause\'s note and row lit, "Shown in Clauses", the one row of links, the paper left white',
           tinted && Cl.notes && Cl.lit && Cl.shown.every(t => t === 'Shown in Clauses ›') && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);
         const Cd = await page.evaluate(() => ({ head: ((document.querySelector('#pd-thread .stk-view') || {}).textContent || '').trim(), tabs: !!document.querySelector('#pd-thread .stk-tabs'),
           say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n.is-say') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));

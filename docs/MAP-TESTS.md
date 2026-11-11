@@ -177,6 +177,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - clauses-legora-way-verify 1c: on every tab (All · Needs you · Worth a look · Fine) the spine starts at the first dot shown and ends at the last (red at the parent: −17 / +15px on the filtered tabs).
 - MARQUEE (23 Oct 2026): clauses-legora-way-verify 1/1b (headline, sentence, tabs with counts; Worth a look narrows, All lets go), clause-list-fixed-verify 6a/6b (Needs you tab), stakes-verify 2, 3b–3d, 3k, 3l (Found by behind Filter, one dropdown per touch), 5c/5e (the tab survives the editor trip), 9 — all re-pointed from the three boxes.
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
