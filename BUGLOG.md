@@ -22125,3 +22125,6 @@ backstops, and every limiter guarding against guessing (sign-in, signing codes) 
 
 ## Correction (11 Nov 2026)
 - The 10 Nov line "Clauses tab, an open row: the Plain English pill … cut off at the top" was a FALSE ALARM: measured, the open row's body slides open in 0.24s (doc-th-body grid-template-rows 0fr→1fr) and settles fully open (0,7,21,30,34px then 34px steady for 4s, no replay); the photo had been taken mid-slide. Nothing to fix.
+
+- 11 Nov 2026 · Noticed, not fixed (while timing the Clean | Redline switch): two more `:has` rules in index.html have nothing named in front of them (`#content :has(> #ins-panel.is-jambo)`, `… :has(> .lh-foot)`), and about 40 `body:has(…)` / `#app-shell:has(…)` rules remain. On the paper page they measured cheap (an added element 7 ms against 4.4 ms with every `:has` gone), so they were left; the same measurement has not been made on the list pages, Settings or the Board. f1006's `BARE_HAS_KNOWN` holds the two.
+- 11 Nov 2026 · Noticed, not fixed: js/core.js writes two `class` attributes on `#share-step-1` when both `opts.letter` and `opts.hiddenStart` are set (`class="sh-lt-side…"` then `class="hidden"`); a browser keeps the first, so "hidden" is lost.

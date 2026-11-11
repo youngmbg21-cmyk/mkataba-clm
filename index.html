@@ -9612,10 +9612,17 @@
      then the copilot bar should then align with it"): on Board, Paper and Explorer the
      panel is ONE plain white column below the greeting row, with its own left line —
      no lifted card on a grey ground (reverses LIFTED, 8 Oct). The paper keeps its ground. */
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
+  /* THE PANEL'S STATE IS WRITTEN ON #ig-page, NEVER ASKED OF THE WHOLE BODY (owner, 11 Nov 2026: "why is the press
+     from clean to redlines … have a delay?"). Measured on a 40-section contract: these eight rules asked
+     body:has(#ig-dock > …), so ANY small change anywhere on the page (a class, a note, a page mark) made the browser
+     read every style on the page again, about 25 ms a time against 0.2 ms without them, several times a press.
+     renderIntelDock now writes what they asked on the page itself (igDockMarks: data-igd-head, data-igd-door) and the
+     rules read it there. body:is(*, …) always matches and only keeps each rule the weight it had; the mark stands
+     inside :where() so it adds none. A page-wide body:has() in front of the paper is never written again. */
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) :where(#ig-page[data-igd-head="paper"]) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
   /* THE SAME WITH JAMBO'S PANEL FOLDED (owner, 8 Nov 2026: "when you minimize jambo panel, the top bar should remain the same
      size and the back drop should always remain the brownish color"): on the paper, the folded door stands for the head */
-  body:has(#ig-dock > .igd-door[class]):where(:has(#ig-page[data-hb-side="paper"]:not(.hb-dark))) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
+  body:is(*, #ig-dock > .igd-door[class]) :where(#ig-page[data-igd-door][data-hb-side="paper"]:not(.hb-dark)) .ig-paper{background:var(--desk-ground);--pg-ground:var(--desk-ground)}
   #ig-dock{background:var(--color-surface)}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]){box-shadow:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{gap:0}
@@ -9630,10 +9637,10 @@
      height under one line, the white panel below it. The bar's extra height is taken
      from the ground above the sheet, so the wording does not move (Six Questions 3). */
   #ig-page{--ig-bar-h:47px}
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-strip{height:var(--ig-bar-h)}
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
-  body:has(#ig-dock > .igd-door[class]):where(:has(#ig-page[data-hb-side="paper"]:not(.hb-dark))) #ig-strip{height:var(--ig-bar-h)}
-  body:has(#ig-dock > .igd-door[class]):where(:has(#ig-page[data-hb-side="paper"]:not(.hb-dark))) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) :where(#ig-page[data-igd-head="paper"]) #ig-strip{height:var(--ig-bar-h)}
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) :where(#ig-page[data-igd-head="paper"]) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
+  body:is(*, #ig-dock > .igd-door[class]) :where(#ig-page[data-igd-door][data-hb-side="paper"]:not(.hb-dark)) #ig-strip{height:var(--ig-bar-h)}
+  body:is(*, #ig-dock > .igd-door[class]) :where(#ig-page[data-igd-door][data-hb-side="paper"]:not(.hb-dark)) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{height:var(--ig-bar-h);padding:0 6px 0 4px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) .pd-tab.on::after{bottom:-1px}
   /* CHASE MANY AT ONCE (8 Oct 2026): a ticked list over the late promises' work */
@@ -17488,8 +17495,8 @@
      line, 47px → 39px (its buttons are 28), never from the room above the sheet, so the zoom keeps its 6px
      and the sheet its 40px under the line, as on every other paper (one-zoom 6, one-paper-everywhere 1) */
   #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:39px}
-  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark) #ig-paper-scroll{padding-top:9px}
-  body:has(#ig-dock > .igd-door[class]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark) #ig-paper-scroll{padding-top:9px}
+  body:is(*, #ig-dock > .igd-head[data-pd-head="paper"]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):where([data-igd-head="paper"]) #ig-paper-scroll{padding-top:9px}
+  body:is(*, #ig-dock > .igd-door[class]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):where([data-igd-door]) #ig-paper-scroll{padding-top:9px}
   /* ==== THE LEGORA LOOK, STAGE 2 (owner, 23 Oct 2026: "start stage 2" — the six drawn pages matched) ====
      A CARD HAS NO OUTLINE: it floats on the grey by its lift alone, as drawn (the 1px edge stays, transparent,
      so nothing moves by a pixel). Explorer's dark stage is not reached. */
@@ -18653,11 +18660,17 @@
   html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note textarea{border:0;padding:0;background:none;box-shadow:none;font-family:var(--font-doc);font-size:15px;line-height:1.55;resize:none}
   html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap #sh-lt-subject{border:0;background:none;padding:0;box-shadow:none}
   /* Before you send as drawn: Goes first, then the rest */
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes){display:flex;flex-direction:column}
+  /* THE HOLDER SAYS IT ITSELF, NO ":has" (owner, 11 Nov 2026, the Clean | Redline delay). These four rules asked
+     ":has(> #sh-lt-goes) > *" with nothing named in front, so the browser held every element on the page answerable to
+     it: adding one small thing anywhere, a note beside the paper, a page mark, made it read the whole page's styles
+     again (measured on a 40-section contract: about 25 ms a time against 4 ms). The side column now carries a class
+     where it holds "What goes" (js/core.js: sh-lt-hasgoes on #share-step-1), read inside :where() so each rule weighs
+     what it weighed. A ":has" followed by "> *", or with no class or id in front of it, is never written again. */
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes){display:flex;flex-direction:column}
   html.lg-new :is(#ig-dock,.sh-lt-side) #sh-lt-goes{order:-1}
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > *{align-self:stretch}
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-jb{order:-3}
-  html.lg-new :is(#ig-dock,.sh-lt-side) :has(> #sh-lt-goes) > .sh-lt-verdict{order:-2}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes) > *{align-self:stretch}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes) > .sh-lt-jb{order:-3}
+  html.lg-new :is(#ig-dock,.sh-lt-side) #share-step-1:where(.sh-lt-hasgoes) > .sh-lt-verdict{order:-2}
   html.lg-new .rl-pile.rl-pile-nlfold:not(.is-open) > :not(.rl-band){display:none}
   html.lg-new #ig-dock .rl-band.rl-band-nl{display:flex;align-items:center;width:100%;gap:8px;padding:10px 0;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer}
   html.lg-new #ig-dock .rl-band.rl-band-nl span{flex:1}
