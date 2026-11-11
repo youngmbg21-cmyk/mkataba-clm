@@ -121,7 +121,7 @@ const READ = () => {
           stored: (getContract('MK-A2').fields || {}).up_date || '', count: (document.querySelector('[data-pd2-ff-n]') || {}).textContent || '',
           scrolls: document.getElementById('ig-paper-scroll').scrollHeight > document.getElementById('ig-paper-scroll').clientHeight + 100 }));
         check('5 a note\'s Fill in fills on the paper: the boxes, the head, the list beside it, nothing saved yet, the paper still scrolls',
-          boxes && /31 October 2026/.test(F.list) && !F.stored && /^1 of 2 filled/.test(F.count) && F.scrolls, F);
+          boxes && /31 October 2026/.test(F.list) && !F.stored && /^1 of \d+ filled/.test(F.count) && F.scrolls, F); /* RE-POINTED (fill in on the paper, the Legora way, owner's pick 11 Nov 2026): the signature lines are spaces to fill too, so the count is of every space, not only the two blanks */
         await page.click('[data-pd2-fill-save]');
         const saved = await until(page, async () => !document.getElementById('pd2-fill-head') && (getContract('MK-A2').fields || {}).up_date === '31 October 2026', null, 10000);
         /* the save is on its way (persist): asked of the server until it holds it, bounded */

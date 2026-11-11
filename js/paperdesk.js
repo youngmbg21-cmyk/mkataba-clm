@@ -6706,7 +6706,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const full = () => { const cc = pdContract(); return cc && ((typeof getContract === 'function' && getContract(cc.id)) || cc); };
     const dsf = t.closest('[data-pd-ds-fill]');
     if (dsf){ e.preventDefault(); const cc = full(); const key = dsf.getAttribute('data-pd-ds-fill') || '';
-      if (cc) pdFillOpen(cc.id, key ? { key } : {}); return; }
+      if (cc) pdFillGo(cc.id, key); return; }
     if (t.closest('[data-pd-ds-obl]')){ e.preventDefault(); const cc = full();
       let found = []; try { found = (cc && typeof triageHeldObligations === 'function') ? triageHeldObligations(cc) : []; } catch (_){ found = []; }
       if (cc && found.length && typeof openObligationsReview === 'function') openObligationsReview(cc, found, () => { try { pdGlanceRepaint(); } catch (_){} });
@@ -8168,14 +8168,20 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   /* Before you sign / Decide: the paper comes back first, then the signing face (the Dossier's own Sign door) */
   if (t.closest('#ig-dock [data-pd2-br-sign]')){ e.preventDefault(); pdMidClose(); const row = PD_GLANCE.sign; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); return; }
 }, true);
-/* ---- FILL IN ON THE PAPER (the contract round, part 3; owner: "Only the paper's blanks") ----
-   The paper's own blanks (an upload's placeholders, our template's fields; never a record fact, a signer or a stream)
-   become boxes where they stand. What is typed lands in every place on the paper that blank stands, and in the panel's
-   list; NOTHING IS SAVED until Save, which stores each answer through the one writer for a blank (contractBlankSet),
-   then once (persist). Discard, Esc on a box, another contract or another page leave the paper as it was. A suggestion
-   is only a reading HaTi already makes: what Jambo read for that blank, or what this workspace usually puts there
-   (contractBlankUsual, three alike); none is guessed. */
-let _pd2Fill = null;             // { id, vals: {key: typed}, was: {key: at start} } while the paper is being filled
+/* ---- FILL IN ON THE PAPER, THE LEGORA WAY (owner picked "The Legora Way" by name, 11 Nov 2026: "Build fill in on
+   the paper the Legora way"; the drawing: the clearer-road artifact's "Fill in on the paper" section) ----
+   The paper stays paper. Its own blanks (an upload's placeholders, our template's fields; never a record fact or a
+   stream) become lines you type on where they stand, and so do the signature lines at its foot: a name for each party,
+   their email where the link goes. ENTER TAKES YOU TO THE NEXT SPACE STILL TO FILL, in the paper's order; Enter on the
+   last one saves and goes back to the Dossier (the owner's pick: "Back to the Dossier"). Beside the paper the panel
+   lists every space with WHERE IT STANDS (§ and the words around it, quoted), the one being filled lit.
+   NOTHING IS SAVED UNTIL SAVE (or the last Enter): each blank through the one writer for a blank (contractBlankSet,
+   held), the signers through the ONE authority on who signs (saveSignerPlan), whose refusal — a route needs both
+   sides, their signer needs an email — is said on the line it is about, never swallowed. Stop leaves without saving;
+   with something typed, Stop asks again in its own words first. A suggestion is only a reading HaTi already makes:
+   what Jambo read for that blank, what this workspace usually puts there (contractBlankUsual), our members, and the
+   people this contract and the directory already know; none is guessed. */
+let _pd2Fill = null;             // { id, vals, was, walk: [spot], cur, sig: {line: [entry]}, sigWhy, q: {key: quote} }
 function pd2FillBlanks(c){
   let L = []; try { L = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ L = []; }
   return L.filter(b => b && b.kind !== 'sync');
@@ -8189,19 +8195,122 @@ function pd2FillSuggest(c, b){
   if (u && u.v) return { v: String(u.v), from: _pdTn('pd2_fp_from_usual', u.n || 0, { n: u.n || 0 }) };
   return null;
 }
+/* where a blank stands on the paper: its marks, the ones an upload, our template and an own blank each draw */
+const PD2_BL_SEL = '[data-upblank], .hati-field[data-field-key], span.field-frozen[data-field]';
+const pd2BlKey = sp => sp.getAttribute('data-upblank') || sp.getAttribute('data-field-key') || sp.getAttribute('data-field');
+/* THE SIGNATURE LINES, read as the foot draws them (rlPaperFootHtml): ours first, then each party that signs */
+function pd2FillSigLines(c){
+  let rows = null;
+  try { if (typeof contractParties === 'function'){ const OURS = window.PARTY_SIDE_OURS || 'ours';
+    const all = contractParties(c).filter(p => p.name && (p.side === OURS || p.involvement !== 'none'));
+    if (all.length > 2) rows = all.map(p => ({ ours: p.side === OURS, partyId: String(p.id || ''), name: p.name })); } } catch (_){ rows = null; }
+  if (!rows){
+    let first = null; try { first = (typeof partiesSigning === 'function') ? (partiesSigning(c) || [])[0] : null; } catch (_){ first = null; }
+    let us = ''; try { us = (typeof partyOurName === 'function' && partyOurName(c)) || (typeof contractParty === 'function' && contractParty(c)) || ''; } catch (_){ us = ''; }
+    rows = [{ ours: true, partyId: '', name: String(us || '') }, { ours: false, partyId: first ? String(first.id || '') : '', name: String((first && first.name) || c.counterparty || '') }];
+  }
+  return rows.map((r, i) => Object.assign({ i }, r));
+}
+/* who is already named for a line on the route, in its order */
+function pd2FillSigNamed(c, L, lines){
+  const plan = (Array.isArray(c && c.signerPlan) ? c.signerPlan : []).filter(s => s && s.name);
+  const theirLines = lines.filter(x => !x.ours);
+  return plan.filter(s => {
+    if (L.ours) return s.party !== 'counterparty';
+    if (s.party !== 'counterparty') return false;
+    if (theirLines.length < 2) return true;
+    let q = null; try { q = (typeof partyOfSigner === 'function') ? partyOfSigner(c, s) : null; } catch (_){ q = null; }
+    return !!q && String(q.id) === String(L.partyId);
+  });
+}
+/* may signers be named on the paper at all: not once anyone has signed, not on a file they sign outside HaTi */
+function pd2FillSigOpen(c){
+  try { if (typeof signingLocked === 'function' && signingLocked(c)) return false; } catch (_){ return false; }
+  try { if (typeof signRouteOf === 'function' && signRouteOf(c) === 'outside') return false; } catch (_){}
+  return typeof saveSignerPlan === 'function';
+}
+/* THE WALK: every space still to fill, in the paper's order — its owed blanks as they stand, then the signature lines
+   nobody is named on. Read once when the filling begins, so what was filled stays on the walk and Enter can pass it. */
+function pd2FillWalk(c){
+  const cv = document.getElementById('ig-canvas'); if (!cv) return [];
+  const owed = new Set(pd2FillBlanks(c).filter(b => !String(b.value || '').trim()).map(b => String(b.key)));
+  const out = [], seen = new Set();
+  cv.querySelectorAll(PD2_BL_SEL).forEach(sp => { const k = pd2BlKey(sp);
+    if (!k || seen.has(k) || !owed.has(String(k)) || sp.closest('.ig-redpaper, .ig-signpaper')) return; seen.add(k); out.push('b:' + k); });
+  if (pd2FillSigOpen(c) && cv.querySelector('.rl-paper-foot .rl-sigline')){
+    const lines = pd2FillSigLines(c);
+    lines.forEach(L => { if (!pd2FillSigNamed(c, L, lines).length) out.push('s:' + L.i); });
+  }
+  return out;
+}
+/* "made on ____ between": the words either side of a blank, read off the paper as it stands */
+function pd2FillQuoteOf(sp){
+  try {
+    const block = sp.closest('p, li, td, h1, h2, h3, h4, div') || sp.parentElement; if (!block) return '';
+    const r1 = document.createRange(); r1.setStart(block, 0); r1.setEndBefore(sp);
+    const r2 = document.createRange(); r2.setStartAfter(sp); r2.setEnd(block, block.childNodes.length);
+    const before = r1.toString().replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).slice(-3).join(' ');
+    const after = r2.toString().replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).slice(0, 2).join(' ');
+    return [before, '____', after].filter(Boolean).join(' ');
+  } catch (_){ return ''; }
+}
+/* a line as wide as what it holds (its name while empty), never wider than the paper allows */
+function pd2FillSize(v, label){ const t = String(v || '').trim(); return t ? Math.max(2, Math.min(40, t.length + 1)) : Math.max(6, Math.min(32, String(label || '').length + 1)); }
+/* a date said as the reader reads dates: "1 December 2026", in the language's own month */
+function pd2FillDay(iso){
+  const at = new Date(String(iso || '') + 'T00:00:00'); if (isNaN(at)) return String(iso || '');
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  try { return at.toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return String(iso || ''); }
+}
+function pd2FillDone(spot){
+  if (!_pd2Fill || !spot) return false;
+  if (spot.startsWith('b:')) return !!String(_pd2Fill.vals[spot.slice(2)] || '').trim();
+  const L = _pd2Fill.sig[spot.slice(2)] || [];
+  return L.some(x => String(x.name || '').trim());
+}
 function pd2FillStart(id, key){
   const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c || !pd2On()) return false;
   if ((typeof canEdit === 'function') && !canEdit()) return false;
-  const L = pd2FillBlanks(c); if (!L.length) return false;
-  if (!pd2FillOn(id)){ const was = {}; L.forEach(b => { was[b.key] = String(b.value || ''); });
-    _pd2Fill = { id: String(id), vals: Object.assign({}, was), was }; }
+  const first = !pd2FillOn(id);
+  if (first){ const was = {}; pd2FillBlanks(c).forEach(b => { was[b.key] = String(b.value || ''); });
+    _pd2Fill = { id: String(id), vals: Object.assign({}, was), was, walk: [], cur: '', sig: {}, sigWhy: null, q: {}, stopAsk: 0 }; }
   if (pdMidUp()) pdMidClose();
+  if (_pdTab !== 'copilot') try { pdSetTab('copilot'); } catch (_){}
   pd2NotesOff();
+  if (first) _pd2Fill.walk = pd2FillWalk(c);
+  const anyBlank = !!document.querySelector('#ig-canvas ' + PD2_BL_SEL.split(', ').join(', #ig-canvas '));
+  /* NOTHING ON THIS PAPER TO FILL: the form stays the door (the caller falls back to it) */
+  if (first && !_pd2Fill.walk.length && !anyBlank){ _pd2Fill = null; return false; }
   pd2FillPaint(c);
+  const spot = key ? (key.startsWith('s:') ? key : 'b:' + key) : (_pd2Fill.walk.find(s => !pd2FillDone(s)) || _pd2Fill.walk[0] || '');
+  _pd2Fill.cur = spot;
   try { pdGlanceRepaint(); } catch (_){}
-  const box = document.querySelector(key ? `#ig-canvas [data-pd2-bl="${CSS.escape(String(key))}"]` : '#ig-canvas [data-pd2-bl]');
-  if (box){ if (typeof landOn === 'function') landOn(box, { block: 'center', focus: false }); try { box.focus({ preventScroll: true }); } catch (_){} }
+  pd2FillGoTo(spot);
   return true;
+}
+/* the hand on a space: the paper glides there (landOn), the box takes the caret, the panel's row is lit */
+function pd2FillTarget(spot){
+  if (!spot) return document.querySelector('#ig-canvas [data-pd2-bl]');
+  if (spot.startsWith('b:')) return document.querySelector(`#ig-canvas [data-pd2-bl="${CSS.escape(spot.slice(2))}"]`);
+  const all = [...document.querySelectorAll(`#ig-canvas [data-pd2-ps-name^="${CSS.escape(spot.slice(2))}:"]`)];
+  return all.find(x => !String(x.value || '').trim()) || all[0] || null;
+}
+function pd2FillGoTo(spot){
+  const box = pd2FillTarget(spot); if (!box) return false;
+  if (_pd2Fill) _pd2Fill.cur = spot || _pd2Fill.cur;
+  if (typeof landOn === 'function') landOn(box, { block: 'center', focus: false });
+  try { box.focus({ preventScroll: true }); } catch (_){}
+  const c = _pd2Fill && getContract(_pd2Fill.id); if (c) pd2FillCount(c);
+  return true;
+}
+/* ENTER: the next space still to fill after this one, else the first left before it; none left = save and go back */
+function pd2FillNext(){
+  if (!_pd2Fill) return;
+  const W = _pd2Fill.walk, at = W.indexOf(_pd2Fill.cur);
+  const after = W.slice(at + 1).find(s => !pd2FillDone(s)), before = W.slice(0, Math.max(0, at)).find(s => !pd2FillDone(s));
+  const next = after || before;
+  if (next){ pd2FillGoTo(next); return; }
+  pd2FillSave();
 }
 function pd2FillStop(){
   if (!_pd2Fill) return;
@@ -8211,23 +8320,50 @@ function pd2FillStop(){
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
 }
-/* the boxes on the paper, the head over the paper's line and the foot under it; drawn again after any repaint */
+function pd2FillChanged(c){
+  if (!_pd2Fill) return false;
+  const blanks = pd2FillBlanks(c).some(b => String(_pd2Fill.vals[b.key] || '') !== String(_pd2Fill.was[b.key] || ''));
+  return blanks || Object.values(_pd2Fill.sig).some(L => (L || []).some(x => String(x.name || '').trim()));
+}
+/* our members (a signer for us), and the people this contract and the directory know (a signer for them) */
+function pd2FillPeople(c, L){
+  const out = [], seen = new Set();
+  const add = p => { const k = String(p.email || p.name || '').trim().toLowerCase(); if (!k || seen.has(k) || !String(p.name || '').trim()) return; seen.add(k); out.push(p); };
+  if (L.ours){
+    const me = (typeof currentUser === 'function' && currentUser()) || null;
+    const us = ((typeof getUsers === 'function' && getUsers()) || []).filter(u => u && u.role !== 'viewer');
+    us.sort((a, b) => (me && String(a.id) === String(me.id) ? -1 : 0) - (me && String(b.id) === String(me.id) ? -1 : 0));
+    us.forEach(u => add({ name: u.name || '', email: u.email || '', memberId: String(u.id || ''), role: (typeof signerTitle === 'function' ? signerTitle(u) : '') || '' }));
+  } else {
+    let cs = []; try { cs = (typeof contactsOf === 'function') ? contactsOf(c) : []; } catch (_){ cs = []; }
+    cs.filter(p => !L.partyId || !p.partyId || String(p.partyId) === String(L.partyId)).forEach(p => add({ name: p.name || '', email: p.email || '', role: p.title || '', from: 'contract' }));
+    let dir = []; try { dir = (typeof orgDirectory === 'function') ? (orgDirectory() || []) : []; } catch (_){ dir = []; }
+    const mine = new Set(((typeof getUsers === 'function' && getUsers()) || []).map(u => String(u.email || '').toLowerCase()).filter(Boolean));
+    dir.filter(p => !mine.has(String(p.email || '').toLowerCase())).forEach(p => add({ name: p.name || '', email: p.email || '', role: p.title || '', from: 'book' }));
+  }
+  return out;
+}
+/* the boxes on the paper, the signers on their lines, the head over the paper's line and the foot under it; drawn
+   again after any repaint (a paint that finds its own boxes leaves them) */
 function pd2FillPaint(c){
   const cv = document.getElementById('ig-canvas'), pg = document.getElementById('ig-page'); if (!cv || !pg || !pd2FillOn(c.id)) return;
-  const E = _pdE, L = pd2FillBlanks(c), lab = {}; L.forEach(b => { lab[b.key] = b.label || b.key; });
-  cv.querySelectorAll('[data-upblank], .hati-field[data-field-key]').forEach(sp => {
-    const k = sp.getAttribute('data-upblank') || sp.getAttribute('data-field-key'); if (!(k in lab) || sp.querySelector('[data-pd2-bl]')) return;
+  const E = _pdE, L = pd2FillBlanks(c), lab = {}, typ = {}; L.forEach(b => { lab[b.key] = b.label || b.key; typ[b.key] = b.type || 'text'; });
+  cv.querySelectorAll(PD2_BL_SEL).forEach(sp => {
+    const k = pd2BlKey(sp); if (!(k in lab) || sp.querySelector('[data-pd2-bl]') || sp.closest('.ig-redpaper, .ig-signpaper')) return;
+    if (!(k in _pd2Fill.q)) _pd2Fill.q[k] = pd2FillQuoteOf(sp);
     if (!sp.hasAttribute('data-pd2-was')) sp.setAttribute('data-pd2-was', '1');
     sp.classList.add('pd2-bl');
-    sp.innerHTML = `<input type="text" class="pd2-bl-in" data-pd2-bl="${E(k)}" value="${E(_pd2Fill.vals[k] || '')}" placeholder="${E(lab[k])}" aria-label="${E(lab[k])}" size="${Math.max(8, Math.min(28, (_pd2Fill.vals[k] || lab[k]).length + 2))}">`;
+    const v = _pd2Fill.vals[k] || '', date = typ[k] === 'date', had = !!String(_pd2Fill.was[k] || '').trim();
+    /* a blank filled before this sitting stays quiet: a faint line, its own width; owed and newly typed ones speak */
+    const cls = had && String(v) === String(_pd2Fill.was[k]) ? ' is-had' : String(v).trim() ? ' is-done' : '';
+    sp.innerHTML = `<input type="${date ? 'date' : 'text'}" class="pd2-bl-in${cls}" data-pd2-bl="${E(k)}" value="${E(v)}" placeholder="${E(String(lab[k]).toLowerCase())}" aria-label="${E(lab[k])}"${date ? '' : ` size="${pd2FillSize(v, lab[k])}"`}>`;
   });
+  if (pd2FillSigOpen(c)) pd2FillSigPaint(c, cv);
   pg.classList.add('is-pd2-fill');
   const strip = document.getElementById('ig-strip');
   if (strip && !document.getElementById('pd2-fill-head')){
     const h = document.createElement('div'); h.id = 'pd2-fill-head'; h.className = 'pd2-fill-head';
-    const st = (typeof window.statusLabel === 'function') ? window.statusLabel(c.status) : String(c.status || '');
-    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-br-sp"></span><button type="button" class="ui-btn" data-pd2-fill-discard>${E(_pdT('pd2_fp_discard'))}</button><button type="button" class="ui-btn ui-btn-primary" data-pd2-fill-save>${E(_pdT('og_save'))}</button>`;
-    h.setAttribute('data-pd2-fh-st', [c.counterparty, st].filter(Boolean).join(' · '));
+    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-br-sp"></span><button type="button" class="ui-link pd2-fh-stop" data-pd2-fill-discard>${E(_pdT('pd2_fp_stop'))}</button><button type="button" class="ui-btn ui-btn-primary" data-pd2-fill-save>${E(_pdT('og_save'))}</button>`;
     strip.parentElement.insertBefore(h, strip);
   }
   /* the foot under the paper: last in the column the paper's line heads (a flex column), so the paper keeps its scroll */
@@ -8239,64 +8375,263 @@ function pd2FillPaint(c){
   }
   pd2FillCount(c);
 }
+/* THE SIGNATURE LINES TAKE A NAME: on each line nobody is named on, a name to type (our members, or the people this
+   contract and the directory know, offered as you type), their email where the link goes, "+ Another signer" */
+function pd2FillSigPaint(c, cv){
+  const E = _pdE, lines = pd2FillSigLines(c), els = [...cv.querySelectorAll('.rl-paper-foot .rl-sigline')];
+  const foot = cv.querySelector('.rl-paper-foot'); if (foot) foot.removeAttribute('aria-hidden');
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(s => s && s.name);
+  els.forEach((el, i) => {
+    const L = lines[i]; if (!L || el.querySelector('.pd2-ps')) return;
+    const named = pd2FillSigNamed(c, L, lines);
+    if (!_pd2Fill.sig[i]) _pd2Fill.sig[i] = named.length ? [] : [{ name: '', email: '', memberId: '', role: '', isNew: false }];
+    const held = _pd2Fill.sig[i];
+    const nth = k => (typeof i18ord === 'function') ? i18ord(k) : String(k);
+    const order = s => { const at = plan.indexOf(s); return at >= 0 ? at + 1 : 0; };
+    const namedH = named.map(s => `<span class="pd2-ps-nm">${E(s.name)}</span>`).join('');
+    const heldH = held.map((x, j) => {
+      const id = i + ':' + j, mail = !L.ours && (x.isNew || (String(x.name || '').trim() && !String(x.email || '').trim()));
+      return `<span class="pd2-ps-e"><input type="text" class="pd2-ps-in${String(x.name || '').trim() ? ' is-done' : ''}" data-pd2-ps-name="${E(id)}" value="${E(x.name || '')}" placeholder="${E(_pdT(L.ours ? 'pd2_ps_ph_us' : 'pd2_ps_ph_them'))}" aria-label="${E(_pdT('pd2_ps_who', { party: L.name }))}" autocomplete="off">${mail ? `<input type="email" class="pd2-ps-mail${String(x.email || '').trim() ? ' is-done' : ''}" data-pd2-ps-mail="${E(id)}" value="${E(x.email || '')}" placeholder="${E(_pdT('pd2_ps_mail'))}" aria-label="${E(_pdT('pd2_ps_mail'))}" autocomplete="off">` : ''}<span class="pd2-ps-dd" data-pd2-ps-dd="${E(id)}" hidden></span></span>`;
+    }).join('');
+    const sub = [].concat(named.map(s => [s.role, order(s) ? _pdT('pd2_ps_signs', { nth: nth(order(s)) }) : ''].filter(Boolean).join(' · ')),
+      held.filter(x => String(x.name || '').trim()).map(x => x.role || '')).filter(Boolean)[0] || '';
+    const more = !L.ours ? `<button type="button" class="ui-link pd2-ps-more" data-pd2-ps-more="${i}">${E(_pdT('pd2_ps_more', { party: L.name }))}</button>` : '';
+    el.insertAdjacentHTML('afterbegin', `<span class="pd2-ps" data-pd2-ps="${i}">${namedH}${heldH}</span>`);
+    const forEl = el.querySelector('.rl-sigfor');
+    const tail = `${sub ? `<span class="pd2-ps-sub">${E(sub)}</span>` : ''}${more}`;
+    if (tail){ if (forEl) forEl.insertAdjacentHTML('afterend', tail); else el.insertAdjacentHTML('beforeend', tail); }
+  });
+}
+function pd2FillSigDd(inp){
+  const id = inp.getAttribute('data-pd2-ps-name'), dd = document.querySelector(`#ig-canvas [data-pd2-ps-dd="${CSS.escape(id)}"]`); if (!dd || !_pd2Fill) return;
+  const c = getContract(_pd2Fill.id); if (!c) return;
+  const [i] = id.split(':'), L = pd2FillSigLines(c)[Number(i)]; if (!L) return;
+  const q = String(inp.value || '').trim().toLowerCase(), E = _pdE;
+  /* offered as you type (the drawing: the list under "Wanj"), never before the first letter */
+  if (!q){ dd.hidden = true; dd.innerHTML = ''; dd._hits = []; return; }
+  const all = pd2FillPeople(c, L), hits = all.filter(p => String(p.name).toLowerCase().includes(q) || String(p.email).toLowerCase().includes(q)).slice(0, 5);
+  const exact = hits.some(p => String(p.name).trim().toLowerCase() === q);
+  const rows = hits.map((p, k) => `<button type="button" class="pd2-ps-o${k === 0 ? ' is-on' : ''}" data-pd2-ps-pick="${E(id)}" data-pd2-ps-k="${k}"><b>${E(p.name)}</b><small>${E([p.email, p.role, p.memberId ? _pdT('pd2_ps_from_team') : _pdT('pd2_ps_from_book')].filter(Boolean).join(' · '))}</small></button>`);
+  if (!L.ours && !exact) rows.push(`<button type="button" class="pd2-ps-o${hits.length ? '' : ' is-on'}" data-pd2-ps-new="${E(id)}"><b>${E(_pdT('pd2_ps_new'))}</b><small>${E(_pdT('pd2_ps_new_w'))}</small></button>`);
+  dd._hits = hits;
+  dd.innerHTML = rows.join('');
+  dd.hidden = !rows.length;
+}
+function pd2FillSigPick(id, p, isNew){
+  if (!_pd2Fill) return;
+  const [i, j] = id.split(':'), L = _pd2Fill.sig[i]; if (!L || !L[j]) return;
+  const x = L[j];
+  if (p){ x.name = p.name; x.email = p.email || ''; x.memberId = p.memberId || ''; x.role = p.role || ''; x.isNew = false; }
+  else { x.isNew = !!isNew; x.memberId = ''; }
+  const c = getContract(_pd2Fill.id); if (!c) return;
+  pd2FillSigRepaint(c, i);
+  const mail = document.querySelector(`#ig-canvas [data-pd2-ps-mail="${CSS.escape(id)}"]`);
+  if (mail && !String(mail.value || '').trim()){ try { mail.focus({ preventScroll: true }); } catch (_){} }
+  else pd2FillNext();
+}
+/* one line drawn again (a pick, another signer), the hand kept where it belongs */
+function pd2FillSigRepaint(c, i){
+  const cv = document.getElementById('ig-canvas'); if (!cv) return;
+  const el = cv.querySelectorAll('.rl-paper-foot .rl-sigline')[Number(i)]; if (!el) return;
+  el.querySelectorAll('.pd2-ps, .pd2-ps-sub, .pd2-ps-more').forEach(n => n.remove());
+  pd2FillSigPaint(c, cv);
+  pd2FillCount(c);
+  try { pdGlanceRepaint(); } catch (_){}
+}
 function pd2FillCount(c){
   if (!_pd2Fill) return;
-  const L = pd2FillBlanks(c), owed = L.filter(b => !String(b.value || '').trim()), n = owed.length;
-  const done = owed.filter(b => String(_pd2Fill.vals[b.key] || '').trim()).length;
-  const h = document.querySelector('[data-pd2-fh-m]'); if (h) h.textContent = [document.getElementById('pd2-fill-head').getAttribute('data-pd2-fh-st'), _pdTn('pd2_fp_owed', n, { n })].filter(Boolean).join(' · ');
+  const W = _pd2Fill.walk, n = W.length, done = W.filter(pd2FillDone).length;
+  const at = W.indexOf(_pd2Fill.cur), k = at >= 0 ? at + 1 : Math.min(n, done + 1);
+  const h = document.querySelector('[data-pd2-fh-m]'); if (h) h.textContent = n ? _pdT('pd2_fp_head', { k, n }) : _pdT('pd2_fp_head_none');
   const f = document.querySelector('[data-pd2-ff-n]'); if (f) f.textContent = _pdT('pd2_fp_count', { k: done, n });
-  const sv = document.querySelector('[data-pd2-fill-save]'); if (sv) sv.disabled = !L.some(b => String(_pd2Fill.vals[b.key] || '') !== String(_pd2Fill.was[b.key] || ''));
-  document.querySelectorAll('#ig-dock [data-pd2-fp-row]').forEach(r => { const k = r.getAttribute('data-pd2-fp-row'); const has = !!String(_pd2Fill.vals[k] || '').trim();
-    r.classList.toggle('is-typed', has); const w = r.querySelector('[data-pd2-fp-state]'); if (w) w.textContent = has ? '“' + _pd2Fill.vals[k] + '”' : _pdT('pd2_fp_owed_w'); });
+  const sv = document.querySelector('[data-pd2-fill-save]'); if (sv) sv.disabled = !pd2FillChanged(c);
+  const stop = document.querySelector('[data-pd2-fill-discard]');
+  if (stop){ const asking = _pd2Fill.stopAsk && Date.now() - _pd2Fill.stopAsk < 4000; stop.textContent = _pdT(asking ? 'pd2_fp_stop_ask' : 'pd2_fp_stop'); stop.classList.toggle('is-asking', !!asking); }
+  document.querySelectorAll('#ig-canvas [data-pd2-bl]').forEach(b => { const k = b.getAttribute('data-pd2-bl'), was = String(_pd2Fill.was[k] || '');
+    const had = !!was.trim() && String(b.value || '') === was; b.classList.toggle('is-had', had); b.classList.toggle('is-done', !had && !!String(b.value || '').trim()); });
+  document.querySelectorAll('#ig-dock [data-pd2-fp-row]').forEach(r => { const s = r.getAttribute('data-pd2-fp-go') || '';
+    r.classList.toggle('is-cur', s === _pd2Fill.cur); r.classList.toggle('is-typed', pd2FillDone(s));
+    const w = r.querySelector('[data-pd2-fp-state]'); if (!w) return;
+    if (s.startsWith('b:')){ const k = s.slice(2), v = String(_pd2Fill.vals[k] || '').trim();
+      const inp = document.querySelector(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`);
+      w.textContent = v && inp && inp.type === 'date' ? pd2FillDay(v) : v; }
+    else { const v = (_pd2Fill.sig[s.slice(2)] || []).map(x => String(x.name || '').trim()).filter(Boolean).join(', '); w.textContent = v; }
+    const o = r.querySelector('.pd2-fp-owed'); if (o) o.hidden = pd2FillDone(s); });
+  const pos = document.querySelector('#ig-dock [data-pd2-fp-pos]'); if (pos) pos.textContent = n ? _pdT('pd2_fp_pos', { k, n }) : '';
 }
+/* SAVE: every blank through its one writer, held; the signers through the one authority; then once to the server */
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
   const c = getContract(_pd2Fill.id); if (!c || typeof contractBlankSet !== 'function') return 0;
-  /* every box through the one writer, held; the last one written without hold, so the writer saves once */
   const moved = pd2FillBlanks(c).map(b => ({ b, v: String(_pd2Fill.vals[b.key] == null ? '' : _pd2Fill.vals[b.key]).trim() }))
     .filter(x => x.v !== String(_pd2Fill.was[x.b.key] || '').trim());
   let n = 0;
-  moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) n++; });
+  /* held, the last one written without hold, so the writer itself saves once (the desk never saves: f563) */
+  moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) { n++; _pd2Fill.was[x.b.key] = x.v; } });
+  /* the signers: the route as it stands, with the ones named on the paper after their side's last */
+  const lines = pd2FillSigLines(c), add = [];
+  Object.keys(_pd2Fill.sig).forEach(i => { const L = lines[Number(i)]; if (!L) return;
+    (_pd2Fill.sig[i] || []).filter(x => String(x.name || '').trim()).forEach(x => add.push(L.ours
+      ? { party: 'internal', name: String(x.name).trim(), email: String(x.email || '').trim(), memberId: x.memberId || '', role: x.role || '' }
+      : { party: 'counterparty', name: String(x.name).trim(), email: String(x.email || '').trim(), role: x.role || '', ...(L.partyId && lines.filter(y => !y.ours).length > 1 ? { partyId: L.partyId } : {}) })); });
+  let why = null, signers = 0;
+  if (add.length){
+    const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).slice();
+    const rows = plan.filter(s => s.party !== 'counterparty').concat(add.filter(s => s.party !== 'counterparty'), plan.filter(s => s.party === 'counterparty'), add.filter(s => s.party === 'counterparty'));
+    why = saveSignerPlan(c, rows);
+    if (!why) signers = add.length;
+  }
+  if (why){
+    /* THE ROUTE WAS REFUSED: the blanks are kept, the reason stands on the line it is about, the hand goes there */
+    _pd2Fill.sigWhy = why;
+    try { pdGlanceRepaint(); } catch (_){}
+    const s = _pd2Fill.walk.find(x => x.startsWith('s:') && !pd2FillDone(x)) || _pd2Fill.walk.find(x => x.startsWith('s:')) || _pd2Fill.cur;
+    pd2FillGoTo(s);
+    if (typeof toast === 'function') toast((n ? _pdTn('pd2_fp_saved', n, { n }) + ' ' : '') + why, 'warn');
+    return n;
+  }
   pd2FillStop();
-  if (typeof toast === 'function') toast(n ? _pdTn('pd2_fp_saved', n, { n }) : _pdT('pd2_fp_nothing'), n ? 'ok' : 'warn');
-  return n;
+  const total = n + signers;
+  if (typeof toast === 'function') toast(total ? [n ? _pdTn('pd2_fp_saved', n, { n }) : '', signers ? _pdTn('pd2_ps_saved', signers, { n: signers }) : ''].filter(Boolean).join(' · ') : _pdT('pd2_fp_nothing'), total ? 'ok' : 'warn');
+  return total;
 }
-/* the Dossier while the paper is being filled: what is owed on the paper, each with its suggestion, and Jambo's line */
+/* THE PANEL WHILE THE PAPER IS FILLED: "On the paper", every space in the paper's order with where it stands quoted,
+   the one being filled lit, its suggestion; the signers' order with its one door; what has no place on the paper last */
 function pd2FillFaceHtml(c, D){
-  const E = _pdE, L = pd2FillBlanks(c).filter(b => !String(b.value || '').trim());
-  const rows = L.map(b => { const s = pd2FillSuggest(c, b);
-    return `<div class="pd2-fact pd2-fp" data-pd2-fp-row="${E(b.key)}"><span class="pd2-l">${E(b.label || b.key)}</span><span class="pd2-v"><span class="pd2-amb" data-pd2-fp-state>${E(_pdT('pd2_fp_owed_w'))}</span>${s ? `<br>${E(_pdT('pd2_fp_suggest'))} <button type="button" class="ui-link" data-pd2-fp-use="${E(b.key)}" data-pd2-fp-v="${E(s.v)}">${E(s.v)}</button> <span class="pd2-q">· ${E(s.from)}</span>` : ''}</span><span class="pd2-s">${E(b.section && b.section !== c.name ? b.section : _pdT('pd2_fp_preamble'))}</span></div>`; }).join('');
-  return `${pd2SpineHtml(D)}<p class="pd2-next">${E(_pdTn('pd2_fp_say', L.length, { n: L.length }))}</p><div class="pd2-eye">${E(_pdT('pd2_fp_owed_h'))}</div><div class="pd2-facts">${rows}</div><div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_pdT('cn2_jambo'))}</b><p>${E(_pdT('pd2_fp_jb'))}</p></div></div>`;
+  const E = _pdE, F = _pd2Fill || { walk: [], q: {}, sig: {} }, W = F.walk || [];
+  const blanks = {}; pd2FillBlanks(c).forEach(b => { blanks[b.key] = b; });
+  const lines = pd2FillSigLines(c);
+  const rows = W.map(s => {
+    if (s.startsWith('b:')){ const k = s.slice(2), b = blanks[k] || { key: k, label: k }; const sg = pd2FillSuggest(c, b);
+      const sec = b.section && b.section !== c.name ? b.section : _pdT('pd2_fp_q_pre');
+      const q = F.q[k] ? _pdT('pd2_fp_q', { sec, words: F.q[k] }) : '§ ' + sec;
+      return `<div class="pd2-fp" data-pd2-fp-row="${E(k)}" data-pd2-fp-go="${E(s)}"><div class="pd2-fp-t">${E(b.label || k)}<span class="pd2-fp-owed"> · ${E(_pdT('pd2_fp_owed_w'))}</span></div><div class="pd2-fp-q">${E(q)}</div><div class="pd2-fp-v" data-pd2-fp-state></div>${sg ? `<button type="button" class="pd2-fp-chip" data-pd2-fp-use="${E(k)}" data-pd2-fp-v="${E(sg.v)}">${E(_pdT('pd2_fp_suggest_v', { v: sg.v, from: sg.from }))}</button>` : ''}</div>`; }
+    const L = lines[Number(s.slice(2))] || { name: '' };
+    /* a refused route is said once, under the first signature line on the walk */
+    const why = F.sigWhy && s === W.find(x => x.startsWith('s:')) ? `<div class="pd2-fp-why">${E(F.sigWhy)}</div>` : '';
+    return `<div class="pd2-fp" data-pd2-fp-row="sg:${E(s.slice(2))}" data-pd2-fp-go="${E(s)}"><div class="pd2-fp-t">${E(_pdT('pd2_ps_who', { party: L.name }))}<span class="pd2-fp-owed"> · ${E(_pdT('pd2_fp_owed_w'))}</span></div><div class="pd2-fp-q">${E(_pdT('pd2_fp_q', { sec: _pdT('pd2_ps_sec'), words: _pdT('ng_signed_for', { who: L.name }) }))}</div><div class="pd2-fp-v" data-pd2-fp-state></div><div class="pd2-fp-help">${E(_pdT(L.ours ? 'pd2_ps_help_us' : 'pd2_ps_help_them'))}</div>${why}</div>`;
+  }).join('');
+  /* THE ORDER, with its one door (the signing route window; Change on the Dossier's Signer row is the same door) */
+  const me = (typeof currentUser === 'function' && currentUser()) || null;
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(x => x && x.name);
+  const usMine = !!(me && (plan.some(x => x.party !== 'counterparty' && String(x.memberId || '') === String(me.id)) || (F.sig[0] || []).some(x => String(x.memberId || '') === String(me.id))));
+  const names = lines.map(L => L.ours && usMine ? _pdT('pd2_ps_you') : L.name).filter(Boolean);
+  const order = pd2FillSigOpen(c) && names.length > 1 ? `<div class="pd2-fp-order">${E(_pdT('pd2_ps_order', { first: names[0], rest: names.slice(1).join(', ') }))} · <button type="button" class="ui-link" data-pd-og-route="${E(c.id)}">${E(_pdT('pd2_go_change'))}</button></div>` : '';
+  /* WHAT HAS NO PLACE ON THE PAPER: the owed details the paper does not carry, last, with the form as their door */
+  let rest = [];
+  try { const d = (typeof detailsOf === 'function') ? detailsOf(c) : null; const onPaper = new Set(W.filter(s => s.startsWith('b:')).map(s => s.slice(2)));
+    rest = d && d.live ? d.items.filter(x => x && x.open && !onPaper.has(String(x.key)) && !/signer/i.test(String(x.kind || x.key || ''))).map(x => x.label) : []; } catch (_){ rest = []; }
+  const restH = rest.length ? `<div class="pd2-fp-rest">${E(_pdTn('pd2_fp_rest', rest.length, { list: pd2ListWords(rest) }))} <button type="button" class="ui-link" data-pd2-fp-form>${E(_pdT('pd2_fp_rest_go'))}</button></div>` : '';
+  const at = W.indexOf(F.cur), k = at >= 0 ? at + 1 : 1;
+  const head = `<div class="pd2-fp-head"><b>${E(_pdT('pd2_fp_title'))}</b><span data-pd2-fp-pos>${W.length ? E(_pdT('pd2_fp_pos', { k, n: W.length })) : ''}</span></div>`;
+  const none = !W.length ? `<p class="pd2-fp-none">${E(_pdT('pd2_fp_none'))}</p>` : '';
+  return `${head}${none}<div class="pd2-fp-list">${rows}</div>${order}${restH}`;
+}
+/* "Value and Stream": a short list in words, the last joined by the language's own "and" */
+function pd2ListWords(L){
+  const a = (L || []).filter(Boolean); if (a.length < 2) return a.join('');
+  return a.slice(0, -1).join(', ') + ' ' + _pdT('pd2_and') + ' ' + a[a.length - 1];
+}
+/* THE BLACK BUTTON'S DOOR (owner, 11 Nov 2026: "Open the paper"): in the new look "Fill in the contract" fills on
+   the paper; a detail with no place there, or a paper with nothing to fill, keeps the form */
+function pdFillGo(id, key){
+  if (pd2On() && (!key || !pdFillGoFormOnly(id, key)) && pd2FillStart(id, key || '')) return true;
+  return pdFillOpen(id, key ? { key } : {});
+}
+function pdFillGoFormOnly(id, key){
+  const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c) return true;
+  return !pd2FillBlanks(c).some(b => String(b.key) === String(key));
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
   /* a blank pressed on the paper, in the new look: it is filled where it stands (the old look keeps the form) */
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !pd2On()) return;
-    if (t.closest('[data-pd2-bl]')) return;
-    const sp = t.closest('#ig-canvas [data-upblank], #ig-canvas .hati-field[data-field-key]');
+    if (t.closest('[data-pd2-bl], [data-pd2-ps-name], [data-pd2-ps-mail]')) return;
+    const sp = t.closest('#ig-canvas [data-upblank], #ig-canvas .hati-field[data-field-key], #ig-canvas span.field-frozen[data-field]');
     if (sp && !sp.closest('.ig-redpaper, .ig-signpaper')){ const c = pdContract(); if (!c) return;
-      const k = sp.getAttribute('data-upblank') || sp.getAttribute('data-field-key');
+      const k = pd2BlKey(sp);
       if (pd2FillBlanks(c).some(b => String(b.key) === String(k))){ e.preventDefault(); e.stopPropagation(); pd2FillStart(c.id, k); } return; }
     if (t.closest('[data-pd2-fill-save]')){ e.preventDefault(); pd2FillSave(); return; }
-    if (t.closest('[data-pd2-fill-discard]')){ e.preventDefault(); pd2FillStop(); return; }
+    if (t.closest('[data-pd2-fill-discard]')){ e.preventDefault(); const c = _pd2Fill && getContract(_pd2Fill.id);
+      /* STOP WITH SOMETHING TYPED ASKS AGAIN, in its own words, for four seconds; a second press leaves */
+      if (c && pd2FillChanged(c) && !(_pd2Fill.stopAsk && Date.now() - _pd2Fill.stopAsk < 4000)){ _pd2Fill.stopAsk = Date.now(); pd2FillCount(c);
+        setTimeout(() => { const cc = _pd2Fill && getContract(_pd2Fill.id); if (cc) pd2FillCount(cc); }, 4100); return; }
+      pd2FillStop(); return; }
     const use = t.closest('#ig-dock [data-pd2-fp-use]');
     if (use && _pd2Fill){ e.preventDefault(); const k = use.getAttribute('data-pd2-fp-use'), v = use.getAttribute('data-pd2-fp-v') || '';
       _pd2Fill.vals[k] = v; document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(b => { b.value = v; });
-      const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c); return; }
+      const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c); pd2FillNext(); return; }
+    if (t.closest('#ig-dock [data-pd2-fp-form]') && _pd2Fill){ e.preventDefault(); const id = _pd2Fill.id; pdFillOpen(id, {}); return; }
+    const go = t.closest('#ig-dock [data-pd2-fp-go]');
+    if (go && _pd2Fill && !t.closest('button')){ e.preventDefault(); pd2FillGoTo(go.getAttribute('data-pd2-fp-go')); return; }
+    const pick = t.closest('#ig-canvas [data-pd2-ps-pick]');
+    if (pick){ e.preventDefault(); const id = pick.getAttribute('data-pd2-ps-pick'); const dd = pick.closest('[data-pd2-ps-dd]');
+      const p = dd && dd._hits ? dd._hits[Number(pick.getAttribute('data-pd2-ps-k'))] : null; if (p) pd2FillSigPick(id, p); return; }
+    const nw = t.closest('#ig-canvas [data-pd2-ps-new]');
+    if (nw){ e.preventDefault(); pd2FillSigPick(nw.getAttribute('data-pd2-ps-new'), null, true); return; }
+    const more = t.closest('#ig-canvas [data-pd2-ps-more]');
+    if (more && _pd2Fill){ e.preventDefault(); const i = more.getAttribute('data-pd2-ps-more'); const c = getContract(_pd2Fill.id); if (!c) return;
+      (_pd2Fill.sig[i] = _pd2Fill.sig[i] || []).push({ name: '', email: '', memberId: '', role: '', isNew: false });
+      const j = _pd2Fill.sig[i].length - 1; pd2FillSigRepaint(c, i);
+      const inp = document.querySelector(`#ig-canvas [data-pd2-ps-name="${CSS.escape(i + ':' + j)}"]`); if (inp) try { inp.focus({ preventScroll: true }); } catch (_){} return; }
   }, true);
-  /* what is typed lands in every place that blank stands, and in the panel's list */
+  /* a press on a suggestion must not take the hand off the name first (the list would close under it) */
+  document.addEventListener('mousedown', e => { const t = e.target && e.target.closest ? e.target.closest('#ig-canvas .pd2-ps-dd') : null; if (t) e.preventDefault(); }, true);
+  /* what is typed lands in every place that blank stands, and in the panel's list; a name offers the people it fits */
   document.addEventListener('input', e => {
-    const b = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-pd2-bl]') : null; if (!b || !_pd2Fill) return;
-    const k = b.getAttribute('data-pd2-bl'); _pd2Fill.vals[k] = b.value;
-    document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { if (x !== b) x.value = b.value; });
-    b.size = Math.max(8, Math.min(28, (b.value || b.placeholder).length + 2));
-    const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c);
+    const t = e.target; if (!_pd2Fill || !t || !t.closest) return;
+    const c = getContract(_pd2Fill.id); if (!c) return;
+    const b = t.closest('#ig-canvas [data-pd2-bl]');
+    if (b){ const k = b.getAttribute('data-pd2-bl'); _pd2Fill.vals[k] = b.value;
+      document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { if (x !== b) x.value = b.value; });
+      if (b.type !== 'date') b.size = pd2FillSize(b.value, b.placeholder);
+      pd2FillCount(c); return; }
+    const nm = t.closest('#ig-canvas [data-pd2-ps-name]');
+    if (nm){ const [i, j] = nm.getAttribute('data-pd2-ps-name').split(':'); const x = (_pd2Fill.sig[i] || [])[j]; if (!x) return;
+      if (x.name !== nm.value){ x.name = nm.value; x.memberId = ''; if (!x.isNew) x.email = ''; }
+      nm.classList.toggle('is-done', !!String(nm.value).trim()); pd2FillSigDd(nm); pd2FillCount(c); return; }
+    const ml = t.closest('#ig-canvas [data-pd2-ps-mail]');
+    if (ml){ const [i, j] = ml.getAttribute('data-pd2-ps-mail').split(':'); const x = (_pd2Fill.sig[i] || [])[j]; if (x) x.email = ml.value;
+      ml.classList.toggle('is-done', !!String(ml.value).trim()); }
   });
-  /* Esc leaves a blank as it was when the filling began */
+  /* the hand on a space lights its row; leaving a name shuts its list */
+  document.addEventListener('focusin', e => {
+    const t = e.target; if (!_pd2Fill || !t || !t.closest) return;
+    const b = t.closest('#ig-canvas [data-pd2-bl]'), s = t.closest('#ig-canvas [data-pd2-ps-name], #ig-canvas [data-pd2-ps-mail]');
+    if (!b && !s) return;
+    _pd2Fill.cur = b ? 'b:' + b.getAttribute('data-pd2-bl') : 's:' + (s.getAttribute('data-pd2-ps-name') || s.getAttribute('data-pd2-ps-mail')).split(':')[0];
+    const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c);
+    if (t.matches('[data-pd2-ps-name]')) pd2FillSigDd(t);
+  });
+  document.addEventListener('focusout', e => { const t = e.target; if (!t || !t.matches || !t.matches('#ig-canvas [data-pd2-ps-name]')) return;
+    const dd = document.querySelector(`#ig-canvas [data-pd2-ps-dd="${CSS.escape(t.getAttribute('data-pd2-ps-name'))}"]`); if (dd) dd.hidden = true; });
+  /* ENTER TAKES YOU TO THE NEXT SPACE (a name's list open: Enter takes the one lit, the arrows move it); Esc leaves a
+     blank as it was when the filling began, or shuts a name's list */
   document.addEventListener('keydown', e => {
-    const b = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-pd2-bl]') : null; if (!b || !_pd2Fill || e.key !== 'Escape') return;
-    e.preventDefault(); e.stopPropagation(); const k = b.getAttribute('data-pd2-bl'); const was = _pd2Fill.was[k] || '';
-    _pd2Fill.vals[k] = was; document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { x.value = was; }); b.blur();
+    const t = e.target; if (!_pd2Fill || !t || !t.closest) return;
+    const b = t.closest('#ig-canvas [data-pd2-bl]'), nm = t.closest('#ig-canvas [data-pd2-ps-name]'), ml = t.closest('#ig-canvas [data-pd2-ps-mail]');
+    if (!b && !nm && !ml) return;
+    const dd = nm ? document.querySelector(`#ig-canvas [data-pd2-ps-dd="${CSS.escape(nm.getAttribute('data-pd2-ps-name'))}"]`) : null;
+    const open = !!(dd && !dd.hidden && dd.children.length);
+    if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){ e.preventDefault(); const o = [...dd.children]; let i = o.findIndex(x => x.classList.contains('is-on'));
+      i = e.key === 'ArrowDown' ? Math.min(o.length - 1, i + 1) : Math.max(0, i - 1); o.forEach((x, k) => x.classList.toggle('is-on', k === i)); return; }
+    if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); e.stopPropagation();
+      const on = open ? dd.querySelector('.is-on') : null;
+      if (on){ if (on.hasAttribute('data-pd2-ps-new')) pd2FillSigPick(on.getAttribute('data-pd2-ps-new'), null, true);
+        else { const p = dd._hits && dd._hits[Number(on.getAttribute('data-pd2-ps-k'))]; if (p) pd2FillSigPick(nm.getAttribute('data-pd2-ps-name'), p); }
+        return; }
+      if (dd) dd.hidden = true;
+      /* their signer typed by hand needs the address the link goes to before the walk moves on */
+      if (nm){ const [i, j] = nm.getAttribute('data-pd2-ps-name').split(':'); const x = (_pd2Fill.sig[i] || [])[j]; const c = getContract(_pd2Fill.id);
+        const L = c ? pd2FillSigLines(c)[Number(i)] : null;
+        if (x && L && !L.ours && String(x.name || '').trim() && !String(x.email || '').trim()){ pd2FillSigPick(i + ':' + j, null, true); return; } }
+      pd2FillNext(); return; }
+    if (e.key !== 'Escape') return;
+    e.preventDefault(); e.stopPropagation();
+    if (open){ dd.hidden = true; return; }
+    if (b){ const k = b.getAttribute('data-pd2-bl'); const was = _pd2Fill.was[k] || '';
+      _pd2Fill.vals[k] = was; document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { x.value = was; }); }
+    t.blur();
     const c = getContract(_pd2Fill.id); if (c) pd2FillCount(c);
   }, true);
 }
@@ -8480,7 +8815,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
-Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint });
+Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,

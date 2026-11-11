@@ -693,6 +693,18 @@ function pagesSignRows(c, sigs){
   }catch(_){ lines = null; }
   if(!lines) lines = [{ ours: true }, { ours: false }];
   const used = new Set();
+  /* THE PEOPLE WHO WILL SIGN, PRINTED (owner, 11 Nov 2026: "Yes, print them"): a line nobody has signed yet carries
+     the names the route already holds for its party, under the line — `planned`, never a mark, never "Sign here"
+     taken away. Read off the route as it stands (c.signerPlan, the one authority on who signs); a route with no
+     row for a line leaves it empty, exactly as before. */
+  const plan = (c && Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(s => s && s.name && !s.signed);
+  const theirLines = lines.filter(L => !L.ours).length;
+  const plannedFor = L => {
+    const mine = plan.filter(s => L.ours ? s.party !== 'counterparty'
+      : (s.party === 'counterparty' && (theirLines < 2 || !L.id || String(s.partyId || '') === L.id)));
+    if(!mine.length) return null;
+    return { planned: true, name: mine.map(s => String(s.name)).join(' · '), title: mine.length === 1 ? String(mine[0].role || '') : '' };
+  };
   return lines.map(L => {
     let i = -1;
     if(L.ours) i = list.findIndex((x, k) => !used.has(k) && !x.theirs);
@@ -701,7 +713,7 @@ function pagesSignRows(c, sigs){
       if(i < 0) i = list.findIndex((x, k) => !used.has(k) && x.theirs && !x.partyId && !x.party);
       if(i < 0 && !(lines.length > 2)) i = list.findIndex((x, k) => !used.has(k) && x.theirs);
     }
-    if(i < 0) return null;
+    if(i < 0) return plannedFor(L);
     used.add(i);
     return list[i];
   });
@@ -712,10 +724,18 @@ function pagesSignMarks(root, rows){
   const day = v => { try{ return window.fmtDT ? window.fmtDT(v) : String(v || ''); }catch(_){ return String(v || ''); } };
   let n = 0;
   root.querySelectorAll('.rl-paper-foot .rl-sigline').forEach((el, i) => {
-    el.querySelectorAll('.rl-sigmark,.rl-sigby').forEach(x => x.remove());
+    el.querySelectorAll('.rl-sigmark,.rl-sigby,.rl-sigplan').forEach(x => x.remove());
     el.classList.remove('pg-signed', 'pg-preview');
     const r = rows && rows[i];
     if(!r) return;
+    /* a planned signer: the name (and title) under the line, nothing on the rule, the line still to be signed */
+    if(r.planned){
+      el.querySelectorAll('.rl-sigplan').forEach(x => x.remove());
+      const forEl = el.querySelector('.rl-sigfor');
+      const by = `<span class="rl-sigby rl-sigplan"><b>${_pgAttr(r.name)}</b>${r.title ? ', ' + _pgAttr(r.title) : ''}</span>`;
+      if(forEl) forEl.insertAdjacentHTML('afterend', by); else el.insertAdjacentHTML('beforeend', by);
+      return;
+    }
     el.classList.add(r.preview ? 'pg-preview' : 'pg-signed');
     if(!r.preview){ el.removeAttribute('data-pg-flag'); el.classList.remove('pg-mine', 'pg-flag-right'); }
     const src = window.sigImageSrc ? window.sigImageSrc(r.image) : '';

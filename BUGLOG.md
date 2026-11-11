@@ -22217,3 +22217,11 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 11 Nov 2026 · Closed by measurement: the page-wide `:has` rules on the list pages (the line of 11 Nov above) cost under 1 ms a change on all 16 pages measured; nothing to fix there.
 - 11 Nov 2026 — Noticed, not fixed: CLAUDE.md carries unresolved merge markers (<<<<<<< HEAD / ======= / >>>>>>> origin/main) in THE SHELL section, two versions of "ONE ROW / ONE TOOLBAR UNDER AN ANSWER"; the file is also past its 80 KB mark (about 82 KB).
 - 11 Nov 2026 · Renumbered: the decision-redraws-one-clause test is f1010 (main took f1009 for the panel's three small doors while this branch was open); the BUGLOG and MAP-HISTORY lines of today that say f1009 for it mean f1010.
+
+## 11 Nov 2026 — Fill in on the paper, the Legora way (the owner's pick by name)
+- BUILT · the black "Fill in the contract" fills on the paper in the new look: blanks typed where they stand, signature lines take names (both sides), Enter to the next space, the last saves and returns to the Dossier; planned signers print on the signing copy. f1012, fill-on-the-paper-verify.
+- FIXED on the way (it was the reason the mode could not be used on our own paper): fill in on the paper looked only for an upload's blank marks, so a contract drafted from our template got no boxes when a blank was pressed.
+- A CHANGE TO SAY: the other side's signing copy (their page) reads the same line reading, so it now prints the planned signers' names under the lines too, as ours does.
+- Noticed, not fixed: the Handbook's pictures are taken in the old look (its world never turns the new look on), so chapter 2.3's pictures still show the form; the chapter's words describe the paper. New-look pictures need the Handbook world to switch the look on.
+- Noticed, not fixed: CLAUDE.md is about 84.7 KB, over its "about 80 KB" line (it was 84.3 KB before this change); a trim needs the owner's yes.
+- Noticed, not fixed: a date blank uses the browser's own date box, so its empty face follows the computer's setting (mm/dd/yyyy on a US machine); the panel says the date in words.

@@ -14053,6 +14053,8 @@
   .rl-sigline.pg-preview .rl-sigmark{opacity:.45}
   .rl-sigby{display:block;margin-top:3px;font-size:calc(11px * var(--doc-scale,1));line-height:1.4;color:#5F6D6B}
   .rl-sigby b{color:#1B2A28;font-weight:600}
+  /* a planned signer printed under the line on the signing copy (every look, both sides' copies) */
+  .rl-sigplan{display:block}
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 
   /* ============ document designs — body typography ============
@@ -18411,9 +18413,31 @@
   html.lg-new .pd2-br-pfoot{position:sticky;bottom:0;margin-top:auto;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text)}
   /* fill in on the paper: the blanks are boxes where they stand, a head over the paper's line, a foot under the paper */
   html.lg-new #ig-canvas span.pd2-bl,html.lg-new #ig-canvas span.up-blank.pd2-bl{background:none;border:0;padding:0;margin:0;box-shadow:none;outline:0}
-  html.lg-new #ig-canvas .pd2-bl-in{font:inherit;font-family:var(--font-body);font-size:13px;line-height:20px;height:24px;padding:0 8px;margin:0 2px;border:0;border-bottom:2px solid var(--st-amber-dot);border-radius:0;background:var(--st-amber-bg);color:var(--st-amber-fg);vertical-align:baseline}
-  html.lg-new #ig-canvas .pd2-bl-in:focus{outline:2px solid var(--st-amber-dot);outline-offset:1px}
-  html.lg-new #ig-canvas .pd2-bl-in::placeholder{color:var(--st-amber-fg)}
+  /* FILL IN ON THE PAPER, THE LEGORA WAY (owner's pick, 11 Nov 2026): nothing boxed — a blank is a line you type on in
+     the paper's own type: the one in the hand an ink rule, one still owed a dotted amber rule over its name in grey
+     italics, one filled a green rule */
+  html.lg-new #ig-canvas .pd2-bl-in{font:inherit;color:var(--color-doc-text);background:transparent;border:0;border-bottom:1.5px dotted var(--st-amber-dot);border-radius:0;padding:0 2px;margin:0 1px;height:auto;line-height:inherit;vertical-align:baseline;outline:0;box-shadow:none}
+  html.lg-new #ig-canvas .pd2-bl-in::placeholder{color:var(--color-quiet);font-style:italic;opacity:1}
+  html.lg-new #ig-canvas .pd2-bl-in.is-done{border-bottom:1.5px solid var(--st-green-dot)}
+  html.lg-new #ig-canvas .pd2-bl-in.is-had{border-bottom:1px solid var(--color-divider)}
+  html.lg-new #ig-canvas .pd2-bl-in:focus{border-bottom:1.5px solid var(--color-doc-text);outline:0;box-shadow:none}
+  /* the signature lines take a name (and their email): typed above the rule, in the paper's own type */
+  html.lg-new #ig-canvas .pd2-ps{display:flex;flex-direction:column;gap:6px;margin:0 0 6px}
+  html.lg-new #ig-canvas .pd2-ps-e{position:relative;display:flex;flex-direction:column;gap:6px}
+  html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail){display:block;width:100%;box-sizing:border-box;font:inherit;color:var(--color-doc-text);background:transparent;border:0;border-bottom:1.5px dotted var(--st-amber-dot);border-radius:0;padding:0 2px;outline:0;box-shadow:none}
+  html.lg-new #ig-canvas .pd2-ps-mail{font-family:var(--font-body);font-size:13px}
+  html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail)::placeholder{color:var(--color-quiet);font-style:italic;opacity:1}
+  html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail).is-done{border-bottom:1.5px solid var(--st-green-dot)}
+  html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail):focus{border-bottom:1.5px solid var(--color-doc-text)}
+  html.lg-new #ig-canvas .pd2-ps-nm{display:block;border-bottom:1.5px solid var(--st-green-dot);padding:0 2px}
+  html.lg-new #ig-canvas .pd2-ps-sub{display:block;margin-top:2px;font-size:.9em;color:var(--color-doc-muted)}
+  html.lg-new #ig-canvas .pd2-ps-more{display:inline-block;margin-top:6px;padding:0;border:0;background:none;font-family:var(--font-body);font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  html.lg-new #ig-canvas .pd2-ps-dd{position:absolute;top:100%;left:0;z-index:5;min-width:280px;margin-top:4px;padding:4px;display:flex;flex-direction:column;background:var(--color-surface);border-radius:var(--radius);box-shadow:0 6px 24px rgba(0,0,0,.14),0 0 0 1px var(--color-divider);font-family:var(--font-body);font-size:13px}
+  html.lg-new #ig-canvas .pd2-ps-dd[hidden]{display:none}
+  html.lg-new #ig-canvas .pd2-ps-o{display:block;text-align:left;padding:7px 10px;border:0;border-radius:6px;background:none;cursor:pointer;color:var(--color-text);font:inherit}
+  html.lg-new #ig-canvas .pd2-ps-o b{display:block;font-weight:var(--w-label)}
+  html.lg-new #ig-canvas .pd2-ps-o small{display:block;color:var(--color-quiet);font-size:12px}
+  html.lg-new #ig-canvas .pd2-ps-o.is-on,html.lg-new #ig-canvas .pd2-ps-o:hover{background:var(--jb-card-fill)}
   html.lg-new #ig-page.is-pd2-fill #ig-strip{display:none}
   /* THE HEAD READS LIKE THE PAPER'S OWN LINE (owner, 8 Nov 2026: "designed as seen in image 2 … all fonts the same size
      and on a straight line across the bar … all the buttons visible"): the line's height and inset, the name and its
@@ -18423,7 +18447,29 @@
   html.lg-new .pd2-fh-m{flex:0 1 auto;font-size:13px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   html.lg-new .pd2-fill-head .pd2-br-sp{flex:1}
   html.lg-new .pd2-fill-foot{flex:none;display:flex;justify-content:space-between;gap:16px;padding:12px 24px;background:var(--color-surface);border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-text);z-index:2}
-  html.lg-new #ig-dock .pd2-fp.is-typed [data-pd2-fp-state]{color:var(--color-text)}
+  /* THE PANEL WHILE FILLING: "On the paper", every space in the paper's order with where it stands quoted, the one in the
+     hand lit; the signers' order and its door; what has no place on the paper last */
+  html.lg-new #ig-dock .pd2-dossier.is-fill{display:flex;flex-direction:column;gap:0}
+  html.lg-new #ig-dock .pd2-fp-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:4px 0 10px}
+  html.lg-new #ig-dock .pd2-fp-head b{font-family:var(--font-heading);font-size:18px;font-weight:var(--w-title)}
+  html.lg-new #ig-dock .pd2-fp-head span{font-size:12.5px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-new #ig-dock .pd2-fp{display:block;padding:10px 0;border-top:1px solid var(--color-divider);cursor:pointer;font-size:13px;line-height:1.45}
+  html.lg-new #ig-dock .pd2-fp.is-cur{margin:0 -12px;padding:10px 12px;border-top-color:transparent;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-fp.is-cur + .pd2-fp{border-top-color:transparent}
+  html.lg-new #ig-dock .pd2-fp-t{font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-fp-owed{color:var(--st-amber-fg);font-weight:400}
+  html.lg-new #ig-dock .pd2-fp-q{margin-top:2px;font-family:var(--font-doc);font-style:italic;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fp-v{margin-top:2px;color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-fp-v:empty{display:none}
+  html.lg-new #ig-dock .pd2-fp-help{margin-top:2px;color:var(--color-text);display:none}
+  html.lg-new #ig-dock .pd2-fp.is-cur .pd2-fp-help{display:block}
+  html.lg-new #ig-dock .pd2-fp-why{margin-top:4px;color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd2-fp-chip{display:inline-block;margin-top:6px;padding:3px 10px;border:0;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+  html.lg-new #ig-dock :is(.pd2-fp-order,.pd2-fp-rest){padding:12px 0 0;border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fp-rest{margin-top:12px}
+  html.lg-new #ig-dock .pd2-fp-none{margin:6px 0 0;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .pd2-fill-head .pd2-fh-stop{flex:none;font-size:13px}
+  html.lg-new .pd2-fill-head .pd2-fh-stop.is-asking{color:var(--st-ruby-fg)}
   /* the Fill in form in the middle, laid flat: the page white, its head "‹ Paper" over the title and its line; rows wide */
   html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-head{padding:16px 40px 12px}
   html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-crumb{margin:0 0 6px;padding:0}
