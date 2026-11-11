@@ -18241,6 +18241,11 @@
   /* CARD INSIDE (owner picked it by name, 11 Nov 2026): once Summarise is pressed, the brief stands inside the greeting,
      right under its buttons, on the greeting's own white */
   html.lg-new #hb-bhead.is-greet > .hb-why{margin:14px 0 0;background:var(--hb-why-fill)}
+  /* the strip between the greeting and the first card is the greeting's own white, not the Board's grey: a white band
+     one column gap high under the head (its box unchanged, so the first card still measures 12 under it; white-sheet-verify,
+     Board · side list, 11 Nov 2026) */
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet{position:relative}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--well-g);background:var(--color-surface)}
   html.lg-new #hb-bhead.is-greet .hb-bh-r{margin-top:14px;flex-wrap:wrap;row-gap:var(--s-2)}
   html.lg-new #hb-bhead.is-greet .hb-bh-day{white-space:nowrap;color:var(--color-neutral-400)}
   html.lg-new .hb-gr-a{all:unset;box-sizing:border-box;cursor:pointer;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--color-accent-300)}
