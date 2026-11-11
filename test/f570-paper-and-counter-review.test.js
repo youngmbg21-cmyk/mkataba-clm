@@ -129,7 +129,9 @@ describe('f570 (2) Copilot\'s counter, on the paper and in the editor', () => {
     const ce = R('js/views/clauseeditor.js');
     assert.match(ce, /rests: String\(prep\.standard \|\| ''\)/, 'the card is handed the standard alone — its own line says "Rests on:"');
     assert.ok(!/rests: prep\.standard \? _cet\('ag_prep_rests'/.test(ce), 'never "Rests on: Rests on:"');
-    assert.match(ce, /lane\.innerHTML = \(_cePrep \? '' : ceLadderCardHtml\(\)\)/, 'no second card that disagrees');
+    /* RE-POINTED 11 Nov 2026 (owner picked "Legora with ticks"): the points Start redlining came with may stand first
+       (cePointsHtml, f1011); the ladder card still stands down under a prepared counter */
+    assert.match(ce, /lane\.innerHTML = cePointsHtml\(\) \+ \(_cePrep \? '' : ceLadderCardHtml\(\)\)/, 'no second card that disagrees');
     assert.match(ce, /if \(_cePrep && _cePrep\.sentBack\) cePrepPut\(\{ quiet: true \}\);/,
       'the answer the paper drew dashed (sentBack) arrives in the box; one Copilot prepared alone keeps its Apply');
     assert.ok(!/cd\.prepared && cd\.sentBack\); \}\);\s*\n\s*if \(btn\) btn\.click\(\)/.test(ce), 'no second arrival door pressing Apply');
