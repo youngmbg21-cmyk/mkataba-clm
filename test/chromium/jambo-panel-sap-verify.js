@@ -116,8 +116,17 @@ const check = (name, pass, detail) => {
     await page.keyboard.press('Escape'); await page.waitForTimeout(250);
     check('2d Escape closes it', !((await bar()) || {}).menuOpen, 'shut');
     await page.click('#ig-dock [data-ig-sap-more]'); await page.waitForTimeout(200);
-    await page.click('#ig-dock .igd-head, #ig-dock'); await page.waitForTimeout(250);
-    check('2e a press outside closes it', !((await bar()) || {}).menuOpen, 'shut');
+    /* OUTSIDE MEANS OUTSIDE: the menu opens UPWARD over the panel's middle, so a press at the panel's own centre
+       lands ON it. The press goes to the empty ground just BELOW the toolbar, which the menu never covers and
+       nothing else answers. */
+    const spot = await page.evaluate(() => { const d = document.getElementById('ig-dock'); const T = [...document.querySelectorAll('#ig-dock .igd-sap')].slice(-1)[0];
+      if (!d || !T) return null; const r = d.getBoundingClientRect(), t = T.getBoundingClientRect();
+      const y = Math.round(t.bottom + 40); if (y > r.bottom - 100) return null;
+      return { x: Math.round(r.left + r.width / 2), y }; });
+    if (spot) await page.mouse.click(spot.x, spot.y);
+    await page.waitForTimeout(250);
+    const E = await bar();
+    check('2e a press outside closes it', !!spot && !(E || {}).menuOpen, JSON.stringify({ spot, open: (E || {}).menuOpen }));
 
     console.log('\n3 · NOTHING SPILLS, AT THE OWNER\'S THREE SCREENS');
     const spills = [];
@@ -130,6 +139,9 @@ const check = (name, pass, detail) => {
     check('3b and it is one compact block, not a stack of loose lines', !!B && B.lines > 0 && B.lines <= 220, B && B.lines + 'px tall');
     console.log('\n4 · THE SOURCE LINE IS IN THE MENU, AND SAID ONCE');
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
+    /* measured with More SHUT, whatever the section above left open */
+    await page.evaluate(() => { if (typeof intel !== 'undefined' && intel.sapOpen){ intel.sapOpen = null; renderIntelDock(); } });
+    await page.waitForTimeout(250);
     const S = await page.evaluate(() => {
       const T = [...document.querySelectorAll('#ig-dock .igd-sap')].slice(-1)[0];
       const turn = T && T.closest('.jb-turn');
