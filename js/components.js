@@ -1618,8 +1618,10 @@ function jamboSayCardHtml(o = {}){
   const when = o.when ? `<span class="jb-say-when">${E(o.when)}</span>` : '';
   const body = o.html || (o.text ? `<p>${E(o.text)}</p>` : '');
   const foot = o.foot ? `<div class="jb-say-f">${o.foot}</div>` : '';
+  /* A × TOP RIGHT (owner, 11 Nov 2026): only where the caller gives it a press (o.close = its attributes) */
+  const shut = o.close ? `<button type="button" class="jb-say-x" ${o.close} title="${E(T('jb_say_close'))}" aria-label="${E(T('jb_say_close'))}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>` : '';
   return `<div class="jb-say"${o.id ? ` id="${E(o.id)}"` : ''}${o.attrs || ''}>
-    <div class="jb-say-h"><b><span class="jb-say-i" aria-hidden="true">&#10022;</span>${E(who)}</b>${when}</div>
+    <div class="jb-say-h"><b><span class="jb-say-i" aria-hidden="true">&#10022;</span>${E(who)}</b>${when}${shut}</div>
     <div class="jb-say-b">${body}</div>${foot}</div>`;
 }
 /* the same card before his words exist: what it will cost, and the one press */
