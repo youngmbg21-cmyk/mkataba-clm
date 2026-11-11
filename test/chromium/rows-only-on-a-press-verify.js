@@ -106,6 +106,20 @@ const PAGES = [
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
 
       for (const P of PAGES) {
+        /* job 10: an empty My notes hides its box and tabs on purpose (nothing to filter), so the page is given three
+           notes first — one late, one reviewed, one with no day — once for the whole run (they are the person's own) */
+        if (P.k === 'mynotes') {
+          const seeded = await page.evaluate(async () => {
+            if (typeof mineLoad === 'function') await mineLoad(true);
+            if ((mineList('note') || []).length) return 'kept';
+            const past = new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10);
+            await mineSave('note', { title: 'Call the supplier about pallets', body: 'Call the supplier about pallets', reviewBy: past });
+            await mineSave('note', { title: 'Check the notice period', body: 'Check the notice period', reviewedAt: new Date().toISOString() });
+            await mineSave('note', { title: 'Read the annex again', body: 'Read the annex again' });
+            return (mineList('note') || []).length;
+          });
+          if (!seeded) { check(`${at} mynotes: three notes to filter`, false); continue; }
+        }
         await page.evaluate(v => setView(v), P.view);
         const drawn = await until(page, s => !!document.querySelector(s), P.rowSel, 15000);
         if (!drawn) { check(`${at} ${P.k}: the list is drawn`, false); continue; }
