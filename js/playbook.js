@@ -590,6 +590,34 @@ function pbFitAdd(bodyHtml,quote,words,at0){
   return { text, html, block:at, blocks:blocks.length, add:true };
 }
 
+/* ---- ANOTHER CLAUSE'S ASK, PLACED IN ITS OWN BLOCK (owner, 11 Nov 2026) ----
+   The ONE placing of pbDraftRead's `also` wording, for every door that takes
+   it (the clause editor's carried card, the review window's Open, Prepare
+   redlines' filing): the block numbered `ref` ("8.3") inside the clause, the
+   wording ADDED after it (pbFitAdd), or for "to read" put in its place with its
+   number kept. No numbered block: an add goes after the clause's last block; a
+   replace answers null, because nothing says which words it would replace.
+   Null where nothing would change. */
+function pbRefBlock(bodyHtml,ref){
+  const r=String(ref||'').replace(/\.$/,''); if(!r) return -1;
+  const blocks=pbClauseBlocks(bodyHtml); if(!blocks) return -1;
+  const re=new RegExp('^\\(?'+r.replace(/\./g,'\\.')+'(?![\\d.]\\d)');
+  return blocks.findIndex(t=>re.test(t));
+}
+function pbPlaceAt(bodyHtml,ref,words,add){
+  const w=String(words==null?'':words).trim(); if(!w) return null;
+  const at=pbRefBlock(bodyHtml,ref);
+  if(add) return pbFitAdd(bodyHtml,'',w,at);
+  if(at<0) return null;
+  const blocks=pbClauseBlocks(bodyHtml);
+  if(_pbFitNorm(blocks[at]).includes(_pbFitNorm(w))) return null;
+  const num=/^\s*(\(?\d+(?:\.\d+)*\)?\.?)\s+/.exec(blocks[at]);
+  const html=pbSwapBlock(bodyHtml,at,(num&&!w.startsWith(num[1])?num[1]+' ':'')+w);
+  if(!html||typeof window==='undefined'||!window.richToText) return null;
+  let text=''; try{ text=richToText(html); }catch(_){ return null; }
+  return text?{ text, html, block:at, blocks:blocks.length }:null;
+}
+
 /* THE NUMBER OUR POSITION ASKS FOR, read by the topic's OWN reader — the one
    precedent and the ladder already use — out of wording the workspace
    approved. Null where the position is not argued in a number at all
@@ -1654,4 +1682,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbFitAdd,pbDraftRead,PB_DRAFT_ASK_RE,pbOwnRefs,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear,pbSpliceQuote});
+Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbFitAdd,pbDraftRead,PB_DRAFT_ASK_RE,pbOwnRefs,pbRefBlock,pbPlaceAt,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear,pbSpliceQuote});

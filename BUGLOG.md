@@ -22088,6 +22088,9 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
   not the check's click — likely a second save of the same contract putting back older answers. The check now also
   prints every item still owed and the stored up_notice_period value. Not fixed (scope rules); for the owner.
 
+## Noticed, not fixed (11 Nov 2026, the other clause's ask round)
+- Playbook review window, "Jambo's draft" preview: a numbered paragraph reads "3.1Delivery Terms." (no space after the number) and the preview shows the whole clause rather than only the changed part; already so before this round.
+- Clause editor, after Apply (not typing): a changed paragraph is drawn without its bold title ("3.3 Late Delivery Liquidated Damages." plain) while the applied wording itself keeps <strong>; the resting redline drawing of a touched block is word-based. Not caused by the other-clause round.
 ## The Jambo panel: the last two parts, and the f1000 clash (11 Nov 2026, f1002)
 Built. The source line ("Read from Explorer and your book") is now the last row of the More menu, a line and not
 a press; it is said once (the panel no longer prints it under the answer too) and it never makes a toolbar appear
