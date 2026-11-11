@@ -74,9 +74,9 @@ const check = (name, pass, detail) => {
       lead: T.querySelectorAll('.ui-btn-primary').length,
       more: !!T.querySelector('[data-ig-sap-more]'),
       menuOpen: !!T.querySelector('.igd-sap-menu.is-open'),
-      rareSeen: ['[data-ig-tour-open]', '[data-ig-pin-open]', '[data-ig-pic]'].filter(s => { const e = T.querySelector(s); if (!e || !vis(e)) return false;
-        const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }),
-      rareThere: ['[data-ig-tour-open]', '[data-ig-pin-open]', '[data-ig-pic]'].filter(s => !!T.querySelector(s)),
+      menu: T.querySelectorAll('.igd-sap-menu > *').length,
+      menuSeen: [...T.querySelectorAll('.igd-sap-menu > *')].filter(e => { if (!vis(e)) return false;
+        const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }).length,
       spill: box.right > panel.right + 1 || box.left < panel.left - 1 || T.scrollWidth > T.clientWidth + 1,
       inside: Math.round(box.left - panel.left),
       lines: Math.round(box.height)
@@ -89,10 +89,12 @@ const check = (name, pass, detail) => {
   await page.click('#li-go');
   await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-S7'), null, { timeout: 20000 });
   await until(() => state.view === 'dashboard' && !document.body.classList.contains('pre-auth'));
+  /* RE-POINTED 11 Nov 2026 (the owner picked One Row for Explorer): the SAP toolbar is THE BOARD's — Explorer
+     folds its older answers and carries one row instead (jambo-one-row-verify). Measured here on the Board. */
   await page.evaluate(async () => { try { await stPrefSet('newLook', true); } catch (_){ } try { newLookApply(); } catch (_){ }
-    state.aiConfigured = true; intel.cam = null; intel.tab = 'map'; setView('dashboard'); hbSetFace('explorer'); });
-  await until(() => typeof hbFace === 'function' && hbFace() === 'explorer' && !!document.getElementById('igd-input'));
-    await ask('group by value stream and only include the top 2 value streams by value');
+    state.aiConfigured = true; setView('dashboard'); hbSetFace('board'); });
+  await until(() => typeof hbFace === 'function' && hbFace() === 'board' && !!document.getElementById('igd-input'));
+    await ask('chart value by stream');
 
     console.log('\n1 · ONE TOOLBAR, THREE LABELLED ROWS');
     const B = await bar();
@@ -101,13 +103,15 @@ const check = (name, pass, detail) => {
       !!B && B.rows.join('>') === 'understood>next>open' && B.labels.every(x => x.trim().length), JSON.stringify(B && B.labels));
     check('1c one filled button, and a More beside it', !!B && B.lead === 1 && B.more, JSON.stringify(B && { lead: B.lead, more: B.more }));
 
-    console.log('\n2 · THE RARE ACTS ARE UNDER MORE');
-    check('2a Explain this view, Pin this finding and Copy picture are in the page but not on the panel',
-      !!B && B.rareThere.length === 3 && B.rareSeen.length === 0, JSON.stringify(B && { there: B.rareThere.length, seen: B.rareSeen }));
+    console.log('\n2 · WHAT IS UNDER MORE');
+    /* RE-POINTED 11 Nov 2026: Explain this view, Pin this finding and Copy picture are the MAP's acts and are
+       offered on Explorer only (igTourOffered / igPinOffered); on the Board More holds the other doors. */
+    check('2a the menu is in the page, and nothing of it is on the panel while it is shut',
+      !!B && B.menu > 0 && !B.menuOpen && B.menuSeen === 0, JSON.stringify(B && { menu: B.menu, open: B.menuOpen, seen: B.menuSeen }));
     await page.click('#ig-dock [data-ig-sap-more]'); await page.waitForTimeout(250);
     const B2 = await bar();
-    check('2b one press opens More and every one of them can be seen',
-      !!B2 && B2.menuOpen && B2.rareSeen.length === 3, JSON.stringify(B2 && { open: B2.menuOpen, seen: B2.rareSeen.length }));
+    check('2b one press opens More and every row of it can be seen',
+      !!B2 && B2.menuOpen && B2.menuSeen === B2.menu, JSON.stringify(B2 && { open: B2.menuOpen, seen: B2.menuSeen, of: B2.menu }));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `sap-more-open-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
     await page.click('#ig-dock [data-ig-sap-more]'); await page.waitForTimeout(250);

@@ -9690,9 +9690,11 @@ function igExportList(ids){
    A row with nothing in it is not drawn, and with nothing at all there is no toolbar. The More menu's rows stay in
    the page while it is shut (a reader's own press opens it; Esc and a press outside close it). */
 const IG_SAP_MENU_MIN=1;
-function igSapMoreHtml(i, rows){
+function igSapMoreHtml(i, rows, opts){
   if(!rows.length) return '';
-  const open=intel.sapOpen===String(i);
+  const open=intel.sapOpen===String(i), dots=!!(opts&&opts.dots);
+  if(dots) return `<span class="igd-sap-wrap"><button type="button" class="igd-one-more${open?' is-open':''}" data-ig-sap-more="${i}" aria-haspopup="menu" aria-expanded="${open}" title="${igEsc(i18t('int_sap_more'))}" aria-label="${igEsc(i18t('int_sap_more'))}">⋯</button>`
+    +`<div class="igd-sap-menu${open?' is-open':''}" role="menu" aria-label="${igEsc(i18t('int_sap_more'))}">${rows.join('')}</div></span>`;
   return `<span class="igd-sap-wrap"><button type="button" class="igd-sap-more${open?' is-open':''}" data-ig-sap-more="${i}" aria-haspopup="menu" aria-expanded="${open}">${igEsc(i18t('int_sap_more'))}${IG_MR_CARET}</button>`
     +`<div class="igd-sap-menu${open?' is-open':''}" role="menu" aria-label="${igEsc(i18t('int_sap_more'))}">${rows.join('')}</div></span>`;
 }
@@ -9731,6 +9733,64 @@ function igSapHtml(m,i){
   if(!rows.length) return '';
   return `<div class="igd-sap" data-ig-sap="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">${rows.join('')}</div>`;
 }
+/* ---- ONE ROW (the owner picked it for Explorer by name, 11 Nov 2026) ----
+   Explorer's talk runs long: ten questions deep, the SAP toolbar's three rows under each answer push the newest
+   one off the screen. As drawn: the answers before the newest FOLD to one line each (igFoldHtml), and the newest
+   carries ONE row — the chips that correct what he read, the one filled button, and ⋯ for everything else.
+   The Board keeps the SAP toolbar: its talk is short, and the owner picked that for it.
+   THE PIECES ARE THE SAME ONES (igMapReadHtml, hbReadingHtml, igDoorsHtml, hbNextHtml): not a press changes. */
+function igOneRowOn(){ try{ return typeof window.hbFace==='function'&&hbFace()==='explorer'; }catch(_){ return false; } }
+function igOneHtml(m,i){
+  if(!Number.isInteger(i)||!m||m.role!=='assistant') return '';
+  const last=i===intel.history.length-1&&!m.err;
+  /* ON THE ROW: what he understood, then the one filled button */
+  const chips=[];
+  if(m.reading&&typeof window.hbReadingHtml==='function') chips.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
+  if(m.mapRead) chips.push(igMapReadHtml(m,i,{ part:'chips' }));
+  const lead=igDoorsHtml(m,i,{ part:'lead' });
+  /* UNDER ⋯: the next steps, the other doors, and the rarer acts — in the order the SAP menu has them */
+  const more=[];
+  if(m.mapRead){ const n=igMapReadHtml(m,i,{ part:'next' }); if(n) more.push(n); }
+  if(m.reading&&m.reading.key&&!m.nextMoved&&hbReadingLive(i)&&typeof window.hbNextHtml==='function') more.push(hbNextHtml(m.reading.key));
+  if(m.nextKey&&igNextLive(i)&&typeof window.hbNextHtml==='function') more.push(hbNextHtml(m.nextKey));
+  const rest=igDoorsHtml(m,i,{ part:'rest' });
+  if(rest) more.push(rest);
+  if(last&&!m.tour&&igTourOffered()) more.push(`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t(intel.lens?'int_lens_tour_open':'int_tour_open'))}</button>`);
+  if(last&&igPinOffered()) more.push(`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`);
+  if(last&&(igTourOffered()||igPinOffered())) more.push(`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`);
+  const had=chips.length||lead||more.length;
+  if(m.read&&m.read.text&&had) more.push(`<div class="igd-sap-src" data-ai-read>${igEsc(m.read.text)}</div>`);
+  if(!had) return '';
+  return `<div class="igd-one" data-ig-one="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">`
+    +`<span class="igd-one-v">${chips.filter(Boolean).join('')}</span>${lead||''}${more.length?igSapMoreHtml(i,more,{ dots:true }):''}</div>`;
+}
+/* AN OLDER ANSWER IS ONE LINE: the words you asked, and how many it put on the map; a press opens it where it
+   stands, a second press folds it back. The count is the answer's own set, never a number nothing drew. */
+function igFoldHtml(a,k,e){
+  const q=String((a[k]&&a[k].text)||'').trim(); if(!q) return '';
+  const open=intel.oneOpen===k;
+  let n=0;
+  for(let j=k+1;j<e;j++){ const m=a[j]; if(!m||m.role!=='assistant') continue; const ids=igAnswerIds(m); if(ids.length>n) n=ids.length; }
+  const said=n?igEsc(i18t('int_one_shown',{ n })):'';
+  return `<button type="button" class="igd-fold${open?' is-open':''}" data-ig-fold="${k}" aria-expanded="${open}">`
+    +`<span class="igd-fold-q">${igEsc(q)}</span><span class="igd-fold-n">${said}${IG_MR_CARET}</span></button>`;
+}
+/* the feed, folded: everything before the newest question is one line each (Explorer only) */
+function igTurnsHtml(a){
+  const one=(m,i)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a);
+  if(!igOneRowOn()) return a.map(one).join('');
+  let lastUser=-1; for(let k=a.length-1;k>=0;k--){ if(a[k]&&a[k].role==='user'){ lastUser=k; break; } }
+  const out=[];
+  for(let k=0;k<a.length;){
+    if(a[k]&&a[k].role==='user'&&k<lastUser){
+      let e=k+1; while(e<a.length&&a[e]&&a[e].role!=='user') e++;
+      const fold=igFoldHtml(a,k,e);
+      if(fold){ out.push(fold); if(intel.oneOpen===k) for(let j=k+1;j<e;j++) out.push(one(a[j],j)); k=e; continue; }
+    }
+    out.push(one(a[k],k)); k++;
+  }
+  return out.join('');
+}
 function igMsgHTML(m,i){
   if(m.role==='user')
     return `<div class="ai-msg flex justify-end"><div class="ai-bub ig-bub-me max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
@@ -9765,8 +9825,9 @@ function igMsgHTML(m,i){
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
-      ${''/* THE SAP WAY (owner's pick, 10 Nov 2026): the answer's controls in ONE toolbar, three labelled rows */}
-      ${igSapHtml(m,i)}
+      ${''/* THE SAP WAY (owner's pick, 10 Nov 2026): the answer's controls in ONE toolbar, three labelled rows —
+             and ONE ROW on Explorer (owner, 11 Nov 2026), where the talk runs long */}
+      ${igOneRowOn()?igOneHtml(m,i):igSapHtml(m,i)}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
@@ -10008,7 +10069,7 @@ function renderIntelDock(){
   const _popped=!!(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped()));
   if(say&&_popped&&typeof window.renderAIFeed==='function') try{ renderAIFeed(!!intel.busy); }catch(_){ }
   const msgs=!say?'':_popped?`<p class="igd-popped">${igEsc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${igEsc(i18t('jb_bring_back'))}</button></p>`
-    :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${intel.history.map((m,i,a)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a)).join('')}</div>`;
+    :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${igTurnsHtml(intel.history)}</div>`;
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
       ${igFaceHtml('think')}
@@ -12227,4 +12288,4 @@ Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFir
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
-  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igSapHtml, igSapMoreHtml });
+  IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igSapHtml, igSapMoreHtml, igOneRowOn, igOneHtml, igFoldHtml, igTurnsHtml });

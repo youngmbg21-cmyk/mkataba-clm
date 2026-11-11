@@ -12044,6 +12044,21 @@
   .igd-sap-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
   .igd-sap-v .hb-rd,.igd-sap-v .hb-nx,.igd-sap-v .igd-doors,.igd-sap-v .igd-small{display:contents}
   .igd-sap-v .hb-nx-l{display:none}/* the row's own label already says Next */
+  /* ONE ROW (owner's pick for Explorer, 11 Nov 2026): the controls on ONE line, and the answers before the
+     newest folded to one line each. Nothing spills: the row wraps inside the panel, the chips give way first. */
+  .igd-one{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0}
+  .igd-one-v{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;min-width:0;flex:1 1 auto}
+  .igd-one-v .hb-rd{display:contents}
+  .igd-one .ui-btn{flex:none}
+  .igd-one-more{flex:none;display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);padding:0;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-quiet);font:inherit;font-size:15px;line-height:1;cursor:pointer}
+  .igd-one-more:hover,.igd-one-more.is-open{border-color:var(--accent-fill,var(--color-accent-600));color:inherit}
+  .igd-one-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  .igd-fold{display:flex;align-items:baseline;gap:10px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid var(--color-divider);background:none;color:inherit;font:inherit;font-size:var(--t-meta);text-align:left;cursor:pointer}
+  .igd-fold:hover{color:var(--accent-ink)}
+  .igd-fold:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  .igd-fold-q{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .igd-fold-n{flex:none;display:inline-flex;align-items:center;gap:3px;color:var(--color-quiet);font-size:var(--t-micro);white-space:nowrap}
+  .igd-fold.is-open .igd-fold-n svg,.igd-fold.is-open .igd-fold-n .hb-rd-caret{transform:rotate(180deg)}
   .igd-sap-wrap{position:relative;display:inline-flex}
   .igd-sap-more{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:inherit;font:inherit;font-size:var(--t-meta);font-weight:500;white-space:nowrap;cursor:pointer}
   .igd-sap-more:hover,.igd-sap-more.is-open{border-color:var(--accent-fill,var(--color-accent-600))}

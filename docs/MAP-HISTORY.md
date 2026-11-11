@@ -36955,3 +36955,24 @@ when they bite. Every limiter written with a number of its own is untouched, the
 signing code's attempt wall among them: those are brute-force protection, not cost control, and "remove the
 rate limits" was never a request to take the locks off the doors. f1004 pins both halves.
 
+## THE SHELL — RAIL, BAR, PANELS
+### ONE ROW ON EXPLORER (owner picked it by name, 11 Nov 2026)
+Of the three layouts drawn on 10 November, the owner picked The SAP Way for the panel and it was built. A day
+later, with Explorer in front of them: "for the explorer, build one row." So the two faces now differ on
+purpose — the Board's talk is a question or two and keeps the SAP toolbar's three labelled rows; Explorer's runs
+ten questions deep, and three rows under each answer push the newest off the screen.
+
+BUILT AS DRAWN: the answers BEFORE the newest fold to one line each — the words you asked, and how many that
+answer put on the map (`igFoldHtml`; the count prints only where the answer drew a set, as the map's own rule
+has it, so a question that drew nothing folds to its words alone). A press opens one where it stands and the
+same press folds it back (`intel.oneOpen`). The newest answer carries ONE row: the chips, the one filled
+button, and ⋯ — which is the SAP menu under another face (`igSapMoreHtml(i,rows,{dots:true})`), so its press,
+its Esc, its press-outside and its contents are the ones already measured. THE PIECES ARE THE SAME ONES
+(`igMapReadHtml`, `hbReadingHtml`, `igDoorsHtml`, `hbNextHtml`): not one press or door changed. Measured at
+50px against the SAP toolbar's 172px on the same answer.
+
+NOT BUILT AS DRAWN, AND ASKED: the drawing shortened the chips to "Keep 3 streams · By value" and the button to
+"Read all 82". Those exact words were the owner's own pick in the Board Twin round ("Keep · Ranked by · the
+word") and the door's own label, so they were left as they are — which means at 1440 the chips take the line
+above the button rather than sitting beside it. The owner was asked whether to shorten the chips on Explorer.
+

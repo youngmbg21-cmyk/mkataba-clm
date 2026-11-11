@@ -22111,3 +22111,12 @@ Jambo window limits (light 40, deep 15, OCR 400 per 15 minutes) default to 0. Th
 floor of 1, so they could only be lowered, never switched off; they take 0 now and say so in both books.
 NOT removed, and said to the owner: the daily request ceiling and the daily spend ceiling, which are the money
 backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.
+
+## One Row on Explorer (11 Nov 2026, f1005)
+Built, on the owner's pick. Explorer's panel now folds every answer before the newest to one line (the words
+asked, and how many that answer drew) and carries ONE row under the newest: the chips, one filled button, and ⋯
+for everything else. The Board keeps the SAP toolbar. Measured 50px against 172px on the same answer.
+Asked, not decided: the drawing also shortened the chip words ("Keep 3 streams", "By value") and the button
+("Read all 82"); those are the owner's earlier picks, so they were left alone and the row wraps at 1440.
+Noticed, not fixed: Jambo's panel does not repaint while idle, while typing or while scrolling (measured, zero
+repaints over 4 seconds in each case), so the stutter the owner reports is not the panel redrawing itself.

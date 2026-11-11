@@ -2400,6 +2400,8 @@ const STRINGS = {
     int_sap_next: 'Next',
     int_sap_open: 'Open',
     int_sap_more: 'More',
+    /* ONE ROW on Explorer (owner's pick, 11 Nov 2026): an older answer folds to one line */
+    int_one_shown: '{n} shown',
     int_pic_making: 'Making the picture…',
     int_pic_copied: 'Picture copied. Paste it into an email or a slide.',
     int_pic_saved: 'Picture saved as {x}.',
@@ -26180,6 +26182,8 @@ const STRINGS = {
     int_sap_next: 'Nästa',
     int_sap_open: 'Öppna',
     int_sap_more: 'Mer',
+    /* EN RAD i Utforskaren (ägarens val, 11 nov 2026): ett äldre svar fälls ihop till en rad */
+    int_one_shown: '{n} visas',
     int_pic_making: 'Gör bilden…',
     int_pic_copied: 'Bilden är kopierad. Klistra in den i ett mejl eller en bild.',
     int_pic_saved: 'Bilden sparades som {x}.',
