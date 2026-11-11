@@ -22086,3 +22086,4 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
 
 ## Noticed, not fixed (11 Nov 2026, the other clause's ask round)
 - Playbook review window, "Jambo's draft" preview: a numbered paragraph reads "3.1Delivery Terms." (no space after the number) and the preview shows the whole clause rather than only the changed part; already so before this round.
+- Clause editor, after Apply (not typing): a changed paragraph is drawn without its bold title ("3.3 Late Delivery Liquidated Damages." plain) while the applied wording itself keeps <strong>; the resting redline drawing of a touched block is word-based. Not caused by the other-clause round.
