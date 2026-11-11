@@ -450,6 +450,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f558.
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
+- f996 (3) (the other clause's ask: the review window's box, Prepare redlines files it as that clause's own draft).
 - f996 (Jambo's instruction is not wording: pbDraftRead, pbFitAdd, draftFit, the applied card marked against what stands); contract-new-look-verify 13 (the notes stay on Clauses).
 - OUR STANDARDS BESIDE THE PAPER (new look, owner picked "Beside the paper" 6 Nov 2026): standards-beside-paper-verify 1–5 (new, red at the parent: no standards in the margin, the Dossier's Standards line opened the old side panel), 6 (look off: the side panel as before).
 - UNDO UNDOES (bug log batch 2, 26 Oct 2026): f942 (new; red at the parent) — toast() presses onClick; every toast action in js/ is handed as onClick (sdLearnApply's Undo was `run`).

@@ -22083,3 +22083,6 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
 - Correction to the line above (same night): the next run's print showed "left" fell by one while the notice period
   stayed owed, so "6 months" most likely answered ANOTHER owed box (the click landing while the form settled), not a
   lost save. owed-first 2 now waits, bounded, for the caret to be in the notice box before typing.
+
+## Noticed, not fixed (11 Nov 2026, the other clause's ask round)
+- Playbook review window, "Jambo's draft" preview: a numbered paragraph reads "3.1Delivery Terms." (no space after the number) and the preview shows the whole clause rather than only the changed part; already so before this round.
