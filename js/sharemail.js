@@ -342,7 +342,7 @@ function shareWaTextOf(o){
   if (x.message) parts.push({ k: 'msg', t: String(x.message) });
   parts.push({ k: 'say', t: 'Open it here — review, sign, request changes or decline, no account needed:' });
   parts.push({ k: 'link', t: x.link == null ? null : String(x.link), at: true });
-  if (x.expires) parts.push({ k: 'foot', t: `This link expires on ${String(x.expires).slice(0, 10)}.` });
+  if (x.expires) parts.push({ k: 'foot', t: `This link expires on ${chaseDayWords(x.expires, 'en')}.` });   /* a day in words, never digits (BUGLOG 19928) */
   const body = parts[0].t
     + (x.message ? `\n\n${String(x.message)}` : '')
     + `\n\n${parts.find(p => p.k === 'say').t}\n${x.link == null ? '' : String(x.link)}`

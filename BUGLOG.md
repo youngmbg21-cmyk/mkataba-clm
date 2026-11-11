@@ -22225,3 +22225,23 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: the Handbook's pictures are taken in the old look (its world never turns the new look on), so chapter 2.3's pictures still show the form; the chapter's words describe the paper. New-look pictures need the Handbook world to switch the look on.
 - Noticed, not fixed: CLAUDE.md is about 84.7 KB, over its "about 80 KB" line (it was 84.3 KB before this change); a trim needs the owner's yes.
 - Noticed, not fixed: a date blank uses the browser's own date box, so its empty face follows the computer's setting (mm/dd/yyyy on a US machine); the panel says the date in words.
+
+## 11 Nov 2026 — the bug log round (owner: "clean the top ten bugs from the bug log", then "top 20 … the ones that break something a person sees or that could get the record wrong"; f1014)
+- Fixed: BUGLOG 22086 — a viewer saw a live Signer "Change" they could not use; no Change is drawn for them now.
+- Fixed: BUGLOG 22040 — the Contracts head counted the whole folder while a view, a search or "only these" narrowed the list; it counts the list under it.
+- Fixed: BUGLOG 21369 — Parties' "N live parties have no NDA" disagreed with its chip; it counts with the filter's own test and the chip opens exactly those.
+- Fixed: BUGLOG 21606 — the receipt said "Copies sent" over failed copies; it says Copies sent / Some copies not sent / Copies not sent.
+- Fixed: BUGLOG 21371 — Jambo was told page names the bar no longer shows (Home, Customers, Directory); now the Board, Parties, People.
+- Fixed: BUGLOG 21004 and 20536 — the portal's comment failure and the phone's three action-bar sentences were English only; both books now.
+- Left alone on purpose: BUGLOG 21005 — "Updated version emailed to …" is written only to the history (a record), and records keep English.
+- Fixed: BUGLOG 19928 — every email (share, reminder, nudge) printed the link's last day as digits; it says the day in words.
+- Fixed: BUGLOG 21344 — a list with nothing found said "0–0 of 0" at its foot; the foot stays, empty.
+- Fixed: BUGLOG 21372 — resizing across the panel's width did not redraw Our paper; the page carries its marks now.
+- Fixed: BUGLOG 21343 — Pop out left the panels that showed Jambo's words blank; they are drawn again on Pop out and on Put back.
+- Fixed: BUGLOG 21373 — the list panel's resting count could count a hidden table; it counts the one in sight.
+- Fixed (found in the triage): the Contracts head's money left out contracts with no exchange rate and said nothing; it says "N left out (no rate)".
+- Fixed (the audit of the two builds): Choose the road read "never sent" before the sent links were loaded; it waits for them. Fill on the paper could end a held run on a blank its writer refuses (counterparty, value), leaving the rest unsaved; those two are left to their own doors.
+- Not fixed, for the owner: BUGLOG 20921 — contractPlainText glues a heading onto its first sentence; mending it changes the text Jambo's kept answers (columns, reads) are keyed on, so they would be read and paid for again. Needs the owner's yes.
+- Not fixed, for the owner: BUGLOG 21762 — cnMask replaces a code-named deal's real name inside longer words too; a whole-word mask can miss a name that ends in punctuation ("Acme Ltd."), which would leak the real name to outsiders. Needs a careful design.
+- Not a live fault: BUGLOG 22148 (the double class on #share-step-1 — nothing passes hiddenStart); the duplicate-name check across workspaces (one workspace per server today, MULTITENANCY-NOTES); the Board story's memo (cleared on every Board paint).
+- Noticed, not fixed: BUGLOG 21906 — the invitation email's body is 14px where the other letters are 15px (cosmetic; a frame change to every outside email).

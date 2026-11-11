@@ -1119,13 +1119,15 @@ function cuSay(){
   const live = rows.filter(r => cuStanding(r) === 'live').length;
   const views = rows.map(cuView);
   const waiting = views.filter(v => v.needs.length).length;
-  const noNda = rows.filter(r => cuStanding(r) === 'live' && cuNdaOf(r.key, ndas).state === 'none').length;
+  /* THE NUMBER IS THE LIST ITS CHIP OPENS (BUGLOG 21369): the NDA filter's own test (no cover today: none, ended or a
+     draft) over the live parties, and the chip opens exactly those (live, no cover) */
+  const noNda = rows.filter(r => cuStanding(r) === 'live' && cuNdaWants(cuNdaOf(r.key, ndas).state, 'none')).length;
   const lines = [`<b>${_cuE(i18tn('cu_say', rows.length, { n: rows.length }))}</b>${_cuE(': ' + i18t('cu_say_live', { n: live }))}.`];
   if (waiting) lines.push(_cuE(i18tn('cu_say_waiting', waiting, { n: waiting }) + '.'));
   if (noNda) lines.push(_cuE(i18tn('cu_say_no_nda', noNda, { n: noNda }) + '.'));
   const chips = [];
   const set = (k, val) => () => { _cu[k] = val; _cu.shown = 0; cuRepaint(); if (typeof placeSave === 'function') placeSave(); };
-  if (noNda && _cu.nda !== 'none') chips.push({ label: i18t('cu_say_chip_no_nda'), run: set('nda', 'none') });
+  if (noNda && (_cu.nda !== 'none' || _cu.status !== 'live')) chips.push({ label: i18t('cu_say_chip_no_nda'), run: () => { _cu.nda = 'none'; _cu.status = 'live'; _cu.shown = 0; cuRepaint(); if (typeof placeSave === 'function') placeSave(); } });
   if (_cu.status !== 'all') chips.push({ label: i18t('cu_say_chip_all'), run: set('status', 'all') });
   return { lines, chips };
 }

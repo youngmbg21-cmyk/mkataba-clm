@@ -19326,8 +19326,13 @@ function distributionPanelHtml(c){
     </div>
     ${r.detail?`<div class="text-[9.5px] mt-0.5" style="color:${dot(r.status)}">${String(r.detail).replace(/</g,'&lt;')}</div>`:''}
   </div>`).join('');
+  /* "SENT" MUST MEAN SENT (BUGLOG 21606): the heading says what the rows under it say — every copy left, some did
+     not, or none did — never "Copies sent" over a list of failures */
+  const okSt=st=>['delivered','queued','sent'].includes(st);
+  const rs=(d.recipients||[]), okN=rs.filter(r=>okSt(r.status)).length;
+  const copiesHead=!rs.length||okN===rs.length?'ct_copies_sent':okN?'ct_copies_some_sent':'ct_copies_none_sent';
   return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
-    <div class="flex items-center gap-2 mb-1"><span class="text-[11px] font-600 text-ink">${i18t('ct_copies_sent')}</span>
+    <div class="flex items-center gap-2 mb-1"><span class="text-[11px] font-600 text-ink">${i18t(copiesHead)}</span>
       <span class="text-[9px] font-mono text-ink/45 ml-auto">${d.at?fmtDT(d.at):''}</span></div>
     ${rows||`<div class="text-[10.5px] text-ink/50">${i18t('ct_no_recipients')}</div>`}
     ${d.error?`<div class="text-[10px] text-rose-600 mt-1">${String(d.error).replace(/</g,'&lt;')}</div>`:''}
