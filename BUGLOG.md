@@ -22189,3 +22189,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: CLAUDE.md is 81.5 KB, a little over the ~80 KB rule; a trim needs the owner's yes.
 - FIXED (same round): `int_rd_short_groups` is '{n} {gs}' — a number and a word that is translated elsewhere,
   so it has no words of its own and is the same in both books. Named in f148's SAME_IN_BOTH.
+- FIXED (same round, caught by GitHub): closing the ⋯ by REPAINTING the row on a press of one of its own rows
+  detached the pressed button before the delegated handlers further down the page read it, and
+  `closest('#ig-dock …')` on a detached node finds nothing — Pin this finding and Copy picture went dead
+  (explorer-stage-four 1b, explorer-stage-five 2e). The press only takes the latch off again; the row's own
+  act repaints, as before.

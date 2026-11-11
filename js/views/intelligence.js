@@ -5991,7 +5991,11 @@ document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target|
   if(b){ e.stopPropagation(); const k=b.getAttribute('data-ig-more'); intel.moreOpen=intel.moreOpen===k?null:k; igOneRepaint(Number(k));
     const fresh=document.querySelector(`[data-ig-more="${k}"]`); if(fresh&&intel.moreOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); return; }
   /* a press on anything inside the menu closes it: the act is the answer */
-  if(e.target.closest('#ig-dock .igd-more-menu button')){ const i=Number(intel.moreOpen); intel.moreOpen=null; if(!Number.isNaN(i)) igOneRepaint(i); } });
+  /* a press on a row INSIDE the menu only takes the latch off: the row's own act repaints. Repainting HERE
+     detaches the pressed button before the delegated handlers further down the page read it, and
+     `closest('#ig-dock …')` on a detached node finds nothing — Pin this finding and Copy picture went dead
+     (GitHub, 11 Nov 2026: explorer-stage-four 1b, explorer-stage-five 2e). */
+  if(e.target.closest('#ig-dock .igd-more-menu button')) intel.moreOpen=null; });
 /* A SCROLL MOVES IT, IT DOES NOT CLOSE IT (measured, 11 Nov 2026): opening the menu repaints the panel and the
    feed lands on the newest answer, which IS a scroll — closing on one shut the menu in the same breath as
    opening it, which is the flash a reader sees. It follows its row instead. */
