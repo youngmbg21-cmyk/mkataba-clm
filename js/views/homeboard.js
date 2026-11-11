@@ -9123,6 +9123,8 @@ function hbDockRepaint(){
       el.outerHTML = hbReadingHtml(m.reading, hbReadingLive(i), { noNext: !!m.nextMoved }); done = true;
     });
     if (!done && typeof renderIntelDock === 'function') renderIntelDock();
+    /* a chip's menu is placed against the panel, never left to hang under a chip the feed clips away */
+    else if (typeof window.igMorePlace === 'function') try { igMorePlace(); } catch (_p){ /* no panel */ }
   } catch (_){ if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_e){ /* the panel is not up */ } }
 }
 /* a chip's choice, through the card's own writer; a change right after an

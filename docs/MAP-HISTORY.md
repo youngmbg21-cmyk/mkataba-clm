@@ -37136,3 +37136,31 @@ rule has it. A CORRECTION OWED TO THE OWNER: the earlier measurement reported he
 repaint while idle" was taken with a wrapper around `window.renderIntelDock`, which the module never calls — it
 measured nothing. The claim is withdrawn.
 
+
+## THE SHELL — RAIL, BAR, PANELS (the chips' drop-down, 11 Nov 2026)
+
+The owner, after the ⋯ was placed: "have you fixed the bug with the drop down from the chips not appearing and
+only flashing?" No — the ⋯ had been fixed and the chips had not. Measured at the owner's three screens, the chip
+menu opened at x=2146 on a 1440-wide window: 700px clear of the screen, all three of its rows unpainted; it came
+back into the panel at about 300ms and stayed. That journey IS the flash.
+
+WHY. Two faults, one on top of the other.
+1. `.hb-rd-menu` is `position:absolute` under its chip, and the chip stands on the panel's last line, so the
+   feed's own scroller clipped the whole menu away. The same fault the ⋯ had.
+2. A chip press called `renderIntelDock()`, which repaints the whole panel — and the panel GLIDES. A
+   `position:fixed` box inside a transformed ancestor is placed against THAT ancestor, not the window, so the
+   placement was right and the result was off the screen. The measurement that caught it: the styles said
+   left:1073 while `getBoundingClientRect()` said 2146, and the two met when the glide ended.
+
+WHAT WAS BUILT. `igMorePlace` is the ONE placer for every menu the panel opens — the ⋯ and the chips — and it
+asks the MENU'S OWN BOX where it landed, not the anchor's: off the panel, it takes the class back off, waits a
+frame and measures again (up to 60 frames). The menus are unseen until placed (`.is-set`), so no reader watches
+the journey. And a press no longer repaints the panel: `igOneRepaint(i)` redraws one row, `igMrRepaint(i)` one
+chip group, in place — the end of the glide and of the stutter on a chip press. Measured after: visible, inside
+the panel, every row painted, on the FIRST FRAME, at 1440x780, 1536x730 and 1366x950, both menus.
+Guarded by jambo-one-row-verify 4f.
+
+ALSO FIXED, AND SAID: CLAUDE.md carried three live conflict markers (HEAD / origin/main) committed in d4e24d3 —
+a merge resolved badly. The HEAD side (One Row) is kept and the origin/main side (the retired three-row toolbar)
+dropped, which is what every other line of the file already says. The file is 81.5 KB, a little over the ~80 KB
+rule; no trim was made, since a trim needs the owner's yes.

@@ -139,6 +139,42 @@ const check = (name, pass, detail) => {
       await page.screenshot({ path: path.join(OUT, `one-row-more-${w}x${hh}.png`) });
     }
     check('4e the menu stands inside the panel and every row of it is painted, at all three screens', cut.length === 0, cut.join(' | ') || 'all three clean');
+
+    /* IT IS THERE THE MOMENT IT IS PRESSED (owner, 11 Nov 2026: "the drop down ... not appearing and only
+       flashing"): a press used to repaint the whole panel, which GLIDES — and a menu measured mid-glide was
+       placed 700px clear of the screen, coming back only when the glide ended. Opening a menu now redraws the
+       one row (or the one chip group) where it stands, so it is painted in its final place on the first frame.
+       Red at the parent: the menu is off the panel, or invisible, until the glide has finished. */
+    const frame = async () => { await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))); };
+    const chipMenu = () => page.evaluate(() => {
+      const m = document.querySelector('#ig-dock .hb-rd-wrap .hb-rd-menu'); if (!m) return { open: false };
+      const r = m.getBoundingClientRect(), d = document.getElementById('ig-dock').getBoundingClientRect();
+      const rows = [...m.querySelectorAll('button')].map(c => { const q = c.getBoundingClientRect();
+        const hit = document.elementFromPoint(Math.round(q.left + q.width / 2), Math.round(q.top + q.height / 2));
+        return { t: c.textContent.trim().slice(0, 26), painted: !!(hit && m.contains(hit)) }; });
+      return { open: true, seen: getComputedStyle(m).visibility === 'visible',
+        inside: r.left >= d.left - 1 && r.right <= d.right + 1 && r.top >= d.top - 1 && r.bottom <= d.bottom + 1,
+        rows: rows.length, unpainted: rows.filter(x => !x.painted).map(x => x.t) };
+    });
+    const flash = [];
+    for (const [w, hh] of SCREENS){
+      await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350);
+      await page.evaluate(() => { if (typeof intel !== 'undefined'){ intel.moreOpen = null; intel.mrOpen = null; renderIntelDock(); } });
+      await page.waitForTimeout(250);
+      const chip = page.locator('#ig-dock [data-ig-mr]').locator('visible=true').first();
+      if (!await chip.count()){ flash.push(`${w}x${hh}: no chip`); continue; }
+      await chip.click(); await frame();
+      const C1 = await chipMenu();
+      if (!C1.open || !C1.seen || !C1.inside || C1.unpainted.length) flash.push(`${w}x${hh} chip: ${JSON.stringify(C1)}`);
+      await page.screenshot({ path: path.join(OUT, `chip-menu-${w}x${hh}.png`) });
+      await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+      await page.click('#ig-dock .igd-one-more'); await frame();
+      const D1 = await menu();
+      if (!D1.open || !D1.inside || D1.unpainted.length) flash.push(`${w}x${hh} dots: ${JSON.stringify(D1)}`);
+      await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+    }
+    check('4f a chip\'s menu and the ⋯ are painted in their final place on the first frame — no flash', flash.length === 0,
+      flash.join(' | ') || 'both menus, all three screens, first frame');
     await page.evaluate(() => { if (typeof intel !== 'undefined' && intel.moreOpen){ intel.moreOpen = null; renderIntelDock(); } });
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
 

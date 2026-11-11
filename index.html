@@ -12020,6 +12020,9 @@
   .hb-rd-chip.is-open{background:var(--color-accent-50)}
   .hb-rd-chip.is-still{cursor:default;opacity:.75}
   .hb-rd-chip:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  /* a menu in Jambo's panel is placed by measurement (igMorePlace) and stays unseen until it is */
+  #ig-dock .hb-rd-menu,#ig-dock .igd-more-menu.is-open{visibility:hidden}
+  #ig-dock .hb-rd-menu.is-set,#ig-dock .igd-more-menu.is-open.is-set{visibility:visible}
   .hb-rd-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;max-height:300px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px -10px rgba(0,0,0,.35)}
   .hb-rd-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:6px 9px;border:0;border-radius:var(--radius);background:none;color:inherit;font:inherit;font-size:var(--t-meta);text-align:left;cursor:pointer}
   .hb-rd-menu button:hover:not(:disabled){background:var(--color-accent-50,rgba(0,0,0,.05))}

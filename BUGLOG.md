@@ -22175,3 +22175,15 @@ The chips' presses are delegated on document now (the turns are moved between ho
 outlive the render that bound to it and collect a second listener — one press, two toggles, a flash).
 CORRECTION: the earlier note that the panel does not repaint while idle was measured with a wrapper around
 window.renderIntelDock, which the module never calls. It measured nothing; the claim is withdrawn.
+
+## 11 Nov 2026 — the chips' drop-down did not appear, it flashed
+- FIXED: a chip's menu in Jambo's panel was drawn under a chip on the panel's last line, where the feed's own
+  scroller clipped it, and the press repainted the whole panel, which glides — a fixed box inside a glide is
+  placed against the glide, so the menu landed ~700px off the screen and came back only when the glide ended.
+  Now: `igMorePlace` places every menu the panel opens (the chips' and the one row's), asks the menu's own box
+  where it landed, keeps it unseen until placed (`.is-set`), and a press redraws ONE row (`igOneRepaint`) or
+  ONE chip group (`igMrRepaint`) instead of the panel. Measured: first frame, visible, inside, every row
+  painted, at the owner's three screens. Guarded by jambo-one-row-verify 4f.
+- FIXED (same change, said to the owner): CLAUDE.md carried live merge conflict markers committed in d4e24d3.
+  The One Row side kept, the retired three-row-toolbar side dropped.
+- Noticed, not fixed: CLAUDE.md is 81.5 KB, a little over the ~80 KB rule; a trim needs the owner's yes.
