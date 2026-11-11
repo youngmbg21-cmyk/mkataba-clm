@@ -14894,6 +14894,8 @@
      just above a panel's foot (the foot keeps its 56); on Home at the end of the counts' line */
   .jb-ways{display:flex;flex-wrap:wrap;gap:4px 12px;flex:none;min-width:0}
   .jb-ways.is-above-foot{padding:8px var(--jb-g,16px) 6px;background:var(--color-surface)}
+  /* while a line (the way back, or "Jambo ›") stands above the box it carries the links; the row waits hidden, in either look (f1006) */
+  .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])){display:none}
   .jb-ways.is-home{margin-left:auto;align-items:center}
   /* THE SAP WAY (owner's pick, 10 Nov 2026): the page links ride the way-back line, at its right end before the
      bin — one line, never wrapped, at most three shown so nothing is squeezed out of the panel. */
@@ -18265,6 +18267,10 @@
   /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
   html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
   html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  /* THE LINKS RIDE THE LINE (11 Nov 2026): while the way back or "Jambo ›" stands above the box it carries the page
+     links, so the row above the box is hidden, not removed (removing it after every repaint flashed it), and the foot
+     keeps its own top line */
+  html.lg-new .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])) + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:var(--color-divider)}
   /* on a contract the row above the box is the paper's own links (the one row, as drawn): the same line above it, none under it */
   html.lg-new #ig-dock.pd-face-up [data-ig-chips]:has([data-ca-chip="rl_ladder"]){display:flex}
   html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]){border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0;background:var(--color-surface)}

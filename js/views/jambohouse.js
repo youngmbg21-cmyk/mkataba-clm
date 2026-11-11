@@ -1285,10 +1285,11 @@ function jhWire(host){
   host.addEventListener('change', e => { const id = e.target && e.target.id;
     const lvk = e.target && e.target.getAttribute && e.target.getAttribute('data-jh-lv');
     if (lvk){ const v = e.target.value || null;
-      Promise.resolve(agentLevelMineSet(lvk, v)).then(ok => { if (!ok) return; _jhScKey = '';
-        if (typeof toast === 'function') toast(_jhT('ag_lv_saved', { lv: _jhT('st_agents_lv_' + agLevelOf(lvk)) }), 'ok');
-        jhKick(); },
-      err => { if (typeof toast === 'function') toast(_jhT('st_pref_failed') + ' ' + ((err && err.message) || ''), 'err'); _jhScKey = ''; });
+      /* drawn at once with the choice (agentLevelMineSet takes it before the server answers); a refusal draws the old one */
+      const saving = agentLevelMineSet(lvk, v); _jhScKey = ''; jhKick();
+      Promise.resolve(saving).then(ok => { if (!ok) return;
+        if (typeof toast === 'function') toast(_jhT('ag_lv_saved', { lv: _jhT('st_agents_lv_' + agLevelOf(lvk)) }), 'ok'); },
+      err => { if (typeof toast === 'function') toast(_jhT('st_pref_failed') + ' ' + ((err && err.message) || ''), 'err'); _jhScKey = ''; jhKick(); });
       return; }
     if (id === 'jh-look') jhSetLook(Number(e.target.value) === 1 ? 1 : 0);
     else if (id === 'jh-speed'){ const v = Number(e.target.value); if (JH_SPEEDS.includes(v)){ _jh.speed = v; if (typeof placeSave === 'function') placeSave(); } }
@@ -1691,10 +1692,11 @@ function jhnPanelHtml(){
 async function jhnMaySet(k, v){
   if (v === 'auto'){ if (typeof openSettingsAt === 'function') openSettingsAt('company', 'agents'); return; }
   const co = (typeof agLevelCo === 'function') ? agLevelCo(k) : 'ask';
-  try { const ok = await agentLevelMineSet(k, v === co ? null : v); if (!ok) return;
-    if (typeof toast === 'function') toast(_jhT('ag_lv_saved', { lv: _jhT('st_agents_lv_' + agLevelOf(k)) }), 'ok');
-    renderJamboHouse(); }
-  catch (err){ if (typeof toast === 'function') toast(_jhT('st_pref_failed') + ' ' + ((err && err.message) || ''), 'err'); }
+  /* drawn at once with the choice (agentLevelMineSet takes it before the server answers); a refusal draws the old one */
+  const saving = agentLevelMineSet(k, v === co ? null : v); renderJamboHouse();
+  try { const ok = await saving; if (!ok) return;
+    if (typeof toast === 'function') toast(_jhT('ag_lv_saved', { lv: _jhT('st_agents_lv_' + agLevelOf(k)) }), 'ok'); }
+  catch (err){ if (typeof toast === 'function') toast(_jhT('st_pref_failed') + ' ' + ((err && err.message) || ''), 'err'); renderJamboHouse(); }
 }
 if (typeof document !== 'undefined' && !document._jhnWired){ document._jhnWired = true;
   document.addEventListener('click', e => {

@@ -41,10 +41,12 @@ const stage = (pref, saves) => {
     mineLoaded: () => true, mineLoad: async () => {},
     mineSave: async (kind, item) => { saves.push([kind, item.copilotLevel]); pref.v = item; return item; },
     toast: () => {}, window: { state: { view: 'calendar' } }, state: { view: 'calendar' }, Object, String,
+    /* the buttons a press lights at once (calLevelLight, 11 Nov 2026) */
+    document: { querySelectorAll: () => (pref.btns || []) },
   };
   vm.createContext(ctx);
   vm.runInContext(`const CAL_LEVELS = [['auto','cal_lv_auto'],['ask','cal_plan_ask'],['never','cal_lv_never']];\n`
-    + ['calLevelOf', 'calLevelSegHtml', 'calLevelSet'].map(n => fnBody(CAL, n)).join('\n'), ctx);
+    + ['calLevelOf', 'calLevelSegHtml', 'calLevelLight', 'calLevelSet'].map(n => fnBody(CAL, n)).join('\n'), ctx);
   return ctx;
 };
 

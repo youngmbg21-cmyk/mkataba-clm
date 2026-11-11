@@ -614,7 +614,8 @@ function jamboWaysSync(){
       /* a chosen row's or a face's own links (jlOwnPaint, jamboOwnWays) stand there instead, while what drew them stands */
       if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)){ dropInDoor(); return; } }
       if (door){
-        if (old) old.remove();
+        /* THE ROW ABOVE THE BOX IS LEFT WHERE THE PANEL DREW IT (11 Nov 2026): removing it after every repaint flashed it
+           on and off; while a line is shown above the box the sheet hides it (index.html, "THE LINKS RIDE THE LINE") */
         const cur = door.querySelector('.jb-ways');
         if (cur && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length) return;
         if (cur) cur.remove();
@@ -1326,7 +1327,11 @@ function jamboFwdHtml(o){
   const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const tr = k => (typeof i18t === 'function') ? i18t(k) : k;
   const jb = tr('pd_tab_copilot'), tip = tr('jb_door_fwd_tip');
-  return `<div class="jb-door jb-door-fwd-line" data-jb-fwd-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back jb-door-fwd" data-jb-fwd="${e(o.host || '')}" title="${e(tip)}" aria-label="${e(tip)}"><span>${e(jb)}</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-right"/></svg></button></div>`;
+  /* THE PAGE LINKS RIDE THIS LINE TOO (owner, 11 Nov 2026: the links went missing once "Jambo ›" stood above the box):
+     it is the same spot as the way back, so it carries them the same way, at its right end */
+  let ways = '';
+  try { if (o.ways !== false && typeof window.jamboWaysHtml === 'function' && typeof window.jamboWaysHere === 'function') ways = window.jamboWaysHtml(window.jamboWaysHere(), 'is-in-door'); } catch (_){ ways = ''; }
+  return `<div class="jb-door jb-door-fwd-line" data-jb-fwd-door${o.on ? '' : ' hidden'}><button type="button" class="jb-door-back jb-door-fwd" data-jb-fwd="${e(o.host || '')}" title="${e(tip)}" aria-label="${e(tip)}"><span>${e(jb)}</span><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-right"/></svg></button><span class="jb-door-sp"></span>${ways}</div>`;
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._jbFwdWired)){
   if (typeof window !== 'undefined') window._jbFwdWired = true;
