@@ -673,3 +673,6 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE LIGHT LIST — A TYPED ANSWER IS NEVER TAKEN BACK (11 Nov 2026)
 - node --test test/f1005-a-typed-answer-is-never-taken-back.test.js test/f327-copilot-reads-and-fills-on-arrival.test.js
 - browser (GitHub): owed-first-verify (2b)
+
+## THE SHELL — A PRESS SHOWS AT ONCE, THE PAGE LINKS RIDE THE LINE (11 Nov 2026)
+- node --test test/f1006-a-press-shows-at-once-and-the-links-ride-the-line.test.js test/f793-jambo-may-change-my-calendar.test.js

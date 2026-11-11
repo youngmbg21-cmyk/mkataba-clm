@@ -18265,6 +18265,11 @@
   /* -- the panel's foot: one line above the doors, the doors, then the box, 44 tall -- */
   html.lg-new .jb-ways.is-above-foot{border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0}
   html.lg-new .jb-ways.is-above-foot + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:transparent}
+  /* THE LINKS RIDE THE LINE (11 Nov 2026): while the way back or "Jambo ›" stands above the box it carries the page
+     links, so the row above the box is hidden, not removed (removing it after every repaint flashed it), and the foot
+     keeps its own top line */
+  .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])){display:none}
+  html.lg-new .jb-ways.is-above-foot:has(+ * .jb-door:not([hidden])) + :is(.igd-foot, .jl-foot, .st-jb-ask){border-top-color:var(--color-divider)}
   /* on a contract the row above the box is the paper's own links (the one row, as drawn): the same line above it, none under it */
   html.lg-new #ig-dock.pd-face-up [data-ig-chips]:has([data-ca-chip="rl_ladder"]){display:flex}
   html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]){border-top:1px solid var(--color-divider);padding:12px var(--jb-g,16px) 0;background:var(--color-surface)}
