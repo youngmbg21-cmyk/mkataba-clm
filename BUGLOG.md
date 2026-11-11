@@ -22107,3 +22107,7 @@ The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shar
   over a filled box, persist saves the live record, the probe waits while a save is pending. f1002.
 - (renumbered: the test is f1003, f1002 being the seal catch-up's, 11 Nov 2026)
 - (renumbered again: the test is f1004, f1003 having gone to the SAP toolbar's, 11 Nov 2026)
+## Changed by the owner's pick (11 Nov 2026): "Card Inside"
+- The board's brief no longer stands before Summarise is pressed (owner: "nothing written … only once you press");
+  pressed, it opens inside the white greeting under the buttons. The card that stood between the greeting and Your book
+  before the press is removed (a band taken off: this line).

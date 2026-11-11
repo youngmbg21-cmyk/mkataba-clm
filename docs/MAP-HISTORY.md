@@ -36974,3 +36974,13 @@ And once more on 11 Nov 2026, after main had grown the file to 80,294 bytes (ver
 - THE WAY BACK is where the reader last stood (`caTrailSeen`); the page IN FRONT is the one the box names (`igPaperInFront`, f978). A question turns the panel to his talk with ONE way back and THE BIN (`jamboDoorHtml`). A page's name typed moves free (`jamboPageGo`, f955); he says what he did (`caEchoHtml`). f949, f950.
 ```
 Size after: CLAUDE.md 80036 bytes.
+
+## HOME — THE BOARD AND THE MAP: CARD INSIDE (11 Nov 2026)
+The owner, off a screenshot of the Board: "The written brief card in reddish color needs to appear inside the white top
+bar but right below the summarise my board press. Show drawings for this." Three were drawn (Card Inside, The SAP Way,
+The Legora Way). Then: "There should be nothing written such as I prepared for you etc. you should only see them once
+you press" (reverses the card standing before the press, 10 Nov), and the pick by name: "Card Inside". Built: before
+Summarise the brief draws nothing (hbBoardSumHtml returns no box); once pressed it stands inside the greeting
+(hbBoardHeadHtml appends it in the new look), the counted sentence first, then "Jambo:" and his paragraph. Photographed
+at 1440×780, 1536×730 and 1366×950: the card's top 149, inside the white. The CLAUDE.md line's earlier form: "head =
+`cn2Greet` · one counted sentence of links (`hbGreetSayHtml`, `data-hb-gr` → `ndOpenBoard`) · pills · Live."
