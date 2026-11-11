@@ -73,7 +73,12 @@ const check = (name, pass, detail) => {
       if (!(await page.locator('#igd-input').count())) await page.evaluate(() => { intel.fdTab = false; renderIntelDock(); });
       /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => intelAsk(w), q);
       await until(k => !intel.busy && intel.history.length >= k + 2, n); await page.waitForTimeout(300); };
-    const press = async sel => { if (await page.locator(sel).count()) { await page.click(sel); return true; } return false; };
+    /* THE SAP WAY (10 Nov 2026): the rare acts (Explain this view, Pin this finding, Copy picture) live under More on
+       the answer's own toolbar — the row is in the page but not shown, so a press opens More first */
+    const press = async sel => { if (!(await page.locator(sel).count())) return false;
+      if (!(await page.locator(sel).first().isVisible())){ const m = page.locator('#ig-dock [data-ig-sap-more]').last();
+        if (await m.count()) { await m.click(); await page.waitForTimeout(150); } }
+      await page.click(sel); return true; };
     return { until, toExplorer, ask, press };
   };
   try {

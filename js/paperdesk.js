@@ -7606,12 +7606,19 @@ function pd2Find(cv, at){
 function pd2ClauseTint(){
   if (typeof document === 'undefined') return;
   document.querySelectorAll('#ig-canvas .pd2-cl-on').forEach(e => e.classList.remove('pd2-cl-on'));
+  document.querySelectorAll('#pd2-notes .pd2-mg.is-on, #ig-dock #pd-thread .doc-th-row.pd2-lit').forEach(e => e.classList.remove('is-on', 'pd2-lit'));
   const cv = document.getElementById('ig-canvas');
   if (!cv || !pd2On() || _pdTab === 'copilot' || cv.closest('.ig-redpaper, .ig-signpaper')) return;
   const row = document.querySelector('#ig-dock #pd-thread .doc-th-row.is-open'); if (!row) return;
   const name = (row.querySelector('.doc-th-name') || row).textContent.replace(/\s+/g, ' ').trim().toLowerCase();
   const sec = pd2WalkSections(cv).find(x => x.head && name.indexOf(String(x.head.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()) === 0);
   if (sec) sec.els.forEach(e => { if (e !== sec.head) e.classList.add('pd2-cl-on'); });
+  /* THE NOTE BESIDE IT AND ITS ROW LIGHT WITH IT (owner, 10 Nov 2026): one thing, one amber outline in three places; painted,
+     never stored */
+  const fold = t => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const nm = fold(name);
+  const note = nm ? [...document.querySelectorAll('#pd2-notes .pd2-mg')].find(g => { const h = fold((g.querySelector('.pd2-mg-h') || {}).textContent); return h && (nm.indexOf(h) === 0 || h.indexOf(nm) === 0); }) : null;
+  if (note){ note.classList.add('is-on'); row.classList.add('pd2-lit'); }
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   if (e.target && e.target.closest && e.target.closest('#ig-dock #pd-thread') && pd2On()) setTimeout(pd2ClauseTint, 0);
@@ -7631,9 +7638,12 @@ function pd2NotesPaint(c){
      read reaches its clause (pd2WalkNotesHold, asked again on every step), and all of them there once it has read */
   const walking = !!(c && pd2WalkOn(c.id));
   if (walking) pd2WalkPaint();
-  /* the notes stand beside the paper with the Dossier; Clauses and Redlines mark the paper their own way */
+  /* the notes stand beside the paper with the Dossier AND WITH CLAUSES (owner, 10 Nov 2026: "the notes should not disappear
+     when you move from dossier to the clauses page"; reverses "Clauses marks the paper its own way"); Redlines marks it its
+     own way. Filling in on Clauses keeps what it had. */
   const red = !!(zoom && zoom.querySelector('.ig-redpaper')) && !(zoom.querySelector('.ig-redpaper.is-clean'));
-  if (_pdTab !== 'copilot' && !red){ pd2NotesOff(); pd2ClauseTint(); return; }
+  const onClauses = _pdTab === 'doc' && !(c && !walking && pd2FillOn(c.id));
+  if (_pdTab !== 'copilot' && !red && !onClauses){ pd2NotesOff(); pd2ClauseTint(); return; }
   if (c && !walking && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
   /* a negotiated contract's CLEAN paper is the paper: its notes stand beside it like any other (owner-reported 6 Nov 2026,
      MK-469: "There are no side notes even when in the dossier tab"); only the signing copy has none */
@@ -7671,6 +7681,7 @@ function pd2NotesPaint(c){
     host.innerHTML = groups.map((g, i) => pd2GroupHtml(g, i)).join('');
     pd2GroupsPlace(groups, zoom, host, f);
     if (walking) pd2WalkNotesHold(groups, host);
+    if (onClauses) pd2ClauseTint();
   }
   try {
     if (typeof CSS !== 'undefined' && CSS.highlights && typeof globalThis.Highlight === 'function'){
@@ -7711,7 +7722,8 @@ function pd2GroupHtml(g, i){
   let quoted = false;
   const line = (x, k) => { const q = x.clause && x.quote && !quoted ? (quoted = true, `<div class="pd2-mg-q">“${E(x.quote)}”</div>`) : '';
     return `<div class="pd2-mg-i is-${x.tone}${k ? ' is-more' : ''}${x.std ? ' is-std' : ''}"><div class="pd2-mg-l"><i class="pd2-mn-dot" aria-hidden="true"></i>${x.word ? `<b>${E(x.word)}</b> · ` : ''}${E(x.k)}</div>${q}${!x.clause && x.w ? `<div class="pd2-mn-w">${E(x.w)}</div>` : ''}${x.acts ? `<div class="pd2-mn-a">${x.acts}</div>` : ''}</div>`; };
-  const open = g.items.some(x => x.clause) && g.at >= 0 ? `<div class="pd2-mn-a"><button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${g.at}">${E(_pdT('pd2_g_open'))}</button></div>` : '';
+  /* on Clauses the clause is already shown there: the same door, said as what it does there (lands on its row) */
+  const open = g.items.some(x => x.clause) && g.at >= 0 ? `<div class="pd2-mn-a"><button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${g.at}">${E(_pdT(_pdTab === 'doc' ? 'pd2_g_shown' : 'pd2_g_open'))}</button></div>` : '';
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
   const kept = _pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '';
   return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${open}</div>`;

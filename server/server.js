@@ -7843,16 +7843,16 @@ const GRAPH_ASK_CAP = 600;   // contracts per map command, the browser's own cap
 /* The structured filter the tool may return. HaTi applies it in the browser
    over its own cards (graphWhereIds), so the model never has to copy 159 ids
    by hand. Only these keys pass; anything else is dropped here. */
-const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived', 'imported'];
+const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived', 'imported', 'side'];
 /* ONE SCHEMA for the vocabulary, read by the graph tool and by list_portfolio
    (Copilot audit phase 4); its keys ARE GRAPH_WHERE_KEYS (f305 pins the set). */
-const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Jambo has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false), imported (true = brought in through Import contracts), and false keeps everything else.',
+const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Jambo has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false), imported (true = brought in through Import contracts), and false keeps everything else; side ("supplier" = we buy from them, "customer" = they buy from us: use it for "suppliers only", "my customers", "supplier contracts").',
   properties: {
     status: { type: 'array', items: { type: 'string' } }, folder: { type: 'string' }, kind: { type: 'string' }, counterparty: { type: 'string' },
     valueAbove: { type: 'number' }, valueBelow: { type: 'number' }, expiringWithinDays: { type: 'number' },
     signedFrom: { type: 'string' }, signedTo: { type: 'string' },
     overdueObligations: { type: 'boolean' }, offStandard: { type: 'boolean' }, notRead: { type: 'boolean' },
-    move: { type: 'string', enum: ['you', 'them'] }, archived: { type: 'boolean' }, imported: { type: 'boolean' } } };
+    move: { type: 'string', enum: ['you', 'them'] }, archived: { type: 'boolean' }, imported: { type: 'boolean' }, side: { type: 'string', enum: ['supplier', 'customer'] } } };
 function graphWhereClean(w) {
   if (!w || typeof w !== 'object' || Array.isArray(w)) return null;
   const out = {};
@@ -7865,6 +7865,7 @@ function graphWhereClean(w) {
     else if (['valueAbove', 'valueBelow', 'expiringWithinDays'].includes(k)) { const n = num(v); if (n != null) out[k] = n; }
     else if (k === 'signedFrom' || k === 'signedTo') { const d = str(v).slice(0, 10); if (/^\d{4}-\d{2}-\d{2}$/.test(d)) out[k] = d; }
     else if (k === 'move') { const m = str(v).toLowerCase(); if (m) out[k] = m.slice(0, 12); }
+    else if (k === 'side') { const m = str(v).toLowerCase().replace(/s$/, ''); if (m === 'supplier' || m === 'customer') out[k] = m; }
     else out[k] = !!v;
   }
   return Object.keys(out).length ? out : null;
@@ -8093,7 +8094,7 @@ function graphLookClean(l) {
    are ONE list on both hosts (GRAPH_STEP_DOS = the browser's IG_STEP_DOS, f995). */
 const GRAPH_LENSES = ['risk', 'obligations', 'money', 'promises', 'people'];
 const GRAPH_STEP_DOS = ['lens', 'dateLine', 'dateLineOff', 'asOf', 'asOfOff', 'compare', 'whatIf', 'single', 'families', 'linked',
-  'undo', 'reset', 'showAll', 'save', 'open', 'sort', 'cliff', 'yourDay', 'explain', 'walk', 'outliers'];
+  'undo', 'reset', 'showAll', 'save', 'open', 'sort', 'cliff', 'yourDay', 'explain', 'walk', 'outliers', 'orderGroups'];
 const GRAPH_STEPS_MAX = 8;
 const GRAPH_STEPS_SCHEMA = { type: 'array', description: 'The map\'s own tools beyond grouping and filtering, each one step, in the order to do them. Use a step WHENEVER the request asks for one of these: '
   + 'lens {lens: risk|obligations|money|promises|people|off} — the lens every dot wears ("show the risk lens", "people lens", "lens off"); '
@@ -8106,7 +8107,8 @@ const GRAPH_STEPS_SCHEMA = { type: 'array', description: 'The map\'s own tools b
   + 'undo — take back the last change; reset — the starting view; showAll — every contract again, keeping the arrangement; '
   + 'save {name} — save the view on screen; open {name} — open a saved view; sort {by value|payterms|obligations|renewal}; '
   + 'cliff — the renewal cliff (renewal decisions by quarter, with the cut-off slider); yourDay — open Your day, the briefing; '
-  + 'explain — explain the view on screen ("explain this view", "what am I looking at"); walk — walk through the contracts shown one by one; outliers — the contracts that stand out.',
+  + 'explain — explain the view on screen ("explain this view", "what am I looking at"); walk — walk through the contracts shown one by one; outliers — the contracts that stand out; '
+  + 'orderGroups {by value|count|name, dir down|up} — put the GROUPS (columns, lanes) in order, keeping every contract shown ("rank them from left to right by highest value", "order the columns biggest to smallest", "sort the streams by number of contracts"): never a top N, never a filter; sort is for the contracts inside.',
 items: { type: 'object', properties: {
   do: { type: 'string', enum: GRAPH_STEP_DOS },
   lens: { type: 'string', enum: [...GRAPH_LENSES, 'off'] },
@@ -8114,7 +8116,7 @@ items: { type: 'object', properties: {
   time: { type: 'string', enum: ['decision', 'expiry', 'signed', 'created'] },
   which: { type: 'string' }, a: { type: 'string' }, b: { type: 'string' }, party: { type: 'string' },
   id: { type: 'string' }, name: { type: 'string' },
-  by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] } }, required: ['do'] } };
+  by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal', 'count', 'name'] }, dir: { type: 'string', enum: ['down', 'up'] } }, required: ['do'] } };
 function graphStepsClean(steps) {
   if (!Array.isArray(steps)) return null;
   const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
@@ -8125,7 +8127,8 @@ function graphStepsClean(steps) {
     if (GRAPH_LENSES.includes(s.lens) || s.lens === 'off') o.lens = s.lens;
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(s.date || ''))) o.date = String(s.date);
     if (['decision', 'expiry', 'signed', 'created'].includes(s.time)) o.time = s.time;
-    if (['value', 'payterms', 'obligations', 'renewal'].includes(s.by)) o.by = s.by;
+    if (['value', 'payterms', 'obligations', 'renewal', 'count', 'name'].includes(s.by)) o.by = s.by;
+    if (s.dir === 'up' || s.dir === 'down') o.dir = s.dir;
     for (const k of ['which', 'a', 'b', 'party', 'name']) { const v = cut(s[k], 80); if (v) o[k] = v; }
     const id = cut(s.id, 40); if (id) o.id = id;
     out.push(o);
@@ -8184,7 +8187,7 @@ const graphAskHandler = async (req, res) => {
         labelBy: { type: 'string', enum: GRAPH_GROUP_KEYS, description: 'The fact printed beside each dot.' },
         timeBy: { type: 'string', enum: ['decision', 'expiry', 'signed', 'created'], description: 'The date the timeline view lays contracts along.' },
         view: { type: 'string', enum: ['brain', 'wiring', 'floors', 'grid', 'timeline'], description: 'The view to show, only when asked or implied (floors → floors, two facts against each other → grid, "over time" → timeline).' },
-        top: { type: 'object', description: 'Keep only the top N, e.g. "top 10 by value", "3 biggest in each stream"; dir up = the other end, the N smallest ("the 5 smallest contracts"). groups true = keep the N biggest GROUPS whole, ranked by their total, the rest hidden ("top 5 value streams by value", "the 3 biggest customers", "top 5 folders"): per names the grouping; without groups, per means the N biggest contracts IN EACH group.', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] }, per: { type: 'string', enum: GRAPH_GROUP_KEYS }, groups: { type: 'boolean' }, dir: { type: 'string', enum: ['down', 'up'] } } },
+        top: { type: 'object', description: 'Keep only the top N, e.g. "top 10 by value", "3 biggest in each stream"; dir up = the other end, the N smallest ("the 5 smallest contracts"). groups true = keep the N biggest GROUPS whole, ranked by their total, the rest hidden ("top 5 value streams by value", "the 3 biggest customers", "top 5 folders"): per names the grouping; without groups, per means the N biggest contracts IN EACH group. by count = by NUMBER OF CONTRACTS, for groups only ("top 4 customers by number of contracts", "which party has the most contracts" = n 1): never answer a count ranking with value. each {n, by} = with groups, ALSO keep only the N biggest contracts inside each kept group ("the biggest 3 streams and the top 2 contracts in each"). "suppliers" / "customers" as a ranking\'s subject ("top 4 customers", "biggest suppliers") means counterparties, ALL of them (per counterparty, no where.side): where.side is only for "suppliers only", "supplier contracts", "on the customer side".', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal', 'count'] }, per: { type: 'string', enum: GRAPH_GROUP_KEYS }, groups: { type: 'boolean' }, dir: { type: 'string', enum: ['down', 'up'] }, each: { type: 'object', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] } } } } },
         /* THE BOARD'S RECIPE (4 Oct 2026): on Home's board an answer is drawn
            as a chart; the model may say which picture the words asked for,
            and HaTi still counts every figure. */
@@ -8214,7 +8217,7 @@ const graphAskHandler = async (req, res) => {
 - A LENS (risk, obligations, money, promises or people, or off) is the map's look too: set look.lens and nothing else for it.
 - Never write that the map did something (hid, showed, grouped, resized…) unless a field you set does it: HaTi prints what the map did in its own words.
 - ${aiNavigateOn() ? AI_GOTO_RULE.replace("deliver_answer's goto", 'goto') : AI_GOTO_OFF_RULE}
-${onBoard ? '' : `- CHANGE ONLY WHAT THE REQUEST ASKS. Everything under "The map now" stays as it is unless the request names it: never add a grouping, floors, columns, colour, size, view or filter nobody asked for, and never restate the grouping already on screen.\n- The map's own tools (a lens, a date line, as of a past day, compare, what if, single-sourced, families, links, undo, reset, show everything, save or open a view, sort, the renewal cliff, Your day, explain this view, a walk, outliers) are STEPS: whenever the request asks for one, use its step, never a regroup or a filter in its place.\n- A follow-up that narrows what is shown ("of those", "now only…") sets within true; a new set replaces the one on screen.\n- On the map the answer never describes the map or what it did (HaTi says that in its own words); it says only what the numbers cannot — a standout name, a reason — or is left empty.\n`}- Always return via the render_graph tool.`;
+${onBoard ? '' : `- CHANGE ONLY WHAT THE REQUEST ASKS. Everything under "The map now" stays as it is unless the request names it: never add a grouping, floors, columns, colour, size, view or filter nobody asked for, and never restate the grouping already on screen.\n- The map's own tools (a lens, a date line, as of a past day, compare, what if, single-sourced, families, links, undo, reset, show everything, save or open a view, sort, the renewal cliff, Your day, explain this view, a walk, outliers) are STEPS: whenever the request asks for one, use its step, never a regroup or a filter in its place.\n- A follow-up that narrows what is shown ("of those", "now only…") sets within true; a new set replaces the one on screen.\n- "Them", "those", "it", "these" mean what the map shows NOW: a follow-up that ranks, orders, colours, sizes or moves them changes only that and keeps the set on screen exactly as it is — never a new top N, never a new filter. Putting groups in order is orderGroups; a ranking by number of contracts is top by count, never by value.\n- The answer names only contracts, parties and groups that are on the map after this request, and states no count of your own.\n- A request about the map is never answered with nothing: "where is the money concentrated", "what stands out" size the dots by value and order the groups by value (orderGroups), then say the standout in the answer.\n- On the map the answer never describes the map or what it did (HaTi says that in its own words); it says only what the numbers cannot — a standout name, a reason — or is left empty.\n`}${onBoard ? `- ON THE BOARD every answer that ranks, compares or breaks the book down is a CARD: add_card (or change_card on the open chart for "make it…", "now by…", "sort it…", "top 4 not 5") with a recipe that ALWAYS names its split (the thing the bars are: stream, counterparty, stage, type, owner, payterms, side), its measure (count for "number of", "how many", "most contracts"; value for money), its sort and, for "top N <groups>", top N. Never use the \`top\` field for a ranking of groups on the board (it lists contracts). Two things against each other ("by stage and stream", a heatmap) need split AND split2. "Next" / "coming" periods are window.next, never window.last. Count and value together: one card by count and say value is on its hover, or pic list. A NEW question is a NEW card (add_card); change_card is only for words that change the chart already drawn ("it", "that chart", "make it…", "now…", "instead"), and card "open" means the chart drawn last. A filter in the words ("in procurement only", "only signed") goes in the card's which {q}. Time across ("each quarter", "by month") is pic cols with split by date and no sort.\n` : ''}- Always return via the render_graph tool.`;
   try {
     /* ON THE MAP THE STRONGER MODEL READS (Explorer's Jambo audit, 9 Nov 2026, owner: "forget about the cost"): a map
        command carries mixed and vague wording; the Board keeps its tier */
@@ -8239,7 +8242,7 @@ ${onBoard ? '' : `- CHANGE ONLY WHAT THE REQUEST ASKS. Everything under "The map
       note: out.note || '', sent: list.length, total,
       kind: out.kind === 'wording' ? 'wording' : 'map',
       ...['floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'view'].reduce((o, k) => { if (typeof out[k] === 'string' && out[k]) o[k] = out[k].slice(0, 40); return o; }, {}),
-      top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null, groups: out.top.groups === true, dir: out.top.dir === 'up' ? 'up' : 'down' } : null,
+      top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null, groups: out.top.groups === true, dir: out.top.dir === 'up' ? 'up' : 'down', ...(out.top.each && typeof out.top.each === 'object' && Number(out.top.each.n) > 0 ? { each: { n: Math.min(200, Math.round(Number(out.top.each.n))), by: String(out.top.each.by || 'value').slice(0, 20) } } : {}) } : null,
       chart: onBoard ? null : graphChartClean(out.chart),
       actions: onBoard ? graphBoardActionsClean(out.actions) : null,
       actionsTotal: onBoard && Array.isArray(out.actions) ? out.actions.length : 0,
@@ -13032,7 +13035,8 @@ function copilotCardOf(c, briefIds, effOf) {
     status: c.status || '', value: fxIsPay(c) ? null : (Number(c.value) || 0), expiry: (effOf && effOf(c)) || c.expiry || '', signedAt: contractSignedOn(c) || '',
     overdue, offStandard, read, move, archived: !!c.archived,
     /* brought in on the Import page — its import record, as the browser's card (and CA_HERE_FACTS) reads it */
-    imported: !!c.migration };
+    imported: !!c.migration,
+    side: ({ customer: 'customer', supplier: 'supplier' })[(c.metadata && c.metadata.category) || ''] || '' };
 }
 /* ---- OBLIGATIONS AND THE TRAIL (phase 8) ----
    Read-only. Every row is a READING of the stored record — the band and the

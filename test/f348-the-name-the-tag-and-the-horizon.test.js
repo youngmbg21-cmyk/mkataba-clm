@@ -86,7 +86,7 @@ test('F348 — the name, the tag, the choices and the horizon', async t => {
   });
 
   await t.test('(1d) it is the WALL, at the one reading every proposal goes through', () => {
-    assert.match(PB, /function pbFitWording\(cl,v,preferred,draft\)\{\n[^\n]*\n  if\(draft\) draft = pbDropRepeatedHeading\(draft, cl\);/,
+    assert.match(PB, /function pbFitWording\(cl,v,preferred,draft(?:,how)?\)\{\n[^\n]*\n  if\(draft\) draft = pbDropRepeatedHeading\(draft, cl\);/,
       'applied at the top, so both branches and both callers inherit it');
     assert.match(PB, /pbClauseHeadWords,pbDropRepeatedHeading,/, 'published');
     /* THE PROMPT IS NOT THE WALL — but it should not ask for the fault either. */

@@ -125,8 +125,10 @@ describe('f935 (4) do, say, offer — in one turn', () => {
     h.push({ role: 'assistant', text: 'Drawn.', reading: { key: 'q:y' } });
     assert.equal(w.igNextLive(2), false, 'a later drawing takes the next questions');
     assert.equal(run(h.slice(0, 3), 'q:z').igNextLive(2), false, 'the chart was closed');
-    const draw = IG.slice(IG.indexOf('hbReadingHtml(m.reading,hbReadingLive(i)'), IG.indexOf('hbReadingHtml(m.reading,hbReadingLive(i)') + 260);
-    assert.ok(draw.includes('{ noNext:!!m.nextMoved }') && draw.includes('igNextLive(i)') && draw.includes('hbNextHtml(m.nextKey)'));
+    /* RE-POINTED 10 Nov 2026 ("The SAP way"): the chips and the next questions are two rows of one toolbar
+       (igSapHtml), so the reading is drawn noNext and both keys are asked for in the Next row. */
+    const draw = IG.slice(IG.indexOf('hbReadingHtml(m.reading,hbReadingLive(i)'), IG.indexOf('hbReadingHtml(m.reading,hbReadingLive(i)') + 900);
+    assert.ok(draw.includes('{ noNext:true }') && draw.includes('igNextLive(i)') && draw.includes('hbNextHtml(m.nextKey)'));
     assert.match(fnBody(HB, 'hbReadingHtml'), /\$\{opts && opts\.noNext \? '' : hbNextHtml\(rd\.key\)\}/);
   });
   test('the readers are published', () => {

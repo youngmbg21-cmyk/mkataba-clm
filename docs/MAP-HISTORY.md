@@ -36727,6 +36727,16 @@ Built: `top.groups` on both readers and the route (`igTopGroups` ranks the group
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 THE COMPANY LEADS THE ROW (owner, 10 Nov 2026, off a screenshot of a folder's list with the Agreement column ringed: "this design is wrong … the company or counterparty name" on top; asked which smaller line, the owner picked "Agreement type · number"). Reverses Part 8 (21 Oct 2026, "the Legora way": the title over "party · ref") on the Contracts place only. Built: the bold line is the company (`cpName`, the +N parties tag beside it), the grey line "agreement · ref" then the stage words as before; a row with no company yet keeps its title on top and the ref alone under it; a code-named deal unchanged; where the party has a column of its own (`regHomeWide`) the title still leads. The cell's hover names the company first; the column's sort (`REG_CMP.party`) reads the company, the title only where the row shows it on top. Negotiations keeps "party · agreement". Column head stays "Agreement" (the cell still names the agreement). f874 3a re-pointed, red at the parent. Photos at the three screens, new look.
 
+## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES — JAMBO'S INSTRUCTION IS NOT WORDING (10 Nov 2026)
+The owner's screen (MK-307, clause 3.3 in the clause editor, Playbook tab): Jambo's playbook draft read *Amend Section 3.3 to add: "The liquidated damages cap set forth in this Section 3.3 shall not limit Buyer's right …" Also amend Section 8.3 to add: "A failure by Supplier to maintain the minimum 95% OTIF delivery rate …"*. Applied, the whole string — instruction, quote marks, a trailing comma and 8.3's wording — was spliced over 3.3's quoted sentence ("Supplier shall pay Buyer liquidated damages …"), so the damages wording was struck and an instruction inserted as contract text. The panel's card, once applied, was marked against the box that already held it, so it showed no marks at all.
+The owner was shown a drawing (artifact "Jambo redline fixes, drawn") and said "build it". Built: `pbDraftRead` at the one producer (`rlPlaybookProposals`) reads an instruction-shaped draft; only this clause's quoted words are kept, ADDED at the end of the quoted block (`pbFitAdd`, kept as `it.draftFit` apart from `fit`, which may be the figure) — every "Use Jambo's draft" press (review window, batch, editor card) files the placed wording; other clauses' asks (`draftAlso`) are shown on the editor's card as their own suggestion with "Open 8.3" (`ceGoClause`), written nowhere. An applied card is marked against what stands (`ceCardPvBase`), outlined, with "Show on the paper" (landOn the first mark). Two new presses ("Open N", "Show on the paper") came with the drawing the owner approved.
+
+## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct) — THE NOTES STAY ON CLAUSES (10 Nov 2026)
+The owner: "the notes should not disappear when you move from dossier to the clauses page." `pd2NotesPaint` turned the notes off on any tab but the Dossier ("Clauses and Redlines mark the paper their own way"); now Clauses keeps them (filling in on Clauses keeps what it had). `pd2ClauseTint` also lights the open clause's note (`.is-on`) and its row (`.pd2-lit`) in amber; the note's link reads "Shown in Clauses ›" there and lands on the row (the same `pd2OpenInClauses` door). contract-new-look-verify check 13 re-pointed: it asserted "no notes beside the paper" on Clauses.
+
+## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES — "OPEN 8.3" CARRIES THE WORDING (10 Nov 2026)
+The first build's "Open 8.3" only opened the clause; the owner asked that it carry Jambo's wording. Drawn (artifact "Open 8.3 Carries Wording", three steps), owner: "build it, add it to the same pull request". The press passes `carry` {ref, words, add, from} through `ceGoClause`; `rlOpenClauseEditor` consumes it (like `askWhy`) and `ceOfferCarried` puts one line ("You came from 3.3 …", `ce_carried_say`, the owner's yes with the drawing) and a Suggested wording card on 8.3: added after the block numbered 8.3 (`pbFitAdd` with a block index) or, for "to read", in its place; Apply · Discard through `ceStdApply`. Nothing in the box until Apply, nothing filed until File. f996 (2).
+
 ## STANDING LESSONS — A FRAME THAT CLIPS NEEDS A SCROLLER INSIDE IT (10 Nov 2026)
 Owner, 10 Nov 2026, over a picture of Contracts' folders (eleven folders, the eighth cut by the window's foot): "the page does not scroll which i saw in other pages previously so review why this is happening and ensure it is in the bug log learnings so we never do it again." WHY: Contracts is a place on Home (`.ig-pick.ct-place`) that clips what it holds (`overflow:hidden`). The list and the wall were given their own scroller inside it on 9 Nov ("IT SCROLLS WHERE YOU ARE", `.ct-wall`), but the folders page (`.ctf-page`, built the same day, the Legora way) has no `.ct-wall`: its rows ran on below the clipped foot with nothing that scrolls. It is the same fault as the earlier ones on other pages: a new page put inside a clipping frame without a scroller of its own. THE FIX: the folders' list (and the tiles) take the room under the head and scroll there; rows never squeeze; the count line stays at the foot. Measured after (photos, the sample book): at 1536×730 the list holds 513px in a 454px room and scrolls to its end; the foot line sits at 714 of 730. THE CHECK: white-sheet-verify gained CUT (a clipping frame with something to read or press wholly below its foot), a planted fault to prove it sees, held as a fault on Contracts (`CUT_HELD`, only grows) and printed as NOTED on every other place for the owner to rule on. Not run in the chat (browser checks run on GitHub).
 
@@ -36739,6 +36749,46 @@ Owner, 10 Nov 2026, over a picture of the wall with its corner circles boxed in 
 ## THE NEW LOOK IS THE ONLY LOOK — THE FOLDERS, VIEWS FIRST (10 Nov 2026)
 Owner, 10 Nov 2026, of Contracts' folders: "I am unhappy with the page design. I believe there should be a better folder design page than this so give me 5 different options", then "add 5 more designs. Research how other platforms set up their design of folders in a SaaS platform first". Ten were drawn in one Artifact, each named: The SAP Way · The Legora Way · Work first · The Map · Stage grid, and from the research Cards with a peek (Drive, Dropbox) · Side by side (the Mac's column view) · Three queues (Linear's board) · Views first (Ironclad's filters over folders) · Timeline (Linear's timeline). Could not be read: SpotDraft's article (blocked), nothing usable on Box, Airtable, Juro or DocuSign CLM. The recommendation was Stage grid; the owner worked Timeline and Views first ("this is the precursor step to the list of contracts"; the list after a press "per what is in hati today"; "the side panel colors makes it seem as if the main panel and the side panel colors are related which is not the case"; "add subtle colors on this") and PICKED BY NAME: "build views first along with the changes to the wall".
 BUILT AS DRAWN: the head and tabs as they were; "Views across every folder" with one tile a view (amber · steel · ruby · green, the tint a softened status ground, the number in the tone's ink); "Folders" as two compact columns, count · money · what needs you, most work first; the bar and its key gone; the panel's bars plain ink and grey. A view opens the list through the one door a set has (regShowOnly), its name in the list's own chip, List | Wall as always; "‹ Folders" lets the set go. REVERSED: THE FOLDERS, THE LEGORA WAY (9 Nov 2026) and its SAP way mark on folder rows. DEPARTURES FROM THE DRAWING, said to the owner: a view with nothing in it is not drawn (the sample book has no contract out for signature, so three tiles show); the money mark is 10M of the HOME currency (the drawing said SEK); the Ended shelf and + New folder keep their rows (the drawing left them out, they are doors); the drawn "3 need notice this month" is read from the renewal's own notice day and says "no notice due this month" when none. Photographed at the three screens; a press on "15" opened 15 rows.
+
+## INSIGHTS — THE ANALYST EXAM (10 Nov 2026)
+The owner, with two screenshots (the Board ranking "top 4 customers with the highest number of contracts" by money, its own footnote naming Juno with 22 contracts and Juno not on the chart; Explorer answering "rank them from left to right by highest to lowest value" with a new "Top 10 by value"): "both board and explorer are simply too poor in understanding directives… Create analytical tests for each related to ranking by different metrics and dimensions… Imagine I am a procurement analyst… if i go to claude, gemini or copilot… I am more likely to get what I want. I want you to close this gap… If not, advise why not." Then "yes" to the exam, and "Yes" to the fixes, the Board drawing first included (it reverses, for these requests, 24 Oct's "a typed question on the Board is the brain's whole answer").
+THE EXAM: 30 analyst requests a page, typed to the real model over a book where count and value rank differently (test/chromium/analyst-exam-measure.js). BEFORE: Explorer about 20 of 30; the Board drew the right picture for about 6 of 30 and answered 18 in words, the numbers the model's own and different run to run (one supplier 9, 10 and 7 contracts). CAUSES, Explorer: no ranking by count; no tool to ORDER groups, and HaTi's own check read "highest" as a top N and forced "Top 10" over the model's correct sort; one ranking per request; no supplier / customer filter; sentences naming groups the map had left out. CAUSES, Board: typed words went to the chat, which may draw but mostly wrote; a follow-up had no chart to refer to; the model's cards often named their split only in the title, or ranked groups in the map's language (`top.groups`), which the Board drew as a list of contracts.
+BUILT: Explorer — `orderGroups` step and `igGroupOrderRead` (an order is never a top N), `intel.groupOrder` in igbAxes and the recipe; top by `count`; `top.each`; `where.side` in the one predicate (js/graphwhere.js) on both hosts; "which X has the most…" is one group; `igMapSentenceHonest`; prompt rules ("them" = what the map shows now; never answer with nothing). Board — `hbAnalyticAsk` routes a ranking, breakdown, comparison or picture to the drawing model (igBoardTalkAsk), explains a question under the chart, and never walks off the Board (`{stay}`); `hbResMend` / `hbRecipeMend` mend the card from the words (split, split2, count, top N of groups → one card, time across with its period, a filter in `which`, a picture named, a change to the chart drawn last).
+AFTER (same 30, real model): Explorer about 28 of 30 (left: "top 5 suppliers" also filters to the supplier side; one owner / one type in the exam's book). Board about 25 of 30 drew the right picture (left: "count and value side by side" is offered as two cards to confirm; "remove that chart" asks first — both the existing big-build rule; "which suppliers have the longest payment terms" is answered in words). WHAT STAYS DIFFERENT from a chat model drawing freely: HaTi draws only the pictures it has built and counts every figure itself; a picture it has no tool for gets the nearest one.
+THE PANEL: three layouts drawn for the crowded controls under an answer (The SAP Way, The Legora Way, One Row); awaiting the owner's pick; nothing built.
+
+## THE SHELL — RAIL, BAR, PANELS
+### THE SAP WAY: ONE TOOLBAR UNDER A JAMBO ANSWER (owner picked it by name, 10 Nov 2026)
+The owner, with two screenshots of Explorer and the Board: "Finally, the jambo panel seems extremely crowed due to
+the extra features like the added drop downs to the panel to support navigation. They are fine but they need to be
+more clean and structured. Provide proposals of how they should look like in the jambo panel."
+
+Three drawings were shown full size on the real page, one at a time, in one Artifact with a switcher: "The SAP Way"
+(a bordered toolbar with labelled rows), "The Legora Way" (one quiet line, no frame) and "The Quiet Shelf". The
+owner answered: "2, SAP way" — so only that one was built.
+
+WHAT WAS CROWDING IT. Under one answer on Explorer stood, loose, each on its own line: the reading chips (Keep ·
+Ranked by · the word), the checked next steps, "Explain this view", "Pin this finding", "Copy picture", the filled
+button (Open on paper / Read all N in Workspace), "Show on the Board", "Open list (N)", "Export", and the source
+line. Up to seven rows for one answer.
+
+AS DRAWN, AS BUILT. ONE bordered toolbar, three rows, each with its own label saying what the controls are FOR:
+  Understood — the chips that correct what Jambo read, so a wrong reading is one press from right;
+  Next       — his checked next steps, side by side;
+  Open       — ONE filled button, and everything else under More.
+Nothing was removed: every control keeps its own press and its own words, in a row or in the More menu, and the
+menu's rows stay in the page while it is shut, so a check that reads them still reads them. A row with nothing in
+it is not drawn, and an answer with nothing under it has no toolbar. The menu opens UPWARD: the toolbar sits low in
+the panel and a menu dropped downward fell off the window at 1536x730 (measured, then fixed).
+
+The builders were SPLIT, not rewritten: `igMapReadHtml(m,i,{part:'chips'|'next'})` and
+`igDoorsHtml(m,i,{part:'lead'|'rest'})` hand back their own pieces, so not one data attribute or press changed.
+f1000 (5) pins that: every press and every door survives the split.
+
+LEFT FOR A LATER ROUND, AND SAID TO THE OWNER: the page links row above Jambo's box (`jamboWaysSync`,
+js/components.js) and the source line under the answer ("Read from Explorer and your book") are drawn by other,
+SHARED builders used on every Jambo panel in HaTi; moving them overnight, with browser checks only runnable on
+GitHub, was the kind of change that breaks five pages to tidy one.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING: ONE COUNT (10 Nov 2026, the overnight run, job 3)
 The owner's screenshots showed Explorer's Your day saying "183 Need you" while the Board's Needs you card said "98 things" (and the Board's own Jambo panel 183 beside it). Cause: the Board counts the ROWS it draws (`ndOnBoard`, `ndRowsN`; owner, 9 Nov 2026, "count rows" — four details owed are one bundled row), while `counterNeedsCount` returned `ndRead().n`, the sum of the things inside the rows, and `igBriefNeeds` summed its own. Now `counterNeedsCount` is `ndOnBoard(ndRead()).n` and Explorer's tile asks it; the panel button (`alertCount`), the Guide, Jambo's panels and the house all read that one number. The setup row is the Board's own door (`hbSetupDoorHtml`), not counted. The owner chose "fix it first" in the questionnaire of 10 Nov 2026. f999.
@@ -36794,3 +36844,68 @@ Size before 84729 bytes, after 82273 bytes. Each line below was condensed in CLA
 (seventh pass, after main's Brain line landed the same night: 80102 → 80033 bytes)
 - CUT: THE DOORS' NUMBERS ARE COUNTED ONCE A TURN: `doorCounts(nc)`, cleared on a microtask, `_doorBusy`. f997.
 (eighth pass: 80033 → 79986 bytes)
+
+
+### CLAUDE.MD TRIM, 11 Nov 2026 (merge of main into the 10 Nov trim)
+The trim met lines main had grown the same night. The trimmed short forms were kept; main's new lines landed condensed. Verbatim, as main had them:
+
+```
+- THE WAY BACK is where the reader last stood (`caTrailSeen`); the page IN FRONT is the one the box names (`igPaperInFront`, f978). No Jambo tab: a question turns the panel to his talk with ONE way back and THE BIN (`jamboDoorHtml`, `jamboBinHtml`, `jamboThinkingHtml`). A page's name typed moves free (`jamboPageGo`, f955); other typed words are the brain's (`jlAsk`/`counterAsk` `{typed}`); chips, "Ask me" and "/" keep the free readers. He works the page (`AI_BOARD_DRAW_RULE`, `AI_PAGE_CONTROLS_RULE`) and says what he did (`caEchoHtml`). f949, f950.
+- THE SAP WAY — ONE TOOLBAR UNDER AN ANSWER (owner picked it by name, 10 Nov 2026: the panel was "extremely crowed"): ONE builder `igSapHtml` draws three LABELLED rows — Understood (the reading chips, `igMapReadHtml(m,i,{part:'chips'})` + `hbReadingHtml{noNext}`) · Next (`{part:'next'}` + `hbNextHtml`) · Open (ONE filled button `igDoorsHtml{part:'lead'}`, the rest and Explain · Pin · Copy picture under More, `igSapMoreHtml`, `intel.sapOpen`; the menu's rows stay in the page while it is shut and it opens UPWARD). An empty row is not drawn. f1000, jambo-panel-sap-verify.
+```
+```
+- TYPED, THE AI READS; HaTi CHECKS (9 Nov): `render_graph` offers every map tool as `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`, `graphStepsClean` → `igStepActs`), keeps `look.lens`, sees the whole map (`graphRecipeOnScreen`), changes only what is asked; deep tier off the Board. Before the map moves `igFreeReading` vs `igResKinds`: the gap sent back ONCE (`igGapNote`), else `igChoicesTwoWays` — but an AI answer that does nothing yields to the whole free reading, no question; `igTrimToAsked` never trims a tool. `graphWhereLabel`, `igCountSaid`, `igMapSentenceKept` (real sentences `igSentencesOf`, `igStrayQuoteOff`), `within`, `jamboOnExplorer`, cities only `partyCityOf`. f995, explorer-jambo-typed-verify.
+- TOP N GROUPS + WHAT JAMBO UNDERSTOOD (owner picked "Board Twin", 10 Nov 2026): `top.groups` (`igTopGroups`, `igTopClean`, `igTopLabel`, hidden said); words naming the groups win, the Keep chip amber (`intel.topDoubt`); chips `igMapReadHtml`/`igMapReadSet` re-read in place; a word only the AI read an admin teaches (`igMapReadTeach` → the Board's word book). f996.
+- THE ANALYST EXAM (10 Nov 2026; `test/chromium/analyst-exam-measure.js`, by hand): groups in ORDER (`orderGroups` step, `igGroupOrderRead`, `intel.groupOrder`), never a top N; rank by COUNT (`IG_TOPG_BY`); `top.each`; `where.side` (js/graphwhere.js); a sentence about a group left out or a count not drawn is dropped (`igMapSentenceHonest`). f999.
+```
+```
+js/standards.js reads only (`stdDepartures`, `stdBookFor`). `pbStandardsFor(c)` the ONE list (aligned · deviation · missing · na); a cut-short check refused; "every standard is met" only over a finished check; `playbookKeyFor` = `copilotPlaybookKey` (f133). SMALLEST CHANGE (`pbFitInto`, f670). LEARNS (`sdLearnProposal`, `sdLearnApply`). `rlFilePlaybookProposal` sends nothing. THEIR ROW'S READ `rlRowReadOf` (`rlpJudge`, then `rlpPastJudge` ≥`PRECEDENT_MIN`); nothing to judge by = "No advice yet" + the missing rule, no button.
+JAMBO'S INSTRUCTION IS NOT WORDING (owner, 10 Nov 2026): a draft opening "Amend Section N to add: '…'" is read (`pbDraftRead`, `pbOwnRefs`) at the one producer; this clause gets only its quoted words, ADDED after the block (`pbFitAdd`, `it.draftFit`, `draftAdd`), other clauses' asks shown as their own suggestion; Open N carries the wording to that clause on a card, Apply · Discard (`draftAlso`, `ceCardAlsoHtml`, `ceOfferCarried`, opts `carry` consumed). An applied card stays marked against what stands (`ceCardPvBase`) with Show on the paper. f996.
+```
+
+And to stay under 80 KB after that merge, these lines were condensed. Verbatim before:
+
+```
+- EXPLORER: `GRAPH_GROUPINGS`, `buildGraphEdges`, `intelGraphApply`, `INTEL_CAP` said; recipe `igRecipeNow`/`igRecipeSet`; a count prints only if drawn (`igCountsDrawn`); ONE "Other (N more)"; a typed day READ, never guessed (`igDateRead`). THE GRID STANDS STILL AND UPRIGHT (`IGB_TILT[3]`, `igbMoves`). JAMBO EXPLAINS what the map DREW (`igTourSteps`, `igFigsCheck`); FINDINGS `map_findings` (inside folderScopeFor).
+```
+```
+- LENSES (8 Nov): Risk · Obligations · Money (`igLensMay`) · Promises · People; ONE door `igLensSet`, read by `igLensBucketOf`; a legend ROW isolates, again lets go (`igLegendPick`; reverses "a key"); free check `igLensScanAll`; then-and-now `igLensThen` (risk by day found, `igRiskAsOf`); doors `igLensDoorGo`.
+```
+```
+- NEXT FIVE (8 Nov): Board figure menu, list first (`hbFigMenuOpen` → `hbShowOnMap`); YOUR DAY a tab before Overview, five figures, each narrows THE MAP, never a list (owner, 9 Nov) (`igDayData`, `igDayGo`; "Brief me" `igBriefStart`); cliff `igCliffCardOpen`; what if X left `igWhatIfData`.
+```
+```
+- A NEW MAP FEATURE = A GUIDE TAB ROW (`igGuideRows`), SAME change (owner); the legend ONE width (`.igl` 252px), on ONE line with the bar; OPEN it drags by its head over the map AND Jambo's panel (fixed over `#ig-row`), kept through a view change, FOLDED back to its corner (`igLegendPlace`, `intel.legendPos`); zoom + Still top right (`.ig-camerabar`).
+```
+```
+THE READ (8 Nov 2026): Watch the read's bar is the paper line's twin (`.pd2-fill-head`): its height, one line, names give way ("…") before a button. The notes beside the paper are held until the read reaches their clause (`pd2WalkNotesHold`), all kept after. THE NOTES STAY ON CLAUSES (owner, 10 Nov 2026; reverses "Clauses marks the paper its own way"): the open clause's note and row light with its tint (`pd2ClauseTint`, `.is-on`, `.pd2-lit`), its link "Shown in Clauses ›" (`pd2_g_shown`). Folded, Jambo's panel keeps the line's height (`.igd-door`). Redlines keeps Clean · Redline · Their view. the-read-bar-and-notes-verify.
+```
+
+```
+- ONE READER FOR EVERY BOX: `caUnderstand(q,{box})` first (`caHomeRun`, `caAskAnywhere`, `caHandHome`, `caLeavesFor`); answer here only when the screen reads ALL the words (`caHereRead`, `igLeftover`); the chat never writes a brief (`AI_BRIEF_RULE`). What the Board can draw is drawn, then explained (`hbDrawAsk` → `igAskThenExplain`); the rest is the brain's with the screen as context (`aiPageContext`, `pageSays`); ONE stand-in on failure (`igFailTurn` = `aiDegrade`). f927.
+```
+```
+- NO HOME PAGE (owner, 10 Nov 2026: deleted): `setView('counter')`, the HaTi mark (`deskGoCounter`), "home" typed and the Guide's top row land on the Board (`DK_HOME_KEY`); NO LEFT RAIL (`applyRail`): pages are `CA_PLACES` words in "/"; ⌘K → Jambo's box (`jamboBoxFocus`). THE BAR ‹ · HaTi · PAGE NAME (`deskGoBack`, `deskRecentHtml`); leaving asks the page's guard (`dkLeavePageThen`, `naAskLeave`).
+```
+```
+DEAL = THE CLOSE PLAN: `rlHeadDealHtml` opens `dealViewHtml` (`pdDealOpen`): the points to close, the road, Room to give · Hold firm · Needs a rule · Waiting on them · Agreed (ONE reading `dealPlanOf`, no AI); doors only Send, Open clause, Chase, Ask an admin; a point opens to compare (`dealRowToggle`). f939.
+```
+
+```
+`ndRead` (js/views/counter.js) the ONE list: Jambo's ready pieces (`ndPieces`) + your move (`cnRows`); a wait and its piece ONE row (`ND_MERGE`); >3 owing details one row; ONE builder `ndParts`, the contract's number leads. The Board's card `ndBoardHtml` (`ndOpenBoard`); the bell `ndPanelHtml`/`ndBellNlHtml`; the phone `cn2Rows`. THE ONE COUNT is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`; the panel button, the Guide, Explorer's Your day; News never counted; f999). The Dossier's pieces are its (`pdNeedsRows`).
+```
+```
+- `#ai-panel` = THE BRIEF (`aiSideSync`); the ✦ = THE CHAT WINDOW (`aiWinToggle`). LAYERS: page 70/71, window `AI_WIN_Z` 75, dialog `DLG_Z` 80, toasts 110. ONE PANEL, FOUR FACES (`PANEL_FACES`, `openPanel`): Guide (rule 9c), Alerts, Notes, Activity; ONE BAR BUTTON (`#hdr-notify`, `panelDoorPress`).
+```
+
+```
+- THE OVERVIEW: ONE builder `jamboOverviewHtml` (head · facts · source · "Ask me"), facts only from readings the page makes; nothing pressable above the turns. `overview-tab-verify` + `test/overview-inventory.json`.
+```
+```
+- ONE CONVERSATION (`ai.history`, `jamboTurnHtml`); one placeholder "Ask Jambo, or type / for a place"; suggestions are LINKS; ONE card builder `jamboCardHtml`; his box at every panel's foot (`panelAskPaint`); ONE PRESS, ONE PANEL (`igDockBatch`).
+```
+
+```
+- COUNTING IS NOT DRAWING: `*Data` + renderer per panel; `pfPanelData` the one door; `.igx-fig` the ONE tile; doors → `regShowOnly`; `exposureGridData` (no score).
+```
+Size after: CLAUDE.md 79996 bytes (was 81,469 right after the merge).
