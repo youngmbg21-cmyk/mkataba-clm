@@ -133,7 +133,9 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
     const pressed3 = notices >= 0 && await press(notices);
     await until(() => /PIECE \d+ OF \d+/.test((document.querySelector('#pd-thread .doc-th-row.is-open') || {}).textContent || ''), null, 20000);
     const t3 = await openText();
-    const n3 = ai.calls.length - calls0;
+    /* only the PIECE asks are counted (11 Nov 2026: on GitHub an unrelated ask of the same page landed inside the
+       window and made the count 4 for 3 pieces) — a piece ask is the one that carries "(part i of N)" */
+    const n3 = ai.calls.slice(calls0).filter(x => /\(part \d+ of \d+\)/.test(JSON.stringify(x.body || x.raw || ''))).length;
     check('3. Plain on a 30,000-character section reads it in pieces and shows ONE reading carrying them all',
       pressed3 && n3 >= 2 && new RegExp(`PIECE 1 OF ${n3}`).test(t3) && new RegExp(`PIECE ${n3} OF ${n3}`).test(t3), `${n3} asks · ${t3.slice(0, 160)}`);
     await page.screenshot({ path: path.join(OUT, '03-plain-in-pieces.png') });

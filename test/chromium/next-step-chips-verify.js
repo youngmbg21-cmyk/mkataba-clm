@@ -133,14 +133,18 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await until(page, () => !!document.querySelector('#igd-input'), null, 5000);
 
     /* 5 an answer about the contract already open */
-    const doors = await page.evaluate(() => {
-      intel.history.push({ role: 'assistant', text: 'MK-B1 has no amendment on file.', cardIds: ['MK-B1'] }, { role: 'assistant', text: 'MK-B2 is the coast supply.', cardIds: ['MK-B2'] });
+    /* RE-POINTED 10 Nov 2026 ("The SAP way"), and again 11 Nov 2026 ("Keep the words"): only the NEWEST answer
+       carries a row, so the two cases are measured one at a time rather than side by side. */
+    const rowOf = text => page.evaluate(t => {
+      intel.history.push({ role: 'assistant', text: t.say, cardIds: [t.id] });
       renderIntelDock();
-      const ms = document.querySelectorAll('#igd-feed .igd-doors, #igd-feed .igd-here');
-      return [...ms].slice(-2).map(x => x.className + ':' + x.textContent.trim());
-    });
+      const x = [...document.querySelectorAll('#igd-feed .igd-one')].pop();
+      return x ? (x.querySelector('.igd-here') ? 'igd-here' : x.querySelector('[data-ig-paper-go]') ? 'igd-doors' : 'none') + ':' + x.textContent.trim() : 'no row';
+    }, text);
+    const d5a = await rowOf({ id: 'MK-B1', say: 'MK-B1 has no amendment on file.' });
+    const d5b = await rowOf({ id: 'MK-B2', say: 'MK-B2 is the coast supply.' });
     ok('5 the contract already open is said, not offered; another contract keeps its door',
-      doors.length === 2 && /igd-here/.test(doors[0]) && /MK-B1/.test(doors[0]) && /igd-doors/.test(doors[1]) && /MK-B2/.test(doors[1]), JSON.stringify(doors));
+      /igd-here/.test(d5a) && /MK-B1/.test(d5a) && /igd-doors/.test(d5b) && /MK-B2/.test(d5b), JSON.stringify([d5a, d5b]));
     await shoot('5-already-open');
 
     /* 6 draft: our paper or theirs */

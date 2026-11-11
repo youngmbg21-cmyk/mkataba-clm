@@ -22012,6 +22012,8 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) Opening the Send screen on MK-HB4 (handed over for signature, handbook world) shows a red toast "Not saved: MK-HB4 has been handed over for signature, so its wording is locked…" — opening Send appears to try a save on a frozen contract (reading must not write), seen while photographing; not traced.
 - (noticed 10 Nov 2026, black-and-grey sweep, not fixed) The other side's page (portal) was not part of the sweep: it carries its own look switch (`outsideLook`) and needs a share link to open; its detail lines were not measured.
 
+## Noticed, not fixed (10 Nov 2026, Jambo's instruction / notes on Clauses round)
+- Clauses tab, an open clause row: the "Plain English" pill and "one short reading" are cut off at the top (clipped by the row above), seen at 1440×780.
 ## 10 Nov 2026 — Explorer: top N groups and "what Jambo understood" (Board Twin)
 - Fixed: "top 5 folders by value" on Explorer kept the 5 biggest contracts in each value stream; the map had no way to keep the N biggest groups. Now `top.groups` (free reader, AI tool, route), the hidden groups said, chips under the answer show and change the reading, the doubtful part amber.
 - Fixed while there: a top N pressed again added a second filter lens on top of the first (the old filter kept every filter lens), so a re-read narrowed inside the last one. One top N at a time now.
@@ -22041,6 +22043,36 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - FIXED · round6-new-look-verify step 1 failed: it pinned the folders' old card wording ("N contracts"). The owner's picked design (Views first) makes the row say "5 · KES 86.30M · 3 need you", so the check was re-pointed to the new shape and now also reads the view tiles. The design was not changed to suit the check.
 - NOT A FAULT: owed-first-verify and read-table-verify, which failed on the previous push, both passed on this run with no change. Timing, not a break.
 
+## 10 Nov 2026 — The analyst exam: Board and Explorer take rankings as asked
+- Fixed (Explorer): "rank them left to right" forced "Top 10 by value" (HaTi's own check read "highest" as a top N); no ranking by number of contracts; no "top N groups and top N in each"; no supplier/customer filter; Jambo's sentence named groups the map had hidden.
+- Fixed (Board): ranking / breakdown / comparison requests were answered in prose with the model's own counts; they now draw a chart with HaTi's counts and stay on the Board. Cards with no split, groups ranked in the map's language, follow-ups to the chart just drawn, time across, filters in the words are mended from the words.
+- Noticed, not fixed: on the Board "remove that chart" and any two-card answer still ask to confirm first (the big-build rule, hbIsBig), though Undo exists.
+- Noticed, not fixed: a change_card that changes the split keeps the old card's top N.
+- Noticed, not fixed: fast typing on the Board can reach HaTi's per-minute Jambo limit (a draw-first question spends up to three calls: draw, one repair, explain).
+- Noticed, not fixed: CLAUDE.md is 83 KB, over its 80 KB mark; a trim needs the owner's yes.
+- 10 Nov 2026, the analyst exam's PR, GitHub's browser checks: three reds were this change's. (1) the new mend took a chart-only answer for the open card ("league table of our partners") as a new card: a model's own `chart` is now left alone. (2) "which stream carries the most weight?" was read as "keep one group" and asked "which did you mean?": a question is no longer narrowed by the free reader. (3) board-talk-first H expected the chat to draw; re-pointed to the drawing model (the Board draws first). Also: nothing drawn and nothing to confirm now falls back to the chat.
+
+## The Board draws first: one question, one answer (10 Nov 2026, f999)
+Fixed. On the Board, a request that drew a CARD was read as "nothing drawn" (the check only looked at the chart
+that is open, and a new card opens no chart), so HaTi threw its own line away and asked the brain the same
+question a second time — the reader saw the model's words instead of "Added ...", and the turn cost twice.
+The Board's cards are now part of the check, and a question the map's own route already handed to the brain is
+never asked again (intel.chatAsks). board-talk-first-verify H1, H3 and I1 were red on this.
+
+## The Jambo panel, the SAP way (10 Nov 2026, f1000)
+Built. The owner: the panel "seems extremely crowed". Three drawings were shown; the owner picked "The SAP way".
+Under an answer, up to seven loose rows of controls are now ONE small toolbar with three labelled rows:
+Understood (the chips that correct what Jambo read), Next (his checked next steps) and Open (one black button;
+Show on the Board, Open list, Export, Explain this view, Pin this finding and Copy picture under More).
+Nothing lost: every press kept its own words. The menu opens upward, because dropped downward it fell off the
+window at 1536x730. Noticed, not fixed: the page links above the box and the "Read from Explorer and your book"
+line are drawn by builders shared with every other Jambo panel, so they were left for a round of their own.
+
+## Noticed, not fixed (10 Nov 2026)
+- the-read-bar-and-notes-verify failed on the middle screen only in run 42911527959 (the read never opened there;
+  the same steps passed on the other two screens in the same run, and it was green before and after). Flaky.
+- negotiate-new-look-verify stopped in run 42914860955 at negoClauseList on a contract that was not loaded yet
+  (step 8). Green in the run before. Flaky.
 ## Fixed (10 Nov 2026, overnight run job 3)
 - Needs you's two counts (Explorer "183" vs the Board "98"): every door now says the Board's row count (counterNeedsCount → ndOnBoard). f999.
 
@@ -22053,3 +22085,86 @@ at the moment of the press — not the cause, but the stricter aim, so it stays.
 - FIXED 11 Nov 2026 (owner: "fix it") · the Signer row's Change and the card's Name now open the signing-order window on the new look. The one listener answers `[data-pd-og-route]` anywhere in `#pd-glance` and reads the contract off the button; pressed in the form it still lands back on the form's signers, pressed on the Dossier the Dossier is drawn again. New browser check dossier-signer-change-verify (runs on GitHub; its card half says NOTED if the fixture does not reach "Name who signs").
 - Noticed, not fixed: the Signer row's Change is drawn for a viewer too; the window then opens but a viewer cannot save a signer. A link a person cannot use should be greyed with the reason or not drawn.
   (The viewer line above was read in code only, not pressed: the Change is drawn whatever the reader's role, and the window has no role check of its own; whether the save is then refused was not tried.)
+## Noticed, not fixed (11 Nov 2026, overnight run job 15)
+- The contract's "still owed" form can lose a typed answer: owed-first-verify 2b typed "6 months" into Notice period,
+  the save landed (one fewer owed), then about a second after the blur detailsOf listed it as owed again (the form row
+  back to "is-read", not in Key terms). Seen twice in GitHub runs 42945203967 and 42952364814, green in others. Looks
+  like a later save or reply putting back the older record. Not fixed tonight; the check now prints detailsOf's state.
+- Correction to the line above (same night): the next run's print showed "left" fell by one while the notice period
+  stayed owed, so "6 months" most likely answered ANOTHER owed box (the click landing while the form settled), not a
+  lost save. owed-first 2 now waits, bounded, for the caret to be in the notice box before typing.
+- Second correction (11 Nov 2026, 05:15): with the caret now checked to be IN the notice box, owed-first 2b still failed
+  once more (left fell by one, the notice period still owed). So the first reading stands: an intermittent HaTi fault,
+  not the check's click — likely a second save of the same contract putting back older answers. The check now also
+  prints every item still owed and the stored up_notice_period value. Not fixed (scope rules); for the owner.
+
+## Noticed, not fixed (11 Nov 2026, the other clause's ask round)
+- Playbook review window, "Jambo's draft" preview: a numbered paragraph reads "3.1Delivery Terms." (no space after the number) and the preview shows the whole clause rather than only the changed part; already so before this round.
+- Clause editor, after Apply (not typing): a changed paragraph is drawn without its bold title ("3.3 Late Delivery Liquidated Damages." plain) while the applied wording itself keeps <strong>; the resting redline drawing of a touched block is word-based. Not caused by the other-clause round.
+## The Jambo panel: the last two parts, and the f1000 clash (11 Nov 2026, f1002)
+Built. The source line ("Read from Explorer and your book") is now the last row of the More menu, a line and not
+a press; it is said once (the panel no longer prints it under the answer too) and it never makes a toolbar appear
+on its own. The page links (board, contracts ...) now sit on the way-back line at the panel's foot, after the
+back and before the bin, instead of a row of their own above the box; a contract's own chips row and a face's own
+links still win where they are drawn.
+Renamed: the SAP toolbar's test was f1000, and main gave f1000 to the Brain the same night. It is f1002 now
+(f1001 was taken by saved views, renumbered for the same reason). The BUGLOG line above still says f1000.
+
+## The SAP toolbar's test is f1003 (11 Nov 2026)
+Renamed again: while this branch waited, main gave f1002 to the seals check, as it had given f1000 to the Brain.
+The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shared by two test files already
+(f893, f934, f946, f954, f956, f962, f996, f997, f999), so a shared number is not an error here, only a muddle.
+## Fixed (11 Nov 2026, the owner: "fix the still owed bug too")
+- The still-owed form losing a typed answer: a reading (the arrival read's record fill) and the live probe held an
+  older copy of the contract and saved it / swapped it over the new one. Fills now land on the live record and never
+  over a filled box, persist saves the live record, the probe waits while a save is pending. f1002.
+- (renumbered: the test is f1003, f1002 being the seal catch-up's, 11 Nov 2026)
+- (renumbered again: the test is f1004, f1003 having gone to the SAP toolbar's, 11 Nov 2026)
+## Changed by the owner's pick (11 Nov 2026): "Card Inside"
+- The board's brief no longer stands before Summarise is pressed (owner: "nothing written … only once you press");
+  pressed, it opens inside the white greeting under the buttons. The card that stood between the greeting and Your book
+  before the press is removed (a band taken off: this line).
+
+## Jambo's 15-minute rate limits are off (11 Nov 2026, f1004)
+Done, on the owner's instruction ("Remove rate limits for now"). A limit of 0 now means no limit, and the three
+Jambo window limits (light 40, deep 15, OCR 400 per 15 minutes) default to 0. The Settings boxes used to have a
+floor of 1, so they could only be lowered, never switched off; they take 0 now and say so in both books.
+NOT removed, and said to the owner: the daily request ceiling and the daily spend ceiling, which are the money
+backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.
+- (renumbered a third time: the typed-answer test is f1005, f1004 having gone to the rate limits', 11 Nov 2026)
+
+## One Row on Explorer (11 Nov 2026, f1005)
+Built, on the owner's pick. Explorer's panel now folds every answer before the newest to one line (the words
+asked, and how many that answer drew) and carries ONE row under the newest: the chips, one filled button, and ⋯
+for everything else. The Board keeps the SAP toolbar. Measured 50px against 172px on the same answer.
+Asked, not decided: the drawing also shortened the chip words ("Keep 3 streams", "By value") and the button
+("Read all 82"); those are the owner's earlier picks, so they were left alone and the row wraps at 1440.
+Noticed, not fixed: Jambo's panel does not repaint while idle, while typing or while scrolling (measured, zero
+repaints over 4 seconds in each case), so the stutter the owner reports is not the panel redrawing itself.
+## Correction (11 Nov 2026)
+- The 10 Nov line "Clauses tab, an open row: the Plain English pill … cut off at the top" was a FALSE ALARM: measured, the open row's body slides open in 0.24s (doc-th-body grid-template-rows 0fr→1fr) and settles fully open (0,7,21,30,34px then 34px steady for 4s, no replay); the photo had been taken mid-slide. Nothing to fix.
+
+## One Row is the panel's one layout (11 Nov 2026, f1005)
+Done, on the owner's instruction after seeing the Board photographed. One Row now draws on every face of Jambo's
+panel and the three-row toolbar built the day before is DELETED rather than kept beside it — two ways of showing
+the same controls was the problem, not the solution. The names that said "SAP" were renamed to say what they are.
+Cut with it: the SAP browser check and f1003; their still-true cases moved into f1005 and the One Row check.
+
+## One Row: the glyph, the delegation, and a conflict for the owner (11 Nov 2026)
+Fixed from the first run: the ⋯ button printed a typed mark, which the house rule forbids — it is the drawn
+"more" icon now (f966); the fold and the ⋯ were wired inside renderIntelDock, but the turns are repainted in
+place, so the listeners died with their nodes — both are delegated on document at load now; home-first 1b
+expected the doors first in the menu, where the next steps now come first.
+STOPPED AND ASKED, not decided: folding an older answer to one line hides what Jambo said, and five checks
+written over months assert that the whole conversation is DRAWN (f840 2c, jambo-tab-and-back 1g/1m/2b,
+reading-chips 4, explorer-stage-three 4e). The owner's new pick and their older ruling disagree; the owner
+chooses, the branch stays red until they do.
+
+## Keep the words (11 Nov 2026, f1005)
+Built, on the owner's pick of three drawn ways. Nothing folds any more: every answer keeps its bubble, its
+words and its figures, and loses only its row of controls — only the newest answer carries the row. The five
+checks that watch for the whole conversation being drawn pass as written again; one (reading-chips 4) was
+re-pointed, because an older answer has no chips to find still. The fold's builder, its styles, its press and
+its words are all gone, and int_one_shown is inert in both books.
+## Removed on the owner's word (11 Nov 2026)
+- The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.

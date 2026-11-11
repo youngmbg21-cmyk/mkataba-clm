@@ -59,13 +59,14 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await page.evaluate(() => { caGo({ kind: 'go', place: 'board' }); if (typeof hbPaintBoard === 'function') hbPaintBoard(); });
     await until(page, () => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')), null, 15000);
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
-    const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !!document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
+    /* RE-POINTED 10 Nov 2026: DNA was deleted, so Read down stands alone in the head */
+    const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
     if (btn) await page.click('#hb-bhead [data-hb-rdn]');
     const up = await until(page, () => !!document.querySelector('#rd-page') && /Read from the records/i.test((document.querySelector('#ig-dock') || document.body).innerText), null, 15000);
     const S = up ? await page.evaluate(() => ({ eyebrow: document.querySelector('.rd-eyebrow').textContent, h: document.querySelector('.rd-h').textContent,
       rows: [...document.querySelectorAll('.rd-row')].map(r => ({ t: r.querySelector('.rd-t').textContent, src: r.querySelector('.rd-src b').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
       qs: document.querySelectorAll('.rd-q').length, foot: [...document.querySelectorAll('.rd-foot [data-rd-go]')].map(b => b.dataset.rdGo), n: hbRdnBook().length })) : null;
-    check('2a Read down sits beside DNA in the Board\'s head', btn);
+    check('2a Read down sits in the Board\'s head, with no DNA beside it', btn);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     check('2b the page as drawn: no cost said, the title, five sentences each with its source and door, the quarters, the doors at the foot', !!S && !/call|free/i.test(S.eyebrow) && S.h === 'Your book, read down.'
       && S.rows.length === 5 && S.rows.every(r => r.src && r.go) && S.qs >= 1 && S.foot.join() === 'needs,contracts,calendar,explorer,negotiations,activity', S && { rows: S.rows.map(r => r.go), qs: S.qs, foot: S.foot });

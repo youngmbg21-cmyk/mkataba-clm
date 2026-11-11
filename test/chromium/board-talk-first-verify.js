@@ -129,18 +129,21 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     console.log('\nH · on the Jambo tab, a chart asked for is drawn on the Board, his words under it');
     await toBoard(); await toTalk();
     const panels0 = await page.evaluate(() => (hbS().panels || []).length);
-    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_h', name: 'deliver_answer', input: { answer: 'Each bar is one value stream, measured by contract value; the card\'s own line names the stream that leads.', citations: [],
-      board: [{ do: 'add_card', which: { all: true }, recipe: { pic: 'bars', split: 'stream', measure: 'value' }, title: 'Value by stream' }] } }]);
+    /* RE-POINTED 10 Nov 2026 (f999, the owner's "Yes"): THE BOARD DRAWS FIRST — a chart asked for goes to the Board's
+       drawing model (render_graph with the Board's actions), not the chat; the card is drawn with HaTi's own counts */
+    const graphCalls = () => ai.calls.filter(x => x.body && Array.isArray(x.body.tools) && x.body.tools.some(t => t.name === 'render_graph'));
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_h', name: 'render_graph', input: { note: 'Value by stream', answer: '',
+      actions: [{ do: 'add_card', which: { all: true }, recipe: { pic: 'bars', split: 'stream', measure: 'value' }, title: 'Value by stream' }] } }]);
     await ask('chart value by stream');
-    await until(() => !intel.busy && chatCalls().length >= 1 ? true : null, null, 12000);
+    await until(() => !intel.busy && graphCalls().length >= 1 ? true : null, null, 12000);
     await page.waitForTimeout(600);
     const H = await page.evaluate(() => ({ view: state.view, face: hbS().face, panels: (hbS().panels || []).length, talk: pdTalkShows(), key: (hbS().path || []).slice(-1)[0] || '',
       said: String(((intel.history || []).filter(m => m.role === 'assistant').slice(-1)[0] || {}).text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240) }));
-    const hCall = chatCalls().slice(-1)[0];
-    const hTool = hCall && (hCall.body.tools || []).find(t => t.name === 'deliver_answer');
-    check('H1 one chat call, told it may draw: the Board\'s buttons on its answer and the drawing rule', chatCalls().length === 1 && !!(hTool && hTool.input_schema.properties.board) && /DRAWING ON THE BOARD/.test(JSON.stringify(hCall.body.system || '')), `${chatCalls().length}×`);
+    const hCall = graphCalls().slice(-1)[0];
+    const hTool = hCall && (hCall.body.tools || []).find(t => t.name === 'render_graph');
+    check('H1 one call to the drawing model, with the Board\'s actions on its tool, and the chat not asked', graphCalls().length === 1 && chatCalls().length === 0 && !!(hTool && hTool.input_schema.properties.actions), `${graphCalls().length}× graph · ${chatCalls().length}× chat`);
     check('H2 a card is drawn on the Board, which stays in front', !!H && H.view === 'dashboard' && H.face === 'board' && (H.panels > panels0 || /^q:/.test(H.key)), JSON.stringify(H) + ' · before ' + panels0);
-    check('H3 his words stand under the Board\'s line, under his tab', !!H && H.talk && /^Added/.test(H.said) && /Each bar is one value stream/.test(H.said), H.said);
+    check('H3 HaTi\'s own line says what was drawn, under his tab', !!H && H.talk && /^Added/.test(H.said) && /by value stream/.test(H.said), H.said);
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `H-jambo-draws-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
 

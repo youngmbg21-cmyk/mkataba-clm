@@ -96,7 +96,7 @@ describe('f745 (1) the Board\'s head is one card', () => {
     assert.match(body, /const pack = s\.panels\.some\(p => p\.kind === 'view'\) \? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>/);
     /* (deskScr, the Board's Light | Dark, left with dark mode: Chambers, 20 Oct 2026) */
     /* RE-POINTED (owner, 10 Nov 2026: the head greets you and says the latest): what moved and since when ride along */
-    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits, \{ moved, since: base && base\.at \}\)\}\s*\$\{bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
+    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits, \{ moved, since: base && base\.at \}\)\}\s*\$\{hbGreetOn\(\) \? '' : bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
   });
 });
 
@@ -501,11 +501,24 @@ describe('f745 (7) the Board greets you and says the latest', () => {
   const greetWorld = (nd) => { const x = world(); x.w.newLookOn = () => true; x.w.cn2Greet = () => 'Good morning, Maria.';
     x.w.ndRead = () => nd; x.w.ndOnBoard = D => ({ jambo: D.jambo, you: D.you, n: D.jambo.length + D.you.length }); return x.w; };
   const M = (d) => ({ d, added: [], gone: [] });
-  test('7a the greeting, the sentence with each fact a link onto its own door, then the pills and Live', () => {
+  /* RE-POINTED 10 Nov 2026 (owner picked "The Legora Way" for the board's brief): the counted sentence left the
+     greeting and opens "Your board, in brief" at the card's own size; the greeting goes straight to the pills */
+  /* RE-POINTED 11 Nov 2026 (owner: "nothing written … only once you press"; picked "Card Inside" by name): before
+     Summarise the brief draws NOTHING; once pressed it stands inside the greeting, right under the buttons */
+  test('7a the greeting, then the pills and Live; nothing under them until Summarise; pressed, the brief stands inside the greeting', () => {
     const w = greetWorld({ late: 2, oldest: 36, jambo: [{}, {}, {}], you: [{}] });
-    const html = w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '', '', { moved: { past: M(5), value: M(1000000) }, since: ago(1) });
-    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><p class="hb-gr-say" id="hb-gr-say">/);
-    const say = html.slice(html.indexOf('<p class="hb-gr-say"'), html.indexOf('</p>'));
+    const latest = { moved: { past: M(5), value: M(1000000) }, since: ago(1) };
+    const since = w.hbGreetSayHtml(latest.moved, latest.since);
+    assert.equal(w.hbBoardSumHtml(since).box, '', 'before Summarise is pressed nothing is written');
+    const html = w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '', '', latest);
+    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><div class="hb-note hb-bh-r">/);
+    assert.ok(!/hb-gr-say|hb-gr-a|class="hb-why/.test(html), 'nothing under the buttons before the press');
+    const box = '<div class="hb-why"><div class="hb-why-h">x</div><p class="hb-why-b hb-why-since" id="hb-gr-say">' + since + '</p></div>';
+    const inside = w.hbBoardHeadHtml('08:02', '', { btn: '', box }, '', '', latest);
+    assert.ok(inside.endsWith(box + '</section>'), 'pressed, the card stands inside the greeting, under the buttons');
+    assert.match(code(HB), /else if \(kept\) box = [^\n]*\n\s*\$\{lead\}<div class="hb-why-b">\$\{who\}/, 'the kept summary carries the counted sentence first, Jambo marked');
+    assert.ok(!/is-since/.test(code(HB)), 'no card before the press');
+    const say = since;
     assert.match(say, /Since [^:<]+: <button type="button" class="hb-gr-a" data-hb-dig="mv:past">5 more contracts passed their end date<\/button> and <button type="button" class="hb-gr-a" data-hb-dig="mv:value">[^<]+ came under contract<\/button>\./);
     assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
     assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer[\s\S]*<span class="hb-grow"><\/span><span class="hb-bh-day">[^<]+<\/span><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the pills, then the day, Live and when it was counted; .hb-note stays');

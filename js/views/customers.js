@@ -1188,7 +1188,8 @@ if (typeof document !== 'undefined' && !document._cuBriefWired){
   document._cuBriefWired = true;
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-cu-brief]') : null; if (!b) return; e.preventDefault(); cuBriefWrite(b.getAttribute('data-cu-brief')); });
 }
-function cuPaintCustomerPanel(tb){
+let _cuPanelId;
+function cuPaintCustomerPanel(tb, o){
   const seat = 'customers';
   const idOf = r => r.getAttribute('data-cu-cust');
   /* no row left (the words or a chip leave nobody): the panel says the page,
@@ -1241,10 +1242,12 @@ function cuPaintCustomerPanel(tb){
         + (people.length ? sec(i18t('cu_people_at', { party: short }), people.length, cuPanelPeopleHtml(people, r), 'cu-people') : '')
         + (r.needs.some(x => x.it.kind === 'request') ? '' : `<div class="cu-draft-with"><button type="button" class="ui-btn" data-cu-draft-with="${_cuE(r.key)}">${_cuE(i18t('cu_draft_with', { party: short }))}</button></div>`) });
   };
-  paint(id);
+  /* a rows-only paint leaves the panel as it stands unless the party it is about has gone */
+  if (!(o && o.rows) || id !== _cuPanelId) paint(id);
+  _cuPanelId = id;
   if (!tb) return;
   insListWire(tb, { rowSel: '[data-cu-cust]', idOf,
-    onSelect: key => { insSelect(seat, key); insMarkRow(tb, '[data-cu-cust]', idOf, key); paint(key); },
+    onSelect: key => { insSelect(seat, key); insMarkRow(tb, '[data-cu-cust]', idOf, key); _cuPanelId = key; paint(key); },
     onOpen: key => cuOpenCustomer(key) });
 }
 
@@ -1427,7 +1430,12 @@ function cunRowHtml(v, nda){
     <td>${stand}</td><td>${ndaH}</td><td class="cun-wait${words ? ' is-owed' : ''}">${words || '—'}</td></tr>`;
 }
 let _cunParty = null;
-function cunRender(host, INS){
+/* PARTIES' TABS DO NOT ALL DRAW THE SAME SHAPE (read 10 Nov 2026): Folders draws a grid of cards and HIDES the table;
+   List · Waiting on you · No NDA draw the table. So the rows-only swap is taken ONLY between two table tabs — a press
+   that reaches or leaves Folders, or any letter typed on Folders, draws the whole page by name. (The first attempt,
+   reverted the same day, swapped the table alone and left Folders' cards stale.) The swap also refuses by shape:
+   `.cunf-grid` present on one side and not the other is a whole-page draw. */
+function cunRender(host, INS, o){
   if (_cunParty && cuCustomerOf(_cunParty)) return cunPartyRender(host, INS, _cunParty);
   _cunParty = null;
   const all = (typeof cuCustomers === 'function' ? cuCustomers() : []).map(r => cuView(r)).filter(Boolean);
@@ -1438,7 +1446,7 @@ function cunRender(host, INS){
     .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
   const tabs = [['folders', i18t('ctf_tab_folders'), null], ['all', i18t('cun_tab_list'), all.length], ['wait', i18t('cun_tab_wait'), waiting.length], ['nda', i18t('cun_tab_nda'), missing.length]].filter(t => t[2] || t[0] === 'all' || t[0] === 'folders' || t[0] === _cun);
   const agreements = all.reduce((s, v) => s + v.items.length, 0);
-  host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
+  const PAGE = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2><span class="ctf-hf">${esc(i18tn('cun_n', all.length, { n: all.length }))}</span></div>
@@ -1450,6 +1458,17 @@ function cunRender(host, INS){
         <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key))).join('') || `<tr><td colspan="6" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot">${esc(i18t(all.some(v => ((typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {}).orgNo) ? 'cun_foot' : 'cun_foot_noorg', { n: all.length, m: agreements }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  if (o && o.rows && INS && _cun !== 'folders' && typeof listRowsSwapHtml === 'function'
+    && listRowsSwapHtml({ page: '.cun-page[data-ins-page="customers"][data-cu-screen="list"]', html: PAGE, table: '.apn-table.cun-table', shape: '.cunf-grid',
+      tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab', footSel: '.cun-page[data-cu-screen="list"] .apn-foot', also: '.cun-page[data-cu-screen="list"] .cun-head .ctf-hf' })){
+    const tb = host.querySelector('#cu-tbody');
+    if (tb) cuPaintCustomerPanel(tb, { rows: true });
+    return;
+  }
+  const at = typeof listCaretAt === 'function' ? listCaretAt('#cun-q') : null;
+  host.innerHTML = PAGE;
+  if (typeof listCaretPut === 'function') listCaretPut('#cun-q', at);
+  _cuPanelId = undefined;
   cuWireList(host, INS);
   if (_cun === 'folders' && INS) cunFoldersPanelPaint(all, nda);
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
@@ -1598,13 +1617,14 @@ if (typeof document !== 'undefined' && !document._cunpWired){ document._cunpWire
 if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    const tab = t.closest('[data-cun-tab]'); if (tab){ e.preventDefault(); _cun = tab.getAttribute('data-cun-tab'); renderCustomers(); return; }
+    const tab = t.closest('[data-cun-tab]'); if (tab){ e.preventDefault(); _cun = tab.getAttribute('data-cun-tab'); renderCustomers({ rows: true }); return; }
     const o = t.closest('[data-cun-open]'); if (o){ e.preventDefault(); e.stopPropagation(); cuOpenCustomer(o.getAttribute('data-cun-open')); }
   }, true);
-  document.addEventListener('input', e => { if (e.target && e.target.id === 'cun-q'){ state.cu = state.cu || {}; state.cu.q = e.target.value; renderCustomers();
-    const q = document.getElementById('cun-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_){} } } });
+  /* the box is not redrawn under the caret on a table tab: every letter moves the rows and leaves the box alone
+     (on Folders the whole page is drawn, and cunRender puts the caret back) */
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'cun-q'){ state.cu = state.cu || {}; state.cu.q = e.target.value; renderCustomers({ rows: true }); } });
 }
-function renderCustomers(){
+function renderCustomers(o){
   const host = document.getElementById('content'); if (!host) return;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
   const keep = (() => { const sc = document.querySelector('.cu-scroll'); return sc ? sc.scrollTop : 0; })();
@@ -1613,7 +1633,7 @@ function renderCustomers(){
   const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cu-pr-form') ? document.activeElement.id : '';
   cuLcReg();
   /* the new look draws Parties as drawn (round 6); the old look is unchanged */
-  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS); return; }
+  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS, o); return; }
   host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     ${cuListHtml(INS)}

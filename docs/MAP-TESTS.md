@@ -29,6 +29,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
 - The drop card is a pop-up (28 Oct 2026): f707 1b and f679 5e re-pointed; draft-upload-glance (1a, 1a2, section 4 through `card()`, 7a in the dialog), land-on-it 3a, menu-and-amend 2h2/2m, home-page 8, overview-tab 4 (moved to the pop-up, not lost) and 5 (Discover above the facts, no drop, no Ask me); handbook 2.2 and 0.6 pictures re-taken.
 ## THE LEGAL AND LAUNCH AUDITS' FIXES
+- JAMBO'S RATE LIMITS ARE OFF (owner, 11 Nov 2026): `node --test test/f1004-the-jambo-rate-limits-are-off.test.js` (4) — 46 Jambo calls in a row are never refused (red at the parent: 429 at the 41st), the daily request and SPEND ceilings keep their numbers, wrong sign-in guesses are still walled, and both books say what 0 does.
 - f202, f204, f226, f396 (1c), test/audit/* (sim-d-server-attacks: 0 of 18).
 
 ## GAP MAP, PHASE 2 AND 3 SERVICES
@@ -86,6 +87,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- THE SAP WAY: ONE TOOLBAR UNDER A JAMBO ANSWER (owner's pick by name, 10 Nov 2026): `node test/chromium/jambo-panel-sap-verify.js` — 1a one toolbar under the answer, 1b its three rows Understood · Next · Open labelled and in order, 1c one filled button and a More, 2a the rare acts in the page but not on the panel, 2b one press opens More and all three can be seen (red at the parent: there is no toolbar at all), 2c the same press closes it, 2d Esc, 2e a press outside, 3a nothing spills at the owner's three screens, 3b one compact block. 4a/4b the source line is More's last row, a line not a press, said once; 5a/5b/5c the page links on the way-back line before the bin, no row of their own (red at the parent: there was one), one line inside the panel. Unit test `node --test test/f1003-the-sap-way-toolbar.test.js` (8; renumbered from f1000 and f1002, which main gave the Brain and the seals the same nights). RE-POINTED: explorer-stage-three, -four and -five press More before Explain this view / Pin this finding / Copy picture.
+- ONE ROW UNDER THE NEWEST ANSWER (owner's picks by name, 11 Nov 2026): `node test/chromium/jambo-one-row-verify.js` — 1a one row and no three-row toolbar, 1b the chips + one filled button + ⋯ all on it, 1c a row not a stack, 2a/2b/2c every question still on the panel with what Jambo said to each, nothing folded, only the newest carrying controls (red at the parent: three labelled rows under every answer), 4a–4d ⋯ holds the next steps, the doors, Explain · Pin · Copy picture and the source line, 5a nothing spills at the three screens, 6a/6b the source line said once, 7a/7b the page links on the way-back line, 8a/8b the BOARD draws the same row and its earlier answer keeps its words. Unit test `node --test test/f1005-one-row-on-explorer.test.js` (8). CUT: jambo-panel-sap-verify and f1003 — their subject (the three-row toolbar) is retired; their live cases moved into f1005 (6)(7)(8). RE-POINTED: home-first 1a/1b, next-step-chips 5, reading-chips 4 and 6a/6b, explorer-stage-three/-four/-five (the rare acts are under ⋯).
 - THE ONE PANEL BUTTON (9 Nov 2026, owner picked "The SAP Way"): nav-panel-door-verify rewritten (red at the parent: one button, the panel's mark, no ? and no clock, Alerts with something waiting, again closes, the tabs choose); f187 (1)/(3), alerts-and-activity 3, glitch-fixes 4d, notes-two-rooms (Activity), type-and-symbols, new-look-frame 3, _audit/glitch-audit re-pointed; f798 and requests-and-notes-as-drawn 6b read "in your Alerts".
 - ONE ROW ABOVE JAMBO'S BOX, EVERYWHERE (owner, 6 Nov 2026): one-row-above-the-box-verify 1–3 (new, red at the parent on 1 and 3: Contracts' folders and wall drew a doors row AND a chips row); RE-POINTED doors-verify 3 (on Contracts the chips are the row, no doors row).
 - One box, no rivals (round 1, 29 Oct 2026): keyboard-reach-verify (⌘K → Jambo's box), legora-lists-verify (1c/7f/7g), contracts-page-verify 16b, negotiations-door-verify 11, jambo-map-verify 7, settings-as-drawn-4-verify 1d; f861, f739, f938 (keep handbook words short).
@@ -175,6 +178,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - clauses-legora-way-verify 1c: on every tab (All · Needs you · Worth a look · Fine) the spine starts at the first dot shown and ends at the last (red at the parent: −17 / +15px on the filtered tabs).
 - MARQUEE (23 Oct 2026): clauses-legora-way-verify 1/1b (headline, sentence, tabs with counts; Worth a look narrows, All lets go), clause-list-fixed-verify 6a/6b (Needs you tab), stakes-verify 2, 3b–3d, 3k, 3l (Found by behind Filter, one dropdown per touch), 5c/5e (the tab survives the editor trip), 9 — all re-pointed from the three boxes.
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
@@ -185,6 +189,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - clause-list-fixed-verify (the blank clause is a real row with its finding on it and Plain greyed, a genuine section title still a title, the close that holds while you scroll, the group's own close, no dashed border, no count line; 5/14 at 826e87cb). f668 (4) pins the route's `blank` state and the walk's own test.
 - RE-POINTED 21 Oct 2026: stakes-verify 2 and 3c, clauses-legora-way-verify 1, 1b and 5 (the count line removed, the dashed box gone), f507 (2) (the follow stands down while the reader's close is latched). Five checks had their DRIVING re-pointed only — thread, runway-and-xray, reading-in-the-background, five-screenshots, six-off-five-images each pressed a row that was already open.
 ## INSIGHTS
+- THE ANALYST EXAM'S FIXES (10 Nov 2026, the owner's two screenshots then "Yes"): `test/f999-the-analyst-exam-fixes.test.js` (8 checks: an order of the groups is never a top N; a count ranking ranks by count; groups and the top N in each; where.side on both hosts; a sentence about a group left out or a count not drawn is dropped; the Board draws first and stays; HaTi mends the card from the words — split, count, top N of groups, time across, a filter, a picture; the route offers and cleans it). The measure, by hand with a real key: `PAGE=board|explorer node test/chromium/analyst-exam-measure.js` (30 requests a page; in NOT_TESTS). f919 (2) re-pointed (`side` joined the where keys).
 - TOP N GROUPS AND WHAT JAMBO UNDERSTOOD (10 Nov 2026, owner picked "Board Twin"): `test/f996-explorer-what-jambo-understood.test.js` (7 checks: the free reader reads a grouping after the number as groups, "supplier contracts" stays contracts; igTopGroups ranks and names the hidden; the map from the free reader and the AI with one label; the route keeps `top.groups` and carries the company's words; the words that name the groups win and the Keep chip is amber; the chips' menus and an in-place re-read; a word only the AI read, taught by an admin) — red at 1f23131: "top 5 folders" read as the 5 biggest contracts. explorer-jambo-typed-verify 5d-1…5d-3 (typed, the AI's misread scripted; red at 1f23131).
 - REAL SENTENCES, NO STRAY QUOTE (10 Nov 2026, the exam re-run then "Fix it"): f995 (6) — the exam's own "…(e.g. Cold Chain Logistics with Bidco) cluster…" goes whole, a stray closing quote goes, a quote that belongs stays (red at cf45029: the tail was kept, the quote stayed).
 - NOTHING TO CHOOSE BETWEEN (10 Nov 2026, the owner's exam then "Yes, fix it"): f995 (7b) pins it; explorer-jambo-typed-verify 5c (red at 60d5200: one button, "which did you mean?") — an AI answer that does nothing on the map yields to the whole free reading.
@@ -449,6 +454,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f558.
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
+- f996 (3) (the other clause's ask: the review window's box, Prepare redlines files it as that clause's own draft).
+- f996 (Jambo's instruction is not wording: pbDraftRead, pbFitAdd, draftFit, the applied card marked against what stands); contract-new-look-verify 13 (the notes stay on Clauses).
 - OUR STANDARDS BESIDE THE PAPER (new look, owner picked "Beside the paper" 6 Nov 2026): standards-beside-paper-verify 1–5 (new, red at the parent: no standards in the margin, the Dossier's Standards line opened the old side panel), 6 (look off: the side panel as before).
 - UNDO UNDOES (bug log batch 2, 26 Oct 2026): f942 (new; red at the parent) — toast() presses onClick; every toast action in js/ is handed as onClick (sdLearnApply's Undo was `run`).
 - f133, f222, f272, f279, f295, f296, f314, f318, f372, f545, prepare-redlines, standards-page verify.
@@ -654,3 +661,21 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE ONE DESK — ONE COUNT (10 Nov 2026)
 - test/f999-one-needs-you-count.test.js — every door's Needs you number is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`); Explorer's Your day asks it.
+
+## PERFORMANCE — ROWS ONLY ON A PRESS (10 Nov 2026)
+- test/chromium/rows-only-on-a-press-verify.js — Approvals, Obligations, People, Requests, Import, My notes, Parties, Reads: a tab press and a typed word keep the frame, the box and the panel; Parties' Folders draws its cards (4a) and the list comes back (4b).
+
+## INSIGHTS — SAVED VIEWS FOLLOW YOU (10 Nov 2026)
+- test/f1001-saved-views-follow-you.test.js — kept on the server for the person only (an admin's list carries no one else's), refused in words when broken, read back on sign-in; the browser reads and writes through the one preference writer.
+
+## THE OVERNIGHT RUN (9 Oct)
+- test/f580-the-seal-is-the-servers.test.js — the server seals, as HaTi.
+- test/f651-their-link-renewal-term-and-the-copy-the-server-draws.test.js — C3–C5: the reminder round seals "Seal waiting" AND a finished route with no note; the executed email says the day signed (and sealed).
+- test/f1002-the-seals-only-a-page-can-draw.test.js — the first page an editor opens draws the copies the server cannot (`sealCatchUpPage`).
+
+## THE LIGHT LIST — A TYPED ANSWER IS NEVER TAKEN BACK (11 Nov 2026)
+- node --test test/f1005-a-typed-answer-is-never-taken-back.test.js test/f327-copilot-reads-and-fills-on-arrival.test.js
+- browser (GitHub): owed-first-verify (2b)
+
+## THE SHELL — A PRESS SHOWS AT ONCE, THE PAGE LINKS RIDE THE LINE (11 Nov 2026)
+- node --test test/f1006-a-press-shows-at-once-and-the-links-ride-the-line.test.js test/f793-jambo-may-change-my-calendar.test.js

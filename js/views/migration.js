@@ -1543,10 +1543,24 @@ function migNlPanelPaint(rows){
   insPaintPanel({ seat: 'migration', item: { id: (r && r.key) || '__import' }, head: false, jlWord: i18t('mig_side_word'), jlPh: i18t('jl_ph_any'),
     body: `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${file}</div>` });
 }
-function migNlRender(rows){
+/* IMPORT'S THREE TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Need you · Read · All only pick which files), so a
+   tab press and a typed letter redraw only the rows (listRowsSwapHtml); anything it will not swap draws the whole
+   page, with the caret put back. */
+let _mignPanelPick;
+function migNlRender(rows, o){
   const host = document.getElementById('content'); if (!host) return;
   if (!_migPick || !migRowByKey(_migPick)){ const first = rows.find(x => MIG_NEEDS.includes(x.st.k)) || rows[0]; _migPick = first ? first.key : null; }
-  host.innerHTML = migNlPageHtml(rows);
+  const PAGE = migNlPageHtml(rows);
+  if (o && o.rows && typeof listRowsSwapHtml === 'function'
+    && listRowsSwapHtml({ page: '.mign-page', html: PAGE, table: '.mign-table', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab', footSel: '.mign-page .apn-foot', also: '.mign-page .cun-head .ctf-hf' })){
+    /* the panel stays as it stands while the rows move, unless the file it reads has gone */
+    if (_migPick !== _mignPanelPick){ _mignPanelPick = _migPick; migNlPanelPaint(rows); }
+    return;
+  }
+  const at = typeof listCaretAt === 'function' ? listCaretAt('#mign-q') : null;
+  host.innerHTML = PAGE;
+  if (typeof listCaretPut === 'function') listCaretPut('#mign-q', at);
+  _mignPanelPick = _migPick;
   migNlPanelPaint(rows);
   const fi = document.getElementById('mign-files');
   if (fi) fi.addEventListener('change', () => { if (fi.files.length) migProcessFiles(fi.files); fi.value = ''; });
@@ -1556,12 +1570,12 @@ function migNlRender(rows){
 let _mign = 'all';
 /* the drawn page's row press is handled below; the older list keeps migPickSet */
 if (typeof document !== 'undefined' && !document._mignWired){ document._mignWired = true;
-  document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mign-q') return; _migQ = e.target.value; renderMigration();
-    const q = document.getElementById('mign-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
+  /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
+  document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mign-q') return; _migQ = e.target.value; renderMigration({ rows: true }); });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('.mig-page, .mign-page')) return; let el;
     if ((el = t.closest('.mign-page #mig-check-all, [data-mign-checkall]'))){ e.preventDefault(); migCheckOpen(); return; }
-    if ((el = t.closest('[data-mign-tab]'))){ e.preventDefault(); _mign = el.getAttribute('data-mign-tab'); renderMigration(); return; }
+    if ((el = t.closest('[data-mign-tab]'))){ e.preventDefault(); _mign = el.getAttribute('data-mign-tab'); renderMigration({ rows: true }); return; }
     if ((el = t.closest('#mign-choose'))){ e.preventDefault(); const fi = document.getElementById('mign-files'); if (fi) fi.click(); return; }
     if ((el = t.closest('.mign-page tr[data-row]')) && !t.closest('[data-mign-go]')){ const k = el.getAttribute('data-row'); if (k !== _migPick){ _migPick = k; renderMigration(); } return; }
     if ((el = t.closest('[data-mign-go]'))){ e.preventDefault(); e.stopPropagation(); const key = el.getAttribute('data-mign-go');
@@ -2540,7 +2554,7 @@ function migPlacePut(p){
   _migQ = typeof p.q === 'string' ? p.q : '';
 }
 
-function renderMigration(){
+function renderMigration(o){
   const M=migState();
   /* THE ALLOWANCE IS SAID ON ARRIVAL, not only after a batch: read once per
      sitting, then the cost line and Jambo's words are said again */
@@ -2559,7 +2573,7 @@ function renderMigration(){
      Show more resolves through them); the box keeps the reader's caret
      across a repaint of the whole page (a batch settling, a door pressed) */
   /* the new look, with files in and nothing being read or checked: Import as drawn (round 6) */
-  if(typeof window.newLookOn==='function'&&newLookOn()&&!_migCheck&&!M.running&&migRows().length&&typeof insFits==='function'&&insFits()){ migNlRender(migRows()); return; }
+  if(typeof window.newLookOn==='function'&&newLookOn()&&!_migCheck&&!M.running&&migRows().length&&typeof insFits==='function'&&insFits()){ migNlRender(migRows(), o); return; }
   migLhRegister();
   const caret=migBoxKeep();
   document.getElementById('content').innerHTML=`

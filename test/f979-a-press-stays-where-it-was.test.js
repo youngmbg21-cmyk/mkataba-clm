@@ -17,9 +17,10 @@ test('1 · a read\'s table drawn again keeps its scroll', () => {
 });
 test('2 · the list of reads and My notes keep their scroll while the same list is in view', () => {
   const rd = read('js/views/reads.js');
-  assert.match(rd, /function renderReads\(\)\{\s*const mode = _rd\.table \? 't:' \+ _rd\.table\.key : 'list';[\s\S]*?renderReadsDraw\(\);[\s\S]*?sc\.scrollTop = top0;/);
+  /* RE-POINTED 10 Nov 2026 (the overnight run, job 7): renderReads carries the rows-only option down; the rule is unchanged */
+  assert.match(rd, /function renderReads\(o?\)\{\s*const mode = _rd\.table \? 't:' \+ _rd\.table\.key : 'list';[\s\S]*?renderReadsDraw\(o?\);[\s\S]*?sc\.scrollTop = top0;/);
   const mn = read('js/views/mynotes.js');
-  assert.match(mn, /function renderMyNotes\(\)\{[\s\S]*?renderMyNotesDraw\(\);[\s\S]*?sc\.scrollTop = top0;/);
+  assert.match(mn, /function renderMyNotes\(o?\)\{[\s\S]*?renderMyNotesDraw\(o?\);[\s\S]*?sc\.scrollTop = top0;/);
 });
 test('3 · an italic "Not found" keeps room for its last letter wherever it is cut with "…"', () => {
   assert.match(read('index.html'), /:is\(#ig-dock, html\) \.ac-ans\.tone-none > :is\(span, b\)\{padding-right:\.2em\}/);

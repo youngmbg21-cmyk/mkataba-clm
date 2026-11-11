@@ -195,14 +195,14 @@ test('F349 (5) — the repeated heading is dropped at the one producer', async t
    clauses that were deleted automatically."* */
 test('F349 (6) — an unaddressed draft is not "the smallest change"', async t => {
   await t.test('(6a) pbFitWording refuses one that would lose unquoted blocks', () => {
-    const fn = /function pbFitWording\(cl,v,preferred,draft\)\{[\s\S]*?\n\}/.exec(PB)[0];
+    const fn = /function pbFitWording\(cl,v,preferred,draft(?:,how)?\)\{[\s\S]*?\n\}/.exec(PB)[0];
     assert.match(strip(fn), /if\(pbUnquotedLoss\(body,v&&v\.quote,draft\)>0\) return null;/);
   });
   await t.test('(6b) [relation] it asks the WALL\'s own reading, never a second one', () => {
     /* One reading, two readers: the preview, the lead and the filing door
        cannot come to different answers about what would be lost. */
     assert.match(PB, /function pbUnquotedLoss\(bodyHtml,quote,newText\)\{/);
-    const fn = /function pbFitWording\(cl,v,preferred,draft\)\{[\s\S]*?\n\}/.exec(PB)[0];
+    const fn = /function pbFitWording\(cl,v,preferred,draft(?:,how)?\)\{[\s\S]*?\n\}/.exec(PB)[0];
     assert.ok(!/blocks\.forEach/.test(strip(fn)), 'it does not count blocks for itself');
   });
   await t.test('(6c) [wall] a one-block clause is untouched — nothing else to lose', () => {

@@ -44,6 +44,9 @@ function graphWhereHit(k, w, reads){
   /* imported = came in through the Import page (the card's `imported`, read off
      the contract's own import record; owner, 18 Oct 2026); the imports trial reads the same fact */
   if (w.imported != null){ if (!!w.imported !== !!k.imported) return false; }
+  /* which side of the deal: supplier (we pay) or customer (they pay), off the contract's own category (paySide);
+     a contract that says neither never matches — an absence is stated, not guessed */
+  if (w.side != null){ const want = fold(w.side).replace(/s$/, ''); if (fold(k.side) !== want) return false; }
   return true;
 }
 const GW_API = { graphWhereNarrow, graphWhereHit };

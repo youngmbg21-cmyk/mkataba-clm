@@ -442,6 +442,35 @@ function stkCardHtml(c, p, i, redWhy){
       ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
       : `<button type="button" class="stk-a is-go is-link" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a is-link" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))}</button>`}<span class="stk-mks">${mark}</span></div></div>`;
 }
+/* ---- ONE "WHAT TO WATCH" PER CLAUSE (owner picked "One list", 11 Nov 2026) ----
+   A clause with two or more points to watch drew a card each, every one with its own Start redlining · Deep
+   dive · Mark reviewed: four points, twelve links. In the new look they are ONE card: "What to watch · N points",
+   one short line each (what is at stake), and ONE row of links: Start redlining (the clause's own door), Deep
+   dive (the first open point's; ‹ › in the dive walks the rest, stkDiveOpen), Mark all reviewed (each point's
+   own record, stkMarkReviewed, in turn). A field left blank keeps its own card (Fill it in), as does a clause
+   with one point; the old look is untouched. */
+function stkRowCardsHtml(c, ids, shown, redWhy){
+  const one = i => stkCardHtml(c, shown[i], i, redWhy);
+  const watch = ids.filter(i => shown[i] && !shown[i].blank);
+  if (!stkNewLookOn() || watch.length < 2) return ids.map(one).join('');
+  return stkGroupHtml(c, watch, shown, redWhy) + ids.filter(i => !watch.includes(i)).map(one).join('');
+}
+function stkGroupHtml(c, ids, shown, redWhy){
+  const ps = ids.map(i => shown[i]);
+  const open = ids.filter(i => !shown[i].done);
+  const worst = (open.length ? open : ids).map(i => shown[i].status).reduce((a, s) => (STK_RANK[s] || 0) > (STK_RANK[a] || 0) ? s : a, '') || 'fine';
+  const markWhy = stkReviewWhy(), busy = ids.some(i => _stk.marking[shown[i].key]);
+  const dis = why => why ? ` disabled aria-disabled="true" title="${_bdE(why)}"` : '';
+  const who = p => String((p.done && p.done.name) || '').trim().split(/\s+/)[0] || i18t('stk_someone');
+  const lines = ps.map(p => `<li class="stk-gi is-${p.status}${p.done ? ' is-done' : ''}" data-stk-key="${_bdE(p.key)}"><i class="stk-d8 is-${p.status}" aria-hidden="true"></i><span>${_bdE(String(p.stake || p.title || '').trim())}${p.done ? ` <em class="stk-gdone">${_bdE(i18t('stk_reviewed_by', { who: who(p) }))}</em>` : ''}</span></li>`).join('');
+  const mark = open.length
+    ? `<button type="button" class="stk-a stk-mk" data-stk-review-all="${open.join(',')}"${dis(markWhy)}${busy ? ' disabled' : ''}><i class="stk-ring" aria-hidden="true"></i>${_bdE(i18t('stk_mark_all'))}</button>`
+    : `<span class="stk-mk is-done"><i class="stk-ring is-on" aria-hidden="true"></i>${_bdE(i18t('stk_all_reviewed'))}</span><button type="button" class="stk-a stk-undo" data-stk-unreview-all="${ids.join(',')}"${dis(markWhy)}${busy ? ' disabled' : ''}>${_bdE(i18t('stk_review_undo'))}</button>`;
+  return `<div class="stk-line stk-card is-mq stk-group is-${worst}${open.length ? '' : ' is-done'}" data-stk-keys="${_bdE(ps.map(p => p.key).join(' '))}">
+    <p class="stk-st stk-ghead"><b class="stk-watch">${_bdE(i18t('stk_watch_h'))}</b> · ${_bdE(i18tn('stk_watch_n', ps.length, { n: ps.length }))}</p>
+    <ul class="stk-glist">${lines}</ul>
+    <div class="stk-cacts"><button type="button" class="stk-a is-go is-link" data-stk-redline="${ids[0]}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a is-link" data-stk-dive="${open.length ? open[0] : ids[0]}">${_bdE(i18t('stk_deep'))}</button><span class="stk-mks">${mark}</span></div></div>`;
+}
 /* the words at a row's right: the worst live verdict and how many, in its ink */
 function stkRowWords(live){
   if (!live.length) return null;
@@ -512,7 +541,7 @@ function stkDecorate(c, card, rows){
       /* the open clause's cards, in the one order (stkReview), drawn once — UNDER its Plain English
          (owner, 23 Oct 2026: the reading "should be at the top before needs you and worth a look") */
       if (mine.length){ const h = row.querySelector('.doc-th-body') || row.querySelector('.doc-th-head');
-        if (h) h.insertAdjacentHTML('afterend', (byRow[at] || []).map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')); }
+        if (h) h.insertAdjacentHTML('afterend', stkRowCardsHtml(c, byRow[at] || [], shown, redWhy)); }
     });
     /* ---- WHAT THE CONTRACT DOES NOT SAY STANDS WHERE IT WOULD GO (owner
        said yes, 21 Oct 2026): a row "After §N — not in the contract" after the
@@ -564,8 +593,11 @@ function stkDecorate(c, card, rows){
       _stk.firstOpen = String(c.id);
       const need = list.querySelector('.doc-th-row.stk-b-need, .doc-th-row.stk-b-look');
       const at = need ? Number(need.getAttribute('data-th-row')) : -1;
-      if (at >= 0 && !need.classList.contains('is-open') && typeof window.docThreadOpen === 'function')
-        setTimeout(() => { try { window.docThreadOpen(c, at); } catch (_){} setTimeout(() => { try { if (typeof window.pd2ClauseTint === 'function') window.pd2ClauseTint(); } catch (_){} }, 350); }, 0);
+      /* AND THE PAPER GOES THERE TOO (owner, 11 Nov 2026: the paper and the panel line up; reverses "the paper is
+         not moved"): the clause opens through the list's own glide (docThreadGoTo), so the open row is the clause
+         at the paper's line */
+      if (at >= 0 && !need.classList.contains('is-open') && typeof window.docThreadGoTo === 'function')
+        setTimeout(() => { try { window.docThreadGoTo(c, at); } catch (_){} setTimeout(() => { try { if (typeof window.pd2ClauseTint === 'function') window.pd2ClauseTint(); } catch (_){} }, 350); }, 0);
     }
     /* the paper's tint follows whichever clause is open, after the list is drawn */
     if (typeof window.pd2ClauseTint === 'function') setTimeout(() => { try { window.pd2ClauseTint(); } catch (_){} }, 30);
@@ -828,6 +860,13 @@ if (typeof document !== 'undefined' && !document._stkWired){
       }
       return;
     }
+    /* ONE LIST: Mark all reviewed (and its Undo) is each point's own record, in turn */
+    const ra = t.closest('[data-stk-review-all], [data-stk-unreview-all]');
+    if (ra){ if (ra.disabled) return; const b0 = stkOf(c), undo = ra.hasAttribute('data-stk-unreview-all');
+      const sh = b0 ? stkShown(c, b0) : [];
+      const ps = String(ra.getAttribute(undo ? 'data-stk-unreview-all' : 'data-stk-review-all') || '').split(',').map(Number).map(i => sh[i]).filter(Boolean);
+      (async () => { for (const p of ps){ const cur = (typeof getContract === 'function' && getContract(c.id)) || c; await stkMarkReviewed(cur, p, undo); } })();
+      return; }
     const rv = t.closest('[data-stk-review], [data-stk-unreview]');
     if (rv){ if (rv.disabled) return; const b0 = stkOf(c), undo = rv.hasAttribute('data-stk-unreview');
       const p = b0 ? stkShown(c, b0)[Number(rv.getAttribute(undo ? 'data-stk-unreview' : 'data-stk-review'))] : null;
