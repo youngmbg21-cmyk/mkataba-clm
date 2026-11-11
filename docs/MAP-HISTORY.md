@@ -37098,6 +37098,73 @@ The owner, off a screenshot of the Calendar's Jambo panel: "review why when i tr
 THE DELAY: `calLevelSet` awaited `mineSave` (a server round trip) and a full `renderCalendar` before the pressed button lit; the agents' levels (`agentLevelMineSet`, jambohouse's change handler and `jhnMaySet`) did the same. Measured with the server held 600ms: lit after ~630ms before, ~20ms after. Now the pref is taken at once (`mineSave` for kind 'pref', `calLevelLight`), drawn, and a refusal puts the old one back and says why (toast 'err').
 THE LINKS: the "Jambo ›" line (`jamboFwdHtml`, class `jb-door`) carried no `.jb-door-sp`, so `jamboWaysSync` removed the row above the box and had nowhere to put it — the links vanished on Reads, Obligations, Calendar, People, My notes. Every panel repaint (`jlAskHtml`) drew the row again and the sync removed it a beat later — the flash. Now `jamboFwdHtml` carries the ways (`is-in-door`) and the sync no longer removes the above-foot row; the sheet hides it while a line is shown (`.jb-ways.is-above-foot:has(+ * .jb-door:not([hidden]))`). f1006 (6 of 7 red at the parent).
 
+### SHORTEN THE CHIPS (owner, 11 Nov 2026)
+With One Row built, the chips still read long enough to take the line above the button. The owner: "shorten the
+chips." THE LABEL ALREADY SAYS IT, so the value no longer repeats it: the map's `int_rd_by` is "By" (was
+"Ranked by") and `int_rd_short_groups` is "{n} {gs}" (was "{n} {w} {gs}"), so "Keep 2 biggest value streams ·
+Ranked by value" reads "Keep 2 value streams · By value". On the Board the Measure chip beside it already says
+what the picture is sized by, so the Picture chip says the picture alone (`hb_picshort_blocks`,
+`hb_picshort_bubbles`, `hbPicWord(P, short)`, asked for by the chips only): "Blocks, sized by value" reads
+"Blocks". THE MENUS AND THE DRAWN LINE KEEP THE WHOLE WORDS — only the row is short.
+
+MEASURED, AND SAID TO THE OWNER: the row is still TWO lines. On Explorer the chips now fit one line together and
+the button takes the next; on the Board three chips fill the line. The thing still standing between this and a
+true single line is the button's own label ("Read all 25 in Workspace"), which is a door's words used elsewhere
+— offered to the owner, not taken. Re-pointed with the reason: f996 (6), explorer-jambo-typed 5d-2.
+
+### THE POP-UP WAS CUT OFF, AND A PRESS THAT FLASHED (owner, 11 Nov 2026, with two screenshots)
+"When I press the highlighted button, the page stutters and the drop down flashes open then closes immediately.
+And… when you press on the 3 dots, the pop up is cut off."
+
+THE CUT-OFF MENU, measured: hung off the ⋯ (absolute, right-aligned) the menu was wider than the room to its
+left, so its left edge sat 27px OUTSIDE the panel, where the feed's own scroller clipped it — three of its eight
+rows were not painted at all, though every rect said they were there. Anchoring it to the ROW fixed the width
+but not the height: eight rows opening upward from a row partway down ran off the panel's head. It is PLACED by
+measurement now (`igMorePlace`): fixed to the window so the feed cannot clip it, as wide as the row, above the
+row where there is room and under it where there is not, lifted off the foot on the shortest screen. All three
+screens: inside, and every row painted (the check asks elementFromPoint, because a rect is not a painted pixel).
+
+A SCROLL MOVES IT, IT DOES NOT CLOSE IT: the first fix closed the menu on any scroll in the panel, and opening
+the menu repaints the panel, which lands the feed on the newest answer — a scroll. The menu shut in the same
+breath as it opened, which is exactly the flash the owner described. It follows its row instead.
+
+THE FLASHING CHIP: not reproduced here at 30 contracts, with the toggle instrumented (one press, one toggle).
+What was found and fixed on the way is the class of fault that produces it: the dock's turns are MOVED between
+hosts rather than rebuilt (`jamboTurnsTake`), so a node inside a turn outlives the render that bound a listener
+to it — bind twice and one press toggles twice. The chips' presses are delegated on document now, as the house
+rule has it. A CORRECTION OWED TO THE OWNER: the earlier measurement reported here as "the panel does not
+repaint while idle" was taken with a wrapper around `window.renderIntelDock`, which the module never calls — it
+measured nothing. The claim is withdrawn.
+
+
+## THE SHELL — RAIL, BAR, PANELS (the chips' drop-down, 11 Nov 2026)
+
+The owner, after the ⋯ was placed: "have you fixed the bug with the drop down from the chips not appearing and
+only flashing?" No — the ⋯ had been fixed and the chips had not. Measured at the owner's three screens, the chip
+menu opened at x=2146 on a 1440-wide window: 700px clear of the screen, all three of its rows unpainted; it came
+back into the panel at about 300ms and stayed. That journey IS the flash.
+
+WHY. Two faults, one on top of the other.
+1. `.hb-rd-menu` is `position:absolute` under its chip, and the chip stands on the panel's last line, so the
+   feed's own scroller clipped the whole menu away. The same fault the ⋯ had.
+2. A chip press called `renderIntelDock()`, which repaints the whole panel — and the panel GLIDES. A
+   `position:fixed` box inside a transformed ancestor is placed against THAT ancestor, not the window, so the
+   placement was right and the result was off the screen. The measurement that caught it: the styles said
+   left:1073 while `getBoundingClientRect()` said 2146, and the two met when the glide ended.
+
+WHAT WAS BUILT. `igMorePlace` is the ONE placer for every menu the panel opens — the ⋯ and the chips — and it
+asks the MENU'S OWN BOX where it landed, not the anchor's: off the panel, it takes the class back off, waits a
+frame and measures again (up to 60 frames). The menus are unseen until placed (`.is-set`), so no reader watches
+the journey. And a press no longer repaints the panel: `igOneRepaint(i)` redraws one row, `igMrRepaint(i)` one
+chip group, in place — the end of the glide and of the stutter on a chip press. Measured after: visible, inside
+the panel, every row painted, on the FIRST FRAME, at 1440x780, 1536x730 and 1366x950, both menus.
+Guarded by jambo-one-row-verify 4f.
+
+ALSO FIXED, AND SAID: CLAUDE.md carried three live conflict markers (HEAD / origin/main) committed in d4e24d3 —
+a merge resolved badly. The HEAD side (One Row) is kept and the origin/main side (the retired three-row toolbar)
+dropped, which is what every other line of the file already says. The file is 81.5 KB, a little over the ~80 KB
+rule; no trim was made, since a trim needs the owner's yes.
+
 ## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
 The owner, off three screenshots (the brief inside the greeting; the earlier own card; a chart card's ×): "move the summary back to having its own card like in image 2 but with an exit (x) button on the top right like image 3. It should also only appear once you have pressed summarize my board." REVERSES "Card Inside" (picked the same morning). `hbBoardHeadHtml` holds no brief; `hbBoardHtml` draws `bs.box` under the head in both looks; the kept brief and a failure carry `.hb-why-x` (`data-hb-bs-x`, the board's own `hb-ib hb-x` with `_hbX`) at the head's right end; `hbBriefShut` deletes the kept brief (`s.why[HB_BOARD_KEY]`) and the failure, so nothing is written until Summarise is pressed again (the button reads "Summarise my board" again). No × while it is being written. Card Inside's CSS rule removed. Handbook Board chapter, both books. f745 7a re-pointed, 7a2 new (red at the parent: no hbBriefShut). Photos at the three screens: own card, × 9px from the right edge, 7px from the top.
 Then, off a photo of it: "there needs to be space between the card and the top bar just like the spaces between cards in the baord". The greeting's white band (`#hb-bhead.is-greet::after`, kept for white-sheet-verify) filled the 12px gap, so the card looked stuck to the top. With a brief under it the band steps aside (`#hb-bhead.is-greet:has(+ .hb-why)::after{display:none}`): the gap is the Board's grey, 12 as between every card (measured at the three screens). Before the press there is no brief, so white-sheet still meets the band.

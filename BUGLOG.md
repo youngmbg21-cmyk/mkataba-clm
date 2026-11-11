@@ -22170,6 +22170,42 @@ re-pointed, because an older answer has no chips to find still. The fold's build
 its words are all gone, and int_one_shown is inert in both books.
 ## Removed on the owner's word (11 Nov 2026)
 - The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.
+
+## Shorten the chips (11 Nov 2026)
+Done, on the owner's instruction. The chip's label already says what the value was repeating: "Ranked by value"
+is "By value", "2 biggest value streams" is "2 value streams", and on the Board "Blocks, sized by value" is
+"Blocks" (the Measure chip beside it says the rest). The menus and the drawn line keep the whole words.
+Measured and said to the owner: the row is still two lines — the button's label is what is left over.
+
+## The ⋯ pop-up was cut off; a scroll closed it as it opened (11 Nov 2026)
+Fixed, both measured. The menu hung off the ⋯ and ran 27px outside the panel, where the feed's scroller clipped
+it: three of its eight rows were never painted. It is placed by measurement now — fixed to the window, as wide
+as the row, above or under it, lifted off the foot on a short screen; all three screens show every row painted.
+The first attempt closed it on any scroll in the panel, and opening it repaints the panel and lands the feed,
+which IS a scroll — so it shut as it opened. It follows its row instead.
+The chips' presses are delegated on document now (the turns are moved between hosts, not rebuilt, so a node can
+outlive the render that bound to it and collect a second listener — one press, two toggles, a flash).
+CORRECTION: the earlier note that the panel does not repaint while idle was measured with a wrapper around
+window.renderIntelDock, which the module never calls. It measured nothing; the claim is withdrawn.
+
+## 11 Nov 2026 — the chips' drop-down did not appear, it flashed
+- FIXED: a chip's menu in Jambo's panel was drawn under a chip on the panel's last line, where the feed's own
+  scroller clipped it, and the press repainted the whole panel, which glides — a fixed box inside a glide is
+  placed against the glide, so the menu landed ~700px off the screen and came back only when the glide ended.
+  Now: `igMorePlace` places every menu the panel opens (the chips' and the one row's), asks the menu's own box
+  where it landed, keeps it unseen until placed (`.is-set`), and a press redraws ONE row (`igOneRepaint`) or
+  ONE chip group (`igMrRepaint`) instead of the panel. Measured: first frame, visible, inside, every row
+  painted, at the owner's three screens. Guarded by jambo-one-row-verify 4f.
+- FIXED (same change, said to the owner): CLAUDE.md carried live merge conflict markers committed in d4e24d3.
+  The One Row side kept, the retired three-row-toolbar side dropped.
+- Noticed, not fixed: CLAUDE.md is 81.5 KB, a little over the ~80 KB rule; a trim needs the owner's yes.
+- FIXED (same round): `int_rd_short_groups` is '{n} {gs}' — a number and a word that is translated elsewhere,
+  so it has no words of its own and is the same in both books. Named in f148's SAME_IN_BOTH.
+- FIXED (same round, caught by GitHub): closing the ⋯ by REPAINTING the row on a press of one of its own rows
+  detached the pressed button before the delegated handlers further down the page read it, and
+  `closest('#ig-dock …')` on a detached node finds nothing — Pin this finding and Copy picture went dead
+  (explorer-stage-four 1b, explorer-stage-five 2e). The press only takes the latch off again; the row's own
+  act repaints, as before.
 - 11 Nov 2026 · Correction to the line above: the test that holds `BARE_HAS_KNOWN` is f1007 (the switch draws once), renumbered when main took f1006; the notes test is f1008.
 - 11 Nov 2026 · Noticed, not fixed: CLAUDE.md on main carries merge-conflict markers (<<<<<<< HEAD … >>>>>>> origin/main) around the two Shell lines "THE WAY BACK" / "ONE ROW UNDER THE NEWEST ANSWER" against "ONE TOOLBAR UNDER AN ANSWER"; they arrived with pull request 651, so both the reversed ruling and the one it replaced are being read every session. Which side stands is the owner's call.
 
