@@ -6120,7 +6120,10 @@ function hbBoardHeadHtml(time, cut, bs, pack, deskBits, latest){
     let hello = ''; try { hello = (typeof window.cn2Greet === 'function') ? cn2Greet() : ''; } catch (_){ hello = ''; }
     let day = ''; try { day = new Date().toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()); } catch (_){ day = ''; }
     return `<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">${_hbE(hello || i18t('hb_face_board'))}</h2>`
-      + `<div class="hb-note hb-bh-r">${acts}<span class="hb-grow"></span><span class="hb-bh-day">${_hbE(day)}</span>${live}</div></section>`;
+      + `<div class="hb-note hb-bh-r">${acts}<span class="hb-grow"></span><span class="hb-bh-day">${_hbE(day)}</span>${live}</div>`
+      /* CARD INSIDE (owner picked it by name, 11 Nov 2026): once pressed, the brief stands in the greeting's own white,
+         right under Summarise */
+      + `${(bs && bs.box) || ''}</section>`;
   }
   return `<section class="hb-card hb-bhead" id="hb-bhead"><div class="hb-note hb-bh-r"><h2 class="hb-bh-t">${_hbE(i18t('hb_face_board'))}</h2><span class="hb-bh-s">${_hbE(i18t('hb_bh_sub'))}</span>`
     + `${live}<span class="hb-grow"></span>`
@@ -6304,7 +6307,7 @@ function hbBoardHtml(){
   const desk = typeof window.deskShellOn === 'function' && window.deskShellOn();
   const deskBits = desk ? `<span class="hb-counting">${hbCountChipHtml()}</span>` : '';
   return `${hbBoardHeadHtml(time, cut, bs, pack, deskBits, { moved, since: base && base.at })}
-    ${bs.box}
+    ${hbGreetOn() ? '' : bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
     ${hbFocusHtml()}
@@ -6577,8 +6580,8 @@ function hbBoardSumHtml(since){
   else if (kept) box = `<div class="hb-why"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span></div>
     ${lead}<div class="hb-why-b">${who}${hbSay(kept.text)}</div>
     <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span></div></div>`;
-  /* before Summarise is pressed the card is its title and the sentence: one quiet line, nothing spent */
-  else if (lead) box = `<div class="hb-why is-since"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}</div>`;
+  /* NOTHING IS WRITTEN UNTIL SUMMARISE IS PRESSED (owner, 11 Nov 2026: "There should be nothing written such as I
+     prepared for you etc. you should only see them once you press"; reverses the card standing before the press) */
   return { btn, box };
 }
 
