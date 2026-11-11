@@ -68,16 +68,23 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* ===== 1. THE ANSWER OFFERS HOME FIRST ===== */
     await page.evaluate(() => intelAsk('Top 3 contracts by value'));
     await page.waitForSelector('#ig-dock [data-ig-paper-go]', { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 10 Nov 2026 (the owner picked "The SAP way" for Jambo's panel): the answer's controls stand in ONE
+       toolbar with three labelled rows — the Open row leads with the filled button, and the rest (Show on the
+       Board, the Contracts page, Export) is under More, in the page but not on the panel until it is pressed. */
     const doors = await page.evaluate(() => {
-      const row = document.querySelector('#ig-dock .igd-doors');
-      return { btns: row ? [...row.querySelectorAll('button')].map(b => b.textContent.trim() + (b.classList.contains('ui-btn-primary') ? '*' : '')) : [],
-        small: [...document.querySelectorAll('#ig-dock .igd-small .ui-link')].map(b => b.textContent.trim()),
-        smallAfter: !!(row && row.nextElementSibling && row.nextElementSibling.classList.contains('igd-small')) };
+      const row = document.querySelector('#ig-dock [data-ig-sap-r="open"] .igd-sap-v');
+      const lead = row ? [...row.children].filter(x => x.tagName === 'BUTTON' && !x.hasAttribute('data-ig-sap-more')) : [];
+      const menu = row ? row.querySelector('.igd-sap-menu') : null;
+      return { btns: lead.map(b => b.textContent.trim() + (b.classList.contains('ui-btn-primary') ? '*' : '')),
+        more: !!(row && row.querySelector('[data-ig-sap-more]')),
+        under: menu ? [...menu.querySelectorAll('button')].map(b => b.textContent.trim()) : [],
+        menuShut: !!menu && !menu.classList.contains('is-open') };
     });
     /* the tab is called Workspace since 15 Oct 2026 (owner), so the door names it */
-    ok('1a the answer leads with Read all 3 in Workspace (filled; Paper was called Document 11 Oct 2026, Workspace 15 Oct), then Show on the Board',
-      doors.btns.join('|') === 'Read all 3 in Workspace*|Show on the Board', JSON.stringify(doors));
-    ok('1b the Contracts page and Export are small links after them', doors.smallAfter && doors.small.length === 2 && /Contracts page/.test(doors.small[0]), JSON.stringify(doors.small));
+    ok('1a the Open row leads with Read all 3 in Workspace, filled, and a More beside it (Paper was called Document 11 Oct 2026, Workspace 15 Oct)',
+      doors.btns.join('|') === 'Read all 3 in Workspace*' && doors.more, JSON.stringify(doors));
+    ok('1b Show on the Board, the Contracts page and Export are under More, shut',
+      doors.menuShut && doors.under.length >= 3 && /Show on the Board/.test(doors.under[0]) && doors.under.some(x => /Contracts page/.test(x)) && doors.under.some(x => /Export/.test(x)), JSON.stringify(doors.under));
     await page.screenshot({ path: path.join(OUT, '1-answer.png') });
 
     /* ===== 2. WALK THE SET ON PAPER ===== */
@@ -183,7 +190,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.waitForSelector('#hm-agents .nd-br.is-look [data-ag-act="oblig"]', { timeout: 8000 }).catch(() => {});
     const late = await page.$('#hm-agents .nd-br.is-look [data-ag-act="oblig"]');
     ok('5a the late promise, opened, carries its door onto the obligations', !!late);
-    if (late) await late.click();
+    /* press it by its selector, not a handle held across a repaint (10 Nov 2026: "not attached to the DOM" once on code
+       it does not touch): the Board may draw the card again between finding the act and pressing it */
+    if (late) await page.click('#hm-agents .nd-br.is-look [data-ag-act="oblig"]', { timeout: 8000 }).catch(() => {});
     /* the act's own door (agRunAct 'oblig' → agGo): the Obligations worklist, where the late promise is a row with its chase */
     await page.waitForFunction(() => state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
     const l = await page.evaluate(() => ({ view: state.view, named: /MK-HF4/.test((document.getElementById('content') || {}).innerText || '') }));

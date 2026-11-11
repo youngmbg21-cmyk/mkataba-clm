@@ -95,7 +95,7 @@ describe('f736 (4) the AI\'s map filter carries the same fact, both hosts', () =
     assert.equal(GW.graphWhereHit({}, { imported: false }, reads), true, 'not imported reads as false');
   });
   test('the schema offers it as a yes/no and says what it is', () => {
-    assert.match(lineOf(SRV, /\n\s+move: \{ type: 'string', enum: \['you', 'them'\] \}, archived: \{ type: 'boolean' \}, imported: \{ type: 'boolean' \} \} \};/), /imported/);
+    assert.match(lineOf(SRV, /\n\s+move: \{ type: 'string', enum: \['you', 'them'\] \}, archived: \{ type: 'boolean' \}, imported: \{ type: 'boolean' \}, side: \{[^\n]*\} \} \};/), /imported/);   /* re-pointed 10 Nov 2026 (f999): `side` joined the keys after it */
     assert.match(SRV, /imported \(true = brought in through Import contracts\)/);
   });
 });

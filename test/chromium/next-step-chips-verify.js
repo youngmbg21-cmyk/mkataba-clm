@@ -136,8 +136,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const doors = await page.evaluate(() => {
       intel.history.push({ role: 'assistant', text: 'MK-B1 has no amendment on file.', cardIds: ['MK-B1'] }, { role: 'assistant', text: 'MK-B2 is the coast supply.', cardIds: ['MK-B2'] });
       renderIntelDock();
-      const ms = document.querySelectorAll('#igd-feed .igd-doors, #igd-feed .igd-here');
-      return [...ms].slice(-2).map(x => x.className + ':' + x.textContent.trim());
+      /* RE-POINTED 10 Nov 2026 ("The SAP way"): the doors stand in the toolbar's Open row, the said-not-offered
+         sentence in its place — one row per answer either way */
+      const ms = document.querySelectorAll('#igd-feed [data-ig-sap-r="open"] .igd-sap-v');
+      return [...ms].slice(-2).map(x => (x.querySelector('.igd-here') ? 'igd-here' : x.querySelector('[data-ig-paper-go]') ? 'igd-doors' : 'none') + ':' + x.textContent.trim());
     });
     ok('5 the contract already open is said, not offered; another contract keeps its door',
       doors.length === 2 && /igd-here/.test(doors[0]) && /MK-B1/.test(doors[0]) && /igd-doors/.test(doors[1]) && /MK-B2/.test(doors[1]), JSON.stringify(doors));

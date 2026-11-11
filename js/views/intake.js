@@ -764,13 +764,13 @@ async function intakeSetStatus(id,status,opts={}){
   }catch(e){ toast((e&&e.message)||i18t('ik_failed'),'err'); }
 }
 
-function renderIntake(){
+function renderIntake(o){
   const host=document.getElementById('content'); if(!host) return;
   const may=(typeof canEdit==='function'&&canEdit());
   /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (26 Sep 2026). Below INS_MIN_W
      the page below is drawn exactly as it was. */
   if(typeof window.insFits==='function'&&insFits()&&typeof window.insPaintPanel==='function'){
-    renderIntakeInspector(host);
+    renderIntakeInspector(host, o);
     ikAfterRender(may);
     return;
   }
@@ -1778,14 +1778,18 @@ function iknRowHtml(r, may){
     <td class="cun-wait ikn-age${iknAgeTone(r)}">${esc([ikFirstLast(r.by && r.by.name), typeof ikAgeWords === 'function' ? ikAgeWords(r) : ''].filter(Boolean).join(' \u00b7 '))}</td><td class="cun-wait">${esc(lane || '\u2014')}</td><td class="cun-go">${act}</td></tr>`;
 }
 let _iknSel = null;
-function iknRender(host){
+/* REQUESTS' TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Open · Mine · Drafted · Advice only pick which requests),
+   so a tab press and a typed letter redraw only the rows (listRowsSwapHtml); a tab that comes or goes (a tab at 0
+   steps out) draws the whole page, with the caret put back. */
+let _iknPanelSel;
+function iknRender(host, o){
   const may = (typeof canEdit === 'function' && canEdit());
   const R = iknRows();
   const open = R.n('open'), noEd = (R.all.filter(r => !r._adv && IK_LIVE.includes(r.status) && !r.contractId && !r.assignee)).length;
   if (!_iknSel || !R.list.some(r => String(r.id) === String(_iknSel))) _iknSel = R.list[0] ? R.list[0].id : null;
   const tabs = [['open', i18t('ik_v_open'), open], ['mine', i18t('ik_v_mine'), R.n('mine')], ['drafted', i18t('ikn_tab_drafted'), R.n('drafted')], ['advice', i18t('rq_kind_advice'), R.n('advice')]];
   const facts = [i18tn('ik_hf_open', open, { n: open }), noEd ? i18tn('ikn_noed', noEd, { n: noEd }) : ''].filter(Boolean).join(' \u00b7 ');
-  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ikn-page" data-ins-page="intake" data-ins="1">
+  const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ikn-page" data-ins-page="intake" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
@@ -1796,7 +1800,17 @@ function iknRender(host){
         <tbody>${R.list.map(r => iknRowHtml(r, may)).join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  const rowsOnly = !!(o && o.rows) && typeof listRowsSwapHtml === 'function'
+    && listRowsSwapHtml({ page: '.ikn-page', html: PAGE, table: '.ikn-table', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab', footSel: '.ikn-page .apn-foot', also: '.ikn-page .cun-head .ctf-hf' });
+  if (!rowsOnly){
+    const at = typeof listCaretAt === 'function' ? listCaretAt('#ikn-q') : null;
+    host.innerHTML = PAGE;
+    if (typeof listCaretPut === 'function') listCaretPut('#ikn-q', at);
+  }
   const r = R.list.find(x => String(x.id) === String(_iknSel)) || null;
+  /* a rows-only paint leaves the panel as it stands unless the request it reads has gone */
+  if (rowsOnly && String(_iknSel) === String(_iknPanelSel)) return;
+  _iknPanelSel = _iknSel;
   if (typeof insPaintPanel === 'function'){
     if (r) insPaintPanel({ seat: IK_SEAT, jlWord: i18t('jl_w_request'), item: { id: String(r.id) }, head: false, body: iknPanelHtml(r, may) });
     else insPaintPanel({ seat: IK_SEAT, empty: i18t('ik_panel_none') });
@@ -1823,18 +1837,19 @@ if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired 
   document.addEventListener('click', e => {
     if (typeof state === 'undefined' || state.view !== 'intake') return;
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
-    if ((el = t.closest('[data-ikn-tab]'))){ e.preventDefault(); _ikn = el.getAttribute('data-ikn-tab'); renderIntake(); return; }
+    if ((el = t.closest('[data-ikn-tab]'))){ e.preventDefault(); _ikn = el.getAttribute('data-ikn-tab'); renderIntake({ rows: true }); return; }
     if ((el = t.closest('[data-ikn-draft]'))){ e.preventDefault(); e.stopPropagation(); intakeDraft(el.getAttribute('data-ikn-draft')); return; }
     if ((el = t.closest('[data-ikn-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-ikn-open'); if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open')) && typeof openWorkspace === 'function') openWorkspace(id); return; }
     if ((el = t.closest('#ik-new')) && t.closest('.ikn-page')){ e.preventDefault(); openIntakeForm(); return; }
     if ((el = t.closest('[data-ikn-row]'))){ const id = el.getAttribute('data-ikn-row'); if (String(id) === String(_iknSel)) return; _iknSel = id; renderIntake(); }
   });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ikn-q' || typeof state === 'undefined' || state.view !== 'intake') return;
-    ikFilters().q = e.target.value; renderIntake(); const q = document.getElementById('ikn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
+    /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
+    ikFilters().q = e.target.value; renderIntake({ rows: true }); });
 }
-function renderIntakeInspector(host){
+function renderIntakeInspector(host, o){
   const may=(typeof canEdit==='function'&&canEdit());
-  if (may && typeof window.newLookOn === 'function' && newLookOn()){ iknRender(host); return; }
+  if (may && typeof window.newLookOn === 'function' && newLookOn()){ iknRender(host, o); return; }
   const asker=!may;
   const f=ikFilters();
   const V=asker?IK_V_ASKER:IK_V_TEAM;

@@ -91,8 +91,11 @@ describe('F514 (E) — a quick change is a possible misreading', () => {
 describe('F514 — wired into the panel (source)', () => {
   test('the panel draws the chips and attaches the reading to both roads', () => {
     const src = strip(read('js/views/intelligence.js'));
-    /* RE-POINTED 25 Oct 2026 (Both halves): the row gives its next questions up to Jambo's words under it (noNext) */
-    assert.match(src, /hbReadingHtml\(m\.reading,hbReadingLive\(i\),\{ noNext:!!m\.nextMoved \}\)/);
+    /* RE-POINTED 25 Oct 2026 (Both halves): the row gives its next questions up to Jambo's words under it (noNext).
+       RE-POINTED AGAIN 10 Nov 2026 ("The SAP way"): the chips are the toolbar's Understood row and the next
+       questions its Next row, so the reading is always drawn noNext and its key is asked for next to it. */
+    assert.match(src, /hbReadingHtml\(m\.reading,hbReadingLive\(i\),\{ noNext:true \}\)/);
+    assert.match(src, /hbNextHtml\(m\.reading\.key\)/, 'and its own next questions stand in the Next row');
     assert.match(src, /hbTakeMeta\(\):\{\}, rdOf\(\),/);
     assert.match(src, /if\(last&&!last\.reading\)\{ const r=rdOf\(\);/);
   });

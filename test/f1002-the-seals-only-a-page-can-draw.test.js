@@ -1,5 +1,5 @@
 'use strict';
-/* f1001 — THE SEALS ONLY A PAGE CAN DRAW (owner, 10 Nov 2026: "fix the
+/* f1002 — THE SEALS ONLY A PAGE CAN DRAW (owner, 10 Nov 2026: "fix the
    template contracts gap too").
 
    A paper drawn from a template and never edited has no wording stored, so
@@ -47,7 +47,7 @@ const route = (us, them) => [
 const tplContract = (id, extra = {}) => ({ id, name: 'Raw Materials Procurement Agreement', template: 'supply', status: 'Under Review',
   signerPlan: route(true, true), signatures: [{ party: 'internal-planned', at }, { party: 'counterparty', at }], ...extra });
 
-describe('f1001 the first page an editor opens draws the copies the server cannot', () => {
+describe('f1002 the first page an editor opens draws the copies the server cannot', () => {
   test('1 a template paper with every signature in and no seal: its copy is drawn and saved, and the save seals it', async () => {
     const c = tplContract('MK-243');
     const { ctx, log } = sandbox([c]);

@@ -185,18 +185,14 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     check('10 Import: What Jambo read · Looks · Stream · Value, the ones that need you first', up && heads.join('|') === 'file|what jambo read|looks|stream|value' && /Fill in|Name it/.test(first), { heads, first: first.slice(0, 120) });
   } catch (e) { check('10 Import', false, String(e).slice(0, 200)); }
 
-  /* 11 · DNA by contract */
+  /* 11 · DNA by contract — RE-POINTED 10 Nov 2026: the owner deleted the DNA page and its button.
+     The Board's head carries no DNA door any more, and nothing draws its page. */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
-    const door = await until(page, () => !!document.querySelector('[data-hb-dna]'), null, 12000);
-    if (door) await page.evaluate(() => document.querySelector('[data-hb-dna]').click());
-    const up = door && await until(page, () => document.querySelectorAll('.dna-table .dna-strand').length >= 3, null, 10000);
-    const cr = await page.evaluate(() => { const r = [...document.querySelectorAll('.dna-table tbody tr')].find(x => /Cold Room Lease/.test(x.innerText)); return r ? { red: !!r.querySelector('.dna-s.is-miss'), worst: (r.querySelector('.dna-worst') || {}).innerText || '' } : null; });
-    const panel = await until(page, () => /Read across the book/i.test((document.querySelector('#ig-dock') || {}).innerText || ''), null, 8000);
-    await shot('11-dna');
-    check('11 DNA by contract: one strand each, the missing in red, its worst mark; the panel reads across the book', up && cr && cr.red && /missing/.test(cr.worst) && panel, cr);
-    await page.evaluate(() => { const b = document.querySelector('[data-dna-back]'); if (b) b.click(); });
-  } catch (e) { check('11 DNA by contract', false, String(e).slice(0, 200)); }
+    const head = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]'), null, 12000);
+    const gone = await page.evaluate(() => ({ btn: !!document.querySelector('[data-hb-dna]'), page: !!document.querySelector('.dna-page'), fn: typeof window.hbDnaHtml }));
+    check('11 DNA is gone: no button beside Read down, no page, nothing published', head && !gone.btn && !gone.page && gone.fn === 'undefined', gone);
+  } catch (e) { check('11 DNA is gone', false, String(e).slice(0, 200)); }
 
   /* 13 · New agreement, and From scratch for the new-paper grant */
   try {

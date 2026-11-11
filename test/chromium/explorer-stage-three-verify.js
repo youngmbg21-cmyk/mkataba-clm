@@ -65,7 +65,12 @@ const check = (name, pass, detail) => {
     await until(k => !intel.busy && intel.history.length >= k + 2, n); await page.waitForTimeout(300); };
   const settle = v => until(k => intel.cam && intel.cam.w[k] > 0.97, v);
   /* a press on something the page may not have reports, never times out (a missing feature reads red) */
-  const press = async sel => { if (await page.locator(sel).count()) { await page.click(sel); return true; } return false; };
+  /* THE SAP WAY (10 Nov 2026): the rare acts (Explain this view, Pin this finding, Copy picture) live under More on
+     the answer's own toolbar — the row is in the page but not shown, so a press opens More first */
+  const press = async sel => { if (!(await page.locator(sel).count())) return false;
+    if (!(await page.locator(sel).first().isVisible())){ const m = page.locator('#ig-dock [data-ig-sap-more]').last();
+      if (await m.count()) { await m.click(); await page.waitForTimeout(150); } }
+    await page.click(sel); return true; };
   /* the walk as drawn: its sentences, which one is lit, the head line */
   const tour = () => page.evaluate(() => ({
     on: !!intel.tour, at: intel.tour ? intel.tour.at : null,

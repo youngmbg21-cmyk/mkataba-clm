@@ -58,12 +58,19 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   /* 5 (new look; the cards' hiding is the purpose's, injected where the column stands) */
   await page.evaluate(async () => { const c = getContract('MK-IT'); if (window.ensureFull) await ensureFull(c); openShareModal(c); });
   await until(page, () => !!document.getElementById('sh-lt-goes'), null, 10000);
-  const a5 = await page.evaluate(async () => { const col = document.getElementById('sh-lt-goes'); const card = document.createElement('div'); card.className = 'sh-lt-card is-stays'; card.setAttribute('data-sh-lt-stays', 'x1'); card.textContent = 'Clause 7 stays here'; col.parentElement.insertBefore(card, col);
+  /* RE-WRITTEN 10 Nov 2026 (it failed with every reading false, on code it does not touch): a press can redraw the letter's
+     column, wiping the card this check puts beside it, so each reading first puts the card back where the column stands
+     and presses again when the card was wiped — the rule read (shareGoesPaint hides [data-sh-lt-stays]) is unchanged */
+  const a5 = await page.evaluate(async () => {
+    let card = null;
+    const ensure = () => { if (card && card.isConnected) return; const col = document.getElementById('sh-lt-goes'); if (!col) return;
+      card = document.createElement('div'); card.className = 'sh-lt-card is-stays'; card.setAttribute('data-sh-lt-stays', 'x1'); card.textContent = 'Clause 7 stays here'; col.parentElement.insertBefore(card, col); };
     /* the purpose is changed as a person changes it: the What goes list's own rows (status is a hidden row, pressed all the same) */
     const press = k => { const b = document.querySelector(`[data-share-purpose="${k}"]`); if (!b) return 'no ' + k; b.click(); return true; };
-    const r = {}; r.pressed = [press('status'), press('negotiate')];
     const beat = () => new Promise(x => setTimeout(x, 400));
-    press('status'); await beat(); r.status = card.hidden; press('negotiate'); await beat(); r.negotiate = card.hidden; r.history = r.status;
+    const read = async k => { for (let i = 0; i < 3; i++){ ensure(); press(k); await beat(); if (card && card.isConnected) return card.hidden; } return null; };
+    const r = {}; r.pressed = [press('status'), press('negotiate')];
+    r.status = await read('status'); r.negotiate = await read('negotiate'); r.history = r.status;
     return r; });
   check('5 · a history or status send hides the "stays here" cards; a negotiation send shows them', a5.history === true && a5.status === true && a5.negotiate === false, a5);
   await page.evaluate(() => { try { closeModal(); } catch (_){} });

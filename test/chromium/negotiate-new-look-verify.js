@@ -58,7 +58,10 @@ const THEIR_ROUND = async id => {
 const open = async (page, base, nl, W, H) => {
   await page.goto(base + '/', { waitUntil: 'networkidle' });
   await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-  await until(page, () => typeof openRedlineWorkbench === 'function' && typeof currentUser === 'function' && !!currentUser(), null, 40000);
+  /* A WAIT ASKS FOR THE STATE (10 Nov 2026): signed in is not loaded — the book must hold its contracts before one is read
+     (it failed on its third screen with "reading 'changes'" of an undefined contract, on code it does not touch) */
+  await until(page, () => typeof openRedlineWorkbench === 'function' && typeof currentUser === 'function' && !!currentUser()
+    && typeof getContract === 'function' && !!getContract('MK-R1') && !!getContract('MK-R3'), null, 40000);
   await page.evaluate(async on => { await stPrefSet('newLook', on); newLookApply(); }, nl);
 };
 const face = async (page, id) => {

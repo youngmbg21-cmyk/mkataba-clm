@@ -124,6 +124,16 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     const IN_FORM = () => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'), f = document.getElementById('pd-og');
       return b && f ? Math.round(b.getBoundingClientRect().top - f.getBoundingClientRect().top) : null; };
     const before = await page.evaluate(IN_FORM);
+    /* THE CARET IS IN THE NOTICE BOX BEFORE A LETTER IS TYPED (11 Nov 2026): twice on GitHub the click landed while the
+       form was still settling and "6 months" answered another owed box (left fell by one, the notice period stayed
+       owed). Asked for, bounded, pressed again if it is elsewhere; which box held the caret is said if it never gets there. */
+    const NOTICE = '#pd-og [data-blankf="up_notice_period"]';
+    let inBox = false;
+    for (let i = 0; i < 4 && !inBox; i++){
+      inBox = await until(s => document.activeElement === document.querySelector(s), NOTICE, 2000);
+      if (!inBox){ await ckOpenRowOf(page, NOTICE); await page.click(NOTICE); }
+    }
+    if (!inBox) check('2 the caret reaches the notice box before typing', false, await page.evaluate(() => { const a = document.activeElement; return a ? (a.getAttribute('data-blankf') || a.id || a.tagName) : 'none'; }));
     await page.keyboard.type('6 months');
     await page.keyboard.press('Tab');
     await until(l => detailsOf(pdContract()).left === l - 1, F.left, 5000);
@@ -131,8 +141,13 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     check('2a stored as the box is left, the row stays where it is while the hand is in the grid', before != null && after.top === before && after.inGrid && after.left === F.left - 1, JSON.stringify({ before, after }));
     await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form keeps the row it opened with, ticked */
-    const again = await until(() => !!document.querySelector('#pd-og.is-form tr:is(.is-typed, .is-read)[data-pd-og-row="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 4000);
-    check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again);
+    const again = await until(() => !!document.querySelector('#pd-og.is-form tr:is(.is-typed, .is-read)[data-pd-og-row="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 15000);
+    /* the wait is bounded at 15s (was 4s): the save and the repaint after the blur can lag on a busy runner (11 Nov 2026) */
+    const seen2b = again ? '' : await page.evaluate(() => JSON.stringify({ row: (document.querySelector('#pd-og [data-pd-og-row="up_notice_period"]') || {}).className || null,
+      form: !!document.querySelector('#pd-og.is-form'), kt: pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'),
+      owed: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.key === 'up_notice_period').map(x => ({ open: !!x.open, kind: x.kind })),
+      left: (detailsOf(pdContract()) || {}).left }));
+    check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again, seen2b);
 
     /* 3 the paper holds still */
     const at1 = await page.evaluate(PAPER_AT);
