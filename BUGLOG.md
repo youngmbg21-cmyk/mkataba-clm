@@ -22097,3 +22097,10 @@ Renamed: the SAP toolbar's test was f1000, and main gave f1000 to the Brain the 
 Renamed again: while this branch waited, main gave f1002 to the seals check, as it had given f1000 to the Brain.
 The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shared by two test files already
 (f893, f934, f946, f954, f956, f962, f996, f997, f999), so a shared number is not an error here, only a muddle.
+
+## Jambo's 15-minute rate limits are off (11 Nov 2026, f1004)
+Done, on the owner's instruction ("Remove rate limits for now"). A limit of 0 now means no limit, and the three
+Jambo window limits (light 40, deep 15, OCR 400 per 15 minutes) default to 0. The Settings boxes used to have a
+floor of 1, so they could only be lowered, never switched off; they take 0 now and say so in both books.
+NOT removed, and said to the owner: the daily request ceiling and the daily spend ceiling, which are the money
+backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.

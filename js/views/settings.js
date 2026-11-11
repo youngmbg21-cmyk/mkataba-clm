@@ -8419,9 +8419,10 @@ function stEngineBodyHtml(){
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s-2)">
         ${stLimitField('ai-daily-spend',i18t('set_lim_daily_spend'),i18t('set_lim_daily_spend_sub'),0)}
         ${stLimitField('ai-estimate-confirm',i18t('set_lim_confirm'),i18t('set_lim_confirm_sub'),0)}
-        ${stLimitField('ai-rate-light',i18t('set_lim_light'),i18t('set_lim_light_sub'),1)}
-        ${stLimitField('ai-rate-deep',i18t('set_lim_deep'),i18t('set_lim_deep_sub'),1)}
-        ${stLimitField('ai-rate-ocr',i18t('set_lim_ocr'),i18t('set_lim_ocr_sub'),1)}
+        ${''/* OFF BY DEFAULT (owner, 11 Nov 2026): 0 is a real value here now — it turns the limit off */}
+        ${stLimitField('ai-rate-light',i18t('set_lim_light'),i18t('set_lim_light_sub'),0)}
+        ${stLimitField('ai-rate-deep',i18t('set_lim_deep'),i18t('set_lim_deep_sub'),0)}
+        ${stLimitField('ai-rate-ocr',i18t('set_lim_ocr'),i18t('set_lim_ocr_sub'),0)}
         ${stLimitField('ai-daily',i18t('set_lim_daily_req'),i18t('set_lim_daily_req_sub'),0)}
         ${stLimitField('ai-ocr-pages',i18t('set_lim_ocr_pages'),i18t('set_lim_ocr_pages_sub'),1)}
         ${stLimitField('ai-maxchars',i18t('set_lim_chars'),i18t('set_lim_chars_sub'),1000)}

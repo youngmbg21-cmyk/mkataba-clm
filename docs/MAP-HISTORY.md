@@ -36928,3 +36928,24 @@ The owner, 10 Nov 2026: "delete the DNA page and button from HaTi". Removed: the
 
 ## THE OVERNIGHT RUN (9 Oct) — THE LATE SEAL (10 Nov 2026)
 The owner: "I received the email in image 2 today but as you can see in image one, it was executed a while back." MK-243 was signed by both sides on 30 Jul 2026 and sealed on 10 Nov 2026 — the "Fully executed" mail went out at the seal. Cause: `runSealCatchUp` only looked for records carrying "Seal waiting", a note written from 9 Oct; anything every signer signed before that was never looked at. PR #627 (owner's yes): the round also seals any record whose signing route is all signed (`srvSealRouteDone`); the executed mail says "was signed by all parties on D and sealed on D2" (`srvExecutedSentence`), never "is now fully signed". The gap left, said to the owner: a paper drawn from a template and never edited stores no wording, so the server cannot draw its copy. Then "fix the template contracts gap too": the first page an editor opens, once per sitting, draws the copy for every visible contract with every signature in and no seal and saves it; the server seals on that save (`sealCatchUpPage`, `sealCatchUpDue`). It is still not without a browser: drawing a template's paper on the server would mean porting the page's renderer.
+
+## THE LEGAL AND LAUNCH AUDITS' FIXES
+### JAMBO'S 15-MINUTE RATE LIMITS ARE OFF (owner, 11 Nov 2026)
+Asked after the analyst rounds: the owner read that fast typing could hit Jambo's per-minute limit and asked why
+there was one at all. The honest answer: every Jambo question is a paid call, and the limiter is the seatbelt
+against a runaway client loop spending the budget overnight; the two tiers (LIGHT 40, DEEP 15 per 15 minutes,
+per person) were set for "a real demo or a busy reviewer" — a number chosen BEFORE the Board could draw. An
+analyst asking for ranking after ranking, each one a drawing call, is heavier than whoever that number was for.
+The owner: "Remove rate limits for now."
+
+BUILT: a limit of NOUGHT now means no limit in `rateLimit` itself (`if (!(lim > 0)) return next()`), exactly as
+the daily request ceiling has always read 0, and `aiRateLight`, `aiRateDeep` and `aiRateOcr` default to 0; the
+Settings boxes take 0 (they had a floor of 1, so they could only be lowered to 1, never turned off) and both
+books say "0 turns it off" under each.
+
+WHAT WAS NOT REMOVED, and said to the owner: the daily request ceiling (5,000) and the daily SPEND ceiling
+($10) still stand — they are the money backstops, and they already say "an admin can raise this in Settings"
+when they bite. Every limiter written with a number of its own is untouched, the sign-in wrong-guess wall and a
+signing code's attempt wall among them: those are brute-force protection, not cost control, and "remove the
+rate limits" was never a request to take the locks off the doors. f1004 pins both halves.
+
