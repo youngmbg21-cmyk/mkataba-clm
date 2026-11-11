@@ -22104,6 +22104,16 @@ Renamed: the SAP toolbar's test was f1000, and main gave f1000 to the Brain the 
 Renamed again: while this branch waited, main gave f1002 to the seals check, as it had given f1000 to the Brain.
 The SAP toolbar's test is f1003. Noticed, not fixed: nine other numbers are shared by two test files already
 (f893, f934, f946, f954, f956, f962, f996, f997, f999), so a shared number is not an error here, only a muddle.
+## Fixed (11 Nov 2026, the owner: "fix the still owed bug too")
+- The still-owed form losing a typed answer: a reading (the arrival read's record fill) and the live probe held an
+  older copy of the contract and saved it / swapped it over the new one. Fills now land on the live record and never
+  over a filled box, persist saves the live record, the probe waits while a save is pending. f1002.
+- (renumbered: the test is f1003, f1002 being the seal catch-up's, 11 Nov 2026)
+- (renumbered again: the test is f1004, f1003 having gone to the SAP toolbar's, 11 Nov 2026)
+## Changed by the owner's pick (11 Nov 2026): "Card Inside"
+- The board's brief no longer stands before Summarise is pressed (owner: "nothing written … only once you press");
+  pressed, it opens inside the white greeting under the buttons. The card that stood between the greeting and Your book
+  before the press is removed (a band taken off: this line).
 
 ## Jambo's 15-minute rate limits are off (11 Nov 2026, f1004)
 Done, on the owner's instruction ("Remove rate limits for now"). A limit of 0 now means no limit, and the three
@@ -22111,6 +22121,7 @@ Jambo window limits (light 40, deep 15, OCR 400 per 15 minutes) default to 0. Th
 floor of 1, so they could only be lowered, never switched off; they take 0 now and say so in both books.
 NOT removed, and said to the owner: the daily request ceiling and the daily spend ceiling, which are the money
 backstops, and every limiter guarding against guessing (sign-in, signing codes) — those are locks, not budgets.
+- (renumbered a third time: the typed-answer test is f1005, f1004 having gone to the rate limits', 11 Nov 2026)
 
 ## One Row on Explorer (11 Nov 2026, f1005)
 Built, on the owner's pick. Explorer's panel now folds every answer before the newest to one line (the words
@@ -22145,3 +22156,5 @@ words and its figures, and loses only its row of controls — only the newest an
 checks that watch for the whole conversation being drawn pass as written again; one (reading-chips 4) was
 re-pointed, because an older answer has no chips to find still. The fold's builder, its styles, its press and
 its words are all gone, and int_one_shown is inert in both books.
+## Removed on the owner's word (11 Nov 2026)
+- The amber wash on the open clause's words on the paper (Clauses tab, `pd2-cl-on`) is removed; the owner: "Drop it". The note beside the paper and the row in the panel still light amber.

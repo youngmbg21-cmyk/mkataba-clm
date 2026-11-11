@@ -69,8 +69,14 @@ async function agentLevelMineSet(k, v){
   const was = u.prefs && u.prefs.agentLevels ? { ...u.prefs.agentLevels } : {};
   const next = { ...was }; if (v) next[k] = v; else delete next[k];
   if (typeof API_MODE === 'function' && API_MODE()){
-    const r = await api('me/prefs', 'PUT', { agentLevels: { [k]: v || null } });
-    u.prefs = (r && r.prefs) || { ...(u.prefs || {}), agentLevels: next };
+    /* THE CHOICE IS TAKEN AT ONCE (owner, 11 Nov 2026: a delay between the buttons): the person's own prefs hold it
+       before the server answers, so the caller can draw it now; a refusal puts the old one back and throws */
+    const prevPrefs = u.prefs;
+    u.prefs = { ...(u.prefs || {}), agentLevels: next };
+    let r;
+    try { r = await api('me/prefs', 'PUT', { agentLevels: { [k]: v || null } }); }
+    catch (e){ u.prefs = prevPrefs; throw e; }
+    u.prefs = (r && r.prefs) || u.prefs;
   } else {
     u.prefs = { ...(u.prefs || {}), agentLevels: next };
     if (typeof saveUsers === 'function' && typeof getUsers === 'function') saveUsers(getUsers());

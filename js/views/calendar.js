@@ -2335,14 +2335,23 @@ function calLevelSegHtml(){
   return `<div class="cal-lv" data-cal-lvs><span class="cal-lv-t" id="cal-lv-t">${_esc(i18t('cal_lv_label'))}</span><span class="cal-lv-seg" role="group" aria-labelledby="cal-lv-t">${
     CAL_LEVELS.map(([k,key])=>`<button type="button" data-cal-lv="${k}" aria-pressed="${cur===k?'true':'false'}">${_esc(i18t(key))}</button>`).join('')}</span></div>`;
 }
+/* THE PRESS SHOWS AT ONCE (owner, 11 Nov 2026: a delay between the buttons): the pressed button lights in the same
+   frame, the page is drawn once with the new setting (mineSave takes a pref before the server answers), and a
+   refusal puts the old one back and says why */
+function calLevelLight(v){
+  document.querySelectorAll('[data-cal-lv]').forEach(b=>b.setAttribute('aria-pressed',b.getAttribute('data-cal-lv')===v?'true':'false'));
+}
 async function calLevelSet(v){
   if(!CAL_LEVELS.some(x=>x[0]===v)||v===calLevelOf()) return false;
+  const was=calLevelOf();
+  calLevelLight(v);
   if(typeof mineLoaded==='function'&&!mineLoaded()&&typeof mineLoad==='function') await mineLoad();
-  try{ await mineSave('pref',{ ...minePref(), copilotLevel:v }); }
-  catch(e){ toast(String((e&&(e.error||e.message))||i18t('cal_plan_failed',{why:''})),'err'); return false; }
-  /* mineSave repaints the Calendar where it is up; the Obligations page says
-     the week again with the new offer */
-  if(window.state&&state.view==='obligations'&&typeof window.obwRepaint==='function') obwRepaint();
+  const obw=()=>{ if(window.state&&state.view==='obligations'&&typeof window.obwRepaint==='function') obwRepaint(); };
+  const p=mineSave('pref',{ ...minePref(), copilotLevel:v });
+  /* the Obligations page says the week again with the new offer, at once too */
+  obw();
+  try{ await p; }
+  catch(e){ calLevelLight(was); obw(); toast(String((e&&(e.error||e.message))||i18t('cal_plan_failed',{why:''})),'err'); return false; }
   return true;
 }
 /* ---- COPILOT, BESIDE THE CALENDAR IN EVERY VIEW (the design, 11 Oct 2026) ----
@@ -2681,7 +2690,7 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
   },true);
 }
 
-Object.assign(window,{calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+Object.assign(window,{calLevelLight,calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,CAL_AGENDA_VIEW_DAYS,CAL_AGENDA_VIEW_ROWS,calAgendaViewHtml,

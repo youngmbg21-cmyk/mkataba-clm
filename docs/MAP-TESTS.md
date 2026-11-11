@@ -178,6 +178,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - clauses-legora-way-verify 1c: on every tab (All · Needs you · Worth a look · Fine) the spine starts at the first dot shown and ends at the last (red at the parent: −17 / +15px on the filtered tabs).
 - MARQUEE (23 Oct 2026): clauses-legora-way-verify 1/1b (headline, sentence, tabs with counts; Worth a look narrows, All lets go), clause-list-fixed-verify 6a/6b (Needs you tab), stakes-verify 2, 3b–3d, 3k, 3l (Found by behind Filter, one dropdown per touch), 5c/5e (the tab survives the editor trip), 9 — all re-pointed from the three boxes.
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
@@ -670,3 +671,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - test/f580-the-seal-is-the-servers.test.js — the server seals, as HaTi.
 - test/f651-their-link-renewal-term-and-the-copy-the-server-draws.test.js — C3–C5: the reminder round seals "Seal waiting" AND a finished route with no note; the executed email says the day signed (and sealed).
 - test/f1002-the-seals-only-a-page-can-draw.test.js — the first page an editor opens draws the copies the server cannot (`sealCatchUpPage`).
+
+## THE LIGHT LIST — A TYPED ANSWER IS NEVER TAKEN BACK (11 Nov 2026)
+- node --test test/f1005-a-typed-answer-is-never-taken-back.test.js test/f327-copilot-reads-and-fills-on-arrival.test.js
+- browser (GitHub): owed-first-verify (2b)
+
+## THE SHELL — A PRESS SHOWS AT ONCE, THE PAGE LINKS RIDE THE LINE (11 Nov 2026)
+- node --test test/f1006-a-press-shows-at-once-and-the-links-ride-the-line.test.js test/f793-jambo-may-change-my-calendar.test.js
