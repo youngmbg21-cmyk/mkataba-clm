@@ -1,4 +1,4 @@
-/* f1009 — A DECISION REDRAWS ONLY ITS CLAUSE
+/* f1010 — A DECISION REDRAWS ONLY ITS CLAUSE
    =========================================
    The owner, 11 Nov 2026: "time it on GitHub first, then fix Accept and Reject".
 
@@ -19,7 +19,7 @@
      7 · an arriving change refreshes the paper once
      8 · the same wording is fingerprinted once, and a changed one afresh
 
-   Run: node --test test/f1009-a-decision-redraws-one-clause.test.js */
+   Run: node --test test/f1010-a-decision-redraws-one-clause.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -45,7 +45,7 @@ function fnBody(src, name) {
   return '';
 }
 
-describe('f1009 — a decision redraws only its clause', () => {
+describe('f1010 — a decision redraws only its clause', () => {
   test('1 · a refresh tries the patch first; drawn whole only where the patch gave none', () => {
     const b = fnBody(IG, 'igPaperRefresh');
     const patch = b.indexOf('igPaperPatch(c)'), whole = b.indexOf('delete host.dataset.for'), paint = b.indexOf('igPaintPaper()');

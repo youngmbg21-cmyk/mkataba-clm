@@ -22216,3 +22216,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 11 Nov 2026 · Measured, not fixed: the Clauses and Dossier tabs lay the notes beside the paper out twice per press (133 ms and 82 ms); opening and closing the Redlines panel draws the whole paper (131 and 139 ms).
 - 11 Nov 2026 · Closed by measurement: the page-wide `:has` rules on the list pages (the line of 11 Nov above) cost under 1 ms a change on all 16 pages measured; nothing to fix there.
 - 11 Nov 2026 — Noticed, not fixed: CLAUDE.md carries unresolved merge markers (<<<<<<< HEAD / ======= / >>>>>>> origin/main) in THE SHELL section, two versions of "ONE ROW / ONE TOOLBAR UNDER AN ANSWER"; the file is also past its 80 KB mark (about 82 KB).
+- 11 Nov 2026 · Renumbered: the decision-redraws-one-clause test is f1010 (main took f1009 for the panel's three small doors while this branch was open); the BUGLOG and MAP-HISTORY lines of today that say f1009 for it mean f1010.

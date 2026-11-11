@@ -7401,6 +7401,8 @@ function pd2ClausePoints(c, cv){
 const PD2_FOLD_DRIFT = 60;
 /* the groups the reader opened, per contract, for this sitting: a repaint keeps them open */
 const _pd2Unfolded = new Set();
+/* SHOW LESS (owner, 11 Nov 2026): a group the reader folded themselves stays folded, whatever its drift */
+const _pd2Shut = new Set();
 const PD2_NOTE_GAP = 12, PD2_SHEET_LEFT = 40, PD2_NOTES_MIN = 220, PD2_NOTES_MAX = 320, PD2_NOTES_GUTTER = 32, PD2_SHEET_MIN = 480;
 function pd2Notes(c){
   const E = _pdE, out = [];
@@ -7760,8 +7762,9 @@ function pd2GroupHtml(g, i){
   /* on Clauses the clause is already shown there: the same door, said as what it does there (lands on its row) */
   const open = g.items.some(x => x.clause) && g.at >= 0 ? `<div class="pd2-mn-a"><button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${g.at}">${E(_pdT(_pdTab === 'doc' ? 'pd2_g_shown' : 'pd2_g_open'))}</button></div>` : '';
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
-  const kept = _pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '';
-  return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${open}</div>`;
+  const less = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-less" data-pd2-fold>${E(_pdT('pd2_g_less'))}</button>` : '';
+  const kept = (_pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '') + (_pd2Shut.has(String(g.cid) + '|' + g.at) ? ' data-pd2-shut="1"' : '');
+  return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${less}${open}</div>`;
 }
 /* each group at its clause's height, pushed down past the one above; one that would drift more than a few lines from its
    clause folds to its first line and "+ N more here" (opened in place, then laid out again) */
@@ -7775,15 +7778,22 @@ function pd2GroupsPlace(groups, zoom, host, f){
     const r = rs[i];
     const want = Math.max(0, (r.top - top0) / f - 2);
     const at = Math.max(want, floor);
-    el.classList.toggle('is-folded', !el.hasAttribute('data-pd2-open') && g.items.length > 1 && at - want > PD2_FOLD_DRIFT);
+    el.classList.toggle('is-folded', !el.hasAttribute('data-pd2-open') && g.items.length > 1 && (el.hasAttribute('data-pd2-shut') || at - want > PD2_FOLD_DRIFT));
     el.style.top = at + 'px';
     floor = at + el.offsetHeight + PD2_NOTE_GAP;
   });
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-unfold]') : null; if (!b) return;
-  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.classList.remove('is-folded');
-  if (h) _pd2Unfolded.add(String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'));
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.removeAttribute('data-pd2-shut'); g.classList.remove('is-folded');
+  if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.add(key); _pd2Shut.delete(key); }
+  const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
+});
+/* SHOW LESS: the group folds back to its first line and "+ N more here"; the notes are laid out again */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-fold]') : null; if (!b) return;
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.removeAttribute('data-pd2-open'); g.setAttribute('data-pd2-shut', '1'); g.classList.add('is-folded');
+  if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.delete(key); _pd2Shut.add(key); }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
 /* OPEN IN CLAUSES: the clause's own row on the Clauses tab, opened, and the paper glides there (the paper track's door:

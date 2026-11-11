@@ -10210,6 +10210,9 @@
   .jb-say-h{display:flex;align-items:baseline;gap:8px;justify-content:space-between;font-size:12px;color:var(--color-neutral-600)}
   .jb-say-h b{display:inline-flex;align-items:baseline;gap:6px;color:var(--color-text);font-weight:var(--w-label)}
   .jb-say-i{color:var(--accent-ink)}
+  /* the card's × (top right, only where a caller gives it a press) */
+  .jb-say-x{width:24px;height:24px;flex:none;display:grid;place-items:center;align-self:center;margin-left:auto;border:0;border-radius:var(--radius);background:none;color:var(--color-quiet);cursor:pointer}
+  .jb-say-x:hover{background:var(--color-neutral-200);color:var(--color-text)}
   .jb-say-b{font-size:13.5px;line-height:1.5}
   .jb-say-b p{margin:0}
   .jb-say-b p+p{margin-top:6px}
@@ -18368,6 +18371,9 @@
   html.lg-new #pd2-notes .pd2-mg .pd2-mg-more{display:none;font-size:12px}
   html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
   html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-more{display:inline}
+  /* SHOW LESS: on an open group of two or more; gone once folded */
+  html.lg-new #pd2-notes .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
+  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-less{display:none}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
