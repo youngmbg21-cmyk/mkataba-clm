@@ -22128,3 +22128,13 @@ Done, on the owner's instruction after seeing the Board photographed. One Row no
 panel and the three-row toolbar built the day before is DELETED rather than kept beside it — two ways of showing
 the same controls was the problem, not the solution. The names that said "SAP" were renamed to say what they are.
 Cut with it: the SAP browser check and f1003; their still-true cases moved into f1005 and the One Row check.
+
+## One Row: the glyph, the delegation, and a conflict for the owner (11 Nov 2026)
+Fixed from the first run: the ⋯ button printed a typed mark, which the house rule forbids — it is the drawn
+"more" icon now (f966); the fold and the ⋯ were wired inside renderIntelDock, but the turns are repainted in
+place, so the listeners died with their nodes — both are delegated on document at load now; home-first 1b
+expected the doors first in the menu, where the next steps now come first.
+STOPPED AND ASKED, not decided: folding an older answer to one line hides what Jambo said, and five checks
+written over months assert that the whole conversation is DRAWN (f840 2c, jambo-tab-and-back 1g/1m/2b,
+reading-chips 4, explorer-stage-three 4e). The owner's new pick and their older ruling disagree; the owner
+chooses, the branch stays red until they do.

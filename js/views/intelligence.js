@@ -5898,7 +5898,18 @@ function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
 /* WHAT JAMBO UNDERSTOOD: an open chip menu closes on a press outside it and on Esc (bound once, at load) */
 document.addEventListener('click',e=>{ if(!intel||!intel.mrOpen) return; if(e.target&&e.target.closest&&e.target.closest('[data-ig-mr-turn] .hb-rd-wrap')) return; intel.mrOpen=null; renderIntelDock(); },true);
-/* THE SAP WAY's More: a press outside it, or Esc, closes it */
+/* ONE ROW: the fold and the ⋯ sit on nodes the turns repaint in place (JB_TURN_HOSTS, jamboTurnsTake), so their
+   presses are DELEGATED on document at load — a listener bound inside renderIntelDock dies with its node. */
+document.addEventListener('click',e=>{ if(typeof intel==='undefined'||!e.target||!e.target.closest) return;
+  const f=e.target.closest('#ig-dock [data-ig-fold]');
+  if(f){ e.stopPropagation(); const k=Number(f.getAttribute('data-ig-fold')); intel.oneOpen=intel.oneOpen===k?null:k; renderIntelDock();
+    const fresh=document.querySelector(`[data-ig-fold="${k}"]`); if(fresh&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); return; }
+  const b=e.target.closest('#ig-dock [data-ig-more]');
+  if(b){ e.stopPropagation(); const k=b.getAttribute('data-ig-more'); intel.moreOpen=intel.moreOpen===k?null:k; renderIntelDock();
+    const fresh=document.querySelector(`[data-ig-more="${k}"]`); if(fresh&&intel.moreOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); return; }
+  /* a press on anything inside the menu closes it: the act is the answer */
+  if(e.target.closest('#ig-dock .igd-more-menu button')) intel.moreOpen=null; });
+/* ONE ROW's ⋯: a press outside it, or Esc, closes it */
 document.addEventListener('click',e=>{ if(!intel||!intel.moreOpen) return; if(e.target&&e.target.closest&&e.target.closest('.igd-more-wrap')) return; intel.moreOpen=null; renderIntelDock(); },true);
 document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!intel||!intel.moreOpen) return; e.stopPropagation(); const k=intel.moreOpen; intel.moreOpen=null; renderIntelDock();
   const b=document.querySelector(`[data-ig-more="${k}"]`); if(b) try{ b.focus({ preventScroll:true }); }catch(_){} },true);
@@ -9684,7 +9695,7 @@ function igExportList(ids){
 function igMoreHtml(i, rows){
   if(!rows.length) return '';
   const open=intel.moreOpen===String(i);
-  return `<span class="igd-more-wrap"><button type="button" class="igd-one-more${open?' is-open':''}" data-ig-more="${i}" aria-haspopup="menu" aria-expanded="${open}" title="${igEsc(i18t('int_sap_more'))}" aria-label="${igEsc(i18t('int_sap_more'))}">⋯</button>`
+  return `<span class="igd-more-wrap"><button type="button" class="igd-one-more${open?' is-open':''}" data-ig-more="${i}" aria-haspopup="menu" aria-expanded="${open}" title="${igEsc(i18t('int_sap_more'))}" aria-label="${igEsc(i18t('int_sap_more'))}">${typeof icon==='function'?icon('more'):''}</button>`
     +`<div class="igd-more-menu${open?' is-open':''}" role="menu" aria-label="${igEsc(i18t('int_sap_more'))}">${rows.join('')}</div></span>`;
 }
 /* ---- ONE ROW — THE PANEL'S ONE LAYOUT (owner, 11 Nov 2026: "for the explorer, build one row", then, shown the
@@ -10285,12 +10296,6 @@ function renderIntelDock(){
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
   }
-  /* THE SAP WAY's More: a press opens it, again closes it (Esc and a press outside close it too, bound at load) */
-  dock.querySelectorAll('[data-ig-more]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const k=b.getAttribute('data-ig-more'); intel.moreOpen=intel.moreOpen===k?null:k; renderIntelDock();
-    const fresh=document.querySelector(`[data-ig-more="${k}"]`); if(fresh&&intel.moreOpen&&typeof fieldFocus==='function') fieldFocus(fresh,{ focusVisible:false }); }));
-  /* a press on anything inside the menu closes it: the act is the answer */
-  dock.querySelectorAll('.igd-more-menu button').forEach(b=>b.addEventListener('click',()=>{ intel.moreOpen=null; },true));
   /* WHAT JAMBO UNDERSTOOD (Board Twin): a chip opens its menu, again closes it; a choice re-reads the set in place */
   dock.querySelectorAll('[data-ig-mr]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const k=b.getAttribute('data-ig-mr'); intel.mrOpen=intel.mrOpen===k?null:k; renderIntelDock();

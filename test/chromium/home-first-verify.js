@@ -86,7 +86,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('1a the row leads with Read all 3 in Workspace, filled, and ⋯ beside it (Paper was called Document 11 Oct 2026, Workspace 15 Oct)',
       doors.btns.join('|') === 'Read all 3 in Workspace*' && doors.more, JSON.stringify(doors));
     ok('1b Show on the Board, the Contracts page and Export are under ⋯, shut',
-      doors.menuShut && doors.under.length >= 3 && /Show on the Board/.test(doors.under[0]) && doors.under.some(x => /Contracts page/.test(x)) && doors.under.some(x => /Export/.test(x)), JSON.stringify(doors.under));
+      doors.menuShut && ['Show on the Board', 'Contracts page', 'Export'].every(w => doors.under.some(x => x.includes(w))), JSON.stringify(doors.under));
     await page.screenshot({ path: path.join(OUT, '1-answer.png') });
 
     /* ===== 2. WALK THE SET ON PAPER ===== */
