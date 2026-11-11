@@ -3225,7 +3225,14 @@ function hbSplitWord(S){
   if (S.by === 'valueBand') return i18t('hb_by_band');
   return hbGroupWord(S.by);
 }
-function hbPicWord(P){ return P.pic === 'cols' ? i18t('hb_pic_cols_' + ((P.split && P.split.unit) || 'm')) : i18t('hb_pic_' + P.pic); }
+function hbPicWord(P, short){
+  if (P.pic === 'cols') return i18t('hb_pic_cols_' + ((P.split && P.split.unit) || 'm'));
+  /* SHORT, FOR THE CHIP (owner, 11 Nov 2026: "shorten the chips"): a picture whose long word names what it is
+     sized by says only the picture on the row — the Measure chip beside it says the rest, and the menu keeps the
+     whole words. A picture with no short word of its own is already short. */
+  if (short){ const k = 'hb_picshort_' + P.pic, w = i18t(k); if (w && w !== k) return w; }
+  return i18t('hb_pic_' + P.pic);
+}
 /* What a press may choose, and why not when it may not (a dead button wears
    grey and says why — the house rule). */
 const HB_WIN_PRESETS = [['last', 1, 'q'], ['last', 1, 'y'], ['last', 3, 'm'], ['last', 6, 'm'], ['last', 12, 'm'], ['last', 2, 'y'], ['next', 3, 'm'], ['next', 6, 'm'], ['next', 12, 'm']];
@@ -9025,7 +9032,7 @@ const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmea
    that has moved on. Desktop panel only; the phone keeps its own Home. */
 let _hbRdOpen = null;
 const HB_RD_PARTS = ['pic', 'split', 'measure'];
-function hbRdWords(P){ return { pic: hbPicWord(P), split: hbSplitWord(P.split), measure: i18t('hb_ms_' + P.measure) }; }
+function hbRdWords(P, short){ return { pic: hbPicWord(P, short), split: hbSplitWord(P.split), measure: i18t('hb_ms_' + P.measure) }; }
 function hbReadingSnap(){
   const key = hbOpenListKey(); if (!key) return { key: null, sig: '' };
   const D = hbDigData(key, hbS().lens); return { key, sig: D ? JSON.stringify(hbPlan(D)) : '' };
@@ -9048,7 +9055,7 @@ function hbReadingHtml(rd, live, opts){
   if (!rd || !rd.key) return '';
   const s = hbS(); const D = live ? hbDigData(rd.key, s.lens) : null;
   const P = D && D.kind === 'list' ? hbPlan(D) : null;
-  const words = P ? hbRdWords(P) : (rd.words || {});
+  const words = P ? hbRdWords(P, true) : (rd.words || {});
   const label = p => i18t({ pic: 'hb_rc_pic', split: 'hb_rc_split', measure: 'hb_rc_measure' }[p]);
   if (!P) return `<div class="hb-rd is-still" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.filter(p => words[p]).map(p => `<span class="hb-rd-chip is-still"><i>${_hbE(label(p))}</i>${_hbE(words[p])}</span>`).join('')}</div>`;
   const chip = p => {
@@ -9123,6 +9130,8 @@ function hbDockRepaint(){
       el.outerHTML = hbReadingHtml(m.reading, hbReadingLive(i), { noNext: !!m.nextMoved }); done = true;
     });
     if (!done && typeof renderIntelDock === 'function') renderIntelDock();
+    /* a chip's menu is placed against the panel, never left to hang under a chip the feed clips away */
+    else if (typeof window.igMorePlace === 'function') try { igMorePlace(); } catch (_p){ /* no panel */ }
   } catch (_){ if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_e){ /* the panel is not up */ } }
 }
 /* a chip's choice, through the card's own writer; a change right after an

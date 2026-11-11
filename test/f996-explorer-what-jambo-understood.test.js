@@ -123,7 +123,9 @@ test('f996 (5) the AI read "5 per stream" where the words name the groups: the w
 });
 
 /* ---------- (6) THE READING CHIPS ---------- */
-test('f996 (6) the chips say Keep · Ranked by · the word; a press re-reads the same set in place', () => {
+/* RE-POINTED 11 Nov 2026 (the owner: "shorten the chips"): the chips carry the SHORT reading on the row — the
+   label says "ranked", so the value no longer repeats "biggest" — and the menu keeps the whole words. */
+test('f996 (6) the chips say Keep · By · the word; a press re-reads the same set in place', () => {
   const win = world();
   win.eval("intel.history.push({ role:'user', text:'only include the top 2 folders by value' })");
   const h0 = win.eval('intel.history.length');
@@ -137,8 +139,8 @@ test('f996 (6) the chips say Keep · Ranked by · the word; a press re-reads the
   assert.equal(m.mapRead.word.say, 'folders');
   let html = win.igMapReadHtml(m, i);
   assert.match(html, /class="hb-rd-chip is-doubt"[^>]*data-ig-mr="\d+:keep"/, 'the Keep chip is amber');
-  assert.match(html, /<i>Keep<\/i>2 biggest value streams/);
-  assert.match(html, /<i>Ranked by<\/i>value/);
+  assert.match(html, /<i>Keep<\/i>2 value streams/, 'short on the row');
+  assert.match(html, /<i>By<\/i>value/);
   assert.match(html, /<i>&quot;folders&quot;<\/i>value streams/);
   assert.match(html, /data-ig-mrnext="\d+:\d+">Colour by stage</, 'a checked next step');
   /* the menu */
