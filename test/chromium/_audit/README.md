@@ -15,6 +15,12 @@ They assert nothing. They print numbers, which is what a measurement is for.
   the function that made it. This is what found the finding.
 * `perf7.js` — the same filter, scanned against indexed, side by side.
 
+* `speed-measure.js` — (11 Nov 2026) what each press on a LONG contract costs
+  (the switch, Accept and Reject, filling in, opening and closing the faces)
+  and what one small change costs on each list page with the page-wide `:has`
+  rules and without them. GitHub runs it by itself when the script changes
+  (`.github/workflows/measure.yml`) or when started by hand; it never fails a run.
+
 The findings are written up in `docs/PERFORMANCE-AUDIT.md`. Re-measure before
 quoting any number from it: the runner is the authority.
 
