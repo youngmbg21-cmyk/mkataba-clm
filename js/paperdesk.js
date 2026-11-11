@@ -7610,7 +7610,9 @@ function pd2ClauseTint(){
   const row = document.querySelector('#ig-dock #pd-thread .doc-th-row.is-open'); if (!row) return;
   const name = (row.querySelector('.doc-th-name') || row).textContent.replace(/\s+/g, ' ').trim().toLowerCase();
   const sec = pd2WalkSections(cv).find(x => x.head && name.indexOf(String(x.head.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()) === 0);
-  if (sec) sec.els.forEach(e => { if (e !== sec.head) e.classList.add('pd2-cl-on'); });
+  /* THE PAPER STAYS WHITE (owner, 11 Nov 2026: "Drop it"): no amber wash on the open clause's words; the note
+     beside it and its row in the panel carry the link (below) */
+  void sec;
   /* THE NOTE BESIDE IT AND ITS ROW LIGHT WITH IT (owner, 10 Nov 2026): one thing, one amber outline in three places; painted,
      never stored */
   const fold = t => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();

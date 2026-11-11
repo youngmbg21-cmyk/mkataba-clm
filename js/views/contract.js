@@ -15082,6 +15082,7 @@ let _docThreadWant = '';          /* 'risk': land on the first marked clause whe
 let _docThreadOnly = null;        /* the rows the running reading was asked for; null = every row */
 let _docThreadCache = null;       /* the last paint's walk, so a scroll does not re-walk the sheet */
 let _docThreadRevealed = -1;      /* the open row last brought into the list's view */
+let _docThreadSyncTop = -1;       /* where the paper stood when the open row was last decided (THE PAPER AND THE PANEL LINE UP) */
 /* THE DRAWER (Young picked it 5 Oct 2026) */
 let _docThreadDrawer = null;      /* the clauses over Form & links: null = not yet decided on this landing */
 let _docThreadDrawerFor = null;   /* …for this contract */
@@ -15657,6 +15658,7 @@ function docThreadFill(c,rows,i,opts){
    press on the open row shuts it (docThreadShut); docThreadFill has always
    drawn -1 as "nothing open". */
 function docThreadOpen(c,i,opts){
+  { const sc=thEl('scroll'); _docThreadSyncTop=sc?sc.scrollTop:-1; }
   if(i===_docThreadOn) return;
   _docThreadOn=i;
   const card=thEl('card');
@@ -15924,6 +15926,14 @@ function docThreadPaint(c){
   if(land>=0){ docThreadShutClear(); _docThreadOn=land; }
   else if(docThreadShutOn(c)) _docThreadOn=-1;
   else if(!docThreadShown(rows[_docThreadOn])) _docThreadOn=docThreadNearest(rows,docThreadAtLine());
+  /* ---- THE PAPER AND THE PANEL LINE UP (owner, 11 Nov 2026: "the clauses on the page and the panel do not
+     line up") ---- the follow only listens while the list is up, so a paper scrolled on the Dossier tab came back
+     to Clauses with the old clause open. Where the paper has moved since the open row was decided, and no press
+     is gliding it, the clause at the line opens. A held row (the paper could not bring it up) has not moved, so
+     it stays. */
+  else if(_docThreadGlide<0&&_docThreadSyncTop>=0){ const sc=thEl('scroll');
+    if(sc&&Math.abs(sc.scrollTop-_docThreadSyncTop)>4) _docThreadOn=docThreadNearest(rows,docThreadAtLine()); }
+  { const sc=thEl('scroll'); if(sc) _docThreadSyncTop=sc.scrollTop; }
   const sig=String(c&&c.id)+'|'+rows.map(x=>(docThreadIsSec(x)?'§':'')+docXrayLabel(x)).join('\u0001');
   if(card.getAttribute('data-th-sig')!==sig||!card.querySelector('.doc-th-rows')){
     card.setAttribute('data-th-sig',sig);
