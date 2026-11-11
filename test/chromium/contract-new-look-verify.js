@@ -235,6 +235,40 @@ const READ = () => {
         await page.click('#pd-thread [data-stk-pre-review="undo"]');
         const un = await until(page, () => !!document.querySelector('#pd-thread [data-stk-pre-review=""]') && !(getContract('MK-A2').pointReviews || {}).pblpreamble, null, 10000);
         check('13d the Preamble: Fill it in · Mark reviewed (kept, and undone) · a blank is filled, never redlined', rv && un);
+        /* 13e START REDLINING, AND BACK (owner, 11 Nov 2026: "when i press redline it stutters by flashing the redlines tab
+           first", "when i press back from editor, it takes me to redlines tab as opposed to clauses tab where i started"):
+           the editor opens with no frame of the Redlines face before it, and its ‹ says Clauses and lands on the same clause */
+        await page.evaluate(() => { window.__fr = []; const t0 = performance.now(); const tick = () => {
+          window.__fr.push([!!document.getElementById('clause-editor'), !!(window.pdRedShows && pdRedShows()), !!document.querySelector('#confirm-overlay')]);
+          if (performance.now() - t0 < 6000 && !document.getElementById('clause-editor')) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+        const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open [data-stk-redline]')].find(x => !x.disabled); if (!b) return false; b.click(); return true; });
+        /* the blanks question may come first (the one funnel asks it): Open Negotiate anyway */
+        if (pressed && await until(page, () => !!document.querySelector('#confirm-overlay #cf-cancel') || !!document.getElementById('clause-editor'), null, 6000))
+          await page.evaluate(() => { const b = document.querySelector('#confirm-overlay #cf-cancel'); if (b) b.click(); });
+        const opened = pressed && await until(page, () => !!document.getElementById('clause-editor') && !!document.querySelector('#clause-editor [data-ce-act="row-back"]'), null, 10000);
+        const Fr = await page.evaluate(() => ({ flashed: (window.__fr || []).filter(f => !f[0] && f[1]).length,
+          back: ((document.querySelector('#clause-editor [data-ce-act="row-back"]') || {}).textContent || '').trim() }));
+        /* 13f CAME FROM "WHAT TO WATCH" (owner picked "Legora with ticks", 11 Nov 2026): Jambo's panel lists the clause's
+           point ticked, no number, its words highlighted on the clause; unticking takes the highlight off and greys the one button */
+        const Pt = opened ? await page.evaluate(async () => {
+          const hl = () => (CSS.highlights && CSS.highlights.get('ce-watch')) ? CSS.highlights.get('ce-watch').size : 0;
+          const rows = [...document.querySelectorAll('#clause-editor .ce-pts .ce-pt')];
+          const a = { rows: rows.length, on: rows.filter(r => r.classList.contains('is-on')).length, nums: document.querySelectorAll('#clause-editor .ce-pts .n, #clause-editor .ce-pts .ce-pt-n').length,
+            say: ((document.querySelector('#clause-editor .ce-pts .t') || {}).textContent || '').trim(), hl: hl(),
+            btn: ((document.querySelector('#clause-editor [data-ce-act="pts-draft"]') || {}).textContent || '').trim() };
+          const t = document.querySelector('#clause-editor .ce-pt-tick'); if (t) t.click();
+          await new Promise(r => setTimeout(r, 200));
+          const g = document.querySelector('#clause-editor [data-ce-act="pts-draft"]');
+          a.offHl = hl(); a.offGrey = !!(g && g.disabled);
+          const t2 = document.querySelector('#clause-editor .ce-pt-tick'); if (t2) t2.click();
+          return a; }) : null;
+        check('13f the editor says why you came: the point ticked (no number), its words highlighted, untick takes it off and greys Draft a fix',
+          !!Pt && Pt.rows === 1 && Pt.on === 1 && Pt.nums === 0 && /You came from What to watch on 3/.test(Pt.say) && Pt.hl === 1 && /^Draft a fix for 1 point$/.test(Pt.btn) && Pt.offHl === 0 && Pt.offGrey, Pt);
+        await page.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="row-back"]'); if (b) b.click(); });
+        const home = opened && await until(page, () => !document.getElementById('clause-editor') && !(window.pdRedShows && pdRedShows())
+          && /Quality/.test(((document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-name') || {}).textContent || '')), null, 10000);
+        check('13e Start redlining opens the editor with no Redlines frame first; its ‹ says Clauses and lands back on the same clause',
+          opened && Fr.flashed === 0 && Fr.back === 'Clauses' && home, { pressed, opened, ...Fr, home });
         await page.evaluate(() => { window.api = window.__apiWas; pdSetTab('copilot'); renderIntelDock(); });
         /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
         await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);

@@ -319,7 +319,10 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     /* RE-POINTED AGAIN 20 Oct 2026 (owner: "the way you get back … is not the
        same"): the panel trail's look — the back, then "Jambo / Redlines /
        <act · clause>", on its own row above the full shelf */
-    assert.match(head, /class="ce-rowback" data-ce-act="row-back"[^>]*><svg[\s\S]*?<\/svg>\$\{_cee\(_cet\('ce_row_back'\)\)\}<\/button>/);
+    /* RE-POINTED 11 Nov 2026 (owner: back from the editor goes to Clauses where the trip began there): the word
+       is ceBackWord() — 'ce_row_back' (Redlines), or the Clauses tab's word on a trip from Clauses (f1010) */
+    assert.match(head, /class="ce-rowback" data-ce-act="row-back"[^>]*><svg[\s\S]*?<\/svg>\$\{_cee\(ceBackWord\(\)\)\}<\/button>/);
+    assert.match(CE, /const ceBackWord = \(\) => _cet\(ceFromClauses\(\) \? 'pd_tab_clauses' : 'ce_row_back'\)/);
     assert.match(head, /<span class="ce-rowpath"/);
     assert.match(head, /<b>\$\{_cee\(ceRowTitle\(\)\)\}<\/b>/);
     assert.match(CE, /#clause-editor\.ce-trailed \.ce-rowhead\{display:flex;[^}]*flex:1 0 100%/, 'its own row');
@@ -355,7 +358,9 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     const lane = fnBody(CE, 'ceRenderLane');
     assert.doesNotMatch(lane, /ceRowCardsHtml\(\)/);
     /* RE-POINTED 27 Oct 2026 (the Legora way): the same turns, each run of his headed by his name (ceTurnsWithWho) */
-    assert.match(lane, /lane\.innerHTML = \(_cePrep \? '' : ceLadderCardHtml\(\)\) \+ ceTurnsWithWho\(_ceThread\.map\(ceTurnHtml\), _ceThread\)/);
+    /* RE-POINTED 11 Nov 2026 (owner picked "Legora with ticks"): the points Start redlining came with stand first,
+       only while they are out (cePointsHtml draws nothing otherwise, f1011); the ladder card still leads the turns */
+    assert.match(lane, /lane\.innerHTML = cePointsHtml\(\) \+ \(_cePrep \? '' : ceLadderCardHtml\(\)\) \+ ceTurnsWithWho\(_ceThread\.map\(ceTurnHtml\), _ceThread\)/);
     assert.doesNotMatch(CE, /const sc = ceRowStdCard\(\)/, 'no standard\'s card pushed at the open');
     assert.doesNotMatch(CE, /ce-rowmode \.ce-ah \.sp\{display:none\}|ce-rowmode #ce-pick\{display:none\}/);
   });

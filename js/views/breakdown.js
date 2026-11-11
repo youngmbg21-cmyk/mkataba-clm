@@ -589,6 +589,13 @@ function stkDecorate(c, card, rows){
   if (stkNewLookOn() && list){
     list.querySelectorAll('.stk-card.is-mq .stk-st').forEach(p => { if (!p.querySelector('.stk-watch')) p.insertAdjacentHTML('afterbegin', `<b class="stk-watch">${_bdE(i18t('stk_watch_lead'))}</b> `); });
     list.querySelectorAll('.stk-card.is-mq [data-stk-dive]').forEach(d => { if (!(d.nextElementSibling && d.nextElementSibling.classList.contains('stk-cost-n'))) d.insertAdjacentHTML('afterend', `<span class="stk-cost-n">${_bdE(i18tn('pd2_n_calls', 1, { n: 1 }))}</span>`); });
+    /* BACK FROM THE EDITOR (owner, 11 Nov 2026): the clause Start redlining left from opens again, the paper
+       gliding there through the list's own door — before, and instead of, the first sitting's opening */
+    const back = _stk.backRow && _stk.backRow.id === String(c.id) ? _stk.backRow.row : -1;
+    if (back >= 0 && list.querySelector(`.doc-th-row[data-th-row="${back}"]`) && typeof window.docThreadGoTo === 'function'){
+      _stk.backRow = null; _stk.firstOpen = String(c.id);
+      setTimeout(() => { try { window.docThreadGoTo(c, back); } catch (_){} }, 0);
+    }
     if (b && _stk.firstOpen !== String(c.id)){
       _stk.firstOpen = String(c.id);
       const need = list.querySelector('.doc-th-row.stk-b-need, .doc-th-row.stk-b-look');
@@ -746,21 +753,33 @@ function stkRedlineGo(c, opts){
   if (stkRedlineWhy(c)) return;
   const at = opts && Number.isInteger(opts.at) ? opts.at : _stk.dive;
   const b = stkOf(c), p = b && at >= 0 ? stkShown(c, b)[at] : null;
-  let clauseId = '';
+  let clauseId = '', row = -1;
   if (p && !p.missing && _stk.rows){
     const at = stkAt(p, _stk.nums || [], _stk.rows), x = at >= 0 ? _stk.rows[at] : null;
     if (x && typeof docXrayClauseId === 'function') clauseId = docXrayClauseId(x) || '';
+    row = at;
   }
-  if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f } });
+  /* the row rides the trip too, so the way back opens the clause you left from (stkResume → stkDecorate) */
+  if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f }, row });
   if (typeof openRedlineWorkbench !== 'function') return;
   const q = opts && opts.question ? String(opts.question) : '';
-  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause) || ((_stk.nums || [])[p.at] || ''), ask: q ? '' : String(p.ask || p.stdAsk || ''), question: q } : null });
+  /* THE CLAUSE'S POINTS GO WITH IT (owner picked "Legora with ticks", 11 Nov 2026): every point to watch on this
+     clause's row — not a blank, not missing; the ones not yet reviewed, else all — so the editor says why you came
+     (ceOfferPoints). Words only: what is at stake and the words it was read from. */
+  let points = [];
+  if (p && !p.missing && row >= 0 && b){
+    const same = stkShown(c, b).filter(x => x && !x.missing && !x.blank && stkAt(x, _stk.nums || [], _stk.rows) === row);
+    const open = same.filter(x => !x.done);
+    points = (open.length ? open : same).map(x => ({ t: String(x.stake || x.title || ''), q: String(x.quote || ''), s: x.status === 'need' ? 'need' : 'look' }));
+  }
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause) || ((_stk.nums || [])[p.at] || ''), ask: q ? '' : String(p.ask || p.stdAsk || ''), question: q, points } : null });
 }
 /* the way back puts the deep dive where the reader left it */
 function stkResume(f){
   if (!f || !f.id) return;
   _stk.id = String(f.id); _stk.dive = Number.isInteger(f.dive) ? f.dive : -1;
   _stk.f = { reg: '', sev: '', by: '', ...(f.f || {}) };
+  _stk.backRow = Number.isInteger(f.row) && f.row >= 0 ? { id: String(f.id), row: f.row } : null;
 }
 /* ---- MARK REVIEWED: THE SERVER WRITES IT (flow rule 8; owner said yes,
    21 Oct 2026) ----
@@ -880,7 +899,17 @@ if (typeof document !== 'undefined' && !document._stkWired){
     const sh = t.closest('[data-stk-show]');
     if (sh && b){ const k = Number(sh.getAttribute('data-stk-show')); stkShow(c, stkShown(c, b)[k], k); return; }
     const rl = t.closest('[data-stk-redline]');
-    if (rl){ if (rl.disabled) return; const v = rl.getAttribute('data-stk-redline'); stkRedlineGo(c, v ? { at: Number(v) } : undefined); return; }
+    /* WHEN SOMETHING LOADS, SOMETHING MOVES: the editor opens in one go (no
+       Redlines face shown first, rlLandWhenReady), so the press says Opening…
+       and the work waits one frame for that to paint */
+    if (rl){ if (rl.disabled || rl.dataset.stkGoing) return; const v = rl.getAttribute('data-stk-redline');
+      const was = rl.innerHTML;
+      rl.dataset.stkGoing = '1'; rl.setAttribute('aria-busy', 'true');
+      if (window.busySet) busySet(rl, i18t('igw_opening'));
+      /* the button comes back as it was once the press is spent, whatever it met (a question first, a refusal) */
+      const go = () => { try { stkRedlineGo(c, v ? { at: Number(v) } : undefined); } finally { rl.innerHTML = was; delete rl.dataset.stkGoing; rl.removeAttribute('aria-busy'); } };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(go, 0)); else setTimeout(go, 0);
+      return; }
     const ak = t.closest('[data-stk-ask]');
     if (ak && b){ const p = stkShown(c, b)[Number(ak.getAttribute('data-stk-ask'))];
       /* A WHOLE QUESTION, NOT A STUB (owner, 13 Oct 2026: "the question posed is

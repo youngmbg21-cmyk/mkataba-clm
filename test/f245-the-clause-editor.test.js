@@ -1931,7 +1931,10 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
        another ask (ceRowGo). */
     assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 10,
       'nine callers and the declaration \u2014 no tenth door written past it');
-    assert.match(CODE, /function ceRowBack\(\)\{\s*ceLeaveGuard\(\(\) => \{/, '‹ Redlines asks first');
+    /* RE-POINTED 11 Nov 2026 (owner: back from the editor goes to Clauses where the trip began there): a trip
+       from Clauses leaves through rlBackToClauses, which asks the same guard before it shuts the page */
+    assert.match(CODE, /function ceRowBack\(\)\{[\s\S]{0,200}?if \(ceFromClauses\(\) && window\.rlBackToClauses && window\.rlBackToClauses\(\)\) return;\s*ceLeaveGuard\(\(\) => \{/, '‹ Redlines asks first');
+    assert.match(NEGO_CODE.slice(NEGO_CODE.indexOf('function rlBackToClauses(')).slice(0, 900), /if \(window\.ceLeaveGuard\) ceLeaveGuard\(shut\)/, 'and the way back to Clauses asks it too');
     assert.match(CODE, /function ceRowGo\(a\)\{[\s\S]{0,1200}?ceLeaveGuard\(\(\) => \{/, 'the walk to another ask asks first');
     assert.match(CODE, /closest\('#pt-nego #rl-side button[\s\S]{0,300}?ceLeaveGuard\(\(\) => \{ ceForgetUnfiled\(\);/,
       'their column\'s press is the fifth, and it asks');

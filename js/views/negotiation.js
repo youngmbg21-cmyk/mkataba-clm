@@ -9318,7 +9318,7 @@ function rlLandWhenReady(c, land){
     if (_rlEditorDoor && _rlEditorDoor.id === c.id && window.pdRedShows && pdRedShows()){ rlLandOn(c, land); return; }
     if (++n < RL_LAND_TRIES) setTimeout(go, RL_LAND_MS);
   };
-  setTimeout(go, 0);
+  go();
 }
 function rlLandOn(c, land){
   const onFace = !!(window.pdRedShows && pdRedShows() && window.pdRedFor && String(pdRedFor()) === String(c && c.id));
@@ -9338,9 +9338,11 @@ function rlLandOn(c, land){
      the editor is decided, f245) — exactly as the Edit clause button goes */
   const door = _rlEditorDoor && _rlEditorDoor.id === c.id && typeof _rlEditorDoor.open === 'function' ? _rlEditorDoor : null;
   if (door && window.clauseEditorFits && clauseEditorFits()){
-    if (!door.open(cl.clauseId)) return;
+    if (!door.open(cl.clauseId, { fromClauses: true })) return;
     /* the ask waits on a card in Jambo's panel, Apply · Discard (ceOfferAsk);
        a question from "Ask Jambo about this" waits in his ask box, unsent */
+    /* the clause's points to watch come first, ticked (ceOfferPoints; owner picked "Legora with ticks", 11 Nov 2026) */
+    if (Array.isArray(land.points) && land.points.length && window.ceOfferPoints) ceOfferPoints(land.points);
     if (land.ask && window.ceOfferAsk) ceOfferAsk(land.ask, land.quote);
     if (land.question) setTimeout(() => {
       const box = document.getElementById('ce-ask'); if (!box) return;
