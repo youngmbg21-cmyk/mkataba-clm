@@ -125,17 +125,26 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       await back(page);
       /* 4 · Send */
       await page.evaluate(id => openShareModal(getContract(id)), ID);
-      await until(page, () => !!document.querySelector('#sh-letter.is-sap') && getComputedStyle(document.getElementById('sh-letter')).display === 'grid' && !!document.querySelector('#sh-as-chips #sh-lt-from'), null, 10000);
+      await until(page, () => !!document.querySelector('#sh-letter.is-sap') && getComputedStyle(document.getElementById('sh-letter')).display === 'grid' && !!document.querySelector('#sh-letter .sh-lt-mail #sh-lt-from'), null, 10000);
       const s4 = await page.evaluate(() => {
         const L = document.getElementById('sh-letter'), lines = document.getElementById('sh-as-chips'), mail = L && L.querySelector('.sh-lt-mail');
         const a = lines && lines.getBoundingClientRect(), b = mail && mail.getBoundingClientRect();
         return { grid: L ? getComputedStyle(L).display : '', beside: !!(a && b && b.left >= a.right && Math.abs(b.top - a.top) < 40),
-          from: !!(lines && lines.querySelector('#sh-lt-from')), keys: [...document.querySelectorAll('#ig-dock .sh-lt-card > h4, #ig-dock .sh-kv > span')].map(x => x.textContent.trim()) };
+          /* RE-POINTED 11 Nov 2026 (the send page "The SAP Way", owner picked it by name): From stands in the email's
+             card under Subject; each choice is a box; the sentences under them are tags; the note hugs its words;
+             their link is the email's button */
+          from: !!(mail && mail.querySelector('#sh-lt-from')) && !(lines && lines.querySelector('#sh-lt-from')),
+          boxed: [...document.querySelectorAll('#sh-as-chips .sh-as:not(.hidden) .sh-as-go')].every(b => parseFloat(getComputedStyle(b).borderTopWidth) >= 1),
+          tags: [...document.querySelectorAll('#sh-as-chips .sh-lt-say2')].filter(e => !e.hidden && e.textContent.trim()).every(e => getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)'),
+          card: !!mail && parseFloat(getComputedStyle(mail).borderTopWidth) >= 1,
+          hugs: (() => { const t = document.getElementById('sh-summary'); return !!t && t.getBoundingClientRect().height < 4 * parseFloat(getComputedStyle(t).lineHeight); })(),
+          btn: !!document.querySelector('#sh-lt-after .sh-lt-btn[data-sh-lt-btn]') && !document.querySelector('#sh-lt-after [data-sh-lt-link]'),
+          keys: [...document.querySelectorAll('#ig-dock .sh-lt-card > h4, #ig-dock .sh-kv > span')].map(x => x.textContent.trim()) };
       });
       await page.click('[data-sh-as-go="purpose"]').catch(() => {});
       const opened = await until(page, () => !!document.querySelector('[data-sh-as="purpose"].is-open'), null, 3000);
-      check(`${nm} 4 Send: lines on the left, the letter beside them, a line opens its list, From among the lines, Before you send in rows`,
-        s4.grid === 'grid' && s4.beside && s4.from && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
+      check(`${nm} 4 Send, the SAP Way: a form on the left (boxes, tags), the email one card beside it with From under Subject, the note hugging its words, the link a button, a field opens its list, Before you send in rows`,
+        s4.grid === 'grid' && s4.beside && s4.from && s4.boxed && s4.tags && s4.card && s4.hugs && s4.btn && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
       await page.screenshot({ path: path.join(OUT, `send-${nm}.png`) });
       await page.keyboard.press('Escape'); await until(page, () => !document.querySelector('[data-sh-as].is-open'), null, 3000);
       await page.evaluate(() => { const x = document.querySelector('#modal-root [data-dlg-cancel]'); if (x) x.click(); });

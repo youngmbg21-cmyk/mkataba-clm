@@ -22217,3 +22217,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 11 Nov 2026 · Closed by measurement: the page-wide `:has` rules on the list pages (the line of 11 Nov above) cost under 1 ms a change on all 16 pages measured; nothing to fix there.
 - 11 Nov 2026 — Noticed, not fixed: CLAUDE.md carries unresolved merge markers (<<<<<<< HEAD / ======= / >>>>>>> origin/main) in THE SHELL section, two versions of "ONE ROW / ONE TOOLBAR UNDER AN ANSWER"; the file is also past its 80 KB mark (about 82 KB).
 - 11 Nov 2026 · Renumbered: the decision-redraws-one-clause test is f1010 (main took f1009 for the panel's three small doors while this branch was open); the BUGLOG and MAP-HISTORY lines of today that say f1009 for it mean f1010.
+
+- 11 Nov 2026 — Send screen, The SAP Way look: the hint "Jambo writes the note from your answers" beside "Write it for me" is hidden on the new look (removed band-like line, told to the owner). Not a defect; recorded because removing a line is a change.
+- Noticed, not fixed (11 Nov 2026): the send screen draws the letter in the paper's serif type, while the invitation email itself is written in Arial; the preview's type does not match what the other side receives.
+- Noticed, not fixed (11 Nov 2026): the handbook picture for chapter "Send" (send screen) still shows the old layout; it needs `HANDBOOK_SHOTS=1 node test/chromium/handbook-verify.js`, which only runs on GitHub under the owner's browser-checks rule.
