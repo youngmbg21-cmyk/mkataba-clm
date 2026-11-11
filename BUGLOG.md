@@ -22075,6 +22075,16 @@ line are drawn by builders shared with every other Jambo panel, so they were lef
   (step 8). Green in the run before. Flaky.
 ## Fixed (10 Nov 2026, overnight run job 3)
 - Needs you's two counts (Explorer "183" vs the Board "98"): every door now says the Board's row count (counterNeedsCount → ndOnBoard). f999.
+
+## 11 Nov 2026 — The Dossier's Signer "Change" does nothing (owner-reported, a picture: MK-382)
+### Noticed, not fixed (on the fix list, waiting for the owner's go)
+- THE SIGNER ROW'S "CHANGE" IS A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES. In the new look the Dossier's facts (`pd2Facts`) draw Signer · Change with `data-pd-og-route`, but the one listener for that attribute (js/paperdesk.js, the `#pd-og` click handler) only answers inside the old fill form (`#pd-og`) or the old Next card (`#pd-glance .ds-nx`). The new look's facts sit in `#pd-glance .pd2-facts`, so the press reaches no one. Second cause in the same handler: it finds the contract through `pdOgContract()`, which reads the fill form's own host (`data-pd-og-for`) and answers null when the form is not open, so widening the selector alone would still do nothing.
+- SAME FAULT, SECOND PLACE: when the stage is "Name who signs", the Dossier's one black button (`pd2CardHtml` → `dossierNextOf` → `data-pd-og-route`) sits in `.pd2-card`, also outside both selectors, so it is dead too (read in code, not pressed).
+- THE FIX WHEN ASKED: answer `[data-pd-og-route]` anywhere in `#pd-glance` (both the facts row and the card), take the contract from the button's own attribute (`getContract(id)`), then open the one signer door `openSignerPlanEditor` as today. A browser check must press both buttons on the new look and see the signing-order window open, and must fail on main first.
+- The Stream row shows "filed" with no press, so it is not affected.
+- FIXED 11 Nov 2026 (owner: "fix it") · the Signer row's Change and the card's Name now open the signing-order window on the new look. The one listener answers `[data-pd-og-route]` anywhere in `#pd-glance` and reads the contract off the button; pressed in the form it still lands back on the form's signers, pressed on the Dossier the Dossier is drawn again. New browser check dossier-signer-change-verify (runs on GitHub; its card half says NOTED if the fixture does not reach "Name who signs").
+- Noticed, not fixed: the Signer row's Change is drawn for a viewer too; the window then opens but a viewer cannot save a signer. A link a person cannot use should be greyed with the reason or not drawn.
+  (The viewer line above was read in code only, not pressed: the Change is drawn whatever the reader's role, and the window has no role check of its own; whether the save is then refused was not tried.)
 ## Noticed, not fixed (11 Nov 2026, overnight run job 15)
 - The contract's "still owed" form can lose a typed answer: owed-first-verify 2b typed "6 months" into Notice period,
   the save landed (one fewer owed), then about a second after the blur detailsOf listed it as owed again (the form row
@@ -22134,6 +22144,8 @@ repaints over 4 seconds in each case), so the stutter the owner reports is not t
 ## Correction (11 Nov 2026)
 - The 10 Nov line "Clauses tab, an open row: the Plain English pill … cut off at the top" was a FALSE ALARM: measured, the open row's body slides open in 0.24s (doc-th-body grid-template-rows 0fr→1fr) and settles fully open (0,7,21,30,34px then 34px steady for 4s, no replay); the photo had been taken mid-slide. Nothing to fix.
 
+- 11 Nov 2026 · Noticed, not fixed (while timing the Clean | Redline switch): two more `:has` rules in index.html have nothing named in front of them (`#content :has(> #ins-panel.is-jambo)`, `… :has(> .lh-foot)`), and about 40 `body:has(…)` / `#app-shell:has(…)` rules remain. On the paper page they measured cheap (an added element 7 ms against 4.4 ms with every `:has` gone), so they were left; the same measurement has not been made on the list pages, Settings or the Board. f1006's `BARE_HAS_KNOWN` holds the two.
+- 11 Nov 2026 · Noticed, not fixed: js/core.js writes two `class` attributes on `#share-step-1` when both `opts.letter` and `opts.hiddenStart` are set (`class="sh-lt-side…"` then `class="hidden"`); a browser keeps the first, so "hidden" is lost.
 ## One Row is the panel's one layout (11 Nov 2026, f1005)
 Done, on the owner's instruction after seeing the Board photographed. One Row now draws on every face of Jambo's
 panel and the three-row toolbar built the day before is DELETED rather than kept beside it — two ways of showing
@@ -22194,3 +22206,9 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
   `closest('#ig-dock …')` on a detached node finds nothing — Pin this finding and Copy picture went dead
   (explorer-stage-four 1b, explorer-stage-five 2e). The press only takes the latch off again; the row's own
   act repaints, as before.
+- 11 Nov 2026 · Correction to the line above: the test that holds `BARE_HAS_KNOWN` is f1007 (the switch draws once), renumbered when main took f1006; the notes test is f1008.
+- 11 Nov 2026 · Noticed, not fixed: CLAUDE.md on main carries merge-conflict markers (<<<<<<< HEAD … >>>>>>> origin/main) around the two Shell lines "THE WAY BACK" / "ONE ROW UNDER THE NEWEST ANSWER" against "ONE TOOLBAR UNDER AN ANSWER"; they arrived with pull request 651, so both the reversed ruling and the one it replaced are being read every session. Which side stands is the owner's call.
+
+## 11 Nov 2026 — CLAUDE.md carried a merge's clash markers (owner: "yes, tidy it up after the merge")
+- FIXED · main's CLAUDE.md held `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/main` around two versions of THE SHELL's lines on Jambo's answer bar (arrived with #647). Kept the newer one (ONE ROW UNDER THE NEWEST ANSWER, `igOneHtml`, which the code uses); dropped the older three-labelled-rows lines (`igSapHtml`, which no longer exists in the code). No other tracked file carried markers (the fix list itself was not searched; reading it is denied).
+- Noticed, not fixed: js/components.js still names `igSapHtml` in a comment.

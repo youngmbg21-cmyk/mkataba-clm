@@ -380,6 +380,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## SIGN LINKS, SIGNERS AND THE SIGNING ROUTE
 - THE PHONE'S MARK KEEPS ITS SHAPE (bug log batch 3, 26 Oct 2026): phone-fits-verify 12b (new; red at the parent, canvas 3.06 against a 1.58 box) — the signature canvas takes its box's shape before drawing; the computer's pad stays 520×170.
 - f182, f185, f897, f398, sign-links, signing-route-timeline verify.
+- THE DOSSIER'S SIGNER DOOR (owner-reported 11 Nov 2026): dossier-signer-change-verify (new; red at the parent, the window never opens) — the new look's Signer · Change and the card's Name open the signing-order window; the one listener answers `[data-pd-og-route]` anywhere in `#pd-glance` and reads the contract off the button.
 
 ## SIGNING ON THE PAPER
 - f256, signing-on-paper-verify.
@@ -661,6 +662,14 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE ONE DESK — ONE COUNT (10 Nov 2026)
 - test/f999-one-needs-you-count.test.js — every door's Needs you number is the rows the Board draws (`counterNeedsCount` = `ndOnBoard(ndRead()).n`); Explorer's Your day asks it.
 
+## COPILOT READS A CONTRACT ON ARRIVAL — THE NOTES FOLLOW THE WORDING (11 Nov 2026)
+- f1008 (new, 8 checks, all red at the parent): negoResolve tells `triageWordingMoved` after the commit; never-read is not read; no key / their page / a viewer / a private stream start nothing; four decisions are one timer; unmoved wording reads nothing; moved wording reads once, marked `agreed`, the clause review after it; a running reading is waited for; `pd2_read_agreed` in both books.
+- notes-follow-the-wording-verify (new, GitHub): 1 the Clean paper carries the agreed words at once, 2 the readings are asked for again once and marked agreed (the reading stood in for, no call), 3 unmoved wording asks nothing more, 4 never-read is not read.
+
+## PERFORMANCE — THE SWITCH DRAWS ONCE, NO PAGE-WIDE :has (11 Nov 2026)
+- f1007 (new, 7 checks, all red at the parent): no `body:has(#ig-dock …)`; `igDockMarks` at each of renderIntelDock's writes; no `:has(> #sh-lt-goes)` (`sh-lt-hasgoes`); a `:has` with nothing named in front is not added (`BARE_HAS_KNOWN` only shrinks); the notes' watcher asks `isConnected` first; Their view's press opens the panel before any paint; `pd2SheetPre` before `igPaperPaginate`.
+- switch-draws-once-verify (new, GitHub): 1–2 one paper and one notes layout per press, 3 Their view builds the paper once with its panel open, 4 the page carries `data-igd-head` / `data-igd-door` and the paper's line keeps its height. Counted, never timed.
+
 ## PERFORMANCE — ROWS ONLY ON A PRESS (10 Nov 2026)
 - test/chromium/rows-only-on-a-press-verify.js — Approvals, Obligations, People, Requests, Import, My notes, Parties, Reads: a tab press and a typed word keep the frame, the box and the panel; Parties' Folders draws its cards (4a) and the list comes back (4b).
 
@@ -678,3 +687,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SHELL — A PRESS SHOWS AT ONCE, THE PAGE LINKS RIDE THE LINE (11 Nov 2026)
 - node --test test/f1006-a-press-shows-at-once-and-the-links-ride-the-line.test.js test/f793-jambo-may-change-my-calendar.test.js
+
+## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
+- node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
+- browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)
