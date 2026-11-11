@@ -679,3 +679,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SHELL — A PRESS SHOWS AT ONCE, THE PAGE LINKS RIDE THE LINE (11 Nov 2026)
 - node --test test/f1006-a-press-shows-at-once-and-the-links-ride-the-line.test.js test/f793-jambo-may-change-my-calendar.test.js
+
+## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
+- node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
+- browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)
