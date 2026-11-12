@@ -93,7 +93,8 @@ describe('f874 (3) Contracts', () => {
     /* RE-POINTED 29 Oct 2026 (owner: "AI questions should only go to the jambo panel"): the box only searches */
     assert.equal(BOOKS.en.lh_ph_contracts_other, 'Search contracts');
     assert.equal(BOOKS.en.reg_foot_n_other, '{n} contracts');
-    assert.match(fnRegion(R('js/views/listhead.js'), 'lhFootHtml'), /const said = \(opt\.say && left <= 0\) \? String\(opt\.say\) : _lhE\(range\);/);
+    /* RE-POINTED 11 Nov 2026 (BUGLOG 21344): nothing found is not a range — no "0–0 of 0" */
+    assert.match(fnRegion(R('js/views/listhead.js'), 'lhFootHtml'), /const said = \(opt\.say && left <= 0\) \? String\(opt\.say\) : t \? _lhE\(range\) : '';/);
   });
 });
 

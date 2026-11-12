@@ -71,7 +71,7 @@ describe('f713 (1) the email\'s words, written once', () => {
     assert.equal(hf.subject, 'M sent you the negotiation history of "C"');
     assert.match(hf.body, /^M at O has sent you the negotiation history of "C", A as a Word file\.\n\nThe attached document is the record/);
     assert.equal(M.shareWaTextOf({ sender: 'M', org: 'O', cName: 'C', message: 'hi', link: 'L', expires: '2026-11-01T00:00:00Z' }).body,
-      'M at O shared "C" for your review.\n\nhi\n\nOpen it here — review, sign, request changes or decline, no account needed:\nL\n\nThis link expires on 2026-11-01.');
+      'M at O shared "C" for your review.\n\nhi\n\nOpen it here — review, sign, request changes or decline, no account needed:\nL\n\nThis link expires on 1 November 2026.');
     const t = (k, v) => k + (v ? JSON.stringify(v) : '');
     const st = M.signerTurnMailOf({ signer: { id: 's1', name: 'Henrik', order: 1 }, plan: [{ id: 's1', name: 'Henrik', party: 'counterparty', order: 1 }],
       cName: 'C', org: 'O', link: 'L', expiresAt: '2026-11-01', t, codeOn: true });

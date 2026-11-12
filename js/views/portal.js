@@ -2214,7 +2214,7 @@ const portalNegoComment = p => async (_c, ch, msg, how) => {
     if(!(how&&how.confirms)) toast(i18t('di_comment_sent_to',{ who:(p&&p.org)||i18t('di_the_sender') }),'ok');
     portalNotesAfterPost();
     return { ok:true };
-  }catch(e){ toast(portalErrText(e,'Could not send your comment'),'err'); return { ok:false }; }
+  }catch(e){ toast(portalErrText(e,i18t('pt_comment_fail')),'err'); return { ok:false }; }
 };
 /* Done, from their seat, on the same link. */
 const portalNoteDone = () => async (_c, m, on) => {

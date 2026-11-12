@@ -1143,6 +1143,9 @@ async function aiPopOut(){
   /* the side panel stands down: Jambo is out in his own window */
   if(ai.open) closeAI();
   renderAIFeed(); renderAISuggest();
+  /* THE PANELS THAT SHOWED HIS WORDS SAY WHERE THEY WENT (BUGLOG 21343): the panel beside a list, Home's dock and
+     Settings' talk were left blank when the feed moved out; they are drawn again, as the window's own toggle does */
+  aiHostsRepaint();
   try{ const inp = doc.getElementById('ai-input'); if(inp) inp.focus(); }catch(_){}
   return true;
 }
@@ -1156,6 +1159,7 @@ function aiPopBack(closed){
   });
   if(!closed){ try{ p.win.close(); }catch(_){} }
   try{ openAI(); }catch(_){}
+  aiHostsRepaint();
 }
 
 /* A FILE DROPPED ON JAMBO (the window or the side panel) goes through the one
@@ -2298,11 +2302,12 @@ function aiInsightsBrief(panels, tab){
 /* Home's faces by name, for the model (the person's own word for each comes from the bar) */
 const AI_HOME_FACE_NAMES = { board: 'Home (the Board)', paper: 'Home (the paper side)', calendar: 'Home (the Calendar)', explorer: 'Explorer (the map of the book)' };
 const AI_PAGE_NAMES = {
-  dashboard: 'Home', register: 'Contracts', folder: 'Contracts',
+  /* THE NAMES THE BAR SHOWS TODAY (BUGLOG 21371): Home is the Board since 10 Nov 2026; Customers is Parties; Directory is People */
+  dashboard: 'the Board', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract',
-  obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Customers', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Reads', pulse: 'the Pulse board', handbook: 'Handbook', flowmap: 'the Flow map', templates: 'Templates',
+  obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Parties', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Reads', pulse: 'the Pulse board', handbook: 'Handbook', flowmap: 'the Flow map', templates: 'Templates',
   playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
-  directory: 'Directory', team: 'Settings & rules', reports: 'Reports',
+  directory: 'People', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',
 };
 /* WHICH CONTRACT IS REALLY ON THE SCREEN, and on two pages only.

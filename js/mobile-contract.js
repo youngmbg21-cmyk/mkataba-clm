@@ -667,9 +667,9 @@ function mActionBarHtml(c){
   try{ na = (typeof wsNextAction==='function') ? wsNextAction(c) : null; }catch(_){ na=null; }
   const viewer = (typeof canEdit==='function') && !canEdit();
   const guide = na ? na.guide
-    : viewer ? 'You have viewer access — this is read-only.'
-    : c.status==='Declined' ? 'Closed — this contract is a record now.'
-    : 'All key terms are set.';
+    : viewer ? i18t('m_guide_viewer')
+    : c.status==='Declined' ? i18t('m_guide_closed')
+    : i18t('m_guide_set');
   /* A next action can carry a sentence and no button — the intent-to-sign
      branch does, since the desktop dropped its "Review & sign below" primary
      (10 Aug 2026). Honoured here for the same reason the phone reads

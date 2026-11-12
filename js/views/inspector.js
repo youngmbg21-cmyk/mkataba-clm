@@ -1379,7 +1379,10 @@ function jlPageWord(){
 /* how many rows the list beside the panel shows — the default words' count */
 function jlRowCount(){
   if (typeof document === 'undefined') return 0;
-  const tb = document.querySelector('[data-ins-on="1"]');
+  /* THE TABLE THAT SHOWS (BUGLOG 21373): a page with a second, hidden live table (Our standards' Clause library) is
+     counted by the one in sight, never the first in the page */
+  const all = [...document.querySelectorAll('[data-ins-on="1"]')];
+  const tb = all.find(t => t.offsetParent !== null) || all[0] || null;
   const L = tb && tb._insList;
   try { return (tb && L && L.rowSel) ? tb.querySelectorAll(L.rowSel).length : 0; } catch (_){ return 0; }
 }
