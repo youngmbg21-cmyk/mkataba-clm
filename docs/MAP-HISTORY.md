@@ -37327,3 +37327,8 @@ MEASURED. Photos at 1366×950, 1440×780 and 1536×730 through the whole flow (C
 
 ## SCOPE RULES — CHECK-INS EVERY 30 MINUTES (owner, 12 Nov 2026)
 While watching pull request #673's checks a safety-net reminder was set for 50 minutes. The owner: "Reminders to look should always be in 30 minutes not 50", then "yes add it as a standing rule". The reminder was moved to 30 minutes and the rule added under Scope rules.
+
+## ASK A COLUMN — DISCOVER'S HANDBOOK PICTURES IN THE NEW LOOK (owner, 12 Nov 2026)
+The owner: "re-take the Handbook pictures in the new look", then, asked which, picked "Discover chapters" (5.5, 5.5.1–5.5.6, 5.8; fifteen pictures) over all 108. A recipe step `{ newLook: true }` (test/chromium/handbook-verify.js) switches the new look on for that picture; reset switches it off, so no other picture changes look. The eight chapters' words were rewritten for the Discover page (5.5.1 retitled "Ask a question on Discover"; the handbook exam held at 60 of 63, the same three misses as before).
+FOUND WHILE TAKING THEM: straight to Discover (not through Contracts), a read's first answers drew the Contracts list over the page, because the list's repaint paints into the page's place (`renderRegister` with `hostId` 'content'). Every repaint of the list from askcolumn.js now goes through `_acRegRepaint`, which waits while Discover (view 'reads') is in front. f1016 7, red without it.
+NOT FIXED (BUGLOG): the read table on Discover still wears the old Reads head; a counting question has no "turn it into a question" door on Discover; the pack cannot be unticked on Discover.
