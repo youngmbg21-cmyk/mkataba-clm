@@ -17794,7 +17794,9 @@ app.post('/api/contracts/:id/mention', auth, editor, async (req, res) => {
         + (note ? `\n\n"${note}"\n` : '\n')
         + (link ? `\n${tFor(L, inside ? 'mail_at_open' : 'mail_ob_chase_open')}\n${link}\n` : '')
         + `\n${tFor(L, 'mail_automated_notice')}`,
-      `mention: ${req.params.id} -> ${to}`);
+      `mention: ${req.params.id} -> ${to}`,
+      /* f1021: somebody on the other side who presses Reply reaches the colleague who tagged them (mailReplyFor). */
+      inside ? {} : { replyTo: mailReplyFor(req, null, c) });
     told.push({ id: p.id, name, to, ...mailReport(r3) });
   }
   res.json({ ok: true, told, skipped, emailConfigured: EMAIL_ON() });

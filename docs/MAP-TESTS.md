@@ -44,6 +44,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
 - test/f1020-a-reply-reaches-a-person.test.js: every email to the other side has a reply address, never from the body.
+- test/f1021-a-tag-reply-reaches-a-person.test.js: a tag of the other side's person carries the tagger as reply address.
 - A refused round send keeps no "Sent to you" copy (22 Oct 2026): f858 (red at the parent 1, 2).
 - f205, f206.
 

@@ -22297,3 +22297,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: the read table opened on the Discover page still draws the old Reads head (its own box, All · Mine · Facts, and "+ Ask a column", which goes to the Contracts list's form), not Discover's.
 - Noticed, not fixed: on Discover a counting question is only pointed to Jambo's box; the old form's offer to turn it into one question asked of each contract (ac_ct_turn) has no door there.
 - Noticed, not fixed: on Discover the Due diligence pack asks all five questions; the old form let a person untick some (askColPackPicked); there is no tick on Discover.
+- (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
