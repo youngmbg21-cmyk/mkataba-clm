@@ -10,7 +10,8 @@
          stay once the read is put away
      3 · Jambo's panel folded: the paper's line keeps its height and the desk keeps its brown ground
      4 · a paper that arrives plays the read by itself (owner, 12 Nov 2026: "Read plays by itself"), QUICK whatever speed is
-         chosen, every note coming up; 4b · Pause ends the quick run, Continue walks at the chosen speed
+         chosen, every note coming up, and read to the end it puts itself away (the paper's line back); 4b · Pause ends
+         the quick run, Continue walks at the chosen speed
      5 · the read bar's × sits in the middle of its circle (owner, 12 Nov 2026; it sat 8px left)
    (The Redlines face keeping Clean · Redline · Their view is negotiate-new-look-verify 2.)
    At the parent 4 and 5 fail (nothing played on arrival; the icon sat 8px left). Earlier, at its own parent, 1–3 failed: a 24px serif title with a wrapping line; no notes during the read; a 36px line on a grey ground.
@@ -49,7 +50,8 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser(), null, 40000);
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-RB'); });
-      const up = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mn').length >= 2 && !!document.querySelector('#ig-strip'), null, 20000);
+      /* the first screen meets a cold server: its wait is longer, still bounded (GitHub's main run, 12 Nov 2026: laptop-a timed out at 20s) */
+      const up = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mn').length >= 2 && !!document.querySelector('#ig-strip'), null, nm === 'laptop-a' ? 45000 : 20000);
       await page.evaluate(() => document.fonts && document.fonts.ready);
       const total = await page.evaluate(() => document.querySelectorAll('#pd2-notes .pd2-mn').length);
       const lineH = await page.evaluate(() => Math.round(document.getElementById('ig-strip').getBoundingClientRect().height));
@@ -105,15 +107,16 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
          a few seconds of the bar showing, every note out */
       const opened = await until(page, () => !!document.getElementById('pd2-walk-foot'), null, 12000);
       const t0 = Date.now();
-      const plays = opened && await until(page, () => { const f = document.getElementById('pd2-walk-foot'); return !!f && /14 of 14|(\d+) of \1\b/.test(f.innerText) && !/Reading/.test(f.innerText); }, null, 6000);
+      /* read to the end, a quick run puts itself away: the bar goes and the paper's own line is back */
+      const plays = opened && await until(page, () => !document.getElementById('pd2-walk-head') && !!document.getElementById('ig-strip') && document.getElementById('ig-strip').getBoundingClientRect().height > 0, null, 6000);
       const quickMs = Date.now() - t0;
       const rose = plays && await until(page, () => { const n = document.querySelectorAll('#pd2-notes .pd2-mn'); return n.length > 0 && document.querySelectorAll('#pd2-notes .pd2-mn:not(.is-wk-hold)').length === n.length; }, null, 4000);
       /* 4b · Pause ends the quick run: Continue walks at the chosen speed (Normal still on its clause a second later) */
-      const P = await page.evaluate(async () => { const _pd2WalkAt = () => Number(((document.getElementById('pd2-walk-foot') || {}).innerText || '').match(/(\d+) of \d+/)?.[1] || -1); pd2WalkReset(); pd2WalkPlay({ quick: true }); await new Promise(r => setTimeout(r, 150)); pd2WalkPlay();
+      const P = await page.evaluate(async () => { const _pd2WalkAt = () => Number(((document.getElementById('pd2-walk-foot') || {}).innerText || '').match(/(\d+) of \d+/)?.[1] || -1); pd2WalkOpen('MK-RB'); pd2WalkReset(); pd2WalkPlay({ quick: true }); await new Promise(r => setTimeout(r, 150)); pd2WalkPlay();
         const at = _pd2WalkAt(); pd2WalkPlay(); await new Promise(r => setTimeout(r, 1000)); const later = _pd2WalkAt(); return { at, later }; });
       const X = await page.evaluate(() => { const x = document.querySelector('#pd2-walk-head .pd2-wk-x'), s = x && x.querySelector('svg'); if (!x || !s) return null;
         const r = x.getBoundingClientRect(), q = s.getBoundingClientRect(); return { dx: +((q.left + q.width / 2) - (r.left + r.width / 2)).toFixed(1), dy: +((q.top + q.height / 2) - (r.top + r.height / 2)).toFixed(1) }; });
-      check(`${nm} 4 an arrival plays the read by itself, quick, and every note comes up`, plays && rose && quickMs < 5000, { opened, plays, rose, quickMs });
+      check(`${nm} 4 an arrival plays the read by itself, quick, every note comes up, and it puts itself away`, plays && rose && quickMs < 5000, { opened, plays, rose, quickMs });
       check(`${nm} 4b Pause ends the quick run: Continue walks at the chosen speed`, !!P && P.later - P.at <= 1, P);
       check(`${nm} 5 the × sits in the middle of its circle`, !!X && Math.abs(X.dx) <= 1 && Math.abs(X.dy) <= 1, X);
       await page.close();
