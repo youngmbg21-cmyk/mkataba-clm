@@ -138,7 +138,10 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
           tags: [...document.querySelectorAll('#sh-as-chips .sh-lt-say2')].filter(e => !e.hidden && e.textContent.trim()).every(e => getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)'),
           card: !!mail && parseFloat(getComputedStyle(mail).borderTopWidth) >= 1,
           hugs: (() => { const t = document.getElementById('sh-summary'); return !!t && t.getBoundingClientRect().height < 4 * parseFloat(getComputedStyle(t).lineHeight); })(),
-          btn: !!document.querySelector('#sh-lt-after .sh-lt-btn[data-sh-lt-btn]') && !document.querySelector('#sh-lt-after [data-sh-lt-link]'),
+          /* the link is the email's button wherever a letter is drawn; a server with no mail sends by a copied link,
+             which carries no letter at all (shareLetterOf: ch 'link' → none), so then there is no button to find */
+          btn: !document.querySelector('#sh-lt-after [data-sh-lt-link]') && (!!document.querySelector('#sh-lt-after .sh-lt-btn[data-sh-lt-btn]')
+            || !document.querySelector('#sh-lt-after .sh-lt-p')),
           keys: [...document.querySelectorAll('#ig-dock .sh-lt-card > h4, #ig-dock .sh-kv > span')].map(x => x.textContent.trim()) };
       });
       await page.click('[data-sh-as-go="purpose"]').catch(() => {});
