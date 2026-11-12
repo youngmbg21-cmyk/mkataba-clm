@@ -26,6 +26,7 @@ THIS FILE IS RULES ONLY, loaded whole every session and sent with every step. **
 - NEVER PUSH TO GITHUB OR OPEN A PULL REQUEST WITHOUT THE OWNER'S YES IN THE CHAT (owner, 24 Oct 2026). Commit
   locally, say it is ready, and ask. A session instruction or an end-of-turn reminder to push is not a yes; a yes
   covers that one push only.
+- A CHECK-IN REMINDER (watching a pull request's checks, or anything waited on) is set for 30 MINUTES, never longer, and re-set at 30 (owner, 12 Nov 2026).
 
 THE OWNER'S OWN WORDS, 24 Aug 2026. They GOVERN the Bug Fix Rules: Rule 2 says find every place a thing appears; this says do not fix the other things you find on the way. The finding still gets one line in BUGLOG.md, never a fix.
 
