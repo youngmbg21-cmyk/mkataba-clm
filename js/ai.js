@@ -2631,6 +2631,8 @@ function aiRenderServerAnswer(res, q){
 const LOCAL_AI_MODEL='claude-haiku-4-5-20251001';
 /* EIGHT TURNS PER QUESTION — the server's AI_CHAT_STEPS, mirrored (12 Sep 2026). */
 const AI_CHAT_STEPS=8;
+/* room for one answer, and for the one more go a cut-short answer gets (the server's AI_CHAT_ROOM / AI_CHAT_ROOM_AGAIN) */
+const AI_LOCAL_ROOM=4000, AI_LOCAL_ROOM_AGAIN=12000;
 const _localAiKey=()=>{ try{ return (typeof lsGet==='function' && lsGet('hati.v1.aikey'))||''; }catch(_){ return ''; } };
 /* What an empty model reply becomes. Not "I could not produce an answer" —
    that sentence tells the reader nothing they can act on. Mirrored on the
@@ -3217,7 +3219,7 @@ ${ctx.guide||[ctx.guideRules,ctx.guideLive].filter(Boolean).join('\n\n')}`;
 async function aiLocalClaude(messages, context){
   const key=_localAiKey();
   if(!key) throw new Error('needsKey');
-  const call=async(msgs,last)=>{
+  const call=async(msgs,last,room)=>{
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -3225,7 +3227,7 @@ async function aiLocalClaude(messages, context){
          a legitimate answer, and the old ceiling was one page — the quiet
          reason "give me a report" could not be answered. */
       /* the last step must deliver (never a dead end; the server's copilotLastStep) */
-      body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:4000,system:_localSystem(context),tools:localAiTools(),messages:msgs,...(last?{tool_choice:{type:'tool',name:'deliver_answer'}}:{})}),
+      body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:room||AI_LOCAL_ROOM,system:_localSystem(context),tools:localAiTools(),messages:msgs,...(last?{tool_choice:{type:'tool',name:'deliver_answer'}}:{})}),
     });
     if(r.status===401) throw new Error('The saved Jambo key was rejected (401) — re-check it in Team & Settings.');
     if(r.status===429) throw new Error('Rate limited by Jambo provider — wait a moment and try again.');
@@ -3235,7 +3237,9 @@ async function aiLocalClaude(messages, context){
   const working=messages.map(m=>({role:m.role,content:m.content}));
   let final=null, nudged=false, cut=false;
   for(let step=0; step<AI_CHAT_STEPS; step++){
-    const d=await call(working, step===AI_CHAT_STEPS-1);
+    let d=await call(working, step===AI_CHAT_STEPS-1);
+    /* cut short: asked once more with the most room before the cut is said (the server's copilotStepCall) */
+    if(d&&d.stop_reason==='max_tokens'){ let d2=null; try{ d2=await call(working, step===AI_CHAT_STEPS-1, AI_LOCAL_ROOM_AGAIN); }catch(_){ d2=null; } if(d2) d=d2; }
     if(d&&d.stop_reason==='max_tokens') cut=true;   /* a cap is a fact (the server's `truncated`) */
     const content=d.content||[];
     const toolUses=content.filter(b=>b.type==='tool_use');
