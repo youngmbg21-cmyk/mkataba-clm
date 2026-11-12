@@ -55,8 +55,8 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
         const ac = document.querySelector('#ct-place .ac-btn'), p = document.querySelector('.rfp-panel.is-drawn');
         return { mids, big: parts.filter(e => parseFloat(getComputedStyle(e).fontSize) > 15).map(e => e.className), crumb: (top.querySelector('.ctf-crumb') || {}).textContent,
           pill: !!ac && getComputedStyle(ac).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(ac).textDecorationLine === 'none', panel: p ? p.innerText : '' }; });
-      check(`${nm} 1 the top on one line, nothing above 15px, "/" between; Ask a column a pill; the panel This folder · + Ask a column · All your reads`,
-        T.mids === 1 && !T.big.length && T.crumb === '/' && T.pill && /THIS FOLDER[\s\S]*Contracts\s*60[\s\S]*Need you[\s\S]*Signed[\s\S]*On paper/i.test(T.panel) && /\+ Ask a column/.test(T.panel) && /All your reads/.test(T.panel) && !COST.test(T.panel), T);
+      check(`${nm} 1 the top on one line, nothing above 15px, "/" between; Discover a pill; the panel This folder · Discover (owner, 12 Nov 2026)`,
+        T.mids === 1 && !T.big.length && T.crumb === '/' && T.pill && /THIS FOLDER[\s\S]*Contracts\s*60[\s\S]*Need you[\s\S]*Signed[\s\S]*On paper/i.test(T.panel) && /Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
       await shot('1-rest');
 
       /* 2 · the form */
@@ -65,9 +65,11 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       const F = await page.evaluate(() => { const f = document.querySelector('.ac-nl-form'); if (!f) return null;
         return { text: f.innerText, name: (document.getElementById('ac-name') || {}).value, opts: [...f.querySelectorAll('.ac-nl-opt')].map(b => b.textContent.trim()),
           go: (f.querySelector('[data-ac-ask]') || {}).textContent, lit: !!document.querySelector('#ct-place .ac-btn.is-open') }; });
-      check(`${nm} 2 the form as drawn: ‹ Overview, your question, the column's name and its hint, First 50 | All 60, Read 50 contracts · Cancel; the pill lit`,
+      /* RE-POINTED (owner, 12 Nov 2026, "Discover is a page"): the list's pill is Discover now and opens the Discover page, not
+         this form, so no pill is lit while the form stands (the form is still reached by its other doors) */
+      check(`${nm} 2 the form as drawn: ‹ Overview, your question, the column's name and its hint, First 50 | All 60, Read 50 contracts · Cancel; no pill lit`,
         !!F && /‹ Overview/.test(F.text) && /YOUR QUESTION/i.test(F.text) && /COLUMN NAME/i.test(F.text) && /Read from your question/.test(F.text) && F.name === 'Governing law'
-        && JSON.stringify(F.opts) === '["First 50","All 60"]' && F.go === 'Read 50 contracts' && /Cancel/.test(F.text) && F.lit && !COST.test(F.text), F);
+        && JSON.stringify(F.opts) === '["First 50","All 60"]' && F.go === 'Read 50 contracts' && /Cancel/.test(F.text) && !F.lit && !COST.test(F.text), F);
       await shot('2-form');
 
       /* 3 · the reading card with Stop */
@@ -117,8 +119,10 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
         const out = [...document.querySelectorAll('.rdn-table.rdn2 td, .rdn-table.rdn2 th')].filter(td => { const r = td.getBoundingClientRect(); return [...td.querySelectorAll('*')].some(e => { const x = e.getBoundingClientRect(); return x.width && (x.right > r.right + 1 || x.left < r.left - 1); }); }).length;
         return { head: hd.innerText.replace(/\s+/g, ' ').trim(), oneLine: Math.max(...mids) - Math.min(...mids) <= 4, tabs: [...document.querySelectorAll('[data-rdn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
           cols: [...document.querySelectorAll('.rdn-table.rdn2 thead th')].map(t => t.textContent.trim()), out, spill, panel: document.getElementById('ins-panel').innerText, page: document.getElementById('rd-page').innerText }; });
-      check(`${nm} 6 Reads as drawn: one top line, All · On a list · Not finished, the five columns, nothing out of its cell; the panel's Where it shows, Read the other 10, Delete question`,
-        /^Reads 1 question · 50 answers kept \+ Ask a question$/.test(R.head) && R.oneLine && R.tabs.map(t => t.replace(/ \d+$/, '')).join('|') === 'All|On a list|Not finished'
+      /* RE-POINTED (owner, 12 Nov 2026): Reads is the Discover page — its name, the ask box with its one button, Kept · Packs · Every read */
+      const ask = await page.evaluate(() => !!document.getElementById('dsc-q') && !!document.getElementById('dsc-go'));
+      check(`${nm} 6 Discover as drawn: one top line, the ask box and its button, Kept · Packs · Every read, the five columns, nothing out of its cell; the panel's Where it shows, Read the other 10, Delete question`,
+        /^Discover 1 question · 50 answers kept$/.test(R.head) && ask && R.oneLine && R.tabs.map(t => t.replace(/ \d+$/, '')).join('|') === 'Kept|Packs|Every read'
         && R.cols.join('|') === 'Question|Read|Answers|On the list of|Asked' && R.out === 0 && /WHERE IT SHOWS/i.test(R.panel) && /Read the other 10/.test(R.panel) && /Delete question/.test(R.panel)
         && !COST.test(R.panel + R.page), { head: R.head, oneLine: R.oneLine, tabs: R.tabs, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
       await shot('7-reads');

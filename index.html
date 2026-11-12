@@ -19288,6 +19288,59 @@
   html.lg-new .rdn-bar .rdn-b-none,html.lg-new .rdn-dot.rdn-b-none{background:var(--color-neutral-300)}
   html.lg-new .rdn-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
   html.lg-new .rdn-dot.rdn-b-yes{background:var(--accent-ink)}
+  /* ==== DISCOVER, THE PAGE (owner, 12 Nov 2026; drawn first): the Reads page under its new name. One ask box with its
+     one black button, chips that fill it, Kept | Packs | Every read; a question opens under its own row, each answer a
+     line; the panel shows the paper the words were read from. Tokens only. ==== */
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc::before{content:none}
+  html.lg-new .dsc-ask{display:flex;align-items:center;gap:var(--s-3);min-width:0;margin-top:var(--s-3);padding:var(--s-2) var(--s-3) var(--s-2) var(--s-4);background:var(--surface-2);border-radius:var(--radius)}
+  html.lg-new .dsc-ask>svg{flex:none;color:var(--color-quiet)}
+  html.lg-new .dsc-ask:focus-within{box-shadow:inset 0 0 0 1px var(--color-neutral-300)}
+  html.lg-new .dsc-in{flex:1;min-width:0;height:var(--ctl-h-lg);padding:0;border:0;background:none;outline:0;box-shadow:none;font:inherit;font-size:15px;color:var(--color-text)}
+  html.lg-new .dsc-in::placeholder{color:var(--color-quiet)}
+  html.lg-new .dsc-btn{flex:none;height:var(--ctl-h-lg);padding:0 var(--s-4);border:0;border-radius:999px;background:var(--accent-solid);color:var(--color-surface);font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  html.lg-new .dsc-btn.is-quiet{background:var(--color-surface);color:var(--color-text)}
+  html.lg-new .dsc-btn:disabled{opacity:.5;cursor:default}
+  html.lg-new .dsc-say{margin-top:var(--s-2);font-size:13px;color:var(--st-amber-fg)}
+  html.lg-new .dsc-chips{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-width:0;margin-top:var(--s-3)}
+  html.lg-new .dsc-chip.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .dsc-quiet{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .dsc-scope{white-space:nowrap}
+  html.lg-new .dsc-scope b{color:var(--color-text);font-weight:var(--w-label)}
+  html.lg-new .dsc-tabs{margin-top:var(--s-2)}
+  html.lg-new .dsc-table tr.dsc-row{cursor:pointer}
+  html.lg-new .dsc-q1{display:flex;gap:var(--s-2);min-width:0}
+  html.lg-new .dsc-q1b{min-width:0}
+  html.lg-new .dsc-cv{flex:none;width:7px;height:7px;margin:6px 3px 0 1px;border-right:1.5px solid var(--color-quiet);border-bottom:1.5px solid var(--color-quiet);transform:rotate(-45deg)}
+  html.lg-new .dsc-row.is-open .dsc-cv{transform:rotate(45deg);margin-top:4px}
+  html.lg-new .dsc-cv.is-none{visibility:hidden}
+  html.lg-new .dsc-table tr.dsc-opn>td{padding:var(--s-1) var(--s-2) var(--s-3) var(--s-6);overflow:visible}
+  html.lg-new .dsc-a{display:grid;grid-template-columns:12px minmax(0,190px) minmax(0,150px) minmax(0,1fr) auto;gap:var(--s-3);align-items:baseline;padding:var(--s-2);border-radius:var(--radius-sm);font-size:13px;cursor:pointer}
+  html.lg-new .dsc-a:hover{background:var(--color-chat-bg)}
+  html.lg-new .dsc-a.is-sel{background:var(--surface-2)}
+  html.lg-new .dsc-opn.is-live .dsc-a{cursor:default}
+  html.lg-new .dsc-a>:is(span,b){min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .dsc-a-w{font-weight:var(--w-label)}
+  html.lg-new .dsc-a-q{font-family:var(--font-doc);color:var(--color-quiet)}
+  html.lg-new .dsc-a-q.is-none{font-family:inherit}
+  html.lg-new .dsc-a>.ac-ans{display:inline-flex;align-items:center;overflow:visible}
+  html.lg-new .dsc-a>.ac-ans>i{display:block;width:9px;height:9px;border-radius:50%;background:var(--st-gray-dot)}
+  html.lg-new .dsc-a>.ac-ans.tone-green>i{background:var(--st-green-dot)}
+  html.lg-new .dsc-a>.ac-ans.tone-amber>i{background:var(--st-amber-dot)}
+  html.lg-new .dsc-a>.ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  html.lg-new .dsc-a>.ac-ans.tone-none>i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--color-neutral-400)}
+  html.lg-new .dsc-pad{padding:var(--s-2)}
+  html.lg-new .dsc-page .rdn-panel .rfp-acts{flex-wrap:wrap;gap:var(--s-2)}
+  html.lg-new .dsc-page .rdn-panel .rfp-acts>button{flex:none;white-space:nowrap}
+  html.lg-new .dsc-live-bar{height:4px;margin:var(--s-2);border-radius:999px;background:var(--surface-2);overflow:hidden}
+  html.lg-new .dsc-live-bar>i{display:block;height:100%;background:var(--color-text)}
+  html.lg-new .dsc-paper{box-sizing:border-box;min-height:100%;padding:var(--s-4);background:var(--desk-ground)}
+  html.lg-new .dsc-sheet{min-height:320px;padding:var(--s-6) var(--s-4);background:var(--color-surface);font-family:var(--font-doc);font-size:13.5px;line-height:1.6;color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .dsc-sheet h4{margin:0;font:inherit;font-size:15px;font-weight:var(--w-strong);text-align:center}
+  html.lg-new .dsc-pt{margin-bottom:var(--s-4);font-size:12px;color:var(--color-quiet);text-align:center}
+  html.lg-new .dsc-sheet p{margin:0 0 var(--s-3)}
+  html.lg-new .dsc-sheet .dsc-dim{color:var(--st-gray-dot)}
+  html.lg-new .dsc-sheet mark{padding:1px 0;background:var(--st-amber-bg);color:inherit}
+  html.lg-new .dsc-sheet .dsc-none{font-family:var(--font-heading);font-size:13px;color:var(--st-amber-fg)}
   /* a column's head as drawn: name · k of n read · ⋯ on one line; its menu */
   html.lg-new #ct-place th.ac-th.is-nl .ac-th-line{display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
   html.lg-new #ct-place th.ac-th.is-nl .ac-th-w{overflow:hidden;text-overflow:ellipsis;min-width:0}

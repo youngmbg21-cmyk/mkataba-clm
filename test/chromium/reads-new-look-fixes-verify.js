@@ -43,9 +43,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): Read the other N is the chosen question's, in the panel */
     await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]'), null, 15000);
     await page.click('#ins-panel [data-rd-act="next"]');
-    const list = await until(page, () => !!document.querySelector('#reg-tbody') && !(typeof regFoldersUp === 'function' && regFoldersUp()), null, 15000);
-    const read = await until(page, () => !!document.querySelector('.ac-dk-card'), null, 15000);
-    check('1 Read N more lands on the Contracts list (not the folders) and the read starts there', list && read, { list, read });
+    /* RE-POINTED (owner, 12 Nov 2026, Discover): the read runs on this page, never by way of Contracts */
+    const read = await until(page, () => !!document.querySelector('#rd-page.dsc-page tr.is-live') || !document.querySelector('#ins-panel [data-rd-act="next"]'), null, 15000);
+    const list = await page.evaluate(() => state.view === 'reads' && !!document.querySelector('#rd-page.dsc-page'));
+    check('1 Read N more reads here, on the Discover page (the page never leaves for Contracts)', list && read, { list, read });
   } catch (e) { check('1 read more', false, String(e).slice(0, 200)); }
 
   await browser.close(); await h.stop();

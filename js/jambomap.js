@@ -150,6 +150,7 @@ const JM_TASKS = [
   /* the 31st (owner, 18 Oct 2026: "add Explorer as the 31st task"): every
      contract as a dot on one map, grouped, coloured and sized as asked */
   /* Ask a column (owner picked "In Jambo's panel", 20 Oct 2026): the Contracts list with the question open beside it (R.askOpen, read once by askColSync) */
+  /* DISCOVER IS THE PAGE THAT ASKS NOW (owner, 12 Nov 2026): in the new look the same words go on to it (askColSync) */
   { k: 'askcol', to: { reg: { show: 'list', askOpen: true } }, w: {
     en: ['ask a column', 'add a column', 'a column jambo fills in', 'ask every contract the same question', 'the same question across all contracts', 'tabular review', 'compare a clause across contracts', 'question column'],
     sv: ['fråga en kolumn', 'lägg till en kolumn', 'ställ samma fråga till alla avtal', 'samma fråga i alla avtal', 'jämför en klausul mellan avtal', 'frågekolumn'] } },
