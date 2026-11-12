@@ -1,5 +1,5 @@
 'use strict';
-/* f1018 — A REPLY REACHES A PERSON (owner, 12 Nov 2026: "Fix both")
+/* f1020 — A REPLY REACHES A PERSON (owner, 12 Nov 2026: "Fix both")
    Every email to the other side goes out from HaTi's own address. It set no reply address, so pressing Reply in
    their mail app reached neither the sender nor HaTi — while the Word-file letter and the handover mails promised
    "Replies to this email reach {sender} directly". Each email to the other side now carries the person behind it
@@ -18,7 +18,7 @@ const contract = () => ({ id: 'MK-RT1', name: 'Warehousing Services Agreement', 
   redlineText: 'Article 1 Payment\n\nPayable within thirty (30) days.',
   fields: {}, metadata: {}, signatures: [], obligations: [], rounds: [], versions: [], comments: [], audit: [], changes: [] });
 
-describe('f1018 — a reply to HaTi\'s email reaches the person who sent it', () => {
+describe('f1020 — a reply to HaTi\'s email reaches the person who sent it', () => {
   let h, W;
   before(async () => {
     h = await startHatiWithMail();
@@ -66,13 +66,13 @@ describe('f1018 — a reply to HaTi\'s email reaches the person who sent it', ()
   });
 });
 
-/* f1018 (2) — A PARKED ASK DOES NOT TELL OF A HELD COUNTER (owner, 12 Nov 2026: "Fix both"). An ask of theirs we
+/* f1020 (2) — A PARKED ASK DOES NOT TELL OF A HELD COUNTER (owner, 12 Nov 2026: "Fix both"). An ask of theirs we
    answered with a counter is parked ("countered", counteredBy the counter). While the counter is held back for our
    own review it is not on their copy, and the ask must travel as it stood before: its status from the counter's
    bundle (else pending) and no counteredBy — or the copy's data tells them a counter exists they cannot see, a review
    they must never learn of. Both hosts: the server's wall (srvLinkStrip) and the browser's copy (buildSharePayload).
    At the parent the ask travelled "countered" with the held counter's id. */
-describe('f1018 (2) — a held counter leaves no trace on their copy', () => {
+describe('f1020 (2) — a held counter leaves no trace on their copy', () => {
   let h, W;
   const ASK = { id: 'CHG-001', clauseId: 'c11', clauseLabel: 'Clause 11 · Payment terms', type: 'edit', authorSide: 'counterparty',
     author: 'Guliz Cetin', status: 'countered', counteredBy: 'CHG-002', oldText: 'thirty (30) days', newText: 'sixty (60) days', createdAt: '2026-11-10T08:00:00.000Z' };

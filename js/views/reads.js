@@ -332,9 +332,9 @@ function rdJlSay(){
   const lines = [qs.length ? _rdTn('jl_rd_say_n', qs.length, { n: qs.length }) : _rdT('jl_rd_say_none')];
   if (open) lines.push(_rdTn('jl_rd_say_open', open, { n: open }));
   if (risk) lines.push(_rdTn('jl_rd_say_risk', risk, { n: risk }));
-  const chips = [{ label: _rdT('ac_btn'), run: () => readsAskNew() }];
+  const chips = [{ label: _rdT('dsc_chip_ask'), run: () => readsAskNew() }];
   const first = qs.find(r => r.total > r.read);
-  if (first) chips.push({ label: rdNextLabel(first, rdSizeNow()), run: () => readsNext(first.key, rdSizeNow()) });
+  if (first) chips.push({ label: rdNextLabel(first, rdSizeNow()), run: () => ((typeof newLookOn === 'function' && newLookOn() && document.querySelector('#rd-page.dsc-page')) ? dscReadMore(first.key, rdSizeNow()) : readsNext(first.key, rdSizeNow())) });
   return { lines: [_rdE(lines.join(' '))], chips, src: _rdT('jl_rd_src') };
 }
 function rdChoose(list, wide){
@@ -402,7 +402,8 @@ function renderReadsDraw(o){
   const wide = typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function';
   const list = readsShown();
   if (_rdBack){ if (list.some(r => r.key === _rdBack)){ _rd.sel = _rdBack; if (typeof insSelect === 'function') insSelect(RD_SEAT, _rdBack); } if (_rd.rows && _rd.rows.length) _rdBack = null; }
-  rdChoose(list, wide);
+  const nl = !_rd.table && wide && typeof window.newLookOn === 'function' && newLookOn();
+  if (!nl) rdChoose(list, wide);
   const keep = document.activeElement && document.activeElement.id && document.activeElement.closest && document.activeElement.closest('#rd-page') ? document.activeElement.id : '';
   const caret = keep ? document.activeElement.selectionStart : null;
   rdHeadReg();
@@ -437,7 +438,7 @@ function renderReadsDraw(o){
    the answers' own words), Read "5 of 7", Spent, and the row's one press (Read N more, or Open the table); the
    packs under their own line, each "Run on N · N calls"; the foot "A kept answer is never read again" and The
    read table. Every press is an existing door (readsNext, readsTableOpen, askColOpen on Contracts). */
-let _rdn = 'all';
+let _rdn = 'kept';
 const _rdnLoading = new Set();
 function rdnAnswers(askId){
   const A = (typeof AC !== 'undefined') ? AC : null; if (!A) return null;
@@ -509,62 +510,285 @@ function rdnOnList(r){
    progress bar under it */
 const RDN_TONE = { yes: 'green', amb: 'amber', none: 'gray' };
 const rdnProgHtml = (k, n) => `<span class="rdn-prog" aria-hidden="true"><i style="width:${n ? Math.round(Math.min(1, k / n) * 100) : 0}%"></i></span>`;
-function rdnRowHtml2(r){
+/* ═══ DISCOVER (owner, 12 Nov 2026; drawn first and picked: "The Legora Way", then "the flow you described") ═══
+   The Reads page IS the Discover page now: one place for every question asked of the wording. The Contracts list's
+   head carries a Discover pill where "+ Ask a column" stood (askColBtnHtml → discoverOpen); it lands here, and what
+   is asked here is asked of the contracts that list shows as it is filtered (dscScope: askColShown, said in words by
+   regScopeWords).
+   THE TOP: "Discover" and its facts; ONE ask box with its one black button ("Ask N contracts", or "Ask the first K of
+   N": a read still goes out a batch at a time, askColPlan); chips that only FILL the box — the packs, and questions
+   the team asked but nobody kept; the tabs Kept · Packs · Every read.
+   THE TABLE is Reads' own (Question · Read · Answers · On the list of · Asked). A row OPENS under itself (dscOpenHtml):
+   its answers, the risky first, each with its light, the answer, the § and the words it was read from; a press on an
+   answer puts THE PAPER in the panel (dscPaperHtml: the words lit in their own sentence, the neighbours dimmed), with
+   Open this contract · Start redlining this clause above Jambo's box. Closed, the panel is the question's summary
+   (rdnPanelPaint: answers, where it shows, Read the rest, Keep, Delete question).
+   WHILE JAMBO READS (AC.busy, the same run as everywhere: askColAskHere → askColReadRun) the question's row leads the
+   table, each answer lands under it, the panel shows the paper of the contract just read, and Stop stands in the ask
+   box; stopped, the same button reads the rest (askColCarryOn). Nothing is filed into any contract. */
+const DSC_OPEN_MAX = 7, DSC_LIVE_MAX = 6, DSC_TURN_MS = 1400, DSC_CHIPS = 4, DSC_SLICE = 280;
+const _dsc = { q: '', askId: null, pack: null, open: null, pick: null, say: '', starting: false, liveCid: null, liveAt: 0, t: 0, turnT: 0, text: new Map() };
+let _rdnTabSet = false;
+const _dscAC = () => (typeof AC !== 'undefined') ? AC : null;
+const _dscMay = () => typeof askColMay !== 'function' || askColMay();
+const _dscSize = () => (typeof acSize === 'function') ? acSize() : 50;
+/* THE CONTRACTS THE ASK GOES TO: the Contracts list as it is filtered now, and that said in words */
+function dscScope(){
+  if (typeof regSetScope === 'function'){ try { regSetScope(null); } catch (_){ /* the list's own state */ } }
+  let ids = []; try { ids = (typeof askColShown === 'function') ? askColShown() : []; } catch (_){ ids = []; }
+  let words = ''; try { words = (typeof regScopeWords === 'function') ? regScopeWords() : ''; } catch (_){ words = ''; }
+  return { ids, n: ids.length, words: words || _rdT('reg_tab_all') };
+}
+/* how many of them the next press reads: the first not yet read, a batch at most (a typed question is new to all) */
+function dscPlanN(sc){
+  const size = _dscSize(); let unread = sc.n;
+  try {
+    const ids = _dsc.pack ? ((typeof askColPackAskIds === 'function') ? askColPackAskIds(_dsc.pack) : []) : (_dsc.askId ? [_dsc.askId] : []);
+    const whole = !_dsc.pack || ids.length === (_dsc.pack.questions || []).length;
+    if (ids.length && whole && typeof askColUnread === 'function') unread = askColUnread(ids, sc.ids).length;
+  } catch (_){ unread = sc.n; }
+  return { size, unread, pick: Math.min(size, unread) };
+}
+function dscAskBtnHtml(sc){
+  const A = _dscAC(), may = _dscMay();
+  if (A && A.busy) return `<button type="button" class="dsc-btn is-quiet" id="dsc-stop">${_rdE(_rdT('ac_stop'))}</button>`;
+  if (_dsc.starting) return `<button type="button" class="dsc-btn" disabled>${_rdE(_rdT('dsc_starting'))}</button>`;
+  if (A && A.stopped && A.stopped.left && A.stopped.left.length && may) return `<button type="button" class="dsc-btn" id="dsc-carry">${_rdE(_rdT('dsc_carry', { n: A.stopped.left.length }))}</button>`;
+  const p = dscPlanN(sc);
+  const label = !sc.n ? _rdT('dsc_ask_none') : !p.unread ? _rdT('dsc_ask_all_read', { n: sc.n }) : p.unread <= p.size ? _rdTn('dsc_ask_n', p.unread) : _rdT('dsc_ask_first', { k: p.pick, n: p.unread });
+  const off = !may || !sc.n || !p.unread;
+  return `<button type="button" class="dsc-btn" id="dsc-go"${off ? ' disabled' : ''}${may ? '' : ` title="${_rdE(_rdT('ac_btn_viewer'))}"`}>${_rdE(label)}</button>`;
+}
+function dscChipsHtml(rows, sc){
+  const A = _dscAC();
+  const packs = ((A && A.packs) || []).map(p => `<button type="button" class="rfp-pill dsc-chip${_dsc.pack && _dsc.pack.id === p.id ? ' is-on' : ''}" data-dsc-pack="${_rdE(p.id)}">${_rdE(_rdT('rdn_pack', { name: p.name, n: (p.questions || []).length }))}</button>`).join('');
+  const loose = rows.filter(r => !r.kept && !r.fact && r.q && !(typeof askColIsPortfolio === 'function' && askColIsPortfolio(r.q))).slice(0, DSC_CHIPS);
+  const team = loose.map(r => `<button type="button" class="rfp-pill dsc-chip${_dsc.askId === r.askIds[0] ? ' is-on' : ''}" data-dsc-q="${_rdE(r.askIds[0])}" title="${_rdE(r.q)}">${_rdE(r.name || r.q)}</button>`).join('');
+  return `<div class="dsc-chips">${packs}${team}${team ? `<span class="dsc-quiet">${_rdE(_rdT('dsc_chips_team'))}</span>` : ''}<span class="apn-sp"></span><span class="dsc-quiet dsc-scope">${_rdE(_rdT('dsc_scope'))} <b>${_rdE(sc.words)} · ${sc.n}</b></span></div>`;
+}
+function dscAskHtml(rows, sc){
+  const A = _dscAC(), b = A && A.busy, may = _dscMay();
+  const packOn = !b && !!_dsc.pack;
+  const val = b ? (b.qCount > 1 ? (b.name || '') : (b.question || b.name || '')) : packOn ? _rdT('rdn_pack', { name: _dsc.pack.name, n: (_dsc.pack.questions || []).length }) : (_dsc.q || '');
+  const lock = b || packOn || !may || _dsc.starting;
+  return `<div class="dsc-ask${b ? ' is-busy' : ''}">${typeof icon === 'function' ? icon('sparkle', 'w-4 h-4') : ''}
+      <input id="dsc-q" class="dsc-in" type="text" autocomplete="off" spellcheck="true" aria-label="${_rdE(_rdT('dsc_ph'))}" placeholder="${_rdE(_rdT('dsc_ph'))}" value="${_rdE(val)}"${lock ? ' readonly' : ''}>
+      ${packOn ? `<button type="button" class="rfp-a" data-dsc-unpack>${_rdE(_rdT('dsc_unpack'))}</button>` : ''}${dscAskBtnHtml(sc)}</div>
+    ${_dsc.say ? `<div class="dsc-say" role="status">${_rdE(_dsc.say)}</div>` : ''}${dscChipsHtml(rows, sc)}`;
+}
+/* THE WORDS A CONTRACT'S ANSWER WAS READ FROM, IN THEIR PLACE: the contract's plain wording (its record read whole
+   once, ensureFull, as opening it does; kept for the sitting), the quote found in it, its own sentence and a little
+   of what stands before and after. Null while it is fetched or where the wording cannot be had: the quote is shown. */
+function dscTextOf(cid){
+  const k = String(cid);
+  if (_dsc.text.has(k)) return _dsc.text.get(k);
+  const c = (typeof getContract === 'function') ? getContract(k) : null;
+  if (!c){ _dsc.text.set(k, ''); return ''; }
+  _dsc.text.set(k, null);
+  const read = () => dscPlain(c);
+  Promise.resolve((typeof ensureFull === 'function') ? ensureFull(c) : null).catch(() => {}).then(() => { _dsc.text.set(k, read()); discoverLive(true); });
+  return null;
+}
+/* the wording with its paragraphs kept (contractPlainText runs them together): an upload's read text as it was read,
+   else the drawn body with a line break after every block. Reads only. */
+function dscPlain(c){
+  try {
+    if (typeof isUpload === 'function' && isUpload(c)) return String((c.upload && c.upload.extractedText) || '');
+    if (typeof docBody !== 'function') return (typeof contractPlainText === 'function') ? String(contractPlainText(c) || '') : '';
+    const host = document.createElement('div'); host.innerHTML = docBody(c, { marks: false });
+    host.querySelectorAll('input').forEach(i => i.replaceWith(document.createTextNode(i.value || i.getAttribute('value') || '')));
+    host.querySelectorAll('p,div,li,h1,h2,h3,h4,h5,h6,tr,section,article,blockquote').forEach(el => el.insertAdjacentText('afterend', '\n'));
+    host.querySelectorAll('br').forEach(el => el.replaceWith(document.createTextNode('\n')));
+    return host.textContent || '';
+  } catch (_){ return ''; }
+}
+/* THE QUOTE IN ITS PLACE: its own paragraph (the words before and after it there), and the paragraph on each side */
+function dscSlice(text, quote){
+  const lines = String(text || '').split(/\n+/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const q = String(quote || '').replace(/\s+/g, ' ').trim();
+  if (!lines.length || q.length < 6) return null;
+  const flat = lines.join(' '), low = flat.toLowerCase();
+  let i = low.indexOf(q.toLowerCase()), len = q.length;
+  if (i < 0 && q.length > 48){ i = low.indexOf(q.slice(0, 48).toLowerCase()); if (i >= 0) len = Math.min(q.length, flat.length - i); }
+  if (i < 0) return null;
+  const end = Math.min(flat.length, i + len);
+  let pos = 0, la = -1, lb = -1; const starts = [];
+  lines.forEach((ln, k) => { starts.push(pos); if (la < 0 && i < pos + ln.length + 1) la = k; if (lb < 0 && end <= pos + ln.length + 1) lb = k; pos += ln.length + 1; });
+  if (la < 0) la = 0; if (lb < la) lb = lines.length - 1;
+  let pre = flat.slice(starts[la], i), post = flat.slice(end, starts[lb] + lines[lb].length);
+  /* a paper with no paragraphs is one long line: keep the sentence, not the page */
+  if (pre.length > DSC_SLICE * 2){ const cut = pre.lastIndexOf('. ', pre.length - 2); pre = '\u2026 ' + (cut >= 0 && pre.length - cut < DSC_SLICE * 2 ? pre.slice(cut + 2) : pre.slice(-DSC_SLICE).replace(/^\S*\s/, '')); }
+  if (post.length > DSC_SLICE * 2){ const cut = post.indexOf('. '); post = (cut >= 0 && cut < DSC_SLICE * 2 ? post.slice(0, cut + 1) : post.slice(0, DSC_SLICE).replace(/\s\S*$/, '')) + ' \u2026'; }
+  let before = la > 0 ? lines[la - 1] : '', after = lb < lines.length - 1 ? lines[lb + 1] : '';
+  if (before.length > DSC_SLICE) before = '\u2026 ' + before.slice(-DSC_SLICE).replace(/^\S*\s/, '');
+  if (after.length > DSC_SLICE) after = after.slice(0, DSC_SLICE).replace(/\s\S*$/, '') + ' \u2026';
+  return { before, pre, hit: flat.slice(i, end), post, after };
+}
+function dscPaperHtml(askId, cid){
+  const A = _dscAC(), a = A ? ((A.ans[askId] || {})[cid] || null) : null;
+  const c = (typeof getContract === 'function') ? getContract(cid) : null;
+  if (!c) return `<div class="dsc-paper"><div class="dsc-sheet"><p class="dsc-none">${_rdE(_rdT('dsc_paper_gone'))}</p></div></div>`;
+  const num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '';
+  const quote = a && a.found ? String(a.quote || '').trim() : '';
+  let body;
+  if (!a) body = `<p class="dsc-none">${_rdE(_rdT('dsc_paper_wait'))}</p>`;
+  else if (a.noWording) body = `<p class="dsc-none">${_rdE(_rdT('ac_no_wording'))}</p>`;
+  else if (!quote) body = `<p class="dsc-none">${_rdE(_rdT(a.found ? 'ac_no_quote' : 'dsc_paper_nowords'))}</p>`;
+  else {
+    const text = dscTextOf(cid), sl = text ? dscSlice(text, quote) : null;
+    const lead = sl ? sl.pre.replace(/^\u2026\s*/, '') : '';
+    const sec = num && !(lead.startsWith(num + ' ') || lead.startsWith(num + '.')) ? `<b class="dsc-sec">${_rdE(num)}</b> ` : '';
+    body = sl ? `${sl.before ? `<p class="dsc-dim">${_rdE(sl.before)}</p>` : ''}<p>${sec}${_rdE(sl.pre)}<mark>${_rdE(sl.hit)}</mark>${_rdE(sl.post)}</p>${sl.after ? `<p class="dsc-dim">${_rdE(sl.after)}</p>` : ''}`
+      : `<p>${sec}<mark>${_rdE(quote)}</mark></p>`;
+  }
+  const kind = (typeof cKind === 'function') ? cKind(c) : '';
+  return `<div class="dsc-paper" data-dsc-paper="${_rdE(cid)}"><div class="dsc-sheet"><h4>${_rdE(String(c.name || kind || _rdRef(c)))}</h4><div class="dsc-pt">${_rdE([c.counterparty, _rdRef(c)].filter(Boolean).join(' · '))}</div>${body}</div></div>`;
+}
+/* ONE ANSWER, ONE LINE: its light, the agreement, the answer, the § and the words; its one act at the end */
+function dscAnsRowHtml(askId, cid, a, o){
+  const c = (typeof getContract === 'function') ? getContract(cid) : null;
+  const tone = _rdTone(a, askId), num = (typeof askColClauseNo === 'function') ? askColClauseNo(a) : '';
+  const quote = a && a.found ? String(a.quote || '').trim() : '';
+  const words = quote ? `${num ? '§ ' + num + ' ' : ''}“${quote}”` : '';
+  const may = _dscMay(), ck = a && a.checked;
+  const act = o.live ? `<span class="dsc-quiet">${o.sel ? _rdE(_rdT('dsc_just_read')) : ''}</span>`
+    : (!ck && tone === 'ruby' && quote) ? `<button type="button" class="rfp-a" data-dsc-go="${_rdE(cid)}">${_rdE(_rdT('dsc_open_clause'))}</button>`
+    : (a && !a.noWording) ? `<button type="button" class="rfp-a${ck ? ' is-ck' : ''}" data-dsc-ck="${_rdE(cid)}"${may ? '' : ' disabled'} title="${_rdE(ck ? _rdT('ac_unmark', { who: ck.by, when: rdWhen(ck.at) }) : _rdT('ac_mark'))}">${_rdE(_rdT(ck ? 'dsc_checked' : 'dsc_mark'))}</button>` : '';
+  return `<div class="dsc-a${o.sel ? ' is-sel' : ''}"${o.live ? '' : ` data-dsc-pick="${_rdE(cid)}" tabindex="0" role="button"`}><span class="ac-ans tone-${tone}"><i></i></span><span class="dsc-a-n">${_rdE(c ? _rdName(c) : cid)}</span><b class="dsc-a-w">${_rdE(_rdWord(a))}</b><span class="dsc-a-q${words ? '' : ' is-none'}">${_rdE(words || (a && a.noWording ? '' : _rdT('dsc_no_words')))}</span>${act}</div>`;
+}
+const _dscRank = t => t === 'ruby' ? 0 : t === 'amber' ? 1 : t === 'none' ? 2 : 3;
+function dscOpenList(r){
+  const askId = r.askIds[0], got = rdnAnswers(askId);
+  if (!got) return null;
+  return Object.keys(got).filter(id => got[id] && typeof getContract === 'function' && getContract(id)).map(id => ({ id, a: got[id], t: _rdTone(got[id], askId) }))
+    .sort((x, y) => _dscRank(x.t) - _dscRank(y.t));
+}
+function dscOpenHtml(r){
+  const xs = dscOpenList(r), askId = r.askIds[0];
+  if (!xs) return `<tr class="dsc-opn"><td colspan="5"><div class="dsc-quiet dsc-pad">${_rdE(_rdT('dsc_loading'))}</div></td></tr>`;
+  if (!xs.length) return `<tr class="dsc-opn"><td colspan="5"><div class="dsc-quiet dsc-pad">${_rdE(_rdT('dsc_open_none'))}</div></td></tr>`;
+  return `<tr class="dsc-opn"><td colspan="5">${xs.slice(0, DSC_OPEN_MAX).map(x => dscAnsRowHtml(askId, x.id, x.a, { sel: x.id === _dsc.pick })).join('')}
+    <div class="dsc-pad"><button type="button" class="rfp-a" data-rdn-table="${_rdE(r.key)}">${_rdE(_rdTn('dsc_all_answers', xs.length))}</button></div></td></tr>`;
+}
+function dscRowHtml(r, o){
+  const open = !!(o && o.open), live = !!(o && o.live);
   const G = rdnGroups(r), list = rdnOnList(r);
   const ans = G.map(x => (typeof listChipHtml === 'function') ? listChipHtml(RDN_TONE[x.t] || 'gray', `${x.l} · ${x.n}`) : `${_rdE(x.l)} ${x.n}`).join(' ');
-  const asked = _rdT('rdn2_asked', { by: r.by || (r.asked && r.asked.by) || '', when: r.when ? rdWhen(r.when) : '' }).replace(/^ · | · $/g, '');
-  return `<tr data-rd-row="${_rdE(r.key)}" class="${_rd.sel === r.key ? 'is-sel' : ''}" tabindex="-1"><td><div class="cun-name">${_rdE(r.name || r.q)}</div><div class="cun-sub">${_rdE(r.q || '')}</div></td>
+  const asked = live ? _rdT(o.stopped ? 'dsc_row_stopped' : 'dsc_row_reading') : _rdT('rdn2_asked', { by: r.by || (r.asked && r.asked.by) || '', when: r.when ? rdWhen(r.when) : '' }).replace(/^ · | · $/g, '');
+  const sel = live || _rd.sel === r.key;
+  return `<tr data-rd-row="${_rdE(r.key)}" class="dsc-row${sel ? ' is-sel' : ''}${open ? ' is-open' : ''}${live ? ' is-live' : ''}" tabindex="${live ? -1 : 0}" aria-expanded="${open ? 'true' : 'false'}"><td><div class="dsc-q1"><i class="dsc-cv" aria-hidden="true"></i><div class="dsc-q1b"><div class="cun-name">${_rdE(r.name || r.q)}</div><div class="cun-sub">${_rdE(r.q || '')}</div></div></div></td>
     <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: r.read, n: r.total }))}${rdnProgHtml(r.read, r.total)}</td><td class="rdn-c">${ans || '—'}</td>
     <td class="rdn-c">${list ? _rdE(list) : `<span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span>`}</td><td class="rdn-c">${_rdE(asked)}</td></tr>`;
 }
-function rdnPackRowHtml2(x){
-  const qs = (x.p.questions || []).map(q => String(q.name || q.question || '').toLowerCase()).filter(Boolean).join(' · ');
+function dscPackRowHtml(x){
+  const qs = (x.p.questions || []).map(q => String(q.name || q.question || '')).filter(Boolean).join(' · ');
   const n = (x.p.questions || []).length, read = x.row ? x.row.read : 0;
-  return `<tr><td><div class="cun-name">${_rdE(_rdT('rdn_pack', { name: x.p.name, n }))}</div><div class="cun-sub">${_rdE(qs)}</div></td>
+  return `<tr class="dsc-pack"><td><div class="dsc-q1"><i class="dsc-cv is-none" aria-hidden="true"></i><div class="dsc-q1b"><div class="cun-name">${_rdE(_rdT('rdn_pack', { name: x.p.name, n }))}</div><div class="cun-sub">${_rdE(qs)}</div></div></div></td>
     <td class="rdn-c">${_rdE(_rdT('rdn_of', { k: read, n: x.total }))}${rdnProgHtml(read, x.total)}</td><td class="rdn-c">${_rdE(x.ran ? _rdT('rdn_ran') : _rdT('rdn_not_run'))}</td><td class="rdn-c"><span class="rdn-q">${_rdE(_rdT('rdn2_no_list'))}</span></td>
-    <td class="rdn-c"><button type="button" class="rfp-pill" data-rdn-pack="${_rdE(x.p.id)}">${_rdE(_rdT('rdn_run_on', { n: x.total, calls: '' }).replace(/\s*·\s*$/, ''))}</button></td></tr>`;
+    <td class="rdn-c"><button type="button" class="rfp-pill" data-dsc-pack="${_rdE(x.p.id)}">${_rdE(_rdT('dsc_pack_use'))}</button>${x.row ? ` <button type="button" class="rfp-a" data-rdn-table="${_rdE(x.row.key)}">${_rdE(_rdT('rdn_open_table'))}</button>` : ''}</td></tr>`;
 }
-/* READS' THREE TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: All · On a list · Still to read only pick which
-   questions; All's pack lines are rows INSIDE the same body), so a tab press and a typed letter redraw only the rows
-   (listRowsSwapHtml); anything it will not swap draws the whole page, with the caret put back. */
+/* the row a read in flight leads the table with: its question, how far it got, its answers as they land */
+function dscLiveRows(rows){
+  const A = _dscAC(), b = A && A.busy; if (!b) return { html: '', key: '' };
+  const askId = b.askId || '', key = askId ? 'ask:' + askId : '';
+  const base = rows.find(r => r.key === key) || null, total = rdTotal();
+  const got = (askId && A.ans[askId]) || {};
+  const read = Math.min(total, Object.keys(got).filter(id => got[id]).length);
+  const r = Object.assign({ key: key || '__live', askIds: askId ? [askId] : [], name: b.qCount > 1 ? (b.name || '') : (b.name || (base && base.name) || ''), q: b.qCount > 1 ? '' : (b.question || ''), by: '', when: '', total }, base || {}, { read });
+  const done = (b.doneIds || []).filter(id => got[id]);
+  let inner = '';
+  for (let i = done.length - 1; i >= Math.max(0, done.length - DSC_LIVE_MAX); i--) inner += dscAnsRowHtml(askId, done[i], got[done[i]], { live: true, sel: done[i] === _dsc.liveCid });
+  const bar = `<div class="dsc-live-bar" role="img" aria-label="${_rdE(_rdT('dsc_live_n', { k: b.done, n: b.total }))}"><i style="width:${b.total ? Math.round(b.done / b.total * 100) : 0}%"></i></div>`;
+  return { key, html: dscRowHtml(r, { open: true, live: true, stopped: !!b.stop }) + `<tr class="dsc-opn is-live"><td colspan="5">${bar}${inner || `<div class="dsc-quiet dsc-pad">${_rdE(_rdT('dsc_live_first'))}</div>`}</td></tr>` };
+}
+/* the paper turns to the contract just read, no faster than a person can look (DSC_TURN_MS) */
+function dscLiveTurn(){
+  const A = _dscAC(), b = A && A.busy; if (!b){ _dsc.liveCid = null; return; }
+  const got = (b.askId && A.ans[b.askId]) || {}, done = (b.doneIds || []).filter(id => got[id]);
+  const last = done[done.length - 1] || null;
+  if (!last || last === _dsc.liveCid) return;
+  const wait = DSC_TURN_MS - (Date.now() - _dsc.liveAt);
+  if (!_dsc.liveCid || wait <= 0){ _dsc.liveCid = last; _dsc.liveAt = Date.now(); return; }
+  if (!_dsc.turnT) _dsc.turnT = setTimeout(() => { _dsc.turnT = 0; discoverLive(true); }, wait + 20);
+}
 let _rdnPanelSel;
 function rdnRender(host, o){
+  const A = _dscAC(), busy = !!(A && A.busy);
   const rows = (_rd.rows || []).filter(r => !r.pack);
-  const q = rdWords();
-  const inTab = r => _rdn === 'list' ? !!rdnOnList(r) : _rdn === 'open' ? r.read < r.total : true;
-  const boxed = rows.filter(r => rdHit(r, q)), shown = boxed.filter(inTab);
+  const kept = rows.filter(r => r.kept || r.fact), packs = rdnPacks();
+  if (!['kept', 'packs', 'all'].includes(_rdn)) _rdn = 'kept';
+  /* a question just asked is nobody's kept one yet: the tab that shows it is Every read */
+  if (!_rdnTabSet && _rdn === 'kept' && !kept.length && rows.length) _rdn = 'all';
+  const sc = dscScope();
+  dscLiveTurn();
+  const live = busy ? dscLiveRows(rows) : { html: '', key: '' };
+  const shown = (_rdn === 'kept' ? kept : _rdn === 'all' ? rows : []).filter(r => r.key !== live.key);
+  /* the question the panel reads is one the table shows (a tab that hides it lets it go) */
+  if (!busy && _rdn !== 'packs' && !shown.some(r => r.key === _rd.sel)) _rd.sel = shown[0] ? shown[0].key : null;
+  if (_dsc.open && (busy || !shown.some(r => r.key === _dsc.open))){ _dsc.open = null; _dsc.pick = null; }
+  const openRow = _dsc.open ? shown.find(r => r.key === _dsc.open) : null;
+  if (openRow){ const xs = dscOpenList(openRow) || []; if (!xs.slice(0, DSC_OPEN_MAX).some(x => x.id === _dsc.pick)) _dsc.pick = xs[0] ? xs[0].id : null; }
   const answers = rows.reduce((n, r) => n + (r.read || 0), 0);
   const facts = _rdTn('rdn2_facts', rows.length, { q: rows.length, a: answers });
   const tab = (k, w, n) => `<button type="button" class="apn-tab${_rdn === k ? ' is-on' : ''}" data-rdn-tab="${k}">${_rdE(w)} <span>${n}</span></button>`;
-  if (!['all', 'list', 'open'].includes(_rdn)) _rdn = 'all';
-  if (!_rd.sel || !shown.some(r => r.key === _rd.sel)) _rd.sel = shown[0] ? shown[0].key : null;
-  const may = typeof askColMay !== 'function' || askColMay();
-  /* the packs stay on their own lines under the questions, on All only (a pack is run from here) */
-  const packs = _rdn === 'all' ? rdnPacks().filter(x => !q || String(x.p.name || '').toLowerCase().includes(q)) : [];
-  const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page rdn-page" id="rd-page" data-ins-page="reads" data-ins="1">
+  const body = _rdn === 'packs' ? (packs.map(dscPackRowHtml).join('') || `<tr><td colspan="5" class="apn-none">${_rdE(_rdT('dsc_none_packs'))}</td></tr>`)
+    : (shown.map(r => dscRowHtml(r, { open: r.key === _dsc.open }) + (r.key === _dsc.open ? dscOpenHtml(r) : '')).join('') || (live.html ? '' : `<tr><td colspan="5" class="apn-none">${_rdE(_rdT(_rdn === 'kept' ? 'dsc_none_kept' : 'dsc_none'))}</td></tr>`));
+  const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page rdn-page dsc-page" id="rd-page" data-ins-page="reads" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="ctf-hf">${_rdE(facts)}</span><span class="apn-sp"></span>${may ? `<button type="button" id="rd-ask" class="ui-btn ui-btn-primary rdn-ask">${_rdE(_rdT('rdn2_add_q'))}</button>` : ''}</div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="rdn-q" type="search" autocomplete="off" placeholder="${_rdE(_rdT('lh_filter_ph'))}" value="${_rdE(_rd.q || '')}"></label>
-        ${tab('all', _rdT('rdn2_tab_all'), boxed.length)}${tab('list', _rdT('rdn2_tab_list'), boxed.filter(r => !!rdnOnList(r)).length)}${tab('open', _rdT('rdn2_tab_open'), boxed.filter(r => r.read < r.total).length)}<span class="apn-sp"></span></div>
-      <div class="cu-scroll"><table class="apn-table cun-table rdn-table rdn2"><colgroup><col style="width:30%"><col style="width:12%"><col style="width:26%"><col style="width:16%"><col style="width:16%"></colgroup>
+      <div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="ctf-hf">${_rdE(facts)}</span></div>
+      ${dscAskHtml(rows, sc)}
+      <div class="apn-bar dsc-tabs">${tab('kept', _rdT('dsc_tab_kept'), kept.length)}${tab('packs', _rdT('rd_tab_packs'), packs.length)}${tab('all', _rdT('dsc_tab_all'), rows.length)}<span class="apn-sp"></span></div>
+      <div class="cu-scroll"><table class="apn-table cun-table rdn-table rdn2 dsc-table"><colgroup><col style="width:32%"><col style="width:12%"><col style="width:27%"><col style="width:12%"><col style="width:17%"></colgroup>
         <thead><tr><th>${_rdE(_rdT('rdn_c_q'))}</th><th>${_rdE(_rdT('rd_col_read'))}</th><th>${_rdE(_rdT('rdn_c_a'))}</th><th>${_rdE(_rdT('rdn2_c_list'))}</th><th>${_rdE(_rdT('rdn2_c_asked'))}</th></tr></thead>
-        <tbody>${shown.map(rdnRowHtml2).join('') || `<tr><td colspan="5" class="apn-none">${_rdE(_rdT('ap_wl_none_match'))}</td></tr>`}${packs.length ? `<tr class="rdn-grp"><td colspan="5">${_rdE(_rdT('rd_tab_packs'))}</td></tr>${packs.map(rdnPackRowHtml2).join('')}` : ''}</tbody></table></div>
+        <tbody>${live.html}${body}</tbody></table></div>
       <div class="apn-foot rdn-foot"><span>${_rdE(_rdT('rdn2_foot'))}</span>${_rd.sel ? `<button type="button" class="rfp-a" data-rdn-table="${_rdE(_rd.sel)}">${_rdE(_rdT('rdn_the_table'))}</button>` : ''}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside></div></div>`;
-  if (o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '#rd-page.rdn-page', html: PAGE, table: '.rdn-table', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab', footSel: '.rdn-foot', also: '.rdn-head .ctf-hf' })){
-    /* the panel stays as it stands while the rows move, unless the question it reads has gone */
-    if (_rd.sel !== _rdnPanelSel){ _rdnPanelSel = _rd.sel; rdnPanelPaint(rows); }
-    return;
+  /* A TAB PRESS ONLY CHANGES WHICH ROWS SHOW (Kept · Packs · Every read draw the one table), so it redraws only the rows
+     (listRowsSwapHtml); anything it will not swap draws the whole page */
+  if (o && o.rows && !busy && typeof listRowsSwapHtml === 'function'
+    && listRowsSwapHtml({ page: '#rd-page.dsc-page', html: PAGE, table: '.rdn-table', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab', footSel: '.rdn-foot', also: '.rdn-head .ctf-hf' })){
+    _rdnPanelSel = _rd.sel; dscPanelPaint(rows); return;
   }
-  const at = typeof listCaretAt === 'function' ? listCaretAt('#rdn-q') : null;
+  /* a repaint keeps what is being typed and where the reader stood (the ask box, a row, the list's own scroll) */
+  const act = document.activeElement, inPage = act && act.closest && act.closest('#rd-page');
+  const keepId = inPage && act.id ? act.id : '', keepRow = inPage && !keepId && act.getAttribute ? (act.getAttribute('data-rd-row') || '') : '';
+  const keepPick = inPage && !keepId && !keepRow && act.getAttribute ? (act.getAttribute('data-dsc-pick') || '') : '';
+  const at = keepId === 'dsc-q' && typeof listCaretAt === 'function' ? listCaretAt('#dsc-q') : null;
+  const sc0 = document.querySelector('#rd-page.dsc-page .cu-scroll'), top0 = sc0 ? sc0.scrollTop : 0;
   host.innerHTML = PAGE;
-  if (typeof listCaretPut === 'function') listCaretPut('#rdn-q', at);
+  const sc1 = host.querySelector('.cu-scroll'); if (sc1 && top0 && !(o && o.top)) sc1.scrollTop = top0;
+  if (keepId === 'dsc-q' && typeof listCaretPut === 'function') listCaretPut('#dsc-q', at);
+  else if (keepId && document.getElementById(keepId)) document.getElementById(keepId).focus({ preventScroll: true });
+  else if (keepRow){ const el = host.querySelector(`[data-rd-row="${CSS.escape(keepRow)}"]`); if (el) el.focus({ preventScroll: true }); }
+  else if (keepPick){ const el = host.querySelector(`[data-dsc-pick="${CSS.escape(keepPick)}"]`); if (el) el.focus({ preventScroll: true }); }
   _rdnPanelSel = _rd.sel;
-  rdnPanelPaint(rows);
+  dscPanelPaint(rows);
   readsWire();
   if (typeof setActiveNav === 'function') setActiveNav('reads');
   if (typeof insWatchWidth === 'function') insWatchWidth();
+}
+/* THE PANEL HAS THREE FACES: the paper of the contract just read (a read in flight), the paper an open question's
+   chosen answer was read from, and — nothing open — the question's summary */
+function dscPanelPaint(rows){
+  if (typeof insPaintPanel !== 'function') return;
+  const A = _dscAC(), b = A && A.busy;
+  const base = { seat: RD_SEAT, head: false, jlHome: _rdT('nav_reads'), jlSay: rdJlSay };
+  if (b){
+    const word = _rdT(b.stop ? 'dsc_tab_stopped' : 'dsc_tab_reading', { k: b.done, n: b.total });
+    const cid = _dsc.liveCid;
+    const body = cid ? dscPaperHtml(b.askId, cid) : `<div class="rfp-panel is-drawn rdn-panel"><p class="ac-nl-hint">${_rdE(_rdT('dsc_live_first'))}</p></div>`;
+    insPaintPanel(Object.assign(base, { item: { id: 'live:' + (cid || '') }, body, jlTabWord: word, jlPh: _rdT('dsc_ph_clause'), jlLinks: cid ? dscPaperLinksHtml(b.askId, cid) : '' }));
+    return;
+  }
+  const r = _dsc.open ? rows.find(x => x.key === _dsc.open) : null;
+  if (r && _dsc.pick){
+    insPaintPanel(Object.assign(base, { item: { id: 'paper:' + _dsc.pick }, body: dscPaperHtml(r.askIds[0], _dsc.pick), jlTabWord: _rdT('dsc_tab_paper'), jlPh: _rdT('dsc_ph_clause'), jlLinks: dscPaperLinksHtml(r.askIds[0], _dsc.pick) }));
+    return;
+  }
+  rdnPanelPaint(rows);
+}
+function dscPaperLinksHtml(askId, cid){
+  return `<button type="button" class="jb-way" data-dsc-open="${_rdE(cid)}" data-dsc-ask="${_rdE(askId)}">${_rdE(_rdT('dsc_l_open'))}</button><button type="button" class="jb-way" data-dsc-redline="${_rdE(cid)}" data-dsc-ask="${_rdE(askId)}">${_rdE(_rdT('dsc_l_redline'))}</button>`;
 }
 function rdnPanelPaint(rows){
   if (typeof insPaintPanel !== 'function') return;
@@ -574,32 +798,150 @@ function rdnPanelPaint(rows){
   const row = (k, v, sub) => `<div class="rfp-row"><span class="rfp-k">${k}${sub ? `<small>${E(sub)}</small>` : ''}</span><span class="rfp-v">${v}</span></div>`;
   let card = '';
   if (r){
-    const G = rdnGroups(r), n = Math.max(1, r.total), unread = Math.max(0, r.total - r.read), list = rdnOnList(r), may = typeof askColMay !== 'function' || askColMay();
+    const G = rdnGroups(r), n = Math.max(1, r.total), unread = Math.max(0, r.total - r.read), list = rdnOnList(r), may = _dscMay(), size = _dscSize();
     const sub = _rdT('rdn2_p_sub', { by: r.by || '', when: r.when ? rdWhen(r.when) : '', k: r.read, n: r.total }).replace(/^ · /, '');
     const bar = `<div class="rdn-bar" aria-hidden="true">${G.map(x => `<i class="rdn-b-${x.t}" style="width:${(x.n / n * 100).toFixed(2)}%"></i>`).join('')}</div>`;
     const ans = G.map(x => row(`<i class="rdn-dot rdn-b-${x.t}"></i>${E(x.l)}`, String(x.n))).join('');
     const where = list ? row(E(list), `<button type="button" class="rfp-a" data-rd-act="bring">${E(_rdT('rdn2_open'))}</button> · <button type="button" class="rfp-a" data-rd-act="unlist">${E(_rdT('rdn2_remove'))}</button>`, _rdT('rdn2_col_on'))
       : row(E(_rdT('rdn2_another')), `<button type="button" class="rfp-a" data-rd-act="bring">${E(_rdT('rdn2_add'))}</button>`);
+    const more = unread > size ? _rdT('dsc_read_next', { n: size }) : _rdT('rdn2_read_more', { n: unread });
+    const keep = may && !r.fact ? `<button type="button" class="rfp-pill" data-dsc-keep="${r.kept ? '0' : '1'}" title="${E(_rdT(r.kept ? 'ac_keep_off_tip' : 'ac_keep_on_tip'))}">${E(_rdT(r.kept ? 'ac_keep_off' : 'ac_keep_on'))}</button>` : '';
     card = `<p class="ac-nl-q">${E(r.q || r.name)}</p><p class="ac-nl-hint">${E(sub)}</p>
       ${G.length ? cap(_rdT('ac_nl_answers')) + bar + ans : ''}${cap(_rdT('rdn2_where'))}${where}
-      <div class="rfp-acts">${unread && may ? `<button type="button" class="ui-btn ui-btn-primary rdn-go" data-rd-act="next" data-rd-n="${Math.min(unread, AC_SIZES_OF()[AC_SIZES_OF().length - 1])}">${E(_rdT('rdn2_read_more', { n: unread }))}</button>` : ''}${may ? `<button type="button" class="rfp-pill" data-rd-act="delete">${E(_rdT('rdn2_delete'))}</button>` : ''}</div>`;
+      <div class="rfp-acts">${unread && may ? `<button type="button" class="ui-btn ui-btn-primary rdn-go" data-rd-act="next" data-rd-n="${Math.min(unread, size)}">${E(more)}</button>` : ''}${keep}${may ? `<button type="button" class="rfp-pill" data-rd-act="delete">${E(_rdT('rdn2_delete'))}</button>` : ''}</div>`;
   }
   insPaintPanel({ seat: RD_SEAT, item: { id: (r && r.key) || '__reads' }, head: false, body: `<div class="rfp-panel is-drawn rdn-panel">${card}</div>`,
     jlHome: _rdT('nav_reads'), jlPh: _rdT('jl_ph_any'), jlSay: rdJlSay });
+}
+/* THE PAGE IS DRAWN AGAIN AS ANSWERS LAND (askcolumn.js calls this): at most every 400ms, at once where asked */
+function discoverLive(now){
+  if (typeof state === 'undefined' || state.view !== 'reads' || typeof document === 'undefined' || !document.querySelector('#rd-page.dsc-page')) return;
+  if (_rd.table) return;
+  if (_dsc.t){ if (!now) return; clearTimeout(_dsc.t); _dsc.t = 0; }
+  _dsc.t = setTimeout(() => { _dsc.t = 0; if (state.view === 'reads' && !_rd.table) renderReads(); }, now ? 0 : 400);
+}
+/* THE ONE WAY IN: the Contracts list's Discover pill, "discover" typed, the Guide's row — all land here */
+function discoverOpen(){
+  _dsc.say = ''; _rd.table = null;
+  if (state.view !== 'reads' && typeof setView === 'function') setView('reads'); else renderReads();
+}
+function dscSay(msg){ _dsc.say = String(msg || ''); renderReads(); }
+/* ASK: what the box holds (typed words, a team question brought back, or a pack), of the list Contracts shows */
+async function dscAsk(){
+  const A = _dscAC(); if (!A || A.busy || _dsc.starting) return;
+  if (!_dscMay()){ dscSay(_rdT('ac_btn_viewer')); return; }
+  const el = document.getElementById('dsc-q'); if (el && !_dsc.pack) _dsc.q = el.value;
+  const q = String(_dsc.q || '').trim();
+  if (!_dsc.pack && q.length < 3){ dscSay(_rdT('dsc_say_short')); const again = document.getElementById('dsc-q'); if (again) again.focus(); return; }
+  const sc = dscScope();
+  const o = _dsc.pack ? { pack: _dsc.pack } : (_dsc.askId ? { askId: _dsc.askId } : { question: q });
+  _dsc.say = ''; _dsc.open = null; _dsc.pick = null; _dsc.liveCid = null; _dsc.liveAt = 0; _dsc.starting = true; _rd.sel = null;
+  renderReads({ top: true });
+  let got = null;
+  try { const p = askColAskHere(o); setTimeout(() => { _dsc.starting = false; }, 0); got = await p; } catch (_){ got = null; }
+  _dsc.starting = false;
+  if (got && got.short){ dscSay(_rdT('dsc_say_short')); return; }
+  if (got && got.portfolio){ dscSay(_rdT('dsc_say_count')); return; }
+  if (got && got.none){ dscSay(_rdT('dsc_say_all_read', { words: sc.words, n: sc.n })); return; }
+  let key = null;
+  if (got && got.asks && got.asks.length){
+    key = _dsc.pack ? null : 'ask:' + got.asks[0].id;
+    _dsc.q = ''; _dsc.askId = null; _dsc.pack = null;
+  }
+  _rd.loading = false;
+  await rdLoad(true);
+  /* THE QUESTION JUST READ IS IN FRONT, OPEN: a new one is nobody's kept question yet, so the tab that shows it is Every read */
+  const row = key ? (_rd.rows || []).find(r => r.key === key) : null;
+  if (row){
+    if (_rdn !== 'all' && !(_rdn === 'kept' && (row.kept || row.fact))) _rdn = 'all';
+    _rd.sel = key; _dsc.open = (got.stopped || got.err) ? null : key; _dsc.pick = null;
+    renderReads({ top: true });
+  }
+}
+async function dscReadMore(key, size){
+  const A = _dscAC(); const r = rdFind(key); if (!r || !A || A.busy) return;
+  if (typeof acSizeSet === 'function' && typeof AC_SIZES !== 'undefined' && AC_SIZES.includes(Number(size))) acSizeSet(size);
+  const sc = dscScope();
+  _dsc.say = ''; _dsc.open = null; _dsc.pick = null; _dsc.liveCid = null; _dsc.liveAt = 0;
+  const p = r.pack ? (A.packs || []).find(x => x.id === r.pack.id) : null;
+  let got = null;
+  try { got = await askColAskHere(p ? { pack: p } : { askId: r.askIds[0] }); } catch (_){ got = null; }
+  if (got && got.none){ dscSay(_rdT('dsc_say_all_read', { words: sc.words, n: sc.n })); return; }
+  await rdLoad(true);
+}
+/* Go to the words on the contract's own paper (askColLandOn, the Stakes' lander); redlining opens the contract's
+   Redlines through the one door (openRedlineWorkbench: its walls, its blanks question) once the paper is up */
+function dscLand(askId, cid, redline){
+  const A = _dscAC(), a = A ? ((A.ans[askId] || {})[cid] || null) : null;
+  const quote = a && a.found ? String(a.quote || '') : '';
+  if (typeof askColLandOn === 'function') askColLandOn(cid, quote); else if (typeof regOpenContract === 'function') regOpenContract(cid);
+  if (!redline || typeof openRedlineWorkbench !== 'function') return;
+  let n = 0;
+  const tick = () => {
+    const here = typeof pdContract === 'function' && pdContract() && String(pdContract().id) === String(cid) && document.getElementById('ig-canvas');
+    if (here){ openRedlineWorkbench(cid); return; }
+    if (++n < 40) setTimeout(tick, 100);
+  };
+  setTimeout(tick, 150);
 }
 if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired = true;
   document.addEventListener('click', e => {
     if (typeof state === 'undefined' || state.view !== 'reads') return;
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const A = _dscAC();
     let el;
-    if ((el = t.closest('[data-rdn-tab]'))){ e.preventDefault(); _rdn = el.getAttribute('data-rdn-tab'); renderReads({ rows: true }); return; }
+    if ((el = t.closest('[data-rdn-tab]'))){ e.preventDefault(); _rdn = el.getAttribute('data-rdn-tab'); _rdnTabSet = true; renderReads({ rows: true, top: true }); return; }
     if ((el = t.closest('[data-rdn-table]'))){ e.preventDefault(); e.stopPropagation(); readsTableOpen(el.getAttribute('data-rdn-table')); return; }
-    if ((el = t.closest('[data-rdn-pack]'))){ e.preventDefault(); e.stopPropagation(); const p = ((typeof AC !== 'undefined' && AC.packs) || []).find(x => x.id === el.getAttribute('data-rdn-pack'));
-      if (p) rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen({ pack: p }); }); }
+    if (!t.closest('#rd-page.dsc-page') && !t.closest('#ins-panel')) return;
+    if (t.closest('#dsc-go')){ e.preventDefault(); e.stopPropagation(); dscAsk(); return; }
+    if (t.closest('#dsc-stop')){ e.preventDefault(); e.stopPropagation(); if (typeof askColStop === 'function') askColStop(); return; }
+    if (t.closest('#dsc-carry')){ e.preventDefault(); e.stopPropagation(); _dsc.liveCid = null; if (typeof askColCarryOn === 'function') Promise.resolve(askColCarryOn()).catch(() => {}).then(() => rdLoad(true)); return; }
+    if (t.closest('[data-dsc-unpack]')){ e.preventDefault(); e.stopPropagation(); _dsc.pack = null; _dsc.say = ''; renderReads(); const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
+    if ((el = t.closest('[data-dsc-pack]'))){ e.preventDefault(); e.stopPropagation(); if (A && A.busy) return;
+      const p = ((A && A.packs) || []).find(x => x.id === el.getAttribute('data-dsc-pack')) || null;
+      _dsc.pack = (_dsc.pack && p && _dsc.pack.id === p.id) ? null : p; _dsc.q = ''; _dsc.askId = null; _dsc.say = ''; renderReads(); return; }
+    if ((el = t.closest('[data-dsc-q]'))){ e.preventDefault(); e.stopPropagation(); if (A && A.busy) return;
+      const id = el.getAttribute('data-dsc-q'), a = A && A.asks ? A.asks[id] : null;
+      if (_dsc.askId === id){ _dsc.askId = null; _dsc.q = ''; } else if (a){ _dsc.askId = id; _dsc.q = a.question || ''; }
+      _dsc.pack = null; _dsc.say = ''; renderReads(); const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
+    if ((el = t.closest('[data-dsc-go]'))){ e.preventDefault(); e.stopPropagation(); const r = _dsc.open ? rdFind(_dsc.open) : null; if (r) dscLand(r.askIds[0], el.getAttribute('data-dsc-go'), false); return; }
+    if ((el = t.closest('[data-dsc-ck]'))){ e.preventDefault(); e.stopPropagation(); const r = _dsc.open ? rdFind(_dsc.open) : null;
+      if (r && !el.disabled && typeof askColCheck === 'function') Promise.resolve(askColCheck(r.askIds[0], el.getAttribute('data-dsc-ck'))).catch(() => {}).then(() => discoverLive(true)); return; }
+    if ((el = t.closest('[data-dsc-open]'))){ e.preventDefault(); e.stopPropagation(); dscLand(el.getAttribute('data-dsc-ask'), el.getAttribute('data-dsc-open'), false); return; }
+    if ((el = t.closest('[data-dsc-redline]'))){ e.preventDefault(); e.stopPropagation(); dscLand(el.getAttribute('data-dsc-ask'), el.getAttribute('data-dsc-redline'), true); return; }
+    if ((el = t.closest('[data-dsc-keep]')) && _rd.sel){ e.preventDefault(); e.stopPropagation(); const r = rdFind(_rd.sel);
+      if (r && typeof askColKeep === 'function') Promise.resolve(askColKeep(r.askIds[0], el.getAttribute('data-dsc-keep') === '1')).catch(() => {}).then(() => rdLoad(true)); return; }
+    if ((el = t.closest('[data-rd-act="next"]')) && _rd.sel && t.closest('#ins-panel') && document.querySelector('#rd-page.dsc-page')){ e.preventDefault(); e.stopPropagation(); dscReadMore(_rd.sel, Number(el.getAttribute('data-rd-n')) || _dscSize()); return; }
+    if ((el = t.closest('[data-dsc-pick]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-dsc-pick'); if (_dsc.pick !== id){ _dsc.pick = id; renderReads(); } return; }
+    if ((el = t.closest('#rd-page.dsc-page [data-rd-row]'))){ e.preventDefault(); e.stopPropagation(); if (A && A.busy) return;
+      const key = el.getAttribute('data-rd-row');
+      _rd.sel = key; _dsc.open = _dsc.open === key ? null : key; _dsc.pick = null;
+      if (typeof insSelect === 'function') insSelect(RD_SEAT, key);
+      renderReads(); return; }
   }, true);
-  /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
-  document.addEventListener('input', e => { if (e.target && e.target.id === 'rdn-q' && typeof state !== 'undefined' && state.view === 'reads'){ _rd.q = e.target.value; renderReads({ rows: true }); } });
+  /* the ask box keeps its words through every repaint; words typed over a question brought back are a new question */
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'dsc-q' && typeof state !== 'undefined' && state.view === 'reads'){
+    _dsc.q = e.target.value; const A = _dscAC(), a = _dsc.askId && A && A.asks ? A.asks[_dsc.askId] : null;
+    if (a && String(a.question || '') !== _dsc.q) _dsc.askId = null;
+    if (_dsc.say){ _dsc.say = ''; const s = document.querySelector('#rd-page .dsc-say'); if (s) s.remove(); } } });
+  document.addEventListener('keydown', e => {
+    if (typeof state === 'undefined' || state.view !== 'reads' || !e.target || !e.target.closest) return;
+    if (e.target.id === 'dsc-q' && e.key === 'Enter' && !e.isComposing){ e.preventDefault(); e.stopPropagation(); dscAsk(); return; }
+    const pick = e.target.closest('#rd-page.dsc-page [data-dsc-pick]');
+    if (pick && e.target === pick && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); e.stopPropagation(); pick.click(); return; }
+    const row = e.target.closest('#rd-page.dsc-page [data-rd-row]');
+    if (!row || e.target !== row) return;
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.stopPropagation(); row.click(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault(); e.stopPropagation();
+      const all = [...document.querySelectorAll('#rd-page.dsc-page tr[data-rd-row]')], at = all.indexOf(row), to = all[at + (e.key === 'ArrowDown' ? 1 : -1)];
+      if (!to) return;
+      const key = to.getAttribute('data-rd-row'); _rd.sel = key; if (_dsc.open && _dsc.open !== key){ _dsc.open = null; _dsc.pick = null; }
+      renderReads(); const again = document.querySelector('#rd-page.dsc-page tr[data-rd-row="' + CSS.escape(key) + '"]'); if (again) again.focus();
+    }
+  }, true);
 }
+
 /* THE DOORS, EVERY ONE AN EXISTING ONE */
 function readsOpen(askId){
   _rd.sel = askId ? (String(askId).startsWith('pack:') || String(askId).startsWith('ask:') ? String(askId) : 'ask:' + askId) : _rd.sel;
@@ -621,7 +963,12 @@ function rdOnContracts(then){
   const tick = () => { if (document.querySelector('#reg-tbody') && typeof askColOn === 'function' && askColOn()){ then(); return; } if (++n < 40) setTimeout(tick, 100); };
   setTimeout(tick, 100);
 }
-function readsAskNew(){ rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen(); }); }
+/* ASK A NEW QUESTION: on the Discover page it is the ask box; where that page is not drawn (the phone-narrow window, the
+   old look) the question is still asked from the Contracts list's panel, as before */
+function readsAskNew(){
+  if (state.view === 'reads' && document.querySelector('#rd-page.dsc-page')){ const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
+  rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen(); });
+}
 function readsNext(key, size){
   const r = rdFind(key); if (!r) return;
   if (r.pack){ rdOnContracts(() => { const p = ((typeof AC !== 'undefined' && AC.packs) || []).find(x => x.id === r.pack.id); if (p && typeof askColOpen === 'function'){ if (typeof acSizeSet === 'function') acSizeSet(size); askColOpen({ pack: p }); } }); return; }
@@ -778,4 +1125,4 @@ function readsCss(){ return `
   #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+Object.assign(window, { discoverOpen, discoverLive, dscScope, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });

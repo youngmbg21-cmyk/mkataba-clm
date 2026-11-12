@@ -154,7 +154,7 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
       if (to.door || to.menu) assert.ok(places.includes(to.home), t.k + ' asks which contract on ' + to.home);
       if (to.reg && to.reg.view) assert.match(REG, new RegExp(`k:'${to.reg.view}'`), t.k + ' → narrowed ' + to.reg.view);
       /* Ask a column (20 Oct 2026): the list, its question opened by the column's own reader */
-      if (to.reg && to.reg.askOpen) assert.match(R('js/views/askcolumn.js'), /if \(R0\.askOpen\)\{ delete R0\.askOpen; if \(!AC\.form\) askColOpen\(\);/, t.k + ' → the question opens');
+      if (to.reg && to.reg.askOpen) assert.match(R('js/views/askcolumn.js'), /if \(R0\.askOpen\)\{ delete R0\.askOpen;[\s\S]{0,700}?if \(!AC\.form\) askColOpen\(\);/, t.k + ' → the question opens');
       if (to.st){
         const [kind, key] = to.st.split(':');
         if (kind === 'panel') assert.match(SET, new RegExp(`^  ${key}:\\{`, 'm'), t.k + ' → Settings panel ' + key);

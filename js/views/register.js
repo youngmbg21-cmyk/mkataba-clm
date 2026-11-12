@@ -1816,6 +1816,19 @@ const regCtQuickOf=R=>{ const v=R&&R.view!=null?String(R.view):''; return REG_CT
    four above, 'view') where the bar drew it — after Category */
 const REG_CT_FILTERS=['stage','type','category','view','renewal','signed','payterms','docs','hold'];
 /* the Contracts seat's own reading, whatever seat the register was last asked for */
+/* THE CONTRACTS LIST AS IT IS FILTERED NOW, SAID IN WORDS (owner, 12 Nov 2026): Discover asks the contracts this list
+   shows, so it says which — the folder, the tab, a set somebody chose, the words in the box. Reads only. */
+function regScopeWords(){
+  return regOnCt(R=>{
+    const bits=[];
+    if(R.type&&R.type!=='all'&&typeof FOLDERS!=='undefined'&&FOLDERS[R.type]) bits.push(FOLDERS[R.type].name);
+    const v=REG_VIEWS.concat([REG_VIEW_SIGNED]).find(x=>x.k===(R.view||''));
+    bits.push(v?v.label:i18t('reg_tab_all'));
+    if(R.only&&R.only.label) bits.push(String(R.only.label));
+    const q=String(R.query||'').trim(); if(q) bits.push('\u201c'+q+'\u201d');
+    return bits.join(' \u00b7 ');
+  });
+}
 function regOnCt(fn){
   const was=REG_SCOPE; REG_SCOPE=null;
   try{ return fn(regState()); } finally { REG_SCOPE=was; }
@@ -2066,7 +2079,7 @@ function regFolderPanelHtml(){
     const nm=on?`<button type="button" class="rfp-a rfp-qn" data-ac-colopen="${esc(a.id)}">${esc(a.name||a.question||'')}</button>`:esc(a.name||a.question||'');
     return row(nm,act,i18t('rfp_col_sub',{ k, n, where:i18t(on?'rfp_on_list':'rfp_off_list') })); }).join('');
   const may=typeof window.askColMay!=='function'||askColMay();
-  const acts=`<div class="rfp-acts"><button type="button" class="rfp-pill" data-ac-open-new${may?'':' disabled'}>${esc(i18t('rfp_ask'))}</button><button type="button" class="rfp-a" data-rfp-reads>${esc(i18t('rfp_reads'))}</button></div>`;
+  const acts=`<div class="rfp-acts"><button type="button" class="rfp-pill" data-ac-discover>${esc(i18t('dsc_btn'))}</button></div>`;
   return `<div class="rfp-panel is-drawn">${folder}${cols?cap(i18t('rfp_cols_h'))+cols:''}${acts}</div>`;
 }
 if(typeof document!=='undefined'&&!document._rfpWired){ document._rfpWired=true;
@@ -5036,7 +5049,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFolderViewsData,regFolderViewsHtml,regFolderLive,CTF_VIEW_DAYS,CTF_VIEW_BIG,regFolderRowsHtml,regFolderRanksHtml,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFolderViewsData,regFolderViewsHtml,regFolderLive,CTF_VIEW_DAYS,CTF_VIEW_BIG,regFolderRowsHtml,regFolderRanksHtml,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regScopeWords,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
