@@ -41,8 +41,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'reads' }));
     /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): Read the other N is the chosen question's, in the panel */
-    await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]'), null, 15000);
-    await page.click('#ins-panel [data-rd-act="next"]');
+    /* the press waits for the Discover page itself: while the panel is folded the window is too narrow for list and
+       panel, and the old Reads page (whose Read N more goes to Contracts) stands for a moment */
+    await until(page, () => !!document.querySelector('#rd-page.dsc-page #ins-panel:not(.is-folded) [data-rd-act="next"]'), null, 15000);
+    await page.click('#rd-page.dsc-page #ins-panel [data-rd-act="next"]');
     /* RE-POINTED (owner, 12 Nov 2026, Discover): the read runs on this page, never by way of Contracts */
     const read = await until(page, () => !!document.querySelector('#rd-page.dsc-page tr.is-live') || !document.querySelector('#ins-panel [data-rd-act="next"]'), null, 15000);
     const list = await page.evaluate(() => state.view === 'reads' && !!document.querySelector('#rd-page.dsc-page'));
