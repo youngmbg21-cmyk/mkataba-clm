@@ -5964,7 +5964,10 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       const id = rt.getAttribute('data-pd-og-route');
       const c = (id && typeof getContract === 'function' && getContract(id)) || pdOgContract(); if (!c) return;
       const inForm = !!rt.closest('#pd-og'); pdSgListClose();
-      openSignerPlanEditor(c, { onDone(){
+      /* THE NAMES TYPED ON THE PAPER ARE IN THE WINDOW TOO (owner, 12 Nov 2026): shown as its rows, saved only by
+         its own Save; cancelled, they stay typed on the paper */
+      const typed = (!inForm && typeof pd2FillOn === 'function' && pd2FillOn(c.id)) ? pd2FillSigTyped(c) : [];
+      openSignerPlanEditor(c, { typed, onDone(){
         if (inForm){ pdOgRepaint(); pdOgLand(c.id, 'signers'); return; }
         /* the paper being filled follows the route just saved (pd2FillRouteSync draws the panel again itself) */
         if (typeof pd2FillRouteSync === 'function' && pd2FillRouteSync(c)) return;
@@ -8667,6 +8670,17 @@ function pd2FillCount(c){
   const pos = document.querySelector('#ig-dock [data-pd2-fp-pos]'); if (pos) pos.textContent = n ? _pdT('pd2_fp_pos', { k, n }) : '';
 }
 /* SAVE: every blank through its one writer, held; the signers through the one authority; then once to the server */
+/* THE NAMES TYPED ON THE LINES IN THIS SITTING, as route rows in the lines' order: what Save adds to the route, and
+   what the signing route window is shown when it is opened from here (owner, 12 Nov 2026). Reads only. */
+function pd2FillSigTyped(c){
+  if (!_pd2Fill || !c) return [];
+  const lines = pd2FillSigLines(c), add = [];
+  Object.keys(_pd2Fill.sig).sort((a, b) => Number(a) - Number(b)).forEach(i => { const L = lines[Number(i)]; if (!L) return;
+    (_pd2Fill.sig[i] || []).filter(x => String(x.name || '').trim()).forEach(x => add.push(L.ours
+      ? { party: 'internal', name: String(x.name).trim(), email: String(x.email || '').trim(), memberId: x.memberId || '', role: x.role || '' }
+      : { party: 'counterparty', name: String(x.name).trim(), email: String(x.email || '').trim(), role: x.role || '', ...(L.partyId && lines.filter(y => !y.ours).length > 1 ? { partyId: L.partyId } : {}) })); });
+  return add;
+}
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
   const c = getContract(_pd2Fill.id); if (!c || typeof contractBlankSet !== 'function') return 0;
@@ -8678,11 +8692,7 @@ function pd2FillSave(){
   /* held, the last one written without hold, so the writer itself saves once (the desk never saves: f563) */
   moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) { n++; _pd2Fill.was[x.b.key] = x.v; } });
   /* the signers: the route as it stands, with the ones named on the paper after their side's last */
-  const lines = pd2FillSigLines(c), add = [];
-  Object.keys(_pd2Fill.sig).forEach(i => { const L = lines[Number(i)]; if (!L) return;
-    (_pd2Fill.sig[i] || []).filter(x => String(x.name || '').trim()).forEach(x => add.push(L.ours
-      ? { party: 'internal', name: String(x.name).trim(), email: String(x.email || '').trim(), memberId: x.memberId || '', role: x.role || '' }
-      : { party: 'counterparty', name: String(x.name).trim(), email: String(x.email || '').trim(), role: x.role || '', ...(L.partyId && lines.filter(y => !y.ours).length > 1 ? { partyId: L.partyId } : {}) })); });
+  const add = pd2FillSigTyped(c);
   let why = null, signers = 0;
   if (add.length){
     const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).slice();

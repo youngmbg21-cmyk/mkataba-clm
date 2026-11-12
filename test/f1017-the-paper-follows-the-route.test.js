@@ -12,6 +12,9 @@
    (3) A SPACE YOU DO NOT NEED IS TAKEN AWAY: a × per space (pd2FillSigDrop), Backspace in an empty one; a line's only
        space stays (pd2FillSigMayDrop).
    (4) THE WORDS ARE IN BOTH BOOKS, the Handbook's chapter says it.
+   (5) THE NAMES TYPED ON THE PAPER ARE IN THE ROUTE WINDOW (owner, 12 Nov 2026: "show names typed on the paper in
+       the route window too"): the door hands pd2FillSigTyped to openSignerPlanEditor (opts.typed); nothing saved
+       until Save route. Red at its parent (35fc267): the window read the saved route only.
    RED AT THE PARENT: none of the three functions, the × or the word exists. */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -31,7 +34,7 @@ test('f1017 (1) a line the route names somebody on is filled', () => {
 });
 
 test('f1017 (2) the route saved while filling reaches the paper, and writes nothing', () => {
-  const door = stripCom(PD).match(/openSignerPlanEditor\(c, \{ onDone\(\)\{[\s\S]{0,400}/);
+  const door = stripCom(PD).match(/openSignerPlanEditor\(c, \{ typed, onDone\(\)\{[\s\S]{0,400}/);
   assert.ok(door, 'the one signer door is found');
   assert.match(door[0], /pd2FillRouteSync\(c\)/, 'its Save tells the paper being filled');
   const s = fn('pd2FillRouteSync');
@@ -59,4 +62,19 @@ test('f1017 (4) the word is in both books and the Handbook says it', () => {
   const H = read('js/handbook.js'); const a = H.indexOf("{ k: '2.3'"), ch = H.slice(a, H.indexOf("{ k: '2.4'"));
   assert.match(ch, /A space you do not need goes with the ×/, 'the chapter says how a space goes');
   assert.match(ch, /the lines follow the signing route/, 'and that the lines follow the route');
+});
+
+test('f1017 (5) the names typed on the paper are shown in the route window, saved only by its Save', () => {
+  const typed = fn('pd2FillSigTyped');
+  assert.doesNotMatch(typed, /saveSignerPlan|persist\(|c\.signerPlan\s*=(?!=)/, 'the reading writes nothing');
+  assert.match(fn('pd2FillSave'), /const add = pd2FillSigTyped\(c\)/, 'Save adds the same rows the window is shown');
+  const door = stripCom(PD).match(/const typed = \(!inForm[\s\S]{0,200}openSignerPlanEditor\(c, \{ typed, onDone/);
+  assert.ok(door, 'the door hands the typed names to the window, only while the paper is being filled');
+  const A = stripCom(read('js/approvals.js'));
+  const ed = A.slice(A.indexOf('function openSignerPlanEditor('), A.indexOf('function signerRouteWindow('));
+  assert.match(ed, /opts\.typed/, 'the window takes them');
+  assert.match(ed, /if\(plan\.some\(p=>sameSigner\(p,s\)\)\) return;/, 'never twice');
+  assert.match(ed, /if\(!hasUs\) plan\.unshift\(/, 'an empty route still offers our slot when nobody of ours was typed');
+  assert.match(ed, /if\(!hasThem\) plan\.push\(/, 'and theirs');
+  assert.doesNotMatch(ed, /saveSignerPlan\(/, 'opening saves nothing');
 });
