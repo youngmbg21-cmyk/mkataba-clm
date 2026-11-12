@@ -105,3 +105,9 @@ test('f1016 (7) a read asked on Discover never draws the Contracts list over the
   const bare = strip(src).split('\n').filter(l => /\bregRepaint\(\)/.test(l) && !/function _acRegRepaint|^\s*regRepaint\(\);\s*$/.test(l));
   assert.deepEqual(bare.filter(l => !/askColOn\(\) && typeof regRepaint === 'function'\) regRepaint\(\)/.test(l)), [], 'every other repaint of the list goes through _acRegRepaint');
 });
+
+test('f1016 (8) the old Discover section beside the list is never drawn in the new look, under a column card either', () => {
+  /* the owner's picture, 12 Nov 2026: the old list of past questions came and went on Contracts' panel; askColPanelHtml
+     drew it under a column's card, where the paperdesk's own gate did not reach */
+  assert.match(fnBody(AC, 'askColDiscoverHtml'), /^function askColDiscoverHtml\(\)\{\s*if \(typeof window\.newLookOn === 'function' && newLookOn\(\)\) return '';/, 'the builder itself stands down in the new look');
+});
