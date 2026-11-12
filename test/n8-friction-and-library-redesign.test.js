@@ -240,11 +240,12 @@ describe('N8 (4) — the report prints clause names in ONE style', () => {
     deal('MK-C', 'Copia', 2, [CH('Delivery Information', 'accepted', 'owner')]),
   ];
 
-  test('a shouted heading is printed back in Title Case, never as typed', () => {
+  /* RE-POINTED 12 Nov 2026 (owner picked "As on the paper": a clause is named as its heading prints it, not in Title Case) */
+  test('a shouted heading is printed back calm (sentence case), never as typed', () => {
     const st = casedStage(SHOUTY).intelFrictionStats(null);
     const names = st.clauses.map(c => c.label);
-    assert.ok(names.includes('Specifications, Quality & Inspection'),
-      `expected Title Case, got ${JSON.stringify(names)}`);
+    assert.ok(names.includes('Specifications, quality & inspection'),
+      `expected sentence case, got ${JSON.stringify(names)}`);
     assert.ok(!names.some(n => /^[^a-z]*$/.test(n) && /[A-Z]{4,}/.test(n)),
       `a name is still shouting: ${JSON.stringify(names)}`);
   });
@@ -262,7 +263,7 @@ describe('N8 (4) — the report prints clause names in ONE style', () => {
     const pay = st.clauses.filter(c => /payment/i.test(c.label));
     assert.equal(pay.length, 1, `expected one row, got ${JSON.stringify(pay.map(p => p.label))}`);
     assert.equal(pay[0].n, 3, 'all three deals count toward the one row');
-    assert.equal(pay[0].label, 'Payment Terms');
+    assert.equal(pay[0].label, 'Payment terms');
   });
 
   test('the SENTENCE above the chart reads the same name as the chart does', () => {
