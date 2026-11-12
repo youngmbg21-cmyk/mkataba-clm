@@ -710,3 +710,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
 - browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)
 - THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1018 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 4b · 5. f1018 (5) the quick run with the Clauses read.
+- THE FORM, THE LEGORA WAY (owner, 12 Nov 2026): f1019 (new; red at the parent: grouped heads, no chips, "As you type", no sentence fill); form-the-legora-way-verify (new); contract-new-look-verify 10a · 10 re-pointed.

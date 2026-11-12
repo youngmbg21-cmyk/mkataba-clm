@@ -22274,3 +22274,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: the Handbook's picture for chapter 2.3 does not show the × beside a signer space (not re-taken in the chat).
 - FIXED (12 Nov 2026, f1017 (5)): names typed on the paper's signature lines now show in the signing route window opened from Change (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`).
 - Noticed, not fixed: board-says-it-plain-verify A0 went red once on GitHub (PR 667, "bubble chart of value against time left" read the card before it) and green on the re-run with no change: a timing slip in the check.
+- 12 Nov 2026 (Noticed, not fixed): the Fill in form says "nothing is saved until Save", but a date picked in it is stored at once (the form's date change saves the row); measured on MK-E1: Effective written to the record with no Save pressed.
