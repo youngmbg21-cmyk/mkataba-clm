@@ -22299,3 +22299,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: on Discover a counting question is only pointed to Jambo's box; the old form's offer to turn it into one question asked of each contract (ac_ct_turn) has no door there.
 - Noticed, not fixed: on Discover the Due diligence pack asks all five questions; the old form let a person untick some (askColPackPicked); there is no tick on Discover.
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
+
+## 13 Nov 2026 — GitHub tests a pull request and main every night, never a bare push (owner's yes)
+- CHANGED: .github/workflows/tests.yml runs on pull_request, a nightly clock and by hand; not on push. f1024. The session greeting says the same.
+- Noticed, not fixed: CLAUDE.md is about 91 KB, over its own "about 80 KB" line.
+- Noticed, not fixed: Bug Fix Rule 4 says GitHub's browser checks verify "after the push"; they now run once the pull request is open. Asked the owner.
