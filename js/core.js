@@ -5489,9 +5489,14 @@ function shareLetterPartsHtml(parts){
     } else if(p.k==='btn'){
       /* the button is their link, made when Send is pressed */
       out.push(`<p class="sh-lt-p sh-lt-btnp"><span class="sh-lt-btn" data-sh-lt-btn title="${esc(i18t('sh_lt_link'))}">${esc(p.t)}</span></p>`);
+    } else if(p.k==='say' && p.list==='link' && (list[i+1]||{}).k==='link'){
+      /* THE DRAWN LETTER'S LINK IS A BUTTON (owner, 11 Nov 2026: "Button in both"): "Open round 1" drawn as the
+         button the email carries (sharemail's _smDrawnInviteHtml), its link made when Send is pressed */
+      out.push(`<p class="sh-lt-p sh-lt-btnp"><span class="sh-lt-btn" data-sh-lt-btn title="${esc(i18t('sh_lt_link'))}">${esc(String(p.t).replace(/:\s*$/, ''))}</span></p>`);
+      i++;
     } else if(p.k==='link'){
       if(!list.some(x=>x.k==='btn')) out.push(`<p class="sh-lt-p"><span class="sh-lt-link" data-sh-lt-link>${esc(i18t('sh_lt_link'))}</span></p>`);
-    } else out.push(`<p class="sh-lt-p sh-lt-${p.k}${p.list?' is-lead':''}">${esc(p.t)}${p.sub?'<br>'+esc(p.sub):''}</p>`);
+    } else out.push(`<p class="sh-lt-p sh-lt-${p.k}${p.list?' is-lead':''}">${esc(p.t)}${p.sub?'<br><span class="sh-lt-sub">'+esc(p.sub)+'</span>':''}</p>`);
   }
   return out.join('');
 }
@@ -5507,14 +5512,17 @@ function shareLetterPartsHtml(parts){
 function shareNlLinesPaint(c, s, set, host){
   const p=s.purpose||'negotiate';
   if(p==='history'||p==='status'||p==='colleague') return;
-  const say=(rowId, id, v)=>{ const row=document.getElementById(rowId), v0=row&&row.querySelector('.sh-lt-v'); if(!v0) return;
+  /* THE SAP WAY (11 Nov 2026): each line's sentence is a small tag, its tone read off the same fact as its words —
+     amber where something is held back, green where a code guards the link, grey otherwise */
+  const say=(rowId, id, v, tone)=>{ const row=document.getElementById(rowId), v0=row&&row.querySelector('.sh-lt-v'); if(!v0) return;
     let e=document.getElementById(id); if(!e){ e=document.createElement('p'); e.id=id; e.className='sh-lt-say2'; v0.appendChild(e); }
-    if(e.textContent!==v) e.textContent=v; e.hidden=!v; };
+    if(e.textContent!==v) e.textContent=v; e.hidden=!v;
+    if(tone) e.setAttribute('data-tone', tone); else e.removeAttribute('data-tone'); };
   let A=null; try{ A=shareAnswersOf((s.payload&&s.payload.contract)||c, c); }catch(_){ A=null; }
   const n=((A&&A.lines)||[]).length+((A&&A.own)||[]).length;
   let held=0; try{ held=(typeof shareStaysRows==='function')?shareStaysRows(c).length:0; }catch(_){ held=0; }
   if(n) set('what', i18tn('sh_nl_what', n, { n }));
-  say('sh-lt-what-row', 'sh-nl-what-say', held?i18tn('sh_nl_held', held, { n:held }):i18t('sh_nl_held_none'));
+  say('sh-lt-what-row', 'sh-nl-what-say', held?i18tn('sh_nl_held', held, { n:held }):i18t('sh_nl_held_none'), held?'warn':'');
   if(p==='negotiate'){
     set('purpose', i18t('sh_nl_can_neg'));
     const open=(typeof signingRouteOpen==='function')?signingRouteOpen(c):true;
@@ -5524,7 +5532,7 @@ function shareNlLinesPaint(c, s, set, host){
   const ch=s.ch||'email';
   if(ch==='email') set('ch', i18t('sh_nl_ch_email'));
   const code=(typeof linkCodeCfg==='function')&&linkCodeCfg().on;
-  say('sh-lt-by-row', 'sh-nl-by-say', ch==='email'&&code?i18t('sh_nl_code'):'');
+  say('sh-lt-by-row', 'sh-nl-by-say', ch==='email'&&code?i18t('sh_nl_code'):'', ch==='email'&&code?'ok':'');
 }
 function shareLetterAsPaint(c, st){
   const host=document.getElementById('sh-as-chips'); if(!host) return;
@@ -5661,11 +5669,8 @@ function shareLetterNoteFit(){
 function shareLetterChecksPlace(){
   const slot=document.getElementById('sh-lt-checks'); if(!slot) return false;
   ['share-readiness-wrap','sh-noemail'].forEach(id=>{ const n=document.getElementById(id); if(n && n.parentElement!==slot) slot.appendChild(n); });
-  /* THE NEW LOOK, AS DRAWN: From is the last of the lines on the left, not the letter's head */
-  if(typeof newLookOn==='function' && newLookOn()){
-    const from=document.getElementById('sh-lt-from'), row=from && from.closest('.sh-lt-row'), lines=document.getElementById('sh-as-chips');
-    if(row && lines && row.parentElement!==lines) lines.appendChild(row);
-  }
+  /* THE SAP WAY (owner picked it by name, 11 Nov 2026): From stands in the email's own card, under Subject,
+     where the markup puts it (it no longer moves to the lines on the left) */
   return true;
 }
 /* WHO IT GOES TO, AS A LINE (round 11's gaps): a recipient HaTi already knows

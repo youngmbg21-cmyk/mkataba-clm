@@ -305,6 +305,8 @@ function _smLetterJoin(parts){
 const SM_LINK_INK = '#0b7a5f';
 /* THE LETTERS' OTHER COLOURS, ONE SET (an email carries no :root): ink, the quiet line, the hairline */
 const SM_INK = '#1f2933', SM_MUTE = '#667085', SM_HAIR = '#d0d5dd';
+/* THE ONE BUTTON A LETTER CARRIES: their link, filled green, white words (both letters draw it from here) */
+const SM_BTN_STYLE = `display:inline-block;background:${SM_LINK_INK};color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600`;
 function _smLetterHtml(parts){
   const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const link = (parts.find(p => p.k === 'link') || {}).t;
@@ -321,7 +323,7 @@ function _smLetterHtml(parts){
       out.push(`<div style="margin:0 0 14px;padding:2px 0 2px 12px;border-left:3px solid ${SM_HAIR}">${run.map(r =>
         `<p style="margin:0 0 4px"><b>${e(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + e(r.rest) : ''}</p>`).join('')}</div>`);
     } else if (p.k === 'btn'){
-      out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="display:inline-block;background:${SM_LINK_INK};color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">${e(p.t)}</a></p>`
+      out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="${SM_BTN_STYLE}">${e(p.t)}</a></p>`
         : `<p style="margin:0 0 14px"><b>${e(p.t)}</b></p>`);
     } else if (p.k === 'msg'){
       out.push(`<p style="margin:0 0 14px;white-space:pre-wrap">${e(p.t)}</p>`);
@@ -485,8 +487,11 @@ function smDrawnLetter(o){
   return { body: text.join('\n\n'), html: _smDrawnShell(html.join('')) };
 }
 /* THE INVITATION, IN THE SAME SHAPE AS THE OTHER LETTERS (owner, 8 Nov 2026: "make the invitation email match
-   the others"): smDrawnLetter's type and colours, the answers as its quote with the clause in bold, the link
-   named with its address under it, and the sign-off as name over title and company. The words are the parts'. */
+   the others"): smDrawnLetter's type and colours, the answers as its quote with the clause in bold, and the
+   sign-off as name over title and company. The words are the parts'.
+   THE LINK IS A BUTTON (owner, 11 Nov 2026, the send page "The SAP Way": "Button in both"; REVERSES 8 Nov's
+   "the link named with its address under it" for this letter only): "Open round 1" a filled green button that
+   carries their link, as the send screen draws it. The plain-text part keeps the words over the address. */
 function _smDrawnInviteHtml(parts){
   const P = (t, mb) => `<p style="margin:0 0 ${mb == null ? 14 : mb}px;white-space:pre-wrap">${_smE(t)}</p>`;
   const out = [];
@@ -500,7 +505,7 @@ function _smDrawnInviteHtml(parts){
         `<p style="margin:0 0 6px"><b>${_smE(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + _smE(r.rest) : ''}</p>`).join('')}</div>`);
     } else if (p.k === 'say' && p.list === 'link' && nx.k === 'link'){
       const url = nx.t == null ? '' : String(nx.t), label = String(p.t).replace(/:\s*$/, '');
-      if (url) out.push(`<p style="margin:0 0 14px"><a href="${_smE(url)}" style="color:${SM_LINK_INK};font-weight:600">${_smE(label)}</a><br><span style="color:${SM_QUIET};font-size:13px">${_smE(url)}</span></p>`);
+      if (url) out.push(`<p style="margin:4px 0 18px"><a href="${_smE(url)}" style="${SM_BTN_STYLE}">${_smE(label)}</a></p>`);
       i++;
     } else if (p.k === 'say' && p.list === 'sign' && nx.k === 'sign'){
       out.push(`<p style="margin:4px 0 2px">${_smE(p.t)}</p><p style="margin:0">${_smE(nx.t)}${nx.sub ? `<br><span style="color:${SM_QUIET}">${_smE(nx.sub)}</span>` : ''}</p>`);
