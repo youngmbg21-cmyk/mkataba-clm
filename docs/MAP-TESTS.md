@@ -327,7 +327,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - RE-POINTED, GITHUB'S SECOND RUN (9 Nov 2026): map-asked-bubbles 7a/7b (the card's Ask why is gone; the contract lands on its paper and the box names it), jambo-says-what-he-did 1 (History of MK-C1 stands in the middle, `#pd2-hist[data-pd2-hist]`), f978 4 (`igPaperInFront` is `igPaperUp`; no `pdCardNow`), f232 green again.
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
 - FILL IN ON THE PAPER, THE LEGORA WAY (owner's pick, 11 Nov 2026): f1012 (new; red at the parent, the block and `pdFillGo` absent) and fill-on-the-paper-verify (new, for GitHub; 1–7 red at the parent: the black button opened the form and a template's blanks never became lines). Re-pointed: contract-new-look-verify 5 (the count is of every space, signature lines included: `/^1 of \d+ filled/`).
-- THE LINES FOLLOW THE ROUTE, AND AN EXTRA SPACE CAN GO (owner, 12 Nov 2026): f1017 (new; red at the parent, the three functions, the × and its word absent) and fill-on-the-paper-verify 9 · 10 (new, for GitHub; red at the parent: no × is drawn and a saved route leaves the empty spaces and "owed").
+- THE LINES FOLLOW THE ROUTE, AND AN EXTRA SPACE CAN GO (owner, 12 Nov 2026): f1017 (new; red at the parent, the three functions, the × and its word absent) and fill-on-the-paper-verify 9 · 10 (new, for GitHub; red at the parent: no × is drawn and a saved route leaves the empty spaces and "owed"). THE TYPED NAMES IN THE ROUTE WINDOW (owner, 12 Nov 2026): f1017 (5) and fill-on-the-paper-verify 11 (red at 35fc267: the window read the saved route only).
 - CHOOSE THE ROAD (owner's pick "The Legora Way", 11 Nov 2026): f1013 (new; red at the parent, the road block absent) and choose-the-road-verify (new, for GitHub; 1–6 and 8 red at the parent: the card went straight to "N to settle before anyone signs").
 - THE BUG LOG ROUND (owner, 11 Nov 2026): f1014 (new; red at the parent, every fix absent). Re-pointed: f713 (the letter's last day in words), f874 3b (no "0–0 of 0"), f1013 (1) (the road waits for the sent links).
 - AFTER YOU SEND (owner's picks "The Legora Way" and "Said Once", 12 Nov 2026): f1015 (new; red at the parent, the waiting card and the fold absent) and after-you-send-verify (new, for GitHub; 1–3 and 6 red at the parent: our fixes travelled tracked and the card said "1 to do in the negotiation").
@@ -425,6 +425,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments, notes-two-rooms verify.
 
 ## THE COUNTERPARTY'S PAGE (js/views/portal.js)
+- 12 Nov 2026 (owner: "Fix 5 and 6"): photographed at the three screens (the round line without its dot, History's "countered"/"waiting", the Signing list at full width); f246, f471 and the area's tests green; no check pinned the dot or the 720px.
 - 12 Nov 2026 (owner: "Fix 1 and 2" of the review of their white page): their-pages-as-ours-verify 1 (the panel's head Redlines · Notes, no number) and round8-their-page-verify 2 (no Where we are door in the panel) re-pointed.
 - test/chromium/their-pages-as-ours-verify.js (9 steps; 1–7 and 9 red at their parents; 9a their clause name shown not typed, no "Formatting only"; 9b Send back's lines one line, panel-wide): their Redlines with our cards and linked notes, our clause page and Notes pin with two rooms, their team's room walled on the server, Send back in the panel, History as our table, page views, the Legora letters and the code "to open", the phone. Node: f118, f264, f303, f333, f755, f802 re-pointed.
 - 22 Oct 2026: f856 their revision of an ask already sent is held, kept across a rebuild, counted busy, and sent.
@@ -710,3 +711,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
 - node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
 - browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)
+- THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1018 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 4b · 5. f1018 (5) the quick run with the Clauses read.
