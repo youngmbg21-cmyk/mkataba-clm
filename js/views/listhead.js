@@ -351,7 +351,9 @@ function lhFootHtml(seat, shown, total, step, o){
   const k = (Number(step) > 0) ? Math.min(Number(step), left) : left;
   const range = _lhT('lh_range', { a: _lhN(t ? 1 : 0), b: _lhN(s), n: _lhN(t) });
   /* a page that shows the whole list may say it in its own words (opt.say: "31 contracts · 30 live") */
-  const said = (opt.say && left <= 0) ? String(opt.say) : _lhE(range);
+  /* NOTHING FOUND IS NOT A RANGE (BUGLOG 21344): no "0–0 of 0" — the foot stays in place, empty, and the page says
+     its own empty sentence above it */
+  const said = (opt.say && left <= 0) ? String(opt.say) : t ? _lhE(range) : '';
   return `<div class="lh-foot${opt.cls ? ' ' + _lhE(opt.cls) : ''}"${opt.id ? ` id="${_lhE(opt.id)}"` : ''} data-lh-foot="${_lhE(seat)}" role="status" aria-live="polite"><span class="lh-range" data-lh-shown>${said}</span>${
     left > 0 ? ` · <button type="button" class="ui-link lh-more" data-lh-more="${_lhE(seat)}">${_lhE(_lhT('lh_more', { n: _lhN(k) }))}</button>` : ''}${opt.extra || ''}</div>`;
 }

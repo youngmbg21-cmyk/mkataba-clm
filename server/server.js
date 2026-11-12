@@ -22053,11 +22053,11 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
       `${req.user.name} at ${payload.org || 'HaTi'} has sent you the next round of "${cName}" — it is your turn.`,
       moved ? `What moved: ${moved}.` : '',
       `\nOpen the same link you already have to see it and respond — no account is needed:\n${link}`,
-      s.expires_at ? `\nThis link expires on ${String(s.expires_at).slice(0, 10)}.` : '',
+      s.expires_at ? `\nThis link expires on ${chaseDayWords(s.expires_at, 'en')}.` : '',
     ] : [
       `${req.user.name} at ${payload.org || 'HaTi'} has updated "${cName}".`,
       `\nOpen the same link you already have to see what changed and respond — no account is needed:\n${link}`,
-      s.expires_at ? `\nThis link expires on ${String(s.expires_at).slice(0, 10)}.` : '',
+      s.expires_at ? `\nThis link expires on ${chaseDayWords(s.expires_at, 'en')}.` : '',
     ]).filter(Boolean).join('\n');
     const r = await sendEmail(s.recipient_email,
       turnMail ? `Your turn: "${cName}"` : `Updated: "${cName}" is ready for your review`,
@@ -22184,7 +22184,7 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
     const L = outsideLookOn() ? srvReminderMail(s, p, req.user.name, req.user.title || '', !s.first_opened_at) : null;
     const r = L ? await sendEmail(s.recipient_email, L.subject, L.body, `share resend: ${link}`, { html: L.html })
       : await sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
-      `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
+      `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${chaseDayWords(s.expires_at, 'en')}.` : ''}`,
       `share resend: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
     /* See the note on the mint route above: only a real send is recorded as one. */
@@ -23248,7 +23248,7 @@ function runShareNudges() {
     const L = outsideLookOn() ? srvReminderMail(s, p, p.sharedBy || '', '', true) : null;
     if (L) sendEmail(s.recipient_email, L.subject, L.body, 'share nudge', { html: L.html });
     else sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
-      `${p.sharedBy || 'The sender'} at ${p.org || 'HaTi'} shared "${cName}" with you ${SHARE_NUDGE_DAYS} days ago and it hasn't been opened yet.\n\nReview it here — no account needed:\n${shareUrl(null, s.token)}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
+      `${p.sharedBy || 'The sender'} at ${p.org || 'HaTi'} shared "${cName}" with you ${SHARE_NUDGE_DAYS} days ago and it hasn't been opened yet.\n\nReview it here — no account needed:\n${shareUrl(null, s.token)}\n\n${s.expires_at ? `This link expires on ${chaseDayWords(s.expires_at, 'en')}.` : ''}`,
       'share nudge');
     db.prepare('UPDATE shares SET reminded_at=? WHERE token=?').run(now(), s.token);
     queued++;

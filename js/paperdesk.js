@@ -7309,7 +7309,9 @@ function pd2Facts(c, D){
   if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
     out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), s: pd2SectionOf(c, 'expiry', cls) }); }
   let signer = ''; try { signer = pdCkSignerSay(c); } catch (_){ signer = ''; }
-  out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'), go: `data-pd-og-route="${E(c.id)}"` });
+  out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'),
+    /* A VIEWER CANNOT SAVE A SIGNER (BUGLOG 22086): no Change drawn for them, the fact stands alone */
+    go: ((typeof canEdit !== 'function') || canEdit()) ? `data-pd-og-route="${E(c.id)}"` : '' });
   if (R.stream) out.push({ k: 'stream', l: _pdT('pd2_f_stream'), v: R.stream, s: _pdT('pd2_src_filed') });
   let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
   if (ap && ap.required){
@@ -7365,6 +7367,10 @@ function pd2RoadOf(c, D){
   if (c.status === 'Signed' || c.status === 'Declined') return null;
   try { if (typeof negoExecuted === 'function' && negoExecuted(c)) return null; } catch (_){ return null; }
   try { if (typeof signRouteOf === 'function' && signRouteOf(c) === 'outside') return null; } catch (_){ /* inside */ }
+  /* NEVER SENT IS KNOWN ONLY ONCE THE SENT LINKS ARE READ (the audit, 11 Nov 2026): a contract sent for signature
+     carries no round and, in the light list, no trail, so until its links are read the road is not offered; they are
+     fetched once and the panel drawn again once */
+  if (typeof sharesKnown === 'function' && !sharesKnown(c)){ pd2RoadWarm(c); return null; }
   if (!pdNeverShared(c)) return null;
   const fill = D.stages.find(x => x.k === 'fill');
   if (fill && fill.n) return null;
@@ -7373,6 +7379,15 @@ function pd2RoadOf(c, D){
   let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
   const rule = ap && ap.required && !ap.ok ? String((ap.next && ap.next.name) || '') : '';
   return { paper: pd2RoadPaper(c), notes, apOwed: !!(ap && ap.required && !ap.ok), rule, who: String(c.counterparty || '').trim() };
+}
+const _pd2RoadWarmed = new Set();
+function pd2RoadWarm(c){
+  const id = String(c.id); if (_pd2RoadWarmed.has(id) || typeof ensureSharesCached !== 'function') return;
+  _pd2RoadWarmed.add(id);
+  Promise.resolve(ensureSharesCached(c)).then(() => {
+    if (typeof sharesKnown === 'function' && sharesKnown(c) && typeof pdContract === 'function' && pdContract() && String(pdContract().id) === id)
+      try { pdGlanceRepaint(); } catch (_){}
+  }).catch(() => {});
 }
 function pd2RoadHtml(c, D, R){
   const E = _pdE, who = R.who || _pdT('pd2_rd_party'), n = R.notes.length;
@@ -8546,7 +8561,9 @@ function pd2FillSave(){
   if (!_pd2Fill) return 0;
   const c = getContract(_pd2Fill.id); if (!c || typeof contractBlankSet !== 'function') return 0;
   const moved = pd2FillBlanks(c).map(b => ({ b, v: String(_pd2Fill.vals[b.key] == null ? '' : _pd2Fill.vals[b.key]).trim() }))
-    .filter(x => x.v !== String(_pd2Fill.was[x.b.key] || '').trim());
+    .filter(x => x.v !== String(_pd2Fill.was[x.b.key] || '').trim())
+    /* the one writer refuses these two (their own doors write them): never the last of a held run, or the rest would not be saved */
+    .filter(x => x.b.key !== 'counterparty' && x.b.key !== 'value');
   let n = 0;
   /* held, the last one written without hold, so the writer itself saves once (the desk never saves: f563) */
   moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) { n++; _pd2Fill.was[x.b.key] = x.v; } });
@@ -8899,7 +8916,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
-Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
+Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,

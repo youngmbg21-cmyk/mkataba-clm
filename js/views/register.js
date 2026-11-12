@@ -2217,8 +2217,12 @@ function regHeadFactsHtml(){
   /* the new look's folder list says its own folder: how many, the money on paper, how many signed (as drawn) */
   { const R0=regState(); if(typeof window.newLookOn==='function'&&newLookOn()&&R0.view!=='archived'&&typeof regFolderRead==='function'){
     const inF=R0.type&&R0.type!=='all';
-    const r=regFolderRead(state.contracts.filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c.parentId&&(!inF||c.folder===R0.type)&&!c._codeNamed));
-    return [String(r.n), r.val?i18t('ctf_on_paper',{ v:fmtMoneyShort(r.val) }):'', r.signed?i18t('ctf_n_signed',{ n:r.signed }):''].filter(Boolean).map(esc).join(' · '); } }
+    /* THE HEAD COUNTS THE LIST UNDER IT (BUGLOG 22040): a view, a search or a door's "only these" narrows the list,
+       so the head reads the same narrowed rows (regFiltered), never the whole folder */
+    const narrowed=!!(R0.view||(typeof regNarrowed==='function'&&regNarrowed(R0)));
+    const src=narrowed&&typeof regFiltered==='function' ? (regFiltered({ flat:true })||[]) : state.contracts;
+    const r=regFolderRead(src.filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c.parentId&&(narrowed||!inF||c.folder===R0.type)&&!c._codeNamed));
+    return [String(r.n), r.val?i18t('ctf_on_paper',{ v:fmtMoneyShort(r.val) }):'', r.noRate?i18t('reg_fx_left_out',{ n:r.noRate }):'', r.signed?i18t('ctf_n_signed',{ n:r.signed }):''].filter(Boolean).map(esc).join(' · '); } }
   const book=state.contracts.filter(c=>!c.archived&&c.status!=='Declined'&&!c.parentId);
   const n=(state.serverStats&&state.serverStats.total!=null&&Number(state.serverStats.total)>state.contracts.length)
     ? Number(state.serverStats.total) : book.length;
@@ -3627,7 +3631,9 @@ function regFolderRead(cs){
   const review = cs.filter(c => c.status === 'Under Review').length;
   const needs = {}; let needN = 0;
   cs.forEach(c => { let n = []; try { n = (typeof needsYouOf === 'function') ? needsYouOf(c) : []; } catch (_){ n = []; } if (n.length) needN++; n.forEach(x => { needs[x.kind] = (needs[x.kind] || 0) + (x.n || 1); }); });
-  return { n: cs.length, val: money ? val : null, signed, review, needN, needs };
+  /* A MISSING RATE IS SAID, NEVER DROPPED QUIETLY (the triage, 11 Nov 2026): how many contracts the sum left out */
+  const noRate = money ? cs.filter(c => { try { return !(typeof fxIsPay === 'function' && fxIsPay(c)) && typeof fxHome === 'function' && !!fxHome(c).missing; } catch (_){ return false; } }).length : 0;
+  return { n: cs.length, val: money ? val : null, signed, review, needN, needs, noRate };
 }
 function regFolderNeedWords(r){
   const parts = Object.entries(r.needs).map(([k, n]) => CTF_WORDS[k] ? i18tn(CTF_WORDS[k], n, { n }) : '').filter(Boolean);
