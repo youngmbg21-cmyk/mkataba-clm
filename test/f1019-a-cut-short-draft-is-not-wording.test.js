@@ -1,4 +1,4 @@
-/* f1018 — A CUT-SHORT DRAFT IS NOT WORDING (owner's screenshot, 12 Nov 2026)
+/* f1019 — A CUT-SHORT DRAFT IS NOT WORDING (owner's screenshot, 12 Nov 2026)
    ============================================================================
    Jambo's answer to "draft for the ticked points" stopped part-way:
        { "advice": "Worth proposing: …", "whyChange": "As it st
@@ -10,7 +10,7 @@
      (3) the chat routes say `truncated` as a FACT beside the notice, and the
          browser-only path reads stop_reason;
      (4) the sentence is in both books and the clause editor says it.
-   Run: node --test test/f1018-a-cut-short-draft-is-not-wording.test.js */
+   Run: node --test test/f1019-a-cut-short-draft-is-not-wording.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -36,7 +36,7 @@ const CUT = '{\n"advice": "Worth proposing: right now Young has no route at all 
 const WHOLE = '{"advice":"Worth proposing: it caps the cost.","whyChange":"As it stands you carry every loss.","whatItDoes":"A higher ceiling for lost sales.","proposedText":"Each party\\u2019s aggregate liability is capped at twice the fees paid."}';
 const PASSAGE = 'Each party’s aggregate liability under this Agreement is capped at the total fees paid.';
 
-describe('f1018 (1) the parser', () => {
+describe('f1019 (1) the parser', () => {
   const ai = stage(['js/i18n.js', 'js/jurisdiction.js', 'js/ai.js']);
   test('a proposal object that never closes is marked and carries no wording', () => {
     const r = ai.aiParseProposal(CUT);
@@ -58,7 +58,7 @@ describe('f1018 (1) the parser', () => {
   });
 });
 
-describe('f1018 (2) every drafting door', () => {
+describe('f1019 (2) every drafting door', () => {
   test('the clause door: a cut-short answer is a non-answer with a true sentence, never wording', async () => {
     const ai = stage(['js/i18n.js', 'js/jurisdiction.js', 'js/ai.js']);
     ai.window.copilotAsk = async () => ({ answer: CUT });
@@ -85,7 +85,7 @@ describe('f1018 (2) every drafting door', () => {
   });
 });
 
-describe('f1018 (3) the cap is a fact, and (4) the words', () => {
+describe('f1019 (3) the cap is a fact, and (4) the words', () => {
   const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
   test('both chat routes send `truncated` beside the notice; the browser-only path reads stop_reason', () => {
     const SRV = strip(read('server/server.js'));
