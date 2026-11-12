@@ -5085,7 +5085,7 @@ async function pd2FormAsk(q){
   if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)){
     Object.assign(_pd2FmAsk, { busy: false, err: _pdT('pd2_fmj_nokey') }); try { pdGlanceRepaint(); } catch (_){} return false; }
   try {
-    const r = await api('ai/fill', 'POST', { id: c.id, text: '', said: text, blanks: blanks.map(({ row, ...b }) => b) }, { quiet: true });
+    const r = await aiFillSaid(c, text, blanks.map(({ row, ...b }) => b));
     const asked = new Map(blanks.map(b => [b.key, b]));
     const fields = ((r && Array.isArray(r.fields)) ? r.fields : []).filter(f => f && asked.has(f.key) && String(f.value || '').trim())
       .map(f => { const b = asked.get(f.key), v = String(f.value).trim();

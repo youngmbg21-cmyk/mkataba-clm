@@ -29,7 +29,9 @@ test('f1022 (2) Save before Discard; the foot counts what was owed', () => {
   assert.match(P, /const rows = \[\.\.\.fm\.querySelectorAll\('tr\[data-pd2-owed\]'\)\], n = rows\.length;/);
 });
 test('f1022 (3) one sentence to Jambo: the box takes it, the one fill route reads it, put in by input only', () => {
-  assert.match(P, /api\('ai\/fill', 'POST', \{ id: c\.id, text: '', said: text, blanks:/);
+  /* the desk asks through Jambo's own file: the desk never calls a route itself (f563) */
+  assert.match(P, /await aiFillSaid\(c, text, blanks/);
+  assert.match(stripCom(read('js/ai.js')), /api\('ai\/fill', 'POST', \{ id: c\.id, text: '', said: String\(said \|\| ''\), blanks:/);
   assert.match(P, /el\.dispatchEvent\(new Event\('input', \{ bubbles: true \}\)\);\s*const td = el\.closest\('td\.pd-og-v'\);/);
   assert.match(P, /t\.className = 'pd2-fm-by'/, 'as drawn: Jambo: from your note');
   assert.doesNotMatch(P.match(/function pd2FormPut\(f\)\{[\s\S]*?\n\}/)[0], /new Event\('change'/, 'never a change: it would store a date');
