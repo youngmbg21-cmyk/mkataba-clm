@@ -6,12 +6,12 @@
    fades. Looked at where the reader looks, frame by frame, never timed:
      1 · a tab press: no copy of the old face anywhere, no part of the panel fading, in the press's own turn
      2 · every frame after it: every part of the panel at full strength, the panel never empty
-     3 · the paper's line is the very one that stood (not wiped and built again) when it says the same
-     4 · the tab's body is drawn once in the press, not twice
+     3 · the press leaves the paper's line standing (not wiped and built again) where it says the same
+     4 · no tab body is written a second time in the press (the code's own half is f1021 (3))
      5 · the lit tab's underline still glides (the one thing that moves)
      6 · another paper opened (a page-to-page move): the same, no copy and nothing fading
      7 · a panel that opens wider is simply there (no fade from nothing)
-   At the parent 1, 2, 3, 4, 6 and 7 fail.
+   At the parent 1, 2, 3, 6 and 7 fail.
    Run: node test/chromium/tab-change-no-flash-verify.js */
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
@@ -50,6 +50,7 @@ const HTML = n => `<h1>SERVICES AGREEMENT ${n}</h1><p>This Agreement is made bet
     else if (what === 'paper'){ pdOpenOnHome(arg, 'copilot'); }
     else if (what === 'widen'){ intel.dockOpen = true; renderIntelDock(); igSyncDockWidth(); }
     const now = { ghosts: document.querySelectorAll('.face-ghost').length, fading: fading(), pale: pale(), kids: dock().children.length,
+      sameLine: document.querySelector('#ig-strip > *') === line0, sameWords: document.getElementById('ig-strip').textContent === lineWords0,
       ink: document.getAnimations().some(a => a.effect && a.effect.pseudoElement === '::after' && a.effect.target && a.effect.target.matches('#ig-dock .pd-tab.on')) };
     mo.takeRecords().forEach(r => { if (r.target.id === 'pd-body' && r.target.isConnected && [...r.addedNodes].some(x => x.nodeType === 1)) bodyWrites++; });
     let frames = 0, worst = { ghosts: 0, fading: 0, pale: 0, empty: 0 };
@@ -66,12 +67,13 @@ const HTML = n => `<h1>SERVICES AGREEMENT ${n}</h1><p>This Agreement is made bet
   const a = await watch('tab', 'doc');
   check('1 · a tab press: no copy of the old face, nothing fading, in the press\'s own turn', !a.missing && a.now.ghosts === 0 && a.now.fading === 0 && a.now.pale === 0 && a.on === 'doc', a.now || a);
   check('2 · every frame after it: the panel at full strength, never empty', !a.missing && a.frames >= 5 && a.worst.ghosts === 0 && a.worst.fading === 0 && a.worst.pale === 0 && a.worst.empty === 0, { frames: a.frames, worst: a.worst });
-  check('3 · the paper\'s line stands as it was where it says the same', !a.missing && (!a.sameWords || a.sameLine), { sameLine: a.sameLine, sameWords: a.sameWords });
+  check('3 · the press leaves the paper\'s line standing where it says the same', !a.missing && (!a.now.sameWords || a.now.sameLine), { now: [a.now.sameLine, a.now.sameWords], later: [a.sameLine, a.sameWords] });
   check('5 · the lit tab\'s underline still glides', !a.missing && a.now.ink === true, a.now);
   const back = await watch('tab', 'copilot');
   check('1b · back to the Dossier: the same', !back.missing && back.now.ghosts === 0 && back.now.fading === 0 && back.worst.pale === 0 && back.worst.ghosts === 0 && back.on === 'copilot', { now: back.now, worst: back.worst });
-  check('3b · the line stands on the way back too', !back.missing && (!back.sameWords || back.sameLine) && back.sameWords, { sameLine: back.sameLine, sameWords: back.sameWords });
-  check('4 · the Dossier\'s body is drawn once in the press', !back.missing && back.bodyWrites === 0 && !!(await p.evaluate(() => !!document.querySelector('#pd-body > *'))), back.bodyWrites);
+  /* the press's own turn (a later paint of the paper by another caller, as the read putting itself away, may draw the line again) */
+  check('3b · the press back leaves the line standing too', !back.missing && (!back.now.sameWords || back.now.sameLine), { now: [back.now.sameLine, back.now.sameWords], later: [back.sameLine, back.sameWords] });
+  check('4 · no tab body is written a second time in a press', !a.missing && !back.missing && a.bodyWrites === 0 && back.bodyWrites === 0, [a.bodyWrites, back.bodyWrites]);
 
   const other = await watch('paper', 'MK-111');
   const landed = await until(p, () => !!(window.pdContract && pdContract() && String(pdContract().id) === 'MK-111'), null, 10000);

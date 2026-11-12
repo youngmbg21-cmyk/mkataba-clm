@@ -366,7 +366,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## HOW THINGS MOVE (22 Oct 2026; owner picked "Glide over" and "Crossfade")
 - page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
-- A FACE CHANGE IS DRAWN AT ONCE (12 Nov 2026): f1021 (four parts, red at the parent); tab-change-no-flash-verify (0–9; every frame after a tab press, another paper, a panel opening wider; 1, 2, 3, 4, 6 and 7 red at the parent); page-jumps-verify H re-pointed (no copy, nothing fading, the underline glides); f676 10f re-pointed.
+- A FACE CHANGE IS DRAWN AT ONCE (12 Nov 2026): f1021 (four parts, red at the parent); tab-change-no-flash-verify (0–9; every frame after a tab press, another paper, a panel opening wider; 1, 2, 3, 6 and 7 red at the parent); page-jumps-verify H re-pointed (no copy, nothing fading, the underline glides); f676 10f re-pointed.
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
 - THE DOSSIER'S ONE CARD (8 Nov 2026): dossier-one-card-verify (3 checks × three screens; red at the parent on 1 and 2); contract-new-look 1 and 13c re-pointed.
