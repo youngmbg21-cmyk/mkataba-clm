@@ -6866,6 +6866,19 @@ function buildSharePayload(c, docHash, who, opts){
          link and every note on file is — so nothing on file moves room. */
       thread:Array.isArray(x.thread)?x.thread.filter(m=>m&&m.visibility==='shared'&&_shThreadRoom(m))
         .map(m=>({ who:m.who, side:m.side, visibility:'shared', at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
+  /* A PARKED ASK DOES NOT TELL OF A HELD COUNTER (owner, 12 Nov 2026: "Fix both"). An ask of theirs we answered with
+     a counter is parked ("countered", counteredBy that counter). When the counter itself is held back — under our own
+     review, or not sent — it is not on this copy, so the ask must travel as it stood before it was parked: its status
+     from the counter's own bundle (`was`, else pending) and no counteredBy. Otherwise the copy's data says a counter
+     exists that they cannot see: a review the counterparty must never learn of. The server walls its own copies the
+     same way (srvLinkStrip). */
+  { const onCopy=new Set(shareChanges.map(x=>String(x.id)));
+    for(const x of shareChanges){
+      if(x.status!=='countered' || !x.counteredBy || onCopy.has(String(x.counteredBy))) continue;
+      const k=(c.changes||[]).find(y=>y && String(y.id)===String(x.counteredBy));
+      const b=k && Array.isArray(k.bundle) ? k.bundle.find(e=>e && String(e.id)===String(x.id)) : null;
+      x.status=(b && b.was && b.was!=='countered') ? b.was : 'pending'; x.counteredBy=null;
+    } }
   /* An explicit purpose wins. Where the sender did not state one — a link made
      before purposes existed, or by a path that has no opinion — fall back to
      the old reading of the change set, so an existing link keeps opening on

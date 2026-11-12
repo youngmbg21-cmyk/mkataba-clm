@@ -12,6 +12,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
 
 ## INTERNAL REVIEW (js/review.js)
+- test/f1018-a-reply-reaches-a-person.test.js (2): a held counter leaves no trace on their copy, both hosts.
 - WHAT STAYS HOME, THE WORD FILE TOO (bug log batch 4, 27 Oct 2026): f945 (1) (new; red at the parent) — a draft kept back is in the full .docx and out of the one a send attaches; the payload and the file read one list (shareHeldBackIds). RE-POINTED: f307 (the send's Word line), f453 (2) (the region now starts at shareHeldBackIds).
 - What they already hold stays with them when a revision is kept back (22 Oct 2026): f857 (srvLinkStrip opts.holds; red at the parent 1, 2).
 - f17, f154–f159, f161, f162, f164, f174, f186, f190, f412, wall-standing.
@@ -42,6 +43,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
+- test/f1018-a-reply-reaches-a-person.test.js: every email to the other side has a reply address, never from the body.
 - A refused round send keeps no "Sent to you" copy (22 Oct 2026): f858 (red at the parent 1, 2).
 - f205, f206.
 
