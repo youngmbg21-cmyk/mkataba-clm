@@ -488,6 +488,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE POP-UPS, THE SAP WAY
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
+- Alerts bottom centre: f1021 (node); photos by hand at the three screens.
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.

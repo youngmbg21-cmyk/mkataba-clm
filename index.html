@@ -1159,6 +1159,13 @@
      would drop the change on the next build. That is the same rule the
      font-600 and text-ink repairs already follow. */
   #toast-root{ z-index:var(--z-toast); }
+  /* ALERTS AT THE BOTTOM CENTRE (owner picked "The SAP Way", 12 Nov 2026):
+     off Jambo's box, above the page's foot, centred on the page area —
+     toastPlace (js/core.js) moves `left` to the middle of what is left of
+     any panel at the right edge. The phone's rule (mobile.js) still wins. */
+  body:not(.m-on) #toast-root{ right:auto; left:50%; bottom:64px; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; pointer-events:none; }
+  body:not(.m-on) #toast-root > *{ pointer-events:auto; }
 
   /* ---- soft card frame: the old "blueprint" corner-registration marks are
      retired in favour of larger radii + diffuse layered shadows. The corner
