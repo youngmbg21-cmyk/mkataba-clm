@@ -13,6 +13,11 @@
      6 · the signing copy prints the names under the lines
      7 · Stop with something typed asks again in its own words; a second press leaves and nothing is saved
      8 · at the owner's three screens: the first space in view, nothing sideways
+     9 · (owner, 12 Nov 2026) a space you do not need is taken away: the × beside it, or Backspace in it while empty;
+         a line's only space has no × and stays
+    10 · (owner, 12 Nov 2026) the signing route saved while the paper is being filled is what the lines show: the
+         names stand on their lines, the empty spaces go, and the panel no longer says "owed"
+   At the parent 9 and 10 fail: no × is drawn, and a saved route leaves the empty spaces and "owed" standing.
    At the parent (before this change) 1–7 fail: the button opens the white form and a template's blanks are never
    turned into lines.
    Run: node test/chromium/fill-on-the-paper-verify.js */
@@ -126,6 +131,53 @@ const focusOf = () => { const a = document.activeElement; return a ? (a.getAttri
           check('7 Stop with something typed asks again in its own words; a second press leaves and nothing is saved', asked.head && /without saving/i.test(asked.word) && gone && !kept, { asked, kept });
         } else check('7 Stop asks again (the filling never opened)', false);
       } else check('7 Stop asks again (the card never came)', false);
+      await page.close();
+    }
+
+    /* 9 · 10 THE EXTRA SPACES GO, AND THE LINES FOLLOW THE ROUTE (the fourth draft again: 7 saved nothing) */
+    {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
+      page.on('pageerror', e => console.log('PAGE ERROR', String(e).slice(0, 300)));
+      await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+      await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
+      await until(page, () => typeof roomHomeLand === 'function' && typeof getContract === 'function' && !!getContract('MK-FP4'), null, 40000);
+      await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-FP4'); });
+      const card = await until(page, () => deskKeyNow() === 'c:MK-FP4' && !!document.querySelector('#ig-dock .pd2-card .pd2-card-go[data-pd-ds-fill]'), null, 20000);
+      if (card) await page.click('#ig-dock .pd2-card .pd2-card-go');
+      const on = card && await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-ps-more="1"]') && !!document.querySelector('#ig-canvas [data-pd2-ps-name="1:0"]'), null, 8000);
+      if (on){
+        const count = () => page.evaluate(() => ({ theirs: document.querySelectorAll('#ig-canvas [data-pd2-ps-name^="1:"]').length, rmTheirs: document.querySelectorAll('#ig-canvas [data-pd2-ps-rm^="1:"]').length, rmOurs: document.querySelectorAll('#ig-canvas [data-pd2-ps-rm^="0:"]').length }));
+        const one = await count();
+        await page.click('#ig-canvas [data-pd2-ps-more="1"]');
+        await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-ps-name="1:1"]'), null, 4000);
+        await page.click('#ig-canvas [data-pd2-ps-more="1"]');
+        await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-ps-name="1:2"]'), null, 4000);
+        const three = await count();
+        if (three.rmTheirs) await page.click('#ig-canvas [data-pd2-ps-rm="1:2"]');
+        await until(page, () => document.querySelectorAll('#ig-canvas [data-pd2-ps-name^="1:"]').length === 2, null, 4000);
+        const two = await count();
+        await page.click('#ig-canvas [data-pd2-ps-name="1:1"]'); await page.keyboard.press('Backspace');
+        await until(page, () => document.querySelectorAll('#ig-canvas [data-pd2-ps-name^="1:"]').length === 1, null, 4000);
+        const back = await count();
+        await page.click('#ig-canvas [data-pd2-ps-name="1:0"]'); await page.keyboard.press('Backspace');
+        const last = await count();
+        check('9 a space you do not need is taken away by its × or by Backspace while empty; a line\'s only space has no × and stays',
+          one.theirs === 1 && one.rmTheirs === 0 && one.rmOurs === 0 && three.theirs === 3 && three.rmTheirs === 3 && two.theirs === 2 && back.theirs === 1 && back.rmTheirs === 0 && last.theirs === 1, { one, three, two, back, last });
+        await page.screenshot({ path: path.join(OUT, 'spaces-laptop-a.png') });
+        /* 10 the route saved (its one writer), then what the route window's Save does to the paper being filled */
+        await page.click('#ig-canvas [data-pd2-ps-more="1"]');
+        await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-ps-name="1:1"]'), null, 4000);
+        const why = await page.evaluate(() => { const c = getContract('MK-FP4'), me = currentUser();
+          const w = saveSignerPlan(c, [{ party: 'internal', name: me.name, email: me.email, memberId: me.id, role: 'CEO' }, { party: 'counterparty', name: 'Simon Jordan', email: 'simon@junologistics.co.ke', role: 'CIO' }]);
+          if (!w) pd2FillRouteSync(c); return w; });
+        const tied = await until(page, () => !document.querySelector('#ig-canvas [data-pd2-ps-name]') && document.querySelectorAll('#ig-canvas .pd2-ps-nm').length === 2, null, 6000);
+        const T = await page.evaluate(() => ({ names: [...document.querySelectorAll('#ig-canvas .pd2-ps-nm')].map(x => x.textContent.trim()), inputs: document.querySelectorAll('#ig-canvas [data-pd2-ps-name]').length,
+          owed: [...document.querySelectorAll('#ig-dock [data-pd2-fp-go^="s:"] .pd2-fp-owed')].filter(o => !o.hidden).length,
+          said: [...document.querySelectorAll('#ig-dock [data-pd2-fp-go^="s:"] [data-pd2-fp-state]')].map(x => x.textContent.trim()) }));
+        check('10 the route saved while filling is what the lines show: both names on their lines, no empty space left, nothing "owed" for who signs',
+          !why && tied && T.names.includes('Simon Jordan') && T.inputs === 0 && T.owed === 0 && T.said.some(t => /Simon Jordan/.test(t)), { why, T });
+        await page.screenshot({ path: path.join(OUT, 'route-tied-laptop-a.png') });
+      } else { check('9 a space is taken away (the filling never opened)', false); check('10 the lines follow the route (the filling never opened)', false); }
       await page.close();
     }
   } finally {
