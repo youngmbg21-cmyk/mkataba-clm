@@ -72,8 +72,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       return { cards: document.querySelectorAll('#rl-side .rl-card').length, shown: !!(side && getComputedStyle(side).display !== 'none' && r.width > 300 && r.left > innerWidth / 2),
         tabs: [...document.querySelectorAll('.pol-side-hd [data-pol-face], .pol-side-hd [data-pt-where-notes]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
         road: document.querySelectorAll('.pol-road li').length }; });
-    check('1 · Redlines: our cards in the right-hand panel under Redlines · Where we are · Notes; a road of four stops',
-      S.cards >= 2 && S.shown && S.tabs.length === 3 && /^Redlines/.test(S.tabs[0]) && S.road === 4, S);
+    /* RE-POINTED 12 Nov 2026 (owner, reviewing their white page: "Fix 1 and 2"): the panel's head is Redlines · Notes —
+       Where we are is the page's own top tab, not a second door here — and Redlines carries no number of its own */
+    check('1 · Redlines: our cards in the right-hand panel under Redlines · Notes (no second Where we are, no third count); a road of four stops',
+      S.cards >= 2 && S.shown && S.tabs.length === 2 && S.tabs[0] === 'Redlines' && S.road === 4, S);
   } catch (e) { check('1', false, String(e).slice(0, 200)); }
 
   /* 2 */

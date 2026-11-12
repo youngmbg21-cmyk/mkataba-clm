@@ -22248,6 +22248,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Not fixed, for the owner: BUGLOG 21762 — cnMask replaces a code-named deal's real name inside longer words too; a whole-word mask can miss a name that ends in punctuation ("Acme Ltd."), which would leak the real name to outsiders. Needs a careful design.
 - Not a live fault: BUGLOG 22148 (the double class on #share-step-1 — nothing passes hiddenStart); the duplicate-name check across workspaces (one workspace per server today, MULTITENANCY-NOTES); the Board story's memo (cleared on every Board paint).
 - Noticed, not fixed: BUGLOG 21906 — the invitation email's body is 14px where the other letters are 15px (cosmetic; a frame change to every outside email).
+- Noticed, not fixed (12 Nov 2026): HaTi's emails to the other side are sent from HaTi's own address (`mailFrom`) with no Reply-To set (`sendEmail` passes none), so pressing Reply in their mail app does not reach the sender or HaTi; yet the Word-file letter promises "Replies to this email reach {sender} directly" (js/sharemail.js), which is not true unless the sending address is the sender's.
 
 ## 12 Nov 2026 — after you send (owner's picks "The Legora Way" and "Said Once"; f1015)
 - Noticed, not fixed: the phone's send (js/mobile-contract.js buildSharePayload) does not fold our own fixes on the first send of our paper, so a first send from the phone still travels them as tracked changes; the phone files no changes, so the fold was left to the computer's two send paths.
