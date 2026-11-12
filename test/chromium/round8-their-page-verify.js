@@ -70,7 +70,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     const up = await until(p, () => document.querySelectorAll('.pol-note').length >= 2, null, 15000);
     /* RE-POINTED 8 Nov 2026 (their pages as ours): the panel opens on our cards; Where we are is its second face,
        and the road is the four stops every party sees */
-    if (up) { await p.click('[data-pol-face="where"]'); await p.waitForTimeout(400); }
+    /* RE-POINTED 12 Nov 2026 (owner: "Fix 1 and 2"): the panel no longer has a Where we are door of its own; the
+       summary it drew is read where it still stands (the panel's own markup, shown by itself after Send back) */
+    const noSecondDoor = up ? await p.evaluate(() => !document.querySelector('.pol-side-hd [data-pol-face="where"]')) : false;
+    check('2 · one door: Where we are is the page\'s top tab only, not a second tab in the panel', noSecondDoor);
     const S = up ? await p.evaluate(() => ({
       bar: (document.querySelector('.pol-bar') || {}).innerText || '',
       tab: (document.getElementById('pt-tab-redlines') || {}).textContent || '',
@@ -89,7 +92,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       && /Redlines · 2 answers for you/.test(S.tab) && S.top.join('|') === 'Download Word|More', S && { bar: S.bar, tab: S.tab, top: S.top });
     check('2b Where we are, the panel\'s second face: what waits, the four-stop road with your move, Still open; our cards stay under it', !!S && /2 answers wait for your decision/.test(S.say)
       && S.road.length === 4 && S.road[1] === 'is-now' && /your move/i.test(S.move) && S.open === 2 && S.col !== 'none', S && { say: S.say, road: S.road, open: S.open, col: S.col });
-    if (up) { await p.click('[data-pol-face="red"]'); await p.waitForTimeout(300); }
+
     check('2c a numbered dot after each of our asks and a note beside it: Accept · Counter · Reject', !!S && S.dots.join(',') === '1,2' && /answers 45 days/.test(S.note) && /45 is where our last agreement landed/.test(S.note)
       && S.acts.join('|') === 'accept|counter|reject', S && { dots: S.dots, note: S.note, acts: S.acts });
     check('2d the foot bar: Save for later, Send back · 0 of 2, grey', !!S && S.later && /Send back · 0 of 2/.test(S.send) && S.sendOff === true, S && { send: S.send, off: S.sendOff });
