@@ -270,7 +270,10 @@ async function askColSync(){
   askColBtnFix(); if (!(typeof currentUser === 'function' && currentUser())) { _acWho = 0; askColWhoWait(); }
   /* Jambo's box sent the reader here to ask (JM_TASKS 'askcol'): the question opens once */
   const R0 = regState();
-  if (R0.askOpen){ delete R0.askOpen; if (!AC.form) askColOpen(); return; }
+  if (R0.askOpen){ delete R0.askOpen;
+    /* "ask a column" typed: in the new look the question is asked on the Discover page (owner, 12 Nov 2026) */
+    if (typeof window.newLookOn === 'function' && newLookOn() && typeof window.discoverOpen === 'function'){ discoverOpen(); setTimeout(() => { const q = document.getElementById('dsc-q'); if (q) q.focus(); }, 0); return; }
+    if (!AC.form) askColOpen(); return; }
   if (typeof watchesLoaded === 'function' && !watchesLoaded() && typeof watchLoad === 'function') watchLoad().then(() => { if (askColOn()) askColPaintPanel(); });
   /* DISCOVER: the kept questions, counted, fetched free (at most once a minute) and drawn under the greeting */
   if (!AC.summary || Date.now() - _acSumAt > 60000){ askColSummary().then(() => { if (askColOn() && !AC.chosen) askColPaintPanel(); }); }
@@ -753,6 +756,7 @@ function askColDeskFootPaint(){
 /* a cell fills as its answer lands; the list is repainted at most every 400ms however fast they come */
 let _acListT = 0;
 function askColListSoon(now){
+  _acDiscoverLive(now);
   if (typeof regRepaint !== 'function') return;
   askColGroupsForget();
   if (now){ if (_acListT){ clearTimeout(_acListT); _acListT = 0; } regRepaint(); return; }
@@ -1386,6 +1390,7 @@ function askColWhyHtml(ch){
    focus and its caret, so a person mid-word loses nothing */
 function askColPaintPanel(){
   askColGroupsForget();
+  _acDiscoverLive(true);
   /* the head's "+ Ask a column" is lit while its form is open (as drawn) */
   if (typeof document !== 'undefined') document.querySelectorAll('.ac-btn[data-ac-open]').forEach(x => { x.classList.toggle('is-open', !!AC.form); x.setAttribute('aria-expanded', AC.form ? 'true' : 'false'); });
   if (typeof renderIntelDock !== 'function') return;
@@ -1826,6 +1831,7 @@ if (typeof document !== 'undefined' && !document._acWired){
   }, true);
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-ac-discover]')){ e.preventDefault(); if (typeof window.discoverOpen === 'function') discoverOpen(); else if (typeof setView === 'function') setView('reads'); return; }
     if (t.closest('[data-ac-open]')){ e.preventDefault();
       if (!askColMay()){ askColBtnFix(); if (typeof toast === 'function') toast(_acT('ac_btn_viewer'), 'warn'); return; }
       if (AC.form) askColClose(); else askColOpen(); return; }
@@ -1935,14 +1941,59 @@ if (typeof document !== 'undefined' && !document._acWired){
 }
 
 /* the button in the list's own head: greyed with why for a viewer */
+/* DISCOVER STANDS WHERE "+ ASK A COLUMN" STOOD (owner, 12 Nov 2026, drawn first): the list's own head carries one
+   grey pill, Discover; a press opens the Discover page (js/views/reads.js, discoverOpen), which asks the contracts
+   this list shows as it is filtered now. Anyone may open it; asking there is an editor's (askColMay). */
 function askColBtnHtml(){
   if (!askColOn()) return '';
+  if (typeof window.newLookOn === 'function' && newLookOn())
+    return `<button type="button" class="ui-btn ui-btn-sm ac-btn ac-btn-dsc" data-ac-discover>${_acE(_acT('dsc_btn'))}</button>`;
+  /* the old look keeps its own door until it is deleted (nothing new is built on it): the form in Jambo's panel */
   const may = askColMay();
   const spark = (typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : '';
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
+/* THE ASK FROM DISCOVER (owner, 12 Nov 2026): the same read (askColReadRun, the same route, the same record), started
+   from the Discover page. It reads the first not yet read of the Contracts list as filtered (askColPlan), brings no
+   column onto any list (Where it shows is that door) and files nothing. `o`: { question } typed, { askId } the next
+   batch of a question, or { pack }. It answers { short } · { portfolio } · { none } where no read starts. */
+async function askColAskHere(o){
+  o = o || {};
+  if (AC.busy || !askColMay()) return null;
+  await askColSummary(); await askColTeam();
+  const shown = askColShown().slice(0, 500), key = q => String(q || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  let base = null, name = '', plan = null;
+  if (o.pack){
+    const p = o.pack, ids = askColPackAskIds(p);
+    await Promise.all(ids.map(id => askColLoad(id, shown)));
+    plan = askColPlan({ askIds: askColPackPlanIds(p), size: o.size });
+    base = { questions: (p.questions || []).map(x => ({ question: x.question, name: x.name })), pack: p.id }; name = p.name;
+  } else {
+    let a = o.askId ? AC.asks[o.askId] : null;
+    const question = a ? a.question : String(o.question || '').trim();
+    if (!a){
+      if (question.length < 3) return { short: true };
+      if (askColIsPortfolio(question)) return { portfolio: true };
+      a = Object.values(AC.asks).find(x => x && key(x.question) === key(question)) || null;
+    }
+    if (a) await askColLoad(a.id, shown);
+    plan = askColPlan({ askId: a ? a.id : null, size: o.size });
+    name = a ? (a.name || askColNameOf(question)) : askColNameOf(question);
+    base = { question, name };
+  }
+  if (!plan || !plan.pick.length) return { none: true };
+  base.run = askColRunId(plan);
+  AC.form = null; AC.chosen = null;
+  const got = await askColReadRun(base, plan.pick, { name, onFirst: o.onFirst });
+  const named = (!o.pack && got.asks[0] && got.asks[0].name) || name;
+  askColRunEnd(got, base, named);
+  if (!got.stopped && !got.err && typeof toast === 'function') toast(askColDoneSay(named, got), 'ok');
+  return got;
+}
+/* the Discover page is drawn again as answers land (it draws nothing unless it is the page in front) */
+function _acDiscoverLive(now){ if (typeof state !== 'undefined' && state.view === 'reads' && typeof window.discoverLive === 'function'){ try { discoverLive(now); } catch (_){} } }
 
-Object.assign(window, { askColTeam, askColDrop, askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { askColAskHere, askColShown, askColTeam, askColDrop, askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });

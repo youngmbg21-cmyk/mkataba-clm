@@ -160,7 +160,7 @@ describe('f570 (4) a non-answer is not an answer', () => {
     const ai = R('js/ai.js');
     assert.match(region(ai, 'copilotPropose'), /if \(res && typeof res === 'object' && \(res\.unfinished \|\| res\.empty\)\) return \{ unfinished: true/);
     const ce = R('js/views/clauseeditor.js');
-    assert.match(region(ce, 'ceAsk'), /if \(res\.unfinished\)\{\s*\n\s*_ceThread\.push\(\{ who: 'ai', text: _cet\('ce_ask_unfinished'\), retry: q \}\);/);
+    assert.match(region(ce, 'ceAsk'), /if \(res\.unfinished\)\{\s*\n\s*_ceThread\.push\(\{ who: 'ai', text: (?:String\(res\.advice \|\| ''\)\.trim\(\) \|\| )?_cet\('ce_ask_unfinished'\), retry: q \}\);/);
     assert.match(ce, /data-ce-retry="\$\{i\}"/);
     const { STRINGS } = require('../js/i18n.js');
     assert.ok(!/naming a specific contract/.test(STRINGS.en.ce_ask_unfinished), 'not the portfolio chat\'s words');

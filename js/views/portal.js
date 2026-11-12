@@ -4237,7 +4237,14 @@ function portalOutHistoryHtml(c, p){
     if (e.kind === 'round-closed') return i18t('pol_h_round_closed', { n: e.round });
     return String(e.text || '').replace(/#?CHG-\d+/g, '').replace(/\s{2,}/g, ' ').trim();
   };
-  const oc = e => e.outcome === 'pending' ? ['amb', i18t('pol_h_waiting')] : e.outcome === 'accepted' ? ['grn', i18t('pol_h_o_accepted')]
+  /* A PARKED ASK HAS AN OUTCOME TOO (owner, 12 Nov 2026, the review of their white page: "Fix 5"): an ask of
+     theirs we answered with a counter said nothing in this column. It says "countered" — but only where the counter
+     itself is on their copy; one held back for our own review never travels (shareHeldBackIds), so there the ask
+     reads as their card does, still waiting, and nothing tells them a review exists. */
+  const onCopy = id => !!id && (c.changes || []).some(x => x && String(x.id) === String(id));
+  const oc = e => (e.kind === 'proposed' && e.ch && e.ch.status === 'countered')
+    ? (onCopy(e.ch.counteredBy) ? ['amb', i18t('pol_h_o_countered')] : ['amb', i18t('pol_h_waiting')])
+    : e.outcome === 'pending' ? ['amb', i18t('pol_h_waiting')] : e.outcome === 'accepted' ? ['grn', i18t('pol_h_o_accepted')]
     : e.outcome === 'rejected' ? ['red', i18t('pol_h_o_rejected')] : e.outcome === 'withdrawn' ? ['gry', i18t('pol_h_o_withdrawn')] : ['', ''];
   const day = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString(window.langLocale ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (_){ return ''; } };
   const hm = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleTimeString(window.langLocale ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' }); } catch (_){ return ''; } };

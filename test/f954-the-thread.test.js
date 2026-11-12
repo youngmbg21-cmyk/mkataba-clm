@@ -154,11 +154,11 @@ test('4 · the Reads page is on every list a page must be on', () => {
   assert.match(CA, /\{ k: 'reads', w: \['reads', 'every read'/, 'the "/" word');
   assert.match(CA, /reads: \(c, a\) => \(typeof readsOpen === 'function'\)/, 'the door opens on the question named');
   assert.match(NAV, /\['reads', \/ \(every read\|all reads/, 'navigable by typing');
-  assert.match(HBK, /\{ k: '5\.8', part: 'keep', round: 2,\s*title: \{ en: 'Reads: every read, and the next batch'/, 'the Handbook chapter (rule 9d)');
+  assert.match(HBK, /\{ k: '5\.8', part: 'keep', round: 2,\s*title: \{ en: 'Discover: every question asked, and the next batch'/, 'the Handbook chapter (rule 9d)');
   assert.match(HBK, /reads: \['reads'\], handbook:/, 'Jambo reads the book on the page');
   for (const part of ["['reads', 'renderReads', 'see', 0]", "['askcolnext', 'askColPlan', 'see', 1]", "['askcolruns', 'GET /api/columns/reads', 'wall', 2]", "['askcolstop', 'POST /api/columns/reads/:id/stop', 'wall', 2]"])
     assert.ok(BR.includes(part), 'the Brain names ' + part);
-  assert.match(read('js/ai.js'), /reads: 'Reads'/);
+  assert.match(read('js/ai.js'), /reads: 'Discover'/);   /* RE-POINTED 12 Nov 2026: the Reads page is named Discover */
   for (const k of ['nav_reads', 'ca_w_reads', 'gd_p_reads', 'gd_w_reads', 'brn_p_reads', 'rd_next_arrow', 'ac_th_next', 'ac_th_every_read', 'lh_ph_reads_other']) assert.ok(EN[k], k + ' is in the book');
   /* the page's own words: the thread and the next batch, every door an existing one */
   const RD = read('js/views/reads.js');

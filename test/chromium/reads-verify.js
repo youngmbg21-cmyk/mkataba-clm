@@ -121,7 +121,8 @@ function book(){
     check('4b the row: partly read, "100 of 500 read", Next 50 →, the grey line with the question, who and when', R.mark === 'Partly read' && R.read === '100 of 500' && R.next === 'Next 50 →' && /“How much notice/.test(R.sub) && /Amina Otieno · read \d+ \w+, \d\d:\d\d$/.test(R.sub), R);
     /* a tab with no rows stays out unless lit (the list head's rule): Packs and Facts are not drawn here */
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('4c the head and tabs: "Reads", the facts with no cost, All 1 · Mine 1 (Packs and Facts empty, left out)', R.head === 'Reads' && /1 question/.test(R.facts) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(R.facts) && JSON.stringify(R.tabs) === JSON.stringify(['All1', 'Mine1']), { head: R.head, facts: R.facts, tabs: R.tabs });
+    /* RE-POINTED (owner, 12 Nov 2026): the Reads page is named Discover */
+    check('4c the head and tabs: "Discover", the facts with no cost, All 1 · Mine 1 (Packs and Facts empty, left out)', R.head === 'Discover' && /1 question/.test(R.facts) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(R.facts) && JSON.stringify(R.tabs) === JSON.stringify(['All1', 'Mine1']), { head: R.head, facts: R.facts, tabs: R.tabs });
     check('4d the thread, newest first: Next · 101–150, then 51–100, then 1–50, then Asked; the panel\'s doors Read the next 50 · 350 left after, Open the table',
       R.thread.length === 4 && /^Next · contracts 101–150$/.test(R.thread[0]) && /^contracts 51–100 · /.test(R.thread[1]) && /^contracts 1–50 · /.test(R.thread[2]) && /^Asked · /.test(R.thread[3]) && R.acts[0] === 'Read the next 50 · 350 left after' && R.acts[1] === 'Open the table', R);
 
