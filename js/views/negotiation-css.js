@@ -6424,7 +6424,6 @@ function redlineLayoutCss(){
   .redline-page .rl-idx-top > .pd-back{order:0}
   .redline-page .rl-idx-top > .rl-idx-title{order:1}
   .redline-page .rl-idx-top > .rl-round-at{order:2;flex:0 1 auto;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .redline-page .rl-idx-top > .rl-idx-title + .rl-idx-sp ~ .rl-round-at::before{content:'·';margin-right:6px}
   .redline-page .rl-idx-top > .rl-idx-sp{order:3}
   .redline-page .rl-idx-top > .rl-head-notes{order:4}
   .redline-page .rl-idx-top > .rl-head-here{order:5}

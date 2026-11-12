@@ -416,7 +416,8 @@ describe('what the column renders', () => {
     /* "Governing Law" and not "Governing law" since 10 Sep 2026: the queue is a
        SCREEN and names its clauses in the product's one format. The claim is
        untouched — both rows read as the clause they are. */
-    assert.equal((html.match(/class="rl-q-k">Governing Law</g) || []).length, 2,
+    /* RE-POINTED 12 Nov 2026 (owner picked "As on the paper": a clause is named as its heading prints it, not in Title Case) */
+    assert.equal((html.match(/class="rl-q-k">Governing law</g) || []).length, 2,
       'both rows read as the clause they are');
     assert.match(html, new RegExp(`title="${a.id}"`), 'the first is still identifiable');
     assert.match(html, new RegExp(`title="${b.id}"`), 'and so is the second');

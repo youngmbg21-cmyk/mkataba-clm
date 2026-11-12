@@ -1734,7 +1734,7 @@
   [data-share-sap] .sh-lt.is-sap .sh-to-chip #sh-lt-towho{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   [data-share-sap] .sh-lt.is-sap .sh-to-ini{ flex:none; width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:11px; font-weight:var(--w-strong);
     background:var(--color-accent-100); color:var(--color-accent); }
-  [data-share-sap] .sh-lt.is-sap .sh-to-x{ flex:none; width:24px; height:24px; border:0; border-radius:50%; background:transparent; color:var(--color-text); font:inherit; font-size:16px; line-height:1; cursor:pointer; }
+  [data-share-sap] .sh-lt.is-sap .sh-to-x{ flex:none; display:inline-flex; align-items:center; justify-content:center; padding:0; width:24px; height:24px; border:0; border-radius:50%; background:transparent; color:var(--color-text); font:inherit; font-size:16px; line-height:1; cursor:pointer; }
   [data-share-sap] .sh-lt.is-sap .sh-to-x:hover{ background:var(--color-neutral-200); }
   [data-share-sap] .sh-to-kind{ display:flex; flex-wrap:wrap; gap:4px 16px; margin:6px 0 0; }
   [data-share-sap] .sh-to-kind [data-sh-more-go].hidden{ display:none; }
@@ -10950,6 +10950,9 @@
      head itself is folded on the element (it carries an inline display);
      this rule takes the grouped-by line with it. */
   #ig-page.ig-focus #ig-note{display:none}
+  /* THE MAP'S LINE: its links (Save view, Clear all, Undo, Stop) never break across two lines (BUGLOG 22020, measured on
+     GitHub 12 Nov 2026: "Save view" took two lines at all three screens); a link that does not fit moves down whole */
+  #ig-note .ui-link{white-space:nowrap}
   /* ---- THE DIVIDER BESIDE THE PANEL (27 Sep 2026) ----
      The Document tab's and the Negotiate page's handle, the same values: a
      14px press over the seam, a 4px grip in the quiet grey, the accent under
@@ -18439,6 +18442,9 @@
   html.lg-new #ig-canvas .pd2-ps-e{position:relative;display:flex;flex-direction:column;gap:6px}
   html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail){display:block;width:100%;box-sizing:border-box;font:inherit;color:var(--color-doc-text);background:transparent;border:0;border-bottom:1.5px dotted var(--st-amber-dot);border-radius:0;padding:0 2px;outline:0;box-shadow:none}
   html.lg-new #ig-canvas .pd2-ps-mail{font-family:var(--font-body);font-size:13px}
+  html.lg-new #ig-canvas .pd2-ps-e.has-rm > :is(.pd2-ps-in,.pd2-ps-mail){padding-right:28px}
+  html.lg-new #ig-canvas .pd2-ps-rm{position:absolute;top:0;right:0;width:24px;height:24px;display:grid;place-items:center;padding:0;border:0;border-radius:var(--radius);background:none;color:var(--color-quiet);cursor:pointer}
+  html.lg-new #ig-canvas .pd2-ps-rm:hover{background:var(--color-neutral-200);color:var(--color-text)}
   html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail)::placeholder{color:var(--color-quiet);font-style:italic;opacity:1}
   html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail).is-done{border-bottom:1.5px solid var(--st-green-dot)}
   html.lg-new #ig-canvas :is(.pd2-ps-in,.pd2-ps-mail):focus{border-bottom:1.5px solid var(--color-doc-text)}
@@ -18531,7 +18537,8 @@
   html.lg-new .pd2-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
   html.lg-new .pd2-seg button{height:26px;padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:13px;white-space:nowrap;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
   html.lg-new .pd2-seg button[aria-pressed="true"]{background:var(--bar-black);color:var(--color-surface)}
-  html.lg-new .pd2-wk-x{flex:none;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-2);font:inherit;font-size:16px;color:var(--color-text);cursor:pointer}
+  /* a round icon button centres its icon (owner, 12 Nov 2026: "the x is not in the middle of the shaded area": the icon sat 8px left) */
+  html.lg-new .pd2-wk-x{flex:none;display:inline-flex;align-items:center;justify-content:center;padding:0;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-2);font:inherit;font-size:16px;color:var(--color-text);cursor:pointer}
   html.lg-new #ig-canvas .pd2-wk-on{background:var(--st-violet-bg);transition:background .3s}
   /* WHILE JAMBO READS, A NOTE WAITS FOR ITS CLAUSE (owner, 8 Nov 2026: "the notes should pop on the right of the paper as
      it reads on until the end"): held unseen until the read reaches it, then it fades in and stays (pd2WalkNotesHold) */
@@ -19512,7 +19519,9 @@
   html.lg-out #pw-page .pw-where .ds-pt-table thead th{background:transparent;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-out #pw-page .pw-where .ds-cols{gap:32px}
   html.lg-out #pw-page .pw-sign{max-width:none;margin:0;padding:22px 32px}
-  html.lg-out #pw-page .pw-sign .ps-side{max-width:720px;margin:0;border:0;border-radius:0;box-shadow:none;background:transparent;padding:0}
+  /* THE SIGNING LIST RUNS THE PAGE'S WIDTH (owner, 12 Nov 2026, the review of their white page: "Fix 6"): it stood in
+     the left half (720px) while Where we are and History run the whole sheet; now every tab of theirs uses one width */
+  html.lg-out #pw-page .pw-sign .ps-side{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;background:transparent;padding:0}
   html.lg-out #pw-page .pw-sign .ps-h{font-family:var(--font-title);font-weight:600;font-size:22px;padding:0 0 12px;border-bottom:1px solid var(--color-divider)}
   html.lg-out #pw-page .pw-sign .ps-stage{border-bottom:1px solid var(--color-divider)}
   html.lg-out #pt-hist-pane .ht{max-width:none;max-height:none;margin:0;padding:22px 32px;border:0;border-radius:0;box-shadow:none;background:transparent}

@@ -4237,7 +4237,14 @@ function portalOutHistoryHtml(c, p){
     if (e.kind === 'round-closed') return i18t('pol_h_round_closed', { n: e.round });
     return String(e.text || '').replace(/#?CHG-\d+/g, '').replace(/\s{2,}/g, ' ').trim();
   };
-  const oc = e => e.outcome === 'pending' ? ['amb', i18t('pol_h_waiting')] : e.outcome === 'accepted' ? ['grn', i18t('pol_h_o_accepted')]
+  /* A PARKED ASK HAS AN OUTCOME TOO (owner, 12 Nov 2026, the review of their white page: "Fix 5"): an ask of
+     theirs we answered with a counter said nothing in this column. It says "countered" — but only where the counter
+     itself is on their copy; one held back for our own review never travels (shareHeldBackIds), so there the ask
+     reads as their card does, still waiting, and nothing tells them a review exists. */
+  const onCopy = id => !!id && (c.changes || []).some(x => x && String(x.id) === String(id));
+  const oc = e => (e.kind === 'proposed' && e.ch && e.ch.status === 'countered')
+    ? (onCopy(e.ch.counteredBy) ? ['amb', i18t('pol_h_o_countered')] : ['amb', i18t('pol_h_waiting')])
+    : e.outcome === 'pending' ? ['amb', i18t('pol_h_waiting')] : e.outcome === 'accepted' ? ['grn', i18t('pol_h_o_accepted')]
     : e.outcome === 'rejected' ? ['red', i18t('pol_h_o_rejected')] : e.outcome === 'withdrawn' ? ['gry', i18t('pol_h_o_withdrawn')] : ['', ''];
   const day = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString(window.langLocale ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (_){ return ''; } };
   const hm = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleTimeString(window.langLocale ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' }); } catch (_){ return ''; } };
@@ -4654,12 +4661,15 @@ function portalOutRoadHtml(D, mineMove){
    opens their notes, as the Notes chip does on our side. The face is a sitting's choice, never stored. */
 let _polFace = 'red';
 function portalOutFace(){ return _polFace === 'where' || _polFace === 'send' ? _polFace : 'red'; }
+/* THE PANEL'S HEAD (owner, 12 Nov 2026, reviewing their white page: "Fix 1 and 2"; REVERSES the 8 Nov drawing's
+   "Redlines · Where we are · Notes"): ONE DOOR — Where we are is the page's own tab at the top, so the panel no longer
+   repeats it (the panel still shows that summary by itself after Send back); and ONE COUNT PER PLACE — the top tab says
+   how many answers are theirs ("Redlines · 1 answer for you"), the column's heading counts every card, so this tab
+   carries no third number that disagreed with both. */
 function portalOutHeadHtml(c){
-  const left = portalOutAsks(c).filter(x => !portalOutDecided(x)).length;
   const f = portalOutFace();
   return `<div class="pol-side-hd" role="tablist" aria-label="${esc(i18t('po_tab_redlines'))}">
-    <button type="button" role="tab" class="pol-pill${f === 'red' ? ' is-on' : ''}" aria-selected="${f === 'red'}" data-pol-face="red">${esc(i18t('po_tab_redlines'))}${left ? ` <span class="pol-hd-n">${left}</span>` : ''}</button>
-    <button type="button" role="tab" class="pol-pill${f === 'where' ? ' is-on' : ''}" aria-selected="${f === 'where'}" data-pol-face="where">${esc(i18t('po_tab_where'))}</button>
+    <button type="button" role="tab" class="pol-pill${f === 'red' ? ' is-on' : ''}" aria-selected="${f === 'red'}" data-pol-face="red">${esc(i18t('po_tab_redlines'))}</button>
     ${PORTAL_OPTS && PORTAL_OPTS.token ? `<button type="button" class="pol-pill" data-pt-where-notes>${esc(i18t('po_notes'))}</button>` : ''}</div>`;
 }
 /* SEND BACK, IN THE PANEL (owner, 8 Nov 2026, the drawings' step 7): the check before send stands in the panel

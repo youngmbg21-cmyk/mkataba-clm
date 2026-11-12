@@ -22248,6 +22248,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Not fixed, for the owner: BUGLOG 21762 — cnMask replaces a code-named deal's real name inside longer words too; a whole-word mask can miss a name that ends in punctuation ("Acme Ltd."), which would leak the real name to outsiders. Needs a careful design.
 - Not a live fault: BUGLOG 22148 (the double class on #share-step-1 — nothing passes hiddenStart); the duplicate-name check across workspaces (one workspace per server today, MULTITENANCY-NOTES); the Board story's memo (cleared on every Board paint).
 - Noticed, not fixed: BUGLOG 21906 — the invitation email's body is 14px where the other letters are 15px (cosmetic; a frame change to every outside email).
+- Noticed, not fixed (12 Nov 2026): HaTi's emails to the other side are sent from HaTi's own address (`mailFrom`) with no Reply-To set (`sendEmail` passes none), so pressing Reply in their mail app does not reach the sender or HaTi; yet the Word-file letter promises "Replies to this email reach {sender} directly" (js/sharemail.js), which is not true unless the sending address is the sender's.
 
 ## 12 Nov 2026 — after you send (owner's picks "The Legora Way" and "Said Once"; f1015)
 - Noticed, not fixed: the phone's send (js/mobile-contract.js buildSharePayload) does not fold our own fixes on the first send of our paper, so a first send from the phone still travels them as tracked changes; the phone files no changes, so the fold was left to the computer's two send paths.
@@ -22262,3 +22263,24 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: "Start redlining this clause" on Discover opens the contract's Redlines, not that clause's editor; the Stakes' door (stkRedlineGo) needs a point of the deep read to name the clause.
 - Noticed, not fixed: a new-look window narrower than the list-and-panel layout (insFits) still draws the old Reads page, whose "+ Ask a column" goes to Contracts' form.
 - Noticed, not fixed: the server reads "How many days do we have to pay an invoice?" as a counting question ("how many") and refuses it as a column, though it asks the wording of each contract.
+## 12 Nov 2026 — whole names and separate headings (owner's yes; f1016)
+- Fixed: BUGLOG 21762 — cnMask swaps a code-named deal's real name as a WHOLE name only (the email mask's own pattern); "Ace" no longer changes inside "Grace". A name glued straight onto other letters ("NordfraktAB") is left, as in the email mask.
+- Fixed: BUGLOG 20921 — the plain text Jambo reads keeps a heading apart from its first sentence; the wording hash's path is untouched. Jambo's kept answers made over the old text are read again once, on their next press.
+- Measured, not fixed: BUGLOG 21941 (Our paper's preview blank; Jambo's agents figures' inset), 22020 (map head "Save view" wrap), 21882 (Handbook table under the panel), 21843 (Parties' Draft button) — test/chromium/_audit/buglog-layout-measure.js on GitHub says which are still real.
+
+## 12 Nov 2026 — the five newest layout faults, MEASURED on GitHub (test/chromium/_audit/buglog-layout-measure.js, run 4, all three screens, new look)
+- 21941 (Our paper's preview, a blank over its words): NOT SEEN — Raw Material Supply Agreement, 7 blanks, none overlapping.
+- 21941 (Jambo's agents, "Pieces of work" figures): REAL by the rule — `.jh-kpis > div` padding 7px 9px, under 16px; the cards were not on screen in the run, so read off the rule, not a photo. Noticed, not fixed.
+- 22020 (the map's "Save view", #ig-save): REAL — two lines at 1440×780, 1536×730 and 1366×950 (69px wide, 24px high). Noticed, not fixed.
+- 21882 (the Handbook's "Which one do I need?" table under the panel): GONE — the new look's Handbook (hbknRender) draws no such table.
+- 21843 (Parties' "Draft an agreement with …" past its panel): NOT SEEN in the new look — the door is "Start a new agreement with …" on the party's own page; the longest name (Sameer Business Park) stays on one line, 44px inside the panel.
+- 12 Nov 2026 correction: 22020 "Save view" was NOT two lines in the measured state (the measure's line count was wrong, now counted from the words' own boxes); a nowrap safeguard was added on the owner's yes. 21941 figure cards FIXED (16px), the result cards beside them too; their narrow labels may take two or three short lines.
+- 12 Nov 2026: the read bar's × and the Send screen's "To" × sat 8px left of their circle's middle: FIXED (both). An arrival's read never started when the paper was still loading at the first look: FIXED with the read playing on arrival (owner's pick).
+
+## 12 Nov 2026 — the paper's signature lines follow the route; an extra space can go (f1017)
+- FIXED: the route saved from Change while filling on the paper left empty spaces and "owed" (two lists: the sitting's and the route's); "+ Another signer" spaces could not be removed. `pd2FillRouteSync`, `pd2FillSigDrop`.
+- Noticed, not fixed: names typed on the paper's signature lines and not yet saved are not shown when the signing route window is opened from Change (it reads the saved route only).
+- Noticed, not fixed: the Handbook's picture for chapter 2.3 does not show the × beside a signer space (not re-taken in the chat).
+- Noticed, not fixed (12 Nov 2026): a parked ask of theirs travels on their copy with status "countered" and `counteredBy` naming our counter even when that counter is held back for internal review (`buildSharePayload` keeps the parked ask's status; only the held counter is filtered by `shareHeldBackIds`). Their page reads it as waiting (their History now says "waiting" there, 12 Nov), but the copy's data still says a counter exists — a review the counterparty should never learn of (`reviewSeatShowsReview`).
+- FIXED (12 Nov 2026, f1017 (5)): names typed on the paper's signature lines now show in the signing route window opened from Change (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`).
+- Noticed, not fixed: board-says-it-plain-verify A0 went red once on GitHub (PR 667, "bubble chart of value against time left" read the card before it) and green on the re-run with no change: a timing slip in the check.

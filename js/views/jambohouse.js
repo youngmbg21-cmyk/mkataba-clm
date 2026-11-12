@@ -1590,12 +1590,13 @@ const JH_CSS = `
   .jh-mix .u,.jh-legend .u,.jh-sw.u{background:var(--st-green-dot)} .jh-mix .c,.jh-legend .c,.jh-sw.c{background:var(--st-amber-dot)} .jh-mix .t,.jh-legend .t,.jh-sw.t{background:var(--st-ruby-dot)}
   .jh-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--color-quiet)}
   .jh-legend b{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
-  .jh-kpis{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-  .jh-res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px}
-  .jh-res > div{border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 8px;min-width:0}
+  .jh-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .jh-res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+  .jh-res > div{border:1px solid var(--color-divider);border-radius:var(--radius);padding:16px;min-width:0}
   .jh-res b{display:block;font-size:15px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
   .jh-res small{display:block;color:var(--color-quiet);font-size:11px;line-height:1.25}
-  .jh-kpis > div{background:var(--color-neutral-100);border-radius:var(--radius);padding:7px 9px;min-width:0}
+  /* 16PX INSIDE EVERY CARD (BUGLOG 21941, measured 12 Nov 2026: 7px 9px here, 6px 8px on the results' cards) */
+  .jh-kpis > div{background:var(--color-neutral-100);border-radius:var(--radius);padding:16px;min-width:0}
   .jh-kpis small{display:block;color:var(--color-quiet);font-size:11px}
   .jh-kpis b{font-size:15px;font-variant-numeric:tabular-nums}
   .jh-tw{overflow-x:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg)}

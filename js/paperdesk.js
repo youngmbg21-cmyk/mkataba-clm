@@ -5964,8 +5964,13 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       const id = rt.getAttribute('data-pd-og-route');
       const c = (id && typeof getContract === 'function' && getContract(id)) || pdOgContract(); if (!c) return;
       const inForm = !!rt.closest('#pd-og'); pdSgListClose();
-      openSignerPlanEditor(c, { onDone(){
+      /* THE NAMES TYPED ON THE PAPER ARE IN THE WINDOW TOO (owner, 12 Nov 2026): shown as its rows, saved only by
+         its own Save; cancelled, they stay typed on the paper */
+      const typed = (!inForm && typeof pd2FillOn === 'function' && pd2FillOn(c.id)) ? pd2FillSigTyped(c) : [];
+      openSignerPlanEditor(c, { typed, onDone(){
         if (inForm){ pdOgRepaint(); pdOgLand(c.id, 'signers'); return; }
+        /* the paper being filled follows the route just saved (pd2FillRouteSync draws the panel again itself) */
+        if (typeof pd2FillRouteSync === 'function' && pd2FillRouteSync(c)) return;
         try { pdGlanceRepaint(); } catch (_){} } });
       return; }
     const ok = t.closest('#pd-og [data-pd-og-ok]');
@@ -8420,7 +8425,58 @@ function pd2FillDone(spot){
   if (!_pd2Fill || !spot) return false;
   if (spot.startsWith('b:')) return !!String(_pd2Fill.vals[spot.slice(2)] || '').trim();
   const L = _pd2Fill.sig[spot.slice(2)] || [];
-  return L.some(x => String(x.name || '').trim());
+  if (L.some(x => String(x.name || '').trim())) return true;
+  /* THE ROUTE AND THE PAPER ARE ONE LIST (owner, 12 Nov 2026): a line the signing route names somebody on is filled */
+  const c = (typeof getContract === 'function') ? getContract(_pd2Fill.id) : null; if (!c) return false;
+  const lines = pd2FillSigLines(c), ln = lines[Number(spot.slice(2))];
+  return !!(ln && pd2FillSigNamed(c, ln, lines).length);
+}
+/* the same person, on the route and typed on the paper: one member, or one name whose addresses do not disagree */
+function pd2FillSigSame(s, x){
+  if (!s || !x) return false;
+  if (s.memberId && x.memberId) return String(s.memberId) === String(x.memberId);
+  const n = v => String(v || '').trim().toLowerCase(), a = n(s.email), b = n(x.email);
+  return !!n(s.name) && n(s.name) === n(x.name) && (!a || !b || a === b);
+}
+/* THE ROUTE MOVED WHILE THE PAPER WAS BEING FILLED (owner, 12 Nov 2026: "the signing in image one is not tied to
+   image 2"): the signing route window saved, so every signature line is drawn again off the route as it now stands.
+   A space left empty where the route names somebody goes; a name typed here that the route now carries is not kept
+   twice; a name typed here the route does not have stays, to be saved with the rest. Writes nothing. */
+function pd2FillRouteSync(c){
+  if (!_pd2Fill || !c || !pd2FillOn(c.id)) return false;
+  const lines = pd2FillSigLines(c);
+  lines.forEach(L => { const held = _pd2Fill.sig[L.i]; if (!held) return;
+    const named = pd2FillSigNamed(c, L, lines);
+    const keep = held.filter(x => String(x.name || '').trim() && !named.some(s => pd2FillSigSame(s, x)));
+    _pd2Fill.sig[L.i] = keep.length || named.length ? keep : [{ name: '', email: '', memberId: '', role: '', isNew: false }]; });
+  _pd2Fill.sigWhy = null;
+  const cv = document.getElementById('ig-canvas');
+  if (cv){ cv.querySelectorAll('.rl-paper-foot .rl-sigline').forEach(el => el.querySelectorAll('.pd2-ps, .pd2-ps-sub, .pd2-ps-more').forEach(n => n.remove()));
+    if (pd2FillSigOpen(c)) pd2FillSigPaint(c, cv); }
+  /* the panel is drawn again first, then counted: its rows are new and say "owed" until the count reads them */
+  try { pdGlanceRepaint(); } catch (_){}
+  pd2FillCount(c);
+  return true;
+}
+/* A SPACE YOU DO NOT NEED IS TAKEN AWAY (owner, 12 Nov 2026: "I cant delete the extra signing spaces on the paper"):
+   the × beside it, or Backspace in it while it is empty. A line's ONLY space stays (the line must take a name).
+   Nothing is written: a space is this sitting's, and the people already on the route are changed through its door. */
+function pd2FillSigMayDrop(c, i){
+  if (!_pd2Fill || !c) return false;
+  const lines = pd2FillSigLines(c), L = lines[Number(i)], held = _pd2Fill.sig[i] || [];
+  return !!L && pd2FillSigNamed(c, L, lines).length + held.length > 1;
+}
+function pd2FillSigDrop(id){
+  if (!_pd2Fill) return false;
+  const [i, j] = String(id || '').split(':'), held = _pd2Fill.sig[i];
+  const c = (typeof getContract === 'function') ? getContract(_pd2Fill.id) : null;
+  if (!c || !held || !held[Number(j)] || !pd2FillSigMayDrop(c, i)) return false;
+  held.splice(Number(j), 1);
+  pd2FillSigRepaint(c, i);
+  const at = Math.max(0, Number(j) - 1);
+  const to = document.querySelector(`#ig-canvas [data-pd2-ps-name="${CSS.escape(i + ':' + at)}"]`) || document.querySelector(`#ig-canvas [data-pd2-ps-more="${CSS.escape(String(i))}"]`);
+  if (to) try { to.focus({ preventScroll: true }); } catch (_){}
+  return true;
 }
 function pd2FillStart(id, key){
   const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c || !pd2On()) return false;
@@ -8543,9 +8599,11 @@ function pd2FillSigPaint(c, cv){
     const nth = k => (typeof i18ord === 'function') ? i18ord(k) : String(k);
     const order = s => { const at = plan.indexOf(s); return at >= 0 ? at + 1 : 0; };
     const namedH = named.map(s => `<span class="pd2-ps-nm">${E(s.name)}</span>`).join('');
+    const mayDrop = named.length + held.length > 1;
     const heldH = held.map((x, j) => {
+      const rm = mayDrop ? `<button type="button" class="pd2-ps-rm" data-pd2-ps-rm="${E(i + ':' + j)}" title="${E(_pdT('pd2_ps_rm'))}" aria-label="${E(_pdT('pd2_ps_rm'))}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>` : '';
       const id = i + ':' + j, mail = !L.ours && (x.isNew || (String(x.name || '').trim() && !String(x.email || '').trim()));
-      return `<span class="pd2-ps-e"><input type="text" class="pd2-ps-in${String(x.name || '').trim() ? ' is-done' : ''}" data-pd2-ps-name="${E(id)}" value="${E(x.name || '')}" placeholder="${E(_pdT(L.ours ? 'pd2_ps_ph_us' : 'pd2_ps_ph_them'))}" aria-label="${E(_pdT('pd2_ps_who', { party: L.name }))}" autocomplete="off">${mail ? `<input type="email" class="pd2-ps-mail${String(x.email || '').trim() ? ' is-done' : ''}" data-pd2-ps-mail="${E(id)}" value="${E(x.email || '')}" placeholder="${E(_pdT('pd2_ps_mail'))}" aria-label="${E(_pdT('pd2_ps_mail'))}" autocomplete="off">` : ''}<span class="pd2-ps-dd" data-pd2-ps-dd="${E(id)}" hidden></span></span>`;
+      return `<span class="pd2-ps-e${rm ? ' has-rm' : ''}"><input type="text" class="pd2-ps-in${String(x.name || '').trim() ? ' is-done' : ''}" data-pd2-ps-name="${E(id)}" value="${E(x.name || '')}" placeholder="${E(_pdT(L.ours ? 'pd2_ps_ph_us' : 'pd2_ps_ph_them'))}" aria-label="${E(_pdT('pd2_ps_who', { party: L.name }))}" autocomplete="off">${mail ? `<input type="email" class="pd2-ps-mail${String(x.email || '').trim() ? ' is-done' : ''}" data-pd2-ps-mail="${E(id)}" value="${E(x.email || '')}" placeholder="${E(_pdT('pd2_ps_mail'))}" aria-label="${E(_pdT('pd2_ps_mail'))}" autocomplete="off">` : ''}${rm}<span class="pd2-ps-dd" data-pd2-ps-dd="${E(id)}" hidden></span></span>`;
     }).join('');
     const sub = [].concat(named.map(s => [s.role, order(s) ? _pdT('pd2_ps_signs', { nth: nth(order(s)) }) : ''].filter(Boolean).join(' · ')),
       held.filter(x => String(x.name || '').trim()).map(x => x.role || '')).filter(Boolean)[0] || '';
@@ -8609,11 +8667,23 @@ function pd2FillCount(c){
     if (s.startsWith('b:')){ const k = s.slice(2), v = String(_pd2Fill.vals[k] || '').trim();
       const inp = document.querySelector(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`);
       w.textContent = v && inp && inp.type === 'date' ? pd2FillDay(v) : v; }
-    else { const v = (_pd2Fill.sig[s.slice(2)] || []).map(x => String(x.name || '').trim()).filter(Boolean).join(', '); w.textContent = v; }
+    else { const lines = pd2FillSigLines(c), ln = lines[Number(s.slice(2))];
+      const v = (ln ? pd2FillSigNamed(c, ln, lines).map(x => String(x.name || '').trim()) : []).concat((_pd2Fill.sig[s.slice(2)] || []).map(x => String(x.name || '').trim())).filter(Boolean).join(', '); w.textContent = v; }
     const o = r.querySelector('.pd2-fp-owed'); if (o) o.hidden = pd2FillDone(s); });
   const pos = document.querySelector('#ig-dock [data-pd2-fp-pos]'); if (pos) pos.textContent = n ? _pdT('pd2_fp_pos', { k, n }) : '';
 }
 /* SAVE: every blank through its one writer, held; the signers through the one authority; then once to the server */
+/* THE NAMES TYPED ON THE LINES IN THIS SITTING, as route rows in the lines' order: what Save adds to the route, and
+   what the signing route window is shown when it is opened from here (owner, 12 Nov 2026). Reads only. */
+function pd2FillSigTyped(c){
+  if (!_pd2Fill || !c) return [];
+  const lines = pd2FillSigLines(c), add = [];
+  Object.keys(_pd2Fill.sig).sort((a, b) => Number(a) - Number(b)).forEach(i => { const L = lines[Number(i)]; if (!L) return;
+    (_pd2Fill.sig[i] || []).filter(x => String(x.name || '').trim()).forEach(x => add.push(L.ours
+      ? { party: 'internal', name: String(x.name).trim(), email: String(x.email || '').trim(), memberId: x.memberId || '', role: x.role || '' }
+      : { party: 'counterparty', name: String(x.name).trim(), email: String(x.email || '').trim(), role: x.role || '', ...(L.partyId && lines.filter(y => !y.ours).length > 1 ? { partyId: L.partyId } : {}) })); });
+  return add;
+}
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
   const c = getContract(_pd2Fill.id); if (!c || typeof contractBlankSet !== 'function') return 0;
@@ -8625,11 +8695,7 @@ function pd2FillSave(){
   /* held, the last one written without hold, so the writer itself saves once (the desk never saves: f563) */
   moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) { n++; _pd2Fill.was[x.b.key] = x.v; } });
   /* the signers: the route as it stands, with the ones named on the paper after their side's last */
-  const lines = pd2FillSigLines(c), add = [];
-  Object.keys(_pd2Fill.sig).forEach(i => { const L = lines[Number(i)]; if (!L) return;
-    (_pd2Fill.sig[i] || []).filter(x => String(x.name || '').trim()).forEach(x => add.push(L.ours
-      ? { party: 'internal', name: String(x.name).trim(), email: String(x.email || '').trim(), memberId: x.memberId || '', role: x.role || '' }
-      : { party: 'counterparty', name: String(x.name).trim(), email: String(x.email || '').trim(), role: x.role || '', ...(L.partyId && lines.filter(y => !y.ours).length > 1 ? { partyId: L.partyId } : {}) })); });
+  const add = pd2FillSigTyped(c);
   let why = null, signers = 0;
   if (add.length){
     const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).slice();
@@ -8725,6 +8791,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       const p = dd && dd._hits ? dd._hits[Number(pick.getAttribute('data-pd2-ps-k'))] : null; if (p) pd2FillSigPick(id, p); return; }
     const nw = t.closest('#ig-canvas [data-pd2-ps-new]');
     if (nw){ e.preventDefault(); pd2FillSigPick(nw.getAttribute('data-pd2-ps-new'), null, true); return; }
+    const rm = t.closest('#ig-canvas [data-pd2-ps-rm]');
+    if (rm && _pd2Fill){ e.preventDefault(); pd2FillSigDrop(rm.getAttribute('data-pd2-ps-rm')); return; }
     const more = t.closest('#ig-canvas [data-pd2-ps-more]');
     if (more && _pd2Fill){ e.preventDefault(); const i = more.getAttribute('data-pd2-ps-more'); const c = getContract(_pd2Fill.id); if (!c) return;
       (_pd2Fill.sig[i] = _pd2Fill.sig[i] || []).push({ name: '', email: '', memberId: '', role: '', isNew: false });
@@ -8771,6 +8839,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const open = !!(dd && !dd.hidden && dd.children.length);
     if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){ e.preventDefault(); const o = [...dd.children]; let i = o.findIndex(x => x.classList.contains('is-on'));
       i = e.key === 'ArrowDown' ? Math.min(o.length - 1, i + 1) : Math.max(0, i - 1); o.forEach((x, k) => x.classList.toggle('is-on', k === i)); return; }
+    /* Backspace in a space with nothing in it takes the space away (never a line's only one) */
+    if (e.key === 'Backspace' && nm && !nm.value){ const id = nm.getAttribute('data-pd2-ps-name'), [bi, bj] = id.split(':'); const x = (_pd2Fill.sig[bi] || [])[bj];
+      if (x && !String(x.email || '').trim() && pd2FillSigDrop(id)){ e.preventDefault(); e.stopPropagation(); } return; }
     if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); e.stopPropagation();
       const on = open ? dd.querySelector('.is-on') : null;
       if (on){ if (on.hasAttribute('data-pd2-ps-new')) pd2FillSigPick(on.getAttribute('data-pd2-ps-new'), null, true);
@@ -8800,6 +8871,11 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
    again and three speeds; less motion asked = everything at once. At the end one sentence and the next doors, each an
    existing one with its cost. */
 const PD2_WALK_SPEEDS = { slow: 1.6, normal: 1, fast: 0.5 };
+/* THE QUICK RUN (owner, 12 Nov 2026: "it should happen simultaneously with the read in the clauses tab … as fast as possible
+   unrelated to the choices attached. If you want to stop it and watch it, then you can pause and use the choices"): an
+   arrival, or Jambo starting the Clauses read, runs the walk at this pace a clause, ignoring Slow · Normal · Fast; Pause
+   ends the quick run, so Continue walks at the chosen speed */
+const PD2_WALK_QUICK_MS = 70;
 const PD2_WALK_GROUPS = ['party', 'blank', 'money', 'date', 'risk', 'duty'];
 let _pd2Walk = null;            // { id, i, run, speed, lit: [mark idx], done, timer }
 function pd2WalkOn(id){ return !!(_pd2Walk && String(_pd2Walk.id) === String(id)); }
@@ -8840,12 +8916,34 @@ function pd2WalkOpen(id){
   const cv = document.getElementById('ig-canvas'); if (!cv || cv.closest('.ig-redpaper:not(.is-clean), .ig-signpaper')) return false;
   if (pd2FillOn(id)) pd2FillStop();
   if (pdMidUp()) pdMidClose();
-  _pd2Walk = { id: String(id), i: 0, run: false, speed: (_pd2Walk && _pd2Walk.speed) || 'normal', lit: [], done: false, timer: 0 };
+  _pd2Walk = { id: String(id), i: 0, run: false, quick: false, speed: (_pd2Walk && _pd2Walk.speed) || 'normal', lit: [], done: false, timer: 0 };
   pd2NotesPaint(c); try { pdGlanceRepaint(); } catch (_){}
   return true;
 }
-/* a paper that has just arrived (roomHomeLand's arrival) offers the walk; nothing plays until it is pressed */
-function pd2WalkArrive(id){ if (!pd2On()) return false; setTimeout(() => { const c = pdContract(); if (c && String(c.id) === String(id)) pd2WalkOpen(id); }, 0); return true; }
+/* A PAPER THAT HAS JUST ARRIVED IS READ BEFORE YOUR EYES (owner, 12 Nov 2026, picked "Read plays by itself"; REVERSES
+   "nothing plays until it is pressed"): roomHomeLand's arrival opens the walk AND plays it, so each note beside the paper
+   comes up as the read reaches its clause; Pause and × stop it. Only an arrival plays: "Watch the read" still opens it still */
+const PD2_WALK_ARRIVE_TRIES = 40;   // × 150ms: the paper is drawn after the arrival's own read of the contract
+const _pd2WalkShut = new Set();     // contracts whose read the reader put away with × this sitting: nothing reopens it
+function pd2WalkArrive(id){ if (!pd2On()) return false;
+  let n = 0;
+  /* asked again until the arrived paper is the one in front (it may still be loading), bounded */
+  const go = () => { if (pd2WalkOn(id)) return; const c = pdContract();
+    if (c && String(c.id) === String(id) && pdOnPaper() && document.getElementById('ig-canvas') && pd2WalkOpen(id)){ pd2WalkPlay({ quick: true }); return; }
+    if (++n < PD2_WALK_ARRIVE_TRIES) setTimeout(go, 150); };
+  setTimeout(go, 0); return true; }
+/* JAMBO STARTS THE CLAUSES READ (stkRun): the walk on the paper runs with it, quick — opened if it is not, quickened if
+   it is walking at a chosen speed; never one the reader paused or put away, never another contract's paper */
+function pd2WalkWithRead(id){
+  if (!pd2On() || _pd2WalkShut.has(String(id))) return false;
+  const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper()) return false;
+  /* only beside the Clauses tab, where that read is seen (never over the Redlines face and its switch) */
+  if (!document.querySelector('#ig-dock #pd-thread')) return false;
+  const W = _pd2Walk;
+  if (W && String(W.id) === String(id)){ if (W.run && !W.quick){ W.quick = true; W.withRead = true; } else if (!W.run && !W.i && !W.done){ pd2WalkPlay({ quick: true }); W.withRead = true; } return true; }
+  if (pd2WalkOpen(id)){ pd2WalkPlay({ quick: true }); _pd2Walk.withRead = true; return true; }
+  return false;
+}
 function pd2WalkClose(){
   if (!_pd2Walk) return;
   clearTimeout(_pd2Walk.timer); _pd2Walk = null;
@@ -8900,30 +8998,38 @@ function pd2WalkPaint(){
 function pd2WalkStep(){
   const W = _pd2Walk; if (!W || !W.run) return;
   const X = pd2WalkCtx(); if (!X) return pd2WalkClose();
+  /* a quick run belongs to the clean paper: switched to the redline, their view or the signing copy, it puts itself away */
+  if (W.quick && X.cv.closest('.ig-redpaper:not(.is-clean), .ig-signpaper')){ pd2WalkClose(); return; }
+  /* one that ran with the Clauses read goes when the Clauses tab does */
+  if (W.quick && W.withRead && !document.querySelector('#ig-dock #pd-thread')){ pd2WalkClose(); return; }
+  /* a QUICK run that reads to the end puts itself away: every note stays out and the paper's own line comes back */
+  if (W.i >= X.S.length && W.quick){ pd2WalkClose(); return; }
   if (W.i >= X.S.length){ W.run = false; W.done = true; pd2WalkPaint(); try { pdGlanceRepaint(); pd2WalkPanelDown(); } catch (_){} return; }
   const sec = X.S[W.i], quick = pd2WalkReduced();
   const len = sec.els.reduce((n, e) => n + String(e.textContent || '').length, 0);
-  const dur = quick ? 0 : Math.max(260, (420 + len * 4.2) * PD2_WALK_SPEEDS[W.speed]);
+  const dur = quick ? 0 : W.quick ? PD2_WALK_QUICK_MS : Math.max(260, (420 + len * 4.2) * PD2_WALK_SPEEDS[W.speed]);
   pd2WalkPaint();
   const sc = document.getElementById('ig-paper-scroll'), r = sec.els[0].getBoundingClientRect();
   if (sc){ const b = sc.getBoundingClientRect(); if (r.top < b.top || r.top > b.bottom - 120) sc.scrollTo({ top: sc.scrollTop + (r.top - b.top) - 80, behavior: quick ? 'auto' : 'smooth' }); }
   const mine = X.M.map((m, k) => ({ m, k })).filter(x => x.m.si === W.i);
   mine.forEach((x, j) => { const t = quick ? 0 : dur * (0.35 + 0.5 * j / Math.max(1, mine.length));
     setTimeout(() => { if (!_pd2Walk || _pd2Walk !== W || !W.run || W.lit.includes(x.k)) return; W.lit.push(x.k); pd2WalkPaint(); try { pdGlanceRepaint(); pd2WalkPanelDown(); } catch (_){} }, t); });
-  W.timer = setTimeout(() => { if (!_pd2Walk || _pd2Walk !== W || !W.run) return; W.i++; pd2WalkStep(); }, dur + (quick ? 0 : 120 * PD2_WALK_SPEEDS[W.speed]));
+  W.timer = setTimeout(() => { if (!_pd2Walk || _pd2Walk !== W || !W.run) return; W.i++; pd2WalkStep(); }, dur + (quick || W.quick ? 0 : 120 * PD2_WALK_SPEEDS[W.speed]));
 }
 /* the panel follows the facts down as they land (the drawing's own), so the next doors are in sight at the end */
 function pd2WalkPanelDown(){
   let el = document.querySelector('#ig-dock .pd2-dossier.is-walk'); if (!el) return;
   while (el && el !== document.body){ const st = getComputedStyle(el); if (/(auto|scroll)/.test(st.overflowY) && el.scrollHeight > el.clientHeight){ el.scrollTop = el.scrollHeight; return; } el = el.parentElement; }
 }
-function pd2WalkPlay(){
+function pd2WalkPlay(opts){
   const W = _pd2Walk; if (!W) return;
-  if (W.run){ W.run = false; clearTimeout(W.timer); pd2WalkPaint(); try { pdGlanceRepaint(); } catch (_){} return; }
+  /* Pause ends a quick run: Continue then walks at the chosen speed */
+  if (W.run){ W.run = false; W.quick = false; clearTimeout(W.timer); pd2WalkPaint(); try { pdGlanceRepaint(); } catch (_){} return; }
+  W.quick = !!(opts && opts.quick);
   if (W.done){ W.i = 0; W.lit = []; W.done = false; }
   W.run = true; pd2WalkStep(); try { pdGlanceRepaint(); } catch (_){}
 }
-function pd2WalkReset(){ const W = _pd2Walk; if (!W) return; clearTimeout(W.timer); Object.assign(W, { i: 0, run: false, lit: [], done: false });
+function pd2WalkReset(){ const W = _pd2Walk; if (!W) return; clearTimeout(W.timer); Object.assign(W, { i: 0, run: false, quick: false, lit: [], done: false });
   const sc = document.getElementById('ig-paper-scroll'); if (sc) sc.scrollTop = 0; pd2WalkPaint(); try { pdGlanceRepaint(); } catch (_){} }
 /* Jambo's panel while the read is watched: his line, then each fact in its group with its clause; at the end, the doors */
 function pd2WalkFaceHtml(c){
@@ -8956,7 +9062,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   if (!_pd2Walk) return;
   if (t.closest('[data-pd2-wk-play]')){ e.preventDefault(); pd2WalkPlay(); return; }
   if (t.closest('[data-pd2-wk-reset]')){ e.preventDefault(); pd2WalkReset(); return; }
-  if (t.closest('[data-pd2-wk-close]')){ e.preventDefault(); pd2WalkClose(); return; }
+  if (t.closest('[data-pd2-wk-close]')){ e.preventDefault(); if (_pd2Walk) _pd2WalkShut.add(String(_pd2Walk.id)); pd2WalkClose(); return; }
   const sp = t.closest('[data-pd2-wk-speed]'); if (sp){ e.preventDefault(); _pd2Walk.speed = sp.getAttribute('data-pd2-wk-speed'); pd2WalkPaint(); return; }
   const go = t.closest('#ig-dock [data-pd2-wk-go]');
   if (go){ e.preventDefault(); const id = _pd2Walk.id, k = go.getAttribute('data-pd2-wk-go'), key = go.getAttribute('data-pd2-wk-key') || '';
@@ -8969,9 +9075,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   if (e.key === 'Escape' && _pd2Walk && !(e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]'))){ pd2WalkClose(); }
 });
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
-Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
+Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
-Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,

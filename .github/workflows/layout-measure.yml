@@ -1,0 +1,39 @@
+# THE BUG LOG'S LAYOUT FAULTS, MEASURED (owner, 12 Nov 2026: browser checks for the newest bug-log layout faults).
+# A measuring instrument, not a test: it prints REAL / NOT SEEN / NOT REACHED for each fault at the owner's three
+# screens and never fails a run. It runs only when the measuring script itself (or this file) changes on a pushed
+# branch, or when somebody starts it by hand, so the ordinary checks are not slowed by it.
+name: layout measure
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'test/chromium/_audit/buglog-layout-measure.js'
+      - '.github/workflows/layout-measure.yml'
+
+concurrency:
+  group: layout-measure-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    name: layout measure
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx playwright-core install chromium
+      - run: node test/chromium/_audit/buglog-layout-measure.js
+        env:
+          HATI_AGENTS_AUTO: 'off'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: buglog-layout-shots
+          path: test/chromium/shots/buglog-layout/
+          if-no-files-found: ignore
+          retention-days: 14

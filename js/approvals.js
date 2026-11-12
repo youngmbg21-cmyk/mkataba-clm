@@ -1629,16 +1629,31 @@ function openSignerPlanEditor(c, opts){
      "Juno Logistics Ltd" — a company in a box that asks for a person — and the
      route counted it as named. The slot opens on the person the record knows,
      or empty with the question that fills it. */
-  if(!plan.length){
+  /* ---- THE NAMES TYPED ON THE PAPER ARE SHOWN HERE TOO (owner, 12 Nov 2026) ----
+     Opened while a contract is being filled in on the paper, the window is
+     handed the names typed on its signature lines (opts.typed). They join the
+     rows after the route as it stands, never twice, and nothing is saved until
+     Save route. An empty route still opens with a slot for a side nobody was
+     typed for. */
+  const typed=((opts && Array.isArray(opts.typed))?opts.typed:[]).filter(s=>s && String(s.name||'').trim());
+  const sameSigner=(a,b)=>{ if((a.party==='counterparty')!==(b.party==='counterparty')) return false;
+    if(a.memberId && b.memberId) return String(a.memberId)===String(b.memberId);
+    const n=v=>String(v||'').trim().toLowerCase(), x=n(a.email), y=n(b.email);
+    return !!n(a.name) && n(a.name)===n(b.name) && (!x || !y || x===y); };
+  const wasEmpty=!plan.length;
+  typed.forEach(s=>{ if(plan.some(p=>sameSigner(p,s))) return;
+    plan.push({ ...s, id:'sg_'+Math.random().toString(36).slice(2,7), order:plan.length+1, signed:false }); });
+  if(wasEmpty){
+    const hasUs=plan.some(p=>p.party!=='counterparty'), hasThem=plan.some(p=>p.party==='counterparty');
     const me=(typeof currentUser==='function' && currentUser())||null;
     const them=(typeof counterpartyContact==='function'?counterpartyContact(c):null)||{};
     const theirName=them.name && !signerIsCompany(c, { party:'counterparty', name:them.name }) ? them.name : '';
-    plan.push({ party:'internal', name:me?me.name:'', email:me?me.email:'',
+    if(!hasUs) plan.unshift({ party:'internal', name:me?me.name:'', email:me?me.email:'',
       role:(me&&typeof signerTitle==='function'?signerTitle(me):'')||'',
       memberId:me?me.id:'' });
     /* THEIR ADDRESS IS THE ADDRESS BOOK'S main contact (4 Oct 2026). */
     const book=(typeof contactEmail==='function')?contactEmail(c):'';
-    plan.push({ party:'counterparty', name:theirName,
+    if(!hasThem) plan.push({ party:'counterparty', name:theirName,
       email:book||them.email||c.counterpartyEmail||'', role:'', memberId:'' });
   }
   signerRouteWindow(c, plan, back);
