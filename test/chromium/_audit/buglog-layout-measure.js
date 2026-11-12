@@ -123,10 +123,14 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
         await until(page, () => typeof cuCustomers === 'function' && cuCustomers().length > 0, null, 10000);
         const who = await page.evaluate(() => { const all = cuCustomers(); const long = all.slice().sort((a, b) => String(b.name).length - String(a.name).length);
           const pick = long.find(r => !(r.needs || []).some(x => x.it && x.it.kind === 'request')) || long[0]; if (pick) cuSelectParty(pick.key); return pick ? pick.name : null; });
+        /* in the new look the list's panel carries no such button: the party's own page carries it, worded
+           "Start a new agreement with …" (cunPartyPanelHtml) — the same door, measured there */
+        if (!(await until(page, () => !!document.querySelector('[data-cu-draft-with]'), null, 5000)))
+          await page.evaluate(() => { const all = cuCustomers(); const long = all.slice().sort((a, b) => String(b.name).length - String(a.name).length)[0]; if (long && typeof cuOpenCustomer === 'function') cuOpenCustomer(long.key); });
         await until(page, () => !!document.querySelector('[data-cu-draft-with]'), null, 8000);
-        const E = await page.evaluate(() => { const b = document.querySelector('[data-cu-draft-with]');
-          if (!b || !b.getClientRects().length) return null; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); const p = document.getElementById('ins-panel'); const pr = p ? p.getBoundingClientRect() : null;
-          return { text: (b.textContent || '').trim().slice(0, 70), right: Math.round(r.right), panelRight: pr ? Math.round(pr.right) : null, spills: !!(pr && r.right > pr.right - 15), cut: b.scrollWidth > b.clientWidth + 1, lines: Math.round(r.height / (parseFloat(getComputedStyle(b).lineHeight) || 18)) }; });
+        const E = await page.evaluate(() => { const bs = [...document.querySelectorAll('[data-cu-draft-with]')].filter(x => x.getClientRects().length); const b = bs.find(x => x.closest('#ins-panel')) || bs[0];
+          if (!b || !b.getClientRects().length) return null; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); const p = b.closest('#ins-panel') || b.closest('section, aside'); const pr = p ? p.getBoundingClientRect() : null;
+          return { inPanel: !!b.closest('#ins-panel'), text: (b.textContent || '').trim().slice(0, 70), right: Math.round(r.right), panelRight: pr ? Math.round(pr.right) : null, spills: !!(pr && r.right > pr.right - 15), cut: b.scrollWidth > b.clientWidth + 1, lines: Math.round(r.height / (parseFloat(getComputedStyle(b).lineHeight) || 18)) }; });
         if (!E) say('E', nm, 'NOT REACHED', { party: who, why: 'no "Draft an agreement with" in the panel' });
         else say('E', nm, (E.spills || E.cut) ? 'REAL' : 'NOT SEEN', Object.assign({ party: who }, E));
         await page.screenshot({ path: path.join(OUT, `E-${nm}.png`) });
