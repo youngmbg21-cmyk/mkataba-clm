@@ -37230,3 +37230,15 @@ NOT FIXED (BUGLOG): the read table on Discover still wears the old Reads head; a
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — NO OUTLINES WHERE A PAPER'S DETAILS ARE TYPED (12 Nov 2026)
 The owner, with screenshots of the Fill in form showing a thick green box around the field being typed in: "I never want to see outlines especially thick outlines in entry fields in HaTi for papers." The box was the house's general focus ring (`input:focus-visible`, `--focus`). One rule now takes the ring off on the three places where a paper's details are typed: the Fill in form, Key terms in the middle, and the lines on the paper. Key terms' boxed fields became underlines like the form's. The field you are in shows by its underline growing to 2px. Measured: the focused field's outline went from "solid 2px" to none and its box-shadow from a 2px green ring to none. f1024 is red at the parent. Left as they are: dialogs, search boxes, buttons, and the old look.
+
+## THE DETAILS TAB — A COMPANY STANDARD'S FIELDS ARE FILLED ON THE PAPER (12 Nov 2026)
+The owner, about their MK-469 lease: "for some reason when i go to fill in on paper, it pushed me to the page in image 4". Asked which to fix, they said: "Fix all company-standard contracts so fields can be filled on the paper."
+Cause: `contractHasBlanks` answers false for a contract with a `templateForm`, so `contractBlanks` gave the fill-on-paper walk nothing. Only the two signature lines were offered. The panel's last line named every field "no place on the paper", although the paper drew each one (`.hati-field[data-field-key]`). A press on one fell through to contract.js's `_homeAnswerWired` handler, which opens the form.
+Built:
+- `pd2FillBlanks` asks `pd2FillTplBlanks` first. It returns every typed field (text, number, address, date, choice) as kind `tplform`. Signatures stay with signing, and files and stamps with the form (`PD2_TPL_SKIP`). A signed record returns nothing.
+- A choice is a `<select>` with the standard's own options. HaTi's list (selectMenuWire) opens on it, and its pick, a "change", lands through a listener of its own.
+- Each row is headed by the paper's heading (`pd2FillSecOf`, off `pd2WalkSections`).
+- Save writes each answer through `tplFormCommit`, then fills the wording once with `tplFormApply`, as the in-paper popover does.
+- `_homeAnswerWired` now stands aside for a press inside a line being typed. This was also true of an upload's lines.
+- The Clauses tab's preamble card keeps to the paper's own blanks (`kind !== 'tplform'`).
+Tried by hand on a four-field lease: the four lines appeared, Save stored the three answers given, and the wording carried them. The Handbook's 2.3 text names a standard's fields; its pictures are of an upload and were not re-taken.
