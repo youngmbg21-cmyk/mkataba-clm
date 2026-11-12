@@ -68,10 +68,12 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
          rule sets) and, once laid out, where the words actually start */
       try {
         await page.evaluate(() => setView('jambo'));
+        await until(page, () => !!document.querySelector('[data-jh-ptab]'), null, 10000);
+        await page.evaluate(() => { const t = document.querySelector('[data-jh-ptab="points"]'); if (t) t.click(); });
         await until(page, () => !!document.querySelector('.jh-kpis > div'), null, 10000);
         await page.evaluate(() => { const k = document.querySelector('.jh-kpis'); if (k) k.scrollIntoView({ block: 'center' }); });
         await until(page, () => { const d = document.querySelector('.jh-kpis > div'); return !!d && d.getBoundingClientRect().width > 0; }, null, 5000);
-        const B = await page.evaluate(() => [...document.querySelectorAll('.jh-kpis > div')].map(d => { const r = d.getBoundingClientRect(), cs = getComputedStyle(d);
+        const B = await page.evaluate(() => [...document.querySelectorAll('.jh-kpis > div, .jh-res > div')].map(d => { const r = d.getBoundingClientRect(), cs = getComputedStyle(d);
           const kids = [...d.children].map(k => k.getBoundingClientRect()).filter(k => k.width);
           return { padTop: parseFloat(cs.paddingTop), padLeft: parseFloat(cs.paddingLeft), shown: r.width > 0,
             left: kids.length ? Math.round(Math.min(...kids.map(k => k.left)) - r.left) : null, top: kids.length ? Math.round(Math.min(...kids.map(k => k.top)) - r.top) : null }; }));
@@ -90,8 +92,10 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
           if (typeof updateIntelNote === 'function') updateIntelNote(); });
         await until(page, () => !!document.getElementById('ig-save'), null, 6000);
         const C = await page.evaluate(() => { const b = document.getElementById('ig-save');
-          if (!b || !b.getClientRects().length) return null; const rs = b.getClientRects(), r = b.getBoundingClientRect(), cs = getComputedStyle(b);
-          return { lines: rs.length > 1 ? rs.length : Math.max(1, Math.round((r.height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / (parseFloat(cs.lineHeight) || 18))), h: Math.round(r.height), w: Math.round(r.width), groupBy: intel.groupBy }; });
+          if (!b || !b.getClientRects().length) return null; const r = b.getBoundingClientRect(), cs = getComputedStyle(b);
+          const rg = document.createRange(); rg.selectNodeContents(b); const tops = new Set([...rg.getClientRects()].filter(q => q.width).map(q => Math.round(q.top)));
+          /* lines counted from the words' own boxes (a 24px control with a 15.6px line is ONE line, not two) */
+          return { lines: tops.size, ws: cs.whiteSpace, h: Math.round(r.height), w: Math.round(r.width), groupBy: intel.groupBy }; });
         if (!C) say('C', nm, 'NOT REACHED', '"Save view" did not show with the map grouped');
         else say('C', nm, C.lines > 1 ? 'REAL' : 'NOT SEEN', C);
         await page.screenshot({ path: path.join(OUT, `C-${nm}.png`) });

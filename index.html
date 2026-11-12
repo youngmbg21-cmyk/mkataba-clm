@@ -10950,6 +10950,9 @@
      head itself is folded on the element (it carries an inline display);
      this rule takes the grouped-by line with it. */
   #ig-page.ig-focus #ig-note{display:none}
+  /* THE MAP'S LINE: its links (Save view, Clear all, Undo, Stop) never break across two lines (BUGLOG 22020, measured on
+     GitHub 12 Nov 2026: "Save view" took two lines at all three screens); a link that does not fit moves down whole */
+  #ig-note .ui-link{white-space:nowrap}
   /* ---- THE DIVIDER BESIDE THE PANEL (27 Sep 2026) ----
      The Document tab's and the Negotiate page's handle, the same values: a
      14px press over the seam, a 4px grip in the quiet grey, the accent under

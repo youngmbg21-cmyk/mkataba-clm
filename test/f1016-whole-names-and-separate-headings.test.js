@@ -44,3 +44,10 @@ test('f1016 (2) a heading is not glued to its first sentence; the wording hash p
   assert.equal(before, 'Duration of confidentialityThe obligations survive.', 'the fault, as it was');
   assert.equal(after, 'Duration of confidentiality The obligations survive.', 'fixed');
 });
+
+test('f1016 (3) 16px inside the agents\' figure cards; the map\'s line keeps each link on one line', () => {
+  const J = stripCom(read('js/views/jambohouse.js'));
+  assert.match(J, /\.jh-kpis > div\{[^}]*padding:16px/, 'the four figures (BUGLOG 21941: 7px 9px)');
+  assert.match(J, /\.jh-res > div\{[^}]*padding:16px/, 'the three results, the same kind of card (6px 8px)');
+  assert.match(stripCom(read('index.html')), /#ig-note \.ui-link\{white-space:nowrap\}/, 'Save view, Clear all, Undo, Stop (BUGLOG 22020)');
+});
