@@ -119,7 +119,7 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         foot: [...document.querySelectorAll('#modal-root .dl2-foot button')].map(b => b.textContent.trim()) }));
       check(`${nm} 3 the close plan: one table, a point opens to compare side by side`, /^The close plan/.test(d3.title)
         && d3.heads.join('|') === 'Point|Highland Corporate Ltd|Parcelway Logistics Ltd|Stand'
-        && d3.rows.length === 1 && /Liability/.test(d3.rows[0][0]) && d3.rows[0][1] === '12 months' && d3.rows[0][2] === '6 months'
+        && d3.rows.length === 1 && /Limitation of liability/.test(d3.rows[0][0]) /* as on the paper (owner, 12 Nov 2026) */ && d3.rows[0][1] === '12 months' && d3.rows[0][2] === '6 months'
         && d3.cmpCols === 2 && d3.cmpMarks && d3.foot.includes('Send'), d3);
       await page.screenshot({ path: path.join(OUT, `close-plan-${nm}.png`) });
       await back(page);
