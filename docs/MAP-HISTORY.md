@@ -1549,7 +1549,6 @@ Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.
 
-
 ----- 12–13 Aug 2026 run: the card, the message, the bell, the chip, one true
 sentence, and a contract that grows -----
 
@@ -2143,7 +2142,6 @@ catch. Both axes are clamped now; the horizontal one had always been there and
 this is its twin. Nobody asked for it and it is not a side quest: it is the
 change's own consequence, found by the file that exists to find it.
 
-
 ----- 13 Aug 2026: a refusal you gave has a way back -----
 
 A REFUSED CARD HAD ONE VERB, AND IT WAS THE WRONG ONE
@@ -2203,7 +2201,6 @@ the verb, and reopening their refusal is not ours to do), the counterparty's
 page (their seat holds its answers, so it has its own two ways back with their
 own rules about what has left their page), and any read-only copy.
 
-
 ----- 13 Aug 2026: the control row folds one rung at a time -----
 
 A CLIFF WHERE THERE SHOULD HAVE BEEN A LADDER
@@ -2262,7 +2259,6 @@ measures where the fold actually lands at the widths customers have — every
 word on screen from 1280 to 1920, one line at every one of them, the rungs
 never taken out of order as the window narrows, the door keeping its count at
 every rung, and the words coming back when the width comes back.
-
 
 ----- 13 Aug 2026: the smallest type is 8, and the page still fills the column -----
 
@@ -2761,7 +2757,6 @@ browser file per screen changed. The suite runs cost more wall-clock than the
 two fixes and the twenty-five reversals combined, and most of the re-runs
 bought nothing a targeted file had not already proved.
 
-
 ## THE NEW DESIGN — the routing rows, the pop-out's retirement, the square corners, and the Copilot's sub-paragraph note (16 Aug 2026)
 
 Four pieces landed in one pass, three of them the finishing moves of the
@@ -2846,7 +2841,6 @@ f95's "one radius" claim was split in place: the columns and cards keep the
 14/12px family, the sheet and the panel are square, and the drift the test
 exists to catch is still caught.
 
-
 ## THE SOLO SEND, THE DOTTED LINE, AND THE NAV-COLOURED PILLS (16 Aug 2026)
 
 Three owner asks in one message, after the routing rows merged.
@@ -2898,7 +2892,6 @@ in the blue one — so the theme, and the dark theme, come free and the two
 controls can never disagree with the shell about what colour this workspace
 is. f210's emerald claim re-pointed at the token.
 
-
 ## HISTORY | + NOTES — THE PANEL OPENS CLEAN (16 Aug 2026)
 
 Owner-asked: "On the edit panel, add a button next to edit that shows history
@@ -2925,7 +2918,6 @@ the notes appeared while the switch still wore "History" dark. jsdom resolves
 no cascade and reads no pixels; the class-flip tests were all green. The face
 now flips in rlCpSetNotes beside the state, f210 pins it, and clause-door-verify
 measures the COMPUTED hide/show in a real browser.
-
 
 ## WORK BIG, RECEIPTS SMALL — AND THE TYPE ONE SIZE UP (16 Aug 2026)
 
@@ -3656,7 +3648,6 @@ header rather than in a strip", or "this adds 40 pixels above the contract and
 here is what has to come out to pay for it", or "there is already a door onto
 this and it is on the other tab". Those are the sentences that would have
 prevented most of the reversals recorded above.
-
 
 # THE DAY-BY-DAY REPORTS, MOVED HERE 27 Aug 2026
 
@@ -4712,7 +4703,6 @@ contradicted: it is true while the spacer and the two-line footer reservation
 stand, and taking those out is the half of the ask it did not cover. The
 platform's 2px corner from that merge is kept. `--hm-tile-h` is STALE.
 
-
 # THE RULEBOOK AS IT STOOD ON 11 Sep 2026, before the second condensing (owner-asked)
 
 CLAUDE.md had grown to 1.35 MB (about 220,000 words) and was loaded whole at the start of every session and again after every compaction, so it was taking a third of the working window before any work began. It was condensed to short standing rules the same day, owner-reviewed. Every section below is that file verbatim, so nothing is lost: section headings match the condensed CLAUDE.md, and this is where the full story, quoted report and reasoning behind each rule now live. Some sections already had a story above; this block supersedes nothing and repeats it deliberately, because an archive that skips a section is one somebody has to go and check.
@@ -4982,7 +4972,6 @@ several files, run those files, together, in ONE command
 running only those until they pass. Only then does the full suite run, ONCE, to
 catch what you did not think to look at. That last run is not negotiable and is
 not what this rule is about; it is the twelve before it that are.
-
 
 The full suite takes **5m17s** a run — MEASURED 21 Aug 2026, 4,101 tests in 873 suites; the "3+ minutes" that stood here was an estimate and had drifted. A browser file starts a real Chrome and costs 11–40 SECONDS, not the 2–5 minutes claimed here (measured the same day across all 55 of them; the minutes were a guess nobody had timed). That second number is what made `run-all.js` possible. The recipe for any change:
 - **THE PROOFREADER RUNS FIRST AND COSTS SECONDS**: `npm run lint`. It answers the one question nothing else in this project asked — is every name being called a name that exists — and it is the check that would have caught rlPaperFootHtml in a second rather than in a year. Zero errors is the bar; the ~137 warnings are unused locals and are a tidy-up list, deliberately not an alarm (see eslint.config.js, which explains every rule and holds KNOWN_ABSENT — the standing list of functions this app calls that nothing defines).
@@ -5637,7 +5626,6 @@ THE HEAD IS ONE LINE (owner-asked, 13 Aug 2026: "move the highlighted sentence t
 Insights has FOUR tabs since 26 Aug 2026 — Portfolio · Negotiation friction · Obligations · Contract graph — and opens on Portfolio (js/views/portfolio.js, rendered by renderIntel): six panels every business gets. LIVE = everything except Declined — the same definition aiPortfolioSnapshot uses; f151 pins that all surfaces count the same book. NOT on the phone — deliberate (listed under More; note lives in M_DESK).
 
 THE SHAPED FILL: project-shaped panels (workload runway, money held back, live promises, won/lost) or a renewal runway for standing agreements. Which shapes, and the word for a piece of work, are COMPANY settings (js/workshape.js; org record, browser fallback, PUT /api/org/workshape). wsIsProject() is the ONE classification rule — the Settings suggestion, the panels and their counts all call it. Won/lost is the one panel past the live book: won = Signed, lost = Declined, still out = Under Review or draft with a live share; no new status invented.
-
 
 ## OBLIGATIONS HAVE A HOME (owner-asked 29 Aug 2026 — J-2.1, WORKORDER-29-aug.md)
 
@@ -10445,7 +10433,6 @@ The catalogue had a FLOOR (keep at least one) and no ceiling: eleven metrics, al
 - THE PANEL NOW SURVIVES A TICK. A toggle repaints the dashboard and the popover hangs inside #content, so every tick used to destroy it. Survivable while a reader could ADD a metric; with a ceiling every change is a SWAP, and a swap became untick → reopen → tick. kpiApply() re-opens against the freshly drawn button (the old node is gone), and the outside-press listener is dropped on re-open instead of stacking one per tick (_kpiPopOff).
 - The FLOOR is untouched and still refuses in its own words (home_keep_one_metric). Tests: f3 (the arithmetic, the migration case, the predicate, and that neither shell keeps its own copy of the number), kpi-four-verify (19, browser — the disabled/dimmed pixels, a real press on a locked row doing nothing, the whole swap journey with the panel staying open, and the phone).
 
-
 ## THE SHELL: A 44px DARK BAR AND A WHITE 240px COLUMN (owner-ruled 24 Aug 2026)
 
 **THIS REVERSES 23 Aug's "the doors are white and the live one sits deeper", and the reasoning behind that day carries straight over.** The ask then was that a door read as strongly as possible against its ground and that the live one be marked by DEPTH rather than a veil. Both still hold; the GROUND moved. On white, "as strongly as possible" is the primary ink, and "deeper" is a filled well rather than a darker green.
@@ -10620,7 +10607,6 @@ Key terms / Document / Signing / History. renderWorkspace (js/views/contract.js)
 THE ROOM'S BACK ARROW GOES TO THE CONTRACTS PAGE, ALWAYS (owner-asked 17 Aug 2026: "it should always take me to the contracts page… never the negotiations page which sometimes it does"). goBack (wireRoomHead) used to replay state.wsReturn — "wherever you came from" — so a room reached from the Negotiations list sent the reader back there, while the arrow's label said "Back to Contracts" (the label map never knew 'redline' and fell through to the register's name): one button, five destinations, and a label that lied on exactly the reported one. Now setView('register') is a CONSTANT, the ONE survivor is a stream drawer (r.view==='folder' — the contracts page narrowed, and the label names the drawer), and both label sites collapsed to destination-not-origin (ct_back_queue/intel/calendar/portfolio/reports/advice are orphaned — left inert in the dictionary; ct_back_register now reads "Contracts", the page's own name). THE OTHER ARROW IS NOT THIS ONE: the workbench's data-back="contract" still lands on the Document tab, untouched — that page's only way out. Tests: f91 (the source shape — register a constant, origin not replayed, folder the one survivor), negotiations-door-verify 7b (the exact reported journey: room reached FROM the negotiation, back pressed, Contracts lands, the label agrees).
 
 THE HEAD IS BUILT ONCE PER RENDER, so anything on it that changes underneath the reader needs a SLOT and a paint, called from applyWsTabs: #ws-tabrow-end → wsPaintTabRowEnd (the Document tab's door + text stepper), #ws-round-needs-slot → wsPaintRoundNeeds (the amber count on the round line). Wire where you PAINT, never also in wireRoomHead/wireWsTabs — both re-run and handlers stack.
-
 
 ## THE NEGOTIATION MEMO (owner-asked 9 Sep 2026)
 
@@ -14523,7 +14509,6 @@ round down a standing link, with the toast's ground read off `#toast-root` and
 **polled rather than slept for**, because an 'ok' toast clears itself after
 2600ms and a fixed wait long enough for the send is also long enough to miss it.
 
-
 ## ONE HEADER TOP, ON ALL TWELVE PAGES AND AT EVERY HEIGHT (owner-asked 25 Aug 2026, three times)
 
 *"For all the headers, the distance from the edge on top of the screen to the
@@ -17491,7 +17476,6 @@ CONTROLS that pass either way** — an empty book must draw no desk at all, and
 dismissing the desk's renewal must put that same contract INTO the decisions
 list, which is what proves 11h was a filter rather than an empty list).
 
-
 ### A letter put away keeps its renewal row away, and a held step is not chased (27 Sep 2026)
 
 Found while building the Copilot's work page, which reads this desk whole, and fixed on Young's word: *"fix the two problems you found."*
@@ -19112,7 +19096,6 @@ clause-door-verify 16d4/16d5, paper-grows-verify 5d/6, settled-ask-reopen-verify
 "the adopted change has no card"; plain-english-verify 6c, which C-7 left red
 by taking the upload's one painted h-tag, re-pointed to `painted <= 1`.
 
-
 ## NOTES ARE ONE SYSTEM — THREE DOORS, ONE DRAWER, AND THE THREAD GOES OUT TO WORD (Young asked 11 Sep 2026)
 
 THE OWNER'S WORDS, in the afternoon of 11 Sep 2026, off the clause editor with a passage held in Copilot's rail and the Document tab's highlight menu:
@@ -19206,7 +19189,6 @@ The owner measured Copilot against the code and wrote an eight-phase order (WORK
 8. **The blind spots.** get_obligations and get_contract_history on both hosts, every reading borrowed, folder scope through the one door, money walled (a trail line about money is dropped whole and counted for a no-values reader — coarse on purpose), pinned as writing nothing (the record byte-identical after both calls), never on the counterparty's page.
 
 Tests: f305 (33 claims). Walls kept: no writing tool, no scope widened, fxHome/fxMissing/contractCurrency untouched, no screen changed, the named caps untouched.
-
 
 ## THE BUILD PLAN — GROUPS 1 TO 5 (13 Sep 2026)
 
@@ -20211,7 +20193,6 @@ Left red, and pre-existing at the parent: redline-verify 5 (a selection menu
 that draws where that check expects none), ladder-verify 5b (the key's swatches
 against the marks' colours), and the one lint error in
 test/chromium/overview-as-drawn-verify.js.
-
 
 ## THE REDESIGN — THE REFERENCE'S CLOTHES ON HaTi'S BODY (Young's overnight order, 20–21 Sep 2026)
 
@@ -21484,13 +21465,11 @@ Three screenshots and one request off the Maersk SaaS agreement, the morning aft
 
 **UPLOAD MOVED BEHIND THE ONE BUTTON.** The owner chose doors over tabs by leaving the recommendation standing; `openNewAgreement()` called by a person (no options) opens the two doors, and every internal caller passes options and is untouched. Five browser files that pressed the button to reach the drafting screen now press the Draft door, re-pointed in place.
 
-
 ## NINE OFF THE OWNER'S LIST (Young's go, 23 Sep 2026)
 
 **THE THIRD PLAIN ENGLISH REPORT WAS NOT A READING FAULT.** The two before it were: pages too big, a ceiling on the whole edition. This one showed "56 clauses could not be matched" — every page answered, and the server threw the answers away. Each entry had to echo its row's heading exactly after folding case and space. A Word contract's headings carry curly quotes, tabs, long bold lead-ins; the model tidies what it copies; every tidied echo was a refusal, and past a quarter refused the whole edition was not kept. The echo was built to catch a SHIFT (11 Sep: an entry filed under its neighbour's key). So the judge now asks which row the echo describes: its own → paired; another row of the whole list → refused; none → the key decides. And the clauses still unpaired are re-asked by themselves once, so "try again" is HaTi's job, not the reader's.
 
 **THE OTHER EIGHT** were small: the dropdown's own scroll reached a page-scroll listener in the capture phase and shut it; our row had no email because nothing had ever been asked to find one (the owner's address, looked up); the town box went on the owner's word; Who else keeps its hand-named rows and gains a reading of who worked on the contract, drawn and never stored; the Document tab forgot nothing it should have remembered and remembered the one thing it should not; the X-ray map's grey blocks were an absence printed once per clause; Send to counterparty opened the same dialog as Share beside it; the X-ray panel's sizes were tokens that never met the stepper; and the two clean readings went from every switch, their renderers kept.
-
 
 ## SEVEN FIXES OFF ONE REVIEW (Young's go on the before-and-after preview, 23 Sep 2026)
 
@@ -21632,7 +21611,6 @@ The swap is three token edits because the fonts already flowed through four toke
 **TWO ROWS, AND WHAT "NOTHING MORE" LEFT OUT.** The rows are the card's own, in its own order (reviews owed, quiet desks, join requests, signatures with something before them, renewal decisions, contracts sitting in review), and exactly two are drawn on every screen — a number, not a measurement: the fitted list (hmFitDecisions, a floor of four and a ceiling of forty) is not back, and neither is the line of time. A CAP IS A FACT: the head counts the whole list and "See all" opens every contract on it. The list was lifted into one reading, hmDecisionItems, so the rows, the count in the head, the See all door and the checks that press it cannot disagree. The desk above evicts the renewals it draws from this list again, the day-old rule restored as it stood. The two bell rows added when the card left stay: the bell says everything owed to you, the card only the first two.
 
 **TWO SMALL THINGS ON THE WAY.** A tag was escaped twice (once where the row was built and once where it was drawn); it is a plain string now and escaped once. And the empty line drew a frame of its own inside the card's frame — the rows had a rule taking that frame away and the empty line had been missed — so "Nothing to decide" reads as one line under the heading, not a box in a box (photographed before and after; f382 pins the name escaped once).
-
 
 ## TWO COPIES OF ONE CONTRACT — THE WORKING COPY AND THE SIGNING COPY (Young ruled 25 Sep 2026, picks 1A 2B 3A 4A 5A 6A)
 
@@ -21788,7 +21766,6 @@ The swap is three token edits because the fonts already flowed through four toke
 
 **THE GATES.** Lint 0 errors, one warning fewer than main (`srvPartiesNegotiating` is used now). The node suite: every failure left is one main fails identically — f277 (1) and (10), f387 (2e) and (4c). f388: 51 claims, all 51 red at the parent. redline-here-sign-there-verify: 29 checks, 28 red at the parent — the one that passes is the staging line (the upload dialog reads a file on both), and the file is GUARDED: where the walk stops, every check it did not reach is reported by name, read off the file's own calls, and a missing control costs five seconds rather than the driver's thirty. The whole browser set: 151 files, 44 red on the branch; the 44 run again on main's code — 43 red there with the same failures word for word, and the 44th was settings-groups (above), 33/33 after the move. The colour census's output is byte-identical to main's.
 
-
 ### A FILE THEY SIGN HAS NO BLANKS FOR US TO FILL (Young, 26 Sep 2026)
 
 Off a screenshot of an uploaded commercial lease, the Document tab's right-hand column showing *Blanks in this document · 0 of 29*: *"if the contract is being signed out of hati and the contract is simply being used to negotiate the clauses, these fields are irrelevant I would presume."*
@@ -21804,7 +21781,6 @@ Off a screenshot of an uploaded commercial lease, the Document tab's right-hand 
 **A READING, NEVER A DELETE**: answers already typed stay on the record, and the browser check switches the route back through the route card's own link and finds the panel, every mark and the kept answer where they were left. **THE HANDOVER'S OWN CHECK IS A DIFFERENT QUESTION AND IS UNTOUCHED**: a placeholder written into the agreed words (`[insert amount]`, `[COMPANY NAME]`, `{{key}}`) still holds the handover (`outsideBlanksOf`), because whatever is in the file is what they sign. Ruled lines like the lease's `[______]` never did.
 
 Tests: f342 sections (7) and (8) — 14 claims, 11 red at the parent (f4d1604); 7g and 8d are CONTROLS, 7h a WALL. 8e was added on the last read-through: what Copilot filled before a route switch stays named, and only the open count — a claim about now — goes. upload-blanks-verify section 9 presses the Signing tab's own door (`#sign-paper`, then `#cf-ok`) on the document section 1 measured — 3 of 10 red at the parent, which prints *"5 boxes · heading Blanks in this document"*; 9a is the GATE and six are CONTROLS that hold on both sides. f347 (3d) re-pointed in place: it pinned `fl.left` by spelling, and the count now rides in `left` so the route reading can correct it.
-
 
 ### A BLANK THEY FILLED IN IS NOT A CHANGE (Young ruled 26 Sep 2026: "yes, accept the filled-in blanks without asking")
 
@@ -22014,7 +21990,6 @@ Tests: f399 (23 claims in five sections — walls, registration, both books, the
 
 **AND THE DOOR MOVED UP, AND INSIGHTS MOVED DOWN, THE SAME DAY.** The owner's order had three parts — build it, merge it, then *"move it to be after the home page then move insights to below calendar"* — and the last part was done as a second change on top of the first. The place directly after Home had been Insights' since 21 Sep ("Insights tab should be after home page"), which had reversed 19 Sep's "after Obligations". Copilot's work takes that place, and Insights closes the Work group below Calendar. It is markup order and nothing else, as both earlier moves were: every door keeps its data-view, the "New" badge travels inside the Insights block, the four svg colour rules are keyed on the attribute. The note beside the Insights door names the ruling it reverses, which f338 (3f) holds. Two browser claims in four-off-the-screenshots-verify (3a, 3c) had been red since 21 Sep because they still described the 19 Sep place; they are re-pointed in place to the new one rather than left describing a place nobody wants.
 
-
 ### The brief that opened empty, and panels as full as the drawing (27 Sep 2026)
 
 Two reports in one message, the same day the page was built: *"for many cards in there when i click on read brief, the panel comes up but it has no brief in it but when i go through the overview door the brief works. Also, the copilot cards are not comprehensive or detailed compared to the mock up in the artifact."*
@@ -22036,7 +22011,6 @@ How "updates itself" was made real: the server reads its own files (js/ and serv
 The one fault found by driving the real app: the page asked `api('/api/brain')`, and api() adds the prefix itself, so it asked for /api/api/brain and the update list said the code could not be read. The two explanation cards on the concept page ("Three views, one brain", "It updates itself") were not carried into the product: a page does not explain itself under its own title; the updates heading's hover carries that sentence instead.
 
 Tests: f400 (22 claims, all red at the parent 972d681 — none of the files exist there), brain-page-verify (25 checks in a real browser, every one but the page-error sweep red at the parent).
-
 
 # CLAUDE.md AS IT STOOD ON 27 SEP 2026 — SAVED WHOLE BEFORE THE THIRD CONDENSING (owner-asked: "Trim the rulebook back to rules only")
 
@@ -24024,7 +23998,6 @@ Diagnosed off a Warehousing agreement and a Maersk SaaS upload; the owner approv
 - MEASURED: first ink unmoved on the Document tab (271.9) and up 1px on the negotiate page (287.7 → 286.7).
 Tests: f377 (9 of 10 red at the parent; the monospace is the WALL), type-and-symbols-verify section 1 reversed in place.
 
-
 ## THE TABLE'S FOOT IS THE COUNT AND THE PAGER (Young ruled 24 Sep 2026)
 
 *"delete this from both the contracts and negotiations pages"*, over the VALUE STREAMS key and "40 per page"; asked about Negotiations' own note in that spot: *"remove it too."*
@@ -24358,7 +24331,6 @@ THE ANSWERS. Explorer has two answer paths. The chat path already went through `
 
 Tests: f424 (6)(7); analyze-on-the-graph-verify 0a–0e (0a/0b red at the parent 86260ee on the graph path; 0c–0e red there too); f277 13d re-pointed.
 
-
 ## INSIGHTS — EXPLORER DRAWS A BRAIN (Young, 28 Sep 2026)
 
 > *"review the explorer nodes design and make create options of how to make it similar to the brain option in the brain page without impacting the PAPER page"* — then, over seven rounds of an artifact: *"i hate all the options"* (kept: the brain shape, many small glowing dots, flows that light up, Wiring and Floors views, details "always, but small"); *"it should also be able to bundle … especially when in the brain and wiring mode"*; *"i need to use my mouse to turn them around. Currently only the brain moves"*; *"remove all these filters. the idea is the filters should come from asking a question in copilot"*; and *"Built it but start from the latest main."*
@@ -24528,7 +24500,6 @@ The shared checks: f433 (the grammar, 6 of 6 red at acdbe727) and insights-fit-v
 
 Found by CI after the build (laptops-verify, red on the PR, green at acdbe727): on a short laptop (1366 × 638, 1536 × 734, 1280 × 590) the grid sat at its 600px floor and gave the risk map a 93px box, but the map draws no shorter than PF_RISK_H_MIN (140), so it ran 6px out of its card and over its own key — at 1440 × 790 it overlapped the key by 28px without leaving the card, which no check saw. Now the box's floor IS the map's floor and the bottom row is `minmax(auto,1fr)`, so the row takes the room the map needs and the page scrolls a little. f434 (7) pins it.
 
-
 ## THE COUNTERPARTY'S PAGE — WHERE WE ARE, NOTES AND FOCUS OUT OF MORE, A REASON AFTER EVERY SAVE (Young, 29 Sep 2026)
 
 Asked (with screenshots of their page and our History tab): "the notes / chat button should not be hidden and neither should be the focus mode. Just like in the owner page, for every redline, when you save the notes option should come up so you can enter a reason ... this is where the customer will see their working progress ... add tabs for them to see the history ... the only feature you should not give is the copilot feature." Three options were drawn in one artifact (Room tabs · One column · Where we are); Young picked "Where we are": "implement where we are to hati".
@@ -24540,7 +24511,6 @@ Asked (with screenshots of their page and our History tab): "the notes / chat bu
 - THE REASON ON THEIR SEAT IS NOT A NOTE: our seat opens the notes drawer after filing; theirs cannot, because a note posts to us at once while the change it explains is still held on their page until Send. `rlNoteAskAfterFile` routes the counterparty to `portalAskReason` (a multiline `promptDialog`), which stores the change's own `why` in `PORTAL_NEGO_PROPOSED`; `portalRespond` already carries `why`, and our side reads it as "Why they asked".
 - DATES IN WORDS: every expiry date their pages printed as `slice(0,10)` goes through `portalDayWords` (the heads of the negotiation, signing and history pages, the dormant page, the bell's expiry row, the adviser dialog).
 - TESTS RE-POINTED IN PLACE: f143 (a tab is not a reading verb), f181 and portal-header-verbs-verify (Focus on the control row, not in More -- the claim turned over a second time), live-verify (the tab is not measured as a button), their-side-verify and their-edit-page-verify (a save now asks why; the stages skip it). parity.html `SHOW_COUNTERPARTY` opens the Redlines tab unless a stage asks for `{ tab:'landing' }`. New: f439, where-we-are-verify.
-
 
 ## THE COUNTERPARTY'S PAGE — ROUND TWO: SIGNING TAB, COPIES, THE CHECK BEFORE SEND, THE STRIP GOES, WHOSE TURN (Young, 29 Sep 2026)
 
@@ -24671,7 +24641,6 @@ Young, of the notes panel: *"You can see how the notes panel looks like which is
 **WHAT THE NETS COST, and two of them taught the same lesson twice.** f444 (5) sliced 400 characters BACKWARD from the tick's own attribute and so was really asserting "nothing root-gated is drawn just above the tick"; re-ordering the row put Done inside that window and it went red while its claim stayed true — re-pointed to capture the tick's OWN guard. f333's adviser wall pinned a whole ternary including its `: undefined` else branch, which now carries `srvMsgScope` — re-pointed to ask each branch. **PIN THE REGION, NOT A BYTE COUNT**, for the third and fourth time in a fortnight. Six more nets reached for the outside room by the literal key `"external"` and were swept to `[data-rl-np-room]:not([data-rl-np-room="internal"])` — the relation, not the key. f304 (1)'s ruling was REVERSED IN PLACE: round two ruled the pin says Internal / External, and the second half of that is gone, because a contract can hold several outside parties and "External" cannot say which.
 
 Tests: f446 (45 claims, **32 of 35 red at unmodified main**, and the three that pass are named controls). Its section 9 drives the real server with two outside parties and two links; at the parent it fails on `AND NOT THE OTHER PARTY'S`, which is the leak reproduced. notes-two-rooms-verify gained the pixels (the width as a RELATION to `RL_RIGHT_W0`, read off the page rather than typed; the paper ending before the drawer; the verbs on one line). Re-pointed in place: f173, f264 (8), f302 (1), f303, f304 (1), f333 (9g), f444 (5).
-
 
 ## HOME — THE BOARD AND THE MAP (3 Oct 2026)
 
@@ -26115,7 +26084,6 @@ Young's artifact (four options; "Shelf" recommended) was reviewed, added to the 
 - The thumbnail draws the normal range (a dashed band, at least ten chart units tall so a narrow range is still seen) and lights the month it is about; the open chart is the board's own and untouched. A finding's sentence may take two lines: "60 days in Sept 2026 · your normal 30–32 days · company 53 days" lost its end on one.
 - Tests: f460 (16 of 17 red at unmodified main), f459 (D) re-pointed to the furniture, insights-shelf-verify rewritten (23/23: yours first, the range drawn, Open on "my contracts", Keep "Your payment days…", a quiet day, the usual pictures both ways).
 
-
 # CLAUDE.md AS IT STOOD ON 4 OCT 2026 — SAVED WHOLE BEFORE THE FOURTH CONDENSING (owner-asked: "yes, trim the rules file")
 
 It had grown back to 118 KB against the "under about 80 KB" set on 27 Sep. Every section below is the file verbatim; the condensed rules file keeps each heading (short form) so a grep for one finds the other.
@@ -26791,7 +26759,6 @@ The owner read the process review (16 findings, published as an artifact) and sa
 - Re-measured: the 25-question review shows no regressions. One gained: "total value under management".
 - Tests: f483 (17 tests; 15 red at unmodified main, the other two guard what must not change); this-is-the-open-chart-verify 12/12 (3/12 at main). The pinned line in f425 (6) and f426 (4) now reads `(igPaperUp()||boardUp)`.
 
-
 ## CLAUDE.md BEFORE THE 4 OCT 2026 EVENING TRIM — HOME AND INSIGHTS, VERBATIM
 
 - Young: *"fix the axis labels and trim the rules file"*. The file stood at 82.7 KB. These two sections are kept here exactly as they stood, and the rules file carries the shorter forms. Every function and test name is kept there.
@@ -26813,7 +26780,6 @@ The owner read the process review (16 findings, published as an artifact) and sa
 - Panels `HB_KINDS`; watch → bell kind `watch` (`hbWatchAlerts`); give → `/api/home/gifts` (member id, a NAME not a figure); Present + pointer + pen (`hbPresent`, nothing kept). The board is the person's own record (`hati.v1.homeBoard.<uid>`); place `PLACE_PARTS.dashboard` = `hbPlace`/`hbPlacePut`.
 Tests: f447, f448 (the phrase book is the pass mark: a failing phrasing goes there first), f450, f459, f460, f461, f482, board-answers-the-question-verify, f381, f382, f3, f274, f395, home-board-verify, home-page-verify, home-one-list-verify, insights-shelf-verify, desk-comes-back-verify.
 
-
 ## INSIGHTS
 
 - COUNTING IS NOT DRAWING: each panel is a `*Data` function + a renderer; `pfPanelData`/`PF_PANEL_DATA` the one door (keys stable English); both Copilot hosts read `get_insights_panel`. Five tabs `IG_TABS` (Portfolio · Negotiation friction · Obligations · Payment terms · Exposure; Explorer lives on Home, `intelGoTab('map')` → `hbOpenExplorer`). Copilot's notice is PRINTED (`IG_QUIET`, `igNoticeHtml`).
@@ -26832,7 +26798,6 @@ Tests: f447, f448 (the phrase book is the pass mark: a failing phrasing goes the
 - The Portfolio Health Report and the Weekly review are deterministic standalone documents. Charts js/aichart.js (Chart.js from `vendor/`); the AI names a KIND, never data.
 Tests: f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f427, f429–f438, f441, f457, f459 (A), insights-fit-verify, insights-panels-verify, portfolio-frame-verify, obligations-report-verify, friction-fits-the-screen-verify, explorer-verify, explorer-brain-verify, explorer-recipe-verify, explorer-magnitude-verify, explorer-paper-knows-what-changed-verify, analyze-on-the-graph-verify, map-asked-bubbles-verify, owners-fifteen-verify.
 
-
 ## THE PROCESS REVIEW'S FIXES (4 Oct 2026, owner: "build all the fixes") — story in MAP-HISTORY.md
 - REQUESTS: raised → editors in scope mailed (`notifyIntakeRaised`, prefs.notifyIntake) + bell `request`; lanes run on the SERVER (`runIntakeLanes`, one rule js/intakelanes.js); status `drafted` until the contract leaves Draft (`srvIntakeCloseOn`, `intakeContractSent`); Draft it = `openNewAgreement` + `intakePrefillOf`, claimed in `contractArrived`. Stale: `intakeRunLanes`, `intakeLaneSweep`. Tests: f460 (requests), f461.
 - ONE ADDRESS BOOK: `contactSet` the one writer (js/participants.js), `contactsOf`/`contactEmail` readers; record/party/route emails are MIRRORS (`contactFollow`, `contactMirror`); `contactAdopt` on arrival. Upload and amendment call `contractArrived` (amendment still lands on Document); amendment value null. No Import or Our standards rail door (`ct_upload_several`). Tests: f479–f481.
@@ -26840,7 +26805,6 @@ Tests: f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424�
 - LOCK AND WORDS: an ask lives while the asker beats (`/here`); `clauseLockHandOverAsk` the one hand-over (picker), also on the paper (`rlLockMineSignHtml`). Blanks dialog dismissal stays. A verb on a parked ask goes to its counter. Words: "Held back" = reviewer only; their page "not yet sent"; ladder "Step n"; filter Our asks / Their asks. Tests: f473, editor-lock-words-verify.
 - SIGNING: `signLinkRefusal` is the ONE issuing check (hold · desk · review · named yes · rules · check · address) at every signing-link door; POST /api/shares walls hold/desk/check; the counterparty hears `SC_NOT_READY`. "Advise" is one reading both hosts (js/signgate.js `sgHolds`). Rule steps: refusal needs a reason, approver mailed when due + reminded (`ruleStepTell`, `runRuleStepReminders`), last cleared → owner told (`ruleChainClearedTell`). Rules page `rules` (`stRulesRows`); group `signing`. `contractDecline` is the decline act. Tests: f463, f466, f467.
 - READINGS AND RENEWAL: a tile older than the wording says so, one press re-reads (`triageReadingStale`, `ktTriageReread`); `obligationsReadAt` full ISO. Obligation proposals arrive UNTICKED. A renewal answer starts its act (`renewalDecisionAct`); the card shows `renewalNextStep`. Tests: f475.
-
 
 ## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (4 Oct 2026)
 
@@ -26973,7 +26937,6 @@ The NL4DV pattern. Three known places where the free reader's words can mean mor
 - Panels `HB_KINDS`; watch → bell `watch` (`hbWatchAlerts`); give → `/api/home/gifts` (member id, a NAME not a figure); Present + pointer + pen (`hbPresent`, nothing kept). The board is the person's own record (`hati.v1.homeBoard.<uid>`); place `PLACE_PARTS.dashboard` = `hbPlace`/`hbPlacePut`.
 - STALE: `hbNeedsData`, `HB_NEED_IC`, `HB_NEED_MAX`, `[data-hb-need]`, `hb_work_title`, `hbFindParty`, `hbPartyIds`, `fd:`, `HB_CHART_VIEWS`, `hbDigView`, `data-hb-digview`; `HB_INS_MIN_MOVE`, `HB_INS_CP_*`, `HB_INS_REN_SHARE`, `hb_ins_t_*_up/_down`, `hb_ins_t_ren`, `hb_ins_s_ren`, `hb_ins_t_cp`, `hb_ins_s_cp` (keys inert).
 Tests: f447, f448 (the phrase book is the pass mark: a failing phrasing goes there first), f450, f459–f461, f482, f483, f381, f382, f3, f274, f395, home-board-verify, home-page-verify, home-one-list-verify, insights-shelf-verify, read-then-ask-verify, board-answers-the-question-verify, this-is-the-open-chart-verify, desk-comes-back-verify.
-
 
 ## A NEW CLAUSE IS HELD IN EDIT WITH COPILOT (Young chose to build it, 5 Oct 2026)
 
@@ -27127,7 +27090,6 @@ PROVED: at unmodified main f507 (6)–(10) fail every claim (20) and thread-draw
 - THE SHELF (`hbInsightsToday`, `s.ins`, `hbInsFinding` off its own normal, `hbInsScope`, `hbInsUsual`, Keep = `hbAddView`, `hbKeptSync`). READ, THEN ASK: ONE builder `hbReadBlockHtml`, ONE source `hbReadSrc`, `hbWhyAsk` → `.hb-why` (`hbWhyCheck`, `s.why`); `hbBigBtnHtml`. Panels `HB_KINDS`; watch `hbWatchAlerts`; give `/api/home/gifts`; `hbPresent`; record `hati.v1.homeBoard.<uid>`; place `hbPlace`/`hbPlacePut`.
 - STALE: `hbNeedsData`, `HB_NEED_*`, `[data-hb-need]`, `hb_work_title`, `hbFindParty`, `hbPartyIds`, `fd:`, `HB_CHART_VIEWS`, `hbDigView`, `data-hb-digview`, `HB_INS_MIN_MOVE`, `HB_INS_CP_*`, `HB_INS_REN_SHARE`, `hb_ins_t_*`/`hb_ins_s_*` (inert).
 Tests: f447, f448, f450, f459–f461, f482, f483, f496–f502, f381, f382, f3, f274, f395, home-board-verify, home-page-verify, home-one-list-verify, insights-shelf-verify, read-then-ask-verify, board-answers-the-question-verify, this-is-the-open-chart-verify, one-recipe-language-verify, copilot-builds-the-board-verify, check-and-repair-verify, preview-and-undo-verify, choices-when-unclear-verify, desk-comes-back-verify.
-
 
 ## HOME — THE BOARD THAT ANSWERS RIGHT (the overnight work order, 5 Oct 2026)
 
@@ -27328,7 +27290,6 @@ Recommendations taken as the owner's answers: risk titles "Topic and Problem"; s
 - Re-pointed: f459's shelf furniture check (Keep · Open · Read more · let go); insights-shelf-verify 1f and section 6.
 - Tests: f538 (4 checks, 3 red at ede3c10 — "nothing spent on paint" is a control), insights-shelf-verify 6a–6d.
 
-
 ## CLAUDE.MD TRIM, 7 OCT 2026 (owner: "Trim CLAUDE.md under 80KB and merge to main")
 
 CLAUDE.md was 89.7 KB. Six MAP sections were condensed in place (HOME — THE BOARD AND THE MAP, INSIGHTS, THE THREAD, EDIT WITH COPILOT, RISKS TO LOOK AT, THE PROCESS REVIEW'S FIXES); each is kept below VERBATIM as it stood, with every name, STALE list and test it carried. Nothing else in CLAUDE.md changed (the Bug Fix Rules, the scope rules and every other section untouched).
@@ -27390,7 +27351,6 @@ STALE: `RK_ADVICE_IDS`, `riskGoDraft`, `riskAfterPaint`, `riskDraft`, `riskFile`
 - SIGNING: ONE LINK CHECK for every link kind, `linkRefusal(c,{purpose,keep})` (table `LINK_ASKS` = server `SRV_LINK_ASKS`, `srvLinkRefusal`, `srvLinkStrip`; sign = `signLinkRefusal`; advise = hold only); ONE ASK RECORD `c.asks` (js/asks.js, both hosts; writer `askOpen`/`askAnswer`/`askLapse`, readers `asksOf`/`askOpenFor`, `asksAdopt` at read time; approvalChain/signApprovals/review/suggested are MIRRORS that keep their walls; `askLapsed` FAILS CLOSED; server `srvAsksMerge` as a difference); `SC_NOT_READY`; "Advise" one reading (`sgHolds`); rule steps need a reason, mail and remind (`ruleStepTell`, `runRuleStepReminders`, `ruleChainClearedTell`); Rules page `rules` (`stRulesRows`), group `signing`; `contractDecline` the decline act. READINGS: a stale tile re-reads (`triageReadingStale`, `ktTriageReread`); obligation proposals arrive unticked; a renewal answer starts its act (`renewalDecisionAct`, `renewalNextStep`).
 - THE SIX GAPS (owner: "build the six remaining gaps"): lane drafts have an owner (`intakeLaneOwner`, `srvLanesStamp`, `notifyLaneDrafted`) and are read on arrival (`arrivalOwed`, POST /api/contracts/:id/arrival, `intakeLaneArrivals`); ADVICE IS A KIND OF REQUEST (tabs `rqKindTabsHtml`, view `advice` lights Requests, `requestsDoorCount`; rail `data-view="advice"` and `nav_advice_desk` STALE); our Word file reads back exactly (`richListMark` as text, no `numPr`; `HatiPaper*` lines dropped by `docxIsPaperPara`; `DOCX_UI_CLASSES`).
 Tests: f460 (requests), f461, f463, f466, f467, f470–f473, f475, f477–f481, f485–f495, editor-lock-words-verify, lane-drafts-verify, advice-is-a-request-verify.
-
 
 ## EXPLORER — FOLD IN EVERY VIEW (CELL BUBBLES) (6 Oct 2026)
 
@@ -27753,7 +27713,6 @@ Tests: f238, f310, f312, f377, f385, f386, f458 (9), contrast-verify, compact-la
 - THE BRAIN (js/views/brain.js, js/brainmap.js): read from the code (`brainRead`, `GET /api/brain`), writes nothing. A NEW FEATURE IS NAMED IN `BRAIN_PARTS` AND PUT IN A FLOW or it draws as a grey pending dot (join an existing step; a new file gets a `BRAIN_FILE_REGION` line). Tests: f458 (1), f561 (every change updates the Brain; see THE NINE FLOW RULES).
 Tests: f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, agents-page-verify, brain-page-verify, no-link-to-sign-verify, agents-do-the-work-verify.
 
-
 ## HOME FIRST (8 Oct 2026)
 
 Young, over the "Home first" section of the agents proposal: "Yes to all decisions, build them." The five decisions: answers lead with Open on Paper / Show on the Board and the Contracts page last; walk a set on Paper with Previous and Next; the Paper's side panel (start with Facts, Obligations and Signing; History and Deal next — all five were built, as History and Deal are one existing reading each); Review on a Board card about one contract (approvals, renewals, late promises) opens it on Paper with the right tab; the answer's first line is always the plain answer, the machine summary moved to the hover.
@@ -27810,7 +27769,6 @@ FOCUS OFF HOME'S PAPER (Part D) reverses decision 10's "Focus is the full size" 
 
 **Found by the full browser run before merging (same evening).** (1) Clean hid AGREED changes too, so the paper showed the old wording (explorer-paper-knows-what-changed 1, 4a): Clean now hides only changes still open, and an agreed change keeps its words with its marks taken off. (2) The Signing tab shares the Document tab's column and had taken the new ground and gap, which nobody asked for: scoped to a column holding the working copy. compact-ladder's Refusal 3 ceilings for the Document tab and Negotiate were re-measured (271.9 → 297.0, 287.7 → 317.8): the owner's "No differences at all" with Home's 29px gap is the lift. (3) A designed paper on Negotiate lost its heading letterfit (negotiate-design 4c): the type rules skip a paper whose wrapper carries `data-doc-body`. (4) The clause spacing rule hit paragraph lines that also carry `.rl-clause`, breaking their hanging numbers (clause-editor 34d): scoped to `.nego-clause.rl-clause`.
 
-
 ## THE OVERVIEW REDESIGN (8 Oct 2026) — under "THE OVERVIEW — READ DOWN, ONE SHEET"
 
 Young sent a design handoff ("Contract page → Overview tab, current layout, cleaned up") and asked for a mock-up first, with HaTi's top bar unchanged, then: "the highlighted area is how the artifact needs to look like. And the terms should be exactly like the highlighted area and nothing more", and "if there are more than two parties, the additonal parties should not increase the size of the card, they should go on a scroll". Then "Go and merge to main when done".
@@ -27853,7 +27811,6 @@ Part 6 (Show as table): `hbChartTableHtml` read a piece's label only from an SVG
 Part 7 (the Track, owner-picked off "Clause Strip Options"): Home's Paper draws one rail for the whole contract in the grey margin, each flagged clause a mark at its true place down the painted paper, its number whole on a label (labels at least 20 px apart, pulled inside, a leader to each mark — `igTrackLayout`), a window over the part on screen. The labels carry the strip's `data-xr-seg`, so the hover card, the press and the Ask question are the strip's own. `igTrackFits` measures the margin to the SHEET's edge (`canvas.closest('.pg-sheet')`); narrower than 70 px + 4, today's 28 px strip is drawn. At every desktop width measured the margin was 95 px or more, so the fallback is a guard; track-on-the-paper-verify forces a narrow margin to prove it. The artifact's note that the strip is also on the Document tab was out of date (removed with the Thread, 5 Oct 2026).
 
 Tests, each red at unmodified main first: f565, f566, f567; board-dropdown-on-top, board-balance, track-on-the-paper, home-speed verify files.
-
 
 ## THE OVERNIGHT RUN, 9 OCT 2026 — THE PAPER AND COUNTER REVIEW AND THE 70 REVIEW ISSUES
 
@@ -28005,7 +27962,6 @@ OUR PAPER. One white band carries the name, the tab's facts (the book's three fi
 
 IMPORT. Not built. The drawing's three steps end in "File them", but today a dropped file is filed the moment it is read (migBuildAndSave in migProcessFiles) and the server reads it afterwards. A real third step means holding contracts back until a person presses File — a change to how import works, not to how it looks — so it waits on the owner.
 
-
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (second round, 9 Oct 2026)
 
 Owner: "Apart from our paper, they all need to be built the SAP way. For the Import contracts, just make sure there is a White bar at the top … Also space the KPI cards equally at the top … Okay. Now finish the job for batch 2".
@@ -28025,7 +27981,6 @@ Owner, with a screenshot of Contracts: "Our paper the book needs to be like the 
 ## DESIGN OPTIONS — ONE OPTION IS ALWAYS "THE SAP WAY" (9 Oct 2026)
 
 The owner, after the SAP benchmark batch 2 page (the library pages, drawing beside built): *"I want that moving forward as we build new Additions to hati, there should always be a theme for the SAP way in the design as a rule but you can choose to ignore it. For instance if i ask for proposals for a design, at least one of them should be the sap way. Can we add this as a rule?"* Added as one sentence in CLAUDE.md's DESIGN OPTIONS section: every set of options carries one drawn the SAP S/4HANA way (the benchmark batches' look). It counts toward the three (not a fourth on top), may be passed over in the recommendation, but is never missing.
-
 
 ## CLAUDE.MD TRIM, 9 OCT 2026
 
@@ -28116,8 +28071,6 @@ Tests: f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline
 - Risks tab = `ceRiskAnswerHtml` over `riskAnswerOf` (card `rk:0`); suggestions show ONLY WHAT MOVED (`ceRedlineHtml(…,{changedOnly})` → `redlineShownBlocks`, `redlineBlockIsHead`; Apply carries the whole clause). Facts `ul.ce-read` a shaded column; Suggested wording printed whole, the lane scrolls as one; ONE risk footer `#ce-rksug` (`ceRenderRiskSug`, `ceRiskDocks`, `ceCardApplied`).
 - THEIR SEAT (`ceSide()`, `ceNoAi()`): no Copilot, no locks. Lock: `POST /api/contracts/:id/lock` only. STALE names (Expand `#ce-full`/`ceFullOpen`, votes, refine, `.ce-disc`, Playbook scan/Figure tabs…): MAP-HISTORY "CLAUDE.MD TRIM, 8 OCT 2026" and 7 Oct.
 Tests: f245, f249, f250, f287, f289, f304, f505, f508, f523, f537, clause-editor, clause-door, one-copilot-editor(-plain), copilot-panel-tidy, selected-card-and-advice, panel-tidy-and-risk-footer verify files.
-
-
 
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (9 Oct 2026)
 
@@ -28444,7 +28397,6 @@ Young, after reviewing the "HaTi Proposals" artifact part by part: *"build all f
 - **My notes (Part 4).** The ledger Young kept, with + New note made interactive: the form in the side panel, Save grey until there are words, a contract found by part of its reference, the review choices saying what will happen. Found by repeating the browser check: once in six runs the caret missed the note box (a timer raced the repaint); the paint now places it.
 - Brain: `mynotes`, `mine`, the four /api/me/items routes and POST /api/ai/plan joined the sign flow's keep step beside the calendar.
 
-
 ## CALENDAR — ONE CARD, CALENDAR + COPILOT (11 Oct 2026)
 
 Young, 11 Oct 2026, with a screenshot of the HaTi Proposals artifact (Part 3, Week): "Note that you failed to build the copilot next to the calendar per the artifact. Build it exactly as designed". The first build (10 Oct) drew Copilot only as the Week view's side card, kept Next 14 days beside the Month, drew Monday to Sunday, put the layers in the page head and made only the day's number a door to its week.
@@ -28476,7 +28428,6 @@ The owner sent three screenshots of the artifact (the side list, the ⋯ menu, t
 - Today's insights its own card; "The agents" door; legend squares switch a series off and on (the name stays the group's door).
 - Every one of the 14 Board browser checks that went red was green at main f995201 — all were this work's, and all were re-pointed with a dated comment.
 
-
 ## CLAUDE.MD TRIM, 11 OCT 2026
 
 Owner-asked ("Yes, trim CLAUDE.md"), 11 Oct 2026: CLAUDE.md was 99 KB. The rules sections were left as they were; 23 MAP sections were condensed to their rule, names and tests, and the preamble's size history became one line. Each original below, verbatim.
@@ -28494,19 +28445,16 @@ The preamble's size line, as it stood:
 - "Waiting on them" is true only by the SERVER's `srvReach` (`_reach`, `reachTake` the one writer, stripped on save); `negoTheirCopy(c)`; `negWhoseMove` asks `negoUnsentAsks` first; which link is theirs: `standingShareFor` over `answerableNegotiation`; live catch-up `refreshLiveShareQuietly`.
 Tests: f154–f159, f161, f162, f164, f186, f190, f17, f174, f412.
 
-
 ### THE OVERVIEW — READ DOWN, ONE SHEET
 - `js/section.js` is the grammar (`sectionHtml`, `sectionWire`). THE REDESIGN (8 Oct 2026): `.ov-top` = Read the brief (the ONE filled button), Edit `data-ov-edit="all"` + Fill; ESSENTIALS `#ov-ess`: parties `.ov-pty-list` (scrolls, `contain:size`; a row = avatar · name + `.ov-pty-us` "Our side" · one `.ov-pty-sub` line; every page carries `format-detection` so Safari underlines nothing), terms = the EIGHT `OV_ESS_REST` (`ovEssRestHtml`), Edit draws the SAME eight as boxes (`ovEssEditHtml`), Edit never grows the card, filing stays on ⋯ (`ws-filing` → `ovOpenFiling`); parties in Edit = the DIRECTORY (`participantsDirHtml`, `data-pt-pick`). DUTIES map `#ov-map` (`ovMapData` → `ovMapSvg` 600×310; motes on `animateMotion`; a node's place on an outer `<g transform>` — Safari, f442 (9); panel `ovMapPane`, a duties side drawn as the Settled card: `.ov-map-ch` header + one flat `.ov-map-list`, `ovMapDutyRow` mark · one line · date; no duties → `.ov-map-empty`). The terms card NEVER GROWS: an answer is two lines at most, longer scrolls in its cell (owner, 9 Oct 2026). Then Related agreements (`renderKeyTermsSide`). Signing route said on the party's row (`data-ov-route`).
 - THE TERMS CARD: labels bold, answers not (owner picked "Headed", 10 Oct 2026; `#ov-ess .ov-ess-g` only — the 20 Sep "a name is not bold" rule stands elsewhere; overview-as-drawn 8b/8d).
 - Label `tab_overview`, KEY stays `'terms'`; `ktFactReads(c)` the one reading; `signFieldMarks(c)`; `focusKeyTerms`. Long form + STALE names: MAP-HISTORY "CLAUDE.MD TRIM, 9 OCT 2026".
 Tests: f176, f178, f280, f325, f351, f352, f359 (10), f361, f362, f442, duties-map, edit-keeps-the-card, overview-as-drawn, refile-a-contract, overview-and-obligations-polish verify.
 
-
 ### AN AMENDMENT IS WRITTEN HERE (js/family.js)
 Create MINTS A DRAFT AND FILES IT (counterparty, address, party, stream, letterhead, valueType; NOT value, dates, obligations, signers), English names (`RELATION_DOC_WORD`, `amendmentOrdinal`), lands on the Document tab (the one exemption from `roomOpenOnTerms`); live only on an executed agreement (`amendmentExecuted`), else greyed with its way forward. `openCreateAmendmentModal`: blank (pick clauses) or Copilot (POST /api/ai/amend, quotes checked); `c.amends`/`c.amendFacts` are SUGGESTIONS (`amendSuggestions`). The amended deal is a READING (`effectiveExpiry` executed children only, server `effExpiryReader`; `effectiveTerm`, `effectiveValueView`, `asAmendedHtml`/`docAsAmendedOn`); `proposedExpiry` amber; `obligationSurfacesChanged`.
 - Its ruled lines are fill-panel boxes (`ownBlanksOn`/`ownBlanksLive` — Draft, editor, nothing on the table, RAW; ONE writer `ownBlankSet` writes INTO the wording as `hati-field-done[data-field-key=own_N]`; `ownBlanksPaint`); not a signing hold. Its paragraphs are the side panel's parts (`docReadOwnPaper`, `_docReadItemNum`). A child document is never "missing" a standard (`pbInParentVerdicts` in the review's stamp, server `srvInParentVerdicts` → `na` + `inParent`).
 Tests: f193, f176, f170, f544, amendment-journey-verify, amendment-blanks-and-clauses-verify.
-
 
 ### THE SHELL — RAIL, BAR, PANELS
 - One white rail, three groups (Work · Library · Company); Insights EARNED at `NAV_EARN_AT.intel`; Import contracts after Our paper for editors (`data-edit-only`, f481). 48px bar in `--nav-bg`, `--bar-*`, WHITE focus ring. Below 1440 the rail FLOATS (`NAV_DRAWER_W`, `navDrawerActive()`; the stored preference read, never written, below the line). `#nav-toggle` hides the menu at every width (`NAV_HIDE_KEY`, `toggleNavHidden`, `navHidden`, `paintNavToggle`); "Collapse menu" `#cmd-rail` in `.nav-foot`; `#cmd-ai` the one Copilot door, ⌘K stays.
@@ -28514,7 +28462,6 @@ Tests: f193, f176, f170, f544, amendment-journey-verify, amendment-blanks-and-cl
 - ONE PANEL, THREE FACES (`PANEL_FACES`, `openPanel(face)`): ACTIVITY `#cmd-panel`, ALERTS `#hdr-notify` (`buildAlerts()`, `ALERT_KINDS`; only the work done marks one seen), NOTES `#hdr-chat` (`roomChatDoorHtml`).
 - ONE HEADER TOP (`--page-pad-t`); the room's crumb is the plain word `nav_contracts`, no back button; Negotiate's bar says `tab_negotiate`; its `#ws-back` LEAVES THE PAGE at adoption (owner, 10 Oct 2026; `.in-head`/"Back to Document" STALE) — the way back is "Open document" `data-rl-open-doc` ending the control row ("All negotiations" `data-rl-live-list` STALE, `ng_live_list` inert); `shellCrumbAdopt` takes only `.room-head #ws-back`. The language switch moves into the menu below 900px and back to where it CAME FROM (`placeLanguageSwitch`, `_langHome`). The search field is ONE rule set: a well with no edge, pressed = solid field, one 1px edge (Part 12). Brand and theme are two axes (`setBrand`/`setDark`, `applyAppearance`, pre-paint mirror f96). Layers come down on a page change (`viewLayersClosed`); `setView` records first, `viewPaint`, `keepScroll`. STALE names: MAP-HISTORY "CLAUDE.MD TRIM, 8 OCT 2026".
 Tests: f96, f187, f238, f240, f251, f264, f284, f449, f543, nav-floats, alerts-and-activity, home-page, pages-read-alike, language-switch-stays verify files.
-
 
 ### HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
 - COPILOT PREPARES, YOU PRESS (js/copilotacts.js): `HB_FACES` Board · Paper · Explorer; ask box `@`/`#` (`caMatches`); `caActOf` answers with a CARD, no model — SEND (`caReadSend` → POST /api/contracts/:id/pass, a `look` ask: `lookDone`, `runLookReminders`), DRAFT (`caReadDraft`, `draftHandOff`, mints nothing), PAPER JOBS (`caReadJob`, `caReadyDoor`). Paper highlight → `rlSelMenu`; its Comment opens Chat with the words pinned (`rlNoteFromSelection`, no pop-up; comment-from-the-paper-verify), Add to my notes → `myNotesNew`; every point a door onto the paper (`igPaperAsk`, `igCiteGo`). Folded panel = 46px "Ask Copilot" door (`.igd-door`).
@@ -28529,18 +28476,15 @@ Tests: f447, f448, f482, f483, f496–f504, f511–f521, f524–f543, f549–f55
 - THE MENUS LIST ONLY WHAT WORKS (owner, 10 Oct 2026): both recipe menus draw `hbRcShown` (the choice in use kept, a group's heading moved to its first shown choice); `hbRcOptions` still answers every option with its reason; the Trend switch is drawn only where `canTrend`. Tests: f448 (2).
 - COPILOT AND THE ANALYST C1–C8, A1–A10 (owner's "Build all C and A ideas", 10 Oct 2026; story in MAP-HISTORY): recipe as one sentence (`hbRecipeRowHtml` `is-sentence`); "Ask about this" carries a piece 10 min (`_hbAskAbout`, `hbAskAboutLine`); follow-up trail + Back one step (`_hbFuSteps`, `hbFuStepsHtml`); Explain = three points (`hbWhy3Ask`/`hbWhy3Html`), steps said in `hbReadBlockHtml`; Unusual is HaTi's arithmetic, no model (`hbOddCols`); How this was counted + door to the gaps (`hbHowHtml`, `qx:…ms`); suggestions off the open chart (`hbDataSuggestions`). Ask box: `/` moves, groupings after "by", gallery, my questions (`hbAskPopRows`, `HB_SLASH`, `HB_GALLERY`, `s.myq`), ↑ history; growth in % (`show:'growth'`), forecast a RANGE never one number (`pic:'forecast'`, `hbExtraSets` 'fc'), what-if a dashed SCENARIO never stored (`_hbWhatIf`), the pack a standalone page (`hbPackMake`). Server sets = HB sets. Tests: f658, board-copilot-and-analyst-verify.
 
-
 ### OBLIGATIONS
 
 A room tab and a worklist page, ONE builder (`obListHtml`/`obPaintPanel`); `obwBook()` + `obwPass()` the one predicate; overdue = late work somebody could do. `obligationMarkDone` the one completion writer; a repeating duty opens exactly ONE next instance (`obligationNextInstance`); `obligationAlreadyOn` stops duplicates; `obPaintAdd` the only writer of the add label. `amount` in the contract's currency (`obligationAmount`); the chain `after`, blocked = direct predecessor only (`obligationBlocked`, `srvObligationBlocked`). The chase `POST /api/contracts/:id/chase` (STORED address, `chasedAt` first). A required document `doc:{file,until}` (`obligationDocState`, `cert-lapsed`). `TEMPLATE_OBLIGATIONS` refused rather than guessed.
 - THE REVIEW DESK (O-31..O-35, 7 Oct 2026): `openObligationsReview` is the desk both doors open (groups by `obKindOf`, whose job `obWhoseOf`; Add · Edit before adding = `openObligationForm(c, seed, {saveLabel, cancelLabel, onSaved, onCancel})` · Skip/Undo); nothing pre-ticked; adds keep `party`, `amount`, `doc`, `clause`. Decisions `c.obReview` keyed by `triageWordingHash`; `obReviewTally` the ONE count (tile `tri_t_oblig_review`, door `obFindWord`). Server `obSrvClean`, `OB_KINDS` = `OB_KINDS_SRV`. THE LIST IS A TABLE, THE SAP WAY (owner picked "Table", 10 Oct 2026): `.obd-tb` Obligation · Whose job · When (head pinned), kinds as `.obd-band[data-obd-band]` rows, already-on rows `.is-already`, "Not sure" amber (`.obd-ns`); `.obd-grp`/`.obd-gh`/`.obd-chip` STALE.
 Tests: f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, obligations-tab-verify, four-inspectors-verify, review-desk-verify, amount-and-window-verify.
 
-
 ### THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (owner's "go", 9 Oct 2026; story in MAP-HISTORY)
 - REQUESTS: one tab row Open · Mine · Advice · Finished · All (`rqKindTabsHtml`; for the team Advice is a VIEW, open advice only `IK_ADV_DONE`); flat list Ref · Request · Kind · How handled · Promised by, newest first, advice as `_adv` rows (`ikAdviceRows`, `ikAdvicePanelOpts`); ATTACHMENTS `IK_FILES_MAX` 3 × 5 MB both hosts, table `intake_files`, `GET /api/intake/:id/files/:fid` to the asker or an editor in its stream, else 404 (f652). PEOPLE a table (`dirRowHtml`); SETTINGS → People a table (`stSetupHtml`), page "Settings" ("Settings & Rules" STALE). OUR PAPER: white band (`.tpl-band`), the book a shelves table in the drawing's order (`tplBookHtml`), the list an inspector (`tplListIns`), Our standards in the drawing's shape. IMPORT: white bar (`.sap-band-close`) + equal KPI cards only. Long form: MAP-HISTORY.
 Tests: f193, f244 (7), f336, f495, f652, sap-lists, advice-is-a-request, four-inspectors, calendar-* verify.
-
 
 ### THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (owner: "Build exactly the drawings of SAP way", 9 Oct 2026; story in MAP-HISTORY)
 - HEAD: `.room-band` is WHITE again (reverses 7 Oct's page ground); the bar says `nav_contracts` on every room tab (`shellTitleFor`); counterparty fact wears initials (`.room-cp`). Document/Signing: facts hidden; the paper's BUTTONS STAND ON THE TAB LINE (owner, 10 Oct 2026, reverses batch 3's tool bar): `.room-tabrow > #ws-tabrow-end`, the row wraps when narrow; buttons only — `.room-toolrow`, `#ws-lockline`/`wsLockLineHtml`, `scSourceLine`/`.sc-label` STALE (`ct_lockline*`, `sc_src_*`, `sc_signing_copy` inert). Overview: card titles "Parties (n)", "The terms", "Duties (n)" (`.ov-ess-t`, `.ov-map-title`; `.ov-map-chipt` STALE). Clauses head one line, filter segmented (`.doc-th-hd .doc-th-chips`).
@@ -28548,21 +28492,17 @@ Tests: f193, f244 (7), f336, f495, f652, sap-lists, advice-is-a-request, four-in
 - OBLIGATIONS TAB exactly as drawn (owner chose over batch 1 there; the PAGE keeps batch 1): `OBT_VIEWS` + Overdue as tabs on the card (`.obt-head`), Amount always, `ob_nobody` amber (`obWhoCellHtml(o,drawn)`), initials `obPartyOf`; `.obt-line` STALE. HISTORY: `#hist-q` search (`_histQ`), Filter fold (`_histFiltersOpen`, open while a filter is on), day headings `.hist-day-h`, row time·dot·event+`hist-rchip`+clause·person·`histOutcome` pill; the joining line and `.hist-round` column STALE. `:not(#_)` lifts a rule past the caps list (its `:is()` carries an id).
 Negotiate's row follows the white head (`#view-redline .rl-tabrow`, focus-mimics 3a). Amber waiting figure = the reader's own party (ours on our tab); their link keeps "with you" (`.ds-pt-you`). Tests: room-tabs-as-drawn-verify; deal-stands, where-we-are, status-link, their-page-parties, history-timeline, nego-redesign, f225, f380, f457, f459, f490, f622 re-pointed.
 
-
 ### CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js; owner 10 Oct 2026; story in MAP-HISTORY)
 - A READING, NOTHING FILED: one shelf per counterparty (`cuCustomers`, `cuKeyOf` case-blind, most-used spelling), Expired = `contractExpired` or Declined, else Active (`cuBucket`); archived and amendments off (`cuBook`). Rail door SECOND, right after Home (owner, 10 Oct 2026; Negotiations stays under Contracts). One page: find · stream · owner + item panel; every number reads the filtered set (`cuView`). Open customer = Contracts narrowed by its "only" chip (`cuOpenCustomer` → `regShowOnly`, ids `cuIdsOf` = agreements + their amendments); Open on Explorer = an Explorer lens + custom groups Active | Expired off `cuBucket`, recipe pushed for Undo (`cuOpenExplorer(key)`). The customer's own page is GONE (`cuCustomerHtml`, `CU_TABS`, `cu_tab_all`/`cu_title_*`/`cu_crumb_label` STALE/inert). Item-panel head acts are live (`cur.head.acts` in the inspector). Refresh: `cuPlace`/`cuPlacePut` (an old `cust` is ignored). Draft prefills the counterparty (`cuDraftFor`). Not on the phone yet.
 Tests: customers-verify, contracts-page-verify 12 re-pointed, f399, f412, f561, f564.
-
 
 ### CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 
 `regSetScope`/`regScope` first; `state.reg`/`state.regNego`; `regRepaint()`; `regFiltered` + `regNarrowed()`; doors from other pages land on fresh filters (`regFiltersAtRest`/`regGoFiltered`). Row identity: counterparty over name in one cell; the reference at `--t-label`/`--w-label`; "your move" starts at one edge (`.reg-stg-slot` sized by `regStageSlotFit`); no stream column (filter and sort stay); widths sum to 100; `regDotDate` the one day printer. On Contracts the TAB ROW IS THE STAGES (owner, 9 Oct 2026: like Negotiations) — `regStageTabsHtml`/`REG_STAGE_TABS`, counts over `regStageBase`, writing R.stage; no Stage box there, nor in Adapt; quick filters + saved views are ONE box `#reg-view-sel` (`regViewOptsHtml`, `saved:`/`act:` values, `regSaveViewAsk`/`regForgetViewAsk`; `regViewTabsHtml` no caller). Cozy/compact; Table · Board. Filter chips are invisible selects (`.reg-chip-sel`), every dropdown is HaTi's list (`selectMenuSweep`); a finger never focuses the select. Negotiations: three bands by `negWhoseMove`, Mine/Theirs/Neither, `negoNeedsYouIds`; `cohortButtonHtml` only while `regNarrowed()`. `clauseNameShown` is the ONE presenting reading of a clause name; `clauseLabel` builds a RECORD. Copilot knows the page (`aiPageContext`); answers are a worklist door (`regShowOnly`). Tests: f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, contracts-page-verify, contracts-stage-tabs-verify, counterparty-leads-verify.
 
-
 ### CALENDAR
 
 ONE CARD, CALENDAR + COPILOT (Young, 11 Oct 2026: "build it exactly as designed", the HaTi Proposals artifact Part 3): `#cal-stage` = the calendar (bar 1 ‹ Today › · title `#cal-title` · Month · Week · Horizon; bar 2, not on Horizon, layers `calLayers` · All dates/Mine · `#cal-new`) and Copilot `#cal-plan` (`calPlanHtml`, 340px) beside it in EVERY view: ask shown as a bubble, the answer, dashed violet cards Add · Discard → Added · Undo, "I read" (`cal_plan_read`), chips (incl. `calPlanNextRef`), ask box, cost line; POST /api/ai/plan, `planBlocksCheck` keeps ≤8 and COUNTS the rest; Copilot's ink `--cal-cp`. Week = Mon–Fri (`CAL_WEEK_DAYS`, a weekend opens the week ahead), an empty hour → `calEventDialog`. A month day box opens its week (`data-cal-week`, a tab stop); a contract chip opens its contract (`data-cal-ct`); `data-cal-day` STALE. NEXT 14 DAYS IS GONE (Young chose "Remove it", 11 Oct 2026): `calPanelHtml` has no caller, `#cal-agenda` STALE. Horizon bars are pills; `calToday()` via `todayISO`; `.ics` by hand; the key names only kinds on the view (`calLegendHtml(evs)`); Export/Share/Print/Open register are the head's ⋯ (`#cal-more`, ids kept). Tests: f80, f83, f261, f458, f641, calendar-day-verify, calendar-redesign-verify, calendar-holds-still-verify, my-calendar-verify.
-
 
 ### THE CONTRACT ROOM — five tabs, one shell
 
@@ -28571,7 +28511,6 @@ ONE CARD, CALENDAR + COPILOT (Young, 11 Oct 2026: "build it exactly as designed"
 - A new draft opens on the Overview ONCE (`roomOpenOnTerms`; seven creation sites; f170 fails on an eighth; js/family.js exempt); `contractArrived(c,opts)` at every site (`{bulk:true}` for importers). `c.owner` (`contractOwnerStamp`, `contractOwnerName`, `contractOwnedBy`); `contractSignedAt(c)`; rename via the `name` row, frozen at execution; hold `contractSetHold` (reason required, `HOLD_META`, three server refusals). `negoMayStart(c)` refuses a negotiation on an executed contract (draw, `openRedlineWorkbench`, the row, `renderRedline`). A stage is a claim: `contractLeavesDrafting(c, why)` the ONE act.
 - The ⋯ rows say what they do; history is ONE trail, NEWEST FIRST on the tab only (`roomHistoryEvents` stays oldest first), `histWhen`, `R1` chip.
 Tests: f91, f148, f170, f184, f198, f241, f278, f301, f380, room-head-fold-verify, history-timeline-verify.
-
 
 ### THE THREAD — A DRAWER OVER FORM & LINKS (Young picked Thread, then Drawer, 5 Oct 2026)
 
@@ -28584,7 +28523,6 @@ Tests: f91, f148, f170, f184, f198, f241, f278, f301, f380, room-head-fold-verif
 - STALE names: MAP-HISTORY "CLAUDE.MD TRIM, 7 OCT 2026".
 Tests: f507, f536, home-paper-clauses-verify, f277, f300, f315, f364, f373, f384, thread-verify, thread-drawer-verify, runway-and-xray-verify, reading-in-the-background-verify, xray-who-does-what-verify.
 
-
 ### SIGNING — ONE LIST BEFORE THE SIGNATURE
 
 - SIGNING WITH THE OTHER SIDE (work order O, 7 Oct 2026): a signature is a MARK PAINTED AFTER THE RENDER (`pagesSignRows`/`pagesSignMarks`), never written into the paper's HTML (fingerprints); GET /api/shares/:token carries `signatures` (`shareLiveSignatures`), also when dormant; an open owner ask refuses the respond route 409 (`srvSignOpenAsks`) and greys Sign (`portalSignHold`); their page ends on a receipt (`portalReceiptHtml`); the comment box is GONE (`#pt-comment` STALE — a reason box inside `#pt-other`). Tests: f543-signing-with-the-other-side.
@@ -28594,13 +28532,11 @@ Tests: f507, f536, home-paper-clauses-verify, f277, f300, f315, f364, f373, f384
 - The intent line is the pad's first line (`openSignaturePad({intent:true})`, `signConsentStamp`); the button is the list ("Sign — N to settle" / "N noted" / "Sign as X"). An empty value is never stamped 'none' (only an `nda` standard); `metaEffDateOnto`.
 Tests: f308, f311, f319, f353, f367, signing-flow-verify.
 
-
 ### NEGOTIATE IS A PLACE, AND ITS PAGE
 - A sidebar door; `renderRedline`; every door funnels through `openRedlineWorkbench` (sealed-record wall, then `negoBlanksAsk`). js/views/negotiation.js + negotiation-css.js (`redlineLayoutCss`). Head = the room's; control row: Redlined, seat switch, text size, Focus (mimics the Document tab, says "Focus"), Deal board, legend.
 - The paper wears the design, never its structure (`docDesignPaperAttr`, `rlClauseShape`); an insertion wears its author's side (`rlSideWho`); crossed-out words red (`--rl-del-ink`). Nothing floats over the page; a card's Send sends that card only (`negoHoldOthers`). THE PAPER READS, EDIT CLAUSE OPENS THE EDIT ROOM (Young, 9 Oct): a click types nothing (`rlInlineClick`/`rlInlineSave` STALE); "Edit clause" `rlEditClauseBtnHtml` → `rlEditClausePress`; theirs `#pt-edit`. Highlights (`rlPaperOfferFromRange`): one clause Ask · Edit · Comment; two Ask · Comment, NEVER Edit; their seat Comment.
 - AS DRAWN (SAP batch 4, owner 9 Oct 2026, tab name kept "Redline"): the sub-line names NO person — no Lead, no Owner (owner, 10 Oct 2026; `negoHead` in `roomHeadSubHtml`; `ct_lead_nobody` inert) — and the title and sub-line stand on the Document tab's pixels (head left 18px; negotiate-as-drawn 3b); a closed side panel casts no shadow (`#context-panel:not(.open)`); facts hidden, the parties' key on its own row `.rl-keyrow` under the 44px control row. The WHOLE head is white like the Document tab (`#view-redline .room-head`, 10 Oct 2026). The sidebar's Negotiations number = negotiations whose move is yours (`negoNeedsYouTotal` = the "Your move" tab), never a sum of changes (10 Oct 2026). Story: MAP-HISTORY "THE SAP BENCHMARK, BATCH 4".
 Tests: f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline, parity, negotiations-door, focus-*, edit-clause-door, negotiate-as-drawn verify files.
-
 
 ### EDIT WITH COPILOT — THE CLAUSE EDITOR (js/views/clauseeditor.js)
 - A full-window page (≥1024, `clauseEditorFits`). FILES THROUGH `negoEditClause` ONLY (f245), plus `ceFileNew` → `negoAddNamedClause`; every way out of a draft asks (`ceLeaveGuard`); Done = save symbol (`ceSaveFromSymbol`).
@@ -28608,13 +28544,11 @@ Tests: f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline
 - RAIL: dropdown (`ceRenderPick`), tabs Playbook · Risks · Ladder; scope tag `#ce-tagline`; Ask (no Apply) / Edit (Apply); prepared questions ≤ `CE_CHIPS_MAX`; Risks = `ceRiskAnswerHtml` over `riskAnswerOf`; suggestions show ONLY WHAT MOVED (`redlineShownBlocks`), Apply carries the whole clause; ONE risk footer `#ce-rksug`. THEIR SEAT (`ceSide()`, `ceNoAi()`): no Copilot, no locks. Lock: `POST /api/contracts/:id/lock` only. STALE names: MAP-HISTORY trims of 7, 8 and 9 Oct.
 Tests: f245, f249, f250, f287, f289, f304, f505, f508, f523, f537, clause-editor, clause-door, one-copilot-editor verify files.
 
-
 ### THE COUNTERPARTY'S PAGE (js/views/portal.js)
 - `PORTAL_MODE` a boolean (`rlOnTheirPage`). Head = the room head; status `portalStatusWordHtml` (never `contractStatusTextHtml`). Tabs Where we are · Redlines · History · Signing (`portalTabsHtml`, `portalSetTab`); `#pt-notes-door`, `#pt-focus`, `#pt-turn`, `#pt-bell`, `#pt-nego-foot` (never hidden), `#pt-nego-ready`; `cpReadyToSign(c)` ours.
 - Where we are is the shared sheet; lands there on a first visit or news (`portalNewsSig`, `hati.ptPlace.<token>`); `portalHistoryScreen`. SIGNING: no bands, `portalBeforeSignStagesHtml` (`shareSigningOrder`, never an address), pad `intent:true`; a signing link follows the signing (`portalSigningStarted`).
 - No pencil; Edit at the top (`#pt-edit`, `portalOpenEditor`); a save asks why (`portalAskReason`); every Send `portalSendCheck`/`portalSendLines`. `POLL_ON_ARRIVAL`; repeated fetch failure alerts; `portalSaveSent`; `negoSignalReady` null; `portalDayWords`; `hati-dark-guest`; Notes 460 `rlNpSeatTabHtml`. Chromium stages measuring the contract open Redlines (`SHOW_COUNTERPARTY`).
 Tests: f180, f181, f189, f191, f237, f422, f423, f426, f439, f440, counterparty-bell, portal-header-verbs, their-side, their-edit-page, where-we-are verify files.
-
 
 ### RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js; Young picked it 4 Oct 2026)
 
@@ -28624,7 +28558,6 @@ Tests: f180, f181, f189, f191, f237, f422, f423, f426, f439, f440, counterparty-
 - Long form and STALE names: MAP-HISTORY "CLAUDE.MD TRIM, 7 OCT 2026".
 Tests: f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify files.
 
-
 ### THE POP-UPS, THE SAP WAY (owner's go, 10 Oct 2026; story in MAP-HISTORY)
 - The act first, Cancel LAST: every Cancel is `data-dlg-cancel` (sheet `order:99`; `dlgPinFoot` moves it last in the DOM). A dialog's closed dropdowns and dates wear HaTi's clothes (`popupControlsDress` = `selectFaceDress` + `datePickDress`/`datePickOpen`, the real date box kept hidden as the ISO value; the paper's own blanks are left alone); a question that ENDS something is `danger` (red, warning sign, also on `promptDialog`); a done delete is a calm 'ok' toast.
 - No pop-up only to say no: Compare greys (`compareHasTwo`), Ask for review greys with no colleague. Undo instead of asking where it can be undone (`obligationRemove`, `regForgetViewAsk`). Two doors are a menu (`openNewDoors`, `#nd-menu`); their response on two tabs (`data-imp-tab`); the approval rule read back (`#ar-says`, `ar_reads`); Alerts grouped with a count (`alertGroupsOf`, `ALERT_GROUP_SHOW` 3).
@@ -28632,13 +28565,11 @@ Tests: f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redli
 - EVERY DIALOG WEARS THE DRAWN FRAME (owner, 10 Oct 2026): `dlgSapFrame` (run by `dlgPinFoot`): white title bar `.dlg-h` (16px + one sub line), body 16/18, faint foot bar `.dlg-f` edge to edge (the SHOWN foot; a foot inside ONE COLUMN stays in its column — else it slides under the other column), 32px boxes; `data-dlg-own-frame` builds its own (`confirmDialog`/`promptDialog`; `leave:true` = amber sign, Cancel primary). Parts `.sap-f`/`.sap-lbl`/`.sap-row`/`.sap-row3`/`.sap-grp`/`.sap-seg`/`.sap-list`/`.sap-li`. Drawn pop-ups laid out as drawn, ids kept (approval rule `#ar-order` is a SELECT; Send `[data-share-sap]`, `shareSegStyle`/`shareSegPaint`). Story: MAP-HISTORY "THE POP-UPS AS DRAWN, 10 OCT 2026".
 Tests: sap-popups-verify, negotiate-as-drawn-verify, new-agreement-verify (re-pointed), f390 1h.
 
-
 ### LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - Tokens in `:root` of index.html; `--radius` 4 / `--radius-lg` 8 / 0 paper; `--accent-ink` on accent tints. Faces: Geist screen + read paper (`--font-doc`), Source Serif 4 signing/print (`--font-doc-serif`); refs via ONE dress `refHtml(c)` (never in PDF, Word, email, toast, `<option>`). A changed font file gets a NEW NAME.
 - BRAND lands on Blue once (`brandBlueOnce`); bar = main button = accent-600. TYPE 400 · 500 `--w-label` · 600 `--w-strong` · 700 `--w-title`; labels in SENTENCE CASE, no tracking (`--cap-ls` 0), in ONE `:root :is(…)` list. BUTTONS `--ctl-h-sm` 22 / `--ctl-h` 28 / `--ctl-h-lg` 32; one filled button per area; drawn icons only (f385); words never wrap except `.ui-link-say` (f386). Dialogs `openModal({maxWidth})`, `confirmDialog` (confirmLabel/cancelLabel/danger/title/message/multiline). POP-UP DIET: retire a sentence by not calling it (f310); `emptyStateHtml`.
 - INK WASH (owner, 9 Oct 2026; docs/WORKORDER-ink-wash-and-sentence-case.md): NO GREY in light mode — the ramp, `--color-text`, dividers, grounds, `--st-gray-*`, `--rule-*`, `--field-line`, `--nav-ink-rest`, `--hb-*` light and Negotiate's `--n-*` are black + the theme colour; Blue's own in `:root[data-brand="navy"]:not(.dark)` (it outranks html.dark). Dark mode, every text size, the paper (`.pg-sheet` pins `--color-text`), the redline cards' buttons (pinned in the same block), danger and status colours stay as before. NO CAPITALS on labels (paper, letterhead js/branding.js, print and exports keep theirs). Tests: ink-wash-verify (census against ink-wash-baseline.json, recorded before the change; re-record ONLY with an owner-asked palette change).
 Tests: f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens, dark-no-white-patches, one-reference-face, ink-wash verify files.
-
 
 ### OTHER PAGES AND SERVICES
 - APPROVALS & SIGNING decides through `approvalDecidableNow`/`approvalDecideAsk`, writes nothing itself (f344, f466). NOTICE DESK `noticeDraft` (no model); COHORT; MAILROOM files, does not read; MEMO `negoMemo`, no model.
@@ -28647,7 +28578,6 @@ Tests: f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consi
 - THE BRAIN'S STACK, the fifth view (10 Oct 2026; story in MAP-HISTORY "THE BRAIN'S FIFTH VIEW: STACK"): `BRAIN_STACK_VIEW` 4, SVG over the stage like the lanes (`.is-stack`, `brStackPaint`), the panel swaps to `#br-stk-panel` (trips · open stop · at a glance · words); trips `BR_STACK_TRIPS`, words `brn_stk_*` both books, `[[id|word]]` = a glossary term (`brStackText`, `#br-stk-tip`). EVERY COUNT IS READ: GET /api/brain → `stack` (`brainStackRead`, once per boot; null → `brn_stk_missing`; keys true/false only), fixed facts pinned by f659 (3). ← → move a stop on Stack; refresh keeps trip+stop (`PLACE_PARTS.brain` = `brPlace`/`brPlacePut`, Stack only). Parts `stackview`, `brainread`. Tests: f659, brain-stack-verify.
 Tests: f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, agents-page, brain-page, brain-lanes, no-link-to-sign verify files.
 
-
 ### THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep 2026)
 
 - A slow answer lands on its own contract (`contractOnScreen`); per-sitting marks never reach the record (`SITTING_KEYS`, `dropSittingKeys`); `sigImageOk`/`sigImageSrc`; a refused save puts the page back.
@@ -28655,13 +28585,11 @@ Tests: f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, 
 - Server walls: an open approval-rule step holds every signing door (`srvApprovalChainOpenOf`) and only its approver decides, in order (`srvApprovalDecisionRefusal`); a link refuses a copy of another kind (`purposeChosen`, `shareKindOf`, `standingNegotiation`); `forgetContractRecords`. Discard restores the sent version (`negoSentVersionOf`); `metaMergeReviewed`; `upLeadName`. "Waiting on us" with no desk counts for the owner and admins (`_dkUnclaimedWaiting`, `deskStaleSub`); `OB_MONTH_DAYS`, `_obCalMonth`; `obMoneyWords`, `obDay`; `pbBookChipsHtml`. `ob_roll_*` inert.
 Tests: f393, f401–f421, their-markers, review-keeps-typed-terms, discard-keeps-sent, paper-terms-frozen, opening-keeps-your-edit, waiting-on-us-no-desk, narrow-pages verify files.
 
-
 ### THE PROCESS REVIEW'S FIXES (4 Oct 2026, owner: "build all the fixes") — story in MAP-HISTORY.md
 - REQUESTS: raised → editors mailed (`notifyIntakeRaised`) + bell; lanes on the SERVER (`runIntakeLanes`), lane drafts have an owner and are read on arrival (`intakeLaneOwner`, `arrivalOwed`); ADVICE IS A KIND OF REQUEST (`rqKindTabsHtml`). ONE ADDRESS BOOK `contactSet` (others mirror).
 - NEGOTIATION: a withheld change stays unsent (`negoKeptIds`); the round closes itself on hand-over (`negoAdvanceRound({auto})`); ONE "your turn" email per hand-over (`roundTurnMail`); a returned Word file answers our asks (`readOurAsks`); a lock ask lives until the asker leaves (`presenceKeepAsks`, `presenceLeave`).
 - SIGNING: ONE LINK CHECK `linkRefusal` (= server `srvLinkRefusal`); ONE ASK RECORD `c.asks` (js/asks.js, `askOpen`/`askAnswer`/`askLapse`, fails closed); rule steps mail and remind (`runRuleStepReminders`); `contractDecline`. A stale reading re-reads (`triageReadingStale`); a renewal answer starts its act (`renewalDecisionAct`). Our Word file reads back exactly (`docxIsPaperPara`).
 Tests: f460–f495 (named in MAP-HISTORY), editor-lock-words-verify, lane-drafts-verify, advice-is-a-request-verify.
-
 
 ### Round 2: the owner's list of fixes (11 Oct 2026, evening)
 
@@ -28780,7 +28708,6 @@ Owner, with a screenshot of a chart card's ⋯ menu circling Make bigger, Full s
 *"Add the turning ring to the Scanning toast too"* — the one toast left out on 11 Oct. `toast(msg, kind, {busy:true})` puts `.ob-spin` where the kind's icon stands; `runScanFor` passes it. jambo-pill-and-window-verify (10).
 
 *"also fix this issue where the card cuts short in the drop down if the rest of the choices are not on screen"* — a screenshot of a Board card's ⋯ menu whose last three choices hung below its white card. `hbMenuPlaceOne` capped the height (`max-height`), but `.hb-tools-menu` and `.hb-dp` had no overflow rule, so the choices spilled past the edge (`.hb-rmenu` already had `overflow:auto`). Both now scroll inside the card (`overflow-y:auto`, children `flex-shrink:0`). board-menu-scrolls-verify: red on main (`overflowY visible`, last choice 297px below the card), green after.
-
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (owner, 12 Oct 2026)
 
@@ -28926,7 +28853,6 @@ What was built: `igPickHtml` now draws the wall (`.ig-wall`, id `ig-wall` so the
 ## STAKES — AS DRAWN, AND THE BREAKDOWN FACE DELETED (owner, 13 Oct 2026)
 After the first Stakes merge the owner opened a contract and said: "This is not what we discussed ... this does not look like stakes in the artifact at all", then "You were also supposed to delete breakdown", "I also noticed from the artifact that you removed the plain English translation button. Bring this back", "Plain English should not be in the deep dive it should be before that", and with a screenshot of the artifact's panel: "This is how the panel should look like but with a plain English button". Built: Home's Breakdown face deleted (pill Board · Document · Calendar · Explorer; its stage, panel, listener and CSS removed; bdRun/bdOf kept for the reading); opening a contract's Clauses reads it once (the owner's own Breakdown rule of 11 Oct, "choosing the contract should be the only press"); Home's Clauses drawn as the artifact (The company view head; region square after each name; N to review; stake line + Deep dive; no title row, colour filter or steppers); the open row carries only Plain English ("Plain English" button); heading-less numbered paragraphs are named by their opening words (the owner's screenshot read "2.1 This clause"). Consequence said to the owner: the open row's Worth a look (marks) and Who does what are no longer drawn on Home — the room's drawer that also drew them is gone, so they are drawn nowhere; tests that pinned them were re-pointed (runway-and-xray 4h/7c/7g, thread-drawer 2c/3/8, uploaded-contract-fixed 2e/2g, risks-in-the-redlines-card 2a/2b, one-door-for-edits 7a/7b, risk-card-titles 6, home-paper-clauses 1c/8) and xray-who-does-what-verify, clauses-filter-kept-verify and breakdown-pick-reads-verify were retired with their features.
 
-
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS: THE HOUSE REFINED (13 Oct 2026)
 
 The owner, after seeing the page: "there should be no free room in the house. Just make other rooms bigger. Always build it that way. Also, in terms of choosing how far back, also put an option for manually entering then number of days. Finally, when I click on the different buttons of how far back, the page flashes to reload, fix this so that it's just a transition and not a flash that looks like a glitch." Then: "put the Look of the house in a drop down … Which ever they choose becomes the default."
@@ -28939,7 +28865,6 @@ The owner, after seeing the page: "there should be no free room in the house. Ju
 
 ## THE THREAD — A PAINT WITH NOWHERE TO DRAW TAKES NOTHING (13 Oct 2026)
 Owner's screenshot: Home's Clauses list drawn, "Jambo is reading…" never ending, and Plain English answering "There is no wording here to read yet." Cause: `docThreadPaint` for a contract not on Home's panel set `_thHost` to 'doc' and returned (the room's list is gone since 11 Oct), so the list on Home stayed drawn while its presses read `#doc-canvas` (absent) and the company read's repaint went nowhere. Fix: a paint whose host has no card returns WITHOUT moving the host. Test: stakes-verify 6b (red at the parent with the owner's exact sentence).
-
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS: FITS THE SCREEN, DRAWN SHARP (13 Oct 2026)
 
@@ -29046,7 +28971,6 @@ TESTS: f202 re-pointed (the page is a wall, not a table: a press chooses, narrow
 Owner, after a run of mock-ups (control tower, industrial park, the SAP way, sorting hall, harbour, then the house's own two looks): "make the house an office where all the agents have offices and your desk is the big office at the top floor. They then go through the different rooms like contract vault and directory plus to your desk. We also need to see the accumulated paper … Use the SAP way simulation as the inspiration", then "update the jambos house with the new designs … and bring them to Hati". Earlier rulings kept: the dials and the screen size unchanged; the four readings (approve · request · week · quiet) are NOT agents, so they get no Jambo — they sit in reception with a magnifying glass and only their paper moves.
 Built (js/views/jambohouse.js): `jhLayout` lays out shared floors (`JH_SHARED_FLOORS`), the agents' offices (`jhFloorCounts`, no free room) and `_jhDesk` across the top floor with one tray per agent. `jhTripOf` turns an agent's real route (`JH_ROUTE`, read off what its code does: renew = vault · directory · spending limits · Jambo engine; late/ours/link = vault · directory · mail; round = vault · engine; paper = vault · limits · engine; import = vault · engine; readings = vault) into a walk along the corridors (`jhCorr`) and the stairs with a short stop per room, arriving at the desk at the moment the piece was prepared (`tDesk`). Only prepared moments make trips; a person's decision stays a pop. Trays show each agent's OPEN pieces (agPointsTally) — real; room piles count the trips that reached them (`jhSheetsIn`) — a reading of the same trips, so piles and Jambos agree. Seats show an empty dotted ring and "Out" while away (the SAP way's borrowing). At rest the Jambos breathe (`jhAlive`, a 70 ms beat, none under reduced motion). JH_FH_HARD 72 → 68 so a very short window still fits the extra floors; short cards drop the lines that would collide.
 Tests: jambo-agents-verify 2b (floors = 3 + ceil(offices/cols)), 18a–18c (office layout, a trip through the agent's rooms to the desk, piles).
-
 
 ## CLAUDE.MD TRIM, 13 OCT 2026
 
@@ -29484,7 +29408,6 @@ THE CHECKERS' ROUND (15 Oct 2026, the same night). Two checkers read the built s
 - THE LIST'S OWN LINE HAS A BROWSER CHECK: inspector-verify 4d–4f cross it in one sitting (1440 → 820 → 1440), both ways, nothing panning.
 - SMALL ONES: a row's ⋯ near the List's foot opens upward when the room below cannot hold it (`regMenuFit`, one builder, so the full table is served too); Value takes 14 parts of the List, not 10 ("KES 2.20M" was cut to "KES 2.20…"), and the Ends words ("in 25 days", "ended") sit under the day on the place, never cut; a number pressed on the Board reads the same on the Wall's count line ("7 of 7 contracts", where it read "6 of 6 contracts · 1 amendment") — only a party's shelf counts by agreement, the amendments beside (`regShowOnly(ids, label, { party: true })`, kept by `regPlacePut`); the archive shelf counts against itself ("1 of 1", not "1 of 8"; `regRestBase`); Jambo's "contracts" puts the tab, filters and search at rest, so "Every contract is here" is true; his help card names contracts, wall and list in both books.
 - LEFT FOR THE OWNER, unchanged: the colour record (ink-wash-verify stays red on its 24 census rows until it is re-taken with the owner's yes — GitHub's check is red on that one file until then); where the old panel's "needs you" checklist lives on a computer (go-aheads' renewal stays staged 20 days out; no check now measures the 34-day case).
-
 
 ## CLAUDE.MD TRIM, 15 OCT 2026
 
@@ -30077,7 +30000,6 @@ the monthly email's "Expiring in the next 90 days" now count `status ===
 'Signed'` only. "Past end date" (`contractExpired`) always did. f66's "Home
 counts it" fixture now carries Signed; f690 (9) pins all four readers.
 
-
 ## THE LIFELINE STRIP — THE AGREEMENT FAMILY LINE (15 Oct 2026)
 
 The owner: *"when a contract is open on the board and it has an accompanying amendment, it should be clear in the board that it is tied to another amendment."* Asked which place, the owner said the overview card on the Board, "not the paper itself", and asked for options first. Three were drawn on one page (Header tag, Family line, The SAP way); the owner picked "Family line" by name.
@@ -30136,7 +30058,6 @@ WHERE THE BUILD DIFFERS FROM THE DRAWING (told to the owner): pieces 13 and 16 n
 
 MEASURED on the way: a press on a control inside a You drawer re-opened the drawer (its sections carried `data-st-you`, the cards' door attribute) — renamed `data-st-sec`; Jambo's chips did not repaint on a pref change (`stJbChipsHtml`); an i18n prefix `mail_sa_ask_*` belonged to sign approvals — the ask mails are `mail_ska_*`; a signing-limit rule set in the browser before boot was overwritten by the server's — set through PUT /api/settings in the check; f281's byte-count slice broke on the larger file — re-anchored on the listener and its region; a7150ed had left f148 red (copied-English keys) — listed in `SAME_IN_BOTH`.
 Tests: f691 (rewritten, 32), f692 (new, the server's walls, 12), f193 (re-pointed, 80), f195, f148, f281; browser checks settings-groups (31), settings-tabs, settings-overnight-fixes re-pointed; control-room-in-full-verify (new, 24); photographed at 1440×780, 1536×730 and 1366×950.
-
 
 ## YOUR NEWEST CHOICE WINS — A LATE READ NEVER MOVES YOU ONTO A CONTRACT (16 Oct 2026)
 
@@ -30434,7 +30355,6 @@ FOUND BY THE OLD CHECKS, FIXED IN THE SAME BUILD (17 Oct 2026):
 - A page asked for while signing in is still loading wins over the Counter's landing: `_cnSignedIn` is noted when Sign in is pressed and any other `setView` clears it. Checks that waited for `state.contracts` (the sample book is there before sign-in) and opened Home at once kept their Home.
 - Re-pointed or retired further (each says so where it stands): blue-landing-and-board-tones, board-menu-scrolls, calendar-on-home, calendar-redesign, document-wall, explorer, focus-mimics-document, four-off-the-screenshots, home-board, home-first, home-page, home-paper-clauses, jambo-pill-and-window (its sliding pill section, now the desk tabs), keyboard-reach, keyboard (⌘B has no column to fold), pointer-only, runway-and-xray, stakes, type-and-symbols, upload-party (its menu-drawer counts section retired), white-band-and-tabs (its sidebar section retired; 5c keeps only that the Settings tabs are drawn, their look being Round 24's).
 
-
 ## NEEDS YOU HERE, ‹ JAMBO, HIS COUNT — ROUND 3 OF THE REDESIGN, "TABS AND FACES" (17 Oct 2026)
 
 The owner picked "Tabs and faces" by name on the all-rounds page (the overnight build), and answered its one question "No": the folded strip does not name an open face.
@@ -30449,7 +30369,6 @@ What was built, against today's panel:
 Measured: the paper's first line of wording 365 px from the top before and after at 1440 × 780 (the panel draws beside it). The panel slides to its width with a CSS transition; a first draft of the check measured mid-slide (110 px) and is now made to wait for it to land.
 
 The colour census (ink-wash-verify) moves: on light screens only two text sizes' counts (10 px: the tab's count badge; 12 px: ‹ Jambo), on dark screens counts of colours already in the palette (the amber badge, its ink, the dark surface as the badge's border). No colour or size is new to the product. Not re-recorded: that needs the owner's yes.
-
 
 ## DRAFT FROM A SENTENCE — ROUND 4 OF THE REDESIGN, "ONE SHEET" (17 Oct 2026)
 
@@ -30701,7 +30620,6 @@ The owner picked "The SAP way" by name in the round 26 artifact (the drawing rec
 - **KEPT, AND WHY.** The drawing's Downloads table had an Acts column; the server does not keep a download's count, so the column is left out rather than guessed.
 - Tests: f727, streams-and-data-verify (red at the parent). Re-pointed: f193 (the drawer reuse test opens Approvals), settings-tabs (the drawer walk leaves out a panel whose door is a page, and checks that one lands on its page), trail-export (the page's tabs and band).
 
-
 ## IMPORT: JAMBO'S PANEL BESIDE THE LIST (18 Oct 2026)
 
 The owner picked "The SAP way" for Import in round 22 of the redesign. The
@@ -30734,7 +30652,6 @@ What was built (js/views/migration.js):
 Tests: f728-import-jambo-panel (red at main), import-jambo-panel-verify (red at
 main: every check fails, the run stops at a row press that opened the contract).
 
-
 ## APPROVALS & SIGNING: THE AMBER LINE GOES (18 Oct 2026)
 
 Round 15 ("One worklist") left a question open: may the amber "Your approval is
@@ -30746,7 +30663,6 @@ anything else the contract owes still makes a line ("1 detail to fill."). Only
 the Approvals page's panel changes: the checklist beside the other lists keeps
 the item. sap-lists-verify 2d re-pointed (red at main: the line still said
 "Your approval is asked for. 1 detail to fill is also waiting.").
-
 
 ## SETTINGS → YOU: THE SIDEBAR SWITCH GOES (18 Oct 2026)
 
@@ -30760,7 +30676,6 @@ toggle in the How you like to work drawer (`#pref-nav-all`), its writer
 names it rather than missing it. The phone keeps its own switch in its menu
 (js/mobile.js), where the menu still earns its items (navShowEverything,
 navEarned) — those and their words stay. Tests re-pointed: f193, f691, f725.
-
 
 ## KEEPING: A PRIVATE STREAM NO ADMIN CAN SEE (18 Oct 2026)
 
@@ -31151,7 +31066,6 @@ The last of the five stages, built the same night ("build all the stages autonom
 - **Copy picture is made from the screen.** `igPictureBlob` composes, at twice the stage's size: a heading that says what the picture shows (the view, the grouping, the count, the cuts, the recipe's words — `igPictureHead`), the map's canvas, the map's SVG words with their computed clothes written onto them (a standalone picture carries no page styles — `igPictureSvg`, `IG_PIC_STYLE`, letter case included, so the cards stay in capitals), and a foot with the day and the reader's name: "only what they may see". Nothing is fetched or sent, so a confidential deal is in it as its code name and a stream the reader cannot see is not in it at all. Copied to the clipboard where the browser allows it, else saved as a file, and the toast and the panel say which. The legend and the head line are page furniture and are not in the picture; the heading carries what the head line says.
 - **Where they live.** The link row under the latest answer on the map now reads "Explain this view · Pin this finding · Copy picture". Both acts are also words: "as of …", "what changed since …", "copy the picture", "kopiera bilden". On Explorer the map reads them before the task cards (`mapOwn`).
 - Red at the parent (stage 4's head): 12 of 13; the one green is "no page errors".
-
 
 ## CLAUDE.MD TRIM, 19 Oct 2026 (owner: "Trim rule book: The rulebook itself is about 112 KB, over its own 80 KB target.")
 
@@ -33154,7 +33068,6 @@ The owner, after Chambers: *"My concern is on the side panels where there are si
 - LEFT ALONE, told to the owner: the pop-out record (`openHistoryTimeline`), the counterparty's History, the phone; conversation bubbles and the at-rest greeting (Jambo's words keep the one warm box, Chambers); the Before you sign road's own line (the road is its drawing).
 - TESTS: the-brief-and-sap-history-verify (25 checks, 19 red at 0392ded7). Re-pointed: f380, f394, f675 2d (four repaint presses, the Filter button gone), f714, f743, f804, f830, f840; board-strip 3f/3h, explorer 4b/4i/4j, history-head (the head, the filters in the open), history-timeline (2a/2c/2e/3a/3c/4a/4b/7a/8b), home-held-contract (3c/3d/6b/6d/6s; 4 now names what is cut), jambos-list-panel 1a/4b, private-streams 7c/7d/7g, two-sides (1–3, 5). The colour census re-recorded after a set-difference audit (header). Red at main and left red: BUGLOG.
 
-
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN — STILL OWED, THE SAP WAY (21 Oct 2026)
 
 The owner, on the Still owed grid: "this area is very compact and you cant see the whole signer name and email or even the value stream. Propose a better approach". Three options were drawn on the real page (The SAP way · The Ledger · One at a time; artifact C7S6HYxieQsVDSrb57Whh2); the owner picked "The SAP way" by name and said "Go straight to build". Measured on main at 1440×780: the three-column grid left a box 159px, while a signer's name needs 180, an email 249–285, the stream chip 179; dragging the panel wider only grew the fact column. Also measured: a Jambo's-work row's nowrap small line widened every card to 415 in a 379 feed, cutting Confirm, Reply ›, Send ›, Open ›, See it. Built as a CSS regrid of the same table, so every writer and door is untouched. The drawing's hairline between rows was left out because The Brief (#391, the same day) draws no line inside the body and the-brief-and-sap-history-verify 1e failed with it — asked of the owner. owed-first-verify 2a caught a 95→443px jump when Tab went from a box to its Confirm (now above the box); the fix is a least scroll that brings the row's head into view on focus. New check red on main (14 failures), green on the branch.
@@ -33224,7 +33137,6 @@ The rest of "build the chatbot as recommended": Show me › and one prepared pre
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — THE COLOUR CENSUSES REMOVED (21 Oct 2026)
 
 The owner, when theme-tokens-verify went red again on #392 (the new "What am I looking at?" link's underline, the existing accent-200 #B5CDC1, newly drawn on five room screens): "remove the coloring requirements and just move on". theme-tokens-verify.js and ink-wash-verify.js and their two baselines were deleted; CLAUDE.md's THE COLOUR CENSUS line and the Ink Wash census sentence went with them. chambers-verify still pins the look's own claims (dots and words, plain counts, no shadows, the old look gone).
-
 
 ## THE SHELL — RAIL, BAR, PANELS · ONE JAMBO CONVERSATION EVERYWHERE (21 Oct 2026)
 The owner's words: "Jambo keeps ONE conversation across the whole app … a question asked on Home, in Settings, in the side panel or beside a list all appears in the same conversation wherever Jambo is opened." This REVERSES the ruling "a new page or contract is fresh on Home's, a list's and Settings' panels (pdTalkScope)". Three stores were joined: `intel.history` became an accessor onto `ai.history`; Settings' `_stJbLog` became `{role:'st', st}` turns in the same array (the cap ST_JB_MAX kept). Each host draws every turn with the builder of the host it was born in (`jamboTurnHtml`), stamps what it read the first time any host draws it (`jamboReadStamp`), and takes the turns off the other hosts (`jamboTurnsTake`) so no canvas id is drawn twice. A press on a turn drawn away from its host (Home's lights a clause, narrows the Board; Settings' finds) travels: `jamboForeignPress` opens that host, the conversation up, finds the same button by its attributes and presses it; if it cannot, a warn toast says so. The side panel's own presses are bound wherever its turns are drawn (`aiFeedWire`). Popped out, Home's and Settings' talk views say the words are in Jambo's window, with "Bring it back here" (a refusal's way forward, not a band). One Clear: `aiConvoClear`. Red at cb1aa4ba: jambo-one-conversation-verify 1a–1d, 2a, 2b, 3, 4, 5a, 6.
@@ -33441,7 +33353,6 @@ mailroom-bell-verify (red at the parent 1, 1b, 2, 5).
 
 - 22 Oct 2026, the "Who else" line inside the checklist: after its pop-up closed, focus came back to the line's button inside `#pd-og`, and `renderIntelDock`'s "a hand in a Still owed box keeps it" guard read that as typing, so the line kept its old names. The guard now holds only for a real box (input, select, textarea, editable text). Caught by who-else-doors 2b.
 
-
 ## THE LIST HEAD (js/views/listhead.js)
 ### EVERY LIST PAGE THE LEGORA WAY — PART 8 (21 Oct 2026)
 
@@ -33469,7 +33380,6 @@ THE MAP'S LINES THIS REPLACED (verbatim, as they stood before Part 8; CLAUDE.md 
 - MY NOTES: "Band `MN_TABS` + boxes, a table".
 
 THE PAGES' OWN NAMES (the builders' MAP lines, kept here because CLAUDE.md has no room): Contracts `regCtHeadReg`, `regCtViews` (Needs you `regNeedsIds`, counted as contracts), `REG_CT_FILTERS`/`regCtFilters`, `regCtToolsHtml`, `LC_PAGES.contracts` (Owner hidden), `regCutCount` over `regFiltered({skip,only,src,flat})`, `regRowsCount`, foot `regCtFootHtml` (id reg-showing), the Wall's foot `lhFootHtml('wall')` (`regWallRepaint`), the agreement cell `REG_COL_KEYS_HOME`/`regHomeColW`/`regColStoreKey`, the § chip `askColChoose`/`askColGo` (`askColClauseNo`), `regGoFiltered` and `regSearchBoxClear` call `lhBoxSet`. Negotiations `regNegoHeadReg`, box `#ngl-q` (`regQueryOf`, computer only), `negoBandViews`, `REG_NEGO_FILTERS`/`regNegoOptN`, `LC_PAGES.negotiations`/`regNegoColsShown`, `regNegoFootHtml`. Approvals `AP_VIEWS`/`data-ap-view`/`apTabs`, `apListNow`, `apFilters`, `apSortHtml`, `apPaintList`, `apPlace`/`apPlacePut`, `apShowRow`. Obligations `obwHeadReg`, `OBW_CHIPS` counted by `obwPass`, `obwOnlyWire`, `obwSays`, `obwRepaintRows`. Requests `ikLhRegister` (seat `IK_SEAT`, frame foot), `#ik-q` → `f.q`, `ikPaintRows`, `ikTabViews` (the board and the narrow page via `rqKindTabsHtml`; `rqPaintKindCounts`/`ikHeadMoved`), `ikColDefs`. My notes `mnHeadReg`, `mnRowsPaint`, `mnCtFilter`, `mnColDefs`, `mnFootHtml`, `mnSidePaint`. Parties `cuLcReg`, `#cu-q`, tabs on `data-cu-status` (`CU_TABS`, opens on Live), `cuHeadFilters`, `cuRowsWith` over `cuRowsOf`, `cuRowsRepaint`. People `dirLcReg`, `dirHeadHtml`, `#dir-q`, tabs on `data-dir-tab` (`dirTabCount`), `dirHeadFilters`, `dirSubHtml`, `dirRowsRepaint`. Our paper `tplLhReg` (seats `tpl-book`, `tpl-list`; `_tplHeadBox`), `tplColDefs`, `paperSegHtml`/`paperLhHtml`, `tplPlace`; Our standards `sdLhReg` (seat `standards`), `sdQHit`, `_sdShown`, `pbTabGo`, `sdFigsLine`, `PLACE_PARTS.playbook` = `sdPlace`/`sdPlacePut`. Import `MIG_SEAT` 'migration', `migLhRegister`, `migBandFrameHtml`, `migHit`/`_migQ`, `migTabViews` (`migShowSet(k, fresh)`), `migHeadActsHtml`, no + Filter; Check all's bar and option 1's Decide frame keep their own tabs (`data-mig-back-all`).
-
 
 ## THE LIST HEAD (js/views/listhead.js)
 ### THE OWNER'S THREE ANSWERS (22 Oct 2026: "A, B, A")
@@ -33666,7 +33576,6 @@ Found and fixed while building: Draft from our standards read pbStandardsFor's o
 Asked of the owner before merge, not built as drawn: (1) "Look them up · 1 Jambo call" under the other company's name on the form — the server's lookup searches only a party on a contract the reader can see (prVisibleKeys), and before Create the name is on none; (2) "their answer lands back on the row" for Ask a colleague — the pass route tracks the ask on their list until they mark it done, but no answer travels back onto the row. Not drawn on the phone (its redline card is its own; a BUGLOG line).
 The owner's answers, 22 Oct 2026: "A for both, then merge" — (1) the web lookup stays where it already works (the Dossier's On the web line and Jambo's first words after an upload); the form gets none and no wall moves; (2) Ask a colleague stays as built: tracked on their list and bell until marked done, recorded in the history; no reply onto the row.
 
-
 ## STAKES — PLAIN ENGLISH FIRST, AND "NOT IN THE CONTRACT" AS A BUTTON (owner, 23 Oct 2026)
 THE OWNER'S WORDS, with three screenshots of the Clauses tab: "image 1, should be at the top before needs you and worth a look. image 2 and 3, it is absolutely not clear that not in the contract is a button. Make it a clear press feature." (1) The open clause's cards were inserted after its head, so its Plain English row (the body) fell below them; they now go after the body (stkDecorate). (2) The group head (`.stk-miss-h`) wore the grey label's clothes with an underline on hover; it is now an outlined button in the tab's own button clothes (`.stk-go`'s edge, ink and hover), with its count (`.stk-miss-hn`) and a chevron that turns down while open (`.stk-miss-chev`, still with less motion asked). Red at the parent: clauses-legora-way 5c, 5d (and 5, re-pointed to read the words from `.stk-miss-hw`). Photographed at the three screens by hand: a resize inside the check redrew the panel and broke check 6 on GitHub.
 ## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY-ONE TASKS (js/jambomap.js) — Jambo's own two rows (22 Oct 2026)
@@ -33762,7 +33671,6 @@ THE OWNER'S WORDS: "Build: Jambo works like Microsoft Copilot inside HaTi (small
 - NOT DONE: the template builder still leaves only on a sure ask (caLeavesFor, the owner's rule) — "the template for a non-disclosure agreement" typed there stays; the Board's own free readers ("what ends this quarter", "the drafts in distribution") still answer on their reading.
 - MEASURED AFTER STAGE 3, LIVE (22 Oct 2026, 7c0d1c0, the reader fixed): 183 of 240 (76%), 0 dead ends, 287 calls (1.20 per ask). By section: go 28/40 · clause by meaning 13/25 · questions 38/45 · board 16/20 · explorer 14/15 · typos 18/25 · vague 16/20 · svenska 20/25 · none/walled 10/12 · every box 10/13. The owner's mark is 228 (95%); the largest gap left is a clause found by meaning but not landed on.
 
-
 ## PERFORMANCE — THE BOOK IS WALKED ONCE — a resting map redraws only its dots (22 Oct 2026)
 The owner asked to "fix the flaky home speed check"; it was not flaky: home-speed-verify 3 had been red since the 430-contract set-up (BUGLOG, owner: "Explorer later"), 25–28% busy on GitHub and 37–50% here. Asked, the owner picked "Make the still map lighter" over changing the check. Measured by turning parts off at 430: the words' placing (igbPlace, SVG moves → style and layout) ~700 ms of 4000, the background (floors, bubbles, bundles, cells, tissue) ~400, the dots' halos ~230, the dots ~170; with neither draw nor place 38 ms. Built: igLoopStart says when the map rests (settled, not wiring, not woken, no walk, not turning) and igRender passes it on; at rest igbDraw paints the background and every dot's halo once into `G._bg` and stamps it, drawing only the dots on top, and igbPlace runs once as the map comes to rest (`IG._restPlaced`); any wake paints everything again. igbGlow paints each colour's fade once (`igbGlowSprite`, `IGB_GLOW_PX` 64, at most `IGB_GLOW_KEEP` kept) and stamps it with the glow's alpha. Measured after: 207–253 ms of 4000 (5–6%) here, against 1547–2001 before. What the reader can see change at rest: the tissue's rare sparkle and the halos' slow twinkle hold still, halos sit under every dot rather than between them by depth, and the words and the invisible hit circles stay put while the dots jiggle (a few pixels). Re-pointed: explorer-magnitude 4a2/4f read the painted dot (n.q) instead of the hit circle, explorer-stage-one 8c reads the stamped glow (data-igb-glow on the kept canvas), f425 (1) the frame's new line. explorer-magnitude 4a3 (Turning ≥30 frames a second) misses only when four browser checks run at once on this machine; Turning is drawn as before.
 COMBINED (owner, 22 Oct 2026: "combine them", after six-second clips of each side by side): main's "Both" (#426: the jiggle at `IG_JIG_FPS` 3, a resting frame skips the SVG, `igRender({ rest:!awake&&!wiring })`) and this branch's kept background together. igRender keeps this branch's body: the canvas paints with `rest` (background and halos kept in `G._bg`, dots only on top) and igbPlace runs once as the map comes to rest (`IG._restPlaced`), so the press-targets stand where the dots rested rather than where they were last woken. Measured at 430: main alone 387–412 ms of 4000 here, this branch alone 207–253, combined 108–128.
@@ -33854,7 +33762,6 @@ Reverses 4 Oct's "Grid and Timeline sway" for the Grid only (Timeline keeps `IGB
 Young: *"The grid needs to be standing up just like a contract paper is up and facing the screen."*
 The Grid lay on a table seen at a slant (`IGB_TILT[3]` 0.95 rad, a trapezoid with the far row smaller). Its tilt is now a quarter turn (π/2), so the table is seen straight on: rows level, columns upright, no perspective — a page facing the reader. A drag may still lean it back (tiltG down to −0.75) but never past upright (its top limit 0.6 → 0, `igTurnBy`), where it would flip over. It fits at the owner's three screens (photographed). Check: explorer-magnitude-verify 4d3.
 The owner, shown why the clause points kept their coloured edge and left out the quote: "Build the dot but without the quote". The point's verdict is now an 8px dot before its title and the 2px coloured edge is gone (this REPLACES the 21 Oct "not the edge line that is colored"); no wording is quoted under a point (no wording in the panel stands). clause-list-fixed-verify 5c and stakes-verify 3e re-pointed from the edge to the dot.
-
 
 ## INSIGHTS — THE GRID STANDS STILL, ITS DOTS DO NOT (23 Oct 2026)
 Young: *"the grid should be in one place but the stars should not be static. They should continue as they were but the grid is the one that should stop moving"* (a screenshot of the Grid). The "stars" are the contract dots (the background specks never twinkle on a flat view: `(1-flat)`). Reverses the morning's "no jiggle" on the Grid: `igbJig` leaves only the Wiring out again, and the jiggle is stilled by `igbMoves()` rather than `cam.spin`, so Turning left on in another view no longer freezes the Grid's dots. The grid itself keeps no sway, no turn, upright. Checks: explorer-magnitude-verify 4a2, 4d (red at the parent: the Grid's dots stood dead still under Turning).
@@ -33979,7 +33886,6 @@ Measured (about 120 everyday phrases, from the Board, a list and Settings): ~20 
 Built: `NAV_ACTS` grew the parts, each through its existing door (`pdKtFocus`/`pdKtOpen`, `cnEditOpen`, `ndaEditOpen`, `openSignerPlanEditor`, `pdPeopleOpen`, the Dossier's Family line, the Obligations tab's renewal lines, `hbStripBring(id,'where')`, the panel's Notes face, "Risks to look at", `pdRedOpen`, History), stepping a held letter aside first (THE LETTER WAITS, as `navGoClause`); `NAV_PLACES` + `navGoPlace` (two helpers where the screen lives: `alertsShowTab`, `igFindingsShow`); `navStTitles`/`navReadStTitle`: every Settings page and card by its exact title, from the app itself (42 titles did not land at the parent). The exam's own catch: `navLandWhen` handed `landOn` the element, so a redraw of Jambo's panel after the move lost the landing (the Family line closed, Risks unlanded); it now hands the finder, which `landOn` follows through redraws.
 THE DOOR EXAM: test/door-exam.js + test/chromium/door-exam-verify.js read the app's lists and fail a door without a sentence; every sentence is typed into three boxes and landed. All green; nav-exam 201/202 (its one miss, "take me to the board" from Settings read as "paper", predates this: the Board shows the last contract's card on top and the exam's reader counts that as the paper), every-door 113/113, jambo-doors 22/22, land-on-it green. "notice desk" stays the AI's: no such page exists (a notice is drafted per contract).
 
-
 ## HOME — THE BOARD AND THE MAP: ONE ASK ON A CARD, DIG DEEPER (23 Oct 2026)
 The owner, with two screenshots (a "Dug deeper" card opening ABOVE the chart, and the ⋯ menu with both rows boxed): "dig deeper should appear inside the original card but below the chart. and what is the difference between dig deeper and what could explain this? Why can we just make them one?" Asked three ways (one Dig deeper · one button, two depths · keep both and only move), the owner picked "One: Dig deeper".
 What was there: "What could explain this?" (`hbWhyAsk`) was ONE Jambo call over the card's own numbers, three sentences, drawn under the card's reading; "Dig deeper" (`hbDigDeeper`) was the analyst's run (up to 5 steps, 6 calls), opening a separate focus card `an:<id>`.
@@ -34073,7 +33979,6 @@ The owner, with four pictures: "Image 2 at the bottom right corner you have file
 - SAVE: the foot's filled act was the small rung (22px) and faded to .45 when greyed — "seem hidden". Now 32px tall, ≥120 wide, body size, and solid grey when greyed (its hover says why). The 5 Oct "make the buttons smaller" stands for the walk's ‹ ›.
 - At 1440 the panel (384 wide) wraps Deal under Send all · Ask for review · Notes; the button itself stays on one line. Said to the owner.
 
-
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — THE LEGORA LOOK, AFTER STAGE 2'S REVIEW (owner, 24 Oct 2026)
 - The owner, word for word: "in the redline card, worth a look should have the same shading approval like the redline cards but a very light amber like color. Also, the prompts from the user does not have the round edges like the answers from jambo. Fix this as well".
 - "Worth a look" (Jambo's read on their row, `rlRowReadHtml`, `data-rl-row-read="look"`) now stands in its own soft box inside the change card: 12px corners, 8px 10px padding, the amber status ground mixed 55% into white (`color-mix(in srgb, var(--st-amber-bg) 55%, var(--color-surface))`). Read as asked: the "Worth a look" piece, not the whole card; the other readings (Take it, Push back, Escalate, Read it) keep their dot only.
@@ -34118,7 +34023,6 @@ The owner, after the glitch audit (docs/GLITCH-AUDIT-2026-10-23.md): "Fix the fi
 - RED AT THE PARENT: one-jambo-two-layers-verify A2, B1, C2, C3, D2, E1, F1; f872 all but (5)'s "explain" guard. RE-POINTED: jambo-follows-the-ask 5a records ai/chat; deal-facts 4 reads the last two turns; jambo-slides-in 4c types "obligations page"; jambo-window-follows-the-ask 1 (a question asked off Home stays). Green after: every-door-lands-on-home, home-board, copilot-jobs, jambo-chat-window, board-answers-the-question, board-says-it-plain, nav-exam, jambo-finds-the-way, jambo-doors, held-contract-asks, jambo-moves-and-opens, next-step-chips, home-held-contract, jambo-pill-and-window, every-jambo-box, jambo-one-conversation; 339 node tests of the readers.
 - NOT DONE (said): the Calendar's own box keeps its planner (a question typed there plans time; bookings from every other box go there as before); "where is …" is not one of `CA_WH_Q`'s question words (navmap's "where is X" trips), so a "where" question explains only when it ends with "?"; on the Board a "top N by …" the Board cannot read is drawn as a MAP lens behind the Board ("Showing 0 of 4 · Top 10 by days to pay", the mapListy path of 4 Oct) — pre-existing, BUGLOG.
 
-
 ### THE SHELL — RAIL, BAR, PANELS · ONE JAMBO, TWO LAYERS · the stand-in is one (24 Oct 2026)
 GitHub's browser checks 1/4 on PR #456 went red at answer-worklist-verify 7a–7c: the window on Home now hands its words to Home's box (intelAsk), and Home's box had its own, older way of failing — the graph route's 502 carried no `kind`, so the panel said "could not be reached" for a provider error, then fell to the map's filter reader ("I could not match that to a filter") where the window had answered "N live agreements of M on file … Open the Contracts page". Fixed as ONE stand-in: `igFailTurn` (js/views/intelligence.js) answers a whole-book ask (`aiWholeBookAsk`) with the live count (`aiPortfolioFigures`, the `ai_book_count` line) and the Contracts door (`aiWorklistHtml(null,{wholeBook:true})`, drawn by igMsgHTML on `m.wholeBook`, pressed in the dock → `regShowOnly([], '')`), the cause under it; `intelGraphAsk`'s catch hands a whole-book ask to it instead of the built-in interpreter; the graph route's provider 502 carries `kind: 'provider'` as the chat route's does. The other nine AI routes' kind-less 502s are a BUGLOG line, not this job's.
 Same run, shards 3 and 4: imported-on-the-map 1d/1e/3b and explorer-stage-three 4a–4e went red — a question typed on EXPLORER ("Which stream carries the most weight right now?") met the new `boardQ` and went to the chat, where the map's own route (ai/graph, the model handing wording to the chat itself with `kind:'wording'`, HaTi checking his figures against the map) was the answer. `boardQ` now holds only with the Board IN FRONT (`igBoardNow()`): on Explorer nothing changed from before. board-stories 1c, home-speed 1 and owners-fifteen 13f were red on the runner and pass locally every time (timing and a touch wobble), not this PR's.
@@ -34149,7 +34053,6 @@ Same run, shards 3 and 4: imported-on-the-map 1d/1e/3b and explorer-stage-three 
 - Red at the parent: one-door-verify 1, 2, 3, 4, 5. Old browser checks pinning the removed parts were re-pointed or retired in place with a dated comment (new-agreement's 1b columns, 1g Skip, 1h2 rail, 1j ask across the top, 5a Skip, 9c, 9e; draft-beside-jambo's crumb; requests-and-notes' "‹ Requests" crumb → Cancel).
 - It also REVERSES the 22 Oct 2026 "He speaks" landing for a draft from our paper: Create now lands on the Dossier (the owner's 24 Oct words), and Jambo's first words are kept in his tab, said once there with Fill them in leading (first-timer-rounds 4a0–4h). A read-only account's "draft" keeps the wall's card with Ask an admin; which words answer with a card is now ONE reading, `caIsCardWord`, used by every box.
 - Their paper from the words, as drawn: a sentence that says they sent it ("Distribution agreement Nordkap sent us", `caDraftTheirs`) opens the sheet on Their paper, nothing of ours picked, Jambo saying "That sounds like their paper"; who sent it is read (`caDraftSender`) and the kind as typed (`caDraftTheirKind`); the read rows stand on that tab too; Create there says "Create" and files their file under the name your words gave (`submitUpload` drop `counterparty`). Red at the parent: one-door 8a–8d.
-
 
 ## CLAUDE.MD TRIM, 24 Oct 2026
 
@@ -34610,7 +34513,6 @@ PR #485's next run went red on 6f (the underline listed "ayments") and 3d (no ti
 
 ## OBLIGATIONS — promises Jambo found on a signed contract are on Needs you until decided (26 Oct 2026)
 Flag E of the owner's flow report ("fix all the flags at once"). Before: the duties Jambo read on arrival (`c.triage.steps.oblig.found`) waited at the review desk unticked; once his new-paper piece was put away, nothing on Home, the bell or the Dossier said a signed contract had promises nobody had added, and nobody was reminded of a duty never added. Built: a new Needs you kind `promises` in `needsYouOf` (signed contracts only, the owner's, not urgent, n = `obReviewWaiting(c).length`), after `sign` and `copies` in NEEDS_YOU_ORDER; words "Jambo found N promises to confirm" · "Nobody is reminded of it until it is added" (`insNeedWords`); button "Review" → `runFindObligations(c)` (the existing review desk, nothing pre-ticked); on the one desk as a duty (`ND_KIND_OF`), merged with the details piece when one stands for the same contract (`ND_MERGE`); the Dossier stage 'live'. A live (unsigned) contract's finds give no row: they are not duties yet. The row goes when each find is added or skipped at the desk.
-
 
 ## ASK A COLUMN — DISCOVER, THE OWNER'S SEVEN NOTES AFTER USING IT (26 Oct 2026)
 The owner ran the merged Discover against their own book (189 contracts, SEK 1.07B) and
@@ -35420,7 +35322,6 @@ The owner, 29 Oct 2026: "Build … round 1". Built from the options artifact's "
 ## WHAT JAMBO COULD NOT PLACE BECOMES A LESSON (round 8 "The SAP way", owner's yes 29 Oct 2026)
 The owner, 29 Oct 2026: "Build … round 8", with two answers asked first: "No names" (an admin never sees who typed a sentence) and "90 days" (rows delete themselves). Built from the options artifact's "The SAP way" (the recommendation): a table in Settings › Company › Jambo. WHAT IS KEPT, AND WHEN: words typed in a Jambo box that no free reader moved (not a page's one name, not a contract's number, not a taught phrase — `jamboPageGo` is every box's first step) are only held in the tab for `JB_UNPLACED_NEXT_MS` (a minute). If in that minute the person moves to another page THEMSELVES, the words were not placed where they meant: the sentence, the page it was typed on, the contract on the paper (its reference) and where they went are sent. A move Jambo makes himself (caGo, navGo, aiGotoRun stamp `jamboMovedNow`; `JB_OWN_MOVE_MS`) keeps nothing. Choosing to keep only sentences followed by the person's own move is the privacy choice made in the build: most questions to the brain are answered and never kept. THE SERVER: `jambo_unplaced` (id, text, phrase, page, ref, next, at — no person column, pinned by f962), `jambo_lessons` (phrase, place, by_name = the ADMIN who taught, at). POST by anyone signed in (rlIntake); GET and DELETE ("Fine") admin-only; rows past 90 days swept whenever the table is touched; `PUT /api/jambo/lessons` (admin) upserts or removes a lesson and clears that phrase's waiting rows; GET lessons for every reader (who taught it only for admins). THE BROWSER: lessons loaded at start (`jamboLessonsLoad` in core's boot), asked right after the page's name in `jamboPageGo` (`jamboLessonOf`), so a taught phrase moves free in every box. THE TABLE (`lessons` panel, door on Jambo's card): Sentence · Typed on · Went next · Teach · Fine, a same-in-every-row "What Jambo did" column left out (always "asked his brain" by construction); Teach opens under its row with "It means" preselected to where the person went; one filled button (Teach Jambo). Title "Sentences Jambo could not place" (the drawing's tab) — "What Jambo could not place" read as a question and the door exam's title typed went to the brain. Brain map: unplacednote, lessonspanel, unplacedpost/list/fine, lessonsget, lessonteach. Handbook 7.5 gains its line and a box on the card picture.
 
-
 ## THE ONE DESK — NEEDS YOU, ONE READING · THE BOX PREDICTS (round 5, owner's yes 29 Oct 2026)
 The owner first said "build this The box predicts the next task but not on the home page"; asked where, they answered "okay bring them to home page as you suggested before" and, for a day with nothing waiting, "the usual links apart from reads". Built the Legora way from the options page (round 5): Home's chips under the box read "Likely next:" · board · the first three things of the one desk's reading (ndRead, Needs you's own order: Jambo's prepared work, then your move), each said as a whole task (cnLikelyWords: "answer Nordvik Logistik's 2 changes", "approve the Helio Energy AB deal", "review a chase to Kettle & Co") and pressing the same door as its row's button (ndParts' attrs). Free: nothing is asked of Jambo. Nothing waiting: board · contracts · calendar · draft a new agreement (Home never had "reads"; that is the Contracts wall's). REVERSES 27 Oct 2026's "remove the highlighted sign contract" (no lead chip): the owner's yes in the chat. The Board stays first, per 27 Oct's "add board as always an option to press". A first word is made small only when it is a plain word (CN_LK_SMALL), so a name keeps its capital ("Nordvik Logistik's answer", not "nordvik…").
 ## THE SEND SCREEN — THE SUBJECT IS YOURS, JAMBO WRITES ONLY THE NOTE, A RANGE IS NAMED BY ITS LABEL (29 Oct 2026)
@@ -35468,7 +35369,6 @@ The head's right end, the same day. The owner, off a screenshot of the head: "Bu
 The owner: "The DNAs: the names are too long and take so much of the space the strand needs to have. Make the names shorter and the lines more compact so we can fit 30% to 40% more contracts strands on the page. After that, on the top right of the screen next to the alerts sign, add a nav panel sign which when pressed you will open up the alerts panel but the landing would be the guide panel."
 Measured on a book of 40 with long names: the row was 93px (the name wrapping to two lines, the ref and the stage on their own), 5 rows on screen at 1440×780, 5 at 1536×730, 7 at 1366×950. Now the name is one line with … (the whole name and party on the row's hover and in Jambo's panel), ref · party · stage one small line under it, the strand 34px high and the name column 25% (was 30%): 51px rows, 10 · 9 · 13 on screen, the strand 15–18% wider. That is more than the 30–40% asked; it reads cleanly in the photographs, and a taller row is one CSS value if the owner wants it closer to the ask. The Pulse board's rows are the one place a long name takes ONE line, by the owner's words.
 The nav panel's door: #hdr-nav, the existing panel mark (i-panel), just left of the bell; openPanel('guide') — the one panel, its Guide face; a second press closes it as the bell's does; greyed with the bell where a page refuses the panel (updateAlertBadge); aria-expanded says whether the Guide is the face showing (applyPanelLayout). Handbook 0.5 names it with a picture.
-
 
 ## THE FLOW MAP — THE MAP IS PART OF THE PLATFORM (31 Oct 2026)
 The owner, after the design review room's flow map: "include the map to the platform when we decide to build and it has to be updated as the page changes shape over time as a rule", and "the artifact when being built has to strictly follow the design token". The build plan (docs/PLAN-the-legora-way.md) made both law in round 0; the owner confirmed an overnight build of rounds 0 to 2 with merge on green, giving the round's yes in advance for those three rounds only.
@@ -35615,7 +35515,6 @@ The owner, with two screenshots: "Hati is giving me two types of brief. The old 
 Cause: the new look's brief page (`pd2BriefOpen`) was reached only from the Dossier's brief line; every other door (Write the brief, the Board strip's Brief, Jambo's "brief" `caBriefOpen`, the arrival card, the Scan panel, a brief piece of Jambo's work, the old Home card) presses `openCheckPanel(c,'brief')`, which drew the old side panel; and `pd2BriefOpen` itself fell back to it when no brief was kept.
 Fix: `openCheckPanel(c,'brief')` asks `pd2BriefGo(c)` first (new look, desk shell): on the paper the page opens (`stay`: a door that opens never shuts it, it repaints `pd2BriefRepaint`); off the paper the paper comes first (`roomHomeLand`) then the page. No brief kept: the same sheet says so (`pd2BriefNoneHtml`, `br_none_write` / `br_kt_none_viewer`) with Write the brief, which writes and draws it in place; the head says no "written by" until there is one. `briefPanelToggle` shuts the middle page on the same press. Look off: unchanged.
 
-
 ## THE NOTES BESIDE THE PAPER AGREE WITH CLAUSES (6 Nov 2026; owner picked "The Legora Way", amber kept)
 - The owner: "Today a clause can be amber or red in Clauses and have no note beside the paper. That's confusing." The options were shown on the notes world (test/notes-world.js) at three screens: The Legora Way, The SAP Way, Pins.
 - Built (js/paperdesk.js):
@@ -35651,7 +35550,6 @@ Fix: only the signing copy stands without notes; the clean paper is the paper (i
 ## THE SHELL — RAIL, BAR, PANELS · ONE ROW ABOVE JAMBO'S BOX, EVERYWHERE (owner, 6 Nov 2026)
 The owner (overnight work order): "duplication of links or buttons above the jambo entry fields in some cases which should not be the case." A sweep over every place and contract face (new look and old) found ONE: the Contracts place on its folders and wall drew both the chips row (upload a document · draft a new agreement · reads · calendar) and the flow map's doors row (upload · draft · reads), the same things twice. Cause: `igCaChipsNote` counted the chips as the row only on the paper, and `jamboWaysSync` excused the folders (`!regFoldersUp()`), both from round 6. Fix: wherever the chips are doors (`data-ca-chip`) they ARE the row and the doors stand down — the paper, the list, the wall and the folders alike; question chips (the Board's) stand with the doors as before. one-row-above-the-box-verify sweeps 26 places and 9 faces; doors-verify 3 re-pointed.
 
-
 ## OTHER PAGES AND SERVICES · THE BUG LOG'S TOP FIXES (owner's overnight order, 6 Nov 2026)
 The owner: "fix the top 10 bugs in the bug log as well". Of the recent "Noticed, not fixed" lines, four were already fixed on main (Before you sign writing a negotiation; the fill-in form blocking Before you sign; "since Today" mid-sentence; a focus ring after hbOpenAgent) and two did not reproduce (typing a page's own name going to the AI; Jambo's Contracts panel losing typed words when Discover's summary lands). Fixed, each reproduced first: (1) the bell read "Overdue:" with nothing after it for an obligation named by `title` — `o.desc||o.title||o.what` (js/app.js); (2) New agreement with words typed: Board on Home put the sheet away unasked — `caHomeFace` asks through `closeModalGuarded` first, as app.js does for a page change; (3) old look, Parties' panel "Draft an agreement with <long party>" ran 137px past the panel — `.cu-draft-with .ui-btn` ends in …; (4) old look, the Handbook's "Which one do I need?" table ran under Jambo's panel and the page scrolled sideways 30px — `.hbk-pick`/`.hbk-tbl` min-width 0 (the table scrolls in its own box), `.hbk-foot` wraps; (5) a history or status send still drew the "Clause N stays here" cards — `shareGoesPaint` hides `[data-sh-lt-stays]` for those purposes; (6) `AI_TRACE_NOTE_RE` counted only "Copilot —" notes, so every change Jambo wrote since 11 Oct was missing from the AI involvement record — it reads Jambo too. buglog-fixes-nov6-verify.
 
@@ -35661,7 +35559,6 @@ The owner's overnight order: find where older views pop up inside the new look. 
 ## THE COUNTERPARTY'S PAGE (js/views/portal.js) · THEIR PAGES AS OURS (owner, 7–8 Nov 2026)
 The owner: "build the other sides view … the emails they receive and the platform they have to see the progress and the negotiate as well"; then, on the drawings, "the legora way makes sense"; "we need to move away from the cards views into the page views just like we have done into hati"; "the other side is not supposed to have AI ability"; "you have to have the redline cards just like in hati … so that you can accept on the notes on the paper or on the redline cards"; "Why you are countering should go to the notes feature just like how Hati does it today"; "Mimic what is in the owner side" (internal and external notes). Drawings were published as an artifact and answered "Go". Everything is behind the company's existing setting "New look for people outside the company" (off by default; the owner was told nobody outside sees any of it until it is on).
 Built: round 8's hidden change column (#rl-side) brought back into the panel's room under Redlines · Where we are · Notes; the round 8 six-stop road (Arrive · Read · Fill …, our own steps) replaced on their side by the four every party sees (po_step_*, pol_rd_* inert). A card, its note beside the paper and its clause lit by our .is-linked (the 23 Oct one-shade rule, grey, no ring — first drawn amber, corrected on the owner's question). Counter and a new "Propose a change" door open OUR clause page (the editor already was ours on their seat) with our trail minus the Jambo crumb; Save opens OUR Notes drawer pinned to the change with the Internal | them switch, replacing portalAskReason's pop-up in the outside look (the old look keeps it). Their team's room is new on the server: share_messages side 'their-team' (MSG_SIDE_THEIR_TEAM), written by POST /api/shares/:token/messages {room:'team'}, served by contractMessages only to a link of the same party, never to our seat, an adviser, the waiting count, the search index or a mark-done from our seat (setMessageDone takes the link's scope). Found on the way: the panel's face attribute on #pw-page was named data-pol-face like the tabs' own, so every press on the page counted as "show Redlines" and Send back was swallowed — renamed data-pol-shows. Send back's check stands in the panel (portalOutSendHtml) instead of the confirm pop-up; "no reason given" is not said there (the reason lives in Notes now). History is our table (portalOutHistoryHtml over negoTimeline), our change codes and "owner side" never shown; Verify integrity and Export history kept. Where we are, Signing, the code screen (the expired page's frame) and the status page (dealPageHtml {out}) as page views. The phone's tabs scroll in their own row. Emails: the drawn invitation whenever the outside look is on; reminderMailOf for Resend and the unopened nudge; codeMailOf in both looks ("to open" when the code screen asks, {for:'open'}; it used to say "to sign this contract"); the signer's turn, chase, handover and signed copy keep their words and language and take the letter's shape (smTextLetterHtml), signed by the sender or our company instead of "HaTi CLM". NOT BUILT: their team's notes are not emailed to their colleagues (they read them on the page); the drawn status page (dealPageDrawnHtml, six stops) was left behind NEW_LOOK_PUBLIC because it would break one road. Check: their-pages-as-ours-verify (1–7 red at the parent).
-
 
 ## THE COUNTERPARTY'S PAGE (js/views/portal.js) · THEIR PAGES AS OURS — after the merge (owner, 8 Nov 2026)
 - "make the invitation email match the others": the drawn invitation's HTML now uses smDrawnLetter's shell, the answers as its quote (clause in bold), the link named over its address, and name over "title, company" (`_smDrawnInviteHtml`); the plain text and the send screen carry the same sign-off line. f972 1b red at the parent. The colours: the email file's own three (SM_INK, SM_MUTE, SM_HAIR) after f965 refused three new hand-typed ones.
@@ -36030,7 +35927,6 @@ The Lens row moved out of the view bar's flow to stand just above it (absolute),
 
 - LENSES (owner picked "Lenses", 8 Nov 2026): Risk · Obligations · Money · Promises · People; `intel.lens` in the recipe, ONE door `igLensSet` (Money only where `canViewValues`, `igLensMay`); each a reading the map already makes (`igLensBucketOf`, `igLensObOf` with `obligationDue`, `igLensMoneyOf` = `igHomeValue`, `igLensOwnerOf`), painted in `igbDraw` (`igLensDraw`, colours off `--hb-*`/`--bs-*`); the legend counts, a key not a door, its ONE press the free risk check (`igLensScanAll` → `runScanFor(c,{quiet})`); the card's door (`igLensDoorGo`); the walk worst first (`igLensTourSteps`). Words `igLensRead`, model `look.lens`.
 
-
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — NO JAMBO CALLS SAID (owner, 8 Nov 2026)
 The owner, over the Dossier drawing: "remove anything related to jambo calls", then "One more thing, remove all information related to jambo calls across the platform". Asked two questions: the admin's spending pages ("Keep admin spend (Recommended)") and the "no call / free / nothing spent" lines ("Remove them too (Recommended)").
 REVERSES Six Questions 4 "spending on a press with the cost visible" and Flow Rule 7 "cost before the press". About 430 labels were rewritten in both books so they say what happens, not what it costs; 35 that carried a cost alone are RETIRED (empty, `test/retired-cost-keys.js`), their spots hidden by an `:empty` rule in index.html. The Handbook's cost column and cost line are gone (the chapters' `cost` data stays, unshown). KEPT: the admin's Settings spending and limit pages, the budget-stop messages, the agents' spend columns, the Brain, and the admin-only dollars line on a deep answer. Guard: f975.
@@ -36146,7 +36042,6 @@ THE HANDBOOK'S RECIPES LEANED ON EACH OTHER: 6.2-6 (then and now) clicked the Ri
 
 Also this round, on #591: the Swedish check at 800 wide found the views group cut by 172px once the bar began beside the legend; a group too long for the room now folds inside its own box (`.ig-viewbar .ig-seg{flex-wrap:wrap}`).
 
-
 THE TAB ORDER, ASKED (9 Nov 2026): the drawing put Your day before the Overview, which reverses the 26 Oct ruling "an overview tab side panel in each page followed by the jambo tab" (overview-tab-verify 1 and one-window-bar-cards-verify A3 caught it). Asked; the owner: "Your day first". Explorer is the one exception: Your day · Overview · Findings · Guide; every other page keeps the Overview first.
 
 - THE SEND PAGE, AGAIN (same day): the owner on the pictures: "this is incorrect. The whole page should be white not a card
@@ -36189,7 +36084,6 @@ The owner, with a picture of Your day and the four figures circled (Need you, Hi
 
 NOTED FOR THE OWNER: Need you counts THINGS waiting (the bell's number); the map shows the CONTRACTS they sit on, so 9 things on 5 contracts reads "Showing 5 of 16".
 Then the owner: "Include New since yesterday as well". New since yesterday narrows the map too (go `onmap`, no lens); every figure on Your day now shows on the map. `int_day_go_open` and `int_day_go_them` retired (left inert in both books).
-
 
 ## ROUND 1 — THE INSTRUMENTS LEARN WHAT THE OWNER SAW (9 Nov 2026)
 The owner, over two pictures: the Calendar's Horizon tab with its first row painted twice and a small scrollbar on
@@ -36542,7 +36436,6 @@ Under `## THE FIRST-TIMER ROUNDS (owner, 22 Oct 2026: On the card · One questio
 
 A viewer's refusal says what is true and who lifts it, with Ask an admin (`draftWallSay`, `draftWallSend` → `stAskDirect('me:role')`, `draftWallToast`). Stems and everyday words (`caDraftWords`); easily confused papers ask ONE question (`CA_DRAFT_PAIRS`); "Use when" (`naUseWhen`). Who pays whom? one builder (`payWhoHtml`/`payWhoSet`). Jambo's first words after a draft owed once (`firstDraftOwe`), kept in his tab; `rlEmptyColumnActsHtml`. Their row: `rlPlainReasonOf`, `rlAskColleague`, `ng_decided_accepted_unsent`, `opts.fact`.
 
-
 ## CALENDAR
 THE AGENDA SCROLLS (owner, 10 Nov 2026: "I am unable to scroll in the calendar page"). The Agenda, the tab the calendar opens on, sat in the same holder as the month (`.cal-view .cal-month{flex:1;min-height:0}`), which is allowed to shrink so six weeks fit the window (`calFitDays`); its card clips (`.cal-card{overflow:hidden}`). With more dates than the window holds, the list was squeezed to the window and its foot cut off, and the scroller `.cal-view` (overflow:auto) had nothing to scroll. The agenda's holder now carries `is-ag` and keeps its whole height (`flex:1 0 auto`, its card `overflow:visible`), so `.cal-view` scrolls it; the month, the week and the horizon are unchanged (they fit the window by design, and the horizon already scrolled inside `.cal-hz`). The handbook world's agenda fits the window, which is why no check saw it: calendar-agenda-verify 6 adds eighteen dated duties in the page. Measured at 1536×730: before, a wheel of 4,800 moved nothing; after, the last row rose from 1515 to 661 and the tabs held at 72.
 
@@ -36700,14 +36593,12 @@ agreement's row disappears when Add all is pressed.
 RE-POINTED: round5-new-look-verify 3 and 4, which pinned the box-and-tabs-on-one-line and the pop-up desk the pick
 reverses. NEW: test/chromium/obligations-project-list-verify.js, every check red at 9be1391b.
 
-
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js) — YOU LAND ON THE BOARD, AND SAVED VIEWS MOVE TO JAMBO'S PANEL (10 Nov 2026)
 The owner, off two screenshots: "Image 1, I want the creating of a saved view to be easy and the saved views to appear on the highlighted area in the jambo panel and not on the board. Image 2, I want board to be the home page where you land once you log in. The top highlighted area is where the greetings will be with a note on what the latest is. This area shoud also include the summarize my board, read down, and explorer. DNA will be phased out but include it for now as well. Below this new card will be the same structure as how the board is designed there your book card is next then needs you."
 Three named options each were shown on one page (The SAP Way · The Legora Way · More Tiles; The SAP Way · The Legora Way · Headlines): https://claude.ai/artifact/Nx1rAenyJLm3upn1iPrnFG
 The owner's picks: "legora way for part 2. But for part 1, the saved view should be like the green underlined links but in blue and also you should be able to edit the name when saving it the saved view".
 BUILT: the Board's new-look head is the greeting (Home's own cn2Greet), one counted sentence (what moved since the Board's comparison day: more past their end date, value come under contract; then late, the oldest, what Jambo prepared; no AI call), the four pills, the day, Live and counted. It no longer stays at the top while scrolling (measured about 133px against 56px for the old strip). Signing in lands on the Board (was the Counter, 17 Oct 2026); the Counter page was NOT removed (the owner was asked whether it retires and had not answered). Saved views: blue (steel token) underlined links under Your day in Jambo's panel on Explorer; "+ Save this view" opens a name box filled with the view's own name; the map's own "Save view" link opens the same box. REVERSED: the chips in the Board's head (15 and 18 Oct 2026; hbSavedViewChipsHtml, hbOpenSavedView, hbViewsChanged, .hb-sv-chip are STALE names). Drawn with a departure the owner should know: where nothing is late and nothing prepared but things wait, the sentence says "N wait on you" rather than "Nothing waits on you".
 KNOWN COST: many browser checks sign in and wait for Home; they are re-pointed after GitHub's first run.
-
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js) — THE HOME PAGE IS DELETED (10 Nov 2026)
 The owner: "Home page should be removed / deleted. Then, there has to be a better way on this 'Some GitHub checks will go red. About 30 browser checks sign in and expect to land on the old Home…'". Asked how to check it, the owner picked "Run them here, once": the standing rule BROWSER CHECKS RUN ONLY ON GITHUB was lifted for THIS JOB ONLY; it stands for every other job.
@@ -36820,7 +36711,6 @@ The owner answered "Yes, follow me" to "Should saved views follow you to other c
 
 The owner answered "Yes, follow me" to "Should saved views follow you to other computers?" (questionnaire, 10 Nov 2026). Explorer's saved views were kept in one browser (`IG_VIEWS_KEY`). With a server they are now one of the person's own preferences: PUT /api/me/prefs `{ igViews }`, checked by `igViewsClean` (at most `IG_VIEWS_MAX` 12, a name of 1–60 characters, a recipe object, a day; the list ≤ 64,000 characters) — a list that breaks a rule is REFUSED in words, never trimmed; null clears it. Bootstrap's `me.prefs` carries them back on every computer; NOBODY ELSE'S ROW CARRIES THEM, an admin's list included. The browser reads `igViewsRaw` (the server's list once it has one, else this browser's), writes through `stPrefSet('igViews', …)` and puts the old list back on a refusal; the first save carries this browser's own views up once (`IG_VIEWS_CARRIED_KEY`). Static mode keeps them in the browser. Reading never writes. Kept NOT on other tabs: the owner chose to keep them under Your day only. f1000.
 
-
 ## CLAUDE.MD TRIM, 10 Nov 2026 (second) — the overnight run, job 13 (owner's yes in the chat)
 Size before 84729 bytes, after 82273 bytes. Each line below was condensed in CLAUDE.md to its rule and names; the full text it replaced is kept here verbatim. Tonight's jobs also updated three lines: rows-only now covers all eight lists, the one Needs you count, and saved views following the person.
 
@@ -36856,7 +36746,6 @@ Size before 84729 bytes, after 82273 bytes. Each line below was condensed in CLA
 (seventh pass, after main's Brain line landed the same night: 80102 → 80033 bytes)
 - CUT: THE DOORS' NUMBERS ARE COUNTED ONCE A TURN: `doorCounts(nc)`, cleared on a microtask, `_doorBusy`. f997.
 (eighth pass: 80033 → 79986 bytes)
-
 
 ### CLAUDE.MD TRIM, 11 Nov 2026 (merge of main into the 10 Nov trim)
 The trim met lines main had grown the same night. The trimmed short forms were kept; main's new lines landed condensed. Verbatim, as main had them:
@@ -36922,7 +36811,6 @@ DEAL = THE CLOSE PLAN: `rlHeadDealHtml` opens `dealViewHtml` (`pdDealOpen`): the
 ```
 Size after: CLAUDE.md 79996 bytes (was 81,469 right after the merge).
 
-
 ## HOME — THE BOARD AND THE MAP: THE DNA PAGE IS DELETED (10 Nov 2026, the overnight run, job 15)
 The owner, 10 Nov 2026: "delete the DNA page and button from HaTi". Removed: the DNA button beside Read down in the Board's head (`hbDnaBtnHtml`), its page on the Board (`hbDnaHtml`, `hbDnaRows`, `hbDnaOf`, `HB_DNA_MAX`, `_hbDna`, `hbDnaUp`), its face in Jambo's panel (`hbDnaPanelHtml` in `pdJamboTopHtml`), its presses (`data-hb-dna`, `data-dna-back`, `data-dna-show`, `data-dna-open`) and its styles (index.html "DNA BY CONTRACT, AS DRAWN"). All are STALE names now. The `dna_*` sentences stay inert in both books for the tidy-up job. KEPT, being other features: the DNA strand in a contract's margin (js/views/contract.js) and the Pulse board's strands (`.pu-dna`). round6-new-look-verify 11 and round9-new-look-verify 2a re-pointed to its absence.
 
@@ -36934,7 +36822,6 @@ The owner, off two screenshots: "Instead of having the highlighted area as desig
 
 ## THE OVERNIGHT RUN (9 Oct) — THE LATE SEAL (10 Nov 2026)
 The owner: "I received the email in image 2 today but as you can see in image one, it was executed a while back." MK-243 was signed by both sides on 30 Jul 2026 and sealed on 10 Nov 2026 — the "Fully executed" mail went out at the seal. Cause: `runSealCatchUp` only looked for records carrying "Seal waiting", a note written from 9 Oct; anything every signer signed before that was never looked at. PR #627 (owner's yes): the round also seals any record whose signing route is all signed (`srvSealRouteDone`); the executed mail says "was signed by all parties on D and sealed on D2" (`srvExecutedSentence`), never "is now fully signed". The gap left, said to the owner: a paper drawn from a template and never edited stores no wording, so the server cannot draw its copy. Then "fix the template contracts gap too": the first page an editor opens, once per sitting, draws the copy for every visible contract with every signature in and no seal and saves it; the server seals on that save (`sealCatchUpPage`, `sealCatchUpDue`). It is still not without a browser: drawing a template's paper on the server would mean porting the page's renderer.
-
 
 ### CLAUDE.MD TRIM, 11 Nov 2026 (second) — room for the lesson of f1005
 One line condensed (verbatim before):
@@ -37072,7 +36959,6 @@ ALSO FIXED FROM THAT RUN: the ⋯ printed a typed mark (f966 forbids it; the dra
 and the fold were wired inside renderIntelDock while the turns are repainted in place, so the listeners died
 with their nodes — the ⋯ is delegated on document at load.
 
-
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ — ONE "WHAT TO WATCH", THE PAPER LINES UP, THE PAPER STAYS WHITE (11 Nov 2026)
 The owner, off MK-382's Clauses tab with four "What to watch" blocks (twelve links) on clause 3: combine them. Drawn three ways (artifact "One What to Watch", the page at 1440 × 780): One list (the Legora Way) · Pick and act (the SAP Way) · One sentence; the owner picked **One list**. Built in the new look only: `stkRowCardsHtml` → `stkGroupHtml` ("What to watch · N points", a line per point, one Start redlining · Deep dive · Mark all reviewed; `data-stk-review-all` runs `stkMarkReviewed` per point; blanks keep their own card). Two parts differ from the drawing and were put to the owner before merge: no quoted words under each line (the 23 Oct ruling "no wording in the panel" stands), and Deep dive opens the first open point with ‹ › walking the rest (no clause-wide dive exists).
 The owner also: "the clauses on the page and the panel do not line up". Measured: scrolling on Clauses already followed; the two mismatches were (1) the first open of the clause that needs you left the paper where it was (stkDecorate's firstOpen, "the paper is not moved") and (2) a paper scrolled on the Dossier tab came back to Clauses with the old clause open (the follow listens only while the list is up). Fixed: the first open glides (`docThreadGoTo`; reverses "the paper is not moved"), and `docThreadPaint` opens the clause at the line when the paper moved since the open row was decided (`_docThreadSyncTop`, set by every `docThreadOpen`). The owner asked whether the paper's amber wash should stay; their answer was "Drop it": `pd2ClauseTint` no longer sets `pd2-cl-on` and its rule is gone; the note and the row still light. contract-new-look-verify 13 re-pointed (paper white) and 13b added (the first open is at the paper's line).
@@ -37145,7 +37031,6 @@ to it — bind twice and one press toggles twice. The chips' presses are delegat
 rule has it. A CORRECTION OWED TO THE OWNER: the earlier measurement reported here as "the panel does not
 repaint while idle" was taken with a wrapper around `window.renderIntelDock`, which the module never calls — it
 measured nothing. The claim is withdrawn.
-
 
 ## THE SHELL — RAIL, BAR, PANELS (the chips' drop-down, 11 Nov 2026)
 
@@ -37312,6 +37197,9 @@ Point 3 of the same review (Ladder on their cards) was withdrawn: read in the co
 ### THE NAMES TYPED ON THE PAPER ARE IN THE ROUTE WINDOW (owner, 12 Nov 2026: "show names typed on the paper in the route window too")
 Left and said in the round above: the window read the saved route only, so a name typed on a signature line was missing when Change was pressed. Built: the door hands the sitting's typed names (`pd2FillSigTyped`, the same rows Save adds) to `openSignerPlanEditor` as `opts.typed`; they join the window's rows after the route as it stands, never twice; an empty route still opens with a slot for a side nobody was typed for (ours first). Nothing is saved until Save route; Cancel leaves them typed on the paper. Photographed through the real door at the three screens: Amina Otieno (the suggested slot), Wanjiru Otieno with her email, Simon Jordan open for his email; Save route → all three on the paper's lines, no space left; Cancel → route still empty, both names still typed.
 
+### THE DETAILS TAB — THE FILL IN FORM, THE LEGORA WAY (owner, 12 Nov 2026)
+The owner asked what the Fill in page in the middle was that filling on the paper replaced, then "draw the fill in form options so I can see them" and picked "Design options for it" over pictures of today. Three were drawn on one page with today's form for comparison (The SAP Way · The Legora Way · One at a Time); recommended and picked: "Build The Legora Way". Built as drawn: ONE quiet list in the middle, what is owed first with an amber dot (green once answered), then what stands with "§ n · quoted words" where read (`pd2FormRegroup`; an owed fact with nowhere on the paper says "Not on the paper. Owed before anyone signs."); the line under the title "N needed · M ready · nothing is saved until Save"; chips All · Needed · Read from the paper that only narrow the rows (`pd2FormChipsPaint`, `_pd2FmShow`); the foot "k of n filled" over what was owed, Save before Discard. Jambo's side (`pd2FormFaceHtml`) names what is owed and asks for it in ONE sentence; the box says "Tell Jambo the missing details…" (`igAskPlaceholder`, `pd2FormAskPh`) and, while the form is up, intelAsk hands typed words to `pd2FormAsk`, which asks the ONE fill route (POST /api/ai/fill, now taking `said`: the person's words; text left empty) for the owed rows, their signer as name and email; "You said" shows what was found (a date in words) with Put all in · Show me each. Measured while building: putting a value in with a "change" event STORED a date at once (the form's own date listener) — so `pd2FormPut` sends input only; the form's own "a picked date is stored at once" while it says "nothing is saved until Save" was already so and is a BUGLOG line, not fixed here. The "As you type" list beside the form is gone (the drawing has Jambo's card instead). Photographed at the three screens; f1022; form-the-legora-way-verify; contract-new-look-verify 10a · 10 re-pointed.
+
 ## THE NEW LOOK IS THE ONLY LOOK — JAMBO'S MARK BREATHES (12 Nov 2026)
 Owner, on the Board's Needs you: "the purple circles are ones prepared by jambo. I want them to look a bit different and more like breathing that just stale circles. They should be fancier... draw five options". Five drawn on the real list (The SAP Way · The Legora Way · Breathing Orb · Thinking Ring · Twin Sparkles; the recommendation was Breathing Orb); then "Make twin sparkles and legora way be a blend of black and grey", "SAP way as well", then "build sap way". Built: the ONE builder `listSapMarkHtml` gives Jambo's piece `['jambo', 'mkSpark']` (was `['violet', 'mkStar']`): Jambo's own four-point sparkle (JAMBO_MARK_PATH scaled to the 24 box, `mkSpark` in ICONS) in white on a circle shading black into grey (`--color-text` → `--color-quiet` → `--st-gray-dot`, tokens only), and one thin `--color-neutral-400` ring rippling out every 3.2s (`lsMkRipple`, transform and opacity only); each mark its own beat (`--mk-d`, a counter in the builder) so a list never pulses in step; still under prefers-reduced-motion. The only caller with 'jambo' is Needs you (`ndSapKeyOf`: the Board, its rows, the bell), so every place Jambo's mark appears changes at once; the phone draws no SAP mark. `mkStar` stays in ICONS, unused. f982 (2) red at the parent on two claims. Photographed from the real builder and sheet in the static app (it has no Jambo pieces to show on the Board itself); the handbook's pictures not re-taken here (browser tools run on GitHub).
 
@@ -37328,6 +37216,10 @@ NAMED DIFFERENCES FROM THE DRAWING. (1) The button's number is the real one and 
 THE SIX QUESTIONS. The cheapest channel: no band was added; a refusal is one amber line under the box (dsc-say). The one door: the pick is the owner's yes to asking from Discover (it REVERSES 25 Oct "the QUESTION stays as today … the form in Jambo's panel" for the new look; the same read engine, the same record). Copilot's place: no cost is said; nothing reads without a press (a chip only fills the box). Where the reader ends up: the bar's ‹ and the panel's "contracts" link go back; a refusal says its way forward ("Change the list on Contracts to ask others").
 MEASURED. Photos at 1366×950, 1440×780 and 1536×730 through the whole flow (Contracts → Discover → open → picked → closed → typed → reading → after → stopped): no page errors, nothing wider than its frame (page 0, panel 0). f1016 0/6 at the parent, 6/6 after. Not run here (GitHub only): discover-page-verify and the re-pointed browser checks.
 
+## THE POP-UPS, THE SAP WAY — ALERTS BOTTOM CENTRE (12 Nov 2026)
+The owner, with a screenshot of "4 rows filled in. Nothing is saved until Save." over Jambo's box: "Whenever you get an alert like the one attached, they always appear on top of the jambo entry field. Are there other locations these pop ups can appear instead?" Three options were drawn on the real Fill in form (The SAP Way, The Legora Way, Lifted). The owner said: "Build The SAP Way but dont push".
+Built: on a computer the stack moves from the bottom-right corner to the bottom centre, 64px above the window's foot, and `toastPlace` (js/core.js) centres it on the page area. It does that by measuring whichever panel touches the right edge, so a panel added later is cleared without a code change. The phone keeps its place above the tab bar (mobile.js). Measured at 1440×780, 1536×730 and 1366×950 on the form: the alert is clear of both Jambo's box and the form's foot.
+NOT built, and ASKED: the drawing said "Warnings and errors ... stay until closed." That reverses the standing ruling "EVERY TOAST GOES BY ITSELF" (dwell never 0), so it stopped the round and was put to the owner.
 ## SCOPE RULES — CHECK-INS EVERY 30 MINUTES (owner, 12 Nov 2026)
 While watching pull request #673's checks a safety-net reminder was set for 50 minutes. The owner: "Reminders to look should always be in 30 minutes not 50", then "yes add it as a standing rule". The reminder was moved to 30 minutes and the rule added under Scope rules.
 
@@ -37336,10 +37228,19 @@ The owner: "re-take the Handbook pictures in the new look", then, asked which, p
 FOUND WHILE TAKING THEM: straight to Discover (not through Contracts), a read's first answers drew the Contracts list over the page, because the list's repaint paints into the page's place (`renderRegister` with `hostId` 'content'). Every repaint of the list from askcolumn.js now goes through `_acRegRepaint`, which waits while Discover (view 'reads') is in front. f1016 7, red without it.
 NOT FIXED (BUGLOG): the read table on Discover still wears the old Reads head; a counting question has no "turn it into a question" door on Discover; the pack cannot be unticked on Discover.
 
+## THE HANDBOOK — HOW TO DO EACH THING — NEEDS YOU'S PICTURE IN THE NEW LOOK (12 Nov 2026)
+Owner: "redo the handbook pictures for Needs you" (after Jambo's mark became his sparkle in black and grey). Chapter 1.1's second picture was taken in the old look, which draws no row marks at all; its recipe now switches the new look on, repaints the Board (`view: 'counter'`, else the Board drawn before the switch keeps its unmarked rows) and waits for a Jambo mark (`#hm-agents .ls-mk.is-jambo`) before the picture. Found on the way: the recipe step `newLook` could run before the page knew who was signed in (`currentUser()` null a beat after the contracts load), so `stPrefSet` refused and the picture was silently taken in the old look; the step now waits for the person and fails if the look never switched. Re-taken with `HANDBOOK_SHOTS=1 HANDBOOK_ONLY=1.1`; 1.1's first picture (the Board's head) left as it was.
+
+## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY — A TAG'S REPLY REACHES A PERSON (12 Nov 2026, owner: "Fix 1")
+The re-review of the reply flow found the one email to the other side f1020 missed: tagging their person in a note (POST /api/contracts/:id/mention) mailed them with no reply address. It now carries `mailReplyFor(req, null, c)` for an outside person only; a colleague tagged inside gets none. Its words ("an automated notice") are unchanged. Still open, drawn for the owner the same day: a reply leaves no trace in HaTi; the letters never point to Notes; "reply and say who" is untracked. Red at the parent: f1021 1.
+
+## THE HANDBOOK — HOW TO DO EACH THING — THE PICTURES WAIT FOR ONE BATCH (12 Nov 2026)
+Owner: "wouldnt it be easier to update pictures after all the changes across the platform are done?", then "yes, change the rule". Rule 9d REVERSED in part: a change still rewrites its chapter's words in the same change, and its picture recipe must stay true (handbook-verify fails a box that finds nothing), but pictures are no longer re-taken per change; all are re-taken in one batch when the owner asks. The cost, said to the owner: until then some pictures show older screens.
+
 ## HOW THINGS MOVE — A FACE CHANGE IS DRAWN AT ONCE: THE STUTTER AUDIT (owner, 12 Nov 2026)
 **THE ASK.** Two screenshots of Jambo's panel beside a paper (the Dossier · Clauses · Redlines tabs boxed): *"when i navigate from between the tabs, the panels stutter or flashes when i go page to page. I have also discovered this when i navigate between pages within the platform. Please do a bug audit to understand why this is happening, provide a fix a solution so which would act as a permanent fix."* Asked whether to build: *"yes build it, and push when ready"*.
 **THE CAUSE, READ IN THE CODE (not filmed here: browser measuring runs on GitHub).** (1) The "Crossfade" of 22 Oct (`faceSwap`): on a change of tab, face or paper a CLONE of Jambo's panel was laid over it and faded out in 110 ms while the new face's parts faded in from nothing over 180 ms. The clone had its ids and data- markers stripped and was appended to `body`, so none of the panel's styles reached it — index.html holds over a thousand rules scoped `#ig-dock …`, more scoped `#app-shell`. For a tenth of a second a wrongly drawn face lay over a pale new one: the flash. (2) Any second repaint of the panel in that time (a late load on Redlines, the notes beside the paper, an answer landing) replaced the nodes that were fading, so the panel snapped from pale to whole: the stutter. (3) A panel that opened more than 40px wider (a page change, the door) faded its contents in from nothing (`.ig-dock-in`, `igDockIn`): a blink on page moves. (4) A tab press wiped and rebuilt the paper's line (`#ig-strip`) even when it said the same, and drew the tab's body twice (the panel's paint, then `igPaintPaper` → `pdPaint`).
 **THE OWNER'S PICK.** Asked "Instant" or "Soft arrive" (a faithful crossfade cannot be made without a second `#ig-dock` on the page), the owner answered: *"why can the old tabs be deleted across the platform to avoid this?"* — read as Instant: the copy of the old face is deleted, everywhere. This REVERSES the "Crossfade" pick of 22 Oct 2026.
 **BUILT.** `faceSwap` copies nothing and fades nothing; it keeps only the lit tab's underline glide (`FACE_SWAP_INK_MS`; not for a reader who asked for less motion). `faceSwapGhost`, `FACE_SWAP_OUT_MS`, `FACE_SWAP_IN_MS`, `FACE_SWAP_GHOST_MAX`, `.face-ghost`, `.ig-dock-in` and `@keyframes igDockIn` are DELETED (a mention is stale). The tab's press holds `_pdBodyFresh` while it paints the paper, so `pdPaint` does not draw the body again, and asks `igPaintPaper({ keepLine: true })`: the line stands, with its wiring, where the words it would draw are the very ones drawn (`strip._igLine`, written by both writers of the line and forgotten when the line is emptied). No other caller keeps the line.
-**TESTS.** f1021 (red at the parent). tab-change-no-flash-verify looks at every frame for 450 ms after a tab press, another paper opened and a panel opening wider: no copy, nothing fading, nothing pale, the panel never empty, the line the same node, the body written once. page-jumps-verify H and f676 10f re-pointed.
+**TESTS.** f1024 (red at the parent). tab-change-no-flash-verify looks at every frame for 450 ms after a tab press, another paper opened and a panel opening wider: no copy, nothing fading, nothing pale, the panel never empty, the line the same node, the body written once. page-jumps-verify H and f676 10f re-pointed.
 **LEFT, AND SAID.** The panel is still built whole on every repaint (about 170 callers); drawn in one turn that is not a flash, and it was not rebuilt here. Page-to-page moves outside Home's panel (the list pages' own panel, Settings) were read and hold no fade; whether any still blinks from a late second draw is for the filmed check's next round on GitHub. The other things that arrive with a fade (a pop-up, Jambo's answer, a Board card, the Clauses drawer) are things appearing, not pages being changed, and stand.

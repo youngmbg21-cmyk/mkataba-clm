@@ -363,7 +363,7 @@ describe('f676 (10) what the Negotiate page did, the Redlines face does too (fou
     assert.match(strip(fnBody(IG, 'igSignOn')), /pdSignShows\(\)/);
     assert.match(strip(fnBody(IG, 'igRedOn')), /pdRedShows\(\)&&pdRedFor\(\)===String\(p\.id\)/);
     /* RE-POINTED 23 Oct 2026 (Spine): the tab's key is read first (Redlines is the face's door), then set */
-    /* RE-POINTED 12 Nov 2026 (f1021): the press keeps the paper's line where it says the same */
+    /* RE-POINTED 12 Nov 2026 (f1024): the press keeps the paper's line where it says the same */
     assert.match(strip(PD), /pdSetTab\(k\);[\s\S]{0,260}igPaintPaper\(\{ keepLine: true \}\)/);
   });
   test('10g the way back to the Clauses tab stands in Home\'s bar on that trip', () => {

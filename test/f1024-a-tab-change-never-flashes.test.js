@@ -1,5 +1,5 @@
 'use strict';
-/* f1021 — A TAB CHANGE NEVER FLASHES (owner, 12 Nov 2026, the stutter audit: "when i navigate between the tabs, the
+/* f1024 — A TAB CHANGE NEVER FLASHES (owner, 12 Nov 2026, the stutter audit: "when i navigate between the tabs, the
    panels stutter or flash"; then "why can the old tabs [not] be deleted across the platform to avoid this?"; REVERSES the
    "Crossfade" pick of 22 Oct 2026).
    (1) faceSwap copies nothing and fades nothing: no ghost, no opacity animation, only the underline's glide;
@@ -17,7 +17,7 @@ const stripCom = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm
 const region = (src, name) => { const a = src.indexOf('function ' + name + '('); assert.ok(a >= 0, name + ' is found');
   const b = src.indexOf('\nfunction ', a + 10); return src.slice(a, b < 0 ? undefined : b); };
 
-test('f1021 (1) the panel\'s face is never copied and never faded; the underline alone glides', () => {
+test('f1024 (1) the panel\'s face is never copied and never faded; the underline alone glides', () => {
   const C = stripCom(read('js/components.js'));
   assert.doesNotMatch(C, /faceSwapGhost|face-ghost|FACE_SWAP_OUT_MS|FACE_SWAP_IN_MS|FACE_SWAP_GHOST_MAX/, 'the copy and its fades are gone');
   const f = region(C, 'faceSwap');
@@ -26,12 +26,12 @@ test('f1021 (1) the panel\'s face is never copied and never faded; the underline
   assert.match(f, /!listGlideOff\(\)/, 'not for a reader who asked for less motion');
   assert.match(f, /const out = paint\(\);/, 'the paint itself stays immediate');
 });
-test('f1021 (2) a panel that opens wider does not fade in from nothing', () => {
+test('f1024 (2) a panel that opens wider does not fade in from nothing', () => {
   const H = stripCom(read('index.html')), I = stripCom(read('js/views/intelligence.js'));
   assert.doesNotMatch(H, /ig-dock-in|igDockIn/);
   assert.doesNotMatch(I, /ig-dock-in/);
 });
-test('f1021 (3) a tab\'s press draws the body once and keeps the paper\'s line', () => {
+test('f1024 (3) a tab\'s press draws the body once and keeps the paper\'s line', () => {
   const P = stripCom(read('js/paperdesk.js'));
   assert.match(P, /_pdBodyFresh = true; try \{ igPaintPaper\(\{ keepLine: true \}\); \} catch \(_\)\{\} finally \{ _pdBodyFresh = false; \}/, 'the press says so, and always lets go');
   const pd = region(P, 'pdPaint');
@@ -40,7 +40,7 @@ test('f1021 (3) a tab\'s press draws the body once and keeps the paper\'s line',
   assert.ok(pd.indexOf('pdFillPaperMarks') < at && pd.indexOf('pdTrailSync()') < at, 'the paper\'s marks and the trail still follow');
   assert.equal((P.match(/_pdBodyFresh = true/g) || []).length, 1, 'only the tab\'s press holds it');
 });
-test('f1021 (4) the paper\'s line is kept only where it says the very same', () => {
+test('f1024 (4) the paper\'s line is kept only where it says the very same', () => {
   const I = stripCom(read('js/views/intelligence.js'));
   const pp = region(I, 'igPaintPaper');
   assert.match(pp, /if\(!\(o&&o\.keepLine&&!strip\.hidden&&strip\._igLine===line&&strip\.firstElementChild\)\)\{/);

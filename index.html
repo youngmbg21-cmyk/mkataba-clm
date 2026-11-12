@@ -1159,6 +1159,13 @@
      would drop the change on the next build. That is the same rule the
      font-600 and text-ink repairs already follow. */
   #toast-root{ z-index:var(--z-toast); }
+  /* ALERTS AT THE BOTTOM CENTRE (owner picked "The SAP Way", 12 Nov 2026):
+     off Jambo's box, above the page's foot, centred on the page area —
+     toastPlace (js/core.js) moves `left` to the middle of what is left of
+     any panel at the right edge. The phone's rule (mobile.js) still wins. */
+  body:not(.m-on) #toast-root{ right:auto; left:50%; bottom:64px; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; pointer-events:none; }
+  body:not(.m-on) #toast-root > *{ pointer-events:auto; }
 
   /* ---- soft card frame: the old "blueprint" corner-registration marks are
      retired in favour of larger radii + diffuse layered shadows. The corner
@@ -18525,8 +18532,31 @@
   html.lg-new #modal-root [data-pd-mid^="form:"] .dlg-pg-body > .pd2-fm-mid{min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
   html.lg-new .pd2-fm-mid > .pd-fm{flex:1 0 auto;display:flex;flex-direction:column}
   html.lg-new .pd2-fm-mid table.pd-og.is-form{margin-bottom:24px}
-  html.lg-new .pd2-fm-mid .pd-fm-f{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;gap:10px;margin:auto -40px -24px;padding:12px 40px;background:var(--color-surface);border-top:1px solid var(--color-divider)}
-  html.lg-new .pd2-fm-mid .pd-fm-f > span{margin-right:auto;font-size:13px;color:var(--color-text)}
+  html.lg-new .pd2-fm-mid .pd-fm-f{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:row;align-items:center;gap:10px;margin:auto -40px -24px;padding:12px 40px;background:var(--color-surface);border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-fm-mid .pd-fm-f > span{order:-1;margin-right:auto;font-size:13px;color:var(--color-text)}
+  /* THE FILL IN FORM, THE LEGORA WAY (owner, 12 Nov 2026): one quiet list, what is owed first with its amber dot, chips that
+     narrow it, "§ n · quoted words" beside each fact; Save before Discard; Jambo's side takes the missing details in a sentence */
+  html.lg-new .pd2-fm-mid .pd2-fm-chips{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 6px}
+  html.lg-new .pd2-fm-mid .pd2-fm-chip{height:var(--ctl-h);padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new .pd2-fm-mid .pd2-fm-chip[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .pd2-fm-mid .pd2-fm-chip > span{margin-left:4px;font-variant-numeric:tabular-nums}
+  html.lg-new .pd2-fm-mid table[data-pd2-fm-show="need"] tr:not([data-pd2-owed]),
+  html.lg-new .pd2-fm-mid table[data-pd2-fm-show="paper"] tr:not([data-pd2-paper]){display:none}
+  html.lg-new .pd2-fm-mid tr[data-pd2-owed] td.pd-og-f b::before{content:"";display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--st-amber-dot);vertical-align:1px}
+  html.lg-new .pd2-fm-mid tr[data-pd2-owed].is-has td.pd-og-f b::before{background:var(--st-green-dot)}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr:first-child > td{border-top:0}
+  html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-m .pd2-amb{color:var(--st-amber-fg)}
+  html.lg-new .pd2-fm-mid .pd2-fm-by{display:block;margin-top:6px;font-size:12px;color:var(--accent-ink)}
+  html.lg-new #ig-dock .pd2-fmj{margin-top:4px}
+  html.lg-new #ig-dock .pd2-fmj-you{margin-top:14px;font-size:13px}
+  html.lg-new #ig-dock .pd2-fmj-q{margin:6px 0 0;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fmj-r{margin:8px 0 0}
+  html.lg-new #ig-dock .pd2-fmj-found{list-style:none;margin:10px 0 0;padding:0}
+  html.lg-new #ig-dock .pd2-fmj-found li{display:flex;gap:12px;align-items:baseline;padding:7px 0;border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .pd2-fmj-found li > span{flex:0 0 40%;min-width:0;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fmj-found li > b{flex:1;min-width:0;font-weight:var(--w-label);overflow-wrap:anywhere}
+  html.lg-new #ig-dock .pd2-fmj-acts{margin:10px 0 0}
+  html.lg-new #ig-dock .pd2-fmj-acts .ui-link{color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;font-size:13px;padding:0;border:0;background:none;cursor:pointer}
   html.lg-new .pd2-fm-mid .pd-fm-f .ui-btn{height:var(--ctl-h);padding:0 18px;border-radius:999px;font-size:13.5px;font-weight:var(--w-label)}
   html.lg-new .pd2-fm-mid .pd-fm-f .ui-btn:not(.ui-btn-primary){background:var(--surface-2);border:0;color:var(--color-text)}
   /* the read, watched: the head's speed choice, the clause being read and those read, the lit words, the foot's bar */

@@ -3346,6 +3346,8 @@ async function intelAsk(qRaw, opts){
   /* ONE WORD THAT NAMES A PAGE MOVES YOU, FREE (owner, 28 Oct 2026, "Door above the box"): asked first of words
      TYPED in the box, on the landing or in the conversation alike (jamboPageGo); anything longer is the brain's */
   if(!readied&&opts&&opts.typed&&typeof window.jamboPageGo==='function'&&jamboPageGo(q)) return;
+  /* THE FILL IN FORM UP: the words typed are the missing details, read into its rows (pd2FormAsk; saved only by Save) */
+  if(!readied&&opts&&opts.typed&&typeof window.pd2FormAskTakes==='function'&&pd2FormAskTakes()) return pd2FormAsk(q);
   if(!readied&&opts&&opts.typed&&igBoardTalkFirst()) return igBoardTalkAsk(q);
   /* …and so does every other face's Jambo tab on Home (owner, 27 Oct 2026: "roll out the jambo capabilities from the
      board's jambo to all the jambos across HaTi"): a contract's Dossier, the Contracts place, Explorer, the sheet */
@@ -10796,6 +10798,8 @@ function igAsksThisPaper(q, id){
 function igAskPlaceholder(){
   /* beside the one sheet the box asks as drawn (the gaps, round 4) */
   if(window.naSheetUp&&naSheetUp()) return i18t('na_ask_ph');
+  /* the Fill in form up (The Legora Way, 12 Nov 2026): the box takes the missing details in one sentence */
+  if(window.pd2FormAskTakes&&pd2FormAskTakes()) return i18t('pd2_fm_ask_ph');
   /* what the panel holds says what the box asks (rounds 13, 7 and 12) */
   if(window.state&&state.view==='dashboard'&&!igPaperInFront()&&typeof window.pdAskPlaceholder==='function'){ const h=pdAskPlaceholder(); if(h) return h; }
   /* BESIDE THE REDLINES FACE THE BOX ASKS AS DRAWN (round 9's gaps, 18 Oct

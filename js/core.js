@@ -889,6 +889,27 @@ const TOAST_KINDS = {
   warn: { bg:'#b45309',                 ic:'alert',  dwell:8000 },
   err:  { bg:'var(--st-ruby-dot)',      ic:'ban',    dwell:5000 },
 };
+/* ALERTS SIT AT THE BOTTOM CENTRE OF THE PAGE, CLEAR OF JAMBO (owner picked
+   "The SAP Way", 12 Nov 2026: "they always appear on top of the jambo entry
+   field"). The stack stands above the page's foot (index.html, "ALERTS AT THE
+   BOTTOM CENTRE"), centred on the PAGE AREA: whatever panel stands at the
+   window's right edge — Jambo's dock, a list's panel, the side panel,
+   Settings' side — is MEASURED, never named, so a new panel is cleared too.
+   The phone keeps its own place above the tab bar (mobile.js). */
+function toastPlace(root){
+  try{
+    if(!root||!root.style) return;
+    if(document.body.classList.contains('m-on')){ root.style.left=''; return; }
+    const W=window.innerWidth, H=window.innerHeight;
+    let right=W, n=document.elementFromPoint(W-12, Math.round(H*0.6));
+    for(; n && n!==document.body && n!==document.documentElement; n=n.parentElement){
+      if(root.contains(n)) break;
+      const r=n.getBoundingClientRect();
+      if(r.right>=W-2 && r.left>W*0.45 && r.height>H*0.5) right=Math.min(right, r.left);
+    }
+    root.style.left=Math.round(right/2)+'px';
+  }catch(e){ /* a stage with no layout keeps the sheet's centre */ }
+}
 function toast(msg,kind,opts){
   const root=document.getElementById('toast-root');
   if(!root) return;
@@ -978,6 +999,7 @@ function toast(msg,kind,opts){
       if(old.dataset.toastMsg===String(msg) && old.dataset.toastKind===k) old.remove();
     });
   }catch(e){ /* stand-in elements in test stages have no dataset — see above */ }
+  toastPlace(root);
   root.appendChild(el);
   /* EVERY TOAST GOES BY ITSELF. `dwell` is read from the table, which has no
      zero in it; an opts.dwell of 0 falls through to the table's value rather

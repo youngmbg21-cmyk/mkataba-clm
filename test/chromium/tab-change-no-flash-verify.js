@@ -7,7 +7,7 @@
      1 · a tab press: no copy of the old face anywhere, no part of the panel fading, in the press's own turn
      2 · every frame after it: every part of the panel at full strength, the panel never empty
      3 · the press leaves the paper's line standing (not wiped and built again) where it says the same
-     4 · no tab body is written a second time in the press (the code's own half is f1021 (3))
+     4 · no tab body is written a second time in the press (the code's own half is f1024 (3))
      5 · the lit tab's underline still glides (the one thing that moves)
      6 · another paper opened (a page-to-page move): the same, no copy and nothing fading
      7 · a panel that opens wider is simply there (no fade from nothing)
