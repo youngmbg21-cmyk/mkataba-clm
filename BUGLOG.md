@@ -22272,3 +22272,5 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - FIXED: the route saved from Change while filling on the paper left empty spaces and "owed" (two lists: the sitting's and the route's); "+ Another signer" spaces could not be removed. `pd2FillRouteSync`, `pd2FillSigDrop`.
 - Noticed, not fixed: names typed on the paper's signature lines and not yet saved are not shown when the signing route window is opened from Change (it reads the saved route only).
 - Noticed, not fixed: the Handbook's picture for chapter 2.3 does not show the × beside a signer space (not re-taken in the chat).
+- FIXED (12 Nov 2026, f1017 (5)): names typed on the paper's signature lines now show in the signing route window opened from Change (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`).
+- Noticed, not fixed: board-says-it-plain-verify A0 went red once on GitHub (PR 667, "bubble chart of value against time left" read the card before it) and green on the re-run with no change: a timing slip in the check.
