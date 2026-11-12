@@ -166,7 +166,7 @@ describe('f755 (4) both routes mail the letter', () => {
     const call = SRV.slice(at, SRV.indexOf('});', at) + 3);
     for (const bit of ["title: req.user.title || ''", 'round: shareRoundOf(pc.negotiation)', 'answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null)', "codeOn: shareCodeOn() && purp !== 'status'"])
       assert.ok(call.includes(bit), bit);
-    assert.match(SRV.slice(at, at + 900), /sendEmail\(email,\s*mail\.subject,\s*mail\.body,[\s\S]{0,200}?\{ html: mail\.html \}\)/, 'the inbox gets the button');
+    assert.match(SRV.slice(at, at + 900), /sendEmail\(email,\s*mail\.subject,\s*mail\.body,[\s\S]{0,200}?\{ (?:replyTo: mailReplyFor\([^)]*\), )?html: mail\.html \}\)/, 'the inbox gets the button');  /* RE-POINTED 12 Nov 2026 (f1018) */
   });
   test('4b a link they already hold: the same letter, its note kept on the link, its errors recorded', () => {
     const at = SRV.indexOf("app.put('/api/shares/:token/payload'");
@@ -175,7 +175,7 @@ describe('f755 (4) both routes mail the letter', () => {
     assert.match(route, /letter/, 'the route takes a letter');
     assert.match(route, /shareMailOf\(\{ channel: 'email', purpose: sharePurposeOf\(s\)/);
     assert.match(route, /answers: shareAnswersOf\(pc, s\.contract_id \? srvStoredContract\(s\.contract_id\) : null\), codeOn: shareNeedsCode\(s\)/);
-    assert.match(route, /\{ html: mail\.html \}/);
+    assert.match(route, /\{ (?:replyTo: mailReplyFor\([^)]*\), )?html: mail\.html \}/);  /* RE-POINTED 12 Nov 2026 (f1018) */
     assert.match(route, /emailSent = !!r\.sent; emailError = r\.detail \|\| null;/, '"sent" means sent');
   });
 });
