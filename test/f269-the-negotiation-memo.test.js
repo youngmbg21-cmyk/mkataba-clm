@@ -172,7 +172,8 @@ describe('f269 (5) every line is QUOTED, never composed', () => {
   test('with no summary the row quotes nothing rather than inventing something', () => {
     const m = W().negoMemo(deal([ch('CHG-1', { summary: '' })]));
     assert.equal(m.open[0].said, '');
-    assert.equal(m.open[0].clause, '5. Payment Terms');
+    /* RE-POINTED 12 Nov 2026 (owner picked "As on the paper": a clause is named as its heading prints it, not in Title Case) */
+    assert.equal(m.open[0].clause, '5. Payment terms');
   });
 
   test('with no stamped label the row falls back to the id, not to a lookup', () => {
