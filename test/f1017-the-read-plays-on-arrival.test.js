@@ -44,6 +44,8 @@ test('f1017 (5) the quick run: with the Clauses read, whatever speed is chosen; 
   assert.match(P, /if \(W\.run\)\{ W\.run = false; W\.quick = false;/, 'Pause ends it');
   assert.match(P, /if \(W\.i >= X\.S\.length && W\.quick\)\{ pd2WalkClose\(\); return; \}/, 'a quick run read to the end puts itself away');
   assert.match(P, /if \(!document\.querySelector\('#ig-dock #pd-thread'\)\) return false;/, 'only beside the Clauses tab');
+  assert.match(P, /if \(W\.quick && X\.cv\.closest\('\.ig-redpaper:not\(\.is-clean\), \.ig-signpaper'\)\)\{ pd2WalkClose\(\); return; \}/, 'off the clean paper it puts itself away');
+  assert.match(P, /if \(W\.quick && W\.withRead && !document\.querySelector\('#ig-dock #pd-thread'\)\)\{ pd2WalkClose\(\); return; \}/, 'off the Clauses tab, one that ran with its read goes');
   assert.match(P, /function pd2WalkWithRead\(id\)\{[\s\S]{0,120}_pd2WalkShut\.has\(String\(id\)\)\) return false;/, 'never one put away with ×');
   assert.match(P, /\[data-pd2-wk-close\]'\)\)\{ e\.preventDefault\(\); if \(_pd2Walk\) _pd2WalkShut\.add\(/);
   const B = stripCom(read('js/views/breakdown.js'));

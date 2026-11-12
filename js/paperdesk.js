@@ -8866,8 +8866,8 @@ function pd2WalkWithRead(id){
   /* only beside the Clauses tab, where that read is seen (never over the Redlines face and its switch) */
   if (!document.querySelector('#ig-dock #pd-thread')) return false;
   const W = _pd2Walk;
-  if (W && String(W.id) === String(id)){ if (W.run && !W.quick){ W.quick = true; } else if (!W.run && !W.i && !W.done) pd2WalkPlay({ quick: true }); return true; }
-  if (pd2WalkOpen(id)){ pd2WalkPlay({ quick: true }); return true; }
+  if (W && String(W.id) === String(id)){ if (W.run && !W.quick){ W.quick = true; W.withRead = true; } else if (!W.run && !W.i && !W.done){ pd2WalkPlay({ quick: true }); W.withRead = true; } return true; }
+  if (pd2WalkOpen(id)){ pd2WalkPlay({ quick: true }); _pd2Walk.withRead = true; return true; }
   return false;
 }
 function pd2WalkClose(){
@@ -8924,6 +8924,10 @@ function pd2WalkPaint(){
 function pd2WalkStep(){
   const W = _pd2Walk; if (!W || !W.run) return;
   const X = pd2WalkCtx(); if (!X) return pd2WalkClose();
+  /* a quick run belongs to the clean paper: switched to the redline, their view or the signing copy, it puts itself away */
+  if (W.quick && X.cv.closest('.ig-redpaper:not(.is-clean), .ig-signpaper')){ pd2WalkClose(); return; }
+  /* one that ran with the Clauses read goes when the Clauses tab does */
+  if (W.quick && W.withRead && !document.querySelector('#ig-dock #pd-thread')){ pd2WalkClose(); return; }
   /* a QUICK run that reads to the end puts itself away: every note stays out and the paper's own line comes back */
   if (W.i >= X.S.length && W.quick){ pd2WalkClose(); return; }
   if (W.i >= X.S.length){ W.run = false; W.done = true; pd2WalkPaint(); try { pdGlanceRepaint(); pd2WalkPanelDown(); } catch (_){} return; }
