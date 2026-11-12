@@ -67,8 +67,11 @@ const FLOW_MAP = [
   { k: 'redline', st: 'nego', s: _w('their asks and your answers', 'deras önskemål och dina svar'),
     a: [['share', _w('Send all → the Send screen', 'Skicka alla → skicka-skärmen')]], d: ['document', 'history', 'negotiations'],
     p: [['share', _w('send the answers', 'skicka svaren')]] },
-  { k: 'share', st: 'nego', s: _w('the letter and its walls', 'brevet och dess spärrar'),
-    a: [['history', _w('Sent → the record written, said once', 'Skickat → posten skriven, sagt en gång')]], d: ['redline', 'history', 'document'], p: [] },
+  /* OUR PAPER GOES OUT CLEAN THE FIRST TIME, AND THE CARD WAITS ON THEM (owner's picks "Said Once" and "The Legora
+     Way", 12 Nov 2026): a first send of our paper folds our fixes in; after it the Dossier's card says who it waits on */
+  { k: 'share', st: 'nego', s: _w('the letter and its walls; our paper goes out clean the first time', 'brevet och dess spärrar; vårt papper går ut rent första gången'),
+    a: [['history', _w('Sent → the record written, said once', 'Skickat → posten skriven, sagt en gång')],
+      ['document', _w('Sent → the card waits on them, Remind', 'Skickat → kortet väntar på dem, Påminn')]], d: ['redline', 'history', 'document'], p: [] },
   { k: 'negotiations', st: 'nego', s: _w('every live round', 'alla pågående rundor'),
     a: [['redline', _w('a row → its Redlines', 'en rad → dess ändringar')]], d: ['contracts', 'approvals', 'board'],
     p: [['redline', _w('the round that is your move', 'rundan där det är ditt drag')]] },
