@@ -119,3 +119,17 @@ test('f1016 (9) GREEN SPARK: both Discover pills are Jambo\'s green with his spa
   assert.match(CSS, /\.ct-head \.ac-btn\.ac-btn-dsc,html\.lg-new \.rfp-pill\.rfp-dsc\{[^}]*background:var\(--accent-ink\);color:var\(--color-surface\)/, 'filled green, white words');
   assert.doesNotMatch(CSS.match(/\.rfp-pill\.rfp-dsc\{[^}]*\}/)[0], /accent-solid|#1D1D1F|#000/, 'never the black');
 });
+
+test('f1016 (10) THE SCORECARD: the read table on Discover wears its own head with coloured tiles that filter', () => {
+  /* the owner picked "Scorecard" by name, 12 Nov 2026 (drawn first, artifact NN39v3eXJCf9y28T3DWN6o) */
+  const head = fnBody(RD, 'rdScHeadHtml');
+  assert.match(head, /data-rdt-back[\s\S]*id="rdt-q"[\s\S]*data-rdt-copy[\s\S]*ui-btn-primary ui-btn-sm" data-rdt-again/, 'back, the search box in the head, Copy, then the one black Ask again');
+  assert.match(head, /class="rdsc-tile[^`]*data-rdt-tab="\$\{k\}"/, 'every tile is a filter, the tabs\' own door');
+  assert.match(head, /if \(!n && k !== 'all' && !on\) return '';/, 'a tile with nothing behind it is not listed');
+  assert.match(fnBody(RD, 'rdTableHtml'), /const head = _rdScOn\(\) \? rdScHeadHtml\(r, S, sub\) :/, 'the new look only');
+  assert.match(RD, /\$\{tr && _rdScOn\(\) \? '' : readsBandHtml\(\)\}/, 'the old Reads band is gone over the table in the new look');
+  assert.match(fnBody(RD, 'rdTableIn'), /tab === 'open'\) return !x\.a\.some\(a => a && a\.checked\)/, 'Not checked yet counts what nobody ticked');
+  for (const t of ['amber', 'steel', 'ruby', 'green']) assert.match(CSS, new RegExp(`\\.rdsc-tile\\.is-${t}\\{background:color-mix\\(in srgb,var\\(--st-${t}-bg\\) 60%`), t + ': the view cards\' tone');
+  for (const k of ['rd_sc_back', 'rd_sc_all', 'rd_sc_pct', 'rd_sc_ticked', 'rd_sc_of_list_one', 'rd_sc_of_list_other'])
+    assert.equal(I18N.split(`    ${k}: `).length - 1, 2, k + ' is in both books');
+});
