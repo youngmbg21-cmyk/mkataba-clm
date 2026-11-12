@@ -9709,14 +9709,11 @@ function intelGoTab(k){
 /* ---- right-hand Copilot dock ---- */
 function igSyncDockWidth(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
-  const was=dock.getBoundingClientRect().width;
   /* The divider's own pass: the width, and the handle shown or stood down. */
   if(document.getElementById('ig-row')) igFitSplit(); else dock.style.width=igDockWidth()+'px';
-  /* the width snaps once (no sliding width re-wrapping the paper); a panel that
-     opened wider fades its contents in (igDockIn) */
-  if(intel.dockOpen&&dock.getBoundingClientRect().width>was+40){
-    dock.classList.remove('ig-dock-in'); void dock.offsetWidth; dock.classList.add('ig-dock-in');
-    setTimeout(()=>dock.classList.remove('ig-dock-in'),400); }
+  /* the width snaps once (no sliding width re-wrapping the paper), and what the panel holds is simply there:
+     the fade-in of a panel that opened wider went on 12 Nov 2026 (it began from nothing, so a page change that
+     widened the panel blinked) */
   // the canvas flexes — re-measure and re-settle once the width transition lands
   setTimeout(()=>{ if(igMapUp()) rebuildIntelGraph(); },280);
   /* the ✦'s window, if nobody moved it, stands beside the panel's new width (aiFloatBeside, js/ai.js) */
@@ -10002,11 +9999,9 @@ function igFaceHtml(mood){
 const _igJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
 const _igJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
 
-/* THE PANEL'S FACE CROSSFADES (owner picked "Crossfade", 22 Oct 2026): a
-   repaint that changes what the panel shows — a tab, a face, the
-   conversation, another paper — fades the old face out over the new one and
-   glides the tab's underline (faceSwap, js/components.js); every other
-   repaint is drawn exactly as before. The head (the tabs) never fades. */
+/* THE PANEL'S FACE CHANGES AT ONCE (owner, 12 Nov 2026; reverses the "Crossfade" of 22 Oct 2026): a repaint
+   that changes what the panel shows — a tab, a face, the conversation, another paper — is drawn whole in the
+   same turn, nothing copied and nothing faded; only the lit tab's underline glides (faceSwap, js/components.js). */
 function igDockFaceKey(){
   try{ if(!intel.dockOpen) return null;
     return [window.pdTab?pdTab():'', window.pdFaceNow?String(pdFaceNow()||''):'', window.pdTalkShows&&pdTalkShows()?'talk':'',
@@ -10041,10 +10036,10 @@ function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   if(_igDockHold>0){ _igDockOwed=true; return; }
   if(!_igDockSwap) _igDockPaints++;
-  /* the crossfade wraps this very paint once (faceSwap calls back in here) */
+  /* the underline's glide wraps this very paint once (faceSwap calls back in here) */
   if(!_igDockSwap&&typeof window.faceSwap==='function'){
     _igDockSwap=true;
-    try{ return faceSwap(dock, igDockFaceKey, renderIntelDock, { keep:'.igd-head', ink:'.pd-tab.on', inkKey:'data-pd-tab' }); }
+    try{ return faceSwap(dock, igDockFaceKey, renderIntelDock, { ink:'.pd-tab.on', inkKey:'data-pd-tab' }); }
     finally{ _igDockSwap=false; }
   }
   /* A BOX IN THE OVERVIEW TAB'S FILL FORM UNDER THE READER'S HAND IS NEVER
@@ -11190,7 +11185,7 @@ function igLineIdHtml(c,ref){
 function igStripRepaint(){
   const strip=document.getElementById('ig-strip'); if(!strip||strip.hidden) return;
   const p=intel&&intel.paper; const c=p&&p.id&&typeof getContract==='function'?getContract(p.id):null; if(!c) return;
-  strip.innerHTML=igStripHtml(c,p); igStripWire(); if(igHomePaperFace()!==null) igStripActsWire(c);
+  const line=igStripHtml(c,p); strip._igLine=line; strip.innerHTML=line; igStripWire(); if(igHomePaperFace()!==null) igStripActsWire(c);
 }
 function igStripHtml(c,p){
   const up=p.mode==='paper';
@@ -11864,7 +11859,7 @@ function igPaperRefresh(){
 let _igPaperPatched=null;   // what the last refresh did: { n, of } blocks put back, or null where the paper was drawn whole
 const igPaperLastPatch=()=>_igPaperPatched;
 let _igPaperPaints=0;   // how many times the paper's painter ran (the switch asks whether an opening already drew it)
-function igPaintPaper(){
+function igPaintPaper(o){
   _igPaperPaints++;
   const strip=document.getElementById('ig-strip'), host=document.getElementById('ig-paper'), page=document.getElementById('ig-page');
   /* the paper put up (or put down) is the desk's tab in front (Round 2, 17 Oct 2026; js/views/counter.js) */
@@ -11875,7 +11870,7 @@ function igPaintPaper(){
   if(!c){
     intel.paper=null;
     if(typeof window.pdPresenceLeft==='function') pdPresenceLeft(null);
-    strip.hidden=true; strip.innerHTML='';
+    strip.hidden=true; strip.innerHTML=''; strip._igLine=null;
     if(page) page.classList.remove('ig-focus');
     /* HOME'S PAPER SIDE WITH NOTHING CHOSEN YET asks which contract to read */
     /* the Contracts place (step 7): its frame, then the register draws the
@@ -11891,9 +11886,14 @@ function igPaintPaper(){
   /* Home's Paper has no Focus (8 Oct 2026): a focus kept from an earlier sitting is read as off */
   if(homePaper===true){ p.mode='paper'; p.focus=false; }
   else if(homePaper===false){ p.mode='graph'; p.focus=false; }
-  if(homePaper===false){ strip.hidden=true; strip.innerHTML=''; host.hidden=true; if(page) page.classList.remove('ig-focus'); return; }
-  strip.hidden=false; strip.innerHTML=igStripHtml(c,p); igStripWire(); igRedThumb();
-  if(igHomePaperFace()!==null) igStripActsWire(c);
+  if(homePaper===false){ strip.hidden=true; strip.innerHTML=''; strip._igLine=null; host.hidden=true; if(page) page.classList.remove('ig-focus'); return; }
+  /* A TAB PRESS LEAVES THE PAPER'S LINE ALONE WHEN IT SAYS THE SAME (owner, 12 Nov 2026, the stutter audit): the
+     line was wiped and built again on every tab press; a press that asks `keepLine` keeps the standing line, and
+     its wiring, where the words it would draw are the very ones drawn */
+  { const line=igStripHtml(c,p);
+    if(!(o&&o.keepLine&&!strip.hidden&&strip._igLine===line&&strip.firstElementChild)){
+      strip.hidden=false; strip._igLine=line; strip.innerHTML=line; igStripWire(); igRedThumb();
+      if(igHomePaperFace()!==null) igStripActsWire(c); } }
   /* the faces on the line (round 6): the beat runs while the paper is up on
      Home (pdPresenceOn keeps a running one; pdPresenceLeft ends it when the
      paper goes), and the row is painted now, not at the next beat */
