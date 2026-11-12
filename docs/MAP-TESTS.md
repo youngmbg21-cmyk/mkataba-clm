@@ -707,4 +707,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
 - node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
 - browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)
-- THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1017 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 5.
+- THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1017 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 4b · 5. f1017 (5) the quick run with the Clauses read.

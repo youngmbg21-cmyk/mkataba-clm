@@ -16,7 +16,7 @@ const stripCom = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm
 test('f1017 (1) an arrival plays the read, asked again until the paper is in front', () => {
   const m = stripCom(read('js/paperdesk.js')).match(/function pd2WalkArrive\(id\)\{[\s\S]*?\n  setTimeout\(go, 0\); return true; \}/);
   assert.ok(m, 'pd2WalkArrive is found');
-  assert.match(m[0], /pd2WalkOpen\(id\)\)\{ pd2WalkPlay\(\); return; \}/);
+  assert.match(m[0], /pd2WalkOpen\(id\)\)\{ pd2WalkPlay\(\{ quick: true \}\); return; \}/, 'quick');
   assert.match(m[0], /\+\+n < PD2_WALK_ARRIVE_TRIES\) setTimeout\(go, 150\)/, 'bounded');
   assert.match(m[0], /if \(pd2WalkOn\(id\)\) return;/, 'never twice');
 });
@@ -33,6 +33,17 @@ test('f1017 (3) the round icon buttons centre their icon', () => {
 });
 test('f1017 (4) the Handbook says the read plays by itself', () => {
   const B = read('js/handbook.js');
-  assert.match(B, /The read plays before your eyes, clause by clause/);
+  assert.match(B, /The read plays before your eyes, as fast as it can and alongside Jambo\\'s read in Clauses/);
   assert.match(B, /Läsningen spelas upp framför dig/);
+});
+
+test('f1017 (5) the quick run: with the Clauses read, whatever speed is chosen; Pause hands back to the speed', () => {
+  const P = stripCom(read('js/paperdesk.js'));
+  assert.match(P, /const PD2_WALK_QUICK_MS = \d+;/);
+  assert.match(P, /const dur = quick \? 0 : W\.quick \? PD2_WALK_QUICK_MS : /, 'the chosen speed does not apply to a quick run');
+  assert.match(P, /if \(W\.run\)\{ W\.run = false; W\.quick = false;/, 'Pause ends it');
+  assert.match(P, /function pd2WalkWithRead\(id\)\{[\s\S]{0,120}_pd2WalkShut\.has\(String\(id\)\)\) return false;/, 'never one put away with ×');
+  assert.match(P, /\[data-pd2-wk-close\]'\)\)\{ e\.preventDefault\(\); if \(_pd2Walk\) _pd2WalkShut\.add\(/);
+  const B = stripCom(read('js/views/breakdown.js'));
+  assert.match(B, /const p = bdRun\(c\);\s*try \{ if \(typeof window\.pd2WalkWithRead === 'function'\) window\.pd2WalkWithRead\(c\.id\); \}/, 'the Clauses read starts it');
 });

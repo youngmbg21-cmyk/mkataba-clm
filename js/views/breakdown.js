@@ -828,6 +828,8 @@ async function stkRun(c){
   _bd.tried[stkKey(c)] = true;   // a press is a try: a refusal then says Try again
   _bd.runFor = c.id;
   const p = bdRun(c);
+  /* the read on the paper runs with it, quick (owner, 12 Nov 2026) */
+  try { if (typeof window.pd2WalkWithRead === 'function') window.pd2WalkWithRead(c.id); } catch (_){}
   stkRepaint(c);
   await p;
   stkRepaint((typeof getContract === 'function' && getContract(c.id)) || c);
