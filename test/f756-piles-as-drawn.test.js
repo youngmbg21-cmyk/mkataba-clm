@@ -276,7 +276,8 @@ describe('f756 (6) the column and the paper as drawn', () => {
     assert.equal(g.clauseNameAsDrafted('Clause 3 · SUPPLY & SPECIFICATION'), '3. Supply & specification');
     assert.equal(g.clauseNameAsDrafted('Clause 3 · quality & rejection'), '3. Quality & rejection', 'never opens in small letters');
     assert.equal(g.clauseNameAsDrafted('Clause 9 · Data Protection Act'), '9. Data Protection Act', 'never re-cased otherwise');
-    assert.equal(g.clauseNameShown('Clause 7 · Liability cap'), '7. Liability Cap', 'every other screen keeps its voice');
+    /* RE-POINTED 12 Nov 2026 (owner picked "As on the paper": every screen names a clause as its heading prints it) */
+    assert.equal(g.clauseNameShown('Clause 7 · Liability cap'), '7. Liability cap', 'every other screen says it the same way');
     assert.match(fnBody(NV, 'rlRowClauseName'), /clauseNameAsDrafted\(raw\)/);
     assert.match(NV, /const who = _ne\(rlRowClauseName\(ch\)\);/, 'the row reads it');
   });
