@@ -21,12 +21,15 @@ test('1 the drawn letter: Dear, the note, the link as one line, Kind regards and
   assert.ok(!/answered/.test(m.body), 'the note carries the answers, not a list');
   assert.match(m.html, /<a href="https:\/\/hati\.example\/#share=t:abc"/);
 });
-test('1b the invitation wears the other letters\' shape (owner, 8 Nov 2026): the same type, the link named over its address, name over title and company', () => {
+/* RE-POINTED 11 Nov 2026 (the send page "The SAP Way", owner: "Button in both"): the link in the HTML part is a
+   filled green button, as the send screen draws it; the plain-text part keeps the words over the address */
+test('1b the invitation wears the other letters\' shape (owner, 8 Nov 2026): the same type, the link a button (11 Nov 2026), name over title and company', () => {
   const m = M.shareMailOf(Object.assign({}, base, { title: 'Head of Legal' }));
   const r = M.reminderMailOf({ sender: 'Amina Otieno', title: 'Head of Legal', org: 'Highland Corporate Ltd', cName: 'Parcel Delivery SaaS', link: 'https://hati.example/#share=t:abc' });
   const shell = h => h.slice(0, h.indexOf('>') + 1);
   assert.equal(shell(m.html), shell(r.html), 'one shell: the same font, size, ink and width');
-  assert.match(m.html, /<a href="https:\/\/hati\.example\/#share=t:abc" style="[^"]*font-weight:600">Open round 1<\/a><br><span[^>]*>https:\/\/hati\.example\/#share=t:abc<\/span>/);
+  assert.match(m.html, /<a href="https:\/\/hati\.example\/#share=t:abc" style="display:inline-block;background:#0b7a5f;color:#ffffff;[^"]*">Open round 1<\/a><\/p>/);
+  assert.match(m.body, /\nOpen round 1:\nhttps:\/\/hati\.example\/#share=t:abc\n/);
   assert.match(m.html, /Amina Otieno<br><span[^>]*>Head of Legal, Highland Corporate Ltd<\/span>/);
   assert.match(m.html, /<b>Clause 5 · Payment:<\/b> they propose 45 days/);
   assert.match(m.body, /Kind regards,\nAmina Otieno\nHead of Legal, Highland Corporate Ltd$/);

@@ -18744,6 +18744,48 @@
   html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note #sh-summary-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap .sh-lt-note textarea{border:0;padding:0;background:none;box-shadow:none;font-family:var(--font-doc);font-size:15px;line-height:1.55;resize:none}
   html.lg-new #modal-root .modal-in[data-sh-page] #sh-letter.sh-lt.is-sap #sh-lt-subject{border:0;background:none;padding:0;box-shadow:none}
+  /* THE SEND PAGE, THE SAP WAY (owner picked it by name, 11 Nov 2026, from three drawn options; REVERSES 31 Oct's
+     "Lines that open" on the left and 29 Oct's "the note box grows to fill the sheet": the owner chose "Hug the words").
+     The left a FORM: a label in sentence case over a real box for each choice, its sentence a small tag whose tone is
+     read off the same fact (core.js shareNlLinesPaint, data-tone: amber held back, green a code); the email ONE CARD:
+     Subject and From as its rows, then the letter, the note a soft box with a green edge that hugs what is typed,
+     "Write it for me" in its head, their link the button the email carries (sharemail.js SM_BTN_STYLE). */
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap{gap:0;grid-template-columns:minmax(300px,380px) minmax(0,1fr)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h{align-self:stretch;padding:4px 20px 20px 0;border-right:1px solid var(--color-divider)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-row{padding:0 0 16px;border-bottom:0}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-k{margin:0 0 6px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h #sh-lt-tosay:not(.hidden){display:flex;align-items:center;min-height:var(--field-h);padding:3px 4px;border:1px solid var(--color-neutral-300);border-radius:var(--radius);background:var(--color-surface)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-to-kind{margin:6px 0 0}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go{box-sizing:border-box;height:var(--field-h);padding:0 10px;gap:8px;justify-content:space-between;border:1px solid var(--color-neutral-300);border-radius:var(--radius);background:var(--color-surface);font-size:13px;font-weight:400}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as.is-open .sh-as-go{background:var(--color-surface);border-color:var(--field-line)}
+  @media (hover:hover){ html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-go:hover{background:var(--color-surface);border-color:var(--field-line);text-decoration:none} }
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair{display:flex;gap:8px}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as{flex:1 1 0;min-width:0}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as{margin-top:0}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-as-pair > .sh-as + .sh-as .sh-as-go{font-size:13px}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2:not([hidden]):not(:empty){display:flex;align-items:flex-start;gap:6px;width:fit-content;max-width:100%;margin:8px 0 0;padding:3px 10px;border-radius:var(--radius);background:var(--st-gray-bg);color:var(--st-gray-fg);font-size:12px;line-height:16px}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2::before{content:"";flex:none;width:6px;height:6px;margin-top:5px;border-radius:50%;background:var(--st-gray-dot)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2[data-tone="warn"]{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2[data-tone="warn"]::before{background:var(--st-amber-dot)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2[data-tone="ok"]{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-h .sh-lt-say2[data-tone="ok"]::before{background:var(--st-green-dot)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-mail{align-self:start;min-height:0;margin:4px 0 0 20px;padding:0;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-row:not(.hidden){display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:8px;margin:0;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-mail #sh-lt-from{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap > .sh-lt-mail > .sh-lt-b{flex:none;padding:20px 24px}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-b > .sh-lt-note,html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note > label,html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note textarea{flex:none}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere){display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:4px;align-items:baseline;margin:0 0 14px;padding:10px 14px 12px;border-left:3px solid var(--st-green-dot);border-radius:0 var(--radius) var(--radius) 0;background:var(--color-accent-50)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere) > :is(#sh-lt-msghead,.sh-lt-nowhere){grid-column:1/-1}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere) > label{display:contents}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere) #sh-summary-label{display:block;position:static;grid-column:1;grid-row:1;width:auto;height:auto;overflow:hidden;clip:auto;margin:0;font-family:var(--font-body);font-size:12px;font-weight:400;color:var(--color-quiet);white-space:nowrap;text-overflow:ellipsis}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere) #sh-summary-label::after{content:" · " attr(data-opt);font-weight:400;color:inherit}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere) textarea{grid-column:1/-1;grid-row:2;background:none}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere) > .sh-nl-jb{grid-column:2;grid-row:1;margin:0;white-space:nowrap}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap .sh-lt-note:not(.is-nowhere) > .sh-nl-jb > span{display:none}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap #sh-lt-after .sh-lt-btn{border-radius:6px;font-family:var(--font-body)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap #sh-lt-after .sh-lt-say:not(.is-lead){margin:0 0 18px;font-family:var(--font-body);font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap #sh-lt-after .sh-lt-sub{color:var(--color-quiet)}
   /* Before you send as drawn: Goes first, then the rest */
   /* THE HOLDER SAYS IT ITSELF, NO ":has" (owner, 11 Nov 2026, the Clean | Redline delay). These four rules asked
      ":has(> #sh-lt-goes) > *" with nothing named in front, so the browser held every element on the page answerable to
