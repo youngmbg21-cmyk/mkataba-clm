@@ -66,7 +66,7 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
           const kids = [...d.children].map(k => k.getBoundingClientRect()).filter(k => k.width);
           const left = Math.min(...kids.map(k => k.left)) - r.left, top = Math.min(...kids.map(k => k.top)) - r.top;
           return { pad: cs.padding, left: Math.round(left), top: Math.round(top) }; }));
-        if (!B.length) say('B', nm, 'NOT REACHED', 'no .jh-kpis on screen');
+        if (!B.length || B.some(x => x.left == null || x.top == null)) say('B', nm, 'NOT REACHED', B.length ? 'the cards hold nothing measurable (no laid-out child)' : 'no .jh-kpis on screen');
         else { const tight = B.filter(x => x.left < 16 || x.top < 16); say('B', nm, tight.length ? 'REAL' : 'NOT SEEN', tight.length ? tight.slice(0, 2) : B.slice(0, 2)); }
         await page.screenshot({ path: path.join(OUT, `B-${nm}.png`) });
       } catch (e) { say('B', nm, 'NOT REACHED', String(e).slice(0, 160)); }
