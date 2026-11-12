@@ -287,6 +287,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- 12 Nov 2026 (owner picked "As on the paper" for clause names): f282 1·2·3·5, f756 6b, f806 1d·5a·5b re-pointed (the paper's own wording, a shouting title in sentence case).
 - THE FOLDERS, VIEWS FIRST (10 Nov 2026): `round6-new-look-verify` 1 RE-POINTED (it pinned "N contracts" on a folder CARD; the picked design makes it a row saying "5 · KES 86.30M · 3 need you", and it now also reads the view tiles) — GitHub's run 42860610190 named it. `test/f998-views-first.test.js` (6 checks, red at the parent; the reading is run with real records: the number is the list, both ends of the 90 days, a view with nothing not drawn, money walled) ; f983 (2) re-pointed (the Legora-way rows are reversed). Browser: white-sheet-verify CUT holds Contracts (the folders scroll).
 - THE COMPANY LEADS THE ROW (owner, 10 Nov 2026): f874 3a (re-pointed; red at the parent) — company over "agreement · ref", the hover company first, the sort reads the company; counterparty-leads-verify 1b–1e, contracts-page-verify 1c–1e and the sort checks unchanged.
 - The wall's ways in (`CA_CHIPS_WALL`): upload · draft · reads · calendar, no board (owner, 28 Oct 2026) — f672 4c, f679 2a/2c, draft-upload-glance-verify 1e/1f ("reads" lands on the Reads page).
@@ -326,6 +327,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - RE-POINTED, GITHUB'S SECOND RUN (9 Nov 2026): map-asked-bubbles 7a/7b (the card's Ask why is gone; the contract lands on its paper and the box names it), jambo-says-what-he-did 1 (History of MK-C1 stands in the middle, `#pd2-hist[data-pd2-hist]`), f978 4 (`igPaperInFront` is `igPaperUp`; no `pdCardNow`), f232 green again.
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
 - FILL IN ON THE PAPER, THE LEGORA WAY (owner's pick, 11 Nov 2026): f1012 (new; red at the parent, the block and `pdFillGo` absent) and fill-on-the-paper-verify (new, for GitHub; 1–7 red at the parent: the black button opened the form and a template's blanks never became lines). Re-pointed: contract-new-look-verify 5 (the count is of every space, signature lines included: `/^1 of \d+ filled/`).
+- THE LINES FOLLOW THE ROUTE, AND AN EXTRA SPACE CAN GO (owner, 12 Nov 2026): f1017 (new; red at the parent, the three functions, the × and its word absent) and fill-on-the-paper-verify 9 · 10 (new, for GitHub; red at the parent: no × is drawn and a saved route leaves the empty spaces and "owed").
 - CHOOSE THE ROAD (owner's pick "The Legora Way", 11 Nov 2026): f1013 (new; red at the parent, the road block absent) and choose-the-road-verify (new, for GitHub; 1–6 and 8 red at the parent: the card went straight to "N to settle before anyone signs").
 - THE BUG LOG ROUND (owner, 11 Nov 2026): f1014 (new; red at the parent, every fix absent). Re-pointed: f713 (the letter's last day in words), f874 3b (no "0–0 of 0"), f1013 (1) (the road waits for the sent links).
 - AFTER YOU SEND (owner's picks "The Legora Way" and "Said Once", 12 Nov 2026): f1015 (new; red at the parent, the waiting card and the fold absent) and after-you-send-verify (new, for GitHub; 1–3 and 6 red at the parent: our fixes travelled tracked and the card said "1 to do in the negotiation").
@@ -707,4 +709,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## HOME — THE BRIEF IS ITS OWN CARD, WITH A × (11 Nov 2026)
 - node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
 - browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)
-- THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1017 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 4b · 5. f1017 (5) the quick run with the Clauses read.
+- THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1018 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 4b · 5. f1018 (5) the quick run with the Clauses read.

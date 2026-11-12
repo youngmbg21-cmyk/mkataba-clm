@@ -429,7 +429,12 @@ function clauseNameShown(text){
   const parsed = clauseParseHeading(t);
   const title = String(parsed.title || '');
   if (!title || !t.endsWith(title)) return t;
-  const cased = clauseTitleCase(title);
+  /* AS ON THE PAPER, ON EVERY SCREEN (owner, 12 Nov 2026, picked "As on the paper" over "Capitals on each word";
+     REVERSES 10 Sep's Title Case): a clause is named as its heading prints it, so Where we are, History and every
+     list read the same words as the cards beside the paper (clauseNameAsDrafted). A title that SHOUTS is put in
+     sentence case and one that opens small takes its capital — the 10 Sep ruling's two halves still stand. */
+  const cased = _clShouts(title) ? clauseSentenceCase(title)
+    : /^[a-z]/.test(title) ? title.charAt(0).toUpperCase() + title.slice(1) : title;
   const num = String(parsed.num || '').trim();
   /* ---- ONLY A LABELLED HEADING IS REWRITTEN ----
      `_CL_LABELLED` is the shape this ruling is about: the word, the number and

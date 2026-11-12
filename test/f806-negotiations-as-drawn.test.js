@@ -88,7 +88,7 @@ describe('f806 (1) Jambo\'s panel says "Negotiation"', () => {
     const rows = ctx.regNegoNeedRows(c);
     assert.equal(rows.length, 1);
     assert.equal(rows[0].title, 'Answer 2 redlines');
-    assert.equal(rows[0].sub, 'Clause 7 Liability Cap · clause 11 Payment Terms');
+    assert.equal(rows[0].sub, 'Clause 7 Liability cap · clause 11 Payment terms');
     assert.equal(rows[0].verb, 'Answer');
     rows[0].run();
     assert.deepEqual(opened, [['MK-0382', true]], 'Answer opens the negotiation beside the paper');
@@ -188,12 +188,13 @@ describe('f806 (4) "What is open" in the drawing\'s words', () => {
 describe('f806 (5) a clause said as drawn', () => {
   const ctx = stage(['regClauseSaid'], CLAUSES());
   test('5a "Clause N Name", the next one lower case', () => {
-    assert.equal(ctx.regClauseSaid('Clause 7 · Liability cap', false), 'Clause 7 Liability Cap');
+    /* RE-POINTED 12 Nov 2026 (owner picked "As on the paper": every screen names a clause as its heading prints it) */
+    assert.equal(ctx.regClauseSaid('Clause 7 · Liability cap', false), 'Clause 7 Liability cap');
     assert.equal(ctx.regClauseSaid('1. Supply & Specification', true), 'clause 1 Supply & Specification');
     assert.equal(ctx.regClauseSaid('7.2 Liability', false), 'Clause 7.2 Liability');
   });
   test('5b no number on the heading: its name alone, never a number made up; a bare number stays as written', () => {
-    assert.equal(ctx.regClauseSaid('Payment terms', false), 'Payment Terms');
+    assert.equal(ctx.regClauseSaid('Payment terms', false), 'Payment terms');
     assert.equal(ctx.regClauseSaid('Clause 3', false), 'Clause 3');
   });
 });

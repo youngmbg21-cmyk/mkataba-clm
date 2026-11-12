@@ -5966,6 +5966,8 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       const inForm = !!rt.closest('#pd-og'); pdSgListClose();
       openSignerPlanEditor(c, { onDone(){
         if (inForm){ pdOgRepaint(); pdOgLand(c.id, 'signers'); return; }
+        /* the paper being filled follows the route just saved (pd2FillRouteSync draws the panel again itself) */
+        if (typeof pd2FillRouteSync === 'function' && pd2FillRouteSync(c)) return;
         try { pdGlanceRepaint(); } catch (_){} } });
       return; }
     const ok = t.closest('#pd-og [data-pd-og-ok]');
@@ -8417,7 +8419,58 @@ function pd2FillDone(spot){
   if (!_pd2Fill || !spot) return false;
   if (spot.startsWith('b:')) return !!String(_pd2Fill.vals[spot.slice(2)] || '').trim();
   const L = _pd2Fill.sig[spot.slice(2)] || [];
-  return L.some(x => String(x.name || '').trim());
+  if (L.some(x => String(x.name || '').trim())) return true;
+  /* THE ROUTE AND THE PAPER ARE ONE LIST (owner, 12 Nov 2026): a line the signing route names somebody on is filled */
+  const c = (typeof getContract === 'function') ? getContract(_pd2Fill.id) : null; if (!c) return false;
+  const lines = pd2FillSigLines(c), ln = lines[Number(spot.slice(2))];
+  return !!(ln && pd2FillSigNamed(c, ln, lines).length);
+}
+/* the same person, on the route and typed on the paper: one member, or one name whose addresses do not disagree */
+function pd2FillSigSame(s, x){
+  if (!s || !x) return false;
+  if (s.memberId && x.memberId) return String(s.memberId) === String(x.memberId);
+  const n = v => String(v || '').trim().toLowerCase(), a = n(s.email), b = n(x.email);
+  return !!n(s.name) && n(s.name) === n(x.name) && (!a || !b || a === b);
+}
+/* THE ROUTE MOVED WHILE THE PAPER WAS BEING FILLED (owner, 12 Nov 2026: "the signing in image one is not tied to
+   image 2"): the signing route window saved, so every signature line is drawn again off the route as it now stands.
+   A space left empty where the route names somebody goes; a name typed here that the route now carries is not kept
+   twice; a name typed here the route does not have stays, to be saved with the rest. Writes nothing. */
+function pd2FillRouteSync(c){
+  if (!_pd2Fill || !c || !pd2FillOn(c.id)) return false;
+  const lines = pd2FillSigLines(c);
+  lines.forEach(L => { const held = _pd2Fill.sig[L.i]; if (!held) return;
+    const named = pd2FillSigNamed(c, L, lines);
+    const keep = held.filter(x => String(x.name || '').trim() && !named.some(s => pd2FillSigSame(s, x)));
+    _pd2Fill.sig[L.i] = keep.length || named.length ? keep : [{ name: '', email: '', memberId: '', role: '', isNew: false }]; });
+  _pd2Fill.sigWhy = null;
+  const cv = document.getElementById('ig-canvas');
+  if (cv){ cv.querySelectorAll('.rl-paper-foot .rl-sigline').forEach(el => el.querySelectorAll('.pd2-ps, .pd2-ps-sub, .pd2-ps-more').forEach(n => n.remove()));
+    if (pd2FillSigOpen(c)) pd2FillSigPaint(c, cv); }
+  /* the panel is drawn again first, then counted: its rows are new and say "owed" until the count reads them */
+  try { pdGlanceRepaint(); } catch (_){}
+  pd2FillCount(c);
+  return true;
+}
+/* A SPACE YOU DO NOT NEED IS TAKEN AWAY (owner, 12 Nov 2026: "I cant delete the extra signing spaces on the paper"):
+   the × beside it, or Backspace in it while it is empty. A line's ONLY space stays (the line must take a name).
+   Nothing is written: a space is this sitting's, and the people already on the route are changed through its door. */
+function pd2FillSigMayDrop(c, i){
+  if (!_pd2Fill || !c) return false;
+  const lines = pd2FillSigLines(c), L = lines[Number(i)], held = _pd2Fill.sig[i] || [];
+  return !!L && pd2FillSigNamed(c, L, lines).length + held.length > 1;
+}
+function pd2FillSigDrop(id){
+  if (!_pd2Fill) return false;
+  const [i, j] = String(id || '').split(':'), held = _pd2Fill.sig[i];
+  const c = (typeof getContract === 'function') ? getContract(_pd2Fill.id) : null;
+  if (!c || !held || !held[Number(j)] || !pd2FillSigMayDrop(c, i)) return false;
+  held.splice(Number(j), 1);
+  pd2FillSigRepaint(c, i);
+  const at = Math.max(0, Number(j) - 1);
+  const to = document.querySelector(`#ig-canvas [data-pd2-ps-name="${CSS.escape(i + ':' + at)}"]`) || document.querySelector(`#ig-canvas [data-pd2-ps-more="${CSS.escape(String(i))}"]`);
+  if (to) try { to.focus({ preventScroll: true }); } catch (_){}
+  return true;
 }
 function pd2FillStart(id, key){
   const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c || !pd2On()) return false;
@@ -8540,9 +8593,11 @@ function pd2FillSigPaint(c, cv){
     const nth = k => (typeof i18ord === 'function') ? i18ord(k) : String(k);
     const order = s => { const at = plan.indexOf(s); return at >= 0 ? at + 1 : 0; };
     const namedH = named.map(s => `<span class="pd2-ps-nm">${E(s.name)}</span>`).join('');
+    const mayDrop = named.length + held.length > 1;
     const heldH = held.map((x, j) => {
+      const rm = mayDrop ? `<button type="button" class="pd2-ps-rm" data-pd2-ps-rm="${E(i + ':' + j)}" title="${E(_pdT('pd2_ps_rm'))}" aria-label="${E(_pdT('pd2_ps_rm'))}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>` : '';
       const id = i + ':' + j, mail = !L.ours && (x.isNew || (String(x.name || '').trim() && !String(x.email || '').trim()));
-      return `<span class="pd2-ps-e"><input type="text" class="pd2-ps-in${String(x.name || '').trim() ? ' is-done' : ''}" data-pd2-ps-name="${E(id)}" value="${E(x.name || '')}" placeholder="${E(_pdT(L.ours ? 'pd2_ps_ph_us' : 'pd2_ps_ph_them'))}" aria-label="${E(_pdT('pd2_ps_who', { party: L.name }))}" autocomplete="off">${mail ? `<input type="email" class="pd2-ps-mail${String(x.email || '').trim() ? ' is-done' : ''}" data-pd2-ps-mail="${E(id)}" value="${E(x.email || '')}" placeholder="${E(_pdT('pd2_ps_mail'))}" aria-label="${E(_pdT('pd2_ps_mail'))}" autocomplete="off">` : ''}<span class="pd2-ps-dd" data-pd2-ps-dd="${E(id)}" hidden></span></span>`;
+      return `<span class="pd2-ps-e${rm ? ' has-rm' : ''}"><input type="text" class="pd2-ps-in${String(x.name || '').trim() ? ' is-done' : ''}" data-pd2-ps-name="${E(id)}" value="${E(x.name || '')}" placeholder="${E(_pdT(L.ours ? 'pd2_ps_ph_us' : 'pd2_ps_ph_them'))}" aria-label="${E(_pdT('pd2_ps_who', { party: L.name }))}" autocomplete="off">${mail ? `<input type="email" class="pd2-ps-mail${String(x.email || '').trim() ? ' is-done' : ''}" data-pd2-ps-mail="${E(id)}" value="${E(x.email || '')}" placeholder="${E(_pdT('pd2_ps_mail'))}" aria-label="${E(_pdT('pd2_ps_mail'))}" autocomplete="off">` : ''}${rm}<span class="pd2-ps-dd" data-pd2-ps-dd="${E(id)}" hidden></span></span>`;
     }).join('');
     const sub = [].concat(named.map(s => [s.role, order(s) ? _pdT('pd2_ps_signs', { nth: nth(order(s)) }) : ''].filter(Boolean).join(' · ')),
       held.filter(x => String(x.name || '').trim()).map(x => x.role || '')).filter(Boolean)[0] || '';
@@ -8606,7 +8661,8 @@ function pd2FillCount(c){
     if (s.startsWith('b:')){ const k = s.slice(2), v = String(_pd2Fill.vals[k] || '').trim();
       const inp = document.querySelector(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`);
       w.textContent = v && inp && inp.type === 'date' ? pd2FillDay(v) : v; }
-    else { const v = (_pd2Fill.sig[s.slice(2)] || []).map(x => String(x.name || '').trim()).filter(Boolean).join(', '); w.textContent = v; }
+    else { const lines = pd2FillSigLines(c), ln = lines[Number(s.slice(2))];
+      const v = (ln ? pd2FillSigNamed(c, ln, lines).map(x => String(x.name || '').trim()) : []).concat((_pd2Fill.sig[s.slice(2)] || []).map(x => String(x.name || '').trim())).filter(Boolean).join(', '); w.textContent = v; }
     const o = r.querySelector('.pd2-fp-owed'); if (o) o.hidden = pd2FillDone(s); });
   const pos = document.querySelector('#ig-dock [data-pd2-fp-pos]'); if (pos) pos.textContent = n ? _pdT('pd2_fp_pos', { k, n }) : '';
 }
@@ -8722,6 +8778,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       const p = dd && dd._hits ? dd._hits[Number(pick.getAttribute('data-pd2-ps-k'))] : null; if (p) pd2FillSigPick(id, p); return; }
     const nw = t.closest('#ig-canvas [data-pd2-ps-new]');
     if (nw){ e.preventDefault(); pd2FillSigPick(nw.getAttribute('data-pd2-ps-new'), null, true); return; }
+    const rm = t.closest('#ig-canvas [data-pd2-ps-rm]');
+    if (rm && _pd2Fill){ e.preventDefault(); pd2FillSigDrop(rm.getAttribute('data-pd2-ps-rm')); return; }
     const more = t.closest('#ig-canvas [data-pd2-ps-more]');
     if (more && _pd2Fill){ e.preventDefault(); const i = more.getAttribute('data-pd2-ps-more'); const c = getContract(_pd2Fill.id); if (!c) return;
       (_pd2Fill.sig[i] = _pd2Fill.sig[i] || []).push({ name: '', email: '', memberId: '', role: '', isNew: false });
@@ -8768,6 +8826,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const open = !!(dd && !dd.hidden && dd.children.length);
     if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){ e.preventDefault(); const o = [...dd.children]; let i = o.findIndex(x => x.classList.contains('is-on'));
       i = e.key === 'ArrowDown' ? Math.min(o.length - 1, i + 1) : Math.max(0, i - 1); o.forEach((x, k) => x.classList.toggle('is-on', k === i)); return; }
+    /* Backspace in a space with nothing in it takes the space away (never a line's only one) */
+    if (e.key === 'Backspace' && nm && !nm.value){ const id = nm.getAttribute('data-pd2-ps-name'), [bi, bj] = id.split(':'); const x = (_pd2Fill.sig[bi] || [])[bj];
+      if (x && !String(x.email || '').trim() && pd2FillSigDrop(id)){ e.preventDefault(); e.stopPropagation(); } return; }
     if (e.key === 'Enter' && !e.isComposing){ e.preventDefault(); e.stopPropagation();
       const on = open ? dd.querySelector('.is-on') : null;
       if (on){ if (on.hasAttribute('data-pd2-ps-new')) pd2FillSigPick(on.getAttribute('data-pd2-ps-new'), null, true);
@@ -9003,7 +9064,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
-Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,

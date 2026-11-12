@@ -36,9 +36,12 @@ test('f282 — one clause-name format on screen', async t => {
     assert.strictEqual(typeof shown, 'function',
       'clauseNameShown must be published — an unpublished name read through window is silence');
     /* The three the owner reported, and they come back as one format. */
-    assert.strictEqual(shown('SUPPLY & SPECIFICATION'), 'Supply & Specification');
+    /* RE-POINTED 12 Nov 2026 (owner picked "As on the paper" over "Capitals on each word"; REVERSES 10 Sep's Title
+       Case): one format still, the paper's own — a shouting title in sentence case, one opening small takes its
+       capital, otherwise as drafted */
+    assert.strictEqual(shown('SUPPLY & SPECIFICATION'), 'Supply & specification');
     assert.strictEqual(shown('Price & Contract Value'), 'Price & Contract Value');
-    assert.strictEqual(shown('quality & rejection'), 'Quality & Rejection');
+    assert.strictEqual(shown('quality & rejection'), 'Quality & rejection');
   });
 
   await t.test('the NUMBER CARRIES THE NAME, and the shape is left alone', () => {
@@ -50,9 +53,9 @@ test('f282 — one clause-name format on screen', async t => {
     const shown = win.clauseNameShown;
     /* A built label is printed in the short form, title re-cased. */
     assert.strictEqual(shown('Clause 1 · SUPPLY & SPECIFICATION'),
-      '1. Supply & Specification');
+      '1. Supply & specification');
     /* A raw heading was already in that form and does not move. */
-    assert.strictEqual(shown('4. TERM AND TERMINATION'), '4. Term and Termination');
+    assert.strictEqual(shown('4. TERM AND TERMINATION'), '4. Term and termination');
     /* A number with nothing after it has no title to case AND nothing to
        compact onto — a bare "8.2." names nothing, so it keeps its word. */
     assert.strictEqual(shown('Clause 8.2'), 'Clause 8.2');
@@ -60,7 +63,7 @@ test('f282 — one clause-name format on screen', async t => {
     assert.strictEqual(shown('INDEMNITY'), 'Indemnity');
     /* A title that OPENS with a figure keeps the figure where it was — the
        parse reads it as a title, not as a clause number. */
-    assert.strictEqual(shown('2019 DATA PROTECTION ACT'), '2019 Data Protection Act');
+    assert.strictEqual(shown('2019 DATA PROTECTION ACT'), '2019 Data protection act');
     assert.strictEqual(shown(''), '');
     assert.strictEqual(shown(null), '');
     /* AND THE RECORD IS THE WALL: the builder is unchanged. */
@@ -84,7 +87,7 @@ test('f282 — one clause-name format on screen', async t => {
     assert.strictEqual(win.clauseTitleCase(label), label,
       'the fault, kept as a fact: title-casing a whole label is a no-op');
     assert.strictEqual(win.clauseNameShown(label),
-      '2. Specifications, Quality & Inspection',
+      '2. Specifications, quality & inspection',
       'the one reading parses the number off first, which is why it exists');
   });
 
@@ -107,12 +110,14 @@ test('f282 — one clause-name format on screen', async t => {
     }
   });
 
+  /* RE-POINTED 12 Nov 2026 ("As on the paper"): the one house style is the paper's, so the one reading and the
+     cards' reading beside the paper (clauseNameAsDrafted) answer alike */
   await t.test('it is clausemodel\'s own case machinery and not a second copy', () => {
     /* If these two ever disagree there are two house styles in one product. */
-    for (const s of ['SPECIFICATIONS, QUALITY & INSPECTION', 'IP RIGHTS',
-      'ROUTE-TO-MARKET', 'TERM AND TERMINATION', 'Liability & Governing Law'])
-      assert.strictEqual(win.clauseNameShown(s), win.clauseTitleCase(s),
-        `${s} must read the same way here as it does on the friction page`);
+    for (const s of ['SPECIFICATIONS, QUALITY & INSPECTION', 'IP RIGHTS', 'Clause 7 · Liability cap',
+      'ROUTE-TO-MARKET', 'TERM AND TERMINATION', 'Liability & Governing Law', 'quality & rejection'])
+      assert.strictEqual(win.clauseNameShown(s), win.clauseNameAsDrafted(s),
+        `${s} must read the same way on every screen as beside the paper`);
   });
 
   /* ---------- (2) ONE DOOR ---------- */

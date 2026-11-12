@@ -22267,3 +22267,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 21843 (Parties' "Draft an agreement with …" past its panel): NOT SEEN in the new look — the door is "Start a new agreement with …" on the party's own page; the longest name (Sameer Business Park) stays on one line, 44px inside the panel.
 - 12 Nov 2026 correction: 22020 "Save view" was NOT two lines in the measured state (the measure's line count was wrong, now counted from the words' own boxes); a nowrap safeguard was added on the owner's yes. 21941 figure cards FIXED (16px), the result cards beside them too; their narrow labels may take two or three short lines.
 - 12 Nov 2026: the read bar's × and the Send screen's "To" × sat 8px left of their circle's middle: FIXED (both). An arrival's read never started when the paper was still loading at the first look: FIXED with the read playing on arrival (owner's pick).
+
+## 12 Nov 2026 — the paper's signature lines follow the route; an extra space can go (f1017)
+- FIXED: the route saved from Change while filling on the paper left empty spaces and "owed" (two lists: the sitting's and the route's); "+ Another signer" spaces could not be removed. `pd2FillRouteSync`, `pd2FillSigDrop`.
+- Noticed, not fixed: names typed on the paper's signature lines and not yet saved are not shown when the signing route window is opened from Change (it reads the saved route only).
+- Noticed, not fixed: the Handbook's picture for chapter 2.3 does not show the × beside a signer space (not re-taken in the chat).
