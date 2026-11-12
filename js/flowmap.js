@@ -109,8 +109,8 @@ const FLOW_MAP = [
     a: [['draft', _w('Use it → New agreement', 'Använd → nytt avtal')]], d: ['draft', 'settings'], p: [] },
   { k: 'mynotes', st: 'book', s: _w('your private notes', 'dina privata anteckningar'),
     a: [], d: ['calendar', 'approvals'], p: [] },
-  { k: 'reads', st: 'book', s: _w('kept questions and their reads', 'sparade frågor och deras läsningar'),
-    a: [['contracts', _w('a read → its table', 'en läsning → dess tabell')]], d: ['contracts', 'board'], p: [] },
+  { k: 'reads', st: 'book', s: _w('Discover: ask every contract a question, the answers kept', 'Upptäck: ställ en fråga till varje avtal, svaren sparas'),
+    a: [['contracts', _w('an answer → its words on the contract', 'ett svar → dess ord i avtalet')]], d: ['contracts', 'board'], p: [] },
   { k: 'pulse', st: 'book', s: _w('the pulse board', 'pulstavlan'),
     a: [], d: ['board', 'contracts'], p: [] },
   /* ---- THE HOUSE ---- */

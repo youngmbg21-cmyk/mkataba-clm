@@ -139,7 +139,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const heads = await page.evaluate(() => [...document.querySelectorAll('.rdn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
     /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): the next batch is the panel's Read the other N, not the row's */
     const more = await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]'), null, 8000);
-    const packs = await page.evaluate(() => !!document.querySelector('.rdn-table [data-rdn-pack]'));
+    /* RE-POINTED (owner, 12 Nov 2026, Discover): a pack is a chip under the ask box, and a row of the Packs tab */
+    const packs = await page.evaluate(() => !!document.querySelector('#rd-page.dsc-page [data-dsc-pack]'));
     await shot('6-reads');
     check('6 Reads: questions and packs in one table, Read the other N in the panel', up && heads.join('|') === 'question|read|answers|on the list of|asked' && more && packs, heads);
   } catch (e) { check('6 Reads', false, String(e).slice(0, 200)); }

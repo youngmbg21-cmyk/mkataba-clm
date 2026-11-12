@@ -22252,3 +22252,13 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 ## 12 Nov 2026 — after you send (owner's picks "The Legora Way" and "Said Once"; f1015)
 - Noticed, not fixed: the phone's send (js/mobile-contract.js buildSharePayload) does not fold our own fixes on the first send of our paper, so a first send from the phone still travels them as tracked changes; the phone files no changes, so the fold was left to the computer's two send paths.
 - Noticed, not fixed: the waiting card's "Meanwhile, yours" names only an approval I may give; other work of ours while we wait (an obligation, a note) stays in the Dossier's rows below the card.
+
+## 12 Nov 2026 — Discover is a page (owner picked "The Legora Way", then drew the flow; f1016)
+- Built: in the new look the Contracts list's head carries a Discover pill where "+ Ask a column" stood; the Reads page is the Discover page (one ask box, one black button, chips that fill the box, Kept · Packs · Every read; a question opens under its row; the panel shows the paper the words were read from; while Jambo reads the panel shows the paper of each contract and Stop stands in the box). The old look keeps its own door and section.
+- Removed with the owner's yes ("One link", then the Discover button): the Discover section in Jambo's panel beside the Contracts list (new look), and the folder panel's "+ Ask a column" and "All your reads" (now one Discover pill).
+- Noticed, not fixed: in the new look the ask form in Jambo's panel beside Contracts (askColFormHtml, the pack's tick form) has no door any more; it is still drawn in the old look. Its removal belongs with the old look's.
+- Noticed, not fixed: the Handbook's pictures are taken in the old look (test/chromium/handbook-verify.js never turns the new look on), so chapters 5.5.1 to 5.8 picture the old Ask a column and Reads; their words now say what the new look does.
+- Noticed, not fixed: CLAUDE.md is 86 KB, over its own 80 KB limit, before this change; trimming it needs the owner's yes.
+- Noticed, not fixed: "Start redlining this clause" on Discover opens the contract's Redlines, not that clause's editor; the Stakes' door (stkRedlineGo) needs a point of the deep read to name the clause.
+- Noticed, not fixed: a new-look window narrower than the list-and-panel layout (insFits) still draws the old Reads page, whose "+ Ask a column" goes to Contracts' form.
+- Noticed, not fixed: the server reads "How many days do we have to pay an invoice?" as a counting question ("how many") and refuses it as a column, though it asks the wording of each contract.

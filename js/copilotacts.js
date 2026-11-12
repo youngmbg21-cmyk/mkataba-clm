@@ -1802,7 +1802,7 @@ const CA_PLACES = [
   { k: 'import', w: ['import', 'imports', 'import contracts', 'importera', 'importera avtal'] },
   { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
   /* READS (The thread, 28 Oct 2026): every read of the wording, and the next batch */
-  { k: 'reads', w: ['reads', 'every read', 'all reads', 'past reads', 'previous reads', 'earlier reads', 'read history', 'läsningar', 'läsningarna', 'alla läsningar', 'tidigare läsningar', 'varje läsning'] },
+  { k: 'reads', w: ['reads', 'every read', 'all reads', 'past reads', 'previous reads', 'earlier reads', 'read history', 'läsningar', 'läsningarna', 'alla läsningar', 'tidigare läsningar', 'varje läsning', 'discover', 'the discover page', 'discover page', 'upptäck'] },
   /* THE PULSE BOARD (owner, 29 Oct 2026): every contract ranked live, each drawn as a strand */
   { k: 'pulse', w: ['pulse', 'pulse board', 'the pulse board', 'pulse page', 'ranking', 'rankings', 'the ranking', 'puls', 'pulstavla', 'pulstavlan', 'rankning', 'rankningen'] },
   /* THE HANDBOOK (owner, 26 Oct 2026): the instruction book, one chapter per thing; "how do I …" lands on its chapter (navReadHandbook) */
