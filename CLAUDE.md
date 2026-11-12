@@ -284,7 +284,7 @@ Behind the new-look switch, ONE block in index.html ("THE NEW LOOK: HARMONY"): O
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 Every change, picture, drawing, measurement, test and reference is made against THE NEW LOOK (the one white sheet, `newLookOn`/`html.lg-new`, the Harmony block). The old look with separate cards is to be DELETED: nothing new is built, drawn or fixed on it; a photo of HaTi is taken with `prefs.newLook` on; "HaTi today" means the new look. Its removal (the switch, the `lg-new` guards) is its own job, asked for by name.
-THE NEW LOOK READS GEIST (f377). NAME AND FIGURE INK; THE DETAIL LINE GREY on EVERY page (`--color-neutral-400`; f982, f984, f990). THE SAP WAY MARK leads every row (ONE builder `listSapMarkHtml`/`listSapCellHtml`, `listSapOn`; on the wall `regSapMarkHtml`, f997). f982.
+THE NEW LOOK READS GEIST (f377). NAME AND FIGURE INK; THE DETAIL LINE GREY on EVERY page (`--color-neutral-400`; f982, f984, f990). THE SAP WAY MARK leads every row (ONE builder `listSapMarkHtml`/`listSapCellHtml`, `listSapOn`; on the wall `regSapMarkHtml`, f997); Jambo's is his own sparkle on black shading into grey, a grey ring rippling on its own beat, still where less motion is asked (`mkSpark`, `.is-jambo`, `--mk-d`; owner picked "The SAP Way", 12 Nov 2026). f982.
 THE BOARD'S NEEDS YOU, THE SAP WAY (9 Nov 2026): rows 40px. THE FOLDERS, VIEWS FIRST (10 Nov 2026): up to four views across every folder, ONE reading `regFolderViewsData`, the tile's number = the list it opens (`regShowOnly`); `regFolderRowsHtml`, `regFolderRanksHtml`. f998, f983.
 THE COLOUR ROUND (9 Nov 2026): one quiet touch of colour per page, read off a fact it has (`listStreamTone`, `dirnLoadBarHtml`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
 
