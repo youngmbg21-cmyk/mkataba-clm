@@ -17,6 +17,8 @@
          a line's only space has no × and stays
     10 · (owner, 12 Nov 2026) the signing route saved while the paper is being filled is what the lines show: the
          names stand on their lines, the empty spaces go, and the panel no longer says "owed"
+    11 · (owner, 12 Nov 2026) a name typed on the paper is already in the signing route window when Change is
+         pressed; Cancel saves nothing and the name stays typed on the paper
    At the parent 9 and 10 fail: no × is drawn, and a saved route leaves the empty spaces and "owed" standing.
    At the parent (before this change) 1–7 fail: the button opens the white form and a template's blanks are never
    turned into lines.
@@ -164,6 +166,19 @@ const focusOf = () => { const a = document.activeElement; return a ? (a.getAttri
         check('9 a space you do not need is taken away by its × or by Backspace while empty; a line\'s only space has no × and stays',
           one.theirs === 1 && one.rmTheirs === 0 && one.rmOurs === 0 && three.theirs === 3 && three.rmTheirs === 3 && two.theirs === 2 && back.theirs === 1 && back.rmTheirs === 0 && last.theirs === 1, { one, three, two, back, last });
         await page.screenshot({ path: path.join(OUT, 'spaces-laptop-a.png') });
+        /* 11 a name typed on the paper is in the route window; Cancel keeps it on the paper and saves nothing */
+        await page.click('#ig-canvas [data-pd2-ps-name="1:0"]'); await page.keyboard.type('Wanjiru Otieno');
+        await page.keyboard.press('Escape');
+        const door = await page.$('#ig-dock [data-pd-og-route]');
+        if (door) await door.click();
+        const win = !!door && await until(page, () => !!document.getElementById('sp-save'), null, 8000);
+        const inWin = win ? await page.evaluate(() => { const w = document.getElementById('sr-win') || document.getElementById('sp-save').closest('.modal, [role="dialog"]') || document.body;
+          return /Wanjiru Otieno/.test(w.textContent) || [...w.querySelectorAll('input')].some(i => /Wanjiru Otieno/.test(i.value)); }) : false;
+        if (win) await page.click('#sp-cancel');
+        await until(page, () => !document.getElementById('sp-save'), null, 4000);
+        const after = await page.evaluate(() => ({ typed: (document.querySelector('#ig-canvas [data-pd2-ps-name="1:0"]') || {}).value || '', plan: (getContract('MK-FP4').signerPlan || []).length }));
+        check('11 a name typed on the paper is in the route window; Cancel saves nothing and keeps it on the paper', win && inWin && after.typed === 'Wanjiru Otieno' && after.plan === 0, { win, inWin, after });
+        await page.evaluate(() => { const i = document.querySelector('#ig-canvas [data-pd2-ps-name="1:0"]'); if (i){ i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); } });
         /* 10 the route saved (its one writer), then what the route window's Save does to the paper being filled */
         await page.click('#ig-canvas [data-pd2-ps-more="1"]');
         await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-ps-name="1:1"]'), null, 4000);
