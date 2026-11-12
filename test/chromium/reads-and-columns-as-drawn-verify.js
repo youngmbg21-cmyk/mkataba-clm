@@ -65,9 +65,11 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       const F = await page.evaluate(() => { const f = document.querySelector('.ac-nl-form'); if (!f) return null;
         return { text: f.innerText, name: (document.getElementById('ac-name') || {}).value, opts: [...f.querySelectorAll('.ac-nl-opt')].map(b => b.textContent.trim()),
           go: (f.querySelector('[data-ac-ask]') || {}).textContent, lit: !!document.querySelector('#ct-place .ac-btn.is-open') }; });
-      check(`${nm} 2 the form as drawn: ‹ Overview, your question, the column's name and its hint, First 50 | All 60, Read 50 contracts · Cancel; the pill lit`,
+      /* RE-POINTED (owner, 12 Nov 2026, "Discover is a page"): the list's pill is Discover now and opens the Discover page, not
+         this form, so no pill is lit while the form stands (the form is still reached by its other doors) */
+      check(`${nm} 2 the form as drawn: ‹ Overview, your question, the column's name and its hint, First 50 | All 60, Read 50 contracts · Cancel; no pill lit`,
         !!F && /‹ Overview/.test(F.text) && /YOUR QUESTION/i.test(F.text) && /COLUMN NAME/i.test(F.text) && /Read from your question/.test(F.text) && F.name === 'Governing law'
-        && JSON.stringify(F.opts) === '["First 50","All 60"]' && F.go === 'Read 50 contracts' && /Cancel/.test(F.text) && F.lit && !COST.test(F.text), F);
+        && JSON.stringify(F.opts) === '["First 50","All 60"]' && F.go === 'Read 50 contracts' && /Cancel/.test(F.text) && !F.lit && !COST.test(F.text), F);
       await shot('2-form');
 
       /* 3 · the reading card with Stop */
