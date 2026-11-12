@@ -672,6 +672,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 - THE SWEEP (10 Nov 2026): f990 (new; red at the parent) — the detail grey on the Pulse board, History, Send, New agreement, the Handbook, Jambo's agents, the clause editor and the template builder, each rule scoped to win.
+- Jambo's mark on Needs you (his sparkle, black into grey, a rippling ring): `node --test test/f982-ink-grey-and-the-sap-mark.test.js` (+ f965).
 - Geist again, the grey detail and the SAP way mark on Home, Contracts, Negotiations, Approvals, Obligations, Needs you, the contract's facts and the Redlines cards: `node --test test/f982-ink-grey-and-the-sap-mark.test.js` (+ f377, f952, f953, f965, f966, f977); browser `home-morning-verify`, `home-new-look-buttons-verify`, `round5-new-look-verify`, `round7-new-look-verify`, `legora-lists-verify`, `legora-look-verify`, `contracts-page-verify`, `sap-lists-verify`, `approve-on-row-verify`, `one-worklist-verify`.
 - The Board's Needs you the SAP way; the folders and their panel the Legora way: `node --test test/f983-needs-you-the-sap-way-folders-the-legora-way.test.js` (+ f977); browser `contracts-page-verify`, `legora-lists-verify`, `round7-new-look-verify`, tidy sweep `HATI_TIDY_NEW_LOOK=1 HATI_TIDY_ONLY=board,contracts`.
 - The ink and the grey on the rest of the pages (Parties, People, Reads, Requests, Import, Our paper, My notes, Calendar, the Board, Settings): `node --test test/f984-ink-and-grey-on-every-page.test.js` (+ f982, f952, f965).
