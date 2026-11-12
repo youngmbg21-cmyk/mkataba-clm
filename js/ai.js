@@ -3233,9 +3233,10 @@ async function aiLocalClaude(messages, context){
     return r.json();
   };
   const working=messages.map(m=>({role:m.role,content:m.content}));
-  let final=null, nudged=false;
+  let final=null, nudged=false, cut=false;
   for(let step=0; step<AI_CHAT_STEPS; step++){
     const d=await call(working, step===AI_CHAT_STEPS-1);
+    if(d&&d.stop_reason==='max_tokens') cut=true;   /* a cap is a fact (the server's `truncated`) */
     const content=d.content||[];
     const toolUses=content.filter(b=>b.type==='tool_use');
     working.push({role:'assistant',content});
@@ -3269,6 +3270,7 @@ async function aiLocalClaude(messages, context){
     working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:JSON.stringify(_localToolRun(t.name,t.input))}))});
   }
   if(!final) final={answer:"I ran out of steps before I could finish that. Ask again, or name the contract, party or page you mean.",citations:[],compare:null,unfinished:true,retry:true};
+  if(cut) final.truncated=true;
   const ids=[]; final.citations.forEach(c=>{ if(!ids.includes(c.id)) ids.push(c.id); });
   if(final.compare) final.compare.columns.forEach(col=>{ if(col&&col.id&&!ids.includes(col.id)) ids.push(col.id); });
   final.cards=ids.map(id=>{ const c=aiContractByRef(id); return c?{id:c.id}:null; }).filter(Boolean);
@@ -4250,6 +4252,18 @@ function aiJsonObjects(text){
   }
   return out;
 }
+/* the proposal's own object, opened: a brace, then one of its field names */
+const AI_PROPOSAL_OPEN_RE = /\{\s*"(?:advice|reasoning|rationale|explanation|whyChange|whatItDoes|proposedText|proposed_text|placement|headingText)"\s*:/;
+/* what every drafting door gets back for an answer that was cut short: the
+   non-answer mark the clause editor already reads, and a true sentence for the
+   doors that print `advice` */
+function aiProposalCutShort(){
+  return { unfinished: true, cutShort: true, proposedText: '',
+    advice: (typeof i18t === 'function') ? i18t('ce_ask_cut_short') : 'Jambo\u2019s answer was cut short before the wording arrived. Nothing was changed. Ask again.' };
+}
+/* cut short = the parser saw a broken object, or the route said the answer ran
+   out of room and what came back is not one whole object */
+const aiProposalIsCut = (res, parsed) => !!(parsed && (parsed.cutShort || (res && typeof res === 'object' && res.truncated && !parsed.strict)));
 function aiParseProposal(raw){
   const src = String(raw == null ? '' : raw).trim();
   if (!src) return null;
@@ -4294,6 +4308,14 @@ function aiParseProposal(raw){
   for (let k = objs.length - 1; k >= 0; k--){
     try{ const hit = pick(JSON.parse(objs[k])); if (hit) return hit; }catch(_){}
   }
+  /* A BROKEN ANSWER IS NOT WORDING (owner's screenshot, 12 Nov 2026): the
+     answer stopped part-way — `{ "advice": "…", "whyChange": "As it st` — so no
+     object closes, nothing above could read it, and the fallback below took
+     the raw text, labels and all, for the clause. An answer that opens the
+     proposal's own object and never finishes it carries no wording we can
+     trust: it comes back marked, with NOTHING to apply. */
+  if (AI_PROPOSAL_OPEN_RE.test(unfenced))
+    return { cutShort: true, advice: '', proposedText: '', strict: false, placement: 'replace', headingText: '' };
   /* No JSON at all. Either the model answered with wording and skipped the
      wrapper — in which case the wording is still the answer and only the
      reasoning is missing — or it answered conversationally, in which case there
@@ -4377,6 +4399,7 @@ async function copilotProposeTemplate(o){
     : (res && (res.answer || res.text || res.content || res.reply || res.message)) || '';
   const parsed = aiParseProposal(raw);
   if (!parsed) return null;
+  if (aiProposalIsCut(res, parsed)) return aiProposalCutShort();
   /* The typography repair measures the answer against the passage it replaces,
      and a section being written for the first time has no passage to measure
      against — so only the restated heading is taken off, which is the one
@@ -4513,6 +4536,7 @@ async function copilotPropose(opts){
     : (res && (res.answer || res.text || res.content || res.reply || res.message)) || '';
   const parsed = aiParseProposal(raw);
   if (!parsed) return null;
+  if (aiProposalIsCut(res, parsed)) return aiProposalCutShort();
   /* No wording came back — the model answered rather than drafted. Returned as
      advice with an empty proposal so the caller renders one bubble and no card;
      running an empty string through the typography repair would only manufacture
