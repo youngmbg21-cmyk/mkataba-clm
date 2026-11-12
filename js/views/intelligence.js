@@ -4136,7 +4136,7 @@ function contractPlainText(c, opts){
     /* A HEADING IS NOT GLUED TO ITS FIRST SENTENCE (BUGLOG 20921; owner's yes, 12 Nov 2026: Jambo reads again once): a
        break after every block, so "Duration of confidentiality" and "The obligations…" stay two. Not on the wording
        hash's path ({ marks:true }): the stamps on file were taken over the text as it was read then */
-    if(!(opts&&opts.marks)) host.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,div,br,tr,td,th,blockquote,section,article').forEach(b=>b.after(document.createTextNode(' ')));
+    if(!(opts&&opts.marks)) host.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,div,br,tr,td,th,blockquote,section,article').forEach(b=>b.insertAdjacentText('afterend',' '));
     return (host.textContent||'').replace(/\s+/g,' ').trim();
   }catch(e){ return ''; }
 }

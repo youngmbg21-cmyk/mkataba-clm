@@ -33,13 +33,13 @@ test('f1016 (2) a heading is not glued to its first sentence; the wording hash p
   const I = stripCom(read('js/views/intelligence.js'));
   const m = I.match(/function contractPlainText\(c, opts\)\{[\s\S]*?\n\}/);
   assert.ok(m, 'contractPlainText is found');
-  assert.match(m[0], /if\(!\(opts&&opts\.marks\)\) host\.querySelectorAll\('p,h1,h2,h3,h4,h5,h6,li,div,br,[^']*'\)\.forEach\(b=>b\.after\(document\.createTextNode\(' '\)\)\);/);
+  assert.match(m[0], /if\(!\(opts&&opts\.marks\)\) host\.querySelectorAll\('p,h1,h2,h3,h4,h5,h6,li,div,br,[^']*'\)\.forEach\(b=>b\.insertAdjacentText\('afterend',' '\)\);/, 'insertAdjacentText, never .after (f290 keeps .after for obligation pointers only)');
   /* what it does, in a document the test builds */
   const { JSDOM } = require('jsdom');
   const doc = new JSDOM('<div id="h"><h2>Duration of confidentiality</h2><p>The obligations survive.</p></div>').window.document;
   const host = doc.getElementById('h');
   const before = host.textContent.replace(/\s+/g, ' ').trim();
-  host.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,div,br').forEach(b => b.after(doc.createTextNode(' ')));
+  host.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,div,br').forEach(b => b.insertAdjacentText('afterend', ' '));
   const after = host.textContent.replace(/\s+/g, ' ').trim();
   assert.equal(before, 'Duration of confidentialityThe obligations survive.', 'the fault, as it was');
   assert.equal(after, 'Duration of confidentiality The obligations survive.', 'fixed');
