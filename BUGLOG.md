@@ -22264,3 +22264,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 22020 (the map's "Save view", #ig-save): REAL — two lines at 1440×780, 1536×730 and 1366×950 (69px wide, 24px high). Noticed, not fixed.
 - 21882 (the Handbook's "Which one do I need?" table under the panel): GONE — the new look's Handbook (hbknRender) draws no such table.
 - 21843 (Parties' "Draft an agreement with …" past its panel): NOT SEEN in the new look — the door is "Start a new agreement with …" on the party's own page; the longest name (Sameer Business Park) stays on one line, 44px inside the panel.
+- 12 Nov 2026 correction: 22020 "Save view" was NOT two lines in the measured state (the measure's line count was wrong, now counted from the words' own boxes); a nowrap safeguard was added on the owner's yes. 21941 figure cards FIXED (16px), the result cards beside them too; their narrow labels may take two or three short lines.
