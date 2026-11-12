@@ -18519,6 +18519,14 @@
   html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea){width:100%;max-width:260px;height:30px;box-sizing:border-box;border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px;font:inherit}
   html.lg-new .pd2-fm-mid tr.pd-fm-row.is-amb td.pd-og-v :is(input:not([type=checkbox]),select){color:var(--st-amber-fg)}
   html.lg-new .pd2-fm-mid td.pd-og-v input::placeholder{color:var(--color-quiet)}
+  /* NO OUTLINES WHERE A PAPER'S DETAILS ARE TYPED (owner, 12 Nov 2026: "I never want to see outlines especially
+     thick outlines in entry fields in HaTi for papers"): the Fill in form, Key terms in the middle and the lines on
+     the paper itself carry no box and no focus ring; the box you are in shows by its underline growing darker. */
+  html.lg-new :is(.pd2-fm-mid, [data-pd-mid-kt], #ig-canvas) :is(input, select, textarea, .dp-face):is(:focus, :focus-visible){outline:0;box-shadow:none}
+  html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea,.dp-face):focus{border-bottom:2px solid var(--color-text)}
+  html.lg-new [data-pd-mid-kt] .pd-og-in{border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px}
+  html.lg-new [data-pd-mid-kt] textarea.pd-og-in{padding:4px 2px}
+  html.lg-new [data-pd-mid-kt] .pd-og-in:focus{border-bottom:2px solid var(--color-text)}
   html.lg-new .pd2-fm-mid tr.pd2-fm-known > td{padding:10px 0;border-top:1px solid var(--color-divider);vertical-align:top;font-size:13.5px;line-height:1.45}
   html.lg-new .pd2-fm-mid td.pd-og-a q{font-family:var(--font-doc);font-style:italic;font-size:12.5px}
   html.lg-new .pd2-fm-mid tr.pd2-fm-sg :is(.pd-og-ml:first-child, [data-pd-og-sg="ours"]){display:none}
