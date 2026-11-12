@@ -5514,7 +5514,12 @@ function shareNlLinesPaint(c, s, set, host){
   const n=((A&&A.lines)||[]).length+((A&&A.own)||[]).length;
   let held=0; try{ held=(typeof shareStaysRows==='function')?shareStaysRows(c).length:0; }catch(_){ held=0; }
   if(n) set('what', i18tn('sh_nl_what', n, { n }));
-  say('sh-lt-what-row', 'sh-nl-what-say', held?i18tn('sh_nl_held', held, { n:held }):i18t('sh_nl_held_none'));
+  /* SAID ONCE (owner picked "Said Once", 12 Nov 2026): the first send of our own paper goes out clean
+     (negoFoldOwnFirstSend), and the line says so, once — no control, the rule has no exception */
+  let fold=0; try{ fold=(p!=='advise' && typeof negoFoldWouldTake==='function')?negoFoldWouldTake(c):0; }catch(_){ fold=0; }
+  if(fold){ set('what', i18t('sh_nl_clean_face', { n:(c.negotiation&&c.negotiation.round)||1 }));
+    say('sh-lt-what-row', 'sh-nl-what-say', i18tn('sh_nl_clean_say', fold, { n:fold })); }
+  else say('sh-lt-what-row', 'sh-nl-what-say', held?i18tn('sh_nl_held', held, { n:held }):i18t('sh_nl_held_none'));
   if(p==='negotiate'){
     set('purpose', i18t('sh_nl_can_neg'));
     const open=(typeof signingRouteOpen==='function')?signingRouteOpen(c):true;
@@ -6078,6 +6083,8 @@ function shareGoesPaint(c, st, who){
   if(p==='history') items.push(i18t('sh_goes_hist'));
   else if(p==='status') items.push(i18t('sh_goes_status'));
   else if(p==='advise') items.push(i18t('sh_goes_advise'));
+  /* the first send of our own paper goes out clean (negoFoldOwnFirstSend): the one sentence the "What goes" line says */
+  else if(typeof negoFoldWouldTake==='function' && negoFoldWouldTake(c)) items.push(i18t('sh_goes_clean'));
   else {
     let A=null; try{ A=shareAnswersOf((st && st.payload && st.payload.contract) || c, c); }catch(_){ A=null; }
     const raw=Array.isArray(c.changes)?c.changes:[];
@@ -8022,8 +8029,10 @@ async function issueSigningRouteLinks(c){
      400 ms timer — the same overtaking that once had /distribute refuse a
      contract its own screen had just sealed. The plan must be on disk before
      the first share request reads it back. */
-  try{ await flushSaves(); }catch(_){}
   try{ await ensureFull(c); }catch(_){}
+  /* the first send of our own paper goes out clean (negoFoldOwnFirstSend), on disk before the links are made */
+  if(typeof negoFoldOwnFirstSend==='function' && negoFoldOwnFirstSend(c)) persist(c);
+  try{ await flushSaves(); }catch(_){}
   const docHash=await sha256(canonicalDoc(c));
   if(c.status!=='Signed'){ const v=captureVersion(c,'Sent for signature',null,{auto:true}); if(v) persist(c); }
   const links=[];
@@ -8565,7 +8574,7 @@ async function openShareModal(c, opts={}){
   try{ await ensureFull(c); }catch(_){}
   /* EVERY WAY OUT TAKES THE OPENING'S LISTENER WITH IT (see shareWireOpening). */
   if(_superseded()){ if(_openAbort) _openAbort.abort(); return; }
-  const docHash=await sha256(canonicalDoc(c));
+  let docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
   /* THE SHARE PAYLOAD IS A COPY OF THE CONTRACT THAT LEAVES THE BUILDING.
@@ -9251,6 +9260,16 @@ async function openShareModal(c, opts={}){
         payloadObj=buildSharePayload(c, docHash, null, { purpose:'advise', adviseOn:ids });
         payloadObj.purposeChosen='advise';
       }
+      /* OUR OWN PAPER GOES OUT CLEAN THE FIRST TIME (owner, 12 Nov 2026): on the first send of our paper our fixes
+         become the wording they see (negoFoldOwnFirstSend refuses wherever any doubt stands); the wording moved, so
+         its fingerprint and the copy are taken again, and the record is on disk before the link is made */
+      if(payloadObj.purpose!=='advise' && payloadObj.purpose!=='colleague' && typeof negoFoldOwnFirstSend==='function' && negoFoldOwnFirstSend(c)){
+        const pc=payloadObj.purposeChosen;
+        docHash=await sha256(canonicalDoc(c));
+        payloadObj=buildSharePayload(c, docHash, null, { purpose:payloadObj.purpose });
+        payloadObj.purposeChosen=pc;
+        persist(c); try{ await flushSaves(); }catch(_){}
+      }
       /* ADVISE IS NOT REUSED EITHER. Putting an advice payload onto a standing
          NEGOTIATE link would change what the person already holding that link
          can do, without them or the sender being told — the same reason sign
@@ -9656,6 +9675,24 @@ function counterpartySeenState(c, shares){
   if(latest.firstOpenedAt) return { kind:'opened', who, at:latest.firstOpenedAt, share:latest };
   return { kind:'unopened', who, at:latest.sentAt||latest.createdAt, share:latest };
 }
+/* SEND IT AGAIN, ONE DOOR (12 Nov 2026): the Shares section's "Send it again" and the Dossier's waiting card's Remind
+   both run this — the last recipient's link sent again (reshareToLastRecipient), said the same way either way */
+async function shareSendAgainRun(c, btn, after){
+  const restore=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`; }
+  try{
+    const out=await reshareToLastRecipient(c);
+    const who=out.recipient.name||out.recipient.email||out.recipient.phone||i18t('ng_the_counterparty');
+    /* Their copy could not be reused — see the other caller; same order. */
+    if(out.stranded) toast(reshareStrandedLine(who),'err');
+    else if(out.delivered) toast(i18t('co_sent_again',{who}),'ok');
+    /* Deliberately quiet, not refused — see the note on the other caller. */
+    else if(out.quiet) toast(i18t('co_round_on_standing_link',{who}),'ok');
+    else reshareNotSentModal(c, out, who);
+    if(typeof after==='function') after();
+  }catch(err){ toast(err.message,'err'); }
+  if(btn&&btn.isConnected){ btn.disabled=false; btn.innerHTML=restore; }
+}
 /* Days since a moment, floored. Used only to decide how loudly to say it. */
 const _daysSince = iso => { const t=Date.parse(iso||''); return Number.isFinite(t)?Math.floor((Date.now()-t)/86400000):0; };
 function counterpartySeenHtml(c, shares){
@@ -9850,22 +9887,7 @@ async function renderSharesSection(c){
         </div>`; }).join('')}
     </div></div>`;
   told();
-  document.getElementById('seen-resend')?.addEventListener('click',async e=>{
-    const btn=e.currentTarget, restore=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;
-    try{
-      const out=await reshareToLastRecipient(c);
-      const who=out.recipient.name||out.recipient.email||out.recipient.phone||i18t('ng_the_counterparty');
-      /* Their copy could not be reused — see the other caller; same order. */
-      if(out.stranded) toast(reshareStrandedLine(who),'err');
-      else if(out.delivered) toast(i18t('co_sent_again',{who}),'ok');
-      /* Deliberately quiet, not refused — see the note on the other caller. */
-      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who}),'ok');
-      else reshareNotSentModal(c, out, who);
-      renderAuditSection(c); renderSharesSection(c);
-    }catch(err){ toast(err.message,'err'); }
-    btn.disabled=false; btn.innerHTML=restore;
-  });
+  document.getElementById('seen-resend')?.addEventListener('click',e=>shareSendAgainRun(c, e.currentTarget, ()=>{ renderAuditSection(c); renderSharesSection(c); }));
   host.querySelectorAll('[data-sh-copy]').forEach(b=>b.addEventListener('click',async()=>{
     const link=location.origin+location.pathname+'#share=t:'+b.getAttribute('data-sh-copy');
     try{ await navigator.clipboard.writeText(link); }catch(e){}
@@ -11149,4 +11171,4 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,shareSendAgainRun,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

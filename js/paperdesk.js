@@ -6686,6 +6686,11 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       return; }
     /* Risks to look at › Open: the Redlines face, landed ON its "Risks to look at" list (owner,
        23 Oct 2026; it opened the clause editor on the first risk) — the list's own Edit opens a risk */
+    /* WAITING ON THEM: Remind is the one send-again door; Approve the approvals' own ask */
+    const wtr = t.closest('[data-pd2-wt-remind]');
+    if (wtr){ e.preventDefault(); const cc = pdContract(); if (cc && typeof shareSendAgainRun === 'function') shareSendAgainRun(getContract(cc.id) || cc, wtr, () => { try { pdGlanceRepaint(); } catch (_){} }); return; }
+    const wta = t.closest('[data-pd2-wt-approve]');
+    if (wta){ e.preventDefault(); const cc = pdContract(); if (cc && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(getContract(cc.id) || cc, 'approved')).then(() => { try { pdGlanceRepaint(); } catch (_){} }, () => {}); return; }
     /* CHOOSE THE ROAD: a road's press opens its door (pd2RoadGo) */
     const rdg = t.closest('[data-pd2-road]');
     if (rdg){ e.preventDefault(); const cc = pdContract(); if (cc) pd2RoadGo(getContract(cc.id) || cc, rdg.getAttribute('data-pd2-road')); return; }
@@ -7381,10 +7386,16 @@ function pd2RoadOf(c, D){
   return { paper: pd2RoadPaper(c), notes, apOwed: !!(ap && ap.required && !ap.ok), rule, who: String(c.counterparty || '').trim() };
 }
 const _pd2RoadWarmed = new Set();
+/* read once per MOVE of the contract (its stage, its round's hand-over): a send moves them, so the links are read again
+   after it — a list read before the send would say nothing went */
 function pd2RoadWarm(c){
-  const id = String(c.id); if (_pd2RoadWarmed.has(id) || typeof ensureSharesCached !== 'function') return;
-  _pd2RoadWarmed.add(id);
-  Promise.resolve(ensureSharesCached(c)).then(() => {
+  const id = String(c.id), n = c.negotiation || {};
+  const mark = id + '|' + String(c.status || '') + '|' + String(n.turnAt || '') + '|' + String(n.round || '');
+  if (_pd2RoadWarmed.has(mark) || typeof ensureSharesCached !== 'function') return;
+  const again = _pd2RoadWarmed.has(id);
+  _pd2RoadWarmed.add(mark); _pd2RoadWarmed.add(id);
+  const read = (again && typeof sharesRefresh === 'function') ? sharesRefresh(c) : ensureSharesCached(c);
+  Promise.resolve(read).then(() => {
     if (typeof sharesKnown === 'function' && sharesKnown(c) && typeof pdContract === 'function' && pdContract() && String(pdContract().id) === id)
       try { pdGlanceRepaint(); } catch (_){}
   }).catch(() => {});
@@ -7420,6 +7431,47 @@ function pd2RoadHtml(c, D, R){
   }
   return `<div class="pd2-rd" data-pd2-road-for="${E(c.id)}">${rows.join('')}</div>`;
 }
+/* ---- WAITING ON THEM (owner picked "The Legora Way", 12 Nov 2026, over the card drawn after a send) ----
+   Once the move is theirs, the card says who it waits on, when it went and whether they opened it (the share records'
+   own sentAt / firstOpenedAt, counterpartySeenState), with Remind as a green link (the one send-again door,
+   shareSendAgainRun); under a hairline, "Meanwhile, yours" carries the one thing still ours — an approval I may
+   give — with the panel's black button. Nothing yours, no row. Every word is a reading HaTi already makes; nothing is
+   stored, and nothing is sent from the card itself but through the existing door. */
+function pd2WaitOf(c, D){
+  if (!c || !D) return null;
+  if (c.status === 'Signed' || c.status === 'Declined') return null;
+  try { if (typeof negoExecuted === 'function' && negoExecuted(c)) return null; } catch (_){ return null; }
+  if (D.owed.some(r => r.kind === 'share' || r.kind === 'ask' || r.kind === 'fill' || r.kind === 'signer')) return null;
+  let move = null; try { move = (typeof negWhoseMove === 'function') ? negWhoseMove(c) : null; } catch (_){ move = null; }
+  if (!move || move.k === 'you') return null;
+  /* the sent links are read once, then the card is drawn again (pd2RoadWarm, the road's own) */
+  if (typeof sharesKnown === 'function') pd2RoadWarm(c);
+  let seen = null; try { seen = (typeof counterpartySeenState === 'function' && typeof cachedShares === 'function') ? counterpartySeenState(c, cachedShares(c)) : null; } catch (_){ seen = null; }
+  if (move.k !== 'them' && !(seen && seen.kind !== 'responded')) return null;
+  if (!seen && move.k !== 'them') return null;
+  let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+  let mine = false; try { mine = !!(ap && ap.required && !ap.ok && typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ mine = false; }
+  const share = seen && seen.share;
+  return { party: String(c.counterparty || '').trim(), seen, kind: share && typeof shareKindOf === 'function' ? shareKindOf(share) : '',
+    approve: mine ? String((ap.next && ap.next.name) || '') : null, may: (typeof canEdit !== 'function') || !!canEdit() };
+}
+function pd2WaitCardHtml(c, D, W){
+  const E = _pdE, stName = k => _pdT('dos_st_' + k);
+  const dots = D.stages.map(x => `<i class="is-${x.k === 'nego' ? 'focus' : x.state}" title="${E(x.n ? _pdT('pd2_st_owed', { name: stName(x.k), n: x.n }) : stName(x.k))}"></i>`).join('');
+  const words = D.stages.map(x => x.n ? _pdT('pd2_st_owed', { name: stName(x.k), n: x.n }) : stName(x.k)).join(' · ');
+  const party = W.party || _pdT('pd2_rd_party');
+  const S = W.seen;
+  /* a day as the drawing says it: "today", else the day (dossierDay gives today's time) */
+  const day = iso => { const t = new Date(iso); return isNaN(t) ? '' : t.toDateString() === new Date().toDateString() ? _pdT('co_opened_today') : (dossierDay(iso) || ''); };
+  const when = S && S.at ? day(S.at) : '';
+  const sent = S ? _pdT(W.kind === 'sign' ? 'pd2_wt_sent_sign' : 'pd2_wt_sent_markup', { who: S.who, when: when || _pdT('co_opened_today') }) : '';
+  const opened = S ? (S.kind === 'opened' ? _pdT('pd2_wt_opened', { when: day(S.at) || _pdT('co_opened_today') }) : S.kind === 'unopened' ? _pdT('pd2_wt_unopened') : '') : '';
+  const remind = (W.may && S && S.kind !== 'responded') ? ` · <button type="button" class="ui-link" data-pd2-wt-remind>${E(_pdT('pd2_wt_remind'))}</button>` : '';
+  const line = [sent, opened].filter(Boolean).map(E).join(' · ') + remind;
+  const yours = W.approve != null ? `<div class="pd2-rd" data-pd2-wt-yours><div class="pd2-rd-row" data-pd2-rd="yours"><p class="pd2-rd-name"><b>${E(_pdT('pd2_wt_yours'))}</b><span class="pd2-rd-chip">${E(_pdT('pd2_wt_approval'))}</span></p>${W.approve ? `<p class="pd2-rd-q">${E(_pdT('pd2_rd_ap_rule', { rule: W.approve }))}</p>` : ''}<button type="button" class="ui-btn ui-btn-primary pd2-rd-go" data-pd2-wt-approve>${E(_pdT('pd2_n_approve'))}</button></div></div>` : '';
+  return `<div class="pd2-card is-wait" data-pd2-card><div class="pd2-card-top"><span>${E(_pdT('pd2_wt_at'))}</span><span class="pd2-spine" data-pd2-spine role="img" aria-label="${E(words)}">${dots}</span></div>
+    <p class="pd2-next" data-pd2-next>${E(_pdT('pd2_wt_head', { party }))}</p>${line ? `<p class="pd2-card-say pd2-wt-line">${line}</p>` : ''}${yours}</div>`;
+}
 /* a road's press: the door that is already there (the Redlines face; the one Send screen, what they can do chosen) */
 function pd2RoadGo(c, k){
   if (!c) return false;
@@ -7445,6 +7497,8 @@ function pd2CardHtml(c, D){
   const E = _pdE, focus = dossierFocusOf(D), N = dossierNextOf(c, D, focus), b = N.btns[0];
   const RD = pd2RoadOf(c, D);
   if (RD) return pd2RoadCardHtml(c, D, RD);
+  const WT = pd2WaitOf(c, D);
+  if (WT) return pd2WaitCardHtml(c, D, WT);
   const stName = k => _pdT('dos_st_' + k);
   const st = D.stages.find(x => x.k === focus) || { k: focus, n: 0 };
   const at = st.n ? _pdT('pd2_card_at_owed', { name: stName(st.k), n: st.n }) : stName(st.k);
@@ -8916,7 +8970,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkClose, pd2WalkOn, pd2
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
-Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
+Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,

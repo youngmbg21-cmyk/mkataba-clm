@@ -1137,6 +1137,8 @@ function negoIssuances(c){
      record as broken. A discard now keeps what it discarded here, out of
      sight and never sent, so the chain stays whole. */
   for (const d of (c.negotiation.discarded || [])) out.push({ ...d, revision: true });
+  /* and what a clean first send folded into the wording (negoFoldOwnFirstSend): never sent, kept so the chain stays whole */
+  for (const d of (c.negotiation.folded || [])) out.push({ ...d, revision: true });
   return out.sort((a, b) => (a.seq || 0) - (b.seq || 0));
 }
 /* ---------- verification ----------
@@ -5292,6 +5294,59 @@ function negoRoundWasSent(c){
   if (!n || !n.turnAt) return false;
   return String(n.turnAt) > String(negoRoundSince(c) || '');
 }
+/* ---- OUR OWN PAPER GOES OUT CLEAN THE FIRST TIME (owner, 12 Nov 2026: "follow those rules"; "Said Once") ----
+   THE RULES: our paper, never seen by the other side, goes out as a clean copy; their paper, and anything already
+   sent, always shows tracked changes. So on the FIRST send of OUR paper, our own fixes still on the table (pending,
+   ours, none under review) become the wording they first see: the baseline moves to them (negoBuildBody, the one
+   builder; negoCommitBody, the one commit), and the fixes leave the table for `c.negotiation.folded` — out of
+   sight and never sent (the copy's allow-list carries no such field), kept so the chain stays whole
+   (negoIssuances) and the history says what was folded, by whom, when.
+   It refuses — and the send then goes out as it always did, tracked — wherever any doubt stands: their paper (an
+   upload), any link on record or not yet read, a round handed over or closed, a change of theirs, anything not
+   pending, a change held back or under review, a frozen record. Returns how many fixes were folded. */
+function negoFoldOwnFirstSend(c, opts = {}){
+  if (!c || !Array.isArray(c.changes) || !c.changes.length) return 0;
+  if (c.upload || c.source === 'upload') return 0;
+  if (negoWordingFrozen(c)) return 0;
+  negoInit(c);
+  const n = c.negotiation;
+  if (n.turnAt || (n.rounds && n.rounds.length) || (Number(n.round) || 1) > 1) return 0;
+  /* never sent: read off the links themselves, and only once they are known */
+  if (typeof window.sharesKnown !== 'function' || !window.sharesKnown(c)) return 0;
+  if (((typeof window.cachedShares === 'function') ? window.cachedShares(c) : []).length) return 0;
+  const list = c.changes.filter(Boolean);
+  if (list.some(x => x.authorSide !== 'owner' || x.status !== 'pending' || x.withdrawn || x.review)) return 0;
+  let held = []; try { held = (typeof window.shareHeldBackIds === 'function') ? (window.shareHeldBackIds(c) || []) : []; } catch (_){ held = []; }
+  if (held.length) return 0;
+  const ids = new Set(list.map(x => x.id));
+  const body = negoBuildBody(c, x => ids.has(x.id));
+  n.folded = (Array.isArray(n.folded) ? n.folded : []).concat(list.map(x => ({ ...x, thread: (x.thread || []).slice(), revisions: (x.revisions || []).slice() })));
+  n.baselineBody = body;
+  n.baselineText = window.richToText ? richToText(body) : '';
+  negoCommitBody(c, body);
+  c.changes = [];
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+  const where = [...new Set(list.map(x => String(x.clauseLabel || x.clause || '').trim()).filter(Boolean))].slice(0, 6).join(', ');
+  if (window.logAudit) logAudit(c, 'Edited',
+    `Clean copy for the first send: ${list.length} change${list.length === 1 ? '' : 's'} of ours folded into the wording before it was sent by ${who}` +
+    (where ? ` (${where})` : '') + ' — the other side had not seen this paper. Each is kept in the record, never sent.',
+    who, { kind: 'fold', ids: list.map(x => x.id) });
+  return list.length;
+}
+/* how many of our fixes a first send would fold (the Send screen's one line; reads only) */
+function negoFoldWouldTake(c){
+  if (!c || !Array.isArray(c.changes) || !c.changes.length) return 0;
+  if (c.upload || c.source === 'upload') return 0;
+  try { if (negoWordingFrozen(c)) return 0; } catch (_){ return 0; }
+  const n = c.negotiation || {};
+  if (n.turnAt || (n.rounds && n.rounds.length) || (Number(n.round) || 1) > 1) return 0;
+  if (typeof window.sharesKnown !== 'function' || !window.sharesKnown(c)) return 0;
+  if (((typeof window.cachedShares === 'function') ? window.cachedShares(c) : []).length) return 0;
+  const list = c.changes.filter(Boolean);
+  if (list.some(x => x.authorSide !== 'owner' || x.status !== 'pending' || x.withdrawn || x.review)) return 0;
+  let held = []; try { held = (typeof window.shareHeldBackIds === 'function') ? (window.shareHeldBackIds(c) || []) : []; } catch (_){ held = []; }
+  return held.length ? 0 : list.length;
+}
 function negoAdvanceRound(c, opts = {}){
   negoInit(c);
   const p = negoProgress(c);
@@ -5685,7 +5740,7 @@ if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window,'ne
   Object.defineProperty(window, 'negoLastRefusal', { get: () => negoLastRefusal, configurable: true });
 if (typeof window !== 'undefined') Object.assign(window, {
   negoPartyDecisions, negoPartyVerdicts, negoPartyLine, negoPartyCount,
-  cardName, negoTheirCopy,
+  cardName, negoTheirCopy, negoFoldOwnFirstSend, negoFoldWouldTake,
   negoClauseLabel, negoClauseName, negoClauses, negoClauseList, negoClauseById, negoClauseNowById,
   negoMeasuredFrom, negoMeasuredAlike, negoBodyOf,
   negoWordsMoved, negoHeadingAsk, negoStandingHeading, negoFrontClause, negoIsFrontId,
