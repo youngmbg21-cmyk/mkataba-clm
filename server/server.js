@@ -2451,7 +2451,7 @@ async function hoMailFile(req, c, ho, to, note) {
     `\n${tFor(L, 'mail_ho_replies', { who: vars.who })}`,
   ].filter(Boolean).join('\n');
   return sendEmail(to.email, tFor(L, 'mail_ho_subject', vars), body,
-    `handover: ${contractRef(c)}`, { attachments: [{ filename: (ho.file && ho.file.name) || `${contractRef(c)}-agreed.docx`, content: b64 }],
+    `handover: ${contractRef(c)}`, { replyTo: mailReplyFor(req, null, c), attachments: [{ filename: (ho.file && ho.file.name) || `${contractRef(c)}-agreed.docx`, content: b64 }],
       ...(outsideLookOn() ? { html: smTextLetterHtml(body, { sign: { name: vars.who, org: vars.org } }) } : {}) });
 }
 /* The same mail to our own people, with the one line their part asks of them. */
@@ -3632,6 +3632,25 @@ function mailSafeHtml(html){
    reader still gets what it always got. THE OUTBOX KEEPS THE TEXT, because
    that is what an admin reads there and what every existing reader of that
    table expects. */
+/* A REPLY REACHES A PERSON (owner, 12 Nov 2026: "Fix both"). Every email to the other side goes out from HaTi's own
+   address, and it set no reply address, so pressing Reply reached neither the sender nor HaTi — while the Word-file
+   letter and the handover mails promised "Replies to this email reach {sender} directly". Those emails now carry the
+   person behind them as the reply address: the one who pressed (req.user), else the member who made the link
+   (shares.created_by), else the contract's owner. Read from our own records, never from a request body (the server
+   is the wall). An address that does not look like one is dropped, never guessed. */
+function mailReplyAddr(email) {
+  const e = String(email || '').trim();
+  return /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(e) ? e : null;
+}
+function mailReplyToUser(id) {
+  if (!id) return null;
+  try { const u = db.prepare('SELECT email FROM users WHERE id=?').get(String(id)); return mailReplyAddr(u && u.email); } catch (_) { return null; }
+}
+function mailReplyFor(req, share, c) {
+  return mailReplyAddr(req && req.user && req.user.email)
+    || mailReplyToUser(share && share.created_by)
+    || mailReplyToUser(c && c.owner && c.owner.id) || null;
+}
 async function sendEmail(to, subject, body, devHint, opts = {}) {
   /* a confidential deal reaches a colleague outside its list by its code name (piece 11) */
   { const m = cnMailMask(to, { subject, body, html: opts.html || null }); subject = m.subject; body = m.body; if (opts.html) opts = { ...opts, html: m.html }; }
@@ -3651,6 +3670,7 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
         headers: { Authorization: 'Bearer ' + mailKey(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to: [to], subject, text: body,
           ...(opts.html ? { html: String(opts.html) } : {}),
+          ...(mailReplyAddr(opts.replyTo) ? { reply_to: [mailReplyAddr(opts.replyTo)] } : {}),
           ...(attachments.length ? { attachments } : {}) }),
       });
       if (r.ok) { sent = 1; provider = 'resend'; }
@@ -16829,7 +16849,7 @@ async function srvDistributeTo(c, recipients, appUrl) {
     const drawnHtml = (external && outsideLookOn()) ? smTextLetterHtml(body, { drop: ['This is an automated notice from HaTi CLM.'], sign: { org: ourOrg } }) : null;
     const sent = await sendEmail(email, subject, body,
       st.fully ? `executed copy: ${c.id}` : `part-signed notice: ${c.id}`,
-      (attachment || drawnHtml) ? { ...(attachment ? { attachments: [attachment] } : {}), ...(drawnHtml ? { html: drawnHtml } : {}) } : undefined);
+      { ...(external ? { replyTo: mailReplyFor(null, null, c) } : {}), ...(attachment ? { attachments: [attachment] } : {}), ...(drawnHtml ? { html: drawnHtml } : {}) });
     /* Say what actually happened to each message. 'sent' used to stand for
        every non-delivered outcome, so a provider refusal and a not-configured
        outbox both wore a green light. Delivered / outbox / failed now, with
@@ -17428,7 +17448,7 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
     const vars = { name: c.name || ref, who: me.name, day: hoDay(ho.at), them: to.name || '' };
     const r = await sendEmail(to.email, tFor(L, 'mail_ho_chase_subject', vars),
       `${tFor(L, 'mail_hello')}${to.name ? ' ' + to.name : ''},\n\n${tFor(L, 'mail_ho_chase_line', vars)}\n\n${tFor(L, 'mail_ho_replies', { who: me.name })}`,
-      `handover chase: ${ref}`);
+      `handover chase: ${ref}`, { replyTo: mailReplyFor(req, null, c) });
     const report = mailReport(r);
     ho.chases = (Array.isArray(ho.chases) ? ho.chases : []).concat([{ at, by: me, to, ...report }]).slice(-HO_KEEP);
     say('Chased', `Asked ${to.email} for the signed copy${report.emailSent ? '' : ' (not delivered: see the outbox)'}`);
@@ -17501,7 +17521,7 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
       const vars = { name: c.name || ref, who: me.name, day: hoDay(ho.at) };
       report = mailReport(await sendEmail(to.email, tFor(L, both ? 'mail_ho_raise_subject' : 'mail_ho_back_subject', vars),
         `${tFor(L, 'mail_hello')}${to.name ? ' ' + to.name : ''},\n\n${tFor(L, both ? 'mail_ho_raise_line' : 'mail_ho_back_line', vars)}\n\n${lines.join('\n\n')}\n\n${tFor(L, 'mail_ho_replies', { who: me.name })}`,
-        `handover ${both ? 'raise' : 'send back'}: ${ref}`));
+        `handover ${both ? 'raise' : 'send back'}: ${ref}`, { replyTo: mailReplyFor(req, null, c) }));
     }
     ho.sendbacks = (Array.isArray(ho.sendbacks) ? ho.sendbacks : []).concat([{ at, by: me, both, n: lines.length, to: to || null, ...report }]).slice(-HO_KEEP);
     say(both ? 'Raised' : 'Sent back', `${me.name} ${both ? 'held the signed copy and raised' : 'sent back'} ${lines.length} difference${lines.length === 1 ? '' : 's'} from the agreed wording`
@@ -17585,7 +17605,7 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
 async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
   /* the Legora way where the outside look is on: the same words in the letter's shape (it is already signed) */
   const m = srvChaseMail(req, c, o, to, { firm });
-  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`, outsideLookOn() ? { html: smTextLetterHtml(m.body) } : {});
+  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`, { replyTo: mailReplyFor(req, null, c), ...(outsideLookOn() ? { html: smTextLetterHtml(m.body) } : {}) });
   return r;
 }
 function srvChaseMail(req, c, o, to, { firm = false } = {}) {
@@ -19934,7 +19954,7 @@ async function releaseOneSignerLink(req, contractId, rt, next) {
          out in English, including from a Swedish workspace. The internal
          signer's own notification has passed this all along. */
       senderLang: req && req.user && req.user.lang });
-    const r = await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`, mail.html ? { html: mail.html } : {});
+    const r = await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`, { replyTo: mailReplyFor(req, ns, srvStoredContract(contractId)), ...(mail.html ? { html: mail.html } : {}) });
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), ns.token);
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
       .run(String(r.detail || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), ns.token);
@@ -20100,6 +20120,15 @@ function srvLinkStrip(rvStored, payload, opts) {
   if (!withheld.size) return 0;
   const before = payload.contract.changes.length;
   payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
+  /* A PARKED ASK DOES NOT TELL OF A HELD COUNTER (owner, 12 Nov 2026; the browser's twin is in buildSharePayload): an
+     ask of theirs parked under a counter that stayed behind travels as it stood before — its status from that
+     counter's bundle (`was`, else pending), no counteredBy — so the copy never says a counter exists they cannot see. */
+  for (const x of payload.contract.changes) {
+    if (!x || x.status !== 'countered' || !x.counteredBy || !withheld.has(String(x.counteredBy))) continue;
+    const k = (rvStored.changes || []).find(y => y && String(y.id) === String(x.counteredBy));
+    const b = k && Array.isArray(k.bundle) ? k.bundle.find(e => e && String(e.id) === String(x.id)) : null;
+    x.status = (b && b.was && b.was !== 'countered') ? b.was : 'pending'; x.counteredBy = null;
+  }
   /* WHAT THEY ALREADY HOLD STAYS WITH THEM (the bug log, 22 Oct 2026: "a sent
      change revised later and put under review is withheld whole, so the other
      side loses sight of the version they hold"). A withheld id is a REVISION
@@ -20366,7 +20395,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         const mail = signerTurnEmail({ signer: signerRow, plan: rt.plan, payload,
           link: exLink, expiresAt: existing.expires_at,
           senderLang: req && req.user && req.user.lang });   /* see the note above */
-        const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`, mail.html ? { html: mail.html } : {});
+        const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`, { replyTo: mailReplyFor(req, existing), ...(mail.html ? { html: mail.html } : {}) });
         exSent = !!r2.sent; exErr = r2.detail || null;
         // sent_at means the provider ACCEPTED it; a failed attempt records why.
         if (exSent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), existing.token);
@@ -20423,7 +20452,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   if (ch === 'email' && signerId && !heldForTurn) {
     const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires,
       senderLang: req && req.user && req.user.lang });   /* see the note above */
-    const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`, mail.html ? { html: mail.html } : {});
+    const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`, { replyTo: mailReplyFor(req), ...(mail.html ? { html: mail.html } : {}) });
     emailSent = !!r.sent; emailError = r.detail || null;
     // sent_at means the provider ACCEPTED it; a failed attempt records why,
     // so the Signature-progress row can say "send failed — resend" instead of
@@ -20473,7 +20502,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       const r = await sendEmail(email,
         mail.subject,
         mail.body, `share as word: ${fname}`,
-        { attachments: [{ filename: fname, content: b64 }] });
+        { replyTo: mailReplyFor(req), attachments: [{ filename: fname, content: b64 }] });
       emailSent = !!r.sent; emailError = r.detail || null;
       if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
       else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
@@ -20498,7 +20527,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       ...srvMailCodeOf(shareId) });
     const r = await sendEmail(email,
       mail.subject,
-      mail.body, `share link: ${link}`, { html: mail.html });
+      mail.body, `share link: ${link}`, { replyTo: mailReplyFor(req), html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;
     /* ---- THE RECORD SAYS WHAT ACTUALLY HAPPENED ----
        This stamped sent_at whatever the provider did, and never wrote
@@ -22042,7 +22071,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
       message: note, subject: letter.subject, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
       ...srvMailCodeOf(s.contract_id) });
-    const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { html: mail.html });
+    const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { replyTo: mailReplyFor(req, s), html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;
     if (!emailSent && !emailError) emailError = mailReport(r).emailError;
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
@@ -22066,7 +22095,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     ]).filter(Boolean).join('\n');
     const r = await sendEmail(s.recipient_email,
       turnMail ? `Your turn: "${cName}"` : `Updated: "${cName}" is ready for your review`,
-      body, `${turnMail ? 'your turn' : 'share refresh'}: ${link}`);
+      body, `${turnMail ? 'your turn' : 'share refresh'}: ${link}`, { replyTo: mailReplyFor(req, s) });
     emailSent = !!r.sent; emailError = r.detail || null;
     if (!emailSent && !emailError) emailError = mailReport(r).emailError;
     /* See the note on the mint route above: only a real send is recorded as one. */
@@ -22187,10 +22216,10 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     const L = outsideLookOn() ? srvReminderMail(s, p, req.user.name, req.user.title || '', !s.first_opened_at) : null;
-    const r = L ? await sendEmail(s.recipient_email, L.subject, L.body, `share resend: ${link}`, { html: L.html })
+    const r = L ? await sendEmail(s.recipient_email, L.subject, L.body, `share resend: ${link}`, { replyTo: mailReplyFor(req, s), html: L.html })
       : await sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
       `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${chaseDayWords(s.expires_at, 'en')}.` : ''}`,
-      `share resend: ${link}`);
+      `share resend: ${link}`, { replyTo: mailReplyFor(req, s) });
     emailSent = !!r.sent; emailError = r.detail || null;
     /* See the note on the mint route above: only a real send is recorded as one. */
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
@@ -22281,7 +22310,7 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
   const cm = codeMailOf({ code, open: (req.body || {}).for === 'open' && shareNeedsCode(s), minutes: 10,
     cName: srvMailCodeOf(s.contract_id).code ? shareMailNameOf(srvMailCodeOf(s.contract_id)) : ((otpP.contract && otpP.contract.name) || ''),
     sender: otpP.sharedBy || '', drawn: outsideLookOn() });
-  const mailed = await sendEmail(invited, cm.subject, cm.body, `OTP for signing: ${code}`, cm.html ? { html: cm.html } : {});
+  const mailed = await sendEmail(invited, cm.subject, cm.body, `OTP for signing: ${code}`, { replyTo: mailReplyFor(null, s), ...(cm.html ? { html: cm.html } : {}) });
   // The code is NEVER returned to the caller. This endpoint is public and the
   // caller is the party being verified — handing them the code makes the check
   // theatre. With no mail provider the code queues to the admin-only outbox
@@ -23251,10 +23280,10 @@ function runShareNudges() {
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     const L = outsideLookOn() ? srvReminderMail(s, p, p.sharedBy || '', '', true) : null;
-    if (L) sendEmail(s.recipient_email, L.subject, L.body, 'share nudge', { html: L.html });
+    if (L) sendEmail(s.recipient_email, L.subject, L.body, 'share nudge', { replyTo: mailReplyFor(null, s), html: L.html });
     else sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
       `${p.sharedBy || 'The sender'} at ${p.org || 'HaTi'} shared "${cName}" with you ${SHARE_NUDGE_DAYS} days ago and it hasn't been opened yet.\n\nReview it here — no account needed:\n${shareUrl(null, s.token)}\n\n${s.expires_at ? `This link expires on ${chaseDayWords(s.expires_at, 'en')}.` : ''}`,
-      'share nudge');
+      'share nudge', { replyTo: mailReplyFor(null, s) });
     db.prepare('UPDATE shares SET reminded_at=? WHERE token=?').run(now(), s.token);
     queued++;
   }
