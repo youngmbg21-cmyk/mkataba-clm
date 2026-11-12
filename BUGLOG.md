@@ -22286,6 +22286,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed (12 Nov 2026): a parked ask of theirs travels on their copy with status "countered" and `counteredBy` naming our counter even when that counter is held back for internal review (`buildSharePayload` keeps the parked ask's status; only the held counter is filtered by `shareHeldBackIds`). Their page reads it as waiting (their History now says "waiting" there, 12 Nov), but the copy's data still says a counter exists — a review the counterparty should never learn of (`reviewSeatShowsReview`).
 - FIXED (12 Nov 2026, f1017 (5)): names typed on the paper's signature lines now show in the signing route window opened from Change (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`).
 - Noticed, not fixed: board-says-it-plain-verify A0 went red once on GitHub (PR 667, "bubble chart of value against time left" read the card before it) and green on the re-run with no change: a timing slip in the check.
+- 12 Nov 2026 (Noticed, not fixed): the Fill in form says "nothing is saved until Save", but a date picked in it is stored at once (the form's date change saves the row); measured on MK-E1: Effective written to the record with no Save pressed.
 
 ### Fixed 12 Nov 2026 (f1018)
 - Emails to the other side had no reply address; a reply reached nobody. Fixed: the sender is the reply address.
