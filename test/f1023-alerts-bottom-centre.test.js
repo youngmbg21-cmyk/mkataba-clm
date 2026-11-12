@@ -1,4 +1,4 @@
-/* f1021 — ALERTS SIT AT THE BOTTOM CENTRE OF THE PAGE, CLEAR OF JAMBO (owner picked "The SAP Way", 12 Nov 2026).
+/* f1023 — ALERTS SIT AT THE BOTTOM CENTRE OF THE PAGE, CLEAR OF JAMBO (owner picked "The SAP Way", 12 Nov 2026).
    On a computer the alert stack stands bottom centre, above the page's foot, never in the bottom-right corner
    where Jambo's box is; toastPlace centres it on the page area left of any panel at the right edge, measured;
    the phone keeps its own place; every toast still goes by itself (the dwell table has no zero). */

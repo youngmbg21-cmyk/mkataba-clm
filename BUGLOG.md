@@ -22287,4 +22287,14 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - FIXED (12 Nov 2026, f1017 (5)): names typed on the paper's signature lines now show in the signing route window opened from Change (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`).
 - Noticed, not fixed: board-says-it-plain-verify A0 went red once on GitHub (PR 667, "bubble chart of value against time left" read the card before it) and green on the re-run with no change: a timing slip in the check.
 - 12 Nov 2026 (Noticed, not fixed): the Fill in form says "nothing is saved until Save", but a date picked in it is stored at once (the form's date change saves the row); measured on MK-E1: Effective written to the record with no Save pressed.
+
+### Fixed 12 Nov 2026 (f1018)
+- Emails to the other side had no reply address; a reply reached nobody. Fixed: the sender is the reply address.
+- A parked ask carried "countered" and the held counter's id onto their copy while that counter was held for review. Fixed on both copies.
 - 12 Nov 2026 — the cut-short draft check is now f1019 (main took f1018 for "the read plays on arrival" the same day; it was f1017, then f1018).
+- (12 Nov 2026) The two fixes above are numbered f1020, not f1018: main took f1018 and f1019 the same day.
+## 12 Nov 2026 — the Discover chapters' Handbook pictures, in the new look (owner: "Discover chapters")
+- Fixed (found while taking the pictures): a question asked on the Discover page by somebody who came straight there (not through Contracts) had the Contracts list drawn over the page after the first answers; the list's repaint now waits while Discover is in front (`_acRegRepaint`, f1016 7).
+- Noticed, not fixed: the read table opened on the Discover page still draws the old Reads head (its own box, All · Mine · Facts, and "+ Ask a column", which goes to the Contracts list's form), not Discover's.
+- Noticed, not fixed: on Discover a counting question is only pointed to Jambo's box; the old form's offer to turn it into one question asked of each contract (ac_ct_turn) has no door there.
+- Noticed, not fixed: on Discover the Due diligence pack asks all five questions; the old form let a person untick some (askColPackPicked); there is no tick on Discover.

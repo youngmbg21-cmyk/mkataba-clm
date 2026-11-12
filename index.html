@@ -17484,6 +17484,8 @@
   .jb-thinking .jb-dot{width:9px;height:9px;border-radius:50%;background:var(--color-text);animation:jb-busy 1.2s infinite ease-in-out}
   .jb-thinking .jb-dot:nth-child(2){animation-delay:.2s} .jb-thinking .jb-dot:nth-child(3){animation-delay:.4s}
   @keyframes jb-busy{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
+  /* Jambo's row mark ripples (html.lg-new .ls-mk.is-jambo::after; keyframes live outside the new-look blocks) */
+  @keyframes lsMkRipple{0%{transform:scale(.85);opacity:.55}70%,100%{transform:scale(1.35);opacity:0}}
   @media (prefers-reduced-motion:reduce){.jb-thinking .jb-dot{animation-duration:2.4s}}
   /* a head's tab put away while the other face shows is gone, whatever display its class gives it */
   :is(.jl-head, .igd-head, .st-side-head, .cal-plan-head) :is(.pd-tab, .st-side-tab)[hidden]{display:none}
@@ -20084,10 +20086,14 @@
   html.lg-new :is(#ig-dock,#ins-panel) :is(.jov-k,.jov-head,.ac-meta,.ac-disc-m){color:var(--color-neutral-400)}
   html.lg-new :is(#ig-dock,#ins-panel) .jov-head b{color:var(--color-text)}
   /* THE SAP WAY MARK (listSapMarkHtml, owner 9 Nov 2026: at the head of every row): a 20px filled circle in the house's
-     status colour, a white drawn glyph; Jambo's star filled */
-  html.lg-new .ls-mk{width:20px;height:20px;border-radius:50%;flex:none;display:inline-grid;place-items:center;color:var(--color-surface);background:var(--st-gray-dot);vertical-align:middle}
+     status colour, a white drawn glyph; Jambo's own sparkle filled, on black shading into grey, one grey ring rippling
+     out every 3.2s on the mark's own beat (owner picked "The SAP Way", 12 Nov 2026); still where less motion is asked */
+  html.lg-new .ls-mk{width:20px;height:20px;border-radius:50%;flex:none;display:inline-grid;place-items:center;color:var(--color-surface);background:var(--st-gray-dot);vertical-align:middle;position:relative}
   html.lg-new .ls-mk .ls-mk-g{width:14px;height:14px}
-  html.lg-new .ls-mk[data-ls-mk="jambo"] .ls-mk-g{fill:currentColor;width:13px;height:13px}
+  html.lg-new .ls-mk[data-ls-mk="jambo"] .ls-mk-g{fill:currentColor;stroke:none;width:12px;height:12px}
+  html.lg-new .ls-mk.is-jambo{background:linear-gradient(135deg,var(--color-text) 0%,var(--color-quiet) 55%,var(--st-gray-dot) 100%)}
+  html.lg-new .ls-mk.is-jambo::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:1.5px solid var(--color-neutral-400);opacity:0;pointer-events:none;animation:lsMkRipple 3.2s ease-out infinite;animation-delay:var(--mk-d,0s)}
+  @media (prefers-reduced-motion: reduce){ html.lg-new .ls-mk.is-jambo::after{animation:none} }
   html.lg-new .ls-mk.is-green{background:var(--st-green-dot)}
   html.lg-new .ls-mk.is-amber{background:var(--st-amber-dot)}
   html.lg-new .ls-mk.is-steel{background:var(--st-steel-dot)}

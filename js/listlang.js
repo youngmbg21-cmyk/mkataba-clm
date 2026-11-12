@@ -33,13 +33,17 @@ function listMarkHtml(tone, kind, title){
 /* THE SAP WAY MARK (owner, 9 Nov 2026: "at the head of every row"; the new look only): a 20px filled circle in the
    house's status colour with a white DRAWN glyph (js/components.js ICONS, never a typed character). ONE map of what a
    row's state means, so every list says it alike: done a green tick · your move an amber ! · theirs a steel i · a real
-   risk a ruby cross (never merely late) · nothing yet a grey dash · Jambo's piece a violet star. */
+   risk a ruby cross (never merely late) · nothing yet a grey dash · Jambo's piece HIS OWN SPARKLE on a circle shading
+   black into grey, a thin grey ring rippling out of it (owner picked "The SAP Way", 12 Nov 2026, in black and grey).
+   Each of his marks takes its own beat (--mk-d) so a list of them never pulses in step. */
 const LIST_SAP_MARK = { done: ['green', 'mkTick'], you: ['amber', 'mkBang'], them: ['steel', 'mkInfo'],
-  risk: ['ruby', 'mkCross'], none: ['gray', 'mkDash'], jambo: ['violet', 'mkStar'] };
+  risk: ['ruby', 'mkCross'], none: ['gray', 'mkDash'], jambo: ['jambo', 'mkSpark'] };
+let _lsMkBeat = 0;
 function listSapMarkHtml(key, title){
   const k = LIST_SAP_MARK[key] ? key : 'none', m = LIST_SAP_MARK[k];
   const g = (typeof icon === 'function') ? icon(m[1], 'ls-mk-g', 2.4) : '';
-  return `<span class="ls-mk is-${m[0]}" data-ls-mk="${k}"${title ? ` title="${_lsE(title)}"` : ''} aria-hidden="true">${g}</span>`;
+  const beat = k === 'jambo' ? ` style="--mk-d:-${((_lsMkBeat++ * 0.73) % 3.2).toFixed(2)}s"` : '';
+  return `<span class="ls-mk is-${m[0]}" data-ls-mk="${k}"${beat}${title ? ` title="${_lsE(title)}"` : ''} aria-hidden="true">${g}</span>`;
 }
 /* the new look wears the SAP mark, today's look its outlined one: the one switch every list asks */
 const listSapOn = () => (typeof newLookOn === 'function') && !!newLookOn();

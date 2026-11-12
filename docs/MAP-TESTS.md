@@ -11,6 +11,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
 
 ## INTERNAL REVIEW (js/review.js)
+- test/f1020-a-reply-reaches-a-person.test.js (2): a held counter leaves no trace on their copy, both hosts.
 - WHAT STAYS HOME, THE WORD FILE TOO (bug log batch 4, 27 Oct 2026): f945 (1) (new; red at the parent) — a draft kept back is in the full .docx and out of the one a send attaches; the payload and the file read one list (shareHeldBackIds). RE-POINTED: f307 (the send's Word line), f453 (2) (the region now starts at shareHeldBackIds).
 - What they already hold stays with them when a revision is kept back (22 Oct 2026): f857 (srvLinkStrip opts.holds; red at the parent 1, 2).
 - f17, f154–f159, f161, f162, f164, f174, f186, f190, f412, wall-standing.
@@ -41,6 +42,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
+- test/f1020-a-reply-reaches-a-person.test.js: every email to the other side has a reply address, never from the body.
 - A refused round send keeps no "Sent to you" copy (22 Oct 2026): f858 (red at the parent 1, 2).
 - f205, f206.
 
@@ -258,7 +260,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - RENAME A COLUMN (8 Nov 2026): f976 (the route; 404 at the parent), reads-and-columns-as-drawn 5b.
-- DISCOVER IS A PAGE (12 Nov 2026): `node --test test/f1016-discover-is-a-page.test.js` (new; 0 of 6 at the parent c9aabab: the button by look, the one read over the list as filtered, the box · button · chips · tabs, the three panel faces, the quote in its place — dscSlice run on sample wording — the names in both books, Brain, flow map, Handbook); `node test/chromium/discover-page-verify.js` (new; GitHub only: the three screens, Contracts' pill, the page, open and close, asked with Stop in the box and a paper in the panel, Stop then Read the N left, nothing spills; pictures with DISCOVER_PAGE_SHOTS=<dir>). RE-POINTED: f954 4 (the Handbook title, ai.js names the page Discover), f705 1c (askOpen goes on to Discover in the new look), f986 (the row builder is dscRowHtml); browser, re-pointed unrun (GitHub will say): reads-and-columns-as-drawn 1 and 6, round6-new-look 6, reads-new-look-fixes 1, rows-only-on-a-press (Reads left out: it has an ask box, no filter box).
+- DISCOVER IS A PAGE (12 Nov 2026): f1016 7 (the Contracts list's repaint waits while Discover is in front; red without `_acRegRepaint`). `node --test test/f1016-discover-is-a-page.test.js` (new; 0 of 6 at the parent c9aabab: the button by look, the one read over the list as filtered, the box · button · chips · tabs, the three panel faces, the quote in its place — dscSlice run on sample wording — the names in both books, Brain, flow map, Handbook); `node test/chromium/discover-page-verify.js` (new; GitHub only: the three screens, Contracts' pill, the page, open and close, asked with Stop in the box and a paper in the panel, Stop then Read the N left, nothing spills; pictures with DISCOVER_PAGE_SHOTS=<dir>). RE-POINTED: f954 4 (the Handbook title, ai.js names the page Discover), f705 1c (askOpen goes on to Discover in the new look), f986 (the row builder is dscRowHtml); browser, re-pointed unrun (GitHub will say): reads-and-columns-as-drawn 1 and 6, round6-new-look 6, reads-new-look-fixes 1, rows-only-on-a-press (Reads left out: it has an ask box, no filter box).
 - READS AND COLUMNS AS DRAWN (8 Nov 2026): reads-and-columns-as-drawn-verify (7 checks × three screens; red at the parent from 1). Re-pointed: round6-new-look 2 and 6; the cost re-points in ask-a-column, discover, jambo-asks, jambos-list-panel, reads, reading-desk (all green).
 - Next 50 → on a Reads row lands on the read, never on the conversation (29 Oct 2026): reads-next-lands-on-read-verify (1b red at the parent: 10 frames of talk).
 - THE QUESTION'S CARD, THE LEGORA WAY, NO GREY, STOP STANDS STILL, NEXT 50 SHOWS THE READ (29 Oct 2026): `node test/chromium/column-card-legora-verify.js` (new; 13 red at the parent 0ec7b90 before it threw at 3a; 7 alone red at the parent: Next 50 after a question on Reads landed on Jambo's conversation). The stand-in reads the COUNTRY where the question says "country" and the paper has "12. Governing law" (test/helpers.js). Re-pointed: f956 2 (Stop heads the card), reading-desk-verify 2a 4 5 5b 5c 6 6a, ask-a-column-verify 2d 5b (More… holds Save as a view, Remove column), reads-verify 2b 3 4, stop-and-reads-verify 2 2c, jambo-asks-verify 4, discover-verify 2g (Draw it: one bar per answer) 3b′ 4a′ 5a 11b 11d (More…, the stop in the question's card).
@@ -488,7 +490,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE POP-UPS, THE SAP WAY
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
-- Alerts bottom centre: f1021 (node); photos by hand at the three screens.
+- Alerts bottom centre: f1023 (node); photos by hand at the three screens.
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.
@@ -669,6 +671,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
 - THE SWEEP (10 Nov 2026): f990 (new; red at the parent) — the detail grey on the Pulse board, History, Send, New agreement, the Handbook, Jambo's agents, the clause editor and the template builder, each rule scoped to win.
+- Jambo's mark on Needs you (his sparkle, black into grey, a rippling ring): `node --test test/f982-ink-grey-and-the-sap-mark.test.js` (+ f965).
 - Geist again, the grey detail and the SAP way mark on Home, Contracts, Negotiations, Approvals, Obligations, Needs you, the contract's facts and the Redlines cards: `node --test test/f982-ink-grey-and-the-sap-mark.test.js` (+ f377, f952, f953, f965, f966, f977); browser `home-morning-verify`, `home-new-look-buttons-verify`, `round5-new-look-verify`, `round7-new-look-verify`, `legora-lists-verify`, `legora-look-verify`, `contracts-page-verify`, `sap-lists-verify`, `approve-on-row-verify`, `one-worklist-verify`.
 - The Board's Needs you the SAP way; the folders and their panel the Legora way: `node --test test/f983-needs-you-the-sap-way-folders-the-legora-way.test.js` (+ f977); browser `contracts-page-verify`, `legora-lists-verify`, `round7-new-look-verify`, tidy sweep `HATI_TIDY_NEW_LOOK=1 HATI_TIDY_ONLY=board,contracts`.
 - The ink and the grey on the rest of the pages (Parties, People, Reads, Requests, Import, Our paper, My notes, Calendar, the Board, Settings): `node --test test/f984-ink-and-grey-on-every-page.test.js` (+ f982, f952, f965).
@@ -712,5 +715,5 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - node --test test/f745-the-board-as-drawn.test.js (7a, 7a2)
 - browser (GitHub): charts-that-explain-verify (4b), white-sheet-verify (Board)
 - THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1018 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 4b · 5. f1018 (5) the quick run with the Clauses read.
-- THE FORM, THE LEGORA WAY (owner, 12 Nov 2026): f1020 (new; red at the parent: grouped heads, no chips, "As you type", no sentence fill); form-the-legora-way-verify (new); contract-new-look-verify 10a · 10 re-pointed.
+- THE FORM, THE LEGORA WAY (owner, 12 Nov 2026): f1022 (new; red at the parent: grouped heads, no chips, "As you type", no sentence fill); form-the-legora-way-verify (new); contract-new-look-verify 10a · 10 re-pointed.
 
