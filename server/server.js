@@ -3850,7 +3850,12 @@ function cnMask(body, out) {
   const names = [];
   for (const e of out.values()) for (const n of e.real) if (n && n.length >= 3) names.push([n, e.code]);
   names.sort((a, b) => b[0].length - a[0].length);
-  const str = s => { let t = s; for (const [n, c] of names) if (t.includes(n)) t = t.split(n).join(c); return t; };
+  /* A WHOLE NAME ONLY (BUGLOG 21762; owner's yes, 12 Nov 2026): a plain swap changed the name inside longer words too —
+     "Ace" in "Grace", "place" — corrupting the wording an outsider reads and could save back. As the email's own mask
+     (cnMailMask): the name where no letter or digit touches it on either side, so "Acme Ltd." and "Acme's" are still hidden */
+  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const res = names.map(([n, c]) => [new RegExp('(?<![\\p{L}\\p{N}])' + esc(n) + '(?![\\p{L}\\p{N}])', 'gu'), c, n]);
+  const str = s => { let t = s; for (const [re, c, n] of res) if (t.includes(n)) t = t.replace(re, () => c); return t; };
   const walk = (v, depth) => {
     if (depth > 40 || v == null) return v;
     if (typeof v === 'string') return str(v);

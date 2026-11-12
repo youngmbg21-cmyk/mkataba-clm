@@ -22252,3 +22252,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 ## 12 Nov 2026 — after you send (owner's picks "The Legora Way" and "Said Once"; f1015)
 - Noticed, not fixed: the phone's send (js/mobile-contract.js buildSharePayload) does not fold our own fixes on the first send of our paper, so a first send from the phone still travels them as tracked changes; the phone files no changes, so the fold was left to the computer's two send paths.
 - Noticed, not fixed: the waiting card's "Meanwhile, yours" names only an approval I may give; other work of ours while we wait (an obligation, a note) stays in the Dossier's rows below the card.
+
+## 12 Nov 2026 — whole names and separate headings (owner's yes; f1016)
+- Fixed: BUGLOG 21762 — cnMask swaps a code-named deal's real name as a WHOLE name only (the email mask's own pattern); "Ace" no longer changes inside "Grace". A name glued straight onto other letters ("NordfraktAB") is left, as in the email mask.
+- Fixed: BUGLOG 20921 — the plain text Jambo reads keeps a heading apart from its first sentence; the wording hash's path is untouched. Jambo's kept answers made over the old text are read again once, on their next press.
+- Measured, not fixed: BUGLOG 21941 (Our paper's preview blank; Jambo's agents figures' inset), 22020 (map head "Save view" wrap), 21882 (Handbook table under the panel), 21843 (Parties' Draft button) — test/chromium/_audit/buglog-layout-measure.js on GitHub says which are still real.
