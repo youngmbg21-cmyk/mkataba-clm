@@ -381,7 +381,8 @@ describe('accept, reject and undo do what they say to the document', () => {
     // toast, which prints nothing; the fingerprint is on the card and the trail)
     /* RE-POINTED 22 Oct 2026 (round 5 of the first-timer rounds, owner picked "Four doors"): an ask of
        theirs accepted on our seat says it has not gone yet, and the row's way back */
-    assert.match(m.w.toastText(), /^Accepted: 2\. Payment Terms\. It goes to .+ when you press Send all\. Changed your mind\? Press Reopen\./);
+    /* RE-POINTED 12 Nov 2026 (owner picked "As on the paper": a clause is named as its heading prints it, not in Title Case) */
+    assert.match(m.w.toastText(), /^Accepted: 2\. Payment terms\. It goes to .+ when you press Send all\. Changed your mind\? Press Reopen\./);
   });
 
   test('reject leaves the clause at the baseline, and says so in the document', async () => {
