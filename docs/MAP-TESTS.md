@@ -12,6 +12,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
 
 ## INTERNAL REVIEW (js/review.js)
+- test/f1020-a-reply-reaches-a-person.test.js (2): a held counter leaves no trace on their copy, both hosts.
 - WHAT STAYS HOME, THE WORD FILE TOO (bug log batch 4, 27 Oct 2026): f945 (1) (new; red at the parent) — a draft kept back is in the full .docx and out of the one a send attaches; the payload and the file read one list (shareHeldBackIds). RE-POINTED: f307 (the send's Word line), f453 (2) (the region now starts at shareHeldBackIds).
 - What they already hold stays with them when a revision is kept back (22 Oct 2026): f857 (srvLinkStrip opts.holds; red at the parent 1, 2).
 - f17, f154–f159, f161, f162, f164, f174, f186, f190, f412, wall-standing.
@@ -42,6 +43,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
+- test/f1020-a-reply-reaches-a-person.test.js: every email to the other side has a reply address, never from the body.
 - A refused round send keeps no "Sent to you" copy (22 Oct 2026): f858 (red at the parent 1, 2).
 - f205, f206.
 
@@ -259,6 +261,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - RENAME A COLUMN (8 Nov 2026): f976 (the route; 404 at the parent), reads-and-columns-as-drawn 5b.
+- DISCOVER IS A PAGE (12 Nov 2026): `node --test test/f1016-discover-is-a-page.test.js` (new; 0 of 6 at the parent c9aabab: the button by look, the one read over the list as filtered, the box · button · chips · tabs, the three panel faces, the quote in its place — dscSlice run on sample wording — the names in both books, Brain, flow map, Handbook); `node test/chromium/discover-page-verify.js` (new; GitHub only: the three screens, Contracts' pill, the page, open and close, asked with Stop in the box and a paper in the panel, Stop then Read the N left, nothing spills; pictures with DISCOVER_PAGE_SHOTS=<dir>). RE-POINTED: f954 4 (the Handbook title, ai.js names the page Discover), f705 1c (askOpen goes on to Discover in the new look), f986 (the row builder is dscRowHtml); browser, re-pointed unrun (GitHub will say): reads-and-columns-as-drawn 1 and 6, round6-new-look 6, reads-new-look-fixes 1, rows-only-on-a-press (Reads left out: it has an ask box, no filter box).
 - READS AND COLUMNS AS DRAWN (8 Nov 2026): reads-and-columns-as-drawn-verify (7 checks × three screens; red at the parent from 1). Re-pointed: round6-new-look 2 and 6; the cost re-points in ask-a-column, discover, jambo-asks, jambos-list-panel, reads, reading-desk (all green).
 - Next 50 → on a Reads row lands on the read, never on the conversation (29 Oct 2026): reads-next-lands-on-read-verify (1b red at the parent: 10 frames of talk).
 - THE QUESTION'S CARD, THE LEGORA WAY, NO GREY, STOP STANDS STILL, NEXT 50 SHOWS THE READ (29 Oct 2026): `node test/chromium/column-card-legora-verify.js` (new; 13 red at the parent 0ec7b90 before it threw at 3a; 7 alone red at the parent: Next 50 after a question on Reads landed on Jambo's conversation). The stand-in reads the COUNTRY where the question says "country" and the paper has "12. Governing law" (test/helpers.js). Re-pointed: f956 2 (Stop heads the card), reading-desk-verify 2a 4 5 5b 5c 6 6a, ask-a-column-verify 2d 5b (More… holds Save as a view, Remove column), reads-verify 2b 3 4, stop-and-reads-verify 2 2c, jambo-asks-verify 4, discover-verify 2g (Draw it: one bar per answer) 3b′ 4a′ 5a 11b 11d (More…, the stop in the question's card).
@@ -480,6 +483,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
+- A CUT-SHORT DRAFT IS NOT WORDING (owner's screenshot, 12 Nov 2026): f1019 (new; 7 of 8 red at the parent) — the parser marks a proposal object that never closes; the clause and template doors hand back `unfinished` and a sentence, never wording; a whole object still stands under `truncated`; both chat routes send the fact; the sentence in both books.
 - THE ANSWER TOOL OFFERS EVERY FIELD IT DESCRIBES (bug log batch 6, 27 Oct 2026): f947 (1) (new; red at the parent) — wholeBook and ruleDoor sit inside deliver_answer's properties, as the AI is sent them.
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
 - f870 (judgement on the stronger model: the reader's exam, both chat routes, admin-only dollars, one pinned model says nothing; f133/f134's compare-escalation tests re-worded as lookups), judgement-line-verify (the line painted under the answer in the Jambo window and Home's panel, one line, at the three screens; a lookup draws none).

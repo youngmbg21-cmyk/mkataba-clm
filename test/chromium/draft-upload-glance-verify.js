@@ -136,10 +136,11 @@ const pastFirstWords = async page => {
     await shoot('1-wall');
     /* 1e THE WALL'S WAYS IN (owner, 28 Oct 2026: "remove board and add reads"): upload · draft · reads · calendar,
        no board; "reads" lands on the Reads page */
-    check('1e the chips are upload, draft, reads and calendar — no board', JSON.stringify(head.chips) === JSON.stringify(['upload a document', 'draft a new agreement', 'reads', 'calendar']), head.chips);
+    /* RE-POINTED (owner, 12 Nov 2026): the Reads page is named Discover, and so is its chip */
+    check('1e the chips are upload, draft, discover and calendar — no board', JSON.stringify(head.chips) === JSON.stringify(['upload a document', 'draft a new agreement', 'discover', 'calendar']), head.chips);
     const readsGo = await page.locator('#ig-dock [data-ig-chips] [data-ca-chip="reads"]').count() > 0
       && (await page.click('#ig-dock [data-ig-chips] [data-ca-chip="reads"]'), await waitFor(page, () => state.view === 'reads', 6000));
-    check('1f "reads" opens the Reads page', !!readsGo, await page.evaluate(() => state.view));
+    check('1f "discover" opens the Discover page', !!readsGo, await page.evaluate(() => state.view));
     await wall();
 
     /* ===== 2. THE DRAFT CHIP ===== */

@@ -5987,7 +5987,7 @@ async function ceAsk(question, opts = {}){
   /* ITS OWN SENTENCE, AND ITS OWN WAY ON (9 Oct 2026, the review): Copilot
      ran out before it answered — said about this clause, with Try again. */
   if (res.unfinished){
-    _ceThread.push({ who: 'ai', text: _cet('ce_ask_unfinished'), retry: q });
+    _ceThread.push({ who: 'ai', text: String(res.advice || '').trim() || _cet('ce_ask_unfinished'), retry: q });
     ceRenderLane();
     return;
   }

@@ -6582,7 +6582,10 @@ function pdJamboTopHtml(){
   /* THE CHECKLIST'S ORDER: stage, Needs you, Jambo read, Next acts, then Key terms and the folds */
   /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
   /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
-  const disc = (!c && !ac && typeof askColDiscoverHtml === 'function') ? askColDiscoverHtml() : '';
+  /* DISCOVER IS A PAGE NOW (owner, 12 Nov 2026: "One link", then the Discover button in the list's head): the panel
+     beside the list carries no Discover section in the new look; the button is the one way in. The old look keeps its
+     section until it is deleted. */
+  const disc = (!c && !ac && typeof askColDiscoverHtml === 'function' && !(typeof window.newLookOn === 'function' && newLookOn())) ? askColDiscoverHtml() : '';
   return c ? (pd2On() ? pd2Html(c) + pdMenuRowsHtml(c) : pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true })) : (ac || pdWallHtml(disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the

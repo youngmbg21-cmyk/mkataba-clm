@@ -130,7 +130,11 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
          drop card's two presses now live in the pop-up that "upload a document" (still on the panel) opens */
       const POPUP = { contracts: ['Choose a file', 'Import contracts'] };
       const viaPopup = w => (POPUP[key] || []).includes(w) && now.includes(norm('upload a document'));
-      const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w));
+      /* RENAMED, NOT LOST (owner, 12 Nov 2026, "Discover is a page"): the Reads page is named Discover, so its chip
+         beside Contracts says "discover"; on Discover's own panel "Ask a column" became "Ask a question" (the ask box) */
+      const RENAMED = { contracts: { reads: 'discover' }, reads: { 'Ask a column': 'Ask a question' } };
+      const viaName = w => !!(RENAMED[key] && RENAMED[key][w]) && now.includes(norm(RENAMED[key][w]));
+      const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w) && !viaName(w));
       check(`4 ${key}: nothing the panel offered before is lost (${was.length} kept)`, !!inv && !lost.length, lost.length ? 'lost: ' + JSON.stringify(lost) : '');
       if (key === 'contracts') check('5 contracts: Discover stands above the list\'s facts; no drop card, no Ask me', read.order === 'disc-first', String(read.order));
       if (key === 'settings-you' || key === 'settings-company') check(`6 ${key}: "Open the Menu" is still first`, read.menuFirst === true, String(read.menuFirst));

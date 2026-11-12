@@ -22254,6 +22254,15 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: the phone's send (js/mobile-contract.js buildSharePayload) does not fold our own fixes on the first send of our paper, so a first send from the phone still travels them as tracked changes; the phone files no changes, so the fold was left to the computer's two send paths.
 - Noticed, not fixed: the waiting card's "Meanwhile, yours" names only an approval I may give; other work of ours while we wait (an obligation, a note) stays in the Dossier's rows below the card.
 
+## 12 Nov 2026 — Discover is a page (owner picked "The Legora Way", then drew the flow; f1016)
+- Built: in the new look the Contracts list's head carries a Discover pill where "+ Ask a column" stood; the Reads page is the Discover page (one ask box, one black button, chips that fill the box, Kept · Packs · Every read; a question opens under its row; the panel shows the paper the words were read from; while Jambo reads the panel shows the paper of each contract and Stop stands in the box). The old look keeps its own door and section.
+- Removed with the owner's yes ("One link", then the Discover button): the Discover section in Jambo's panel beside the Contracts list (new look), and the folder panel's "+ Ask a column" and "All your reads" (now one Discover pill).
+- Noticed, not fixed: in the new look the ask form in Jambo's panel beside Contracts (askColFormHtml, the pack's tick form) has no door any more; it is still drawn in the old look. Its removal belongs with the old look's.
+- Noticed, not fixed: the Handbook's pictures are taken in the old look (test/chromium/handbook-verify.js never turns the new look on), so chapters 5.5.1 to 5.8 picture the old Ask a column and Reads; their words now say what the new look does.
+- Noticed, not fixed: CLAUDE.md is 86 KB, over its own 80 KB limit, before this change; trimming it needs the owner's yes.
+- Noticed, not fixed: "Start redlining this clause" on Discover opens the contract's Redlines, not that clause's editor; the Stakes' door (stkRedlineGo) needs a point of the deep read to name the clause.
+- Noticed, not fixed: a new-look window narrower than the list-and-panel layout (insFits) still draws the old Reads page, whose "+ Ask a column" goes to Contracts' form.
+- Noticed, not fixed: the server reads "How many days do we have to pay an invoice?" as a counting question ("how many") and refuses it as a column, though it asks the wording of each contract.
 ## 12 Nov 2026 — whole names and separate headings (owner's yes; f1016)
 - Fixed: BUGLOG 21762 — cnMask swaps a code-named deal's real name as a WHOLE name only (the email mask's own pattern); "Ace" no longer changes inside "Grace". A name glued straight onto other letters ("NordfraktAB") is left, as in the email mask.
 - Fixed: BUGLOG 20921 — the plain text Jambo reads keeps a heading apart from its first sentence; the wording hash's path is untouched. Jambo's kept answers made over the old text are read again once, on their next press.
@@ -22266,12 +22275,20 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 21882 (the Handbook's "Which one do I need?" table under the panel): GONE — the new look's Handbook (hbknRender) draws no such table.
 - 21843 (Parties' "Draft an agreement with …" past its panel): NOT SEEN in the new look — the door is "Start a new agreement with …" on the party's own page; the longest name (Sameer Business Park) stays on one line, 44px inside the panel.
 - 12 Nov 2026 correction: 22020 "Save view" was NOT two lines in the measured state (the measure's line count was wrong, now counted from the words' own boxes); a nowrap safeguard was added on the owner's yes. 21941 figure cards FIXED (16px), the result cards beside them too; their narrow labels may take two or three short lines.
+- 12 Nov 2026 — FIXED: a cut-short Jambo draft (`{ "advice": …, "whyChange": "As it st`) was offered as clause wording under Apply; now refused at the parser and every drafting door (f1017). Noticed, not fixed: WHY the answer stopped is not established (chat ceiling 4,000 tokens, visible part far shorter) — needs a look at a live run's stop_reason and whether notes before the answer eat the room.
 - 12 Nov 2026: the read bar's × and the Send screen's "To" × sat 8px left of their circle's middle: FIXED (both). An arrival's read never started when the paper was still loading at the first look: FIXED with the read playing on arrival (owner's pick).
 
 ## 12 Nov 2026 — the paper's signature lines follow the route; an extra space can go (f1017)
 - FIXED: the route saved from Change while filling on the paper left empty spaces and "owed" (two lists: the sitting's and the route's); "+ Another signer" spaces could not be removed. `pd2FillRouteSync`, `pd2FillSigDrop`.
 - Noticed, not fixed: names typed on the paper's signature lines and not yet saved are not shown when the signing route window is opened from Change (it reads the saved route only).
 - Noticed, not fixed: the Handbook's picture for chapter 2.3 does not show the × beside a signer space (not re-taken in the chat).
+- 12 Nov 2026 — the cut-short draft check is f1018, not f1017 as the line above says (main took f1017 for "the paper follows the route" the same day).
 - Noticed, not fixed (12 Nov 2026): a parked ask of theirs travels on their copy with status "countered" and `counteredBy` naming our counter even when that counter is held back for internal review (`buildSharePayload` keeps the parked ask's status; only the held counter is filtered by `shareHeldBackIds`). Their page reads it as waiting (their History now says "waiting" there, 12 Nov), but the copy's data still says a counter exists — a review the counterparty should never learn of (`reviewSeatShowsReview`).
 - FIXED (12 Nov 2026, f1017 (5)): names typed on the paper's signature lines now show in the signing route window opened from Change (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`).
 - Noticed, not fixed: board-says-it-plain-verify A0 went red once on GitHub (PR 667, "bubble chart of value against time left" read the card before it) and green on the re-run with no change: a timing slip in the check.
+
+### Fixed 12 Nov 2026 (f1018)
+- Emails to the other side had no reply address; a reply reached nobody. Fixed: the sender is the reply address.
+- A parked ask carried "countered" and the held counter's id onto their copy while that counter was held for review. Fixed on both copies.
+- 12 Nov 2026 — the cut-short draft check is now f1019 (main took f1018 for "the read plays on arrival" the same day; it was f1017, then f1018).
+- (12 Nov 2026) The two fixes above are numbered f1020, not f1018: main took f1018 and f1019 the same day.

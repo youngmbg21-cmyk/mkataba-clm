@@ -82,8 +82,8 @@ const PAGES = [
   { k: 'parties', view: 'customers', rowSel: '[data-cu-screen="list"] #cu-tbody tr', tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab', skip: ['folders'],
     box: '#cun-q', home: 'all', word: 'kabras', wholeSel: '[data-cu-screen="list"] .apn-table.cun-table thead th', pageSel: '.cun-page[data-cu-screen="list"]',
     facts: '[data-cu-screen="list"] .cun-head .ctf-hf', folders: true },
-  { k: 'reads', view: 'reads', rowSel: '#rd-page.rdn-page .rdn-table tbody tr', tabSel: '[data-rdn-tab]', tabKey: 'data-rdn-tab',
-    box: '#rdn-q', home: 'all', word: 'notice', wholeSel: '#rd-page .rdn-table thead th', pageSel: '#rd-page.rdn-page', facts: '#rd-page .rdn-head .ctf-hf' },
+  /* Reads became the Discover page (owner, 12 Nov 2026): it has an ask box, not a filter box, so this file's typed-word
+     steps have nothing to type into there; its tab press still swaps only the rows (rdnRender, listRowsSwapHtml) */
 ];
 
 (async () => {
