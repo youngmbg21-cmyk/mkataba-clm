@@ -8841,8 +8841,17 @@ function pd2WalkOpen(id){
   pd2NotesPaint(c); try { pdGlanceRepaint(); } catch (_){}
   return true;
 }
-/* a paper that has just arrived (roomHomeLand's arrival) offers the walk; nothing plays until it is pressed */
-function pd2WalkArrive(id){ if (!pd2On()) return false; setTimeout(() => { const c = pdContract(); if (c && String(c.id) === String(id)) pd2WalkOpen(id); }, 0); return true; }
+/* A PAPER THAT HAS JUST ARRIVED IS READ BEFORE YOUR EYES (owner, 12 Nov 2026, picked "Read plays by itself"; REVERSES
+   "nothing plays until it is pressed"): roomHomeLand's arrival opens the walk AND plays it, so each note beside the paper
+   comes up as the read reaches its clause; Pause and × stop it. Only an arrival plays: "Watch the read" still opens it still */
+const PD2_WALK_ARRIVE_TRIES = 40;   // × 150ms: the paper is drawn after the arrival's own read of the contract
+function pd2WalkArrive(id){ if (!pd2On()) return false;
+  let n = 0;
+  /* asked again until the arrived paper is the one in front (it may still be loading), bounded */
+  const go = () => { if (pd2WalkOn(id)) return; const c = pdContract();
+    if (c && String(c.id) === String(id) && pdOnPaper() && document.getElementById('ig-canvas') && pd2WalkOpen(id)){ pd2WalkPlay(); return; }
+    if (++n < PD2_WALK_ARRIVE_TRIES) setTimeout(go, 150); };
+  setTimeout(go, 0); return true; }
 function pd2WalkClose(){
   if (!_pd2Walk) return;
   clearTimeout(_pd2Walk.timer); _pd2Walk = null;

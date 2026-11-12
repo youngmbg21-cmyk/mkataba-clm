@@ -26,7 +26,7 @@
    `noShot` says plainly why there is none.
    ========================================================================== */
 /* the day a person last read the whole book against the running app (the rule's foot line) */
-const HANDBOOK_CHECKED = '2026-11-11';
+const HANDBOOK_CHECKED = '2026-11-12';
 
 /* THE PARTS, in the Guide's order: a part with `gd` takes its name and its
    line from the Guide's own words (gd_s_<k>, gd_s_<k>_w: one fact, one home) */
@@ -253,8 +253,8 @@ const HANDBOOK_CHAPTERS = [
   { k: '2.2', part: 'draft', round: 1,
     title: { en: 'Upload a document', sv: 'Ladda upp ett dokument' },
     eyebrow: { en: 'A pop-up card', sv: 'Ett popup-kort' },
-    what: { en: 'Type upload in any Jambo box, or press upload a document above the box, and a card pops up over the page you are on. Drop one Word or PDF file on it and it opens as the paper. On arrival Jambo reads it: the brief, a check against Our standards, the risk scan and the blanks.',
-      sv: 'Skriv ladda upp i valfri Jambo-ruta, eller tryck på ladda upp ett dokument ovanför rutan, så dyker ett kort upp över sidan du är på. Släpp en Word- eller PDF-fil på det så öppnas den som papperet. Vid ankomst läser Jambo den: sammanfattningen, en kontroll mot Våra standarder, riskskanningen och luckorna.' },
+    what: { en: 'Type upload in any Jambo box, or press upload a document above the box, and a card pops up over the page you are on. Drop one Word or PDF file on it and it opens as the paper. On arrival Jambo reads it: the brief, a check against Our standards, the risk scan and the blanks. The read plays before your eyes, clause by clause, and each note comes up beside the paper as its clause is read; Pause or × stops it.',
+      sv: 'Skriv ladda upp i valfri Jambo-ruta, eller tryck på ladda upp ett dokument ovanför rutan, så dyker ett kort upp över sidan du är på. Släpp en Word- eller PDF-fil på det så öppnas den som papperet. Vid ankomst läser Jambo den: sammanfattningen, en kontroll mot Våra standarder, riskskanningen och luckorna. Läsningen spelas upp framför dig, klausul för klausul, och varje notering dyker upp bredvid papperet när dess klausul läses; Pausa eller × stoppar den.' },
     when: [{ en: 'The other side sent their draft.', sv: 'Motparten skickade sitt utkast.' },
       { en: 'A signed paper arrived that is not in HaTi yet (one file; many go through Import).', sv: 'Ett signerat papper kom som inte finns i HaTi än (en fil; många går genom Import).' }],
     path: ['door:upload', { en: 'or type upload in any Jambo box', sv: 'eller skriv ladda upp i valfri Jambo-ruta' }],

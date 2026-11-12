@@ -1734,7 +1734,7 @@
   [data-share-sap] .sh-lt.is-sap .sh-to-chip #sh-lt-towho{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   [data-share-sap] .sh-lt.is-sap .sh-to-ini{ flex:none; width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:11px; font-weight:var(--w-strong);
     background:var(--color-accent-100); color:var(--color-accent); }
-  [data-share-sap] .sh-lt.is-sap .sh-to-x{ flex:none; width:24px; height:24px; border:0; border-radius:50%; background:transparent; color:var(--color-text); font:inherit; font-size:16px; line-height:1; cursor:pointer; }
+  [data-share-sap] .sh-lt.is-sap .sh-to-x{ flex:none; display:inline-flex; align-items:center; justify-content:center; padding:0; width:24px; height:24px; border:0; border-radius:50%; background:transparent; color:var(--color-text); font:inherit; font-size:16px; line-height:1; cursor:pointer; }
   [data-share-sap] .sh-lt.is-sap .sh-to-x:hover{ background:var(--color-neutral-200); }
   [data-share-sap] .sh-to-kind{ display:flex; flex-wrap:wrap; gap:4px 16px; margin:6px 0 0; }
   [data-share-sap] .sh-to-kind [data-sh-more-go].hidden{ display:none; }
@@ -18534,7 +18534,8 @@
   html.lg-new .pd2-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
   html.lg-new .pd2-seg button{height:26px;padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:13px;white-space:nowrap;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
   html.lg-new .pd2-seg button[aria-pressed="true"]{background:var(--bar-black);color:var(--color-surface)}
-  html.lg-new .pd2-wk-x{flex:none;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-2);font:inherit;font-size:16px;color:var(--color-text);cursor:pointer}
+  /* a round icon button centres its icon (owner, 12 Nov 2026: "the x is not in the middle of the shaded area": the icon sat 8px left) */
+  html.lg-new .pd2-wk-x{flex:none;display:inline-flex;align-items:center;justify-content:center;padding:0;width:30px;height:30px;border:0;border-radius:50%;background:var(--surface-2);font:inherit;font-size:16px;color:var(--color-text);cursor:pointer}
   html.lg-new #ig-canvas .pd2-wk-on{background:var(--st-violet-bg);transition:background .3s}
   /* WHILE JAMBO READS, A NOTE WAITS FOR ITS CLAUSE (owner, 8 Nov 2026: "the notes should pop on the right of the paper as
      it reads on until the end"): held unseen until the read reaches it, then it fades in and stays (pd2WalkNotesHold) */

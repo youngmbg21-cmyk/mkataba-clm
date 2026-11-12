@@ -9,8 +9,10 @@
      2 · the notes beside the paper wait for the read: none before it starts, more as it reads on, all at the end, and they
          stay once the read is put away
      3 · Jambo's panel folded: the paper's line keeps its height and the desk keeps its brown ground
+     4 · a paper that arrives plays the read by itself (owner, 12 Nov 2026: "Read plays by itself"), its notes coming up
+     5 · the read bar's × sits in the middle of its circle (owner, 12 Nov 2026; it sat 8px left)
    (The Redlines face keeping Clean · Redline · Their view is negotiate-new-look-verify 2.)
-   At the parent 1–3 fail: a 24px serif title with a wrapping line; no notes during the read; a 36px line on a grey ground.
+   At the parent 4 and 5 fail (nothing played on arrival; the icon sat 8px left). Earlier, at its own parent, 1–3 failed: a 24px serif title with a wrapping line; no notes during the read; a 36px line on a grey ground.
    Run: node test/chromium/the-read-bar-and-notes-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -95,6 +97,15 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
         bg: getComputedStyle(document.querySelector('.ig-paper')).backgroundColor, desk: getComputedStyle(document.documentElement).getPropertyValue('--desk-ground').trim() }));
       check(`${nm} 3 Jambo's panel folded: the line keeps its height and the desk its brown ground`,
         folded && F.h === lineH && F.bg === ground && ground !== 'rgb(245, 245, 247)' && ground !== 'rgba(0, 0, 0, 0)', { lineH, ground, F });
+
+      /* 4 · an arrival plays the read by itself, its notes coming up as it reads; 5 · the × sits in the middle of its circle */
+      await page.evaluate(() => { try { pd2WalkClose(); } catch (_) {} const d = document.getElementById('igd-expand'); if (d) d.click(); roomHomeLand('MK-RB', { arrived: true }); });
+      const plays = await until(page, () => { const b = document.querySelector('#pd2-walk-head [data-pd2-wk-play]'); return !!b && /Pause/.test(b.textContent); }, null, 12000);
+      const rose = plays && await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mn:not(.is-wk-hold)').length > 0, null, 20000);
+      const X = await page.evaluate(() => { const x = document.querySelector('#pd2-walk-head .pd2-wk-x'), s = x && x.querySelector('svg'); if (!x || !s) return null;
+        const r = x.getBoundingClientRect(), q = s.getBoundingClientRect(); return { dx: +((q.left + q.width / 2) - (r.left + r.width / 2)).toFixed(1), dy: +((q.top + q.height / 2) - (r.top + r.height / 2)).toFixed(1) }; });
+      check(`${nm} 4 an arrival plays the read by itself and its notes come up as it reads`, plays && rose, { plays, rose });
+      check(`${nm} 5 the × sits in the middle of its circle`, !!X && Math.abs(X.dx) <= 1 && Math.abs(X.dy) <= 1, X);
       await page.close();
     }
   } finally { await browser.close(); await h.stop(); }
