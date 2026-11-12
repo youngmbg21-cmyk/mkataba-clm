@@ -40,7 +40,8 @@ describe('f881 (12) — the page and the panel are level', () => {
     assert.match(TB, /\.tb-rail\.tb-jl\{border-left:0;border-radius:var\(--radius-lg\);box-shadow:var\(--shadow-sm\)\}/);
   });
   test('Our paper, the Calendar and the Board meet the panel\'s lines', () => {
-    assert.match(LIB, /class="view-enter sap-page tpl-page" style="padding:var\(--page-pad\);padding-bottom:var\(--tpl-pb,var\(--page-pad\)\)"/);
+    /* RE-POINTED 11 Nov 2026 (BUGLOG 21372): the page carries data-ins-page/data-ins between its class and its style */
+    assert.match(LIB, /class="view-enter sap-page tpl-page"[^>]*? style="padding:var\(--page-pad\);padding-bottom:var\(--tpl-pb,var\(--page-pad\)\)"/);
     assert.match(HTML, /#content \.view-enter\.tpl-page:has\(\.ins-panel\.is-jambo\)\{--tpl-pb:8px\}/);
     assert.match(CAL, /\.cal-page\.is-home \.cal-body\{padding-top:var\(--s-3\);padding-bottom:8px\}/);
     assert.match(HTML, /#ig-page \.hb-board\{padding-top:8px\}/);
