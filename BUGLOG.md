@@ -22272,3 +22272,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - FIXED: the route saved from Change while filling on the paper left empty spaces and "owed" (two lists: the sitting's and the route's); "+ Another signer" spaces could not be removed. `pd2FillRouteSync`, `pd2FillSigDrop`.
 - Noticed, not fixed: names typed on the paper's signature lines and not yet saved are not shown when the signing route window is opened from Change (it reads the saved route only).
 - Noticed, not fixed: the Handbook's picture for chapter 2.3 does not show the × beside a signer space (not re-taken in the chat).
+- 12 Nov 2026 — the cut-short draft check is f1018, not f1017 as the line above says (main took f1017 for "the paper follows the route" the same day).

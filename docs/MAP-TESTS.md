@@ -478,7 +478,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
-- A CUT-SHORT DRAFT IS NOT WORDING (owner's screenshot, 12 Nov 2026): f1017 (new; 7 of 8 red at the parent) — the parser marks a proposal object that never closes; the clause and template doors hand back `unfinished` and a sentence, never wording; a whole object still stands under `truncated`; both chat routes send the fact; the sentence in both books.
+- A CUT-SHORT DRAFT IS NOT WORDING (owner's screenshot, 12 Nov 2026): f1018 (new; 7 of 8 red at the parent) — the parser marks a proposal object that never closes; the clause and template doors hand back `unfinished` and a sentence, never wording; a whole object still stands under `truncated`; both chat routes send the fact; the sentence in both books.
 - THE ANSWER TOOL OFFERS EVERY FIELD IT DESCRIBES (bug log batch 6, 27 Oct 2026): f947 (1) (new; red at the parent) — wholeBook and ruleDoor sit inside deliver_answer's properties, as the AI is sent them.
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
 - f870 (judgement on the stronger model: the reader's exam, both chat routes, admin-only dollars, one pinned model says nothing; f133/f134's compare-escalation tests re-worded as lookups), judgement-line-verify (the line painted under the answer in the Jambo window and Home's panel, one line, at the three screens; a lookup draws none).
