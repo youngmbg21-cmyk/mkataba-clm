@@ -4654,12 +4654,15 @@ function portalOutRoadHtml(D, mineMove){
    opens their notes, as the Notes chip does on our side. The face is a sitting's choice, never stored. */
 let _polFace = 'red';
 function portalOutFace(){ return _polFace === 'where' || _polFace === 'send' ? _polFace : 'red'; }
+/* THE PANEL'S HEAD (owner, 12 Nov 2026, reviewing their white page: "Fix 1 and 2"; REVERSES the 8 Nov drawing's
+   "Redlines · Where we are · Notes"): ONE DOOR — Where we are is the page's own tab at the top, so the panel no longer
+   repeats it (the panel still shows that summary by itself after Send back); and ONE COUNT PER PLACE — the top tab says
+   how many answers are theirs ("Redlines · 1 answer for you"), the column's heading counts every card, so this tab
+   carries no third number that disagreed with both. */
 function portalOutHeadHtml(c){
-  const left = portalOutAsks(c).filter(x => !portalOutDecided(x)).length;
   const f = portalOutFace();
   return `<div class="pol-side-hd" role="tablist" aria-label="${esc(i18t('po_tab_redlines'))}">
-    <button type="button" role="tab" class="pol-pill${f === 'red' ? ' is-on' : ''}" aria-selected="${f === 'red'}" data-pol-face="red">${esc(i18t('po_tab_redlines'))}${left ? ` <span class="pol-hd-n">${left}</span>` : ''}</button>
-    <button type="button" role="tab" class="pol-pill${f === 'where' ? ' is-on' : ''}" aria-selected="${f === 'where'}" data-pol-face="where">${esc(i18t('po_tab_where'))}</button>
+    <button type="button" role="tab" class="pol-pill${f === 'red' ? ' is-on' : ''}" aria-selected="${f === 'red'}" data-pol-face="red">${esc(i18t('po_tab_redlines'))}</button>
     ${PORTAL_OPTS && PORTAL_OPTS.token ? `<button type="button" class="pol-pill" data-pt-where-notes>${esc(i18t('po_notes'))}</button>` : ''}</div>`;
 }
 /* SEND BACK, IN THE PANEL (owner, 8 Nov 2026, the drawings' step 7): the check before send stands in the panel
