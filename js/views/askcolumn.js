@@ -879,6 +879,10 @@ async function askColSummary(force){
    deleted. Keeping takes nobody's permission; taking off and deleting are the
    asker's, the keeper's or an admin's (the server is the wall). */
 function askColDiscoverHtml(){
+  /* THE NEW LOOK HAS A DISCOVER PAGE (owner, 12 Nov 2026): this old section beside the list is the old look's only. It
+     stood under a column's card too (askColPanelHtml), so a column left on the list from an earlier visit showed the old
+     list of past questions for a moment, then took it away when the column was dropped (owner's picture, 12 Nov) */
+  if (typeof window.newLookOn === 'function' && newLookOn()) return '';
   if (!askColOn() || AC.form || AC.busy) return '';
   const all = AC.discAll, rows = (AC.summary || []).slice(0, all ? 40 : 8);
   const up = new Set(askColIdsUp()), may = askColMay();
