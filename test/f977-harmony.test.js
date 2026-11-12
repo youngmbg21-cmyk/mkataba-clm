@@ -159,12 +159,18 @@ test('f977 fix 5 · only the pile with the other side folds; your own piles stan
   assert.match(ng, /const RL_NL_FOLDS = \['with'\];/);
   assert.match(ng, /function rlPileFoldsNl\(b\)\{\s*return [^\n]*RL_NL_FOLDS\.includes\(b\);/);
 });
-test('f977 fix 6 · the Send letter is the white page: no border, no corner, one hairline at its left', () => {
+/* RE-POINTED 12 Nov 2026 (the send page "The SAP Way", owner picked it by name 11 Nov 2026; REVERSES fix 6's
+   "no border, no corner"): the page stays white, the email is ONE card on it (a hairline and the one corner), and
+   the hairline between the form and the email is the form's right edge. The card's rule is the LAST one, so it wins. */
+test('f977 fix 6 · the Send page is white, the email one card on it, the form ruled off at its right', () => {
   const css = read('index.html');
   const rules = [...css.matchAll(/html\.lg-new[^{\n]*#sh-letter\.sh-lt\.is-sap > \.sh-lt-mail\{([^}]*)\}/g)].map(m => m[1]);
-  assert.ok(rules.length >= 2);
-  for (const r of rules) { assert.doesNotMatch(r, /border:1px solid/); assert.doesNotMatch(r, /border-radius:var\(--radius\)/); }
-  assert.ok(rules.some(r => /border-left:1px solid var\(--color-divider\)/.test(r)));
+  assert.ok(rules.length >= 3);
+  const last = rules[rules.length - 1];
+  assert.match(last, /border:1px solid var\(--color-divider\)/);
+  assert.match(last, /border-radius:var\(--radius\)/);
+  assert.match(last, /background:var\(--color-surface\)/);
+  assert.match(css, /html\.lg-new[^{\n]*#sh-letter\.sh-lt\.is-sap > \.sh-lt-h\{[^}]*border-right:1px solid var\(--color-divider\)/);
 });
 test('f977 fix 7 · the Board counts rows in the new look, the number Home says', () => {
   const cn = read('js/views/counter.js');
