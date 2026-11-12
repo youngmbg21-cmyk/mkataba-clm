@@ -37341,3 +37341,6 @@ Owner: "redo the handbook pictures for Needs you" (after Jambo's mark became his
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY — A TAG'S REPLY REACHES A PERSON (12 Nov 2026, owner: "Fix 1")
 The re-review of the reply flow found the one email to the other side f1020 missed: tagging their person in a note (POST /api/contracts/:id/mention) mailed them with no reply address. It now carries `mailReplyFor(req, null, c)` for an outside person only; a colleague tagged inside gets none. Its words ("an automated notice") are unchanged. Still open, drawn for the owner the same day: a reply leaves no trace in HaTi; the letters never point to Notes; "reply and say who" is untracked. Red at the parent: f1021 1.
+
+## THE HANDBOOK — HOW TO DO EACH THING — THE PICTURES WAIT FOR ONE BATCH (12 Nov 2026)
+Owner: "wouldnt it be easier to update pictures after all the changes across the platform are done?", then "yes, change the rule". Rule 9d REVERSED in part: a change still rewrites its chapter's words in the same change, and its picture recipe must stay true (handbook-verify fails a box that finds nothing), but pictures are no longer re-taken per change; all are re-taken in one batch when the owner asks. The cost, said to the owner: until then some pictures show older screens.
