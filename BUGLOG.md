@@ -22257,3 +22257,10 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Fixed: BUGLOG 21762 — cnMask swaps a code-named deal's real name as a WHOLE name only (the email mask's own pattern); "Ace" no longer changes inside "Grace". A name glued straight onto other letters ("NordfraktAB") is left, as in the email mask.
 - Fixed: BUGLOG 20921 — the plain text Jambo reads keeps a heading apart from its first sentence; the wording hash's path is untouched. Jambo's kept answers made over the old text are read again once, on their next press.
 - Measured, not fixed: BUGLOG 21941 (Our paper's preview blank; Jambo's agents figures' inset), 22020 (map head "Save view" wrap), 21882 (Handbook table under the panel), 21843 (Parties' Draft button) — test/chromium/_audit/buglog-layout-measure.js on GitHub says which are still real.
+
+## 12 Nov 2026 — the five newest layout faults, MEASURED on GitHub (test/chromium/_audit/buglog-layout-measure.js, run 4, all three screens, new look)
+- 21941 (Our paper's preview, a blank over its words): NOT SEEN — Raw Material Supply Agreement, 7 blanks, none overlapping.
+- 21941 (Jambo's agents, "Pieces of work" figures): REAL by the rule — `.jh-kpis > div` padding 7px 9px, under 16px; the cards were not on screen in the run, so read off the rule, not a photo. Noticed, not fixed.
+- 22020 (the map's "Save view", #ig-save): REAL — two lines at 1440×780, 1536×730 and 1366×950 (69px wide, 24px high). Noticed, not fixed.
+- 21882 (the Handbook's "Which one do I need?" table under the panel): GONE — the new look's Handbook (hbknRender) draws no such table.
+- 21843 (Parties' "Draft an agreement with …" past its panel): NOT SEEN in the new look — the door is "Start a new agreement with …" on the party's own page; the longest name (Sameer Business Park) stays on one line, 44px inside the panel.
