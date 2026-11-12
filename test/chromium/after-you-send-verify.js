@@ -7,6 +7,7 @@
      3 · the card after the send says "Waiting on Juno Logistics", who it went to, "not opened yet", and Remind
      4 · a second change after that first send is NOT folded: it travels as a tracked change
      5 · their paper (it came as a file) with a fix of ours is never folded: the Send screen says no clean copy
+     (a contract that is not a Draft — received for review, under way — is never folded either: f1015)
      6 · at the owner's three screens: the waiting card inside the panel, nothing sideways
    At the parent (before this change) 1–3 and 6 fail: our fixes travelled as tracked changes and the card said
    "1 to do in the negotiation".
@@ -30,13 +31,19 @@ const FILE_TWO = async id => { const c = getContract(id); if (window.ensureFull)
   for (const cl of cls){ const now = negoClauseNowById(c, cl.clauseId); const body = (now && now.bodyHtml) || '<p>' + ((now && now.text) || '') + '</p>';
     if (await negoEditClause(c, cl.clauseId, body.replace(/<\/p>\s*$/, ' as agreed in writing.</p>'), { side: 'owner', author: 'Admin' })) n++; }
   return n; };
+const THEIRS = '<h1>Haulage Agreement</h1><p>Between Highland Corporate Ltd and Juno Logistics</p>'
+  + '<h2>1. Services</h2><p>The Carrier shall carry the Buyer\'s goods between Nairobi and Mombasa.</p>'
+  + '<h2>2. Price</h2><p>The annual contract value is KES 2,000,000, invoiced monthly.</p>'
+  + '<h2>3. Term</h2><p>This agreement runs until 30 June 2027.</p>';
 const SEND_NOW = () => { const b = [...document.querySelectorAll('button')].find(x => x.offsetParent && /^(Copy the link|Send by email|Send)$/.test((x.textContent || '').trim()) && !x.disabled); if (b) b.click(); return !!b; };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
   await seedWorkspace(h, { approvalRules: [], contracts: [filled('MK-AS1'), filled('MK-AS2'), filled('MK-AS3'),
-    filled('MK-AS4', { source: 'upload', upload: { name: 'theirs.docx', uploadedAt: new Date().toISOString(), uploadedBy: 'Admin' } })] });
+    /* their paper: a file that came in, with wording of its own (Draft, so only the upload guard keeps it tracked) */
+    filled('MK-AS4', { source: 'upload', template: null, format: 'rich', redlineText: THEIRS,
+      upload: { name: 'theirs.docx', extractedText: THEIRS.replace(/<[^>]+>/g, ' '), uploadedAt: new Date().toISOString(), uploadedBy: 'Admin' } })] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const open = async (id, W, H) => {
     const page = await browser.newPage({ viewport: { width: W || 1440, height: H || 780 } });
@@ -76,9 +83,10 @@ const SEND_NOW = () => { const b = [...document.querySelectorAll('button')].find
       !!A && A.theirChanges === 0 && !A.theirFolded && A.theirWords && A.storedChanges === 0 && A.storedFolded === 2 && A.integ === true && A.said, A || { sent, went });
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { try { closeModal(); } catch (_) {} roomHomeLand('MK-AS1'); });
-    const w3 = await until(page, () => { const k = document.querySelector('#ig-dock .pd2-card.is-wait'); return !!k && /not opened yet/.test(k.innerText); }, null, 15000);
+    /* step 2 read their copy through the link, so the link says opened: either word is the link's own record */
+    const w3 = await until(page, () => { const k = document.querySelector('#ig-dock .pd2-card.is-wait'); return !!k && /not opened yet|opened today/.test(k.innerText); }, null, 15000);
     const C3 = await page.evaluate(() => (document.querySelector('#ig-dock .pd2-card') || {}).innerText || '');
-    check('3 the card waits on them: who, when, not opened yet, Remind', w3 && /Waiting on Juno Logistics/.test(C3) && /Wanjiru Otieno/.test(C3) && /Remind/.test(C3), C3);
+    check('3 the card waits on them: who, when, opened or not (the link\'s own record), Remind', w3 && /Waiting on Juno Logistics/.test(C3) && /Wanjiru Otieno/.test(C3) && /not opened yet|opened today/.test(C3) && /Remind/.test(C3), C3);
     await page.screenshot({ path: path.join(OUT, 'waiting.png') });
     /* 4 a fix after that first send travels tracked */
     const n4 = await page.evaluate(async () => { const c = getContract('MK-AS1'); const cl = negoClauseList(c).filter(x => x && x.clauseId && x.clauseId !== 'front')[2];

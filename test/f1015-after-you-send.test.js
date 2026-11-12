@@ -41,6 +41,8 @@ test('f1015 (1) the waiting card: whose move, when, opened, Remind through the o
 test('f1015 (2) the fold refuses wherever any doubt stands', () => {
   const f = fnOf(NG, 'negoFoldOwnFirstSend');
   assert.match(f, /if \(c\.upload \|\| c\.source === 'upload'\) return 0;/, 'their paper: never');
+  assert.match(f, /if \(c\.status !== 'Draft'\) return 0;/, 'anything but a Draft: never (the record\'s own word for never sent)');
+  assert.match(fnOf(NG, 'negoFoldWouldTake'), /if \(c\.status !== 'Draft'\) return 0;/, 'the Send screen\'s reading the same');
   assert.match(f, /if \(negoWordingFrozen\(c\)\) return 0;/, 'a frozen record: never');
   assert.match(f, /n\.turnAt \|\| \(n\.rounds && n\.rounds\.length\) \|\| \(Number\(n\.round\) \|\| 1\) > 1\) return 0;/, 'anything handed over or closed: never');
   assert.match(f, /!window\.sharesKnown\(c\)\) return 0;/, 'links not yet read: never');

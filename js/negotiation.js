@@ -5302,11 +5302,14 @@ function negoRoundWasSent(c){
    sight and never sent (the copy's allow-list carries no such field), kept so the chain stays whole
    (negoIssuances) and the history says what was folded, by whom, when.
    It refuses — and the send then goes out as it always did, tracked — wherever any doubt stands: their paper (an
-   upload), any link on record or not yet read, a round handed over or closed, a change of theirs, anything not
+   upload), anything not a Draft, any link on record or not yet read, a round handed over or closed, a change of theirs, anything not
    pending, a change held back or under review, a frozen record. Returns how many fixes were folded. */
 function negoFoldOwnFirstSend(c, opts = {}){
   if (!c || !Array.isArray(c.changes) || !c.changes.length) return 0;
   if (c.upload || c.source === 'upload') return 0;
+  /* never sent is the record's own word: a Draft (the first send moves it to Under Review, contractLeavesDrafting);
+     anything else — received for review, imported, under way — stays tracked */
+  if (c.status !== 'Draft') return 0;
   if (negoWordingFrozen(c)) return 0;
   negoInit(c);
   const n = c.negotiation;
@@ -5337,6 +5340,9 @@ function negoFoldOwnFirstSend(c, opts = {}){
 function negoFoldWouldTake(c){
   if (!c || !Array.isArray(c.changes) || !c.changes.length) return 0;
   if (c.upload || c.source === 'upload') return 0;
+  /* never sent is the record's own word: a Draft (the first send moves it to Under Review, contractLeavesDrafting);
+     anything else — received for review, imported, under way — stays tracked */
+  if (c.status !== 'Draft') return 0;
   try { if (negoWordingFrozen(c)) return 0; } catch (_){ return 0; }
   const n = c.negotiation || {};
   if (n.turnAt || (n.rounds && n.rounds.length) || (Number(n.round) || 1) > 1) return 0;
