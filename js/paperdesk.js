@@ -5126,7 +5126,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
   const put = t.closest('#ig-dock [data-pd2-fmj-put]'), each = t.closest('#ig-dock [data-pd2-fmj-each]'); if (!put && !each) return;
   e.preventDefault(); const A = _pd2FmAsk; if (!A || !A.fields) return;
-  const rows = A.fields.map(pd2FormPut).filter(Boolean);
+  const rows = [...new Set(A.fields.map(pd2FormPut).filter(Boolean))];   // their signer's name and email are ONE row
   _pd2FmShow = 'all'; const fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (fm) fm.setAttribute('data-pd2-fm-show', 'all');
   try { pd2FormFootSay(); } catch (_){}
   /* Show me each: the hand on the first one put in; Enter walks on through the rest (the form's own walk) */
