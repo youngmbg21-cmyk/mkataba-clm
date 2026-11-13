@@ -1678,18 +1678,11 @@ function hbBoardHelloHtml(){
 }
 /* the welcome's doors, each an existing one: the late and "show all" open the Board's Needs you on All (the late
    stand first there, ndBoardList), prepared opens it on Jambo's tab, ending soon the list behind the book's Ending
-   figure (hbFigDoor). Delegated once: the panel is redrawn under these buttons. */
+   figure (hbFigDoor). Pressed through the board's ONE listener (hbOnClick): the panel is redrawn under these buttons. */
 function hbWelcomeGo(k){
   if (k === 'ending') return (typeof hbFigDoor === 'function') ? hbFigDoor('f:ending') : false;
   if (typeof ndOpenBoard !== 'function') return false;
   return ndOpenBoard(k === 'jambo' ? 'jambo' : 'all');
-}
-if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._hbwWired)){
-  if (typeof window !== 'undefined') window._hbwWired = true;
-  document.addEventListener('click', e => {
-    const b = e.target && e.target.closest && e.target.closest('[data-hbw]'); if (!b) return;
-    e.preventDefault(); hbWelcomeGo(b.getAttribute('data-hbw'));
-  });
 }
 /* JAMBO'S PANEL FOLLOWS THE CARD'S NUMBER: the greeting, his tab's count and
    the lead chip are drawn with the panel, which a board paint does not redraw;
@@ -10725,6 +10718,8 @@ function hbOnClick(e){
   if (!window.state || state.view !== 'dashboard') return;
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
   if (hbFigMenuClick(e)) return;
+  /* the welcome's doors in Jambo's panel (Brain welcome, 13 Nov 2026) */
+  { const wb = t.closest('[data-hbw]'); if (wb){ e.preventDefault(); hbWelcomeGo(wb.getAttribute('data-hbw')); return; } }
   /* a press anywhere but the figure picker puts it away */
   if (_hbFigPick && !t.closest('.hb-figpick-w')){ _hbFigPick = false; hbPaintBoard(); }
   /* a door out of the side list (Open these, Show on the map) leaves it closed behind */

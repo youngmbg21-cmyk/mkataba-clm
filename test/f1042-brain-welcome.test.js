@@ -91,9 +91,10 @@ describe('f1042 (2) every number is a door, and a 0 is not', () => {
   test('2c the late stand first on All (the button\'s promise)', () => {
     assert.match(code(read('js/views/counter.js')), /if \(_nd\.tab === 'all'\) L = L\.map\(\(r, i\) => \(\{ r, i \}\)\)\.sort\(\(a, b\) => \(Number\(!!b\.r\.late\) - Number\(!!a\.r\.late\)\)/);
   });
-  test('2d the presses are delegated once (the panel is redrawn under them)', () => {
+  test('2d the presses go through the board\'s ONE listener (the panel is redrawn under them)', () => {
     const HB = code(read('js/views/homeboard.js'));
-    assert.match(HB, /window\._hbwWired = true;\s*document\.addEventListener\('click', e => \{\s*const b = e\.target && e\.target\.closest && e\.target\.closest\('\[data-hbw\]'\)/);
+    assert.match(HB, /const wb = t\.closest\('\[data-hbw\]'\); if \(wb\)\{ e\.preventDefault\(\); hbWelcomeGo\(wb\.getAttribute\('data-hbw'\)\); return; \}/);
+    assert.equal((HB.match(/document\.addEventListener\('click'/g) || []).length, 1, 'still one click listener for the board');
   });
 });
 
