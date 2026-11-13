@@ -10,6 +10,7 @@
          its door, a missing one at the paper's end; no answered note carries a link (owner: "Remove the link")
      4 · Draft a redline opens the editor on that risk's clause (the risk's own Edit)
      5 · Clean: the paper's ordinary notes, none of these
+     6 · Clean: ONE button, Hide notes then Show notes; the paper widens when they are away; no button behind the zoom
    At the parent 1–4 fail: on the red paper only their asks stood beside it.
    Run: node test/chromium/redline-notes-answered-verify.js */
 const { chromium } = require('playwright-core');
@@ -68,8 +69,8 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
       tickBg: tick ? getComputedStyle(tick).backgroundColor : '' };
   });
   check('1 · Redline: answered and open notes beside the paper, clear of it, none overlapping', red && filed === 1 && shown && r1.clear && !r1.overlap
-    && /Answered by your redline/.test(r1.done) && /not sent yet/.test(r1.done) && /verified increase/.test(r1.done) && r1.tickPainted
-    && /no redline yet/.test(r1.open) && /Draft a redline/.test(r1.open), r1);
+    && /Resolved by your redline/.test(r1.done) && /not yet sent/.test(r1.done) && /verified increase/.test(r1.done) && r1.tickPainted
+    && /not yet addressed/.test(r1.open) && /Draft a redline/.test(r1.open), r1);
   /* 2 · the chips */
   const chips = await p.evaluate(() => [...document.querySelectorAll('#pd2-notes [data-pd2-rn-chip]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   const pick = async k => { await p.click(`#pd2-notes [data-pd2-rn-chip="${k}"]`);
@@ -87,7 +88,7 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
       drafts: document.querySelectorAll('#pd2-notes [data-pd2-go="std-draft"]').length };
   });
   check('3 · standards beside the paper: answered green, open amber with its door, missing listed; no link on answered notes',
-    !!(r3.price && r3.price.done && r3.law && !r3.law.done && /no redline yet/.test(r3.law.t) && r3.data && !r3.data.done && r3.drafts >= 2 && !r3.see), r3);
+    !!(r3.price && r3.price.done && r3.law && !r3.law.done && /not yet addressed/.test(r3.law.t) && r3.data && !r3.data.done && r3.drafts >= 2 && !r3.see), r3);
   /* 4 · Draft a redline */
   const draft = await p.$('#pd2-notes [data-pd2-go="redline"]');
   if (draft) await draft.click();
@@ -101,6 +102,23 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
   const clean = await until(p, () => !!document.querySelector('#ig-paper .ig-redpaper.is-clean'), null, 8000);
   const none = clean ? await until(p, () => !document.querySelector('#pd2-notes .pd2-rn'), null, 8000) : false;
   check('5 · Clean: none of these notes', clean && none);
+  /* 6 · HIDE NOTES IS ONE BUTTON (owner, 13 Nov 2026), and no button lands behind the zoom */
+  const UNDER = () => { const zc = document.querySelector('#ig-paper-scroll .paper-zc, #ig-paper .paper-zc');
+    const Z = zc ? [...zc.querySelectorAll('*')].map(e => e.getBoundingClientRect()).filter(r => r.width && r.height) : [];
+    return [...document.querySelectorAll('#pd2-notes .pd2-rn-chip, #pd2-notes-tg .pd2-rn-chip')].filter(b => { const r = b.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return Z.some(z => r.left < z.right && r.right > z.left && r.top < z.bottom && r.bottom > z.top) || !(at === b || b.contains(at)); }).map(b => b.textContent.trim()); };
+  const on = clean ? await until(p, () => !!document.querySelector('#pd2-notes [data-pd2-notes-tg="hide"]') && document.querySelectorAll('#pd2-notes .pd2-mg').length > 0, null, 8000) : false;
+  const w0 = on ? await p.evaluate(() => Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width)) : 0;
+  const u0 = on ? await p.evaluate(UNDER) : ['not drawn'];
+  if (on) await p.click('#pd2-notes [data-pd2-notes-tg="hide"]');
+  const off = on ? await until(p, () => !document.querySelector('#pd2-notes .pd2-mg') && !!document.querySelector('#pd2-notes-tg [data-pd2-notes-tg="show"]'), null, 8000) : false;
+  const w1 = off ? await p.evaluate(() => Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width)) : 0;
+  const u1 = off ? await p.evaluate(UNDER) : ['not drawn'];
+  if (off) await p.click('#pd2-notes-tg [data-pd2-notes-tg="show"]');
+  const back = off ? await until(p, () => document.querySelectorAll('#pd2-notes .pd2-mg').length > 0 && !document.getElementById('pd2-notes-tg') && !!document.querySelector('#pd2-notes [data-pd2-notes-tg="hide"]'), null, 8000) : false;
+  check('6 · Clean: Hide notes puts them away and widens the paper; Show notes brings them back; no button behind the zoom',
+    on && off && back && w1 > w0 && !u0.length && !u1.length, { on, off, back, w0, w1, u0, u1 });
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');
   await b.close(); await h.stop(); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

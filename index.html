@@ -18507,10 +18507,15 @@
   /* NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026): an answered note a green
      tick, grey words and "Answered by your redline" in green; an open one amber with its act; the group's line its colour;
      All · Still open · Answered over them, the chosen one a filled pill */
-  html.lg-new #pd2-notes .pd2-rn-chips{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;padding-left:30px}
-  html.lg-new #pd2-notes .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  html.lg-new #pd2-notes .pd2-rn-chip[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new #pd2-notes .pd2-rn-chips{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;padding-left:0}
+  html.lg-new #pd2-notes .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new #pd2-notes .pd2-rn-chip[aria-pressed="true"]:not([data-pd2-notes-tg]){background:var(--color-text);color:var(--color-surface);box-shadow:none}
+  /* the chips and the Hide notes pill read as buttons on the desk's grey: white with a hairline (the zoom's own dress) */
   html.lg-new #pd2-notes .pd2-rn-chip > span{margin-left:3px;font-variant-numeric:tabular-nums}
+  /* HIDE NOTES / SHOW NOTES: the same grey pill; put away, it stands alone under the zoom at the paper's right */
+  html.lg-new #pd2-notes-tg{position:absolute;z-index:3;font-family:var(--font-body);font-size:13px;line-height:1.4}
+  html.lg-new #pd2-notes-tg .pd2-rn-chips{display:flex}
+  html.lg-new #pd2-notes-tg .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::after,html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::before{background:var(--st-green-dot)}
   html.lg-new #pd2-notes .pd2-rn .pd2-mg-i{margin:0 0 8px}
   html.lg-new #pd2-notes .pd2-rn .pd2-mg-i.is-owe .pd2-mg-l{font-weight:var(--w-label)}

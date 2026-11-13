@@ -8109,8 +8109,43 @@ function pd2SheetPre(c){
   const sh = zoom.querySelector(PD2_SHEET_SEL); if (sh){ sh.style.marginLeft = g.left + 'px'; sh.setAttribute('data-pd2-left', '1'); }
   return true;
 }
+/* HIDE NOTES / SHOW NOTES (owner picked "The Legora Way", 13 Nov 2026, as ONE button: "Couldn't show and hide notes be
+   one button"): wherever the notes beside the paper stand but the Redline view (it keeps its notes and its chips), one grey
+   pill above them puts them away and gives the paper back its whole width; put away, the same pill stands under the zoom
+   and says Show notes. Remembered on this computer. Hiding only hides: nothing is deleted, the Redlines panel and the
+   Dossier list stay as they are. While Jambo's read plays the notes show anyway (owner: "Show while it plays") and no pill
+   is drawn; the read over, they are hidden again. */
+const PD2_NOTES_HIDDEN_KEY = 'hati.v1.pd2NotesHidden';
+function pd2NotesHiddenGet(){ try { return localStorage.getItem(PD2_NOTES_HIDDEN_KEY) === '1'; } catch (_){ return false; } }
+function pd2NotesHiddenSet(v){ try { if (v) localStorage.setItem(PD2_NOTES_HIDDEN_KEY, '1'); else localStorage.removeItem(PD2_NOTES_HIDDEN_KEY); } catch (_){} }
+function pd2NotesTgHtml(hidden){
+  const E = _pdE;
+  return `<div class="pd2-rn-chips pd2-tg"><button type="button" class="pd2-rn-chip" data-pd2-notes-tg="${hidden ? 'show' : 'hide'}" aria-pressed="${hidden}">${E(_pdT(hidden ? 'pd2_notes_show' : 'pd2_notes_hide'))}</button></div>`;
+}
+/* the notes put away: the pill alone, under the zoom at the paper's right */
+function pd2NotesTgSolo(zoom){
+  if (!zoom) return;
+  const el = document.createElement('div'); el.id = 'pd2-notes-tg'; el.innerHTML = pd2NotesTgHtml(true); zoom.appendChild(el);
+  /* measured against the box it actually stands in (with the notes away the zoom is no longer positioned) */
+  const box = el.offsetParent || zoom, f = parseFloat(zoom.style.zoom) || 1, z = box.getBoundingClientRect();
+  const zc = document.querySelector('#ig-paper-scroll .paper-zc, #ig-paper .paper-zc');
+  /* under the zoom's drawn buttons (its own box is 0 wide), its right edge in line with theirs; the zoom row may stand above
+     the paper's box, so the offsets may be negative */
+  let top = null, right = null;
+  (zc ? [zc, ...zc.querySelectorAll('*')] : []).forEach(x => { const a = x.getBoundingClientRect(); if (!a.width || !a.height) return;
+    const t = Math.ceil((a.bottom - z.top) / f) + PD2_NOTE_GAP, r = Math.round((z.right - a.right) / f);
+    top = top == null ? t : Math.max(top, t); right = right == null ? r : Math.min(right, r); });
+  if (top == null){ top = 8; right = 16; }
+  el.style.top = top + 'px'; el.style.right = right + 'px';
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('[data-pd2-notes-tg]') : null; if (!b) return;
+  e.preventDefault(); pd2NotesHiddenSet(b.getAttribute('data-pd2-notes-tg') === 'hide');
+  const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
+});
 function pd2NotesOff(){
   _pd2Geo = null;
+  document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   document.querySelectorAll('#ig-paper .ig-zoom.has-pd2').forEach(z => { z.classList.remove('has-pd2'); z.style.removeProperty('--doc-sheet-max'); });
   document.querySelectorAll('#ig-paper [data-pd2-left]').forEach(sh => { sh.style.marginLeft = 'auto'; sh.removeAttribute('data-pd2-left'); });
   document.querySelectorAll('#pd2-notes').forEach(n => n.remove());
@@ -8152,6 +8187,9 @@ function pd2NotesPaint(c){
   const keep = n => _pd2RedShow === 'all' || !n.red && n.tone !== 'ask' ? true : (_pd2RedShow === 'open') === isOpen(n);
   const blocks = red ? pd2RedBlocks(c, cv, notes.filter(keep)) : [];
   if (red ? !blocks.length : !groups.length){ pd2NotesOff(); return; }
+  /* put away by the reader (not on Redline; never while the read plays) */
+  if (!red && !walking && pd2NotesHiddenGet()){ pd2NotesOff(); pd2NotesTgSolo(zoom); return; }
+  document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   /* THE PAPER MOVES TO THE LEFT AND NARROWS ONLY AS FAR AS THE NOTES NEED (the drawing's iPad note: "the paper narrows") */
   const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
   /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
@@ -8173,12 +8211,12 @@ function pd2NotesPaint(c){
   const E = _pdE;
   /* every block a lone ask of theirs: laid out as ever (one read, then one write); any group among them folds as the Dossier's do */
   const lone = red && blocks.every(b => b.ask);
-  const place = (z, h, ff) => { if (!red) pd2GroupsPlace(groups, z, h, ff); else if (lone) pd2NotesPlace(blocks, z, h, ff, pd2RedFloor(h)); else pd2GroupsPlace(blocks, z, h, ff, pd2RedFloor(h)); };
+  const place = (z, h, ff) => { if (!red) pd2GroupsPlace(groups, z, h, ff, pd2RedFloor(h)); else if (lone) pd2NotesPlace(blocks, z, h, ff, pd2RedFloor(h)); else pd2GroupsPlace(blocks, z, h, ff, pd2RedFloor(h)); };
   if (red){
     host.innerHTML = chips + blocks.map((b, i) => b.ask ? pd2RedAskHtml(b.n, i) : pd2RedGroupHtml(b, i)).join('');
     place(zoom, host, f);
   } else {
-    host.innerHTML = groups.map((g, i) => pd2GroupHtml(g, i)).join('');
+    host.innerHTML = (walking ? '' : pd2NotesTgHtml(false)) + groups.map((g, i) => pd2GroupHtml(g, i)).join('');
     place(zoom, host, f);
     if (walking) pd2WalkNotesHold(groups, host);
     if (onClauses) pd2ClauseTint();
@@ -9650,7 +9688,7 @@ Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
-Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
