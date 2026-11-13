@@ -14990,17 +14990,17 @@
   .hbw-ctl:focus-visible{outline:2px solid var(--brain-ink);outline-offset:2px;}
   .hbw-say{margin:14px 0 0;font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:21px;line-height:1.25;color:var(--color-text);text-wrap:balance;}
   .hbw-sub{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--color-neutral-400);}
-  .hbw-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:14px 0 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);}
-  .hbw-n{all:unset;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;padding:10px 0;}
+  /* each number and its word on ONE line, never squeezed: the three wrap to a second row in a narrow panel (tidy sweep, iPad) */
+  .hbw-trio{display:flex;flex-wrap:wrap;gap:4px 22px;margin:14px 0 0;padding:10px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .hbw-n{all:unset;box-sizing:border-box;display:inline-flex;align-items:baseline;gap:6px;white-space:nowrap;}
   button.hbw-n{cursor:pointer;}
-  .hbw-n + .hbw-n{border-left:1px solid var(--rule);padding-left:12px;}
   .hbw-n b{font-size:20px;line-height:1.15;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--color-text);}
-  .hbw-n span{font-size:12px;line-height:1.4;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hbw-n span{font-size:12.5px;line-height:1.4;color:var(--color-neutral-400);}
   .hbw-n.is-late b{color:var(--danger);}
   .hbw-n.is-soon b{color:var(--st-amber-fg);}
   .hbw-n.is-none b{color:var(--color-neutral-400);font-weight:400;}
   button.hbw-n:hover span{color:var(--color-text);}
-  button.hbw-n:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px;}
+  button.hbw-n:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px;}
   .hbw-acts{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:14px 0 0;}
   .hb-jb-hello.is-welcome .jov-asks{flex-direction:row;flex-wrap:wrap;gap:6px;}
   .hb-jb-hello.is-welcome .jov-lnk.is-ask{background:var(--surface-2);border-radius:999px;padding:4px 11px;font-size:12.5px;line-height:1.45;color:var(--color-text);text-decoration:none;white-space:nowrap;}
