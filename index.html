@@ -14974,6 +14974,37 @@
   .jov-after{margin:18px 0 0;display:flex;flex-direction:column;gap:12px;min-width:0;}
   /* Home's panel already pads its feed (14px): the Overview adds the 2px that makes 16 inside (16PX INSIDE EVERY CARD) */
   #ig-dock .jl-words.is-ov{padding:2px 2px 4px;}
+  /* BRAIN WELCOME (owner picked it, 13 Nov 2026): on the Board, Jambo's Overview opens on the Explorer's own brain
+     in one card (hbBoardHelloHtml, igMiniBrainHtml), then his line, the day's three numbers and one black button.
+     The card is the brain's own night whatever the page wears; its two controls sit on it, nothing else is written
+     there but the parties' names the canvas draws. The asks are pills here, as drawn. */
+  :root{ --brain-stage:radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%); --brain-ink:#E6F2EF; }
+  .hbw-brain{position:relative;height:236px;border-radius:var(--radius);background:var(--brain-stage);overflow:hidden;}
+  .hbw-brain canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;}
+  .hbw-brain canvas:active{cursor:grabbing;}
+  .hbw-ctl{position:absolute;right:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:var(--brain-ink);
+    border-radius:var(--radius-sm);font:inherit;font-size:11.5px;line-height:1;padding:5px 9px;white-space:nowrap;cursor:pointer;}
+  .hbw-spin{top:10px;}
+  .hbw-open{bottom:10px;}
+  .hbw-spin[aria-pressed="true"]{background:var(--brain-ink);color:var(--color-text);}
+  .hbw-ctl:focus-visible{outline:2px solid var(--brain-ink);outline-offset:2px;}
+  .hbw-say{margin:14px 0 0;font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:21px;line-height:1.25;color:var(--color-text);text-wrap:balance;}
+  .hbw-sub{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--color-neutral-400);}
+  /* each number and its word on ONE line, never squeezed: the three wrap to a second row in a narrow panel (tidy sweep, iPad) */
+  .hbw-trio{display:flex;flex-wrap:wrap;gap:4px 22px;margin:14px 0 0;padding:10px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);}
+  .hbw-n{all:unset;box-sizing:border-box;display:inline-flex;align-items:baseline;gap:6px;white-space:nowrap;}
+  button.hbw-n{cursor:pointer;}
+  .hbw-n b{font-size:20px;line-height:1.15;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--color-text);}
+  .hbw-n span{font-size:12.5px;line-height:1.4;color:var(--color-neutral-400);}
+  .hbw-n.is-late b{color:var(--danger);}
+  .hbw-n.is-soon b{color:var(--st-amber-fg);}
+  .hbw-n.is-none b{color:var(--color-neutral-400);font-weight:400;}
+  button.hbw-n:hover span{color:var(--color-text);}
+  button.hbw-n:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px;}
+  .hbw-acts{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:14px 0 0;}
+  .hb-jb-hello.is-welcome .jov-asks{flex-direction:row;flex-wrap:wrap;gap:6px;}
+  .hb-jb-hello.is-welcome .jov-lnk.is-ask{background:var(--surface-2);border-radius:999px;padding:4px 11px;font-size:12.5px;line-height:1.45;color:var(--color-text);text-decoration:none;white-space:nowrap;}
+  .hb-jb-hello.is-welcome .jov-lnk.is-ask b{font-weight:var(--w-label);}
   /* EVERY TAB IN A JAMBO PANEL'S HEAD SHOWS THE HAND, lit or not, and so does its bin (owner, 27 Oct 2026: "when the
      cursor hovers over overview, the cursor does not turn into a hand"); a shut tab (is-shut) keeps its arrow */
   :is(#ig-dock, #ins-panel, #mig-side, #st-side, #cal-plan) :is(.pd-tab, .jl-tab, .st-side-tab, [data-st-overview], [data-jb-bin]):not(.is-shut){cursor:pointer;}

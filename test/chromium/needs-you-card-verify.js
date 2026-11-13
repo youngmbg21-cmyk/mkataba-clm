@@ -114,10 +114,12 @@ const CONTRACTS = [
       return !!(t && document.querySelector('#ig-dock .hb-jb-hello .jov')); /* RE-POINTED 26 Oct 2026: one Overview, not two bubbles */
     });
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
-    const two = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && [...o.querySelectorAll('.jov-fact')].find(x => (x.querySelector('.jov-k') || {}).textContent === 'Needs you');
-      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: f ? f.querySelector('.jov-v').textContent.replace(/\s+/g, ' ').trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
-    ok('2a his Overview tab carries no number of its own (the number is in its Needs you fact)', said && !two.tab && new RegExp(`^${one.n} things`).test(two.where), JSON.stringify(two));
-    ok('2b the Overview says how many things need you', new RegExp(`^${one.n} things · \\d+ prepared by Jambo`).test(two.where), two.where);
+    /* RE-POINTED 13 Nov 2026 (owner picked "Brain welcome"): the Needs you fact is his line and the count under it (.hbw-say, .hbw-sub) */
+    const two = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const t = s => ((o && o.querySelector(s)) || {}).textContent || '';
+      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: (t('.hbw-say') + ' ' + t('.hbw-sub')).replace(/\s+/g, ' ').trim(), chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
+    const saysN = new RegExp(`(^|\\s)${one.n} (things? needs? you today|needs? you in all)\\.`);
+    ok('2a his Overview tab carries no number of its own (the number is in his welcome)', said && !two.tab && saysN.test(two.where), JSON.stringify(two));
+    ok('2b the welcome says how many things need you', saysN.test(two.where), two.where);
     ok('2c "what needs me" stands under "Ask me"', two.chip, String(two.chip));
 
     /* ===== 4. A COLLEAGUE'S LOOK: AFTER WHAT CANNOT WAIT, ANSWERED BY ITS OWN DONE ===== */
@@ -174,8 +176,8 @@ const CONTRACTS = [
       hbS().face = 'board'; hbSave(); setView('dashboard'); });
     const quiet = await until(page, () => !document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') && !!document.querySelector('#ig-dock .hb-jb-hello'));
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
-    const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && [...o.querySelectorAll('.jov-fact')].find(x => (x.querySelector('.jov-k') || {}).textContent === 'Needs you');
-      return { where: f ? f.querySelector('.jov-v').textContent.trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')), n: counterNeedsCount() }; });
+    const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && o.querySelector('.hbw-say'); /* RE-POINTED 13 Nov 2026: his line */
+      return { where: f ? f.textContent.trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')), n: counterNeedsCount() }; });
     ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you right now.' && !seven.chip, JSON.stringify(seven));
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });
     await page.evaluate(() => { window.needsYouOf = window.__ny; window.hbAgentsData = window.__ag; window.counterNeedsCount = window.__cn; });
