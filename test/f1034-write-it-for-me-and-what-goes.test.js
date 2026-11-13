@@ -1,5 +1,5 @@
 'use strict';
-/* f1022 — THE SEND SCREEN WHILE JAMBO TALKS (owner, 13 Nov 2026, two screenshots: "i pressed write for me and i get
+/* f1034 — THE SEND SCREEN WHILE JAMBO TALKS (owner, 13 Nov 2026, two screenshots: "i pressed write for me and i get
    the response on the jambo which i do not understand"; "I am unable to press highlighted choice. Also as i press the
    other choices, the page stutters").
    (1) A question asked from "Before you send" turns the panel to Jambo's words while the face still SHOWS, so the
@@ -35,7 +35,7 @@ function pdStage(){
   return ctx;
 }
 
-describe('f1022 — the send screen while Jambo talks', () => {
+describe('f1034 — the send screen while Jambo talks', () => {
   test('1 a question over "Before you send" keeps its column in the page, so What goes still presses something', () => {
     const ctx = pdStage();
     ctx.pdSendOpen('MK-1', { parentNode: null });

@@ -2796,7 +2796,7 @@ if(typeof document!=='undefined' && document.addEventListener) document.addEvent
   if(ok){ if(typeof toast==='function') toast(i18t('ai_send_note_done'),'ok'); }
   else if(typeof toast==='function') toast(i18t('ai_send_note_gone'),'warn');
 });
-/* f1022 (owner, 13 Nov 2026: "a response I do not understand"): when "Write it for me" WAS the ask, HaTi says what
+/* f1034 (owner, 13 Nov 2026: "a response I do not understand"): when "Write it for me" WAS the ask, HaTi says what
    happened in its own words — the note is in the box, or no note came back — never the model's sentence about
    "your note box with the button under it". Read after aiSendNoteHtml, which records the press and the placing. */
 function aiSendNoteSaid(res){

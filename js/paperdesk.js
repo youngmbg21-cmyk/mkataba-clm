@@ -1926,7 +1926,7 @@ function pdSendClose(){
 function pdSendFaceHtml(){ return `<div id="pd-send-slot" class="pd-send-slot${pdSendIsWaiting() ? ' is-waiting' : ''}" data-pd-send="${_pdE(pdSendFor() || '')}"></div>`; }
 /* while the panel shows Jambo's own words the column waits in the panel,
    unseen, so every box and choice in it is still in the page for Send */
-/* f1022: kept whenever the face itself is NOT drawn — away, or while the panel talks over a face that still
+/* f1034: kept whenever the face itself is NOT drawn — away, or while the panel talks over a face that still
    shows (a question asked from Before you send); the panel says which (faceDrawn). The page's What goes and
    Send press buttons in this column, so a column out of the page left them pressing nothing. */
 function pdSendKeepHtml(faceDrawn){
