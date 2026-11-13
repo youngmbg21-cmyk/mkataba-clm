@@ -1,5 +1,5 @@
 'use strict';
-/* f1031 — A BLANK ON A NEGOTIATED PAPER IS FILLED AS A TRACKED CHANGE (owner, 13 Nov 2026: "what is best practice?",
+/* f1033 — A BLANK ON A NEGOTIATED PAPER IS FILLED AS A TRACKED CHANGE (owner, 13 Nov 2026: "what is best practice?",
    then "yes, build option 2", then "Done straight away" for a company standard's owed list).
    (1) the gate: our seat, an editor, the negotiated paper in front, wording not frozen, a desk that may redline;
    (2) a clause with a change open on it (either side's) offers no blank — read RAW, never negoInit;
@@ -20,13 +20,13 @@ const region = (src, name) => { const m = new RegExp('(?:async )?function ' + na
   const end = [b, b2].filter(x => x > 0).sort((x, y) => x - y)[0]; return src.slice(m.index, end); };
 const P = stripCom(read('js/paperdesk.js'));
 
-test('f1031 (1) the gate', () => {
+test('f1033 (1) the gate', () => {
   const g = region(P, 'pd2NegoFillOn');
   for (const re of [/PORTAL_MODE\)\) return false/, /!canEdit\(\)\) return false/, /String\(p\.id\) !== String\(c\.id\)\) return false/,
     /!cv\.closest\('\.ig-redpaper'\) \|\| cv\.closest\('\.ig-signpaper'\)\) return false/, /igTheirsOn\(c\)\) return false/,
     /negoWordingFrozen\(c\)\) return false/, /!deskMayRedline\(c\)\) return false/]) assert.match(g, re);
 });
-test('f1031 (2) a clause with a change open on it offers no blank, read RAW', () => {
+test('f1033 (2) a clause with a change open on it offers no blank, read RAW', () => {
   const a = region(P, 'pd2NegoArgued');
   assert.match(a, /x\.status === 'pending' \|\| x\.status === 'countered'/);
   assert.doesNotMatch(a, /negoInit|negoChanges|negoClauseList/);
@@ -34,7 +34,7 @@ test('f1031 (2) a clause with a change open on it offers no blank, read RAW', ()
   assert.match(m, /argued\.has\(String\(id\)\) \|\| sec\.classList\.contains\('is-changed'\)\) return;/);
   assert.doesNotMatch(region(P, 'pd2NegoRead'), /negoInit|negoClauseNowById|pd2NegoMark/, 'reading paints and writes nothing');
 });
-test('f1031 (3) the fill walk takes the negotiated paper\'s marks and nothing else of it', () => {
+test('f1033 (3) the fill walk takes the negotiated paper\'s marks and nothing else of it', () => {
   assert.match(P, /const PD2_BL_SEL = '\[data-upblank\], \.hati-field\[data-field-key\], span\.field-frozen\[data-field\], \[data-pd2-nb\]';/);
   assert.match(P, /const pd2BlOff = sp => !!\(sp\.closest\('\.ig-signpaper'\) \|\| \(sp\.closest\('\.ig-redpaper'\) && !sp\.hasAttribute\('data-pd2-nb'\)\)\);/);
   assert.match(region(P, 'pd2FillWalk'), /pd2BlOff\(sp\)/);
@@ -44,7 +44,7 @@ test('f1031 (3) the fill walk takes the negotiated paper\'s marks and nothing el
     'a negotiated paper leads, before a company standard\'s form-then-wording path');
   assert.match(region(P, 'pd2FillStart'), /if \(first\) pd2NegoMark\(c\);\n\s*if \(first\)\{ const was/);
 });
-test('f1031 (4) Save files through the one door as our change, never quietly', () => {
+test('f1033 (4) Save files through the one door as our change, never quietly', () => {
   const save = region(P, 'pd2FillSave');
   assert.match(save, /const nego = moved\.filter\(x => x\.b\.kind === 'nego' && x\.v\);/);
   assert.ok(save.indexOf('pd2FillSaveNego(c, nego, rest)') < save.indexOf('contractBlankSet('), 'handed on before any blank is written');
@@ -58,15 +58,15 @@ test('f1031 (4) Save files through the one door as our change, never quietly', (
   assert.doesNotMatch(f, /contractBlankSet|redlineText\s*=|\.bodyHtml\s*=|persist\(/, 'nothing written but through the door');
   assert.match(f, /sp\.className = 'hati-field-done'; sp\.setAttribute\('data-field-key', at\.fk\); sp\.textContent = x\.v;/, 'an answer is text, never markup');
 });
-test('f1031 (4b) when the filling stops, a negotiated paper is drawn whole, its marks and boxes gone', () => {
+test('f1033 (4b) when the filling stops, a negotiated paper is drawn whole, its marks and boxes gone', () => {
   assert.match(region(P, 'pd2FillStop'), /if \(host && host\.querySelector\('\[' \+ PD2_NB_ATTR \+ '\]'\)\) delete host\.dataset\.for;\n\s*if \(typeof igPaperRefresh === 'function'\)/);
 });
-test('f1031 (5) a company standard\'s answer is its form\'s too, through its one writer', () => {
+test('f1033 (5) a company standard\'s answer is its form\'s too, through its one writer', () => {
   const f = region(P, 'pd2NegoFile');
   assert.match(f, /tplFormCommit\(c, i, x\.v\)/);
   assert.match(f, /if \(n && !owed && typeof tplFormSig === 'function'\) form\.filledSig = tplFormSig\(form\);/, 'never hides an answer already owed');
 });
-test('f1031 (6) both books, and the Handbook says it', () => {
+test('f1033 (6) both books, and the Handbook says it', () => {
   const L = read('js/i18n.js');
   for (const k of ['pd2_nb_note', 'pd2_nb_blank', 'pd2_nb_from_form', 'pd2_nb_moved', 'pd2_nb_saved_one', 'pd2_nb_saved_other', 'pd2_nb_refused'])
     assert.equal((L.match(new RegExp('\\n\\s+' + k + ': ', 'g')) || []).length, 2, k);

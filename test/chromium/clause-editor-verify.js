@@ -3070,7 +3070,7 @@ const dismissNote = async pg => {
       const panel = document.getElementById('context-panel');
       return { pinGone: !(panel && panel.querySelector('.rl-np-pin')),
         text: t.text, vis: t.visibility, who: t.who, at: t.at,
-        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent))) };
+        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent + ' ' + (x.title || '')))) };
     });
     ck('25f Add note files it onto the change it named, in the room that was lit — Internal at rest',
        /never paid theirs/.test(wrote.text || '') && wrote.vis === 'internal',

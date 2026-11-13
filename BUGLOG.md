@@ -22339,6 +22339,13 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 ### Noticed, not fixed
 - A company standard's fields (c.templateForm) are never on Fill in on the paper's walk, even on an un-negotiated draft: pd2FillBlanks reads contractBlanks, which answers [] for a templateForm contract, so every field falls to the form's "no place on the paper" line.
 - Suspected, not measured: "Fill the document" (tplFormApply) is not locked during a negotiation (tplFormLocked is only signed/executed/sealed) and rewrites c.redlineText from the form wholesale; whether that reaches a negotiated paper untracked depends on what the negotiation reads as its baseline. Worth a measured look.
+## 13 Nov 2026 — THE NOTES DRAWER IS A THREAD (owner picked "The Thread" by name off four drawn)
+- Built: rooms as a segmented switch, chips Open · Yours · Done (replacing the drawer's Done fold), a line per day, a face per note, the clock beside the name (full stamp on the hover), drawn verbs on hover/focus (always shown on a finger), facts under the words, one rounded box with the @ door. f1026 (red at the parent); f248, f264, f303, f304, f446, f756 re-pointed; two browser checks read the stamp off the hover.
+- A line NOT BUILT: the drawing's "Only your team sees this" was left out (owner's 2 Sep 2026 ruling); asked.
+- Hidden, as drawn: the contract-wide panel's "N notes" line under its name (the switch carries the counts).
+- Left alone on purpose: the Redlines column's notes view (word verbs, own Done fold) and the phone.
+### Noticed, not fixed
+- The contract-wide Notes list on the OTHER SIDE's page prints our change code (CHG-00N) on a note's reference line (rlChatPanelHtml refOf), while the pin on the same page reads the clause instead (owner, 8 Nov 2026). Not checked in a browser on their page; not touched.
 - Noticed, not fixed (13 Nov 2026): many browser checks open a contract (roomHomeLand) as soon as currentUser() is set after sign-in, before the sign-in's own landing on the Board (`_cnSignedIn` cleared in startApp); the Board can paint over the contract and the check fails at random (seen on the-read-bar-and-notes-verify laptop-b). Fixed only in the three checks this round touched; the rest should wait for `window._cnSignedIn === false`.
 
 ## 13 Nov 2026 — the clause editor's audit (owner, four screenshots of MK-382's clause 3; f1026, editor-audit-verify)
@@ -22369,4 +22376,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Not fixed: the owner asked only for this line.
 - 13 Nov 2026 — FIXED (f1027; owner: "fix the draft that comes back with no wording"): a drafting ask whose answer carries no JSON object is asked once more for it, on both chat routes and the browser-only path; the second answer stands. Not re-measured against the real provider (2-in-9 fault).
 - 13 Nov 2026: the clause editor's audit's test is f1027 (main took f1026 for "room for the answer" before it merged); the lines above that say f1026 for the audit mean f1027.
+- Renumbered: the Thread's check is f1030 (main took f1026 for "room for the answer" the same day).
+- FIXED 13 Nov 2026 (owner: "fix the Redlines tab count so it matches the head"): the Redlines tab on Jambo's panel now carries its column's own "Redlines N" on our seat too (it counted the Dossier's owed negotiation rows); amber while something there waits on you, grey otherwise. f1030.
 - 13 Nov 2026 — the "a draft asked for is a draft sent" check is f1030, not f1027 as the line above says (main took f1027 to f1029 meanwhile).
+- 13 Nov 2026: the Redlines tab's test is f1031 (main took f1030 for "a draft asked for is a draft sent" before it merged); the line above that says f1030 for the tab means f1031.
+- Renumbered again: the Thread's check is f1032 (main took f1030 and f1031 the same day).

@@ -318,8 +318,11 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     await tick(); await tick();
     assert.ok(root.done, 'marked on the record');
     assert.equal(p.host.querySelector('.rl-np-thread:not(.is-done)'), null, 'no open thread drawn');
-    const fold = p.host.querySelector('[data-rl-np-donefold]');
-    assert.ok(fold, 'the fold is drawn');
+    /* RE-POINTED 13 Nov 2026 (the Thread, owner's pick): the drawer's Done fold
+       is the Done chip — one door onto the done pile, with its count. */
+    assert.equal(p.host.querySelector('[data-rl-np-donefold]'), null, 'no fold in the drawer');
+    const fold = p.host.querySelector('[data-rl-np-show="done"]');
+    assert.ok(fold, 'the Done chip is drawn');
     assert.match(fold.textContent, /1/);
     fold.click(); await tick();
     const shown = p.host.querySelector('.rl-np-thread.is-done');
@@ -350,7 +353,10 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     assert.equal(rows.length, 2);
     assert.match(rows[0].querySelector('.rl-chat-on').textContent, new RegExp(p.ch.id),
       'the words sit in the pending change, so the row leads with its reference');
-    assert.match(rows[1].querySelector('.rl-chat-on').textContent, /Clause 7|Liability/);
+    /* RE-POINTED 13 Nov 2026 (the Thread): with no change to name, the clause is
+       said ONCE, by the note's own anchor line (it used to be said twice). */
+    assert.equal(rows[1].querySelector('.rl-chat-on'), null, 'no second line saying the clause');
+    assert.match(rows[1].querySelector('.rl-np-anchor .w').textContent, /Clause 7|Liability/);
     assert.ok(rows[1].querySelector('.rl-np-anchor q'), 'and the words are quoted on the note');
   });
 

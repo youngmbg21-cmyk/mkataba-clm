@@ -17235,7 +17235,7 @@ function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
           aria-selected="${r.key === room}" title="${_nea(r.external
             ? i18t('ng_np_room_t_ext', { who: r.name || '' })
             : i18t('ng_np_room_t_int'))}"
-          ><span class="rl-np-nm">${_ne(nm)}</span> <i>(${n})</i></button>`;
+          ><span class="rl-np-nm">${_ne(nm)}</span> <i>${n}</i></button>`;
       }).join('')}
     </div>`;
 }
@@ -17538,6 +17538,11 @@ let _rlNpReplyTo = null;
 /* Under which note the reply box is drawn (round four: Reply on any note). */
 let _rlNpReplyUnder = null;
 let _rlNpDoneOpen = false;
+/* THE THREAD (owner picked it by name, 13 Nov 2026): which notes the drawer
+   lists — 'open' · 'mine' (given to this reader) · 'done'. Per sitting; the
+   chips are its one door, and the Done fold it replaces is gone from the drawer
+   (the Redlines column's own notes view keeps its fold and _rlNpDoneOpen). */
+let _rlNpShow = 'open';
 let _rlNpFocusKey = null;
 /* The thread a MARKER opened the drawer on — kept until the drawer goes, so
    the same marker pressed again can close it (the focus key above is spent
@@ -17574,7 +17579,7 @@ function rlNotesUnpin(out){
 const rlNotesPinned = () => _rlNpPin;
 /* The shell tells us the drawer went: whatever was pinned is dropped and its
    waiter told nothing happened. */
-function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; }
+function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; _rlNpShow = 'open'; }
 /* The pin, where it belongs to the panel being drawn: the contract's own
    drawer shows any pin on that contract; a change's panel shows only a pin on
    that change. */
@@ -17662,7 +17667,7 @@ function rlNpWhoHtml(tabbed, ext, who){
 function rlNpSeatTabHtml(other, n, ext){
   const title = ext ? i18t('ng_np_who_ext', { who: other }) : i18t('ng_np_room_t_int');
   return `<div class="rl-np-tabs is-seat" role="tablist">
-      <span role="tab" aria-selected="true" class="rl-np-tab on${ext ? ' is-ext' : ''}" title="${_nea(title)}"><span class="rl-np-nm">${_ne(other)}</span> <i>(${n})</i></span>
+      <span role="tab" aria-selected="true" class="rl-np-tab on${ext ? ' is-ext' : ''}" title="${_nea(title)}"><span class="rl-np-nm">${_ne(other)}</span> <i>${n}</i></span>
     </div>`;
 }
 /* One note. The per-note visibility badge the card used to carry is GONE and
@@ -17746,6 +17751,122 @@ function rlNpTagMenuHtml(c, room, opts = {}){
       ><b>${_ne(p.name)}</b>${p.email ? `<span>${_ne(p.email)}</span>` : ''}</button>`).join('')
   }<p class="rl-np-tag-none" hidden>${i18t('ng_np_tag_none')}</p></div>`;
 }
+/* ---------- THE THREAD (owner picked it by name off four drawn, 13 Nov 2026) ----------
+   The drawer reads as a conversation: a face per note (initials, the tag inks'
+   own hash so a name always wears one shade), a line per DAY with the time
+   beside the name (the full stamp stays on the hover), replies tucked under
+   their note, the verbs as drawn buttons that come in when a note is pointed
+   at or keyed to (always there on a finger), the facts under the words, chips
+   for which notes are listed, and one box at the foot. The same builders, the
+   same attributes, the same one writer: only the drawing moved. */
+const _rlNpSvg = d => `<svg class="rl-np-ai" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const RL_NP_ICON = {
+  reply: _rlNpSvg('<path d="M6.5 4 3 7.5 6.5 11M3 7.5h6a4 4 0 0 1 4 4v.5"/>'),
+  done: _rlNpSvg('<path d="m3 8.5 3.2 3L13 4.5"/>'),
+  reopen: _rlNpSvg('<path d="M3.5 8a4.5 4.5 0 1 0 1.4-3.3M3.2 2.8v2.4h2.4"/>'),
+  seen: _rlNpSvg('<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="1.8"/>'),
+  give: _rlNpSvg('<circle cx="6" cy="5.5" r="2.3"/><path d="M1.8 13c.4-2.3 2-3.5 4.2-3.5 1 0 1.9.3 2.6.8M10.5 11.5H15M13 9.5l2 2-2 2"/>'),
+  bin: _rlNpSvg('<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5M6.8 7v3.5M9.2 7v3.5"/>'),
+  at: _rlNpSvg('<circle cx="8" cy="8" r="2.5"/><path d="M10.5 8v1a1.7 1.7 0 0 0 3.3 0V8a5.8 5.8 0 1 0-2.3 4.6"/>'),
+  up: _rlNpSvg('<path d="M8 13V3.5M4 7l4-4 4 4"/>'),
+  sort: _rlNpSvg('<path d="M4.5 3v10M2.5 11l2 2 2-2M9 4.5h5M9 8h3.5M9 11.5h2"/>'),
+  para: _rlNpSvg('<path d="M3 4h10M3 8h10M3 12h6"/>')
+};
+/* A drawn verb: the picture, and the word kept for a reader that cannot see it
+   (and for the Redlines column's notes view, which shows the words). */
+const rlNpVerb = (icon, label) => `${RL_NP_ICON[icon] || ''}<span class="rl-np-al">${label}</span>`;
+function rlNpInitials(name){
+  const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return (((p[0] || '')[0] || '') + ((p.length > 1 ? p[p.length - 1] : '')[0] || '')).toUpperCase() || '?';
+}
+function rlNpAvatarHtml(name, small){
+  return `<span class="rl-np-av rl-np-av-${rlTagInk(name)}${small ? ' s' : ''}" aria-hidden="true">${_ne(rlNpInitials(name))}</span>`;
+}
+/* The reader's own calendar day a note was written on, and what that day is
+   called on its line: Today, Yesterday, else the weekday and the date in the
+   reader's language (the year only when it is not this one). */
+function rlNpDayKey(at){
+  const t = (at instanceof Date) ? at.getTime() : Date.parse(at || '');
+  if (isNaN(t)) return '';
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function rlNpDayLabel(at){
+  const k = rlNpDayKey(at);
+  if (!k) return '';
+  const nowT = window.nowISO ? Date.parse(window.nowISO()) : Date.now();
+  const now = new Date(isNaN(nowT) ? Date.now() : nowT);
+  if (k === rlNpDayKey(now)) return i18t('ng_np_today');
+  if (k === rlNpDayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return i18t('ng_np_yesterday');
+  const d = new Date(Date.parse(at));
+  const loc = (typeof window !== 'undefined' && typeof window.langLocale === 'function') ? langLocale() : jxLocale();
+  const o = { weekday: 'long', day: 'numeric', month: 'short' };
+  if (d.getFullYear() !== now.getFullYear()) o.year = 'numeric';
+  try { return d.toLocaleDateString(loc, o); } catch (e){ return k; }
+}
+/* WHICH NOTES ARE LISTED. `items` is [{ ch, th }]. The counts are read off the
+   same threads the list draws; a marker pressed on the paper turns the list to
+   the pile its note is in, and a pile that has emptied falls back to Open. */
+function rlNpShowCounts(items){
+  const me = !PORTAL_MODE && typeof window.negoNoteForMe === 'function';
+  const n = { open: 0, mine: 0, done: 0 };
+  for (const { th } of items){
+    if (th.done) n.done++;
+    else { n.open++; if (me && negoNoteForMe(th.root)) n.mine++; }
+  }
+  return n;
+}
+function rlNpShowNow(items, n){
+  const fk = _rlNpFocusKey;
+  if (fk){
+    const hit = items.find(({ th }) => negoNoteKey(th.root) === fk || th.replies.some(r => negoNoteKey(r) === fk));
+    if (hit) _rlNpShow = hit.th.done ? 'done' : 'open';
+  }
+  if (_rlNpShow !== 'open' && !n[_rlNpShow]) _rlNpShow = 'open';
+  return _rlNpShow;
+}
+/* The line over the list: the chips (a pile with nothing in it is not listed;
+   with nothing but open notes there is nothing to choose and no chip is drawn)
+   and the order the list is in, which is a fact and not a control. */
+function rlNpScopeHtml(n, show){
+  const chip = (k, label) => (n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}"
+      data-rl-np-show="${k}" aria-pressed="${k === show ? 'true' : 'false'}">${label} <em>${n[k]}</em></button>` : '';
+  const chips = (n.mine || n.done || show !== 'open')
+    ? chip('open', i18t('ng_np_show_open')) + chip('mine', i18t('ng_np_show_mine')) + chip('done', i18t('ng_np_show_done')) : '';
+  return `<div class="rl-np-scope">${chips}<span class="rl-np-sort">${RL_NP_ICON.sort}${i18t('ng_np_oldest')}</span></div>`;
+}
+function rlNpRowsHtml(items, show, one){
+  const mine = typeof window.negoNoteForMe === 'function';
+  const list = items.filter(({ th }) => show === 'done' ? th.done
+    : show === 'mine' ? (!th.done && mine && negoNoteForMe(th.root)) : !th.done);
+  if (!list.length) return `<div class="rl-np-empty"><b>${i18t('ng_np_none_open')}</b></div>`;
+  let last = '';
+  return list.map(x => {
+    const k = rlNpDayKey(x.th.root.at);
+    const head = (k && k !== last) ? `<div class="rl-np-day" role="separator"><span>${_ne(rlNpDayLabel(x.th.root.at))}</span></div>` : '';
+    if (k) last = k;
+    return head + one(x, k);
+  }).join('');
+}
+/* The one box at the foot, both panels: the words, the @ door onto the room's
+   own picker (drawn only where the room offers somebody) and the one filled
+   button. */
+function rlNpBoxHtml(o){
+  const add = i18t('ng_card_note_add');
+  return `<div class="rl-np-foot${o.ext ? ' out' : ''}">
+        <div class="rl-np-box">
+        <textarea class="chat-field rl-np-in" rows="2" id="nego-ti-${o.key}"
+          placeholder="${_nea(o.ph)}"
+          aria-label="${_nea(o.aria)}">${_ne(o.draft || '')}</textarea>
+        ${o.tags || ''}
+        <div class="rl-np-act">
+          ${o.tags ? `<button type="button" class="rl-np-atb" data-rl-np-at title="${_nea(i18t('ng_np_tag_aria'))}" aria-label="${_nea(i18t('ng_np_tag_aria'))}">${RL_NP_ICON.at}</button>` : ''}
+          <button type="button" class="rl-np-send" ${o.send}
+            data-room="${o.room}" title="${_nea(add)}" aria-label="${_nea(add)}">${rlNpVerb('up', add)}</button>
+        </div>
+        </div>
+      </div>`;
+}
 /* `ctx` is optional and is what the drawer passes: with it the note draws its
    acts (Reply on a root, Done / Reopen on a root) and, where a reply box is
    open under it, that box. Without it — the card body, an older caller — the
@@ -17758,7 +17879,7 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
   const c = ctx && ctx.c;
   const st = (m.anchor && c && window.negoAnchorState) ? negoAnchorState(c, m) : null;
   const anchor = m.anchor ? `<div class="rl-np-anchor${(st === 'moved' || st === 'gone') ? ' is-moved' : ''}">
-      <span class="w">${_ne(rlNpClauseLabel(c, m.anchor.clauseId) || i18t('ng_np_on_words'))}</span>
+      <span class="w">${RL_NP_ICON.para}${_ne(rlNpClauseLabel(c, m.anchor.clauseId) || i18t('ng_np_on_words'))}</span>
       <q>${_ne(m.anchor.quote)}</q>
       ${st === 'moved' ? `<em>${i18t('ng_np_words_moved')}</em>`
         : st === 'gone' ? `<em>${i18t('ng_np_clause_gone')}</em>` : ''}
@@ -17789,9 +17910,11 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
      drift apart. Never on the counterparty's seat: PORTAL_MODE has no
      colleagues to offer and this field never reaches their page. */
   const given = (root && !PORTAL_MODE && window.negoNoteGiven) ? negoNoteGiven(m) : null;
+  const givenMe = !!(given && window.negoNoteForMe && negoNoteForMe(m));
   const giveWords = given
-    ? (given.due ? i18t('ng_np_given_by', { who: given.name, day: given.due })
-                 : i18t('ng_np_given', { who: given.name }))
+    ? (givenMe ? (given.due ? i18t('ng_np_given_you_by', { day: given.due }) : i18t('ng_np_given_you'))
+      : given.due ? i18t('ng_np_given_by', { who: given.name, day: given.due })
+                  : i18t('ng_np_given', { who: given.name }))
     : '';
   /* ---- A TICK THAT SAYS "SEEN" (Young asked 3 Oct 2026) ----
      On EVERY note, not only the root: a reply is read too, and the whole
@@ -17819,27 +17942,29 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
      it), so it sits on the facts line and keeps `data-rl-np-give`; the two
      doors onto that act are still read with querySelectorAll. */
   const factBits = [
-    seenWords ? `<span class="rl-np-seenby">${_ne(seenWords)}</span>` : '',
+    seenWords ? `<span class="rl-np-seenby">${RL_NP_ICON.seen}${_ne(seenWords)}</span>` : '',
     given ? (ctx && ctx.mayWrite
-      ? `<button type="button" class="rl-np-given" data-rl-np-give="${_nea(key)}" title="${_nea(i18t('ng_np_give_change'))}">${_ne(giveWords)}</button>`
-      : `<span class="rl-np-given">${_ne(giveWords)}</span>`) : '',
+      ? `<button type="button" class="rl-np-given${givenMe ? ' is-you' : ''}" data-rl-np-give="${_nea(key)}" title="${_nea(i18t('ng_np_give_change'))}">${_ne(giveWords)}</button>`
+      : `<span class="rl-np-given${givenMe ? ' is-you' : ''}">${_ne(giveWords)}</span>`) : '',
     (root && m.done) ? `<span class="rl-np-doneby">${_ne(i18t('ng_np_done_by', { who: (m.done && m.done.by) || '' }))}</span>` : ''
   ].filter(Boolean);
+  const T = k => i18t(k), tt = k => ` title="${_nea(i18t(k))}" aria-label="${_nea(i18t(k))}"`;
   const acts = (ctx && ctx.acts) ? `<div class="rl-np-acts">
-      ${ctx.mayWrite ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(rootKey)}" data-rl-np-reply-under="${_nea(key)}">${i18t('ng_np_reply')}</button>` : ''}
-      ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b g" data-rl-np-done="${_nea(key)}" data-on="${m.done ? '0' : '1'}">${
-        i18t(m.done ? 'ng_np_reopen' : 'ng_np_done')}</button>` : ''}
+      ${ctx.mayWrite ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(rootKey)}" data-rl-np-reply-under="${_nea(key)}"${tt('ng_np_reply')}>${rlNpVerb('reply', T('ng_np_reply'))}</button>` : ''}
+      ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b g" data-rl-np-done="${_nea(key)}" data-on="${m.done ? '0' : '1'}"${tt(m.done ? 'ng_np_reopen' : 'ng_np_done')}>${
+        rlNpVerb(m.done ? 'reopen' : 'done', T(m.done ? 'ng_np_reopen' : 'ng_np_done'))}</button>` : ''}
       ${(ctx.mayWrite && !PORTAL_MODE) ? `<button type="button" class="rl-np-act-b g rl-np-seen${iSaw ? ' is-on' : ''}" data-rl-np-seen="${_nea(key)}" data-on="${iSaw ? '0' : '1'}"
-        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">${i18t('ng_np_seen')}</button>` : ''}
-      ${(ctx.mayWrite && root && !PORTAL_MODE && !given) ? `<button type="button" class="rl-np-act-b g" data-rl-np-give="${_nea(key)}">${i18t('ng_np_give')}</button>` : ''}
-      ${(ctx.mayWrite && authored) ? `<button type="button" class="rl-np-act-b g" data-rl-np-delete="${_nea(key)}"${delWhy ? ` disabled title="${_nea(delWhy)}"` : ''}>${i18t('ng_np_delete')}</button>` : ''}
-    </div>${factBits.length ? `<div class="rl-np-facts">${
-      factBits.join('<span class="rl-np-fsep" aria-hidden="true">·</span>')}</div>` : ''}` : '';
+        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">${rlNpVerb('seen', T('ng_np_seen'))}</button>` : ''}
+      ${(ctx.mayWrite && root && !PORTAL_MODE && !given) ? `<button type="button" class="rl-np-act-b g" data-rl-np-give="${_nea(key)}"${tt('ng_np_give')}>${rlNpVerb('give', T('ng_np_give'))}</button>` : ''}
+      ${(ctx.mayWrite && authored) ? `<button type="button" class="rl-np-act-b g" data-rl-np-delete="${_nea(key)}"${delWhy ? ` disabled title="${_nea(delWhy)}" aria-label="${_nea(i18t('ng_np_delete'))}"` : tt('ng_np_delete')}>${rlNpVerb('bin', T('ng_np_delete'))}</button>` : ''}
+    </div>` : '';
+  const facts = ((ctx && ctx.acts) && factBits.length) ? `<div class="rl-np-facts">${
+      factBits.join('<span class="rl-np-fsep" aria-hidden="true">·</span>')}</div>` : '';
   /* THE VERBS AND THE FACTS ALONE (ctx.actsOnly): the Redlines column's own
      notes view (round 9's gaps, second pass) draws its rows its own way and
      asks this one builder for the presses under each, so their attributes and
      wiring (rlNpWireActs) are the drawer's own */
-  if (ctx && ctx.actsOnly) return acts;
+  if (ctx && ctx.actsOnly) return acts + facts;
   const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml((ctx && ctx.replyRoot) || m, ctx) : '';
   /* ---- AND WHETHER IT IS NEW TO THIS READER ---- (13 Sep 2026, group 5)
      A dot, on the note itself, where the reading happens — the bell counts
@@ -17847,16 +17972,27 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
      answer this. Never on the counterparty's seat: their page has no reader to
      remember. */
   const fresh = !!(c && !PORTAL_MODE && window.negoNoteUnread && negoNoteUnread(c, m));
+  /* THE TIME BESIDE THE NAME; THE DAY ON ITS OWN LINE (the Thread): where the
+     list has said the day (ctx.day) and this note was written on it, the clock
+     alone is drawn and the full stamp is the hover's; anywhere else — a reply
+     on a later day, the card body — the full stamp is drawn as it always was. */
+  const whenFull = negoWhenFull(m.at);
+  const when = (ctx && ctx.day && rlNpDayKey(m.at) === ctx.day) ? negoWhen(m.at) : whenFull;
   return `<div class="rl-np-note${theirs ? ' is-them' : ''}${(ctx && !root) ? ' is-reply' : ''}${fresh ? ' is-new' : ''}" data-rl-np-key="${_nea(key)}">
+    ${rlNpAvatarHtml(m.who || '', !!(ctx && !root))}
+    <div class="rl-np-b">
     <div class="rl-np-top"><b>${_ne(m.who || 'Someone')}</b>${
       fresh ? `<i class="rl-np-dot" title="${_nea(i18t('ng_np_new'))}" aria-label="${_nea(i18t('ng_np_new'))}"></i>` : ''
-    }<span>${_ne(negoWhenFull(m.at))}</span></div>
+    }<span title="${_nea(whenFull)}">${_ne(when)}</span></div>
     ${theirs && org ? `<span class="rl-np-org">${_ne(org)}</span>` : ''}
+    ${(root && ctx && ctx.refHtml) || ''}
     ${anchor}
     <p${long ? ' class="rl-np-clamp"' : ''}>${rlNpMarkMentions(_ne(t), m)}</p>
     ${long ? `<button type="button" class="rl-np-more" data-rl-note-more
       data-more="${_nea(i18t('ng_note_more'))}" data-less="${_nea(i18t('ng_note_less'))}">${i18t('ng_note_more')}</button>` : ''}
-    ${acts}${rbox}
+    ${facts}${rbox}
+    </div>
+    ${acts}
   </div>`;
 }
 /* The reply box: its own textarea and its own Send reply, under the note it
@@ -17879,23 +18015,21 @@ function rlNpReplyBoxHtml(root, ctx){
 function rlNpThreadHtml(c, ch, th, room, side, other, opts = {}){
   const mayWrite = notesMayWrite(c, opts);
   const key = negoNoteKey(th.root);
-  const ctx = { c, ch, acts: true, mayWrite, ext: negoRoomIsExternal(room) };
+  const ctx = { c, ch, acts: true, mayWrite, ext: negoRoomIsExternal(room), day: opts.day || '', refHtml: opts.refHtml || '' };
   const under = k => _rlNpReplyTo === key && (_rlNpReplyUnder || key) === k;
   return `<div class="rl-np-thread${th.done ? ' is-done' : ''}" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
     ${rlNpNoteHtml(th.root, room, side, other, { ...ctx, root: true, rootKey: key, replyRoot: th.root, replyCount: th.replies.length, replyOpen: under(key) })}
     ${th.replies.map(r => rlNpNoteHtml(r, room, side, other, { ...ctx, root: false, rootKey: key, replyRoot: th.root, replyOpen: under(negoNoteKey(r)) })).join('')}
   </div>`;
 }
-/* The list: open threads first, then the Done fold. An empty room draws the
-   caller's own empty state instead (it knows which room it is). */
+/* The list: the chips and the order over it, then the pile the chips name,
+   a line per day. An empty room draws the caller's own empty state instead
+   (it knows which room it is). */
 function rlNpListHtml(c, ch, notes, room, side, other, opts = {}){
-  const threads = negoNoteThreads(notes);
-  const open = threads.filter(t => !t.done), done = threads.filter(t => t.done);
-  const one = th => rlNpThreadHtml(c, ch, th, room, side, other, opts);
-  return open.map(one).join('') + (done.length ? `
-    <button type="button" class="rl-np-donefold" data-rl-np-donefold aria-expanded="${_rlNpDoneOpen ? 'true' : 'false'}">${
-      i18tn('ng_np_done_n', done.length, { n: done.length })}</button>
-    ${_rlNpDoneOpen ? done.map(one).join('') : ''}` : '');
+  const items = negoNoteThreads(notes).map(th => ({ ch, th }));
+  const n = rlNpShowCounts(items), show = rlNpShowNow(items, n);
+  return rlNpScopeHtml(n, show) + rlNpRowsHtml(items, show,
+    (x, day) => rlNpThreadHtml(c, ch, x.th, room, side, other, { ...opts, day }));
 }
 /* What a FILED change's pin quotes: the wording it proposes, as plain words,
    bounded as a note's quote is; a change with no wording of its own (a
@@ -18035,7 +18169,7 @@ function rlNotesPanelHtml(c, ch, opts = {}){
   const tabs = tabbed ? rlNpRoomsHtml(c, room, n, opts, side) : '';
   const list = notes.length
     ? rlNpListHtml(c, ch, notes, room, side, other, opts)
-    : `<div class="rl-np-empty">
+    : `${rlNpScopeHtml({ open: 0, mine: 0, done: 0 }, 'open')}<div class="rl-np-empty">
         <b>${i18t(ext ? 'ng_np_none_ext' : 'ng_np_none_int')}</b>
         <span>${i18t('ng_np_none_sub', { id: _ne(ch.id) })}</span>
       </div>`;
@@ -18044,16 +18178,10 @@ function rlNotesPanelHtml(c, ch, opts = {}){
      long before this panel, and one wording covers both. */
   const pin = rlNpPinFor(c, ch);
   const foot = mayWrite
-    ? `${rlNpPinHtml(c, ch, opts, side)}<div class="rl-np-foot${ext ? ' out' : ''}">
-        <textarea class="chat-field rl-np-in" rows="2" id="nego-ti-${_ne(ch.id)}"
-          placeholder="${_nea(ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_card_note_ph'))}"
-          aria-label="${_nea(i18t('ng_start_thread_aria', { id: ch.id }))}">${_ne(pin ? (pin.drafts[room] || '') : '')}</textarea>
-        ${rlNpTagMenuHtml(c, room, opts)}
-        <div class="rl-np-act">
-          <button type="button" class="rl-np-send" data-rl-np-send="${_ne(ch.id)}"
-            data-room="${room}">${i18t('ng_card_note_add')}</button>
-        </div>
-      </div>`
+    ? `${rlNpPinHtml(c, ch, opts, side)}${rlNpBoxHtml({ ext, room, key: _ne(ch.id),
+        ph: ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_card_note_ph'),
+        aria: i18t('ng_start_thread_aria', { id: ch.id }), draft: pin ? (pin.drafts[room] || '') : '',
+        tags: rlNpTagMenuHtml(c, room, opts), send: `data-rl-np-send="${_ne(ch.id)}"` })}`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
   return `<div class="rl-np" data-rl-np="${_nea(ch.id)}">
     ${''/* WHICH CHANGE THIS BELONGS TO, and a way back to the clause it is
@@ -18070,7 +18198,6 @@ function rlNotesPanelHtml(c, ch, opts = {}){
     ${tabs}
     ${tabbed ? '' : rlNpSeatTabHtml(other, notes.length, ext)}
     <div class="rl-np-list">
-      <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
       ${list}
     </div>
     ${foot}
@@ -18278,38 +18405,31 @@ function rlChatPanelHtml(c, opts = {}){
   const mayWrite = notesMayWrite(c, opts);
   const pin = rlNpPinFor(c, null);
   const foot = mayWrite
-    ? `${rlNpPinHtml(c, null, opts, side)}<div class="rl-np-foot${ext ? ' out' : ''}">
-        <textarea class="chat-field rl-np-in" rows="2" id="nego-ti-contract"
-          placeholder="${_nea(ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_chat_ph'))}"
-          aria-label="${_nea(i18t('ng_chat_write_aria'))}">${_ne(pin ? (pin.drafts[room] || '') : '')}</textarea>
-        ${rlNpTagMenuHtml(c, room, opts)}
-        <div class="rl-np-act">
-          <button type="button" class="rl-np-send" data-rl-chat-send="1"
-            data-room="${room}">${i18t('ng_card_note_add')}</button>
-        </div>
-      </div>`
+    ? `${rlNpPinHtml(c, null, opts, side)}${rlNpBoxHtml({ ext, room, key: 'contract',
+        ph: ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_chat_ph'),
+        aria: i18t('ng_chat_write_aria'), draft: pin ? (pin.drafts[room] || '') : '',
+        tags: rlNpTagMenuHtml(c, room, opts), send: 'data-rl-chat-send="1"' })}`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
   /* ONE LIST OF THREADS, open first and Done folded at the foot — the same
      list rule the per-change panel draws, at contract scope. */
   const threads = rlChatThreads(c, opts, room);
-  const openT = threads.filter(x => !x.th.done), doneT = threads.filter(x => x.th.done);
+  const nShow = rlNpShowCounts(threads), show = rlNpShowNow(threads, nShow);
   const refOf = (ch, th) => {
     /* A contract-level note pinned to words on a clause that now carries a
        pending change is filed under that CHG on screen (a reading). */
     const shown = ch || ((th.root.anchor && window.negoNoteHomeFor) ? negoNoteHomeFor(c, th.root.anchor.clauseId) : null);
     if (shown) return `<button type="button" class="rl-chat-on" data-rl-notes="${_nea(shown.id)}">
-          <span class="id">${_ne(shown.id)}</span>
+          ${RL_NP_ICON.para}<span class="id">${_ne(shown.id)}</span>
           ${shown.clauseLabel ? `<em>${_ne(_neClause(shown.clauseLabel))}</em>` : ''}
         </button>`;
-    const label = th.root.anchor ? rlNpClauseLabel(c, th.root.anchor.clauseId) : '';
-    return label ? `<span class="rl-chat-on is-static"><em>${_ne(label)}</em></span>` : '';
+    /* No change to name: the note's own anchor line, drawn right under this
+       spot, already says the clause — a second line would say it twice. */
+    return '';
   };
-  const rowOf = ({ ch, th }) => `<div class="rl-chat-row">${refOf(ch, th)}${
-    rlNpThreadHtml(c, ch, th, room, side, other, opts)}</div>`;
-  const rows2 = openT.map(rowOf).join('') + (doneT.length ? `
-    <button type="button" class="rl-np-donefold" data-rl-np-donefold aria-expanded="${_rlNpDoneOpen ? 'true' : 'false'}">${
-      i18tn('ng_np_done_n', doneT.length, { n: doneT.length })}</button>
-    ${_rlNpDoneOpen ? doneT.map(rowOf).join('') : ''}` : '');
+  /* The reference rides INSIDE its note, under the name (the Thread). */
+  const rowOf = ({ ch, th }, day) => `<div class="rl-chat-row">${
+    rlNpThreadHtml(c, ch, th, room, side, other, { ...opts, day, refHtml: refOf(ch, th) })}</div>`;
+  const rows2 = rlNpRowsHtml(threads, show, rowOf);
   const body = threads.length ? rows2 : (rows.length
     ? rows.map(({ ch, m }) => `<div class="rl-chat-row">
         ${''/* A NOTE THAT BELONGS TO NO REDLINE CARRIES NO REFERENCE LINE
@@ -18351,7 +18471,7 @@ function rlChatPanelHtml(c, opts = {}){
            the one thing naming who reads it. */}
     ${tabbed ? '' : rlNpSeatTabHtml(other, rows.length, ext)}
     <div class="rl-np-list">
-      <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
+      ${rlNpScopeHtml(nShow, show)}
       ${body}
     </div>
     ${foot}
@@ -18471,6 +18591,20 @@ function rlNpTagWire(host, box){
     if (q == null) shut(); else open(q);
   });
   box.addEventListener('blur', () => setTimeout(shut, 160));
+  /* THE @ DOOR types the @ where the caret stands and lets the box's own
+     reading open the picker — one picker, two ways to it. */
+  const atb = host.querySelector('[data-rl-np-at]');
+  if (atb) atb.addEventListener('mousedown', ev => ev.preventDefault());
+  if (atb) atb.addEventListener('click', ev => {
+    ev.preventDefault();
+    const at = box.selectionStart == null ? box.value.length : box.selectionStart;
+    const head = String(box.value).slice(0, at);
+    const ins = ((head && !/[\s(\[]$/.test(head)) ? ' ' : '') + '@';
+    box.value = head + ins + String(box.value).slice(at);
+    if (box.focus) box.focus();
+    if (box.setSelectionRange) box.setSelectionRange(at + ins.length, at + ins.length);
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   /* IN THE CAPTURE PHASE, AND ONLY WHILE THE MENU IS UP. The composer's own
      keydown sends the note on Enter, and it is armed on this same element —
      so while a name is being chosen, Enter has to mean "pick this one" and
@@ -18791,6 +18925,11 @@ function rlNpWireActs(host, c, ch, opts = {}, repaint){
   host.querySelectorAll('[data-rl-np-donefold]').forEach(b => b.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     _rlNpDoneOpen = !_rlNpDoneOpen; again();
+  }));
+  /* THE CHIPS: which pile the list shows. Nothing is written. */
+  host.querySelectorAll('[data-rl-np-show]').forEach(b => b.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    _rlNpShow = b.getAttribute('data-rl-np-show') || 'open'; again();
   }));
   /* TWO DOORS, ONE ACT (f295's lesson): the "Give to…" button and the chip a
      given note wears both carry data-rl-np-give, and querySelectorAll arms

@@ -37716,3 +37716,38 @@ And (80008 → 79953; verbatim before):
 ```
 JUDGEMENT ON THE STRONGER MODEL (`copilotNeedsJudgement`, `copilotDeepOf`; f870); a dated model id priced as its model (`aiRateFor`; f871).
 ```
+## HOME — THE BOARD AND THE MAP — THE REDLINES TAB'S NUMBER IS ITS HEAD'S (owner, 13 Nov 2026)
+**THE ASK.** *"fix the Redlines tab count so it matches the head"* — off the owner's own screenshot of MK-382 (the editor's audit, the same night): the Redlines tab on Jambo's panel said 2 while the column under it said "Redlines 6 · 5 not sent". Logged then as noticed, not fixed.
+**THE CAUSE.** Two readings for one door. On our seat `pdTabCount('red')` summed the Dossier's negotiation rows owed by you (`dossierOf(c).owed` of stage `nego`: their asks waiting, a send owed — five drafts are ONE send), while the head says `rlOpenCardCount`: the rows the column draws with the settled fold shut. Their view had been mended the same way on 25 Oct (owner's list item 19, f881 (19)); our seat never was.
+**BUILT.** Our seat now asks `rlOpenCardCount` over the face's own options (`pdRedOpts`), hidden as the column hides (`rlHiddenFrom(c,'owner')`; `rlBenchOpts` passes no `hiddenIds` of its own, so the two cannot drift). The tone keeps the old reading's one true job: AMBER while any negotiation row is owed by you, GREY when everything there waits on them. REVERSES the 17–22 Oct reading "Redlines: the Dossier's own Negotiate count" for the number only.
+**TESTS.** f1031: the real column drawn in the world and its head read; the tab says the same (drafts, their ask, a settled one folded); grey when nothing is owed; no number on an empty column; Their view unchanged. Red at the parent (head 5, tab 2). f881 (19) re-pointed. Photographed at the three screens: tab 5 = head 5 = the paper switch's "Redline · 5".
+**CAUGHT ON GITHUB, THE SAME HOUR.** The first push (92f08c6) turned upload-blanks-verify 8h red ("the received document is not rewritten — clause ids were stamped into it"). The column's count reads through `negoChanges`, which calls `negoInit`; the tab is painted on every contract, so a contract nobody had redlined was rewritten by looking at it (READING MUST NOT WRITE). Now asked only where `c.negotiation` and `c.changes` already stand, RAW, as `rlOwnerOpenActions` does; f1031 (5) pins it (red on 92f08c6).
+
+## NOTES AND COMMENTS
+THE THREAD, 13 Nov 2026. The owner sent a screenshot of the Notes drawer (MK-382) and asked: "draw a more slick versions of the notes page that slack or google would be proud of while respecting hatis theme." Four were drawn full size on the contract page in one HTML Artifact with a switcher: The Thread (a chat, like Slack), Margin Cards (comment cards, like Google Docs), The SAP Way, The Legora Way. Recommended The Thread; the owner: "build The Thread".
+WHAT WAS BUILT, against the drawing: the rooms as one segmented switch with counts (no brackets); chips Open · Yours · Done with the order said at the right; a line per day (Today, Yesterday, else weekday and date); a face per note (initials, the tag inks' own hash); the name with the clock beside it; the clause link under the name; replies tucked under their note on a line; the facts under the words (Given to you in amber, Seen by with an eye, Done with a green dot); the verbs as drawn buttons that come in on hover or focus; one rounded box with the @ door and a round filled send.
+WHERE THE BUILD DEPARTS FROM THE DRAWING, each told to the owner: (1) the drawing showed a done note under the Open chip; built, the chips are real piles and a done note is listed only under Done, which REPLACES the drawer's "Done (n)" fold (one door, not two). (2) the drawing's "More" button held Edit and Delete; the drawer has no Edit, so Delete is drawn as its own bin button and no menu was added. (3) the drawing's line "Only your team sees this" in the box was NOT built: the owner ruled on 2 Sep 2026 that the room's tab says it and a sentence must not; asked, not assumed. (4) the quoted words a note is about are KEPT under the clause link (the drawing left them out; they are on the panel today). (5) the full date and year moved to the hover of the clock; the day line says the day (the 11 Sep 2026 ask was that every note is time stamped; it still is). (6) the header's "N notes" line is hidden on the contract-wide panel, as drawn; the switch carries the counts.
+LEFT ALONE, said to the owner: the Redlines column's own notes view (word verbs, its own Done fold) and the phone. The per-change panel and the other side's page are the same builder and wear the Thread.
+MEASURED: photographed at 1440x780, 1536x730 and 1366x950 in the new look; nothing scrolls sideways in the panel. The verbs are opacity 0 at rest and NOT pointer-events none, so a press that reaches one is already over its note and the browser checks' clicks still land.
+RENUMBERED on joining main: the check is f1032 (main had taken f1026, then f1030 and f1031, the same day).
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (eighth)
+On joining main (#693, #694) the rules file stood at 80695 bytes; cut to 80345. Verbatim before:
+```
+DISCOVER IS A PAGE (new look only; the old look keeps `[data-ac-open]`, `#ac-disc`): Reads IS Discover (`nav_reads`, `renderReads`, `rdnRender`); the list's head carries the Discover pill (`askColBtnHtml` → `discoverOpen`; GREEN SPARK: Jambo's green with his spark, `.rfp-dsc`); ONE ask box, ONE black button saying how many (`dscAskBtnHtml`); the ask is the one read over the Contracts list as filtered (`askColAskHere` → `askColReadRun`; `dscScope`); a row opens under itself (`dscOpenHtml`), the panel's three faces `dscPanelPaint`; live repaint `discoverLive`; the Contracts list never repaints over it (`_acRegRepaint`). f1016, discover-page-verify.
+THE SAP WAY: a FORM (To · What goes · What they can do · Send by), "Before you send" beside, VERDICT first (`shareVerdictPaint`). OUR PAPER GOES OUT CLEAN THE FIRST TIME: on the first send of OUR paper our pending fixes fold into the baseline (`negoFoldOwnFirstSend`; a Draft only — refuses on their paper, any link on record or unread, anything handed over, theirs, held or under review), kept in `c.negotiation.folded`; said once (`negoFoldWouldTake`).
+```
+And (80345 → 80126; verbatim before):
+```
+THEIR PAGES AS OURS (`portalOutOn`): our cards in their panel (`portalOutHeadHtml`: Redlines · Notes, no number on the pill); Counter opens our clause page (`portalOutPropose`, `ceTheirTrail`); their team's notes `MSG_SIDE_THEIR_TEAM`, served only to their party's links; Send back (`portalOutSendHtml`); their seat never types a clause's name (`ceHeadTypable`). Their History says "countered" only where our counter is on their copy, else "waiting" (`portalOutHistoryHtml`, `onCopy`). their-pages-as-ours-verify.
+signature lines take names (one writer `saveSignerPlan`); Enter walks `pd2FillWalk`, the last saves and returns; what has no place on the paper → the form, its line naming three then counting (`PD2_REST_NAMED`, f1024). f1012.
+```
+And (80126 → 80041; verbatim before):
+```
+- THE BOARD DRAWS FIRST (owner, 10 Nov 2026): a ranking, breakdown, comparison or picture typed (`hbAnalyticAsk`) is drawn and stays on the Board (`igBoardTalkAsk`); HaTi mends its card (`hbResMend`); why / should stays the brain's. f999.
+a side-list row → its Dossier (`hbSheetGo` → `roomHomeLand`); Your book a TABLE (`hbBookHtml`).
+```
+And (80041 → 80000; verbatim before):
+```
+ONE quiet touch of colour per page, read off a fact it has (`listStreamTone`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
+```
