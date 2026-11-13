@@ -157,10 +157,24 @@ const NOTE = 'We can meet you at 45 days on payment.';
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await open();
       await until(() => { const p = document.querySelector('#modal-root .modal-in'); return !!p && !(p.getAnimations && p.getAnimations().some(a => a.playState === 'running')); });
-      const F = await page.evaluate(() => { const t = document.getElementById('share-lead-title'), s = document.getElementById('share-send'), L = document.getElementById('sh-letter'), side = document.getElementById('share-step-1');
+      /* STEADIED 13 Nov 2026 (pull request 711, run 43487563102: "Cannot read properties of null (reading
+         'getBoundingClientRect')" here, once, on a change that does not touch the send screen): the four parts were
+         read the moment the window settled, and one was not drawn yet. A WAIT ASKS FOR THE STATE, BOUNDED: the
+         measure is taken in ONE read that answers only once all four parts stand, and a part that never comes is
+         REPORTED by name, never a crash that ends the stage. */
+      const F = await until(() => { const t = document.getElementById('share-lead-title'), s = document.getElementById('share-send'), L = document.getElementById('sh-letter'), side = document.getElementById('share-step-1');
+        if (!t || !s || !L || !side) return null;
         const tr = t.getBoundingClientRect(), sr = s.getBoundingClientRect(), a = L.getBoundingClientRect(), b = side.getBoundingClientRect();
+        if (!sr.width || !a.width || !b.width) return null;
         const hit = document.elementFromPoint(sr.left + sr.width / 2, sr.top + sr.height / 2);
-        return { title: tr.top >= 0 && tr.bottom <= innerHeight, send: sr.bottom <= innerHeight && sr.top >= 0 && !!hit && s.contains(hit), beside: b.left >= a.right - 1, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
+        return { title: tr.top >= 0 && tr.bottom <= innerHeight, send: sr.bottom <= innerHeight && sr.top >= 0 && !!hit && s.contains(hit), beside: b.left >= a.right - 1, side: document.documentElement.scrollWidth <= innerWidth + 1 }; }, null, 10000);
+      if (!F) {
+        const miss = await page.evaluate(() => ['share-lead-title', 'share-send', 'sh-letter', 'share-step-1'].filter(id => { const e = document.getElementById(id); return !e || !e.getBoundingClientRect().width; }));
+        check(`6 ${w}×${ht}: the title and Send in view, the letter and its column side by side, nothing sideways`, false, 'the send window never stood whole: not drawn after 10s: ' + (miss.join(', ') || 'none named'));
+        await shot(page, `the-letter-${w}x${ht}-not-whole`);
+        await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+        continue;
+      }
       check(`6 ${w}×${ht}: the title and Send in view, the letter and its column side by side, nothing sideways`, F.title && F.send && F.beside && F.side, JSON.stringify(F));
       await shot(page, `the-letter-${w}x${ht}`);
       await page.evaluate(() => { try { closeModal(); } catch (_) {} });

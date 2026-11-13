@@ -93,16 +93,20 @@ const check = (name, pass, detail) => {
       await page.waitForTimeout(250);
     }
     await page.evaluate(() => igPaintPaper());
-    await page.waitForFunction(() => { const n = document.querySelector('#ig-paper .igw-count'); return !!n && /\b24\b/.test(n.textContent); }, null, { timeout: 8000 }).catch(() => {});
-    await page.waitForTimeout(300);
+    /* STEADIED 13 Nov 2026 (pull requests 701 and 711: "Cannot read properties of null (reading 'textContent')" at
+       the read below, twice in a day on changes that do not touch the wall): the wait asks for the WHOLE state the
+       read needs — the count says 24 AND every card drawn carries its number and its sheet — bounded, in place of
+       a fixed pause; and the read below no longer crashes on a card without a number, it reports it. */
+    await page.waitForFunction(() => { const n = document.querySelector('#ig-paper .igw-count'); const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
+      return !!n && /\b24\b/.test(n.textContent) && cards.length > 0 && cards.every(b => b.querySelector('.igw-ref') && b.querySelector('.igw-sheet')); }, null, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '1-wall.png') });
 
     /* ================= 1. EVERY CONTRACT, AS A PAPER, NUMBER BELOW ========= */
     const all = await page.evaluate(() => {
       const want = regFiltered().map(c => contractRef(c));
       const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
-      const got = cards.map(b => b.querySelector('.igw-ref').textContent.trim());
-      const below = cards.every(b => b.querySelector('.igw-ref').getBoundingClientRect().top >= b.querySelector('.igw-sheet').getBoundingClientRect().bottom);
+      const got = cards.map(b => { const r = b.querySelector('.igw-ref'); return r ? r.textContent.trim() : '(no number on ' + (b.getAttribute('data-ig-pick') || '?') + ', ' + b.className + ')'; });
+      const below = cards.every(b => { const r = b.querySelector('.igw-ref'), sh = b.querySelector('.igw-sheet'); return !!r && !!sh && r.getBoundingClientRect().top >= sh.getBoundingClientRect().bottom; });
       return { want: want.length, got: got.length, same: JSON.stringify(want) === JSON.stringify(got), below,
         count: document.querySelector('.igw-count').textContent.trim(), list: !!document.querySelector('#ig-paper .ig-pick-list') };
     });
@@ -112,7 +116,7 @@ const check = (name, pass, detail) => {
        the count line says the book ("24 contracts · newest first") */
     const first = await page.evaluate(() => {
       const want = regFiltered().map(c => contractRef(c)).slice(0, 12);
-      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.querySelector('.igw-ref').textContent.trim());
+      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => { const r = b.querySelector('.igw-ref'); return r ? r.textContent.trim() : '(no number)'; });
       return { got: got.length, same: JSON.stringify(want) === JSON.stringify(got), foot: ((document.querySelector('#ig-wall [data-lh-foot="wall"] .lh-range') || {}).textContent || '').trim() };
     });
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
@@ -124,7 +128,7 @@ const check = (name, pass, detail) => {
     while (await page.$('#ig-wall [data-lh-more="wall"]')) { await page.click('#ig-wall [data-lh-more="wall"]'); await page.waitForTimeout(250); }
     const every = await page.evaluate(() => {
       const want = regFiltered().map(c => contractRef(c));
-      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.querySelector('.igw-ref').textContent.trim());
+      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => { const r = b.querySelector('.igw-ref'); return r ? r.textContent.trim() : '(no number)'; });
       return { n: got.length, same: JSON.stringify(want) === JSON.stringify(got) };
     });
     check('1a2 Show more brings the rest, in the same order, until every contract stands', every.n === all.want && every.same, JSON.stringify(every));
