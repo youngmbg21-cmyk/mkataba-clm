@@ -2578,12 +2578,22 @@ function renderMigration(o){
   const caret=migBoxKeep();
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page mig-page${_migCheck?' is-checking':''}">
+    ${''/* ONE HEAD IN THE NEW LOOK, ON EVERY STATE OF THE PAGE (the flash measure, 13 Nov 2026: with no files in, Import
+           alone stood under the shell's own title strip, so every move to or from it slid the whole page 71px): the
+           page draws its title itself, as the lists do, and the head's facts and act fill its two slots (migPaintHead) */}
+    ${typeof window.newLookOn==='function'&&newLookOn()?`<div class="mig-own-head"><div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_import'))}</h2><span class="ctf-hf" id="page-head-facts"></span><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div></div>`:''}
     ${''/* THE WHITE BAR (owner, 9 Oct 2026): the page's name, what the batch is
            and Choose files… on the white head; the list head (or the check
            view's bar) on the same white band, closed by its rule */}
     ${migBandFrameHtml()}
     <style>
       .mig-page{padding:0 var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+      /* the shell's title strip, drawn in the page: the same 26px top, 40px edge, white ground and hairline under it */
+      /* and what stands under it where it stood under the strip: the page's two gaps and the band are taken back */
+      .mig-own-head{flex:none;position:relative;z-index:1;padding:23px 40px 0;margin:0 10px -21px 0;background:var(--color-surface)}
+      .mig-own-head .ctf-h{line-height:1.2}
+      .mig-own-head .cun-head{margin:0;min-height:44px;box-sizing:border-box;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+      .mig-own-head .apn-acts:empty{display:none}
       /* the check view's bar 12px under the head card's line and over its foot (19 Oct 2026) */
       .mig-band{padding-top:var(--s-3);padding-bottom:var(--s-3)}
       .mig-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);min-width:0}

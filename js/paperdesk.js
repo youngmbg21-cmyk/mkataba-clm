@@ -4944,7 +4944,7 @@ function pd2FormHeadHtml(c, n){
   const E = _pdE;
   /* the page's own head: "‹ Paper" over the title (the form's own h3, which the page lifts into its title) and the line under it */
   return { back: `<button type="button" class="ui-link pd2-fm-back" data-pd-mid-back>‹ ${E(_pdT('pd_stage_paper'))}</button>`,
-    under: `<div id="pd2-fm-under" class="pd2-fm-m">${E([c.name, _pdTn('pd2_fm_owed', n, { n }), _pdT('pd2_fm_how')].filter(Boolean).join(' · '))}</div>` };
+    under: `<div id="pd2-fm-under" class="pd2-fm-m">${E([c.name, _pdTn('pd2_fm_owed', n, { n })].filter(Boolean).join(' · '))}</div>` };
 }
 function pd2FormMidOpen(c){
   const id = String(c.id), mk = 'form:' + id;
@@ -5014,16 +5014,23 @@ function pd2FormRegroup(c){
   const list = [...all.filter(owed), ...all.filter(tr => !owed(tr))];
   list.forEach(tr => { if (owed(tr)) tr.setAttribute('data-pd2-owed', ''); if (tr.querySelector('q, [data-pd-og-quote], [data-pd-og-spot]')) tr.setAttribute('data-pd2-paper', '');
     const a = tr.querySelector('td.pd-og-a'); if (owed(tr) && a && !a.textContent.trim()) a.textContent = _pdT('pd2_fm_src_none'); });
+  /* THE ROW AS DRAWN (owner, 13 Nov 2026: "this page is a very ugly page"; work order "the Fill in form, The Legora Way, drawn
+     properly"): the name in sentence case, and under it the § and the paper's own sentence with the blank shown as a gap */
+  list.forEach(tr => { try { pd2FormRowDress(c, tr); } catch (_){} });
   host.querySelectorAll('tbody').forEach(t => t.remove());
   const tb = document.createElement('tbody'); tb.className = 'pd-fm-g pd2-fm-list'; list.forEach(tr => tb.appendChild(tr)); host.appendChild(tb);
   host.setAttribute('data-pd2-grouped', '');
-  const nOwed = list.filter(tr => tr.hasAttribute('data-pd2-owed')).length, nPaper = list.filter(tr => tr.hasAttribute('data-pd2-paper')).length;
+  const nOwed = list.filter(tr => tr.hasAttribute('data-pd2-owed')).length, nRec = list.length - nOwed;
+  /* what already stands, under one quiet line (a label inside the list; only where both kinds are in it) */
+  if (nOwed && nRec){ const sep = document.createElement('tr'); sep.className = 'pd2-fm-sep'; sep.setAttribute('data-pd2-fm-sep', '');
+    sep.innerHTML = `<td colspan="3">${E(_pdT('pd2_fm_rec_head'))}</td>`; tb.insertBefore(sep, list[nOwed]); }
+  list.forEach(tr => { try { pd2FormGapSync(tr); } catch (_){} });
   const under = document.getElementById('pd2-fm-under');
-  if (under) under.innerHTML = [E(c.name || ''), nOwed ? `<span class="pd2-amb">${E(_pdT('og_g_needed', { n: nOwed }))}</span>` : '', E(_pdT('pd2_fm_ready', { n: list.length - nOwed })), E(_pdT('pd2_fm_how'))].filter(Boolean).join(' · ');
+  if (under) under.innerHTML = [E(c.name || ''), nOwed ? `<span class="pd2-amb">${E(_pdT('og_g_needed', { n: nOwed }))}</span>` : '', (list.length - nOwed) ? E(_pdT('pd2_fm_onrec', { n: list.length - nOwed })) : ''].filter(Boolean).join(' · ');
   if (!host.previousElementSibling || !host.previousElementSibling.matches('.pd2-fm-chips')){
     const ch = document.createElement('div'); ch.className = 'pd2-fm-chips'; ch.setAttribute('role', 'group'); ch.setAttribute('aria-label', _pdT('pd2_fm_chips'));
     host.parentNode.insertBefore(ch, host); }
-  pd2FormChipsPaint(list.length, nOwed, nPaper);
+  pd2FormChipsPaint(list.length, nOwed, nRec);
   try { pdFormCount(); } catch (_){}
   /* THE FOOT, AS DRAWN: how far, and that nothing is saved until Save, on the left; Discard and Save on the right */
   const ft = document.querySelector('[data-pd-mid^="form:"] .pd-fm-f');
@@ -5032,13 +5039,99 @@ function pd2FormRegroup(c){
     const say = ft.querySelector(':scope > span'); if (say) say.setAttribute('data-pd2-fm-say', '');
     pd2FormFootSay(); }
 }
-/* THE CHIPS: All · Needed · Read from the paper; one chosen at a time, narrowing the rows (nothing saved, nothing moved) */
+/* ---- THE ROW AS DRAWN: THE NAME A PERSON CAN READ, AND THE SENTENCE THE BLANK SITS IN (owner, 13 Nov 2026) ----
+   Drawing only: nothing here is stored, and no name or sentence is invented. */
+/* A NAME IN SENTENCE CASE: a paper's placeholder typed In Title Case ("Landlord Principal Place of Business Address") is shown
+   as a sentence. Only where it IS title case (every word past three letters capitalised); a word in capitals (VAT) is kept. */
+function pd2FormNameShown(label){
+  const s = String(label == null ? '' : label).trim(), W = s.split(/\s+/);
+  if (W.length < 2) return s;
+  const long = W.filter(w => w.replace(/[^A-Za-z\u00C0-\u024F]/g, '').length > 3);
+  if (!long.length || !long.every(w => /^[^A-Za-z\u00C0-\u024F]*[A-Z\u00C0-\u00DE]/.test(w))) return s;
+  return W.map((w, i) => (i === 0 || (w.length > 1 && w === w.toUpperCase() && /[A-Z]/.test(w))) ? w : w.charAt(0).toLowerCase() + w.slice(1)).join(' ');
+}
+/* A HEADING SHOUTED ON THE PAPER IS SAID QUIETLY HERE: "ARTICLE I: PREMISES AND LEASE TERM" → "Article I: premises and lease
+   term" (a Roman numeral after the first word stays a numeral). A heading with any small letter is left as written. */
+function pd2FormSecShown(sec){
+  const s = String(sec == null ? '' : sec).trim();
+  if (!s || /[a-z\u00DF-\u00FF]/.test(s)) return s;
+  const W = s.toLowerCase().split(/\s+/);
+  return W.map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : (i === 1 && /^[ivxlc]+[:.)]?$/.test(w) ? w.toUpperCase() : w)).join(' ');
+}
+/* THE SENTENCE ROUND A BLANK, read off the paper's own markup (docBody; parsed once per wording, thrown away with it):
+   { n: its clause number or '', a: the words before, b: the words after, cutA, cutB }. Another blank in the same sentence is
+   a ruled line. null where the paper holds no sentence for it (the row then says its section and no quote). */
+const PD2_BQ_SIDE = 70, PD2_BQ_SPOTS = '[data-field],[data-sync],[data-field-key],[data-upblank]';
+let _pd2Bq = null;             // { id, html, host }
+function pd2BlankQuote(c, key){
+  if (!c || typeof document === 'undefined') return null;
+  const cutSides = (a, b, n) => {
+    const ia = Math.max(a.lastIndexOf('. '), a.lastIndexOf('; ')); if (ia >= 0) a = a.slice(ia + 2);
+    const mb = b.match(/^[^.;]*[.;]?/); b = mb ? mb[0] : b;
+    let cutA = false, cutB = false;
+    if (a.length > PD2_BQ_SIDE){ a = a.slice(-PD2_BQ_SIDE).replace(/^\S*\s/, ''); cutA = true; }
+    if (b.length > PD2_BQ_SIDE){ b = b.slice(0, PD2_BQ_SIDE).replace(/\s\S*$/, ''); cutB = true; }
+    a = a.replace(/^\s+/, ''); b = b.replace(/\s+$/, '');
+    return /[A-Za-z0-9\u00C0-\u024F]/.test(a + b) ? { n: n || '', a, b, cutA, cutB } : null;
+  };
+  let html = ''; try { html = (typeof docBody === 'function') ? String(docBody(c) || '') : ''; } catch (_){ html = ''; }
+  if (html){
+    if (!_pd2Bq || _pd2Bq.id !== String(c.id) || _pd2Bq.html !== html){ const host = document.createElement('div'); host.innerHTML = html; _pd2Bq = { id: String(c.id), html, host }; }
+    const k = String(key), q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
+    const sp = _pd2Bq.host.querySelector(`[data-field="${q}"],[data-sync="${q}"],[data-field-key="${q}"],[data-upblank="${q}"]`);
+    const blk = sp && (sp.closest('p,li,td,th,dd,dt,blockquote,h1,h2,h3,h4,h5,h6') || sp.parentElement);
+    if (blk){
+      sp.setAttribute('data-pd2-bq', ''); const cl = blk.cloneNode(true); sp.removeAttribute('data-pd2-bq');
+      cl.querySelectorAll(PD2_BQ_SPOTS).forEach(e => e.replaceWith(document.createTextNode(e.hasAttribute('data-pd2-bq') ? '\u0001' : ' ____ ')));
+      const t = String(cl.textContent || '').replace(/\s+/g, ' '), i = t.indexOf('\u0001');
+      let n = ''; try { n = pdFillSpotClause(sp, _pd2Bq.host) || ''; } catch (_){ n = ''; }
+      if (i >= 0) return cutSides(t.slice(0, i), t.slice(i + 1), n);
+    }
+  }
+  /* an uploaded paper's NAMED placeholder ("[Tenant Name]") stands in its wording as typed: the first sentence that holds it.
+     A bare ruled line names nothing, so it is never matched */
+  let b = null; try { b = (typeof contractBlanks === 'function') ? (contractBlanks(c) || []).find(x => x && String(x.key) === String(key)) : null; } catch (_){ b = null; }
+  const raw = b && b.kind === 'upload' ? String(b.ph || '') : '';
+  if (!/[A-Za-z\u00C0-\u024F]/.test(raw)) return null;
+  let hit = null; try { hit = pd2Sentences(c).find(x => x.t.indexOf(raw) >= 0) || null; } catch (_){ hit = null; }
+  if (!hit) return null;
+  const at = hit.t.indexOf(raw);
+  return cutSides(hit.t.slice(0, at), hit.t.slice(at + raw.length), String(hit.sec || '').replace(/^§\s*/, ''));
+}
+function pd2FormRowDress(c, tr){
+  const E = _pdE, kind = tr.getAttribute('data-pd-og-kind');
+  if (kind === 'tplf' || kind === 'blank' || kind === 'done'){ const b = tr.querySelector('td.pd-og-f b');
+    if (b){ const was = b.textContent || '', now = pd2FormNameShown(was); if (now !== was){ b.setAttribute('title', was); b.textContent = now; } } }
+  const spot = tr.querySelector('td.pd-og-a [data-pd-og-spot]'), src = spot && spot.closest('.pd-og-src'); if (!src) return;
+  const key = spot.getAttribute('data-pd-og-spot');
+  /* what the row said after its door: the section's name where the paper gave no clause number */
+  const sec = pd2FormSecShown(String(src.textContent || '').replace(spot.textContent || '', '').trim());
+  const Q = pd2BlankQuote(c, key);
+  while (spot.nextSibling) src.removeChild(spot.nextSibling);
+  if (!Q){ if (sec) src.appendChild(document.createTextNode(' ' + sec)); return; }
+  spot.textContent = Q.n ? '§ ' + Q.n : (/^§/.test(spot.textContent || '') ? spot.textContent : (sec || spot.textContent));
+  spot.classList.add('pd2-nw');
+  const q = document.createElement('q'); q.className = 'pd2-fm-q';
+  q.innerHTML = `${Q.cutA ? '…' : ''}${E(Q.a)}<span class="pd2-fm-gap" data-pd2-gap="${E(key)}"></span>${E(Q.b)}${Q.cutB ? '…' : ''}`;
+  src.appendChild(document.createTextNode(' ')); src.appendChild(q);
+}
+/* WHAT IS TYPED SHOWS INSIDE THE SENTENCE (drawing only; stored by Save alone) */
+function pd2FormGapSync(tr){
+  const gap = tr && tr.querySelector ? tr.querySelector('[data-pd2-gap]') : null; if (!gap) return;
+  const el = tr.querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea');
+  let v = !el ? '' : (el.tagName === 'SELECT' ? (el.value ? String((el.options[el.selectedIndex] || {}).text || '') : '') : String(el.value || ''));
+  v = v.replace(/\s+/g, ' ').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) v = pdOgDay(v);
+  gap.textContent = v; gap.classList.toggle('is-has', !!v);
+}
+/* THE CHIPS: All · Needed · On record; one chosen at a time, narrowing the rows (nothing saved, nothing moved). A chip that
+   would show nothing is not listed */
 let _pd2FmShow = 'all';
-function pd2FormChipsPaint(nAll, nOwed, nPaper){
+function pd2FormChipsPaint(nAll, nOwed, nRec){
   const ch = document.querySelector('[data-pd-mid^="form:"] .pd2-fm-chips'), fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (!ch || !fm) return;
-  const E = _pdE, rows = { all: nAll, need: nOwed, paper: nPaper };
+  const E = _pdE, rows = { all: nAll, need: nOwed, rec: nRec };
   if (!rows[_pd2FmShow]) _pd2FmShow = 'all';
-  ch.innerHTML = [['all', 'pd2_fm_chip_all'], ['need', 'pd2_fm_chip_need'], ['paper', 'pd2_fm_chip_paper']].filter(([k]) => k === 'all' || rows[k])
+  ch.innerHTML = [['all', 'pd2_fm_chip_all'], ['need', 'pd2_fm_chip_need'], ['rec', 'pd2_fm_chip_rec']].filter(([k]) => k === 'all' || rows[k])
     .map(([k, w]) => `<button type="button" class="pd2-fm-chip" data-pd2-fm-chip="${k}" aria-pressed="${_pd2FmShow === k}">${E(_pdT(w))} <span>${rows[k]}</span></button>`).join('');
   fm.setAttribute('data-pd2-fm-show', _pd2FmShow);
 }
@@ -5054,7 +5147,7 @@ function pd2FormFootSay(){
   const rows = [...fm.querySelectorAll('tr[data-pd2-owed]')], n = rows.length;
   rows.forEach(r => r.classList.toggle('is-has', r.classList.contains('is-saved') || pd2FormRowHas(r)));
   const k = rows.filter(r => r.classList.contains('is-has')).length;
-  say.textContent = _pdT('pd2_fm_foot', { k, n });
+  say.textContent = _pdT('pd2_fm_foot', { k, n }) + ' · ' + _pdT('pd2_fm_how');
 }
 /* THE DOSSIER WHILE THE FORM IS UP, THE LEGORA WAY (owner, 12 Nov 2026): Jambo names what is owed and asks for it in ONE
    sentence (the box at the foot, pd2FormAsk); what he reads back stands under "You said", put into the rows by a press
@@ -5169,6 +5262,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   if (!(e.target && e.target.closest && e.target.closest('[data-pd-mid] #pd-og.is-form'))) return;
   try { pd2FormFootSay(); } catch (_){}
+  try { pd2FormGapSync(e.target.closest('tr')); } catch (_){}
 }));
 /* ONE SAVE: every box holding an answer through its own writer, Jambo's readings included; then the Dossier */
 function pdFormSave(){
@@ -7822,17 +7916,18 @@ function pd2RedNotes(c, cv){
    page also have notes on the side so you can distiguish between where the notes have led to redlines vs where the notes
    are still there but redlines have not been addressed?"). The panel's own list of risks (riskItemsOf, RAW, the same one
    that folds "Covered by your redlines") stands beside the paper by its clause: one a redline of ours answers (drafted
-   from it, or covering it) wears a green tick, "Answered by your redline", whether it was sent, its new words quoted
-   and See the change (the paper's own link to its card); one with none stays amber with Draft a redline (the risk's own
+   from it, or covering it) wears a green tick, "Answered by your redline", whether it was sent and its new words
+   quoted, and NO LINK (owner, 13 Nov 2026: "Remove the link" — the note already stands by its change; "See the change"
+   only shaded a card already in sight, so it looked dead); one with none stays amber with Draft a redline (the risk's own
    Edit, riskEditStart). An answered one whose redline they agreed goes away; one whose redline they turned down is open
    again. Our seat only; a reading, nothing written. */
 function pd2RedAnswers(c, cv){
   if (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return [];
-  if (typeof riskItemsOf !== 'function' || !cv) return [];
+  if (!cv) return [];
   /* Their view is their copy as they get it: our notes never stand beside it */
   if (pdRedTheirs(c)) return [];
   const E = _pdE, out = [];
-  let L = []; try { L = riskItemsOf(c) || []; } catch (_){ L = []; }
+  let L = []; try { L = (typeof riskItemsOf === 'function') ? (riskItemsOf(c) || []) : []; } catch (_){ L = []; }
   const chs = Array.isArray(c.changes) ? c.changes : [];
   /* "not sent" is read only where a negotiation already stands (the red paper is drawn from one): reading never starts one */
   let unsent = new Set(); try { if (c.negotiation && typeof negoUnsentAsks === 'function') unsent = new Set(negoUnsentAsks(c, 'owner').map(x => String(x.id))); } catch (_){ unsent = new Set(); }
@@ -7848,8 +7943,7 @@ function pd2RedAnswers(c, cv){
       /* the words the redline brings: the first sentence of the new wording that the old did not have */
       const was = plain(ch.oldText).toLowerCase(), now = plain(ch.newText || ch.newHtml);
       const q = now.split(/(?<=[.;:])\s+/).find(t => t.length > 3 && !was.includes(t.toLowerCase())) || now; const cut = q.length > 70 ? q.slice(0, 70).replace(/\s+\S*$/, '') + ' …' : q;
-      out.push({ tone: 'done', red: true, k, state: _pdT(unsent.has(String(ch.id)) ? 'pd2_rn_unsent' : 'pd2_rn_sent'), quote: cut,
-        acts: `<button type="button" class="ui-link" data-pd2-go="see" data-pd2-key="${E(ch.id)}">${E(_pdT('pd2_rn_see'))}</button>`,
+      out.push({ tone: 'done', red: true, k, state: _pdT(unsent.has(String(ch.id)) ? 'pd2_rn_unsent' : 'pd2_rn_sent'), quote: cut, acts: '',
         hit: sec(`section[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]`) || (ch.clauseId ? sec(`section[data-clause="${CSS.escape(String(ch.clauseId))}"]`) : null),
         orOwn: _pdT('pd2_g_missing') });
       return;
@@ -7861,6 +7955,43 @@ function pd2RedAnswers(c, cv){
       acts: may ? `<button type="button" class="ui-link" data-pd2-go="redline" data-pd2-key="${E(it.key)}">${E(_pdT('pd2_rn_draft'))}</button>` : '',
       hit: (cl && cl.clauseId ? sec(`section[data-clause="${CSS.escape(String(cl.clauseId))}"]`) : null) || (q ? pd2Find(cv, { text: [q.slice(0, 60)] }) : null),
       orOwn: _pdT('pd2_g_missing') });
+  });
+  return out.concat(pd2RedStdAnswers(c, cv, { chs, unsent, sec, plain }));
+}
+/* OUR STANDARDS BESIDE THE REDLINED PAPER TOO (owner, 13 Nov 2026: "yes, add them"): what the last finished check found
+   (c.playbook.verdicts, read, never run here), each a deviation or a missing standard, as the Dossier's notes are. A
+   redline of ours ANSWERS it when it was filed for that standard ("Playbook — <category>", Prepare redlines' own note) or
+   stands on the words the check quoted; pending, it is answered (sent or not); agreed, it stays answered until Jambo
+   reads the paper again (the check then finds it met and the note goes); turned down, it is open again. An open one
+   carries the Dossier's own door (std-draft → rlPrepareRedlines, which asks first). */
+function pd2RedStdAnswers(c, cv, x){
+  const V = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+  if (!V.length) return [];
+  const E = _pdE, out = [], { chs, unsent, sec, plain } = x;
+  const norm = t => plain(t).toLowerCase();
+  const cut = q => q.length > 70 ? q.slice(0, 70).replace(/\s+\S*$/, '') + ' …' : q;
+  const may = (typeof canEdit !== 'function' || canEdit()) && !(typeof negoExecuted === 'function' && negoExecuted(c));
+  const ours = chs.filter(ch => ch && ch.authorSide === 'owner' && !ch.withdrawn && !ch.superseded && ch.status !== 'superseded');
+  const forStd = ch => { const m = /^Playbook — ([^:(]+)/.exec(String(ch.note || '')); return m ? norm(m[1]) : ''; };
+  V.filter(v => v && v.category && (v.status === 'deviation' || v.status === 'missing')).forEach(v => {
+    const cat = norm(v.category), q = plain(v.quote), qn = norm(q).slice(0, 60);
+    const ch = ours.find(o => forStd(o) === cat) || (qn.length >= 12 ? ours.find(o => norm(o.oldText).includes(qn)) : null);
+    const miss = v.status === 'missing';
+    if (ch && (ch.status === 'pending' || ch.status === 'accepted')){
+      const was = norm(ch.oldText), now = plain(ch.newText || ch.newHtml);
+      const w = now.split(/(?<=[.;:])\s+/).find(t => t.length > 3 && !was.includes(t.toLowerCase())) || now;
+      out.push({ tone: 'done', red: true, std: true, k: _pdT('pd2_rn_std', { name: String(v.category) }),
+        state: _pdT(ch.status === 'accepted' ? 'pd2_rn_agreed' : unsent.has(String(ch.id)) ? 'pd2_rn_unsent' : 'pd2_rn_sent'), quote: cut(w), acts: '',
+        hit: sec(`section[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]`) || (ch.clauseId ? sec(`section[data-clause="${CSS.escape(String(ch.clauseId))}"]`) : null),
+        orOwn: _pdT('pd2_std_own') });
+      return;
+    }
+    out.push({ tone: 'owe', red: true, std: true, k: _pdT('pd2_rn_std', { name: String(v.category) }),
+      state: _pdT(miss ? 'pd2_std_missing_h' : 'pd2_std_differs') + ' · ' + _pdT('pd2_rn_none'), quote: miss ? '' : cut(q),
+      acts: may ? `<button type="button" class="ui-link" data-pd2-go="std-draft">${E(_pdT(miss ? 'pd2_std_add' : 'pd2_rn_draft'))}</button>` : '',
+      hit: !miss && qn.length >= 12 ? (pd2Find(cv, { text: [q.slice(0, 60), (q.split(/\d/)[0] || '').trim()].filter(t => t.length >= 12) })) : null,
+      /* a missing standard at the paper's end with the risks that are not in it; a deviation whose words are not found, under Our standards */
+      orOwn: _pdT(miss ? 'pd2_std_missing_h' : 'pd2_std_own') });
   });
   return out;
 }
@@ -8269,8 +8400,6 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   else if (go === 'dive') pd2DiveOn(c, key);
   else if (go === 'clause') pd2OpenInClauses(c, Number(key));
   else if (go === 'std-draft' && typeof rlPrepareRedlines === 'function') Promise.resolve(rlPrepareRedlines(getContract(c.id) || c)).then(() => { try { const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); } catch (_){} }, () => {});
-  /* SEE THE CHANGE: the paper's own link to its card in the Redlines column (rlLinkFocus, as a press on the clause) */
-  else if (go === 'see'){ if (typeof rlLinkFocus === 'function') try { rlLinkFocus(c, key, 'clause'); } catch (_){} }
   else if (go === 'press'){ const own = document.querySelector('#ig-dock ' + key); if (own && !own.disabled) own.click(); }
 });
 /* DEEP DIVE FROM A NOTE: the clause the risk's words stand in, opened on Clauses, and its own Deep dive pressed there (the one
@@ -8948,7 +9077,9 @@ function pd2FillStart(id, key){
   if (first){ const was = {}; pd2FillBlanks(c).forEach(b => { was[b.key] = String(b.value || ''); });
     _pd2Fill = { id: String(id), vals: Object.assign({}, was), was, walk: [], cur: '', sig: {}, sigWhy: null, q: {}, sec: {}, stopAsk: 0 }; }
   if (pdMidUp()) pdMidClose();
-  if (_pdTab !== 'copilot') try { pdSetTab('copilot'); } catch (_){}
+  /* the Dossier is where filling in happens (owner, 13 Nov 2026): from another tab (Clauses' Fill it in) the panel is
+     DRAWN on the Dossier, not only told so */
+  if (_pdTab !== 'copilot') try { pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){}
   pd2NotesOff();
   if (first) _pd2Fill.walk = pd2FillWalk(c);
   const anyBlank = !!document.querySelector('#ig-canvas ' + PD2_BL_SEL.split(', ').join(', #ig-canvas '));
@@ -9476,7 +9607,16 @@ function pd2WalkClose(){
   document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove());
   const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk');
   try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete('pd2-walk'); } catch (_){}
-  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+  /* THE READ TAKES OFF ONLY WHAT IT PUT ON (the flash measure, 13 Nov 2026: a read still running when Clauses was pressed
+     ended ~560 ms later by drawing the whole paper again). Its marks are classes on the paper's own blocks; they come off,
+     and the notes beside the paper are laid out again (pd2NotesPaint), so the paper itself is not written. With no paper
+     standing, the paper is drawn as before. */
+  const cv = document.getElementById('ig-canvas');
+  if (cv){
+    cv.querySelectorAll('.pd2-wk-on, .pd2-wk-done, .pd2-wk-lit').forEach(e => e.classList.remove('pd2-wk-on', 'pd2-wk-done', 'pd2-wk-lit'));
+    document.querySelectorAll('#pd2-notes .is-wk-hold').forEach(e => e.classList.remove('is-wk-hold'));
+    try { pd2NotesPaint(pdContract()); } catch (_){}
+  } else if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
 }
 /* each note group knows the clause the read must reach (its section on the paper; one standing at the paper's end waits for
@@ -9602,13 +9742,13 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 });
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
-Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
+Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
-Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2RedAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

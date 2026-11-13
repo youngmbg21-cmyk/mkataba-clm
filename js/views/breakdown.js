@@ -251,8 +251,12 @@ function stkBlanksOf(c, p){
   });
 }
 function stkBlankFilled(c, p){ const bl = stkBlanksOf(c, p); return bl.length > 0 && bl.every(x => String(x.value || '').trim()); }
+/* ONE WAY IN (owner, 13 Nov 2026: "Yes" to the Clauses tab's Fill it in going through Fill in the contract): the
+   press takes the Dossier's own door, pdFillGo, so the blanks turn into lines on the paper; the form only where
+   that door itself falls back to it */
 function stkFillGo(c, p){
   const open = stkBlanksOf(c, p).find(x => !String(x.value || '').trim());
+  if (typeof pdFillGo === 'function') return pdFillGo(c.id, open ? open.key : '');
   if (typeof pdFillOpen === 'function') pdFillOpen(c.id, { key: open ? open.key : '' });
 }
 function stkReview(c, b, ctx){

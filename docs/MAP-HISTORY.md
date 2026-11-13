@@ -37758,6 +37758,32 @@ And (80041 → 80000; verbatim before):
 ONE quiet touch of colour per page, read off a fact it has (`listStreamTone`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
 ```
 
+## CLAUDE.MD TRIM, 13 Nov 2026 (ninth)
+To make room for the f1034 line (80000 before the line and the cut; 80230 after). Verbatim before:
+```
+PERFORMANCE — THE BOOK IS WALKED ONCE
+EVERY TEXT ANSWER GOES OUT COMPRESSED (one gzip middleware; `ZIP_NEVER`; f996). DOOR NUMBERS COUNTED ONCE A TURN (`doorCounts(nc)`, f997). `familyChildren` built once (`familyIndexDirty()`); `navCounts` once per paint; a long contract read once (`richReadMemo`, `clauseSegmentFind`); Board → paper lays out once (`_regNarrowPaint`).
+```
+And (80230 → 80121; verbatim before):
+```
+- TYPED, THE AI READS; HaTi CHECKS: `render_graph` offers every map tool as `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` checks first, the gap sent back ONCE (`igGapNote`). f995. TOP N GROUPS `igTopGroups`; chips `igMapReadHtml`; an admin teaches a word (`igMapReadTeach`). f996. Groups in ORDER (`orderGroups`), rank by COUNT (`IG_TOPG_BY`); a sentence about what was not drawn is dropped (`igMapSentenceHonest`). f999.
+```
+And (80121 → 80067; verbatim before):
+```
+OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000).
+```
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE — WHAT LANDED THE SAME IS NOT DRAWN AGAIN (13 Nov 2026)
+**THE ASK.** After the first flash measure (108 of 130 moves clean at 1440x780 and 1366x950), the owner: *"fix the flash issues"*.
+**WHAT THE MEASURE SAID, AND WHAT THE CODE SHOWED.** (1) Board → Approvals: the whole page written again at ~330–375 ms. `signReadinessFor` loads each light record the reader must sign in the background and, as EACH landed, called `renderApprovalsPage()` whole. (2) Board → Discover: the whole page again at ~55 ms. `rdLoad` drew again when the server's questions landed, with the rows it had just drawn from what was known. (3) Board → Jambo's house: the whole page again at ~75 ms, the loading line becoming the house when the period's work landed.
+**BUILT.** (1) `scLandedRepaint`: every record that lands in one beat is ONE paint in the next frame; on Approvals it is `renderApprovalsPage({ rows:true })`, and the new-look rows paint compares what it would write with what it wrote (`tbl._apnSrc`) and returns before the head and panel are touched when nothing moved. The Board's repaint on a landing is unchanged (still whole, now once a frame). (2) `rdLoad` compares the rows (`rdRowsKey`) and draws only if they differ. (3) `renderJamboHouse({ fromLoad })` writes nothing when the page would be word for word what stands, and otherwise rewrites only the card's inside and the panel where its words moved; the frame stands (its presses are delegated on #content, so nothing is wired twice).
+**THE MEASURE NOW SAYS WHO.** Under a move that is not clean it prints the code that wrote late (HaTi's own frames) and, for a jump, which part moved and from where to where; and it films the owner's third screen (1536x730) too.
+**LEFT, AND SAID.** Not fixed in this round, waiting on the measure naming their cause: Import's jump (~0.046 in and out), Board → a contract's paper (strip, paper and panel written ~65 ms later when the whole record lands — `igAnalyze` awaits `ensureFull` — plus a 0.05 jump, and 0.05 again on the way back), paper → paper (~35 ms, the same load), and the first Dossier → Clauses (the paper written again at ~580 ms). The first Approvals and house visit still loads (a loading line, then the house): that is a load, said, not a flash.
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE — ROUND TWO, THE MEASURE NAMED WHO (13 Nov 2026)
+**THE ASK.** *"fix the remaining three too"*, after the measure (run 43415999023, now at the three screens: 168 of 195 moves clean) named who wrote late and what moved.
+**WHAT IT NAMED, AND WHAT WAS BUILT.** (1) Board → Approvals still wrote the page at ~210 ms: `listCols`' repaint (a column fitting its room) → `apPaintList` → `renderApprovalsPage({ listOnly })`, which the new look sent to the WHOLE page. Now a list-only ask is the rows paint there (`o.rows||o.listOnly`), which writes nothing when the rows say what they said. (2) Import's jump: `#body-grid` slid 48 → 119 px (and back) because Import with no files in stood under the shell's own title strip (#page-head, 71 px) while every other new-look page draws its own. The new look's Import now draws its title in the page on every state (`.mig-own-head`, the shell strip's own measures: 23px top so the title's ink stands where it stood, 40px edge, the hairline in front of the drop card); photographed at the three screens against the old: title within 0 px, the drop box within 1 px. (3) The first Dossier → Clauses wrote the paper again at ~560 ms: the arrival's quick read (`pd2WalkStep`) reached its end and `pd2WalkClose` drew the whole paper to take its marks off. It now takes off its own classes and lays the notes out again (`pd2NotesPaint`); the whole paper only where no paper stands.
+**NOT A FLICKER, SAID TO THE OWNER.** Board → a contract's paper and paper → paper: the paper, its line and the panel are written ~50 ms (or ~28 ms) after the press because `igAnalyze` awaits the whole record (`ensureFull`) before it turns the face; until then the Board or the old paper stands, so the reader sees ONE change, a beat later. The 0.05 "jump" with it is the face changing (the paper's line takes 56 px above the stage), not a slide. Left as it is; the way to make it instant (loading the record when the press goes down) is offered to the owner, not built.
 ## THE SEND SCREEN — WRITE IT FOR ME, AND WHAT GOES WHILE JAMBO TALKS (13 Nov 2026, owner's two screenshots)
 The owner: "i pressed write for me and i get the response on the jambo which i do not understand" (the panel said "Note ready to go in your note box with the button under it", the box empty) and "I am unable to press highlighted choice [The contract, round 2]. Also as i press the other choices, the page stutters".
 (1) Asking Jambo from "Before you send" turns the panel to his words while the face still SHOWS (`pdSendShows` true, not away), so the panel drew neither the face nor its kept copy (`pdSendKeepHtml` kept only when away): the column left the page, and What goes — whose choices press that column's own buttons — pressed nothing. The panel now passes whether it drew the face (`pdSendKeepHtml(!talk&&!_sheet&&pdSendShows())`).
@@ -37771,6 +37797,53 @@ Built: tests.yml's `pull_request` gains `paths-ignore: ['BUGLOG.md', 'docs/*.md'
 - The plans, work orders, audits and MAP files in docs/ are only named in comments.
 No ruleset or required check holds a merge on this repository: #697 merged with its checks still running, and the rulesets list is empty. So a skipped run leaves nothing waiting. The night's run and Run workflow are untouched. f1034 is red at the parent.
 
+RENUMBERED on joining main (13 Nov 2026): the check "what landed the same is not drawn again" is f1035 (main took f1034 for notes-only pull requests).
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (tenth)
+On joining main (#698, #701; 80186 → 80121). Verbatim before:
+```
+- COUNTING IS NOT DRAWING: `*Data` + renderer per panel; `pfPanelData` the one door; `.igx-fig` the ONE tile; doors → `regShowOnly`.
+THE WORD FILE WE WRITE, AND THE PAGE MEASURE
+DOCX writer: hanging indent = `w:ind` + a left tab stop + a real tab; shape read off the markup (`hati-lv-N`, `rl-hang`); a paragraph only where it carries a visible character.
+SEAL ON THE SERVER (`srvSealNow`, `srvSendExecutedCopies`); late seals `runSealCatchUp`; f570, f580–f626, f651.
+```
+And (80121 → 80066; verbatim before):
+```
+A slow answer lands on its own contract (`contractOnScreen`); sitting marks never reach the record (`dropSittingKeys`). Server walls: `srvApprovalChainOpenOf`, `srvApprovalDecisionRefusal`; a link refuses another kind (`shareKindOf`, `standingNegotiation`); `forgetContractRecords`; discard restores the sent version (`negoSentVersionOf`).
+```
+And (80066 → 80016; verbatim before):
+```
+REQUESTS: lanes on the server (`runIntakeLanes`). ONE ADDRESS BOOK `contactSet`. ONE "your turn" email (`roundTurnMail`). SIGNING: ONE LINK CHECK `linkRefusal` = `srvLinkRefusal`; ONE ASK RECORD `c.asks` (`askOpen`/`askAnswer`/`askLapse`); `runRuleStepReminders`; `contractDecline`; `renewalDecisionAct`.
+```
+And (80016 → 80003; verbatim before):
+```
+MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (names who wrote late, what moved), glitch-audit, perf*.
+```
+
+RENUMBERED again on joining main (13 Nov 2026): "what landed the same is not drawn again" is f1036 (main took f1035 for the send screen).
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (eleventh)
+On joining main (#700, #702; 80195 → 80073). Verbatim before:
+```
+THE SCORECARD: a read's table on Discover wears its own head, tiles per answer (`rdScHeadHtml`, `_rdScOn`).
+- A NEW MAP FEATURE = A GUIDE TAB ROW (`igGuideRows`), SAME change; the legend `igLegendPlace`.
+`isMonetary(c)` the ONE answer: the record wins, the template answers silence, an upload is assumed to carry money.
+- THEIR ROUND: each ask one row pressing the Redlines row's own verb (`agRoundAct`).
+Jambo's first words after a draft owed once (`firstDraftOwe`). Their row: `rlPlainReasonOf`, `rlAskColleague`.
+```
+And (80073 → 80048; verbatim before):
+```
+`hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); f866. `goto.door` (`aiDoorOf`); f867.
+- APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466).
+```
+And (80048 → 80015; verbatim before):
+```
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. CONTRACT BRIEF per wording hash. ARCHIVE `contractSetArchived`.
+```
+And (verbatim before):
+```
+ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep` not on yourself).
+```
 ## THE DETAILS TAB — THE FRONT PART IS FILLED ON A NEGOTIATED PAPER TOO (13 Nov 2026)
 The owner, with a screenshot of MK-469 (a company-standard lease in negotiation): "the top part brings me to the other middle page to fill in while the below part allows me to fill on paper. what is the difference?"
 Cause: on a negotiated paper the fill walk is f1033's (`pd2NegoMark` → `pd2NegoRead`). It walked only `section.rl-clause[data-clause]`. The parties' names and addresses above the first heading are drawn as the paper's head plus `.rl-recital`, outside every section, so they were never marked. The panel then named them "no place on the paper", and a press fell through to the form.
@@ -37792,4 +37865,76 @@ Built:
 - paperdesk's capture handler swallows a press on any blank and starts nothing.
 - `_homeAnswerWired` is deleted.
 - `pdFillGo`, the Dossier's Fill in the contract, is the one way in.
-Reverses "a blank pressed is filled where it stands" (11 Nov) and the press-opens-the-form door (14 Oct). f1037 is red at the parent. f673 (4), f676 8b, f1029 and fill-in-the-contract-verify 6a are re-pointed. Handbook 2.3 says it in both books. Measured after: amber on Dossier and Clauses, a press opens nothing, and Fill in the contract turns every field into a line.
+Reverses "a blank pressed is filled where it stands" (11 Nov) and the press-opens-the-form door (14 Oct). f1042 (renumbered on joining main, which took f1037) is red at the parent. f673 (4), f676 8b, f1029 and fill-in-the-contract-verify 6a are re-pointed. Handbook 2.3 says it in both books. Measured after: amber on Dossier and Clauses, a press opens nothing, and Fill in the contract turns every field into a line.
+
+RENUMBERED a third time on joining main (13 Nov 2026): "what landed the same is not drawn again" is f1040 (main took f1036 twice); a gap left so the next join does not collide.
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (twelfth)
+On joining main (#699, #703; 80658 → 80253). Verbatim before:
+```
+`startMailStub`/`startHatiWithMail`; `mailReport`/`mailReportPublic`; the password reset reply is identical either way; `emailHealth()` over the last 10. A REPLY REACHES A PERSON: every email to the other side carries `replyTo` = `mailReplyFor` (the presser, else the link's maker, else the owner; never the body); a tag of the other side's person too (`/mention`, outside only). f1020, f1021. A link that cannot reach the server is answerable by a pasted code (`portalOfferResponseCode`); a code is not a delivery.
+A HOME TAB (`setView('calendar')` → `hbOpenCalendar`, `renderCalendar` into `#hb-cal`); Mon–Fri, this week + five; `calToday()` via `todayISO`; POST /api/ai/plan (`planBlocksCheck` ≤8); ONE writer `calLevelSet`; bookings → `calHandOff`. It OPENS on the AGENDA (`calAgendaViewHtml`); time left colours bar, pill, box (`calHzTone`, f987). A view-only press keeps the panel (`{keepPanel:true}`); a repaint that changes nothing draws nothing (`renderCalendar({ifMoved})`); `obwFindN`, f988.
+Every live contract ranked live (`puRead`, `PU_TICK_MS`, "▲ N" against `PU_SEEN_KEY`): What needs you (`puNeedsMap` off `ndRead`) · Money `fxRankValue` · Days left `effectiveExpiry` · Written by Jambo (`puJamboWrote`, RAW). Each row a strand (`puEventsOf`); why said with no call (`puSayOf`); every door an existing one; the name ONE line with … (`.pu-meta`), rows 51px. The Board head's right end: Summarise · Pulse board (`hbPulseBtnHtml`) · Explorer (`hbExplorerBtnHtml`). f963, pulse-verify.
+- No motion library: transform, opacity, WAAPI; never animate width/height/left/top beside the paper. Jambo's panel width SNAPS (`igSyncDockWidth`); a list repaint glides (`listGlideAround`). A FACE CHANGE IS DRAWN AT ONCE: nothing copied, nothing faded, no fade-in from nothing on a panel; only the lit tab's underline glides (`faceSwap`); a tab's press draws its body once (`_pdBodyFresh`). f1024, tab-change-no-flash-verify. The right panel shuts on a finger/pen swipe right (`PANEL_SWIPE_*`), never a mouse drag. Less motion asked = instant.
+```
+And (80253 → 80094; verbatim before):
+```
+DISCOVER (docs/PLAN-jambo-discover.md first): one read, many questions (`COLUMN_Q_MAX` 8); a kept question's rule is never invented; ONE tone `askColToneOf`; ONLY WHAT YOU KEEP (`column_asks.kept`). A press reads 50 or 100 (`AC_SIZES`) of the FIRST NOT YET READ (`askColPlan`, `askColNextWords`); EVERY PRESS LEAVES A RECORD (`column_reads`); reads go out in tens, stop at once (`AC_BATCH`, `askColStop`); a counting question is never a column (`AC_PORTFOLIO_RE`).
+The face keeps `rlLiveHere`, presence, `pollWaitingOnThem`; the paper follows the face (`pdRedShows`); a card's Send sends that card (`negoHoldOthers`).
+```
+And (80094 → 80038; verbatim before):
+```
+`contractRef(c)` = `c.contractNo || c.id` is PRINTED; `c.id` is the key forever. `signRouteOf` (absent = inside). The handover is route-owned (`POST /api/contracts/:id/handover`); while out, wording and route freeze. Filing needs every signature; differing words need the approver or an admin with a reason; a filled blank is not a change (`ohBlankHits`). Differing words are kept (`signedCopy.text`, `obligationsText`); numbering is never a change (OH_MARKER_RE).
+```
+And (80038 → 79972; verbatim before):
+```
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep`). WEBHOOKS ids only, admin-only. ASSURANCE LADDER weakest wins.
+```
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (twelfth, corrected)
+The twelfth trim wrote its four shortened lines to the wrong headings (lines were matched by number in the wrong order): the Pulse board's line stood under "SENT" MUST MEAN SENT, the Clauses read's under THE PULSE BOARD, the mail line under HOW THINGS MOVE, and HOW THINGS MOVE's own rule was lost from the file. Put right: each short line under its own heading, HOW THINGS MOVE restored verbatim from the twelfth trim's block, and the Clauses read's line shortened as meant (80123 → 80026). Verbatim before, the Clauses read's line:
+```
+`stkDecorate` draws ONE kept reading `c.breakdown` (POST /api/ai/breakdown; opening Clauses is the press, `stkAutoRun`); no wording in the panel; `stkRedlineGo` files nothing. ONE reading `stkReview` (`stkNeedCount`); a missing point inside its clause (`missByRow`); MARK REVIEWED only via POST …/points/:key/review (`c.pointReviews`). ONE "WHAT TO WATCH" PER CLAUSE: two or more points are one card (`stkRowCardsHtml`, `stkGroupHtml`, `data-stk-review-all`); blanks keep their own. f1005.
+```
+And (80026 → 80013; verbatim before):
+```
+JUDGEMENT ON THE STRONGER MODEL (`copilotNeedsJudgement`; f870); `aiRateFor` (f871).
+```
+## RISKS TO LOOK AT — OUR STANDARDS BESIDE THE REDLINED PAPER TOO, AND NO "SEE THE CHANGE" (13 Nov 2026)
+The owner, after the merge: "Why aren't the company standard notes in the Redline view too" — they were left out because the drawing showed only the panel's risks; that should have been asked. "yes, add them, push and merge to main". Then: "pressing on see the change does absolutely nothing". MEASURED in a photo session: the press did light the card and the clause (`rlLinkFocus`, `.is-linked`), but the card was already in sight (nothing scrolled) and its linked shade is a near twin of its resting grey. Asked (Open it · Point to it · Remove the link), the owner picked "Remove the link": an answered note has no act (the note already stands by its change).
+BUILT. `pd2RedStdAnswers` reads `c.playbook.verdicts` (the last finished check; never run here): a deviation or a missing standard, titled "<category> · our standard" (`pd2_rn_std`). Answered by a live redline of ours filed for it (`Playbook — <category>`, Prepare redlines' note) or standing on its quoted words: pending → sent or not; agreed → "agreed; Jambo checks it again" (`pd2_rn_agreed`) until the re-read after an agreed change finds it met; turned down → open. Open: "Differs from your standard" or "Not in the contract" · no redline yet, with the Dossier's door (`std-draft` → `rlPrepareRedlines`, which asks first). A missing one at the paper's end; a deviation whose words are not found under "Our standards". The test was renumbered f1037 (main took f1036 twice).
+Photographed at 1440×780, 1536×730 and 1366×950, and lower down the paper at 1440×780.
+
+## THE SEND SCREEN — WRITE IT FOR ME, THE LEGORA WAY (13 Nov 2026, owner picked "The Legora Way" by name)
+The owner: "in the email screen, when i say write it for me, the draft should happen in jambo and then like in the clause editor page, give you options of what next like apply or redo etc… think of the best in class approach where you can also steer the message". Three options were drawn (The SAP Way · The Legora Way · Three Drafts); the owner picked The Legora Way.
+Found on the way: Home's panel — the one beside the letter — never drew Jambo's note at all (`intelPushChatResult` read only `res.answer`); only the ✦ window did. That was the owner's first "Write it for me" screenshot (a sentence about "the button under it" and no note), and f1035's wording fix never reached that panel.
+Built: the note is a DRAFT on Jambo's turn (`igNoteOf`, `igNoteCardHtml`), each sentence tagged with the clause it speaks of, read off what this send carries — no AI (`igNoteClauses`, `igNoteTagOf`). The one row under the newest draft (`igNoteRowParts` in `igOneHtml`): Shorter · Warmer · Firmer · Leave out §N (only clauses the note names, three at most) · Ask for a reply · Put in the note (black) · Try again · ⋯ Copy, Discard. Put in the note fills the box through `shareNoteFill` and sends nothing; then "✓ In your note · Undo" (Undo puts back what was there). A steer is a press through the one box (`igNoteAsk` marks `_shNlWrite`), and AI_SEND_NOTE_RULE (both hosts, word for word) now redrafts on "shorter, warmer, firmer, leaving a point out, adding something" and no longer tells the model to mention "the button under it". The ✦ window's draft no longer fills the box by itself either. Handbook chapter on sending rewritten (both books).
+NOT AS DRAWN, ASKED AND AGREED: the drawing's chip read "Ask for a reply by Friday"; the screen has no reply-by day to read, so it was built as "Ask for a reply" — the owner: "Keep \"Ask for a reply\"" (13 Nov 2026). The letter's "Write it for me" line is left alone on Put in (a long "Jambo wrote this…" there squeezed the note's own label to "Your …" at 1440). Photos at the three screens taken. Red at the parent: f1038 1–4.
+## CLAUDE.MD TRIM, 13 Nov 2026 (thirteenth)
+On joining main again (80186 → 80042). Verbatim before:
+```
+`hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); `goto.door` (`aiDoorOf`).
+- REQUESTS (`ikTabViews`): ONE count for every tab and the list (`ikBase`); attachments `IK_FILES_MAX` 3 × 5 MB (`intake_files`: the asker or a stream editor, else 404). The paper that fits is read WITHOUT AI (`ikFitOf`); Start the draft → the one form. Refresh `ikPlace`.
+THE LOOK: boxes on the left, each sentence a tag (`data-tone` in `shareNlLinesPaint`); the email ONE card; the note HUGS its words; the link a BUTTON on screen and in the mail (`SM_BTN_STYLE`).
+```
+And (verbatim before):
+```
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. ARCHIVE `contractSetArchived`. WEBHOOKS ids only, admin-only.
+```
+
+## SCOPE RULES — THE PARKING LOT (owner, 13 Nov 2026)
+The owner: "in my Claude MD files, create a to do list which i will tackle later… basically like a work order where i will compile things i want to build at a later time. I want you to walk me through how we design this, what i call it and how i can simply tell Claude move this fix to xxx". Walked through and asked: the name (The Later list · The Parking lot · The Wishlist; "work order" set aside because about forty WORKORDER files already name finished jobs) — the owner picked **The Parking lot**; and whether to seed it — **yes, with the two waiting items** (P-1 the Outdent on a lettered point, P-2 the Contracts wall check waiting for every card).
+Kept OUT of CLAUDE.md itself on purpose: that file is sent with every step and sits at its 80 KB line, so the list is docs/PARKING-LOT.md and CLAUDE.md carries one rule saying the phrases. A docs/*.md change runs no GitHub checks (f1034), so parking costs no billed minutes. Parking never builds; a dropped item stays listed.
+
+## THE SEND SCREEN — WRITE IT FOR ME GOES TO JAMBO (13 Nov 2026, owner's two screenshots: "this highlighted is still happening", "this also happens")
+(1) The press asked through the panel's box as if typed, so the free readers read it first: "Write the note to Young for this SEND" was taken as the act Send (`nav_go_act_send`, "The letter for MK-382, ready to read") and Jambo was never asked — the draft card then said no note came back. A press and every steer now go straight to the chat (`igAskBrain` sets `_igReadyAsk`, which `intelAsk` sends to `intelChatAsk` before any free reader). (2) "Shorter" came back with no note and an answer about Clause 3: Jambo's history holds only what HaTi SAID, never the draft, so he had nothing to shorten. Every steer now carries the draft as it stands (`sh_nl_q_with`, both books). (3) The model's own sentence over a draft ("press the button to drop it into the note box", a stray "</answer>") is never shown: a draft always comes with HaTi's `sh_nl_here`. `igAskBrain` is published at the END of the panel's list (f392 finds its block by the list's opening words). Red at the parent: f1041 1, 3, 4.
+
+## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN — THE FORM'S ROW, DRAWN PROPERLY (owner, 13 Nov 2026)
+The owner, with a picture of the form on MK-469 (a commercial lease, 17 needed): "this page is a very ugly page. First and foremost, in plan short english, if the paper is where you fill in the details, what is this page for?" — then "provide me with much better proposals of how it should look like as it is very ugly at the moment". Three options in one artifact (The SAP Way · The Legora Way · One at a time; https://claude.ai/artifact/WFHJXh5RyHLw9okRmgp71B, a copy at docs/WORKORDER-fill-in-form-legora.html); "Create a job order for the legora way" (docs/WORKORDER-fill-in-form-legora.md), then "build it".
+- What was wrong, measured off the picture: every name the paper's placeholder In Title Case; the right column the section's heading in capitals on row after row ("On the paper COMMERCIAL LEASE AGREEMENT"), because the form stands where the paper was and the spot on the paper could not be asked for its clause; an address a tall box with a drag corner; boxes capped at 260 in a 42% column, so a wide gap and ragged rows; the head line said "nothing is saved until Save".
+- Built: the row is a grid (name over its source line · a 300 answer line · a tick), the table's own cells kept so every press and check finds them; every answer 34 high on an underline (amber while owed and empty, ink in the hand), an address one line with no drag corner; the name in sentence case (`pd2FormNameShown`, only where the label IS title case; the paper's own words on the hover); the sentence round the blank read off the paper's own markup in a detached parse (`pd2BlankQuote`: the four spots `contractFieldPeer` finds, another blank in the sentence a ruled line, cut at words to 70 a side; an upload's NAMED placeholder by its first sentence, a bare ruled line never matched); the blank a short amber gap that shows what is typed (`pd2FormGapSync`, drawing only); a heading in capitals said in sentence case (`pd2FormSecShown`); "On record, nothing to do" over what stands; chips All · Needed · On record (the third was "Read from the paper", which on a paper full of blanks listed the owed rows again); the head "N needed · M on record"; the foot "k of n filled · nothing is saved until Save".
+- The open questions, built on the recommended answers and said to the owner in the side-by-side: (1) the paper's own names in sentence case, not shorter names written by Jambo; (2) the sentence is lifted wherever the blank is a spot in the paper's markup or a named placeholder in an upload, else the section and no quote; (3) addresses on one line.
+- Not drawn: a unit after the answer line (HaTi holds no unit for a blank; the sentence under the name already says "rentable square feet", "per month"). `pd2_fm_ready` and `pd2_fm_chip_paper` are left inert in both books.
+
+## STAKES — THE CLAUSES TAB'S FILL IT IN GOES THROUGH FILL IN THE CONTRACT (13 Nov 2026)
+Shown the five ways into filling in as real screens (the "Fill In Doors" page), the owner said yes to the Clauses tab's "Fill it in" going through "Fill in the contract". Correction made on the way: only that one differed; the Board's Needs you "Fill in" and a note's "Fill in" already filled on the paper; the "fill in" link above Jambo's box errors (BUGLOG). Built: `stkFillGo` calls `pdFillGo` (the form only where that door falls back). Measured: from Clauses the paper filled but the panel stayed drawn on Clauses (`pdSetTab` only sets the tab), so `pd2FillStart` now redraws the dock when it turns it to the Dossier. Photographed at the three screens: lines on the paper, the Dossier's "On the paper" list, the address box focused. f1042 (4), (5) red at the parent. Handbook (Clauses chapter) both books.

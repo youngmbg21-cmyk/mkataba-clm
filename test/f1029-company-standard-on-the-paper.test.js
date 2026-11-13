@@ -33,7 +33,7 @@ test('a choice is a list of the standard\'s options, and a pick from HaTi\'s lis
   assert.match(pd, /matches\('#ig-canvas select\[data-pd2-bl\]'\)/);
 });
 
-/* RE-POINTED 13 Nov 2026 (f1037): a press on the paper never opens the form at all; the old door is gone */
+/* RE-POINTED 13 Nov 2026 (f1042): a press on the paper never opens the form at all; the old door is gone */
 test('a press inside a line on the paper types, never opens the form', () => {
   assert.ok(!ct.includes('document._homeAnswerWired = true;'), 'the press-opens-the-form door is retired');
 });

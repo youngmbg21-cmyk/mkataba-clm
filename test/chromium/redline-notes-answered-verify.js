@@ -1,4 +1,4 @@
-/* THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026; f1036).
+/* THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026; f1037).
    A services contract with three risks from the scan and one redline of ours (unsent) on the pricing clause; the
    Redlines face, new look.
      1 · Redline: the risks stand beside the paper by their clause, clear of it: the pricing one ANSWERED (a green tick
@@ -6,7 +6,8 @@
          yet", Draft a redline); no two groups overlap
      2 · the chips: All · Still open · Answered with their counts; Still open shows no answered line, Answered no open
          one, All both again
-     3 · See the change lights its card in the Redlines column (the paper's own link)
+     3 · our standards too: the one our pricing redline answers is green, one we differ from with no redline amber with
+         its door, a missing one at the paper's end; no answered note carries a link (owner: "Remove the link")
      4 · Draft a redline opens the editor on that risk's clause (the risk's own Edit)
      5 · Clean: the paper's ordinary notes, none of these
    At the parent 1–4 fail: on the red paper only their asks stood beside it.
@@ -31,6 +32,10 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
   const h = await startHati();
   const c = fixtureContract('MK-382', 'Warehousing and Transportation Services', 'AIT Worldwide Logistics Norway AS', 'proc', 1200000, 'Under Review', 'x');
   Object.assign(c, { redlineText: HTML, format: 'rich', template: null, source: 'upload', fields: {}, scan: SCAN,
+    playbook: { verdicts: [
+      { category: 'Price changes', status: 'deviation', quote: 'AIT may revise pricing by providing thirty (30) days\' written notice.', position: 'Prices fixed for a year' },
+      { category: 'Governing law', status: 'deviation', quote: 'This Agreement is governed by the laws of Norway.', position: 'Swedish law' },
+      { category: 'Data protection', status: 'missing', position: 'A data processing clause' }] },
     upload: { name: 'AIT.docx', extractedText: HTML.replace(/<[^>]+>/g, ' '), uploadedAt: new Date().toISOString() } });
   await seedWorkspace(h, { contracts: [c] });
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_BIN || (require('node:fs').existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined), args: ['--no-sandbox'] });
@@ -72,13 +77,17 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
     return p.evaluate(() => ({ done: document.querySelectorAll('#pd2-notes .pd2-mg-i.is-done').length, open: document.querySelectorAll('#pd2-notes .pd2-mg-i.is-owe').length })); };
   const hasChips = chips.length === 3;
   const o = hasChips ? await pick('open') : null, d = hasChips ? await pick('done') : null, all = hasChips ? await pick('all') : null;
-  check('2 · chips: Still open hides the answered, Answered hides the open, All shows both', hasChips && /^All 3$/.test(chips[0]) && /2$/.test(chips[1]) && /1$/.test(chips[2])
+  check('2 · chips: Still open hides the answered, Answered hides the open, All shows both', hasChips && (() => { const n = t => Number((String(t).match(/(\d+)$/) || [])[1] || 0); return n(chips[0]) === n(chips[1]) + n(chips[2]) && n(chips[1]) >= 1 && n(chips[2]) >= 1; })()
     && o.done === 0 && o.open >= 1 && d.open === 0 && d.done >= 1 && all.done >= 1 && all.open >= 1, { chips, o, d, all });
-  /* 3 · See the change */
-  const see = await p.$('#pd2-notes [data-pd2-go="see"]');
-  if (see) await see.click();
-  const lit = see ? await until(p, () => !!document.querySelector('#ig-dock .is-linked'), null, 5000) : false;
-  check('3 · See the change lights its card in the Redlines column', lit);
+  /* 3 · our standards */
+  const r3 = await p.evaluate(() => {
+    const items = [...document.querySelectorAll('#pd2-notes .pd2-rn .pd2-mg-i')].map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(), done: x.classList.contains('is-done') }));
+    const f = re => items.find(x => re.test(x.t)) || null;
+    return { price: f(/Price changes/), law: f(/Governing law/), data: f(/Data protection/), see: !!document.querySelector('#pd2-notes [data-pd2-go="see"]'),
+      drafts: document.querySelectorAll('#pd2-notes [data-pd2-go="std-draft"]').length };
+  });
+  check('3 · standards beside the paper: answered green, open amber with its door, missing listed; no link on answered notes',
+    !!(r3.price && r3.price.done && r3.law && !r3.law.done && /no redline yet/.test(r3.law.t) && r3.data && !r3.data.done && r3.drafts >= 2 && !r3.see), r3);
   /* 4 · Draft a redline */
   const draft = await p.$('#pd2-notes [data-pd2-go="redline"]');
   if (draft) await draft.click();

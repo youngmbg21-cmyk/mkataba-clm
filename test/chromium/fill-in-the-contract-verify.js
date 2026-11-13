@@ -185,7 +185,7 @@ const white = bg => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(bg); retur
 
     console.log('\n6 · a spot on the paper');
     /* RE-POINTED 13 Nov 2026 (owner: "they can never be filled in unless you are on dossier and press on fill in the
-       contract"; f1037): a press on a spot on the paper does nothing — the form keeps its hand; its box is then taken
+       contract"; f1042): a press on a spot on the paper does nothing — the form keeps its hand; its box is then taken
        in the form itself */
     const spot = await page.evaluate(() => { const el = document.querySelector('#ig-canvas [data-upblank]'); if (!el) return null; el.click(); return el.getAttribute('data-upblank'); });
     await pause(300);
