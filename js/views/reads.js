@@ -406,9 +406,13 @@ async function rdLoad(force){
     if (typeof AC !== 'undefined' && AC.asks) _rd.asks.forEach(a => { AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a); });
   } catch (_){ _rd.asks = _rd.asks || []; }
   _rd.loading = false; _rd.at = Date.now();
+  /* WHAT LANDED THE SAME IS NOT DRAWN AGAIN (the flash measure, 13 Nov 2026: Board → Discover drew the whole page a
+     second time ~55 ms after arriving, with the very rows it had drawn from what was already known) */
+  const was = rdRowsKey(_rd.rows);
   _rd.rows = rdRows();
-  if (state.view === 'reads') renderReads();
+  if (state.view === 'reads' && rdRowsKey(_rd.rows) !== was) renderReads();
 }
+function rdRowsKey(rows){ try { return JSON.stringify(rows || null); } catch (_){ return String(Math.random()); } }
 /* A PRESS STAYS WHERE IT WAS PRESSED (owner, 9 Nov 2026), on the list of reads too: a row press draws the page again
    (renderReads), so the list's scroll is put back where it stood — unless the page now shows something else (the list
    became a read's table, or the other way round), which starts at its top */

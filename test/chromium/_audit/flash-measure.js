@@ -10,7 +10,9 @@
      blank    frames in which the page area held nothing
      late     big parts written again AFTER the move's own turn (a second draw), with when (ms) and which part
      jump     how far things already on screen moved (the browser's own layout-shift score)
-   A move with nothing to say prints "clean".
+   A move with nothing to say prints "clean". Under a move that is not clean it says WHO (13 Nov 2026, "fix the flash
+   issues"): for a late write, the code that wrote it (the first frames of HaTi's own files); for a jump, which part
+   moved and from where to where.
 
    Run by .github/workflows/flash-measure.yml (when this file changes, or by hand):
      node test/chromium/_audit/flash-measure.js
@@ -59,7 +61,26 @@ const FILM = async ([label, how, arg]) => {
       const add = [...r.addedNodes].filter(x => x.nodeType === 1).length; if (!add) continue;
       if (!inTurn) late.push(r.target.id + '@' + at); } });
   HOSTS.forEach(id => { const el = document.getElementById(id); if (el) mo.observe(el, { childList: true }); });
-  let jump = 0; let po = null; try { po = new window.PerformanceObserver(l => { for (const e of l.getEntries()) jump += e.value; }); po.observe({ type: 'layout-shift', buffered: false }); } catch (_){ po = null; }
+  let jump = 0; let po = null; const moved = [];
+  const rect = r => r ? `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}x${Math.round(r.height)}` : '?';
+  try { po = new window.PerformanceObserver(l => { for (const e of l.getEntries()){ jump += e.value;
+    for (const src of (e.sources || []).slice(0, 3)){ const t = src.node && src.node.nodeType === 1 ? src.node : src.node && src.node.parentElement;
+      moved.push(`${name(t)} ${rect(src.previousRect)} -> ${rect(src.currentRect)} @${Math.round(e.startTime - t0holder.t)}`); } } });
+    po.observe({ type: 'layout-shift', buffered: false }); } catch (_){ po = null; }
+  /* WHO WROTE LATE: every way a host's children are written, watched for the film's length only */
+  const who = [];
+  const where = () => { const st = String(new Error().stack || '').split('\n').slice(2)
+      .filter(l => /\/js\//.test(l)).slice(0, 4).map(l => l.trim().replace(/^at\s+/, '').replace(/\(?https?:\/\/[^/]+\/js\//, '').replace(/:\d+\)?$/, '').replace(/\)$/, ''));
+    return st.join(' < ') || '(no HaTi frame)'; };
+  const isHost = el => !!(el && el.id && HOSTS.includes(el.id));
+  const note = el => { if (!inTurn && isHost(el)) who.push(el.id + ': ' + where()); };
+  const EP = Element.prototype, NP = Node.prototype, keep = [];
+  const wrap = (obj, k) => { const f = obj[k]; if (typeof f !== 'function') return; keep.push([obj, k, f]);
+    obj[k] = function(){ note(this); return f.apply(this, arguments); }; };
+  [[NP, 'appendChild'], [NP, 'insertBefore'], [NP, 'replaceChild'], [EP, 'insertAdjacentHTML'], [EP, 'replaceChildren'], [EP, 'append'], [EP, 'prepend']].forEach(([o, k]) => wrap(o, k));
+  const ihD = Object.getOwnPropertyDescriptor(EP, 'innerHTML');
+  if (ihD && ihD.set) Object.defineProperty(EP, 'innerHTML', Object.assign({}, ihD, { set(v){ note(this); return ihD.set.call(this, v); } }));
+  const unwrap = () => { keep.forEach(([o, k, f]) => { o[k] = f; }); if (ihD) Object.defineProperty(EP, 'innerHTML', ihD); };
   t0holder.t = performance.now();
   let err = null;
   try { if (how === 'place') caGo({ kind: 'go', place: arg }); else if (how === 'paper') pdOpenOnHome(arg, 'copilot'); else if (how === 'tab'){ const b = document.querySelector(`#ig-dock [data-pd-tab="${arg}"]`); if (b) b.click(); else err = 'no tab ' + arg; }
@@ -75,8 +96,9 @@ const FILM = async ([label, how, arg]) => {
     if (p) paleFrames++;
     const main = document.querySelector('#ig-page:not([hidden])') || document.querySelector('#content .view-enter') || document.getElementById('content');
     if (main && !main.firstElementChild) blank++; }
-  mo.disconnect(); if (po) po.disconnect();
-  return { label, err, frames, fades: [...fades], pale: [...pale], paleFrames, blank, late, jump: +jump.toFixed(3), view: (window.state && state.view) || '' };
+  mo.disconnect(); if (po) po.disconnect(); unwrap();
+  return { label, err, frames, fades: [...fades], pale: [...pale], paleFrames, blank, late, jump: +jump.toFixed(3), view: (window.state && state.view) || '',
+    who: [...new Set(who)].slice(0, 4), moved: [...new Set(moved)].slice(0, 4) };
 };
 
 (async () => {
@@ -84,7 +106,7 @@ const FILM = async ([label, how, arg]) => {
   await seedWorkspace(h, { contracts: book() });
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_BIN || (require('node:fs').existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined), args: ['--no-sandbox'] });
   const totals = { moves: 0, clean: 0 }; const seen = {};
-  for (const [W, H] of [[1440, 780], [1366, 950]]){
+  for (const [W, H] of [[1440, 780], [1536, 730], [1366, 950]]){
     const p = await b.newPage({ viewport: { width: W, height: H } });
     p.on('pageerror', e => say('PAGE ERROR', String(e).slice(0, 200)));
     await p.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -119,6 +141,8 @@ const FILM = async ([label, how, arg]) => {
       if (!bits.length) totals.clean++;
       for (const f of r.fades) seen[f] = (seen[f] || 0) + 1;
       say(`  ${m[0].padEnd(34)} [${r.view}] ${bits.length ? bits.join(' · ') : 'clean'}`);
+      if (r.late.length) for (const w of r.who) say(`      wrote late  ${w}`);
+      if (r.jump >= 0.02) for (const w of r.moved) say(`      moved       ${w}`);
     }
     const kept = await p.evaluate(() => (typeof igDockKeptCount === 'function') ? igDockKeptCount() : null);
     say(`  Jambo's panel: asks that wrote nothing so far = ${kept}`);
