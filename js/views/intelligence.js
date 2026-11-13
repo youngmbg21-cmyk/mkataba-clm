@@ -4292,7 +4292,8 @@ function igNoteSentences(words){
 }
 function igNoteOf(res){
   const pressed=!!window._shNlWrite;
-  const words=(typeof window.aiSendNoteClean==='function')?aiSendNoteClean(res&&res.note):String((res&&res.note)||'').trim();
+  /* f1043: his answer is the note when the slot came back empty after a press (aiSendNoteFrom) */
+  const words=(typeof window.aiSendNoteFrom==='function')?aiSendNoteFrom(res):(typeof window.aiSendNoteClean==='function')?aiSendNoteClean(res&&res.note):String((res&&res.note)||'').trim();
   const S=(typeof window.shareScreenSays==='function')?shareScreenSays():null;
   if(pressed) window._shNlWrite=null;
   if(!words || !S) return pressed ? { say:i18t('sh_nl_none') } : null;

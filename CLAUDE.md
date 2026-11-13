@@ -357,7 +357,7 @@ THE REDLINED PAPER'S NOTES SAY HOW THEY ENDED (owner picked "The Legora Way", 13
 A CUT-SHORT DRAFT IS NOT WORDING: a proposal that never closes (`AI_PROPOSAL_OPEN_RE`) or words from a route that said `truncated` (`aiProposalIsCut`) come back `unfinished` with one sentence and NO card (`aiProposalCutShort`). f1019.
 ROOM FOR THE ANSWER: a deep chat step has more room (`copilotStepRoom`); ANY step cut short is asked ONCE more with the most room (`copilotStepCall`, `AI_CHAT_ROOM_AGAIN`); cut twice stands as `truncated`. f1026.
 A DRAFT ASKED FOR IS A DRAFT SENT: an answer without the JSON object is asked ONCE more (`copilotProposalMissing`, `AI_PROPOSAL_NUDGE`). f1030.
-A NOTE ASKED FOR IS A NOTE SENT: a send-screen press (`igAskBrain(q,{note:true})` → `noteAsk`) answered with no note is asked ONCE more (`copilotNoteMissing`, `COPILOT_NOTE_NUDGE` = `AI_NOTE_NUDGE`). f1042.
+A NOTE ASKED FOR IS A NOTE SENT: a send-screen press (`igAskBrain(q,{note:true})` → `noteAsk`) answered with no note is asked ONCE more (`copilotNoteMissing`, `COPILOT_NOTE_NUDGE` = `AI_NOTE_NUDGE`). f1042. Still empty after a press, his written answer IS the note (ONE helper `aiSendNoteFrom`, both hosts). f1043.
 A SMALL JAMBO HANDS ON WHAT IS NOT HIS: the Calendar's planner and Settings' why read only their own facts; anything else goes to the chat (`elsewhere`; `stJbWhyRun`), never "hidden from you". f1007.
 JUDGEMENT ON THE STRONGER MODEL (`copilotNeedsJudgement`); `aiRateFor`.
 ## THE POP-UPS, THE SAP WAY

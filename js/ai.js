@@ -2611,7 +2611,7 @@ function aiRenderServerAnswer(res, q){
   if(res.compare) extra+=aiCompareTable(res.compare);
   if(list.length || res.wholeBook) extra+=aiCards(list, { wholeBook: res.wholeBook===true });
   extra+=aiRuleDoorHtml(res.ruleDoor, q);
-  extra+=aiSendNoteHtml(res.note);
+  extra+=aiSendNoteHtml(aiSendNoteFrom(res));
   let text=aiFmt(aiSendNoteSaid(res));
   if(res.notice) text+=`<div class="text-[11px] text-amber-700 mt-2 leading-relaxed">${_aiEsc(res.notice)}</div>`;
   text+=aiDeepLineHtml(res);
@@ -2777,6 +2777,21 @@ function aiRuleDoorOf(d){
    screen is open; a note past what the box holds says so and offers no press (a cap is a fact). */
 function aiSendNoteClean(v){
   return typeof v==='string' ? v.replace(/\r\n?/g,'\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g,' ').replace(/\n{3,}/g,'\n\n').trim().slice(0,4000) : '';
+}
+/* HIS WORDS ARE THE NOTE WHEN THE SLOT IS EMPTY (f1043; owner, 13 Nov 2026: "this should be a simple fix"): after a
+   press on the send screen (Write it for me, a steer), a reply whose note slot is empty but whose answer is written
+   is the note itself — he wrote it in the wrong place. HaTi takes the answer's words (a lead-in line ending in ":"
+   and stray markup taken off) as the draft. Never on an unpressed ask, a failed or empty answer, or a few words. */
+function aiSendNoteFrom(res){
+  const own=aiSendNoteClean(res&&res.note);
+  if(own||!window._shNlWrite||!res||res.empty||res.retry||res.unfinished||res.err) return own;
+  let t=String(res.answer||'');
+  if(!t.trim()||t.trim()===AI_EMPTY_ANSWER) return '';
+  t=t.replace(/<\/?answer>/gi,'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/(p|div|li)>/gi,'\n').replace(/<[^>]+>/g,'')
+    .replace(/&nbsp;/g,' ').replace(/&quot;/g,'"').replace(/&#0?39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
+    .replace(/\*\*/g,'').trim();
+  t=t.replace(/^[^\n]{0,160}:[ \t]*\n+/,'').trim().replace(/^["“](.*)["”]$/s,'$1').trim();
+  return t.length>=40 ? aiSendNoteClean(t) : '';
 }
 function aiSendNoteHtml(note){
   aiSendNoteHtml.pressed=!!window._shNlWrite; aiSendNoteHtml.placed=false;
@@ -6219,7 +6234,7 @@ async function aiFillSaid(c, said, blanks){
   return api('ai/fill', 'POST', { id: c.id, text: '', said: String(said || ''), blanks: Array.isArray(blanks) ? blanks : [] }, { quiet: true });
 }
 Object.assign(window,{ aiFillSaid });
-Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
+Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiSendNoteFrom,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
 Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
