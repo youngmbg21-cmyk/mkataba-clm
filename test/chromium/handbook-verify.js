@@ -22,7 +22,7 @@
    HANDBOOK_ONLY=<chapter> runs one recipe.
    Screenshots go to test/chromium/shots/handbook/.
    Run: node test/chromium/handbook-verify.js */
-/* global state, setView, openPanel, caGo, caUnderstand, caActOf, deskKeyNow, hbkOpen, hbkPlace, HANDBOOK_CHAPTERS, HANDBOOK_PARTS, contractRef, pdOpenOnHome, intel, ai, navLanding, landOff, closeModal, closeContextPanel, langSet */
+/* global state, currentUser, setView, openPanel, caGo, caUnderstand, caActOf, deskKeyNow, hbkOpen, hbkPlace, HANDBOOK_CHAPTERS, HANDBOOK_PARTS, contractRef, pdOpenOnHome, intel, ai, navLanding, landOff, closeModal, closeContextPanel, langSet */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -83,6 +83,13 @@ async function runStep(P, st, h){
   else if (st.eval) await P.evaluate(new Function(st.eval));
   /* Jambo's answers slowed, so a read can be seen while it runs (Stop) */
   else if (st.aiSlow != null){ if (h && h.ai && typeof h.ai.slow === 'function') h.ai.slow(st.aiSlow); }
+  /* THE NEW LOOK FOR THIS PICTURE (owner, 12 Nov 2026: "re-take the Handbook pictures in the new look"): switched on
+     for the recipe that asks, and off again in reset, so no other picture changes look */
+  /* the person must be signed in before their own setting can change (a page loaded with its contracts can still
+     be a beat short of knowing who you are): wait for them, and fail if the look never switched */
+  else if (st.newLook != null){ await until(P, () => typeof currentUser === 'function' && !!currentUser(), null, 10000);
+    await P.evaluate(async on => { if (typeof stPrefSet === 'function') await stPrefSet('newLook', !!on); if (typeof newLookApply === 'function') newLookApply(); }, st.newLook);
+    if (!(await until(P, on => document.documentElement.classList.contains('lg-new') === !!on, st.newLook, 5000))) throw new Error('the new look never switched ' + (st.newLook ? 'on' : 'off')); }
   await settle(P);
 }
 /* the boxes: the first element each selector finds, a red frame and a number drawn FROM ITS OWN RECT. A box is a
@@ -132,6 +139,8 @@ async function reset(P, base){
     await P.goto(base + '/', { waitUntil: 'networkidle' });
     await until(P, () => !!(window.state && state.view && Array.isArray(state.contracts) && state.contracts.length && typeof hbkOpen === 'function'), null, 20000);
     await P.evaluate(() => { state.aiConfigured = true; });
+    /* a picture taken in the new look leaves it on (it is the person's own setting): off again for the next one */
+    await P.evaluate(async () => { if (typeof newLookOn === 'function' && newLookOn() && typeof stPrefSet === 'function'){ await stPrefSet('newLook', false); if (typeof newLookApply === 'function') newLookApply(); } });
   }
   await P.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} try { if (typeof closeContextPanel === 'function') closeContextPanel(); } catch (_){} try { if (typeof landOff === 'function') landOff(); } catch (_){}
     /* every face of Jambo's panel put away, so one picture's state never stands in the next */

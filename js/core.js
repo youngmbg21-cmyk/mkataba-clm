@@ -889,6 +889,27 @@ const TOAST_KINDS = {
   warn: { bg:'#b45309',                 ic:'alert',  dwell:8000 },
   err:  { bg:'var(--st-ruby-dot)',      ic:'ban',    dwell:5000 },
 };
+/* ALERTS SIT AT THE BOTTOM CENTRE OF THE PAGE, CLEAR OF JAMBO (owner picked
+   "The SAP Way", 12 Nov 2026: "they always appear on top of the jambo entry
+   field"). The stack stands above the page's foot (index.html, "ALERTS AT THE
+   BOTTOM CENTRE"), centred on the PAGE AREA: whatever panel stands at the
+   window's right edge — Jambo's dock, a list's panel, the side panel,
+   Settings' side — is MEASURED, never named, so a new panel is cleared too.
+   The phone keeps its own place above the tab bar (mobile.js). */
+function toastPlace(root){
+  try{
+    if(!root||!root.style) return;
+    if(document.body.classList.contains('m-on')){ root.style.left=''; return; }
+    const W=window.innerWidth, H=window.innerHeight;
+    let right=W, n=document.elementFromPoint(W-12, Math.round(H*0.6));
+    for(; n && n!==document.body && n!==document.documentElement; n=n.parentElement){
+      if(root.contains(n)) break;
+      const r=n.getBoundingClientRect();
+      if(r.right>=W-2 && r.left>W*0.45 && r.height>H*0.5) right=Math.min(right, r.left);
+    }
+    root.style.left=Math.round(right/2)+'px';
+  }catch(e){ /* a stage with no layout keeps the sheet's centre */ }
+}
 function toast(msg,kind,opts){
   const root=document.getElementById('toast-root');
   if(!root) return;
@@ -978,6 +999,7 @@ function toast(msg,kind,opts){
       if(old.dataset.toastMsg===String(msg) && old.dataset.toastKind===k) old.remove();
     });
   }catch(e){ /* stand-in elements in test stages have no dataset — see above */ }
+  toastPlace(root);
   root.appendChild(el);
   /* EVERY TOAST GOES BY ITSELF. `dwell` is read from the table, which has no
      zero in it; an opts.dwell of 0 falls through to the table's value rather
@@ -6866,6 +6888,19 @@ function buildSharePayload(c, docHash, who, opts){
          link and every note on file is — so nothing on file moves room. */
       thread:Array.isArray(x.thread)?x.thread.filter(m=>m&&m.visibility==='shared'&&_shThreadRoom(m))
         .map(m=>({ who:m.who, side:m.side, visibility:'shared', at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
+  /* A PARKED ASK DOES NOT TELL OF A HELD COUNTER (owner, 12 Nov 2026: "Fix both"). An ask of theirs we answered with
+     a counter is parked ("countered", counteredBy that counter). When the counter itself is held back — under our own
+     review, or not sent — it is not on this copy, so the ask must travel as it stood before it was parked: its status
+     from the counter's own bundle (`was`, else pending) and no counteredBy. Otherwise the copy's data says a counter
+     exists that they cannot see: a review the counterparty must never learn of. The server walls its own copies the
+     same way (srvLinkStrip). */
+  { const onCopy=new Set(shareChanges.map(x=>String(x.id)));
+    for(const x of shareChanges){
+      if(x.status!=='countered' || !x.counteredBy || onCopy.has(String(x.counteredBy))) continue;
+      const k=(c.changes||[]).find(y=>y && String(y.id)===String(x.counteredBy));
+      const b=k && Array.isArray(k.bundle) ? k.bundle.find(e=>e && String(e.id)===String(x.id)) : null;
+      x.status=(b && b.was && b.was!=='countered') ? b.was : 'pending'; x.counteredBy=null;
+    } }
   /* An explicit purpose wins. Where the sender did not state one — a link made
      before purposes existed, or by a path that has no opinion — fall back to
      the old reading of the change set, so an existing link keeps opening on

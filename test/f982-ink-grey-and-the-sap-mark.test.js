@@ -5,7 +5,7 @@
    contract page's facts and the Redlines cards; "everything on the new look only, behind its switch")
    1 · Inter is gone: no link, no --font-new, no font files; the new look reads Geist like the old (f377)
    2 · ONE mark (listSapMarkHtml): a filled circle in the house's status colour, a white DRAWN glyph; done green tick ·
-       your move amber ! · theirs steel i · a real risk ruby cross · nothing yet grey dash · Jambo violet star
+       your move amber ! · theirs steel i · a real risk ruby cross · nothing yet grey dash · Jambo his sparkle in black and grey
    3 · every named list calls it, behind the switch; late is never ruby
    4 · the detail grey (--color-neutral-400) on each named list's second line, dates, kinds and panel labels; names ink
    At the parent every claim but the first half of 1 fails. */
@@ -32,13 +32,21 @@ test('1 · the font is Geist again: no Inter link, token or files', () => {
 
 test('2 · ONE mark: a filled circle, a white drawn glyph, the six meanings in their colours', () => {
   const map = LL.slice(LL.indexOf('const LIST_SAP_MARK'), LL.indexOf('function listSapMarkHtml'));
-  for (const [k, tone, g] of [['done', 'green', 'mkTick'], ['you', 'amber', 'mkBang'], ['them', 'steel', 'mkInfo'], ['risk', 'ruby', 'mkCross'], ['none', 'gray', 'mkDash'], ['jambo', 'violet', 'mkStar']])
+  for (const [k, tone, g] of [['done', 'green', 'mkTick'], ['you', 'amber', 'mkBang'], ['them', 'steel', 'mkInfo'], ['risk', 'ruby', 'mkCross'], ['none', 'gray', 'mkDash'], ['jambo', 'jambo', 'mkSpark']])
     assert.match(map, new RegExp(k + ": \\['" + tone + "', '" + g + "'\\]"), k);
   assert.match(fnBody(LL, 'listSapMarkHtml'), /icon\(m\[1\], 'ls-mk-g'/, 'a drawn icon, never a typed character');
-  for (const g of ['mkTick', 'mkBang', 'mkInfo', 'mkCross', 'mkDash', 'mkStar']) assert.match(COMP, new RegExp('\\n  ' + g + ":'<"), g + ' is drawn');
+  for (const g of ['mkTick', 'mkBang', 'mkInfo', 'mkCross', 'mkDash', 'mkSpark']) assert.match(COMP, new RegExp('\\n  ' + g + ":'<"), g + ' is drawn');
   const base = CSS.slice(CSS.indexOf('html.lg-new .ls-mk{'), CSS.indexOf('}', CSS.indexOf('html.lg-new .ls-mk{')));
   assert.match(base, /width:20px;height:20px;border-radius:50%/); assert.match(base, /color:var\(--color-surface\)/);
   for (const t of ['green', 'amber', 'steel', 'ruby', 'violet']) assert.match(CSS, new RegExp('html\\.lg-new \\.ls-mk\\.is-' + t + '\\{background:var\\(--st-' + t + '-dot\\)\\}'), t);
+  /* Jambo's mark (owner picked "The SAP Way", 12 Nov 2026): his own sparkle on black shading into grey, a grey ring
+     rippling on its own beat, still where less motion is asked; tokens only */
+  assert.match(COMP, /\n  mkSpark:'<path d="M12 1\.5C12\.75 7\.8 16\.2 11\.25 22\.5 12/, 'his own four-point sparkle');
+  assert.match(CSS, /html\.lg-new \.ls-mk\.is-jambo\{background:linear-gradient\(135deg,var\(--color-text\) 0%,var\(--color-quiet\) 55%,var\(--st-gray-dot\) 100%\)\}/, 'black shading into grey');
+  assert.match(CSS, /html\.lg-new \.ls-mk\.is-jambo::after\{[^}]*border:1\.5px solid var\(--color-neutral-400\)[^}]*animation:lsMkRipple 3\.2s[^}]*animation-delay:var\(--mk-d,0s\)/, 'a grey ring, its own beat');
+  assert.match(CSS, /@keyframes lsMkRipple\{0%\{transform:scale\(\.85\);opacity:\.55\}70%,100%\{transform:scale\(1\.35\);opacity:0\}\}/, 'transform and opacity only');
+  assert.match(CSS, /prefers-reduced-motion: reduce\)\{ html\.lg-new \.ls-mk\.is-jambo::after\{animation:none\}/, 'still where less motion is asked');
+  assert.match(fnBody(LL, 'listSapMarkHtml'), /k === 'jambo' \? ` style="--mk-d:-/, 'each of his marks its own beat');
   assert.match(LL, /const listSapOn = \(\) => \(typeof newLookOn === 'function'\) && !!newLookOn\(\)/, 'the new look only');
 });
 

@@ -6185,6 +6185,13 @@ function aiDoorFace(){
   }catch(_){}
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
+/* WHAT A PERSON SAID, READ INTO THE BOXES THEY OWE (the Fill in form, The Legora Way, 12 Nov 2026): one sentence to
+   the one fill route as `said`, no contract text; the answer is RETURNED, nothing written — the form puts it in its
+   boxes and only its Save stores it. The desk asks here because the desk itself never calls a route (f563). */
+async function aiFillSaid(c, said, blanks){
+  return api('ai/fill', 'POST', { id: c.id, text: '', said: String(said || ''), blanks: Array.isArray(blanks) ? blanks : [] }, { quiet: true });
+}
+Object.assign(window,{ aiFillSaid });
 Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
 Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,

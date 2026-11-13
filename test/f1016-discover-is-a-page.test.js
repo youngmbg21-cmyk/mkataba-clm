@@ -96,3 +96,18 @@ test('f1016 (6) the name and the words, both books; "discover" typed', () => {
   assert.match(read('js/flowmap.js'), /k: 'reads', st: 'book', s: _w\('Discover: /, 'the flow map says it (rule 9e)');
   assert.match(read('js/handbook.js'), /title: \{ en: 'Discover: every question asked, and the next batch'/, 'the Handbook chapter (rule 9d)');
 });
+
+test('f1016 (7) a read asked on Discover never draws the Contracts list over the page', () => {
+  /* found while re-taking the Handbook's pictures (12 Nov 2026): straight to Discover, the first answers repainted the
+     Contracts list into the page's place, and the read went on under it */
+  const src = read('js/views/askcolumn.js');
+  assert.match(fnBody(strip(src), '_acRegRepaint'), /state\.view === 'reads'\) return;/, 'the list waits while Discover is in front');
+  const bare = strip(src).split('\n').filter(l => /\bregRepaint\(\)/.test(l) && !/function _acRegRepaint|^\s*regRepaint\(\);\s*$/.test(l));
+  assert.deepEqual(bare.filter(l => !/askColOn\(\) && typeof regRepaint === 'function'\) regRepaint\(\)/.test(l)), [], 'every other repaint of the list goes through _acRegRepaint');
+});
+
+test('f1016 (8) the old Discover section beside the list is never drawn in the new look, under a column card either', () => {
+  /* the owner's picture, 12 Nov 2026: the old list of past questions came and went on Contracts' panel; askColPanelHtml
+     drew it under a column's card, where the paperdesk's own gate did not reach */
+  assert.match(fnBody(AC, 'askColDiscoverHtml'), /^function askColDiscoverHtml\(\)\{\s*if \(typeof window\.newLookOn === 'function' && newLookOn\(\)\) return '';/, 'the builder itself stands down in the new look');
+});

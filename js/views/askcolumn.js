@@ -759,9 +759,9 @@ function askColListSoon(now){
   _acDiscoverLive(now);
   if (typeof regRepaint !== 'function') return;
   askColGroupsForget();
-  if (now){ if (_acListT){ clearTimeout(_acListT); _acListT = 0; } regRepaint(); return; }
+  if (now){ if (_acListT){ clearTimeout(_acListT); _acListT = 0; } _acRegRepaint(); return; }
   if (_acListT) return;
-  _acListT = setTimeout(() => { _acListT = 0; regRepaint(); }, 400);
+  _acListT = setTimeout(() => { _acListT = 0; _acRegRepaint(); }, 400);
 }
 /* bounded: until the queue is shown and the last answer has stood one turn, or Stop, or AC_DESK_LINGER_MS */
 function askColDeskDrain(){
@@ -879,6 +879,10 @@ async function askColSummary(force){
    deleted. Keeping takes nobody's permission; taking off and deleting are the
    asker's, the keeper's or an admin's (the server is the wall). */
 function askColDiscoverHtml(){
+  /* THE NEW LOOK HAS A DISCOVER PAGE (owner, 12 Nov 2026): this old section beside the list is the old look's only. It
+     stood under a column's card too (askColPanelHtml), so a column left on the list from an earlier visit showed the old
+     list of past questions for a moment, then took it away when the column was dropped (owner's picture, 12 Nov) */
+  if (typeof window.newLookOn === 'function' && newLookOn()) return '';
   if (!askColOn() || AC.form || AC.busy) return '';
   const all = AC.discAll, rows = (AC.summary || []).slice(0, all ? 40 : 8);
   const up = new Set(askColIdsUp()), may = askColMay();
@@ -926,7 +930,7 @@ async function askColDelete(askId){
     if (typeof toast === 'function') toast(_acT('ac_deleted', { name: a.name || '' }), 'ok');
   } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
   _acSumAt = 0; await askColSummary(true);
-  if (typeof regRepaint === 'function') regRepaint();
+  _acRegRepaint();
   askColPaintPanel(); askColFactsPanelPaint();
 }
 /* a kept question brought onto the list: its answers fetched free, its column up (the oldest steps down past three) */
@@ -936,7 +940,7 @@ async function askColBring(askId){
   R.ask = up.concat(askId).slice(-AC_COLS_MAX);
   AC.chosen = null;
   await askColLoad(askId, askColShown().slice(0, 500));
-  if (typeof regRepaint === 'function') regRepaint();
+  _acRegRepaint();
   askColPaintPanel();
 }
 /* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026: "I should be able to
@@ -975,7 +979,7 @@ async function askColBringMany(askIds){
   AC.chosen = null;
   const shown = askColShown().slice(0, 500);
   for (const id of ids) await askColLoad(id, shown);
-  if (typeof regRepaint === 'function') regRepaint();
+  _acRegRepaint();
   askColPaintPanel();
 }
 function askColFormHtml(){
@@ -1139,7 +1143,7 @@ async function askColTableFor(askIds, name){
   await Promise.all(ids.map(id => askColLoad(id, shown)));
   const R = regState(); R.ask = (Array.isArray(R.ask) ? R.ask : []).filter(x => !ids.includes(x)).concat(ids).slice(-AC_COLS_MAX);
   AC.packRun = { packId: '', name: name || (AC.asks[ids[0]] || {}).name || '', askIds: ids };
-  if (typeof regRepaint === 'function') regRepaint();
+  _acRegRepaint();
   askColPaintPanel(); askColTableOpen();
   return true;
 }
@@ -1462,7 +1466,7 @@ async function askColReadRun(base, ids, opts){
     if (AC.busy.stop){ got.stopped = true; break; }
     const part = ids.slice(i, i + AC_BATCH);
     AC.busy.ids = part;
-    if (typeof regRepaint === 'function') regRepaint();
+    _acRegRepaint();
     askColPaintPanel();
     const body = { ...base, ids: part, texts: askColTexts(part) };
     let r = null, streamCalls = 0;
@@ -1507,7 +1511,7 @@ async function askColReadRun(base, ids, opts){
     AC.busy.done = i + part.length;
     AC.busy.doneIds = [...new Set(AC.busy.doneIds.concat(part))];
     got.done = AC.busy.done;
-    if (typeof regRepaint === 'function') regRepaint();
+    _acRegRepaint();
     askColPaintPanel();
   }
   /* THE DESK DOES NOT VANISH AT THE END: the last answers that landed are turned through first (bounded,
@@ -1542,7 +1546,7 @@ function askColRunEnd(got, base, name){
   _acSumAt = 0; _acReadsAt = 0;
   /* a stopped press says so on its record */
   if (got.stopped && base && base.run && base.run.id) api(`columns/reads/${encodeURIComponent(base.run.id)}/stop`, 'POST', {}).catch(() => {});
-  if (typeof regRepaint === 'function') regRepaint();
+  _acRegRepaint();
   askColPaintPanel();
   Promise.all([askColSummary(true), askColReads(true)]).then(() => askColPaintPanel());
 }
@@ -1724,7 +1728,7 @@ async function askColCheck(askId, cid){
     const r = await api(`columns/${encodeURIComponent(askId)}/check`, 'POST', { contractId: cid, checked: !a.checked });
     if (r && r.answer) AC.ans[askId][cid] = r.answer;
   } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
-  if (typeof regRepaint === 'function') regRepaint();
+  _acRegRepaint();
   askColPaintPanel();
 }
 /* Go to clause: the contract opens on Home's paper and the sentence is lit
@@ -1753,12 +1757,12 @@ function askColRemove(askId){
   const n = Object.keys(AC.ans[askId] || {}).length;
   if (AC.colOpen === askId) AC.colOpen = null;
   askColDrop(askId);
-  if (typeof regRepaint === 'function') regRepaint();
+  _acRegRepaint();
   askColPaintPanel();
   /* UNDO OVER ASKING (the pop-ups' rule): it is gone at once, the answers stay in Reads, and Undo puts it back where it stood */
   if (typeof regNl === 'function' && regNl() && typeof toast === 'function') toast(_acT('ac_nl_removed', { n }), 'ok', { action: { label: _acT('ac_nl_undo'), onClick: () => {
     const R2 = regState(); R2.ask = was.slice(0, AC_COLS_MAX); R2.sort = sort.sort; R2.dir = sort.dir;
-    if (typeof regRepaint === 'function') regRepaint(); askColPaintPanel(); } } });
+    _acRegRepaint(); askColPaintPanel(); } } });
 }
 /* ⋯ ON A COLUMN'S HEAD: its menu under it — Sort by this column, Read the other N, Remove from this list. A press
    again, Esc or a press outside closes it (one dropdown per press). */
@@ -1779,7 +1783,7 @@ async function askColRename(id){
     const nm = (r && r.ask && r.ask.name) || String(name).trim();
     if (AC.asks[id]) AC.asks[id].name = nm;
     [AC.summary, AC.team].forEach(L => (L || []).forEach(x => { if (x && x.id === id) x.name = nm; }));
-    if (typeof regRepaint === 'function') regRepaint(); askColPaintPanel();
+    _acRegRepaint(); askColPaintPanel();
     if (typeof toast === 'function') toast(_acT('ac_nl_renamed', { name: nm }), 'ok');
   } catch (e){ if (typeof toast === 'function') toast((e && e.message) || '', 'err'); }
 }
@@ -1989,6 +1993,15 @@ async function askColAskHere(o){
   askColRunEnd(got, base, named);
   if (!got.stopped && !got.err && typeof toast === 'function') toast(askColDoneSay(named, got), 'ok');
   return got;
+}
+/* THE CONTRACTS LIST IS REDRAWN ONLY WHERE IT CAN BE (12 Nov 2026): a read asked on the Discover page by somebody who
+   came straight there (never through Contracts) found the list drawn over the page after the first answers, because
+   the list's own repaint paints into the page's place. While Discover is in front, the list waits; it reads the kept
+   answers again the next time it is opened. */
+function _acRegRepaint(){
+  if (typeof regRepaint !== 'function') return;
+  if (typeof state !== 'undefined' && state.view === 'reads') return;
+  regRepaint();
 }
 /* the Discover page is drawn again as answers land (it draws nothing unless it is the page in front) */
 function _acDiscoverLive(now){ if (typeof state !== 'undefined' && state.view === 'reads' && typeof window.discoverLive === 'function'){ try { discoverLive(now); } catch (_){} } }
