@@ -37751,3 +37751,11 @@ And (80041 → 80000; verbatim before):
 ```
 ONE quiet touch of colour per page, read off a fact it has (`listStreamTone`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
 ```
+
+## HOW TO TEST ECONOMICALLY — A PULL REQUEST THAT ONLY CHANGES NOTES RUNS NOTHING (13 Nov 2026)
+The owner asked: "Why does send something to bug log need to go through GitHub check?" (PR #697 was one BUGLOG line and started the full 110-minute run). Offered "merge now" and "skip the checks for notes-only changes"; the owner said "Merge it now and do option 2".
+Built: tests.yml's `pull_request` gains `paths-ignore: ['BUGLOG.md', 'docs/*.md']`. GitHub skips the run only when EVERY changed file matches, so one code file brings the whole check back. Measured what the tests read before choosing:
+- CLAUDE.md is read by f256 and stays checked.
+- docs/design/tokens.json is read by the tokens test and stays checked (a single `*` does not reach into docs/design/).
+- The plans, work orders, audits and MAP files in docs/ are only named in comments.
+No ruleset or required check holds a merge on this repository: #697 merged with its checks still running, and the rulesets list is empty. So a skipped run leaves nothing waiting. The night's run and Run workflow are untouched. f1034 is red at the parent.
