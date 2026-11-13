@@ -22321,3 +22321,15 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
 - Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+
+## 13 Nov 2026 — the clause editor's audit (owner, four screenshots of MK-382's clause 3; f1026, editor-audit-verify)
+- FIXED: Home's Redline / Clean / Their view paper drew a lettered limb flush against the margin (the hang and step rules named the editor's paper only). Stated for .ig-redpaper too.
+- FIXED: in the new look the editor's Jambo panel was still the 28 Oct floating card; it is a flush panel with one hairline.
+- FIXED: a clause with an (a) (i) (1) limb read as typed in the moment it was opened (the gutter walk's own step class read back as the reader's work): Save live over nothing, "Leave this clause?" on a redline already filed.
+- FIXED: the page said "nothing is filed" and "Draft saved at" over a change already filed; it says what is filed, whose it is, and "Not filed yet" for a draft. The leave warning quotes the words at risk.
+- FIXED (found by the audit): Undo back to what stands over our own filed change asked "Leave and lose it?" with Save grey; Redo drew a later step over words typed since the step back; moving to a clause a colleague holds put the reader out of the editor; Escape with the Notes panel open shut the panel AND left the editor; the Save hover over their change named their change as the one saved into.
+- Noticed, not fixed: on Home's panel beside a paper the Redlines tab carries a number (2 in the owner's image 4) that is not the head's "Redlines 6"; two counts on one door, not read further (outside the editor).
+- Noticed, not fixed: "Undo the last change" in the editor's foot is live on a change opened and not touched (it steps the box to the standing wording); harmless now, but it reads as if something of this sitting could be undone.
+- Noticed, not fixed: the writing bar's Outdent on a lettered limb whose step was read off its marker does not stick (the next repaint reads the step off the marker again).
+- Noticed, not fixed: CLAUDE.md is about 93 KB, over its own "about 80 KB" line (two lessons added this round).
+- NOT DONE, said: the new browser check was not seen red on main by a hand run (about 110 billed minutes); its node twin was run red against the parent and the photos show the faults on the parent.

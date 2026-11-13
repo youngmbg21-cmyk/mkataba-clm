@@ -426,7 +426,9 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
      so both wake as the words go in rather than on the blur. */
   test('the File button greys once the record has caught up', () => {
     const foot = CODE.match(/function ceRenderFoot\([\s\S]*?\n\}/)[0];
-    assert.match(foot, /const now = ceBoxNow\(\);[\s\S]{0,200}?const anyToFile = ceCanFile\(now\);/,
+    /* RE-POINTED 13 Nov 2026 (the editor's audit): the box is read ONCE at the top of the foot, for its sentence
+       as well as its button, so the two stand further apart; the claim (File asks the box as typed) is unchanged */
+    assert.match(foot, /const now = ceBoxNow\(\);[\s\S]*?const anyToFile = ceCanFile\(now\);/,
       'with the page staying open, a just-filed draft still differs from what '
       + 'STANDS — so File asks whether the record already holds it, or it would '
       + 'sit live over a press the funnel refuses as proposing nothing');
@@ -436,7 +438,8 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
       + 'from what STANDS…');
     assert.match(read, /clauseEditorOpen\(\) && \(tx !== _ceOpenText \|\| hd !== _ceOpenHead\)/,
       '…and there is something the RECORD does not already hold (clauseEditorDirty\'s question)');
-    assert.match(foot, /const liveMoved = now \? \(now\.text !== _ceBase \|\| now\.head !== _ceHeadBase\) : moved;/);
+    assert.match(foot, /const txNow = now \? now\.text : _ceText, hdNow = now \? now\.head : _ceHead;\s*const moved = txNow !== _ceBase \|\| hdNow !== _ceHeadBase;/,
+      'and "has it moved from what stands" is asked of the box as typed too (liveMoved, said once)');
     /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): the foot's
        Discard is gone — Undo and the leave question cover the reader's own
        typing — so the foot is the walk and Save. */
@@ -1905,7 +1908,8 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'and it borrows the leave dialog\'s own words rather than minting a key');
     /* THE THREE DOORS. Written out at each they would drift, which is what had
        already happened to two of them. */
-    assert.match(CODE, /function ceGoClause\(clauseId, extra\)\{[\s\S]{0,200}?ceLeaveGuard\(\(\) => \{/,
+    /* RE-POINTED 13 Nov 2026: a clause a colleague holds is refused first, where the reader is (f1026) */
+    assert.match(CODE, /function ceGoClause\(clauseId, extra\)\{[\s\S]{0,700}?ceLeaveGuard\(\(\) => \{/,
       'moving to another clause asks');
     assert.match(CODE, /case 'close': ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\); break;/,
       'and so does the way out of the page');
@@ -2015,8 +2019,11 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
        the quotation with its own — "…by notice.”." printed two full stops. */
     assert.match(CODE, /_cet\('ce_leave_lost', \{ words: cut\.replace\(\/\[\.!\?\]\+\$\/, ''\) \}\)/,
       'and quotes back what is not filed');
-    assert.match(CODE, /window\.richToText \? richToText\(_ceText \|\| ''\) : ''/,
+    /* RE-POINTED 13 Nov 2026: the quote opens where the draft first parts from what the page opened with
+       (ceLeaveWords, f1026), still read through the one projection */
+    assert.match(CODE, /const flat = h => \(window\.richToText \? richToText\(h \|\| ''\) : ''\)/,
       'read through the ONE text projection this codebase has');
+    assert.match(CODE, /const raw = ceLeaveWords\(\);/, 'and the words quoted are the ones at risk');
     /* BOUNDED, because a confirm dialog is one paragraph and a clause is not.
        Pinned as the relation — a named ceiling, not its value. */
     assert.match(CODE, /const CE_LEAVE_SNIP = \d+;/, 'the bound is named');
