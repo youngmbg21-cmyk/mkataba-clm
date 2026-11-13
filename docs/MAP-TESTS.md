@@ -6,6 +6,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A FRAME THAT CLIPS NEEDS A SCROLLER INSIDE IT (10 Nov 2026): f996 (2)(3) (red at the parent) and `test/chromium/white-sheet-verify.js` CUT — a frame with overflow hidden whose content runs on below it with something to read or press out of reach; a fault on `CUT_HELD` (Contracts), printed as NOTED on every other place; its own planted fault proves it looks. Runs on GitHub only.
 - LAND ON IT: land-on-it, open-in-place verify; f445, f707, f724.
 - A REFRESH LANDS AT THE SAME SPOT: refresh-keeps-your-spot-verify.
+- GITHUB TESTS A PULL REQUEST, AND MAIN EVERY NIGHT (owner, 13 Nov 2026): `node --test test/f1025-github-tests-a-pull-request.test.js` (5) — the three ways in (pull request, clock, hand), no bare push, the cancel group, still the whole set, the session greeting. Red at the parent (the file said `push:`).
 
 ## THE NINE FLOW RULES
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
@@ -350,7 +351,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - checklist-as-drawn-verify (the owner's "1 · Checklist", 22 Oct 2026: the stage line with ONE current; "Needs you N"; every owed row one line of 40, ONE open, a press opens another and again closes it; Confirm N read writes a closed row; Jambo read's two rows; Next acts equal on one line, All acts N › opens and folds; the only signer button is "Add or order signers ›"; four signers named → green "4 named · 4 steps", opened 1–4, the route editor at the XL rung with no sideways scroll and a person's ⋯ menu whole; nothing past the panel at all three screens; 21 red at f0cd4b3).
 - RE-POINTED 22 Oct 2026 for the Checklist: `ckOpenRowOf(page, sel)` (test/helpers.js) opens a fact's row before a check types in it (blanks-panel, fill-in-beside-the-paper, fill-the-document, owed-first, owed-first-as-drawn, signer-row-as-drawn, still-owed-sap-way); the count is read off `.ds-ck-n`; "Needs you" sits above "Jambo read"; the risks row says "Not read · free" and Read; the acts wear short words (whole name on hover); the-brief 1e allows only the Checklist's rings and the Missing tag (the owner said no lines); f312 pins the route at the XL rung; f918 4a, jambos-panel 1f and checklist-as-drawn 2a2 pin the Dossier tab's number to this contract's Needs you; checklist-as-drawn 2a3 finds no line between sections or rows.
 - KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
-- A company standard's fields on the paper: f1027 (node; red at the parent); company-standard-on-the-paper-verify (browser, GitHub).
+- A company standard's fields on the paper: f1029 (node; red at the parent); company-standard-on-the-paper-verify (browser, GitHub).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
 - A NEGOTIATED CONTRACT'S CLEAN PAPER CARRIES ITS NOTES (owner-reported 6 Nov 2026, MK-469): notes-on-clean-paper-verify 1 (new, red at the parent: no notes on Clean), 2 (Redline keeps their asks).
 - THE MEMO LIVES IN THE CLOSE PLAN (new look, owner picked "Inside the close plan" 6 Nov 2026): memo-in-close-plan-verify 1–4 (new, red at the parent: the memo opened its old side panel; Deal had no Send to a colleague), 5 (look off: the memo panel as before). Its step 1 presses the More menu's Negotiation memo.
@@ -485,6 +486,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
+- ROOM FOR THE ANSWER, AND ONE MORE GO (owner, 12 Nov 2026): f1026 (new; 4 of 4 red at the parent; a real server and the provider stand-in) — a judged question gets more room than a quick one; cut once, asked once more with more room and the whole answer comes back unmarked; cut twice, `truncated` and no third call; both routes through `copilotStepCall`, the browser-only path the same. The measure behind it was run by hand with a real key (six asks; in MAP-HISTORY).
 - A CUT-SHORT DRAFT IS NOT WORDING (owner's screenshot, 12 Nov 2026): f1019 (new; 7 of 8 red at the parent) — the parser marks a proposal object that never closes; the clause and template doors hand back `unfinished` and a sentence, never wording; a whole object still stands under `truncated`; both chat routes send the fact; the sentence in both books.
 - THE ANSWER TOOL OFFERS EVERY FIELD IT DESCRIBES (bug log batch 6, 27 Oct 2026): f947 (1) (new; red at the parent) — wholeBook and ruleDoor sit inside deliver_answer's properties, as the AI is sent them.
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
@@ -494,7 +496,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE POP-UPS, THE SAP WAY
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 - Alerts bottom centre: f1023 (node); photos by hand at the three screens.
-- No outlines on paper entry fields: f1026 (node; red at the parent).
+- No outlines on paper entry fields: f1028 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.

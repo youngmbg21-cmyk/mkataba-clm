@@ -1,4 +1,4 @@
-/* f1027 — A COMPANY STANDARD'S OWN FIELDS ARE FILLED ON THE PAPER (owner, 12 Nov 2026: "Fix all company-standard
+/* f1029 — A COMPANY STANDARD'S OWN FIELDS ARE FILLED ON THE PAPER (owner, 12 Nov 2026: "Fix all company-standard
    contracts so fields can be filled on the paper"). At the parent a contract made from a standard with its own field
    list had no lines on the paper (contractBlanks answers none for a templateForm), the panel said its fields "have no
    place on the paper", and a press on one opened the form. */
