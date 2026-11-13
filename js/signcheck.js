@@ -826,6 +826,22 @@ function signFieldMarks(c){
    the background, and the surfaces repaint when it lands. Until then the
    light count stands, as before; after, the numbers are the same number. */
 const _scLoading = new Set();
+/* ONE REPAINT FOR EVERY RECORD THAT LANDED, AND ONLY THE ROWS (the flash measure, 13 Nov 2026: Board → Approvals drew
+   the whole page again about 350 ms after arriving, once per record loaded). The records that land in one beat are
+   answered by ONE paint in the next frame; on Approvals it is the rows alone ({ rows:true }), which writes nothing
+   where the rows say what they said. */
+let _scLandQueued = false;
+function scLandedRepaint(){
+  if (_scLandQueued) return;
+  _scLandQueued = true;
+  const run = () => {
+    _scLandQueued = false;
+    try { if (window.state && window.state.view === 'dashboard' && typeof window.renderDashboard === 'function') window.renderDashboard(); } catch (_) {}
+    try { if (window.state && window.state.view === 'approvals' && typeof window.renderApprovalsPage === 'function') window.renderApprovalsPage({ rows: true }); } catch (_) {}
+    try { if (typeof window.updateAlertBadge === 'function') window.updateAlertBadge(); } catch (_) {}
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run); else setTimeout(run, 16);
+}
 function signReadinessFor(c){
   const light = !!(c && c._light && !c._loaded);
   if (light && c.id != null && !_scLoading.has(String(c.id)) && typeof window !== 'undefined'
@@ -833,9 +849,7 @@ function signReadinessFor(c){
     _scLoading.add(String(c.id));
     Promise.resolve().then(() => window.restoreHeavyFields(c)).then(() => {
       if (!c._loaded) return;
-      try { if (window.state && window.state.view === 'dashboard' && typeof window.renderDashboard === 'function') window.renderDashboard(); } catch (_) {}
-      try { if (window.state && window.state.view === 'approvals' && typeof window.renderApprovalsPage === 'function') window.renderApprovalsPage(); } catch (_) {}
-      try { if (typeof window.updateAlertBadge === 'function') window.updateAlertBadge(); } catch (_) {}
+      scLandedRepaint();
     }).catch(() => {});
   }
   return signReadiness(c, { light });

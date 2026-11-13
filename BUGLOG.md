@@ -22382,6 +22382,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 13 Nov 2026 — the "a draft asked for is a draft sent" check is f1030, not f1027 as the line above says (main took f1027 to f1029 meanwhile).
 - 13 Nov 2026: the Redlines tab's test is f1031 (main took f1030 for "a draft asked for is a draft sent" before it merged); the line above that says f1030 for the tab means f1031.
 - Renumbered again: the Thread's check is f1032 (main took f1030 and f1031 the same day).
+- Noticed, not fixed (13 Nov 2026, flash measure run 43342670044, 1366x950): 108 of 130 page moves clean. Not clean: Approvals, Discover and Jambo's house draw their content late (59–375 ms) on arrival from the Board; Import shifts the page by 0.049 each way; the Board -> a contract's paper draws the strip, paper and panel late (71 ms) and shifts 0.052, and back again shifts 0.052; one Dossier -> Clauses drew the paper late (575 ms).
 
 - Noticed, not fixed (13 Nov 2026): CLAUDE.md is about 96 KB, over its own "under about 80 KB" limit before this change (this change added one line).
 - (13 Nov 2026, f1022) Fixed: What goes pressed nothing while Jambo's panel talked over Before you send; Write it for me stayed on a history send and its answer was jargon.

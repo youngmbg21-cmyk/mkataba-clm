@@ -770,7 +770,7 @@ function renderPageHeader(view){
   /* the new look draws Requests' own head (round 6, as drawn) */
   const ownsHead=PAGE_OWNS_HEADER.includes(view)||(view==='intake'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof canEdit==='function'&&canEdit()&&typeof insFits==='function'&&insFits())
     ||(view==='team'&&typeof window.stnOn==='function'&&stnOn()&&typeof isAdmin==='function'&&isAdmin())
-    ||(view==='migration'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof insFits==='function'&&insFits()&&typeof migRows==='function'&&migRows().length>0)
+    ||(view==='migration'&&typeof window.newLookOn==='function'&&newLookOn())
     ||((view==='approvals'||view==='obligations')&&typeof window.newLookOn==='function'&&newLookOn()&&typeof insFits==='function'&&insFits());
   if(ownsHead){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
   /* ---- NO SENTENCE UNDER ANY HEADER (owner-asked 25 Aug 2026, off a
