@@ -1262,7 +1262,13 @@ function openAI(prefill,opts){
   renderAIFeed(); renderAISuggest();
   if(win && !wasWin) aiHostsRepaint();
   const inp=document.getElementById('ai-input');
-  if(prefill){ inp.value=prefill; aiSubmit(); } else if(!o.noFocus) inp.focus();
+  /* ONE HOME FOR A HALF-TYPED QUESTION (13 Nov 2026, the flash survey): the ✦ window and the panel show ONE
+     conversation, so they share one draft — words typed in the panel are here when it opens, and the other way
+     about. A prefill handed in is an act of its own and wins. */
+  if(prefill){ inp.value=prefill; if(typeof window.jamboDraftClear==='function') jamboDraftClear(); aiSubmit(); }
+  else { if(typeof window.jamboDraftRestore==='function') jamboDraftRestore(inp, !o.noFocus);
+    if(window.chatFieldGrow&&inp.value) try{ chatFieldGrow(inp); }catch(_){}
+    if(!o.noFocus) inp.focus(); }
 }
 function closeAI(){
   document.getElementById('ai-panel').classList.remove('open');
@@ -5086,10 +5092,14 @@ async function aiSubmit(asked){
   const given=typeof asked==='string';
   const q=(given?asked:(inp?inp.value:'')).trim(); if(!q) return;
   /* still answering: the words leave the box and wait their turn (jamboAskLater) */
-  if(ai.busy){ if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; } if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiSubmit(w)); return; }
+  if(ai.busy){ if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; }
+    if(typeof window.jamboDraftClear==='function') jamboDraftClear();
+    if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiSubmit(w)); return; }
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
   if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; }
+  /* THE ONE PRESS THAT MAY EMPTY THE BOX: the words are used here, so the draft ends here (the flash survey) */
+  if(typeof window.jamboDraftClear==='function') jamboDraftClear();
   /* a paste's offer ends with what was sent */
   if(ai.pasted){ ai.pasted=null; renderAISuggest(); }
   /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): unless a proposal or a
@@ -6148,6 +6158,8 @@ function renderRenewalSection(c){
 document.getElementById('ai-input').addEventListener('keydown',e=>{
   if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') aiSubmit();
 });
+/* and it keeps the one home up to date as the reader types (the flash survey, Part A) */
+if(typeof window.jamboDraftWire==='function') jamboDraftWire(document.getElementById('ai-input'));
 if(window.chatFieldWire) chatFieldWire(document);
 document.getElementById('ai-close').addEventListener('click',closeAI);
 document.getElementById('ai-min').addEventListener('click',minimizeAI);

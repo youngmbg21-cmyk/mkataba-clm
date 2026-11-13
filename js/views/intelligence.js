@@ -10251,8 +10251,15 @@ function renderIntelDock(){
      was still coming was lost twice over: pressing Enter emptied the box and
      asked nothing (intelAsk refuses while busy), and the repaint then took
      what was left. The words and the caret are carried across. */
+  /* ONE HOME FOR A HALF-TYPED QUESTION (13 Nov 2026, the flash survey): the words are read from the store, not
+     from the box, so a write that draws NO box (Collapse, Minimize, Close) no longer ends them. The box is still
+     read first, because a box the reader is typing in is the freshest copy of the draft. */
   const _was=document.getElementById('igd-input');
-  const _keep=_was?_was.value:'', _focus=!!(_was&&document.activeElement===_was);
+  if(_was&&typeof window.jamboDraftSet==='function'){ let _s=null;
+    try{ if(document.activeElement===_was) _s=[_was.selectionStart,_was.selectionEnd,_was.selectionDirection]; }catch(_){ _s=null; }
+    jamboDraftSet(_was.value,_s); }
+  const _keep=(typeof window.jamboDraft==='function')?jamboDraft():(_was?_was.value:''),
+    _focus=!!(_was&&document.activeElement===_was);
   /* ...and where in them the caret stood (27 Oct 2026: Discover's summary landing redraws the panel beside
      Contracts, and a word being fixed mid-sentence went on at the end) */
   let _sel=null; if(_focus){ try{ _sel=[_was.selectionStart,_was.selectionEnd,_was.selectionDirection]; }catch(_){ _sel=null; } }
@@ -10508,14 +10515,21 @@ function renderIntelDock(){
   document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
   /* The » widen button went on 27 Sep 2026 — the divider beside the panel is
      the one way to set its width (igWireSplit). */
-  if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); if(_sel&&_sel[0]!=null) n.setSelectionRange(_sel[0],_sel[1],_sel[2]||'none'); }catch(_){ } } } }
+  { const n=document.getElementById('igd-input');
+    if(n&&typeof window.jamboDraftRestore==='function'){
+      /* the caret this write held is the fresher one while the reader's hand was in the box */
+      if(_focus&&_sel&&_sel[0]!=null&&typeof window.jamboDraftSet==='function') jamboDraftSet(_keep,_sel);
+      jamboDraftRestore(n,_focus);
+    } else if(n&&_keep){ n.value=_keep; if(_focus){ try{ n.focus(); if(_sel&&_sel[0]!=null) n.setSelectionRange(_sel[0],_sel[1],_sel[2]||'none'); }catch(_){ } } } }
   if(window.chatFieldWire) chatFieldWire(dock);
   /* A question asked while an answer is still coming leaves the box and waits
      its turn (intelAsk → jamboAskLater, 22 Oct 2026; was: it stayed in the box
      and Send did nothing). */
   const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value;
     if(!String(v||'').trim()) return;
-    inp.value=''; if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v, { typed:true }); };
+    /* THE ONE PRESS THAT MAY EMPTY THE BOX: the words are used here, so the draft ends here and nowhere else */
+    inp.value=''; if(typeof window.jamboDraftClear==='function') jamboDraftClear();
+    if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v, { typed:true }); };
   document.getElementById('igd-go')?.addEventListener('click',go);
   document.getElementById('igd-input')?.addEventListener('keydown',e=>{
     if(window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),true))) go(); });
