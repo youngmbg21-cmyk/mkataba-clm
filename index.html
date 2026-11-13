@@ -12069,6 +12069,18 @@
   .igd-one-more:hover,.igd-one-more.is-open{border-color:var(--accent-fill,var(--color-accent-600));color:inherit}
   .igd-one-more:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
   .igd-more-wrap{display:inline-flex}
+  /* WRITE IT FOR ME, THE LEGORA WAY (owner, 13 Nov 2026): Jambo's draft note on its turn, each point's clause beside it,
+     its steers as quiet chips on the one row (igNoteCardHtml, igNoteRowParts) */
+  .igd-note{border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3) var(--s-4);background:var(--color-surface)}
+  .igd-note-w{font-family:var(--font-doc);font-size:var(--t-card);line-height:1.6;color:var(--color-neutral-700);white-space:pre-wrap;overflow-wrap:anywhere}
+  .igd-note-src{display:inline-block;font-family:inherit;font-size:var(--t-label);line-height:1.5;padding:0 var(--s-2);border-radius:999px;color:var(--accent-ink);background:var(--st-green-bg);white-space:nowrap;vertical-align:baseline}
+  .igd-note-cap{margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--color-quiet)}
+  .igd-note-one{row-gap:var(--s-2)}
+  .igd-note-chips{flex-basis:100%}
+  .igd-note-chip{flex:none;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-label);padding:var(--s-1) var(--s-3);white-space:nowrap;cursor:pointer}
+  .igd-note-chip:hover{border-color:var(--accent-fill,var(--color-accent-600))}
+  .igd-note-chip:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  .igd-note-said{font-size:var(--t-body);color:var(--color-neutral-700);white-space:nowrap}
   /* THE MENU IS THE ROW'S, NOT THE DOTS' (owner, 11 Nov 2026: "the pop up is cut off"): hung off the ⋯ it was
      wider than the room to its left and ran out past the panel's edge, where the feed's own scroller clipped it
      — three of its rows were not painted at all. Hung off the ROW it can never be wider than the panel. It still

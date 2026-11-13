@@ -451,6 +451,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f452, named-guest-verify.
 
 ## THE SEND SCREEN
+- test/f1038-write-it-for-me-the-legora-way.test.js: the note is a draft in Jambo's panel, tagged by clause, steered by chips, put in and undone by a press.
+- test/f1041-write-it-for-me-goes-to-jambo.test.js: the press and the steers go straight to Jambo, a steer carries the draft.
 - test/f1035-write-it-for-me-and-what-goes.test.js: What goes works while Jambo talks; Write it for me hidden for the history and answered plainly.
 - 11 Nov 2026 (THE SAP WAY look, owner picked it by name): f972 1b re-pointed (the invitation's link is a filled green button; the text part keeps the words over the address); negotiate-new-look-verify 4 re-pointed (From in the email card, boxes, tags, the note hugs, the link a button). f977 fix 6 re-pointed (the email one card on the white page, the form ruled off at its right; GitHub's node suite on #662).
 - 29 Oct 2026 (the owner's MK-382 screenshot): f962 (the subject typed is the subject mailed; Jambo told the send screen, one rule on both hosts, the `note` field; a range verdict named by its label), subject-and-jambo-note-verify (1–5, the three screens); f713 1c, f735 3, f938 5 and four letter verifies re-pointed (the subject is a box: read `.value`).
@@ -492,7 +494,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - WHY FIRST (21 Oct 2026): f506 (C) and f522 (6) re-pointed; `risk-card-titles-verify.js`, `one-door-for-edits-verify.js`.
 - f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify.
 - THE REDLINED PAPER'S NOTES SAY HOW THEY ENDED (13 Nov 2026): f1037 (risks, then our standards and no link; every check red at its parent) — answered / open / agreed / turned down / groups and chips / a viewer / their view / the painter / standards answered by words or by "Playbook — <category>", open with the Dossier's door, missing at the end; redline-notes-answered-verify (for GitHub: beside the paper and clear of it, the tick painted, the chips filter, standards answered and open, no link, Draft a redline, none on Clean).
-- HIDE NOTES IS ONE BUTTON (13 Nov 2026): f1041 (new; 18 of 18 red at the parent) — the new words in both books, one pill that says Hide then Show, remembered, not on Redline nor while reading, the lone pill goes when they come back, measured under the zoom; redline-notes-answered-verify 6 (Hide widens the paper, Show brings them back, no button behind the zoom).
+- HIDE NOTES IS ONE BUTTON (13 Nov 2026): f1042 (new; 18 of 18 red at the parent) — the new words in both books, one pill that says Hide then Show, remembered, not on Redline nor while reading, the lone pill goes when they come back, measured under the zoom; redline-notes-answered-verify 6 (Hide widens the paper, Show brings them back, no button behind the zoom).
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES

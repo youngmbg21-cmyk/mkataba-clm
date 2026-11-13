@@ -1,4 +1,4 @@
-/* f1041 — HIDE NOTES IS ONE BUTTON; THE REDLINE NOTES SPEAK PROFESSIONALLY (owner picked "The Legora Way", 13 Nov
+/* f1042 — HIDE NOTES IS ONE BUTTON; THE REDLINE NOTES SPEAK PROFESSIONALLY (owner picked "The Legora Way", 13 Nov
    2026, then: "Couldn't show and hide notes be one button"; "Buttons should not land behind the zoom button")
    ============================================================================
      (1) THE WORDS — All notes · Outstanding · Resolved; "Resolved by your redline", "not yet sent", "sent, awaiting
@@ -11,7 +11,7 @@
          lone pill measured against the box it stands in);
      (6) THE HANDBOOK names both words, both books.
    AT THE PARENT every check but none fails: the words are the old ones and no pill exists.
-   Run: node --test test/f1041-hide-notes-is-one-button.test.js */
+   Run: node --test test/f1042-hide-notes-is-one-button.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -34,7 +34,7 @@ function fnSrc(src, name){
 /* the two books: English is the first, Swedish the second, of every key */
 const said = k => [...I18N.matchAll(new RegExp('\\n\\s+' + k + ": '([^']*)'", 'g'))].map(m => m[1]);
 
-describe('f1041 (1) the words', () => {
+describe('f1042 (1) the words', () => {
   const want = {
     pd2_rn_chip_all: 'All notes', pd2_rn_chip_open: 'Outstanding', pd2_rn_chip_done: 'Resolved',
     pd2_rn_answered: 'Resolved by your redline', pd2_rn_unsent: 'not yet sent', pd2_rn_sent: 'sent, awaiting their response',
@@ -59,7 +59,7 @@ function stage(){
   return w;
 }
 
-describe('f1041 (2) one button, (3) remembered', () => {
+describe('f1042 (2) one button, (3) remembered', () => {
   test('one pill: Hide notes while shown, Show notes once put away', () => {
     const w = stage();
     const shown = w.document.createElement('div'); shown.innerHTML = w.pd2NotesTgHtml(false);
@@ -82,7 +82,7 @@ describe('f1041 (2) one button, (3) remembered', () => {
   });
 });
 
-describe('f1041 (4) where it applies', () => {
+describe('f1042 (4) where it applies', () => {
   const paint = fnSrc(PD, 'pd2NotesPaint');
   test('put away only off the Redline view, never while the read plays; the lone pill stands under the zoom', () => {
     assert.match(paint, /if \(!red && !walking && pd2NotesHiddenGet\(\)\)\{ pd2NotesOff\(\); pd2NotesTgSolo\(zoom\); return; \}/);
@@ -97,7 +97,7 @@ describe('f1041 (4) where it applies', () => {
   });
 });
 
-describe('f1041 (5) never behind the zoom', () => {
+describe('f1042 (5) never behind the zoom', () => {
   test('the notes start under the pill, the pill under the zoom (one measure for chips and pill)', () => {
     const paint = fnSrc(PD, 'pd2NotesPaint');
     assert.match(paint, /if \(!red\) pd2GroupsPlace\(groups, z, h, ff, pd2RedFloor\(h\)\)/);
@@ -122,7 +122,7 @@ describe('f1041 (5) never behind the zoom', () => {
   });
 });
 
-describe('f1041 (6) the Handbook', () => {
+describe('f1042 (6) the Handbook', () => {
   test('both words named in both books', () => {
     const n = (HB.match(/\{ui:pd2_notes_hide\}/g) || []).length, m = (HB.match(/\{ui:pd2_notes_show\}/g) || []).length;
     assert.ok(n >= 2 && m >= 2, 'en and sv');
