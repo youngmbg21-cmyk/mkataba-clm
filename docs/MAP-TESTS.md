@@ -495,6 +495,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - WHY FIRST (21 Oct 2026): f506 (C) and f522 (6) re-pointed; `risk-card-titles-verify.js`, `one-door-for-edits-verify.js`.
 - f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify.
 - THE REDLINED PAPER'S NOTES SAY HOW THEY ENDED (13 Nov 2026): f1037 (risks, then our standards and no link; every check red at its parent) — answered / open / agreed / turned down / groups and chips / a viewer / their view / the painter / standards answered by words or by "Playbook — <category>", open with the Dossier's door, missing at the end; redline-notes-answered-verify (for GitHub: beside the paper and clear of it, the tick painted, the chips filter, standards answered and open, no link, Draft a redline, none on Clean).
+- HIDE NOTES IS ONE BUTTON (13 Nov 2026): f1042 (new; 18 of 18 red at the parent) — the new words in both books, one pill that says Hide then Show, remembered, not on Redline nor while reading, the lone pill goes when they come back, measured under the zoom; redline-notes-answered-verify 6 (Hide widens the paper, Show brings them back, no button behind the zoom).
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
