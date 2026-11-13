@@ -1,4 +1,4 @@
-/* f1030 — THE REDLINES TAB'S NUMBER IS THE HEAD'S (owner, 13 Nov 2026: "fix the Redlines tab count so it matches
+/* f1031 — THE REDLINES TAB'S NUMBER IS THE HEAD'S (owner, 13 Nov 2026: "fix the Redlines tab count so it matches
    the head"; seen in the owner's own screenshot of MK-382: the tab said "Redlines 2" over a column whose head read
    "Redlines 6 · 5 not sent")
    ============================================================================
@@ -15,7 +15,7 @@
 
    AT THE PARENT (a931117) (1) and (2) fail: the tab said the owed rows' count in amber. (5) fails on this
    branch's first push (92f08c6), which read the column's count on every contract.
-   Run: node --test test/f1030-the-redlines-tab-matches-its-head.test.js */
+   Run: node --test test/f1031-the-redlines-tab-matches-its-head.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -89,7 +89,7 @@ async function mixed(win, c, cl){
   return { theirs };
 }
 
-describe('f1030 (1) the tab says the head\'s number', () => {
+describe('f1031 (1) the tab says the head\'s number', () => {
   test('a mix of rows: drafts, their ask, a settled one folded away — tab = head', async () => {
     const S = await stage(mixed, [{ kind: 'ask', n: 1 }, { kind: 'share', n: 4 }]);
     const h = S.head();
@@ -103,14 +103,14 @@ describe('f1030 (1) the tab says the head\'s number', () => {
   });
 });
 
-describe('f1030 (2) the tone says whose move it is', () => {
+describe('f1031 (2) the tone says whose move it is', () => {
   test('rows in sight but nothing of the negotiation owed by you: the number, in grey', async () => {
     const S = await stage(mixed, [{ kind: 'fill', n: 3 }]);
     assert.deepEqual(S.tab(), { n: S.head(), tone: 'quiet' });
   });
 });
 
-describe('f1030 (3) nothing in the column, no number', () => {
+describe('f1031 (3) nothing in the column, no number', () => {
   test('a contract with no changes carries no number on the tab', async () => {
     const S = await stage(async () => {}, []);
     assert.equal(S.head(), 0);
@@ -118,7 +118,7 @@ describe('f1030 (3) nothing in the column, no number', () => {
   });
 });
 
-describe('f1030 (5) counting never creates a negotiation (reading must not write)', () => {
+describe('f1031 (5) counting never creates a negotiation (reading must not write)', () => {
   /* CAUGHT ON GITHUB, 13 Nov 2026 (upload-blanks-verify 8h, "the received document is not rewritten"): the
      column's count reads through negoChanges, which calls negoInit and stamps clause ids into the document; the tab
      is painted on every contract, so a contract nobody had redlined was rewritten by looking at it */
@@ -131,7 +131,7 @@ describe('f1030 (5) counting never creates a negotiation (reading must not write
   });
 });
 
-describe('f1030 (4) Their view is unchanged', () => {
+describe('f1031 (4) Their view is unchanged', () => {
   test('their column\'s own count, from their seat, quiet', async () => {
     const S = await stage(mixed, [{ kind: 'ask', n: 1 }]);
     S.setTheirs(true);
