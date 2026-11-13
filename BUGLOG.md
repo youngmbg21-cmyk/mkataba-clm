@@ -22355,4 +22355,6 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Not fixed: the owner asked only for this line.
 - 13 Nov 2026 — FIXED (f1027; owner: "fix the draft that comes back with no wording"): a drafting ask whose answer carries no JSON object is asked once more for it, on both chat routes and the browser-only path; the second answer stands. Not re-measured against the real provider (2-in-9 fault).
 - 13 Nov 2026: the clause editor's audit's test is f1027 (main took f1026 for "room for the answer" before it merged); the lines above that say f1026 for the audit mean f1027.
+- FIXED 13 Nov 2026 (owner: "fix the Redlines tab count so it matches the head"): the Redlines tab on Jambo's panel now carries its column's own "Redlines N" on our seat too (it counted the Dossier's owed negotiation rows); amber while something there waits on you, grey otherwise. f1030.
 - 13 Nov 2026 — the "a draft asked for is a draft sent" check is f1030, not f1027 as the line above says (main took f1027 to f1029 meanwhile).
+- 13 Nov 2026: the Redlines tab's test is f1031 (main took f1030 for "a draft asked for is a draft sent" before it merged); the line above that says f1030 for the tab means f1031.
