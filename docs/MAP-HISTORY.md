@@ -37778,6 +37778,11 @@ OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `B
 **THE ASK.** *"fix the remaining three too"*, after the measure (run 43415999023, now at the three screens: 168 of 195 moves clean) named who wrote late and what moved.
 **WHAT IT NAMED, AND WHAT WAS BUILT.** (1) Board → Approvals still wrote the page at ~210 ms: `listCols`' repaint (a column fitting its room) → `apPaintList` → `renderApprovalsPage({ listOnly })`, which the new look sent to the WHOLE page. Now a list-only ask is the rows paint there (`o.rows||o.listOnly`), which writes nothing when the rows say what they said. (2) Import's jump: `#body-grid` slid 48 → 119 px (and back) because Import with no files in stood under the shell's own title strip (#page-head, 71 px) while every other new-look page draws its own. The new look's Import now draws its title in the page on every state (`.mig-own-head`, the shell strip's own measures: 23px top so the title's ink stands where it stood, 40px edge, the hairline in front of the drop card); photographed at the three screens against the old: title within 0 px, the drop box within 1 px. (3) The first Dossier → Clauses wrote the paper again at ~560 ms: the arrival's quick read (`pd2WalkStep`) reached its end and `pd2WalkClose` drew the whole paper to take its marks off. It now takes off its own classes and lays the notes out again (`pd2NotesPaint`); the whole paper only where no paper stands.
 **NOT A FLICKER, SAID TO THE OWNER.** Board → a contract's paper and paper → paper: the paper, its line and the panel are written ~50 ms (or ~28 ms) after the press because `igAnalyze` awaits the whole record (`ensureFull`) before it turns the face; until then the Board or the old paper stands, so the reader sees ONE change, a beat later. The 0.05 "jump" with it is the face changing (the paper's line takes 56 px above the stage), not a slide. Left as it is; the way to make it instant (loading the record when the press goes down) is offered to the owner, not built.
+## THE SEND SCREEN — WRITE IT FOR ME, AND WHAT GOES WHILE JAMBO TALKS (13 Nov 2026, owner's two screenshots)
+The owner: "i pressed write for me and i get the response on the jambo which i do not understand" (the panel said "Note ready to go in your note box with the button under it", the box empty) and "I am unable to press highlighted choice [The contract, round 2]. Also as i press the other choices, the page stutters".
+(1) Asking Jambo from "Before you send" turns the panel to his words while the face still SHOWS (`pdSendShows` true, not away), so the panel drew neither the face nor its kept copy (`pdSendKeepHtml` kept only when away): the column left the page, and What goes — whose choices press that column's own buttons — pressed nothing. The panel now passes whether it drew the face (`pdSendKeepHtml(!talk&&!_sheet&&pdSendShows())`).
+(2) "Write it for me" was drawn only when the screen OPENED on something other than the history, and stayed when What goes moved to the history, where the email lists no answers to write from; the model said it was ready and returned no note. It is drawn hidden for the history and What goes shows or hides it (`shareLetterPaint`).
+(3) A Write-it-for-me press is answered in HaTi's own words (`aiSendNoteSaid`): "Jambo's note is in your note box…" or "No note came back this time…" (`sh_nl_none`, both books); a typed question keeps Jambo's own answer. The stutter was not measured here (browser checks run on GitHub); it went with the presses that found nothing. Red at the parent: f1035 1–3. f758 4b re-pointed.
 ## HOW TO TEST ECONOMICALLY — A PULL REQUEST THAT ONLY CHANGES NOTES RUNS NOTHING (13 Nov 2026)
 The owner asked: "Why does send something to bug log need to go through GitHub check?" (PR #697 was one BUGLOG line and started the full 110-minute run). Offered "merge now" and "skip the checks for notes-only changes"; the owner said "Merge it now and do option 2".
 Built: tests.yml's `pull_request` gains `paths-ignore: ['BUGLOG.md', 'docs/*.md']`. GitHub skips the run only when EVERY changed file matches, so one code file brings the whole check back. Measured what the tests read before choosing:
@@ -37807,4 +37812,29 @@ REQUESTS: lanes on the server (`runIntakeLanes`). ONE ADDRESS BOOK `contactSet`.
 And (80016 → 80003; verbatim before):
 ```
 MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (names who wrote late, what moved), glitch-audit, perf*.
+```
+
+RENUMBERED again on joining main (13 Nov 2026): "what landed the same is not drawn again" is f1036 (main took f1035 for the send screen).
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (eleventh)
+On joining main (#700, #702; 80195 → 80073). Verbatim before:
+```
+THE SCORECARD: a read's table on Discover wears its own head, tiles per answer (`rdScHeadHtml`, `_rdScOn`).
+- A NEW MAP FEATURE = A GUIDE TAB ROW (`igGuideRows`), SAME change; the legend `igLegendPlace`.
+`isMonetary(c)` the ONE answer: the record wins, the template answers silence, an upload is assumed to carry money.
+- THEIR ROUND: each ask one row pressing the Redlines row's own verb (`agRoundAct`).
+Jambo's first words after a draft owed once (`firstDraftOwe`). Their row: `rlPlainReasonOf`, `rlAskColleague`.
+```
+And (80073 → 80048; verbatim before):
+```
+`hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); f866. `goto.door` (`aiDoorOf`); f867.
+- APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466).
+```
+And (80048 → 80015; verbatim before):
+```
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. CONTRACT BRIEF per wording hash. ARCHIVE `contractSetArchived`.
+```
+And (verbatim before):
+```
+ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep` not on yourself).
 ```

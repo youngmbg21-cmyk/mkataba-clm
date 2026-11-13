@@ -145,7 +145,7 @@ Create MINTS A DRAFT AND FILES IT (not value, dates, obligations, signers); ONE 
 - JAMBO'S 15-MINUTE RATE LIMITS ARE OFF: in `rateLimit` 0 means NO limit (`aiRateLight`/`aiRateDeep`/`aiRateOcr`); the daily ceilings stand. f1004.
 - `ADMIN_ONLY_USER_FIELDS`; `/api/ai/spend` admin-only; `/api/ai/config` strips byPerson for non-admins. Colleagues' names DO travel with changes; the review and `resolvedBy` are walled. The sign-in limiter counts WRONG GUESSES. APP_URL and NODE_ENV=production in render.yaml.
 ## GAP MAP, PHASE 2 AND 3 SERVICES
-NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. CONTRACT BRIEF per wording hash. ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep` not on yourself). WEBHOOKS ids only, admin-only. ASSURANCE LADDER weakest wins. Blocked on the owner: BankID, WhatsApp Business, Google sign-in.
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep`). WEBHOOKS ids only, admin-only. ASSURANCE LADDER weakest wins. Blocked on the owner: BankID, WhatsApp Business, Google sign-in.
 ## MONEY IN ITS OWN CURRENCY
 `fmtMoneyShortIn` the ONE shortener (B · M · K). A contract states its own currency (`contractCurrency`, `fmtMoneyOf`); anything that ADDS converts through `fxHome`; NO RATE IS EVER GUESSED (`fxMissing`; rates an admin's dated claim); stored values never rewritten. PAY IS NOT DEAL VALUE: `fxIsPay(c)` adds nothing (`fxCounted`); base pay `c.value`, period and parts `c.pay` (`payClean`); ONE writer `paySet`, door `payEditOpen`.
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
@@ -208,7 +208,7 @@ A FIELD LEFT BLANK IS FILLED IN, NOT ARGUED: a `blank` point carries Fill it in 
 - EXPLORER: `GRAPH_GROUPINGS`, `intelGraphApply`, `INTEL_CAP` said; recipe `igRecipeNow`/`igRecipeSet`; a count prints only if drawn (`igCountsDrawn`); a typed day READ, never guessed (`igDateRead`); Jambo explains what the map DREW (`igTourSteps`); FINDINGS `map_findings` (inside folderScopeFor).
 - SAVED VIEWS under Your day only (`igSavedViewsHtml`, `igViewSave`); they follow the PERSON (prefs `igViews`, `igViewsClean`). f1001. LENSES: ONE door `igLensSet`; a legend ROW isolates (`igLegendPick`); `igLensThen`. YOUR DAY (`igDayData`, `igDayGo`); `hbFigMenuOpen`; `igWhatIfData`.
 - TYPED, THE AI READS; HaTi CHECKS: `render_graph` `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` first, the gap sent back ONCE (`igGapNote`). `igTopGroups`; `igMapReadHtml`, `igMapReadTeach`. Groups in ORDER, rank by COUNT (`IG_TOPG_BY`); what was not drawn is not said (`igMapSentenceHonest`). f995, f996, f999.
-- A NEW MAP FEATURE = A GUIDE TAB ROW (`igGuideRows`), SAME change; the legend `igLegendPlace`.
+- A NEW MAP FEATURE = A GUIDE TAB ROW (`igGuideRows`), SAME change.
 ## OBLIGATIONS
 - THE PAGE IS A PROJECT LIST: three pills Late · Tracked · Proposals over one filter line (`obnRender`), TWENTY A PAGE (`_obnPer`, `obnPagerHtml`), a row's stream band and tone chip (`obnWhenChip`, `obnStreamTone`). PROPOSALS BY AGREEMENT (`obnProjects`, `obnProjRowHtml`, `obnDutyHtml`), added through the ONE writer `obAddFound`; nothing saved until Add all.
 - ONE builder (`obListHtml`); `obligationMarkDone` the one completion writer; `obligationNextInstance`; `obligationBlocked` (server twin); Chase `POST …/chase`; `TEMPLATE_OBLIGATIONS` never guessed; review desk `openObligationsReview`, nothing pre-ticked.
@@ -226,7 +226,7 @@ A FIELD LEFT BLANK IS FILLED IN, NOT ARGUED: a `blank` point carries Fill it in 
 - FAULTS ARE COUNTED IN THE NEW LOOK: `white-sheet-verify` (no grey ground or EDGE beside the panel, no scroller inside an active scroller, `PINS`; `WHITE_KNOWN` only shrinks), `HATI_TIDY_NEW_LOOK=1`, `HATI_DETAIL_NEW_LOOK=1`; the tidy sweep measures AFTER MOTION too.
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct)
 - `.sap-page`: every page head is ONE white card (`.ph-card`, `.ph-top`, `.ph-foot`); lists: THE LIST HEAD.
-`hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); f866. `goto.door` (`aiDoorOf`); f867.
+`hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); `goto.door` (`aiDoorOf`).
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
 - REQUESTS (`ikTabViews`): ONE count for every tab and the list (`ikBase`); attachments `IK_FILES_MAX` 3 × 5 MB (`intake_files`: the asker or a stream editor, else 404). The paper that fits is read WITHOUT AI (`ikFitOf`); Start the draft → the one form. Refresh `ikPlace`.
 - IMPORT (`migTabViews`): a row press CHOOSES (`migPickSet`); ONE table, need-you first (`MIG_ROWS_SHOWN`, cap said); one form `migFormOf`, one writer `migFileIt` → `applyReviewedMeta`; `migCheckOpen`. A file that looks UNSIGNED is parked (`migLooksUnsigned`), never sealed; `migNoticeDay`. Refresh `migPlace`.
@@ -240,7 +240,7 @@ A FIELD LEFT BLANK IS FILLED IN, NOT ARGUED: a `blank` point carries Fill it in 
 One question of many contracts' wording as list columns, editors only (`askColPanelHtml`; `AC_MAX` = `COLUMN_MAX` 100); POST /api/ai/column kept per wording (`column_answers`, `COLUMN_READ_RULE`); a refusal said under the box (`askColSay`).
 DISCOVER (docs/PLAN-jambo-discover.md first): one read, many questions (`COLUMN_Q_MAX` 8); a kept question's rule is never invented; ONE tone `askColToneOf`; ONLY WHAT YOU KEEP (`column_asks.kept`). A press reads 50 or 100 (`AC_SIZES`) of the FIRST NOT YET READ (`askColPlan`, `askColNextWords`); EVERY PRESS LEAVES A RECORD (`column_reads`); reads go out in tens, stop at once (`AC_BATCH`, `askColStop`); a counting question is never a column (`AC_PORTFOLIO_RE`).
 DISCOVER IS A PAGE: Reads IS Discover (`renderReads`, `rdnRender`); the list head's Discover pill (`askColBtnHtml` → `discoverOpen`, `.rfp-dsc`); ONE ask box, ONE black button saying how many (`dscAskBtnHtml`); the one read over the Contracts list as filtered (`askColAskHere` → `askColReadRun`; `dscScope`); a row opens under itself (`dscOpenHtml`); `dscPanelPaint`, `discoverLive`; the list never repaints over it (`_acRegRepaint`). f1016.
-THE SCORECARD: a read's table on Discover wears its own head, tiles per answer (`rdScHeadHtml`, `_rdScOn`).
+THE SCORECARD: a read's table wears its own head, tiles per answer (`rdScHeadHtml`).
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - CONTRACTS IS A PLACE BESIDE THE BOARD: `setView('register')` → `hbOpenContracts` (not the phone); `renderRegister({home:true,hostId:'ct-place'})`: head `regHomeHeadHtml` (List | Wall, `REG_SHOWS`; `igWallBodyHtml`). Press chooses (`igWallChoose`), a second opens (`igWallOpen`), Esc lets go (`igWallLetGo`).
 - `regSetScope`/`regScope` first; `regRepaint()`; `regFiltered` + `regNarrowed()`; `regGoFiltered`; `regOpenContract`. THE LIST HEAD (`regCtHeadReg`, `REG_CT_VIEWS`, `REG_CT_QUICK`). `clauseNameShown` presents AS ON THE PAPER (= `clauseNameAsDrafted`); `clauseLabel` builds a RECORD. Answers → `regShowOnly`.
@@ -330,7 +330,7 @@ Both seats, no route: `spellSuspects` reads NEW words only (null = not checked);
 ## A NAMED GUEST'S LINK ASKS WHO IS OPENING IT
 ONE CODE, ONE PROOF, TWO GATES (opening and signing) on the existing `share_otp` routes (`/otp`, `/verify-otp`; never a second pair, f358 (7e)). Admin setting, OFF by default (`linkCode.on`, `linkCodeCfg`). `shareNeedsCode(s)`; `shareDoorOtpOk` gates GET /api/shares/:token with 401 `needsCode` + `shareCodeMask`, below the 'gone' answers; a status link is `shareIsReadOnly`. Browser `portalCodeScreen`, `PT_TICKET_KEY`.
 ## THE SEND SCREEN
-A FORM, "Before you send" beside, VERDICT first (`shareVerdictPaint`). OUR PAPER GOES OUT CLEAN THE FIRST TIME: our pending fixes fold into the baseline on OUR paper's first send (`negoFoldOwnFirstSend`; a Draft only, nothing linked, handed over, theirs, held or under review; `c.negotiation.folded`; `negoFoldWouldTake`). Their paper and every later send stay tracked. f1015. The words are ONE module, both hosts: js/sharemail.js. EVERY send door opens it (`letterDoor`, `pdSendOpen`); a colleague `caPassSend`; JAMBO WRITES ONLY THE NOTE (`AI_SEND_NOTE_RULE`). f939, f962.
+A FORM, "Before you send" beside, VERDICT first (`shareVerdictPaint`). OUR PAPER GOES OUT CLEAN THE FIRST TIME: our pending fixes fold into the baseline on OUR paper's first send (`negoFoldOwnFirstSend`; a Draft only, nothing linked, handed over, theirs, held or under review; `c.negotiation.folded`; `negoFoldWouldTake`). Their paper and every later send stay tracked. f1015. The words are ONE module, both hosts: js/sharemail.js. EVERY send door opens it (`letterDoor`, `pdSendOpen`); a colleague `caPassSend`; JAMBO WRITES ONLY THE NOTE (`AI_SEND_NOTE_RULE`). f939, f962. A Write-it-for-me press is answered in HaTi's words (`aiSendNoteSaid`), the button hidden for the history; a question over Before you send keeps its column in the page (`pdSendKeepHtml(faceDrawn)`). f1035.
 THE LOOK: boxes on the left, each sentence a tag (`data-tone` in `shareNlLinesPaint`); the email ONE card; the note HUGS its words; the link a BUTTON on screen and in the mail (`SM_BTN_STYLE`).
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
 - PAPER FIRST: shelves beside the chosen paper (`tplPfPaperHtml`, `tplPfPanelPaint`); ONE door "Our paper" (`PAPER_TABS`); ONE DOOR TO A STANDARD `#tpl-new` → `openNewStandard` → `openTemplateBuilder`; `format:'rich'`; `tplDraftFrom`; `templateUsage`. A TEMPLATE'S PAGE: ONE line (`#tpl-dt`), Jambo beside it (`tplDtPanelPaint`, `tplPfReadOf`).
@@ -368,15 +368,15 @@ LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.
 ## WHAT COUNTS AS A CLAUSE (js/clausemodel.js)
 `clauseSegment()` the ONE splitter; a HEADING's number may be Roman or a letter (`DOC_READ_HEAD_NUM`, `DOC_READ_ROMAN`), the paragraph rule `DOC_READ_NUM` stays digits; `CLAUSE_KINDS`; `clauseKind` reads the heading only; banners ride the next clause (`_clBanners`); `clauseCarryIds`; `applyNegoProposals` never drops what it cannot place; `redlineHangHtml` the one gutter walk.
 ## DOES MONEY PASS UNDER THIS CONTRACT
-`isMonetary(c)` the ONE answer: the record wins, the template answers silence, an upload is assumed to carry money.
+`isMonetary(c)` the ONE answer: the record wins, then the template; an upload is assumed to carry money.
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
 - `agent_pieces` (`agentPieceAdd`/`agentPieceDecide`); rebuild admin-only (`agentRebuild`, dry first). Each person only DOWN (`agentLevels` 'ask'·'mine', `agentLevelFor`); Just do it the admin's. Doors → `hbOpenAgent(k, key)`; a piece ONE ROW, Put away LAST (`agPutAway`, Undo).
-- THEIR ROUND: each ask one row pressing the Redlines row's own verb (`agRoundAct`).
+- THEIR ROUND: each ask one row, the Redlines row's verb (`agRoundAct`).
 ## THE SLIDER ON EVERY JAMBO PANEL
 ONE builder `splitHtml`/`splitFit`/`splitWire`/`splitClamp` (js/components.js); clients Home (`IG_SPLIT`, `hati.v1.igDockW`), the list panel and Import (`JL_SPLIT`, `--jl-w`, floor `jlListMin`), Settings (`ST_SPLIT`, `--st-side-w`, floor 780), the side panel (`AI_SIDE_SPLIT`).
 PAST THE MARK THE PANEL SLIDES OVER: the page narrows to `SPLIT_OVER_AT` 880 (or its own floor if wider), then holds; the panel lies over it (`splitOver`, `.is-split-over`), up to `SPLIT_PEEK` 420 of page in sight; nothing slides over at rest (`overAt`). panels-slide-over-alike-verify.
 ## OTHER PAGES AND SERVICES
-- APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read; every document has a person (`mailroomOwnerFor`, `intakeLaneOwner`; bell `mailroom`); MEMO `negoMemo` (no model).
+- APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk`. NOTICE DESK `noticeDraft`; MAILROOM files, does not read; every document has a person (`mailroomOwnerFor`, `intakeLaneOwner`; bell `mailroom`); MEMO `negoMemo` (no model).
 - COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
 - OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000).
 ## THE OVERNIGHT RUN (9 Oct)
@@ -387,7 +387,7 @@ A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS: ONE swap `listR
 NO PAGE-WIDE `:has` OVER THE PAPER: write the state on the element (`igDockMarks` → `#ig-page[data-igd-head|data-igd-door]`). ONE PRESS, ONE PAPER (`_igPaperPaints`, `pd2SheetPre`). f1007.
 A DECISION REDRAWS ONLY ITS CLAUSE: `igPaperRefresh` tries `igPaperPatch` first (blocks stamped `_igSrc` by `igPaperStamp`; ONE builder `igRedBodyHtml`; any doubt = drawn whole); `pdRedRepaint` in ONE `igDockBatch`. f1010.
 NOTHING CHANGED, NOTHING WRITTEN: Jambo's panel is worked out whole, and written only if it differs from what stands or anything moved since (`igDockSame`, `igDockStamp`); only a middle the painter itself wrote (landing, talk); kept buttons take the build's act numbers; ANY DOUBT = WRITTEN WHOLE. The paper's line has ONE writer (`igStripPut`). f1024.
-WHAT LANDED THE SAME IS NOT DRAWN AGAIN: data landing after a page is drawn writes nothing unchanged, else the change (`scLandedRepaint`, `_apnSrc`, `rdRowsKey`, `_jhSrc`; f1035).
+WHAT LANDED THE SAME IS NOT DRAWN AGAIN: data landing after a page is drawn writes nothing unchanged, else the change (`scLandedRepaint`, `_apnSrc`, `rdRowsKey`, `_jhSrc`; f1036).
 MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (who wrote late, what moved).
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
 A slow answer lands on its own contract (`contractOnScreen`); sitting marks never reach the record (`dropSittingKeys`). Walls: `srvApprovalChainOpenOf`, `srvApprovalDecisionRefusal`; a link refuses another kind (`shareKindOf`); discard restores the sent version (`negoSentVersionOf`).
@@ -396,4 +396,4 @@ REQUESTS: lanes on the server (`runIntakeLanes`). ONE ADDRESS BOOK `contactSet`.
 ## THE WORD FILE WE WRITE, AND THE PAGE MEASURE
 DOCX writer: hanging indent = `w:ind` + a left tab stop + a real tab; shape off the markup (`hati-lv-N`, `rl-hang`); a paragraph only with a visible character. `--page-measure` is `none`; the AGREEMENT keeps `--doc-sheet-max`. `rowsThatFit(el,rowH,min,max)` after the paint; counting is never capped, only drawing.
 ## THE FIRST-TIMER ROUNDS (owner, 22 Oct 2026: On the card · One question · Who pays whom · He speaks · Four doors)
-A viewer's refusal says what is true and who lifts it, with Ask an admin (`draftWallSay`, `draftWallSend`). Everyday words (`caDraftWords`); confusable papers ask ONE question (`CA_DRAFT_PAIRS`); "Use when" (`naUseWhen`). Who pays whom? `payWhoHtml`/`payWhoSet`. Jambo's first words after a draft owed once (`firstDraftOwe`). Their row: `rlPlainReasonOf`, `rlAskColleague`.
+A viewer's refusal says what is true and who lifts it, with Ask an admin (`draftWallSay`, `draftWallSend`). Everyday words (`caDraftWords`); confusable papers ask ONE question (`CA_DRAFT_PAIRS`); "Use when" (`naUseWhen`). Who pays whom? `payWhoHtml`/`payWhoSet`. Jambo's first words after a draft owed once (`firstDraftOwe`).

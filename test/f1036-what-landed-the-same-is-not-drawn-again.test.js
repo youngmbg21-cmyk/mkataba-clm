@@ -1,5 +1,5 @@
 'use strict';
-/* f1035 — WHAT LANDED THE SAME IS NOT DRAWN AGAIN (owner, 13 Nov 2026: "fix the flash issues", after the flash
+/* f1036 — WHAT LANDED THE SAME IS NOT DRAWN AGAIN (owner, 13 Nov 2026: "fix the flash issues", after the flash
    measure filmed every page move). Three pages drew themselves a second time a moment after arriving, when their
    data came back from the server: Approvals (~350 ms, the whole page, once per record loaded), Discover (~55 ms,
    the very rows it had just drawn) and Jambo's house (~75 ms, the whole page, the loading line turning into the
@@ -14,7 +14,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '
 const read = f => strip(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
 const region = (src, start, len = 4000) => { const i = src.indexOf(start); assert.ok(i >= 0, 'missing: ' + start); return src.slice(i, i + len); };
 
-test('f1035 (1) a record landing in the background asks ONE paint a frame, and Approvals repaints its rows alone', () => {
+test('f1036 (1) a record landing in the background asks ONE paint a frame, and Approvals repaints its rows alone', () => {
   const s = read('js/signcheck.js');
   const land = region(s, 'function signReadinessFor', 900);
   assert.match(land, /scLandedRepaint\(\)/, 'the loader asks the one repaint');
@@ -25,7 +25,7 @@ test('f1035 (1) a record landing in the background asks ONE paint a frame, and A
   assert.match(one, /renderApprovalsPage\(\{\s*rows:\s*true\s*\}\)/, 'Approvals: the rows alone');
 });
 
-test('f1035 (2) a rows paint that would write what stands writes nothing', () => {
+test('f1036 (2) a rows paint that would write what stands writes nothing', () => {
   const s = read('js/views/approvalsview.js');
   const r = region(s, 'function apnRender', 9000);
   assert.match(r, /tbl\._apnSrc===tblSrc/, 'the table compares what it would write with what it wrote');
@@ -34,7 +34,7 @@ test('f1035 (2) a rows paint that would write what stands writes nothing', () =>
   assert.ok(i >= 0 && j > i, 'the unchanged rows return before the head and the panel are painted');
 });
 
-test('f1035 (3) Discover draws again only when the rows that landed differ', () => {
+test('f1036 (3) Discover draws again only when the rows that landed differ', () => {
   const s = read('js/views/reads.js');
   const r = region(s, 'async function rdLoad', 1400);
   assert.match(r, /const was = rdRowsKey\(_rd\.rows\)/);
@@ -42,7 +42,7 @@ test('f1035 (3) Discover draws again only when the rows that landed differ', () 
   assert.match(s, /function rdRowsKey\(rows\)/);
 });
 
-test('f1035 (4) Jambo\'s house: the period landing changes only the card, and nothing when it is the same', () => {
+test('f1036 (4) Jambo\'s house: the period landing changes only the card, and nothing when it is the same', () => {
   const s = read('js/views/jambohouse.js');
   const r = region(s, 'function renderJamboHouse', 5000);
   assert.match(r, /opts\.fromLoad && host\._jhSrc === src && standing\) return/, 'the same page is not written');
@@ -52,7 +52,7 @@ test('f1035 (4) Jambo\'s house: the period landing changes only the card, and no
   assert.ok(c >= 0 && w > c, 'the whole page is the fallback, not the first road');
 });
 
-test('f1035 (5) the flash measure names who wrote late and what moved, at the owner\'s three screens', () => {
+test('f1036 (5) the flash measure names who wrote late and what moved, at the owner\'s three screens', () => {
   const s = fs.readFileSync(path.join(__dirname, 'chromium', '_audit', 'flash-measure.js'), 'utf8');
   assert.match(s, /wrote late/);
   assert.match(s, /moved {7}/);
@@ -60,13 +60,13 @@ test('f1035 (5) the flash measure names who wrote late and what moved, at the ow
 });
 
 /* ROUND TWO, off the measure naming who wrote late and what moved (owner, 13 Nov 2026: "fix the remaining three too") */
-test('f1035 (6) Approvals: a column fitting its room is the rows paint in the new look, never the whole page', () => {
+test('f1036 (6) Approvals: a column fitting its room is the rows paint in the new look, never the whole page', () => {
   const s = read('js/views/approvalsview.js');
   const r = region(s, 'function renderApprovalsPage', 9000);
   assert.match(r, /newLookOn\(\)\) return apnRender\(W, \(o&&\(o\.rows\|\|o\.listOnly\)\)\?\{ rows:true \}:null\)/);
 });
 
-test('f1035 (7) Import draws its own title in the new look, whatever state it is in, so nothing slides under the bar', () => {
+test('f1036 (7) Import draws its own title in the new look, whatever state it is in, so nothing slides under the bar', () => {
   const app = read('js/app.js');
   assert.match(app, /\|\|\(view==='migration'&&typeof window\.newLookOn==='function'&&newLookOn\(\)\)/, 'the shell strip steps aside on every Import state');
   assert.doesNotMatch(app, /view==='migration'[^\n]*migRows\(\)\.length>0/, 'not only once files are in');
@@ -76,7 +76,7 @@ test('f1035 (7) Import draws its own title in the new look, whatever state it is
   assert.match(r, /id="page-head-facts"[\s\S]*id="page-head-acts"/, 'with the two slots migPaintHead fills');
 });
 
-test('f1035 (8) the read on the paper ends by taking its own marks off, not by drawing the paper again', () => {
+test('f1036 (8) the read on the paper ends by taking its own marks off, not by drawing the paper again', () => {
   const s = read('js/paperdesk.js');
   const r = region(s, 'function pd2WalkClose', 1600);
   assert.match(r, /classList\.remove\('pd2-wk-on', 'pd2-wk-done', 'pd2-wk-lit'\)/);
