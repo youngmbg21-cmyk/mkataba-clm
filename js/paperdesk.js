@@ -8474,9 +8474,31 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
    people this contract and the directory already know; none is guessed. */
 let _pd2Fill = null;             // { id, vals, was, walk: [spot], cur, sig: {line: [entry]}, sigWhy, q: {key: quote} }
 function pd2FillBlanks(c){
+  /* A NEGOTIATED PAPER LEADS (f1030): its blanks are the marks made for filling there, an answer filed as a tracked
+     change — never a company standard's form-then-wording path (tplFormApply would rewrite wording the other side reads) */
+  if (pd2NegoFillOn(c)) return pd2NegoRead(c);
+  const tf = pd2FillTplBlanks(c); if (tf) return tf;
   let L = []; try { L = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ L = []; }
-  /* a negotiated paper's own blanks, as marked for filling there (pd2NegoMark) */
-  return L.filter(b => b && b.kind !== 'sync').concat(pd2NegoRead(c));
+  return L.filter(b => b && b.kind !== 'sync');
+}
+/* A COMPANY STANDARD'S OWN FIELDS ARE BLANKS ON THE PAPER TOO (owner, 12 Nov 2026: "Fix all company-standard contracts
+   so fields can be filled on the paper"). A contract made from a standard with its own field list draws each field on
+   the paper (.hati-field[data-field-key]); every one a person types (text, a number, an address, a date, a choice) is a
+   line on the walk like an upload's blank. Signatures stay with signing, files and stamps with the form. Saved through
+   the form's ONE answer writer (tplFormCommit), then the wording filled once (tplFormApply). A signed record has none. */
+const PD2_TPL_SKIP = new Set(['signature_name_title', 'stamp_image', 'file_attachment']);
+function pd2FillTplBlanks(c){
+  const form = c && c.templateForm; if (!form) return null;
+  if (!Array.isArray(form.fields) || c.status === 'Signed' || (c.execution && c.execution.at) || c.hash) return [];
+  const v = form.values || {};
+  return form.fields.filter(f => f && f.fieldKey && !PD2_TPL_SKIP.has(f.fieldType)).map(f => ({ key: String(f.fieldKey), label: f.label || f.fieldKey,
+    type: f.fieldType === 'date' ? 'date' : (f.fieldType === 'select' && Array.isArray(f.options) && f.options.length ? 'select' : 'text'),
+    options: Array.isArray(f.options) ? f.options.map(String) : [], value: String(v[f.fieldKey] == null ? '' : v[f.fieldKey]), section: '', kind: 'tplform' }));
+}
+/* the heading a space stands under, read off the paper ("ARTICLE IV: INSURANCE AND INDEMNIFICATION") */
+function pd2FillSecOf(cv, sp){
+  try { const S = pd2WalkSections(cv), x = S.find(q => q.els.some(e => e === sp || e.contains(sp)));
+    if (!x || !x.head) return ''; const n = pd2WalkSecName(x); return String((n.n ? n.n.replace(/^§\s*/, '') + ' ' : '') + (n.t || '')).trim().slice(0, 80); } catch (_){ return ''; }
 }
 function pd2FillOn(id){ return !!(_pd2Fill && String(_pd2Fill.id) === String(id)); }
 function pd2FillSuggest(c, b){
@@ -8774,7 +8796,7 @@ function pd2FillStart(id, key){
   const first = !pd2FillOn(id);
   if (first) pd2NegoMark(c);
   if (first){ const was = {}; pd2FillBlanks(c).forEach(b => { was[b.key] = String(b.value || ''); });
-    _pd2Fill = { id: String(id), vals: Object.assign({}, was), was, walk: [], cur: '', sig: {}, sigWhy: null, q: {}, stopAsk: 0 }; }
+    _pd2Fill = { id: String(id), vals: Object.assign({}, was), was, walk: [], cur: '', sig: {}, sigWhy: null, q: {}, sec: {}, stopAsk: 0 }; }
   if (pdMidUp()) pdMidClose();
   if (_pdTab !== 'copilot') try { pdSetTab('copilot'); } catch (_){}
   pd2NotesOff();
@@ -8853,16 +8875,20 @@ function pd2FillPeople(c, L){
 function pd2FillPaint(c){
   const cv = document.getElementById('ig-canvas'), pg = document.getElementById('ig-page'); if (!cv || !pg || !pd2FillOn(c.id)) return;
   pd2NegoMark(c);
-  const E = _pdE, L = pd2FillBlanks(c), lab = {}, typ = {}; L.forEach(b => { lab[b.key] = b.label || b.key; typ[b.key] = b.type || 'text'; });
+  const E = _pdE, L = pd2FillBlanks(c), lab = {}, typ = {}, opt = {}, tpl = {}; L.forEach(b => { lab[b.key] = b.label || b.key; typ[b.key] = b.type || 'text'; opt[b.key] = b.options || []; tpl[b.key] = b.kind === 'tplform'; });
   cv.querySelectorAll(PD2_BL_SEL).forEach(sp => {
     const k = pd2BlKey(sp); if (!(k in lab) || sp.querySelector('[data-pd2-bl]') || pd2BlOff(sp)) return;
     if (!(k in _pd2Fill.q)) _pd2Fill.q[k] = pd2FillQuoteOf(sp);
+    if (tpl[k] && _pd2Fill.sec && !(k in _pd2Fill.sec)) _pd2Fill.sec[k] = pd2FillSecOf(cv, sp);
     if (!sp.hasAttribute('data-pd2-was')) sp.setAttribute('data-pd2-was', '1');
     sp.classList.add('pd2-bl');
     const v = _pd2Fill.vals[k] || '', date = typ[k] === 'date', had = !!String(_pd2Fill.was[k] || '').trim();
     /* a blank filled before this sitting stays quiet: a faint line, its own width; owed and newly typed ones speak */
     const cls = had && String(v) === String(_pd2Fill.was[k]) ? ' is-had' : String(v).trim() ? ' is-done' : '';
-    sp.innerHTML = `<input type="${date ? 'date' : 'text'}" class="pd2-bl-in${cls}" data-pd2-bl="${E(k)}" value="${E(v)}" placeholder="${E(String(lab[k]).toLowerCase())}" aria-label="${E(lab[k])}"${date ? '' : ` size="${pd2FillSize(v, lab[k])}"`}>`;
+    /* a choice is a list of the standard's own options, the field's name first while nothing is chosen */
+    sp.innerHTML = typ[k] === 'select'
+      ? `<select class="pd2-bl-in${cls}" data-pd2-bl="${E(k)}" aria-label="${E(lab[k])}"><option value="">${E(String(lab[k]).toLowerCase())}</option>${opt[k].map(o => `<option value="${E(o)}"${o === v ? ' selected' : ''}>${E(o)}</option>`).join('')}</select>`
+      : `<input type="${date ? 'date' : 'text'}" class="pd2-bl-in${cls}" data-pd2-bl="${E(k)}" value="${E(v)}" placeholder="${E(String(lab[k]).toLowerCase())}" aria-label="${E(lab[k])}"${date ? '' : ` size="${pd2FillSize(v, lab[k])}"`}>`;
   });
   if (pd2FillSigOpen(c)) pd2FillSigPaint(c, cv);
   pg.classList.add('is-pd2-fill');
@@ -9008,17 +9034,25 @@ async function pd2FillSaveNego(c, nego, rest){
 }
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
-  const c = getContract(_pd2Fill.id); if (!c || typeof contractBlankSet !== 'function') return 0;
+  const c = getContract(_pd2Fill.id); if (!c) return 0;
+  const tplf = !!c.templateForm;
+  if (tplf ? (typeof tplFormCommit !== 'function' || typeof tplFormApply !== 'function') : typeof contractBlankSet !== 'function') return 0;
   const moved = pd2FillBlanks(c).map(b => ({ b, v: String(_pd2Fill.vals[b.key] == null ? '' : _pd2Fill.vals[b.key]).trim() }))
     .filter(x => x.v !== String(_pd2Fill.was[x.b.key] || '').trim())
     /* the one writer refuses these two (their own doors write them): never the last of a held run, or the rest would not be saved */
-    .filter(x => x.b.key !== 'counterparty' && x.b.key !== 'value');
+    .filter(x => tplf || (x.b.key !== 'counterparty' && x.b.key !== 'value'));
   /* A NEGOTIATED PAPER'S BLANKS ARE FILED AS OUR CHANGE (pd2NegoFile), never written quietly: handed on, and said when filed */
   const nego = moved.filter(x => x.b.kind === 'nego' && x.v);
   if (nego.length){ const rest = moved.filter(x => x.b.kind !== 'nego'); return pd2FillSaveNego(c, nego, rest); }
   let n = 0;
   /* held, the last one written without hold, so the writer itself saves once (the desk never saves: f563) */
-  moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) { n++; _pd2Fill.was[x.b.key] = x.v; } });
+  if (tplf){
+    /* the standard's form: each answer through its one writer, then the wording filled once, as the in-paper box does */
+    const fields = c.templateForm.fields || [];
+    moved.forEach(x => { const i = fields.findIndex(f => f && String(f.fieldKey) === String(x.b.key)); if (i < 0) return;
+      tplFormCommit(c, i, x.v); n++; _pd2Fill.was[x.b.key] = x.v; });
+    if (n) tplFormApply(c);
+  } else moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) { n++; _pd2Fill.was[x.b.key] = x.v; } });
   /* the signers: the route as it stands, with the ones named on the paper after their side's last */
   const add = pd2FillSigTyped(c);
   let why = null, signers = 0;
@@ -9050,7 +9084,7 @@ function pd2FillFaceHtml(c, D){
   const lines = pd2FillSigLines(c);
   const rows = W.map(s => {
     if (s.startsWith('b:')){ const k = s.slice(2), b = blanks[k] || { key: k, label: k }; const sg = pd2FillSuggest(c, b);
-      const sec = b.section && b.section !== c.name ? b.section : _pdT('pd2_fp_q_pre');
+      const sec = (F.sec && F.sec[k]) || (b.section && b.section !== c.name ? b.section : _pdT('pd2_fp_q_pre'));
       const q = F.q[k] ? _pdT('pd2_fp_q', { sec, words: F.q[k] }) : '§ ' + sec;
       return `<div class="pd2-fp" data-pd2-fp-row="${E(k)}" data-pd2-fp-go="${E(s)}"><div class="pd2-fp-t">${E(b.label || k)}<span class="pd2-fp-owed"> · ${E(_pdT('pd2_fp_owed_w'))}</span></div><div class="pd2-fp-q">${E(q)}</div><div class="pd2-fp-v" data-pd2-fp-state></div>${sg ? `<button type="button" class="pd2-fp-chip" data-pd2-fp-use="${E(k)}" data-pd2-fp-v="${E(sg.v)}">${E(_pdT('pd2_fp_suggest_v', { v: sg.v, from: sg.from }))}</button>` : ''}</div>`; }
     const L = lines[Number(s.slice(2))] || { name: '' };
@@ -9140,7 +9174,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const b = t.closest('#ig-canvas [data-pd2-bl]');
     if (b){ const k = b.getAttribute('data-pd2-bl'); _pd2Fill.vals[k] = b.value;
       document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { if (x !== b) x.value = b.value; });
-      if (b.type !== 'date') b.size = pd2FillSize(b.value, b.placeholder);
+      if (b.tagName === 'INPUT' && b.type !== 'date') b.size = pd2FillSize(b.value, b.placeholder);
       pd2FillCount(c); return; }
     const nm = t.closest('#ig-canvas [data-pd2-ps-name]');
     if (nm){ const [i, j] = nm.getAttribute('data-pd2-ps-name').split(':'); const x = (_pd2Fill.sig[i] || [])[j]; if (!x) return;
@@ -9149,6 +9183,14 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const ml = t.closest('#ig-canvas [data-pd2-ps-mail]');
     if (ml){ const [i, j] = ml.getAttribute('data-pd2-ps-mail').split(':'); const x = (_pd2Fill.sig[i] || [])[j]; if (x) x.email = ml.value;
       ml.classList.toggle('is-done', !!String(ml.value).trim()); }
+  });
+  /* a choice picked from HaTi's own list says "change", never "input": it lands the same way */
+  document.addEventListener('change', e => {
+    const t = e.target; if (!_pd2Fill || !t || !t.matches || !t.matches('#ig-canvas select[data-pd2-bl]')) return;
+    const c = getContract(_pd2Fill.id); if (!c) return;
+    const k = t.getAttribute('data-pd2-bl'); _pd2Fill.vals[k] = t.value;
+    document.querySelectorAll(`#ig-canvas [data-pd2-bl="${CSS.escape(k)}"]`).forEach(x => { if (x !== t) x.value = t.value; });
+    pd2FillCount(c);
   });
   /* the hand on a space lights its row; leaving a name shuts its list */
   document.addEventListener('focusin', e => {

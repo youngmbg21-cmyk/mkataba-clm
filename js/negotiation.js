@@ -1993,7 +1993,7 @@ async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
     headingText: opts.headingText == null ? null : String(opts.headingText),
     clauseLabel: negoClauseLabel(cl) }, opts);
 }
-/* A BLANK FILLED ON A NEGOTIATED PAPER (owner, 13 Nov 2026, f1026): the paper's answers to one clause, filed as OUR
+/* A BLANK FILLED ON A NEGOTIATED PAPER (owner, 13 Nov 2026, f1030): the paper's answers to one clause, filed as OUR
    change through the one door and saved — the save is here, never on the desk that collected them (f563: the desk reads,
    it does not write). Quiet: the caller says a refusal once for every clause (negoLastRefusal). */
 async function negoFileFilledClause(c, clauseId, bodyHtml, note){

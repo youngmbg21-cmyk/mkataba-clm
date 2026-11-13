@@ -16152,6 +16152,8 @@ if(typeof document !== 'undefined' && !document._homeAnswerWired){
   document.addEventListener('click', e => {
     const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync], #ig-canvas [data-field-key], #ig-canvas [data-upblank]') : null;
     if(!w) return;
+    /* A LINE BEING TYPED ON THE PAPER IS ITS OWN DOOR (12 Nov 2026): a press inside it types, never opens the form */
+    if(e.target.closest('[data-pd2-bl], [data-pd2-ps-name], [data-pd2-ps-mail]')) return;
     const key = w.getAttribute('data-field') || w.getAttribute('data-sync') || w.getAttribute('data-field-key') || w.getAttribute('data-upblank');
     if(!key || typeof contractFieldPeer !== 'function') return;
     const id = (typeof intel === 'object' && intel && intel.paper) ? intel.paper.id : null;
