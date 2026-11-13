@@ -3974,8 +3974,6 @@ function openModal(html, opts={}){
   /* EXTRACTED 25 Aug 2026 — this was written here and was the only overlay in
      the product that had it. The reasoning above stayed with the function. */
   const panel=root.querySelector('[role="dialog"]');
-  /* the same screen drawn again keeps the reader's place (the flash survey; see the head of this function) */
-  if(kept && panel) modalKeptPut(panel, kept);
   /* AND IT CAN BE MOVED OUT OF THE WAY (owner-asked 1 Sep 2026). Released
      before arming, because the share dialog replaces this root wholesale on
      its second paint and would otherwise leave the first panel's listeners
@@ -3988,6 +3986,10 @@ function openModal(html, opts={}){
     /* A panel given a height runs its own layout and its own scroller. */
     if(!opts.height) _modalPin = dlgPinFoot(panel);
     else if(!opts.page){ try{ dlgSapFrame(panel); }catch(_){} } }
+  /* the same screen drawn again keeps the reader's place (the flash survey; see the head of this function) — put
+     back AFTER the frame is dressed (the grab bar, the pinned foot): GitHub measured the place 33px out when it
+     was put back before them, the height of what they add above the words */
+  if(kept && panel) modalKeptPut(panel, kept);
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   rootEscSet(function(e){

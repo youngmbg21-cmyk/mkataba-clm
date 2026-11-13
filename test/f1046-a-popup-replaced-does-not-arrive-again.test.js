@@ -34,6 +34,12 @@ test('f1046 (2) a replacing pop-up is marked, and the mark stops the arriving an
   assert.doesNotMatch(html.slice(j, j + 60), /!important/);
 });
 
+test('f1046 (2b) the place is put back AFTER the frame is dressed', () => {
+  const o = region(read('js/core.js'), 'function openModal(html, opts={}){', 9000);
+  const iPin = o.indexOf('_modalPin = dlgPinFoot(panel)'), iPut = o.indexOf('modalKeptPut(panel, kept)');
+  assert.ok(iPin > 0 && iPut > iPin, 'the grab bar and the pinned foot add height above the words: the place is set after them');
+});
+
 test('f1046 (3) only the SAME screen keeps its place; any doubt starts from the top', () => {
   const s = read('js/core.js');
   const put = region(s, 'function modalKeptPut', 700);
