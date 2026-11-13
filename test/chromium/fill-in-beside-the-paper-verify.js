@@ -171,9 +171,12 @@ const pastFirstWords = async page => {
       if (!sp) break;
       try { await sp.scrollIntoViewIfNeeded(); await sp.click(); break; } catch (e) { if (!/not attached/i.test(String(e && e.message))) throw e; sp = null; }
     }
-    await waitFor(page, () => document.activeElement && document.activeElement.getAttribute('data-blankf') === 'up_supplier_representative', 3000);
+    /* RE-POINTED 13 Nov 2026 (f1042; owner: "they can never be filled in unless you are on dossier and press on fill in
+       the contract"): a press on a blank on the paper opens nothing and takes the caret nowhere */
+    await page.waitForTimeout(500);
     f = await page.evaluate(FACE);
-    check('3 a press on a blank on the paper lands on its row', !!sp && f.focus === 'up_supplier_representative' && f.inFace, f.focus);
+    const fill3 = await page.evaluate(() => typeof pd2FillOn === 'function' && !!pd2FillOn('MK-F1'));
+    check('3 a press on a blank on the paper opens nothing (only Fill in the contract fills)', !!sp && f.focus !== 'up_supplier_representative' && !fill3, `${f.focus} · filling ${fill3}`);
 
     /* ===== 4. A HATI TEMPLATE DRAFT LANDS THE SAME WAY ===== */
     await page.evaluate(() => setView('register')); await pause(400);
