@@ -9,9 +9,10 @@
      4 · asked: the question leads the table while Jambo reads, Stop stands in the box, the panel shows a paper; at
          the end the new question is open in front, on Every read; the page never left for Contracts
      5 · Stop: the read stops, the same place offers the rest
+     5b · THE SCORECARD: a read's table opened from Discover — its own head, coloured tiles that filter (owner's pick)
      6 · nothing spills; no page errors
    Run: node test/chromium/discover-page-verify.js   (pictures with DISCOVER_PAGE_SHOTS=<dir>) */
-/* global state, setView, stPrefSet, newLookApply, regPlaceSet, regFoldersShut, currentUser, AC */
+/* global rdRows, readsTableOpen, state, setView, stPrefSet, newLookApply, regPlaceSet, regFoldersShut, currentUser, AC */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -109,6 +110,21 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       const S = stopped ? await page.evaluate(() => ({ carry: (document.getElementById('dsc-carry') || {}).innerText || '', view: state.view })) : {};
       check(`${nm} 5 Stop: the read stops here, and the same place offers the rest ("Read the N left")`, live2 && stopped && S.view === 'reads' && /^Read the \d+ left$/.test(S.carry), { live2, stopped, S });
       if (h.ai && typeof h.ai.slow === 'function') h.ai.slow(0);
+
+      /* 5b · THE SCORECARD (owner's pick, 12 Nov 2026): the read table opened from Discover wears its own head — no old
+         Reads band, the search box in the head, Ask again the one black, coloured tiles that filter, none at 0 */
+      const okT = await page.evaluate(() => { const r = (typeof rdRows === 'function' ? rdRows() : []).find(x => !x.pack && x.read); if (!r) return false; readsTableOpen(r.key); return true; });
+      const tiles = okT && await until(page, () => document.querySelectorAll('#rd-page .rdsc-tile').length >= 2 && !!document.querySelector('#rd-page tr[data-rdt-row]'), null, 15000);
+      const T0 = tiles ? await page.evaluate(() => ({ band: !!document.querySelector('#rd-page .rd-band'), q: !!document.querySelector('#rd-page .rdsc-head #rdt-q'),
+        black: [...document.querySelectorAll('#rd-page .rdsc-head .ui-btn-primary')].map(b => b.textContent.trim()), zero: [...document.querySelectorAll('#rd-page .rdsc-tile:not([data-rdt-tab="all"]):not(.is-on) b')].filter(b => b.textContent.trim() === '0').length,
+        open: (document.querySelector('#rd-page .rdsc-tile[data-rdt-tab="open"] b') || {}).textContent, toned: !!document.querySelector('#rd-page .rdsc-tile.is-amber') })) : {};
+      if (tiles) await page.click('#rd-page .rdsc-tile[data-rdt-tab="open"]');
+      const T1 = tiles && await until(page, () => { const on = document.querySelector('#rd-page .rdsc-tile.is-on'); return on && on.getAttribute('data-rdt-tab') === 'open'; }, null, 5000)
+        ? await page.evaluate(() => document.querySelectorAll('#rd-page tr[data-rdt-row]').length) : -1;
+      check(`${nm} 5b the read table: no old Reads band, search in the head, Ask again the one black button, coloured tiles with no empty one; Not checked yet filters the rows`,
+        tiles && !T0.band && T0.q && T0.black.length === 1 && /Ask again/.test(T0.black[0]) && T0.zero === 0 && T0.toned && String(T1) === String(T0.open), { okT, tiles, T0, T1 });
+      await shot('7-scorecard');
+      if (tiles){ await page.click('#rd-page [data-rdt-back]'); await until(page, () => !!document.getElementById('dsc-q'), null, 10000); }
 
       /* 6 · fits */
       const F = await page.evaluate(() => { const over = el => el ? el.scrollWidth - el.clientWidth : 0;
