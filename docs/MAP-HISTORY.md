@@ -37888,3 +37888,19 @@ And (80026 → 80013; verbatim before):
 ```
 JUDGEMENT ON THE STRONGER MODEL (`copilotNeedsJudgement`; f870); `aiRateFor` (f871).
 ```
+## RISKS TO LOOK AT — OUR STANDARDS BESIDE THE REDLINED PAPER TOO, AND NO "SEE THE CHANGE" (13 Nov 2026)
+The owner, after the merge: "Why aren't the company standard notes in the Redline view too" — they were left out because the drawing showed only the panel's risks; that should have been asked. "yes, add them, push and merge to main". Then: "pressing on see the change does absolutely nothing". MEASURED in a photo session: the press did light the card and the clause (`rlLinkFocus`, `.is-linked`), but the card was already in sight (nothing scrolled) and its linked shade is a near twin of its resting grey. Asked (Open it · Point to it · Remove the link), the owner picked "Remove the link": an answered note has no act (the note already stands by its change).
+BUILT. `pd2RedStdAnswers` reads `c.playbook.verdicts` (the last finished check; never run here): a deviation or a missing standard, titled "<category> · our standard" (`pd2_rn_std`). Answered by a live redline of ours filed for it (`Playbook — <category>`, Prepare redlines' note) or standing on its quoted words: pending → sent or not; agreed → "agreed; Jambo checks it again" (`pd2_rn_agreed`) until the re-read after an agreed change finds it met; turned down → open. Open: "Differs from your standard" or "Not in the contract" · no redline yet, with the Dossier's door (`std-draft` → `rlPrepareRedlines`, which asks first). A missing one at the paper's end; a deviation whose words are not found under "Our standards". The test was renumbered f1037 (main took f1036 twice).
+Photographed at 1440×780, 1536×730 and 1366×950, and lower down the paper at 1440×780.
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (thirteenth)
+On joining main again (80186 → 80042). Verbatim before:
+```
+`hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); `goto.door` (`aiDoorOf`).
+- REQUESTS (`ikTabViews`): ONE count for every tab and the list (`ikBase`); attachments `IK_FILES_MAX` 3 × 5 MB (`intake_files`: the asker or a stream editor, else 404). The paper that fits is read WITHOUT AI (`ikFitOf`); Start the draft → the one form. Refresh `ikPlace`.
+THE LOOK: boxes on the left, each sentence a tag (`data-tone` in `shareNlLinesPaint`); the email ONE card; the note HUGS its words; the link a BUTTON on screen and in the mail (`SM_BTN_STYLE`).
+```
+And (verbatim before):
+```
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. ARCHIVE `contractSetArchived`. WEBHOOKS ids only, admin-only.
+```
