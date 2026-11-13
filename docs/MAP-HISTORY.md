@@ -37731,6 +37731,12 @@ LEFT ALONE, said to the owner: the Redlines column's own notes view (word verbs,
 MEASURED: photographed at 1440x780, 1536x730 and 1366x950 in the new look; nothing scrolls sideways in the panel. The verbs are opacity 0 at rest and NOT pointer-events none, so a press that reaches one is already over its note and the browser checks' clicks still land.
 RENUMBERED on joining main: the check is f1032 (main had taken f1026, then f1030 and f1031, the same day).
 
+## RISKS TO LOOK AT — THE REDLINED PAPER'S NOTES SAY HOW THEY ENDED (13 Nov 2026)
+The owner, with a screenshot of MK-382's Redline view: "shouldnt this redline page also have notes on the side so you can distiguish between where the notes have led to redlines vs where the notes are still there but redlines have not been addressed? If so, provide drawings." Three were drawn on MK-382 in one Artifact (The Legora Way, The SAP Way, Ticks in the Margin); the owner: "Build The Legora Way".
+WHAT THE CODE DID: on the red paper `pd2NotesPaint` drew only `pd2RedNotes` (their asks waiting on us, and what they left untouched); our own paper with only our drafts had nothing beside it. The panel already knew which risks a redline of ours answers (`riskItemsOf`: `drafted`, `covered` → "Covered by your redlines (N)").
+BUILT. `pd2RedAnswers` reads that one list (dismissed left out): a risk whose redline is pending is ANSWERED (green tick, "Answered by your redline" · not sent yet / sent, waiting on them, the first sentence the redline brings, See the change → `rlLinkFocus`, standing by that change's own section); one with none, or whose redline they turned down, is OPEN (amber, severity · no redline yet, Draft a redline → `riskEditStart`, only where `riskMayAct`; by `riskClauseOf`'s section, else its quote, else "Not in the contract" at the paper's end); agreed, it goes. `pd2RedBlocks` groups them by section ("2 · Pricing and Payment") beside their asks, in paper order; groups fold as the Dossier's do. `pd2RedChipsHtml`: All · Still open · Answered with counts, only when both kinds stand (their asks count as open). `pd2RedFloor` puts the chips under the paper's zoom (its box is 0 wide; the buttons are measured). Their view carries none.
+NOT AS DRAWN, said to the owner: the drawing put "No term or way to end it" by § 2; a missing risk with no clause found stands at the paper's end, as the standards' missing ones do. Standards deviations and Clauses points are not in this list (the drawing's notes were the panel's risks).
+Photographed at 1440×780, 1536×730 and 1366×950. Tests: f1036 (renumbered from f1033 and then f1035, which main gave to other tests; 8 red at the parent, 9 now); redline-notes-answered-verify (new, for GitHub).
 ## CLAUDE.MD TRIM, 13 Nov 2026 (eighth)
 On joining main (#693, #694) the rules file stood at 80695 bytes; cut to 80345. Verbatim before:
 ```
@@ -37837,4 +37843,38 @@ NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. CONTRA
 And (verbatim before):
 ```
 ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep` not on yourself).
+```
+## THE DETAILS TAB — THE FRONT PART IS FILLED ON A NEGOTIATED PAPER TOO (13 Nov 2026)
+The owner, with a screenshot of MK-469 (a company-standard lease in negotiation): "the top part brings me to the other middle page to fill in while the below part allows me to fill on paper. what is the difference?"
+Cause: on a negotiated paper the fill walk is f1033's (`pd2NegoMark` → `pd2NegoRead`). It walked only `section.rl-clause[data-clause]`. The parties' names and addresses above the first heading are drawn as the paper's head plus `.rl-recital`, outside every section, so they were never marked. The panel then named them "no place on the paper", and a press fell through to the form.
+Offered three ways, in plain words:
+1. the top part as a section, a tracked change like Article I;
+2. typed in with no tracked change;
+3. keep the form and say why.
+The owner picked "Option 1".
+Built: that region is already the reserved front section (CLAUSE_FRONT_ID, 'front'), addressable by the change model and drawn with `data-clause` on its head. `pd2NegoMark` now walks it as one region (the head plus its `.rl-recital`), unless a change is open there or it is drawn changed. `pd2NegoSeq` takes several roots and keeps one count across them, which matches the stored front body's order (title, then the words). Save files through the same `pd2NegoFile` → `negoFileFilledClause(c,'front',…)`.
+Tried by hand on a lease with two front fields: both became lines, and Save filed one pending change on 'front' carrying both answers. Noticed and logged, not fixed: a false "Nothing changed, so nothing was saved" toast beside the filed one, on main too. f1036 is red at the parent. f1033 (2) and (6) were re-pointed. Handbook 2.3 says it in both books.
+
+RENUMBERED a third time on joining main (13 Nov 2026): "what landed the same is not drawn again" is f1040 (main took f1036 twice); a gap left so the next join does not collide.
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (twelfth)
+On joining main (#699, #703; 80658 → 80253). Verbatim before:
+```
+`startMailStub`/`startHatiWithMail`; `mailReport`/`mailReportPublic`; the password reset reply is identical either way; `emailHealth()` over the last 10. A REPLY REACHES A PERSON: every email to the other side carries `replyTo` = `mailReplyFor` (the presser, else the link's maker, else the owner; never the body); a tag of the other side's person too (`/mention`, outside only). f1020, f1021. A link that cannot reach the server is answerable by a pasted code (`portalOfferResponseCode`); a code is not a delivery.
+A HOME TAB (`setView('calendar')` → `hbOpenCalendar`, `renderCalendar` into `#hb-cal`); Mon–Fri, this week + five; `calToday()` via `todayISO`; POST /api/ai/plan (`planBlocksCheck` ≤8); ONE writer `calLevelSet`; bookings → `calHandOff`. It OPENS on the AGENDA (`calAgendaViewHtml`); time left colours bar, pill, box (`calHzTone`, f987). A view-only press keeps the panel (`{keepPanel:true}`); a repaint that changes nothing draws nothing (`renderCalendar({ifMoved})`); `obwFindN`, f988.
+Every live contract ranked live (`puRead`, `PU_TICK_MS`, "▲ N" against `PU_SEEN_KEY`): What needs you (`puNeedsMap` off `ndRead`) · Money `fxRankValue` · Days left `effectiveExpiry` · Written by Jambo (`puJamboWrote`, RAW). Each row a strand (`puEventsOf`); why said with no call (`puSayOf`); every door an existing one; the name ONE line with … (`.pu-meta`), rows 51px. The Board head's right end: Summarise · Pulse board (`hbPulseBtnHtml`) · Explorer (`hbExplorerBtnHtml`). f963, pulse-verify.
+- No motion library: transform, opacity, WAAPI; never animate width/height/left/top beside the paper. Jambo's panel width SNAPS (`igSyncDockWidth`); a list repaint glides (`listGlideAround`). A FACE CHANGE IS DRAWN AT ONCE: nothing copied, nothing faded, no fade-in from nothing on a panel; only the lit tab's underline glides (`faceSwap`); a tab's press draws its body once (`_pdBodyFresh`). f1024, tab-change-no-flash-verify. The right panel shuts on a finger/pen swipe right (`PANEL_SWIPE_*`), never a mouse drag. Less motion asked = instant.
+```
+And (80253 → 80094; verbatim before):
+```
+DISCOVER (docs/PLAN-jambo-discover.md first): one read, many questions (`COLUMN_Q_MAX` 8); a kept question's rule is never invented; ONE tone `askColToneOf`; ONLY WHAT YOU KEEP (`column_asks.kept`). A press reads 50 or 100 (`AC_SIZES`) of the FIRST NOT YET READ (`askColPlan`, `askColNextWords`); EVERY PRESS LEAVES A RECORD (`column_reads`); reads go out in tens, stop at once (`AC_BATCH`, `askColStop`); a counting question is never a column (`AC_PORTFOLIO_RE`).
+The face keeps `rlLiveHere`, presence, `pollWaitingOnThem`; the paper follows the face (`pdRedShows`); a card's Send sends that card (`negoHoldOthers`).
+```
+And (80094 → 80038; verbatim before):
+```
+`contractRef(c)` = `c.contractNo || c.id` is PRINTED; `c.id` is the key forever. `signRouteOf` (absent = inside). The handover is route-owned (`POST /api/contracts/:id/handover`); while out, wording and route freeze. Filing needs every signature; differing words need the approver or an admin with a reason; a filled blank is not a change (`ohBlankHits`). Differing words are kept (`signedCopy.text`, `obligationsText`); numbering is never a change (OH_MARKER_RE).
+```
+And (80038 → 79972; verbatim before):
+```
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep`). WEBHOOKS ids only, admin-only. ASSURANCE LADDER weakest wins.
 ```
