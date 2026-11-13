@@ -176,8 +176,9 @@ describe('f673 (4) every way into filling in opens the face', () => {
     assert.match(strip(fnBody(R('js/views/register.js'), 'regOpenContract')), /view==='details'&&typeof window\.pdFillOpen==='function'[\s\S]{0,120}pdFillOpen\(id\)/);
     assert.match(strip(fnBody(R('js/views/negotiation.js'), 'negoBlanksFill')), /pdFillOpen\(c\.id, \{ key: first \}\)/);
     assert.match(strip(R('js/copilotacts.js')), /fill: c => \(typeof pdFillOpen === 'function'\) \? pdFillOpen\(c\.id\)/);
-    const press = strip(CONTRACT.slice(CONTRACT.indexOf('_homeAnswerWired = true'), CONTRACT.indexOf('_homeAnswerWired = true') + 2600));
-    assert.match(press, /\[data-upblank\]/); assert.match(press, /pdFillOpen\(c\.id, \{ key \}\)/);
+    /* RE-POINTED 13 Nov 2026 (owner: "they can never be filled in unless you are on dossier and press on fill in the
+       contract"; f1037): a press on the paper is no longer a way in — the door is retired */
+    assert.ok(!CONTRACT.includes('_homeAnswerWired = true'));
   });
 });
 

@@ -37781,3 +37781,15 @@ Offered three ways, in plain words:
 The owner picked "Option 1".
 Built: that region is already the reserved front section (CLAUSE_FRONT_ID, 'front'), addressable by the change model and drawn with `data-clause` on its head. `pd2NegoMark` now walks it as one region (the head plus its `.rl-recital`), unless a change is open there or it is drawn changed. `pd2NegoSeq` takes several roots and keeps one count across them, which matches the stored front body's order (title, then the words). Save files through the same `pd2NegoFile` → `negoFileFilledClause(c,'front',…)`.
 Tried by hand on a lease with two front fields: both became lines, and Save filed one pending change on 'front' carrying both answers. Noticed and logged, not fixed: a false "Nothing changed, so nothing was saved" toast beside the filed one, on main too. f1036 is red at the parent. f1033 (2) and (6) were re-pointed. Handbook 2.3 says it in both books.
+
+## THE DETAILS TAB — BLANKS ARE ALWAYS AMBER, AND ONLY FILL IN THE CONTRACT FILLS THEM (13 Nov 2026)
+The owner: "When i am on the dossier tab the entry fields on the paper are amber and if i press on them before pressing on fill in the contract, it takes me to the middle page where it lets me enter information. When i then press on clauses tab, the entry fields stop being amber. Let us make it simple, the entry fields on the paper should always be amber and they can never be filled in unless you are on dossier and press on fill in the contract."
+What it was, measured on a negotiated company-standard lease at the parent:
+- A company standard's fields (`.hati-field`) were amber only through `pd-ff-owe-mark`, which `pdFillPaperMarks` gives only while `pdOgShows` (the Dossier tab). On Clauses their background was transparent. An upload's `span.up-blank` was always amber.
+- Two doors answered a press on a field. paperdesk's capture handler started the fill on the paper for a blank that `pd2FillBlanks` knew, which a negotiated paper does not know until marked. contract.js's `_homeAnswerWired` (owner's "Form", 14 Oct) opened the form in the middle (mid:true).
+Built:
+- One rule in index.html makes every unfilled field in `#ig-canvas` amber on every tab (`:not(.pg-sign *)` keeps the signing copy's lines). The pointer hand is taken off.
+- paperdesk's capture handler swallows a press on any blank and starts nothing.
+- `_homeAnswerWired` is deleted.
+- `pdFillGo`, the Dossier's Fill in the contract, is the one way in.
+Reverses "a blank pressed is filled where it stands" (11 Nov) and the press-opens-the-form door (14 Oct). f1037 is red at the parent. f673 (4), f676 8b, f1029 and fill-in-the-contract-verify 6a are re-pointed. Handbook 2.3 says it in both books. Measured after: amber on Dossier and Clauses, a press opens nothing, and Fill in the contract turns every field into a line.

@@ -184,10 +184,15 @@ const white = bg => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(bg); retur
     check('5c the next owed box takes the hand', !!f1.focus && f1.focus !== first, f1.focus);
 
     console.log('\n6 · a spot on the paper');
+    /* RE-POINTED 13 Nov 2026 (owner: "they can never be filled in unless you are on dossier and press on fill in the
+       contract"; f1037): a press on a spot on the paper does nothing — the form keeps its hand; its box is then taken
+       in the form itself */
     const spot = await page.evaluate(() => { const el = document.querySelector('#ig-canvas [data-upblank]'); if (!el) return null; el.click(); return el.getAttribute('data-upblank'); });
-    await waitFor(page, k => { const a = document.activeElement, r = a && a.closest ? a.closest('tr.pd-fm-row') : null; return !!r && r.getAttribute('data-pd-og-row') === k; }, 5000, spot);
+    await pause(300);
+    const f2a = await page.evaluate(FORM);
+    check('6a a press on a spot on the paper does nothing: the form keeps its hand', !!spot && f2a.focus === f1.focus, spot + ': ' + f1.focus + ' → ' + f2a.focus);
+    await page.evaluate(k => { const r = document.querySelector(`tr.pd-fm-row[data-pd-og-row="${k}"]`); const i = r && r.querySelector('input, textarea'); if (i) i.focus(); }, spot);
     const f2 = await page.evaluate(FORM);
-    check('6a its box takes the hand', !!spot && f2.focus === spot, spot + ' → ' + f2.focus);
     check('6b the row answered before is still there, ticked', f2.rows.some(r => r.key === first && /is-typed/.test(r.cls)), f2.rows.map(r => r.key).join(','));
     await page.keyboard.type('Plot 12, Athi River'); await page.keyboard.press('Enter'); await pause(300);
 

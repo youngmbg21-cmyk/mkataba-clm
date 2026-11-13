@@ -269,10 +269,8 @@ describe('f676 (8) found on the way: the doors into Fill in that now carry the r
     assert.match(strip(fnBody(PD, 'pdFillLand')), /const fold = box && box\.closest \? box\.closest\('details'\) : null; if \(fold && !fold\.open\) fold\.open = true;/);
   });
   test('8b a press on an answer on Home\'s paper never opens the retired Details tab', () => {
-    const i = CT.indexOf("document._homeAnswerWired = true;"); assert.ok(i > 0);
-    const block = strip(CT.slice(i, CT.indexOf('\n}\n', i)));
-    assert.match(block, /pdFillOpen\(c\.id, \{ key \}\)/);
-    assert.doesNotMatch(block, /roomGoTab\(/, 'no room tab on the way');
+    /* RE-POINTED 13 Nov 2026 (f1037): the press opens nothing at all now, so never the retired tab */
+    assert.ok(!CT.includes('document._homeAnswerWired = true;'));
   });
 });
 

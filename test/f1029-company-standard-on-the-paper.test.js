@@ -33,9 +33,9 @@ test('a choice is a list of the standard\'s options, and a pick from HaTi\'s lis
   assert.match(pd, /matches\('#ig-canvas select\[data-pd2-bl\]'\)/);
 });
 
+/* RE-POINTED 13 Nov 2026 (f1037): a press on the paper never opens the form at all; the old door is gone */
 test('a press inside a line on the paper types, never opens the form', () => {
-  const h = slice(ct, "document._homeAnswerWired = true;", '\n}');
-  assert.match(h, /closest\('\[data-pd2-bl\], \[data-pd2-ps-name\], \[data-pd2-ps-mail\]'\)\) return/);
+  assert.ok(!ct.includes('document._homeAnswerWired = true;'), 'the press-opens-the-form door is retired');
 });
 
 test('the Clauses tab\'s preamble card keeps to the paper\'s own blanks', () => {
