@@ -52,11 +52,14 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
 
     console.log('\n2-3 · the same screen drawn again');
     await page.evaluate(() => { document.querySelector('#modal-root [role="dialog"]').scrollTop = 300; });
-    await page.evaluate(html => openModal(html, { label: 'Probe' }), tall(2));
+    await page.waitForTimeout(250);
+    /* where the reader stands is read in the same breath as the redraw: the arriving animation and the focus the
+       pop-up takes can still nudge it after it is set (GitHub's first run: set 300, stood at 333) */
+    const stood = await page.evaluate(html => { const t = document.querySelector('#modal-root [role="dialog"]').scrollTop; openModal(html, { label: 'Probe' }); return t; }, tall(2));
     const a2 = await anim();
     check('2a. the new words are on screen', !!a2 && /Screen 2/.test(a2.words), JSON.stringify(a2));
     check('2b. it does NOT animate in again', !!a2 && a2.kept && a2.name === 'none', JSON.stringify(a2));
-    check('3. and the reader is where they were', !!a2 && Math.abs(a2.top - 300) <= 2, 'top=' + (a2 && a2.top));
+    check('3. and the reader is where they were', !!a2 && stood > 100 && Math.abs(a2.top - stood) <= 2, `stood ${stood}, now ${a2 && a2.top}`);
 
     console.log('\n4 · a different pop-up takes its place');
     await page.evaluate(() => openModal('<div id="pk-other" style="padding:20px"><h2>Other</h2>' + Array.from({ length: 60 }, (_, i) => '<p>Other ' + i + '</p>').join('') + '</div>', { label: 'Another' }));
