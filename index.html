@@ -19322,6 +19322,36 @@
      one black button, chips that fill it, Kept | Packs | Every read; a question opens under its own row, each answer a
      line; the panel shows the paper the words were read from. Tokens only. ==== */
   html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc::before{content:none}
+  /* THE SCORECARD (owner's pick, 12 Nov 2026): the read table's own head on Discover — one line, the who-and-when, then
+     the coloured tiles, each a filter (the tones of the Contracts page's view cards; the chosen one ringed in ink) */
+  html.lg-new .rdsc-head{display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-4);border-bottom:1px solid var(--color-divider);min-width:0}
+  html.lg-new .rdsc-top{display:flex;align-items:center;gap:var(--s-3);min-width:0}
+  html.lg-new .rdsc-top .ac-link{flex:none;white-space:nowrap}
+  html.lg-new .rdsc-nm{margin:0;min-width:0;font-size:19px;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .rdsc-top .ui-btn{flex:none;white-space:nowrap}
+  html.lg-new .rdsc-ask{flex:0 1 280px;min-width:160px;margin:0}
+  html.lg-new .rdsc-sub{font-size:13px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .rdsc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--s-3)}
+  html.lg-new .rdsc-tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:var(--s-3) var(--s-4);border:0;border-radius:var(--radius);background:var(--surface-2);font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .rdsc-tile b{font-size:22px;font-weight:var(--w-strong);line-height:1.2;font-variant-numeric:tabular-nums}
+  html.lg-new .rdsc-tl,html.lg-new .rdsc-ts{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .rdsc-tl{font-size:13px}
+  html.lg-new .rdsc-ts{font-size:12px;color:var(--color-neutral-500)}
+  html.lg-new .rdsc-tile.is-amber{background:color-mix(in srgb,var(--st-amber-bg) 60%,var(--color-surface))}
+  html.lg-new .rdsc-tile.is-steel{background:color-mix(in srgb,var(--st-steel-bg) 60%,var(--color-surface))}
+  html.lg-new .rdsc-tile.is-ruby{background:color-mix(in srgb,var(--st-ruby-bg) 60%,var(--color-surface))}
+  html.lg-new .rdsc-tile.is-green{background:color-mix(in srgb,var(--st-green-bg) 60%,var(--color-surface))}
+  html.lg-new .rdsc-tile.is-amber b{color:var(--st-amber-fg)}
+  html.lg-new .rdsc-tile.is-steel b{color:var(--st-steel-fg)}
+  html.lg-new .rdsc-tile.is-ruby b{color:var(--st-ruby-fg)}
+  html.lg-new .rdsc-tile.is-green b{color:var(--st-green-fg)}
+  html.lg-new .rdsc-tile.is-on{box-shadow:inset 0 0 0 2px var(--color-text)}
+  html.lg-new .rd-card.is-table .rdt-t th:first-child,html.lg-new .rd-card.is-table .rdt-t td:first-child{padding-left:var(--s-4)}
+  /* GREEN SPARK (owner's pick, 12 Nov 2026): the Discover pill filled in Jambo's green with his spark; the only green
+     button on the page, so New agreement stays the one black. Both Discover pills (the list head, the folder panel). */
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc,html.lg-new .rfp-pill.rfp-dsc{display:inline-flex;align-items:center;gap:var(--s-2);background:var(--accent-ink);color:var(--color-surface);font-weight:var(--w-strong)}
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc svg,html.lg-new .rfp-pill.rfp-dsc svg{display:inline-block;flex:none;margin:0;width:14px;height:14px}
+  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc:hover,html.lg-new .rfp-pill.rfp-dsc:hover{background:var(--accent-ink-700)}
   html.lg-new .dsc-ask{display:flex;align-items:center;gap:var(--s-3);min-width:0;margin-top:var(--s-3);padding:var(--s-2) var(--s-3) var(--s-2) var(--s-4);background:var(--surface-2);border-radius:var(--radius)}
   html.lg-new .dsc-ask>svg{flex:none;color:var(--color-quiet)}
   html.lg-new .dsc-ask:focus-within{box-shadow:inset 0 0 0 1px var(--color-neutral-300)}

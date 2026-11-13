@@ -2079,7 +2079,7 @@ function regFolderPanelHtml(){
     const nm=on?`<button type="button" class="rfp-a rfp-qn" data-ac-colopen="${esc(a.id)}">${esc(a.name||a.question||'')}</button>`:esc(a.name||a.question||'');
     return row(nm,act,i18t('rfp_col_sub',{ k, n, where:i18t(on?'rfp_on_list':'rfp_off_list') })); }).join('');
   const may=typeof window.askColMay!=='function'||askColMay();
-  const acts=`<div class="rfp-acts"><button type="button" class="rfp-pill" data-ac-discover>${esc(i18t('dsc_btn'))}</button></div>`;
+  const acts=`<div class="rfp-acts"><button type="button" class="rfp-pill rfp-dsc" data-ac-discover>${(typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : ''}${esc(i18t('dsc_btn'))}</button></div>`;
   return `<div class="rfp-panel is-drawn">${folder}${cols?cap(i18t('rfp_cols_h'))+cols:''}${acts}</div>`;
 }
 if(typeof document!=='undefined'&&!document._rfpWired){ document._rfpWired=true;
