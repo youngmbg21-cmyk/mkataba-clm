@@ -37778,3 +37778,33 @@ OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `B
 **THE ASK.** *"fix the remaining three too"*, after the measure (run 43415999023, now at the three screens: 168 of 195 moves clean) named who wrote late and what moved.
 **WHAT IT NAMED, AND WHAT WAS BUILT.** (1) Board → Approvals still wrote the page at ~210 ms: `listCols`' repaint (a column fitting its room) → `apPaintList` → `renderApprovalsPage({ listOnly })`, which the new look sent to the WHOLE page. Now a list-only ask is the rows paint there (`o.rows||o.listOnly`), which writes nothing when the rows say what they said. (2) Import's jump: `#body-grid` slid 48 → 119 px (and back) because Import with no files in stood under the shell's own title strip (#page-head, 71 px) while every other new-look page draws its own. The new look's Import now draws its title in the page on every state (`.mig-own-head`, the shell strip's own measures: 23px top so the title's ink stands where it stood, 40px edge, the hairline in front of the drop card); photographed at the three screens against the old: title within 0 px, the drop box within 1 px. (3) The first Dossier → Clauses wrote the paper again at ~560 ms: the arrival's quick read (`pd2WalkStep`) reached its end and `pd2WalkClose` drew the whole paper to take its marks off. It now takes off its own classes and lays the notes out again (`pd2NotesPaint`); the whole paper only where no paper stands.
 **NOT A FLICKER, SAID TO THE OWNER.** Board → a contract's paper and paper → paper: the paper, its line and the panel are written ~50 ms (or ~28 ms) after the press because `igAnalyze` awaits the whole record (`ensureFull`) before it turns the face; until then the Board or the old paper stands, so the reader sees ONE change, a beat later. The 0.05 "jump" with it is the face changing (the paper's line takes 56 px above the stage), not a slide. Left as it is; the way to make it instant (loading the record when the press goes down) is offered to the owner, not built.
+## HOW TO TEST ECONOMICALLY — A PULL REQUEST THAT ONLY CHANGES NOTES RUNS NOTHING (13 Nov 2026)
+The owner asked: "Why does send something to bug log need to go through GitHub check?" (PR #697 was one BUGLOG line and started the full 110-minute run). Offered "merge now" and "skip the checks for notes-only changes"; the owner said "Merge it now and do option 2".
+Built: tests.yml's `pull_request` gains `paths-ignore: ['BUGLOG.md', 'docs/*.md']`. GitHub skips the run only when EVERY changed file matches, so one code file brings the whole check back. Measured what the tests read before choosing:
+- CLAUDE.md is read by f256 and stays checked.
+- docs/design/tokens.json is read by the tokens test and stays checked (a single `*` does not reach into docs/design/).
+- The plans, work orders, audits and MAP files in docs/ are only named in comments.
+No ruleset or required check holds a merge on this repository: #697 merged with its checks still running, and the rulesets list is empty. So a skipped run leaves nothing waiting. The night's run and Run workflow are untouched. f1034 is red at the parent.
+
+RENUMBERED on joining main (13 Nov 2026): the check "what landed the same is not drawn again" is f1035 (main took f1034 for notes-only pull requests).
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (tenth)
+On joining main (#698, #701; 80186 → 80121). Verbatim before:
+```
+- COUNTING IS NOT DRAWING: `*Data` + renderer per panel; `pfPanelData` the one door; `.igx-fig` the ONE tile; doors → `regShowOnly`.
+THE WORD FILE WE WRITE, AND THE PAGE MEASURE
+DOCX writer: hanging indent = `w:ind` + a left tab stop + a real tab; shape read off the markup (`hati-lv-N`, `rl-hang`); a paragraph only where it carries a visible character.
+SEAL ON THE SERVER (`srvSealNow`, `srvSendExecutedCopies`); late seals `runSealCatchUp`; f570, f580–f626, f651.
+```
+And (80121 → 80066; verbatim before):
+```
+A slow answer lands on its own contract (`contractOnScreen`); sitting marks never reach the record (`dropSittingKeys`). Server walls: `srvApprovalChainOpenOf`, `srvApprovalDecisionRefusal`; a link refuses another kind (`shareKindOf`, `standingNegotiation`); `forgetContractRecords`; discard restores the sent version (`negoSentVersionOf`).
+```
+And (80066 → 80016; verbatim before):
+```
+REQUESTS: lanes on the server (`runIntakeLanes`). ONE ADDRESS BOOK `contactSet`. ONE "your turn" email (`roundTurnMail`). SIGNING: ONE LINK CHECK `linkRefusal` = `srvLinkRefusal`; ONE ASK RECORD `c.asks` (`askOpen`/`askAnswer`/`askLapse`); `runRuleStepReminders`; `contractDecline`; `renewalDecisionAct`.
+```
+And (80016 → 80003; verbatim before):
+```
+MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (names who wrote late, what moved), glitch-audit, perf*.
+```

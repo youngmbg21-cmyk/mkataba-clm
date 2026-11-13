@@ -58,8 +58,18 @@ name: tests
 #
 # A NEWER PUSH CANCELS THE OLDER CHECK of the same pull request (or the same
 # branch, for a run started by hand or by the clock), waiting or running.
+#
+# A PULL REQUEST THAT ONLY CHANGES NOTES RUNS NOTHING (owner, 13 Nov 2026: "Why does send something to bug log
+# need to go through GitHub check?"). The bug log and the notes written straight in docs/ (the map's history and
+# tests, the plans, the work orders) are read by no test and by no page of HaTi, so a pull request that touches
+# ONLY those is not tested: about 110 billed minutes saved each time. One file outside the list and the whole
+# check runs as before. CLAUDE.md is NOT on the list (a test reads it), nor docs/design/ (the tokens test reads
+# it): a single * stops at a folder. The night's run and Run workflow are untouched.
 on:
   pull_request:
+    paths-ignore:
+      - 'BUGLOG.md'
+      - 'docs/*.md'
   schedule:
     - cron: '17 1 * * *'
   workflow_dispatch:
