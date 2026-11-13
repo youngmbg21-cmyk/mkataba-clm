@@ -1,5 +1,6 @@
-# Every check, on every push — the proofreader, the node suite, and ALL of the
-# browser harnesses.
+# Every check — the proofreader, the node suite, and ALL of the browser
+# harnesses — on every piece of work before it merges, and on main every night.
+# (Until 13 Nov 2026 it was every push; see WHEN IT RUNS below.)
 #
 # The browser checks existed and were green-capable for a day while nine of
 # them sat red, because they only ran when somebody remembered to run them:
@@ -31,30 +32,40 @@
 # keeps a red run meaningful: there is nowhere for a new failure to hide.
 name: tests
 
-# ONE CHECK PER PUSH, AND ONLY THE NEWEST ONE ON A BRANCH (owner-asked 18 Oct
-# 2026: "stop the waste for good"). MEASURED that morning: 50 checks stood in
-# GitHub's line and 15 were worth having. 21 tested a version of a branch that
-# a later push had already replaced — nobody would ever read them, and five
-# were holding machines. 14 were TWINS: this file ran on `push` AND on
-# `pull_request`, so every push to a branch with an open pull request tested
-# the same commit twice. GitHub lends this account about 20 machines and a
-# check takes six, so a check that works for 16 minutes waited up to two hours.
+# WHEN IT RUNS (owner, 13 Nov 2026: "yes, start"; the repository is going
+# private, where GitHub bills every minute). MEASURED the day before: one run
+# is about 110 billed minutes (six browser machines at about 16, the node suite
+# 10, the proofreader 2) and it ran about 43 times a day — some 120,000 minutes
+# a month against 2,000 free ones. Of the last 100 runs, 28 were main testing
+# again what its pull request had just tested, and the rest were every push of
+# a branch, finished or not.
 #
-# PUSH ONLY. A push's checks hang on the commit, and a pull request shows the
-# checks of the commit it points at, so nothing disappears from its page; a
-# branch pushed before its pull request is opened is still checked. What
-# `pull_request` added was a test of the branch as merged into main, and a
-# branch here is brought up to date with main before it merges.
+#   1. A PULL REQUEST: when it is opened, and on every push to it after that.
+#      A branch pushed with no pull request runs NOTHING ("push to GitHub"
+#      saves the work; "push and merge when green" opens the pull request, and
+#      that is the test). GitHub tests the branch AS MERGED INTO MAIN, so two
+#      pieces of work that clash show red here. A pull request that conflicts
+#      with main is not tested at all until the conflict is resolved.
+#   2. EVERY NIGHT, on main (01:17 UTC): the safety net for two merges that
+#      each passed alone, and main's daily record — what "red on the base
+#      branch too" is measured against. It was one record per merge.
+#   3. BY HAND: Actions → tests → Run workflow, on any branch (a risky change
+#      before its pull request; a new check that must be seen red on main).
 #
-# A NEWER PUSH ON A BRANCH CANCELS THE OLDER CHECK, waiting or running. MAIN IS
-# THE EXCEPTION: every merge keeps its own check (one group per commit),
-# because main's record is what "red on the base branch too" is measured
-# against.
+# NOT ON PUSH, AND NOT ON MAIN AFTER A MERGE. This REVERSES "push only" of
+# 18 Oct 2026, which chose push over pull_request to stop the same commit being
+# tested twice; with push gone there is no twin.
+#
+# A NEWER PUSH CANCELS THE OLDER CHECK of the same pull request (or the same
+# branch, for a run started by hand or by the clock), waiting or running.
 on:
-  push:
+  pull_request:
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
 
 concurrency:
-  group: tests-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  group: tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

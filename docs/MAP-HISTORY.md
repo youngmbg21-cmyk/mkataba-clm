@@ -37245,6 +37245,13 @@ Owner: "wouldnt it be easier to update pictures after all the changes across the
 **TESTS.** f1024 (red at the parent). tab-change-no-flash-verify looks at every frame for 450 ms after a tab press, another paper opened and a panel opening wider: no copy, nothing fading, nothing pale, the panel never empty, the line the same node, the body written once. page-jumps-verify H and f676 10f re-pointed.
 **LEFT, AND SAID.** The panel is still built whole on every repaint (about 170 callers); drawn in one turn that is not a flash, and it was not rebuilt here. Page-to-page moves outside Home's panel (the list pages' own panel, Settings) were read and hold no fade; whether any still blinks from a late second draw is for the filmed check's next round on GitHub. The other things that arrive with a fade (a pop-up, Jambo's answer, a Board card, the Clauses drawer) are things appearing, not pages being changed, and stand.
 
+## HOW TO TEST ECONOMICALLY — GITHUB TESTS A PULL REQUEST, AND MAIN EVERY NIGHT (owner, 13 Nov 2026)
+The owner asked whether third parties had viewed the code. Found: the repository is PUBLIC (one star, no forks, the owner the only collaborator). Asked what going private would cost, the checks were measured on 12 Nov: one run of tests.yml is about 110 BILLED minutes (six browser machines at 15 to 18 each, the node suite 10, the proofreader 2; about 18 on the clock), 4,993 runs since 20 Jul 2026 (about 43 a day; 71 on 12 Nov); of the last 100, 57 green, 18 red, 20 cancelled by a newer push, 5 running; 28 of the 100 were main after a merge. About 120,000 minutes a month against the 2,000 a private repository gets free.
+The owner was offered: everything once a night (cheapest; nothing checked before a merge), the small checks per push and the browser checks nightly, or the whole set once per finished piece of work plus a nightly run. Picked the last ("yes, start on steps 1 and 2"), after confirming their own sentence stays the same: "push to GitHub and merge it to main when it is green".
+BUILT: tests.yml runs on `pull_request`, on a nightly clock (01:17 UTC, main) and by hand (`workflow_dispatch`); `push` is gone, so a branch pushed with no pull request runs nothing and main is not tested again after a merge. The cancel group is the pull request's number (else the branch). REVERSES "push only" (18 Oct 2026), which dropped `pull_request` because both together tested each commit twice; and "every merge keeps its own check" — main's record is now one a night, so "red on the base branch too" is measured against the last nightly or a hand run on main.
+WHAT IT COSTS: two merges that each passed alone and clash are found the next morning, not 18 minutes later (GitHub does test a pull request as merged into main at that moment). A pull request that conflicts with main is not tested until the conflict is resolved. The two measuring workflows (speed, layout) still run on a push of their own script; they take a minute or two and were left alone.
+BUG FIX RULE 4 (owner, 13 Nov 2026: "yes, update Bug Fix Rule 4"): it said the browser checks verify "after the push"; it now says once the work is ready to merge (its pull request is open). Asked first, as the Bug Fix Rules require.
+
 ## CLAUDE.MD TRIM, 13 Nov 2026 — the owner's yes in the chat ("fix all these … The rules file is over its own size limit and needs your yes to trim")
 CLAUDE.md 91564 → 79918 bytes. Only THE MAP was condensed (43 sections); the rules sections (Scope, Bug Fix Rules, the six questions, the nine flow rules, design options, the picked design, no new bands, standing lessons, testing) are untouched. Dates, quotes and who-picked-what were dropped (they are in each section's own story above); the names that carry each rule were kept. Three sections also took this round's own lessons (THE DETAILS TAB: the last line names three then counts; PERFORMANCE: nothing changed, nothing written, and the flash measure; HOW THINGS MOVE: shortened). Each section as it stood, verbatim:
 
@@ -37568,3 +37575,17 @@ A PAGE MOVE DRAWS ONLY WHAT SHOWS (`test/chromium/_audit/glitch-audit.js`): a sh
 **4 · THE LIST PAGES AND SETTINGS, FILMED.** `test/chromium/_audit/flash-measure.js` (a measuring instrument; `.github/workflows/flash-measure.yml`, by hand or when the script changes; never fails a run): every page from the Board and back, page to page, a paper and its tabs, a list row chosen — 600 ms of frames each, printing what faded, went pale, went blank, was written again after the move's own turn, or jumped. Its first run on GitHub is the list of what to fix next; nothing on those pages was changed blind.
 **5 · THE RULES FILE.** See "CLAUDE.MD TRIM, 13 Nov 2026" above: 91,564 → 79,918 bytes.
 **TESTS.** f1024 (3)–(6); tab-change-no-flash-verify 3b (the line half a second on) and 10a–10d (kept, moved, a tab's own painter, every kept button finds its act).
+
+### CLAUDE.MD TRIM, 13 Nov 2026 (after main's f1025 line landed: 80344 → 80133 bytes)
+Four of this round's own lines shortened (verbatim before):
+```
+A PAGE MOVE DRAWS ONLY WHAT SHOWS: `rlBenchCatchUp`, `igPaperDown`, `igWallAppend`. MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (films every page move), glitch-audit, perf*.
+A FACE CHANGE IS DRAWN AT ONCE (owner, 12 Nov 2026; reverses "Crossfade"): nothing copied, nothing faded, no fade-in from nothing on a panel; only the lit tab's underline glides (`faceSwap`, `igDockFaceKey`); a tab's press draws its body once (`_pdBodyFresh`).
+NOTHING CHANGED, NOTHING WRITTEN (owner, 13 Nov 2026): Jambo's panel …
+THE DOSSIER'S TOP IS ONE CARD: `pd2CardHtml` — stage + dots, the next step, one sentence, ONE black button, Jambo's read, then "Read it | Watch the read | The brief". dossier-one-card-verify.
+```
+And two older lines (80133 → 79970 bytes; verbatim before):
+```
+Every paper draws ONE look (`--desk-ground`, 720px sheet, Source Serif 4 `--font-doc`, `--doc-sheet-pad`/`--doc-sheet-max`; a designed paper keeps its type). ONE ZOOM top right (`rlPaperZoomHtml` → `.paper-zc`; `rlDocZoom`/`rlSetDocZoom`, `hati.v1.docZoom` 60–200). "+N −N" on Negotiate only (`rlWordsMoved`).
+Planned signers print on the signing copy (`pagesSignRows` `planned`). f1012.
+```

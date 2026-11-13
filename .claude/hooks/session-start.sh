@@ -40,4 +40,4 @@ npm install --no-audit --no-fund
 echo "session-start: ready. Do NOT run the full suite (npm test) unless the owner"
 echo "  asks in the chat. Run npm run lint and only the changed test files:"
 echo "  node --test --test-reporter=dot test/<file>.test.js"
-echo "  GitHub's automatic check runs everything after a push."
+echo "  GitHub's automatic check runs everything once the pull request is open, and on main every night."
