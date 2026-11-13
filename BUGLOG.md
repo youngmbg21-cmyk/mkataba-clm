@@ -22307,4 +22307,17 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - "Fill in on the paper" (MK-469, a lease): sixteen details listed as "have no place on the paper" in one sentence; the line was drawn for one or two. The paper's blanks are probably not being found.
 - Jambo's panel is still built whole on every repaint (about 170 callers of renderIntelDock); only the visible flash was removed.
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
+
+## 13 Nov 2026 — GitHub tests a pull request and main every night, never a bare push (owner's yes)
+- CHANGED: .github/workflows/tests.yml runs on pull_request, a nightly clock and by hand; not on push. f1024. The session greeting says the same.
+- Noticed, not fixed: CLAUDE.md is about 91 KB, over its own "about 80 KB" line.
+- Noticed, not fixed: Bug Fix Rule 4 says GitHub's browser checks verify "after the push"; they now run once the pull request is open. Asked the owner.
+- FIXED (owner's yes, 13 Nov 2026): Bug Fix Rule 4 now says the browser checks run once the pull request is open, not "after the push".
+
+## 13 Nov 2026 — Noticed, not fixed: home-board-verify 15a is red (a browser check, after midnight UTC)
+- home-board-verify.js 15a ("by month" draws month columns, with the recipe's groups and the trend switch) FAILED twice in a row on pull request 684, whose diff touches NO product code (tests.yml, CLAUDE.md, the notes, the session hook, one node test). GitHub tests a pull request AS MERGED INTO MAIN, so this is main's own fault, not the branch's.
+- Main's last full run (23:35 UTC, 12 Nov, commit e7d345c, this branch's base) was fully green. Both red runs started after 00:00 UTC on 13 Nov. UNVERIFIED GUESS (mine, not measured): a day-dependent fixture or reading, the class CLAUDE.md warns about ("a test whose answer depends on the day it runs is worse than no test").
+- 15b to 15g all pass right after it, so the panel and the pictures are drawn; what 15a asks for beyond them (month columns, the three groups, the trend switch, the split reading "month") is where it stops.
+- Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
+- Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
