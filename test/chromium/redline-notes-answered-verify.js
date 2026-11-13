@@ -1,4 +1,4 @@
-/* THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026; f1033).
+/* THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026; f1035).
    A services contract with three risks from the scan and one redline of ours (unsent) on the pricing clause; the
    Redlines face, new look.
      1 · Redline: the risks stand beside the paper by their clause, clear of it: the pricing one ANSWERED (a green tick

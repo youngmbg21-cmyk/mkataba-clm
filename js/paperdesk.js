@@ -107,6 +107,8 @@ function pdContract(){
 }
 let _pdSeq = 0;
 function pdAct(fn){ const id = 'a' + (++_pdSeq); _pdActs.set(id, fn); return id; }
+/* is this number an act the last build registered (a panel kept across a build re-numbers its buttons: igDockSame) */
+function pdActKnown(id){ return _pdActs.has(String(id)); }
 /* LIFTED (Young picked it by name off the side-panel proposal, 8 Oct 2026,
    "build Lifted, and yes to words under the symbols"): the panel is a white
    card lifted off a soft grey ground, each symbol carries its word and, where
@@ -3663,9 +3665,9 @@ if (typeof document !== 'undefined' && !document._pdWired){
       /* a face left behind another tab gives the paper back (stage 5): the
          paper is drawn again only if its copy moved (igPaperKey) */
       /* ONE PRESS, ONE PANEL (owner, 12 Nov 2026, the stutter audit): the panel was drawn a line above, so the
-         paper's paint does not draw the tab's body a second time (_pdBodyFresh), and the paper's line stands
-         where it says the same (keepLine) */
-      if (typeof igPaintPaper === 'function'){ _pdBodyFresh = true; try { igPaintPaper({ keepLine: true }); } catch (_){} finally { _pdBodyFresh = false; } }
+         paper's paint does not draw the tab's body a second time (_pdBodyFresh); the paper's line stands where it
+         says the same, as for every caller (igStripPut) */
+      if (typeof igPaintPaper === 'function'){ _pdBodyFresh = true; try { igPaintPaper(); } catch (_){} finally { _pdBodyFresh = false; } }
       return; }
     const a = t.closest('[data-pd-act]'); const fn = a ? _pdActs.get(a.getAttribute('data-pd-act')) : null;
     if (!fn) return;
@@ -8608,6 +8610,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
    people this contract and the directory already know; none is guessed. */
 let _pd2Fill = null;             // { id, vals, was, walk: [spot], cur, sig: {line: [entry]}, sigWhy, q: {key: quote} }
 function pd2FillBlanks(c){
+  /* A NEGOTIATED PAPER LEADS (f1033): its blanks are the marks made for filling there, an answer filed as a tracked
+     change — never a company standard's form-then-wording path (tplFormApply would rewrite wording the other side reads) */
+  if (pd2NegoFillOn(c)) return pd2NegoRead(c);
   const tf = pd2FillTplBlanks(c); if (tf) return tf;
   let L = []; try { L = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ L = []; }
   return L.filter(b => b && b.kind !== 'sync');
@@ -8633,6 +8638,9 @@ function pd2FillSecOf(cv, sp){
 }
 function pd2FillOn(id){ return !!(_pd2Fill && String(_pd2Fill.id) === String(id)); }
 function pd2FillSuggest(c, b){
+  /* a company standard's gap on a negotiated paper: what its form already holds */
+  if (b && b.kind === 'nego' && b.fk){ const v = ((c.templateForm || {}).values || {})[b.fk];
+    if (String(v == null ? '' : v).trim()) return { v: String(v), from: _pdT('pd2_nb_from_form') }; }
   let F = []; try { F = pdOgFacts(c); } catch (_){ F = []; }
   const f = F.find(x => x && String(x.key) === String(b.key));
   if (f && f.read && f.read.words) return { v: String(f.read.words), from: _pdT('pd2_fp_from_read') };
@@ -8641,8 +8649,162 @@ function pd2FillSuggest(c, b){
   return null;
 }
 /* where a blank stands on the paper: its marks, the ones an upload, our template and an own blank each draw */
-const PD2_BL_SEL = '[data-upblank], .hati-field[data-field-key], span.field-frozen[data-field]';
-const pd2BlKey = sp => sp.getAttribute('data-upblank') || sp.getAttribute('data-field-key') || sp.getAttribute('data-field');
+const PD2_BL_SEL = '[data-upblank], .hati-field[data-field-key], span.field-frozen[data-field], [data-pd2-nb]';
+const pd2BlKey = sp => sp.getAttribute('data-pd2-nb') || sp.getAttribute('data-upblank') || sp.getAttribute('data-field-key') || sp.getAttribute('data-field');
+/* a mark the fill walk does not take: the signing copy's, and a negotiated paper's own unless it is a blank marked for
+   filling there (pd2NegoMark) */
+const pd2BlOff = sp => !!(sp.closest('.ig-signpaper') || (sp.closest('.ig-redpaper') && !sp.hasAttribute('data-pd2-nb')));
+
+/* ════ A BLANK ON A NEGOTIATED PAPER IS FILLED AS A TRACKED CHANGE (owner picked it, 13 Nov 2026: "yes, build option
+   2", after "what is best practice?" — once the other side has seen the paper, every change to it is tracked,
+   filling a blank included) ════
+   Before, a paper with a negotiation on it took no typing at all: every owed detail fell to the form (the owner's
+   MK-469 lease: sixteen). Now its blanks are marked for filling where they stand — a company standard's unanswered
+   gap (`.hati-field[data-field-key]`), a placeholder in received paper (`[Tenant Name]`, `{{date}}`, a ruled line,
+   a Word field: the upload reader's own matcher, upNodesOf/upNodeHits) — and Save files each clause's answers through
+   THE ONE DOOR, negoEditClause, as OUR change, not sent: the other side sees it, accepts or rejects it, as any other.
+   ONLY WHERE NOTHING IS ARGUED: a clause with a change open on it (either side's, sent or not) offers no blank — the
+   answer would be written over an ask. Never their seat, a viewer, a frozen paper (executed, signed, handed over) or a
+   desk that may not redline. The paper's words are walked once more at Save, from the clause as it STANDS
+   (negoClauseNowById): the same blank, the same occurrence, else the clause is refused and said, never guessed.
+   A company standard's answer also goes into its form (tplFormCommit, the one writer), so the Dossier stops asking for
+   it (owner: "Done straight away"); rejected, the gap is on the paper again. */
+const PD2_NB_ATTR = 'data-pd2-nb';
+function pd2NegoFillOn(c){
+  try {
+    if (!c || (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) return false;
+    if (typeof canEdit === 'function' && !canEdit()) return false;
+    const p = (typeof intel === 'object' && intel) ? intel.paper : null; if (!p || String(p.id) !== String(c.id)) return false;
+    const cv = document.getElementById('ig-canvas'); if (!cv || !cv.closest('.ig-redpaper') || cv.closest('.ig-signpaper')) return false;
+    if (typeof igTheirsOn === 'function' && igTheirsOn(c)) return false;
+    if (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c)) return false;
+    if (typeof deskMayRedline === 'function' && !deskMayRedline(c)) return false;
+    return typeof negoFileFilledClause === 'function';
+  } catch (_){ return false; }
+}
+/* the clauses with a change open on them, read RAW (reading must not write) */
+function pd2NegoArgued(c){
+  return new Set((Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && x.clauseId && !x.withdrawn
+    && (x.status === 'pending' || x.status === 'countered')).map(x => String(x.clauseId)));
+}
+/* THE ONE WALK of a clause's blanks, in paper order, on the painted clause or a detached copy of its wording: each with
+   what it is (`f` a company standard's gap by key, `u` a placeholder by its words) and which occurrence of that */
+function pd2NegoSeq(root){
+  const out = [], seen = new Map(), FIELD = '.hati-field[data-field-key]';
+  const occ = sig => { const n = seen.get(sig) || 0; seen.set(sig, n + 1); return n; };
+  const els = [];
+  try {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode(n){
+      if (n.nodeType === 1){
+        if (n.matches('h4.rl-clause-h, .rl-clause-top > h4, [data-pd-mark], .rl-gutter, .rl-hang-n, button, input, textarea, select, script, style')) return NodeFilter.FILTER_REJECT;
+        if (n.matches(FIELD) || n.matches('[' + PD2_NB_ATTR + ']')) return NodeFilter.FILTER_ACCEPT;
+        return NodeFilter.FILTER_SKIP; }
+      const pa = n.parentElement; if (!pa || pa.closest(FIELD) || pa.closest('[' + PD2_NB_ATTR + ']')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT; } });
+    let n; while ((n = w.nextNode())) els.push(n);
+  } catch (_){ return []; }
+  for (const n of els){
+    if (n.nodeType === 1){
+      /* a mark this file already made stands for what it was made from */
+      if (n.hasAttribute(PD2_NB_ATTR)){ const fk = n.getAttribute('data-pd2-nb-fk') || '', raw = n.getAttribute('data-pd2-nb-raw') || '';
+        const sig = fk ? 'f:' + fk : 'u:' + raw; out.push({ el: n, kind: fk ? 'f' : 'u', fk, raw, sig, n: occ(sig), made: true }); continue; }
+      if (n.classList.contains('hati-field-done')) continue;
+      const fk = n.getAttribute('data-field-key') || ''; if (!fk) continue;
+      const sig = 'f:' + fk; out.push({ el: n, kind: 'f', fk, raw: n.textContent || '', sig, n: occ(sig) }); continue; }
+    let hits = []; try { hits = (typeof upHits === 'function') ? upHits(n.data) : []; } catch (_){ hits = []; }
+    for (const h of hits){ const sig = 'u:' + h.raw; out.push({ node: n, hit: h, kind: 'u', fk: '', raw: h.raw, name: h.name, sig, n: occ(sig) }); }
+  }
+  return out;
+}
+/* the blanks marked on the negotiated paper: made once per paint (a paint that finds its own marks leaves them) */
+function pd2NegoMark(c){
+  if (!pd2NegoFillOn(c)) return 0;
+  const cv = document.getElementById('ig-canvas'); if (!cv) return 0;
+  const argued = pd2NegoArgued(c); let made = 0;
+  cv.querySelectorAll('section.rl-clause[data-clause]').forEach(sec => {
+    const id = sec.getAttribute('data-clause'); if (!id || argued.has(String(id)) || sec.classList.contains('is-changed')) return;
+    const seq = pd2NegoSeq(sec);
+    const jobs = new Map();
+    seq.forEach(b => {
+      if (b.made) return;
+      const key = 'nb~' + id + '~' + b.sig + '~' + b.n;
+      if (b.el){ b.el.setAttribute(PD2_NB_ATTR, key); b.el.setAttribute('data-pd2-nb-fk', b.fk); b.el.setAttribute('data-pd2-nb-raw', b.raw); made++; return; }
+      let L = jobs.get(b.node); if (!L){ L = []; jobs.set(b.node, L); } L.push({ b, key });
+    });
+    for (const [tn, L] of jobs){
+      if (!tn.parentNode) continue;
+      const txt = tn.data, frag = document.createDocumentFragment(); let at = 0;
+      for (const { b, key } of L){
+        if (b.hit.s < at) continue;
+        if (b.hit.s > at) frag.appendChild(document.createTextNode(txt.slice(at, b.hit.s)));
+        const sp = document.createElement('span'); sp.className = 'pd2-nb';
+        sp.setAttribute(PD2_NB_ATTR, key); sp.setAttribute('data-pd2-nb-fk', ''); sp.setAttribute('data-pd2-nb-raw', b.raw);
+        sp.textContent = b.raw; frag.appendChild(sp); made++; at = b.hit.e;
+      }
+      if (at < txt.length) frag.appendChild(document.createTextNode(txt.slice(at)));
+      tn.parentNode.replaceChild(frag, tn);
+    }
+  });
+  return made;
+}
+/* what the marks are, read off the paper (no painting): the fill walk's blanks on a negotiated paper */
+function pd2NegoRead(c){
+  if (!pd2NegoFillOn(c)) return [];
+  const cv = document.getElementById('ig-canvas'); if (!cv) return [];
+  const fields = (c.templateForm && Array.isArray(c.templateForm.fields)) ? c.templateForm.fields : [];
+  const out = [], seen = new Set();
+  cv.querySelectorAll('[' + PD2_NB_ATTR + ']').forEach(el => {
+    const key = el.getAttribute(PD2_NB_ATTR); if (!key || seen.has(key)) return; seen.add(key);
+    const parts = key.split('~'); const n = Number(parts.pop()); parts.shift(); const sig = parts.slice(1).join('~'), clauseId = parts[0];
+    const fk = el.getAttribute('data-pd2-nb-fk') || '', raw = el.getAttribute('data-pd2-nb-raw') || '';
+    const f = fk ? fields.find(x => x && x.fieldKey === fk) : null;
+    let label = f && f.label ? f.label : '';
+    if (!label){ const m = /^[\[{]+\s*(.*?)\s*[\]}]+$/.exec(raw); label = (m && m[1]) || (fk ? raw : ''); }
+    if (!label) label = (typeof upLeadName === 'function' && upLeadName(pd2FillQuoteOf(el).split('____')[0] || '')) || _pdT('pd2_nb_blank');
+    const sec = el.closest('section.rl-clause'); const h = sec && sec.querySelector('.rl-clause-h');
+    out.push({ key, label, value: '', kind: 'nego', type: (f && /date/i.test(String(f.fieldType || ''))) ? 'date' : 'text',
+      clauseId, fk, raw, sig, n, section: h ? (h.textContent || '').replace(/\s+/g, ' ').trim() : '' });
+  });
+  return out;
+}
+/* SAVE: each clause's answers filed as ONE change of ours through the one door, from the clause as it stands */
+async function pd2NegoFile(c, items){
+  const by = new Map(); items.forEach(x => { const k = String(x.b.clauseId); if (!by.has(k)) by.set(k, []); by.get(k).push(x); });
+  const done = [], refused = [];
+  for (const [clauseId, L] of by){
+    let ch = null, why = '';
+    try {
+      const cl = negoClauseNowById(c, clauseId);
+      const body = cl ? (cl.bodyHtml || (typeof textToRich === 'function' ? textToRich(cl.text || '') : '<p>' + _pdE(cl.text || '') + '</p>')) : '';
+      const host = document.createElement('div'); host.innerHTML = body;
+      const seq = cl ? pd2NegoSeq(host) : [];
+      /* every answer must find its own blank in the wording as it stands, or the clause is not touched */
+      const hits = L.map(x => ({ x, at: seq.find(b => b.sig === x.b.sig && b.n === x.b.n) }));
+      if (!cl || hits.some(h => !h.at)) why = _pdT('pd2_nb_moved');
+      else {
+        /* text nodes are split from the END, so an earlier blank's offsets in the same node still hold */
+        hits.filter(h => h.at.el).forEach(({ x, at }) => {
+          if (at.kind === 'f'){ const sp = document.createElement('span'); sp.className = 'hati-field-done'; sp.setAttribute('data-field-key', at.fk); sp.textContent = x.v; at.el.replaceWith(sp); }
+          else at.el.replaceWith(document.createTextNode(x.v)); });
+        hits.filter(h => h.at.node).sort((a, b) => b.at.hit.s - a.at.hit.s).forEach(({ x, at }) => {
+          const t = at.node; t.data = t.data.slice(0, at.hit.s) + x.v + t.data.slice(at.hit.e); });
+        ch = await negoFileFilledClause(c, clauseId, host.innerHTML, _pdT('pd2_nb_note'));
+        if (!ch) why = String(window.negoLastRefusal || '') || _pdT('pd2_nb_moved');
+      }
+    } catch (e){ ch = null; why = (e && e.message) || String(e); }
+    const name = (L[0] && L[0].b.section) || clauseId;
+    if (ch) L.forEach(x => done.push(x)); else refused.push({ clauseId, say: name + ': ' + why });
+  }
+  /* A COMPANY STANDARD'S ANSWER IS ITS FORM'S TOO ("Done straight away"): through its one writer, and the wording is
+     then said to carry it, so no "Fill the document" is owed for an answer already on the paper as a change */
+  const form = c.templateForm;
+  if (form && Array.isArray(form.fields) && typeof tplFormCommit === 'function'){
+    let owed = false; try { owed = !!(typeof tplFormPending === 'function' && tplFormPending(c)); } catch (_){ owed = false; }
+    let n = 0; done.filter(x => x.b.fk).forEach(x => { const i = form.fields.findIndex(f => f && f.fieldKey === x.b.fk); if (i >= 0){ tplFormCommit(c, i, x.v); n++; } });
+    if (n && !owed && typeof tplFormSig === 'function') form.filledSig = tplFormSig(form);
+  }
+  return { done: done.length, refused };
+}
 /* THE SIGNATURE LINES, read as the foot draws them (rlPaperFootHtml): ours first, then each party that signs */
 function pd2FillSigLines(c){
   let rows = null;
@@ -8681,7 +8843,7 @@ function pd2FillWalk(c){
   const owed = new Set(pd2FillBlanks(c).filter(b => !String(b.value || '').trim()).map(b => String(b.key)));
   const out = [], seen = new Set();
   cv.querySelectorAll(PD2_BL_SEL).forEach(sp => { const k = pd2BlKey(sp);
-    if (!k || seen.has(k) || !owed.has(String(k)) || sp.closest('.ig-redpaper, .ig-signpaper')) return; seen.add(k); out.push('b:' + k); });
+    if (!k || seen.has(k) || !owed.has(String(k)) || pd2BlOff(sp)) return; seen.add(k); out.push('b:' + k); });
   if (pd2FillSigOpen(c) && cv.querySelector('.rl-paper-foot .rl-sigline')){
     const lines = pd2FillSigLines(c);
     lines.forEach(L => { if (!pd2FillSigNamed(c, L, lines).length) out.push('s:' + L.i); });
@@ -8768,6 +8930,7 @@ function pd2FillStart(id, key){
   const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c || !pd2On()) return false;
   if ((typeof canEdit === 'function') && !canEdit()) return false;
   const first = !pd2FillOn(id);
+  if (first) pd2NegoMark(c);
   if (first){ const was = {}; pd2FillBlanks(c).forEach(b => { was[b.key] = String(b.value || ''); });
     _pd2Fill = { id: String(id), vals: Object.assign({}, was), was, walk: [], cur: '', sig: {}, sigWhy: null, q: {}, sec: {}, stopAsk: 0 }; }
   if (pdMidUp()) pdMidClose();
@@ -8813,6 +8976,10 @@ function pd2FillStop(){
   _pd2Fill = null;
   document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove());
   const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill');
+  /* a negotiated paper's marks and boxes are the sitting's: the paper is drawn whole, never patched around them (a patch
+     puts back only the clauses whose wording moved, and would leave the rest's boxes standing) */
+  const host = document.getElementById('ig-paper');
+  if (host && host.querySelector('[' + PD2_NB_ATTR + ']')) delete host.dataset.for;
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
 }
@@ -8843,9 +9010,10 @@ function pd2FillPeople(c, L){
    again after any repaint (a paint that finds its own boxes leaves them) */
 function pd2FillPaint(c){
   const cv = document.getElementById('ig-canvas'), pg = document.getElementById('ig-page'); if (!cv || !pg || !pd2FillOn(c.id)) return;
+  pd2NegoMark(c);
   const E = _pdE, L = pd2FillBlanks(c), lab = {}, typ = {}, opt = {}, tpl = {}; L.forEach(b => { lab[b.key] = b.label || b.key; typ[b.key] = b.type || 'text'; opt[b.key] = b.options || []; tpl[b.key] = b.kind === 'tplform'; });
   cv.querySelectorAll(PD2_BL_SEL).forEach(sp => {
-    const k = pd2BlKey(sp); if (!(k in lab) || sp.querySelector('[data-pd2-bl]') || sp.closest('.ig-redpaper, .ig-signpaper')) return;
+    const k = pd2BlKey(sp); if (!(k in lab) || sp.querySelector('[data-pd2-bl]') || pd2BlOff(sp)) return;
     if (!(k in _pd2Fill.q)) _pd2Fill.q[k] = pd2FillQuoteOf(sp);
     if (tpl[k] && _pd2Fill.sec && !(k in _pd2Fill.sec)) _pd2Fill.sec[k] = pd2FillSecOf(cv, sp);
     if (!sp.hasAttribute('data-pd2-was')) sp.setAttribute('data-pd2-was', '1');
@@ -8974,6 +9142,32 @@ function pd2FillSigTyped(c){
       : { party: 'counterparty', name: String(x.name).trim(), email: String(x.email || '').trim(), role: x.role || '', ...(L.partyId && lines.filter(y => !y.ours).length > 1 ? { partyId: L.partyId } : {}) })); });
   return add;
 }
+/* the save of a negotiated paper: its blanks filed first (async, through the one door), then whatever else was typed
+   (signers, any ordinary blank) as before; a clause refused keeps the filling open on it, with why */
+async function pd2FillSaveNego(c, nego, rest){
+  const btn = document.querySelector('[data-pd2-fill-save]');
+  if (btn){ btn.disabled = true; if (typeof busySet === 'function') busySet(btn, _pdT('ng_filing')); }
+  let r = { done: 0, refused: [] };
+  try { r = await pd2NegoFile(c, nego); } catch (e){ r = { done: 0, refused: [{ clauseId: '', say: (e && e.message) || String(e) }] }; }
+  if (btn){ btn.disabled = false; btn.textContent = _pdT('og_save'); }
+  if (!_pd2Fill) return r.done;
+  /* what was filed is the paper's now (its clause carries our change); what was refused stays to be answered */
+  const no = new Set(r.refused.map(w => String(w.clauseId)));
+  nego.forEach(x => { if (!no.has(String(x.b.clauseId)) && !no.has('')) _pd2Fill.was[x.b.key] = x.v; });
+  /* the one writer saves on the last of the run (the desk never saves: f563) */
+  rest.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === rest.length - 1 ? {} : { hold: true })) _pd2Fill.was[x.b.key] = x.v; });
+  const filed = r.done ? _pdTn('pd2_nb_saved', r.done, { n: r.done }) : '';
+  if (r.refused.length){
+    if (typeof toast === 'function') toast([filed, _pdT('pd2_nb_refused', { why: r.refused.map(w => w.say).join(' · ') })].filter(Boolean).join(' '), 'warn');
+    try { pdGlanceRepaint(); } catch (_){}
+    return r.done;
+  }
+  /* the signers and the rest, as an ordinary save (nothing negotiated is left in it) */
+  const n2 = pd2FillSave();
+  if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
+  if (filed && typeof toast === 'function') toast(filed, 'ok');
+  return r.done + (n2 || 0);
+}
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
   const c = getContract(_pd2Fill.id); if (!c) return 0;
@@ -8983,6 +9177,9 @@ function pd2FillSave(){
     .filter(x => x.v !== String(_pd2Fill.was[x.b.key] || '').trim())
     /* the one writer refuses these two (their own doors write them): never the last of a held run, or the rest would not be saved */
     .filter(x => tplf || (x.b.key !== 'counterparty' && x.b.key !== 'value'));
+  /* A NEGOTIATED PAPER'S BLANKS ARE FILED AS OUR CHANGE (pd2NegoFile), never written quietly: handed on, and said when filed */
+  const nego = moved.filter(x => x.b.kind === 'nego' && x.v);
+  if (nego.length){ const rest = moved.filter(x => x.b.kind !== 'nego'); return pd2FillSaveNego(c, nego, rest); }
   let n = 0;
   /* held, the last one written without hold, so the writer itself saves once (the desk never saves: f563) */
   if (tplf){
@@ -9040,14 +9237,21 @@ function pd2FillFaceHtml(c, D){
   /* WHAT HAS NO PLACE ON THE PAPER: the owed details the paper does not carry, last, with the form as their door */
   let rest = [];
   try { const d = (typeof detailsOf === 'function') ? detailsOf(c) : null; const onPaper = new Set(W.filter(s => s.startsWith('b:')).map(s => s.slice(2)));
+    /* a company standard's gap marked on a negotiated paper stands for its form key */
+    Object.values(blanks).forEach(b => { if (b && b.kind === 'nego' && b.fk) onPaper.add(String(b.fk)); });
     rest = d && d.live ? d.items.filter(x => x && x.open && !onPaper.has(String(x.key)) && !/signer/i.test(String(x.kind || x.key || ''))).map(x => x.label) : []; } catch (_){ rest = []; }
-  const restH = rest.length ? `<div class="pd2-fp-rest">${E(_pdTn('pd2_fp_rest', rest.length, { list: pd2ListWords(rest) }))} <button type="button" class="ui-link" data-pd2-fp-form>${E(_pdT('pd2_fp_rest_go'))}</button></div>` : '';
+  /* IT NAMES THREE, THEN COUNTS (owner's screenshot, 12 Nov 2026: sixteen details ran on as one sentence; the same
+     three-then-"and N more" the question before Negotiate asks, NG_BLANKS_NAMED) */
+  const restSay = rest.length > PD2_REST_NAMED ? _pdT('pd2_fp_rest_more', { list: rest.slice(0, PD2_REST_NAMED).join(', '), n: rest.length - PD2_REST_NAMED })
+    : _pdTn('pd2_fp_rest', rest.length, { list: pd2ListWords(rest) });
+  const restH = rest.length ? `<div class="pd2-fp-rest">${E(restSay)} <button type="button" class="ui-link" data-pd2-fp-form>${E(_pdT('pd2_fp_rest_go'))}</button></div>` : '';
   const at = W.indexOf(F.cur), k = at >= 0 ? at + 1 : 1;
   const head = `<div class="pd2-fp-head"><b>${E(_pdT('pd2_fp_title'))}</b><span data-pd2-fp-pos>${W.length ? E(_pdT('pd2_fp_pos', { k, n: W.length })) : ''}</span></div>`;
   const none = !W.length ? `<p class="pd2-fp-none">${E(_pdT('pd2_fp_none'))}</p>` : '';
   return `${head}${none}<div class="pd2-fp-list">${rows}</div>${order}${restH}`;
 }
 /* "Value and Stream": a short list in words, the last joined by the language's own "and" */
+const PD2_REST_NAMED = 3;   // details named in the panel's last line before it counts the rest
 function pd2ListWords(L){
   const a = (L || []).filter(Boolean); if (a.length < 2) return a.join('');
   return a.slice(0, -1).join(', ') + ' ' + _pdT('pd2_and') + ' ' + a[a.length - 1];
@@ -9067,8 +9271,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !pd2On()) return;
     if (t.closest('[data-pd2-bl], [data-pd2-ps-name], [data-pd2-ps-mail]')) return;
-    const sp = t.closest('#ig-canvas [data-upblank], #ig-canvas .hati-field[data-field-key], #ig-canvas span.field-frozen[data-field]');
-    if (sp && !sp.closest('.ig-redpaper, .ig-signpaper')){ const c = pdContract(); if (!c) return;
+    const sp = t.closest('#ig-canvas [data-pd2-nb], #ig-canvas [data-upblank], #ig-canvas .hati-field[data-field-key], #ig-canvas span.field-frozen[data-field]');
+    if (sp && !pd2BlOff(sp)){ const c = pdContract(); if (!c) return;
       const k = pd2BlKey(sp);
       if (pd2FillBlanks(c).some(b => String(b.key) === String(k))){ e.preventDefault(); e.stopPropagation(); pd2FillStart(c.id, k); } return; }
     if (t.closest('[data-pd2-fill-save]')){ e.preventDefault(); pd2FillSave(); return; }
@@ -9383,6 +9587,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
+Object.assign(window, { pdActKnown });
+Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });

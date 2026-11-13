@@ -7,6 +7,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - LAND ON IT: land-on-it, open-in-place verify; f445, f707, f724.
 - A REFRESH LANDS AT THE SAME SPOT: refresh-keeps-your-spot-verify.
 - GITHUB TESTS A PULL REQUEST, AND MAIN EVERY NIGHT (owner, 13 Nov 2026): `node --test test/f1025-github-tests-a-pull-request.test.js` (5) — the three ways in (pull request, clock, hand), no bare push, the cancel group, still the whole set, the session greeting. Red at the parent (the file said `push:`).
+- A pull request of notes only runs nothing: f1034 (node; red at the parent).
 
 ## THE NINE FLOW RULES
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
@@ -331,6 +332,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - RE-POINTED AFTER GITHUB'S RUN (9 Nov 2026): board-says-it-plain 2a–2c (a contract brought up lands on its paper; Jambo's words name no strip), jambo-doors 5 and door-exam (test/nav-read.js reads History in the middle as pane 'hist' and the middle page as `W.mid` 'hist' · 'where', replacing `W.strip`); f219 pins the family card's draw unchanged.
 - RE-POINTED, GITHUB'S SECOND RUN (9 Nov 2026): map-asked-bubbles 7a/7b (the card's Ask why is gone; the contract lands on its paper and the box names it), jambo-says-what-he-did 1 (History of MK-C1 stands in the middle, `#pd2-hist[data-pd2-hist]`), f978 4 (`igPaperInFront` is `igPaperUp`; no `pdCardNow`), f232 green again.
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
+- A BLANK ON A NEGOTIATED PAPER IS A TRACKED CHANGE (13 Nov 2026): f1033 (seven parts, red at the parent); negotiated-blanks-verify (0–5; 1–4 red at the parent).
 - FILL IN ON THE PAPER, THE LEGORA WAY (owner's pick, 11 Nov 2026): f1012 (new; red at the parent, the block and `pdFillGo` absent) and fill-on-the-paper-verify (new, for GitHub; 1–7 red at the parent: the black button opened the form and a template's blanks never became lines). Re-pointed: contract-new-look-verify 5 (the count is of every space, signature lines included: `/^1 of \d+ filled/`).
 - THE LINES FOLLOW THE ROUTE, AND AN EXTRA SPACE CAN GO (owner, 12 Nov 2026): f1017 (new; red at the parent, the three functions, the × and its word absent) and fill-on-the-paper-verify 9 · 10 (new, for GitHub; red at the parent: no × is drawn and a saved route leaves the empty spaces and "owed"). THE TYPED NAMES IN THE ROUTE WINDOW (owner, 12 Nov 2026): f1017 (5) and fill-on-the-paper-verify 11 (red at 35fc267: the window read the saved route only).
 - CHOOSE THE ROAD (owner's pick "The Legora Way", 11 Nov 2026): f1013 (new; red at the parent, the road block absent) and choose-the-road-verify (new, for GitHub; 1–6 and 8 red at the parent: the card went straight to "N to settle before anyone signs").
@@ -369,7 +371,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## HOW THINGS MOVE (22 Oct 2026; owner picked "Glide over" and "Crossfade")
 - page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
-- A FACE CHANGE IS DRAWN AT ONCE (12 Nov 2026): f1024 (four parts, red at the parent); tab-change-no-flash-verify (0–9; every frame after a tab press, another paper, a panel opening wider; 1, 2, 3, 6 and 7 red at the parent); page-jumps-verify H re-pointed (no copy, nothing fading, the underline glides); f676 10f re-pointed.
+- NOTHING CHANGED, NOTHING WRITTEN · THE LINE'S ONE WRITER · THREE THEN COUNT (13 Nov 2026): f1024 (3)–(6); tab-change-no-flash-verify 3b, 10a–10d. test/chromium/_audit/flash-measure.js (a measuring instrument; `.github/workflows/flash-measure.yml`): films every page move.
+- A FACE CHANGE IS DRAWN AT ONCE (12 Nov 2026): f1024 (parts (1) and (2), red at the parent); tab-change-no-flash-verify (0–9; every frame after a tab press, another paper, a panel opening wider; 1, 2, 3, 6 and 7 red at the parent); page-jumps-verify H re-pointed (no copy, nothing fading, the underline glides); f676 10f re-pointed.
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
 - THE DOSSIER'S ONE CARD (8 Nov 2026): dossier-one-card-verify (3 checks × three screens; red at the parent on 1 and 2); contract-new-look 1 and 13c re-pointed.
@@ -486,7 +489,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js)
 - WHY FIRST (21 Oct 2026): f506 (C) and f522 (6) re-pointed; `risk-card-titles-verify.js`, `one-door-for-edits-verify.js`.
 - f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify.
-- THE REDLINED PAPER'S NOTES SAY HOW THEY ENDED (13 Nov 2026): f1033 (new; all 8 red at the parent) — answered / open / agreed / turned down / groups and chips / a viewer / their view / the painter; redline-notes-answered-verify (new, for GitHub: beside the paper and clear of it, the tick painted, the chips filter, See the change, Draft a redline, none on Clean).
+- THE REDLINED PAPER'S NOTES SAY HOW THEY ENDED (13 Nov 2026): f1035 (new; all 8 red at the parent) — answered / open / agreed / turned down / groups and chips / a viewer / their view / the painter; redline-notes-answered-verify (new, for GitHub: beside the paper and clear of it, the tick painted, the chips filter, See the change, Draft a redline, none on Clean).
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
