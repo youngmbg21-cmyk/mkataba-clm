@@ -9340,7 +9340,16 @@ function pd2WalkClose(){
   document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove());
   const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk');
   try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete('pd2-walk'); } catch (_){}
-  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+  /* THE READ TAKES OFF ONLY WHAT IT PUT ON (the flash measure, 13 Nov 2026: a read still running when Clauses was pressed
+     ended ~560 ms later by drawing the whole paper again). Its marks are classes on the paper's own blocks; they come off,
+     and the notes beside the paper are laid out again (pd2NotesPaint), so the paper itself is not written. With no paper
+     standing, the paper is drawn as before. */
+  const cv = document.getElementById('ig-canvas');
+  if (cv){
+    cv.querySelectorAll('.pd2-wk-on, .pd2-wk-done, .pd2-wk-lit').forEach(e => e.classList.remove('pd2-wk-on', 'pd2-wk-done', 'pd2-wk-lit'));
+    document.querySelectorAll('#pd2-notes .is-wk-hold').forEach(e => e.classList.remove('is-wk-hold'));
+    try { pd2NotesPaint(pdContract()); } catch (_){}
+  } else if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
 }
 /* each note group knows the clause the read must reach (its section on the paper; one standing at the paper's end waits for

@@ -58,3 +58,29 @@ test('f1034 (5) the flash measure names who wrote late and what moved, at the ow
   assert.match(s, /moved {7}/);
   assert.match(s, /\[1440, 780\], \[1536, 730\], \[1366, 950\]/);
 });
+
+/* ROUND TWO, off the measure naming who wrote late and what moved (owner, 13 Nov 2026: "fix the remaining three too") */
+test('f1034 (6) Approvals: a column fitting its room is the rows paint in the new look, never the whole page', () => {
+  const s = read('js/views/approvalsview.js');
+  const r = region(s, 'function renderApprovalsPage', 9000);
+  assert.match(r, /newLookOn\(\)\) return apnRender\(W, \(o&&\(o\.rows\|\|o\.listOnly\)\)\?\{ rows:true \}:null\)/);
+});
+
+test('f1034 (7) Import draws its own title in the new look, whatever state it is in, so nothing slides under the bar', () => {
+  const app = read('js/app.js');
+  assert.match(app, /\|\|\(view==='migration'&&typeof window\.newLookOn==='function'&&newLookOn\(\)\)/, 'the shell strip steps aside on every Import state');
+  assert.doesNotMatch(app, /view==='migration'[^\n]*migRows\(\)\.length>0/, 'not only once files are in');
+  const m = read('js/views/migration.js');
+  const r = region(m, 'function renderMigration', 3000);
+  assert.match(r, /class="mig-own-head"><div class="cun-head"><h2 class="ctf-h">\$\{esc\(i18t\('nav_import'\)\)\}<\/h2>/, 'the title in the page');
+  assert.match(r, /id="page-head-facts"[\s\S]*id="page-head-acts"/, 'with the two slots migPaintHead fills');
+});
+
+test('f1034 (8) the read on the paper ends by taking its own marks off, not by drawing the paper again', () => {
+  const s = read('js/paperdesk.js');
+  const r = region(s, 'function pd2WalkClose', 1600);
+  assert.match(r, /classList\.remove\('pd2-wk-on', 'pd2-wk-done', 'pd2-wk-lit'\)/);
+  assert.match(r, /pd2NotesPaint\(pdContract\(\)\)/);
+  const i = r.indexOf("getElementById('ig-canvas')"), j = r.indexOf('igPaperRefresh');
+  assert.ok(i >= 0 && j > i && /else if \(typeof igPaperRefresh/.test(r), 'the whole paper only where no paper stands');
+});

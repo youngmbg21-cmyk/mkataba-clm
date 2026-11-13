@@ -1069,7 +1069,9 @@ function renderApprovalsPage(o){
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */
   const foot=n&&typeof lhFootHtml==='function'?lhFootHtml('approvals',n,n,0,{ cls:'ap-foot ap-wl-foot' }):'';
   /* THE NEW LOOK, AS DRAWN (round 5): its own head and its own table — the switch's page, the old one untouched */
-  if(INS&&typeof newLookOn==='function'&&newLookOn()) return apnRender(W, (o&&o.rows)?{ rows:true }:null);
+  /* a list-only ask (the box, a column fitting its room: listCols' repaint) is the rows paint here too — the new look
+     draws its own columns, so it never needed the whole page (the flash measure, 13 Nov 2026: Board → Approvals) */
+  if(INS&&typeof newLookOn==='function'&&newLookOn()) return apnRender(W, (o&&(o.rows||o.listOnly))?{ rows:true }:null);
   const page=document.querySelector('#content .ap-page[data-ins-page="approvals"]');
   const sec=document.getElementById('ap-scroll');
   if(listOnly&&page&&sec&&page.getAttribute('data-ins')===(INS?'1':'0')){
