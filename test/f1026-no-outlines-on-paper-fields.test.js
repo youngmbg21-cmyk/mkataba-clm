@@ -1,4 +1,4 @@
-/* f1024 — NO OUTLINES WHERE A PAPER'S DETAILS ARE TYPED (owner, 12 Nov 2026: "I never want to see outlines
+/* f1026 — NO OUTLINES WHERE A PAPER'S DETAILS ARE TYPED (owner, 12 Nov 2026: "I never want to see outlines
    especially thick outlines in entry fields in HaTi for papers"). The Fill in form, Key terms in the middle and the
    lines on the paper carry no focus ring and no box; the box you are in shows by a darker underline. */
 const test = require('node:test');

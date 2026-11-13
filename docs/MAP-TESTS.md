@@ -43,6 +43,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
 - test/f1020-a-reply-reaches-a-person.test.js: every email to the other side has a reply address, never from the body.
+- test/f1021-a-tag-reply-reaches-a-person.test.js: a tag of the other side's person carries the tagger as reply address.
 - A refused round send keeps no "Sent to you" copy (22 Oct 2026): f858 (red at the parent 1, 2).
 - f205, f206.
 
@@ -349,7 +350,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - checklist-as-drawn-verify (the owner's "1 · Checklist", 22 Oct 2026: the stage line with ONE current; "Needs you N"; every owed row one line of 40, ONE open, a press opens another and again closes it; Confirm N read writes a closed row; Jambo read's two rows; Next acts equal on one line, All acts N › opens and folds; the only signer button is "Add or order signers ›"; four signers named → green "4 named · 4 steps", opened 1–4, the route editor at the XL rung with no sideways scroll and a person's ⋯ menu whole; nothing past the panel at all three screens; 21 red at f0cd4b3).
 - RE-POINTED 22 Oct 2026 for the Checklist: `ckOpenRowOf(page, sel)` (test/helpers.js) opens a fact's row before a check types in it (blanks-panel, fill-in-beside-the-paper, fill-the-document, owed-first, owed-first-as-drawn, signer-row-as-drawn, still-owed-sap-way); the count is read off `.ds-ck-n`; "Needs you" sits above "Jambo read"; the risks row says "Not read · free" and Read; the acts wear short words (whole name on hover); the-brief 1e allows only the Checklist's rings and the Missing tag (the owner said no lines); f312 pins the route at the XL rung; f918 4a, jambos-panel 1f and checklist-as-drawn 2a2 pin the Dossier tab's number to this contract's Needs you; checklist-as-drawn 2a3 finds no line between sections or rows.
 - KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
-- A company standard's fields on the paper: f1025 (node; red at the parent); company-standard-on-the-paper-verify (browser, GitHub).
+- A company standard's fields on the paper: f1027 (node; red at the parent); company-standard-on-the-paper-verify (browser, GitHub).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
 - A NEGOTIATED CONTRACT'S CLEAN PAPER CARRIES ITS NOTES (owner-reported 6 Nov 2026, MK-469): notes-on-clean-paper-verify 1 (new, red at the parent: no notes on Clean), 2 (Redline keeps their asks).
 - THE MEMO LIVES IN THE CLOSE PLAN (new look, owner picked "Inside the close plan" 6 Nov 2026): memo-in-close-plan-verify 1–4 (new, red at the parent: the memo opened its old side panel; Deal had no Send to a colleague), 5 (look off: the memo panel as before). Its step 1 presses the More menu's Negotiation memo.
@@ -366,6 +367,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## HOW THINGS MOVE (22 Oct 2026; owner picked "Glide over" and "Crossfade")
 - page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
+- A FACE CHANGE IS DRAWN AT ONCE (12 Nov 2026): f1024 (four parts, red at the parent); tab-change-no-flash-verify (0–9; every frame after a tab press, another paper, a panel opening wider; 1, 2, 3, 6 and 7 red at the parent); page-jumps-verify H re-pointed (no copy, nothing fading, the underline glides); f676 10f re-pointed.
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
 - THE DOSSIER'S ONE CARD (8 Nov 2026): dossier-one-card-verify (3 checks × three screens; red at the parent on 1 and 2); contract-new-look 1 and 13c re-pointed.
@@ -492,7 +494,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE POP-UPS, THE SAP WAY
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 - Alerts bottom centre: f1023 (node); photos by hand at the three screens.
-- No outlines on paper entry fields: f1024 (node; red at the parent).
+- No outlines on paper entry fields: f1026 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.

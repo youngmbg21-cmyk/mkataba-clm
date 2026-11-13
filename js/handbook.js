@@ -65,7 +65,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['home', 'start page', 'first screen', 'board', 'needs you', 'needs me', 'what is waiting'], sv: ['hem', 'startsidan', 'tavlan', 'behöver mig', 'vad väntar'] },
     shots: [
       { go: [{ place: 'board' }, { waitFor: '#hb-bhead' }], boxes: [{ sel: '#hb-bhead', step: 1 }], cap: { en: 'The top greets you; the brief opens as its own card under it when you press Summarise (1).', sv: 'Överst hälsar Tavlan dig; sammanfattningen öppnas som ett eget kort under den när du trycker Sammanfatta (1).' } },
-      { go: [{ place: 'needs' }, { waitFor: '#hm-agents .nd-btn' }], boxes: [{ sel: '#hm-agents .nd-btn', step: 2 }, { sel: '#hm-agents .nd-tabs', step: 3 }], cap: { en: 'Each row of Needs you has one button with one word (2); the tabs split it (3).', sv: 'Varje rad i Behöver dig har en knapp med ett ord (2); flikarna delar upp den (3).' } }] },
+      { go: [{ newLook: true }, { view: 'counter' }, { place: 'needs' }, { waitFor: '#hm-agents .ls-mk.is-jambo' }, { waitFor: '#hm-agents .nd-btn' }], boxes: [{ sel: '#hm-agents .nd-btn', step: 2 }, { sel: '#hm-agents .nd-tabs', step: 3 }], cap: { en: 'Each row of Needs you has one button with one word (2); the tabs split it (3).', sv: 'Varje rad i Behöver dig har en knapp med ett ord (2); flikarna delar upp den (3).' } }] },
 
   { k: '0.2', part: 'around', round: 1,
     title: { en: 'Ask Jambo, or type "/"', sv: 'Fråga Jambo, eller skriv "/"' },
