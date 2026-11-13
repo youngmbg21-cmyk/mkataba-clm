@@ -111,16 +111,19 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
       const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return Z.some(z => r.left < z.right && r.right > z.left && r.top < z.bottom && r.bottom > z.top) || !(at === b || b.contains(at)); }).map(b => b.textContent.trim()); };
   const on = clean ? await until(p, () => !!document.querySelector('#pd2-notes [data-pd2-notes-tg="hide"]') && document.querySelectorAll('#pd2-notes .pd2-mg').length > 0, null, 8000) : false;
-  const w0 = on ? await p.evaluate(() => Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width)) : 0;
+  /* the paper's width, and whether it was moved aside for the notes (data-pd2-left): on a wide screen it is already at its
+     full width and only moves back to its place; on a narrower one it widens too */
+  const GEO = () => ({ w: Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width), aside: !!document.querySelector('#ig-paper [data-pd2-left]') });
+  const w0 = on ? await p.evaluate(GEO) : null;
   const u0 = on ? await p.evaluate(UNDER) : ['not drawn'];
   if (on) await p.click('#pd2-notes [data-pd2-notes-tg="hide"]');
   const off = on ? await until(p, () => !document.querySelector('#pd2-notes .pd2-mg') && !!document.querySelector('#pd2-notes-tg [data-pd2-notes-tg="show"]'), null, 8000) : false;
-  const w1 = off ? await p.evaluate(() => Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width)) : 0;
+  const w1 = off ? await p.evaluate(GEO) : null;
   const u1 = off ? await p.evaluate(UNDER) : ['not drawn'];
   if (off) await p.click('#pd2-notes-tg [data-pd2-notes-tg="show"]');
   const back = off ? await until(p, () => document.querySelectorAll('#pd2-notes .pd2-mg').length > 0 && !document.getElementById('pd2-notes-tg') && !!document.querySelector('#pd2-notes [data-pd2-notes-tg="hide"]'), null, 8000) : false;
-  check('6 · Clean: Hide notes puts them away and widens the paper; Show notes brings them back; no button behind the zoom',
-    on && off && back && w1 > w0 && !u0.length && !u1.length, { on, off, back, w0, w1, u0, u1 });
+  check('6 · Clean: Hide notes puts them away and gives the paper back its full width and place; Show notes brings them back; no button behind the zoom',
+    on && off && back && w0 && w1 && w0.aside && !w1.aside && w1.w >= w0.w && !u0.length && !u1.length, { on, off, back, w0, w1, u0, u1 });
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');
   await b.close(); await h.stop(); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
