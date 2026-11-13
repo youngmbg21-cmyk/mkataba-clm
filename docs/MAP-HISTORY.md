@@ -37751,3 +37751,25 @@ And (80041 → 80000; verbatim before):
 ```
 ONE quiet touch of colour per page, read off a fact it has (`listStreamTone`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
 ```
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (ninth)
+To make room for the f1034 line (80000 before the line and the cut; 80230 after). Verbatim before:
+```
+PERFORMANCE — THE BOOK IS WALKED ONCE
+EVERY TEXT ANSWER GOES OUT COMPRESSED (one gzip middleware; `ZIP_NEVER`; f996). DOOR NUMBERS COUNTED ONCE A TURN (`doorCounts(nc)`, f997). `familyChildren` built once (`familyIndexDirty()`); `navCounts` once per paint; a long contract read once (`richReadMemo`, `clauseSegmentFind`); Board → paper lays out once (`_regNarrowPaint`).
+```
+And (80230 → 80121; verbatim before):
+```
+- TYPED, THE AI READS; HaTi CHECKS: `render_graph` offers every map tool as `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` checks first, the gap sent back ONCE (`igGapNote`). f995. TOP N GROUPS `igTopGroups`; chips `igMapReadHtml`; an admin teaches a word (`igMapReadTeach`). f996. Groups in ORDER (`orderGroups`), rank by COUNT (`IG_TOPG_BY`); a sentence about what was not drawn is dropped (`igMapSentenceHonest`). f999.
+```
+And (80121 → 80067; verbatim before):
+```
+OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000).
+```
+
+## PERFORMANCE — THE BOOK IS WALKED ONCE — WHAT LANDED THE SAME IS NOT DRAWN AGAIN (13 Nov 2026)
+**THE ASK.** After the first flash measure (108 of 130 moves clean at 1440x780 and 1366x950), the owner: *"fix the flash issues"*.
+**WHAT THE MEASURE SAID, AND WHAT THE CODE SHOWED.** (1) Board → Approvals: the whole page written again at ~330–375 ms. `signReadinessFor` loads each light record the reader must sign in the background and, as EACH landed, called `renderApprovalsPage()` whole. (2) Board → Discover: the whole page again at ~55 ms. `rdLoad` drew again when the server's questions landed, with the rows it had just drawn from what was known. (3) Board → Jambo's house: the whole page again at ~75 ms, the loading line becoming the house when the period's work landed.
+**BUILT.** (1) `scLandedRepaint`: every record that lands in one beat is ONE paint in the next frame; on Approvals it is `renderApprovalsPage({ rows:true })`, and the new-look rows paint compares what it would write with what it wrote (`tbl._apnSrc`) and returns before the head and panel are touched when nothing moved. The Board's repaint on a landing is unchanged (still whole, now once a frame). (2) `rdLoad` compares the rows (`rdRowsKey`) and draws only if they differ. (3) `renderJamboHouse({ fromLoad })` writes nothing when the page would be word for word what stands, and otherwise rewrites only the card's inside and the panel where its words moved; the frame stands (its presses are delegated on #content, so nothing is wired twice).
+**THE MEASURE NOW SAYS WHO.** Under a move that is not clean it prints the code that wrote late (HaTi's own frames) and, for a jump, which part moved and from where to where; and it films the owner's third screen (1536x730) too.
+**LEFT, AND SAID.** Not fixed in this round, waiting on the measure naming their cause: Import's jump (~0.046 in and out), Board → a contract's paper (strip, paper and panel written ~65 ms later when the whole record lands — `igAnalyze` awaits `ensureFull` — plus a 0.05 jump, and 0.05 again on the way back), paper → paper (~35 ms, the same load), and the first Dossier → Clauses (the paper written again at ~580 ms). The first Approvals and house visit still loads (a loading line, then the house): that is a load, said, not a flash.

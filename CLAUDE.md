@@ -206,7 +206,7 @@ A FIELD LEFT BLANK IS FILLED IN, NOT ARGUED: a `blank` point carries Fill it in 
 - COUNTING IS NOT DRAWING: `*Data` + renderer per panel; `pfPanelData` the one door; `.igx-fig` the ONE tile; doors → `regShowOnly`.
 - EXPLORER: `GRAPH_GROUPINGS`, `intelGraphApply`, `INTEL_CAP` said; recipe `igRecipeNow`/`igRecipeSet`; a count prints only if drawn (`igCountsDrawn`); a typed day READ, never guessed (`igDateRead`); Jambo explains what the map DREW (`igTourSteps`); FINDINGS `map_findings` (inside folderScopeFor).
 - SAVED VIEWS under Your day only (`igSavedViewsHtml`, `igViewSave`); they follow the PERSON (prefs `igViews`, `igViewsClean`). f1001. LENSES: ONE door `igLensSet`; a legend ROW isolates (`igLegendPick`); `igLensThen`. YOUR DAY (`igDayData`, `igDayGo`); `hbFigMenuOpen`; `igWhatIfData`.
-- TYPED, THE AI READS; HaTi CHECKS: `render_graph` offers every map tool as `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` checks first, the gap sent back ONCE (`igGapNote`). f995. TOP N GROUPS `igTopGroups`; chips `igMapReadHtml`; an admin teaches a word (`igMapReadTeach`). f996. Groups in ORDER (`orderGroups`), rank by COUNT (`IG_TOPG_BY`); a sentence about what was not drawn is dropped (`igMapSentenceHonest`). f999.
+- TYPED, THE AI READS; HaTi CHECKS: `render_graph` `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` first, the gap sent back ONCE (`igGapNote`). `igTopGroups`; `igMapReadHtml`, `igMapReadTeach`. Groups in ORDER, rank by COUNT (`IG_TOPG_BY`); what was not drawn is not said (`igMapSentenceHonest`). f995, f996, f999.
 - A NEW MAP FEATURE = A GUIDE TAB ROW (`igGuideRows`), SAME change; the legend `igLegendPlace`.
 ## OBLIGATIONS
 - THE PAGE IS A PROJECT LIST: three pills Late · Tracked · Proposals over one filter line (`obnRender`), TWENTY A PAGE (`_obnPer`, `obnPagerHtml`), a row's stream band and tone chip (`obnWhenChip`, `obnStreamTone`). PROPOSALS BY AGREEMENT (`obnProjects`, `obnProjRowHtml`, `obnDutyHtml`), added through the ONE writer `obAddFound`; nothing saved until Add all.
@@ -377,16 +377,17 @@ PAST THE MARK THE PANEL SLIDES OVER: the page narrows to `SPLIT_OVER_AT` 880 (or
 ## OTHER PAGES AND SERVICES
 - APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read; every document has a person (`mailroomOwnerFor`, `intakeLaneOwner`; bell `mailroom`); MEMO `negoMemo` (no model).
 - COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
-- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000).
+- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000).
 ## THE OVERNIGHT RUN (9 Oct)
 SEAL ON THE SERVER (`srvSealNow`, `srvSendExecutedCopies`); late seals `runSealCatchUp`; f570, f580–f626, f651.
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
-EVERY TEXT ANSWER GOES OUT COMPRESSED (one gzip middleware; `ZIP_NEVER`; f996). DOOR NUMBERS COUNTED ONCE A TURN (`doorCounts(nc)`, f997). `familyChildren` built once (`familyIndexDirty()`); `navCounts` once per paint; a long contract read once (`richReadMemo`, `clauseSegmentFind`); Board → paper lays out once (`_regNarrowPaint`).
+EVERY TEXT ANSWER GOES OUT COMPRESSED (`ZIP_NEVER`; f996). DOOR NUMBERS COUNTED ONCE A TURN (`doorCounts(nc)`). `familyChildren` built once (`familyIndexDirty()`); `navCounts` once per paint; a long contract read once (`richReadMemo`); Board → paper lays out once (`_regNarrowPaint`).
 A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS: ONE swap `listRowsSwapHtml` (FALSE = draw the whole page); SAFE ONLY WHERE EVERY TAB DRAWS THE SAME SHAPE; Parties' Folders draws whole. rows-only-on-a-press-verify.
 NO PAGE-WIDE `:has` OVER THE PAPER: write the state on the element (`igDockMarks` → `#ig-page[data-igd-head|data-igd-door]`). ONE PRESS, ONE PAPER (`_igPaperPaints`, `pd2SheetPre`). f1007.
 A DECISION REDRAWS ONLY ITS CLAUSE: `igPaperRefresh` tries `igPaperPatch` first (blocks stamped `_igSrc` by `igPaperStamp`; ONE builder `igRedBodyHtml`; any doubt = drawn whole); `pdRedRepaint` in ONE `igDockBatch`. f1010.
 NOTHING CHANGED, NOTHING WRITTEN: Jambo's panel is worked out whole, and written only if it differs from what stands or anything moved since (`igDockSame`, `igDockStamp`); only a middle the painter itself wrote (landing, talk); kept buttons take the build's act numbers; ANY DOUBT = WRITTEN WHOLE. The paper's line has ONE writer (`igStripPut`). f1024.
-MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (films every page move), glitch-audit, perf*.
+WHAT LANDED THE SAME IS NOT DRAWN AGAIN: data landing after a page is drawn writes nothing unchanged, else the change (`scLandedRepaint`, `_apnSrc`, `rdRowsKey`, `_jhSrc`; f1034).
+MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (names who wrote late, what moved), glitch-audit, perf*.
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
 A slow answer lands on its own contract (`contractOnScreen`); sitting marks never reach the record (`dropSittingKeys`). Server walls: `srvApprovalChainOpenOf`, `srvApprovalDecisionRefusal`; a link refuses another kind (`shareKindOf`, `standingNegotiation`); `forgetContractRecords`; discard restores the sent version (`negoSentVersionOf`).
 ## THE PROCESS REVIEW'S FIXES (4 Oct)
