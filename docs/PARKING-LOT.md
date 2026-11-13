@@ -44,6 +44,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the "Write it for me" screenshot of 13 Nov 2026, where Jambo's answers carried "Weighed by the stronger model · $0.089" and "· $0.077".
 - **Notes:** that line comes from the stronger-model note under an answer, which shows admins the dollars (f870). HaTi's own rule already says no Jambo cost is said anywhere but the admin's spending pages (f975), so this line breaks it. A fix means finding every place a price can show and keeping it only in Settings.
 
+### P-4 · Jambo's Board follow-up questions go to Jambo
+- **Added:** 13 Nov 2026 · **Status:** Waiting
+- **What:** after "Go further" on the Board, Jambo suggests up to three follow-up questions. Pressing one should get Jambo's answer, never a reminder or a calendar booking.
+- **Where it came from:** checking whether the "Write it for me" bug reaches other places (13 Nov 2026); logged in the bug log the same day.
+- **Notes:** Jambo writes these questions himself, so one worded "Remind me…" or "Book time to…" is read by HaTi's reminder or booking reader first. The fix must still let the Board draw a chart when the question asks for one.
+
 ## Done
 
 _(nothing yet)_
