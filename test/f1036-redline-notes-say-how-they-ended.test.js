@@ -1,4 +1,4 @@
-/* f1035 — THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026:
+/* f1036 — THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026:
    "shouldnt this redline page also have notes on the side so you can distiguish between where the notes have led to
    redlines vs where the notes are still there but redlines have not been addressed?")
    ============================================================================
@@ -15,7 +15,7 @@
 
    AT THE PARENT (ea9a894) every check fails: pd2RedAnswers, pd2RedBlocks, pd2RedChipsHtml and pd2RedGroupHtml do
    not exist and the painter draws only their asks.
-   Run: node --test test/f1035-redline-notes-say-how-they-ended.test.js */
+   Run: node --test test/f1036-redline-notes-say-how-they-ended.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -76,7 +76,7 @@ async function stage(o = {}){
 const need = S => assert.deepEqual(S.missing || [], [], 'the readers exist');
 const byTitle = (L, re) => L.find(n => re.test(n.k));
 
-describe('f1035 (1) a note our redline answers', () => {
+describe('f1036 (1) a note our redline answers', () => {
   test('green, "not sent yet", our new words quoted, See the change on the change, by that change\'s section', async () => {
     const S = await stage(); need(S);
     const cv = S.cv();
@@ -103,7 +103,7 @@ describe('f1035 (1) a note our redline answers', () => {
   });
 });
 
-describe('f1035 (2) a note with no redline', () => {
+describe('f1036 (2) a note with no redline', () => {
   test('amber, "no redline yet", Draft a redline pressing the risk\'s own Edit, by its clause', async () => {
     const S = await stage(); need(S);
     const cv = S.cv();
@@ -120,7 +120,7 @@ describe('f1035 (2) a note with no redline', () => {
   });
 });
 
-describe('f1035 (3) when they decide', () => {
+describe('f1036 (3) when they decide', () => {
   test('accepted: the note goes; turned down: it is open again', async () => {
     const S = await stage(); need(S);
     await S.win.negoResolve(S.c, S.ours.id, 'accepted', { side: 'counterparty', author: 'Erik' });
@@ -132,7 +132,7 @@ describe('f1035 (3) when they decide', () => {
   });
 });
 
-describe('f1035 (4) one group per clause, and the chips', () => {
+describe('f1036 (4) one group per clause, and the chips', () => {
   test('a group per clause headed "N · Name"; chips only with both kinds, each with its count', async () => {
     const S = await stage(); need(S);
     const cv = S.cv();
@@ -149,7 +149,7 @@ describe('f1035 (4) one group per clause, and the chips', () => {
   });
 });
 
-describe('f1035 (5) a viewer', () => {
+describe('f1036 (5) a viewer', () => {
   test('sees the notes, but no Draft a redline', async () => {
     const S = await stage({ viewer: true }); need(S);
     const n = byTitle(S.win.pd2RedAnswers(S.c, S.cv()), /Lost goods/);
@@ -162,7 +162,7 @@ describe('f1035 (5) a viewer', () => {
   });
 });
 
-describe('f1035 (6) the painter and the doors', () => {
+describe('f1036 (6) the painter and the doors', () => {
   test('the red paper asks for the answers beside their asks; See the change is the paper\'s own link', () => {
     const paint = fnSrc(PD, 'pd2NotesPaint');
     assert.match(paint, /pd2RedNotes\(c, cv\)\.concat\(pd2RedAnswers\(c, cv\)/);
