@@ -54,7 +54,11 @@ const CONTRACTS = [
   mk('MK-C1', 'Retail Listing West', 'Quickmart', 'sales', 30000000, 'Signed', { expiry: day(300),
     metadata: { value: 30000000, currency: 'KES', category: 'customer', paymentTerms: '60 days' } }),
   mk('MK-J1', 'Juno Licence', 'Juno Ltd', 'proc', 4000000, 'Signed', { expiry: day(200) }),
-  mk('MK-J2', 'Juno Retail', 'Juno Fresh AB', 'sales', 2000000, 'Draft', {}),
+  /* ITS OWN DAY, SIXTY DAYS AFTER MK-J1's (13 Nov 2026): it used to take mk's fixed 2027-06-30 while MK-J1
+     ends day(200), so from 13 Nov 2026 to 12 Dec 2026 both ended in June 2027, "Juno contracts by month" had
+     ONE month, and one value is said, not drawn (hbSmallOne, G10): no columns, 15a red. Sixty days apart,
+     the two always end in different months, whatever day this runs. */
+  mk('MK-J2', 'Juno Retail', 'Juno Fresh AB', 'sales', 2000000, 'Draft', { expiry: day(260) }),
   mk('MK-C2', 'Hotel Supply', 'Serena Group', 'sales', 9000000, 'Under Review',
     { metadata: { value: 9000000, currency: 'KES', category: 'customer' } }),
   ...FIXTURES,

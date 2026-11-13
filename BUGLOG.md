@@ -22292,6 +22292,9 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Emails to the other side had no reply address; a reply reached nobody. Fixed: the sender is the reply address.
 - A parked ask carried "countered" and the held counter's id onto their copy while that counter was held for review. Fixed on both copies.
 - 12 Nov 2026 — the cut-short draft check is now f1019 (main took f1018 for "the read plays on arrival" the same day; it was f1017, then f1018).
+- 12 Nov 2026 — MEASURED, not fixed: why a Jambo draft is cut short. The clause editor's own ask (clause 6, two ticked points) sent six times through a real server to the provider: the deep model (claude-sonnet-5) THINKS before answering on some runs though HaTi never asks it to (a `thinking` block in 2 of 6), and those tokens are spent from the chat step's 4,000 (max_tokens). One run spent about 2,100 of them thinking for a 500-token answer; a heavier ask leaves too little and the answer stops mid-word. The cut itself was not reproduced (0 of 6 stopped at max_tokens). Every route's ceiling was set before the model thought, so the same squeeze is possible on any deep call.
+- 12 Nov 2026 — Noticed, not fixed (same measure, 1 of 6): asked for a draft, Jambo answered through the chat's answer tool with a two-line summary ("See the JSON for the reasoning and the replacement text") and no wording, so the editor shows advice and no card.
+- 12 Nov 2026 — FIXED (f1020): a chat step on the stronger model has more room (8,000), and any step cut short is asked once more (12,000) before the cut is said. Noticed, not fixed: the single-tool routes on the stronger model (brief, obligations, playbook pass, column reads) were not measured for the same thinking squeeze.
 - (12 Nov 2026) The two fixes above are numbered f1020, not f1018: main took f1018 and f1019 the same day.
 ## 12 Nov 2026 — the Discover chapters' Handbook pictures, in the new look (owner: "Discover chapters")
 - Fixed (found while taking the pictures): a question asked on the Discover page by somebody who came straight there (not through Contracts) had the Contracts list drawn over the page after the first answers; the list's repaint now waits while Discover is in front (`_acRegRepaint`, f1016 7).
@@ -22307,6 +22310,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - "Fill in on the paper" (MK-469, a lease): sixteen details listed as "have no place on the paper" in one sentence; the line was drawn for one or two. The paper's blanks are probably not being found.
 - Jambo's panel is still built whole on every repaint (about 170 callers of renderIntelDock); only the visible flash was removed.
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
+- 13 Nov 2026 — the "room for the answer" check is f1024, not f1020 as the 12 Nov line above says (main took f1020 to f1023 meanwhile).
 
 ## 13 Nov 2026 — GitHub tests a pull request and main every night, never a bare push (owner's yes)
 - CHANGED: .github/workflows/tests.yml runs on pull_request, a nightly clock and by hand; not on push. f1024. The session greeting says the same.
@@ -22321,3 +22325,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
 - Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+- 13 Nov 2026 — the "room for the answer" check is f1025 (main took f1024 for "a tab change never flashes"; it was f1020, then f1024).
+- 13 Nov 2026 — Noticed, not fixed: home-board-verify 15a ("by month" draws month columns, the recipe's groups under How this is drawn) is RED ON MAIN (run 5005, commit 9f6f6aa, the merge of #683 "a tab change never flashes"); green on main the run before (e7d345c). It fails the same way on any branch joined with main since.
+- 13 Nov 2026 — Noticed, not fixed: the-read-bar-and-notes-verify fails all of ONE screen on some runs and passes on a re-run (12 Nov on #668, 13 Nov on #685), on changes that do not touch the read: the first screen is still slow on a cold server.
+- 13 Nov 2026 — the "room for the answer" check is f1026 (main took f1025 for "GitHub tests a pull request").
+- 13 Nov 2026 — FIXED (owner: "fix the Board check on main yourself"; one local run allowed): home-board-verify 15a was day-dependent, not broken by #683. MK-J1 ends day(200), MK-J2 took mk's fixed 2027-06-30; from 13 Nov to 12 Dec 2026 both are June 2027, one month is said not drawn (hbSmallOne, G10), so no month columns. MK-J2 now ends day(260). The two lines above that blame #683 / guess a timing fault are superseded by this one.
