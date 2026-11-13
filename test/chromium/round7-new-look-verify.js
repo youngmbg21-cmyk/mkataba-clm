@@ -81,12 +81,12 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     const S = up ? await page.evaluate(() => ({
       title: (document.querySelector('.stn-title') || {}).textContent || '',
       rows: [...document.querySelectorAll('[data-stn-row]')].map(r => r.getAttribute('data-stn-row')),
-      menu: [...document.querySelectorAll('.stn-menu .stn-mi')].map(b => b.textContent.trim()),
+      menu: [...document.querySelectorAll('#stn-main .stn-chip, #stn-pages .stn-pg')].map(b => (b.childNodes[0].textContent || '').trim()),
       review: (document.getElementById('stn-review') || {}).innerText || '',
       head: !!document.querySelector('#page-head .ph-card:not([hidden])') })) : null;
-    check('2a Settings & rules: About you and the company as rows, the menu down the left, no second head', !!S && /Settings & rules/.test(S.title)
+    check('2a Settings & rules, the Legora way (13 Nov 2026): the rows by area, the area chips, the pages at the foot, no second head', !!S && /Settings & rules/.test(S.title)
       && ['name', 'lang', 'approvals', 'review', 'signcap', 'linkcode', 'rates', 'mail'].every(k => S.rows.includes(k))
-      && ['About you', 'People & roles', 'Approval rules', 'Rates & currency', 'Trail'].every(w => S.menu.includes(w)) && !S.head, S);
+      && ['All', 'You', 'Security', 'Rules', 'Money', 'Messages', 'People & roles', 'Trail'].every(w => S.menu.includes(w)) && !S.head, S);
     check('2b a setting says its state and what it gates', !!S && /Off/.test(S.review) && /gates sending, never signing/.test(S.review), S && S.review);
     await until(page, () => /Jambo's lessons/i.test((document.querySelector('#ins-panel .stn-panel') || {}).innerText || ''), null, 8000);
     const P = await page.evaluate(() => (document.querySelector('#ins-panel .stn-panel') || {}).innerText || '');

@@ -4154,11 +4154,11 @@
   .st-cr .st-yseg button{ appearance:none; border:0; border-right:1px solid var(--field-line); background:var(--color-surface); font:inherit; font-size:var(--t-meta); padding:0 14px; height:var(--ctl-h-sm); color:var(--color-text); cursor:pointer; }
   .st-cr .st-yseg button:last-child{ border-right:0; }
   .st-cr .st-yseg button[aria-pressed="true"]{ background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-strong); }
-  .st-cr .st-swt{ appearance:none; position:relative; flex:none; width:34px; height:20px; padding:0; border:0; border-radius:10px; background:var(--field-line); cursor:pointer; }
-  .st-cr .st-swt i{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--color-surface); transition:transform .15s var(--ease); }
-  .st-cr .st-swt.on{ background:var(--color-accent); }
-  .st-cr .st-swt.on i{ transform:translateX(14px); }
-  .st-cr .st-swt:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
+  :is(.st-cr, .stn-page) .st-swt{ appearance:none; position:relative; flex:none; width:34px; height:20px; padding:0; border:0; border-radius:10px; background:var(--field-line); cursor:pointer; }
+  :is(.st-cr, .stn-page) .st-swt i{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--color-surface); transition:transform .15s var(--ease); }
+  :is(.st-cr, .stn-page) .st-swt.on{ background:var(--color-accent); }
+  :is(.st-cr, .stn-page) .st-swt.on i{ transform:translateX(14px); }
+  :is(.st-cr, .stn-page) .st-swt:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
   @media (max-width:1180px){ .st-cr .st-sheet{ grid-template-columns:minmax(0,1fr); } .st-cr .st-toc{ display:none; } }
   /* ROUND 26, "THE SAP WAY" (owner picked it 17 Oct 2026): Contract streams
      and Data & backup as pages — labelled boxes in a band, then a table */
@@ -20027,25 +20027,37 @@
   /* SETTINGS & RULES, THE NEW LOOK (round 7): a menu down the left, one list of sentences, a Change at each row's end */
   html.lg-new .stn-page .ap-card.apn-card{padding-left:40px;padding-right:40px;display:flex;flex-direction:column;min-height:0}
   html.lg-new .stn-title{margin:0 0 20px}
-  html.lg-new .stn-cols{display:grid;grid-template-columns:216px minmax(0,1fr);gap:40px;min-height:0;flex:1}
-  /* THE MENU STANDS STILL (owner, 9 Nov 2026: "when I press the page moves me down"): the page is the one scroller, so the
-     menu keeps its place beside it; the item last pressed is marked (stnMenuMark) */
-  html.lg-new .stn-menu{display:flex;flex-direction:column;align-items:flex-start;gap:2px;position:sticky;top:16px;align-self:start}
-  html.lg-new .stn-mi.is-on{font-weight:var(--w-strong)}
-  html.lg-new .stn-mh{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:12px 0 6px}
-  html.lg-new .stn-mh:first-child{margin-top:0}
-  html.lg-new .stn-mi{border:0;background:none;padding:5px 0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;text-align:left}
-  html.lg-new .stn-mi:hover{color:var(--accent-ink)}
-  html.lg-new .stn-main{overflow:visible;min-height:0;padding:0 0 24px 0}
-  html.lg-new .stn-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0;padding:0 0 8px;border-bottom:1px solid var(--color-divider)}
+  /* THE LEGORA WAY, WITH COLOUR (owner's pick by name, 13 Nov 2026; replaces the left menu and the grey label column):
+     nothing boxed, one list. An area's tone rides three properties (--tb wash, --tf ink, --td dot) set by its class,
+     HaTi's own five tones; a round mark leads each row, the name ink, its sentence grey, the state a dot and a word. */
+  html.lg-new .stn-page .a-you{--tb:var(--st-violet-bg);--tf:var(--st-violet-fg);--td:var(--st-violet-dot)}
+  html.lg-new .stn-page .a-sec{--tb:var(--st-steel-bg);--tf:var(--st-steel-fg);--td:var(--st-steel-dot)}
+  html.lg-new .stn-page .a-rule{--tb:var(--st-amber-bg);--tf:var(--st-amber-fg);--td:var(--st-amber-dot)}
+  html.lg-new .stn-page .a-money{--tb:var(--st-green-bg);--tf:var(--st-green-fg);--td:var(--st-green-dot)}
+  html.lg-new .stn-page .a-msg{--tb:var(--st-ruby-bg);--tf:var(--st-ruby-fg);--td:var(--st-ruby-dot)}
+  html.lg-new .stn-main{overflow:visible;flex:none;padding:0 0 24px 0}
+  html.lg-new .stn-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}
+  html.lg-new .stn-chip{appearance:none;border:0;background:var(--surface-2);border-radius:999px;height:var(--ctl-h);padding:0 12px;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
+  html.lg-new .stn-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--td);flex:none}
+  html.lg-new .stn-chip.is-all::before{display:none}
+  html.lg-new .stn-chip em{font-style:normal;font-variant-numeric:tabular-nums;opacity:.7}
+  html.lg-new .stn-chip[aria-pressed="true"]{background:var(--tb);color:var(--tf)}
+  html.lg-new .stn-chip.is-all[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .stn-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-strong);margin:0;padding:0 0 8px;border-bottom:1px solid var(--color-divider);color:var(--tf)}
+  html.lg-new .stn-h::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--td);flex:none}
   html.lg-new .stn-h + .stn-row{border-top:0}
   html.lg-new .stn-row ~ .stn-h{margin-top:24px}
-  html.lg-new .stn-row{display:grid;grid-template-columns:minmax(120px,30%) minmax(0,1fr) auto;gap:16px;padding:12px 0;border-bottom:1px solid var(--color-divider);align-items:baseline}
-  html.lg-new .stn-l{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .stn-row{display:grid;grid-template-columns:36px minmax(0,1fr) 200px 160px;gap:16px;padding:14px 0;border-bottom:1px solid var(--color-divider);align-items:center}
+  html.lg-new .stn-mark{width:36px;height:36px;border-radius:50%;background:var(--tb);color:var(--tf);display:grid;place-items:center}
+  html.lg-new .stn-l{font-size:15px;font-weight:var(--w-strong);color:var(--color-text)}
   html.lg-new .stn-val{font-size:13.5px;font-weight:var(--w-label)}
-  html.lg-new .stn-sub{font-size:11.5px;color:var(--color-quiet);margin-top:2px}
+  html.lg-new .stn-sub{font-size:12.5px;margin-top:2px}
   html.lg-new .stn-a{justify-self:end;white-space:nowrap}
   html.lg-new .stn-go{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .stn-pages{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:24px}
+  html.lg-new .stn-pages-h{width:100%}
+  html.lg-new .stn-pages-h::before{display:none}
+  html.lg-new .stn-pg{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
   html.lg-new .stn-row .stn-seg{align-self:center}
   html.lg-new .stn-pp{margin:0 0 8px;font-size:13.5px;line-height:1.45}
   html.lg-new .stn-panel .stn-pr{cursor:pointer}
@@ -20105,8 +20117,9 @@
   /* FROM SCRATCH: what goes in on the left, the paper assembling on the right */
   html.lg-new #na-root.na-one:not([data-paper="scratch"]) #na-scratch{display:none}
   html.lg-new #na-root.na-one[data-paper="scratch"] :is(#wz-pick,#na-card,#dr-read,#na-read,#na-theirs){display:none}
-  html.lg-new #na-root.na-one .na-scratch{display:grid;grid-template-columns:300px minmax(0,1fr);gap:0;padding:0;min-height:420px}
-  html.lg-new .nsc-left{padding:12px 20px 12px 0;border-right:1px solid var(--color-divider);overflow:auto}
+  html.lg-new #na-root.na-one .na-scratch{display:grid;grid-template-columns:312px minmax(0,1fr);gap:0;padding:0;min-height:420px}
+  /* 16PX INSIDE (owner, 13 Nov 2026: "too close to the edge of the screen"): the list stands 16px in on every side, in line with the tabs and the ask box above it */
+  html.lg-new .nsc-left{padding:var(--s-4);border-right:1px solid var(--color-divider);overflow:auto}
   html.lg-new .nsc-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0 0 4px}
   html.lg-new .nsc-sum{font-size:12px;font-weight:var(--w-label);margin:0 0 10px}
   html.lg-new .nsc-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--color-divider);cursor:pointer}
@@ -20300,12 +20313,15 @@
   html.lg-new .tpln-u{white-space:nowrap}
   html.lg-new .tpln-bar{display:inline-block;height:6px;border-radius:3px;margin-left:8px;vertical-align:middle;background:var(--st-green-dot)}
   html.lg-new .cal-kind{display:inline-block;border-radius:6px;padding:1px 7px;margin-right:8px;font-size:11.5px;font-weight:var(--w-strong);vertical-align:1px}
-  html.lg-new .stn-pill{display:inline-block;border-radius:999px;padding:2px 10px;font-weight:var(--w-label);background:var(--st-gray-bg);color:var(--st-gray-fg)}
-  html.lg-new .stn-pill.is-on{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .stn-pill.stn-dot{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .stn-dot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--st-gray-dot);flex:none}
+  html.lg-new .stn-dot.is-on{color:var(--st-green-fg)}
+  html.lg-new .stn-dot.is-on::before{background:var(--st-green-dot)}
   html.lg-new .stn-said{margin-top:4px}
-  html.lg-new .stn-pill.is-need{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  /* Settings reads like the contract's facts: a setting's label grey, what it is set to ink; its small heads grey */
-  html.lg-new #set-page :is(.stn-l,.stn-h,.stn-mh),html.lg-new .stn-pp{color:var(--color-neutral-400)}
+  html.lg-new .stn-dot.is-need{color:var(--st-amber-fg)}
+  html.lg-new .stn-dot.is-need::before{background:var(--st-amber-dot)}
+  /* Settings, the Legora way: a setting's name ink, its sentence grey; an area's head wears its own tone */
+  html.lg-new #set-page :is(.stn-sub,.stn-pages-h),html.lg-new .stn-pp{color:var(--color-neutral-400)}
   /* THE SWEEP (owner, 10 Nov 2026: "add black and grey … across the platform"): the pages the f982/f984 rounds did not
      reach. Names, figures, titles and buttons stay ink; the line under a name, a count's word, a page's sub-title, a
      panel's label, a caption, a time, a side and a hint go grey. */
@@ -20525,7 +20541,8 @@
      scrolls by itself (it was a second scroller at a zoomed wide window, the owner's picture). The column rule above,
      .stn-main, is edited in place. */
   html.lg-new #content .stn-page .ap-body.is-ins{grid-template-rows:auto;height:auto;min-height:100%}
-  html.lg-new #content .stn-page .ap-body.is-ins > .ap-card.stn-card{overflow:visible;min-height:100%}
+  /* the sheet grows with its list and clips nothing under its foot (13 Nov 2026: the rows past the window's foot were cut off out of reach) */
+  html.lg-new #content .stn-page .ap-body.is-ins > .ap-card.stn-card{overflow:visible;min-height:100%;max-height:none;height:auto;clip-path:none}
   /* A TEMPLATE'S PAGE: no margin, no corner, no lift; its parts are rows of the one sheet, a hairline between them. Its
      wording keeps its pages on the paper's desk, as every paper does; with no wording the box is white. */
   html.lg-new #content #tpl-dt.tpl-dt{--page-pad:0px;--tpl-dt-pb:0px}
@@ -20549,7 +20566,12 @@
   html.lg-new #tb-page .tb-head .tb-fchip.empty .k{display:inline}
   html.lg-new #tb-page .tb-head .tb-tname{flex:1 1 auto}
   html.lg-new #tb-page .tb-head .tb-tname .v{white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:13px;line-height:15px;text-align:left}
-  html.lg-new #tb-page #tb-branding.tb-brand{border-radius:0;box-shadow:none;border-left-color:transparent;border-right-color:transparent}
+  html.lg-new #tb-page #tb-branding.tb-brand{box-shadow:none}
+  /* THE BUILDER'S PAPER LIES ON A DESK, AS THE CLAUSE EDITOR'S DOES (owner, 13 Nov 2026: "there should be a paper and the
+     backdrop should resemble the back drop of the clause editor"; reverses "the builder flat" for what is under the strip):
+     the strip stays on white; under one hairline the scroller is the grey ground, edge to edge and to the panel and the
+     foot, with the white paper and the Branding card on it. The grey is the scroller's own, so the paper's canvas is one box. */
+  html.lg-new #tb-page #tb-scroll{background:var(--color-bg);border-top:1px solid var(--color-divider);margin:0 calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b));padding:var(--s-4) var(--s-4) var(--s-6)}
   html.lg-new #tb-page .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none}
   html.lg-new #tb-page.tb-page #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
   html.lg-new #tb-page.tb-page:not(.no-rail) > .tb-left{margin-bottom:0}

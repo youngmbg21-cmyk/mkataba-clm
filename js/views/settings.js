@@ -324,8 +324,9 @@ function settingsTab(){
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
-function settingsPlace(){ return { tab:_stTab, side:_stSide, page:_stPage||null, stream:(_stPage==='streams'&&_stSwPick)||null, dock:(_stPage==='panel'&&_stDock)||null, fold:!!_stSideFold }; }
+function settingsPlace(){ return { area:(typeof _stnArea==='string'&&_stnArea!=='all')?_stnArea:null, tab:_stTab, side:_stSide, page:_stPage||null, stream:(_stPage==='streams'&&_stSwPick)||null, dock:(_stPage==='panel'&&_stDock)||null, fold:!!_stSideFold }; }
 function settingsPlacePut(p){ const f=p&&stFaceOf(p.tab); if(f) _stTab=f;
+  _stnArea=(p&&STN_AREAS.includes(p.area))?p.area:'all';
   if(p && (p.side==='jambo'||p.side==='menu')) _stSide=p.side;
   /* a page inside the board (Team, Who holds what) comes back too */
   _stPage=(p && ST_PAGES.includes(p.page))?p.page:null;
@@ -10081,7 +10082,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnListHtml,stnListPaint,stnRowsAll,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
@@ -10091,15 +10092,26 @@ Object.assign(window,{stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCo
    as today); every Change opens the drawer that changes it today. The panel: Needs an admin (stNeedsAll), Ask an
    admin (a record), Jambo's lessons (the phrases nobody could place). Nothing here writes but the existing doors. */
 function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && typeof insFits==='function' && insFits() && typeof insPaintPanel==='function'; }
+/* THE LEGORA WAY, WITH COLOUR (owner's pick by name, 13 Nov 2026: "build the legora way", after "No color what so ever"):
+   nothing boxed, one quiet list. Every setting belongs to ONE area (STN_AREA_OF) and wears its tone: a round coloured
+   mark leads the row, the name in ink with its sentence under it, what it is set to as a dot and a word, its one door
+   last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
+   the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
+const STN_AREAS=['you','sec','rule','money','msg'];
+const STN_AREA_OF={ name:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg', outsidelook:'msg' };
+const STN_ICON={ name:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send', outsidelook:'building' };
+let _stnArea='all';
+function stnAreaOf(id){ return STN_AREA_OF[id]||'you'; }
 function stnRow(id, label, value, sub, act){
-  return `<div class="stn-row" id="stn-${id}" data-stn-row="${id}"><div class="stn-l">${esc(label)}</div><div class="stn-v"><div class="stn-val">${value}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-a">${act||''}</div></div>`;
+  const ar=stnAreaOf(id), ic=(typeof icon==='function')?icon(STN_ICON[id]||'cog','w-4 h-4'):'';
+  return { id, area:ar, html:`<div class="stn-row a-${ar}" id="stn-${id}" data-stn-row="${id}"><span class="stn-mark" aria-hidden="true">${ic}</span><div class="stn-t"><div class="stn-l">${esc(label)}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-v"><div class="stn-val">${value}</div></div><div class="stn-a">${act||''}</div></div>` };
 }
 const stnDoor=(attr,w)=>`<button type="button" class="ui-link stn-go" ${attr}>${esc(w)}</button>`;
 /* ON / OFF PILLS (owner's pick by name, 9 Nov 2026; the colour round): what a setting is set to reads as a soft pill in
    its state's tone, read off the panel's own reading (st.dot): working green, off grey, wanting a decision amber. The
    words stay the panel's own. */
 const STN_PILL_TONE = { ok:'on', on:'on', off:'off', warn:'need', need:'need' };
-function stnPill(html, dot){ const t=STN_PILL_TONE[dot]||''; return html&&t?`<span class="stn-pill is-${t}">${html}</span>`:html; }
+function stnPill(html, dot){ const t=STN_PILL_TONE[dot]||''; return html&&t?`<span class="stn-pill stn-dot is-${t}">${html}</span>`:html; }
 /* the alerts row: a short word in the pill (On · Off · Blocked), the browser's own sentence under it */
 function stnPushSaid(ps, said){
   const short=ps==='on'?i18t('stn_pill_on'):ps==='blocked'?i18t('stn_pill_blocked'):i18t('stn_pill_off');
@@ -10136,43 +10148,48 @@ function stnYouHtml(){
   const ps=_stPush;
   const push=ps?esc(ps==='on'?i18t('stn_push_on'):(typeof pushStateSaid==='function'?pushStateSaid(ps):ps)):'';
   if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ if(st!==_stPush){ _stPush=st; if(document.querySelector('.stn-page')) stnPaint(stIsAdmin()); } }).catch(()=>{}); },0);
-  let out=`<h3 class="stn-h" id="stn-sec-you">${esc(i18t('stn_about_you'))}</h3>`
-    +stnRow('name', i18t('st_you_name_row'), esc(name), '', stnDoor('data-st-panel="me:name"', i18t('st_you_change')))
-    +stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg);
-  if(api) out+=stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change')));
-  if(api) out+=stnRow('push', i18t('stn_push'), push?stnPushSaid(ps, push):esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):'');
+  const out=[stnRow('name', i18t('st_you_name_row'), esc(name), i18t('stn_name_sub'), stnDoor('data-st-panel="me:name"', i18t('st_you_change'))),
+    stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg)];
+  if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));
+  if(api) out.push(stnRow('push', i18t('stn_push'), push?stnPushSaid(ps, push):esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):''));
   const ag=stnAgentsSaid();
-  if(ag) out+=stnRow('agents', i18t('stn_agents'), esc(ag), i18t('stn_agents_sub'), stnDoor('data-st-view="jambo"', i18t('stn_open')));
+  if(ag) out.push(stnRow('agents', i18t('stn_agents'), esc(ag), i18t('stn_agents_sub'), stnDoor('data-st-view="jambo"', i18t('stn_open'))));
   return out;
 }
 function stnCompanyHtml(){
   const ap=stnApprovalsOpen(), fx=stnRatesSaid();
-  return `<h3 class="stn-h" id="stn-sec-co">${esc(i18t('stn_company'))}</h3>`
-    +stnRow('approvals', SET_PANELS.approvals.title(), stnStateText('approvals'), ap?i18tn('stn_ap_open',ap,{ n:ap }):'', stnDoor('data-st-panel="approvals"', i18t('stn_add_rule')))
-    +stnRow('review', i18t('stn_review'), stnStateText('review'), i18t('stn_review_sub'), stnDoor('data-st-panel="review"', i18t('st_you_change')))
-    +stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change')))
-    +stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change')))
-    +stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update')))
-    +stnRow('mail', i18t('stn_mail'), stnStateText('mail'), '', stnDoor('data-st-panel="mail"', i18t('stn_health')))
-    +stnRow('outsidelook', i18t('stn_out'), stnPill(esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), (state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'on':'off'), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')));
+  const mailSt=stStateOf('mail');
+  return [stnRow('approvals', SET_PANELS.approvals.title(), stnStateText('approvals'), ap?i18tn('stn_ap_open',ap,{ n:ap }):'', stnDoor('data-st-panel="approvals"', i18t('stn_add_rule'))),
+    stnRow('review', i18t('stn_review'), stnStateText('review'), i18t('stn_review_sub'), stnDoor('data-st-panel="review"', i18t('st_you_change'))),
+    stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change'))),
+    stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change'))),
+    stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update'))),
+    stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health'))),
+    stnRow('outsidelook', i18t('stn_out'), stnPill(esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), (state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'on':'off'), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')))];
 }
-/* THE ITEM LAST PRESSED STAYS MARKED (kept through a repaint, so a panel's Save that redraws the page keeps it) */
-let _stnMenuOn='';
-function stnMenuMark(btn){
-  _stnMenuOn=btn?(btn.getAttribute('data-stn-to')||''):'';
-  document.querySelectorAll('.stn-page .stn-mi').forEach(b=>{ const on=!!_stnMenuOn&&b.getAttribute('data-stn-to')===_stnMenuOn; b.classList.toggle('is-on',on); if(on) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current'); });
+/* THE LIST: the rows grouped by area in STN_AREAS' order, each area under its own coloured head; a chosen chip shows
+   one area. An area with no rows for this reader is not listed (a viewer has no Rules, no Money). */
+function stnRowsAll(admin){ return stnYouHtml().concat(admin?stnCompanyHtml():[]); }
+function stnAreaNow(rows){ return (_stnArea!=='all'&&rows.some(r=>r.area===_stnArea))?_stnArea:'all'; }
+function stnChipsHtml(rows){
+  const now=stnAreaNow(rows), have=STN_AREAS.filter(k=>rows.some(r=>r.area===k));
+  if(have.length<2) return '';
+  const chip=(k,w,n)=>`<button type="button" class="stn-chip${k==='all'?' is-all':' a-'+k}" data-stn-area="${k}" aria-pressed="${now===k?'true':'false'}">${esc(w)}<em>${n}</em></button>`;
+  return `<div class="stn-chips" id="stn-chips" role="group" aria-label="${esc(i18t('stn_ar_label'))}">${chip('all',i18t('stn_ar_all'),rows.length)}${have.map(k=>chip(k,i18t('stn_ar_'+k),rows.filter(r=>r.area===k).length)).join('')}</div>`;
 }
-function stnMenuHtml(admin){
-  const go=(attr,w)=>{ const on=!!_stnMenuOn&&attr==='data-stn-to="'+_stnMenuOn+'"'; return `<button type="button" class="stn-mi${on?' is-on':''}" ${attr}${on?' aria-current="true"':''}>${esc(w)}</button>`; };
-  const api=(typeof API_MODE==='function')&&API_MODE();
-  let h=`<div class="stn-mh">${esc(i18t('stn_m_you'))}</div>`+go('data-stn-to="name"',i18t('stn_about_you_m'))
-    +(api?go('data-stn-to="twostep"',i18t('stn_m_signin'))+go('data-stn-to="push"',i18t('stn_push')):'')+go('data-stn-to="agents"',i18t('stn_agents'));
-  if(admin) h+=`<div class="stn-mh">${esc(i18t('stn_m_company'))}</div>`+go('data-st-page="team"',i18t('stn_m_people'))+go('data-st-page="streams"',i18t('stn_m_streams'))
-    +go('data-stn-to="approvals"',SET_PANELS.approvals.title())+go('data-stn-to="review"',i18t('stn_m_review'))+go('data-stn-to="signcap"',i18t('stn_m_signing'))
-    +go('data-stn-to="rates"',i18t('stn_m_rates'))+go('data-stn-to="mail"',i18t('stn_m_mail'))+go('data-st-panel="lessons"',i18t('stn_m_lessons'))
-    +(typeof stTrailOn==='function'&&stTrailOn()?go('data-st-panel="trail"',i18t('stn_m_trail')):'');
-  return h;
+function stnPagesHtml(admin){
+  if(!admin) return '';
+  const go=(attr,w)=>`<button type="button" class="ui-link stn-go stn-pg" ${attr}>${esc(w)} ${typeof icon==='function'?icon('chevR','w-3 h-3'):'›'}</button>`;
+  return `<div class="stn-pages" id="stn-pages"><div class="stn-h stn-pages-h">${esc(i18t('stn_pages'))}</div>${go('data-st-page="team"',i18t('stn_m_people'))}${go('data-st-page="streams"',i18t('stn_m_streams'))}${go('data-st-panel="lessons"',i18t('stn_m_lessons'))}${(typeof stTrailOn==='function'&&stTrailOn())?go('data-st-panel="trail"',i18t('stn_m_trail')):''}</div>`;
 }
+function stnListHtml(admin){
+  const rows=stnRowsAll(admin), now=stnAreaNow(rows);
+  const secs=STN_AREAS.filter(k=>(now==='all'||now===k)&&rows.some(r=>r.area===k))
+    .map(k=>`<h3 class="stn-h a-${k}" id="stn-sec-${k}">${esc(i18t('stn_ar_'+k))}</h3>`+rows.filter(r=>r.area===k).map(r=>r.html).join('')).join('');
+  return stnChipsHtml(rows)+secs+stnPagesHtml(admin);
+}
+/* a chip's press redraws the list alone: the title, the panel and the page stand */
+function stnListPaint(){ const m=document.getElementById('stn-main'); if(m) m.innerHTML=stnListHtml(stIsAdmin()); }
 const STN_NEED_KIND={ ask:'stn_nk_ask', backup:'stn_nk_rule', limits:'stn_nk_caps', invite:'stn_nk_people', access:'stn_nk_access' };
 function stnPanelHtml(admin){
   const E=esc;
@@ -10202,8 +10219,7 @@ function stnPaint(admin){
   host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page" data-st-face="you" data-ins-page="team" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card stn-card">
       <h2 class="ctf-h stn-title">${esc(i18t('stn_title'))}</h2>
-      <div class="stn-cols"><nav class="stn-menu" aria-label="${esc(i18t('stn_title'))}">${stnMenuHtml(admin)}</nav>
-      <div class="stn-main scroll-thin" id="stn-main">${stnYouHtml()}${admin?stnCompanyHtml():''}</div></div>
+      <div class="stn-main scroll-thin" id="stn-main">${stnListHtml(admin)}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   stWireDrawerOnce();
   stnPanelPaint();
@@ -10214,15 +10230,9 @@ function stnPaint(admin){
 if(typeof document!=='undefined' && !document._stnWired){ document._stnWired=true;
   document.addEventListener('click',e=>{
     const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('.stn-page')) return;
-    const to=t.closest('[data-stn-to]'); if(!to) return;
-    const el=document.getElementById('stn-'+to.getAttribute('data-stn-to')); if(!el) return;
-    /* THE MENU OPENS WHAT ITS ROW OPENS (owner, 9 Nov 2026: "a lot of the buttons … are not functioning or opening the
-       respecting links. Also when I press the page moves me down"): the item presses its row's own door (Change, Open,
-       Add rule, Update, Health; the one door, never a second); a row with no door (a switch) is only landed on, so a
-       menu press never flips it. The item pressed stays marked; the menu stands still (index.html, .stn-menu sticky). */
-    stnMenuMark(to);
-    const door=el.querySelector('.stn-a [data-st-panel], .stn-a [data-st-view], .stn-a [data-st-page]');
-    if(door){ door.click(); return; }
-    if(typeof landOn==='function') landOn(el,{ block:'start', focus:false }); else try{ el.scrollIntoView({ block:'start' }); }catch(_){ /* nothing to scroll */ }
+    const ch=t.closest('[data-stn-area]'); if(!ch) return;
+    _stnArea=ch.getAttribute('data-stn-area')||'all';
+    stnListPaint();
+    if(typeof placeSave==='function') placeSave();
   });
 }

@@ -204,6 +204,10 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     if (up) await page.evaluate(() => document.querySelector('[data-na-paper="scratch"]').click());
     const list = up && await until(page, () => document.querySelectorAll('#nsc-left .nsc-row').length >= 3, null, 8000);
     const std = await page.evaluate(() => document.querySelectorAll('#nsc-left .nsc-pill.is-std').length);
+    /* 16px inside (owner, 13 Nov 2026): the list never touches the sheet's edge, and starts in line with the ask box above it */
+    const inset = await page.evaluate(() => { const l = document.getElementById('nsc-left'), box = l && l.querySelector('.nsc-row input'), cap = l && l.querySelector('.nsc-cap'), ask = document.querySelector('#na-root .na-askbox');
+      if (!l || !box || !cap || !ask) return null; const L = l.getBoundingClientRect().left;
+      return { box: Math.round(box.getBoundingClientRect().left - L), cap: Math.round(cap.getBoundingClientRect().left - L), ask: Math.round(cap.getBoundingClientRect().left - ask.getBoundingClientRect().left) }; });
     await page.evaluate(() => naScratchNow() && naScratchNow().propose());
     const proposed = await until(page, () => document.querySelectorAll('#nsc-left .nsc-pill.is-ai').length >= 2, null, 10000);
     const before = await page.evaluate(() => /The paper is empty/.test((document.querySelector('#nsc-right') || {}).innerText || ''));
@@ -217,7 +221,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     if (can) await page.evaluate(() => document.getElementById('na-create').click());
     const made = can && await until(page, n => state.contracts.length > n && /Nandi Dairy/.test(state.contracts[0].counterparty || ''), n0, 15000);
     check('13 New agreement: the papers as cards; From scratch (new-paper grant only): your standards free, Jambo proposes and writes the rest, Create files it',
-      up && cards === 'grid' && gated && list && std >= 3 && proposed && before && drafted && can && made, { cards, gated, std, proposed, before, drafted, can, made });
+      up && cards === 'grid' && gated && list && std >= 3 && !!inset && inset.box >= 16 && inset.cap >= 16 && inset.ask === 0 && proposed && before && drafted && can && made, { cards, gated, std, inset, proposed, before, drafted, can, made });
   } catch (e) { check('13 New agreement and From scratch', false, String(e).slice(0, 200)); }
 
   /* 12 · the switch off */
