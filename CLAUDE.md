@@ -81,7 +81,7 @@ For a DESIGN QUESTION (an exact instruction is just built): ONE part of a page p
 
 3. Fix every place it appears. If you deliberately leave one alone, that decision must reach me in plain English — never silently.
 
-4. Testing rule: test where the USER looks, not where you edited. GitHub's browser checks verify every affected place after the push; here, photos at the three screens show it (owner, 9 Nov 2026).
+4. Testing rule: test where the USER looks, not where you edited. GitHub's browser checks verify every affected place once the work is ready to merge (its pull request is open; owner, 13 Nov 2026); here, photos at the three screens show it (owner, 9 Nov 2026).
 
 5. At the end, write a short plain-English summary for a non-developer: what you fixed, whether it is fixed everywhere it appears, anything you deliberately left alone and why, and anything you were unsure about. No file paths, no line numbers, no location lists — just plain sentences about what happened.
 

@@ -22304,3 +22304,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - CHANGED: .github/workflows/tests.yml runs on pull_request, a nightly clock and by hand; not on push. f1024. The session greeting says the same.
 - Noticed, not fixed: CLAUDE.md is about 91 KB, over its own "about 80 KB" line.
 - Noticed, not fixed: Bug Fix Rule 4 says GitHub's browser checks verify "after the push"; they now run once the pull request is open. Asked the owner.
+- FIXED (owner's yes, 13 Nov 2026): Bug Fix Rule 4 now says the browser checks run once the pull request is open, not "after the push".
