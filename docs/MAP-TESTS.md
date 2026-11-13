@@ -452,6 +452,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f452, named-guest-verify.
 
 ## THE SEND SCREEN
+- test/f1038-write-it-for-me-the-legora-way.test.js: the note is a draft in Jambo's panel, tagged by clause, steered by chips, put in and undone by a press.
 - test/f1035-write-it-for-me-and-what-goes.test.js: What goes works while Jambo talks; Write it for me hidden for the history and answered plainly.
 - 11 Nov 2026 (THE SAP WAY look, owner picked it by name): f972 1b re-pointed (the invitation's link is a filled green button; the text part keeps the words over the address); negotiate-new-look-verify 4 re-pointed (From in the email card, boxes, tags, the note hugs, the link a button). f977 fix 6 re-pointed (the email one card on the white page, the form ruled off at its right; GitHub's node suite on #662).
 - 29 Oct 2026 (the owner's MK-382 screenshot): f962 (the subject typed is the subject mailed; Jambo told the send screen, one rule on both hosts, the `note` field; a range verdict named by its label), subject-and-jambo-note-verify (1–5, the three screens); f713 1c, f735 3, f938 5 and four letter verifies re-pointed (the subject is a box: read `.value`).

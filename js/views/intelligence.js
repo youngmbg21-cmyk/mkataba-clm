@@ -4237,12 +4237,126 @@ function igFmtRich(raw){
 }
 function intelPushChatResult(res, q){
   const cardIds=(res.cards||[]).map(c=>c.id).filter(id=>getContract(id));
-  const rich=igFmtRich(res.answer||'');
+  /* THE NOTE IS DRAFTED HERE (owner picked "The Legora Way", 13 Nov 2026): a note for the open send screen is a
+     draft on this turn, steered by its chips or the box and put in only by a press (igNoteOf) */
+  const note=igNoteOf(res);
+  const rich=igFmtRich(note?note.say:(res.answer||''));
   /* never a dead end (stage 3): what the one search found, and Ask again */
   const choices=(typeof window.aiWayChoicesOf==='function')?aiWayChoicesOf(res, q):[];
-  intel.history.push(Object.assign({ role:'assistant', text:rich.html+igNoticeHtml(res.notice)+(typeof window.aiDeepLineHtml==='function'?aiDeepLineHtml(res):''), compare:res.compare||null, cardIds, blocks:rich.blocks }, choices.length?{ choices }:{}));
+  intel.history.push(Object.assign({ role:'assistant', text:rich.html+igNoticeHtml(res.notice)+(typeof window.aiDeepLineHtml==='function'?aiDeepLineHtml(res):''), compare:res.compare||null, cardIds, blocks:rich.blocks }, choices.length?{ choices }:{}, (note&&note.draft)?{ sendNote:note.draft }:{}));
   if(cardIds.length) igPaintIds(cardIds);
 }
+/* ---- WRITE IT FOR ME, THE LEGORA WAY (owner picked it by name, 13 Nov 2026: "the draft should happen in jambo and
+   then like in the clause editor page, give you options of what next like apply or redo") ----
+   The note Jambo writes for the open send screen lands HERE as a draft — never straight in the note box. Each point
+   carries the clause it came from (a tag read off what this send carries: no AI). Under the newest one, the panel's one
+   row: chips that steer it (Shorter · Warmer · Firmer · Leave out § · Ask for a reply) · Put in the note · Try again · ⋯
+   (Copy, Discard). Put in the note fills the box and sends nothing; then "✓ In your note · Undo". */
+const IG_NOTE_CHIPS=['shorter','warmer','firmer','reply'];
+const IG_NOTE_LEAVE_MAX=3;
+function igNoteClauses(goes){
+  const out=[];
+  for(const g of (Array.isArray(goes)?goes:[])){
+    const m=/^Clause\s+([0-9A-Za-z.]+)\s*·\s*([^:.]+)/.exec(String(g||''));
+    if(m && !out.some(x=>x.n===m[1])) out.push({ n:m[1], name:m[2].trim() });
+  }
+  return out;
+}
+/* which carried clause a sentence speaks of: its number ("clause 7", "§7") or its name's words */
+function igNoteTagOf(sent, clauses){
+  const t=String(sent||'').toLowerCase();
+  for(const c of clauses){
+    const n=String(c.n).toLowerCase().replace(/\./g,'\\.');
+    if(new RegExp('(?:clause|section|§)\\s*'+n+'\\b').test(t)) return c;
+    const words=String(c.name||'').toLowerCase().split(/[^a-zà-ɏ]+/).filter(w=>w.length>3);
+    if(words.length && words.some(w=>t.includes(w))) return c;
+  }
+  return null;
+}
+function igNoteSentences(words){
+  return String(words||'').split(/(?<=[.!?])\s+(?=[A-ZÀ-Ý"“'‘(])/).filter(x=>x.trim());
+}
+function igNoteOf(res){
+  const pressed=!!window._shNlWrite;
+  const words=(typeof window.aiSendNoteClean==='function')?aiSendNoteClean(res&&res.note):String((res&&res.note)||'').trim();
+  const S=(typeof window.shareScreenSays==='function')?shareScreenSays():null;
+  if(pressed) window._shNlWrite=null;
+  if(!words || !S) return pressed ? { say:i18t('sh_nl_none') } : null;
+  const clauses=igNoteClauses(S.goes);
+  const tags=igNoteSentences(words).map(x=>{ const c=igNoteTagOf(x, clauses); return c?c.n:null; });
+  const draft={ id:String(S.contractId), words, clauses, tags, max:S.noteMax, put:false, prev:'', gone:false };
+  return { say:pressed||!res.answer ? i18t('sh_nl_here') : res.answer, draft };
+}
+function igNoteCardHtml(m,i){
+  const d=m&&m.sendNote; if(!d||d.gone) return '';
+  const sents=igNoteSentences(d.words);
+  const body=sents.map((x,k)=>igEsc(x)+(d.tags&&d.tags[k]?` <span class="igd-note-src">§${igEsc(d.tags[k])}</span>`:'')).join(' ');
+  const over=d.words.length>(d.max||1000);
+  return `<div class="igd-note" data-ig-note="${i}"><div class="igd-note-w">${body}</div>${over?`<p class="igd-note-cap">${igEsc(i18t('ai_send_note_cap',{ n:d.words.length, max:d.max||1000 }))}</p>`:''}</div>`;
+}
+/* the row under the newest draft: what it steers, the one filled button, Try again, and ⋯ */
+function igNoteRowParts(m,i){
+  const d=m&&m.sendNote; if(!d) return null;
+  if(d.gone) return { chips:[], lead:`<span class="igd-note-said">${igEsc(i18t('sh_nl_dropped'))}</span>`, more:[] };
+  if(d.put) return { chips:[], lead:`<span class="igd-note-said">${igEsc(i18t('sh_nl_in'))}</span><button type="button" class="ui-link" data-ig-note-undo="${i}">${igEsc(i18t('ce_sug_undo'))}</button>`, more:[] };
+  const chips=IG_NOTE_CHIPS.filter(k=>k!=='reply').map(k=>`<button type="button" class="igd-note-chip" data-ig-note-chip="${k}" data-ig-note-i="${i}">${igEsc(i18t('sh_nl_chip_'+k))}</button>`);
+  const used=[...new Set((d.tags||[]).filter(Boolean))].slice(0, IG_NOTE_LEAVE_MAX);
+  for(const n of used) chips.push(`<button type="button" class="igd-note-chip" data-ig-note-chip="leave" data-ig-note-n="${igEsc(n)}" data-ig-note-i="${i}">${igEsc(i18t('sh_nl_chip_leave',{ n }))}</button>`);
+  chips.push(`<button type="button" class="igd-note-chip" data-ig-note-chip="reply" data-ig-note-i="${i}">${igEsc(i18t('sh_nl_chip_reply'))}</button>`);
+  const over=d.words.length>(d.max||1000);
+  const lead=`<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ig-note-put="${i}"${over?' disabled':''}>${igEsc(i18t('sh_nl_put'))}</button>`
+    +`<button type="button" class="ui-btn ui-btn-sm" data-ig-note-again="${i}">${igEsc(i18t('ce_ask_retry'))}</button>`;
+  const more=[`<button type="button" class="ui-link" data-ig-note-copy="${i}">${igEsc(i18t('sh_nl_copy'))}</button>`,
+    `<button type="button" class="ui-link" data-ig-note-drop="${i}">${igEsc(i18t('ce_sug_discard'))}</button>`];
+  return { chips, lead, more };
+}
+/* a steer is a question to Jambo about the same note, marked as the press it was (window._shNlWrite) */
+function igNoteAsk(d, words){
+  if(!d || typeof window.intelAsk!=='function') return false;
+  window._shNlWrite=String(d.id);
+  intelAsk(words, { typed:true });
+  return true;
+}
+function igNoteSteerWords(kind, n){
+  return i18t('sh_nl_q_'+kind, n ? { n } : undefined);
+}
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+  const b=t.closest('#ig-dock [data-ig-note-chip],#ig-dock [data-ig-note-put],#ig-dock [data-ig-note-again],#ig-dock [data-ig-note-copy],#ig-dock [data-ig-note-drop],#ig-dock [data-ig-note-undo]');
+  if(!b) return;
+  e.preventDefault();
+  const i=Number(b.getAttribute('data-ig-note-i')??b.getAttribute('data-ig-note-put')??b.getAttribute('data-ig-note-again')
+    ??b.getAttribute('data-ig-note-copy')??b.getAttribute('data-ig-note-drop')??b.getAttribute('data-ig-note-undo'));
+  const m=intel.history[i], d=m&&m.sendNote; if(!d) return;
+  if(b.hasAttribute('data-ig-note-chip')){ igNoteAsk(d, igNoteSteerWords(b.getAttribute('data-ig-note-chip'), b.getAttribute('data-ig-note-n'))); return; }
+  if(b.hasAttribute('data-ig-note-again')){ igNoteAsk(d, i18t('sh_nl_q_again')); return; }
+  if(b.hasAttribute('data-ig-note-copy')){
+    const ok=()=>{ if(typeof toast==='function') toast(i18t('sh_nl_copied'),'ok'); };
+    try{ navigator.clipboard.writeText(d.words).then(ok, ()=>{ if(typeof toast==='function') toast(i18t('sh_nl_copy_no'),'warn'); }); }
+    catch(_){ if(typeof toast==='function') toast(i18t('sh_nl_copy_no'),'warn'); }
+    intel.moreOpen=null; igOneRepaint(i); return;
+  }
+  if(b.hasAttribute('data-ig-note-drop')){
+    d.gone=true; intel.moreOpen=null;
+    document.querySelector(`#ig-dock [data-ig-note="${i}"]`)?.remove();
+    igOneRepaint(i); return;
+  }
+  const ta=document.getElementById('sh-summary');
+  if(b.hasAttribute('data-ig-note-put')){
+    const prev=ta?String(ta.value||''):'';
+    if(typeof window.shareNoteFill!=='function' || !shareNoteFill(d.id, d.words)){
+      if(typeof toast==='function') toast(i18t('ai_send_note_gone'),'warn'); return; }
+    /* the panel's row says it is in ("✓ In your note · Undo"); the letter's own line stays as it was, so the note's
+       label is never squeezed (a long line there cut "Your note to …" to "Your …") */
+    d.put=true; d.prev=prev;
+    igOneRepaint(i); return;
+  }
+  if(b.hasAttribute('data-ig-note-undo')){
+    if(ta){ ta.value=d.prev||''; ta.dispatchEvent(new Event('input', { bubbles:true })); try{ if(typeof window.shareLetterNoteFit==='function') shareLetterNoteFit(); }catch(_){ } }
+    d.put=false; d.prev='';
+    igOneRepaint(i); return;
+  }
+});
 
 // General Copilot Q&A in the Intel dock (used for compare + typed questions).
 // With no Copilot key, comparisons still work via the deterministic local table;
@@ -9815,6 +9929,10 @@ function igOneHtml(m,i){
      that is no longer the newest keeps EVERYTHING Jambo said and loses only its row of controls — the panel
      stays short without putting what he told you behind a press. The conversation is drawn, as it always was. */
   if(!last) return '';
+  /* a draft note for the send screen: its own chips, Put in the note, Try again, ⋯ (igNoteRowParts) */
+  const np=m.sendNote?igNoteRowParts(m,i):null;
+  if(np) return `<div class="igd-one igd-note-one" data-ig-one="${i}" role="group" aria-label="${igEsc(i18t('int_sap_label'))}">`
+    +(np.chips.length?`<span class="igd-one-v igd-note-chips">${np.chips.join('')}</span>`:'')+np.lead+(np.more.length?igMoreHtml(i,np.more):'')+`</div>`;
   /* ON THE ROW: what he understood, then the one filled button */
   const chips=[];
   if(m.reading&&typeof window.hbReadingHtml==='function') chips.push(hbReadingHtml(m.reading,hbReadingLive(i),{ noNext:true }));
@@ -9870,6 +9988,7 @@ function igMsgHTML(m,i){
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
+      ${(Number.isInteger(i)&&m.sendNote)?igNoteCardHtml(m,i):''}
       ${''/* ONE ROW (owner, 11 Nov 2026): the answer's controls on one line, everything else under ⋯ */}
       ${igOneHtml(m,i)}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}

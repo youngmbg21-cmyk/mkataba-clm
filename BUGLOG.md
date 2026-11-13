@@ -22404,3 +22404,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - NOT RE-RUN: GitHub refused this session's re-run of the job (403). The owner chose "Merge anyway". Watch main's nightly run: a second failure here makes it a real fault.
 
 - 13 Nov 2026 — Noticed, not fixed (the Fill in form round): the owed date's name is "Effective" (`ov_f_effective`), so Jambo's line beside the form reads "the effective, …" and the row's name is one bare adjective; "Effective date" would read whole. Left as it is: the label is Key terms' own and is used elsewhere.
+- (13 Nov 2026, f1038) Fixed: Home's Jambo panel beside the send screen dropped Jambo's note entirely (only the ✦ window drew it); the note is now a draft there, steered and put in by a press.
