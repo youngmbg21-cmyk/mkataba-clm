@@ -429,7 +429,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - File / Save prominent (23 Oct 2026): deal-in-the-middle-verify 10; one-copilot-editor-verify 5a/5b re-pointed (rows read by their middles; ‹ › small, Save ≥30 tall and ≥110 wide).
 
 ## NOTES AND COMMENTS
-- 13 Nov 2026 (THE THREAD, owner picked it by name): f1030 (5 tests, all red at the parent 18357f4); re-pointed f248 (counts without brackets), f264 (the one box builder), f303 (the Done chip in place of the fold; the clause said once), f304 (the closed drawer resets the chips; Delete's reason), f446 (counts; the given chip's `is-you`), f756 (`return acts + facts`); browser: clause-editor-verify and notes-two-rooms-verify read the full stamp off the hover too; where-we-are-verify 12c reads the count without brackets. Photographed at the three screens.
+- 13 Nov 2026 (THE THREAD, owner picked it by name): f1030 (5 tests, all red at the parent 18357f4); re-pointed f248 (counts without brackets), f264 (the one box builder), f303 (the Done chip in place of the fold; the clause said once), f304 (the closed drawer resets the chips; Delete's reason), f446 (counts; the given chip's `is-you`), f756 (`return acts + facts`); browser: clause-editor-verify and notes-two-rooms-verify read the full stamp off the hover too; where-we-are-verify 12c and guide-panel-verify 6b read the count without brackets. Photographed at the three screens.
 - f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments, notes-two-rooms verify.
 
 ## THE COUNTERPARTY'S PAGE (js/views/portal.js)
