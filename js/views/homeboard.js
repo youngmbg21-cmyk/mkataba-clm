@@ -1658,7 +1658,8 @@ function hbBoardHelloHtml(){
   let work = 0; try { work = hbAgentsData(null).ready || 0; } catch (_){ work = 0; }
   let D = null; try { D = (typeof ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
   const late = (D && D.late) || 0;
-  const say = work ? i18tn('hbw_ready', work, { n: work }) : n ? i18tn('hbw_needs', n, { n }) : i18t('hb_jb_counter_none');
+  /* the ONE count rules: nothing on the desk is said as nothing, whatever a slower count of his work still holds */
+  const say = !n ? i18t('hb_jb_counter_none') : work ? i18tn('hbw_ready', work, { n: work }) : i18tn('hbw_needs', n, { n });
   const old = (n && D && D.oldest != null) ? i18t('nd_oldest', { days: hbNyDays(D.oldest) }) : '';
   const sub = n && work ? i18tn('hbw_all', n, { n }) + (old ? ' ' + old.charAt(0).toUpperCase() + old.slice(1) + '.' : '') : (n && old) ? old.charAt(0).toUpperCase() + old.slice(1) + '.' : '';
   /* a number with nothing behind it is not a door (a dead button never wears a live one's clothes) */

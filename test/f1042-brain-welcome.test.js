@@ -69,6 +69,8 @@ describe('f1042 (1) the welcome as drawn', () => {
     const html = world({ need: 0, ready: 0, late: 0, oldest: null }).w.hbBoardHelloHtml();
     assert.ok(html.includes('<h3 class="hbw-say">Nothing needs you right now.</h3>'));
     assert.ok(!/hbw-acts/.test(html));
+    const stale = world({ need: 0, ready: 2, late: 0, oldest: null }).w.hbBoardHelloHtml();
+    assert.ok(stale.includes('<h3 class="hbw-say">Nothing needs you right now.</h3>'), 'the one count rules, whatever his work count still holds');
   });
   test('1e where the Explorer\'s code is not loaded, the welcome still stands without its card', () => {
     const html = world({ brain: false }).w.hbBoardHelloHtml();
