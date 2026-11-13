@@ -1,4 +1,4 @@
-/* f1027 — A DRAFT ASKED FOR IS A DRAFT SENT (owner, 13 Nov 2026: "fix the draft that comes back with no wording")
+/* f1030 — A DRAFT ASKED FOR IS A DRAFT SENT (owner, 13 Nov 2026: "fix the draft that comes back with no wording")
    ============================================================================
    Measured 12 Nov: 2 of 9 clause-editor drafts on the stronger model came back through deliver_answer as a
    summary ("See the JSON for the reasoning and the replacement text") with no JSON object, so the editor showed
@@ -9,7 +9,7 @@
      (3) twice without it: the second answer stands, no third ask;
      (4) an ordinary chat question is never asked again for an object;
      (5) every drafting door says it is one; both routes and the browser-only path carry the one extra ask.
-   Run: node --test test/f1027-a-draft-asked-for-is-a-draft-sent.test.js */
+   Run: node --test test/f1030-a-draft-asked-for-is-a-draft-sent.test.js */
 'use strict';
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -28,7 +28,7 @@ after(async () => { await h.stop(); await ai.stop(); });
 const ask = (q, context) => W.admin.json('/api/ai/chat', { method: 'POST', body: { messages: [{ role: 'user', content: q }], context } });
 const DRAFT = 'Rewrite this contract clause. Reply with ONE JSON object.';
 
-describe('f1027 a draft asked for is a draft sent', () => {
+describe('f1030 a draft asked for is a draft sent', () => {
   test('(1) a drafting ask answered without the object is asked once more; the object is the answer', async () => {
     ai.reset(); ai.script(SUMMARY); ai.script(SAY(OBJ));
     const r = await ask(DRAFT, { proposal: true });

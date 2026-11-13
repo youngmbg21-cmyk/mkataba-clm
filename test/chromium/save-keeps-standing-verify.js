@@ -104,7 +104,10 @@ const WHY = 'Swedish law stands, per our standard.';
     await page.setViewportSize({ width: 1440, height: 780 });
     const S3 = await stage('MK-GL2', t => t.replace('Sweden', 'England and Wales'));
     const F3 = await foot();
-    check('3 a wording that differs is the ordinary Save, unchanged', S3.applied && F3.live && /^Saves into CHG-/.test(F3.title || '') && /^Draft saved at/.test(F3.draft || ''), JSON.stringify(F3));
+    /* RE-POINTED 13 Nov 2026 (the editor's audit, f1027): over THEIR change Save files our counter, and the hover says
+       so ("Saves into CHG-…" named their change as the one saved into); nothing is saved until Save, so the foot says
+       "Not filed yet" where it said "Draft saved at" */
+    check('3 a wording that differs is the ordinary Save, unchanged', S3.applied && F3.live && /^Files your counter to CHG-/.test(F3.title || '') && /^Not filed yet/.test(F3.draft || ''), JSON.stringify(F3));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

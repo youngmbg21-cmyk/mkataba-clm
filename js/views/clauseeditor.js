@@ -222,8 +222,14 @@ const clauseEditorContract = () => _ceC;
    twice lands on that text again and is honestly not dirty. */
 let _ceOpenText = '';
 let _ceOpenHead = '';
+/* AND NOT WHERE THE BOX WAS ONLY PUT BACK TO WHAT STANDS (13 Nov 2026, the editor's audit): Undo on our own filed
+   change steps the box back to the contract's wording. Save is rightly grey there (the funnel files no change that
+   proposes nothing, and taking a change back is the row's Discard), so every way out asked "Leave and lose it?"
+   about a box holding nothing Save could keep. Over THEIR pending ask the same box is an answer (ceKeepsStanding:
+   Save rejects it), and that still asks. */
+const ceOnlyStands = () => _ceText === _ceBase && _ceHead === _ceHeadBase && !ceKeepsStanding();
 const clauseEditorDirty = () => clauseEditorOpen()
-  && (_ceText !== _ceOpenText || _ceHead !== _ceOpenHead);
+  && (_ceText !== _ceOpenText || _ceHead !== _ceOpenHead) && !ceOnlyStands();
 /* ---- IS THERE SOMETHING TO FILE? ONE READING, TWO SURFACES ----
    The foot's File button greys on exactly this, and since 31 Aug 2026 the
    pencil FILES on exactly this — so a pencil that files where the button is
@@ -533,6 +539,12 @@ function clauseEditorCss(){
      (#ce-say measures its own room) keep to the paper's column and nothing is drawn under his card */
   #clause-editor:not(.is-theirs) .ce-col{overflow:visible}
   #clause-editor:not(.is-theirs) .ce-grid > .ce-rail{z-index:2}
+  /* IN THE NEW LOOK HIS PANEL IS A PANEL, NOT A CARD (owner, 13 Nov 2026: "the old jambo panel that is a card as
+     opposed to being a panel that is separated by a thin line from top to bottom like the other jambo panels"):
+     the new look's seam (index.html: every panel stands square, flush to the bar, the window's side and its
+     foot, one hairline on its left) never named this page, so the 28 Oct card stayed. Square, flush, no lift,
+     one hairline; the lines inside it stay off, as on Home's panel. */
+  html.lg-new #clause-editor:not(.is-theirs) .ce-grid > .ce-rail{margin:0; border:0; border-left:1px solid var(--color-divider); border-radius:0; box-shadow:none}
   .ce-spell:empty{display:none}
   .ce-railfoot button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); white-space:nowrap;
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
@@ -2947,6 +2959,15 @@ function ceLeaveGuard(go){
    what it has always done. */
 function ceGoClause(clauseId, extra){
   if (!clauseEditorOpen() || !clauseId || clauseId === _ceClauseId) return;
+  /* A CLAUSE A COLLEAGUE HOLDS IS REFUSED HERE, WHERE YOU ARE (13 Nov 2026, the editor's audit): the move closes
+     this page and opens it again on the other clause, and the door refuses a held clause AFTER the close, so a
+     press in a colleague's clause put the reader out of the editor altogether. Asked first, as ceRowGo does. */
+  const held = (ceSide() === 'owner' && window.clauseLockHeldByOther && _ceC) ? clauseLockHeldByOther(_ceC, clauseId) : null;
+  if (held){
+    const why = _cet('cl_locked_refuse', { who: String((held.by && held.by.name) || '').trim() || _cet('cl_a_colleague') });
+    ceSay(why); if (window.toast) toast(why, 'warn');
+    return;
+  }
   ceLeaveGuard(() => {
     const c = _ceC, opts = _ceOpts;
     _cePlaceAt = ceClauseTopNow(clauseId);
@@ -2983,6 +3004,18 @@ function ceGoClause(clauseId, extra){
 
    THE FALLBACK IS ALWAYS THE OLD SENTENCE, never nothing: a guard that says
    less because a lookup failed is worse than the guard that prompted this. */
+function ceLeaveWords(){
+  const flat = h => (window.richToText ? richToText(h || '') : '').replace(/\s+/g, ' ').trim();
+  const now = flat(_ceText), was = flat(_ceOpenText);
+  if (!now || !was || now === was) return now;
+  let i = 0;
+  const n = Math.min(now.length, was.length);
+  while (i < n && now[i] === was[i]) i++;
+  /* back to the start of the word the two part in; where the draft only loses its tail, its last words */
+  while (i > 0 && /\S/.test(now[i - 1] || '')) i--;
+  if (i >= now.length) i = Math.max(0, now.lastIndexOf(' ', Math.max(0, now.length - CE_LEAVE_SNIP)) + 1);
+  return (i > 0 ? '\u2026' : '') + now.slice(i);
+}
 function clauseEditorLeaveAsk(){
   const tail = _cet('ce_leave_body');
   const bits = [];
@@ -2992,8 +3025,10 @@ function clauseEditorLeaveAsk(){
     if (name) bits.push(_cet('ce_leave_on', { clause: name }));
   }catch(_){}
   try{
-    const raw = (window.richToText ? richToText(_ceText || '') : '')
-      .replace(/\s+/g, ' ').trim();
+    /* THE WORDS QUOTED ARE THE ONES AT RISK (13 Nov 2026): the quote used to open on the clause's first words
+       whatever was typed, so a change made in its fourth paragraph was warned about with a sentence that stands
+       in the contract untouched. It opens where the draft first parts from what the page opened with. */
+    const raw = ceLeaveWords();
     if (raw.length > 3){
       const cut = raw.length > CE_LEAVE_SNIP ? raw.slice(0, CE_LEAVE_SNIP - 1).trim() + '\u2026' : raw;
       /* The sentence closes the quote with its own full stop, so the draft's
@@ -3408,8 +3443,11 @@ function ceRowHeadPaint(){
    "Step 2 · …"; the row's Ladder verb says the steps), and only what is true:
    nothing is filed until Save (round 9's gaps, third pass). ceRowStep STALE. */
 function ceRowIsCounter(){
-  const mine = _ceLead && _ceLead.authorSide !== 'counterparty' && _ceLead.status === 'pending';
-  return !mine && !!ceRowTheirs();
+  return !ceLeadIsOurs() && !!ceRowTheirs();
+}
+/* the change this page opened on is OUR OWN and still open: its wording is on the record already (13 Nov 2026) */
+function ceLeadIsOurs(){
+  return !!(_ceLead && _ceLead.id && _ceLead.authorSide === ceSide() && _ceLead.status === 'pending');
 }
 /* "Master services agreement · MK-0382 · Nordvik Logistik AB · round 2" */
 function ceRowContextLine(){
@@ -3435,7 +3473,10 @@ function ceRowPaperDress(host){
       const anchor = top ? (top.closest('.rl-clause-top') || top) : null;
       if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(lbl, anchor.nextSibling); else on.insertBefore(lbl, on.firstChild);
     }
-    lbl.textContent = _cet(ceRowIsCounter() ? 'ce_row_is_counter' : 'ce_row_is_draft');
+    /* a draft of ours already filed says so, with its number: "nothing is filed" was read as "your redline is
+       not filed" (owner, 13 Nov 2026) */
+    lbl.textContent = ceRowIsCounter() ? _cet('ce_row_is_counter')
+      : ceLeadIsOurs() ? _cet('ce_row_is_filed', { id: _ceLead.id }) : _cet('ce_row_is_draft');
   }
 }
 /* THE RAIL'S CARDS FROM A ROW: what they asked (their reason, and who), and
@@ -3614,7 +3655,7 @@ function ceRenderPaper(){
      types with its marks off the screen. */
   const body = typing
     ? `<div class="nego-body ce-typing" id="ce-clausebody" contenteditable="true"
-        role="textbox" spellcheck="true">${dress(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText)}</div>`
+        role="textbox" spellcheck="true">${dress(ceLvOwnTag(window.sanitizeRich ? sanitizeRich(_ceText) : _ceText))}</div>`
     : `<div class="nego-body" id="ce-clausebody">${
         clean == null ? ceMarkedHtml(_ceText) : clean}</div>`;
   /* ---- THE CLAUSE'S NAME, IN THE SAME BOX AS ITS WORDING ----
@@ -4520,7 +4561,12 @@ function ceRenderFoot(){
     _ceSpellList = []; _ceSpellFor = null;
     const sp = _ceQ('#ce-spell'); if (sp) sp.innerHTML = '';
   }
-  const moved = _ceText !== _ceBase || _ceHead !== _ceHeadBase;
+  /* THE FOOT READS THE BOX AS TYPED (13 Nov 2026, the editor's audit): it is painted on every keystroke, and its
+     sentence was asked of the stored draft, which only follows the box on a blur. So while the reader typed it
+     went on saying "No changes yet" beside a live Save. One reading of the box, for the sentence and the button. */
+  const now = ceBoxNow();
+  const txNow = now ? now.text : _ceText, hdNow = now ? now.head : _ceHead;
+  const moved = txNow !== _ceBase || hdNow !== _ceHeadBase;
   /* ---- THE ACTS STAND DOWN WITH THE CARET (Phase 4) ----
      A page whose band says "This page is not editable" over a live Save button
      is a page arguing with itself. Undo, Discard and File all act on the draft,
@@ -4533,10 +4579,27 @@ function ceRenderFoot(){
      shows you what you are filing — and it is the honest one. */
   const live = ceEditableReading();
   const draft = _ceQ('#ce-draft');
-  const keeps = ceKeepsStanding();
-  if (draft) draft.innerHTML = moved
-    ? _cet('ce_draft_saved', { at: `<b>${_cee(_ceSavedAt || ceNowHm())}</b>` })
-    : _cee(_cet(keeps ? 'ce_keeps_standing' : 'ce_no_changes_yet'));
+  const keeps = ceKeepsStanding(now);
+  /* ONLY WHAT IS TRUE (owner, 13 Nov 2026: the foot said "Draft saved at 01:51" over a redline already filed, and
+     the way out then said it was not filed). Nothing on this page is saved until Save files it, so a draft says
+     "Not filed yet"; and the wording of our own change, opened and not touched, says what it is: filed. */
+  const asOpened = txNow === _ceOpenText && hdNow === _ceOpenHead;
+  /* a clause we proposed is its own standing wording (never "moved"), and is filed all the same */
+  const filedSame = asOpened && ceLeadIsOurs();
+  /* and the other side's open change, opened and not touched, is theirs: nothing of ours exists yet */
+  const theirsOpen = asOpened && moved && !filedSame && !!(_ceLead && _ceLead.id && _ceLead.authorSide !== ceSide() && _ceLead.status === 'pending');
+  /* their page shows no change numbers (ceFiledName): the same three sentences without one */
+  const seatKey = k => (ceSide() === 'counterparty' ? k + '_t' : k);
+  if (draft) draft.innerHTML = filedSame
+    ? _cee(_cet(seatKey('ce_filed_same'), { id: _ceLead.id }))
+    : theirsOpen
+    ? _cee(_cet(seatKey('ce_theirs_open'), { id: _ceLead.id }))
+    : moved
+    ? _cet('ce_draft_unfiled', { at: `<b>${_cee(_ceSavedAt || ceNowHm())}</b>` })
+    : _cee(keeps ? _cet('ce_keeps_standing')
+      /* the box put back to what stands while our own change is on file: "No changes yet" was untrue, and the
+         act that takes a change back is the row's Discard */
+      : (ceLeadIsOurs() && !asOpened) ? _cet(seatKey('ce_back_to_stands'), { id: _ceLead.id }) : _cet('ce_no_changes_yet'));
   const undo = _ceQ('#ce-undo');
   if (undo){
     undo.disabled = _ceStep === 0 || !live;
@@ -4625,10 +4688,7 @@ function ceRenderFoot(){
   /* ASKED OF THE BOX AS IT STANDS, typed words included (ceBoxNow), with the
      same two questions: Discard is live where the words differ from what
      STANDS; File where they also differ from what the record holds. */
-  const now = ceBoxNow();
-  const liveMoved = now ? (now.text !== _ceBase || now.head !== _ceHeadBase) : moved;
   const anyToFile = ceCanFile(now);
-  void liveMoved;
   [[save, label, anyToFile]].forEach(([b, word, on]) => {
     if (!b) return;
     b.disabled = !(on && live);
@@ -4638,7 +4698,12 @@ function ceRenderFoot(){
        filing. Said on the control's hover, no band. */
     if (!live) b.setAttribute('title', _cet('ce_reading_only'));
     else if (b === save && ceKeepsStanding(now)) b.setAttribute('title', _cet('ce_save_rejects', { id: _ceLead.id }));
-    else if (b === save) b.setAttribute('title', (_ceLead ? _cet('ce_save_to_long', { id: _ceLead.id }) + ' — ' : '') + _cet('ce_save_opens_note'));
+    /* "Saves into CHG-…" only where that is what Save does: over THEIR change it files our counter to it, and the
+       hover named their change as the one being saved into (13 Nov 2026, the editor's audit) */
+    else if (b === save) b.setAttribute('title', (!_ceLead ? ''
+      : (ceLeadIsOurs() ? _cet('ce_save_to_long', { id: _ceLead.id })
+        : _ceLead.authorSide !== ceSide() ? _cet('ce_save_counter_long', { id: ceFiledName(_ceLead) })
+        : _cet('ce_save_to_long', { id: _ceLead.id })) + ' — ') + _cet('ce_save_opens_note'));
     else b.removeAttribute('title');
     if (b.textContent !== word) b.textContent = word;
   });
@@ -4898,7 +4963,7 @@ function ceSyncBarSteps(){
   const u = host.querySelector('[data-rb="undo"]');
   const r = host.querySelector('[data-rb="redo"]');
   if (u) u.disabled = _ceStep <= 0 && !ceBoxDirty();
-  if (r) r.disabled = _ceStep >= _ceSteps.length - 1;
+  if (r) r.disabled = _ceStep >= _ceSteps.length - 1 || ceBoxDirty();
 }
 function ceUndo(){
   if (!clauseEditorOpen()) return;
@@ -4921,7 +4986,12 @@ function ceUndo(){
    set exists to stop, so it is built rather than the button dropped. */
 function ceRedo(){
   if (!clauseEditorOpen()) return;
-  if (_ceStep >= _ceSteps.length - 1) return;
+  /* WORDS TYPED SINCE THE STEP BACK ARE TAKEN FIRST (13 Nov 2026, the editor's audit): the bar's press does not
+     blur the box, so a reader who stepped back, typed, and pressed Redo had the later step drawn over words the
+     stack had never seen. Pulled, the typing is the newest step and there is nothing ahead of it to redo, which
+     is what every editor does. */
+  cePullText();
+  if (_ceStep >= _ceSteps.length - 1){ ceSyncBarSteps(); return; }
   _ceStep += 1;
   ceRestoreStep();
   ceRenderPaper(); ceRenderFoot(); ceRenderHead(); ceRenderScope();
@@ -6302,9 +6372,45 @@ function ceClearHeld(scope){
    admit), and a corrected box repaints the paper, which is the one thing that
    may not happen under a caret. */
 const CE_PAINT_SEL = '.' + CE_HELD_CLASS + ',.rl-marker,[data-ce-mark]';
+/* ---- THE STEP THE GUTTER WALK READ OFF A MARKER IS PAINT TOO (owner, 13 Nov 2026: "the page tells me that I
+   have not filed the redline for clause 3 when ... I had already done that") ----
+   The box is dressed by the paper's own gutter walk (redlineHangHtml), which hangs a marker AND, for a lettered
+   limb, steps the line in: "(a)" gets hati-lv-1 where the stored wording stated no step of its own. The marker's
+   span came off the copy below; the step did not, and it is a class the sanitiser KEEPS (the writing bar's indent
+   tool writes it). So the box of a clause with an (a) (b) (c) limb read back as different from the very wording
+   it was drawn from: the first blur made a step called "typed" out of nothing, Save went live over no change, and
+   every way out asked "Leave this clause?" about a redline that was already filed.
+
+   A STEP THE WORDING STATED ITSELF IS THE WORDING'S: ceLvOwnTag marks those lines before the walk runs, and they
+   are left exactly as written. A line with no such mark loses the step only where it is the one its own marker
+   reads to today (redlineMarkerDepth), so a step the reader moved with the indent tool is theirs and stays.
+   The gutter's own class and the mark come off with it: neither is a class or attribute the record admits. */
+const CE_LV_OWN = 'data-ce-lvown';
+function ceLvOwnTag(html){
+  const src = String(html == null ? '' : html);
+  if (src.indexOf('hati-lv-') < 0) return src;
+  return src.replace(/<p\b([^>]*\bclass\s*=\s*"[^"]*\bhati-lv-[123]\b[^"]*"[^>]*)>/g,
+    (whole, at) => (at.indexOf(CE_LV_OWN) >= 0 ? whole : `<p${at} ${CE_LV_OWN}="1">`));
+}
+function ceLvPaintOff(clone){
+  if (!clone || !clone.querySelectorAll) return;
+  const split = (typeof window !== 'undefined') ? window.redlineSplitMarker : null;
+  const depthOf = (typeof window !== 'undefined') ? window.redlineMarkerDepth : null;
+  clone.querySelectorAll('.rl-hang').forEach(p => {
+    if (!p.hasAttribute(CE_LV_OWN) && typeof split === 'function' && typeof depthOf === 'function'){
+      let d = 0;
+      try{ const m = split(String(p.textContent || '')); d = (m && m.marker) ? depthOf(m.marker) : 0; }catch(_){ d = 0; }
+      if (d > 0) p.classList.remove('hati-lv-' + d);
+    }
+    p.classList.remove('rl-hang');
+    if (!p.getAttribute('class')) p.removeAttribute('class');
+  });
+  clone.querySelectorAll('[' + CE_LV_OWN + ']').forEach(p => p.removeAttribute(CE_LV_OWN));
+}
+const CE_BOX_PAINT_SEL = CE_PAINT_SEL + ',.rl-hang,[' + CE_LV_OWN + ']';
 function ceBoxHtml(box){
   if (!box) return '';
-  if (!box.querySelector || !box.querySelector(CE_PAINT_SEL)) return String(box.innerHTML || '');
+  if (!box.querySelector || !box.querySelector(CE_BOX_PAINT_SEL)) return String(box.innerHTML || '');
   try{
     const clone = box.cloneNode(true);
     /* THE MARKS COME OFF FIRST (14 Sep 2026): an atom carries wording the draft
@@ -6321,6 +6427,7 @@ function ceBoxHtml(box){
       while (sp.firstChild) par.insertBefore(sp.firstChild, sp);
       par.removeChild(sp);
     });
+    ceLvPaintOff(clone);
     return String(clone.innerHTML || '');
   }catch(_){ return String(box.innerHTML || ''); }
 }
@@ -8038,10 +8145,20 @@ function ceCardAt(key){
   return (turn && turn.cards) ? turn.cards[Number(parts[1])] || null : null;
 }
 
+/* ---- ESCAPE CLOSES ONE LAYER: THE SIDE PANEL FIRST (13 Nov 2026, the editor's audit) ----
+   Save opens the Notes panel over this page (the note is offered at filing), and the shell closes that panel on
+   Escape. This page's own Escape answered the same key press: the panel shut AND the reader was taken out of the
+   editor (or asked "Leave this clause?") for a key meant for the panel. So whether the panel stood open is read
+   BEFORE either listener runs (the capture phase), which holds whichever of the two was registered first. */
+let _cePanelUp = false;
 if (typeof document !== 'undefined' && !document._ceWired){
   document._ceWired = true;
   document.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') _cePanelUp = !!document.querySelector('#context-panel.open');
+  }, true);
+  document.addEventListener('keydown', ev => {
     if (ev.key !== 'Escape' || !clauseEditorOpen()) return;
+    if (_cePanelUp){ _cePanelUp = false; return; }
     /* A dialog over this page owns Escape first, exactly as the clause panel
        and the round queue defer. TWO KINDS OF LAYER, and the second was missing
        until 3 Sep 2026: openModal draws INTO #modal-root, and confirmDialog,

@@ -106,5 +106,7 @@ test('f1014 (12) a missing rate is said on the Contracts head', () => {
 test('f1014 (13) the audit of the two builds', () => {
   const P = read('js/paperdesk.js');
   assert.match(region(P, 'function pd2RoadOf(', 1200), /sharesKnown\(c\)\)\{ pd2RoadWarm\(c\); return null; \}/);
-  assert.match(region(P, 'function pd2FillSave(', 900), /\.filter\(x => x\.b\.key !== 'counterparty' && x\.b\.key !== 'value'\)/);
+  /* RE-POINTED 13 Nov 2026 (f1029): a company standard's own fields save through its form's writer, so only the
+     other blanks skip the two the one blank writer refuses */
+  assert.match(region(P, 'function pd2FillSave(', 1200), /\.filter\(x => tplf \|\| \(x\.b\.key !== 'counterparty' && x\.b\.key !== 'value'\)\)/);
 });

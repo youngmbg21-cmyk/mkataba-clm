@@ -33,7 +33,8 @@ const ID = 'MK-E1';
     page.on('pageerror', e => console.log('PAGE ERROR', String(e).slice(0, 300)));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-    await until(page, id => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser() && typeof getContract === 'function' && !!getContract(id), ID, 40000);
+    /* the sign-in's own landing on the Board is waited for first, or it paints over the contract */
+    await until(page, id => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser() && typeof getContract === 'function' && !!getContract(id) && window._cnSignedIn === false, ID, 40000);
     await page.evaluate(async id => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand(id); }, ID);
     await until(page, () => typeof pdOnPaper === 'function' && pdOnPaper(), null, 20000);
     await page.evaluate(id => { try { pd2WalkClose(); } catch (_) {} pdFillOpen(id); }, ID);
