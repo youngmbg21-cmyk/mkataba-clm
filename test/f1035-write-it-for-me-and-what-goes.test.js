@@ -54,7 +54,7 @@ describe('f1035 — the send screen while Jambo talks', () => {
   });
 
   test('3 the press was the ask: the panel says the note is in the box, or that none came back', () => {
-    assert.match(fnBody(AI, 'aiRenderServerAnswer'), /extra\+=aiSendNoteHtml\(res\.note\);\n\s+let text=aiFmt\(aiSendNoteSaid\(res\)\);/, 'the answer read after the note');
+    assert.match(fnBody(AI, 'aiRenderServerAnswer'), /extra\+=aiSendNoteHtml\(aiSendNoteFrom\(res\)\);\n\s+let text=aiFmt\(aiSendNoteSaid\(res\)\);/, 'the answer read after the note');
     const note = fnBody(AI, 'aiSendNoteHtml');
     assert.match(note, /aiSendNoteHtml\.pressed=!!window\._shNlWrite; aiSendNoteHtml\.placed=false;\n\s+const words=aiSendNoteClean/, 'the press recorded before an empty note returns');
     assert.match(note, /aiSendNoteHtml\.placed=true;/, 'drawn only when a note came back');  /* RE-POINTED 13 Nov 2026 (f1038, the Legora Way): the draft stays beside the letter */

@@ -202,11 +202,14 @@ const endOf = (page, sel) => page.evaluate(sel => {
          is focused through HaTi's date face, the button after it. */
       /* RE-POINTED 21 Oct 2026 — THE LEGORA WAY (20 Oct 2026; no Fill in face): the press lands on its box
          in Still owed's grid beside the paper (an answered one: Key terms in the middle) */
-      const s7b = await until(page, () => { let a = document.activeElement; if (!(a && a.closest && a.closest('#pd-og, [data-pd-mid-kt]'))) return null;
-        if (a.classList.contains('dp-face') && a.previousElementSibling) a = a.previousElementSibling;
-        return a.getAttribute('data-blankf') || a.getAttribute('data-kt') || a.getAttribute('data-tplf') || a.tagName; }, null, 4000);
-      ok('6b a press on one lands on its box in Still owed beside the paper', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
-    } else ok('6b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
+      /* RE-POINTED 13 Nov 2026 (f1042; owner: "they can never be filled in unless you are on dossier and press on
+         fill in the contract"): the press opens nothing — no box takes the caret, no middle page, no filling */
+      await page.waitForTimeout(600);
+      const s7b = await page.evaluate(() => { const a = document.activeElement;
+        return { box: !!(a && a.closest && a.closest('#pd-og, [data-pd-mid-kt], #ig-canvas [data-pd2-bl]')),
+          mid: typeof pdMidUp === 'function' && !!pdMidUp(), filling: typeof pd2FillOn === 'function' && !!pd2FillOn('MK-CT2') }; });
+      ok('6b a press on one opens nothing (only Fill in the contract fills)', !s7b.box && !s7b.mid && !s7b.filling, JSON.stringify(s7b));
+    } else ok('6b a press on one opens nothing (only Fill in the contract fills)', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
 
     /* ===== 7. A TABLET (820px) ===== */

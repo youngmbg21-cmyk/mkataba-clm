@@ -203,9 +203,11 @@ describe('f745 (4) Jambo on the Board', () => {
     const html = w.hbBoardHelloHtml();
     assert.match(html, /class="jov"/, 'drawn by the one builder');
     assert.ok(!/ai-bub|data-jb-hello/.test(html), 'no bubble, no greeting');
-    assert.ok(html.includes(`<b>${BOOKS.en.jov_hb_head_b}</b>`), 'the head, its first words bold');
-    assert.match(html, /<b class="jov-k">Needs you<\/b>[\s\S]*?7 things · 2 prepared by Jambo/);
-    assert.ok(html.includes(`<span data-hb-jb-at>${w.hbCountedAt()}</span>`), 'the counted time follows the head');
+    /* RE-POINTED 13 Nov 2026 (owner picked "Brain welcome"): the head sentence and the facts list gave way to his
+       one line, the count under it and the day's three numbers; the counted time is the page head's alone */
+    assert.ok(html.includes('<h3 class="hbw-say">I have 2 things ready for you.</h3>'), 'his one line: what he has ready');
+    assert.ok(html.includes('<p class="hbw-sub">7 need you in all.</p>'), 'the Counter\'s number under it');
+    assert.ok(!/jov-head|jov-fact|data-hb-jb-at/.test(html), 'no head sentence, no facts list, no second counted time');
     const chips = [...html.matchAll(/data-igsug="([^"]+)"/g)].map(m => m[1]);
     assert.deepEqual(chips, ['value by stream', 'my saved views', 'what needs me'], 'none ending in 90 days: that chip is not offered');
   });
@@ -215,7 +217,7 @@ describe('f745 (4) Jambo on the Board', () => {
     assert.match(html, /Nothing needs you right now\./);
     assert.ok(!/what needs me/.test(html) && !/my saved views/.test(html));
     const one = world({ need: 1 }).w.hbBoardHelloHtml();
-    assert.match(one, /1 thing · 0 prepared by Jambo/);
+    assert.ok(one.includes('<h3 class="hbw-say">1 thing needs you today.</h3>'), 'RE-POINTED 13 Nov 2026: nothing prepared, the Counter\'s number is his line');
   });
   test('4c "which N end in 90 days?" leads while any do', () => {
     const { w } = world();

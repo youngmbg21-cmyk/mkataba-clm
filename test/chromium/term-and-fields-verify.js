@@ -222,7 +222,9 @@ const check = (name, pass, detail) => {
        owes nothing lands on Home's paper with Jambo's conversation, and the
        term blank is an optional answer on the paper — a press on it is the
        way in, and opens Fill in beside the paper on its box. */
-    await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field="termYears"]'); if (b) b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    /* RE-POINTED 13 Nov 2026 (f1042; owner: "they can never be filled in unless you are on dossier and press on
+       fill in the contract"): a press on the blank opens nothing now, so the way in is that one door, pdFillGo */
+    await page.evaluate(id => { if (typeof pdFillGo === 'function') pdFillGo(id, 'termYears'); }, filled);
     await page.waitForFunction(() => !!(window.contractFieldPeer && contractFieldPeer('termYears', 'panel')), null, { timeout: 5000 }).catch(() => {});
     const typed = await page.evaluate(() => {
       /* RE-POINTED 11 Oct 2026: THE DOCUMENT TAB IS NEVER EDITED (Young,

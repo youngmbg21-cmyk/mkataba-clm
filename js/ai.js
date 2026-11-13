@@ -2617,7 +2617,7 @@ function aiRenderServerAnswer(res, q){
   if(res.compare) extra+=aiCompareTable(res.compare);
   if(list.length || res.wholeBook) extra+=aiCards(list, { wholeBook: res.wholeBook===true });
   extra+=aiRuleDoorHtml(res.ruleDoor, q);
-  extra+=aiSendNoteHtml(res.note);
+  extra+=aiSendNoteHtml(aiSendNoteFrom(res));
   let text=aiFmt(aiSendNoteSaid(res));
   if(res.notice) text+=`<div class="text-[11px] text-amber-700 mt-2 leading-relaxed">${_aiEsc(res.notice)}</div>`;
   text+=aiDeepLineHtml(res);
@@ -2641,6 +2641,9 @@ const AI_CHAT_STEPS=8;
 const AI_LOCAL_ROOM=4000, AI_LOCAL_ROOM_AGAIN=12000;
 /* the server's COPILOT_PROPOSAL_NUDGE, word for word */
 const AI_PROPOSAL_NUDGE='[From HaTi, not the person] The drafter asked for ONE JSON object (advice, whyChange, whatItDoes, proposedText) and your answer did not carry it. Send that object now as your whole answer, and nothing else; proposedText is an empty string if you cannot draft.';
+/* f1042: a note asked for on the send screen that came back without one is asked once more (the server's
+   COPILOT_NOTE_NUDGE, word for word) */
+const AI_NOTE_NUDGE="[From HaTi, not the person] The person pressed a button on the send screen asking for the note, and your answer carried no note. Write the note now and put it in deliver_answer's note (plain text, two to five sentences, no subject, no greeting, no sign-off); in answer, say in one short sentence what it covers.";
 const _localAiKey=()=>{ try{ return (typeof lsGet==='function' && lsGet('hati.v1.aikey'))||''; }catch(_){ return ''; } };
 /* What an empty model reply becomes. Not "I could not produce an answer" —
    that sentence tells the reader nothing they can act on. Mirrored on the
@@ -2780,6 +2783,21 @@ function aiRuleDoorOf(d){
    screen is open; a note past what the box holds says so and offers no press (a cap is a fact). */
 function aiSendNoteClean(v){
   return typeof v==='string' ? v.replace(/\r\n?/g,'\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g,' ').replace(/\n{3,}/g,'\n\n').trim().slice(0,4000) : '';
+}
+/* HIS WORDS ARE THE NOTE WHEN THE SLOT IS EMPTY (f1043; owner, 13 Nov 2026: "this should be a simple fix"): after a
+   press on the send screen (Write it for me, a steer), a reply whose note slot is empty but whose answer is written
+   is the note itself — he wrote it in the wrong place. HaTi takes the answer's words (a lead-in line ending in ":"
+   and stray markup taken off) as the draft. Never on an unpressed ask, a failed or empty answer, or a few words. */
+function aiSendNoteFrom(res){
+  const own=aiSendNoteClean(res&&res.note);
+  if(own||!window._shNlWrite||!res||res.empty||res.retry||res.unfinished||res.err) return own;
+  let t=String(res.answer||'');
+  if(!t.trim()||t.trim()===AI_EMPTY_ANSWER) return '';
+  t=t.replace(/<\/?answer>/gi,'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/(p|div|li)>/gi,'\n').replace(/<[^>]+>/g,'')
+    .replace(/&nbsp;/g,' ').replace(/&quot;/g,'"').replace(/&#0?39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
+    .replace(/\*\*/g,'').trim();
+  t=t.replace(/^[^\n]{0,160}:[ \t]*\n+/,'').trim().replace(/^["“](.*)["”]$/s,'$1').trim();
+  return t.length>=40 ? aiSendNoteClean(t) : '';
 }
 function aiSendNoteHtml(note){
   aiSendNoteHtml.pressed=!!window._shNlWrite; aiSendNoteHtml.placed=false;
@@ -3249,7 +3267,7 @@ async function aiLocalClaude(messages, context){
     return r.json();
   };
   const working=messages.map(m=>({role:m.role,content:m.content}));
-  let final=null, nudged=false, cut=false, askedDraft=false;
+  let final=null, nudged=false, cut=false, askedDraft=false, askedNote=false;
   for(let step=0; step<AI_CHAT_STEPS; step++){
     let d=await call(working, step===AI_CHAT_STEPS-1);
     /* cut short: asked once more with the most room before the cut is said (the server's copilotStepCall) */
@@ -3269,6 +3287,7 @@ async function aiLocalClaude(messages, context){
         const prev=working[working.length-1];
         if(prev&&prev.role==='user'&&Array.isArray(prev.content)) prev.content=prev.content.concat([{type:'text',text:AI_NUDGE}]); else working.push({role:'user',content:AI_NUDGE});
         continue; }
+      if(txt&&!askedNote&&step+1<AI_CHAT_STEPS&&context&&context.noteAsk===true){ askedNote=true; working.push({role:'user',content:AI_NOTE_NUDGE}); continue; }
       final={answer:txt||AI_EMPTY_ANSWER,citations:[],compare:null,empty:!txt,retry:!txt}; break;
     }
     const deliver=writ?{ input:writ }:toolUses.find(t=>t.name==='deliver_answer');
@@ -3277,6 +3296,13 @@ async function aiLocalClaude(messages, context){
       askedDraft=true;
       working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:t===deliver?'Not shown: the JSON object the drafter asked for is missing.':'Not run.'}))
         .concat([{type:'text',text:AI_PROPOSAL_NUDGE}])});
+      continue;
+    }
+    if(deliver&&!askedNote&&step+1<AI_CHAT_STEPS&&context&&context.noteAsk===true&&!String((deliver.input||{}).note||'').trim()){
+      askedNote=true;
+      if(writ) working.push({role:'user',content:AI_NOTE_NUDGE});
+      else working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:t===deliver?'Not shown: the note the person asked for is missing.':'Not run.'}))
+        .concat([{type:'text',text:AI_NOTE_NUDGE}])});
       continue;
     }
     if(deliver){
@@ -6220,7 +6246,7 @@ async function aiFillSaid(c, said, blanks){
   return api('ai/fill', 'POST', { id: c.id, text: '', said: String(said || ''), blanks: Array.isArray(blanks) ? blanks : [] }, { quiet: true });
 }
 Object.assign(window,{ aiFillSaid });
-Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
+Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiSendNoteFrom,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
 Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
