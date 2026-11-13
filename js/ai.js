@@ -2612,7 +2612,7 @@ function aiRenderServerAnswer(res, q){
   if(list.length || res.wholeBook) extra+=aiCards(list, { wholeBook: res.wholeBook===true });
   extra+=aiRuleDoorHtml(res.ruleDoor, q);
   extra+=aiSendNoteHtml(res.note);
-  let text=aiFmt(res.answer||'');
+  let text=aiFmt(aiSendNoteSaid(res));
   if(res.notice) text+=`<div class="text-[11px] text-amber-700 mt-2 leading-relaxed">${_aiEsc(res.notice)}</div>`;
   text+=aiDeepLineHtml(res);
   const choices=aiWayChoicesOf(res, q);
@@ -2776,6 +2776,7 @@ function aiSendNoteClean(v){
   return typeof v==='string' ? v.replace(/\r\n?/g,'\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g,' ').replace(/\n{3,}/g,'\n\n').trim().slice(0,4000) : '';
 }
 function aiSendNoteHtml(note){
+  aiSendNoteHtml.pressed=!!window._shNlWrite; aiSendNoteHtml.placed=false;
   const words=aiSendNoteClean(note); if(!words) return '';
   const S=(typeof window.shareScreenSays==='function')?shareScreenSays():null; if(!S) return '';
   const quote=`<blockquote class="ai-send-note-q">${_aiEsc(words).replace(/\n/g,'<br>')}</blockquote>`;
@@ -2784,6 +2785,7 @@ function aiSendNoteHtml(note){
   if(window._shNlWrite && String(window._shNlWrite)===String(S.contractId) && typeof window.shareNoteFill==='function'){
     window._shNlWrite=null;
     setTimeout(()=>{ if(shareNoteFill(S.contractId, words)){ const f=document.getElementById('sh-nl-jb'); if(f) f.textContent=i18t('sh_nl_wrote'); } },0);
+    aiSendNoteHtml.placed=true;
   }
   return `<div class="mt-1.5 ai-send-note">${quote}<button type="button" class="ui-btn ui-btn-sm" data-ai-send-note="${_aiEsc(S.contractId)}" data-ai-send-words="${_aiEsc(words)}">${_aiEsc(i18t('ai_send_note_put'))}</button></div>`;
 }
@@ -2794,6 +2796,14 @@ if(typeof document!=='undefined' && document.addEventListener) document.addEvent
   if(ok){ if(typeof toast==='function') toast(i18t('ai_send_note_done'),'ok'); }
   else if(typeof toast==='function') toast(i18t('ai_send_note_gone'),'warn');
 });
+/* f1022 (owner, 13 Nov 2026: "a response I do not understand"): when "Write it for me" WAS the ask, HaTi says what
+   happened in its own words — the note is in the box, or no note came back — never the model's sentence about
+   "your note box with the button under it". Read after aiSendNoteHtml, which records the press and the placing. */
+function aiSendNoteSaid(res){
+  if(!aiSendNoteHtml.pressed) return (res&&res.answer)||'';
+  window._shNlWrite=null; aiSendNoteHtml.pressed=false;
+  return i18t(aiSendNoteHtml.placed?'ai_send_note_done':'sh_nl_none');
+}
 function aiRuleDoorHtml(d, q){
   const door=aiRuleDoorOf(d); if(!door) return '';
   const admin=typeof isAdmin==='function'&&isAdmin();

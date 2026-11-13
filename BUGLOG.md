@@ -22381,3 +22381,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 13 Nov 2026 — the "a draft asked for is a draft sent" check is f1030, not f1027 as the line above says (main took f1027 to f1029 meanwhile).
 - 13 Nov 2026: the Redlines tab's test is f1031 (main took f1030 for "a draft asked for is a draft sent" before it merged); the line above that says f1030 for the tab means f1031.
 - Renumbered again: the Thread's check is f1032 (main took f1030 and f1031 the same day).
+- (13 Nov 2026, f1022) Fixed: What goes pressed nothing while Jambo's panel talked over Before you send; Write it for me stayed on a history send and its answer was jargon.

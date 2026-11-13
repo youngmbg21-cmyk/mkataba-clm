@@ -196,7 +196,8 @@ describe('f758 (4) ‹ Jambo while the letter is up', () => {
     assert.equal(ctx.pdSendHeld(), false);
   });
   test('4b the dock keeps the column in the page while away, and fills the slot wherever it is', () => {
-    assert.match(IG, /\$\{\(window\.pdSendKeepHtml&&pdSendKeepHtml\(\)\)\|\|''\}`;/);
+    /* RE-POINTED 13 Nov 2026 (f1022): the panel says whether it drew the face, so a column under its talk is kept too */
+    assert.match(IG, /\$\{\(window\.pdSendKeepHtml&&pdSendKeepHtml\(!talk&&!_sheet&&!!\(window\.pdSendShows&&pdSendShows\(\)\)\)\)\|\|''\}`;/);
     assert.match(IG, /if\(document\.getElementById\('pd-send-slot'\)&&typeof window\.pdSendFacePaint==='function'\)/);
     assert.match(PD, /if \(t\.closest\('\[data-pd-send-back\]'\)\)\{ e\.preventDefault\(\); pdSendBack\(\); return; \}/);
     /* RE-POINTED 19 Oct 2026 (owner: "Before you send's back returns to the
