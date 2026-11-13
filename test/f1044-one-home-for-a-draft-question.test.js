@@ -22,7 +22,8 @@ test('f1044 (1) the draft has ONE home, in memory, and it is published', () => {
   assert.match(s, /function jamboDraftClear\(/, 'the one emptier');
   assert.match(s, /Object\.assign\(window,\s*\{[^}]*jamboDraft[^}]*jamboDraftClear[^}]*\}\)/s, 'published (ES modules: only the closing Object.assign publishes)');
   /* a draft question is not a record: it is never stored, never sent, never saved */
-  const home = region(s, 'let _jbDraft', 2600);
+  const home = region(s, 'function jamboDraft()', 2600);
+  assert.doesNotMatch(s, /^let _jbDraft/m, 'no module-level let: the file is loaded twice into one test world (f830)');
   assert.doesNotMatch(home, /lsSet|localStorage|persist\(|saveContract|fetch\(/, 'a draft is never stored nor sent');
 });
 

@@ -12859,6 +12859,9 @@
   #party-scrim{opacity:0;pointer-events:none;transition:opacity var(--dur-3);}
   #party-scrim.open{opacity:1;pointer-events:auto;}
   .modal-in{animation:viewIn .2s cubic-bezier(.22,.61,.36,1);}
+  /* one pop-up taking another's place does not arrive again: the frame was already standing (core.js openModal,
+     the flash survey, 13 Nov 2026). Stated after the rule above at equal weight plus the attribute. */
+  .modal-in[data-dlg-kept]{animation:none;}
   /* The right-docked panel arrives FROM the right, so the movement says where
      it came from and that the page underneath was never replaced. */
   .side-panel-in{animation:sidePanelIn .22s cubic-bezier(.22,.61,.36,1);}

@@ -140,7 +140,7 @@ function nsGo(k, opts = {}) {
   if (k === 'template') return nsOpenTemplate(opts);
   if (k === 'contract') return nsOpenContract(opts);
 }
-const nsBack = () => { closeModal(); openNewStandard(); };
+const nsBack = () => { /* back in the standing frame, not a pop-up arriving again (the flash survey) */ openNewStandard(); };
 function nsFootHtml(goLabel, goTitle) {
   return `<div class="ns-foot"><button type="button" id="ns-back" class="ui-btn">${nsEsc(i18t('act_back'))}</button><span class="sp"></span>
     <button type="button" id="ns-go" class="ui-btn ui-btn-primary"${goTitle ? ` title="${nsEsc(goTitle)}"` : ''}>${nsEsc(goLabel)}</button></div>`;

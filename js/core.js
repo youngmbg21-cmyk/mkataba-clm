@@ -3919,6 +3919,17 @@ function openModal(html, opts={}){
      released first (it hands focus back to that same button, and the new
      trap takes it from there). */
   const replacing=!!(root && root.querySelector('[role="dialog"]'));
+  /* ---- ONE POP-UP TAKING ANOTHER'S PLACE DOES NOT ARRIVE AGAIN (owner, 13 Nov 2026, the flash survey) ----
+     "a press that should only change the words rebuilds the whole page instead." About forty pop-ups hand over to
+     another pop-up, and seven rebuild THEMSELVES to change a few words (the History timeline on every filter,
+     Compare after a snapshot, the obligations review and its form). Each such open replayed the arriving
+     animation (.modal-in, viewIn .2s) over a frame that was already standing — that replay is the flash — and
+     threw the reader back to the top. So, only where a dialog is being REPLACED:
+       · the new panel does not animate in (modalKeptOf → data-dlg-kept, read by index.html);
+       · where it is the SAME screen drawn again (modalScreenKey: its label, else its first part's id), the
+         reader's place in it is put back.
+     A first open, and a page-sized dialog, behave exactly as before. */
+  const kept=replacing ? modalKeptOf(root) : null;
   const opener=(replacing && _modalOpener) || document.activeElement;
   if(_modalRelease){ try{ _modalRelease(); }catch(e){} _modalRelease=null; }
   /* WHAT A CLOSE MUST ALSO PUT AWAY (opts.onClose; the send screen's face of
@@ -3940,7 +3951,7 @@ function openModal(html, opts={}){
            frame changes — every dialog still builds its own head, body and
            foot, and DLG_W is still the width ladder. */}
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent);"></div>
-    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
+    <div class="modal-in scroll-thin"${kept?' data-dlg-kept':''} role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -3963,6 +3974,8 @@ function openModal(html, opts={}){
   /* EXTRACTED 25 Aug 2026 — this was written here and was the only overlay in
      the product that had it. The reasoning above stayed with the function. */
   const panel=root.querySelector('[role="dialog"]');
+  /* the same screen drawn again keeps the reader's place (the flash survey; see the head of this function) */
+  if(kept && panel) modalKeptPut(panel, kept);
   /* AND IT CAN BE MOVED OUT OF THE WAY (owner-asked 1 Sep 2026). Released
      before arming, because the share dialog replaces this root wholesale on
      its second paint and would otherwise leave the first panel's listeners
@@ -4181,6 +4194,27 @@ function dlgPinFoot(panel){
    hands: the guard is cleared so it cannot outlive its dialog, and focus goes
    back where it came from — without which a keyboard user is dropped at the
    top of the document every time they dismiss a dialog. */
+/* WHAT A REPLACED POP-UP LEAVES FOR THE ONE THAT TAKES ITS PLACE: which screen it was, and where the reader stood
+   in it (the panel's own scroll, and any scroller inside it that carries an id). Read before the old one goes. */
+function modalScreenKey(panel){
+  if(!panel) return '';
+  const first=panel.firstElementChild;
+  return String(panel.getAttribute('aria-label')||'')+'|'+String((first&&first.id)||'');
+}
+function modalKeptOf(root){
+  const panel=root&&root.querySelector('[role="dialog"]'); if(!panel) return null;
+  const tops=[];
+  try{ panel.querySelectorAll('[id]').forEach(el=>{ if(el.scrollTop) tops.push([el.id, el.scrollTop]); }); }catch(_){}
+  return { key:modalScreenKey(panel), top:panel.scrollTop||0, tops };
+}
+function modalKeptPut(panel, kept){
+  /* only the SAME screen: a different pop-up starts at its own top, as it always has; a screen with no name and
+     no id on its first part cannot be told from another, so it is treated as another (any doubt = from the top) */
+  if(!panel||!kept||kept.key==='|'||modalScreenKey(panel)!==kept.key) return false;
+  try{ if(kept.top) panel.scrollTop=kept.top;
+    for(const [id,top] of kept.tops){ const el=document.getElementById(id); if(el&&panel.contains(el)) el.scrollTop=top; } }catch(_){}
+  return true;
+}
 function closeModal(){
   _modalGuard=null;
   rootEscSet(null);
@@ -11235,7 +11269,7 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,shareSendAgainRun,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,shareSendAgainRun,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,modalScreenKey,modalKeptOf,modalKeptPut,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
 
 /* ============================================================
    THE SEND SCREEN'S FORM, CARRIED WHOLE (owner, 13 Nov 2026, the flash survey)

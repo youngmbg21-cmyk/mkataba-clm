@@ -5118,9 +5118,7 @@ async function aiSubmit(asked){
   const given=typeof asked==='string';
   const q=(given?asked:(inp?inp.value:'')).trim(); if(!q) return;
   /* still answering: the words leave the box and wait their turn (jamboAskLater) */
-  if(ai.busy){ if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; }
-    if(typeof window.jamboDraftClear==='function') jamboDraftClear();
-    if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiSubmit(w)); return; }
+  if(ai.busy){ if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; } if(typeof window.jamboDraftClear==='function') jamboDraftClear(); if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiSubmit(w)); return; }
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
   if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; }

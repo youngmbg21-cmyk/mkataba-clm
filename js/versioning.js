@@ -611,7 +611,7 @@ function openCompareModal(c){
        comparable, so the window that said "nothing to compare yet" comes back
        able to compare. */
     document.getElementById('cmp-snap')?.addEventListener('click',()=>
-      takeNamedSnapshot(c,()=>{ closeModal(); openCompareModal(c); }));
+      takeNamedSnapshot(c,()=>{ /* the same pop-up, drawn again in its standing frame (the flash survey) */ openCompareModal(c); }));
     return;
   }
 
@@ -764,7 +764,7 @@ function openCompareModal(c){
   document.getElementById('cmp-a').addEventListener('change',syncRestore);
   syncRestore();
   document.getElementById('cmp-snap-now')?.addEventListener('click',()=>
-    takeNamedSnapshot(c,()=>{ closeModal(); openCompareModal(c); }));
+    takeNamedSnapshot(c,()=>{ /* the same pop-up, drawn again in its standing frame (the flash survey) */ openCompareModal(c); }));
   restoreBtn?.addEventListener('click',()=>{
     const n=Number(restoreBtn.getAttribute('data-cmp-restore'));
     if(!n) return;

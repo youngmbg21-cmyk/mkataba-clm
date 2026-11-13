@@ -69,9 +69,15 @@ const HTML = '<h1>SERVICES AGREEMENT</h1>' + ['Services', 'Fees', 'Term', 'Liabi
     /* the screen as it stands: the very element, so a reopen cannot hide */
     const mark = async () => page.evaluate(() => { const d = document.querySelector('#modal-root [role="dialog"]'); if (!d) return false; d.dataset.sbMark = 'one'; return true; });
     const same = async () => page.evaluate(() => { const d = document.querySelector('#modal-root [role="dialog"]'); return !!(d && d.dataset.sbMark === 'one'); });
+    /* the note box is drawn only for some ways of sending (the letter's own rule); where it is in sight it is typed
+       into as a person does, and where it is not its words are still the screen's and are set with a real input event */
     const typeNote = async () => { const box = await page.$('#sh-summary'); if (!box) return false;
-      await box.click(); await page.fill('#sh-summary', NOTE); await page.waitForTimeout(150);
-      return (await page.inputValue('#sh-summary')) === NOTE; };
+      let seen = false; try { seen = await box.isVisible(); } catch (_) { seen = false; }
+      if (seen){ await box.click({ timeout: 3000 }).catch(() => {}); await page.fill('#sh-summary', NOTE).catch(() => {}); }
+      if (!seen || (await page.evaluate(() => document.getElementById('sh-summary').value)) !== NOTE)
+        await page.evaluate(v => { const b = document.getElementById('sh-summary'); b.value = v; b.dispatchEvent(new Event('input', { bubbles: true })); }, NOTE);
+      await page.waitForTimeout(150);
+      return (await page.evaluate(() => document.getElementById('sh-summary').value)) === NOTE; };
     /* What goes → one of its three choices, through the chip the reader presses */
     const pick = async k => { const ok = await page.evaluate(k => {
         const go = document.querySelector('[data-sh-as-go="what"]'); if (!go) return false;

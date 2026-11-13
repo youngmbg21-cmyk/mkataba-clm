@@ -1104,7 +1104,8 @@ function openTemplateEditor(tid){
     if(dirty && !await confirmDialog({ title:'Leave the editor?',
       message:'You have unsaved changes to this template. Opening the version history will discard them.',
       confirmLabel:'Discard and view versions', cancelLabel:'Keep editing', danger:true })) return;
-    closeModal(); openTemplateVersions(tid);
+    /* one pop-up takes the other's place in the standing frame (the flash survey) */
+    openTemplateVersions(tid);
   });
   document.getElementById('te-cancel').addEventListener('click',async()=>{
     if(dirty && !await confirmDialog({ title:'Discard these changes?',
@@ -1188,7 +1189,7 @@ function openTemplateVersions(tid){
     </div></div>`, {maxWidth:'760px'});
 
   document.getElementById('tv-close').addEventListener('click',closeModal);
-  document.getElementById('tv-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
+  document.getElementById('tv-edit')?.addEventListener('click',()=>{ openTemplateEditor(tid); });
   document.querySelectorAll('[data-tv-view]').forEach(b=>b.addEventListener('click',()=>{
     const v=all.find(x=>String(x.n)===b.getAttribute('data-tv-view')); if(!v) return;
     openTemplatePreview({ ...v, id:rec.id, name:`${v.name} — v${v.n}`, at:v.at, by:v.by, chars:(v.format==='rich'?richToText(v.body):v.body).length, _readonly:true });
@@ -1438,7 +1439,7 @@ function openTemplatePreview(tpl){
     </div>`, {maxWidth:'820px'});
   document.getElementById('tp-close').addEventListener('click',closeModal);
   document.getElementById('tp-use')?.addEventListener('click',()=>{ closeModal(); createFromCustomTemplate(tpl.id); });
-  document.getElementById('tp-blanks')?.addEventListener('click',()=>{ closeModal(); openBlanksEditor(tpl.id); });
+  document.getElementById('tp-blanks')?.addEventListener('click',()=>{ openBlanksEditor(tpl.id); });
 }
 
 /* ============================================================ TEMPLATES PAGE */

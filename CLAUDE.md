@@ -369,6 +369,7 @@ A SMALL JAMBO HANDS ON WHAT IS NOT HIS: the Calendar's planner and Settings' why
 JUDGEMENT ON THE STRONGER MODEL (`copilotNeedsJudgement`); `aiRateFor`.
 ## THE POP-UPS, THE SAP WAY
 Act first, Cancel LAST (`data-dlg-cancel`, `dlgPinFoot`); HaTi's dropdowns and dates (`popupControlsDress`, `datePickDress`); an ending question `danger`. No pop-up only to say no (`compareHasTwo`); Undo over asking; the + opens the one sheet (`openNewDoors`); end or pause ONE question (`endOrPauseOpen`). Big work is a PAGE (`openModal(html,{page})` → `dlgPageAdopt`). THE DRAWN FRAME `dlgSapFrame`.
+ONE POP-UP TAKING ANOTHER'S PLACE DOES NOT ARRIVE AGAIN: `openModal` knows it is replacing (`modalKeptOf` → `data-dlg-kept`, no arriving animation), and the SAME screen (`modalScreenKey`: label + first part's id) keeps the reader's place (`modalKeptPut`); never `closeModal()` just before the next builder. f1046.
 ALERTS BOTTOM CENTRE: on a computer the toast stack stands above the page's foot, centred on the page area left of the panel, MEASURED (`toastPlace`), never on Jambo's box. f1023.
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - THE LEGORA LOOK IS THE LOOK: one appearance, no dark mode. Tokens in index.html `:root` (ground #F5F5F7, ink #1D1D1F; small print `--color-quiet`, f952; links `--accent-ink`; ONE CORNER 10). Grey pill controls, a chosen tab a filled pill (f872); the paper stays square. A status = dot + word; refs via ONE `refHtml(c)`.

@@ -1637,14 +1637,15 @@ Object.assign(window, { jamboSayCardHtml, jamboSayAskHtml });
 
    The caret rides along, so a word being fixed mid-sentence does not go on at the end (the 27 Oct 2026 lesson, kept).
    ============================================================ */
-let _jbDraft = '', _jbDraftSel = null;
-function jamboDraft(){ return _jbDraft; }
-function jamboDraftSel(){ return _jbDraftSel; }
+/* held on the reader function itself, not in a module-level `let`: this file is also run inside test stages that
+   load it twice into one world, where a second `let` of the same name is a crash (f830's Settings stage) */
+function jamboDraft(){ return jamboDraft._v || ''; }
+function jamboDraftSel(){ return jamboDraft._sel || null; }
 function jamboDraftSet(v, sel){
-  _jbDraft = String(v == null ? '' : v);
-  _jbDraftSel = (sel && sel[0] != null) ? sel : null;
+  jamboDraft._v = String(v == null ? '' : v);
+  jamboDraft._sel = (sel && sel[0] != null) ? sel : null;
 }
-function jamboDraftClear(){ _jbDraft = ''; _jbDraftSel = null; }
+function jamboDraftClear(){ jamboDraft._v = ''; jamboDraft._sel = null; }
 /* A BOX JOINS THE ONE HOME: it writes the draft on every keystroke, and the painter puts the draft back after a
    write. Bound once per element (the standing lesson: a listener on a painted element is bound once). */
 function jamboDraftWire(box){
