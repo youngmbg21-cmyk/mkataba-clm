@@ -44,7 +44,8 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
     page.on('pageerror', e => { console.log('PAGE ERROR', String(e).slice(0, 300)); fails++; });
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-    await until(page, () => typeof roomHomeLand === 'function' && !!window.getContract && !!getContract('MK-TF1'), null, 40000);
+    /* the sign-in's own landing on the Board is waited for first, or it paints over the contract */
+    await until(page, () => typeof roomHomeLand === 'function' && !!window.getContract && !!getContract('MK-TF1') && window._cnSignedIn === false, null, 40000);
     await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-TF1'); });
     await until(page, () => typeof pdOnPaper === 'function' && pdOnPaper(), null, 20000);
     await page.evaluate(() => { try { pd2WalkClose(); } catch (_) {} pdFillGo('MK-TF1'); });

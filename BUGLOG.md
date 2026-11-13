@@ -22308,3 +22308,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Jambo's panel is still built whole on every repaint (about 170 callers of renderIntelDock); only the visible flash was removed.
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+- Noticed, not fixed (13 Nov 2026): many browser checks open a contract (roomHomeLand) as soon as currentUser() is set after sign-in, before the sign-in's own landing on the Board (`_cnSignedIn` cleared in startApp); the Board can paint over the contract and the check fails at random (seen on the-read-bar-and-notes-verify laptop-b). Fixed only in the three checks this round touched; the rest should wait for `window._cnSignedIn === false`.
