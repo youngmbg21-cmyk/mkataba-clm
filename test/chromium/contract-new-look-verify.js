@@ -168,7 +168,7 @@ const READ = () => {
           Fg.groups.length === 1 && /pd2-fm-list/.test(Fg.groups[0]) && Fg.owedFirst && Fg.known.some(k => /^counterparty:preamble · /i.test(k)) && Fg.known.some(k => /^value:§ 2 · /.test(k)) && Fg.known.some(k => /^ends:§ 4 · /.test(k)) && Fg.known.some(k => /^ours:/.test(k)) && Fg.signer, Fg);
         await page.fill('[data-pd-mid^="form:"] tr[data-pd-og-row="up_goods"] input', 'raw milk');
         /* RE-POINTED (The Legora Way): what is typed is counted in the form's own foot ("1 of N filled"), its row's dot green */
-        const said = await until(page, () => /^1 of \d+ filled$/.test(((document.querySelector('[data-pd-mid^="form:"] [data-pd2-fm-say]') || {}).textContent || '').trim()) && !!document.querySelector('[data-pd-mid^="form:"] tr[data-pd-og-row="up_goods"].is-has'), null, 5000);
+        const said = await until(page, () => /^1 of \d+ filled · nothing is saved until Save$/.test(((document.querySelector('[data-pd-mid^="form:"] [data-pd2-fm-say]') || {}).textContent || '').trim()) && !!document.querySelector('[data-pd-mid^="form:"] tr[data-pd-og-row="up_goods"].is-has'), null, 5000);
         await page.click('[data-pd-mid^="form:"] [data-pd-fm-save]');
         const kept = await until(page, () => !document.querySelector('[data-pd-mid]') && (getContract('MK-A2').fields || {}).up_goods === 'raw milk' && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-form)'), null, 10000);
         check('10 the form in the middle: typed, counted in its foot, stored by the one Save, the paper back', fm && said && kept, { fm, said, kept });
