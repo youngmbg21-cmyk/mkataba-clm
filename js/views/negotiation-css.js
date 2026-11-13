@@ -2358,6 +2358,21 @@ function redlineLayoutCss(){
     .redline-page .rl-doc .hati-lv-3,.hb-cv-deal .rl-cp-src .hati-lv-3,.redline-page .rl-cp-src .hati-lv-3{margin-left:7.8em;}
   /* A label directly above its value — the file said no space after it. */
     .redline-page .rl-doc .hati-tight,.hb-cv-deal .rl-cp-src .hati-tight,.redline-page .rl-cp-src .hati-tight{margin-bottom:0;}
+  /* ---- HOME'S PAPER HANGS ITS LIMBS AS THE EDITOR DOES (owner, 13 Nov 2026: "the paper is not respecting
+     the design or form from the editor page") ----
+     The gutter and the steps above were written for the Negotiate page and the clause editor
+     (.redline-page .rl-doc). Home's paper draws the SAME builder's output (redlineDocHtml, read-only: Redline,
+     Clean and Their view) inside .ig-redpaper, which is neither, so a clause redlined with (a) (b) (c) limbs sat
+     indented in the editor and flush against the margin on the paper it was saved to. The classes were on the
+     lines the whole time; these are the same measures, stated for that paper. The step is written one class
+     heavier than the body rhythm (.nego-clause .nego-body>*, a margin shorthand in ANOTHER sheet, which may be
+     mounted after this one), so its margin stands by weight and not by order. */
+  .ig-redpaper .rl-hang{padding-left:2.6em;text-indent:-2.6em}
+  .ig-redpaper .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
+    .ig-redpaper.nego-onpaper .hati-lv-1{margin-left:2.6em;}
+    .ig-redpaper.nego-onpaper .hati-lv-2{margin-left:5.2em;}
+    .ig-redpaper.nego-onpaper .hati-lv-3{margin-left:7.8em;}
+    .ig-redpaper.nego-onpaper .hati-tight{margin-bottom:0;}
   /* Where the page ended. A rule and air on screen; a real break in print and
      in anything that paginates. */
     .redline-page .rl-doc .hati-pb,.hb-cv-deal .rl-cp-src .hati-pb,.redline-page .rl-cp-src .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));

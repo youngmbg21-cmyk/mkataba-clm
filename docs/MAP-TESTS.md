@@ -423,6 +423,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f207-D, f245 (26), f733, clause-editor-verify 32–35, clause-door-verify.
 
 ## EDIT WITH COPILOT — THE CLAUSE EDITOR (js/views/clauseeditor.js)
+- The editor's audit (13 Nov 2026): f1027 (ten groups, all red at the parent 26c4b19; group 2 opens 8 clause shapes × untouched · ours · theirs) and test/chromium/editor-audit-verify.js (GitHub: 1 Home's limbs with the editor's measures, 2 a saved clause reopened and left without a question, 3 the panel at the three screens, 4 typed words, the warning's quote, Escape and the Notes panel). Re-pointed: f245 (File asks the box, ceGoClause's guard, the warning's projection), f304 (10) the Save hover, f756 7c the line under the head, save-keeps-standing-verify 3 (hover and foot). Photographed at the three screens.
 - Floating panel over the end-to-end bar (28 Oct 2026): photographed by hand at the three screens (head spans the window, rail 8px in, `elementFromPoint` top-right = `.ce-rowhead`); clause-editor-verify, panel-tidy-and-risk-footer-verify, one-copilot-editor-plain-verify.
 - Words typed at a struck run are never lost (26 Oct 2026): their-edit-page-verify 4c, 4d (red at the parent 73a0dfd); section 4 records what rebuilds the box. The check is off KNOWN_RED.
 - f245, f249, f250, f287, f289, f304, f505, f508, f523, f537, f640, f756 8j, f759 (5), clause-editor, clause-door, one-copilot-editor verify.
