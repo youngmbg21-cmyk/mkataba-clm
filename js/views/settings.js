@@ -516,7 +516,7 @@ function stWireDrawerOnce(){
     e.preventDefault();
     const box=document.getElementById('st-jb-q');
     const q=(box&&box.value||'').trim(); if(!q) return;
-    box.value='';
+    box.value=''; if(typeof boxDraftClear==='function') boxDraftClear('settings');
     stJbBoxAsk(q,{ typed:true });
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
@@ -3444,6 +3444,8 @@ function stSolo(){ return false; }
 function stTalkTurns(){ return stJbLog(); }
 /* the trail over the conversation and which of the two views is up */
 function stJbTalkPaint(){
+  /* a half-typed question outlives a repaint of Settings (the flash survey, 13 Nov 2026): the box's own draft */
+  { const _b=document.getElementById('st-jb-q'); if(_b&&typeof boxDraftJoin==='function') boxDraftJoin(_b,'settings'); }
   stTalkLand();
   const solo=stSolo();
   if(solo&&stTalkShows()&&typeof jamboTalkClose==='function') jamboTalkClose();
@@ -3519,7 +3521,7 @@ function stJbStage(id, amount){
 function stJamboFocus(prefill){
   stSideSet('jambo');
   const box=document.getElementById('st-jb-q'); if(!box) return false;
-  if(prefill) box.value=String(prefill);
+  if(prefill){ box.value=String(prefill); if(typeof boxDraftSet==='function') boxDraftSet('settings', box.value); }
   try{ box.focus({preventScroll:true}); }catch(_){}
   return true;
 }

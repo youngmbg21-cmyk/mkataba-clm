@@ -1298,6 +1298,8 @@ function jlFrame(host, opt){
   }
   jlTalkPaint(host);
   const inp = host.querySelector('#jl-q');
+  /* a half-typed question outlives a repaint of the page (the flash survey, 13 Nov 2026): the box's own draft */
+  if (inp && typeof boxDraftJoin === 'function') boxDraftJoin(inp, 'list');
   const ph = opt.jlPh || i18t('jl_ph_any');
   if (inp && inp.getAttribute('placeholder') !== ph){ inp.setAttribute('placeholder', ph); inp.setAttribute('aria-label', ph); }
   jlLayout();
@@ -1805,6 +1807,7 @@ function jlPopClose(){ _jlPop = null; const el = document.querySelector('[data-j
 function jlPopTake(i){
   const r = _jlPop && _jlPop.rows[i]; if (!r) return;
   const q = document.getElementById('jl-q'); if (q) q.value = '';
+  if (typeof boxDraftClear === 'function') boxDraftClear('list');
   jlPopClose(); jlAsk(r.word);
 }
 /* ---- PRESSES, ONE LISTENER EACH, ARMED ONCE AT LOAD; each reads the live
@@ -1848,7 +1851,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if (_jlPop){ jlPopTake(_jlPop.on); return; }
     const v = q.value; if (!String(v || '').trim()) return;
     /* words a busy Jambo could not take stay in the box (jlAsk said so) */
-    jlPopClose(); if (jlAsk(v, { typed: true }) !== false) q.value = '';
+    jlPopClose(); if (jlAsk(v, { typed: true }) !== false){ q.value = ''; if (typeof boxDraftClear === 'function') boxDraftClear('list'); }
   });
   document.addEventListener('input', e => { if (e.target && e.target.id === 'jl-q') jlPopRead(e.target); });
   document.addEventListener('keydown', e => {
