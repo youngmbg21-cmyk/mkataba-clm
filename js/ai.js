@@ -2633,6 +2633,8 @@ const LOCAL_AI_MODEL='claude-haiku-4-5-20251001';
 const AI_CHAT_STEPS=8;
 /* room for one answer, and for the one more go a cut-short answer gets (the server's AI_CHAT_ROOM / AI_CHAT_ROOM_AGAIN) */
 const AI_LOCAL_ROOM=4000, AI_LOCAL_ROOM_AGAIN=12000;
+/* the server's COPILOT_PROPOSAL_NUDGE, word for word */
+const AI_PROPOSAL_NUDGE='[From HaTi, not the person] The drafter asked for ONE JSON object (advice, whyChange, whatItDoes, proposedText) and your answer did not carry it. Send that object now as your whole answer, and nothing else; proposedText is an empty string if you cannot draft.';
 const _localAiKey=()=>{ try{ return (typeof lsGet==='function' && lsGet('hati.v1.aikey'))||''; }catch(_){ return ''; } };
 /* What an empty model reply becomes. Not "I could not produce an answer" —
    that sentence tells the reader nothing they can act on. Mirrored on the
@@ -3235,7 +3237,7 @@ async function aiLocalClaude(messages, context){
     return r.json();
   };
   const working=messages.map(m=>({role:m.role,content:m.content}));
-  let final=null, nudged=false, cut=false;
+  let final=null, nudged=false, cut=false, askedDraft=false;
   for(let step=0; step<AI_CHAT_STEPS; step++){
     let d=await call(working, step===AI_CHAT_STEPS-1);
     /* cut short: asked once more with the most room before the cut is said (the server's copilotStepCall) */
@@ -3258,6 +3260,13 @@ async function aiLocalClaude(messages, context){
       final={answer:txt||AI_EMPTY_ANSWER,citations:[],compare:null,empty:!txt,retry:!txt}; break;
     }
     const deliver=writ?{ input:writ }:toolUses.find(t=>t.name==='deliver_answer');
+    /* a draft asked for came back without its object: asked once more (the server's copilotProposalMissing) */
+    if(deliver&&!writ&&!askedDraft&&step+1<AI_CHAT_STEPS&&context&&context.proposal===true&&!AI_PROPOSAL_OPEN_RE.test(String((deliver.input||{}).answer||''))){
+      askedDraft=true;
+      working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:t===deliver?'Not shown: the JSON object the drafter asked for is missing.':'Not run.'}))
+        .concat([{type:'text',text:AI_PROPOSAL_NUDGE}])});
+      continue;
+    }
     if(deliver){
       const inp=deliver.input||{};
       final={ answer:String(inp.answer||'').trim()||AI_EMPTY_ANSWER,
@@ -4398,7 +4407,7 @@ async function copilotProposeTemplate(o){
     AI_PROPOSAL_FORMAT()
   ];
   const ask = (typeof window !== 'undefined' && window.copilotAsk) || copilotAsk;
-  const res = await ask([{ role: 'user', content: lines.filter(x => x !== '').join('\n') }], o.context || null);
+  const res = await ask([{ role: 'user', content: lines.filter(x => x !== '').join('\n') }], Object.assign({}, o.context || {}, { proposal: true }));
   const raw = typeof res === 'string' ? res
     : (res && (res.answer || res.text || res.content || res.reply || res.message)) || '';
   const parsed = aiParseProposal(raw);
@@ -4529,8 +4538,9 @@ async function copilotPropose(opts){
      nothing else can see, substitute or stand in for, which is how a browser
      check ends up exercising a different function from the one it stubbed. */
   const ask = (typeof window !== 'undefined' && window.copilotAsk) || copilotAsk;
+  /* `proposal`: the server asks once more if the answer comes back without the object (copilotProposalMissing) */
   const res = await ask([{ role: 'user', content: lines.filter(x => x !== '').join('\n') }],
-    o.context || (typeof buildAssistantContext === 'function' ? buildAssistantContext() : null));
+    Object.assign({}, o.context || (typeof buildAssistantContext === 'function' ? buildAssistantContext() : null) || {}, { proposal: true }));
   /* A NON-ANSWER IS NOT AN ANSWER (9 Oct 2026, the review): the chat route
      marks a run that never finished, or came back empty, and its sentence is
      the PORTFOLIO chat's ("name a specific contract") — wrong words beside one
