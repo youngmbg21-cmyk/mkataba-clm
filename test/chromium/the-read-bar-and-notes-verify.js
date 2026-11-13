@@ -48,7 +48,8 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
       page.on('pageerror', e => console.log('PAGE ERROR', String(e).slice(0, 300)));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-      await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser(), null, 40000);
+      /* the sign-in's own landing on the Board is waited for first: a contract opened before it was painted over (GitHub, 13 Nov 2026: laptop-b) */
+      await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser() && window._cnSignedIn === false, null, 40000);
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-RB'); });
       /* the first screen meets a cold server: its wait is longer, still bounded (GitHub's main run, 12 Nov 2026: laptop-a timed out at 20s) */
       const up = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mn').length >= 2 && !!document.querySelector('#ig-strip'), null, nm === 'laptop-a' ? 45000 : 20000);

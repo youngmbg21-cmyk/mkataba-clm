@@ -22325,6 +22325,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
 - Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+- Noticed, not fixed (13 Nov 2026): many browser checks open a contract (roomHomeLand) as soon as currentUser() is set after sign-in, before the sign-in's own landing on the Board (`_cnSignedIn` cleared in startApp); the Board can paint over the contract and the check fails at random (seen on the-read-bar-and-notes-verify laptop-b). Fixed only in the three checks this round touched; the rest should wait for `window._cnSignedIn === false`.
 
 ## Noticed, not fixed (13 Nov 2026)
 - home-board-verify 15a ("by month" draws month columns, each a door…) fails on main since 9f6f6aa (run 43337002752; passed at e7d345c). Seen on PR 686, which touches neither the Board nor its charts. Not fixed here.
