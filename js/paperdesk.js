@@ -3561,6 +3561,7 @@ function pdHtml(c){ return `<div class="pd-tabs" role="tablist">${pdHeadHtml('')
 /* THE ONE PAINTER, called by igPaintPaper after every paint of the paper:
    the open tab's body is redrawn in place (the panel itself is not rebuilt),
    and the title row follows the paper coming and going. */
+let _pdBodyFresh = false;   // true only while a tab's press paints the paper right after drawing the panel
 function pdPaint(c){
   const dock = document.getElementById('ig-dock'); if (!dock) return;
   /* the paper was drawn again: Fill in's marks on it follow (pdFillPaperMarks) */
@@ -3569,6 +3570,8 @@ function pdPaint(c){
      2026): a paint of the paper redraws it from the record, never under the reader's hand */
   try { pdKtMidRepaint(false); } catch (_){}
   pdTrailSync();
+  /* the tab's own press drew the panel in this same turn: its body is not drawn again (see the tab's press) */
+  if (_pdBodyFresh) return;
   const head = dock.querySelector('[data-pd-head]');
   const want = pdOnPaper() ? 'paper' : 'off';
   if (head && head.getAttribute('data-pd-head') !== want){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
@@ -3643,7 +3646,10 @@ if (typeof document !== 'undefined' && !document._pdWired){
       if (keep && pdTalkKey() === was && typeof jamboScrollPut === 'function') jamboScrollPut(keep);
       /* a face left behind another tab gives the paper back (stage 5): the
          paper is drawn again only if its copy moved (igPaperKey) */
-      if (typeof igPaintPaper === 'function') try { igPaintPaper(); } catch (_){}
+      /* ONE PRESS, ONE PANEL (owner, 12 Nov 2026, the stutter audit): the panel was drawn a line above, so the
+         paper's paint does not draw the tab's body a second time (_pdBodyFresh), and the paper's line stands
+         where it says the same (keepLine) */
+      if (typeof igPaintPaper === 'function'){ _pdBodyFresh = true; try { igPaintPaper({ keepLine: true }); } catch (_){} finally { _pdBodyFresh = false; } }
       return; }
     const a = t.closest('[data-pd-act]'); const fn = a ? _pdActs.get(a.getAttribute('data-pd-act')) : null;
     if (!fn) return;

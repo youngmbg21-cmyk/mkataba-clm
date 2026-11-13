@@ -23,7 +23,7 @@ const check = (ok, what, detail) => { console.log((ok ? '  ok  ' : '  FAIL') + '
 const answer = text => [{ type: 'tool_use', id: 'tu_j', name: 'deliver_answer', input: { answer: text, citations: [] } }];
 
 /* the line, read off the painted page: present, painted (the top pixel is it), one line, inside its answer */
-/* asked for the painted state, bounded: a panel still crossfading in (faceSwap) covers the line for a beat */
+/* asked for the painted state, bounded: a panel still being drawn covers the line for a beat */
 const lineIn = async (page, host) => {
   let L = null;
   for (let i = 0; i < 12; i++){ L = await lineOnce(page, host); if (!L.found || L.painted) return L; await page.waitForTimeout(150); }
