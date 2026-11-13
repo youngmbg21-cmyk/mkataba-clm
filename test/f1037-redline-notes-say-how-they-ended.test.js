@@ -1,21 +1,25 @@
-/* f1036 — THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026:
+/* f1037 — THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026:
    "shouldnt this redline page also have notes on the side so you can distiguish between where the notes have led to
    redlines vs where the notes are still there but redlines have not been addressed?")
    ============================================================================
    On the Redline view the paper had notes only for the other side's asks; the panel's risks (riskItemsOf, the list
    that folds "Covered by your redlines") had no place beside the paper. Now each stands by its clause:
 
-     (1) ANSWERED — a redline of ours covering it: a green tick, "not sent yet", our new words quoted, See the change
+     (1) ANSWERED — a redline of ours covering it: a green tick, "not sent yet", our new words quoted, NO LINK (owner, 13 Nov
+         2026: "Remove the link"; was See the change
          carrying the change's id, and it stands by that change's own section;
      (2) OPEN — no redline: amber, "<severity> · no redline yet", Draft a redline (the risk's own Edit), by its clause;
      (3) THEY DECIDE — our redline accepted, the note goes; turned down, it is open again;
      (4) ONE GROUP PER CLAUSE, headed "N · Name"; the chips only when both kinds stand, each with its count;
      (5) A VIEWER is shown the notes but no Draft a redline; THEIR VIEW carries none of them;
-     (6) THE PAINTER asks for them on the red paper, and See the change is the paper's own link (rlLinkFocus).
+     (7) OUR STANDARDS TOO (owner, 13 Nov 2026: "yes, add them"): a deviation answered by our redline on its words or one
+         filed for it ("Playbook — <category>"); agreed it says so until Jambo reads again; open ones carry the Dossier's door;
+         a missing one at the paper's end;
+     (6) THE PAINTER asks for them on the red paper (was: and See the change is the paper's own link (rlLinkFocus).
 
    AT THE PARENT (ea9a894) every check fails: pd2RedAnswers, pd2RedBlocks, pd2RedChipsHtml and pd2RedGroupHtml do
    not exist and the painter draws only their asks.
-   Run: node --test test/f1036-redline-notes-say-how-they-ended.test.js */
+   Run: node --test test/f1037-redline-notes-say-how-they-ended.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -42,7 +46,7 @@ const RICH = '<h1>SERVICES</h1>'
   + '<h2>3. Liability</h2><p>Each party is liable for direct loss only, never for lost goods.</p>'
   + '<h2>4. Notices</h2><p>Notices are sent by post only, to the registered office.</p>';
 
-const NAMES = ['pdRedTheirs', 'pd2Find', 'pd2RedAnswers', 'pd2RedBlocks', 'pd2RedChipsHtml', 'pd2RedGroupHtml'];
+const NAMES = ['pdRedTheirs', 'pd2Find', 'pd2RedAnswers', 'pd2RedStdAnswers', 'pd2RedBlocks', 'pd2RedChipsHtml', 'pd2RedGroupHtml'];
 
 async function stage(o = {}){
   const w = buildWorld({ negotiationView: true, playbook: true, risks: true });
@@ -76,8 +80,8 @@ async function stage(o = {}){
 const need = S => assert.deepEqual(S.missing || [], [], 'the readers exist');
 const byTitle = (L, re) => L.find(n => re.test(n.k));
 
-describe('f1036 (1) a note our redline answers', () => {
-  test('green, "not sent yet", our new words quoted, See the change on the change, by that change\'s section', async () => {
+describe('f1037 (1) a note our redline answers', () => {
+  test('green, "not sent yet", our new words quoted, no link, by that change\'s section', async () => {
     const S = await stage(); need(S);
     const cv = S.cv();
     const L = S.win.pd2RedAnswers(S.c, cv);
@@ -87,7 +91,7 @@ describe('f1036 (1) a note our redline answers', () => {
     assert.equal(n.state, S.win.i18t('pd2_rn_unsent'));
     assert.match(n.quote, /^AIT may adjust pricing to reflect a verified increase/, "the words our redline brings");
     assert.ok(n.quote.length <= 72, "cut at a word, with …");
-    assert.match(n.acts, new RegExp('data-pd2-go="see" data-pd2-key="' + S.ours.id + '"'));
+    assert.equal(n.acts, '', 'no link: the note already stands by its change');
     assert.ok(n.hit && n.hit.el && n.hit.el.matches('section[data-clause]'), 'stands by a clause');
     assert.match(n.hit.el.getAttribute('data-nego-card-anchor') || '', new RegExp(S.ours.id));
   });
@@ -103,7 +107,7 @@ describe('f1036 (1) a note our redline answers', () => {
   });
 });
 
-describe('f1036 (2) a note with no redline', () => {
+describe('f1037 (2) a note with no redline', () => {
   test('amber, "no redline yet", Draft a redline pressing the risk\'s own Edit, by its clause', async () => {
     const S = await stage(); need(S);
     const cv = S.cv();
@@ -120,7 +124,7 @@ describe('f1036 (2) a note with no redline', () => {
   });
 });
 
-describe('f1036 (3) when they decide', () => {
+describe('f1037 (3) when they decide', () => {
   test('accepted: the note goes; turned down: it is open again', async () => {
     const S = await stage(); need(S);
     await S.win.negoResolve(S.c, S.ours.id, 'accepted', { side: 'counterparty', author: 'Erik' });
@@ -132,7 +136,7 @@ describe('f1036 (3) when they decide', () => {
   });
 });
 
-describe('f1036 (4) one group per clause, and the chips', () => {
+describe('f1037 (4) one group per clause, and the chips', () => {
   test('a group per clause headed "N · Name"; chips only with both kinds, each with its count', async () => {
     const S = await stage(); need(S);
     const cv = S.cv();
@@ -149,7 +153,7 @@ describe('f1036 (4) one group per clause, and the chips', () => {
   });
 });
 
-describe('f1036 (5) a viewer', () => {
+describe('f1037 (5) a viewer', () => {
   test('sees the notes, but no Draft a redline', async () => {
     const S = await stage({ viewer: true }); need(S);
     const n = byTitle(S.win.pd2RedAnswers(S.c, S.cv()), /Lost goods/);
@@ -162,16 +166,67 @@ describe('f1036 (5) a viewer', () => {
   });
 });
 
-describe('f1036 (6) the painter and the doors', () => {
-  test('the red paper asks for the answers beside their asks; See the change is the paper\'s own link', () => {
+describe('f1037 (6) the painter and the doors', () => {
+  test('the red paper asks for the answers beside their asks; no See the change door is left', () => {
     const paint = fnSrc(PD, 'pd2NotesPaint');
     assert.match(paint, /pd2RedNotes\(c, cv\)\.concat\(pd2RedAnswers\(c, cv\)/);
     assert.match(paint, /pd2RedBlocks\(/);
-    assert.match(PD, /go === 'see'\)\{ if \(typeof rlLinkFocus === 'function'\)/);
+    assert.doesNotMatch(PD, /data-pd2-go="see"|go === 'see'/);
     assert.match(PD, /go === 'redline' && typeof riskEditStart === 'function'/);
   });
   test('the words are in both books', () => {
     for (const k of ['pd2_rn_answered', 'pd2_rn_unsent', 'pd2_rn_sent', 'pd2_rn_none', 'pd2_rn_draft', 'pd2_rn_see', 'pd2_rn_chip_all', 'pd2_rn_chip_open', 'pd2_rn_chip_done'])
       assert.equal((EN.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k + ' in English and Swedish');
+  });
+});
+
+describe('f1037 (7) our standards beside the redlined paper', () => {
+  const V = c => { c.playbook = { verdicts: [
+    { category: 'Price changes', status: 'deviation', quote: 'AIT may revise pricing by providing thirty days written notice.', position: 'Prices fixed for a year' },
+    { category: 'Notices', status: 'deviation', quote: 'Notices are sent by post only', position: 'Email too' },
+    { category: 'Liability cap', status: 'deviation', quote: 'never for lost goods', position: 'Goods covered' },
+    { category: 'Data protection', status: 'missing', position: 'A data clause' },
+    { category: 'Services', status: 'aligned' }] }; };
+  test('answered by our redline on its words; open with the Dossier\'s door; missing at the end; met ones not drawn', async () => {
+    const S = await stage(); need(S); V(S.c);
+    const L = S.win.pd2RedStdAnswers(S.c, S.cv(), { chs: S.c.changes, unsent: new Set([String(S.ours.id)]), sec: sel => null, plain: t => String(t || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() });
+    const by = k => L.find(n => n.k === S.win.i18t('pd2_rn_std', { name: k }));
+    assert.equal(by('Price changes').tone, 'done');
+    assert.equal(by('Price changes').state, S.win.i18t('pd2_rn_unsent'));
+    assert.equal(by('Notices').tone, 'owe');
+    assert.match(by('Notices').state, new RegExp(S.win.i18t('pd2_std_differs') + ' · ' + S.win.i18t('pd2_rn_none')));
+    assert.match(by('Notices').acts, /data-pd2-go="std-draft"/);
+    assert.equal(by('Data protection').tone, 'owe');
+    assert.equal(by('Data protection').orOwn, S.win.i18t('pd2_std_missing_h'));
+    assert.match(by('Data protection').acts, new RegExp(S.win.i18t('pd2_std_add')));
+    assert.equal(by('Services'), undefined, 'a standard met is not a note');
+  });
+  test('a redline filed for the standard ("Playbook — <category>") answers it wherever it stands', async () => {
+    const S = await stage(); need(S); V(S.c);
+    const ch = await S.win.negoEditClause(S.c, S.cl(/Liability/).clauseId, '<p>Each party is liable for direct loss, including lost goods.</p>', { side: 'owner', author: 'Young' });
+    ch.note = 'Playbook — Liability cap (escalation position)';
+    const L = S.win.pd2RedAnswers(S.c, S.cv());
+    const n = L.find(x => x.std && /^Liability cap/.test(x.k));
+    assert.ok(n && n.tone === 'done', 'answered');
+  });
+  test('agreed: it stays answered and says Jambo checks again; turned down: open again', async () => {
+    const S = await stage(); need(S); V(S.c);
+    await S.win.negoResolve(S.c, S.ours.id, 'accepted', { side: 'counterparty', author: 'Erik' });
+    const a = S.win.pd2RedAnswers(S.c, S.cv()).find(x => x.std && /^Price changes/.test(x.k));
+    assert.ok(a && a.tone === 'done' && a.state === S.win.i18t('pd2_rn_agreed'));
+    const T = await stage(); need(T); V(T.c);
+    await T.win.negoResolve(T.c, T.ours.id, 'rejected', { side: 'counterparty', author: 'Erik' });
+    const b = T.win.pd2RedAnswers(T.c, T.cv()).find(x => x.std && /^Price changes/.test(x.k));
+    assert.ok(b && b.tone === 'owe');
+  });
+  test('a viewer sees them with no door; their view carries none', async () => {
+    const S = await stage({ viewer: true }); need(S); V(S.c);
+    const n = S.win.pd2RedAnswers(S.c, S.cv()).find(x => x.std && /^Notices/.test(x.k));
+    assert.ok(n); assert.equal(n.acts, '');
+    S.win.igTheirsOn = () => true;
+    assert.equal(S.win.pd2RedAnswers(S.c, S.cv()).length, 0);
+  });
+  test('the new word is in both books', () => {
+    for (const k of ['pd2_rn_agreed', 'pd2_rn_std']) assert.equal((EN.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k);
   });
 });
