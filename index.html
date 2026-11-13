@@ -18504,6 +18504,20 @@
   /* SHOW LESS: on an open group of two or more; gone once folded */
   html.lg-new #pd2-notes .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
   html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-less{display:none}
+  /* NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026): an answered note a green
+     tick, grey words and "Answered by your redline" in green; an open one amber with its act; the group's line its colour;
+     All · Still open · Answered over them, the chosen one a filled pill */
+  html.lg-new #pd2-notes .pd2-rn-chips{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;padding-left:30px}
+  html.lg-new #pd2-notes .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new #pd2-notes .pd2-rn-chip[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new #pd2-notes .pd2-rn-chip > span{margin-left:3px;font-variant-numeric:tabular-nums}
+  html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::after,html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::before{background:var(--st-green-dot)}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i{margin:0 0 8px}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i.is-owe .pd2-mg-l{font-weight:var(--w-label)}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i.is-done .pd2-mg-l{color:var(--color-neutral-400)}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mn-w,html.lg-new #pd2-notes .pd2-rn .pd2-mn-a{margin-left:13px}
+  html.lg-new #pd2-notes .pd2-rn-tick{display:inline-grid;place-items:center;width:13px;height:13px;margin-right:4px;border-radius:50%;background:var(--st-green-dot);color:var(--color-surface);vertical-align:-2px}
+  html.lg-new #pd2-notes .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
