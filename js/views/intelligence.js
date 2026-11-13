@@ -10029,6 +10029,47 @@ function igDockBatch(fn){
    browser read the whole page's styles again on every small change. The same two facts are written on #ig-page at each
    of this painter's three writes, and index.html reads them there (data-igd-head, data-igd-door). Written only when
    they move. */
+/* NOTHING CHANGED, NOTHING WRITTEN (owner, 13 Nov 2026: "Keep one painter, but only replace what changed"). About 170
+   callers ask for the panel "to be sure", and each ask wiped it and wrote it again. The ONE painter still works out
+   the whole panel; where that is, word for word, what it last wrote, and nothing has touched the panel since, it
+   writes nothing — the nodes, their wiring, the reader's scroll and the box all stand. ANY DOUBT = WRITTEN WHOLE:
+   - only a panel whose middle is words the painter itself wrote (the landing, the conversation): a face or a tab
+     filled by its own painter (Clauses, Redlines, Fill in, Before you sign, Send, Amend) is always written;
+   - a watcher on the panel says whether anything in it moved since the write (a menu opened, a row lit, a late
+     painter); typing and scrolling move nothing in the page and are kept;
+   - a button's act is looked up by a number minted at every build (pdAct): the kept buttons take the new numbers,
+     in order, so each press finds this build's act; a different count of them is a doubt.
+   igDockKeptCount says how many asks wrote nothing (the measure reads it). */
+let _igDockSrc=null, _igDockWatch=null, _igDockMoved=false, _igDockKept=0;
+const IG_DOCK_ACT_RE=/data-pd-act="[^"]*"/g;
+/* the parts of the panel another painter fills after it is written: never kept, the panel is written whole */
+const IG_DOCK_FILLED_SEL='[data-pd-send-kept], #pd-thread, #pd-fill, #pd-og, .pd-nx, #pd-fillface, #pd-redface, #pd-signface, #pd-amendface, #pd-sendface, #pd-send-slot, #pd-body, #pd-kt';
+function igDockKeptCount(){ return _igDockKept; }
+function igDockForget(){ _igDockSrc=null; }
+/* the panel as just written is what a later ask is compared with; null where its middle is not the painter's own */
+function igDockStamp(dock, html){
+  /* ONLY words the painter itself wrote: no part a painter fills after the write, and no box but the ask box (a box's
+     answer and the rows it opens live outside the string — GitHub's details-owes-overview-edits 4b, 13 Nov 2026) */
+  const own=!!dock.querySelector(':scope > #igd-feed:not([hidden])')&&!dock.querySelector(IG_DOCK_FILLED_SEL)
+    &&![...dock.querySelectorAll('input, select, textarea, [contenteditable="true"]')].some(n=>n.id!=='igd-input');
+  _igDockSrc=own?String(html).replace(IG_DOCK_ACT_RE,''):null;
+  if(typeof MutationObserver!=='function'){ _igDockSrc=null; return; }
+  if(!_igDockWatch) _igDockWatch=new MutationObserver(()=>{ _igDockMoved=true; });
+  if(_igDockWatch._on!==dock){ try{ _igDockWatch.disconnect(); _igDockWatch.observe(dock,{ childList:true, subtree:true, attributes:true, characterData:true }); _igDockWatch._on=dock; }catch(_){ _igDockSrc=null; return; } }
+  _igDockWatch.takeRecords(); _igDockMoved=false;
+}
+/* true when the panel standing is the one this build would write: nothing is written, the kept buttons re-numbered */
+function igDockSame(dock, html){
+  if(_igDockSrc==null||!_igDockWatch||_igDockWatch._on!==dock||!dock.isConnected) return false;
+  if(_igDockMoved||_igDockWatch.takeRecords().length){ _igDockMoved=true; return false; }
+  if(String(html).replace(IG_DOCK_ACT_RE,'')!==_igDockSrc) return false;
+  const ids=(String(html).match(IG_DOCK_ACT_RE)||[]).map(x=>x.slice(13,-1)), els=dock.querySelectorAll('[data-pd-act]');
+  if(ids.length!==els.length) return false;
+  els.forEach((el,i)=>{ if(el.getAttribute('data-pd-act')!==ids[i]) el.setAttribute('data-pd-act',ids[i]); });
+  _igDockWatch.takeRecords(); _igDockMoved=false;
+  _igDockKept++;
+  return true;
+}
 function igDockMarks(head, door){
   const pg=document.getElementById('ig-page'); if(!pg) return;
   if(head){ if(pg.getAttribute('data-igd-head')!==head) pg.setAttribute('data-igd-head',head); } else if(pg.hasAttribute('data-igd-head')) pg.removeAttribute('data-igd-head');
@@ -10069,7 +10110,7 @@ function renderIntelDock(){
        owner's "No", round 3). */
     const _dn=(typeof window.pdTabCount==='function')?pdTabCount('copilot',(window.pdOnPaper&&pdOnPaper()&&window.pdContract)?pdContract():null):null;
     const _df=(typeof window.jamboFaceHtml==='function')?jamboFaceHtml('hello',28,'igd-door-face').replace('<img','<img data-ink-exempt'):icon('sparkle','w-5 h-5');
-    igDockMarks('',true);
+    igDockMarks('',true); igDockForget();
     dock.innerHTML=`
       <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${igEsc(_dn?i18t('pd_tab_n',{ name:i18t('int_copilot_panel'), n:_dn.n }):i18t('int_open_panel'))}">
         <span class="igd-door-i">${_df}${_dn?`<span class="pd-tab-n is-${_dn.tone}">${_dn.n>99?'99+':_dn.n}</span>`:''}</span><span class="igd-door-w">${i18t('int_copilot_panel')}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>
@@ -10138,7 +10179,7 @@ function renderIntelDock(){
      the panel went on saying "This week is clear"), as it does over the Board (pdJamboTopHtml); Cancel brings
      the Calendar's own back */
   if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'&&!(window.naSheetUp&&naSheetUp())){
-    igDockMarks('',false);
+    igDockMarks('',false); igDockForget();
     dock.innerHTML=calPlanHtml();
     const head=dock.querySelector('.cal-plan-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
@@ -10148,7 +10189,7 @@ function renderIntelDock(){
     return;
   }
   igDockMarks((window.pdOnPaper&&pdOnPaper())?'paper':'off',false);
-  dock.innerHTML=`
+  const _html=`
     ${''/* HEADER ICONS (Young, 8 Oct 2026): the title row is the panel's tabs —
            Copilot, then the contract's own tabs while the Paper holds one. The
            engine's name rides Copilot's hover; Basic mode is still said, on
@@ -10289,6 +10330,17 @@ function renderIntelDock(){
       ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
     </div>`}${''/* the letter's "Before you send" column waits here unseen while
            ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml())||''}`;
+  /* NOTHING CHANGED, NOTHING WRITTEN (igDockSame): the panel stands as it is; only what lies outside it follows */
+  if(igDockSame(dock,_html)){
+    dock.classList.toggle('pd-face-up',!talk&&!!(window.pdFaceUp&&pdFaceUp()));
+    dock.classList.toggle('is-talk',!!talk);
+    if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){}
+    if(window.pdFillPaperMarks&&window.pdContract){ const pc=pdContract(); if(pc) try{ pdFillPaperMarks(pc); }catch(_){ } }
+    if(typeof window.shellCrumbHome==='function') try{ shellCrumbHome(); }catch(_){ }
+    try{ _igDockWatch.takeRecords(); _igDockMoved=false; }catch(_){ }
+    return;
+  }
+  dock.innerHTML=_html;
   /* THE NEWEST WORDS IN VIEW — or, with no conversation yet, the TOP: what
      he draws above it (Needs you here, the glance, the Board's greeting) is
      read from its first line, never scrolled past (round 3 as drawn: Needs
@@ -10455,6 +10507,8 @@ function renderIntelDock(){
   });
   /* the bar's way back to the Clauses tab, on the trip that began there (stage 5) */
   if(typeof window.shellCrumbHome==='function') try{ shellCrumbHome(); }catch(_){ }
+  /* what stands now is what a later ask is compared with (igDockSame) */
+  igDockStamp(dock,_html);
 }
 
 function closePartyModal(){ document.getElementById('party-scrim')?.classList.remove('open'); }
@@ -11189,7 +11243,19 @@ function igLineIdHtml(c,ref){
 function igStripRepaint(){
   const strip=document.getElementById('ig-strip'); if(!strip||strip.hidden) return;
   const p=intel&&intel.paper; const c=p&&p.id&&typeof getContract==='function'?getContract(p.id):null; if(!c) return;
-  const line=igStripHtml(c,p); strip._igLine=line; strip.innerHTML=line; igStripWire(); if(igHomePaperFace()!==null) igStripActsWire(c);
+  igStripPut(strip,c,p);
+}
+/* THE PAPER'S LINE IS WRITTEN ONLY WHEN IT SAYS SOMETHING ELSE (owner, 12 Nov 2026, the stutter audit; first for a
+   tab's press alone, then for every caller on 13 Nov: "the bar above the paper is redrawn a moment after you go back
+   to the Dossier"): the ONE writer of the line. Where the words it would draw are the very ones standing, for the
+   same contract, the line and its wiring stay (its presses read the contract by id at press time); else it is
+   written, wired and its switch's pill placed. True when it wrote. */
+function igStripPut(strip,c,p){
+  const line=igStripHtml(c,p), who=String(c.id);
+  if(!strip.hidden&&strip._igLine===line&&strip._igFor===who&&strip.firstElementChild) return false;
+  strip.hidden=false; strip._igLine=line; strip._igFor=who; strip.innerHTML=line; igStripWire(); igRedThumb();
+  if(igHomePaperFace()!==null) igStripActsWire(c);
+  return true;
 }
 function igStripHtml(c,p){
   const up=p.mode==='paper';
@@ -11863,7 +11929,7 @@ function igPaperRefresh(){
 let _igPaperPatched=null;   // what the last refresh did: { n, of } blocks put back, or null where the paper was drawn whole
 const igPaperLastPatch=()=>_igPaperPatched;
 let _igPaperPaints=0;   // how many times the paper's painter ran (the switch asks whether an opening already drew it)
-function igPaintPaper(o){
+function igPaintPaper(){
   _igPaperPaints++;
   const strip=document.getElementById('ig-strip'), host=document.getElementById('ig-paper'), page=document.getElementById('ig-page');
   /* the paper put up (or put down) is the desk's tab in front (Round 2, 17 Oct 2026; js/views/counter.js) */
@@ -11891,13 +11957,7 @@ function igPaintPaper(o){
   if(homePaper===true){ p.mode='paper'; p.focus=false; }
   else if(homePaper===false){ p.mode='graph'; p.focus=false; }
   if(homePaper===false){ strip.hidden=true; strip.innerHTML=''; strip._igLine=null; host.hidden=true; if(page) page.classList.remove('ig-focus'); return; }
-  /* A TAB PRESS LEAVES THE PAPER'S LINE ALONE WHEN IT SAYS THE SAME (owner, 12 Nov 2026, the stutter audit): the
-     line was wiped and built again on every tab press; a press that asks `keepLine` keeps the standing line, and
-     its wiring, where the words it would draw are the very ones drawn */
-  { const line=igStripHtml(c,p);
-    if(!(o&&o.keepLine&&!strip.hidden&&strip._igLine===line&&strip.firstElementChild)){
-      strip.hidden=false; strip._igLine=line; strip.innerHTML=line; igStripWire(); igRedThumb();
-      if(igHomePaperFace()!==null) igStripActsWire(c); } }
+  igStripPut(strip,c,p);
   /* the faces on the line (round 6): the beat runs while the paper is up on
      Home (pdPresenceOn keeps a running one; pdPresenceLeft ends it when the
      paper goes), and the row is painted now, not at the next beat */
@@ -12416,6 +12476,7 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 /* what the map shows, one reading (24 Oct 2026) */
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
 Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
+Object.assign(window,{ igDockKeptCount, igDockForget, igStripPut, IG_DOCK_FILLED_SEL });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,

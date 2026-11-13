@@ -11,7 +11,8 @@
      5 · the lit tab's underline still glides (the one thing that moves)
      6 · another paper opened (a page-to-page move): the same, no copy and nothing fading
      7 · a panel that opens wider is simply there (no fade from nothing)
-   At the parent 1, 2, 3, 6 and 7 fail.
+     10 · nothing changed, nothing written: a second ask for the same panel keeps its nodes, box and scroll (13 Nov 2026)
+   At the parent 1, 2, 3, 6 and 7 fail (12 Nov); 3b's second half and 10 fail at 13 Nov's parent.
    Run: node test/chromium/tab-change-no-flash-verify.js */
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
@@ -71,9 +72,50 @@ const HTML = n => `<h1>SERVICES AGREEMENT ${n}</h1><p>This Agreement is made bet
   check('5 · the lit tab\'s underline still glides', !a.missing && a.now.ink === true, a.now);
   const back = await watch('tab', 'copilot');
   check('1b · back to the Dossier: the same', !back.missing && back.now.ghosts === 0 && back.now.fading === 0 && back.worst.pale === 0 && back.worst.ghosts === 0 && back.on === 'copilot', { now: back.now, worst: back.worst });
-  /* the press's own turn (a later paint of the paper by another caller, as the read putting itself away, may draw the line again) */
-  check('3b · the press back leaves the line standing too', !back.missing && (!back.now.sameWords || back.now.sameLine), { now: [back.now.sameLine, back.now.sameWords], later: [back.sameLine, back.sameWords] });
+  /* and half a second on: no later caller writes a line that says the same (igStripPut, 13 Nov 2026) */
+  check('3b · the press back leaves the line standing, then and half a second on', !back.missing && (!back.now.sameWords || back.now.sameLine) && (!back.sameWords || back.sameLine), { now: [back.now.sameLine, back.now.sameWords], later: [back.sameLine, back.sameWords] });
   check('4 · no tab body is written a second time in a press', !a.missing && !back.missing && a.bodyWrites === 0 && back.bodyWrites === 0, [a.bodyWrites, back.bodyWrites]);
+
+  /* 10 · NOTHING CHANGED, NOTHING WRITTEN (13 Nov 2026): on the Dossier a second ask for the panel writes nothing; a
+     part moved since, or a tab filled by its own painter, is written whole as before */
+  await until(p, () => typeof igDockKeptCount === 'function', null, 3000);
+  const kept = await p.evaluate(async () => {
+    if (typeof igDockKeptCount !== 'function') return { missing: 'igDockKeptCount' };
+    const dock = document.getElementById('ig-dock');
+    for (let k = 0; k < 6; k++) await new Promise(r => requestAnimationFrame(() => r()));
+    renderIntelDock();                                      /* the panel as the painter leaves it */
+    const feed = document.getElementById('igd-feed'), box = document.getElementById('igd-input'); if (!feed || !box) return { missing: 'the landing' };
+    box.value = 'half a question'; feed.scrollTop = 40; const top = feed.scrollTop;
+    /* keepable only where nothing in the panel is filled after the write and no box but the ask box stands */
+    const keepable = !dock.querySelector(window.IG_DOCK_FILLED_SEL || '#pd-og') && ![...dock.querySelectorAll('input, select, textarea')].some(n => n.id !== 'igd-input');
+    const n0 = igDockKeptCount(); renderIntelDock(); renderIntelDock();
+    const same = { keepable, n: igDockKeptCount() - n0, feed: document.getElementById('igd-feed') === feed, box: document.getElementById('igd-input') === box, words: document.getElementById('igd-input').value, top: document.getElementById('igd-feed').scrollTop === top };
+    /* every button still finds an act: its number is one this build minted (the highest numbers are the newest) */
+    const acts = [...dock.querySelectorAll('[data-pd-act]')].map(b => b.getAttribute('data-pd-act'));
+    /* something in the panel moved: the next ask writes it whole */
+    feed.setAttribute('data-moved', '1'); const n1 = igDockKeptCount(); renderIntelDock();
+    const moved = { n: igDockKeptCount() - n1, fresh: document.getElementById('igd-feed') !== feed, words: document.getElementById('igd-input').value };
+    document.getElementById('igd-input').value = '';
+    /* Clauses is filled by its own painter: always written */
+    document.querySelector('#ig-dock [data-pd-tab="doc"]').click();
+    const body = document.getElementById('pd-body'); const n2 = igDockKeptCount(); renderIntelDock();
+    const tab = { n: igDockKeptCount() - n2, fresh: document.getElementById('pd-body') !== body };
+    document.querySelector('#ig-dock [data-pd-tab="copilot"]').click();
+    return { same, acts: acts.length, moved, tab };
+  });
+  /* where the landing holds a part filled after the write, it is written whole every time (any doubt = written whole) */
+  check('10a · asked again with nothing changed, a keepable panel is not written (same nodes, scroll); any other is written whole; the box\'s words stay either way',
+    !kept.missing && kept.same.words === 'half a question' && (kept.same.keepable ? (kept.same.n === 2 && kept.same.feed && kept.same.box && kept.same.top) : kept.same.n === 0), kept.same || kept);
+  check('10b · a part moved since: written whole, the box\'s words carried as before', !kept.missing && kept.moved.n === 0 && kept.moved.fresh && kept.moved.words === 'half a question', kept.moved);
+  check('10c · a tab filled by its own painter is always written', !kept.missing && kept.tab.n === 0 && kept.tab.fresh, kept.tab);
+  /* 10d · every kept button still finds its act: the number it carries is one this build minted */
+  const live = await p.evaluate(() => {
+    if (typeof pdActKnown !== 'function') return { missing: 'pdActKnown' };
+    const dock = document.getElementById('ig-dock'); renderIntelDock(); const n0 = igDockKeptCount(); renderIntelDock();
+    const ids = [...dock.querySelectorAll('[data-pd-act]')].map(b => b.getAttribute('data-pd-act')).filter(Boolean);
+    return { keptNow: igDockKeptCount() - n0, n: ids.length, dead: ids.filter(id => !pdActKnown(id)).length };
+  });
+  check('10d · every button still finds its act after a second ask', !live.missing && live.keptNow <= 1 && live.dead === 0, live);
 
   const other = await watch('paper', 'MK-111');
   const landed = await until(p, () => !!(window.pdContract && pdContract() && String(pdContract().id) === 'MK-111'), null, 10000);

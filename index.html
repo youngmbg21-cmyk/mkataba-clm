@@ -13269,6 +13269,111 @@
   .rl-chat-on em{font-style:normal;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;}
   .rl-chat-on:hover .id{text-decoration:underline;}
+  /* ---- THE THREAD (owner picked it by name off four drawn, 13 Nov 2026) ----
+     The Notes drawer reads as a conversation. Every rule here re-dresses a
+     part the builders above already draw, at equal weight and later, unscoped
+     like the rest of .rl-np-*: the shell's drawer, a change's own panel and
+     the other side's page are one builder. The rooms are one segmented switch;
+     the chips say which pile is listed; a line per day; a face per note; the
+     verbs are drawn buttons that come in when a note is pointed at or keyed to
+     and are always there on a finger; the facts sit under the words; one box. */
+  .rl-chat .rl-np-which .s{display:none;}
+  .rl-chat .rl-np-which .id{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rl-np-tabs{gap:0;margin:var(--s-3) var(--s-4) 0;padding:3px;border-bottom:0;
+    background:var(--surface-2);border-radius:999px;}
+  .rl-np-tab{height:26px;padding:0 10px;border-bottom:0;border-radius:999px;align-items:center;
+    font-weight:var(--w-label);}
+  .rl-np-tab.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-label);
+    box-shadow:var(--shadow-sm);}
+  .rl-np-tab.on i,.rl-np-tab i{color:var(--color-neutral-400);}
+  .rl-np-scope{position:sticky;top:0;z-index:3;background:var(--color-surface);gap:6px;
+    padding:10px 0 var(--s-2);font-size:var(--t-meta);font-weight:var(--w-body);letter-spacing:0;}
+  .rl-np-chip{font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);height:24px;padding:0 10px;
+    border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);cursor:pointer;
+    white-space:nowrap;flex:none;}
+  .rl-np-chip em{font-style:normal;}
+  .rl-np-chip:hover{background:var(--color-divider);}
+  .rl-np-chip.on{background:var(--accent-solid);color:var(--color-surface);}
+  .rl-np-sort{margin-left:auto;display:inline-flex;align-items:center;gap:4px;flex:none;
+    color:var(--color-neutral-400);white-space:nowrap;}
+  .rl-np-ai{width:14px;height:14px;flex:none;display:block;}
+  .rl-np-acts .rl-np-ai{display:none;}
+  .rl-np-day{display:flex;align-items:center;gap:10px;padding:var(--s-2) 0 2px;
+    font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-400);white-space:nowrap;}
+  .rl-np-day::before,.rl-np-day::after{content:"";flex:1;height:1px;background:var(--color-divider);}
+  .rl-np-thread{border-bottom:0;}
+  .rl-np-note{position:relative;display:flex;gap:10px;margin:0 calc(-1 * var(--s-4));
+    padding:10px var(--s-4);border-bottom:0;}
+  .rl-np-note:hover,.rl-np-note:focus-within{background:var(--color-chat-bg);}
+  .rl-np-note.is-them{padding-left:var(--s-4);}
+  .rl-np-b{flex:1;min-width:0;}
+  .rl-np-av{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;
+    font-size:var(--t-figure);font-weight:var(--w-strong);line-height:1;
+    background:var(--color-text);color:var(--color-surface);}
+  .rl-np-av-1{background:var(--color-accent-500);}
+  .rl-np-av-2{background:var(--surface-2);color:var(--color-text);}
+  .rl-np-av-3{background:var(--color-accent-700);}
+  .rl-np-av.s{width:20px;height:20px;font-size:8px;}
+  .rl-np-top{gap:var(--s-2);}
+  .rl-np-top b{font-size:var(--t-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .rl-np-top span{margin-left:0;font-size:var(--t-meta);white-space:nowrap;}
+  .rl-np-note p{font-size:var(--t-body);line-height:1.5;margin:3px 0 0;overflow-wrap:anywhere;}
+  .rl-np-note .rl-chat-on{margin-top:1px;align-items:center;gap:5px;font-size:var(--t-meta);color:var(--accent-ink);}
+  .rl-np-anchor{margin-top:2px;font-size:var(--t-meta);}
+  .rl-np-anchor .w{display:flex;align-items:center;gap:5px;color:var(--accent-ink);font-weight:var(--w-label);}
+  .rl-chat-on + .rl-np-anchor .w{display:none;}
+  .rl-np-anchor q{font-family:var(--font-doc);color:var(--color-quiet);}
+  /* A reply sits under its note, on a line of its own that runs down the thread. */
+  .rl-np-note.is-reply{margin-left:calc(-1 * var(--s-4));border-left:0;gap:var(--s-2);
+    padding:5px var(--s-4) 5px calc(var(--s-4) + 50px);}
+  .rl-np-note.is-reply::before{content:"";position:absolute;left:calc(var(--s-4) + 38px);top:2px;bottom:2px;
+    width:2px;background:var(--color-divider);}
+  /* THE VERBS, DRAWN. Unseen until the note is pointed at or keyed into, but
+     never unpressable: a press that reaches one is already over its note. */
+  .rl-np-note>.rl-np-acts{position:absolute;top:-10px;right:var(--s-3);z-index:2;margin:0;gap:1px;padding:2px;
+    align-items:center;background:var(--color-surface);border:1px solid var(--rule-strong);
+    border-radius:var(--radius-sm);box-shadow:var(--shadow-md);opacity:0;}
+  .rl-np-note:hover>.rl-np-acts,.rl-np-note:focus-within>.rl-np-acts{opacity:1;}
+  .rl-np-note>.rl-np-acts .rl-np-act-b{width:26px;height:26px;display:grid;place-items:center;
+    border-radius:6px;color:var(--color-quiet);}
+  .rl-np-note>.rl-np-acts .rl-np-act-b:hover:not(:disabled){background:var(--surface-2);color:var(--color-text);}
+  .rl-np-note>.rl-np-acts .rl-np-seen.is-on{color:var(--accent-ink);}
+  .rl-np-note>.rl-np-acts .rl-np-ai{display:block;}
+  .rl-np-note>.rl-np-acts .rl-np-al,.rl-np-box .rl-np-send .rl-np-al{position:absolute;width:1px;height:1px;
+    overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+  @media (hover:none){
+    .rl-np-note{flex-wrap:wrap;}
+    .rl-np-note>.rl-np-acts{position:static;opacity:1;flex:1 0 100%;border:0;box-shadow:none;padding:0;
+      margin:2px 0 0 38px;background:none;gap:var(--s-2);}
+    .rl-np-note.is-reply>.rl-np-acts{margin-left:28px;}
+  }
+  .rl-np-b .rl-np-facts{gap:var(--s-1) var(--s-3);margin-top:6px;}
+  .rl-np-b .rl-np-fsep{display:none;}
+  .rl-np-b .rl-np-seenby,.rl-np-b .rl-np-doneby,.rl-np-b .rl-np-given{display:inline-flex;align-items:center;gap:5px;
+    font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-400);
+    background:none;padding:0;white-space:nowrap;}
+  .rl-np-b .rl-np-seenby{white-space:normal;}
+  .rl-np-b .rl-np-doneby::before,.rl-np-b .rl-np-given::before{content:"";width:7px;height:7px;flex:none;
+    border-radius:50%;background:var(--st-green-dot);}
+  .rl-np-b .rl-np-given{color:var(--accent-ink);font-weight:var(--w-label);}
+  .rl-np-b .rl-np-given::before{background:var(--color-accent-500);}
+  .rl-np-b .rl-np-given.is-you{color:var(--st-amber-fg);}
+  .rl-np-b .rl-np-given.is-you::before{background:var(--st-amber-fg);}
+  .rl-np-b .rl-np-rbox{margin:var(--s-2) 0 2px;padding-left:0;border-left:0;}
+  .rl-np-rin{border-radius:var(--radius);border-color:var(--rule-strong);}
+  /* ONE BOX AT THE FOOT: the words, the @ door, the one filled button. */
+  .rl-np-foot{background:var(--color-surface);padding:var(--s-3) var(--s-4) var(--s-4);}
+  .rl-np-box{position:relative;display:grid;gap:var(--s-1);padding:var(--s-2) var(--s-2) var(--s-2) var(--s-3);
+    border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);}
+  .rl-np-box:focus-within{border-color:var(--color-text);}
+  .rl-np-box .rl-np-in{border:0;padding:0;min-height:40px;resize:none;outline:0;box-shadow:none;background:none;
+    font-size:var(--t-body);}
+  .rl-np-box .rl-np-act{margin:0;align-items:center;gap:6px;}
+  .rl-np-atb{width:26px;height:26px;flex:none;display:grid;place-items:center;border:0;border-radius:6px;
+    background:none;color:var(--color-quiet);cursor:pointer;margin-left:-4px;}
+  .rl-np-atb:hover{background:var(--surface-2);color:var(--color-text);}
+  .rl-np-box .rl-np-send{margin-left:auto;height:28px;min-width:28px;aspect-ratio:1/1;padding:0;border:0;
+    border-radius:50%;display:grid;place-items:center;background:var(--accent-solid);color:var(--color-surface);}
   #panel-body .al-row.al-good{padding-left:9px!important;
     box-shadow:inset 3px 0 0 var(--st-green-dot);}
   #panel-body .al-row.al-good .al-t{color:var(--st-green-fg);}

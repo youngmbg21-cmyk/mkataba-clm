@@ -674,8 +674,11 @@ const dismissNote = async pg => {
   }));
   /* RE-POINTED 5 Oct 2026 (one row of feet): the button reads "Save" and
      names the change it saves into on its hover. */
+  /* RE-POINTED 13 Nov 2026 (the editor's audit, f1027): after this Save the page walks on to THEIR next ask, and
+     over their change Save files our counter to it. The hover says so ("Files your counter to CHG-…"); it used to
+     say "Saves into CHG-…" naming THEIR change. Over our own change it still says "Saves into". */
   ck('7f and the page was re-read from the record — File greys, naming the change',
-     reseed.save === true && /^Save Saves into CHG-/.test(reseed.label),
+     reseed.save === true && /^Save (Files your counter to|Saves into) CHG-/.test(reseed.label),
      `${reseed.label} · disabled ${reseed.save}`);
 
   /* ---- 8. THE PANEL'S OWN COPILOT BUTTON IS THE OTHER DOOR ---- */
@@ -3067,7 +3070,7 @@ const dismissNote = async pg => {
       const panel = document.getElementById('context-panel');
       return { pinGone: !(panel && panel.querySelector('.rl-np-pin')),
         text: t.text, vis: t.visibility, who: t.who, at: t.at,
-        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent))) };
+        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent + ' ' + (x.title || '')))) };
     });
     ck('25f Add note files it onto the change it named, in the room that was lit — Internal at rest',
        /never paid theirs/.test(wrote.text || '') && wrote.vis === 'internal',

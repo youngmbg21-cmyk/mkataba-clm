@@ -244,7 +244,7 @@ describe('f756 (5) the notes open in the same panel', () => {
     assert.match(fn, /rlAgoWords\(m\.at\)/, 'when, in words');
     assert.match(fn, /class="rl-fn-say"/, 'the words in a bubble');
     assert.match(fn, /rlNpNoteHtml\(m, room, side, '', \{ \.\.\.\(ctx \|\| \{\}\), actsOnly: true \}\)/, 'the verbs are the drawer\'s own');
-    assert.match(NV, /if \(ctx && ctx\.actsOnly\) return acts;/);
+    assert.match(NV, /if \(ctx && ctx\.actsOnly\) return acts \+ facts;/);
     assert.match(fnBody(NV, 'rlFaceNoteClause'), /i18t\('ng_fn_clause', \{ n: num \}\)/, '"clause 11"');
     /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the
        clause through the one lander */
@@ -349,7 +349,9 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     const dress = fnBody(CE, 'ceRowPaperDress');
     assert.doesNotMatch(dress, /ce-row-off|ceRowContextLine/);
     assert.match(dress, /all\.forEach\(\(el, i\) => el\.classList\.toggle\('ce-row-on', i === at\)\);/);
-    assert.match(dress, /_cet\(ceRowIsCounter\(\) \? 'ce_row_is_counter' : 'ce_row_is_draft'\)/);
+    /* RE-POINTED 13 Nov 2026: a draft of ours already filed says so with its number (f1027); the counter and
+       the unfiled draft read as before */
+    assert.match(dress, /ceRowIsCounter\(\) \? _cet\('ce_row_is_counter'\)\s*: ceLeadIsOurs\(\) \? _cet\('ce_row_is_filed', \{ id: _ceLead\.id \}\) : _cet\('ce_row_is_draft'\)/);
     assert.ok(!/function ceRowStep\(/.test(CE), 'the ladder step reading is gone from the editor');
     assert.doesNotMatch(CE, /ce-rowmode #ce-doc \.ce-row-off|ce-rowmode #ce-readbar|ce-rowmode \.ce-foot \.draft/);
     assert.doesNotMatch(CE, /ce-row-on #ce-clausebody\{border/, 'no blue box round the clause (owner, 20 Oct 2026)');

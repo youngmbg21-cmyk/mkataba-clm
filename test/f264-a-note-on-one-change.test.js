@@ -618,7 +618,11 @@ describe('f264 (8) — Chat is the whole contract’s conversation', () => {
      stronger form: it fails if Chat ever grows a composer of its own design. */
   test('THE BOX IS BACK, and it is the panel\'s own', () => {
     const fn = VIEW.match(/function rlChatPanelHtml\([\s\S]*?\n\}/)[0];
-    assert.match(fn, /class="chat-field rl-np-in"/,
+    /* RE-POINTED 13 Nov 2026 (the Thread, owner's pick): the box is ONE builder
+       both panels call, so "the panel's own" is now a fact of construction. */
+    assert.match(fn, /rlNpBoxHtml\(\{ ext, room, key: 'contract',/, 'the one box builder, at contract scope');
+    assert.match(VIEW.match(/function rlNotesPanelHtml\([\s\S]*?\n\}/)[0], /rlNpBoxHtml\(\{ ext, room, key: _ne\(ch\.id\),/, 'the per-change panel calls the same one');
+    assert.match(VIEW.match(/function rlNpBoxHtml\([\s\S]*?\n\}/)[0], /class="chat-field rl-np-in"/,
       'the same textarea class the per-change panel writes');
     assert.match(fn, /rlNpTagMenuHtml\(c, room, opts\)/,
       'and the same tag picker — one function, both composers');

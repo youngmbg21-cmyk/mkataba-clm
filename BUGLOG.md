@@ -22325,8 +22325,40 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
 - Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+
+## 13 Nov 2026 — the stutter audit's five open items (owner: "fix all these")
+- FIXED: Jambo's panel is not written when nothing would change (igDockSame; any doubt = written whole). The paper's line has one writer and is written only when it says something else (igStripPut; keepLine deleted). The last line of Fill in on the paper names three details, then counts. CLAUDE.md trimmed 91,564 → 79,918 bytes (MAP only; verbatim in MAP-HISTORY).
+- ADDED: the flash measure (test/chromium/_audit/flash-measure.js), a measuring instrument that films every page move on GitHub.
+### Noticed, not fixed
+- On a negotiated paper (any open redline) no blank can be typed on the paper, so every owed detail falls to the form (the owner's MK-469: sixteen). By design since 11 Nov; whether blanks may be filled on wording the other side is reading is the owner's call.
+- Jambo's panel wires itself over the whole panel after every write (dock.querySelectorAll(...).forEach(addEventListener), about a hundred lines); keeping PARTS of a written panel needs those moved to delegation first.
+- The Board's charts fade their parts in on every paint (.hb-in, hbIn .5s) and every Jambo answer row fades in on every paint (.ai-msg, viewIn .25s); not measured yet (the flash measure's first run will say whether they replay on a page move).
+
+## 13 Nov 2026 — a blank on a negotiated paper is a tracked change (f1026; owner: "yes, build option 2")
+- BUILT: on a negotiated paper the blanks outside an argued clause are typed where they stand; Save files them as our change in Redlines through negoEditClause, one per clause, not sent. A company standard's answer also goes into its form ("Done straight away").
+### Noticed, not fixed
+- A company standard's fields (c.templateForm) are never on Fill in on the paper's walk, even on an un-negotiated draft: pd2FillBlanks reads contractBlanks, which answers [] for a templateForm contract, so every field falls to the form's "no place on the paper" line.
+- Suspected, not measured: "Fill the document" (tplFormApply) is not locked during a negotiation (tplFormLocked is only signed/executed/sealed) and rewrites c.redlineText from the form wholesale; whether that reaches a negotiated paper untracked depends on what the negotiation reads as its baseline. Worth a measured look.
+## 13 Nov 2026 — THE NOTES DRAWER IS A THREAD (owner picked "The Thread" by name off four drawn)
+- Built: rooms as a segmented switch, chips Open · Yours · Done (replacing the drawer's Done fold), a line per day, a face per note, the clock beside the name (full stamp on the hover), drawn verbs on hover/focus (always shown on a finger), facts under the words, one rounded box with the @ door. f1026 (red at the parent); f248, f264, f303, f304, f446, f756 re-pointed; two browser checks read the stamp off the hover.
+- A line NOT BUILT: the drawing's "Only your team sees this" was left out (owner's 2 Sep 2026 ruling); asked.
+- Hidden, as drawn: the contract-wide panel's "N notes" line under its name (the switch carries the counts).
+- Left alone on purpose: the Redlines column's notes view (word verbs, own Done fold) and the phone.
+### Noticed, not fixed
+- The contract-wide Notes list on the OTHER SIDE's page prints our change code (CHG-00N) on a note's reference line (rlChatPanelHtml refOf), while the pin on the same page reads the clause instead (owner, 8 Nov 2026). Not checked in a browser on their page; not touched.
 - Noticed, not fixed (13 Nov 2026): many browser checks open a contract (roomHomeLand) as soon as currentUser() is set after sign-in, before the sign-in's own landing on the Board (`_cnSignedIn` cleared in startApp); the Board can paint over the contract and the check fails at random (seen on the-read-bar-and-notes-verify laptop-b). Fixed only in the three checks this round touched; the rest should wait for `window._cnSignedIn === false`.
 
+## 13 Nov 2026 — the clause editor's audit (owner, four screenshots of MK-382's clause 3; f1026, editor-audit-verify)
+- FIXED: Home's Redline / Clean / Their view paper drew a lettered limb flush against the margin (the hang and step rules named the editor's paper only). Stated for .ig-redpaper too.
+- FIXED: in the new look the editor's Jambo panel was still the 28 Oct floating card; it is a flush panel with one hairline.
+- FIXED: a clause with an (a) (i) (1) limb read as typed in the moment it was opened (the gutter walk's own step class read back as the reader's work): Save live over nothing, "Leave this clause?" on a redline already filed.
+- FIXED: the page said "nothing is filed" and "Draft saved at" over a change already filed; it says what is filed, whose it is, and "Not filed yet" for a draft. The leave warning quotes the words at risk.
+- FIXED (found by the audit): Undo back to what stands over our own filed change asked "Leave and lose it?" with Save grey; Redo drew a later step over words typed since the step back; moving to a clause a colleague holds put the reader out of the editor; Escape with the Notes panel open shut the panel AND left the editor; the Save hover over their change named their change as the one saved into.
+- Noticed, not fixed: on Home's panel beside a paper the Redlines tab carries a number (2 in the owner's image 4) that is not the head's "Redlines 6"; two counts on one door, not read further (outside the editor).
+- Noticed, not fixed: "Undo the last change" in the editor's foot is live on a change opened and not touched (it steps the box to the standing wording); harmless now, but it reads as if something of this sitting could be undone.
+- Noticed, not fixed: the writing bar's Outdent on a lettered limb whose step was read off its marker does not stick (the next repaint reads the step off the marker again).
+- Noticed, not fixed: CLAUDE.md is about 93 KB, over its own "about 80 KB" line (two lessons added this round).
+- NOT DONE, said: the new browser check was not seen red on main by a hand run (about 110 billed minutes); its node twin was run red against the parent and the photos show the faults on the parent.
 ## Noticed, not fixed (13 Nov 2026)
 - home-board-verify 15a ("by month" draws month columns, each a door…) fails on main since 9f6f6aa (run 43337002752; passed at e7d345c). Seen on PR 686, which touches neither the Board nor its charts. Not fixed here.
 - FIXED the same day (owner: "fix it first"): the check's own dates, not the app. MK-J1 ends day(200) and MK-J2 had the fixed 30 Jun 2027; from 13 Nov 2026 day(200) falls in June too, so "Juno by month" was one month ("All in one") and drew no columns. MK-J2 now ends day(260), always another month.
@@ -22343,3 +22375,11 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - UNVERIFIED GUESS (mine, not measured): the chat route offers its answer tool on every step, so the model may take it even for a drafting ask; the summary's "See the JSON" suggests it believed it had sent the object as well.
 - Not fixed: the owner asked only for this line.
 - Noticed, not fixed (13 Nov 2026, owner asked to log it): in the Fill in form (the middle, new look), an owed blank such as "Material supplied" shows "On the paper The document's blanks" in its where-it-was-read column — the old two labels run together with no separator, and no "§ · quoted words" from where the blank stands on the paper, unlike the rows read from the paper (`pd2FormRegroup` keeps the old source cell for upload blanks). The drawing showed "§ Preamble · for the supply of —".
+- 13 Nov 2026 — FIXED (f1027; owner: "fix the draft that comes back with no wording"): a drafting ask whose answer carries no JSON object is asked once more for it, on both chat routes and the browser-only path; the second answer stands. Not re-measured against the real provider (2-in-9 fault).
+- 13 Nov 2026: the clause editor's audit's test is f1027 (main took f1026 for "room for the answer" before it merged); the lines above that say f1026 for the audit mean f1027.
+- Renumbered: the Thread's check is f1030 (main took f1026 for "room for the answer" the same day).
+- FIXED 13 Nov 2026 (owner: "fix the Redlines tab count so it matches the head"): the Redlines tab on Jambo's panel now carries its column's own "Redlines N" on our seat too (it counted the Dossier's owed negotiation rows); amber while something there waits on you, grey otherwise. f1030.
+- 13 Nov 2026 — the "a draft asked for is a draft sent" check is f1030, not f1027 as the line above says (main took f1027 to f1029 meanwhile).
+- 13 Nov 2026: the Redlines tab's test is f1031 (main took f1030 for "a draft asked for is a draft sent" before it merged); the line above that says f1030 for the tab means f1031.
+- Renumbered again: the Thread's check is f1032 (main took f1030 and f1031 the same day).
+- Noticed, not fixed (13 Nov 2026; owner: "Don't fix the send-screen check that failed earlier but add it to the bug log"): the send screen's browser check (the-letter-verify) went red on GitHub's run of the room-for-the-answer request (its run of 13 Nov, about 01:35) at step 6, the owner's three screens. Steps 1–4b passed (the subject and the words that reached the mail stand-in matched the letter shown); then, reopening the send screen at 1440×780, one of the four parts it measures (the title `#share-lead-title`, Send `#share-send`, the letter `#sh-letter`, or its column `#share-step-1`) was not on the page — "Cannot read properties of null (reading 'getBoundingClientRect')", line 160. The run was never repeated and the request merged anyway; later requests' runs passed, so it may be a one-off (the screen not yet open when measured) or a real gap. Not looked into.

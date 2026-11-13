@@ -115,7 +115,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         list: list ? list.textContent.replace(/\s+/g, ' ') : '',
         reply: !!(panel && panel.querySelector('[data-rl-np-reply]')),
         done: !!(panel && panel.querySelector('[data-rl-np-done]')),
-        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent))),
+        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent + ' ' + (x.title || '')))),
         pin: !!(panel && panel.querySelector('.rl-np-pin')) };
     }, set.ch);
     check('THE DRAWER\'S OWN DOOR OPENS IT ON THE CHANGE — not a dead press, and no window', dlg.up && dlg.window === false);

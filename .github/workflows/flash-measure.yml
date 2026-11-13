@@ -1,0 +1,34 @@
+# THE FLASH MEASURE (owner, 13 Nov 2026: the list pages and Settings "were not filmed").
+# A measuring instrument, not a test: it films every move between pages, frame
+# by frame, and prints what faded, went pale, went blank or was drawn twice.
+# It never fails a run. It runs only when the measuring script itself (or this
+# file) changes on a pushed branch, or when somebody starts it by hand, so the
+# ordinary checks are not slowed by it.
+name: flash measure
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'test/chromium/_audit/flash-measure.js'
+      - '.github/workflows/flash-measure.yml'
+
+concurrency:
+  group: flash-measure-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    name: flash measure
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx playwright-core install chromium
+      - run: node test/chromium/_audit/flash-measure.js
+        env:
+          HATI_AGENTS_AUTO: 'off'
