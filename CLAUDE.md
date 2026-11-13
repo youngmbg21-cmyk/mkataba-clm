@@ -30,6 +30,8 @@ THIS FILE IS RULES ONLY, loaded whole every session and sent with every step. **
 
 THE OWNER'S OWN WORDS, 24 Aug 2026. They GOVERN the Bug Fix Rules: Rule 2 says find every place a thing appears; this says do not fix the other things you find on the way. The finding still gets one line in BUGLOG.md, never a fix.
 
+**THE PARKING LOT — THE OWNER'S LIST OF THINGS TO BUILD LATER** (owner, 13 Nov 2026): docs/PARKING-LOT.md, items P-1, P-2… "Park this" / "Move this to the Parking lot" ADDS an item in plain words and builds NOTHING; "Show me the Parking lot" lists what waits; "Build P-n" starts it as ordinary work and marks it Done with its pull request; "Drop P-n" marks it Dropped, never deleted. Claude only suggests parking; the owner's word adds. Faults Claude notices still go to BUGLOG.md.
+
 **BUGLOG.md — APPEND, NEVER READ** (1.5 MB; reading is DENIED in `.claude/settings.json`). Append only with `cat >> ./BUGLOG.md <<'EOF' … EOF` or `tee -a ./BUGLOG.md >/dev/null <<'EOF' … EOF` (both pre-approved). Verify with `git diff --stat -- ./BUGLOG.md`; house style `git show HEAD:BUGLOG.md | tail -80`. `.claude/settings.json` is strict JSON: no comments; an unknown key can take the hooks down.
 
 ## NO NEW BANDS ON THE PAGE — ASK FIRST (owner-asked 26 Aug 2026)
