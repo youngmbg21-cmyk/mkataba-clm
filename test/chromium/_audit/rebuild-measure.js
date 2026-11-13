@@ -192,7 +192,7 @@ const sameList = (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []);
 function judge(pre, film, post){
   const a = pre.sig, b = post.sig;
   const moved = a.view !== b.view || a.face !== b.face || a.active !== b.active;
-  const what = [], lost = [], flash = [];
+  const what = [], lost = [], flash = [], away = [];
   const reopened = a.dlg && b.dlg && !post.dlgKept;
   if (reopened) what.push('the pop-up is closed and a new one opened' + (a.dlgName !== b.dlgName ? ` ("${a.dlgName}" became "${b.dlgName}")` : ''));
   if (!moved) for (const p of post.parts){
@@ -201,13 +201,18 @@ function judge(pre, film, post){
     else if (p.pct >= 50) what.push(`most of ${p.name} is written again (${p.pct}%)`); }
   const stay = !moved && a.dlg === b.dlg;                                               /* the reader is where they were */
   if (stay || reopened){
-    for (const t of post.typed) if (!t.kept) lost.push(`what was typed in "${t.name}"` + (t.there ? '' : ' (the box itself is new)'));
+    /* ONLY WORDS THAT ARE REALLY GONE: a box that is still on screen and no longer holds them. A box the press PUT
+       AWAY with its panel (Collapse, Close, Minimize) is not a loss by itself — its words are held outside it and
+       come back with it (jambo-box-keeps-what-you-typed-verify proves that); the second run counted every such
+       press as a loss, which is why its total did not move. Those are listed, not scored. */
+    for (const t of post.typed){ if (t.kept) continue;
+      if (t.there) lost.push(`what was typed in "${t.name}"`); else away.push(t.name); }
     for (const s of post.scrolls) if (!s.there || (s.now < s.was - 30 && s.room >= s.was)) lost.push('where it was scrolled to');
   }
   if (film.blank) flash.push(`blank ${film.blank}/${film.frames} frames`);
   if (film.paleFrames) flash.push(`pale ${film.paleFrames}/${film.frames} frames (${film.pale.join(', ')})`);
   if (film.jump >= 0.05) flash.push('jumps ' + film.jump);
-  return { moved, reopened, what, lost: [...new Set(lost)], flash };
+  return { moved, reopened, what, lost: [...new Set(lost)], flash, away: [...new Set(away)] };
 }
 
 (async () => {
@@ -294,6 +299,7 @@ function judge(pre, film, post){
           if (j.what.length) bits.push(j.what.join('; '));
           if (j.flash.length) bits.push('flash: ' + j.flash.join(', '));
           if (j.lost.length) bits.push('LOST: ' + j.lost.join('; '));
+          if (j.away && j.away.length){ T.away = (T.away || 0) + 1; bits.push('box put away with its panel: ' + j.away.join(', ')); }
           say(`  ${where.padEnd(64)} ${bits.length ? bits.join(' · ') : 'clean'}`);
           if (!j.moved && (j.reopened || j.what.length || j.lost.length || j.flash.length))
             rows.push({ page: base.name, press: where, what: j.what.join('; ') || '—', lost: j.lost.join('; ') || '—', flash: j.flash.join(', ') || '—',
@@ -313,6 +319,7 @@ function judge(pre, film, post){
   rows.sort((x, y) => y.score - x.score);
   say(`\n================ WORST FIRST (${rows.length} presses that rebuilt, flashed or lost something) ================`);
   for (const r of rows.slice(0, 80)) say(`  [${r.page}] ${r.press}\n      today: ${r.what}\n      lost:  ${r.lost}\n      flash: ${r.flash}`);
+  say(`\nBoxes put away with their panel (not scored as a loss): ${Object.values(tally).reduce((n, T) => n + (T.away || 0), 0)} presses.`);
   say('\n================ BY PAGE ================');
   for (const [name, T] of Object.entries(tally)) say(`  ${name.padEnd(28)} pressed ${String(T.pressed).padStart(3)} · rebuilt ${String(T.rebuilt).padStart(3)} · lost ${String(T.lost).padStart(3)} · flashed ${String(T.flash).padStart(3)} · left alone ${T.left} · not found ${T.gone} · not reached ${T.cut}`);
   /* the same table where GitHub shows it on the run's own page */
