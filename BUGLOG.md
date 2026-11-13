@@ -22367,4 +22367,6 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - WHY IT MATTERS: the drafting door reads that summary as advice (`aiParseProposal` finds no proposal object), so it is not a fault the reader is told about — it looks like Jambo chose not to draft.
 - UNVERIFIED GUESS (mine, not measured): the chat route offers its answer tool on every step, so the model may take it even for a drafting ask; the summary's "See the JSON" suggests it believed it had sent the object as well.
 - Not fixed: the owner asked only for this line.
+- 13 Nov 2026 — FIXED (f1027; owner: "fix the draft that comes back with no wording"): a drafting ask whose answer carries no JSON object is asked once more for it, on both chat routes and the browser-only path; the second answer stands. Not re-measured against the real provider (2-in-9 fault).
 - 13 Nov 2026: the clause editor's audit's test is f1027 (main took f1026 for "room for the answer" before it merged); the lines above that say f1026 for the audit mean f1027.
+- 13 Nov 2026 — the "a draft asked for is a draft sent" check is f1030, not f1027 as the line above says (main took f1027 to f1029 meanwhile).
