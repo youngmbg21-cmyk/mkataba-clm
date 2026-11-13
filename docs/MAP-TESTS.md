@@ -562,6 +562,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- ONE HOME FOR A HALF-TYPED QUESTION (13 Nov 2026, the flash survey, Part A): f1044 (seven parts); test/chromium/jambo-box-keeps-what-you-typed-verify.js (red at the parent 1-5).
+- THE SEND SCREEN TURNS IN PLACE (13 Nov 2026, the flash survey, Part B): f1045 (six parts); test/chromium/send-screen-keeps-its-way-back-verify.js (red at the parent 1-3).
 - THE REBUILD MEASURE (13 Nov 2026, the flash survey): test/chromium/_audit/rebuild-measure.js (a measuring instrument; `.github/workflows/rebuild-measure.yml`; on GitHub, never fails): presses every door on every page and says what was thrown away and built again, what flashed, what the reader lost.
 - WHAT LANDED THE SAME IS NOT DRAWN AGAIN (13 Nov 2026): f1040 (eight parts; (1)–(5) red at the parent, (6)–(8) red at round one). The flash measure (test/chromium/_audit/flash-measure.js, on GitHub, never fails) now names who wrote late and what moved, at the three screens.
 - THE BRAIN READS THE CODE WITHOUT FREEZING HaTi (10 Nov 2026): `node --test test/f1000-the-brain-reads-without-freezing.test.js` (new; (2) red at the parent — 8.9 s against a 4 s bound, (3) red — no brainDefIndex; (1) pins the reading equal to the old search part for part). Green beside it: f400, f458, f561, f564, f659.
