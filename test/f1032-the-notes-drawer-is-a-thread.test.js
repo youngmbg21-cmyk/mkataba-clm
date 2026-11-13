@@ -1,6 +1,6 @@
 'use strict';
 /* ============================================================
-   f1030 — THE NOTES DRAWER IS A THREAD (owner picked "The Thread" by name off
+   f1032 — THE NOTES DRAWER IS A THREAD (owner picked "The Thread" by name off
    four drawn options, 13 Nov 2026)
    ============================================================
    The drawer reads as a conversation. The same builders, attributes and the
@@ -15,7 +15,7 @@
         offers somebody
      7  the rooms' counts ride the switch without brackets
      8  every new word is in both books; no colour is hand-typed
-   Run: node --test test/f1030-the-notes-drawer-is-a-thread.test.js
+   Run: node --test test/f1032-the-notes-drawer-is-a-thread.test.js
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -57,7 +57,7 @@ async function bench(){
 /* A day built off the clock the test runs on, never a calendar date. */
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(12, 0, 0, 0); return d.toISOString(); };
 
-describe('f1030 — the Notes drawer is a Thread', () => {
+describe('f1032 — the Notes drawer is a Thread', () => {
   test('(1)(2) a face, the clock beside the name, and a line per day', async () => {
     const p = await bench();
     p.post('Older.', MATE.name); p.post('Newer.');

@@ -14114,6 +14114,15 @@ function copilotNudge(working, words) {
 /* the last step must answer (measured: making EVERY step use a tool sent a confused model searching to the
    eighth call, 22 Oct 2026; a question asked back in plain words is asked to come with its choices instead) */
 const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { type: 'tool', name: 'deliver_answer' } } : {});
+/* ---- A DRAFT ASKED FOR IS A DRAFT SENT (owner, 13 Nov 2026: "fix the draft that comes back with no wording") ----
+   A drafting door (copilotPropose, js/ai.js) says so in its context (`proposal: true`): its prompt asks for ONE JSON
+   object, empty wording included where it cannot draft. Measured 12 Nov, 2 of 9 asks on the stronger model answered
+   through deliver_answer with a summary instead ("See the JSON for … the replacement text") and no object, so the
+   editor showed advice and no card. Such an answer is asked ONCE more for the object; what comes back the second time
+   stands as it is. The browser-only path does the same (aiLocalClaude). */
+const COPILOT_PROPOSAL_RE = /\{\s*"(?:advice|reasoning|rationale|explanation|whyChange|whatItDoes|proposedText|proposed_text|placement|headingText)"\s*:/;
+const COPILOT_PROPOSAL_NUDGE = '[From HaTi, not the person] The drafter asked for ONE JSON object (advice, whyChange, whatItDoes, proposedText) and your answer did not carry it. Send that object now as your whole answer, and nothing else; proposedText is an empty string if you cannot draft.';
+const copilotProposalMissing = (context, answer) => !!(context && context.proposal === true) && !COPILOT_PROPOSAL_RE.test(String(answer || ''));
 /* ---- ROOM FOR THE ANSWER, AND ONE MORE GO WHEN IT RUNS OUT (owner, 12 Nov 2026; measured the same day) ----
    The stronger model thinks before it answers on some asks, unasked, and that thinking is spent from the step's
    own max_tokens: measured, one clause-editor draft spent about 2,100 of 4,000 thinking for a 500-token answer,
@@ -14548,7 +14557,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false, askedDraft = false;
   /* a question of judgement is weighed by the stronger model from its first step (copilotNeedsJudgement) */
   const judge = copilotNeedsJudgement(question) && copilotDeepDiffers();
   let turnCost = 0, wentDeep = false;
@@ -14578,11 +14587,21 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
         /* asked back in plain words: once more, with its choices as presses */
         if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
+        if (txt && !askedDraft && step + 1 < AI_CHAT_STEPS && copilotProposalMissing(context, txt)) { askedDraft = true; copilotNudge(working, COPILOT_PROPOSAL_NUDGE); continue; }
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
-      if (deliver) { final = normalizeDeliver(deliver.input, cx); break; }
+      if (deliver) {
+        const said = normalizeDeliver(deliver.input, cx);
+        if (!askedDraft && step + 1 < AI_CHAT_STEPS && copilotProposalMissing(context, said.answer)) {
+          askedDraft = true;
+          working.push({ role: 'user', content: toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: t === deliver ? 'Not shown: the JSON object the drafter asked for is missing.' : 'Not run.' }))
+            .concat([{ type: 'text', text: COPILOT_PROPOSAL_NUDGE }]) });
+          continue;
+        }
+        final = said; break;
+      }
       // Execute the data tools and feed results back for the next round.
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
@@ -14892,7 +14911,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false, askedDraft = false;
   /* a question of judgement is weighed by the stronger model from its first step (copilotNeedsJudgement) */
   const judge = copilotNeedsJudgement(question) && copilotDeepDiffers();
   let turnCost = 0, wentDeep = false;
@@ -14929,11 +14948,21 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
         /* asked back in plain words: once more, with its choices as presses */
         if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
+        if (txt && !askedDraft && step + 1 < AI_CHAT_STEPS && copilotProposalMissing(context, txt)) { askedDraft = true; copilotNudge(working, COPILOT_PROPOSAL_NUDGE); continue; }
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
-      if (deliver) { final = normalizeDeliver(deliver.input, cx); break; }
+      if (deliver) {
+        const said = normalizeDeliver(deliver.input, cx);
+        if (!askedDraft && step + 1 < AI_CHAT_STEPS && copilotProposalMissing(context, said.answer)) {
+          askedDraft = true;
+          working.push({ role: 'user', content: toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: t === deliver ? 'Not shown: the JSON object the drafter asked for is missing.' : 'Not run.' }))
+            .concat([{ type: 'text', text: COPILOT_PROPOSAL_NUDGE }]) });
+          continue;
+        }
+        final = said; break;
+      }
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
