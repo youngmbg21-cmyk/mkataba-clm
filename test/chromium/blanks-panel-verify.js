@@ -459,7 +459,7 @@ const CONTRACT = (id, over) => Object.assign({
          opening the "Show N filled" fold where the box sits in it. */
       const pin = await page.$('#ig-canvas [data-field="payDays"]');
       if (!pin){
-        check('9e a press on a blank on the paper takes the caret to its box in the panel',
+        check('9e a press on a blank on the paper opens nothing (only Fill in the contract fills)',
           false, 'no blank on this paper');
       } else {
         /* RE-POINTED 21 Oct 2026 (THE MIDDLE): "‹ Paper" first, so the paper is in front to be pressed */
@@ -472,10 +472,12 @@ const CONTRACT = (id, over) => Object.assign({
             caretOnPaper: !!(a && a.closest && a.closest('#ig-canvas')),
             caretInPanel: !!(a && a.closest && a.closest('#pd-og, #pd-kt')) && a.getAttribute('data-blankf') === 'payDays' };
         });
-        /* REVERSED 9 Oct 2026 (change 5, "the Document tab is never edited"): a
-           press on the paper's blank takes the caret to ITS box in the panel. */
-        check('9e a press on a blank on the paper takes the caret to its box in the panel',
-          back.caretInPanel === true && back.caretOnPaper === false, JSON.stringify(back));
+        /* RE-POINTED 13 Nov 2026 (f1042; owner: "they can never be filled in unless you are on dossier and press on
+           fill in the contract"): a press on the paper's blank opens nothing and takes the caret nowhere */
+        const opened = await page.evaluate(() => ({ mid: typeof pdMidUp === 'function' && pdMidUp(),
+          filling: typeof pd2FillOn === 'function' && !!(window.intel && intel.paper) && pd2FillOn(intel.paper.id) }));
+        check('9e a press on a blank on the paper opens nothing (only Fill in the contract fills)',
+          back.caretInPanel === false && !back.box && !opened.mid && !opened.filling, JSON.stringify(Object.assign(back, opened)));
       }
     }
 
