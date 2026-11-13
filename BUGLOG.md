@@ -22308,3 +22308,11 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Jambo's panel is still built whole on every repaint (about 170 callers of renderIntelDock); only the visible flash was removed.
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+
+## 13 Nov 2026 — the stutter audit's five open items (owner: "fix all these")
+- FIXED: Jambo's panel is not written when nothing would change (igDockSame; any doubt = written whole). The paper's line has one writer and is written only when it says something else (igStripPut; keepLine deleted). The last line of Fill in on the paper names three details, then counts. CLAUDE.md trimmed 91,564 → 79,918 bytes (MAP only; verbatim in MAP-HISTORY).
+- ADDED: the flash measure (test/chromium/_audit/flash-measure.js), a measuring instrument that films every page move on GitHub.
+### Noticed, not fixed
+- On a negotiated paper (any open redline) no blank can be typed on the paper, so every owed detail falls to the form (the owner's MK-469: sixteen). By design since 11 Nov; whether blanks may be filled on wording the other side is reading is the owner's call.
+- Jambo's panel wires itself over the whole panel after every write (dock.querySelectorAll(...).forEach(addEventListener), about a hundred lines); keeping PARTS of a written panel needs those moved to delegation first.
+- The Board's charts fade their parts in on every paint (.hb-in, hbIn .5s) and every Jambo answer row fades in on every paint (.ai-msg, viewIn .25s); not measured yet (the flash measure's first run will say whether they replay on a page move).

@@ -107,6 +107,8 @@ function pdContract(){
 }
 let _pdSeq = 0;
 function pdAct(fn){ const id = 'a' + (++_pdSeq); _pdActs.set(id, fn); return id; }
+/* is this number an act the last build registered (a panel kept across a build re-numbers its buttons: igDockSame) */
+function pdActKnown(id){ return _pdActs.has(String(id)); }
 /* LIFTED (Young picked it by name off the side-panel proposal, 8 Oct 2026,
    "build Lifted, and yes to words under the symbols"): the panel is a white
    card lifted off a soft grey ground, each symbol carries its word and, where
@@ -3647,9 +3649,9 @@ if (typeof document !== 'undefined' && !document._pdWired){
       /* a face left behind another tab gives the paper back (stage 5): the
          paper is drawn again only if its copy moved (igPaperKey) */
       /* ONE PRESS, ONE PANEL (owner, 12 Nov 2026, the stutter audit): the panel was drawn a line above, so the
-         paper's paint does not draw the tab's body a second time (_pdBodyFresh), and the paper's line stands
-         where it says the same (keepLine) */
-      if (typeof igPaintPaper === 'function'){ _pdBodyFresh = true; try { igPaintPaper({ keepLine: true }); } catch (_){} finally { _pdBodyFresh = false; } }
+         paper's paint does not draw the tab's body a second time (_pdBodyFresh); the paper's line stands where it
+         says the same, as for every caller (igStripPut) */
+      if (typeof igPaintPaper === 'function'){ _pdBodyFresh = true; try { igPaintPaper(); } catch (_){} finally { _pdBodyFresh = false; } }
       return; }
     const a = t.closest('[data-pd-act]'); const fn = a ? _pdActs.get(a.getAttribute('data-pd-act')) : null;
     if (!fn) return;
@@ -8873,13 +8875,18 @@ function pd2FillFaceHtml(c, D){
   let rest = [];
   try { const d = (typeof detailsOf === 'function') ? detailsOf(c) : null; const onPaper = new Set(W.filter(s => s.startsWith('b:')).map(s => s.slice(2)));
     rest = d && d.live ? d.items.filter(x => x && x.open && !onPaper.has(String(x.key)) && !/signer/i.test(String(x.kind || x.key || ''))).map(x => x.label) : []; } catch (_){ rest = []; }
-  const restH = rest.length ? `<div class="pd2-fp-rest">${E(_pdTn('pd2_fp_rest', rest.length, { list: pd2ListWords(rest) }))} <button type="button" class="ui-link" data-pd2-fp-form>${E(_pdT('pd2_fp_rest_go'))}</button></div>` : '';
+  /* IT NAMES THREE, THEN COUNTS (owner's screenshot, 12 Nov 2026: sixteen details ran on as one sentence; the same
+     three-then-"and N more" the question before Negotiate asks, NG_BLANKS_NAMED) */
+  const restSay = rest.length > PD2_REST_NAMED ? _pdT('pd2_fp_rest_more', { list: rest.slice(0, PD2_REST_NAMED).join(', '), n: rest.length - PD2_REST_NAMED })
+    : _pdTn('pd2_fp_rest', rest.length, { list: pd2ListWords(rest) });
+  const restH = rest.length ? `<div class="pd2-fp-rest">${E(restSay)} <button type="button" class="ui-link" data-pd2-fp-form>${E(_pdT('pd2_fp_rest_go'))}</button></div>` : '';
   const at = W.indexOf(F.cur), k = at >= 0 ? at + 1 : 1;
   const head = `<div class="pd2-fp-head"><b>${E(_pdT('pd2_fp_title'))}</b><span data-pd2-fp-pos>${W.length ? E(_pdT('pd2_fp_pos', { k, n: W.length })) : ''}</span></div>`;
   const none = !W.length ? `<p class="pd2-fp-none">${E(_pdT('pd2_fp_none'))}</p>` : '';
   return `${head}${none}<div class="pd2-fp-list">${rows}</div>${order}${restH}`;
 }
 /* "Value and Stream": a short list in words, the last joined by the language's own "and" */
+const PD2_REST_NAMED = 3;   // details named in the panel's last line before it counts the rest
 function pd2ListWords(L){
   const a = (L || []).filter(Boolean); if (a.length < 2) return a.join('');
   return a.slice(0, -1).join(', ') + ' ' + _pdT('pd2_and') + ' ' + a[a.length - 1];
@@ -9207,6 +9214,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
+Object.assign(window, { pdActKnown });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });

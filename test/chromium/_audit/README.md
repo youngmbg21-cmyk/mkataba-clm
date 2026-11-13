@@ -21,6 +21,12 @@ They assert nothing. They print numbers, which is what a measurement is for.
   rules and without them. GitHub runs it by itself when the script changes
   (`.github/workflows/measure.yml`) or when started by hand; it never fails a run.
 
+* `flash-measure.js` — (13 Nov 2026) films every move between pages, frame by
+  frame for 600 ms: what faded, went pale, went blank, was written again after
+  the move's own turn, or jumped; and how many asks for Jambo's panel wrote
+  nothing. GitHub runs it when the script changes
+  (`.github/workflows/flash-measure.yml`) or by hand; it never fails a run.
+
 The findings are written up in `docs/PERFORMANCE-AUDIT.md`. Re-measure before
 quoting any number from it: the runner is the authority.
 
