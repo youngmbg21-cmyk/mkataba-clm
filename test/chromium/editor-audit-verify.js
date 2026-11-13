@@ -2,7 +2,7 @@
    "the redlines bullet points have been indented ... but in image 4 from the redline page, the paper is not
    respecting the design or form from the editor page"; "the jambo panel is the old jambo panel that is a card as
    opposed to being a panel that is separated by a thin line from top to bottom"; "the page tells me that I have not
-   filed the redline for clause 3 when ... I had already done that"). The node half is f1026.
+   filed the redline for clause 3 when ... I had already done that"). The node half is f1027.
 
    WHAT THIS PINS, against a real server, in the new look
      1 a clause redlined with (a) (b) (c) limbs and saved: on Home's paper each limb hangs one step in, with the

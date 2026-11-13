@@ -1,4 +1,4 @@
-/* f1026 — THE CLAUSE EDITOR'S AUDIT (owner, 13 Nov 2026: "the redlines bullet points have been indented which is
+/* f1027 — THE CLAUSE EDITOR'S AUDIT (owner, 13 Nov 2026: "the redlines bullet points have been indented which is
    how a contract should be but ... the paper is not respecting the design or form from the editor page"; "the old
    jambo panel that is a card as opposed to being a panel that is separated by a thin line from top to bottom";
    "the page tells me that I have not filed the redline for clause 3 when ... I had already done that"; and "review
@@ -22,7 +22,7 @@
      (10) IN THE NEW LOOK JAMBO'S PANEL IS A PANEL — square, flush, one hairline.
 
    AT THE PARENT (26c4b19): (1) (2) (3) (4) (5) (6) (7) (8) (9) (10) all fail.
-   Run: node --test test/f1026-the-editor-audit.test.js */
+   Run: node --test test/f1027-the-editor-audit.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -74,7 +74,7 @@ function stage(body = LIMBS){
   return { w, win, doc, c, by, box, save, foot, type, blur, press, bar, barPress, guardAsks, asks, toasts, yes: v => { answer = !!v; } };
 }
 
-describe('f1026 (1) Home\'s paper hangs its limbs as the editor does', () => {
+describe('f1027 (1) Home\'s paper hangs its limbs as the editor does', () => {
   const rule = sel => { const m = CSS.match(new RegExp(sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}')); return m ? m[1].replace(/\s+/g, '') : null; };
   test('the gutter: the same hang and the same marker measure as the editor\'s paper', () => {
     assert.ok(rule('.redline-page .rl-doc .rl-hang'), 'the editor\'s own rule is still there to compare with');
@@ -95,7 +95,7 @@ describe('f1026 (1) Home\'s paper hangs its limbs as the editor does', () => {
   });
 });
 
-describe('f1026 (2) a box nobody touched is not a draft', () => {
+describe('f1027 (2) a box nobody touched is not a draft', () => {
   const SHAPES = {
     limbs: LIMBS,
     decimals: '<p>2.1 The Supplier shall deliver.</p><p>2.2 The Buyer shall pay.</p><p>(i) in full; and</p><p>(ii) on time.</p>',
@@ -175,7 +175,7 @@ describe('f1026 (2) a box nobody touched is not a draft', () => {
   });
 });
 
-describe('f1026 (3) the page says what is filed', () => {
+describe('f1027 (3) the page says what is filed', () => {
   test('our own change, opened and not touched: filed, with its number, under the head and in the foot', async () => {
     const p = stage();
     const cl = p.by(/Notices/);
@@ -222,7 +222,7 @@ describe('f1026 (3) the page says what is filed', () => {
   });
 });
 
-describe('f1026 (4) the warning quotes the words at risk', () => {
+describe('f1027 (4) the warning quotes the words at risk', () => {
   test('a change in the last paragraph is quoted from where it starts, not from the clause\'s first words', () => {
     const p = stage();
     p.win.rlOpenClauseEditor(p.c, p.by(/Pricing and Payment/).clauseId, { typing: true });
@@ -236,7 +236,7 @@ describe('f1026 (4) the warning quotes the words at risk', () => {
   });
 });
 
-describe('f1026 (5) Undo back to what stands', () => {
+describe('f1027 (5) Undo back to what stands', () => {
   test('over our own filed change: not a draft, Save grey, and the foot says where taking it back is done', async () => {
     const p = stage();
     const cl = p.by(/Notices/);
@@ -260,7 +260,7 @@ describe('f1026 (5) Undo back to what stands', () => {
   });
 });
 
-describe('f1026 (6) Redo never draws over typed words', () => {
+describe('f1027 (6) Redo never draws over typed words', () => {
   test('step back, type, press Redo: the typed words stay and Redo has nothing ahead of it', () => {
     const p = stage();
     p.win.rlOpenClauseEditor(p.c, p.by(/Notices/).clauseId, { typing: true });
@@ -276,7 +276,7 @@ describe('f1026 (6) Redo never draws over typed words', () => {
   });
 });
 
-describe('f1026 (7) a clause a colleague holds is refused where you are', () => {
+describe('f1027 (7) a clause a colleague holds is refused where you are', () => {
   test('the move stays on this clause and says who holds the other', () => {
     const p = stage();
     const here = p.by(/Notices/), there = p.by(/Governing Law/);
@@ -297,7 +297,7 @@ describe('f1026 (7) a clause a colleague holds is refused where you are', () => 
   });
 });
 
-describe('f1026 (8) Escape closes one layer: the side panel first', () => {
+describe('f1027 (8) Escape closes one layer: the side panel first', () => {
   const esc = p => p.doc.body.dispatchEvent(new p.win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
   test('with the Notes panel open over the editor, Escape leaves the editor alone', async () => {
     const p = stage();
@@ -321,7 +321,7 @@ describe('f1026 (8) Escape closes one layer: the side panel first', () => {
   });
 });
 
-describe('f1026 (9) the Save hover names what Save does', () => {
+describe('f1027 (9) the Save hover names what Save does', () => {
   test('over their change it files our counter; over our own it saves into it', async () => {
     const p = stage();
     const cl = p.by(/Governing Law/);
@@ -335,7 +335,7 @@ describe('f1026 (9) the Save hover names what Save does', () => {
   });
 });
 
-describe('f1026 (10) in the new look Jambo\'s panel is a panel, not a card', () => {
+describe('f1027 (10) in the new look Jambo\'s panel is a panel, not a card', () => {
   test('square, flush, no lift, one hairline on its left; the card stays where the new look is off', () => {
     const m = CE.match(/html\.lg-new #clause-editor:not\(\.is-theirs\) \.ce-grid > \.ce-rail\{([^}]*)\}/);
     assert.ok(m, 'the new look names the editor\'s panel');

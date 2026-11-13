@@ -674,7 +674,7 @@ const dismissNote = async pg => {
   }));
   /* RE-POINTED 5 Oct 2026 (one row of feet): the button reads "Save" and
      names the change it saves into on its hover. */
-  /* RE-POINTED 13 Nov 2026 (the editor's audit, f1026): after this Save the page walks on to THEIR next ask, and
+  /* RE-POINTED 13 Nov 2026 (the editor's audit, f1027): after this Save the page walks on to THEIR next ask, and
      over their change Save files our counter to it. The hover says so ("Files your counter to CHG-…"); it used to
      say "Saves into CHG-…" naming THEIR change. Over our own change it still says "Saves into". */
   ck('7f and the page was re-read from the record — File greys, naming the change',

@@ -1908,7 +1908,7 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'and it borrows the leave dialog\'s own words rather than minting a key');
     /* THE THREE DOORS. Written out at each they would drift, which is what had
        already happened to two of them. */
-    /* RE-POINTED 13 Nov 2026: a clause a colleague holds is refused first, where the reader is (f1026) */
+    /* RE-POINTED 13 Nov 2026: a clause a colleague holds is refused first, where the reader is (f1027) */
     assert.match(CODE, /function ceGoClause\(clauseId, extra\)\{[\s\S]{0,700}?ceLeaveGuard\(\(\) => \{/,
       'moving to another clause asks');
     assert.match(CODE, /case 'close': ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\); break;/,
@@ -2020,7 +2020,7 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     assert.match(CODE, /_cet\('ce_leave_lost', \{ words: cut\.replace\(\/\[\.!\?\]\+\$\/, ''\) \}\)/,
       'and quotes back what is not filed');
     /* RE-POINTED 13 Nov 2026: the quote opens where the draft first parts from what the page opened with
-       (ceLeaveWords, f1026), still read through the one projection */
+       (ceLeaveWords, f1027), still read through the one projection */
     assert.match(CODE, /const flat = h => \(window\.richToText \? richToText\(h \|\| ''\) : ''\)/,
       'read through the ONE text projection this codebase has');
     assert.match(CODE, /const raw = ceLeaveWords\(\);/, 'and the words quoted are the ones at risk');
