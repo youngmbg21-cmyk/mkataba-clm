@@ -490,6 +490,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js)
 - WHY FIRST (21 Oct 2026): f506 (C) and f522 (6) re-pointed; `risk-card-titles-verify.js`, `one-door-for-edits-verify.js`.
 - f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify.
+- THE REDLINED PAPER'S NOTES SAY HOW THEY ENDED (13 Nov 2026): f1036 (new; all 8 red at the parent) — answered / open / agreed / turned down / groups and chips / a viewer / their view / the painter; redline-notes-answered-verify (new, for GitHub: beside the paper and clear of it, the tick painted, the chips filter, See the change, Draft a redline, none on Clean).
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
