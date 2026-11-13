@@ -7822,17 +7822,18 @@ function pd2RedNotes(c, cv){
    page also have notes on the side so you can distiguish between where the notes have led to redlines vs where the notes
    are still there but redlines have not been addressed?"). The panel's own list of risks (riskItemsOf, RAW, the same one
    that folds "Covered by your redlines") stands beside the paper by its clause: one a redline of ours answers (drafted
-   from it, or covering it) wears a green tick, "Answered by your redline", whether it was sent, its new words quoted
-   and See the change (the paper's own link to its card); one with none stays amber with Draft a redline (the risk's own
+   from it, or covering it) wears a green tick, "Answered by your redline", whether it was sent and its new words
+   quoted, and NO LINK (owner, 13 Nov 2026: "Remove the link" — the note already stands by its change; "See the change"
+   only shaded a card already in sight, so it looked dead); one with none stays amber with Draft a redline (the risk's own
    Edit, riskEditStart). An answered one whose redline they agreed goes away; one whose redline they turned down is open
    again. Our seat only; a reading, nothing written. */
 function pd2RedAnswers(c, cv){
   if (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return [];
-  if (typeof riskItemsOf !== 'function' || !cv) return [];
+  if (!cv) return [];
   /* Their view is their copy as they get it: our notes never stand beside it */
   if (pdRedTheirs(c)) return [];
   const E = _pdE, out = [];
-  let L = []; try { L = riskItemsOf(c) || []; } catch (_){ L = []; }
+  let L = []; try { L = (typeof riskItemsOf === 'function') ? (riskItemsOf(c) || []) : []; } catch (_){ L = []; }
   const chs = Array.isArray(c.changes) ? c.changes : [];
   /* "not sent" is read only where a negotiation already stands (the red paper is drawn from one): reading never starts one */
   let unsent = new Set(); try { if (c.negotiation && typeof negoUnsentAsks === 'function') unsent = new Set(negoUnsentAsks(c, 'owner').map(x => String(x.id))); } catch (_){ unsent = new Set(); }
@@ -7848,8 +7849,7 @@ function pd2RedAnswers(c, cv){
       /* the words the redline brings: the first sentence of the new wording that the old did not have */
       const was = plain(ch.oldText).toLowerCase(), now = plain(ch.newText || ch.newHtml);
       const q = now.split(/(?<=[.;:])\s+/).find(t => t.length > 3 && !was.includes(t.toLowerCase())) || now; const cut = q.length > 70 ? q.slice(0, 70).replace(/\s+\S*$/, '') + ' …' : q;
-      out.push({ tone: 'done', red: true, k, state: _pdT(unsent.has(String(ch.id)) ? 'pd2_rn_unsent' : 'pd2_rn_sent'), quote: cut,
-        acts: `<button type="button" class="ui-link" data-pd2-go="see" data-pd2-key="${E(ch.id)}">${E(_pdT('pd2_rn_see'))}</button>`,
+      out.push({ tone: 'done', red: true, k, state: _pdT(unsent.has(String(ch.id)) ? 'pd2_rn_unsent' : 'pd2_rn_sent'), quote: cut, acts: '',
         hit: sec(`section[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]`) || (ch.clauseId ? sec(`section[data-clause="${CSS.escape(String(ch.clauseId))}"]`) : null),
         orOwn: _pdT('pd2_g_missing') });
       return;
@@ -7861,6 +7861,43 @@ function pd2RedAnswers(c, cv){
       acts: may ? `<button type="button" class="ui-link" data-pd2-go="redline" data-pd2-key="${E(it.key)}">${E(_pdT('pd2_rn_draft'))}</button>` : '',
       hit: (cl && cl.clauseId ? sec(`section[data-clause="${CSS.escape(String(cl.clauseId))}"]`) : null) || (q ? pd2Find(cv, { text: [q.slice(0, 60)] }) : null),
       orOwn: _pdT('pd2_g_missing') });
+  });
+  return out.concat(pd2RedStdAnswers(c, cv, { chs, unsent, sec, plain }));
+}
+/* OUR STANDARDS BESIDE THE REDLINED PAPER TOO (owner, 13 Nov 2026: "yes, add them"): what the last finished check found
+   (c.playbook.verdicts, read, never run here), each a deviation or a missing standard, as the Dossier's notes are. A
+   redline of ours ANSWERS it when it was filed for that standard ("Playbook — <category>", Prepare redlines' own note) or
+   stands on the words the check quoted; pending, it is answered (sent or not); agreed, it stays answered until Jambo
+   reads the paper again (the check then finds it met and the note goes); turned down, it is open again. An open one
+   carries the Dossier's own door (std-draft → rlPrepareRedlines, which asks first). */
+function pd2RedStdAnswers(c, cv, x){
+  const V = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+  if (!V.length) return [];
+  const E = _pdE, out = [], { chs, unsent, sec, plain } = x;
+  const norm = t => plain(t).toLowerCase();
+  const cut = q => q.length > 70 ? q.slice(0, 70).replace(/\s+\S*$/, '') + ' …' : q;
+  const may = (typeof canEdit !== 'function' || canEdit()) && !(typeof negoExecuted === 'function' && negoExecuted(c));
+  const ours = chs.filter(ch => ch && ch.authorSide === 'owner' && !ch.withdrawn && !ch.superseded && ch.status !== 'superseded');
+  const forStd = ch => { const m = /^Playbook — ([^:(]+)/.exec(String(ch.note || '')); return m ? norm(m[1]) : ''; };
+  V.filter(v => v && v.category && (v.status === 'deviation' || v.status === 'missing')).forEach(v => {
+    const cat = norm(v.category), q = plain(v.quote), qn = norm(q).slice(0, 60);
+    const ch = ours.find(o => forStd(o) === cat) || (qn.length >= 12 ? ours.find(o => norm(o.oldText).includes(qn)) : null);
+    const miss = v.status === 'missing';
+    if (ch && (ch.status === 'pending' || ch.status === 'accepted')){
+      const was = norm(ch.oldText), now = plain(ch.newText || ch.newHtml);
+      const w = now.split(/(?<=[.;:])\s+/).find(t => t.length > 3 && !was.includes(t.toLowerCase())) || now;
+      out.push({ tone: 'done', red: true, std: true, k: _pdT('pd2_rn_std', { name: String(v.category) }),
+        state: _pdT(ch.status === 'accepted' ? 'pd2_rn_agreed' : unsent.has(String(ch.id)) ? 'pd2_rn_unsent' : 'pd2_rn_sent'), quote: cut(w), acts: '',
+        hit: sec(`section[data-nego-card-anchor~="${CSS.escape(String(ch.id))}"]`) || (ch.clauseId ? sec(`section[data-clause="${CSS.escape(String(ch.clauseId))}"]`) : null),
+        orOwn: _pdT('pd2_std_own') });
+      return;
+    }
+    out.push({ tone: 'owe', red: true, std: true, k: _pdT('pd2_rn_std', { name: String(v.category) }),
+      state: _pdT(miss ? 'pd2_std_missing_h' : 'pd2_std_differs') + ' · ' + _pdT('pd2_rn_none'), quote: miss ? '' : cut(q),
+      acts: may ? `<button type="button" class="ui-link" data-pd2-go="std-draft">${E(_pdT(miss ? 'pd2_std_add' : 'pd2_rn_draft'))}</button>` : '',
+      hit: !miss && qn.length >= 12 ? (pd2Find(cv, { text: [q.slice(0, 60), (q.split(/\d/)[0] || '').trim()].filter(t => t.length >= 12) })) : null,
+      /* a missing standard at the paper's end with the risks that are not in it; a deviation whose words are not found, under Our standards */
+      orOwn: _pdT(miss ? 'pd2_std_missing_h' : 'pd2_std_own') });
   });
   return out;
 }
@@ -8269,8 +8306,6 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   else if (go === 'dive') pd2DiveOn(c, key);
   else if (go === 'clause') pd2OpenInClauses(c, Number(key));
   else if (go === 'std-draft' && typeof rlPrepareRedlines === 'function') Promise.resolve(rlPrepareRedlines(getContract(c.id) || c)).then(() => { try { const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); } catch (_){} }, () => {});
-  /* SEE THE CHANGE: the paper's own link to its card in the Redlines column (rlLinkFocus, as a press on the clause) */
-  else if (go === 'see'){ if (typeof rlLinkFocus === 'function') try { rlLinkFocus(c, key, 'clause'); } catch (_){} }
   else if (go === 'press'){ const own = document.querySelector('#ig-dock ' + key); if (own && !own.disabled) own.click(); }
 });
 /* DEEP DIVE FROM A NOTE: the clause the risk's words stand in, opened on Clauses, and its own Deep dive pressed there (the one
@@ -9606,7 +9641,7 @@ Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
-Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2RedAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
