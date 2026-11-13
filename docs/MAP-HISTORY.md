@@ -37904,3 +37904,7 @@ And (verbatim before):
 ```
 NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. ARCHIVE `contractSetArchived`. WEBHOOKS ids only, admin-only.
 ```
+
+## SCOPE RULES — THE PARKING LOT (owner, 13 Nov 2026)
+The owner: "in my Claude MD files, create a to do list which i will tackle later… basically like a work order where i will compile things i want to build at a later time. I want you to walk me through how we design this, what i call it and how i can simply tell Claude move this fix to xxx". Walked through and asked: the name (The Later list · The Parking lot · The Wishlist; "work order" set aside because about forty WORKORDER files already name finished jobs) — the owner picked **The Parking lot**; and whether to seed it — **yes, with the two waiting items** (P-1 the Outdent on a lettered point, P-2 the Contracts wall check waiting for every card).
+Kept OUT of CLAUDE.md itself on purpose: that file is sent with every step and sits at its 80 KB line, so the list is docs/PARKING-LOT.md and CLAUDE.md carries one rule saying the phrases. A docs/*.md change runs no GitHub checks (f1034), so parking costs no billed minutes. Parking never builds; a dropped item stays listed.
