@@ -111,8 +111,9 @@ describe('f248 — the two rooms never share a note', () => {
     assert.deepEqual([n.internal, n.external, n.total], [2, 1, 3]);
     const host = p.paint('internal');
     const tabs = [...host.querySelectorAll('[data-rl-np-room]')].map(t => t.textContent.trim());
-    assert.match(tabs[0], /\(2\)/, 'the internal tab prints its own count');
-    assert.match(tabs[1], /\(1\)/, 'and the external tab its own');
+    /* RE-POINTED 13 Nov 2026 (the Thread): the count rides the switch without brackets. */
+    assert.match(tabs[0], /\b2$/, 'the internal tab prints its own count');
+    assert.match(tabs[1], /\b1$/, 'and the external tab its own');
     /* EVERY SURFACE BORROWS THE SAME READING rather than counting again: a
        number worked out twice is a number that comes to disagree.
        RE-POINTED 2 Sep 2026 — the ⋯ is retired with the owner's ruling that

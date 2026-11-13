@@ -221,7 +221,7 @@ describe('f304 (3) — the press that opens the drawer closes it', () => {
     assert.match(APP, /closeContextPanel,notesPanelShowing,/, 'published');
     assert.match(VIEW, /if \(_rlNpOpenKey === key && typeof window\.notesPanelShowing === 'function'/,
       'the marker asks before it presses');
-    assert.match(VIEW, /function rlNotesPanelClosed\(\)\{ rlNotesUnpin\(null\); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; \}/,
+    assert.match(VIEW, /function rlNotesPanelClosed\(\)\{ rlNotesUnpin\(null\); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; _rlNpShow = 'open'; \}/,
       'and the key is dropped with the drawer (round four: the reply-under key too)');
     assert.match(PORTAL, /if\(open&&String\(_ptNotesKey\|\|''\)===String\(key\|\|''\)\)\{ portalNotesClose\(\); return false; \}/,
       'their aside closes on the press that opened it');
@@ -715,7 +715,7 @@ describe('f304 (10) — round four: reply on any note, Delete beside Done, marks
   });
   test('a refused note act is drawn greyed, with the reason it already carries', () => {
     assert.match(INDEX, /\.rl-np-act-b:disabled\{opacity:\.45;cursor:not-allowed;\}/);
-    assert.match(VIEW, /data-rl-np-delete="\$\{_nea\(key\)\}"\$\{delWhy \? ` disabled title="\$\{_nea\(delWhy\)\}"` : ''\}/, 'the reason rides the hover');
+    assert.match(VIEW, /data-rl-np-delete="\$\{_nea\(key\)\}"\$\{delWhy \? ` disabled title="\$\{_nea\(delWhy\)\}"/, 'the reason rides the hover');
   });
 });
 
