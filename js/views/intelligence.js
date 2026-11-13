@@ -3152,6 +3152,9 @@ async function intelMapLocal(q){
    CONTRACT — it goes to Copilot's reading chat and is never re-read by the
    board's free reader (which would hear "risks" and open the Exposure panel). */
 let _igReadyAsk='';
+/* f1042: the readied ask is a NOTE for the send screen (Write it for me, a steer) — the server asks once more when
+   the answer carries no note (copilotNoteMissing) */
+let _igReadyNote=false;
 /* THE ONE WAY TO THE ASK BOX: on Home's Document the box stands on the
    Copilot tab only, so a door that puts words in it turns to that tab first. */
 /* the box stands under every tab (22 Oct 2026): words put in it stay on the tab in front */
@@ -3162,9 +3165,9 @@ function igAskBox(){
    "Write the note to Young for this SEND" was read by the typing reader as the act Send and answered by opening the
    send screen; the brain was never asked). The words are readied as the ask (_igReadyAsk), so intelAsk sends them to
    the chat and no free reader ever re-reads them. */
-function igAskBrain(q){
+function igAskBrain(q, o){
   q=String(q||'').trim(); if(!q) return false;
-  _igReadyAsk=q;
+  _igReadyAsk=q; _igReadyNote=!!(o&&o.note);
   intelAsk(q, { typed:true });
   return true;
 }
@@ -3349,6 +3352,7 @@ async function intelAsk(qRaw, opts){
      sign and an amendment away): the panel turns to the conversation over
      the face, which waits as it was left (pdTalkSync, the trail's back) */
   const readied=!!_igReadyAsk && q===_igReadyAsk; _igReadyAsk='';
+  const readyNote=readied&&_igReadyNote; _igReadyNote=false;
   /* ON THE BOARD'S JAMBO TAB THE BRAIN READS FIRST (igBoardTalkFirst): words TYPED in the panel's own box go to
      none of the free readers below — a short command too (owner, 26 Oct 2026: "short commands on overview while
      jambo [is] where all questions go to AI and then also can take you to specific places in settings"; the AI's
@@ -3365,7 +3369,7 @@ async function intelAsk(qRaw, opts){
   if(readied){
     intel.history.push({role:'user', text:q});
     intel.busy=true; renderIntelDock(); updateIntelNote();
-    try{ await intelChatAsk(q); }
+    try{ await intelChatAsk(q, readyNote?{ note:true }:undefined); }
     catch(e){ intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true}); }
     intel.busy=false; renderIntelDock();
     return;
@@ -4328,7 +4332,7 @@ function igNoteAsk(d, words){
   window._shNlWrite=String(d.id);
   /* f1041: the steer carries the draft as it stands — Jambo's history keeps only the words HaTi said, never the note,
      so "make it shorter" alone left him nothing to shorten and he answered about the paper instead */
-  return igAskBrain(i18t('sh_nl_q_with', { ask:words, note:d.words }));
+  return igAskBrain(i18t('sh_nl_q_with', { ask:words, note:d.words }), { note:true });
 }
 function igNoteSteerWords(kind, n){
   return i18t('sh_nl_q_'+kind, n ? { n } : undefined);
@@ -4402,6 +4406,8 @@ async function intelChatAsk(q, opts){
     let ctx={ view:'intel' }; try{ if(typeof window.aiChatContext==='function') ctx=Object.assign(aiChatContext(), { view:'intel' }); }catch(_){ ctx={ view:'intel' }; }
     /* the Board's Jambo tab may DRAW (igBoardDrawn): the answer can carry the Board's own buttons */
     if(opts&&opts.draw) ctx.drawBoard=true;
+    /* f1042: a note asked for on the send screen — the server asks once more if none comes back */
+    if(opts&&opts.note&&ctx&&ctx.page&&ctx.page.sending) ctx.noteAsk=true;
     if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
     const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
     if(opts&&opts.draw&&await igBoardDrawn(res, q)) return;

@@ -2635,6 +2635,9 @@ const AI_CHAT_STEPS=8;
 const AI_LOCAL_ROOM=4000, AI_LOCAL_ROOM_AGAIN=12000;
 /* the server's COPILOT_PROPOSAL_NUDGE, word for word */
 const AI_PROPOSAL_NUDGE='[From HaTi, not the person] The drafter asked for ONE JSON object (advice, whyChange, whatItDoes, proposedText) and your answer did not carry it. Send that object now as your whole answer, and nothing else; proposedText is an empty string if you cannot draft.';
+/* f1042: a note asked for on the send screen that came back without one is asked once more (the server's
+   COPILOT_NOTE_NUDGE, word for word) */
+const AI_NOTE_NUDGE="[From HaTi, not the person] The person pressed a button on the send screen asking for the note, and your answer carried no note. Write the note now and put it in deliver_answer's note (plain text, two to five sentences, no subject, no greeting, no sign-off); in answer, say in one short sentence what it covers.";
 const _localAiKey=()=>{ try{ return (typeof lsGet==='function' && lsGet('hati.v1.aikey'))||''; }catch(_){ return ''; } };
 /* What an empty model reply becomes. Not "I could not produce an answer" —
    that sentence tells the reader nothing they can act on. Mirrored on the
@@ -3243,7 +3246,7 @@ async function aiLocalClaude(messages, context){
     return r.json();
   };
   const working=messages.map(m=>({role:m.role,content:m.content}));
-  let final=null, nudged=false, cut=false, askedDraft=false;
+  let final=null, nudged=false, cut=false, askedDraft=false, askedNote=false;
   for(let step=0; step<AI_CHAT_STEPS; step++){
     let d=await call(working, step===AI_CHAT_STEPS-1);
     /* cut short: asked once more with the most room before the cut is said (the server's copilotStepCall) */
@@ -3263,6 +3266,7 @@ async function aiLocalClaude(messages, context){
         const prev=working[working.length-1];
         if(prev&&prev.role==='user'&&Array.isArray(prev.content)) prev.content=prev.content.concat([{type:'text',text:AI_NUDGE}]); else working.push({role:'user',content:AI_NUDGE});
         continue; }
+      if(txt&&!askedNote&&step+1<AI_CHAT_STEPS&&context&&context.noteAsk===true){ askedNote=true; working.push({role:'user',content:AI_NOTE_NUDGE}); continue; }
       final={answer:txt||AI_EMPTY_ANSWER,citations:[],compare:null,empty:!txt,retry:!txt}; break;
     }
     const deliver=writ?{ input:writ }:toolUses.find(t=>t.name==='deliver_answer');
@@ -3271,6 +3275,13 @@ async function aiLocalClaude(messages, context){
       askedDraft=true;
       working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:t===deliver?'Not shown: the JSON object the drafter asked for is missing.':'Not run.'}))
         .concat([{type:'text',text:AI_PROPOSAL_NUDGE}])});
+      continue;
+    }
+    if(deliver&&!askedNote&&step+1<AI_CHAT_STEPS&&context&&context.noteAsk===true&&!String((deliver.input||{}).note||'').trim()){
+      askedNote=true;
+      if(writ) working.push({role:'user',content:AI_NOTE_NUDGE});
+      else working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:t===deliver?'Not shown: the note the person asked for is missing.':'Not run.'}))
+        .concat([{type:'text',text:AI_NOTE_NUDGE}])});
       continue;
     }
     if(deliver){
