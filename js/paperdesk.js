@@ -8116,8 +8116,9 @@ function pd2SheetPre(c){
    Dossier list stay as they are. While Jambo's read plays the notes show anyway (owner: "Show while it plays") and no pill
    is drawn; the read over, they are hidden again. */
 const PD2_NOTES_HIDDEN_KEY = 'hati.v1.pd2NotesHidden';
-function pd2NotesHiddenGet(){ try { return localStorage.getItem(PD2_NOTES_HIDDEN_KEY) === '1'; } catch (_){ return false; } }
-function pd2NotesHiddenSet(v){ try { if (v) localStorage.setItem(PD2_NOTES_HIDDEN_KEY, '1'); else localStorage.removeItem(PD2_NOTES_HIDDEN_KEY); } catch (_){} }
+/* kept through the shell's own store (core.js lsGet/lsSet): the desk itself never touches the browser's storage (f563) */
+function pd2NotesHiddenGet(){ try { return typeof lsGet === 'function' && lsGet(PD2_NOTES_HIDDEN_KEY) === true; } catch (_){ return false; } }
+function pd2NotesHiddenSet(v){ try { if (typeof lsSet === 'function') lsSet(PD2_NOTES_HIDDEN_KEY, !!v); } catch (_){} }
 function pd2NotesTgHtml(hidden){
   const E = _pdE;
   return `<div class="pd2-rn-chips pd2-tg"><button type="button" class="pd2-rn-chip" data-pd2-notes-tg="${hidden ? 'show' : 'hide'}" aria-pressed="${hidden}">${E(_pdT(hidden ? 'pd2_notes_show' : 'pd2_notes_hide'))}</button></div>`;

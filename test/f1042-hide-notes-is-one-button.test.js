@@ -54,6 +54,8 @@ function stage(){
   w.eval(`var _pdE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     var _pdT = k => ({ pd2_notes_hide: 'Hide notes', pd2_notes_show: 'Show notes' })[k] || k;
     var PD2_NOTE_GAP = 12;
+    var lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+    var lsSet = (k, v) => localStorage.setItem(k, JSON.stringify(v));
     ${PD.match(/const PD2_NOTES_HIDDEN_KEY = [^;]+;/)[0].replace('const', 'var')}
     ${['pd2NotesHiddenGet', 'pd2NotesHiddenSet', 'pd2NotesTgHtml', 'pd2NotesTgSolo'].map(n => fnSrc(PD, n)).join('\n')}`);
   return w;
@@ -75,7 +77,7 @@ describe('f1042 (2) one button, (3) remembered', () => {
     const w = stage();
     assert.equal(w.pd2NotesHiddenGet(), false);
     w.pd2NotesHiddenSet(true); assert.equal(w.pd2NotesHiddenGet(), true);
-    assert.equal(w.localStorage.getItem('hati.v1.pd2NotesHidden'), '1');
+    assert.equal(w.localStorage.getItem('hati.v1.pd2NotesHidden'), 'true', 'kept through the shell\'s own store');
     w.pd2NotesHiddenSet(false); assert.equal(w.pd2NotesHiddenGet(), false);
     Object.defineProperty(w, 'localStorage', { get(){ throw new Error('blocked'); } });
     assert.equal(w.pd2NotesHiddenGet(), false);
