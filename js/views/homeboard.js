@@ -1644,32 +1644,52 @@ function hbBoardHelloOn(){
 function hbBoardHelloHtml(){
   /* not over a contract brought up as a page: the desk shows that contract, not the book */
   if (!hbBoardHelloOn()) return '';
-  /* THE OVERVIEW, THE LEGORA WAY (owner picked it, 26 Oct 2026; jamboOverviewHtml, the one builder): the Board in
-     one head sentence, its facts (the one desk ndRead, Jambo's ready work, the book's own counts), each with its
-     door, then "Ask me" with the chips his greeting carried — no face, no bubble; his greeting is the Jambo tab's.
-     "Today's insights" and "Jambo this month" have no reading the panel can make here and are left out. */
+  /* BRAIN WELCOME (owner picked it, 13 Nov 2026: "the jambo panel here should be more front page jambo … it is part
+     of the page that welcomes you to hati"; replaces the 26 Oct Overview's head and facts on the Board only): the
+     Explorer's own brain, small and moving (igMiniBrainHtml), then Jambo's one line, the three numbers of the day
+     (late · prepared · ending soon, each a door onto the list it counts) and ONE black button; "Ask me" keeps the
+     chips, as pills. Still the one builder's frame (jamboOverviewHtml, `before`). NOTHING NEW IS COUNTED: the one
+     desk (ndRead), Jambo's ready work, the book's own Ending figure. The reader is not named here (the page's head
+     greets them: "do not name me twice"). No AI. */
   let ending = 0; try { ending = hbBookData(hbS().lens || 'all').figs.ending.n; } catch (_){ ending = 0; }
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
   let n = 0; try { n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); } catch (_){ n = 0; }
   _hbNyDockN = n; _hbNyDockBook = (state.contracts || []).length;
   let work = 0; try { work = hbAgentsData(null).ready || 0; } catch (_){ work = 0; }
   let D = null; try { D = (typeof ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
-  const sum = (D && typeof ndSumWords === 'function') ? ndSumWords(D) : '';
-  const book = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined' && (!window.canAccessFolder || canAccessFolder(c.folder)));
-  const signed = book.filter(c => c.status === 'Signed').length, drafts = book.filter(c => c.status === 'Draft').length;
-  const facts = [];
-  facts.push({ k: i18t('jov_hb_needs'), v: n ? i18tn('jov_hb_needs_v', n, { n, k: work }) + (sum ? ' · ' + sum : '') : i18t('hb_jb_counter_none'), need: !!(D && D.late),
-    link: n ? i18t('jov_ln_show_all') : '', run: () => { if (typeof ndOpenBoard === 'function') ndOpenBoard(); } });
-  facts.push({ k: i18t('jov_hb_book'), v: i18tn('jov_hb_book_v', book.length, { n: book.length, s: signed, d: drafts }), link: i18t('jov_ln_open'), run: () => { if (typeof hbOpenContracts === 'function') hbOpenContracts(); } });
-  if (ending) facts.push({ k: i18t('jov_hb_ending'), v: i18tn('jov_hb_ending_v', ending, { n: ending }), need: true });
+  const late = (D && D.late) || 0;
+  const say = work ? i18tn('hbw_ready', work, { n: work }) : n ? i18tn('hbw_needs', n, { n }) : i18t('hb_jb_counter_none');
+  const old = (n && D && D.oldest != null) ? i18t('nd_oldest', { days: hbNyDays(D.oldest) }) : '';
+  const sub = n && work ? i18tn('hbw_all', n, { n }) + (old ? ' ' + old.charAt(0).toUpperCase() + old.slice(1) + '.' : '') : (n && old) ? old.charAt(0).toUpperCase() + old.slice(1) + '.' : '';
+  /* a number with nothing behind it is not a door (a dead button never wears a live one's clothes) */
+  const cell = (k, num, word, tone) => num
+    ? `<button type="button" class="hbw-n${tone ? ' is-' + tone : ''}" data-hbw="${k}"><b>${num}</b><span>${_hbE(word)}</span></button>`
+    : `<span class="hbw-n is-none"><b>0</b><span>${_hbE(word)}</span></span>`;
+  const trio = `<div class="hbw-trio">${cell('late', late, i18t('hbw_late'), 'late')}${cell('jambo', work, i18t('hbw_prepared'), '')}${cell('ending', ending, i18t('hbw_ending'), 'soon')}</div>`;
+  const acts = n ? `<div class="hbw-acts"><button type="button" class="ui-btn ui-btn-primary" data-hbw="${late ? 'late' : 'all'}">${_hbE(i18t(late ? 'hbw_start_late' : 'hbw_show_needs'))}</button>`
+    + (late ? `<button type="button" class="jov-lnk" data-hbw="all">${_hbE(i18tn('hbw_show_all', n, { n }))}</button>` : '') + `</div>` : '';
+  const brain = (typeof igMiniBrainHtml === 'function') ? igMiniBrainHtml() : '';
+  const before = `${brain}<h3 class="hbw-say">${_hbE(say)}</h3>${sub ? `<p class="hbw-sub">${_hbE(sub)}</p>` : ''}${trio}${acts}`;
   const chip = q => ({ label: q, attr: `data-igsug="${_hbE(q)}"` });
   const asks = [ending ? chip(i18tn('hb_jb_ending', ending, { n: ending })) : null, chip(i18t('hb_jb_by_stream')), views ? chip(i18t('hb_jb_views')) : null,
     n ? chip(i18t('hb_jb_needs_chip')) : null,
     (typeof calHandOff === 'function') ? { label: i18t('ob_yw_chip_week'), title: i18t('cal_plan_p_week'), run: () => calHandOff('week') } : null].filter(Boolean);
-  /* "counted at <time>" is the HEAD's own time: it wears a mark so a later board paint moves it in place */
-  const src = _hbE(i18t('jov_hb_src', { time: '\uE000' })).replace('\uE000', `<span data-hb-jb-at>${_hbE(hbCountedAt())}</span>`);
-  const o = { head: { b: i18t('jov_hb_head_b'), s: i18t('jov_hb_head_s') }, facts, srcHtml: src, asks };
-  return (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov hb-jb-hello">${jamboOverviewHtml(o, 'hb')}</div>` : '';
+  return (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov hb-jb-hello is-welcome">${jamboOverviewHtml({ before, asks }, 'hb')}</div>` : '';
+}
+/* the welcome's doors, each an existing one: the late and "show all" open the Board's Needs you on All (the late
+   stand first there, ndBoardList), prepared opens it on Jambo's tab, ending soon the list behind the book's Ending
+   figure (hbFigDoor). Delegated once: the panel is redrawn under these buttons. */
+function hbWelcomeGo(k){
+  if (k === 'ending') return (typeof hbFigDoor === 'function') ? hbFigDoor('f:ending') : false;
+  if (typeof ndOpenBoard !== 'function') return false;
+  return ndOpenBoard(k === 'jambo' ? 'jambo' : 'all');
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._hbwWired)){
+  if (typeof window !== 'undefined') window._hbwWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest && e.target.closest('[data-hbw]'); if (!b) return;
+    e.preventDefault(); hbWelcomeGo(b.getAttribute('data-hbw'));
+  });
 }
 /* JAMBO'S PANEL FOLLOWS THE CARD'S NUMBER: the greeting, his tab's count and
    the lead chip are drawn with the panel, which a board paint does not redraw;
@@ -11452,7 +11472,7 @@ Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLan
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
   hbOblRowsHtml, hbDigBodyHtml, hbFocusHtml, hbCrumbOf, hbCardHtml, hbSheetGo, hbBarsHtml, hbPanelBodyHtml, hbPanelHtml,
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
-  hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, HB_FIG_MAP_FIT, hbFigContractIds, hbFigMenuPlace, hbFigMenuOpen, hbFigMenuClose, hbFigMenuOn, hbFigMenuPick, hbFigMenuClick, hbFigMenuKey, hbFigListGo, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
+  hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbWelcomeGo, HB_FIG_MAP_FIT, hbFigContractIds, hbFigMenuPlace, hbFigMenuOpen, hbFigMenuClose, hbFigMenuOn, hbFigMenuPick, hbFigMenuClick, hbFigMenuKey, hbFigListGo, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,
   hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbShowFound, HB_KEY_SEP, HB_CHART_BARS, HB_CHART_MONTHS, HB_GROUP_FIELDS, hbNextGroup, hbGroupOf, hbGroupLabel, hbGroupWord, hbMonthOf, hbMonthLabel, hbValueBands, hbChartHtml, hbChartBarsHtml, hbChartColsHtml, hbListFootHtml,
   HB_ATTENTION_RE, HB_HUES, HB_HUES_LIGHT, HB_HUES_DARK, hbHues, hbHueOf, hbFitMeasure, hbStepH, hbChartTableHtml, hbFocusBodyHtml, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily,
