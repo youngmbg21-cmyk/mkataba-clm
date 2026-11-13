@@ -70,7 +70,10 @@ describe('f881 (19) — Their view counts what they see', () => {
     const t = fnBody(PD, 'pdTabCount');
     assert.match(t, /if \(t === 'red' && pdRedTheirs\(c\) && typeof rlOpenCardCount === 'function'\)\{/);
     assert.match(t, /rlHiddenFrom\(c, 'counterparty'\)/);
-    assert.match(t, /return n \? \{ n, tone: 'quiet' \} : null;\s*\n\s*\}\s*\n\s*if \(t === 'red'\)\{ const D = dossierOf\(c\);/);
+    /* RE-POINTED 13 Nov 2026 (owner: "fix the Redlines tab count so it matches the head"): our seat now counts its
+       own column the same way (f1030), so what follows Their view's branch is our seat's rlOpenCardCount, not the
+       Dossier's owed rows */
+    assert.match(t, /return n \? \{ n, tone: 'quiet' \} : null;\s*\n\s*\}[\s\S]{0,900}?if \(t === 'red' && typeof rlOpenCardCount === 'function'\)\{/);
   });
 });
 

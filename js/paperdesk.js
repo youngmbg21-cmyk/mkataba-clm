@@ -206,7 +206,19 @@ function pdTabCount(t, c){
       const n = rlOpenCardCount(c, Object.assign({}, pdRedOpts(c), { hiddenIds: hid }));
       return n ? { n, tone: 'quiet' } : null;
     }
-    if (t === 'red'){ const D = dossierOf(c); const n = ((D && D.owed) || []).filter(r => DOSSIER_STAGE_OF[r.kind] === 'nego').reduce((k, r) => k + dossierRowN(r), 0); return n ? { n, tone: 'warn' } : null; }
+    /* OUR SEAT COUNTS WHAT OUR COLUMN DRAWS TOO (owner, 13 Nov 2026: "fix the Redlines tab count so it matches the
+       head"): the tab said 2 (the Dossier's negotiation rows owed by you) over a column whose head read
+       "Redlines 6". The number is the head's own reading (rlOpenCardCount over the face's options, hidden as the
+       column hides), as Their view's already is; the tone says whether any of it waits on you (the Dossier's
+       negotiation rows): amber then, grey when all of it waits on them */
+    if (t === 'red' && typeof rlOpenCardCount === 'function'){
+      const hid = typeof rlHiddenFrom === 'function' ? [...rlHiddenFrom(c, 'owner')] : [];
+      const n = rlOpenCardCount(c, Object.assign({}, pdRedOpts(c), { hiddenIds: hid }));
+      if (!n) return null;
+      const D = dossierOf(c);
+      const owed = ((D && D.owed) || []).some(r => DOSSIER_STAGE_OF[r.kind] === 'nego' && dossierRowN(r) > 0);
+      return { n, tone: owed ? 'warn' : 'quiet' };
+    }
   } catch (_){}
   return null;
 }

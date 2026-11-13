@@ -22354,3 +22354,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - UNVERIFIED GUESS (mine, not measured): the chat route offers its answer tool on every step, so the model may take it even for a drafting ask; the summary's "See the JSON" suggests it believed it had sent the object as well.
 - Not fixed: the owner asked only for this line.
 - 13 Nov 2026: the clause editor's audit's test is f1027 (main took f1026 for "room for the answer" before it merged); the lines above that say f1026 for the audit mean f1027.
+- FIXED 13 Nov 2026 (owner: "fix the Redlines tab count so it matches the head"): the Redlines tab on Jambo's panel now carries its column's own "Redlines N" on our seat too (it counted the Dossier's owed negotiation rows); amber while something there waits on you, grey otherwise. f1030.
