@@ -21,6 +21,6 @@ test('the rest of the pages: the detail grey', () => {
   has(':is\\(\\.hb-cs,\\.hb-bh-s,\\.hb-bh-at,\\.hb-sk-note,\\.hb-sk-then,\\.hb-ag-lv-w\\)');
   has(':is\\(\\.mig-drop-s,\\.mig-opt-l\\)');
   has(':is\\(\\.pd2-ch-cap,\\.pd2-ch-r>i,\\.pd2-ch-door>span,\\.rfp-k,\\.rfp-cap\\)');
-  has('#set-page :is\\(\\.stn-l,\\.stn-h,\\.stn-mh\\)');
+  has('#set-page :is\\(\\.stn-sub,\\.stn-pages-h\\)');
   assert.match(CSS, /html\.lg-new \.apn-panel \.apn-pr>b,html\.lg-new \.pd2-ch-r>span\{color:var\(--color-neutral-400\)\}/, 'every list panel\'s labels');
 });
