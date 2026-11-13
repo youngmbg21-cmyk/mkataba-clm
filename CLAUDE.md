@@ -81,13 +81,14 @@ For a DESIGN QUESTION (an exact instruction is just built): ONE part of a page p
 
 3. Fix every place it appears. If you deliberately leave one alone, that decision must reach me in plain English — never silently.
 
-4. Testing rule: test where the USER looks, not where you edited. GitHub's browser checks verify every affected place after the push; here, photos at the three screens show it (owner, 9 Nov 2026).
+4. Testing rule: test where the USER looks, not where you edited. GitHub's browser checks verify every affected place once the work is ready to merge (its pull request is open; owner, 13 Nov 2026); here, photos at the three screens show it (owner, 9 Nov 2026).
 
 5. At the end, write a short plain-English summary for a non-developer: what you fixed, whether it is fixed everywhere it appears, anything you deliberately left alone and why, and anything you were unsure about. No file paths, no line numbers, no location lists — just plain sentences about what happened.
 
 
 ## HOW TO TEST ECONOMICALLY (owner-asked 16 and 24 Aug 2026)
 **"Do not run the full test suite during incremental edits. Only run the specific test file directly related to the changed code."** Run the affected files together in ONE command (`node --test --test-reporter=dot test/<a>.test.js test/<b>.test.js`). **NEVER RUN THE FULL SUITE IN A CHAT SESSION UNLESS THE OWNER ASKS IN THE CHAT** (a work order's line does not count): run `npm run lint` and the changed area's tests, push, and let GitHub's check (.github/workflows/tests.yml) run everything.
+- **GITHUB TESTS A PULL REQUEST, AND MAIN EVERY NIGHT — NEVER A BARE PUSH** (owner, 13 Nov 2026; reverses "every push"; the repository goes private and minutes are billed): a branch pushed with no pull request runs nothing; main is not tested again after a merge; one run nightly and Run workflow by hand. A new check is seen red on main by a hand run. f1025.
 - `npm run lint` FIRST, whole repo — zero errors; the only check that asks "does every called name exist".
 - **BROWSER CHECKS RUN ONLY ON GITHUB** (owner, 9 Nov 2026; a STANDING rule, not one round's): never run a test/chromium file, `run-all.js` or a measuring tool (tidy sweep, detail audit) in a chat — write or change the check, push with the owner's yes, read GitHub's result. The ONE browser use here is PHOTOS for the owner (THE OWNER'S THREE SCREENS). `run-all.js` is CI's set; KNOWN_RED lists expected failures with reasons — off the day it goes green.
 - **A TEST WHOSE ANSWER DEPENDS ON THE DAY IT RUNS IS WORSE THAN NO TEST.** Build dates with `monthSpan(off)` or quarter boundaries. Faking node's clock does not move jsdom's.

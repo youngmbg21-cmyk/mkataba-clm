@@ -6,6 +6,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A FRAME THAT CLIPS NEEDS A SCROLLER INSIDE IT (10 Nov 2026): f996 (2)(3) (red at the parent) and `test/chromium/white-sheet-verify.js` CUT — a frame with overflow hidden whose content runs on below it with something to read or press out of reach; a fault on `CUT_HELD` (Contracts), printed as NOTED on every other place; its own planted fault proves it looks. Runs on GitHub only.
 - LAND ON IT: land-on-it, open-in-place verify; f445, f707, f724.
 - A REFRESH LANDS AT THE SAME SPOT: refresh-keeps-your-spot-verify.
+- GITHUB TESTS A PULL REQUEST, AND MAIN EVERY NIGHT (owner, 13 Nov 2026): `node --test test/f1025-github-tests-a-pull-request.test.js` (5) — the three ways in (pull request, clock, hand), no bare push, the cancel group, still the whole set, the session greeting. Red at the parent (the file said `push:`).
 
 ## THE NINE FLOW RULES
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
