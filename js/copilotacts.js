@@ -2140,10 +2140,10 @@ const CA_GO = {
   wall: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'wall' }); return caHomeWall(); },
   list: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); if (typeof regFoldersShut === 'function') regFoldersShut(); return caHomeWall(); },
   /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
-  redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
+  redline: c => c ? ((typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id)) : false,
   sign: c => caRoomSign(c),
-  /* beside the paper: Jambo's own Fill in face (stage 2) */
-  fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
+  /* FILL IN IS FILL IN THE CONTRACT (owner, 13 Nov 2026: only that door fills): the Dossier's own door, pdFillGo */
+  fill: c => c ? ((typeof pdFillGo === 'function') ? pdFillGo(c.id) : (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details')) : false,
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
   history: c => c ? ((typeof hbOpenView === 'function') ? hbOpenView(c.id, 'hist') : caRoomTab(c, 'history')) : (typeof openPanel === 'function' && openPanel('activity')),
   /* the contract on Home, then its brief through the paper's own door */

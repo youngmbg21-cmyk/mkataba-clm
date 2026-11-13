@@ -41,3 +41,12 @@ test('filling in from another tab draws the panel on the Dossier', () => {
   const h = PD.slice(i, PD.indexOf('\n}', i));
   assert.match(h, /if \(_pdTab !== 'copilot'\) try \{ pdSetTab\('copilot'\); if \(typeof renderIntelDock === 'function'\) renderIntelDock\(\); \}/);
 });
+
+test('the "fill in" link above Jambo\'s box carries the contract on the paper and goes through Fill in the contract', () => {
+  const CO = strip(R('js/components.js')), CA = strip(R('js/copilotacts.js'));
+  const i = CO.indexOf("e.target.closest('[data-jb-way]')"); assert.ok(i > 0);
+  assert.match(CO.slice(i, i + 300), /cid: jamboWayCid\(\)/, 'never cid:null while a contract is on the paper');
+  assert.match(CO, /function jamboWayCid\(\)\{\s*const pc = \(typeof window\.pdOnPaper === 'function' && window\.pdOnPaper\(\) && typeof window\.pdContract === 'function'\) \? window\.pdContract\(\) : null;/);
+  assert.match(CA, /fill: c => c \? \(\(typeof pdFillGo === 'function'\) \? pdFillGo\(c\.id\)/);
+  assert.match(CA, /redline: c => c \? /, 'no contract, no throw');
+});
