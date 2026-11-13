@@ -54,7 +54,9 @@ const CONTRACTS = [
   mk('MK-C1', 'Retail Listing West', 'Quickmart', 'sales', 30000000, 'Signed', { expiry: day(300),
     metadata: { value: 30000000, currency: 'KES', category: 'customer', paymentTerms: '60 days' } }),
   mk('MK-J1', 'Juno Licence', 'Juno Ltd', 'proc', 4000000, 'Signed', { expiry: day(200) }),
-  mk('MK-J2', 'Juno Retail', 'Juno Fresh AB', 'sales', 2000000, 'Draft', {}),
+  /* its end day rides the clock too, sixty days after MK-J1's (13 Nov 2026: with the default 30 Jun 2027 the
+     two met in one month once day(200) reached June, and "by month" drew one column, so 15a went red by date) */
+  mk('MK-J2', 'Juno Retail', 'Juno Fresh AB', 'sales', 2000000, 'Draft', { expiry: day(260) }),
   mk('MK-C2', 'Hotel Supply', 'Serena Group', 'sales', 9000000, 'Under Review',
     { metadata: { value: 9000000, currency: 'KES', category: 'customer' } }),
   ...FIXTURES,

@@ -22324,3 +22324,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 
 ## Noticed, not fixed (13 Nov 2026)
 - home-board-verify 15a ("by month" draws month columns, each a door…) fails on main since 9f6f6aa (run 43337002752; passed at e7d345c). Seen on PR 686, which touches neither the Board nor its charts. Not fixed here.
+- FIXED the same day (owner: "fix it first"): the check's own dates, not the app. MK-J1 ends day(200) and MK-J2 had the fixed 30 Jun 2027; from 13 Nov 2026 day(200) falls in June too, so "Juno by month" was one month ("All in one") and drew no columns. MK-J2 now ends day(260), always another month.
