@@ -123,7 +123,8 @@ const MEASURE = `(() => {
   const inPanel = el => !!(panel && panel.contains(el));
   const skipTree = el => !!el.closest('#modal-root, .toast, [data-white-plant]') && !el.closest('[data-white-plant]');
   /* the paper's own canvas and the designed grey parts */
-  const PAPER = '#ig-paper-scroll, .ig-paper-scroll, #ig-paper, .paper-zc, .rl-paper, .pd2-br-sheet, .pd2-am-sheet, .doc-surface, .sign-copy, .hb-dark, #ig-canvas, .igx-stage, .tpl-dt-paper:has(.tpl-dt-sheet)';
+  /* #tb-scroll: the builder's paper on its desk, as the clause editor's (owner, 13 Nov 2026) */
+  const PAPER = '#tb-scroll, #ig-paper-scroll, .ig-paper-scroll, #ig-paper, .paper-zc, .rl-paper, .pd2-br-sheet, .pd2-am-sheet, .doc-surface, .sign-copy, .hb-dark, #ig-canvas, .igx-stage, .tpl-dt-paper:has(.tpl-dt-sheet)';
   const DESIGNED = 'tr.is-sel, .is-sel, .cal-day, .cal-cell, .cal-wk-slot, .cal-month td, .cal-hz-rm, #mig-drop, .mig-drop-card, .pu-key, .lh-box, .lh-q, .ac-nl-form, .jl-bub, .cn2-jcard, .dl2-cmp, .hist-redline, .jh-office, .jh-floor, .hbk-pic-wrap, .fm-lane, .na-askbox, .ctf-bar, .hb-stagebar';
 
   /* GROUND — sampled on a grid, each grey point attributed to the element that paints it */

@@ -20547,7 +20547,12 @@
   html.lg-new #tb-page .tb-head .tb-fchip.empty .k{display:inline}
   html.lg-new #tb-page .tb-head .tb-tname{flex:1 1 auto}
   html.lg-new #tb-page .tb-head .tb-tname .v{white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:13px;line-height:15px;text-align:left}
-  html.lg-new #tb-page #tb-branding.tb-brand{border-radius:0;box-shadow:none;border-left-color:transparent;border-right-color:transparent}
+  html.lg-new #tb-page #tb-branding.tb-brand{box-shadow:none}
+  /* THE BUILDER'S PAPER LIES ON A DESK, AS THE CLAUSE EDITOR'S DOES (owner, 13 Nov 2026: "there should be a paper and the
+     backdrop should resemble the back drop of the clause editor"; reverses "the builder flat" for what is under the strip):
+     the strip stays on white; under one hairline the scroller is the grey ground, edge to edge and to the panel and the
+     foot, with the white paper and the Branding card on it. The grey is the scroller's own, so the paper's canvas is one box. */
+  html.lg-new #tb-page #tb-scroll{background:var(--color-bg);border-top:1px solid var(--color-divider);margin:0 calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b));padding:var(--s-4) var(--s-4) var(--s-6)}
   html.lg-new #tb-page .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-divider);border-radius:0;box-shadow:none}
   html.lg-new #tb-page.tb-page #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
   html.lg-new #tb-page.tb-page:not(.no-rail) > .tb-left{margin-bottom:0}
