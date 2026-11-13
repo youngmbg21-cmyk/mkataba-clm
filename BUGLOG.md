@@ -22321,3 +22321,11 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
 - Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+
+## 13 Nov 2026 — THE NOTES DRAWER IS A THREAD (owner picked "The Thread" by name off four drawn)
+- Built: rooms as a segmented switch, chips Open · Yours · Done (replacing the drawer's Done fold), a line per day, a face per note, the clock beside the name (full stamp on the hover), drawn verbs on hover/focus (always shown on a finger), facts under the words, one rounded box with the @ door. f1026 (red at the parent); f248, f264, f303, f304, f446, f756 re-pointed; two browser checks read the stamp off the hover.
+- A line NOT BUILT: the drawing's "Only your team sees this" was left out (owner's 2 Sep 2026 ruling); asked.
+- Hidden, as drawn: the contract-wide panel's "N notes" line under its name (the switch carries the counts).
+- Left alone on purpose: the Redlines column's notes view (word verbs, own Done fold) and the phone.
+### Noticed, not fixed
+- The contract-wide Notes list on the OTHER SIDE's page prints our change code (CHG-00N) on a note's reference line (rlChatPanelHtml refOf), while the pin on the same page reads the clause instead (owner, 8 Nov 2026). Not checked in a browser on their page; not touched.

@@ -244,7 +244,7 @@ describe('f756 (5) the notes open in the same panel', () => {
     assert.match(fn, /rlAgoWords\(m\.at\)/, 'when, in words');
     assert.match(fn, /class="rl-fn-say"/, 'the words in a bubble');
     assert.match(fn, /rlNpNoteHtml\(m, room, side, '', \{ \.\.\.\(ctx \|\| \{\}\), actsOnly: true \}\)/, 'the verbs are the drawer\'s own');
-    assert.match(NV, /if \(ctx && ctx\.actsOnly\) return acts;/);
+    assert.match(NV, /if \(ctx && ctx\.actsOnly\) return acts \+ facts;/);
     assert.match(fnBody(NV, 'rlFaceNoteClause'), /i18t\('ng_fn_clause', \{ n: num \}\)/, '"clause 11"');
     /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the
        clause through the one lander */
