@@ -47,11 +47,17 @@ test('f1026 (4) Save files through the one door as our change, never quietly', (
   assert.match(save, /const nego = moved\.filter\(x => x\.b\.kind === 'nego' && x\.v\);/);
   assert.ok(save.indexOf('pd2FillSaveNego(c, nego, rest)') < save.indexOf('contractBlankSet('), 'handed on before any blank is written');
   const f = region(P, 'pd2NegoFile');
-  assert.match(f, /await negoEditClause\(c, clauseId, host\.innerHTML, \{ side: 'owner', quiet: true, note: _pdT\('pd2_nb_note'\) \}\)/);
+  assert.match(f, /await negoFileFilledClause\(c, clauseId, host\.innerHTML, _pdT\('pd2_nb_note'\)\)/);
+  /* the door and the save live in the negotiation's own file: the desk never saves (f563) */
+  const N = stripCom(read('js/negotiation.js'));
+  assert.match(region(N, 'negoFileFilledClause'), /await negoEditClause\(c, clauseId, bodyHtml, \{ side: 'owner', quiet: true, note \}\);\n\s*if \(ch && window\.persist\) persist\(c\);/);
   assert.match(f, /const cl = negoClauseNowById\(c, clauseId\);/, 'from the clause as it stands');
   assert.match(f, /if \(!cl \|\| hits\.some\(h => !h\.at\)\) why = _pdT\('pd2_nb_moved'\);/, 'a blank not found again refuses the clause');
-  assert.doesNotMatch(f, /contractBlankSet|redlineText\s*=|\.bodyHtml\s*=/, 'nothing written but through the door');
+  assert.doesNotMatch(f, /contractBlankSet|redlineText\s*=|\.bodyHtml\s*=|persist\(/, 'nothing written but through the door');
   assert.match(f, /sp\.className = 'hati-field-done'; sp\.setAttribute\('data-field-key', at\.fk\); sp\.textContent = x\.v;/, 'an answer is text, never markup');
+});
+test('f1026 (4b) when the filling stops, a negotiated paper is drawn whole, its marks and boxes gone', () => {
+  assert.match(region(P, 'pd2FillStop'), /if \(host && host\.querySelector\('\[' \+ PD2_NB_ATTR \+ '\]'\)\) delete host\.dataset\.for;\n\s*if \(typeof igPaperRefresh === 'function'\)/);
 });
 test('f1026 (5) a company standard\'s answer is its form\'s too, through its one writer', () => {
   const f = region(P, 'pd2NegoFile');

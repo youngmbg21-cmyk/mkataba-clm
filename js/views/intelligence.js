@@ -10042,11 +10042,16 @@ function igDockBatch(fn){
    igDockKeptCount says how many asks wrote nothing (the measure reads it). */
 let _igDockSrc=null, _igDockWatch=null, _igDockMoved=false, _igDockKept=0;
 const IG_DOCK_ACT_RE=/data-pd-act="[^"]*"/g;
+/* the parts of the panel another painter fills after it is written: never kept, the panel is written whole */
+const IG_DOCK_FILLED_SEL='[data-pd-send-kept], #pd-thread, #pd-fill, #pd-og, .pd-nx, #pd-fillface, #pd-redface, #pd-signface, #pd-amendface, #pd-sendface, #pd-send-slot, #pd-body, #pd-kt';
 function igDockKeptCount(){ return _igDockKept; }
 function igDockForget(){ _igDockSrc=null; }
 /* the panel as just written is what a later ask is compared with; null where its middle is not the painter's own */
 function igDockStamp(dock, html){
-  const own=!!dock.querySelector(':scope > #igd-feed:not([hidden])')&&!dock.querySelector('[data-pd-send-kept], #pd-thread, #pd-fill');
+  /* ONLY words the painter itself wrote: no part a painter fills after the write, and no box but the ask box (a box's
+     answer and the rows it opens live outside the string — GitHub's details-owes-overview-edits 4b, 13 Nov 2026) */
+  const own=!!dock.querySelector(':scope > #igd-feed:not([hidden])')&&!dock.querySelector(IG_DOCK_FILLED_SEL)
+    &&![...dock.querySelectorAll('input, select, textarea, [contenteditable="true"]')].some(n=>n.id!=='igd-input');
   _igDockSrc=own?String(html).replace(IG_DOCK_ACT_RE,''):null;
   if(typeof MutationObserver!=='function'){ _igDockSrc=null; return; }
   if(!_igDockWatch) _igDockWatch=new MutationObserver(()=>{ _igDockMoved=true; });
@@ -12471,7 +12476,7 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 /* what the map shows, one reading (24 Oct 2026) */
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
 Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
-Object.assign(window,{ igDockKeptCount, igDockForget, igStripPut });
+Object.assign(window,{ igDockKeptCount, igDockForget, igStripPut, IG_DOCK_FILLED_SEL });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,

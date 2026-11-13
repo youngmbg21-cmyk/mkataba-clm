@@ -62,7 +62,9 @@ test('f1024 (5) nothing changed, nothing written: the panel is kept only without
   const I = stripCom(read('js/views/intelligence.js'));
   const same = region(I, 'igDockSame'), stamp = region(I, 'igDockStamp'), dock = region(I, 'renderIntelDock');
   assert.match(stamp, /':scope > #igd-feed:not\(\[hidden\]\)'/, 'only a middle the painter itself wrote');
-  assert.match(stamp, /\[data-pd-send-kept\], #pd-thread, #pd-fill/, 'never a part filled by its own painter');
+  assert.match(stamp, /!dock\.querySelector\(IG_DOCK_FILLED_SEL\)/, 'never a part filled by its own painter');
+  assert.match(I, /const IG_DOCK_FILLED_SEL='\[data-pd-send-kept\], #pd-thread, #pd-fill, #pd-og, \.pd-nx,/);
+  assert.match(stamp, /\.some\(n=>n\.id!=='igd-input'\)/, 'no box but the ask box');
   assert.match(stamp, /childList:true, subtree:true, attributes:true, characterData:true/, 'the watcher sees every move');
   assert.match(same, /if\(_igDockMoved\|\|_igDockWatch\.takeRecords\(\)\.length\)\{ _igDockMoved=true; return false; \}/, 'anything moved = written whole');
   assert.match(same, /if\(ids\.length!==els\.length\) return false;/, 'a different count of acts = written whole');

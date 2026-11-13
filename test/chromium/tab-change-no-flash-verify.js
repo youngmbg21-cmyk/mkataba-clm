@@ -86,8 +86,10 @@ const HTML = n => `<h1>SERVICES AGREEMENT ${n}</h1><p>This Agreement is made bet
     renderIntelDock();                                      /* the panel as the painter leaves it */
     const feed = document.getElementById('igd-feed'), box = document.getElementById('igd-input'); if (!feed || !box) return { missing: 'the landing' };
     box.value = 'half a question'; feed.scrollTop = 40; const top = feed.scrollTop;
+    /* keepable only where nothing in the panel is filled after the write and no box but the ask box stands */
+    const keepable = !dock.querySelector(window.IG_DOCK_FILLED_SEL || '#pd-og') && ![...dock.querySelectorAll('input, select, textarea')].some(n => n.id !== 'igd-input');
     const n0 = igDockKeptCount(); renderIntelDock(); renderIntelDock();
-    const same = { n: igDockKeptCount() - n0, feed: document.getElementById('igd-feed') === feed, box: document.getElementById('igd-input') === box, words: document.getElementById('igd-input').value, top: document.getElementById('igd-feed').scrollTop === top };
+    const same = { keepable, n: igDockKeptCount() - n0, feed: document.getElementById('igd-feed') === feed, box: document.getElementById('igd-input') === box, words: document.getElementById('igd-input').value, top: document.getElementById('igd-feed').scrollTop === top };
     /* every button still finds an act: its number is one this build minted (the highest numbers are the newest) */
     const acts = [...dock.querySelectorAll('[data-pd-act]')].map(b => b.getAttribute('data-pd-act'));
     /* something in the panel moved: the next ask writes it whole */
@@ -101,7 +103,9 @@ const HTML = n => `<h1>SERVICES AGREEMENT ${n}</h1><p>This Agreement is made bet
     document.querySelector('#ig-dock [data-pd-tab="copilot"]').click();
     return { same, acts: acts.length, moved, tab };
   });
-  check('10a · asked again with nothing changed, the panel is not written: the same nodes, the box\'s words and the scroll kept', !kept.missing && kept.same.n === 2 && kept.same.feed && kept.same.box && kept.same.words === 'half a question' && kept.same.top, kept.same || kept);
+  /* where the landing holds a part filled after the write, it is written whole every time (any doubt = written whole) */
+  check('10a · asked again with nothing changed, a keepable panel is not written (same nodes, scroll); any other is written whole; the box\'s words stay either way',
+    !kept.missing && kept.same.words === 'half a question' && (kept.same.keepable ? (kept.same.n === 2 && kept.same.feed && kept.same.box && kept.same.top) : kept.same.n === 0), kept.same || kept);
   check('10b · a part moved since: written whole, the box\'s words carried as before', !kept.missing && kept.moved.n === 0 && kept.moved.fresh && kept.moved.words === 'half a question', kept.moved);
   check('10c · a tab filled by its own painter is always written', !kept.missing && kept.tab.n === 0 && kept.tab.fresh, kept.tab);
   /* 10d · every kept button still finds its act: the number it carries is one this build minted */
@@ -111,7 +115,7 @@ const HTML = n => `<h1>SERVICES AGREEMENT ${n}</h1><p>This Agreement is made bet
     const ids = [...dock.querySelectorAll('[data-pd-act]')].map(b => b.getAttribute('data-pd-act')).filter(Boolean);
     return { keptNow: igDockKeptCount() - n0, n: ids.length, dead: ids.filter(id => !pdActKnown(id)).length };
   });
-  check('10d · every kept button still finds its act', !live.missing && live.keptNow === 1 && live.dead === 0, live);
+  check('10d · every button still finds its act after a second ask', !live.missing && live.keptNow <= 1 && live.dead === 0, live);
 
   const other = await watch('paper', 'MK-111');
   const landed = await until(p, () => !!(window.pdContract && pdContract() && String(pdContract().id) === 'MK-111'), null, 10000);

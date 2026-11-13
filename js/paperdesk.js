@@ -8521,7 +8521,7 @@ function pd2NegoFillOn(c){
     if (typeof igTheirsOn === 'function' && igTheirsOn(c)) return false;
     if (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c)) return false;
     if (typeof deskMayRedline === 'function' && !deskMayRedline(c)) return false;
-    return typeof negoEditClause === 'function';
+    return typeof negoFileFilledClause === 'function';
   } catch (_){ return false; }
 }
 /* the clauses with a change open on them, read RAW (reading must not write) */
@@ -8630,7 +8630,7 @@ async function pd2NegoFile(c, items){
           else at.el.replaceWith(document.createTextNode(x.v)); });
         hits.filter(h => h.at.node).sort((a, b) => b.at.hit.s - a.at.hit.s).forEach(({ x, at }) => {
           const t = at.node; t.data = t.data.slice(0, at.hit.s) + x.v + t.data.slice(at.hit.e); });
-        ch = await negoEditClause(c, clauseId, host.innerHTML, { side: 'owner', quiet: true, note: _pdT('pd2_nb_note') });
+        ch = await negoFileFilledClause(c, clauseId, host.innerHTML, _pdT('pd2_nb_note'));
         if (!ch) why = String(window.negoLastRefusal || '') || _pdT('pd2_nb_moved');
       }
     } catch (e){ ch = null; why = (e && e.message) || String(e); }
@@ -8645,7 +8645,6 @@ async function pd2NegoFile(c, items){
     let n = 0; done.filter(x => x.b.fk).forEach(x => { const i = form.fields.findIndex(f => f && f.fieldKey === x.b.fk); if (i >= 0){ tplFormCommit(c, i, x.v); n++; } });
     if (n && !owed && typeof tplFormSig === 'function') form.filledSig = tplFormSig(form);
   }
-  if (done.length && typeof persist === 'function') persist(c);
   return { done: done.length, refused };
 }
 /* THE SIGNATURE LINES, read as the foot draws them (rlPaperFootHtml): ours first, then each party that signs */
@@ -8819,6 +8818,10 @@ function pd2FillStop(){
   _pd2Fill = null;
   document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove());
   const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill');
+  /* a negotiated paper's marks and boxes are the sitting's: the paper is drawn whole, never patched around them (a patch
+     puts back only the clauses whose wording moved, and would leave the rest's boxes standing) */
+  const host = document.getElementById('ig-paper');
+  if (host && host.querySelector('[' + PD2_NB_ATTR + ']')) delete host.dataset.for;
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
 }
@@ -8989,8 +8992,8 @@ async function pd2FillSaveNego(c, nego, rest){
   /* what was filed is the paper's now (its clause carries our change); what was refused stays to be answered */
   const no = new Set(r.refused.map(w => String(w.clauseId)));
   nego.forEach(x => { if (!no.has(String(x.b.clauseId)) && !no.has('')) _pd2Fill.was[x.b.key] = x.v; });
-  rest.forEach(x => { if (contractBlankSet(c, x.b.key, x.v, { hold: true })) _pd2Fill.was[x.b.key] = x.v; });
-  if (rest.length && typeof persist === 'function') persist(c);
+  /* the one writer saves on the last of the run (the desk never saves: f563) */
+  rest.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === rest.length - 1 ? {} : { hold: true })) _pd2Fill.was[x.b.key] = x.v; });
   const filed = r.done ? _pdTn('pd2_nb_saved', r.done, { n: r.done }) : '';
   if (r.refused.length){
     if (typeof toast === 'function') toast([filed, _pdT('pd2_nb_refused', { why: r.refused.map(w => w.say).join(' · ') })].filter(Boolean).join(' '), 'warn');
