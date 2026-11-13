@@ -94,7 +94,9 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
   if (draft) await draft.click();
   const ed = draft ? await until(p, () => !!document.querySelector('#clause-editor'), null, 10000) : false;
   check('4 · Draft a redline opens the editor on that risk\'s clause', ed);
-  if (ed) await p.evaluate(() => { const x = document.querySelector('#clause-editor [data-ce-close], #clause-editor .ce-back'); if (x) x.click(); });
+  /* the editor is put away the way every check puts it away, and the page waits until it is gone (it lies over the paper) */
+  if (ed){ await p.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+    await until(p, () => !document.querySelector('#clause-editor'), null, 8000); }
   /* 5 · Clean */
   await p.evaluate(() => { setView('dashboard'); pdRedOpen('MK-382'); });
   await until(p, () => !!document.querySelector('#ig-paper .ig-redpaper'), null, 10000);
