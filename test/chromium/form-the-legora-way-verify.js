@@ -2,7 +2,7 @@
    and "Build The Legora Way"). New look on, the form opened in the middle on a paper with three things owed:
      1 · one quiet list: what is owed first, each with its amber dot; then what stands, each "§ n · quoted words" where read;
          the line under the title says how many are needed and ready
-     2 · the chips All · Needed · Read from the paper narrow the rows (nothing saved, nothing moved)
+     2 · the chips All · Needed · On record narrow the rows (nothing saved, nothing moved)
      3 · Jambo's side names what is owed and the box asks "Tell Jambo the missing details…"
      4 · a sentence typed there is read through the one fill route (stood in here: no key), said under "You said" with what
          was found; Put all in fills the rows, writes NOTHING to the record; the foot counts "3 of 3 filled"
@@ -76,8 +76,8 @@ const ID = 'MK-E1';
     const shownNeed = await page.evaluate(() => [...document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-list > tr')].filter(r => r.getClientRects().length).length);
     await page.click('[data-pd2-fm-chip="all"]').catch(() => {});
     const shownAll = await page.evaluate(() => [...document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-list > tr')].filter(r => r.getClientRects().length).length);
-    check('2 the chips All · Needed · Read from the paper narrow the rows and give them back',
-      chips.length === 3 && /^All \d+$/.test(chips[0]) && chips[1] === 'Needed 3' && /^Read from the paper \d+$/.test(chips[2]) && shownNeed === 3 && shownAll === L.n, { chips, shownNeed, shownAll });
+    check('2 the chips All · Needed · On record narrow the rows and give them back',
+      chips.length === 3 && /^All \d+$/.test(chips[0]) && chips[1] === 'Needed 3' && /^On record \d+$/.test(chips[2]) && shownNeed === 3 && shownAll === L.n, { chips, shownNeed, shownAll });
     /* 3 */
     const S = await page.evaluate(() => ({ side: ((document.querySelector('#ig-dock .pd2-fmj') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
       ph: (document.getElementById('igd-input') || {}).placeholder || '' }));
