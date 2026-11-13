@@ -16147,28 +16147,9 @@ function docAnswersWire(c){
    they are (readOnlyDocHtml). A press on one goes to its box in the Overview
    tab's form — the tab is turned to if another is up, a filled box's fold is
    opened. Delegated once, on the document. */
-if(typeof document !== 'undefined' && !document._homeAnswerWired){
-  document._homeAnswerWired = true;
-  document.addEventListener('click', e => {
-    const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync], #ig-canvas [data-field-key], #ig-canvas [data-upblank]') : null;
-    if(!w) return;
-    /* A LINE BEING TYPED ON THE PAPER IS ITS OWN DOOR (12 Nov 2026): a press inside it types, never opens the form */
-    if(e.target.closest('[data-pd2-bl], [data-pd2-ps-name], [data-pd2-ps-mail]')) return;
-    const key = w.getAttribute('data-field') || w.getAttribute('data-sync') || w.getAttribute('data-field-key') || w.getAttribute('data-upblank');
-    if(!key || typeof contractFieldPeer !== 'function') return;
-    const id = (typeof intel === 'object' && intel && intel.paper) ? intel.paper.id : null;
-    const c = id && typeof getContract === 'function' ? getContract(id) : null;
-    if(!c) return;
-    /* THE FORM IS BESIDE THE PAPER AGAIN (the one-page Home plan, stage 2;
-       owner picked "Form", 14 Oct 2026): a press on a blank opens Jambo's
-       Fill in face and lands on its box, a filled box's fold opened. */
-    let live = false; try{ const d = detailsOf(c); live = !!(d.live && d.all); }catch(_){ live = false; }
-    if(live && typeof pdFillOpen === 'function'){ pdFillOpen(c.id, { key }); return; }
-    /* NOTHING LEFT TO ASK (a sealed record): the answer is read where it
-       stands. The room's Details tab it used to open went home with stage 5
-       of the one-page Home plan, and its twin is the face above. */
-  });
-}
+/* RETIRED 13 Nov 2026 (owner: "the entry fields on the paper should always be amber and they can never be filled in
+   unless you are on dossier and press on fill in the contract"): a press on a blank on Home's paper used to open the
+   form in the middle here. js/paperdesk.js now swallows that press; the Dossier's Fill in the contract is the one way. */
 
 /* ============================================================
    HIGHLIGHT ON THE DOCUMENT TAB → SIMPLIFY / ASK COPILOT

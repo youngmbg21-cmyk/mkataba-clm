@@ -639,6 +639,12 @@ function jamboOwnWays(footSel, html, forSel){
   /* an empty row is held too (a face drawn with no links above its box keeps the page's away) */
   if (html != null) foot.insertAdjacentHTML('beforebegin', `<nav class="jb-ways is-above-foot is-own" data-jb-ways="own" data-own-for="${esc(forSel || '')}"${html ? '' : ' hidden'}>${html}</nav>`);
 }
+/* THE CONTRACT ON THE PAPER GOES WITH A DOOR'S PRESS (owner, 13 Nov 2026: "fix the broken fill in link above Jambo's
+   box"): a door that acts on a contract (fill in, redline) was handed none and threw on null */
+function jamboWayCid(){
+  const pc = (typeof window.pdOnPaper === 'function' && window.pdOnPaper() && typeof window.pdContract === 'function') ? window.pdContract() : null;
+  return pc ? pc.id : null;
+}
 let _jbWaysQueued = false;
 function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
   /* its own small task after the repaint, never inside the frame that drew it (home-speed-verify: a switch's freeze) */
@@ -647,7 +653,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   /* a door's press: the one mover */
   document.addEventListener('click', e => {
     const b = e.target && e.target.closest && e.target.closest('[data-jb-way]'); if (!b) return;
-    if (typeof window.caGo === 'function') window.caGo({ kind: 'go', place: b.getAttribute('data-jb-way'), cid: null });
+    if (typeof window.caGo === 'function') window.caGo({ kind: 'go', place: b.getAttribute('data-jb-way'), cid: jamboWayCid() });
   });
   /* kept in step with the page: any repaint queues one sync (bound once, at load) */
   if (typeof MutationObserver === 'function'){

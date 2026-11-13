@@ -9116,7 +9116,9 @@ function pd2FillStart(id, key){
   if (first){ const was = {}; pd2FillBlanks(c).forEach(b => { was[b.key] = String(b.value || ''); });
     _pd2Fill = { id: String(id), vals: Object.assign({}, was), was, walk: [], cur: '', sig: {}, sigWhy: null, q: {}, sec: {}, stopAsk: 0 }; }
   if (pdMidUp()) pdMidClose();
-  if (_pdTab !== 'copilot') try { pdSetTab('copilot'); } catch (_){}
+  /* the Dossier is where filling in happens (owner, 13 Nov 2026): from another tab (Clauses' Fill it in) the panel is
+     DRAWN on the Dossier, not only told so */
+  if (_pdTab !== 'copilot') try { pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){}
   pd2NotesOff();
   if (first) _pd2Fill.walk = pd2FillWalk(c);
   const anyBlank = !!document.querySelector('#ig-canvas ' + PD2_BL_SEL.split(', ').join(', #ig-canvas '));
@@ -9449,14 +9451,16 @@ function pdFillGoFormOnly(id, key){
   return !pd2FillBlanks(c).some(b => String(b.key) === String(key));
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
-  /* a blank pressed on the paper, in the new look: it is filled where it stands (the old look keeps the form) */
+  /* A BLANK PRESSED ON THE PAPER DOES NOTHING (owner, 13 Nov 2026: "they can never be filled in unless you are on
+     dossier and press on fill in the contract"; REVERSES "a blank pressed is filled where it stands", 11 Nov). Only the
+     Dossier's Fill in the contract (pdFillGo) turns the blanks into lines; a press on one before that is swallowed
+     here, first, so no other door (the form in the middle) answers it either. */
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target : null; if (!t || !pd2On()) return;
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (t.closest('[data-pd2-bl], [data-pd2-ps-name], [data-pd2-ps-mail]')) return;
-    const sp = t.closest('#ig-canvas [data-pd2-nb], #ig-canvas [data-upblank], #ig-canvas .hati-field[data-field-key], #ig-canvas span.field-frozen[data-field]');
-    if (sp && !pd2BlOff(sp)){ const c = pdContract(); if (!c) return;
-      const k = pd2BlKey(sp);
-      if (pd2FillBlanks(c).some(b => String(b.key) === String(k))){ e.preventDefault(); e.stopPropagation(); pd2FillStart(c.id, k); } return; }
+    const sp = t.closest('#ig-canvas [data-pd2-nb], #ig-canvas [data-upblank], #ig-canvas [data-field-key], #ig-canvas [data-field], #ig-canvas [data-sync]');
+    if (sp){ e.preventDefault(); e.stopPropagation(); return; }
+    if (!pd2On()) return;
     if (t.closest('[data-pd2-fill-save]')){ e.preventDefault(); pd2FillSave(); return; }
     if (t.closest('[data-pd2-fill-discard]')){ e.preventDefault(); const c = _pd2Fill && getContract(_pd2Fill.id);
       /* STOP WITH SOMETHING TYPED ASKS AGAIN, in its own words, for four seconds; a second press leaves */

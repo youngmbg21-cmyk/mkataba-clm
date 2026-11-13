@@ -137,7 +137,8 @@ describe('f674 (3) the paper turns Redlined while the face is open', () => {
 
 describe('f674 (4) every door from outside opens the face', () => {
   test('4a the word', () => {
-    assert.match(CA, /redline: c => \(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
+    /* RE-POINTED 13 Nov 2026 (f1042): no contract, no throw */
+    assert.match(CA, /redline: c => c \? \(\(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
   });
   test('4b the checklist\'s waiting redlines, suggestions and reviews', () => {
     const g = strip(fnBody(HOME, 'needsYouGo'));

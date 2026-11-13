@@ -9870,6 +9870,12 @@
   #pd-fillface .pd-ff-cost{color:var(--color-neutral-600)}
   /* THE PAPER BESIDE FILL IN: an owed blank amber, an answer not yet in the wording underlined (pdFillPaperMarks) */
   #ig-canvas .hati-field.pd-ff-owe-mark:not(.is-fieldlit){background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  /* AN ENTRY FIELD ON THE PAPER IS ALWAYS AMBER, AND A PRESS ON IT DOES NOTHING (owner, 13 Nov 2026: "the entry
+     fields on the paper should always be amber and they can never be filled in unless you are on dossier and press on
+     fill in the contract"): every unfilled field of a company standard is amber on every tab, as an upload's blank
+     already was; no hand over it, since only Fill in the contract fills it. Never on the signing copy. */
+  #ig-canvas .hati-field:not(.is-fieldlit):not(.pg-sign *){background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  #ig-canvas :is(.hati-field[data-field-key], span.up-blank){cursor:auto}
   #ig-canvas .pd-ff-pend{text-decoration:underline dotted var(--accent-ink);text-decoration-thickness:1.5px;text-underline-offset:3px}
   /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
   #ig-dock .pd-wall{display:flex;flex-direction:column;gap:12px}
