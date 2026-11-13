@@ -2739,7 +2739,7 @@ function aiGotoRun(g, q){
 }
 /* HaTi ITSELF IS ANSWERED FROM THE HANDBOOK: the server's AI_HANDBOOK_RULE, word for word (f938) */
 /* THE SEND SCREEN WRITES THE EMAIL (owner, 29 Oct 2026): word for word on both hosts (server/server.js) */
-const AI_SEND_NOTE_RULE='THE SEND SCREEN WRITES THE EMAIL: when the CURRENT VIEW says the send screen is open and the person asks you to draft, write or word an email, message or note for that send, do not write a whole email: HaTi already writes its subject, greeting, the list of what this send carries, the link and the sign-off. Write ONLY the note the person would type in their note box (plain text, two to five sentences, no subject, no greeting, no sign-off, no [placeholders]) and put it in deliver_answer\'s note; in answer, say in one sentence that it is ready to go in their note box with the button under it. Name only the changes the CURRENT VIEW lists as carried by this send, never promise one that is not on that list; when something they seem to want is not on it, say so in answer, outside the note, and that it has to be filed in Redlines before it can travel.';
+const AI_SEND_NOTE_RULE='THE SEND SCREEN WRITES THE EMAIL: when the CURRENT VIEW says the send screen is open and the person asks you to draft, write or word an email, message or note for that send, or to change a note you drafted for it (shorter, warmer, firmer, leaving a point out, adding something), do not write a whole email: HaTi already writes its subject, greeting, the list of what this send carries, the link and the sign-off. Write ONLY the note the person would type in their note box (plain text, two to five sentences, no subject, no greeting, no sign-off, no [placeholders]) and put it in deliver_answer\'s note; in answer, say in one short sentence what the note covers: HaTi shows the note beside the letter, where the person puts it in. Name only the changes the CURRENT VIEW lists as carried by this send, never promise one that is not on that list; when something they seem to want is not on it, say so in answer, outside the note, and that it has to be filed in Redlines before it can travel.';
 const AI_HANDBOOK_RULE="HaTi ITSELF IS ANSWERED FROM THE HANDBOOK. A question about HaTi — what a page, tab, panel, button, word, setting or rule in HaTi is or does, how to do something in HaTi, where something is, who may do it, what it costs, or what the person can do on the page in front of them — is answered from the Handbook, HaTi's own instruction book, never from the contracts: call search_hati with kinds [\"guide\"] and the person's words plus the words the app uses, answer from the chapter's own steps in plain words (number the steps), name the chapter, and set goto's door to {kind:\"chapter\", chapter} with its number (\"about\" for the book itself). The page in front names the chapters that cover it: read those first. \"The Handbook\", \"the manual\" and \"the instructions\" are that book; \"your book\" and \"the book\" mean the contracts. When no chapter covers the question, say so plainly and say what you can tell from the screen, never a guess.";
 const AI_CALENDAR_RULE="You cannot see the person's own calendar, events or notes, and you cannot book, add, move or delete anything in it. When they ask to book, schedule or find time, or whether they are free, say so in one sentence and point them to the Calendar, where Jambo reads their events and plans time with them.";
 const CHAT_WEEKDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -2781,12 +2781,8 @@ function aiSendNoteHtml(note){
   const S=(typeof window.shareScreenSays==='function')?shareScreenSays():null; if(!S) return '';
   const quote=`<blockquote class="ai-send-note-q">${_aiEsc(words).replace(/\n/g,'<br>')}</blockquote>`;
   if(words.length>S.noteMax) return `<div class="mt-1.5 ai-send-note">${quote}<p class="ai-send-note-cap">${_aiEsc(i18t('ai_send_note_cap',{ n:words.length, max:S.noteMax }))}</p></div>`;
-  /* asked for by "Write it for me" on the letter: the press was the ask, so the note goes straight into the box */
-  if(window._shNlWrite && String(window._shNlWrite)===String(S.contractId) && typeof window.shareNoteFill==='function'){
-    window._shNlWrite=null;
-    setTimeout(()=>{ if(shareNoteFill(S.contractId, words)){ const f=document.getElementById('sh-nl-jb'); if(f) f.textContent=i18t('sh_nl_wrote'); } },0);
-    aiSendNoteHtml.placed=true;
-  }
+  /* THE LEGORA WAY (owner, 13 Nov 2026): the draft stays here, beside the letter; only a press puts it in the box */
+  aiSendNoteHtml.placed=true;
   return `<div class="mt-1.5 ai-send-note">${quote}<button type="button" class="ui-btn ui-btn-sm" data-ai-send-note="${_aiEsc(S.contractId)}" data-ai-send-words="${_aiEsc(words)}">${_aiEsc(i18t('ai_send_note_put'))}</button></div>`;
 }
 if(typeof document!=='undefined' && document.addEventListener) document.addEventListener('click',e=>{
@@ -2802,7 +2798,7 @@ if(typeof document!=='undefined' && document.addEventListener) document.addEvent
 function aiSendNoteSaid(res){
   if(!aiSendNoteHtml.pressed) return (res&&res.answer)||'';
   window._shNlWrite=null; aiSendNoteHtml.pressed=false;
-  return i18t(aiSendNoteHtml.placed?'ai_send_note_done':'sh_nl_none');
+  return i18t(aiSendNoteHtml.placed?'sh_nl_here':'sh_nl_none');
 }
 function aiRuleDoorHtml(d, q){
   const door=aiRuleDoorOf(d); if(!door) return '';

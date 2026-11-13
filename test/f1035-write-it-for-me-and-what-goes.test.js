@@ -57,7 +57,7 @@ describe('f1035 — the send screen while Jambo talks', () => {
     assert.match(fnBody(AI, 'aiRenderServerAnswer'), /extra\+=aiSendNoteHtml\(res\.note\);\n\s+let text=aiFmt\(aiSendNoteSaid\(res\)\);/, 'the answer read after the note');
     const note = fnBody(AI, 'aiSendNoteHtml');
     assert.match(note, /aiSendNoteHtml\.pressed=!!window\._shNlWrite; aiSendNoteHtml\.placed=false;\n\s+const words=aiSendNoteClean/, 'the press recorded before an empty note returns');
-    assert.match(note, /aiSendNoteHtml\.placed=true;/, 'placed only when the note goes into the box');
+    assert.match(note, /aiSendNoteHtml\.placed=true;/, 'drawn only when a note came back');  /* RE-POINTED 13 Nov 2026 (f1038, the Legora Way): the draft stays beside the letter */
     /* run it: a press with no note says so; a press with the note placed says it is in the box; no press = the model's words */
     const ctx = { window: {}, i18t: k => k }; ctx.window = ctx;
     vm.createContext(ctx); vm.runInContext('function aiSendNoteHtml(){}\n' + fnBody(AI, 'aiSendNoteSaid'), ctx);
@@ -65,7 +65,7 @@ describe('f1035 — the send screen while Jambo talks', () => {
     assert.equal(ctx.aiSendNoteSaid({ answer: 'Note ready to go in your note box with the button under it.' }), 'sh_nl_none');
     assert.equal(ctx._shNlWrite, null, 'the press is spent');
     ctx.aiSendNoteHtml.pressed = true; ctx.aiSendNoteHtml.placed = true;
-    assert.equal(ctx.aiSendNoteSaid({ answer: 'x' }), 'ai_send_note_done');
+    assert.equal(ctx.aiSendNoteSaid({ answer: 'x' }), 'sh_nl_here');
     assert.equal(ctx.aiSendNoteSaid({ answer: 'his own words' }), 'his own words', 'a typed question keeps his answer');
     const I = R('js/i18n.js');
     assert.equal((I.match(/sh_nl_none: '/g) || []).length, 2, 'both books say it');
