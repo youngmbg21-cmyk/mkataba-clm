@@ -22298,6 +22298,14 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: the read table opened on the Discover page still draws the old Reads head (its own box, All · Mine · Facts, and "+ Ask a column", which goes to the Contracts list's form), not Discover's.
 - Noticed, not fixed: on Discover a counting question is only pointed to Jambo's box; the old form's offer to turn it into one question asked of each contract (ac_ct_turn) has no door there.
 - Noticed, not fixed: on Discover the Due diligence pack asks all five questions; the old form let a person untick some (askColPackPicked); there is no tick on Discover.
+
+## 12 Nov 2026 — the stutter audit (a face change is drawn at once; f1021)
+- FIXED: a tab, face or paper change laid a wrongly styled copy of Jambo's panel over it and faded both (the flash); a second repaint mid-fade snapped it (the stutter). Nothing is copied or faded now; a panel opening wider no longer fades in from nothing; a tab's press draws its body once and keeps the paper's line where it says the same. REVERSES the "Crossfade" pick of 22 Oct 2026 (owner: "why can the old tabs be deleted across the platform to avoid this?").
+- REMOVED (a change too): the crossfade and the wider-panel fade-in. The lit tab's underline still glides.
+### Noticed, not fixed
+- CLAUDE.md is about 90 KB, past its own 80 KB limit; a trim needs the owner's yes.
+- "Fill in on the paper" (MK-469, a lease): sixteen details listed as "have no place on the paper" in one sentence; the line was drawn for one or two. The paper's blanks are probably not being found.
+- Jambo's panel is still built whole on every repaint (about 170 callers of renderIntelDock); only the visible flash was removed.
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
 
 ## 13 Nov 2026 — GitHub tests a pull request and main every night, never a bare push (owner's yes)
@@ -22312,3 +22320,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 15b to 15g all pass right after it, so the panel and the pictures are drawn; what 15a asks for beyond them (month columns, the three groups, the trend switch, the split reading "month") is where it stops.
 - Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
 - Not fixed: outside the request (the GitHub test setup, then going private).
+- 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).

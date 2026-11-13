@@ -1138,37 +1138,19 @@ Object.assign(window,{JB_LATER_TICK,jamboAskLater,jamboLaterTick,jamboLaterCount
 
 Object.assign(window,{LIST_GLIDE_MS,LIST_GLIDE_EASE,listGlideOff,listGlideTake,listGlidePlay,listGlideAround});
 
-/* ════ A PANEL'S FACE CROSSFADES (owner picked "Crossfade", 22 Oct 2026) ════
-   When what a panel shows CHANGES (a tab, a face — said by `keyOf`), the
-   face going away fades out over the face arriving, which fades in; the
-   lit tab's underline glides to the tab pressed. Any other repaint of the
-   same face (a typed letter, an answer arriving) is drawn as before. The
-   going face is a picture of it laid over the panel — nothing pressable, no
-   ids — so the repaint itself stays immediate and every caller that reads
-   the new panel straight after still finds it. Nothing moves for a reader
-   who asked for less motion; the panel's size is never animated. */
-const FACE_SWAP_OUT_MS = 110, FACE_SWAP_IN_MS = 180, FACE_SWAP_INK_MS = 200;
-const FACE_SWAP_GHOST_MAX = 4000;   /* a panel bigger than this many elements only fades in */
-function faceSwapGhost(host, keep){
-  if (host.getElementsByTagName('*').length > FACE_SWAP_GHOST_MAX) return null;
-  const r = host.getBoundingClientRect(); if (!r.width || !r.height) return null;
-  const g = host.cloneNode(true);
-  /* a picture, not a second panel: no ids, names, roles or data- markers, so
-     no reader, press or check can find the old face in it */
-  for (const n of [g, ...g.querySelectorAll('*')]){
-    for (const at of [...n.attributes]) if (at.name === 'id' || at.name === 'name' || at.name === 'role' || at.name === 'for'
-      || at.name.startsWith('data-') || (at.name.startsWith('aria-') && at.name !== 'aria-hidden')) n.removeAttribute(at.name);
-  }
-  if (keep) g.querySelectorAll(':scope > ' + keep).forEach(n => { n.style.visibility = 'hidden'; });
-  Object.assign(g.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px',
-    margin: '0', zIndex: '30', pointerEvents: 'none', transition: 'none', background: 'transparent' });
-  g.setAttribute('aria-hidden', 'true'); g.setAttribute('inert', ''); g.classList.add('face-ghost');
-  document.body.appendChild(g);
-  /* the lists the reader had scrolled stay where they were in the picture */
-  const a = host.querySelectorAll('*'), b = g.querySelectorAll('*');
-  for (let i = 0; i < a.length && i < b.length; i++) if (a[i].scrollTop) b[i].scrollTop = a[i].scrollTop;
-  return g;
-}
+/* ════ A PANEL'S FACE CHANGES AT ONCE (owner, 12 Nov 2026: "why can the old tabs
+   [not] be deleted across the platform to avoid this?"; REVERSES the "Crossfade"
+   pick of 22 Oct 2026) ════
+   The crossfade laid a copy of the going face over the panel and faded it out
+   while the new face faded in from nothing. The copy carried no ids and sat
+   outside the panel, so none of the panel's own styles reached it: for a tenth
+   of a second a wrongly drawn face lay over a pale new one (the flash), and any
+   second repaint in that time threw the half-faded face away (the stutter).
+   Now NOTHING IS COPIED AND NOTHING FADES: the new face is simply there, whole,
+   in the same turn. The one thing that still moves is the lit tab's underline,
+   which glides to the tab pressed (not for a reader who asked for less motion).
+   `keyOf` still says whether the face changed, so only a real change glides. */
+const FACE_SWAP_INK_MS = 200;
 function faceSwap(host, keyOf, paint, o = {}){
   host = typeof host === 'string' ? document.querySelector(host) : host;
   const before = host ? host._faceKey : null;
@@ -1176,14 +1158,9 @@ function faceSwap(host, keyOf, paint, o = {}){
   const go = !!(host && before != null && key != null && key !== before && !listGlideOff() && typeof host.animate === 'function' && host.getClientRects().length);
   const ink0 = go && o.ink ? host.querySelector(o.ink) : null;
   const inkWas = ink0 ? { k: ink0.getAttribute(o.inkKey || 'data-key'), r: ink0.getBoundingClientRect() } : null;
-  const ghost = go ? faceSwapGhost(host, o.keep) : null;
   const out = paint();
   if (host){ try { host._faceKey = keyOf(); } catch (_){ host._faceKey = null; } }
   if (!go) return out;
-  if (ghost) ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FACE_SWAP_OUT_MS, easing: 'linear', fill: 'forwards' })
-    .finished.then(() => ghost.remove(), () => ghost.remove());
-  [...host.children].filter(n => !(o.keep && n.matches(o.keep))).forEach(n => {
-    if (typeof n.animate === 'function') n.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FACE_SWAP_IN_MS, easing: 'linear' }); });
   /* the underline glides from the tab it was under to the tab pressed */
   const ink1 = inkWas && o.ink ? host.querySelector(o.ink) : null;
   if (ink1 && ink1.getAttribute(o.inkKey || 'data-key') !== inkWas.k && typeof ink1.animate === 'function'){
@@ -1196,7 +1173,7 @@ function faceSwap(host, keyOf, paint, o = {}){
   }
   return out;
 }
-Object.assign(window,{FACE_SWAP_OUT_MS,FACE_SWAP_IN_MS,FACE_SWAP_INK_MS,FACE_SWAP_GHOST_MAX,faceSwapGhost,faceSwap});
+Object.assign(window,{FACE_SWAP_INK_MS,faceSwap});
 
 /* ---- JAMBO AS A TAB YOU FLIP TO, AND BACK (owner, 19 Oct 2026: "when you
    jump on a page they should be as is, with the panel on the right and an

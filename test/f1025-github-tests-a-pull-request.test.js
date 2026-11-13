@@ -1,4 +1,4 @@
-/* f1024 — GITHUB TESTS A PULL REQUEST, AND MAIN EVERY NIGHT — NEVER A BARE PUSH (owner, 13 Nov 2026).
+/* f1025 — GITHUB TESTS A PULL REQUEST, AND MAIN EVERY NIGHT — NEVER A BARE PUSH (owner, 13 Nov 2026).
    The repository goes private, where every minute of a check is billed: one run is about 110 billed minutes and
    it ran on every push, about 43 times a day. The whole set now runs when a pull request is open (and on each
    push to it), once a night on main, and by hand; a bare push and a merge onto main start nothing. */
