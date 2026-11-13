@@ -22325,6 +22325,10 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
 - Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+
+## Noticed, not fixed (13 Nov 2026)
+- home-board-verify 15a ("by month" draws month columns, each a door…) fails on main since 9f6f6aa (run 43337002752; passed at e7d345c). Seen on PR 686, which touches neither the Board nor its charts. Not fixed here.
+- FIXED the same day (owner: "fix it first"): the check's own dates, not the app. MK-J1 ends day(200) and MK-J2 had the fixed 30 Jun 2027; from 13 Nov 2026 day(200) falls in June too, so "Juno by month" was one month ("All in one") and drew no columns. MK-J2 now ends day(260), always another month.
 - 13 Nov 2026 — the "room for the answer" check is f1025 (main took f1024 for "a tab change never flashes"; it was f1020, then f1024).
 - 13 Nov 2026 — Noticed, not fixed: home-board-verify 15a ("by month" draws month columns, the recipe's groups under How this is drawn) is RED ON MAIN (run 5005, commit 9f6f6aa, the merge of #683 "a tab change never flashes"); green on main the run before (e7d345c). It fails the same way on any branch joined with main since.
 - 13 Nov 2026 — Noticed, not fixed: the-read-bar-and-notes-verify fails all of ONE screen on some runs and passes on a re-run (12 Nov on #668, 13 Nov on #685), on changes that do not touch the read: the first screen is still slow on a cold server.
