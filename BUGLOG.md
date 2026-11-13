@@ -22329,3 +22329,9 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - On a negotiated paper (any open redline) no blank can be typed on the paper, so every owed detail falls to the form (the owner's MK-469: sixteen). By design since 11 Nov; whether blanks may be filled on wording the other side is reading is the owner's call.
 - Jambo's panel wires itself over the whole panel after every write (dock.querySelectorAll(...).forEach(addEventListener), about a hundred lines); keeping PARTS of a written panel needs those moved to delegation first.
 - The Board's charts fade their parts in on every paint (.hb-in, hbIn .5s) and every Jambo answer row fades in on every paint (.ai-msg, viewIn .25s); not measured yet (the flash measure's first run will say whether they replay on a page move).
+
+## 13 Nov 2026 — a blank on a negotiated paper is a tracked change (f1026; owner: "yes, build option 2")
+- BUILT: on a negotiated paper the blanks outside an argued clause are typed where they stand; Save files them as our change in Redlines through negoEditClause, one per clause, not sent. A company standard's answer also goes into its form ("Done straight away").
+### Noticed, not fixed
+- A company standard's fields (c.templateForm) are never on Fill in on the paper's walk, even on an un-negotiated draft: pd2FillBlanks reads contractBlanks, which answers [] for a templateForm contract, so every field falls to the form's "no place on the paper" line.
+- Suspected, not measured: "Fill the document" (tplFormApply) is not locked during a negotiation (tplFormLocked is only signed/executed/sealed) and rewrites c.redlineText from the form wholesale; whether that reaches a negotiated paper untracked depends on what the negotiation reads as its baseline. Worth a measured look.
