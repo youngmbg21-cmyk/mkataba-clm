@@ -1411,6 +1411,15 @@ function setView(view){
   const _sameView = state.view === view;
   const _sc = document.getElementById('content-scroll');
   const _keepTop = _sameView && _sc ? _sc.scrollTop : 0;
+  /* ---- AND THE LISTS INSIDE THE PAGE KEEP THEIR PLACE TOO (owner, 13 Nov 2026, the flash survey) ----
+     The page's outer scroll was put back; the scrollers INSIDE it (a list's own body, the panel beside it) were
+     not, so choosing the page you are already on, or any act that redraws it, threw a long list to its top —
+     measured on Approvals, Obligations, Our paper, the Pulse board and Jambo's house. Every scroller that carries
+     an id (the standing rule: a scroller carries an id) is read before the redraw and put back after it, the way
+     keepScroll does for a page's own repaint. A different page starts at the top, as it always has. */
+  const _keepIn = [];
+  if(_sameView){ try{ const _h=document.getElementById('content');
+    if(_h&&_h.querySelectorAll) _h.querySelectorAll('[id]').forEach(el=>{ if(el.scrollTop) _keepIn.push([el.id, el.scrollTop]); }); }catch(_){ } }
   // remember where the workspace was opened from, so its Back button returns
   // there (register, a folder, the queue, …) instead of always the folder view
   if(view==='workspace' && state.view && state.view!=='workspace') state.wsReturn={view:state.view, folderId:state.folderId};
@@ -1581,8 +1590,10 @@ function setView(view){
   const sc=document.getElementById('content-scroll');
   if(sc){
     if(_sameView){ sc.scrollTop=_keepTop;
+      const _putIn=()=>{ for(const [id,top] of _keepIn){ const el=document.getElementById(id); if(el) el.scrollTop=top; } };
+      _putIn();
       // guarded: the cut-down node stage has no requestAnimationFrame
-      if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=_keepTop; }); }
+      if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=_keepTop; _putIn(); }); }
     else sc.scrollTo({top:0});
   }
   /* Jambo's side panel steps aside where Jambo is already on the page (ai.js aiSideSync) */

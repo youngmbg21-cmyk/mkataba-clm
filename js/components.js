@@ -1670,4 +1670,24 @@ function jamboDraftRestore(box, focus){
     try { box.focus({ preventScroll: true }); if (sel && sel[0] != null) box.setSelectionRange(sel[0], sel[1], sel[2] || 'none'); } catch (_){ } }
   return true;
 }
-Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore });
+/* ---- THE OTHER ASK BOXES KEEP THEIR OWN DRAFTS, BY SEAT (same night) ----
+   The list pages' panel box (#jl-q) and Settings' Jambo box (#st-jb-q) answer in their own place, so they are
+   not the one conversation above and do not share its draft — but the measure found the same loss in them: any
+   repaint of the page drew the box again, empty. Each gets a home of its own, named by a seat. Same rules: in
+   memory only, written on every keystroke, put back where the box comes back EMPTY (never over words the painter
+   or a door put there), and emptied only where the words are used. */
+function boxDraft(seat){ return (boxDraft._m && boxDraft._m[seat]) || ''; }
+function boxDraftSet(seat, v){ (boxDraft._m = boxDraft._m || {})[seat] = String(v == null ? '' : v); }
+function boxDraftClear(seat){ if (boxDraft._m) boxDraft._m[seat] = ''; }
+function boxDraftJoin(box, seat){
+  if (!box || !seat) return false;
+  if (!box.dataset.boxDraft){
+    box.dataset.boxDraft = seat;
+    box.addEventListener('input', () => boxDraftSet(seat, box.value));
+  }
+  const v = boxDraft(seat);
+  if (v && !box.value){ box.value = v; return true; }
+  return false;
+}
+Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
+  boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin });

@@ -35,7 +35,7 @@ const ONLY = String(process.env.HATI_RB_ONLY || '').split(',').map(s => s.trim()
 const say = (...a) => console.log(...a);
 const until = async (p, fn, a, ms = 15000) => { try { await p.waitForFunction(fn, a, { timeout: ms }); return true; } catch (_) { return false; } };
 /* buttons that finish something: counted, never pressed */
-const FINAL = /\b(delete|remove|sign out|log out|logout|send|discard|archive|sign|approve|reject|accept|decline|publish|pay|import|upload|rebuild|reset|restore|terminate|withdraw|revoke|hand over|file it|chase|remind|download|export|print)\b/i;
+const FINAL = /\b(delete|remove|sign out|log out|logout|send|discard|archive|sign|approve|reject|accept|decline|publish|pay|import|upload|rebuild|reset|restore|terminate|withdraw|revoke|hand over|file it|chase|remind|download|export|print|svenska|english|swedish|engelska|språk|language)\b/i;   /* and the language: a press that turned the app to Swedish made the first run's later rows Swedish */
 /* buttons that keep what was typed: pressed, but nothing is typed first */
 const SAVEISH = /\b(save|create|add|post|ok|done|confirm|apply|next|continue|start|run|ask|go|submit|draft|write)\b/i;
 
@@ -115,7 +115,9 @@ const INIT = () => {
       fieldsNow().slice(0, 3).forEach((f, i) => { try {
         if (type && !f.value){ const proto = f.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
           Object.getOwnPropertyDescriptor(proto, 'value').set.call(f, PROBE); f.dispatchEvent(new Event('input', { bubbles: true })); }
-        if (f.value) fields.push({ key: fieldKey(f, i), val: f.value, name: (f.getAttribute('placeholder') || f.getAttribute('aria-label') || f.id || 'a box').slice(0, 40) }); } catch (_){ } });
+        /* a press that USES the words (Ask, Send to Jambo, Save) empties the box on purpose: nothing is remembered
+           for it, so it is never counted as a loss (the first run counted those) */
+        if (type && f.value) fields.push({ key: fieldKey(f, i), val: f.value, name: (f.getAttribute('placeholder') || f.getAttribute('aria-label') || f.id || 'a box').slice(0, 40) }); } catch (_){ } });
       const scrolls = [];
       for (const s of scrollersNow()){ try { if (s.scrollTop < 40) s.scrollTop = Math.min(160, s.scrollHeight - s.clientHeight); if (s.scrollTop >= 40) scrolls.push({ key: scrollKey(s), top: s.scrollTop }); } catch (_){ } }
       await new Promise(r => setTimeout(r, 180));                         /* what typing and scrolling drew is not the press's */
