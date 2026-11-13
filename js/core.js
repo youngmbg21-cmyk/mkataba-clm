@@ -5368,7 +5368,9 @@ if(typeof document!=='undefined' && document.addEventListener) document.addEvent
   const c=(typeof getContract==='function')?getContract(b.getAttribute('data-sh-nl-write')):null; if(!c) return;
   window._shNlWrite=String(c.id);
   const who=String(fval('sh-name')||'').trim().split(/\s+/)[0]||String(c.counterparty||'').split(/\s+/)[0];
-  if(typeof intelAsk==='function') intelAsk(i18t('sh_nl_write_q', { who }), { typed:true });
+  /* f1041: straight to Jambo — never the typing reader, which heard "send" and opened the send screen */
+  if(typeof window.igAskBrain==='function') igAskBrain(i18t('sh_nl_write_q', { who }));
+  else if(typeof intelAsk==='function') intelAsk(i18t('sh_nl_write_q', { who }), { typed:true });
 });
 /* ============================================================
    THE LETTER (round 11 of the redesign: the owner picked "The letter" by
