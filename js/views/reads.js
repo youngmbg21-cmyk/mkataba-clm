@@ -188,6 +188,7 @@ function rdTableIn(x, tab, yn){
   if (tab === 'no') return !(x.a[0] && x.a[0].yes === true);
   if (tab === 'risk') return x.a.some(a => a && _rdTone(a) === 'ruby');
   if (tab === 'none') return x.a.some(a => a && (a.noWording || !a.found));
+  if (tab === 'open') return !x.a.some(a => a && a.checked);
   return true;
 }
 const rdTableTabs = yn => yn ? [['all', 'rd_tt_all'], ['yes', 'rd_tt_yes'], ['no', 'rd_tt_no']] : [['all', 'rd_tt_all'], ['risk', 'rd_tt_risk'], ['none', 'rd_tt_none']];
@@ -202,7 +203,8 @@ function rdTableHit(x, q){
 function rdTableShown(r){
   const t = _rd.table, rows = rdTableRows(r), yn = rdTableYesNo(r, rows);
   const boxed = rows.filter(x => rdTableHit(x, t.q));
-  const tabs = rdTableTabs(yn);
+  /* the new look's Scorecard adds a tile for what nobody has ticked yet; the old look keeps its three tabs */
+  const tabs = rdTableTabs(yn).concat(_rdScOn() ? [['open', 'rd_tt_not_checked']] : []);
   if (!tabs.some(([k]) => k === t.tab)) t.tab = 'all';
   return { rows, yn, boxed, tabs, list: boxed.filter(x => rdTableIn(x, t.tab, yn)) };
 }
@@ -217,6 +219,30 @@ function rdTableCheckedHtml(x){
   const k = ck[0];
   return `<span class="rdt-ck" title="${_rdE(_rdT('ac_th_by', { by: k.by || '', when: rdWhen(k.at) }))}">${_rdE(_rdT('ac_th_by', { by: String(k.by || '').split(/\s+/)[0], when: rdWhen(k.at) }))}</span>`;
 }
+/* THE SCORECARD (owner picked it by name, 12 Nov 2026; drawn first, artifact NN39v3eXJCf9y28T3DWN6o): in the new look the
+   read table on Discover wears ONE head of its own instead of the old Reads band — ‹ Discover, the question's name, the
+   search box, Copy the table and the one black Ask again, the line of who asked and when, then a row of coloured tiles,
+   one per answer and one for Not checked yet, each its count and a filter (the chosen one ringed). The tiles are the
+   tabs (data-rdt-tab), counted off the same rows; nothing here reads or writes. */
+const _rdScOn = () => typeof window.newLookOn === 'function' && newLookOn();
+const RD_SC_TONE = { all: '', yes: 'green', no: 'steel', risk: 'ruby', none: 'steel', open: 'amber' };
+function rdScHeadHtml(r, S, sub){
+  const t = _rd.table, all = S.boxed.length, seen = rdTableIds().length;
+  const tile = ([k, key]) => {
+    const n = S.boxed.filter(x => rdTableIn(x, k, S.yn)).length;
+    const small = k === 'all' ? _rdTn('rd_sc_of_list', seen)
+      : k === 'open' ? _rdT('rd_sc_ticked', { k: all - n, n: all })
+      : _rdT('rd_sc_pct', { p: all ? Math.round(n / all * 100) : 0 });
+    const label = k === 'all' ? _rdT('rd_sc_all') : _rdT(key), on = t.tab === k;
+    if (!n && k !== 'all' && !on) return '';   /* a filter with nothing behind it is not listed */
+    return `<button type="button" class="rdsc-tile${RD_SC_TONE[k] ? ' is-' + RD_SC_TONE[k] : ''}${on ? ' is-on' : ''}" data-rdt-tab="${k}" aria-pressed="${on}"><b>${n}</b><span class="rdsc-tl">${_rdE(label)}</span><span class="rdsc-ts">${_rdE(small)}</span></button>`;
+  };
+  return `<div class="rdsc-head"><div class="rdsc-top"><button type="button" class="ac-link rdt-back" data-rdt-back>${_rdE(_rdT('rd_sc_back'))}</button><h1 class="rdsc-nm" title="${_rdE(r.name)}">${_rdE(r.name)}</h1><span class="rdt-sp"></span>
+      <label class="lh-ask rdt-ask rdsc-ask"><input type="search" id="rdt-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('rd_tt_search', S.rows.length))}" value="${_rdE(t.q)}" aria-label="${_rdE(_rdTn('rd_tt_search', S.rows.length))}"></label>
+      <button type="button" class="ui-btn ui-btn-sm" data-rdt-copy>${_rdE(_rdT('ac_chip_copy'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
+    <div class="rdsc-sub" title="${_rdE(sub)}">${_rdE(sub)}</div>
+    <div class="rdsc-tiles" role="group" aria-label="${_rdE(_rdT('rd_filter'))}">${S.tabs.map(tile).join('')}</div></div>`;
+}
 function rdTableHtml(r){
   const t = _rd.table, S = rdTableShown(r);
   /* the chosen row is kept until the answers are in (a refresh lands on it), then the first shown stands in */
@@ -226,7 +252,7 @@ function rdTableHtml(r){
   const risk = S.rows.filter(x => rdTableIn(x, 'risk', false)).length;
   const sub = [r.q ? `“${r.q}”` : _rdT('rd_chip_pack', { n: r.askIds.length }), _rdTn('rd_tt_read', S.rows.length), r.by, r.when ? rdWhen(r.when) : ''].filter(Boolean).join(' · ');
   const tabs = typeof insViewTabsHtml === 'function' ? insViewTabsHtml({ views: S.tabs.map(([k, key]) => ({ k, label: _rdT(key), n: S.boxed.filter(x => rdTableIn(x, k, S.yn)).length, keep: k === 'all' })), cur: t.tab, attr: 'data-rdt-tab', label: _rdT('rd_filter') }) : '';
-  const head = `<div class="rdt-head"><button type="button" class="ac-link rdt-back" data-rdt-back>${_rdE(_rdT('rd_tt_back'))}</button><span class="rdt-dot" aria-hidden="true">·</span><b class="rdt-nm">${_rdE(r.name)}</b><span class="rdt-sub" title="${_rdE(sub)}">${_rdE(sub)}</span><span class="rdt-sp"></span><button type="button" class="ac-link" data-rdt-copy>${_rdE(_rdT('ac_chip_copy'))}</button><button type="button" class="ac-link" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
+  const head = _rdScOn() ? rdScHeadHtml(r, S, sub) : `<div class="rdt-head"><button type="button" class="ac-link rdt-back" data-rdt-back>${_rdE(_rdT('rd_tt_back'))}</button><span class="rdt-dot" aria-hidden="true">·</span><b class="rdt-nm">${_rdE(r.name)}</b><span class="rdt-sub" title="${_rdE(sub)}">${_rdE(sub)}</span><span class="rdt-sp"></span><button type="button" class="ac-link" data-rdt-copy>${_rdE(_rdT('ac_chip_copy'))}</button><button type="button" class="ac-link" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
     <div class="rdt-bar">${tabs}<label class="lh-ask rdt-ask"><input type="search" id="rdt-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('rd_tt_search', S.rows.length))}" value="${_rdE(t.q)}" aria-label="${_rdE(_rdTn('rd_tt_search', S.rows.length))}"></label></div>`;
   const body = !S.rows.length ? `<p class="rdt-empty">${_rdE(_rdT(t.loaded ? 'rd_tt_none_read' : 'rd_tt_loading'))}</p>`
     : !S.list.length ? `<p class="rdt-empty">${_rdE(_rdT('rd_none_here'))}</p>`
@@ -418,7 +444,7 @@ function renderReadsDraw(o){
   /* the new look (round 6, as drawn): its own page — kept questions and packs as one table, the panel reads the chosen one */
   if (!tr && wide && typeof window.newLookOn === 'function' && newLookOn()){ rdnRender(host, o); return; }
   host.innerHTML = `<div class="view-enter sap-page ins-page rd-page rd-ins${wide ? '' : ' is-narrow'}" id="rd-page" data-ins-page="reads" data-ins="${wide ? 1 : 0}"><style>${readsCss()}</style>
-    ${readsBandHtml()}
+    ${tr && _rdScOn() ? '' : readsBandHtml()}
     <div class="ins-body">${card}${wide ? `<aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside>` : ''}</div></div>`;
   if (wide && tr) rdTableSidePaint(tr);
   else if (wide){

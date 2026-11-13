@@ -1951,7 +1951,9 @@ if (typeof document !== 'undefined' && !document._acWired){
 function askColBtnHtml(){
   if (!askColOn()) return '';
   if (typeof window.newLookOn === 'function' && newLookOn())
-    return `<button type="button" class="ui-btn ui-btn-sm ac-btn ac-btn-dsc" data-ac-discover>${_acE(_acT('dsc_btn'))}</button>`;
+    /* GREEN SPARK (owner picked it by name, 12 Nov 2026; drawn first): Jambo's green, filled, with his spark, the only
+       green button on the page; New agreement stays the one black */
+    return `<button type="button" class="ui-btn ui-btn-sm ac-btn ac-btn-dsc" data-ac-discover>${(typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : ''}${_acE(_acT('dsc_btn'))}</button>`;
   /* the old look keeps its own door until it is deleted (nothing new is built on it): the form in Jambo's panel */
   const may = askColMay();
   const spark = (typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : '';
