@@ -22326,6 +22326,19 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Not fixed: outside the request (the GitHub test setup, then going private).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
 
+## 13 Nov 2026 — the stutter audit's five open items (owner: "fix all these")
+- FIXED: Jambo's panel is not written when nothing would change (igDockSame; any doubt = written whole). The paper's line has one writer and is written only when it says something else (igStripPut; keepLine deleted). The last line of Fill in on the paper names three details, then counts. CLAUDE.md trimmed 91,564 → 79,918 bytes (MAP only; verbatim in MAP-HISTORY).
+- ADDED: the flash measure (test/chromium/_audit/flash-measure.js), a measuring instrument that films every page move on GitHub.
+### Noticed, not fixed
+- On a negotiated paper (any open redline) no blank can be typed on the paper, so every owed detail falls to the form (the owner's MK-469: sixteen). By design since 11 Nov; whether blanks may be filled on wording the other side is reading is the owner's call.
+- Jambo's panel wires itself over the whole panel after every write (dock.querySelectorAll(...).forEach(addEventListener), about a hundred lines); keeping PARTS of a written panel needs those moved to delegation first.
+- The Board's charts fade their parts in on every paint (.hb-in, hbIn .5s) and every Jambo answer row fades in on every paint (.ai-msg, viewIn .25s); not measured yet (the flash measure's first run will say whether they replay on a page move).
+
+## 13 Nov 2026 — a blank on a negotiated paper is a tracked change (f1026; owner: "yes, build option 2")
+- BUILT: on a negotiated paper the blanks outside an argued clause are typed where they stand; Save files them as our change in Redlines through negoEditClause, one per clause, not sent. A company standard's answer also goes into its form ("Done straight away").
+### Noticed, not fixed
+- A company standard's fields (c.templateForm) are never on Fill in on the paper's walk, even on an un-negotiated draft: pd2FillBlanks reads contractBlanks, which answers [] for a templateForm contract, so every field falls to the form's "no place on the paper" line.
+- Suspected, not measured: "Fill the document" (tplFormApply) is not locked during a negotiation (tplFormLocked is only signed/executed/sealed) and rewrites c.redlineText from the form wholesale; whether that reaches a negotiated paper untracked depends on what the negotiation reads as its baseline. Worth a measured look.
 ## 13 Nov 2026 — THE NOTES DRAWER IS A THREAD (owner picked "The Thread" by name off four drawn)
 - Built: rooms as a segmented switch, chips Open · Yours · Done (replacing the drawer's Done fold), a line per day, a face per note, the clock beside the name (full stamp on the hover), drawn verbs on hover/focus (always shown on a finger), facts under the words, one rounded box with the @ door. f1026 (red at the parent); f248, f264, f303, f304, f446, f756 re-pointed; two browser checks read the stamp off the hover.
 - A line NOT BUILT: the drawing's "Only your team sees this" was left out (owner's 2 Sep 2026 ruling); asked.

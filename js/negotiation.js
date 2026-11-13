@@ -1993,6 +1993,14 @@ async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
     headingText: opts.headingText == null ? null : String(opts.headingText),
     clauseLabel: negoClauseLabel(cl) }, opts);
 }
+/* A BLANK FILLED ON A NEGOTIATED PAPER (owner, 13 Nov 2026, f1033): the paper's answers to one clause, filed as OUR
+   change through the one door and saved — the save is here, never on the desk that collected them (f563: the desk reads,
+   it does not write). Quiet: the caller says a refusal once for every clause (negoLastRefusal). */
+async function negoFileFilledClause(c, clauseId, bodyHtml, note){
+  const ch = await negoEditClause(c, clauseId, bodyHtml, { side: 'owner', quiet: true, note });
+  if (ch && window.persist) persist(c);
+  return ch;
+}
 /* A new clause, placed where it was proposed. `afterClauseId` is the clause it
    follows — null puts it at the top. The id is minted at FILING time and
    written into the document when the change is accepted, so a change and the
@@ -5758,7 +5766,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification,
   NEGO_HASH_V, NEGO_HASH_VERIFIES,
-  negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoReviseInsert, negoDeleteClause,
+  negoSummariseOps, negoFileChange, negoEditClause, negoFileFilledClause, negoInsertClause, negoReviseInsert, negoDeleteClause,
   /* PUBLISHED, or the doors that ask read undefined through window and file in
      silence — this codebase's most repeated defect. */
   negoClauseNameKey, negoClauseNamed, negoDupClauseStop, negoAddNamedClause,

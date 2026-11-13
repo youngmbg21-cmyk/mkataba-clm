@@ -37299,6 +37299,423 @@ NOT MEASURED AGAINST THE REAL PROVIDER after the change: the fault came 2 times 
 **NOT SEEN RED ON MAIN BY A HAND RUN (mine to say).** editor-audit-verify.js is new and GitHub runs it on the pull request. The rule asks for a hand run on main to see a new browser check red; that is about 110 billed minutes, on the day the owner cut the runs to save them, with the owner asleep. Its node twin f1027 was run against the parent here (ten groups red), and the photos show the three faults in a real browser on the parent.
 **LEFT, AND SAID.** "Undo the last change" stays live beside "Filed as … · no changes since" (it steps the box to what stands, which is now harmless). The Redlines tab's number on Home's panel (2 in the owner's image 4) beside "Redlines 6" in the head was read, not changed: outside the editor (BUGLOG). The clause lock's refusal in `ceGoClause` is pinned with a stand-in for the lock's reading (the node world loads no lock module).
 
+## CLAUDE.MD TRIM, 13 Nov 2026 — the owner's yes in the chat ("fix all these … The rules file is over its own size limit and needs your yes to trim")
+CLAUDE.md 91564 → 79918 bytes. Only THE MAP was condensed (43 sections); the rules sections (Scope, Bug Fix Rules, the six questions, the nine flow rules, design options, the picked design, no new bands, standing lessons, testing) are untouched. Dates, quotes and who-picked-what were dropped (they are in each section's own story above); the names that carry each rule were kept. Three sections also took this round's own lessons (THE DETAILS TAB: the last line names three then counts; PERFORMANCE: nothing changed, nothing written, and the flash measure; HOW THINGS MOVE: shortened). Each section as it stood, verbatim:
+
+### BEFORE · INTERNAL REVIEW (js/review.js)
+```
+- A HELD change never travels (`buildSharePayload`, the Word file too: ONE list `shareHeldBackIds`); every send door asks `reviewSendBlock`/`reviewGateMessage` (share dialog, `reshareToLastRecipient` THROWS, `#nego-send`) — a fourth must too. The counterparty never learns of a review (`reviewSeatShowsReview`); names only through `reviewMaySee`.
+- Admin setting, off by default, per person (`reviewGateApplies`, server `rvGateApplies`). Review gates SENDING, approvals SIGNING, the desk REDLINING. A subset per change (`reviewOpenFor`, `reviewInPlay`); only `reviewAsk`/`reviewMark` initialise `c.review`. Server `rvOpenList`/`rvWithheldIds` off the STORED contract. A parked ask whose counter stays behind travels as it stood (`bundle.was`, no `counteredBy`; `buildSharePayload` = `srvLinkStrip`). f1020. "Waiting on them" only by `srvReach` (`_reach`); `negWhoseMove` asks `negoUnsentAsks` first; `standingShareFor`.
+```
+
+### BEFORE · THE UPLOAD
+```
+- A file becomes a name through `fileTitleOf`/`srvFileTitleOf`; stored names never rewritten. ONE READER, TWO DOORS: `uploadReadFile` for the pop-up and Jambo's drop area (`uploadFromDrop`: one at a time, asks the stream); one creator `submitUpload`. On a computer every Upload door asks `pdDropDoor`, the drop card as a POP-UP where you are, never on a panel (`.pd-drop-dlg`); `openUploadModal` for a drop's hand-off and the phone; several files → Import.
+- Structure: `extractWordText` the ONE door; numbering is a WALK, never invented (`docxStyleChain`); a styled heading that is wording is a paragraph (`docxStyledIsWording`); a structureless file stores no body. PDFs `extractPdfRich` (text = `extractPdfText`). Re-read refuses a sealed or edited record, carries ids (`clauseCarryIds`).
+```
+
+### BEFORE · THE LEGAL AND LAUNCH AUDITS' FIXES
+```
+- PUT /api/contracts/:id: `status` in EXECUTED_IMMUTABLE; a session signature names the caller; parentId/relation guarded as a difference; the signing cap measures max(prev.value, c.value) in BOTH currencies, a missing rate REFUSES. `SIGNED_WORDING_FROZEN` engages on `anySignatureRow`; where the paper is drawn from the record (`recordDrawnPaper`), `PAPER_TERMS_FROZEN` too (`paperTermsFrozen`).
+- JAMBO'S 15-MINUTE RATE LIMITS ARE OFF (owner, 11 Nov 2026: "Remove rate limits for now"): in `rateLimit` a limit of 0 means NO limit, `aiRateLight`/`aiRateDeep`/`aiRateOcr` default to 0 and an admin may type 0 (`setNum(...,0)`); the daily request ceiling and the daily SPEND ceiling still stand, and every limiter with a number of its own (the sign-in guesses, a signing code) is untouched. f1004.
+- `ADMIN_ONLY_USER_FIELDS`; `/api/ai/spend` admin-only; `/api/ai/config` strips byPerson for non-admins. Colleagues' names DO travel with changes; the review and `resolvedBy` are walled. The sign-in limiter counts WRONG GUESSES. APP_URL and NODE_ENV=production in render.yaml.
+```
+
+### BEFORE · STREAM ACCESS, PEOPLE, RE-FILING
+```
+- The server filters every query (`folderScopeFor`); browser `canAccessFolder`. A new member is a VIEWER. Re-filing an admin's act, delegable (`mayReFile`); ONE writer `ktFolderMove`. Category and stream are the COMPANY's lists, asked at every creation door. PRIVATE STREAMS: only the named, admins too (ONE writer `PUT /api/private-streams/:fid`; wall `psStreamsFor`); money adds nowhere; opens kept (`private_opens`).
+- PEOPLE (`dirLcReg`): a TABLE (`dirRowHtml`, `dirColDefs`, `dirSort`, `DIR_PAGE`, `.dir-td-wrap`); their panel: Show their contracts · Email; Phone READ off the newest link (`dirPhoneOf`); Party → `cuSelectParty`; `dirDoesFor`.
+```
+
+### BEFORE · THE HANDBOOK — HOW TO DO EACH THING (owner, 26 Oct 2026; docs/PLAN-the-handbook.md)
+```
+js/handbook.js is THE BOOK (`HANDBOOK_PARTS` = the Guide's stages; `HANDBOOK_CHAPTERS` {en,sv}); `{ui:key}` (`hbkLabel`), `{door:key}` (`hbkDoorChip` → `caGo`). The page (`renderHandbook`, `hbkOpen(k)`): steps NUMBERED and marked on the pictures. Doors: the Guide's row, "handbook", "/", `navReadHandbook` LAST. PICTURES handbook/img/<k>-<n>.png by `shots` recipes (test/handbook-world.js) or `noShot` with why; handbook-verify fails a lost box, a whole-panel box, a shared picture. Rule 9d; f937.
+JAMBO READS THE BOOK, ON EVERY PAGE (`AI_HANDBOOK_RULE`, both hosts); ONE reader `hbkSearchDocs` in the ONE search (kind `guide`), `HBK_VIEW_DOORS` → `pageSays`; a chapter is a BUTTON under the answer, never a move (`copilotChapterButton`). test/handbook-exam.js; f938.
+```
+
+### BEFORE · THE SHELL — RAIL, BAR, PANELS
+```
+- NO HOME PAGE (owner, 10 Nov 2026): `setView('counter')`, the HaTi mark, "home" and the Guide's top row land on the Board (`DK_HOME_KEY`); NO LEFT RAIL: pages are `CA_PLACES` words in "/"; ⌘K → Jambo's box. THE BAR ‹ · HaTi · PAGE NAME (`deskGoBack`); leaving asks the page's guard (`dkLeavePageThen`).
+- THE PAPER'S LINE: Send the ONE filled button (`#ws-share`, `pdSendWaiting`) · Ask for review (`rlReviewDoor`) · More (`pdActsToggle`, `PD_ACTS_SHORT`).
+- COPILOT IS CALLED JAMBO on every label, both books, `SRV_MSG`; code keeps `copilot`; `NEGO_PROVENANCE_RE` = `SRV_NEGO_PROVENANCE_RE`.
+- ONE READER FOR EVERY BOX: `caUnderstand(q,{box})` first (`caAskAnywhere`, `caLeavesFor`); answer here only when the screen reads ALL the words (`caHereRead`); the chat never writes a brief (`AI_BRIEF_RULE`); what the Board can draw is drawn, then explained (`hbDrawAsk`); the rest the brain's (`aiPageContext`); ONE stand-in on failure (`igFailTurn` = `aiDegrade`). f927.
+- THE WAY BACK is where the reader last stood (`caTrailSeen`); the page IN FRONT is the one the box names (`igPaperInFront`, f978). A question turns the panel to his talk with ONE way back and THE BIN (`jamboDoorHtml`). A page's name typed moves free (`jamboPageGo`, f955); he says what he did (`caEchoHtml`). f949, f950.
+- ONE ROW UNDER THE NEWEST ANSWER (owner, 11 Nov 2026; REVERSES the three labelled rows of 10 Nov, `igSapHtml` DELETED — a `.igd-sap`/`data-ig-sap-r`/`igOneRowOn`/`igFoldHtml` mention is stale): ONE builder `igOneHtml` on every face, drawn for the NEWEST answer only — the chips · ONE filled button · ⋯ (`igMoreHtml`, `intel.moreOpen`, its rows kept in the page; PLACED by measurement `igMorePlace` — EVERY menu the panel opens, the chips' too: fixed, above the row or under it, lifted off the foot, unseen until placed (`.is-set`), moved by a scroll never closed by one; a press redraws ONE row or ONE chip group (`igOneRepaint`/`igMrRepaint`), never the panel, so nothing is measured mid-glide), everything else under it, the source line LAST (`.igd-src`, `data-ai-read`, said once). THE ANSWERS ABOVE IT KEEP EVERY WORD and lose only their controls (owner picked "Keep the words" over folding, 11 Nov): nothing Jambo said goes behind a press. THE PAGE LINKS RIDE THE WAY BACK (`jamboDoorHtml`/`jamboWaysSync`, `.jb-ways.is-in-door`), never a row above the box. f1005, jambo-one-row-verify.
+- THREE SMALL DOORS (owner, 11 Nov 2026, drawn first): the card that says what Jambo did has a × (`jamboSayCardHtml` `close`, `caGoPress` 'echoshut': the card goes, nothing else pressed); an open group of notes beside the paper says Show less (`data-pd2-fold`, `_pd2Shut`: folded by the reader stays folded); Ask Jambo over selected words opens a folded panel first (`caSelPick` → `#igd-expand`). f1009, notes-match-clauses-verify 5b · 9 · 10.
+- THE OVERVIEW: ONE builder `jamboOverviewHtml`, facts only from readings the page makes; nothing pressable above the turns. overview-tab-verify.
+- ONE CONVERSATION (`ai.history`, `jamboTurnHtml`); suggestions are LINKS; ONE card builder `jamboCardHtml`; his box at every panel's foot (`panelAskPaint`); ONE PRESS, ONE PANEL (`igDockBatch`).
+- `#ai-panel` = THE BRIEF (`aiSideSync`); the ✦ = THE CHAT WINDOW (`aiWinToggle`). LAYERS: page 70/71, window 75, dialog 80, toasts 110. ONE PANEL, FOUR FACES (`openPanel`): Guide, Alerts, Notes, Activity; ONE BAR BUTTON (`panelDoorPress`).
+```
+
+### BEFORE · THE PULSE BOARD (js/views/pulse.js; owner, 29 Oct 2026)
+```
+Every live contract ranked live (`puRead`, `PU_TICK_MS`, "▲ N" against `PU_SEEN_KEY`): What needs you (`puNeedsMap` off `ndRead`) · Money `fxRankValue` · Days left `effectiveExpiry` · Written by Jambo (`puJamboWrote`, RAW). Each row a strand (`puEventsOf`); why said with no call (`puSayOf`); every door an existing one. The Board head's right end: Summarise · Pulse board (`hbPulseBtnHtml`) · Explorer (`hbExplorerBtnHtml`). f963, pulse-verify.
+THE COMPACT ROW (30 Oct): name ONE line with …, ref · party · stage under it (`.pu-meta`), rows 51px. pulse-verify 7.
+```
+
+### BEFORE · HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+```
+- YOU LAND ON THE BOARD, ITS HEAD GREETS YOU (owner picked "The Legora Way", 10 Nov 2026; Home deleted the same day): core.js `_landBoard`; head = `cn2Greet` · pills · Live; NOTHING under them until Summarise, then the brief its OWN CARD under the head with a × (`hbBriefShut`; owner, 11 Nov 2026, reverses "Card Inside"): counted sentence (`hbGreetSayHtml`, `data-hb-gr` → `ndOpenBoard`) + Jambo. f745 (7).
+- `HB_FACES` Board · Workspace (`paper`) · Calendar · Explorer (`hbRender`); every number a door (`hbDigData`); `hbAskReadingOf`, `hbBoardApply`, `hbFactCheck` (server `numbersOutside`); under Your book ALL of Needs you (`ndBoardHtml`).
+- THE BOARD DRAWS FIRST (owner, 10 Nov 2026): a ranking, breakdown, comparison or picture typed (`hbAnalyticAsk`) is drawn and stays on the Board (`igBoardTalkAsk`); HaTi mends its card (`hbResMend`); why / should stays the brain's. f999.
+- THE DOSSIER: tabs Dossier (`copilot`) · Clauses · Redlines (`PD_TABS_SHOWN`); ONE reading `dossierOf` (`pdNextUpHtml`); `pdTabCount`; chips `caNextSteps`.
+- WORDS: one word opens a door (`CA_PLACES`, `caGo`, "/" `caSlashRows`); a sentence → the one form (`caIsDraftAsk`); Dig deeper (`hbWhyAsk`), Go further (`hbDdOn`); `hbLandOnCard`. A hidden Board is never painted (`hbPaintBoard`, `hbSetFace`); a side-list row → its Dossier (`hbSheetGo` → `roomHomeLand`); Your book a TABLE (`hbBookHtml`).
+```
+
+### BEFORE · STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+```
+`stkDecorate` draws ONE kept reading `c.breakdown` (POST /api/ai/breakdown; opening Clauses is the press, `stkAutoRun`); no wording in the panel; `stkRedlineGo` files nothing. ONE reading `stkReview` (`stkNeedCount`); a missing point inside its clause (`missByRow`); MARK REVIEWED only via POST …/points/:key/review (`c.pointReviews`); the spine ends on a dot (`stkSpineEnds`). ONE "WHAT TO WATCH" PER CLAUSE (owner picked "One list", 11 Nov 2026): two or more points in the new look are one card, a line each and one row of links (`stkRowCardsHtml`, `stkGroupHtml`, `data-stk-review-all`); blanks keep their own card. f1005.
+A FIELD LEFT BLANK IS FILLED IN, NOT ARGUED: a `blank` point carries Fill it in (`stkFillGo` → `pdFillOpen`, `stkBlanksOf`) and Mark reviewed, never Deep dive; the walk steps past it; filled, it leaves `stkReview`. Doors wear the green link (`.stk-a.is-link`).
+```
+
+### BEFORE · INSIGHTS (THE PAGE IS GONE, 29 Oct 2026: `setView('intel')` → Board, its map tab → Explorer; its counting stays)
+```
+- COUNTING IS NOT DRAWING: `*Data` + renderer per panel; `pfPanelData` the one door; `.igx-fig` the ONE tile; doors → `regShowOnly`.
+- EXPLORER: `GRAPH_GROUPINGS`, `intelGraphApply`, `INTEL_CAP` said; recipe `igRecipeNow`/`igRecipeSet`; a count prints only if drawn (`igCountsDrawn`); a typed day READ, never guessed (`igDateRead`); the grid still and upright (`IGB_TILT[3]`); Jambo explains what the map DREW (`igTourSteps`); FINDINGS `map_findings` (inside folderScopeFor).
+- SAVED VIEWS (owner, 10 Nov 2026): blue links under Your day only (`igSavedViewsHtml`, `igSaveViewDoor` → `igViewSave`); THEY FOLLOW THE PERSON: prefs `igViews` (`igViewsClean`, refused never trimmed; nobody else's row carries them), read `igViewsRaw`. f745 (2), f1001.
+- LENSES (8 Nov): Risk · Obligations · Money · Promises · People; ONE door `igLensSet` (`igLensBucketOf`); a legend ROW isolates, again lets go (`igLegendPick`); then-and-now `igLensThen` (`igRiskAsOf`).
+- NEXT FIVE (8 Nov): figure menu, list first (`hbFigMenuOpen`); YOUR DAY a tab before Overview, each figure narrows THE MAP (`igDayData`, `igDayGo`, `igBriefStart`); `igCliffCardOpen`; `igWhatIfData`.
+- TYPED, THE AI READS; HaTi CHECKS (9 Nov): `render_graph` offers every map tool as `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` checks before the map moves, the gap sent back ONCE (`igGapNote`); `igTrimToAsked` never trims a tool. f995.
+- TOP N GROUPS + WHAT JAMBO UNDERSTOOD ("Board Twin", 10 Nov 2026): `top.groups` (`igTopGroups`); chips `igMapReadHtml`; an admin teaches a word (`igMapReadTeach`). f996.
+- THE ANALYST EXAM (10 Nov 2026; `analyst-exam-measure.js`, by hand): groups in ORDER (`orderGroups`, `igGroupOrderRead`), never a top N; rank by COUNT (`IG_TOPG_BY`); `where.side`; a sentence about a group left out or a count not drawn is dropped (`igMapSentenceHonest`). f999.
+- A NEW MAP FEATURE = A GUIDE TAB ROW (`igGuideRows`), SAME change (owner); the legend ONE width (`.igl` 252px); open it drags over the map and Jambo's panel, folded back to its corner (`igLegendPlace`, `intel.legendPos`); zoom + Still top right (`.ig-camerabar`).
+```
+
+### BEFORE · OBLIGATIONS
+```
+- THE PAGE IS A PROJECT LIST (owner picked "The SAP Way, the project list", 10 Nov 2026): three pills Late · Tracked · Proposals over one filter line (`obnRender`), TWENTY A PAGE with a foot that says where you are (`_obnPer`, `obnPagerHtml`), every row its stream's band and its day a tone chip (`obnWhenChip`, `obnStreamTone`).
+- PROPOSALS BY AGREEMENT (`obnProjects`, `obnProjRowHtml`): a ring, how long it waited, a status; the row opens where it stands and each duty is answered in its own line (`obnDutyHtml`), added through the ONE writer `obAddFound` (the contract tab's desk calls it too). Nothing is saved until Add all.
+- ONE builder (`obListHtml`); `obligationMarkDone` the one completion writer; `obligationNextInstance`; `obligationBlocked` (server twin); Chase `POST …/chase`; `TEMPLATE_OBLIGATIONS` never guessed; review desk `openObligationsReview`, nothing pre-ticked.
+- ITS OWN PANEL: `dossierObLineHtml` → `pdObOpen`/`pdObClose`; renewal `pdObRenewHtml` (off `ovMapRenewal`), `renderRenewalSection`; `pdObSidesHtml`; `obligationWindow`; a row = duty · who · when + ONE word (`_pdObOpen`, `obPanelActs`).
+- WEEK BY WEEK (`obWeekKeyOf`): one act per row (`obwRowAct`, 112px); `obwDecisions`, `obwFindRows`; nothing chosen `obYourWeek`.
+```
+
+### BEFORE · THE LIST INSPECTOR
+```
+- js/views/inspector.js (all lists but Contracts, Import; Our standards' three share one `#ins-panel`): a press SELECTS, a second OPENS; `insFits()` against `INS_MIN_W` 1040, else the full table; nothing writes. The checklist `insNeedsHtml` draws `needsYouOf(c)`; `needsYouGo(kind, id)` the one door. TWO DOORS on every list panel, Negotiation · Workspace (`insDoorActs`; Workspace → Home, `roomHomeLand`).
+- `#ins-panel` is the PAGE's (`jlFrame`, folded `JL_FOLDED`); the talk its flip (`jlTalk*`); nothing chosen = the page's Overview, no AI (`jlWordsHtml` → `jamboOverviewHtml`); THE ASK `jlAsk` → `caAskAnywhere` → `jmRead` → `aiAskWords`, answered HERE (`jlSayFound`; Board-only a door, `jlSayBoard`); doors are WORDS, an approval's panel has none (`apInsActs`).
+```
+
+### BEFORE · THE LIST HEAD (js/views/listhead.js)
+```
+- ONE head on the ten list pages, box · tabs · chips (`lhRegister`, `lhHtml`, `lhHeadSync`), Columns `LC_*`; a 0 tab stays out unless lit or All; + Filter offers only values that give rows. The box is a quiet FILTER (`LH_BOX_ASKS` false): every word narrows, Enter sends nothing.
+- THE LIST LANGUAGE (js/listlang.js): a mark leads every row (`listMarkHtml`), readings in words (`listWordHtml`), kinds as chips (`listChipHtml`); Our standards a SCORECARD in the new look, one bar + three counts, the missing on the hover (`stdRowWordsHtml`, `.ls-score`; f989; owner's pick 10 Nov 2026).
+- ONE COLUMN RULE `listCols(seat, cols, repaint)`: columns step aside by `rank`; name 300…480 (`SPREAD_NAME_MIN`, `LIST_NAME_MAX`); a drag kept per list (`LIST_COLW_KEY`); never in `jlListMin`; Contracts keeps its own (`regHomeWide`). list-columns-verify.
+```
+
+### BEFORE · ONE SHEET AND THREE BUTTONS (owner, 29 Oct 2026; index.html "ONE SHEET" block)
+```
+- A page's head and what it heads are ONE white sheet: no gap, one hairline, 10px outer corners, reaching the foot of Jambo's panel. The head's shadow never falls downward and it is NEVER clipped (its pop-ups). Not the Board; Settings and Jambo's agents corners only.
+- THREE BUTTON STYLES: one black per area, grey pills for the rest (`+ Filter`, the backs, Deal, Add rule, Reports), green links to go somewhere.
+- THE NEW LOOK IS THE FUTURE STATE (owner, 9 Nov 2026): faults are counted in it; `white-sheet-verify` (no grey ground left of the panel, no grey EDGE beside it however thin, no scroller inside an active scroller, `PINS`; `WHITE_KNOWN` only shrinks), `HATI_TIDY_NEW_LOOK=1`, `HATI_DETAIL_NEW_LOOK=1`; the tidy sweep measures AFTER MOTION too (a scroll, a tab).
+- ONE WHITE SHEET (index.html block; owner, 9 Nov 2026): white behind the shell's scroll channel and the page head beside Jambo's panel; Settings, a template's page and the builder flat, the page their one scroller, a handle only while scrolling (`scrollShowHandle`, `.is-scrolling`).
+```
+
+### BEFORE · THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+```
+- REQUESTS (`ikTabViews`): ONE count for every tab and the list (`ikBase`); advice as rows; attachments `IK_FILES_MAX` 3 × 5 MB (`intake_files`: the asker or a stream editor, else 404). The paper that fits is read WITHOUT AI (`ikFitOf`); Start the draft → the one form. Refresh `ikPlace`.
+- IMPORT (`migTabViews`): a row press CHOOSES (`migPickSet`); ONE table, need-you first (`MIG_ROWS_SHOWN`, cap said); one form `migFormOf`, one writer `migFileIt` → `applyReviewedMeta`; Check all walks the file's words (`migCheckOpen`). A file that looks UNSIGNED is parked (`migLooksUnsigned`), never sealed; renews by itself = a yearly obligation (`migNoticeDay`). Refresh `migPlace`.
+```
+
+### BEFORE · THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (9 Oct)
+```
+- HEAD white (`.room-band`); `.room-cp` initials. SIGNING one panel `.sign-one` (now Jambo's Before you sign face). WHERE WE ARE (`standsHtml`, server `dealPageHtml`): Still open TABLE (`dsWhat`).
+- HISTORY, THE SAP WAY: ONE TABLE Time · Who · Side · What happened · Outcome (`.hist-trail.is-table`), day rows with counts; side = `histLaneOf`, outcome a dot and a word; `#hist-q` + filters in the open, only what gives results (`histFilterChoices`); ONE reading `histMoveOf`/`histSummaryOf`; a send told once (`histSendOf`, both shells).
+```
+
+### BEFORE · CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)
+```
+- A READING, NOTHING FILED: a shelf per counterparty (`cuCustomers`, `cuKeyOf`; code-named deals left out); Status = the PARTY's standing (`cuStanding`); numbers read the filtered set; Open party → `regShowOnly(cuIdsOf(v),name,{party:true})`; waiting on you (`cuNeedsOf`); NDA column = CONFIRMED `c.nda` + signed (`cuNdaMap`); THE LIST HEAD (`cuLcReg`); doors `cuOpenCustomer`, `cuSelectParty`.
+- A PARTY'S OWN FACTS, ONE HOME: city and organisation no. in `party_records` (key `cuKeyOf`), ONE writer PUT /api/party-records (wall `prVisibleKeys`, else 404), read via bootstrap (`partyRecordOf`); `party_record_log` → the trail; ONE door `partyRecordOpen`; the parties clause only SUGGESTS.
+```
+
+### BEFORE · ASK A COLUMN (js/views/askcolumn.js; owner, 20 Oct 2026)
+```
+One question of many contracts' wording as list columns, editors only (`askColPanelHtml`; `AC_MAX` = `COLUMN_MAX` 100); POST /api/ai/column kept per wording (`column_answers`, `COLUMN_READ_RULE`); a refusal said under the box (`askColSay`).
+DISCOVER (docs/PLAN-jambo-discover.md first): one read, many questions (`COLUMN_Q_MAX` 8); a kept question's rule (in · out · norule, never invented); ONE tone `askColToneOf`; facts read on arrival (never a viewer's or private stream's); ONLY WHAT YOU KEEP (`column_asks.kept`).
+THE THREAD: a press reads 50 or 100 (`AC_SIZES`) of the FIRST NOT YET READ (`askColPlan`; kept answers never spent again), ONE sentence, ONE BUTTON sized to what is left (`askColNextWords`); EVERY PRESS LEAVES A RECORD (`column_reads`). The READS page (`renderReads`) opens only existing doors; its read table stands ON Reads (`readsTableOpen`).
+AS DRAWN (8 Nov 2026): `regFolderPanelHtml`, `askColFormDrawnHtml`, `askColThMenuOpen`; Reads `rdnRender`. reads-and-columns-as-drawn-verify.
+DISCOVER IS A PAGE (owner, 12 Nov 2026; drawn first; NEW LOOK ONLY, the old look keeps `[data-ac-open]` and `#ac-disc`): Reads IS Discover (`nav_reads`); the list's head carries the Discover pill (`askColBtnHtml` → `discoverOpen`), no Discover section beside the list; ONE ask box, ONE black button saying how many (`dscAskBtnHtml`), chips only FILL it; the ask is the one read over the Contracts list as filtered (`askColAskHere` → `askColReadRun`; `dscScope`, `regScopeWords`), no column brought up; Kept · Packs · Every read; a row opens under itself (`dscOpenHtml`), the panel's three faces `dscPanelPaint`: the paper just read (`dscPaperHtml`, `dscSlice`, `dscPlain`) · the chosen answer's paper with its two links (`dscLand`) · the summary with Keep (`rdnPanelPaint`); live repaint `discoverLive`; the Contracts list never repaints over it (`_acRegRepaint`). f1016, discover-page-verify.
+THE READING DESK (`askColDeskHeadHtml`): reads go out in tens, stop at once (`AC_BATCH`, `askColStop`); a counting question is never a column (`AC_PORTFOLIO_RE`).
+```
+
+### BEFORE · CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+```
+- CONTRACTS IS A PLACE BESIDE THE BOARD: `setView('register')` → `hbOpenContracts` (not the phone); `renderRegister({home:true,hostId:'ct-place'})`: head `regHomeHeadHtml` (List | Wall, `REG_SHOWS`, `hbPlace`; `igWallBodyHtml`); `regPlaceSet`. Press chooses (`igWallChoose`), a second opens (`igWallOpen`), Esc lets go (`igWallLetGo`).
+- `regSetScope`/`regScope` first; `regRepaint()`; `regFiltered` + `regNarrowed()`; `regGoFiltered`; `regOpenContract`. Widths sum to 100. THE LIST HEAD (`regCtHeadReg`, `regCutCount`, `REG_CT_VIEWS`, `REG_CT_QUICK`). `clauseNameShown` presents — AS ON THE PAPER on every screen (owner, 12 Nov 2026; reverses 10 Sep's Title Case; = `clauseNameAsDrafted`) — `clauseLabel` builds a RECORD. Answers → `regShowOnly`.
+```
+
+### BEFORE · CALENDAR
+```
+A HOME TAB (`setView('calendar')` → `hbOpenCalendar`, `renderCalendar` into `#hb-cal`); Mon–Fri, this week + five; `calToday()` via `todayISO`; POST /api/ai/plan (`planBlocksCheck` ≤8); ONE writer `calLevelSet`; bookings → `calHandOff`. It OPENS on the AGENDA (`calAgendaViewHtml`); time left colours bar, pill, box (`calHzTone`, f987).
+QUICK (10 Nov 2026): the sheet once (`calStyleEnsure`); a view-only press keeps the panel (`{keepPanel:true}`); `calEventsOnce`. A book-moved repaint that changes nothing draws nothing (`renderCalendar({ifMoved})`); Jambo's finds counted once per contract (`obwFindN`), f988.
+```
+
+### BEFORE · SETTINGS & RULES — THE CONTROL ROOM
+```
+- You first; Company admin-only (`renderTeam()`): `stNeedsAll`, `ST_CARDS`, `openSettingsAt`; lands, never presses; ONE FINDER `stFind`; Ask an admin is a record (`settings_asks`). The Menu door first on Jambo's landing (`stJbMenuDoorHtml`, `stMenuCount`). Trail file inside folderScopeFor (`trailRows`, `trailPdf`); roles via the old routes (`BZ_ALL`); clashes warn; access review refused while anyone is undecided.
+- AWAY: a stand-in answers approvals and reviews, never signing (`awayCovers`). LEGAL HOLD `c.hold` (409). CODE NAMES: the real name never leaves the server for outsiders (`cnFrontDoor`, `cnMask`, `cnMailMask`; a WHOLE name only, never inside a longer word, f1016); a new non-JSON route with contract text MUST MASK IT.
+```
+
+### BEFORE · THE STRIP IS GONE — THE ONE DOOR LANDS ON THE PAPER (js/views/boardstrip.js; owner, 9 Nov 2026)
+```
+- The Lifeline strip is REMOVED (a `bs-strip`, `bsCardId`, `bsStripsHtml` or `bsLifeData` mention is stale). `hbStripBring(id,page)` STAYS as the one door: it lands on the paper with its Dossier (`roomHomeLand`); `'where'` → `pd2StandsOpen`, `'hist'` → `pd2HistOpen` (`roomPaintHistory`); pay → `payEditOpen` → `pd2PayOpen`. `roomRetiredLand` routes the old room into it.
+- What boardstrip.js keeps: `bsObRows`, `bsFamRows`, `bsPrivateOf`/`bsPrivatePillHtml`, `bsShortName`, `bsDay`, the pay readers and ONE writer `paySet`, `bsPaintPay`/`bsPayHtml`; the NDA readers and ONE writer `ndaSet`, door `ndaEditOpen` (Parties' NDA column comes here); `bsReadWait`, `bsGo`.
+- AN NDA: `c.nda`, ONE writer `ndaSet`, door `ndaEditOpen`; `ndaRead` never writes; never travels.
+```
+
+### BEFORE · THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
+```
+`detailsOf(c)` the ONE reading of what is owed (checklist, bell `details`, `mDetHtml`). FILL IN: the Dossier's "Details" → `pdFillOpen` → tab `form` (`pdFormHtml`, ONE Save `pdFormSave`); Key terms in THE MIDDLE (`pdKtMid`); an empty owed box AMBER (`needMark`). SPINE: six stages, then ONE EVEN LIST (`DOSSIER_STAGE_OF`). dossier-rows-verify.
+THE FORM, THE LEGORA WAY (owner picked it of three drawn, 12 Nov 2026): one quiet list, owed first with an amber dot, "§ · quote" where read (`pd2FormRegroup`), chips All · Needed · Read from the paper (`pd2FormChipsPaint`); Save before Discard, the foot counts what was owed; Jambo's side + the box take the missing details in ONE sentence through the ONE fill route (`pd2FormAsk` → POST /api/ai/fill `said`), put in by INPUT only (`pd2FormPut`), nothing stored until Save. f1022, form-the-legora-way-verify.
+FILL IN ON THE PAPER (owner picked "The Legora Way", 11 Nov 2026): the black "Fill in the contract" opens the paper (`pdFillGo` → `pd2FillStart`); blanks typed where they stand (`PD2_BL_SEL`), signature lines take names (one writer `saveSignerPlan`); Enter walks `pd2FillWalk`, the last saves and returns; what has no place on the paper → the form. Planned signers print on the signing copy (`pagesSignRows` `planned`). f1012.
+THE LINES FOLLOW THE ROUTE (owner, 12 Nov 2026): a line the route names somebody on is filled (`pd2FillDone` reads `pd2FillSigNamed`); the route window's Save redraws the lines and writes nothing (`pd2FillRouteSync`); a space not needed goes by its × or Backspace while empty, never a line's only one (`pd2FillSigDrop`, `pd2FillSigMayDrop`); the names typed on the lines are rows in the route window too, saved only by its Save (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`). f1017.
+CHOOSE THE ROAD (owner picked "The Legora Way", 11 Nov 2026): filled in, a signer named, nothing sent → the card asks how it goes out (`pd2RoadOf`, `pd2RoadHtml`): their paper Negotiate · Send as it is, ours Send for their mark-up · Send for signature, Redline it first while notes are open; anything open (`riskOpenOf`) makes fixing it the black button; doors only `data-pd-gl-risks` and `openShareModal({purpose})` (`pd2RoadGo`); stores and sends nothing. f1013.
+WAITING ON THEM (owner picked "The Legora Way", 12 Nov 2026): once the move is theirs (`negWhoseMove`) the card says who, when, opened or not (`counterpartySeenState`), Remind through the ONE send-again door (`shareSendAgainRun`, the Shares section's too), and "Meanwhile, yours" with an approval I may give (`pd2WaitOf`, `pd2WaitCardHtml`). f1015.
+```
+
+### BEFORE · HOW THINGS MOVE (22 Oct 2026; owner picked "Glide over"; "Crossfade" reversed 12 Nov 2026)
+```
+- No motion library: transform, opacity, WAAPI; never animate width/height/left/top beside the paper. Jambo's panel width SNAPS (`igSyncDockWidth`); a list repaint glides (`listGlideAround`); A FACE CHANGE IS DRAWN AT ONCE (owner, 12 Nov 2026; reverses "Crossfade"): nothing copied, nothing faded, no fade-in from nothing anywhere on a panel; only the lit tab's underline glides (`faceSwap`, `igDockFaceKey`); a tab's press draws its body once and keeps the paper's line where it says the same (`_pdBodyFresh`, `igPaintPaper({keepLine})`); f1024, tab-change-no-flash-verify; the right panel shuts on a finger/pen swipe right (`PANEL_SWIPE_*`), never a mouse drag. Less motion asked = instant.
+```
+
+### BEFORE · THE NEW LOOK IS THE ONLY LOOK (owner, 9 Nov 2026)
+```
+Every change, picture, drawing, measurement, test and reference is made against THE NEW LOOK (the one white sheet, `newLookOn`/`html.lg-new`, the Harmony block). The old look with separate cards is to be DELETED: nothing new is built, drawn or fixed on it; a photo of HaTi is taken with `prefs.newLook` on; "HaTi today" means the new look. Its removal (the switch, the `lg-new` guards) is its own job, asked for by name.
+THE NEW LOOK READS GEIST (f377). NAME AND FIGURE INK; THE DETAIL LINE GREY on EVERY page (`--color-neutral-400`; f982, f984, f990). THE SAP WAY MARK leads every row (ONE builder `listSapMarkHtml`/`listSapCellHtml`, `listSapOn`; on the wall `regSapMarkHtml`, f997); Jambo's is his own sparkle on black shading into grey, a grey ring rippling on its own beat, still where less motion is asked (`mkSpark`, `.is-jambo`, `--mk-d`; owner picked "The SAP Way", 12 Nov 2026). f982.
+THE BOARD'S NEEDS YOU, THE SAP WAY (9 Nov 2026): rows 40px. THE FOLDERS, VIEWS FIRST (10 Nov 2026): up to four views across every folder, ONE reading `regFolderViewsData`, the tile's number = the list it opens (`regShowOnly`); `regFolderRowsHtml`, `regFolderRanksHtml`. f998, f983.
+THE COLOUR ROUND (9 Nov 2026): one quiet touch of colour per page, read off a fact it has (`listStreamTone`, `dirnLoadBarHtml`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
+```
+
+### BEFORE · ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
+```
+THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026): `pd2CardHtml` — stage + dots, the next step, one sentence, ONE black button, Jambo's read, then "Read it | Watch the read | The brief" green links; the read opens on the clean paper too. dossier-one-card-verify.
+THE READ (8 Nov 2026): Watch the read's bar is the paper line's twin (`.pd2-fill-head`); notes beside the paper held until the read reaches their clause (`pd2WalkNotesHold`); folded, the panel keeps the line's height (`.igd-door`). AN ARRIVAL PLAYS IT (owner picked "Read plays by itself", 12 Nov 2026; reverses "nothing plays until pressed"): `pd2WalkArrive` opens and plays, asked again until the paper is in front (`PD2_WALK_ARRIVE_TRIES`). QUICK, WITH THE CLAUSES READ: an arrival and `stkRun` (`pd2WalkWithRead`) run it at `PD2_WALK_QUICK_MS` whatever speed is chosen; Pause ends the quick run, Continue takes the chosen speed; × keeps it away (`_pd2WalkShut`); read to the end, or off the clean paper, a quick run PUTS ITSELF AWAY (the paper's line back); with the Clauses read only beside the Clauses tab (`#pd-thread`), and gone when that tab goes (`W.withRead`). the-read-bar-and-notes-verify 4 · 5, f1018.
+Every paper draws ONE look (`--desk-ground`, 720px sheet, Source Serif 4 `--font-doc`, `--doc-sub`, no corner marks, no red margin bar; `--doc-sheet-pad`/`--doc-sheet-max`; a designed paper keeps its type). ONE ZOOM "− 100% +" top right above the sheet (`rlPaperZoomHtml` → `.paper-zc`; `rlDocZoom`/`rlSetDocZoom`, `hati.v1.docZoom` 60–200; the clause editor the same; `PAPER_ZC_GUTTER`). "+N −N" on Negotiate only (`rlWordsMoved`).
+```
+
+### BEFORE · THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)
+```
+On Home's Document → Clauses only (`docThreadPlace`), drawn as Stakes. Open row at `DOC_THREAD_LINE` (`docThreadGoTo`, `docThreadFill`); filter by WORST mark (`docThreadShown`). PLAIN = ONE clause (`docReadRun(c,{only:[i],out})`; `docReadWhyOf`); `docXrayMarks`; `xrWhoSaysSomething`. Hosts `TH_HOSTS`/`thHostFor`. Long parts `docReadLongSplit`, `readPiecesOf`/`READ_PIECES_MAX`.
+THE PAPER AND THE PANEL LINE UP (owner, 11 Nov 2026): the first open glides the paper there (`docThreadGoTo`), a paint after the paper moved opens the clause at the line (`_docThreadSyncTop`); THE PAPER STAYS WHITE (no `pd2-cl-on`). f1005.
+HOME'S TRACK OPENS CLAUSES: a press opens its clause on the Clauses tab and glides the paper there (`docThreadLandOn`, else `docThreadWantClause` + the tab's own switch), writing nothing to Jambo; the card says so (`int_strip_open`) and that Clauses reads first (`igStrandOpensRead`).
+```
+
+### BEFORE · SIGNING — ONE LIST BEFORE THE SIGNATURE
+```
+- `signBlockers(c)` the ONE list (`renderSignButton`, `signDocument`; never desk, never review); `signReadiness(c)` in `SIGN_STAGES`; gate `signCheckGate()` off · advise · require (server `signCheckRefusal`); pad intent (`openSignaturePad({intent:true})`); an empty value never stamped 'none' (only `nda`); a signature is a MARK painted after the render (`pagesSignMarks`); an open owner ask refuses 409 (`srvSignOpenAsks`).
+- BEFORE YOU SIGN: Jambo's face (`pdSignOpen`), no writer; the signing copy on Home's paper (`igSignOn`, `igSignCopyHtml`); signed, the RECEIPT; `contractOnHome`. THE ROAD: `pdRoadStops`, `pdRoadYesHtml`, `pdRoadRuleHtml` (via `approvalDecideAsk` while `approvalDecidableNow` says 'rule'); `PD_RD_CHECKS`; the Sign foot only in the reader's own stop (`pdSignMine`).
+```
+
+### BEFORE · THE TRACKED-CHANGES COLUMN
+```
+- ONE builder `rlColumnHtml`, two hosts (the page; Jambo's Redlines face, `pdRedOpen` → `openRedlineWorkbench`). Send all · N not sent (`rlUnsentSendHtml` → `#nego-send`); piles `RL_CARD_BANDS`, Waiting on you first, settled folded (`.rl-band-fold`); THE ROW IS THE WHOLE OF IT (`rlRowFaceVerbs`: theirs Accept · Reject · Counter; ours Edit · Send · Review · Ladder · Discard last); `negoUnsentDecisions` RAW.
+- NUMBERED DOTS (round 9): after each waiting ask of theirs, a dot opens Jambo's reading — the prepared answer (`roundPrepOf`) else the card's (`rlRowReadOf`); `rlPaintPoints` in `rlPaintCopilotAnswers`, painted never stored; f961.
+- A row is one line in paper order over STORED ops (`rlRowExcerptHtml`); Discard asks first; Reject/Discard red. ONE SHADE, ONE CARD (`.is-linked`, `riskGoClause`). Jambo's answer on the paper (`rlPaintCopilotAnswers`, `rlSugInline`, `redlineWholesale`).
+```
+
+### BEFORE · EDIT WITH COPILOT — THE CLAUSE EDITOR (js/views/clauseeditor.js)
+```
+- A full-window page (`clauseEditorFits`); with no Redlines mounted it opens the face first (`rlWithEditorDoor`); files through `negoEditClause` ONLY (f245) plus `ceFileNew`; every way out asks (`ceLeaveGuard`). ONE PANEL for Playbook, Risks, Ladder (`ceCardActsPaint`); ONE foot ‹ k of n › + Save (`ceWalkPress`); their seat: no Copilot, no locks (`ceSide()`).
+- ONE TRAIL on every edit of ours (`ceTrailOn`); from a row `ceRowMode`, Esc and ‹ = `ceRowBack`.
+- FROM CLAUSES, BACK TO CLAUSES (owner, 11 Nov 2026): Start redlining opens the editor in one go (`rlLandWhenReady` looks at once; the press says Opening…); opened `fromClauses` while `rlCameFrom` stands, ‹ says Clauses and `ceRowBack` → `rlBackToClauses`, landing on the same row (`_stk.backRow`). f1010.
+- CAME FROM "WHAT TO WATCH" (owner picked "Legora with ticks", 11 Nov 2026): Start redlining carries the clause's points (`land.points`) → `ceOfferPoints`: Jambo's first words, a tick box per point (no numbers), the words quoted and a CSS highlight on the clause (`ce-watch`, nothing in the box moves); ONE button drafts for the ticked through `ceAsk` (`cePointsAsk` in the playbook line); Not now / "N points ×" puts them away. f1011.
+- THE BOX PUT BACK TO WHAT STANDS OVER THEIR ASK IS AN ANSWER: Save presses the row's own Reject (`ceKeepsStanding`, `ceRejectTheirs`); the page files no decision itself. save-keeps-standing-verify.
+```
+
+### BEFORE · NOTES AND COMMENTS
+```
+- A note is ONE message (`id`, `anchor` {clauseId, quote}, `replyTo`, `done`; `negoNoteThreads`); `negoPostComment` the one writer; edit/delete only before delivery (`negoNoteDelivered`). Server `msgMeta` an ALLOW-LIST; PATCH `…/messages/:mid`.
+- Rooms: Internal and one per outside party (`negoNoteRoomKey`; no `partyId` = the first party). THE SERVER IS THE WALL (`share_messages.party_id`, `srvMsgScope`). One drawer with a PIN (`rlNotesPin`); marks `rlPaintNoteMarks`; `POST /api/contracts/:id/mention`. GIVEN AND SEEN our seat only, never travel (`negoNoteGive`/`negoNoteSee`, `negoNotesForMe` RAW); checklist kind `note`, bell `note-mine`.
+```
+
+### BEFORE · THE COUNTERPARTY'S PAGE (js/views/portal.js)
+```
+`PORTAL_MODE` (`rlOnTheirPage`); tabs Where we are · Redlines · History · Signing (`portalTabsHtml`); `#pt-nego-foot` never hidden; `cpReadyToSign(c)`; signing has no bands, pad `intent:true`; Edit (`portalOpenEditor`) asks why on save (`portalAskReason`); `portalSendCheck`; `POLL_ON_ARRIVAL`. Our Their view read-only (`pdRedTheirs`, f878).
+THEIR PAGES AS OURS (8 Nov 2026; `portalOutOn`): our cards in their panel (`portalOutHeadHtml`, attr `data-pol-shows`); Counter opens our clause page (`portalOutPropose`, `ceTheirTrail`); their team's notes `MSG_SIDE_THEIR_TEAM`, served only to their party's links; Send back (`portalOutSendHtml`); their seat never types a clause's name (`ceHeadTypable`). their-pages-as-ours-verify.
+THEIR PANEL'S HEAD IS Redlines · Notes (owner, 12 Nov 2026): Where we are is only the page's top tab; the Redlines pill carries no number (the top tab counts theirs, the column counts all) — `portalOutHeadHtml`.
+THEIR HISTORY SAYS A PARKED ASK'S OUTCOME (12 Nov 2026): "countered" only where our counter is on their copy, else "waiting" (`portalOutHistoryHtml`, `onCopy`); the Signing list runs the page's width; the column head's round has no leading dot.
+```
+
+### BEFORE · THE SEND SCREEN
+```
+THE SAP WAY: a FORM (To · What goes · What they can do · Send by), "Before you send" beside, VERDICT first (`shareVerdictPaint`). OUR PAPER GOES OUT CLEAN THE FIRST TIME (owner's rules and "Said Once", 12 Nov 2026): on the first send of OUR paper our pending fixes fold into the baseline (`negoFoldOwnFirstSend`; a Draft only — refuses on their paper, anything not a Draft, any link on record or unread, anything handed over, theirs, held or under review), kept in `c.negotiation.folded` (in `negoIssuances`, never on the copy's allow-list); said once (`negoFoldWouldTake` → "· clean copy"). Their paper and every later send stay tracked. f1015. The words are ONE module, both hosts: js/sharemail.js. EVERY send door opens it (`letterDoor`, `pdSendOpen`); a colleague `caPassSend`; JAMBO WRITES ONLY THE NOTE (`AI_SEND_NOTE_RULE`). f939, f962.
+THE LOOK (owner picked "The SAP Way", 11 Nov 2026): boxes on the left, each sentence a tag (`data-tone` in `shareNlLinesPaint`); the email ONE card, From under Subject; the note HUGS its words (reverses 29 Oct); the link a BUTTON on screen and in the mail (`SM_BTN_STYLE`). negotiate-new-look-verify 4.
+```
+
+### BEFORE · THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
+```
+- PAPER FIRST: shelves beside the chosen paper (`tplPfPaperHtml`, `tplPfPanelPaint`); ONE door "Our paper" (`PAPER_TABS`); ONE DOOR TO A STANDARD `#tpl-new` → `openNewStandard` → `openTemplateBuilder`; `format:'rich'`; `tplDraftFrom`; `templateUsage`; `tplPfSaid`. A TEMPLATE'S PAGE: ONE line (`#tpl-dt`), Jambo beside it (`tplDtPanelPaint`, `tplPfReadOf`).
+- THE BUILDER (js/views/templatebuilder.js): `tbAccept` the one writer, `tbAddBlock` the only push, `tbFocus`; `hati.v1.tbDrafts`; like the clause editor (`#tb-secpick`, `tbUndo`, ‹ k of n ›); a note is never wording (`tbSafeWords`). A SECTION MOVES WHOLE (`tbMoveSection`, `tbMoveSectionTo`, `tbMovableSecs`; f879). `tbProposals`; a Skip is the TEMPLATE's (PUT /api/templates/:id/skipped).
+```
+
+### BEFORE · NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
+```
+- ONE DOOR: on a computer every way in opens the ONE sheet (`na-one`, `openNewAgreement`, `openNewDoors`; a viewer's "draft" keeps `caIsCardWord`; the phone the older form) beside Jambo (`naHomeFirst`/`naBackFrom`); Create greys until a paper AND a stream (`naStreamBox`); mints nothing; a value only reaches a declared box (`draftApplyPrefill`); "nothing fits" → Requests.
+- THE SHEET: one ask box under Our paper · Their paper (`naAskHtml`, `caDraftAgain`); the three closest (`caDraftForm` `clear`); details read WITHOUT AI (`draftWordsRead` → `draftWordsPrefill`); rows Term · What it says · Where it came from (`naRowsLay`, `naSrcPaint`); Their paper = the drop's reader (`pdDropTake`, `caDraftTheirs`); lands on its Dossier (`pdLandOnDossier`).
+```
+
+### BEFORE · COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
+```
+`contractArrived(c)` at every creation site → `triageAndPaint(c)`, once per WORDING (`triageWordingHash`), nothing filed; blanks read OFF THE PAPER (`contractBlanks`), the record first, ONE writer `contractBlankSet`; a private folder's contract read only on a press (`jamboOnPress`).
+THE NOTES FOLLOW THE WORDING (owner, 11 Nov 2026: "Automatically"; the ONE lift of "spends only on a press"): a decision that moved the wording reads again, once per run of decisions (`negoResolve` → `triageWordingMoved`, `TRIAGE_MOVED_MS`; `triageMovedRun`: arrival readings marked `agreed`, then the kept clause review); never a contract nobody read, a private stream, their page, a viewer. f1008.
+JAMBO SPEAKS FIRST ON AN UPLOAD (docs/PLAN-jambo-journey.md): his panel only, once per reading (`firstReadDue`), never over a face (`pdHandIn`); no AI; answers are existing doors. WEB SEARCH ON THE OTHER SIDE: ONE door `partyLookup` (wall `prVisibleKeys`, code-named 403, cited lines only, fee booked). PHONE ALERTS: ONE door `pushTell` (no code-named deal, wording or figure; js/push.js). AFTER THE SIGNATURE: once per contract per browser (`signedTurnOf`).
+```
+
+### BEFORE · OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
+```
+js/standards.js reads only (`stdDepartures`). `pbStandardsFor(c)` the ONE list (aligned · deviation · missing · na); a cut-short check refused; `playbookKeyFor` = `copilotPlaybookKey` (f133). SMALLEST CHANGE (`pbFitInto`, f670). THEIR ROW'S READ `rlRowReadOf` (`rlpJudge`, then `rlpPastJudge`); nothing to judge by = "No advice yet", no button.
+JAMBO'S INSTRUCTION IS NOT WORDING (owner, 10 Nov 2026): "Amend Section N to add: '…'" is read at the one producer (`pbDraftRead`, `pbOwnRefs`); this clause gets only its quoted words, ADDED (`pbFitAdd`, `draftAdd`); other clauses' asks: ONE box `rlAlsoHtml` (editor, review window), Open carries it on a card (`ceOfferCarried`), Prepare redlines files it as that clause's own draft; ONE placing `pbPlaceAt`, ONE finder `negoClauseByRef`. f996.
+```
+
+### BEFORE · THE AI'S READING RULES
+```
+`aiDocChars` (200,000) the ONE ceiling per contract; a cap is marked and said; `truncated` is not empty; `anthropicMessages` retries ONCE, only on a thrown connection. COPILOT READS EVERY CHANGE, WHOLE (`negoCopilotRecord`, f47). `AI_QUOTE_RULE`, `AI_REDLINE_RULE`; commentary is not wording (`AI_MODEL_VOICE`); `metaUnleak` before filing; `AI_LIST_RULE`. Tool-name sets and `graphWhereHit` equal on both hosts.
+A CUT-SHORT DRAFT IS NOT WORDING (owner's screenshot, 12 Nov 2026): a proposal object that never closes (`AI_PROPOSAL_OPEN_RE` in `aiParseProposal`), or plain words from a route that said `truncated` (both chat routes send the fact; `aiProposalIsCut`), comes back from every drafting door as `unfinished` with one sentence and NO card (`aiProposalCutShort`, `ce_ask_cut_short`). f1019.
+A SMALL JAMBO HANDS ON WHAT IS NOT HIS (owner, 11 Nov 2026): the Calendar's planner and Settings' why read only their own facts; words about anything else go to the chat (`elsewhere`, both routes; `stJbWhyRun`), never answered as "hidden from you" — what was not given is not walled off (`AI_GOVERNANCE_RULE`, both hosts). f1007.
+JUDGEMENT ON THE STRONGER MODEL: advice, risk, meaning, drafting, comparison run deep from step one (`copilotNeedsJudgement`, no AI; not where both tiers are one model), said in the answer, dollars to admins (`copilotDeepOf`); f870. A dated model id is priced as its model (`aiRateFor`; f871).
+```
+
+### BEFORE · THE POP-UPS, THE SAP WAY
+```
+Act first, Cancel LAST (`data-dlg-cancel`, `dlgPinFoot`); HaTi's dropdowns and dates (`popupControlsDress`, `datePickDress`); an ending question `danger`. No pop-up only to say no (`compareHasTwo`); Undo over asking; the + opens the one sheet (`openNewDoors`); end or pause ONE question (`endOrPauseOpen`). Big work is a PAGE (`openModal(html,{page})` → `dlgPageAdopt`). THE DRAWN FRAME `dlgSapFrame` (`.dlg-h`, `.dlg-f`, `.sap-*`).
+ALERTS BOTTOM CENTRE (owner picked "The SAP Way", 12 Nov 2026): on a computer the toast stack stands above the page's foot, centred on the page area left of whatever panel is at the right edge, MEASURED (`toastPlace`), never on Jambo's box; the phone keeps its own place; every toast still goes by itself. f1023.
+```
+
+### BEFORE · LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+```
+- THE LEGORA LOOK IS THE LOOK: one appearance, no dark mode. Tokens in index.html `:root` (ground #F5F5F7, ink #1D1D1F; small print `--color-quiet`, f952; links `--accent-ink`; ONE CORNER 10). Grey pill controls, a chosen tab a filled pill (f872); the paper stays square. A status = dot + word; refs via ONE `refHtml(c)` (never PDF, Word, email, toast, `<option>`). A changed font file gets a NEW NAME.
+- TYPE 400 · `--w-label` · `--w-strong` · `--w-title`; sentence case. BUTTONS `--ctl-h-sm`/`--ctl-h`/`--ctl-h-lg`; one filled button per area; drawn icons only (f385); words never wrap (f386). Lists lead with the agreement (Contracts with the COMPANY, f874 3a), a same-in-every-row column steps out (`apSameCols`); money columns ≥112 (f873–f875).
+- A SEARCH BOX WEARS NO RING (owner, 10 Nov 2026): a search or filter box is an empty field you type into, as Jambo's is — no outline, no glow, on the field or the line that holds it, pressed or keyed to (ONE rule in index.html, "A SEARCH BOX WEARS NO RING"; a new search box is `type="search"` or named there). f996.
+- NO RING AFTER A PRESS: `fieldFocus` asks `focusVisible:false` after a mouse or finger on anything but a typed box (f881). 16px inside every Jambo panel; a page level with the panel's top and foot (tidy sweep `LEVEL`).
+```
+
+### BEFORE · THE SLIDER ON EVERY JAMBO PANEL
+```
+ONE builder `splitHtml`/`splitFit`/`splitWire`/`splitClamp` (js/components.js); clients Home (`IG_SPLIT`, `hati.v1.igDockW`), the list panel and Import (`JL_SPLIT`, `--jl-w`, `hati.v1.jlW`, floor `jlListMin`), Settings (`ST_SPLIT`, `--st-side-w`, floor 780), the side panel (`AI_SIDE_SPLIT`, `hati.v1.aiSideW`).
+PAST THE MARK THE PANEL SLIDES OVER (reverses "the page keeps restMin"): the page narrows to `SPLIT_OVER_AT` 880 (or its own floor if wider), then holds; the panel lies over it (`splitOver`, `--jl-room`, `--ai-side-room`, `.is-split-over`), up to `SPLIT_PEEK` 420 of page in sight; nothing slides over at rest. Every panel starts where People's does (`overAt`); `panels-slide-over-alike-verify`.
+```
+
+### BEFORE · OTHER PAGES AND SERVICES
+```
+- `ov2Model` (the strip) and `runDatedWindows` (`c.datedWindows`, `triageRun`) stay. APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read; every document has a person (`mailroomOwnerFor`, `intakeLaneOwner`, `stMailroomOwnerSel`; bell `mailroom`); MEMO `negoMemo` (no model).
+- COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
+- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`, `brStackPaint` (GET /api/brain `stack`). Reading the code blocks the server: each file indexed ONCE (`brainDefIndex`, `brainNewlines`), never a search per name (f1000).
+```
+
+### BEFORE · PERFORMANCE — THE BOOK IS WALKED ONCE
+```
+EVERY TEXT ANSWER GOES OUT COMPRESSED: one gzip middleware; `ZIP_NEVER` keeps live feeds streaming; a piped file needs `drain` forwarded. f996.
+DOOR NUMBERS COUNTED ONCE A TURN: `doorCounts(nc)`. f997.
+A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS: Approvals, Obligations, People, Reads, Requests, Import, My notes, Parties; ONE swap `listRowsSwapHtml` (js/listlang.js; FALSE = draw the whole page; keeps the tbody node). SAFE ONLY WHERE EVERY TAB DRAWS THE SAME SHAPE — read each tab first; Parties' Folders (cards) draws whole by name. rows-only-on-a-press-verify.
+`familyChildren` built once (`familyIndexDirty()`); `navCounts` once per paint; lists decorate from their own ids; test/chromium/_audit/perf*.js at 3,000. A still map moves only its dots (`igRender({rest})`, `IG_JIG_FPS`). Board → paper lays out once (`_regNarrowPaint`, `regAfterPaint`). A long contract is read once (`richReadMemo`; `clauseSegment` once; `clauseSegmentFind`).
+NO PAGE-WIDE `:has` OVER THE PAPER (owner, 11 Nov 2026): `body:has(…)`, a `:has` with no class or id in front, or `:has(…) > *` makes every small change re-read the page's styles; write the state on the element (`igDockMarks` → `#ig-page[data-igd-head|data-igd-door]`, `sh-lt-hasgoes`). ONE PRESS, ONE PAPER (`_igPaperPaints`, `pd2SheetPre`, `_pd2RO` asks `isConnected`). f1007.
+A DECISION REDRAWS ONLY ITS CLAUSE (owner, 11 Nov 2026; measured by `test/chromium/_audit/speed-measure.js` on GitHub, `measure.yml`): `igPaperRefresh` tries `igPaperPatch` first (blocks stamped `_igSrc` by `igPaperStamp` before any painter; ONE builder `igRedBodyHtml`; any doubt = drawn whole); `pdRedRepaint` in ONE `igDockBatch`; the same wording fingerprinted once (`playbookHashOf`). f1010, decision-redraws-one-clause-verify.
+A PAGE MOVE DRAWS ONLY WHAT SHOWS (`test/chromium/_audit/glitch-audit.js`): a shut panel drawn on opening; `rlBenchCatchUp`, `igPaperDown`, `igWallAppend`, `insListWire` (`e.detail`); a quiet `api()` caller gets no 429 toast.
+```
+
+## HOW THINGS MOVE — THE STUTTER AUDIT'S FIVE OPEN ITEMS (owner, 13 Nov 2026)
+**THE ASK.** *"fix all these"*, quoting the five things the stutter round left open; then, on the panel, *"Keep one painter, but only replace what changed (recommended)"*.
+**1 · THE PANEL IS NOT WRITTEN WHEN NOTHING WOULD CHANGE (PERFORMANCE — NOTHING CHANGED, NOTHING WRITTEN).** `renderIntelDock` still works out the whole panel into one string. `igDockSame` compares it with what `igDockStamp` recorded at the last write (the act numbers `data-pd-act` left out: `pdAct` mints new ones at every build) and asks a MutationObserver on the panel whether anything in it moved since. The same words and nothing moved: nothing is written, the kept buttons take this build's act numbers in order, and only what lies outside the panel follows (the bar's ‹, the paper's amber marks, the crumb). WHY NOT PART BY PART: the panel's wiring runs over the whole panel after every write (a hundred lines of `dock.querySelectorAll(…).forEach(addEventListener)`), so a kept part inside a written panel would be wired twice and every press on it would fire twice; keeping parts needs each of those wirings moved to delegation first, which is its own job. So this round keeps the WHOLE panel or writes the whole panel. WHERE IT NEVER KEEPS: a tab or face filled by its own painter after the write (Clauses' thread, Redlines, Fill in, Before you sign, Send, Amend, the facts form) — their content comes from state the string does not carry, so they are always written (`igDockStamp` records nothing for them); the folded strip and the Calendar's panel (`igDockForget`). Whether asks are in fact kept in a real sitting is for the measure: `igDockKeptCount` is printed by the flash measure.
+**2 · THE PAPER'S LINE HAS ONE WRITER (`igStripPut`).** 12 Nov's keep was for a tab's press alone (`keepLine`); GitHub's run showed the line written again half a second after going back to the Dossier by another caller of `igPaintPaper`. Now every caller, and `igStripRepaint`, goes through `igStripPut`, which writes only where the words differ or the contract differs. Its presses read the contract by id at press time (`getContract(c.id)`), so a kept line never holds an old record (f1024 (4) pins that). `keepLine` is DELETED (a mention is stale).
+**3 · THE LAST LINE OF FILL IN ON THE PAPER NAMES THREE, THEN COUNTS.** The owner's second picture (MK-469, a lease): sixteen details in one sentence, "… have no place on the paper. Fill in the rest ›". WHY SIXTEEN: the paper had redlines (the tab said Redlines 2), and a negotiated paper is drawn from the negotiation's clauses, where no blank is marked and none may be typed (`pd2FillWalk` and `pd2FillPaint` step past `.ig-redpaper`, by design since 11 Nov: MK-A2 in that round's photos did the same with one detail). So every owed detail fell to the form. Built: the line names the first three and counts the rest ("A, B, C and 13 more have no place on the paper."), the same three-then-count the question before Negotiate asks (`NG_BLANKS_NAMED`); `PD2_REST_NAMED`, `pd2_fp_rest_more` in both books. NOT BUILT, AND ASKED: typing blanks on a negotiated paper — it would let a blank be filled on wording the other side is reading, which is the owner's call.
+**4 · THE LIST PAGES AND SETTINGS, FILMED.** `test/chromium/_audit/flash-measure.js` (a measuring instrument; `.github/workflows/flash-measure.yml`, by hand or when the script changes; never fails a run): every page from the Board and back, page to page, a paper and its tabs, a list row chosen — 600 ms of frames each, printing what faded, went pale, went blank, was written again after the move's own turn, or jumped. Its first run on GitHub is the list of what to fix next; nothing on those pages was changed blind.
+**5 · THE RULES FILE.** See "CLAUDE.MD TRIM, 13 Nov 2026" above: 91,564 → 79,918 bytes.
+**TESTS.** f1024 (3)–(6); tab-change-no-flash-verify 3b (the line half a second on) and 10a–10d (kept, moved, a tab's own painter, every kept button finds its act).
+
+### CLAUDE.MD TRIM, 13 Nov 2026 (after main's f1025 line landed: 80344 → 80133 bytes)
+Four of this round's own lines shortened (verbatim before):
+```
+A PAGE MOVE DRAWS ONLY WHAT SHOWS: `rlBenchCatchUp`, `igPaperDown`, `igWallAppend`. MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (films every page move), glitch-audit, perf*.
+A FACE CHANGE IS DRAWN AT ONCE (owner, 12 Nov 2026; reverses "Crossfade"): nothing copied, nothing faded, no fade-in from nothing on a panel; only the lit tab's underline glides (`faceSwap`, `igDockFaceKey`); a tab's press draws its body once (`_pdBodyFresh`).
+NOTHING CHANGED, NOTHING WRITTEN (owner, 13 Nov 2026): Jambo's panel …
+THE DOSSIER'S TOP IS ONE CARD: `pd2CardHtml` — stage + dots, the next step, one sentence, ONE black button, Jambo's read, then "Read it | Watch the read | The brief". dossier-one-card-verify.
+```
+And two older lines (80133 → 79970 bytes; verbatim before):
+```
+Every paper draws ONE look (`--desk-ground`, 720px sheet, Source Serif 4 `--font-doc`, `--doc-sheet-pad`/`--doc-sheet-max`; a designed paper keeps its type). ONE ZOOM top right (`rlPaperZoomHtml` → `.paper-zc`; `rlDocZoom`/`rlSetDocZoom`, `hati.v1.docZoom` 60–200). "+N −N" on Negotiate only (`rlWordsMoved`).
+Planned signers print on the signing copy (`pagesSignRows` `planned`). f1012.
+```
+
+### CLAUDE.MD TRIM, 13 Nov 2026 (third) — room for f1026 (79970 → 80031 bytes; verbatim before)
+```
+- COPILOT IS CALLED JAMBO on every label, both books, `SRV_MSG`; code keeps `copilot`; `NEGO_PROVENANCE_RE` = `SRV_NEGO_PROVENANCE_RE`.
+`ndRead` (js/views/counter.js) the ONE list:
+```
+```
+ONE CONVERSATION (`ai.history`, `jamboTurnHtml`); suggestions are LINKS; ONE card builder `jamboCardHtml`; his box at every panel's foot (`panelAskPaint`); ONE PRESS, ONE PANEL (`igDockBatch`).
+```
+("suggestions are LINKS" dropped; the rule stands in its section's story.)
+And the heading "## THE ONE DESK — NEEDS YOU, ONE READING (owner picked "The Legora Way", 22 Oct 2026)" lost its parenthesis (the pick is in its story).
+
+## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN: A BLANK ON A NEGOTIATED PAPER IS A TRACKED CHANGE (owner, 13 Nov 2026)
+**THE ASK.** After the stutter round's leftovers, the owner asked in plain English what "should blanks be fillable on a paper that is being negotiated?" meant, then *"what is best practice?"* (answered: once the other side has seen the paper every change to it is tracked, filling a blank included; before the first send blanks fill freely, which HaTi already does), then *"yes, build option 2"*. Asked one thing before building — whether a company standard's detail filled this way leaves the Dossier's owed list at once or only when the other side accepts — the owner picked **"Done straight away"**.
+**WHAT WAS FOUND FIRST.** The owner's MK-469 (a lease from a company standard, two redlines) listed sixteen details as "no place on the paper". Two causes, not one: (1) a negotiated paper was refused outright by the fill walk (`.ig-redpaper` skipped in `pd2FillWalk`, `pd2FillPaint` and the click door), by design since 11 Nov; (2) a company standard's fields (`c.templateForm`) are not on the fill walk at all, negotiated or not — `pd2FillBlanks` reads `contractBlanks`, which answers `[]` for a `templateForm` contract. (2) is NOT changed here on an un-negotiated paper (BUGLOG); on a negotiated paper this round reaches its gaps.
+**BUILT (js/paperdesk.js).** `pd2NegoFillOn(c)` the gate (our seat, an editor, the negotiated paper in front for this contract, wording not frozen, a desk that may redline). `pd2NegoArgued(c)` the clauses with a change open on them, RAW. `pd2NegoSeq(root)` the ONE walk of a clause's blanks in paper order — a company standard's unanswered gap (`.hati-field[data-field-key]`, by key) and a placeholder in received paper (the upload reader's own matcher `upHits`: `[Name]`, `{{name}}`, a ruled line), each with its occurrence — run on the painted clause and on a detached copy of the clause as it stands. `pd2NegoMark(c)` marks them (`data-pd2-nb`, key `nb~clause~what~n`) once per paint, never in an argued or changed clause; `pd2NegoRead(c)` reads the marks (no painting) and joins `pd2FillBlanks` (kind `nego`), so the walk, the panel's list, Enter, the counts and Stop are the existing ones. `pd2BlOff` replaces the three `.ig-redpaper` refusals: the signing copy still takes nothing. Save hands the negotiated answers to `pd2FillSaveNego` → `pd2NegoFile`: per clause, `negoClauseNowById`, the blank found again by walk and occurrence (else the clause is refused and said: `pd2_nb_moved`), the answer put in as TEXT (a company standard's gap becomes `hati-field-done` with its key), and filed through `negoEditClause(…, { side:'owner', quiet:true, note: 'Filled in on the paper' })` — one change per clause, not sent. A company standard's answer is written to its form by `tplFormCommit`, and the form's `filledSig` moved in step only where nothing was owed before (so "Fill the document" is not asked for an answer already on the paper as a change). The panel's chip suggests what the form already holds (`pd2_nb_from_form`).
+**THE SIX QUESTIONS, WHERE THEY CHANGED WHAT WAS BUILT.** (5) One door: the change goes only through `negoEditClause`; nothing writes `c.redlineText` or a clause body. (6) Where the reader ends up: a refused clause keeps the filling open with the reason in the toast; a filed one is in Redlines.
+**LEFT, AND SAID.** A clause with a change open on it offers no blank (the answer would be written over an ask). Received paper's answers are not written to `c.fields` (that is the clean paper's working note; the answer here is the change). Handbook 2.3 gains one step, both books; its pictures wait for the batch (rule 9d).
+**TESTS.** f1030 (red at the parent: 0 of 6); negotiated-blanks-verify (GitHub).
+
+### CLAUDE.MD TRIM, 13 Nov 2026 (fourth) — after main's Green Spark and Scorecard lines (80232 → 79959 bytes; verbatim before)
+```
+THE SCORECARD (owner's pick, 12 Nov): a read's table on Discover wears its own head — ‹ Discover, search, Copy, the one black Ask again, coloured tiles per answer + Not checked yet (`rdScHeadHtml`, `_rdScOn`).
+JUDGEMENT ON THE STRONGER MODEL: advice, risk, meaning, drafting, comparison run deep from step one (`copilotNeedsJudgement`; `copilotDeepOf`); f870. A dated model id is priced as its model (`aiRateFor`; f871).
+WEB SEARCH: ONE door `partyLookup` (wall `prVisibleKeys`, code-named 403). PHONE ALERTS: ONE door `pushTell` (no code-named deal, wording or figure). AFTER THE SIGNATURE: once per contract (`signedTurnOf`).
+```
+
+### CLAUDE.MD TRIM, 13 Nov 2026 (fifth) — after main's f1030 (room), f1028 and f1029 lines (80777 → 80409 bytes; verbatim before)
+```
+ A changed font file gets a NEW NAME.
+- NO HOME PAGE, NO LEFT RAIL: `setView('counter')`, the HaTi mark, "home" and the Guide's top row land on the Board (`DK_HOME_KEY`); pages are `CA_PLACES` words in "/"; ⌘K → Jambo's box.
+THE PAPER AND THE PANEL LINE UP: the first open glides the paper there, a paint after the paper moved opens the clause at the line (`_docThreadSyncTop`); THE PAPER STAYS WHITE. f1005. 
+`ov2Model` and `runDatedWindows` (`c.datedWindows`, `triageRun`) stay. 
+A slow answer lands on its own contract (`contractOnScreen`); sitting marks never reach the record (`SITTING_KEYS`, `dropSittingKeys`); `sigImageOk`; a refused save puts the page back.
+Every paper draws ONE look (`--desk-ground`, 720px sheet, Source Serif 4 `--font-doc`, `--doc-sheet-max`; a designed paper keeps its type). 
+```
+And (fifth, continued; 80409 → 80012 bytes; verbatim before):
+```
+`hatiSearch` (GET /api/hati-search, tool `search_hati`): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`); js/hatisearch.js; f866. `goto.door` (`aiDoorOf`, `navDoorOf`); f867. `caAiFirst`, `copilotWayForward`; f868. `copilotQuestionStays` (f928); f926.
+DOCX writer: hanging indent = `w:ind` + a left tab stop + a real tab; shape read off the markup (`hati-lv-N`, `rl-hang`, `hati-tight`, `hati-pb`, `hati-toc`); a paragraph only where it carries a visible character or is forced.
+REQUESTS: editors mailed (`notifyIntakeRaised`); lanes on the server (`runIntakeLanes`, `intakeLaneOwner`). ONE ADDRESS BOOK `contactSet`. NEGOTIATION: `negoKeptIds`; `negoAdvanceRound({auto})`; ONE "your turn" email (`roundTurnMail`).
+- View `jambo`, the office (`jhDrawOffice`, `JH_ROUTE`, `jhFitCanvas`); the log first; not on the phone.
+
+```
+And (80012 → 79978; verbatim before):
+```
+- THE PAPER'S LINE: Send the ONE filled button (`#ws-share`, `pdSendWaiting`) · Ask for review (`rlReviewDoor`) · More (`pdActsToggle`, `PD_ACTS_SHORT`).
+```
+
+### THE DETAILS TAB — A BLANK ON A NEGOTIATED PAPER: WHAT GITHUB'S FIRST RUN FOUND (13 Nov 2026)
+The test is f1030 (main took f1026 for "room for the answer" the same night). GitHub's run of #688: (1) f563 "the desk reads, it does not write" — the desk had called `persist`; the save moved into js/negotiation.js (`negoFileFilledClause`: the one door, then the save), and the rest's blanks save on the last of the run through `contractBlankSet`. (2) negotiated-blanks-verify 4b — after Save the paper was patched clause by clause and the other clauses kept their boxes; `pd2FillStop` now draws a negotiated paper whole when it carries marks. (3) details-owes-overview-edits-verify 4b — the panel was kept with Details' grid in it (`#pd-og`, filled by its own painter after the write, its typed answer outside the string): `igDockStamp` now keeps only a panel with no part filled after the write (`IG_DOCK_FILLED_SEL`) and no box but the ask box; tab-change-no-flash-verify 10a says which applies. (4) home-board-verify 15a was red on main (fixed there by #689); document-wall-verify's `.igw-ref` miss is not this work's (the wall's card is not touched here). JOINED WITH #687 (a company standard's fields on the paper, f1029): on a negotiated paper the marks lead (`pd2FillBlanks` asks `pd2NegoFillOn` before `pd2FillTplBlanks`), so a company standard's form-then-wording path (`tplFormApply`) never runs over wording the other side reads.
+
+### CLAUDE.MD TRIM, 13 Nov 2026 (sixth) — after main's f1027 lines (80821 → 80386 bytes; verbatim before)
+```
+THE READ: notes held until the read reaches their clause (`pd2WalkNotesHold`). AN ARRIVAL PLAYS IT (`pd2WalkArrive`, `PD2_WALK_ARRIVE_TRIES`), quick with the Clauses read (`pd2WalkWithRead`, `PD2_WALK_QUICK_MS`); Pause ends the quick run; × keeps it away (`_pd2WalkShut`); read to the end a quick run PUTS ITSELF AWAY; only beside the Clauses tab (`W.withRead`). f1018.
+ONE PANEL for Playbook, Risks, Ladder (`ceCardActsPaint`); ONE foot ‹ k of n › + Save (`ceWalkPress`); their seat: no Copilot, no locks (`ceSide()`). ONE TRAIL (`ceTrailOn`; from a row `ceRowMode`, `ceRowBack`).
+- THEIR ROUND, THE LEGORA WAY: each ask one row with its OWN buttons (`agRoundActsHtml`) pressing the Redlines row's own verb (`agRoundAct`); no second acts row.
+Multi-party controls only where `partiesMulti` (two-party byte-identical). 
+ONE ZOOM top right (`rlPaperZoomHtml`; `rlSetDocZoom`, `hati.v1.docZoom` 60–200).
+```
+And (80386 → 80004; verbatim before):
+```
+- `.sap-page` + `.sap-band`: every page head is ONE white card (`.ph-card`, title row `.ph-top`, the ONE inset line over a second row; a band under #page-head is its lower half `.ph-foot`); a head's live tab the theme's ink; lists: THE LIST HEAD; the panel draws the four facts + What Jambo read.
+SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`); late seals `runSealCatchUp`, `sealCatchUpPage`, `srvExecutedSentence`; the rest in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)"; f570, f580–f626, f651.
+- THE LIST LANGUAGE (js/listlang.js): a mark leads every row (`listMarkHtml`), readings in words (`listWordHtml`), kinds as chips (`listChipHtml`); Our standards a SCORECARD (`stdRowWordsHtml`, `.ls-score`; f989).
+```
+And (80004 → 79948; verbatim before):
+```
+NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. CONTRACT BRIEF POST /api/ai/brief per wording hash, cut-short flagged. ⌘K calls no AI.
+```
+
+### CLAUDE.MD TRIM, 13 Nov 2026 (seventh) — after main's f1030 line; the negotiated-blanks test is f1031 (80140 → 80008 bytes; verbatim before)
+```
+ROOM FOR THE ANSWER, AND ONE MORE GO: a deep chat step has more room (`copilotStepRoom`, `AI_CHAT_ROOM_DEEP`); ANY step cut short is asked ONCE more with the most room before the cut is said (`copilotStepCall`, `AI_CHAT_ROOM_AGAIN`, `AI_LOCAL_ROOM_AGAIN`); cut twice stands as `truncated`. f1026.
+A DRAFT ASKED FOR IS A DRAFT SENT: every drafting door says so (`proposal: true`); an answer without the JSON object is asked ONCE more (`copilotProposalMissing`, `AI_PROPOSAL_NUDGE`). f1030.
+```
+And (80008 → 79953; verbatim before):
+```
+JUDGEMENT ON THE STRONGER MODEL (`copilotNeedsJudgement`, `copilotDeepOf`; f870); a dated model id priced as its model (`aiRateFor`; f871).
+```
 ## HOME — THE BOARD AND THE MAP — THE REDLINES TAB'S NUMBER IS ITS HEAD'S (owner, 13 Nov 2026)
 **THE ASK.** *"fix the Redlines tab count so it matches the head"* — off the owner's own screenshot of MK-382 (the editor's audit, the same night): the Redlines tab on Jambo's panel said 2 while the column under it said "Redlines 6 · 5 not sent". Logged then as noticed, not fixed.
 **THE CAUSE.** Two readings for one door. On our seat `pdTabCount('red')` summed the Dossier's negotiation rows owed by you (`dossierOf(c).owed` of stage `nego`: their asks waiting, a send owed — five drafts are ONE send), while the head says `rlOpenCardCount`: the rows the column draws with the settled fold shut. Their view had been mended the same way on 25 Oct (owner's list item 19, f881 (19)); our seat never was.
@@ -37313,3 +37730,24 @@ WHERE THE BUILD DEPARTS FROM THE DRAWING, each told to the owner: (1) the drawin
 LEFT ALONE, said to the owner: the Redlines column's own notes view (word verbs, its own Done fold) and the phone. The per-change panel and the other side's page are the same builder and wear the Thread.
 MEASURED: photographed at 1440x780, 1536x730 and 1366x950 in the new look; nothing scrolls sideways in the panel. The verbs are opacity 0 at rest and NOT pointer-events none, so a press that reaches one is already over its note and the browser checks' clicks still land.
 RENUMBERED on joining main: the check is f1032 (main had taken f1026, then f1030 and f1031, the same day).
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (eighth)
+On joining main (#693, #694) the rules file stood at 80695 bytes; cut to 80345. Verbatim before:
+```
+DISCOVER IS A PAGE (new look only; the old look keeps `[data-ac-open]`, `#ac-disc`): Reads IS Discover (`nav_reads`, `renderReads`, `rdnRender`); the list's head carries the Discover pill (`askColBtnHtml` → `discoverOpen`; GREEN SPARK: Jambo's green with his spark, `.rfp-dsc`); ONE ask box, ONE black button saying how many (`dscAskBtnHtml`); the ask is the one read over the Contracts list as filtered (`askColAskHere` → `askColReadRun`; `dscScope`); a row opens under itself (`dscOpenHtml`), the panel's three faces `dscPanelPaint`; live repaint `discoverLive`; the Contracts list never repaints over it (`_acRegRepaint`). f1016, discover-page-verify.
+THE SAP WAY: a FORM (To · What goes · What they can do · Send by), "Before you send" beside, VERDICT first (`shareVerdictPaint`). OUR PAPER GOES OUT CLEAN THE FIRST TIME: on the first send of OUR paper our pending fixes fold into the baseline (`negoFoldOwnFirstSend`; a Draft only — refuses on their paper, any link on record or unread, anything handed over, theirs, held or under review), kept in `c.negotiation.folded`; said once (`negoFoldWouldTake`).
+```
+And (80345 → 80126; verbatim before):
+```
+THEIR PAGES AS OURS (`portalOutOn`): our cards in their panel (`portalOutHeadHtml`: Redlines · Notes, no number on the pill); Counter opens our clause page (`portalOutPropose`, `ceTheirTrail`); their team's notes `MSG_SIDE_THEIR_TEAM`, served only to their party's links; Send back (`portalOutSendHtml`); their seat never types a clause's name (`ceHeadTypable`). Their History says "countered" only where our counter is on their copy, else "waiting" (`portalOutHistoryHtml`, `onCopy`). their-pages-as-ours-verify.
+signature lines take names (one writer `saveSignerPlan`); Enter walks `pd2FillWalk`, the last saves and returns; what has no place on the paper → the form, its line naming three then counting (`PD2_REST_NAMED`, f1024). f1012.
+```
+And (80126 → 80041; verbatim before):
+```
+- THE BOARD DRAWS FIRST (owner, 10 Nov 2026): a ranking, breakdown, comparison or picture typed (`hbAnalyticAsk`) is drawn and stays on the Board (`igBoardTalkAsk`); HaTi mends its card (`hbResMend`); why / should stays the brain's. f999.
+a side-list row → its Dossier (`hbSheetGo` → `roomHomeLand`); Your book a TABLE (`hbBookHtml`).
+```
+And (80041 → 80000; verbatim before):
+```
+ONE quiet touch of colour per page, read off a fact it has (`listStreamTone`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
+```
