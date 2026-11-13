@@ -39,13 +39,13 @@ describe('f1041 — the press goes straight to Jambo', () => {
     const f = fnBody(IG, 'intelAsk');
     const at = k => { const i = f.indexOf(k); assert.ok(i > 0, k); return i; };
     assert.ok(at('const readied=!!_igReadyAsk && q===_igReadyAsk;') < at('if(readied){'), 'read first');
-    assert.match(f.slice(at('if(readied){'), at('if(readied){') + 300), /await intelChatAsk\(q\);/, 'the brain, nothing else');
+    assert.match(f.slice(at('if(readied){'), at('if(readied){') + 300), /await intelChatAsk\(q, readyNote\?\{ note:true \}:undefined\);/, 'the brain, nothing else');
     for (const k of ['jamboPageGo(q)', 'igBoardTalkAsk(q)', 'igPageTalkAsk(q)']) assert.match(f, new RegExp('if\\(!readied&&opts&&opts\\.typed&&[^\\n]*' + k.replace(/[()]/g, '\\$&')), k + ' stands down for a readied ask');
   });
   test('3 the letter\'s press and every steer use it', () => {
     const press = CORE.slice(CORE.indexOf("e.target.closest('[data-sh-nl-write]')"), CORE.indexOf("e.target.closest('[data-sh-nl-write]')") + 900);
-    assert.match(press, /if\(typeof window\.igAskBrain==='function'\) igAskBrain\(i18t\('sh_nl_write_q', \{ who \}\)\);/);
-    assert.match(fnBody(IG, 'igNoteAsk'), /return igAskBrain\(i18t\('sh_nl_q_with', \{ ask:words, note:d\.words \}\)\);/, 'the steer carries the draft as it stands');
+    assert.match(press, /if\(typeof window\.igAskBrain==='function'\) igAskBrain\(i18t\('sh_nl_write_q', \{ who \}\), \{ note:true \}\);/);
+    assert.match(fnBody(IG, 'igNoteAsk'), /return igAskBrain\(i18t\('sh_nl_q_with', \{ ask:words, note:d\.words \}\), \{ note:true \}\);/, 'the steer carries the draft as it stands');
     assert.match(IG, /Object\.assign\(window,\{IG,IG_SUGGESTIONS,[^}]*,igAskBrain\}\)/, 'published for the letter');
   });
 });

@@ -14123,6 +14123,13 @@ const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { t
 const COPILOT_PROPOSAL_RE = /\{\s*"(?:advice|reasoning|rationale|explanation|whyChange|whatItDoes|proposedText|proposed_text|placement|headingText)"\s*:/;
 const COPILOT_PROPOSAL_NUDGE = '[From HaTi, not the person] The drafter asked for ONE JSON object (advice, whyChange, whatItDoes, proposedText) and your answer did not carry it. Send that object now as your whole answer, and nothing else; proposedText is an empty string if you cannot draft.';
 const copilotProposalMissing = (context, answer) => !!(context && context.proposal === true) && !COPILOT_PROPOSAL_RE.test(String(answer || ''));
+/* A NOTE ASKED FOR IS A NOTE SENT (f1042; owner, 13 Nov 2026, a screenshot: "still not fixed" — "Write the note for
+   this send again, asking them to reply" reached Jambo, who answered without the note, so the card said none came
+   back). A press on the send screen (Write it for me, a steer) says so in its context (`noteAsk`); an answer that
+   carries no note is asked ONCE more for it; what comes back the second time stands. The browser-only path does the
+   same (AI_NOTE_NUDGE, js/ai.js, word for word). */
+const COPILOT_NOTE_NUDGE = "[From HaTi, not the person] The person pressed a button on the send screen asking for the note, and your answer carried no note. Write the note now and put it in deliver_answer's note (plain text, two to five sentences, no subject, no greeting, no sign-off); in answer, say in one short sentence what it covers.";
+const copilotNoteMissing = (context, note) => !!(context && context.noteAsk === true) && !String(note || '').trim();
 /* ---- ROOM FOR THE ANSWER, AND ONE MORE GO WHEN IT RUNS OUT (owner, 12 Nov 2026; measured the same day) ----
    The stronger model thinks before it answers on some asks, unasked, and that thinking is spent from the step's
    own max_tokens: measured, one clause-editor draft spent about 2,100 of 4,000 thinking for a 500-token answer,
@@ -14557,7 +14564,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false, askedDraft = false;
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false, askedDraft = false, askedNote = false;
   /* a question of judgement is weighed by the stronger model from its first step (copilotNeedsJudgement) */
   const judge = copilotNeedsJudgement(question) && copilotDeepDiffers();
   let turnCost = 0, wentDeep = false;
@@ -14581,13 +14588,16 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       working.push({ role: 'assistant', content });
       if (!toolUses.length) { // model replied as plain text without the tool — accept it
         const writ = copilotTextDeliver(content.filter(b => b.type === 'text').map(b => b.text).join(''));
-        if (writ) { final = normalizeDeliver(writ, cx); break; }
+        if (writ) { const w = normalizeDeliver(writ, cx);
+          if (!askedNote && step + 1 < AI_CHAT_STEPS && copilotNoteMissing(context, w.note)) { askedNote = true; copilotNudge(working, COPILOT_NOTE_NUDGE); continue; }
+          final = w; break; }
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         /* no words and no tool: asked once more for its answer (never a dead end) */
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
         /* asked back in plain words: once more, with its choices as presses */
         if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
         if (txt && !askedDraft && step + 1 < AI_CHAT_STEPS && copilotProposalMissing(context, txt)) { askedDraft = true; copilotNudge(working, COPILOT_PROPOSAL_NUDGE); continue; }
+        if (txt && !askedNote && step + 1 < AI_CHAT_STEPS && copilotNoteMissing(context, '')) { askedNote = true; copilotNudge(working, COPILOT_NOTE_NUDGE); continue; }
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
@@ -14598,6 +14608,12 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
           askedDraft = true;
           working.push({ role: 'user', content: toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: t === deliver ? 'Not shown: the JSON object the drafter asked for is missing.' : 'Not run.' }))
             .concat([{ type: 'text', text: COPILOT_PROPOSAL_NUDGE }]) });
+          continue;
+        }
+        if (!askedNote && step + 1 < AI_CHAT_STEPS && copilotNoteMissing(context, said.note)) {
+          askedNote = true;
+          working.push({ role: 'user', content: toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: t === deliver ? 'Not shown: the note the person asked for is missing.' : 'Not run.' }))
+            .concat([{ type: 'text', text: COPILOT_NOTE_NUDGE }]) });
           continue;
         }
         final = said; break;
@@ -14911,7 +14927,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false, askedDraft = false;
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false, askedDraft = false, askedNote = false;
   /* a question of judgement is weighed by the stronger model from its first step (copilotNeedsJudgement) */
   const judge = copilotNeedsJudgement(question) && copilotDeepDiffers();
   let turnCost = 0, wentDeep = false;
@@ -14943,12 +14959,15 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       working.push({ role: 'assistant', content });
       if (!toolUses.length) {
         const writ = copilotTextDeliver(content.filter(b => b.type === 'text').map(b => b.text).join(''));
-        if (writ) { final = normalizeDeliver(writ, cx); break; }
+        if (writ) { const w = normalizeDeliver(writ, cx);
+          if (!askedNote && step + 1 < AI_CHAT_STEPS && copilotNoteMissing(context, w.note)) { askedNote = true; copilotNudge(working, COPILOT_NOTE_NUDGE); continue; }
+          final = w; break; }
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
         /* asked back in plain words: once more, with its choices as presses */
         if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
         if (txt && !askedDraft && step + 1 < AI_CHAT_STEPS && copilotProposalMissing(context, txt)) { askedDraft = true; copilotNudge(working, COPILOT_PROPOSAL_NUDGE); continue; }
+        if (txt && !askedNote && step + 1 < AI_CHAT_STEPS && copilotNoteMissing(context, '')) { askedNote = true; copilotNudge(working, COPILOT_NOTE_NUDGE); continue; }
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
@@ -14959,6 +14978,12 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
           askedDraft = true;
           working.push({ role: 'user', content: toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: t === deliver ? 'Not shown: the JSON object the drafter asked for is missing.' : 'Not run.' }))
             .concat([{ type: 'text', text: COPILOT_PROPOSAL_NUDGE }]) });
+          continue;
+        }
+        if (!askedNote && step + 1 < AI_CHAT_STEPS && copilotNoteMissing(context, said.note)) {
+          askedNote = true;
+          working.push({ role: 'user', content: toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: t === deliver ? 'Not shown: the note the person asked for is missing.' : 'Not run.' }))
+            .concat([{ type: 'text', text: COPILOT_NOTE_NUDGE }]) });
           continue;
         }
         final = said; break;
