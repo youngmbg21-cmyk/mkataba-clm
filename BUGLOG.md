@@ -22312,3 +22312,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
 - 13 Nov 2026 — the "room for the answer" check is f1024, not f1020 as the 12 Nov line above says (main took f1020 to f1023 meanwhile).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
+- 13 Nov 2026 — the "room for the answer" check is f1025 (main took f1024 for "a tab change never flashes"; it was f1020, then f1024).

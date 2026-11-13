@@ -1,4 +1,4 @@
-/* f1024 — ROOM FOR THE ANSWER, AND ONE MORE GO WHEN IT RUNS OUT (owner, 12 Nov 2026)
+/* f1025 — ROOM FOR THE ANSWER, AND ONE MORE GO WHEN IT RUNS OUT (owner, 12 Nov 2026)
    ============================================================================
    Measured the same day: the stronger model thinks before it answers on some
    asks, unasked, and that thinking is spent from the step's own max_tokens, so
@@ -8,7 +8,7 @@
          and the whole answer is what the reader gets, with no "cut short";
      (3) cut twice, it stands as a fact (`truncated`) and is not asked a third time;
      (4) the browser-only path does the same.
-   Run: node --test test/f1024-room-for-the-answer.test.js */
+   Run: node --test test/f1025-room-for-the-answer.test.js */
 'use strict';
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -25,7 +25,7 @@ after(async () => { await h.stop(); await ai.stop(); });
 const ask = q => W.admin.json('/api/ai/chat', { method: 'POST', body: { messages: [{ role: 'user', content: q }], context: {} } });
 const rooms = () => ai.calls.map(c => c.body.max_tokens);
 
-describe('f1024 room for the answer', () => {
+describe('f1025 room for the answer', () => {
   test('(1) a question of judgement is given more room than a quick one', async () => {
     ai.reset(); ai.script(WHOLE);
     await ask('How many contracts do we have?');
