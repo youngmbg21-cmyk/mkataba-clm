@@ -20102,8 +20102,9 @@
   /* FROM SCRATCH: what goes in on the left, the paper assembling on the right */
   html.lg-new #na-root.na-one:not([data-paper="scratch"]) #na-scratch{display:none}
   html.lg-new #na-root.na-one[data-paper="scratch"] :is(#wz-pick,#na-card,#dr-read,#na-read,#na-theirs){display:none}
-  html.lg-new #na-root.na-one .na-scratch{display:grid;grid-template-columns:300px minmax(0,1fr);gap:0;padding:0;min-height:420px}
-  html.lg-new .nsc-left{padding:12px 20px 12px 0;border-right:1px solid var(--color-divider);overflow:auto}
+  html.lg-new #na-root.na-one .na-scratch{display:grid;grid-template-columns:312px minmax(0,1fr);gap:0;padding:0;min-height:420px}
+  /* 16PX INSIDE (owner, 13 Nov 2026: "too close to the edge of the screen"): the list stands 16px in on every side, in line with the tabs and the ask box above it */
+  html.lg-new .nsc-left{padding:var(--s-4);border-right:1px solid var(--color-divider);overflow:auto}
   html.lg-new .nsc-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:0 0 4px}
   html.lg-new .nsc-sum{font-size:12px;font-weight:var(--w-label);margin:0 0 10px}
   html.lg-new .nsc-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--color-divider);cursor:pointer}
