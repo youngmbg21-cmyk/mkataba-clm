@@ -14120,6 +14120,8 @@ const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { t
    and a heavier one left too little, so the wording stopped mid-word. So (1) a step on the deep tier has more
    room, and (2) ANY step the provider cut short is asked once more with the most room, before the cut is said.
    A second cut stands as a fact (`truncated`), exactly as before. The first go's fee is still counted (`cutCost`). */
+/* each caller's own call stays AWAITED where it is written: f203 finds every metered call by its `await`, and
+   checks there that it names a feature and a person */
 const AI_CHAT_ROOM = 4000, AI_CHAT_ROOM_DEEP = 8000, AI_CHAT_ROOM_AGAIN = 12000;
 const copilotStepRoom = deep => (deep ? AI_CHAT_ROOM_DEEP : AI_CHAT_ROOM);
 async function copilotStepCall(call, deep) {
@@ -14554,7 +14556,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
-      const resp = await copilotStepCall(room => anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: room, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) }), compared || judge);
+      const resp = await copilotStepCall(async room => await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: room, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) }), compared || judge);
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -14902,7 +14904,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          route comment above) — progress events flow, the answer arrives
          whole in `final`. To re-enable, pass
          onToken: text => { if (text) send('token', { text }); } */
-      const resp = await copilotStepCall(room => anthropicMessagesStream(key, (compared || judge) ? 'deep' : 'fast',
+      const resp = await copilotStepCall(async room => await anthropicMessagesStream(key, (compared || judge) ? 'deep' : 'fast',
         { max_tokens: room, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) },
         { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal }), compared || judge);

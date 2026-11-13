@@ -55,7 +55,7 @@ describe('f1024 room for the answer', () => {
   test('(4) both routes go through the one step call; the browser-only path asks once more too', () => {
     const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
     const SRV = strip(fs.readFileSync(path.join(__dirname, '..', 'server/server.js'), 'utf8'));
-    assert.equal(SRV.split('await copilotStepCall(room =>').length - 1, 2);
+    assert.equal(SRV.split('await copilotStepCall(async room => await anthropicMessages').length - 1, 2);
     assert.ok(!/max_tokens: 4000, system, tools: copilotToolsFor/.test(SRV), 'no chat step with a fixed room left');
     const AI = strip(fs.readFileSync(path.join(__dirname, '..', 'js/ai.js'), 'utf8'));
     assert.match(AI, /stop_reason==='max_tokens'\)\{ let d2=null; try\{ d2=await call\(working, step===AI_CHAT_STEPS-1, AI_LOCAL_ROOM_AGAIN\)/);
