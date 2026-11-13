@@ -392,7 +392,7 @@ NO PAGE-WIDE `:has` OVER THE PAPER: write the state on the element (`igDockMarks
 A DECISION REDRAWS ONLY ITS CLAUSE: `igPaperRefresh` tries `igPaperPatch` first (blocks stamped `_igSrc` by `igPaperStamp`; ONE builder `igRedBodyHtml`; any doubt = drawn whole); `pdRedRepaint` in ONE `igDockBatch`. f1010.
 NOTHING CHANGED, NOTHING WRITTEN: Jambo's panel is worked out whole, and written only if it differs from what stands or anything moved since (`igDockSame`, `igDockStamp`); only a middle the painter itself wrote (landing, talk); kept buttons take the build's act numbers; ANY DOUBT = WRITTEN WHOLE. The paper's line has ONE writer (`igStripPut`). f1024.
 WHAT LANDED THE SAME IS NOT DRAWN AGAIN: data landing after a page is drawn writes nothing unchanged, else the change (`scLandedRepaint`, `_apnSrc`, `rdRowsKey`, `_jhSrc`; f1040).
-MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (who wrote late, what moved).
+MEASURES, never tests (test/chromium/_audit, on GitHub): speed-measure, flash-measure (who wrote late, what moved), rebuild-measure (every door pressed: what was thrown away and built again, what flashed, what the reader lost).
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
 A slow answer lands on its own contract (`contractOnScreen`); sitting marks never reach the record (`dropSittingKeys`). Walls: `srvApprovalChainOpenOf`, `srvApprovalDecisionRefusal`; a link refuses another kind (`shareKindOf`); discard restores the sent version (`negoSentVersionOf`).
 ## THE PROCESS REVIEW'S FIXES (4 Oct)

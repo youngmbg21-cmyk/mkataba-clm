@@ -1,0 +1,36 @@
+# THE REBUILD MEASURE (owner, 13 Nov 2026, the flash survey: "a press that should
+# only change the words rebuilds the whole page instead").
+# A measuring instrument, not a test: it presses every door on every page and
+# says, for each press, whether a part of the screen was thrown away and built
+# again, whether it flashed, and what the reader lost (words typed, where a list
+# was scrolled to, the choice they had). It never fails a run. It runs only when
+# the measuring script itself (or this file) changes on a pushed branch, or when
+# somebody starts it by hand, so the ordinary checks are not slowed by it.
+name: rebuild measure
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'test/chromium/_audit/rebuild-measure.js'
+      - '.github/workflows/rebuild-measure.yml'
+
+concurrency:
+  group: rebuild-measure-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    name: rebuild measure
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx playwright-core install chromium
+      - run: node test/chromium/_audit/rebuild-measure.js
+        env:
+          HATI_AGENTS_AUTO: 'off'
