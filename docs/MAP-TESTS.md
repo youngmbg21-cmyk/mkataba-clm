@@ -316,6 +316,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f641, f798, my-notes, requests-and-notes-as-drawn verify.
 
 ## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
+- test/f1045-settings-the-legora-way.test.js — areas, the row, chips, pages at the foot, tones, both books (browser: test/chromium/settings-menu-verify.js, round7-new-look-verify 2).
 - ROUND 0 (9 Nov 2026): settings-menu-verify (new; red at the parent 4dc5b71, 5 of 24) — each left-menu item presses its row's own door (drawer, Jambo's agents) or lands on a doorless row, flipping nothing; the item marked and the menu kept on screen; People, Streams and Trail open as one white sheet.
 - CODE NAMES, THE BUG LOG'S BATCH 1 (26 Oct 2026): f940 (new; red at the parent 74ad016, 4 of 5) — search_contracts leaves a confidential deal out for a reader outside its list (still found by one on it); the WhatsApp text names the code and number; an email hides the party as a whole name only. With f704, f713, code-names-verify.
 - 22 Oct 2026: f695 (8) the workspace download keeps a private stream's files out of an unnamed admin's zip.
