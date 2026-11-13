@@ -18643,14 +18643,31 @@
   html.lg-new .pd2-fm-mid .pd-fm-h{margin:0 0 4px}
   html.lg-new .pd2-fm-mid .pd-fm-h p{margin:0;font-size:12.5px;color:var(--color-quiet)}
   html.lg-new .pd2-fm-mid .pd-fm-bar{display:none}
-  html.lg-new .pd2-fm-mid table.pd-og.is-form{width:100%;border-collapse:collapse;table-layout:fixed}
+  /* THE ROW AS DRAWN (owner, 13 Nov 2026; work order "the Fill in form, The Legora Way, drawn properly"): every row ONE shape,
+     the name with its sentence under it, the answer on one fixed width, a tick at the end; no box, no drag corner */
+  html.lg-new .pd2-fm-mid table.pd-og.is-form{display:block;width:100%}
+  html.lg-new .pd2-fm-mid .pd2-fm-list{display:block}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr{display:grid;grid-template-columns:minmax(0,1fr) 300px 16px;grid-template-rows:auto 1fr;column-gap:24px;align-items:start;padding:14px 0;border-top:1px solid var(--color-divider)}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr > td.pd-og-f{grid-column:1;grid-row:1;padding-top:7px}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr > td.pd-og-a{grid-column:1;grid-row:2;padding-left:15px;margin-top:2px}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr > td.pd-og-v{grid-column:2;grid-row:1 / span 2}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr::after{content:'\2713';grid-column:3;grid-row:1;padding-top:7px;font-size:13px;font-weight:var(--w-strong);color:var(--st-green-fg);visibility:hidden}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr:is(.is-has, :not([data-pd2-owed]))::after{visibility:visible}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr.pd2-fm-sep{display:block;padding:22px 0 8px;border-top:0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr.pd2-fm-sep::after{content:none}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr.pd2-fm-sep > td{display:block;padding:0}
   html.lg-new .pd2-fm-mid .pd-fm-gh th{padding:18px 0 6px;text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
   html.lg-new .pd2-fm-mid .pd-fm-gh th .is-amb{margin-left:10px;letter-spacing:0;text-transform:none;color:var(--st-amber-fg)}
-  html.lg-new .pd2-fm-mid tr.pd-fm-row > td{padding:10px 0;border-top:1px solid var(--color-divider);vertical-align:top;font-size:13.5px;line-height:1.45}
-  html.lg-new .pd2-fm-mid td.pd-og-f{width:190px;padding-right:18px}
+  html.lg-new .pd2-fm-mid tr.pd-fm-row > td{display:block;min-width:0;border:0;font-size:13.5px;line-height:20px}
+  html.lg-new .pd2-fm-mid td.pd-og-f{padding:0}
   html.lg-new .pd2-fm-mid td.pd-og-f b{font-weight:var(--w-label)}
-  html.lg-new .pd2-fm-mid td.pd-og-v{width:42%;padding-right:24px}
-  html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea){width:100%;max-width:260px;height:30px;box-sizing:border-box;border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px;font:inherit}
+  html.lg-new .pd2-fm-mid td.pd-og-v{padding:0}
+  html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea){width:100%;height:34px;box-sizing:border-box;border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px;font:inherit}
+  /* an address is one line as every other answer: no drag corner; a long one scrolls inside its line */
+  html.lg-new .pd2-fm-mid td.pd-og-v textarea{min-height:0;padding:7px 2px 6px;line-height:20px;resize:none;overflow:hidden;white-space:nowrap}
+  html.lg-new .pd2-fm-mid td.pd-og-v .dp-face{width:100%;height:34px;box-sizing:border-box;border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px;font:inherit}
+  /* still owed and empty: the line it is typed on is amber (the dot's own colour) until it holds an answer */
+  html.lg-new .pd2-fm-mid tr[data-pd2-owed]:not(.is-has) td.pd-og-v :is(input:not([type=checkbox]),select,textarea,.dp-face):not(:focus){border-bottom-color:var(--st-amber-dot)}
   html.lg-new .pd2-fm-mid tr.pd-fm-row.is-amb td.pd-og-v :is(input:not([type=checkbox]),select){color:var(--st-amber-fg)}
   html.lg-new .pd2-fm-mid td.pd-og-v input::placeholder{color:var(--color-quiet)}
   /* NO OUTLINES WHERE A PAPER'S DETAILS ARE TYPED (owner, 12 Nov 2026: "I never want to see outlines especially
@@ -18661,13 +18678,18 @@
   html.lg-new [data-pd-mid-kt] .pd-og-in{border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px}
   html.lg-new [data-pd-mid-kt] textarea.pd-og-in{padding:4px 2px}
   html.lg-new [data-pd-mid-kt] .pd-og-in:focus{border-bottom:2px solid var(--color-text)}
-  html.lg-new .pd2-fm-mid tr.pd2-fm-known > td{padding:10px 0;border-top:1px solid var(--color-divider);vertical-align:top;font-size:13.5px;line-height:1.45}
-  html.lg-new .pd2-fm-mid td.pd-og-a q{font-family:var(--font-doc);font-style:italic;font-size:12.5px}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-known > td{display:block;min-width:0;padding:0;border:0;font-size:13.5px;line-height:20px}
+  html.lg-new .pd2-fm-mid tr.pd2-fm-known > td.pd-og-v, html.lg-new .pd2-fm-mid tr.pd-fm-row > td.pd-og-v:has(> .pd-fm-done){padding-top:7px}
+  html.lg-new .pd2-fm-mid td.pd-og-a q{font-family:var(--font-doc);font-size:13.5px;color:var(--color-quiet)}
+  html.lg-new .pd2-fm-mid td.pd-og-a .pd-og-cl{margin:0;padding:0;border:0;background:none;font:inherit;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new .pd2-fm-mid .pd2-fm-gap{display:inline-block;min-width:56px;padding:0 6px;border-bottom:1px solid var(--st-amber-dot);background:var(--st-amber-bg);color:var(--color-text);text-align:center}
+  html.lg-new .pd2-fm-mid .pd2-fm-gap:empty::before{content:'\00a0'}
+  html.lg-new .pd2-fm-mid .pd2-fm-gap.is-has{border-bottom-color:var(--color-text);background:none}
   html.lg-new .pd2-fm-mid tr.pd2-fm-sg :is(.pd-og-ml:first-child, [data-pd-og-sg="ours"]){display:none}
   html.lg-new .pd2-fm-mid tr.pd2-fm-sg .pd-og-ml{display:none}
   html.lg-new .pd2-fm-mid .pd2-nw{white-space:nowrap}
   html.lg-new .pd2-fm-mid tr.pd2-fm-sg .pd-og-sb:has([data-pd-og-sg="ours"]){display:none}
-  html.lg-new .pd2-fm-mid .pd-og-sb{position:relative;max-width:260px}
+  html.lg-new .pd2-fm-mid .pd-og-sb{position:relative}
   html.lg-new .pd2-fm-mid .pd-og-sb > svg{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--color-quiet);pointer-events:none}
   html.lg-new .pd2-fm-mid tr.pd2-fm-sg td.pd-og-v [data-pd-og-sg="temail"]{margin-top:8px}
   html.lg-new .pd2-fm-mid td.pd-og-a{font-size:12.5px;color:var(--color-text)}
@@ -18685,10 +18707,11 @@
   html.lg-new .pd2-fm-mid .pd2-fm-chip[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
   html.lg-new .pd2-fm-mid .pd2-fm-chip > span{margin-left:4px;font-variant-numeric:tabular-nums}
   html.lg-new .pd2-fm-mid table[data-pd2-fm-show="need"] tr:not([data-pd2-owed]),
-  html.lg-new .pd2-fm-mid table[data-pd2-fm-show="paper"] tr:not([data-pd2-paper]){display:none}
-  html.lg-new .pd2-fm-mid tr[data-pd2-owed] td.pd-og-f b::before{content:"";display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--st-amber-dot);vertical-align:1px}
+  html.lg-new .pd2-fm-mid table[data-pd2-fm-show="rec"] tr:is([data-pd2-owed], .pd2-fm-sep){display:none}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr td.pd-og-f b::before{content:"";display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--st-green-dot);vertical-align:1px}
+  html.lg-new .pd2-fm-mid tr[data-pd2-owed] td.pd-og-f b::before{background:var(--st-amber-dot)}
   html.lg-new .pd2-fm-mid tr[data-pd2-owed].is-has td.pd-og-f b::before{background:var(--st-green-dot)}
-  html.lg-new .pd2-fm-mid .pd2-fm-list > tr:first-child > td{border-top:0}
+  html.lg-new .pd2-fm-mid .pd2-fm-list > tr:first-child{border-top:0}
   html.lg-new #modal-root [data-pd-mid^="form:"] .pd2-fm-m .pd2-amb{color:var(--st-amber-fg)}
   html.lg-new .pd2-fm-mid .pd2-fm-by{display:block;margin-top:6px;font-size:12px;color:var(--accent-ink)}
   html.lg-new #ig-dock .pd2-fmj{margin-top:4px}

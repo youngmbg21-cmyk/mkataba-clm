@@ -1,0 +1,326 @@
+<title>Fill in form options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: a switcher on top, ONE option at a time drawn full size on its real page (bar, middle, Jambo's panel), then the table and the pick.
+   One look only, as HaTi has one appearance: every colour is set here, none inherited. */
+:root{
+  --ground:#F5F5F7; --white:#ffffff; --ink:#1D1D1F; --quiet:#6E6E73; --faint:#8E8E93;
+  --line:#E6E6EA; --fill:#F0F0F3; --bar:#111113; --teal:#087363;
+  --amber-ink:#8A5300; --amber-fill:#FFF5DB; --amber-line:#E2B24C; --amber-dot:#D48A0C;
+  --ok:#1F7A4D; --ok-fill:#E7F3EC; --jambo:#7A4CC2;
+  --ui:'Geist','IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  --doc:'Source Serif 4',Georgia,'Times New Roman',serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 56px}
+.wrap{max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--doc);font-weight:600;font-size:30px;line-height:1.15;margin:0;text-wrap:balance}
+h2{font-size:18px;font-weight:600;margin:0}
+p{margin:0;max-width:68ch}
+.lede{color:var(--quiet)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+input:focus-visible,textarea:focus-visible{outline:none}
+
+/* the switcher */
+.sw{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);padding-block:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sw button{border:0;background:var(--fill);border-radius:999px;height:38px;padding:0 18px;font-weight:500;white-space:nowrap}
+.sw button[aria-pressed="true"]{background:var(--ink);color:var(--white)}
+.sw .say{color:var(--quiet);font-size:14px;margin-left:4px}
+
+/* the page as HaTi draws it */
+.scroll{overflow-x:auto;border-radius:10px;border:1px solid var(--line);background:var(--white)}
+.page{min-width:1240px}
+.bar{background:var(--bar);color:#fff;height:58px;display:flex;align-items:center;gap:22px;padding:0 24px}
+.bar b{font-family:var(--doc);font-size:21px;font-weight:600}
+.bar span{font-size:15px}
+.bar i{margin-left:auto;font-style:normal;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center;font-size:12px;font-weight:600}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 372px;height:720px}
+.mid{display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--line)}
+.mid-body{flex:1;overflow-y:auto;padding:22px 40px 28px}
+.back{color:var(--quiet);font-size:14px;margin-bottom:14px}
+.mid h3{font-family:var(--doc);font-weight:600;font-size:27px;margin:0 0 4px}
+.under{color:var(--quiet);font-size:14px}
+.foot{border-top:1px solid var(--line);height:66px;display:flex;align-items:center;gap:10px;padding:0 40px;flex:none}
+.foot .say{color:var(--quiet);font-size:14px;margin-right:auto}
+.btn{border:0;border-radius:999px;height:38px;padding:0 20px;font-weight:500;background:var(--fill);white-space:nowrap}
+.btn.k{background:var(--ink);color:#fff}
+.amb{color:var(--amber-ink)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Jambo's panel: not the part under design, drawn so the page is true to size */
+.side{display:flex;flex-direction:column;min-width:0}
+.tabs{display:flex;gap:6px;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}
+.tabs span{padding:6px 12px;border-radius:999px;white-space:nowrap}
+.tabs span.on{background:var(--fill);font-weight:500}
+.tabs em{font-style:normal;color:var(--teal);margin-left:4px}
+.side-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;font-size:14px;overflow:hidden}
+.side-body .stage{color:var(--quiet)}
+.jb{display:grid;grid-template-columns:14px 1fr;gap:10px}
+.jb::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--jambo);margin-top:4px}
+.jb small{display:block;font-size:11px;letter-spacing:.08em;color:var(--quiet);font-weight:600}
+.ask{margin:0 16px 16px;border:1.5px solid var(--teal);border-radius:22px;height:46px;display:flex;align-items:center;padding:0 16px;color:var(--quiet);font-size:14px}
+
+/* shared: where a detail is typed. No box, no ring: an underline that darkens. */
+.in{font:inherit;color:var(--ink);background:transparent;border:0;border-bottom:1.5px solid var(--amber-line);border-radius:0;width:100%;height:36px;padding:0 2px;min-width:0}
+.in::placeholder{color:var(--faint)}
+.in:focus{border-bottom-color:var(--ink)}
+.in.has{border-bottom-color:var(--line)}
+.unit{color:var(--quiet);font-size:14px;white-space:nowrap}
+
+/* ---------- THE SAP WAY ---------- */
+.sap-head{display:flex;align-items:flex-end;gap:24px;margin-bottom:14px}
+.sap-prog{margin-left:auto;text-align:right;font-size:14px;color:var(--quiet);min-width:190px}
+.meter{height:4px;background:var(--fill);border-radius:2px;margin-top:6px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ink);width:0}
+.sap-nav{display:flex;gap:22px;border-bottom:1px solid var(--line);margin:0 -40px 6px;padding:0 40px;position:sticky;top:-22px;background:var(--white);z-index:1}
+.sap-nav span{padding:10px 0;font-size:14px;color:var(--quiet);white-space:nowrap;border-bottom:2px solid transparent}
+.sap-nav span.on{color:var(--ink);font-weight:500;border-bottom-color:var(--ink)}
+.sap-nav em{font-style:normal;color:var(--amber-ink);margin-left:5px}
+.sap-sec{padding:20px 0 22px;border-bottom:1px solid var(--line)}
+.sap-sec:last-child{border-bottom:0}
+.sap-sec h4{margin:0 0 14px;font-size:15px;font-weight:600;display:flex;gap:10px;align-items:baseline}
+.sap-sec h4 small{font-weight:400;color:var(--quiet);font-size:13px}
+.sap-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 48px}
+.sap-f label{display:block;font-size:13px;color:var(--quiet);margin-bottom:5px}
+.sap-f label b{color:var(--amber-ink);font-weight:500;margin-left:3px}
+.sap-cell{display:flex;align-items:center;gap:8px;background:var(--amber-fill);border-radius:6px 6px 0 0;padding:0 10px;height:40px}
+.sap-cell.has{background:var(--fill)}
+.sap-cell .in{height:40px}
+.sap-f .wide{grid-column:1/-1}
+.sap-read{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 48px}
+.sap-read dt{font-size:13px;color:var(--quiet)}
+.sap-read dd{margin:2px 0 0}
+
+/* ---------- THE LEGORA WAY ---------- */
+.lg-chips{display:flex;gap:8px;margin:18px 0 6px}
+.lg-chips span{background:var(--fill);border-radius:999px;height:32px;padding:0 14px;display:flex;align-items:center;gap:8px;font-size:14px;white-space:nowrap}
+.lg-chips span.on{background:var(--ink);color:#fff}
+.lg-row{display:grid;grid-template-columns:10px minmax(0,1fr) 300px 22px;column-gap:16px;align-items:start;padding:15px 0;border-bottom:1px solid var(--line)}
+.lg-dot{width:8px;height:8px;border-radius:50%;background:var(--amber-dot);margin-top:8px}
+.lg-row.has .lg-dot{background:var(--ok)}
+.lg-name{font-weight:500}
+.lg-q{font-family:var(--doc);font-size:14.5px;color:var(--quiet);margin-top:3px}
+.lg-q b{font-family:var(--ui);font-weight:500;font-size:12.5px;color:var(--ink);margin-right:8px;white-space:nowrap}
+.gap{display:inline-block;min-width:64px;border-bottom:1.5px solid var(--amber-line);background:var(--amber-fill);color:var(--ink);text-align:center;padding:0 6px;font-style:normal}
+.gap.has{background:transparent;border-bottom-color:var(--ink)}
+.lg-ans{display:flex;align-items:center;gap:8px}
+.lg-tick{color:var(--ok);font-weight:600;visibility:hidden;margin-top:6px}
+.lg-row.has .lg-tick{visibility:visible}
+.lg-val{height:36px;display:flex;align-items:center}
+.lg-sep{font-size:13px;color:var(--quiet);padding:22px 0 6px;border-bottom:1px solid var(--line)}
+
+/* ---------- ONE AT A TIME ---------- */
+.one{display:grid;grid-template-columns:268px minmax(0,1fr);height:100%}
+.one-rail{border-right:1px solid var(--line);overflow-y:auto;padding:18px 0}
+.one-rail h5{margin:14px 22px 4px;font-size:12px;font-weight:500;color:var(--quiet)}
+.one-rail h5:first-child{margin-top:0}
+.one-rail button{display:grid;grid-template-columns:16px 1fr;gap:8px;width:100%;text-align:left;border:0;background:transparent;padding:6px 22px;font-size:14px;align-items:baseline}
+.one-rail button::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--amber-dot);justify-self:center;transform:translateY(-1px)}
+.one-rail button.has::before{content:"✓";background:none;width:auto;height:auto;color:var(--ok);font-size:12px;font-weight:600}
+.one-rail button.on{background:var(--fill);font-weight:500}
+.one-main{padding:26px 56px;overflow-y:auto;display:flex;flex-direction:column}
+.one-top{display:flex;align-items:center;gap:16px;font-size:14px;color:var(--quiet)}
+.one-top .meter{flex:1;margin:0}
+.one-card{margin:auto 0;max-width:640px;display:flex;flex-direction:column;gap:18px;padding:28px 0}
+.one-sec{font-size:13px;color:var(--quiet)}
+.one-card h4{font-family:var(--doc);font-weight:600;font-size:30px;line-height:1.2;margin:0}
+.slip{font-family:var(--doc);font-size:17px;line-height:1.6;border-left:2px solid var(--line);padding:2px 0 2px 18px;color:var(--ink)}
+.slip small{display:block;font-family:var(--ui);font-size:12.5px;color:var(--quiet);margin-bottom:2px}
+.one-in{display:flex;align-items:center;gap:10px}
+.one-in .in{font-size:20px;height:48px}
+.one-acts{display:flex;align-items:center;gap:10px}
+.one-acts .lnk{background:none;border:0;color:var(--teal);padding:0 6px}
+.one-acts kbd{font:inherit;font-size:12px;opacity:.7;margin-left:6px}
+
+/* the notes under the drawing */
+.card{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14.5px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px 10px 0;border-bottom:1px solid var(--line)}
+th{font-weight:500;color:var(--quiet);font-size:13px}
+td:first-child{font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:72ch}
+.pick{border-color:var(--ink)}
+.note{font-size:13.5px;color:var(--quiet)}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>Fill in the contract: three ways it could look</h1>
+    <p class="lede">The same page, the same 17 missing details on the Ventura Capital lease, drawn three ways. Press a name to see it full size. You can type in every one of them.</p>
+  </header>
+
+  <div class="sw" role="group" aria-label="Choose an option">
+    <button type="button" data-opt="sap" aria-pressed="false">The SAP Way</button>
+    <button type="button" data-opt="legora" aria-pressed="true">The Legora Way</button>
+    <button type="button" data-opt="one" aria-pressed="false">One at a time</button>
+    <span class="say" id="sw-say"></span>
+  </div>
+
+  <div class="scroll">
+    <div class="page">
+      <div class="bar"><span>‹</span><b>HaTi</b><span>Ventura Capital · MK-469</span><i>YM</i></div>
+      <div class="cols">
+        <div class="mid" id="mid"></div>
+        <aside class="side">
+          <div class="tabs"><span class="on">Dossier<em>21</em></span><span>Clauses<em>2</em></span><span>Redlines<em>6</em></span></div>
+          <div class="side-body">
+            <div class="stage">Arrived 23 Oct · Read · <span class="amb">Fill, <span data-left>17</span> to do</span> · <span class="amb">Negotiate, 3 to do</span> · <span class="amb">Sign, 1 to do</span></div>
+            <div class="jb"><div><small>JAMBO</small><span data-left>17</span> details are still missing. Tell me them in one sentence and I will put each in its place for you to check.</div></div>
+          </div>
+          <div class="ask">Tell Jambo the missing details…</div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <section class="card">
+    <h2>What is wrong with the page today</h2>
+    <ul>
+      <li>Every label is a machine name in capitals ("Landlord Principal Place Of Business Address") where a person would say "Landlord's address".</li>
+      <li>The right column shouts the same heading on every row and never shows the sentence the blank sits in, so it tells you nothing.</li>
+      <li>The boxes are different kinds and heights, so the rows do not line up, and there is a wide empty gap between each name and its box.</li>
+      <li>Seventeen rows run in one flat list with nothing to break them up, so you cannot see how far you are.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>The three, side by side</h2>
+    <div class="tbl"><table>
+      <tr><th>Name</th><th>The idea</th><th>When it wins</th><th>What it costs</th></tr>
+      <tr><td>The SAP Way</td><td>A proper form. The details sit in named sections (Parties, Premises, Rent…), two across, name over box, with a tab line to jump between sections.</td><td>When there are many details and you know the answers. Fewest presses, least scrolling, and you always see which section is done.</td><td>It does not show the contract's own words, so you trust the name. Its tinted boxes bend the earlier "no box where you type" ruling. It brings back the section heads you removed on 12 Nov.</td></tr>
+      <tr><td>The Legora Way</td><td>One quiet list, nothing boxed. Each row shows the detail's plain name, the § and the real sentence it sits in, and you type on the same row. What you type appears inside the sentence.</td><td>When you want to be sure what each blank means before you fill it. You read the sentence, you answer it.</td><td>The longest page of the three. It only works if HaTi can lift the sentence around every blank; where it cannot, the row has just a name.</td></tr>
+      <tr><td>One at a time</td><td>One question on the screen, large, with its sentence. Enter moves to the next. A list on the left shows all 17 and which are done.</td><td>For someone new, or a long contract where a full page of blanks feels heavy. Nothing to scan, hard to get lost.</td><td>Slowest when you already know every answer. The biggest build of the three, and it is close to what the paper already does when you press Enter on a blank.</td></tr>
+    </table></div>
+  </section>
+
+  <section class="card pick">
+    <h2>My recommendation: The Legora Way</h2>
+    <p>It is what you picked for this page on 12 November, and the idea is still right. What was built fell short of it: the names were left as machine names, and the sentence from the paper never arrived, only a heading in capitals. Drawn properly, each row tells you exactly what you are filling in, which the paper alone does not do in one place.</p>
+    <p>If you would rather finish 17 details fast than read 17 sentences, pick The SAP Way.</p>
+    <p class="note">The contract sentences in these drawings are examples I wrote to show the idea. I have not yet checked that HaTi can lift the real sentence around every blank on every contract. That is the first thing I would check before building The Legora Way or One at a time, and I would tell you the result before going further.</p>
+  </section>
+</div>
+
+<script>
+const SECS = [
+  ['p','Parties','Opening'],['a1','Premises and lease term','Article I'],['a2','Rent and deposit','Article II'],
+  ['a3','Use and insurance','Article III'],['a4','Default and disputes','Articles IV–V'],['sg','Signing','Signature page']
+];
+const F = [
+  {id:'ll_addr',s:'p',n:"Landlord's address",ref:'Opening',ph:'Street, postcode, town',q:['Ventura Capital, with its principal place of business at ',' (the “Landlord”)']},
+  {id:'tn_name',s:'p',n:"Tenant's name",ref:'Opening',ph:'Company name',q:['and ',' (the “Tenant”)']},
+  {id:'tn_addr',s:'p',n:"Tenant's address",ref:'Opening',ph:'Street, postcode, town',q:['the Tenant, with its principal place of business at ','']},
+  {id:'prem',s:'a1',n:'Address of the premises',ref:'§ 1.1',ph:'Street, postcode, town',q:['Landlord leases to Tenant the premises located at ',' (the “Premises”)']},
+  {id:'sqft',s:'a1',n:'Rentable area',ref:'§ 1.1',ph:'0',u:'sq ft',q:['comprising approximately ',' rentable square feet']},
+  {id:'start',s:'a1',n:'Start date',ref:'§ 1.2',ph:'e.g. 1 March 2027',q:['The term begins on ',' (the “Commencement Date”)']},
+  {id:'end',s:'a1',n:'End date',ref:'§ 1.2',ph:'e.g. 28 February 2032',q:['and ends on ',', unless ended earlier under this Lease']},
+  {id:'term',s:'a1',n:'Length of the lease',ref:'§ 1.3',ph:'0',u:'years',q:['for a primary term of ',' years']},
+  {id:'rent',s:'a2',n:'Monthly rent',ref:'§ 2.1',ph:'0',u:'USD a month',q:['Tenant shall pay base rent of ',' per month, in advance']},
+  {id:'dep',s:'a2',n:'Security deposit',ref:'§ 2.3',ph:'0',u:'USD',q:['Tenant shall deposit ',' as security for its obligations']},
+  {id:'use',s:'a3',n:'What the premises may be used for',ref:'§ 3.1',ph:'e.g. general office use',q:['The Premises shall be used solely for ',' and for no other purpose']},
+  {id:'ins',s:'a3',n:'Insurance cover, each claim',ref:'§ 3.4',ph:'0',u:'USD',q:['liability insurance of not less than ',' per occurrence']},
+  {id:'cure',s:'a4',n:'Time to fix a breach',ref:'§ 4.1',ph:'0',u:'days',q:['is not cured within ',' days after written notice']},
+  {id:'law',s:'a4',n:'Governing law',ref:'§ 5.1',ph:'e.g. State of New York',q:['This Lease is governed by the laws of ','']},
+  {id:'nego',s:'a4',n:'Time to talk before arbitration',ref:'§ 5.2',ph:'0',u:'days',q:['the parties shall negotiate in good faith for ',' days']},
+  {id:'venue',s:'a4',n:'Where arbitration is held',ref:'§ 5.3',ph:'City',q:['by arbitration seated in ','']},
+  {id:'signer',s:'sg',n:'Who signs for the tenant',ref:'Signature page',ph:'Name',q:['For the Tenant: ','']}
+];
+const KNOWN = [
+  ['Landlord','Ventura Capital','Opening','“between Ventura Capital…”'],
+  ['Kind of agreement','Commercial lease','Title','“Commercial Lease Agreement”'],
+  ['Currency','US dollars','§ 2.1','“payable in United States dollars”'],
+  ['Value stream','Property','','Filed by you'],
+  ['Who signs for us','You','','On the signing route']
+];
+const SAY = {
+  sap:'A grouped form, two across.',
+  legora:'One quiet list; each row shows the sentence it fills.',
+  one:'One question on the screen; Enter goes to the next.'
+};
+const vals = {}; let opt = 'legora', at = 0;
+const E = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const has = f => !!(vals[f.id] || '').trim();
+const done = () => F.filter(has).length;
+const input = (f, extra) => `<input class="in${has(f) ? ' has' : ''}" id="${opt}-${f.id}" data-f="${f.id}" value="${E(vals[f.id] || '')}" placeholder="${E(f.ph)}" aria-label="${E(f.n)}" autocomplete="off"${extra || ''}>`;
+const quote = f => `${E(f.q[0])}<span class="gap${has(f) ? ' has' : ''}" data-gap="${f.id}">${has(f) ? E(vals[f.id]) : '&nbsp;'}</span>${E(f.q[1])}`;
+const head = () => `<div class="back">‹ Paper</div>`;
+const foot = () => `<div class="foot"><span class="say"><span class="num" data-done>${done()}</span> of 17 filled · nothing is saved until Save</span><button type="button" class="btn k">Save</button><button type="button" class="btn">Discard</button></div>`;
+
+function sap(){
+  const left = k => F.filter(f => f.s === k && !has(f)).length;
+  return `<div class="mid-body">${head()}
+    <div class="sap-head"><div><h3>Fill in the contract</h3><div class="under">Commercial Lease Agreement · Ventura Capital · MK-469</div></div>
+      <div class="sap-prog"><span class="num" data-done>${done()}</span> of 17 filled<div class="meter"><i data-bar></i></div></div></div>
+    <div class="sap-nav">${SECS.map(([k, n], i) => `<span class="${i ? '' : 'on'}">${E(n)}<em class="num" data-sec="${k}">${left(k) || ''}</em></span>`).join('')}<span>On record</span></div>
+    ${SECS.map(([k, n, r]) => `<div class="sap-sec"><h4>${E(n)} <small>${E(r)}</small></h4><div class="sap-grid">${F.filter(f => f.s === k).map(f =>
+      `<div class="sap-f"><label for="sap-${f.id}">${E(f.n)}<b>needed</b></label><div class="sap-cell${has(f) ? ' has' : ''}" data-cell="${f.id}">${input(f)}${f.u ? `<span class="unit">${E(f.u)}</span>` : ''}</div></div>`).join('')}</div></div>`).join('')}
+    <div class="sap-sec"><h4>Already on record <small>5 details, nothing to do</small></h4><dl class="sap-read">${KNOWN.map(k => `<div><dt>${E(k[0])}</dt><dd>${E(k[1])}</dd></div>`).join('')}</dl></div>
+  </div>${foot()}`;
+}
+function legora(){
+  return `<div class="mid-body">${head()}<h3>Fill in the contract</h3>
+    <div class="under">Commercial Lease Agreement · Ventura Capital · <span class="amb"><span class="num" data-left>17</span> needed</span> · 5 on record</div>
+    <div class="lg-chips"><span class="on">All <b class="num">22</b></span><span>Needed <b class="num" data-left>17</b></span><span>On record <b class="num">5</b></span></div>
+    ${F.map(f => `<div class="lg-row${has(f) ? ' has' : ''}" data-row="${f.id}"><i class="lg-dot"></i>
+      <div><div class="lg-name">${E(f.n)}</div><div class="lg-q"><b>${E(f.ref)}</b>“…${quote(f)}…”</div></div>
+      <div class="lg-ans">${input(f)}${f.u ? `<span class="unit">${E(f.u)}</span>` : ''}</div><span class="lg-tick">✓</span></div>`).join('')}
+    <div class="lg-sep">On record, nothing to do</div>
+    ${KNOWN.map(k => `<div class="lg-row has"><i class="lg-dot"></i><div><div class="lg-name">${E(k[0])}</div><div class="lg-q">${k[2] ? `<b>${E(k[2])}</b>` : ''}${E(k[3])}</div></div><div class="lg-val">${E(k[1])}</div><span class="lg-tick">✓</span></div>`).join('')}
+  </div>${foot()}`;
+}
+function one(){
+  const f = F[at], sec = SECS.find(s => s[0] === f.s);
+  return `<div class="one" style="flex:1;min-height:0">
+    <nav class="one-rail" aria-label="All details">${SECS.map(([k, n]) => `<h5>${E(n)}</h5>${F.filter(x => x.s === k).map(x =>
+      `<button type="button" data-go="${F.indexOf(x)}" class="${has(x) ? 'has ' : ''}${x === f ? 'on' : ''}">${E(x.n)}</button>`).join('')}`).join('')}</nav>
+    <div class="one-main"><div class="back">‹ Paper · Fill in the contract</div>
+      <div class="one-top"><span class="num">${at + 1} of 17</span><div class="meter"><i data-bar></i></div><span><span class="num" data-done>${done()}</span> filled</span></div>
+      <div class="one-card"><div class="one-sec">${E(sec[1])} · ${E(f.ref)}</div><h4>${E(f.n)}</h4>
+        <div class="slip"><small>On the paper</small>“…${quote(f)}…”</div>
+        <div class="one-in">${input(f)}${f.u ? `<span class="unit">${E(f.u)}</span>` : ''}</div>
+        <div class="one-acts"><button type="button" class="btn k" data-step="1">${at === 16 ? 'Finish' : 'Next'}<kbd>Enter ↵</kbd></button><button type="button" class="btn" data-step="1">Skip for now</button>${at ? '<button type="button" class="lnk" data-step="-1">‹ Previous</button>' : ''}</div>
+      </div></div></div>${foot()}`;
+}
+function sync(){
+  const d = done();
+  document.querySelectorAll('[data-done]').forEach(e => e.textContent = d);
+  document.querySelectorAll('[data-left]').forEach(e => e.textContent = 17 - d);
+  document.querySelectorAll('[data-bar]').forEach(e => e.style.width = (d / 17 * 100) + '%');
+  SECS.forEach(([k]) => { const e = document.querySelector(`[data-sec="${k}"]`); if (e) e.textContent = F.filter(f => f.s === k && !has(f)).length || ''; });
+}
+function paint(focus){
+  document.getElementById('mid').innerHTML = ({sap, legora, one})[opt]();
+  document.querySelectorAll('.sw button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.opt === opt)));
+  document.getElementById('sw-say').textContent = SAY[opt];
+  sync();
+  if (focus && opt === 'one'){ const i = document.querySelector('#mid .one-in .in'); if (i) i.focus({preventScroll:true}); }
+}
+document.addEventListener('click', e => {
+  const o = e.target.closest('[data-opt]'); if (o){ opt = o.dataset.opt; return paint(); }
+  const g = e.target.closest('[data-go]'); if (g){ at = +g.dataset.go; return paint(true); }
+  const s = e.target.closest('[data-step]'); if (s){ at = Math.max(0, Math.min(16, at + (+s.dataset.step))); return paint(true); }
+});
+document.addEventListener('input', e => {
+  const i = e.target.closest('[data-f]'); if (!i) return;
+  const f = F.find(x => x.id === i.dataset.f); vals[f.id] = i.value; const h = has(f);
+  i.classList.toggle('has', h);
+  const gap = document.querySelector(`[data-gap="${f.id}"]`); if (gap){ gap.classList.toggle('has', h); gap.textContent = h ? i.value : ' '; }
+  const row = document.querySelector(`[data-row="${f.id}"]`); if (row) row.classList.toggle('has', h);
+  const cell = document.querySelector(`[data-cell="${f.id}"]`); if (cell) cell.classList.toggle('has', h);
+  const rail = document.querySelector(`[data-go="${F.indexOf(f)}"]`); if (rail) rail.classList.toggle('has', h);
+  sync();
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.closest('[data-f]')) return;
+  e.preventDefault();
+  if (opt === 'one'){ if (at < 16){ at++; paint(true); } return; }
+  const all = [...document.querySelectorAll('#mid [data-f]')], n = all[all.indexOf(e.target) + 1]; if (n) n.focus();
+});
+paint();
+</script>
