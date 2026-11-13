@@ -5369,7 +5369,7 @@ if(typeof document!=='undefined' && document.addEventListener) document.addEvent
   window._shNlWrite=String(c.id);
   const who=String(fval('sh-name')||'').trim().split(/\s+/)[0]||String(c.counterparty||'').split(/\s+/)[0];
   /* f1041: straight to Jambo — never the typing reader, which heard "send" and opened the send screen */
-  if(typeof window.igAskBrain==='function') igAskBrain(i18t('sh_nl_write_q', { who }));
+  if(typeof window.igAskBrain==='function') igAskBrain(i18t('sh_nl_write_q', { who }), { note:true });
   else if(typeof intelAsk==='function') intelAsk(i18t('sh_nl_write_q', { who }), { typed:true });
 });
 /* ============================================================
