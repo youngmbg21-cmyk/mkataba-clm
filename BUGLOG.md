@@ -22403,3 +22403,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - MY READING (not measured): the check reads the cards straight after waiting for the count to say 24, and a card can still be mid-paint (drawn without its number yet). A guarded wait on every card having its `.igw-ref` would answer it; that is a change to the check, not to the product.
 - NOT RE-RUN: GitHub refused this session's re-run of the job (403). The owner chose "Merge anyway". Watch main's nightly run: a second failure here makes it a real fault.
 - (13 Nov 2026, f1038) Fixed: Home's Jambo panel beside the send screen dropped Jambo's note entirely (only the ✦ window drew it); the note is now a draft there, steered and put in by a press.
+- (13 Nov 2026, f1041) Fixed: "Write it for me" was read as the act Send and never reached Jambo; Shorter/Warmer/Firmer sent no draft to change; the model's own words showed over a draft.

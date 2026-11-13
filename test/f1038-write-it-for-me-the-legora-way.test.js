@@ -74,7 +74,8 @@ describe('f1038 — the note is drafted in Jambo\'s panel and steered there', ()
     assert.match(H, /shareNoteFill\(d\.id, d\.words\)/, 'Put in the note: the box, through the screen\'s one filler');
     assert.match(H, /d\.put=true; d\.prev=prev;/);
     assert.match(H, /ta\.value=d\.prev\|\|''; ta\.dispatchEvent\(new Event\('input', \{ bubbles:true \}\)\)/, 'Undo puts back what was there');
-    assert.match(fnBody(IG, 'igNoteAsk'), /window\._shNlWrite=String\(d\.id\);\n\s+intelAsk\(words, \{ typed:true \}\);/, 'a steer is a press through the one box');
+    /* RE-POINTED 13 Nov 2026 (f1041): a steer goes straight to Jambo, never the typing reader */
+    assert.match(fnBody(IG, 'igNoteAsk'), /return igAskBrain\(i18t\('sh_nl_q_with', \{ ask:words, note:d\.words \}\)\);/, 'a steer is a press straight to Jambo, carrying the draft');
     assert.doesNotMatch(fnBody(AI, 'aiSendNoteHtml').split('\nif(typeof document')[0], /shareNoteFill/, 'nothing writes the box on its own any more');
   });
 
