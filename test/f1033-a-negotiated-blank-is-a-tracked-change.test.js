@@ -31,7 +31,9 @@ test('f1033 (2) a clause with a change open on it offers no blank, read RAW', ()
   assert.match(a, /x\.status === 'pending' \|\| x\.status === 'countered'/);
   assert.doesNotMatch(a, /negoInit|negoChanges|negoClauseList/);
   const m = region(P, 'pd2NegoMark');
-  assert.match(m, /argued\.has\(String\(id\)\) \|\| sec\.classList\.contains\('is-changed'\)\) return;/);
+  /* RE-POINTED 13 Nov 2026 (f1036): the front part is a region too; a region with a change open, or drawn changed, is skipped */
+  assert.match(m, /changed: sec\.classList\.contains\('is-changed'\)/);
+  assert.match(m, /argued\.has\(String\(id\)\) \|\| changed\) return;/);
   assert.doesNotMatch(region(P, 'pd2NegoRead'), /negoInit|negoClauseNowById|pd2NegoMark/, 'reading paints and writes nothing');
 });
 test('f1033 (3) the fill walk takes the negotiated paper\'s marks and nothing else of it', () => {
@@ -71,6 +73,7 @@ test('f1033 (6) both books, and the Handbook says it', () => {
   for (const k of ['pd2_nb_note', 'pd2_nb_blank', 'pd2_nb_from_form', 'pd2_nb_moved', 'pd2_nb_saved_one', 'pd2_nb_saved_other', 'pd2_nb_refused'])
     assert.equal((L.match(new RegExp('\\n\\s+' + k + ': ', 'g')) || []).length, 2, k);
   const H = read('js/handbook.js');
-  assert.match(H, /On a contract being negotiated, its blanks are typed on the paper too, except in a clause with a change still open on it\./);
+  /* RE-POINTED 13 Nov 2026 (f1036): the parties' details at the top are typed there too */
+  assert.match(H, /On a contract being negotiated, its blanks are typed on the paper too, the parties\\' names and addresses at the top included, except where a change is still open\./);
   assert.match(H, /På ett avtal som förhandlas skrivs luckorna också på pappret/);
 });

@@ -37770,3 +37770,14 @@ Built: tests.yml's `pull_request` gains `paths-ignore: ['BUGLOG.md', 'docs/*.md'
 - docs/design/tokens.json is read by the tokens test and stays checked (a single `*` does not reach into docs/design/).
 - The plans, work orders, audits and MAP files in docs/ are only named in comments.
 No ruleset or required check holds a merge on this repository: #697 merged with its checks still running, and the rulesets list is empty. So a skipped run leaves nothing waiting. The night's run and Run workflow are untouched. f1034 is red at the parent.
+
+## THE DETAILS TAB — THE FRONT PART IS FILLED ON A NEGOTIATED PAPER TOO (13 Nov 2026)
+The owner, with a screenshot of MK-469 (a company-standard lease in negotiation): "the top part brings me to the other middle page to fill in while the below part allows me to fill on paper. what is the difference?"
+Cause: on a negotiated paper the fill walk is f1033's (`pd2NegoMark` → `pd2NegoRead`). It walked only `section.rl-clause[data-clause]`. The parties' names and addresses above the first heading are drawn as the paper's head plus `.rl-recital`, outside every section, so they were never marked. The panel then named them "no place on the paper", and a press fell through to the form.
+Offered three ways, in plain words:
+1. the top part as a section, a tracked change like Article I;
+2. typed in with no tracked change;
+3. keep the form and say why.
+The owner picked "Option 1".
+Built: that region is already the reserved front section (CLAUSE_FRONT_ID, 'front'), addressable by the change model and drawn with `data-clause` on its head. `pd2NegoMark` now walks it as one region (the head plus its `.rl-recital`), unless a change is open there or it is drawn changed. `pd2NegoSeq` takes several roots and keeps one count across them, which matches the stored front body's order (title, then the words). Save files through the same `pd2NegoFile` → `negoFileFilledClause(c,'front',…)`.
+Tried by hand on a lease with two front fields: both became lines, and Save filed one pending change on 'front' carrying both answers. Noticed and logged, not fixed: a false "Nothing changed, so nothing was saved" toast beside the filed one, on main too. f1036 is red at the parent. f1033 (2) and (6) were re-pointed. Handbook 2.3 says it in both books.

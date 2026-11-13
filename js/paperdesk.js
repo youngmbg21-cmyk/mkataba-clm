@@ -8698,8 +8698,10 @@ function pd2NegoSeq(root){
   const out = [], seen = new Map(), FIELD = '.hati-field[data-field-key]';
   const occ = sig => { const n = seen.get(sig) || 0; seen.set(sig, n + 1); return n; };
   const els = [];
-  try {
-    const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode(n){
+  /* THE FRONT PART IS TWO PIECES ON THE PAPER (the head and the parties' words under it): walked in order, one count */
+  const roots = Array.isArray(root) ? root.filter(Boolean) : [root];
+  try { for (const r of roots){
+    const w = document.createTreeWalker(r, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, { acceptNode(n){
       if (n.nodeType === 1){
         if (n.matches('h4.rl-clause-h, .rl-clause-top > h4, [data-pd-mark], .rl-gutter, .rl-hang-n, button, input, textarea, select, script, style')) return NodeFilter.FILTER_REJECT;
         if (n.matches(FIELD) || n.matches('[' + PD2_NB_ATTR + ']')) return NodeFilter.FILTER_ACCEPT;
@@ -8707,7 +8709,7 @@ function pd2NegoSeq(root){
       const pa = n.parentElement; if (!pa || pa.closest(FIELD) || pa.closest('[' + PD2_NB_ATTR + ']')) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT; } });
     let n; while ((n = w.nextNode())) els.push(n);
-  } catch (_){ return []; }
+  } } catch (_){ return []; }
   for (const n of els){
     if (n.nodeType === 1){
       /* a mark this file already made stands for what it was made from */
@@ -8726,9 +8728,16 @@ function pd2NegoMark(c){
   if (!pd2NegoFillOn(c)) return 0;
   const cv = document.getElementById('ig-canvas'); if (!cv) return 0;
   const argued = pd2NegoArgued(c); let made = 0;
-  cv.querySelectorAll('section.rl-clause[data-clause]').forEach(sec => {
-    const id = sec.getAttribute('data-clause'); if (!id || argued.has(String(id)) || sec.classList.contains('is-changed')) return;
-    const seq = pd2NegoSeq(sec);
+  /* THE FRONT PART TOO (owner, 13 Nov 2026, option 1: "the top part brings me to the other middle page"): the parties'
+     names and addresses above the first heading are the reserved front section (CLAUSE_FRONT_ID), addressable by the
+     change model; its head carries the id, the words under it ride the head's next sibling (.rl-recital). Filled, an
+     answer is our tracked change on 'front', through the same funnel as any clause's. */
+  const regions = [...cv.querySelectorAll('section.rl-clause[data-clause]')].map(sec => ({ id: sec.getAttribute('data-clause'), roots: sec, changed: sec.classList.contains('is-changed') }));
+  const fh = cv.querySelector('header.rl-paper-head[data-clause]');
+  if (fh){ const nx = fh.nextElementSibling; regions.unshift({ id: fh.getAttribute('data-clause'), roots: [fh, nx && nx.classList.contains('rl-recital') ? nx : null], changed: fh.classList.contains('is-changed') }); }
+  regions.forEach(({ id, roots, changed }) => {
+    if (!id || argued.has(String(id)) || changed) return;
+    const seq = pd2NegoSeq(roots);
     const jobs = new Map();
     seq.forEach(b => {
       if (b.made) return;
