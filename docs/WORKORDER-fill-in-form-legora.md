@@ -1,6 +1,6 @@
 # WORK ORDER — The Fill in form, The Legora Way, drawn properly
 
-**Status: WRITTEN 13 Nov 2026. NOT BUILT.** Nothing in HaTi has been changed by writing this.
+**Status: WRITTEN 13 Nov 2026. BUILT 13 Nov 2026** (owner: *"build it"*), on the recommended answers to the open questions: the paper's own names in sentence case, addresses on one line. Not yet merged; the side-by-side waits for the owner's yes.
 
 **The picture the owner chose:** artifact "Fill in form options",
 https://claude.ai/artifact/WFHJXh5RyHLw9okRmgp71B. A copy is saved beside this

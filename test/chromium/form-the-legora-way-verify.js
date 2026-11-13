@@ -54,8 +54,22 @@ const ID = 'MK-E1';
         cp: ((document.querySelector('[data-pd-mid^="form:"] tr[data-pd2-known="counterparty"] td.pd-og-a') || {}).textContent || '').trim(),
         under: ((document.getElementById('pd2-fm-under') || {}).textContent || '').trim() };
     });
-    check('1 one quiet list: owed first with an amber dot, no group heads, "§ · quote" where read, needed and ready said',
-      up && L.heads === 0 && L.owed === 3 && L.owedFirst && /rgb\(201, 138, 20\)/.test(L.dot) && /^§ \d+ · /.test(L.cp) && /3 needed · \d+ ready/.test(L.under), L);
+    check('1 one quiet list: owed first with an amber dot, no group heads, "§ · quote" where read, needed and on record said',
+      up && L.heads === 0 && L.owed === 3 && L.owedFirst && /rgb\(201, 138, 20\)/.test(L.dot) && /^§ \d+ · /.test(L.cp) && /3 needed · \d+ on record$/.test(L.under), L);
+    /* 1b — THE ROW AS DRAWN (owner, 13 Nov 2026): every answer on one width and one height, the sentence under the name,
+       one quiet line over what already stands, a tick only where there is an answer */
+    const R = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-list > tr:not(.pd2-fm-sep)')];
+      const box = r => r.querySelector('td.pd-og-v').getBoundingClientRect();
+      const ins = [...document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-list td.pd-og-v :is(input:not([type=checkbox]), select, textarea, .dp-face)')].filter(e => e.getClientRects().length);
+      const tick = r => getComputedStyle(r, '::after').visibility;
+      return { lefts: [...new Set(rows.map(r => Math.round(box(r).left)))].length, widths: [...new Set(rows.map(r => Math.round(box(r).width)))],
+        tall: ins.filter(e => e.getBoundingClientRect().height > 36).length, under: rows.filter(r => { const f = r.querySelector('td.pd-og-f'), a = r.querySelector('td.pd-og-a'); return a && a.getClientRects().length && a.getBoundingClientRect().top < f.getBoundingClientRect().bottom - 1; }).length,
+        sep: document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-list > tr.pd2-fm-sep').length,
+        ticks: rows.filter(r => r.hasAttribute('data-pd2-owed') && tick(r) !== 'hidden').length, known: rows.filter(r => !r.hasAttribute('data-pd2-owed') && tick(r) !== 'visible').length };
+    });
+    check('1b every answer starts on one edge at one width (300) and one height; the source line under its name; one line over what stands; ticks only on answers',
+      R.lefts === 1 && R.widths.length === 1 && R.widths[0] === 300 && R.tall === 0 && R.under === 0 && R.sep === 1 && R.ticks === 0 && R.known === 0, R);
     /* 2 */
     const chips = await page.evaluate(() => [...document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-chip')].map(b => b.textContent.replace(/\s+/g, ' ').trim()));
     await page.click('[data-pd2-fm-chip="need"]').catch(() => {});
@@ -89,7 +103,7 @@ const ID = 'MK-E1';
     await page.waitForTimeout(1200);
     const after = await rec();
     check('4 a sentence goes to the one fill route as what was said; Put all in fills the rows and stores nothing',
-      said && /Starts 1 Dec 2026/.test(Y.said) && /You said/.test(Y.you) && /1 December 2026/.test(Y.you) && P.foot === '3 of 3 filled' && P.name === 'Wanjiru Otieno' && after === before, { said, Y, P, same: after === before });
+      said && /Starts 1 Dec 2026/.test(Y.said) && /You said/.test(Y.you) && /1 December 2026/.test(Y.you) && /^3 of 3 filled · nothing is saved until Save$/.test(P.foot) && P.name === 'Wanjiru Otieno' && after === before, { said, Y, P, same: after === before });
     await page.screenshot({ path: path.join(OUT, 'put.png') });
     /* 5 */
     const F = await page.evaluate(() => { const f = document.querySelector('[data-pd-mid^="form:"] .pd-fm-f'); const bs = [...f.querySelectorAll('.ui-btn')].filter(b => b.getClientRects().length);

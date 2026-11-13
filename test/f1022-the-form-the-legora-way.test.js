@@ -17,7 +17,7 @@ test('f1022 (1) one list, owed first, § before the quote, chips', () => {
   assert.match(P, /const list = \[\.\.\.all\.filter\(owed\), \.\.\.all\.filter\(tr => !owed\(tr\)\)\];/);
   assert.match(P, /tb\.className = 'pd-fm-g pd2-fm-list'/);
   assert.match(P, /<span class="pd2-nw">\$\{E\(q\.sec\)\}<\/span> · <q>\$\{E\(q\.quote\)\}<\/q>/);
-  assert.match(P, /function pd2FormChipsPaint\(nAll, nOwed, nPaper\)/);
+  assert.match(P, /function pd2FormChipsPaint\(nAll, nOwed, nRec\)/);
   assert.doesNotMatch(P, /pd2_fm_g_' \+ k/, 'no group heads');
   const H = stripCom(read('index.html'));
   assert.match(H, /table\[data-pd2-fm-show="need"\] tr:not\(\[data-pd2-owed\]\)/);
@@ -46,7 +46,7 @@ test('f1022 (4) the server reads what was said through the same route', () => {
 });
 test('f1022 (5) both books; the Handbook says it', () => {
   const I = read('js/i18n.js');
-  ['pd2_fm_ready', 'pd2_fm_src_none', 'pd2_fm_chip_all', 'pd2_fm_chip_need', 'pd2_fm_chip_paper', 'pd2_fm_ask_ph', 'pd2_fmj_owed_one', 'pd2_fmj_owed_other', 'pd2_fmj_you', 'pd2_fmj_put_other', 'pd2_fmj_each', 'pd2_fmj_nokey', 'pd2_fmj_sg_mail_l', 'pd2_fmj_by']
+  ['pd2_fm_ready', 'pd2_fm_src_none', 'pd2_fm_chip_all', 'pd2_fm_chip_need', 'pd2_fm_chip_paper', 'pd2_fm_chip_rec', 'pd2_fm_onrec', 'pd2_fm_rec_head', 'pd2_fm_ask_ph', 'pd2_fmj_owed_one', 'pd2_fmj_owed_other', 'pd2_fmj_you', 'pd2_fmj_put_other', 'pd2_fmj_each', 'pd2_fmj_nokey', 'pd2_fmj_sg_mail_l', 'pd2_fmj_by']
     .forEach(k => assert.equal((I.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k));
   assert.match(read('js/handbook.js'), /tell Jambo the missing details in one sentence/);
 });
