@@ -1926,7 +1926,12 @@ function pdSendClose(){
 function pdSendFaceHtml(){ return `<div id="pd-send-slot" class="pd-send-slot${pdSendIsWaiting() ? ' is-waiting' : ''}" data-pd-send="${_pdE(pdSendFor() || '')}"></div>`; }
 /* while the panel shows Jambo's own words the column waits in the panel,
    unseen, so every box and choice in it is still in the page for Send */
-function pdSendKeepHtml(){ return (pdSendHeld() && !pdSendShows()) ? `<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>` : ''; }
+/* f1035: kept whenever the face itself is NOT drawn — away, or while the panel talks over a face that still
+   shows (a question asked from Before you send); the panel says which (faceDrawn). The page's What goes and
+   Send press buttons in this column, so a column out of the page left them pressing nothing. */
+function pdSendKeepHtml(faceDrawn){
+  const drawn = faceDrawn === undefined ? pdSendShows() : !!faceDrawn;
+  return (pdSendHeld() && !drawn) ? `<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>` : ''; }
 function pdSendFacePaint(){
   const slot = (typeof document !== 'undefined') ? document.getElementById('pd-send-slot') : null;
   if (slot && _pdSend && _pdSend.node && _pdSend.node.parentNode !== slot) slot.appendChild(_pdSend.node);

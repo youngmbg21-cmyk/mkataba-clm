@@ -37752,6 +37752,11 @@ And (80041 → 80000; verbatim before):
 ONE quiet touch of colour per page, read off a fact it has (`listStreamTone`, `RDN_TONE`, `iknAgeTone`, `calAgKindOf`, `stnPill`). f986.
 ```
 
+## THE SEND SCREEN — WRITE IT FOR ME, AND WHAT GOES WHILE JAMBO TALKS (13 Nov 2026, owner's two screenshots)
+The owner: "i pressed write for me and i get the response on the jambo which i do not understand" (the panel said "Note ready to go in your note box with the button under it", the box empty) and "I am unable to press highlighted choice [The contract, round 2]. Also as i press the other choices, the page stutters".
+(1) Asking Jambo from "Before you send" turns the panel to his words while the face still SHOWS (`pdSendShows` true, not away), so the panel drew neither the face nor its kept copy (`pdSendKeepHtml` kept only when away): the column left the page, and What goes — whose choices press that column's own buttons — pressed nothing. The panel now passes whether it drew the face (`pdSendKeepHtml(!talk&&!_sheet&&pdSendShows())`).
+(2) "Write it for me" was drawn only when the screen OPENED on something other than the history, and stayed when What goes moved to the history, where the email lists no answers to write from; the model said it was ready and returned no note. It is drawn hidden for the history and What goes shows or hides it (`shareLetterPaint`).
+(3) A Write-it-for-me press is answered in HaTi's own words (`aiSendNoteSaid`): "Jambo's note is in your note box…" or "No note came back this time…" (`sh_nl_none`, both books); a typed question keeps Jambo's own answer. The stutter was not measured here (browser checks run on GitHub); it went with the presses that found nothing. Red at the parent: f1035 1–3. f758 4b re-pointed.
 ## HOW TO TEST ECONOMICALLY — A PULL REQUEST THAT ONLY CHANGES NOTES RUNS NOTHING (13 Nov 2026)
 The owner asked: "Why does send something to bug log need to go through GitHub check?" (PR #697 was one BUGLOG line and started the full 110-minute run). Offered "merge now" and "skip the checks for notes-only changes"; the owner said "Merge it now and do option 2".
 Built: tests.yml's `pull_request` gains `paths-ignore: ['BUGLOG.md', 'docs/*.md']`. GitHub skips the run only when EVERY changed file matches, so one code file brings the whole check back. Measured what the tests read before choosing:

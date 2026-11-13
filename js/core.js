@@ -5356,7 +5356,9 @@ function shareNoteBoxHtml(c, hist){
           hist?'e.g. The full record of our negotiation, for your file.'
              :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>${
     /* THE NEW LOOK, AS DRAWN: Jambo writes the note from your answers on a press, its cost on it (owner: "Jambo on press") */
-    (!hist && typeof newLookOn==='function' && newLookOn()) ? `<p class="sh-nl-jb" id="sh-nl-jb"><button type="button" class="sh-nl-write" data-sh-nl-write="${esc(c.id)}">${esc(i18t('sh_nl_write'))}</button> <span>${esc(i18t('sh_nl_write_cost'))}</span></p>` : ''}`;
+    /* f1035: drawn in the new look whatever goes, HIDDEN for the history (nothing it answers to write from);
+       What goes moving the letter shows or hides it (shareLetterPaint) */
+    (typeof newLookOn==='function' && newLookOn()) ? `<p class="sh-nl-jb${hist?' hidden':''}" id="sh-nl-jb"><button type="button" class="sh-nl-write" data-sh-nl-write="${esc(c.id)}">${esc(i18t('sh_nl_write'))}</button> <span>${esc(i18t('sh_nl_write_cost'))}</span></p>` : ''}`;
 }
 /* "Write it for me": the question goes to Jambo through the one box (1 call); his note lands in the box itself (aiSendNoteHtml
    sees the press), and the line under it says who wrote it and what it cost — nothing is sent until Send */
@@ -5897,6 +5899,8 @@ function shareLetterPaint(c, st){
      asks the same question in the form, and its list presses these same
      buttons — they stay, out of sight, as the one door each has. */
   const hist=st && st.purpose==='history';
+  /* f1035: "Write it for me" writes from this send's answers; the history carries none, so it stands down there */
+  document.getElementById('sh-nl-jb')?.classList.toggle('hidden', !!hist);
   document.getElementById('sh-lt-else')?.classList.add('hidden');
   document.querySelector('[data-sh-lt-else="history"]')?.classList.toggle('hidden', hist);
   document.querySelector('[data-sh-lt-else="contract"]')?.classList.toggle('hidden', !hist);
