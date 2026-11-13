@@ -37878,3 +37878,13 @@ And (80038 → 79972; verbatim before):
 ```
 NUDGE `obligationRecipient` at 7/0/-1 days. DAILY BRIEF `runDailyBriefs`. ARCHIVE `contractSetArchived`. TWO-STEP SIGN-IN (`clearTwoStep`). WEBHOOKS ids only, admin-only. ASSURANCE LADDER weakest wins.
 ```
+
+## CLAUDE.MD TRIM, 13 Nov 2026 (twelfth, corrected)
+The twelfth trim wrote its four shortened lines to the wrong headings (lines were matched by number in the wrong order): the Pulse board's line stood under "SENT" MUST MEAN SENT, the Clauses read's under THE PULSE BOARD, the mail line under HOW THINGS MOVE, and HOW THINGS MOVE's own rule was lost from the file. Put right: each short line under its own heading, HOW THINGS MOVE restored verbatim from the twelfth trim's block, and the Clauses read's line shortened as meant (80123 → 80026). Verbatim before, the Clauses read's line:
+```
+`stkDecorate` draws ONE kept reading `c.breakdown` (POST /api/ai/breakdown; opening Clauses is the press, `stkAutoRun`); no wording in the panel; `stkRedlineGo` files nothing. ONE reading `stkReview` (`stkNeedCount`); a missing point inside its clause (`missByRow`); MARK REVIEWED only via POST …/points/:key/review (`c.pointReviews`). ONE "WHAT TO WATCH" PER CLAUSE: two or more points are one card (`stkRowCardsHtml`, `stkGroupHtml`, `data-stk-review-all`); blanks keep their own. f1005.
+```
+And (80026 → 80013; verbatim before):
+```
+JUDGEMENT ON THE STRONGER MODEL (`copilotNeedsJudgement`; f870); `aiRateFor` (f871).
+```
