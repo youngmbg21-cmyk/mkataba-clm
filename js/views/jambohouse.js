@@ -1164,9 +1164,27 @@ function renderJamboHouse(opts){
   if (!nl && _jh.tab === 'agents') _jh.tab = 'house';
   const body = _jh.tab === 'agents' ? jhnAgentsHtml() : _jh.tab === 'jobs' ? (_jh.data ? jhJobsHtml() : jhHouseHtml()) : _jh.tab === 'how' ? jhHowHtml() : jhHouseHtml();
   /* THE NEW LOOK (round 7, as drawn): one white page, the tabs beside the title, Jambo's panel beside it */
-  if (nl) host.innerHTML = `<style>${JH_CSS}</style><div class="view-enter sap-page ap-page is-ins apn-page jh-page jhn-page" data-jh-tab-on="${_jh.tab}" data-ins-page="jambo" data-ins="1"><div class="ap-body is-ins"><section class="ap-card apn-card jhn-card">${jhnHeadHtml()}${body}</section><aside id="ins-panel" class="ins-panel" aria-label="${_jhE(_jhT('ins_panel_label'))}"></aside></div></div>`;
-  else host.innerHTML = `<style>${JH_CSS}</style><div class="jh-wrap"><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>${jhJamboDoorHtml()}</div>`;
-  if (nl && typeof insPaintPanel === 'function'){ insPaintPanel({ seat: 'jambo', jlWord: _jhT('nav_jambo'), item: { id: 'jambo' }, head: false, tabCount: 0, body: jhnPanelHtml() }); if (typeof insWatchWidth === 'function') insWatchWidth(); }
+  const html = nl
+    ? `<style>${JH_CSS}</style><div class="view-enter sap-page ap-page is-ins apn-page jh-page jhn-page" data-jh-tab-on="${_jh.tab}" data-ins-page="jambo" data-ins="1"><div class="ap-body is-ins"><section class="ap-card apn-card jhn-card">${jhnHeadHtml()}${body}</section><aside id="ins-panel" class="ins-panel" aria-label="${_jhE(_jhT('ins_panel_label'))}"></aside></div></div>`
+    : `<style>${JH_CSS}</style><div class="jh-wrap"><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>${jhJamboDoorHtml()}</div>`;
+  const panelBody = nl ? jhnPanelHtml() : '';
+  /* WHAT LANDED THE SAME IS NOT DRAWN AGAIN (the flash measure, 13 Nov 2026: Board → Jambo's house drew the whole page
+     a second time ~75 ms after arriving, when the period's work landed): the page the load would write, word for word
+     what stands, with nothing written into it since, stays */
+  const src = html + '\u0000' + panelBody;
+  const standing = host.querySelector(':scope > .jh-page, :scope > .jh-wrap');
+  if (opts && opts.fromLoad && host._jhSrc === src && standing) return;
+  /* AND WHAT LANDED DIFFERENT CHANGES ONLY WHAT IT CHANGED: the period's work arriving rewrites the card's inside (the
+     loading line becomes the house) and the panel only where its words moved; the page, its frame and the panel stand */
+  const card = nl && opts && opts.fromLoad && standing && standing.getAttribute('data-jh-tab-on') === _jh.tab ? standing.querySelector('.jhn-card') : null;
+  if (card && host._jhPanel != null){
+    card.innerHTML = jhnHeadHtml() + body;
+    if (host._jhPanel !== panelBody && typeof insPaintPanel === 'function') insPaintPanel({ seat: 'jambo', jlWord: _jhT('nav_jambo'), item: { id: 'jambo' }, head: false, tabCount: 0, body: panelBody });
+  } else {
+    host.innerHTML = html;
+    if (nl && typeof insPaintPanel === 'function'){ insPaintPanel({ seat: 'jambo', jlWord: _jhT('nav_jambo'), item: { id: 'jambo' }, head: false, tabCount: 0, body: panelBody }); if (typeof insWatchWidth === 'function') insWatchWidth(); }
+  }
+  host._jhSrc = src; host._jhPanel = nl ? panelBody : null;
   jhWire(host);
   if (typeof setActiveNav === 'function') setActiveNav('jambo');
   if (_jh.tab === 'house' && document.getElementById('jh-cv')){

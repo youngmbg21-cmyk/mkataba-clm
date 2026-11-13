@@ -1069,7 +1069,9 @@ function renderApprovalsPage(o){
   /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */
   const foot=n&&typeof lhFootHtml==='function'?lhFootHtml('approvals',n,n,0,{ cls:'ap-foot ap-wl-foot' }):'';
   /* THE NEW LOOK, AS DRAWN (round 5): its own head and its own table — the switch's page, the old one untouched */
-  if(INS&&typeof newLookOn==='function'&&newLookOn()) return apnRender(W, (o&&o.rows)?{ rows:true }:null);
+  /* a list-only ask (the box, a column fitting its room: listCols' repaint) is the rows paint here too — the new look
+     draws its own columns, so it never needed the whole page (the flash measure, 13 Nov 2026: Board → Approvals) */
+  if(INS&&typeof newLookOn==='function'&&newLookOn()) return apnRender(W, (o&&(o.rows||o.listOnly))?{ rows:true }:null);
   const page=document.querySelector('#content .ap-page[data-ins-page="approvals"]');
   const sec=document.getElementById('ap-scroll');
   if(listOnly&&page&&sec&&page.getAttribute('data-ins')===(INS?'1':'0')){
@@ -1223,8 +1225,13 @@ function apnRender(W, o){
      must never lose a letter because a paint took a different road. */
   const qEl=document.getElementById('apn-q');
   const qAt=(qEl&&typeof document!=='undefined'&&document.activeElement===qEl)?qEl.selectionStart:null;
+  /* A ROWS PAINT THAT WOULD WRITE WHAT STANDS WRITES NOTHING (the flash measure, 13 Nov 2026): a record that landed in
+     the background and changed no row leaves the table, the bar and the panel as they are */
+  const tblSrc=colg+th+body;
+  if(rowsOnly&&tbl._apnSrc===tblSrc&&[...pills].every((b,i)=>b.classList.contains('is-on')===(tabs[i][0]===_apnTab)
+    &&(!b.querySelector('span')||b.querySelector('span').textContent===String(tabs[i][2])))) return;
   if(rowsOnly){
-    tbl.innerHTML=colg+th+body;
+    tbl.innerHTML=tblSrc; tbl._apnSrc=tblSrc;
     pills.forEach((b,i)=>{ b.classList.toggle('is-on',tabs[i][0]===_apnTab);
       const n=b.querySelector('span'); if(n) n.textContent=String(tabs[i][2]); });
     const ft=document.querySelector('#ap-scroll .apn-foot'); if(ft) ft.outerHTML=foot;
@@ -1233,6 +1240,7 @@ function apnRender(W, o){
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="approvals" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card" id="ap-scroll">${title}${head}${table}${foot}</section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>
   </div>`;
+    { const t=document.querySelector('#ap-scroll .apn-table'); if(t) t._apnSrc=tblSrc; }
     if(qAt!=null){ const n=document.getElementById('apn-q'); if(n){ n.focus(); try{ n.setSelectionRange(qAt,qAt); }catch(_){} } }
   }
   apPaintHead();
