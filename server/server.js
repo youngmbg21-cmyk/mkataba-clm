@@ -8743,6 +8743,9 @@ app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGua
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, blanks } = req.body || {};
+  /* WHAT THE PERSON SAID (the Fill in form, The Legora Way, 12 Nov 2026): the missing details in their own sentence,
+     read into the same boxes through this same route; nothing is stored here or by the browser until Save */
+  const said = String((req.body || {}).said || '').trim().slice(0, 1000);
   if (!Array.isArray(blanks) || !blanks.length)
     return res.status(400).json({ error: 'blanks are required' });
   const asks = blanks
@@ -8783,7 +8786,8 @@ app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGua
   const prompt = 'You are filling in the blanks a person left open on a contract in their own contract system.\n\n'
     + 'The blanks still open, each with the clause it sits in and — where this workspace has a habit — what it usually writes there (JSON):\n'
     + JSON.stringify(asks)
-    + '\n\nThe contract as it stands:\n' + aiDocText(req, String(text || '')) + '\n\n'
+    + (said ? '\n\nWhat the person filling it in told you, in their own words (JSON string). Where it names an answer for a blank, that IS the answer; never add what it does not say:\n' + JSON.stringify(said) : '')
+    + (String(text || '').trim() ? '\n\nThe contract as it stands:\n' + aiDocText(req, String(text || '')) : '') + '\n\n'
     + RULES;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'fill_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'fill', who: aiWho(req) });
@@ -17794,7 +17798,9 @@ app.post('/api/contracts/:id/mention', auth, editor, async (req, res) => {
         + (note ? `\n\n"${note}"\n` : '\n')
         + (link ? `\n${tFor(L, inside ? 'mail_at_open' : 'mail_ob_chase_open')}\n${link}\n` : '')
         + `\n${tFor(L, 'mail_automated_notice')}`,
-      `mention: ${req.params.id} -> ${to}`);
+      `mention: ${req.params.id} -> ${to}`,
+      /* f1021: somebody on the other side who presses Reply reaches the colleague who tagged them (mailReplyFor). */
+      inside ? {} : { replyTo: mailReplyFor(req, null, c) });
     told.push({ id: p.id, name, to, ...mailReport(r3) });
   }
   res.json({ ok: true, told, skipped, emailConfigured: EMAIL_ON() });

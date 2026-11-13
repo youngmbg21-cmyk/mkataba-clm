@@ -147,22 +147,19 @@ try { new PerformanceObserver(l => { for (const e of l.getEntries()) { if (e.had
         const wired = await page.evaluate(() => typeof listGlideAround === 'function');
         check('G the Redlines column repaints through the glide (page and Jambo\'s face)', wired);
 
-        /* H — THE PANEL'S FACE CROSSFADES and its underline glides */
+        /* H — THE PANEL'S FACE CHANGES AT ONCE and its underline glides (owner, 12 Nov 2026; reverses the crossfade of
+           22 Oct: nothing is copied and nothing fades; tab-change-no-flash-verify looks at every frame) */
         await page.evaluate(() => document.querySelector('#ig-dock [data-pd-tab="copilot"]').click());
         await page.waitForTimeout(400);
         const hx = await page.evaluate(() => { document.querySelector('#ig-dock [data-pd-tab="doc"]').click();
           const ghost = document.querySelectorAll('.face-ghost').length;
-          const kids = [...document.getElementById('ig-dock').children].filter(n => !n.matches('.igd-head')).some(n => n.getAnimations().length);
+          const kids = [...document.getElementById('ig-dock').children].some(n => n.getAnimations().length);
           const ink = document.getAnimations().some(a => a.effect && a.effect.pseudoElement === '::after' && a.effect.target && a.effect.target.matches('#ig-dock .pd-tab.on'));
-          const head = document.querySelector('#ig-dock .igd-head').getAnimations().length;
-          return { ghost, kids, ink, head }; });
-        await page.waitForTimeout(400);
-        const left = await page.evaluate(() => document.querySelectorAll('.face-ghost').length);
-        check('H turning a tab: the old face fades out over the new one, which fades in', hx.ghost === 1 && hx.kids, JSON.stringify(hx));
-        check('H the tab\'s underline glides to the tab pressed; the tab row itself never fades', hx.ink && hx.head === 0, JSON.stringify(hx));
-        check('H the picture of the old face is gone once it has faded', left === 0, String(left));
-        const same = await page.evaluate(() => { renderIntelDock(); return document.querySelectorAll('.face-ghost').length; });
-        check('H a repaint of the same face is drawn as before, nothing fades', same === 0, String(same));
+          return { ghost, kids, ink }; });
+        check('H turning a tab: the new face is simply there, no copy of the old one and nothing fading', hx.ghost === 0 && !hx.kids, JSON.stringify(hx));
+        check('H the tab\'s underline glides to the tab pressed', hx.ink, JSON.stringify(hx));
+        const same = await page.evaluate(() => { renderIntelDock(); return document.getAnimations().some(a => a.effect && a.effect.pseudoElement === '::after' && a.effect.target && a.effect.target.matches('#ig-dock .pd-tab.on') && a.playState === 'running' && a.currentTime === 0); });
+        check('H a repaint of the same face glides nothing', same === false, String(same));
 
         /* I — A SWIPE TO THE RIGHT PUTS THE NOTES DRAWER AWAY */
         const swipe = async (frac) => page.evaluate(f => {

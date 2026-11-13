@@ -3561,6 +3561,7 @@ function pdHtml(c){ return `<div class="pd-tabs" role="tablist">${pdHeadHtml('')
 /* THE ONE PAINTER, called by igPaintPaper after every paint of the paper:
    the open tab's body is redrawn in place (the panel itself is not rebuilt),
    and the title row follows the paper coming and going. */
+let _pdBodyFresh = false;   // true only while a tab's press paints the paper right after drawing the panel
 function pdPaint(c){
   const dock = document.getElementById('ig-dock'); if (!dock) return;
   /* the paper was drawn again: Fill in's marks on it follow (pdFillPaperMarks) */
@@ -3569,6 +3570,8 @@ function pdPaint(c){
      2026): a paint of the paper redraws it from the record, never under the reader's hand */
   try { pdKtMidRepaint(false); } catch (_){}
   pdTrailSync();
+  /* the tab's own press drew the panel in this same turn: its body is not drawn again (see the tab's press) */
+  if (_pdBodyFresh) return;
   const head = dock.querySelector('[data-pd-head]');
   const want = pdOnPaper() ? 'paper' : 'off';
   if (head && head.getAttribute('data-pd-head') !== want){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
@@ -3643,7 +3646,10 @@ if (typeof document !== 'undefined' && !document._pdWired){
       if (keep && pdTalkKey() === was && typeof jamboScrollPut === 'function') jamboScrollPut(keep);
       /* a face left behind another tab gives the paper back (stage 5): the
          paper is drawn again only if its copy moved (igPaperKey) */
-      if (typeof igPaintPaper === 'function') try { igPaintPaper(); } catch (_){}
+      /* ONE PRESS, ONE PANEL (owner, 12 Nov 2026, the stutter audit): the panel was drawn a line above, so the
+         paper's paint does not draw the tab's body a second time (_pdBodyFresh), and the paper's line stands
+         where it says the same (keepLine) */
+      if (typeof igPaintPaper === 'function'){ _pdBodyFresh = true; try { igPaintPaper({ keepLine: true }); } catch (_){} finally { _pdBodyFresh = false; } }
       return; }
     const a = t.closest('[data-pd-act]'); const fn = a ? _pdActs.get(a.getAttribute('data-pd-act')) : null;
     if (!fn) return;
@@ -4920,12 +4926,14 @@ function pd2FormHeadHtml(c, n){
 function pd2FormMidOpen(c){
   const id = String(c.id), mk = 'form:' + id;
   if (pdMidUp(mk)) return true;
+  _pd2FmShow = 'all'; if (_pd2FmAsk && _pd2FmAsk.id !== id) _pd2FmAsk = null;
   const n = pdFormRows(c).filter(f => !f.read).length;
   const H = pd2FormHeadHtml(c, n);
   openModal(`<div class="pd2-fm-mid">${pdFormHtml(c).replace('<div class="pd-fm-h">', '<div class="pd-fm-h"><h3 class="pd2-fm-t">' + _pdE(_pdT('og_form_title')) + '</h3>' + H.under).replace(/<h3>[^<]*<\/h3>/, '')}</div>`, { maxWidth: 'none', label: _pdT('og_form_title'), page: { crumbHtml: H.back, under: '#pd2-fm-under', beside: '#ig-dock' },
-    onClose: () => { _pdForm.delete(id); _pdOgLand = null; pdMidOff(); try { pdGlanceRepaint(); } catch (_){} } });
+    onClose: () => { _pdForm.delete(id); _pdOgLand = null; _pd2FmAsk = null; pdMidOff(); try { pdGlanceRepaint(); } catch (_){} pd2FormAskPh(); } });
   pdMidOn(mk);
   try { pd2FormRegroup(c); } catch (_){}
+  pd2FormAskPh();
   const host = document.querySelector('[data-pd-mid] #pd-og.is-form'); if (host) pdOgPaint(host);
   try { pdGlanceRepaint(); } catch (_){}
   return true;
@@ -4955,7 +4963,8 @@ function pd2FormRegroup(c){
   const G = { arrive: [], fill: [], sign: [] };
   host.querySelectorAll('tr.pd-fm-row').forEach(tr => { const f = byKey.get(tr.getAttribute('data-pd-og-row')); const g = f ? pdOgGroupOf(f) : 'terms';
     G[g === 'parties' ? 'arrive' : g === 'signers' ? 'sign' : 'fill'].push(tr); });
-  const src = q => q ? `<span class="pd-og-src"><q>${E(q.quote)}</q> · <span class="pd2-nw">${E(q.sec)}</span></span>` : '';
+  /* WHERE IT WAS READ, § first (owner picked "The Legora Way" for the form, 12 Nov 2026): "§ 13 · “For Pixel Agency”" */
+  const src = q => q ? `<span class="pd-og-src"><span class="pd2-nw">${E(q.sec)}</span> · <q>${E(q.quote)}</q></span>` : '';
   const known = (k, l, v, from) => { const tr = document.createElement('tr'); tr.className = 'pd2-fm-known'; tr.setAttribute('data-pd2-known', k);
     tr.innerHTML = `<td class="pd-og-f"><b>${E(l)}</b></td><td class="pd-og-v">${E(v)}</td><td class="pd-og-a">${from}</td>`; return tr; };
   if (c.counterparty) G.arrive.unshift(known('counterparty', _pdT('pd2_fm_cp'), c.counterparty, src(pd2QuoteOf(c, [c.counterparty]))));
@@ -4975,14 +4984,23 @@ function pd2FormRegroup(c){
       tr.className = 'pd-og-row pd-fm-row is-amb pd2-fm-sg'; tr.setAttribute('data-pd-og-row', 'signers'); tr.setAttribute('data-pd-og-kind', 'signer');
       tr.innerHTML = `<td class="pd-og-f"><b>${E(_pdT('pd2_fm_theirs'))}</b></td><td class="pd-og-v">${pdOgBoxHtml(c, f)}</td><td class="pd-og-a"><span class="pd2-amb">${E(_pdT('pd2_ft_owed'))}</span> · ${E(_pdT('pd2_fm_theirs_w'))}</td>`;
       G.sign.push(tr); } }
-  const need = rows => rows.filter(r => r.classList.contains('pd-fm-row') && !r.classList.contains('is-read')).length;
+  /* THE LEGORA WAY (owner, 12 Nov 2026): ONE QUIET LIST, no group heads — what is owed first, each with its amber dot and
+     answered in its own row, then what stands, each with where it was read. The chips over it only narrow what shows */
+  const owed = tr => tr.classList.contains('pd-fm-row') && !tr.classList.contains('is-read') && !tr.classList.contains('is-saved');
+  const all = [...G.arrive, ...G.fill, ...G.sign];
+  const list = [...all.filter(owed), ...all.filter(tr => !owed(tr))];
+  list.forEach(tr => { if (owed(tr)) tr.setAttribute('data-pd2-owed', ''); if (tr.querySelector('q, [data-pd-og-quote], [data-pd-og-spot]')) tr.setAttribute('data-pd2-paper', '');
+    const a = tr.querySelector('td.pd-og-a'); if (owed(tr) && a && !a.textContent.trim()) a.textContent = _pdT('pd2_fm_src_none'); });
   host.querySelectorAll('tbody').forEach(t => t.remove());
-  ['arrive', 'fill', 'sign'].forEach(k => { if (!G[k].length) return;
-    const tb = document.createElement('tbody'); tb.className = 'pd-fm-g'; tb.setAttribute('data-pd-fm-g', k);
-    const n = need(G[k]);
-    tb.innerHTML = `<tr class="pd-fm-gh"><th colspan="3" scope="rowgroup"><span>${E(_pdT('pd2_fm_g_' + k))}</span>${n ? `<span class="is-amb">${E(_pdT('og_g_needed', { n }))}</span>` : ''}</th></tr>`;
-    G[k].forEach(tr => tb.appendChild(tr)); host.appendChild(tb); });
+  const tb = document.createElement('tbody'); tb.className = 'pd-fm-g pd2-fm-list'; list.forEach(tr => tb.appendChild(tr)); host.appendChild(tb);
   host.setAttribute('data-pd2-grouped', '');
+  const nOwed = list.filter(tr => tr.hasAttribute('data-pd2-owed')).length, nPaper = list.filter(tr => tr.hasAttribute('data-pd2-paper')).length;
+  const under = document.getElementById('pd2-fm-under');
+  if (under) under.innerHTML = [E(c.name || ''), nOwed ? `<span class="pd2-amb">${E(_pdT('og_g_needed', { n: nOwed }))}</span>` : '', E(_pdT('pd2_fm_ready', { n: list.length - nOwed })), E(_pdT('pd2_fm_how'))].filter(Boolean).join(' · ');
+  if (!host.previousElementSibling || !host.previousElementSibling.matches('.pd2-fm-chips')){
+    const ch = document.createElement('div'); ch.className = 'pd2-fm-chips'; ch.setAttribute('role', 'group'); ch.setAttribute('aria-label', _pdT('pd2_fm_chips'));
+    host.parentNode.insertBefore(ch, host); }
+  pd2FormChipsPaint(list.length, nOwed, nPaper);
   try { pdFormCount(); } catch (_){}
   /* THE FOOT, AS DRAWN: how far, and that nothing is saved until Save, on the left; Discard and Save on the right */
   const ft = document.querySelector('[data-pd-mid^="form:"] .pd-fm-f');
@@ -4991,31 +5009,143 @@ function pd2FormRegroup(c){
     const say = ft.querySelector(':scope > span'); if (say) say.setAttribute('data-pd2-fm-say', '');
     pd2FormFootSay(); }
 }
+/* THE CHIPS: All · Needed · Read from the paper; one chosen at a time, narrowing the rows (nothing saved, nothing moved) */
+let _pd2FmShow = 'all';
+function pd2FormChipsPaint(nAll, nOwed, nPaper){
+  const ch = document.querySelector('[data-pd-mid^="form:"] .pd2-fm-chips'), fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (!ch || !fm) return;
+  const E = _pdE, rows = { all: nAll, need: nOwed, paper: nPaper };
+  if (!rows[_pd2FmShow]) _pd2FmShow = 'all';
+  ch.innerHTML = [['all', 'pd2_fm_chip_all'], ['need', 'pd2_fm_chip_need'], ['paper', 'pd2_fm_chip_paper']].filter(([k]) => k === 'all' || rows[k])
+    .map(([k, w]) => `<button type="button" class="pd2-fm-chip" data-pd2-fm-chip="${k}" aria-pressed="${_pd2FmShow === k}">${E(_pdT(w))} <span>${rows[k]}</span></button>`).join('');
+  fm.setAttribute('data-pd2-fm-show', _pd2FmShow);
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('[data-pd-mid^="form:"] [data-pd2-fm-chip]') : null; if (!b) return;
+  e.preventDefault(); _pd2FmShow = b.getAttribute('data-pd2-fm-chip') || 'all';
+  const fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (fm) fm.setAttribute('data-pd2-fm-show', _pd2FmShow);
+  document.querySelectorAll('[data-pd-mid^="form:"] [data-pd2-fm-chip]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+});
 function pd2FormFootSay(){
   const fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'), say = document.querySelector('[data-pd-mid^="form:"] [data-pd2-fm-say]'); if (!fm || !say) return;
-  const rows = [...fm.querySelectorAll('tr.pd-fm-row')], n = rows.length;
-  const k = rows.filter(r => r.classList.contains('is-saved') || r.classList.contains('is-typed') || r.classList.contains('is-read') || pdFormBoxHas(r)).length;
+  /* "1 of 3 filled": of what was owed when the form opened */
+  const rows = [...fm.querySelectorAll('tr[data-pd2-owed]')], n = rows.length;
+  rows.forEach(r => r.classList.toggle('is-has', r.classList.contains('is-saved') || pd2FormRowHas(r)));
+  const k = rows.filter(r => r.classList.contains('is-has')).length;
   say.textContent = _pdT('pd2_fm_foot', { k, n });
 }
-/* the Dossier while the form is up: what is typed, row by row, as it is typed */
-function pd2FormFaceHtml(c, D){
-  const E = _pdE, fm = document.querySelector('[data-pd-mid] #pd-og.is-form');
-  const rows = fm ? [...fm.querySelectorAll('tr.pd-fm-row')].map(r => {
-    const k = r.getAttribute('data-pd-og-row'), l = ((r.querySelector('.pd-og-f b') || {}).textContent || k).trim();
-    const el = r.querySelector('td.pd-og-v [data-pd-og-sg="tname"]') || r.querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea');
-    const raw = el ? String(el.tagName === 'SELECT' && el.selectedOptions[0] && el.value ? el.selectedOptions[0].textContent : el.value || '').trim() : ((r.querySelector('.pd-fm-done') || {}).textContent || '').trim();
-    const v = (el && el.type === 'date' && raw) ? pdOgDay(raw) : raw;
-    const has = !!v, st = r.classList.contains('is-saved') ? 'saved' : has ? 'filled' : 'owed';
-    return `<div class="pd2-fact" data-pd2-ft="${E(k)}"><span class="pd2-l">${E(l)}</span><span class="pd2-v${has ? '' : ' pd2-amb'}">${E(has ? '\u201c' + v + '\u201d' : _pdT('pd2_ft_blank'))}</span><span class="pd2-s">${E(_pdT('pd2_ft_' + st))}</span></div>`; }).join('') : '';
-  return `${pd2SpineHtml(D)}<p class="pd2-next">${E(_pdT('pd2_ft_say'))}</p><div class="pd2-eye">${E(_pdT('pd2_ft_h'))}</div><div class="pd2-facts" data-pd2-ft-list>${rows}</div>`;
+/* THE DOSSIER WHILE THE FORM IS UP, THE LEGORA WAY (owner, 12 Nov 2026): Jambo names what is owed and asks for it in ONE
+   sentence (the box at the foot, pd2FormAsk); what he reads back stands under "You said", put into the rows by a press
+   (Put all in · Show me each) and saved only by the form's own Save. Nothing here writes to the record */
+let _pd2FmAsk = null;          // { id, q, busy, err, fields:[{ key, label, value }] }
+function pd2FormOwedRows(){
+  const fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (!fm) return [];
+  return [...fm.querySelectorAll('tr[data-pd2-owed]')].filter(r => !r.classList.contains('is-saved') && !pd2FormRowHas(r));
 }
+function pd2FormRowHas(r){
+  if (r.getAttribute('data-pd-og-kind') === 'signer'){ const n = r.querySelector('[data-pd-og-sg="tname"]'); return !!(n && String(n.value || '').trim()); }
+  return pdFormBoxHas(r);
+}
+function pd2FormRowLabel(r){ return ((r.querySelector('.pd-og-f b') || {}).textContent || r.getAttribute('data-pd-og-row') || '').trim(); }
+function pd2FormFaceHtml(c, D){
+  const E = _pdE, owed = pd2FormOwedRows().map(pd2FormRowLabel);
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  const list = owed.length ? (owed.length === 1 ? owed[0].toLowerCase() : owed.slice(0, -1).map(x => x.toLowerCase()).join(', ') + ' ' + _pdT('pd2_and') + ' ' + owed[owed.length - 1].toLowerCase()) : '';
+  const say = !owed.length ? _pdT('pd2_fmj_none') : _pdTn(may ? 'pd2_fmj_owed' : 'pd2_fmj_owed_ro', owed.length, { n: owed.length, what: list });
+  const A = (_pd2FmAsk && _pd2FmAsk.id === String(c.id)) ? _pd2FmAsk : null;
+  let you = '';
+  if (A){
+    const found = (A.fields || []);
+    const res = A.busy ? `<p class="pd2-fmj-r">${typeof busyHtml === 'function' ? busyHtml(_pdT('pd2_fmj_reading')) : E(_pdT('pd2_fmj_reading'))}</p>`
+      : A.err ? `<p class="pd2-fmj-r pd2-amb" role="alert">${E(A.err)}</p>`
+      : !found.length ? `<p class="pd2-fmj-r">${E(_pdT('pd2_fmj_nothing'))}</p>`
+      : `<ul class="pd2-fmj-found">${found.map(f => `<li><span>${E(f.label)}</span><b>${E(f.shown || f.value)}</b></li>`).join('')}</ul>`
+        + `<p class="pd2-fmj-acts"><button type="button" class="ui-link" data-pd2-fmj-put>${E(_pdTn('pd2_fmj_put', found.length, { n: found.length }))}</button> · <button type="button" class="ui-link" data-pd2-fmj-each>${E(_pdT('pd2_fmj_each'))}</button></p>`;
+    you = `<div class="pd2-fmj-you"><div class="pd2-eye">${E(_pdT('pd2_fmj_you'))}</div><p class="pd2-fmj-q">“${E(A.q)}”</p>${res}</div>`;
+  }
+  return `${pd2SpineHtml(D)}<div class="pd2-turn pd2-fmj"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_pdT('cn2_jambo'))}</b><p>${E(say)}</p></div></div>${you}`;
+}
+/* the box's own words said again as the form opens and closes (igAskPlaceholder is the one reading of them) */
+function pd2FormAskPh(){ const inp = document.getElementById('igd-input'); if (inp && typeof window.igAskPlaceholder === 'function') try { inp.placeholder = igAskPlaceholder(); } catch (_){} }
+/* the box at the panel's foot takes the sentence while the form is up and may be answered (igAskPlaceholder, intelAsk) */
+function pd2FormAskTakes(){
+  return !!(pd2On() && typeof pdFormMidUp === 'function' && pdFormMidUp() && ((typeof canEdit !== 'function') || canEdit()) && pd2FormOwedRows().length);
+}
+/* the owed rows asked of Jambo's one fill route (POST /api/ai/fill), with the person's sentence as what was SAID; each
+   answer put only into a row that is still owed (the route and this both drop a key not asked) */
+async function pd2FormAsk(q){
+  const c = pdContract(); const text = String(q || '').trim(); if (!c || !text) return false;
+  const id = String(c.id);
+  const rows = pd2FormOwedRows();
+  const blanks = [];
+  rows.forEach(r => {
+    const k = r.getAttribute('data-pd-og-row'), l = pd2FormRowLabel(r);
+    if (r.getAttribute('data-pd-og-kind') === 'signer'){
+      blanks.push({ key: 'signer:name', asks: _pdT('pd2_fmj_sg_name', { what: l }), type: 'text', row: l }, { key: 'signer:email', asks: _pdT('pd2_fmj_sg_mail', { what: l }), type: 'text' });
+      return; }
+    const el = r.querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea');
+    const type = el && el.type === 'date' ? 'date' : el && el.type === 'number' ? 'number' : 'text';
+    blanks.push({ key: k, asks: l, type, ...(el && el.placeholder ? { example: el.placeholder } : {}) });
+  });
+  _pd2FmAsk = { id, q: text, busy: true, err: '', fields: [] }; try { pdGlanceRepaint(); } catch (_){}
+  if (!blanks.length){ _pd2FmAsk.busy = false; try { pdGlanceRepaint(); } catch (_){} return false; }
+  if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)){
+    Object.assign(_pd2FmAsk, { busy: false, err: _pdT('pd2_fmj_nokey') }); try { pdGlanceRepaint(); } catch (_){} return false; }
+  try {
+    const r = await aiFillSaid(c, text, blanks.map(({ row, ...b }) => b));
+    const asked = new Map(blanks.map(b => [b.key, b]));
+    const fields = ((r && Array.isArray(r.fields)) ? r.fields : []).filter(f => f && asked.has(f.key) && String(f.value || '').trim())
+      .map(f => { const b = asked.get(f.key), v = String(f.value).trim();
+        /* said back as a person reads it: a date in words, the signer's two lines as "Their signer" and "Email" */
+        const shown = b.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v) && typeof pdOgDay === 'function' ? pdOgDay(v) : v;
+        const label = f.key === 'signer:name' ? (b.row || b.asks) : f.key === 'signer:email' ? _pdT('pd2_fmj_sg_mail_l') : b.asks;
+        return { key: f.key, value: v, shown, label }; });
+    if (!_pd2FmAsk || _pd2FmAsk.id !== id) return false;
+    Object.assign(_pd2FmAsk, { busy: false, fields });
+  } catch (e){
+    if (_pd2FmAsk && _pd2FmAsk.id === id) Object.assign(_pd2FmAsk, { busy: false, err: _pdT('pd2_fmj_failed') + (e && e.message ? ' ' + e.message : '') });
+  }
+  try { pdGlanceRepaint(); } catch (_){}
+  return true;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('input', e => {
+  if (!e.isTrusted || !e.target || !e.target.closest) return;
+  const td = e.target.closest('[data-pd-mid^="form:"] td.pd-og-v'); const by = td && td.querySelector('.pd2-fm-by'); if (by) by.remove();
+});
+/* what Jambo read put into its row's box, as typed (the row's own marks follow; nothing saved until Save) */
+function pd2FormPut(f){
+  const fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (!fm || !f) return null;
+  let row, el;
+  if (f.key.indexOf('signer:') === 0){ row = fm.querySelector('tr[data-pd-og-kind="signer"]'); el = row && row.querySelector(f.key === 'signer:name' ? '[data-pd-og-sg="tname"]' : '[data-pd-og-sg="temail"]'); }
+  else { row = fm.querySelector(`tr[data-pd-og-row="${CSS.escape(f.key)}"]`); el = row && row.querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea'); }
+  if (!row || !el || row.classList.contains('is-saved')) return null;
+  if (el.tagName === 'SELECT'){ const o = [...el.options].find(x => x.value && (x.value.toLowerCase() === f.value.toLowerCase() || x.textContent.trim().toLowerCase() === f.value.toLowerCase())); if (!o) return null; el.value = o.value; }
+  else el.value = f.value;
+  /* input only: the row's marks and the foot follow; a "change" would store a picked date at once (the form's own
+     date listener), and what Jambo read is saved only by Save */
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  /* as drawn: "✓ Jambo: from your note" under what he put in; gone once the person types in that box themselves */
+  const td = el.closest('td.pd-og-v');
+  if (td && !td.querySelector('.pd2-fm-by')){ const t = document.createElement('span'); t.className = 'pd2-fm-by'; t.textContent = '\u2713 ' + _pdT('pd2_fmj_by'); td.appendChild(t); }
+  return row;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  const put = t.closest('#ig-dock [data-pd2-fmj-put]'), each = t.closest('#ig-dock [data-pd2-fmj-each]'); if (!put && !each) return;
+  e.preventDefault(); const A = _pd2FmAsk; if (!A || !A.fields) return;
+  const rows = [...new Set(A.fields.map(pd2FormPut).filter(Boolean))];   // their signer's name and email are ONE row
+  _pd2FmShow = 'all'; const fm = document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form'); if (fm) fm.setAttribute('data-pd2-fm-show', 'all');
+  try { pd2FormFootSay(); } catch (_){}
+  /* Show me each: the hand on the first one put in; Enter walks on through the rest (the form's own walk) */
+  if (each && rows[0]){ const box = rows[0].querySelector('td.pd-og-v input:not([type=checkbox]), td.pd-og-v select, td.pd-og-v textarea');
+    if (typeof landOn === 'function') landOn(rows[0], { block: 'nearest', focus: false });
+    if (box) try { (typeof fieldFocus === 'function' ? fieldFocus(box) : box.focus({ preventScroll: true })); } catch (_){} }
+  if (put) pdOgSay(_pdTn('pd2_fmj_put_done', rows.length, { n: rows.length }), 'ok');
+  _pd2FmAsk = null; try { pdGlanceRepaint(); } catch (_){}
+});
 /* typing in the middle's form: the Dossier's list follows, in place */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   if (!(e.target && e.target.closest && e.target.closest('[data-pd-mid] #pd-og.is-form'))) return;
-  const c = pdContract(), list = document.querySelector('#ig-dock [data-pd2-ft-list]'); if (!c || !list) return;
   try { pd2FormFootSay(); } catch (_){}
-  const t = document.createElement('div'); t.innerHTML = pd2FormFaceHtml(c, dossierOf(c));
-  const nu = t.querySelector('[data-pd2-ft-list]'); if (nu && nu.innerHTML !== list.innerHTML) list.innerHTML = nu.innerHTML;
 }));
 /* ONE SAVE: every box holding an answer through its own writer, Jambo's readings included; then the Dossier */
 function pdFormSave(){
@@ -9079,7 +9209,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClos
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2StandsFaceHtml, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2DealGo, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
-Object.assign(window, { pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
+Object.assign(window, { pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdDealOpen, pdDealRepaint, pdDealGoClause, pdDealCrumbHtml, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,

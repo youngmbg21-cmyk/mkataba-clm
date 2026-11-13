@@ -22286,6 +22286,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed (12 Nov 2026): a parked ask of theirs travels on their copy with status "countered" and `counteredBy` naming our counter even when that counter is held back for internal review (`buildSharePayload` keeps the parked ask's status; only the held counter is filtered by `shareHeldBackIds`). Their page reads it as waiting (their History now says "waiting" there, 12 Nov), but the copy's data still says a counter exists — a review the counterparty should never learn of (`reviewSeatShowsReview`).
 - FIXED (12 Nov 2026, f1017 (5)): names typed on the paper's signature lines now show in the signing route window opened from Change (`pd2FillSigTyped` → `openSignerPlanEditor` `typed`).
 - Noticed, not fixed: board-says-it-plain-verify A0 went red once on GitHub (PR 667, "bubble chart of value against time left" read the card before it) and green on the re-run with no change: a timing slip in the check.
+- 12 Nov 2026 (Noticed, not fixed): the Fill in form says "nothing is saved until Save", but a date picked in it is stored at once (the form's date change saves the row); measured on MK-E1: Effective written to the record with no Save pressed.
 
 ### Fixed 12 Nov 2026 (f1018)
 - Emails to the other side had no reply address; a reply reached nobody. Fixed: the sender is the reply address.
@@ -22297,3 +22298,13 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: the read table opened on the Discover page still draws the old Reads head (its own box, All · Mine · Facts, and "+ Ask a column", which goes to the Contracts list's form), not Discover's.
 - Noticed, not fixed: on Discover a counting question is only pointed to Jambo's box; the old form's offer to turn it into one question asked of each contract (ac_ct_turn) has no door there.
 - Noticed, not fixed: on Discover the Due diligence pack asks all five questions; the old form let a person untick some (askColPackPicked); there is no tick on Discover.
+
+## 12 Nov 2026 — the stutter audit (a face change is drawn at once; f1021)
+- FIXED: a tab, face or paper change laid a wrongly styled copy of Jambo's panel over it and faded both (the flash); a second repaint mid-fade snapped it (the stutter). Nothing is copied or faded now; a panel opening wider no longer fades in from nothing; a tab's press draws its body once and keeps the paper's line where it says the same. REVERSES the "Crossfade" pick of 22 Oct 2026 (owner: "why can the old tabs be deleted across the platform to avoid this?").
+- REMOVED (a change too): the crossfade and the wider-panel fade-in. The lit tab's underline still glides.
+### Noticed, not fixed
+- CLAUDE.md is about 90 KB, past its own 80 KB limit; a trim needs the owner's yes.
+- "Fill in on the paper" (MK-469, a lease): sixteen details listed as "have no place on the paper" in one sentence; the line was drawn for one or two. The paper's blanks are probably not being found.
+- Jambo's panel is still built whole on every repaint (about 170 callers of renderIntelDock); only the visible flash was removed.
+- (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
+- 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
