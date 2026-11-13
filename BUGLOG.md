@@ -22313,3 +22313,5 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 13 Nov 2026 — the "room for the answer" check is f1024, not f1020 as the 12 Nov line above says (main took f1020 to f1023 meanwhile).
 - 12 Nov 2026: the stutter audit's test is f1024 (main took f1021 to f1023 before it merged).
 - 13 Nov 2026 — the "room for the answer" check is f1025 (main took f1024 for "a tab change never flashes"; it was f1020, then f1024).
+- 13 Nov 2026 — Noticed, not fixed: home-board-verify 15a ("by month" draws month columns, the recipe's groups under How this is drawn) is RED ON MAIN (run 5005, commit 9f6f6aa, the merge of #683 "a tab change never flashes"); green on main the run before (e7d345c). It fails the same way on any branch joined with main since.
+- 13 Nov 2026 — Noticed, not fixed: the-read-bar-and-notes-verify fails all of ONE screen on some runs and passes on a re-run (12 Nov on #668, 13 Nov on #685), on changes that do not touch the read: the first screen is still slow on a cold server.
