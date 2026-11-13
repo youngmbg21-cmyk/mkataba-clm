@@ -349,7 +349,9 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     const dress = fnBody(CE, 'ceRowPaperDress');
     assert.doesNotMatch(dress, /ce-row-off|ceRowContextLine/);
     assert.match(dress, /all\.forEach\(\(el, i\) => el\.classList\.toggle\('ce-row-on', i === at\)\);/);
-    assert.match(dress, /_cet\(ceRowIsCounter\(\) \? 'ce_row_is_counter' : 'ce_row_is_draft'\)/);
+    /* RE-POINTED 13 Nov 2026: a draft of ours already filed says so with its number (f1027); the counter and
+       the unfiled draft read as before */
+    assert.match(dress, /ceRowIsCounter\(\) \? _cet\('ce_row_is_counter'\)\s*: ceLeadIsOurs\(\) \? _cet\('ce_row_is_filed', \{ id: _ceLead\.id \}\) : _cet\('ce_row_is_draft'\)/);
     assert.ok(!/function ceRowStep\(/.test(CE), 'the ladder step reading is gone from the editor');
     assert.doesNotMatch(CE, /ce-rowmode #ce-doc \.ce-row-off|ce-rowmode #ce-readbar|ce-rowmode \.ce-foot \.draft/);
     assert.doesNotMatch(CE, /ce-row-on #ce-clausebody\{border/, 'no blue box round the clause (owner, 20 Oct 2026)');

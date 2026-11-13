@@ -691,7 +691,9 @@ describe('f304 (10) — round four: reply on any note, Delete beside Done, marks
   test('THE NOTE COMES AT SAVE, and the control says so; a Copilot card\'s Apply files nothing', () => {
     /* RE-POINTED 5 Oct 2026 (one row of feet): the hover still says the note
        comes at Save, now after naming the change Save files into. */
-    assert.match(CE, /else if \(b === save\) b\.setAttribute\('title', \(_ceLead \? _cet\('ce_save_to_long', \{ id: _ceLead\.id \}\) \+ ' — ' : ''\) \+ _cet\('ce_save_opens_note'\)\);/);
+    /* RE-POINTED 13 Nov 2026 (the editor's audit): "Saves into CHG-…" only over our own change; over theirs the
+       hover names the counter it files. The note still comes at Save, said last. */
+    assert.match(CE, /else if \(b === save\) b\.setAttribute\('title', \(!_ceLead \? ''[\s\S]{0,400}?_cet\('ce_save_to_long', \{ id: _ceLead\.id \}\)[\s\S]{0,300}?\+ ' — '\) \+ _cet\('ce_save_opens_note'\)\);/);
     assert.match(CE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);/);
     assert.ok(!/ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);\s*ceFile\(/.test(CE), 'Apply is not a second door onto the filing');
   });

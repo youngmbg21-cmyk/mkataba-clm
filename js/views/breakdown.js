@@ -612,7 +612,7 @@ function stkDecorate(c, card, rows){
   /* THE PREAMBLE AND ITS BLANKS, FIRST (the new look, as drawn): the paper's own blanks still open before the first clause,
      read off the paper (free), with the one door that fills them on the paper; a blank is filled, never redlined */
   if (stkNewLookOn() && list && typeof window.pd2FillBlanks === 'function'){
-    let bl = []; try { bl = window.pd2FillBlanks(c).filter(x => x && !String(x.value || '').trim() && (!x.section || x.section === c.name)); } catch (_){ bl = []; }
+    let bl = []; try { bl = window.pd2FillBlanks(c).filter(x => x && x.kind !== 'tplform' && !String(x.value || '').trim() && (!x.section || x.section === c.name)); } catch (_){ bl = []; }
     /* Mark reviewed: the existing review record (POST …/points/:key/review), one key for the preamble's blanks; a reviewed
        blank is still a blank — signing still waits on it being filled */
     const rv = (c.pointReviews || {})[STK_PRE_KEY], why = stkReviewWhy(), busy = !!_stk.marking[STK_PRE_KEY];

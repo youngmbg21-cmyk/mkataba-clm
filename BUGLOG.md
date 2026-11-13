@@ -22292,6 +22292,9 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Emails to the other side had no reply address; a reply reached nobody. Fixed: the sender is the reply address.
 - A parked ask carried "countered" and the held counter's id onto their copy while that counter was held for review. Fixed on both copies.
 - 12 Nov 2026 — the cut-short draft check is now f1019 (main took f1018 for "the read plays on arrival" the same day; it was f1017, then f1018).
+- 12 Nov 2026 — MEASURED, not fixed: why a Jambo draft is cut short. The clause editor's own ask (clause 6, two ticked points) sent six times through a real server to the provider: the deep model (claude-sonnet-5) THINKS before answering on some runs though HaTi never asks it to (a `thinking` block in 2 of 6), and those tokens are spent from the chat step's 4,000 (max_tokens). One run spent about 2,100 of them thinking for a 500-token answer; a heavier ask leaves too little and the answer stops mid-word. The cut itself was not reproduced (0 of 6 stopped at max_tokens). Every route's ceiling was set before the model thought, so the same squeeze is possible on any deep call.
+- 12 Nov 2026 — Noticed, not fixed (same measure, 1 of 6): asked for a draft, Jambo answered through the chat's answer tool with a two-line summary ("See the JSON for the reasoning and the replacement text") and no wording, so the editor shows advice and no card.
+- 12 Nov 2026 — FIXED (f1020): a chat step on the stronger model has more room (8,000), and any step cut short is asked once more (12,000) before the cut is said. Noticed, not fixed: the single-tool routes on the stronger model (brief, obligations, playbook pass, column reads) were not measured for the same thinking squeeze.
 - (12 Nov 2026) The two fixes above are numbered f1020, not f1018: main took f1018 and f1019 the same day.
 ## 12 Nov 2026 — the Discover chapters' Handbook pictures, in the new look (owner: "Discover chapters")
 - Fixed (found while taking the pictures): a question asked on the Discover page by somebody who came straight there (not through Contracts) had the Contracts list drawn over the page after the first answers; the list's repaint now waits while Discover is in front (`_acRegRepaint`, f1016 7).
@@ -22307,6 +22310,7 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - "Fill in on the paper" (MK-469, a lease): sixteen details listed as "have no place on the paper" in one sentence; the line was drawn for one or two. The paper's blanks are probably not being found.
 - Jambo's panel is still built whole on every repaint (about 170 callers of renderIntelDock); only the visible flash was removed.
 - (12 Nov 2026, f1021) Fixed: the email tagging someone on the other side had no reply address.
+- 13 Nov 2026 — the "room for the answer" check is f1024, not f1020 as the 12 Nov line above says (main took f1020 to f1023 meanwhile).
 
 ## 13 Nov 2026 — GitHub tests a pull request and main every night, never a bare push (owner's yes)
 - CHANGED: .github/workflows/tests.yml runs on pull_request, a nightly clock and by hand; not on push. f1024. The session greeting says the same.
@@ -22329,3 +22333,33 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Left alone on purpose: the Redlines column's notes view (word verbs, own Done fold) and the phone.
 ### Noticed, not fixed
 - The contract-wide Notes list on the OTHER SIDE's page prints our change code (CHG-00N) on a note's reference line (rlChatPanelHtml refOf), while the pin on the same page reads the clause instead (owner, 8 Nov 2026). Not checked in a browser on their page; not touched.
+- Noticed, not fixed (13 Nov 2026): many browser checks open a contract (roomHomeLand) as soon as currentUser() is set after sign-in, before the sign-in's own landing on the Board (`_cnSignedIn` cleared in startApp); the Board can paint over the contract and the check fails at random (seen on the-read-bar-and-notes-verify laptop-b). Fixed only in the three checks this round touched; the rest should wait for `window._cnSignedIn === false`.
+
+## 13 Nov 2026 — the clause editor's audit (owner, four screenshots of MK-382's clause 3; f1026, editor-audit-verify)
+- FIXED: Home's Redline / Clean / Their view paper drew a lettered limb flush against the margin (the hang and step rules named the editor's paper only). Stated for .ig-redpaper too.
+- FIXED: in the new look the editor's Jambo panel was still the 28 Oct floating card; it is a flush panel with one hairline.
+- FIXED: a clause with an (a) (i) (1) limb read as typed in the moment it was opened (the gutter walk's own step class read back as the reader's work): Save live over nothing, "Leave this clause?" on a redline already filed.
+- FIXED: the page said "nothing is filed" and "Draft saved at" over a change already filed; it says what is filed, whose it is, and "Not filed yet" for a draft. The leave warning quotes the words at risk.
+- FIXED (found by the audit): Undo back to what stands over our own filed change asked "Leave and lose it?" with Save grey; Redo drew a later step over words typed since the step back; moving to a clause a colleague holds put the reader out of the editor; Escape with the Notes panel open shut the panel AND left the editor; the Save hover over their change named their change as the one saved into.
+- Noticed, not fixed: on Home's panel beside a paper the Redlines tab carries a number (2 in the owner's image 4) that is not the head's "Redlines 6"; two counts on one door, not read further (outside the editor).
+- Noticed, not fixed: "Undo the last change" in the editor's foot is live on a change opened and not touched (it steps the box to the standing wording); harmless now, but it reads as if something of this sitting could be undone.
+- Noticed, not fixed: the writing bar's Outdent on a lettered limb whose step was read off its marker does not stick (the next repaint reads the step off the marker again).
+- Noticed, not fixed: CLAUDE.md is about 93 KB, over its own "about 80 KB" line (two lessons added this round).
+- NOT DONE, said: the new browser check was not seen red on main by a hand run (about 110 billed minutes); its node twin was run red against the parent and the photos show the faults on the parent.
+## Noticed, not fixed (13 Nov 2026)
+- home-board-verify 15a ("by month" draws month columns, each a door…) fails on main since 9f6f6aa (run 43337002752; passed at e7d345c). Seen on PR 686, which touches neither the Board nor its charts. Not fixed here.
+- FIXED the same day (owner: "fix it first"): the check's own dates, not the app. MK-J1 ends day(200) and MK-J2 had the fixed 30 Jun 2027; from 13 Nov 2026 day(200) falls in June too, so "Juno by month" was one month ("All in one") and drew no columns. MK-J2 now ends day(260), always another month.
+- 13 Nov 2026 — the "room for the answer" check is f1025 (main took f1024 for "a tab change never flashes"; it was f1020, then f1024).
+- 13 Nov 2026 — Noticed, not fixed: home-board-verify 15a ("by month" draws month columns, the recipe's groups under How this is drawn) is RED ON MAIN (run 5005, commit 9f6f6aa, the merge of #683 "a tab change never flashes"); green on main the run before (e7d345c). It fails the same way on any branch joined with main since.
+- 13 Nov 2026 — Noticed, not fixed: the-read-bar-and-notes-verify fails all of ONE screen on some runs and passes on a re-run (12 Nov on #668, 13 Nov on #685), on changes that do not touch the read: the first screen is still slow on a cold server.
+- 13 Nov 2026 — the "room for the answer" check is f1026 (main took f1025 for "GitHub tests a pull request").
+- 13 Nov 2026 — FIXED (owner: "fix the Board check on main yourself"; one local run allowed): home-board-verify 15a was day-dependent, not broken by #683. MK-J1 ends day(200), MK-J2 took mk's fixed 2027-06-30; from 13 Nov to 12 Dec 2026 both are June 2027, one month is said not drawn (hbSmallOne, G10), so no month columns. MK-J2 now ends day(260). The two lines above that blame #683 / guess a timing fault are superseded by this one.
+
+## 13 Nov 2026 — Noticed, not fixed: a draft asked of Jambo comes back with NO WORDING (the owner asked for this line)
+- WHAT THE READER SEES: in the clause editor, asked to draft (for example the ticked "What to watch" points on clause 6, Limitation of Liability), Jambo answers with a short summary and no suggested wording — advice and no card, nothing to Apply.
+- MEASURED 12 Nov 2026, the clause editor's own ask sent through a real server to the provider: 2 of 9 runs (claude-sonnet-5, the stronger model). Each time the model answered through the chat's answer tool (`deliver_answer`) instead of writing the one JSON object the drafting prompt asks for (`AI_PROPOSAL_FORMAT`): a 274-character summary ending "See the JSON for the reasoning and the replacement text", and once a 56-character one. Both runs had a `thinking` block first. Not cut short (stop_reason tool_use, well inside the room).
+- WHY IT MATTERS: the drafting door reads that summary as advice (`aiParseProposal` finds no proposal object), so it is not a fault the reader is told about — it looks like Jambo chose not to draft.
+- UNVERIFIED GUESS (mine, not measured): the chat route offers its answer tool on every step, so the model may take it even for a drafting ask; the summary's "See the JSON" suggests it believed it had sent the object as well.
+- Not fixed: the owner asked only for this line.
+- 13 Nov 2026: the clause editor's audit's test is f1027 (main took f1026 for "room for the answer" before it merged); the lines above that say f1026 for the audit mean f1027.
+- Renumbered: the Thread's check is f1030 (main took f1026 for "room for the answer" the same day).

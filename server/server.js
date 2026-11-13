@@ -14114,6 +14114,25 @@ function copilotNudge(working, words) {
 /* the last step must answer (measured: making EVERY step use a tool sent a confused model searching to the
    eighth call, 22 Oct 2026; a question asked back in plain words is asked to come with its choices instead) */
 const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { type: 'tool', name: 'deliver_answer' } } : {});
+/* ---- ROOM FOR THE ANSWER, AND ONE MORE GO WHEN IT RUNS OUT (owner, 12 Nov 2026; measured the same day) ----
+   The stronger model thinks before it answers on some asks, unasked, and that thinking is spent from the step's
+   own max_tokens: measured, one clause-editor draft spent about 2,100 of 4,000 thinking for a 500-token answer,
+   and a heavier one left too little, so the wording stopped mid-word. So (1) a step on the deep tier has more
+   room, and (2) ANY step the provider cut short is asked once more with the most room, before the cut is said.
+   A second cut stands as a fact (`truncated`), exactly as before. The first go's fee is still counted (`cutCost`). */
+/* each caller's own call stays AWAITED where it is written: f203 finds every metered call by its `await`, and
+   checks there that it names a feature and a person */
+const AI_CHAT_ROOM = 4000, AI_CHAT_ROOM_DEEP = 8000, AI_CHAT_ROOM_AGAIN = 12000;
+const copilotStepRoom = deep => (deep ? AI_CHAT_ROOM_DEEP : AI_CHAT_ROOM);
+async function copilotStepCall(call, deep) {
+  const first = await call(copilotStepRoom(deep));
+  if (!first || !first.ok || !first.truncated) return first;
+  const again = await call(AI_CHAT_ROOM_AGAIN);
+  if (!again || !again.ok) return first;
+  again.cutCost = Number((first.spend && first.spend.cost) || 0);
+  again.askedAgain = true;
+  return again;
+}
 const COPILOT_CHOICES_NUDGE = '[From HaTi, not the person] Call deliver_answer now. If more than one thing could be meant, search, then give a short question as the answer with 2-4 choices, each the exact door it opens (name them; never "I haven\'t asked"). If you know what is meant, give the answer itself.';
 /* a reply in plain words that asks the person back ("which one…?") */
 /* …or offers what it could do next ("Would you like me to: 1 … 2 …", "Vill du att jag …"), with or without its "?" (stage 3d) */
@@ -14537,14 +14556,14 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) });
+      const resp = await copilotStepCall(async room => await anthropicMessages(key, (compared || judge) ? 'deep' : 'fast', { max_tokens: room, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) }), compared || judge);
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
         return res.status(502).json({ error: err, kind: 'provider' });
       }
       usedModel = resp.model || usedModel;
-      turnCost += Number((resp.spend && resp.spend.cost) || 0);
+      turnCost += Number((resp.spend && resp.spend.cost) || 0) + Number(resp.cutCost || 0);
       if ((compared || judge) && copilotDeepDiffers()) wentDeep = true;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
       if (resp.truncated) truncated = true;
@@ -14885,10 +14904,10 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          route comment above) — progress events flow, the answer arrives
          whole in `final`. To re-enable, pass
          onToken: text => { if (text) send('token', { text }); } */
-      const resp = await anthropicMessagesStream(key, (compared || judge) ? 'deep' : 'fast',
-        { max_tokens: 4000, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) },
+      const resp = await copilotStepCall(async room => await anthropicMessagesStream(key, (compared || judge) ? 'deep' : 'fast',
+        { max_tokens: room, system, tools: copilotToolsFor(context), messages: working, ...copilotLastStep(step) },
         { feature: 'chat', who: aiWho(req) },
-        { signal: ac.signal });
+        { signal: ac.signal }), compared || judge);
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -14896,7 +14915,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         return res.end();
       }
       usedModel = resp.model || usedModel;
-      turnCost += Number((resp.spend && resp.spend.cost) || 0);
+      turnCost += Number((resp.spend && resp.spend.cost) || 0) + Number(resp.cutCost || 0);
       if ((compared || judge) && copilotDeepDiffers()) wentDeep = true;
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
       if (resp.truncated) truncated = true;
