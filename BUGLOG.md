@@ -22305,3 +22305,10 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Noticed, not fixed: CLAUDE.md is about 91 KB, over its own "about 80 KB" line.
 - Noticed, not fixed: Bug Fix Rule 4 says GitHub's browser checks verify "after the push"; they now run once the pull request is open. Asked the owner.
 - FIXED (owner's yes, 13 Nov 2026): Bug Fix Rule 4 now says the browser checks run once the pull request is open, not "after the push".
+
+## 13 Nov 2026 — Noticed, not fixed: home-board-verify 15a is red (a browser check, after midnight UTC)
+- home-board-verify.js 15a ("by month" draws month columns, with the recipe's groups and the trend switch) FAILED twice in a row on pull request 684, whose diff touches NO product code (tests.yml, CLAUDE.md, the notes, the session hook, one node test). GitHub tests a pull request AS MERGED INTO MAIN, so this is main's own fault, not the branch's.
+- Main's last full run (23:35 UTC, 12 Nov, commit e7d345c, this branch's base) was fully green. Both red runs started after 00:00 UTC on 13 Nov. UNVERIFIED GUESS (mine, not measured): a day-dependent fixture or reading, the class CLAUDE.md warns about ("a test whose answer depends on the day it runs is worse than no test").
+- 15b to 15g all pass right after it, so the panel and the pictures are drawn; what 15a asks for beyond them (month columns, the three groups, the trend switch, the split reading "month") is where it stops.
+- Also seen, once only, on the second run: discover-verify 11b and 11d (Stop / Carry on). Not reproduced on the first run, so it looks like timing, not the same fault.
+- Not fixed: outside the request (the GitHub test setup, then going private).
