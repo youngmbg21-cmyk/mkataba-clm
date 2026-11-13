@@ -118,6 +118,14 @@ describe('f1042 (3) the brain is the Explorer\'s own', () => {
   test('3d a mouse drag turns it, never a finger (a swipe is the panel\'s)', () => {
     assert.match(MINI, /if\(!cv\|\|e\.pointerType!=='mouse'\|\|e\.button!==0\) return;/);
   });
+  test('3d2 the hand leads: a drag turns it the Explorer\'s own way, at its own rates (igTurnBy)', () => {
+    /* the Explorer's brain: rot MINUS the sideways move, tilt PLUS the downward one, .006 and .004, tilt held in -.5 … .8 */
+    assert.match(IG, /if\(cam\.view===0\)\{ cam\.rot-=dx\*\.006; cam\.tiltOff=Math\.max\(-\.5,Math\.min\(\.8,cam\.tiltOff\+dy\*\.004\)\); \}/, 'the Explorer still turns this way');
+    assert.match(IG, /IG_MINI_DRAG=\[\.006,\.004\], IG_MINI_TILT=\[-\.5,\.8\];/);
+    const D = IG.slice(IG.indexOf("document.addEventListener('pointermove',e=>{ const h=_igMini.hold;"), b);
+    assert.match(D, /_igMini\.rot-=\(e\.clientX-h\.x\)\*IG_MINI_DRAG\[0\];/, 'sideways: subtracted, never added');
+    assert.match(D, /_igMini\.tiltOff\+\(e\.clientY-h\.y\)\*IG_MINI_DRAG\[1\]/, 'up and down: added');
+  });
   test('3e it reads only: no AI, no save', () => {
     assert.ok(!/api\(|fetch\(|persist\(|\/api\/ai/.test(MINI));
   });

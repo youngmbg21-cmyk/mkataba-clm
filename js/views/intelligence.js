@@ -5578,7 +5578,7 @@ function igbGlow(ctx,x,y,r,col,a){ if(!(r>0)||!(a>0)) return;
    another, or on the card's two controls, is not drawn). STILL UNTIL PRESSED, as the Explorer; a mouse drag turns
    it (never a finger: a swipe is the panel's). READING ONLY: it counts nothing, writes nothing, asks no AI.
    ONE loop for every such canvas (igMiniWake), alive only while one is on screen. */
-const IG_MINI_FRESH_MS=4000, IG_MINI_NAME_MAX=22, IG_MINI_NAME_PX=9, IG_MINI_NAMES_TRIED=14, IG_MINI_DRAG=.01, IG_MINI_TILT=[-.6,.7];
+const IG_MINI_FRESH_MS=4000, IG_MINI_NAME_MAX=22, IG_MINI_NAME_PX=9, IG_MINI_NAMES_TRIED=14, IG_MINI_DRAG=[.006,.004], IG_MINI_TILT=[-.5,.8];
 const _igMini={ rot:-1.4, tiltOff:0, spin:false, jig:1, t:0, last:0, at:0, on:false, hold:null, timer:0, model:null, key:'' };
 function igMiniBook(){ const cs=(typeof state==='object'&&state&&state.contracts)||[];
   return cs.filter(c=>c&&!c.archived&&c.status!=='Declined'&&(typeof window.canAccessFolder!=='function'||window.canAccessFolder(c.folder))); }
@@ -5676,7 +5676,9 @@ if(typeof document!=='undefined'&&typeof document.addEventListener==='function'&
     _igMini.hold={ x:e.clientX, y:e.clientY }; try{ cv.setPointerCapture(e.pointerId); }catch(_){}
     if(!_igMini.on){ _igMini.on=true; _igMini.last=performance.now(); requestAnimationFrame(igMiniTick); } else igMiniWake(); });
   document.addEventListener('pointermove',e=>{ const h=_igMini.hold; if(!h) return;
-    _igMini.rot+=(e.clientX-h.x)*IG_MINI_DRAG; _igMini.tiltOff=Math.max(IG_MINI_TILT[0],Math.min(IG_MINI_TILT[1],_igMini.tiltOff+(e.clientY-h.y)*IG_MINI_DRAG*.6)); h.x=e.clientX; h.y=e.clientY; });
+    /* THE HAND LEADS, AS ON THE EXPLORER (igTurnBy's own signs and rates; owner, 13 Nov 2026: "moving in the opposite
+       direction of where I want to move it" — the sideways turn was added where the Explorer subtracts it) */
+    _igMini.rot-=(e.clientX-h.x)*IG_MINI_DRAG[0]; _igMini.tiltOff=Math.max(IG_MINI_TILT[0],Math.min(IG_MINI_TILT[1],_igMini.tiltOff+(e.clientY-h.y)*IG_MINI_DRAG[1])); h.x=e.clientX; h.y=e.clientY; });
   ['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,()=>{ _igMini.hold=null; }));
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) igMiniWake(); });
 }
