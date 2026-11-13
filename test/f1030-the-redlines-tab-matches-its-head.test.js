@@ -10,9 +10,11 @@
          the same, with our drafts, their ask, our sent change and a settled one folded away;
      (2) THE TONE SAYS WHOSE MOVE — amber while anything there waits on you, grey when all of it waits on them;
      (3) NOTHING IN THE COLUMN, NO NUMBER;
-     (4) THEIR VIEW is unchanged: their column, quiet.
+     (4) THEIR VIEW is unchanged: their column, quiet;
+     (5) COUNTING NEVER CREATES A NEGOTIATION: a contract nobody has redlined gets no number and is not written.
 
-   AT THE PARENT (a931117) (1) and (2) fail: the tab said the owed rows' count in amber.
+   AT THE PARENT (a931117) (1) and (2) fail: the tab said the owed rows' count in amber. (5) fails on this
+   branch's first push (92f08c6), which read the column's count on every contract.
    Run: node --test test/f1030-the-redlines-tab-matches-its-head.test.js */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -43,14 +45,14 @@ const RICH = '<h1>SERVICES</h1>'
 
 /* the stage: the real column (js/views/negotiation.js), and the real tab count from js/paperdesk.js with the
    Dossier's reading stood in by `owed` (the rows of the negotiation stage the Dossier would list) */
-async function stage(build, owed){
+async function stage(build, owed, o = {}){
   const w = buildWorld({ negotiationView: true, contractView: true, playbook: true });
   const { win } = w;
   win.promptDialog = async () => '';
   win.confirmDialog = async () => true;
   win.toast = () => {};
   const c = supplyContract({ redlineText: RICH });
-  win.negoInit(c);
+  if (!o.received) win.negoInit(c);
   win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'dashboard' });
   win.getContract = id => (id === c.id ? c : null);
   const cl = re => win.negoClauseList(c).find(x => re.test(String(x.heading || x.headingText || '') + ' ' + x.text));
@@ -113,6 +115,19 @@ describe('f1030 (3) nothing in the column, no number', () => {
     const S = await stage(async () => {}, []);
     assert.equal(S.head(), 0);
     assert.equal(S.tab(), null);
+  });
+});
+
+describe('f1030 (5) counting never creates a negotiation (reading must not write)', () => {
+  /* CAUGHT ON GITHUB, 13 Nov 2026 (upload-blanks-verify 8h, "the received document is not rewritten"): the
+     column's count reads through negoChanges, which calls negoInit and stamps clause ids into the document; the tab
+     is painted on every contract, so a contract nobody had redlined was rewritten by looking at it */
+  test('a received contract with no negotiation: no number, and nothing on it is written', async () => {
+    const S = await stage(async () => {}, [], { received: true });
+    const before = JSON.stringify({ n: S.c.negotiation, ch: S.c.changes, body: S.c.redlineText });
+    assert.equal(S.tab(), null);
+    assert.equal(JSON.stringify({ n: S.c.negotiation, ch: S.c.changes, body: S.c.redlineText }), before, 'the record is as it was');
+    assert.equal(S.c.negotiation, undefined, 'no negotiation was created');
   });
 });
 

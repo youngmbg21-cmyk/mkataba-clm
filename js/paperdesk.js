@@ -211,6 +211,10 @@ function pdTabCount(t, c){
        "Redlines 6". The number is the head's own reading (rlOpenCardCount over the face's options, hidden as the
        column hides), as Their view's already is; the tone says whether any of it waits on you (the Dossier's
        negotiation rows): amber then, grey when all of it waits on them */
+    /* COUNTING NEVER CREATES A NEGOTIATION: the column's count reads through negoChanges, which calls negoInit and
+       stamps clause ids into the document — so it is asked only where a negotiation and changes already stand
+       (RAW, as rlOwnerOpenActions does). A contract nobody has redlined carries no number and is left as received. */
+    if (t === 'red' && !(c.negotiation && Array.isArray(c.changes) && c.changes.length)) return null;
     if (t === 'red' && typeof rlOpenCardCount === 'function'){
       const hid = typeof rlHiddenFrom === 'function' ? [...rlHiddenFrom(c, 'owner')] : [];
       const n = rlOpenCardCount(c, Object.assign({}, pdRedOpts(c), { hiddenIds: hid }));
