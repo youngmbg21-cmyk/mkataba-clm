@@ -10,6 +10,8 @@
      4. a list page: words in the panel's ask box survive the page being drawn again
      5. Settings: words in Jambo's box survive the page being drawn again
      6. the Handbook: a chapter pressed low in the chapter list keeps the list where it was
+     6b. the Handbook: the chapter being read keeps its place when the page is drawn again (Jambo's panel buttons, a
+         Recent ×, an alert opened all redraw it; 14 Nov 2026, the measure after round 3)
      7. Our paper: a standard pressed low in the list keeps the list where it was
      8. Jambo's house: words in the contract picker (KNOWN: the picker writes the chosen name back)
      9. no page errors
@@ -121,6 +123,15 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
     if (!h6 || h6.why) skip('6', (h6 && h6.why) || 'no Handbook');
     else { await page.waitForTimeout(700); const now = await scrollAfter('#hbk-page');
       say('handbook-list', `6. pressing "${h6.label}" keeps the chapter list where it was`, kept(h6.top, now), said(h6.top, now)); }
+
+    console.log('\n6b · the Handbook\'s chapter, drawn again');
+    { const was = await page.evaluate(() => { const sc = document.getElementById('hbk-body'); if (!sc) return { why: 'no chapter on screen' };
+        if (sc.scrollHeight - sc.clientHeight < 120) return { why: 'the chapter is too short to scroll' };
+        sc.scrollTop = Math.min(300, sc.scrollHeight - sc.clientHeight); return { top: sc.scrollTop }; });
+      if (was.why) skip('6b', was.why);
+      else { await page.evaluate(() => { try { renderHandbook(); } catch (_){ } }); await page.waitForTimeout(500);
+        const now = await page.evaluate(() => { const sc = document.getElementById('hbk-body'); return sc ? { top: sc.scrollTop, max: sc.scrollHeight - sc.clientHeight } : null; });
+        say('handbook-chapter', '6b. the chapter being read keeps its place when the page is drawn again', kept(was.top, now), said(was.top, now)); } }
 
     console.log('\n7 · Our paper\'s list');
     await go('ourpaper'); await page.waitForTimeout(600);

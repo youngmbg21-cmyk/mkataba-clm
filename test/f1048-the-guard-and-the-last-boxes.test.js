@@ -97,7 +97,9 @@ test('f1048 (7) keepScrollIn keeps the list, never the pane beside it', () => {
 });
 
 test('f1048 (8) the Handbook and Our paper keep their lists, not their reading panes', () => {
-  assert.match(region(read('js/views/handbook.js'), 'function hbknRender', 600), /keepScrollIn\(host, \(\) => hbknRender\(host\), '#hbk-body, #hbk-body \*'\)/);
+  /* 14 Nov 2026 (the measure after round 3): the chapter being read starts at its top only when it is a DIFFERENT
+     chapter; the same chapter drawn again keeps its place too (f1049) */
+  assert.match(region(read('js/views/handbook.js'), 'function hbknRender', 1200), /keepScrollIn\(host, \(\) => hbknRender\(host\), same \? null : '#hbk-body, #hbk-body \*'\)/);
   assert.match(region(read('js/views/library.js'), 'function tplBookRepaint', 900), /keepScrollIn\(host, draw, '\.tpl-pf-paper, \.tpl-pf-paper \*'\)/);
 });
 

@@ -384,9 +384,13 @@ function hbknRender(host){
   /* THE CHAPTER LIST KEEPS ITS PLACE (14 Nov 2026, the flash survey): a chapter pressed low in the list redrew the
      page and threw the list back to its top. The page is drawn whole as before; every scroller but the chapter
      being read (#hbk-body: a new chapter starts at its top) is put back where it stood (keepScrollIn) */
+  /* AND THE CHAPTER BEING READ KEEPS ITS PLACE WHEN IT IS THE SAME CHAPTER (14 Nov 2026, the measure after round 3:
+     Jambo's panel buttons, a Recent ×, an alert opened, or the shown chapter pressed again redrew the page and threw
+     the reader to the chapter's top). Only a DIFFERENT chapter starts at its top. */
   if (typeof keepScrollIn === 'function' && !hbknRender._in){ hbknRender._in = true;
-    try { return keepScrollIn(host, () => hbknRender(host), '#hbk-body, #hbk-body *'); } finally { hbknRender._in = false; } }
-  const c = hbknChapter(); _hbk.part = c.part || _hbk.part;
+    const same = !!document.getElementById('hbk-body') && hbknRender._drawn === hbknChapter().k;
+    try { return keepScrollIn(host, () => hbknRender(host), same ? null : '#hbk-body, #hbk-body *'); } finally { hbknRender._in = false; } }
+  const c = hbknChapter(); _hbk.part = c.part || _hbk.part; hbknRender._drawn = c.k;
   const sv = _hbkLang() === 'sv';
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page hbkn-page" id="hbk-page" data-ins-page="${HBK_SEAT}" data-ins="1"><style>${hbkCss()}</style>
     <div class="ap-body is-ins"><section class="ap-card apn-card hbkn-card" aria-label="${_hbkE(_hbkT('nav_handbook'))}">
