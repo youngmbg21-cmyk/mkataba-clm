@@ -632,11 +632,19 @@ function puFrame(ts){
 function puCritSet(k){
   if (!PU_CRITS.includes(k) || k === _pu.crit) return;
   _pu.crit = k; _pu.prev = null; _pu.shown = PU_PAGE;
-  /* the board is ranked again where the reader stands, not from its top (the flash survey, 13 Nov 2026) */
-  if (typeof keepScroll === 'function') keepScroll(() => renderPulse()); else renderPulse();
+  puRedrawInPlace();
   puKeep();
 }
-function puHold(on){ _pu.held = on == null ? !_pu.held : !!on; if (typeof keepScroll === 'function') keepScroll(() => renderPulse()); else renderPulse(); }
+function puHold(on){ _pu.held = on == null ? !_pu.held : !!on; puRedrawInPlace(); }
+/* A RANKING OR A PAUSE REDRAWS THE TABLE AND THE HEAD, NOT THE PAGE (owner, 14 Nov 2026, the flash survey: about
+   150 pieces were thrown away and built again on every press). The live ticker's own careful redraw (puRepaint:
+   the head and the table only, the scroll kept, each row gliding to its new place) does it; its "nothing moved,
+   nothing written" is lifted for this one call, because a new ranking can leave the order as it was and the lit
+   chip must still move. Its presses are caught once on the document (puWire), so a redrawn head loses none. */
+function puRedrawInPlace(){
+  if (typeof document !== 'undefined' && document.getElementById('pu-tbody')){ _pu.sig = null; puRepaint(); return; }
+  if (typeof keepScroll === 'function') keepScroll(() => renderPulse()); else renderPulse();
+}
 /* THE DOORS: every one an existing one */
 function puWire(){
   if (document._puWired) return;
@@ -673,7 +681,7 @@ function pulseOpen(id){
   if (typeof state !== 'undefined' && state.view !== 'pulse' && typeof setView === 'function') setView('pulse'); else renderPulse();
 }
 
-Object.assign(window, {
+Object.assign(window, { puRedrawInPlace,
   PU_SEAT, PU_CRITS, PU_PAGE, PU_TICK_MS, PU_JAMBO_RE, renderPulse, pulseOpen, puPlace, puPlacePut, puRead, puRowOf, puSort,
   puNeedsMap, puJamboOf, puJamboWrote, puUnsent, puEventsOf, puSpanOf, puMoneyBands, puSayOf, puRepaint, puCritSet, puHold,
 });
