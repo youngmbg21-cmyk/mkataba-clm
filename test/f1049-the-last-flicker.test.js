@@ -45,3 +45,8 @@ test('f1049 (4) the same page drawn again keeps its side panel, and writes only 
   const ik = read('js/views/intake.js');
   assert.match(ik, /if\(b\._ikBound\) return; b\._ikBound=1;/, 'Requests binds its panel buttons once, so a kept panel never fires twice');
 });
+
+test('f1049 (5) the Calendar\'s Mine | All keeps the reader where they were', () => {
+  const cal = read('js/views/calendar.js');
+  assert.match(region(cal, 'function calSetScope', 400), /keepScrollIn\(host, \(\)=>renderCalendar\(\{ keepPanel:true \}\)\)/);
+});
