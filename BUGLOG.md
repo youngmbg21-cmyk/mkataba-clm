@@ -22492,3 +22492,6 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - The Wiring layout's spiral grew with every part; the biggest areas reached ~1,450 units out against a camera at 820, so links were drawn to points 1.8 million pixels away and a frame took 50 ms instead of 16.7 (sharp screen, measured). Fixed: each area stops at a fixed disc; a curve with a point behind the camera is not drawn. f1051.
 - Noticed, not fixed · 14 Nov 2026 · Brain, Wiring view: part names overlap each other in the busy areas (before and after this change; every part's name is drawn).
 - Noticed, not fixed · 14 Nov 2026 · choose-the-road-verify step 6 read "Change" instead of the chosen option on pull request 726 (Brain-only change); it reads the Send screen's choice as soon as "WHAT THEY CAN DO" shows, before the step line's words are filled in. Passed on main's code an hour earlier.
+
+### Noticed, not fixed (14 Nov 2026, send screen letter review)
+- The send letter's "proposes N changes of its own" list printed a clause name run together with the next words ("Liabilitymonths.") on the owner's AIT warehousing contract: a clause name read off the paper picks up text it should not. Not fixed here (separate from the letter's layout).
