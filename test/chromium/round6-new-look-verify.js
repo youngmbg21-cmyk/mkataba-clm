@@ -79,13 +79,15 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     /* RE-POINTED (owner's pick, 10 Nov 2026: the Scorecard): what is missing is named on the standards bar's hover, the cell one line */
     const miss = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ls-score')].map(x => x.getAttribute('title') || '').join(' | '));
     /* RE-POINTED (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; the Reads & Contracts drawing):
-       the folder's panel is This folder · Columns you asked; the kept question stands there, on this list, with Remove from list */
-    const panel = await until(page, () => /Columns you asked/i.test((document.querySelector('.rfp-panel') || {}).innerText || '') && /on this list/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
+       the folder's panel is This folder.
+       RE-POINTED AGAIN (owner, 14 Nov 2026: "the feature for these search being added to the panel should be deleted"):
+       Columns you asked is gone from the panel: no asked question, no Add to list, no Remove from list there */
+    const panel = await until(page, () => /This folder/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
     const kept = await txt(page, '.rfp-panel');
     await shot('2-folder-list');
-    check('2 a folder\'s list: Standing, the kept question (its name alone; how far it is read in the panel), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
-      proc && up && heads.includes('standing') && !sub.trim() && /3 of \d+ read · on this list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
-      && panel && /This folder/i.test(kept) && /Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
+    check('2 a folder\'s list: Standing, the kept question (its name alone), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
+      proc && up && heads.includes('standing') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
+      && panel && /This folder/i.test(kept) && !/Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }
 
   /* 3 · the Wall */

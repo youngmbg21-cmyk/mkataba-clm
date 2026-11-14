@@ -10,7 +10,7 @@
      4 · read: the column's card — the question, how far and when, Answers (bar and rows with Show), This column (Read the
          rest, Remove column); the column's head "Governing law ⋯" on one line, its name alone (owner, 9 Nov 2026: the count is the panel's)
      5 · ⋯: Sort by this column · Read the other 10 · Rename column · Remove from this list (5b: Rename keeps the new name); Remove → "Column removed · its 50 answers are
-         kept in Reads" with Undo; Undo puts it back; the folder's panel lists it under Columns you asked
+         kept in Reads" with Undo; Undo puts it back; the folder's panel does NOT list it (owner, 14 Nov 2026)
      6 · Reads: "Reads · 1 question · 50 answers kept" and + Ask a question on one line; All · On a list · Not finished;
          Question · Read · Answers · On the list of · Asked; every cell inside its column; the panel: Where it shows, Read
          the other 10, Delete question
@@ -94,11 +94,12 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       await shot('5-menu');
       await page.click('#ac-th-menu [data-ac-remove]');
       const gone = await until(page, () => !document.querySelector('th.ac-th') && /Column removed · its 50 answers are kept in Reads/.test((document.getElementById('toast-root') || {}).textContent || ''), null, 8000);
-      const listed = await until(page, () => /COLUMNS YOU ASKED[\s\S]*Governing law[\s\S]*not on this list[\s\S]*Add to list/i.test((document.querySelector('.rfp-panel.is-drawn') || {}).innerText || ''), null, 8000);
+      /* RE-POINTED (owner, 14 Nov 2026: Columns you asked is deleted from the folder's panel): the removed column is NOT listed there */
+      const listed = await until(page, () => { const p = document.querySelector('.rfp-panel.is-drawn'); return !!p && !/COLUMNS YOU ASKED|Add to list|Governing law/i.test(p.innerText || ''); }, null, 8000);
       await shot('6-removed');
       await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) b.click(); });
       const back = await until(page, () => !!document.querySelector('th.ac-th'), null, 8000);
-      check(`${nm} 5 ⋯: Sort · Read the other 10 · Rename column · Remove from this list; Remove says the answers are kept, with Undo; the panel lists it; Undo puts it back`,
+      check(`${nm} 5 ⋯: Sort · Read the other 10 · Rename column · Remove from this list; Remove says the answers are kept, with Undo; the folder's panel does not list it; Undo puts it back`,
         JSON.stringify(M) === '["Sort by this column","Read the other 10","Rename column","Remove from this list"]' && gone && listed && back, { M, gone, listed, back });
 
       /* 5b · Rename (owner, 8 Nov 2026: "Add rename"): the box holds the name; the new name stands on the head and in the panel */

@@ -2057,10 +2057,11 @@ function regFolderOdd(cs){
 }
 /* THE FOLDER'S PANEL AS DRAWN (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; built
    from the Reads & Contracts drawing, step 1): THIS FOLDER — Contracts · Need you (Show) · Signed · On paper, the head's
-   own reading (regFolderRead); COLUMNS YOU ASKED — each question, how far it is read here and whether it stands on this
-   list, Add to list or Remove from list; then + Ask a column and All your reads. No cost is said. */
+   own reading (regFolderRead); then Discover. No cost is said.
+   COLUMNS YOU ASKED IS GONE (owner, 14 Nov 2026: "the feature for these search being added to the panel should be
+   deleted"): questions are asked and kept on Discover's own page, never listed or added from this panel. */
 function regFolderPanelHtml(){
-  const R=regState(), A=window.AC||{};
+  const R=regState();
   const inF=R.type&&R.type!=='all';
   const book=state.contracts.filter(c=>c&&!c.archived&&c.status!=='Declined'&&!c.parentId&&(!inF||c.folder===R.type)&&!c._codeNamed);
   const r=regFolderRead(book), n=book.length;
@@ -2069,18 +2070,8 @@ function regFolderPanelHtml(){
   const need=r.needN?`${r.needN} · <button type="button" class="rfp-a" data-rfp-view="needs">${esc(i18t('rfp_show'))}</button>`:'0';
   const folder=cap(i18t('rfp_this_folder'))+row(esc(i18t('rfp_contracts')),String(n))+row(esc(i18t('rfp_need_you')),need)+row(esc(i18t('rfp_signed')),String(r.signed))
     +(r.val!=null?row(esc(i18t('rfp_on_paper')),esc(fmtMoneyShort(r.val))):'');
-  const up=typeof window.askColKeys==='function'?askColKeys().map(k=>String(k).slice(4)):[];
-  /* the team's questions are fetched once, then the panel is drawn again with them */
-  if(!Array.isArray(A.team)&&!_rfpLoading.has('__team')&&typeof window.askColTeam==='function'){ _rfpLoading.add('__team'); Promise.resolve(askColTeam()).catch(()=>{}).then(()=>{ if(regFolderPanelOn()) ctfDockAgain(); }); }
-  /* the questions on this list first (they may not be in the summary yet), then the team's kept ones */
-  const seen=new Set(), qs=up.map(id=>Object.assign({ id }, (A.asks||{})[id]||{})).concat(Array.isArray(A.summary)?A.summary:[], Array.isArray(A.team)?A.team:[], Object.values(A.asks||{}).filter(a=>a&&A.ans&&A.ans[a.id])).filter(a=>a&&a.id&&!seen.has(a.id)&&seen.add(a.id)&&!(typeof askColIsPortfolio==='function'&&askColIsPortfolio(a.question))).slice(0,6);
-  const cols=qs.map(a=>{ const got=regFolderAns(a.id, book)||{}; const k=book.filter(c=>got[String(c.id)]).length; const on=up.includes(a.id);
-    const act=on?`<button type="button" class="rfp-a" data-ac-remove="${esc(a.id)}">${esc(i18t('rfp_remove'))}</button>`:`<button type="button" class="rfp-a" data-ac-bring="${esc(a.id)}">${esc(i18t('rfp_add'))}</button>`;
-    const nm=on?`<button type="button" class="rfp-a rfp-qn" data-ac-colopen="${esc(a.id)}">${esc(a.name||a.question||'')}</button>`:esc(a.name||a.question||'');
-    return row(nm,act,i18t('rfp_col_sub',{ k, n, where:i18t(on?'rfp_on_list':'rfp_off_list') })); }).join('');
-  const may=typeof window.askColMay!=='function'||askColMay();
   const acts=`<div class="rfp-acts"><button type="button" class="rfp-pill rfp-dsc" data-ac-discover>${(typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : ''}${esc(i18t('dsc_btn'))}</button></div>`;
-  return `<div class="rfp-panel is-drawn">${folder}${cols?cap(i18t('rfp_cols_h'))+cols:''}${acts}</div>`;
+  return `<div class="rfp-panel is-drawn">${folder}${acts}</div>`;
 }
 if(typeof document!=='undefined'&&!document._rfpWired){ document._rfpWired=true;
   document.addEventListener('click',e=>{
@@ -2099,7 +2090,7 @@ function regNlFootHtml(cs){
   const left=inF?i18tn('reg_nl_foot_folder',n,{ n }):i18tn('reg_foot_n',n,{ n:n.toLocaleString(jxLocale()) });
   const more=inF&&all>n?` · <button type="button" class="reg-nl-all" data-ctf-tab="all">${esc(i18t('reg_nl_show_all',{ n:all }))}</button>`:'';
   /* THE FOOT SAYS ONLY THE COUNT (owner, 9 Nov 2026: "Why do you need 2 columns?"): the sentence about the question
-     column and Our standards is gone; how far a column is read is said in Jambo's panel (Columns you asked) */
+     column and Our standards is gone; how far a column is read is said in its ⋯ menu */
   return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span>`;
 }
 /* the new look's foot is the count in its own row: as the list narrows, the row is written again whole */
