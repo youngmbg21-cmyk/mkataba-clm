@@ -1615,3 +1615,79 @@ function jamboSayAskHtml(o = {}){
     <div class="jb-say-b">${o.body || ''}</div>${o.foot ? `<div class="jb-say-f">${o.foot}</div>` : ''}</div>`;
 }
 Object.assign(window, { jamboSayCardHtml, jamboSayAskHtml });
+
+/* ============================================================
+   ONE HOME FOR A HALF-TYPED QUESTION (owner, 13 Nov 2026, the flash survey)
+   ============================================================
+   MEASURED (the rebuild measure, run 43461225946): a question half typed into Jambo's box was lost on nearly every
+   press of his panel's own controls — Collapse, Pop out, Minimize, Close, the ✦ — on every page that has the panel.
+
+   WHY. The panel's painter already carried the words across a repaint, but only while the box existed on both sides
+   of the write: Collapse, Minimize and Close draw a panel with no box in it, so the words were read and dropped, and
+   the ✦ window has a box of its own that never heard about the first one. The words lived in one element and died
+   with it.
+
+   SO: the draft is a FACT WITH ONE HOME (flow rule 1). It is held here, in memory only — a draft question is not a
+   record, it never travels, it is never saved and it is never read by anything that writes to a contract. Every box
+   that asks Jambo the SAME conversation reads and writes this one home, so folding the panel, popping it out,
+   minimizing it, closing it or turning to another face all give the words back.
+
+   ONLY A PRESS THAT USES THE WORDS MAY EMPTY IT: jamboDraftClear() is called from the asking paths and nowhere
+   else. A painter that finds the box empty and the draft full puts the draft back; it never clears.
+
+   The caret rides along, so a word being fixed mid-sentence does not go on at the end (the 27 Oct 2026 lesson, kept).
+   ============================================================ */
+/* held on the reader function itself, not in a module-level `let`: this file is also run inside test stages that
+   load it twice into one world, where a second `let` of the same name is a crash (f830's Settings stage) */
+function jamboDraft(){ return jamboDraft._v || ''; }
+function jamboDraftSel(){ return jamboDraft._sel || null; }
+function jamboDraftSet(v, sel){
+  jamboDraft._v = String(v == null ? '' : v);
+  jamboDraft._sel = (sel && sel[0] != null) ? sel : null;
+}
+function jamboDraftClear(){ jamboDraft._v = ''; jamboDraft._sel = null; }
+/* A BOX JOINS THE ONE HOME: it writes the draft on every keystroke, and the painter puts the draft back after a
+   write. Bound once per element (the standing lesson: a listener on a painted element is bound once). */
+function jamboDraftWire(box){
+  if (!box || box.dataset.jbDraft) return;
+  box.dataset.jbDraft = '1';
+  const put = () => { let sel = null;
+    try { if (document.activeElement === box) sel = [box.selectionStart, box.selectionEnd, box.selectionDirection]; } catch (_){ sel = null; }
+    jamboDraftSet(box.value, sel); };
+  box.addEventListener('input', put);
+  box.addEventListener('keyup', put);
+  box.addEventListener('blur', put);
+}
+/* THE PAINTER'S SIDE: after the panel is written, the box takes the draft back. `focus` says whether the reader's
+   hand was in the box before the write, so a box nobody was typing in does not steal the keyboard. */
+function jamboDraftRestore(box, focus){
+  if (!box) return false;
+  const v = jamboDraft();
+  if (!v) { jamboDraftWire(box); return false; }
+  if (box.value !== v) box.value = v;
+  jamboDraftWire(box);
+  if (focus){ const sel = jamboDraftSel();
+    try { box.focus({ preventScroll: true }); if (sel && sel[0] != null) box.setSelectionRange(sel[0], sel[1], sel[2] || 'none'); } catch (_){ } }
+  return true;
+}
+/* ---- THE OTHER ASK BOXES KEEP THEIR OWN DRAFTS, BY SEAT (same night) ----
+   The list pages' panel box (#jl-q) and Settings' Jambo box (#st-jb-q) answer in their own place, so they are
+   not the one conversation above and do not share its draft — but the measure found the same loss in them: any
+   repaint of the page drew the box again, empty. Each gets a home of its own, named by a seat. Same rules: in
+   memory only, written on every keystroke, put back where the box comes back EMPTY (never over words the painter
+   or a door put there), and emptied only where the words are used. */
+function boxDraft(seat){ return (boxDraft._m && boxDraft._m[seat]) || ''; }
+function boxDraftSet(seat, v){ (boxDraft._m = boxDraft._m || {})[seat] = String(v == null ? '' : v); }
+function boxDraftClear(seat){ if (boxDraft._m) boxDraft._m[seat] = ''; }
+function boxDraftJoin(box, seat){
+  if (!box || !seat) return false;
+  if (!box.dataset.boxDraft){
+    box.dataset.boxDraft = seat;
+    box.addEventListener('input', () => boxDraftSet(seat, box.value));
+  }
+  const v = boxDraft(seat);
+  if (v && !box.value){ box.value = v; return true; }
+  return false;
+}
+Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
+  boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin });

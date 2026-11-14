@@ -27,6 +27,14 @@ They assert nothing. They print numbers, which is what a measurement is for.
   nothing. GitHub runs it when the script changes
   (`.github/workflows/flash-measure.yml`) or by hand; it never fails a run.
 
+* `rebuild-measure.js` — (13 Nov 2026, the flash survey) presses every door on
+  every page, and the doors a press uncovers, and says for each press: was a
+  part of the screen thrown away and built again (or a pop-up closed and opened
+  again), did it flash, and what the reader lost (words typed, where a list was
+  scrolled to, the choice they had). Buttons that finish something (send, sign,
+  delete …) are counted and not pressed. GitHub runs it when the script changes
+  (`.github/workflows/rebuild-measure.yml`) or by hand; it never fails a run.
+
 The findings are written up in `docs/PERFORMANCE-AUDIT.md`. Re-measure before
 quoting any number from it: the runner is the authority.
 

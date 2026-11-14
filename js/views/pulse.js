@@ -632,9 +632,11 @@ function puFrame(ts){
 function puCritSet(k){
   if (!PU_CRITS.includes(k) || k === _pu.crit) return;
   _pu.crit = k; _pu.prev = null; _pu.shown = PU_PAGE;
-  renderPulse(); puKeep();
+  /* the board is ranked again where the reader stands, not from its top (the flash survey, 13 Nov 2026) */
+  if (typeof keepScroll === 'function') keepScroll(() => renderPulse()); else renderPulse();
+  puKeep();
 }
-function puHold(on){ _pu.held = on == null ? !_pu.held : !!on; renderPulse(); }
+function puHold(on){ _pu.held = on == null ? !_pu.held : !!on; if (typeof keepScroll === 'function') keepScroll(() => renderPulse()); else renderPulse(); }
 /* THE DOORS: every one an existing one */
 function puWire(){
   if (document._puWired) return;

@@ -3919,6 +3919,17 @@ function openModal(html, opts={}){
      released first (it hands focus back to that same button, and the new
      trap takes it from there). */
   const replacing=!!(root && root.querySelector('[role="dialog"]'));
+  /* ---- ONE POP-UP TAKING ANOTHER'S PLACE DOES NOT ARRIVE AGAIN (owner, 13 Nov 2026, the flash survey) ----
+     "a press that should only change the words rebuilds the whole page instead." About forty pop-ups hand over to
+     another pop-up, and seven rebuild THEMSELVES to change a few words (the History timeline on every filter,
+     Compare after a snapshot, the obligations review and its form). Each such open replayed the arriving
+     animation (.modal-in, viewIn .2s) over a frame that was already standing — that replay is the flash — and
+     threw the reader back to the top. So, only where a dialog is being REPLACED:
+       · the new panel does not animate in (modalKeptOf → data-dlg-kept, read by index.html);
+       · where it is the SAME screen drawn again (modalScreenKey: its label, else its first part's id), the
+         reader's place in it is put back.
+     A first open, and a page-sized dialog, behave exactly as before. */
+  const kept=replacing ? modalKeptOf(root) : null;
   const opener=(replacing && _modalOpener) || document.activeElement;
   if(_modalRelease){ try{ _modalRelease(); }catch(e){} _modalRelease=null; }
   /* WHAT A CLOSE MUST ALSO PUT AWAY (opts.onClose; the send screen's face of
@@ -3940,7 +3951,7 @@ function openModal(html, opts={}){
            frame changes — every dialog still builds its own head, body and
            foot, and DLG_W is still the width ladder. */}
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent);"></div>
-    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
+    <div class="modal-in scroll-thin"${kept?' data-dlg-kept':''} role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -3975,6 +3986,10 @@ function openModal(html, opts={}){
     /* A panel given a height runs its own layout and its own scroller. */
     if(!opts.height) _modalPin = dlgPinFoot(panel);
     else if(!opts.page){ try{ dlgSapFrame(panel); }catch(_){} } }
+  /* the same screen drawn again keeps the reader's place (the flash survey; see the head of this function) — put
+     back AFTER the frame is dressed (the grab bar, the pinned foot): GitHub measured the place 33px out when it
+     was put back before them, the height of what they add above the words */
+  if(kept && panel) modalKeptPut(panel, kept);
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   rootEscSet(function(e){
@@ -4181,6 +4196,27 @@ function dlgPinFoot(panel){
    hands: the guard is cleared so it cannot outlive its dialog, and focus goes
    back where it came from — without which a keyboard user is dropped at the
    top of the document every time they dismiss a dialog. */
+/* WHAT A REPLACED POP-UP LEAVES FOR THE ONE THAT TAKES ITS PLACE: which screen it was, and where the reader stood
+   in it (the panel's own scroll, and any scroller inside it that carries an id). Read before the old one goes. */
+function modalScreenKey(panel){
+  if(!panel) return '';
+  const first=panel.firstElementChild;
+  return String(panel.getAttribute('aria-label')||'')+'|'+String((first&&first.id)||'');
+}
+function modalKeptOf(root){
+  const panel=root&&root.querySelector('[role="dialog"]'); if(!panel) return null;
+  const tops=[];
+  try{ panel.querySelectorAll('[id]').forEach(el=>{ if(el.scrollTop) tops.push([el.id, el.scrollTop]); }); }catch(_){}
+  return { key:modalScreenKey(panel), top:panel.scrollTop||0, tops };
+}
+function modalKeptPut(panel, kept){
+  /* only the SAME screen: a different pop-up starts at its own top, as it always has; a screen with no name and
+     no id on its first part cannot be told from another, so it is treated as another (any doubt = from the top) */
+  if(!panel||!kept||kept.key==='|'||modalScreenKey(panel)!==kept.key) return false;
+  try{ if(kept.top) panel.scrollTop=kept.top;
+    for(const [id,top] of kept.tops){ const el=document.getElementById(id); if(el&&panel.contains(el)) el.scrollTop=top; } }catch(_){}
+  return true;
+}
 function closeModal(){
   _modalGuard=null;
   rootEscSet(null);
@@ -8762,11 +8798,21 @@ async function openShareModal(c, opts={}){
     note.innerHTML=ch==='word'?i18t(purposeSel==='history'?'co_ch_word_hist_note':'co_ch_word_note')
       :ch==='link'?esc(i18t('co_ch_link_note')):'';
   };
+  /* ---- ALL THREE OF "WHAT GOES" ARE TURNS OF ONE SCREEN (owner, 13 Nov 2026, the flash survey) ----
+     "when I pick 'A Where we are page' on the Send screen, the screen flashes and is replaced by a new one, and I
+     can no longer go back to 'The contract, round 1'." Two of the three already turned in place; the third called
+     openShareModal again, and a NEW screen knows nothing of the old one, so the way back led to itself. It is a
+     turn now, like its neighbours. The payload is rebuilt for the kind — a status link carries the contract's id
+     and not one field more (buildSharePayload), so it cannot be a repaint of the contract's payload. */
   const setKind = k => {
-    purposeSel = k==='history' ? 'history' : (SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c));
+    purposeSel = (k==='history'||k==='status') ? k : (SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c));
+    /* THE PAYLOAD IS THE KIND'S, NOT THE SCREEN'S: rebuilt whenever the kind moves, as the advice door already
+       does, so what is sent is what the chooser shows at the moment of sending. */
+    payloadObj = buildSharePayload(c, docHash, null, { purpose:purposeSel });
     payloadObj.purpose = purposeSel; payloadObj.purposeChosen = purposeSel;
     document.querySelectorAll('#share-kind [data-share-kind]').forEach(b=>{
-      const on = (b.getAttribute('data-share-kind')==='history') === (purposeSel==='history');
+      const kb = b.getAttribute('data-share-kind');
+      const on = purposeSel==='status' ? false : (kb==='history') === (purposeSel==='history');
       b.setAttribute('aria-pressed', on?'true':'false');
       b.style.border=`1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
       b.style.background=on?'var(--color-accent-100)':'var(--color-surface)';
@@ -8779,24 +8825,27 @@ async function openShareModal(c, opts={}){
     /* Step 2 is repainted rather than rebuilt — the sender may have edited the
        summary already, and rebuilding would take their words with it. */
     const hist = purposeSel==='history';
-    document.getElementById('share-purpose-wrap')?.classList.toggle('hidden', hist);
+    /* A WHERE WE ARE PAGE IS A RECORD TOO: it hides what the history hides (no purpose, no signers, no readiness,
+       no manifest), and shows none of the history's own lines. */
+    const rec = hist || purposeSel==='status';
+    document.getElementById('share-purpose-wrap')?.classList.toggle('hidden', rec);
     /* THE SIGNER CARD FOLLOWS THE KIND (Young, 13 Sep 2026: "when I ask to
        send negotiation history i get the contract instead" — the first thing
        on that screen was WHO SIGNS, drawn at the open for the Sign default and
        never told the kind had moved). The purpose painter toggles it for the
        three contract purposes; a record is none of them. */
-    document.getElementById('share-signers')?.classList.toggle('hidden', hist || purposeSel!=='sign');
-    document.getElementById('share-readiness-wrap')?.classList.toggle('hidden', hist);
+    document.getElementById('share-signers')?.classList.toggle('hidden', rec || purposeSel!=='sign');
+    document.getElementById('share-readiness-wrap')?.classList.toggle('hidden', rec);
     const lead=document.getElementById('share-lead-title');
     if(lead) lead.innerHTML=shareLeadTitle(c, (typeof negoChangeSummary==='function')?negoChangeSummary(c):null, purposeSel);
     document.getElementById('share-hist-note')?.classList.toggle('hidden', !hist);
     const lab=document.getElementById('sh-summary-label');
-    if(lab) lab.textContent = hist
+    if(lab) lab.textContent = rec
       ? i18t('co_note_with_record')
       : i18t('co_note_to', { who:c.counterparty||i18t('co_them') });
-    document.getElementById('share-manifest-line')?.classList.toggle('hidden', hist);
+    document.getElementById('share-manifest-line')?.classList.toggle('hidden', rec);
     document.getElementById('share-manifest-line-hist')?.classList.toggle('hidden', !hist);
-    document.getElementById('share-manifest')?.classList.toggle('hidden', hist);
+    document.getElementById('share-manifest')?.classList.toggle('hidden', rec);
     document.getElementById('share-hist-preview')?.classList.toggle('hidden', !hist);
     /* Only the invitation changes with the choice. Nothing is written into the
        box by the switch, because nothing is written into it at all — whatever
@@ -8807,7 +8856,7 @@ async function openShareModal(c, opts={}){
       ? 'e.g. The full record of our negotiation, for your file.'
       : 'e.g. We have moved on payment terms but not on the liability cap.';
     const blurb=document.getElementById('share-send-blurb');
-    if(blurb) blurb.classList.toggle('hidden', hist);
+    if(blurb) blurb.classList.toggle('hidden', rec);
     const hblurb=document.getElementById('share-send-blurb-hist');
     if(hblurb) hblurb.classList.toggle('hidden', !hist);
     paintChNote();
@@ -8910,7 +8959,10 @@ async function openShareModal(c, opts={}){
       if(!window.openSignerPlanEditor){ toast(i18t('co_route_editor_missing'),'err'); return; }
       /* Back to this dialog, on this purpose, with the note kept — see the
          onDone note on openSignerPlanEditor. */
-      const keep={ summary:fval('sh-summary'), note:fval('sh-msg') };
+      /* THE WHOLE FORM COMES BACK, NOT TWO FIELDS OF IT (owner, 13 Nov 2026, the flash survey): the measure found
+         the To name and address, how it goes and how long the link works all dropped on the way to the route
+         editor and back. `sh-msg` was not even a box on this screen, so the "note" carried was always empty. */
+      const keep=shareFormTake();
       openSignerPlanEditor(c, { onDone(){ openShareModal(c, { ...opts, purpose:'sign', resume:keep }); } });
     });
   }
@@ -8951,17 +9003,16 @@ async function openShareModal(c, opts={}){
   if(document.getElementById('sh-lt-else')){
     document.getElementById('share-other')?.addEventListener('click',()=>setKind('history'));
     document.querySelector('[data-sh-lt-else="contract"]')?.addEventListener('click',()=>setKind('contract'));
-    document.querySelector('[data-sh-lt-else="status"]')?.addEventListener('click',()=>{
-      openShareModal(c, { ...opts, purpose:'status', resume:{ summary:fval('sh-summary') } }); });
+    /* A TURN, NOT A NEW SCREEN (13 Nov 2026): this was openShareModal again, which is how the way back came to
+       lead to itself and the note was carried two fields at a time. */
+    document.querySelector('[data-sh-lt-else="status"]')?.addEventListener('click',()=>setKind('status'));
   }
   wireSignerRows();
   /* Coming back from the route editor — the note the sender had typed before
      they went to assign somebody. Restored after the step is built, because
      the fields do not exist until then. */
-  if(opts.resume){
-    const su=document.getElementById('sh-summary'); if(su && opts.resume.summary) su.value=opts.resume.summary;
-    const nt=document.getElementById('sh-msg');     if(nt && opts.resume.note)    nt.value=opts.resume.note;
-  }
+  /* what the sender had typed or chosen before they left for the route editor is put back AFTER the screen's own
+     first paint of the channel, below — the one setter has to exist before the form can ask it for a channel */
   setKind(purposeSel==='history'?'history':'contract');
   /* ---- ONLY THE SHARE BUTTON ASKS "WHAT ARE YOU SHARING?" ----
      Pressing Send on a redline opens this dialog too — the send path falls
@@ -9061,6 +9112,9 @@ async function openShareModal(c, opts={}){
      saying where the note goes has no markup default, so an unconditional
      first paint is what makes it present before anything is pressed. */
   setCh(ch);
+  /* COMING BACK FROM THE ROUTE EDITOR — the whole form the sender had, put back once the fields and the channel's
+     one setter both exist (the two-field `resume` of earlier shapes still lands, shareFormPut reads both). */
+  if(opts.resume) shareFormPut(opts.resume, setCh);
   document.getElementById('share-close').addEventListener('click',()=>{ closeModalGuarded(); });
 
   /* Set when the send refreshed a link the recipient already had rather than
@@ -11217,4 +11271,40 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,shareSendAgainRun,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,shareSendAgainRun,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,modalScreenKey,modalKeptOf,modalKeptPut,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+
+/* ============================================================
+   THE SEND SCREEN'S FORM, CARRIED WHOLE (owner, 13 Nov 2026, the flash survey)
+   ============================================================
+   A screen that has to be left and come back to — today only "Change the signers", which opens the route editor —
+   carried two fields, one of which ("sh-msg") was not a box on this screen at all, so it was always empty. The
+   sender came back to a blank To line and a link whose life had gone back to the default.
+
+   These two read and put back WHAT THE SENDER TYPED OR CHOSE, and nothing else: no payload, no purpose, no
+   recipient the screen did not show them. A field that is not on the screen is skipped, both ways, so a shape that
+   does not draw one of them cannot be broken by this.
+   ============================================================ */
+const SH_FORM_FIELDS = ['sh-summary', 'sh-name', 'sh-email'];
+function shareFormTake(){
+  const out = { fields:{} };
+  for(const id of SH_FORM_FIELDS){ const el=document.getElementById(id); if(el) out.fields[id]=el.value; }
+  const dur=document.getElementById('sh-durable'); if(dur) out.durable=!!dur.checked;
+  const exp=document.getElementById('sh-exp');     if(exp) out.exp=exp.value;
+  const ch=document.querySelector('[data-share-ch][aria-pressed="true"]');
+  if(ch) out.ch=ch.getAttribute('data-share-ch');
+  /* the older two-screen shape called the note's words `summary`; kept so a resume written either way lands */
+  out.summary=out.fields['sh-summary']||'';
+  return out;
+}
+function shareFormPut(keep, setCh){
+  if(!keep) return;
+  const f=keep.fields||{ 'sh-summary':keep.summary };
+  for(const id of SH_FORM_FIELDS){ const el=document.getElementById(id); const v=f[id];
+    if(el && v != null && v !== '') el.value=v; }
+  if(keep.durable != null){ const dur=document.getElementById('sh-durable'); if(dur) dur.checked=!!keep.durable; }
+  if(keep.exp != null){ const exp=document.getElementById('sh-exp'); if(exp) exp.value=keep.exp; }
+  /* how it goes is a choice, not a box: it is put back through the screen's own one setter, so the boxes that
+     follow it (the address, or WhatsApp's number) follow too */
+  if(keep.ch && typeof setCh==='function') try{ setCh(keep.ch); }catch(_){}
+}
+Object.assign(window, { shareFormTake, shareFormPut, SH_FORM_FIELDS });

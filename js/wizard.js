@@ -1645,6 +1645,9 @@ function openNewAgreement(o){
       const inp=document.getElementById('igd-input'); if(!inp) return;
       /* the sentence in the box, the caret at its end, ready to be said again */
       const put=el=>{ if(!el) return; if(el.value!==asked){ el.value=asked; if(typeof chatFieldGrow==='function') chatFieldGrow(el); }
+        /* ONE HOME FOR A HALF-TYPED QUESTION (13 Nov 2026): words PUT in the box are the draft now — told here
+           because this is a set, not a keystroke, and the panel draws its box again on the way */
+        if(typeof window.jamboDraftSet==='function') jamboDraftSet(asked,[asked.length,asked.length]);
         try{ el.focus({ preventScroll:true }); el.setSelectionRange(el.value.length, el.value.length); }catch(_){} };
       put(inp);
       /* LAND ON IT (owner, 18 Oct 2026): on Jambo's box, lit by the one lander —
