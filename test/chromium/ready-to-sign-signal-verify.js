@@ -236,7 +236,7 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
 
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's rows are the one desk's
        (.nd-pan .nd-r); the ready-to-sign row is still green (nd-good) and flashes once (nd-news) */
-    await page.evaluate(() => document.getElementById('hdr-notify').click());
+    await page.evaluate(() => { document.getElementById('hdr-notify').click(); { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); } });
     await page.waitForTimeout(900);
     const opened = await page.evaluate(() => {
       const panel = document.getElementById('context-panel');
@@ -272,7 +272,7 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
 
     /* AND THE ROW IS CALM THE SECOND TIME. Opening the panel is what counts as
        having seen it: the flash is over, the green is not. */
-    await page.evaluate(() => document.getElementById('hdr-notify').click());
+    await page.evaluate(() => { document.getElementById('hdr-notify').click(); { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); } });
     await page.waitForTimeout(800);
     const again = await page.evaluate(() => {
       const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')]
@@ -297,7 +297,7 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
        #hdr-notify is the ONE panel button (9 Nov 2026); #context-panel is the one
        shell it fills. Reaching for the button's id is a mistake this file
        made once and is worth not repeating. */
-    await page.click('#hdr-notify');
+    await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await page.waitForTimeout(900);
     const inPanel = await page.evaluate(() => {
       const panel = document.getElementById('context-panel');

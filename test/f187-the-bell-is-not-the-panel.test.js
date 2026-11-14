@@ -33,10 +33,10 @@ describe('f187 (1) — two buttons, two jobs', () => {
     assert.ok(!/hdr-notify'\)\?\.addEventListener\('click',\(\)=>document\.getElementById\('cmd-panel'\)/.test(app),
       'the handler that made them one button is gone');
     /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): ONE panel button on the bar; the clock is gone, and
-       the one button opens the panel (Alerts when something waits, else the tab last used), pressed again closes */
+       the one button opens the panel, pressed again closes; RE-POINTED 14 Nov 2026 (owner): it opens on the Guide, always */
     assert.ok(!/getElementById\('cmd-panel'\)\?\.addEventListener/.test(app), 'the clock button is gone from the bar');
     assert.match(app, /getElementById\('hdr-notify'\)\?\.addEventListener\('click',panelDoorPress\)/);
-    assert.match(app, /function panelDoorPress\(\)\{[\s\S]*?if\(state\.panelOpen\)\{ closeContextPanel\(\); return; \}[\s\S]*?openPanel\(n>0\?'alerts':panelFace\(\)\)/);
+    assert.match(app, /function panelDoorPress\(\)\{[\s\S]*?if\(state\.panelOpen\)\{ closeContextPanel\(\); return; \}[\s\S]*?if\(tabs\)\{ openPanel\('guide'\); return; \}/);
   });
 
   test('ONE PANEL, THREE CONTENTS — still not two panels', () => {

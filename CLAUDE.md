@@ -177,7 +177,7 @@ JAMBO READS THE BOOK, ON EVERY PAGE (`AI_HANDBOOK_RULE`, both hosts); ONE reader
 - ONE ROW UNDER THE NEWEST ANSWER (`igOneHtml`; stale `igSapHtml`, `.igd-sap`, `igFoldHtml`): chips · ONE filled button · ⋯ (`igMoreHtml`); menus placed by measurement (`igMorePlace`, `.is-set`); a press redraws ONE row or group (`igOneRepaint`/`igMrRepaint`); source line LAST; older answers lose only controls; page links ride the way back (`jamboWaysSync`) (f1005).
 - Notes beside the paper say Show less (`_pd2Shut`); Ask Jambo over selected words opens a folded panel first (`caSelPick`, f1009). THE OVERVIEW: ONE builder `jamboOverviewHtml`, facts only from the page's readings.
 - A HALF-TYPED QUESTION HAS ONE HOME (`jamboDraft`/`jamboDraftSet`/`jamboDraftClear`/`jamboDraftWire`/`jamboDraftRestore`): panel and ✦ share it; ONLY a press USING the words empties it (f1044).
-- ONE CONVERSATION (`ai.history`, `jamboTurnHtml`); ONE card builder `jamboCardHtml`; his box at every panel's foot (`panelAskPaint`); ONE PRESS, ONE PANEL (`igDockBatch`). `#ai-panel` = THE BRIEF (`aiSideSync`); ✦ = JAMBO POPPED OUT where the browser can (`aiStarPress`; closing opens nothing; f1049), else THE CHAT WINDOW (`aiWinToggle`). LAYERS: page 70/71, window 75, dialog 80, toasts 110. ONE PANEL, FOUR FACES (`openPanel`); ONE BAR BUTTON (`panelDoorPress`).
+- ONE CONVERSATION (`ai.history`, `jamboTurnHtml`); ONE card builder `jamboCardHtml`; his box at every panel's foot (`panelAskPaint`); ONE PRESS, ONE PANEL (`igDockBatch`). `#ai-panel` = THE BRIEF (`aiSideSync`); ✦ = JAMBO POPPED OUT where the browser can (`aiStarPress`; closing opens nothing; f1049), else THE CHAT WINDOW (`aiWinToggle`). LAYERS: page 70/71, window 75, dialog 80, toasts 110. ONE PANEL, FOUR FACES (`openPanel`); ONE BAR BUTTON (`panelDoorPress`), opens on the Guide.
 ## THE PHONE
 Below 768px js/mobile*.js draws instead: same readings, files NO changes (grep them for `changes.push`/`negoFileChange` → nothing). A shared FUNCTION's fix reaches both shells; a desktop RENDERER's does not. It BORROWS the desktop's readings (`needsYouOf`+`insNeedWords` in `mNeedsYou`, `roomHistoryEvents`, `signBlockers`, `lookDone`); paper read-only (`mDocReadOnly`); `mHookRoomTab`; labels floored 14px (`#m-root`).
 ## THE ONE DESK — NEEDS YOU, ONE READING
@@ -373,7 +373,7 @@ PAST THE MARK THE PANEL SLIDES OVER: the page narrows to `SPLIT_OVER_AT` 880 (or
 ## OTHER PAGES AND SERVICES
 - APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk`. NOTICE DESK `noticeDraft`; MAILROOM files, does not read; every document has a person (`mailroomOwnerFor`, `intakeLaneOwner`; bell `mailroom`); MEMO `negoMemo` (no model).
 - COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
-- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000).
+- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000), read by a WORKER that ends, only the answer kept (`brainReadBeside`, `brainNow`; f1050).
 ## THE OVERNIGHT RUN
 SEAL ON THE SERVER (`srvSealNow`, `srvSendExecutedCopies`); late seals `runSealCatchUp`.
 ## PERFORMANCE — THE BOOK IS WALKED ONCE

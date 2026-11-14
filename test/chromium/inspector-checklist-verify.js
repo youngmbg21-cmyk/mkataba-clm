@@ -439,7 +439,7 @@ const ok = (name, good, detail) => {
        opens it on the Board and whose "Decide the renewal" presses the same one door */
     const pressBell = async (kind, ref) => {
       await elsewhere();
-      await page.click('#hdr-notify'); await page.waitForTimeout(700);
+      await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); }); await page.waitForTimeout(700);
       const need = kind === 'desk-join' ? 'join' : kind;
       let el = await page.$(`#context-panel .nd-pan [data-cn-need="${need}"][data-cn-id="${ref}"], #context-panel .nd-pan [data-nd-al^="al:${kind}:${ref}:"]`);
       const say = h => h.evaluate(b => { const r = b.closest('.nd-r, .nd-br'); return ((r ? r.innerText : b.innerText) || '').replace(/\s+/g, ' ').trim().slice(0, 140); });

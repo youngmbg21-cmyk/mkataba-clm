@@ -68,7 +68,7 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
 
     /* 2 · THE OWNER SIGNS IN */
     const own = await login('admin@example.co.ke', 'adminpassword1');
-    await own.click('#hdr-notify');
+    await own.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await own.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await own.waitForTimeout(900);
     const bell = await own.evaluate(() => {
       const rows = (window.buildAlerts ? buildAlerts() : []).filter(a => a.id === 'MK-A2');

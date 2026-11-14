@@ -108,7 +108,7 @@ const SEED_UNSENT = async () => {
       alertRows.named.every(x => x.n && x.n !== x.i), alertRows.named);
 
     /* THE PANEL ITSELF — the row must draw no empty line where the name was. */
-    await page.click('#hdr-notify');
+    await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await pause(700);
     await page.screenshot({ path: path.join(OUT, '01-alerts.png') });
     const panel = await page.evaluate(() => {
@@ -186,7 +186,7 @@ const SEED_UNSENT = async () => {
        than into the product, and the proofreader is what caught it. */
     await page.keyboard.press('Escape');
     await pause(300);
-    await page.click('#hdr-notify');
+    await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await pause(700);
     await page.screenshot({ path: path.join(OUT, '01b-alerts-ordered.png') });
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk — Jambo's

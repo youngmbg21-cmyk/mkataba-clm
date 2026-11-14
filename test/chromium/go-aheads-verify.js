@@ -144,7 +144,7 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     }
     ok('1b their agreement reached our record', !!got, JSON.stringify(got));
     await own.evaluate(() => setView('dashboard')); await pause(900);
-    await own.click('#hdr-notify'); await pause(700);
+    await own.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await own.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); }); await pause(700);
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk's rows; the
        bell's own signal is a row of its own (data-nd-row "al:<kind>:<contract>:…"), still green */
     const row = await own.evaluate(() => {
@@ -218,7 +218,7 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
        same one door (needsYouGo 'renewal') and says the same on its hover. */
     await own.evaluate(() => { regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); }); await pause(1200);
     const r1 = await own.$('#reg-tbody tr[data-row="MK-R9"]');
-    await own.click('#hdr-notify').catch(() => {}); await pause(700);
+    await own.click('#hdr-notify').catch(() => {}); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await own.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); }); await pause(700);
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the bell's renewal is the one desk's row — the
        checklist's own Decide, or Jambo's renewal piece, whose Look opens it on the Board's card and whose
        "Decide the renewal" presses the same one door (needsYouGo 'renewal') with the same hover */

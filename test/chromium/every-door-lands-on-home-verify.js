@@ -666,7 +666,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       await door(C, `${a.kind} (${a.id || '—'})${hit && !own ? ' · as the one desk\'s ' + hit.type + ' row' : ''}`, { start: atStart,
         press: async () => {
           if (!hit) return false;
-          await page.click('#hdr-notify');
+          await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
           if (hit.type === 'news') {
             if (!(await waitFor(page, () => !!document.querySelector('#context-panel [data-al-tab="news"]'), 5000))) return false;
             await page.evaluate(() => document.querySelector('#context-panel [data-al-tab="news"]').click());

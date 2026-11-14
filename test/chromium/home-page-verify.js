@@ -400,7 +400,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     const onPage = await page.locator('#email-setup-banner').count();
     check('7 the warning strip is off the page',
       onPage === 0, onPage ? 'still drawn' : 'gone');
-    await page.click('#hdr-notify');
+    await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await page.waitForTimeout(700);
     const inPanel = await page.evaluate(() => {
       const el = document.getElementById('context-panel');

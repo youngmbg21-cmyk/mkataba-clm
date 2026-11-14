@@ -116,7 +116,7 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
     await page.screenshot({ path: path.join(OUT, '01-activity.png') });
 
     await page.evaluate(() => closeContextPanel()); await page.waitForTimeout(300);
-    await page.click('#hdr-notify');
+    await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await page.waitForTimeout(700);
     const al = await page.evaluate(box => ({
       panel: eval(box)('#context-panel'), title: eval(box)('#panel-title'),
