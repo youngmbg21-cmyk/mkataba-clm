@@ -2063,11 +2063,12 @@ function ikPaintRows(){
     if(!r){ insPaintPanel({ seat, empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none'), jlSay:ikJlSay(openAll, asker, go) }); return; }
     insPaintPanel(Object.assign({ seat, jlWord:i18t('jl_w_request'), jlSay:ikJlSay(openAll, asker, go) }, r._adv?ikAdvicePanelOpts(r):ikPanelOpts(r, asker)));
     const pan=document.getElementById('ins-panel'); if(!pan) return;
-    pan.querySelectorAll('[data-ik-file]').forEach(b=>b.addEventListener('click',()=>intakeFileGet(r.id, b.getAttribute('data-ik-file'), b.getAttribute('data-ik-fname'), { open:true })));
+    /* each button bound ONCE (the panel may be kept across a paint now: the last flicker, 14 Nov 2026) */
+    pan.querySelectorAll('[data-ik-file]').forEach(b=>{ if(b._ikBound) return; b._ikBound=1; b.addEventListener('click',()=>intakeFileGet(r.id, b.getAttribute('data-ik-file'), b.getAttribute('data-ik-fname'), { open:true })); });
     /* THE COUNTERPARTY'S NAME opens its contracts on the Contracts place
        (Parties' own Open party) and LANDS on the first of them */
-    pan.querySelectorAll('[data-ik-cp]').forEach(b=>b.addEventListener('click',()=>{
-      if(typeof window.cuOpenCustomer==='function'){ cuOpenCustomer(b.getAttribute('data-ik-cp')); if(typeof jlLand==='function') jlLand('list'); } }));
+    pan.querySelectorAll('[data-ik-cp]').forEach(b=>{ if(b._ikBound) return; b._ikBound=1; b.addEventListener('click',()=>{
+      if(typeof window.cuOpenCustomer==='function'){ cuOpenCustomer(b.getAttribute('data-ik-cp')); if(typeof jlLand==='function') jlLand('list'); } }); });
   };
   if(_ikPanelK===undefined||(id||null)!==_ikPanelK) paint(id);
   /* A SECOND PRESS OPENS THE CONTRACT THE REQUEST BECAME, where it became

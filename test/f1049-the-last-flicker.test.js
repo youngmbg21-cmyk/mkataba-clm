@@ -35,3 +35,13 @@ test('f1049 (3) the rebuild measure counts opening a contract as a move, and fol
   assert.match(m, /same: String\(p\.innerText \|\| ''\)/, 'a rebuilt part is compared with what it said before');
   assert.match(m, /if \(j\.waste\) T\.waste\+\+;/, 'a redraw for nothing is counted apart');
 });
+
+test('f1049 (4) the same page drawn again keeps its side panel, and writes only what changed in it', () => {
+  const ins = read('js/views/inspector.js');
+  const paint = region(ins, 'function insPaintPanel', 2600);
+  assert.match(paint, /was\._insSeat === opt\.seat/, 'only the SAME page takes its panel back');
+  assert.match(paint, /host\.parentNode\.replaceChild\(was, host\)/);
+  assert.match(paint, /body\._insHtml === html && body\.firstChild && body\.innerHTML === body\._insSer/, 'nothing changed, nothing written; any outside write = written');
+  const ik = read('js/views/intake.js');
+  assert.match(ik, /if\(b\._ikBound\) return; b\._ikBound=1;/, 'Requests binds its panel buttons once, so a kept panel never fires twice');
+});
