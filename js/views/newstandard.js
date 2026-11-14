@@ -807,13 +807,13 @@ function nsOpenTheirs() {
   const st = { m: 'drop', html: '', text: '', fileName: '', source: 'paste', name: '', party: '', folder: '', blanks: [], turn: true, saved: null, busy: false };
   let editor = null;
   const folders = (typeof visibleFolders === 'function' ? visibleFolders() : Object.values(typeof FOLDERS === 'object' ? FOLDERS : {})) || [];
-  const purpose = `<p class="nsc-purpose">${nsEsc(i18t('nsl_cp_purpose'))}</p>`;
+  const purpose = `<p class="nso-purpose">${nsEsc(i18t('nsl_cp_purpose'))}</p>`;
   const head = nsLgHead(i18t('ns_cp_t'), '');
-  const dropHtml = () => `<div class="nsc-drop" data-nsl-drop><b>${nsEsc(i18t('nsl_cp_drop'))}</b>
-    <span><label class="nsl-or">${nsEsc(i18t('nsl_choose_file'))}<input type="file" id="nsc-file" accept=".docx,.pdf,.txt,.md" hidden></label> · <button type="button" class="nsl-or" data-nsc-paste>${nsEsc(i18t('nsl_cp_paste'))}</button></span>
-    <span class="nsc-hint">${nsEsc(i18t('nsl_cp_kept'))}</span></div>`;
-  const pasteHtml = () => `<div class="nsl-paste"><div id="nsc-paste-box" class="ns-paste scroll-thin doc-surface" data-placeholder="${nsEsc(i18t('lb_open_in_word'))}"></div>
-    <div class="nsl-paste-f"><button type="button" class="ui-btn ui-btn-sm" data-nsc-paste-x>${nsEsc(i18t('act_cancel'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nsc-read>${nsEsc(i18t('nsl_cp_read_go'))}</button></div></div>`;
+  const dropHtml = () => `<div class="nso-drop" data-nsl-drop><b>${nsEsc(i18t('nsl_cp_drop'))}</b>
+    <span><label class="nsl-or">${nsEsc(i18t('nsl_choose_file'))}<input type="file" id="nso-file" accept=".docx,.pdf,.txt,.md" hidden></label> · <button type="button" class="nsl-or" data-nso-paste>${nsEsc(i18t('nsl_cp_paste'))}</button></span>
+    <span class="nso-hint">${nsEsc(i18t('nsl_cp_kept'))}</span></div>`;
+  const pasteHtml = () => `<div class="nsl-paste"><div id="nso-paste-box" class="ns-paste scroll-thin doc-surface" data-placeholder="${nsEsc(i18t('lb_open_in_word'))}"></div>
+    <div class="nsl-paste-f"><button type="button" class="ui-btn ui-btn-sm" data-nso-paste-x>${nsEsc(i18t('act_cancel'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nso-read>${nsEsc(i18t('nsl_cp_read_go'))}</button></div></div>`;
   const secsN = () => { try { return (nsCopy(st.html, null, '').blocks || []).filter(b => b.blockType === 'heading').length; } catch (_) { return 0; } };
   const opening = () => {
     if (typeof document === 'undefined') return '';
@@ -822,21 +822,21 @@ function nsOpenTheirs() {
     for (const k of kids) { out.push(k.outerHTML); n += String(k.textContent || '').length; if (n > 1200 || out.length >= 8) break; }
     return out.join('');
   };
-  const lineHtml = (k, label, inner, change) => `<div class="nsc-line"><span class="nsc-lab">${nsEsc(label)}</span><span class="nsc-val">${inner}</span>${change ? `<button type="button" class="nsl-or" data-nsc-change="${k}">${nsEsc(i18t('nsl_cp_change'))}</button>` : ''}</div>`;
+  const lineHtml = (k, label, inner, change) => `<div class="nso-line"><span class="nso-lab">${nsEsc(label)}</span><span class="nso-val">${inner}</span>${change ? `<button type="button" class="nsl-or" data-nso-change="${k}">${nsEsc(i18t('nsl_cp_change'))}</button>` : ''}</div>`;
   const readHtml = () => {
     const n = secsN(), b = st.blanks.length;
-    const streamSel = `<select id="nsc-stream" aria-label="${nsEsc(i18t('nsl_cp_stream'))}"><option value="">${nsEsc(i18t('nsl_stream_pick'))}</option>${folders.map(f => `<option value="${nsEsc(f.id)}"${f.id === st.folder ? ' selected' : ''}>${nsEsc(f.name)}</option>`).join('')}</select>`;
-    return (st.saved ? `<div class="nsc-ok"><span>${nsEsc(i18t('nsl_cp_saved', { name: st.saved.name }))}</span><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nsc-draft>${nsEsc(i18t('nsl_cp_draft'))}</button><button type="button" class="ui-btn ui-btn-sm" data-nsl-back>${nsEsc(i18t('nsl_cp_back'))}</button></div>` : '')
-      + lineHtml('name', i18t('nsl_cp_name'), `<input id="nsc-name" value="${nsEsc(st.name)}" ${st.saved ? 'disabled' : ''}>`, !st.saved)
-      + lineHtml('party', i18t('nsl_cp_whose'), `<input id="nsc-party" value="${nsEsc(st.party)}" placeholder="${nsEsc(i18t('nsl_cp_whose_ph'))}" ${st.saved ? 'disabled' : ''}>`, !st.saved)
+    const streamSel = `<select id="nso-stream" aria-label="${nsEsc(i18t('nsl_cp_stream'))}"><option value="">${nsEsc(i18t('nsl_stream_pick'))}</option>${folders.map(f => `<option value="${nsEsc(f.id)}"${f.id === st.folder ? ' selected' : ''}>${nsEsc(f.name)}</option>`).join('')}</select>`;
+    return (st.saved ? `<div class="nso-ok"><span>${nsEsc(i18t('nsl_cp_saved', { name: st.saved.name }))}</span><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nso-draft>${nsEsc(i18t('nsl_cp_draft'))}</button><button type="button" class="ui-btn ui-btn-sm" data-nsl-back>${nsEsc(i18t('nsl_cp_back'))}</button></div>` : '')
+      + lineHtml('name', i18t('nsl_cp_name'), `<input id="nso-name" value="${nsEsc(st.name)}" ${st.saved ? 'disabled' : ''}>`, !st.saved)
+      + lineHtml('party', i18t('nsl_cp_whose'), `<input id="nso-party" value="${nsEsc(st.party)}" placeholder="${nsEsc(i18t('nsl_cp_whose_ph'))}" ${st.saved ? 'disabled' : ''}>`, !st.saved)
       + lineHtml('stream', i18t('nsl_cp_stream'), st.saved ? nsEsc(nsLgStreamName(st.folder) || '') : streamSel, false)
-      + `<div class="nsc-line"><span class="nsc-lab">${nsEsc(i18t('nsl_cp_blanks'))}</span><span class="nsc-val">${b ? `<label class="nsc-tick"><input type="checkbox" id="nsc-turn"${st.turn ? ' checked' : ''}${st.saved ? ' disabled' : ''}> ${nsEsc(i18tn('nsl_cp_blanks_n', b, { n: b }))}</label>` : nsEsc(i18t('nsl_cp_blanks_none'))}</span></div>`
-      + (st.saved ? '' : `<div class="nsc-save"><button type="button" class="ui-btn ui-btn-primary" data-nsc-save>${nsEsc(i18t('nsl_cp_save'))}</button></div>`)
-      + `<div class="nsc-sheet"><div class="nsc-mini doc-surface">${opening()}<div class="nsc-pgno">${nsEsc(i18tn('nsl_cp_first', n, { n }))}</div></div></div>`;
+      + `<div class="nso-line"><span class="nso-lab">${nsEsc(i18t('nsl_cp_blanks'))}</span><span class="nso-val">${b ? `<label class="nso-tick"><input type="checkbox" id="nso-turn"${st.turn ? ' checked' : ''}${st.saved ? ' disabled' : ''}> ${nsEsc(i18tn('nsl_cp_blanks_n', b, { n: b }))}</label>` : nsEsc(i18t('nsl_cp_blanks_none'))}</span></div>`
+      + (st.saved ? '' : `<div class="nso-save"><button type="button" class="ui-btn ui-btn-primary" data-nso-save>${nsEsc(i18t('nsl_cp_save'))}</button></div>`)
+      + `<div class="nso-sheet"><div class="nso-mini doc-surface">${opening()}<div class="nso-pgno">${nsEsc(i18tn('nsl_cp_first', n, { n }))}</div></div></div>`;
   };
   const paint = () => {
-    nsMount(`<div class="nsl nsc">${head}${purpose}<div class="nsl-say" data-nsl-say></div>${st.m === 'drop' ? dropHtml() : st.m === 'paste' ? pasteHtml() : readHtml()}</div>`);
-    if (st.m === 'paste') { const box = document.getElementById('nsc-paste-box'); if (box && typeof richEditor === 'function') { editor = richEditor(box, {}); setTimeout(() => editor.focus && editor.focus(), 30); } }
+    nsMount(`<div class="nsl nso">${head}${purpose}<div class="nsl-say" data-nsl-say></div>${st.m === 'drop' ? dropHtml() : st.m === 'paste' ? pasteHtml() : readHtml()}</div>`);
+    if (st.m === 'paste') { const box = document.getElementById('nso-paste-box'); if (box && typeof richEditor === 'function') { editor = richEditor(box, {}); setTimeout(() => editor.focus && editor.focus(), 30); } }
   };
   const took = (html, text, fileName, source) => {
     st.html = html; st.text = text || (typeof richToText === 'function' ? richToText(html) : String(html).replace(/<[^>]*>/g, ' '));
@@ -854,10 +854,10 @@ function nsOpenTheirs() {
   };
   const save = () => {
     if (st.busy) return;
-    const name = String((document.getElementById('nsc-name') || {}).value || st.name).trim();
-    st.party = String((document.getElementById('nsc-party') || {}).value || '').trim();
-    st.folder = String((document.getElementById('nsc-stream') || {}).value || st.folder || '');
-    st.turn = !!(document.getElementById('nsc-turn') || {}).checked;
+    const name = String((document.getElementById('nso-name') || {}).value || st.name).trim();
+    st.party = String((document.getElementById('nso-party') || {}).value || '').trim();
+    st.folder = String((document.getElementById('nso-stream') || {}).value || st.folder || '');
+    st.turn = !!(document.getElementById('nso-turn') || {}).checked;
     if (!name) { nsLgSay(nsLgHost(), i18t('lb_give_template_name'), true); return; }
     if (String(st.text || '').trim().length < 40) { nsLgSay(nsLgHost(), i18t('lib_too_short'), true); return; }
     st.busy = true;
@@ -875,15 +875,15 @@ function nsOpenTheirs() {
   const host = nsLgHost(); if (!host) return;
   nsLgWire(host, {
     click: (e, t) => {
-      if (t.closest('[data-nsc-paste]')) { st.m = 'paste'; paint(); return; }
-      if (t.closest('[data-nsc-paste-x]')) { st.m = 'drop'; paint(); return; }
-      if (t.closest('[data-nsc-read]')) { const html = editor ? editor.get() : ''; if (!String(html).replace(/<[^>]*>/g, '').trim()) { nsLgSay(nsLgHost(), i18t('lib_paste_first'), true); return; } took(html, '', '', 'paste'); return; }
-      const ch = t.closest('[data-nsc-change]'); if (ch) { const el = document.getElementById('nsc-' + ch.getAttribute('data-nsc-change')); if (el && typeof fieldFocus === 'function') fieldFocus(el); else if (el) el.focus(); return; }
-      if (t.closest('[data-nsc-save]')) { save(); return; }
-      if (t.closest('[data-nsc-draft]') && st.saved) { const id = st.saved.id, party = st.saved.party || ''; closeModal(); if (typeof openNewAgreement === 'function') openNewAgreement({ paper: 'kept', kept: id, prefill: party ? { counterparty: party } : null }); }
+      if (t.closest('[data-nso-paste]')) { st.m = 'paste'; paint(); return; }
+      if (t.closest('[data-nso-paste-x]')) { st.m = 'drop'; paint(); return; }
+      if (t.closest('[data-nso-read]')) { const html = editor ? editor.get() : ''; if (!String(html).replace(/<[^>]*>/g, '').trim()) { nsLgSay(nsLgHost(), i18t('lib_paste_first'), true); return; } took(html, '', '', 'paste'); return; }
+      const ch = t.closest('[data-nso-change]'); if (ch) { const el = document.getElementById('nso-' + ch.getAttribute('data-nso-change')); if (el && typeof fieldFocus === 'function') fieldFocus(el); else if (el) el.focus(); return; }
+      if (t.closest('[data-nso-save]')) { save(); return; }
+      if (t.closest('[data-nso-draft]') && st.saved) { const id = st.saved.id, party = st.saved.party || ''; closeModal(); if (typeof openNewAgreement === 'function') openNewAgreement({ paper: 'kept', kept: id, prefill: party ? { counterparty: party } : null }); }
     },
-    change: e => { if (e.target && e.target.id === 'nsc-file') readFile(e.target.files && e.target.files[0]); if (e.target && e.target.id === 'nsc-stream') st.folder = e.target.value || ''; },
-    input: e => { if (e.target && e.target.id === 'nsc-name') st.name = e.target.value || ''; if (e.target && e.target.id === 'nsc-party') st.party = e.target.value || ''; },
+    change: e => { if (e.target && e.target.id === 'nso-file') readFile(e.target.files && e.target.files[0]); if (e.target && e.target.id === 'nso-stream') st.folder = e.target.value || ''; },
+    input: e => { if (e.target && e.target.id === 'nso-name') st.name = e.target.value || ''; if (e.target && e.target.id === 'nso-party') st.party = e.target.value || ''; },
     drag: (ev, e) => { const z = e.target && e.target.closest && e.target.closest('[data-nsl-drop]'); if (!z) return; e.preventDefault();
       z.classList.toggle('is-over', ev === 'dragover'); if (ev === 'drop') readFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); },
   });

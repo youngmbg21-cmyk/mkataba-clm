@@ -18712,7 +18712,7 @@
   /* NO OUTLINES WHERE A PAPER'S DETAILS ARE TYPED (owner, 12 Nov 2026: "I never want to see outlines especially
      thick outlines in entry fields in HaTi for papers"): the Fill in form, Key terms in the middle and the lines on
      the paper itself carry no box and no focus ring; the box you are in shows by its underline growing darker. */
-  html.lg-new :is(.pd2-fm-mid, [data-pd-mid-kt], #ig-canvas) :is(input, select, textarea, .dp-face):is(:focus, :focus-visible){outline:0;box-shadow:none}
+  html.lg-new :is(.pd2-fm-mid, [data-pd-mid-kt], #ig-canvas, #na-np) :is(input, select, textarea, .dp-face, [contenteditable]):is(:focus, :focus-visible){outline:0;box-shadow:none}
   html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea,.dp-face):focus{border-bottom:2px solid var(--color-text)}
   html.lg-new [data-pd-mid-kt] .pd-og-in{border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px}
   html.lg-new [data-pd-mid-kt] textarea.pd-og-in{padding:4px 2px}
@@ -20718,13 +20718,16 @@
   html.lg-new .nsl-say:empty{display:none}
   html.lg-new .nsl-say.err{color:var(--st-ruby-fg)}
   html.lg-new .nsl-paste{display:flex;flex-direction:column;gap:var(--s-2)}
-  html.lg-new .nsl-paste .ns-paste{height:220px;border:1px solid var(--color-divider);border-radius:var(--radius-sm)}
+  html.lg-new .nsl-paste .ns-paste{height:220px;border:0;border-bottom:1px solid var(--color-neutral-300);border-radius:0;background:var(--surface-2)}
   html.lg-new .nsl-paste-f{display:flex;justify-content:flex-end;gap:8px}
   html.lg-new .nss-two{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:32px;align-items:start;margin-top:var(--s-2)}
   html.lg-new .nss-l{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
   html.lg-new .nss-fld{display:flex;flex-direction:column;gap:6px}
   html.lg-new .nss-fld>span{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet)}
-  html.lg-new .nss-fld textarea{border:1px solid var(--color-neutral-300);border-radius:var(--radius-sm);padding:12px 14px;font:inherit;font-size:var(--t-body);line-height:1.5;resize:vertical;background:var(--color-surface);color:var(--color-text)}
+  /* the sentence for a new paper is typed like a paper's details (owner, 12 Nov 2026: no outlines in entry fields for papers):
+     no box, no ring, a line under it that darkens while you type */
+  html.lg-new .nss-fld textarea{border:0;border-bottom:1px solid var(--color-neutral-300);border-radius:0;padding:8px 0;font:inherit;font-size:var(--t-body);line-height:1.5;resize:vertical;background:transparent;color:var(--color-text)}
+  html.lg-new .nss-fld textarea:focus{border-bottom:2px solid var(--color-text)}
   html.lg-new .nss-ex{display:flex;gap:10px;align-items:center;font-size:var(--t-label);color:var(--color-neutral-400)}
   html.lg-new .nss-foot{display:flex;align-items:center;gap:8px}
   html.lg-new .nss-foot .sp{flex:1}
@@ -20747,25 +20750,25 @@
   html.lg-new .nss-w.is-std{background:var(--st-green-bg);color:var(--st-green-fg)}
   html.lg-new .nss-w.is-ai{background:var(--st-violet-bg);color:var(--st-violet-fg)}
   html.lg-new .nss-it{display:block;font-size:var(--t-label);color:var(--color-quiet);margin-top:2px}
-  html.lg-new .nsc-purpose{margin:0;font-size:var(--t-body);color:var(--color-quiet)}
-  html.lg-new .nsc-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:1.5px dashed var(--color-neutral-300);border-radius:var(--radius-lg);background:var(--surface-2);padding:26px;color:var(--color-quiet);margin-top:var(--s-2)}
-  html.lg-new .nsc-drop.is-over{border-color:var(--accent-ink);background:var(--color-accent-50)}
-  html.lg-new .nsc-drop b{font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
-  html.lg-new .nsc-hint{font-size:var(--t-label);color:var(--color-neutral-400)}
-  html.lg-new .nsc-line{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .nsc-lab{font-size:var(--t-label);color:var(--color-neutral-400)}
-  html.lg-new .nsc-val{min-width:0;font-weight:var(--w-label)}
-  html.lg-new .nsc-val input:not([type]),html.lg-new .nsc-val select{width:100%;border:0;border-bottom:1px solid transparent;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);padding:4px 0;outline:none}
-  html.lg-new .nsc-val input:not([type]):focus,html.lg-new .nsc-val select:focus{border-bottom-color:var(--color-neutral-400)}
-  html.lg-new .nsc-val input:disabled{color:var(--color-text)}
-  html.lg-new .nsc-tick{display:inline-flex;gap:8px;align-items:center;font-weight:400;font-size:var(--t-body)}
-  html.lg-new .nsc-tick input{accent-color:var(--accent-solid)}
-  html.lg-new .nsc-save{display:flex;justify-content:flex-end;padding-top:var(--s-2)}
-  html.lg-new .nsc-ok{display:flex;gap:10px;align-items:center;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:var(--radius);padding:10px 14px}
-  html.lg-new .nsc-ok .sp{flex:1}
-  html.lg-new .nsc-sheet{width:720px;max-width:100%;margin-top:var(--s-2);padding:2px}
-  html.lg-new .nsc-mini{background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider),0 6px 18px rgba(0,0,0,.06);border-radius:3px;padding:24px 28px 16px;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6}
-  html.lg-new .nsc-pgno{font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400);text-align:right;margin-top:8px}
+  html.lg-new .nso-purpose{margin:0;font-size:var(--t-body);color:var(--color-quiet)}
+  html.lg-new .nso-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:1.5px dashed var(--color-neutral-300);border-radius:var(--radius-lg);background:var(--surface-2);padding:26px;color:var(--color-quiet);margin-top:var(--s-2)}
+  html.lg-new .nso-drop.is-over{border-color:var(--accent-ink);background:var(--color-accent-50)}
+  html.lg-new .nso-drop b{font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .nso-hint{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .nso-line{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .nso-lab{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .nso-val{min-width:0;font-weight:var(--w-label)}
+  html.lg-new .nso-val input:not([type]),html.lg-new .nso-val select{width:100%;border:0;border-bottom:1px solid transparent;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);padding:4px 0;outline:none}
+  html.lg-new .nso-val input:not([type]):focus,html.lg-new .nso-val select:focus{border-bottom-color:var(--color-neutral-400)}
+  html.lg-new .nso-val input:disabled{color:var(--color-text)}
+  html.lg-new .nso-tick{display:inline-flex;gap:8px;align-items:center;font-weight:400;font-size:var(--t-body)}
+  html.lg-new .nso-tick input{accent-color:var(--accent-solid)}
+  html.lg-new .nso-save{display:flex;justify-content:flex-end;padding-top:var(--s-2)}
+  html.lg-new .nso-ok{display:flex;gap:10px;align-items:center;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:var(--radius);padding:10px 14px}
+  html.lg-new .nso-ok .sp{flex:1}
+  html.lg-new .nso-sheet{width:720px;max-width:100%;margin-top:var(--s-2);padding:2px}
+  html.lg-new .nso-mini{background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider),0 6px 18px rgba(0,0,0,.06);border-radius:3px;padding:24px 28px 16px;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6}
+  html.lg-new .nso-pgno{font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400);text-align:right;margin-top:8px}
   /* THEIR PAPERS YOU KEPT, on the Their paper tab; a kept paper chosen shows the card under it, the drop steps aside */
   html.lg-new #na-root.na-one[data-paper="kept"] #na-theirs{display:block}
   html.lg-new #na-root.na-one[data-paper="kept"] :is(.na-drop,#na-read,#dr-read,#wz-pick){display:none}
