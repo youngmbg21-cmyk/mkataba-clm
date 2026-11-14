@@ -1709,6 +1709,8 @@ async function refreshOrgBranding(){
     if(API_MODE()){
       const r=await api('org/branding');
       window.ORG_BRANDING=(r&&r.branding&&window.normalizeDesignBranding)?normalizeDesignBranding(r.branding):null;
+      /* the looks by stream and the papers with their own look (Settings, How our contracts look) */
+      window.ORG_STREAM_LOOKS=(r&&r.streamLooks)||{}; window.ORG_PAPER_LOOKS=(r&&Array.isArray(r.paperLooks))?r.paperLooks:[];
     } else {
       window.ORG_BRANDING=(state.settings&&state.settings.branding&&window.normalizeDesignBranding)?normalizeDesignBranding(state.settings.branding):null;
     }
@@ -5476,7 +5478,7 @@ function shareLetterOf(c, st){
      and the sign-off is the sender's own job title; the one-time code is said
      where the company asks for it (the link's own gate, linkCodeCfg). */
   const pc=(s.payload&&s.payload.contract)||{};
-  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(), drawn:(typeof newLookOn==='function'&&newLookOn()),
+  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(), durable:!!(document.getElementById('sh-durable')||{}).checked, drawn:(typeof newLookOn==='function'&&newLookOn()),
     round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc, c),
     codeOn:!!(typeof linkCodeCfg==='function' && linkCodeCfg().on) }), head:true, letter:true };
 }
@@ -5856,8 +5858,154 @@ if(typeof document!=='undefined' && !document._shColWired){
     if(_shCol.open && !(e.target&&e.target.closest&&e.target.closest('#sh-col'))){ _shCol.open=false; repaint(); }
   });
 }
+/* THE SEND SCREEN, FOUR STEPS (owner's pick by name, 14 Nov 2026; replaces "The Legora way" built the same day): today's
+   layout, the choices on the left as four numbered steps — 1 To · 2 What goes · 3 What they can do · 4 How it goes —
+   each one line saying what is chosen, with Change, and ticked when settled. A step opens in place (one at a time);
+   Done closes it. Step 1 lists everyone it goes to, each with ×, and + Add someone: the people named on this contract
+   first, then Someone new… (a name and an email). Each person still gets their own email and link (shareMoreChosen);
+   "A colleague instead" stays its own choice. Every control, id and listener is the one this screen always had: the
+   steps only wrap the rows (the head line is added, the row's own controls are the step's body). New look only. */
+function shareStepsOn(){ return typeof newLookOn==='function' && !!newLookOn(); }
+const SH_STEPS=[['to','.sh-lt-to','sh_st_to'],['what','#sh-lt-what-row','sh_st_what'],['can','#sh-lt-can-row','sh_st_can'],['by','#sh-lt-by-row','sh_st_by']];
+let _shStepOpen=null;
+function shareStepsArrange(host){
+  if(!host || !shareStepsOn()) return;
+  host.classList.add('is-steps');
+  const page=host.closest('.modal-in'); if(page) page.classList.add('is-sh-steps');
+  const col=host.querySelector('#sh-as-chips'); if(!col) return;
+  col.setAttribute('data-st-head', i18t('sh_st_head'));
+  /* THE SUBJECT IS A PLAIN LINE, LEVEL WITH To AND From (owner, 14 Nov 2026: "tidy the subject line"): its box is drawn with
+     its own spacing in its style attribute, which no sheet can undo; the box's own border and inner gap are taken off here */
+  const subj=host.querySelector('#sh-lt-subject');
+  if(subj && subj.style.padding!=='4px 0px'){ subj.style.padding='4px 0'; subj.style.border='0'; subj.style.background='none'; subj.style.borderRadius='0'; }
+  const to=host.querySelector('.sh-lt-to'); if(to && to.parentElement!==col) col.insertBefore(to, col.firstChild);
+  SH_STEPS.forEach(([k,sel,lbl],i)=>{
+    const row=host.querySelector(sel); if(!row || row.querySelector(':scope > .sh-st-h')) return;
+    row.classList.add('sh-st'); row.setAttribute('data-sh-st', k);
+    row.insertAdjacentHTML('afterbegin', `<div class="sh-st-h"><span class="sh-st-mk" aria-hidden="true">${i+1}</span><span class="sh-st-t"><b>${esc(i18t(lbl))}</b><span class="sh-st-v"></span><span class="sh-st-q"></span></span><button type="button" class="sh-st-go" data-sh-st-go="${k}">${esc(i18t('sh_st_change'))}</button></div>`);
+  });
+  /* step 1's own parts: the people it goes to, + Add someone, Someone new… */
+  const fields=host.querySelector('#share-fields');
+  if(fields && !fields.querySelector('.sh-st-ppl')){
+    fields.insertAdjacentHTML('afterbegin', `<div class="sh-st-ppl" id="sh-st-ppl"></div>`);
+    const kind=fields.querySelector('.sh-to-kind');
+    const addHtml=`<div class="sh-st-add"><button type="button" class="sh-lt-change" data-sh-st-add>${typeof icon==='function'?icon('plus','w-3 h-3'):''}${esc(i18t('sh_st_add'))}</button><div class="sh-st-menu" id="sh-st-menu" hidden></div></div>
+      <div class="sh-st-new" id="sh-st-new" hidden><input id="sh-st-new-name" type="text" autocomplete="off" placeholder="${esc(i18t('co_name'))}"><input id="sh-st-new-email" type="email" autocomplete="off" placeholder="${esc(i18t('sh_lg_new_email'))}"><button type="button" class="ui-btn ui-btn-sm" data-sh-st-new-add>${esc(i18t('sh_lg_new_add'))}</button><span class="sh-st-new-why" id="sh-st-new-why"></span></div>`;
+    if(kind) kind.insertAdjacentHTML('beforebegin', addHtml); else fields.insertAdjacentHTML('beforeend', addHtml);
+    kind?.querySelector('[data-sh-more-go]')?.classList.add('hidden');
+  }
+  if(!host.dataset.stWired){ host.dataset.stWired='1';
+    host.addEventListener('click', e=>{
+      const t=e.target && e.target.closest ? e.target : null; if(!t) return;
+      const go=t.closest('[data-sh-st-go]');
+      if(go){ e.preventDefault(); const k=go.getAttribute('data-sh-st-go'); _shStepOpen=(_shStepOpen===k)?'':k; shareStepsWords(); return; }
+      if(t.closest('[data-sh-st-add]')){ e.preventDefault(); const m=document.getElementById('sh-st-menu'); if(m){ m.hidden=!m.hidden; if(!m.hidden) shareStepsMenu(); } return; }
+      const pick=t.closest('[data-sh-st-pick]');
+      if(pick){ e.preventDefault(); shareStepsAdd(pick.getAttribute('data-sh-st-pick')); return; }
+      if(t.closest('[data-sh-st-newgo]')){ e.preventDefault(); const m=document.getElementById('sh-st-menu'); if(m) m.hidden=true;
+        const f=document.getElementById('sh-st-new'); if(f){ f.hidden=false; if(typeof fieldFocus==='function') fieldFocus(document.getElementById('sh-st-new-name')); } return; }
+      if(t.closest('[data-sh-st-new-add]')){ e.preventDefault(); shareStepsAddNew(); return; }
+      const x=t.closest('[data-sh-st-x]');
+      if(x){ e.preventDefault(); shareStepsDrop(x.getAttribute('data-sh-st-x')); return; }
+      /* a choice made inside a step reads again (the screen's own pickers close themselves) */
+      setTimeout(shareStepsWords, 0);
+    });
+    host.addEventListener('keydown', e=>{ if(e.key==='Enter' && e.target && /^sh-st-new-/.test(e.target.id||'')){ e.preventDefault(); shareStepsAddNew(); } });
+    host.addEventListener('input', ()=>setTimeout(shareStepsWords, 0));
+    host.addEventListener('change', ()=>setTimeout(shareStepsWords, 0));
+  }
+  if(_shStepOpen==null){ const em=String((document.getElementById('sh-email')||{}).value||'').trim(); _shStepOpen=/.+@.+\..+/.test(em)?'':'to'; }
+  shareStepsWords();
+}
+const _shVal=id=>String((document.getElementById(id)||{}).value||'').trim();
+/* everyone it goes to: the main person (#sh-name/#sh-email), then each ticked named person */
+function shareStepsPeople(){
+  const out=[]; const em=_shVal('sh-email');
+  if(/.+@.+\..+/.test(em)) out.push({ k:'main', name:_shVal('sh-name')||em, email:em });
+  document.querySelectorAll('#sh-more [data-sh-more]:checked').forEach(b=>out.push({ k:b.getAttribute('data-sh-more'), name:b.getAttribute('data-sh-more-name')||b.getAttribute('data-sh-more'), email:b.getAttribute('data-sh-more') }));
+  return out;
+}
+const _shInitials=n=>String(n||'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+function shareStepsWords(){
+  const host=document.getElementById('sh-letter'); if(!host || !host.classList.contains('is-steps')) return;
+  const text=el=>el?String(el.textContent||'').replace(/\s+/g,' ').trim():'';
+  const ppl=shareStepsPeople();
+  const say={
+    to:[ppl.length?(ppl.length>1?i18t('sh_st_to_more',{ name:ppl[0].name, n:ppl.length-1 }):ppl[0].name):i18t('sh_st_to_none'), ppl.length===1?ppl[0].email:''],
+    what:[text(host.querySelector('#sh-lt-what-row .sh-as-go')), text(document.getElementById('sh-nl-what-say'))],
+    can:[text(host.querySelector('#sh-lt-can-row .sh-as-go')), text(document.getElementById('share-purpose-say'))],
+    by:[[...host.querySelectorAll('#sh-lt-by-row .sh-as-go')].map(text).filter(Boolean).join(', '), text(document.getElementById('sh-ch-note'))]
+  };
+  SH_STEPS.forEach(([k,sel])=>{
+    const row=host.querySelector(sel); if(!row) return;
+    const open=_shStepOpen===k, done=k==='to'?ppl.length>0:!!say[k][0];
+    row.classList.toggle('is-open', open); row.classList.toggle('is-done', done && !open);
+    const mk=row.querySelector('.sh-st-mk'); if(mk){ const w=(done&&!open)?'✓':String(SH_STEPS.findIndex(s=>s[0]===k)+1); if(mk.textContent!==w) mk.textContent=w; }
+    const v=row.querySelector('.sh-st-v'), q=row.querySelector('.sh-st-q'), g=row.querySelector('.sh-st-go');
+    if(v && v.textContent!==say[k][0]) v.textContent=say[k][0];
+    if(q && q.textContent!==say[k][1]) q.textContent=say[k][1];
+    if(g){ const w=i18t(open?'sh_st_done':'sh_st_change'); if(g.textContent!==w) g.textContent=w; }
+  });
+  /* step 1's list of people, each with × */
+  const list=document.getElementById('sh-st-ppl');
+  if(list){ const html=ppl.map(p=>`<div class="sh-st-p"><i class="sh-st-av">${esc(_shInitials(p.name))}</i><span>${esc(p.name)}<em>${esc(p.email)}</em></span><button type="button" class="sh-st-x" data-sh-st-x="${esc(p.k)}" aria-label="${esc(i18t('sh_st_remove',{ name:p.name }))}" title="${esc(i18t('sh_st_remove',{ name:p.name }))}">${typeof icon==='function'?icon('x','w-3 h-3'):''}</button></div>`).join('');
+    if(list.innerHTML!==html) list.innerHTML=html; }
+  const toRow=host.querySelector('.sh-lt-to'); if(toRow) toRow.classList.toggle('has-primary', /.+@.+\..+/.test(_shVal('sh-email')));
+  /* the letter's To line, where it goes to more than one person */
+  const mail=host.querySelector('.sh-lt-mail');
+  if(mail){ let line=document.getElementById('sh-st-to');
+    if(!line){ mail.insertAdjacentHTML('afterbegin', `<div class="sh-lt-row hidden" id="sh-st-to"><span class="sh-lt-k">${esc(i18t('sh_st_to'))}</span><span class="sh-st-tov"></span></div>`); line=document.getElementById('sh-st-to'); }
+    line.classList.toggle('hidden', ppl.length<2);
+    const tv=line.querySelector('.sh-st-tov'), names=ppl.map(p=>p.name).join(', '); if(tv && tv.textContent!==names) tv.textContent=names; }
+}
+/* + Add someone: the people named on this contract not yet on the list, then Someone new… */
+function shareStepsMenu(){
+  const m=document.getElementById('sh-st-menu'); if(!m) return;
+  const left=[...document.querySelectorAll('#sh-more [data-sh-more]:not(:checked)')].map(b=>({ email:b.getAttribute('data-sh-more'), name:b.getAttribute('data-sh-more-name')||b.getAttribute('data-sh-more'),
+    role:String((b.closest('.sh-more-r')?.querySelector('.sh-more-w')||{}).textContent||'').trim() }));
+  m.innerHTML=(left.length?`<span class="sh-st-mh">${esc(i18t('sh_st_named'))}</span>${left.map(p=>`<button type="button" class="sh-st-mi" data-sh-st-pick="${esc(p.email)}">${esc(p.name)}<em>${esc([p.email,p.role].filter(Boolean).join(' · '))}</em></button>`).join('')}`:'')
+    +`<button type="button" class="sh-st-mi" data-sh-st-newgo>${esc(i18t('sh_lg_new'))}<em>${esc(i18t('sh_st_new_d'))}</em></button>`;
+}
+function _shSetMain(name, email){
+  const n=document.getElementById('sh-name'), m=document.getElementById('sh-email');
+  if(n){ n.value=name||''; n.dispatchEvent(new Event('input',{ bubbles:true })); }
+  if(m){ m.value=email||''; m.dispatchEvent(new Event('input',{ bubbles:true })); m.dispatchEvent(new Event('change',{ bubbles:true })); }
+}
+function shareStepsAdd(email){
+  const b=document.querySelector(`#sh-more [data-sh-more="${CSS.escape(email)}"]`); if(!b) return;
+  if(!/.+@.+\..+/.test(_shVal('sh-email'))) _shSetMain(b.getAttribute('data-sh-more-name')||'', email);
+  else { b.checked=true; b.dispatchEvent(new Event('change',{ bubbles:true })); }
+  const m=document.getElementById('sh-st-menu'); if(m) m.hidden=true;
+  shareStepsWords();
+}
+function shareStepsDrop(k){
+  if(k==='main'){
+    const next=document.querySelector('#sh-more [data-sh-more]:checked');
+    if(next){ next.checked=false; _shSetMain(next.getAttribute('data-sh-more-name')||'', next.getAttribute('data-sh-more')); }
+    else _shSetMain('', '');
+  } else { const b=document.querySelector(`#sh-more [data-sh-more="${CSS.escape(k)}"]`); if(b){ b.checked=false; b.dispatchEvent(new Event('change',{ bubbles:true })); } }
+  shareStepsWords();
+}
+/* Someone new…: a name and an email become the main person, or one more ticked person (shareMoreChosen sends them) */
+function shareStepsAddNew(){
+  const name=_shVal('sh-st-new-name'), email=_shVal('sh-st-new-email'), why=document.getElementById('sh-st-new-why');
+  if(!/.+@.+\..+/.test(email)){ if(why) why.textContent=i18t('sh_lg_new_bad'); return; }
+  if(why) why.textContent='';
+  if(!/.+@.+\..+/.test(_shVal('sh-email'))) _shSetMain(name, email);
+  else {
+    const more=document.getElementById('sh-more'); if(!more) return;
+    let box=more.querySelector('.sh-more-box');
+    if(!box){ more.insertAdjacentHTML('beforeend', `<div class="sh-more-box"></div>`); box=more.querySelector('.sh-more-box'); }
+    if(!box.querySelector(`[data-sh-more="${CSS.escape(email)}"]`))
+      box.insertAdjacentHTML('beforeend', `<label class="sh-more-r is-new"><input type="checkbox" checked data-sh-more="${esc(email)}" data-sh-more-name="${esc(name)}"/><span class="sh-more-n">${esc(name||email)}</span><span class="sh-more-e">${esc(email)}</span></label>`);
+  }
+  ['sh-st-new-name','sh-st-new-email'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const f=document.getElementById('sh-st-new'); if(f) f.hidden=true;
+  shareStepsWords();
+}
 function shareLetterPaint(c, st){
   const host=document.getElementById('sh-letter'); if(!host) return;
+  shareStepsArrange(host);
   host._shAsPaint=()=>shareLetterAsPaint(c, st);
   /* the whole letter again, from where every choice stood last (Jambo's face
      coming back, pdSendBack) */
@@ -8329,6 +8477,7 @@ function shareFillModal(html){
 let _shNoteTyped=false;
 if(typeof document!=='undefined') document.addEventListener('input',e=>{ if(e.isTrusted&&e.target&&e.target.id==='sh-summary') _shNoteTyped=true; });
 async function openShareModal(c, opts={}){
+  _shStepOpen=null;   /* Four steps: each opening decides afresh which step stands open */
   shareNotSentSet(null);
   _shNoteTyped=false;
   /* THE LETTER ALWAYS STANDS BESIDE JAMBO (owner, 9 Nov 2026: "sometimes i get pages that are missing a jambo panel";

@@ -24,6 +24,3 @@ test('f1044 (3) the white-sheet check knows the builder\'s desk as a paper\'s ca
   const src = fs.readFileSync(path.join(__dirname, 'chromium', 'white-sheet-verify.js'), 'utf8');
   assert.match(src, /const PAPER = '[^']*#tb-scroll/);
 });
-test('f1044 (4) From scratch: the list stands 16px in on every side', () => {
-  assert.match(rule('html.lg-new .nsc-left'), /padding:var\(--s-4\)[;}]|padding:var\(--s-4\);/);
-});

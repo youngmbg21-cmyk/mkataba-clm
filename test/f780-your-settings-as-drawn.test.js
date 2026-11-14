@@ -157,7 +157,8 @@ describe('f780 (7) the sheet as drawn: eight headings, and the list follows the 
     assert.deepEqual(g.qa('#set-page [data-st-toc]').map(b => g.text(b)),
       ['st_you_away', 'st_you_who', 'st_you_signin', 'st_you_lang', 'st_you_told', 'st_you_work', 'st_you_toc_points', 'st_you_data'].map(k => S.en[k]));
     assert.equal(g.q('#set-page [data-st-you-card="design"]'), null, 'no Company design on the sheet');
-    assert.ok(g.q('#st-list [data-st-you="design"]'), 'the Menu names it');
+    /* the company look became an admin's (owner, 14 Nov 2026): an Editor's Menu no longer names it */
+    assert.equal(g.q('#st-list [data-st-you="design"]'), null, 'the Menu does not offer it either');
   });
   test('7b the contents list marks the heading being read as the sheet scrolls, and the last at the foot', () => {
     const g = settingsStage({ role: 'legal' });

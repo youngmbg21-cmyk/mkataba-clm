@@ -545,6 +545,11 @@ describe('f376 (5) the name, category and value stream are at the top of the bui
     win.document.getElementById('tb-publish').dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
     win.document.getElementById('tb-pq-go').dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
     for (let i = 0; i < 5; i++) await settle();
+    /* HOW SHOULD IT LOOK? (owner, 14 Nov 2026): one clear choice comes first; with no company look set, Design it now is chosen */
+    assert.ok(win.document.getElementById('tb-look-go'), 'the look question is up');
+    assert.equal(win.__log.design, 0, 'the design step waits for the choice');
+    win.document.getElementById('tb-look-go').dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+    for (let i = 0; i < 5; i++) await settle();
     assert.equal(win.__log.design, 1, 'Publish anyway saves and goes on to the design step');
     assert.ok(win.__log.api.some(([p, m]) => p === 'templates/tpl_1/versions/tv_1' && m === 'PUT'), 'after the save');
   });
@@ -556,8 +561,10 @@ describe('f376 (5) the name, category and value stream are at the top of the bui
     assert.equal(win.tbOpenItems().length, 0);
     win.document.getElementById('tb-publish').dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
     for (let i = 0; i < 5; i++) await settle();
-    assert.ok(!win.document.getElementById('tb-pq-go'), 'no question');
-    assert.equal(win.__log.design, 1, 'straight on to the design step');
+    assert.ok(!win.document.getElementById('tb-pq-go'), 'no question about what is open');
+    win.document.getElementById('tb-look-go').dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+    for (let i = 0; i < 5; i++) await settle();
+    assert.equal(win.__log.design, 1, 'straight on to the look, then the design step');
   });
 });
 

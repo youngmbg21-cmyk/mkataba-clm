@@ -1847,6 +1847,9 @@ function tbPaperHtml() {
   closeSec();
   title();
   putProps();
+  /* THE BUILDER OPENS ON ONE WHOLE PAPER (owner, 14 Nov 2026: "This page should be a whole paper"): with nothing on
+     it yet, one quiet line says what lands here (index.html gives the sheet a page's height) */
+  if (!_tb.blocks.length) html += `<p class="tb-empty-line">${esc(i18t('tb_empty_paper'))}</p>`;
   html += `<div class="tb-add">
       <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}" title="${esc(m.tip)}">${m.label}</option>`).join('')}
@@ -2102,8 +2105,11 @@ function tbChipsRowHtml() {
          is already what the section says, there is nothing to propose. */
       if (lib && tbLibraryOffers(sec, lib))
         chips.push([`data-tb-lib="${sec.k}" title="${esc(i18t(txt ? 'tb_pb_lib_over' : 'tb_pb_no_read'))}"`,
-          i18t('tb_pb_use_ours', { name: esc(lib.name) })]);
-      if (txt) ['shorter', 'firmer', 'mutual', 'plain'].forEach(c => chips.push([`data-tb-chip="${c}" title="${i18t('tb_pb_one_read')}"`, i18t('tb_chip_' + c)]));
+          /* SHORT WORDS, ALL OF THEM SHOWN (owner, 14 Nov 2026: "The options should be shorter, firmer and not long names
+             options. Also they should not disappear past the edge of the screen"): the new look says Use ours · Shorter ·
+             Firmer · Mutual · Plainer, the standard's own name on the hover; the row wraps instead of scrolling away */
+          (typeof window.newLookOn === 'function' && window.newLookOn()) ? i18t('tb_pb_use_ours_short') : i18t('tb_pb_use_ours', { name: esc(lib.name) })]);
+      if (txt) ['shorter', 'firmer', 'mutual', 'plain'].forEach(c => chips.push([`data-tb-chip="${c}" title="${i18t('tb_pb_one_read')}"`, i18t((c === 'mutual' || c === 'plain') && (typeof window.newLookOn === 'function' && window.newLookOn()) ? 'tb_chip_s_' + c : 'tb_chip_' + c)]));
       if (_tb.walk && !txt && tbNextEmpty(sec.k)) chips.push(['data-tb-skip', i18t('tb_skip_sec')]);
     }
   }
@@ -2232,6 +2238,15 @@ function tbSecPickHtml() {
   const secs = tbSections(); if (!secs.length) return '';
   const on = _tb.focus != null ? String(_tb.focus) : '';
   const opt = s => { const n = tbPaperNo(s); return `<option value="${s.k}"${String(s.k) === on ? ' selected' : ''}>${esc((n ? n + '. ' : '') + (s.head || i18t('tb_untitled')))}</option>`; };
+  /* THE CLAUSE IN HAND IS NAMED, NOT CHOSEN AGAIN (owner, 14 Nov 2026, approved drawing): the new look draws the section's
+     name in plain words with "‹ All clauses" back to the list, in place of the drop-down; with none in hand the list
+     below is the chooser */
+  if ((typeof window.newLookOn === 'function' && window.newLookOn())){
+    if (!on) return '';
+    const s = secs.find(x => String(x.k) === on); if (!s) return '';
+    const n = tbPaperNo(s);
+    return `<div class="tb-secpick is-named"><button type="button" class="tb-allsecs" data-tb-allsecs>${esc(i18t('tb_all_secs'))}</button><b class="tb-secname">${esc((n ? n + '. ' : '') + (s.head || i18t('tb_untitled')))}</b></div>`;
+  }
   return `<div class="tb-secpick"><select id="tb-secpick" data-tb-secpick aria-label="${esc(i18t('tb_pick_sec'))}">${on ? '' : `<option value="" selected>${esc(i18t('tb_pick_sec'))}</option>`}${secs.map(opt).join('')}</select></div>`;
 }
 function tbCtxHtml(sec) {
@@ -2495,7 +2510,8 @@ function tbPublishAsk(items) {
     else if (it.kind === 'missing') tbSetTab('playbook');
   }));
   document.getElementById('tb-pq-keep')?.addEventListener('click', () => closeModal());
-  document.getElementById('tb-pq-go')?.addEventListener('click', () => { closeModal(); tbPublishGo(); });
+  /* the look question takes this one's place (one pop-up replacing another arrives once) */
+  document.getElementById('tb-pq-go')?.addEventListener('click', () => { tbPublishGo(); });
 }
 
 /* ---- PAINTING. The page once; the paper and the rail into their own slots,
@@ -2548,7 +2564,6 @@ function tbPaint(opts = {}) {
            beside it never move. -->
       <div class="tb-scroll scroll-thin" id="tb-scroll">
         <div id="tb-paperslot"></div>
-        <section class="tb-brand" style="padding:14px var(--s-4);margin-top:14px" id="tb-branding"></section>
       </div>
     </div>
     <div id="tb-railslot"></div>
@@ -2579,7 +2594,10 @@ function tbPaint(opts = {}) {
    ========================================================================== */
 const TB_FMIN = 0.45, TB_FMAX = 0.80;
 const TB_LEFT_MIN = 380, TB_RIGHT_MIN = 340, TB_GAP = 16;
-const TB_SPLIT_KEY = 'hati.v1.tbLeftFrac';
+/* JAMBO'S PANEL HERE IS THE NORMAL WIDTH (owner, 14 Nov 2026: "The jambo in the builder pages is wider than the
+   normal jambo"): at rest the rail is the 384 every Jambo panel opens at, and a width dragged before this day is
+   forgotten once (a new key), so nobody keeps an old wide panel. A drag from now on is still kept. */
+const TB_SPLIT_KEY = 'hati.v1.tbLeftFrac2';
 function _tbLeftFrac() {
   try {
     const v = localStorage.getItem(TB_SPLIT_KEY);
@@ -2939,6 +2957,7 @@ function tbWire() {
       const pick = document.getElementById('tb-pick'); if (pick) pick.hidden = true;
       return;
     }
+    if (hit('[data-tb-allsecs]')) { tbFocus(null); return; }
     if ((b = hit('[data-tb-lib]'))) { tbUseLibrary(Number(b.getAttribute('data-tb-lib'))); return; }
     if ((b = hit('[data-tb-chip]'))) { if (_tb.focus != null) tbDraft(_tb.focus, TB_CHIP_ASK[b.getAttribute('data-tb-chip')]); return; }
     if (hit('[data-tb-skip]')) { const nx = tbNextEmpty(_tb.focus); if (nx) tbFocus(nx.k, { scroll: true }); return; }
@@ -3235,8 +3254,75 @@ function tbPublish() {
 }
 async function tbPublishGo() {
   if (!await tbSave(true)) return;
+  return tbLookAsk();
+}
+/* HOW SHOULD IT LOOK? ONE CLEAR CHOICE AFTER PUBLISH (owner, 14 Nov 2026: "Do not skip it but have an option that is clear
+   as day to choose between design or skipping designing it"). Use our company look (chosen first) publishes at once in
+   the look an admin set in Settings, or the look of the stream the paper is filed in; Design it now opens the design
+   step for this paper alone. Neither ever changes the company look (that is an admin's, in Settings). With no company
+   look set yet, the first choice says so and Design it now is chosen. */
+async function tbLookAsk() {
+  if (typeof refreshOrgBranding === 'function') { try { await refreshOrgBranding(); } catch (_) { /* the choice still opens */ } }
+  const org = window.ORG_BRANDING || null, has = !!(org && org.designId);
+  const name = tbHeadFacts().name, v = _tb.versionNumber;
+  const row = (k, t, d, on, dead) => `<label class="sap-li" style="align-items:flex-start${dead ? ';opacity:.55;cursor:not-allowed' : ''}">
+      <input type="radio" name="tb-look" value="${k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''} style="margin-top:3px;accent-color:var(--accent-fill)">
+      <span><span style="display:block;font-weight:var(--w-label)">${esc(t)}</span><span class="sap-m">${esc(d)}</span></span></label>`;
+  const note = v > 1 ? `<label class="sap-f" style="display:block;margin-top:var(--s-3)"><span class="sap-lbl">${esc(i18t('tb_look_note'))}</span>
+      <textarea id="tb-look-note" class="ui-input" rows="2" maxlength="500" style="width:100%;height:auto;padding:var(--field-pad-y) var(--field-pad-x)"></textarea></label>` : '';
+  openModal(`<div style="padding:16px 18px">
+    <h3>${esc(i18t('tb_look_title', { name }))}</h3>
+    <p class="sap-m" style="margin:0 0 var(--s-3)">${esc(i18t('tb_look_lead'))}</p>
+    <div class="sap-body"><div class="sap-list">
+      ${row('company', i18t('tb_look_company'), has ? i18t('tb_look_company_d') : i18t('tb_look_company_none'), has, !has)}
+      ${row('design', i18t('tb_look_design'), i18t('tb_look_design_d'), !has, false)}
+    </div>${note}</div>
+    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
+      <button type="button" id="tb-look-go" class="ui-btn ui-btn-primary">${esc(i18t(has ? 'tb_look_publish' : 'tb_look_next'))}</button>
+      <button data-dlg-cancel type="button" id="tb-look-x" class="ui-btn">${esc(i18t('act_cancel'))}</button></div>
+  </div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_look_title', { name }) });
+  const pick = () => (document.querySelector('input[name="tb-look"]:checked') || {}).value || 'design';
+  const go = document.getElementById('tb-look-go');
+  document.querySelectorAll('input[name="tb-look"]').forEach(r => r.addEventListener('change', () => {
+    if (go) go.textContent = i18t(pick() === 'company' ? 'tb_look_publish' : 'tb_look_next'); }));
+  document.getElementById('tb-look-x')?.addEventListener('click', () => closeModal());
+  go?.addEventListener('click', async () => {
+    const changeNote = String((document.getElementById('tb-look-note') || {}).value || '').trim();
+    if (pick() === 'design') { closeModal(); return tbDesignStepGo(changeNote); }
+    if (typeof busySet === 'function') busySet(go, i18t('ds_publishing'));
+    try {
+      /* design: null = this paper wears no look of its own: its stream's, else the company's */
+      const r = await api(`templates/${_tb.tid}/versions/${_tb.vid}/publish`, 'POST', { changeNote, design: null });
+      (r.warnings || []).forEach(w => toast(w, 'warn'));
+      if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the landing still opens */ } }
+      tbPublishedLand(_tb.tid, name, r.versionNumber);
+    } catch (e) {
+      go.disabled = false; go.textContent = i18t('tb_look_publish');
+      ((e.data && e.data.problems) || [e.message]).forEach(p => toast(p, 'err'));
+    }
+  });
+}
+/* PUBLISHED: DRAFT A CONTRACT FROM IT (owner, 14 Nov 2026, part 11): the new paper is on the shelf; the one black button
+   goes back to the New agreement page with it already chosen, the other to Our paper where it is kept. */
+function tbPublishedLand(tid, name, vn) {
+  openModal(`<div style="padding:18px 20px">
+    <p style="margin:0 0 6px;display:flex;align-items:center;gap:8px;color:var(--st-green-fg);font-size:var(--t-label);font-weight:var(--w-strong)"><span style="width:8px;height:8px;border-radius:50%;background:var(--st-green-dot)"></span>${esc(i18t('tb_pub_on_shelf', { n: vn || '' }))}</p>
+    <h3 style="margin:0 0 6px">${esc(i18t('tb_pub_ready', { name }))}</h3>
+    <p class="sap-m" style="margin:0 0 var(--s-4)">${esc(i18t('tb_pub_ready_d'))}</p>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap">
+      <button type="button" id="tb-pub-draft" class="ui-btn ui-btn-primary">${esc(i18t('tb_pub_draft'))}</button>
+      <button type="button" id="tb-pub-shelf" class="ui-btn">${esc(i18t('tb_pub_shelf'))}</button></div>
+  </div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_pub_ready', { name }) });
+  document.getElementById('tb-pub-draft')?.addEventListener('click', () => {
+    if (typeof openNewAgreement === 'function') openNewAgreement({ pick: { kind: 'lib', id: tid } }); });
+  document.getElementById('tb-pub-shelf')?.addEventListener('click', () => {
+    closeModal(); if (typeof openTemplateLibDetail === 'function') openTemplateLibDetail(tid); });
+}
+/* DESIGN IT NOW: the design step, for this paper alone */
+function tbDesignStepGo(changeNote) {
   tbGutter(false);   /* the Design step is its own page; onBack repaints this one, which paints it on again */
   openDesignStep({
+    changeNote: changeNote || '',
     mode: 'publish',
     tid: _tb.tid, vid: _tb.vid, versionNumber: _tb.versionNumber,
     templateName: _tb.template.name,
@@ -3323,7 +3409,10 @@ function tbFieldModal(index, presetKey) {
   });
 }
 
-/* ---------- branding panel (org-level, rendered on every template) ---------- */
+/* ---------- branding panel (org-level, rendered on every template) ----------
+   THE BAR HAS LEFT THE BUILDER (owner, 14 Nov 2026: "the Branding, org-wide bar goes from the Builder"): editing it
+   from inside one paper changed every contract's header and footer. The company's look is set only in Settings, by
+   an admin (How our contracts look); the page draws no #tb-branding, so this painter finds no host and does nothing. */
 let _tbBrandOpen = false;
 async function tbPaintBranding() {
   const host = document.getElementById('tb-branding');
@@ -3386,7 +3475,7 @@ async function tbPaintBranding() {
 
 /* The readings are published and the screen is not: a check drives tbSections
    and tbCoverage over a block list it wrote itself, with no builder open. */
-Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
+Object.assign(window, { tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbDropExtraBody, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbCoverageOf, tbFinderOf, tbSectionFor, tbMarksOf, tbMarksHtml, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,

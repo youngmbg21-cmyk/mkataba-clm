@@ -70,10 +70,10 @@ function book(){
       const hd = await page.evaluate(() => { const row = document.querySelector('#hb-bhead .hb-bh-r'); if (!row) return null;
         const bs = row.querySelector('.hb-bs-go'), pu = row.querySelector('[data-hb-pulse]'), ex = row.querySelector('[data-hb-explorer]'), ctl = [...row.querySelectorAll('button')];
         const r = e => e ? e.getBoundingClientRect() : null;
-        return { pulse: !!pu, explorer: !!ex, last: ctl[ctl.length - 1] === ex, left: !!(bs && pu && ex) && r(bs).right <= r(pu).left && r(pu).right <= r(ex).left,
+        return { pulse: !!pu, explorer: !!ex, last: ctl[ctl.length - 1] === ex || (ctl[ctl.length - 1] === row.querySelector('[data-hb-draft]') && ctl[ctl.length - 2] === ex), left: !!(bs && pu && ex) && r(bs).right <= r(pu).left && r(pu).right <= r(ex).left,
           sameLine: !!(bs && pu && ex) && Math.abs(r(bs).top - r(pu).top) < 4 && Math.abs(r(pu).top - r(ex).top) < 4, word: pu ? pu.textContent.trim() : '', exWord: ex ? ex.textContent.trim() : '',
           bsWord: bs ? bs.textContent.trim() : '', noFaceCost: !!bs && !bs.querySelector('.hb-bs-cost') }; });
-      check(`${nm} 1 the head: Summarise my board, then the Pulse board, then Explorer last, on one line; no cost on Summarise's face`, !!hd && hd.pulse && hd.explorer && hd.last && hd.left && hd.sameLine && hd.word === 'Pulse board' && hd.exWord === 'Explorer' && hd.bsWord === 'Summarise my board' && hd.noFaceCost, hd);
+      check(`${nm} 1 the head: Summarise my board, then the Pulse board, then Explorer, then Draft agreement ending the run (owner, 14 Nov 2026), on one line; no cost on Summarise's face`, !!hd && hd.pulse && hd.explorer && hd.last && hd.left && hd.sameLine && hd.word === 'Pulse board' && hd.exWord === 'Explorer' && hd.bsWord === 'Summarise my board' && hd.noFaceCost, hd);
       if (nm === 'laptop-a' && hd && hd.explorer){
         await page.click('#hb-bhead [data-hb-explorer]');
         const ex = await until(page, () => typeof hbFace === 'function' && hbFace() === 'explorer');

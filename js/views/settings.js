@@ -276,6 +276,8 @@ const stLimitField=(id,label,sub,min)=>`<label style="display:block">
    arrived there by the parity test; these two are READ access, and read access
    to who-may-do-what is exactly what an admin-only page is for. */
 const SET_CLOSURES=[
+  /* 14 Nov 2026 (owner: "admin only"): how our contracts look is set once, in Settings, by an admin */
+  { key:'company-look', what:'An Editor can no longer change how the company\u2019s contracts look \u2014 the style, layout, logo, colour, footer and the looks by stream are an admin\u2019s, in Settings, How our contracts look. Publishing one paper can still dress that paper alone.' },
   { key:'roster', what:'A non-admin can no longer read the member list — who is in the workspace, what role each of them holds, which folders they may see, and whether contract values are hidden from them.' },
   { key:'rules',  what:'A non-admin can no longer read the workspace rules — the approval rules, whether internal review is on and on what condition, and whether the redlining desk is enforced. They still meet all three where they apply, in words, on the contract itself.' },
   /* 14 Aug 2026, with the legal identity's move onto Company & market. An
@@ -1500,7 +1502,7 @@ function stSheetCardHtml(){
    Who holds what (every grant, read-only, with Download). Each says where it
    is and carries ‹ Settings back; a refresh comes back to it (settingsPlace). */
 let _stPage=null;
-const ST_PAGES=['team','sheet','roles','streams','data','panel'];
+const ST_PAGES=['team','sheet','roles','streams','data','panel','look'];
 /* ---- A CARD'S DOOR OPENS ITS PAGE (round 25 as drawn, the gaps' third
    pass, 19 Oct 2026: every door on the Company board's cards and the ladder
    "opens its page on the desk, with ‹ Settings to come back") ----
@@ -2068,6 +2070,8 @@ function stCompanyHtml(){
   if(_stPage==='roles') return stRolesPageHtml();
   if(_stPage==='streams') return stStreamsPageHtml();
   if(_stPage==='data') return stDataPageHtml();
+  /* HOW OUR CONTRACTS LOOK (owner's pick, 14 Nov 2026): its page lives with the design step (js/views/designstep.js) */
+  if(_stPage==='look') return (typeof window.clPageHtml==='function')?window.clPageHtml():'';
   return `<div class="st-board" id="st-board">
     ${stNeedsHtml()}
     <div class="st-cards">${ST_CARDS.filter(c=>c.key!=='ladder').map(c=>c.key==='people'?stPeopleCardHtml():stGroupCardHtml(c)).join('')}</div>
@@ -2127,7 +2131,7 @@ function stYouItems(){
     { key:'work', t:'st_you_work', w:['st_you_chips','st_you_opens','st_you_work_words'], focus:'[data-st-sw="chips"]',
       state:stOpensWord },
     { key:'data', t:'st_you_data', w:['st_acct_backup','set_export_backup','st_you_data_words'] },
-    (u.role==='legal') && { key:'design', t:'st_acct_design', w:['set_edit_design','st_acct_design_note','st_you_design_words'], door:'me:design' },
+    /* the company look's row for a legal editor is gone: it is an admin's (How our contracts look, 14 Nov 2026) */
     (api && typeof agPointsTableHtml==='function') && { key:'points', t:'jh_pt_h_mine', toc:'st_you_toc_points', w:['st_you_points_words'], door:'me:points' },
     api && { key:'away', t:'st_you_away', w:['st_aw_who','st_aw_never_sign','st_you_away_words'], door:'me:away', state:stAwayState },
   ].filter(Boolean);
@@ -5282,7 +5286,6 @@ async function settingsRemoveMember(u){
    "You" and a viewer reading "Your account" are looking at the same rows. */
 function stAccountBodyHtml(opts){
   const u=currentUser()||{};
-  const mayDesign=u.role==='admin'||u.role==='legal';
   /* ONE BUILDER, ITS SECTIONS BY NAME (the Control Room built in full, 16 Oct
      2026): the avatar's "Your account" drawer draws them all, in this order;
      a You card's door draws only the ones it names (`only`), in the same
@@ -5373,11 +5376,7 @@ function stAccountBodyHtml(opts){
     </section>`;
   /* AN EDITOR'S COMPANY-DESIGN DOOR, kept on the personal surface (it is a
      workspace setting they are allowed to change, and says so) */
-  if(mayDesign) S.design=`<section class="st-sec"${sec('design')}>
-      <h3 class="st-sec-h">${esc(i18t('st_acct_design'))}</h3>
-      <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_design_note'))}</p>
-      <button id="brand-edit" style="${ST_BTN2}">${i18t('set_edit_design')}</button>
-    </section>`;
+  /* THE COMPANY LOOK IS AN ADMIN'S (owner, 14 Nov 2026): the editor's own door to it is gone; admins reach it in Settings, How our contracts look */
   if(u.role==='admin') S.door=`<section class="st-sec">
       <h3 class="st-sec-h">${esc(i18t('st_acct_settings_door'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_settings_sub'))}</p>
@@ -6958,8 +6957,9 @@ const SET_PANELS={
         <button id="brand-edit" style="${ST_BTN2}">${d?i18t('set_edit_design'):i18t('set_choose_design')}</button>
       </div>`;
     },
+    /* the card opens the one page that sets the look (How our contracts look), admins only */
     wire(){ document.getElementById('brand-edit')?.addEventListener('click',()=>{
-      stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() }); }); },
+      stDrawerClose(); if(typeof window.clGo==='function') window.clGo(); }); },
   },
 
   report:{
@@ -10070,7 +10070,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stNewLookSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
+  ST_FACES,stPageHeadHtml,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stNewLookSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
