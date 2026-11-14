@@ -12,6 +12,11 @@ on a press. It starts only on the owner's "go", which is their yes to every push
 - Left alone on purpose, said to the owner: Jambo's house's contract picker (it writes the chosen name back into
   itself, 14 Nov); the Handbook chosen again from Recent (a fresh open starts at its top).
 
+## Before Round 0 — the two unlucky checks wait properly (the owner picked (b), 14 Nov 2026)
+board-says-it-plain-verify A0 (the first chart drawn late) and chase-many-verify 1b (the untick read before it was
+drawn): each waits for the state it tests, bounded, as the house rule says; nothing loosened, nothing skipped.
+Goes in Round 0's pull request.
+
 ## Round 0 — the measure tells real from not (one pull request)
 1. Each of the 13 is read: a real loss, or the measure miscounting. Already suspected: Contracts' Recent entries
    and alerts that OPEN A CONTRACT are a move to another place, not a lost place; the measure is taught that.
