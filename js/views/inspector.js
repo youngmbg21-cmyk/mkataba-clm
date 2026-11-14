@@ -802,8 +802,18 @@ function insPanelEmptyHtml(msg){
    tab draws its panel inside the room, beside the room's own chrome. */
 function insPaintPanel(o){
   const opt = o || {};
-  const host = (typeof document !== 'undefined') ? document.getElementById(opt.host || 'ins-panel') : null;
+  let host = (typeof document !== 'undefined') ? document.getElementById(opt.host || 'ins-panel') : null;
   if (!host) return;
+  /* THE SAME PAGE DRAWN AGAIN KEEPS ITS PANEL (14 Nov 2026, the last flicker: the Handbook, Our paper, the list pages
+     draw their whole page with a fresh, empty panel in it, and the panel was built again from nothing with the same
+     words). A fresh empty panel on the SAME page (its seat) takes back the one it replaced — the same element, its
+     frame, its scroll and its box — and only what changed is written below. Another page, or any doubt: drawn fresh. */
+  const was = insPaintPanel._last;
+  if (was && was !== host && !was.isConnected && !host.firstElementChild && was.id === host.id
+    && opt.seat != null && was._insSeat === opt.seat && host.parentNode){
+    const lab = host.getAttribute('aria-label'); if (lab != null) was.setAttribute('aria-label', lab);
+    host.parentNode.replaceChild(was, host); host = was; }
+  insPaintPanel._last = host; host._insSeat = opt.seat;
   host._ins = opt;
   const c = opt.c || null;
   const item = c ? null : (opt.item || null);
@@ -826,14 +836,18 @@ function insPaintPanel(o){
   if (jl) jlHeadPaint(host, opt, !!(c || item) && !soloItem);
   if (jl) jlOwnPaint(host, opt);
   if (jl) jlGreetPut(host, true);
-  if (jl && !c && !item){ body.innerHTML = jlWordsHtml(opt); }
-  else if (soloItem){ body.innerHTML = opt.body || ''; }
+  /* NOTHING CHANGED, NOTHING WRITTEN: the body is written only when what it would say differs from what it says */
+  /* …and only while nothing else has written into it since (its markup as left is compared too: any doubt = written) */
+  const put = html => { if (body._insHtml === html && body.firstChild && body.innerHTML === body._insSer) return;
+    body.innerHTML = html; body._insHtml = html; body._insSer = body.innerHTML; };
+  if (jl && !c && !item){ put(jlWordsHtml(opt)); }
+  else if (soloItem){ put(opt.body || ''); }
   else {
-  body.innerHTML = c ? insPanelHtml(c, opt)
+  put(c ? insPanelHtml(c, opt)
     /* `head:false` — an item said in Jambo's own words, no head of facts
        (Our paper's chosen template, round 21) */
     : item ? ((opt.head === false ? '' : insItemHeadHtml(opt.head || {})) + (opt.body || ''))
-    : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty); }
+    : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty)); }
   /* his conversation, where it was asked here, is said under his words */
   if (jl && jlTalkShows() && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
     try { renderAIFeed(!!ai.busy); if (ai.unread){ ai.unread = false; if (typeof updateAIBadge === 'function') updateAIBadge(); } } catch (_){}
