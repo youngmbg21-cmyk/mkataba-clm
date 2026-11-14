@@ -108,7 +108,7 @@ const INIT = () => {
     .sort((a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth).slice(0, 4);
 
   window.__rb = {
-    doors(){ return doorEls().map(([key, el]) => ({ key, label: label(el), part: partOf(el) })); },
+    doors(){ return doorEls().map(([key, el]) => ({ key, label: label(el), part: partOf(el), who: (el.id ? '#' + el.id : '') + (dataOf(el) ? '[' + dataOf(el).slice(0, 60) + ']' : '') })); },
     click(key){ const el = find(key); if (!el) return false; try { el.click(); } catch (_){ } return true; },
     sig,
     /* before a press: type, scroll, remember, then mark every piece on screen */
@@ -150,7 +150,10 @@ const INIT = () => {
       let frames = 0, blank = 0, paleFrames = 0; const pale = new Set();
       while (performance.now() - t0 < ms){ await new Promise(r => requestAnimationFrame(() => r())); frames++;
         const main = document.querySelector('#ig-page:not([hidden])') || document.querySelector('#content .view-enter') || document.getElementById('content');
-        if ((main && !main.firstElementChild) || (d0 && mr && !mr.firstElementChild && dlgGone)) blank++;
+        /* BLANK MEANS THE PAGE HELD NOTHING. A pop-up closing leaves its root empty by design; the first two runs
+           counted that as a blank screen on every frame (the Send screen's Cancel, 23 of 23), which was the
+           measure's fault, not the page's (14 Nov 2026) */
+        if (main && !main.firstElementChild) blank++;
         let p = 0; for (const [id, nm] of PARTS){ const h = document.getElementById(id); if (!h) continue; for (const k of h.children){ const r = k.getBoundingClientRect();
           if (r.width >= 160 && r.height >= 60 && r.bottom > 0 && r.top < innerHeight && +getComputedStyle(k).opacity < 1){ p++; pale.add(nm); } } }
         if (p) paleFrames++; }
@@ -299,7 +302,8 @@ function judge(pre, film, post){
               if (s2.dlgName !== pre.sig.dlgName || !sameList(s2.words, pre.sig.words)) j.lost.push(`the way back: pressing "${pre.choice.label}" again does not bring it back`); }
           }
           T.pressed++; if (j.moved) T.moved++; if (j.reopened || j.what.length) T.rebuilt++; if (j.lost.length) T.lost++; if (j.flash.length) T.flash++;
-          const where = [...lvl.names, d.label].map(short).join(' > ');
+          /* the button named exactly too, so a finding can be followed to its code (14 Nov 2026) */
+          const where = [...lvl.names, d.label].map(short).join(' > ') + (d.who ? ' {' + d.who + '}' : '');
           const bits = [];
           if (film.err) bits.push('ERR ' + film.err);
           if (j.moved) bits.push('moves to another page');
