@@ -308,7 +308,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['templates', 'our paper', 'template builder', 'new standard', 'new template'], sv: ['mallar', 'vårt papper', 'mallbyggaren', 'ny standard'] },
     shots: [
       { go: [{ place: 'ourpaper' }], boxes: [{ sel: '[data-tpl-pf="builtin:RM"]', step: 1 }, { sel: '[data-tpl-pf-act="1"]', step: 2 }], cap: { en: 'A template pressed (1); Draft from it opens the one sheet with it chosen (2).', sv: 'En mall tryckt (1); Utkast från den öppnar det enda arket med den vald (2).' } },
-      { go: [{ place: 'ourpaper' }], boxes: [{ sel: '[data-tpln-q]', step: 3 }, { sel: '.tpln-chips', step: 3 }], cap: { en: 'Find a paper by its name or by what you need; the streams are chips on one line (3).', sv: 'Hitta ett papper på namnet eller på vad du behöver; flödena är knappar på en rad (3).' } }] },
+      { go: [{ newLook: true }, { place: 'ourpaper' }, { waitFor: '[data-tpln-q]' }], boxes: [{ sel: '[data-tpln-q]', step: 3 }, { sel: '.tpln-chips', step: 3 }], cap: { en: 'Find a paper by its name or by what you need; the streams are chips on one line (3).', sv: 'Hitta ett papper på namnet eller på vad du behöver; flödena är knappar på en rad (3).' } }] },
 
   { k: '2.5', part: 'draft', round: 2,
     title: { en: 'Our standards: how firm we are', sv: 'Våra standarder: hur fasta vi är' },
@@ -394,7 +394,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['send', 'send it', 'share', 'send for review', 'send to the other side', 'send to a colleague', 'adviser link', 'the letter', 'what they can do', 'send by'], sv: ['skicka', 'dela', 'skicka på granskning', 'skicka till motparten', 'skicka till en kollega', 'rådgivarlänk', 'brevet', 'vad de kan göra', 'skicka med'] },
     shots: [
       { go: [{ open: 'MK-A2', face: 'copilot' }], boxes: [{ sel: '#ws-share', step: 1 }], cap: { en: 'Send on the paper\'s line, the one filled button, opens the form and the letter (1).', sv: 'Skicka på papperets rad, den enda fyllda knappen, öppnar formuläret och brevet (1).' } },
-      { go: [{ open: 'MK-A2', face: 'copilot' }, { fn: 'openShareModal', ref: 'MK-A2', arg: 'c' }], boxes: [{ sel: '[data-sh-st="what"] .sh-st-h', step: 3 }, { sel: '[data-sh-st="can"] .sh-st-h', step: 3 }, { sel: '#sh-lt-verdict:not(.hidden), #share-readiness', step: 6 }], cap: { en: 'What goes (3) and what they can do (4), each a list that opens downwards; the verdict first in Before you send (6).', sv: 'Vad som skickas (3) och vad de kan göra (4), var och en en lista som öppnas nedåt; beskedet först i Innan du skickar (6).' } }] },
+      { go: [{ newLook: true }, { open: 'MK-A2', face: 'copilot' }, { fn: 'openShareModal', ref: 'MK-A2', arg: 'c' }, { waitFor: '[data-sh-st="what"] .sh-st-h' }], boxes: [{ sel: '[data-sh-st="what"] .sh-st-h', step: 3 }, { sel: '[data-sh-st="can"] .sh-st-h', step: 3 }, { sel: '#sh-lt-verdict:not(.hidden), #share-readiness', step: 6 }], cap: { en: 'What goes (3) and what they can do (4), each a list that opens downwards; the verdict first in Before you send (6).', sv: 'Vad som skickas (3) och vad de kan göra (4), var och en en lista som öppnas nedåt; beskedet först i Innan du skickar (6).' } }] },
 
   { k: '3.4', part: 'agree', round: 1,
     title: { en: 'What the other side sees', sv: 'Vad motparten ser' },

@@ -153,7 +153,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const sheet = await page.evaluate(() => !!document.querySelector('.tpln-sheet .tpl-pf-sheet, .tpln-sheet .tpl-pf-none'));
     const used = await until(page, () => /How it has been used/i.test((document.querySelector('#ins-panel') || {}).innerText || ''), null, 8000);
     await shot('7-our-paper');
-    check('7 Our paper: the paper small, Standards and Shelves beside it, its use in the panel', up && caps.includes('standards') && caps.includes('shelves') && sheet && used, caps);
+    /* THE LEGORA WAY (owner's pick, 14 Nov 2026): one ask box, the streams as chips on one line, a quiet list whose rows quote their first line; Shelves stay beside the paper */
+    const lg = await page.evaluate(() => ({ ask: !!document.querySelector('.tpln [data-tpln-q]'), chips: !!document.querySelector('.tpln .tpln-chips'), quote: !!document.querySelector('.tpln .tpln-r .tpln-q') }));
+    check('7 Our paper: one ask box, the streams on one line, each row quoting its first line; the paper small, Shelves beside it, its use in the panel', up && lg.ask && lg.chips && lg.quote && caps.includes('shelves') && sheet && used, { caps, lg });
   } catch (e) { check('7 Our paper', false, String(e).slice(0, 200)); }
 
   /* 8 · My notes */
@@ -173,7 +175,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const heads = await page.evaluate(() => [...document.querySelectorAll('.ikn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
     const go = await page.evaluate(() => !!document.querySelector('.ikn-table [data-ikn-draft]'));
     await shot('9-requests');
-    check('9 Requests: Request · Where it stands · Asked by · Lane, Start the draft on the row', up && heads.join('|') === 'request|where it stands|asked by|lane' && go, heads);
+    /* THE SAP WAY WITH COLOUR (owner's pick, 14 Nov 2026): the stream is its own chip column; the lane's person went into Where it stands */
+    check('9 Requests: Request · Stream · Where it stands · Asked by, Start the draft on the row', up && heads.join('|') === 'request|stream|where it stands|asked by' && go, heads);
   } catch (e) { check('9 Requests', false, String(e).slice(0, 200)); }
 
   /* 10 · Import */

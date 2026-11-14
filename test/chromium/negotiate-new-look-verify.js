@@ -132,7 +132,10 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         /* RE-POINTED 14 Nov 2026 (the send screen, "The Legora way", owner picked it by name): the choices are one sentence
            ABOVE the letter, the letter a white paper under it holding To and Subject, each choice a borderless pill,
            the grey sentences under them gone (an amber "held back" line stays) */
-        return { grid: L ? getComputedStyle(L).display : '', beside: !!(a && b && b.top >= a.bottom - 2) && !!(mail && mail.querySelector('#sh-name')),
+        /* RE-POINTED 14 Nov 2026 again (the send screen, "Four steps", owner picked it by name; replaces the Legora way):
+           the choices on the left as four numbered steps, the letter beside them on the right */
+        return { grid: L ? getComputedStyle(L).display : '', beside: !!(a && b && b.left >= a.right - 2),
+          steps: ['to', 'what', 'can', 'by'].every(k => !!document.querySelector(`#sh-as-chips [data-sh-st="${k}"] > .sh-st-h`)),
           /* RE-POINTED 11 Nov 2026 (the send page "The SAP Way", owner picked it by name): From stands in the email's
              card under Subject; each choice is a box; the sentences under them are tags; the note hugs its words;
              their link is the email's button */
@@ -147,10 +150,10 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
             || !document.querySelector('#sh-lt-after .sh-lt-p')),
           keys: [...document.querySelectorAll('#ig-dock .sh-lt-card > h4, #ig-dock .sh-kv > span')].map(x => x.textContent.trim()) };
       });
-      await page.click('[data-sh-as-go="purpose"]').catch(() => {});
-      const opened = await until(page, () => !!document.querySelector('[data-sh-as="purpose"].is-open'), null, 3000);
-      check(`${nm} 4 Send, the Legora way: the choices one sentence of pills above, the letter a white paper with To and Subject, From under Subject, the note hugging its words, the link a button, a pill opens its list, Before you send in rows`,
-        s4.grid === 'flex' && s4.beside && s4.from && s4.boxed && s4.tags && s4.card && s4.hugs && s4.btn && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
+      await page.click('[data-sh-st-go="can"]').catch(() => {});
+      const opened = await until(page, () => !!document.querySelector('[data-sh-st="can"].is-open'), null, 3000);
+      check(`${nm} 4 Send, four steps: the choices numbered on the left, the letter beside them, From under Subject, the note hugging its words, the link a button, a step's Change opens it in place, Before you send in rows`,
+        s4.grid === 'grid' && s4.beside && s4.steps && s4.from && s4.card && s4.hugs && s4.btn && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
       await page.screenshot({ path: path.join(OUT, `send-${nm}.png`) });
       await page.keyboard.press('Escape'); await until(page, () => !document.querySelector('[data-sh-as].is-open'), null, 3000);
       await page.evaluate(() => { const x = document.querySelector('#modal-root [data-dlg-cancel]'); if (x) x.click(); });

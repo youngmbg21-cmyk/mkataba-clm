@@ -275,7 +275,7 @@ const RAIL = () => {
     if (!g0.rez){
       ['12b · dragged 220px left, the rail is that much wider and the handle is under the pointer',
        '12c · pushed past its floor the paper stops and the handle SAYS it is at the limit',
-       '12d · a double-click puts the sheet\'s own columns back — the rail at 384 (the normal Jambo width, 14 Nov 2026), nothing stored',
+       '12d · a double-click puts the sheet\'s own columns back — the rail at its resting width, nothing stored',
        '12e · and the paper still types — nothing else on the page moved'].forEach(n => check(n, false, 'no separator on the page'));
     } else {
       const hx = g0.rez.x + g0.rez.w / 2, hy = 400;
@@ -293,9 +293,9 @@ const RAIL = () => {
       await page.dblclick('#tb-resizer');
       await pause(300);
       const g3 = await page.evaluate(GEO);
-      check('12d · a double-click puts the sheet\'s own columns back — the rail at 384 (the normal Jambo width, 14 Nov 2026), nothing stored',
-        !!g3.rail && Math.abs(g3.rail.w - 384) <= 2 && g3.stored == null && Math.abs((g3.rez.x + g3.rez.w / 2) - seam0) <= 2,
-        { rail: g3.rail && Math.round(g3.rail.w), stored: g3.stored });
+      check('12d · a double-click puts the sheet\'s own columns back — the rail at its resting width, nothing stored',
+        !!g3.rail && !!g0.rail && Math.abs(g3.rail.w - g0.rail.w) <= 2 && g3.stored == null && Math.abs((g3.rez.x + g3.rez.w / 2) - seam0) <= 2,
+        { rail: g3.rail && Math.round(g3.rail.w), rest: g0.rail && Math.round(g0.rail.w), stored: g3.stored });
       check('12e · and the paper still types — nothing else on the page moved', g3.editables === g0.editables && g3.editables >= 3, { before: g0.editables, after: g3.editables });
       await page.screenshot({ path: path.join(OUT, '06-divider.png') });
     }
