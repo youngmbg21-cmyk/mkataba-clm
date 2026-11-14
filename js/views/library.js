@@ -3254,8 +3254,12 @@ function tplBookRepaint(){
   if(!host) return;
   /* the index keeps its place under the reader's hand (a press low in a long
      index must not throw it back to the top) */
+  /* THE NEW LOOK'S LIST TOO (14 Nov 2026, the flash survey): its standards sit in a scroller with no id, which the
+     line above never found; every scroller in the book keeps its place but the paper beside it, which shows the
+     paper just picked and starts at its top (keepScrollIn, js/components.js) */
   const li=document.getElementById('tpl-pf-list'); const top=li?li.scrollTop:0;
-  host.innerHTML=tplBookHtml(tplOverviewData());
+  const draw=()=>{ host.innerHTML=tplBookHtml(tplOverviewData()); };
+  if(typeof keepScrollIn==='function') keepScrollIn(host, draw, '.tpl-pf-paper, .tpl-pf-paper *'); else draw();
   const li2=document.getElementById('tpl-pf-list'); if(li2&&top) li2.scrollTop=top;
   tplBookWire(host);
   tplPfAfterPaint();
@@ -3277,8 +3281,11 @@ function tplBookWire(host){
      again after ‹ Jambo); a shelf's line opens or folds it; the find box
      narrows the index (the caret kept); the chosen template's doors are its
      own verbs */
+  /* the list's place is held from the press's very start: choosing the row (insSelect) moves the panel beside it
+     before the book is drawn again (the flash survey, 14 Nov 2026) */
   host.querySelectorAll('[data-tpl-pf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf'); _tplPf.pick=k;
-    if(typeof insSelect==='function') insSelect('tpl-book',k); tplBookRepaint(); }));
+    const go=()=>{ if(typeof insSelect==='function') insSelect('tpl-book',k); tplBookRepaint(); };
+    if(typeof keepScrollIn==='function') keepScrollIn(host, go, '.tpl-pf-paper, .tpl-pf-paper *'); else go(); }));
   host.querySelectorAll('[data-tpl-pf-shelf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf-shelf');
     _tplPf.open[k]=b.getAttribute('aria-expanded')!=='true'; tplBookRepaint();
     const again=document.querySelector(`[data-tpl-pf-shelf="${k}"]`); if(again) try{ again.focus({ preventScroll:true }); }catch(_){ } }));

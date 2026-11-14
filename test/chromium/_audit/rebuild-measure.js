@@ -101,6 +101,9 @@ const INIT = () => {
   const fieldsNow = () => [...scope().querySelectorAll('textarea, input[type="text"], input:not([type])')].filter(el => !el.disabled && !el.readOnly && vis(el)
     && !el.hasAttribute('data-lh-q') && !/search|filter|find|sök/i.test((el.getAttribute('placeholder') || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + el.id));
   const scrollKey = el => el.id ? '#' + el.id : partOf(el) + '|' + [...el.classList].slice(0, 3).join('.');
+  /* what a scroller is SHOWING: its first words. A list redrawn with the same rows keeps the same first words; a
+     pane that now shows a different chapter or paper does not, and starting it at its top is right (14 Nov 2026) */
+  const sigOf = el => String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
   const scrollersNow = () => [...scope().querySelectorAll('*')].filter(el => { if (el.scrollHeight <= el.clientHeight + 60 || el.clientHeight < 80) return false; const o = getComputedStyle(el).overflowY; return (o === 'auto' || o === 'scroll') && vis(el); })
     .sort((a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth).slice(0, 4);
 
@@ -119,7 +122,7 @@ const INIT = () => {
            for it, so it is never counted as a loss (the first run counted those) */
         if (type && f.value) fields.push({ key: fieldKey(f, i), val: f.value, name: (f.getAttribute('placeholder') || f.getAttribute('aria-label') || f.id || 'a box').slice(0, 40) }); } catch (_){ } });
       const scrolls = [];
-      for (const s of scrollersNow()){ try { if (s.scrollTop < 40) s.scrollTop = Math.min(160, s.scrollHeight - s.clientHeight); if (s.scrollTop >= 40) scrolls.push({ key: scrollKey(s), top: s.scrollTop }); } catch (_){ } }
+      for (const s of scrollersNow()){ try { if (s.scrollTop < 40) s.scrollTop = Math.min(160, s.scrollHeight - s.clientHeight); if (s.scrollTop >= 40) scrolls.push({ key: scrollKey(s), top: s.scrollTop, sig: sigOf(s) }); } catch (_){ } }
       await new Promise(r => setTimeout(r, 180));                         /* what typing and scrolling drew is not the press's */
       const again = find(key); if (!again) return { missing: true };
       gen++; const parts = {};
@@ -166,7 +169,8 @@ const INIT = () => {
       for (const f of cur.fields){ const el = fNow.find((x, i) => fieldKey(x, i) === f.key); typed.push({ name: f.name, there: !!el, kept: !!(el && el.value === f.val) }); }
       const sNow = scrollersNow(), scrolls = [];
       for (const sc of cur.scrolls){ const el = sNow.find(x => scrollKey(x) === sc.key) || (sc.key[0] === '#' ? document.querySelector(sc.key) : null);
-        scrolls.push({ key: sc.key, there: !!el, was: sc.top, now: el ? el.scrollTop : null, room: el ? el.scrollHeight - el.clientHeight : 0 }); }
+        scrolls.push({ key: sc.key, there: !!el, was: sc.top, now: el ? el.scrollTop : null, room: el ? el.scrollHeight - el.clientHeight : 0,
+          same: !!el && sigOf(el) === sc.sig }); }
       const had = new Set(cur.keys);
       const fresh = doorEls().filter(([k]) => !had.has(k)).map(([key, el]) => ({ key, label: label(el) }));
       return { sig: s, parts, typed, scrolls, dlgKept: !!(d && cur.dlg && d === cur.dlg), fresh,
@@ -207,7 +211,10 @@ function judge(pre, film, post){
        press as a loss, which is why its total did not move. Those are listed, not scored. */
     for (const t of post.typed){ if (t.kept) continue;
       if (t.there) lost.push(`what was typed in "${t.name}"`); else away.push(t.name); }
-    for (const s of post.scrolls) if (!s.there || (s.now < s.was - 30 && s.room >= s.was)) lost.push('where it was scrolled to');
+    /* ONLY THE SAME LIST: a scroller that now shows something else (a new chapter, a new paper) starting at its top is
+       not a loss; one that vanished, or shows the same rows from the top again, is */
+    for (const s of post.scrolls){ if (s.there && !s.same){ away.push('a pane now showing something new'); continue; }
+      if (!s.there || (s.now < s.was - 30 && s.room >= s.was)) lost.push('where it was scrolled to'); }
   }
   if (film.blank) flash.push(`blank ${film.blank}/${film.frames} frames`);
   if (film.paleFrames) flash.push(`pale ${film.paleFrames}/${film.frames} frames (${film.pale.join(', ')})`);
@@ -299,7 +306,7 @@ function judge(pre, film, post){
           if (j.what.length) bits.push(j.what.join('; '));
           if (j.flash.length) bits.push('flash: ' + j.flash.join(', '));
           if (j.lost.length) bits.push('LOST: ' + j.lost.join('; '));
-          if (j.away && j.away.length){ T.away = (T.away || 0) + 1; bits.push('box put away with its panel: ' + j.away.join(', ')); }
+          if (j.away && j.away.length){ T.away = (T.away || 0) + 1; bits.push('not counted (put away with its panel, or now showing something new): ' + j.away.join(', ')); }
           say(`  ${where.padEnd(64)} ${bits.length ? bits.join(' · ') : 'clean'}`);
           if (!j.moved && (j.reopened || j.what.length || j.lost.length || j.flash.length))
             rows.push({ page: base.name, press: where, what: j.what.join('; ') || '—', lost: j.lost.join('; ') || '—', flash: j.flash.join(', ') || '—',
@@ -319,7 +326,7 @@ function judge(pre, film, post){
   rows.sort((x, y) => y.score - x.score);
   say(`\n================ WORST FIRST (${rows.length} presses that rebuilt, flashed or lost something) ================`);
   for (const r of rows.slice(0, 80)) say(`  [${r.page}] ${r.press}\n      today: ${r.what}\n      lost:  ${r.lost}\n      flash: ${r.flash}`);
-  say(`\nBoxes put away with their panel (not scored as a loss): ${Object.values(tally).reduce((n, T) => n + (T.away || 0), 0)} presses.`);
+  say(`\nNot scored as a loss (a box put away with its panel, or a pane now showing something new): ${Object.values(tally).reduce((n, T) => n + (T.away || 0), 0)} presses.`);
   say('\n================ BY PAGE ================');
   for (const [name, T] of Object.entries(tally)) say(`  ${name.padEnd(28)} pressed ${String(T.pressed).padStart(3)} · rebuilt ${String(T.rebuilt).padStart(3)} · lost ${String(T.lost).padStart(3)} · flashed ${String(T.flash).padStart(3)} · left alone ${T.left} · not found ${T.gone} · not reached ${T.cut}`);
   /* the same table where GitHub shows it on the run's own page */
