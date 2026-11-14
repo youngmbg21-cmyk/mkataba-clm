@@ -777,7 +777,8 @@ const signIn = async (page, base, email, pass) => {
     check('the roster, the rules and the gates are not on it',
       theirs.roster === 0 && !theirs.rules && !theirs.gates,
       `${theirs.roster} people · rules ${theirs.rules} · gates ${theirs.gates}`);
-    check("an Editor keeps the company-design door the old page gave them", theirs.design);
+    /* HOW OUR CONTRACTS LOOK IS AN ADMIN'S (owner, 14 Nov 2026): the design door an Editor once had is gone, and the server refuses them too */
+    check("an Editor no longer has the company-design door — the company look is an admin's (owner, 14 Nov 2026)", !theirs.design);
     /* ---- AND NOT THE LEGAL IDENTITY (14 Aug 2026, a NAMED closure) ----
        The design is theirs — logo, colour, layout — and that is what the
        permission was for. The registered name is what appears on executed

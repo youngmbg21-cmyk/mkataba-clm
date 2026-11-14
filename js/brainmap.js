@@ -203,6 +203,7 @@ const BRAIN_PARTS = [
   /* a standard Jambo proposed on a template's paper and somebody Skipped, kept
      on the template so nobody is offered it again (round 21, 19 Oct 2026) */
   ['tplskip', 'PUT /api/templates/:id/skipped', 'wall', 2],
+  ['tpllook', 'PUT /api/templates/:id/look', 'wall', 2],
   /* the Details tab and "Complete the details" (owner, 12 Oct 2026): the one
      place a contract is filled in, and the one count of what is left */
   ['details', 'detailsOf', 'in', 1],
@@ -337,7 +338,8 @@ const BRAIN_PARTS = [
   /* Jambo's panel beside the lists (18 Oct 2026): its box reads as the Counter's — a place, the map, else a question said in the panel */
   ['listask', 'jlAsk', 'ai', 0],
   /* Jambo everywhere (owner, 21 Oct 2026): the ✦ opens the chat window on any page, answering in itself ("The old chat window", reversing the ✦ ask bar); Pop out keeps the conversation on top of Word; "What am I looking at?" says the screen free */
-  ['askbar', 'aiWinToggle', 'ai', 0],
+  /* the ✦ opens him already popped out where the browser keeps a window on top (owner, 14 Nov 2026) */
+  ['askbar', 'aiStarPress', 'ai', 0],
   ['jambopop', 'aiPopOut', 'ai', 0],
   ['jambohere', 'aiHereSays', 'ai', 0],
   /* Jambo, as recommended (owner, 21 Oct 2026): an answer about one contract carries Show me › and one prepared press through the act's own door; a sentence becomes a standing watch the person starts, the server's sweep tells them once (js/jambopress.js) */
@@ -622,7 +624,7 @@ const BRAIN_FLOWS = [
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
-  { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
+  { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'tpllook', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
@@ -650,7 +652,7 @@ const BRAIN_LANE_OF = {
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcol', 'askcolcells', 'askcoldisc', 'askcolnext', 'reads', 'discover', 'discoverask', 'pulse', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',
     'readchips', 'nextq', 'mapwalk', 'pointsay', 'thennow', 'mappicture', 'lenses', 'figmenu', 'briefing', 'cliffcard', 'whatif', 'lensthen', 'riskdays', 'findings', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'ptmark', 'jambohouse', 'onesearch', 'listask', 'totpcount', 'totpnew', 'onereader', 'contractfind', 'briefword', 'askbar', 'jambopop', 'jambohere', 'jbpresses', 'watchread', 'watchlist', 'listhead', 'listfoot'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
-  hati: ['unplacednote', 'unplacedpost', 'unplacedlist', 'unplacedfine', 'lessonsget', 'lessonteach', 'hatisearch', 'hbkbook', 'hsroute', 'aidoor', 'wayon', 'docx', 'clauses', 'putguard', 'db', 'tplskip', 'chasepreview', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'firstread', 'partyhist', 'partyweb', 'partylookup', 'rowread', 'signedturn', 'pushalerts', 'pushsw', 'pushsub', 'pushunsub', 'pushkey', 'pushswroute', 'manifest', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
+  hati: ['unplacednote', 'unplacedpost', 'unplacedlist', 'unplacedfine', 'lessonsget', 'lessonteach', 'hatisearch', 'hbkbook', 'hsroute', 'aidoor', 'wayon', 'docx', 'clauses', 'putguard', 'db', 'tplskip', 'tpllook', 'chasepreview', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'firstread', 'partyhist', 'partyweb', 'partylookup', 'rowread', 'signedturn', 'pushalerts', 'pushsw', 'pushsub', 'pushunsub', 'pushkey', 'pushswroute', 'manifest', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'myemail', 'mycopy', 'acctrec', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'sharemail', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
     'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',

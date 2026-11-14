@@ -6505,6 +6505,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const drawOk = !!c.sealPrep || (Array.isArray(c.signerPlan) && c.signerPlan.filter(Boolean).length > 0);
     if (srvSealPrepOk(c) || (drawOk && srvSealPrepReady(c))) { delete c.execution; delete c.hash; delete c.sealVersion; srvSealNow(c, now()); sealedNow = true; }
   }
+  /* A CONTRACT'S LOOK FOLLOWS ITS STREAM UNTIL IT IS SIGNED (owner, 14 Nov 2026; srvLookFollowStream) */
+  if (prev) { const moved = srvLookFollowStream(prev, c); if (moved) c.branding = moved; }
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
   /* ---- WO N7: the four activation moments, observed where they land ----
@@ -20601,7 +20603,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     const pc = (payload && payload.contract) || {};
     const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
       drawn: (req.body || {}).drawnLetter === true || outsideLookOn(),
-      cName, recName: rec.name, message, subject, link, expires,
+      cName, recName: rec.name, message, subject, link, expires, durable: !!isDurable,
       round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status',
       ...srvMailCodeOf(shareId) });
     const r = await sendEmail(email,
@@ -22148,7 +22150,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
       drawn: (req.body || {}).drawnLetter === true || outsideLookOn(),
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
-      message: note, subject: letter.subject, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
+      message: note, subject: letter.subject, link, expires: s.expires_at, durable: !!s.durable, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
       ...srvMailCodeOf(s.contract_id) });
     const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { replyTo: mailReplyFor(req, s), html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;
@@ -27523,6 +27525,10 @@ addColumnIfMissing('org_branding', 'accent_source', 'TEXT');
 // the page architecture, chosen alongside the design (js/branding.js DOC_STRUCTURES)
 addColumnIfMissing('org_branding', 'structure_id', 'TEXT');
 addColumnIfMissing('org_branding', 'set_by', 'TEXT');
+/* LOOKS BY STREAM (owner, 14 Nov 2026: "whether the look applies to all contracts or to certain folder types /
+   streams"): a JSON map stream id -> { designId, structureId, logoPosition, accentColor }. A stream not named wears the
+   company look. Which look wins: a paper's own, then its stream's, then the company's (srvLookOf). */
+addColumnIfMissing('org_branding', 'stream_looks', 'TEXT');
 addColumnIfMissing('org_branding', 'set_at', 'TEXT');
 /* A template may switch designs for ITS contracts without moving the company
    default (DESIGN §2: "switching designs for that one document is allowed but
@@ -28356,11 +28362,9 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
     branding: branding ? { logoUrl: branding.logo_url || null, companyName: branding.company_name || '',
       registrationNumber: branding.registration_number || '', address: branding.address || '',
       footerText: branding.default_footer_text || '',
-      designId: tplDesign.design_id || branding.design_id || null,
-      logoPosition: (tplDesign.design_id ? tplDesign.design_logo_position : null) || branding.logo_position || null,
-      accentColor: (tplDesign.design_id ? tplDesign.design_accent_color : null) || branding.accent_color || null,
       accentSource: branding.accent_source || null,
-      structureId: (tplDesign.design_id ? tplDesign.design_structure_id : null) || branding.structure_id || null } : null,
+      /* the paper's own look, else its stream's, else the company's (srvLookOf) */
+      ...srvLookOf(branding, tplDesign, folder) } : null,
     /* effDate lives on fields + metadata, which is where applyTemplateValues
        puts it on every other creation path and where the workspace, the
        calendar and effectiveExpiry all read it from. */
@@ -28962,16 +28966,58 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
 });
 
 /* ---- org branding & profile values ---- */
+/* the stored looks by stream, read once; a broken store reads as none (never guessed) */
+function srvStreamLooksOf(r){
+  if (!r || !r.stream_looks) return {};
+  try { const m = JSON.parse(r.stream_looks); return m && typeof m === 'object' && !Array.isArray(m) ? m : {}; } catch (_) { return {}; }
+}
+/* WHICH LOOK A NEW OR MOVED CONTRACT WEARS (owner, 14 Nov 2026): the paper's own look (published with "Design it now"),
+   else its stream's look, else the company look. `lookFrom` says which, so a move to another stream before signing can
+   follow the new stream's look (srvLookFollowStream) while a paper's own look stays put. */
+function srvLookOf(branding, tplDesign, folder){
+  const b = branding || {}, t = tplDesign || {};
+  if (t.design_id) return { designId: t.design_id, logoPosition: t.design_logo_position || b.logo_position || null,
+    accentColor: t.design_accent_color || b.accent_color || null, structureId: t.design_structure_id || b.structure_id || null, lookFrom: 'paper' };
+  const sl = folder ? srvStreamLooksOf(b)[String(folder)] : null;
+  if (sl && sl.designId) return { designId: sl.designId, logoPosition: sl.logoPosition || b.logo_position || null,
+    accentColor: sl.accentColor || b.accent_color || null, structureId: sl.structureId || null, lookFrom: 'stream' };
+  return { designId: b.design_id || null, logoPosition: b.logo_position || null, accentColor: b.accent_color || null,
+    structureId: b.structure_id || null, lookFrom: 'company' };
+}
+/* A CONTRACT'S LOOK FOLLOWS ITS STREAM UNTIL IT IS SIGNED (owner, 14 Nov 2026): moved to another stream, a contract
+   not yet signed takes the look that stream wears (its own, else the company's); a paper's own look, the other side's
+   paper (no snapshot) and anything signed are left exactly as they are. Returns the new snapshot, or null for no change. */
+function srvLookFollowStream(prev, next){
+  if (!prev || !next || !next.branding || String(prev.folder || '') === String(next.folder || '')) return null;
+  if (next.branding.lookFrom === 'paper' || anySignatureRow(next) || next.execution || next.status === 'Signed') return null;
+  if (!next.libraryTemplateId) return null;
+  const branding = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
+  const look = srvLookOf(branding, null, next.folder);
+  return Object.assign({}, next.branding, look);
+}
 const orgBrandingView = r => r ? { logoUrl: r.logo_url || null, companyName: r.company_name || '',
   registrationNumber: r.registration_number || '', address: r.address || '',
   defaultFooterText: r.default_footer_text || '',
   designId: r.design_id || null, structureId: r.structure_id || null,
   logoPosition: r.logo_position || null,
   accentColor: r.accent_color || null, accentSource: r.accent_source || null,
+  streamLooks: srvStreamLooksOf(r),
   setBy: r.set_by || null, setAt: r.set_at || null } : null;
 app.get('/api/org/branding', auth, (req, res) => {
   const r = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
-  res.json({ branding: orgBrandingView(r) });
+  /* the papers that wear a look of their own ("Design it now"), for Settings' Other looks: names and the look only */
+  const paperLooks = db.prepare("SELECT id, name, design_id, updated_at FROM templates WHERE design_id IS NOT NULL AND design_id<>'' ORDER BY name").all()
+    .map(t => ({ id: t.id, name: t.name, designId: t.design_id, at: t.updated_at || null }));
+  res.json({ branding: orgBrandingView(r), streamLooks: srvStreamLooksOf(r), paperLooks });
+});
+/* USE THE COMPANY LOOK (owner, 14 Nov 2026): an admin puts a paper that wears its own look back on its stream's look,
+   else the company's. Contracts already made keep the look they were made in until they move stream (srvLookFollowStream). */
+app.put('/api/templates/:id/look', auth, admin, passwordCurrent, (req, res) => {
+  const t = db.prepare('SELECT id FROM templates WHERE id=?').get(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  db.prepare('UPDATE templates SET design_id=NULL, design_logo_position=NULL, design_accent_color=NULL, design_structure_id=NULL, updated_at=? WHERE id=?')
+    .run(now(), t.id);
+  res.json({ ok: true });
 });
 app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
   const b = req.body || {};
@@ -29013,6 +29059,37 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
         adminOnly: moved.map(([k]) => k) });
   }
 
+  /* THE COMPANY LOOK IS AN ADMIN'S TO CHANGE (owner, 14 Nov 2026: "admin only"): set once, in Settings, How our
+     contracts look. Asked as a DIFFERENCE, like the identity above: a payload that carries the look unchanged passes. */
+  if (req.user.role !== 'admin') {
+    const LOOK = [['designId', 'design_id'], ['structureId', 'structure_id'], ['logoPosition', 'logo_position'], ['accentColor', 'accent_color'],
+      ['accentSource', 'accent_source'], ['logoUrl', 'logo_url'], ['defaultFooterText', 'default_footer_text']];
+    const lookMoved = LOOK.filter(([k, col]) => sent(k) && String(b[k] == null ? '' : b[k]) !== String(stored[col] == null ? '' : stored[col]));
+    if (sent('streamLooks') && JSON.stringify(b.streamLooks || {}) !== JSON.stringify(srvStreamLooksOf(stored))) lookMoved.push(['streamLooks']);
+    if (lookMoved.length)
+      return res.status(403).json({ error: 'How our contracts look is an admin\'s to change. Ask an admin, in Settings → How our contracts look.',
+        adminOnly: lookMoved.map(([k]) => k) });
+  }
+  /* the looks by stream: each a known design, at most fifty; an unknown design is a 400, never a silent drop */
+  let streamLooks = srvStreamLooksOf(stored);
+  if (sent('streamLooks')) {
+    const m = b.streamLooks;
+    if (m != null && (typeof m !== 'object' || Array.isArray(m))) return res.status(400).json({ error: 'streamLooks must be an object' });
+    const out = {};
+    for (const [fid, v] of Object.entries(m || {}).slice(0, 50)) {
+      if (!v || typeof v !== 'object') continue;
+      const id = String(v.designId || '');
+      if (!DOC_DESIGNS.some(d => d.id === id)) return res.status(400).json({ error: 'Unknown document design for a stream' });
+      const st = v.structureId ? String(v.structureId) : null;
+      if (st && !DOC_STRUCTURES.some(x => x.id === st)) return res.status(400).json({ error: 'Unknown document structure for a stream' });
+      const pos = v.logoPosition ? String(v.logoPosition) : null;
+      if (pos && !DESIGN_LOGO_POSITIONS.includes(pos)) return res.status(400).json({ error: 'Unknown logo position for a stream' });
+      const ac = v.accentColor ? String(v.accentColor) : null;
+      if (ac && !/^#[0-9a-f]{6}$/i.test(ac)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
+      out[String(fid).slice(0, 80)] = { designId: id, structureId: st === DEFAULT_STRUCTURE ? null : st, logoPosition: pos, accentColor: ac };
+    }
+    streamLooks = out;
+  }
   const logo = b.logoUrl === undefined ? (stored.logo_url == null ? null : stored.logo_url)
     : (b.logoUrl == null ? null : String(b.logoUrl));
   // The logo travels as a data URL (house transport for files) and lands on
@@ -29043,21 +29120,21 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
   if (structureId && !DOC_STRUCTURES.some(x => x.id === structureId)) return res.status(400).json({ error: 'Unknown document structure' });
   if (structureId === DEFAULT_STRUCTURE) structureId = null;
   db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,
-      design_id,logo_position,accent_color,accent_source,structure_id,set_by,set_at,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      design_id,logo_position,accent_color,accent_source,structure_id,stream_looks,set_by,set_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(org_id) DO UPDATE SET logo_url=excluded.logo_url, company_name=excluded.company_name,
       registration_number=excluded.registration_number, address=excluded.address,
       default_footer_text=excluded.default_footer_text,
       design_id=excluded.design_id, logo_position=excluded.logo_position,
       accent_color=excluded.accent_color, accent_source=excluded.accent_source,
-      structure_id=excluded.structure_id,
+      structure_id=excluded.structure_id, stream_looks=excluded.stream_looks,
       set_by=excluded.set_by, set_at=excluded.set_at, updated_at=excluded.updated_at`)
     .run(WORKSPACE_ID, logo,
       clean(keep('companyName', 'company_name')).slice(0, 200),
       clean(keep('registrationNumber', 'registration_number')).slice(0, 100),
       clean(keep('address', 'address')).slice(0, 500),
       clean(keep('defaultFooterText', 'default_footer_text')).slice(0, 500),
-      designId, logoPosition, accentColor, accentSource, structureId, req.user.name, now(), now());
+      designId, logoPosition, accentColor, accentSource, structureId, JSON.stringify(streamLooks), req.user.name, now(), now());
   res.json({ ok: true });
 });
 app.get('/api/org/profile-values', auth, (req, res) => {

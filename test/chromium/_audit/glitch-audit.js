@@ -326,6 +326,8 @@ async function keepsPlace(page, scr, name, view){
       if (process.env.HATI_GA_WHO) await ctx.addInitScript('window.__gaWho = true');
       await ctx.addInitScript(INSTRUMENT);
       const page = await ctx.newPage();
+      /* THE WINDOW IN THE PAGE IS WHAT THIS FILE PRESSES THE ✦ FOR (14 Nov 2026): where the browser keeps a window on top the ✦ opens Jambo popped out (ai.js aiStarPress, f1049), so this page is a browser without one, as Safari and Firefox are */
+      await page.addInitScript(() => { try { Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true, value: undefined }); } catch (_) {} });
       const errs = []; page.on('pageerror', e => errs.push(e.message.split('\n')[0]));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');

@@ -58,7 +58,7 @@ const doorsOf = page => page.evaluate(() => { const n = document.querySelector('
       await until(page, () => !!document.querySelector('.jb-ways[data-jb-ways="board"]'), null, 20000);
       const B = await doorsOf(page);
       /* RE-POINTED (owner, 10 Nov 2026: Home deleted): the Board took Home's place on the map, and its reads door */
-      check(`${nm} 2 the Board: contracts · explorer · calendar · Jambo's work · reads`, !!B && B.doors.join() === 'contracts,explorer,calendar,work,reads' && B.above && B.inside, B);
+      check(`${nm} 2 the Board: draft · our paper · contracts · explorer · calendar (owner, 14 Nov 2026)`, !!B && B.doors.join() === 'draft,ourpaper,contracts,explorer,calendar' && B.above && B.inside, B);
       await page.screenshot({ path: path.join(OUT, `board-${nm}.png`) });
       await page.evaluate(() => caGo({ kind: 'go', place: 'settings' }));
       await until(page, () => !!document.querySelector('.jb-ways[data-jb-ways="settings"]'), null, 20000);

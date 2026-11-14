@@ -109,6 +109,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   const errors = [];
   try {
     const page = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
+    /* THE WINDOW IN THE PAGE IS WHAT THIS FILE PRESSES THE ✦ FOR (14 Nov 2026): where the browser keeps a window on top the ✦ opens Jambo popped out (ai.js aiStarPress, f1049), so this page is a browser without one, as Safari and Firefox are */
+    await page.addInitScript(() => { try { Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true, value: undefined }); } catch (_) {} });
     page.on('pageerror', e => errors.push(e.message));
     /* a part whose control is missing reports and the next part runs — never a 30s wait */
     page.setDefaultTimeout(6000);

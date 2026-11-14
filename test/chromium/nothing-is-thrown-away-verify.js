@@ -42,6 +42,8 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
   const errors = [];
   try {
     const page = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
+    /* THE WINDOW IN THE PAGE IS WHAT THIS FILE PRESSES THE ✦ FOR (14 Nov 2026): where the browser keeps a window on top the ✦ opens Jambo popped out (ai.js aiStarPress, f1049), so this page is a browser without one, as Safari and Firefox are */
+    await page.addInitScript(() => { try { Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true, value: undefined }); } catch (_) {} });
     page.on('pageerror', e => errors.push(e.message));
     const until = async (fn, arg, ms = 10000) => { const t0 = Date.now();
       while (Date.now() - t0 < ms) { let v = null; try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }

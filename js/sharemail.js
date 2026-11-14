@@ -189,6 +189,18 @@ const SHARE_MAIL_KIND = {
   any: { subj: o => `${_smThe(o.cName, true, o.coded)}, from ${o.org}`, btn: () => 'Open it',
     line: 'You can read it and answer on your own page.' },
 };
+/* THE EMAIL SAYS WHAT IT IS (owner's yes to the drawing, 14 Nov 2026): one plain sentence naming the agreement, the
+   round and what they can do, said whether or not a note is written (the drawn letter said only "Open round 1:") */
+const SHARE_MAIL_WHAT = {
+  negotiate: (c, n) => `Round ${n} of ${c} is ready for you to read. You can reply with your own changes.`,
+  sign: c => `${c} is ready for you to sign.`,
+  view: c => `${c} is ready for you to read.`,
+  advise: c => `Your advice is asked on some clauses of ${c}.`,
+  status: c => `Here is where we stand on ${c}.`,
+  history: c => `Here is the negotiation history of ${c}.`,
+  any: c => `${c} is ready for you.`,
+};
+const _smCap = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 const SHARE_MAIL_CODE = 'Before the page opens, we send a one-time code to this address.';
 /* The share email (channel email) and the Word email (channel word).
    o = { channel, purpose, sender, title, org, cName, recName, message, link,
@@ -251,16 +263,23 @@ function shareMailOf(o){
         for (const l of A0.own) parts.push({ k: 'ans', t: `${l.clause}.`, clause: l.clause, rest: '' });
       }
     }
+    const what = SHARE_MAIL_WHAT[x.purpose] || SHARE_MAIL_WHAT.any;
+    parts.push({ k: 'what', t: _smCap(what(_smThe(cName, false, coded), round)) });
     parts.push({ k: 'say', t: kind.btn(round) + ':', list: 'link' });
     parts.push({ k: 'link', t: link, at: true });
     if (x.codeOn && x.purpose !== 'status') parts.push({ k: 'say', t: SHARE_MAIL_CODE });
     parts.push({ k: 'say', t: 'Kind regards,', list: 'sign' });
     /* signed like every other letter to the other side: the name, then title and company in the quiet line */
     parts.push({ k: 'sign', t: sender, sub: [String(x.title || '').trim(), sender ? org : ''].filter(Boolean).join(', ') });
+    /* THE SMALL PRINT answers the usual questions: who the link is for, how long it lasts, how to reach a person (every
+       email to the other side carries replyTo, mailReplyFor) */
+    /* a link that lasts the whole negotiation says so; a date only where the link really ends (x.durable, both hosts) */
+    const lasts = x.durable ? 'It stays open for the whole negotiation.' : x.expires ? `It stays open until ${chaseDayWords(x.expires, 'en')}.` : '';
+    parts.push({ k: 'fine', t: ['This link is for you.', lasts, sender ? `Replies to this email reach ${sender}.` : ''].filter(Boolean).join(' ') });
     const subject0 = shareSubjectClean(x.subject) || (coded
       ? (x.purpose === 'negotiate' ? `Round ${round} of ${coded}` : kind.subj({ cName: coded, org, coded: true }, round))
       : kind.subj({ cName, org }, round));
-    return { subject: subject0, parts, body: _smLetterJoin(parts), html: _smDrawnInviteHtml(parts) };
+    return { subject: subject0, parts, body: _smLetterJoin(parts), html: _smDrawnInviteHtml(parts, org) };
   }
   parts.push({ k: 'hello', t: first ? `Hello ${first},` : 'Hello,' });
   if (msg) parts.push({ k: 'msg', t: msg });
@@ -492,9 +511,13 @@ function smDrawnLetter(o){
    THE LINK IS A BUTTON (owner, 11 Nov 2026, the send page "The SAP Way": "Button in both"; REVERSES 8 Nov's
    "the link named with its address under it" for this letter only): "Open round 1" a filled green button that
    carries their link, as the send screen draws it. The plain-text part keeps the words over the address. */
-function _smDrawnInviteHtml(parts){
+/* THE EMAIL, REFINED (owner's yes, 14 Nov 2026): the company's name on top, quiet and small; the green button a pill;
+   the small print last, grey, under one hairline; no box round the letter */
+const SM_PILL_STYLE = SM_BTN_STYLE.replace('padding:10px 16px;border-radius:6px', 'padding:12px 24px;border-radius:999px');
+function _smDrawnInviteHtml(parts, org){
   const P = (t, mb) => `<p style="margin:0 0 ${mb == null ? 14 : mb}px;white-space:pre-wrap">${_smE(t)}</p>`;
   const out = [];
+  if (org) out.push(`<p style="margin:0 0 24px;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:${SM_QUIET};font-weight:600">${_smE(org)}</p>`);
   for (let i = 0; i < parts.length; i++){
     const p = parts[i], nx = parts[i + 1] || {};
     if (p.k === 'ans'){
@@ -505,11 +528,13 @@ function _smDrawnInviteHtml(parts){
         `<p style="margin:0 0 6px"><b>${_smE(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + _smE(r.rest) : ''}</p>`).join('')}</div>`);
     } else if (p.k === 'say' && p.list === 'link' && nx.k === 'link'){
       const url = nx.t == null ? '' : String(nx.t), label = String(p.t).replace(/:\s*$/, '');
-      if (url) out.push(`<p style="margin:4px 0 18px"><a href="${_smE(url)}" style="${SM_BTN_STYLE}">${_smE(label)}</a></p>`);
+      if (url) out.push(`<p style="margin:6px 0 22px"><a href="${_smE(url)}" style="${SM_PILL_STYLE}">${_smE(label)}</a></p>`);
       i++;
     } else if (p.k === 'say' && p.list === 'sign' && nx.k === 'sign'){
       out.push(`<p style="margin:4px 0 2px">${_smE(p.t)}</p><p style="margin:0">${_smE(nx.t)}${nx.sub ? `<br><span style="color:${SM_QUIET}">${_smE(nx.sub)}</span>` : ''}</p>`);
       i++;
+    } else if (p.k === 'fine'){
+      out.push(`<p style="margin:26px 0 0;padding-top:14px;border-top:1px solid ${SM_HAIR};font-size:13px;color:${SM_QUIET}">${_smE(p.t)}</p>`);
     } else if (p.k === 'link' || p.k === 'sign'){ /* drawn with the line before it */ }
     else out.push(P(p.t, p.list ? 8 : 14));
   }

@@ -241,10 +241,15 @@ describe('f201 — D-1: the legal identity is an admin\'s', () => {
     assert.equal((await brand()).companyName, 'Highland Corporate Ltd', 'nothing moved');
   });
 
-  test('the DESIGN is untouched — that is what the Editor permission was for', async () => {
+  /* REVERSED 14 Nov 2026 (owner: "admin only"): the design is an admin's too now, in Settings, How our contracts look */
+  test('the DESIGN is an admin\'s too now: an Editor who moves it is refused, an admin is not', async () => {
+    const was = (await brand()).logoPosition;
     const r = await W.unrestricted.raw('/api/org/branding', { method: 'PUT', body: {
-      logoPosition: 'top-center', designId: null } });
-    assert.equal(r.status, 200);
+      logoPosition: was === 'top-center' ? 'top-right' : 'top-center' } });
+    assert.equal(r.status, 403);
+    assert.equal((await brand()).logoPosition, was, 'nothing changed');
+    const a = await W.admin.raw('/api/org/branding', { method: 'PUT', body: { logoPosition: 'top-center' } });
+    assert.equal(a.status, 200);
     assert.equal((await brand()).logoPosition, 'top-center');
   });
 
@@ -252,9 +257,9 @@ describe('f201 — D-1: the legal identity is an admin\'s', () => {
     const b = await brand();
     const r = await W.unrestricted.raw('/api/org/branding', { method: 'PUT', body: {
       companyName: b.companyName, registrationNumber: b.registrationNumber, address: b.address,
-      logoPosition: 'top-left' } });
+      logoPosition: b.logoPosition } });
     assert.equal(r.status, 200, 'nothing moved, so nothing is refused');
-    assert.equal((await brand()).logoPosition, 'top-left');
+    assert.equal((await brand()).logoPosition, b.logoPosition);
   });
 
   test('the closure is NAMED, the way the August 2026 settings closures were', () => {

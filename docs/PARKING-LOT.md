@@ -50,6 +50,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** checking whether the "Write it for me" bug reaches other places (13 Nov 2026); logged in the bug log the same day.
 - **Notes:** Jambo writes these questions himself, so one worded "Remind me…" or "Book time to…" is read by HaTi's reminder or booking reader first. The fix must still let the Board draw a chart when the question asks for one.
 
+### P-5 · Delete the old versions of HaTi completely
+- **Added:** 13 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "we need to delete the old versions of Hati completely". Only the new look should exist; the old look and its screens are removed, not just hidden.
+- **Where it came from:** the review of how a contract is started (13 Nov 2026). Its photos came out in the old look by mistake, because the old look is still what HaTi draws unless the new look is switched on for an admin.
+- **Notes:** today the new look is a per-person switch that only works for admins (everyone else still gets the old look). Deleting the old one means making the new look the only one for every role, then removing the old screens, styles and the switch. The phone's screens need a decision: they are separate from both looks. A big job; best done in stages.
+
 ## Done
 
 _(nothing yet)_
