@@ -127,3 +127,23 @@ test('f1049 (7) the send screen, Four steps', () => {
   assert.equal(EN.sh_st_what, 'What goes'); assert.ok(SV.sh_st_what);
   assert.match(body(C, 'shareStepsArrange'), /subj\.style\.padding='4px 0'; subj\.style\.border='0';/, 'the Subject a plain line, level with To and From');
 });
+
+test('f1049 (8) Our paper, the Legora way: one ask box, the streams on one line with More, a quoted first line, uses on the right; no New standard here', () => {
+  const L = read('js/views/library.js');
+  const H = body(L, 'tplnHtml');
+  assert.match(H, /\$\{tplnAskHtml\(\)\}\$\{tplnChipsHtml\(rows\.map\(x => x\.c\)\)\}/, 'the box and the chips lead the list');
+  assert.doesNotMatch(H, /data-tpln-new/, 'no New standard on Our paper: From scratch starts on the New agreement page');
+  assert.match(L, /\$\{canManage&&!\(typeof newLookOn==='function'&&newLookOn\(\)\)\?`<button id="tpl-new"/, 'the head\'s New standard contract steps aside in the new look');
+  const R = body(L, 'tplnRowHtml');
+  assert.match(R, /<span class="tpln-q">§ 1 · “/, "the first line quoted");
+  assert.match(R, /<span class="tpln-u">/, 'the uses on the right');
+  assert.match(body(L, 'tplnChipsHtml'), /order\.slice\(0, TPLN_CHIPS_SHOWN\)/);
+  assert.match(CSS, /html\.lg-new \.tpln-chips\{display:flex;flex-wrap:nowrap;/, 'ONE line');
+  /* the need is read without AI: small words dropped, a word by its stem, ANY word on the paper */
+  const src = L.slice(L.indexOf('const TPLN_STOP'), L.indexOf('\n', L.indexOf('const TPLN_STOP'))) + '\n' + body(L, 'tplnMatches');
+  const match = new Function('_tplPf', src + '; return tplnMatches;');
+  const m = match({ ls: '', lq: 'a lease for a warehouse' });
+  assert.equal(m('warehousing & cold-chain agreement warehousing', 'wh'), true);
+  assert.equal(m('distributor agreement sales', 'sl'), false);
+  assert.equal(match({ ls: 'wh', lq: '' })('anything', 'pr'), false, 'a stream chip narrows to its stream');
+});

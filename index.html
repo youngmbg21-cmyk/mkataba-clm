@@ -20357,6 +20357,29 @@
   html.lg-new td.cun-wait.ikn-age.is-fresh{color:var(--st-green-fg)}
   html.lg-new td.cun-wait.ikn-age.is-old{color:var(--st-amber-fg)}
   html.lg-new .tpln-r{grid-template-columns:minmax(0,1fr) 160px 130px}
+  /* OUR PAPER, THE LEGORA WAY (owner's pick, 14 Nov 2026): one ask box, the streams as chips on ONE line with More at its end, each row a coloured mark, the name and stream, the first line quoted, the uses small on the right */
+  html.lg-new .tpln-ask{display:flex;align-items:center;height:44px;border-radius:var(--radius);background:var(--surface-2);padding:0 var(--s-4);margin:0 0 var(--s-3)}
+  html.lg-new .tpln-ask input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:var(--t-body);outline:none}
+  html.lg-new .tpln-chips{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin:0 0 var(--s-3);min-width:0}
+  html.lg-new .tpln-chip{flex:none;height:26px;padding:0 10px;border-radius:999px;border:0;background:var(--tn,var(--surface-2));color:var(--tf,var(--color-text));font:inherit;font-size:var(--t-label);white-space:nowrap;cursor:pointer}
+  html.lg-new .tpln-chip.is-on{background:var(--accent-fill);color:var(--color-surface)}
+  html.lg-new .tpln-chip.is-more{--tn:var(--surface-2);--tf:var(--color-text)}
+  html.lg-new .tpln-more{position:relative;margin-left:auto;flex:none}
+  html.lg-new .tpln-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:5;display:flex;flex-direction:column;gap:4px;align-items:flex-start;background:var(--color-surface);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:var(--s-2)}
+  html.lg-new .tpln-menu[hidden]{display:none}
+  html.lg-new .tpln-lrs .tpln-lr{display:flex;grid-template-columns:none;gap:var(--s-3);align-items:flex-start;text-align:left;padding:10px var(--s-2)}
+  html.lg-new .tpln-lrs .tpln-lr[hidden]{display:none}
+  html.lg-new .tpln-lrs .tpln-lr.is-on{margin:0;width:100%;padding-left:var(--s-2);padding-right:var(--s-2);border-radius:var(--radius)}
+  html.lg-new .tpln-mk{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:10px;font-weight:var(--w-strong);color:var(--color-surface);margin-top:1px}
+  html.lg-new .tpln-lt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .tpln-l1{display:flex;gap:var(--s-2);align-items:baseline;min-width:0}
+  html.lg-new .tpln-l1 .tpln-n{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new .tpln-st{flex:none;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
+  html.lg-new .tpln-q{font-family:var(--font-doc);font-style:italic;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln-lrs .tpln-u{flex:none;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;padding-top:2px}
+  html.lg-new .tpln-lrs .tpln-lr.is-on .tpln-u{color:var(--color-text)}
+  html.lg-new .tpln-none{margin:var(--s-3) var(--s-2);font-size:var(--t-label);color:var(--color-neutral-600)}
+  html.lg-new .tpln-none[hidden]{display:none}
   html.lg-new .tpln-u{white-space:nowrap}
   html.lg-new .tpln-bar{display:inline-block;height:6px;border-radius:3px;margin-left:8px;vertical-align:middle;background:var(--st-green-dot)}
   html.lg-new .cal-kind{display:inline-block;border-radius:6px;padding:1px 7px;margin-right:8px;font-size:11.5px;font-weight:var(--w-strong);vertical-align:1px}

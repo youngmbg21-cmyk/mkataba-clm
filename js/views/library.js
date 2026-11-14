@@ -2693,7 +2693,7 @@ const TPL_SHELF_SUB = { company:'lib_shelf_sub_company', builtin:'lib_shelf_sub_
    never wording. Jambo's panel beside the page says the same from the record,
    nothing spent. The choice, the open shelves and the find box are per
    sitting (and kept through a refresh, tplPlace); nothing is written. */
-const _tplPf = { pick:null, q:'', open:{}, docs:{}, read:null, chips:[] };
+const _tplPf = { pick:null, q:'', open:{}, docs:{}, read:null, chips:[], lq:'', ls:'', quotes:{} };
 /* true while the page draws the Legora head (Part 8), whose box narrows the
    index: the index then draws no find box of its own (one box, one query) */
 let _tplHeadBox = false;
@@ -2949,11 +2949,11 @@ function tplnHtml(d, groups, card){
   const statOf = c => tplPfStats(c);
   const rows = all.map(c => ({ c, st: statOf(c), last: tplnLastOf(c) })).sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name)));
   const on = c => card && tplPfKey(c) === tplPfKey(card);
-  /* USE BARS (owner's pick by name, 9 Nov 2026; the colour round): beside "N uses" a thin green bar to scale, the most
-     used standard the full width, so the paper the team relies on stands out; a paper never used has no bar */
-  const most = Math.max(0, ...rows.map(x => x.last.cs.length));
-  const useBar = n => n && most ? `<i class="tpln-bar" aria-hidden="true" style="width:${Math.max(4, Math.round(n / most * 64))}px"></i>` : '';
-  const stdRows = rows.map(x => `<button type="button" class="tpln-r${on(x.c) ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(x.c))}" aria-pressed="${on(x.c) ? 'true' : 'false'}"><span class="tpln-n">${_tplEsc(x.c.name)}</span><span class="tpln-u">${_tplEsc(i18tn('tpln_uses', x.last.cs.length, { n: x.last.cs.length }))}${useBar(x.last.cs.length)}</span><span class="tpln-l">${_tplEsc(x.last.word || '\u2014')}</span></button>`).join('');
+  /* the use bars (9 Nov 2026) gave way to the uses said on the right (the Legora way, 14 Nov 2026) */
+  /* OUR PAPER, THE LEGORA WAY (owner's pick, 14 Nov 2026): each row a round mark in its stream's colour, the name and
+     its stream, the paper's first line quoted under it, and its uses in small type on the right; filtered in place by the
+     ask box and the stream chips (tplnFilter), so typing never loses the box */
+  const stdRows = rows.map(x => tplnRowHtml(x.c, x.last.cs.length, on(x.c))).join('') + `<p class="tpln-none" hidden>${_tplEsc(i18t('lib_nothing_matches'))}</p>`;
   const stdN = (typeof paperStandardsCount === 'function') ? paperStandardsCount() : null;
   const shelves = `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_list', all.length, { n: all.length }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="list">${_tplEsc(i18t('tpln_open'))}</button></div>`
     + (stdN != null ? `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_std', stdN, { n: stdN }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="standards">${_tplEsc(i18t('tpln_open'))}</button></div>` : '');
@@ -2969,13 +2969,93 @@ function tplnHtml(d, groups, card){
     const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
     acts = verbs.map((a, i) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
   }
-  const newGo = tplCanManage() && !(typeof newPaperBlocked === 'function' && newPaperBlocked()) ? `<button type="button" class="rfp-a" data-tpln-new>${_tplEsc(i18t('tpln_new'))}</button>` : '';
+  /* no New standard here any more: From scratch starts on the New agreement page, the one door (owner, 14 Nov 2026) */
   return `<div class="tpl-book tpl-pf tpln">
     <aside class="tpln-sheet"><div class="tpln-zoom">${paper}</div></aside>
-    <section class="tpln-side"><div class="tpln-top"><div class="tpln-line">${card ? `<b class="tpln-name">${_tplEsc(card.name)}</b>` : ''}<span class="tpln-facts">${_tplEsc(line)}</span></div><div class="tpln-acts">${acts}</div></div>
-      <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_std_h'))}</div><div class="tpln-list">${stdRows}</div>
-      <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_shelves_h'))}</div><div class="tpln-list">${shelves}</div>
-      <div class="tpln-foot">${newGo}</div></section></div>`;
+    <section class="tpln-side">${tplnAskHtml()}${tplnChipsHtml(rows.map(x => x.c))}<div class="tpln-top"><div class="tpln-line">${card ? `<b class="tpln-name">${_tplEsc(card.name)}</b>` : ''}<span class="tpln-facts">${_tplEsc(line)}</span></div><div class="tpln-acts">${acts}</div></div>
+      <div class="tpln-list tpln-lrs">${stdRows}</div>
+      <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_shelves_h'))}</div><div class="tpln-list">${shelves}</div></section></div>`;
+}
+/* the stream a paper is filed in (its id), read as the page's own stream reader reads it */
+function tplnFid(c){ return String((c && c.stream) || ((tplPfLib(c) || {}).folder) || ''); }
+/* THE PAPER'S FIRST LINE, QUOTED (the Legora way: each fact shows where on the paper it was read): HaTi's own paper is read
+   at once; a company paper once its words have been read for the paper beside the list; never guessed */
+function tplnQuote(c){
+  const k = tplPfKey(c), stamp = c.kind === 'company' ? tplPfDocStamp(c.id) : 'x';
+  const was = _tplPf.quotes[k]; if (was && was.stamp === stamp) return was.q;
+  let html = '';
+  try {
+    if (c.kind === 'company'){ const d = _tplPf.docs[c.id]; html = d && !d.busy && d.stamp === stamp ? (d.html || '') : ''; }
+    else if (c.kind === 'builtin' && typeof fillPreviewHtml === 'function') html = fillPreviewHtml('builtin', { tid: c.id });
+  } catch (_){ html = ''; }
+  let q = '';
+  if (html && typeof document !== 'undefined'){
+    const t = document.createElement('div'); t.innerHTML = html;
+    const p = [...t.querySelectorAll('p, li')].map(e => String(e.textContent || '').replace(/\s+/g, ' ').trim()).find(x => x.length > 24);
+    q = p ? p.slice(0, 140) : '';
+  }
+  if (!q && c.kind !== 'company'){ const d = String((c.sub || c.description || '')).trim(); q = d.slice(0, 140); }
+  if (html || c.kind !== 'company') _tplPf.quotes[k] = { q, stamp };
+  return q;
+}
+function tplnRowHtml(c, uses, lit){
+  const fid = tplnFid(c), stream = tplPfStream(c), q = tplnQuote(c);
+  const tone = typeof listStreamTone === 'function' && fid ? listStreamTone(fid) : 'gray';
+  const text = [c.name, stream, q].join(' ').toLowerCase();
+  const shown = tplnMatches(text, fid);
+  return `<button type="button" class="tpln-r tpln-lr${lit ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(c))}" aria-pressed="${lit ? 'true' : 'false'}" data-tpln-text="${_tplEsc(text)}" data-tpln-stream="${_tplEsc(fid)}"${shown ? '' : ' hidden'}>
+    <i class="tpln-mk" style="background:var(--st-${tone}-dot)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
+    <span class="tpln-lt"><span class="tpln-l1"><b class="tpln-n">${_tplEsc(c.name)}</b>${stream ? `<span class="tpln-st">${_tplEsc(stream)}</span>` : ''}</span>${q ? `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>` : ''}</span>
+    <span class="tpln-u">${_tplEsc(i18tn('tpln_uses', uses, { n: uses }))}</span></button>`;
+}
+/* a need, not only a name: the small words are left out, each word is read by its stem ("warehouse" finds
+   "Warehousing"), and a paper shows when ANY word of the need is on it (no AI) */
+const TPLN_STOP = new Set(['a', 'an', 'the', 'for', 'of', 'to', 'and', 'or', 'with', 'in', 'on', 'our', 'we', 'us', 'need', 'want', 'paper', 'contract', 'agreement', 'en', 'ett', 'för', 'och', 'med', 'av', 'vi', 'avtal']);
+function tplnMatches(text, fid){
+  if (_tplPf.ls && fid !== _tplPf.ls) return false;
+  const words = String(_tplPf.lq || '').toLowerCase().split(/[^a-z0-9À-ɏ]+/).filter(w => w.length > 1 && !TPLN_STOP.has(w));
+  if (!words.length) return true;
+  return words.some(w => text.includes(w.length > 5 ? w.slice(0, 5) : w));
+}
+/* ONE ASK BOX (the Legora way): a name or a need ("a lease for a warehouse") narrows the list where it stands, read
+   without AI; Enter on one result opens it */
+function tplnAskHtml(){
+  return `<form class="tpln-ask" data-tpln-ask><input type="search" data-tpln-q value="${_tplEsc(_tplPf.lq)}" placeholder="${_tplEsc(i18t('tpln_ask_ph'))}" aria-label="${_tplEsc(i18t('tpln_ask_ph'))}" autocomplete="off"></form>`;
+}
+/* THE STREAMS AS FOLDERS, ON ONE LINE (owner, 14 Nov 2026: "the folders do not go to a second line. At the end of the
+   first line should be a more button"): All, then the streams with papers by how many, the rest behind More */
+const TPLN_CHIPS_SHOWN = 4;
+function tplnChipsHtml(cards){
+  const n = new Map(); cards.forEach(c => { const f = tplnFid(c); if (f) n.set(f, (n.get(f) || 0) + 1); });
+  const order = [...n.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+  const lit = order.findIndex(([f]) => f === _tplPf.ls);
+  const shown = order.slice(0, TPLN_CHIPS_SHOWN); if (lit >= TPLN_CHIPS_SHOWN) shown[TPLN_CHIPS_SHOWN - 1] = order[lit];
+  const rest = order.filter(x => !shown.includes(x));
+  const name = f => (typeof FOLDERS === 'object' && FOLDERS[f] ? tplShortStream(FOLDERS[f].name) : f);
+  const chip = (f, label, k) => `<button type="button" class="tpln-chip${(_tplPf.ls || '') === f ? ' is-on' : ''}" data-tpln-chip="${_tplEsc(f)}"${f && typeof listStreamTone === 'function' ? ` style="--tn:var(--st-${listStreamTone(f)}-bg);--tf:var(--st-${listStreamTone(f)}-fg)"` : ''}>${_tplEsc(label)}${k != null ? ` · ${k}` : ''}</button>`;
+  return `<div class="tpln-chips">${chip('', i18t('tpln_all', { n: cards.length }))}${shown.map(([f, k]) => chip(f, name(f), k)).join('')}${rest.length ? `<span class="tpln-more"><button type="button" class="tpln-chip is-more" data-tpln-more aria-expanded="false">${_tplEsc(i18t('tpln_more', { n: rest.length }))} ▾</button><span class="tpln-menu" hidden>${rest.map(([f, k]) => chip(f, name(f), k)).join('')}</span></span>` : ''}</div>`;
+}
+/* the list narrowed where it stands: nothing is drawn again, so the box keeps its words and its caret */
+function tplnFilter(){
+  const rows = [...document.querySelectorAll('.tpln-lrs .tpln-lr')]; let n = 0;
+  rows.forEach(r => { const ok = tplnMatches(r.getAttribute('data-tpln-text') || '', r.getAttribute('data-tpln-stream') || ''); r.hidden = !ok; if (ok) n++; });
+  const none = document.querySelector('.tpln-lrs .tpln-none'); if (none) none.hidden = n > 0;
+  document.querySelectorAll('[data-tpln-chip]').forEach(b => b.classList.toggle('is-on', b.getAttribute('data-tpln-chip') === (_tplPf.ls || '')));
+  return n;
+}
+if (typeof document !== 'undefined' && !window._tplnWired){
+  window._tplnWired = true;
+  document.addEventListener('input', e => { const t = e.target; if (!t || !t.matches || !t.matches('[data-tpln-q]')) return; _tplPf.lq = String(t.value || ''); tplnFilter(); });
+  document.addEventListener('submit', e => { const f = e.target; if (!f || !f.matches || !f.matches('[data-tpln-ask]')) return; e.preventDefault();
+    const shown = [...document.querySelectorAll('.tpln-lrs .tpln-lr:not([hidden])')]; if (shown.length === 1) shown[0].click(); });
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const more = t.closest('[data-tpln-more]');
+    if (more){ const m = more.parentElement.querySelector('.tpln-menu'); if (m){ m.hidden = !m.hidden; more.setAttribute('aria-expanded', String(!m.hidden)); } return; }
+    const ch = t.closest('[data-tpln-chip]');
+    if (ch){ _tplPf.ls = ch.getAttribute('data-tpln-chip') || ''; const m = ch.closest('.tpln-menu'); if (m){ m.hidden = true; if (typeof tplBookRepaint === 'function') tplBookRepaint(); return; } tplnFilter(); return; }
+    if (!t.closest('.tpln-more')) document.querySelectorAll('.tpln-menu:not([hidden])').forEach(m => { m.hidden = true; });
+  });
 }
 function tplPfHtml(d){
   const groups = tplPfGroups(d), card = tplPfChosen(d);
@@ -3580,7 +3660,9 @@ function renderTemplatesPage(){
              template you have" → Upload a file), where the document is now
              COPIED rather than re-typed. `lib_convert_document` is STALE on
              this page, inert in both books. */}
-      ${canManage?`<button id="tpl-new" class="ui-btn ui-btn-primary" ${
+      ${''/* THE ONE DOOR (owner, 14 Nov 2026): in the new look a new standard starts on the New agreement page's From
+             scratch tab, so Our paper is the library only and carries no New standard contract button */}
+      ${canManage&&!(typeof newLookOn==='function'&&newLookOn())?`<button id="tpl-new" class="ui-btn ui-btn-primary" ${
         ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
       }>${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('lib_new_template')):i18t('lib_new_template'))}</button>`:''}
     </div>
