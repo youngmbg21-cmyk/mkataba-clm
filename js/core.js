@@ -5889,7 +5889,7 @@ function shareStepsArrange(host){
   if(fields && !fields.querySelector('.sh-st-ppl')){
     fields.insertAdjacentHTML('afterbegin', `<div class="sh-st-ppl" id="sh-st-ppl"></div>`);
     const kind=fields.querySelector('.sh-to-kind');
-    const addHtml=`<div class="sh-st-add"><button type="button" class="sh-lt-change" data-sh-st-add>+ ${esc(i18t('sh_st_add'))}</button><div class="sh-st-menu" id="sh-st-menu" hidden></div></div>
+    const addHtml=`<div class="sh-st-add"><button type="button" class="sh-lt-change" data-sh-st-add>${typeof icon==='function'?icon('plus','w-3 h-3'):''}${esc(i18t('sh_st_add'))}</button><div class="sh-st-menu" id="sh-st-menu" hidden></div></div>
       <div class="sh-st-new" id="sh-st-new" hidden><input id="sh-st-new-name" type="text" autocomplete="off" placeholder="${esc(i18t('co_name'))}"><input id="sh-st-new-email" type="email" autocomplete="off" placeholder="${esc(i18t('sh_lg_new_email'))}"><button type="button" class="ui-btn ui-btn-sm" data-sh-st-new-add>${esc(i18t('sh_lg_new_add'))}</button><span class="sh-st-new-why" id="sh-st-new-why"></span></div>`;
     if(kind) kind.insertAdjacentHTML('beforebegin', addHtml); else fields.insertAdjacentHTML('beforeend', addHtml);
     kind?.querySelector('[data-sh-more-go]')?.classList.add('hidden');
@@ -5948,7 +5948,7 @@ function shareStepsWords(){
   });
   /* step 1's list of people, each with × */
   const list=document.getElementById('sh-st-ppl');
-  if(list){ const html=ppl.map(p=>`<div class="sh-st-p"><i class="sh-st-av">${esc(_shInitials(p.name))}</i><span>${esc(p.name)}<em>${esc(p.email)}</em></span><button type="button" class="sh-st-x" data-sh-st-x="${esc(p.k)}" aria-label="${esc(i18t('sh_st_remove',{ name:p.name }))}" title="${esc(i18t('sh_st_remove',{ name:p.name }))}">×</button></div>`).join('');
+  if(list){ const html=ppl.map(p=>`<div class="sh-st-p"><i class="sh-st-av">${esc(_shInitials(p.name))}</i><span>${esc(p.name)}<em>${esc(p.email)}</em></span><button type="button" class="sh-st-x" data-sh-st-x="${esc(p.k)}" aria-label="${esc(i18t('sh_st_remove',{ name:p.name }))}" title="${esc(i18t('sh_st_remove',{ name:p.name }))}">${typeof icon==='function'?icon('x','w-3 h-3'):''}</button></div>`).join('');
     if(list.innerHTML!==html) list.innerHTML=html; }
   const toRow=host.querySelector('.sh-lt-to'); if(toRow) toRow.classList.toggle('has-primary', /.+@.+\..+/.test(_shVal('sh-email')));
   /* the letter's To line, where it goes to more than one person */

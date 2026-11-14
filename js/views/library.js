@@ -3033,7 +3033,7 @@ function tplnChipsHtml(cards){
   const rest = order.filter(x => !shown.includes(x));
   const name = f => (typeof FOLDERS === 'object' && FOLDERS[f] ? tplShortStream(FOLDERS[f].name) : f);
   const chip = (f, label, k) => `<button type="button" class="tpln-chip${(_tplPf.ls || '') === f ? ' is-on' : ''}" data-tpln-chip="${_tplEsc(f)}"${f && typeof listStreamTone === 'function' ? ` style="--tn:var(--st-${listStreamTone(f)}-bg);--tf:var(--st-${listStreamTone(f)}-fg)"` : ''}>${_tplEsc(label)}${k != null ? ` · ${k}` : ''}</button>`;
-  return `<div class="tpln-chips">${chip('', i18t('tpln_all', { n: cards.length }))}${shown.map(([f, k]) => chip(f, name(f), k)).join('')}${rest.length ? `<span class="tpln-more"><button type="button" class="tpln-chip is-more" data-tpln-more aria-expanded="false">${_tplEsc(i18t('tpln_more', { n: rest.length }))} ▾</button><span class="tpln-menu" hidden>${rest.map(([f, k]) => chip(f, name(f), k)).join('')}</span></span>` : ''}</div>`;
+  return `<div class="tpln-chips">${chip('', i18t('tpln_all', { n: cards.length }))}${shown.map(([f, k]) => chip(f, name(f), k)).join('')}${rest.length ? `<span class="tpln-more"><button type="button" class="tpln-chip is-more" data-tpln-more aria-expanded="false">${_tplEsc(i18t('tpln_more', { n: rest.length }))}${typeof icon === 'function' ? icon('chevD', 'w-3 h-3') : ''}</button><span class="tpln-menu" hidden>${rest.map(([f, k]) => chip(f, name(f), k)).join('')}</span></span>` : ''}</div>`;
 }
 /* the list narrowed where it stands: nothing is drawn again, so the box keeps its words and its caret */
 function tplnFilter(){

@@ -807,7 +807,7 @@ function clOthersHtml() {
   const streams = Object.entries(_cl.streams).map(([fid, v]) => `<div class="cl-orow"><span class="cl-tag is-stream">${clE(i18t('cl_tag_stream'))}</span><b>${clE(clStreamName(fid))}</b><span class="cl-q">${clE((docDesignById(v.designId) || {}).name || v.designId)}</span><span class="cl-sp"></span>${admin ? `<button type="button" class="cl-lnk" data-cl-stream-edit="${clE(fid)}">${clE(i18t('cl_change'))}</button><button type="button" class="cl-lnk" data-cl-stream-x="${clE(fid)}">${clE(i18t('cl_use_company'))}</button>` : ''}</div>`);
   const papers = (window.ORG_PAPER_LOOKS || []).map(t => `<div class="cl-orow"><span class="cl-tag">${clE(i18t('cl_tag_paper'))}</span><b>${clE(t.name)}</b><span class="cl-q">${clE((docDesignById(t.designId) || {}).name || t.designId)}</span><span class="cl-sp"></span>${admin ? `<button type="button" class="cl-lnk" data-cl-paper-x="${clE(t.id)}">${clE(i18t('cl_use_company'))}</button>` : ''}</div>`);
   const n = streams.length + papers.length;
-  return `<section class="cl-others" id="cl-others"><div class="cl-oh"><span>${clE(i18t('cl_others', { n }))}</span>${admin ? `<button type="button" class="cl-lnk" data-cl-add-stream>＋ ${clE(i18t('cl_add_stream'))}</button>` : ''}</div>
+  return `<section class="cl-others" id="cl-others"><div class="cl-oh"><span>${clE(i18t('cl_others', { n }))}</span>${admin ? `<button type="button" class="cl-lnk" data-cl-add-stream>${typeof icon === 'function' ? icon('plus', 'w-3 h-3') : ''}${clE(i18t('cl_add_stream'))}</button>` : ''}</div>
     ${n ? streams.concat(papers).join('') : `<p class="cl-q">${clE(i18t('cl_others_none'))}</p>`}
     <p class="cl-q cl-wins">${clE(i18t('cl_wins'))}</p></section>`;
 }
