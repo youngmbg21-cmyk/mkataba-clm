@@ -149,7 +149,7 @@ describe('f312 (3) — the source sheet fills its frame, and asks one question',
   });
   test('each start carries its name and its one line; Continue and Cancel on the foot', () => {
     const cap = stage();
-    assert.match(cap.html, /From scratch/); assert.match(cap.html, /From a template you have/); assert.match(cap.html, /From one of our contracts/);
+    assert.match(cap.html, /From nothing/, 'the first start, renamed 14 Nov 2026'); assert.match(cap.html, /From a template you have/); assert.match(cap.html, /From one of our contracts/);
     assert.equal((cap.html.match(/class="sap-m"/g) || []).length, 4, 'a line under every name');
     assert.match(cap.html, /id="ns-continue" class="ui-btn ui-btn-primary"/);
     assert.match(cap.html, /data-dlg-cancel type="button" id="ns-close" class="ui-btn"/);

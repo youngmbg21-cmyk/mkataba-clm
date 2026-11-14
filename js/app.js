@@ -3989,10 +3989,10 @@ function guideRowHtml(k, here, cls){
    it and its count — amber where something needs you, plain where it is a size. Every page the Guide had stays on it
    (rule 9c): the drawing's rows, and the pages it did not draw in the stage they belong to. */
 const GUIDE_NL=[
-  { k:'arrive', rows:[['contracts'],['requests'],['import'],['ourpaper'],['draft']] },
-  { k:'negsign', rows:[['negotiations'],['approvals'],['document']] },
-  { k:'live', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
-  { k:'book', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
+  { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['draft']] },
+  { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals'],['document']] },
+  { k:'live', tone:'steel', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
+  { k:'book', tone:'violet', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
 ];
 function guideSizeOf(k){
   try{
@@ -4006,19 +4006,29 @@ function guideNlCount(k){
   const c=guideCountOf(k); if(c) return { n:c.n, owed:true };
   const s=guideSizeOf(k); return s?{ n:s, owed:false }:null;
 }
-function guideNlRowHtml(keys, here){
+/* EACH PAGE WEARS ITS SYMBOL (owner, 14 Nov 2026: "Give it symbols in color as well"): a drawn mark per row, the
+   stage's tone behind it (HaTi's own tones, as Settings wears them); the row you stand on is ink. A row naming several
+   pages wears its first page's symbol. */
+const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', draft:'filenew',
+  negotiations:'refresh', approvals:'check2', document:'readpaper', oblig:'list', calendar:'calendar', parties:'users', people:'users',
+  mynotes:'pencil', explorer:'network', reads:'search', pulse:'trend', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
+function guideNlMarkHtml(k, tone){
+  const n=GUIDE_NL_ICON[k]; if(!n||typeof icon!=='function') return '';
+  return `<span class="gdn-mk t-${tone||'gray'}" aria-hidden="true">${icon(n,'gdn-ic',1.8)}</span>`;
+}
+function guideNlRowHtml(keys, here, tone){
   const shown=keys.filter(guideRowShown); if(!shown.length) return '';
   const words=shown.map(guideWordOf).filter(Boolean).map(w=>'\u201c'+w+'\u201d');
   const cnt=shown.length===1?guideNlCount(shown[0]):null;
-  return `<div class="gdn-r${shown.includes(here)?' is-here':''}"><span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
+  return `<div class="gdn-r${shown.includes(here)?' is-here':''}">${guideNlMarkHtml(shown[0], tone)}<span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
     +`${words.length?`<span class="gdn-say">${esc(i18t('gdn_say',{ words:words.join(' \u00b7 ') }))}</span>`:''}<span class="gdn-n${cnt&&cnt.owed?' is-owed':''}">${cnt?cnt.n:''}</span></div>`;
 }
 function guidePanelNlHtml(){
   const here=guideHereKey()||'board';
   const inStages=new Set(GUIDE_NL.flatMap(s=>s.rows.flat()));
   const hereRow=inStages.has(here)?[here]:['board'];
-  return `<div class="gdn"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${guideNlRowHtml(hereRow,here)}`
-    +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${rows}`:''; }).join('')+`</div>`;
+  return `<div class="gdn"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${guideNlRowHtml(hereRow,here,'ink')}`
+    +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here,st.tone)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${rows}`:''; }).join('')+`</div>`;
 }
 function guidePanelHtml(){
   if(typeof window.newLookOn==='function'&&newLookOn()) return guidePanelNlHtml();

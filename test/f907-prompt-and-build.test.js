@@ -708,7 +708,8 @@ describe('f907 (11) — what the screen prints', () => {
     assert.deepEqual(J(w.tbSplit(800, 0.45)), { left: w.TB_LEFT_MIN, limit: 'min' }, 'on a narrower one the PIXEL floor binds and says min');
     assert.deepEqual(J(w.tbSplit(1200, 0.95)), { left: 1200 - w.TB_RIGHT_MIN, limit: 'max' }, 'the rail keeps its floor at the other end');
     assert.equal(w.tbSplit(500, 0.5).left, 250, 'on a window too narrow for both floors the fraction alone answers');
-    assert.equal(w.TB_SPLIT_KEY, 'hati.v1.tbLeftFrac', 'its own memory — never the editor\'s key');
+    /* a new key (14 Nov 2026): a width dragged before is forgotten once, so Jambo's panel here opens at the normal width */
+    assert.equal(w.TB_SPLIT_KEY, 'hati.v1.tbLeftFrac2', 'its own memory — never the editor\'s key');
   });
 
   test('the wiring: the handle is bound once, from the paper\'s own wiring, and observed', () => {
@@ -740,8 +741,10 @@ describe('f907 (11) — what the screen prints', () => {
     assert.ok(open > 0, 'the paper column has its own scroller, wearing the shell\'s thin scrollbar');
     assert.equal((s.page.match(/id="tb-scroll"/g) || []).length, 1, 'exactly one');
     assert.ok(at('<div class="tb-left">') < at('id="tb-back"') && at('id="tb-back"') < open, 'the strip comes first in the paper\'s column, above the scroller');
-    for (const inside of ['id="tb-paperslot"', 'id="tb-branding"'])
+    for (const inside of ['id="tb-paperslot"'])
       assert.ok(open < at(inside) && at(inside) < at('id="tb-railslot"'), inside + ' is inside the scroller, before the rail\'s slot');
+    /* the Branding bar left the Builder (owner, 14 Nov 2026): the company look is set only in Settings, by an admin */
+    assert.ok(!s.page.includes('id="tb-branding"'), 'no Branding bar on the page');
     /* NO SECOND SAVE AND PUBLISH (Young ruled 14 Sep 2026): the strip does not
        scroll away, so the foot pair was the same two acts twice on one screen. */
     for (const gone of ['tb-strip-foot', 'tb-save-bottom', 'tb-publish-bottom', 'tb-dirty-bottom'])
