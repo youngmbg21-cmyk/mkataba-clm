@@ -72,7 +72,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate('(' + R6_BRING.toString() + ')()');
     /* RE-POINTED (owner, 9 Nov 2026: "the column should only reflect the name of the column … The count should maybe go to
        the side panel"): the head is the question's name alone; how far it is read stands in the panel, "3 of 6 read" */
-    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && /3 of \d+ read/.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 15000);
+    /* RE-POINTED (14 Nov 2026): the panel no longer says "3 of N read" (Columns you asked is gone); the column's head and the panel drawn are the wait */
+    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && !!document.querySelector('.rfp-panel.is-drawn'), null, 15000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-table thead th')].map(x => x.innerText.trim().toLowerCase().split('\n')[0].trim()).filter(Boolean));
     const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
