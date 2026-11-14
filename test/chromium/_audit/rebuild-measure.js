@@ -104,8 +104,8 @@ const INIT = () => {
   /* what a scroller is SHOWING: its first words. A list redrawn with the same rows keeps the same first words; a
      pane that now shows a different chapter or paper does not, and starting it at its top is right (14 Nov 2026) */
   const sigOf = el => String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
-  const scrollersNow = () => [...scope().querySelectorAll('*')].filter(el => { if (el.scrollHeight <= el.clientHeight + 60 || el.clientHeight < 80) return false; const o = getComputedStyle(el).overflowY; return (o === 'auto' || o === 'scroll') && vis(el); })
-    .sort((a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth).slice(0, 4);
+  const scrollersNow = (most = 4) => [...scope().querySelectorAll('*')].filter(el => { if (el.scrollHeight <= el.clientHeight + 60 || el.clientHeight < 80) return false; const o = getComputedStyle(el).overflowY; return (o === 'auto' || o === 'scroll') && vis(el); })
+    .sort((a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth).slice(0, most);
 
   window.__rb = {
     doors(){ return doorEls().map(([key, el]) => ({ key, label: label(el), part: partOf(el), who: (el.id ? '#' + el.id : '') + (dataOf(el) ? '[' + dataOf(el).slice(0, 60) + ']' : '') })); },
@@ -122,7 +122,7 @@ const INIT = () => {
            for it, so it is never counted as a loss (the first run counted those) */
         if (type && f.value) fields.push({ key: fieldKey(f, i), val: f.value, name: (f.getAttribute('placeholder') || f.getAttribute('aria-label') || f.id || 'a box').slice(0, 40) }); } catch (_){ } });
       const scrolls = [];
-      for (const s of scrollersNow()){ try { if (s.scrollTop < 40) s.scrollTop = Math.min(160, s.scrollHeight - s.clientHeight); if (s.scrollTop >= 40) scrolls.push({ key: scrollKey(s), top: s.scrollTop, sig: sigOf(s) }); } catch (_){ } }
+      for (const s of scrollersNow()){ try { if (s.scrollTop < 40) s.scrollTop = Math.min(160, s.scrollHeight - s.clientHeight); if (s.scrollTop >= 40) scrolls.push({ key: scrollKey(s), top: s.scrollTop, sig: sigOf(s), el: s }); } catch (_){ } }
       await new Promise(r => setTimeout(r, 180));                         /* what typing and scrolling drew is not the press's */
       const again = find(key); if (!again) return { missing: true };
       gen++; const parts = {};
@@ -170,9 +170,15 @@ const INIT = () => {
         parts.push({ id, name, n: ws.length, fresh, pct: Math.round(100 * fresh / ws.length), whole: !!(kid && kid.__rb !== cur.gen && fresh === ws.length) }); }
       const fNow = fieldsNow(), typed = [];
       for (const f of cur.fields){ const el = fNow.find((x, i) => fieldKey(x, i) === f.key); typed.push({ name: f.name, there: !!el, kept: !!(el && el.value === f.val) }); }
-      const sNow = scrollersNow(), scrolls = [];
-      for (const sc of cur.scrolls){ const el = sNow.find(x => scrollKey(x) === sc.key) || (sc.key[0] === '#' ? document.querySelector(sc.key) : null);
-        scrolls.push({ key: sc.key, there: !!el, was: sc.top, now: el ? el.scrollTop : null, room: el ? el.scrollHeight - el.clientHeight : 0,
+      /* THE SAME LIST, FOLLOWED (14 Nov 2026): the scroller the reader scrolled is followed by itself first; only if it
+         was thrown away is a new one with its name looked for, among EVERY scroller, not the four biggest — a panel
+         or menu that opened beside it used to push it out of the four and count as a lost place. A list that is still
+         there but hidden (its panel put away) is put away, not lost. */
+      const sAll = scrollersNow(Infinity), scrolls = [];
+      for (const sc of cur.scrolls){
+        const kept = sc.el && sc.el.isConnected ? sc.el : null;
+        const el = (kept && vis(kept)) ? kept : (kept ? null : (sAll.find(x => scrollKey(x) === sc.key) || (sc.key[0] === '#' ? document.querySelector(sc.key) : null)));
+        scrolls.push({ key: sc.key, there: !!el, hidden: !!kept && !el, was: sc.top, now: el ? el.scrollTop : null, room: el ? el.scrollHeight - el.clientHeight : 0,
           same: !!el && sigOf(el) === sc.sig }); }
       const had = new Set(cur.keys);
       const fresh = doorEls().filter(([k]) => !had.has(k)).map(([key, el]) => ({ key, label: label(el) }));
@@ -216,7 +222,8 @@ function judge(pre, film, post){
       if (t.there) lost.push(`what was typed in "${t.name}"`); else away.push(t.name); }
     /* ONLY THE SAME LIST: a scroller that now shows something else (a new chapter, a new paper) starting at its top is
        not a loss; one that vanished, or shows the same rows from the top again, is */
-    for (const s of post.scrolls){ if (s.there && !s.same){ away.push('a pane now showing something new'); continue; }
+    for (const s of post.scrolls){ if (s.hidden){ away.push('a list put away with its panel'); continue; }
+      if (s.there && !s.same){ away.push('a pane now showing something new'); continue; }
       if (!s.there || (s.now < s.was - 30 && s.room >= s.was)) lost.push('where it was scrolled to'); }
   }
   if (film.blank) flash.push(`blank ${film.blank}/${film.frames} frames`);

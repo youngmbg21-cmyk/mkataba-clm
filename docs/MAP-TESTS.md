@@ -567,6 +567,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE SEND SCREEN TURNS IN PLACE (13 Nov 2026, the flash survey, Part B): f1045 (six parts); test/chromium/send-screen-keeps-its-way-back-verify.js (red at the parent 1-3).
 - ONE POP-UP TAKING ANOTHER'S PLACE DOES NOT ARRIVE AGAIN (13 Nov 2026, the flash survey, Part C): f1046 (six parts); test/chromium/a-popup-replaced-does-not-arrive-again-verify.js (red at the parent 2-4).
 - A REDRAW KEEPS YOUR PLACE AND YOUR WORDS (13 Nov 2026, the flash survey, Parts D and E): f1047 (five parts); test/chromium/a-page-redraw-keeps-your-place-verify.js (says what it could not drive).
+  The Handbook's chapter drawn again (14 Nov 2026): f1048 (8); nothing-is-thrown-away-verify 6b.
 - THE GUARD, AND THE LAST BOXES (14 Nov 2026, the flash survey's last round): f1048 (ten parts, five run in jsdom); test/chromium/nothing-is-thrown-away-verify.js with test/thrown-away-known.json (only shrinks).
 - THE REBUILD MEASURE (13 Nov 2026, the flash survey): test/chromium/_audit/rebuild-measure.js (a measuring instrument; `.github/workflows/rebuild-measure.yml`; on GitHub, never fails): presses every door on every page and says what was thrown away and built again, what flashed, what the reader lost.
 - WHAT LANDED THE SAME IS NOT DRAWN AGAIN (13 Nov 2026): f1040 (eight parts; (1)–(5) red at the parent, (6)–(8) red at round one). The flash measure (test/chromium/_audit/flash-measure.js, on GitHub, never fails) now names who wrote late and what moved, at the three screens.
