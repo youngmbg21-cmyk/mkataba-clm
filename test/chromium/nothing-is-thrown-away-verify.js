@@ -67,14 +67,17 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
       while (sc && sc !== document.body && !(sc.scrollHeight > sc.clientHeight + 40 && /auto|scroll/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
       if (!sc || sc === document.body) return { why: 'the list does not scroll at this size' };
       sc.scrollTop = Math.min(sc.scrollHeight - sc.clientHeight, 220); if (sc.scrollTop < 60) return { why: 'the list is too short to scroll far' };
-      sc.setAttribute('data-guard-sc', '1');
+      sc.setAttribute('data-guard-sc', host);
       const low = rows.filter(r => { const a = r.getBoundingClientRect(), b = sc.getBoundingClientRect(); return a.top >= b.top && a.bottom <= b.bottom; }).pop();
       if (!low) return { why: 'no row in sight' };
       const top = sc.scrollTop, label = (low.textContent || '').trim().slice(0, 40); low.click();
       return { top, label }; }, { host, rowSel });
-    /* the same scroller after the press: by its mark if it survived, else the biggest scroller in the host again */
+    /* the same scroller after the press: by its mark, looked for in the WHOLE page (a list's scroller can stand
+       AROUND the part that is drawn again — GitHub's first two runs looked only inside it, found nothing, and read
+       0), else the biggest scroller in the host again */
     const scrollAfter = host => page.evaluate(host => { const H = document.querySelector(host); if (!H) return null;
-      const m = H.querySelector('[data-guard-sc]'); if (m) return m.scrollTop;
+      const m = [...document.querySelectorAll('[data-guard-sc]')].find(x => x.getAttribute('data-guard-sc') === host);
+      if (m) return m.scrollTop;
       const all = [...H.querySelectorAll('*')].filter(el => el.scrollHeight > el.clientHeight + 40 && /auto|scroll/.test(getComputedStyle(el).overflowY));
       all.sort((a, b) => b.scrollTop - a.scrollTop); return all.length ? all[0].scrollTop : 0; }, host);
 
