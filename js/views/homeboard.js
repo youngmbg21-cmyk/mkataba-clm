@@ -6162,7 +6162,7 @@ function hbBoardHeadHtml(time, cut, bs, pack, deskBits, latest){
    a viewer is not shown a door that would refuse them. */
 function hbDraftBtnHtml(){
   if (typeof canEdit === 'function' && !canEdit()) return '';
-  return `<button type="button" class="hb-btn is-sm is-primary hb-draft-go" data-hb-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_draft_btn'))}</button>`;
+  return `<button type="button" class="hb-btn is-sm hb-draft-go" data-hb-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_draft_btn'))}</button>`;
 }
 function hbExplorerBtnHtml(){
   return `<button type="button" class="hb-btn is-sm hb-pulse-go hb-explorer-go" data-hb-explorer title="${_hbE(i18t('hb_explorer_tip'))}">${typeof icon === 'function' ? icon('network', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_explorer_btn'))}</button>`;

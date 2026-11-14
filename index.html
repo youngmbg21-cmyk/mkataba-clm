@@ -17574,6 +17574,9 @@
   /* -- every button is a pill: the soft grey filled, the ink's words; the main one black -- */
   .ui-btn, .hb-btn{border-radius:999px;border-color:transparent;background:var(--surface-2);color:var(--color-text)}
   .ui-btn:hover, .hb-btn:hover{background:var(--color-neutral-200)}
+  /* THE BOARD'S DRAFT AGREEMENT IS GREEN, THE SIZE OF ITS NEIGHBOURS (owner, 14 Nov 2026): the same small pill as Summarise, Pulse board and Explorer, on one line, worn green so the way to start is found first */
+  .hb-btn.hb-draft-go{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;background:var(--st-green-bg);color:var(--accent-ink);border-color:transparent;box-shadow:none;font-weight:inherit}
+  .hb-btn.hb-draft-go:hover{background:var(--st-green-line);color:var(--accent-ink-700)}
   .ui-btn-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-label)}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);border-color:var(--accent-solid-hover)}
   .ui-btn-plain{background:transparent;border-color:transparent;color:var(--accent-ink)}
@@ -19031,63 +19034,71 @@
   html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap #sh-lt-after .sh-lt-say:not(.is-lead){margin:0 0 18px;font-family:var(--font-body);font-size:12.5px;color:var(--color-quiet)}
   html.lg-new #modal-root .modal-in [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap #sh-lt-after .sh-lt-sub{color:var(--color-quiet)}
   /* on the send page itself (its own frame weighs more): the paper centred, square, without an edge */
-  html.lg-new #modal-root .modal-in.is-sh-legora [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-legora #sh-lt-after .sh-lt-btn{border-radius:999px;padding-left:24px;padding-right:24px}
-  html.lg-new #modal-root .modal-in.is-sh-legora [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-legora > .sh-lt-mail{align-self:center;margin:0;border:0;border-radius:0;background:var(--color-surface);box-shadow:var(--shadow-paper);padding:var(--s-2) 48px 36px}
+  html.lg-new #modal-root .modal-in.is-sh-steps [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps #sh-lt-after .sh-lt-btn{border-radius:999px;padding-left:24px;padding-right:24px}
+  html.lg-new #modal-root .modal-in.is-sh-steps [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps > .sh-lt-mail{margin:0;border:0;border-radius:0;background:var(--color-surface);box-shadow:var(--shadow-paper);padding:var(--s-2) 48px 36px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps > .sh-lt-mail{width:var(--doc-sheet-max, 720px);max-width:100%;flex:1 0 auto;background:var(--color-surface);border:0;border-radius:0;box-shadow:var(--shadow-paper);padding:var(--s-2) 48px 36px}
+  html.lg-new #modal-root .modal-in.is-sh-steps[data-sh-page] #sh-letter.sh-lt.is-sap.is-steps > .sh-lt-mail{border:0;min-height:0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who{--field-line:transparent;--radius:0;display:flex;gap:var(--s-3);flex-wrap:wrap}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who #sh-email{color:var(--color-quiet)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps .sh-lt-mail > .sh-lt-row .sh-lt-k{font-size:var(--t-label);letter-spacing:0;text-transform:none;color:var(--color-quiet);font-weight:400}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps{--doc-sheet-max:720px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps #sh-lt-subject{border:0;background:none;padding:4px 0;height:auto;box-shadow:inset 0 -1px 0 transparent;border-radius:0;font-weight:var(--w-label)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps #sh-lt-subject:focus{box-shadow:inset 0 -1px 0 var(--color-text)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps{--field-line:transparent}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps .sh-lt-b > .sh-lt-note:not(.is-nowhere){border-left:0;background:none;padding:0;border-radius:0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps #sh-lt-after .sh-lt-btn{border-radius:999px;padding-left:24px;padding-right:24px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps #sh-lt-after .sh-lt-fine{margin:18px 0 0;padding-top:12px;border-top:1px solid var(--color-divider);font-family:var(--font-body);font-size:var(--t-label);color:var(--color-quiet)}
+  /* THE SEND SCREEN, FOUR STEPS (owner's pick by name, 14 Nov 2026; replaces "The Legora way" of the same day): today's
+     layout, the choices on the left as four numbered steps (1 To · 2 What goes · 3 What they can do · 4 How it goes), each a
+     line saying what is chosen with Change, ticked when settled; a step opens in place. The letter is a plain white paper:
+     To (several people), Subject and From plain lines, nothing outlined. Same ids, same controls (shareStepsArrange). */
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps > #sh-as-chips{display:flex;flex-direction:column;gap:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps > #sh-as-chips::before{content:attr(data-st-head);display:block;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.04em;text-transform:uppercase;color:var(--color-quiet);padding:0 0 var(--s-2)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st{display:block;padding:var(--s-3) 0;border:0;border-bottom:1px solid var(--color-divider);min-height:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.is-open{background:var(--surface-2);border-radius:var(--radius);border-bottom-color:transparent;padding:var(--s-3)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st > .sh-lt-k{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st:not(.is-open) > .sh-lt-v{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.is-open > .sh-lt-v{display:block;margin-top:var(--s-2);padding-left:34px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-h{display:flex;gap:var(--s-3);align-items:flex-start}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-mk{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:var(--t-label);font-weight:var(--w-strong);background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st:not(.is-done) .sh-st-mk, html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.is-open .sh-st-mk{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-t b{font-size:var(--t-body);font-weight:var(--w-strong)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-v{font-size:var(--t-body);color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.is-open .sh-st-v, html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.is-open .sh-st-q{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-q{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-q:empty{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-go{flex:none;border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st .sh-lt-say2{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st .sh-lt-say2[data-tone="warn"]:not([hidden]):not(:empty){display:block;font-size:var(--t-label);color:var(--st-amber-fg);background:none;padding:0;margin:var(--s-1) 0 0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-ppl{display:flex;flex-direction:column;gap:2px;margin:0 0 var(--s-2)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-p{display:flex;gap:var(--s-2);align-items:center;padding:4px 0;font-size:var(--t-body);min-width:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-av{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:var(--w-strong);background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-p span{flex:1;min-width:0;display:flex;flex-direction:column}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-p em{font-style:normal;font-size:var(--t-label);color:var(--color-quiet);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-x{flex:none;border:0;background:none;color:var(--color-quiet);cursor:pointer;font-size:var(--t-body);padding:0 4px}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-add{position:relative;display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:center;margin:var(--s-1) 0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-menu{position:absolute;left:0;top:100%;z-index:5;min-width:240px;background:var(--color-surface);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:var(--s-2);display:flex;flex-direction:column}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-menu[hidden]{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-mh{font-size:var(--t-label);color:var(--color-quiet);padding:var(--s-1) var(--s-2);text-transform:uppercase;letter-spacing:.04em}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-mi{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:0;background:none;border-radius:var(--radius);padding:var(--s-2);font:inherit;font-size:var(--t-body);cursor:pointer}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-mi:hover{background:var(--surface-2)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-mi em{font-style:normal;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-new{display:flex;gap:var(--s-3);align-items:center;flex-wrap:wrap;margin-top:var(--s-2)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-new[hidden]{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-new input{flex:1 1 140px;min-width:0;border:0;background:none;padding:4px 0;font:inherit;box-shadow:inset 0 -1px 0 var(--color-divider)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-new-why{flex-basis:100%;font-size:var(--t-label);color:var(--st-amber-fg)}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-new-why:empty{display:none}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st #sh-more{display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.has-primary .sh-lt-who{display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps #sh-lt-subject{padding-left:0;padding-right:0}
+  html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps #sh-st-to.hidden{display:none}
   /* THE SEND SCREEN, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; core.js shareLegoraArrange): the letter is a full
      white paper on the grey desk; the choices one sentence of soft pills above it; nothing outlined anywhere */
-  html.lg-new #modal-root .modal-in.is-sh-legora[data-sh-page] #share-step-2 > #sh-letter.sh-lt.is-sap.is-legora,
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora{display:flex;flex-direction:column;align-items:center;gap:var(--s-3);padding-top:var(--s-4);background:var(--color-bg);min-height:100%}
-  html.lg-new #modal-root .modal-in.is-sh-legora[data-sh-page] .sh-lt-grid{background:var(--color-bg)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips{width:var(--doc-sheet-max, 720px);max-width:100%;display:block;padding:0;line-height:2.5;font-size:var(--t-body);color:var(--color-quiet)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-row{display:inline;padding:0;border:0;min-height:0}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-row.hidden{display:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-k{display:inline;margin:0 var(--s-1) 0 0;padding:0;font-size:var(--t-body);letter-spacing:0;text-transform:none;font-weight:400;color:var(--color-quiet)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips :is(.sh-lt-v, .sh-as-pair){display:inline}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as{display:inline-block;position:relative;vertical-align:middle;margin:0 var(--s-1) 0 0}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as-go{display:inline-flex;align-items:center;gap:6px;width:auto;height:var(--ctl-h);padding:0 var(--s-3);background:var(--color-surface);border-radius:999px;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as-pair > .sh-as + .sh-as{margin-top:0}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as-pair > .sh-as + .sh-as .sh-as-go{font-size:var(--t-body);font-weight:var(--w-label)}
-  @media (hover:hover){ html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as-go:hover{text-decoration:none;background:var(--color-surface);color:var(--accent-ink)} }
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as.is-open .sh-as-go{background:var(--color-text);color:var(--color-surface)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-say2{display:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-say2[data-tone="warn"]:not([hidden]){display:block;margin:0;line-height:1.5;font-size:var(--t-label);color:var(--st-amber-fg)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lg-j{margin:0 var(--s-1) 0 0}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > .sh-lt-mail{width:var(--doc-sheet-max, 720px);max-width:100%;flex:1 0 auto;background:var(--color-surface);border:0;border-radius:0;box-shadow:var(--shadow-paper);padding:var(--s-2) 48px 36px}
-  html.lg-new #modal-root .modal-in.is-sh-legora[data-sh-page] #sh-letter.sh-lt.is-sap.is-legora > .sh-lt-mail{border:0;min-height:0}
   /* To and Subject: two plain lines; a box shows only as a line that darkens while typed in */
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > .sh-lt-mail > .sh-lt-to{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--color-divider)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > .sh-lt-mail > .sh-lt-to > .sh-lt-k{padding-top:6px;font-size:var(--t-label);letter-spacing:0;text-transform:none;color:var(--color-quiet);font-weight:400}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lt-who{--field-line:transparent;--radius:0;display:flex;gap:var(--s-3);flex-wrap:wrap}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lt-who > label{flex:1 1 160px;min-width:0}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lt-who > label > span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora :is(.sh-lt-who input, #sh-lt-subject, .sh-lg-new input){border:0;background:none;padding:4px 0;box-shadow:inset 0 -1px 0 transparent;border-radius:0;outline:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora :is(.sh-lt-who input, #sh-lt-subject, .sh-lg-new input):focus{box-shadow:inset 0 -1px 0 var(--color-text)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lt-who #sh-email{color:var(--color-quiet)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-to-kind{margin:2px 0 0;display:flex;gap:var(--s-3);flex-wrap:wrap}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lg-new{display:flex;gap:var(--s-3);align-items:center;flex-wrap:wrap;margin-top:var(--s-2)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lg-new.hidden{display:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lg-new input{flex:1 1 140px;min-width:0;font:inherit;box-shadow:inset 0 -1px 0 var(--color-divider)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lg-new-why{flex-basis:100%;font-size:var(--t-label);color:var(--st-amber-fg)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lg-new-why:empty{display:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-more-box{border:0;background:none;padding:var(--s-2) 0 0}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lt-mail > .sh-lt-row .sh-lt-k{font-size:var(--t-label);letter-spacing:0;text-transform:none;color:var(--color-quiet);font-weight:400}
   /* the paper's own width (720, a contract's paper beside no notes); nothing rounded */
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora{--doc-sheet-max:720px}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-say2:not([hidden]):not(:empty):not([data-tone="warn"]){display:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-say2[data-tone="warn"]:not([hidden]):not(:empty){display:block;width:auto;margin:0;padding:0;background:none;line-height:1.5;font-size:var(--t-label);color:var(--st-amber-fg)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-lt-say2::before{display:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as-pair{display:inline}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips .sh-as-pair > .sh-as{flex:none}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora #sh-lt-subject{border:0;background:none;padding:4px 0;height:auto;box-shadow:inset 0 -1px 0 transparent;border-radius:0;font-weight:var(--w-label)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora #sh-lt-subject:focus{box-shadow:inset 0 -1px 0 var(--color-text)}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora{--field-line:transparent}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > #sh-as-chips{border:0;margin:0;align-self:center}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora > .sh-lt-mail{align-self:center}
   /* the note is a line you write on, not a green box (its words and Write it for me stay as they are) */
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora .sh-lt-b > .sh-lt-note:not(.is-nowhere){border-left:0;background:none;padding:0;border-radius:0}
   /* "Open round 1": the green pill the email carries; the small print quiet, under a hairline */
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora #sh-lt-after .sh-lt-btn{border-radius:999px;padding-left:24px;padding-right:24px}
-  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-legora #sh-lt-after .sh-lt-fine{margin:18px 0 0;padding-top:12px;border-top:1px solid var(--color-divider);font-family:var(--font-body);font-size:var(--t-label);color:var(--color-quiet)}
   /* Before you send as drawn: Goes first, then the rest */
   /* THE HOLDER SAYS IT ITSELF, NO ":has" (owner, 11 Nov 2026, the Clean | Redline delay). These four rules asked
      ":has(> #sh-lt-goes) > *" with nothing named in front, so the browser held every element on the page answerable to
@@ -20593,6 +20604,73 @@
   /* a template's page: the back pill stands as tall as Edit and New contract beside it (Round 0, 9 Nov 2026: 22 beside 28) */
   html.lg-new #tpl-dt .tpl-dt-line .tpl-dt-back{min-height:var(--ctl-h);height:var(--ctl-h);font-size:var(--t-body)}
   html.lg-new #tb-page #tb-paper{box-shadow:none}
+  /* ONE WHOLE PAPER (owner, 14 Nov 2026): the sheet is a page tall from the start, A4 in proportion, and grows with its wording */
+  html.lg-new #tb-page #tb-paper{aspect-ratio:1 / 1.4142}
+  /* HOW OUR CONTRACTS LOOK (owner's pick, 14 Nov 2026, the Legora way): the sample page is the page, each part named beside where it sits; nothing boxed */
+  html.lg-new .cl-sub{margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  html.lg-new .cl-admin{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--st-steel-bg);color:var(--st-steel-fg);font-size:var(--t-label);white-space:nowrap}
+  html.lg-new .cl-body{display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-4) 0}
+  html.lg-new .cl-ask{display:flex;align-items:center;gap:var(--s-2);height:44px;border-radius:var(--radius);background:var(--surface-2);padding:0 6px 0 var(--s-4)}
+  html.lg-new .cl-ask .cl-in{flex:1;border:0;background:transparent;font:inherit;font-size:var(--t-body);outline:none;min-width:0}
+  html.lg-new .cl-go{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:var(--accent-fill);color:var(--color-surface);display:grid;place-items:center;cursor:pointer}
+  html.lg-new .cl-said{min-height:18px;margin:0;font-size:var(--t-label);color:var(--color-neutral-600)}
+  html.lg-new .cl-q{margin:0;font-size:var(--t-label);color:var(--color-neutral-600)}
+  html.lg-new .cl-chips{display:flex;gap:6px;flex-wrap:wrap}
+  html.lg-new .cl-chip{height:28px;padding:0 12px;border-radius:999px;border:0;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:var(--t-label);cursor:pointer;white-space:nowrap}
+  html.lg-new .cl-chip.is-on{background:var(--accent-fill);color:var(--color-surface)}
+  html.lg-new .cl-desk{display:grid;grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr);gap:var(--s-6);align-items:start;background:var(--color-bg);border-radius:var(--radius);padding:20px var(--s-4);max-height:560px;overflow:auto}
+  html.lg-new .cl-desk.is-picking{grid-template-columns:auto minmax(260px,1fr)}
+  html.lg-new .cl-sheet-w{zoom:.72}
+  html.lg-new .cl-sheet{width:680px;background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;min-height:760px}
+  html.lg-new .cl-notes{display:flex;flex-direction:column;gap:var(--s-8);padding-top:var(--s-4)}
+  html.lg-new .cl-notes.is-l{text-align:right}
+  html.lg-new .cl-note{display:flex;flex-direction:column;align-items:flex-start;gap:2px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4}
+  html.lg-new .cl-note b{font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .cl-note.is-l{align-items:flex-end}
+  html.lg-new .cl-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+  html.lg-new .cl-lnk{border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  html.lg-new .cl-pick{background:var(--color-surface);border-radius:var(--radius);padding:var(--s-3);display:flex;flex-direction:column;gap:2px;position:sticky;top:0}
+  html.lg-new .cl-pk-h{display:flex;justify-content:space-between;align-items:center;padding:0 var(--s-2) var(--s-2);font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)}
+  html.lg-new .cl-pk-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:var(--s-1) var(--s-2)}
+  html.lg-new .cl-pk-q{margin:var(--s-1) var(--s-2) 0;font-size:var(--t-label);color:var(--color-neutral-600)}
+  html.lg-new .cl-opt{display:flex;gap:var(--s-3);align-items:flex-start;text-align:left;width:100%;padding:var(--s-2);border:0;border-radius:var(--radius);background:transparent;font:inherit;color:inherit;cursor:pointer}
+  html.lg-new .cl-opt.is-on{background:var(--st-green-bg)}
+  html.lg-new .cl-opt[disabled]{opacity:.5;cursor:default}
+  html.lg-new .cl-opt b{display:block;font-size:var(--t-body);font-weight:var(--w-label)}
+  html.lg-new .cl-opt b + span{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4}
+  html.lg-new .cl-opt input{margin-top:3px;accent-color:var(--accent-fill)}
+  html.lg-new .cl-pill{height:28px;padding:0 11px;border-radius:999px;border:0;background:var(--surface-2);font:inherit;font-size:var(--t-label);cursor:pointer;white-space:nowrap}
+  html.lg-new .cl-pill.is-on{background:var(--accent-fill);color:var(--color-surface)}
+  html.lg-new .cl-sw{width:24px;height:24px;border-radius:50%;border:0;cursor:pointer}
+  html.lg-new .cl-sw.is-on{box-shadow:0 0 0 2px var(--color-surface),0 0 0 4px var(--accent-fill)}
+  html.lg-new .cl-in{height:var(--field-h);border:0;border-bottom:1px solid var(--color-divider);background:transparent;font:inherit;font-size:var(--t-body);padding:0 var(--s-1);margin:0 var(--s-2)}
+  html.lg-new .cl-streams{display:flex;flex-direction:column;gap:2px;padding:0 0 0 var(--s-8)}
+  html.lg-new .cl-streams[hidden]{display:none}
+  html.lg-new .cl-tick{display:flex;gap:var(--s-2);align-items:center;font-size:var(--t-body);padding:3px 0;cursor:pointer}
+  html.lg-new .cl-tick input{accent-color:var(--accent-fill)}
+  html.lg-new .cl-tick em{font-style:normal;font-size:var(--t-label);color:var(--color-neutral-600)}
+  html.lg-new .cl-others{display:flex;flex-direction:column}
+  html.lg-new .cl-oh{display:flex;justify-content:space-between;align-items:center;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);padding-bottom:var(--s-1)}
+  html.lg-new .cl-orow{display:flex;gap:var(--s-3);align-items:center;padding:var(--s-2) 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-body);min-width:0}
+  html.lg-new .cl-orow b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  html.lg-new .cl-sp{flex:1}
+  html.lg-new .cl-tag{flex:none;height:20px;padding:0 8px;border-radius:999px;display:inline-flex;align-items:center;font-size:var(--t-label);background:var(--surface-2);color:var(--color-neutral-600)}
+  html.lg-new .cl-tag.is-stream{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .cl-wins{padding-top:var(--s-2)}
+  /* FROM SCRATCH, THE NEW AGREEMENT PAGE'S THIRD TAB (owner, 14 Nov 2026): its own page in the sheet, the four starts as one quiet list; the sheet's other parts and Create step aside while it is chosen */
+  html.lg-new #na-root.is-newpaper #na-body > :not(#na-words){display:none}
+  html.lg-new #na-root.is-newpaper #na-words > :not(.na-ask-top):not(#na-np), html.lg-new #na-root.is-newpaper .na-ask-r{display:none}
+  html.lg-new .na-np{display:flex;flex-direction:column;gap:var(--s-2);margin-top:var(--s-4);max-width:640px}
+  html.lg-new .na-np[hidden]{display:none}
+  html.lg-new .na-np-lead{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  html.lg-new .na-np-list{display:flex;flex-direction:column}
+  html.lg-new .na-np-row{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-3) var(--s-2);border-bottom:1px solid var(--color-divider);cursor:pointer;border-radius:var(--radius)}
+  html.lg-new .na-np-row:has(input:checked){background:var(--surface-2)}
+  html.lg-new .na-np-row input{margin-top:3px;accent-color:var(--accent-fill)}
+  html.lg-new .na-np-row b{display:block;font-weight:var(--w-label);font-size:var(--t-body)}
+  html.lg-new .na-np-row b + span{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
+  html.lg-new .na-np-foot{display:flex;justify-content:flex-start;margin-top:var(--s-2)}
+  html.lg-new #tb-page #tb-paper .tb-empty-line{margin:var(--s-8) 0 0;text-align:center;color:var(--color-quiet);font-family:var(--font-heading);font-size:var(--t-meta);line-height:1.5}
   /* THE BUILDER'S HEAD CUTS NO BUTTON'S WORDS (Round 0, 9 Nov 2026): Category and Stream stand whole (their keys still step
      out when the strip is tight); the name gives, and a long one takes TWO lines in the strip's own height (13/15 = 30,
      the back square's), then "…" — the strip never grows */
@@ -20640,7 +20718,7 @@
   html.lg-new #tb-page .tb-chips{flex-wrap:wrap;overflow:visible}
   html.lg-new #tb-page.tb-page #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
   html.lg-new #tb-page.tb-page:not(.no-rail) > .tb-left{margin-bottom:0}
-  html.lg-new #tb-page.tb-page:not(.no-rail):not(.is-railfold){grid-template-columns:minmax(0,1fr) calc(380px - var(--page-pad-x))}
+  html.lg-new #tb-page.tb-page:not(.no-rail):not(.is-railfold){grid-template-columns:minmax(0,1fr) calc(384px - var(--page-pad-x))}
   /* SETTINGS' OTHER PAGES (owner, 9 Nov 2026, the Settings menu's fix: People & roles, Contract streams, Data & backup
      and every page in the older Settings frame, .st-cr): one white sheet like Settings itself — no well, no corner, no
      lift; its parts are rows, a hairline under each */

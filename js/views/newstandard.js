@@ -91,7 +91,10 @@ function nsStyle() {
 }
 
 /* ═══════════════════════════ THE ONE QUESTION ═══════════════════════════ */
+/* where a start's Back and Cancel return: the New agreement page's From scratch tab when it opened us (opts.back) */
+let _nsFrom = null;
 function openNewStandard(opts = {}) {
+  _nsFrom = typeof opts.back === 'function' ? opts.back : null;
   if (opts.start && NS_STARTS.some(s => s.k === opts.start)) return nsGo(opts.start, opts);
   nsStyle();
   const off = nsNewPaperOff();
@@ -116,7 +119,8 @@ function openNewStandard(opts = {}) {
       <button type="button" id="ns-continue" class="ui-btn ui-btn-primary">${nsEsc(i18t('act_continue'))}</button>
       <button data-dlg-cancel type="button" id="ns-close" class="ui-btn">${nsEsc(i18t('act_cancel'))}</button></div>
   </div>`, { maxWidth: nsW('m'), label: i18t('ns_title') });
-  document.getElementById('ns-close')?.addEventListener('click', () => closeModal());
+  /* opened from the New agreement page's From scratch tab, Cancel goes back to that page (opts.back) */
+  document.getElementById('ns-close')?.addEventListener('click', () => { if (typeof opts.back === 'function') opts.back(); else closeModal(); });
   document.getElementById('ns-continue')?.addEventListener('click', () => {
     const k = (document.querySelector('input[name="ns-start"]:checked') || {}).value;
     if (!k) return;
@@ -140,7 +144,7 @@ function nsGo(k, opts = {}) {
   if (k === 'template') return nsOpenTemplate(opts);
   if (k === 'contract') return nsOpenContract(opts);
 }
-const nsBack = () => { /* back in the standing frame, not a pop-up arriving again (the flash survey) */ openNewStandard(); };
+const nsBack = () => { /* back in the standing frame, not a pop-up arriving again (the flash survey); to the tab that opened it, where one did */ if (typeof _nsFrom === 'function') return _nsFrom(); openNewStandard(); };
 function nsFootHtml(goLabel, goTitle) {
   return `<div class="ns-foot"><button type="button" id="ns-back" class="ui-btn">${nsEsc(i18t('act_back'))}</button><span class="sp"></span>
     <button type="button" id="ns-go" class="ui-btn ui-btn-primary"${goTitle ? ` title="${nsEsc(goTitle)}"` : ''}>${nsEsc(goLabel)}</button></div>`;

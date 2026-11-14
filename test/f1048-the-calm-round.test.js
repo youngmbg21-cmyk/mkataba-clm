@@ -7,7 +7,7 @@
      6 the Builder: a full bar in balance, the 720 paper, no outline on the clause in hand, short options that wrap,
        the clause named with "‹ All clauses"
      7 the email says what it is, the company on top, and small print that tells the truth about the link
-     8 the send screen, the Legora way: the letter on a white paper, the choices one sentence of pills, Someone new
+     8 the send screen, the Legora way (replaced the same day by Four steps, f1049)
    At the parent every part fails: none of these names or rules exist there.
    Run: node --test test/f1048-the-calm-round.test.js */
 const { test } = require('node:test');
@@ -30,15 +30,16 @@ test('f1048 (1) the Guide: a symbol per page, a tone per stage, you are here in 
 test('f1048 (2) the Board: Draft agreement after Explorer, through the one door; our paper first above Jambo\'s box', () => {
   const HB = read('js/views/homeboard.js');
   assert.match(HB, /\$\{hbExplorerBtnHtml\(\)\}\$\{hbDraftBtnHtml\(\)\}`/);
-  assert.match(body(HB, 'hbDraftBtnHtml'), /is-primary/);
+  /* green and the size of its neighbours since 14 Nov 2026 (f1049) */
+  assert.match(body(HB, 'hbDraftBtnHtml'), /hb-btn is-sm hb-draft-go/);
   assert.match(body(HB, 'hbDraftBtnHtml'), /canEdit\(\)\) return ''/, 'a viewer is not shown a door that refuses');
   assert.match(HB, /on\('\[data-hb-draft\]'\)\)\{ if \(typeof caGo === 'function'\) caGo\(\{ kind: 'go', place: 'draft' \}\)/);
-  assert.match(read('js/flowmap.js'), /k: 'board'[\s\S]{0,400}d: \['ourpaper', /);
+  assert.match(read('js/flowmap.js'), /k: 'board'[\s\S]{0,400}d: \['draft', 'ourpaper', /, 'draft first since 14 Nov 2026, then our paper');
 });
-test('f1048 (3) New agreement: two tabs, no From scratch', () => {
+test('f1048 (3) New agreement: Our paper and Their paper; From scratch is the third tab only with the right (reversed in f1049)', () => {
   const W = read('js/wizard.js');
   assert.match(W, /\$\{\['ours','theirs'\]\.map\(k=>/);
-  assert.doesNotMatch(W, /naScratch|'scratch'/);
+  assert.doesNotMatch(W, /naScratch/, 'the old From scratch form is not back');
   assert.doesNotMatch(read('js/paperdesk.js'), /naScratchNow/);
   assert.doesNotMatch(CSS, /\.nsc-|#na-scratch/);
 });
@@ -86,14 +87,9 @@ test('f1048 (7) the email: what it is, the company on top, small print that tell
   const SRV = read('server/server.js');
   assert.match(SRV, /link, expires, durable: !!isDurable,/); assert.match(SRV, /expires: s\.expires_at, durable: !!s\.durable,/);
 });
-test('f1048 (8) the send screen, the Legora way: the paper, the sentence of pills, Someone new', () => {
+test('f1048 (8) the send screen: the Legora way was replaced by Four steps the same day (f1049); the lasting link still says so', () => {
   const C = read('js/core.js');
-  assert.match(body(C, 'shareLetterPaint'), /shareLegoraArrange\(host\);/);
-  const A = body(C, 'shareLegoraArrange');
-  assert.match(A, /mail\.insertBefore\(to, mail\.firstChild\)/, 'To moves into the paper');
-  assert.match(A, /data-sh-new-go/);
-  assert.match(body(C, 'shareLegoraAddNew'), /data-sh-more="\$\{esc\(email\)\}"/, 'a new person is one more ticked person (shareMoreChosen sends them)');
+  assert.doesNotMatch(C, /function shareLegoraArrange/, 'the sentence of pills is gone');
   assert.match(C, /durable:!!\(document\.getElementById\('sh-durable'\)\|\|\{\}\)\.checked/);
-  assert.match(CSS, /#sh-letter\.sh-lt\.is-sap\.is-legora > #sh-as-chips \.sh-as-go\{display:inline-flex;/);
-  assert.match(CSS, /#sh-letter\.sh-lt\.is-sap\.is-legora > \.sh-lt-mail\{align-self:center;margin:0;border:0;border-radius:0;/);
+  assert.doesNotMatch(CSS, /is-legora/);
 });

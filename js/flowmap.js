@@ -33,7 +33,7 @@ const FLOW_MAP = [
   /* ---- ARRIVE ---- */
   /* THE BOARD IS WHERE YOU LAND (owner, 10 Nov 2026: the Home page was deleted): it took Home's stage and its likely next */
   { k: 'board', st: 'arrive', s: _w('where you land: your book, and what waits on you', 'där du landar: din avtalsbok och det som väntar på dig'),
-    a: [['explorer', _w('a figure → its contracts on the map', 'en siffra → dess avtal på kartan')]], d: ['ourpaper', 'contracts', 'explorer', 'calendar', 'work'],
+    a: [['explorer', _w('a figure → its contracts on the map', 'en siffra → dess avtal på kartan')]], d: ['draft', 'ourpaper', 'contracts', 'explorer', 'calendar'],
     p: [['document', _w('the late duty or the first thing waiting', 'den försenade plikten eller det första som väntar')], ['redline', _w('their answers to send', 'deras svar att skicka')], ['approvals', _w('an approval asked of you', 'ett godkännande du ombeds ge')]] },
   { k: 'needs', st: 'arrive', s: _w('what waits on you, on the Board', 'det som väntar på dig, på tavlan'),
     a: [['document', _w('a row pressed → where it waits', 'en rad → där den väntar')]], d: ['board'], p: [] },

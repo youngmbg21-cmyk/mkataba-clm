@@ -135,9 +135,12 @@ describe('f194 — and the account surface still works, scoped to the caller', (
        SET_CLOSURES['legal-identity']). What this test has always been about is
        the DESIGN: the logo, the accent colour and the layout, which is what the
        permission was for and which is untouched. */
+    /* REVERSED 14 Nov 2026 (owner: "admin only"): how our contracts look is an admin's, set in Settings. An Editor's
+       change to the look is refused with the way forward; the profile values stay theirs. */
     const r = await W.unrestricted.raw('/api/org/branding', { method: 'PUT',
       body: { logoPosition: 'top-left', accentColor: '#1a7f6b', accentSource: 'manual' } });
-    assert.notEqual(r.status, 403, 'an Editor may still change the company design');
+    assert.equal(r.status, 403, 'the company look is an admin\'s to change');
+    assert.match(String((r.json || {}).error || ''), /How our contracts look/, 'and the refusal names where an admin changes it');
     const values = await W.unrestricted.raw('/api/org/profile-values', { method: 'PUT', body: { values: { town: 'Nairobi' } } });
     assert.notEqual(values.status, 403);
   });
@@ -159,8 +162,9 @@ describe('f194 — and the account surface still works, scoped to the caller', (
        UNCHANGED has moved nothing and must pass — otherwise every stale tab
        becomes a refusal, and the guard stops being about the act. */
     const now = await W.admin.json('/api/org/branding');
+    const b = now.branding || {};
     const r = await W.unrestricted.raw('/api/org/branding', { method: 'PUT', body: {
-      companyName: (now.branding || {}).companyName || '', logoPosition: 'top-right' } });
+      companyName: b.companyName || '', logoPosition: b.logoPosition || null } });
     assert.notEqual(r.status, 403, 'nothing moved, so nothing is refused');
   });
 

@@ -810,6 +810,41 @@ function openNewDoors(){
     else if(k==='upload'){ if(typeof pdDropDoor==='function' && pdDropDoor()) return; if(typeof openUploadModal==='function') openUploadModal(); }
   }));
 }
+/* FROM SCRATCH IS THE THIRD TAB, AND ONLY WHERE IT CAN BE USED (owner, 14 Nov 2026: "the only door is the new agreement
+   page. From there you have 3 choices, or two if you do not have access to build from scratch"): the tab is drawn only
+   for a person with the new-paper grant (mayMakeNewPaper, the one reading; the server still refuses without it). It is
+   a door, not a third kind of paper: it opens the four starts of a new standard (openNewStandard: from nothing, from a
+   template you have, from one of our contracts, from the other side's paper) over this page, whose Cancel comes back. */
+function naNewPaperOk(){ return typeof mayMakeNewPaper==='function' && !!mayMakeNewPaper() && typeof openNewStandard==='function'; }
+function naNewPaperDoorHtml(){
+  if(!naNewPaperOk()) return '';
+  return `<button type="button" role="tab" class="na-ptab" data-na-newpaper aria-selected="false">${esc(i18t('na_tab_newpaper'))}</button>`;
+}
+/* THE TAB'S OWN PAGE: the four starts, the first chosen, one black Continue. Drawn hidden; the tab shows it and
+   steps the sheet's own parts aside (index.html, #na-root.is-newpaper). Each start's Back and Cancel come here again. */
+function naNewPaperPaneHtml(){
+  if(!naNewPaperOk()||typeof window.NS_STARTS==='undefined') return '';
+  const rows=window.NS_STARTS.map(x=>({k:x.k,t:x.t,d:x.d})).concat([{k:'cp',t:i18t('ns_cp_t'),d:i18t('ns_cp_d')}]);
+  return `<div id="na-np" class="na-np" hidden><span class="na-np-lead">${esc(i18t('ns_lead'))}</span>
+    <div class="na-np-list" role="radiogroup">${rows.map((r,i)=>`<label class="na-np-row"><input type="radio" name="na-np" value="${esc(r.k)}"${i===0?' checked':''}><span><b>${esc(r.t)}</b><span>${esc(r.d)}</span></span></label>`).join('')}</div>
+    <div class="na-np-foot"><button type="button" id="na-np-go" class="ui-btn ui-btn-primary">${esc(i18t('act_continue'))}</button></div></div>`;
+}
+function naNewPaperShow(root,on){
+  if(!root) return; const pane=root.querySelector('#na-np'); if(!pane) return;
+  root.classList.toggle('is-newpaper',!!on); pane.hidden=!on;
+  /* Create draft and its reason live in the page's head (dlgPageAdopt moved them): they step aside here too */
+  ['na-create','na-why'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=on?'none':''; });
+  const t=root.querySelector('[data-na-newpaper]'); if(t) t.setAttribute('aria-selected',String(!!on));
+  if(on) root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected','false'));
+  else { const cur=root.getAttribute('data-paper'); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===cur))); }
+}
+function naNewPaperGo(k){
+  if(!naNewPaperOk()) return;
+  const back=()=>openNewAgreement({ newPaper:true });
+  /* the other side's paper keeps the door that has always filed it */
+  if(k==='cp'){ if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
+  openNewStandard({ start:k||'scratch', back });
+}
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
   o=o||{};
@@ -964,10 +999,10 @@ function openNewAgreement(o){
      whose paper it is */
   const naAskHtml=()=>`<section class="na-field na-ask" id="na-words">
       <div class="na-ask-top"><div class="na-ptabs" role="tablist" aria-label="${esc(i18t('na_ptabs'))}">${['ours','theirs'].map(k=>
-        `<button type="button" role="tab" class="na-ptab" data-na-paper="${k}" aria-selected="${paper===k}">${esc(i18t('na_tab_'+k))}</button>`).join('')}</div>
+        `<button type="button" role="tab" class="na-ptab" data-na-paper="${k}" aria-selected="${paper===k}">${esc(i18t('na_tab_'+k))}</button>`).join('')}${naNewPaperDoorHtml()}</div>
         <span class="na-ask-r"><span class="na-hint">${esc(i18t('na_ask_noai'))}</span><button type="button" id="dr-read" class="ui-link na-fill"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t(asked?'na_words_fill_rest':'na_words_fill'))} <em id="na-w-cost">${naFillCost()?'· '+esc(naFillCost()):''}</em></button></span></div>
       <div class="na-askbox"><textarea id="dr-say" class="na-say" rows="1" maxlength="${(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000}" placeholder="${esc(i18t('na_say_ph'))}" autocomplete="off" aria-label="${esc(i18t('na_say_ph'))}">${esc(asked)}</textarea>
-        ${typeof jamboSendHtml==='function'?jamboSendHtml('id="na-reask"', i18t('na_ask_go')):`<button type="button" id="na-reask" class="ui-btn ui-btn-sm">${esc(i18t('na_ask_go'))}</button>`}</div></section>`;
+        ${typeof jamboSendHtml==='function'?jamboSendHtml('id="na-reask"', i18t('na_ask_go')):`<button type="button" id="na-reask" class="ui-btn ui-btn-sm">${esc(i18t('na_ask_go'))}</button>`}</div>${naNewPaperPaneHtml()}</section>`;
   /* WHAT I READ FROM YOUR WORDS: each fact, what it says and the words it came from
      (the Legora way: every fact shows where it was read). With, the kind and what it
      is for are the old readings (caDraftWith, caDraftKindOf, caDraftForOf); the rest
@@ -1537,9 +1572,16 @@ function openNewAgreement(o){
     document.getElementById('na-change-paper')?.addEventListener('click',()=>{ root.classList.remove('is-picked');
       const l=document.getElementById('na-closest'); if(l) try{ l.scrollIntoView({ block:'nearest' }); }catch(_){} });
     /* OUR PAPER · THEIR PAPER: the tab is whose paper it is */
-    root.querySelector('.na-ptabs')?.addEventListener('click',e=>{ const b=e.target.closest('[data-na-paper]'); if(!b) return;
+    root.querySelector('.na-ptabs')?.addEventListener('click',e=>{
+      /* FROM SCRATCH, THE ONE DOOR TO NEW PAPER (owner, 14 Nov 2026): the four starts open over this page; Cancel comes back here */
+      if(e.target.closest('[data-na-newpaper]')){ naNewPaperShow(root,true); return; }
+      const b=e.target.closest('[data-na-paper]'); if(!b) return;
+      naNewPaperShow(root,false);
       paper=b.getAttribute('data-na-paper'); light(); naFilePaint(); if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
       if(paper==='theirs'){ const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
+    /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
+    root.querySelector('#na-np-go')?.addEventListener('click',()=>{ const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
+    if(o&&o.newPaper) naNewPaperShow(root,true);
     /* Our paper's own words for the panel (the new look): the closest papers, the one chosen, the lines filled from the words */
     _naOurs={ up:()=>paper==='ours'&&naSheetUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
       read:()=>naReadRows().length, asked:()=>!!asked };
@@ -1713,4 +1755,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{naOursNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{naNewPaperOk,naNewPaperDoorHtml,naNewPaperGo,naOursNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

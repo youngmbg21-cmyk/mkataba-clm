@@ -12,6 +12,12 @@
 // Follows the openTemplateConfirm precedent: paints #content directly,
 // holds its state in a module-level bag, returns to the caller's screen.
 
+/* THE EIGHT ACCENT COLOURS, ONE LIST (the design step and How our contracts look both offer them): hex, name, word */
+const DS_ACCENTS = [
+  ['#0f766e', 'Teal', 'teal'], ['#004c78', 'Navy', 'navy'], ['#1e3a8a', 'Royal blue', 'blue'],
+  ['#1f5d3a', 'Forest', 'green'], ['#8e3550', 'Claret', 'claret'], ['#9a4a1f', 'Rust', 'rust'],
+  ['#5b3a6e', 'Aubergine', 'purple'], ['#37474f', 'Slate', 'slate'],
+];
 let _ds = null;   // see below
 let _dsScroll = null;   // rail + document scroll, held across a repaint
 // { mode:'publish'|'settings', tid, vid, versionNumber, templateName,
@@ -33,14 +39,16 @@ async function openDesignStep(opts) {
     templateName: opts.templateName || '', form: opts.form || null,
     b: seed,
     orgHadDesign: !!(org && org.designId),
-    saveDefault: !(org && org.designId),   // the first design IS the company standard (decision 1)
+    /* THE COMPANY LOOK IS SET ONLY IN SETTINGS, BY AN ADMIN (owner, 14 Nov 2026; reverses decision 1, "the first design
+       IS the company standard"): publishing one paper dresses that paper alone, so the publish step saves no default */
+    saveDefault: (opts.mode || 'publish') !== 'publish' && !(org && org.designId),
     posTouched: !!(org && org.designId),   // a saved default's position is a choice; keep it across design switches
     /* A saved default's LAYOUT is a choice too, and one made deliberately —
        so a workspace that already has a design keeps the right to be told when
        a style switch takes that layout away. A first-time design has no such
        choice behind it yet. */
     structureTouched: !!(org && org.designId),
-    changeNote: '', onBack: opts.onBack || null,
+    changeNote: opts.changeNote || '', onBack: opts.onBack || null,
     /* ONE CHOICE PER SCREEN — the style first, then the structure. The style
        list used to sit below five structure cards, so finding it meant
        scrolling past the choice you had already made; splitting them fixed
@@ -300,11 +308,7 @@ function dsPaint(opts) {
      on designs that display an accent, which meant a customer sitting on a
      monochrome design could not find the control at all — the colour is a
      company fact, set once, not a property of whichever design is on screen. */
-  const ACCENT_PRESETS = [
-    ['#0f766e', 'Teal'], ['#004c78', 'Navy'], ['#1e3a8a', 'Royal blue'],
-    ['#1f5d3a', 'Forest'], ['#8e3550', 'Claret'], ['#9a4a1f', 'Rust'],
-    ['#5b3a6e', 'Aubergine'], ['#37474f', 'Slate'],
-  ];
+  const ACCENT_PRESETS = DS_ACCENTS.map(([hex, name]) => [hex, name]);
   const accentNow = b.accentColor || '#37474f';
   const swatches = ACCENT_PRESETS.map(([hex, name]) => `
     <button data-ds-swatch="${hex}" title="${name}" aria-label="${name}" style="width:23px;height:23px;border-radius:var(--radius);
@@ -459,7 +463,8 @@ function dsPaint(opts) {
       ${_ds.focus ? '' : `
       <section class="ds-rail-pane" style="${PANE}">
        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px var(--s-4)">
-        <h4 style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-meta);margin:0 0 10px;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
+        <h4 style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-meta);margin:0 0 10px;color:var(--color-neutral-600)">${i18t(publish ? 'ds_paper_look' : 'ds_company_branding')}</h4>
+        ${publish ? '' : `
         <div style="display:flex;gap:10px;align-items:center">
           <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
             ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
@@ -470,6 +475,7 @@ function dsPaint(opts) {
             <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:3px">${i18t('ds_png_jpg')}</span>
           </div>
         </div>
+        `}
         <div style="margin-top:14px">
           <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:5px">${i18t('ds_logo_position')}</span>
           <div style="display:flex;gap:6px;flex-wrap:wrap">${posChips}</div>
@@ -492,20 +498,17 @@ function dsPaint(opts) {
 
                THE FOOTER TEXT STAYS. Unlike the other three it genuinely is a
                design choice about what prints at the bottom of a page. */}
+        ${publish ? '' : `
         <div style="margin-top:14px;display:grid;gap:7px">
           <input id="ds-b-footer" style="${INP}" placeholder="${i18t('ds_footer_placeholder')}" value="${esc(b.footerText)}">
           <p style="font-size:var(--t-label);color:var(--color-neutral-500);line-height:1.5;margin:0">${
             esc(i18t('ds_identity_moved',{name:b.companyName||i18t('st_not_set')}))}</p>
         </div>
+        `}
         ${publish && step === 2 ? `
         <label style="display:block;margin-top:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('ds_what_changed_why')}</span>
           <textarea id="ds-note" style="${INP};height:auto;padding:var(--field-pad-y) var(--field-pad-x);min-height:48px" maxlength="500" placeholder="e.g. Payment terms now offer 30/45/60 days">${esc(_ds.changeNote)}</textarea></label>
-        <label style="display:flex;align-items:flex-start;gap:7px;margin-top:var(--s-3);font-size:var(--t-label);line-height:1.5;${_ds.orgHadDesign ? 'cursor:pointer' : 'opacity:.75'}">
-          <input type="checkbox" id="ds-default" ${_ds.saveDefault ? 'checked' : ''} ${_ds.orgHadDesign ? '' : 'disabled'} style="margin-top:2px">
-          <span>${_ds.orgHadDesign
-            ? 'Also make this structure and style the company default for future contracts'
-            : `<b>${i18t('ds_becomes_default')}</b> Your first design is saved as the standard — later contracts arrive already dressed in it.`}</span>
-        </label>` : ''}
+        ` : ''}
        </div>
        <!-- The step's action, pinned where it can always be reached. -->
        <div style="flex:none;padding:11px 15px;border-top:1px solid var(--color-divider)">${stepAction}</div>
@@ -613,7 +616,6 @@ function dsPaint(opts) {
   });
   ['ds-b-name', 'ds-b-reg', 'ds-b-addr', 'ds-b-footer'].forEach(id =>
     document.getElementById(id)?.addEventListener('input', () => dsHarvestIdentity()));
-  document.getElementById('ds-default')?.addEventListener('change', e => { _ds.saveDefault = e.target.checked; });
   document.getElementById('ds-publish')?.addEventListener('click', dsPublish);
   document.getElementById('ds-save')?.addEventListener('click', dsSaveDefault);
 }
@@ -664,7 +666,8 @@ async function dsPublish() {
   const btn = document.getElementById('ds-publish');
   if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse">${i18t('ds_publishing')}</span>`; }
   try {
-    await saveOrgBranding(dsOrgPayload());
+    /* publishing one paper never writes the company's look (an admin's, in Settings) */
+    if (_ds.mode !== 'publish') await saveOrgBranding(dsOrgPayload());
     const design = _ds.saveDefault ? null
       : { designId: _ds.b.designId, structureId: _ds.b.structureId,
           logoPosition: _ds.b.logoPosition, accentColor: _ds.b.accentColor };
@@ -677,14 +680,15 @@ async function dsPublish() {
     const st = docStructureById(_ds.b.structureId);
     toast(`v${r.versionNumber} published in ${docDesignById(_ds.b.designId).name}${
       st && st.id !== DEFAULT_STRUCTURE ? ' · ' + st.name : ''} — the team can create contracts from it now`, 'ok');
-    const tid = _ds.tid; _ds = null;
+    const tid = _ds.tid, tname = _ds.templateName, vn = r.versionNumber; _ds = null;
     /* PUBLISHED IS ON THE SHELF AT ONCE (26 Sep 2026, the overnight clean-up):
        the template cache the New agreement screen and "New contract" read was
        still the pre-publish copy, so the new standard was missing from the one
        and the other read its version as unpublished ("the wording could not be
        read"). Refreshed before landing, so the detail page reads it too. */
     if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the page still opens */ } }
-    openTemplateLibDetail(tid);
+    /* published: Draft a contract from it, or Our paper (the builder's one landing) */
+    if (typeof tbPublishedLand === 'function') tbPublishedLand(tid, tname, vn); else openTemplateLibDetail(tid);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = `Publish v${_ds.versionNumber}`; }
     ((e.data && e.data.problems) || [e.message]).forEach(p => toast(p, 'err'));
@@ -711,4 +715,217 @@ async function dsSaveDefault() {
    steps (js/views/negotiation.js rlSetDocType), and so the shell's resize
    handler reaches it. */
 if (typeof addEventListener === 'function') addEventListener('resize', () => { if (_ds) dsApplyZoom(); });
-Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose });
+
+/* ═══════════ HOW OUR CONTRACTS LOOK — ONE SETTINGS PAGE, THE LEGORA WAY (owner's pick, 14 Nov 2026) ═══════════
+   The company look is set once, here, by an admin (PUT /api/org/branding refuses anyone else). The sample page is the
+   page: each part is named beside where it sits on the paper with its Change; a chip opens the eight styles, the four
+   layouts, or who wears the look (every contract, or only some streams). Under the paper, Other looks: each stream
+   with its own look and each paper published with "Design it now", with Use the company look. Which look wins: a
+   paper's own, then its stream's, then the company's (server srvLookOf). The other side's paper never wears our look;
+   a contract's look follows its stream until it is signed (srvLookFollowStream). Nothing is written until Save.
+   One box takes a plain sentence ("use our blue and put the logo on the left"), read here without AI (clReadLook). */
+const CL_ACCENTS = DS_ACCENTS.map(([hex, , word]) => [hex, word]);
+let _cl = null;
+const clAdmin = () => { try { const u = (typeof currentUser === 'function') ? currentUser() : null; return !!(u && u.role === 'admin'); } catch (_) { return false; } };
+const clE = s => (typeof esc === 'function' ? esc(s) : String(s == null ? '' : s));
+function clLookOf(src) {
+  const o = src || {};
+  return { designId: o.designId || DOC_DESIGNS[0].id, structureId: o.structureId || DEFAULT_STRUCTURE,
+    logoPosition: o.logoPosition || null, accentColor: o.accentColor || null };
+}
+function clInit() {
+  const org = window.ORG_BRANDING || {};
+  _cl = { look: clLookOf(org), logoUrl: org.logoUrl || null, footer: org.footerText || org.defaultFooterText || '',
+    streams: JSON.parse(JSON.stringify(window.ORG_STREAM_LOOKS || {})), applies: 'all', pick: new Set(), editing: null,
+    mode: 'page', said: '', dirty: false, busy: false };
+}
+function clDesign() { return docDesignById(_cl.look.designId) || DOC_DESIGNS[0]; }
+function clStructure() { return docStructureById(_cl.look.structureId) || DOC_STRUCTURES[0]; }
+function clStreamName(fid) { const f = (typeof FOLDERS === 'object' && FOLDERS) ? FOLDERS[fid] : null; return (f && f.name) || fid; }
+function clStreamIds() { return Object.values((typeof FOLDERS === 'object' && FOLDERS) || {}).filter(f => f && f.id).map(f => String(f.id)); }
+/* the look the sample page wears: the working look with the company's own facts (logo, name, footer) */
+function clBranding() {
+  const org = window.ORG_BRANDING || {};
+  return normalizeDesignBranding(Object.assign({}, org, { designId: _cl.look.designId, structureId: _cl.look.structureId,
+    logoPosition: _cl.look.logoPosition, accentColor: _cl.look.accentColor, accentSource: 'manual',
+    logoUrl: _cl.logoUrl, footerText: _cl.footer }));
+}
+function clSheetHtml() {
+  const b = clBranding(); if (!b) return '';
+  const c = { name: i18t('cl_sample_name'), counterparty: i18t('cl_sample_cp'), branding: b };
+  const body = `<h1>${clE(i18t('cl_sample_name'))}</h1><p>${clE(i18t('cl_sample_lead'))}</p>
+    <h2>1. ${clE(i18t('cl_sample_h1'))}</h2><p>${clE(i18t('cl_sample_p1'))}</p>
+    <h2>2. ${clE(i18t('cl_sample_h2'))}</h2><p>${clE(i18t('cl_sample_p2'))}</p>
+    <h2>3. ${clE(i18t('cl_sample_h3'))}</h2><p>${clE(i18t('cl_sample_p3'))}</p>`;
+  return `<div class="cl-sheet-w"><div${docDesignPaperAttr(b)} class="cl-sheet" style="${docDesignPaperStyle(b)}">
+    ${docDesignHeaderHtml(b, c, { bleedX: 36, bleedY: 30 })}
+    <article class="doc-surface" style="background:transparent"><div class="hati-doc">${docStructureBodyHtml(b, body)}</div></article>
+    ${docDesignFooterHtml(b, c)}</div></div>`;
+}
+const CL_POS_WORD = { 'top-left': 'cl_pos_left', 'top-center': 'cl_pos_centre', 'top-right': 'cl_pos_right', footer: 'cl_pos_footer' };
+function clNote(k, t, say, act, side) {
+  return `<div class="cl-note is-${side}" data-cl-note="${k}"><b>${clE(t)}</b><span>${say}</span>${act || ''}</div>`;
+}
+function clNotesHtml(side) {
+  const admin = clAdmin(), d = clDesign(), st = clStructure(), org = window.ORG_BRANDING || {};
+  const chg = (m, w) => admin ? `<button type="button" class="cl-lnk" data-cl-mode="${m}">${clE(i18t(w || 'cl_change'))}</button>` : '';
+  const pos = _cl.look.logoPosition || d.defaultLogoPos || 'top-left';
+  const ac = (CL_ACCENTS.find(([h]) => h === _cl.look.accentColor) || [])[1];
+  if (side === 'l') return clNote('logo', i18t('cl_n_logo'), clE(_cl.logoUrl ? i18t(CL_POS_WORD[pos] || 'cl_pos_left') : i18t('cl_no_logo')), chg('g'), 'l')
+    + clNote('colour', i18t('cl_n_colour'), `<i class="cl-dot" style="background:${clE(_cl.look.accentColor || CL_ACCENTS[7][0])}"></i>${clE(ac ? i18t('cl_c_' + ac) : (_cl.look.accentColor || i18t('cl_c_slate')))}${d.usesAccent === false ? ' · ' + clE(i18t('cl_mono')) : ''}`, chg('c'), 'l')
+    + clNote('type', i18t('cl_n_type'), clE(i18t('cl_type_say')), '', 'l')
+    + clNote('footer', i18t('cl_n_footer'), clE(_cl.footer || i18t('cl_no_footer')), chg('f', 'cl_edit'), 'l');
+  return clNote('letterhead', i18t('cl_n_letterhead'), clE(org.companyName ? org.companyName : i18t('cl_no_company')),
+      admin ? `<button type="button" class="cl-lnk" data-cl-company>${clE(i18t('cl_change_there'))}</button>` : '', 'r')
+    + clNote('style', i18t('cl_n_style'), clE(d.name + ': ' + d.blurb), chg('s', 'cl_see_all'), 'r')
+    + clNote('layout', i18t('cl_n_layout'), clE(st.name + ': ' + st.blurb), chg('l'), 'r');
+}
+function clPickHtml() {
+  const m = _cl.mode, admin = clAdmin();
+  const head = t => `<div class="cl-pk-h"><span>${clE(t)}</span><button type="button" class="cl-lnk" data-cl-mode="page">${clE(i18t('cl_done'))}</button></div>`;
+  const opt = (on, attr, t, d, mini) => `<button type="button" class="cl-opt${on ? ' is-on' : ''}" ${attr}${admin ? '' : ' disabled'}>${mini || ''}<span><b>${clE(t)}${on ? ' ✓' : ''}</b><span>${clE(d)}</span></span></button>`;
+  if (m === 's') return head(i18t('cl_pick_style', { n: DOC_DESIGNS.length })) + DOC_DESIGNS.map(d => opt(d.id === _cl.look.designId, `data-cl-design="${d.id}"`, d.name, d.blurb)).join('');
+  if (m === 'l') return head(i18t('cl_pick_layout', { n: DOC_STRUCTURES.length })) + DOC_STRUCTURES.map(x => {
+    const why = (typeof structureBlockedReason === 'function') ? structureBlockedReason(_cl.look.designId, x.id) : null;
+    return opt(x.id === _cl.look.structureId, `data-cl-structure="${x.id}"${why ? ' disabled' : ''}`, x.name, why || x.blurb); }).join('')
+    + `<p class="cl-pk-q">${clE(i18t('cl_layout_note'))}</p>`;
+  if (m === 'g') return head(i18t('cl_n_logo')) + `<div class="cl-pk-row">${DESIGN_LOGO_POSITIONS.map(p => `<button type="button" class="cl-pill${(_cl.look.logoPosition || clDesign().defaultLogoPos) === p ? ' is-on' : ''}" data-cl-pos="${p}">${clE(i18t(CL_POS_WORD[p]))}</button>`).join('')}</div>
+    <div class="cl-pk-row"><input type="file" id="cl-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden><button type="button" class="cl-pill" data-cl-logo>${clE(i18t(_cl.logoUrl ? 'cl_logo_replace' : 'cl_logo_upload'))}</button>${_cl.logoUrl ? `<button type="button" class="cl-lnk" data-cl-logo-x>${clE(i18t('cl_logo_remove'))}</button>` : ''}</div><p class="cl-pk-q">${clE(i18t('ds_png_jpg'))}</p>`;
+  if (m === 'c') return head(i18t('cl_n_colour')) + `<div class="cl-pk-row">${CL_ACCENTS.map(([h, w]) => `<button type="button" class="cl-sw${_cl.look.accentColor === h ? ' is-on' : ''}" data-cl-accent="${h}" style="background:${h}" title="${clE(i18t('cl_c_' + w))}" aria-label="${clE(i18t('cl_c_' + w))}"></button>`).join('')}</div>${clDesign().usesAccent === false ? `<p class="cl-pk-q">${clE(i18t('cl_mono_note', { name: clDesign().name }))}</p>` : ''}`;
+  if (m === 'f') return head(i18t('cl_n_footer')) + `<input type="text" id="cl-footer" class="cl-in" maxlength="500" value="${clE(_cl.footer)}" placeholder="${clE(i18t('ds_footer_placeholder'))}">`;
+  if (m === 'a') {
+    const own = new Set(Object.keys(_cl.streams));
+    return head(i18t('cl_pick_who')) + `
+      <label class="cl-opt${_cl.applies === 'all' ? ' is-on' : ''}"><input type="radio" name="cl-applies" value="all"${_cl.applies === 'all' ? ' checked' : ''}><span><b>${clE(i18t('cl_who_all'))}</b><span>${clE(i18t('cl_who_all_d'))}</span></span></label>
+      <label class="cl-opt${_cl.applies === 'some' ? ' is-on' : ''}"><input type="radio" name="cl-applies" value="some"${_cl.applies === 'some' ? ' checked' : ''}><span><b>${clE(i18t('cl_who_some'))}</b><span>${clE(i18t('cl_who_some_d'))}</span></span></label>
+      <div class="cl-streams"${_cl.applies === 'some' ? '' : ' hidden'}>${clStreamIds().map(fid => `<label class="cl-tick"><input type="checkbox" data-cl-stream="${clE(fid)}"${_cl.pick.has(fid) ? ' checked' : ''}><span>${clE(clStreamName(fid))}</span>${own.has(fid) && _cl.editing !== fid ? `<em>· ${clE(i18t('cl_has_own'))}</em>` : ''}</label>`).join('')}</div>`;
+  }
+  return '';
+}
+function clOthersHtml() {
+  const admin = clAdmin();
+  const streams = Object.entries(_cl.streams).map(([fid, v]) => `<div class="cl-orow"><span class="cl-tag is-stream">${clE(i18t('cl_tag_stream'))}</span><b>${clE(clStreamName(fid))}</b><span class="cl-q">${clE((docDesignById(v.designId) || {}).name || v.designId)}</span><span class="cl-sp"></span>${admin ? `<button type="button" class="cl-lnk" data-cl-stream-edit="${clE(fid)}">${clE(i18t('cl_change'))}</button><button type="button" class="cl-lnk" data-cl-stream-x="${clE(fid)}">${clE(i18t('cl_use_company'))}</button>` : ''}</div>`);
+  const papers = (window.ORG_PAPER_LOOKS || []).map(t => `<div class="cl-orow"><span class="cl-tag">${clE(i18t('cl_tag_paper'))}</span><b>${clE(t.name)}</b><span class="cl-q">${clE((docDesignById(t.designId) || {}).name || t.designId)}</span><span class="cl-sp"></span>${admin ? `<button type="button" class="cl-lnk" data-cl-paper-x="${clE(t.id)}">${clE(i18t('cl_use_company'))}</button>` : ''}</div>`);
+  const n = streams.length + papers.length;
+  return `<section class="cl-others" id="cl-others"><div class="cl-oh"><span>${clE(i18t('cl_others', { n }))}</span>${admin ? `<button type="button" class="cl-lnk" data-cl-add-stream>＋ ${clE(i18t('cl_add_stream'))}</button>` : ''}</div>
+    ${n ? streams.concat(papers).join('') : `<p class="cl-q">${clE(i18t('cl_others_none'))}</p>`}
+    <p class="cl-q cl-wins">${clE(i18t('cl_wins'))}</p></section>`;
+}
+function clChipsHtml() {
+  const m = _cl.mode, n = Object.keys(_cl.streams).length + (window.ORG_PAPER_LOOKS || []).length;
+  const chip = (k, t) => `<button type="button" class="cl-chip${m === k ? ' is-on' : ''}" data-cl-mode="${k}">${clE(t)}</button>`;
+  const who = _cl.applies === 'some' ? i18t(_cl.pick.size === 1 ? 'cl_who_n1' : 'cl_who_n', { n: _cl.pick.size }) : i18t('cl_who_every');
+  return `<div class="cl-chips">${chip('page', i18t('cl_chip_page'))}${chip('s', i18t('cl_chip_style', { name: clDesign().name }))}${chip('l', i18t('cl_chip_layout', { name: clStructure().name }))}${chip('a', i18t('cl_chip_who', { who }))}<button type="button" class="cl-chip" data-cl-others>${clE(i18t('cl_chip_others', { n }))}</button></div>`;
+}
+function clPageHtml() {
+  if (!_cl) clInit();
+  const admin = clAdmin(), page = _cl.mode === 'page';
+  const editing = _cl.editing ? i18t('cl_editing_stream', { name: clStreamName(_cl.editing) }) : '';
+  const acts = admin
+    ? `<span class="cl-admin">${clE(i18t('cl_admins_only'))}</span><button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t('act_save'))}</button>`
+    : `<span class="cl-admin">${clE(i18t('cl_admins_only'))}</span>`;
+  return `<div class="st-pg cl-pg" data-st-pg="look">
+    <section class="st-pg-card">${(typeof window.stPageHeadHtml === 'function') ? window.stPageHeadHtml(i18t('cl_title'), '', acts) : ''}
+      <p class="cl-sub">${clE(editing || i18t('cl_sub'))}</p></section>
+    <div class="cl-body">
+      ${admin ? `<form class="cl-ask" id="cl-ask"><input type="text" id="cl-say" class="cl-in" maxlength="300" autocomplete="off" placeholder="${clE(i18t('cl_ask_ph'))}" value="${clE(_cl.said)}"><button type="submit" class="cl-go" aria-label="${clE(i18t('cl_ask_go'))}">${window.JB_SEND_ICON || '↑'}</button></form><p class="cl-said" id="cl-said" aria-live="polite"></p>` : `<p class="cl-q">${clE(i18t('cl_read_only'))}</p>`}
+      ${clChipsHtml()}
+      <div class="cl-desk${page ? '' : ' is-picking'}">
+        ${page ? `<div class="cl-notes is-l">${clNotesHtml('l')}</div>` : ''}
+        ${clSheetHtml()}
+        ${page ? `<div class="cl-notes is-r">${clNotesHtml('r')}</div>` : `<div class="cl-pick">${clPickHtml()}</div>`}
+      </div>
+      ${clOthersHtml()}
+    </div></div>`;
+}
+function clRepaint() {
+  const pg = document.querySelector('[data-st-pg="look"]'); if (!pg) return;
+  const sc = pg.closest('.scroll-thin, #content-scroll') || document.getElementById('content-scroll'); const top = sc ? sc.scrollTop : 0;
+  const t = document.createElement('div'); t.innerHTML = clPageHtml(); pg.replaceWith(t.firstElementChild);
+  if (sc) sc.scrollTop = top;
+}
+function clSet(fn) { fn(); _cl.dirty = true; clRepaint(); }
+/* A LOOK TYPED IN A SENTENCE, READ WITHOUT AI: colours, the logo's place, a style or a layout named; what is not read is said */
+function clReadLook(text) {
+  const t = ' ' + String(text || '').toLowerCase() + ' ', got = {}, said = [];
+  const hex = t.match(/#[0-9a-f]{6}\b/);
+  const col = hex ? [hex[0], hex[0]] : CL_ACCENTS.find(([, w]) => new RegExp('\\b' + w + '\\b').test(t))
+    || (/\b(grey|gray)\b/.test(t) ? CL_ACCENTS[7] : null) || (/\bred\b|\bmaroon\b/.test(t) ? CL_ACCENTS[4] : null) || (/\borange\b/.test(t) ? CL_ACCENTS[5] : null);
+  if (col) { got.accentColor = col[0]; said.push(i18t('cl_said_colour', { c: col[1].startsWith('#') ? col[1] : i18t('cl_c_' + col[1]) })); }
+  if (/\blogo\b/.test(t)) {
+    const pos = /\bleft\b/.test(t) ? 'top-left' : /\bright\b/.test(t) ? 'top-right' : /\b(centre|center|middle)\b/.test(t) ? 'top-center' : /\b(footer|bottom)\b/.test(t) ? 'footer' : null;
+    if (pos) { got.logoPosition = pos; said.push(i18t('cl_said_logo', { p: i18t(CL_POS_WORD[pos]) })); }
+  }
+  const d = DOC_DESIGNS.find(x => t.includes(x.name.toLowerCase()) || t.includes(' ' + x.name.toLowerCase().split(' ').pop() + ' '));
+  if (d) { got.designId = d.id; said.push(i18t('cl_said_style', { s: d.name })); }
+  const st = DOC_STRUCTURES.find(x => t.includes(x.name.toLowerCase()) || (x.id === 'two-column' && /two[ -]colum/.test(t)) || (x.id === 'margin-numbers' && /numbers? in the margin/.test(t)));
+  if (st) { got.structureId = st.id; said.push(i18t('cl_said_layout', { l: st.name })); }
+  return { got, said };
+}
+async function clSave() {
+  if (!_cl || _cl.busy || !clAdmin()) return;
+  const btn = document.getElementById('cl-save'); _cl.busy = true;
+  if (btn && typeof busySet === 'function') busySet(btn, i18t('cl_saving'));
+  try {
+    const look = { designId: _cl.look.designId, structureId: _cl.look.structureId, logoPosition: _cl.look.logoPosition, accentColor: _cl.look.accentColor };
+    const streams = JSON.parse(JSON.stringify(_cl.streams));
+    const payload = { logoUrl: _cl.logoUrl, defaultFooterText: _cl.footer };
+    if (_cl.applies === 'some') {
+      if (_cl.editing && !_cl.pick.has(_cl.editing)) delete streams[_cl.editing];
+      _cl.pick.forEach(fid => { streams[fid] = Object.assign({}, look); });
+    } else Object.assign(payload, look, { accentSource: 'manual' });
+    payload.streamLooks = streams;
+    await saveOrgBranding(payload);
+    toast(i18t(_cl.applies === 'some' ? 'cl_saved_streams' : 'cl_saved'), 'ok');
+    clInit(); clRepaint();
+  } catch (e) { toast((e && e.message) || i18t('cl_save_failed'), 'err'); _cl.busy = false; if (btn) { btn.disabled = false; btn.textContent = i18t('act_save'); } }
+}
+function clGo() { if (typeof refreshOrgBranding === 'function') refreshOrgBranding().then(() => { clInit(); clRepaint(); }).catch(() => {}); clInit(); if (typeof settingsGoPage === 'function') settingsGoPage('look'); }
+if (typeof document !== 'undefined' && !window._clWired) {
+  window._clWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target; if (!_cl || !t || !t.closest || !t.closest('[data-st-pg="look"]')) return;
+    const at = sel => t.closest(sel);
+    let x;
+    if ((x = at('[data-cl-mode]'))) { _cl.mode = x.getAttribute('data-cl-mode'); return clRepaint(); }
+    if (at('[data-cl-others]')) { const o = document.getElementById('cl-others'); if (o && typeof landOn === 'function') landOn(o, { block: 'start' }); else if (o) o.scrollIntoView({ block: 'start' }); return; }
+    if (!clAdmin()) return;
+    if ((x = at('[data-cl-design]'))) return clSet(() => { const d = docDesignById(x.getAttribute('data-cl-design')); _cl.look.designId = d.id; _cl.look.logoPosition = null;
+      if (typeof structureBlockedReason === 'function' && structureBlockedReason(d.id, _cl.look.structureId)) _cl.look.structureId = DEFAULT_STRUCTURE; });
+    if ((x = at('[data-cl-structure]'))) return clSet(() => { _cl.look.structureId = x.getAttribute('data-cl-structure'); });
+    if ((x = at('[data-cl-pos]'))) return clSet(() => { _cl.look.logoPosition = x.getAttribute('data-cl-pos'); });
+    if ((x = at('[data-cl-accent]'))) return clSet(() => { _cl.look.accentColor = x.getAttribute('data-cl-accent'); });
+    if (at('[data-cl-logo]')) { const f = document.getElementById('cl-logo-file'); if (f) f.click(); return; }
+    if (at('[data-cl-logo-x]')) return clSet(() => { _cl.logoUrl = null; });
+    if (at('[data-cl-company]')) { if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'company'); return; }
+    if (at('[data-cl-add-stream]')) { _cl.applies = 'some'; _cl.mode = 'a'; return clRepaint(); }
+    if ((x = at('[data-cl-stream-edit]'))) { const fid = x.getAttribute('data-cl-stream-edit'); _cl.look = clLookOf(_cl.streams[fid]); _cl.applies = 'some'; _cl.pick = new Set([fid]); _cl.editing = fid; _cl.mode = 'page'; return clRepaint(); }
+    if ((x = at('[data-cl-stream-x]'))) return clSet(() => { delete _cl.streams[x.getAttribute('data-cl-stream-x')]; });
+    if ((x = at('[data-cl-paper-x]'))) {
+      const id = x.getAttribute('data-cl-paper-x');
+      (async () => { try { await api(`templates/${encodeURIComponent(id)}/look`, 'PUT', {}); await refreshOrgBranding(); toast(i18t('cl_paper_back'), 'ok'); clRepaint(); } catch (er) { toast(er.message, 'err'); } })();
+      return;
+    }
+    if (at('#cl-save')) return clSave();
+  });
+  document.addEventListener('change', e => {
+    const t = e.target; if (!_cl || !t || !t.closest || !t.closest('[data-st-pg="look"]') || !clAdmin()) return;
+    if (t.name === 'cl-applies') return clSet(() => { _cl.applies = t.value; if (t.value === 'all') { _cl.pick = new Set(); } });
+    if (t.hasAttribute('data-cl-stream')) return clSet(() => { const fid = t.getAttribute('data-cl-stream'); if (t.checked) _cl.pick.add(fid); else _cl.pick.delete(fid); });
+    if (t.id === 'cl-footer') return clSet(() => { _cl.footer = String(t.value || '').slice(0, 500); });
+    if (t.id === 'cl-logo-file' && t.files && t.files[0]) {
+      const f = t.files[0]; if (f.size > 500 * 1024) { toast(i18t('cl_logo_big'), 'warn'); return; }
+      const r = new FileReader(); r.onload = () => clSet(() => { _cl.logoUrl = String(r.result || ''); }); r.readAsDataURL(f);
+    }
+  });
+  document.addEventListener('submit', e => {
+    const f = e.target; if (!_cl || !f || f.id !== 'cl-ask') return; e.preventDefault(); if (!clAdmin()) return;
+    const inp = document.getElementById('cl-say'); const text = inp ? inp.value : '';
+    const { got, said } = clReadLook(text);
+    if (!said.length) { const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_none'); return; }
+    clSet(() => { Object.assign(_cl.look, got); _cl.said = ''; });
+    const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_done', { what: said.join(', ') });
+  });
+}
+
+Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose, CL_ACCENTS, clPageHtml, clReadLook, clGo, clSave, clInit });
