@@ -22487,3 +22487,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Opening the Brain made the server read all its own code in its own process and keep it: about 100 MB more, for good (measured 100 → 199 MB). On Render's 512 MB plan that can stop the server; restarted, the next visit did it again. The Wiring view was never the cause: it asks the server nothing.
 - Fixed: a worker reads the code and ends; the server keeps only the answer (100 → 129 MB). f1050 (red at the parent: 97 MB left).
 - Not proven: Render's "Ran out of memory" event was not readable from the session. Not removed: the half-second peak during the read (187 MB, was 208).
+- 14 Nov 2026 — THE LAST FLICKER ENDED: pull request 721 merged (Rounds 0, 1, 2a). Left: Jambo's panel's redraws for nothing (its frame binds ~34 buttons per paint; its own job). The final measure needs a hand run of "rebuild measure" on main.
