@@ -3254,8 +3254,12 @@ function tplBookRepaint(){
   if(!host) return;
   /* the index keeps its place under the reader's hand (a press low in a long
      index must not throw it back to the top) */
+  /* THE NEW LOOK'S LIST TOO (14 Nov 2026, the flash survey): its standards sit in a scroller with no id, which the
+     line above never found; every scroller in the book keeps its place but the paper beside it, which shows the
+     paper just picked and starts at its top (keepScrollIn, js/components.js) */
   const li=document.getElementById('tpl-pf-list'); const top=li?li.scrollTop:0;
-  host.innerHTML=tplBookHtml(tplOverviewData());
+  const draw=()=>{ host.innerHTML=tplBookHtml(tplOverviewData()); };
+  if(typeof keepScrollIn==='function') keepScrollIn(host, draw, '.tpl-pf-paper, .tpl-pf-paper *'); else draw();
   const li2=document.getElementById('tpl-pf-list'); if(li2&&top) li2.scrollTop=top;
   tplBookWire(host);
   tplPfAfterPaint();

@@ -1689,5 +1689,70 @@ function boxDraftJoin(box, seat){
   if (v && !box.value){ box.value = v; return true; }
   return false;
 }
+/* ---- ONE WATCHER PUTS THE WORDS BACK, WHATEVER REDREW THE BOX (owner, 14 Nov 2026, the flash survey's last round) ----
+   The measure's third run still found words lost where a box is drawn by more than one painter: the Calendar's
+   own planner draws Jambo's panel over Home's, Settings draws its box from the page and from its talk, and only
+   some of those paths put the draft back. Patching each path is how one gets missed, so the putting back has ONE
+   place: every keystroke in a known box is written to its home (delegated on the document, so a box needs no
+   wiring), and when a known box appears EMPTY while its home holds words, they are put back in the next frame.
+   - The asking paths empty the home in the same turn as the box, and the watcher runs a frame later, so a box
+     emptied by asking stays empty.
+   - A box the reader empties themselves writes '' to its home, so it stays empty.
+   - Only boxes named here. Jambo's house's contract picker is NOT: it writes the chosen contract's name back into
+     itself, and a kept half-word would fight it. */
+/* a `var`, not a `const`: this file is loaded twice into one test world (f830), where a second const is a crash */
+var BOX_DRAFT_SEATS = { 'jl-q': 'list', 'st-jb-q': 'settings', 'cal-plan-in': 'calendar' };
+function boxDraftOf(id){ return id === 'igd-input' ? jamboDraft() : (BOX_DRAFT_SEATS[id] ? boxDraft(BOX_DRAFT_SEATS[id]) : ''); }
+function boxDraftSweep(){
+  boxDraftSweep._due = false;
+  if (typeof document === 'undefined') return 0;
+  let put = 0;
+  for (const id of ['igd-input', ...Object.keys(BOX_DRAFT_SEATS)]){
+    const el = document.getElementById(id); if (!el || el.disabled || el.value) continue;
+    const v = boxDraftOf(id); if (!v) continue;
+    el.value = v; put++;
+    if (typeof window.chatFieldGrow === 'function') try { chatFieldGrow(el); } catch (_){ }
+  }
+  return put;
+}
+function boxDraftWatch(){
+  if (typeof window === 'undefined' || typeof document === 'undefined' || window.__boxDraftWatch) return;
+  window.__boxDraftWatch = true;
+  document.addEventListener('input', e => { const t = e.target; if (!t || !t.id) return;
+    if (t.id === 'igd-input'){ let sel = null; try { if (document.activeElement === t) sel = [t.selectionStart, t.selectionEnd, t.selectionDirection]; } catch (_){ sel = null; }
+      jamboDraftSet(t.value, sel); }
+    else if (BOX_DRAFT_SEATS[t.id]) boxDraftSet(BOX_DRAFT_SEATS[t.id], t.value); }, true);
+  if (typeof MutationObserver !== 'function') return;
+  const due = () => { if (boxDraftSweep._due) return; boxDraftSweep._due = true;
+    (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : f => setTimeout(f, 16))(boxDraftSweep); };
+  try { new MutationObserver(due).observe(document.documentElement, { childList: true, subtree: true }); } catch (_){ }
+}
+boxDraftWatch();
+
+/* ---- A LIST REDRAWN UNDER THE READER KEEPS ITS PLACE; THE PANE THAT SHOWS WHAT WAS PICKED STARTS AT ITS TOP
+   (owner, 14 Nov 2026, the flash survey's last round) ----
+   The measure found the Handbook's chapter list and Our paper's list of standards thrown back to their tops when
+   a row was pressed low down. keepScroll (js/app.js) puts back every scroller inside #content, which is wrong for
+   the pane beside a list: a NEW chapter or a NEW paper should start at its top, not halfway down. So this one
+   is told what NOT to keep (`except`, a selector for the reading pane). A scroller is found again by its id, else
+   by its classes and its place among its siblings inside the host; anything it cannot find again is left alone. */
+function keepScrollIn(host, fn, except){
+  if (!host || typeof fn !== 'function') return fn && fn();
+  const keyOf = el => { if (el.id) return '#' + el.id;
+    const cls = [...el.classList].filter(c => /^[a-z][\w-]*$/i.test(c)).map(c => '.' + c).join('');
+    const tag = el.tagName.toLowerCase(); let at = -1;
+    try { at = [...host.querySelectorAll(tag + cls)].indexOf(el); } catch (_){ at = -1; }
+    return at < 0 ? null : { tag, cls, at }; };
+  const tops = [];
+  try { for (const el of [host, ...host.querySelectorAll('*')]){ if (!el.scrollTop) continue; if (except && el.matches && el.matches(except)) continue;
+    const k = el === host ? null : keyOf(el); if (el === host) tops.push(['host', el.scrollTop]); else if (k) tops.push([k, el.scrollTop]); } } catch (_){ }
+  const r = fn();
+  const find = k => { if (k === 'host') return host; if (typeof k === 'string') return document.querySelector(k);
+    return host.querySelectorAll(k.tag + k.cls)[k.at] || null; };
+  const put = () => { for (const [k, top] of tops){ let el = null; try { el = find(k); } catch (_){ el = null; } if (el && (!except || !el.matches(except))) el.scrollTop = top; } };
+  if (tops.length){ put(); if (typeof requestAnimationFrame === 'function') requestAnimationFrame(put); }
+  return r;
+}
+Object.assign(window, { keepScrollIn });
 Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
-  boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin });
+  boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin, BOX_DRAFT_SEATS, boxDraftSweep, boxDraftWatch });
