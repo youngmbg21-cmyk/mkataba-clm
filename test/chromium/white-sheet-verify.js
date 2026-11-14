@@ -70,6 +70,8 @@ const WHITE_KNOWN = [
      Settings' middle column is pinned (PINS), never a scroller of its own */
   { place: 'board', kind: 'ground', why: 'Your book, Needs you and Today\'s insights are cards on grey — owner: Not now (9 Nov 2026)' },
   /* board-sheet came off on 10 Nov 2026: with the greeting at the top (the owner's pick), the Board under its side list draws no grey */
+  /* and back on 14 Nov 2026: the gap under the greeting is the Board's own grey, as between its cards (the white band that hid it is gone) */
+  { place: 'board-sheet', kind: 'ground', why: 'the gap under the greeting, as between the Board\'s cards — owner: "there is supposed to be space between the card and the top panel just as how other cards have space between each other" (14 Nov 2026)' },
   { place: 'agents', kind: 'ground', why: 'Jambo\'s work is the Board\'s Needs you card on grey — owner: Not now (9 Nov 2026)' },
   { place: 'brief', kind: 'ground', why: 'the Board under Jambo\'s side panel — owner: Not now (9 Nov 2026)' },
   /* the Pulse board's grey legend strip came off on 9 Nov 2026: it was the window's ground behind the shell's scroll

@@ -2,7 +2,7 @@
    you get multiple options like guide, alerts, notes and activity"; RE-POINTED from the nav panel's door of 29 Oct 2026):
      1 · ONE button on the bar opens the side panel: the question mark and the clock are gone; it wears the panel's
          mark (#i-panel), not a bell, and says what it opens ("Side panel: …"), at the three screens
-     2 · with something waiting it opens on Alerts and says so (aria-expanded); pressed again it closes
+     2 · it opens on the Guide, even with something waiting (owner, 14 Nov 2026), and says so (aria-expanded); pressed again it closes
      3 · the panel's own tabs choose the face (Guide), and the button closes it from any face
    At the parent 1 fails: three buttons, a bell.
    Run: node test/chromium/nav-panel-door-verify.js   (pictures: NAV_DOOR_SHOTS=<dir>) */
@@ -47,26 +47,31 @@ const panelNow = () => ({ open: !!(window.state && state.panelOpen), face: typeo
       const bar = await page.$('#hdr-notify'); if (bar){ const box = await bar.boundingBox(); await page.screenshot({ path: path.join(OUT, `bar-${nm}.png`), clip: { x: Math.max(0, box.x - 260), y: 0, width: Math.min(W, 420), height: 52 } }); }
 
       if (nm === 'laptop-a'){
-        /* ---- 2 opens on Alerts with something waiting; closes on a second press ---- */
+        /* ---- 2 opens on the Guide, even with something waiting (owner, 14 Nov 2026; reverses "on Alerts"); closes on a second press ---- */
+        const waiting = await page.evaluate(() => alertCount());
         await page.click('#hdr-notify');
-        const open = await until(page, () => state.panelOpen && panelFace() === 'alerts');
+        const open = await until(page, () => state.panelOpen && panelFace() === 'guide' && !!document.querySelector('#panel-body .gd'));
         const p1 = await page.evaluate(panelNow);
-        check('2 with something waiting, a press opens the panel on Alerts, and says so', open && p1.navX === 'true', p1);
-        await page.screenshot({ path: path.join(OUT, `alerts-${nm}.png`) });
+        check('2 with something waiting, a press opens the panel on the Guide, and says so', waiting > 0 && open && p1.navX === 'true', { waiting, p1 });
+        await page.screenshot({ path: path.join(OUT, `guide-${nm}.png`) });
         await page.click('#hdr-notify');
         const shut = await until(page, () => !state.panelOpen);
         const p2 = await page.evaluate(panelNow);
         check('2b pressed again, it closes', shut && p2.navX === 'false', p2);
 
-        /* ---- 3 the tabs choose; the button closes from any face ---- */
+        /* ---- 3 the tabs choose; the button closes from any face; the next press is the Guide again ---- */
         await page.click('#hdr-notify');
         await until(page, () => state.panelOpen);
-        await page.click('#context-panel [data-pt-face="guide"]');
-        const guide = await until(page, () => state.panelOpen && panelFace() === 'guide' && !!document.querySelector('#panel-body .gd'));
-        check('3 the panel\'s Guide tab turns it to the Guide', guide, await page.evaluate(panelNow));
+        await page.click('#context-panel [data-pt-face="alerts"]');
+        const alerts = await until(page, () => state.panelOpen && panelFace() === 'alerts');
+        check('3 the panel\'s Alerts tab turns it to Alerts', alerts, await page.evaluate(panelNow));
         await page.click('#hdr-notify');
         const shut2 = await until(page, () => !state.panelOpen);
-        check('3b the button closes it from the Guide too', shut2, await page.evaluate(panelNow));
+        check('3b the button closes it from Alerts too', shut2, await page.evaluate(panelNow));
+        await page.click('#hdr-notify');
+        const again = await until(page, () => state.panelOpen && panelFace() === 'guide');
+        check('3c left on Alerts, the next press still opens on the Guide', again, await page.evaluate(panelNow));
+        await page.click('#hdr-notify'); await until(page, () => !state.panelOpen);
       }
       await page.close();
     }

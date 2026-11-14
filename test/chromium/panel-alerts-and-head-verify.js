@@ -209,7 +209,7 @@ const px = v => Number(String(v || '').replace('px', ''));
       afterPolls.rows.every(r => !/fail|lost|error/i.test(r.text)),
       afterPolls.rows[0] && afterPolls.rows[0].text);
 
-    await page.click('#hdr-notify');
+    await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await page.waitForTimeout(900);
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk; a stuck answer
        is the bell's own row there (data-nd-row "al:answer-stuck:…"), never green */
