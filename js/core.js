@@ -5874,6 +5874,10 @@ function shareStepsArrange(host){
   const page=host.closest('.modal-in'); if(page) page.classList.add('is-sh-steps');
   const col=host.querySelector('#sh-as-chips'); if(!col) return;
   col.setAttribute('data-st-head', i18t('sh_st_head'));
+  /* THE SUBJECT IS A PLAIN LINE, LEVEL WITH To AND From (owner, 14 Nov 2026: "tidy the subject line"): its box is drawn with
+     its own spacing in its style attribute, which no sheet can undo; the box's own border and inner gap are taken off here */
+  const subj=host.querySelector('#sh-lt-subject');
+  if(subj && subj.style.padding!=='4px 0px'){ subj.style.padding='4px 0'; subj.style.border='0'; subj.style.background='none'; subj.style.borderRadius='0'; }
   const to=host.querySelector('.sh-lt-to'); if(to && to.parentElement!==col) col.insertBefore(to, col.firstChild);
   SH_STEPS.forEach(([k,sel,lbl],i)=>{
     const row=host.querySelector(sel); if(!row || row.querySelector(':scope > .sh-st-h')) return;

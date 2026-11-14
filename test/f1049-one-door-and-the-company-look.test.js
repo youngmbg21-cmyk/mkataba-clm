@@ -125,4 +125,5 @@ test('f1049 (7) the send screen, Four steps', () => {
   assert.match(body(C, 'shareStepsDrop'), /_shSetMain\(next\.getAttribute\('data-sh-more-name'\)\|\|'', next\.getAttribute\('data-sh-more'\)\)/, 'taking the main person off promotes the next');
   assert.match(CSS, /#sh-letter\.sh-lt\.is-steps \.sh-st:not\(\.is-open\) > \.sh-lt-v\{display:none\}/, 'a closed step shows only its line');
   assert.equal(EN.sh_st_what, 'What goes'); assert.ok(SV.sh_st_what);
+  assert.match(body(C, 'shareStepsArrange'), /subj\.style\.padding='4px 0'; subj\.style\.border='0';/, 'the Subject a plain line, level with To and From');
 });
