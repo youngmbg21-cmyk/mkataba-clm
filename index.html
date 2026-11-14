@@ -18586,7 +18586,7 @@
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-head{display:flex;align-items:center;height:56px;padding:0 24px;box-sizing:border-box}
   /* ONE LINE ACROSS (owner, 14 Nov 2026, off a screenshot: "the line across should be on the same level"): New agreement's
      head is as tall as Jambo's panel head beside it, so the hairline under each runs at one height */
-  html.lg-new #modal-root .modal-in:has(#na-root.na-one) .dlg-pg-head.dlg-pg-head{display:flex;align-items:center;height:var(--jb-head);padding-top:0;padding-bottom:0;box-sizing:border-box}
+  html.lg-new #modal-root .modal-in:has(#na-root.na-one) .dlg-pg-head.dlg-pg-head{padding-top:14px;padding-bottom:14px}
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-crumb{flex:1;min-width:0;margin:0;padding:0}
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-row{display:none}
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-body{background:var(--desk-ground);padding:0}
@@ -20754,6 +20754,50 @@
   html.lg-new .nss-foot .sp{flex:1}
   html.lg-new .nss-pg{position:relative;background:var(--color-surface);border-radius:3px;box-shadow:0 0 0 1px var(--color-divider),0 6px 18px rgba(0,0,0,.06);padding:22px 22px 18px}
   html.lg-new .nss-pg:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--st-green-dot);border-radius:3px 3px 0 0}
+  /* ONE PAPER SIZE on both steps of From nothing (owner, 14 Nov 2026: "the paper should stay the same size") */
+  html.lg-new .nss-pg{height:430px;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden}
+  html.lg-new .nss-pg h5{flex:none;font-family:var(--font-doc);font-weight:var(--w-strong);font-size:var(--t-label);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-400);text-align:center;margin:0 0 6px}
+  html.lg-new .nss-tl{flex:1;min-height:0;overflow-y:auto;padding-right:6px;scrollbar-width:thin;-webkit-mask-image:linear-gradient(black calc(100% - 22px),transparent);mask-image:linear-gradient(black calc(100% - 22px),transparent)}
+  html.lg-new .nss-tl.is-end{-webkit-mask-image:none;mask-image:none}
+  html.lg-new .nss-tr{display:flex;align-items:center;gap:6px;height:26px;padding:0 4px;border-radius:4px}
+  html.lg-new .nss-tr:hover,html.lg-new .nss-tr.is-sel{background:var(--surface-2)}
+  html.lg-new .nss-tr input{margin:0;flex:none;accent-color:var(--accent-solid)}
+  html.lg-new .nss-tn{border:0;background:none;padding:0;font-family:var(--font-doc);font-size:var(--t-body);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%;cursor:pointer;text-align:left}
+  html.lg-new .nss-tr.is-off .nss-tn{color:var(--color-neutral-400);text-decoration:line-through}
+  html.lg-new .nss-dots{flex:1;min-width:12px;border-bottom:1px dotted var(--color-neutral-300);transform:translateY(3px)}
+  html.lg-new .nss-tr .nss-w.nss-w{margin:0;padding:0;background:none;font-size:var(--t-label)}
+  html.lg-new .nss-tr .nss-w.is-lib,html.lg-new .nsj .nss-w.is-lib{color:var(--st-steel-fg)}
+  html.lg-new .nss-tr .nss-w.is-std,html.lg-new .nsj .nss-w.is-std{color:var(--st-green-fg)}
+  html.lg-new .nss-tr .nss-w.is-ai,html.lg-new .nsj .nss-w.is-ai{color:var(--st-violet-fg)}
+  html.lg-new .nss-key{flex:none;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:var(--t-label);color:var(--color-neutral-400);margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider)}
+  html.lg-new .nss-kd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+  html.lg-new .nss-kd.is-lib{background:var(--st-steel-dot)}
+  html.lg-new .nss-kd.is-std{background:var(--st-green-dot)}
+  html.lg-new .nss-kd.is-ai{background:var(--st-violet-dot)}
+  html.lg-new .nss-under{display:flex;justify-content:space-between;gap:12px;font-size:var(--t-label);color:var(--color-neutral-400);margin-top:8px}
+  /* Jambo's panel beside the contents page */
+  html.lg-new .nsj{display:flex;flex-direction:column;gap:14px}
+  html.lg-new .nsj-say{margin:0;font-size:var(--t-section);font-weight:var(--w-strong);line-height:1.4}
+  html.lg-new .nsj-cap{margin:0 0 4px;font-size:var(--t-label);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400)}
+  html.lg-new .nsj-t{margin:0;font-size:var(--t-body);color:var(--color-text);line-height:1.5}
+  html.lg-new .nsj-t.is-quiet,html.lg-new .nsj-q2{color:var(--color-quiet)}
+  html.lg-new .nsj-q2{margin:0;font-size:var(--t-body);line-height:1.5}
+  html.lg-new .nsj-quote{margin:0;font-family:var(--font-doc);font-size:var(--t-body);color:var(--color-quiet);border-left:2px solid var(--color-neutral-300);padding-left:10px;line-height:1.55}
+  html.lg-new .nsj-back{align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .nsj-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface-2)}
+  html.lg-new .nsj-bar span{display:block;height:100%}
+  html.lg-new .nsj-bar .is-lib{background:var(--st-steel-dot)}
+  html.lg-new .nsj-bar .is-std{background:var(--st-green-dot)}
+  html.lg-new .nsj-bar .is-ai{background:var(--st-violet-dot)}
+  html.lg-new .nsj-lg{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .nsj-std{display:flex;flex-direction:column}
+  html.lg-new .nsj-sr{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-body)}
+  html.lg-new .nsj-sw{margin-left:auto;font-size:var(--t-label);white-space:nowrap}
+  html.lg-new .nsj-sw.is-ok{color:var(--st-green-fg)}
+  html.lg-new .nsj-sw.is-gap{color:var(--st-amber-fg)}
+  html.lg-new .nsj-d{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
+  html.lg-new .nsj-d.is-ok{background:var(--st-green-dot)}
+  html.lg-new .nsj-d.is-gap{background:var(--st-amber-dot)}
   html.lg-new .nss-pg h4{font-family:var(--font-doc);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:.04em;text-transform:uppercase;text-align:center;margin:6px 0 14px;line-height:1.35}
   html.lg-new .nss-bars{display:flex;flex-direction:column;gap:12px}
   html.lg-new .nss-bars div{display:flex;flex-direction:column;gap:5px}
