@@ -72,20 +72,41 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate('(' + R6_BRING.toString() + ')()');
     /* RE-POINTED (owner, 9 Nov 2026: "the column should only reflect the name of the column … The count should maybe go to
        the side panel"): the head is the question's name alone; how far it is read stands in the panel, "3 of 6 read" */
-    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && /3 of \d+ read/.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 15000);
+    /* RE-POINTED (14 Nov 2026): the panel no longer says "3 of N read" (Columns you asked is gone); the column's head and the panel drawn are the wait */
+    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && !!document.querySelector('.rfp-panel.is-drawn'), null, 15000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-table thead th')].map(x => x.innerText.trim().toLowerCase().split('\n')[0].trim()).filter(Boolean));
     const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
     /* RE-POINTED (owner's pick, 10 Nov 2026: the Scorecard): what is missing is named on the standards bar's hover, the cell one line */
     const miss = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ls-score')].map(x => x.getAttribute('title') || '').join(' | '));
     /* RE-POINTED (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; the Reads & Contracts drawing):
-       the folder's panel is This folder · Columns you asked; the kept question stands there, on this list, with Remove from list */
-    const panel = await until(page, () => /Columns you asked/i.test((document.querySelector('.rfp-panel') || {}).innerText || '') && /on this list/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
+       the folder's panel is This folder.
+       RE-POINTED AGAIN (owner, 14 Nov 2026: "the feature for these search being added to the panel should be deleted"):
+       Columns you asked is gone from the panel: no asked question, no Add to list, no Remove from list there */
+    const panel = await until(page, () => /This folder/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
     const kept = await txt(page, '.rfp-panel');
+    /* f1053 (owner's pick by name, 14 Nov 2026, the Legora way): where Columns you asked stood, the folder says what matters in
+       plain sentences: the standards row with the door to what needs you, what ends next, who is not checked; chips narrow
+       them; nothing spills out of the panel; Show them lists exactly the unchecked */
+    const says = await page.evaluate(() => { const p = document.querySelector('.rfp-panel'), b = p ? p.getBoundingClientRect() : null;
+      const rows = [...document.querySelectorAll('.rfp-says .rfp-say')];
+      return { kinds: rows.map(r => r.getAttribute('data-rfp-say')), chips: [...document.querySelectorAll('.rfp-says .rfp-chip')].map(c => c.innerText.trim()),
+        need: !!document.querySelector('.rfp-say[data-rfp-say="need"] [data-rfp-view="needs"]'), open: !!document.querySelector('.rfp-say[data-rfp-say="date"] [data-rfp-open]'),
+        only: ((document.querySelector('.rfp-say [data-rfp-only]') || { getAttribute: () => '' }).getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length,
+        unchecked: [...document.querySelectorAll('#reg-tbody tr[data-row]')].filter(r => /Not checked yet/i.test(r.innerText)).length,
+        spill: b ? [...p.querySelectorAll('.rfp-says *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > b.right + 1 || r.left < b.left - 1); }).length : -1 }; });
+    let narrowed = false, back = false;
+    if (says.chips.length) { await page.click('.rfp-says [data-rfp-chip="date"]');
+      narrowed = await until(page, () => { const r = [...document.querySelectorAll('.rfp-says .rfp-say')]; return r.length === 1 && r[0].getAttribute('data-rfp-say') === 'date'; }, null, 6000);
+      await page.click('.rfp-says [data-rfp-chip="all"]');
+      back = await until(page, () => document.querySelectorAll('.rfp-says .rfp-say').length >= 3, null, 6000); }
+    check('2b the folder says what matters (f1053): standards row with Show the N that need you, what ends next, who is not checked; chips narrow and return; nothing spills',
+      says.kinds.includes('need') && says.kinds.includes('date') && says.kinds.includes('std') && says.need && says.open && says.only > 0 && says.only === says.unchecked
+      && says.chips.length === 3 && /^All 3$/.test(says.chips[0]) && says.spill === 0 && narrowed && back && /differs from our standards|against our standards/.test(kept), { says, narrowed, back });
     await shot('2-folder-list');
-    check('2 a folder\'s list: Standing, the kept question (its name alone; how far it is read in the panel), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
-      proc && up && heads.includes('standing') && !sub.trim() && /3 of \d+ read · on this list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
-      && panel && /This folder/i.test(kept) && /Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
+    check('2 a folder\'s list: Standing, the kept question (its name alone), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
+      proc && up && heads.includes('standing') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
+      && panel && /This folder/i.test(kept) && !/Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }
 
   /* 3 · the Wall */
