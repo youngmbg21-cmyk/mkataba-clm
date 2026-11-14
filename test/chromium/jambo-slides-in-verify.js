@@ -297,6 +297,8 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     /* ===== 9h–9j · THE ✦ OPENS HIM ALREADY POPPED OUT (owner, 14 Nov 2026; f1049) ===== */
     await page.evaluate(() => { window.__pipAsked = 0; Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true,
       value: { requestWindow: async () => { window.__pipAsked++; return window.open('', 'pip-stub', 'width=420,height=640'); } } }); });
+    /* 9e's warning may still be on screen: only one born of THIS press counts */
+    await page.evaluate(() => { const t = document.getElementById('toast-root'); if (t) t.innerHTML = ''; });
     const starP = ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null);
     await press('#cmd-ai');
     const starWin = await starP;
