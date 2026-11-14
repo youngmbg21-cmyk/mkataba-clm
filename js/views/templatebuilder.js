@@ -237,6 +237,9 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
      tbPaint holds is a repaint's, never another template's. */
   tbPaint({ fresh: true });
   if (_tb.start && _tb.start.kind === 'template') tbBlanksFirst();
+  /* kept on the Shelf's paper: the Builder opens already holding them (the same press as Add N sections) */
+  if (_tb.start && _tb.start.kind === 'scratch' && _tb.start.add && _tb.outline && Array.isArray(_tb.outline.sections) && _tb.outline.sections.some(x => x.on))
+    tbOutlineAdd({ walk: _tb.start.walk !== false });
   /* THE CONFLICT IS ASKED OVER THE SERVER'S OWN WORDING, never before it: the
      reader is being asked whether to put their draft back over what is on the
      screen, so what is on the screen has to be the version. */
@@ -660,6 +663,12 @@ function tbStartWith(st) {
   if (st.kind === 'scratch') {
     _tb.said = st.said || '';
     _tb.outline = st.outline ? tbOutlineFrom(st.outline, st.said || '') : null;
+    /* THE SHELF (owner's pick, 14 Nov 2026): the sections were kept or unticked on New agreement's paper before this
+       opened, so the same list is read again and the unticked stay off; tbOpen then adds them at once (st.add) */
+    if (_tb.outline && Array.isArray(st.off) && st.off.length) {
+      const off = new Set(st.off.map(h => String(h || '').trim().toLowerCase()));
+      _tb.outline.sections.forEach(x => { if (off.has(String(x.heading || '').trim().toLowerCase())) x.on = false; });
+    }
     /* The outline the start asked for is a read spent in this sitting, and
        the card's cost line counts reads — measured, it said "read 0" under
        an answer that had just been paid for. A REFUSED outline keeps the

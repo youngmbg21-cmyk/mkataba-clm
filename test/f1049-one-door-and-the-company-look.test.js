@@ -166,3 +166,37 @@ test('f1049 (8) Our paper, the Legora way: one ask box, the streams on one line 
   assert.equal(m('distributor agreement sales', 'sl'), false);
   assert.equal(match({ ls: 'wh', lq: '' })('anything', 'pr'), false, 'a stream chip narrows to its stream');
 });
+
+test('f1049 (9) the four starts as picked: three the Legora way, From nothing the Shelf, their paper kept as theirs', () => {
+  /* owner's picks by name, 14 Nov 2026: Legora for From a template you have, From one of our contracts and The other
+     side's paper; the Shelf for From nothing, the sections kept on its paper before the Builder opens holding them */
+  const NS = read('js/views/newstandard.js'), W = read('js/wizard.js'), TB = read('js/views/templatebuilder.js');
+  assert.match(body(NS, 'nsOpenScratch'), /if \(nsLgOn\(\)\) return nsLgScratch\(o\);/);
+  assert.match(body(NS, 'nsOpenTemplate'), /if \(nsLgOn\(\)\) return nsLgTemplate\(o\);/);
+  assert.match(body(NS, 'nsOpenContract'), /if \(nsLgOn\(\)\) return nsLgContract\(\);/);
+  assert.match(NS, /const nsLgOn = \(\) => nsHostOn\(\) && typeof newLookOn === 'function' && !!newLookOn\(\);/, 'only in the tab, in the new look');
+  /* one act each, shared with the pop-up */
+  assert.match(body(NS, 'nsLgTemplate'), /nsTplMake\(tab, data\)/);
+  assert.match(body(NS, 'nsLgContract'), /nsCtrMake\(c\)/);
+  assert.match(body(NS, 'nsLgTemplate'), /nsLgChipsHtml\(counts, st\.ls, st\.more, builtins\.length\)/, 'the streams as chips, More for the rest');
+  assert.match(body(NS, 'nsLgRowHtml'), /data-nsl-go=/, 'the act sits in the chosen row');
+  /* the Shelf: named from the words, the same list the Builder would draw, the unticked named, added at once */
+  assert.match(body(NS, 'nsLgScratch'), /nsNameFromSentence\(st\.said\)/);
+  assert.match(body(NS, 'nsLgScratch'), /tbOutlineFrom\(d, st\.said\)\.sections/);
+  assert.match(body(NS, 'nsLgScratch'), /off, add: !!d, walk/);
+  assert.match(body(TB, 'tbStartWith'), /st\.off\.map\(h => String\(h \|\| ''\)\.trim\(\)\.toLowerCase\(\)\)/);
+  assert.match(TB, /_tb\.start\.kind === 'scratch' && _tb\.start\.add[\s\S]{0,160}tbOutlineAdd\(\{ walk: _tb\.start\.walk !== false \}\)/);
+  /* their paper: whose it is kept, read off their own words where written there, never guessed */
+  assert.match(body(NS, 'nsOpenTheirs'), /theirs: true, party: st\.party/);
+  const party = new Function(body(NS, 'nsTheirParty') + '; return nsTheirParty;')();
+  assert.equal(party('These Terms are made between Coldline Logistics Ltd and the Customer.'), 'Coldline Logistics Ltd');
+  assert.equal(party('These Terms apply to every Customer.'), '', 'nothing written, nothing guessed');
+  assert.match(body(W, 'naNewPaperGo'), /nsLgOn\(\)&&typeof nsOpenTheirs==='function'\) return nsOpenTheirs\(\);/);
+  /* their papers are not our paper: listed on Their paper with the company, chosen there, the company filled in */
+  assert.match(W, /const mineOf=\(\)=>allMine\(\)\.filter\(t=>!t\.theirs\);/);
+  assert.match(W, /const keptOf=\(\)=>allMine\(\)\.filter\(t=>t\.theirs\);/);
+  assert.match(W, /paper='kept'; pick\('mine', t\.id, t\.party\?\{ counterparty:t\.party \}:null\);/);
+  assert.match(body(NS, 'nsOpenTheirs'), /openNewAgreement\(\{ paper: 'kept', kept: id/, 'Draft on it now lands on Their paper with it chosen');
+  assert.match(CSS, /#na-root\.na-one\[data-paper="kept"\] #na-theirs\{display:block\}/);
+  for (const k of ['nsl_tpl_ph', 'nsl_ctr_go', 'nsl_new_note', 'nsl_cp_whose', 'nsl_cp_save', 'nsl_cp_draft', 'na_kept_cap']) assert.ok(EN[k] && SV[k] && EN[k] !== SV[k], k + ' in both books');
+});

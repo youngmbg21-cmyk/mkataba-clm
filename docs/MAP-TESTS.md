@@ -476,6 +476,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
 - f1049 (2b): each From scratch start drawn inside New agreement's tab, Back puts the starts back (14 Nov 2026).
+- f1049 (9): the four starts as picked (three the Legora way, From nothing the Shelf), their kept papers on Their paper (14 Nov 2026).
 - "the closest" on one line, the name shortened (22 Oct 2026): `tidy-sweep-verify.js` draft place (owner-length standard names seeded; red at e05849a at 1440 and 1366).
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
 - Every door opens beside Jambo (22 Oct 2026): draft-beside-jambo verify 1–3 (red at the parent), requests-and-notes-as-drawn 3d.

@@ -846,7 +846,10 @@ function naNewPaperGo(k){
   const host=document.getElementById('na-np');
   const back=()=>{ if(!(typeof nsHostBack==='function' && nsHostBack())) openNewAgreement({ newPaper:true }); };
   /* the other side's paper keeps the door that has always filed it, drawn in the tab too */
-  if(k==='cp'){ if(typeof nsHostSet==='function') nsHostSet(host); if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
+  if(k==='cp'){ if(typeof nsHostSet==='function') nsHostSet(host);
+    /* the new look draws it the Legora way (owner's pick, 14 Nov 2026); elsewhere the door that has always filed it */
+    if(typeof nsLgOn==='function'&&nsLgOn()&&typeof nsOpenTheirs==='function') return nsOpenTheirs();
+    if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
   openNewStandard({ start:k||'scratch', back, host });
 }
 function openNewAgreement(o){
@@ -857,7 +860,11 @@ function openNewAgreement(o){
   const tmpls=(typeof myCreatableTemplates==='function')?myCreatableTemplates():[];
   const mayEdit=(typeof canEdit!=='function')||canEdit();
   const libOf=()=>(mayEdit && typeof tplLibPublished==='function')?tplLibPublished():[];
-  const mineOf=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
+  /* THEIR PAPERS ARE NOT OUR PAPER (owner, 14 Nov 2026): a paper kept through "The other side's paper" (theirs) is
+     listed on Their paper with the company it belongs to, never among ours */
+  const allMine=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
+  const mineOf=()=>allMine().filter(t=>!t.theirs);
+  const keptOf=()=>allMine().filter(t=>t.theirs);
   if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   /* the page it was started on names the crumb, read before the form goes Home */
   const fromView=(typeof state==='object'&&state)?state.view:'';
@@ -896,7 +903,7 @@ function openNewAgreement(o){
   const one=!(typeof mPhone==='function'&&mPhone());
   const asked=String(o.asked||'').slice(0,(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000);
   /* OUR PAPER OR THEIRS, on the sheet's own two tabs (never a card or a menu before it) */
-  let paper=(o.paper==='theirs')?'theirs':'ours', theirFile=null;
+  let paper=(o.paper==='theirs'||o.paper==='kept')?'theirs':'ours', theirFile=null;
   /* what the free reader found in the words (draftWordsRead), each with the words it came from */
   const facts=(o.words&&Array.isArray(o.words.facts))?o.words.facts:[];
   /* The answers typed in this sitting, by the box's key — see pick. */
@@ -1026,7 +1033,18 @@ function openNewAgreement(o){
       <div class="na-kt" role="table"><div class="na-kt-h" role="row"><span role="columnheader">${esc(i18t('na_kt_term'))}</span><span role="columnheader">${esc(i18t('na_kt_says'))}</span><span role="columnheader">${esc(i18t('na_kt_where_words'))}</span></div>
       ${L.map(x=>`<div class="na-kt-r" role="row" data-na-rd="${esc(x.k)}"><span>${esc(x.t)}</span><span>${x.owed?`${esc(x.say)} <small class="na-new">${esc(i18t('na_words_new_party'))}</small>`:esc(x.say)}</span><span>${naQuoteHtml(x.quote)}</span></div>`).join('')}</div></section>`; };
   /* THEIR PAPER: the drop zone, read by the drop's own reader (pdDropTake → uploadFromDrop) at Create */
-  const naTheirsHtml=()=>`<section class="na-field na-theirs" id="na-theirs" hidden>
+  /* THEIR PAPERS YOU KEPT, above the drop: the company's mark, the paper, whose it is, its stream and when it was kept;
+     a press chooses it and the card below asks what any paper asks (paper 'kept') */
+  const naKeptRowsHtml=()=>keptOf().map(t=>{ const on=paper==='kept'&&sel&&String(sel.id)===String(t.id);
+    const tone=(typeof listStreamTone==='function'&&t.folder)?listStreamTone(t.folder):'gray';
+    const mk=(typeof nsLgInitials==='function')?nsLgInitials(t.party||t.name):String(t.party||t.name||'?').charAt(0);
+    const when=t.at?((typeof fmtDocDate==='function'&&fmtDocDate(String(t.at).slice(0,10)))||String(t.at).slice(0,10)):'';
+    return `<button type="button" class="na-kept-r${on?' is-on':''}" data-na-kept="${esc(t.id)}" aria-pressed="${on}"><i class="na-kept-mk" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)" aria-hidden="true">${esc(mk)}</i>
+      <span class="na-kept-t"><span class="na-kept-l1"><b>${esc(t.name)}</b>${t.party?`<span style="color:var(--st-${tone}-fg)">${esc(t.party)}</span>`:''}</span><span class="na-kept-l2">${esc([sName(t.folder), when?i18t('na_kept_when',{ when }):''].filter(Boolean).join(' · '))}</span></span>
+      <span class="na-kept-on">${on?esc(i18t('na_kept_on')):''}</span></button>`; }).join('');
+  const naKeptHtml=()=>keptOf().length?`<div class="na-kept" id="na-kept"><p class="na-kept-lead">${esc(i18t('na_kept_lead'))}</p><p class="na-kept-cap">${esc(i18t('na_kept_cap'))}</p>
+      <div class="na-kept-list" id="na-kept-list">${naKeptRowsHtml()}</div><button type="button" class="ui-link na-kept-new" data-na-kept-new>${esc(i18t('na_kept_new'))}</button></div>`:'';
+  const naTheirsHtml=()=>`<section class="na-field na-theirs" id="na-theirs" hidden>${naKeptHtml()}
       <div class="na-drop" id="na-drop" data-na-drop><span class="na-drop-ic" aria-hidden="true">${icon('import','w-5 h-5')}</span>
         <b>${esc(i18t('na_theirs_drop'))} <button type="button" class="ui-link" id="na-theirs-pick">${esc(i18t('na_theirs_choose'))}</button></b>
         <span class="na-hint">${esc(i18t('na_theirs_sub'))}</span><span class="na-theirs-file" id="na-theirs-file" hidden></span></div>
@@ -1230,8 +1248,8 @@ function openNewAgreement(o){
     let why=!api?i18t('na_pick_first'):i18t('na_stream_first');
     /* THEIR PAPER: Create needs their file and a stream (the drop's own two) */
     if(one&&paper==='theirs'){ on=!!theirFile&&!!streamPicked; why=!theirFile?i18t('na_theirs_need'):i18t('na_stream_first'); }
-    if(one){ root.setAttribute('data-paper',paper); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===paper)));
-      const th=document.getElementById('na-theirs'); if(th) th.hidden=paper!=='theirs'; }
+    if(one){ root.setAttribute('data-paper',paper); const tp=paper==='kept'?'theirs':paper; root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===tp)));
+      const th=document.getElementById('na-theirs'); if(th) th.hidden=tp!=='theirs'; }
     ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
       b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):why; });
     /* their paper is created as theirs, not drafted (as drawn: "Create") — never while the press turns */
@@ -1307,6 +1325,9 @@ function openNewAgreement(o){
     seg.innerHTML=opts.map(x=>`<button type="button" class="na-seg-b" data-na-stream="${esc(x.id)}" aria-pressed="${x.id===now}">${lock(x.id)}${esc(x.name)}</button>`).join('');
     const need=document.getElementById('na-file-need'); if(need) need.hidden=!!now;
   };
+  const naKeptPaint=()=>{ const l=document.getElementById('na-kept-list'); if(l) l.innerHTML=naKeptRowsHtml(); };
+  const naKeptPick=id=>{ const t=keptOf().find(x=>String(x.id)===String(id)); if(!t) return;
+    paper='kept'; pick('mine', t.id, t.party?{ counterparty:t.party }:null); naKeptPaint(); light(); };
   const pick=(kind,id,prefill)=>{
     const host=document.getElementById('na-form'); if(!host) return;
     /* WHAT WAS TYPED GOES WITH THE READER TO THE NEXT ROW (9 Oct 2026): the
@@ -1324,7 +1345,7 @@ function openNewAgreement(o){
     else if(kind==='lib'){ const t=libOf().find(x=>x.id===id); name=t?t.name:id; ver='v'+((t&&t.publishedVersion)||1);
       follow=Number(t&&t.questionCount)||0;
       api=(typeof tplLibNewContract==='function')?tplLibNewContract(id, prefill, hostOpts):null; }
-    else { const t=mineOf().find(x=>x.id===id); name=t?t.name:id; ver=t?verOf(t):'';
+    else { const t=allMine().find(x=>x.id===id); name=t?t.name:id; ver=t?verOf(t):'';
       api=(typeof createFromCustomTemplate==='function')?createFromCustomTemplate(id, prefill, hostOpts):null; }
     const nAll=api?api.count:0;
     dress(host);
@@ -1581,12 +1602,20 @@ function openNewAgreement(o){
       if(e.target.closest('[data-na-newpaper]')){ naNewPaperShow(root,true); return; }
       const b=e.target.closest('[data-na-paper]'); if(!b) return;
       naNewPaperShow(root,false);
-      paper=b.getAttribute('data-na-paper'); light(); naFilePaint(); if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
+      if(paper==='kept'){ sel=null; api=null; root.classList.remove('is-picked'); }
+      paper=b.getAttribute('data-na-paper'); naKeptPaint(); light(); naFilePaint(); if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
       if(paper==='theirs'){ const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
     /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
     /* delegated: Back from a start puts the four starts back, a fresh Continue with them */
     root.addEventListener('click',e=>{ if(!e.target.closest||!e.target.closest('#na-np-go')) return; const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
     if(o&&o.newPaper) naNewPaperShow(root,true);
+    /* THEIR PAPERS YOU KEPT: a press chooses one (the card asks what any paper asks, the company filled in from it);
+       "Or drop a new file from them" lets it go for the drop below */
+    root.addEventListener('click',e=>{
+      const k=e.target.closest&&e.target.closest('[data-na-kept]');
+      if(k){ naKeptPick(k.getAttribute('data-na-kept')); return; }
+      if(e.target.closest&&e.target.closest('[data-na-kept-new]')){ paper='theirs'; sel=null; api=null; root.classList.remove('is-picked'); naKeptPaint(); light();
+        const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
     /* Our paper's own words for the panel (the new look): the closest papers, the one chosen, the lines filled from the words */
     _naOurs={ up:()=>paper==='ours'&&naSheetUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
       read:()=>naReadRows().length, asked:()=>!!asked };
@@ -1650,7 +1679,9 @@ function openNewAgreement(o){
      reverses "the first door is lit on arrival"): the card waits, and Create
      draft with it, unless the caller named a template. */
   const want=o.pick&&rows().find(r=>r.kind===o.pick.kind&&String(r.id)===String(o.pick.id));
-  if(want) pick(want.kind, want.id, o.prefill); else light();
+  if(want) pick(want.kind, want.id, o.prefill);
+  else if(one&&o.paper==='kept'&&o.kept&&keptOf().some(t=>String(t.id)===String(o.kept))) naKeptPick(o.kept);
+  else light();
   if(one&&o.file&&typeof root._naTheirSet==='function') root._naTheirSet(o.file);
   if(one) naFilePaint();
   naSayFit(say);
