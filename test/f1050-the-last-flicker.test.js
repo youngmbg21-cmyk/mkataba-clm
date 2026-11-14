@@ -1,5 +1,5 @@
 'use strict';
-/* f1049 — THE LAST FLICKER (owner, 14 Nov 2026: "create a plan to autonomously build all the remaining fixes", then
+/* f1050 — THE LAST FLICKER (owner, 14 Nov 2026: "create a plan to autonomously build all the remaining fixes", then
    "go"; docs/WORKORDER-the-last-flicker.md). Source-sliced: each part pins the region that carries the rule. */
 const { test } = require('node:test');
 const assert = require('node:assert');
@@ -10,7 +10,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '
 const read = f => strip(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
 const region = (src, start, len = 2000) => { const i = src.indexOf(start); assert.ok(i >= 0, 'missing: ' + start); return src.slice(i, i + len); };
 
-test('f1049 (1) a chase row unticked stays unticked when the panel is drawn again', () => {
+test('f1050 (1) a chase row unticked stays unticked when the panel is drawn again', () => {
   const hb = read('js/views/homeboard.js');
   const build = region(hb, 'function hbChaseManyHtml', 1600);
   assert.match(build, /_hbChaseOff\.has\(it\.key\) \? '' : ' checked'/, 'the builder draws a row unticked when the reader unticked it');
@@ -21,14 +21,14 @@ test('f1049 (1) a chase row unticked stays unticked when the panel is drawn agai
     'the untick is kept at the press itself, before any redraw can come');
 });
 
-test('f1049 (2) the Board check waits for Jambo to be free and for this question\'s own turn', () => {
+test('f1050 (2) the Board check waits for Jambo to be free and for this question\'s own turn', () => {
   const v = read('test/chromium/board-says-it-plain-verify.js');
   const ask = region(v, 'const ask = async (q, opts) => {', 1400);
   assert.match(ask, /await until\(page, \(\) => !\(window\.intel && intel\.busy\), null, 15000\);/);
   assert.match(ask, /m\.role === 'user' && m\.text === q/);
 });
 
-test('f1049 (3) the rebuild measure counts opening a contract as a move, and follows the list that was scrolled', () => {
+test('f1050 (3) the rebuild measure counts opening a contract as a move, and follows the list that was scrolled', () => {
   const m = read('test/chromium/_audit/rebuild-measure.js');
   assert.match(m, /a\.paper !== b\.paper \|\| a\.place !== b\.place/);
   assert.match(m, /const kept = sc\.el && sc\.el\.isConnected \? sc\.el : null;/);
@@ -36,7 +36,7 @@ test('f1049 (3) the rebuild measure counts opening a contract as a move, and fol
   assert.match(m, /if \(j\.waste\) T\.waste\+\+;/, 'a redraw for nothing is counted apart');
 });
 
-test('f1049 (4) the same page drawn again keeps its side panel, and writes only what changed in it', () => {
+test('f1050 (4) the same page drawn again keeps its side panel, and writes only what changed in it', () => {
   const ins = read('js/views/inspector.js');
   const paint = region(ins, 'function insPaintPanel', 2600);
   assert.match(paint, /was\._insSeat === opt\.seat/, 'only the SAME page takes its panel back');
@@ -46,7 +46,7 @@ test('f1049 (4) the same page drawn again keeps its side panel, and writes only 
   assert.match(ik, /if\(b\._ikBound\) return; b\._ikBound=1;/, 'Requests binds its panel buttons once, so a kept panel never fires twice');
 });
 
-test('f1049 (5) the Calendar\'s Mine | All keeps the reader where they were', () => {
+test('f1050 (5) the Calendar\'s Mine | All keeps the reader where they were', () => {
   const cal = read('js/views/calendar.js');
   assert.match(region(cal, 'function calSetScope', 400), /keepScrollIn\(host, \(\)=>renderCalendar\(\{ keepPanel:true \}\)\)/);
 });
