@@ -4473,10 +4473,11 @@ function wireShell(){
      button are the same act; delegated on a marker rather than bound to each,
      so a third door added later needs no third listener. */
   document.addEventListener('click',e=>{
-    /* THE BAR'S ✦ OPENS JAMBO'S CHAT WINDOW, on any page, beside a page's own
-       Jambo too (owner, 21 Oct 2026, "The old chat window"; ai.js aiWinToggle);
-       pressed again it closes */
-    if(e.target.closest?.('#cmd-ai')){ aiWinToggle(); return; }
+    /* THE BAR'S ✦ OPENS JAMBO ALREADY POPPED OUT, on any page (owner, 14 Nov
+       2026; ai.js aiStarPress): the window that stays on top of other apps
+       where the browser has one, else the window in the page (aiWinToggle,
+       "The old chat window", 21 Oct 2026); pressed again it closes */
+    if(e.target.closest?.('#cmd-ai')){ aiStarPress(); return; }
     if(e.target.closest?.('[data-copilot-proxy]')) openAI();
   });
   /* THE WORKSPACE-STATUS FOOT FOLDS (owner-asked 20 Aug 2026): the handle

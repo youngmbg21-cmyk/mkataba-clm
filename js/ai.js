@@ -834,7 +834,7 @@ function aiSideSync(){
   aiSideFit();
   const shown = aiSideShown();
   if(shown !== _aiSideWas){ _aiSideWas = shown; setTimeout(aiSideReflow, 0); }
-  const star = document.getElementById('cmd-ai'); if(star && star.setAttribute) star.setAttribute('aria-expanded', String(!!(win && ai.open)));
+  const star = document.getElementById('cmd-ai'); if(star && star.setAttribute) star.setAttribute('aria-expanded', String(!!((win && ai.open) || aiPopped())));
   /* POP OUT is drawn only where it can be done: a computer with a mouse */
   const pop = document.getElementById('ai-popout');
   if(pop) pop.hidden = !aiPopMay();
@@ -1020,6 +1020,24 @@ function aiWinToggle(){
   openAI(null, { win: true });
   return true;
 }
+/* THE ✦ OPENS JAMBO ALREADY POPPED OUT (owner, 14 Nov 2026: "when you press
+   the jambo button it is already in pop out mode other wise it is double
+   pressing"). Where the browser can keep a window on top (Chrome, Edge: Document
+   Picture-in-Picture) on a computer with a mouse, the ONE press asks for that
+   window; pressed again it closes, and closing it opens nothing in HaTi (the
+   press found nothing open, so it leaves nothing open). "Put back" still
+   brings the conversation into HaTi. Everywhere else (a browser with no such
+   window, an iPad, the phone, the browser saying no) the press is the window
+   in the page, as before (aiWinToggle). */
+function aiStarPress(){
+  if(aiPopped() && _aiPop.pip){ aiPopBack(false, true); return false; }
+  const dpip = typeof window!=='undefined' ? window.documentPictureInPicture : null;
+  const can = !!(dpip && typeof dpip.requestWindow==='function') && aiPopMay();
+  /* the window in the page, open: the same press closes it */
+  if(!can || aiPopped() || (ai.open && ai.win)) return aiWinToggle();
+  aiPopOut({ star: true }).then(ok => { if(!ok && !aiPopped()) aiWinToggle(); }, () => { if(!aiPopped()) aiWinToggle(); });
+  return true;
+}
 /* the conversation is said in Jambo's own window (popped out, or the ✦'s
    window open): the other hosts' talk views point there */
 function aiConvoInWindow(){ return !!(aiPopped() || (ai.open && aiFloatOn())); }
@@ -1107,7 +1125,8 @@ function aiPopForward(e){
   }catch(_){}
   try{ window.focus(); }catch(_){}
 }
-async function aiPopOut(){
+async function aiPopOut(opts){
+  const star = !!(opts && opts.star);
   if(aiPopped()){ try{ _aiPop.win.focus(); }catch(_){} return true; }
   const feed = document.getElementById('ai-feed'), sug = document.getElementById('ai-suggest');
   const foot = document.querySelector('#ai-panel > footer');
@@ -1118,6 +1137,8 @@ async function aiPopOut(){
   if(dpip && typeof dpip.requestWindow==='function'){
     try{ win = await dpip.requestWindow({ width: W, height: H }); pip = true; }catch(_){ win = null; }
   }
+  /* the ✦'s press (aiStarPress) takes only the window that stays on top: refused, it opens the window in the page */
+  if(!win && star) return false;
   if(!win){
     try{ win = window.open('', 'hati-jambo', `popup=yes,width=${W},height=${H}`); }catch(_){ win = null; }
     if(!win){ toast(i18t('ai_pop_blocked'), 'warn'); return false; }
@@ -1135,13 +1156,15 @@ async function aiPopOut(){
   doc.body.appendChild(shell);
   const home = [];
   [feed, sug, foot].forEach(n => { if(!n) return; home.push([n, n.parentNode, n.nextSibling]); shell.appendChild(doc.adoptNode(n)); });
-  _aiPop = { win, pip, home };
+  _aiPop = { win, pip, home, star };
   shell.querySelector('[data-ai-popback]').addEventListener('click', () => aiPopBack());
   doc.addEventListener('click', aiPopForward);
-  win.addEventListener('pagehide', () => aiPopBack(true));
+  /* the ✦'s own window, closed, opens nothing in HaTi */
+  win.addEventListener('pagehide', () => aiPopBack(true, star));
   if(!pip) _aiPop.poll = setInterval(() => { if(!_aiPop || !_aiPop.win || _aiPop.win.closed) aiPopBack(true); }, 800);
   /* the side panel stands down: Jambo is out in his own window */
   if(ai.open) closeAI();
+  aiSideSync();
   renderAIFeed(); renderAISuggest();
   /* THE PANELS THAT SHOWED HIS WORDS SAY WHERE THEY WENT (BUGLOG 21343): the panel beside a list, Home's dock and
      Settings' talk were left blank when the feed moved out; they are drawn again, as the window's own toggle does */
@@ -1150,7 +1173,7 @@ async function aiPopOut(){
   return true;
 }
 /* closing the other window (or "Put back") puts Jambo back in the panel */
-function aiPopBack(closed){
+function aiPopBack(closed, quiet){
   const p = _aiPop; if(!p) return;
   _aiPop = null;
   if(p.poll) clearInterval(p.poll);
@@ -1158,7 +1181,7 @@ function aiPopBack(closed){
     try{ const m = document.adoptNode(n); if(next && next.parentNode === parent) parent.insertBefore(m, next); else parent.appendChild(m); }catch(_){}
   });
   if(!closed){ try{ p.win.close(); }catch(_){} }
-  try{ openAI(); }catch(_){}
+  try{ if(quiet){ renderAIFeed(); renderAISuggest(); aiSideSync(); } else openAI(); }catch(_){}
   aiHostsRepaint();
 }
 
@@ -6245,7 +6268,7 @@ async function aiFillSaid(c, said, blanks){
 }
 Object.assign(window,{ aiFillSaid });
 Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiSendNoteFrom,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiStarPress,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,

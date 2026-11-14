@@ -70,6 +70,8 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
   try {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 780 } });
     const page = await ctx.newPage();
+    /* THE WINDOW IN THE PAGE IS WHAT THIS FILE PRESSES THE ✦ FOR (14 Nov 2026): where the browser keeps a window on top the ✦ opens Jambo popped out (ai.js aiStarPress, f1049), so this page is a browser without one, as Safari and Firefox are */
+    await page.addInitScript(() => { try { Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true, value: undefined }); } catch (_) {} });
     page.on('pageerror', e => errors.push(e.message));
     const ai = []; page.on('request', r => { if (/\/api\/ai\//.test(r.url())) ai.push(r.url().replace(/^.*\/api\//, '')); });
     const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
@@ -292,6 +294,27 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     const back2 = await until(() => !aiPopped() && document.getElementById('ai-feed') ? true : null, null, 5000);
     check('9f closing that window puts Jambo back', !!back2);
     await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
+    /* ===== 9h–9j · THE ✦ OPENS HIM ALREADY POPPED OUT (owner, 14 Nov 2026; f1049) ===== */
+    await page.evaluate(() => { window.__pipAsked = 0; Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true,
+      value: { requestWindow: async () => { window.__pipAsked++; return window.open('', 'pip-stub', 'width=420,height=640'); } } }); });
+    const starP = ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null);
+    await press('#cmd-ai');
+    const starWin = await starP;
+    const SP = await until(() => { if (!window.aiPopped || !aiPopped()) return null; const p = document.getElementById('ai-panel');
+      return { asked: window.__pipAsked, mainInput: !!document.getElementById('ai-input'), panelOpen: p.classList.contains('open'), floating: p.classList.contains('floating'),
+        lit: document.getElementById('cmd-ai').getAttribute('aria-expanded'), warned: [...document.querySelectorAll('#toast-root [data-toast-kind="warn"]')].length }; }, null, 5000);
+    check('9h ONE press on the ✦ and Jambo is in his own window on top: asked once, nothing opened in the page, no warning',
+      !!starWin && !!SP && SP.asked === 1 && !SP.mainInput && !SP.panelOpen && !SP.floating && SP.lit === 'true' && !SP.warned, JSON.stringify(SP));
+    if (starWin) {
+      const inStar = await starWin.evaluate(() => ({ feed: !!document.getElementById('ai-feed'), input: !!document.getElementById('ai-input'), back: !!document.querySelector('[data-ai-popback]') })).catch(e => ({ err: String(e) }));
+      check('9i that window carries the conversation, the box and Put back', !!inStar && inStar.feed && inStar.input && inStar.back, JSON.stringify(inStar));
+      await starWin.screenshot({ path: path.join(OUT, '9h-star-popped-out.png') }).catch(() => {});
+    } else check('9i (setup) the ✦\'s window opened', false);
+    await press('#cmd-ai');
+    const SQ = await until(() => (window.aiPopped && aiPopped()) ? null : { input: !!document.getElementById('ai-input'), panelOpen: document.getElementById('ai-panel').classList.contains('open'),
+      lit: document.getElementById('cmd-ai').getAttribute('aria-expanded') }, null, 5000);
+    check('9j the ✦ pressed again closes it: the box is home, and nothing opened in HaTi', !!SQ && SQ.input && !SQ.panelOpen && SQ.lit === 'false' && (!starWin || starWin.isClosed()), JSON.stringify(SQ));
+    await page.evaluate(() => { Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true, value: undefined }); if (typeof closeAI === 'function') closeAI(); });
     const touch = await browser.newContext({ viewport: { width: 1366, height: 950 }, hasTouch: true, isMobile: false });
     const tp = await touch.newPage();
     await tp.goto(h.base + '/', { waitUntil: 'networkidle' });
