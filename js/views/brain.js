@@ -26,6 +26,9 @@ const BRAIN_NEW_DAYS = 7;          // a part born in the code keeps its gold rin
 const BRAIN_PENDING_MAX = 12;      // new parts drawn at once; the rest are counted in the update
 const BRAIN_STEP_S = 3.2, BRAIN_PULSE_S = .85;
 const BRAIN_ZMIN = .6, BRAIN_ZMAX = 4;
+/* the Wiring view: parts spread at an even spacing (STEP) until an area would
+   reach DISC past its first part; a bigger area packs closer, never further out */
+const BRAIN_WIRE_STEP = 24, BRAIN_WIRE_DISC = 270;
 const BRAIN_LAY_Y = [168, 56, -56, -168];
 const BRAIN_VIEWS = ['brain', 'wiring', 'floors'];
 const BRAIN_TILT = [.2, .16, .46], BRAIN_SCALE = [1.38, .92, .72], BRAIN_CY = [.47, .47, .41];
@@ -139,9 +142,20 @@ function brBuild(pending){
 
   const WR = brRng(23), C = {}, N = BRAIN_REGIONS.length;
   BRAIN_REGIONS.forEach((r, i) => { const y = 1 - (i + .5) / N * 2, rr = Math.sqrt(1 - y * y), th = i * 2.399963; C[r] = [Math.cos(th) * rr * 215, y * .85 * 190, Math.sin(th) * rr * 215]; });
-  const cnt = {};
+  /* EACH AREA IS A DISC OF FIXED SIZE, HOWEVER MANY PARTS IT HOLDS
+     (owner-reported 14 Nov 2026: "whenever i go to wiring page, the whole
+     platform breaks", then "still freezing"). The spiral grew 12 units with
+     every part, so with 119 parts in one area its outer ring stood 1,450 units
+     out while the camera stands at 820: parts fell behind the camera, their
+     links were drawn to points 1.8 million pixels away, and every frame took
+     three times as long (50 ms on a sharp screen, measured). Now the parts
+     spiral at the square root of their place (the sunflower's even packing),
+     at today's spacing while an area fits its disc, closer once it would not:
+     a new part never pushes an area past the disc. */
+  const cnt = {}, tot = {};
+  hubs.forEach(h => { tot[h.reg] = (tot[h.reg] || 0) + 1; });
   hubs.forEach(h => {
-    const c = C[h.reg] || C.see; cnt[h.reg] = (cnt[h.reg] || 0) + 1; const k = cnt[h.reg], a = k * 2.4 + h.idx, rad = 26 + k * 12;
+    const c = C[h.reg] || C.see; cnt[h.reg] = (cnt[h.reg] || 0) + 1; const k = cnt[h.reg], a = k * 2.4 + h.idx, rad = 26 + Math.min(BRAIN_WIRE_STEP, BRAIN_WIRE_DISC / Math.sqrt(Math.max(1, tot[h.reg] - 1))) * Math.sqrt(k - 1);
     h.W = [c[0] + Math.cos(a) * rad, c[1] + ((k % 3) - 1) * 30 + brGauss(WR) * 8, c[2] + Math.sin(a) * rad];
   });
   const COL = { in: -205, read: -150, see: -95, ai: -40, nego: 10, sign: 60, time: 110, wall: 160, out: 205 }, lc = {};
@@ -309,9 +323,15 @@ function brCtrl(A, B){
   return { x: ca[0] * w[0] + cw[0] * w[1] + cl[0] * w[2], y: ca[1] * w[0] + cw[1] * w[1] + cl[1] * w[2], z: ca[2] * w[0] + cw[2] * w[1] + cl[2] * w[2] };
 }
 function brBez(a, c, b, u){ const v = 1 - u; return { x: v * v * a.x + 2 * v * u * c.x + u * u * b.x, y: v * v * a.y + 2 * v * u * c.y + u * u * b.y, z: v * v * a.z + 2 * v * u * c.z + u * u * b.z }; }
+/* A point at or behind the camera (f ≤ 0, or so near it that f runs away)
+   is never drawn to: a line to it is millions of pixels long and stalls the
+   frame. Such a curve is left out whole rather than drawn wrong. */
+const BRAIN_F_MAX = 8;
 function brCurve(A, C, B){
-  const ctx = _br.ctx; ctx.beginPath(); const a = brPj(A.x, A.y, A.z); ctx.moveTo(a[0], a[1]);
-  for (let k = 1; k <= 16; k++){ const pt = brBez(A, C, B, k / 16), q = brPj(pt.x, pt.y, pt.z); ctx.lineTo(q[0], q[1]); }
+  const ctx = _br.ctx, pts = [];
+  for (let k = 0; k <= 16; k++){ const pt = k ? brBez(A, C, B, k / 16) : A, q = brPj(pt.x, pt.y, pt.z); if (!(q[2] > 0 && q[2] < BRAIN_F_MAX)) return; pts.push(q); }
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
   ctx.stroke();
 }
 function brDraw(){

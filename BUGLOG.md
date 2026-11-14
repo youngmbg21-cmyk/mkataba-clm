@@ -22487,3 +22487,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Opening the Brain made the server read all its own code in its own process and keep it: about 100 MB more, for good (measured 100 → 199 MB). On Render's 512 MB plan that can stop the server; restarted, the next visit did it again. The Wiring view was never the cause: it asks the server nothing.
 - Fixed: a worker reads the code and ends; the server keeps only the answer (100 → 129 MB). f1050 (red at the parent: 97 MB left).
 - Not proven: Render's "Ran out of memory" event was not readable from the session. Not removed: the half-second peak during the read (187 MB, was 208).
+
+## 14 Nov 2026 — The Wiring view froze the page (owner: "still freezing", after the server fix f1050)
+- The Wiring layout's spiral grew with every part; the biggest areas reached ~1,450 units out against a camera at 820, so links were drawn to points 1.8 million pixels away and a frame took 50 ms instead of 16.7 (sharp screen, measured). Fixed: each area stops at a fixed disc; a curve with a point behind the camera is not drawn. f1051.
+- Noticed, not fixed · 14 Nov 2026 · Brain, Wiring view: part names overlap each other in the busy areas (before and after this change; every part's name is drawn).
+- Noticed, not fixed · 14 Nov 2026 · choose-the-road-verify step 6 read "Change" instead of the chosen option on pull request 726 (Brain-only change); it reads the Send screen's choice as soon as "WHAT THEY CAN DO" shows, before the step line's words are filled in. Passed on main's code an hour earlier.
