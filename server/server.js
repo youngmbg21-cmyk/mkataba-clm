@@ -7547,8 +7547,9 @@ const aiNotice = (req, out) => {
    update it should update brain automatically") ----
    The Brain page's parts, links and "recent code updates" are READ from these
    files, never drawn by hand. The reading is made on the FIRST request after
-   the server starts — which is every deploy, so every code update — and kept
-   for the life of the process (it takes under a second over js/ and server/).
+   the server starts — which is every deploy, so every code update — and its
+   ANSWER is kept for the life of the process, never the files' text (it takes
+   under a second over js/ and server/; see brainReadBeside).
    Each reading is fingerprinted (brainKey); where the fingerprint moved since
    the last one kept, the difference (brainDiff) is stored as a code update in
    the `store` table, newest first, BRAIN_KEEP of them. The first reading on a
@@ -7578,25 +7579,81 @@ function brainCodeFiles(){
   walk('js'); walk('server');
   return out;
 }
-function brainNow(){
-  if (_brainNow) return _brainNow;
-  const map = BRAIN.brainRead(brainCodeFiles());
-  const key = BRAIN.brainKey(map);
-  let builds = getStore('brain.builds') || [];
-  if (!builds.length || builds[0].key !== key){
-    const last = getStore('brain.lastMap');
-    const diff = BRAIN.brainDiff(last && last.map ? last.map : null, map);
-    const git = brainGitInfo();
-    builds = [{
-      key, at: new Date().toISOString(),
-      commit: git ? git.commit : '', subject: git ? git.subject : '', committedAt: git ? git.committedAt : '',
-      parts: Object.values(map.parts).filter(p => p.found).length, edges: map.edges.length, published: map.published.length, diff
-    }, ...builds].slice(0, BRAIN_KEEP);
-    setStore('brain.builds', builds);
-    setStore('brain.lastMap', { key, map: { parts: map.parts, edges: map.edges, published: map.published } });
+/* THE READING IS MADE BESIDE THE SERVER, AND NOTHING OF IT IS KEPT BUT THE
+   ANSWER (owner-reported 14 Nov 2026: opening the Brain "breaks the whole
+   platform", then Render's 502). Read on the server's own thread, the code's
+   text (every file, ~100 MB at the peak) stayed in the process for good: the
+   kept map's short names were cut from the files, and a cut name holds its
+   whole file. On a 512 MB host that is the difference between running and
+   being stopped. So a worker reads the code, hands back the map as TEXT
+   (nothing in it can point into a file), and ends — its memory goes with it,
+   and no other request waits on the read. If a worker cannot start, the old
+   in-process read still answers, copied clean the same way. */
+const BRAIN_READ_WORKER = `
+const { parentPort, workerData } = require('worker_threads');
+const fs = require('fs'), path = require('path');
+const B = require(path.join(workerData.root, 'js/brainmap.js'));
+const out = {}; let lines = 0;
+const walk = rel => {
+  for (const e of fs.readdirSync(path.join(workerData.root, rel), { withFileTypes: true })){
+    const r = rel + '/' + e.name;
+    if (e.isDirectory()) walk(r);
+    else if (e.name.endsWith('.js')){ const t = fs.readFileSync(path.join(workerData.root, r), 'utf8'); out[r] = t; lines += t.split('\\n').length; }
   }
-  _brainNow = { map, builds };
-  return _brainNow;
+};
+walk('js'); walk('server');
+parentPort.postMessage(JSON.stringify({ map: B.brainRead(out), lines }));
+`;
+function brainReadBeside(){
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const end = (e, v) => { if (done) return; done = true; if (e) reject(e); else resolve(v); };
+    let w;
+    try { w = new (require('worker_threads').Worker)(BRAIN_READ_WORKER, { eval: true, workerData: { root: path.join(__dirname, '..') },
+      /* a small nursery: the read's throwaway strings are cleared as it goes (peak ~25 MB lower, measured) */
+      resourceLimits: { maxYoungGenerationSizeMb: 8 } }); }
+    catch (e) { return end(e); }
+    w.once('message', m => { try { end(null, JSON.parse(m)); } catch (e) { end(e); } });
+    w.once('error', e => end(e));
+    w.once('exit', code => end(new Error('the reader ended without an answer (' + code + ')')));
+  });
+}
+async function brainReadClean(){
+  try { return await brainReadBeside(); }
+  catch (e) {
+    console.error('[brain] the reader beside the server failed; reading here instead:', e && e.message);
+    const files = brainCodeFiles();
+    let lines = 0; for (const f in files) lines += files[f].split('\n').length;
+    return JSON.parse(JSON.stringify({ map: BRAIN.brainRead(files), lines }));
+  }
+}
+let _brainReading = null;
+function brainNow(){
+  if (_brainNow) return Promise.resolve(_brainNow);
+  if (_brainReading) return _brainReading;   // two people opening the Brain at once share one read
+  _brainReading = (async () => {
+    const { map, lines } = await brainReadClean();
+    const key = BRAIN.brainKey(map);
+    let builds = getStore('brain.builds') || [];
+    if (!builds.length || builds[0].key !== key){
+      const last = getStore('brain.lastMap');
+      const diff = BRAIN.brainDiff(last && last.map ? last.map : null, map);
+      const git = brainGitInfo();
+      builds = [{
+        key, at: new Date().toISOString(),
+        commit: git ? git.commit : '', subject: git ? git.subject : '', committedAt: git ? git.committedAt : '',
+        parts: Object.values(map.parts).filter(p => p.found).length, edges: map.edges.length, published: map.published.length, diff
+      }, ...builds].slice(0, BRAIN_KEEP);
+      setStore('brain.builds', builds);
+      setStore('brain.lastMap', { key, map: { parts: map.parts, edges: map.edges, published: map.published } });
+    }
+    /* kept for the life of the process: only what the page is sent — the
+       8,000-odd published names are counted, stored above, and let go */
+    _brainNow = { map: { parts: map.parts, edges: map.edges, flowGaps: map.flowGaps, published: map.published.length }, builds, lines };
+    return _brainNow;
+  })();
+  _brainReading.then(() => { _brainReading = null; }, () => { _brainReading = null; });
+  return _brainReading;
 }
 /* ---- THE STACK, READ FROM THE CODE (the Brain's fifth view, owner-approved
    10 Oct 2026, work order "The Brain's fifth view: Stack") ----
@@ -7607,7 +7664,7 @@ function brainNow(){
    answers null and the page says "not found on this server": nothing is
    guessed. NO SECRET IS READ OUT: of the keys, only whether one is set. */
 let _brainStack = null;
-function brainStackRead(){
+function brainStackRead(codeLines){
   if (_brainStack) return _brainStack;
   const root = path.join(__dirname, '..');
   const txt = rel => { try { return fs.readFileSync(path.join(root, rel), 'utf8'); } catch (_) { return null; } };
@@ -7619,10 +7676,9 @@ function brainStackRead(){
   let pkg = null; try { pkg = JSON.parse(txt('package.json') || 'null'); } catch (_) { pkg = null; }
   const ry = txt('render.yaml');
   const yv = k => { const m = ry && ry.match(new RegExp('^\\s*' + k + ':\\s*([^\\s#]+)', 'm')); return m ? m[1].replace(/^["']|["']$/g, '') : null; };
-  let lines = 0;
-  const walk = rel => { let es = []; try { es = fs.readdirSync(path.join(root, rel), { withFileTypes: true }); } catch (_) { return; }
-    for (const e of es){ const r = rel + '/' + e.name; if (e.isDirectory()) walk(r); else if (e.name.endsWith('.js')) lines += lineCount(r); } };
-  walk('server'); walk('js'); lines += lineCount('index.html');
+  /* the .js lines were counted by the brain's reader while it had the files
+     open (brainNow); they are not read a second time here */
+  const lines = (codeLines || 0) + lineCount('index.html');
   const i18 = txt('js/i18n.js') || '';
   const langBlock = (i18.match(/const LANGUAGES = \[([\s\S]*?)\];/) || [])[1] || '';
   _brainStack = {
@@ -7640,12 +7696,12 @@ function brainStackRead(){
   };
   return _brainStack;
 }
-app.get('/api/brain', auth, (req, res) => {
+app.get('/api/brain', auth, async (req, res) => {
   try {
-    const { map, builds } = brainNow();
+    const { map, builds, lines } = await brainNow();
     let stack = null;
-    try { stack = { ...brainStackRead(), keys: { mail: !!mailKey(), ai: !!aiKey() } }; } catch (e) { console.error('[brain] reading the stack failed:', e && e.message); }
-    res.json({ parts: map.parts, edges: map.edges, published: map.published.length, flowGaps: map.flowGaps, builds, stack });
+    try { stack = { ...brainStackRead(lines), keys: { mail: !!mailKey(), ai: !!aiKey() } }; } catch (e) { console.error('[brain] reading the stack failed:', e && e.message); }
+    res.json({ parts: map.parts, edges: map.edges, published: map.published, flowGaps: map.flowGaps, builds, stack });
   } catch (e) {
     console.error('[brain] reading the code failed:', e && e.message);
     res.status(500).json({ error: 'HaTi could not read its own code just now.' });

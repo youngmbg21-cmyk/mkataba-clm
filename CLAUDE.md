@@ -373,7 +373,7 @@ PAST THE MARK THE PANEL SLIDES OVER: the page narrows to `SPLIT_OVER_AT` 880 (or
 ## OTHER PAGES AND SERVICES
 - APPROVALS decide through `approvalDecidableNow`/`approvalDecideAsk`. NOTICE DESK `noticeDraft`; MAILROOM files, does not read; every document has a person (`mailroomOwnerFor`, `intakeLaneOwner`; bell `mailroom`); MEMO `negoMemo` (no model).
 - COPILOT'S WORK (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
-- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000).
+- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `brLanesHtml`, `brStackPaint`; each file indexed ONCE (`brainDefIndex`, f1000), read by a WORKER that ends, only the answer kept (`brainReadBeside`, `brainNow`; f1050).
 ## THE OVERNIGHT RUN
 SEAL ON THE SERVER (`srvSealNow`, `srvSendExecutedCopies`); late seals `runSealCatchUp`.
 ## PERFORMANCE — THE BOOK IS WALKED ONCE

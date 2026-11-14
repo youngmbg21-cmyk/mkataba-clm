@@ -22479,3 +22479,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 
 ### 14 Nov 2026 — THE MEASURE AFTER ROUNDS 1–3 (rebuild-measure run 43574639484, main as merged by pull request 718)
 - 1,016 presses: 64 lost something (first run 196 counting a box put away with its panel; third run 84), 216 rebuilt a part (first run 204), 173 flashed (first run 168). Losses left: Handbook 25 (scroll place, on Jambo's panel controls and the "Take … off Recent" crosses), Our paper 17, Calendar 9, Contracts 7, Clauses 2, Jambo's house 2, Dossier 1, Explorer 1; zero on the other fourteen pages. Rebuilds left, most: Dossier 21, Our paper 18, Contracts 17, Redlines 16, Explorer 16, Handbook 15. Not fixed: reported to the owner.
+
+## 14 Nov 2026 — The Brain page took the server down (owner-reported: "the whole platform breaks", then Render's 502)
+- Opening the Brain made the server read all its own code in its own process and keep it: about 100 MB more, for good (measured 100 → 199 MB). On Render's 512 MB plan that can stop the server; restarted, the next visit did it again. The Wiring view was never the cause: it asks the server nothing.
+- Fixed: a worker reads the code and ends; the server keeps only the answer (100 → 129 MB). f1050 (red at the parent: 97 MB left).
+- Not proven: Render's "Ran out of memory" event was not readable from the session. Not removed: the half-second peak during the read (187 MB, was 208).
