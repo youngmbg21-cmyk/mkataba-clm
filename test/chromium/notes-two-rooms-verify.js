@@ -516,14 +516,14 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         document.querySelector('#context-panel').classList.contains('open'))) === true);
     /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): the bar has ONE panel button, so it is the panel's own
        door: pressed while Chat is up it CLOSES the drawer (PRESS IT AGAIN AND IT CLOSES); the panel's tabs move
-       between faces. Pressed again it opens on Alerts, where something waits. */
+       between faces. Pressed again it opens on the Guide (owner, 14 Nov 2026). */
     await page.click('#hdr-notify');
     await page.waitForTimeout(500);
     check('pressing the panel button over Chat closes the drawer: one door, the tabs swap faces',
       (await page.evaluate(() => !document.querySelector('#context-panel').classList.contains('open'))) === true);
-    check('pressed again it opens the panel on Alerts, where something waits',
+    check('pressed again it opens the panel on the Guide',
       (await (async () => { await page.click('#hdr-notify'); await page.waitForTimeout(500);
-        return page.evaluate(() => document.querySelector('#context-panel').classList.contains('open') && panelFace() === 'alerts'); })()) === true);
+        return page.evaluate(() => document.querySelector('#context-panel').classList.contains('open') && panelFace() === 'guide'); })()) === true);
     await page.evaluate(() => closeContextPanel()); await page.waitForTimeout(300);
     /* Back to Chat for the rest of the section. */
     await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));

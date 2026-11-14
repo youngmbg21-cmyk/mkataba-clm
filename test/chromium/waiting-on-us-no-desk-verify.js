@@ -101,7 +101,7 @@ async function login(browser, email, pass, errors) {
       home.row && home.ready.includes('MK-A2'), JSON.stringify(home).slice(0, 200));
     check('2b and the row never says "led by" with no name after it',
       home.row && !/led by\s*(·|$)/.test(home.text), home.text.slice(0, 200) || 'no row');
-    await O.page.click('#hdr-notify');
+    await O.page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await O.page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await O.page.waitForTimeout(700);
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the bell's panel draws the one desk's own
        rows, so it says what the Board says — Jambo's answer to their round, one row (the quiet desk
@@ -141,7 +141,7 @@ async function login(browser, email, pass, errors) {
        work, which is the team's shared list (the agents page shows it to every
        colleague who can open the deal), so the PERSONAL claim moves to the
        bell — the one per-person list that says "has been waiting on us". */
-    await R.page.click('#hdr-notify');
+    await R.page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await R.page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     await R.page.waitForTimeout(700);
     const other = await R.page.evaluate(() => ({
       signedIn: !!(window.currentUser && currentUser()),

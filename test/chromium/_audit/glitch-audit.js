@@ -221,7 +221,7 @@ function doors(scr){
   D.push(['Bar: HaTi mark from Approvals', async p => { await home(p); await p.evaluate(() => setView('approvals')); await pause(600); }, p => press(p, '#dk-mark')]);
   D.push(['Bar: page name opens Recent', home, p => press(p, '#dk-page')]);
   D.push(['Bar: page name pressed again closes Recent', async p => { await home(p); await press(p, '#dk-page'); await pause(400); }, p => press(p, '#dk-page')]);
-  D.push(['Bar: panel button opens Alerts', home, p => press(p, '#hdr-notify')]);
+  D.push(['Bar: panel button opens the Guide', home, p => press(p, '#hdr-notify')]);
   D.push(['Bar: panel button pressed again closes', async p => { await home(p); await press(p, '#hdr-notify'); await pause(600); }, p => press(p, '#hdr-notify')]);
   D.push(['Bar: ✦ opens Jambo', home, p => press(p, '#cmd-ai')]);
   D.push(['Bar: ✦ pressed again closes', async p => { await home(p); await press(p, '#cmd-ai'); await pause(600); }, p => press(p, '#cmd-ai')]);

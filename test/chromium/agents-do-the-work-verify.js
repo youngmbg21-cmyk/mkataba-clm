@@ -218,7 +218,7 @@ const answer = body => {
     ok('7a the beat takes a change made elsewhere, and the page shows it without a reload', took.card, JSON.stringify(took));
     ok('7b the beat asks every half minute while the page is up', await page.evaluate(() => window.AR_BEAT_MS === 30000));
     const bell = await page.evaluate(async () => {
-      const b = document.getElementById('hdr-notify'); if (b) b.click();
+      const b = document.getElementById('hdr-notify'); if (b) b.click(); { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); }
       await new Promise(r => setTimeout(r, 600));
       const rows = [...document.querySelectorAll('[data-alert-kind="link"], .al-row[data-kind="link"]')];
       const all = (window.buildAlerts ? buildAlerts() : []).filter(a => a.kind === 'link').map(a => a.text + ' · ' + a.id);

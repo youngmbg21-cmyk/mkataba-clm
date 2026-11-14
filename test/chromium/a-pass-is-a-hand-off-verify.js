@@ -58,7 +58,7 @@ const check = (name, ok, detail) => {
     /* ===== 1. WHERE IT LANDS: THE BELL'S ROW SAYS WHO AND THE NOTE ===== */
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's Needs you tab draws the one
        desk's own rows (.nd-pan .nd-r); the hand-off's row still names who and carries the note */
-    await page.click('#hdr-notify');
+    await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
     const shown = await until(() => [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].some(b => /asked you to review/.test(b.textContent)));
     const row = await page.evaluate(() => { const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].find(b => /asked you to review/.test(b.textContent));
       if (!r) return null; const rc = r.getBoundingClientRect(); return { text: r.textContent.replace(/\s+/g, ' ').trim(), h: Math.round(rc.height) }; });

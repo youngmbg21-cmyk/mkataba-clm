@@ -3670,10 +3670,15 @@ if(typeof document!=='undefined'&&!document._panelSwipe){
    half-copy — and two ways of opening one panel is how they come to disagree
    about what "open" means. */
 /* THE BAR'S ONE PANEL BUTTON (owner picked "The SAP Way", 9 Nov 2026): open, it closes (PRESS IT AGAIN AND IT
-   CLOSES); shut, it opens on Alerts when something waits on you, else on the tab last used */
+   CLOSES); shut, it OPENS ON THE GUIDE, always (owner, 14 Nov 2026: "if you press the highlighted button, the
+   landing page face is guide"; reverses "on Alerts when something waits, else the tab last used"). Alerts,
+   Notes and Activity are the panel's own tabs, one press away; the button still wears the count. Where the
+   tabs are not drawn (the phone's shell, panelTabsPaint) it opens as before, so Alerts is never out of reach. */
 function panelDoorPress(){
   if(panelSuppressed()) return;
   if(state.panelOpen){ closeContextPanel(); return; }
+  const tabs=(typeof deskShellOn==='function')?!!deskShellOn():true;
+  if(tabs){ openPanel('guide'); return; }
   let n=0; try{ n=alertCount(); }catch(_){ n=0; }
   openPanel(n>0?'alerts':panelFace());
 }
