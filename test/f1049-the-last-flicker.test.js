@@ -32,4 +32,6 @@ test('f1049 (3) the rebuild measure counts opening a contract as a move, and fol
   const m = read('test/chromium/_audit/rebuild-measure.js');
   assert.match(m, /a\.paper !== b\.paper \|\| a\.place !== b\.place/);
   assert.match(m, /const kept = sc\.el && sc\.el\.isConnected \? sc\.el : null;/);
+  assert.match(m, /same: String\(p\.innerText \|\| ''\)/, 'a rebuilt part is compared with what it said before');
+  assert.match(m, /if \(j\.waste\) T\.waste\+\+;/, 'a redraw for nothing is counted apart');
 });

@@ -29,7 +29,11 @@ Each real loss from Round 0 fixed where it happens, through the existing helpers
 back to Contracts, the Calendar's Mine pill, whatever of Contracts is real. Each gets a step in
 nothing-is-thrown-away-verify that fails on main. Merge when green.
 
-## Round 2 — pages stop throwing themselves away (one pull request PER PAGE, worst first)
+## Round 2 — pages stop throwing themselves away FOR NOTHING (one pull request PER PAGE, worst first)
+RE-AIMED (14 Nov 2026, while Round 0 ran): the Dossier's 21 rebuilds are almost all a tab or chip that shows a NEW
+face, drawn at once as agreed ("A FACE CHANGE IS DRAWN AT ONCE"); rebuilding those differently changes nothing the
+reader sees. The measure now says which rebuilds kept THE SAME WORDS ("for nothing") — those are the flicker to fix,
+and the order below is re-ranked by that count once Round 0's measure lands.
 THE ONE WAY: a press that changes some words redraws only what changed, through ONE shared helper in
 js/components.js that lays the new drawing over the page in place — a piece whose words are the same is left
 standing (kept, not rebuilt), only changed pieces are written. Pages adopt it one at a time:

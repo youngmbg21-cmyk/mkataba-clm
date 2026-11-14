@@ -132,14 +132,17 @@ const INIT = () => {
       const again = find(key); if (!again) return { missing: true };
       gen++; const parts = {};
       for (const n of document.body.querySelectorAll('*')) n.__rb = gen;
-      for (const [id] of PARTS){ const p = document.getElementById(id); parts[id] = p ? wordsIn(p).length : 0; }
+      /* AND WHAT EACH PART SAYS (14 Nov 2026, the last flicker): a part rebuilt with new words is a new face (a tab, a
+         chosen row) and fine; one rebuilt with the SAME words was thrown away for nothing — the flicker to fix */
+      const texts = {};
+      for (const [id] of PARTS){ const p = document.getElementById(id); parts[id] = p ? wordsIn(p).length : 0; texts[id] = p ? String(p.innerText || '').replace(/\s+/g, ' ').trim() : ''; }
       /* the choice the reader has now, if this door is one of several choices */
       let choice = null;
       if (again.matches('[role="menuitemradio"],[role="radio"],[role="tab"],[role="option"],[aria-pressed],[aria-checked],[aria-selected],[aria-current]')){
         const grp = again.closest('[role="menu"],[role="tablist"],[role="radiogroup"],[role="listbox"]') || again.parentElement;
         const was = grp && [...grp.querySelectorAll(LIT)].find(x => x !== again && !x.contains(again));
         if (was){ const hit = doorEls().find(([, e]) => e === was); choice = { key: hit ? hit[0] : null, base: baseKey(was), label: label(was) }; } }
-      cur = { gen, parts, fields, scrolls, sig: sig(), keys: doorEls().map(([k]) => k), dlg: dlgNow() };
+      cur = { gen, parts, texts, fields, scrolls, sig: sig(), keys: doorEls().map(([k]) => k), dlg: dlgNow() };
       return { sig: cur.sig, choice, typed: fields.length, scrolled: scrolls.length };
     },
     /* the press, filmed */
@@ -172,7 +175,8 @@ const INIT = () => {
       for (const [id, name] of PARTS){ const p = document.getElementById(id); if (!p) continue; const ws = wordsIn(p); if (!ws.length || !cur.parts[id]) continue;
         const fresh = ws.filter(n => n.__rb !== cur.gen).length;
         const kid = [...p.children].find(vis);
-        parts.push({ id, name, n: ws.length, fresh, pct: Math.round(100 * fresh / ws.length), whole: !!(kid && kid.__rb !== cur.gen && fresh === ws.length) }); }
+        parts.push({ id, name, n: ws.length, fresh, pct: Math.round(100 * fresh / ws.length), whole: !!(kid && kid.__rb !== cur.gen && fresh === ws.length),
+          same: String(p.innerText || '').replace(/\s+/g, ' ').trim() === (cur.texts || {})[id] }); }
       const fNow = fieldsNow(), typed = [];
       for (const f of cur.fields){ const el = fNow.find((x, i) => fieldKey(x, i) === f.key); typed.push({ name: f.name, there: !!el, kept: !!(el && el.value === f.val) }); }
       /* THE SAME LIST, FOLLOWED (14 Nov 2026): the scroller the reader scrolled is followed by itself first; only if it
@@ -210,13 +214,15 @@ const sameList = (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []);
 function judge(pre, film, post){
   const a = pre.sig, b = post.sig;
   const moved = a.view !== b.view || a.face !== b.face || a.active !== b.active || a.paper !== b.paper || a.place !== b.place;
-  const what = [], lost = [], flash = [], away = [];
+  const what = [], lost = [], flash = [], away = []; let waste = false;
   const reopened = a.dlg && b.dlg && !post.dlgKept;
   if (reopened) what.push('the pop-up is closed and a new one opened' + (a.dlgName !== b.dlgName ? ` ("${a.dlgName}" became "${b.dlgName}")` : ''));
   if (!moved) for (const p of post.parts){
     if (p.id === 'modal-root' && (reopened || a.dlg !== b.dlg)) continue;              /* a pop-up opening or closing is its own line */
-    if (p.whole) what.push(`${p.name} is thrown away and built again (${p.n} pieces)`);
-    else if (p.pct >= 50) what.push(`most of ${p.name} is written again (${p.pct}%)`); }
+    const idle = p.same ? ' — the same words: for nothing' : '';
+    if (p.whole) what.push(`${p.name} is thrown away and built again (${p.n} pieces)${idle}`);
+    else if (p.pct >= 50) what.push(`most of ${p.name} is written again (${p.pct}%)${idle}`);
+    if (idle && (p.whole || p.pct >= 50)) waste = true; }
   const stay = !moved && a.dlg === b.dlg;                                               /* the reader is where they were */
   if (stay || reopened){
     /* ONLY WORDS THAT ARE REALLY GONE: a box that is still on screen and no longer holds them. A box the press PUT
@@ -234,7 +240,7 @@ function judge(pre, film, post){
   if (film.blank) flash.push(`blank ${film.blank}/${film.frames} frames`);
   if (film.paleFrames) flash.push(`pale ${film.paleFrames}/${film.frames} frames (${film.pale.join(', ')})`);
   if (film.jump >= 0.05) flash.push('jumps ' + film.jump);
-  return { moved, reopened, what, lost: [...new Set(lost)], flash, away: [...new Set(away)] };
+  return { moved, reopened, what, waste, lost: [...new Set(lost)], flash, away: [...new Set(away)] };
 }
 
 (async () => {
@@ -278,7 +284,7 @@ function judge(pre, film, post){
   say(`THE REBUILD MEASURE · 1440x780 · ${BOOK + 1} contracts · ${Math.round(PAGE_MS / 1000)}s a page · ${DEPTH} presses deep\n`);
   for (const base of BASES){
     const t0 = Date.now(), over = () => Date.now() - t0 > PAGE_MS;
-    const T = tally[base.name] = { pressed: 0, left: 0, gone: 0, cut: 0, rebuilt: 0, lost: 0, flash: 0, moved: 0 };
+    const T = tally[base.name] = { pressed: 0, left: 0, gone: 0, cut: 0, rebuilt: 0, waste: 0, lost: 0, flash: 0, moved: 0 };
     say(`\n================ ${base.name} ================`);
     const queue = [{ path: [], names: [], only: null }];
     while (queue.length){
@@ -313,7 +319,7 @@ function judge(pre, film, post){
             else { await p.waitForTimeout(600); const s2 = await p.evaluate(() => window.__rb.sig());
               if (s2.dlgName !== pre.sig.dlgName || !sameList(s2.words, pre.sig.words)) j.lost.push(`the way back: pressing "${pre.choice.label}" again does not bring it back`); }
           }
-          T.pressed++; if (j.moved) T.moved++; if (j.reopened || j.what.length) T.rebuilt++; if (j.lost.length) T.lost++; if (j.flash.length) T.flash++;
+          T.pressed++; if (j.moved) T.moved++; if (j.reopened || j.what.length) T.rebuilt++; if (j.waste) T.waste++; if (j.lost.length) T.lost++; if (j.flash.length) T.flash++;
           /* the button named exactly too, so a finding can be followed to its code (14 Nov 2026) */
           const where = [...lvl.names, d.label].map(short).join(' > ') + (d.who ? ' {' + d.who + '}' : '');
           const bits = [];
@@ -336,7 +342,7 @@ function judge(pre, film, post){
         } catch (e){ say(`  ${short(d.label).padEnd(64)} COULD NOT MEASURE — ${String(e).slice(0, 110)}`); T.gone++; dirty = true; }
       }
     }
-    say(`  -- ${T.pressed} pressed · ${T.rebuilt} rebuilt something · ${T.lost} lost something · ${T.flash} flashed · ${T.moved} moved to another page · ${T.left} left alone (they finish something) · ${T.gone} could not be found again · ${T.cut} not reached in the time`);
+    say(`  -- ${T.pressed} pressed · ${T.rebuilt} rebuilt something (${T.waste} for nothing) · ${T.lost} lost something · ${T.flash} flashed · ${T.moved} moved to another page · ${T.left} left alone (they finish something) · ${T.gone} could not be found again · ${T.cut} not reached in the time`);
   }
 
   rows.sort((x, y) => y.score - x.score);
@@ -344,7 +350,7 @@ function judge(pre, film, post){
   for (const r of rows.slice(0, 80)) say(`  [${r.page}] ${r.press}\n      today: ${r.what}\n      lost:  ${r.lost}\n      flash: ${r.flash}`);
   say(`\nNot scored as a loss (a box put away with its panel, or a pane now showing something new): ${Object.values(tally).reduce((n, T) => n + (T.away || 0), 0)} presses.`);
   say('\n================ BY PAGE ================');
-  for (const [name, T] of Object.entries(tally)) say(`  ${name.padEnd(28)} pressed ${String(T.pressed).padStart(3)} · rebuilt ${String(T.rebuilt).padStart(3)} · lost ${String(T.lost).padStart(3)} · flashed ${String(T.flash).padStart(3)} · left alone ${T.left} · not found ${T.gone} · not reached ${T.cut}`);
+  for (const [name, T] of Object.entries(tally)) say(`  ${name.padEnd(28)} pressed ${String(T.pressed).padStart(3)} · rebuilt ${String(T.rebuilt).padStart(3)} · for nothing ${String(T.waste).padStart(3)} · lost ${String(T.lost).padStart(3)} · flashed ${String(T.flash).padStart(3)} · left alone ${T.left} · not found ${T.gone} · not reached ${T.cut}`);
   /* the same table where GitHub shows it on the run's own page */
   if (process.env.GITHUB_STEP_SUMMARY){ try {
     const cell = s => String(s).replace(/\|/g, '/').replace(/\n/g, ' ');
