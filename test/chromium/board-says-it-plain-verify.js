@@ -81,12 +81,18 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
   const mapNow = () => page.evaluate(() => JSON.stringify({ r: typeof igRecipeNow === 'function' ? igRecipeNow() : null, g: window.intel ? intel.groupBy : null, v: window.intel ? intel.view : null }));
   /* one question typed into the board's box; what landed */
   const ask = async (q, opts) => {
+    /* JAMBO FREE BEFORE A QUESTION (14 Nov 2026, the last flicker: on GitHub the FIRST question was asked while Jambo
+       was still busy, so it waited its turn (jamboAskLater) and the wait below took his earlier answer for this one's
+       and gave up before the card was drawn). The wait asks for the state, bounded. */
+    await until(page, () => !(window.intel && intel.busy), null, 15000);
     const n0 = await page.evaluate(() => (window.intel && intel.history ? intel.history.length : 0));
     const p0 = await page.evaluate(() => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length);
     /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
     await page.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } });
     /* RE-PINNED 28 Oct 2026 ("Door above the box": every word typed is the brain's but a page's one name): asked as a chip asks */
     await page.evaluate(w => intelAsk(w), q);
+    /* THIS question's turn, answered: its own words in the history after n0, and Jambo free again */
+    await until(page, ([n0, q]) => intel.history.slice(n0).some(m => m && m.role === 'user' && m.text === q), [n0, q], 6000);
     await until(page, n0 => !intel.busy && intel.history.length > n0, n0, 15000);
     /* A PICTURE THAT MUST LAND IS WAITED FOR, BOUNDED (9 Nov 2026: on GitHub's headless shell the first question's
        card landed after the answer was said, and was read before it did) */

@@ -1963,7 +1963,11 @@ function calStep(n){
   calState.ym={y,m}; renderCalendar({ keepPanel:true });
 }
 function calSetView(v){ if(!CAL_VIEWS.includes(v)||v===calView()) return; calState.view=v; renderCalendar({ keepPanel:true }); }
-function calSetScope(s){ const v=s==='mine'?'mine':'all'; if(v===calScope()) return; calState.scope=v; renderCalendar({ keepPanel:true }); }
+/* Mine | All keeps the reader where they were (14 Nov 2026, the last flicker: the calendar drawn again for the pill threw
+   the agenda back to its top, with the same events on it) */
+function calSetScope(s){ const v=s==='mine'?'mine':'all'; if(v===calScope()) return; calState.scope=v;
+  const host=document.getElementById('hb-cal')||document.getElementById('content');
+  if(host&&typeof keepScrollIn==='function') keepScrollIn(host, ()=>renderCalendar({ keepPanel:true })); else renderCalendar({ keepPanel:true }); }
 
 /* ---- THE SIX WEEKS FIT THE WINDOW (owner picked it, 13 Oct 2026, after the
    laptop report: "the key sits on the last week") ----

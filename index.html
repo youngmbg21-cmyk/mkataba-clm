@@ -20174,6 +20174,12 @@
   html.lg-new #na-root.na-one .na-ptab{height:30px;padding:0 0 4px;border-radius:0;font-size:14.5px;color:var(--color-text);box-shadow:none;background:transparent;border-bottom:2px solid transparent}
   html.lg-new #na-root.na-one .na-ptab[aria-selected="true"]{background:transparent;box-shadow:none;border-bottom-color:var(--accent-ink)}
   html.lg-new #na-root.na-one .na-askbox{border-color:var(--accent-ink);border-radius:999px;padding:8px 8px 8px 18px;align-items:center}
+  /* IT ACTS JUST LIKE JAMBO'S BOX (owner, 14 Nov 2026: "remove the green outline from the entry field. It should act just
+     like the jambo entry field"): the words wear no ring of their own (the page-wide :focus-visible ring drew a green
+     rectangle inside the pill); the pill keeps Jambo's 1.5px green edge and, while typed in, his soft glow (.jb-card) */
+  html.lg-new #na-root.na-one .na-askbox{border-width:1.5px}
+  html.lg-new #na-root.na-one .na-askbox:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px rgba(10,124,107,.12)}
+  html.lg-new #na-root.na-one .na-askbox .na-say:is(:focus, :focus-visible){outline:none;box-shadow:none;border:0}
   html.lg-new #na-root.na-one.is-picked #wz-pick{display:flex}
   html.lg-new #na-root.na-one .na-closest{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   html.lg-new #na-root.na-one .na-closest .na-pick.na-close{border:1px solid var(--color-divider);border-radius:var(--radius);padding:14px 16px;background:var(--color-surface);align-items:flex-start;min-height:118px}

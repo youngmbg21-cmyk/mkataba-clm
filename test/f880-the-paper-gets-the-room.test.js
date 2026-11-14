@@ -60,7 +60,7 @@ describe('f880 — one Jambo window for an item said in his words', () => {
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"): no panel is one window any more and his greeting is the Jambo tab's first words, never the Overview's */
     assert.match(p, /host\._jlSolo = false;/);
     assert.match(p, /jlHeadPaint\(host, opt, !!\(c \|\| item\) && !soloItem\)/);
-    assert.match(p, /else if \(soloItem\)\{ body\.innerHTML = opt\.body \|\| ''; \}/, 'the item stands in the Overview, as it was drawn');
+    assert.match(p, /else if \(soloItem\)\{ put\(opt\.body \|\| ''\); \}/, 'the item stands in the Overview, as it was drawn');
   });
   test('Our paper\'s chosen template is said that way', () => {
     assert.match(fnBody(LIB, 'tplPfPanelPaint'), /head:false, solo:true,/);

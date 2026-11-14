@@ -477,6 +477,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
 - f1049 (2b): each From scratch start drawn inside New agreement's tab, Back puts the starts back (14 Nov 2026).
 - f1049 (9): the four starts as picked (three the Legora way, From nothing the Shelf), their kept papers on Their paper (14 Nov 2026).
+- THE ASK BOX ACTS JUST LIKE JAMBO'S (owner, 14 Nov 2026): f1051 (new; red at the parent, 2 of 2) — no ring on the words, Jambo's edge and glow on the pill. Measured in a browser at the three screens: the words' box-shadow none, the pill's glow on focus.
 - "the closest" on one line, the name shortened (22 Oct 2026): `tidy-sweep-verify.js` draft place (owner-length standard names seeded; red at e05849a at 1440 and 1366).
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
 - Every door opens beside Jambo (22 Oct 2026): draft-beside-jambo verify 1–3 (red at the parent), requests-and-notes-as-drawn 3d.
@@ -573,6 +574,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - ONE POP-UP TAKING ANOTHER'S PLACE DOES NOT ARRIVE AGAIN (13 Nov 2026, the flash survey, Part C): f1046 (six parts); test/chromium/a-popup-replaced-does-not-arrive-again-verify.js (red at the parent 2-4).
 - A REDRAW KEEPS YOUR PLACE AND YOUR WORDS (13 Nov 2026, the flash survey, Parts D and E): f1047 (five parts); test/chromium/a-page-redraw-keeps-your-place-verify.js (says what it could not drive).
   The Handbook's chapter drawn again (14 Nov 2026): f1048 (8); nothing-is-thrown-away-verify 6b.
+  The last flicker (14 Nov 2026): f1050 (the chase list's untick kept; the Board check's wait; the measure's moves); chase-many-verify, board-says-it-plain-verify. Round 2a, the kept side panel: f1050 (4), f880; nothing-is-thrown-away-verify 6c.
 - THE GUARD, AND THE LAST BOXES (14 Nov 2026, the flash survey's last round): f1048 (ten parts, five run in jsdom); test/chromium/nothing-is-thrown-away-verify.js with test/thrown-away-known.json (only shrinks).
 - THE REBUILD MEASURE (13 Nov 2026, the flash survey): test/chromium/_audit/rebuild-measure.js (a measuring instrument; `.github/workflows/rebuild-measure.yml`; on GitHub, never fails): presses every door on every page and says what was thrown away and built again, what flashed, what the reader lost.
 - WHAT LANDED THE SAME IS NOT DRAWN AGAIN (13 Nov 2026): f1040 (eight parts; (1)–(5) red at the parent, (6)–(8) red at round one). The flash measure (test/chromium/_audit/flash-measure.js, on GitHub, never fails) now names who wrote late and what moved, at the three screens.
