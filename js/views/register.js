@@ -2055,7 +2055,7 @@ function regFolderOdd(cs){
   }
   return null;
 }
-/* ---- WHAT THIS FOLDER SAYS, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; f1052) ----
+/* ---- WHAT THIS FOLDER SAYS, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; f1053) ----
    Where "Columns you asked" stood: nothing boxed, ONE quiet list of plain sentences about the folder in front, each with
    the contract it was read from and, where the wording is loaded, the § and the words quoted; its act in its own row.
    READ, NEVER GUESSED, NO AI: the standards' kept verdicts (stdRowReading, the verdict's own quote), the live end date

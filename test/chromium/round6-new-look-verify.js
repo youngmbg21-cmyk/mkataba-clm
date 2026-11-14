@@ -85,7 +85,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
        Columns you asked is gone from the panel: no asked question, no Add to list, no Remove from list there */
     const panel = await until(page, () => /This folder/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
     const kept = await txt(page, '.rfp-panel');
-    /* f1052 (owner's pick by name, 14 Nov 2026, the Legora way): where Columns you asked stood, the folder says what matters in
+    /* f1053 (owner's pick by name, 14 Nov 2026, the Legora way): where Columns you asked stood, the folder says what matters in
        plain sentences: the standards row with the door to what needs you, what ends next, who is not checked; chips narrow
        them; nothing spills out of the panel; Show them lists exactly the unchecked */
     const says = await page.evaluate(() => { const p = document.querySelector('.rfp-panel'), b = p ? p.getBoundingClientRect() : null;
@@ -100,7 +100,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       narrowed = await until(page, () => { const r = [...document.querySelectorAll('.rfp-says .rfp-say')]; return r.length === 1 && r[0].getAttribute('data-rfp-say') === 'date'; }, null, 6000);
       await page.click('.rfp-says [data-rfp-chip="all"]');
       back = await until(page, () => document.querySelectorAll('.rfp-says .rfp-say').length >= 3, null, 6000); }
-    check('2b the folder says what matters (f1052): standards row with Show the N that need you, what ends next, who is not checked; chips narrow and return; nothing spills',
+    check('2b the folder says what matters (f1053): standards row with Show the N that need you, what ends next, who is not checked; chips narrow and return; nothing spills',
       says.kinds.includes('need') && says.kinds.includes('date') && says.kinds.includes('std') && says.need && says.open && says.only > 0 && says.only === says.unchecked
       && says.chips.length === 3 && /^All 3$/.test(says.chips[0]) && says.spill === 0 && narrowed && back && /differs from our standards|against our standards/.test(kept), { says, narrowed, back });
     await shot('2-folder-list');
