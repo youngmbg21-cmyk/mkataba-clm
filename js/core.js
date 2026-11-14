@@ -5711,7 +5711,7 @@ function shareLetterAsWire(panel){
    display only; the words are untouched. */
 function shareLetterNoteFit(){
   const ta=document.getElementById('sh-summary'), L=document.getElementById('sh-letter');
-  if(!ta || !L || !L.classList.contains('is-letter') || !ta.getClientRects().length) return;
+  if(!ta || !L || !L.classList.contains('is-note-paper') || !ta.getClientRects().length) return;
   const body=L.querySelector('.sh-lt-b') || L;
   const cap=Math.max(160, Math.floor(body.clientWidth*0.66) - 22);
   const cs=getComputedStyle(ta);
@@ -6040,15 +6040,20 @@ function shareLetterPaint(c, st){
   if(mh){
     const typed=!!String(fval('sh-summary')||'').trim();
     mh.textContent = L.turn ? i18t('sh_lt_no_note') : (L.wa||L.letter) ? '' : shareMailNoteHead(me.name||'');
-    mh.classList.toggle('hidden', !!L.none || !!L.wa || !!L.letter);
+    /* the note's own label names it on the paper (f1052), so the file's heading would only repeat it, under the note */
+    mh.classList.toggle('hidden', !!L.none || !!L.wa || !!L.letter || !!L.file);
     mh.classList.toggle('is-off', !!L.turn || !typed);
   }
   host.classList.toggle('is-letter', !!L.letter);
+  /* THE NOTE LIES ON THE PAPER HOWEVER IT GOES (owner, 14 Nov 2026: "the email is squeezed in"):
+     by WhatsApp or a Word file too, the note is bare and as tall as its words, as on the email */
+  const onPaper=!!(L.letter || L.wa || L.file);
+  host.classList.toggle('is-note-paper', onPaper);
   shareColPaint(c, !!L.colleague);
   const nl=document.getElementById('sh-summary-label');
   /* THE SAP WAY: the note's box is named for who reads it ("Your note to
      Kari"), "optional" at its end (the sheet draws data-opt) */
-  if(nl && L.letter){ const v=L.colleague && _shCol.fromJambo ? i18t('sh_lt_note_lbl_jambo') : i18t('sh_lt_note_to', { who }); if(nl.textContent!==v) nl.textContent=v;
+  if(nl && onPaper){ const v=L.colleague && _shCol.fromJambo ? i18t('sh_lt_note_lbl_jambo') : i18t('sh_lt_note_to', { who }); if(nl.textContent!==v) nl.textContent=v;
     nl.setAttribute('data-opt', i18t('sh_lt_note_opt')); }
   /* on the letter the dashed box is the note's frame, so the box inside it
      goes bare (its field clothes are inline: kept, and put back elsewhere) */
@@ -6058,18 +6063,18 @@ function shareLetterPaint(c, st){
     /* AS DRAWN (round 11's gaps, second pass): the box hugs its words — no
        grip, no empty rows under them (shareLetterNoteFit sizes it) */
     const bare='border:0;background:transparent;padding:0;box-shadow:none;min-height:0;resize:none;overflow:hidden;outline:none;display:block;';
-    if(L.letter && !ta.dataset.shLtBare){ ta.style.cssText=bare; ta.dataset.shLtBare='1'; ta.rows=1; }
-    else if(!L.letter && ta.dataset.shLtBare){ ta.style.cssText=ta.dataset.shLtCss; delete ta.dataset.shLtBare; ta.rows=3; }
+    if(onPaper && !ta.dataset.shLtBare){ ta.style.cssText=bare; ta.dataset.shLtBare='1'; ta.rows=1; }
+    else if(!onPaper && ta.dataset.shLtBare){ ta.style.cssText=ta.dataset.shLtCss; delete ta.dataset.shLtBare; ta.rows=3; }
     /* its frame (the label) hugs it too: the label's own inline block stands down on the letter */
     const fr=ta.closest('label');
-    if(fr) fr.style.display=L.letter?'':'var(--sh-note-d,block)';
+    if(fr) fr.style.display=onPaper?'':'var(--sh-note-d,block)';
   }
   /* the label is small and grey on the letter ("Your note · type here"): its
      own inline dress stands down there, so the letter's rule dresses it */
   if(nl){
     if(nl.dataset.shLtCss==null) nl.dataset.shLtCss=nl.style.cssText;
-    if(L.letter && !nl.dataset.shLtBare){ nl.style.cssText=''; nl.dataset.shLtBare='1'; }
-    else if(!L.letter && nl.dataset.shLtBare){ nl.style.cssText=nl.dataset.shLtCss; delete nl.dataset.shLtBare; }
+    if(onPaper && !nl.dataset.shLtBare){ nl.style.cssText=''; nl.dataset.shLtBare='1'; }
+    else if(!onPaper && nl.dataset.shLtBare){ nl.style.cssText=nl.dataset.shLtCss; delete nl.dataset.shLtBare; }
   }
   shareLetterNoteFit();
   /* "This is the email Anna will get, word for word" is gone (the SAP Way,
