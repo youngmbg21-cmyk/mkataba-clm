@@ -1716,7 +1716,9 @@ function boxDraftSweep(){
   return put;
 }
 function boxDraftWatch(){
-  if (typeof window === 'undefined' || typeof document === 'undefined' || window.__boxDraftWatch) return;
+  /* a test stage's stand-in document may carry no listeners at all: then there is nothing to watch (GitHub's f100) */
+  if (typeof window === 'undefined' || typeof document === 'undefined' || window.__boxDraftWatch
+    || typeof document.addEventListener !== 'function' || !document.documentElement) return;
   window.__boxDraftWatch = true;
   document.addEventListener('input', e => { const t = e.target; if (!t || !t.id) return;
     if (t.id === 'igd-input'){ let sel = null; try { if (document.activeElement === t) sel = [t.selectionStart, t.selectionEnd, t.selectionDirection]; } catch (_){ sel = null; }
@@ -1744,10 +1746,14 @@ function keepScrollIn(host, fn, except){
     try { at = [...host.querySelectorAll(tag + cls)].indexOf(el); } catch (_){ at = -1; }
     return at < 0 ? null : { tag, cls, at }; };
   const tops = [];
+  /* AND THE SCROLLERS AROUND IT (GitHub's guard, 14 Nov 2026: Our paper's list lives in a scroller ABOVE the
+     redrawn host, which went back to 0): they are not rebuilt, so they are held by reference */
+  try { for (let a = host.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement){
+    if (a.scrollTop && !(except && a.matches && a.matches(except))) tops.push([a, a.scrollTop]); } } catch (_){ }
   try { for (const el of [host, ...host.querySelectorAll('*')]){ if (!el.scrollTop) continue; if (except && el.matches && el.matches(except)) continue;
     const k = el === host ? null : keyOf(el); if (el === host) tops.push(['host', el.scrollTop]); else if (k) tops.push([k, el.scrollTop]); } } catch (_){ }
   const r = fn();
-  const find = k => { if (k === 'host') return host; if (typeof k === 'string') return document.querySelector(k);
+  const find = k => { if (k === 'host') return host; if (k && k.nodeType === 1) return k; if (typeof k === 'string') return document.querySelector(k);
     return host.querySelectorAll(k.tag + k.cls)[k.at] || null; };
   const put = () => { for (const [k, top] of tops){ let el = null; try { el = find(k); } catch (_){ el = null; } if (el && (!except || !el.matches(except))) el.scrollTop = top; } };
   if (tops.length){ put(); if (typeof requestAnimationFrame === 'function') requestAnimationFrame(put); }

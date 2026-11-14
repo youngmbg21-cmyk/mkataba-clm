@@ -114,3 +114,17 @@ test('f1048 (10) the measure counts a lost place only where the same list still 
   assert.match(m, /same: !!el && sigOf\(el\) === sc\.sig/);
   assert.match(m, /if \(s\.there && !s\.same\)\{ away\.push/);
 });
+
+test('f1048 (11) the scrollers AROUND the redrawn host keep their place too', () => {
+  const { w, d } = stage('<div id="outer" class="sc"><div id="h"><div class="row">x</div></div></div>');
+  Object.defineProperty(w.HTMLElement.prototype, 'scrollTop', { get(){ return this._st || 0; }, set(v){ this._st = v; }, configurable: true });
+  const outer = d.getElementById('outer'), h = d.getElementById('h');
+  outer.scrollTop = 104;
+  w.keepScrollIn(h, () => { outer.scrollTop = 0; h.innerHTML = '<div class="row">y</div>'; }, '.pane');
+  assert.equal(outer.scrollTop, 104, 'GitHub\'s guard: Our paper\'s list lives in a scroller above the redrawn host');
+});
+
+test('f1048 (12) a stand-in document with no listeners is left alone (a test stage of f100)', () => {
+  const s = read('js/components.js');
+  assert.match(region(s, 'function boxDraftWatch', 500), /typeof document\.addEventListener !== 'function'/);
+});
