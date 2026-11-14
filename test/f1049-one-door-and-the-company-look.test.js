@@ -36,7 +36,7 @@ test('f1049 (2) New agreement: From scratch is the third tab, only with the righ
   assert.match(body(W, 'naNewPaperDoorHtml'), /if\(!naNewPaperOk\(\)\) return '';/);
   assert.match(W, /\$\{naNewPaperDoorHtml\(\)\}<\/div>/, 'the third tab beside Our paper and Their paper');
   assert.match(body(W, 'naNewPaperPaneHtml'), /window\.NS_STARTS\.map/, 'the same four starts the new-standard question offers');
-  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back \}\)/);
+  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host \}\)/);
   assert.match(body(W, 'naNewPaperGo'), /openNewAgreement\(\{ newPaper:true \}\)/, 'Back comes to this tab');
   assert.match(W, /if\(o&&o\.newPaper\) naNewPaperShow\(root,true\);/);
   const NS = read('js/views/newstandard.js');
@@ -44,6 +44,25 @@ test('f1049 (2) New agreement: From scratch is the third tab, only with the righ
   assert.match(NS, /const nsBack = \(\) => \{[^}]*if \(typeof _nsFrom === 'function'\) return _nsFrom\(\);/);
   assert.equal(EN.ns_scratch, 'From nothing'); assert.equal(EN.na_tab_newpaper, 'From scratch');
   assert.ok(SV.ns_scratch && SV.na_tab_newpaper, 'both books');
+});
+
+test('f1049 (2b) each start opens INSIDE New agreement\'s From scratch tab, never a pop-up over the Board; Back brings the four starts back', () => {
+  /* owner, 14 Nov 2026: "this pop up is appearing in the board page as opposed to staying in the new agreement page" */
+  const W = read('js/wizard.js'), NS = read('js/views/newstandard.js'), LB = read('js/views/library.js');
+  assert.match(body(W, 'naNewPaperGo'), /const host=document\.getElementById\('na-np'\);/, 'the place is the tab itself');
+  assert.match(body(W, 'naNewPaperGo'), /if\(k==='cp'\)\{ if\(typeof nsHostSet==='function'\) nsHostSet\(host\);/, 'the other side\'s paper is drawn in the tab too');
+  for (const f of ['nsOpenScratch', 'nsOpenTemplate', 'nsOpenContract']) {
+    assert.match(body(NS, f), /nsMount\(`/, f + ' draws through the one mount');
+    assert.doesNotMatch(body(NS, f), /openModal\(`/, f + ' never opens its own pop-up');
+  }
+  assert.match(body(NS, 'nsMount'), /if \(!nsHostOn\(\)\) \{ openModal\(html, opts\); return; \}/, 'anywhere else, the pop-up as before');
+  assert.match(body(NS, 'nsMount'), /removeAttribute\('data-dlg-cancel'\)/, 'the page\'s Escape stays the page\'s');
+  assert.match(body(NS, 'nsHostBack'), /_nsHost\.innerHTML = _nsHostWas;/, 'Back puts the four starts back');
+  assert.match(NS, /const nsBack = \(\) => \{[^}]*if \(nsHostBack\(\)\) return;/);
+  assert.match(LB, /\(typeof window\.nsMount==='function'\?window\.nsMount:openModal\)\(`/, 'the paste door through the same mount');
+  assert.match(LB, /'ct-cancel'\)\.addEventListener\('click',\(\)=>\{[^}]*window\.nsHostBack\(\)\) return; closeModal\(\);/);
+  assert.match(W, /root\.addEventListener\('click',e=>\{ if\(!e\.target\.closest\|\|!e\.target\.closest\('#na-np-go'\)\) return;/, 'Continue still works after Back redraws it');
+  assert.match(body(W, 'naNewPaperShow'), /if\(!on && typeof nsHostBack==='function'\) nsHostBack\(\);/, 'leaving the tab puts the starts back');
 });
 
 test('f1049 (3) the Builder: one whole paper, no Branding bar, Jambo the normal width', () => {

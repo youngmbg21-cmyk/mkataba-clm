@@ -93,8 +93,34 @@ function nsStyle() {
 /* ═══════════════════════════ THE ONE QUESTION ═══════════════════════════ */
 /* where a start's Back and Cancel return: the New agreement page's From scratch tab when it opened us (opts.back) */
 let _nsFrom = null;
+/* A START OPENS IN THE PAGE THAT ASKED FOR IT (owner, 14 Nov 2026: "this pop up is appearing in the board page as opposed
+   to staying in the new agreement page"): pressed from New agreement's From scratch tab, each start's form is drawn INTO
+   that tab (opts.host = #na-np), never a pop-up that takes the page away and lands over the Board. Back puts the four
+   starts back in the same place; the press that opens the Builder still closes the page. Anywhere else, the pop-up as
+   before (nsMount falls back to openModal). */
+let _nsHost = null, _nsHostWas = '';
+function nsHostSet(el) { _nsHost = el && el.isConnected ? el : null; _nsHostWas = _nsHost ? _nsHost.innerHTML : ''; }
+function nsHostOn() { return !!(_nsHost && _nsHost.isConnected); }
+function nsMount(html, opts) {
+  if (!nsHostOn()) { openModal(html, opts); return; }
+  _nsHost.innerHTML = `<div class="na-np-start">${html}</div>`;
+  _nsHost.classList.add('is-start');
+  /* the pop-up's own frame padding is the page's to give here: the form sits on the tab's edge like the starts did */
+  const f = _nsHost.querySelector('.na-np-start > div'); if (f) f.style.padding = '0';
+  /* the page's own Cancel and Escape belong to the page: a start's Cancel here is its Back */
+  _nsHost.querySelectorAll('[data-dlg-cancel]').forEach(b => b.removeAttribute('data-dlg-cancel'));
+  try { _nsHost.scrollIntoView({ block: 'nearest' }); } catch (_) { /* nothing to scroll */ }
+}
+function nsHostBack() {
+  if (!nsHostOn()) return false;
+  _nsHost.innerHTML = _nsHostWas;
+  _nsHost.classList.remove('is-start');
+  _nsHost = null;   /* the starts are back; the next Continue names the place again */
+  return true;
+}
 function openNewStandard(opts = {}) {
   _nsFrom = typeof opts.back === 'function' ? opts.back : null;
+  nsHostSet(opts.host || null);
   if (opts.start && NS_STARTS.some(s => s.k === opts.start)) return nsGo(opts.start, opts);
   nsStyle();
   const off = nsNewPaperOff();
@@ -144,7 +170,7 @@ function nsGo(k, opts = {}) {
   if (k === 'template') return nsOpenTemplate(opts);
   if (k === 'contract') return nsOpenContract(opts);
 }
-const nsBack = () => { /* back in the standing frame, not a pop-up arriving again (the flash survey); to the tab that opened it, where one did */ if (typeof _nsFrom === 'function') return _nsFrom(); openNewStandard(); };
+const nsBack = () => { /* back in the standing frame, not a pop-up arriving again (the flash survey); to the tab that opened it, where one did */ if (nsHostBack()) return; if (typeof _nsFrom === 'function') return _nsFrom(); openNewStandard(); };
 function nsFootHtml(goLabel, goTitle) {
   return `<div class="ns-foot"><button type="button" id="ns-back" class="ui-btn">${nsEsc(i18t('act_back'))}</button><span class="sp"></span>
     <button type="button" id="ns-go" class="ui-btn ui-btn-primary"${goTitle ? ` title="${nsEsc(goTitle)}"` : ''}>${nsEsc(goLabel)}</button></div>`;
@@ -206,7 +232,7 @@ function nsNameFromSentence(said) {
 function nsOpenScratch(o = {}) {
   nsStyle();
   let ai = typeof copilotAvailable === 'function' && copilotAvailable();
-  openModal(`<div style="padding:24px">
+  nsMount(`<div style="padding:24px">
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_scratch'))}</h3>
     <label style="display:block;margin:10px 0 0"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${nsEsc(i18t('ns_what_for'))}</span>
       <textarea id="ns-say-box" rows="4" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}" style="${NS_FLD};height:auto;padding:var(--field-pad-y) var(--field-pad-x);resize:vertical;min-height:96px">${nsEsc(o.said || '')}</textarea></label>
@@ -342,7 +368,7 @@ function nsOpenTemplate(o = {}) {
   const builtins = (typeof TEMPLATES === 'object' ? Object.values(TEMPLATES) : [])
     .filter(t => typeof templateAllowedForRole !== 'function' || templateAllowedForRole(t.id, (typeof currentUser === 'function' && currentUser() || {}).role || 'viewer'));
   const tabBtn = k => `<button type="button" data-ns-tab="${k}" class="${tab === k ? 'on' : ''}" aria-pressed="${tab === k}">${nsEsc(i18t('ns_tab_' + k))}</button>`;
-  openModal(`<div style="padding:24px">
+  nsMount(`<div style="padding:24px">
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_template'))}</h3>
     <div class="ns-tabs" role="group" style="margin-top:10px">${NS_TABS.map(tabBtn).join('')}</div>
     <div class="ns-pane" data-ns-pane="upload"${tab === 'upload' ? '' : ' hidden'}>
@@ -447,7 +473,7 @@ function nsOpenContract() {
     const hit = all.filter(c => !f || [c.name, c.id, c.contractNo, c.counterparty].some(x => String(x || '').toLowerCase().includes(f)));
     return hit.slice(0, 200).map(row).join('') || `<div style="padding:12px;font-size:var(--t-meta);color:var(--color-neutral-600)">${nsEsc(i18t('ns_c_none'))}</div>`;
   };
-  openModal(`<div style="padding:24px">
+  nsMount(`<div style="padding:24px">
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_contract'))}</h3>
     <input id="ns-c-q" type="search" placeholder="${nsEsc(i18t('ns_c_search'))}" autocomplete="off" style="${NS_FLD};margin:10px 0 10px">
     <div class="ns-list" id="ns-c-list">${rows()}</div>
@@ -485,4 +511,5 @@ function nsOpenContract() {
 }
 
 Object.assign(window, { NS_STARTS, NS_TABS, NS_SAY_MAX, NS_GATED, openNewStandard, nsGo, nsOpenScratch, nsOpenTemplate, nsOpenContract,
+  nsMount, nsHostSet, nsHostBack, nsHostOn,
   nsReadFile, nsCopy, nsDocTitle, nsNameFromSentence, nsBuiltinCategory, nsHasWording, nsCreate, nsFill });

@@ -831,6 +831,8 @@ function naNewPaperPaneHtml(){
 }
 function naNewPaperShow(root,on){
   if(!root) return; const pane=root.querySelector('#na-np'); if(!pane) return;
+  /* leaving the tab with a start open puts the four starts back for next time */
+  if(!on && typeof nsHostBack==='function') nsHostBack();
   root.classList.toggle('is-newpaper',!!on); pane.hidden=!on;
   /* Create draft and its reason live in the page's head (dlgPageAdopt moved them): they step aside here too */
   ['na-create','na-why'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=on?'none':''; });
@@ -840,10 +842,12 @@ function naNewPaperShow(root,on){
 }
 function naNewPaperGo(k){
   if(!naNewPaperOk()) return;
-  const back=()=>openNewAgreement({ newPaper:true });
-  /* the other side's paper keeps the door that has always filed it */
-  if(k==='cp'){ if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
-  openNewStandard({ start:k||'scratch', back });
+  /* each start opens INSIDE this tab (owner, 14 Nov 2026), and Back brings the four starts back to the same place */
+  const host=document.getElementById('na-np');
+  const back=()=>{ if(!(typeof nsHostBack==='function' && nsHostBack())) openNewAgreement({ newPaper:true }); };
+  /* the other side's paper keeps the door that has always filed it, drawn in the tab too */
+  if(k==='cp'){ if(typeof nsHostSet==='function') nsHostSet(host); if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
+  openNewStandard({ start:k||'scratch', back, host });
 }
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
@@ -1580,7 +1584,8 @@ function openNewAgreement(o){
       paper=b.getAttribute('data-na-paper'); light(); naFilePaint(); if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
       if(paper==='theirs'){ const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
     /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
-    root.querySelector('#na-np-go')?.addEventListener('click',()=>{ const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
+    /* delegated: Back from a start puts the four starts back, a fresh Continue with them */
+    root.addEventListener('click',e=>{ if(!e.target.closest||!e.target.closest('#na-np-go')) return; const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
     if(o&&o.newPaper) naNewPaperShow(root,true);
     /* Our paper's own words for the panel (the new look): the closest papers, the one chosen, the lines filled from the words */
     _naOurs={ up:()=>paper==='ours'&&naSheetUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },

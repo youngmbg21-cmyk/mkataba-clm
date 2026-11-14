@@ -367,7 +367,7 @@ function openCreateTemplateModal(mode){
       <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:${tab===k?'var(--color-accent-800)':'var(--color-neutral-800)'}">${label}</span>
       <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:1px">${sub}</span></button>`;
 
-  openModal(`
+  (typeof window.nsMount==='function'?window.nsMount:openModal)(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_create_template')}</h3></div>
@@ -419,7 +419,7 @@ function openCreateTemplateModal(mode){
   const st=m=>{ const el=document.getElementById('ct-status'); if(el) el.innerHTML=m||''; };
   const rep=m=>{ const el=document.getElementById('ct-report'); if(el) el.innerHTML=m||''; };
   bindFolderSelect(document.getElementById('ct-folder'));
-  document.getElementById('ct-cancel').addEventListener('click',closeModal);
+  document.getElementById('ct-cancel').addEventListener('click',()=>{ /* drawn in New agreement's From scratch tab: Cancel brings the four starts back */ if(typeof window.nsHostBack==='function' && window.nsHostBack()) return; closeModal(); });
 
   const paint=()=>{
     document.querySelectorAll('[data-ct-tab]').forEach(b=>{
