@@ -22469,3 +22469,6 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 
 ### 14 Nov 2026 — night run stopped before Round 1's merge (pull request 717)
 - Every GitHub job green but one: board-says-it-plain-verify A0, the FIRST question ("bubble chart of value against time left") did not draw its card within 12s; the same question with "can you draw" drew it at once. The check asks through intelAsk directly, not the box, so the typed-words watcher is not on its path; its own notes (9 and 11 Nov) record the first card landing late on GitHub's machine. Re-run failed jobs and Run workflow were refused to the session (403); the owner re-ran it by hand in the morning.
+
+### 14 Nov 2026 — THE MEASURE AFTER ROUNDS 1–3 (rebuild-measure run 43574639484, main as merged by pull request 718)
+- 1,016 presses: 64 lost something (first run 196 counting a box put away with its panel; third run 84), 216 rebuilt a part (first run 204), 173 flashed (first run 168). Losses left: Handbook 25 (scroll place, on Jambo's panel controls and the "Take … off Recent" crosses), Our paper 17, Calendar 9, Contracts 7, Clauses 2, Jambo's house 2, Dossier 1, Explorer 1; zero on the other fourteen pages. Rebuilds left, most: Dossier 21, Our paper 18, Contracts 17, Redlines 16, Explorer 16, Handbook 15. Not fixed: reported to the owner.
