@@ -5516,7 +5516,7 @@ function shareScreenSays(){
     const { c, st }=host._shNow(); if(!c) return null;
     const L=shareLetterOf(c, st);
     if(!L || L.none || L.turn || L.colleague) return null;
-    const goes=(L.parts||[]).filter(p=>(p.k==='say' && p.list) || p.k==='ans').map(p=>String(p.t||'')).filter(Boolean);
+    const goes=(L.parts||[]).filter(p=>(p.k==='say' && p.list) || p.k==='ans' || p.k==='round').map(p=>String(p.t||'')).filter(Boolean);
     const subj=document.getElementById('sh-lt-subject');
     return { contract:(typeof contractRef==='function')?contractRef(c):c.id, contractId:c.id, name:c.name||'',
       to:String(fval('sh-name')||'').trim() || c.counterparty || '', subject:subj?String(subj.value||''):String(L.subject||''),
@@ -5725,7 +5725,16 @@ function shareLetterNoteFit(){
   const lw=lab ? Math.ceil(lab.scrollWidth) : 0;
   /* THE SAP WAY (28 Oct 2026): the box runs the letter's width — a white box
      with a green edge, the one place you type; only its height hugs */
-  if(L.classList.contains('is-sap')) ta.style.width='100%';
+  /* PLAIN LETTER (owner's pick, 14 Nov 2026): on the four steps the note is a line of the letter, as wide as its words,
+     "Write it for me" right after them; a note longer than that line takes the letter's width, the link under it */
+  if(L.classList.contains('is-steps')){
+    const jb=document.getElementById('sh-nl-jb');
+    const room=Math.max(160, body.clientWidth - (jb && jb.getClientRects().length ? Math.ceil(jb.getBoundingClientRect().width) + 12 : 0));
+    const want=Math.max(Math.ceil(w)+6, 120);
+    /* one line fits beside the link: hug it; longer, the note takes the letter's width and the link sits under it */
+    ta.style.width=want<=room ? want+'px' : '100%';
+  }
+  else if(L.classList.contains('is-sap')) ta.style.width='100%';
   else ta.style.width=Math.min(cap, Math.max(lw, Math.ceil(w)+6, 120))+'px';
   ta.style.height='auto';
   ta.style.height=ta.scrollHeight+'px';
@@ -6064,6 +6073,8 @@ function shareLetterPaint(c, st){
        grip, no empty rows under them (shareLetterNoteFit sizes it) */
     const bare='border:0;background:transparent;padding:0;box-shadow:none;min-height:0;resize:none;overflow:hidden;outline:none;display:block;';
     if(onPaper && !ta.dataset.shLtBare){ ta.style.cssText=bare; ta.dataset.shLtBare='1'; ta.rows=1; }
+    /* PLAIN LETTER: the empty box says it is empty, in the letter's words (the record's sample stays for the history) */
+    if(onPaper && host.classList.contains('is-steps') && !(st && st.purpose==='history')){ const ph=i18t('sh_lt_note_ph'); if(ta.placeholder!==ph) ta.placeholder=ph; }
     else if(!onPaper && ta.dataset.shLtBare){ ta.style.cssText=ta.dataset.shLtCss; delete ta.dataset.shLtBare; ta.rows=3; }
     /* its frame (the label) hugs it too: the label's own inline block stands down on the letter */
     const fr=ta.closest('label');

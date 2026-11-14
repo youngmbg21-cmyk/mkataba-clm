@@ -201,6 +201,34 @@ const SHARE_MAIL_WHAT = {
   any: c => `${c} is ready for you.`,
 };
 const _smCap = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+/* THE ROUND IN ONE SENTENCE, IN THE SENDER'S VOICE (Plain letter, owner's pick by name, 14 Nov 2026): what this send
+   answers and what it proposes, read off the same answers the lists used to print (shareAnswersOf), said as a person
+   writes it: "We accept your change to clause 2, Term and Termination, and propose changes to five clauses: Pricing
+   and Payment, … and Liability." Nothing is invented: each clause is named as the reading names it; '' when there is
+   nothing to say. */
+const _SM_NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+const _smCount = n => _SM_NUM[n] || String(n);
+const _smAnd = xs => xs.length < 2 ? (xs[0] || '') : xs.length === 2 ? `${xs[0]} and ${xs[1]}` : `${xs.slice(0, -1).join(', ')}, and ${xs[xs.length - 1]}`;
+function _smClauseOne(clause){ const p = shareClauseParts(String(clause || '').replace(/^Clause\s+/i, '')); return p.n ? `clause ${p.n}, ${p.name}` : (p.name || 'a clause'); }
+function _smClauseName(clause){ const p = shareClauseParts(String(clause || '').replace(/^Clause\s+/i, '')); return p.name || 'a clause'; }
+const _smGroup = (rows, one, many) => rows.length === 1 ? one(_smClauseOne(rows[0].clause))
+  : many(`${_smCount(rows.length)} clauses: ${_smAnd(rows.map(r => _smClauseName(r.clause)))}`);
+function smRoundSentence(A){
+  if (!A) return '';
+  const lines = Array.isArray(A.lines) ? A.lines : [], own = Array.isArray(A.own) ? A.own : [];
+  const segs = [];
+  const acc = lines.filter(l => /^they accept your change/.test(l.say));
+  const kept = lines.filter(l => /^they keep the current wording/.test(l.say));
+  const fig = lines.filter(l => /^they propose .+ \(you asked for .+\)\.$/.test(l.say));
+  const fresh = lines.filter(l => !acc.includes(l) && !kept.includes(l) && !fig.includes(l));
+  if (acc.length) segs.push(_smGroup(acc, c => `accept your change to ${c}`, c => `accept your changes to ${c}`));
+  if (kept.length) segs.push(_smGroup(kept, c => `keep the current wording of ${c}`, c => `keep the current wording of ${c}`));
+  for (const l of fig){ const m = /^they propose (.+) \(you asked for (.+)\)\.$/.exec(l.say); segs.push(`propose ${m[1]} for ${_smClauseOne(l.clause)} (you asked for ${m[2]})`); }
+  if (fresh.length) segs.push(_smGroup(fresh, c => `propose new wording for ${c}`, c => `propose new wording for ${c}`));
+  if (own.length) segs.push(_smGroup(own, c => `propose a change to ${c}`, c => `propose changes to ${c}`));
+  if (!segs.length) return '';
+  return `We ${segs.length === 1 ? segs[0] : segs.slice(0, -1).join(', ') + ', and ' + segs[segs.length - 1]}.`;
+}
 const SHARE_MAIL_CODE = 'Before the page opens, we send a one-time code to this address.';
 /* The share email (channel email) and the Word email (channel word).
    o = { channel, purpose, sender, title, org, cName, recName, message, link,
@@ -253,15 +281,11 @@ function shareMailOf(o){
     parts.push({ k: 'hello', t: first ? `Dear ${first},` : 'Hello,' });
     if (msg) parts.push({ k: 'msg', t: msg });
     else {
+      /* PLAIN LETTER (owner's pick by name, 14 Nov 2026): the round is ONE sentence in the sender's voice, the detail
+         behind the button — no lists, no second size (smRoundSentence) */
       const A0 = (x.purpose === 'negotiate' && x.answers) ? x.answers : null;
-      if (A0 && A0.lines && A0.lines.length){
-        parts.push({ k: 'say', t: A0.lines.length === 1 ? `${org} has answered your redline:` : `${org} has answered ${A0.lines.length} of your redlines:`, list: 'ans' });
-        for (const l of A0.lines) parts.push({ k: 'ans', t: `${l.clause}: ${l.say}`, clause: l.clause, rest: l.say });
-      }
-      if (A0 && A0.own && A0.own.length){
-        parts.push({ k: 'say', t: `${org} proposes ${A0.own.length === 1 ? 'a change' : A0.own.length + ' changes'} of its own:`, list: 'own' });
-        for (const l of A0.own) parts.push({ k: 'ans', t: `${l.clause}.`, clause: l.clause, rest: '' });
-      }
+      const said = smRoundSentence(A0);
+      if (said) parts.push({ k: 'round', t: said });
     }
     const what = SHARE_MAIL_WHAT[x.purpose] || SHARE_MAIL_WHAT.any;
     parts.push({ k: 'what', t: _smCap(what(_smThe(cName, false, coded), round)) });
@@ -601,7 +625,7 @@ function codeMailOf(o){
   return { subject, body: lines.join('\n\n'), html };
 }
 const SHARE_MAIL_API = { smDrawnLetter, smTextLetterHtml, reminderMailOf, codeMailOf, linkAskMailOf, PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, SHARE_SUBJECT_MAX, shareSubjectClean, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
-  shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
+  shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, smRoundSentence, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;
 
