@@ -91,7 +91,12 @@ const INIT = () => {
   const sig = () => { const d = dlgNow(), sc = d || document.body;
     let face = ''; try { face = typeof hbFace === 'function' ? String(hbFace() || '') : ''; } catch (_){ face = ''; }
     const st = window.state || {};
-    return { view: String(st.view || ''), face, active: String(st.activeId || ''), dlg: !!d,
+    /* WHERE THE READER IS includes the contract on Home's paper and whether the Contracts place is up (14 Nov 2026,
+       the last flicker: a Recent entry or an alert that OPENS A CONTRACT from Contracts kept view, face and activeId,
+       and was counted as a lost place instead of a move) */
+    let paper = ''; try { paper = String((window.intel && intel.paper && intel.paper.id) || ''); } catch (_){ paper = ''; }
+    const ctp = document.getElementById('ct-place'), place = !!(ctp && vis(ctp));
+    return { view: String(st.view || ''), face, active: String(st.activeId || ''), paper, place, dlg: !!d,
       dlgName: d ? (d.getAttribute('aria-label') || txt(d.querySelector('h1,h2,h3,.dlg-title')) || '').slice(0, 50) : '',
       lit: [...sc.querySelectorAll(LIT)].slice(0, 30).map(label), words: [...sc.querySelectorAll('[aria-expanded]')].filter(vis).slice(0, 20).map(label) }; };
   const wordsIn = part => { const out = []; if (!part) return out; const w = document.createTreeWalker(part, NodeFilter.SHOW_ELEMENT); let n = w.currentNode, i = 0;
@@ -204,7 +209,7 @@ const sameList = (a, b) => JSON.stringify(a || []) === JSON.stringify(b || []);
 
 function judge(pre, film, post){
   const a = pre.sig, b = post.sig;
-  const moved = a.view !== b.view || a.face !== b.face || a.active !== b.active;
+  const moved = a.view !== b.view || a.face !== b.face || a.active !== b.active || a.paper !== b.paper || a.place !== b.place;
   const what = [], lost = [], flash = [], away = [];
   const reopened = a.dlg && b.dlg && !post.dlgKept;
   if (reopened) what.push('the pop-up is closed and a new one opened' + (a.dlgName !== b.dlgName ? ` ("${a.dlgName}" became "${b.dlgName}")` : ''));

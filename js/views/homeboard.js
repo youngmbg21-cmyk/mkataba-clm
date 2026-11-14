@@ -5601,17 +5601,22 @@ function hbChaseManyHtml(its){
   const L = hbChaseItems(its);
   const ed = typeof canEdit !== 'function' || canEdit();
   if (L.length < 2 || !ed) return '';
-  const ok = L.filter(it => !it.noAddress);
-  const rows = L.map(it => `<label class="hb-cm-row${it.noAddress ? ' is-off' : ''}"><input type="checkbox" data-hb-chase-key="${_hbE(it.key)}"${it.noAddress ? ' disabled' : ' checked'}><span>${_hbE((it.c && it.c.counterparty) || '')}</span><small>${_hbE(it.ob.desc || '')}${it.noAddress ? ' · ' + _hbE(i18t('hb_cm_no_address')) : ''}</small></label>`).join('');
+  const ok = L.filter(it => !it.noAddress), on = ok.filter(it => !_hbChaseOff.has(it.key));
+  /* A ROW UNTICKED STAYS UNTICKED (14 Nov 2026, the last flicker: the panel drawn again a moment after an untick
+     drew every row ticked, and the reader's choice was undone — chase-many-verify 1b caught it on GitHub) */
+  const rows = L.map(it => `<label class="hb-cm-row${it.noAddress ? ' is-off' : ''}"><input type="checkbox" data-hb-chase-key="${_hbE(it.key)}"${it.noAddress ? ' disabled' : (_hbChaseOff.has(it.key) ? '' : ' checked')}><span>${_hbE((it.c && it.c.counterparty) || '')}</span><small>${_hbE(it.ob.desc || '')}${it.noAddress ? ' · ' + _hbE(i18t('hb_cm_no_address')) : ''}</small></label>`).join('');
   return `<div class="hb-cm" data-hb-chase-many-box><div class="hb-cm-h">${_hbE(i18tn('hb_cm_head', L.length, { n: L.length }))}</div>${rows}
-    <div class="hb-cm-foot"><button type="button" class="hb-btn is-primary" data-hb-chase-many${ok.length ? '' : ' disabled'}>${_hbE(i18tn('hb_cm_go', ok.length, { n: ok.length }))}</button><span class="hb-quiet">${_hbE(i18t('hb_cm_note'))}</span></div></div>`;
+    <div class="hb-cm-foot"><button type="button" class="hb-btn is-primary" data-hb-chase-many${on.length ? '' : ' disabled'}>${_hbE(i18tn('hb_cm_go', on.length, { n: on.length }))}</button><span class="hb-quiet">${_hbE(i18t('hb_cm_note'))}</span></div></div>`;
 }
 function hbChaseManyCount(box){
+  if (box) box.querySelectorAll('[data-hb-chase-key]:not([disabled])').forEach(x => { const k = x.getAttribute('data-hb-chase-key');
+    if (x.checked) _hbChaseOff.delete(k); else _hbChaseOff.add(k); });
   const n = box ? box.querySelectorAll('[data-hb-chase-key]:checked').length : 0;
   const b = box && box.querySelector('[data-hb-chase-many]');
   if (b){ b.textContent = i18tn('hb_cm_go', n, { n }); b.disabled = !n; }
 }
 let _hbChasing = false;
+const _hbChaseOff = new Set();   /* the rows the reader unticked, kept across a redraw of the panel */
 async function hbChaseManyRun(box){
   if (_hbChasing || !box || typeof obligationChase !== 'function' || typeof agFind !== 'function') return;
   const keys = [...box.querySelectorAll('[data-hb-chase-key]:checked')].map(x => x.getAttribute('data-hb-chase-key'));
@@ -10763,7 +10768,7 @@ function hbOnClick(e){
   if (on('#hb-tip [data-hb-dig]')) hbTipHide(true);
   if (on('[data-hb-setup]')){ e.preventDefault(); hbSetupGo(); return; }
   if (on('[data-hb-chase-many]')){ e.preventDefault(); hbChaseManyRun(t.closest('[data-hb-chase-many-box]')); return; }
-  if (on('[data-hb-chase-key]')){ setTimeout(() => hbChaseManyCount(t.closest('[data-hb-chase-many-box]')), 0); return; }
+  if (on('[data-hb-chase-key]')){ const bx = t.closest('[data-hb-chase-many-box]'); hbChaseManyCount(bx); setTimeout(() => hbChaseManyCount(t.closest('[data-hb-chase-many-box]') || bx), 0); return; }
   if ((el = on('[data-hb-ag-look]'))){ e.stopPropagation(); hbAgLookToggle(el.getAttribute('data-hb-ag-look')); return; }
   if (on('[data-hb-ag-item]') && hbAgentWorkPress(t)){ e.stopPropagation(); return; }
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
