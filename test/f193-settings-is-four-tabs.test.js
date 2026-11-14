@@ -174,7 +174,8 @@ const NON_ADMIN_COULD = [
   { name: 'export their own backup', home: 'account', sel: '[data-st-mycopy]' },   /* round 24 as drawn, 18 Oct 2026 */
   { name: 'see and revoke their own sessions', home: 'account', me: 'safety', has: ['sessions-list'] },
   { name: 'read what HaTi emails them', home: 'account', me: 'told', textKey: 'set_still_emailed' },
-  { name: 'an Editor may change the company design', home: 'account-legal', me: 'design', has: ['brand-edit'] },
+  /* the company look is an admin's now (owner, 14 Nov 2026): Settings, How our contracts look */
+  { name: 'change how our contracts look (an admin\'s since 14 Nov 2026)', home: 'closed', closure: 'company-look' },
   { name: 'read the roster', home: 'closed', closure: 'roster' },
   { name: 'read the workspace rules', home: 'closed', closure: 'rules' },
 ];
@@ -347,14 +348,10 @@ describe('f193 — half (b): nobody was locked out quietly', () => {
      settings): Company design is a workspace setting, so it is off the
      Editor's sheet and found by its name — the Menu lists it and it opens in
      its drawer — rather than lost */
-  test('the Editor keeps a company-design door and an admin keeps theirs', () => {
+  test('the company look is an admin\'s: the Editor has no door to it, an admin keeps theirs (owner, 14 Nov 2026)', () => {
     const legal = stage({ role: 'legal' });
-    assert.ok(!legal.sb.document.querySelector('[data-st-you-card="design"]'), 'not a heading on the Editor\'s sheet (eight, as drawn)');
-    assert.ok(legal.sb.document.querySelector('#st-list [data-st-you="design"]'), 'an Editor\'s Menu still names Company design');
-    legal.sb.stYouGo('design');
-    assert.ok(legal.$('brand-edit'), 'and its door reaches the design step');
-    legal.sb.stDrawerOpen('me:design');
-    assert.ok(legal.$('brand-edit'), 'and it reaches the design step');
+    assert.ok(!legal.sb.document.querySelector('[data-st-you-card="design"]'), 'not a heading on the Editor\'s sheet');
+    assert.ok(!legal.sb.document.querySelector('#st-list [data-st-you="design"]'), 'nor a row in their Menu');
     const viewer = stage({ role: 'viewer' });
     assert.ok(!viewer.sb.document.querySelector('[data-st-you-card="design"]'), 'a Viewer never could and still cannot');
     const admin = stage();

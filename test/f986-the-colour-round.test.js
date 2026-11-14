@@ -39,10 +39,12 @@ test('Requests: today green, a week or more amber', () => {
   assert.match(fnBody(S, 'iknRowHtml'), /cun-wait ikn-age\$\{iknAgeTone\(r\)\}/);
   assert.match(CSS, /html\.lg-new td\.cun-wait\.ikn-age\.is-old\{color:var\(--st-amber-fg\)\}/);
 });
-test('Our paper: use bars to scale', () => {
-  const f = fnBody(read('js/views/library.js'), 'tplnHtml');
-  assert.match(f, /\$\{useBar\(x\.last\.cs\.length\)\}/);
-  assert.match(CSS, /html\.lg-new \.tpln-bar\{[^}]*--st-green-dot/);
+/* REVERSED 14 Nov 2026 (owner's pick, Our paper the Legora way): the uses are said in small type on the right of each
+   row, and the colour is the stream's own mark (f1049) */
+test('Our paper: each row\'s uses said on the right, the stream\'s colour on its mark', () => {
+  const f = fnBody(read('js/views/library.js'), 'tplnRowHtml');
+  assert.match(f, /<span class="tpln-u">\$\{_tplEsc\(i18tn\('tpln_uses', uses, \{ n: uses \}\)\)\}<\/span>/);
+  assert.match(f, /background:var\(--st-\$\{tone\}-dot\)/);
 });
 test('Calendar: kind labels read off the record, both books', () => {
   const S = read('js/views/calendar.js');
