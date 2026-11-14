@@ -475,6 +475,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f244, f907, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
+- THE ASK BOX ACTS JUST LIKE JAMBO'S (owner, 14 Nov 2026): f1051 (new; red at the parent, 2 of 2) — no ring on the words, Jambo's edge and glow on the pill. Measured in a browser at the three screens: the words' box-shadow none, the pill's glow on focus.
 - "the closest" on one line, the name shortened (22 Oct 2026): `tidy-sweep-verify.js` draft place (owner-length standard names seeded; red at e05849a at 1440 and 1366).
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
 - Every door opens beside Jambo (22 Oct 2026): draft-beside-jambo verify 1–3 (red at the parent), requests-and-notes-as-drawn 3d.
