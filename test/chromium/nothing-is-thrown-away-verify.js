@@ -77,9 +77,13 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
        0), else the biggest scroller in the host again */
     const scrollAfter = host => page.evaluate(host => { const H = document.querySelector(host); if (!H) return null;
       const m = [...document.querySelectorAll('[data-guard-sc]')].find(x => x.getAttribute('data-guard-sc') === host);
-      if (m) return m.scrollTop;
+      if (m) return { top: m.scrollTop, max: m.scrollHeight - m.clientHeight };
       const all = [...H.querySelectorAll('*')].filter(el => el.scrollHeight > el.clientHeight + 40 && /auto|scroll/.test(getComputedStyle(el).overflowY));
-      all.sort((a, b) => b.scrollTop - a.scrollTop); return all.length ? all[0].scrollTop : 0; }, host);
+      all.sort((a, b) => b.scrollTop - a.scrollTop); return all.length ? { top: all[0].scrollTop, max: all[0].scrollHeight - all[0].clientHeight } : { top: 0, max: 0 }; }, host);
+    /* KEPT means where it was, or as far down as the list now goes: a page an inch shorter after the press holds a
+       list that stood at its bottom at its NEW bottom (GitHub's third run: 104 -> 86, with 86 the furthest it went) */
+    const kept = (was, now) => !!now && Math.abs(now.top - Math.min(was, now.max)) <= 6;
+    const said = (was, now) => now ? `${was} -> ${now.top} (the furthest it goes now: ${now.max})` : 'the list is gone';
 
     console.log('\n1-2 · Home, Jambo\'s box');
     await go('board'); await openDock();
@@ -114,14 +118,14 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
     const h6 = await scrollAndPick('#hbk-page', '[data-hbkn-ch], [data-hbk-part]');
     if (!h6 || h6.why) skip('6', (h6 && h6.why) || 'no Handbook');
     else { await page.waitForTimeout(700); const now = await scrollAfter('#hbk-page');
-      say('handbook-list', `6. pressing "${h6.label}" keeps the chapter list where it was`, now != null && Math.abs(now - h6.top) <= 6, `${h6.top} -> ${now}`); }
+      say('handbook-list', `6. pressing "${h6.label}" keeps the chapter list where it was`, kept(h6.top, now), said(h6.top, now)); }
 
     console.log('\n7 · Our paper\'s list');
     await go('ourpaper'); await page.waitForTimeout(600);
     const h7 = await scrollAndPick('[data-tpl-sec="book"]', '[data-tpl-pf]');
     if (!h7 || h7.why) skip('7', (h7 && h7.why) || 'no Our paper');
     else { await page.waitForTimeout(700); const now = await scrollAfter('[data-tpl-sec="book"]');
-      say('ourpaper-list', `7. pressing "${h7.label}" keeps the list where it was`, now != null && Math.abs(now - h7.top) <= 6, `${h7.top} -> ${now}`); }
+      say('ourpaper-list', `7. pressing "${h7.label}" keeps the list where it was`, kept(h7.top, now), said(h7.top, now)); }
 
     console.log('\n8 · Jambo\'s house');
     await go('house'); await page.waitForTimeout(600);
