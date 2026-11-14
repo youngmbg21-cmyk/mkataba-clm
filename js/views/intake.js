@@ -1767,15 +1767,32 @@ function iknAgeTone(r){
   const days = Math.max(0, Math.floor((Date.now() - t) / 86400000));
   return days <= 1 ? ' is-fresh' : days >= IKN_OLD_DAYS ? ' is-old' : '';
 }
+/* THE SAP WAY, WITH COLOUR (owner's pick by name, 14 Nov 2026: "improve the design of the request page with a bit of
+   color"): colour only says a fact. A SAP mark leads each row (the house's one map, LIST_SAP_MARK: your move an amber !,
+   with someone a steel i, drafted a green tick); the stream is its soft chip, in the tone the Contracts list gives it
+   (listStreamTone); where it stands is a coloured word with the paper that fits under it; only the chosen row's
+   Start the draft is filled — the rest are grey pills. */
+function iknStateOf(r){
+  if (r.contractId) return { mk: 'done', tone: 'green' };
+  if (r._adv) return { mk: 'them', tone: 'steel' };
+  return r.assignee ? { mk: 'them', tone: 'steel' } : { mk: 'you', tone: 'amber' };
+}
 function iknRowHtml(r, may){
-  const st = iknStands(r);
-  const lane = [r.folder && window.FOLDERS && FOLDERS[r.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[r.folder]) || FOLDERS[r.folder].name) : '', r.assignee ? String(r.assignee.name || '').split(/\s+/)[0] : (r.holder || '')].filter(Boolean).join(' \u00b7 ');
-  const act = r._adv ? '' : r.contractId ? `<button type="button" class="rfp-a" data-ikn-open="${esc(r.contractId)}">${esc(i18t('ikn_open_go'))}</button>`
-    : may ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm ikn-go" data-ikn-draft="${esc(r.id)}">${esc(i18t('ikn_start'))}</button>` : '';
+  const st = iknStands(r), S = iknStateOf(r);
   const sel = String(r.id) === String(_iknSel);
-  return `<tr data-ikn-row="${esc(r.id)}" class="${sel ? 'is-sel' : ''}${r.contractId ? ' is-done' : ''}" tabindex="-1"><td><div class="cun-name">${esc(r.title || '')}</div>${r._adv ? `<div class="cun-sub">${esc(i18t('ikn_advice_w'))}</div>` : ''}${r.need ? `<div class="ikn-q">\u201c${esc(String(r.need).slice(0, 120))}${String(r.need).length > 120 ? '\u2026' : ''}\u201d</div>` : ''}</td>
-    <td class="cun-wait">${esc(st.t)}${st.sub ? `<div class="cun-sub">${esc(st.sub)}</div>` : ''}</td>
-    <td class="cun-wait ikn-age${iknAgeTone(r)}">${esc([ikFirstLast(r.by && r.by.name), typeof ikAgeWords === 'function' ? ikAgeWords(r) : ''].filter(Boolean).join(' \u00b7 '))}</td><td class="cun-wait">${esc(lane || '\u2014')}</td><td class="cun-go">${act}</td></tr>`;
+  const streamName = r.folder && window.FOLDERS && FOLDERS[r.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[r.folder]) || FOLDERS[r.folder].name) : '';
+  const stream = streamName ? (typeof listChipHtml === 'function' ? listChipHtml(typeof listStreamTone === 'function' ? listStreamTone(r.folder) : 'gray', streamName) : esc(streamName)) : '—';
+  const fits = st.fit && st.fit.strong ? i18t('ikn_s_fits', { name: st.fit.name }) : '';
+  const word = r.contractId || r._adv ? st.t : r.assignee ? i18t('ikn_s_with', { name: String(r.assignee.name || '').split(/\s+/)[0] }) : i18t('ikn_s_needs');
+  const stands = typeof listWordHtml === 'function' ? listWordHtml(S.tone, word, r.contractId || r._adv ? '' : fits) : esc(word);
+  const act = r._adv ? '' : r.contractId ? `<button type="button" class="rfp-a" data-ikn-open="${esc(r.contractId)}">${esc(i18t('ikn_open_go'))}</button>`
+    : may ? `<button type="button" class="ui-btn ${sel ? 'ui-btn-primary ' : ''}ui-btn-sm ikn-go" data-ikn-draft="${esc(r.id)}">${esc(i18t('ikn_start'))}</button>` : '';
+  const name = `<div class="cun-name">${esc(r.title || '')}</div>${r._adv ? `<div class="cun-sub">${esc(i18t('ikn_advice_w'))}</div>` : ''}${r.need ? `<div class="ikn-q">“${esc(String(r.need).slice(0, 120))}${String(r.need).length > 120 ? '…' : ''}”</div>` : ''}`;
+  const by = ikFirstLast(r.by && r.by.name), age = typeof ikAgeWords === 'function' ? ikAgeWords(r) : '';
+  return `<tr data-ikn-row="${esc(r.id)}" class="${sel ? 'is-sel' : ''}${r.contractId ? ' is-done' : ''}" tabindex="-1"><td>${typeof listSapCellHtml === 'function' ? listSapCellHtml(S.mk, name) : name}</td>
+    <td class="cun-wait ikn-stream">${stream}</td>
+    <td class="cun-wait">${stands}</td>
+    <td class="cun-wait ikn-age${iknAgeTone(r)}">${esc(by || '—')}${age ? `<div class="cun-sub">${esc(age)}</div>` : ''}</td><td class="cun-go">${act}</td></tr>`;
 }
 let _iknSel = null;
 /* REQUESTS' TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Open · Mine · Drafted · Advice only pick which requests),
@@ -1795,8 +1812,8 @@ function iknRender(host, o){
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:32%"><col style="width:26%"><col style="width:15%"><col style="width:14%"><col></colgroup>
-        <thead><tr><th>${esc(i18t('ikn_c_req'))}</th><th>${esc(i18t('ikn_c_stands'))}</th><th>${esc(i18t('ikn_c_by'))}</th><th>${esc(i18t('ikn_c_lane'))}</th><th></th></tr></thead>
+      <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:36%"><col style="width:15%"><col style="width:22%"><col style="width:13%"><col></colgroup>
+        <thead><tr><th>${esc(i18t('ikn_c_req'))}</th><th>${esc(i18t('ikn_c_stream'))}</th><th>${esc(i18t('ikn_c_stands'))}</th><th>${esc(i18t('ikn_c_by'))}</th><th></th></tr></thead>
         <tbody>${R.list.map(r => iknRowHtml(r, may)).join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;

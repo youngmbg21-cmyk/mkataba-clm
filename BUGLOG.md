@@ -22461,3 +22461,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - STILL REBUILT WHOLE, NOT FIXED: about 219 presses redraw a whole part (Contracts, the Dossier, Our paper, the Explorer, the Handbook lead). Nothing is lost to them any more on the fixed pages, but the work is done twice; the shared morph the work order drew is the cure and was deliberately not built blind (MAP-HISTORY).
 - TWO CHECKS FAILED ONCE AND PASSED TWICE ON THE SAME CODE: jambo-panel-sweep-verify (Home · Board: its links not reachable) and details-owes-overview-edits-verify 4b. Passed in runs 5072 and 5075, failed in 5074. Timing in the checks, not a fault seen in the product; a third failure would make it one.
 - WHY THE TESTS WOULD NOT START, TWICE: GitHub does not run a pull request's checks while the branch conflicts with main. Other sessions merged into main during the night; each time the cure was to merge main in (one appended-notes conflict each time, both sides kept).
+
+## The calm round, 14 Nov 2026 — what was removed, and what was noticed
+- REMOVED (said to the owner): on the send screen in the new look, the grey sentence tags under each choice ("Nothing is held back for review", "Not sign: the route is not open yet", the channel's line) are no longer drawn; an amber "held back for review" line still shows. The owner's picked drawing ("The Legora way") carries no tags.
+- NOTICED, NOT FIXED: CLAUDE.md is about 86 KB, past its own 80 KB limit (it was 85 KB before this round); trimming it needs the owner's yes.
+- NOTICED, NOT FIXED (14 Nov 2026): f515-three-next-questions and f520-see-it-while-you-type fail on this branch with this round's changes set aside too (already red before it); left as they are.

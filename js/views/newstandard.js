@@ -189,8 +189,15 @@ function nsOpen(tid, vid, start) {
    suggested NAME and CATEGORY, which fill the builder's head. */
 function nsNameFromSentence(said) {
   const first = String(said || '').split(/[:.;\n]/)[0].trim();
-  if (!first || first.length > 60) return '';
-  return first.charAt(0).toUpperCase() + first.slice(1);
+  if (first && first.length <= 60) return first.charAt(0).toUpperCase() + first.slice(1);
+  /* A LONG SENTENCE STILL NAMES ITS PAPER (owner, 14 Nov 2026: the paper is named from your words, not "New standard
+     contract"): what is leased is read off "leasing us …"/"lease of …", else the kind the free draft reader names;
+     nothing read, nothing named (the caller falls back to Untitled) — never a guess */
+  const cap = t => t.replace(/\b([a-z])/g, (m, c) => c.toUpperCase());
+  const lease = String(said || '').match(/\b(?:leas(?:e|es|ing)(?:\s+(?:us|to\s+us|of))?)\s+(?:the\s+|some\s+|our\s+)?([a-z][a-z-]*(?:\s+[a-z][a-z-]*)?)\b/i);
+  if (lease && !/^(?:a|an|it|them|for|to|from|with)$/i.test(lease[1])) return cap(lease[1].replace(/\s+(?:for|to|from|with)$/i, '')) + ' Lease Agreement';
+  const kind = (typeof window.caDraftKindOf === 'function') ? String(window.caDraftKindOf(said) || '').trim() : '';
+  return kind && kind.length <= 48 ? kind.charAt(0).toUpperCase() + kind.slice(1) : '';
 }
 function nsOpenScratch(o = {}) {
   nsStyle();
@@ -199,6 +206,7 @@ function nsOpenScratch(o = {}) {
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_scratch'))}</h3>
     <label style="display:block;margin:10px 0 0"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${nsEsc(i18t('ns_what_for'))}</span>
       <textarea id="ns-say-box" rows="4" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}" style="${NS_FLD};height:auto;padding:var(--field-pad-y) var(--field-pad-x);resize:vertical;min-height:96px">${nsEsc(o.said || '')}</textarea></label>
+    ${ai ? `<p class="ns-next" style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--color-quiet)">${nsEsc(i18t('ns_what_next'))}</p>` : ''}
     <div id="ns-say" class="ns-say"></div>
     ${nsFootHtml(ai ? i18t('ns_propose') : i18t('ns_open_builder'), ai ? '' : i18t('tb_pb_nokey'))}
   </div>`, { maxWidth: nsW('l'), label: i18t('ns_scratch') });

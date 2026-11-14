@@ -2102,8 +2102,11 @@ function tbChipsRowHtml() {
          is already what the section says, there is nothing to propose. */
       if (lib && tbLibraryOffers(sec, lib))
         chips.push([`data-tb-lib="${sec.k}" title="${esc(i18t(txt ? 'tb_pb_lib_over' : 'tb_pb_no_read'))}"`,
-          i18t('tb_pb_use_ours', { name: esc(lib.name) })]);
-      if (txt) ['shorter', 'firmer', 'mutual', 'plain'].forEach(c => chips.push([`data-tb-chip="${c}" title="${i18t('tb_pb_one_read')}"`, i18t('tb_chip_' + c)]));
+          /* SHORT WORDS, ALL OF THEM SHOWN (owner, 14 Nov 2026: "The options should be shorter, firmer and not long names
+             options. Also they should not disappear past the edge of the screen"): the new look says Use ours · Shorter ·
+             Firmer · Mutual · Plainer, the standard's own name on the hover; the row wraps instead of scrolling away */
+          (typeof window.newLookOn === 'function' && window.newLookOn()) ? i18t('tb_pb_use_ours_short') : i18t('tb_pb_use_ours', { name: esc(lib.name) })]);
+      if (txt) ['shorter', 'firmer', 'mutual', 'plain'].forEach(c => chips.push([`data-tb-chip="${c}" title="${i18t('tb_pb_one_read')}"`, i18t((c === 'mutual' || c === 'plain') && (typeof window.newLookOn === 'function' && window.newLookOn()) ? 'tb_chip_s_' + c : 'tb_chip_' + c)]));
       if (_tb.walk && !txt && tbNextEmpty(sec.k)) chips.push(['data-tb-skip', i18t('tb_skip_sec')]);
     }
   }
@@ -2232,6 +2235,15 @@ function tbSecPickHtml() {
   const secs = tbSections(); if (!secs.length) return '';
   const on = _tb.focus != null ? String(_tb.focus) : '';
   const opt = s => { const n = tbPaperNo(s); return `<option value="${s.k}"${String(s.k) === on ? ' selected' : ''}>${esc((n ? n + '. ' : '') + (s.head || i18t('tb_untitled')))}</option>`; };
+  /* THE CLAUSE IN HAND IS NAMED, NOT CHOSEN AGAIN (owner, 14 Nov 2026, approved drawing): the new look draws the section's
+     name in plain words with "‹ All clauses" back to the list, in place of the drop-down; with none in hand the list
+     below is the chooser */
+  if ((typeof window.newLookOn === 'function' && window.newLookOn())){
+    if (!on) return '';
+    const s = secs.find(x => String(x.k) === on); if (!s) return '';
+    const n = tbPaperNo(s);
+    return `<div class="tb-secpick is-named"><button type="button" class="tb-allsecs" data-tb-allsecs>${esc(i18t('tb_all_secs'))}</button><b class="tb-secname">${esc((n ? n + '. ' : '') + (s.head || i18t('tb_untitled')))}</b></div>`;
+  }
   return `<div class="tb-secpick"><select id="tb-secpick" data-tb-secpick aria-label="${esc(i18t('tb_pick_sec'))}">${on ? '' : `<option value="" selected>${esc(i18t('tb_pick_sec'))}</option>`}${secs.map(opt).join('')}</select></div>`;
 }
 function tbCtxHtml(sec) {
@@ -2939,6 +2951,7 @@ function tbWire() {
       const pick = document.getElementById('tb-pick'); if (pick) pick.hidden = true;
       return;
     }
+    if (hit('[data-tb-allsecs]')) { tbFocus(null); return; }
     if ((b = hit('[data-tb-lib]'))) { tbUseLibrary(Number(b.getAttribute('data-tb-lib'))); return; }
     if ((b = hit('[data-tb-chip]'))) { if (_tb.focus != null) tbDraft(_tb.focus, TB_CHIP_ASK[b.getAttribute('data-tb-chip')]); return; }
     if (hit('[data-tb-skip]')) { const nx = tbNextEmpty(_tb.focus); if (nx) tbFocus(nx.k, { scroll: true }); return; }

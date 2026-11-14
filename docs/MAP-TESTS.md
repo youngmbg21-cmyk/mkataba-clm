@@ -749,3 +749,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE READ PLAYS ON ARRIVAL, AND THE × IN ITS CIRCLE (owner, 12 Nov 2026): f1018 (new; red at the parent: the arrival only opened the walk, the icon sat 8px left); the-read-bar-and-notes-verify 4 · 4b · 5. f1018 (5) the quick run with the Clauses read.
 - THE FORM, THE LEGORA WAY (owner, 12 Nov 2026): f1022 (new; red at the parent: grouped heads, no chips, "As you type", no sentence fill); form-the-legora-way-verify (new); contract-new-look-verify 10a · 10 re-pointed.
 
+- THE CALM ROUND (owner, 14 Nov 2026): f1048 (new); f963 (1) re-pointed (Draft agreement ends the Board head's run); f972 (1, 1b) re-pointed (the email's sentence and small print); f1044 (4) removed (the sheet's From scratch list is gone); browser (GitHub): round6-new-look-verify 13, negotiate-new-look-verify 4 (re-pointed)

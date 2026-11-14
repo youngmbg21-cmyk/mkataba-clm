@@ -5476,7 +5476,7 @@ function shareLetterOf(c, st){
      and the sign-off is the sender's own job title; the one-time code is said
      where the company asks for it (the link's own gate, linkCodeCfg). */
   const pc=(s.payload&&s.payload.contract)||{};
-  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(), drawn:(typeof newLookOn==='function'&&newLookOn()),
+  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(), durable:!!(document.getElementById('sh-durable')||{}).checked, drawn:(typeof newLookOn==='function'&&newLookOn()),
     round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc, c),
     codeOn:!!(typeof linkCodeCfg==='function' && linkCodeCfg().on) }), head:true, letter:true };
 }
@@ -5856,8 +5856,70 @@ if(typeof document!=='undefined' && !document._shColWired){
     if(_shCol.open && !(e.target&&e.target.closest&&e.target.closest('#sh-col'))){ _shCol.open=false; repaint(); }
   });
 }
+/* THE SEND SCREEN, THE LEGORA WAY (owner's pick by name, 14 Nov 2026): the letter IS the page — a full white paper on
+   the grey desk, To and Subject two plain lines at its top, nothing outlined; the four choices one sentence above it,
+   each a soft pill with its arrow ("Wanjiru gets [the contract, round 1 ▾] and can [reply with their own changes ▾].
+   It goes [by email ▾], [open for the whole negotiation ▾]."). Every control, id and listener is the one this screen
+   always had — only their places and clothes change: the To row moves into the paper, the rows' labels become the
+   sentence's words. Behind the new look only. */
+function shareLegoraOn(){ return typeof newLookOn==='function' && !!newLookOn(); }
+function shareLegoraArrange(host){
+  if(!host || !shareLegoraOn()) return;
+  host.classList.add('is-legora');
+  const page=host.closest('.modal-in'); if(page) page.classList.add('is-sh-legora');
+  if(!host.dataset.lgArr){
+    host.dataset.lgArr='1';
+    const to=host.querySelector('.sh-lt-to'), mail=host.querySelector('.sh-lt-mail');
+    if(to && mail) mail.insertBefore(to, mail.firstChild);
+    const pair=document.querySelector('#sh-lt-by-row .sh-as-pair'), link=pair && pair.querySelector('[data-sh-as="link"]');
+    if(link){ const j=document.createElement('span'); j.className='sh-lg-j'; j.textContent=','; pair.insertBefore(j, link); }
+    if(pair){ const end=document.createElement('span'); end.className='sh-lg-j'; end.textContent='.'; pair.appendChild(end); }
+    /* SOMEONE NEW (owner's yes, 14 Nov 2026): a person not yet named on the contract, typed in on the To line; they join
+       the ticked people (shareMoreChosen) and get their own email and link, as each extra person always has */
+    const kind=host.querySelector('.sh-to-kind');
+    if(kind && !kind.querySelector('[data-sh-new-go]')){
+      kind.insertAdjacentHTML('afterbegin', `<button type="button" class="sh-lt-change" data-sh-new-go>${esc(i18t('sh_lg_new'))}</button>`);
+      kind.insertAdjacentHTML('afterend', `<div class="sh-lg-new hidden" id="sh-lg-new"><input id="sh-lg-new-name" type="text" autocomplete="off" placeholder="${esc(i18t('co_name'))}"><input id="sh-lg-new-email" type="email" autocomplete="off" placeholder="${esc(i18t('sh_lg_new_email'))}"><button type="button" class="ui-btn ui-btn-sm" data-sh-new-add>${esc(i18t('sh_lg_new_add'))}</button><span class="sh-lg-new-why" id="sh-lg-new-why" role="status"></span></div>`);
+    }
+    if(!host.dataset.lgWired){ host.dataset.lgWired='1';
+      host.addEventListener('click', e=>{
+        const t=e.target && e.target.closest ? e.target : null; if(!t) return;
+        if(t.closest('[data-sh-new-go]')){ e.preventDefault(); const f=document.getElementById('sh-lg-new'); if(f){ f.classList.remove('hidden'); if(typeof fieldFocus==='function') fieldFocus(document.getElementById('sh-lg-new-name')); } return; }
+        if(t.closest('[data-sh-new-add]')){ e.preventDefault(); shareLegoraAddNew(); }
+      });
+      host.addEventListener('keydown', e=>{ if(e.key==='Enter' && e.target && (e.target.id==='sh-lg-new-name'||e.target.id==='sh-lg-new-email')){ e.preventDefault(); shareLegoraAddNew(); } });
+      document.getElementById('sh-name')?.addEventListener('input', ()=>shareLegoraWords());
+    }
+  }
+  shareLegoraWords();
+}
+/* the sentence's own words, the recipient's first name in them */
+function shareLegoraWords(){
+  if(!shareLegoraOn()) return;
+  const nm=String((document.getElementById('sh-name')||{}).value||'').trim().split(/\s+/)[0];
+  const k=(id, v)=>{ const el=document.querySelector('#'+id+' > .sh-lt-k'); if(el && el.textContent!==v) el.textContent=v; };
+  k('sh-lt-what-row', nm ? i18t('sh_lg_gets', { who:nm }) : i18t('sh_lg_gets_they'));
+  k('sh-lt-can-row', i18t('sh_lg_can'));
+  k('sh-lt-by-row', i18t('sh_lg_goes'));
+}
+/* "Someone new": a name and an address become one more ticked person (the row shareMoreRowsHtml draws) */
+function shareLegoraAddNew(){
+  const n=document.getElementById('sh-lg-new-name'), m=document.getElementById('sh-lg-new-email'), why=document.getElementById('sh-lg-new-why');
+  const name=String((n&&n.value)||'').trim(), email=String((m&&m.value)||'').trim();
+  if(!/.+@.+\..+/.test(email)){ if(why) why.textContent=i18t('sh_lg_new_bad'); return; }
+  if(why) why.textContent='';
+  let more=document.getElementById('sh-more'); if(!more) return;
+  let box=more.querySelector('.sh-more-box');
+  if(!box){ more.insertAdjacentHTML('beforeend', `<div class="sh-more-box"></div>`); box=more.querySelector('.sh-more-box'); }
+  if(!box.querySelector(`[data-sh-more="${CSS.escape(email)}"]`))
+    box.insertAdjacentHTML('beforeend', `<label class="sh-more-r is-new"><input type="checkbox" checked data-sh-more="${esc(email)}" data-sh-more-name="${esc(name)}"/><span class="sh-more-n">${esc(name||email)}</span><span class="sh-more-e">${esc(email)}</span></label>`);
+  more.classList.remove('hidden');
+  if(n) n.value=''; if(m) m.value='';
+  document.getElementById('sh-lg-new')?.classList.add('hidden');
+}
 function shareLetterPaint(c, st){
   const host=document.getElementById('sh-letter'); if(!host) return;
+  shareLegoraArrange(host);
   host._shAsPaint=()=>shareLetterAsPaint(c, st);
   /* the whole letter again, from where every choice stood last (Jambo's face
      coming back, pdSendBack) */

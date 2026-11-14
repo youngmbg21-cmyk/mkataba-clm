@@ -20601,7 +20601,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     const pc = (payload && payload.contract) || {};
     const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
       drawn: (req.body || {}).drawnLetter === true || outsideLookOn(),
-      cName, recName: rec.name, message, subject, link, expires,
+      cName, recName: rec.name, message, subject, link, expires, durable: !!isDurable,
       round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status',
       ...srvMailCodeOf(shareId) });
     const r = await sendEmail(email,
@@ -22148,7 +22148,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
       drawn: (req.body || {}).drawnLetter === true || outsideLookOn(),
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
-      message: note, subject: letter.subject, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
+      message: note, subject: letter.subject, link, expires: s.expires_at, durable: !!s.durable, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
       ...srvMailCodeOf(s.contract_id) });
     const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { replyTo: mailReplyFor(req, s), html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;

@@ -19,7 +19,7 @@
      9 · Requests: Request · Where it stands · Asked by · Lane, Start the draft on the row
     10 · Import: What Jambo read · Looks · Stream · Value, the ones that need you first
     11 · DNA by contract: one strand each, its worst mark, the Board's DNA door
-    13 · New agreement: the papers as cards; From scratch for the new-paper grant: your standards free, Jambo proposes and writes
+    13 · New agreement: the papers as cards; two tabs, no From scratch (re-pointed 14 Nov 2026)
          the rest (one call each), Create files the paper through the one creator
    And the switch off:
     12 · Contracts opens on the list (no folders), Parties and Reads are drawn as before
@@ -195,34 +195,22 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     check('11 DNA is gone: no button beside Read down, no page, nothing published', head && !gone.btn && !gone.page && gone.fn === 'undefined', gone);
   } catch (e) { check('11 DNA is gone', false, String(e).slice(0, 200)); }
 
-  /* 13 · New agreement, and From scratch for the new-paper grant */
+  /* 13 · New agreement: the papers as cards. RE-POINTED 14 Nov 2026 (owner: "in the new agreement page, delete the from
+     scratch option. This will only be featured in the our paper page and only if you have been granted access to it"):
+     the sheet carries two tabs, Our paper and Their paper, and no From scratch section; the new-paper grant still gates
+     New standard contract → From scratch on Our paper */
   try {
     await page.evaluate(() => openNewAgreement({ asked: 'a two-year supply agreement with Nandi Dairy for raw milk', words: { who: 'Nandi Dairy', what: 'supply agreement', facts: [{ k: 'term', say: 'two years', months: 24, quote: 'two-year' }] } }));
-    const up = await until(page, () => !!document.querySelector('#na-root.na-one [data-na-paper="scratch"]'), null, 10000);
-    const cards = await page.evaluate(() => getComputedStyle(document.querySelector('#na-root .na-closest')).display);
+    const up = await until(page, () => !!document.querySelector('#na-root.na-one [data-na-paper="ours"]'), null, 10000);
+    const cards = up && await page.evaluate(() => getComputedStyle(document.querySelector('#na-root .na-closest')).display);
     const gated = await page.evaluate(() => typeof mayMakeNewPaper === 'function' && mayMakeNewPaper({ role: 'editor' }) === false);
-    if (up) await page.evaluate(() => document.querySelector('[data-na-paper="scratch"]').click());
-    const list = up && await until(page, () => document.querySelectorAll('#nsc-left .nsc-row').length >= 3, null, 8000);
-    const std = await page.evaluate(() => document.querySelectorAll('#nsc-left .nsc-pill.is-std').length);
-    /* 16px inside (owner, 13 Nov 2026): the list never touches the sheet's edge, and starts in line with the ask box above it */
-    const inset = await page.evaluate(() => { const l = document.getElementById('nsc-left'), box = l && l.querySelector('.nsc-row input'), cap = l && l.querySelector('.nsc-cap'), ask = document.querySelector('#na-root .na-askbox');
-      if (!l || !box || !cap || !ask) return null; const L = l.getBoundingClientRect().left;
-      return { box: Math.round(box.getBoundingClientRect().left - L), cap: Math.round(cap.getBoundingClientRect().left - L), ask: Math.round(cap.getBoundingClientRect().left - ask.getBoundingClientRect().left) }; });
-    await page.evaluate(() => naScratchNow() && naScratchNow().propose());
-    const proposed = await until(page, () => document.querySelectorAll('#nsc-left .nsc-pill.is-ai').length >= 2, null, 10000);
-    const before = await page.evaluate(() => /The paper is empty/.test((document.querySelector('#nsc-right') || {}).innerText || ''));
-    await shot('13a-scratch');
-    await page.evaluate(() => naScratchNow() && naScratchNow().draft());
-    const drafted = await until(page, () => (document.querySelectorAll('#nsc-right .nsc-sec').length >= 5) && !/Not written/.test(document.querySelector('#nsc-right').innerText), null, 15000);
-    await page.evaluate(() => { const b = document.querySelector('#na-file-seg button'); if (b) b.click(); });
-    const n0 = await page.evaluate(() => state.contracts.length);
-    const can = await until(page, () => { const b = document.getElementById('na-create'); return b && !b.disabled; }, null, 5000);
-    await shot('13b-scratch-drafted');
-    if (can) await page.evaluate(() => document.getElementById('na-create').click());
-    const made = can && await until(page, n => state.contracts.length > n && /Nandi Dairy/.test(state.contracts[0].counterparty || ''), n0, 15000);
-    check('13 New agreement: the papers as cards; From scratch (new-paper grant only): your standards free, Jambo proposes and writes the rest, Create files it',
-      up && cards === 'grid' && gated && list && std >= 3 && !!inset && inset.box >= 16 && inset.cap >= 16 && inset.ask === 0 && proposed && before && drafted && can && made, { cards, gated, std, inset, proposed, before, drafted, can, made });
-  } catch (e) { check('13 New agreement and From scratch', false, String(e).slice(0, 200)); }
+    const tabs = up && await page.evaluate(() => [...document.querySelectorAll('#na-root [data-na-paper]')].map(b => b.getAttribute('data-na-paper')));
+    const gone = await page.evaluate(() => !document.getElementById('na-scratch') && typeof window.naScratchNow !== 'function');
+    await shot('13-new-agreement');
+    check('13 New agreement: the papers as cards; two tabs (Our paper, Their paper), no From scratch; new paper stays behind its grant',
+      !!up && cards === 'grid' && gated && Array.isArray(tabs) && tabs.join(',') === 'ours,theirs' && gone, { cards, gated, tabs, gone });
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+  } catch (e) { check('13 New agreement', false, String(e).slice(0, 200)); }
 
   /* 12 · the switch off */
   try {

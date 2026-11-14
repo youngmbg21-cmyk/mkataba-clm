@@ -129,14 +129,17 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       const s4 = await page.evaluate(() => {
         const L = document.getElementById('sh-letter'), lines = document.getElementById('sh-as-chips'), mail = L && L.querySelector('.sh-lt-mail');
         const a = lines && lines.getBoundingClientRect(), b = mail && mail.getBoundingClientRect();
-        return { grid: L ? getComputedStyle(L).display : '', beside: !!(a && b && b.left >= a.right && Math.abs(b.top - a.top) < 40),
+        /* RE-POINTED 14 Nov 2026 (the send screen, "The Legora way", owner picked it by name): the choices are one sentence
+           ABOVE the letter, the letter a white paper under it holding To and Subject, each choice a borderless pill,
+           the grey sentences under them gone (an amber "held back" line stays) */
+        return { grid: L ? getComputedStyle(L).display : '', beside: !!(a && b && b.top >= a.bottom - 2) && !!(mail && mail.querySelector('#sh-name')),
           /* RE-POINTED 11 Nov 2026 (the send page "The SAP Way", owner picked it by name): From stands in the email's
              card under Subject; each choice is a box; the sentences under them are tags; the note hugs its words;
              their link is the email's button */
           from: !!(mail && mail.querySelector('#sh-lt-from')) && !(lines && lines.querySelector('#sh-lt-from')),
-          boxed: [...document.querySelectorAll('#sh-as-chips .sh-as:not(.hidden) .sh-as-go')].every(b => parseFloat(getComputedStyle(b).borderTopWidth) >= 1),
-          tags: [...document.querySelectorAll('#sh-as-chips .sh-lt-say2')].filter(e => !e.hidden && e.textContent.trim()).every(e => getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)'),
-          card: !!mail && parseFloat(getComputedStyle(mail).borderTopWidth) >= 1,
+          boxed: [...document.querySelectorAll('#sh-as-chips .sh-as:not(.hidden) .sh-as-go')].every(b => parseFloat(getComputedStyle(b).borderTopWidth) === 0 && getComputedStyle(b).borderRadius !== '0px'),
+          tags: [...document.querySelectorAll('#sh-as-chips .sh-lt-say2:not([data-tone="warn"])')].filter(e => !e.hidden && e.textContent.trim()).every(e => getComputedStyle(e).display === 'none'),
+          card: !!mail && parseFloat(getComputedStyle(mail).borderTopWidth) === 0 && getComputedStyle(mail).boxShadow !== 'none',
           hugs: (() => { const t = document.getElementById('sh-summary'); return !!t && t.getBoundingClientRect().height < 4 * parseFloat(getComputedStyle(t).lineHeight); })(),
           /* the link is the email's button wherever a letter is drawn; a server with no mail sends by a copied link,
              which carries no letter at all (shareLetterOf: ch 'link' → none), so then there is no button to find */
@@ -146,8 +149,8 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       });
       await page.click('[data-sh-as-go="purpose"]').catch(() => {});
       const opened = await until(page, () => !!document.querySelector('[data-sh-as="purpose"].is-open'), null, 3000);
-      check(`${nm} 4 Send, the SAP Way: a form on the left (boxes, tags), the email one card beside it with From under Subject, the note hugging its words, the link a button, a field opens its list, Before you send in rows`,
-        s4.grid === 'grid' && s4.beside && s4.from && s4.boxed && s4.tags && s4.card && s4.hugs && s4.btn && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
+      check(`${nm} 4 Send, the Legora way: the choices one sentence of pills above, the letter a white paper with To and Subject, From under Subject, the note hugging its words, the link a button, a pill opens its list, Before you send in rows`,
+        s4.grid === 'flex' && s4.beside && s4.from && s4.boxed && s4.tags && s4.card && s4.hugs && s4.btn && opened && s4.keys.includes('Held back') && s4.keys.includes('Goes') && s4.keys.includes('Names'), Object.assign(s4, { opened }));
       await page.screenshot({ path: path.join(OUT, `send-${nm}.png`) });
       await page.keyboard.press('Escape'); await until(page, () => !document.querySelector('[data-sh-as].is-open'), null, 3000);
       await page.evaluate(() => { const x = document.querySelector('#modal-root [data-dlg-cancel]'); if (x) x.click(); });

@@ -16,7 +16,10 @@ const base = { channel: 'email', purpose: 'negotiate', sender: 'Amina Otieno', o
 test('1 the drawn letter: Dear, the note, the link as one line, Kind regards and the sender; no button', () => {
   const m = M.shareMailOf(Object.assign({}, base, { message: 'Thank you for your round.' }));
   assert.match(m.body, /^Dear Erik,\n\nThank you for your round\./);
-  assert.match(m.body, /\nhttps:\/\/hati\.example\/#share=t:abc\n\nKind regards,\nAmina Otieno\nHighland Corporate Ltd$/);
+  /* RE-POINTED 14 Nov 2026 (the email, refined: the owner's yes): one sentence says what it is, and the small print
+     follows the signature */
+  assert.match(m.body, /\nRound 1 of the Parcel Delivery SaaS is ready for you to read\. You can reply with your own changes\.\n\nOpen round 1:\n/);
+  assert.match(m.body, /\nhttps:\/\/hati\.example\/#share=t:abc\n\nKind regards,\nAmina Otieno\nHighland Corporate Ltd\n\nThis link is for you\. Replies to this email reach Amina Otieno\.$/);
   assert.ok(!m.parts.some(p => p.k === 'btn'), 'no button');
   assert.ok(!/answered/.test(m.body), 'the note carries the answers, not a list');
   assert.match(m.html, /<a href="https:\/\/hati\.example\/#share=t:abc"/);
@@ -32,7 +35,10 @@ test('1b the invitation wears the other letters\' shape (owner, 8 Nov 2026): the
   assert.match(m.body, /\nOpen round 1:\nhttps:\/\/hati\.example\/#share=t:abc\n/);
   assert.match(m.html, /Amina Otieno<br><span[^>]*>Head of Legal, Highland Corporate Ltd<\/span>/);
   assert.match(m.html, /<b>Clause 5 · Payment:<\/b> they propose 45 days/);
-  assert.match(m.body, /Kind regards,\nAmina Otieno\nHead of Legal, Highland Corporate Ltd$/);
+  assert.match(m.body, /Kind regards,\nAmina Otieno\nHead of Legal, Highland Corporate Ltd\n\nThis link is for you\./);
+  /* the company's name leads the HTML, quiet; the small print closes it under a hairline */
+  assert.match(m.html, /^<div[^>]*><p style="[^"]*text-transform:uppercase[^"]*">Highland Corporate Ltd<\/p>/);
+  assert.match(m.html, /border-top:1px solid #d0d5dd;font-size:13px;color:#667085">This link is for you\./);
 });
 test('2 with no note the answers are said, so the letter is never empty', () => {
   const m = M.shareMailOf(base);
