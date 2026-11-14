@@ -93,8 +93,35 @@ function nsStyle() {
 /* ═══════════════════════════ THE ONE QUESTION ═══════════════════════════ */
 /* where a start's Back and Cancel return: the New agreement page's From scratch tab when it opened us (opts.back) */
 let _nsFrom = null;
+/* A START OPENS IN THE PAGE THAT ASKED FOR IT (owner, 14 Nov 2026: "this pop up is appearing in the board page as opposed
+   to staying in the new agreement page"): pressed from New agreement's From scratch tab, each start's form is drawn INTO
+   that tab (opts.host = #na-np), never a pop-up that takes the page away and lands over the Board. Back puts the four
+   starts back in the same place; the press that opens the Builder still closes the page. Anywhere else, the pop-up as
+   before (nsMount falls back to openModal). */
+let _nsHost = null, _nsHostWas = '';
+function nsHostSet(el) { _nsHost = el && el.isConnected ? el : null; _nsHostWas = _nsHost ? _nsHost.innerHTML : ''; }
+function nsHostOn() { return !!(_nsHost && _nsHost.isConnected); }
+function nsMount(html, opts) {
+  if (!nsHostOn()) { openModal(html, opts); return; }
+  _nsHost.innerHTML = `<div class="na-np-start">${html}</div>`;
+  _nsHost.classList.add('is-start');
+  /* the pop-up's own frame padding is the page's to give here: the form sits on the tab's edge like the starts did */
+  const f = _nsHost.querySelector('.na-np-start > div'); if (f) f.style.padding = '0';
+  /* the page's own Cancel and Escape belong to the page: a start's Cancel here is its Back */
+  _nsHost.querySelectorAll('[data-dlg-cancel]').forEach(b => b.removeAttribute('data-dlg-cancel'));
+  /* drawn where the four starts stood: the page does not move, so the tabs above stay in sight */
+}
+function nsHostBack() {
+  if (!nsHostOn()) return false;
+  _nsHost._nsl = null;   /* the start's own presses end with it */
+  _nsHost.innerHTML = _nsHostWas;
+  _nsHost.classList.remove('is-start');
+  _nsHost = null;   /* the starts are back; the next Continue names the place again */
+  return true;
+}
 function openNewStandard(opts = {}) {
   _nsFrom = typeof opts.back === 'function' ? opts.back : null;
+  nsHostSet(opts.host || null);
   if (opts.start && NS_STARTS.some(s => s.k === opts.start)) return nsGo(opts.start, opts);
   nsStyle();
   const off = nsNewPaperOff();
@@ -144,7 +171,7 @@ function nsGo(k, opts = {}) {
   if (k === 'template') return nsOpenTemplate(opts);
   if (k === 'contract') return nsOpenContract(opts);
 }
-const nsBack = () => { /* back in the standing frame, not a pop-up arriving again (the flash survey); to the tab that opened it, where one did */ if (typeof _nsFrom === 'function') return _nsFrom(); openNewStandard(); };
+const nsBack = () => { /* back in the standing frame, not a pop-up arriving again (the flash survey); to the tab that opened it, where one did */ if (nsHostBack()) return; if (typeof _nsFrom === 'function') return _nsFrom(); openNewStandard(); };
 function nsFootHtml(goLabel, goTitle) {
   return `<div class="ns-foot"><button type="button" id="ns-back" class="ui-btn">${nsEsc(i18t('act_back'))}</button><span class="sp"></span>
     <button type="button" id="ns-go" class="ui-btn ui-btn-primary"${goTitle ? ` title="${nsEsc(goTitle)}"` : ''}>${nsEsc(goLabel)}</button></div>`;
@@ -204,9 +231,10 @@ function nsNameFromSentence(said) {
   return kind && kind.length <= 48 ? kind.charAt(0).toUpperCase() + kind.slice(1) : '';
 }
 function nsOpenScratch(o = {}) {
+  if (nsLgOn()) return nsLgScratch(o);
   nsStyle();
   let ai = typeof copilotAvailable === 'function' && copilotAvailable();
-  openModal(`<div style="padding:24px">
+  nsMount(`<div style="padding:24px">
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_scratch'))}</h3>
     <label style="display:block;margin:10px 0 0"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${nsEsc(i18t('ns_what_for'))}</span>
       <textarea id="ns-say-box" rows="4" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}" style="${NS_FLD};height:auto;padding:var(--field-pad-y) var(--field-pad-x);resize:vertical;min-height:96px">${nsEsc(o.said || '')}</textarea></label>
@@ -333,6 +361,7 @@ function nsFactsHtml(c) {
 const NS_BUILTIN_CATEGORY = { proc: 'procurement', sales: 'sales' };
 const nsBuiltinCategory = t => (t && /\bNDA\b|non-disclosure/i.test(`${t.kind} ${t.name}`)) ? 'nda' : (NS_BUILTIN_CATEGORY[t && t.folder] || 'other');
 function nsOpenTemplate(o = {}) {
+  if (nsLgOn()) return nsLgTemplate(o);
   nsStyle();
   let tab = NS_TABS.includes(o.tab) ? o.tab : (o.pick ? 'hati' : 'upload');
   let got = null;       /* the copy from the file tab: { blocks, html, same, facts, name, kind } */
@@ -342,7 +371,7 @@ function nsOpenTemplate(o = {}) {
   const builtins = (typeof TEMPLATES === 'object' ? Object.values(TEMPLATES) : [])
     .filter(t => typeof templateAllowedForRole !== 'function' || templateAllowedForRole(t.id, (typeof currentUser === 'function' && currentUser() || {}).role || 'viewer'));
   const tabBtn = k => `<button type="button" data-ns-tab="${k}" class="${tab === k ? 'on' : ''}" aria-pressed="${tab === k}">${nsEsc(i18t('ns_tab_' + k))}</button>`;
-  openModal(`<div style="padding:24px">
+  nsMount(`<div style="padding:24px">
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_template'))}</h3>
     <div class="ns-tabs" role="group" style="margin-top:10px">${NS_TABS.map(tabBtn).join('')}</div>
     <div class="ns-pane" data-ns-pane="upload"${tab === 'upload' ? '' : ' hidden'}>
@@ -404,28 +433,34 @@ function nsOpenTemplate(o = {}) {
     if (go.disabled) return;
     go.disabled = true; const was = go.textContent; go.textContent = i18t('ns_opening');
     try {
-      if (tab === 'hati') {
-        const t = (typeof TEMPLATES === 'object' && TEMPLATES[pick]) || null;
-        const built = typeof tplBuiltinDraftBody === 'function' ? tplBuiltinDraftBody(pick) : null;
-        if (!t || !built || built.blocks.length < 2) throw new Error(i18t('lb_could_not_convert'));
-        const made = await nsCreate({ name: built.name, category: nsBuiltinCategory(t), folder: built.folder || null,
-          origin: 'built_in_hati', description: i18t('lib_ours_desc', { name: built.name }) });
-        await nsFill(made, {
-          blocks: built.blocks.map((b, i) => ({ ...b, orderIndex: i })),
-          fields: built.fields.map((f, i) => ({ fieldKey: f.key, label: f.label || f.key, orderIndex: i,
-            fieldType: 'short_text', control: 'free', required: !!f.required })) });
-        closeModal();
-        return nsOpen(made.tid, made.vid, { kind: 'template', from: 'hati', builtin: pick });
-      }
-      const c = tab === 'paste' ? (editor ? nsCopy(editor.get(), null, '') : pasted) : got;
-      if (!c || !c.blocks.length) throw new Error(i18t('ns_file_unreadable'));
-      const made = await nsCreate({ name: c.name || i18t('ns_untitled'), category: 'other', folder: null, origin: 'upload',
-        sourceType: tab === 'upload' && ['docx', 'pdf_digital', 'pdf_scanned'].includes(c.kind) ? c.kind : null });
-      await nsFill(made, { blocks: c.blocks.map((b, i) => ({ ...b, orderIndex: i })), fields: [] });
-      closeModal();
-      return nsOpen(made.tid, made.vid, { kind: 'template', from: tab, facts: c.facts, same: c.same, scanned: c.kind === 'pdf_scanned' });
+      return await nsTplMake(tab, { pick, got, copy: tab === 'paste' ? (editor ? nsCopy(editor.get(), null, '') : pasted) : got });
     } catch (e) { go.disabled = false; go.textContent = was; nsSayOn(e.message || String(e), true); }
   });
+}
+/* ONE WAY TO MAKE A STANDARD FROM A TEMPLATE YOU HAVE, for the pop-up and the start drawn in New agreement's tab
+   (the Legora way, 14 Nov 2026): HaTi's own paper by its id, else a copy read from a file or pasted. */
+async function nsTplMake(tab, o) {
+  if (tab === 'hati') {
+    const pick = o.pick;
+    const t = (typeof TEMPLATES === 'object' && TEMPLATES[pick]) || null;
+    const built = typeof tplBuiltinDraftBody === 'function' ? tplBuiltinDraftBody(pick) : null;
+    if (!t || !built || built.blocks.length < 2) throw new Error(i18t('lb_could_not_convert'));
+    const made = await nsCreate({ name: built.name, category: nsBuiltinCategory(t), folder: built.folder || null,
+      origin: 'built_in_hati', description: i18t('lib_ours_desc', { name: built.name }) });
+    await nsFill(made, {
+      blocks: built.blocks.map((b, i) => ({ ...b, orderIndex: i })),
+      fields: built.fields.map((f, i) => ({ fieldKey: f.key, label: f.label || f.key, orderIndex: i,
+        fieldType: 'short_text', control: 'free', required: !!f.required })) });
+    closeModal();
+    return nsOpen(made.tid, made.vid, { kind: 'template', from: 'hati', builtin: pick });
+  }
+  const c = o.copy;
+  if (!c || !c.blocks || !c.blocks.length) throw new Error(i18t('ns_file_unreadable'));
+  const made = await nsCreate({ name: c.name || i18t('ns_untitled'), category: 'other', folder: null, origin: 'upload',
+    sourceType: tab === 'upload' && ['docx', 'pdf_digital', 'pdf_scanned'].includes(c.kind) ? c.kind : null });
+  await nsFill(made, { blocks: c.blocks.map((b, i) => ({ ...b, orderIndex: i })), fields: [] });
+  closeModal();
+  return nsOpen(made.tid, made.vid, { kind: 'template', from: tab, facts: c.facts, same: c.same, scanned: c.kind === 'pdf_scanned' });
 }
 
 /* ══════════════════════ FROM ONE OF OUR CONTRACTS ══════════════════════
@@ -435,6 +470,7 @@ function nsOpenTemplate(o = {}) {
    other side changed; the builder opens on the check. */
 const nsHasWording = c => !!(c && (c.redlineText || (c.upload && (c.upload.extractedText || Number(c.upload.textChars) > 0))));
 function nsOpenContract() {
+  if (nsLgOn()) return nsLgContract();
   nsStyle();
   const all = ((typeof state === 'object' && state && state.contracts) || []).filter(nsHasWording)
     .slice().sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
@@ -447,7 +483,7 @@ function nsOpenContract() {
     const hit = all.filter(c => !f || [c.name, c.id, c.contractNo, c.counterparty].some(x => String(x || '').toLowerCase().includes(f)));
     return hit.slice(0, 200).map(row).join('') || `<div style="padding:12px;font-size:var(--t-meta);color:var(--color-neutral-600)">${nsEsc(i18t('ns_c_none'))}</div>`;
   };
-  openModal(`<div style="padding:24px">
+  nsMount(`<div style="padding:24px">
     <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_contract'))}</h3>
     <input id="ns-c-q" type="search" placeholder="${nsEsc(i18t('ns_c_search'))}" autocomplete="off" style="${NS_FLD};margin:10px 0 10px">
     <div class="ns-list" id="ns-c-list">${rows()}</div>
@@ -475,14 +511,386 @@ function nsOpenContract() {
        paperMaker (f331's wall). */
     if (typeof newPaperBlock === 'function' && newPaperBlock()) return;
     go.disabled = true; const was = go.textContent; go.textContent = i18t('ns_opening');
-    try {
-      const r = await api(`contracts/${c.id}/save-as-template`, 'POST', {});
-      closeModal();
-      return nsOpen(r.templateId, r.versionId, { kind: 'contract', contractId: c.id, contractRef: (window.contractRef ? contractRef(c) : c.id), contractName: c.name || (window.contractRef ? contractRef(c) : c.id),
-        counterparty: c.counterparty || '', taken: r.taken || [], negotiated: r.negotiated || [] });
-    } catch (e) { go.disabled = false; go.textContent = was; nsSayOn(e.message || String(e), true); }
+    try { return await nsCtrMake(c); } catch (e) { go.disabled = false; go.textContent = was; nsSayOn(e.message || String(e), true); }
   });
+}
+/* ONE WAY TO MAKE A STANDARD FROM ONE OF OUR CONTRACTS, for the pop-up and the start drawn in the tab */
+async function nsCtrMake(c) {
+  const r = await api(`contracts/${c.id}/save-as-template`, 'POST', {});
+  closeModal();
+  return nsOpen(r.templateId, r.versionId, { kind: 'contract', contractId: c.id, contractRef: (window.contractRef ? contractRef(c) : c.id), contractName: c.name || (window.contractRef ? contractRef(c) : c.id),
+    counterparty: c.counterparty || '', taken: r.taken || [], negotiated: r.negotiated || [] });
+}
+
+/* ══════════ THE FOUR STARTS, DRAWN IN NEW AGREEMENT'S FROM SCRATCH TAB (owner's picks by name, 14 Nov 2026) ══════════
+   From a template you have, From one of our contracts and The other side's paper: THE LEGORA WAY — nothing boxed, one
+   ask box, the streams as chips, each paper's own first line quoted, and the act in the row you chose. From nothing:
+   THE SHELF — your sentence beside a small paper that takes its name from your words, then Jambo's proposed sections on
+   that paper to keep or untick, and the Builder opens already holding them. Drawn only in the tab (nsHostOn) in the
+   new look; anywhere else each start is the pop-up it always was. Every act is the one these starts always had
+   (nsTplMake, nsCtrMake, nsCreate + nsOpen, saveTemplateRecord). */
+const nsLgOn = () => nsHostOn() && typeof newLookOn === 'function' && !!newLookOn();
+const nsLgHost = () => (nsHostOn() ? _nsHost : null);
+const nsLgTone = fid => (fid && typeof listStreamTone === 'function') ? listStreamTone(fid) : 'gray';
+const nsLgInitials = s => String(s || '').split(/[\s&,()/-]+/).filter(w => /^[A-ZÅÄÖ0-9]/.test(w)).slice(0, 2).map(w => w.charAt(0)).join('') || String(s || '?').trim().charAt(0).toUpperCase();
+const nsLgStreamName = fid => { const f = fid && typeof FOLDERS === 'object' ? FOLDERS[fid] : null; return f ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[fid]) || f.name) : ''; };
+/* the first sentence of a paper that reads as wording (over 24 letters), never guessed */
+function nsLgFirstLine(html) {
+  if (!html || typeof document === 'undefined') return '';
+  const t = document.createElement('div'); t.innerHTML = String(html).replace(/<br\s*\/?>/gi, ' ');
+  /* a sentence of wording (over 40 letters), its blanks shown as … rather than their keys */
+  const p = [...t.querySelectorAll('p, li')].map(e => String(e.textContent || '').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim()).find(x => x.length > 40);
+  return p ? p.slice(0, 160) : '';
+}
+const nsLgQuote = q => q ? `§ 1 · “${q}${q.length >= 160 ? '…' : ''}”` : '';
+function nsLgHead(title, sub) {
+  return `<button type="button" class="nsl-back" data-nsl-back>‹ ${nsEsc(i18t('nsl_all_starts'))}</button><h3 class="nsl-t">${nsEsc(title)}</h3>${sub ? `<p class="nsl-sub">${nsEsc(sub)}</p>` : ''}`;
+}
+/* ONE ROW BUILDER for every list here: a round mark in the stream's tone, the name, a side word, the first line quoted,
+   a word at the right; the chosen row opens in place with its sentence and its one black button */
+function nsLgRowHtml(r) {
+  return `<div class="nsl-r${r.on ? ' is-on' : ''}" role="button" tabindex="0" aria-pressed="${r.on ? 'true' : 'false'}" data-nsl-row="${nsEsc(r.key)}">
+    <i class="nsl-mk" style="background:var(--st-${r.tone}-bg);color:var(--st-${r.tone}-fg)" aria-hidden="true">${nsEsc(r.mark)}</i>
+    <span class="nsl-tx"><span class="nsl-l1"><b>${nsEsc(r.name)}</b>${r.side ? `<span class="nsl-side" style="color:var(--st-${r.tone}-fg)">${nsEsc(r.side)}</span>` : ''}</span>${r.quote ? `<span class="nsl-q">${nsEsc(r.quote)}</span>` : ''}${r.on ? `<span class="nsl-open"><span class="nsl-ss">${nsEsc(r.openWords || '')}</span><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nsl-go="${nsEsc(r.key)}">${nsEsc(r.goLabel)}</button></span>` : ''}</span>
+    <span class="nsl-n">${r.right || ''}</span></div>`;
+}
+/* THE STREAMS AS CHIPS ON ONE LINE: All, then the streams by how many, four shown and the rest behind More */
+function nsLgChipsHtml(counts, on, more, total) {
+  const ids = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const shown = more ? ids : ids.slice(0, 4);
+  const chip = (id, label, n, tone) => `<button type="button" class="nsl-chip${on === id ? ' is-on' : ''}" data-nsl-chip="${nsEsc(id)}">${tone ? `<i class="nsl-dot" style="background:var(--st-${tone}-dot)"></i>` : ''}${nsEsc(label)} <em>${n}</em></button>`;
+  return `<div class="nsl-chips">${chip('', i18t('nsl_all'), total, '')}${shown.map(id => chip(id, nsLgStreamName(id) || id, counts[id], nsLgTone(id))).join('')}${!more && ids.length > 4 ? `<button type="button" class="nsl-chip" data-nsl-more>${nsEsc(i18t('nsl_more'))}${typeof icon === 'function' ? icon('chevD', 'w-3 h-3') : ''}</button>` : ''}</div>`;
+}
+/* a need, not only a name (the same reading Our paper's ask box makes): small words left out, each word by its stem */
+function nsLgMatches(text, q) {
+  const stop = (typeof TPLN_STOP !== 'undefined' && TPLN_STOP) || new Set();
+  const words = String(q || '').toLowerCase().split(/[^a-z0-9À-ɏ]+/).filter(w => w.length > 1 && !stop.has(w));
+  if (!words.length) return true;
+  const t = String(text || '').toLowerCase();
+  return words.some(w => t.includes(w.length > 5 ? w.slice(0, 5) : w));
+}
+/* the back link and a row's press, delegated once on the tab itself (its insides are redrawn) */
+function nsLgWire(host, on) {
+  host._nsl = on;
+  if (host.dataset.nslWired) return;
+  host.dataset.nslWired = '1';
+  host.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-nsl-back]')) { e.preventDefault(); nsBack(); return; }
+    if (host._nsl && host._nsl.click) host._nsl.click(e, t);
+  });
+  host.addEventListener('keydown', e => { if (host._nsl && host._nsl.key) host._nsl.key(e); });
+  host.addEventListener('input', e => { if (host._nsl && host._nsl.input) host._nsl.input(e); });
+  host.addEventListener('change', e => { if (host._nsl && host._nsl.change) host._nsl.change(e); });
+  ['dragover', 'dragleave', 'drop'].forEach(ev => host.addEventListener(ev, e => { if (host._nsl && host._nsl.drag) host._nsl.drag(ev, e); }));
+}
+const nsLgSay = (host, msg, err) => { const el = host && host.querySelector('[data-nsl-say]'); if (!el) return; el.textContent = msg || ''; el.classList.toggle('err', !!err); };
+
+/* ---------------- FROM A TEMPLATE YOU HAVE — the Legora way ---------------- */
+const _nsBuiltinMeta = {};
+function nsLgBuiltinMeta(id) {
+  if (_nsBuiltinMeta[id]) return _nsBuiltinMeta[id];
+  let secs = [], q = '';
+  try {
+    const b = typeof tplBuiltinDraftBody === 'function' ? tplBuiltinDraftBody(id) : null;
+    if (b) { secs = (b.blocks || []).filter(x => x.blockType === 'heading').map(x => String(x.content || '').replace(/<[^>]*>/g, '').replace(/^\s*\d+(\.\d+)*\.?\s*/, '').trim()).filter(Boolean); q = nsLgFirstLine(b.html); }
+  } catch (_) { /* a paper that cannot be read shows its name alone */ }
+  return (_nsBuiltinMeta[id] = { secs, q });
+}
+function nsLgTemplate() {
+  nsStyle();
+  const st = { q: '', ls: '', more: false, pick: null, got: null, paste: false, pasted: null, busy: false };
+  let editor = null;
+  const builtins = (typeof TEMPLATES === 'object' ? Object.values(TEMPLATES) : [])
+    .filter(t => typeof templateAllowedForRole !== 'function' || templateAllowedForRole(t.id, (typeof currentUser === 'function' && currentUser() || {}).role || 'viewer'));
+  const counts = {}; builtins.forEach(t => { if (t.folder) counts[t.folder] = (counts[t.folder] || 0) + 1; });
+  const listHtml = () => {
+    const rows = [];
+    if (st.got) rows.push(nsLgRowHtml({ key: '__file', on: true, tone: 'green', mark: '✓', name: st.got.fileName || i18t('nsl_your_file'), side: i18t('nsl_your_file'),
+      quote: nsLgQuote(nsLgFirstLine(st.got.html)), openWords: i18t('ns_copied'), goLabel: i18t('ns_open_builder') }));
+    builtins.forEach(t => {
+      const m = nsLgBuiltinMeta(t.id), stream = nsLgStreamName(t.folder);
+      if (st.ls && t.folder !== st.ls) return;
+      if (!nsLgMatches([t.name, stream, m.q, t.blurb].join(' '), st.q)) return;
+      rows.push(nsLgRowHtml({ key: t.id, on: !st.got && st.pick === t.id, tone: nsLgTone(t.folder), mark: nsLgInitials(t.name), name: t.name, side: stream,
+        quote: nsLgQuote(m.q), right: m.secs.length ? nsEsc(i18tn('nsl_secs_n', m.secs.length, { n: m.secs.length })) : '',
+        openWords: m.secs.length ? i18t('nsl_open_secs', { n: m.secs.length, list: m.secs.join(' · ') }) : '', goLabel: i18t('ns_open_builder') }));
+    });
+    return rows.join('') || `<p class="nsl-none">${nsEsc(i18t('nsl_none'))}</p>`;
+  };
+  const paint = () => {
+    const host = nsLgHost(); if (!host) return;
+    nsMount(`<div class="nsl">${nsLgHead(i18t('ns_template'), i18t('nsl_tpl_sub'))}
+      <div class="nsl-ask" data-nsl-drop><span class="nsl-ask-ic" aria-hidden="true">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}</span>
+        <input type="search" id="nsl-q" value="${nsEsc(st.q)}" placeholder="${nsEsc(i18t('nsl_tpl_ph'))}" aria-label="${nsEsc(i18t('nsl_tpl_ph'))}" autocomplete="off">
+        <label class="nsl-or">${nsEsc(i18t('nsl_choose_file'))}<input type="file" id="nsl-file" accept=".docx,.pdf,.txt,.md" hidden></label>
+        <button type="button" class="nsl-or" data-nsl-paste>${nsEsc(i18t('nsl_or_paste'))}</button></div>
+      ${st.paste ? `<div class="nsl-paste"><div id="nsl-paste-box" class="ns-paste scroll-thin doc-surface" data-placeholder="${nsEsc(i18t('lb_open_in_word'))}"></div>
+        <div class="nsl-paste-f"><button type="button" class="ui-btn ui-btn-sm" data-nsl-paste-x>${nsEsc(i18t('act_cancel'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nsl-paste-go>${nsEsc(i18t('ns_open_builder'))}</button></div></div>` : ''}
+      ${nsLgChipsHtml(counts, st.ls, st.more, builtins.length)}
+      <div class="nsl-say" data-nsl-say></div>
+      <div class="nsl-list" id="nsl-list">${listHtml()}</div></div>`);
+    if (st.paste) { const box = document.getElementById('nsl-paste-box'); if (box && typeof richEditor === 'function') editor = richEditor(box, {}); }
+  };
+  const repaintList = () => { const el = document.getElementById('nsl-list'); if (el) el.innerHTML = listHtml(); };
+  const go = async (btn, tab, data) => {
+    if (st.busy) return; st.busy = true;
+    const was = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = i18t('ns_opening'); }
+    try { await nsTplMake(tab, data); }
+    catch (e) { st.busy = false; if (btn) { btn.disabled = false; btn.textContent = was; } nsLgSay(nsLgHost(), e.message || String(e), true); }
+  };
+  const readFile = async file => {
+    if (!file) return;
+    nsLgSay(nsLgHost(), i18t('ns_reading'));
+    try { const r = await nsReadFile(file, m => nsLgSay(nsLgHost(), m)); st.got = { ...nsCopy(r.html, r.report, r.fileName), kind: r.kind, fileName: r.fileName, html: r.html }; nsLgSay(nsLgHost(), ''); repaintList(); }
+    catch (err) { st.got = null; nsLgSay(nsLgHost(), err.message || String(err), true); }
+  };
+  const host = nsLgHost(); if (!host) return;
+  nsLgWire(host, {
+    click: (e, t) => {
+      const g = t.closest('[data-nsl-go]');
+      if (g) { e.preventDefault(); e.stopPropagation(); const k = g.getAttribute('data-nsl-go');
+        if (k === '__file') return go(g, 'upload', { copy: st.got });
+        return go(g, 'hati', { pick: k }); }
+      if (t.closest('[data-nsl-paste]')) { st.paste = true; paint(); setTimeout(() => editor && editor.focus && editor.focus(), 30); return; }
+      if (t.closest('[data-nsl-paste-x]')) { st.paste = false; paint(); return; }
+      if (t.closest('[data-nsl-paste-go]')) { const html = editor ? editor.get() : ''; return go(t.closest('[data-nsl-paste-go]'), 'paste', { copy: nsCopy(html, null, '') }); }
+      if (t.closest('[data-nsl-more]')) { st.more = true; paint(); return; }
+      const c = t.closest('[data-nsl-chip]'); if (c) { st.ls = c.getAttribute('data-nsl-chip'); paint(); return; }
+      const r = t.closest('[data-nsl-row]'); if (r) { const k = r.getAttribute('data-nsl-row'); if (k === '__file') return; st.got = null; st.pick = st.pick === k ? null : k; repaintList(); }
+    },
+    key: e => { const r = e.target && e.target.closest && e.target.closest('[data-nsl-row]'); if (r && (e.key === 'Enter' || e.key === ' ') && e.target === r) { e.preventDefault(); r.click(); } },
+    input: e => { if (e.target && e.target.id === 'nsl-q') { st.q = e.target.value || ''; repaintList(); } },
+    change: e => { if (e.target && e.target.id === 'nsl-file') readFile(e.target.files && e.target.files[0]); },
+    drag: (ev, e) => { const z = e.target && e.target.closest && e.target.closest('[data-nsl-drop]'); if (!z) return; e.preventDefault();
+      z.classList.toggle('is-over', ev === 'dragover'); if (ev === 'drop') readFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); },
+  });
+  paint();
+}
+
+/* ---------------- FROM ONE OF OUR CONTRACTS — the Legora way ---------------- */
+function nsLgContract() {
+  nsStyle();
+  const all = ((typeof state === 'object' && state && state.contracts) || []).filter(nsHasWording)
+    .slice().sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || '')));
+  if (!all.length) { toast(i18t('lib_pick_none'), 'warn'); nsHostBack(); return; }
+  const signed = c => typeof negoExecuted === 'function' && negoExecuted(c);
+  const st = { q: '', f: '', pick: null, busy: false };
+  const lineOf = c => nsLgFirstLine(c.redlineText ? (typeof textToRich === 'function' ? textToRich(c.redlineText) : '<p>' + nsEsc(c.redlineText).replace(/\n+/g, '</p><p>') + '</p>') : '<p>' + nsEsc(String((c.upload && c.upload.extractedText) || '')).replace(/\n+/g, '</p><p>') + '</p>');
+  const nSigned = all.filter(signed).length;
+  const listHtml = () => all.filter(c => (!st.f || (st.f === 'signed') === signed(c)) && nsLgMatches([c.name, c.counterparty, c.id, c.contractNo].join(' '), st.q)).slice(0, 200).map(c => {
+    const ref = typeof contractRef === 'function' ? contractRef(c) : c.id, ok = signed(c), tone = ok ? 'green' : 'amber';
+    return nsLgRowHtml({ key: c.id, on: st.pick === c.id, tone: nsLgTone(c.folder), mark: nsLgInitials(c.counterparty || c.name), name: c.name || ref,
+      side: [c.counterparty, ref].filter(Boolean).join(' · '), quote: nsLgQuote(lineOf(c)),
+      right: `<span class="nsl-st" style="color:var(--st-${tone}-fg)"><i class="nsl-dot" style="background:var(--st-${tone}-dot)"></i>${nsEsc(ok ? i18t('nsl_signed') : (typeof statusLabel === 'function' ? statusLabel(c.status) : c.status))}</span>`,
+      openWords: i18t('nsl_ctr_open'), goLabel: i18t('nsl_ctr_go') });
+  }).join('') || `<p class="nsl-none">${nsEsc(i18t('nsl_none'))}</p>`;
+  const chip = (id, label, n) => `<button type="button" class="nsl-chip${st.f === id ? ' is-on' : ''}" data-nsl-f="${id}">${nsEsc(label)} <em>${n}</em></button>`;
+  const paint = () => nsMount(`<div class="nsl">${nsLgHead(i18t('ns_contract'), i18t('nsl_ctr_sub'))}
+    <div class="nsl-ask"><span class="nsl-ask-ic" aria-hidden="true">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}</span><input type="search" id="nsl-q" value="${nsEsc(st.q)}" placeholder="${nsEsc(i18t('nsl_ctr_ph'))}" aria-label="${nsEsc(i18t('nsl_ctr_ph'))}" autocomplete="off"></div>
+    <div class="nsl-chips">${chip('', i18t('nsl_all'), all.length)}${nSigned ? chip('signed', i18t('nsl_signed'), nSigned) : ''}${all.length - nSigned ? chip('open', i18t('nsl_unsigned'), all.length - nSigned) : ''}</div>
+    <div class="nsl-say" data-nsl-say></div><div class="nsl-list" id="nsl-list">${listHtml()}</div></div>`);
+  const repaintList = () => { const el = document.getElementById('nsl-list'); if (el) el.innerHTML = listHtml(); };
+  const host = nsLgHost(); if (!host) return;
+  nsLgWire(host, {
+    click: async (e, t) => {
+      const g = t.closest('[data-nsl-go]');
+      if (g) { e.preventDefault(); e.stopPropagation(); const c = all.find(x => x.id === g.getAttribute('data-nsl-go')); if (!c || st.busy) return;
+        if (!nsApi()) { closeModal(); return typeof saveContractAsTemplate === 'function' ? saveContractAsTemplate(c) : null; }
+        if (typeof newPaperBlock === 'function' && newPaperBlock()) return;
+        st.busy = true; const was = g.textContent; g.disabled = true; g.textContent = i18t('ns_opening');
+        try { await nsCtrMake(c); } catch (err) { st.busy = false; g.disabled = false; g.textContent = was; nsLgSay(nsLgHost(), err.message || String(err), true); }
+        return; }
+      const f = t.closest('[data-nsl-f]'); if (f) { st.f = f.getAttribute('data-nsl-f'); paint(); return; }
+      const r = t.closest('[data-nsl-row]'); if (r) { const k = r.getAttribute('data-nsl-row'); st.pick = st.pick === k ? null : k; repaintList(); }
+    },
+    key: e => { const r = e.target && e.target.closest && e.target.closest('[data-nsl-row]'); if (r && (e.key === 'Enter' || e.key === ' ') && e.target === r) { e.preventDefault(); r.click(); } },
+    input: e => { if (e.target && e.target.id === 'nsl-q') { st.q = e.target.value || ''; repaintList(); } },
+  });
+  paint();
+}
+
+/* ---------------- FROM NOTHING — the Shelf ---------------- */
+function nsLgScratch(o = {}) {
+  nsStyle();
+  const ai = typeof copilotAvailable === 'function' && copilotAvailable();
+  const st = { said: String(o.said || ''), step: 'say', d: null, list: null, busy: false, name: '' };
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
+  const nameOf = () => st.name || nsNameFromSentence(st.said) || '';
+  const paperHtml = () => {
+    if (st.step === 'keep' && st.list) {
+      return `<div class="nss-pg"><h4>${nsEsc(nameOf() || i18t('ns_untitled'))}</h4>${st.list.map((x, i) => `<label class="nss-sec${x.on ? '' : ' is-off'}"><input type="checkbox" data-nss-sec="${i}"${x.on ? ' checked' : ''}><span><b>${i + 1}. ${nsEsc(x.heading)}</b>${x.src ? `<span class="nss-w is-${x.src}">${nsEsc(i18t(SRC[x.src]))}</span>` : ''}${x.intent ? `<span class="nss-it">${nsEsc(x.intent)}</span>` : ''}</span></label>`).join('')}</div>
+        <p class="nss-note">${nsEsc(i18t('nsl_keep_note'))}</p>`;
+    }
+    return `<div class="nss-pg"><h4 id="nss-name">${nsEsc(nameOf() || i18t('nsl_new_paper'))}</h4><div class="nss-bars" aria-hidden="true">${'<div><i></i><i></i><i class="s"></i></div>'.repeat(4)}</div></div>
+      <p class="nss-note">${nsEsc(i18t('nsl_new_note'))}</p>`;
+  };
+  const kept = () => (st.list || []).filter(x => x.on).length;
+  const leftHtml = () => {
+    if (st.step === 'keep') {
+      const n = kept();
+      return `<label class="nss-fld"><span>${nsEsc(i18t('ns_what_for'))}</span><textarea id="nss-say" rows="3" maxlength="${NS_SAY_MAX}">${nsEsc(st.said)}</textarea></label>
+        <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><button type="button" class="ui-btn" data-nss-again>${nsEsc(i18t('tb_pb_start_again'))}</button><span class="sp"></span><button type="button" class="ui-btn" data-nss-mine>${nsEsc(i18t('tb_walk_mine'))}</button></div>
+        <div class="nss-foot"><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary" data-nss-open${n ? '' : ' disabled'}>${nsEsc(i18tn('nsl_open_n', n, { n }))}</button></div>`;
+    }
+    return `<label class="nss-fld"><span>${nsEsc(i18t('ns_what_for'))}</span><textarea id="nss-say" rows="5" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}">${nsEsc(st.said)}</textarea></label>
+      <div class="nss-ex">${nsEsc(i18t('nsl_try'))} <button type="button" class="nsl-or" data-nss-ex="1">${nsEsc(i18t('nsl_ex1_t'))}</button><button type="button" class="nsl-or" data-nss-ex="2">${nsEsc(i18t('nsl_ex2_t'))}</button></div>
+      <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary" data-nss-go${ai ? '' : ` title="${nsEsc(i18t('tb_pb_nokey'))}"`}>${nsEsc(ai ? i18t('ns_propose') : i18t('ns_open_builder'))}</button></div>`;
+  };
+  const sub = () => st.step === 'keep' && st.list
+    ? i18t('tb_out_lead', { n: st.list.length, lib: st.list.filter(x => x.src === 'lib').length, std: st.list.filter(x => x.src === 'std').length, ai: st.list.filter(x => x.src === 'ai').length })
+    : i18t('nsl_new_sub');
+  const paint = () => nsMount(`<div class="nsl">${nsLgHead(i18t('ns_scratch'), sub())}<div class="nss-two"><div class="nss-l">${leftHtml()}<div class="nsl-say" data-nsl-say></div></div><div class="nss-r">${paperHtml()}</div></div></div>`);
+  const open = async (btn, walk) => {
+    if (st.busy) return; st.busy = true;
+    const was = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = i18t('ns_opening'); }
+    try {
+      const cats = typeof templateCategories === 'function' ? templateCategories().map(c => c.id) : ['sales', 'procurement', 'employment', 'nda', 'other'];
+      const d = st.d;
+      const made = await nsCreate({ name: nameOf() || i18t('ns_untitled'), category: d && cats.includes(d.category) ? d.category : 'other', origin: 'built_in_hati' });
+      closeModal();
+      /* THE BUILDER OPENS ALREADY HOLDING THE SECTIONS KEPT HERE: the same outline, the unticked named, added at once */
+      const off = (st.list || []).filter(x => !x.on).map(x => x.heading);
+      nsOpen(made.tid, made.vid, { kind: 'scratch', said: st.said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null, off, add: !!d, walk });
+    } catch (e) { st.busy = false; if (btn) { btn.disabled = false; btn.textContent = was; } nsLgSay(nsLgHost(), e.message || String(e), true); }
+  };
+  const propose = async btn => {
+    st.said = String(st.said || '').trim().slice(0, NS_SAY_MAX);
+    if (!ai) return open(btn, true);
+    if (!st.said) { nsLgSay(nsLgHost(), i18t('tb_pb_say_first'), true); return; }
+    if (st.busy) return; st.busy = true; btn.disabled = true; btn.textContent = i18t('ns_proposing'); nsLgSay(nsLgHost(), '');
+    try {
+      const d = await api('ai/outline', 'POST', { sentence: st.said, kind: '', required: [], title: true }, { quiet: true });
+      st.busy = false;
+      st.d = d; st.name = (d && d.title) || nsNameFromSentence(st.said) || '';
+      /* the same list the Builder would draw (tbOutlineFrom): the model's headings, then Our standards' open positions */
+      st.list = typeof tbOutlineFrom === 'function' ? tbOutlineFrom(d, st.said).sections : ((d && d.sections) || []).map(x => ({ heading: x.heading, intent: x.intent || '', on: !x.optional }));
+      st.step = 'keep'; paint();
+    } catch (e) { st.busy = false; btn.disabled = false; btn.textContent = i18t('ns_propose'); nsLgSay(nsLgHost(), nsWhy(e), true); }
+  };
+  const host = nsLgHost(); if (!host) return;
+  nsLgWire(host, {
+    click: (e, t) => {
+      const ex = t.closest('[data-nss-ex]'); if (ex) { st.said = i18t('nsl_ex' + ex.getAttribute('data-nss-ex')); paint(); return; }
+      const g = t.closest('[data-nss-go]'); if (g) { propose(g); return; }
+      if (t.closest('[data-nss-again]')) { st.step = 'say'; st.list = null; st.d = null; st.name = ''; paint(); return; }
+      const m = t.closest('[data-nss-mine]'); if (m) { open(m, false); return; }
+      const op = t.closest('[data-nss-open]'); if (op) { if (!kept()) { nsLgSay(nsLgHost(), i18t('tb_pb_none_ticked'), true); return; } open(op, true); }
+    },
+    input: e => {
+      if (e.target && e.target.id === 'nss-say') { st.said = e.target.value || '';
+        if (st.step === 'say') { const h = document.getElementById('nss-name'); if (h) h.textContent = nsNameFromSentence(st.said) || i18t('nsl_new_paper'); } }
+    },
+    change: e => {
+      const b = e.target && e.target.closest && e.target.closest('[data-nss-sec]'); if (!b || !st.list) return;
+      const x = st.list[Number(b.getAttribute('data-nss-sec'))]; if (x) { x.on = b.checked; paint(); }
+    },
+  });
+  paint();
+  const box = document.getElementById('nss-say'); if (box) setTimeout(() => { try { box.focus(); } catch (_) {} }, 40);
+}
+
+/* ---------------- THE OTHER SIDE'S PAPER — the Legora way, simple ----------------
+   One line says what it is for, then one drop area. Once read: Name, Whose paper, Stream, Blanks, Save their paper, and
+   the opening of their paper on HaTi's one paper width. Saved, it is kept as THEIR paper (theirs, party) and Draft on
+   it now opens New agreement on Their paper with it chosen. WHOSE PAPER is read off their own words where a company
+   name is written there (never guessed), else typed. */
+function nsTheirParty(text) {
+  const me = String((typeof FIRST_PARTY === 'object' && FIRST_PARTY && FIRST_PARTY.name) || (typeof FIRST_PARTY === 'string' ? FIRST_PARTY : '')).toLowerCase();
+  const re = /\b([A-Z][A-Za-z0-9&'.-]*(?:\s+[A-Z][A-Za-z0-9&'.-]*){0,4}\s+(?:Ltd|Limited|LLC|Inc|PLC|plc|AB|GmbH|S\.A\.|SA|LLP|Corp|Corporation|Company))\b\.?/g;
+  const head = String(text || '').slice(0, 3000);
+  let m; while ((m = re.exec(head))) { const n = m[1].trim(); if (!me || n.toLowerCase() !== me) return n; }
+  return '';
+}
+function nsOpenTheirs() {
+  nsStyle();
+  const st = { m: 'drop', html: '', text: '', fileName: '', source: 'paste', name: '', party: '', folder: '', blanks: [], turn: true, saved: null, busy: false };
+  let editor = null;
+  const folders = (typeof visibleFolders === 'function' ? visibleFolders() : Object.values(typeof FOLDERS === 'object' ? FOLDERS : {})) || [];
+  const purpose = `<p class="nso-purpose">${nsEsc(i18t('nsl_cp_purpose'))}</p>`;
+  const head = nsLgHead(i18t('ns_cp_t'), '');
+  const dropHtml = () => `<div class="nso-drop" data-nsl-drop><b>${nsEsc(i18t('nsl_cp_drop'))}</b>
+    <span><label class="nsl-or">${nsEsc(i18t('nsl_choose_file'))}<input type="file" id="nso-file" accept=".docx,.pdf,.txt,.md" hidden></label> · <button type="button" class="nsl-or" data-nso-paste>${nsEsc(i18t('nsl_cp_paste'))}</button></span>
+    <span class="nso-hint">${nsEsc(i18t('nsl_cp_kept'))}</span></div>`;
+  const pasteHtml = () => `<div class="nsl-paste"><div id="nso-paste-box" class="ns-paste scroll-thin doc-surface" data-placeholder="${nsEsc(i18t('lb_open_in_word'))}"></div>
+    <div class="nsl-paste-f"><button type="button" class="ui-btn ui-btn-sm" data-nso-paste-x>${nsEsc(i18t('act_cancel'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nso-read>${nsEsc(i18t('nsl_cp_read_go'))}</button></div></div>`;
+  const secsN = () => { try { return (nsCopy(st.html, null, '').blocks || []).filter(b => b.blockType === 'heading').length; } catch (_) { return 0; } };
+  const opening = () => {
+    if (typeof document === 'undefined') return '';
+    const t = document.createElement('div'); t.innerHTML = typeof sanitizeRich === 'function' ? sanitizeRich(st.html) : st.html;
+    const kids = [...t.children]; let n = 0; const out = [];
+    for (const k of kids) { out.push(k.outerHTML); n += String(k.textContent || '').length; if (n > 1200 || out.length >= 8) break; }
+    return out.join('');
+  };
+  const lineHtml = (k, label, inner, change) => `<div class="nso-line"><span class="nso-lab">${nsEsc(label)}</span><span class="nso-val">${inner}</span>${change ? `<button type="button" class="nsl-or" data-nso-change="${k}">${nsEsc(i18t('nsl_cp_change'))}</button>` : ''}</div>`;
+  const readHtml = () => {
+    const n = secsN(), b = st.blanks.length;
+    const streamSel = `<select id="nso-stream" aria-label="${nsEsc(i18t('nsl_cp_stream'))}"><option value="">${nsEsc(i18t('nsl_stream_pick'))}</option>${folders.map(f => `<option value="${nsEsc(f.id)}"${f.id === st.folder ? ' selected' : ''}>${nsEsc(f.name)}</option>`).join('')}</select>`;
+    return (st.saved ? `<div class="nso-ok"><span>${nsEsc(i18t('nsl_cp_saved', { name: st.saved.name }))}</span><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-nso-draft>${nsEsc(i18t('nsl_cp_draft'))}</button><button type="button" class="ui-btn ui-btn-sm" data-nsl-back>${nsEsc(i18t('nsl_cp_back'))}</button></div>` : '')
+      + lineHtml('name', i18t('nsl_cp_name'), `<input id="nso-name" value="${nsEsc(st.name)}" ${st.saved ? 'disabled' : ''}>`, !st.saved)
+      + lineHtml('party', i18t('nsl_cp_whose'), `<input id="nso-party" value="${nsEsc(st.party)}" placeholder="${nsEsc(i18t('nsl_cp_whose_ph'))}" ${st.saved ? 'disabled' : ''}>`, !st.saved)
+      + lineHtml('stream', i18t('nsl_cp_stream'), st.saved ? nsEsc(nsLgStreamName(st.folder) || '') : streamSel, false)
+      + `<div class="nso-line"><span class="nso-lab">${nsEsc(i18t('nsl_cp_blanks'))}</span><span class="nso-val">${b ? `<label class="nso-tick"><input type="checkbox" id="nso-turn"${st.turn ? ' checked' : ''}${st.saved ? ' disabled' : ''}> ${nsEsc(i18tn('nsl_cp_blanks_n', b, { n: b }))}</label>` : nsEsc(i18t('nsl_cp_blanks_none'))}</span></div>`
+      + (st.saved ? '' : `<div class="nso-save"><button type="button" class="ui-btn ui-btn-primary" data-nso-save>${nsEsc(i18t('nsl_cp_save'))}</button></div>`)
+      + `<div class="nso-sheet"><div class="nso-mini doc-surface">${opening()}<div class="nso-pgno">${nsEsc(i18tn('nsl_cp_first', n, { n }))}</div></div></div>`;
+  };
+  const paint = () => {
+    nsMount(`<div class="nsl nso">${head}${purpose}<div class="nsl-say" data-nsl-say></div>${st.m === 'drop' ? dropHtml() : st.m === 'paste' ? pasteHtml() : readHtml()}</div>`);
+    if (st.m === 'paste') { const box = document.getElementById('nso-paste-box'); if (box && typeof richEditor === 'function') { editor = richEditor(box, {}); setTimeout(() => editor.focus && editor.focus(), 30); } }
+  };
+  const took = (html, text, fileName, source) => {
+    st.html = html; st.text = text || (typeof richToText === 'function' ? richToText(html) : String(html).replace(/<[^>]*>/g, ' '));
+    st.fileName = fileName || ''; st.source = source;
+    st.name = (typeof nsDocTitle === 'function' ? nsDocTitle(html, fileName) : '') || String(fileName || '').replace(/\.[a-z0-9]+$/i, '') || '';
+    st.party = nsTheirParty(st.text);
+    st.blanks = typeof detectBlanks === 'function' ? detectBlanks(st.text) : [];
+    st.m = 'read'; paint();
+  };
+  const readFile = async file => {
+    if (!file) return;
+    nsLgSay(nsLgHost(), i18t('nsl_cp_reading'));
+    try { const r = await nsReadFile(file, m => nsLgSay(nsLgHost(), m)); took(r.html, r.text, r.fileName, 'upload'); }
+    catch (err) { nsLgSay(nsLgHost(), err.message || String(err), true); }
+  };
+  const save = () => {
+    if (st.busy) return;
+    const name = String((document.getElementById('nso-name') || {}).value || st.name).trim();
+    st.party = String((document.getElementById('nso-party') || {}).value || '').trim();
+    st.folder = String((document.getElementById('nso-stream') || {}).value || st.folder || '');
+    st.turn = !!(document.getElementById('nso-turn') || {}).checked;
+    if (!name) { nsLgSay(nsLgHost(), i18t('lb_give_template_name'), true); return; }
+    if (String(st.text || '').trim().length < 40) { nsLgSay(nsLgHost(), i18t('lib_too_short'), true); return; }
+    st.busy = true;
+    let extra = { format: typeof RICH_FORMAT === 'string' ? RICH_FORMAT : 'rich', chars: st.text.length, theirs: true, party: st.party };
+    if (st.turn && st.blanks.length && typeof convertDetectedBlanks === 'function') {
+      const r = convertDetectedBlanks(st.html, st.blanks.filter(d => st.html.includes(d.raw)));
+      extra = { ...extra, fields: r.fields, body: r.body };
+    }
+    const rec = typeof saveTemplateRecord === 'function' ? saveTemplateRecord(name, st.folder || 'corp', st.html, st.source, extra) : null;
+    st.busy = false;
+    if (!rec) return;
+    st.name = name; st.saved = rec; paint();
+    if (typeof updateSidebarCounts === 'function') try { updateSidebarCounts(); } catch (_) {}
+  };
+  const host = nsLgHost(); if (!host) return;
+  nsLgWire(host, {
+    click: (e, t) => {
+      if (t.closest('[data-nso-paste]')) { st.m = 'paste'; paint(); return; }
+      if (t.closest('[data-nso-paste-x]')) { st.m = 'drop'; paint(); return; }
+      if (t.closest('[data-nso-read]')) { const html = editor ? editor.get() : ''; if (!String(html).replace(/<[^>]*>/g, '').trim()) { nsLgSay(nsLgHost(), i18t('lib_paste_first'), true); return; } took(html, '', '', 'paste'); return; }
+      const ch = t.closest('[data-nso-change]'); if (ch) { const el = document.getElementById('nso-' + ch.getAttribute('data-nso-change')); if (el && typeof fieldFocus === 'function') fieldFocus(el); else if (el) el.focus(); return; }
+      if (t.closest('[data-nso-save]')) { save(); return; }
+      if (t.closest('[data-nso-draft]') && st.saved) { const id = st.saved.id, party = st.saved.party || ''; closeModal(); if (typeof openNewAgreement === 'function') openNewAgreement({ paper: 'kept', kept: id, prefill: party ? { counterparty: party } : null }); }
+    },
+    change: e => { if (e.target && e.target.id === 'nso-file') readFile(e.target.files && e.target.files[0]); if (e.target && e.target.id === 'nso-stream') st.folder = e.target.value || ''; },
+    input: e => { if (e.target && e.target.id === 'nso-name') st.name = e.target.value || ''; if (e.target && e.target.id === 'nso-party') st.party = e.target.value || ''; },
+    drag: (ev, e) => { const z = e.target && e.target.closest && e.target.closest('[data-nsl-drop]'); if (!z) return; e.preventDefault();
+      z.classList.toggle('is-over', ev === 'dragover'); if (ev === 'drop') readFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); },
+  });
+  paint();
 }
 
 Object.assign(window, { NS_STARTS, NS_TABS, NS_SAY_MAX, NS_GATED, openNewStandard, nsGo, nsOpenScratch, nsOpenTemplate, nsOpenContract,
+  nsMount, nsHostSet, nsHostBack, nsHostOn, nsTplMake, nsCtrMake,
+  nsLgOn, nsLgInitials, nsLgRowHtml, nsLgFirstLine, nsLgMatches, nsLgTemplate, nsLgContract, nsLgScratch, nsOpenTheirs, nsTheirParty,
   nsReadFile, nsCopy, nsDocTitle, nsNameFromSentence, nsBuiltinCategory, nsHasWording, nsCreate, nsFill });
