@@ -19561,6 +19561,18 @@
   html.lg-new .rfp-k small{display:block;margin-top:2px;font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-v{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums}
   html.lg-new .rfp-acts{display:flex;align-items:center;gap:16px;margin-top:20px}
+  /* WHAT THIS FOLDER SAYS, THE LEGORA WAY (f1052): nothing boxed; chips, then one quiet list of sentences, each with
+     where it was read (the quote in the paper's own face) and its act in its row */
+  html.lg-new .rfp-says{margin-top:20px}
+  html.lg-new .rfp-chips{display:flex;flex-wrap:wrap;gap:var(--s-2);margin:0 0 var(--s-2)}
+  html.lg-new .rfp-chip{height:var(--ctl-h-sm);padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new .rfp-chip.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .rfp-say{padding:14px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .rfp-say:last-child{border-bottom:0}
+  html.lg-new .rfp-say-t{margin:0;font-size:14px;font-weight:var(--w-label);overflow-wrap:anywhere}
+  html.lg-new .rfp-say-src{margin-top:6px;font-size:12px;color:var(--color-quiet);overflow-wrap:anywhere}
+  html.lg-new .rfp-say-src q{display:block;margin-top:4px;font-family:var(--font-doc);font-style:italic;font-size:13.5px;color:var(--color-text)}
+  html.lg-new .rfp-say-acts{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:13px}
   html.lg-new .rfp-panel.is-drawn .rfp-pill{height:var(--ctl-h);padding:0 16px;font-size:13px}
   /* the ask form as drawn: captions over full-width boxes, a two-way choice, a quiet hint under each */
   html.lg-new .rfp-panel .ac-nl-back{display:block;margin:0 0 16px;font-size:13px}

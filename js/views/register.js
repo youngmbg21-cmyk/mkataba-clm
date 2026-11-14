@@ -2055,9 +2055,91 @@ function regFolderOdd(cs){
   }
   return null;
 }
+/* ---- WHAT THIS FOLDER SAYS, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; f1052) ----
+   Where "Columns you asked" stood: nothing boxed, ONE quiet list of plain sentences about the folder in front, each with
+   the contract it was read from and, where the wording is loaded, the § and the words quoted; its act in its own row.
+   READ, NEVER GUESSED, NO AI: the standards' kept verdicts (stdRowReading, the verdict's own quote), the live end date
+   (effectiveExpiry), the sum's own left-out count (fxHome().missing), who was never checked. A sentence with nothing
+   behind it is not drawn; a chip shows only for a kind with a row, and only where two kinds stand. Every act is an
+   existing door (the Needs you tab, regOpenContract / askColLandOn, regShowOnly, Settings' rates or Ask an admin). */
+const RFP_SOON_DAYS = 90;
+let _rfpChip = 'all';
+const _rfpWhere = new Map();
+/* where on the paper a quote stands ("§ 9"), read once per contract and quote; '' where the wording is not loaded */
+function regSayWhere(c, quote){
+  const q=String(quote||'').replace(/\s+/g,' ').trim(); if(!c||q.length<12) return '';
+  const key=String(c.id)+'|'+q.slice(0,60); if(_rfpWhere.has(key)) return _rfpWhere.get(key);
+  let out='';
+  try{ const L=typeof window.pd2Clauses==='function'?pd2Clauses(c):[]; const needle=q.slice(0,48);
+    const cl=L.find(x=>String(x.text||'').replace(/\s+/g,' ').indexOf(needle)>=0);
+    const m=cl?String(cl.headingText||cl.title||'').trim().match(/^(\d+(?:\.\d+)*)/):null; out=m?'§ '+m[1]:''; }catch(_){ out=''; }
+  _rfpWhere.set(key,out); return out;
+}
+/* the paper's own sentence that states the end date: it must carry the day AND the year, else nothing is quoted */
+function regSayEndQuote(c, iso){
+  const key=String(c.id)+'|end|'+iso; if(_rfpWhere.has(key)) return _rfpWhere.get(key);
+  let out={ sec:'', quote:'' };
+  try{ const sec=typeof window.pd2SectionOf==='function'?pd2SectionOf(c,'expiry'):''; const n=sec.replace(/^§\s*/,'');
+    if(n){ const cl=(typeof window.pd2Clauses==='function'?pd2Clauses(c):[]).find(x=>String(x.headingText||x.title||'').trim().indexOf(n)===0);
+      const y=iso.slice(0,4), d=String(Number(iso.slice(8,10)));
+      const hit=String((cl&&cl.text)||'').replace(/\s+/g,' ').split(/(?<=[.;])\s+/).find(t=>t.indexOf(y)>=0&&new RegExp('(^|\\D)0?'+d+'(\\D|$)').test(t));
+      out={ sec, quote:hit?hit.trim().slice(0,220):'' }; } }catch(_){ out={ sec:'', quote:'' }; }
+  _rfpWhere.set(key,out); return out;
+}
+function regFolderSays(book, r){
+  const out=[], nameOf=c=>String(c.counterparty||c.name||''), refOf=c=>(typeof contractRef==='function'?contractRef(c):c.id);
+  const signed=c=>typeof negoExecuted==='function'?negoExecuted(c):c.status==='Signed';
+  /* 1 · the open contract that departs most from our standards; with it, the door to everything that needs you */
+  const std=book.filter(c=>!signed(c)).map(c=>({ c, s:typeof stdRowReading==='function'?stdRowReading(c):null })).filter(x=>x.s&&(x.s.miss+x.s.off)>0)
+    .sort((a,b)=>(b.s.miss+b.s.off)-(a.s.miss+a.s.off))[0];
+  const showNeed=r.needN?{ attr:'data-rfp-view="needs"', label:i18tn('rfp_say_show_need', r.needN, { n:r.needN }) }:null;
+  if(std){ const c=std.c, s=std.s, vs=(c.playbook&&c.playbook.verdicts)||[];
+    const v=vs.find(x=>x&&x.quote&&!['missing','aligned','ok','na'].includes(String(x.status||'')))||null;
+    const say=s.off&&s.miss?i18t('rfp_say_std_both',{ name:nameOf(c), off:i18tn('rfp_say_places', s.off, { n:s.off }), miss:i18tn('rfp_say_missing', s.miss, { n:s.miss }) })
+      :s.off?i18t('rfp_say_std_off',{ name:nameOf(c), off:i18tn('rfp_say_places', s.off, { n:s.off }) })
+      :i18t('rfp_say_std_miss',{ name:nameOf(c), miss:i18tn('rfp_say_missing', s.miss, { n:s.miss }) });
+    const sec=v?regSayWhere(c, v.quote):'';
+    out.push({ kind:'need', say, src:[refOf(c), [sec, v?String(v.category||''):''].filter(Boolean).join(' ')].filter(Boolean).join(' · '), quote:v?String(v.quote).slice(0,220):'',
+      acts:[{ attr:`data-rfp-open="${esc(c.id)}"${v?` data-rfp-quote="${esc(String(v.quote).slice(0,300))}"`:''}`, label:i18t(v?'rfp_say_open_clause':'rfp_say_open') }].concat(showNeed?[showNeed]:[]) }); }
+  else if(r.needN) out.push({ kind:'need', say:i18tn('rfp_say_need', r.needN, { n:r.needN }), src:regFolderNeedWords(r), quote:'', acts:[showNeed] });
+  /* 2 · what ends next: inside 90 days it is said in days, else the next date at all */
+  const today=typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10);
+  const ends=book.map(c=>{ let e=null; try{ e=typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry; }catch(_){ e=c.expiry; } return { c, e:String(e||'').slice(0,10) }; })
+    .filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.e)&&x.e>=today).sort((a,b)=>a.e<b.e?-1:a.e>b.e?1:0)[0];
+  if(ends){ const c=ends.c, days=Math.round((Date.parse(ends.e+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/86400000), Q=regSayEndQuote(c, ends.e);
+    const day=typeof regDotDate==='function'?regDotDate(ends.e):ends.e;
+    const say=days<=RFP_SOON_DAYS?i18tn(c.status==='Draft'?'rfp_say_ends_draft':'rfp_say_ends', days, { name:nameOf(c), n:days }):i18t('rfp_say_ends_next',{ name:nameOf(c), day });
+    out.push({ kind:'date', say, src:[refOf(c), Q.sec, days<=RFP_SOON_DAYS?day:''].filter(Boolean).join(' · '), quote:Q.quote,
+      acts:[{ attr:`data-rfp-open="${esc(c.id)}"${Q.quote?` data-rfp-quote="${esc(Q.quote)}"`:''}`, label:i18t('rfp_say_open') }] }); }
+  /* 3 · what the sum left out: no rate on file is said with its currency and its one door, never guessed */
+  if(r.noRate){ const out0=book.filter(c=>{ try{ return !(typeof fxIsPay==='function'&&fxIsPay(c))&&typeof fxHome==='function'&&!!fxHome(c).missing; }catch(_){ return false; } });
+    const codes=Array.from(new Set(out0.map(c=>{ try{ return fxHome(c).code; }catch(_){ return ''; } }).filter(Boolean)));
+    const admin=typeof isAdmin==='function'&&isAdmin();
+    out.push({ kind:'money', say:i18tn('rfp_say_norate', out0.length, { n:out0.length, sum:r.val!=null?fmtMoneyShort(r.val):'', codes:codes.join(', ') }),
+      src:out0.slice(0,2).map(c=>nameOf(c)+' · '+refOf(c)).join(', ')+(out0.length>2?' '+i18t('rfp_say_more',{ n:out0.length-2 }):''), quote:'',
+      acts:[{ attr:'data-rfp-rate', label:i18t(admin?'rfp_say_set_rate':'sc_ask_admin') }] }); }
+  /* 4 · who was never checked against our standards: said, with the list behind it */
+  const un=book.filter(c=>!(typeof stdRowReading==='function'&&stdRowReading(c)));
+  if(un.length&&book.length) out.push({ kind:'std', say:i18t(un.length===book.length?'rfp_say_unchecked_all':'rfp_say_unchecked',{ k:un.length, n:book.length }), src:i18t('rfp_say_unchecked_src'), quote:'',
+    acts:[{ attr:`data-rfp-only="${esc(un.map(c=>c.id).join(','))}"`, label:i18t('rfp_say_show_them') }] });
+  return out;
+}
+const RFP_SAY_CHIPS=[['need','rfp_chip_need'],['date','rfp_chip_date'],['money','rfp_chip_money']];
+function regFolderSaysHtml(book, r){
+  let S=[]; try{ S=regFolderSays(book, r); }catch(_){ S=[]; }
+  if(!S.length) return '';
+  const kinds=RFP_SAY_CHIPS.filter(([k])=>S.some(x=>x.kind===k));
+  if(_rfpChip!=='all'&&!kinds.some(([k])=>k===_rfpChip)) _rfpChip='all';
+  const chip=(k,label)=>`<button type="button" class="rfp-chip${_rfpChip===k?' is-on':''}" data-rfp-chip="${k}" aria-pressed="${_rfpChip===k}">${esc(label)}</button>`;
+  const chips=kinds.length>1?`<div class="rfp-chips">${chip('all', i18t('rfp_chip_all',{ n:S.length }))}${kinds.map(([k,w])=>chip(k, i18t(w))).join('')}</div>`:'';
+  const rows=S.filter(x=>_rfpChip==='all'||x.kind===_rfpChip).map(x=>`<div class="rfp-say" data-rfp-say="${x.kind}"><p class="rfp-say-t">${esc(x.say)}</p>`
+    +(x.src||x.quote?`<div class="rfp-say-src">${esc(x.src||'')}${x.quote?`<q>${esc(x.quote)}</q>`:''}</div>`:'')
+    +`<div class="rfp-say-acts">${x.acts.filter(Boolean).map(a=>`<button type="button" class="rfp-a" ${a.attr}>${esc(a.label)}</button>`).join('')}</div></div>`).join('');
+  return `<div class="rfp-says">${chips}${rows}</div>`;
+}
 /* THE FOLDER'S PANEL AS DRAWN (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; built
    from the Reads & Contracts drawing, step 1): THIS FOLDER — Contracts · Need you (Show) · Signed · On paper, the head's
-   own reading (regFolderRead); then Discover. No cost is said.
+   own reading (regFolderRead); then WHAT THIS FOLDER SAYS (regFolderSaysHtml, the Legora way); then Discover. No cost is said.
    COLUMNS YOU ASKED IS GONE (owner, 14 Nov 2026: "the feature for these search being added to the panel should be
    deleted"): questions are asked and kept on Discover's own page, never listed or added from this panel. */
 function regFolderPanelHtml(){
@@ -2071,13 +2153,22 @@ function regFolderPanelHtml(){
   const folder=cap(i18t('rfp_this_folder'))+row(esc(i18t('rfp_contracts')),String(n))+row(esc(i18t('rfp_need_you')),need)+row(esc(i18t('rfp_signed')),String(r.signed))
     +(r.val!=null?row(esc(i18t('rfp_on_paper')),esc(fmtMoneyShort(r.val))):'');
   const acts=`<div class="rfp-acts"><button type="button" class="rfp-pill rfp-dsc" data-ac-discover>${(typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : ''}${esc(i18t('dsc_btn'))}</button></div>`;
-  return `<div class="rfp-panel is-drawn">${folder}${acts}</div>`;
+  return `<div class="rfp-panel is-drawn">${folder}${regFolderSaysHtml(book, r)}${acts}</div>`;
 }
 if(typeof document!=='undefined'&&!document._rfpWired){ document._rfpWired=true;
   document.addEventListener('click',e=>{
     const v=e.target&&e.target.closest?e.target.closest('[data-rfp-view]'):null;
     if(v){ e.preventDefault(); const tb=document.querySelector('.reg-views button[data-reg-view="'+v.getAttribute('data-rfp-view')+'"]'); if(tb) tb.click(); return; }
     if(e.target&&e.target.closest&&e.target.closest('[data-rfp-reads]')){ e.preventDefault(); if(typeof caGo==='function') caGo('reads'); else if(typeof setView==='function') setView('reads'); return; }
+    const ch=e.target&&e.target.closest?e.target.closest('[data-rfp-chip]'):null;
+    if(ch){ e.preventDefault(); _rfpChip=ch.getAttribute('data-rfp-chip')||'all'; ctfDockAgain(); return; }
+    const on=e.target&&e.target.closest?e.target.closest('[data-rfp-only]'):null;
+    if(on){ e.preventDefault(); const F=(typeof FOLDERS!=='undefined'&&FOLDERS[regState().type])||{}; regShowOnly(on.getAttribute('data-rfp-only').split(',').filter(Boolean), i18t('rfp_say_unchecked_label',{ folder:F.name||'' })); return; }
+    if(e.target&&e.target.closest&&e.target.closest('[data-rfp-rate]')){ e.preventDefault();
+      /* the rates are an admin's dated claim: an admin lands on them, anyone else asks an admin (the tracked ask) */
+      if(typeof isAdmin==='function'&&isAdmin()){ if(typeof window.openSettingsAt==='function') openSettingsAt('company','company'); }
+      else if(typeof window.stAskFrom==='function') stAskFrom('company', i18t('rfp_say_rate_ask'));
+      return; }
     const b=e.target&&e.target.closest?e.target.closest('[data-rfp-open]'):null; if(!b) return;
     e.preventDefault(); const id=b.getAttribute('data-rfp-open'), qt=b.getAttribute('data-rfp-quote')||'';
     if(typeof window.askColLandOn==='function') askColLandOn(id, qt); else regOpenContract(id);
@@ -5213,3 +5304,4 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
     _ngnQ = e.target.value; ngnRepaint(); const q = document.getElementById('ngn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
 }
 Object.assign(window,{ngnOn,ngnRender,ngnRead,ngnBook,ngnAskWords,ngnRepaint});
+Object.assign(window,{regFolderSays,regFolderSaysHtml,RFP_SOON_DAYS});
