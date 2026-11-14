@@ -1,0 +1,4 @@
+{
+  "_why": "Presses the nothing-is-thrown-away guard expects to lose something today, each with its reason. This list may only SHRINK: a press on it that starts passing fails the guard until it is taken off (test/chromium/nothing-is-thrown-away-verify.js).",
+  "house-contract-picker": "Jambo's house's contract picker writes the chosen contract's name back into itself; a kept half-typed word would fight it (owner told, 14 Nov 2026)."
+}

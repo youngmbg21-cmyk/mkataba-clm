@@ -2636,7 +2636,9 @@ function calWireOwn(){
      and the drawn Ask button ask alike (round 16). */
   /* JAMBO'S TAB READS WITH THE BRAIN FIRST (owner, 27 Oct 2026, the Board's rolled out): typed while his tab shows,
      the planner reads it whole — words that are not about time it hands to the chat ('elsewhere') */
-  const ask=()=>{ if(!inp) return; const v=inp.value; if(!String(v||'').trim()) return; inp.value=''; calBoxAsk(v,{ typed:true }); };
+  /* the words are USED here, so their home empties with the box (js/components.js, the one watcher) */
+  const ask=()=>{ if(!inp) return; const v=inp.value; if(!String(v||'').trim()) return; inp.value='';
+    if(typeof window.boxDraftClear==='function') boxDraftClear('calendar'); calBoxAsk(v,{ typed:true }); };
   /* bound ONCE per painted box: a press that keeps the panel calls this again over the same box */
   if(inp&&!inp._calWired){ inp._calWired=true; inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); ask(); } }); }
   const go=document.getElementById('cal-plan-go');
