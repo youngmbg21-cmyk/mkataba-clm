@@ -18,6 +18,8 @@
      5. no page errors
      6. going to another page (Discover, through the door Jambo's link uses) puts the Send screen away — it does not
         stay over that page, full width, without Jambo (owner, 15 Nov 2026)
+     7. any full-page screen goes first: one over Approvals when Discover opens, one over the Board when Home turns to
+        the Calendar (owner, 15 Nov 2026: "check if this issue is anywhere else in hati")
    Waits ask for the state, bounded. RED at unmodified main (1, 2, 3).
    Run: node test/chromium/send-screen-keeps-its-way-back-verify.js */
 const fs = require('node:fs');
@@ -132,6 +134,24 @@ const HTML = '<h1>SERVICES AGREEMENT</h1>' + ['Services', 'Fees', 'Term', 'Liabi
       const gone = await until(() => !document.querySelector('#modal-root .modal-in[data-sh-page]') && state.view === 'reads', null, 8000);
       check('6. going to Discover puts the Send screen away and lands on Discover', !!gone,
         await page.evaluate(() => JSON.stringify({ view: state.view, sendUp: !!document.querySelector('#modal-root .modal-in[data-sh-page]') }))); }
+
+    console.log('\n7 · any full-page screen goes before the page or Home\'s tab moves (owner, 15 Nov 2026: "check if this issue is anywhere else")');
+    const plain = () => page.evaluate(() => { try { closeModal(); } catch (_){ }
+      openModal('<p id="f1061-pg">A page</p>', { maxWidth: 'none', label: 'A page', page: { crumb: 'A page' } }); return !!document.getElementById('f1061-pg'); });
+    await page.evaluate(() => { try { setView('approvals'); } catch (_){ } });
+    await until(() => state.view === 'approvals', null, 8000);
+    if (!await plain()) console.log('SKIP  7a. a full-page screen could not be opened over Approvals');
+    else { await page.evaluate(() => { try { discoverOpen(); } catch (_){ } });
+      const gone = await until(() => !document.getElementById('f1061-pg') && state.view === 'reads', null, 8000);
+      check('7a. a screen opened over Approvals goes when Discover opens', !!gone,
+        await page.evaluate(() => JSON.stringify({ view: state.view, up: !!document.getElementById('f1061-pg') }))); }
+    await page.evaluate(() => { try { setView('dashboard'); hbSetFace('board'); } catch (_){ } });
+    await until(() => state.view === 'dashboard' && hbFace() === 'board', null, 8000);
+    if (!await plain()) console.log('SKIP  7b. a full-page screen could not be opened over the Board');
+    else { await page.evaluate(() => { try { hbOpenCalendar(); } catch (_){ } });
+      const gone = await until(() => !document.getElementById('f1061-pg') && hbFace() === 'calendar', null, 8000);
+      check('7b. a screen opened over the Board goes when Home turns to the Calendar', !!gone,
+        await page.evaluate(() => JSON.stringify({ face: hbFace(), up: !!document.getElementById('f1061-pg') }))); }
     check('5. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close(); await h.stop();
