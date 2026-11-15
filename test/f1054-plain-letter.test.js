@@ -1,4 +1,4 @@
-/* f1053 — PLAIN LETTER (owner's pick by name, 14 Nov 2026: "build Plain letter", after "the page looks chaotic"; and
+/* f1054 — PLAIN LETTER (owner's pick by name, 14 Nov 2026: "build Plain letter", after "the page looks chaotic"; and
    step 1 "the words are overlapping the grey area"). The drawn letter says the round in ONE sentence in the sender's
    voice (smRoundSentence, js/sharemail.js, both hosts) instead of two lists; the note is a line of the letter with
    "Write it for me" after it; "Kind regards," the letter's size; step 1 keeps 16px inside its grey, lists its person
@@ -16,7 +16,7 @@ const base = { channel: 'email', purpose: 'negotiate', sender: 'Amina Otieno', o
   recName: 'Kari Lunde', link: 'https://hati.example/#share=t:abc', round: 2, drawn: true };
 const own = names => names.map(c => ({ clause: c }));
 
-test('f1053 (1) the round is one sentence in the sender\'s voice, as drawn', () => {
+test('f1054 (1) the round is one sentence in the sender\'s voice, as drawn', () => {
   assert.strictEqual(typeof M.smRoundSentence, 'function');
   assert.strictEqual(M.smRoundSentence({ lines: [{ clause: 'Clause 2 · Term and Termination', say: 'they accept your change.' }],
     own: own(['Clause 3 · Pricing and Payment', 'Clause 5 · Limitation of Liability', 'Data Protection', 'Quality & Rejection', 'Liability']) }),
@@ -28,7 +28,7 @@ test('f1053 (1) the round is one sentence in the sender\'s voice, as drawn', () 
   assert.strictEqual(M.smRoundSentence({ lines: [], own: [] }), '');
   assert.strictEqual(M.smRoundSentence(null), '');
 });
-test('f1053 (2) the drawn email carries the sentence, never the lists; with a note, the note speaks instead', () => {
+test('f1054 (2) the drawn email carries the sentence, never the lists; with a note, the note speaks instead', () => {
   const answers = { asked: 1, lines: [{ clause: 'Clause 2 · Term', say: 'they accept your change.' }], own: own(['Clause 3 · Price']) };
   const m = M.shareMailOf(Object.assign({}, base, { answers }));
   assert.match(m.body, /^Dear Kari,\n\nWe accept your change to clause 2, Term, and propose a change to clause 3, Price\.\n\n/);
@@ -40,13 +40,13 @@ test('f1053 (2) the drawn email carries the sentence, never the lists; with a no
   const old = M.shareMailOf(Object.assign({}, base, { answers, drawn: false }));
   assert.match(old.body, /has answered your redline:/, 'the old look keeps its letter');
 });
-test('f1053 (3) step 1: 16px inside the open step, its person once, "+ Add someone" one line', () => {
+test('f1054 (3) step 1: 16px inside the open step, its person once, "+ Add someone" one line', () => {
   const X = 'html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps';
   assert.ok(CSS.includes(X + ' .sh-lt-row.sh-st.is-open{padding:var(--s-4)}'));
   assert.ok(CSS.includes(X + ' .sh-lt-row.sh-st #sh-lt-tosay:not(.hidden){display:none}'));
   assert.ok(CSS.includes(X + ' .sh-st-add > button{display:inline-flex;'));
 });
-test('f1053 (4) the note is a line of the letter: a row, no label on show, its empty words said; Kind regards the letter\'s size', () => {
+test('f1054 (4) the note is a line of the letter: a row, no label on show, its empty words said; Kind regards the letter\'s size', () => {
   const X = 'html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps';
   assert.ok(CSS.includes(X + '.is-note-paper .sh-lt-note:not(.is-nowhere){display:flex;flex-direction:row;flex-wrap:wrap;'));
   assert.ok(CSS.includes(X + '.is-note-paper .sh-lt-note:not(.is-nowhere) > label{display:contents}'));
@@ -58,7 +58,7 @@ test('f1053 (4) the note is a line of the letter: a row, no label on show, its e
   assert.match(core, /ta\.style\.width=want<=room \? want\+'px' : '100%';/);
   assert.match(core, /p\.k==='ans' \|\| p\.k==='round'/, 'Jambo is told the sentence goes');
 });
-test('f1053 (5) the note\'s limit is said, never a silent cut: the box stops there, a count from four fifths, Send refuses past it', () => {
+test('f1054 (5) the note\'s limit is said, never a silent cut: the box stops there, a count from four fifths, Send refuses past it', () => {
   const core = read('js/core.js').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(core, /<\/textarea><\/label><p class="sh-note-count" id="sh-note-count" aria-live="polite" hidden><\/p>/);
   assert.match(core, /function shareNoteMax\(colleague\)\{\s*return colleague \? \(\(typeof PASS_NOTE_MAX==='number'\)\?PASS_NOTE_MAX:2000\) : \(\(typeof SHARE_MAIL_NOTE_MAX==='number'\)\?SHARE_MAIL_NOTE_MAX:1000\);/);

@@ -4,7 +4,7 @@
    Driven in a real browser, the new look, a long note put in by shareNoteFill:
      1-3  for Email, WhatsApp and Word file: the box shows ALL its words (no scroll inside it, height = its words)
      4    the box wears no field border on the paper, whichever way it goes
-     5    PLAIN LETTER (f1053): an empty note says so, "Write it for me" after it; step 1 open keeps 16px inside and
+     5    PLAIN LETTER (f1054): an empty note says so, "Write it for me" after it; step 1 open keeps 16px inside and
           lists its person once
    Red at the parent: WhatsApp and Word kept a three-row field that scrolled.
      node test/chromium/send-note-on-the-paper-verify.js
@@ -82,7 +82,7 @@ const SIZES = SHOTS ? [[1440, 780], [1536, 730], [1366, 950]] : [[1440, 780]];
         const shown = [...s.querySelectorAll('#sh-st-ppl .sh-st-p, #sh-lt-tosay')].filter(e => e.getClientRects().length).length;
         return { top: Math.round(mk.top - r.top), left: Math.round(mk.left - r.left), right: Math.round(r.right - go.right), shown }; }, 3000);
       check(`${w}x${ht} step 1 open: 16px inside the grey, its person listed once`, !!s1 && s1.top >= 15 && s1.left >= 15 && s1.right >= 15 && s1.shown === 1, JSON.stringify(s1));
-      /* THE NOTE'S LIMIT (f1053 (5)): typed past it, the box stops at the most the email carries; near it, a count */
+      /* THE NOTE'S LIMIT (f1054 (5)): typed past it, the box stops at the most the email carries; near it, a count */
       const cap = await page.evaluate(async () => { const t = document.getElementById('sh-summary'); t.value = ''; t.focus();
         return { max: t.maxLength }; });
       if (cap && cap.max > 0) { await page.keyboard.insertText('x'.repeat(cap.max + 50)); }

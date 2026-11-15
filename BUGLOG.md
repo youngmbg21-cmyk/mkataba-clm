@@ -22502,3 +22502,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - 14 Nov 2026 · f1052 · BUILT (owner's pick by name: "Build the Legora way"): the Contracts folder's panel says what matters in plain sentences where Columns you asked stood (standards, what ends next, no rate, not checked), read without AI, each through an existing door. Handbook line in both books; round6-new-look-verify 2b; photos at the three screens.
 
 - 14 Nov 2026 · the folder's panel check is f1053, not f1052: main took f1052 (note on the paper) while this waited; renumbered on merge.
+- (15 Nov 2026) Correction to the line above: the note-limit test is f1054 (5), not f1053 (5) — main had taken f1053 for the folder's panel.
