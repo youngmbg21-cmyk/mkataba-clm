@@ -153,6 +153,36 @@ const CAL_PRIORITY = ['expiry','renewal','obligation','round','mine','note','pla
    one list; the next press, or anything that changed the book, counts again (the memo lasts until the moment ends, so it
    can never show a stale date) */
 let _calEvMemo=null;
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 2): the week's shape before any word — seven days from today, a dot on a
+   day that holds a date (calEventsOnce, the page's own list); the headline says the week, the tiles count it, the
+   next date stands in Coming up; Plan my week is the one black button, Find time beside it (the planner's own presses,
+   data-cal-plan-q), and Jambo's calendar switch under them. Read from the list, no AI. The new look only. */
+function calOverviewFive(off){
+  const today=(typeof todayISO==='function')?todayISO():new Date().toISOString().slice(0,10);
+  const add=(iso,n)=>{ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+  const evs=(calEventsOnce()||[]).filter(e=>e&&e.date);
+  const in7=evs.filter(e=>e.date>=today&&e.date<=add(today,6));
+  const book=((typeof window.obwBook==='function')?obwBook():[]).filter(r=>r.st!=='done');
+  const late=book.filter(r=>r.win==='overdue').length;
+  const week=[0,1,2,3,4,5,6].map(i=>{ const iso=add(today,i), k=in7.filter(e=>e.date===iso);
+    return { d:calDateWords(iso,{ weekday:'short' }), n:Number(iso.slice(8,10)), today:i===0, k:k.length, title:k.map(e=>e.cname||e.cref).slice(0,3).join(', ') }; });
+  const later=evs.filter(e=>e.date>add(today,6)).sort((a,b)=>a.date.localeCompare(b.date));
+  const nextDay=(in7[0]&&in7.slice().sort((a,b)=>a.date.localeCompare(b.date))[0].date)||(later[0]&&later[0].date)||'';
+  const days=nextDay?Math.round((new Date(nextDay+'T12:00:00')-new Date(today+'T12:00:00'))/864e5):null;
+  const on=nextDay?evs.filter(e=>e.date===nextDay):[];
+  const names=[...new Set(on.map(e=>e.note||e.cname).filter(Boolean))];
+  const allEnd=on.length&&on.every(e=>e.type==='expiry');
+  const coming=nextDay?[{ mark:'calendar', t:allEnd?i18tn('jov5_cal_end',on.length,{ n:on.length }):i18tn('jov5_cal_dates',on.length,{ n:on.length }),
+    s:names.slice(0,3).join(', ')+(names.length>3?' '+i18tn('jov_more',names.length-3,{ n:names.length-3 }):''), v:calDateWords(nextDay,{ day:'numeric', month:'short', year:'numeric' }) }]:[];
+  const word=nextDay?calDateWords(nextDay,{ day:'numeric', month:'long', year:'numeric' }):'';
+  return { eyebrow:i18t('jov5_cal_eb'), title:(late||in7.length)?i18tn('jov5_cal_busy',in7.length+late,{ n:in7.length+late }):i18t('jov5_cal_clear'),
+    sub:late?i18tn('jov5_cal_late_s',late,{ n:late }):(in7.length?i18t('jov5_cal_next',{ day:word }):(nextDay?i18t('jov5_cal_quiet',{ day:word }):i18t('jov5_cal_none'))),
+    week, glance:[{ n:in7.length, l:i18t('jov5_cal_due') },{ n:late, l:i18t('jov5_late_l'), warn:late>0 },{ n:days==null?'\u2014':days, l:i18t('jov5_cal_days') }],
+    groups:coming.length?[{ label:i18t('jov5_cal_coming'), rows:coming }]:[],
+    act:{ say:(typeof window.obYourWeekOffer==='function')?obYourWeekOffer():'', label:i18t('jov5_ob_plan'), attr:`data-cal-plan-q="week"${off}`,
+      link:{ label:i18t('jov5_cal_find'), attr:`data-cal-plan-q="due"${off}` } },
+    after:calLevelSegHtml(), src:i18t('cal_nl_src') };
+}
 function calEventsOnce(){
   if(_calEvMemo) return _calEvMemo;
   _calEvMemo=calendarEvents();
@@ -2455,7 +2485,7 @@ function calPlanHtml(){
       ${''/* THE OVERVIEW, THE LEGORA WAY (owner, 26 Oct 2026; jamboOverviewHtml, the one builder): Your week as one head
              sentence, its named facts (obYourWeekFacts, the Obligations page's own), the offer, "Ask me" with the
              planner's two asks (their cost said) and the Calendar's own setting under them — nothing boxed */}
-      <div class="jl-words is-ov cal-yw" data-jt-land${talk?' hidden':''}>${typeof window.jamboOverviewHtml==='function'?jamboOverviewHtml({
+      <div class="jl-words is-ov cal-yw" data-jt-land${talk?' hidden':''}>${typeof window.jamboOverviewHtml==='function'?jamboOverviewHtml((typeof window.newLookOn==='function'&&newLookOn())?calOverviewFive(off):{
         head:week?{ html:week }:null,
         /* as drawn (the new look, round 5): the sentence, where it was counted from, then Ask me — the list itself carries the late and the due */
         facts:(typeof window.newLookOn==='function'&&newLookOn())?[]:((typeof window.obYourWeekFacts==='function')?obYourWeekFacts():[]).concat(offer?[{ html:_esc(offer) }]:[]),
@@ -2696,7 +2726,7 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
   },true);
 }
 
-Object.assign(window,{calLevelLight,calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+Object.assign(window,{calOverviewFive,calLevelLight,calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,CAL_AGENDA_VIEW_DAYS,CAL_AGENDA_VIEW_ROWS,calAgendaViewHtml,

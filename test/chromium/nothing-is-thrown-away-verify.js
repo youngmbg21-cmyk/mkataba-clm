@@ -16,6 +16,8 @@
          with the same words (14 Nov 2026, the last flicker)
      7. Our paper: a standard pressed low in the list keeps the list where it was
      8. Jambo's house: words in the contract picker (KNOWN: the picker writes the chosen name back)
+     8b. Jambo's panel: when only part of it changes (a lens switched off), its head is the same element — not thrown away
+         and built again with the same words (Jambo's panel holds still, 14 Nov 2026)
      9. no page errors
    Waits ask for the state, bounded. Run: node test/chromium/nothing-is-thrown-away-verify.js */
 const fs = require('node:fs');
@@ -154,6 +156,19 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
     if (!await typeIn('#jh-one')) skip('8', 'the contract picker is not on screen');
     else { await page.evaluate(() => { try { setView(state.view); } catch (_){ } }); await page.waitForTimeout(900);
       say('house-contract-picker', '8. the contract picker keeps a half-typed word', (await valueOf('#jh-one')) === WORDS, JSON.stringify(await valueOf('#jh-one'))); }
+
+    console.log('\n8b · Jambo\'s panel, part of it changed');
+    await page.evaluate(() => { try { setView('dashboard'); } catch (_){ } }); await page.waitForTimeout(900);
+    /* a lens is set first, so switching it off changes only words in the lens row — the panel keeps its parts */
+    { const ready = await page.evaluate(() => { try { if (window.intel && !intel.dockOpen) intel.dockOpen = true;
+          intel.lenses = (intel.lenses || []).concat([{ id: 'guard8b', label: 'Guard', ids: [], on: true }]); renderIntelDock(); } catch (_){ }
+        const h = document.querySelector('#ig-dock .igd-head'); if (!h) return false; h.__keep8b = 1; return true; });
+      if (!ready) skip('8b', 'Jambo\'s panel has no head on the Board at this width');
+      else { await page.evaluate(() => { try { const l = intel.lenses.find(x => x.id === 'guard8b'); if (l) l.on = false; renderIntelDock(); } catch (_){ } });
+        await page.waitForTimeout(400);
+        const same = await page.evaluate(() => { const h = document.querySelector('#ig-dock .igd-head'); const ok = !!(h && h.__keep8b === 1);
+          try { intel.lenses = (intel.lenses || []).filter(l => l.id !== 'guard8b'); renderIntelDock(); } catch (_){ } return ok; });
+        say('jambo-panel-head', '8b. Jambo\'s panel keeps its head when only a lens is switched off', same, same ? null : 'the head was built again'); } }
 
     const errs = errors.filter(e => !/ResizeObserver/.test(e));
     console.log(errs.length ? `FAIL  9. no page errors — ${errs.slice(0, 3).join(' | ')}` : 'PASS  9. no page errors'); if (errs.length) failures++;

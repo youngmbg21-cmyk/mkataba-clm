@@ -145,8 +145,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
   /* 5 · People */
   try {
     await page.evaluate(() => setView('directory'));
-    const up = await until(page, () => /Right now/i.test((document.querySelector('#ins-panel .cun-panel') || {}).innerText || ''), null, 12000);
-    const said = await txt(page, '#ins-panel .cun-panel');
+/* RE-POINTED 15 Nov 2026 (owner: Jambo's panels "Build as drawn", the five parts): the panel is the five-part builder's now */ 
+    const up = await until(page, () => /Show their contracts/i.test((document.querySelector('#ins-panel .jov5[data-jov-slot="dirn"]') || {}).innerText || ''), null, 12000);
+    const said = await txt(page, '#ins-panel .jov5[data-jov-slot="dirn"]');
     await shot('5-people');
     check('5 People: the person in one sentence, Right now, Doors', up && /Show their contracts/.test(said) && /Email them/.test(said), said.slice(0, 160));
   } catch (e) { check('5 People', false, String(e).slice(0, 200)); }
@@ -170,7 +171,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const up = await until(page, () => !!document.querySelector('.tpln .tpln-r[data-tpl-pf]'), null, 12000);
     const caps = await page.evaluate(() => [...document.querySelectorAll('.tpln .pd2-ch-cap')].map(x => x.innerText.trim().toLowerCase()));
     const sheet = await page.evaluate(() => !!document.querySelector('.tpln-sheet .tpl-pf-sheet, .tpln-sheet .tpl-pf-none'));
-    const used = await until(page, () => /How it has been used/i.test((document.querySelector('#ins-panel') || {}).innerText || ''), null, 8000);
+/* RE-POINTED 15 Nov 2026 (owner: Jambo's panels "Build as drawn", the five parts): the panel is the five-part builder's now */ 
+    const used = await until(page, () => /came back changed/i.test((document.querySelector('#ins-panel') || {}).innerText || ''), null, 8000);
     await shot('7-our-paper');
     /* THE LEGORA WAY (owner's pick, 14 Nov 2026): one ask box, the streams as chips on one line, a quiet list whose rows quote their first line; Shelves stay beside the paper */
     const lg = await page.evaluate(() => ({ ask: !!document.querySelector('.tpln [data-tpln-q]'), chips: !!document.querySelector('.tpln .tpln-chips'), quote: !!document.querySelector('.tpln .tpln-r .tpln-q') }));

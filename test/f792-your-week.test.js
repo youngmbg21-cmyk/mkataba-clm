@@ -145,7 +145,9 @@ describe('f792 (4) both pages say it alike', () => {
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): Your week is drawn by the one
        Overview builder — the same sentence and offer, the week's facts, the planner's two asks under "Ask me" by
        their own press (data-cal-plan-q), the setting under them */
-    assert.match(p, /jamboOverviewHtml\(\{/);
+    /* RE-POINTED 15 Nov 2026 (owner: "Build as drawn", the five parts, round 2): in the new look Calendar's panel is
+       drawn by calOverviewFive (f1069); the old look still hands the builder this object, checked here as before */
+    assert.match(p, /jamboOverviewHtml\((?:\(typeof window\.newLookOn==='function'&&newLookOn\(\)\)\?calOverviewFive\(off\):)?\{/);
     assert.match(p, /obYourWeekFacts\(\)/);
     assert.match(p, /label:i18t\('ob_yw_chip_week'\)[^}]*attr:`data-cal-plan-q="week"\$\{off\}`/);
     assert.match(p, /label:i18t\('ob_yw_chip_due'\)[^}]*attr:`data-cal-plan-q="due"\$\{off\}`/);

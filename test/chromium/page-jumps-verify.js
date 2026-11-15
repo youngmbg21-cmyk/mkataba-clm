@@ -158,6 +158,11 @@ try { new PerformanceObserver(l => { for (const e of l.getEntries()) { if (e.had
           return { ghost, kids, ink }; });
         check('H turning a tab: the new face is simply there, no copy of the old one and nothing fading', hx.ghost === 0 && !hx.kids, JSON.stringify(hx));
         check('H the tab\'s underline glides to the tab pressed', hx.ink, JSON.stringify(hx));
+        /* THE TAB'S OWN GLIDE ENDS FIRST (15 Nov 2026, Jambo's panel holds still: the panel's head is now KEPT across a
+           repaint, so the glide the tab press started a moment ago runs on instead of being cut by a fresh head, and was
+           read here as the repaint's). The wait asks for the state, bounded; then a repaint must start no glide. */
+        await page.waitForFunction(() => !document.getAnimations().some(a => a.effect && a.effect.pseudoElement === '::after' && a.effect.target
+          && a.effect.target.matches('#ig-dock .pd-tab') && a.playState === 'running'), null, { timeout: 2000 }).catch(() => {});
         const same = await page.evaluate(() => { renderIntelDock(); return document.getAnimations().some(a => a.effect && a.effect.pseudoElement === '::after' && a.effect.target && a.effect.target.matches('#ig-dock .pd-tab.on') && a.playState === 'running' && a.currentTime === 0); });
         check('H a repaint of the same face glides nothing', same === false, String(same));
 

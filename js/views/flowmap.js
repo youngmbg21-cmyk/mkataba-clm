@@ -137,7 +137,18 @@ function fmPanelHtml(k){
     ${row('is-p', _fmT('fm_row_pred'), r.p.length ? r.p.map(tgt).join('') : none)}
     <div class="fm-pgo">${go}</div></div>`;
 }
-function fmJlSay(){ return { lines: [_fmE(_fmT('fm_jl_say', { n: FLOW_MAP.length })), _fmE(_fmT('fm_jl_say2'))], src: false }; }
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): the map's size as three numbers (its stages, its places, the most
+   doors a place may carry, FLOW_DOORS_MAX), its three lines drawn beside their meaning, and the spine said in a soft
+   card. The new look only. */
+function fmJlSayFive(){
+  const stages = (typeof FLOW_STAGES !== 'undefined' && Array.isArray(FLOW_STAGES)) ? FLOW_STAGES.length : 0;
+  return { title: _fmT('jov5_fm_t', { n: FLOW_MAP.length }), sub: _fmT('jov5_fm_s'),
+    glance: [{ n: stages, l: _fmT('jov5_fm_stages') }, { n: FLOW_MAP.length, l: _fmT('jov5_fm_places') }, { n: FLOW_DOORS_MAX, l: _fmT('jov5_fm_doors') }],
+    groups: [{ label: _fmT('jov5_fm_read'), rows: [{ t: _fmT('jov5_fm_l1'), swatch: 'step' }, { t: _fmT('jov5_fm_l2'), swatch: 'door' }, { t: _fmT('jov5_fm_l3'), swatch: 'guess' }] }],
+    act: { say: _fmT('fm_jl_say2') }, src: false };
+}
+function fmJlSay(){ if (typeof newLookOn === 'function' && newLookOn()){ const f = fmJlSayFive(); return Object.assign({ lines: [_fmE(f.title)] }, f); }
+  return { lines: [_fmE(_fmT('fm_jl_say', { n: FLOW_MAP.length })), _fmE(_fmT('fm_jl_say2'))], src: false }; }
 function fmPanelPaint(){
   if (typeof insPaintPanel !== 'function' || !document.getElementById('ins-panel')) return;
   if (_fm.on) insPaintPanel({ seat: FM_SEAT, item: { k: _fm.on }, solo: true, body: fmPanelHtml(_fm.on), jlWord: _fmT('nav_flowmap'), jlHome: _fmT('nav_flowmap') });

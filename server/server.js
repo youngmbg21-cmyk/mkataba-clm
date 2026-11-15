@@ -661,6 +661,10 @@ addColumnIfMissing('column_asks', 'fact_at', 'TEXT');
 /* DISCOVER, THE NEW READ (owner, 15 Nov 2026): a read remembers WHERE it was asked (the folders ticked, or 'all') and HOW
    MANY contracts were chosen, so the list of reads can say "Sales, NDAs · 50 of 104" */
 addColumnIfMissing('column_reads', 'where_f', 'TEXT');
+/* BUILD A PACK (owner, 15 Nov 2026): a pack someone built names who built it; a deleted pack is kept GONE (never
+   listed) so the reads asked with it keep its name, and an Undo brings it back whole */
+addColumnIfMissing('column_packs', 'created_by_name', 'TEXT');
+addColumnIfMissing('column_packs', 'gone', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('column_reads', 'of_n', 'INTEGER');
 /* ONLY WHAT YOU KEEP (owner, 26 Oct 2026: "over time the list becomes enormous
    … save some so the saved ones are the only ones that appear"). A question is
@@ -9962,13 +9966,64 @@ db.prepare('INSERT OR IGNORE INTO column_packs (id,name,questions,builtin,create
   .run(COLUMN_PACK_DD.id, COLUMN_PACK_DD.name, JSON.stringify(COLUMN_PACK_DD.questions), now());
 function colPackOut(r) {
   let qs = []; try { qs = JSON.parse(r.questions) || []; } catch (_) { qs = []; }
-  return { id: r.id, name: r.name, questions: qs, builtin: !!r.builtin };
+  return { id: r.id, name: r.name, questions: qs, builtin: !!r.builtin, by: r.created_by || '', byName: r.created_by_name || '', at: r.created_at || '' };
 }
+/* BUILD A PACK (owner, 15 Nov 2026: "you curate your bundle of due diligence questions coming from your standards …
+   you can build other and delete them"). Anyone who may run a read builds one, for the whole company; it holds what one
+   read answers (COLUMN_Q_MAX), checked by the same words-rule as a read (colQuestionsOf). Only its builder or an admin
+   changes or deletes it; the built-in Due diligence is changed by an admin and never deleted. A delete keeps the row
+   GONE; posting its id again (the Undo) brings it back. */
+const COLUMN_PACK_NAME_MAX = 40, COLUMN_PACK_ID_RE = /^pk_[a-z0-9_]{6,40}$/;
+const colPackMay = (req, r) => req.user.role === 'admin' || (!r.builtin && String(r.created_by || '') === String(req.user.id));
+function colPackBody(b) {
+  const name = String((b && b.name) || '').trim().replace(/\s+/g, ' ');
+  if (!name) return { error: 'Give the pack a name' };
+  if (name.length > COLUMN_PACK_NAME_MAX) return { error: `Keep the name under ${COLUMN_PACK_NAME_MAX} characters` };
+  const raw = Array.isArray(b && b.questions) ? b.questions : [];
+  if (!raw.length) return { error: 'Tick at least one question' };
+  if (raw.length > COLUMN_Q_MAX) return { error: `A pack holds at most ${COLUMN_Q_MAX} questions, the most one read answers` };
+  const Q = colQuestionsOf({ questions: raw });
+  if (Q.error) return Q;
+  const std = new Map(raw.map(x => [colKey(String((x && x.question) || '').trim().replace(/\s+/g, ' ')), String((x && x.std) || '').trim().slice(0, 80)]));
+  return { name, questions: Q.list.map(q => Object.assign({ question: q.question, name: q.name }, std.get(q.qkey) ? { std: std.get(q.qkey) } : {})) };
+}
+app.post('/api/columns/packs', auth, editor, (req, res) => {
+  const b = req.body || {}, P = colPackBody(b);
+  if (P.error) return res.status(400).json({ error: P.error });
+  const want = String(b.id || '');
+  if (want){
+    const r = COLUMN_PACK_ID_RE.test(want) ? db.prepare('SELECT * FROM column_packs WHERE id=?').get(want) : null;
+    if (!r || !r.gone || !colPackMay(req, r)) return res.status(404).json({ error: 'That pack cannot be brought back' });
+    db.prepare('UPDATE column_packs SET name=?, questions=?, gone=0 WHERE id=?').run(P.name, JSON.stringify(P.questions), want);
+    return res.json({ pack: colPackOut(db.prepare('SELECT * FROM column_packs WHERE id=?').get(want)) });
+  }
+  const id = 'pk_' + crypto.randomBytes(8).toString('hex');
+  db.prepare('INSERT INTO column_packs (id,name,questions,builtin,created_by,created_at,created_by_name,gone) VALUES (?,?,?,0,?,?,?,0)')
+    .run(id, P.name, JSON.stringify(P.questions), String(req.user.id), now(), req.user.name || req.user.email || '');
+  res.json({ pack: colPackOut(db.prepare('SELECT * FROM column_packs WHERE id=?').get(id)) });
+});
+app.put('/api/columns/packs/:id', auth, editor, (req, res) => {
+  const r = db.prepare('SELECT * FROM column_packs WHERE id=? AND gone=0').get(String(req.params.id));
+  if (!r) return res.status(404).json({ error: 'That pack is gone' });
+  if (!colPackMay(req, r)) return res.status(403).json({ error: r.builtin ? 'Only an admin changes the built-in pack' : 'Only the person who built this pack, or an admin, can change it' });
+  const P = colPackBody(req.body || {});
+  if (P.error) return res.status(400).json({ error: P.error });
+  db.prepare('UPDATE column_packs SET name=?, questions=? WHERE id=?').run(P.name, JSON.stringify(P.questions), r.id);
+  res.json({ pack: colPackOut(db.prepare('SELECT * FROM column_packs WHERE id=?').get(r.id)) });
+});
+app.delete('/api/columns/packs/:id', auth, editor, (req, res) => {
+  const r = db.prepare('SELECT * FROM column_packs WHERE id=? AND gone=0').get(String(req.params.id));
+  if (!r) return res.status(404).json({ error: 'That pack is gone' });
+  if (r.builtin) return res.status(409).json({ error: 'Due diligence is built in: it can be changed, but not deleted' });
+  if (!colPackMay(req, r)) return res.status(403).json({ error: 'Only the person who built this pack, or an admin, can delete it' });
+  db.prepare('UPDATE column_packs SET gone=1 WHERE id=?').run(r.id);
+  res.json({ ok: true, pack: colPackOut(r) });
+});
 
 /* the team's questions, newest used first: the panel's "Asked before in your team"; and the packs */
 app.get('/api/columns', auth, (req, res) => {
   const rows = db.prepare('SELECT * FROM column_asks ORDER BY last_used_at DESC LIMIT 12').all();
-  const packs = db.prepare('SELECT * FROM column_packs ORDER BY builtin DESC, name').all().map(colPackOut);
+  const packs = db.prepare('SELECT * FROM column_packs WHERE gone=0 ORDER BY builtin DESC, name').all().map(colPackOut);
   res.json({ asks: rows.map(colAskOut), packs, max: COLUMN_MAX, perRead: COLUMN_Q_MAX });
 });
 
@@ -10149,6 +10204,7 @@ const COLUMN_TOOL = {
     quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
     clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
     yes: { type: 'boolean', description: 'Only for a question that can be answered yes or no ("Does this contract…?"): true if the answer for this contract is yes, false if no or if the document does not say. Leave it out for any other question.' },
+    yes_words: { type: 'string', description: 'Only when yes is true: the shortest run of words, copied EXACTLY from quote, that says yes (e.g. "capped at the total fees paid in the twelve (12) months"). Empty otherwise.' },
     verdict: { type: 'string', enum: ['in', 'out', ''], description: 'Only for a question that gives OUR RULE: "in" if the answer keeps the rule, "out" if it breaks it. Empty when the question gives no rule, or nothing was found.' },
   }, required: ['q', 'found', 'answer', 'detail', 'tone', 'why'] } } }, required: ['answers'] },
 };
@@ -10187,6 +10243,7 @@ app.post('/api/ai/column-turn', auth, editor, rlAiDeep, aiFeature('column'), aiB
 
 app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
   const b = req.body || {};
+  const runStart = now();
   const Q = colQuestionsOf(b);
   if (Q.error) return res.status(400).json({ error: Q.error });
   const asked = colIds(b.ids);
@@ -10285,6 +10342,9 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
       const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
         tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
         quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '', yes: typeof d.yes === 'boolean' ? (found && d.yes) : null,
+        /* THE WORDS THAT SAY YES (owner, 15 Nov 2026: "only words that say yes"), kept only where they stand in the quote
+           as given — words not in the quote are dropped, never guessed */
+        yesWords: (found && d.yes === true && quote && s(d.yes_words) && colFlat(quote).includes(colFlat(s(d.yes_words)))) ? s(d.yes_words).slice(0, 300) : '',
         truncated: !!resp.truncated, inputCapped: t.capped, at: now(), by: 'jambo', calls: 1, with: t.asks.length };
       db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
         VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
@@ -10307,7 +10367,11 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   /* EVERY ACT LEAVES A RECORD THE SERVER WRITES (flow rule 8; The thread, 28 Oct 2026): the press, by
      name. `run` is the browser's name for one press (its batches share it) with where the contracts
      stood on the list; a call without one is a read of its own — a contract read on arrival is 'arrival' */
-  const run = colRunRecord(req, b.run, asks, b.pack, ids.filter(id => !failed.some(f => f.id === id && f.why === 'notFound')), calls, cached);
+  /* A READ THROWN AWAY WHILE THIS BATCH WAS STILL WITH JAMBO leaves nothing behind: what this batch wrote goes, and no
+     record is written (the browser had already been told it was gone) */
+  const runGone = b.run && typeof b.run === 'object' && COLUMN_RUNS_DROPPED.has(String(b.run.id || ''));
+  if (runGone) colThrowAway(asks.map(a => a.id), ids, runStart);
+  const run = runGone ? null : colRunRecord(req, b.run, asks, b.pack, ids.filter(id => !failed.some(f => f.id === id && f.why === 'notFound')), calls, cached, runStart);
   const out = { ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached, run,
     failed: asks.length === 1 ? failed.map(f => ({ id: f.id, why: f.why, ...(f.error ? { error: f.error } : {}) })) : failed,
     capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) };
@@ -10315,7 +10379,8 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   res.json(out);
 });
 const COLUMN_RUN_ID = /^cr_[a-z0-9]{6,40}$/;
-function colRunRecord(req, run, asks, packId, ids, calls, cached) {
+const COLUMN_RUNS_DROPPED = new Map();
+function colRunRecord(req, run, asks, packId, ids, calls, cached, startedAt) {
   const r = (run && typeof run === 'object') ? run : {};
   const id = COLUMN_RUN_ID.test(String(r.id || '')) ? String(r.id) : 'cr_' + crypto.randomBytes(8).toString('hex');
   const kind = r.id ? 'press' : (ids.length === 1 ? 'arrival' : 'press');
@@ -10335,7 +10400,8 @@ function colRunRecord(req, run, asks, packId, ids, calls, cached) {
     db.prepare(`INSERT INTO column_reads (id,ask_ids,pack_id,kind,by_id,by_name,started_at,last_at,ids,n,from_no,to_no,calls,cached,stopped,where_f,of_n)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(id, JSON.stringify(asks.map(a => a.id)), packId && db.prepare('SELECT id FROM column_packs WHERE id=?').get(String(packId)) ? String(packId) : null, kind,
-        String(req.user.id), req.user.name || req.user.email || '', at, at, JSON.stringify(ids), ids.length, num(r.from), num(r.to), calls, cached, r.stopped ? 1 : 0,
+        /* started when its first batch was asked (never when that batch ended), so what the read wrote is all after it */
+        String(req.user.id), req.user.name || req.user.email || '', startedAt || at, at, JSON.stringify(ids), ids.length, num(r.from), num(r.to), calls, cached, r.stopped ? 1 : 0,
         where && where.length ? JSON.stringify(where) : null, of);
   }
   return { id };
@@ -10347,6 +10413,42 @@ app.post('/api/columns/reads/:id/stop', auth, editor, (req, res) => {
   db.prepare('UPDATE column_reads SET stopped=1, last_at=? WHERE id=?').run(now(), id);
   res.json({ ok: true });
 });
+/* CANCEL AND THROW IT AWAY (owner, 15 Nov 2026: "an exit ramp to cancel the whole work … a choice to either throw
+   them away or save them"): the read's record goes, and with it only the answers THIS read wrote (written since it
+   started, for its questions and its contracts) — answers kept from earlier reads stay. A question left with no
+   answer, never kept and no company fact, goes too. The reader's own, or an admin's. */
+app.delete('/api/columns/reads/:id', auth, editor, (req, res) => {
+  const id = String(req.params.id || '');
+  if (!COLUMN_RUN_ID.test(id)) return res.status(404).json({ error: 'No such read' });
+  const r = db.prepare('SELECT * FROM column_reads WHERE id=?').get(id);
+  if (r && String(r.by_id || '') !== String(req.user.id) && req.user.role !== 'admin') return res.status(403).json({ error: 'Only the person who started this read, or an admin, may throw it away' });
+  /* a batch still with Jambo finds this mark when it ends (an hour is far longer than any batch) */
+  const t = Date.now(); for (const [k, v] of COLUMN_RUNS_DROPPED) if (t - v > 3600000) COLUMN_RUNS_DROPPED.delete(k);
+  COLUMN_RUNS_DROPPED.set(id, t);
+  if (!r) return res.json({ ok: true, answers: 0, asks: [] });
+  let askIds = [], ids = []; try { askIds = JSON.parse(r.ask_ids) || []; } catch (_) { askIds = []; } try { ids = JSON.parse(r.ids) || []; } catch (_) { ids = []; }
+  const out = colThrowAway(askIds, ids, r.started_at, id);
+  res.json({ ok: true, answers: out.n, asks: out.gone });
+});
+/* the answers a read wrote since `since` (its questions × its contracts) go, then its record, then any question left
+   with no answer, never kept and no company fact */
+function colThrowAway(askIds, ids, since, runId) {
+  let n = 0;
+  const gone = [];
+  txn(() => {
+    const del = db.prepare('DELETE FROM column_answers WHERE ask_id=? AND contract_id=? AND created_at>=?');
+    for (const a of askIds) for (const c of ids) n += Number(del.run(String(a), String(c), since).changes) || 0;
+    if (runId) db.prepare('DELETE FROM column_reads WHERE id=?').run(runId);
+    for (const a of askIds) {
+      const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(a));
+      if (!ask || ask.kept || ask.fact) continue;
+      if (db.prepare('SELECT 1 FROM column_answers WHERE ask_id=? LIMIT 1').get(ask.id)) continue;
+      if (db.prepare('SELECT 1 FROM column_reads WHERE ask_ids LIKE ? LIMIT 1').get('%"' + ask.id + '"%')) continue;
+      db.prepare('DELETE FROM column_asks WHERE id=?').run(ask.id); gone.push(ask.id);
+    }
+  });
+  return { n, gone };
+}
 /* EVERY READ (The thread, 28 Oct 2026): the presses, newest first, each with its question(s), who, when, how
    many contracts — counted inside what THIS PERSON may see — and where they stood on the list. The arrival
    reads of a company fact are many and small, so they come back summed per question (arrivals), never listed. */
