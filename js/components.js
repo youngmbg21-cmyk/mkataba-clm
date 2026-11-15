@@ -1857,6 +1857,8 @@ function keepScrollIn(host, fn, except){
   return r;
 }
 Object.assign(window, { keepScrollIn });
+Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
+  boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin, BOX_DRAFT_SEATS, boxDraftSweep, boxDraftWatch });
 
 /* ---- JAMBO'S PANELS ARRIVE RARELY (owner's rule, 15 Nov 2026, in their words: a Jambo panel's arrival moves only
    the first time a page is opened in a day, then again only after 5 hours have passed since it last played; any other
@@ -1967,5 +1969,4 @@ if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined' &
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 }
 
-Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml, jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
-  boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin, BOX_DRAFT_SEATS, boxDraftSweep, boxDraftWatch });
+Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
