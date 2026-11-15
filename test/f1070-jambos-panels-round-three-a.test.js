@@ -1,5 +1,5 @@
 'use strict';
-/* f1064 — JAMBO'S PANELS, THE FIVE PARTS, ROUND 3a (owner, 15 Nov 2026: "push and start round 3"): the Board, Contracts
+/* f1070 — JAMBO'S PANELS, THE FIVE PARTS, ROUND 3a (owner, 15 Nov 2026: "push and start round 3"): the Board, Contracts
    (the folders and the list), Explorer's Your day and Guide, Parties, Settings, the Handbook page and the side
    panel's Guide.
    (1) the builder draws the round's three new parts: `tag` (a word beside the headline), `ring` (a share as a ring
@@ -24,18 +24,18 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const region = (src, start, end) => { const i = src.indexOf(start); assert.ok(i >= 0, start + ' is there'); const j = end ? src.indexOf(end, i + start.length) : -1; return strip(src.slice(i, j > i ? j : i + 8000)); };
 
-test('f1064 (1) the builder draws a tag, a ring and a page\'s own middle', () => {
+test('f1070 (1) the builder draws a tag, a ring and a page\'s own middle', () => {
   const W = buildWorld().win; const d = W.document.createElement('div');
-  d.innerHTML = W.jamboOverviewHtml({ title: 'Siginon Group', ring: 25, tag: { text: 'All signed', tone: 'green' }, glance: [{ n: 1, l: 'a' }], mid: '<i class="f1064-mid"></i>', midLabel: 'Where the money is' }, 'f1064');
+  d.innerHTML = W.jamboOverviewHtml({ title: 'Siginon Group', ring: 25, tag: { text: 'All signed', tone: 'green' }, glance: [{ n: 1, l: 'a' }], mid: '<i class="f1070-mid"></i>', midLabel: 'Where the money is' }, 'f1070');
   assert.equal(d.querySelector('.jov5-tag.is-green').textContent, 'All signed');
   assert.equal(d.querySelector('.jov5-ring b').textContent, '25%');
   assert.match(d.querySelector('.jov5-rf').getAttribute('style'), /stroke-dashoffset:160\.2/, 'a quarter of the ring drawn');
-  const mid = d.querySelector('.f1064-mid'); assert.ok(mid, 'the page\'s own drawing');
+  const mid = d.querySelector('.f1070-mid'); assert.ok(mid, 'the page\'s own drawing');
   const parts = [...d.querySelector('.jov5').children]; const gi = parts.findIndex(e => e.classList.contains('jov5-glance')), mi = parts.findIndex(e => e.contains(mid));
   assert.ok(gi >= 0 && mi > gi, 'the middle stands under the tiles');
 });
 
-test('f1064 (2) each panel says the five parts in the new look, by the page\'s own presses', () => {
+test('f1070 (2) each panel says the five parts in the new look, by the page\'s own presses', () => {
   const hb = region(read('js/views/homeboard.js'), 'function hbBoardHelloHtml(){', 'function hbWelcomeGo(k){');
   assert.match(hb, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\{/);
   assert.match(hb, /attr: n \? 'data-hbw="all"'/); assert.match(hb, /'data-hbw="live"'/); assert.match(hb, /'data-hbw="next"'/);
@@ -57,21 +57,21 @@ test('f1064 (2) each panel says the five parts in the new look, by the page\'s o
   assert.match(hk, /attr: `data-hbkn-ch="\$\{E\(c\.k\)\}"`/);
 });
 
-test('f1064 (3) the Contracts list keeps no "Ask me", and Discover above its rows', () => {
+test('f1070 (3) the Contracts list keeps no "Ask me", and Discover above its rows', () => {
   const pd = read('js/paperdesk.js');
   const ov = region(pd, 'function pdWallOverview(){', 'function pdDropInner(){');
   assert.match(ov, /groups, src: _pdT\('jl_src_list'\), asks: \[\] \};/, 'no Ask me in the new look either');
   assert.match(region(pd, 'function pdWallHtml(disc){', 'function pdDropInput('), /if \(o\.title\) return `<div class="pd-wall">\$\{ov\(Object\.assign\(\{\}, o, \{ mid: disc \|\| '' \}\)/);
 });
 
-test('f1064 (4) the side panel\'s Guide keeps its own rows, in soft groups', () => {
+test('f1070 (4) the side panel\'s Guide keeps its own rows, in soft groups', () => {
   const g = region(read('js/app.js'), 'function guidePanelNlHtml(){', '/* THE SYMBOL STRIP');
   assert.match(g, /const five=typeof newLookOn==='function'&&newLookOn\(\), g=h=>five\?`<div class="gdn-g">\$\{h\}<\/div>`:h;/);
   assert.match(g, /guideNlRowHtml\(r,here,st\.tone\)/, 'the Guide\'s own rows');
   assert.match(read('index.html'), /\.gdn\.is-five \.gdn-h\{text-transform:none;/, 'headings in sentence case');
 });
 
-test('f1064 (5) every word of the round is in both books', () => {
+test('f1070 (5) every word of the round is in both books', () => {
   const W = buildWorld().win; const S = W.eval('typeof STRINGS !== "undefined" ? STRINGS : null'); assert.ok(S && S.en && S.sv);
   const keys = new Set();
   for (const f of ['js/views/homeboard.js', 'js/views/register.js', 'js/paperdesk.js', 'js/views/intelligence.js', 'js/views/customers.js', 'js/views/settings.js', 'js/views/handbook.js'])
