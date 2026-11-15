@@ -1331,6 +1331,8 @@
   :root{ --rl2-del-ink:#BE123C; --rl2-del-bg:#FFE4E6; --rl2-ins-ink:#047857; --rl2-ins-bg:#E4F1EA; }
   /* the board's brief on the Board: its 7% amber laid on white, as one solid colour (11 Nov 2026) */
   :root{ --hb-why-fill:#F7F3EE; }
+  /* the words that say yes, in Discover's panel while it reads (owner, 15 Nov 2026) */
+  :root{ --hl-yes:#FFF0B3; }
   /* ---- SAID TO A SCREEN READER, DRAWN FOR NOBODY ---- (25 Aug 2026)
      A keyboard affordance nobody is told about is one nobody uses, and some
      of those sentences have no visible home — the KPI row's Alt+Arrow reorder
@@ -19868,6 +19870,9 @@
   html.lg-new .dsn-dreel p{margin:0 0 20px;font-family:var(--font-doc);font-size:15.5px;line-height:1.45;color:var(--color-text)}
   html.lg-new .dsn-dreel p:last-child{animation:dsn-in .7s ease}
   html.lg-new .dsn-dreel p span{display:block;margin-bottom:3px;font-family:var(--font-body);font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .dsn-dreel mark.dsn-yes{padding:0 2px;border-radius:3px;background:var(--hl-yes);color:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  html.lg-new .dsn-yn{margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--surface-2);color:var(--color-quiet);font-style:normal;font-size:11px}
+  html.lg-new .dsn-yn.is-yes{background:color-mix(in srgb,var(--accent-ink) 12%,var(--color-surface));color:var(--accent-ink)}
   html.lg-new .dsn-dreel p.is-quiet{font-family:inherit;font-size:13.5px;color:var(--color-quiet)}
   @keyframes dsn-rise{from{transform:translateY(24px)}to{transform:translateY(-36px)}} @keyframes dsn-in{from{opacity:0;transform:translateY(10px)}}
   @media (prefers-reduced-motion:reduce){ html.lg-new :is(.dsn-pg,.dsn-mini,.dsn-dreel,.dsn-dreel p,.dsn-tag)::before, html.lg-new :is(.dsn-pg,.dsn-mini,.dsn-dreel,.dsn-dreel p){animation:none} html.lg-new .dsn-hl{display:none} html.lg-new .dsn-typ{width:auto;animation:none;border-right:0} }

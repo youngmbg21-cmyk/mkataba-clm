@@ -10204,6 +10204,7 @@ const COLUMN_TOOL = {
     quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
     clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
     yes: { type: 'boolean', description: 'Only for a question that can be answered yes or no ("Does this contract…?"): true if the answer for this contract is yes, false if no or if the document does not say. Leave it out for any other question.' },
+    yes_words: { type: 'string', description: 'Only when yes is true: the shortest run of words, copied EXACTLY from quote, that says yes (e.g. "capped at the total fees paid in the twelve (12) months"). Empty otherwise.' },
     verdict: { type: 'string', enum: ['in', 'out', ''], description: 'Only for a question that gives OUR RULE: "in" if the answer keeps the rule, "out" if it breaks it. Empty when the question gives no rule, or nothing was found.' },
   }, required: ['q', 'found', 'answer', 'detail', 'tone', 'why'] } } }, required: ['answers'] },
 };
@@ -10340,6 +10341,9 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
       const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
         tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
         quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '', yes: typeof d.yes === 'boolean' ? (found && d.yes) : null,
+        /* THE WORDS THAT SAY YES (owner, 15 Nov 2026: "only words that say yes"), kept only where they stand in the quote
+           as given — words not in the quote are dropped, never guessed */
+        yesWords: (found && d.yes === true && quote && s(d.yes_words) && colFlat(quote).includes(colFlat(s(d.yes_words)))) ? s(d.yes_words).slice(0, 300) : '',
         truncated: !!resp.truncated, inputCapped: t.capped, at: now(), by: 'jambo', calls: 1, with: t.asks.length };
       db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
         VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,

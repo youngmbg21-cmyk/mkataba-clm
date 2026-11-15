@@ -1062,12 +1062,24 @@ function dsnTypeTick(){
   _dsnTypeAt = at; const n = el.cloneNode(false); n.textContent = L[at % L.length]; n.style.setProperty('--ch', String(Math.min(90, n.textContent.length))); el.replaceWith(n);
 }
 function dsnTypeStart(){ _dsnTypeAt = -1; dsnTypeTick(); if (!_dsnTypeT) _dsnTypeT = setInterval(dsnTypeTick, 400); }
+/* THE WORDS THAT SAY YES, IN YELLOW (owner, 15 Nov 2026: "highlight … where the search comes back affirmative";
+   "Affirmative is the answer is yes and only words that say yes"; drawing 9fYJUU6vQFMteWzNMGgi2Q). Only a Yes answer,
+   only the words Jambo named (`yesWords`, kept by the server only where they stand in the quote); found in the quote
+   with any spacing; not found, nothing is marked — never a guess. Escaped piece by piece. */
+function dsnYesMarked(a){
+  const q = String((a && a.quote) || '').trim(), w = String((a && a.yesWords) || '').trim();
+  if (!(a && a.yes === true) || !w) return _rdE(q);
+  const re = new RegExp(w.split(/\s+/).map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+'), 'i'), m = re.exec(q);
+  if (!m) return _rdE(q);
+  return _rdE(q.slice(0, m.index)) + '<mark class="dsn-yes">' + _rdE(m[0]) + '</mark>' + _rdE(q.slice(m.index + m[0].length));
+}
 /* Jambo's panel while it reads: the words found so far, drifting up like credits, the newest joining at the foot */
 function dsnDriftHtml(){
   const A = _dscAC(), b = A && A.busy, askId = b ? (b.askId || (b.asks || [])[0]) : null, got = (askId && A.ans[askId]) || {};
   const gc = id => (typeof getContract === 'function' ? getContract(id) : null);
   const items = ((b && b.doneIds) || []).filter(id => got[id] && got[id].found && String(got[id].quote || '').trim()).slice(-DSN_DRIFT_KEEP)
-    .map(id => { const c = gc(id), a = got[id]; return `<p><span>${_rdE([c ? _rdRef(c) : id, c ? _rdName(c) : ''].filter(Boolean).join(' · '))}</span>“${_rdE(String(a.quote).trim())}”</p>`; }).join('');
+    .map(id => { const c = gc(id), a = got[id], tag = a.yes === true ? 'is-yes' : a.yes === false ? 'is-no' : '';
+      return `<p><span>${_rdE([c ? _rdRef(c) : id, c ? _rdName(c) : ''].filter(Boolean).join(' · '))}${tag ? `<em class="dsn-yn ${tag}">${_rdE(_rdT(a.yes ? 'rd_tt_yes' : 'rd_tt_no'))}</em>` : ''}</span>“${dsnYesMarked(a)}”</p>`; }).join('');
   return `<div class="dsn-drift" aria-hidden="true"><div class="rfp-cap">${_rdE(_rdT('dsn_found_so_far'))}</div><div class="dsn-dcol"><div class="dsn-dreel" style="${_dsnDelay(9)}">${items || `<p class="is-quiet">${_rdE(_rdT('dsn_found_none'))}</p>`}</div></div></div>`;
 }
 const dsnRefHtml = c => (typeof refHtml === 'function') ? refHtml(c) : _rdE(_rdRef(c));
