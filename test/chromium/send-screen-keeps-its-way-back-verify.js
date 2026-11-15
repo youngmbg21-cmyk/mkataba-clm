@@ -16,6 +16,8 @@
      3. what was typed survives the turn, both ways
      4. the history, which already turns in place, still does (nothing was broken on the way)
      5. no page errors
+     6. going to another page (Discover, through the door Jambo's link uses) puts the Send screen away — it does not
+        stay over that page, full width, without Jambo (owner, 15 Nov 2026)
    Waits ask for the state, bounded. RED at unmodified main (1, 2, 3).
    Run: node test/chromium/send-screen-keeps-its-way-back-verify.js */
 const fs = require('node:fs');
@@ -120,6 +122,16 @@ const HTML = '<h1>SERVICES AGREEMENT</h1>' + ['Services', 'Fees', 'Term', 'Liabi
       check('4b. still the same screen', await same()); }
 
     await page.screenshot({ path: path.join(OUT, 'send.png') }).catch(() => {});
+
+    console.log('\n6 · another page puts the Send screen away');
+    /* the note emptied first, so the screen's own "leave without sending?" question is not the thing tested */
+    await page.evaluate(() => { const b = document.getElementById('sh-summary'); if (b){ b.value = ''; b.dispatchEvent(new Event('input', { bubbles: true })); } });
+    const wasPage = await page.evaluate(() => !!document.querySelector('#modal-root .modal-in[data-sh-page]'));
+    if (!wasPage) console.log('SKIP  6. the Send screen is not standing as a page beside Jambo here');
+    else { await page.evaluate(() => { try { discoverOpen(); } catch (_){ } });
+      const gone = await until(() => !document.querySelector('#modal-root .modal-in[data-sh-page]') && state.view === 'reads', null, 8000);
+      check('6. going to Discover puts the Send screen away and lands on Discover', !!gone,
+        await page.evaluate(() => JSON.stringify({ view: state.view, sendUp: !!document.querySelector('#modal-root .modal-in[data-sh-page]') }))); }
     check('5. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close(); await h.stop();

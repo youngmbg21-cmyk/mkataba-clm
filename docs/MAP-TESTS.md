@@ -780,3 +780,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NOTE'S LIMIT (15 Nov 2026): f1054 (5); send-note-on-the-paper-verify "the note stops at its limit".
 - THE ROUND LINE, SHORT (15 Nov 2026): f1054 (6); f972 (1) (2) and f1048 re-pointed.
 - WRITE IT FOR ME, TOP CORNER (15 Nov 2026): f1059 (four parts, red at the parent 1-3); send-note-on-the-paper-verify part 5 re-pointed.
+- A PAGE BESIDE JAMBO GOES WITH HOME (15 Nov 2026): f1061; send-screen-keeps-its-way-back-verify 6.

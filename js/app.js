@@ -1239,6 +1239,19 @@ function viewLayersClosed(view){
     }).catch(()=>{});
     return false;
   }
+  /* …AND EVERY PAGE THAT STANDS BESIDE JAMBO ON HOME (owner, 15 Nov 2026: "I was on the email page then i clicked
+     discover on jambo… the email is now above the discover page and the jambo has disappeared"): the Send screen
+     (and any page opened beside Home's panel, data-dlg-home) belongs to Home as the sheet does; a move to another
+     page puts it away first through its own guarded close, then goes on. */
+  if(view!=='dashboard' && !_leavingCe && typeof document!=='undefined' && typeof window!=='undefined' && typeof window.closeModalGuarded==='function'
+    && document.querySelector('#modal-root .modal-in[data-sh-page], #modal-root .modal-in[data-dlg-home]')){
+    Promise.resolve(window.closeModalGuarded()).then(ok=>{
+      if(ok===false || document.querySelector('#modal-root .modal-in[data-sh-page], #modal-root .modal-in[data-dlg-home]')) return;
+      _leavingCe = true;
+      try{ setView(view); } finally { _leavingCe = false; }
+    }).catch(()=>{});
+    return false;
+  }
   /* THE DESIGN STEP (js/views/designstep.js) paints over the page too, and its
      choices are lost on the way out — so it is asked the same way. */
   if(typeof window!=='undefined' && window.designStepOpen && designStepOpen()){

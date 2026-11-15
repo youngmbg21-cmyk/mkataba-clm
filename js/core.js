@@ -3876,6 +3876,8 @@ function dlgPageAdopt(root, panel, page){
   if(page.beside&&typeof ResizeObserver==='function'){ ro=new ResizeObserver(()=>place()); const cs=document.getElementById('content-scroll'); if(cs) ro.observe(cs); }
   place(); window.addEventListener('resize',place);
   panel.setAttribute('data-dlg-page','');
+  /* a page standing beside Home's panel belongs to Home: a move to another page puts it away (viewLayersClosed) */
+  if(page.beside==='#ig-dock') panel.setAttribute('data-dlg-home','');
   if(page.bare) panel.setAttribute('data-dlg-bare','');
   Object.assign(panel.style,{ width:'100%', maxWidth:'none', height:'100%', maxHeight:'none', borderRadius:'0',
     boxShadow:'none', border:'0', background:page.bare?'var(--color-surface)':'var(--color-bg)', overflow:'hidden', display:'flex', flexDirection:'column' });
