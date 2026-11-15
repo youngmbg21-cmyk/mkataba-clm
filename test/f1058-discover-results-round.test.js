@@ -28,7 +28,7 @@ test('f1058 (2) tiles are coloured; plain facts take quiet colours; the chip wea
 });
 
 /* RE-POINTED (owner, 15 Nov 2026: "Make the contract number a column", then the columns drawn and "Answer first"): the
-   number is its own column, led by the one builder both tables draw (f1059 pins the subject rule) */
+   number is its own column, led by the one builder both tables draw (f1061 pins the subject rule) */
 test('f1058 (3) the contract number is its own column, in the results and while reading', () => {
   assert.match(fnBody(RD, 'dsnLeadCols'), /\{ k: 'no'[^}]*td: c => `<td class="rdn-c dsn-no">\$\{c \? dsnRefHtml\(c\) : ''\}<\/td>`/);
   assert.match(fnBody(RD, 'dsnResultsHtml'), /const L = dsnLeadCols\(/);

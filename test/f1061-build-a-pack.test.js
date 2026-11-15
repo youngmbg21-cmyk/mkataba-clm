@@ -1,4 +1,4 @@
-/* f1059 · BUILD A PACK, AND THE COLUMNS THAT LEAD (owner, 15 Nov 2026: "we need a process of build an ask a pack …
+/* f1061 · BUILD A PACK, AND THE COLUMNS THAT LEAD (owner, 15 Nov 2026: "we need a process of build an ask a pack …
    you curate your bundle of due diligence questions coming from your standards"; "There should only be one pack at a
    time. So you build a new pack, due diligence falls off into a drop down"; on the results: "contract number should
    always be there … If you search a particular customer or supplier, then their name should not be in the body because
@@ -18,7 +18,7 @@ const RD = strip(read('js/views/reads.js')), I18N = read('js/i18n.js'), CSS = re
 const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?function ' + name + '\\(')); assert.ok(at >= 0, name + ' exists'); const nx = src.slice(at + 10).search(/\n(?:async )?function |\nif \(typeof document/); return src.slice(at, nx > 0 ? at + 10 + nx : src.length); };
 const Q = n => Array.from({ length: n }, (_, i) => ({ question: `Does clause ${i + 1} name a supplier warranty?`, name: 'W' + (i + 1) }));
 
-test('f1059 (1) the server: build, change, delete, undo; the walls and the limit', async () => {
+test('f1061 (1) the server: build, change, delete, undo; the walls and the limit', async () => {
   const h = await startHati();
   try {
     const W = await seedWorkspace(h, {});
@@ -49,7 +49,7 @@ test('f1059 (1) the server: build, change, delete, undo; the walls and the limit
   } finally { await h.stop(); }
 });
 
-test('f1059 (2) the row: one pack at a time, the others in a dropdown with Build and Manage', () => {
+test('f1061 (2) the row: one pack at a time, the others in a dropdown with Build and Manage', () => {
   const R = fnBody(RD, 'dsnPackRowHtml');
   assert.match(R, /const cur = dsnPackCur\(\)/);
   assert.match(R, /data-dsc-pack="\$\{_rdE\(cur\.id\)\}"/, 'only the current pack is a chip');
@@ -63,7 +63,7 @@ test('f1059 (2) the row: one pack at a time, the others in a dropdown with Build
   assert.match(RD, /if \(t\.closest\('\[data-dsn-pkmenu\]'\)\)\{ _dsnStop\(e\); _dsn\.pkMenu = !_dsn\.pkMenu;/, 'press it again and it closes');
 });
 
-test('f1059 (3) the builder: questions from our standards, the note re-read, the limit said; Manage edits and deletes with Undo', () => {
+test('f1061 (3) the builder: questions from our standards, the note re-read, the limit said; Manage edits and deletes with Undo', () => {
   const S = fnBody(RD, 'dsnStdQuestions');
   assert.match(S, /playbook\(\)/); assert.match(S, /book\.positions/); assert.match(S, /book\.ranges/);
   assert.match(S, /What does this contract say about/, 'a standard not named still asks');
@@ -75,7 +75,7 @@ test('f1059 (3) the builder: questions from our standards, the note re-read, the
   assert.match(RD, /const DSN_PACK_MAX = 8/);
 });
 
-test('f1059 (4) the columns: Number and Contract lead, a shared Party or Folder steps out, Answer before the quote', () => {
+test('f1061 (4) the columns: Number and Contract lead, a shared Party or Folder steps out, Answer before the quote', () => {
   const L = fnBody(RD, 'dsnLeadCols');
   assert.ok(L.indexOf("k: 'no'") < L.indexOf("k: 'name'"));
   assert.match(L, /if \(!S\.party\) out\.push\(\{ k: 'party'/); assert.match(L, /if \(!S\.folder\) out\.push\(\{ k: 'folder'/);
@@ -85,7 +85,7 @@ test('f1059 (4) the columns: Number and Contract lead, a shared Party or Folder 
   assert.match(R, /dsnSubjectWords\(S\.rows\.map\(x => x\.c\)\)/, 'the subject named once under the title');
 });
 
-test('f1059 (5) words in both books; colours only from tokens', () => {
+test('f1061 (5) words in both books; colours only from tokens', () => {
   const keys = [...new Set((RD.match(/'dsn_pk_\w+'/g) || []).map(k => k.slice(1, -1)))].concat(['dsn_c_no']);
   assert.ok(keys.length >= 25, 'found ' + keys.length);
   for (const k of keys){ const n = (I18N.match(new RegExp('^    ' + k + '(?:_one|_other)?: ', 'gm')) || []).length; assert.ok(n === 2 || n === 4, k + ' in both books (' + n + ')'); }
