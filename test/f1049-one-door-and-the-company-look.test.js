@@ -183,7 +183,7 @@ test('f1049 (9) the four starts as picked: three the Legora way, From nothing th
   /* the Shelf: named from the words, the same list the Builder would draw, the unticked named, added at once */
   assert.match(body(NS, 'nsLgScratch'), /nsNameFromSentence\(st\.said\)/);
   assert.match(body(NS, 'nsLgScratch'), /tbOutlineFrom\(d, st\.said\)\.sections/);
-  assert.match(body(NS, 'nsLgScratch'), /off, add: !!d, walk/);
+  assert.match(body(NS, 'nsLgScratch'), /off, extra: st\.extra\.filter\(x => x\.on\)[^\n]*add: !!d, walk/);
   assert.match(body(TB, 'tbStartWith'), /st\.off\.map\(h => String\(h \|\| ''\)\.trim\(\)\.toLowerCase\(\)\)/);
   assert.match(TB, /_tb\.start\.kind === 'scratch' && _tb\.start\.add[\s\S]{0,160}tbOutlineAdd\(\{ walk: _tb\.start\.walk !== false \}\)/);
   /* their paper: whose it is kept, read off their own words where written there, never guessed */
@@ -199,4 +199,20 @@ test('f1049 (9) the four starts as picked: three the Legora way, From nothing th
   assert.match(body(NS, 'nsOpenTheirs'), /openNewAgreement\(\{ paper: 'kept', kept: id/, 'Draft on it now lands on Their paper with it chosen');
   assert.match(CSS, /#na-root\.na-one\[data-paper="kept"\] #na-theirs\{display:block\}/);
   for (const k of ['nsl_tpl_ph', 'nsl_ctr_go', 'nsl_new_note', 'nsl_cp_whose', 'nsl_cp_save', 'nsl_cp_draft', 'na_kept_cap']) assert.ok(EN[k] && SV[k] && EN[k] !== SV[k], k + ' in both books');
+});
+
+test('f1049 (10) From nothing\'s kept sections: a contents page on one paper size, the list scrolling inside; Jambo\'s panel says what it is made of', () => {
+  /* owner, 14 Nov 2026: "the paper should stay the same size, if there are more clauses, they should go on a scroll.
+     the jambo panel is too empty for my comfort"; and "the line across should be on the same level" */
+  const NS = read('js/views/newstandard.js'), PD = read('js/paperdesk.js'), TB = read('js/views/templatebuilder.js');
+  assert.match(CSS, /html\.lg-new \.nss-pg\{height:430px;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden\}/, 'one paper size, both steps');
+  assert.match(CSS, /html\.lg-new \.nss-tl\{flex:1;min-height:0;overflow-y:auto/, 'the contents scroll inside the paper');
+  assert.match(body(NS, 'nsLgScratch'), /class="nss-tl" id="nss-tl"/);
+  assert.match(body(NS, 'nsLgScratch'), /data-nss-pick=/, 'a name pressed shows it beside');
+  assert.match(body(NS, 'nsShelfPanelHtml'), /tbCoverageOf\(on\.map\(o => \(\{ head: o\.x\.heading, text: o\.x\.heading, s: o\.i \}\)\), key\)/, 'Our standards read as the Builder reads them');
+  assert.match(body(NS, 'nsShelfPanelHtml'), /tbLibraryFor\(x\.heading\)/, 'a library section quotes its first line');
+  assert.match(PD, /if \(typeof nsShelfPanelHtml === 'function'\)\{ const sh = nsShelfPanelHtml\(\); if \(sh\) return/, 'the panel beside the sheet');
+  assert.match(body(TB, 'tbStartWith'), /Array\.isArray\(st\.extra\)/, 'a standard added on the paper reaches the Builder');
+  assert.match(CSS, /html\.lg-new #modal-root \.modal-in:has\(#na-root\.na-one\) \.dlg-pg-head\.dlg-pg-head\{padding-top:14px;padding-bottom:14px\}/, 'the head is Jambo\'s head\'s height');
+  for (const k of ['nsl_contents', 'nsj_std_h', 'nsj_then', 'nsj_add', 'nsj_from_lib']) assert.ok(EN[k] && SV[k] && EN[k] !== SV[k], k + ' in both books');
 });
