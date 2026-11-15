@@ -22498,3 +22498,4 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 
 - 14 Nov 2026 · the folder's panel check is f1053, not f1052: main took f1052 (note on the paper) while this waited; renumbered on merge.
 - 14 Nov 2026 — Noticed, not fixed: test/chromium/brain-welcome-photos.js photographs the Board in the OLD look (it switches the new look on after the Board is drawn and does not redraw it; no `#hb-bhead.is-greet`), and its fit check still says FITS.
+- 15 Nov 2026 — Noticed, not fixed: on a folder's list, once a shown-only chip is up ("Ending in June 2027 · Procurement & Raw Mat… ×"), the head's Columns pill drops to a line of its own under the box (seen at 1440×780).

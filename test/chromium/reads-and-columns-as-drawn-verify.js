@@ -55,8 +55,10 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
         const ac = document.querySelector('#ct-place .ac-btn'), p = document.querySelector('.rfp-panel.is-drawn');
         return { mids, big: parts.filter(e => parseFloat(getComputedStyle(e).fontSize) > 15).map(e => e.className), crumb: (top.querySelector('.ctf-crumb') || {}).textContent,
           pill: !!ac && getComputedStyle(ac).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(ac).textDecorationLine === 'none', panel: p ? p.innerText : '' }; });
-      check(`${nm} 1 the top on one line, nothing above 15px, "/" between; Discover a pill; the panel This folder · Discover (owner, 12 Nov 2026)`,
-        T.mids === 1 && !T.big.length && T.crumb === '/' && T.pill && /THIS FOLDER[\s\S]*Contracts\s*60[\s\S]*Need you[\s\S]*Signed[\s\S]*On paper/i.test(T.panel) && /Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
+      /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance): the panel counts the folder, then When they end, Where
+         the money is; Discover is no longer in the panel (the list head keeps its pill until Discover moves to the Board) */
+      check(`${nm} 1 the top on one line, nothing above 15px, "/" between; Discover a pill; the panel At a Glance (owner, 15 Nov 2026)`,
+        T.mids === 1 && !T.big.length && T.crumb === '/' && T.pill && /^\s*60\s*contracts[\s\S]*WHEN THEY END[\s\S]*WHERE THE MONEY IS/i.test(T.panel) && !/Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
       await shot('1-rest');
 
       /* 2 · the form */
