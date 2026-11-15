@@ -53,7 +53,8 @@ test('f1016 (3) New read: one box, one black button saying how many, chips that 
   assert.match(n, /id="dsc-q"/); assert.match(n, /id="dsc-go"/);
   assert.match(n, /p\.unread <= p\.size \? _rdTn\('dsn_read_n', p\.unread\) : _rdT\('dsn_read_first', \{ k: p\.pick \}\)/, 'a cap is a fact: the button says how many');
   assert.doesNotMatch(n, /calls|rd_calls|ac_n_calls/, 'no Jambo cost is said');
-  assert.match(n, /data-dsc-pack=/); assert.match(n, /data-dsc-q=/);
+  /* RE-POINTED (owner, 15 Nov 2026, build a pack): the pack's chip is drawn by the row's one builder, one pack at a time */
+  assert.match(n, /const packs = dsnPackRowHtml\(\);/); assert.match(fnBody(RD, 'dsnPackRowHtml'), /data-dsc-pack=/); assert.match(n, /data-dsc-q=/);
   const wire = RD.slice(RD.indexOf('document._rdnWired = true'));
   assert.match(wire, /closest\('\[data-dsc-pack\]'\)[\s\S]{0,400}?_dsc\.pack = [\s\S]{0,120}?renderReads\(\)/, 'a pack chip fills the box');
   assert.doesNotMatch(wire.slice(wire.indexOf("closest('[data-dsc-pack]')"), wire.indexOf("closest('[data-dsc-open]')")), /askColAskHere|dsnAsk\(/, 'a chip never reads on its own');
