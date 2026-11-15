@@ -185,7 +185,9 @@ test('f977 fix 8 · one column per question, its name and ⋯; the foot says onl
   const reg = read('js/views/register.js');
   const foot = reg.match(/function regNlFootHtml\(cs\)\{[\s\S]*?\n\}/)[0];
   assert.doesNotMatch(strip(foot), /reg_nl_foot_ask|reg_nl_foot_std|reg-nl-foot-r/);
-  assert.match(reg, /i18t\('rfp_col_sub',\{ k, n, where:/, 'how far it is read is the panel\'s');
+  /* RE-POINTED (owner, 14 Nov 2026: Columns you asked is deleted from the folder's panel) */
+  const pan = reg.match(/function regFolderPanelHtml\(\)\{[\s\S]*?\n\}/)[0];
+  assert.doesNotMatch(strip(pan), /rfp_cols_h|rfp_col_sub|data-ac-bring|data-ac-remove/, 'the folder\'s panel lists no asked columns');
 });
 test('f977 fix · Our paper never prints "Invalid Date"', () => {
   const lib = read('js/views/library.js');

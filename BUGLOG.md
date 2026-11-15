@@ -22497,3 +22497,8 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - The send letter's "proposes N changes of its own" list printed a clause name run together with the next words ("Liabilitymonths.") on the owner's AIT warehousing contract: a clause name read off the paper picks up text it should not. Not fixed here (separate from the letter's layout).
 - (14 Nov 2026) The send screen's note box takes any length, but the email cuts the note at 1,000 characters (SHARE_MAIL_NOTE_MAX, a slice in shareMailOf) with nothing said: a 1,450-character note shows whole on the screen and arrives cut mid-sentence. A cap must be a fact, never a silent trim. Not fixed (separate from Plain letter).
 - (15 Nov 2026) FIXED at the owner's word: the send note's silent cut at 1,000 characters (the box now stops there, counts, and Send refuses past it; f1053 (5)).
+- 14 Nov 2026 · REMOVED (owner: "the feature for these search being added to the panel should be deleted"): the Contracts folder panel no longer lists "Columns you asked" (no Add to list / Remove from list there); its six words retired in both books; f977 fix 8, round6-new-look-verify and reads-and-columns-as-drawn-verify re-pointed. What replaces it waits for the owner's design pick.
+
+- 14 Nov 2026 · f1052 · BUILT (owner's pick by name: "Build the Legora way"): the Contracts folder's panel says what matters in plain sentences where Columns you asked stood (standards, what ends next, no rate, not checked), read without AI, each through an existing door. Handbook line in both books; round6-new-look-verify 2b; photos at the three screens.
+
+- 14 Nov 2026 · the folder's panel check is f1053, not f1052: main took f1052 (note on the paper) while this waited; renumbered on merge.
