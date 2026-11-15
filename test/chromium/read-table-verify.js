@@ -102,7 +102,8 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     const again = await until(page, () => document.querySelectorAll('#rd-page [data-rdt-row]').length === 16 && !!document.querySelector('#rd-page [data-rdt-row="HC-2002"].is-sel'), null, 30000);
     check('6 a refresh on the table lands on the table, the same row chosen', again);
     await page.click('#rd-page [data-rdt-back]');
-    const back = await until(page, () => !document.querySelector('#rd-page [data-rdt-row]') && !!document.querySelector('#rd-page [data-rd-row]'));
+    /* RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER): in the new look the list of reads is one row per read (data-dsn-run) */
+    const back = await until(page, () => !document.querySelector('#rd-page [data-rdt-row]') && !!document.querySelector('#rd-page [data-rd-row], #rd-page [data-dsn-run]'));
     check('6b ‹ All reads goes back to the list of reads', back && await page.evaluate(() => state.view === 'reads'));
     check('7 no page errors', !errors.length, errors.slice(0, 3));
   } finally {

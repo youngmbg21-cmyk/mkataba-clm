@@ -658,6 +658,10 @@ addColumnIfMissing('column_asks', 'rule', 'TEXT');
 addColumnIfMissing('column_asks', 'fact', 'INTEGER');
 addColumnIfMissing('column_asks', 'fact_by', 'TEXT');
 addColumnIfMissing('column_asks', 'fact_at', 'TEXT');
+/* DISCOVER, THE NEW READ (owner, 15 Nov 2026): a read remembers WHERE it was asked (the folders ticked, or 'all') and HOW
+   MANY contracts were chosen, so the list of reads can say "Sales, NDAs · 50 of 104" */
+addColumnIfMissing('column_reads', 'where_f', 'TEXT');
+addColumnIfMissing('column_reads', 'of_n', 'INTEGER');
 /* ONLY WHAT YOU KEEP (owner, 26 Oct 2026: "over time the list becomes enormous
    … save some so the saved ones are the only ones that appear"). A question is
    KEPT when somebody presses Keep in Discover, and by itself when it is a
@@ -10317,18 +10321,22 @@ function colRunRecord(req, run, asks, packId, ids, calls, cached) {
   const kind = r.id ? 'press' : (ids.length === 1 ? 'arrival' : 'press');
   const at = now();
   const num = v => (Number.isInteger(Number(v)) && Number(v) > 0) ? Number(v) : null;
+  /* where it was asked: folder keys (or 'all'), each a short plain word, never more than the company has */
+  const where = Array.isArray(r.where) ? [...new Set(r.where.map(String).filter(w => /^[A-Za-z0-9_-]{1,40}$/.test(w)))].slice(0, 40) : null;
+  const of = num(r.of);
   const prev = db.prepare('SELECT * FROM column_reads WHERE id=?').get(id);
   if (prev) {
     let had = []; try { had = JSON.parse(prev.ids) || []; } catch (_) { had = []; }
     const all = [...new Set(had.concat(ids))];
     const from = [prev.from_no, num(r.from)].filter(x => x != null), to = [prev.to_no, num(r.to)].filter(x => x != null);
-    db.prepare('UPDATE column_reads SET last_at=?, ids=?, n=?, from_no=?, to_no=?, calls=calls+?, cached=cached+?, stopped=? WHERE id=?')
-      .run(at, JSON.stringify(all), all.length, from.length ? Math.min(...from) : null, to.length ? Math.max(...to) : null, calls, cached, r.stopped ? 1 : 0, id);
+    db.prepare('UPDATE column_reads SET last_at=?, ids=?, n=?, from_no=?, to_no=?, calls=calls+?, cached=cached+?, stopped=?, where_f=COALESCE(where_f,?), of_n=COALESCE(of_n,?) WHERE id=?')
+      .run(at, JSON.stringify(all), all.length, from.length ? Math.min(...from) : null, to.length ? Math.max(...to) : null, calls, cached, r.stopped ? 1 : 0, where && where.length ? JSON.stringify(where) : null, of, id);
   } else {
-    db.prepare(`INSERT INTO column_reads (id,ask_ids,pack_id,kind,by_id,by_name,started_at,last_at,ids,n,from_no,to_no,calls,cached,stopped)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    db.prepare(`INSERT INTO column_reads (id,ask_ids,pack_id,kind,by_id,by_name,started_at,last_at,ids,n,from_no,to_no,calls,cached,stopped,where_f,of_n)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(id, JSON.stringify(asks.map(a => a.id)), packId && db.prepare('SELECT id FROM column_packs WHERE id=?').get(String(packId)) ? String(packId) : null, kind,
-        String(req.user.id), req.user.name || req.user.email || '', at, at, JSON.stringify(ids), ids.length, num(r.from), num(r.to), calls, cached, r.stopped ? 1 : 0);
+        String(req.user.id), req.user.name || req.user.email || '', at, at, JSON.stringify(ids), ids.length, num(r.from), num(r.to), calls, cached, r.stopped ? 1 : 0,
+        where && where.length ? JSON.stringify(where) : null, of);
   }
   return { id };
 }
@@ -10352,11 +10360,14 @@ app.get('/api/columns/reads', auth, (req, res) => {
   const reads = [], arrivals = {};
   for (const r of rows) {
     let askIds = [], ids = []; try { askIds = JSON.parse(r.ask_ids) || []; } catch (_) { askIds = []; } try { ids = JSON.parse(r.ids) || []; } catch (_) { ids = []; }
-    const n = ids.filter(seen).length;
+    const mine = ids.filter(seen), n = mine.length;
+    /* where it was asked, inside what THIS PERSON may see: a folder outside their scope is never named */
+    let where = null; try { where = r.where_f ? (JSON.parse(r.where_f) || []).filter(w => w === 'all' || inScope(scope, w)) : null; } catch (_) { where = null; }
     if (r.kind === 'arrival') { for (const a of askIds) { const x = arrivals[a] || (arrivals[a] = { n: 0, calls: 0, last: '' }); x.n += n; x.calls += r.calls; if (r.last_at > x.last) x.last = r.last_at; } continue; }
     if (!n && !r.calls) continue;
     reads.push({ id: r.id, askIds, names: askIds.map(a => askName.get(a) || '').filter(Boolean), packId: r.pack_id || '', packName: r.pack_id ? (packName.get(r.pack_id) || '') : '',
-      by: r.by_name || '', byId: r.by_id || '', at: r.started_at, last: r.last_at, n, from: r.from_no, to: r.to_no, calls: r.calls, cached: r.cached, stopped: !!r.stopped });
+      by: r.by_name || '', byId: r.by_id || '', at: r.started_at, last: r.last_at, n, from: r.from_no, to: r.to_no, calls: r.calls, cached: r.cached, stopped: !!r.stopped,
+      ids: mine, where, of: r.of_n || null });
   }
   res.json({ reads, arrivals, me: String(req.user.id) });
 });

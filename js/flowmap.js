@@ -124,7 +124,7 @@ const FLOW_MAP = [
     a: [], d: ['board', 'handbook', 'guide'], p: [] },
   { k: 'brain', st: 'house', s: _w('the parts and how they connect', 'delarna och hur de hänger ihop'),
     a: [], d: ['settings', 'flowmap'], p: [] },
-  { k: 'guide', st: 'house', s: _w('every page by stage, in the side panel', 'varje sida per steg, i sidopanelen'),
+  { k: 'guide', st: 'house', s: _w('every page by stage, in the side panel and the symbol strip', 'varje sida per steg, i sidopanelen och symbolremsan'),
     a: [], d: ['board', 'handbook', 'flowmap'], p: [] },
   { k: 'alerts', st: 'house', s: _w('the bell: what needs you', 'klockan: det som behöver dig'),
     a: [['document', _w('a row → where it waits', 'en rad → där den väntar')]], d: ['board', 'oblig', 'approvals'], p: [] },

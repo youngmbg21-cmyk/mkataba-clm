@@ -10,7 +10,7 @@
      4 · read: the column's card — the question, how far and when, Answers (bar and rows with Show), This column (Read the
          rest, Remove column); the column's head "Governing law ⋯" on one line, its name alone (owner, 9 Nov 2026: the count is the panel's)
      5 · ⋯: Sort by this column · Read the other 10 · Rename column · Remove from this list (5b: Rename keeps the new name); Remove → "Column removed · its 50 answers are
-         kept in Reads" with Undo; Undo puts it back; the folder's panel lists it under Columns you asked
+         kept in Reads" with Undo; Undo puts it back; the folder's panel does NOT list it (owner, 14 Nov 2026)
      6 · Reads: "Reads · 1 question · 50 answers kept" and + Ask a question on one line; All · On a list · Not finished;
          Question · Read · Answers · On the list of · Asked; every cell inside its column; the panel: Where it shows, Read
          the other 10, Delete question
@@ -55,8 +55,11 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
         const ac = document.querySelector('#ct-place .ac-btn'), p = document.querySelector('.rfp-panel.is-drawn');
         return { mids, big: parts.filter(e => parseFloat(getComputedStyle(e).fontSize) > 15).map(e => e.className), crumb: (top.querySelector('.ctf-crumb') || {}).textContent,
           pill: !!ac && getComputedStyle(ac).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(ac).textDecorationLine === 'none', panel: p ? p.innerText : '' }; });
-      check(`${nm} 1 the top on one line, nothing above 15px, "/" between; Discover a pill; the panel This folder · Discover (owner, 12 Nov 2026)`,
-        T.mids === 1 && !T.big.length && T.crumb === '/' && T.pill && /THIS FOLDER[\s\S]*Contracts\s*60[\s\S]*Need you[\s\S]*Signed[\s\S]*On paper/i.test(T.panel) && /Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
+      /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance): the panel counts the folder, then When they end, Where
+         the money is; Discover is no longer in the panel (the list head keeps its pill until Discover moves to the Board) */
+      /* RE-POINTED (owner, 15 Nov 2026): no Discover button in the list's head; the "discover" link above Jambo's box stays */
+      check(`${nm} 1 the top on one line, nothing above 15px, "/" between; no Discover button; the panel At a Glance (owner, 15 Nov 2026)`,
+        T.mids === 1 && !T.big.length && T.crumb === '/' && !T.pill && /^\s*60\s*contracts[\s\S]*WHEN THEY END[\s\S]*WHERE THE MONEY IS/i.test(T.panel) && !/Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
       await shot('1-rest');
 
       /* 2 · the form */
@@ -94,11 +97,12 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       await shot('5-menu');
       await page.click('#ac-th-menu [data-ac-remove]');
       const gone = await until(page, () => !document.querySelector('th.ac-th') && /Column removed · its 50 answers are kept in Reads/.test((document.getElementById('toast-root') || {}).textContent || ''), null, 8000);
-      const listed = await until(page, () => /COLUMNS YOU ASKED[\s\S]*Governing law[\s\S]*not on this list[\s\S]*Add to list/i.test((document.querySelector('.rfp-panel.is-drawn') || {}).innerText || ''), null, 8000);
+      /* RE-POINTED (owner, 14 Nov 2026: Columns you asked is deleted from the folder's panel): the removed column is NOT listed there */
+      const listed = await until(page, () => { const p = document.querySelector('.rfp-panel.is-drawn'); return !!p && !/COLUMNS YOU ASKED|Add to list|Governing law/i.test(p.innerText || ''); }, null, 8000);
       await shot('6-removed');
       await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) b.click(); });
       const back = await until(page, () => !!document.querySelector('th.ac-th'), null, 8000);
-      check(`${nm} 5 ⋯: Sort · Read the other 10 · Rename column · Remove from this list; Remove says the answers are kept, with Undo; the panel lists it; Undo puts it back`,
+      check(`${nm} 5 ⋯: Sort · Read the other 10 · Rename column · Remove from this list; Remove says the answers are kept, with Undo; the folder's panel does not list it; Undo puts it back`,
         JSON.stringify(M) === '["Sort by this column","Read the other 10","Rename column","Remove from this list"]' && gone && listed && back, { M, gone, listed, back });
 
       /* 5b · Rename (owner, 8 Nov 2026: "Add rename"): the box holds the name; the new name stands on the head and in the panel */
@@ -110,21 +114,19 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       check(`${nm} 5b Rename: the box holds the name; "Which law" stands on the column's head and is kept on the server`, box && renamed && kept, { box, renamed, kept });
       await page.evaluate(async () => { const id = Object.keys(AC.asks).find(k => AC.asks[k].name === 'Which law'); if (id) await api('columns/' + id + '/name', 'POST', { name: 'Governing law' }); if (id) AC.asks[id].name = 'Governing law'; });
 
-      /* 6 · Reads */
+      /* 6 · Reads — RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): the list of reads — one top line with New
+         read, When · Question · Where · Read · Found · By, nothing out of its cell; the chosen read's summary in the panel
+         with Open the results and Delete question; no cost */
       await page.evaluate(() => setView('reads'));
-      await until(page, () => !!document.querySelector('.rdn-table.rdn2 tbody tr[data-rd-row]') && /Where it shows/i.test((document.getElementById('ins-panel') || {}).innerText || ''), null, 15000);
+      await until(page, () => !!document.querySelector('#rd-page.dsn-page tbody tr[data-dsn-run]') && !!document.querySelector('#ins-panel [data-dsn-open]'), null, 15000);
       const R = await page.evaluate(() => { const hd = document.querySelector('.rdn-head');
-        const mids = [...hd.querySelectorAll('.ctf-h, .ctf-hf, .rdn-ask')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; });
-        const spill = [...document.querySelectorAll('.rdn-table.rdn2 td, .rdn-table.rdn2 th')].filter(td => [...td.querySelectorAll('*')].concat([td]).some(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow === 'visible')).length;
-        const out = [...document.querySelectorAll('.rdn-table.rdn2 td, .rdn-table.rdn2 th')].filter(td => { const r = td.getBoundingClientRect(); return [...td.querySelectorAll('*')].some(e => { const x = e.getBoundingClientRect(); return x.width && (x.right > r.right + 1 || x.left < r.left - 1); }); }).length;
-        return { head: hd.innerText.replace(/\s+/g, ' ').trim(), oneLine: Math.max(...mids) - Math.min(...mids) <= 4, tabs: [...document.querySelectorAll('[data-rdn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-          cols: [...document.querySelectorAll('.rdn-table.rdn2 thead th')].map(t => t.textContent.trim()), out, spill, panel: document.getElementById('ins-panel').innerText, page: document.getElementById('rd-page').innerText }; });
-      /* RE-POINTED (owner, 12 Nov 2026): Reads is the Discover page — its name, the ask box with its one button, Kept · Packs · Every read */
-      const ask = await page.evaluate(() => !!document.getElementById('dsc-q') && !!document.getElementById('dsc-go'));
-      check(`${nm} 6 Discover as drawn: one top line, the ask box and its button, Kept · Packs · Every read, the five columns, nothing out of its cell; the panel's Where it shows, Read the other 10, Delete question`,
-        /^Discover 1 question · 50 answers kept$/.test(R.head) && ask && R.oneLine && R.tabs.map(t => t.replace(/ \d+$/, '')).join('|') === 'Kept|Packs|Every read'
-        && R.cols.join('|') === 'Question|Read|Answers|On the list of|Asked' && R.out === 0 && /WHERE IT SHOWS/i.test(R.panel) && /Read the other 10/.test(R.panel) && /Delete question/.test(R.panel)
-        && !COST.test(R.panel + R.page), { head: R.head, oneLine: R.oneLine, tabs: R.tabs, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
+        const mids = [...hd.querySelectorAll('.ctf-h, .ctf-hf, #dsn-new')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; });
+        const out = [...document.querySelectorAll('.dsn-table td, .dsn-table th')].filter(td => { const r = td.getBoundingClientRect(); return [...td.querySelectorAll('*')].some(e => { const x = e.getBoundingClientRect(); return x.width && (x.right > r.right + 1 || x.left < r.left - 1); }); }).length;
+        return { head: hd.innerText.replace(/\s+/g, ' ').trim(), oneLine: Math.max(...mids) - Math.min(...mids) <= 6,
+          cols: [...document.querySelectorAll('.dsn-table thead th')].map(t => t.textContent.trim()), out, panel: document.getElementById('ins-panel').innerText, page: document.getElementById('rd-page').innerText }; });
+      check(`${nm} 6 Discover's list of reads: one top line with New read, the six columns, nothing out of its cell; the panel's Open the results and Delete question`,
+        /^Discover Every read your team has run/.test(R.head) && R.oneLine && R.cols.join('|') === 'When|Question|Where|Read|Found|By' && R.out === 0
+        && /Open the results/.test(R.panel) && /Delete question/.test(R.panel) && !COST.test(R.panel + R.page), { head: R.head, oneLine: R.oneLine, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
       await shot('7-reads');
       check(`${nm} 7 no page errors`, !errs.length, errs);
       await page.close();

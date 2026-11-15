@@ -22488,3 +22488,22 @@ window.renderIntelDock, which the module never calls. It measured nothing; the c
 - Fixed: a worker reads the code and ends; the server keeps only the answer (100 → 129 MB). f1050 (red at the parent: 97 MB left).
 - Not proven: Render's "Ran out of memory" event was not readable from the session. Not removed: the half-second peak during the read (187 MB, was 208).
 - 14 Nov 2026 — THE LAST FLICKER ENDED: pull request 721 merged (Rounds 0, 1, 2a). Left: Jambo's panel's redraws for nothing (its frame binds ~34 buttons per paint; its own job). The final measure needs a hand run of "rebuild measure" on main.
+
+## 14 Nov 2026 — The Wiring view froze the page (owner: "still freezing", after the server fix f1050)
+- The Wiring layout's spiral grew with every part; the biggest areas reached ~1,450 units out against a camera at 820, so links were drawn to points 1.8 million pixels away and a frame took 50 ms instead of 16.7 (sharp screen, measured). Fixed: each area stops at a fixed disc; a curve with a point behind the camera is not drawn. f1051.
+- Noticed, not fixed · 14 Nov 2026 · Brain, Wiring view: part names overlap each other in the busy areas (before and after this change; every part's name is drawn).
+- Noticed, not fixed · 14 Nov 2026 · choose-the-road-verify step 6 read "Change" instead of the chosen option on pull request 726 (Brain-only change); it reads the Send screen's choice as soon as "WHAT THEY CAN DO" shows, before the step line's words are filled in. Passed on main's code an hour earlier.
+
+### Noticed, not fixed (14 Nov 2026, send screen letter review)
+- The send letter's "proposes N changes of its own" list printed a clause name run together with the next words ("Liabilitymonths.") on the owner's AIT warehousing contract: a clause name read off the paper picks up text it should not. Not fixed here (separate from the letter's layout).
+- (14 Nov 2026) The send screen's note box takes any length, but the email cuts the note at 1,000 characters (SHARE_MAIL_NOTE_MAX, a slice in shareMailOf) with nothing said: a 1,450-character note shows whole on the screen and arrives cut mid-sentence. A cap must be a fact, never a silent trim. Not fixed (separate from Plain letter).
+- (15 Nov 2026) FIXED at the owner's word: the send note's silent cut at 1,000 characters (the box now stops there, counts, and Send refuses past it; f1053 (5)).
+- 14 Nov 2026 · REMOVED (owner: "the feature for these search being added to the panel should be deleted"): the Contracts folder panel no longer lists "Columns you asked" (no Add to list / Remove from list there); its six words retired in both books; f977 fix 8, round6-new-look-verify and reads-and-columns-as-drawn-verify re-pointed. What replaces it waits for the owner's design pick.
+
+- 14 Nov 2026 · f1052 · BUILT (owner's pick by name: "Build the Legora way"): the Contracts folder's panel says what matters in plain sentences where Columns you asked stood (standards, what ends next, no rate, not checked), read without AI, each through an existing door. Handbook line in both books; round6-new-look-verify 2b; photos at the three screens.
+
+- 14 Nov 2026 · the folder's panel check is f1053, not f1052: main took f1052 (note on the paper) while this waited; renumbered on merge.
+- 14 Nov 2026 — Noticed, not fixed: test/chromium/brain-welcome-photos.js photographs the Board in the OLD look (it switches the new look on after the Board is drawn and does not redraw it; no `#hb-bhead.is-greet`), and its fit check still says FITS.
+- 15 Nov 2026 — Noticed, not fixed: on a folder's list, once a shown-only chip is up ("Ending in June 2027 · Procurement & Raw Mat… ×"), the head's Columns pill drops to a line of its own under the box (seen at 1440×780).
+- 15 Nov 2026 — Noticed, not fixed: test/f515-three-next-questions.test.js and test/f520-see-it-while-you-type.test.js fail here on unmodified code too (seen while running the new Discover's checks).
+- (15 Nov 2026) Correction to the line above: the note-limit test is f1054 (5), not f1053 (5) — main had taken f1053 for the folder's panel.

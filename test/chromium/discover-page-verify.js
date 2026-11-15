@@ -1,18 +1,14 @@
-/* DISCOVER IS A PAGE (owner, 12 Nov 2026; drawn first, artifact Ri22tYVLWnB74aVhDjzurp) — the flow, in a browser, at
-   the owner's three screens, in the new look:
-     1 · Contracts: a Discover pill where "+ Ask a column" stood; no Discover section in Jambo's panel
-     2 · the press lands on the Discover page: its name, the ask box and its one button saying how many contracts
-         (the list as filtered), the chips, Kept · Packs · Every read, Reads' five columns
-     3 · a question opens under its row: answers with their words; the panel shows the paper, the words lit, with
-         Open this contract · Start redlining this clause and Jambo's box under it; pressed again it closes and the
-         panel is the question's summary
-     4 · asked: the question leads the table while Jambo reads, Stop stands in the box, the panel shows a paper; at
-         the end the new question is open in front, on Every read; the page never left for Contracts
-     5 · Stop: the read stops, the same place offers the rest
-     5b · THE SCORECARD: a read's table opened from Discover — its own head, coloured tiles that filter (owner's pick)
+/* DISCOVER (owner, 12 Nov 2026; RE-POINTED 15 Nov 2026 to THE NEW DISCOVER, f1055) — the flow, in a browser, at the owner's
+   three screens, in the new look:
+     1 · Contracts: no Discover button in the list's head; the "discover" link above Jambo's box
+     2 · the link lands on the list of reads: its name, New read, four filters, six columns, what each found
+     3 · a read chosen shows its summary; its results: search, tiles, rows, the paper with its two links; ‹ All reads back
+     4 · New read: the question on top, a folder ticked, the button says how many; the read on its own screen with Stop;
+         Open the results shows that folder's contracts, said where; the page never left for Contracts
+     5 · Stop: the read stops, the same place offers the rest beside Open the results
      6 · nothing spills; no page errors
    Run: node test/chromium/discover-page-verify.js   (pictures with DISCOVER_PAGE_SHOTS=<dir>) */
-/* global rdRows, readsTableOpen, state, setView, stPrefSet, newLookApply, regPlaceSet, regFoldersShut, currentUser, AC */
+/* global state, setView, stPrefSet, newLookApply, regPlaceSet, regFoldersShut, currentUser, AC */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -50,85 +46,82 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); if (typeof regFoldersShut === 'function') regFoldersShut(); regPlaceSet({ show: 'list' }); setView('register'); });
 
       /* 1 · Contracts */
-      const list = await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector('[data-ac-discover]'), null, 15000);
-      const C = await page.evaluate(() => { const b = document.querySelector('[data-ac-discover]');
-        return { label: b ? b.innerText.trim() : '', before: b ? getComputedStyle(b, '::before').content : '', old: !!document.querySelector('[data-ac-open]'), disc: !!document.querySelector('#ac-disc'), dock: (document.getElementById('ig-dock') || {}).innerText || '' }; });
-      check(`${nm} 1 Contracts: a Discover pill (no "+"), no "+ Ask a column", no Discover section in Jambo's panel`,
-        list && C.label === 'Discover' && !/\+/.test(C.before) && !C.old && !C.disc && !/Ask a pack|Ask a new question/.test(C.dock), C);
+      /* RE-POINTED (owner, 15 Nov 2026: "Remove discover button but leave the door or discover link"): no Discover button
+         in the list's head; the way in is the "discover" link above Jambo's box */
+      const WAY = '[data-ca-chip="reads"]';
+      const list = await until(page, way => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector(way), WAY, 15000);
+      const C = await page.evaluate(way => { const b = document.querySelector(way);
+        return { label: b ? b.innerText.trim() : '', pill: !!document.querySelector('#ct-place [data-ac-discover]'), old: !!document.querySelector('[data-ac-open]'), disc: !!document.querySelector('#ac-disc'), dock: (document.getElementById('ig-dock') || {}).innerText || '' }; }, WAY);
+      check(`${nm} 1 Contracts: no Discover button in the list's head, the "discover" link above Jambo's box, no "+ Ask a column", no Discover section in Jambo's panel`,
+        list && C.label === 'discover' && !C.pill && !C.old && !C.disc && !/Ask a pack|Ask a new question/.test(C.dock), C);
       await shot('1-contracts');
 
-      /* 2 · the page */
-      if (list) await page.click('[data-ac-discover]');
-      const up = list && await until(page, () => !!document.querySelector('#rd-page.dsc-page tr[data-rd-row]') && !!document.getElementById('dsc-go'), null, 15000);
-      const P = up ? await page.evaluate(() => ({ view: state.view, head: (document.querySelector('.rdn-head .ctf-h') || {}).innerText, btn: document.getElementById('dsc-go').innerText.trim(), box: !!document.getElementById('dsc-q'),
-        tabs: [...document.querySelectorAll('[data-rdn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim().replace(/ \d+$/, '')), scope: (document.querySelector('.dsc-scope') || {}).innerText || '',
-        chips: [...document.querySelectorAll('.dsc-chips [data-dsc-pack]')].map(b => b.innerText.trim()), team: document.querySelectorAll('.dsc-chips [data-dsc-q]').length, cols: [...document.querySelectorAll('.dsc-table thead th')].map(t => t.textContent.trim()),
-        cost: /Jambo call/i.test(document.getElementById('rd-page').innerText) })) : {};
-      check(`${nm} 2 the Discover page: its name, one box, "Ask 11 contracts", the chips, Kept · Packs · Every read, the five columns, the list said, no cost`,
-        up && P.view === 'reads' && P.head === 'Discover' && P.box && P.btn === 'Ask 11 contracts' && P.tabs.join('|') === 'Kept|Packs|Every read' && /All · 11/.test(P.scope)
-        && P.chips.some(c => /Due diligence/.test(c)) && P.team >= 1 && P.team <= 4 && P.cols.join('|') === 'Question|Read|Answers|On the list of|Asked' && !P.cost, P);
+      /* RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): four screens — the list of reads, New read (the question
+         on top, folders to tick), while it reads (its own screen), the results of that one read */
+      /* 2 · the list of reads */
+      if (list) await page.click(WAY);
+      const up = list && await until(page, () => !!document.querySelector('#rd-page.dsn-page tr[data-dsn-run]') && !!document.getElementById('dsn-new'), null, 15000);
+      const P = up ? await page.evaluate(() => ({ view: state.view, head: (document.querySelector('.rdn-head .ctf-h') || {}).innerText, rows: document.querySelectorAll('#rd-page tr[data-dsn-run]').length,
+        filters: [...document.querySelectorAll('#rd-page select[data-dsn-f]')].map(x => x.getAttribute('data-dsn-f')), cols: [...document.querySelectorAll('#rd-page .dsn-table thead th')].map(t => t.textContent.trim()),
+        found: [...document.querySelectorAll('#rd-page tr[data-dsn-run] td:nth-child(5) .ls-chip')].length, cost: /Jambo call/i.test(document.getElementById('rd-page').innerText) })) : {};
+      check(`${nm} 2 the list of reads: its name, New read, four filters, When · Question · Where · Read · Found · By, a coloured chip of what each found, no cost`,
+        up && P.view === 'reads' && P.head === 'Discover' && P.rows >= 2 && P.filters.join('|') === 'folder|ask|by|when' && P.cols.join('|') === 'When|Question|Where|Read|Found|By' && P.found >= 1 && !P.cost, P);
       await shot('2-discover');
 
-      /* 3 · open and close */
-      if (up) await page.click('#rd-page tr[data-rd-row]');
-      const open = up && await until(page, () => document.querySelectorAll('#rd-page .dsc-opn .dsc-a').length >= 2 && !!document.querySelector('#ins-panel .dsc-paper mark'), null, 15000);
-      const O = open ? await page.evaluate(() => ({ rows: document.querySelectorAll('#rd-page .dsc-opn .dsc-a').length, first: (document.querySelector('#rd-page .dsc-opn .dsc-a .ac-ans') || {}).className || '',
-        links: [...document.querySelectorAll('#ins-panel .jb-ways.is-own .jb-way')].map(b => b.innerText.trim()), box: !!document.querySelector('#ins-panel .jl-foot textarea, #ins-panel .jl-foot input, #ins-panel [data-jl-ask]'),
-        mark: document.querySelector('#ins-panel .dsc-paper mark').innerText.length, tab: (document.querySelector('#ins-panel [data-jl-home] .pd-tab-w') || {}).textContent })) : {};
-      check(`${nm} 3a a question opens under its row: its answers, the risky first; the panel is the paper with the words lit, the two links and Jambo's box under it`,
-        open && O.rows >= 2 && O.rows <= 7 && O.mark > 5 && O.links.join('|') === 'Open this contract|Start redlining this clause' && O.box && O.tab === 'Where it was read', O);
-      await shot('3-open');
-      if (open) await page.click('#rd-page tr[data-rd-row].is-open');
-      const shut = open && await until(page, () => !document.querySelector('#rd-page .dsc-opn') && /Where it shows/i.test((document.getElementById('ins-panel') || {}).innerText || ''), null, 8000);
-      check(`${nm} 3b pressed again it closes; the panel is the question's summary (Where it shows, Delete question)`, shut && /Delete question/.test(await page.evaluate(() => document.getElementById('ins-panel').innerText)), { shut });
-      await shot('4-closed');
+      /* 3 · a read chosen, then its results */
+      if (up) await page.click('#rd-page tr[data-dsn-run]');
+      const sum = up && await until(page, () => !!document.querySelector('#ins-panel [data-dsn-open]'), null, 8000);
+      if (sum) await page.click('#ins-panel [data-dsn-open]');
+      const res = sum && await until(page, () => !!document.getElementById('dsn-q') && document.querySelectorAll('#rd-page tr[data-dsn-row]').length >= 2 && !!document.querySelector('#ins-panel .dsc-paper'), null, 15000);
+      const O = res ? await page.evaluate(() => ({ search: document.getElementById('dsn-q').type, tiles: document.querySelectorAll('#rd-page .rdsc-tile').length, rows: document.querySelectorAll('#rd-page tr[data-dsn-row]').length,
+        links: [...document.querySelectorAll('#ins-panel .jb-ways.is-own .jb-way')].map(b => b.innerText.trim()), back: !!document.querySelector('#rd-page [data-dsn-back]') })) : {};
+      check(`${nm} 3a a read chosen shows its summary; Open the results: a full-width search, tiles that filter, its rows, the paper with its two links`,
+        sum && res && O.search === 'search' && O.tiles >= 2 && O.rows >= 2 && O.links.join('|') === 'Open this contract|Start redlining this clause' && O.back, O);
+      await shot('3-results');
+      if (res) await page.click('#rd-page [data-dsn-back]');
+      const backed = res && await until(page, () => !!document.querySelector('#rd-page tr[data-dsn-run]') && !document.getElementById('dsn-q'), null, 8000);
+      check(`${nm} 3b ‹ All reads goes back to the list`, backed, { backed });
 
-      /* 4 · ask */
+      /* 4 · New read: the question on top, a folder ticked, the read on its own screen, then its results */
       const Q = `Which country's law governs this contract? (${nm})`;
+      if (backed) await page.click('#dsn-new');
+      const nw = backed && await until(page, () => !!document.getElementById('dsc-q') && !!document.querySelector('#rd-page [data-dsn-pick="all"]'), null, 8000);
+      const all = nw ? await page.evaluate(() => document.getElementById('dsc-go').innerText.trim()) : '';
+      if (nw){ await page.fill('#dsc-q', Q); await page.click('#rd-page [data-dsn-pick="proc"]'); }
+      const four = nw && await until(page, () => (document.getElementById('dsc-go') || {}).innerText === 'Read 4 contracts', null, 5000);
+      check(`${nm} 4a New read: the box on top, "Read 11 contracts" for all, "Read 4 contracts" once one folder is ticked`, nw && all === 'Read 11 contracts' && four, { all, four });
+      await shot('4-new');
       if (h.ai && typeof h.ai.slow === 'function') h.ai.slow(400);
       const calls0 = h.ai && h.ai.calls ? h.ai.calls.length : 0;
       const views = []; await page.exposeFunction('__dscView', v => { views.push(v); });
       await page.evaluate(() => { const was = window.setView; window.__dscWas = was; window.setView = function (v){ window.__dscView(String(v)); return was.apply(this, arguments); }; });
-      if (up){ await page.fill('#dsc-q', Q); await page.click('#dsc-go'); }
-      const live = up && await until(page, () => !!document.querySelector('#rd-page tr.is-live') && !!document.getElementById('dsc-stop'), null, 15000);
-      const paper = live && await until(page, () => !!document.querySelector('#ins-panel .dsc-paper') && /^Reading/.test((document.querySelector('#ins-panel [data-jl-home] .pd-tab-w') || {}).textContent || ''), null, 15000);
+      if (four) await page.click('#dsc-go');
+      const live = four && await until(page, () => /^Reading/.test((document.querySelector('#rd-page .ctf-h') || {}).innerText || '') && !!document.getElementById('dsc-stop'), null, 15000);
       await shot('5-reading');
-      const done = live && await until(page, () => !document.querySelector('#rd-page tr.is-live') && !!document.getElementById('dsc-go') && !!document.querySelector('#rd-page tr[data-rd-row].is-open'), null, 60000);
-      const D = done ? await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('[data-rdn-tab].is-on') || {}).getAttribute('data-rdn-tab'), q: (document.querySelector('#rd-page tr.is-open .cun-sub') || {}).innerText || '',
-        read: (document.querySelector('#rd-page tr.is-open td:nth-child(2)') || {}).innerText || '', box: document.getElementById('dsc-q').value, cols: (state.reg && state.reg.ask) || [] })) : {};
-      check(`${nm} 4 asked: the question leads the table while Jambo reads, Stop in the box, a paper in the panel; then it stands open on Every read, read 11 of 11; the page never left; no column was brought onto the list`,
-        live && paper && done && D.view === 'reads' && D.tab === 'all' && D.q === Q && /11 of 11/.test(D.read) && D.box === '' && !views.includes('register') && !D.cols.length
-        && (!h.ai || !h.ai.calls || h.ai.calls.length > calls0), { live, paper, done, D, views });
+      const done = live && await until(page, () => !(window.AC && AC.busy) && !!document.querySelector('#rd-page [data-dsn-results]'), null, 40000);
+      if (done) await page.click('#rd-page [data-dsn-results]');
+      const after = done && await until(page, () => !!document.getElementById('dsn-q'), null, 15000);
+      const D = after ? await page.evaluate(() => ({ view: state.view, sub: (document.querySelector('#rd-page .rdsc-sub') || {}).innerText || '', rows: document.querySelectorAll('#rd-page tr[data-dsn-row]').length, cols: (state.reg && state.reg.ask) || [] })) : {};
+      check(`${nm} 4b the read stands on its own screen with Stop, then Open the results: the 4 of that folder, said where; the page never left; no column was brought onto Contracts`,
+        live && done && after && D.view === 'reads' && /Procurement/.test(D.sub) && /4 of 4 read/.test(D.sub) && D.rows === 4 && !views.includes('register') && !D.cols.length
+        && (!h.ai || !h.ai.calls || h.ai.calls.length > calls0), { live, done, after, D, views });
       await shot('6-after');
 
       /* 5 · Stop */
+      if (after){ await page.click('#rd-page [data-dsn-back]'); await until(page, () => !!document.getElementById('dsn-new'), null, 8000); await page.click('#dsn-new'); await until(page, () => !!document.getElementById('dsc-q'), null, 8000); }
       if (h.ai && typeof h.ai.slow === 'function') h.ai.slow(900);
-      if (done){ await page.fill('#dsc-q', `Does the contract renew by itself? (${nm})`); await page.click('#dsc-go'); }
-      const live2 = done && await until(page, () => !!document.getElementById('dsc-stop'), null, 15000);
+      if (after){ await page.click('#rd-page [data-dsn-pick="all"]'); await page.fill('#dsc-q', `Does the contract renew by itself? (${nm})`); await page.click('#dsc-go'); }
+      const live2 = after && await until(page, () => !!document.getElementById('dsc-stop'), null, 15000);
       if (live2) await page.click('#dsc-stop');
-      const stopped = live2 && await until(page, () => !document.getElementById('dsc-stop') && (!!document.getElementById('dsc-carry') || !!document.getElementById('dsc-go')) && !(window.AC && AC.busy), null, 30000);
-      const S = stopped ? await page.evaluate(() => ({ carry: (document.getElementById('dsc-carry') || {}).innerText || '', view: state.view })) : {};
-      check(`${nm} 5 Stop: the read stops here, and the same place offers the rest ("Read the N left")`, live2 && stopped && S.view === 'reads' && /^Read the \d+ left$/.test(S.carry), { live2, stopped, S });
+      const stopped = live2 && await until(page, () => !document.getElementById('dsc-stop') && !!document.getElementById('dsc-carry') && !(window.AC && AC.busy), null, 20000);
+      const S = stopped ? await page.evaluate(() => ({ carry: (document.getElementById('dsc-carry') || {}).innerText || '', open: !!document.querySelector('#rd-page [data-dsn-results]'), view: state.view })) : {};
+      check(`${nm} 5 Stop: the read stops on its own screen, and offers the rest ("Read the N left") beside Open the results`, live2 && stopped && S.view === 'reads' && /^Read the \d+ left$/.test(S.carry) && S.open, { live2, stopped, S });
       if (h.ai && typeof h.ai.slow === 'function') h.ai.slow(0);
-
-      /* 5b · THE SCORECARD (owner's pick, 12 Nov 2026): the read table opened from Discover wears its own head — no old
-         Reads band, the search box in the head, Ask again the one black, coloured tiles that filter, none at 0 */
-      const okT = await page.evaluate(() => { const r = (typeof rdRows === 'function' ? rdRows() : []).find(x => !x.pack && x.read); if (!r) return false; readsTableOpen(r.key); return true; });
-      const tiles = okT && await until(page, () => document.querySelectorAll('#rd-page .rdsc-tile').length >= 2 && !!document.querySelector('#rd-page tr[data-rdt-row]'), null, 15000);
-      const T0 = tiles ? await page.evaluate(() => ({ band: !!document.querySelector('#rd-page .rd-band'), q: !!document.querySelector('#rd-page .rdsc-head #rdt-q'),
-        black: [...document.querySelectorAll('#rd-page .rdsc-head .ui-btn-primary')].map(b => b.textContent.trim()), zero: [...document.querySelectorAll('#rd-page .rdsc-tile:not([data-rdt-tab="all"]):not(.is-on) b')].filter(b => b.textContent.trim() === '0').length,
-        open: (document.querySelector('#rd-page .rdsc-tile[data-rdt-tab="open"] b') || {}).textContent, toned: !!document.querySelector('#rd-page .rdsc-tile.is-amber') })) : {};
-      if (tiles) await page.click('#rd-page .rdsc-tile[data-rdt-tab="open"]');
-      const T1 = tiles && await until(page, () => { const on = document.querySelector('#rd-page .rdsc-tile.is-on'); return on && on.getAttribute('data-rdt-tab') === 'open'; }, null, 5000)
-        ? await page.evaluate(() => document.querySelectorAll('#rd-page tr[data-rdt-row]').length) : -1;
-      check(`${nm} 5b the read table: no old Reads band, search in the head, Ask again the one black button, coloured tiles with no empty one; Not checked yet filters the rows`,
-        tiles && !T0.band && T0.q && T0.black.length === 1 && /Ask again/.test(T0.black[0]) && T0.zero === 0 && T0.toned && String(T1) === String(T0.open), { okT, tiles, T0, T1 });
-      await shot('7-scorecard');
-      if (tiles){ await page.click('#rd-page [data-rdt-back]'); await until(page, () => !!document.getElementById('dsc-q'), null, 10000); }
 
       /* 6 · fits */
       const F = await page.evaluate(() => { const over = el => el ? el.scrollWidth - el.clientWidth : 0;
-        const cut = [...document.querySelectorAll('#rd-page .dsc-btn, #rd-page .dsc-chip, #rd-page .apn-tab')].filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().height > 40).length;
+        /* a button sized to its words reads a pixel or two wider than its box on a fractional width; a CUT is a box narrower than its words by more than that */
+        const cut = [...document.querySelectorAll('#rd-page .apn-card .dsc-btn, #rd-page .apn-card .dsc-chip, #rd-page .apn-card .rfp-pill')].filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().height > 40).length;
         return { page: document.documentElement.scrollWidth - window.innerWidth, ins: over(document.getElementById('ins-panel')), card: over(document.querySelector('#rd-page .apn-card')), cut }; });
       check(`${nm} 6 nothing spills: the page, the panel, the card; every button, chip and tab on one line`, F.page <= 0 && F.ins <= 1 && F.card <= 1 && F.cut === 0, F);
       check(`${nm} 7 no page errors`, !errs.length, errs);

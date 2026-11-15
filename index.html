@@ -16789,6 +16789,35 @@
   .dk-back-b:disabled{opacity:.45;cursor:default}
   .dk-back-b[hidden]{display:none}
   .dk-back-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+  /* THE SYMBOL STRIP (owner, 15 Nov 2026): the bar's top-left symbol, and the Guide's compact face it opens down the
+     left edge, OVER the page (it takes no room). One symbol per page in the Guide's order and stage colours, Board
+     first, Settings at the foot; the name in ONE tip beside the symbol pointed at; a press goes there. */
+  .dk-nav-b{width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;margin-left:-8px}
+  .dk-nav-b:hover,.dk-nav-b.is-on{background:var(--bar-hover)}
+  .dk-nav-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+  .dk-nav-b + .dk-back-b{margin-left:0}
+  @media (max-width:767px){ .dk-nav-b{display:none} }
+  .gds{position:fixed;left:0;bottom:0;width:56px;z-index:var(--z-menu);background:var(--color-surface);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-md);display:flex;flex-direction:column;align-items:center;padding:var(--s-2) 0 var(--s-3);overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+  .gds[hidden]{display:none}
+  .gds-r{position:relative;width:44px;height:29px;flex:none;display:grid;place-items:center;border:0;background:none;padding:0;cursor:pointer;border-radius:var(--radius)}
+  .gds-r.is-foot{margin-top:auto}
+  .gds-r:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px}
+  .gds-mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .gds-mk .gds-ic{width:14px;height:14px}
+  .gds-mk.t-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .gds-mk.t-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .gds-mk.t-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  .gds-mk.t-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  .gds-mk.t-ink{background:var(--color-text);color:var(--color-surface)}
+  .gds-r:hover .gds-mk:not(.t-ink){box-shadow:0 0 0 2px var(--color-surface),0 0 0 3.5px var(--color-neutral-300)}
+  .gds-n{position:absolute;top:0;left:27px;min-width:16px;padding:0 4px;border-radius:999px;background:var(--color-surface);border:1px solid var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-figure);font-weight:var(--w-strong);line-height:14px;text-align:center;font-variant-numeric:tabular-nums}
+  .gds-div{width:22px;height:1px;flex:none;background:var(--color-divider);margin:3px 0}
+  .gds-tt{position:fixed;z-index:var(--z-menu);transform:translateY(-50%);display:flex;align-items:center;gap:var(--s-2);background:var(--color-text);color:var(--color-surface);border-radius:var(--radius-sm);padding:6px 10px;white-space:nowrap;font-size:var(--t-body);pointer-events:none;box-shadow:var(--shadow-md)}
+  .gds-tt[hidden]{display:none}
+  .gds-tt b{font-weight:var(--w-strong)}
+  .gds-tt span{opacity:.72;font-size:var(--t-meta)}
+  .gds-tt i{font-style:normal;color:var(--st-amber-bg);font-weight:var(--w-strong)}
+  .gds-tt em{font-style:normal;font-size:var(--t-micro);font-weight:var(--w-strong);background:var(--color-surface);color:var(--color-text);border-radius:999px;padding:0 7px}
   .dk-pg-w{position:relative;display:inline-flex;min-width:0;flex:0 1 auto}
   .dk-pg-w[hidden]{display:none}
   .dk-page{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:340px;min-width:0;padding:0 10px 0 12px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);font:inherit;font-size:var(--t-body);font-weight:var(--w-body);cursor:pointer}
@@ -17577,6 +17606,9 @@
   /* THE BOARD'S DRAFT AGREEMENT IS GREEN, THE SIZE OF ITS NEIGHBOURS (owner, 14 Nov 2026): the same small pill as Summarise, Pulse board and Explorer, on one line, worn green so the way to start is found first */
   .hb-btn.hb-draft-go{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;background:var(--st-green-bg);color:var(--accent-ink);border-color:transparent;box-shadow:none;font-weight:inherit}
   .hb-btn.hb-draft-go:hover{background:var(--st-green-line);color:var(--accent-ink-700)}
+  /* GREEN SPARK ON THE BOARD (owner's pick, 15 Nov 2026): Discover filled in Jambo's green, white words, his spark */
+  .hb-btn.hb-discover-go{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;background:var(--accent-ink);color:var(--color-surface);border-color:transparent;box-shadow:none}
+  .hb-btn.hb-discover-go:hover{background:var(--accent-ink-700);color:var(--color-surface)}
   .ui-btn-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-label)}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);border-color:var(--accent-solid-hover)}
   .ui-btn-plain{background:transparent;border-color:transparent;color:var(--accent-ink)}
@@ -18584,6 +18616,9 @@
   html.lg-new .pd2-br-sp{flex:1}
   html.lg-new .pd2-br-cost{font-size:11.5px;color:var(--color-quiet);white-space:nowrap}
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-head{display:flex;align-items:center;height:56px;padding:0 24px;box-sizing:border-box}
+  /* ONE LINE ACROSS (owner, 14 Nov 2026, off a screenshot: "the line across should be on the same level"): New agreement's
+     head is as tall as Jambo's panel head beside it, so the hairline under each runs at one height */
+  html.lg-new #modal-root .modal-in:has(#na-root.na-one) .dlg-pg-head.dlg-pg-head{padding-top:14px;padding-bottom:14px}
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-crumb{flex:1;min-width:0;margin:0;padding:0}
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-row{display:none}
   html.lg-new #modal-root [data-pd-mid^="brief:"] .dlg-pg-body{background:var(--desk-ground);padding:0}
@@ -18712,7 +18747,7 @@
   /* NO OUTLINES WHERE A PAPER'S DETAILS ARE TYPED (owner, 12 Nov 2026: "I never want to see outlines especially
      thick outlines in entry fields in HaTi for papers"): the Fill in form, Key terms in the middle and the lines on
      the paper itself carry no box and no focus ring; the box you are in shows by its underline growing darker. */
-  html.lg-new :is(.pd2-fm-mid, [data-pd-mid-kt], #ig-canvas) :is(input, select, textarea, .dp-face):is(:focus, :focus-visible){outline:0;box-shadow:none}
+  html.lg-new :is(.pd2-fm-mid, [data-pd-mid-kt], #ig-canvas, #na-np) :is(input, select, textarea, .dp-face, [contenteditable]):is(:focus, :focus-visible){outline:0;box-shadow:none}
   html.lg-new .pd2-fm-mid td.pd-og-v :is(input:not([type=checkbox]),select,textarea,.dp-face):focus{border-bottom:2px solid var(--color-text)}
   html.lg-new [data-pd-mid-kt] .pd-og-in{border:0;border-bottom:1px solid var(--color-text);border-radius:0;background:transparent;padding:0 2px}
   html.lg-new [data-pd-mid-kt] textarea.pd-og-in{padding:4px 2px}
@@ -19089,6 +19124,30 @@
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.has-primary .sh-lt-who{display:none}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps #sh-lt-subject{padding-left:0;padding-right:0}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps #sh-st-to.hidden{display:none}
+  /* STEP 1, AS PICKED WITH PLAIN LETTER (owner, 14 Nov 2026: "the words are overlapping the grey area"): the open step's
+     16px inside wins the letter's row rule (".sh-lt-h .sh-lt-row" set 0 0 16px); its people are listed ONCE (the folded
+     To line stands down in the steps); "+ Add someone" one line */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open{padding:var(--s-4)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st #sh-lt-tosay:not(.hidden){display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-st-add > button{display:inline-flex;align-items:center;gap:var(--s-1)}
+  /* PLAIN LETTER (owner's pick by name, 14 Nov 2026): one typeface, one size. The note is a line of the letter: no label
+     on show (it stays for a screen reader), the empty box says so in grey, "Write it for me" right after its words
+     (shareLetterNoteFit hugs them); "Kind regards," the letter's size; the round one sentence (sharemail smRoundSentence) */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere){display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;column-gap:var(--s-3);row-gap:var(--s-1);margin:0 0 10px;padding:0;border:0;background:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > label{display:contents}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) #sh-summary-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > :is(#sh-lt-msghead,.sh-lt-nowhere){flex-basis:100%}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) textarea{flex:0 1 auto;min-width:0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) textarea::placeholder{color:var(--color-neutral-400);font-style:italic;opacity:1}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-nl-jb{margin:0;padding-top:3px;white-space:nowrap}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-nl-jb > span{display:none}
+  /* THE NOTE'S LIMIT, SAID (14 Nov 2026; core.js shareNoteCount): a quiet count under the note from four fifths of the
+     way, amber past it; inline state, no band */
+  html.lg-new #sh-letter .sh-note-count{margin:var(--s-1) 0 0;font-family:var(--font-body);font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new #sh-letter .sh-note-count[hidden]{display:none}
+  html.lg-new #sh-letter .sh-note-count.is-over{color:var(--st-amber-fg)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-note-count{flex-basis:100%;order:1}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps #sh-lt-after .sh-lt-say.is-lead{font-family:var(--font-doc);font-size:15px;line-height:1.55;color:var(--color-doc-text);margin:0}
   /* THE SEND SCREEN, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; core.js shareLegoraArrange): the letter is a full
      white paper on the grey desk; the choices one sentence of soft pills above it; nothing outlined anywhere */
   /* To and Subject: two plain lines; a box shows only as a line that darkens while typed in */
@@ -19561,6 +19620,42 @@
   html.lg-new .rfp-k small{display:block;margin-top:2px;font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-v{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums}
   html.lg-new .rfp-acts{display:flex;align-items:center;gap:16px;margin-top:20px}
+  /* WHAT THIS FOLDER SAYS, THE LEGORA WAY (f1053): nothing boxed; chips, then one quiet list of sentences, each with
+     where it was read (the quote in the paper's own face) and its act in its row */
+  /* AT A GLANCE (owner's pick by name, 15 Nov 2026): the Contracts panel draws when a folder's contracts end and where its money
+     is; nothing boxed, colour only from the status tokens and Jambo's green */
+  html.lg-new .rfg-top{display:flex;align-items:baseline;gap:8px;margin-top:4px}
+  html.lg-new .rfg-n{font-size:28px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;line-height:1}
+  html.lg-new .rfg-sp{flex:1}
+  html.lg-new .rfg-chip{display:inline-flex;align-items:center;align-self:center;height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new .rfg-chip.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .rfg-chip.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);cursor:pointer}
+  html.lg-new .rfg-sub{margin:6px 0 0;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .rfg .rfp-cap,html.lg-new .rfp-panel.is-drawn.rfg .rfp-cap{margin:24px 0 8px}
+  html.lg-new .rfg-strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px;height:66px}
+  html.lg-new .rfg-mo{display:flex;flex-direction:column-reverse;align-items:center;gap:3px;height:100%;padding:2px 0;border:0;border-radius:6px;background:transparent}
+  html.lg-new button.rfg-mo{cursor:pointer}
+  html.lg-new .rfg-mo i{flex:none;width:9px;height:9px;border-radius:999px;background:var(--st-amber-dot)}
+  html.lg-new .rfg-mo small{font-size:10px;line-height:1;color:var(--color-quiet)}
+  @media (hover:hover){ html.lg-new button.rfg-mo:hover{background:var(--surface-2)} }
+  html.lg-new .rfg-axis{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px;padding-top:4px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-quiet);text-align:center}
+  html.lg-new .rfg-axis span{overflow:hidden;white-space:nowrap}
+  html.lg-new .rfg-say{margin:10px 0 0;font-size:13px;line-height:1.5}
+  html.lg-new .rfg-q{font-size:12px;color:var(--color-quiet)}
+  html.lg-new p.rfg-q{margin:4px 0 0}
+  html.lg-new .rfg-bar,html.lg-new .rfg-lg{display:grid;grid-template-columns:minmax(0,132px) minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:6px 0;border:0;background:transparent;font:inherit;font-size:13px;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .rfg-lg{grid-template-columns:10px minmax(0,1fr) auto 36px}
+  html.lg-new .rfg-bar-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .rfg-bar-b{height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+  html.lg-new .rfg-bar-b i{display:block;height:100%;border-radius:999px;background:var(--accent-ink)}
+  html.lg-new .rfg-bar b,html.lg-new .rfg-lg b{font-weight:var(--w-label);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+  @media (hover:hover){ html.lg-new .rfg-bar:hover .rfg-bar-n,html.lg-new .rfg-lg:hover .rfg-bar-n{text-decoration:underline} }
+  html.lg-new .rfg-split{display:flex;gap:2px;height:20px;border-radius:6px;overflow:hidden}
+  html.lg-new .rfg-split i,html.lg-new .rfg-lg>i{display:block;height:100%;background:var(--accent-ink)}
+  html.lg-new .rfg-lg>i{width:10px;height:10px;border-radius:3px}
+  html.lg-new .rfg .is-2{opacity:.72} html.lg-new .rfg .is-3{opacity:.52} html.lg-new .rfg .is-4{opacity:.36} html.lg-new .rfg .is-5{opacity:.22}
+  html.lg-new .rfg-legend{margin-top:8px}
+  html.lg-new .rfg-pc{font-size:12px;color:var(--color-quiet);text-align:right;font-variant-numeric:tabular-nums}
   html.lg-new .rfp-panel.is-drawn .rfp-pill{height:var(--ctl-h);padding:0 16px;font-size:13px}
   /* the ask form as drawn: captions over full-width boxes, a two-way choice, a quiet hint under each */
   html.lg-new .rfp-panel .ac-nl-back{display:block;margin:0 0 16px;font-size:13px}
@@ -19593,7 +19688,6 @@
   /* ==== DISCOVER, THE PAGE (owner, 12 Nov 2026; drawn first): the Reads page under its new name. One ask box with its
      one black button, chips that fill it, Kept | Packs | Every read; a question opens under its own row, each answer a
      line; the panel shows the paper the words were read from. Tokens only. ==== */
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc::before{content:none}
   /* THE SCORECARD (owner's pick, 12 Nov 2026): the read table's own head on Discover — one line, the who-and-when, then
      the coloured tiles, each a filter (the tones of the Contracts page's view cards; the chosen one ringed in ink) */
   html.lg-new .rdsc-head{display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-4);border-bottom:1px solid var(--color-divider);min-width:0}
@@ -19621,9 +19715,6 @@
   html.lg-new .rd-card.is-table .rdt-t th:first-child,html.lg-new .rd-card.is-table .rdt-t td:first-child{padding-left:var(--s-4)}
   /* GREEN SPARK (owner's pick, 12 Nov 2026): the Discover pill filled in Jambo's green with his spark; the only green
      button on the page, so New agreement stays the one black. Both Discover pills (the list head, the folder panel). */
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc,html.lg-new .rfp-pill.rfp-dsc{display:inline-flex;align-items:center;gap:var(--s-2);background:var(--accent-ink);color:var(--color-surface);font-weight:var(--w-strong)}
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc svg,html.lg-new .rfp-pill.rfp-dsc svg{display:inline-block;flex:none;margin:0;width:14px;height:14px}
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn.ac-btn-dsc:hover,html.lg-new .rfp-pill.rfp-dsc:hover{background:var(--accent-ink-700)}
   html.lg-new .dsc-ask{display:flex;align-items:center;gap:var(--s-3);min-width:0;margin-top:var(--s-3);padding:var(--s-2) var(--s-3) var(--s-2) var(--s-4);background:var(--surface-2);border-radius:var(--radius)}
   html.lg-new .dsc-ask>svg{flex:none;color:var(--color-quiet)}
   html.lg-new .dsc-ask:focus-within{box-shadow:inset 0 0 0 1px var(--color-neutral-300)}
@@ -19665,6 +19756,35 @@
   html.lg-new .dsc-page .rdn-panel .rfp-acts>button{flex:none;white-space:nowrap}
   html.lg-new .dsc-live-bar{height:4px;margin:var(--s-2);border-radius:999px;background:var(--surface-2);overflow:hidden}
   html.lg-new .dsc-live-bar>i{display:block;height:100%;background:var(--color-text)}
+  /* THE NEW DISCOVER (owner, 15 Nov 2026): four screens on the one white sheet — the list of reads, New read, while it
+     reads, the results; labelled filters, a tick per folder, the step line, a full-width search; tokens only */
+  html.lg-new .dsn-page .rdsc-top .rdt-sp{flex:1}
+  html.lg-new .dsn-page .rdsc-top .ui-btn{flex:none;white-space:nowrap}
+  html.lg-new .dsn-table td.rdn-c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .dsn-page .rdn-head{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap}
+  html.lg-new .dsn-page .rdn-head .ui-btn{align-self:center}
+  html.lg-new .dsn-back{font-size:13px;white-space:nowrap}
+  html.lg-new .dsn-steps{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2);font-size:13px;color:var(--color-quiet)}
+  html.lg-new .dsn-steps>span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  html.lg-new .dsn-steps i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:var(--surface-2);font-style:normal;font-size:11px;font-weight:var(--w-strong)}
+  html.lg-new .dsn-steps .is-on{color:var(--color-text);font-weight:var(--w-strong)}
+  html.lg-new .dsn-steps .is-on i{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .dsn-steps .is-done i{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .dsn-steps em{width:18px;height:1px;background:var(--color-divider)}
+  html.lg-new .dsn-fs{display:flex;flex-wrap:wrap;gap:var(--s-4);margin:var(--s-4) 0 var(--s-3)}
+  html.lg-new .dsn-f{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .dsn-f select{min-width:150px;height:var(--ctl-h);padding:0 28px 0 10px;border:0;border-radius:8px;background-color:var(--surface-2);font:inherit;font-size:13px;color:var(--color-text)}
+  html.lg-new .dsn-table tr.dsn-row{cursor:pointer}
+  html.lg-new .dsn-table tr.dsn-row.is-sel>td{background:var(--surface-2)}
+  html.lg-new .dsn-ck{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:5px;box-shadow:inset 0 0 0 1.5px var(--color-neutral-300);font-size:11px;color:var(--color-surface)}
+  html.lg-new .dsn-ck.is-on{background:var(--color-text);box-shadow:none}
+  html.lg-new .dsn-read{display:inline-flex;align-items:center;gap:var(--s-3);white-space:nowrap}
+  html.lg-new .dsn-read .rdn-prog{width:120px;margin-top:0}
+  html.lg-new .dsn-prog{margin:var(--s-3) 0}
+  html.lg-new .dsn-prog .dsc-live-bar{margin:6px 0 0}
+  html.lg-new .dsn-table td.dsn-quote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+  html.lg-new .dsn-search{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl-h-lg);padding:0 var(--s-4);border-radius:999px;background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .dsn-search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:0;box-shadow:none;font:inherit;font-size:14px;color:var(--color-text)}
   html.lg-new .dsc-paper{box-sizing:border-box;min-height:100%;padding:var(--s-4);background:var(--desk-ground)}
   html.lg-new .dsc-sheet{min-height:320px;padding:var(--s-6) var(--s-4);background:var(--color-surface);font-family:var(--font-doc);font-size:13.5px;line-height:1.6;color:var(--color-text);overflow-wrap:anywhere}
   html.lg-new .dsc-sheet h4{margin:0;font:inherit;font-size:15px;font-weight:var(--w-strong);text-align:center}
@@ -20174,6 +20294,12 @@
   html.lg-new #na-root.na-one .na-ptab{height:30px;padding:0 0 4px;border-radius:0;font-size:14.5px;color:var(--color-text);box-shadow:none;background:transparent;border-bottom:2px solid transparent}
   html.lg-new #na-root.na-one .na-ptab[aria-selected="true"]{background:transparent;box-shadow:none;border-bottom-color:var(--accent-ink)}
   html.lg-new #na-root.na-one .na-askbox{border-color:var(--accent-ink);border-radius:999px;padding:8px 8px 8px 18px;align-items:center}
+  /* IT ACTS JUST LIKE JAMBO'S BOX (owner, 14 Nov 2026: "remove the green outline from the entry field. It should act just
+     like the jambo entry field"): the words wear no ring of their own (the page-wide :focus-visible ring drew a green
+     rectangle inside the pill); the pill keeps Jambo's 1.5px green edge and, while typed in, his soft glow (.jb-card) */
+  html.lg-new #na-root.na-one .na-askbox{border-width:1.5px}
+  html.lg-new #na-root.na-one .na-askbox:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px rgba(10,124,107,.12)}
+  html.lg-new #na-root.na-one .na-askbox .na-say:is(:focus, :focus-visible){outline:none;box-shadow:none;border:0}
   html.lg-new #na-root.na-one.is-picked #wz-pick{display:flex}
   html.lg-new #na-root.na-one .na-closest{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   html.lg-new #na-root.na-one .na-closest .na-pick.na-close{border:1px solid var(--color-divider);border-radius:var(--radius);padding:14px 16px;background:var(--color-surface);align-items:flex-start;min-height:118px}
@@ -20309,17 +20435,6 @@
   html.lg-new .ctf-rn .is-quiet{color:var(--color-neutral-400)}
   @media (max-width:1100px){ html.lg-new .ctf-row{grid-template-columns:20px minmax(0,1fr) 120px} html.lg-new .ctf-row .ctf-mix{display:none} }
   /* the folders' panel: where the work is, where the money is (regFolderRanksHtml) */
-  html.lg-new .ctfp-rks{display:flex;flex-direction:column;margin:0 0 16px}
-  html.lg-new .ctfp-rk{display:grid;grid-template-columns:112px minmax(0,1fr) 72px;gap:10px;align-items:center;width:100%;padding:7px 0;border:0;background:transparent;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
-  html.lg-new .ctfp-rk-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .ctfp-rk-b{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
-  html.lg-new .ctfp-rk-b i{display:block;height:100%;border-radius:4px}
-  html.lg-new .ctfp-rk-b i.is-amber{background:var(--st-amber-dot)}
-  html.lg-new .ctfp-rk-b i.is-steel{background:var(--st-steel-dot)}
-  html.lg-new .ctfp-rk-b i.is-ink{background:var(--color-text)}
-  html.lg-new .ctfp-rk-b i.is-grey{background:var(--color-neutral-300)}
-  html.lg-new .ctfp-rk b{text-align:right;font-weight:var(--w-label);font-variant-numeric:tabular-nums;white-space:nowrap}
-  @media (hover:hover){ html.lg-new .ctfp-rk:hover .ctfp-rk-n{text-decoration:underline} }
   html.lg-new #pd-glance :is(.pd2-l,.pd2-read,.pd2-card-say){color:var(--color-neutral-400)}
   html.lg-new .rl-card :is(.rl-card-sum,.rl-card-by,.rl-card-read-w,.rl-card-read-m,.rl-card-lock-say){color:var(--color-neutral-400)}
   /* a panel's labels are grey, its figures ink (the Overview face, and every list's own panel: the label of a row is grey) */
@@ -20681,6 +20796,156 @@
   html.lg-new #na-root.is-newpaper #na-words > :not(.na-ask-top):not(#na-np), html.lg-new #na-root.is-newpaper .na-ask-r{display:none}
   html.lg-new .na-np{display:flex;flex-direction:column;gap:var(--s-2);margin-top:var(--s-4);max-width:640px}
   html.lg-new .na-np[hidden]{display:none}
+  html.lg-new .na-np.is-start{max-width:none}
+  /* THE FOUR STARTS IN THE FROM SCRATCH TAB (owner's picks by name, 14 Nov 2026): the Legora way (nsl), the Shelf (nss),
+     the other side's paper (nsc) -- nothing boxed, one ask box, the streams as chips, each paper's first line quoted */
+  html.lg-new .nsl{display:flex;flex-direction:column;gap:var(--s-2);max-width:900px}
+  html.lg-new .nsl-back{align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:var(--t-body);color:var(--accent-ink);cursor:pointer}
+  html.lg-new .nsl-t{font-family:var(--font-title);font-weight:400;font-size:var(--t-page);margin:var(--s-1) 0 0}
+  html.lg-new .nsl-sub{margin:0;font-size:var(--t-body);color:var(--color-quiet)}
+  html.lg-new .nsl-ask{display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:999px;padding:6px 16px;margin-top:var(--s-2)}
+  html.lg-new .nsl-ask.is-over{background:var(--color-accent-50);box-shadow:inset 0 0 0 1.5px var(--accent-ink)}
+  html.lg-new .nsl-ask input[type="search"]{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);height:var(--ctl-h);outline:none}
+  html.lg-new .nsl-ask-ic{color:var(--color-quiet);display:inline-flex}
+  html.lg-new .nsl-or{border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .nsl-chips{display:flex;gap:6px;flex-wrap:nowrap;overflow:hidden}
+  html.lg-new .nsl-chip{display:inline-flex;align-items:center;gap:6px;flex:0 1 auto;min-width:0;white-space:nowrap;border:0;background:none;border-radius:999px;padding:5px 11px;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer}
+  html.lg-new .nsl-chip em{font-style:normal;color:var(--color-neutral-400)}
+  html.lg-new .nsl-chip.is-on{background:var(--accent-solid);color:var(--color-surface);flex:none}
+  html.lg-new .nsl-chip.is-on em{color:var(--color-neutral-300)}
+  html.lg-new .nsl-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
+  html.lg-new .nsl-list{display:flex;flex-direction:column}
+  html.lg-new .nsl-none{margin:var(--s-2) 0;color:var(--color-quiet);font-size:var(--t-body)}
+  html.lg-new .nsl-r{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:start;padding:11px 8px;border-bottom:1px solid var(--color-divider);border-radius:var(--radius-sm);cursor:pointer}
+  html.lg-new .nsl-r:hover{background:var(--surface-2)}
+  html.lg-new .nsl-r.is-on{background:var(--surface-2);border-bottom-color:transparent}
+  html.lg-new .nsl-mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:var(--t-label);font-weight:var(--w-strong)}
+  html.lg-new .nsl-tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .nsl-l1{display:flex;gap:10px;align-items:baseline;min-width:0}
+  html.lg-new .nsl-l1 b{font-weight:var(--w-label);font-size:var(--t-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .nsl-side{font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .nsl-q{font-family:var(--font-doc);font-size:var(--t-body);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .nsl-n{font-size:var(--t-label);color:var(--color-neutral-400);white-space:nowrap;padding-top:3px}
+  html.lg-new .nsl-st{display:inline-flex;align-items:center;gap:5px}
+  html.lg-new .nsl-open{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:var(--s-2)}
+  html.lg-new .nsl-ss{flex:1;min-width:260px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .nsl-say{min-height:0;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .nsl-say:empty{display:none}
+  html.lg-new .nsl-say.err{color:var(--st-ruby-fg)}
+  html.lg-new .nsl-paste{display:flex;flex-direction:column;gap:var(--s-2)}
+  html.lg-new .nsl-paste .ns-paste{height:220px;border:0;border-bottom:1px solid var(--color-neutral-300);border-radius:0;background:var(--surface-2)}
+  html.lg-new .nsl-paste-f{display:flex;justify-content:flex-end;gap:8px}
+  html.lg-new .nss-two{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:32px;align-items:start;margin-top:var(--s-2)}
+  html.lg-new .nss-l{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+  html.lg-new .nss-fld{display:flex;flex-direction:column;gap:6px}
+  html.lg-new .nss-fld>span{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet)}
+  /* the sentence for a new paper is typed like a paper's details (owner, 12 Nov 2026: no outlines in entry fields for papers):
+     no box, no ring, a line under it that darkens while you type */
+  html.lg-new .nss-fld textarea{border:0;border-bottom:1px solid var(--color-neutral-300);border-radius:0;padding:8px 0;font:inherit;font-size:var(--t-body);line-height:1.5;resize:vertical;background:transparent;color:var(--color-text)}
+  html.lg-new .nss-fld textarea:focus{border-bottom:2px solid var(--color-text)}
+  html.lg-new .nss-ex{display:flex;gap:10px;align-items:center;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .nss-foot{display:flex;align-items:center;gap:8px}
+  html.lg-new .nss-foot .sp{flex:1}
+  html.lg-new .nss-pg{position:relative;background:var(--color-surface);border-radius:3px;box-shadow:0 0 0 1px var(--color-divider),0 6px 18px rgba(0,0,0,.06);padding:22px 22px 18px}
+  html.lg-new .nss-pg:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--st-green-dot);border-radius:3px 3px 0 0}
+  /* ONE PAPER SIZE on both steps of From nothing (owner, 14 Nov 2026: "the paper should stay the same size") */
+  html.lg-new .nss-pg{height:430px;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden}
+  html.lg-new .nss-pg h5{flex:none;font-family:var(--font-doc);font-weight:var(--w-strong);font-size:var(--t-label);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-400);text-align:center;margin:0 0 6px}
+  html.lg-new .nss-tl{flex:1;min-height:0;overflow-y:auto;padding-right:6px;scrollbar-width:thin;-webkit-mask-image:linear-gradient(black calc(100% - 22px),transparent);mask-image:linear-gradient(black calc(100% - 22px),transparent)}
+  html.lg-new .nss-tl.is-end{-webkit-mask-image:none;mask-image:none}
+  html.lg-new .nss-tr{display:flex;align-items:center;gap:6px;height:26px;padding:0 4px;border-radius:4px}
+  html.lg-new .nss-tr:hover,html.lg-new .nss-tr.is-sel{background:var(--surface-2)}
+  html.lg-new .nss-tr input{margin:0;flex:none;accent-color:var(--accent-solid)}
+  html.lg-new .nss-tn{border:0;background:none;padding:0;font-family:var(--font-doc);font-size:var(--t-body);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%;cursor:pointer;text-align:left}
+  html.lg-new .nss-tr.is-off .nss-tn{color:var(--color-neutral-400);text-decoration:line-through}
+  html.lg-new .nss-dots{flex:1;min-width:12px;border-bottom:1px dotted var(--color-neutral-300);transform:translateY(3px)}
+  html.lg-new .nss-tr .nss-w.nss-w{margin:0;padding:0;background:none;font-size:var(--t-label)}
+  html.lg-new .nss-tr .nss-w.is-lib,html.lg-new .nsj .nss-w.is-lib{color:var(--st-steel-fg)}
+  html.lg-new .nss-tr .nss-w.is-std,html.lg-new .nsj .nss-w.is-std{color:var(--st-green-fg)}
+  html.lg-new .nss-tr .nss-w.is-ai,html.lg-new .nsj .nss-w.is-ai{color:var(--st-violet-fg)}
+  html.lg-new .nss-key{flex:none;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:var(--t-label);color:var(--color-neutral-400);margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider)}
+  html.lg-new .nss-kd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+  html.lg-new .nss-kd.is-lib{background:var(--st-steel-dot)}
+  html.lg-new .nss-kd.is-std{background:var(--st-green-dot)}
+  html.lg-new .nss-kd.is-ai{background:var(--st-violet-dot)}
+  html.lg-new .nss-under{display:flex;justify-content:space-between;gap:12px;font-size:var(--t-label);color:var(--color-neutral-400);margin-top:8px}
+  /* Jambo's panel beside the contents page */
+  html.lg-new .nsj{display:flex;flex-direction:column;gap:14px}
+  html.lg-new .nsj-say{margin:0;font-size:var(--t-section);font-weight:var(--w-strong);line-height:1.4}
+  html.lg-new .nsj-cap{margin:0 0 4px;font-size:var(--t-label);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400)}
+  html.lg-new .nsj-t{margin:0;font-size:var(--t-body);color:var(--color-text);line-height:1.5}
+  html.lg-new .nsj-t.is-quiet,html.lg-new .nsj-q2{color:var(--color-quiet)}
+  html.lg-new .nsj-q2{margin:0;font-size:var(--t-body);line-height:1.5}
+  html.lg-new .nsj-quote{margin:0;font-family:var(--font-doc);font-size:var(--t-body);color:var(--color-quiet);border-left:2px solid var(--color-neutral-300);padding-left:10px;line-height:1.55}
+  html.lg-new .nsj-back{align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .nsj-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface-2)}
+  html.lg-new .nsj-bar span{display:block;height:100%}
+  html.lg-new .nsj-bar .is-lib{background:var(--st-steel-dot)}
+  html.lg-new .nsj-bar .is-std{background:var(--st-green-dot)}
+  html.lg-new .nsj-bar .is-ai{background:var(--st-violet-dot)}
+  html.lg-new .nsj-lg{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .nsj-std{display:flex;flex-direction:column}
+  html.lg-new .nsj-sr{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-body)}
+  html.lg-new .nsj-sw{margin-left:auto;font-size:var(--t-label);white-space:nowrap}
+  html.lg-new .nsj-sw.is-ok{color:var(--st-green-fg)}
+  html.lg-new .nsj-sw.is-gap{color:var(--st-amber-fg)}
+  html.lg-new .nsj-d{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
+  html.lg-new .nsj-d.is-ok{background:var(--st-green-dot)}
+  html.lg-new .nsj-d.is-gap{background:var(--st-amber-dot)}
+  html.lg-new .nss-pg h4{font-family:var(--font-doc);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:.04em;text-transform:uppercase;text-align:center;margin:6px 0 14px;line-height:1.35}
+  html.lg-new .nss-bars{display:flex;flex-direction:column;gap:12px}
+  html.lg-new .nss-bars div{display:flex;flex-direction:column;gap:5px}
+  html.lg-new .nss-bars i{display:block;height:7px;border-radius:3px;background:var(--surface-2)}
+  html.lg-new .nss-bars i:first-child{width:38%;background:var(--color-neutral-300)}
+  html.lg-new .nss-bars i.s{width:80%}
+  html.lg-new .nss-note{font-size:var(--t-label);color:var(--color-neutral-400);text-align:center;margin:10px 0 0}
+  html.lg-new .nss-sec{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px solid var(--color-divider);cursor:pointer}
+  html.lg-new .nss-sec:last-child{border-bottom:0}
+  html.lg-new .nss-sec input{margin-top:3px;accent-color:var(--accent-solid)}
+  html.lg-new .nss-sec b{font-family:var(--font-doc);font-weight:var(--w-strong);font-size:var(--t-body)}
+  html.lg-new .nss-sec.is-off b{color:var(--color-neutral-400);text-decoration:line-through}
+  html.lg-new .nss-w{font-size:var(--t-label);padding:1px 7px;border-radius:999px;margin-left:6px;white-space:nowrap}
+  html.lg-new .nss-w.is-lib{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .nss-w.is-std{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .nss-w.is-ai{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .nss-it{display:block;font-size:var(--t-label);color:var(--color-quiet);margin-top:2px}
+  html.lg-new .nso-purpose{margin:0;font-size:var(--t-body);color:var(--color-quiet)}
+  html.lg-new .nso-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:1.5px dashed var(--color-neutral-300);border-radius:var(--radius-lg);background:var(--surface-2);padding:26px;color:var(--color-quiet);margin-top:var(--s-2)}
+  html.lg-new .nso-drop.is-over{border-color:var(--accent-ink);background:var(--color-accent-50)}
+  html.lg-new .nso-drop b{font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .nso-hint{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .nso-line{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .nso-lab{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .nso-val{min-width:0;font-weight:var(--w-label)}
+  html.lg-new .nso-val input:not([type]),html.lg-new .nso-val select{width:100%;border:0;border-bottom:1px solid transparent;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);padding:4px 0;outline:none}
+  html.lg-new .nso-val input:not([type]):focus,html.lg-new .nso-val select:focus{border-bottom-color:var(--color-neutral-400)}
+  html.lg-new .nso-val input:disabled{color:var(--color-text)}
+  html.lg-new .nso-tick{display:inline-flex;gap:8px;align-items:center;font-weight:400;font-size:var(--t-body)}
+  html.lg-new .nso-tick input{accent-color:var(--accent-solid)}
+  html.lg-new .nso-save{display:flex;justify-content:flex-end;padding-top:var(--s-2)}
+  html.lg-new .nso-ok{display:flex;gap:10px;align-items:center;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:var(--radius);padding:10px 14px}
+  html.lg-new .nso-ok .sp{flex:1}
+  html.lg-new .nso-sheet{width:720px;max-width:100%;margin-top:var(--s-2);padding:2px}
+  html.lg-new .nso-mini{background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider),0 6px 18px rgba(0,0,0,.06);border-radius:3px;padding:24px 28px 16px;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6}
+  html.lg-new .nso-pgno{font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400);text-align:right;margin-top:8px}
+  /* THEIR PAPERS YOU KEPT, on the Their paper tab; a kept paper chosen shows the card under it, the drop steps aside */
+  html.lg-new #na-root.na-one[data-paper="kept"] #na-theirs{display:block}
+  html.lg-new #na-root.na-one[data-paper="kept"] :is(.na-drop,#na-read,#dr-read,#wz-pick){display:none}
+  html.lg-new #na-root.na-one:not([data-paper="kept"]) .na-kept-new{display:none}
+  html.lg-new .na-kept{display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-3)}
+  html.lg-new .na-kept-lead{margin:0;font-size:var(--t-body);color:var(--color-quiet)}
+  html.lg-new .na-kept-cap{margin:var(--s-1) 0 0;font-size:var(--t-label);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400)}
+  html.lg-new .na-kept-list{display:flex;flex-direction:column}
+  html.lg-new .na-kept-r{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-bottom:1px solid var(--color-divider);background:none;padding:10px 8px;border-radius:var(--radius-sm);font:inherit;color:var(--color-text);cursor:pointer}
+  html.lg-new .na-kept-r:hover,html.lg-new .na-kept-r.is-on{background:var(--surface-2)}
+  html.lg-new .na-kept-mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:var(--t-label);font-weight:var(--w-strong);flex:none}
+  html.lg-new .na-kept-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .na-kept-l1{display:flex;gap:10px;align-items:baseline;min-width:0}
+  html.lg-new .na-kept-l1 b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .na-kept-l1 span{font-size:var(--t-label);white-space:nowrap}
+  html.lg-new .na-kept-l2{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .na-kept-on{font-size:var(--t-label);color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .na-kept-new{align-self:flex-start;margin-top:var(--s-1)}
   html.lg-new .na-np-lead{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
   html.lg-new .na-np-list{display:flex;flex-direction:column}
   html.lg-new .na-np-row{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-3) var(--s-2);border-bottom:1px solid var(--color-divider);cursor:pointer;border-radius:var(--radius)}
@@ -20797,6 +21062,9 @@
          on a computer ‹ goes back one page, the HaTi mark is Home, and the page's name opens Recent.
          CHAMBERS (owner, 20 Oct 2026): the bar is white with one hairline; the language
          (Settings › You) and the Blue / Green / Dark switches left it. -->
+    <!-- THE SYMBOL STRIP'S DOOR (owner, 15 Nov 2026): the Guide's compact face, a symbol per page down the left edge;
+         a press or a short rest of the mouse opens it (guideStripWire, js/app.js) -->
+    <button id="dk-nav" class="dk-nav-b" type="button" data-dk-nav title="Pages" data-i18n-title="gds_label" aria-label="Pages" data-i18n-aria="gds_label" aria-haspopup="true" aria-controls="gd-strip" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="M5.5 8h1M5.5 12h1M5.5 16h1"/></svg></button>
     <button id="dk-back" class="dk-back-b" type="button" hidden disabled data-dk-back title="Back" aria-label="Back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
     <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="Board" data-i18n-title="hb_face_board" aria-label="Board" data-i18n-aria="hb_face_board">HaTi</button>
     <span id="dk-pg-w" class="dk-pg-w" hidden>

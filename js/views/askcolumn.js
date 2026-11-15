@@ -99,6 +99,9 @@ function askColWidths(n){ return (AC_COL_W[n] || []).slice(); }
    the reader is outside of left out (the server would refuse it), the first
    AC_MAX — and the cut is said in the form. */
 function askColShown(){
+  /* DISCOVER CHOOSES ITS OWN CONTRACTS (owner, 15 Nov 2026: "begin the discover process from the folders"): while the
+     Discover page is in front and its New read has a choice, the read goes to exactly those, in the list's order */
+  if (AC.scope && Array.isArray(AC.scope.ids) && typeof state !== 'undefined' && state.view === 'reads') return AC.scope.ids.slice();
   let cs = [];
   try { cs = (typeof regFiltered === 'function') ? regFiltered() : []; } catch (_){ cs = []; }
   return cs.filter(c => c && c.id && !c._codeNamed).map(c => String(c.id));
@@ -314,7 +317,7 @@ function askColThHtml(askId, style, grip, caret){
     const read = shown.filter(id => got[id]).length, yes = shown.filter(id => got[id] && got[id].yes === true).length;
     /* THE HEAD IS THE COLUMN'S NAME AND ⋯, ONE LINE (owner, 9 Nov 2026: "the column should only reflect the name of the
        column and the ability to change the name of it"; reverses 8 Nov's "k of n read" in the head): how far it is read
-       is said in Jambo's panel, Columns you asked (rfp_col_sub) and the ⋯ menu's Read the other N */
+       is said in the ⋯ menu's Read the other N */
     void yes; void read;
     return `<th class="reg-th-sort ac-th is-nl${on ? ' active' : ''}" data-reg-sort="${_acE(key)}" data-ac-th="${_acE(askId)}" role="button" tabindex="0" aria-sort="${on ? (regState().dir === 1 ? 'ascending' : 'descending') : 'none'}" title="${_acE(_acT('ac_th_title', { question: a.question || '' }))}" style="cursor:pointer;user-select:none;${style}"><span class="ac-th-line"><span class="ac-th-w">${_acE(a.name || a.question || '')}</span><button type="button" class="ac-th-more" data-ac-thmore="${_acE(askId)}" aria-haspopup="menu" aria-expanded="false" aria-label="${_acE(_acT('ac_nl_more'))}">${typeof icon === 'function' ? icon('more', 'w-4 h-4') : '⋯'}</button></span>${caret || ''}${grip || ''}</th>`;
   }
@@ -1950,10 +1953,9 @@ if (typeof document !== 'undefined' && !document._acWired){
    this list shows as it is filtered now. Anyone may open it; asking there is an editor's (askColMay). */
 function askColBtnHtml(){
   if (!askColOn()) return '';
-  if (typeof window.newLookOn === 'function' && newLookOn())
-    /* GREEN SPARK (owner picked it by name, 12 Nov 2026; drawn first): Jambo's green, filled, with his spark, the only
-       green button on the page; New agreement stays the one black */
-    return `<button type="button" class="ui-btn ui-btn-sm ac-btn ac-btn-dsc" data-ac-discover>${(typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : ''}${_acE(_acT('dsc_btn'))}</button>`;
+  /* NO DISCOVER BUTTON ON CONTRACTS (owner, 15 Nov 2026: "Remove discover button but leave the door or discover link"):
+     the new look draws nothing here; the way in from this page is the "discover" link above Jambo's box (FLOW_MAP) */
+  if (typeof window.newLookOn === 'function' && newLookOn()) return '';
   /* the old look keeps its own door until it is deleted (nothing new is built on it): the form in Jambo's panel */
   const may = askColMay();
   const spark = (typeof icon === 'function') ? icon('sparkle', 'w-4 h-4') : '';
@@ -1989,8 +1991,13 @@ async function askColAskHere(o){
   }
   if (!plan || !plan.pick.length) return { none: true };
   base.run = askColRunId(plan);
+  /* where it was asked and how many were chosen ride the read's record (Discover's list of reads says them) */
+  if (Array.isArray(o.where) && o.where.length) base.run.where = o.where.slice(0, 40);
+  if (Number(o.of) > 0) base.run.of = Number(o.of);
   AC.form = null; AC.chosen = null;
+  if (typeof o.onRun === 'function') try { o.onRun(base.run.id); } catch (_){}
   const got = await askColReadRun(base, plan.pick, { name, onFirst: o.onFirst });
+  got.runId = base.run.id;
   const named = (!o.pack && got.asks[0] && got.asks[0].name) || name;
   askColRunEnd(got, base, named);
   if (!got.stopped && !got.err && typeof toast === 'function') toast(askColDoneSay(named, got), 'ok');

@@ -6140,7 +6140,7 @@ function hbGreetSayHtml(moved, since){
 function hbBoardHeadHtml(time, cut, bs, pack, deskBits, latest){
   const at = cut ? i18t('hb_bh_counted', { time, lens: cut }) : i18t('hb_bh_counted_plain', { time });
   const live = `<span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span class="hb-bh-at">${_hbE('· ' + at)}</span>${deskBits || ''}`;
-  const acts = `${pack || ''}${bs.btn}${hbPulseBtnHtml()}${hbExplorerBtnHtml()}${hbDraftBtnHtml()}`;
+  const acts = `${pack || ''}${bs.btn}${hbPulseBtnHtml()}${hbExplorerBtnHtml()}${hbDiscoverBtnHtml()}${hbDraftBtnHtml()}`;
   if (hbGreetOn()){
     void latest;   /* its counted sentence moved into the brief card (hbBoardSumHtml), 10 Nov 2026 */
     let hello = ''; try { hello = (typeof window.cn2Greet === 'function') ? cn2Greet() : ''; } catch (_){ hello = ''; }
@@ -6168,6 +6168,13 @@ function hbBoardHeadHtml(time, cut, bs, pack, deskBits, latest){
 function hbDraftBtnHtml(){
   if (typeof canEdit === 'function' && !canEdit()) return '';
   return `<button type="button" class="hb-btn is-sm hb-draft-go" data-hb-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_draft_btn'))}</button>`;
+}
+/* GREEN SPARK ON THE BOARD (owner's pick by name, 15 Nov 2026, drawn on a photo of the real Board): Discover's one door
+   from the first screen, filled in Jambo's green with his spark, between Explorer and Draft agreement; it opens the list
+   of reads (discoverOpen). Contracts carries no Discover button any more; its "discover" link above Jambo's box stays */
+function hbDiscoverBtnHtml(){
+  if (typeof window.discoverOpen !== 'function') return '';
+  return `<button type="button" class="hb-btn is-sm hb-discover-go" data-hb-discover title="${_hbE(i18t('hb_discover_tip'))}">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''}${_hbE(i18t('dsc_btn'))}</button>`;
 }
 function hbExplorerBtnHtml(){
   return `<button type="button" class="hb-btn is-sm hb-pulse-go hb-explorer-go" data-hb-explorer title="${_hbE(i18t('hb_explorer_tip'))}">${typeof icon === 'function' ? icon('network', 'w-3.5 h-3.5') : ''}${_hbE(i18t('hb_explorer_btn'))}</button>`;
@@ -10864,6 +10871,7 @@ function hbOnClick(e){
   if (on('[data-hb-pulse]')){ if (typeof pulseOpen === 'function') pulseOpen(); else setView('pulse'); return; }
   /* Explorer, beside it (29 Oct 2026): the same mover the face switch and the word use */
   if (on('[data-hb-draft]')){ if (typeof caGo === 'function') caGo({ kind: 'go', place: 'draft' }); else if (typeof openNewAgreement === 'function') openNewAgreement(); return; }
+  if (on('[data-hb-discover]')){ discoverOpen(); return; }
   if (on('[data-hb-explorer]')){ if (typeof caGo === 'function') caGo({ kind: 'go', place: 'explorer' }); else hbSetFace('explorer'); return; }
   /* ⋯ → What could explain this?: the card's reading opens where it stands and
      the same three-point answer is asked for (hbWhyAsk, the one door) */
