@@ -16789,6 +16789,35 @@
   .dk-back-b:disabled{opacity:.45;cursor:default}
   .dk-back-b[hidden]{display:none}
   .dk-back-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+  /* THE SYMBOL STRIP (owner, 15 Nov 2026): the bar's top-left symbol, and the Guide's compact face it opens down the
+     left edge, OVER the page (it takes no room). One symbol per page in the Guide's order and stage colours, Board
+     first, Settings at the foot; the name in ONE tip beside the symbol pointed at; a press goes there. */
+  .dk-nav-b{width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;margin-left:-8px}
+  .dk-nav-b:hover,.dk-nav-b.is-on{background:var(--bar-hover)}
+  .dk-nav-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+  .dk-nav-b + .dk-back-b{margin-left:0}
+  @media (max-width:767px){ .dk-nav-b{display:none} }
+  .gds{position:fixed;left:0;bottom:0;width:56px;z-index:var(--z-menu);background:var(--color-surface);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-md);display:flex;flex-direction:column;align-items:center;padding:var(--s-2) 0 var(--s-3);overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+  .gds[hidden]{display:none}
+  .gds-r{position:relative;width:44px;height:29px;flex:none;display:grid;place-items:center;border:0;background:none;padding:0;cursor:pointer;border-radius:var(--radius)}
+  .gds-r.is-foot{margin-top:auto}
+  .gds-r:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px}
+  .gds-mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .gds-mk .gds-ic{width:14px;height:14px}
+  .gds-mk.t-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .gds-mk.t-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .gds-mk.t-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  .gds-mk.t-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  .gds-mk.t-ink{background:var(--color-text);color:var(--color-surface)}
+  .gds-r:hover .gds-mk:not(.t-ink){box-shadow:0 0 0 2px var(--color-surface),0 0 0 3.5px var(--color-neutral-300)}
+  .gds-n{position:absolute;top:0;left:27px;min-width:16px;padding:0 4px;border-radius:999px;background:var(--color-surface);border:1px solid var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-figure);font-weight:var(--w-strong);line-height:14px;text-align:center;font-variant-numeric:tabular-nums}
+  .gds-div{width:22px;height:1px;flex:none;background:var(--color-divider);margin:3px 0}
+  .gds-tt{position:fixed;z-index:var(--z-menu);transform:translateY(-50%);display:flex;align-items:center;gap:var(--s-2);background:var(--color-text);color:var(--color-surface);border-radius:var(--radius-sm);padding:6px 10px;white-space:nowrap;font-size:var(--t-body);pointer-events:none;box-shadow:var(--shadow-md)}
+  .gds-tt[hidden]{display:none}
+  .gds-tt b{font-weight:var(--w-strong)}
+  .gds-tt span{opacity:.72;font-size:var(--t-meta)}
+  .gds-tt i{font-style:normal;color:var(--st-amber-bg);font-weight:var(--w-strong)}
+  .gds-tt em{font-style:normal;font-size:var(--t-micro);font-weight:var(--w-strong);background:var(--color-surface);color:var(--color-text);border-radius:999px;padding:0 7px}
   .dk-pg-w{position:relative;display:inline-flex;min-width:0;flex:0 1 auto}
   .dk-pg-w[hidden]{display:none}
   .dk-page{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:340px;min-width:0;padding:0 10px 0 12px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);font:inherit;font-size:var(--t-body);font-weight:var(--w-body);cursor:pointer}
@@ -21033,6 +21062,9 @@
          on a computer ‹ goes back one page, the HaTi mark is Home, and the page's name opens Recent.
          CHAMBERS (owner, 20 Oct 2026): the bar is white with one hairline; the language
          (Settings › You) and the Blue / Green / Dark switches left it. -->
+    <!-- THE SYMBOL STRIP'S DOOR (owner, 15 Nov 2026): the Guide's compact face, a symbol per page down the left edge;
+         a press or a short rest of the mouse opens it (guideStripWire, js/app.js) -->
+    <button id="dk-nav" class="dk-nav-b" type="button" data-dk-nav title="Pages" data-i18n-title="gds_label" aria-label="Pages" data-i18n-aria="gds_label" aria-haspopup="true" aria-controls="gd-strip" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="M5.5 8h1M5.5 12h1M5.5 16h1"/></svg></button>
     <button id="dk-back" class="dk-back-b" type="button" hidden disabled data-dk-back title="Back" aria-label="Back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
     <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="Board" data-i18n-title="hb_face_board" aria-label="Board" data-i18n-aria="hb_face_board">HaTi</button>
     <span id="dk-pg-w" class="dk-pg-w" hidden>

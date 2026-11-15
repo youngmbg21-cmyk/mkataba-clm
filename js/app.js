@@ -4035,6 +4035,85 @@ function guidePanelNlHtml(){
   return `<div class="gdn"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${guideNlRowHtml(hereRow,here,'ink')}`
     +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here,st.tone)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${rows}`:''; }).join('')+`</div>`;
 }
+/* THE SYMBOL STRIP — THE GUIDE'S COMPACT FACE (owner, 15 Nov 2026: "Build the symbol nav panel per your
+   recommendation"; lifts "no left rail" for this strip only, which lies OVER the page and takes no room). The symbol
+   at the top left of the bar (#dk-nav) opens it on a press, or after a short rest of the mouse; one symbol per page,
+   Board first and Settings at the foot, the order FIXED (the Rolodex was drawn and turned down: a page must stay
+   where the hand learnt it). Every row, word, count and door is the Guide's own (GUIDE_NL, guideNlCount,
+   guideWordOf, guideHereKey, guideGo): no second list of pages. The name shows beside the symbol pointed at or
+   focused, in ONE tip outside the strip so the strip may scroll on a short screen without clipping it. Reads only. */
+const GUIDE_STRIP_ICON={ parties:'building' };
+const GUIDE_STRIP_HOVER_MS=250, GUIDE_STRIP_LEAVE_MS=300;
+let _gdsHow=null, _gdsHoverT=0, _gdsLeaveT=0;
+function guideStripRows(){
+  const out=[{ k:'board', tone:'violet' }];
+  GUIDE_NL.forEach(st=>st.rows.flat().forEach(k=>{ if(k!=='board'&&k!=='settings'&&!out.some(o=>o.k===k)) out.push({ k, tone:st.tone }); }));
+  out.push({ k:'settings', tone:'violet' });
+  return out.filter(r=>guideRowShown(r.k));
+}
+function guideStripIcon(k){ return GUIDE_STRIP_ICON[k]||GUIDE_NL_ICON[k]||'file'; }
+function guideStripOwed(k){ const c=guideNlCount(k); return c&&c.owed?c.n:0; }
+function guideStripHtml(){
+  const here=guideHereKey()||'board'; let tone=null;
+  return guideStripRows().map(({ k, tone:t })=>{
+    const on=here===k, n=on?0:guideStripOwed(k), name=i18t('gd_p_'+k);
+    const div=(tone&&t!==tone&&k!=='settings')?'<span class="gds-div" aria-hidden="true"></span>':''; tone=t;
+    return div+`<button type="button" class="gds-r${k==='settings'?' is-foot':''}" data-gds-go="${k}" aria-label="${esc(name)}"${on?' aria-current="page"':''}>`
+      +`<span class="gds-mk ${on?'t-ink':'t-'+t}" aria-hidden="true">${typeof icon==='function'?icon(guideStripIcon(k),'gds-ic',1.8):''}</span>`
+      +(n?`<span class="gds-n" aria-hidden="true">${n>99?'99+':n}</span>`:'')+`</button>`;
+  }).join('');
+}
+function guideStripTipHtml(k){
+  const on=(guideHereKey()||'board')===k, n=on?0:guideStripOwed(k), w=guideWordOf(k);
+  return `<b>${esc(i18t('gd_p_'+k))}</b>${w?`<span>${esc(i18t('gdn_say',{ words:'“'+w+'”' }))}</span>`:''}`
+    +(on?`<em>${esc(i18t('gd_here'))}</em>`:n?`<i>${n}</i>`:'');
+}
+function guideStripTip(btn){
+  let tt=document.getElementById('gd-strip-tt');
+  if(!btn){ if(tt) tt.hidden=true; return; }
+  if(!tt){ tt=document.createElement('div'); tt.id='gd-strip-tt'; tt.className='gds-tt'; tt.setAttribute('role','tooltip'); document.body.appendChild(tt); }
+  const r=btn.getBoundingClientRect();
+  tt.innerHTML=guideStripTipHtml(btn.getAttribute('data-gds-go')); tt.hidden=false;
+  tt.style.left=Math.round(r.right+6)+'px'; tt.style.top=Math.round(r.top+r.height/2)+'px';
+}
+function guideStripIsOpen(){ const el=document.getElementById('gd-strip'); return !!(el&&!el.hidden); }
+function guideStripOpen(how){
+  clearTimeout(_gdsHoverT); clearTimeout(_gdsLeaveT);
+  let el=document.getElementById('gd-strip');
+  if(!el){ el=document.createElement('nav'); el.id='gd-strip'; el.className='gds'; document.body.appendChild(el); }
+  el.setAttribute('aria-label',i18t('gds_label'));
+  el.innerHTML=guideStripHtml();
+  const hdr=document.getElementById('top-header'), top=hdr?Math.round(hdr.getBoundingClientRect().bottom):0;
+  el.style.top=top+'px'; el.hidden=false; _gdsHow=how==='hover'?'hover':'press';
+  const b=document.getElementById('dk-nav'); if(b){ b.setAttribute('aria-expanded','true'); b.classList.add('is-on'); }
+  return el;
+}
+function guideStripClose(){
+  clearTimeout(_gdsHoverT); clearTimeout(_gdsLeaveT); _gdsHow=null; guideStripTip(null);
+  const el=document.getElementById('gd-strip'); if(el) el.hidden=true;
+  const b=document.getElementById('dk-nav'); if(b){ b.setAttribute('aria-expanded','false'); b.classList.remove('is-on'); }
+}
+/* a press opens it to stay; a press on a strip the mouse opened keeps it; a press on one it pressed open closes it */
+function guideStripPress(){ if(guideStripIsOpen()&&_gdsHow==='press') guideStripClose(); else guideStripOpen('press'); }
+function guideStripGo(k){ guideStripClose(); guideGo(k); }
+function guideStripWire(){
+  const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.gdsWired) return; b.dataset.gdsWired='1';
+  const leaveSoon=()=>{ if(_gdsHow!=='hover') return; clearTimeout(_gdsLeaveT); _gdsLeaveT=setTimeout(guideStripClose,GUIDE_STRIP_LEAVE_MS); };
+  b.addEventListener('click',guideStripPress);
+  b.addEventListener('pointerenter',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(_gdsLeaveT);
+    if(!guideStripIsOpen()){ clearTimeout(_gdsHoverT); _gdsHoverT=setTimeout(()=>guideStripOpen('hover'),GUIDE_STRIP_HOVER_MS); } });
+  b.addEventListener('pointerleave',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(_gdsHoverT); leaveSoon(); });
+  document.addEventListener('pointerover',e=>{ const s=e.target.closest&&e.target.closest('#gd-strip'); if(!s) return;
+    clearTimeout(_gdsLeaveT); const r=e.target.closest('[data-gds-go]'); guideStripTip(r||null); });
+  document.addEventListener('pointerout',e=>{ const s=e.target.closest&&e.target.closest('#gd-strip'); if(!s) return;
+    const to=e.relatedTarget; if(to&&to.closest&&to.closest('#gd-strip')) return; guideStripTip(null); if(!(to&&to.closest&&to.closest('#dk-nav'))) leaveSoon(); });
+  document.addEventListener('focusin',e=>{ const r=e.target.closest&&e.target.closest('#gd-strip [data-gds-go]'); if(r) guideStripTip(r); });
+  document.addEventListener('click',e=>{ const r=e.target.closest&&e.target.closest('#gd-strip [data-gds-go]'); if(r) guideStripGo(r.getAttribute('data-gds-go')); });
+  document.addEventListener('pointerdown',e=>{ if(!guideStripIsOpen()) return; const t=e.target;
+    if(t.closest&&(t.closest('#gd-strip')||t.closest('#dk-nav'))) return; guideStripClose(); },true);
+  document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!guideStripIsOpen()) return; guideStripClose(); try{ b.focus({ focusVisible:true }); }catch(_){ b.focus(); } });
+  addEventListener('resize',()=>{ if(guideStripIsOpen()) guideStripClose(); });
+}
 function guidePanelHtml(){
   if(typeof window.newLookOn==='function'&&newLookOn()) return guidePanelNlHtml();
   const here=guideHereKey();
@@ -4516,6 +4595,8 @@ function wireShell(){
 
   /* ONE DOOR TO THE SIDE PANEL (owner picked "The SAP Way", 9 Nov 2026): the clock and the Guide's door left the bar */
   document.getElementById('hdr-notify')?.addEventListener('click',panelDoorPress);
+  /* THE SYMBOL STRIP: the bar's top-left symbol opens the Guide's compact face down the left edge */
+  guideStripWire();
   /* CHAT IS THE CONTRACT'S CONVERSATION, so it opens the notes face with no
      change named — openNotesPanel is the one door onto that face and this is
      the press arriving there, never a second way of putting the panel up.
@@ -4739,6 +4820,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{GUIDE_NL,guidePanelNlHtml,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});
