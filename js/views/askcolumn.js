@@ -1612,6 +1612,7 @@ async function askColCarryOn(){
   const got = await askColReadRun(s.base, s.left, { name: s.name });
   askColRunEnd(got, s.base, s.name);
   if (!got.stopped && !got.err && typeof toast === 'function') toast(askColDoneSay(s.name, got), 'ok');
+  return got;
 }
 async function askColRunPack(f){
   const p = f.pack;

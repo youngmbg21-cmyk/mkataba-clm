@@ -1,4 +1,4 @@
-/* f1062 · A QUESTION TURNED DOWN IS SHOWN HOW TO BE ASKED (owner, 15 Nov 2026: "i keep getting this wrong and there is
+/* f1064 · A QUESTION TURNED DOWN IS SHOWN HOW TO BE ASKED (owner, 15 Nov 2026: "i keep getting this wrong and there is
    no better correction to help me phrase the question as i want. Draw a solution where if my question is phrased
    incorrectly, jambo panel kicks in to explain what I did wrong and gives me multiple alternative questions. I can then
    press on one of them which goes into the question field in discover and then i can press read"; picked "the Legora
@@ -18,7 +18,7 @@ const reword = () => { const a = AC.indexOf('const AC_PORTFOLIO_RE'), b = AC.sea
   assert.match(AC.slice(a, b), /function askColReword\(/, 'askColReword exists');
   return new Function(AC.slice(a, b) + '; return { askColReword, askColIsPortfolio };')(); };
 
-test('f1062 (1) the words that ask for a list are named, and the rest becomes questions one contract can answer', () => {
+test('f1064 (1) the words that ask for a list are named, and the rest becomes questions one contract can answer', () => {
   const { askColReword, askColIsPortfolio } = reword();
   const owner = askColReword('show me contracts that state the end date is in between 2026 and 2027');
   assert.equal(owner.hit, 'show me contracts that');
@@ -37,7 +37,7 @@ test('f1062 (1) the words that ask for a list are named, and the rest becomes qu
     .forEach(q => { const r = askColReword(q); assert.ok(r.alts.length >= 1, q); r.alts.forEach(a => assert.equal(askColIsPortfolio(a.q), false, a.q)); });
 });
 
-test('f1062 (2) words the rules cannot turn are said so: nothing is invented from them', () => {
+test('f1064 (2) words the rules cannot turn are said so: nothing is invented from them', () => {
   const { askColReword } = reword();
   const r = askColReword('how many contracts');
   assert.equal(r.general, true); assert.deepEqual(r.alts, []);
@@ -45,7 +45,7 @@ test('f1062 (2) words the rules cannot turn are said so: nothing is invented fro
   assert.match(fnBody(RD, 'dsnFixHtml'), /f\.general \? 'dsn_fix_said_g' : 'dsn_fix_said'/, 'and Jambo says he could not turn the words');
 });
 
-test('f1062 (3) turned down before the page leaves; the panel opens by itself; no Jambo call', () => {
+test('f1064 (3) turned down before the page leaves; the panel opens by itself; no Jambo call', () => {
   const ask = fnBody(RD, 'dsnAsk');
   const at = ask.indexOf('dsnFixSet(q)'), go = ask.indexOf("_dsn.screen = 'reading'");
   assert.ok(at > 0 && go > at, 'the question is turned down before the reading screen is drawn');
@@ -58,7 +58,7 @@ test('f1062 (3) turned down before the page leaves; the panel opens by itself; n
   assert.match(fnBody(INS, 'jlOwnPaint'), /\[data-jl-tab0\]'\)\.forEach\(b => b\.remove\(\)\)[\s\S]*opt\.jlTab0/, 'the way back is put away with the face');
 });
 
-test('f1062 (4) a press only fills the box; your words are kept and one press puts them back', () => {
+test('f1064 (4) a press only fills the box; your words are kept and one press puts them back', () => {
   const use = fnBody(RD, 'dsnFixUse');
   assert.match(use, /f\.used = i; _dsc\.q = a\.q/); assert.doesNotMatch(use, /dsnAsk\(/, 'the read stays the reader\'s press');
   assert.match(fnBody(RD, 'dsnFixBack'), /f\.used = null; _dsc\.q = f\.yours/);
@@ -71,7 +71,7 @@ test('f1062 (4) a press only fills the box; your words are kept and one press pu
   assert.ok((RD.match(/_dsc\.fix = null/g) || []).length >= 6, 'the face is put away wherever the question is replaced');
 });
 
-test('f1062 (5) both books carry every line', () => {
+test('f1064 (5) both books carry every line', () => {
   const keys = ['dsn_fix_tab', 'dsn_fix_overview', 'dsn_fix_say_one', 'dsn_fix_say_other', 'dsn_fix_say_g', 'dsn_fix_said', 'dsn_fix_said_g', 'dsn_fix_like', 'dsn_fix_use', 'dsn_fix_in', 'dsn_fix_undo', 'dsn_fix_count',
     'dsn_fix_yours', 'dsn_fix_put_back', 'dsn_fix_next', 'dsn_fix_read', 'dsn_fix_get_yesno', 'dsn_fix_get_date', 'dsn_fix_get_year', 'dsn_fix_get_say', 'dsn_fix_g1', 'dsn_fix_g2', 'dsn_fix_g3'];
   keys.forEach(k => assert.equal((I18N.match(new RegExp('\\n\\s+' + k + ': ', 'g')) || []).length, 2, k + ' in both books'));
