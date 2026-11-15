@@ -4073,7 +4073,41 @@ function obYourWeekOffer(){
    the Calendar planner's two asks as chips (each says its cost), and the
    Calendar's own setting under them. The chips hand the ask to the Calendar,
    where its planner — the one writer of his blocks — answers. */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): nothing owed is never an empty panel — the year ahead as a line to
+   the next date a signed contract ends (effectiveExpiry), and the existing finder as the one black button (obwAddOpen
+   'find': pick a contract, it reads that one). Something owed: late, this week and next as tiles, the week's facts
+   as rows, Plan my week the button, Jambo's calendar switch kept under them. The new look only. */
+function obYourWeekSayFive(){
+  const book = ((typeof obwBook === 'function') ? obwBook() : []).filter(r => r.st !== 'done');
+  const signed = (typeof window.jov5Signed === 'function') ? window.jov5Signed() : [];
+  const today = (typeof todayISO === 'function') ? todayISO() : '';
+  const ends = signed.map(x => (typeof window.effectiveExpiry === 'function' ? window.effectiveExpiry(x.c) : x.c.expiry) || '').filter(d => d && d >= today).sort();
+  const next = ends[0] || '', nEnd = ends.filter(d => d === next).length;
+  const dot = d => (typeof regDotDate === 'function') ? regDotDate(d) : d;
+  const line = next ? { label: i18t('jov5_ob_year'), from: i18t('jov5_today'), to: i18tn('jov5_ob_end', nEnd, { n: nEnd, day: dot(next) }) } : null;
+  const canEditNow = !(typeof canEdit === 'function' && !canEdit());
+  if(!book.length){
+    return { title: i18t('jov5_ob_none_t'), sub: i18t('jov5_ob_none_s'),
+      glance: [{ n: 0, l: i18t('jov5_late_l') }, { n: 0, l: i18t('jov5_ob_tracked') }, { n: signed.length, l: i18t('jov5_signed'), run: signed.length ? () => window.jov5ShowList(signed.map(x => x.c.id), i18t('jov5_signed_list')) : null }],
+      line, actFirst: true,
+      act: canEditNow ? { say: signed.length ? i18tn('jov5_ob_find_say', signed.length, { n: signed.length }) : i18t('jov5_ob_find_say0'), q: i18t('jov5_ob_find_q'),
+        label: i18t('jov5_ob_find'), run: () => obwAddOpen('find'), link: { label: i18t('jov5_ob_add'), run: () => obwAddOpen() } } : null,
+      src: i18t('ob_yw_src') };
+  }
+  const late = book.filter(r => r.win === 'overdue').length;
+  const w0 = book.filter(r => obWeekKeyOf(r) === 'w0').length, w1 = book.concat(obwDecisions()).filter(r => obWeekKeyOf(r) === 'w1').length;
+  const rows = obYourWeekFacts().map(f => ({ mark: f.need ? 'clock' : 'calendar', tone: f.need ? 'amber' : '', t: f.k, s: f.v, run: f.run }));
+  return { title: late ? i18tn('jov5_ob_late_t', late, { n: late }) : w0 ? i18tn('jov5_ob_week_t', w0, { n: w0 }) : i18t('jov5_ob_clear_t'),
+    sub: obYourWeekOffer(),
+    glance: [{ n: late, l: i18t('jov5_late_l'), warn: late > 0, run: late ? () => { obwFilters().state = 'overdue'; obwRepaint(); } : null },
+      { n: w0, l: i18t('jov5_ob_this_week') }, { n: w1, l: i18t('jov5_ob_next_week') }],
+    groups: rows.length ? [{ label: i18t('jov5_ob_week_g'), rows }] : [], line,
+    act: { label: i18t('jov5_ob_plan'), run: () => { if(typeof window.calHandOff === 'function') calHandOff('week'); } },
+    after: (typeof window.calLevelSegHtml === 'function') ? calLevelSegHtml() : '', src: i18t('ob_yw_src') };
+}
 function obYourWeekSay(){
+  const five = (typeof window.newLookOn === 'function' && window.newLookOn()) ? obYourWeekSayFive() : null;
+  if(five) return Object.assign({ lines: [_obEsc(five.title)] }, five);
   /* nothing owed anywhere: one sentence about obligations; the calendar's own controls stay on the Calendar (Round 2) */
   const any = (typeof obwBook === 'function') ? obwBook().length : 1;
   if(!any) return { lines: [ { html: _obEsc(i18t('ob_yw_none')), src: '' } ], src: '', chips: [], after: '' };

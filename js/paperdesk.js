@@ -3724,6 +3724,19 @@ function pdWallHelloHtml(){
     const E = _pdE;
     const O = (typeof naOursNow === 'function') ? naOursNow() : null;
     if (O){ const cl = O.closest(), ch = O.chosen(), n = O.read();
+      /* THE FIVE PARTS (owner, 15 Nov 2026, round 1): the ask as the headline, an example sentence, the papers that fit
+         (the sheet's own reading, O.closest/O.chosen — said, never pressed here: the sheet is where a paper is chosen)
+         and what happens after Create, as rows; no AI */
+      if (typeof jamboOverviewHtml === 'function'){
+        const asked = O.asked();
+        const groups = [];
+        if (!asked) groups.push({ label: _pdT('jov5_na_eg'), rows: [{ mark: 'pencil', t: _pdT('jov5_na_eg_t'), wrap: true }] });
+        else if (cl.length) groups.push({ label: _pdT('jov5_na_fit'), rows: cl.slice(0, 3).map(x => ({ mark: 'file', tone: x === (ch || cl[0]) ? 'green' : '', t: x, v: x === (ch || cl[0]) ? _pdT('jov5_na_best') : '' })) });
+        groups.push({ label: _pdT('nao_p_after_h'), rows: [{ mark: 'sparkle', tone: 'dark', t: _pdT('jov5_na_after'), s: _pdT('jov5_na_after_s') }] });
+        return `<div class="jl-words is-ov pd-sheet-hello">${jamboOverviewHtml({ eyebrow: _pdT('jov5_na_eb'),
+          title: asked ? _pdTn('nao_p_fit', cl.length, { n: cl.length, best: ch || cl[0] || '' }) : _pdT('jov5_na_t'),
+          sub: asked ? (n ? _pdTn('nao_p_filled', n, { n }) : _pdT('nao_p_src')) : _pdT('jov5_na_s'), groups, src: _pdT('nao_p_src') }, 'pd')}</div>`;
+      }
       const head = O.asked() ? [_pdTn('nao_p_fit', cl.length, { n: cl.length, best: ch || cl[0] || '' }), n ? _pdTn('nao_p_filled', n, { n }) : ''].filter(Boolean).join(' ') : _pdT('nao_p_say');
       return `<div class="pd2-chosen cun-panel nsc-panel"><p class="pd2-ch-head nsc-p-head">${E(head)}</p><p class="nao-src">${E(_pdT('nao_p_src'))}</p><div class="pd2-ch-cap">${E(_pdT('nao_p_after_h'))}</div><p class="nao-after">${E(_pdT('nao_p_after'))}</p></div>`; }
   }

@@ -880,9 +880,45 @@ function apForPillHtml(fw){
 /* THE PAGE IN JAMBO'S WORDS (nothing chosen): counted from the list itself,
    no AI — how many wait and on whom, the late ones, whom the reader stands
    in for. Chips: the first of yours (it chooses that row), Approval rules. */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): nothing waiting is said as good news (a tick, "All clear."), and
+   the panel never stops there: what was signed most recently, and the rule that holds today, both read off what
+   the browser holds (jov5Signed, approvalRules). Something waiting: the count is the headline, the first of yours
+   the one black button. The new look only. */
+function apSayFive(W){
+  const yours=W.yours.length, others=W.others.length, late=W.rows.filter(apLate).length;
+  const signed=(typeof jov5Signed==='function')?jov5Signed():[];
+  let rules=[]; try{ rules=((typeof approvalRules==='function')?approvalRules():[])||[]; }catch(_){ rules=[]; }
+  const admin=(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function');
+  const rulesRun=()=>{ if(admin) openSettingsAt('platform','approvals'); else apRulesSay(); };
+  const recent=signed.slice(0,3).map(x=>jov5ContractRow(x.c, typeof jlDayWord==='function'?jlDayWord(x.day):''));
+  const ruleRow=rules.length?{ mark:'shield', t:i18tn('jov5_ap_rules_n',rules.length,{n:rules.length}), s:i18t('jov5_ap_rules_s'), run:rulesRun }
+    :{ mark:'shield', tone:'amber', t:i18t('jov5_ap_no_rules'), s:i18t('jov5_ap_no_rules_s'), run:rulesRun };
+  const glance=[{ n:yours, l:i18t('jov5_on_you'), warn:yours>0, run:yours?()=>{ _apView='yours'; renderApprovalsPage(); }:null },
+    { n:others, l:i18t('jov5_on_others'), run:others?()=>{ _apView='others'; renderApprovalsPage(); }:null },
+    { n:signed.length, l:i18t('jov5_signed'), run:signed.length?()=>jov5ShowList(signed.map(x=>x.c.id), i18t('jov5_signed_list')):null }];
+  const groups=[];
+  if(!W.rows.length){
+    if(recent.length) groups.push({ label:i18t('jov5_ap_recent'), rows:recent });
+    groups.push({ label:i18t('jov5_ap_rules'), rows:[ruleRow] });
+    return { title:i18t('jov5_ap_clear'), sub:i18t('ap_wl_none'), clear:true, glance, groups, src:i18t('jl_src_list') };
+  }
+  const refOf=r=>(window.contractRef?contractRef(r.c):r.c.id);
+  const waitRow=r=>({ mark:apLate(r)?'clock':'file', tone:apLate(r)?'amber':'', t:(r.c&&(r.c.name||r.c.id))||'', s:refOf(r)+(r.c&&r.c.counterparty?' · '+r.c.counterparty:''),
+    v:apLate(r)?i18t('jov5_late'):'', need:apLate(r), run:()=>{ if(apShowRow(r.c.id)){ if(typeof insSelect==='function') insSelect('approvals', r.c.id); renderApprovalsPage(); } if(typeof jlLand==='function') jlLand('row', r.c.id); } });
+  if(yours) groups.push({ label:i18t('jov5_ap_yours'), rows:W.yours.slice(0,3).map(waitRow) });
+  if(others) groups.push({ label:i18t('jov5_ap_others'), rows:W.others.slice(0,2).map(r=>Object.assign(waitRow(r),{ s:apWaitsShort(r)||refOf(r) })) });
+  groups.push({ label:i18t('jov5_ap_rules'), rows:[ruleRow] });
+  const parts=[yours?i18tn('ap_wl_n_yours',yours,{n:yours}):'', others?i18tn('ap_wl_n_others',others,{n:others}):''].filter(Boolean);
+  const first=W.yours[0]||null;
+  return { title:i18tn('jl_ap_say',W.rows.length,{n:W.rows.length})+'.', sub:parts.join(i18t('jl_and'))+(late?' · '+i18tn('jl_ap_late',late,{n:late,d:AP_LATE_DAYS}):''),
+    glance, groups, actFirst:true, act:first?{ say:i18t('jov5_ap_first_say',{ name:(first.c&&(first.c.name||first.c.id))||'' }), label:i18t('jl_ap_chip_first'), run:()=>waitRow(first).run() }:null,
+    src:i18t('jl_src_list') };
+}
 function apSay(rows){
   const W=apWorkRows();
   const n=W.rows.length;
+  const five=(typeof newLookOn==='function'&&newLookOn())?apSayFive(W):null;
+  if(five) return Object.assign({ lines:[esc(five.title)] }, five);
   if(!n) return { lines:[esc(i18t('ap_wl_none'))] };
   const parts=[W.yours.length?i18tn('ap_wl_n_yours',W.yours.length,{n:W.yours.length}):'', W.others.length?i18tn('ap_wl_n_others',W.others.length,{n:W.others.length}):''].filter(Boolean);
   const lines=[`<b>${esc(i18tn('jl_ap_say',n,{n}))}</b>${parts.length?esc(': '+parts.join(i18t('jl_and'))):''}.`];

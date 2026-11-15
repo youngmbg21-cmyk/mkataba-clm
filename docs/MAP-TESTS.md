@@ -237,6 +237,9 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f387, f390, f391, f395, f664, f678, f804, f810, inspector, inspector-checklist, jambos-list-panel verify.
 - Answered beside the list (22 Oct 2026, Part 8 question 3 = A): f804 8b–8b4 (red at e10e3af6); jambos-list-panel-verify 10g re-pointed (answered in the panel, the draft form still a door).
 
+## JAMBO'S PANELS — THE FIVE PARTS
+- f1062-jambos-panels-five-parts (builder, shared readings, the ten round-1 panels new look vs old, Explorer's rows not chips, Import's drop door, both books). Also run: f728, f773 (Import), f791, f792 (Obligations' week), f804 (list panel), f806 (Negotiations), f807 (Approvals), f874, f880, f951 (Overview sizes), f745 (Board), f232, f48, f561, f937, f964, f965.
+
 ## THE LIST HEAD (js/views/listhead.js)
 - THE SCORECARD (10 Nov 2026): f989 (new; red at the parent, 2 of 3) — the bar by share, counts in order, the missing on the hover, the old look's lamps kept, the Contracts cell one line, "No money", Stream 13. round6-new-look-verify 2 re-pointed (the missing read off the bar's hover).
 - THE LIST'S COLUMNS (28 Oct 2026): `test/chromium/list-columns-verify.js` (COVER · WIDE · TALL · GRIP on every list at 1366/1440/1536 and 1440 at 125%/150%, a drag kept and reset on Approvals; a second book with duties and live negotiations). Re-pointed: f807 (10), f791 6b, f723 1b, f258 (5), f263 (4), f259, f334, f669, f795; inspector-verify 2a, whose-move 3a, legora-lists 5c/P2, counterparty-leads 5e, one-copilot-editor-plain 2a; customers-verify and parties-nda-column-verify run at 1800/1920 where every optional column has room.

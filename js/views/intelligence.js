@@ -6824,6 +6824,12 @@ function igFdDay(at){ const t=Date.parse(at||''); if(isNaN(t)) return ''; try{ r
 function igFindingsHtml(){
   if(!_igFd){ igFindingsLoad(); return `<p class="ig-fd-empty">${window.busyHtml?busyHtml(i18t('int_fd_loading')):igEsc(i18t('int_fd_loading'))}</p>`; }
   const L=igFindings(), me=String(igMe().id||''), o=igFindingsOwed(), S=(_igFd&&_igFd.sends)||[];
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 1): no findings is a headline, the three real steps a finding takes
+     (ask the map · Pin this finding · colleagues open it here) and two questions to start with (intelAsk) */
+  if(!L.length&&typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function')
+    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:i18t('jov5_fd_eb'), title:i18t('jov5_fd_t'), sub:i18t('jov5_fd_s'),
+      steps:{ label:i18t('jov5_fd_how'), items:[{ b:i18t('jov5_fd_s1b'), s:i18t('jov5_fd_s1') },{ b:i18t('jov5_fd_s2b'), s:i18t('jov5_fd_s2') },{ b:i18t('jov5_fd_s3b'), s:i18t('jov5_fd_s3') }] },
+      asks:[i18t('jov5_fd_q1'),i18t('jov5_fd_q2')].map(q=>({ verb:q, run:()=>intelAsk(q) })), src:i18t('jov5_fd_src') },'ig-fd')}</div>`;
   if(!L.length) return `<p class="ig-fd-empty">${igEsc(i18t('int_fd_none'))}</p>`;
   const users=(typeof getUsers==='function'?getUsers():[])||[];
   const card=f=>{ const op=intel.fdOpen&&intel.fdOpen.id===f.id, ui=(intel.fdUi||{})[f.id]||'';
@@ -7385,6 +7391,12 @@ const IG_SUGGESTIONS=[
 const IG_SUG_SHADE=['liability','risk','expiry','obligations'];
 const IG_SUG_FLOORS=['payterms','risk','liability','expiry'];
 const IG_SUG_GRID=[['folder','liability'],['folder','risk'],['kind','payterms']];
+/* the view's suggestions are rows of Explorer's Overview (THE FIVE PARTS, 15 Nov 2026): while that Overview shows,
+   the chip row under the panel draws none, so one suggestion is never offered twice */
+function igSugInRows(){
+  try { return !!(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.hbFace==='function'&&hbFace()==='explorer'
+    &&!intel.dayTab&&!intel.fdTab&&!intel.gdTab&&!(typeof window.pdTalkShows==='function'&&pdTalkShows())); } catch(_){ return false; }
+}
 function igSugOnMap(){ return !(state.view==='dashboard'&&typeof window.hbFace==='function')||hbFace()==='explorer'; }
 function igViewSuggestions(){
   const vw=igbCam().view, out=[], G=IG||{};
@@ -7421,8 +7433,29 @@ function igViewSuggestions(){
    The Legora Way, jamboOverviewHtml): what the map in front holds, from the map's own model (buildGraphModel) and
    the findings colleagues kept (igFindingsCount), each with its own door; his offers stay the chips under the
    panel (igViewSuggestions), where a view change repaints them */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): what the map draws as three numbers; the view's own suggestions
+   (igViewSuggestions — the same words the chips carried, a row's press is the chip's, intelAsk) as rows with a line
+   on what each does; the saved views (igSavedViewOpen) or the map's one Save door (igSaveViewDoor). The new look. */
+function igOverviewFive(shown){
+  let M=null; try{ M=buildGraphModel(); }catch(_){ M=null; }
+  const cs=(typeof state!=='undefined'&&state&&Array.isArray(state.contracts))?state.contracts.filter(c=>c&&!c.archived):[];
+  const parties=new Set(cs.map(c=>String(c.counterparty||'').trim().toLowerCase()).filter(Boolean)).size;
+  const streams=new Set(cs.map(c=>c.folder).filter(Boolean)).size;
+  const tour=i18t('int_tour_ask');
+  const sugs=igViewSuggestions().slice(0,3);
+  const rows=sugs.map(s=>({ mark:s===tour?'sparkle':'network', tone:s===tour?'dark':'green', t:s, s:s===tour?i18t('jov5_ig_tour_s'):i18t('jov5_ig_try_s'), run:()=>intelAsk(s) }));
+  let v=[]; try{ v=igViewsRead().slice().reverse(); }catch(_){ v=[]; }
+  const saved=v.length?v.slice(0,3).map(x=>({ mark:'star', t:x.name, run:()=>igSavedViewOpen(x.name) }))
+    :[{ t:i18t('jov5_ig_sv_none'), s:i18t('jov5_ig_sv_s'), link:{ label:i18t('jov5_ig_sv_save'), run:()=>igSaveViewDoor() } }];
+  const fd=(typeof igFindingsTabOn==='function'&&igFindingsTabOn())?igFindingsCount():null;
+  return { eyebrow:i18t('jov5_ig_eb'), title:i18t('jov_ig_head_b'), sub:i18t('jov_ig_head_s'),
+    glance:[{ n:(M&&M.shown)||shown||0, l:i18t('jov5_ig_drawn') },{ n:streams, l:i18t('jov5_ig_streams') },{ n:parties, l:i18t('jov5_ig_parties') }],
+    groups:[{ label:i18t('jov5_ig_try'), rows }, { label:i18t('int_saved_views'), rows:saved }].concat(fd&&fd.n?[{ label:i18t('jov_ig_fd'), rows:[{ mark:'star', tone:fd.tone==='amber'?'amber':'', t:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), run:()=>igFindingsShow() }] }]:[]),
+    src:i18t('jov_ig_src') };
+}
 function igOverviewHtml(){
   let shown=0; try{ shown=buildGraphModel().shown||0; }catch(_){ shown=0; }
+  if(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function') return `<div class="jl-words is-ov">${jamboOverviewHtml(igOverviewFive(shown),'ig')}</div>`;
   const facts=[{ k:i18t('jov_ig_map'), v:i18tn('jov_ig_map_v',shown,{ n:shown }) }];
   const fd=(typeof igFindingsTabOn==='function'&&igFindingsTabOn())?igFindingsCount():null;
   if(fd) facts.push({ k:i18t('jov_ig_fd'), v:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), need:fd.tone==='amber', link:i18t('jov_ln_see'), run:()=>igFindingsShow() });
@@ -7435,7 +7468,7 @@ function igSugRepaint(){
   const box=document.querySelector('#ig-dock [data-ig-chips]'); if(!box||!igSugOnMap()||box.querySelector('[data-ca-chip],[data-ca-next]')) return;
   /* Fill in and Before you sign draw no chips (the gaps, rounds 8 and 10): the row stays his perch */
   if(window.pdChipsQuiet&&pdChipsQuiet()) return;
-  box.innerHTML=igViewSuggestions().map(igSugChipHtml).join('');
+  box.innerHTML=igSugInRows()?'':igViewSuggestions().map(igSugChipHtml).join('');
   box.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
 }
 /* A FILTER ON THIS PAGE KEEPS THE READER'S PLACE; A TAB DOES NOT, and that is
@@ -10579,7 +10612,7 @@ function renderIntelDock(){
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${/* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10,
            18 Oct 2026: nothing between the face and the ask box but Jambo
-           perched) — the row stays, empty, as his perch */''}${(window.pdChipsQuiet&&pdChipsQuiet())?'':(typeof window.caChipsHtml==='function'&&igCaChipsNote(caChipsHtml()))||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||(igSugOnMap()?igViewSuggestions():IG_SUGGESTIONS.slice(0,3))).map(igSugChipHtml).join('')}
+           perched) — the row stays, empty, as his perch */''}${(window.pdChipsQuiet&&pdChipsQuiet())?'':(typeof window.caChipsHtml==='function'&&igCaChipsNote(caChipsHtml()))||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||(igSugOnMap()?(igSugInRows()?[]:igViewSuggestions()):IG_SUGGESTIONS.slice(0,3))).map(igSugChipHtml).join('')}
     </div>`:''; })()}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
@@ -12757,7 +12790,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igPaperPatch,igPaperLastPatch,igRedBodyHtml,igStripRepaint,igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
-Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igOverviewHtml,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockBatch,igDockPaintCount,igPaperDown,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint,igAskBrain});
+Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugInRows,igOverviewFive,igOverviewHtml,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockBatch,igDockPaintCount,igPaperDown,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint,igAskBrain});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});

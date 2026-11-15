@@ -1521,11 +1521,86 @@ function jamboOverviewHtml(o, slot){
       + `<span class="jov-v${f.need ? ' is-need' : ''}">${f.html != null ? f.html : _jovE(f.v || '')}</span></div>`;
   }).join('');
   const asks = (o.asks || []).map(a => a && a.label && !a.verb ? Object.assign(jamboAskOf(a.label), { run: a.run, title: a.title, attr: a.attr }) : a).filter(a => a && a.verb);
+  /* THE FIVE PARTS (owner, 15 Nov 2026: "Build the panels in three rounds as recommended"; "Build as drawn",
+     which REPLACES the 26 Oct "nothing boxed" for a page that hands in a `title`): headline in the serif · three
+     numbers in soft tiles, each the door to the list it counts · rows in soft groups, the row the door · ONE black
+     button in a soft card · the small print at the foot. A page that hands in no `title` is drawn as before. */
+  if (o.title) return jamboOverviewFiveHtml(o, slot, reg, lnk, asks);
   const askHtml = asks.length ? `<p class="jov-eyebrow">${_jovE(_jovT('jov_ask_me'))}</p><div class="jov-asks">${asks.map(a =>
     lnk(a.attr ? -1 : reg(a.run), `<b>${_jovE(a.verb)}</b>${a.rest ? ' ' + _jovE(a.rest) : ''}${a.cost ? `<span class="jov-cost">· ${_jovE(a.cost)}</span>` : ''}`, a.title, 'is-ask', a.attr)).join('')}</div>` : '';
   return `<div class="jov" data-jov-slot="${_jovE(slot)}">${o.before || ''}${head ? `<p class="jov-head"${o.headAttr ? ' ' + o.headAttr : ''}>${head}</p>` : ''}`
     + `${factHtml ? `<div class="jov-facts">${factHtml}</div>` : ''}${o.srcHtml ? `<p class="jov-src">${o.srcHtml}</p>` : o.src ? `<p class="jov-src">${_jovE(o.src)}</p>` : ''}${askHtml}`
     + `${o.after ? `<div class="jov-after">${o.after}</div>` : ''}</div>`;
+}
+/* THE FIVE PARTS' SHARED READINGS (no AI, read off the list the browser holds): the signed contracts, newest
+   signing first; a contract opens on its paper (roomHomeLand); a set of contracts opens as the Contracts list
+   narrowed to it (regShowOnly), so a tile's number is the list it opens */
+function jov5Signed(){
+  const L = (typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts.filter(c => c && (c.status === 'Signed' || c.status === 'Executed') && !c.archived) : [];
+  const day = c => { try { return (typeof window.contractSignedAt === 'function' && window.contractSignedAt(c)) || String(c.lastAction || ''); } catch (_){ return ''; } };
+  return L.map(c => ({ c, day: day(c) })).sort((a, b) => String(b.day).localeCompare(String(a.day)));
+}
+/* a contract's value, short, in its own currency — never shown to a person not allowed to see values, never for
+   pay or a contract with no money (the same walls as csvValueCell) */
+function jov5Money(c){
+  try {
+    if (!c || !(Number(c.value) > 0)) return '';
+    if (typeof window.canViewValues === 'function' && !window.canViewValues()) return '';
+    if (typeof window.isMonetary === 'function' && !window.isMonetary(c)) return '';
+    if (typeof window.fxIsPay === 'function' && window.fxIsPay(c)) return '';
+    if (typeof window.fmtMoneyShortIn === 'function' && typeof window.contractCurrency === 'function') return window.fmtMoneyShortIn(Number(c.value), window.contractCurrency(c));
+  } catch (_){}
+  return '';
+}
+function jov5Open(id){ if (typeof window.roomHomeLand === 'function') window.roomHomeLand(id); else if (typeof window.regOpenContract === 'function') window.regOpenContract(id); }
+function jov5ShowList(ids, name){ if (typeof window.regShowOnly === 'function') window.regShowOnly(ids, name); }
+function jov5ContractRow(c, v, extra){
+  return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
+}
+/* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
+var JOV5_TONES = { amber: 1, green: 1, dark: 1 };
+function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
+  const E = _jovE;
+  const ic = n => (typeof window !== 'undefined' && typeof window.icon === 'function' && n) ? window.icon(n, 'jov5-ic', 1.8) : '';
+  const door = (run, attr) => attr ? ` ${attr}` : (typeof run === 'function' ? ` data-jov="${E(slot)}:${reg(run)}"` : '');
+  const tag = (run, attr) => (attr || typeof run === 'function') ? 'button' : 'div';
+  /* `clear`: nothing waits, said as good news — a tick in a soft green ring over a centred headline */
+  const tick = o.clear ? `<svg class="jov5-tick" viewBox="0 0 64 64" aria-hidden="true"><circle class="jov5-ring" cx="32" cy="32" r="30"/><path class="jov5-tk" d="m20 33 8 8 16-17"/></svg>` : '';
+  const head = `<div class="jov5-intro${o.clear ? ' is-clear' : ''}">${tick}${o.eyebrow ? `<p class="jov5-eb">${E(o.eyebrow)}</p>` : ''}`
+    + `<h3 class="jov5-title">${E(o.title)}</h3>${o.subHtml ? `<p class="jov5-sub">${o.subHtml}</p>` : o.sub ? `<p class="jov5-sub">${E(o.sub)}</p>` : ''}</div>`;
+  const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
+  const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
+      + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
+  const rowHtml = r => {
+    const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);
+    const mark = r.mark != null ? `<span class="jov5-mk${JOV5_TONES[r.tone] ? ' is-' + r.tone : ''}">${r.markText != null ? E(r.markText) : ic(r.mark)}</span>` : '';
+    const act = r.btn ? `<button type="button" class="jov5-pill${r.btn.black ? ' is-black' : ''}"${door(r.btn.run, r.btn.attr)}>${E(r.btn.label)}</button>`
+      : r.link ? lnk(r.link.attr ? -1 : reg(r.link.run), E(r.link.label), r.link.title, '', r.link.attr) : '';
+    const chev = (t === 'button') ? `<span class="jov5-chev" aria-hidden="true">${ic('chevR')}</span>` : '';
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap ? ' is-wrap' : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
+      + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}</span>`
+      + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
+  };
+  const groups = (o.groups || []).filter(g => g && (g.rows || []).length).map(g =>
+    `<div class="jov5-sec">${g.label ? `<p class="jov5-label">${E(g.label)}</p>` : ''}<div class="jov5-group">${g.rows.map(rowHtml).join('')}</div></div>`).join('');
+  const steps = o.steps && (o.steps.items || []).length ? `<div class="jov5-sec">${o.steps.label ? `<p class="jov5-label">${E(o.steps.label)}</p>` : ''}<ol class="jov5-steps">`
+    + o.steps.items.map(s => `<li><b>${E(s.b)}</b>${s.s ? ' ' + E(s.s) : ''}</li>`).join('') + '</ol></div>' : '';
+  const a = o.act;
+  const act = a && (a.say || a.label) ? `<div class="jov5-act">${a.say ? `<p class="jov5-say">${E(a.say)}</p>` : ''}${a.q ? `<p class="jov5-q">${E(a.q)}</p>` : ''}`
+    + `<div class="jov5-acts">${a.label ? `<button type="button" class="jov5-go"${door(a.run, a.attr)}>${E(a.label)}</button>` : ''}`
+    + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}</div></div>` : '';
+  const askHtml = asks.length ? `<div class="jov5-sec"><p class="jov5-label">${E(_jovT('jov_ask_me'))}</p><div class="jov5-chips">${asks.map(x =>
+    x.attr ? `<button type="button" class="jov5-chip" ${x.attr}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`
+      : `<button type="button" class="jov5-chip" data-jov="${E(slot)}:${reg(x.run)}"${x.title ? ` title="${E(x.title)}"` : ''}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`).join('')}</div></div>` : '';
+  /* `line`: a span of time drawn as a line, today on the left, the date that matters on the right */
+  const L = o.line;
+  const lineHtml = L && L.to ? `<div class="jov5-sec">${L.label ? `<p class="jov5-label">${E(L.label)}</p>` : ''}<div class="jov5-line"><i class="jov5-ln"></i><i class="jov5-a"></i><i class="jov5-b"></i>`
+    + `<small class="jov5-lf">${E(L.from || '')}</small><small class="jov5-lt">${E(L.to)}</small></div></div>` : '';
+  const order = o.actFirst ? [head, glanceHtml, lineHtml, act, steps, groups] : [head, glanceHtml, lineHtml, steps, groups, act];
+  return `<div class="jov jov5" data-jov-slot="${E(slot)}">${o.before || ''}${order.join('')}${askHtml}`
+    + `${o.after ? `<div class="jov-after">${o.after}</div>` : ''}`
+    + `${o.srcHtml ? `<p class="jov5-src">${o.srcHtml}</p>` : o.src ? `<p class="jov5-src">${E(o.src)}</p>` : ''}</div>`;
 }
 /* ---- THE BIN ON EVERY JAMBO TAB (owner, 27 Oct 2026: "in settings there is no trash button to clear history …
    review all the pages") ----
@@ -1562,7 +1637,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 function jamboOverviewOf(say){
   say = say || {};
   /* a page that names its facts (head · facts · asks) keeps its chips as the offers and its `after` */
-  if (say.head || say.facts || say.asks) return Object.assign({ asks: (say.chips || []).filter(c => c && c.label && (typeof c.run === 'function' || c.attr)) }, say,
+  if (say.title || say.head || say.facts || say.asks) return Object.assign({ asks: (say.chips || []).filter(c => c && c.label && (typeof c.run === 'function' || c.attr)) }, say,
     { head: say.head || ((say.lines || [])[0] ? { html: typeof say.lines[0] === 'string' ? say.lines[0] : say.lines[0].html } : null), src: say.src === false ? '' : (say.src || '') });
   const lines = (say.lines || []).map(l => typeof l === 'string' ? l : (l && l.html) || '').filter(Boolean);
   return { head: lines.length ? { html: lines[0] } : null, facts: lines.slice(1).map(h => ({ html: h })),
@@ -1578,7 +1653,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain

@@ -1409,7 +1409,7 @@ function jlRowCount(){
 let _jlChips = [];
 function jlWordsHtml(opt){
   let say = null; try { say = (typeof opt.jlSay === 'function') ? opt.jlSay() : null; } catch (_){ say = null; }
-  if (!say || !Array.isArray(say.lines) || !say.lines.length){
+  if (!say || (!say.title && (!Array.isArray(say.lines) || !say.lines.length))){
     const n = jlRowCount();
     /* "Counted from the list" only under a count: the page's own "choose
        one" words were counted from nothing (check A1 #2) */
