@@ -4097,7 +4097,7 @@ function guideStripClose(){
 function guideStripPress(){ if(guideStripIsOpen()&&_gdsHow==='press') guideStripClose(); else guideStripOpen('press'); }
 function guideStripGo(k){ guideStripClose(); guideGo(k); }
 function guideStripWire(){
-  const b=document.getElementById('dk-nav'); if(!b||b.dataset.gdsWired) return; b.dataset.gdsWired='1';
+  const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.gdsWired) return; b.dataset.gdsWired='1';
   const leaveSoon=()=>{ if(_gdsHow!=='hover') return; clearTimeout(_gdsLeaveT); _gdsLeaveT=setTimeout(guideStripClose,GUIDE_STRIP_LEAVE_MS); };
   b.addEventListener('click',guideStripPress);
   b.addEventListener('pointerenter',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(_gdsLeaveT);
