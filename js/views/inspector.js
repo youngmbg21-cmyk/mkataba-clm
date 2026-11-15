@@ -1339,6 +1339,14 @@ function jlOwnPaint(host, opt){
   const word = opt.jlTabWord || i18t('pd_tab_overview');
   if (home && home.textContent !== word) home.textContent = word;
   host.querySelectorAll('[data-jl-tab2]').forEach(b => b.remove());
+  /* A WAY BACK BEFORE THE TAB (Discover's "how to ask it" face, owner 15 Nov 2026, as drawn): "‹ Overview" stands ahead
+     of the tab that names the face, and runs the page's own way back; gone the moment a face without it is painted */
+  host.querySelectorAll('[data-jl-tab0]').forEach(b => b.remove());
+  if (opt.jlTab0 && opt.jlTab0.label){
+    const at0 = host.querySelector('[data-jl-home]');
+    if (at0){ at0.insertAdjacentHTML('beforebegin', `<button type="button" class="ac-link jl-tab0" data-jl-tab0>${esc(opt.jlTab0.label)}</button>`);
+      const b0 = host.querySelector('[data-jl-tab0]'); const run0 = opt.jlTab0.run; b0.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (typeof run0 === 'function') run0(); }); }
+  }
   if (opt.jlTab2 && opt.jlTab2.label){
     const at = host.querySelector('[data-jl-home]');
     if (at){ at.insertAdjacentHTML('afterend', `<button type="button" class="pd-tab jl-tab" data-jl-tab2><span class="pd-tab-w">${esc(opt.jlTab2.label)}</span></button>`);
