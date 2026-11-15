@@ -665,6 +665,9 @@ function tbStartWith(st) {
     _tb.outline = st.outline ? tbOutlineFrom(st.outline, st.said || '') : null;
     /* THE SHELF (owner's pick, 14 Nov 2026): the sections were kept or unticked on New agreement's paper before this
        opened, so the same list is read again and the unticked stay off; tbOpen then adds them at once (st.add) */
+    /* a standard added on the contents page ("Add it") joins the list the Builder adds */
+    if (_tb.outline && Array.isArray(st.extra)) st.extra.forEach(x => { const h = String(x.heading || '').trim(); if (!h || _tb.outline.sections.some(y => String(y.heading).trim().toLowerCase() === h.toLowerCase())) return;
+      _tb.outline.sections.push({ heading: h, intent: x.intent || '', on: true, playbook: true, src: tbSourceOf(h) }); });
     if (_tb.outline && Array.isArray(st.off) && st.off.length) {
       const off = new Set(st.off.map(h => String(h || '').trim().toLowerCase()));
       _tb.outline.sections.forEach(x => { if (off.has(String(x.heading || '').trim().toLowerCase())) x.on = false; });

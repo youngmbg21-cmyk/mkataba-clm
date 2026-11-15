@@ -3718,6 +3718,8 @@ function pdWallHelloHtml(){
   /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for and what he can do there */
   /* the new look (round 6, as drawn): beside Our paper the papers that fit, what he filled, and what happens after
      Create (From scratch left this sheet for Our paper, 14 Nov 2026) */
+  /* FROM NOTHING'S CONTENTS PAGE IS UP: the panel says what the proposal is made of (nsShelfPanelHtml, 14 Nov 2026) */
+  if (typeof nsShelfPanelHtml === 'function'){ const sh = nsShelfPanelHtml(); if (sh) return `<div class="pd2-chosen cun-panel nsj-panel">${sh}</div>`; }
   if (typeof naSheetUp === 'function' && naSheetUp() && pd2On()){
     const E = _pdE;
     const O = (typeof naOursNow === 'function') ? naOursNow() : null;

@@ -114,6 +114,7 @@ function nsMount(html, opts) {
 function nsHostBack() {
   if (!nsHostOn()) return false;
   _nsHost._nsl = null;   /* the start's own presses end with it */
+  if (_nsShelf) { _nsShelf = null; nsShelfDock(); }
   _nsHost.innerHTML = _nsHostWas;
   _nsHost.classList.remove('is-start');
   _nsHost = null;   /* the starts are back; the next Continue names the place again */
@@ -712,15 +713,24 @@ function nsLgContract() {
 
 /* ---------------- FROM NOTHING — the Shelf ---------------- */
 function nsLgScratch(o = {}) {
-  nsStyle();
+  nsStyle(); nsShelfWire();
   const ai = typeof copilotAvailable === 'function' && copilotAvailable();
-  const st = { said: String(o.said || ''), step: 'say', d: null, list: null, busy: false, name: '' };
+  const st = { said: String(o.said || ''), step: 'say', d: null, list: null, busy: false, name: '', sel: -1, extra: [] };
+  _nsShelf = { st, kept: () => (st.list || []).filter(x => x.on).length };
   const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
   const nameOf = () => st.name || nsNameFromSentence(st.said) || '';
   const paperHtml = () => {
+    /* THE CONTENTS PAGE (owner, 14 Nov 2026: "the paper should stay the same size, if there are more clauses, they
+       should go on a scroll"): one line a section — tick, number, name, a dotted line to where its words come from;
+       unticked struck through; the list scrolls inside the paper, its title and key stay put. A press on a name shows
+       that section in Jambo's panel (nsShelfPanelHtml). */
     if (st.step === 'keep' && st.list) {
-      return `<div class="nss-pg"><h4>${nsEsc(nameOf() || i18t('ns_untitled'))}</h4>${st.list.map((x, i) => `<label class="nss-sec${x.on ? '' : ' is-off'}"><input type="checkbox" data-nss-sec="${i}"${x.on ? ' checked' : ''}><span><b>${i + 1}. ${nsEsc(x.heading)}</b>${x.src ? `<span class="nss-w is-${x.src}">${nsEsc(i18t(SRC[x.src]))}</span>` : ''}${x.intent ? `<span class="nss-it">${nsEsc(x.intent)}</span>` : ''}</span></label>`).join('')}</div>
-        <p class="nss-note">${nsEsc(i18t('nsl_keep_note'))}</p>`;
+      const srcs = new Set(st.list.map(x => x.src));
+      const key = ['lib', 'std', 'ai'].filter(k => srcs.has(k)).map(k => `<span><i class="nss-kd is-${k}"></i>${nsEsc(i18t('nsl_key_' + k))}</span>`).join('');
+      return `<div class="nss-pg is-toc"><h4>${nsEsc(nameOf() || i18t('ns_untitled'))}</h4><h5>${nsEsc(i18t('nsl_contents'))}</h5>
+        <div class="nss-tl" id="nss-tl">${st.list.map((x, i) => `<div class="nss-tr${x.on ? '' : ' is-off'}${st.sel === i ? ' is-sel' : ''}"><input type="checkbox" data-nss-sec="${i}"${x.on ? ' checked' : ''} aria-label="${nsEsc(x.heading)}"><button type="button" class="nss-tn" data-nss-pick="${i}">${i + 1}. ${nsEsc(x.heading)}</button><span class="nss-dots" aria-hidden="true"></span><span class="nss-w is-${x.src || 'ai'}">${nsEsc(i18t(SRC[x.src || 'ai']))}</span></div>`).join('')}</div>
+        <div class="nss-key">${key}</div></div>
+        <div class="nss-under"><span>${nsEsc(i18t('nsl_kept', { n: kept(), m: st.list.length }))}</span><span>${nsEsc(i18t('nsl_press_name'))}</span></div>`;
     }
     return `<div class="nss-pg"><h4 id="nss-name">${nsEsc(nameOf() || i18t('nsl_new_paper'))}</h4><div class="nss-bars" aria-hidden="true">${'<div><i></i><i></i><i class="s"></i></div>'.repeat(4)}</div></div>
       <p class="nss-note">${nsEsc(i18t('nsl_new_note'))}</p>`;
@@ -740,7 +750,14 @@ function nsLgScratch(o = {}) {
   const sub = () => st.step === 'keep' && st.list
     ? i18t('tb_out_lead', { n: st.list.length, lib: st.list.filter(x => x.src === 'lib').length, std: st.list.filter(x => x.src === 'std').length, ai: st.list.filter(x => x.src === 'ai').length })
     : i18t('nsl_new_sub');
-  const paint = () => nsMount(`<div class="nsl">${nsLgHead(i18t('ns_scratch'), sub())}<div class="nss-two"><div class="nss-l">${leftHtml()}<div class="nsl-say" data-nsl-say></div></div><div class="nss-r">${paperHtml()}</div></div></div>`);
+  const paint = () => {
+    const tl = document.getElementById('nss-tl'), top = tl ? tl.scrollTop : 0;
+    nsMount(`<div class="nsl">${nsLgHead(i18t('ns_scratch'), sub())}<div class="nss-two"><div class="nss-l">${leftHtml()}<div class="nsl-say" data-nsl-say></div></div><div class="nss-r">${paperHtml()}</div></div></div>`);
+    const t2 = document.getElementById('nss-tl');
+    if (t2) { t2.scrollTop = top; const end = () => t2.classList.toggle('is-end', t2.scrollTop + t2.clientHeight >= t2.scrollHeight - 2); end(); t2.addEventListener('scroll', end); }
+    nsShelfDock();
+  };
+  st.repaint = paint;
   const open = async (btn, walk) => {
     if (st.busy) return; st.busy = true;
     const was = btn ? btn.textContent : ''; if (btn) { btn.disabled = true; btn.textContent = i18t('ns_opening'); }
@@ -751,7 +768,7 @@ function nsLgScratch(o = {}) {
       closeModal();
       /* THE BUILDER OPENS ALREADY HOLDING THE SECTIONS KEPT HERE: the same outline, the unticked named, added at once */
       const off = (st.list || []).filter(x => !x.on).map(x => x.heading);
-      nsOpen(made.tid, made.vid, { kind: 'scratch', said: st.said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null, off, add: !!d, walk });
+      nsOpen(made.tid, made.vid, { kind: 'scratch', said: st.said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null, off, extra: st.extra.filter(x => x.on).map(x => ({ heading: x.heading, intent: x.intent || '' })), add: !!d, walk });
     } catch (e) { st.busy = false; if (btn) { btn.disabled = false; btn.textContent = was; } nsLgSay(nsLgHost(), e.message || String(e), true); }
   };
   const propose = async btn => {
@@ -773,7 +790,8 @@ function nsLgScratch(o = {}) {
     click: (e, t) => {
       const ex = t.closest('[data-nss-ex]'); if (ex) { st.said = i18t('nsl_ex' + ex.getAttribute('data-nss-ex')); paint(); return; }
       const g = t.closest('[data-nss-go]'); if (g) { propose(g); return; }
-      if (t.closest('[data-nss-again]')) { st.step = 'say'; st.list = null; st.d = null; st.name = ''; paint(); return; }
+      if (t.closest('[data-nss-again]')) { st.step = 'say'; st.list = null; st.d = null; st.name = ''; st.sel = -1; st.extra = []; paint(); return; }
+      const pk = t.closest('[data-nss-pick]'); if (pk) { const i = Number(pk.getAttribute('data-nss-pick')); st.sel = st.sel === i ? -1 : i; paint(); return; }
       const m = t.closest('[data-nss-mine]'); if (m) { open(m, false); return; }
       const op = t.closest('[data-nss-open]'); if (op) { if (!kept()) { nsLgSay(nsLgHost(), i18t('tb_pb_none_ticked'), true); return; } open(op, true); }
     },
@@ -788,6 +806,66 @@ function nsLgScratch(o = {}) {
   });
   paint();
   const box = document.getElementById('nss-say'); if (box) setTimeout(() => { try { box.focus(); } catch (_) {} }, 40);
+}
+
+/* JAMBO'S PANEL BESIDE THE CONTENTS PAGE (owner, 14 Nov 2026: "the jambo panel is too empty for my comfort"): what
+   the list is made of, how it stands against Our standards (tbCoverageOf over the ticked headings — the reading the
+   Builder makes), and what happens next; a name pressed on the paper turns it to that section: what it covers, where
+   its words come from, and a library section's first line. Read from the proposal and the book, no AI. */
+let _nsShelf = null;
+const nsShelfUp = () => !!(_nsShelf && _nsShelf.st.step === 'keep' && _nsShelf.st.list && nsHostOn());
+function nsShelfDock() { if (typeof renderIntelDock === 'function') { try { renderIntelDock(); } catch (_) { /* the panel draws on its next turn */ } } }
+const _nsFirstSentence = h => { const t = String(h || '').replace(/<[^>]*>/g, ' ').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim(); const m = t.match(/^.{20,220}?[.;](\s|$)/); return (m ? m[0] : t.slice(0, 200)).trim(); };
+function nsShelfPanelHtml() {
+  if (!nsShelfUp()) return '';
+  const st = _nsShelf.st, L = st.list, E = nsEsc;
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
+  if (st.sel >= 0 && L[st.sel]) {
+    const x = L[st.sel], src = x.src || 'ai';
+    const lib = src === 'lib' && typeof tbLibraryFor === 'function' ? tbLibraryFor(x.heading) : null;
+    const first = lib ? _nsFirstSentence(lib.preferred) : '';
+    return `<div class="nsj"><button type="button" class="nsj-back" data-nsj-all>‹ ${E(i18t('nsj_all', { n: L.length }))}</button>
+      <p class="nsj-say">${st.sel + 1}. ${E(x.heading)}</p>
+      ${x.intent ? `<p class="nsj-cap">${E(i18t('nsj_covers'))}</p><p class="nsj-t">${E(x.intent)}</p>` : ''}
+      <p class="nsj-cap">${E(i18t('nsj_from'))}</p><p class="nsj-q2"><span class="nss-w is-${src}">${E(i18t(SRC[src]))}</span> · ${E(i18t('nsj_from_' + src))}</p>
+      ${first ? `<p class="nsj-cap">${E(i18t('nsj_opens'))}</p><p class="nsj-quote">“${E(first)}”</p>` : ''}
+      <p class="nsj-t is-quiet">${E(i18t(x.on ? 'nsj_on' : 'nsj_off'))}</p></div>`;
+  }
+  const n = k => L.filter(x => (x.src || 'ai') === k).length, tot = L.length || 1;
+  const parts = ['lib', 'std', 'ai'].filter(k => n(k));
+  const cat = st.d && st.d.category;
+  const key = typeof tbPbKey === 'function' ? tbPbKey(cat || '') : '_default';
+  const on = L.map((x, i) => ({ x, i })).filter(o => o.x.on);
+  const cov = typeof tbCoverageOf === 'function' ? tbCoverageOf(on.map(o => ({ head: o.x.heading, text: o.x.heading, s: o.i })), key)   /* a kept heading is on the paper: the Builder writes it */ : null;
+  const rows = cov ? cov.rows : [];
+  const hit = rows.filter(r => r.state === 'hit').length;
+  const stdHtml = rows.length ? rows.map(r => r.state === 'hit'
+      ? `<div class="nsj-sr"><i class="nsj-d is-ok"></i>${E(r.category)}<span class="nsj-sw is-ok">${E(i18t('nsj_covered', { n: (r.where != null ? r.where + 1 : '') }))}</span></div>`
+      : `<div class="nsj-sr"><i class="nsj-d is-gap"></i>${E(r.category)}<span class="nsj-sw is-gap">${E(i18t('nsj_missing'))} · <button type="button" class="nsl-or" data-nsj-add="${E(r.category)}">${E(i18t('nsj_add'))}</button></span></div>`).join('')
+    : `<p class="nsj-t is-quiet">${E(i18t('nsj_no_std'))}</p>`;
+  return `<div class="nsj"><p class="nsj-say">${E(i18tn('nsj_said', L.length, { n: L.length }))}</p>
+    <div><div class="nsj-bar">${parts.map(k => `<span class="is-${k}" style="width:${(n(k) / tot * 100).toFixed(2)}%"></span>`).join('')}</div>
+      <div class="nsj-lg">${parts.map(k => `<span><i class="nss-kd is-${k}"></i>${E(i18t('nsj_n_' + k, { n: n(k) }))}</span>`).join('')}</div></div>
+    <div><p class="nsj-cap">${E(i18t('nsj_std_h', { hit, all: rows.length }))}</p><div class="nsj-std">${stdHtml}</div></div>
+    <div><p class="nsj-cap">${E(i18t('nsj_then_h'))}</p><p class="nsj-t is-quiet">${E(i18t('nsj_then', { k: _nsShelf.kept() }))}</p></div></div>`;
+}
+function nsShelfWire() {
+  if (typeof document === 'undefined' || document._nsjWired) return;
+  document._nsjWired = true;
+  document.addEventListener('click', e => {
+    if (!nsShelfUp()) return;
+    const st = _nsShelf.st, t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-nsj-all]')) { e.preventDefault(); st.sel = -1; st.repaint(); return; }
+    const a = t.closest('[data-nsj-add]');
+    if (a) { e.preventDefault();
+      /* ADD IT: a standard not on the paper is ticked back if it was unticked, else added at the foot (and to the Builder) */
+      const cat = a.getAttribute('data-nsj-add'), kind = typeof tbKindOf === 'function' ? tbKindOf(cat) : null;
+      const same = x => String(x.heading).toLowerCase() === cat.toLowerCase() || (kind && typeof tbKindOf === 'function' && (tbKindOf(x.heading) || {}).category === kind.category);
+      const was = st.list.find(same);
+      if (was) was.on = true;
+      else { const x = { heading: cat, intent: '', on: true, playbook: true, src: typeof tbSourceOf === 'function' ? tbSourceOf(cat) : 'std' }; st.list.push(x); st.extra.push(x); }
+      st.repaint(); }
+  });
 }
 
 /* ---------------- THE OTHER SIDE'S PAPER — the Legora way, simple ----------------
@@ -892,5 +970,6 @@ function nsOpenTheirs() {
 
 Object.assign(window, { NS_STARTS, NS_TABS, NS_SAY_MAX, NS_GATED, openNewStandard, nsGo, nsOpenScratch, nsOpenTemplate, nsOpenContract,
   nsMount, nsHostSet, nsHostBack, nsHostOn, nsTplMake, nsCtrMake,
+  nsShelfPanelHtml, nsShelfUp,
   nsLgOn, nsLgInitials, nsLgRowHtml, nsLgFirstLine, nsLgMatches, nsLgTemplate, nsLgContract, nsLgScratch, nsOpenTheirs, nsTheirParty,
   nsReadFile, nsCopy, nsDocTitle, nsNameFromSentence, nsBuiltinCategory, nsHasWording, nsCreate, nsFill });
