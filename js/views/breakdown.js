@@ -344,6 +344,18 @@ function stkHeadHtml(c, b, all){
        and what to watch, in one reading." in grey; a reading that failed still says why, under it, never in red;
        the button says what it does — "Read the clauses" — and its cost beside it, "1 Jambo call" */
     const why = noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_not_read');
+    /* THE FIVE PARTS (Jambo's panels, round 3b; owner, 15 Nov 2026: "Build as drawn"): "not read yet" is the headline,
+       what one reading gives its sentence; why it is not read (a reading that failed, no key, a private folder) sits in
+       the card with the one press, "Read the clauses" the long black button. The company view's own line stays in the
+       head (.stk-view) for what reads it, folded behind the eyebrow. The list under it is untouched: it still follows
+       the paper. In Jambo's panel, the new look only. */
+    if (typeof window.newLookOn === 'function' && newLookOn() && typeof jov5HeadHtml === 'function'){
+      const who = typeof pd2CardWho === 'function' ? pd2CardWho(c) : '';
+      const say = err || (noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : '');
+      return `<div class="stk-head is-empty is-five">${view}${jov5HeadHtml({ eyebrow: [i18t('stk_head'), who].filter(Boolean).join(' \u00b7 '), title: i18t('jov5_cl_t'), sub: i18t('jov5_cl_sub') })}`
+        + `<div class="stk-five-card">${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}${say ? `<p class="stk-sub${err ? ' stk-why' : ''}" role="status">${_bdE(say)}</p>` : ''}`
+        + `${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_read_clauses'))}</button></div>`}</div></div>`;
+    }
     return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="stk-sub" role="status">${_bdE(why)}</p>${err ? `<p class="stk-sub stk-why" role="status">${_bdE(err)}</p>` : ''}${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_read_clauses'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost_call'))}</span></div>`}</div>`;
   }
   /* MARQUEE (owner picked it by name, 23 Oct 2026; the navigation kept as it was, the owner's own words):

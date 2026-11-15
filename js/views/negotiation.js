@@ -15692,6 +15692,15 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
   const who = String((c && c.counterparty) || '').trim() || i18t('fr_draft_them');
   const send = first ? `<p class="rl-empty-first">${_ne(i18t('ng_empty_first', { party: who }))}</p>` : '';
   const sendBtn = first ? `<button type="button" class="rl-empty-send" data-rl-empty-send="${_nea(c.id)}">${icon('send','w-3.5 h-3.5')}${_ne(i18t('ng_empty_send'))}</button>` : '';
+  /* THE FIVE PARTS (Jambo's panels, round 3b; owner, 15 Nov 2026: "Build as drawn"): what Draft from our standards does,
+     in a soft card with its button (the long black one, unless Send to mark up is the one filled button on a paper not
+     yet sent), then "Or yourself" — Edit a clause and Add a clause as rows. The same three (four) buttons, all inside
+     .rl-empty-acts as before; nothing new is pressed. In Jambo's panel, the new look only. */
+  if (window.newLookOn && newLookOn() && !preview){
+    const add = executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit');
+    return `${send}<div class="rl-empty-acts is-five"><div class="rl-ea-card${sendBtn ? ' has-send' : ''}"><span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>${sendBtn}${prepare}</div>`
+      + `<p class="rl-ea-l">${_ne(i18t('jov5_rl_yourself'))}</p><div class="rl-ea-g">${edit}${add}</div></div>`;
+  }
   return `${send}<div class="rl-empty-acts">${sendBtn}${prepare}${edit}${executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit')}</div>
     <span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>`;
 }
@@ -20276,8 +20285,9 @@ function redlineChangeCardsHtml(c, opts = {}){
     const mayStart = side === 'owner' && !previewSeat && !opts.preview
       && editable && canAct && !rlReadOnlyReading();
     const acts = mayStart ? rlEmptyColumnActsHtml(c, opts, side) : '';
-    return `<div class="rl-cards-empty">
-      <b>${i18t('ng_no_changes')}</b>
+    const five = !!(acts && window.newLookOn && newLookOn() && typeof jov5HeadHtml === 'function');
+    return `<div class="rl-cards-empty"${five ? ' data-rl-five' : ''}>
+      ${five ? jov5HeadHtml({ eyebrow: [i18t('pd_face_w_red'), String((c && c.counterparty) || '').trim()].filter(Boolean).join(' \u00b7 '), title: i18t('ng_no_changes') }) : `<b>${i18t('ng_no_changes')}</b>`}
       ${''/* THE WAY IN IS THE EDIT PILL NOW (16 Aug 2026). This blurb pointed
              at Direct Edit under the clause, and that row is retired — all
              writing happens in the clause panel, whose door is the Edit pill

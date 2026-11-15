@@ -1559,6 +1559,16 @@ function jov5ContractRow(c, v, extra){
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
 var JOV5_TONES = { amber: 1, green: 1, dark: 1 };
+/* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
+   serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
+function jov5HeadHtml(o){
+  const E = _jovE; o = o || {};
+  return `<div class="jov5-intro">${o.eyebrow ? `<p class="jov5-eb">${E(o.eyebrow)}</p>` : ''}<h3 class="jov5-title">${E(o.title || '')}</h3>${o.sub ? `<p class="jov5-sub">${E(o.sub)}</p>` : ''}</div>`;
+}
+function jov5MarkHtml(mark, tone){
+  const ic = (typeof window !== 'undefined' && typeof window.icon === 'function' && mark) ? window.icon(mark, 'jov5-ic', 1.8) : '';
+  return `<span class="jov5-mk${JOV5_TONES[tone] ? ' is-' + tone : ''}" aria-hidden="true">${ic}</span>`;
+}
 function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const E = _jovE;
   const ic = n => (typeof window !== 'undefined' && typeof window.icon === 'function' && n) ? window.icon(n, 'jov5-ic', 1.8) : '';
@@ -1847,5 +1857,5 @@ function keepScrollIn(host, fn, except){
   return r;
 }
 Object.assign(window, { keepScrollIn });
-Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
+Object.assign(window, { jov5HeadHtml, jov5MarkHtml, jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
   boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin, BOX_DRAFT_SEATS, boxDraftSweep, boxDraftWatch });

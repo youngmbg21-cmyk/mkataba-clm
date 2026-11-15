@@ -18708,6 +18708,46 @@
   html.lg-new #pd2-notes .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  /* THE FIVE PARTS ON A CONTRACT (Jambo's panels, round 3b; owner, 15 Nov 2026: "Build as drawn"). The Dossier's ONE card
+     keeps every part (where it stands, the next step, the stage line, the long black button as it is, Jambo's read) and
+     lays them out as the drawing: an eyebrow, the next step as a serif headline, its sentence, the six stages as a
+     labelled line, then the act in its own soft card. The facts under it are one soft group with a plain label. */
+  html.lg-new #ig-dock .pd2-card.is-five{display:flex;flex-direction:column;margin:0 0 16px;padding:0;border-radius:0;background:none}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-top{display:flex;flex-direction:row-reverse;justify-content:flex-end;flex-wrap:wrap;gap:0;margin:0 0 4px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-who::after{content:"\00b7";margin:0 5px}
+  html.lg-new #ig-dock .pd2-card.is-five > .pd2-next{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text);text-wrap:balance;overflow-wrap:anywhere}
+  html.lg-new #ig-dock .pd2-card.is-five > .pd2-next::after{content:"."}
+  html.lg-new #ig-dock .pd2-card.is-five > .pd2-card-say{margin:4px 0 0;font-size:13.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-spine.is-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:16px 0 0;gap:0}
+  html.lg-new #ig-dock .pd2-spine.is-steps i{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;width:auto;height:auto;margin:0;border-radius:0;background:none;box-shadow:none;font-style:normal}
+  html.lg-new #ig-dock .pd2-spine.is-steps i::before{content:"";position:relative;z-index:1;display:grid;place-items:center;width:18px;height:18px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--color-neutral-300);background:var(--color-bg);font-size:10px;line-height:1;font-weight:var(--w-strong);color:var(--color-bg)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i::after{content:"";position:absolute;top:8.25px;left:calc(-50% + 9px);right:calc(50% + 9px);height:1.5px;background:var(--color-neutral-300)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i:first-child::after{display:none}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-done::before{content:"\2713";border-color:var(--color-text);background:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i:is(.is-done, .is-focus, .is-now)::after{background:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-now::before{border-color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-on::before{border-color:var(--st-amber-dot)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-focus::before{border-color:var(--st-amber-dot);background:var(--st-amber-dot);box-shadow:0 0 0 3px var(--st-amber-bg)}
+  html.lg-new #ig-dock .pd2-spine.is-steps em{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font-size:11.5px;line-height:1.2;color:var(--color-neutral-400)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-focus em{font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-act{margin:16px 0 0;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-act > .pd2-card-foot:first-child{margin-top:0;padding-top:0;border-top:0}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-eye{margin:0 0 6px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-eye + .pd2-facts{padding:0 12px;border-top:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-eye + .pd2-facts .pd2-fact:last-child{border-bottom:0}
+  /* on a contract the one black button is the LONG one, as on the Dossier's card (owner, 15 Nov 2026: "the long black
+     buttons should stay the same design"): full width, its link under it */
+  html.lg-new #ig-dock .pd2-dossier .jov5-acts{flex-direction:column;align-items:stretch;gap:10px}
+  html.lg-new #ig-dock .pd2-dossier .jov5-acts > .jov5-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
+  html.lg-new #ig-dock .pd2-dossier .jov5-acts > :not(.jov5-go){align-self:flex-start}
+  /* the contract's Obligations, five parts: its dates are the tiles, so the renewal block keeps only its quoted words
+     and its decision card; the long black button as on every contract face */
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-glance + .jov5-sec:has(.pd-rn-decide:empty):not(:has(.pd-rn-q)){display:none}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-glance + .jov5-sec .pd-rn-cols{display:none}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-sec:has(> .pd-rn:empty), html.lg-new #ig-dock .pd-obm-tab.is-five .pd-rn{margin:0;padding:0;border:0;background:none}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-acts{flex-direction:column;align-items:stretch;gap:10px}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-acts > .jov5-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-acts > :not(.jov5-go){align-self:flex-start}
   html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
   html.lg-new .pd2-br-head{display:flex;align-items:baseline;gap:14px;min-width:0;padding:4px 0}
   html.lg-new .pd2-br-head .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;font-size:13.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
@@ -18804,6 +18844,21 @@
   html.lg-new #ig-dock :is(.pd2-fp-order,.pd2-fp-rest){padding:12px 0 0;border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-fp-rest{margin-top:12px}
   html.lg-new #ig-dock .pd2-fp-none{margin:6px 0 0;font-size:13px;color:var(--color-quiet)}
+  /* Fill in, the five parts (round 3b): the headline, the walk's head as a small label, the spaces as one soft group of
+     amber rows, then "Also" (the order, what has no place on the paper) as another */
+  html.lg-new #ig-dock .pd2-fp-five{display:flex;flex-direction:column;gap:16px}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-fp-head{margin:0 0 -10px;padding:0}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-fp-head b{font-family:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-fp-head span{font-size:12px}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-eye{margin:0 0 -10px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fp-list.is-five, html.lg-new #ig-dock .pd2-fp-also{padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp{position:relative;padding:12px 0 12px 38px}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp:first-child{border-top:0}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp > .jov5-mk{position:absolute;left:0;top:11px}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp.is-cur{margin:0 -12px;padding:12px 12px 12px 50px;background:var(--color-bg)}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp.is-cur > .jov5-mk{left:12px}
+  html.lg-new #ig-dock .pd2-fp-also > :is(.pd2-fp-order, .pd2-fp-rest){margin:0;padding:12px 0;font-size:13px;line-height:1.45}
+  html.lg-new #ig-dock .pd2-fp-also > .pd2-fp-rest + *, html.lg-new #ig-dock .pd2-fp-also > .pd2-fp-order + .pd2-fp-rest{border-top:1px solid var(--color-divider)}
   html.lg-new .pd2-fill-head .pd2-fh-stop{flex:none;font-size:13px}
   html.lg-new .pd2-fill-head .pd2-fh-stop.is-asking{color:var(--st-ruby-fg)}
   /* the Fill in form in the middle, laid flat: the page white, its head "‹ Paper" over the title and its line; rows wide */
@@ -19066,6 +19121,53 @@
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li{display:inline;padding:0}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li::before{display:none}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li + li::before{display:inline;position:static;content:" · ";background:none;width:auto;height:auto}
+  /* BEFORE YOU SEND IN JAMBO'S PANEL, THE FIVE PARTS (round 3b; owner, 15 Nov 2026: "Build as drawn"), drawn lightly: the
+     Send screen paints these parts and keeps them live, so they are dressed where they stand — "Before you send" the
+     eyebrow, the verdict the serif headline with its round mark (a green tick when ready, amber when not), each card a
+     soft group. The Send screen's own left column is not touched (#pd-sendface is the panel only). */
+  html.lg-new #ig-dock #pd-sendface .sh-lt-side{display:flex;flex-direction:column;gap:12px;padding:16px}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-side > .sh-lt-jb b{display:block;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card{display:block;padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card > h4{margin:0 0 2px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card > :not(h4){margin:0;font-size:13px;color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card.sh-lt-verdict{padding:0;background:none}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict > h4{display:flex;align-items:center;gap:12px;margin:0 0 12px;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-v-dot{flex:none;display:grid;place-items:center;width:40px;height:40px;margin:0;border-radius:50%;background:var(--st-green-bg);font-style:normal}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-v-dot::before{content:"\2713";font-family:var(--font-body);font-size:16px;font-weight:var(--w-strong);color:var(--st-green-fg)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot{background:var(--st-amber-bg)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot::before{content:"!";color:var(--st-amber-fg)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-kv{grid-template-columns:96px minmax(0,1fr);padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks{display:flex;flex-direction:column;gap:12px}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check{border-left:3px solid var(--st-amber-dot)}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-noemail{padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px}
+  /* REDLINES WITH NOTHING ON THE TABLE, THE FIVE PARTS (round 3b): the headline, what Draft from our standards does in a
+     soft card with its long black button (grey when Send to mark up is the one filled button), then "Or yourself" — Edit
+     a clause and Add a clause as rows. Every button stays inside .rl-empty-acts; nothing new is pressed. */
+  html.lg-new #ig-dock .rl-cards-empty[data-rl-five]{display:flex;flex-direction:column;gap:16px;padding-top:6px;padding-bottom:6px;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-cards-empty[data-rl-five] .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-cards-empty[data-rl-five] > .rl-empty-first{margin:0;font-size:13.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five{display:flex;flex-direction:column;align-items:stretch;gap:16px;margin:0}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card .rl-empty-lead{display:block;margin:0;font-size:13.5px;line-height:1.5;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:var(--ctl-h);margin:0;padding:0 14px;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button[data-rl-prepare] > span[aria-hidden]{display:none}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card.has-send > button[data-rl-prepare]{background:transparent;color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-divider)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button:disabled{opacity:.45;cursor:default}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-l{margin:0 0 -10px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g{padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g > .rl-empty-edit{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;height:auto;margin:0;padding:12px 0;border:0;border-radius:0;background:transparent;box-shadow:none;font:inherit;font-size:14px;font-weight:var(--w-label);color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g > .rl-empty-edit + .rl-empty-edit{border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g > .rl-empty-edit svg{flex:none;box-sizing:content-box;width:14px;height:14px;padding:6px;border-radius:50%;background:var(--surface-3)}
+  html.lg-new #ig-dock #rl-risks .rk-h b{font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock #rl-risks .rk-row.is-none{padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  /* CLAUSES NOT READ YET, THE FIVE PARTS (round 3b): the headline and sentence, the reason and the one press in a soft
+     card, the long black button; the clause list under it keeps its behaviour and only wears a soft group */
+  html.lg-new #ig-dock .stk-head.is-five{display:flex;flex-direction:column;gap:16px}
+  html.lg-new #ig-dock .stk-head.is-five > .stk-view{display:none}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card .stk-sub{margin:0;font-size:13.5px;line-height:1.5;color:var(--color-text)}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card .stk-acts{display:flex;margin:0}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card [data-stk-run]{width:100%;height:var(--ctl-h);justify-content:center;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font-size:13px;font-weight:var(--w-label)}
   /* THE CLAUSE EDITOR, AS DRAWN: the paper in the paper's type, the Redline pill filled, the suggested wording in a box */
   html.lg-new #ce-doc,html.lg-new #ce-doc :is(p,li,div,span):not(.rl-seg){font-family:var(--font-doc)}
   html.lg-new #ce-doc #ce-clausebody{font-size:15px;line-height:1.55}
@@ -19629,6 +19731,24 @@
   html.lg-new .pd2-sg-r:last-of-type{border-bottom:0}
   html.lg-new .pd2-sg-card{margin:8px 0 0;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px;line-height:1.45}
   html.lg-new .pd2-sg-card b{display:block;font-size:14px;font-weight:var(--w-strong)}
+  /* Before you sign, the five parts (round 3b): the count as the headline, a bar for how close, the checks and "Then"
+     as soft groups with round marks, the first open check's door as the long black button */
+  html.lg-new .pd2-sg.is-five{display:flex;flex-direction:column;gap:16px}
+  html.lg-new .pd2-sg.is-five > .pd2-sg-l{margin:0 0 -10px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-g{padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-g .pd2-sg-r{align-items:center}
+  html.lg-new .pd2-sg.is-five .pd2-sg-g .pd2-sg-r:last-child{border-bottom:0}
+  html.lg-new .pd2-sg.is-five .pd2-sg-i{width:26px;height:26px;margin:0;font-size:12px}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r.is-done .pd2-sg-i{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r:is(.is-now, .is-turn) .pd2-sg-i{border:0;background:var(--st-amber-bg);box-shadow:inset 0 0 0 2px var(--st-amber-dot)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r.is-later .pd2-sg-i{border:0;background:var(--surface-3)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r small{color:var(--color-quiet)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r b{font-weight:var(--w-label)}
+  html.lg-new .pd2-sg-prog p{display:flex;justify-content:space-between;gap:12px;margin:0 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .pd2-sg-prog i{display:block;height:6px;border-radius:999px;background:var(--color-divider);overflow:hidden}
+  html.lg-new .pd2-sg-prog b{display:block;height:100%;border-radius:999px;background:var(--st-green-fg)}
+  html.lg-new .pd2-sg.is-five > .pd2-sg-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
+  html.lg-new .pd2-sg.is-five > .pd2-sg-card{margin:0}
   html.lg-new .pd2-sg-card p{margin:4px 0 12px;font-weight:var(--w-label)}
   html.lg-new .pd2-sg-card ul{margin:6px 0 0;padding-left:18px}
   html.lg-new .pd2-sg-acts{display:flex;align-items:center;gap:10px}
