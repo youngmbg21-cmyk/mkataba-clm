@@ -1857,5 +1857,115 @@ function keepScrollIn(host, fn, except){
   return r;
 }
 Object.assign(window, { keepScrollIn });
-Object.assign(window, { jov5HeadHtml, jov5MarkHtml, jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
+
+/* ---- JAMBO'S PANELS ARRIVE RARELY (owner's rule, 15 Nov 2026, in their words: a Jambo panel's arrival moves only
+   the first time a page is opened in a day, then again only after 5 hours have passed since it last played; any other
+   visit is drawn at once, still; every contract counts as one page; never on a redraw, a tab change, Back or a
+   refresh; remembered per person, per computer; less motion asked means never; Jambo's panels only) ----
+   ONE watcher sees a panel painted (a five-part panel, the Dossier's card, Before you sign's list) and asks one
+   question: is this page's arrival due? The first paint of a page in its window decides — a moving panel plays and
+   the page is marked, a still one only marks it — so a later tab change, redraw or Back never plays. A reload and a
+   Back are quiet (`jovArriveQuiet`). The motion itself is transform and opacity only (HOW THINGS MOVE). The panels that
+   move are the drawing's fourteen: by their slot (JOV_MOVE_SLOTS) and the contract's card and checklist. */
+const JOV_MOVE_SLOTS = new Set(['hb', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
+const JOV_ARRIVE_GAP_MS = 5 * 3600 * 1000;
+const JOV_ARRIVE_KEY = 'hati.v1.jovArrive';
+const JOV_ARRIVE_SEL = '.jov5, .pd2-card.is-five, .pd2-sg.is-five';
+let _jovQuietUntil = 0;
+const _jovSeen = new WeakSet();
+const _jovPlaying = new Map();   // page key -> when it began, so a repaint within the play joins it
+function jovArriveQuiet(ms){ _jovQuietUntil = Date.now() + (ms || 2000); }
+function jovReducedMotion(){ try { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (_){ return false; } }
+function jovArriveStore(){
+  const u = (typeof currentUser === 'function' && currentUser()) || null; const k = JOV_ARRIVE_KEY + ':' + String((u && u.id) || 'anon');
+  return { get(){ try { return JSON.parse(localStorage.getItem(k) || '{}') || {}; } catch (_){ return {}; } },
+    put(m){ try { localStorage.setItem(k, JSON.stringify(m)); } catch (_){} } };
+}
+/* due: never played, played on another day, or 5 hours since it last played */
+function jovArriveDue(key, now){
+  now = now || Date.now();
+  const last = Number(jovArriveStore().get()[key]) || 0;
+  if (!last) return true;
+  if (new Date(last).toDateString() !== new Date(now).toDateString()) return true;
+  return now - last >= JOV_ARRIVE_GAP_MS;
+}
+function jovArriveMark(key, now){ const st = jovArriveStore(), m = st.get(); m[key] = now || Date.now(); st.put(m); }
+/* the page a panel belongs to: a contract is one page; Home's faces each a page; every other page by its view */
+function jovPageKeyOf(el){
+  const st = (typeof state !== 'undefined' && state) ? state : (window.state || {});
+  if (el.closest && el.closest('#ig-dock') && document.querySelector('#ig-dock [data-pd-head]') && typeof window.pdContract === 'function'){
+    const c = pdContract(); if (c && c.id) return 'c:' + c.id; }
+  const v = String(st.view || '');
+  const face = (v === 'dashboard' && typeof window.hbFace === 'function') ? ':' + hbFace() : '';
+  return 'v:' + v + face;
+}
+function jovMoves(el){
+  if (el.matches('.pd2-card.is-five, .pd2-sg.is-five')) return true;
+  const slot = String(el.getAttribute('data-jov-slot') || '');
+  return JOV_MOVE_SLOTS.has(slot);
+}
+/* the numbers count up from nothing to what they say (a leading whole number only; "697M" counts 0…697, then M) */
+function jovCountUp(el){
+  el.querySelectorAll('.jov5-g b').forEach(b => {
+    const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
+    const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
+    const t0 = performance.now(), dur = 700, delay = 160;
+    const step = now => { const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + rest; if (k < 1) requestAnimationFrame(step); };
+    b.textContent = '0' + rest; requestAnimationFrame(step);
+  });
+}
+function jovPlay(el){
+  [...el.children].forEach((ch, i) => ch.style.setProperty('--jov-i', String(i)));
+  el.querySelectorAll('.jov5-day, .jov5-cm, .pd2-sg-i, .pd2-spine.is-steps i').forEach((x, j) => x.style.setProperty('--jov-j', String(j)));
+  el.classList.add('jov-arrive');
+  jovCountUp(el);
+  setTimeout(() => { try { el.classList.remove('jov-arrive'); } catch (_){} }, 2200);
+}
+/* AN ARRIVAL IS A NEW PAGE, NOT A NEW ELEMENT: the panel a page keeps unchanged is not drawn again (NOTHING CHANGED,
+   NOTHING WRITTEN), so the watcher asks which page the panel in sight belongs to; a page different from the last one
+   is an arrival, the same page is a redraw or a tab change and never plays (a panel drawn within the first moments of
+   a play joins it). */
+let _jovLastKey = null;
+const _jovKeyOf = new WeakMap();
+function jovArriveSweep(nodes){
+  const now = Date.now(), quiet = now < _jovQuietUntil || jovReducedMotion();
+  const inHost = el => !!(el && el.isConnected && el.closest('#ig-dock, #ins-panel, #ai-panel, .jl-frame') && !(el.parentElement && el.parentElement.closest(JOV_ARRIVE_SEL)));
+  const added = [];
+  (nodes || []).forEach(n => { if (!n || n.nodeType !== 1) return;
+    if (n.matches && n.matches(JOV_ARRIVE_SEL)) added.push(n);
+    if (n.querySelectorAll) n.querySelectorAll(JOV_ARRIVE_SEL).forEach(x => added.push(x)); });
+  const shown = [...document.querySelectorAll(JOV_ARRIVE_SEL)].filter(el => el.getClientRects().length > 0);
+  /* each panel keeps the page it was drawn for; a panel still in sight from the page being left (the moment between
+     the page's state turning and its panel being replaced) is not the new page's arrival */
+  const cands = [...new Set(added.concat(shown))].filter(inHost).filter(el => {
+    const k = jovPageKeyOf(el); if (!_jovKeyOf.has(el)) _jovKeyOf.set(el, k); return _jovKeyOf.get(el) === k; });
+  if (!cands.length) return;
+  const key = jovPageKeyOf(cands[0]);
+  const began = _jovPlaying.get(key);
+  if (key === _jovLastKey){
+    /* a redraw: only a panel newly drawn within the play's first moments joins it */
+    if (began && now - began < 900 && !quiet) added.filter(inHost).forEach(el => { if (!_jovSeen.has(el) && jovMoves(el)){ _jovSeen.add(el); jovPlay(el); } });
+    return;
+  }
+  _jovLastKey = key;
+  cands.forEach(el => _jovSeen.add(el));
+  if (quiet || !jovArriveDue(key, now)) return;
+  jovArriveMark(key, now);
+  const moving = cands.filter(jovMoves);
+  if (moving.length){ _jovPlaying.set(key, now); moving.forEach(jovPlay); }
+}
+if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined' && !window._jovArriveWired){
+  window._jovArriveWired = true;
+  /* a reload is quiet: the pages it draws on the way back in are not arrivals */
+  try { const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0]; if (nav && nav.type === 'reload') jovArriveQuiet(6000); } catch (_){}
+  const pend = []; let raf = 0, trail = 0;
+  const flush = () => { raf = 0; const n = pend.splice(0); try { jovArriveSweep(n); } catch (_){} };
+  /* a kept panel comes back into sight by being shown, not drawn: one more look just after things settle */
+  const later = () => { clearTimeout(trail); trail = setTimeout(() => { try { jovArriveSweep([]); } catch (_){} }, 160); };
+  const start = () => new MutationObserver(ms => { ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) pend.push(n); })); if (!raf) raf = requestAnimationFrame(flush); later(); })
+    .observe(document.body, { childList: true, subtree: true });
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+}
+
+Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml, jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClear, jamboDraftWire, jamboDraftRestore,
   boxDraft, boxDraftSet, boxDraftClear, boxDraftJoin, BOX_DRAFT_SEATS, boxDraftSweep, boxDraftWatch });
