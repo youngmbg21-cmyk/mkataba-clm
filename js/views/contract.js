@@ -15419,11 +15419,16 @@ function docThreadRowHtml(x,i){
   if(docThreadIsSec(x)) return `<div class="doc-th-sec" data-th-row="${i}" data-th-sec role="listitem">${esc(docXrayLabel(x))}</div>`;
   const tone=x.tone||'';
   const prev=esc(i18t('th_prev')), next=esc(i18t('th_next'));
+  /* THE CLAUSE LIST AS DRAWN (Jambo's panels, round 3b; owner, 15 Nov 2026: the list's BEHAVIOUR stays — it follows
+     the paper, the clause the paper reaches opens, a press moves the paper — its look follows the drawing): on Home in
+     the new look the clause's number stands in its round mark. The name's text is unchanged (what reads it still reads
+     "1. Definitions"): the number is wrapped, and the style folds it away where the mark shows it. */
+  const lab=docXrayLabel(x), num=(thOnHome()&&typeof window.newLookOn==='function'&&newLookOn())?(lab.match(/^(\d+(?:\.\d+)*)\.?\s+/)||null):null;
   return `<div class="doc-th-row${tone?' is-'+tone:''}" data-th-row="${i}" role="listitem">
     <div class="doc-th-head">
       <button type="button" class="doc-th-go" data-th-go="${i}" aria-expanded="false">
-        <span class="doc-th-bead" aria-hidden="true"></span>
-        <span class="doc-th-name">${esc(docXrayLabel(x))}</span>
+        <span class="doc-th-bead" aria-hidden="true"${num?` data-n="${esc(num[1])}"`:''}></span>
+        ${num?`<span class="doc-th-name"><span class="doc-th-num">${esc(num[0])}</span>${esc(lab.slice(num[0].length))}</span>`:`<span class="doc-th-name">${esc(docXrayLabel(x))}</span>`}
         <span class="doc-th-state" data-th-state="${i}"></span>
       </button>
       ${thOnHome()?''/* Stakes as drawn: a row is pressed, not stepped */:`<span class="doc-th-steps">
@@ -15937,7 +15942,9 @@ function docThreadPaint(c){
   const sig=String(c&&c.id)+'|'+rows.map(x=>(docThreadIsSec(x)?'§':'')+docXrayLabel(x)).join('\u0001');
   if(card.getAttribute('data-th-sig')!==sig||!card.querySelector('.doc-th-rows')){
     card.setAttribute('data-th-sig',sig);
-    card.innerHTML=`<div class="doc-th-top" data-th-top></div><div class="doc-th-rows scroll-thin" role="list" aria-label="${esc(i18t('th_label'))}">${rows.map((x,i)=>docThreadRowHtml(x,i)).join('')}</div>`;
+    /* the drawing's label over the list: how many clauses, and that the list follows the paper (Home, the new look) */
+    const lbl=(thOnHome()&&typeof window.newLookOn==='function'&&newLookOn())?`<div class="doc-th-lbl"><span>${esc(i18t('jov5_th_in',{ n:rows.filter(x=>!docThreadIsSec(x)).length }))}</span><span>${esc(i18t('jov5_th_follows'))}</span></div>`:'';
+    card.innerHTML=`<div class="doc-th-top" data-th-top></div>${lbl}<div class="doc-th-rows scroll-thin" role="list" aria-label="${esc(i18t('th_label'))}">${rows.map((x,i)=>docThreadRowHtml(x,i)).join('')}</div>`;
     _docThreadRevealed=-1;
   }
   const top=card.querySelector('[data-th-top]');

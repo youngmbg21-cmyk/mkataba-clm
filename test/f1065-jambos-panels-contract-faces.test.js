@@ -12,9 +12,10 @@
        .stk-view and data-stk-run.
    (3) on a contract the one black button is the long one (owner, 15 Nov 2026), and Before you send is dressed in the
        panel only (#pd-sendface), never the Send screen's own column.
-   (4) the clause list is not touched: it still follows the paper (owner, 15 Nov 2026).
+   (4) the clause list wears the drawing (a label, one soft group, the number in its mark) while its BEHAVIOUR stays —
+       it follows the paper (owner, 15 Nov 2026: the behaviour, not the look); the name's text is whole.
    (5) every word of the round in both books, and none collides with an older key.
-   AT THE PARENT (1), (2), (3) and (5) fail; (4) is a guard — that the clause list was left alone — and passes there too. */
+   AT THE PARENT every test here fails. */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -78,9 +79,16 @@ test('f1065 (3) the long black button on a contract, and Before you send dressed
   assert.equal(send.length, 1); assert.match(send[0], /^ {2}html\.lg-new #ig-dock #pd-sendface /, 'the panel only');
 });
 
-test('f1065 (4) the clause list keeps its look and behaviour', () => {
+test('f1065 (4) the clause list wears the drawing, its text and behaviour untouched', () => {
+  const C = read('js/views/contract.js');
+  const row = region(C, 'function docThreadRowHtml(x,i){', 'function docThreadRowsBy(');
+  assert.match(row, /<span class="doc-th-num">\$\{esc\(num\[0\]\)\}<\/span>\$\{esc\(lab\.slice\(num\[0\]\.length\)\)\}/, 'the name\'s text is whole ("1. Definitions"); the number only wrapped');
+  assert.match(row, /data-n="\$\{esc\(num\[1\]\)\}"/, 'the number in its round mark');
+  assert.match(C, /<div class="doc-th-lbl"><span>\$\{esc\(i18t\('jov5_th_in'/, 'the label over the list');
   const H = read('index.html');
-  assert.doesNotMatch(H, /stk-head\.is-five[^{]*\.doc-th-row/, 'no rule of the round reaches the rows');
+  const rules = H.split('\n').filter(l => /\.doc-th-lbl/.test(l));
+  assert.ok(rules.length >= 8, 'the look');
+  assert.ok(rules.every(l => !/scroll-behavior|scrollTop|pointer-events/.test(l)), 'only the look: nothing that moves the list or the paper');
 });
 
 test('f1065 (5) every word of the round is in both books, none colliding', () => {
