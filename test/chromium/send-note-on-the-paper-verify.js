@@ -4,7 +4,7 @@
    Driven in a real browser, the new look, a long note put in by shareNoteFill:
      1-3  for Email, WhatsApp and Word file: the box shows ALL its words (no scroll inside it, height = its words)
      4    the box wears no field border on the paper, whichever way it goes
-     5    PLAIN LETTER (f1054): an empty note says so, "Write it for me" after it; step 1 open keeps 16px inside and
+     5    PLAIN LETTER (f1054): an empty note says so; TOP CORNER (f1057) "Write it for me" in the letter's top-right corner; step 1 open keeps 16px inside and
           lists its person once
    Red at the parent: WhatsApp and Word kept a three-row field that scrolled.
      node test/chromium/send-note-on-the-paper-verify.js
@@ -74,8 +74,14 @@ const SIZES = SHOTS ? [[1440, 780], [1536, 730], [1366, 950]] : [[1440, 780]];
       const pl = await waitFor(page, () => { const t = document.getElementById('sh-summary'), j = document.getElementById('sh-nl-jb');
         if (!t || !j || !t.getClientRects().length || !j.getClientRects().length) return null;
         const a = t.getBoundingClientRect(), b = j.getBoundingClientRect();
-        return { sameLine: Math.abs(a.top - b.top) < 8 && b.left >= a.right, ph: t.placeholder }; }, 3000);
-      check(`${w}x${ht} plain letter: an empty note says so, "Write it for me" right after it`, !!pl && pl.sameLine && /No note yet/.test(pl.ph), JSON.stringify(pl));
+        /* RE-POINTED 15 Nov 2026 (TOP CORNER, the owner's pick, f1057): the button stands in the letter's top-right
+           corner, level with its first line, off the note's line; nothing of it is in the email */
+        const body = document.querySelector('#sh-letter .sh-lt-b').getBoundingClientRect();
+        const first = document.querySelector('#sh-letter #sh-lt-before > .sh-lt-p').getBoundingClientRect();
+        const words = (document.getElementById('sh-lt-before') || {}).textContent + (document.getElementById('sh-lt-after') || {}).textContent;
+        return { corner: Math.abs(b.right - body.right) < 2 && Math.abs((b.top + b.height / 2) - (first.top + first.height / 2)) < 6,
+          offNote: b.bottom <= a.top + 2, notInMail: !/Write it for me/.test(words), ph: t.placeholder }; }, 3000);
+      check(`${w}x${ht} top corner: "Write it for me" in the letter's top-right corner, off the note's line, never in the email`, !!pl && pl.corner && pl.offNote && pl.notInMail && /No note yet/.test(pl.ph), JSON.stringify(pl));
       await page.evaluate(() => { const s = document.querySelector('.sh-st[data-sh-st="to"]'); if (s && !s.classList.contains('is-open')) document.querySelector('[data-sh-st-go="to"]').click(); });
       const s1 = await waitFor(page, () => { const s = document.querySelector('.sh-st[data-sh-st="to"].is-open'); if (!s) return null;
         const r = s.getBoundingClientRect(), mk = s.querySelector('.sh-st-mk').getBoundingClientRect(), go = s.querySelector('.sh-st-go').getBoundingClientRect();

@@ -775,3 +775,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - PLAIN LETTER AND STEP 1 (14 Nov 2026): f1054 (four parts, red at the parent); f972 (1b) (2) re-pointed to the sentence; test/chromium/send-note-on-the-paper-verify.js part 5.
 - THE NOTE'S LIMIT (15 Nov 2026): f1054 (5); send-note-on-the-paper-verify "the note stops at its limit".
 - THE ROUND LINE, SHORT (15 Nov 2026): f1054 (6); f972 (1) (2) and f1048 re-pointed.
+- WRITE IT FOR ME, TOP CORNER (15 Nov 2026): f1057 (four parts, red at the parent 1-3); send-note-on-the-paper-verify part 5 re-pointed.
