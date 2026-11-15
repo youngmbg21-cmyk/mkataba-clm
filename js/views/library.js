@@ -3232,10 +3232,35 @@ function tplPfPageSay(d){
 /* the chosen paper's panel, as drawn: one sentence; HOW IT HAS BEEN USED (agreements made from it — signed, live,
    declined —, the standards they departed from, the blanks a draft fills); Jambo's remark where one standard keeps
    coming back changed; DOORS (draft from it, the departures on Contracts). Counted, no call. */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 2): the paper's name as the headline, its record under it; made · signed ·
+   came back changed as tiles (changed opens them on Contracts, the page's own data-tpln-changed reading); the blanks a
+   draft asks for as rows; Jambo's remark where one standard keeps coming back changed; Draft from it the one black
+   button (the paper's own verb), its other verb beside it. Counted, no call. The new look only. */
+function tplnPanelFive(card, st, cs, signed, blanks){
+  const verbs = _tplPf.acts || [];
+  const di = verbs.findIndex(a => a.k === 'draft'), dv = di >= 0 ? verbs[di] : null;
+  const other = verbs.find(a => a.k !== 'draft' && !a.off);
+  const kind = card.kind === 'builtin' ? i18t('jov5_tp_builtin') : card.kind === 'company' ? i18t('jov5_tp_company') : '';
+  const stream = (card.folder && typeof window.FOLDERS === 'object' && window.FOLDERS && FOLDERS[card.folder]) ? FOLDERS[card.folder].name : '';
+  const groups = [];
+  if (blanks.length) groups.push({ label:i18tn('jov5_tp_blanks', blanks.length, { n:blanks.length }), rows:blanks.slice(0, 3).map(b => ({ mark:'pencil', t:b }))
+    .concat(blanks.length > 3 ? [{ mark:'pencil', t:blanks[3], s:blanks.length > 4 ? i18tn('jov5_tp_more', blanks.length - 4, { n:blanks.length - 4 }) : '' }] : []) });
+  if (st.byCat.length) groups.push({ label:i18t('tpln_p_dep'), rows:st.byCat.slice(0, 3).map(x => ({ mark:'shield', tone:'amber', t:String(x.category), v:i18tn('jov5_tp_times', x.n, { n:x.n }) })) });
+  const top = st.byCat[0];
+  if (top && top.n >= 2) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('tpln_p_jambo', { n:top.n, of:st.used, what:String(top.category).toLowerCase() }), wrap:true }] });
+  const changedRun = st.changed ? () => { const b = document.createElement('button'); b.setAttribute('data-tpln-changed', tplPfKey(card)); b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } : null;
+  return { eyebrow:[i18t('nav_tpl_std'), kind, stream].filter(Boolean).join(' \u00b7 '), title:card.name,
+    sub:cs.length ? i18tn('jov5_tp_sub', cs.length, { n:cs.length, c:st.changed }) : i18t('jov5_tp_unused'),
+    glance:[{ n:cs.length, l:i18t('jov5_tp_made') }, { n:signed, l:i18t('jov5_signed') }, { n:st.changed, l:i18t('jov5_tp_changed'), warn:st.changed > 0, run:changedRun }],
+    groups, act:dv ? { say:i18t('jov5_tp_say'), label:dv.label, run:dv.off ? null : () => dv.run(), link:other ? { label:other.label, run:() => other.run() } : null } : null,
+    src:i18t('lib_pf_j_src') };
+}
 function tplnPanelHtml(card){
   const E = _tplEsc, st = tplPfStats(card), last = tplnLastOf(card), cs = last.cs;
   const signed = cs.filter(c => c.status === 'Signed').length, declined = cs.filter(c => c.status === 'Declined').length, live = cs.length - signed - declined;
   let blanks = []; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).map(f => f.label || f.key).filter(Boolean) : []; } catch (_){ blanks = []; }
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function')
+    return `<div class="jl-words is-ov">${jamboOverviewHtml(tplnPanelFive(card, st, cs, signed, blanks), 'tpln')}</div>`;
   const head = cs.length ? i18tn('tpln_p_head', cs.length, { name: card.name, n: cs.length, c: st.changed }) : i18t('tpln_p_unused', { name: card.name });
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
   const rows = (cs.length ? row(i18tn('tpln_p_ags', cs.length, { n: cs.length }), [signed ? i18t('tpln_p_signed', { n: signed }) : '', live ? i18t('tpln_p_live', { n: live }) : '', declined ? i18t('tpln_p_declined', { n: declined }) : ''].filter(Boolean).join(' \u00b7 '), '') : '')
@@ -4878,7 +4903,7 @@ function sdWire(d, mayEdit){
   PB_PAGE_TABS.forEach(sdWireList);
 }
 
-Object.assign(window,{tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+Object.assign(window,{tplnPanelFive,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfReadOf,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

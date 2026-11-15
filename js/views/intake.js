@@ -1522,8 +1522,27 @@ function ikTeamPanelOpts(r, o){
 }
 /* ---- WITH NOTHING CHOSEN, JAMBO SAYS THE PAGE (A1's shared panel, jlSay):
    counted from the list, no call; a chip is the page's own door ---- */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): "choose a request" is never the whole panel — the page explains
+   itself in three real steps (asked with up to IK_FILES_MAX files, the paper that fits read without AI, the draft
+   started from the request), and Ask for a contract (openIntakeForm) is the one black button; with requests open,
+   the unheld are the first thing to do. The new look only. */
+function ikJlSayFive(openRows, asker, go){
+  const n=openRows.length;
+  const steps={ label:i18t('jov5_ik_how'), items:[{ b:i18t('jov5_ik_s1b'), s:i18t('jov5_ik_s1',{ n:IK_FILES_MAX }) },{ b:i18t('jov5_ik_s2b'), s:i18t('jov5_ik_s2') },{ b:i18t('jov5_ik_s3b'), s:i18t('jov5_ik_s3') }] };
+  const ask={ say:i18t('jov5_ik_ask_say'), label:i18t('jov5_ik_ask'), run:()=>openIntakeForm() };
+  if(asker) return { title:n?i18tn('jl_ik_say_asker',n,{ n }):i18t('jov5_ik_none_t'), sub:i18t('jov5_ik_asker_s'), steps, act:ask, src:i18t('jl_src_list') };
+  const unheld=openRows.filter(r=>r._adv?!r.holder:!(r.assignee&&r.assignee.id)).length;
+  const yours=openRows.filter(r=>!r._adv&&ikHeldByMe(r)).length;
+  const over=intakePastDue(openRows.filter(r=>!r._adv));
+  const glance=[{ n, l:i18t('jov5_ik_open') },{ n:yours, l:i18t('jov5_on_you'), warn:yours>0 },{ n:unheld, l:i18t('jov5_ik_unheld'), warn:unheld>0, run:unheld?()=>go('nobody'):null }];
+  if(!n) return { title:i18t('jov5_ik_none_t'), sub:i18t('jov5_ik_none_s'), glance, steps, act:Object.assign({ say:i18t('jov5_ik_self') }, { label:ask.label, run:ask.run }), src:i18t('jl_src_list') };
+  return { title:i18tn('jl_ik_say_open',n,{ n }), sub:over?i18tn('jl_ik_say_over',over,{ n:over }):(unheld?i18tn('jov5_ik_unheld_s',unheld,{ n:unheld }):i18t('jov5_ik_all_held')),
+    glance, actFirst:true, act:unheld?{ say:i18tn('jov5_ik_unheld_s',unheld,{ n:unheld }), label:i18t('jov5_ik_show_unheld'), run:()=>go('nobody'), link:{ label:ask.label, run:ask.run } }:ask,
+    steps, src:i18t('jl_src_list') };
+}
 function ikJlSay(openRows, asker, go){
   return () => {
+    if(typeof newLookOn==='function'&&newLookOn()){ const five=ikJlSayFive(openRows, asker, go); return Object.assign({ lines:[esc(five.title)] }, five); }
     const n=openRows.length;
     const lines=[];
     if(asker){
@@ -1830,7 +1849,12 @@ function iknRender(host, o){
   _iknPanelSel = _iknSel;
   if (typeof insPaintPanel === 'function'){
     if (r) insPaintPanel({ seat: IK_SEAT, jlWord: i18t('jl_w_request'), item: { id: String(r.id) }, head: false, body: iknPanelHtml(r, may) });
-    else insPaintPanel({ seat: IK_SEAT, empty: i18t('ik_panel_none') });
+    else {
+      /* nothing chosen (THE FIVE PARTS, 15 Nov 2026): the page said in its words, never "choose one" alone */
+      const asker = !may, openAll = R.all.filter(x => !x._adv && IK_LIVE.includes(x.status) && !x.contractId);
+      const go = k => { if (k === 'nobody'){ const f = ikFilters(); f.view = 'open'; f.who = 'nobody'; ikRepaint(); if (typeof jlLand === 'function') jlLand('first'); } };
+      insPaintPanel({ seat: IK_SEAT, empty: i18t('ik_panel_none'), jlSay: ikJlSay(openAll, asker, go) });
+    }
   }
   if (typeof setActiveNav === 'function') setActiveNav('intake');
   if (typeof insWatchWidth === 'function') insWatchWidth();

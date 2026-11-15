@@ -177,7 +177,7 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         heads: [...document.querySelectorAll('.pd2-stands .ds2-t thead th')].map(t => t.textContent.trim()).join(' | '),
         first: [...((document.querySelector('.pd2-stands .ds2-t tbody tr') || {}).cells || [])].map(td => td.textContent.trim()).join(' | '),
         back: !!document.querySelector('#modal-root [data-pd-mid-back]'),
-        panel: !!document.querySelector('#ig-dock .pd2-st-face') }));
+        panel: !!document.querySelector('#ig-dock .pd2-st-face, #ig-dock .pd2-dossier.is-stands .jov5') /* re-pointed 15 Nov 2026: the five-part panel */ }));
       check(`${nm} 6 Where we are as drawn: in the middle, six stages, each side's position and whose move, the overlap panel`,
         w6.stages === 'Arrive · Read · Fill · Negotiate · Sign · Live' && /^Still open · 2 \| Highland \| Parcelway \| Whose move$/.test(w6.heads)
         && /^§ 5 Payment \| 30 days \| 60 days/.test(w6.first) && /Highland$/.test(w6.first) && w6.back && w6.panel, w6);

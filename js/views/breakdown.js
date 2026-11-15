@@ -344,13 +344,25 @@ function stkHeadHtml(c, b, all){
        and what to watch, in one reading." in grey; a reading that failed still says why, under it, never in red;
        the button says what it does — "Read the clauses" — and its cost beside it, "1 Jambo call" */
     const why = noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_not_read');
+    /* THE FIVE PARTS (Jambo's panels, round 3b; owner, 15 Nov 2026: "Build as drawn"): "not read yet" is the headline,
+       what one reading gives its sentence; why it is not read (a reading that failed, no key, a private folder) sits in
+       the card with the one press, "Read the clauses" the long black button. The company view's own line stays in the
+       head (.stk-view) for what reads it, folded behind the eyebrow. The list under it is untouched: it still follows
+       the paper. In Jambo's panel, the new look only. */
+    if (typeof window.newLookOn === 'function' && newLookOn() && typeof jov5HeadHtml === 'function'){
+      const who = typeof pd2CardWho === 'function' ? pd2CardWho(c) : '';
+      const say = err || (noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : '');
+      return `<div class="stk-head is-empty is-five">${view}${jov5HeadHtml({ eyebrow: [i18t('stk_head'), who].filter(Boolean).join(' \u00b7 '), title: i18t('jov5_cl_t'), sub: i18t('jov5_cl_sub') })}`
+        + `<div class="stk-five-card">${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}${say ? `<p class="stk-sub${err ? ' stk-why' : ''}" role="status">${_bdE(say)}</p>` : ''}`
+        + `${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_read_clauses'))}</button></div>`}</div></div>`;
+    }
     return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="stk-sub" role="status">${_bdE(why)}</p>${err ? `<p class="stk-sub stk-why" role="status">${_bdE(err)}</p>` : ''}${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_read_clauses'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost_call'))}</span></div>`}</div>`;
   }
   /* MARQUEE (owner picked it by name, 23 Oct 2026; the navigation kept as it was, the owner's own words):
      a serif headline — how many clauses need you — one sentence naming where to start, and the clauses
      as tabs with counts (All · Needs you · Worth a look · Fine) in place of the three filter boxes */
   all = all || stkReview(c, b);
-  return `<div class="stk-head is-mq">
+  return `<div class="stk-head is-mq${stkNewLookOn() ? ' is-five' : ''}">
     ${stkMarqueeHtml(c, all, busy)}
     ${all.length ? '' : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
     ${b.truncated ? `<p class="stk-sub">${_bdE(i18t('stk_cut'))}</p>` : ''}
@@ -381,6 +393,21 @@ function stkClauseName(at){
 function stkNewLookOn(){ return typeof window.newLookOn === 'function' && !!window.newLookOn(); }
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
+  /* THE FIVE PARTS (Jambo's panels, the remaining eight; owner, 15 Nov 2026: "build all eight"): what the reading found
+     as the headline, where to start as its sentence, three numbers (needs you · worth a look · fine) counted off the
+     one reading (stkClauseTally) — the same counts the rows say. The company view's line stays (folded) for what reads
+     it; the list under it is untouched and still follows the paper. */
+  if (stkNewLookOn() && typeof jov5HeadHtml === 'function'){
+    const ats = Object.keys(T.live).map(Number).sort((a, b) => a - b);
+    const lead = ats.find(at => T.live[at].has('need')), look = ats.find(at => T.live[at].has('look'));
+    const at0 = lead != null ? lead : look;
+    const who = typeof pd2CardWho === 'function' ? pd2CardWho(c) : '';
+    const title = T.need ? i18tn('jov5_cl_need_t', T.need, { n: T.need }) : T.look ? i18tn('jov5_cl_look_t', T.look, { n: T.look }) : i18t('jov5_cl_fine_t');
+    const g = (n, l, warn) => `<div class="jov5-g${warn ? ' is-warn' : ''}"><b>${n}</b><span>${E(l)}</span></div>`;
+    return `${stkViewHtml()}${jov5HeadHtml({ eyebrow: [i18t('stk_head'), who].filter(Boolean).join(' \u00b7 '), title, sub: at0 != null ? i18t('jov5_cl_start', { name: stkClauseName(at0) }) : '' })}`
+      + `<div class="jov5-glance">${g(T.need, i18t('jov5_cl_g_need'), T.need > 0)}${g(T.look, i18t('jov5_cl_g_look'))}${g(T.fine, i18t('jov5_cl_g_fine'))}</div>`
+      + `${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
+  }
   if (stkNewLookOn()) return `${stkViewHtml()}${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
   /* THE SAME HEAD AS REDLINES (owner picked "The SAP Way", 24 Oct 2026): the name in the serif, its count, then a
      grey line of what needs you — "Clauses 9 · 3 need you · 5 worth a look" — then the tabs */

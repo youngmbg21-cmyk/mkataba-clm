@@ -2077,8 +2077,33 @@ async function migFileIt(id, form){
 }
 
 /* ---- WHAT THE PANEL SAYS ---- */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): nothing brought in yet, the panel shows what to do first — a drop
+   area that IS the page's own (a press opens #mig-files, a drop goes to migDropTake: no second way in), three real
+   steps, Choose files the one black button and the page's own "get the empty one" beside it. Files in: what needs a
+   look as tiles, Check them the button. The new look only. */
+function migSideSayFive(k){
+  const may = canEdit();
+  const choose = () => { document.getElementById('mig-files')?.click(); };
+  if (!k.files){
+    const drop = may ? `<div class="jov5-drop" role="button" tabindex="0" data-mig-paneldrop aria-label="${esc(i18t('jov5_mig_drop'))}"><span class="jov5-up">${icon('upload', 'jov5-ic', 1.8)}</span>`
+      + `<b>${esc(i18t('jov5_mig_drop'))}</b><span>${esc(i18t('mig_drop_sub', { max:MIG_MAX_FILES }))}</span></div>` : '';
+    return { before:drop, title:i18t('jov5_mig_none_t'), sub:i18t('jov5_mig_none_s'),
+      steps:{ label:i18t('jov5_mig_how'), items:[{ b:i18t('jov5_mig_s1b'), s:i18t('jov5_mig_s1') }, { b:i18t('jov5_mig_s2b'), s:i18t('jov5_mig_s2') }, { b:i18t('jov5_mig_s3b'), s:i18t('jov5_mig_s3') }] },
+      act:may ? { label:i18t('jov5_mig_choose'), run:choose, link:{ label:i18t('jov5_mig_sheet'), run:() => { document.getElementById('mig-manifest-tpl')?.click(); } } } : null, src:false };
+  }
+  const show = (w) => () => { migShowSet(w, true); migLandFirst(); };
+  const filedRun = () => { const ids = migRows().filter(r => r.c && r.st.k === 'filed').map(r => r.c.id); if (typeof regShowOnly === 'function') regShowOnly(ids, i18t('mig_filed_label')); if (typeof jlLand === 'function') jlLand('list'); };
+  const need = [k.check ? i18tn('mig_side_n_review', k.check, { n:k.check }) : '', k.dupe ? i18tn('mig_side_n_dupe', k.dupe, { n:k.dupe }) : '', k.none ? i18tn('mig_side_n_blocked', k.none, { n:k.none }) : '', k.failed ? i18tn('mig_side_n_failed', k.failed, { n:k.failed }) : ''].filter(Boolean);
+  return { title:i18tn('mig_side_files', k.files, { n:k.files, filed:k.filed }), sub:need.length ? i18t('mig_side_need', { what:need.join(', ') }) : i18t('mig_side_need_none'),
+    glance:[{ n:k.check, l:i18t('jov5_mig_check'), warn:k.check > 0, run:(k.check && may) ? () => migCheckOpen() : null },
+      { n:k.dupe + k.none, l:i18t('jov5_mig_decide'), warn:(k.dupe + k.none) > 0, run:k.dupe ? show('dupe') : (k.none ? show('none') : null) },
+      { n:k.filed, l:i18t('jov5_mig_filed'), run:k.filed ? filedRun : null }],
+    actFirst:true, act:(k.check && may) ? { say:i18tn('mig_side_n_review', k.check, { n:k.check }), label:i18tn('mig_chip_check', k.check, { n:k.check }), run:() => migCheckOpen() }
+      : (may ? { label:i18t('jov5_mig_choose'), run:choose } : null), src:false };
+}
 function migSideSay(){
   const k = migKpis(), a = migState().allowance;
+  if (typeof newLookOn === 'function' && newLookOn()){ const five = migSideSayFive(k); return Object.assign({ lines:[esc(five.title)] }, five); }
   /* nothing yet: the page's own door is his chip (Choose files) */
   if (!k.files) return { lines:[esc(i18t('mig_side_none'))], src:false,
     chips:canEdit() ? [{ label:i18t('mig_chip_choose'), run:() => { document.getElementById('mig-files')?.click(); } }] : [] };
@@ -2822,11 +2847,18 @@ function migReconHtml(){
    so every press below reads the live element at press time ---- */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._migWired)){
   if (typeof window !== 'undefined') window._migWired = true;
-  const inPage = t => t.closest('.mig-page') || t.closest('#page-head');
+  const inPage = t => t.closest('.mig-page') || t.closest('#page-head') || t.closest('[data-mig-paneldrop]');
+  /* a file dropped on the panel's drop area goes the page strip's way (migDropTake) */
+  document.addEventListener('dragover', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (d){ e.preventDefault(); d.classList.add('is-over'); } });
+  document.addEventListener('dragleave', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (d) d.classList.remove('is-over'); });
+  document.addEventListener('drop', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (!d) return; e.preventDefault(); d.classList.remove('is-over'); if (e.dataTransfer) migDropTake(e.dataTransfer); });
+  document.addEventListener('keydown', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (d && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); document.getElementById('mig-files')?.click(); } });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !inPage(t)) return;
     let el;
     if ((el = t.closest('#mig-choose'))){ document.getElementById('mig-files')?.click(); return; }
+    /* the panel's drop area is the page's own door (THE FIVE PARTS, 15 Nov 2026) */
+    if ((el = t.closest('[data-mig-paneldrop]'))){ document.getElementById('mig-files')?.click(); return; }
     if (!t.closest('.mig-page')) return;
     if ((el = t.closest('[data-open]'))){ e.stopPropagation(); openWorkspace(el.getAttribute('data-open')); return; }
     if ((el = t.closest('#mig-drop'))){ document.getElementById('mig-files')?.click(); return; }

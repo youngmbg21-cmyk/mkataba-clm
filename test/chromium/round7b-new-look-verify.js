@@ -42,10 +42,11 @@ const signIn = async (page, base) => {
   /* 1 · the house */
   try {
     await page.evaluate(() => setView('jambo'));
-    const up = await until(page, () => !!document.querySelector('.jhn-page #jh-cv') && /The house/i.test((document.querySelector('#ins-panel .jhn-panel') || {}).innerText || ''), null, 20000);
+/* RE-POINTED 15 Nov 2026 (owner: Jambo's panels "Build as drawn", the five parts): the panel is the five-part builder's now */ 
+    const up = await until(page, () => !!document.querySelector('.jhn-page #jh-cv') && /Open Jambo's work on the Board/i.test((document.querySelector('#ins-panel .jov5[data-jov-slot="jhn"]') || {}).innerText || ''), null, 20000);
     const H = up ? await page.evaluate(() => ({ tabs: [...document.querySelectorAll('.jhn-tab')].map(b => b.childNodes[0].textContent.trim()),
       strip: !!document.querySelector('.jh-jambo:not([hidden])') && getComputedStyle(document.querySelector('.jh-jambo')).display !== 'none',
-      panel: document.querySelector('#ins-panel .jhn-panel').innerText.replace(/\s+/g, ' ') })) : null;
+      panel: document.querySelector('#ins-panel .jov5[data-jov-slot="jhn"]').innerText.replace(/\s+/g, ' ') })) : null;
     check('1 the house: the tabs beside the title, Jambo\'s panel beside it with The house and its doors', !!H && H.tabs.join('|') === 'The house|Agents|Jobs|How points work' && !H.strip
       && /wait|waits|Nothing of mine/.test(H.panel) && /Open Jambo's work on the Board/.test(H.panel) && /Set an agent to Never, for me/.test(H.panel), H);
   } catch (e) { check('1 the house', false, String(e).slice(0, 200)); }
@@ -72,7 +73,7 @@ const signIn = async (page, base) => {
     await page.evaluate(() => caGo({ kind: 'go', place: 'handbook' }));
     const up = await until(page, () => document.querySelectorAll('.hbkn-page .hbkn-chapter').length === 1 && !!document.querySelector('.hbkn-ch.is-on'), null, 15000);
     const B = up ? await page.evaluate(() => ({ one: document.querySelectorAll('.hbkn-chapter').length, chs: document.querySelectorAll('.hbkn-ch').length, parts: document.querySelectorAll('.hbkn-part').length,
-      pills: [...document.querySelectorAll('.hbkn-pill')].map(b => b.textContent.trim()), panel: (document.querySelector('#ins-panel .hbkn-panel') || {}).innerText || '',
+      pills: [...document.querySelectorAll('.hbkn-pill')].map(b => b.textContent.trim()), panel: (document.querySelector('#ins-panel .jov5[data-jov-slot="hbkn"]') || {}).innerText || '' /* re-pointed 15 Nov 2026: the five-part panel */,
       nParts: HANDBOOK_PARTS.length, second: (document.querySelectorAll('.hbkn-ch')[1] || {}).getAttribute ? document.querySelectorAll('.hbkn-ch')[1].getAttribute('data-hbkn-ch') : '' })) : null;
     check('3a the Handbook: one chapter, its part\'s chapters on the left, Svenska and Print, often asked in the panel', !!B && B.one === 1 && B.chs >= 2 && B.parts === B.nParts
       && B.pills.join('|') === 'Svenska|Print' && /Often asked/i.test(B.panel), B && Object.assign({}, B, { panel: B.panel.slice(0, 160) }));
