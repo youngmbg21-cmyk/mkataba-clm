@@ -19711,6 +19711,10 @@
   html.lg-new .rdsc-tile.is-steel b{color:var(--st-steel-fg)}
   html.lg-new .rdsc-tile.is-ruby b{color:var(--st-ruby-fg)}
   html.lg-new .rdsc-tile.is-green b{color:var(--st-green-fg)}
+  html.lg-new .rdsc-tile.is-violet{background:color-mix(in srgb,var(--st-violet-bg) 60%,var(--color-surface))}
+  html.lg-new .rdsc-tile.is-pink{background:color-mix(in srgb,var(--st-pink-bg) 60%,var(--color-surface))}
+  html.lg-new .rdsc-tile.is-violet b{color:var(--st-violet-fg)}
+  html.lg-new .rdsc-tile.is-pink b{color:var(--st-pink-fg)}
   html.lg-new .rdsc-tile.is-on{box-shadow:inset 0 0 0 2px var(--color-text)}
   html.lg-new .rd-card.is-table .rdt-t th:first-child,html.lg-new .rd-card.is-table .rdt-t td:first-child{padding-left:var(--s-4)}
   /* GREEN SPARK (owner's pick, 12 Nov 2026): the Discover pill filled in Jambo's green with his spark; the only green
@@ -19783,6 +19787,25 @@
   html.lg-new .dsn-prog{margin:var(--s-3) 0}
   html.lg-new .dsn-prog .dsc-live-bar{margin:6px 0 0}
   html.lg-new .dsn-table td.dsn-quote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+  /* a header that sorts: its word and a small drawn caret, lit and turned when it is the one sorting */
+  html.lg-new .dsn-th{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer;max-width:100%}
+  html.lg-new .dsn-th span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dsn-th i{flex:none;width:6px;height:6px;margin-top:-3px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);opacity:.35}
+  html.lg-new .dsn-th.is-on{color:var(--color-text)}
+  html.lg-new .dsn-th.is-on i{opacity:1}
+  html.lg-new .dsn-th.is-desc i{transform:rotate(-135deg);margin-top:3px}
+  @media (hover:hover){ html.lg-new .dsn-th:hover{color:var(--color-text)} }
+  /* SOMETHING MOVES WHILE HE READS, WHERE THE CONTRACTS ARE (owner's pick, 15 Nov 2026: scan light and waiting list): the
+     pale rows of what is still to be read, a ripple through them, and a soft band of Jambo's green sweeping the window */
+  html.lg-new .dsn-win{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  html.lg-new .dsn-table tr.dsn-ghost{cursor:default;color:var(--color-neutral-300);animation:dsn-ripple 2.4s ease-in-out infinite}
+  html.lg-new .dsn-table tr.dsn-ghost .cun-name,html.lg-new .dsn-table tr.dsn-ghost .hati-ref{color:inherit}
+  html.lg-new .dsn-table tr.dsn-ghost.is-now{color:var(--color-quiet)}
+  html.lg-new .dsn-table tr.dsn-ghost-more>td{color:var(--color-quiet);font-size:12.5px}
+  @keyframes dsn-ripple{0%,100%{opacity:.4}50%{opacity:1}}
+  html.lg-new .dsn-scan{position:absolute;left:0;right:0;top:0;height:16%;pointer-events:none;background:linear-gradient(transparent,color-mix(in srgb,var(--accent-ink) 10%,transparent) 70%,transparent);animation:dsn-scan 3.4s linear infinite;will-change:transform}
+  @keyframes dsn-scan{from{transform:translateY(-100%)}to{transform:translateY(640%)}}
+  @media (prefers-reduced-motion:reduce){ html.lg-new .dsn-scan{display:none} html.lg-new .dsn-table tr.dsn-ghost{animation:none} }
   html.lg-new .dsn-search{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl-h-lg);padding:0 var(--s-4);border-radius:999px;background:var(--surface-2);color:var(--color-quiet)}
   html.lg-new .dsn-search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:0;box-shadow:none;font:inherit;font-size:14px;color:var(--color-text)}
   html.lg-new .dsc-paper{box-sizing:border-box;min-height:100%;padding:var(--s-4);background:var(--desk-ground)}

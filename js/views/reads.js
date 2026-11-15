@@ -712,18 +712,49 @@ function dsnFound(rows){
   return ruby ? _dsnChip('ruby', _rdTn('dsn_look', ruby)) : amber ? _dsnChip('amber', _rdTn('dsn_unclear', amber)) : _dsnChip('green', _rdT('dsn_nothing'));
 }
 /* THE ANSWERS GROUPED BY WHAT THEY SAY (the tiles and the panel): biggest first, Not found last */
+/* THE TILES' COLOURS (owner, 15 Nov 2026: "only one card is showing … they are all grey"): ruby, amber and green keep
+   their meaning; one question's plain facts (Sweden, Kenya, 30 days) each take a quiet colour of their own, the biggest
+   first, and the chip in the table wears its tile's colour. A PACK is tiled by what the read found across its questions:
+   To look at · Unclear · Nothing unusual · Not found (each contract in exactly one). */
+const DSN_FACT_TONES = ['violet', 'pink', 'steel'];
+const _dsnMeans = t => ['ruby', 'amber', 'green', 'steel'].includes(t);
 function dsnGroups(rows){
   if (!rows) return [];
   if (rows.length && rows[0].a.length > 1){
-    const risk = rows.filter(x => x.a.some(a => a && _rdTone(a) === 'ruby')), none = rows.filter(x => x.a.every(a => !a || !a.found));
-    return [risk.length ? { k: 'g:risk', l: _rdT('rd_tt_risk'), n: risk.length, t: 'ruby', ids: risk.map(x => x.id) } : null,
-      none.length ? { k: 'g:none', l: _rdT('ac_not_found'), n: none.length, t: 'none', ids: none.map(x => x.id) } : null].filter(Boolean);
+    const B = { risk: [], amber: [], ok: [], none: [] };
+    rows.forEach(x => { const t = x.a.map(a => a ? _rdTone(a) : 'none');
+      (t.includes('ruby') ? B.risk : t.includes('amber') ? B.amber : x.a.some(a => a && a.found && !a.noWording) ? B.ok : B.none).push(x.id); });
+    return [['risk', 'dsn_t_look', 'ruby'], ['amber', 'dsn_t_unclear', 'amber'], ['ok', 'dsn_nothing', 'green'], ['none', 'ac_not_found', 'gray']]
+      .filter(([k]) => B[k].length).map(([k, w, c]) => ({ k: 'g:' + k, l: _rdT(w), n: B[k].length, t: c, c, ids: B[k] }));
   }
   const by = new Map();
   rows.forEach(x => { const a = x.a[0]; const found = a && a.found && !a.noWording; const l = found ? String(a.answer || '').trim() || _rdT('ac_not_found') : _rdT('ac_not_found');
     const k = found ? 'g:' + l.toLowerCase() : 'g:none'; const g = by.get(k) || { k, l, n: 0, t: found ? _rdTone(a) : 'none', ids: [] }; g.n++; g.ids.push(x.id); by.set(k, g); });
   const G = [...by.values()], nf = G.filter(g => g.k === 'g:none'), rest = G.filter(g => g.k !== 'g:none').sort((a, b) => _dscRank(a.t) - _dscRank(b.t) || b.n - a.n);
-  return rest.slice(0, DSN_TILES).concat(nf);
+  let f = 0;
+  rest.forEach((g, i) => { g.c = _dsnMeans(g.t) ? g.t : (i < DSN_TILES && f < DSN_FACT_TONES.length ? DSN_FACT_TONES[f++] : 'gray'); });
+  nf.forEach(g => { g.c = 'gray'; });
+  const out = rest.slice(0, DSN_TILES).concat(nf);
+  out.toneOf = new Map(G.map(g => [g.k, g.c]));
+  return out;
+}
+/* the colour one answer's chip wears: its tile's (one question), its meaning or quiet grey (a pack) */
+function dsnChipTone(a, G){
+  if (!a || !a.found || a.noWording) return 'gray';
+  const k = 'g:' + (String(a.answer || '').trim() || _rdT('ac_not_found')).toLowerCase();
+  if (G && G.toneOf && G.toneOf.has(k)) return G.toneOf.get(k);
+  const t = _rdTone(a); return _dsnMeans(t) ? t : 'gray';
+}
+/* SORT BY A COLUMN (owner, 15 Nov 2026: "sort the columns by pressing on the header"): a press sorts A to Z, the same
+   press again Z to A; until one is pressed the risky answers lead */
+const dsnSortTh = (k, w) => { const on = _dsn.sort && _dsn.sort.k === k, d = on ? _dsn.sort.dir : 0;
+  return `<th${on ? ` aria-sort="${d > 0 ? 'ascending' : 'descending'}"` : ''}><button type="button" class="dsn-th${on ? ' is-on' : ''}${d < 0 ? ' is-desc' : ''}" data-dsn-sort="${_rdE(k)}" title="${_rdE(_rdT('dsn_sort_tip', { col: w }))}"><span>${_rdE(w)}</span><i aria-hidden="true"></i></button></th>`; };
+function dsnSortVal(x, k){
+  if (k === 'name') return _rdName(x.c);
+  if (k === 'folder') return _dsnFolderName(x.c.folder);
+  if (k === 'says'){ const a = x.a[0]; return a && a.found ? ((typeof askColClauseNo === 'function' ? askColClauseNo(a) : '') + ' ' + (a.quote || '')) : '\uffff'; }
+  const i = k === 'ans' ? 0 : Number(String(k).slice(1)), a = x.a[i];
+  return a && a.found && !a.noWording ? _rdWord(a) : '\uffff';
 }
 const dsnSteps = on => `<div class="dsn-steps" aria-hidden="true">${['dsn_step_q', 'dsn_step_where', 'dsn_step_read', 'dsn_step_res'].map((k, i) => `${i ? '<em></em>' : ''}<span class="${i === on ? 'is-on' : i < on ? 'is-done' : ''}"><i>${i < on ? '✓' : i + 1}</i>${_rdE(_rdT(k))}</span>`).join('')}</div>`;
 const dsnSel = (key, label, opts, cur) => `<label class="dsn-f"><span>${_rdE(label)}</span><select data-dsn-f="${key}">${opts.map(([v, w]) => `<option value="${_rdE(v)}"${v === cur ? ' selected' : ''}>${_rdE(w)}</option>`).join('')}</select></label>`;
@@ -841,18 +872,43 @@ function dsnReadingHtml(){
   const right = b ? `<button type="button" class="rfp-pill" id="dsc-stop">${_rdE(_rdT('ac_stop'))}</button>`
     : D.stopped && A && A.stopped ? `<button type="button" class="rfp-pill" id="dsc-carry">${_rdE(_rdT('dsc_carry', { n: (A.stopped.left || []).length }))}</button><button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`
     : `<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`;
-  const rows = doneIds.slice().reverse().map(id => { const c = typeof getContract === 'function' ? getContract(id) : null, a = got[id];
+  const rows = doneIds.map(id => { const c = typeof getContract === 'function' ? getContract(id) : null, a = got[id];
     const num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a && a.found ? String(a.quote || '').trim() : '';
-    return `<tr class="dsn-row${id === _dsc.liveCid ? ' is-sel' : ''}"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div></td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${a ? _dsnChip(_rdTone(a, askId), _rdWord(a)) : ''}</td>
+    return `<tr class="dsn-row${id === _dsc.liveCid ? ' is-sel' : ''}"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div>${c ? `<div class="cun-sub">${dsnRefHtml(c)}</div>` : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${a ? _dsnChip(_rdTone(a, askId), _rdWord(a)) : ''}</td>
       <td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td></tr>`; }).join('');
   const where = (_dsn.reading && _dsn.reading.whereWords) || '';
   return `<div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT(b ? 'dsn_reading' : D.stopped ? 'dsn_stopped' : 'dsn_read_done', { name }))}</h2><span class="ctf-hf">${_rdE([where, _rdTn('ac_n_contracts', (_dsn.reading && _dsn.reading.of) || n)].filter(Boolean).join(' · '))}</span><span class="apn-sp"></span>${right}</div>
     ${dsnSteps(2)}
     <div class="dsn-prog"><div><b>${k}</b> ${_rdE(_rdT('dsn_of_read', { n }))}</div><div class="dsc-live-bar" role="img" aria-label="${_rdE(_rdT('dsc_live_n', { k, n }))}"><i style="width:${n ? Math.round(k / n * 100) : 0}%"></i></div></div>
-    <div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:30%" data-floor="160"><col style="width:16%" data-floor="110"><col style="width:20%" data-floor="120"><col style="width:34%" data-floor="180"></colgroup>
+    <div class="dsn-win"><div class="cu-scroll" id="dsn-read-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:30%" data-floor="160"><col style="width:16%" data-floor="110"><col style="width:20%" data-floor="120"><col style="width:34%" data-floor="180"></colgroup>
       <thead><tr><th>${_rdE(_rdT('dsn_c_contract'))}</th><th>${_rdE(_rdT('dsn_f_folder'))}</th><th>${_rdE(_rdT('dsn_c_answer'))}</th><th>${_rdE(_rdT('dsn_c_says'))}</th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="4" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>`;
+      <tbody>${rows}${b ? dsnGhostRowsHtml(b, got) : ''}${rows || b ? '' : `<tr><td colspan="4" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>${b ? dsnScanHtml() : ''}</div>`;
 }
+/* SOMETHING MOVES WHILE HE READS, WHERE THE CONTRACTS ARE (owner, 15 Nov 2026: "the reading sometimes freezes for a second
+   … This should not stop the page from continuing to show some action"; five ideas drawn live on a photo of the page, the
+   owner: "Combine scan light and waiting list"). THE WAITING LIST: the contracts of this read not yet answered stand as
+   pale rows under the read ones, in the read's own order — the ten HaTi is reading now marked "Reading now", the rest
+   "Waiting" — and each turns solid in its place when its answer lands; a ripple runs through them. THE SCAN LIGHT: a soft
+   band of Jambo's green sweeps down the same window. Both only while a read is in flight, both transform and opacity
+   only, both picking up where they were on a repaint (a negative delay off the read's own start); where less motion is
+   asked the pale rows stand still and the light is not drawn. DSN_GHOSTS is how many pale rows are DRAWN; the rest are
+   counted in one line, never dropped silently. */
+const DSN_GHOSTS = 12, DSN_RIPPLE_S = 2.4, DSN_SCAN_S = 3.4;
+const _dsnGone = () => (Date.now() - ((_dsn.reading && _dsn.reading.t0) || Date.now())) / 1000;
+function dsnWaiting(b, got){
+  const all = (b && Array.isArray(b.all)) ? b.all : [], now = new Set((b && b.ids) || []);
+  const left = all.filter(id => !got[id]);
+  return { now: left.filter(id => now.has(id)), later: left.filter(id => !now.has(id)) };
+}
+function dsnGhostRowsHtml(b, got){
+  const W = dsnWaiting(b, got), ids = W.now.concat(W.later), gone = _dsnGone();
+  const row = (id, i) => { const c = typeof getContract === 'function' ? getContract(id) : null, on = i < W.now.length;
+    return `<tr class="dsn-row dsn-ghost${on ? ' is-now' : ''}" style="animation-delay:${((i * 0.3 - gone) % DSN_RIPPLE_S - DSN_RIPPLE_S).toFixed(2)}s"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div>${c ? `<div class="cun-sub">${dsnRefHtml(c)}</div>` : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${_rdE(_rdT(on ? 'dsn_now' : 'dsn_waiting'))}</td><td class="rdn-c"></td></tr>`; };
+  const more = ids.length - DSN_GHOSTS;
+  return ids.slice(0, DSN_GHOSTS).map(row).join('') + (more > 0 ? `<tr class="dsn-ghost-more"><td colspan="4" class="rdn-c">${_rdE(_rdTn('dsn_more_waiting', more))}</td></tr>` : '');
+}
+const dsnScanHtml = () => `<div class="dsn-scan" aria-hidden="true" style="animation-delay:-${(_dsnGone() % DSN_SCAN_S).toFixed(2)}s"></div>`;
+const dsnRefHtml = c => (typeof refHtml === 'function') ? refHtml(c) : _rdE(_rdRef(c));
 /* (4) THE RESULTS OF ONE READ */
 function dsnResultsShown(r){
   const rows = dsnRunRows(r); if (!rows) return null;
@@ -862,6 +918,8 @@ function dsnResultsShown(r){
   const hay = x => [_rdName(x.c), x.c.counterparty, _rdRef(x.c), _dsnFolderName(x.c.folder)].concat(x.a.map(a => a ? _rdWord(a) + ' ' + (a.quote || '') : '')).join(' ').toLowerCase();
   const list = rows.filter(x => (!inTab || inTab.has(x.id)) && (!q || q.split(/\s+/).every(w => hay(x).includes(w))))
     .sort((a, b) => Math.min(...a.a.map(x => x ? _dscRank(_rdTone(x)) : 9)) - Math.min(...b.a.map(x => x ? _dscRank(_rdTone(x)) : 9)));
+  if (_dsn.sort && _dsn.sort.k){ const k = _dsn.sort.k, d = _dsn.sort.dir;
+    list.sort((a, b) => d * String(dsnSortVal(a, k)).localeCompare(String(dsnSortVal(b, k)), undefined, { numeric: true, sensitivity: 'base' })); }
   return { rows, G, list };
 }
 function dsnResultsHtml(r){
@@ -870,19 +928,19 @@ function dsnResultsHtml(r){
       <button type="button" class="ui-btn ui-btn-sm" data-dsn-copy>${_rdE(_rdT('ac_chip_copy'))}</button>${left && may ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</div>
     <div class="rdsc-sub">${_rdE([r.by, rdWhen(r.last || r.at), dsnRunWhere(r), _rdT('dsn_of_read_k', { k: r.n, n: dsnRunOf(r) })].filter(Boolean).join(' · '))}</div>
     <label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}<input type="search" id="dsn-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('dsn_search', r.n))}" aria-label="${_rdE(_rdTn('dsn_search', r.n))}" value="${_rdE(_dsn.q)}"></label>
-    ${S ? `<div class="rdsc-tiles" role="group" aria-label="${_rdE(_rdT('rd_filter'))}"><button type="button" class="rdsc-tile${_dsn.tab === 'all' ? ' is-on' : ''}" data-dsn-tab="all" aria-pressed="${_dsn.tab === 'all'}"><b>${S.rows.length}</b><span class="rdsc-tl">${_rdE(_rdT('dsn_all_read'))}</span><span class="rdsc-ts">${_rdE(_rdT('dsn_of_chosen', { n: dsnRunOf(r) }))}</span></button>${S.G.map(g => `<button type="button" class="rdsc-tile is-${_dsnTone(g.t) === 'gray' ? 'steel' : _dsnTone(g.t)}${_dsn.tab === g.k ? ' is-on' : ''}" data-dsn-tab="${_rdE(g.k)}" aria-pressed="${_dsn.tab === g.k}"><b>${g.n}</b><span class="rdsc-tl" title="${_rdE(g.l)}">${_rdE(g.l)}</span><span class="rdsc-ts">${_rdE(_rdT('rd_sc_pct', { p: S.rows.length ? Math.round(g.n / S.rows.length * 100) : 0 }))}</span></button>`).join('')}</div>` : ''}</div>`;
+    ${S ? `<div class="rdsc-tiles" role="group" aria-label="${_rdE(_rdT('rd_filter'))}"><button type="button" class="rdsc-tile${_dsn.tab === 'all' ? ' is-on' : ''}" data-dsn-tab="all" aria-pressed="${_dsn.tab === 'all'}"><b>${S.rows.length}</b><span class="rdsc-tl">${_rdE(_rdT('dsn_all_read'))}</span><span class="rdsc-ts">${_rdE(_rdT('dsn_of_chosen', { n: dsnRunOf(r) }))}</span></button>${S.G.map(g => `<button type="button" class="rdsc-tile is-${g.c || 'gray'}${_dsn.tab === g.k ? ' is-on' : ''}" data-dsn-tab="${_rdE(g.k)}" aria-pressed="${_dsn.tab === g.k}"><b>${g.n}</b><span class="rdsc-tl" title="${_rdE(g.l)}">${_rdE(g.l)}</span><span class="rdsc-ts">${_rdE(_rdT('rd_sc_pct', { p: S.rows.length ? Math.round(g.n / S.rows.length * 100) : 0 }))}</span></button>`).join('')}</div>` : ''}</div>`;
   if (!S) return head + `<p class="dsc-quiet dsc-pad">${_rdE(_rdT('dsc_loading'))}</p>`;
   if (S.list.length && !S.list.some(x => x.id === _dsn.cid)) _dsn.cid = S.list[0].id;
   const names = r.askIds.map(k => ((typeof AC !== 'undefined' && AC.asks && AC.asks[k]) || {}).name || '');
   const cols = pack ? `<colgroup><col style="width:30%" data-floor="160"><col style="width:12%" data-floor="100">${names.map(() => `<col style="width:${Math.round(58 / names.length)}%" data-floor="90">`).join('')}</colgroup>` : '<colgroup><col style="width:26%" data-floor="150"><col style="width:15%" data-floor="100"><col style="width:19%" data-floor="110"><col style="width:28%" data-floor="160"><col style="width:12%" data-floor="100"></colgroup>';
-  const th = pack ? names.map(n => `<th>${_rdE(n)}</th>`).join('') : `<th>${_rdE(_rdT('dsn_c_answer'))}</th><th>${_rdE(_rdT('dsn_c_says'))}</th><th></th>`;
+  const th = pack ? names.map((n, i) => dsnSortTh('q' + i, n)).join('') : `${dsnSortTh('ans', _rdT('dsn_c_answer'))}${dsnSortTh('says', _rdT('dsn_c_says'))}<th></th>`;
   const tr = x => { const a = x.a[0], tone = a ? _rdTone(a, r.askIds[0]) : 'none', num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a && a.found ? String(a.quote || '').trim() : '';
     const act = !a || a.noWording ? '' : (!a.checked && tone === 'ruby' && quote) ? `<button type="button" class="rfp-a" data-dsn-clause="${_rdE(x.id)}">${_rdE(_rdT('dsc_open_clause'))}</button>`
       : `<button type="button" class="rfp-a${a.checked ? ' is-ck' : ''}" data-dsn-ck="${_rdE(x.id)}"${may ? '' : ' disabled'}>${_rdE(_rdT(a.checked ? 'dsc_checked' : 'dsc_mark'))}</button>`;
-    const cells = pack ? x.a.map((y, i) => `<td class="rdn-c">${y ? _dsnChip(_rdTone(y, r.askIds[i]), _rdWord(y)) : '—'}</td>`).join('')
-      : `<td class="rdn-c">${a ? _dsnChip(tone, _rdWord(a)) : ''}</td><td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td><td class="rdn-c">${act}</td>`;
-    return `<tr class="dsn-row${x.id === _dsn.cid ? ' is-sel' : ''}" data-dsn-row="${_rdE(x.id)}" tabindex="0"><td><div class="cun-name">${_rdE(_rdName(x.c))}</div></td><td class="rdn-c">${_rdE(_dsnFolderName(x.c.folder))}</td>${cells}</tr>`; };
-  return head + `<div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table">${cols}<thead><tr><th>${_rdE(_rdT('dsn_c_contract'))}</th><th>${_rdE(_rdT('dsn_f_folder'))}</th>${th}</tr></thead>
+    const cells = pack ? x.a.map(y => `<td class="rdn-c">${y ? _dsnChip(dsnChipTone(y, null), _rdWord(y)) : '—'}</td>`).join('')
+      : `<td class="rdn-c">${a ? _dsnChip(dsnChipTone(a, S.G), _rdWord(a)) : ''}</td><td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td><td class="rdn-c">${act}</td>`;
+    return `<tr class="dsn-row${x.id === _dsn.cid ? ' is-sel' : ''}" data-dsn-row="${_rdE(x.id)}" tabindex="0"><td><div class="cun-name">${_rdE(_rdName(x.c))}</div><div class="cun-sub">${dsnRefHtml(x.c)}</div></td><td class="rdn-c">${_rdE(_dsnFolderName(x.c.folder))}</td>${cells}</tr>`; };
+  return head + `<div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table">${cols}<thead><tr>${dsnSortTh('name', _rdT('dsn_c_contract'))}${dsnSortTh('folder', _rdT('dsn_f_folder'))}${th}</tr></thead>
     <tbody>${S.list.map(tr).join('') || `<tr><td colspan="${pack ? 2 + names.length : 5}" class="apn-none">${_rdE(_rdT('rd_none_here'))}</td></tr>`}</tbody></table></div>`;
 }
 /* THE ROUTER: which screen stands (a read in flight is always its own screen) */
@@ -913,6 +971,8 @@ function dsnRender(host, o){
   host.innerHTML = dsnPage(inner);
   const sc1 = host.querySelector('.cu-scroll'); if (sc1 && top0 && same && !(o && o.top)) sc1.scrollTop = top0;
   if (keepId && document.getElementById(keepId)){ if (at != null && typeof listCaretPut === 'function') listCaretPut('#' + keepId, at); else document.getElementById(keepId).focus({ preventScroll: true }); }
+  if (_dsn.screen === 'reading' && busy){ const k = A.busy.done, sc = host.querySelector('#dsn-read-scroll'), g = sc && sc.querySelector('tr.dsn-ghost');
+    if (g && _dsn.reading && _dsn.reading.seenK !== k){ _dsn.reading.seenK = k; sc.scrollTop = Math.max(0, g.offsetTop - sc.clientHeight / 2); } }
   dsnPanelPaint(panel, r);
   readsWire();
   if (typeof setActiveNav === 'function') setActiveNav('reads');
@@ -956,7 +1016,7 @@ async function dsnAsk(more){
     o = _dsc.pack ? { pack: _dsc.pack } : (_dsc.askId ? { askId: _dsc.askId } : { question: q });
   }
   A.scope = { ids: ch.ids };
-  _dsn.reading = { whereWords: ch.where.includes('all') ? _rdT('dsn_all_contracts') : ch.where.map(_dsnFolderName).join(', '), of: ch.ids.length };
+  _dsn.reading = { whereWords: ch.where.includes('all') ? _rdT('dsn_all_contracts') : ch.where.map(_dsnFolderName).join(', '), of: ch.ids.length, t0: Date.now() };
   Object.assign(o, { where: ch.where, of: ch.ids.length, onRun: id => { _dsn.run = id; } });
   _dsc.say = ''; _dsc.liveCid = null; _dsc.liveAt = 0; _dsc.starting = true; _dsn.done = null; _dsn.screen = 'reading';
   renderReads({ top: true });
@@ -986,6 +1046,7 @@ function dsnFill(r){
 function dsnGo(screen, o){
   _dsn.screen = screen; Object.assign(_dsn, o || {});
   _dsn.picked = false;
+  if (o && 'run' in o) _dsn.sort = null;
   if (screen !== 'new'){ _dsc.say = ''; }
   if (typeof rdKeep === 'function') rdKeep();
   renderReads({ top: true });
@@ -1013,6 +1074,8 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
       else { _dsn.pick.delete('all'); if (_dsn.pick.has(k)) _dsn.pick.delete(k); else _dsn.pick.add(k); if (!_dsn.pick.size) _dsn.pick.add('all'); }
       _dsn.party = ''; renderReads(); return; }
     if (t.closest('[data-dsn-clear]')){ stop(e); _dsn.pick = new Set(['all']); _dsn.party = ''; renderReads(); return; }
+    if ((el = t.closest('[data-dsn-sort]'))){ stop(e); const k = el.getAttribute('data-dsn-sort');
+      _dsn.sort = (_dsn.sort && _dsn.sort.k === k) ? { k, dir: -_dsn.sort.dir } : { k, dir: 1 }; renderReads(); return; }
     if ((el = t.closest('[data-dsn-tab]'))){ stop(e); _dsn.tab = el.getAttribute('data-dsn-tab'); _dsn.cid = null; renderReads(); return; }
     if ((el = t.closest('[data-dsn-clause]'))){ stop(e); const r = dsnRun(_dsn.run); if (r) dscLand(r.askIds[0], el.getAttribute('data-dsn-clause'), false); return; }
     if ((el = t.closest('[data-dsn-ck]'))){ stop(e); const r = dsnRun(_dsn.run);
