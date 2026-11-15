@@ -41,7 +41,8 @@ test('1 · the Board\'s head: Summarise my board, then the Pulse board, the last
      leading the greeting's, where the day and Live follow */
   /* RE-POINTED 14 Nov 2026 (owner: "add a draft agreement button next to the explorer and read down buttons on the board
      page"): Draft agreement now ends the run, after Explorer */
-  assert.match(head, /const acts = `\$\{pack \|\| ''\}\$\{bs\.btn\}\$\{hbPulseBtnHtml\(\)\}\$\{hbExplorerBtnHtml\(\)\}\$\{hbDraftBtnHtml\(\)\}`;/, 'Summarise, the Pulse board, Explorer, Draft agreement, in that order');
+  /* RE-POINTED (owner's pick, 15 Nov 2026: Green Spark on the Board): Discover stands between Explorer and Draft agreement */
+  assert.match(head, /const acts = `\$\{pack \|\| ''\}\$\{bs\.btn\}\$\{hbPulseBtnHtml\(\)\}\$\{hbExplorerBtnHtml\(\)\}\$\{hbDiscoverBtnHtml\(\)\}\$\{hbDraftBtnHtml\(\)\}`;/, 'Summarise, the Pulse board, Explorer, Discover, Draft agreement, in that order');
   const whole = HB.slice(HB.indexOf('function hbBoardHeadHtml('), HB.indexOf("/* THE PULSE BOARD'S DOOR"));
   assert.match(whole, /\+ `\$\{acts\}<\/div><\/section>`;/, 'in the old look they end the row');
   assert.match(HB, /if \(on\('\[data-hb-explorer\]'\)\)\{ if \(typeof caGo === 'function'\) caGo\(\{ kind: 'go', place: 'explorer' \}\)/, 'Explorer\'s button moves through the one mover');

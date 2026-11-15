@@ -99,6 +99,9 @@ function askColWidths(n){ return (AC_COL_W[n] || []).slice(); }
    the reader is outside of left out (the server would refuse it), the first
    AC_MAX — and the cut is said in the form. */
 function askColShown(){
+  /* DISCOVER CHOOSES ITS OWN CONTRACTS (owner, 15 Nov 2026: "begin the discover process from the folders"): while the
+     Discover page is in front and its New read has a choice, the read goes to exactly those, in the list's order */
+  if (AC.scope && Array.isArray(AC.scope.ids) && typeof state !== 'undefined' && state.view === 'reads') return AC.scope.ids.slice();
   let cs = [];
   try { cs = (typeof regFiltered === 'function') ? regFiltered() : []; } catch (_){ cs = []; }
   return cs.filter(c => c && c.id && !c._codeNamed).map(c => String(c.id));
@@ -1988,8 +1991,13 @@ async function askColAskHere(o){
   }
   if (!plan || !plan.pick.length) return { none: true };
   base.run = askColRunId(plan);
+  /* where it was asked and how many were chosen ride the read's record (Discover's list of reads says them) */
+  if (Array.isArray(o.where) && o.where.length) base.run.where = o.where.slice(0, 40);
+  if (Number(o.of) > 0) base.run.of = Number(o.of);
   AC.form = null; AC.chosen = null;
+  if (typeof o.onRun === 'function') try { o.onRun(base.run.id); } catch (_){}
   const got = await askColReadRun(base, plan.pick, { name, onFirst: o.onFirst });
+  got.runId = base.run.id;
   const named = (!o.pack && got.asks[0] && got.asks[0].name) || name;
   askColRunEnd(got, base, named);
   if (!got.stopped && !got.err && typeof toast === 'function') toast(askColDoneSay(named, got), 'ok');

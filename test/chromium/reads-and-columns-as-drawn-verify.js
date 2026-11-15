@@ -114,21 +114,19 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       check(`${nm} 5b Rename: the box holds the name; "Which law" stands on the column's head and is kept on the server`, box && renamed && kept, { box, renamed, kept });
       await page.evaluate(async () => { const id = Object.keys(AC.asks).find(k => AC.asks[k].name === 'Which law'); if (id) await api('columns/' + id + '/name', 'POST', { name: 'Governing law' }); if (id) AC.asks[id].name = 'Governing law'; });
 
-      /* 6 · Reads */
+      /* 6 · Reads — RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): the list of reads — one top line with New
+         read, When · Question · Where · Read · Found · By, nothing out of its cell; the chosen read's summary in the panel
+         with Open the results and Delete question; no cost */
       await page.evaluate(() => setView('reads'));
-      await until(page, () => !!document.querySelector('.rdn-table.rdn2 tbody tr[data-rd-row]') && /Where it shows/i.test((document.getElementById('ins-panel') || {}).innerText || ''), null, 15000);
+      await until(page, () => !!document.querySelector('#rd-page.dsn-page tbody tr[data-dsn-run]') && !!document.querySelector('#ins-panel [data-dsn-open]'), null, 15000);
       const R = await page.evaluate(() => { const hd = document.querySelector('.rdn-head');
-        const mids = [...hd.querySelectorAll('.ctf-h, .ctf-hf, .rdn-ask')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; });
-        const spill = [...document.querySelectorAll('.rdn-table.rdn2 td, .rdn-table.rdn2 th')].filter(td => [...td.querySelectorAll('*')].concat([td]).some(e => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow === 'visible')).length;
-        const out = [...document.querySelectorAll('.rdn-table.rdn2 td, .rdn-table.rdn2 th')].filter(td => { const r = td.getBoundingClientRect(); return [...td.querySelectorAll('*')].some(e => { const x = e.getBoundingClientRect(); return x.width && (x.right > r.right + 1 || x.left < r.left - 1); }); }).length;
-        return { head: hd.innerText.replace(/\s+/g, ' ').trim(), oneLine: Math.max(...mids) - Math.min(...mids) <= 4, tabs: [...document.querySelectorAll('[data-rdn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-          cols: [...document.querySelectorAll('.rdn-table.rdn2 thead th')].map(t => t.textContent.trim()), out, spill, panel: document.getElementById('ins-panel').innerText, page: document.getElementById('rd-page').innerText }; });
-      /* RE-POINTED (owner, 12 Nov 2026): Reads is the Discover page — its name, the ask box with its one button, Kept · Packs · Every read */
-      const ask = await page.evaluate(() => !!document.getElementById('dsc-q') && !!document.getElementById('dsc-go'));
-      check(`${nm} 6 Discover as drawn: one top line, the ask box and its button, Kept · Packs · Every read, the five columns, nothing out of its cell; the panel's Where it shows, Read the other 10, Delete question`,
-        /^Discover 1 question · 50 answers kept$/.test(R.head) && ask && R.oneLine && R.tabs.map(t => t.replace(/ \d+$/, '')).join('|') === 'Kept|Packs|Every read'
-        && R.cols.join('|') === 'Question|Read|Answers|On the list of|Asked' && R.out === 0 && /WHERE IT SHOWS/i.test(R.panel) && /Read the other 10/.test(R.panel) && /Delete question/.test(R.panel)
-        && !COST.test(R.panel + R.page), { head: R.head, oneLine: R.oneLine, tabs: R.tabs, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
+        const mids = [...hd.querySelectorAll('.ctf-h, .ctf-hf, #dsn-new')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; });
+        const out = [...document.querySelectorAll('.dsn-table td, .dsn-table th')].filter(td => { const r = td.getBoundingClientRect(); return [...td.querySelectorAll('*')].some(e => { const x = e.getBoundingClientRect(); return x.width && (x.right > r.right + 1 || x.left < r.left - 1); }); }).length;
+        return { head: hd.innerText.replace(/\s+/g, ' ').trim(), oneLine: Math.max(...mids) - Math.min(...mids) <= 6,
+          cols: [...document.querySelectorAll('.dsn-table thead th')].map(t => t.textContent.trim()), out, panel: document.getElementById('ins-panel').innerText, page: document.getElementById('rd-page').innerText }; });
+      check(`${nm} 6 Discover's list of reads: one top line with New read, the six columns, nothing out of its cell; the panel's Open the results and Delete question`,
+        /^Discover Every read your team has run/.test(R.head) && R.oneLine && R.cols.join('|') === 'When|Question|Where|Read|Found|By' && R.out === 0
+        && /Open the results/.test(R.panel) && /Delete question/.test(R.panel) && !COST.test(R.panel + R.page), { head: R.head, oneLine: R.oneLine, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
       await shot('7-reads');
       check(`${nm} 7 no page errors`, !errs.length, errs);
       await page.close();

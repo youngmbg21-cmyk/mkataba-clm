@@ -154,14 +154,14 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
   /* 6 · Reads */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'reads' }));
-    const up = await until(page, () => !!document.querySelector('.rdn-table tbody tr[data-rd-row]'), null, 12000);
-    const heads = await page.evaluate(() => [...document.querySelectorAll('.rdn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
-    /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): the next batch is the panel's Read the other N, not the row's */
-    const more = await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]'), null, 8000);
-    /* RE-POINTED (owner, 12 Nov 2026, Discover): a pack is a chip under the ask box, and a row of the Packs tab */
-    const packs = await page.evaluate(() => !!document.querySelector('#rd-page.dsc-page [data-dsc-pack]'));
+    /* RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): the list of reads; a pack is a chip on New read */
+    const up = await until(page, () => !!document.querySelector('#rd-page.dsn-page tbody tr[data-dsn-run]'), null, 12000);
+    const heads = await page.evaluate(() => [...document.querySelectorAll('.dsn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
+    const more = await until(page, () => !!document.querySelector('#ins-panel [data-dsn-open]'), null, 8000);
+    await page.evaluate(() => { const b = document.getElementById('dsn-new'); if (b) b.click(); });
+    const packs = await until(page, () => !!document.querySelector('#rd-page.dsn-page [data-dsc-pack]'), null, 8000);
     await shot('6-reads');
-    check('6 Reads: questions and packs in one table, Read the other N in the panel', up && heads.join('|') === 'question|read|answers|on the list of|asked' && more && packs, heads);
+    check('6 Reads: every read in one table, its summary in the panel, a pack a chip on New read', up && heads.join('|') === 'when|question|where|read|found|by' && more && packs, heads);
   } catch (e) { check('6 Reads', false, String(e).slice(0, 200)); }
 
   /* 7 · Our paper */

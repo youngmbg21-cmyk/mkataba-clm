@@ -17577,6 +17577,9 @@
   /* THE BOARD'S DRAFT AGREEMENT IS GREEN, THE SIZE OF ITS NEIGHBOURS (owner, 14 Nov 2026): the same small pill as Summarise, Pulse board and Explorer, on one line, worn green so the way to start is found first */
   .hb-btn.hb-draft-go{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;background:var(--st-green-bg);color:var(--accent-ink);border-color:transparent;box-shadow:none;font-weight:inherit}
   .hb-btn.hb-draft-go:hover{background:var(--st-green-line);color:var(--accent-ink-700)}
+  /* GREEN SPARK ON THE BOARD (owner's pick, 15 Nov 2026): Discover filled in Jambo's green, white words, his spark */
+  .hb-btn.hb-discover-go{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;background:var(--accent-ink);color:var(--color-surface);border-color:transparent;box-shadow:none}
+  .hb-btn.hb-discover-go:hover{background:var(--accent-ink-700);color:var(--color-surface)}
   .ui-btn-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-label)}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);border-color:var(--accent-solid-hover)}
   .ui-btn-plain{background:transparent;border-color:transparent;color:var(--accent-ink)}
@@ -19697,6 +19700,34 @@
   html.lg-new .dsc-page .rdn-panel .rfp-acts>button{flex:none;white-space:nowrap}
   html.lg-new .dsc-live-bar{height:4px;margin:var(--s-2);border-radius:999px;background:var(--surface-2);overflow:hidden}
   html.lg-new .dsc-live-bar>i{display:block;height:100%;background:var(--color-text)}
+  /* THE NEW DISCOVER (owner, 15 Nov 2026): four screens on the one white sheet — the list of reads, New read, while it
+     reads, the results; labelled filters, a tick per folder, the step line, a full-width search; tokens only */
+  html.lg-new .dsn-page .rdsc-top .rdt-sp{flex:1}
+  html.lg-new .dsn-table td.rdn-c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .dsn-page .rdn-head{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap}
+  html.lg-new .dsn-page .rdn-head .ui-btn{align-self:center}
+  html.lg-new .dsn-back{font-size:13px;white-space:nowrap}
+  html.lg-new .dsn-steps{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2);font-size:13px;color:var(--color-quiet)}
+  html.lg-new .dsn-steps>span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  html.lg-new .dsn-steps i{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:var(--surface-2);font-style:normal;font-size:11px;font-weight:var(--w-strong)}
+  html.lg-new .dsn-steps .is-on{color:var(--color-text);font-weight:var(--w-strong)}
+  html.lg-new .dsn-steps .is-on i{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .dsn-steps .is-done i{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .dsn-steps em{width:18px;height:1px;background:var(--color-divider)}
+  html.lg-new .dsn-fs{display:flex;flex-wrap:wrap;gap:var(--s-4);margin:var(--s-4) 0 var(--s-3)}
+  html.lg-new .dsn-f{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .dsn-f select{min-width:150px;height:var(--ctl-h);padding:0 28px 0 10px;border:0;border-radius:8px;background-color:var(--surface-2);font:inherit;font-size:13px;color:var(--color-text)}
+  html.lg-new .dsn-table tr.dsn-row{cursor:pointer}
+  html.lg-new .dsn-table tr.dsn-row.is-sel>td{background:var(--surface-2)}
+  html.lg-new .dsn-ck{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:5px;box-shadow:inset 0 0 0 1.5px var(--color-neutral-300);font-size:11px;color:var(--color-surface)}
+  html.lg-new .dsn-ck.is-on{background:var(--color-text);box-shadow:none}
+  html.lg-new .dsn-read{display:inline-flex;align-items:center;gap:var(--s-3);white-space:nowrap}
+  html.lg-new .dsn-read .rdn-prog{width:120px;margin-top:0}
+  html.lg-new .dsn-prog{margin:var(--s-3) 0}
+  html.lg-new .dsn-prog .dsc-live-bar{margin:6px 0 0}
+  html.lg-new .dsn-table td.dsn-quote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+  html.lg-new .dsn-search{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl-h-lg);padding:0 var(--s-4);border-radius:999px;background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .dsn-search input{flex:1;min-width:0;height:100%;border:0;background:none;outline:0;box-shadow:none;font:inherit;font-size:14px;color:var(--color-text)}
   html.lg-new .dsc-paper{box-sizing:border-box;min-height:100%;padding:var(--s-4);background:var(--desk-ground)}
   html.lg-new .dsc-sheet{min-height:320px;padding:var(--s-6) var(--s-4);background:var(--color-surface);font-family:var(--font-doc);font-size:13.5px;line-height:1.6;color:var(--color-text);overflow-wrap:anywhere}
   html.lg-new .dsc-sheet h4{margin:0;font:inherit;font-size:15px;font-weight:var(--w-strong);text-align:center}

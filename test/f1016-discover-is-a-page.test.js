@@ -41,34 +41,35 @@ test('f1016 (2) the ask from Discover is the one read, over the Contracts list a
   assert.doesNotMatch(b, /regState\(\)|R\.ask\b/, 'it brings no column onto any list');
   assert.match(read('js/views/askcolumn.js'), /Object\.assign\(window, \{ askColAskHere, askColShown,/, 'published');
   assert.match(fnBody(REG, 'regScopeWords'), /regOnCt\(R=>/, 'the list is said in words off the Contracts state');
-  assert.match(fnBody(RD, 'dscScope'), /askColShown\(\)[\s\S]*regScopeWords\(\)/, 'the page asks the list and says which');
+  /* RE-POINTED (owner, 15 Nov 2026, the new Discover): the page chooses its own contracts (folders ticked on New read);
+     the read goes to exactly those while Discover is in front, and its record keeps where and how many */
+  assert.match(fnBody(AC, 'askColShown'), /if \(AC\.scope && Array\.isArray\(AC\.scope\.ids\) && typeof state !== 'undefined' && state\.view === 'reads'\) return AC\.scope\.ids\.slice\(\);/);
+  assert.match(b, /base\.run\.where = o\.where/); assert.match(b, /base\.run\.of = Number\(o\.of\)/); assert.match(b, /got\.runId = base\.run\.id;/);
 });
 
-test('f1016 (3) the page: one box, one black button, chips that only fill it, three tabs', () => {
-  const ask = fnBody(RD, 'dscAskHtml'), btn = fnBody(RD, 'dscAskBtnHtml'), chips = fnBody(RD, 'dscChipsHtml');
-  assert.match(ask, /id="dsc-q"/); assert.match(btn, /id="dsc-go"/);
-  assert.match(btn, /if \(A && A\.busy\) return `<button[^`]*id="dsc-stop"/, 'Stop stands in the box while he reads');
-  assert.match(btn, /id="dsc-carry"/, 'stopped, the same place reads the rest');
-  assert.match(btn, /p\.unread <= p\.size \? _rdTn\('dsc_ask_n', p\.unread\) : _rdT\('dsc_ask_first', \{ k: p\.pick, n: p\.unread \}\)/, 'a cap is a fact: the button says how many');
-  assert.doesNotMatch(btn + ask + chips, /calls|rd_calls|ac_n_calls/, 'no Jambo cost is said');
-  assert.match(chips, /data-dsc-pack=/); assert.match(chips, /data-dsc-q=/);
+/* RE-POINTED (owner, 15 Nov 2026, the new Discover): New read has the one box and the one black button; chips only fill */
+test('f1016 (3) New read: one box, one black button saying how many, chips that only fill it', () => {
+  const n = fnBody(RD, 'dsnNewHtml');
+  assert.match(n, /id="dsc-q"/); assert.match(n, /id="dsc-go"/);
+  assert.match(n, /p\.unread <= p\.size \? _rdTn\('dsn_read_n', p\.unread\) : _rdT\('dsn_read_first', \{ k: p\.pick \}\)/, 'a cap is a fact: the button says how many');
+  assert.doesNotMatch(n, /calls|rd_calls|ac_n_calls/, 'no Jambo cost is said');
+  assert.match(n, /data-dsc-pack=/); assert.match(n, /data-dsc-q=/);
   const wire = RD.slice(RD.indexOf('document._rdnWired = true'));
   assert.match(wire, /closest\('\[data-dsc-pack\]'\)[\s\S]{0,400}?_dsc\.pack = [\s\S]{0,120}?renderReads\(\)/, 'a pack chip fills the box');
-  assert.doesNotMatch(wire.slice(wire.indexOf("closest('[data-dsc-pack]')"), wire.indexOf("closest('[data-dsc-go]')")), /askColAskHere|dscAsk\(/, 'a chip never reads on its own');
-  const page = fnBody(RD, 'rdnRender');
-  assert.match(page, /tab\('kept', _rdT\('dsc_tab_kept'\), kept\.length\)\}\$\{tab\('packs', _rdT\('rd_tab_packs'\), packs\.length\)\}\$\{tab\('all', _rdT\('dsc_tab_all'\), rows\.length\)\}/);
-  assert.match(page, /listRowsSwapHtml\(\{ page: '#rd-page\.dsc-page'/, 'a tab press redraws only the rows');
+  assert.doesNotMatch(wire.slice(wire.indexOf("closest('[data-dsc-pack]')"), wire.indexOf("closest('[data-dsc-open]')")), /askColAskHere|dsnAsk\(/, 'a chip never reads on its own');
+  const r = fnBody(RD, 'dsnReadingHtml');
+  assert.match(r, /id="dsc-stop"/, 'Stop stands while he reads'); assert.match(r, /id="dsc-carry"/, 'stopped, Carry on reads the rest');
 });
 
-test('f1016 (4) a question opens under its row; the panel has three faces', () => {
-  const p = fnBody(RD, 'dscPanelPaint');
-  assert.match(p, /if \(b\)\{[\s\S]*?dscPaperHtml\(b\.askId, cid\)/, 'a read in flight: the paper of the contract just read');
-  assert.match(p, /if \(r && _dsc\.pick\)\{[\s\S]*?dscPaperHtml\(r\.askIds\[0\], _dsc\.pick\)[\s\S]*?jlLinks: dscPaperLinksHtml/, 'an answer chosen: its paper, the two links above Jambo\'s box');
-  assert.match(p, /rdnPanelPaint\(rows\);\s*\}$/, 'closed: the question\'s summary');
-  assert.match(fnBody(RD, 'dscOpenList'), /sort\(\(x, y\) => _dscRank\(x\.t\) - _dscRank\(y\.t\)\)/, 'the risky answers first');
+/* RE-POINTED (owner, 15 Nov 2026, the new Discover): the panel shows the paper while reading and on the results */
+test('f1016 (4) the panel: the paper just read, the chosen answer\'s paper, else the summary', () => {
+  const p = fnBody(RD, 'dsnPanelPaint');
+  assert.match(p, /if \(_dsn\.screen === 'reading'\)\{[\s\S]*?dscPaperHtml\(askId, cid\)/, 'a read in flight: the paper of the contract just read');
+  assert.match(p, /if \(r && _dsn\.cid\)\{[\s\S]*?dscPaperHtml\(k, _dsn\.cid\)[\s\S]*?jlLinks: dscPaperLinksHtml/, 'a result chosen: its paper, the two links above Jambo\'s box');
+  assert.match(fnBody(RD, 'dsnResultsShown'), /_dscRank\(_rdTone\(x\)\)/, 'the risky answers first');
   assert.match(fnBody(RD, 'dscLand'), /askColLandOn\(cid, quote\)/, 'Open clause is the one lander');
   assert.match(fnBody(RD, 'dscLand'), /openRedlineWorkbench\(cid\)/, 'redlining goes through the one door');
-  assert.match(fnBody(RD, 'rdnPanelPaint'), /data-dsc-keep=/, 'Keep in Discover stands on the question\'s summary');
+  assert.match(fnBody(RD, 'dsnListPanel'), /data-dsn-keep=/, 'Keep in Discover stands on the read\'s summary');
   assert.doesNotMatch(RD.slice(RD.indexOf('const DSC_OPEN_MAX')), /negoFileChange|changes\.push|persist\(/, 'the page files nothing');
 });
 

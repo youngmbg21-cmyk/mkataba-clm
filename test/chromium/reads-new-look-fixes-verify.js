@@ -27,7 +27,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 2 first (on Reads): fold the panel */
   try {
-    const up = await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]') && !!document.querySelector('#ins-panel [data-jl-fold]'), null, 20000);
+    /* RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER): the panel is the chosen read's summary */
+    const up = await until(page, () => !!document.querySelector('#ins-panel [data-dsn-open]') && !!document.querySelector('#ins-panel [data-jl-fold]'), null, 20000);
     const before = up ? await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('content-scroll')).marginRight)) : null;
     if (up) await page.click('#ins-panel [data-jl-fold]');
     const folded = await until(page, () => !!document.querySelector('#ins-panel.is-folded'), null, 8000);
@@ -43,11 +44,12 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): Read the other N is the chosen question's, in the panel */
     /* the press waits for the Discover page itself: while the panel is folded the window is too narrow for list and
        panel, and the old Reads page (whose Read N more goes to Contracts) stands for a moment */
-    await until(page, () => !!document.querySelector('#rd-page.dsc-page #ins-panel:not(.is-folded) [data-rd-act="next"]'), null, 15000);
-    await page.click('#rd-page.dsc-page #ins-panel [data-rd-act="next"]');
+    /* RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER): the chosen read's "Read the N left" reads the next batch of the same folders */
+    await until(page, () => !!document.querySelector('#ins-panel:not(.is-folded) [data-dsn-more]'), null, 15000);
+    await page.click('#ins-panel [data-dsn-more]');
     /* RE-POINTED (owner, 12 Nov 2026, Discover): the read runs on this page, never by way of Contracts */
-    const read = await until(page, () => !!document.querySelector('#rd-page.dsc-page tr.is-live') || !document.querySelector('#ins-panel [data-rd-act="next"]'), null, 15000);
-    const list = await page.evaluate(() => state.view === 'reads' && !!document.querySelector('#rd-page.dsc-page'));
+    const read = await until(page, () => !!document.querySelector('#rd-page.dsn-page[data-dsn-screen="reading"]'), null, 15000);
+    const list = await page.evaluate(() => state.view === 'reads' && !!document.querySelector('#rd-page.dsn-page'));
     check('1 Read N more reads here, on the Discover page (the page never leaves for Contracts)', list && read, { list, read });
   } catch (e) { check('1 read more', false, String(e).slice(0, 200)); }
 
