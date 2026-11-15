@@ -56,6 +56,24 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the review of how a contract is started (13 Nov 2026). Its photos came out in the old look by mistake, because the old look is still what HaTi draws unless the new look is switched on for an admin.
 - **Notes:** today the new look is a per-person switch that only works for admins (everyone else still gets the old look). Deleting the old one means making the new look the only one for every role, then removing the old screens, styles and the switch. The phone's screens need a decision: they are separate from both looks. A big job; best done in stages.
 
+### P-6 · Discover sends only the part of a contract that answers the question
+- **Added:** 15 Nov 2026 · **Status:** Waiting
+- **What:** before Jambo reads a contract for a Discover question, HaTi finds the clauses that matter (for a payment question, the payment and invoicing clauses) without AI, and sends only those, not the whole contract.
+- **Where it came from:** the owner's question "is hati using AI … how costly could it be to read 300 contracts?" and "How do best in class platforms manage this issue?" (15 Nov 2026). Today every read sends the whole wording; 300 typical contracts cost about $8.
+- **Notes:** the biggest saving of the three (roughly $8 down to $1–2 for 300) and nothing changes on screen. The risk is missing an answer that sits in an unexpected clause, so a "not found" should fall back to reading the whole contract.
+
+### P-7 · Simple Discover questions use the cheaper model
+- **Added:** 15 Nov 2026 · **Status:** Waiting
+- **What:** simple look-ups ("what is the notice period?", "which law governs?") go to Jambo's fast, cheaper model; judgement questions keep the stronger one.
+- **Where it came from:** the same conversation (15 Nov 2026).
+- **Notes:** the cheaper model costs about half per word read in HaTi's price table. Needs a reliable way to tell a simple question from a judgement one, or a per-question choice kept with the question.
+
+### P-8 · Big Discover reads can run overnight at about half price
+- **Added:** 15 Nov 2026 · **Status:** Waiting
+- **What:** a large read (for example 300 contracts) can be sent as an overnight batch, which the AI provider charges at about half price; the answers arrive within hours instead of seconds.
+- **Where it came from:** the same conversation (15 Nov 2026).
+- **Notes:** a new choice on New read ("Now" or "Overnight, cheaper") and a way to tell the person when the answers are in (the bell). Today every read is live and full price.
+
 ## Done
 
 _(nothing yet)_
