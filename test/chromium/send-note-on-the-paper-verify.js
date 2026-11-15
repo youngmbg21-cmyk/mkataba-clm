@@ -82,6 +82,14 @@ const SIZES = SHOTS ? [[1440, 780], [1536, 730], [1366, 950]] : [[1440, 780]];
         const shown = [...s.querySelectorAll('#sh-st-ppl .sh-st-p, #sh-lt-tosay')].filter(e => e.getClientRects().length).length;
         return { top: Math.round(mk.top - r.top), left: Math.round(mk.left - r.left), right: Math.round(r.right - go.right), shown }; }, 3000);
       check(`${w}x${ht} step 1 open: 16px inside the grey, its person listed once`, !!s1 && s1.top >= 15 && s1.left >= 15 && s1.right >= 15 && s1.shown === 1, JSON.stringify(s1));
+      /* THE NOTE'S LIMIT (f1053 (5)): typed past it, the box stops at the most the email carries; near it, a count */
+      const cap = await page.evaluate(async () => { const t = document.getElementById('sh-summary'); t.value = ''; t.focus();
+        return { max: t.maxLength }; });
+      if (cap && cap.max > 0) { await page.keyboard.insertText('x'.repeat(cap.max + 50)); }
+      const capped = await waitFor(page, () => { const t = document.getElementById('sh-summary'), c = document.getElementById('sh-note-count');
+        return t && c && !c.hidden ? { len: t.value.length, max: t.maxLength, say: c.textContent } : null; }, 3000);
+      check(`${w}x${ht} the note stops at its limit and says how full it is`, !!capped && capped.max === 1000 && capped.len === 1000 && /1000 of 1000/.test(capped.say), JSON.stringify(capped));
+      await page.evaluate(() => { const t = document.getElementById('sh-summary'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); t.blur(); });
       check(`${w}x${ht} no script errors`, errors.length === 0, errors.slice(0, 2).join(' | '));
       await page.close();
     }

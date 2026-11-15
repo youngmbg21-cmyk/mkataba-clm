@@ -58,3 +58,13 @@ test('f1053 (4) the note is a line of the letter: a row, no label on show, its e
   assert.match(core, /ta\.style\.width=want<=room \? want\+'px' : '100%';/);
   assert.match(core, /p\.k==='ans' \|\| p\.k==='round'/, 'Jambo is told the sentence goes');
 });
+test('f1053 (5) the note\'s limit is said, never a silent cut: the box stops there, a count from four fifths, Send refuses past it', () => {
+  const core = read('js/core.js').replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.match(core, /<\/textarea><\/label><p class="sh-note-count" id="sh-note-count" aria-live="polite" hidden><\/p>/);
+  assert.match(core, /function shareNoteMax\(colleague\)\{\s*return colleague \? \(\(typeof PASS_NOTE_MAX==='number'\)\?PASS_NOTE_MAX:2000\) : \(\(typeof SHARE_MAIL_NOTE_MAX==='number'\)\?SHARE_MAIL_NOTE_MAX:1000\);/);
+  assert.match(core, /const show=n>=Math\.floor\(max\*0\.8\), over=n>max;/);
+  assert.match(core, /ta\.dataset\.noteMax=String\(mx\); ta\.maxLength=mx;/);
+  assert.match(core, /const msg=\[summary,note\]\.filter\(Boolean\)\.join\('\\n\\n'\);\s*\{ const max=shareNoteMax\(false\); if\(msg\.length>max\)\{ toast\(i18t\('sh_col_note_cap', \{ n:msg\.length, max \}\),'err'\);/);
+  assert.strictEqual((I.match(/\n {4}sh_note_count: /g) || []).length, 2, 'both books');
+  assert.ok(CSS.includes('html.lg-new #sh-letter .sh-note-count.is-over{color:var(--st-amber-fg)}'));
+});

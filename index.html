@@ -19106,6 +19106,12 @@
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) textarea::placeholder{color:var(--color-neutral-400);font-style:italic;opacity:1}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-nl-jb{margin:0;padding-top:3px;white-space:nowrap}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-nl-jb > span{display:none}
+  /* THE NOTE'S LIMIT, SAID (14 Nov 2026; core.js shareNoteCount): a quiet count under the note from four fifths of the
+     way, amber past it; inline state, no band */
+  html.lg-new #sh-letter .sh-note-count{margin:var(--s-1) 0 0;font-family:var(--font-body);font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new #sh-letter .sh-note-count[hidden]{display:none}
+  html.lg-new #sh-letter .sh-note-count.is-over{color:var(--st-amber-fg)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-note-count{flex-basis:100%;order:1}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps #sh-lt-after .sh-lt-say.is-lead{font-family:var(--font-doc);font-size:15px;line-height:1.55;color:var(--color-doc-text);margin:0}
   /* THE SEND SCREEN, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; core.js shareLegoraArrange): the letter is a full
      white paper on the grey desk; the choices one sentence of soft pills above it; nothing outlined anywhere */
