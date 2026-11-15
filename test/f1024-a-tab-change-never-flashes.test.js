@@ -70,7 +70,7 @@ test('f1024 (5) nothing changed, nothing written: the panel is kept only without
   assert.match(same, /if\(ids\.length!==els\.length\) return false;/, 'a different count of acts = written whole');
   assert.match(same, /el\.setAttribute\('data-pd-act',ids\[i\]\)/, 'the kept buttons take this build\'s acts');
   /* the painter asks once, after the whole panel is worked out and before it is written; then stamps what it wrote */
-  const ask = dock.indexOf('if(igDockSame(dock,_html)){'), write = dock.indexOf('dock.innerHTML=_html;'), st = dock.indexOf('igDockStamp(dock,_html);');
+  const ask = dock.indexOf('if(igDockSame(dock,_html)){'), write = dock.indexOf('igDockWrite(dock,_html,') /* written part by part, the same parts kept (14 Nov 2026) */, st = dock.indexOf('igDockStamp(dock,_html);');
   assert.ok(ask > 0 && ask < write && write < st, 'ask, write, stamp');
   assert.equal((dock.match(/igDockForget\(\)/g) || []).length, 2, 'the folded strip and the Calendar\'s panel forget it');
 });
