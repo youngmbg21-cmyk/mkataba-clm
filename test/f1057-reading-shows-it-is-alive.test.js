@@ -45,7 +45,11 @@ test('f1057 (3) the typed line runs on its own clock and says only what HaTi hol
 
 test('f1057 (4) Jambo\'s panel while it reads: the words found, drifting; no links; motion picks up where it was', () => {
   const P = fnBody(RD, 'dsnPanelPaint');
-  assert.match(P, /if \(_dsn\.screen === 'reading' && b\)\{/); assert.match(P, /item: \{ id: 'drift' \}, body: `<div class="rfp-panel is-drawn rdn-panel">\$\{dsnDriftHtml\(\)\}<\/div>`/); assert.match(P, /jlLinks: '' \}\)\);\s*return;/, 'no links while it reads');
+  assert.match(P, /if \(_dsn\.screen === 'reading' && b\)\{/); assert.match(P, /item: \{ id: 'drift' \}, body: `<div class="rfp-panel is-drawn rdn-panel dsn-drift-panel">\$\{dsnDriftHtml\(\)\}<\/div>`/);
+  /* the quotes fill the panel, piling up from the foot (owner, 15 Nov 2026: "Make use of the space") */
+  assert.match(CSS, /\.rdn-panel\.dsn-drift-panel\{box-sizing:border-box;height:100%;display:flex;flex-direction:column\}/);
+  assert.match(CSS, /\.dsn-drift\{display:flex;flex-direction:column;flex:1;min-height:0\}/);
+  assert.match(fnBody(RD, 'dsnDriftHtml'), /\.slice\(-DSN_DRIFT_KEEP\)/); assert.match(RD, /const DSN_DRIFT_KEEP = 30;/); assert.match(P, /jlLinks: '' \}\)\);\s*return;/, 'no links while it reads');
   assert.match(fnBody(RD, 'dsnDriftHtml'), /_dsnDelay\(9\)/);
   assert.match(RD, /const _dsnDelay = \(period, off\) => `animation-delay:\$\{\(-/);
   const kf = n => (CSS.match(new RegExp('@keyframes ' + n + '\\{[^\\n]*')) || [''])[0];
