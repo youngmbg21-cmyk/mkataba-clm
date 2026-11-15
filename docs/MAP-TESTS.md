@@ -478,6 +478,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
 - f481 (view `playbook` = the standards tab)
 - f244, f907, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
+- f1057 (the Builder arrives in one step: no Our paper or page underneath on the way).
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
 - f1049 (10): From nothing's contents page on one paper size, scrolling inside; Jambo's panel; New agreement's head as tall as Jambo's (14 Nov 2026).
