@@ -69,3 +69,17 @@ drawing late; ticking off a chase). Each time, the run stops until the owner pre
 - (a) leave them, and the run waits for the owner whenever one trips; or
 - (b) first make those two checks wait properly for what they test (no check loosened: each waits for the state,
   bounded, as the house rule says), so the run is not stopped by them.
+
+## Where it ended (14 Nov 2026, pull request 721 merged)
+- DONE: the chase list keeps an untick; two unlucky checks wait properly (the Board's, the chase list's); the measure
+  counts opening a contract as a move, follows the list that was scrolled, and says which redraws were "for nothing";
+  the same page drawn again keeps its side panel and writes only what changed (the Handbook, Our paper, the list
+  pages); the Calendar's Mine | All keeps its place.
+- LEFT, with why: Jambo's panel still redraws for nothing on some presses (Explorer's lenses, the Calendar's ✦,
+  Redlines' tabs) — `renderIntelDock` binds about 34 of its frame's buttons on every paint, so keeping its pieces
+  would make them fire twice; it needs its own job (those buttons delegated once first). The other lost places the
+  measure lists are presses that send the reader somewhere and land there, and the house picker left alone.
+- ALSO SEEN: three more checks fail now and then on GitHub's machines (explorer-magnitude 4a2, one-shade 1, the door
+  exam's oblig · board); each passed on a re-run; each is in the bug log.
+- THE FINAL MEASURE waits for a hand run of "rebuild measure" on main (this session may not start one).
+- TEST NUMBERS: two other sessions also took f1049 and f1050 the same day; the files differ by name and all run.

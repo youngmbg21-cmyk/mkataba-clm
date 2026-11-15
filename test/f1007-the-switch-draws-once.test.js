@@ -71,7 +71,7 @@ describe('f1007 — the Clean | Redline | Their view switch draws once', () => {
   test('2 · renderIntelDock writes the two facts at every one of its writes', () => {
     const body = fnBody(IG, 'renderIntelDock');
     assert.ok(body, 'renderIntelDock found');
-    const writes = (body.match(/dock\.innerHTML\s*=/g) || []).length;
+    const writes = (body.match(/dock\.innerHTML\s*=|igDockWrite\(dock,/g) || []).length; /* igDockWrite is the main write since 14 Nov 2026 */
     const marks = (body.match(/igDockMarks\(/g) || []).length;
     assert.ok(writes >= 3, 'the three writes are still there');
     assert.equal(marks, writes, 'one igDockMarks for each dock.innerHTML=');
