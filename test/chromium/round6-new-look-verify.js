@@ -83,7 +83,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
        the folder's panel is This folder.
        RE-POINTED AGAIN (owner, 14 Nov 2026: "the feature for these search being added to the panel should be deleted"):
        Columns you asked is gone from the panel: no asked question, no Add to list, no Remove from list there */
-    /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance, f1054): the folder's panel is the count and one chip, When
+    /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance, f1056): the folder's panel is the count and one chip, When
        they end (a month with any is a door to exactly those), Where the money is, Not done yet (who is not checked, its list) */
     const panel = await until(page, () => !!document.querySelector('.rfp-panel.rfg .rfg-top'), null, 12000);
     const kept = await txt(page, '.rfp-panel');
@@ -98,7 +98,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     if (says.mo){ await page.click('.rfp-panel.rfg button.rfg-mo.has');
       narrowed = await until(page, n => document.querySelectorAll('#reg-tbody tr[data-row]').length === n, says.mo, 6000);
       await page.evaluate(() => regShowOnly(null)); await until(page, () => !regState().only, null, 6000); }
-    check('2b the folder at a glance (f1054): twelve months, a month a door to its contracts, the money as bars, who is not checked with its list; nothing spills',
+    check('2b the folder at a glance (f1056): twelve months, a month a door to its contracts, the money as bars, who is not checked with its list; nothing spills',
       panel && says.months === 12 && says.mo > 0 && narrowed && says.bars > 0 && says.only > 0 && says.only === says.unchecked && says.spill === 0
       && /When they end[\s\S]*Where the money is[\s\S]*Not done yet/i.test(kept), { says, narrowed });
     await shot('2-folder-list');

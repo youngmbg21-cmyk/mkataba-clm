@@ -114,7 +114,7 @@ test('f1016 (8) the old Discover section beside the list is never drawn in the n
   assert.match(fnBody(AC, 'askColDiscoverHtml'), /^function askColDiscoverHtml\(\)\{\s*if \(typeof window\.newLookOn === 'function' && newLookOn\(\)\) return '';/, 'the builder itself stands down in the new look');
 });
 
-/* RE-POINTED (15 Nov 2026): both Discover pills on Contracts are gone (the folder panel's with At a Glance, f1054; the list
+/* RE-POINTED (15 Nov 2026): both Discover pills on Contracts are gone (the folder panel's with At a Glance, f1056; the list
    head's on the owner's word); Green Spark's styles go with them */
 test('f1016 (9) no Discover pill on Contracts, and none of its styles left behind', () => {
   assert.doesNotMatch(REG + AC, /data-ac-discover>/, 'no Discover pill is drawn');

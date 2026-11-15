@@ -11,7 +11,7 @@ const reg = read('js/views/register.js');
 const fn = name => { const m = reg.match(new RegExp('function ' + name + '\\([^)]*\\)\\{[\\s\\S]*?\\n\\}')); assert.ok(m, name + ' exists'); return strip(m[0]); };
 
 /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance): the panel draws regFolderGlanceHtml; regFolderSays stays the
-   ONE reading behind its "Not done yet" (f1054) */
+   ONE reading behind its "Not done yet" (f1056) */
 test('f1053 · the folder\'s panel is At a Glance — and no asked columns', () => {
   const pan = fn('regFolderPanelHtml');
   assert.match(pan, /regFolderGlanceHtml\(book, r,/);

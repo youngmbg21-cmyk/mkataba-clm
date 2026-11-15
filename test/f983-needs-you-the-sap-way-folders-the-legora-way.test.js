@@ -37,7 +37,7 @@ test('2 · the folders: one builder, the most work first, the folder\'s own door
 });
 
 /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance): the folders' panel draws where the money is as one bar split by
-   folder, each folder's row its own door; "Where the work is" is said in the head's sentence. f1054 holds the rest. */
+   folder, each folder's row its own door; "Where the work is" is said in the head's sentence. f1056 holds the rest. */
 test('3 · the folders\' panel: where the money is, each folder its own door', () => {
   const p = fnBody(REG, 'regFoldersGlanceHtml');
   assert.match(p, /class="rfg-lg" data-ctf-folder="\$\{esc\(x\.fid\)\}"/, 'each row its folder\'s door');
