@@ -68,3 +68,9 @@ test('f1054 (5) the note\'s limit is said, never a silent cut: the box stops the
   assert.strictEqual((I.match(/\n {4}sh_note_count: /g) || []).length, 2, 'both books');
   assert.ok(CSS.includes('html.lg-new #sh-letter .sh-note-count.is-over{color:var(--st-amber-fg)}'));
 });
+test('f1054 (6) the round line is the round only, as drawn (owner, 15 Nov 2026); the subject still names the agreement', () => {
+  const m = M.shareMailOf(Object.assign({}, base, { answers: { lines: [], own: [] } }));
+  assert.match(m.body, /\n\nRound 2 is ready for you to read\. You can reply with your own changes\.\n\n/);
+  assert.ok(!/Round 2 of /.test(m.body), 'the body no longer names the agreement');
+  assert.match(m.subject, /Warehousing agreement/);
+});
