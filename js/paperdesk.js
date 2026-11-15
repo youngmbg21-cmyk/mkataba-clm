@@ -6952,7 +6952,14 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const hb = t.closest('[data-pd2-sg-hist]'); if (hb){ e.preventDefault(); if (typeof hbStripBring === 'function') hbStripBring(hb.getAttribute('data-pd2-sg-hist'), 'hist'); return; }
     if (t.closest('[data-pd-send-back]')){ e.preventDefault(); pdSendBack(); return; }
     /* THE DEAL (owner, 23 Oct 2026): the face's button, its tabs, a point's clause, its way back */
-    if (t.closest('[data-rl-head-ladder]')){ e.preventDefault(); const b = document.querySelector('#ig-dock [data-rl-ladder]'); if (b && !b.disabled) b.click(); return; }
+    /* the Redlines switch's Changes (round of the remaining eight): back from Notes, the Ladder or the Deal by their own
+       presses — the one that stands is pressed again, as every opener in HaTi closes */
+    if (t.closest('[data-rl-head-changes]')){ e.preventDefault(); const dk = document.getElementById('ig-dock'); if (!dk) return;
+      const on = dk.querySelector('[data-rl-notes-all][aria-pressed="true"]') || dk.querySelector('[data-rl-ladder][aria-expanded="true"]') || dk.querySelector('[data-rl-deal][aria-pressed="true"]');
+      if (on) on.click(); return; }
+    /* their view's way back: the paper's own Redline press */
+    if (t.closest('[data-rl-tv-back]')){ e.preventDefault(); const r = document.querySelector('[data-ig-red="1"]'); if (r) r.click(); return; }
+    if (t.closest('[data-rl-head-ladder]')){ e.preventDefault(); const b = document.querySelector('#ig-dock [data-rl-ladder][aria-expanded="true"]') || document.querySelector('#ig-dock [data-rl-ladder]'); if (b && !b.disabled) b.click(); return; }
     const dl = t.closest('[data-rl-deal]');
     if (dl){ e.preventDefault(); pdDealOpen(dl.getAttribute('data-rl-deal')); return; }
     /* a point waiting on them: Chase opens the Send screen, the one door to the other side */
@@ -8807,6 +8814,20 @@ function pd2StandsFaceHtml(c){
   let notes = 0; try { notes = (typeof rlNotesTotal === 'function') ? rlNotesTotal(c, {}) : 0; } catch (_){ notes = 0; }
   const row = (k, v, r) => `<div class="pd2-st-row"><b>${E(k)}</b><span>${E(v)}</span>${r ? `<i>${E(r)}</i>` : ''}</div>`;
   const who = String((((Array.isArray(c.changes) ? c.changes : []).find(x => x && x.authorSide === 'counterparty') || {}).author) || '').split(/\s+/)[0];
+  /* THE FIVE PARTS (Jambo's panels, the remaining eight; owner, 15 Nov 2026: "build all eight"): the overlap said as a
+     headline, what stays behind the wall as one group with a lock on each line, Jambo's advice in the card with the act
+     it points to — Share this page, the status link's own press (data-ds-share), the same as over the page (a second
+     door, drawn and picked). The same readings. The new look only. */
+  if (typeof window.newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    const may = (typeof canEdit !== 'function') || canEdit();
+    return jamboOverviewHtml({ eyebrow: [_pdT('jov5_ws_eb'), pd2CardWho(c)].filter(Boolean).join(' \u00b7 '), title: _pdT('jov5_ws_t'), sub: _pdT('jov5_ws_sub', { us, them }),
+      groups: [{ label: _pdT('pd2_st_wall'), rows: [
+        { mark: 'lock', k: _pdT('pd2_st_prepared'), t: prepared ? _pdTn('pd2_st_prepared_n', prepared, { n: prepared }) : _pdT('pd2_st_none'), s: prepared ? _pdT('pd2_st_unsent') : '' },
+        { mark: 'lock', k: _pdT('pd2_st_review'), t: review ? _pdTn('pd2_st_review_n', review, { n: review }) : _pdT('pd2_st_none_open') },
+        { mark: 'lock', k: _pdT('pd2_st_notes'), t: notes ? _pdTn('pd2_st_notes_n', notes, { n: notes }) : _pdT('pd2_st_none') }] }],
+      act: { say: _pdT('pd2_st_jambo', { who: who || them }), label: may ? _pdT('pd2_st_share') : '', attr: may ? `data-ds-share data-ds-cid="${E(c.id)}"` : '' },
+      src: _pdT('jov5_ws_src') }, 'pd2ws');
+  }
   return `<div class="pd2-st-face">
     <p class="pd2-st-lead">${E(_pdT('pd2_st_lead', { us, them }))}</p>
     <div class="pd2-st-cap">${E(_pdT('pd2_st_wall'))}</div>

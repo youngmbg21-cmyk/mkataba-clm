@@ -362,7 +362,7 @@ function stkHeadHtml(c, b, all){
      a serif headline — how many clauses need you — one sentence naming where to start, and the clauses
      as tabs with counts (All · Needs you · Worth a look · Fine) in place of the three filter boxes */
   all = all || stkReview(c, b);
-  return `<div class="stk-head is-mq">
+  return `<div class="stk-head is-mq${stkNewLookOn() ? ' is-five' : ''}">
     ${stkMarqueeHtml(c, all, busy)}
     ${all.length ? '' : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
     ${b.truncated ? `<p class="stk-sub">${_bdE(i18t('stk_cut'))}</p>` : ''}
@@ -393,6 +393,21 @@ function stkClauseName(at){
 function stkNewLookOn(){ return typeof window.newLookOn === 'function' && !!window.newLookOn(); }
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
+  /* THE FIVE PARTS (Jambo's panels, the remaining eight; owner, 15 Nov 2026: "build all eight"): what the reading found
+     as the headline, where to start as its sentence, three numbers (needs you · worth a look · fine) counted off the
+     one reading (stkClauseTally) — the same counts the rows say. The company view's line stays (folded) for what reads
+     it; the list under it is untouched and still follows the paper. */
+  if (stkNewLookOn() && typeof jov5HeadHtml === 'function'){
+    const ats = Object.keys(T.live).map(Number).sort((a, b) => a - b);
+    const lead = ats.find(at => T.live[at].has('need')), look = ats.find(at => T.live[at].has('look'));
+    const at0 = lead != null ? lead : look;
+    const who = typeof pd2CardWho === 'function' ? pd2CardWho(c) : '';
+    const title = T.need ? i18tn('jov5_cl_need_t', T.need, { n: T.need }) : T.look ? i18tn('jov5_cl_look_t', T.look, { n: T.look }) : i18t('jov5_cl_fine_t');
+    const g = (n, l, warn) => `<div class="jov5-g${warn ? ' is-warn' : ''}"><b>${n}</b><span>${E(l)}</span></div>`;
+    return `${stkViewHtml()}${jov5HeadHtml({ eyebrow: [i18t('stk_head'), who].filter(Boolean).join(' \u00b7 '), title, sub: at0 != null ? i18t('jov5_cl_start', { name: stkClauseName(at0) }) : '' })}`
+      + `<div class="jov5-glance">${g(T.need, i18t('jov5_cl_g_need'), T.need > 0)}${g(T.look, i18t('jov5_cl_g_look'))}${g(T.fine, i18t('jov5_cl_g_fine'))}</div>`
+      + `${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
+  }
   if (stkNewLookOn()) return `${stkViewHtml()}${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
   /* THE SAME HEAD AS REDLINES (owner picked "The SAP Way", 24 Oct 2026): the name in the serif, its count, then a
      grey line of what needs you — "Clauses 9 · 3 need you · 5 worth a look" — then the tabs */

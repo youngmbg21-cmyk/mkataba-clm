@@ -19182,6 +19182,7 @@
      card, the long black button; the clause list under it keeps its behaviour and only wears a soft group */
   html.lg-new #ig-dock .stk-head.is-five{display:flex;flex-direction:column;gap:16px}
   html.lg-new #ig-dock .stk-head.is-five > .stk-view{display:none}
+  html.lg-new #ig-dock .pd-th .stk-head.is-mq.is-five > .stk-view{display:none}
   html.lg-new #ig-dock .stk-head.is-five .stk-five-card{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
   html.lg-new #ig-dock .stk-head.is-five .stk-five-card .stk-sub{margin:0;font-size:13.5px;line-height:1.5;color:var(--color-text)}
   html.lg-new #ig-dock .stk-head.is-five .stk-five-card .stk-acts{display:flex;margin:0}
@@ -19401,9 +19402,41 @@
   html.lg-new #ig-dock .rl-band.rl-band-nl b{font-weight:400}
   html.lg-new #ig-dock .rl-band.rl-band-nl i{font-style:normal}
   html.lg-new #ig-dock .rl-face .rl-unsent-go{display:none}
+  /* JAMBO'S REDLINES FACE, THE FIVE PARTS (the remaining eight; owner, 15 Nov 2026: "build all eight"): Changes · Notes ·
+     Deal · Ladder one switch on top, the column's state a serif headline, Send all the long black button in a card with
+     what it does (shown here, as drawn — the paper's line keeps its own), and the Ladder a face of its own: only the
+     change whose ladder is open, its bands and the risks put away */
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-idx-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg{order:-2;flex:1 1 100%;display:flex;gap:2px;margin:0 0 10px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:28px;margin:0;padding:0 8px;border:0;border-radius:999px;background:transparent;box-shadow:none;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button svg{display:none}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button i{font-style:normal;color:inherit;opacity:.7}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button:is(.is-on, [aria-pressed="true"]){background:var(--accent-solid);color:var(--surface-3)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-idx-title{font-family:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-idx-title i{font-style:normal}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head{flex:1 1 100%;margin:0}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head .jov5-sub{margin:2px 0 0;font-size:13.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-round-at{flex:1 1 100%;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act{flex:1 1 100%;display:flex;flex-direction:column;gap:12px;margin:10px 0 4px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act p{margin:0;font-size:13.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act .rl-unsent-go{display:flex;align-items:center;justify-content:center;width:100%;height:var(--ctl-h);margin:0;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font-size:13px;font-weight:var(--w-label)}
+  html.lg-new #ig-dock #rl-changes-col.is-ladder-face #nego-cards .nego-card:not(:has(.rl-row-ladder)), html.lg-new #ig-dock #rl-changes-col.is-ladder-face #nego-cards :is(.rl-band, .rl-q-why), html.lg-new #ig-dock #rl-changes-col.is-ladder-face #rl-risks{display:none}
+  html.lg-new #ig-dock #rl-changes-col :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
+  html.lg-new #ig-dock #rl-changes-col:has(.rl-tv-five) .pd-rf-theirs{display:none}
+  html.lg-new #ig-dock .rl-cards-empty.rl-tv-five{padding-top:6px;padding-bottom:6px;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-cards-empty.rl-tv-five .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
   html.lg-new .rl-pt{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
   /* the close plan's panel, as drawn */
   html.lg-new .dl2-panel{padding:12px 16px 16px;font-size:13px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .dl2-panel.is-five{padding:16px}
+  /* an empty notes room, the five parts (the side panel's Notes and the Redlines column's): read left, the serif headline */
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five{display:block;margin:0;padding:16px 0;border:0;background:none;text-align:left}
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text)}
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-sub{margin:2px 0 0;font-size:13.5px;font-weight:400;color:var(--color-quiet)}
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-rt b{display:block;font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .dl2-panel.is-five .jov5-acts{flex-direction:column;align-items:stretch}
+  html.lg-new .dl2-panel.is-five .jov5-acts > .jov5-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
   html.lg-new .dl2-panel .dl2-pl{margin:0 0 16px;font-weight:var(--w-label)}
   html.lg-new .dl2-panel .dl2-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 6px}
   html.lg-new .dl2-panel .dl2-road{margin-bottom:16px}

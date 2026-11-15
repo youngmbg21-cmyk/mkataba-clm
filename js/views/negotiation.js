@@ -8418,6 +8418,26 @@ function dealPanelNewHtml(c){
   const doors = [prepared ? [`<button type="button" class="dl2-a" data-deal-sendall="${id}">${_ne(i18tn('dl2_d_send', prepared, { n: prepared }))}</button>`, i18t('dl2_free')] : null,
     f.by.wait.length ? [`<button type="button" class="dl2-a" data-deal-chase="${id}">${_ne(who ? i18t('dl2_d_chase_who', { who }) : i18t('ng_plan_chase'))}</button>`, i18t('dl2_free')] : null,
     rule.length ? [`<button type="button" class="dl2-a" data-deal-ask="${_nea(f.by.rule[0].r.clauseId)}" data-deal-ask-cat="${_nea((f.by.rule[0].p.std && f.by.rule[0].p.std.category) || dealSecOf(f.by.rule[0].r).name)}">${_ne(i18t(admin ? 'dl2_d_set_rule' : 'dl2_d_ask_rule'))}</button>`, i18t(admin ? 'dl2_free' : 'dl2_free_record')] : null].filter(Boolean);
+  /* THE FIVE PARTS (Jambo's panels, the remaining eight; owner, 15 Nov 2026: "build all eight"): how many points are
+     your move as the headline, the plan's three numbers, the road as one group (a mark per step: done, yours, then),
+     Jambo's one remark as its own row with where it was read from, and the plan's first door the long black button
+     (Send · Chase · Ask an admin, as today), the others as rows. The same facts (dealPlanFacts); no call. */
+  if (window.newLookOn && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    const D = [];
+    if (prepared) D.push({ label: i18tn('dl2_d_send', prepared, { n: prepared }), attr: `data-deal-sendall="${id}"` });
+    if (f.by.wait.length) D.push({ label: who ? i18t('dl2_d_chase_who', { who }) : i18t('ng_plan_chase'), attr: `data-deal-chase="${id}"` });
+    if (rule.length) D.push({ label: i18t(admin ? 'dl2_d_set_rule' : 'dl2_d_ask_rule'), attr: `data-deal-ask="${_nea(f.by.rule[0].r.clauseId)}" data-deal-ask-cat="${_nea((f.by.rule[0].p.std && f.by.rule[0].p.std.category) || dealSecOf(f.by.rule[0].r).name)}"` });
+    const groups = [{ label: i18t('jov5_dl_road'), rows: [
+      { mark: 'mkTick', tone: 'green', t: road[0][0], s: road[0][1] },
+      { mark: 'pencil', tone: prepared ? 'amber' : '', t: road[1][0], s: road[1][1] },
+      { mark: 'clock', t: road[2][0], s: road[2][1] }] }];
+    if (say) groups.push({ label: 'Jambo', rows: [{ mark: 'sparkle', tone: 'dark', t: say, s: i18t('dl2_foot'), wrap: true }] });
+    if (D.length > 1) groups.push({ label: i18t('jov5_dl_more'), rows: D.slice(1).map(d => ({ t: d.label, attr: d.attr })) });
+    return `<div class="dl2-panel is-five" data-dl2-panel="${id}">${jamboOverviewHtml({ eyebrow: [i18t('jov5_dl_eb'), String(c.counterparty || '').trim()].filter(Boolean).join(' \u00b7 '),
+      title: i18tn('jov5_dl_t', mine, { n: mine }), sub: [prepared ? i18tn('dl2_p_prepared', prepared, { n: prepared }) : '', rule.length ? i18tn('dl2_p_rule', rule.length, { n: rule.length, what: list(rule) }) : ''].filter(Boolean).join(' '),
+      glance: [{ n: mine, l: i18t('jov5_dl_mine'), warn: !!mine }, { n: prepared, l: i18t('jov5_dl_prepared') }, { n: theirs.length, l: i18t('jov5_dl_asks') }],
+      groups, act: D.length ? { label: D[0].label, attr: D[0].attr } : null }, 'dl2')}</div>`;
+  }
   return `<div class="dl2-panel" data-dl2-panel="${id}">
     <p class="dl2-pl">${_ne(lead)}</p>
     <div class="dl2-cap">${_ne(i18t('dl2_road'))}</div>
@@ -15704,6 +15724,58 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
   return `${send}<div class="rl-empty-acts">${sendBtn}${prepare}${edit}${executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit')}</div>
     <span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>`;
 }
+/* the Redlines face's five parts: null off Jambo's face, off our seat, or in the old look */
+function rlFiveHead(c, opts, k){
+  if (!(window.newLookOn && newLookOn() && opts && opts.dealDoor && rlHeadOurs(opts) && typeof jov5HeadHtml === 'function')) return null;
+  const id = _nea(String(c.id));
+  let lad = null; if (_rlFaceLad){ lad = (Array.isArray(c.changes) ? c.changes : []).find(x => x && String(x.id) === _rlFaceLad) || null; }
+  const dealOn = typeof window.pdMidUp === 'function' && pdMidUp('deal:' + c.id);
+  const chOn = !k.notesOn && !lad && !dealOn;
+  const seg = `<button type="button" class="rl-head-chg${chOn ? ' is-on' : ''}" data-rl-head-changes="${id}" aria-pressed="${chOn ? 'true' : 'false'}">${_ne(i18t('jov5_rl_changes'))}${k.openTotal ? ` <i>${k.openTotal}</i>` : ''}</button>`;
+  const who = String(c.counterparty || '').trim();
+  let head = '';
+  if (lad){
+    let rungs = []; try { rungs = (typeof window.ladderRungs === 'function') ? ladderRungs(c, String(lad.clauseId || '')) : []; } catch (_){ rungs = []; }
+    const steps = rungs.length;
+    const name = String(lad.clauseLabel || '').trim();
+    head = `<div class="rl-five-head">${jov5HeadHtml({ eyebrow: [i18t('ng_row_ladder'), name].filter(Boolean).join(' \u00b7 '), title: steps ? i18tn('jov5_lad_t', steps, { n: steps }) : i18t('jov5_lad_t0'), sub: i18t('jov5_lad_sub') })}</div>`;
+  } else if (!k.notesOn){
+    let unsent = 0; try { unsent = rlUnsentCount(c, opts); } catch (_){ unsent = 0; }
+    const title = unsent ? i18tn('jov5_rl_unsent_t', unsent, { n: unsent }) : k.openTotal ? i18tn('jov5_rl_open_t', k.openTotal, { n: k.openTotal }) : '';
+    if (title) head = `<div class="rl-five-head">${jov5HeadHtml({ title, sub: unsent ? i18t('jov5_rl_unsent_sub', { who: who || i18t('ng_the_counterparty') }) : '' })}</div>`;
+  }
+  return { seg, head, lad: !!lad };
+}
+/* their view, the five parts: whose eyes these are, what is on their copy now, and the way back to ours (the paper's own
+   Redline press, data-ig-red="1", pressed through data-rl-tv-back) */
+function rlTheirViewFive(c){
+  if (!(window.newLookOn && newLookOn() && typeof jamboOverviewHtml === 'function')) return null;
+  const who = String((c && c.counterparty) || '').trim() || i18t('ng_the_counterparty');
+  let unsent = 0; try { unsent = rlUnsentCount(c, {}); } catch (_){ unsent = 0; }
+  let notes = 0; try { notes = (typeof rlNotesTotal === 'function') ? rlNotesTotal(c, {}) : 0; } catch (_){ notes = 0; }
+  return jamboOverviewHtml({ eyebrow: [i18t('jov5_tv_eb'), who].join(' \u00b7 '), title: i18t('jov5_tv_t', { who }), sub: i18t('jov5_tv_sub'),
+    groups: [{ label: i18t('jov5_tv_copy'), rows: [
+      { mark: 'file', t: i18t('jov5_tv_changes'), s: unsent ? i18tn('jov5_tv_changes_unsent', unsent, { n: unsent }) : i18t('jov5_tv_none') },
+      { mark: 'users', t: i18t('jov5_tv_notes'), s: notes ? String(notes) : i18t('jov5_tv_none') }] }],
+    act: { say: unsent ? i18tn('jov5_tv_say', unsent, { n: unsent }) : i18t('jov5_tv_say0'), link: { label: i18t('jov5_tv_back'), attr: 'data-rl-tv-back=""' } },
+    src: i18t('jov5_tv_src') }, 'rltv');
+}
+/* AN EMPTY NOTES ROOM, THE FIVE PARTS (Jambo's panels, the remaining eight; owner, 15 Nov 2026: "build all eight"): the
+   room's own sentence as the headline, who sees it as its line, and three rows of how notes work — who sees them, @ to
+   name a colleague (it lands in their Needs you), Done closes one. Said, never pressed: the box under it is the act.
+   The side panel's Notes and the Redlines column's Notes alike. The new look only; null otherwise. */
+function rlNotesEmptyFive(c, ext, who){
+  if (!(window.newLookOn && newLookOn() && typeof jamboOverviewHtml === 'function')) return null;
+  const them = String(who || (c && c.counterparty) || '').trim();
+  const card = (typeof window.pd2CardWho === 'function') ? pd2CardWho(c) : them;
+  return jamboOverviewHtml({ eyebrow: [i18t('jov5_nt_eb'), card].filter(Boolean).join(' \u00b7 '),
+    title: ext ? i18t('ng_chat_none_ext', { who: them }) : i18t('jov5_nt_t'),
+    sub: ext ? i18t('jov5_nt_sub_ext', { who: them }) : i18t('jov5_nt_sub_int'),
+    groups: [{ label: i18t('jov5_nt_how'), rows: [
+      ext ? { mark: 'users', t: i18t('jov5_nt_r_ext', { who: them }), s: i18t('jov5_nt_r_ext_s') } : { mark: 'lock', t: i18t('jov5_nt_r_int'), s: i18t('jov5_nt_r_int_s') },
+      { mark: 'msg', t: i18t('jov5_nt_r_at'), s: i18t('jov5_nt_r_at_s') },
+      { mark: 'mkTick', t: i18t('jov5_nt_r_done'), s: i18t('jov5_nt_r_done_s') }] }] }, 'rlnt');
+}
 /* ASK A COLLEAGUE about one ask of theirs: the send screen set to a colleague, the note naming the change */
 function rlAskColleague(cid, chId){
   const c = (typeof getContract === 'function') ? getContract(cid) : null;
@@ -18463,7 +18535,7 @@ function rlChatPanelHtml(c, opts = {}){
        crossed on this change" was the per-change panel's sentence printed on
        the contract-wide one; and "nothing has been written on this contract"
        was printed even while the other room held notes */
-    : `<div class="rl-np-empty">
+    : (all.length ? null : rlNotesEmptyFive(c, ext, other)) != null ? `<div class="rl-np-empty is-five">${rlNotesEmptyFive(c, ext, other)}</div>` : `<div class="rl-np-empty">
         <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t('ng_chat_none_int')}</b>
         ${all.length ? '' : `<span>${i18t('ng_chat_empty')}</span>`}
       </div>`);
@@ -20285,6 +20357,10 @@ function redlineChangeCardsHtml(c, opts = {}){
     const mayStart = side === 'owner' && !previewSeat && !opts.preview
       && editable && canAct && !rlReadOnlyReading();
     const acts = mayStart ? rlEmptyColumnActsHtml(c, opts, side) : '';
+    /* THEIR VIEW ON JAMBO'S FACE (our preview of their seat): whose eyes these are, what is on their copy, the way back —
+       never "Press the ✎ Edit button", a verb that seat has not got */
+    const tv = (!acts && side === 'counterparty' && opts.dealDoor && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)) ? rlTheirViewFive(c) : null;
+    if (tv) return `<div class="rl-cards-empty rl-tv-five" data-rl-five>${tv}</div>`;
     const five = !!(acts && window.newLookOn && newLookOn() && typeof jov5HeadHtml === 'function');
     return `<div class="rl-cards-empty"${five ? ' data-rl-five' : ''}>
       ${five ? jov5HeadHtml({ eyebrow: [i18t('pd_face_w_red'), String((c && c.counterparty) || '').trim()].filter(Boolean).join(' \u00b7 '), title: i18t('ng_no_changes') }) : `<b>${i18t('ng_no_changes')}</b>`}
@@ -23343,7 +23419,7 @@ function rlHeadDealHtml(c, opts = {}){
   if (!c || !opts.dealDoor || !rlHeadOurs(opts)) return '';
   const on = typeof window.pdMidUp === 'function' && pdMidUp('deal:' + c.id);
   /* THE NEW LOOK, AS DRAWN: Ladder beside Deal, pressing the first row's own Ladder (the one door) */
-  const ladder = (typeof window.newLookOn === 'function' && newLookOn()) ? `<button type="button" class="rl-head-deal rl-head-ladder" data-rl-head-ladder="${_nea(c.id)}">${_ne(i18t('ng_row_ladder'))}</button>` : '';
+  const ladder = (typeof window.newLookOn === 'function' && newLookOn()) ? `<button type="button" class="rl-head-deal rl-head-ladder${_rlFaceLad ? ' is-on' : ''}" data-rl-head-ladder="${_nea(c.id)}" aria-pressed="${_rlFaceLad ? 'true' : 'false'}">${_ne(i18t('ng_row_ladder'))}</button>` : '';
   return `<button type="button" class="rl-head-deal${on ? ' is-on' : ''}" data-rl-deal="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_deal_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><path d="M2 5h10M9.5 2.5 12 5 9.5 7.5M14 11H4M6.5 8.5 4 11l2.5 2.5"/></svg><span>${_ne(i18t('ng_deal'))}</span></button>` + ladder;
 }
 function rlHeadHereHtml(c, opts = {}){
@@ -23470,6 +23546,7 @@ function rlFaceNotesHtml(c, opts = {}){
   const list = threads.length
     ? openT.map(one).join('') + (doneT.length ? `<button type="button" class="rl-np-donefold" data-rl-np-donefold aria-expanded="${_rlNpDoneOpen ? 'true' : 'false'}">${
         i18tn('ng_np_done_n', doneT.length, { n: doneT.length })}</button>${_rlNpDoneOpen ? doneT.map(one).join('') : ''}` : '')
+    : rlNotesEmptyFive(c, ext, ext ? roomName(cur) : '') != null ? `<div class="rl-fn-empty is-five">${rlNotesEmptyFive(c, ext, ext ? roomName(cur) : '')}</div>`
     : `<div class="rl-fn-empty">${ext ? i18t('ng_chat_none_ext', { who: _ne(roomName(cur)) }) : i18t('ng_chat_none_int')}</div>`;
   const pin = rlNpPinFor(c, null);
   const foot = mayWrite
@@ -23616,6 +23693,11 @@ function rlColumnHtml(c, opts = {}){
      whole stack for the hidden proxies below. */
   const openTotal = rlOpenCardCount(c, { ...opts, hiddenIds: [...tabHidden] });
   const notesOn = rlFaceNotesOn(c, opts);
+  /* THE FIVE PARTS ON JAMBO'S REDLINES FACE (the remaining eight; owner, 15 Nov 2026: "build all eight"): one switch —
+     Changes · Notes · Deal · Ladder — the column's state said as a serif headline, Send all in a card with what it does,
+     and the Ladder a face of its own (only the change whose ladder is open, under its own headline). Every part the
+     head carried stays inside .rl-idx-top; nothing is pressed here that was not pressed before. Our seat, the new look. */
+  const five = rlFiveHead(c, opts, { openTotal, notesOn });
   return `<aside class="rl-col rl-side${rlReadOnlyReading() ? ' is-reading' : ''}" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
         ${''/* ---- THE COLUMN STANDS DOWN ON A READING (owner-asked 24 Aug
                2026) ---- On 'As agreed' and 'With changes' the paper is drawn
@@ -23659,7 +23741,7 @@ function rlColumnHtml(c, opts = {}){
              `inert` is what actually takes it away: no focus, no clicks, and
              removed from the accessibility tree. It is a boolean attribute, so
              it is emitted or it is not — never inert="false", which is inert. */}
-        <div class="nego-pane index${_rlSettledOpen ? ' rl-settled-open' : ''}" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true" inert' : ''}>
+        <div class="nego-pane index${_rlSettledOpen ? ' rl-settled-open' : ''}${five && five.lad ? ' is-ladder-face' : ''}${five ? ' is-five' : ''}" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true" inert' : ''}>
           ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ----
                  The head said "TRACKED CHANGES" and a count of what is OPEN,
                  which never told a reader how far through the round they were.
@@ -23704,9 +23786,9 @@ function rlColumnHtml(c, opts = {}){
                      under it; then Send all with Ask for review beside it.
                      One flex row that breaks (.rl-idx-br), so every part is
                      still inside .rl-idx-top where the checks look for it. */}
-              ${rlHeadNotesHtml(c, opts)}${rlHeadDealHtml(c, opts)}${rlHeadHereHtml(c, opts)}
+              ${five ? `<span class="rl-seg" role="group">${five.seg}${rlHeadNotesHtml(c, opts)}${rlHeadDealHtml(c, opts)}</span>${rlHeadHereHtml(c, opts)}` : `${rlHeadNotesHtml(c, opts)}${rlHeadDealHtml(c, opts)}${rlHeadHereHtml(c, opts)}`}
               <span class="rl-idx-br" aria-hidden="true"></span>
-              ${rlRoundLabelHtml(c, opts)}
+              ${five ? five.head : ''}${rlRoundLabelHtml(c, opts)}
               <span class="rl-idx-br" aria-hidden="true"></span>
               ${''/* ---- SEND ALL, AT THE OPPOSITE END OF THE COLUMN'S NAME
                      (owner-asked 26 Aug 2026, ringing this exact slot) ----
@@ -23714,7 +23796,7 @@ function rlColumnHtml(c, opts = {}){
                      the head was built and nothing has ever been drawn after
                      it. The act arrives from the deleted "N not sent" strip
                      with its rules intact; only the slot is new. */}
-              ${rlUnsentSendHtml(c, opts)}
+              ${(() => { const sendH = rlUnsentSendHtml(c, opts); return five && sendH && !five.lad && !notesOn ? `<div class="rl-five-act"><p>${_ne(i18t('jov5_rl_send_say'))}</p>${sendH}</div>` : sendH; })()}
               ${''/* ---- AND CLOSE ROUND BESIDE IT (owner-asked 27 Aug 2026) ----
                      The two acts of a round, on one line, where it is plain
                      that only ever one of them is live: everything unsent has
