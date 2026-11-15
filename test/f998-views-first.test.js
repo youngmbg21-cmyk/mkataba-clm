@@ -96,9 +96,8 @@ test('f998 (4) one quiet tone a tile, from the tokens; the panel beside it stays
     assert.match(CSS, new RegExp('html\\.lg-new \\.ctf-view\\.is-' + t + ' b\\{color:var\\(--st-' + t + '-fg\\)\\}'));
   }
   assert.match(CSS, /html\.lg-new \.ctf-view\{[^}]*padding:16px/, '16px inside the card');
-  const p = fnSrc(REG, 'regFolderRanksHtml');
-  assert.match(p, /String\(x\.r\.needN\), 'ink'\)/); assert.match(p, /money\(x\.r\.val\), 'grey'\)/);
-  assert.match(CSS, /html\.lg-new \.ctfp-rk-b i\.is-ink\{background:var\(--color-text\)\}/);
+  /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance): the panel's money is one tone, Jambo's green, stepped */
+  assert.match(CSS, /html\.lg-new \.rfg-split i,html\.lg-new \.rfg-lg>i\{[^}]*background:var\(--accent-ink\)\}/);
 });
 
 test('f998 (5) both books, and the Handbook says it', () => {

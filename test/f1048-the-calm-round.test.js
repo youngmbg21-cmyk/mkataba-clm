@@ -29,7 +29,8 @@ test('f1048 (1) the Guide: a symbol per page, a tone per stage, you are here in 
 });
 test('f1048 (2) the Board: Draft agreement after Explorer, through the one door; our paper first above Jambo\'s box', () => {
   const HB = read('js/views/homeboard.js');
-  assert.match(HB, /\$\{hbExplorerBtnHtml\(\)\}\$\{hbDraftBtnHtml\(\)\}`/);
+  /* RE-POINTED (owner's pick, 15 Nov 2026: Green Spark on the Board): Discover between Explorer and Draft agreement */
+  assert.match(HB, /\$\{hbExplorerBtnHtml\(\)\}\$\{hbDiscoverBtnHtml\(\)\}\$\{hbDraftBtnHtml\(\)\}`/);
   /* green and the size of its neighbours since 14 Nov 2026 (f1049) */
   assert.match(body(HB, 'hbDraftBtnHtml'), /hb-btn is-sm hb-draft-go/);
   assert.match(body(HB, 'hbDraftBtnHtml'), /canEdit\(\)\) return ''/, 'a viewer is not shown a door that refuses');

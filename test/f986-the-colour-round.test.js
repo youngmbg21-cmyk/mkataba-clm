@@ -28,9 +28,10 @@ test('People: a workload bar to scale', () => {
 });
 test('Reads: answers as tinted chips, a progress bar', () => {
   const S = read('js/views/reads.js');
-  /* RE-POINTED 12 Nov 2026: Reads is the Discover page; its row builder is dscRowHtml */
-  assert.match(fnBody(S, 'dscRowHtml'), /listChipHtml\(RDN_TONE\[x\.t\] \|\| 'gray'/);
-  assert.match(fnBody(S, 'dscRowHtml'), /rdnProgHtml\(r\.read, r\.total\)/);
+  /* RE-POINTED 15 Nov 2026 (the new Discover): what a read found is one tinted chip; New read's folders carry the green bar */
+  assert.match(S, /const _dsnChip = \(t, w\) => \(typeof listChipHtml === 'function'\) \? listChipHtml\(_dsnTone\(t\), w\)/);
+  assert.match(fnBody(S, 'dsnFound'), /_dsnChip\('ruby'/);
+  assert.match(fnBody(S, 'dsnNewHtml'), /class="rdn-prog"/);
   assert.match(CSS, /html\.lg-new \.rdn-prog i\{[^}]*--st-green-dot/);
 });
 test('Requests: today green, a week or more amber', () => {

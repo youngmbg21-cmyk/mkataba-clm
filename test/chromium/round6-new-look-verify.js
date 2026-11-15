@@ -83,30 +83,28 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
        the folder's panel is This folder.
        RE-POINTED AGAIN (owner, 14 Nov 2026: "the feature for these search being added to the panel should be deleted"):
        Columns you asked is gone from the panel: no asked question, no Add to list, no Remove from list there */
-    const panel = await until(page, () => /This folder/i.test((document.querySelector('.rfp-panel') || {}).innerText || ''), null, 12000);
+    /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance, f1056): the folder's panel is the count and one chip, When
+       they end (a month with any is a door to exactly those), Where the money is, Not done yet (who is not checked, its list) */
+    const panel = await until(page, () => !!document.querySelector('.rfp-panel.rfg .rfg-top'), null, 12000);
     const kept = await txt(page, '.rfp-panel');
-    /* f1053 (owner's pick by name, 14 Nov 2026, the Legora way): where Columns you asked stood, the folder says what matters in
-       plain sentences: the standards row with the door to what needs you, what ends next, who is not checked; chips narrow
-       them; nothing spills out of the panel; Show them lists exactly the unchecked */
-    const says = await page.evaluate(() => { const p = document.querySelector('.rfp-panel'), b = p ? p.getBoundingClientRect() : null;
-      const rows = [...document.querySelectorAll('.rfp-says .rfp-say')];
-      return { kinds: rows.map(r => r.getAttribute('data-rfp-say')), chips: [...document.querySelectorAll('.rfp-says .rfp-chip')].map(c => c.innerText.trim()),
-        need: !!document.querySelector('.rfp-say[data-rfp-say="need"] [data-rfp-view="needs"]'), open: !!document.querySelector('.rfp-say[data-rfp-say="date"] [data-rfp-open]'),
-        only: ((document.querySelector('.rfp-say [data-rfp-only]') || { getAttribute: () => '' }).getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length,
+    const says = await page.evaluate(() => { const p = document.querySelector('.rfp-panel.rfg'), b = p ? p.getBoundingClientRect() : null;
+      const mo = document.querySelector('.rfp-panel.rfg button.rfg-mo.has');
+      return { months: document.querySelectorAll('.rfp-panel.rfg .rfg-strip .rfg-mo').length, mo: mo ? (mo.getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length : 0,
+        bars: document.querySelectorAll('.rfp-panel.rfg .rfg-bar[data-rfp-open]').length,
+        only: ((document.querySelector('.rfp-panel.rfg .rfp-row [data-rfp-only]') || { getAttribute: () => '' }).getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length,
         unchecked: [...document.querySelectorAll('#reg-tbody tr[data-row]')].filter(r => /Not checked yet/i.test(r.innerText)).length,
-        spill: b ? [...p.querySelectorAll('.rfp-says *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > b.right + 1 || r.left < b.left - 1); }).length : -1 }; });
-    let narrowed = false, back = false;
-    if (says.chips.length) { await page.click('.rfp-says [data-rfp-chip="date"]');
-      narrowed = await until(page, () => { const r = [...document.querySelectorAll('.rfp-says .rfp-say')]; return r.length === 1 && r[0].getAttribute('data-rfp-say') === 'date'; }, null, 6000);
-      await page.click('.rfp-says [data-rfp-chip="all"]');
-      back = await until(page, () => document.querySelectorAll('.rfp-says .rfp-say').length >= 3, null, 6000); }
-    check('2b the folder says what matters (f1053): standards row with Show the N that need you, what ends next, who is not checked; chips narrow and return; nothing spills',
-      says.kinds.includes('need') && says.kinds.includes('date') && says.kinds.includes('std') && says.need && says.open && says.only > 0 && says.only === says.unchecked
-      && says.chips.length === 3 && /^All 3$/.test(says.chips[0]) && says.spill === 0 && narrowed && back && /differs from our standards|against our standards/.test(kept), { says, narrowed, back });
+        spill: b ? [...p.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > b.right + 1 || r.left < b.left - 1); }).length : -1 }; });
+    let narrowed = false;
+    if (says.mo){ await page.click('.rfp-panel.rfg button.rfg-mo.has');
+      narrowed = await until(page, n => document.querySelectorAll('#reg-tbody tr[data-row]').length === n, says.mo, 6000);
+      await page.evaluate(() => regShowOnly(null)); await until(page, () => !regState().only, null, 6000); }
+    check('2b the folder at a glance (f1056): twelve months, a month a door to its contracts, the money as bars, who is not checked with its list; nothing spills',
+      panel && says.months === 12 && says.mo > 0 && narrowed && says.bars > 0 && says.only > 0 && says.only === says.unchecked && says.spill === 0
+      && /When they end[\s\S]*Where the money is[\s\S]*Not done yet/i.test(kept), { says, narrowed });
     await shot('2-folder-list');
     check('2 a folder\'s list: Standing, the kept question (its name alone), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
       proc && up && heads.includes('standing') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
-      && panel && /This folder/i.test(kept) && !/Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
+      && panel && /When they end/i.test(kept) && !/Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }
 
   /* 3 · the Wall */
@@ -156,14 +154,14 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
   /* 6 · Reads */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'reads' }));
-    const up = await until(page, () => !!document.querySelector('.rdn-table tbody tr[data-rd-row]'), null, 12000);
-    const heads = await page.evaluate(() => [...document.querySelectorAll('.rdn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
-    /* RE-POINTED (owner, 8 Nov 2026, the Reads & Contracts drawing): the next batch is the panel's Read the other N, not the row's */
-    const more = await until(page, () => !!document.querySelector('#ins-panel [data-rd-act="next"]'), null, 8000);
-    /* RE-POINTED (owner, 12 Nov 2026, Discover): a pack is a chip under the ask box, and a row of the Packs tab */
-    const packs = await page.evaluate(() => !!document.querySelector('#rd-page.dsc-page [data-dsc-pack]'));
+    /* RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): the list of reads; a pack is a chip on New read */
+    const up = await until(page, () => !!document.querySelector('#rd-page.dsn-page tbody tr[data-dsn-run]'), null, 12000);
+    const heads = await page.evaluate(() => [...document.querySelectorAll('.dsn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
+    const more = await until(page, () => !!document.querySelector('#ins-panel [data-dsn-open]'), null, 8000);
+    await page.evaluate(() => { const b = document.getElementById('dsn-new'); if (b) b.click(); });
+    const packs = await until(page, () => !!document.querySelector('#rd-page.dsn-page [data-dsc-pack]'), null, 8000);
     await shot('6-reads');
-    check('6 Reads: questions and packs in one table, Read the other N in the panel', up && heads.join('|') === 'question|read|answers|on the list of|asked' && more && packs, heads);
+    check('6 Reads: every read in one table, its summary in the panel, a pack a chip on New read', up && heads.join('|') === 'when|question|where|read|found|by' && more && packs, heads);
   } catch (e) { check('6 Reads', false, String(e).slice(0, 200)); }
 
   /* 7 · Our paper */
