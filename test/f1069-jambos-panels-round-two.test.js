@@ -1,5 +1,5 @@
 'use strict';
-/* f1063 — JAMBO'S PANELS, THE FIVE PARTS, ROUND 2 (owner, 15 Nov 2026: "push and start round 2"): the four panels that
+/* f1069 — JAMBO'S PANELS, THE FIVE PARTS, ROUND 2 (owner, 15 Nov 2026: "push and start round 2"): the four panels that
    stopped halfway — Calendar, Our paper (a chosen paper), People (a chosen person), Jambo's agents.
    (1) the builder draws the three new parts the round needs: `week` (seven days, today dark, a dot on a day that
        holds a date), `avatar` (initials beside the headline) and `crew` (round marks, each in the colour the page
@@ -22,12 +22,12 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const region = (src, start, end) => { const i = src.indexOf(start); assert.ok(i >= 0, start + ' is there'); const j = end ? src.indexOf(end, i + start.length) : -1; return strip(src.slice(i, j > i ? j : i + 6000)); };
 
-test('f1063 (1) the builder draws the week, the face and the crew', () => {
+test('f1069 (1) the builder draws the week, the face and the crew', () => {
   const W = buildWorld().win;
   const d = W.document.createElement('div');
   d.innerHTML = W.jamboOverviewHtml({ title: 'A clear week.', avatar: 'AO',
     week: [{ d: 'Sun', n: 15, today: true }, { d: 'Mon', n: 16, k: 2, title: 'Two dates' }].concat([17, 18, 19, 20, 21].map(n => ({ d: 'x', n }))),
-    crew: [{ label: 'Post', color: 'var(--accent-solid)' }, { label: 'Clock', color: 'var(--accent-ink)' }] }, 'f1063');
+    crew: [{ label: 'Post', color: 'var(--accent-solid)' }, { label: 'Clock', color: 'var(--accent-ink)' }] }, 'f1069');
   assert.equal(d.querySelectorAll('.jov5-day').length, 7, 'seven days');
   assert.equal(d.querySelectorAll('.jov5-day.is-today').length, 1, 'today is one dark day');
   assert.equal(d.querySelectorAll('.jov5-day.has-dates').length, 1, 'a dot only where a date is');
@@ -36,7 +36,7 @@ test('f1063 (1) the builder draws the week, the face and the crew', () => {
   assert.match(d.querySelector('.jov5-cm span').getAttribute('style'), /background:var\(--accent-solid\)/, 'the colour the page hands in');
 });
 
-test('f1063 (2) the four panels say the five parts in the new look, as before in the old', () => {
+test('f1069 (2) the four panels say the five parts in the new look, as before in the old', () => {
   const cal = read('js/views/calendar.js');
   assert.match(strip(cal), /jamboOverviewHtml\(\(typeof window\.newLookOn==='function'&&newLookOn\(\)\)\?calOverviewFive\(off\):\{/, "Calendar's panel");
   const lib = region(read('js/views/library.js'), 'function tplnPanelHtml(card){', 'if (typeof document');
@@ -47,7 +47,7 @@ test('f1063 (2) the four panels say the five parts in the new look, as before in
   assert.match(jh, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\) return `<div class="jl-words is-ov">\$\{jamboOverviewHtml\(jhnPanelFive\(open, keys\)/, "the agents' panel");
 });
 
-test('f1063 (3) each panel keeps the page\'s own presses and colours', () => {
+test('f1069 (3) each panel keeps the page\'s own presses and colours', () => {
   const cal = region(read('js/views/calendar.js'), 'function calOverviewFive(off){', 'function calEventsOnce(){');
   assert.match(cal, /attr:`data-cal-plan-q="week"\$\{off\}`/, 'Plan my week is the planner\'s own press');
   assert.match(cal, /attr:`data-cal-plan-q="due"\$\{off\}`/, 'Find time is the planner\'s own press');
@@ -63,7 +63,7 @@ test('f1063 (3) each panel keeps the page\'s own presses and colours', () => {
   assert.match(lib, /verbs\.findIndex\(a => a\.k === 'draft'\)/, 'Draft from it is the paper\'s own verb');
 });
 
-test('f1063 (4) every word of the round is in both books', () => {
+test('f1069 (4) every word of the round is in both books', () => {
   const W = buildWorld().win;
   const S = W.eval('typeof STRINGS !== "undefined" ? STRINGS : null'); assert.ok(S && S.en && S.sv);
   const keys = new Set();

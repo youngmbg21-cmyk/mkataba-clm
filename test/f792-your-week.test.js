@@ -146,7 +146,7 @@ describe('f792 (4) both pages say it alike', () => {
        Overview builder — the same sentence and offer, the week's facts, the planner's two asks under "Ask me" by
        their own press (data-cal-plan-q), the setting under them */
     /* RE-POINTED 15 Nov 2026 (owner: "Build as drawn", the five parts, round 2): in the new look Calendar's panel is
-       drawn by calOverviewFive (f1063); the old look still hands the builder this object, checked here as before */
+       drawn by calOverviewFive (f1069); the old look still hands the builder this object, checked here as before */
     assert.match(p, /jamboOverviewHtml\((?:\(typeof window\.newLookOn==='function'&&newLookOn\(\)\)\?calOverviewFive\(off\):)?\{/);
     assert.match(p, /obYourWeekFacts\(\)/);
     assert.match(p, /label:i18t\('ob_yw_chip_week'\)[^}]*attr:`data-cal-plan-q="week"\$\{off\}`/);

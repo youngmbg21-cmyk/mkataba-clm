@@ -1,5 +1,5 @@
 'use strict';
-/* f1062 — JAMBO'S PANELS, THE FIVE PARTS, ROUND 1 (owner, 15 Nov 2026: "Build the panels in three rounds as
+/* f1068 — JAMBO'S PANELS, THE FIVE PARTS, ROUND 1 (owner, 15 Nov 2026: "Build the panels in three rounds as
    recommended but do not build on discover"; "Build as drawn", replacing the 26 Oct "nothing boxed" for a page that
    hands jamboOverviewHtml a `title`).
    (1) the ONE builder draws the five parts when a page hands it a `title`: the headline in the serif, three tiles
@@ -30,7 +30,7 @@ const PAGES = ['js/obligations.js', 'js/flowmap.js', 'js/views/flowmap.js', 'js/
 function world(){
   const w = buildWorld({ intelView: true, registerView: true, intakeView: true, obligations: true });
   const W = w.win;
-  const me = { id: 'u_f1062', name: 'Amina Otieno', role: 'admin', prefs: {}, canViewValues: true };
+  const me = { id: 'u_f1068', name: 'Amina Otieno', role: 'admin', prefs: {}, canViewValues: true };
   W.currentUser = () => me; W.isAdmin = () => true; W.canEdit = () => true; W.canViewValues = () => me.canViewValues !== false;
   W.state = W.state || { contracts: [], settings: {} }; if (!Array.isArray(W.state.contracts)) W.state.contracts = [];
   let look = false; W.newLookOn = () => look;
@@ -45,13 +45,13 @@ function world(){
 const newLook = (w, on) => w.look(on);
 const stateOf = w => w.win.state;
 
-test('f1062 (1) the builder draws the five parts for a page that hands in a title, and nothing new without one', () => {
+test('f1068 (1) the builder draws the five parts for a page that hands in a title, and nothing new without one', () => {
   const w = world();
   let hit = 0;
   const html = w.win.jamboOverviewHtml({ eyebrow: 'Approvals', title: 'All clear.', sub: 'Nothing waits.', clear: true,
     glance: [{ n: 0, l: 'on you' }, { n: 2, l: 'on others', run: () => { hit++; } }, { n: 11, l: 'signed' }],
     groups: [{ label: 'Your rules', rows: [{ mark: 'shield', tone: 'amber', t: 'No approval rules yet', s: 'Anyone can sign', run: () => { hit++; } }] }],
-    act: { say: 'Do it.', label: 'Go', run: () => { hit++; } }, src: 'Counted from the list' }, 'f1062');
+    act: { say: 'Do it.', label: 'Go', run: () => { hit++; } }, src: 'Counted from the list' }, 'f1068');
   const d = w.win.document.createElement('div'); d.innerHTML = html; w.win.document.body.appendChild(d);
   assert.ok(d.querySelector('.jov5'), 'the five parts');
   assert.equal(d.querySelector('.jov5-title').textContent, 'All clear.');
@@ -64,11 +64,11 @@ test('f1062 (1) the builder draws the five parts for a page that hands in a titl
   assert.match(parts[parts.length - 1], /jov5-src/, 'the small print is last');
   d.querySelector('button.jov5-g.is-door').click(); d.querySelector('button.jov5-row').click(); d.querySelector('.jov5-go').click();
   assert.equal(hit, 3, 'each door runs its own press');
-  const old = w.win.jamboOverviewHtml({ head: { b: 'Head.' }, facts: [{ k: 'K', v: 'V' }] }, 'f1062b');
+  const old = w.win.jamboOverviewHtml({ head: { b: 'Head.' }, facts: [{ k: 'K', v: 'V' }] }, 'f1068b');
   assert.match(old, /jov-head/); assert.doesNotMatch(old, /jov5/, 'a page with no title is drawn as before');
 });
 
-test('f1062 (2) signed contracts are read as the record says; a value is never shown to someone not allowed', () => {
+test('f1068 (2) signed contracts are read as the record says; a value is never shown to someone not allowed', () => {
   const w = world();
   const st = stateOf(w); const before = w.win.jov5Signed().length;
   st.contracts.push({ id: 'F62-S', name: 'Signed one', status: 'Signed', value: 5000000, folder: (st.contracts[0] || {}).folder });
@@ -79,7 +79,7 @@ test('f1062 (2) signed contracts are read as the record says; a value is never s
   assert.equal(w.win.jov5Money(c), '', 'no value for someone not allowed to see values');
 });
 
-test('f1062 (3) the ten round-1 panels say the five parts in the new look, and nothing new in the old', () => {
+test('f1068 (3) the ten round-1 panels say the five parts in the new look, and nothing new in the old', () => {
   const w = world(); const W = w.win;
   const says = {
     approvals: () => W.apSay([]),
@@ -104,7 +104,7 @@ test('f1062 (3) the ten round-1 panels say the five parts in the new look, and n
   assert.doesNotMatch(W.igOverviewHtml(), /jov5/, "Explorer's Overview is as it was in the old look");
 });
 
-test('f1062 (3b) Approvals with nothing waiting is good news and never stops there', () => {
+test('f1068 (3b) Approvals with nothing waiting is good news and never stops there', () => {
   const w = world(); const W = w.win; newLook(w, true);
   stateOf(w).contracts.push({ id: 'F62-A', name: 'Courier Services', counterparty: 'Swift Couriers', status: 'Signed' });
   const r = W.apSay([]);
@@ -115,7 +115,7 @@ test('f1062 (3b) Approvals with nothing waiting is good news and never stops the
   assert.ok(labels.includes(W.i18t('jov5_ap_rules')), 'the rule that holds today');
 });
 
-test('f1062 (4) Explorer\'s suggestions are rows of its Overview, never also chips under it', () => {
+test('f1068 (4) Explorer\'s suggestions are rows of its Overview, never also chips under it', () => {
   const src = read('js/views/intelligence.js');
   assert.match(src, /function igSugInRows\(\)/);
   assert.match(src, /box\.innerHTML=igSugInRows\(\)\?'':igViewSuggestions\(\)/, 'the chip row stands down while the rows show');
@@ -124,14 +124,14 @@ test('f1062 (4) Explorer\'s suggestions are rows of its Overview, never also chi
   assert.equal(w.win.igSugInRows(), false, 'the old look keeps its chips');
 });
 
-test('f1062 (5) Import\'s drop area in the panel is the page\'s own door', () => {
+test('f1068 (5) Import\'s drop area in the panel is the page\'s own door', () => {
   const src = read('js/views/migration.js');
   assert.match(src, /data-mig-paneldrop/);
   assert.match(src, /closest\('\[data-mig-paneldrop\]'\)\)\)\{ document\.getElementById\('mig-files'\)\?\.click\(\)/, 'a press opens the page\'s own file picker');
   assert.match(src, /if \(e\.dataTransfer\) migDropTake\(e\.dataTransfer\)/, 'a drop goes the strip\'s way');
 });
 
-test('f1062 (6) every jov5_ word the code asks for is in both books', () => {
+test('f1068 (6) every jov5_ word the code asks for is in both books', () => {
   const W = world().win;
   const files = ['js/components.js', 'js/obligations.js', 'js/paperdesk.js', 'js/views/approvalsview.js', 'js/views/register.js', 'js/views/intake.js',
     'js/views/mynotes.js', 'js/views/flowmap.js', 'js/views/migration.js', 'js/views/intelligence.js'];
