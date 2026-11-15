@@ -10243,6 +10243,7 @@ app.post('/api/ai/column-turn', auth, editor, rlAiDeep, aiFeature('column'), aiB
 
 app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
   const b = req.body || {};
+  const runStart = now();
   const Q = colQuestionsOf(b);
   if (Q.error) return res.status(400).json({ error: Q.error });
   const asked = colIds(b.ids);
@@ -10366,7 +10367,11 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   /* EVERY ACT LEAVES A RECORD THE SERVER WRITES (flow rule 8; The thread, 28 Oct 2026): the press, by
      name. `run` is the browser's name for one press (its batches share it) with where the contracts
      stood on the list; a call without one is a read of its own — a contract read on arrival is 'arrival' */
-  const run = colRunRecord(req, b.run, asks, b.pack, ids.filter(id => !failed.some(f => f.id === id && f.why === 'notFound')), calls, cached);
+  /* A READ THROWN AWAY WHILE THIS BATCH WAS STILL WITH JAMBO leaves nothing behind: what this batch wrote goes, and no
+     record is written (the browser had already been told it was gone) */
+  const runGone = b.run && typeof b.run === 'object' && COLUMN_RUNS_DROPPED.has(String(b.run.id || ''));
+  if (runGone) colThrowAway(asks.map(a => a.id), ids, runStart);
+  const run = runGone ? null : colRunRecord(req, b.run, asks, b.pack, ids.filter(id => !failed.some(f => f.id === id && f.why === 'notFound')), calls, cached, runStart);
   const out = { ask: colAskOut(first), answers: byAsk[first.id], asks: asks.map(colAskOut), byAsk, calls, cached, run,
     failed: asks.length === 1 ? failed.map(f => ({ id: f.id, why: f.why, ...(f.error ? { error: f.error } : {}) })) : failed,
     capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) };
@@ -10374,7 +10379,8 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
   res.json(out);
 });
 const COLUMN_RUN_ID = /^cr_[a-z0-9]{6,40}$/;
-function colRunRecord(req, run, asks, packId, ids, calls, cached) {
+const COLUMN_RUNS_DROPPED = new Map();
+function colRunRecord(req, run, asks, packId, ids, calls, cached, startedAt) {
   const r = (run && typeof run === 'object') ? run : {};
   const id = COLUMN_RUN_ID.test(String(r.id || '')) ? String(r.id) : 'cr_' + crypto.randomBytes(8).toString('hex');
   const kind = r.id ? 'press' : (ids.length === 1 ? 'arrival' : 'press');
@@ -10394,7 +10400,8 @@ function colRunRecord(req, run, asks, packId, ids, calls, cached) {
     db.prepare(`INSERT INTO column_reads (id,ask_ids,pack_id,kind,by_id,by_name,started_at,last_at,ids,n,from_no,to_no,calls,cached,stopped,where_f,of_n)
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(id, JSON.stringify(asks.map(a => a.id)), packId && db.prepare('SELECT id FROM column_packs WHERE id=?').get(String(packId)) ? String(packId) : null, kind,
-        String(req.user.id), req.user.name || req.user.email || '', at, at, JSON.stringify(ids), ids.length, num(r.from), num(r.to), calls, cached, r.stopped ? 1 : 0,
+        /* started when its first batch was asked (never when that batch ended), so what the read wrote is all after it */
+        String(req.user.id), req.user.name || req.user.email || '', startedAt || at, at, JSON.stringify(ids), ids.length, num(r.from), num(r.to), calls, cached, r.stopped ? 1 : 0,
         where && where.length ? JSON.stringify(where) : null, of);
   }
   return { id };
@@ -10406,6 +10413,42 @@ app.post('/api/columns/reads/:id/stop', auth, editor, (req, res) => {
   db.prepare('UPDATE column_reads SET stopped=1, last_at=? WHERE id=?').run(now(), id);
   res.json({ ok: true });
 });
+/* CANCEL AND THROW IT AWAY (owner, 15 Nov 2026: "an exit ramp to cancel the whole work … a choice to either throw
+   them away or save them"): the read's record goes, and with it only the answers THIS read wrote (written since it
+   started, for its questions and its contracts) — answers kept from earlier reads stay. A question left with no
+   answer, never kept and no company fact, goes too. The reader's own, or an admin's. */
+app.delete('/api/columns/reads/:id', auth, editor, (req, res) => {
+  const id = String(req.params.id || '');
+  if (!COLUMN_RUN_ID.test(id)) return res.status(404).json({ error: 'No such read' });
+  const r = db.prepare('SELECT * FROM column_reads WHERE id=?').get(id);
+  if (r && String(r.by_id || '') !== String(req.user.id) && req.user.role !== 'admin') return res.status(403).json({ error: 'Only the person who started this read, or an admin, may throw it away' });
+  /* a batch still with Jambo finds this mark when it ends (an hour is far longer than any batch) */
+  const t = Date.now(); for (const [k, v] of COLUMN_RUNS_DROPPED) if (t - v > 3600000) COLUMN_RUNS_DROPPED.delete(k);
+  COLUMN_RUNS_DROPPED.set(id, t);
+  if (!r) return res.json({ ok: true, answers: 0, asks: [] });
+  let askIds = [], ids = []; try { askIds = JSON.parse(r.ask_ids) || []; } catch (_) { askIds = []; } try { ids = JSON.parse(r.ids) || []; } catch (_) { ids = []; }
+  const out = colThrowAway(askIds, ids, r.started_at, id);
+  res.json({ ok: true, answers: out.n, asks: out.gone });
+});
+/* the answers a read wrote since `since` (its questions × its contracts) go, then its record, then any question left
+   with no answer, never kept and no company fact */
+function colThrowAway(askIds, ids, since, runId) {
+  let n = 0;
+  const gone = [];
+  txn(() => {
+    const del = db.prepare('DELETE FROM column_answers WHERE ask_id=? AND contract_id=? AND created_at>=?');
+    for (const a of askIds) for (const c of ids) n += Number(del.run(String(a), String(c), since).changes) || 0;
+    if (runId) db.prepare('DELETE FROM column_reads WHERE id=?').run(runId);
+    for (const a of askIds) {
+      const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(a));
+      if (!ask || ask.kept || ask.fact) continue;
+      if (db.prepare('SELECT 1 FROM column_answers WHERE ask_id=? LIMIT 1').get(ask.id)) continue;
+      if (db.prepare('SELECT 1 FROM column_reads WHERE ask_ids LIKE ? LIMIT 1').get('%"' + ask.id + '"%')) continue;
+      db.prepare('DELETE FROM column_asks WHERE id=?').run(ask.id); gone.push(ask.id);
+    }
+  });
+  return { n, gone };
+}
 /* EVERY READ (The thread, 28 Oct 2026): the presses, newest first, each with its question(s), who, when, how
    many contracts — counted inside what THIS PERSON may see — and where they stood on the list. The arrival
    reads of a company fact are many and small, so they come back summed per question (arrivals), never listed. */

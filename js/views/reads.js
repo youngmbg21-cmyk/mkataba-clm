@@ -997,8 +997,9 @@ function dsnReadingHtml(){
   const askId = b ? (b.askId || (b.asks || [])[0]) : D.askId, got = (askId && A && A.ans[askId]) || {};
   const doneIds = b ? (b.doneIds || []).filter(id => got[id]) : (((_dsn.run && dsnRun(_dsn.run)) || {}).ids || []).filter(id => got[id]);
   const k = b ? b.done : (D.k || doneIds.length), n = b ? b.total : (D.n || k);
-  const right = b ? `<button type="button" class="rfp-pill" id="dsc-stop">${_rdE(_rdT('ac_stop'))}</button>`
-    : D.stopped && A && A.stopped ? `<button type="button" class="rfp-pill" id="dsc-carry">${_rdE(_rdT('dsc_carry', { n: (A.stopped.left || []).length }))}</button><button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`
+  const cancel = `<button type="button" class="rfp-pill" id="dsn-cancel">${_rdE(_rdT('dsn_cancel'))}</button>`;
+  const right = b ? `<button type="button" class="rfp-pill" id="dsc-stop"${b.stop ? ' disabled' : ''}>${_rdE(_rdT('ac_stop'))}</button>${cancel}`
+    : D.stopped && A && A.stopped ? `<button type="button" class="rfp-pill" id="dsc-carry">${_rdE(_rdT('dsc_carry', { n: (A.stopped.left || []).length }))}</button>${cancel}<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`
     : `<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`;
   const _gc = id => (typeof getContract === 'function' ? getContract(id) : null);
   const L = dsnLeadCols(((b && Array.isArray(b.all)) ? b.all : doneIds).map(_gc).filter(Boolean)); _dsn.readLead = L;
@@ -1232,13 +1233,78 @@ async function dsnAsk(more){
     dscSay(_rdT(got.short ? 'dsc_say_short' : got.portfolio ? 'dsc_say_count' : 'dsn_all_read_here')); return; }
   if (got){
     const askId = (got.asks && got.asks[0] && got.asks[0].id) || null;
-    _dsn.done = { name: (got.asks && got.asks[0] && (o.pack ? o.pack.name : got.asks[0].name)) || '', askId, k: got.done || 0, n: (got.done || 0) + ((got.left || []).length), stopped: !!got.stopped };
+    _dsn.done = { name: (got.asks && got.asks[0] && (o.pack ? o.pack.name : got.asks[0].name)) || '', askId, k: got.done || 0, n: (got.done || 0) + ((got.left || []).length), stopped: !!(got.stopped || (got.err && (got.left || []).length)) };
     if (got.runId) _dsn.run = got.runId;
     _dsc.q = ''; _dsc.askId = null; _dsc.pack = null;
   }
   _rd.loading = false;
   await rdLoad(true);
   renderReads();
+}
+/* READ THE REST OF A STOPPED READ (owner, 15 Nov 2026: "the page does not finish reading … and I can't move on"):
+   the rest is read on the same screen, and when it ends the screen says so — the count, the heading and its buttons
+   follow what happened (before, the screen kept "Stopped" and the old count with no way on) */
+async function dsnCarry(){
+  const A = _dscAC(); if (!A || A.busy || !A.stopped || typeof askColCarryOn !== 'function') return;
+  const D = _dsn.done || {};
+  _dsc.liveCid = null; _dsc.liveAt = 0; _dsn.screen = 'reading';
+  const pr = askColCarryOn(); renderReads({ top: true });
+  let got = null; try { got = await pr; } catch (_){ got = null; }
+  if (got){ const left = (got.left || []).length, n = D.n || ((got.done || 0) + left);
+    _dsn.done = Object.assign({}, D, { k: Math.max(0, n - left), n, stopped: !!(got.stopped || (got.err && left)) }); }
+  _rd.loading = false;
+  await rdLoad(true);
+  renderReads();
+}
+/* THE EXIT RAMP (owner, 15 Nov 2026: "I should have an exit ramp to cancel the whole work and go back to the discover
+   page … a choice to either throw them away or save them"): Cancel stops the read at once and asks ONE question —
+   keep what was read, or throw it away — and either way lands on Discover's list of reads */
+function dsnCancelOpen(){
+  const A = _dscAC(), b = A && A.busy, D = _dsn.done || {};
+  const k = b ? b.done : (D.k || 0), n = b ? b.total : (D.n || k);
+  openModal(`<div class="rvd-head"><div><div class="rvd-title">${_rdE(_rdT('dsn_cancel_t'))}</div>
+      <div class="rvd-sub">${_rdE(_rdT('dsn_cancel_sub', { k, n }))}</div></div></div>
+    <div class="rvd-body"><div class="rvd-note">${_rdE(_rdT('dsn_cancel_body'))}</div></div>
+    <div class="rvd-foot">
+      <button type="button" class="ui-btn ui-btn-primary" data-dsn-cx="keep">${_rdE(_rdT('dsn_cancel_keep'))}</button>
+      <button type="button" class="ui-btn ui-btn-danger" data-dsn-cx="drop">${_rdE(_rdT('dsn_cancel_drop'))}</button>
+      <button type="button" class="ui-btn" data-dlg-cancel data-dsn-cx="stay">${_rdE(_rdT('dsn_cancel_stay'))}</button>
+    </div>`, { maxWidth: '480px' });
+}
+async function dsnCancelGo(how){
+  const A = _dscAC();
+  if (typeof closeModal === 'function') closeModal();
+  if (how === 'stay') return;
+  /* the read stops now (a "No, go on" left it reading) and is waited for, bounded, before leaving */
+  if (A && A.busy && typeof askColStop === 'function') askColStop();
+  const t0 = Date.now();
+  while (A && A.busy && Date.now() - t0 < 15000) await new Promise(r => setTimeout(r, 100));
+  if (A && A.busy) { toast(_rdT('dsn_cancel_slow'), 'warn'); return; }
+  const runId = _dsn.run, r = runId ? dsnRun(runId) : null;
+  if (A) A.stopped = null;
+  _dsn.done = null;
+  if (how === 'drop' && runId){
+    try {
+      const out = await api('columns/reads/' + encodeURIComponent(runId), 'DELETE');
+      /* what this read wrote leaves this browser too, so the next read reads those contracts again */
+      const askIds = (r && r.askIds) || [], ids = (r && r.ids) || [];
+      if (A) askIds.forEach(a => { const m = A.ans[a]; if (m) ids.forEach(id => { delete m[id]; }); });
+      ((out && out.asks) || []).forEach(a => { if (typeof askColDrop === 'function') try { askColDrop(a); } catch (_){} if (A){ delete A.ans[a]; delete A.asked[a]; delete A.asks[a]; } });
+      _dsn.run = null; _dsn.sel = null;
+      toast(_rdT('dsn_cancel_dropped'), 'ok');
+    } catch (e){ toast((e && e.message) || _rdT('dsn_cancel_fail'), 'err'); }
+  } else toast(_rdT('dsn_cancel_kept'), 'ok');
+  if (typeof askColSummary === 'function') try { await askColSummary(true); } catch (_){}
+  _rd.loading = false;
+  await rdLoad(true);
+  dsnGo('list', { cid: null, tab: 'all', q: '' });
+  /* a kept read is written on the server once the few contracts still with Jambo finish: the list asks again,
+     bounded, until it stands there */
+  if (how === 'keep' && runId) for (let i = 0; i < 20 && !dsnRun(runId); i++){
+    await new Promise(r => setTimeout(r, 3000));
+    if (typeof state === 'undefined' || state.view !== 'reads' || _dsn.screen !== 'list') break;
+    _rd.loading = false; await rdLoad(true);
+  }
 }
 /* Jambo's "read the next" on Discover only FILLS New read with that question (a chip never reads on its own) */
 function dsnFill(r){
@@ -1254,6 +1320,10 @@ function dsnGo(screen, o){
   if (screen !== 'new'){ _dsc.say = ''; }
   if (typeof rdKeep === 'function') rdKeep();
   renderReads({ top: true });
+}
+if (typeof document !== 'undefined' && !document._dsnCxWired){ document._dsnCxWired = true;
+  document.addEventListener('click', e => { const el = e.target && e.target.closest ? e.target.closest('[data-dsn-cx]') : null; if (!el) return;
+    e.preventDefault(); e.stopPropagation(); dsnCancelGo(el.getAttribute('data-dsn-cx')); }, true);
 }
 if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired = true;
   const stop = e => { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); };
@@ -1329,7 +1399,8 @@ if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired 
     if ((el = t.closest('[data-rdn-table]'))){ e.preventDefault(); e.stopPropagation(); readsTableOpen(el.getAttribute('data-rdn-table')); return; }
     if (!t.closest('#rd-page.dsc-page') && !t.closest('#ins-panel')) return;
     if (t.closest('#dsc-stop')){ e.preventDefault(); e.stopPropagation(); if (typeof askColStop === 'function') askColStop(); return; }
-    if (t.closest('#dsc-carry')){ e.preventDefault(); e.stopPropagation(); _dsc.liveCid = null; if (typeof askColCarryOn === 'function') Promise.resolve(askColCarryOn()).catch(() => {}).then(() => rdLoad(true)); return; }
+    if (t.closest('#dsc-carry')){ e.preventDefault(); e.stopPropagation(); dsnCarry(); return; }
+    if (t.closest('#dsn-cancel')){ e.preventDefault(); e.stopPropagation(); dsnCancelOpen(); return; }
     if (t.closest('[data-dsc-unpack]')){ e.preventDefault(); e.stopPropagation(); _dsc.pack = null; _dsc.say = ''; renderReads(); const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
     if (t.closest('[data-dsn-pkmenu]')){ _dsnStop(e); _dsn.pkMenu = !_dsn.pkMenu; renderReads(); return; }
     if ((el = t.closest('[data-dsn-pkpick]'))){ _dsnStop(e); if (A && A.busy) return;
@@ -1546,4 +1617,4 @@ function readsCss(){ return `
   #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+Object.assign(window, { dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
