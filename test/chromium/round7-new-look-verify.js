@@ -88,10 +88,11 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       && ['name', 'lang', 'approvals', 'review', 'signcap', 'linkcode', 'rates', 'mail'].every(k => S.rows.includes(k))
       && ['All', 'You', 'Security', 'Rules', 'Money', 'Messages', 'People & roles', 'Trail'].every(w => S.menu.includes(w)) && !S.head, S);
     check('2b a setting says its state and what it gates', !!S && /Off/.test(S.review) && /gates sending, never signing/.test(S.review), S && S.review);
-    await until(page, () => /Jambo's lessons/i.test((document.querySelector('#ins-panel .stn-panel') || {}).innerText || ''), null, 8000);
-    const P = await page.evaluate(() => (document.querySelector('#ins-panel .stn-panel') || {}).innerText || '');
+/* RE-POINTED 15 Nov 2026 (owner: Jambo's panels "Build as drawn", the five parts): the panel is the five-part builder's now */ 
+    await until(page, () => /Jambo's lessons/i.test((document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || ''), null, 8000);
+    const P = await page.evaluate(() => (document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || '');
     await shot('2-settings');
-    check('2c the panel: Needs an admin, Ask an admin, Jambo\'s lessons with the three phrases', /Needs an admin/i.test(P) && /Ask an admin/.test(P) && /money page/.test(P) && /who signs/.test(P) && /Teach the 3/.test(P), P.slice(0, 400));
+    check('2c the panel: Needs an admin, Ask an admin, Jambo\'s lessons with the three phrases', /Needs an admin/i.test(P) && /Ask an admin/.test(P) && /money page/.test(P) && /who signs/.test(P) && /Teach me the door/.test(P) /* the lessons row is the door now */, P.slice(0, 400));
     await page.click('#stn-review [data-st-panel="review"]');
     const dr = await until(page, () => { const d = document.getElementById('st-drawer'); return !!d && !d.hidden; }, null, 5000);
     check('2d a Change opens today\'s drawer', dr);

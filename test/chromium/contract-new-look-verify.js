@@ -144,13 +144,13 @@ const READ = () => {
         const up = await until(page, () => !!document.querySelector('[data-pd-mid^="brief:"] .pd2-br-sheet') && !!document.querySelector('#ig-dock .pd2-dossier.is-brief'), null, 10000);
         const B = await page.evaluate(() => ({ secs: [...document.querySelectorAll('.pd2-br-ln .pd2-br-src b')].map(b => b.textContent),
           quotes: document.querySelectorAll('.pd2-br-ln .pd2-br-src q').length, meta: (document.querySelector('[data-pd2-br-meta]') || {}).textContent || '',
-          face: (document.querySelector('#ig-dock .pd2-next') || {}).textContent || '', bg: getComputedStyle(document.querySelector('.pd2-brief')).backgroundColor,
+          face: (document.querySelector('#ig-dock .pd2-dossier.is-brief') || {}).textContent || '' /* re-pointed 15 Nov 2026: the brief's five-part panel */, bg: getComputedStyle(document.querySelector('.pd2-brief')).backgroundColor,
           head: Math.round(document.querySelector('[data-pd-mid^="brief:"] .dlg-pg-head').getBoundingClientRect().height) }));
         check('7 the brief in the middle: each line\'s clause and words, who read it, the Dossier turned to it, head 56, on the grey desk',
           up && B.secs.join() === '§ 2,§ 2,§ 4,§ 3' && B.quotes === 4 && /read by Wanjiru K\. · not yet by you/.test(B.meta) && /Wanjiru K\. has read it/.test(B.face)
           && B.head === 56 && B.bg !== 'rgb(255, 255, 255)', B);
         await page.evaluate(() => { const b = document.querySelector('[data-pd2-brief] [data-brief-read]'); if (b) b.click(); });
-        const read = await until(page, () => briefReadBy(getContract('MK-A2')) && /read by you/.test(document.querySelector('[data-pd2-br-meta]').textContent) && /You read the brief/.test(document.querySelector('#ig-dock .pd2-next').textContent), null, 10000);
+        const read = await until(page, () => briefReadBy(getContract('MK-A2')) && /read by you/.test(document.querySelector('[data-pd2-br-meta]').textContent) && /You read the brief/.test((document.querySelector('#ig-dock .pd2-dossier.is-brief') || {}).textContent || ''), null, 10000);
         check('8 "I have read it" is recorded for this wording, and the page and the Dossier say so', read);
         await page.click('[data-pd-mid^="brief:"] .pd2-br-head [data-pd-mid-back]');
         const back = await until(page, () => !document.querySelector('[data-pd-mid]') && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-brief)'), null, 10000);

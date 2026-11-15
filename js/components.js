@@ -1867,13 +1867,13 @@ Object.assign(window, { keepScrollIn });
    the page is marked, a still one only marks it — so a later tab change, redraw or Back never plays. A reload and a
    Back are quiet (`jovArriveQuiet`). The motion itself is transform and opacity only (HOW THINGS MOVE). The panels that
    move are the drawing's fourteen: by their slot (JOV_MOVE_SLOTS) and the contract's card and checklist. */
-const JOV_MOVE_SLOTS = new Set(['hb', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
-const JOV_ARRIVE_GAP_MS = 5 * 3600 * 1000;
-const JOV_ARRIVE_KEY = 'hati.v1.jovArrive';
-const JOV_ARRIVE_SEL = '.jov5, .pd2-card.is-five, .pd2-sg.is-five';
-let _jovQuietUntil = 0;
-const _jovSeen = new WeakSet();
-const _jovPlaying = new Map();   // page key -> when it began, so a repaint within the play joins it
+var JOV_MOVE_SLOTS = new Set(['hb', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
+var JOV_ARRIVE_GAP_MS = 5 * 3600 * 1000;
+var JOV_ARRIVE_KEY = 'hati.v1.jovArrive';
+var JOV_ARRIVE_SEL = '.jov5, .pd2-card.is-five, .pd2-sg.is-five';
+var _jovQuietUntil = 0;
+var _jovSeen = new WeakSet();
+var _jovPlaying = new Map();   // page key -> when it began, so a repaint within the play joins it
 function jovArriveQuiet(ms){ _jovQuietUntil = Date.now() + (ms || 2000); }
 function jovReducedMotion(){ try { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (_){ return false; } }
 function jovArriveStore(){
@@ -1925,8 +1925,8 @@ function jovPlay(el){
    NOTHING WRITTEN), so the watcher asks which page the panel in sight belongs to; a page different from the last one
    is an arrival, the same page is a redraw or a tab change and never plays (a panel drawn within the first moments of
    a play joins it). */
-let _jovLastKey = null;
-const _jovKeyOf = new WeakMap();
+var _jovLastKey = null;
+var _jovKeyOf = new WeakMap();
 function jovArriveSweep(nodes){
   const now = Date.now(), quiet = now < _jovQuietUntil || jovReducedMotion();
   const inHost = el => !!(el && el.isConnected && el.closest('#ig-dock, #ins-panel, #ai-panel, .jl-frame') && !(el.parentElement && el.parentElement.closest(JOV_ARRIVE_SEL)));
