@@ -15738,13 +15738,45 @@ function rlFiveHead(c, opts, k){
     let rungs = []; try { rungs = (typeof window.ladderRungs === 'function') ? ladderRungs(c, String(lad.clauseId || '')) : []; } catch (_){ rungs = []; }
     const steps = rungs.length;
     const name = String(lad.clauseLabel || '').trim();
-    head = `<div class="rl-five-head">${jov5HeadHtml({ eyebrow: [i18t('ng_row_ladder'), name].filter(Boolean).join(' \u00b7 '), title: steps ? i18tn('jov5_lad_t', steps, { n: steps }) : i18t('jov5_lad_t0'), sub: i18t('jov5_lad_sub') })}</div>`;
+    head = `<div class="rl-five-head is-ladder">${rlLadderFiveHtml(c, lad, rungs, name, steps)}</div>`;
   } else if (!k.notesOn){
     let unsent = 0; try { unsent = rlUnsentCount(c, opts); } catch (_){ unsent = 0; }
     const title = unsent ? i18tn('jov5_rl_unsent_t', unsent, { n: unsent }) : k.openTotal ? i18tn('jov5_rl_open_t', k.openTotal, { n: k.openTotal }) : '';
     if (title) head = `<div class="rl-five-head">${jov5HeadHtml({ title, sub: unsent ? i18t('jov5_rl_unsent_sub', { who: who || i18t('ng_the_counterparty') }) : '' })}</div>`;
   }
-  return { seg, head, lad: !!lad };
+  return { seg, head, lad: !!lad, notes: !!k.notesOn };
+}
+/* THE LADDER AS ITS OWN FACE, AS DRAWN (owner, 15 Nov 2026: the card-in-card ladder was "too cluttered and hard to
+   follow"): the steps as plain rows — where everybody started (R0), then each move in order with who, its state, what
+   it changed and the figure it landed on — then the playbook's three lines. Read from the same readings the card's
+   ladder reads (ladderRungs, ladderTrack, ladderStand, ladderFallback); nothing is pressed here. */
+function rlLadderFiveHtml(c, lad, rungs, name, steps){
+  const id = String(lad.clauseId || '');
+  const side = 'owner';
+  let track = null; try { track = (typeof window.ladderTrack === 'function') ? ladderTrack(c, id, side) : null; } catch (_){ track = null; }
+  const unit = (track && track.unit) || '';
+  const figOf = n => { const t = track && track.rows.find(x => x.lab === n); return t ? `${t.n}${unit ? ' ' + unit : ''}` : ''; };
+  const who = r => r.side === 'counterparty' ? (r.author || String(c.counterparty || '').trim() || i18t('ng_the_counterparty')) : i18t('jov5_lad_you', { name: r.author || '' }).replace(/,\s*$/, '');
+  const tagOf = r => r.withdrawn ? i18t('ng_rung_tag_withdrawn') : r.status === 'rejected' ? i18t('ng_rung_tag_refused') : r.status === 'accepted' ? i18t('ng_rung_tag_accepted')
+    : r.status === 'superseded' ? i18t('ng_rung_tag_replaced') : r.status === 'countered' ? i18t('ng_rung_tag_countered')
+    : (r.side === 'owner' && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r, side)) ? i18t('jov5_lad_unsent') : '';
+  const rows = [{ markText: 'R0', mark: 'R0', t: i18t('jov5_lad_r0'), s: [i18t('jov5_lad_r0_s'), figOf(0)].filter(Boolean).join(' \u00b7 ') }]
+    .concat(rungs.map(r => { const tag = tagOf(r);
+      return { markText: String(r.n), mark: String(r.n), tone: r.status === 'accepted' ? 'green' : (r.status === 'rejected' || r.withdrawn) ? '' : 'amber', t: who(r),
+        s: [tag ? tag.charAt(0).toUpperCase() + tag.slice(1) : '', r.summary, figOf(r.n)].filter(Boolean).join(' \u00b7 '), wrap: true }; }));
+  const groups = [{ label: i18t('jov5_lad_steps'), rows }];
+  let st = null; try { st = (typeof window.ladderStand === 'function') ? ladderStand(c, id, side) : null; } catch (_){ st = null; }
+  if (st){
+    const u = st.unit || '';
+    const fig = n => n == null ? i18t('jov5_lad_not_set') : `${n}${u ? ' ' + u : ''}`;
+    const std = st.standard ? `${st.standard.op === '<=' ? '\u2264 ' : st.standard.op === '>=' ? '\u2265 ' : ''}${fig(st.standard.value)}` : i18t('jov5_lad_not_set');
+    let fb = null; try { fb = (typeof window.ladderFallback === 'function') ? ladderFallback(st.topic) : null; } catch (_){ fb = null; }
+    groups.push({ label: [i18t('ng_pb_sec'), st.topic && st.topic.category ? String(st.topic.category).toLowerCase() : ''].filter(Boolean).join(' \u00b7 '), rows: [
+      { k: i18t('ng_pb_std'), t: std }, { k: i18t('ng_pb_fb'), t: fb ? (fb.figure != null ? fig(fb.figure) : fb.text) : i18t('jov5_lad_not_set') },
+      { k: i18t('ng_pb_walk'), t: i18t('jov5_lad_not_set') }] });
+  }
+  return jamboOverviewHtml({ eyebrow: [i18t('ng_row_ladder'), name].filter(Boolean).join(' \u00b7 '), title: steps ? i18tn('jov5_lad_t', steps, { n: steps }) : i18t('jov5_lad_t0'),
+    sub: i18t('jov5_lad_sub'), groups, src: i18t('jov5_lad_src') }, 'rllad');
 }
 /* their view, the five parts: whose eyes these are, what is on their copy now, and the way back to ours (the paper's own
    Redline press, data-ig-red="1", pressed through data-rl-tv-back) */
@@ -15764,13 +15796,13 @@ function rlTheirViewFive(c){
    room's own sentence as the headline, who sees it as its line, and three rows of how notes work — who sees them, @ to
    name a colleague (it lands in their Needs you), Done closes one. Said, never pressed: the box under it is the act.
    The side panel's Notes and the Redlines column's Notes alike. The new look only; null otherwise. */
-function rlNotesEmptyFive(c, ext, who){
+function rlNotesEmptyFive(c, ext, who, roomsHtml){
   if (!(window.newLookOn && newLookOn() && typeof jamboOverviewHtml === 'function')) return null;
   const them = String(who || (c && c.counterparty) || '').trim();
   const card = (typeof window.pd2CardWho === 'function') ? pd2CardWho(c) : them;
   return jamboOverviewHtml({ eyebrow: [i18t('jov5_nt_eb'), card].filter(Boolean).join(' \u00b7 '),
     title: ext ? i18t('ng_chat_none_ext', { who: them }) : i18t('jov5_nt_t'),
-    sub: ext ? i18t('jov5_nt_sub_ext', { who: them }) : i18t('jov5_nt_sub_int'),
+    sub: ext ? i18t('jov5_nt_sub_ext', { who: them }) : i18t('jov5_nt_sub_int'), mid: roomsHtml || '',
     groups: [{ label: i18t('jov5_nt_how'), rows: [
       ext ? { mark: 'users', t: i18t('jov5_nt_r_ext', { who: them }), s: i18t('jov5_nt_r_ext_s') } : { mark: 'lock', t: i18t('jov5_nt_r_int'), s: i18t('jov5_nt_r_int_s') },
       { mark: 'msg', t: i18t('jov5_nt_r_at'), s: i18t('jov5_nt_r_at_s') },
@@ -23546,7 +23578,7 @@ function rlFaceNotesHtml(c, opts = {}){
   const list = threads.length
     ? openT.map(one).join('') + (doneT.length ? `<button type="button" class="rl-np-donefold" data-rl-np-donefold aria-expanded="${_rlNpDoneOpen ? 'true' : 'false'}">${
         i18tn('ng_np_done_n', doneT.length, { n: doneT.length })}</button>${_rlNpDoneOpen ? doneT.map(one).join('') : ''}` : '')
-    : rlNotesEmptyFive(c, ext, ext ? roomName(cur) : '') != null ? `<div class="rl-fn-empty is-five">${rlNotesEmptyFive(c, ext, ext ? roomName(cur) : '')}</div>`
+    : rlNotesEmptyFive(c, ext, ext ? roomName(cur) : '') != null ? `<div class="rl-fn-empty is-five">${rlNotesEmptyFive(c, ext, ext ? roomName(cur) : '', `<div class="rl-fn-tabs is-five" role="tablist">${tabs}<span class="rl-fn-sp"></span><button type="button" class="rl-fn-back" data-rl-fn-back title="${_nea(i18t('ng_fn_back_title'))}">‹ ${_ne(i18t('ng_fn_back'))}</button></div>`)}</div>`
     : `<div class="rl-fn-empty">${ext ? i18t('ng_chat_none_ext', { who: _ne(roomName(cur)) }) : i18t('ng_chat_none_int')}</div>`;
   const pin = rlNpPinFor(c, null);
   const foot = mayWrite
@@ -23565,7 +23597,7 @@ function rlFaceNotesHtml(c, opts = {}){
     return `<div class="rl-fn-only" data-rl-fn-only="${_nea(only.id)}"><b>${_ne(lab)}</b><span>${n} ${_ne(i18tn('ng_row_notes_w', n))}</span><button type="button" class="rl-fn-all" data-rl-fn-all>${_ne(i18t('ng_fn_all'))}</button></div>`;
   })() : '';
   return `<div class="rl-fn rl-np" data-rl-fn="${_nea(c.id)}"${only ? ` data-rl-fn-change="${_nea(only.id)}"` : ''}>
-    <div class="rl-fn-tabs" role="tablist">${tabs}<span class="rl-fn-sp"></span><button type="button" class="rl-fn-back" data-rl-fn-back title="${_nea(i18t('ng_fn_back_title'))}">‹ ${_ne(i18t('ng_fn_back'))}</button></div>
+    ${/rl-fn-tabs is-five/.test(list) ? '' : `<div class="rl-fn-tabs" role="tablist">${tabs}<span class="rl-fn-sp"></span><button type="button" class="rl-fn-back" data-rl-fn-back title="${_nea(i18t('ng_fn_back_title'))}">‹ ${_ne(i18t('ng_fn_back'))}</button></div>`}
     ${onlyHtml}
     <div class="rl-fn-list">${list}</div>
     ${foot}
@@ -23741,7 +23773,7 @@ function rlColumnHtml(c, opts = {}){
              `inert` is what actually takes it away: no focus, no clicks, and
              removed from the accessibility tree. It is a boolean attribute, so
              it is emitted or it is not — never inert="false", which is inert. */}
-        <div class="nego-pane index${_rlSettledOpen ? ' rl-settled-open' : ''}${five && five.lad ? ' is-ladder-face' : ''}${five ? ' is-five' : ''}" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true" inert' : ''}>
+        <div class="nego-pane index${_rlSettledOpen ? ' rl-settled-open' : ''}${five && five.lad ? ' is-ladder-face' : ''}${five && five.notes ? ' is-notes-face' : ''}${five ? ' is-five' : ''}" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true" inert' : ''}>
           ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ----
                  The head said "TRACKED CHANGES" and a count of what is OPEN,
                  which never told a reader how far through the round they were.

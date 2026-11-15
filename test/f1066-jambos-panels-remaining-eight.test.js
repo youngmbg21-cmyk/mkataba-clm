@@ -31,7 +31,11 @@ test('f1066 (1) the Redlines face: one switch, a headline, Send all in a card, t
   assert.match(NEGO, /five && sendH && !five\.lad && !notesOn \? `<div class="rl-five-act">/, 'Send all in its card, not on Notes or the Ladder');
   assert.match(NEGO, /\$\{five && five\.lad \? ' is-ladder-face' : ''\}/);
   assert.match(PD, /if \(t\.closest\('\[data-rl-head-changes\]'\)\)\{[^\n]*\n[^\n]*\[data-rl-notes-all\]\[aria-pressed="true"\][^\n]*\[data-rl-ladder\]\[aria-expanded="true"\][^\n]*\[data-rl-deal\]\[aria-pressed="true"\]/, 'Changes presses back the one that stands');
-  assert.match(read('index.html'), /#rl-changes-col\.is-ladder-face #nego-cards \.nego-card:not\(:has\(\.rl-row-ladder\)\)/);
+  assert.match(read('index.html'), /#rl-changes-col\.is-ladder-face #nego-cards, html\.lg-new #ig-dock #rl-changes-col\.is-ladder-face #rl-risks\{display:none\}/, 'the Ladder face drawn whole by its own block');
+  const lad = region(NEGO, 'function rlLadderFiveHtml(', '/* their view, the five parts');
+  assert.match(lad, /ladderRungs|rungs\.map\(r =>/); assert.match(lad, /ladderStand\(c, id, side\)/, 'the steps as rows, then the playbook (owner: the card-in-card ladder was too cluttered)');
+  assert.match(NEGO, /mid: roomsHtml \|\| ''/, 'the notes rooms under the headline');
+  assert.match(read('index.html'), /\.doc-th-row\.is-open\.pd2-lit\{[^}]*background:var\(--color-surface\);box-shadow:0 0 0 1px var\(--color-divider\)\}/, 'the open clause a white card');
 });
 
 test('f1066 (2) their view says whose eyes these are, and its way back', () => {
@@ -54,7 +58,7 @@ test('f1066 (3) Where we are, Deal and Clauses after a reading, by their own pre
 
 test('f1066 (4) an empty notes room says how notes work, in both rooms', () => {
   assert.match(NEGO, /`<div class="rl-np-empty is-five">\$\{rlNotesEmptyFive\(c, ext, other\)\}<\/div>`/, 'the side panel\'s');
-  assert.match(NEGO, /`<div class="rl-fn-empty is-five">\$\{rlNotesEmptyFive\(c, ext, ext \? roomName\(cur\) : ''\)\}<\/div>`/, 'the column\'s');
+  assert.match(NEGO, /`<div class="rl-fn-empty is-five">\$\{rlNotesEmptyFive\(c, ext, ext \? roomName\(cur\) : '', `<div class="rl-fn-tabs is-five"/, 'the column\'s, its rooms under the headline');
 });
 
 test('f1066 (5) every word of the round is in both books', () => {
