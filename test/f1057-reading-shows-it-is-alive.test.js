@@ -1,4 +1,8 @@
-/* f1057 · DISCOVER'S READING SCREEN SHOWS IT IS ALIVE (owner, 15 Nov 2026: "the reading sometimes freezes for a second
+/* f1057 · DISCOVER'S READING SCREEN SHOWS IT IS ALIVE — RE-POINTED (owner, 15 Nov 2026: "Build the legora way and extend the
+   reading limit to 100 contracts"; the scan light and the waiting rows are replaced by the Legora way: the four newest
+   answers, the paper being read as a flipbook, a typed line on its own clock, the next papers; Jambo's panel the words
+   found so far, drifting; nothing pressed; a pause never stills it).
+   WAS: (owner, 15 Nov 2026: "the reading sometimes freezes for a second
    … This should not stop the page from continuing to show some action … Just on the window where the contracts are";
    five ideas drawn on a photo of the page; "Combine scan light and waiting list"; "Build it").
    The contracts still to be read stand as pale rows under the read ones ("Reading now" for the batch in hand, "Waiting"
@@ -14,38 +18,44 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const RD = strip(read('js/views/reads.js')), ACJ = strip(read('js/views/askcolumn.js')), I18N = read('js/i18n.js'), CSS = read('index.html');
 const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?function ' + name + '\\(')); assert.ok(at >= 0, name + ' exists'); const nx = src.slice(at + 10).search(/\n(?:async )?function |\nif \(typeof document/); return src.slice(at, nx > 0 ? at + 10 + nx : src.length); };
 
-test('f1057 (1) a read keeps its whole list, so what is still waiting can be drawn', () => {
-  assert.match(ACJ, /AC\.busy = \{ total: ids\.length, all: ids\.slice\(\),/);
-  const W = fnBody(RD, 'dsnWaiting');
-  assert.match(W, /all\.filter\(id => !got\[id\]\)/, 'waiting = not yet answered');
-  assert.match(W, /now: left\.filter\(id => now\.has\(id\)\)/, 'the batch in hand is "Reading now"');
+test('f1057 (1) a Discover read takes up to 100 a press', () => {
+  assert.match(RD, /const DSN_READ_MAX = 100;/); assert.match(RD, /const _dscSize = \(\) => DSN_READ_MAX;/);
+  assert.match(fnBody(RD, 'dsnAsk'), /Object\.assign\(o, \{ size: DSN_READ_MAX,/);
+  assert.match(ACJ, /const AC_MAX = 100;/, 'the most one press may read');
 });
 
-test('f1057 (2) the pale rows sit under the read ones, a capped number drawn and the rest counted; the light inside the window', () => {
-  const G = fnBody(RD, 'dsnGhostRowsHtml');
-  assert.match(G, /dsn-ghost\$\{on \? ' is-now' : ''\}/);
-  assert.match(G, /'dsn_now' : 'dsn_waiting'/);
-  assert.match(G, /slice\(0, DSN_GHOSTS\)/); assert.match(G, /_rdTn\('dsn_more_waiting', more\)/, 'a cap is said, never a silent trim');
+test('f1057 (2) while it reads: the four newest answers above, the Legora way below; the old motion is gone', () => {
   const R = fnBody(RD, 'dsnReadingHtml');
-  assert.match(R, /\$\{rows\}\$\{b \? dsnGhostRowsHtml\(b, got\) : ''\}/, 'pale rows only while a read is in flight, under the read ones');
-  assert.match(R, /<div class="dsn-win"><div class="cu-scroll"[\s\S]*<\/table><\/div>\$\{b \? dsnScanHtml\(\) : ''\}<\/div>/, 'the light lives in the contracts window');
-  assert.match(R, /const rows = doneIds\.map\(/, 'read rows in the read\'s own order, so a row turns solid in place');
-  assert.doesNotMatch(RD, /dsnDriftHtml|DSN_DRIFT/, 'the whole-page drift is gone');
+  assert.match(R, /doneIds\.slice\(b \? -DSN_ROWS_SHOWN : 0\)/); assert.match(RD, /const DSN_ROWS_SHOWN = 4,/);
+  assert.match(R, /<div class="dsn-rows">[\s\S]*\$\{dsnLegoraHtml\(b, got\)\}/);
+  const L = fnBody(RD, 'dsnLegoraHtml');
+  assert.match(L, /dsn-book/); assert.match(L, /dsn-hl/); assert.match(L, /_rdT\('dsn_now'\)/); assert.match(L, /data-dsn-typ/); assert.match(L, /dsn-mini/);
+  assert.doesNotMatch(L, /<button|data-dsn-(?!typ)|href=/, 'nothing in the motion is pressed');
+  assert.doesNotMatch(RD + CSS, /dsnGhostRowsHtml|dsnScanHtml|dsn-ghost|class="dsn-scan/, 'the waiting rows and the scan light are gone');
 });
 
-test('f1057 (3) motion is transform and opacity only, picks up where it was, and stands still where less motion is asked', () => {
-  assert.match(fnBody(RD, 'dsnGhostRowsHtml'), /animation-delay:\$\{\(\(i \* 0\.3 - gone\)/);
-  assert.match(RD, /const dsnScanHtml = \(\) => `<div class="dsn-scan" aria-hidden="true" style="animation-delay:-/);
+test('f1057 (3) the typed line runs on its own clock and says only what HaTi holds', () => {
+  const T = fnBody(RD, 'dsnTypeLines');
+  assert.match(T, /_rdT\('dsn_looking', \{ q:/, 'what Jambo is looking for');
+  assert.match(T, /got\[id\]\.found && String\(got\[id\]\.quote/, 'only words actually found');
+  assert.match(fnBody(RD, 'dsnTypeStart'), /setInterval\(dsnTypeTick, 400\)/);
+  assert.match(fnBody(RD, 'dsnTypeTick'), /clearInterval\(_dsnTypeT\)/, 'it stops when the read ends');
+  assert.match(fnBody(RD, 'dsnRender'), /if \(_dsn\.screen === 'reading' && busy\) dsnTypeStart\(\);/);
+});
+
+test('f1057 (4) Jambo\'s panel while it reads: the words found, drifting; no links; motion picks up where it was', () => {
+  const P = fnBody(RD, 'dsnPanelPaint');
+  assert.match(P, /if \(_dsn\.screen === 'reading' && b\)\{/); assert.match(P, /item: \{ id: 'drift' \}, body: `<div class="rfp-panel is-drawn rdn-panel">\$\{dsnDriftHtml\(\)\}<\/div>`/); assert.match(P, /jlLinks: '' \}\)\);\s*return;/, 'no links while it reads');
+  assert.match(fnBody(RD, 'dsnDriftHtml'), /_dsnDelay\(9\)/);
+  assert.match(RD, /const _dsnDelay = \(period, off\) => `animation-delay:\$\{\(-/);
   const kf = n => (CSS.match(new RegExp('@keyframes ' + n + '\\{[^\\n]*')) || [''])[0];
-  assert.match(kf('dsn-ripple'), /opacity/); assert.doesNotMatch(kf('dsn-ripple'), /transform|height|top/);
-  assert.match(kf('dsn-scan'), /translateY/); assert.doesNotMatch(kf('dsn-scan'), /height|top:/);
-  assert.match(CSS, /@media \(prefers-reduced-motion:reduce\)\{ html\.lg-new \.dsn-scan\{display:none\} html\.lg-new \.dsn-table tr\.dsn-ghost\{animation:none\} \}/);
-  assert.doesNotMatch(CSS, /dsn-drift/);
-  const rules = CSS.split('\n').filter(l => /\.dsn-(scan|win|table tr\.dsn-ghost)/.test(l)).join('\n');
-  assert.doesNotMatch(rules, /#[0-9a-fA-F]{3,8}\b|rgba?\(/, 'colours only from tokens');
+  for (const k of ['dsn-flip', 'dsn-scanp', 'dsn-bob', 'dsn-rise']) { assert.ok(kf(k), k); assert.doesNotMatch(kf(k), /\b(height|top|left|width):/, k + ' moves by transform'); }
+  assert.match(CSS, /@media \(prefers-reduced-motion:reduce\)\{ html\.lg-new :is\(\.dsn-pg/);
 });
 
-test('f1057 (4) the words in both books', () => {
-  for (const k of ['dsn_now', 'dsn_waiting']) assert.equal((I18N.match(new RegExp('^    ' + k + ': ', 'gm')) || []).length, 2, k);
-  for (const k of ['dsn_more_waiting_one', 'dsn_more_waiting_other']) assert.equal((I18N.match(new RegExp('^    ' + k + ': ', 'gm')) || []).length, 2, k);
+test('f1057 (5) the words in both books; colours only from tokens', () => {
+  for (const k of ['dsn_now', 'dsn_next', 'dsn_looking', 'dsn_found_so_far', 'dsn_found_none']) assert.equal((I18N.match(new RegExp('^    ' + k + ': ', 'gm')) || []).length, 2, k);
+  for (const k of ['dsn_waiting', 'dsn_more_waiting_one']) assert.equal((I18N.match(new RegExp('^    ' + k + ': ', 'gm')) || []).length, 0, k + ' retired from both books');
+  const rules = CSS.split('\n').filter(l => /\.dsn-(leg|book|pg|hl|now|tag|typ|next|mini|drift|dcol|dreel)/.test(l)).join('\n');
+  assert.ok(rules.length > 1000); assert.doesNotMatch(rules, /#[0-9a-fA-F]{3,8}\b|rgba?\(/);
 });

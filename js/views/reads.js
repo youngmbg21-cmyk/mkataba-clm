@@ -515,7 +515,10 @@ const DSC_OPEN_MAX = 7, DSC_LIVE_MAX = 6, DSC_TURN_MS = 1400, DSC_CHIPS = 4, DSC
 const _dsc = { q: '', askId: null, pack: null, open: null, pick: null, say: '', starting: false, liveCid: null, liveAt: 0, t: 0, turnT: 0, text: new Map() };
 const _dscAC = () => (typeof AC !== 'undefined') ? AC : null;
 const _dscMay = () => typeof askColMay !== 'function' || askColMay();
-const _dscSize = () => (typeof acSize === 'function') ? acSize() : 50;
+/* A DISCOVER READ TAKES UP TO 100 A PRESS (owner, 15 Nov 2026: "extend the reading limit to 100 contracts"): the most the
+   server reads in one press (COLUMN_MAX = AC_MAX), never the 50 the older column door may remember */
+const DSN_READ_MAX = 100;
+const _dscSize = () => DSN_READ_MAX;
 /* THE CONTRACTS THE ASK GOES TO: the Contracts list as it is filtered now, and that said in words */
 /* how many of them the next press reads: the first not yet read, a batch at most (a typed question is new to all) */
 /* THE WORDS A CONTRACT'S ANSWER WAS READ FROM, IN THEIR PLACE: the contract's plain wording (its record read whole
@@ -999,7 +1002,7 @@ function dsnReadingHtml(){
     : `<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`;
   const _gc = id => (typeof getContract === 'function' ? getContract(id) : null);
   const L = dsnLeadCols(((b && Array.isArray(b.all)) ? b.all : doneIds).map(_gc).filter(Boolean)); _dsn.readLead = L;
-  const rows = doneIds.map(id => { const c = _gc(id), a = got[id];
+  const rows = doneIds.slice(b ? -DSN_ROWS_SHOWN : 0).map(id => { const c = _gc(id), a = got[id];
     const num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a && a.found ? String(a.quote || '').trim() : '';
     return `<tr class="dsn-row${id === _dsc.liveCid ? ' is-sel' : ''}">${L.map(l => l.td(c, id)).join('')}<td class="rdn-c">${a ? _dsnChip(_rdTone(a, askId), _rdWord(a)) : ''}</td>
       <td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td></tr>`; }).join('');
@@ -1007,34 +1010,63 @@ function dsnReadingHtml(){
   return `<div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT(b ? 'dsn_reading' : D.stopped ? 'dsn_stopped' : 'dsn_read_done', { name }))}</h2><span class="ctf-hf">${_rdE([where, _rdTn('ac_n_contracts', (_dsn.reading && _dsn.reading.of) || n)].filter(Boolean).join(' · '))}</span><span class="apn-sp"></span>${right}</div>
     ${dsnSteps(2)}
     <div class="dsn-prog"><div><b>${k}</b> ${_rdE(_rdT('dsn_of_read', { n }))}</div><div class="dsc-live-bar" role="img" aria-label="${_rdE(_rdT('dsc_live_n', { k, n }))}"><i style="width:${n ? Math.round(k / n * 100) : 0}%"></i></div></div>
-    <div class="dsn-win"><div class="cu-scroll" id="dsn-read-scroll"><table class="apn-table cun-table rdn-table dsn-table">${dsnColgroup(L.concat([{ w: 14, floor: 110 }, { w: 34, floor: 180 }]))}
+    ${b ? `<div class="dsn-rows"><table class="apn-table cun-table rdn-table dsn-table">${dsnColgroup(L.concat([{ w: 14, floor: 110 }, { w: 34, floor: 180 }]))}
       <thead><tr>${L.map(l => `<th>${_rdE(l.th)}</th>`).join('')}<th>${_rdE(_rdT('dsn_c_answer'))}</th><th>${_rdE(_rdT('dsn_c_says'))}</th></tr></thead>
-      <tbody>${rows}${b ? dsnGhostRowsHtml(b, got) : ''}${rows || b ? '' : `<tr><td colspan="${L.length + 2}" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>${b ? dsnScanHtml() : ''}</div>`;
+      <tbody>${rows || `<tr><td colspan="${L.length + 2}" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>${dsnLegoraHtml(b, got)}`
+    : `<div class="cu-scroll" id="dsn-read-scroll"><table class="apn-table cun-table rdn-table dsn-table">${dsnColgroup(L.concat([{ w: 14, floor: 110 }, { w: 34, floor: 180 }]))}
+      <thead><tr>${L.map(l => `<th>${_rdE(l.th)}</th>`).join('')}<th>${_rdE(_rdT('dsn_c_answer'))}</th><th>${_rdE(_rdT('dsn_c_says'))}</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="${L.length + 2}" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>`}`;
 }
-/* SOMETHING MOVES WHILE HE READS, WHERE THE CONTRACTS ARE (owner, 15 Nov 2026: "the reading sometimes freezes for a second
-   … This should not stop the page from continuing to show some action"; five ideas drawn live on a photo of the page, the
-   owner: "Combine scan light and waiting list"). THE WAITING LIST: the contracts of this read not yet answered stand as
-   pale rows under the read ones, in the read's own order — the ten HaTi is reading now marked "Reading now", the rest
-   "Waiting" — and each turns solid in its place when its answer lands; a ripple runs through them. THE SCAN LIGHT: a soft
-   band of Jambo's green sweeps down the same window. Both only while a read is in flight, both transform and opacity
-   only, both picking up where they were on a repaint (a negative delay off the read's own start); where less motion is
-   asked the pale rows stand still and the light is not drawn. DSN_GHOSTS is how many pale rows are DRAWN; the rest are
-   counted in one line, never dropped silently. */
-const DSN_GHOSTS = 12, DSN_RIPPLE_S = 2.4, DSN_SCAN_S = 3.4;
+/* THE LEGORA WAY WHILE IT READS (owner, 15 Nov 2026, replacing the scan light and the waiting rows: "constant / rapid
+   movement of the contracts"; drawn start to finish with a pause, artifacts UPVdyB87RwJ7wmw9sSanLL and
+   MzNjqViovknShmU3V9h2MJ; "Build the legora way"). The reading page lives only for the length of a read, so nothing in
+   the motion is pressed. Above: the DSN_ROWS_SHOWN newest answers, older ones moving up out of sight. Below, the rest of
+   the page: the paper being read as a flipbook (its pages turning, a highlight scanning down it), "Reading now" with its
+   name, party and number, a line that TYPES — what Jambo is looking for, then the words just found, in turn, on its own
+   clock (dsnTypeTick) — and the next papers in line. Nothing here waits on an answer, so a pause while Jambo is slow
+   never stills the page. Every motion carries a negative delay off the read's own start, so a repaint never restarts
+   it; where less motion is asked it stands still. Words are only what HaTi holds: the question and the quotes found. */
+const DSN_ROWS_SHOWN = 4, DSN_FLIP_S = 2.4, DSN_TYPE_MS = 2600, DSN_NEXT = 7;
 const _dsnGone = () => (Date.now() - ((_dsn.reading && _dsn.reading.t0) || Date.now())) / 1000;
-function dsnWaiting(b, got){
-  const all = (b && Array.isArray(b.all)) ? b.all : [], now = new Set((b && b.ids) || []);
-  const left = all.filter(id => !got[id]);
-  return { now: left.filter(id => now.has(id)), later: left.filter(id => !now.has(id)) };
+const _dsnDelay = (period, off) => `animation-delay:${(-(((_dsnGone() + (off || 0)) % period + period) % period)).toFixed(2)}s`;
+/* the contract being read now: the first of the batch in hand not yet answered, else the first of the read not yet answered */
+function dsnNowId(b, got){
+  return ((b && b.ids) || []).find(id => !got[id]) || ((b && b.all) || []).find(id => !got[id]) || null;
 }
-function dsnGhostRowsHtml(b, got){
-  const W = dsnWaiting(b, got), ids = W.now.concat(W.later), gone = _dsnGone();
-  const row = (id, i) => { const c = typeof getContract === 'function' ? getContract(id) : null, on = i < W.now.length;
-    return `<tr class="dsn-row dsn-ghost${on ? ' is-now' : ''}" style="animation-delay:${((i * 0.3 - gone) % DSN_RIPPLE_S - DSN_RIPPLE_S).toFixed(2)}s">${(_dsn.readLead || []).map(l => l.td(c, id)).join('')}<td class="rdn-c">${_rdE(_rdT(on ? 'dsn_now' : 'dsn_waiting'))}</td><td class="rdn-c"></td></tr>`; };
-  const more = ids.length - DSN_GHOSTS;
-  return ids.slice(0, DSN_GHOSTS).map(row).join('') + (more > 0 ? `<tr class="dsn-ghost-more"><td colspan="${(_dsn.readLead || []).length + 2}" class="rdn-c">${_rdE(_rdTn('dsn_more_waiting', more))}</td></tr>` : '');
+function dsnLegoraHtml(b, got){
+  const gc = id => (typeof getContract === 'function' ? getContract(id) : null);
+  const id = dsnNowId(b, got), c = id ? gc(id) : null, name = c ? _rdName(c) : '';
+  const next = ((b && b.all) || []).filter(x => !got[x] && x !== id).slice(0, DSN_NEXT).map(gc).filter(Boolean);
+  const page = i => `<div class="dsn-pg" style="z-index:${10 - i};${_dsnDelay(DSN_FLIP_S, i * 0.45)}"><b>${_rdE(name)}</b>${'<i></i>'.repeat(13)}</div>`;
+  return `<div class="dsn-leg" aria-hidden="true"><div class="dsn-book"><div class="dsn-pg is-top"><b>${_rdE(name)}</b>${'<i></i>'.repeat(13)}<span class="dsn-hl" style="${_dsnDelay(2.2)}"></span></div>${[0, 1, 2, 3, 4].map(page).join('')}</div>
+    <div class="dsn-now">${c ? `<span class="dsn-tag">${_rdE(_rdT('dsn_now'))}</span><span class="dsn-now-n">${_rdE(name)}</span><span class="dsn-now-m">${_rdE([_dsnParty(c), _rdRef(c)].filter(Boolean).join(' · '))}</span>` : ''}<div class="dsn-typ" data-dsn-typ></div></div>
+    ${next.length ? `<div class="dsn-next"><span>${_rdE(_rdT('dsn_next'))}</span>${next.map((x, i) => `<div class="dsn-mini" style="${_dsnDelay(1.6, i * 0.15)}"><b>${_rdE(_rdName(x))}</b><i></i><i></i><i></i></div>`).join('')}</div>` : ''}</div>`;
 }
-const dsnScanHtml = () => `<div class="dsn-scan" aria-hidden="true" style="animation-delay:-${(_dsnGone() % DSN_SCAN_S).toFixed(2)}s"></div>`;
+/* the typed line's turns: what Jambo is looking for, then the newest words found (never invented) */
+function dsnTypeLines(){
+  const A = _dscAC(), b = A && A.busy; if (!b) return [];
+  const askId = b.askId || (b.asks || [])[0], got = (askId && A.ans[askId]) || {}, q = String(b.question || ((A.asks && A.asks[askId]) || {}).question || '').trim();
+  const found = (b.doneIds || []).filter(id => got[id] && got[id].found && String(got[id].quote || '').trim()).slice(-3).reverse()
+    .map(id => { const a = got[id], num = typeof askColClauseNo === 'function' ? askColClauseNo(a) : ''; return (num ? '§ ' + num + ' ' : '') + '“' + String(a.quote).trim().slice(0, 90) + '”'; });
+  return (q ? [_rdT('dsn_looking', { q: q.slice(0, 90) })] : []).concat(found);
+}
+let _dsnTypeT = 0, _dsnTypeAt = -1;
+function dsnTypeTick(){
+  const el = document.querySelector('#rd-page [data-dsn-typ]'), A = _dscAC();
+  if (!el || !(A && A.busy) || _dsn.screen !== 'reading'){ clearInterval(_dsnTypeT); _dsnTypeT = 0; _dsnTypeAt = -1; return; }
+  const L = dsnTypeLines(), at = Math.floor(Date.now() / DSN_TYPE_MS);
+  if (!L.length || (at === _dsnTypeAt && el.textContent)) return;
+  _dsnTypeAt = at; const n = el.cloneNode(false); n.textContent = L[at % L.length]; n.style.setProperty('--ch', String(Math.min(90, n.textContent.length))); el.replaceWith(n);
+}
+function dsnTypeStart(){ _dsnTypeAt = -1; dsnTypeTick(); if (!_dsnTypeT) _dsnTypeT = setInterval(dsnTypeTick, 400); }
+/* Jambo's panel while it reads: the words found so far, drifting up like credits, the newest joining at the foot */
+function dsnDriftHtml(){
+  const A = _dscAC(), b = A && A.busy, askId = b ? (b.askId || (b.asks || [])[0]) : null, got = (askId && A.ans[askId]) || {};
+  const gc = id => (typeof getContract === 'function' ? getContract(id) : null);
+  const items = ((b && b.doneIds) || []).filter(id => got[id] && got[id].found && String(got[id].quote || '').trim()).slice(-8)
+    .map(id => { const c = gc(id), a = got[id]; return `<p><span>${_rdE([c ? _rdRef(c) : id, c ? _rdName(c) : ''].filter(Boolean).join(' · '))}</span>“${_rdE(String(a.quote).trim())}”</p>`; }).join('');
+  return `<div class="dsn-drift" aria-hidden="true"><div class="rfp-cap">${_rdE(_rdT('dsn_found_so_far'))}</div><div class="dsn-dcol"><div class="dsn-dreel" style="${_dsnDelay(9)}">${items || `<p class="is-quiet">${_rdE(_rdT('dsn_found_none'))}</p>`}</div></div></div>`;
+}
 const dsnRefHtml = c => (typeof refHtml === 'function') ? refHtml(c) : _rdE(_rdRef(c));
 /* THE COLUMNS LEAD WITH WHAT EVERY ROW NEEDS, AND THE SUBJECT STEPS OUT (owner, 15 Nov 2026: "contract number should
    always be there. If you search a particular customer or supplier, then their name should not be in the body because
@@ -1123,8 +1155,7 @@ function dsnRender(host, o){
   host.innerHTML = dsnPage(inner);
   const sc1 = host.querySelector('.cu-scroll'); if (sc1 && top0 && same && !(o && o.top)) sc1.scrollTop = top0;
   if (keepId && document.getElementById(keepId)){ if (at != null && typeof listCaretPut === 'function') listCaretPut('#' + keepId, at); else document.getElementById(keepId).focus({ preventScroll: true }); }
-  if (_dsn.screen === 'reading' && busy){ const k = A.busy.done, sc = host.querySelector('#dsn-read-scroll'), g = sc && sc.querySelector('tr.dsn-ghost');
-    if (g && _dsn.reading && _dsn.reading.seenK !== k){ _dsn.reading.seenK = k; sc.scrollTop = Math.max(0, g.offsetTop - sc.clientHeight / 2); } }
+  if (_dsn.screen === 'reading' && busy) dsnTypeStart();
   dsnPanelPaint(panel, r);
   readsWire();
   if (typeof setActiveNav === 'function') setActiveNav('reads');
@@ -1134,6 +1165,10 @@ function dsnPanelPaint(body, r){
   if (typeof insPaintPanel !== 'function') return;
   const base = { seat: RD_SEAT, head: false, jlHome: _rdT('nav_reads'), jlSay: rdJlSay };
   const A = _dscAC(), b = A && A.busy;
+  if (_dsn.screen === 'reading' && b){
+    insPaintPanel(Object.assign(base, { item: { id: 'drift' }, body: `<div class="rfp-panel is-drawn rdn-panel">${dsnDriftHtml()}</div>`, jlTabWord: _rdT('dsc_tab_reading', { k: b.done, n: b.total }), jlPh: _rdT('jl_ph_any'), jlLinks: '' }));
+    return;
+  }
   if (_dsn.screen === 'reading'){
     const runIds = ((_dsn.run && dsnRun(_dsn.run)) || {}).ids || [], cid = _dsc.liveCid || runIds[runIds.length - 1] || null, askId = b ? (b.askId || (b.asks || [])[0]) : (_dsn.done && _dsn.done.askId);
     insPaintPanel(Object.assign(base, { item: { id: 'live:' + (cid || '') }, body: cid && askId ? `<div class="rfp-cap">${_rdE(_rdT('dsc_just_read'))}</div>${dscPaperHtml(askId, cid)}` : `<div class="rfp-panel is-drawn rdn-panel"><p class="ac-nl-hint">${_rdE(_rdT('dsc_live_first'))}</p></div>`,
@@ -1171,7 +1206,7 @@ async function dsnAsk(more){
   }
   A.scope = { ids: ch.ids };
   _dsn.reading = { whereWords: ch.where.includes('all') ? _rdT('dsn_all_contracts') : ch.where.map(_dsnFolderName).join(', '), of: ch.ids.length, t0: Date.now() };
-  Object.assign(o, { where: ch.where, of: ch.ids.length, onRun: id => { _dsn.run = id; } });
+  Object.assign(o, { size: DSN_READ_MAX, where: ch.where, of: ch.ids.length, onRun: id => { _dsn.run = id; } });
   _dsc.say = ''; _dsc.liveCid = null; _dsc.liveAt = 0; _dsc.starting = true; _dsn.done = null; _dsn.screen = 'reading';
   renderReads({ top: true });
   let got = null;
