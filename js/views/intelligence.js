@@ -10297,6 +10297,33 @@ const IG_DOCK_ACT_RE=/data-pd-act="[^"]*"/g;
 const IG_DOCK_FILLED_SEL='[data-pd-send-kept], #pd-thread, #pd-fill, #pd-og, .pd-nx, #pd-fillface, #pd-redface, #pd-signface, #pd-amendface, #pd-sendface, #pd-send-slot, #pd-body, #pd-kt';
 function igDockKeptCount(){ return _igDockKept; }
 function igDockForget(){ _igDockSrc=null; }
+/* THE PANEL KEEPS WHAT DID NOT CHANGE (14 Nov 2026, Jambo's panel holds still, step 2): where the panel must be written
+   (igDockSame said it differs), each of its top parts that would be written EXACTLY as it stands is kept — the same
+   element, its scroll, its focus, the box's words — and only the parts that changed are written. Its buttons were
+   bound once (igOnce), so a kept one never acts twice. ANY DOUBT = WRITTEN WHOLE: a different number of parts, or a
+   part another painter fills after the write (IG_DOCK_FILLED_SEL) — compared as it stands, it never matches. */
+function igDockWrite(dock, html){
+  try{
+    const t=document.createElement('template'); t.innerHTML=html;
+    const real=n=>!(n.nodeType===3&&!String(n.nodeValue||'').trim());
+    const fresh=[...t.content.childNodes].filter(real), live=[...dock.childNodes].filter(real);
+    if(fresh.length&&fresh.length===live.length&&fresh.every((n,i)=>n.nodeType===1&&live[i].nodeType===1&&n.tagName===live[i].tagName)){
+      let kept=0;
+      fresh.forEach((n,i)=>{ const o=live[i]; if(o.outerHTML===n.outerHTML&&!o.matches(IG_DOCK_FILLED_SEL)&&!o.querySelector(IG_DOCK_FILLED_SEL)) kept++; else o.replaceWith(n); });
+      igDockWrite._kept=(igDockWrite._kept||0)+kept;
+      return kept;
+    }
+  }catch(_){ }
+  dock.innerHTML=html; return 0;
+}
+/* ONE PRESS, ONE ACT (14 Nov 2026, Jambo's panel holds still, step 1): the panel's frame binds its buttons on every
+   paint; a button the paint KEPT (igDockWrite) already holds its listener, so each binding is made once per element
+   and per kind (`tag`) — never twice. A fresh element is bound as before. */
+function igOnce(el, ev, tag, fn){
+  if(!el||typeof el.addEventListener!=='function') return;
+  const seen=el._igOnce||(el._igOnce=Object.create(null)), k=ev+'|'+tag;
+  if(seen[k]) return; seen[k]=1; el.addEventListener(ev, fn);
+}
 /* the panel as just written is what a later ask is compared with; null where its middle is not the painter's own */
 function igDockStamp(dock, html){
   /* ONLY words the painter itself wrote: no part a painter fills after the write, and no box but the ask box (a box's
@@ -10366,7 +10393,7 @@ function renderIntelDock(){
       <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${igEsc(_dn?i18t('pd_tab_n',{ name:i18t('int_copilot_panel'), n:_dn.n }):i18t('int_open_panel'))}">
         <span class="igd-door-i">${_df}${_dn?`<span class="pd-tab-n is-${_dn.tone}">${_dn.n>99?'99+':_dn.n}</span>`:''}</span><span class="igd-door-w">${i18t('int_copilot_panel')}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>
       </button>`;
-    document.getElementById('igd-expand').addEventListener('click',()=>{
+    igOnce(document.getElementById('igd-expand'),'click','igd-expand',()=>{
       /* AN ENLARGED CHART HANDS THE ROOM BACK (8 Oct 2026): the card's own
          "Make smaller" is pressed first, so the panel opens beside the board
          the way it always stands there — never over a chart drawn for the
@@ -10442,7 +10469,7 @@ function renderIntelDock(){
     const head=dock.querySelector('.cal-plan-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
     const fold=document.getElementById('igd-collapse');
-    if(fold) fold.addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
+    igOnce(fold,'click','fold',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
     if(typeof window.calWireOwn==='function') calWireOwn();
     return;
   }
@@ -10598,7 +10625,7 @@ function renderIntelDock(){
     try{ _igDockWatch.takeRecords(); _igDockMoved=false; }catch(_){ }
     return;
   }
-  dock.innerHTML=_html;
+  igDockWrite(dock,_html);
   /* THE NEWEST WORDS IN VIEW — or, with no conversation yet, the TOP: what
      he draws above it (Needs you here, the glance, the Board's greeting) is
      read from its first line, never scrolled past (round 3 as drawn: Needs
@@ -10644,7 +10671,7 @@ function renderIntelDock(){
     if(blocks.length) aiHydrateCharts(blocks);
   }
   // wiring
-  document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
+  igOnce(document.getElementById('igd-collapse'),'click','igd-collapse',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
   /* The » widen button went on 27 Sep 2026 — the divider beside the panel is
      the one way to set its width (igWireSplit). */
   { const n=document.getElementById('igd-input');
@@ -10662,50 +10689,50 @@ function renderIntelDock(){
     /* THE ONE PRESS THAT MAY EMPTY THE BOX: the words are used here, so the draft ends here and nowhere else */
     inp.value=''; if(typeof window.jamboDraftClear==='function') jamboDraftClear();
     if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v, { typed:true }); };
-  document.getElementById('igd-go')?.addEventListener('click',go);
-  document.getElementById('igd-input')?.addEventListener('keydown',e=>{
+  igOnce(document.getElementById('igd-go'),'click','igd-go',go);
+  igOnce(document.getElementById('igd-input'),'keydown','igd-input',e=>{
     if(window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),true))) go(); });
   /* SEE IT WHILE YOU TYPE (Part 10): after a short pause, the board's ONE
      reading of the words in the box, said on the line above it. Costs nothing,
      writes nothing; the line's room is always there, so nothing moves. */
   if(igPreOn()&&document.getElementById('igd-input')){ const inp=document.getElementById('igd-input');
-    inp.addEventListener('input',()=>{ clearTimeout(_igPreT); _igPreT=setTimeout(igPrePaint,IG_PRE_MS); });
+    igOnce(inp,'input','inp-input',()=>{ clearTimeout(_igPreT); _igPreT=setTimeout(igPrePaint,IG_PRE_MS); });
     if(_keep) igPrePaint(); }
-  dock.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
-  document.getElementById('igd-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
+  dock.querySelectorAll('[data-igsug]').forEach(b=>igOnce(b,'click','[data-igsug]',()=>intelAsk(b.getAttribute('data-igsug'))));
+  igOnce(document.getElementById('igd-clear'),'click','igd-clear',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
   // lens chips: toggle / remove / hover-trace
-  dock.querySelectorAll('[data-lens-toggle]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-lens-toggle]').forEach(b=>igOnce(b,'click','[data-lens-toggle]',e=>{ e.stopPropagation();
     const l=intel.lenses.find(x=>x.id===b.getAttribute('data-lens-toggle')); if(l){ l.on=!l.on; rebuildIntelGraph(); renderIntelDock(); } }));
-  dock.querySelectorAll('[data-lens-x]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-lens-x]').forEach(b=>igOnce(b,'click','[data-lens-x]',e=>{ e.stopPropagation();
     intel.lenses=intel.lenses.filter(x=>x.id!==b.getAttribute('data-lens-x')); rebuildIntelGraph(); renderIntelDock(); }));
   dock.querySelectorAll('[data-lens-hover]').forEach(el=>{
     const l=()=>intel.lenses.find(x=>x.id===el.getAttribute('data-lens-hover'));
-    el.addEventListener('pointerenter',()=>{ const x=l(); if(x) igPaintIds(x.ids); });
-    el.addEventListener('pointerleave',()=>igPaintIds(null));
+    igOnce(el,'pointerenter','el-pointerenter',()=>{ const x=l(); if(x) igPaintIds(x.ids); });
+    igOnce(el,'pointerleave','el-pointerleave',()=>igPaintIds(null));
   });
   // contract cards: hover-trace + click to highlight; workspace button
   dock.querySelectorAll('[data-ig-card]').forEach(b=>{
     const id=b.getAttribute('data-ig-card');
-    b.addEventListener('pointerenter',()=>igPaintIds([id]));
-    b.addEventListener('pointerleave',()=>igPaintIds(null));
-    b.addEventListener('click',()=>igPaintIds([id]));
+    igOnce(b,'pointerenter','b-pointerenter',()=>igPaintIds([id]));
+    igOnce(b,'pointerleave','b-pointerleave',()=>igPaintIds(null));
+    igOnce(b,'click','b-click',()=>igPaintIds([id]));
   });
   dock.querySelectorAll('[data-ig-hoverid]').forEach(el=>{
     const id=el.getAttribute('data-ig-hoverid');
-    el.addEventListener('pointerenter',()=>igPaintIds([id]));
-    el.addEventListener('pointerleave',()=>igPaintIds(null));
+    igOnce(el,'pointerenter','el-pointerenter',()=>igPaintIds([id]));
+    igOnce(el,'pointerleave','el-pointerleave',()=>igPaintIds(null));
   });
   /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
-  dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
+  dock.querySelectorAll('[data-ig-ws]').forEach(b=>igOnce(b,'click','[data-ig-ws]',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
   /* the whole-book door (igFailTurn's stand-in): the Contracts page with nothing narrowing it, as the window's press */
-  dock.querySelectorAll('[data-ai-worklist-all]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); if(typeof window.regShowOnly==='function') regShowOnly([], ''); }));
+  dock.querySelectorAll('[data-ai-worklist-all]').forEach(b=>igOnce(b,'click','[data-ai-worklist-all]',e=>{ e.stopPropagation(); if(typeof window.regShowOnly==='function') regShowOnly([], ''); }));
   /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
   }
   /* the ⋯ menu is measured against the panel once it is painted, and flipped where it does not fit */
   try{ igMorePlace(); }catch(_){ }
-  dock.querySelectorAll('[data-ig-mrnext]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-ig-mrnext]').forEach(b=>igOnce(b,'click','[data-ig-mrnext]',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-mrnext')||'').split(':').map(Number); const m=intel.history[t], R=m&&m.mapRead;
     if(!R||!igMapReadLive(t)) return; const x=igMapReadNext(R.top)[k]; if(!x) return;
     const h0=intel.history.length;
@@ -10713,7 +10740,7 @@ function renderIntelDock(){
     const L=igTopLensNow(), last=intel.history[intel.history.length-1];
     if(L&&last&&last.role==='assistant'&&intel.history.length>h0+1) last.mapRead={ top:Object.assign({}, L.top), word:R.word, doubt:null };
     intel.mrOpen=null; renderIntelDock(); updateIntelNote(); }));
-  dock.querySelectorAll('[data-ig-choice]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-ig-choice]').forEach(b=>igOnce(b,'click','[data-ig-choice]',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-choice')||'').split(':').map(Number); const m=intel.history[t], c=m&&m.choices&&m.choices[k];
     if(!c) return; intel.history.push({ role:'user', text:c.label });
     /* JAMBO'S FIRST WORDS: each answer is an existing door (firstReadPress, js/triage.js) */
@@ -10729,39 +10756,39 @@ function renderIntelDock(){
     if(Array.isArray(c.board)&&typeof window.hbChoicePress==='function'){ const out=hbChoicePress(c); if(out) intel.history.push(Object.assign({ role:'assistant', text:out.html }, out.undo?{ undo:out.undo }:{})); renderIntelDock(); return; }
     igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));
 
-  dock.querySelectorAll('[data-ig-list]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-ig-list]').forEach(b=>igOnce(b,'click','[data-ig-list]',e=>{ e.stopPropagation();
     const m=intel.history[Number(b.getAttribute('data-ig-list'))]; if(!m||!m.listIds||typeof regShowOnly!=='function') return;
     regShowOnly(m.listIds.filter(id=>getContract(id)), m.listTitle||i18t(IG_TAB_LABEL.map)); }));
-  dock.querySelectorAll('[data-ig-export]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-ig-export]').forEach(b=>igOnce(b,'click','[data-ig-export]',e=>{ e.stopPropagation();
     const m=intel.history[Number(b.getAttribute('data-ig-export'))]; if(m&&m.listIds) igExportList(m.listIds); }));
   igCiteRowsMark(dock);
   igRefsMark(dock);
-  dock.querySelectorAll('[data-ig-paper-go]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-ig-paper-go]').forEach(b=>igOnce(b,'click','[data-ig-paper-go]',e=>{ e.stopPropagation();
     const m=intel.history[Number(b.getAttribute('data-ig-paper-go'))]; if(!m) return;
     igWalk(igAnswerIds(m),0,{ title:m.listTitle||'' }); }));
-  dock.querySelectorAll('[data-ig-board-go]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-ig-board-go]').forEach(b=>igOnce(b,'click','[data-ig-board-go]',e=>{ e.stopPropagation();
     const m=intel.history[Number(b.getAttribute('data-ig-board-go'))]; if(!m) return;
     const ids=igAnswerIds(m);
     if(typeof window.hbFace==='function'&&hbFace()!=='board'&&typeof window.hbSetFace==='function') hbSetFace('board');
     if(typeof window.hbShowFound==='function') try{ hbShowFound(ids, m.listTitle||'', m.listChart||null); }catch(_){ } }));
-  dock.querySelectorAll('[data-ig-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intel.walk=null; igAnalyze(b.getAttribute('data-ig-open')); }));
-  dock.querySelectorAll('[data-ig-cite]').forEach(b=>b.addEventListener('click',e=>{
+  dock.querySelectorAll('[data-ig-open]').forEach(b=>igOnce(b,'click','[data-ig-open]',e=>{ e.stopPropagation(); intel.walk=null; igAnalyze(b.getAttribute('data-ig-open')); }));
+  dock.querySelectorAll('[data-ig-cite]').forEach(b=>igOnce(b,'click','[data-ig-cite]',e=>{
     if(e.target.closest&&e.target.closest('a,button:not([data-ig-cite]),input,textarea,select')) return;
     e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-cite')||'').split(':').map(Number); igCiteGo(t,k); }));
   /* "See the list" — the register's ONE door onto a named set, carrying the
      chip that says what the list is and the way back. Never a second list
      drawn in the dock. */
-  dock.querySelectorAll('[data-ig-deps]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+  dock.querySelectorAll('[data-ig-deps]').forEach(b=>igOnce(b,'click','[data-ig-deps]',e=>{ e.stopPropagation();
     const id=b.getAttribute('data-ig-deps'); const d=graphDependents(id);
     if(!d.contracts.length||typeof regShowOnly!=='function') return;
     regShowOnly(d.contracts.map(x=>x.id), i18t('int_dep_list_label',{id:(window.contractRef?contractRef(getContract(id)||{id}):id)})); }));
   // node-driven comparison: stage/unstage a contract, run or clear the tray
-  dock.querySelectorAll('[data-ig-cmp]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intelToggleCompare(b.getAttribute('data-ig-cmp')); }));
-  document.getElementById('igd-cmp-clear')?.addEventListener('click',()=>{ intel.compareSel=[]; igPaintIds(null); renderIntelDock(); });
-  dock.querySelectorAll('[data-ig-cmp-ask]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intelCompareWording(Number(b.getAttribute('data-ig-cmp-ask'))); }));
+  dock.querySelectorAll('[data-ig-cmp]').forEach(b=>igOnce(b,'click','[data-ig-cmp]',e=>{ e.stopPropagation(); intelToggleCompare(b.getAttribute('data-ig-cmp')); }));
+  igOnce(document.getElementById('igd-cmp-clear'),'click','igd-cmp-clear',()=>{ intel.compareSel=[]; igPaintIds(null); renderIntelDock(); });
+  dock.querySelectorAll('[data-ig-cmp-ask]').forEach(b=>igOnce(b,'click','[data-ig-cmp-ask]',e=>{ e.stopPropagation(); intelCompareWording(Number(b.getAttribute('data-ig-cmp-ask'))); }));
   // clear the dock conversation (lenses are separate and survive on purpose)
-  document.getElementById('igd-history-clear')?.addEventListener('click',()=>{
+  igOnce(document.getElementById('igd-history-clear'),'click','igd-history-clear',()=>{
     // cleared immediately — no confirm prompt (lenses are separate and survive)
     /* AND THE ANALYSIS GOES WITH THE CONVERSATION (26 Sep 2026): the paper,
        its pins and the strip are the conversation's — the bin is the one act
@@ -12741,7 +12768,7 @@ Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
 /* what the map shows, one reading (24 Oct 2026) */
 Object.assign(window,{ igMapNow, igAskThenExplain, igNextUnderWords, igNextLive });
 Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFirst, igPageTalkAsk, igTalkRun });
-Object.assign(window,{ igDockKeptCount, igDockForget, igStripPut, IG_DOCK_FILLED_SEL });
+Object.assign(window,{ igDockKeptCount, igDockForget, igStripPut, IG_DOCK_FILLED_SEL, igOnce, igDockWrite });
 Object.assign(window,{ igMiniBrainHtml, igMiniWake, igMiniModel, igMiniBook, igMiniDraw });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
 Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,

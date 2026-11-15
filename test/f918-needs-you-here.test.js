@@ -227,7 +227,7 @@ describe('f918 (4) his face and his count', () => {
   });
   test('4b the folded strip: his face, the same count, the door\'s words, and no face named', () => {
     const at = IG.indexOf('if(!intel.dockOpen){', IG.indexOf('function renderIntelDock('));
-    const fold = IG.slice(at, IG.indexOf("document.getElementById('igd-expand').addEventListener", at));
+    const fold = IG.slice(at, IG.indexOf("igOnce(document.getElementById('igd-expand'),'click','igd-expand',", at)); /* bound once (Jambo's panel holds still, 14 Nov 2026) */
     assert.ok(at > 0 && fold.length < 3000, 'the folded strip\'s own lines');
     assert.match(fold, /pdTabCount\('copilot'/, 'the count his tab carries');
     assert.match(fold, /jamboFaceHtml\('hello',28,'igd-door-face'\)/, 'his face');
