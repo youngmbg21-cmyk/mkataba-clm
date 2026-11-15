@@ -32,7 +32,7 @@ function rdPlacePut(p){
   _rdBack = p.sel ? String(p.sel) : null;
   _rd.table = p.table && p.table.key ? { key: String(p.table.key), tab: String(p.table.tab || 'all'), q: String(p.table.q || ''), cid: p.table.cid ? String(p.table.cid) : null, loaded: false } : null;
   const d = p.dsn && typeof p.dsn === 'object' ? p.dsn : null;
-  if (d){ _dsn.screen = ['list', 'new', 'results'].includes(d.screen) ? d.screen : 'list'; _dsn.run = d.run ? String(d.run) : null; _dsn.sel = d.sel ? String(d.sel) : null;
+  if (d){ _dsn.resumed = true; _dsn.screen = ['list', 'new', 'results'].includes(d.screen) ? d.screen : 'list'; _dsn.run = d.run ? String(d.run) : null; _dsn.sel = d.sel ? String(d.sel) : null;
     if (d.f && typeof d.f === 'object') ['folder', 'ask', 'by', 'when'].forEach(k => { if (typeof d.f[k] === 'string') _dsn.f[k] = d.f[k]; }); }
 }
 /* THE CONTRACTS THIS PERSON MAY SEE, counted once: "of 500" on every row */
@@ -888,6 +888,11 @@ function dsnResultsHtml(r){
 /* THE ROUTER: which screen stands (a read in flight is always its own screen) */
 function dsnRender(host, o){
   const A = _dscAC(), busy = !!(A && A.busy);
+  /* ARRIVING FROM ANOTHER PAGE LANDS ON THE LIST OF READS, however you came (a press inside Discover keeps its screen; a
+     refresh puts back the place it kept, rdPlacePut; a read in flight is always its own screen) */
+  if (!document.querySelector('#rd-page.dsn-page') && !busy){
+    if (_dsn.resumed) _dsn.resumed = false; else { _dsn.screen = 'list'; _dsn.cid = null; _dsn.picked = false; }
+  }
   if (busy) _dsn.screen = 'reading';
   if (_dsn.screen === 'results' && !(_dsn.run && dsnRun(_dsn.run))) _dsn.screen = _dsn.run ? 'results' : 'list';
   dscLiveTurn();
