@@ -19147,6 +19147,15 @@
   html.lg-new #sh-letter .sh-note-count[hidden]{display:none}
   html.lg-new #sh-letter .sh-note-count.is-over{color:var(--st-amber-fg)}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-note-count{flex-basis:100%;order:1}
+  /* TOP CORNER (owner's pick by name, 15 Nov 2026: "Write it for me seems to be inside the email … it stays on the top
+     right of the email body and it never goes to the receiver"): a grey tool pill with Jambo's sparkle, level with the
+     letter's first line in its top-right corner, off the note's line; only that first line keeps clear of it (a float). Screen only:
+     the email is built from the letter's parts, never from this button. */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-b{position:relative}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-nl-jb{position:absolute;top:18px;right:0;margin:0;padding:0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-b > #sh-lt-before > .sh-lt-p:first-child::before{content:"";float:right;width:144px;height:var(--s-4)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-nl-jb .sh-nl-write{display:inline-flex;align-items:center;gap:var(--s-1);height:var(--ctl-h);padding:0 var(--s-3);border-radius:999px;background:var(--surface-2);color:var(--color-text);font-family:var(--font-body);font-size:12.5px;font-weight:var(--w-label);text-decoration:none;white-space:nowrap;cursor:pointer}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-nl-jb .sh-nl-write:hover{background:var(--color-neutral-200)}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps #sh-lt-after .sh-lt-say.is-lead{font-family:var(--font-doc);font-size:15px;line-height:1.55;color:var(--color-doc-text);margin:0}
   /* THE SEND SCREEN, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; core.js shareLegoraArrange): the letter is a full
      white paper on the grey desk; the choices one sentence of soft pills above it; nothing outlined anywhere */

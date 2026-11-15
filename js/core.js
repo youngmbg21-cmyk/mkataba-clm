@@ -5396,7 +5396,7 @@ function shareNoteBoxHtml(c, hist){
     /* THE NEW LOOK, AS DRAWN: Jambo writes the note from your answers on a press, its cost on it (owner: "Jambo on press") */
     /* f1035: drawn in the new look whatever goes, HIDDEN for the history (nothing it answers to write from);
        What goes moving the letter shows or hides it (shareLetterPaint) */
-    (typeof newLookOn==='function' && newLookOn()) ? `<p class="sh-nl-jb${hist?' hidden':''}" id="sh-nl-jb"><button type="button" class="sh-nl-write" data-sh-nl-write="${esc(c.id)}">${esc(i18t('sh_nl_write'))}</button> <span>${esc(i18t('sh_nl_write_cost'))}</span></p>` : ''}`;
+    (typeof newLookOn==='function' && newLookOn()) ? `<p class="sh-nl-jb${hist?' hidden':''}" id="sh-nl-jb"><button type="button" class="sh-nl-write" data-sh-nl-write="${esc(c.id)}">${typeof icon==='function'?icon('sparkle','w-3.5 h-3.5'):''}${esc(i18t('sh_nl_write'))}</button> <span>${esc(i18t('sh_nl_write_cost'))}</span></p>` : ''}`;
 }
 /* "Write it for me": the question goes to Jambo through the one box (1 call); his note lands in the box itself (aiSendNoteHtml
    sees the press), and the line under it says who wrote it and what it cost — nothing is sent until Send */
@@ -5745,8 +5745,9 @@ function shareLetterNoteFit(){
   /* PLAIN LETTER (owner's pick, 14 Nov 2026): on the four steps the note is a line of the letter, as wide as its words,
      "Write it for me" right after them; a note longer than that line takes the letter's width, the link under it */
   if(L.classList.contains('is-steps')){
-    const jb=document.getElementById('sh-nl-jb');
-    const room=Math.max(160, body.clientWidth - (jb && jb.getClientRects().length ? Math.ceil(jb.getBoundingClientRect().width) + 12 : 0));
+    /* TOP CORNER (owner's pick, 15 Nov 2026): "Write it for me" stands in the letter's top-right corner, out of the
+       note's line, so the note has the letter's whole width */
+    const room=Math.max(160, body.clientWidth);
     const want=Math.max(Math.ceil(w)+6, 120);
     /* one line fits beside the link: hug it; longer, the note takes the letter's width and the link sits under it */
     ta.style.width=want<=room ? want+'px' : '100%';
