@@ -1026,6 +1026,9 @@ function dsnReadingHtml(){
    clock (dsnTypeTick) — and the next papers in line. Nothing here waits on an answer, so a pause while Jambo is slow
    never stills the page. Every motion carries a negative delay off the read's own start, so a repaint never restarts
    it; where less motion is asked it stands still. Words are only what HaTi holds: the question and the quotes found. */
+/* the panel keeps the newest DSN_DRIFT_KEEP quotes, piled from the foot up to the top of the panel (owner, 15 Nov 2026:
+   "the clause quotes should be piling up and filling the page as they scroll up … Make use of the space") */
+const DSN_DRIFT_KEEP = 30;
 const DSN_ROWS_SHOWN = 4, DSN_FLIP_S = 2.4, DSN_TYPE_MS = 2600, DSN_NEXT = 7;
 const _dsnGone = () => (Date.now() - ((_dsn.reading && _dsn.reading.t0) || Date.now())) / 1000;
 const _dsnDelay = (period, off) => `animation-delay:${(-(((_dsnGone() + (off || 0)) % period + period) % period)).toFixed(2)}s`;
@@ -1063,7 +1066,7 @@ function dsnTypeStart(){ _dsnTypeAt = -1; dsnTypeTick(); if (!_dsnTypeT) _dsnTyp
 function dsnDriftHtml(){
   const A = _dscAC(), b = A && A.busy, askId = b ? (b.askId || (b.asks || [])[0]) : null, got = (askId && A.ans[askId]) || {};
   const gc = id => (typeof getContract === 'function' ? getContract(id) : null);
-  const items = ((b && b.doneIds) || []).filter(id => got[id] && got[id].found && String(got[id].quote || '').trim()).slice(-8)
+  const items = ((b && b.doneIds) || []).filter(id => got[id] && got[id].found && String(got[id].quote || '').trim()).slice(-DSN_DRIFT_KEEP)
     .map(id => { const c = gc(id), a = got[id]; return `<p><span>${_rdE([c ? _rdRef(c) : id, c ? _rdName(c) : ''].filter(Boolean).join(' · '))}</span>“${_rdE(String(a.quote).trim())}”</p>`; }).join('');
   return `<div class="dsn-drift" aria-hidden="true"><div class="rfp-cap">${_rdE(_rdT('dsn_found_so_far'))}</div><div class="dsn-dcol"><div class="dsn-dreel" style="${_dsnDelay(9)}">${items || `<p class="is-quiet">${_rdE(_rdT('dsn_found_none'))}</p>`}</div></div></div>`;
 }
@@ -1166,7 +1169,7 @@ function dsnPanelPaint(body, r){
   const base = { seat: RD_SEAT, head: false, jlHome: _rdT('nav_reads'), jlSay: rdJlSay };
   const A = _dscAC(), b = A && A.busy;
   if (_dsn.screen === 'reading' && b){
-    insPaintPanel(Object.assign(base, { item: { id: 'drift' }, body: `<div class="rfp-panel is-drawn rdn-panel">${dsnDriftHtml()}</div>`, jlTabWord: _rdT('dsc_tab_reading', { k: b.done, n: b.total }), jlPh: _rdT('jl_ph_any'), jlLinks: '' }));
+    insPaintPanel(Object.assign(base, { item: { id: 'drift' }, body: `<div class="rfp-panel is-drawn rdn-panel dsn-drift-panel">${dsnDriftHtml()}</div>`, jlTabWord: _rdT('dsc_tab_reading', { k: b.done, n: b.total }), jlPh: _rdT('jl_ph_any'), jlLinks: '' }));
     return;
   }
   if (_dsn.screen === 'reading'){
