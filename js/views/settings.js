@@ -10201,6 +10201,8 @@ function stnPanelHtml(admin){
   if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
     const needRows=needs.slice(0,5).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
       const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):''); const what=k==='panel'?(sub?stShortState(sub):r.text):r.text;
+      /* a need with no kind of its own is named by what it is ("Quarterly access review · Q4 2026"), never the bare word "Setting" */
+      if(!(k==='panel'&&SET_PANELS[String(r.key).slice(6)])&&!STN_NEED_KIND[k]) return { mark:'alert', tone:'amber', t:what||lab, s:sub, attr:r.btn||'' };
       return { mark:'alert', tone:'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'' }; });
     const groups=[];
     if(needRows.length) groups.push({ label:i18t('jov5_st_needs'), rows:needRows });
