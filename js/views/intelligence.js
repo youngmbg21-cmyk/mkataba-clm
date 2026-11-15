@@ -10302,7 +10302,12 @@ function igDockForget(){ _igDockSrc=null; }
    element, its scroll, its focus, the box's words — and only the parts that changed are written. Its buttons were
    bound once (igOnce), so a kept one never acts twice. ANY DOUBT = WRITTEN WHOLE: a different number of parts, or a
    part another painter fills after the write (IG_DOCK_FILLED_SEL) — compared as it stands, it never matches. */
-function igDockWrite(dock, html){
+function igDockWrite(dock, html, face){
+  /* ONLY ON THE SAME FACE (15 Nov 2026, GitHub's jambo-panel-sweep: going back from his talk to the Board's landing did
+     not bring the landing's links back while parts were kept across the flip). A face that changed — the talk opened
+     or closed, another tab, another paper, the sheet — is written whole, as it always was. */
+  const same=face!=null&&dock._igFace===face; dock._igFace=face==null?null:face;
+  if(!same){ dock.innerHTML=html; return 0; }
   try{
     const t=document.createElement('template'); t.innerHTML=html;
     const real=n=>!(n.nodeType===3&&!String(n.nodeValue||'').trim());
@@ -10388,7 +10393,7 @@ function renderIntelDock(){
        owner's "No", round 3). */
     const _dn=(typeof window.pdTabCount==='function')?pdTabCount('copilot',(window.pdOnPaper&&pdOnPaper()&&window.pdContract)?pdContract():null):null;
     const _df=(typeof window.jamboFaceHtml==='function')?jamboFaceHtml('hello',28,'igd-door-face').replace('<img','<img data-ink-exempt'):icon('sparkle','w-5 h-5');
-    igDockMarks('',true); igDockForget();
+    igDockMarks('',true); igDockForget(); dock._igFace=null;
     dock.innerHTML=`
       <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${igEsc(_dn?i18t('pd_tab_n',{ name:i18t('int_copilot_panel'), n:_dn.n }):i18t('int_open_panel'))}">
         <span class="igd-door-i">${_df}${_dn?`<span class="pd-tab-n is-${_dn.tone}">${_dn.n>99?'99+':_dn.n}</span>`:''}</span><span class="igd-door-w">${i18t('int_copilot_panel')}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>
@@ -10464,7 +10469,7 @@ function renderIntelDock(){
      the panel went on saying "This week is clear"), as it does over the Board (pdJamboTopHtml); Cancel brings
      the Calendar's own back */
   if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'&&!(window.naSheetUp&&naSheetUp())){
-    igDockMarks('',false); igDockForget();
+    igDockMarks('',false); igDockForget(); dock._igFace=null;
     dock.innerHTML=calPlanHtml();
     const head=dock.querySelector('.cal-plan-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
@@ -10625,7 +10630,7 @@ function renderIntelDock(){
     try{ _igDockWatch.takeRecords(); _igDockMoved=false; }catch(_){ }
     return;
   }
-  igDockWrite(dock,_html);
+  igDockWrite(dock,_html,[igDockFaceKey(),talk?1:0,solo?1:0,_sheet?1:0].join('#'));
   /* THE NEWEST WORDS IN VIEW — or, with no conversation yet, the TOP: what
      he draws above it (Needs you here, the glance, the Board's greeting) is
      read from its first line, never scrolled past (round 3 as drawn: Needs

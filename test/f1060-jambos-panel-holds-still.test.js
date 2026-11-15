@@ -32,7 +32,7 @@ test('f1060 (1) every button Jambo\'s panel binds goes through igOnce — none b
   assert.ok(r.length > 1000, 'renderIntelDock found');
   assert.equal((r.match(/\.addEventListener\(/g) || []).length, 0, 'no raw binding left in the painter');
   assert.ok((r.match(/igOnce\(/g) || []).length >= 30, 'the panel\'s bindings go through igOnce');
-  assert.match(r, /igDockWrite\(dock,_html\);/, 'the main write keeps what did not change');
+  assert.match(r, /igDockWrite\(dock,_html,\[igDockFaceKey\(\),talk\?1:0,solo\?1:0,_sheet\?1:0\]\.join\('#'\)\);/, 'the main write keeps what did not change, on the same face');
 });
 
 test('f1060 (2) igOnce binds a listener once per element and kind, and a fresh element again', () => {
@@ -48,9 +48,9 @@ test('f1060 (2) igOnce binds a listener once per element and kind, and a fresh e
 test('f1060 (3) igDockWrite keeps the parts that are the same and writes only the ones that changed', () => {
   const html = '<div class="head">Jambo</div><div class="body">One</div><div class="foot"><textarea id="q"></textarea></div>';
   const { w, dock } = stage(html);
-  const [head, bodyEl, foot] = [...dock.children];
-  dock.querySelector('#q').value = 'half typed';
-  const kept = w.igDockWrite(dock, '<div class="head">Jambo</div><div class="body">Two</div><div class="foot"><textarea id="q"></textarea></div>');
+  let [head, bodyEl, foot] = [...dock.children];
+  w.igDockWrite(dock, html, 'F'); [head, bodyEl, foot] = [...dock.children]; dock.querySelector('#q').value = 'half typed';
+  const kept = w.igDockWrite(dock, '<div class="head">Jambo</div><div class="body">Two</div><div class="foot"><textarea id="q"></textarea></div>', 'F');
   assert.equal(kept, 2, 'head and foot kept');
   assert.strictEqual(dock.children[0], head, 'the head is the same element');
   assert.notStrictEqual(dock.children[1], bodyEl, 'the body changed, so it is written');
@@ -61,16 +61,29 @@ test('f1060 (3) igDockWrite keeps the parts that are the same and writes only th
 
 test('f1060 (4) any doubt is written whole: another number of parts, another kind, or a part another painter fills', () => {
   const { w, dock } = stage('<div class="a">1</div><div class="b">2</div>');
-  const a0 = dock.children[0];
-  assert.equal(w.igDockWrite(dock, '<div class="a">1</div>'), 0, 'fewer parts: written whole');
-  assert.notStrictEqual(dock.children[0], a0);
+  w.igDockWrite(dock, '<div class="a">1</div><div class="b">2</div>', 'F'); const a0b = dock.children[0];
+  assert.equal(w.igDockWrite(dock, '<div class="a">1</div>', 'F'), 0, 'fewer parts: written whole');
+  assert.notStrictEqual(dock.children[0], a0b);
   const s2 = stage('<div class="a">1</div>');
-  const a1 = s2.dock.children[0];
-  assert.equal(s2.w.igDockWrite(s2.dock, '<section class="a">1</section>'), 0, 'another kind of part: written');
+  s2.w.igDockWrite(s2.dock, '<div class="a">1</div>', 'F'); const a1 = s2.dock.children[0];
+  assert.equal(s2.w.igDockWrite(s2.dock, '<section class="a">1</section>', 'F'), 0, 'another kind of part: written');
   assert.notStrictEqual(s2.dock.children[0], a1);
   const s3 = stage('<div class="h">x</div><div id="pd-redface"></div>');
-  const red = s3.dock.children[1], h = s3.dock.children[0];
-  assert.equal(s3.w.igDockWrite(s3.dock, '<div class="h">x</div><div id="pd-redface"></div>'), 1, 'only the head kept');
+  s3.w.igDockWrite(s3.dock, '<div class="h">x</div><div id="pd-redface"></div>', 'F'); const red = s3.dock.children[1], h = s3.dock.children[0];
+  assert.equal(s3.w.igDockWrite(s3.dock, '<div class="h">x</div><div id="pd-redface"></div>', 'F'), 1, 'only the head kept');
   assert.strictEqual(s3.dock.children[0], h);
   assert.notStrictEqual(s3.dock.children[1], red, 'a part another painter fills is always written fresh');
+});
+
+test('f1060 (5) another face is written whole, even where its parts are the same', () => {
+  const html = '<div class="head">Jambo</div><div class="body">One</div>';
+  const { w, dock } = stage(html);
+  w.igDockWrite(dock, html, 'board|');
+  const head = dock.children[0];
+  assert.equal(w.igDockWrite(dock, html, 'board|talk'), 0, 'the talk opened: written whole');
+  assert.notStrictEqual(dock.children[0], head);
+  const head2 = dock.children[0];
+  assert.equal(w.igDockWrite(dock, html, 'board|talk'), 2, 'the same face again: both parts kept');
+  assert.strictEqual(dock.children[0], head2);
+  assert.equal(w.igDockWrite(dock, html, null), 0, 'no face known: written whole');
 });
