@@ -18,7 +18,8 @@ test('1 the drawn letter: Dear, the note, the link as one line, Kind regards and
   assert.match(m.body, /^Dear Erik,\n\nThank you for your round\./);
   /* RE-POINTED 14 Nov 2026 (the email, refined: the owner's yes): one sentence says what it is, and the small print
      follows the signature */
-  assert.match(m.body, /\nRound 1 of the Parcel Delivery SaaS is ready for you to read\. You can reply with your own changes\.\n\nOpen round 1:\n/);
+  /* RE-POINTED 15 Nov 2026 (owner: "shorten it to 'Round 2 is ready for you to read.'"): the round only; the subject names the agreement */
+  assert.match(m.body, /\nRound 1 is ready for you to read\. You can reply with your own changes\.\n\nOpen round 1:\n/);
   assert.match(m.body, /\nhttps:\/\/hati\.example\/#share=t:abc\n\nKind regards,\nAmina Otieno\nHighland Corporate Ltd\n\nThis link is for you\. Replies to this email reach Amina Otieno\.$/);
   assert.ok(!m.parts.some(p => p.k === 'btn'), 'no button');
   assert.ok(!/answered/.test(m.body), 'the note carries the answers, not a list');
@@ -44,7 +45,7 @@ test('1b the invitation wears the other letters\' shape (owner, 8 Nov 2026): the
 test('2 with no note the answers are said, so the letter is never empty', () => {
   const m = M.shareMailOf(base);
   /* RE-POINTED 14 Nov 2026 (Plain letter): one sentence, no list */
-  assert.match(m.body, /^Dear Erik,\n\nWe propose 45 days for clause 5, Payment \(you asked for 60\)\.\n\nRound 1 of/);
+  assert.match(m.body, /^Dear Erik,\n\nWe propose 45 days for clause 5, Payment \(you asked for 60\)\.\n\nRound 1 is ready/);
 });
 test('3 without the switch the letter is as before (Hello, the button)', () => {
   const m = M.shareMailOf(Object.assign({}, base, { drawn: false }));

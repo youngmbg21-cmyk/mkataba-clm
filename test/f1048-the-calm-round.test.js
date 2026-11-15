@@ -78,7 +78,8 @@ test('f1048 (7) the email: what it is, the company on top, small print that tell
   const o = { channel: 'email', purpose: 'negotiate', sender: 'Amina Otieno', org: 'Highland Corporate Ltd', cName: 'Refined Sugar Supply',
     recName: 'Wanjiru Kamau', link: 'https://x.test/#share=t:1', round: 1, drawn: true, expires: '2026-11-28T00:00:00Z' };
   const lasting = M.shareMailOf(Object.assign({}, o, { durable: true }));
-  assert.match(lasting.body, /Round 1 of the Refined Sugar Supply is ready for you to read\. You can reply with your own changes\./);
+  /* RE-POINTED 15 Nov 2026 (owner: "shorten it to 'Round 2 is ready for you to read.'") */
+  assert.match(lasting.body, /Round 1 is ready for you to read\. You can reply with your own changes\./);
   assert.match(lasting.body, /This link is for you\. It stays open for the whole negotiation\. Replies to this email reach Amina Otieno\.$/);
   assert.doesNotMatch(lasting.body, /until/, 'a lasting link is never given an end date');
   const once = M.shareMailOf(o);

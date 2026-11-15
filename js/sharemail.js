@@ -192,7 +192,9 @@ const SHARE_MAIL_KIND = {
 /* THE EMAIL SAYS WHAT IT IS (owner's yes to the drawing, 14 Nov 2026): one plain sentence naming the agreement, the
    round and what they can do, said whether or not a note is written (the drawn letter said only "Open round 1:") */
 const SHARE_MAIL_WHAT = {
-  negotiate: (c, n) => `Round ${n} of ${c} is ready for you to read. You can reply with your own changes.`,
+  /* PLAIN LETTER, as drawn (owner, 15 Nov 2026: "shorten it to 'Round 2 is ready for you to read.'"; reverses
+     naming the agreement here, which the subject already does): the round only */
+  negotiate: (c, n) => `Round ${n} is ready for you to read. You can reply with your own changes.`,
   sign: c => `${c} is ready for you to sign.`,
   view: c => `${c} is ready for you to read.`,
   advise: c => `Your advice is asked on some clauses of ${c}.`,
