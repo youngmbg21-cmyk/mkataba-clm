@@ -34,7 +34,8 @@ test('1b the invitation wears the other letters\' shape (owner, 8 Nov 2026): the
   assert.match(m.html, /<a href="https:\/\/hati\.example\/#share=t:abc" style="display:inline-block;background:#0b7a5f;color:#ffffff;[^"]*">Open round 1<\/a><\/p>/);
   assert.match(m.body, /\nOpen round 1:\nhttps:\/\/hati\.example\/#share=t:abc\n/);
   assert.match(m.html, /Amina Otieno<br><span[^>]*>Head of Legal, Highland Corporate Ltd<\/span>/);
-  assert.match(m.html, /<b>Clause 5 · Payment:<\/b> they propose 45 days/);
+  /* RE-POINTED 14 Nov 2026 (Plain letter, the owner's pick by name): the round is one sentence in the sender's voice */
+  assert.match(m.html, /<p style="margin:0 0 14px;white-space:pre-wrap">We propose 45 days for clause 5, Payment \(you asked for 60\)\.<\/p>/);
   assert.match(m.body, /Kind regards,\nAmina Otieno\nHead of Legal, Highland Corporate Ltd\n\nThis link is for you\./);
   /* the company's name leads the HTML, quiet; the small print closes it under a hairline */
   assert.match(m.html, /^<div[^>]*><p style="[^"]*text-transform:uppercase[^"]*">Highland Corporate Ltd<\/p>/);
@@ -42,7 +43,8 @@ test('1b the invitation wears the other letters\' shape (owner, 8 Nov 2026): the
 });
 test('2 with no note the answers are said, so the letter is never empty', () => {
   const m = M.shareMailOf(base);
-  assert.match(m.body, /has answered your redline:\nClause 5 · Payment: they propose 45 days/);
+  /* RE-POINTED 14 Nov 2026 (Plain letter): one sentence, no list */
+  assert.match(m.body, /^Dear Erik,\n\nWe propose 45 days for clause 5, Payment \(you asked for 60\)\.\n\nRound 1 of/);
 });
 test('3 without the switch the letter is as before (Hello, the button)', () => {
   const m = M.shareMailOf(Object.assign({}, base, { drawn: false }));

@@ -114,7 +114,12 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       check('2c back to someone outside brings the other side\'s rows back', !B.attr && B.ch, JSON.stringify(B));
       await page.click('[data-sh-to-kind="colleague"]');
       await page.waitForTimeout(200);
+      /* RE-POINTED 15 Nov 2026 (the note's limit said, f1054 (5)): the box itself stops at a colleague's cap, so typed
+         words never pass it; words already past it (carried over from elsewhere) are still refused, nothing mailed */
       await page.fill('#sh-summary', 'x'.repeat(2100));
+      const typed = await page.evaluate(() => { const t = document.getElementById('sh-summary'); return { len: t.value.length, max: t.maxLength }; });
+      check('2d0 typing stops at a colleague\'s cap', typed.max === 2000 && typed.len === 2000, JSON.stringify(typed));
+      await page.evaluate(() => { const t = document.getElementById('sh-summary'); t.value = 'x'.repeat(2100); t.dispatchEvent(new Event('input', { bubbles: true })); });
       const n0 = h.mail.sent.length;
       await page.click('#share-send');
       await page.waitForTimeout(600);

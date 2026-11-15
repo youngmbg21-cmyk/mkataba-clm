@@ -19092,6 +19092,30 @@
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.has-primary .sh-lt-who{display:none}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps #sh-lt-subject{padding-left:0;padding-right:0}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps #sh-st-to.hidden{display:none}
+  /* STEP 1, AS PICKED WITH PLAIN LETTER (owner, 14 Nov 2026: "the words are overlapping the grey area"): the open step's
+     16px inside wins the letter's row rule (".sh-lt-h .sh-lt-row" set 0 0 16px); its people are listed ONCE (the folded
+     To line stands down in the steps); "+ Add someone" one line */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open{padding:var(--s-4)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st #sh-lt-tosay:not(.hidden){display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-st-add > button{display:inline-flex;align-items:center;gap:var(--s-1)}
+  /* PLAIN LETTER (owner's pick by name, 14 Nov 2026): one typeface, one size. The note is a line of the letter: no label
+     on show (it stays for a screen reader), the empty box says so in grey, "Write it for me" right after its words
+     (shareLetterNoteFit hugs them); "Kind regards," the letter's size; the round one sentence (sharemail smRoundSentence) */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere){display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;column-gap:var(--s-3);row-gap:var(--s-1);margin:0 0 10px;padding:0;border:0;background:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > label{display:contents}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) #sh-summary-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > :is(#sh-lt-msghead,.sh-lt-nowhere){flex-basis:100%}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) textarea{flex:0 1 auto;min-width:0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) textarea::placeholder{color:var(--color-neutral-400);font-style:italic;opacity:1}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-nl-jb{margin:0;padding-top:3px;white-space:nowrap}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-nl-jb > span{display:none}
+  /* THE NOTE'S LIMIT, SAID (14 Nov 2026; core.js shareNoteCount): a quiet count under the note from four fifths of the
+     way, amber past it; inline state, no band */
+  html.lg-new #sh-letter .sh-note-count{margin:var(--s-1) 0 0;font-family:var(--font-body);font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new #sh-letter .sh-note-count[hidden]{display:none}
+  html.lg-new #sh-letter .sh-note-count.is-over{color:var(--st-amber-fg)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps.is-note-paper .sh-lt-note:not(.is-nowhere) > .sh-note-count{flex-basis:100%;order:1}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps #sh-lt-after .sh-lt-say.is-lead{font-family:var(--font-doc);font-size:15px;line-height:1.55;color:var(--color-doc-text);margin:0}
   /* THE SEND SCREEN, THE LEGORA WAY (owner's pick by name, 14 Nov 2026; core.js shareLegoraArrange): the letter is a full
      white paper on the grey desk; the choices one sentence of soft pills above it; nothing outlined anywhere */
   /* To and Subject: two plain lines; a box shows only as a line that darkens while typed in */

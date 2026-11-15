@@ -4,6 +4,8 @@
    Driven in a real browser, the new look, a long note put in by shareNoteFill:
      1-3  for Email, WhatsApp and Word file: the box shows ALL its words (no scroll inside it, height = its words)
      4    the box wears no field border on the paper, whichever way it goes
+     5    PLAIN LETTER (f1054): an empty note says so, "Write it for me" after it; step 1 open keeps 16px inside and
+          lists its person once
    Red at the parent: WhatsApp and Word kept a three-row field that scrolled.
      node test/chromium/send-note-on-the-paper-verify.js
    ============================================================ */
@@ -65,6 +67,29 @@ const SIZES = SHOTS ? [[1440, 780], [1536, 730], [1366, 950]] : [[1440, 780]];
         if (SHOTS) { await page.evaluate(() => { const t = document.getElementById('sh-summary'); if (t) t.blur(); });
           await page.screenshot({ path: `${SHOTS}/note-${ch}-${w}x${ht}.png` }); }
       }
+      /* PLAIN LETTER (owner's pick, 14 Nov 2026): back on Email, the note emptied — "Write it for me" on the note's own
+         line; step 1 open keeps 16px inside its grey and lists its person once */
+      await page.evaluate(() => { const b = document.querySelector('[data-share-ch="email"]'); if (b) b.click(); });
+      await page.evaluate(() => { const t = document.getElementById('sh-summary'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); try { shareLetterNoteFit(); } catch (_) {} });
+      const pl = await waitFor(page, () => { const t = document.getElementById('sh-summary'), j = document.getElementById('sh-nl-jb');
+        if (!t || !j || !t.getClientRects().length || !j.getClientRects().length) return null;
+        const a = t.getBoundingClientRect(), b = j.getBoundingClientRect();
+        return { sameLine: Math.abs(a.top - b.top) < 8 && b.left >= a.right, ph: t.placeholder }; }, 3000);
+      check(`${w}x${ht} plain letter: an empty note says so, "Write it for me" right after it`, !!pl && pl.sameLine && /No note yet/.test(pl.ph), JSON.stringify(pl));
+      await page.evaluate(() => { const s = document.querySelector('.sh-st[data-sh-st="to"]'); if (s && !s.classList.contains('is-open')) document.querySelector('[data-sh-st-go="to"]').click(); });
+      const s1 = await waitFor(page, () => { const s = document.querySelector('.sh-st[data-sh-st="to"].is-open'); if (!s) return null;
+        const r = s.getBoundingClientRect(), mk = s.querySelector('.sh-st-mk').getBoundingClientRect(), go = s.querySelector('.sh-st-go').getBoundingClientRect();
+        const shown = [...s.querySelectorAll('#sh-st-ppl .sh-st-p, #sh-lt-tosay')].filter(e => e.getClientRects().length).length;
+        return { top: Math.round(mk.top - r.top), left: Math.round(mk.left - r.left), right: Math.round(r.right - go.right), shown }; }, 3000);
+      check(`${w}x${ht} step 1 open: 16px inside the grey, its person listed once`, !!s1 && s1.top >= 15 && s1.left >= 15 && s1.right >= 15 && s1.shown === 1, JSON.stringify(s1));
+      /* THE NOTE'S LIMIT (f1054 (5)): typed past it, the box stops at the most the email carries; near it, a count */
+      const cap = await page.evaluate(async () => { const t = document.getElementById('sh-summary'); t.value = ''; t.focus();
+        return { max: t.maxLength }; });
+      if (cap && cap.max > 0) { await page.keyboard.insertText('x'.repeat(cap.max + 50)); }
+      const capped = await waitFor(page, () => { const t = document.getElementById('sh-summary'), c = document.getElementById('sh-note-count');
+        return t && c && !c.hidden ? { len: t.value.length, max: t.maxLength, say: c.textContent } : null; }, 3000);
+      check(`${w}x${ht} the note stops at its limit and says how full it is`, !!capped && capped.max === 1000 && capped.len === 1000 && /1000 of 1000/.test(capped.say), JSON.stringify(capped));
+      await page.evaluate(() => { const t = document.getElementById('sh-summary'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); t.blur(); });
       check(`${w}x${ht} no script errors`, errors.length === 0, errors.slice(0, 2).join(' | '));
       await page.close();
     }
