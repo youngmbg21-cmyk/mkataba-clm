@@ -842,6 +842,28 @@ function dirSelect(key){
 let _dirn = 'all';
 /* A PERSON'S PANEL, AS DRAWN (round 6): "{name}, {role}." and what they do for you; RIGHT NOW (what waits on them,
    whether they are away); DOORS (Show their contracts, Email, each with its cost). Readings the row already makes. */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 2): the person's initials and name as the headline, what they are under
+   it; agreements · waiting on them · away as tiles; the agreements they are named on, newest first; what waits on
+   them; Email them and Show their contracts as rows (the page's own data-dirn-mail / data-dirn-contracts presses).
+   Read from the record, no AI. The new look only. */
+function dirnPanelFive(p, sub, w, away){
+  const ids = [...(p.on ? p.on.keys() : [])];
+  const cs = ids.map(id => (typeof getContract === 'function') ? getContract(id) : null).filter(Boolean)
+    .sort((a, b) => String(b.lastAction || '').localeCompare(String(a.lastAction || '')));
+  const initials = String(p.name || p.email || '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(x => x.charAt(0).toUpperCase()).join('');
+  const n = p.contracts.length;
+  const groups = [];
+  if (cs.length) groups.push({ label:i18t('jov5_dir_named'), rows:cs.slice(0, 3).map(c => ({ mark:'file', t:c.name || c.id, s:c.counterparty || '', v:String(c.status || ''), run:() => window.jov5Open(c.id) })) });
+  if (w.length) groups.push({ label:i18t('dirn_p_waiting'), rows:w.slice(0, 3).map(x => ({ mark:'clock', tone:'amber', t:x.c.name || x.c.id, s:i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr'), run:() => window.jov5Open(x.c.id) })) });
+  const reach = [];
+  if (p.email) reach.push({ mark:'msg', t:i18t('dirn_p_email'), s:i18t('dirn_p_mail_cost'), attr:`data-dirn-mail="${_dE(p.key)}"` });
+  if (n) reach.push({ mark:'users', t:i18t('jov5_dir_show'), v:String(n), attr:`data-dirn-contracts="${_dE(p.key)}"` });
+  if (reach.length) groups.push({ label:i18t('jov5_dir_reach'), rows:reach });
+  return { avatar:initials, title:p.name || p.email || '', sub,
+    glance:[{ n, l:i18t('jov5_dir_agreements'), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
+      { n:away && away !== i18t('dirn_p_not_away') ? i18t('jov5_dir_away') : i18t('jov5_dir_in'), l:away ? (away === i18t('dirn_p_not_away') ? i18t('jov5_dir_not_away') : away) : i18t('jov5_dir_side') }],
+    groups, src:i18t('jov5_dir_src') };
+}
 function dirnPanelHtml(p){
   const E = _dE, ours = p.side === 'ours';
   const roles = [...(p.roles || [])];
@@ -860,6 +882,10 @@ function dirnPanelHtml(p){
   let away = '';
   if (ours && p.id != null){ const aw = (typeof jlAwayOf === 'function') ? jlAwayOf(p.id) : null; const today = (typeof todayISO === 'function') ? todayISO() : '';
     away = aw && aw.to && (!today || aw.to >= today) ? i18t('dirn_p_away_until', { day: (typeof jlDayWord === 'function') ? jlDayWord(aw.to, true) : aw.to, who: aw.deputyName || i18t('dirn_p_none_set') }) : i18t('dirn_p_not_away'); }
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    const sub = [role ? role.charAt(0).toLocaleUpperCase() + role.slice(1) : '', does].filter(Boolean).join(' \u00b7 ');
+    return `<div class="jl-words is-ov">${jamboOverviewHtml(dirnPanelFive(p, sub, w, away), 'dirn')}</div>`;
+  }
   const rows = row(i18t('dirn_p_waiting'), waitV) + (away ? row(i18t('dirn_p_away'), away) : '');
   const n = p.contracts.length;
   const door = (attr, w2, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w2)}</button><span>${E(cost)}</span></div>`;
@@ -1083,6 +1109,6 @@ const DIR_CSS = `
   .dir-more{padding-top:8px;font-size:var(--t-meta);color:var(--color-neutral-600);}
 `;
 
-Object.assign(window, { renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
+Object.assign(window, { dirnPanelFive, renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
   dirRowHtml, dirColDefs, dirCellHtml, dirAwayPillHtml, DIR_PAGE, dirOpenPerson, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
   dirWaitingOn, dirPhoneOf, dirDoesFor, DIR_DOES, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });

@@ -1566,8 +1566,10 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const tag = (run, attr) => (attr || typeof run === 'function') ? 'button' : 'div';
   /* `clear`: nothing waits, said as good news — a tick in a soft green ring over a centred headline */
   const tick = o.clear ? `<svg class="jov5-tick" viewBox="0 0 64 64" aria-hidden="true"><circle class="jov5-ring" cx="32" cy="32" r="30"/><path class="jov5-tk" d="m20 33 8 8 16-17"/></svg>` : '';
-  const head = `<div class="jov5-intro${o.clear ? ' is-clear' : ''}">${tick}${o.eyebrow ? `<p class="jov5-eb">${E(o.eyebrow)}</p>` : ''}`
+  const headIn = `<div class="jov5-intro${o.clear ? ' is-clear' : ''}">${tick}${o.eyebrow ? `<p class="jov5-eb">${E(o.eyebrow)}</p>` : ''}`
     + `<h3 class="jov5-title">${E(o.title)}</h3>${o.subHtml ? `<p class="jov5-sub">${o.subHtml}</p>` : o.sub ? `<p class="jov5-sub">${E(o.sub)}</p>` : ''}</div>`;
+  /* `avatar`: a person's initials in a dark circle beside the headline */
+  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
     return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
@@ -1597,7 +1599,13 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const L = o.line;
   const lineHtml = L && L.to ? `<div class="jov5-sec">${L.label ? `<p class="jov5-label">${E(L.label)}</p>` : ''}<div class="jov5-line"><i class="jov5-ln"></i><i class="jov5-a"></i><i class="jov5-b"></i>`
     + `<small class="jov5-lf">${E(L.from || '')}</small><small class="jov5-lt">${E(L.to)}</small></div></div>` : '';
-  const order = o.actFirst ? [head, glanceHtml, lineHtml, act, steps, groups] : [head, glanceHtml, lineHtml, steps, groups, act];
+  /* `week`: seven days, today dark, a dot per day that holds a date (counted by the page, never guessed) */
+  const wk = Array.isArray(o.week) && o.week.length ? `<div class="jov5-week">${o.week.map(d => `<div class="jov5-day${d.today ? ' is-today' : ''}${d.k ? ' has-dates' : ''}"${d.k ? ` title="${E(d.title || '')}"` : ''}>`
+    + `<small>${E(d.d)}</small><b>${E(d.n)}</b><i aria-hidden="true"></i></div>`).join('')}</div>` : '';
+  /* `crew`: a row of round marks, each in its own colour (the page hands the colour it already keeps), a word under each */
+  const crew = Array.isArray(o.crew) && o.crew.length ? `<div class="jov5-crew">${o.crew.map(m => `<div class="jov5-cm"${m.title ? ` title="${E(m.title)}"` : ''}>`
+    + `<i><span style="background:${E(m.color || '')}"></span></i>${E(m.label)}</div>`).join('')}</div>` : '';
+  const order = o.actFirst ? [head, wk, crew, glanceHtml, lineHtml, act, steps, groups] : [head, wk, crew, glanceHtml, lineHtml, steps, groups, act];
   return `<div class="jov jov5" data-jov-slot="${E(slot)}">${o.before || ''}${order.join('')}${askHtml}`
     + `${o.after ? `<div class="jov-after">${o.after}</div>` : ''}`
     + `${o.srcHtml ? `<p class="jov5-src">${o.srcHtml}</p>` : o.src ? `<p class="jov5-src">${E(o.src)}</p>` : ''}</div>`;

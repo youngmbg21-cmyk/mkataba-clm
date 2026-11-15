@@ -15025,6 +15025,21 @@
   .jov5-drop b{font-size:13.5px;font-weight:var(--w-strong);color:var(--color-text);}
   .jov5-drop.is-over,.jov5-drop:hover{border-color:var(--accent-ink);}
   .jov5-up{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);color:var(--accent-ink);}
+  .jov5-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+  .jov5-day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 0;border-radius:var(--radius);background:var(--color-bg);color:var(--color-text);}
+  .jov5-day small{font-size:11px;font-weight:var(--w-label);color:var(--color-neutral-400);}
+  .jov5-day b{font-size:15px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
+  .jov5-day i{width:6px;height:6px;border-radius:50%;background:var(--color-neutral-300);}
+  .jov5-day.has-dates i{background:var(--st-amber-dot);}
+  .jov5-day.is-today{background:var(--accent-solid);color:var(--surface-3);}
+  .jov5-day.is-today small{color:var(--color-neutral-300);}
+  .jov5-day.is-today i{background:var(--surface-3);}
+  .jov5-who{display:flex;align-items:center;gap:14px;min-width:0;}
+  .jov5-ava{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--accent-solid);color:var(--surface-3);font-size:18px;font-weight:var(--w-strong);}
+  .jov5-crew{display:flex;justify-content:space-between;gap:4px;padding:12px 14px;border-radius:var(--radius);background:var(--color-bg);}
+  .jov5-cm{display:flex;flex-direction:column;align-items:center;gap:5px;flex:0 1 auto;min-width:0;font-size:10px;line-height:1.2;color:var(--color-neutral-400);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jov5-cm i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);box-shadow:0 0 0 1px var(--color-divider);}
+  .jov5-cm i span{width:10px;height:10px;border-radius:50%;}
   .jov5-sw{flex:none;width:28px;height:0;border-top:2px solid var(--accent-solid);}
   .jov5-sw.is-door{border-top-color:var(--accent-ink);}
   .jov5-sw.is-guess{border-top:2px dashed var(--color-neutral-400);}
