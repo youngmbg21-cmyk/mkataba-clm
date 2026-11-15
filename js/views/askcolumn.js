@@ -437,6 +437,49 @@ const AC_WORDING_RE = /\b(notice|terminat\w*|cancel\w*|liabilit\w*|capped|cap\b|
    wall: nothing counting is ever kept as a question. */
 const AC_PORTFOLIO_RE = /^\s*(how many\b|how much (of|do i|do we)\b|which (of|ones)\b|count\b|list\b|show me\b|who (has|have)\b)|\b(these|those|my|our|the) contracts\b/i;
 function askColIsPortfolio(words){ return AC_PORTFOLIO_RE.test(String(words || '')); }
+/* A QUESTION TURNED DOWN IS SHOWN HOW TO BE ASKED (owner, 15 Nov 2026: "if my question is phrased incorrectly, jambo
+   panel kicks in to explain what I did wrong and gives me multiple alternative questions"). Read WITHOUT AI, by rule
+   (the owner's yes: no Jambo call, so the panel may open by itself): the words that ask for a LIST are named (`hit`),
+   and what is left is turned into questions ONE contract can answer. Words the rules cannot turn get `general` and no
+   questions of their own — the page then offers its own examples; nothing is invented from the reader's words. */
+const AC_RW_LEAD = /^\s*(?:please\s+)?(?:can you\s+|could you\s+)?(?:show me|list|count|find(?: me)?|give me|how many|how much of|which(?: of| ones)?|who (?:has|have))\s+(?:all\s+)?(?:of\s+)?(?:(?:(?:the|my|our|these|those)\s+)?(?:contracts?|agreements?|ones)\b\s*)?/i;
+const AC_RW_JOIN = /^(?:that|which|where|with|who)\s+/i;
+const AC_RW_SAY = /^(?:state[sd]?|says?|said|mention(?:s|ed)?|ha(?:ve|s)|contain(?:s|ed)?|include[sd]?|refers? to)\s+(?:that\s+)?/i;
+const AC_RW_IS = /\b(?:is|are|was|were|will|must|shall|may|can|cannot|does|do)\b/i;
+const AC_RW_END = /\b(?:end date|ends?|ending|expir\w*|termination date)\b/i;
+const AC_RW_THEIRS = /(\b(?:do|are|have)\s+)?\b(?:these|those|my|our|the|all) contracts\b/i;
+function askColReword(words){
+  const w = String(words || '').trim().replace(/[?.!\s]+$/, '');
+  const out = { yours: w, hit: '', alts: [], general: false };
+  const add = (q, kind) => { q = String(q).replace(/\s+/g, ' ').trim(); q = q.charAt(0).toUpperCase() + q.slice(1);
+    if (q.length >= 8 && !askColIsPortfolio(q) && !out.alts.some(a => a.q.toLowerCase() === q.toLowerCase())) out.alts.push({ q, kind }); };
+  const lead = AC_RW_LEAD.exec(w);
+  if (lead){
+    let rest = w.slice(lead[0].length), cut = lead[0].length;
+    const join = AC_RW_JOIN.exec(rest); if (join){ rest = rest.slice(join[0].length); cut += join[0].length; }
+    const say = AC_RW_SAY.exec(rest); if (say) rest = rest.slice(say[0].length);
+    out.hit = w.slice(0, cut).trim();
+    const t = rest.trim(), with_ = !!(join && /^with/i.test(join[0])) || /who (?:has|have)\s*$/i.test(lead[0].trim());
+    if (t && AC_RW_END.test(t)){
+      const y = (t.match(/\b(?:19|20)\d\d\b/g) || []);
+      if (y.length >= 2) add(`Does this contract end between ${y[0]} and ${y[1]}?`, 'yesno');
+      else if (y.length === 1) add(`Does this contract end in ${y[0]}?`, 'yesno');
+      add('On what date does this contract end?', 'date'); add('In which year does this contract end?', 'year');
+    } else if (t && (say || with_ || /^(?:the|a|an|any|some|every)\s/i.test(t))){
+      add(AC_RW_IS.test(t) ? `Does this contract state that ${t}?` : `Does this contract mention ${t}?`, 'yesno');
+      const topic = t.split(AC_RW_IS)[0].trim(); if (topic) add(`What does this contract say about ${topic}?`, 'say');
+    } else if (t){
+      const be = /^(?:is|are)\s+(.+)$/i.exec(t);
+      add(be ? `Is this contract ${be[1]}?` : `Does this contract ${t}?`, 'yesno');
+    }
+  } else {
+    const m = AC_RW_THEIRS.exec(w);
+    if (m){ out.hit = m[0].trim();
+      add(w.replace(AC_RW_THEIRS, (all, v) => (v ? ({ do: 'does', are: 'is', have: 'has' })[v.trim().toLowerCase()] + ' ' : '') + 'this contract') + '?', /^(?:do|are|have|does|is|has)\b/i.test(w) ? 'yesno' : 'say'); }
+  }
+  if (!out.alts.length) out.general = true;
+  return out;
+}
 /* A REFUSAL IS SAID UNDER THE BOX, NEVER OVER IT (owner, 26 Oct 2026: the toast sat on the very box it pointed
    the reader to). The sentence stands under the question box until the question is typed in again; with no
    form on the screen it falls back to a toast. */
@@ -2015,7 +2058,7 @@ function _acRegRepaint(){
 /* the Discover page is drawn again as answers land (it draws nothing unless it is the page in front) */
 function _acDiscoverLive(now){ if (typeof state !== 'undefined' && state.view === 'reads' && typeof window.discoverLive === 'function'){ try { discoverLive(now); } catch (_){} } }
 
-Object.assign(window, { askColAskHere, askColShown, askColTeam, askColDrop, askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { askColAskHere, askColShown, askColTeam, askColDrop, askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColReword, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });
