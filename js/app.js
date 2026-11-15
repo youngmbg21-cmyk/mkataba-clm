@@ -4032,8 +4032,11 @@ function guidePanelNlHtml(){
   const here=guideHereKey()||'board';
   const inStages=new Set(GUIDE_NL.flatMap(s=>s.rows.flat()));
   const hereRow=inStages.has(here)?[here]:['board'];
-  return `<div class="gdn"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${guideNlRowHtml(hereRow,here,'ink')}`
-    +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here,st.tone)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${rows}`:''; }).join('')+`</div>`;
+  /* THE FIVE PARTS, LIGHTLY (owner, 15 Nov 2026, round 3): the sentence in the serif, each stage's rows in ONE soft
+     group under a sentence-case heading (.gdn.is-five); the rows, words, counts and doors are the Guide's own. New look. */
+  const five=typeof newLookOn==='function'&&newLookOn(), g=h=>five?`<div class="gdn-g">${h}</div>`:h;
+  return `<div class="gdn${five?' is-five':''}"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${g(guideNlRowHtml(hereRow,here,'ink'))}`
+    +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here,st.tone)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${g(rows)}`:''; }).join('')+`</div>`;
 }
 /* THE SYMBOL STRIP — THE GUIDE'S COMPACT FACE (owner, 15 Nov 2026: "Build the symbol nav panel per your
    recommendation"; lifts "no left rail" for this strip only, which lies OVER the page and takes no room). The symbol

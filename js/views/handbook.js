@@ -376,6 +376,17 @@ function hbknOftenAsked(){
 }
 function hbknPanelHtml(){
   const E = _hbkE;
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): "How do I…?" as the headline, the book's size under it, the often
+     asked chapters as rows by their own press (data-hbkn-ch), Jambo's note as a row, two questions to ask him. The
+     new look only. */
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    const ask = q => ({ verb: q, run: () => { if (typeof jlAsk === 'function') jlAsk(q); else if (typeof caAskAnywhere === 'function') caAskAnywhere(q); } });
+    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow: _hbkT('nav_handbook'), title: _hbkT('jov5_hbk_t'),
+      sub: _hbkT('jov5_hbk_s', { n: HANDBOOK_CHAPTERS.length, p: HANDBOOK_PARTS.length }),
+      groups: [{ label: _hbkT('hbkn_p_often'), rows: hbknOftenAsked().map(c => ({ mark: 'scroll', t: _hbkW(c.title), s: _hbkT('hbkn_free_ch', { k: c.k }), attr: `data-hbkn-ch="${E(c.k)}"` })) },
+        { label: _hbkT('cn2_jambo'), rows: [{ mark: 'sparkle', tone: 'dark', t: _hbkT('hbkn_p_turn'), wrap: true }] }],
+      asks: [ask(_hbkT('jov5_hbk_q1')), ask(_hbkT('jov5_hbk_q2'))], src: _hbkT('jov5_hbk_src') }, 'hbkn')}</div>`;
+  }
   const rows = hbknOftenAsked().map(c => `<div class="pd2-ch-door"><button type="button" class="rfp-a" data-hbkn-ch="${E(c.k)}">${E(_hbkW(c.title))}</button><span>${E(_hbkT('hbkn_free_ch', { k: c.k }))}</span></div>`).join('');
   return `<div class="pd2-chosen cun-panel hbkn-panel"><p class="pd2-ch-head">${E(_hbkT('hbkn_p_head'))}</p>${rows ? `<div class="pd2-ch-cap">${E(_hbkT('hbkn_p_often'))}</div>${rows}` : ''}`
     + `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_hbkT('cn2_jambo'))}</b><p>${E(_hbkT('hbkn_p_turn'))}</p></div></div></div>`;

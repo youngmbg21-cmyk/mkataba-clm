@@ -4015,6 +4015,25 @@ function regFoldersGlanceHtml(rows, head, gaps, live){
   if(un.length&&cs.length) todo+=row(i18t('rfg_checked'), `${esc(i18t('rfg_k_of_n',{ k:cs.length-un.length, n:cs.length }))} · ${link(`data-rfp-only="${esc(un.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('rfg_label_unchecked'))}"`, i18t('rfp_say_show_them'))}`);
   const noRate=rows.reduce((t,x)=>t+(x.r.noRate||0),0);
   if(noRate) todo+=row(i18t('rfg_norate'), `${noRate} · ${link('data-rfp-rate', i18t(typeof isAdmin==='function'&&isAdmin()?'rfp_say_set_rate':'sc_ask_admin'))}`);
+  /* THE FIVE PARTS, LIGHTLY (owner, 15 Nov 2026, round 3; the panel was rebuilt the day before): the count as a serif
+     headline with its tag, three tiles (money on paper, signed, waiting on you), "Where the money is" kept as drawn
+     (its own bar and legend, each a folder's door), "Not done yet" as rows by the page's own presses (data-rfp-only,
+     data-rfp-rate). Read off the folders, no AI. The new look only. */
+  if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
+    const R=seeMoney&&sum>0?rows.filter(x=>x.r.val>0).sort((a,b)=>b.r.val-a.r.val):[];
+    const bar=R.length?`<div class="rfg-split" aria-hidden="true">${R.map((x,i)=>`<i class="is-${Math.min(i+1,5)}" style="width:${(x.r.val/sum*100).toFixed(2)}%"></i>`).join('')}</div>`
+      +`<div class="rfg-legend">${R.map((x,i)=>`<button type="button" class="rfg-lg" data-ctf-folder="${esc(x.fid)}" title="${esc(x.name)}"><i class="is-${Math.min(i+1,5)}" aria-hidden="true"></i><span class="rfg-bar-n">${esc(x.name)}</span><b>${esc(fmtMoneyShort(x.r.val))}</b><span>${Math.round(x.r.val/sum*100)}%</span></button>`).join('')}</div>`:'';
+    const todoRows=[];
+    if(gapKeys.size){ const ids=cs.filter(c=>gapKeys.has(keyOf(c))).map(c=>String(c.id));
+      todoRows.push({ t:i18t('rfg_nda'), v:i18t('rfg_k_of_n',{ k:parties.size-gapKeys.size, n:parties.size }), attr:`data-rfp-only="${esc(ids.join(','))}" data-rfp-label="${esc(i18t('rfg_label_nda'))}"` }); }
+    if(un.length&&cs.length) todoRows.push({ t:i18t('rfg_checked'), v:i18t('rfg_k_of_n',{ k:cs.length-un.length, n:cs.length }), attr:`data-rfp-only="${esc(un.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('rfg_label_unchecked'))}"` });
+    if(noRate) todoRows.push({ t:i18t('rfg_norate'), v:String(noRate), attr:'data-rfp-rate' });
+    return jamboOverviewHtml({ title:`${n} ${i18tn('rfg_contracts', n)} ${i18tn('rfg_in_folders', rows.length, { n:rows.length })}.`,
+      tag:need?{ text:i18tn('rfg_need', need, { n:need }), tone:'amber' }:(n&&signed===n?{ text:i18t('rfg_all_signed'), tone:'green' }:(n?{ text:i18t('rfg_signed_k',{ k:signed, n }) }:null)),
+      sub:head, glance:[seeMoney&&sum>0?{ n:fmtMoneyShort(sum).replace(/^[A-Z]{3}\s*/,''), l:i18t('jov5_ct_paper',{ cur:(fmtMoneyShort(sum).match(/^[A-Z]{3}/)||[''])[0] }).trim() }:{ n:rows.length, l:i18t('jov5_ct_folders') },
+        { n:signed, l:i18t('jov5_signed') }, { n:need, l:i18t('jov5_on_you'), warn:need>0 }],
+      mid:bar, midLabel:bar?i18t('ctfp_money'):'', groups:todoRows.length?[{ label:i18t('rfg_todo'), rows:todoRows }]:[], src:i18t('jl_src_list') },'rfg');
+  }
   return top+money+(todo?cap(i18t('rfg_todo'))+todo:'');
 }
 function regFoldersPanelHtml(){

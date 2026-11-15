@@ -10194,8 +10194,24 @@ const STN_NEED_KIND={ ask:'stn_nk_ask', backup:'stn_nk_rule', limits:'stn_nk_cap
 function stnPanelHtml(admin){
   const E=esc;
   const row=(l,v,src,attr)=>`<div class="pd2-ch-r${attr?' stn-pr':''}"${attr?` ${attr} role="button" tabindex="0"`:''}><span>${E(l)}</span><b>${E(v)}</b><i>${E(src||'')}</i></div>`;
-  let h=`<div class="pd2-chosen cun-panel stn-panel"><p class="pd2-ch-head">${E(i18t('stn_p_head'))}</p>`;
   const needs=admin&&typeof stNeedsAll==='function'?stNeedsAll():[];
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): how many need an admin as the headline, each as a row by its own
+     door (the need's own press attributes), Ask an admin a row (data-st-ask-head), what Jambo was taught a row
+     (data-st-panel="lessons"). The same readings (stNeedsAll, _stLessons). The new look only. */
+  if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
+    const needRows=needs.slice(0,5).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
+      const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):''); const what=k==='panel'?(sub?stShortState(sub):r.text):r.text;
+      return { mark:'alert', tone:'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'' }; });
+    const groups=[];
+    if(needRows.length) groups.push({ label:i18t('jov5_st_needs'), rows:needRows });
+    groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""' }] });
+    const L=_stLessons; const les=(L&&L.rows)||[];
+    if(admin&&L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
+    if(admin&&les.length) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(r=>'\u201c'+String(r.text||'')+'\u201d').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
+    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:i18t(admin?'jov5_st_eb_co':'jov5_st_eb_you'), title:needs.length?i18tn('jov5_st_t',needs.length,{ n:needs.length }):i18t('jov5_st_clear'),
+      sub:i18t('stn_p_head'), groups, src:i18t('jov5_st_src') },'stn')}</div>`;
+  }
+  let h=`<div class="pd2-chosen cun-panel stn-panel"><p class="pd2-ch-head">${E(i18t('stn_p_head'))}</p>`;
   if(needs.length){ h+=`<div class="pd2-ch-cap">${E(i18tn('stn_p_needs',needs.length,{ n:needs.length }))}</div><div class="pd2-ch-tbl">`
     +needs.slice(0,4).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
       const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):'');

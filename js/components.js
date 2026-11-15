@@ -1567,9 +1567,11 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   /* `clear`: nothing waits, said as good news — a tick in a soft green ring over a centred headline */
   const tick = o.clear ? `<svg class="jov5-tick" viewBox="0 0 64 64" aria-hidden="true"><circle class="jov5-ring" cx="32" cy="32" r="30"/><path class="jov5-tk" d="m20 33 8 8 16-17"/></svg>` : '';
   const headIn = `<div class="jov5-intro${o.clear ? ' is-clear' : ''}">${tick}${o.eyebrow ? `<p class="jov5-eb">${E(o.eyebrow)}</p>` : ''}`
-    + `<h3 class="jov5-title">${E(o.title)}</h3>${o.subHtml ? `<p class="jov5-sub">${o.subHtml}</p>` : o.sub ? `<p class="jov5-sub">${E(o.sub)}</p>` : ''}</div>`;
-  /* `avatar`: a person's initials in a dark circle beside the headline */
-  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : headIn;
+    + `${o.tag ? `<div class="jov5-th"><h3 class="jov5-title">${E(o.title)}</h3><span class="jov5-tag${o.tag.tone ? ' is-' + E(o.tag.tone) : ''}">${E(o.tag.text)}</span></div>` : `<h3 class="jov5-title">${E(o.title)}</h3>`}${o.subHtml ? `<p class="jov5-sub">${o.subHtml}</p>` : o.sub ? `<p class="jov5-sub">${E(o.sub)}</p>` : ''}</div>`;
+  /* `avatar`: a person's initials in a dark circle beside the headline; `ring`: a share (0–100) drawn as a ring there */
+  const pct = o.ring != null ? Math.max(0, Math.min(100, Number(o.ring) || 0)) : null;
+  const ring = pct != null ? `<span class="jov5-ring" aria-hidden="true"><svg viewBox="0 0 80 80"><circle class="jov5-rb" cx="40" cy="40" r="34"/><circle class="jov5-rf" cx="40" cy="40" r="34" style="stroke-dashoffset:${(213.6 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${pct}%</b></span>` : '';
+  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
     return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
@@ -1605,7 +1607,9 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   /* `crew`: a row of round marks, each in its own colour (the page hands the colour it already keeps), a word under each */
   const crew = Array.isArray(o.crew) && o.crew.length ? `<div class="jov5-crew">${o.crew.map(m => `<div class="jov5-cm"${m.title ? ` title="${E(m.title)}"` : ''}>`
     + `<i><span style="background:${E(m.color || '')}"></span></i>${E(m.label)}</div>`).join('')}</div>` : '';
-  const order = o.actFirst ? [head, wk, crew, glanceHtml, lineHtml, act, steps, groups] : [head, wk, crew, glanceHtml, lineHtml, steps, groups, act];
+  /* `mid`: a page's own drawing (a bar, a legend) placed under the tiles, as it is */
+  const mid = o.mid ? `<div class="jov5-sec">${o.midLabel ? `<p class="jov5-label">${E(o.midLabel)}</p>` : ''}${o.mid}</div>` : '';
+  const order = o.actFirst ? [head, wk, crew, glanceHtml, mid, lineHtml, act, steps, groups] : [head, wk, crew, glanceHtml, mid, lineHtml, steps, groups, act];
   return `<div class="jov jov5" data-jov-slot="${E(slot)}">${o.before || ''}${order.join('')}${askHtml}`
     + `${o.after ? `<div class="jov-after">${o.after}</div>` : ''}`
     + `${o.srcHtml ? `<p class="jov5-src">${o.srcHtml}</p>` : o.src ? `<p class="jov5-src">${E(o.src)}</p>` : ''}</div>`;

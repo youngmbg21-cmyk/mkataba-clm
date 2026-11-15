@@ -6747,6 +6747,19 @@ function igGuideHtml(){
   /* THE VIEWS AT THE TOP (owner, 9 Nov 2026: "Move these buttons to the top of the panel so when you select one, the
      options for navigation appear below them"): all five in one row, the map's own pressed; a press turns the map and
      the guide repaints under the row. The four cards that stood at the foot are gone. */
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): the views' switch kept on top (its own presses), the view's name as
+     the headline and what it does under it, its moves as soft rows — the words said quoted, a grey Do it pill by the
+     guide's own press (data-ig-gd, read by #ig-gd's one listener). The new look only. */
+  if(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function'){
+    const views=`<div class="ig-gd-views" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-gd-view-go="${i}" aria-pressed="${i===R.vw}" title="${igEsc(i18t(IG_GD_OTHER[i]))}">${igEsc(i18t('int_view_'+v))}</button>`).join('')}</div>`;
+    const row=r=>{ const dead=r.q===i18t('int_gd_q_undo')&&R.undoNone;
+      return r.on?{ t:r.t, s:'\u201c'+String(r.q).replace(/^./,c=>c.toUpperCase())+'\u201d', v:i18t('int_gd_showing') }
+        :{ t:r.t, s:'\u201c'+String(r.q).replace(/^./,c=>c.toUpperCase())+'\u201d', btn:{ label:i18t('int_gd_do'), attr:`data-ig-gd="${igEsc(r.q)}"${dead?` disabled title="${igEsc(i18t('int_undo_none'))}"`:''}` } }; };
+    const groups=[];
+    if(R.mine.length) groups.push({ label:i18t('int_gd_on',{ x:name }), rows:R.mine.map(row) });
+    groups.push({ label:i18t('int_gd_every'), rows:R.every.map(row) });
+    return `<div class="ig-gd" data-ig-gd-view="${R.vw}">${jamboOverviewHtml({ before:views, eyebrow:i18t('jov5_gd_eb'), title:name, sub:i18t('int_gd_what_'+R.vw), groups },'ig-gd')}</div>`;
+  }
   return `<div class="ig-gd" data-ig-gd-view="${R.vw}">
     <div class="ig-gd-views" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-gd-view-go="${i}" aria-pressed="${i===R.vw}" title="${igEsc(i18t(IG_GD_OTHER[i]))}">${igEsc(i18t('int_view_'+v))}</button>`).join('')}</div>
     <div class="ig-gd-here"><span class="ig-gd-hn">${igEsc(name)}</span><span class="ig-gd-hw">${igEsc(i18t('int_gd_what_'+R.vw))}</span></div>
@@ -7145,6 +7158,23 @@ function igDayHtml(){
     /* a figure at nought is drawn, never pressable (A DEAD BUTTON NEVER WEARS A LIVE ONE'S CLOTHES) */
     return (t.n&&(t.go!=='onmap'||t.ids.length))?`<button type="button" class="ig-day-t" data-ig-day="${t.k}" aria-label="${igEsc(t.n+' '+label)}">${inner}<span class="ig-day-go">${igEsc(i18t(IG_DAY_GO[t.go]))}</span></button>`
       :`<div class="ig-day-t is-none" data-ig-day-none="${t.k}">${inner}</div>`; };
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): the day as a headline, the three tiles that matter most (needs you ·
+     high risk · new since yesterday), the rest as rows (duties, renewals), each by the tile's own press (data-ig-day →
+     igDayGo, the panel's one listener on #ig-day); Pin as my morning view the one black button (data-ig-day-pin); the
+     saved views under it as they are. The same readings (igDayData); no AI. The new look only. */
+  if(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function'){
+    const word=t=>t.k==='duties'?i18t('int_day_duties',{ d:IG_BRIEF_DUE_DAYS }):i18t('int_day_'+t.k);
+    const may=t=>!!(t.n&&(t.go!=='onmap'||t.ids.length));
+    const pick=['needs','risk','new'], tiles=pick.map(k=>T.find(t=>t.k===k)).filter(Boolean).concat(T.filter(t=>!pick.includes(t.k))).slice(0,3);
+    const rest=T.filter(t=>!tiles.includes(t));
+    const needs=T.find(t=>t.k==='needs');
+    return `<div class="ig-day">${jamboOverviewHtml({ eyebrow:day.replace(/^./,c=>c.toUpperCase()),
+      title:needs&&needs.n?i18tn('jov5_day_t',needs.n,{ n:needs.n }):i18t('jov5_day_clear'), sub:i18t('int_day_counted',{ t:at }),
+      glance:tiles.map(t=>({ n:t.n, l:word(t), warn:t.tone==='ruby'||t.tone==='amber', attr:may(t)?`data-ig-day="${t.k}"`:'' })),
+      groups:rest.length?[{ label:i18t('jov5_day_next'), rows:rest.map(t=>({ mark:t.k==='renew'?'refresh':'calendar', tone:t.tone?'amber':'', t:word(t), s:t.sub||'', v:t.n?String(t.n):i18t('int_day_none'), attr:may(t)?`data-ig-day="${t.k}"`:'' })) }]:[],
+      act:{ say:i18t('jov5_day_pin_say'), label:i18t(pin?'int_brief_unpin':'int_brief_pin'), attr:`data-ig-day-pin aria-pressed="${pin}"` },
+      after:igSavedViewsHtml(), src:i18t('int_day_src') },'ig-day')}</div>`;
+  }
   return `<div class="ig-day">
     <div class="ig-day-hd"><b>${igEsc(day.replace(/^./,c=>c.toUpperCase()))}</b><span class="ig-day-at">${igEsc(i18t('int_day_counted',{ t:at }))}</span></div>
     <div class="ig-day-tiles">${T.map(tile).join('')}<button type="button" class="ig-day-t is-pin" data-ig-day-pin aria-pressed="${pin}"><span class="ig-day-l"><b>${igEsc(i18t(pin?'int_brief_unpin':'int_brief_pin'))}</b></span><span class="ig-day-s">${igEsc(i18t('int_day_pin_s'))}</span></button></div>

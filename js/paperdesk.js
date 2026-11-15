@@ -3771,6 +3771,24 @@ function pdWallOverview(){
     const code = (typeof fxHomeCode === 'function') ? fxHomeCode() : undefined;
     if (sum > 0) facts.push({ k: _pdT('jov_ct_value'), v: _pdT('jov_ct_value_v', { sum: fmtMoneyShortIn(sum, code) }) + (miss ? ' · ' + _pdT('jov_ct_value_miss', { list: miss }) : '') });
   }
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): the count as the headline, money · signed · in the works as tiles,
+     the next date contracts end and what still owes a detail as rows, each its own Show (regShowOnly). Still no "Ask
+     me" (owner, 28 Oct 2026). The new look only. */
+  if (typeof newLookOn === 'function' && newLookOn()){
+    const live = signed.filter(c => { const e = end(c); return e && today && e >= today; }).sort((x, y) => end(x).localeCompare(end(y)));
+    const first = live[0] ? end(live[0]) : '', onFirst = first ? live.filter(c => end(c) === first) : [];
+    const names = [...new Set(onFirst.map(c => c.counterparty || c.name).filter(Boolean))];
+    const day = first ? ((typeof regDotDate === 'function') ? regDotDate(first) : first) : '';
+    let sumTxt = ''; const vf = facts.find(f => f.k === _pdT('jov_ct_value')); if (vf) { const m = /([A-Z]{3})?\s*([\d.,]+\s*[BMK]?)/.exec(String(vf.v)); sumTxt = m ? m[2] : ''; }
+    const groups = [];
+    if (onFirst.length) groups.push({ label: _pdT('jov5_ct_next'), rows: [{ mark: 'calendar', t: _pdTn('jov5_cal_end', onFirst.length, { n: onFirst.length }), s: names.slice(0, 3).join(', ') + (names.length > 3 ? ' ' + _pdTn('jov_more', names.length - 3, { n: names.length - 3 }) : ''), v: day, run: show(onFirst, _pdT('jov5_ct_next')) }] });
+    if (owes.length) groups.push({ label: _pdT('rfg_todo'), rows: [{ mark: 'pencil', tone: 'amber', t: _pdT('jov_ct_owes'), v: String(owes.length), run: show(owes, _pdT('jov_ct_owes')) }] });
+    return { title: book.length && signed.length === book.length ? _pdTn('jov5_ct_all_signed', book.length, { n: book.length }) : _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }),
+      sub: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view'),
+      glance: [sumTxt ? { n: sumTxt, l: _pdT('jov5_ct_paper', { cur: (typeof fxHomeCode === 'function' ? fxHomeCode() : '') || '' }).trim() } : { n: book.length, l: _pdT('jov5_dir_agreements') },
+        { n: signed.length, l: _pdT('jov5_signed'), run: signed.length ? show(signed, _pdT('jov5_signed_list')) : null }, { n: book.length - signed.length, l: _pdT('jov5_ct_works') }],
+      groups, src: _pdT('jl_src_list'), asks: [] };
+  }
   /* no "Ask me" here (owner, 28 Oct 2026: "remove the Ask me details"): each fact keeps its own Show */
   return { head: { b: _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }), s: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view') },
     facts, src: _pdT('jl_src_list'), asks: [] };
@@ -3870,6 +3888,8 @@ function pdWallHtml(disc){
   if (typeof jamboOverviewHtml !== 'function') return `<div class="pd-wall">${disc || ''}</div>`;
   const o = pdWallOverview();
   const ov = (x, cls, slot) => `<div class="jl-words is-ov ${cls}">${jamboOverviewHtml(x, slot)}</div>`;
+  /* THE FIVE PARTS (15 Nov 2026): one panel, Discover in its middle — under the tiles, above the rows (the facts stay below Discover) */
+  if (o.title) return `<div class="pd-wall">${ov(Object.assign({}, o, { mid: disc || '' }), 'pd-hello', 'pd')}</div>`;
   return `<div class="pd-wall">${ov({ head: o.head }, 'pd-hello', 'pd')}${disc || ''}${ov({ facts: o.facts, src: o.src }, 'pd-wall-facts', 'pdf')}</div>`;
 }
 /* THE FILE PICKER: one input, kept outside the panel (the panel is redrawn
