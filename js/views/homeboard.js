@@ -1669,12 +1669,32 @@ function hbBoardHelloHtml(){
   const trio = `<div class="hbw-trio">${cell('late', late, i18t('hbw_late'), 'late')}${cell('jambo', work, i18t('hbw_prepared'), '')}${cell('ending', ending, i18t('hbw_ending'), 'soon')}</div>`;
   const acts = n ? `<div class="hbw-acts"><button type="button" class="ui-btn ui-btn-primary" data-hbw="${late ? 'late' : 'all'}">${_hbE(i18t(late ? 'hbw_start_late' : 'hbw_show_needs'))}</button>`
     + (late ? `<button type="button" class="jov-lnk" data-hbw="all">${_hbE(i18tn('hbw_show_all', n, { n }))}</button>` : '') + `</div>` : '';
-  const brain = (typeof igMiniBrainHtml === 'function') ? igMiniBrainHtml() : '';
-  const before = `${brain}<h3 class="hbw-say">${_hbE(say)}</h3>${sub ? `<p class="hbw-sub">${_hbE(sub)}</p>` : ''}${trio}${acts}`;
   const chip = q => ({ label: q, attr: `data-igsug="${_hbE(q)}"` });
   const asks = [ending ? chip(i18tn('hb_jb_ending', ending, { n: ending })) : null, chip(i18t('hb_jb_by_stream')), views ? chip(i18t('hb_jb_views')) : null,
     n ? chip(i18t('hb_jb_needs_chip')) : null,
     (typeof calHandOff === 'function') ? { label: i18t('ob_yw_chip_week'), title: i18t('cal_plan_p_week'), run: () => calHandOff('week') } : null].filter(Boolean);
+  const brain = (typeof igMiniBrainHtml === 'function') ? igMiniBrainHtml() : '';
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3; "Build the panels in three rounds as recommended"): the brain, then the
+     headline, three tiles that each open their list (needs you → the Board's Needs you; live contracts → the book's
+     Live figure; days to the next end → the Calendar), the first things that need you as rows, ONE black button. The
+     same counts as before (ndRead, the book's figures); no AI. The new look only. */
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    let live = 0; try { live = (hbBookData(hbS().lens || 'all').figs.live || {}).n || 0; } catch (_){ live = 0; }
+    const today = (typeof todayISO === 'function') ? todayISO() : '';
+    const ends = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined').map(c => (typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '')
+      .map(d => String(d).slice(0, 10)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= today).sort();
+    const days = ends[0] ? Math.round((new Date(ends[0] + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
+    let rows = []; try { const B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; rows = B ? B.jambo.concat(B.you).slice(0, 3) : []; } catch (_){ rows = []; }
+    const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
+    const needRows = rows.map(r => { const P = parts(r); return { mark: r.late ? 'clock' : 'alert', tone: r.late ? 'amber' : (r.g === 'jambo' ? 'dark' : 'amber'), t: P.title || P.name || '', s: [P.deal, P.when].filter(Boolean).join(' \u00b7 '), attr: 'data-hbw="all"' }; }).filter(x => x.t);
+    return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five">${jamboOverviewHtml({ before: brain, title: say, sub,
+      glance: [{ n, l: i18t('jov5_on_you'), warn: n > 0, attr: n ? 'data-hbw="all"' : '' }, { n: live, l: i18t('jov5_hb_live'), attr: live ? 'data-hbw="live"' : '' },
+        { n: days == null ? '\u2014' : days, l: i18t('jov5_hb_days'), attr: days != null ? 'data-hbw="next"' : '' }],
+      groups: needRows.length ? [{ label: i18t('jov5_hb_needs'), rows: needRows }] : [],
+      act: n ? { label: i18t(late ? 'hbw_start_late' : 'hbw_show_needs'), attr: `data-hbw="${late ? 'late' : 'all'}"` } : null,
+      asks, src: i18t('jov5_hb_src') }, 'hb')}</div>`;
+  }
+  const before = `${brain}<h3 class="hbw-say">${_hbE(say)}</h3>${sub ? `<p class="hbw-sub">${_hbE(sub)}</p>` : ''}${trio}${acts}`;
   return (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov hb-jb-hello is-welcome">${jamboOverviewHtml({ before, asks }, 'hb')}</div>` : '';
 }
 /* the welcome's doors, each an existing one: the late and "show all" open the Board's Needs you on All (the late
@@ -1682,6 +1702,9 @@ function hbBoardHelloHtml(){
    figure (hbFigDoor). Pressed through the board's ONE listener (hbOnClick): the panel is redrawn under these buttons. */
 function hbWelcomeGo(k){
   if (k === 'ending') return (typeof hbFigDoor === 'function') ? hbFigDoor('f:ending') : false;
+  /* the five parts' tiles (15 Nov 2026): live contracts → the book's Live figure; days to the next end → the Calendar */
+  if (k === 'live') return (typeof hbFigDoor === 'function') ? hbFigDoor('f:live') : false;
+  if (k === 'next') return (typeof caGo === 'function') ? caGo({ kind: 'go', place: 'calendar' }) : false;
   if (typeof ndOpenBoard !== 'function') return false;
   return ndOpenBoard(k === 'jambo' ? 'jambo' : 'all');
 }

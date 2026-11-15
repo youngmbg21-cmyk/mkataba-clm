@@ -512,7 +512,7 @@ const rdnProgHtml = (k, n) => `<span class="rdn-prog" aria-hidden="true"><i styl
    table, each answer lands under it, the panel shows the paper of the contract just read, and Stop stands in the ask
    box; stopped, the same button reads the rest (askColCarryOn). Nothing is filed into any contract. */
 const DSC_OPEN_MAX = 7, DSC_LIVE_MAX = 6, DSC_TURN_MS = 1400, DSC_CHIPS = 4, DSC_SLICE = 280;
-const _dsc = { q: '', askId: null, pack: null, open: null, pick: null, say: '', starting: false, liveCid: null, liveAt: 0, t: 0, turnT: 0, text: new Map() };
+const _dsc = { q: '', askId: null, pack: null, open: null, pick: null, say: '', fix: null, starting: false, liveCid: null, liveAt: 0, t: 0, turnT: 0, text: new Map() };
 const _dscAC = () => (typeof AC !== 'undefined') ? AC : null;
 const _dscMay = () => typeof askColMay !== 'function' || askColMay();
 /* A DISCOVER READ TAKES UP TO 100 A PRESS (owner, 15 Nov 2026: "extend the reading limit to 100 contracts"): the most the
@@ -618,11 +618,50 @@ function discoverLive(now){
 }
 /* THE ONE WAY IN: the Contracts list's Discover pill, "discover" typed, the Guide's row — all land here */
 function discoverOpen(){
-  _dsc.say = ''; _rd.table = null;
+  _dsc.say = ''; _dsc.fix = null; _rd.table = null;
   if (!(typeof AC !== 'undefined' && AC.busy)){ _dsn.screen = 'list'; _dsn.cid = null; _dsn.picked = false; }
   if (state.view !== 'reads' && typeof setView === 'function') setView('reads'); else renderReads();
 }
 function dscSay(msg){ _dsc.say = String(msg || ''); renderReads(); }
+/* A QUESTION TURNED DOWN: JAMBO'S PANEL SAYS WHY AND HOW TO ASK IT (owner, 15 Nov 2026, the Legora way). The panel
+   turns to his face — your sentence quoted with the words that ask for a list marked, one plain line, and questions one
+   contract can answer, each saying what comes back. A press on one only puts it in the question box (the read is still
+   the reader's press on Read); your own words are kept and one press puts them back. Written by rule, no Jambo call
+   (askColReword), so the panel opens by itself — a folded panel is opened for it. */
+const DSN_FIX_GET = { yesno: 'dsn_fix_get_yesno', date: 'dsn_fix_get_date', year: 'dsn_fix_get_year', say: 'dsn_fix_get_say' };
+function dsnFixAlts(f){
+  if (!f.general) return f.alts;
+  return [['dsn_fix_g1', 'say'], ['dsn_fix_g2', 'yesno'], ['dsn_fix_g3', 'say']].map(x => ({ q: _rdT(x[0]), kind: x[1] }));
+}
+function dsnFixSet(q){
+  const f = (typeof askColReword === 'function') ? askColReword(q) : { hit: '', alts: [], general: true };
+  _dsc.fix = { yours: String(q || '').trim(), hit: f.hit || '', general: !!f.general, used: null }; _dsc.fix.alts = dsnFixAlts(f);
+  try { if (typeof jlFolded === 'function' && jlFolded() && typeof jlFoldSet === 'function') jlFoldSet(false); } catch (_){}
+  dscSay(dsnFixSayWords());
+}
+function dsnFixSayWords(){ const f = _dsc.fix; return f ? (f.general ? _rdT('dsn_fix_say_g') : _rdTn('dsn_fix_say', f.alts.length)) : ''; }
+function dsnFixUse(i){ const f = _dsc.fix, a = f && f.alts[i]; if (!a) return; f.used = i; _dsc.q = a.q; _dsc.askId = null; _dsc.pack = null; _dsc.say = ''; renderReads(); const q = document.getElementById('dsc-q'); if (q) q.focus(); }
+function dsnFixBack(){ const f = _dsc.fix; if (!f) return; f.used = null; _dsc.q = f.yours; _dsc.askId = null; dscSay(dsnFixSayWords()); const q = document.getElementById('dsc-q'); if (q) q.focus(); }
+function dsnFixShut(){ _dsc.fix = null; dscSay(''); }
+function dsnFixKeptHtml(){
+  const f = _dsc.fix; if (!f || f.used == null) return '';
+  const y = f.yours.length > 56 ? f.yours.slice(0, 54).trim() + '…' : f.yours;
+  return `<div class="dsc-say dsn-fix-kept"><span>${_rdE(_rdT('dsn_fix_yours', { q: y }))}</span> <button type="button" class="ac-link" data-dsn-fix-back>${_rdE(_rdT('dsn_fix_put_back'))}</button></div>`;
+}
+function dsnFixHtml(){
+  const f = _dsc.fix, at = f.hit ? f.yours.toLowerCase().indexOf(f.hit.toLowerCase()) : -1;
+  const yours = at < 0 ? _rdE(f.yours) : `${_rdE(f.yours.slice(0, at))}<mark>${_rdE(f.yours.slice(at, at + f.hit.length))}</mark>${_rdE(f.yours.slice(at + f.hit.length))}`;
+  const rows = f.alts.map((a, i) => { const t = `<span class="dsn-fix-t"><span>${_rdE(a.q)}</span><small>${_rdE(_rdT(DSN_FIX_GET[a.kind] || 'dsn_fix_get_say'))}</small></span>`;
+    return f.used === i ? `<div class="dsn-fix-row is-in">${t}<span class="dsn-fix-in">${_rdE(_rdT('dsn_fix_in'))} · <button type="button" class="ac-link" data-dsn-fix-back>${_rdE(_rdT('dsn_fix_undo'))}</button></span></div>`
+      : `<button type="button" class="dsn-fix-row" data-dsn-fix-use="${i}">${t}<span class="dsn-fix-a">${_rdE(_rdT('dsn_fix_use'))}</span></button>`; }).join('');
+  const ch = dsnChosen(), p = dsnPlan(ch.ids);
+  return `<div class="dsn-fix"><div class="dsn-fix-who"><span class="dsn-fix-mark" aria-hidden="true">${typeof icon === 'function' ? icon('sparkle', 'w-3 h-3') : ''}</span>${_rdE(_rdT('dsn_fix_tab'))}</div>
+    <blockquote class="dsn-fix-yours">“${yours}”</blockquote>
+    <p class="dsn-fix-said">${_rdE(_rdT(f.general ? 'dsn_fix_said_g' : 'dsn_fix_said'))}</p>
+    <div class="rfp-cap">${_rdE(_rdT('dsn_fix_like'))}</div><div class="dsn-fix-rows">${rows}</div>
+    ${f.used != null ? `<p class="ac-nl-hint dsn-fix-next">${_rdE(_rdT('dsn_fix_next', { read: p.unread && p.unread <= p.size ? _rdTn('dsn_read_n', p.unread) : _rdT('dsn_fix_read') }))}</p>`
+      : `<button type="button" class="ac-link dsn-fix-count" data-dsn-fix-count>${_rdE(_rdT('dsn_fix_count'))}</button>`}</div>`;
+}
 /* ASK: what the box holds (typed words, a team question brought back, or a pack), of the list Contracts shows */
 /* Go to the words on the contract's own paper (askColLandOn, the Stakes' lander); redlining opens the contract's
    Redlines through the one door (openRedlineWorkbench: its walls, its blanks question) once the paper is up */
@@ -850,7 +889,7 @@ function dsnNewHtml(){
   return `<div class="cun-head rdn-head"><button type="button" class="ac-link dsn-back" data-dsn-back>${_rdE(_rdT('dsn_back'))}</button><h2 class="ctf-h">${_rdE(_rdT('dsn_new'))}</h2></div>${dsnSteps(0)}
     <div class="dsc-ask dsn-ask">${typeof icon === 'function' ? icon('sparkle', 'w-4 h-4') : ''}<input id="dsc-q" class="dsc-in" type="text" autocomplete="off" spellcheck="true" aria-label="${_rdE(_rdT('dsc_ph'))}" placeholder="${_rdE(_rdT('dsc_ph'))}" value="${_rdE(val)}"${packOn || !may ? ' readonly' : ''}>
       ${packOn ? `<button type="button" class="rfp-a" data-dsc-unpack>${_rdE(_rdT('dsc_unpack'))}</button>` : ''}<button type="button" class="dsc-btn" id="dsc-go"${off ? ' disabled' : ''}${may ? '' : ` title="${_rdE(_rdT('ac_btn_viewer'))}"`}>${_rdE(label)}</button></div>
-    ${_dsc.say ? `<div class="dsc-say" role="status">${_rdE(_dsc.say)}</div>` : ''}
+    ${_dsc.say ? `<div class="dsc-say" role="status">${_rdE(_dsc.say)}</div>` : dsnFixKeptHtml()}
     <div class="dsc-chips">${packs ? `<span class="dsc-quiet">${_rdE(_rdT('dsn_or_pack'))}</span>${packs}` : ''}${team ? `<span class="dsc-quiet">${_rdE(_rdT('dsn_asked_before'))}</span>${team}` : ''}</div>
     ${filters}
     <div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:6%" data-floor="36"><col style="width:30%" data-floor="160"><col style="width:14%" data-floor="80"><col style="width:14%" data-floor="80"><col style="width:36%" data-floor="220"></colgroup>
@@ -858,6 +897,7 @@ function dsnNewHtml(){
       <tbody>${line('all', _rdT('dsn_all_contracts'), _dsnLive())}${F.map(x => line(x.fid, x.name, x.cs)).join('')}</tbody></table></div>`;
 }
 function dsnNewPanel(){
+  if (_dsc.fix) return dsnFixHtml();
   const ch = dsnChosen(), p = dsnPlan(ch.ids), row = (k, v) => `<div class="rfp-row"><span class="rfp-k">${_rdE(k)}</span><span class="rfp-v">${_rdE(v)}</span></div>`;
   const where = ch.where.includes('all') ? row(_rdT('dsn_all_contracts'), String(ch.ids.length))
     : ch.where.map(fid => row(_dsnFolderName(fid), String(dsnChosenIn(fid)))).join('');
@@ -997,8 +1037,9 @@ function dsnReadingHtml(){
   const askId = b ? (b.askId || (b.asks || [])[0]) : D.askId, got = (askId && A && A.ans[askId]) || {};
   const doneIds = b ? (b.doneIds || []).filter(id => got[id]) : (((_dsn.run && dsnRun(_dsn.run)) || {}).ids || []).filter(id => got[id]);
   const k = b ? b.done : (D.k || doneIds.length), n = b ? b.total : (D.n || k);
-  const right = b ? `<button type="button" class="rfp-pill" id="dsc-stop">${_rdE(_rdT('ac_stop'))}</button>`
-    : D.stopped && A && A.stopped ? `<button type="button" class="rfp-pill" id="dsc-carry">${_rdE(_rdT('dsc_carry', { n: (A.stopped.left || []).length }))}</button><button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`
+  const cancel = `<button type="button" class="rfp-pill" id="dsn-cancel">${_rdE(_rdT('dsn_cancel'))}</button>`;
+  const right = b ? `<button type="button" class="rfp-pill" id="dsc-stop"${b.stop ? ' disabled' : ''}>${_rdE(_rdT('ac_stop'))}</button>${cancel}`
+    : D.stopped && A && A.stopped ? `<button type="button" class="rfp-pill" id="dsc-carry">${_rdE(_rdT('dsc_carry', { n: (A.stopped.left || []).length }))}</button>${cancel}<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`
     : `<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`;
   const _gc = id => (typeof getContract === 'function' ? getContract(id) : null);
   const L = dsnLeadCols(((b && Array.isArray(b.all)) ? b.all : doneIds).map(_gc).filter(Boolean)); _dsn.readLead = L;
@@ -1196,6 +1237,11 @@ function dsnPanelPaint(body, r){
     return;
   }
   const pk = _dsn.screen === 'new' && _dsn.pk;
+  if (_dsn.screen === 'new' && _dsc.fix && !pk){
+    insPaintPanel(Object.assign(base, { item: { id: 'dsn:fix:' + (_dsc.fix.used == null ? '' : _dsc.fix.used) }, body: `<div class="rfp-panel is-drawn rdn-panel">${body}</div>`, jlPh: _rdT('jl_ph_any'),
+      jlTabWord: _rdT('dsn_fix_tab'), jlTab0: { label: _rdT('dsn_fix_overview'), run: dsnFixShut } }));
+    return;
+  }
   insPaintPanel(Object.assign(base, { item: { id: 'dsn:' + _dsn.screen + ':' + (_dsn.sel || '') + (pk ? ':pk:' + _dsn.pk.mode : '') }, body: `<div class="rfp-panel is-drawn rdn-panel${pk ? ' dsn-pk-panel' : ''}">${body}</div>`, jlPh: _rdT('jl_ph_any') },
     pk ? { jlTabWord: _rdT(_dsn.pk.mode === 'manage' ? 'dsn_pk_your_packs' : _dsn.pk.id ? 'dsn_pk_change' : 'dsn_pk_build_t') } : {}));
 }
@@ -1203,7 +1249,7 @@ function dsnPanelPaint(body, r){
 async function dsnAsk(more){
   const A = _dscAC(); if (!A || A.busy || _dsc.starting) return;
   if (!_dscMay()){ dscSay(_rdT('ac_btn_viewer')); return; }
-  let o, ch;
+  let o, ch, typed = '';
   if (more){
     const r = dsnRun(more); if (!r) return;
     const w = Array.isArray(r.where) && r.where.length ? r.where : null;
@@ -1213,8 +1259,10 @@ async function dsnAsk(more){
     o = p ? { pack: p } : { askId: r.askIds[0] };
   } else {
     const el = document.getElementById('dsc-q'); if (el && !_dsc.pack) _dsc.q = el.value;
-    const q = String(_dsc.q || '').trim();
+    const q = String(_dsc.q || '').trim(); typed = q;
     if (!_dsc.pack && q.length < 3){ dscSay(_rdT('dsc_say_short')); return; }
+    /* turned down BEFORE the page leaves for the reading screen: Jambo's panel says why and how to ask it (dsnFixSet) */
+    if (!_dsc.pack && !_dsc.askId && typeof askColIsPortfolio === 'function' && askColIsPortfolio(q)){ dsnFixSet(q); return; }
     ch = dsnChosen();
     if (!ch.ids.length){ dscSay(_rdT('dsn_choose')); return; }
     o = _dsc.pack ? { pack: _dsc.pack } : (_dsc.askId ? { askId: _dsc.askId } : { question: q });
@@ -1222,23 +1270,89 @@ async function dsnAsk(more){
   A.scope = { ids: ch.ids };
   _dsn.reading = { whereWords: ch.where.includes('all') ? _rdT('dsn_all_contracts') : ch.where.map(_dsnFolderName).join(', '), of: ch.ids.length, t0: Date.now() };
   Object.assign(o, { size: DSN_READ_MAX, where: ch.where, of: ch.ids.length, onRun: id => { _dsn.run = id; } });
-  _dsc.say = ''; _dsc.liveCid = null; _dsc.liveAt = 0; _dsc.starting = true; _dsn.done = null; _dsn.screen = 'reading';
+  _dsc.say = ''; _dsc.fix = null; _dsc.liveCid = null; _dsc.liveAt = 0; _dsc.starting = true; _dsn.done = null; _dsn.screen = 'reading';
   renderReads({ top: true });
   let got = null;
   try { const pr = askColAskHere(o); setTimeout(() => { _dsc.starting = false; }, 0); got = await pr; } catch (_){ got = null; }
   _dsc.starting = false;
   if (got && (got.short || got.portfolio || got.none)){
     _dsn.screen = more ? 'results' : 'new';
+    if (got.portfolio && !more && typed){ dsnFixSet(typed); return; }
     dscSay(_rdT(got.short ? 'dsc_say_short' : got.portfolio ? 'dsc_say_count' : 'dsn_all_read_here')); return; }
   if (got){
     const askId = (got.asks && got.asks[0] && got.asks[0].id) || null;
-    _dsn.done = { name: (got.asks && got.asks[0] && (o.pack ? o.pack.name : got.asks[0].name)) || '', askId, k: got.done || 0, n: (got.done || 0) + ((got.left || []).length), stopped: !!got.stopped };
+    _dsn.done = { name: (got.asks && got.asks[0] && (o.pack ? o.pack.name : got.asks[0].name)) || '', askId, k: got.done || 0, n: (got.done || 0) + ((got.left || []).length), stopped: !!(got.stopped || (got.err && (got.left || []).length)) };
     if (got.runId) _dsn.run = got.runId;
     _dsc.q = ''; _dsc.askId = null; _dsc.pack = null;
   }
   _rd.loading = false;
   await rdLoad(true);
   renderReads();
+}
+/* READ THE REST OF A STOPPED READ (owner, 15 Nov 2026: "the page does not finish reading … and I can't move on"):
+   the rest is read on the same screen, and when it ends the screen says so — the count, the heading and its buttons
+   follow what happened (before, the screen kept "Stopped" and the old count with no way on) */
+async function dsnCarry(){
+  const A = _dscAC(); if (!A || A.busy || !A.stopped || typeof askColCarryOn !== 'function') return;
+  const D = _dsn.done || {};
+  _dsc.liveCid = null; _dsc.liveAt = 0; _dsn.screen = 'reading';
+  const pr = askColCarryOn(); renderReads({ top: true });
+  let got = null; try { got = await pr; } catch (_){ got = null; }
+  if (got){ const left = (got.left || []).length, n = D.n || ((got.done || 0) + left);
+    _dsn.done = Object.assign({}, D, { k: Math.max(0, n - left), n, stopped: !!(got.stopped || (got.err && left)) }); }
+  _rd.loading = false;
+  await rdLoad(true);
+  renderReads();
+}
+/* THE EXIT RAMP (owner, 15 Nov 2026: "I should have an exit ramp to cancel the whole work and go back to the discover
+   page … a choice to either throw them away or save them"): Cancel stops the read at once and asks ONE question —
+   keep what was read, or throw it away — and either way lands on Discover's list of reads */
+function dsnCancelOpen(){
+  const A = _dscAC(), b = A && A.busy, D = _dsn.done || {};
+  const k = b ? b.done : (D.k || 0), n = b ? b.total : (D.n || k);
+  openModal(`<div class="rvd-head"><div><div class="rvd-title">${_rdE(_rdT('dsn_cancel_t'))}</div>
+      <div class="rvd-sub">${_rdE(_rdT('dsn_cancel_sub', { k, n }))}</div></div></div>
+    <div class="rvd-body"><div class="rvd-note">${_rdE(_rdT('dsn_cancel_body'))}</div></div>
+    <div class="rvd-foot">
+      <button type="button" class="ui-btn ui-btn-primary" data-dsn-cx="keep">${_rdE(_rdT('dsn_cancel_keep'))}</button>
+      <button type="button" class="ui-btn ui-btn-danger" data-dsn-cx="drop">${_rdE(_rdT('dsn_cancel_drop'))}</button>
+      <button type="button" class="ui-btn" data-dlg-cancel data-dsn-cx="stay">${_rdE(_rdT('dsn_cancel_stay'))}</button>
+    </div>`, { maxWidth: '480px' });
+}
+async function dsnCancelGo(how){
+  const A = _dscAC();
+  if (typeof closeModal === 'function') closeModal();
+  if (how === 'stay') return;
+  /* the read stops now (a "No, go on" left it reading) and is waited for, bounded, before leaving */
+  if (A && A.busy && typeof askColStop === 'function') askColStop();
+  const t0 = Date.now();
+  while (A && A.busy && Date.now() - t0 < 15000) await new Promise(r => setTimeout(r, 100));
+  if (A && A.busy) { toast(_rdT('dsn_cancel_slow'), 'warn'); return; }
+  const runId = _dsn.run, r = runId ? dsnRun(runId) : null;
+  if (A) A.stopped = null;
+  _dsn.done = null;
+  if (how === 'drop' && runId){
+    try {
+      const out = await api('columns/reads/' + encodeURIComponent(runId), 'DELETE');
+      /* what this read wrote leaves this browser too, so the next read reads those contracts again */
+      const askIds = (r && r.askIds) || [], ids = (r && r.ids) || [];
+      if (A) askIds.forEach(a => { const m = A.ans[a]; if (m) ids.forEach(id => { delete m[id]; }); });
+      ((out && out.asks) || []).forEach(a => { if (typeof askColDrop === 'function') try { askColDrop(a); } catch (_){} if (A){ delete A.ans[a]; delete A.asked[a]; delete A.asks[a]; } });
+      _dsn.run = null; _dsn.sel = null;
+      toast(_rdT('dsn_cancel_dropped'), 'ok');
+    } catch (e){ toast((e && e.message) || _rdT('dsn_cancel_fail'), 'err'); }
+  } else toast(_rdT('dsn_cancel_kept'), 'ok');
+  if (typeof askColSummary === 'function') try { await askColSummary(true); } catch (_){}
+  _rd.loading = false;
+  await rdLoad(true);
+  dsnGo('list', { cid: null, tab: 'all', q: '' });
+  /* a kept read is written on the server once the few contracts still with Jambo finish: the list asks again,
+     bounded, until it stands there */
+  if (how === 'keep' && runId) for (let i = 0; i < 20 && !dsnRun(runId); i++){
+    await new Promise(r => setTimeout(r, 3000));
+    if (typeof state === 'undefined' || state.view !== 'reads' || _dsn.screen !== 'list') break;
+    _rd.loading = false; await rdLoad(true);
+  }
 }
 /* Jambo's "read the next" on Discover only FILLS New read with that question (a chip never reads on its own) */
 function dsnFill(r){
@@ -1255,6 +1369,10 @@ function dsnGo(screen, o){
   if (typeof rdKeep === 'function') rdKeep();
   renderReads({ top: true });
 }
+if (typeof document !== 'undefined' && !document._dsnCxWired){ document._dsnCxWired = true;
+  document.addEventListener('click', e => { const el = e.target && e.target.closest ? e.target.closest('[data-dsn-cx]') : null; if (!el) return;
+    e.preventDefault(); e.stopPropagation(); dsnCancelGo(el.getAttribute('data-dsn-cx')); }, true);
+}
 if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired = true;
   const stop = e => { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); };
   document.addEventListener('click', e => {
@@ -1262,9 +1380,12 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (!t.closest('#rd-page') && !t.closest('#ins-panel')) return;
     let el;
-    if (t.closest('#dsn-new')){ stop(e); _dsc.q = ''; _dsc.askId = null; _dsc.pack = null; dsnGo('new'); setTimeout(() => { const q = document.getElementById('dsc-q'); if (q) q.focus(); }, 0); return; }
+    if (t.closest('#dsn-new')){ stop(e); _dsc.q = ''; _dsc.askId = null; _dsc.pack = null; _dsc.fix = null; _dsc.say = ''; dsnGo('new'); setTimeout(() => { const q = document.getElementById('dsc-q'); if (q) q.focus(); }, 0); return; }
     if (t.closest('[data-dsn-back]')){ stop(e); dsnGo('list', { cid: null, tab: 'all', q: '' }); return; }
     if (t.closest('#dsc-go')){ stop(e); dsnAsk(); return; }
+    if ((el = t.closest('[data-dsn-fix-use]'))){ stop(e); dsnFixUse(Number(el.getAttribute('data-dsn-fix-use'))); return; }
+    if (t.closest('[data-dsn-fix-back]')){ stop(e); dsnFixBack(); return; }
+    if (t.closest('[data-dsn-fix-count]')){ stop(e); const f = _dsc.fix; if (f && typeof jlAsk === 'function') jlAsk(f.yours); return; }
     if (t.closest('[data-dsn-results]')){ stop(e); dsnGo(_dsn.run ? 'results' : 'list', { cid: null, tab: 'all', q: '' }); return; }
     if ((el = t.closest('[data-dsn-open]'))){ stop(e); dsnGo('results', { run: el.getAttribute('data-dsn-open'), cid: null, tab: 'all', q: '' }); return; }
     if ((el = t.closest('[data-dsn-more]'))){ stop(e); dsnAsk(el.getAttribute('data-dsn-more')); return; }
@@ -1329,12 +1450,13 @@ if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired 
     if ((el = t.closest('[data-rdn-table]'))){ e.preventDefault(); e.stopPropagation(); readsTableOpen(el.getAttribute('data-rdn-table')); return; }
     if (!t.closest('#rd-page.dsc-page') && !t.closest('#ins-panel')) return;
     if (t.closest('#dsc-stop')){ e.preventDefault(); e.stopPropagation(); if (typeof askColStop === 'function') askColStop(); return; }
-    if (t.closest('#dsc-carry')){ e.preventDefault(); e.stopPropagation(); _dsc.liveCid = null; if (typeof askColCarryOn === 'function') Promise.resolve(askColCarryOn()).catch(() => {}).then(() => rdLoad(true)); return; }
+    if (t.closest('#dsc-carry')){ e.preventDefault(); e.stopPropagation(); dsnCarry(); return; }
+    if (t.closest('#dsn-cancel')){ e.preventDefault(); e.stopPropagation(); dsnCancelOpen(); return; }
     if (t.closest('[data-dsc-unpack]')){ e.preventDefault(); e.stopPropagation(); _dsc.pack = null; _dsc.say = ''; renderReads(); const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
     if (t.closest('[data-dsn-pkmenu]')){ _dsnStop(e); _dsn.pkMenu = !_dsn.pkMenu; renderReads(); return; }
     if ((el = t.closest('[data-dsn-pkpick]'))){ _dsnStop(e); if (A && A.busy) return;
       const p = _dsnPacks().find(x => x.id === el.getAttribute('data-dsn-pkpick')) || null; _dsn.pkMenu = false;
-      if (p){ dsnPackCurSet(p.id); _dsc.pack = p; _dsc.q = ''; _dsc.askId = null; _dsc.say = ''; } renderReads(); return; }
+      if (p){ dsnPackCurSet(p.id); _dsc.pack = p; _dsc.q = ''; _dsc.askId = null; _dsc.say = ''; _dsc.fix = null; } renderReads(); return; }
     if (t.closest('[data-dsn-pkbuild]')){ _dsnStop(e); dsnPackStart(null); renderReads(); setTimeout(() => { const n = document.getElementById('dsn-pk-name'); if (n && typeof fieldFocus === 'function') fieldFocus(n); else if (n) n.focus(); }, 0); return; }
     if (t.closest('[data-dsn-pkmanage]')){ _dsnStop(e); _dsn.pk = { mode: 'manage' }; _dsn.pkMenu = false; renderReads(); return; }
     if (t.closest('[data-dsn-pkcancel]')){ _dsnStop(e); _dsn.pk = null; renderReads(); return; }
@@ -1348,11 +1470,11 @@ if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired 
       renderReads(); return; }
     if ((el = t.closest('[data-dsc-pack]'))){ e.preventDefault(); e.stopPropagation(); if (A && A.busy) return; _dsn.pkMenu = false;
       const p = ((A && A.packs) || []).find(x => x.id === el.getAttribute('data-dsc-pack')) || null;
-      _dsc.pack = (_dsc.pack && p && _dsc.pack.id === p.id) ? null : p; _dsc.q = ''; _dsc.askId = null; _dsc.say = ''; renderReads(); return; }
+      _dsc.pack = (_dsc.pack && p && _dsc.pack.id === p.id) ? null : p; _dsc.q = ''; _dsc.askId = null; _dsc.say = ''; _dsc.fix = null; renderReads(); return; }
     if ((el = t.closest('[data-dsc-q]'))){ e.preventDefault(); e.stopPropagation(); if (A && A.busy) return;
       const id = el.getAttribute('data-dsc-q'), a = A && A.asks ? A.asks[id] : null;
       if (_dsc.askId === id){ _dsc.askId = null; _dsc.q = ''; } else if (a){ _dsc.askId = id; _dsc.q = a.question || ''; }
-      _dsc.pack = null; _dsc.say = ''; renderReads(); const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
+      _dsc.pack = null; _dsc.say = ''; _dsc.fix = null; renderReads(); const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
     if ((el = t.closest('[data-dsc-open]'))){ e.preventDefault(); e.stopPropagation(); dscLand(el.getAttribute('data-dsc-ask'), el.getAttribute('data-dsc-open'), false); return; }
     if ((el = t.closest('[data-dsc-redline]'))){ e.preventDefault(); e.stopPropagation(); dscLand(el.getAttribute('data-dsc-ask'), el.getAttribute('data-dsc-redline'), true); return; }
   }, true);
@@ -1360,7 +1482,9 @@ if (typeof document !== 'undefined' && !document._rdnWired){ document._rdnWired 
   document.addEventListener('input', e => { if (e.target && e.target.id === 'dsc-q' && typeof state !== 'undefined' && state.view === 'reads'){
     _dsc.q = e.target.value; const A = _dscAC(), a = _dsc.askId && A && A.asks ? A.asks[_dsc.askId] : null;
     if (a && String(a.question || '') !== _dsc.q) _dsc.askId = null;
-    if (_dsc.say){ _dsc.say = ''; const s = document.querySelector('#rd-page .dsc-say'); if (s) s.remove(); } } });
+    if (_dsc.say){ _dsc.say = ''; const s = document.querySelector('#rd-page .dsc-say'); if (s) s.remove(); }
+    /* words typed over a suggestion Jambo put in the box are the reader's own again: his panel stops saying "In the box" */
+    const f = _dsc.fix; if (f && f.used != null && f.alts[f.used] && f.alts[f.used].q !== _dsc.q){ f.used = null; renderReads(); } } });
 }
 
 /* THE DOORS, EVERY ONE AN EXISTING ONE */
@@ -1546,4 +1670,4 @@ function readsCss(){ return `
   #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+Object.assign(window, { dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });

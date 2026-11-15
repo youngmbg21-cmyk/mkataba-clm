@@ -1392,6 +1392,26 @@ function cunPanelHtml(r){
     .filter(v => v.items.some(c => !c.archived && c.status !== 'Signed' && c.status !== 'Declined') && ['none', 'ended'].includes((map.get(v.key) || { state: 'none' }).state));
   const names = live.map(v => cuShortName(v.name));
   const say = names.length ? i18tn('cun_p_jambo', names.length, { n: names.length, list: (() => { try { return new Intl.ListFormat((typeof langLocale === 'function') ? langLocale() : undefined, { type: 'conjunction' }).format(names.slice(0, 3)); } catch (_){ return names.slice(0, 3).join(i18t('cun_p_and')); } })() }) : '';
+  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): the party's share of signed money as a ring beside its name, its
+     agreements as rows (each opens its paper), the party's own facts, the page's own doors as rows (data-cun-open,
+     data-cun-web, data-cu-pr-edit) and Jambo's remark. Read from the record, no AI. The new look only. */
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    const end = c => { try { const d = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); return d ? cuDay(d) : ''; } catch (_){ return ''; } };
+    const ags = r.items.filter(c => !c.archived).slice(0, 3).map(c => ({ mark: 'file', t: c.name || c.id, s: end(c) ? i18t('jov5_pt_ends', { day: end(c) }) : String(c.status || ''), v: (typeof jov5Money === 'function') ? jov5Money(c) : '', run: () => jov5Open(c.id) }));
+    const may = typeof partyRecordMay === 'function' && partyRecordMay();
+    const own = [{ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none'), btn: !rec.orgNo && may ? '' : '', attr: '' }];
+    if (rec.city) own.unshift({ k: i18t('cun_p_city'), t: rec.city });
+    if (signer) own.push({ k: i18t('cun_p_signer'), t: [signer.name, signer.title].filter(Boolean).join(', ') });
+    own.push({ k: i18t('cu_col_nda'), t: ndaV });
+    const more = [{ mark: 'users', t: i18tn('cun_p_open', r.items.length, { n: r.items.length }), attr: `data-cun-open="${E(r.key)}"` }];
+    if (lead && typeof partyWebOpen === 'function' && typeof partyLookupMay === 'function' && partyLookupMay()) more.push({ mark: 'search', t: i18t('cun_p_web', { name: short }), s: i18t('cun_p_web_cost'), attr: `data-cun-web="${E(lead.id)}"` });
+    if (may) more.push({ mark: 'pencil', t: i18t('cun_p_edit'), attr: `data-cu-pr-edit="${E(r.key)}"` });
+    const groups = [{ label: i18t('jov5_pt_ags'), rows: ags }, { label: i18t('cun_p_facts'), rows: own.map(x => ({ k: x.k, t: x.t })) }, { label: i18t('jov5_pt_more'), rows: more }];
+    if (say) groups.push({ label: i18t('cn2_jambo'), rows: [{ mark: 'sparkle', tone: 'dark', t: say, wrap: true }] });
+    return `<div class="jl-words is-ov">${jamboOverviewHtml({ ring: pct || null, eyebrow: i18t('jov5_pt_eb'), title: r.name,
+      sub: pct ? i18tn('jov5_pt_sub', r.items.length, { pct, n: r.items.length }) : i18tn('jov5_pt_sub_n', r.items.length, { n: r.items.length }),
+      groups: groups.filter(g => g.rows.length), src: i18t('jov5_dir_src') }, 'cun')}</div>`;
+  }
   const turn = say ? `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(say)}</p></div></div>` : '';
   return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p><div class="pd2-ch-cap">${E(i18t('cun_p_facts'))}</div><div class="pd2-ch-tbl">${facts}</div><div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}${turn}</div>`;
 }

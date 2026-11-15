@@ -14983,6 +14983,106 @@
   .jov-lnk.is-dead{color:var(--color-neutral-600);text-decoration:none;cursor:default;}
   .jov-cost{color:var(--color-neutral-600);font-size:12px;margin-left:6px;text-decoration:none;display:inline-block;}
   .jov-after{margin:18px 0 0;display:flex;flex-direction:column;gap:12px;min-width:0;}
+  /* THE FIVE PARTS (owner, 15 Nov 2026, "Build as drawn": every-jambo-panel drawings) — headline in the serif,
+     three soft tiles, soft groups whose row is the door, ONE black button in a soft card, the small print at the
+     foot. Drawn only where a page hands jamboOverviewHtml a `title`. */
+  .jov5{gap:14px;min-height:100%;}
+  .jov5 > .jov-after{margin:0;}
+  .jov5-intro{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .jov5-intro.is-clear{align-items:center;text-align:center;gap:4px;}
+  .jov5-tick{width:60px;height:60px;margin-bottom:4px;}
+  .jov5-ring{fill:var(--st-green-bg);stroke:var(--st-green-line);stroke-width:2;}
+  .jov5-tk{fill:none;stroke:var(--st-green-fg);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;}
+  .jov5-eb{margin:0;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400);}
+  .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text);text-wrap:balance;overflow-wrap:anywhere;}
+  .jov5-sub{margin:2px 0 0;font-size:13.5px;line-height:1.45;color:var(--color-quiet);}
+  .jov5-glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+  .jov5-g{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;padding:9px 12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill);font:inherit;text-align:left;color:var(--color-text);}
+  .jov5-g.is-door{cursor:pointer;transition:background-color .2s ease;}
+  .jov5-g.is-door:hover{background:var(--color-divider);}
+  .jov5-g b{font-size:21px;line-height:1.2;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .jov5-g.is-warn b{color:var(--st-amber-fg);}
+  .jov5-g span{max-width:100%;font-size:11.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jov5-sec{display:flex;flex-direction:column;min-width:0;}
+  .jov5-label{margin:0 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400);}
+  .jov5-group{border-radius:var(--radius);background:var(--jb-card-fill);overflow:hidden;}
+  .jov5-row{position:relative;display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:8px 12px;border:0;background:none;font:inherit;font-size:13.5px;text-align:left;color:var(--color-text);min-width:0;}
+  .jov5-row.is-door{cursor:pointer;transition:background-color .2s ease;}
+  .jov5-row.is-door:hover{background:var(--color-divider);}
+  .jov5-row + .jov5-row::before{content:"";position:absolute;top:0;left:46px;right:0;height:1px;background:var(--color-divider);}
+  .jov5-row.is-plain + .jov5-row.is-plain::before{left:12px;}
+  .jov5-mk{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);color:var(--color-text);font-size:11px;font-weight:var(--w-strong);}
+  .jov5-mk.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .jov5-mk.is-green{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .jov5-mk.is-dark{background:var(--accent-solid);color:var(--surface-3);}
+  .jov5-ic{width:14px;height:14px;}
+  .jov5-k{flex:none;width:84px;font-size:13px;color:var(--color-neutral-400);}
+  .jov5-rt{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .jov5-rt b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jov5-rt span{font-size:12px;line-height:1.4;color:var(--color-neutral-400);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+  .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{white-space:normal;}
+  .jov5-v{flex:none;font-size:12.5px;color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .jov5-v.is-need{color:var(--st-amber-fg);}
+  .jov5-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:118px;padding:14px;border-radius:12px;border:1.5px dashed var(--color-accent-300);background:var(--jb-card-fill);text-align:center;font-size:12px;color:var(--color-quiet);cursor:pointer;}
+  .jov5-drop b{font-size:13.5px;font-weight:var(--w-strong);color:var(--color-text);}
+  .jov5-drop.is-over,.jov5-drop:hover{border-color:var(--accent-ink);}
+  .jov5-up{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);color:var(--accent-ink);}
+  .jov5-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+  .jov5-day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 0;border-radius:var(--radius);background:var(--jb-card-fill);color:var(--color-text);}
+  .jov5-day small{font-size:11px;font-weight:var(--w-label);color:var(--color-neutral-400);}
+  .jov5-day b{font-size:15px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
+  .jov5-day i{width:6px;height:6px;border-radius:50%;background:var(--color-neutral-300);}
+  .jov5-day.has-dates i{background:var(--st-amber-dot);}
+  .jov5-day.is-today{background:var(--accent-solid);color:var(--surface-3);}
+  .jov5-day.is-today small{color:var(--color-neutral-300);}
+  .jov5-day.is-today i{background:var(--surface-3);}
+  .jov5-who{display:flex;align-items:center;gap:14px;min-width:0;}
+  .jov5-ava{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--accent-solid);color:var(--surface-3);font-size:18px;font-weight:var(--w-strong);}
+  .jov5-crew{display:flex;justify-content:space-between;gap:4px;padding:12px 14px;border-radius:var(--radius);background:var(--jb-card-fill);}
+  .jov5-cm{display:flex;flex-direction:column;align-items:center;gap:5px;flex:0 1 auto;min-width:0;font-size:10px;line-height:1.2;color:var(--color-neutral-400);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jov5-cm i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);box-shadow:0 0 0 1px var(--color-divider);}
+  .jov5-cm i span{width:10px;height:10px;border-radius:50%;}
+  .jov5-th{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;}
+  .jov5-tag{flex:none;font-size:11.5px;font-weight:var(--w-strong);border-radius:999px;padding:2px 9px;background:var(--surface-2);color:var(--color-quiet);white-space:nowrap;}
+  .jov5-tag.is-green{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .jov5-tag.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .jov5-ring{position:relative;flex:none;width:76px;height:76px;}
+  .jov5-ring svg{width:76px;height:76px;transform:rotate(-90deg);}
+  .jov5-rb{fill:none;stroke:var(--color-divider);stroke-width:9;}
+  .jov5-rf{fill:none;stroke:var(--color-accent-500);stroke-width:9;stroke-linecap:round;stroke-dasharray:213.6;}
+  .jov5-ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:16px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--color-text);}
+  .gdn.is-five .gdn-say-top{font-family:var(--font-title);font-size:21px;line-height:1.2;font-weight:500;color:var(--color-text);text-wrap:balance;}
+  .gdn.is-five .gdn-h{text-transform:none;letter-spacing:0;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400);}
+  .gdn.is-five .gdn-g{border-radius:var(--radius);background:var(--color-bg);padding:2px 12px;}
+  .jov5-sw{flex:none;width:28px;height:0;border-top:2px solid var(--accent-solid);}
+  .jov5-sw.is-door{border-top-color:var(--accent-ink);}
+  .jov5-sw.is-guess{border-top:2px dashed var(--color-neutral-400);}
+  .jov5-chev{flex:none;display:grid;color:var(--color-neutral-300);}
+  .jov5-pill{flex:none;height:var(--ctl-h-sm);padding:0 11px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .jov5-pill.is-black{background:var(--accent-solid);color:var(--surface-3);}
+  .jov5-steps{margin:0;padding:0;list-style:none;counter-reset:jov5;display:flex;flex-direction:column;gap:2px;}
+  .jov5-steps li{counter-increment:jov5;position:relative;padding:4px 0 4px 32px;font-size:13px;line-height:1.45;color:var(--color-quiet);}
+  .jov5-steps li::before{content:counter(jov5);position:absolute;left:0;top:3px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);font-size:12px;font-weight:var(--w-strong);color:var(--color-text);}
+  .jov5-steps b{font-weight:var(--w-strong);color:var(--color-text);}
+  .jov5-act{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:var(--radius);background:var(--jb-card-fill);}
+  .jov5-say{margin:0;font-size:13.5px;line-height:1.45;font-weight:var(--w-label);color:var(--color-text);}
+  .jov5-q{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--color-quiet);}
+  .jov5-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;}
+  .jov5-acts .jov-lnk{font-size:12.5px;}
+  .jov5-go{height:var(--ctl-h);padding:0 14px;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .jov5-go:hover{background:var(--accent-solid-hover);}
+  .jov5-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .jov5-chip{height:var(--ctl-h-sm);padding:0 11px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .jov5-chip:hover,.jov5-pill:hover{background:var(--color-divider);}
+  .jov5-pill.is-black:hover{background:var(--accent-solid-hover);}
+  .jov5-line{position:relative;height:58px;border-radius:var(--radius);background:var(--jb-card-fill);}
+  .jov5-ln{position:absolute;left:14px;right:14px;top:26px;height:2px;background:var(--color-neutral-300);}
+  .jov5-a,.jov5-b{position:absolute;top:21px;width:12px;height:12px;border-radius:50%;}
+  .jov5-a{left:10px;background:var(--accent-solid);}
+  .jov5-b{right:10px;background:var(--st-amber-dot);box-shadow:0 0 0 4px var(--st-amber-bg);}
+  .jov5-lf,.jov5-lt{position:absolute;top:36px;font-size:11px;color:var(--color-neutral-400);}
+  .jov5-lf{left:14px;} .jov5-lt{right:14px;}
+  .jov5-src{margin:auto 0 0;padding-top:4px;font-size:11.5px;color:var(--color-quiet);}
   /* Home's panel already pads its feed (14px): the Overview adds the 2px that makes 16 inside (16PX INSIDE EVERY CARD) */
   #ig-dock .jl-words.is-ov{padding:2px 2px 4px;}
   /* BRAIN WELCOME (owner picked it, 13 Nov 2026): on the Board, Jambo's Overview opens on the Explorer's own brain
@@ -18377,6 +18477,13 @@
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .pd-glance .ds-row.ds-rr.is-jw > .ds-nm{flex:1 1 auto;width:auto;max-width:none;min-width:0}
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix :is(#pd-og, .pd-og) tr.pd-og-row:is(.is-saved, .is-door, .is-named) .pd-ck-hd{min-height:44px;padding-top:11px;padding-bottom:11px}
   #app-shell #ig-dock :is(#igd-feed, #pd-body) .pd-dossier.is-mix .ds-ob-line{min-height:44px;padding-top:11px;padding-bottom:11px}
+  /* JAMBO'S PANELS ARRIVE RARELY — the motions themselves (the rules that use them wait on html.lg-new, in the new look's block) */
+  @keyframes jovRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes jovPop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:none}}
+  @keyframes jovDraw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes jovRingFill{from{stroke-dashoffset:213.6}}
+  @keyframes jovTickDraw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+  @keyframes jovPulse{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
   /* ==== THE NEW LOOK: THE FRAME (round 1 of the Legora way rebuilt page by page; owner, 31 Oct 2026: "start with the frame";
      Jambo's box 44; the contract's wording may sit lower as the Page frame draws it; a light grey stays behind a page still
      made of cards until its own round) ====
@@ -18610,6 +18717,46 @@
   html.lg-new #pd2-notes .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
+  /* THE FIVE PARTS ON A CONTRACT (Jambo's panels, round 3b; owner, 15 Nov 2026: "Build as drawn"). The Dossier's ONE card
+     keeps every part (where it stands, the next step, the stage line, the long black button as it is, Jambo's read) and
+     lays them out as the drawing: an eyebrow, the next step as a serif headline, its sentence, the six stages as a
+     labelled line, then the act in its own soft card. The facts under it are one soft group with a plain label. */
+  html.lg-new #ig-dock .pd2-card.is-five{display:flex;flex-direction:column;margin:0 0 16px;padding:0;border-radius:0;background:none}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-top{display:flex;flex-direction:row-reverse;justify-content:flex-end;flex-wrap:wrap;gap:0;margin:0 0 4px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-who::after{content:"\00b7";margin:0 5px}
+  html.lg-new #ig-dock .pd2-card.is-five > .pd2-next{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text);text-wrap:balance;overflow-wrap:anywhere}
+  html.lg-new #ig-dock .pd2-card.is-five > .pd2-next::after{content:"."}
+  html.lg-new #ig-dock .pd2-card.is-five > .pd2-card-say{margin:4px 0 0;font-size:13.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-spine.is-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:16px 0 0;gap:0}
+  html.lg-new #ig-dock .pd2-spine.is-steps i{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;width:auto;height:auto;margin:0;border-radius:0;background:none;box-shadow:none;font-style:normal}
+  html.lg-new #ig-dock .pd2-spine.is-steps i::before{content:"";position:relative;z-index:1;display:grid;place-items:center;width:18px;height:18px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--color-neutral-300);background:var(--color-bg);font-size:10px;line-height:1;font-weight:var(--w-strong);color:var(--color-bg)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i::after{content:"";position:absolute;top:8.25px;left:calc(-50% + 9px);right:calc(50% + 9px);height:1.5px;background:var(--color-neutral-300)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i:first-child::after{display:none}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-done::before{content:"\2713";border-color:var(--color-text);background:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i:is(.is-done, .is-focus, .is-now)::after{background:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-now::before{border-color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-on::before{border-color:var(--st-amber-dot)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-focus::before{border-color:var(--st-amber-dot);background:var(--st-amber-dot);box-shadow:0 0 0 3px var(--st-amber-bg)}
+  html.lg-new #ig-dock .pd2-spine.is-steps em{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font-size:11.5px;line-height:1.2;color:var(--color-neutral-400)}
+  html.lg-new #ig-dock .pd2-spine.is-steps i.is-focus em{font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-act{margin:16px 0 0;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-card.is-five .pd2-card-act > .pd2-card-foot:first-child{margin-top:0;padding-top:0;border-top:0}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-eye{margin:0 0 6px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-eye + .pd2-facts{padding:0 12px;border-top:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-eye + .pd2-facts .pd2-fact:last-child{border-bottom:0}
+  /* on a contract the one black button is the LONG one, as on the Dossier's card (owner, 15 Nov 2026: "the long black
+     buttons should stay the same design"): full width, its link under it */
+  html.lg-new #ig-dock .pd2-dossier .jov5-acts{flex-direction:column;align-items:stretch;gap:10px}
+  html.lg-new #ig-dock .pd2-dossier .jov5-acts > .jov5-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
+  html.lg-new #ig-dock .pd2-dossier .jov5-acts > :not(.jov5-go){align-self:flex-start}
+  /* the contract's Obligations, five parts: its dates are the tiles, so the renewal block keeps only its quoted words
+     and its decision card; the long black button as on every contract face */
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-glance + .jov5-sec:has(.pd-rn-decide:empty):not(:has(.pd-rn-q)){display:none}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-glance + .jov5-sec .pd-rn-cols{display:none}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-sec:has(> .pd-rn:empty), html.lg-new #ig-dock .pd-obm-tab.is-five .pd-rn{margin:0;padding:0;border:0;background:none}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-acts{flex-direction:column;align-items:stretch;gap:10px}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-acts > .jov5-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
+  html.lg-new #ig-dock .pd-obm-tab.is-five .jov5-acts > :not(.jov5-go){align-self:flex-start}
   html.lg-new #ig-dock .pd2-pill{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
   html.lg-new .pd2-br-head{display:flex;align-items:baseline;gap:14px;min-width:0;padding:4px 0}
   html.lg-new .pd2-br-head .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;font-size:13.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
@@ -18706,6 +18853,21 @@
   html.lg-new #ig-dock :is(.pd2-fp-order,.pd2-fp-rest){padding:12px 0 0;border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-fp-rest{margin-top:12px}
   html.lg-new #ig-dock .pd2-fp-none{margin:6px 0 0;font-size:13px;color:var(--color-quiet)}
+  /* Fill in, the five parts (round 3b): the headline, the walk's head as a small label, the spaces as one soft group of
+     amber rows, then "Also" (the order, what has no place on the paper) as another */
+  html.lg-new #ig-dock .pd2-fp-five{display:flex;flex-direction:column;gap:16px}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-fp-head{margin:0 0 -10px;padding:0}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-fp-head b{font-family:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-fp-head span{font-size:12px}
+  html.lg-new #ig-dock .pd2-fp-five > .pd2-eye{margin:0 0 -10px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fp-list.is-five, html.lg-new #ig-dock .pd2-fp-also{padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp{position:relative;padding:12px 0 12px 38px}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp:first-child{border-top:0}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp > .jov5-mk{position:absolute;left:0;top:11px}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp.is-cur{margin:0 -12px;padding:12px 12px 12px 50px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider)}
+  html.lg-new #ig-dock .pd2-fp-list.is-five .pd2-fp.is-cur > .jov5-mk{left:12px}
+  html.lg-new #ig-dock .pd2-fp-also > :is(.pd2-fp-order, .pd2-fp-rest){margin:0;padding:12px 0;font-size:13px;line-height:1.45}
+  html.lg-new #ig-dock .pd2-fp-also > .pd2-fp-rest + *, html.lg-new #ig-dock .pd2-fp-also > .pd2-fp-order + .pd2-fp-rest{border-top:1px solid var(--color-divider)}
   html.lg-new .pd2-fill-head .pd2-fh-stop{flex:none;font-size:13px}
   html.lg-new .pd2-fill-head .pd2-fh-stop.is-asking{color:var(--st-ruby-fg)}
   /* the Fill in form in the middle, laid flat: the page white, its head "‹ Paper" over the title and its line; rows wide */
@@ -18855,6 +19017,25 @@
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead{background:var(--st-green-dot);border:0}
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-state{font-size:11.5px;color:var(--color-text);white-space:nowrap}
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-need,html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-look{color:var(--st-amber-fg)}
+  /* THE CLAUSE LIST AS DRAWN (round 3b; owner, 15 Nov 2026): its behaviour untouched, its look the drawing's — a small
+     label over it, the rows one soft group, each clause's number in its round mark (amber where a point waits, green
+     where it is fine), the open row a white card. Only the look: nothing here moves the paper or the list. */
+  html.lg-new #ig-dock .pd-th .doc-th-lbl{display:flex;justify-content:space-between;gap:12px;margin:12px 16px 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows{flex:0 1 auto;min-height:0;margin:0 16px 16px;padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row{padding-left:0}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row:first-child{border-top:0}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go{padding:9px 0;gap:12px;align-items:center}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-bead[data-n]{position:static;flex:none;display:grid;place-items:center;width:26px;height:26px;border:0;border-radius:50%;background:var(--surface-3);box-shadow:none;font-size:12px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-bead[data-n]::before{content:attr(data-n)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row:is(.stk-b-need, .stk-b-look) .doc-th-bead[data-n]{background:var(--st-amber-dot);color:var(--surface-3)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead[data-n]{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open:not(.stk-b-need):not(.stk-b-look):not(.stk-b-ok) .doc-th-bead[data-n]{background:var(--accent-solid);color:var(--surface-3)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-num{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-name{flex:1;min-width:0;font-size:14px}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open.pd2-lit{margin:0 -12px;padding:0 12px 8px;border-top-color:transparent;border-radius:var(--radius);background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open::after{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open + .doc-th-row{border-top-color:transparent}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .doc-th-body{padding-left:38px}
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-say{max-width:160px;font-size:11.5px}
   /* the open clause: a dark bar at the panel's edge, its Plain English press filled, the reading and what to watch, the doors as links */
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open{border-bottom:0;margin-bottom:0;box-shadow:none}
@@ -18968,6 +19149,54 @@
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li{display:inline;padding:0}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li::before{display:none}
   html.lg-new :is(#ig-dock,.sh-lt-side) .sh-lt-goesl li + li::before{display:inline;position:static;content:" · ";background:none;width:auto;height:auto}
+  /* BEFORE YOU SEND IN JAMBO'S PANEL, THE FIVE PARTS (round 3b; owner, 15 Nov 2026: "Build as drawn"), drawn lightly: the
+     Send screen paints these parts and keeps them live, so they are dressed where they stand — "Before you send" the
+     eyebrow, the verdict the serif headline with its round mark (a green tick when ready, amber when not), each card a
+     soft group. The Send screen's own left column is not touched (#pd-sendface is the panel only). */
+  html.lg-new #ig-dock #pd-sendface .sh-lt-side{display:flex;flex-direction:column;gap:12px;padding:16px}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-side > .sh-lt-jb b{display:block;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card{display:block;padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card > h4{margin:0 0 2px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card > :not(h4){margin:0;font-size:13px;color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card.sh-lt-verdict{padding:0;background:none}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict > h4{display:flex;align-items:center;gap:12px;margin:0 0 12px;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-v-dot{flex:none;display:grid;place-items:center;width:40px;height:40px;margin:0;border-radius:50%;background:var(--st-green-bg);font-style:normal}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-v-dot::before{content:"\2713";font-family:var(--font-body);font-size:16px;font-weight:var(--w-strong);color:var(--st-green-fg)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot{background:var(--st-amber-bg)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot::before{content:"!";color:var(--st-amber-fg)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-kv{grid-template-columns:96px minmax(0,1fr);padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks{display:flex;flex-direction:column;gap:12px}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check{border-left:3px solid var(--st-amber-dot)}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-noemail{padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px}
+  /* REDLINES WITH NOTHING ON THE TABLE, THE FIVE PARTS (round 3b): the headline, what Draft from our standards does in a
+     soft card with its long black button (grey when Send to mark up is the one filled button), then "Or yourself" — Edit
+     a clause and Add a clause as rows. Every button stays inside .rl-empty-acts; nothing new is pressed. */
+  html.lg-new #ig-dock .rl-cards-empty[data-rl-five]{display:flex;flex-direction:column;gap:16px;padding-top:6px;padding-bottom:6px;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-cards-empty[data-rl-five] .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-cards-empty[data-rl-five] > .rl-empty-first{margin:0;font-size:13.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five{display:flex;flex-direction:column;align-items:stretch;gap:16px;margin:0}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card .rl-empty-lead{display:block;margin:0;font-size:13.5px;line-height:1.5;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:var(--ctl-h);margin:0;padding:0 14px;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button[data-rl-prepare] > span[aria-hidden]{display:none}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card.has-send > button[data-rl-prepare]{background:transparent;color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-divider)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button:disabled{opacity:.45;cursor:default}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-l{margin:0 0 -10px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g{padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g > .rl-empty-edit{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;height:auto;margin:0;padding:12px 0;border:0;border-radius:0;background:transparent;box-shadow:none;font:inherit;font-size:14px;font-weight:var(--w-label);color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g > .rl-empty-edit + .rl-empty-edit{border-top:1px solid var(--color-divider)}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-g > .rl-empty-edit svg{flex:none;box-sizing:content-box;width:14px;height:14px;padding:6px;border-radius:50%;background:var(--surface-3)}
+  html.lg-new #ig-dock #rl-risks .rk-h b{font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock #rl-risks .rk-row.is-none{padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  /* CLAUSES NOT READ YET, THE FIVE PARTS (round 3b): the headline and sentence, the reason and the one press in a soft
+     card, the long black button; the clause list under it keeps its behaviour and only wears a soft group */
+  html.lg-new #ig-dock .stk-head.is-five{display:flex;flex-direction:column;gap:16px}
+  html.lg-new #ig-dock .stk-head.is-five > .stk-view{display:none}
+  html.lg-new #ig-dock .pd-th .stk-head.is-mq.is-five > .stk-view{display:none}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card .stk-sub{margin:0;font-size:13.5px;line-height:1.5;color:var(--color-text)}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card .stk-acts{display:flex;margin:0}
+  html.lg-new #ig-dock .stk-head.is-five .stk-five-card [data-stk-run]{width:100%;height:var(--ctl-h);justify-content:center;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font-size:13px;font-weight:var(--w-label)}
   /* THE CLAUSE EDITOR, AS DRAWN: the paper in the paper's type, the Redline pill filled, the suggested wording in a box */
   html.lg-new #ce-doc,html.lg-new #ce-doc :is(p,li,div,span):not(.rl-seg){font-family:var(--font-doc)}
   html.lg-new #ce-doc #ce-clausebody{font-size:15px;line-height:1.55}
@@ -19183,9 +19412,65 @@
   html.lg-new #ig-dock .rl-band.rl-band-nl b{font-weight:400}
   html.lg-new #ig-dock .rl-band.rl-band-nl i{font-style:normal}
   html.lg-new #ig-dock .rl-face .rl-unsent-go{display:none}
+  /* JAMBO'S REDLINES FACE, THE FIVE PARTS (the remaining eight; owner, 15 Nov 2026: "build all eight"): Changes · Notes ·
+     Deal · Ladder one switch on top, the column's state a serif headline, Send all the long black button in a card with
+     what it does (shown here, as drawn — the paper's line keeps its own), and the Ladder a face of its own: only the
+     change whose ladder is open, its bands and the risks put away */
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-idx-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg{order:-2;flex:1 1 100%;display:flex;gap:2px;margin:0 0 10px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:28px;margin:0;padding:0 8px;border:0;border-radius:999px;background:transparent;box-shadow:none;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button svg{display:none}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button i{font-style:normal;color:inherit;opacity:.7}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button:is(.is-on, [aria-pressed="true"]){background:var(--accent-solid);color:var(--surface-3)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-idx-title{font-family:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-idx-title i{font-style:normal}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head{flex:1 1 100%;margin:0}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head .jov5-sub{margin:2px 0 0;font-size:13.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-round-at{flex:1 1 100%;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act{flex:1 1 100%;display:flex;flex-direction:column;gap:12px;margin:10px 0 4px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act p{margin:0;font-size:13.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act .rl-unsent-go{display:flex;align-items:center;justify-content:center;width:100%;height:var(--ctl-h);margin:0;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font-size:13px;font-weight:var(--w-label)}
+  /* the Ladder face is drawn whole by its headline block (rlLadderFiveHtml), as drawn: the cards and the risks stand down */
+  html.lg-new #ig-dock #rl-changes-col.is-ladder-face #nego-cards, html.lg-new #ig-dock #rl-changes-col.is-ladder-face #rl-risks{display:none}
+  /* on the Ladder and Notes faces the switch leads straight into the face's own headline, as drawn */
+  html.lg-new #ig-dock #rl-changes-col:is(.is-ladder-face, .is-notes-face) :is(.rl-idx-title, .rl-round-at, .rl-idx-br){display:none}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head.is-ladder .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
+  /* the notes rooms under the headline: one pill switch, as drawn */
+  html.lg-new #ig-dock .rl-fn-tabs.is-five{display:flex;gap:2px;margin:0;padding:3px;border:0;border-radius:999px;background:var(--surface-2)}
+  html.lg-new #ig-dock .rl-fn-tabs.is-five .rl-fn-tab{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;margin:0;padding:0 10px;border:0;border-radius:999px;background:transparent;box-shadow:none;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #ig-dock .rl-fn-tabs.is-five .rl-fn-tab::after{display:none}
+  html.lg-new #ig-dock .rl-fn-tabs.is-five .rl-fn-tab svg{display:none}
+  html.lg-new #ig-dock .rl-fn-tabs.is-five .rl-fn-tab b{font-weight:inherit;background:none;color:inherit;opacity:.7}
+  html.lg-new #ig-dock .rl-fn-tabs.is-five .rl-fn-tab.on{background:var(--accent-solid);color:var(--surface-3)}
+  html.lg-new #ig-dock .rl-fn-tabs.is-five :is(.rl-fn-sp, .rl-fn-back){display:none}
+  /* JAMBO'S PANELS ARRIVE RARELY (owner's rule, 15 Nov 2026; js/components.js jovArriveSweep decides WHEN): the parts rise
+     in turn, the round marks pop in one by one, a line draws, the ring fills, the tick draws, the stage line draws to the
+     stage in hand and that stage pulses once. Transform and opacity only; nothing beside the paper changes size. */
+  html.lg-new .jov-arrive > *{animation:jovRise .42s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--jov-i, 0) * 70ms)}
+  html.lg-new .jov-arrive :is(.jov5-day, .jov5-cm, .pd2-sg-i){animation:jovPop .34s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(220ms + var(--jov-j, 0) * 60ms)}
+  html.lg-new .jov-arrive .jov5-line .jov5-ln{transform-origin:left center;animation:jovDraw .8s cubic-bezier(.2,.7,.2,1) .25s both}
+  html.lg-new .jov-arrive .jov5-line .jov5-b{animation:jovPop .4s cubic-bezier(.2,.7,.2,1) 1s both}
+  html.lg-new .jov-arrive .jov5-rf{animation:jovRingFill .9s cubic-bezier(.2,.7,.2,1) .25s both}
+  html.lg-new .jov-arrive .jov5-tk{stroke-dasharray:40;animation:jovTickDraw .5s ease-out .3s both}
+  html.lg-new .jov-arrive .pd2-spine.is-steps i::after{transform-origin:left center;animation:jovDraw .3s ease-out both;animation-delay:calc(260ms + var(--jov-j, 0) * 110ms)}
+  html.lg-new .jov-arrive .pd2-spine.is-steps i.is-focus::before{animation:jovPulse .5s ease-out 1s both}
+  /* less motion asked: the page-wide rule above already stops every animation, and jovArriveSweep never starts one */
+  html.lg-new #ig-dock #rl-changes-col :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
+  html.lg-new #ig-dock #rl-changes-col:has(.rl-tv-five) .pd-rf-theirs{display:none}
+  html.lg-new #ig-dock .rl-cards-empty.rl-tv-five{padding-top:6px;padding-bottom:6px;color:var(--color-text)}
+  html.lg-new #ig-dock .rl-cards-empty.rl-tv-five .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
   html.lg-new .rl-pt{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
   /* the close plan's panel, as drawn */
   html.lg-new .dl2-panel{padding:12px 16px 16px;font-size:13px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .dl2-panel.is-five{padding:16px}
+  /* an empty notes room, the five parts (the side panel's Notes and the Redlines column's): read left, the serif headline */
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five{display:block;margin:0;padding:16px 0;border:0;background:none;text-align:left}
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;letter-spacing:-.005em;color:var(--color-text)}
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-sub{margin:2px 0 0;font-size:13.5px;font-weight:400;color:var(--color-quiet)}
+  html.lg-new :is(.rl-np-empty, .rl-fn-empty).is-five .jov5-rt b{display:block;font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .dl2-panel.is-five .jov5-acts{flex-direction:column;align-items:stretch}
+  html.lg-new .dl2-panel.is-five .jov5-acts > .jov5-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
   html.lg-new .dl2-panel .dl2-pl{margin:0 0 16px;font-weight:var(--w-label)}
   html.lg-new .dl2-panel .dl2-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 6px}
   html.lg-new .dl2-panel .dl2-road{margin-bottom:16px}
@@ -19531,6 +19816,24 @@
   html.lg-new .pd2-sg-r:last-of-type{border-bottom:0}
   html.lg-new .pd2-sg-card{margin:8px 0 0;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px;line-height:1.45}
   html.lg-new .pd2-sg-card b{display:block;font-size:14px;font-weight:var(--w-strong)}
+  /* Before you sign, the five parts (round 3b): the count as the headline, a bar for how close, the checks and "Then"
+     as soft groups with round marks, the first open check's door as the long black button */
+  html.lg-new .pd2-sg.is-five{display:flex;flex-direction:column;gap:16px}
+  html.lg-new .pd2-sg.is-five > .pd2-sg-l{margin:0 0 -10px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-g{padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-g .pd2-sg-r{align-items:center}
+  html.lg-new .pd2-sg.is-five .pd2-sg-g .pd2-sg-r:last-child{border-bottom:0}
+  html.lg-new .pd2-sg.is-five .pd2-sg-i{width:26px;height:26px;margin:0;font-size:12px}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r.is-done .pd2-sg-i{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r:is(.is-now, .is-turn) .pd2-sg-i{border:0;background:var(--st-amber-bg);box-shadow:inset 0 0 0 2px var(--st-amber-dot)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r.is-later .pd2-sg-i{border:0;background:var(--surface-3)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r small{color:var(--color-quiet)}
+  html.lg-new .pd2-sg.is-five .pd2-sg-r b{font-weight:var(--w-label)}
+  html.lg-new .pd2-sg-prog p{display:flex;justify-content:space-between;gap:12px;margin:0 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .pd2-sg-prog i{display:block;height:6px;border-radius:999px;background:var(--color-divider);overflow:hidden}
+  html.lg-new .pd2-sg-prog b{display:block;height:100%;border-radius:999px;background:var(--st-green-fg)}
+  html.lg-new .pd2-sg.is-five > .pd2-sg-go{width:100%;height:var(--ctl-h);justify-content:center;font-size:13px}
+  html.lg-new .pd2-sg.is-five > .pd2-sg-card{margin:0}
   html.lg-new .pd2-sg-card p{margin:4px 0 12px;font-weight:var(--w-label)}
   html.lg-new .pd2-sg-card ul{margin:6px 0 0;padding-left:18px}
   html.lg-new .pd2-sg-acts{display:flex;align-items:center;gap:10px}
@@ -19739,6 +20042,28 @@
   html.lg-new .dsc-btn.is-quiet{background:var(--color-surface);color:var(--color-text)}
   html.lg-new .dsc-btn:disabled{opacity:.5;cursor:default}
   html.lg-new .dsc-say{margin-top:var(--s-2);font-size:13px;color:var(--st-amber-fg)}
+  /* A QUESTION TURNED DOWN: JAMBO'S PANEL SAYS HOW TO ASK IT (owner, 15 Nov 2026, the Legora way): nothing boxed -
+     his mark and name, your sentence quoted with the words that tripped it washed amber, one plain line, then the
+     ways to ask as hairlined rows, each a whole press that says what comes back */
+  html.lg-new .dsc-say.dsn-fix-kept{color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .dsn-fix{display:flex;flex-direction:column;gap:var(--s-3)}
+  html.lg-new .dsn-fix-who{display:flex;align-items:center;gap:var(--s-2);font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .dsn-fix-mark{flex:none;width:22px;height:22px;border-radius:999px;background:var(--accent-solid);color:var(--color-surface);display:inline-flex;align-items:center;justify-content:center}
+  html.lg-new .dsn-fix-yours{margin:0;padding:0 0 0 var(--s-3);border-left:2px solid var(--color-divider);font-size:13.5px;line-height:1.5;color:var(--color-neutral-400);overflow-wrap:anywhere}
+  html.lg-new .dsn-fix-yours mark{background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:3px;padding:1px 3px}
+  html.lg-new .dsn-fix-said{margin:0;font-size:13.5px;line-height:1.55}
+  html.lg-new .rfp-panel.is-drawn .dsn-fix .rfp-cap{margin:var(--s-1) 0 0}
+  html.lg-new .dsn-fix-rows{display:flex;flex-direction:column}
+  html.lg-new .dsn-fix-row{display:flex;align-items:baseline;gap:var(--s-3);width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;color:inherit;text-align:left}
+  html.lg-new button.dsn-fix-row{cursor:pointer}
+  html.lg-new .dsn-fix-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+  html.lg-new .dsn-fix-t small{font-size:12px;color:var(--color-neutral-400)}
+  html.lg-new button.dsn-fix-row:hover .dsn-fix-t>span{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .dsn-fix-a,html.lg-new .dsn-fix-in{flex:none;white-space:nowrap;font-size:12.5px;color:var(--accent-ink)}
+  html.lg-new .dsn-fix-count{align-self:flex-start;font-size:13px}
+  html.lg-new :is(.dsn-fix-count,.dsn-fix-kept .ac-link,.dsn-fix-in .ac-link){color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .dsn-fix .dsn-fix-next{margin:0}
+  html.lg-new .jl-head .jl-tab0{flex:none;font-size:13px;white-space:nowrap;margin-right:var(--s-1)}
   html.lg-new .dsc-chips{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-width:0;margin-top:var(--s-3)}
   html.lg-new .dsc-chip.is-on{background:var(--color-text);color:var(--color-surface)}
   html.lg-new .dsc-quiet{font-size:12.5px;color:var(--color-quiet)}

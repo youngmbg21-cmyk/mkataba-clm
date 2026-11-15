@@ -74,6 +74,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the same conversation (15 Nov 2026).
 - **Notes:** a new choice on New read ("Now" or "Overnight, cheaper") and a way to tell the person when the answers are in (the bell). Today every read is live and full price.
 
+### P-9 · Explorer: delete the Brain and Wiring views, keep the rest
+- **Added:** 15 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "i want to delete brain and wiring and keep the rest". Explorer loses its Brain and Wiring views; every other view and feature stays.
+- **Where it came from:** the Explorer review of 15 Nov 2026, after three proposals (a portfolio desk, three Board-style pictures, and the galaxy with "closer to the core means it needs you"). The owner set those aside for now: "lets forget this for now".
+- **Notes:** Brain is the view Explorer opens on today, so a new opening view must be chosen (asked before building). Some features live on those two views and need a home or a decision: "what if a party left" and "what depends on X" turn the map to Wiring, where the links between contracts are drawn; the morning figures and walk-throughs may land there too. The Handbook's Explorer chapter, its pictures, the Guide tab's rows and the browser checks that name Brain or Wiring all change with it. The three proposals stay as artifacts to come back to.
+
 ## Done
 
 _(nothing yet)_

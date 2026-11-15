@@ -3421,9 +3421,34 @@ function regNegoFacts(c){
 /* THE PAGE IN JAMBO'S WORDS (round 14), counted from the page's own book
    (regNegoBase: every filter but the tab, the tabs' own numbers) — no AI.
    The chips are the page's own doors: the Our move tab, Start a negotiation. */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): nothing in play says how a round starts (three real steps) and what
+   was last agreed, with Draft agreement as the one black button (the existing door, caGo 'draft'); rounds in play
+   say whose move each is. Read off the book the browser holds. The new look only. */
+function regNegoSayFive(book, n){
+  const all=book.length, signed=(typeof jov5Signed==='function')?jov5Signed():[];
+  const R=regState(), band=k=>()=>{ R.band=k; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); };
+  let asks=0; book.forEach(c=>{ asks+=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='counterparty').length; });
+  const money=c=>(typeof jov5Money==='function')?jov5Money(c):'';
+  const draft={ label:i18t('jov5_ng_draft'), run:()=>{ if(typeof caGo==='function') caGo({ kind:'go', place:'draft' }); } };
+  if(!all){
+    const groups=signed.length?[{ label:i18t('jov5_ng_last'), rows:signed.slice(0,2).map(x=>jov5ContractRow(x.c, money(x.c))) }]:[];
+    return { title:i18t('jov5_ng_none_t'), sub:signed.length?i18tn('jov5_ng_none_s',signed.length,{n:signed.length}):i18t('jov5_ng_none_s0'),
+      glance:[{ n:0, l:i18t('jov5_ng_live') },{ n:0, l:i18t('jov5_ng_them') },{ n:signed.length, l:i18t('jov5_signed'), run:signed.length?()=>jov5ShowList(signed.map(x=>x.c.id), i18t('jov5_signed_list')):null }],
+      steps:{ label:i18t('jov5_ng_how'), items:[{ b:i18t('jov5_ng_s1b'), s:i18t('jov5_ng_s1') },{ b:i18t('jov5_ng_s2b'), s:i18t('jov5_ng_s2') },{ b:i18t('jov5_ng_s3b'), s:i18t('jov5_ng_s3') }] },
+      groups, act:Object.assign({}, draft, typeof ngStartPickerOpen==='function'?{ link:{ label:i18t('jov5_ng_start'), run:()=>ngStartPickerOpen() } }:{}), src:i18t('jl_src_list') };
+  }
+  const row=c=>({ mark:'chat', tone:c._ngBand==='you'?'amber':'', t:c.name||c.id, s:c.counterparty||((window.contractRef?contractRef(c):c.id)), v:money(c), run:()=>jov5Open(c.id) });
+  const groups=[['you','jov5_ng_g_you'],['them','jov5_ng_g_them'],['out','jov5_ng_g_out']].filter(([k])=>n[k]).map(([k,l])=>({ label:i18t(l), rows:book.filter(c=>c._ngBand===k).slice(0,3).map(row) }));
+  const parts=[n.you?i18tn('jl_ng_ours',n.you,{n:n.you}):'', n.them?i18tn('jl_ng_theirs',n.them,{n:n.them}):'', n.out?i18tn('jl_ng_out',n.out,{n:n.out}):''].filter(Boolean);
+  return { title:i18tn('jl_ng_live',all,{n:all})+'.', sub:parts.join(', '),
+    glance:[{ n:n.you, l:i18t('jov5_on_you'), warn:n.you>0, run:n.you?band('you'):null },{ n:n.them, l:i18t('jov5_ng_them'), run:n.them?band('them'):null },{ n:asks, l:i18t('jov5_ng_asks') }],
+    groups, actFirst:true, act:n.you?{ say:i18tn('jov5_ng_you_say',n.you,{n:n.you}), label:i18t('jov5_ng_open_ours'), run:band('you') }:null, src:i18t('jl_src_list') };
+}
 function regNegoSay(){
   let book=[]; try{ book=regNegoBase(); }catch(_){ book=[]; }
   const n=negoBandCounts(book), all=book.length;
+  const five=(typeof newLookOn==='function'&&newLookOn())?regNegoSayFive(book, n):null;
+  if(five) return Object.assign({ lines:[esc(five.title)] }, five);
   if(!all) return { lines:[esc(i18t('jl_ng_none'))], chips:typeof ngStartPickerOpen==='function'?[{ label:i18t('jl_ng_chip_start'), run:()=>ngStartPickerOpen() }]:[] };
   const parts=[n.you?i18tn('jl_ng_ours',n.you,{n:n.you}):'', n.them?i18tn('jl_ng_theirs',n.them,{n:n.them}):'', n.out?i18tn('jl_ng_out',n.out,{n:n.out}):''].filter(Boolean);
   const list=parts.length>1?parts.slice(0,-1).join(', ')+i18t('jl_and')+parts[parts.length-1]:(parts[0]||'');
@@ -3990,6 +4015,25 @@ function regFoldersGlanceHtml(rows, head, gaps, live){
   if(un.length&&cs.length) todo+=row(i18t('rfg_checked'), `${esc(i18t('rfg_k_of_n',{ k:cs.length-un.length, n:cs.length }))} · ${link(`data-rfp-only="${esc(un.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('rfg_label_unchecked'))}"`, i18t('rfp_say_show_them'))}`);
   const noRate=rows.reduce((t,x)=>t+(x.r.noRate||0),0);
   if(noRate) todo+=row(i18t('rfg_norate'), `${noRate} · ${link('data-rfp-rate', i18t(typeof isAdmin==='function'&&isAdmin()?'rfp_say_set_rate':'sc_ask_admin'))}`);
+  /* THE FIVE PARTS, LIGHTLY (owner, 15 Nov 2026, round 3; the panel was rebuilt the day before): the count as a serif
+     headline with its tag, three tiles (money on paper, signed, waiting on you), "Where the money is" kept as drawn
+     (its own bar and legend, each a folder's door), "Not done yet" as rows by the page's own presses (data-rfp-only,
+     data-rfp-rate). Read off the folders, no AI. The new look only. */
+  if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
+    const R=seeMoney&&sum>0?rows.filter(x=>x.r.val>0).sort((a,b)=>b.r.val-a.r.val):[];
+    const bar=R.length?`<div class="rfg-split" aria-hidden="true">${R.map((x,i)=>`<i class="is-${Math.min(i+1,5)}" style="width:${(x.r.val/sum*100).toFixed(2)}%"></i>`).join('')}</div>`
+      +`<div class="rfg-legend">${R.map((x,i)=>`<button type="button" class="rfg-lg" data-ctf-folder="${esc(x.fid)}" title="${esc(x.name)}"><i class="is-${Math.min(i+1,5)}" aria-hidden="true"></i><span class="rfg-bar-n">${esc(x.name)}</span><b>${esc(fmtMoneyShort(x.r.val))}</b><span>${Math.round(x.r.val/sum*100)}%</span></button>`).join('')}</div>`:'';
+    const todoRows=[];
+    if(gapKeys.size){ const ids=cs.filter(c=>gapKeys.has(keyOf(c))).map(c=>String(c.id));
+      todoRows.push({ t:i18t('rfg_nda'), v:i18t('rfg_k_of_n',{ k:parties.size-gapKeys.size, n:parties.size }), attr:`data-rfp-only="${esc(ids.join(','))}" data-rfp-label="${esc(i18t('rfg_label_nda'))}"` }); }
+    if(un.length&&cs.length) todoRows.push({ t:i18t('rfg_checked'), v:i18t('rfg_k_of_n',{ k:cs.length-un.length, n:cs.length }), attr:`data-rfp-only="${esc(un.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('rfg_label_unchecked'))}"` });
+    if(noRate) todoRows.push({ t:i18t('rfg_norate'), v:String(noRate), attr:'data-rfp-rate' });
+    return jamboOverviewHtml({ title:`${n} ${i18tn('rfg_contracts', n)} ${i18tn('rfg_in_folders', rows.length, { n:rows.length })}.`,
+      tag:need?{ text:i18tn('rfg_need', need, { n:need }), tone:'amber' }:(n&&signed===n?{ text:i18t('rfg_all_signed'), tone:'green' }:(n?{ text:i18t('rfg_signed_k',{ k:signed, n }) }:null)),
+      sub:head, glance:[seeMoney&&sum>0?{ n:fmtMoneyShort(sum).replace(/^[A-Z]{3}\s*/,''), l:i18t('jov5_ct_paper',{ cur:(fmtMoneyShort(sum).match(/^[A-Z]{3}/)||[''])[0] }).trim() }:{ n:rows.length, l:i18t('jov5_ct_folders') },
+        { n:signed, l:i18t('jov5_signed') }, { n:need, l:i18t('jov5_on_you'), warn:need>0 }],
+      mid:bar, midLabel:bar?i18t('ctfp_money'):'', groups:todoRows.length?[{ label:i18t('rfg_todo'), rows:todoRows }]:[], src:i18t('jl_src_list') },'rfg');
+  }
   return top+money+(todo?cap(i18t('rfg_todo'))+todo:'');
 }
 function regFoldersPanelHtml(){
@@ -5360,7 +5404,8 @@ function ngnRender(host){
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const r = rows.find(x => String(x.c.id) === String(_ngnSel)) || null;
   if (r) insPaintPanel({ seat: 'negotiations', jlWord: i18t('ng_door_title'), item: { id: String(r.c.id) }, head: false, tabCount: live, body: ngnPanelHtml(r, all) });
-  else insPaintPanel({ seat: 'negotiations', empty: i18t('ngn_say_none') });
+  /* nothing in play (THE FIVE PARTS, 15 Nov 2026): how a round starts and what was last agreed, never one line alone */
+  else insPaintPanel({ seat: 'negotiations', empty: i18t('ngn_say_none'), jlSay: () => { const f = regNegoSayFive([], { you: 0, them: 0, out: 0 }); return Object.assign({ lines: [esc(f.title)] }, f); } });
   if (typeof setActiveNav === 'function') setActiveNav('redline');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
