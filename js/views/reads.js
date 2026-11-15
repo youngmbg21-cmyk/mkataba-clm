@@ -872,34 +872,42 @@ function dsnReadingHtml(){
   const right = b ? `<button type="button" class="rfp-pill" id="dsc-stop">${_rdE(_rdT('ac_stop'))}</button>`
     : D.stopped && A && A.stopped ? `<button type="button" class="rfp-pill" id="dsc-carry">${_rdE(_rdT('dsc_carry', { n: (A.stopped.left || []).length }))}</button><button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`
     : `<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`;
-  const rows = doneIds.slice().reverse().map(id => { const c = typeof getContract === 'function' ? getContract(id) : null, a = got[id];
+  const rows = doneIds.map(id => { const c = typeof getContract === 'function' ? getContract(id) : null, a = got[id];
     const num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a && a.found ? String(a.quote || '').trim() : '';
     return `<tr class="dsn-row${id === _dsc.liveCid ? ' is-sel' : ''}"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div>${c ? `<div class="cun-sub">${dsnRefHtml(c)}</div>` : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${a ? _dsnChip(_rdTone(a, askId), _rdWord(a)) : ''}</td>
       <td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td></tr>`; }).join('');
   const where = (_dsn.reading && _dsn.reading.whereWords) || '';
-  return `${b ? dsnDriftHtml() : ''}<div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT(b ? 'dsn_reading' : D.stopped ? 'dsn_stopped' : 'dsn_read_done', { name }))}</h2><span class="ctf-hf">${_rdE([where, _rdTn('ac_n_contracts', (_dsn.reading && _dsn.reading.of) || n)].filter(Boolean).join(' · '))}</span><span class="apn-sp"></span>${right}</div>
+  return `<div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT(b ? 'dsn_reading' : D.stopped ? 'dsn_stopped' : 'dsn_read_done', { name }))}</h2><span class="ctf-hf">${_rdE([where, _rdTn('ac_n_contracts', (_dsn.reading && _dsn.reading.of) || n)].filter(Boolean).join(' · '))}</span><span class="apn-sp"></span>${right}</div>
     ${dsnSteps(2)}
     <div class="dsn-prog"><div><b>${k}</b> ${_rdE(_rdT('dsn_of_read', { n }))}</div><div class="dsc-live-bar" role="img" aria-label="${_rdE(_rdT('dsc_live_n', { k, n }))}"><i style="width:${n ? Math.round(k / n * 100) : 0}%"></i></div></div>
-    <div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:30%" data-floor="160"><col style="width:16%" data-floor="110"><col style="width:20%" data-floor="120"><col style="width:34%" data-floor="180"></colgroup>
+    <div class="dsn-win"><div class="cu-scroll" id="dsn-read-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:30%" data-floor="160"><col style="width:16%" data-floor="110"><col style="width:20%" data-floor="120"><col style="width:34%" data-floor="180"></colgroup>
       <thead><tr><th>${_rdE(_rdT('dsn_c_contract'))}</th><th>${_rdE(_rdT('dsn_f_folder'))}</th><th>${_rdE(_rdT('dsn_c_answer'))}</th><th>${_rdE(_rdT('dsn_c_says'))}</th></tr></thead>
-      <tbody>${rows || `<tr><td colspan="4" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>`;
+      <tbody>${rows}${b ? dsnGhostRowsHtml(b, got) : ''}${rows || b ? '' : `<tr><td colspan="4" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>${b ? dsnScanHtml() : ''}</div>`;
 }
-/* SOMETHING MOVES WHILE HE READS (owner, 15 Nov 2026: "the reading sometimes freezes for a second … very very tiny numbers
-   and words … moving from top to bottom just to show that things are still working"): behind the page, columns of the
-   chosen contracts' numbers and names drift down, faint and tiny, only while a read is in flight. The words are the same
-   on every repaint and each column picks up where it was (a negative delay off the read's own start), so an answer
-   landing never restarts it. Transform only; where less motion is asked it is not drawn. */
-const DSN_DRIFT_COLS = 16;
-function dsnDriftHtml(){
-  const ids = (typeof AC !== 'undefined' && AC.scope && AC.scope.ids) || [];
-  const words = ids.slice(0, 60).map(id => { const c = typeof getContract === 'function' ? getContract(id) : null; return c ? [_rdRef(c), String(c.counterparty || _rdName(c)).split(/\s+/)[0]] : []; }).flat().filter(Boolean);
-  if (!words.length) return '';
-  const t0 = (_dsn.reading && _dsn.reading.t0) || Date.now(), gone = (Date.now() - t0) / 1000;
-  const col = i => { const out = []; for (let k = 0; k < 64; k++){ const j = (i * 7 + k * 5 + (k * k) % 11) % words.length; out.push((k + i) % 3 ? words[j] : String((i + 3) * (k + 7) % 97).padStart(2, '0') + '.' + (k % 9)); }
-    const d = 60 + (i * 13) % 45, body = out.map(_rdE).join('\n');
-    return `<span style="animation-duration:${d}s;animation-delay:-${(gone % d).toFixed(2)}s">${body}\n${body}</span>`; };
-  return `<div class="dsn-drift" aria-hidden="true">${Array.from({ length: DSN_DRIFT_COLS }, (_, i) => col(i)).join('')}</div>`;
+/* SOMETHING MOVES WHILE HE READS, WHERE THE CONTRACTS ARE (owner, 15 Nov 2026: "the reading sometimes freezes for a second
+   … This should not stop the page from continuing to show some action"; five ideas drawn live on a photo of the page, the
+   owner: "Combine scan light and waiting list"). THE WAITING LIST: the contracts of this read not yet answered stand as
+   pale rows under the read ones, in the read's own order — the ten HaTi is reading now marked "Reading now", the rest
+   "Waiting" — and each turns solid in its place when its answer lands; a ripple runs through them. THE SCAN LIGHT: a soft
+   band of Jambo's green sweeps down the same window. Both only while a read is in flight, both transform and opacity
+   only, both picking up where they were on a repaint (a negative delay off the read's own start); where less motion is
+   asked the pale rows stand still and the light is not drawn. DSN_GHOSTS is how many pale rows are DRAWN; the rest are
+   counted in one line, never dropped silently. */
+const DSN_GHOSTS = 12, DSN_RIPPLE_S = 2.4, DSN_SCAN_S = 3.4;
+const _dsnGone = () => (Date.now() - ((_dsn.reading && _dsn.reading.t0) || Date.now())) / 1000;
+function dsnWaiting(b, got){
+  const all = (b && Array.isArray(b.all)) ? b.all : [], now = new Set((b && b.ids) || []);
+  const left = all.filter(id => !got[id]);
+  return { now: left.filter(id => now.has(id)), later: left.filter(id => !now.has(id)) };
 }
+function dsnGhostRowsHtml(b, got){
+  const W = dsnWaiting(b, got), ids = W.now.concat(W.later), gone = _dsnGone();
+  const row = (id, i) => { const c = typeof getContract === 'function' ? getContract(id) : null, on = i < W.now.length;
+    return `<tr class="dsn-row dsn-ghost${on ? ' is-now' : ''}" style="animation-delay:${((i * 0.3 - gone) % DSN_RIPPLE_S - DSN_RIPPLE_S).toFixed(2)}s"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div>${c ? `<div class="cun-sub">${dsnRefHtml(c)}</div>` : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${_rdE(_rdT(on ? 'dsn_now' : 'dsn_waiting'))}</td><td class="rdn-c"></td></tr>`; };
+  const more = ids.length - DSN_GHOSTS;
+  return ids.slice(0, DSN_GHOSTS).map(row).join('') + (more > 0 ? `<tr class="dsn-ghost-more"><td colspan="4" class="rdn-c">${_rdE(_rdTn('dsn_more_waiting', more))}</td></tr>` : '');
+}
+const dsnScanHtml = () => `<div class="dsn-scan" aria-hidden="true" style="animation-delay:-${(_dsnGone() % DSN_SCAN_S).toFixed(2)}s"></div>`;
 const dsnRefHtml = c => (typeof refHtml === 'function') ? refHtml(c) : _rdE(_rdRef(c));
 /* (4) THE RESULTS OF ONE READ */
 function dsnResultsShown(r){
@@ -963,6 +971,8 @@ function dsnRender(host, o){
   host.innerHTML = dsnPage(inner);
   const sc1 = host.querySelector('.cu-scroll'); if (sc1 && top0 && same && !(o && o.top)) sc1.scrollTop = top0;
   if (keepId && document.getElementById(keepId)){ if (at != null && typeof listCaretPut === 'function') listCaretPut('#' + keepId, at); else document.getElementById(keepId).focus({ preventScroll: true }); }
+  if (_dsn.screen === 'reading' && busy){ const k = A.busy.done, sc = host.querySelector('#dsn-read-scroll'), g = sc && sc.querySelector('tr.dsn-ghost');
+    if (g && _dsn.reading && _dsn.reading.seenK !== k){ _dsn.reading.seenK = k; sc.scrollTop = Math.max(0, g.offsetTop - sc.clientHeight / 2); } }
   dsnPanelPaint(panel, r);
   readsWire();
   if (typeof setActiveNav === 'function') setActiveNav('reads');

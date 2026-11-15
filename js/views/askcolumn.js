@@ -1452,7 +1452,7 @@ function askColDrop(askId){
 async function askColReadRun(base, ids, opts){
   const o = opts || {};
   const got = { calls: 0, cached: 0, failed: [], capped: null, asks: [], err: null, stopped: false, done: 0, left: [] };
-  AC.busy = { total: ids.length, done: 0, ids: [], stop: false, name: o.name || '', calls: 0, seen: [], queue: [], queued: new Set(), cur: null, curAt: 0, doneIds: [], askId: null, asks: [],
+  AC.busy = { total: ids.length, all: ids.slice(), done: 0, ids: [], stop: false, name: o.name || '', calls: 0, seen: [], queue: [], queued: new Set(), cur: null, curAt: 0, doneIds: [], askId: null, asks: [],
     question: String((base && base.question) || ''), qCount: Array.isArray(base && base.questions) ? base.questions.length : 1 };
   AC.lastRun = null; AC.stopped = null; AC.openQ = null; AC.qWalk = null; AC.moreOpen = null;
   /* A READ IS WATCHED WHERE IT RUNS (owner, 29 Oct 2026: "Next 50 … takes me to jambo and leaves me there"):
