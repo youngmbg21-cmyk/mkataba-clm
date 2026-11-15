@@ -751,6 +751,7 @@ const dsnSortTh = (k, w) => { const on = _dsn.sort && _dsn.sort.k === k, d = on 
   return `<th${on ? ` aria-sort="${d > 0 ? 'ascending' : 'descending'}"` : ''}><button type="button" class="dsn-th${on ? ' is-on' : ''}${d < 0 ? ' is-desc' : ''}" data-dsn-sort="${_rdE(k)}" title="${_rdE(_rdT('dsn_sort_tip', { col: w }))}"><span>${_rdE(w)}</span><i aria-hidden="true"></i></button></th>`; };
 function dsnSortVal(x, k){
   if (k === 'name') return _rdName(x.c);
+  if (k === 'no') return _rdRef(x.c);
   if (k === 'folder') return _dsnFolderName(x.c.folder);
   if (k === 'says'){ const a = x.a[0]; return a && a.found ? ((typeof askColClauseNo === 'function' ? askColClauseNo(a) : '') + ' ' + (a.quote || '')) : '\uffff'; }
   const i = k === 'ans' ? 0 : Number(String(k).slice(1)), a = x.a[i];
@@ -874,15 +875,15 @@ function dsnReadingHtml(){
     : `<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>${_rdE(_rdT('dsn_open_results'))}</button>`;
   const rows = doneIds.map(id => { const c = typeof getContract === 'function' ? getContract(id) : null, a = got[id];
     const num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a && a.found ? String(a.quote || '').trim() : '';
-    return `<tr class="dsn-row${id === _dsc.liveCid ? ' is-sel' : ''}"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div>${c ? `<div class="cun-sub">${dsnRefHtml(c)}</div>` : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${a ? _dsnChip(_rdTone(a, askId), _rdWord(a)) : ''}</td>
+    return `<tr class="dsn-row${id === _dsc.liveCid ? ' is-sel' : ''}"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div></td><td class="rdn-c dsn-no">${c ? dsnRefHtml(c) : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${a ? _dsnChip(_rdTone(a, askId), _rdWord(a)) : ''}</td>
       <td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td></tr>`; }).join('');
   const where = (_dsn.reading && _dsn.reading.whereWords) || '';
   return `<div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT(b ? 'dsn_reading' : D.stopped ? 'dsn_stopped' : 'dsn_read_done', { name }))}</h2><span class="ctf-hf">${_rdE([where, _rdTn('ac_n_contracts', (_dsn.reading && _dsn.reading.of) || n)].filter(Boolean).join(' · '))}</span><span class="apn-sp"></span>${right}</div>
     ${dsnSteps(2)}
     <div class="dsn-prog"><div><b>${k}</b> ${_rdE(_rdT('dsn_of_read', { n }))}</div><div class="dsc-live-bar" role="img" aria-label="${_rdE(_rdT('dsc_live_n', { k, n }))}"><i style="width:${n ? Math.round(k / n * 100) : 0}%"></i></div></div>
-    <div class="dsn-win"><div class="cu-scroll" id="dsn-read-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:30%" data-floor="160"><col style="width:16%" data-floor="110"><col style="width:20%" data-floor="120"><col style="width:34%" data-floor="180"></colgroup>
-      <thead><tr><th>${_rdE(_rdT('dsn_c_contract'))}</th><th>${_rdE(_rdT('dsn_f_folder'))}</th><th>${_rdE(_rdT('dsn_c_answer'))}</th><th>${_rdE(_rdT('dsn_c_says'))}</th></tr></thead>
-      <tbody>${rows}${b ? dsnGhostRowsHtml(b, got) : ''}${rows || b ? '' : `<tr><td colspan="4" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>${b ? dsnScanHtml() : ''}</div>`;
+    <div class="dsn-win"><div class="cu-scroll" id="dsn-read-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:24%" data-floor="150"><col style="width:10%" data-floor="80"><col style="width:14%" data-floor="100"><col style="width:18%" data-floor="110"><col style="width:34%" data-floor="180"></colgroup>
+      <thead><tr><th>${_rdE(_rdT('dsn_c_contract'))}</th><th>${_rdE(_rdT('dsn_c_no'))}</th><th>${_rdE(_rdT('dsn_f_folder'))}</th><th>${_rdE(_rdT('dsn_c_answer'))}</th><th>${_rdE(_rdT('dsn_c_says'))}</th></tr></thead>
+      <tbody>${rows}${b ? dsnGhostRowsHtml(b, got) : ''}${rows || b ? '' : `<tr><td colspan="5" class="apn-none">${_rdE(_rdT('dsc_live_first'))}</td></tr>`}</tbody></table></div>${b ? dsnScanHtml() : ''}</div>`;
 }
 /* SOMETHING MOVES WHILE HE READS, WHERE THE CONTRACTS ARE (owner, 15 Nov 2026: "the reading sometimes freezes for a second
    … This should not stop the page from continuing to show some action"; five ideas drawn live on a photo of the page, the
@@ -903,9 +904,9 @@ function dsnWaiting(b, got){
 function dsnGhostRowsHtml(b, got){
   const W = dsnWaiting(b, got), ids = W.now.concat(W.later), gone = _dsnGone();
   const row = (id, i) => { const c = typeof getContract === 'function' ? getContract(id) : null, on = i < W.now.length;
-    return `<tr class="dsn-row dsn-ghost${on ? ' is-now' : ''}" style="animation-delay:${((i * 0.3 - gone) % DSN_RIPPLE_S - DSN_RIPPLE_S).toFixed(2)}s"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div>${c ? `<div class="cun-sub">${dsnRefHtml(c)}</div>` : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${_rdE(_rdT(on ? 'dsn_now' : 'dsn_waiting'))}</td><td class="rdn-c"></td></tr>`; };
+    return `<tr class="dsn-row dsn-ghost${on ? ' is-now' : ''}" style="animation-delay:${((i * 0.3 - gone) % DSN_RIPPLE_S - DSN_RIPPLE_S).toFixed(2)}s"><td><div class="cun-name">${_rdE(c ? _rdName(c) : id)}</div></td><td class="rdn-c dsn-no">${c ? dsnRefHtml(c) : ''}</td><td class="rdn-c">${_rdE(c ? _dsnFolderName(c.folder) : '')}</td><td class="rdn-c">${_rdE(_rdT(on ? 'dsn_now' : 'dsn_waiting'))}</td><td class="rdn-c"></td></tr>`; };
   const more = ids.length - DSN_GHOSTS;
-  return ids.slice(0, DSN_GHOSTS).map(row).join('') + (more > 0 ? `<tr class="dsn-ghost-more"><td colspan="4" class="rdn-c">${_rdE(_rdTn('dsn_more_waiting', more))}</td></tr>` : '');
+  return ids.slice(0, DSN_GHOSTS).map(row).join('') + (more > 0 ? `<tr class="dsn-ghost-more"><td colspan="5" class="rdn-c">${_rdE(_rdTn('dsn_more_waiting', more))}</td></tr>` : '');
 }
 const dsnScanHtml = () => `<div class="dsn-scan" aria-hidden="true" style="animation-delay:-${(_dsnGone() % DSN_SCAN_S).toFixed(2)}s"></div>`;
 const dsnRefHtml = c => (typeof refHtml === 'function') ? refHtml(c) : _rdE(_rdRef(c));
@@ -932,16 +933,16 @@ function dsnResultsHtml(r){
   if (!S) return head + `<p class="dsc-quiet dsc-pad">${_rdE(_rdT('dsc_loading'))}</p>`;
   if (S.list.length && !S.list.some(x => x.id === _dsn.cid)) _dsn.cid = S.list[0].id;
   const names = r.askIds.map(k => ((typeof AC !== 'undefined' && AC.asks && AC.asks[k]) || {}).name || '');
-  const cols = pack ? `<colgroup><col style="width:30%" data-floor="160"><col style="width:12%" data-floor="100">${names.map(() => `<col style="width:${Math.round(58 / names.length)}%" data-floor="90">`).join('')}</colgroup>` : '<colgroup><col style="width:26%" data-floor="150"><col style="width:15%" data-floor="100"><col style="width:19%" data-floor="110"><col style="width:28%" data-floor="160"><col style="width:12%" data-floor="100"></colgroup>';
+  const cols = pack ? `<colgroup><col style="width:24%" data-floor="150"><col style="width:10%" data-floor="80"><col style="width:12%" data-floor="100">${names.map(() => `<col style="width:${Math.round(54 / names.length)}%" data-floor="90">`).join('')}</colgroup>` : '<colgroup><col style="width:22%" data-floor="150"><col style="width:10%" data-floor="80"><col style="width:14%" data-floor="100"><col style="width:18%" data-floor="110"><col style="width:26%" data-floor="160"><col style="width:10%" data-floor="100"></colgroup>';
   const th = pack ? names.map((n, i) => dsnSortTh('q' + i, n)).join('') : `${dsnSortTh('ans', _rdT('dsn_c_answer'))}${dsnSortTh('says', _rdT('dsn_c_says'))}<th></th>`;
   const tr = x => { const a = x.a[0], tone = a ? _rdTone(a, r.askIds[0]) : 'none', num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a && a.found ? String(a.quote || '').trim() : '';
     const act = !a || a.noWording ? '' : (!a.checked && tone === 'ruby' && quote) ? `<button type="button" class="rfp-a" data-dsn-clause="${_rdE(x.id)}">${_rdE(_rdT('dsc_open_clause'))}</button>`
       : `<button type="button" class="rfp-a${a.checked ? ' is-ck' : ''}" data-dsn-ck="${_rdE(x.id)}"${may ? '' : ' disabled'}>${_rdE(_rdT(a.checked ? 'dsc_checked' : 'dsc_mark'))}</button>`;
     const cells = pack ? x.a.map(y => `<td class="rdn-c">${y ? _dsnChip(dsnChipTone(y, null), _rdWord(y)) : '—'}</td>`).join('')
       : `<td class="rdn-c">${a ? _dsnChip(dsnChipTone(a, S.G), _rdWord(a)) : ''}</td><td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td><td class="rdn-c">${act}</td>`;
-    return `<tr class="dsn-row${x.id === _dsn.cid ? ' is-sel' : ''}" data-dsn-row="${_rdE(x.id)}" tabindex="0"><td><div class="cun-name">${_rdE(_rdName(x.c))}</div><div class="cun-sub">${dsnRefHtml(x.c)}</div></td><td class="rdn-c">${_rdE(_dsnFolderName(x.c.folder))}</td>${cells}</tr>`; };
-  return head + `<div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table">${cols}<thead><tr>${dsnSortTh('name', _rdT('dsn_c_contract'))}${dsnSortTh('folder', _rdT('dsn_f_folder'))}${th}</tr></thead>
-    <tbody>${S.list.map(tr).join('') || `<tr><td colspan="${pack ? 2 + names.length : 5}" class="apn-none">${_rdE(_rdT('rd_none_here'))}</td></tr>`}</tbody></table></div>`;
+    return `<tr class="dsn-row${x.id === _dsn.cid ? ' is-sel' : ''}" data-dsn-row="${_rdE(x.id)}" tabindex="0"><td><div class="cun-name">${_rdE(_rdName(x.c))}</div></td><td class="rdn-c dsn-no">${dsnRefHtml(x.c)}</td><td class="rdn-c">${_rdE(_dsnFolderName(x.c.folder))}</td>${cells}</tr>`; };
+  return head + `<div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table">${cols}<thead><tr>${dsnSortTh('name', _rdT('dsn_c_contract'))}${dsnSortTh('no', _rdT('dsn_c_no'))}${dsnSortTh('folder', _rdT('dsn_f_folder'))}${th}</tr></thead>
+    <tbody>${S.list.map(tr).join('') || `<tr><td colspan="${pack ? 3 + names.length : 6}" class="apn-none">${_rdE(_rdT('rd_none_here'))}</td></tr>`}</tbody></table></div>`;
 }
 /* THE ROUTER: which screen stands (a read in flight is always its own screen) */
 function dsnRender(host, o){
