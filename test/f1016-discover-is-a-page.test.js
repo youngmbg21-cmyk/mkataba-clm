@@ -19,14 +19,15 @@ const fnBody = (src, name) => { const at = src.indexOf('function ' + name + '(')
 const AC = strip(read('js/views/askcolumn.js')), RD = strip(read('js/views/reads.js')), REG = strip(read('js/views/register.js')), PD = strip(read('js/paperdesk.js'));
 const I18N = read('js/i18n.js'), CSS = read('index.html');
 
-test('f1016 (1) the list\'s head: Discover in the new look, the old door in the old look', () => {
+/* RE-POINTED (owner, 15 Nov 2026: "Remove discover button but leave the door or discover link"): the new look draws no
+   Discover button in the list's head; the way in from Contracts is the "discover" link above Jambo's box */
+test('f1016 (1) the list\'s head: no Discover button in the new look, the old door in the old look', () => {
   const b = fnBody(AC, 'askColBtnHtml');
-  assert.match(b, /newLookOn\(\)\)\s*return `<button[^`]*data-ac-discover[^`]*dsc_btn/, 'the new look draws the Discover pill');
+  assert.match(b, /newLookOn\(\)\) return '';/, 'the new look draws nothing in the list\'s head');
   assert.match(b, /data-ac-open /, 'the old look keeps "+ Ask a column"');
-  assert.ok(b.indexOf('data-ac-discover') < b.indexOf('data-ac-open '), 'the look is asked first');
+  assert.match(read('js/copilotacts.js'), /const CA_CHIPS_WALL = \[[^\]]*'reads'/, 'the Contracts page keeps its "discover" link above Jambo\'s box');
   assert.match(AC, /closest\('\[data-ac-discover\]'\)\)\{ e\.preventDefault\(\); if \(typeof window\.discoverOpen === 'function'\) discoverOpen\(\)/, 'the press opens the Discover page');
   assert.match(PD, /const disc = \(!c && !ac && typeof askColDiscoverHtml === 'function' && !\(typeof window\.newLookOn === 'function' && newLookOn\(\)\)\)/, 'no Discover section beside the list in the new look');
-  assert.match(CSS, /\.ac-btn\.ac-btn-dsc::before\{content:none\}/, 'the pill carries no "+"');
 });
 
 test('f1016 (2) the ask from Discover is the one read, over the Contracts list as filtered', () => {
@@ -112,12 +113,11 @@ test('f1016 (8) the old Discover section beside the list is never drawn in the n
   assert.match(fnBody(AC, 'askColDiscoverHtml'), /^function askColDiscoverHtml\(\)\{\s*if \(typeof window\.newLookOn === 'function' && newLookOn\(\)\) return '';/, 'the builder itself stands down in the new look');
 });
 
-test('f1016 (9) GREEN SPARK: both Discover pills are Jambo\'s green with his spark, New agreement stays the one black', () => {
-  /* the owner picked "Green Spark" by name, 12 Nov 2026 (drawn first) */
-  assert.match(fnBody(AC, 'askColBtnHtml'), /newLookOn\(\)\)[\s\S]{0,400}?icon\('sparkle'[\s\S]{0,80}?dsc_btn/, 'the list head\'s pill carries the spark');
-  assert.match(REG, /class="rfp-pill rfp-dsc" data-ac-discover>\$\{\(typeof icon === 'function'\) \? icon\('sparkle'/, 'the folder panel\'s pill too');
-  assert.match(CSS, /\.ct-head \.ac-btn\.ac-btn-dsc,html\.lg-new \.rfp-pill\.rfp-dsc\{[^}]*background:var\(--accent-ink\);color:var\(--color-surface\)/, 'filled green, white words');
-  assert.doesNotMatch(CSS.match(/\.rfp-pill\.rfp-dsc\{[^}]*\}/)[0], /accent-solid|#1D1D1F|#000/, 'never the black');
+/* RE-POINTED (15 Nov 2026): both Discover pills on Contracts are gone (the folder panel's with At a Glance, f1054; the list
+   head's on the owner's word); Green Spark's styles go with them */
+test('f1016 (9) no Discover pill on Contracts, and none of its styles left behind', () => {
+  assert.doesNotMatch(REG + AC, /data-ac-discover>/, 'no Discover pill is drawn');
+  assert.doesNotMatch(CSS, /ac-btn-dsc|rfp-dsc/, 'its styles are gone');
 });
 
 test('f1016 (10) THE SCORECARD: the read table on Discover wears its own head with coloured tiles that filter', () => {

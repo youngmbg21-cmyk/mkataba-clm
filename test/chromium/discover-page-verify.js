@@ -50,15 +50,18 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); if (typeof regFoldersShut === 'function') regFoldersShut(); regPlaceSet({ show: 'list' }); setView('register'); });
 
       /* 1 · Contracts */
-      const list = await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector('[data-ac-discover]'), null, 15000);
-      const C = await page.evaluate(() => { const b = document.querySelector('[data-ac-discover]');
-        return { label: b ? b.innerText.trim() : '', before: b ? getComputedStyle(b, '::before').content : '', old: !!document.querySelector('[data-ac-open]'), disc: !!document.querySelector('#ac-disc'), dock: (document.getElementById('ig-dock') || {}).innerText || '' }; });
-      check(`${nm} 1 Contracts: a Discover pill (no "+"), no "+ Ask a column", no Discover section in Jambo's panel`,
-        list && C.label === 'Discover' && !/\+/.test(C.before) && !C.old && !C.disc && !/Ask a pack|Ask a new question/.test(C.dock), C);
+      /* RE-POINTED (owner, 15 Nov 2026: "Remove discover button but leave the door or discover link"): no Discover button
+         in the list's head; the way in is the "discover" link above Jambo's box */
+      const WAY = '[data-ca-chip="reads"]';
+      const list = await until(page, way => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector(way), WAY, 15000);
+      const C = await page.evaluate(way => { const b = document.querySelector(way);
+        return { label: b ? b.innerText.trim() : '', pill: !!document.querySelector('#ct-place [data-ac-discover]'), old: !!document.querySelector('[data-ac-open]'), disc: !!document.querySelector('#ac-disc'), dock: (document.getElementById('ig-dock') || {}).innerText || '' }; }, WAY);
+      check(`${nm} 1 Contracts: no Discover button in the list's head, the "discover" link above Jambo's box, no "+ Ask a column", no Discover section in Jambo's panel`,
+        list && C.label === 'discover' && !C.pill && !C.old && !C.disc && !/Ask a pack|Ask a new question/.test(C.dock), C);
       await shot('1-contracts');
 
       /* 2 · the page */
-      if (list) await page.click('[data-ac-discover]');
+      if (list) await page.click(WAY);
       const up = list && await until(page, () => !!document.querySelector('#rd-page.dsc-page tr[data-rd-row]') && !!document.getElementById('dsc-go'), null, 15000);
       const P = up ? await page.evaluate(() => ({ view: state.view, head: (document.querySelector('.rdn-head .ctf-h') || {}).innerText, btn: document.getElementById('dsc-go').innerText.trim(), box: !!document.getElementById('dsc-q'),
         tabs: [...document.querySelectorAll('[data-rdn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim().replace(/ \d+$/, '')), scope: (document.querySelector('.dsc-scope') || {}).innerText || '',

@@ -297,6 +297,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- NO DISCOVER BUTTON ON CONTRACTS (owner, 15 Nov 2026): f1016 (1) (9) re-pointed; browser: discover-page-verify 1 (the "discover" chip opens the page), reads-and-columns-as-drawn-verify 1.
 - AT A GLANCE (owner's pick by name, 15 Nov 2026): f1054 (test/f1054-folder-at-a-glance.test.js; red at the parent) — when they end (twelve months, a month a door, later/passed/no date counted), where the money is (fxHome, pay and no-rate add nothing), not done yet off regFolderSays; the folders page split by folder; both books; tokens only. Re-pointed: f1053 (panel and chips), f983 (3), f998 (4); browser (GitHub only): round6-new-look-verify 2b and 2, reads-and-columns-as-drawn-verify 1.
 - f1053 (test/f1053-folder-says.test.js): the folder's panel says what matters, the Legora way; browser: round6-new-look-verify check 2b (sentences, chips narrow and return, nothing spills, Show them = the unchecked rows).
 - 12 Nov 2026 (owner picked "As on the paper" for clause names): f282 1·2·3·5, f756 6b, f806 1d·5a·5b re-pointed (the paper's own wording, a shouting title in sentence case).
