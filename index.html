@@ -19789,6 +19789,37 @@
   html.lg-new .dsn-f select{min-width:150px;height:var(--ctl-h);padding:0 28px 0 10px;border:0;border-radius:8px;background-color:var(--surface-2);font:inherit;font-size:13px;color:var(--color-text)}
   html.lg-new .dsn-table tr.dsn-row{cursor:pointer}
   html.lg-new .dsn-table tr.dsn-row.is-sel>td{background:var(--surface-2)}
+  /* BUILD A PACK (owner, 15 Nov 2026): one pack in the row, the rest in a dropdown under its arrow; the builder in Jambo's panel */
+  html.lg-new .dsn-pk{position:relative;display:inline-flex;align-items:center;height:var(--ctl-h);border-radius:999px;background:var(--surface-2);color:var(--color-text);flex:none}
+  html.lg-new .dsn-pk.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .dsn-pk.is-fresh{box-shadow:0 0 0 2px var(--accent-ink)}
+  html.lg-new .dsn-pk-a{height:100%;padding:0 10px 0 12px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:inherit;cursor:pointer;white-space:nowrap}
+  html.lg-new .dsn-pk-v{position:relative;height:100%;width:30px;border:0;border-left:1px solid var(--color-neutral-200);background:none;color:inherit;cursor:pointer}
+  html.lg-new .dsn-pk.is-on .dsn-pk-v{border-left-color:var(--color-neutral-600)}
+  html.lg-new .dsn-pk-v::after{content:"";position:absolute;left:11px;top:calc(50% - 5px);width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}
+  html.lg-new .dsn-pk-dd{position:absolute;left:0;top:calc(100% + 6px);z-index:40;min-width:260px;padding:6px;border-radius:10px;background:var(--color-surface);box-shadow:var(--shadow-lg);color:var(--color-text)}
+  html.lg-new .dsn-pk-dd hr{border:0;border-top:1px solid var(--color-neutral-200);margin:6px 0}
+  html.lg-new .dsn-pk-h{padding:6px 10px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-quiet)}
+  html.lg-new .dsn-pk-i{display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 10px;border:0;border-radius:7px;background:none;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new .dsn-pk-i::before{content:"";width:12px;flex:none;font-weight:var(--w-strong)}
+  html.lg-new .dsn-pk-i.is-on::before{content:"✓"}
+  html.lg-new .dsn-pk-i.is-link{color:var(--accent-ink)}
+  @media (hover:hover){ html.lg-new .dsn-pk-i:hover{background:var(--surface-2)} }
+  html.lg-new .dsn-pk-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} html.lg-new .dsn-pk-k{color:var(--color-quiet)}
+  html.lg-new .dsn-pk-panel{display:flex;flex-direction:column}
+  html.lg-new .dsn-pk-in{box-sizing:border-box;width:100%;height:var(--ctl-h-lg);padding:0 12px;border:0;border-radius:8px;background:var(--surface-2);font:inherit;font-size:13.5px;color:var(--color-text);outline:0}
+  html.lg-new .dsn-pkq{display:flex;align-items:flex-start;gap:10px;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--color-neutral-200);background:none;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .dsn-pkq .dsn-ck{margin-top:2px;flex:none} html.lg-new .dsn-pkq:disabled{cursor:default;opacity:.45}
+  html.lg-new .dsn-pkq-t{min-width:0} html.lg-new .dsn-pkq-t b{display:block;font-weight:var(--w-label);font-size:13.5px} html.lg-new .dsn-pkq-t span{display:block;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .dsn-pk-ownbox{display:flex;gap:8px;align-items:center;margin-top:var(--s-3)}
+  html.lg-new .dsn-pk-ownbox .rfp-pill{flex:none}
+  html.lg-new .dsn-pk-say{margin:var(--s-2) 0 0;padding:8px 10px;border-radius:8px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:12.5px}
+  html.lg-new .dsn-pk-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:8px;margin-top:var(--s-4);padding:var(--s-3) 0;background:var(--color-surface);border-top:1px solid var(--color-neutral-200)}
+  html.lg-new .dsn-pk-count{margin-right:auto;color:var(--color-quiet);font-size:12.5px;white-space:nowrap}
+  html.lg-new .dsn-pk-foot .rfp-pill,html.lg-new .dsn-pk-foot .ui-btn{flex:none;white-space:nowrap}
+  html.lg-new .dsn-pkm-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-neutral-200)}
+  html.lg-new .dsn-pkm-n{flex:1;min-width:0} html.lg-new .dsn-pkm-n b{display:block;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} html.lg-new .dsn-pkm-n span{display:block;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .dsn-pkm-row .ac-link.is-danger{color:var(--st-ruby-fg)}
   html.lg-new .dsn-ck{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:5px;box-shadow:inset 0 0 0 1.5px var(--color-neutral-300);font-size:11px;color:var(--color-surface)}
   html.lg-new .dsn-ck.is-on{background:var(--color-text);box-shadow:none}
   html.lg-new .dsn-read{display:inline-flex;align-items:center;gap:var(--s-3);white-space:nowrap}
@@ -19806,6 +19837,7 @@
   @media (hover:hover){ html.lg-new .dsn-th:hover{color:var(--color-text)} }
   /* SOMETHING MOVES WHILE HE READS, WHERE THE CONTRACTS ARE (owner's pick, 15 Nov 2026: scan light and waiting list): the
      pale rows of what is still to be read, a ripple through them, and a soft band of Jambo's green sweeping the window */
+  html.lg-new .dsn-table td.dsn-no{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .dsn-win{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
   html.lg-new .dsn-table tr.dsn-ghost{cursor:default;color:var(--color-neutral-300);animation:dsn-ripple 2.4s ease-in-out infinite}
   html.lg-new .dsn-table tr.dsn-ghost .cun-name,html.lg-new .dsn-table tr.dsn-ghost .hati-ref{color:inherit}

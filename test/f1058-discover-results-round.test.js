@@ -27,17 +27,22 @@ test('f1058 (2) tiles are coloured; plain facts take quiet colours; the chip wea
   for (const t of ['violet', 'pink']) assert.match(CSS, new RegExp('\\.rdsc-tile\\.is-' + t + '\\{background:color-mix\\(in srgb,var\\(--st-' + t + '-bg\\)'));
 });
 
-test('f1058 (3) the contract number sits under the name, in the results and while reading', () => {
-  assert.match(fnBody(RD, 'dsnResultsHtml'), /<div class="cun-name">\$\{_rdE\(_rdName\(x\.c\)\)\}<\/div><div class="cun-sub">\$\{dsnRefHtml\(x\.c\)\}<\/div>/);
-  assert.match(fnBody(RD, 'dsnReadingHtml'), /<div class="cun-sub">\$\{dsnRefHtml\(c\)\}<\/div>/);
+/* RE-POINTED (owner, 15 Nov 2026: "Make the contract number a column", then the columns drawn and "Answer first"): the
+   number is its own column, led by the one builder both tables draw (f1061 pins the subject rule) */
+test('f1058 (3) the contract number is its own column, in the results and while reading', () => {
+  assert.match(fnBody(RD, 'dsnLeadCols'), /\{ k: 'no'[^}]*td: c => `<td class="rdn-c dsn-no">\$\{c \? dsnRefHtml\(c\) : ''\}<\/td>`/);
+  assert.match(fnBody(RD, 'dsnResultsHtml'), /const L = dsnLeadCols\(/);
+  assert.match(fnBody(RD, 'dsnReadingHtml'), /const L = dsnLeadCols\(/);
+  assert.doesNotMatch(RD, /cun-sub">\$\{dsnRefHtml/, 'no second line under the name');
 });
 
 test('f1058 (4) every header sorts; the same press again reverses; a new read starts unsorted', () => {
   const R = fnBody(RD, 'dsnResultsHtml');
-  assert.match(R, /\$\{dsnSortTh\('name', _rdT\('dsn_c_contract'\)\)\}\$\{dsnSortTh\('folder', _rdT\('dsn_f_folder'\)\)\}/);
-  assert.match(R, /dsnSortTh\('q' \+ i, n\)/); assert.match(R, /dsnSortTh\('ans', /); assert.match(R, /dsnSortTh\('says', /);
+  assert.match(R, /W\.map\(x => x\.k === 'act' \? '<th><\/th>' : dsnSortTh\(x\.k, x\.th\)\)/);
+  assert.match(R, /k: 'q' \+ i/); assert.match(R, /k: 'ans'/); assert.match(R, /k: 'says'/);
   assert.match(RD, /_dsn\.sort = \(_dsn\.sort && _dsn\.sort\.k === k\) \? \{ k, dir: -_dsn\.sort\.dir \} : \{ k, dir: 1 \}/);
   assert.match(fnBody(RD, 'dsnResultsShown'), /localeCompare\(String\(dsnSortVal\(b, k\)\), undefined, \{ numeric: true/);
+  for (const k of ['no', 'party']) assert.match(fnBody(RD, 'dsnSortVal'), new RegExp("if \\(k === '" + k + "'\\)"));
   assert.match(RD, /aria-sort="\$\{d > 0 \? 'ascending' : 'descending'\}"/);
   assert.match(RD, /if \(o && 'run' in o\) _dsn\.sort = null;/);
 });

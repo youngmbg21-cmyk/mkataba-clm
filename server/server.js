@@ -661,6 +661,10 @@ addColumnIfMissing('column_asks', 'fact_at', 'TEXT');
 /* DISCOVER, THE NEW READ (owner, 15 Nov 2026): a read remembers WHERE it was asked (the folders ticked, or 'all') and HOW
    MANY contracts were chosen, so the list of reads can say "Sales, NDAs · 50 of 104" */
 addColumnIfMissing('column_reads', 'where_f', 'TEXT');
+/* BUILD A PACK (owner, 15 Nov 2026): a pack someone built names who built it; a deleted pack is kept GONE (never
+   listed) so the reads asked with it keep its name, and an Undo brings it back whole */
+addColumnIfMissing('column_packs', 'created_by_name', 'TEXT');
+addColumnIfMissing('column_packs', 'gone', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('column_reads', 'of_n', 'INTEGER');
 /* ONLY WHAT YOU KEEP (owner, 26 Oct 2026: "over time the list becomes enormous
    … save some so the saved ones are the only ones that appear"). A question is
@@ -9962,13 +9966,64 @@ db.prepare('INSERT OR IGNORE INTO column_packs (id,name,questions,builtin,create
   .run(COLUMN_PACK_DD.id, COLUMN_PACK_DD.name, JSON.stringify(COLUMN_PACK_DD.questions), now());
 function colPackOut(r) {
   let qs = []; try { qs = JSON.parse(r.questions) || []; } catch (_) { qs = []; }
-  return { id: r.id, name: r.name, questions: qs, builtin: !!r.builtin };
+  return { id: r.id, name: r.name, questions: qs, builtin: !!r.builtin, by: r.created_by || '', byName: r.created_by_name || '', at: r.created_at || '' };
 }
+/* BUILD A PACK (owner, 15 Nov 2026: "you curate your bundle of due diligence questions coming from your standards …
+   you can build other and delete them"). Anyone who may run a read builds one, for the whole company; it holds what one
+   read answers (COLUMN_Q_MAX), checked by the same words-rule as a read (colQuestionsOf). Only its builder or an admin
+   changes or deletes it; the built-in Due diligence is changed by an admin and never deleted. A delete keeps the row
+   GONE; posting its id again (the Undo) brings it back. */
+const COLUMN_PACK_NAME_MAX = 40, COLUMN_PACK_ID_RE = /^pk_[a-z0-9_]{6,40}$/;
+const colPackMay = (req, r) => req.user.role === 'admin' || (!r.builtin && String(r.created_by || '') === String(req.user.id));
+function colPackBody(b) {
+  const name = String((b && b.name) || '').trim().replace(/\s+/g, ' ');
+  if (!name) return { error: 'Give the pack a name' };
+  if (name.length > COLUMN_PACK_NAME_MAX) return { error: `Keep the name under ${COLUMN_PACK_NAME_MAX} characters` };
+  const raw = Array.isArray(b && b.questions) ? b.questions : [];
+  if (!raw.length) return { error: 'Tick at least one question' };
+  if (raw.length > COLUMN_Q_MAX) return { error: `A pack holds at most ${COLUMN_Q_MAX} questions, the most one read answers` };
+  const Q = colQuestionsOf({ questions: raw });
+  if (Q.error) return Q;
+  const std = new Map(raw.map(x => [colKey(String((x && x.question) || '').trim().replace(/\s+/g, ' ')), String((x && x.std) || '').trim().slice(0, 80)]));
+  return { name, questions: Q.list.map(q => Object.assign({ question: q.question, name: q.name }, std.get(q.qkey) ? { std: std.get(q.qkey) } : {})) };
+}
+app.post('/api/columns/packs', auth, editor, (req, res) => {
+  const b = req.body || {}, P = colPackBody(b);
+  if (P.error) return res.status(400).json({ error: P.error });
+  const want = String(b.id || '');
+  if (want){
+    const r = COLUMN_PACK_ID_RE.test(want) ? db.prepare('SELECT * FROM column_packs WHERE id=?').get(want) : null;
+    if (!r || !r.gone || !colPackMay(req, r)) return res.status(404).json({ error: 'That pack cannot be brought back' });
+    db.prepare('UPDATE column_packs SET name=?, questions=?, gone=0 WHERE id=?').run(P.name, JSON.stringify(P.questions), want);
+    return res.json({ pack: colPackOut(db.prepare('SELECT * FROM column_packs WHERE id=?').get(want)) });
+  }
+  const id = 'pk_' + crypto.randomBytes(8).toString('hex');
+  db.prepare('INSERT INTO column_packs (id,name,questions,builtin,created_by,created_at,created_by_name,gone) VALUES (?,?,?,0,?,?,?,0)')
+    .run(id, P.name, JSON.stringify(P.questions), String(req.user.id), now(), req.user.name || req.user.email || '');
+  res.json({ pack: colPackOut(db.prepare('SELECT * FROM column_packs WHERE id=?').get(id)) });
+});
+app.put('/api/columns/packs/:id', auth, editor, (req, res) => {
+  const r = db.prepare('SELECT * FROM column_packs WHERE id=? AND gone=0').get(String(req.params.id));
+  if (!r) return res.status(404).json({ error: 'That pack is gone' });
+  if (!colPackMay(req, r)) return res.status(403).json({ error: r.builtin ? 'Only an admin changes the built-in pack' : 'Only the person who built this pack, or an admin, can change it' });
+  const P = colPackBody(req.body || {});
+  if (P.error) return res.status(400).json({ error: P.error });
+  db.prepare('UPDATE column_packs SET name=?, questions=? WHERE id=?').run(P.name, JSON.stringify(P.questions), r.id);
+  res.json({ pack: colPackOut(db.prepare('SELECT * FROM column_packs WHERE id=?').get(r.id)) });
+});
+app.delete('/api/columns/packs/:id', auth, editor, (req, res) => {
+  const r = db.prepare('SELECT * FROM column_packs WHERE id=? AND gone=0').get(String(req.params.id));
+  if (!r) return res.status(404).json({ error: 'That pack is gone' });
+  if (r.builtin) return res.status(409).json({ error: 'Due diligence is built in: it can be changed, but not deleted' });
+  if (!colPackMay(req, r)) return res.status(403).json({ error: 'Only the person who built this pack, or an admin, can delete it' });
+  db.prepare('UPDATE column_packs SET gone=1 WHERE id=?').run(r.id);
+  res.json({ ok: true, pack: colPackOut(r) });
+});
 
 /* the team's questions, newest used first: the panel's "Asked before in your team"; and the packs */
 app.get('/api/columns', auth, (req, res) => {
   const rows = db.prepare('SELECT * FROM column_asks ORDER BY last_used_at DESC LIMIT 12').all();
-  const packs = db.prepare('SELECT * FROM column_packs ORDER BY builtin DESC, name').all().map(colPackOut);
+  const packs = db.prepare('SELECT * FROM column_packs WHERE gone=0 ORDER BY builtin DESC, name').all().map(colPackOut);
   res.json({ asks: rows.map(colAskOut), packs, max: COLUMN_MAX, perRead: COLUMN_Q_MAX });
 });
 
