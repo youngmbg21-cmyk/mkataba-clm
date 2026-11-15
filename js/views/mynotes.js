@@ -219,9 +219,22 @@ function myNoteViewHtml(n){
 /* WITH NOTHING CHOSEN, Jambo says the ledger in words counted from it (no
    call), and that he reads a note only when asked; a chip is the page's own
    door */
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 1): the privacy promise said once, with a lock; what a note can do (a
+   day it comes back on, the bell; a contract it sits on, only where you may see it — both existing features); New
+   note the one black button. The new look only. */
+function mnJlSayFive(all, due, later){
+  const n = all.length;
+  const dueRun = () => { _mn.filter = 'today'; _mn.mode = 'view'; renderMyNotes(); if (typeof jlLand === 'function') jlLand('first'); };
+  const groups = [{ label:i18t('jov5_mn_priv_g'), rows:[{ mark:'lock', t:i18t('jov5_mn_priv'), s:i18t('jov5_mn_priv_s') }] }];
+  if (!n) groups.push({ label:i18t('jov5_mn_can'), rows:[{ mark:'calendar', t:i18t('jov5_mn_can_day'), s:i18t('jov5_mn_can_day_s') }, { mark:'file', t:i18t('jov5_mn_can_c'), s:i18t('jov5_mn_can_c_s') }] });
+  return { title:n ? i18tn('jl_mn_say_n', n, { n }) : i18t('jov5_mn_none_t'), sub:n ? (due ? i18tn('jl_mn_say_due', due, { n:due }) : i18t('jov5_mn_none_due')) : i18t('jov5_mn_none_s'),
+    glance:n ? [{ n, l:i18t('jov5_mn_notes') }, { n:due, l:i18t('jov5_mn_today'), warn:due > 0, run:due ? dueRun : null }, { n:later, l:i18t('jov5_mn_later') }] : null,
+    groups, act:{ label:i18t('jov5_mn_new'), run:() => myNotesNew(), link:due ? { label:i18t('jl_mn_chip_due'), run:dueRun } : null }, src:i18t('jl_mn_src') };
+}
 function mnJlSay(){
   const all = typeof mineList === 'function' ? mineList('note') : [];
   const n = all.length, due = all.filter(x => mnInTab(x, 'today')).length, later = all.filter(x => mnInTab(x, 'later')).length;
+  if (typeof newLookOn === 'function' && newLookOn()){ const five = mnJlSayFive(all, due, later); return Object.assign({ lines:[_mnE(five.title)] }, five); }
   const lines = [n ? i18tn('jl_mn_say_n', n, { n }) : i18t('jl_mn_say_none')];
   if (due) lines.push(i18tn('jl_mn_say_due', due, { n:due }));
   if (later) lines.push(i18tn('jl_mn_say_later', later, { n:later }));

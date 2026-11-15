@@ -1687,6 +1687,22 @@ function jhnAgentsHtml(){
     <thead><tr><th>${_jhE(_jhT('jh_col_agent'))}</th><th>${_jhE(_jhT('jhn_c_week'))}</th><th>${_jhE(_jhT('jhn_c_may'))}</th><th class="n">${_jhE(_jhT('jhn_c_points'))}</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="apn-foot rdn-foot"><span>${_jhE(_jhT('jhn_foot'))}</span><button type="button" class="rfp-a" data-jh-tab="house">${_jhE(_jhTn('jhn_foot_log', jhnWeek().length, { n: jhnWeek().length }))}</button></div>`;
 }
+/* THE FIVE PARTS (owner, 15 Nov 2026, round 2): the house said in the panel — each agent a round mark in its own room
+   colour (JH_LOOK, the page's own), what of his waits on your desk as the headline, waiting · agents · on his own as
+   tiles, and the page's three doors as rows (data-jhn-board, data-jh-points, data-jh-tab="agents"). The new look. */
+function jhnPanelFive(open, keys){
+  const agents = keys.filter(k => !(typeof AG_READINGS !== 'undefined' && AG_READINGS.includes(k)));
+  const lv = agents.map(k => (typeof agLevelOf === 'function') ? agLevelOf(k) : 'ask');
+  const auto = lv.filter(v => v === 'auto').length;
+  const word = k => { const w = _jhT('ag_' + k); return w && w !== 'ag_' + k ? w : k; };
+  const rows = [{ mark:'sparkle', tone:'dark', t:_jhT('jhn_d_board'), attr:'data-jhn-board' }, { mark:'ban', t:_jhT('jhn_d_never'), attr:'data-jh-tab="agents"' }];
+  if (typeof isAdmin === 'function' && isAdmin()) rows.push({ mark:'pencil', t:_jhT('jhn_d_points'), attr:'data-jh-points' });
+  return { eyebrow:_jhT('jov5_jh_eb'), title:open.length ? _jhTn('jhn_p_desk', open.length, { n:open.length }) : _jhT('jhn_p_desk_none'),
+    sub:_jhTn('jov5_jh_sub', agents.length, { n:agents.length }),
+    crew:agents.slice(0, 7).map(k => { const rm = _jhT('jh_room_' + k); const room = rm && rm !== 'jh_room_' + k ? rm : word(k); return { label:room.split(/\s+/)[0], title:room + ' \u00b7 ' + word(k), color:(JH_LOOK[k] || [])[0] || '' }; }),
+    glance:[{ n:open.length, l:_jhT('jov5_on_you'), warn:open.length > 0 }, { n:agents.length, l:_jhT('jov5_jh_agents'), attr:'data-jh-tab="agents"' }, { n:auto, l:_jhT('jov5_jh_auto') }],
+    groups:[{ label:_jhT('jov5_jh_from'), rows }], src:_jhT('jhn_p_desk_src') };
+}
 function jhnPanelHtml(){
   const E = _jhE, wk = jhnWeek(), keys = agPointsKeys();
   const open = wk.filter(p => !p.outcome), put = wk.filter(p => p.outcome === 'thrown').length, done = wk.length - open.length;
@@ -1702,6 +1718,7 @@ function jhnPanelHtml(){
       + `<div class="pd2-ch-cap">${E(_jhT('jhn_p_ladder'))}</div><p class="stn-pp">${E(_jhT('jhn_p_ladder_s'))}</p>`
       + `<div class="pd2-ch-cap">${E(_jhT('pd2_ch_doors'))}</div>${door('data-jh-tab="house"', _jhT('jhn_d_log'), _jhT('pd2_ch_free'))}${typeof isAdmin === 'function' && isAdmin() ? door('data-jh-points', _jhT('jhn_d_points'), _jhT('pd2_ch_free')) : ''}</div>`;
   }
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function') return `<div class="jl-words is-ov">${jamboOverviewHtml(jhnPanelFive(open, keys), 'jhn')}</div>`;
   const lead = open.length ? _jhTn('jhn_p_desk', open.length, { n: open.length }) : _jhT('jhn_p_desk_none');
   return `<div class="pd2-chosen cun-panel jhn-panel"><div class="cn2-jcard"><p>${E(lead)}</p><small>${E(_jhT('jhn_p_desk_src'))}</small></div>`
     + `<div class="pd2-ch-cap">${E(_jhT('jhn_p_house'))}</div><p class="stn-pp">${E(_jhT('jhn_p_house_s'))}</p>`
@@ -1724,4 +1741,4 @@ if (typeof document !== 'undefined' && !document._jhnWired){ document._jhnWired 
     if (t.closest('[data-jhn-board]')){ e.preventDefault(); if (typeof caGo === 'function') caGo({ kind: 'go', place: 'board' }); }
   });
 }
-Object.assign(window, { jhnOn, JHN_TABS, jhnHeadHtml, jhnAgentsHtml, jhnPanelHtml, jhnMayHtml, jhnWeekSaid, jhnMaySet });
+Object.assign(window, { jhnPanelFive, jhnOn, JHN_TABS, jhnHeadHtml, jhnAgentsHtml, jhnPanelHtml, jhnMayHtml, jhnWeekSaid, jhnMaySet });

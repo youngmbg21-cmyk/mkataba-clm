@@ -201,6 +201,8 @@ function deskStepBack(press){
   return false;
 }
 function deskGoBack(){
+  /* Back is never an arrival (Jambo's panels arrive rarely, owner 15 Nov 2026) */
+  if (typeof window.jovArriveQuiet === 'function') jovArriveQuiet(2000);
   /* while the one sheet is up, ‹ is its way out: asked first, as Cancel asks,
      then back to the page the reader asked from (naSheetBack → deskSheetBackTo).
      The sheet is the page in front, so it goes before a step of the panel
