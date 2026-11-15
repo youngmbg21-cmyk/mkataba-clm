@@ -20053,6 +20053,65 @@
   html.lg-new .dsn-fix-yours mark{background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:3px;padding:1px 3px}
   html.lg-new .dsn-fix-said{margin:0;font-size:13.5px;line-height:1.55}
   html.lg-new .rfp-panel.is-drawn .dsn-fix .rfp-cap{margin:var(--s-1) 0 0}
+  /* JAMBO'S PANEL ON DISCOVER, THE LEGORA WAY (owner's pick, 15 Nov 2026; dslReadHtml / dslEmptyHtml / dslNewHtml): nothing
+     boxed, one quiet list; the colour is Discover's own: the yellow of the words found and the answers' red, amber, green */
+  html.lg-new #ins-panel .dsl{display:flex;flex-direction:column;gap:16px;padding:16px;font-size:13px;line-height:1.45;color:var(--color-text);min-width:0}
+  html.lg-new .dsl p{margin:0}
+  html.lg-new .dsl-eb{font-size:12px;color:var(--color-neutral-400)}
+  html.lg-new .dsl-title{margin:-8px 0 0;font-family:var(--font-title);font-size:24px;line-height:1.2;font-weight:500;letter-spacing:-.01em;color:var(--color-text);text-wrap:balance;overflow-wrap:anywhere}
+  html.lg-new .dsl-say{font-size:14px;line-height:1.5;color:var(--color-quiet)}
+  html.lg-new .dsl-say b{color:var(--color-text);font-weight:var(--w-strong)}
+  html.lg-new .dsl-a{appearance:none;border:0;background:none;padding:0;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .dsl-a.is-quiet{color:var(--color-neutral-400);font-size:12.5px}
+  html.lg-new .dsl-bar{display:flex;gap:3px;height:10px;margin-top:-4px}
+  html.lg-new .dsl-bar u{display:block;height:100%;border-radius:999px;min-width:6px}
+  html.lg-new .dsl-dot{flex:none;display:inline-block;width:8px;height:8px;border-radius:50%}
+  html.lg-new .dsl-bar u.is-ruby,html.lg-new .dsl-dot.is-ruby{background:var(--st-ruby-dot)}
+  html.lg-new .dsl-bar u.is-amber,html.lg-new .dsl-dot.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .dsl-bar u.is-green,html.lg-new .dsl-dot.is-green{background:var(--st-green-dot)}
+  html.lg-new .dsl-bar u.is-steel,html.lg-new .dsl-dot.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .dsl-bar u.is-violet,html.lg-new .dsl-dot.is-violet{background:var(--st-violet-dot)}
+  html.lg-new .dsl-bar u.is-pink,html.lg-new .dsl-dot.is-pink{background:var(--st-pink-dot)}
+  html.lg-new .dsl-bar u.is-gray,html.lg-new .dsl-dot.is-gray{background:var(--st-gray-dot)}
+  html.lg-new .dsl-bar u.is-unread{background:var(--color-divider)}
+  html.lg-new .dsl-list{display:flex;flex-direction:column}
+  html.lg-new .dsl-ans{appearance:none;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:12px 0;width:100%;min-width:0}
+  html.lg-new .dsl-ans:last-child{border-bottom:0}
+  html.lg-new .dsl-ah{display:flex;align-items:center;gap:10px;font-size:14px;min-width:0}
+  html.lg-new .dsl-ah b{flex:1;min-width:0;font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dsl-ah span{flex:none;color:var(--color-quiet);font-variant-numeric:tabular-nums}
+  html.lg-new .dsl-ans:hover .dsl-ah b{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .dsl-quote{font-family:var(--font-doc);font-size:14px;line-height:1.55;color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .dsl-ans .dsl-quote{padding-left:18px;font-size:13.5px;color:var(--color-quiet);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  html.lg-new .dsl-ans small{padding-left:18px;font-size:12px;color:var(--color-neutral-400)}
+  html.lg-new .dsl mark.dsn-yes{padding:1px 3px;border-radius:3px;background:var(--hl-yes);color:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  html.lg-new .dsl-go{appearance:none;border:0;width:100%;height:44px;flex:none;border-radius:999px;background:var(--accent-solid);color:var(--color-surface);font:inherit;font-size:14px;font-weight:var(--w-strong);cursor:pointer;white-space:nowrap}
+  html.lg-new .dsl-go:hover{background:var(--accent-solid-hover)}
+  html.lg-new .dsl-foot{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .dsl-sec{display:flex;flex-direction:column;gap:8px;min-width:0}
+  html.lg-new .dsl-lbl{font-size:12px;color:var(--color-neutral-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dsl-back{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
+  html.lg-new .dsl-back b{font-weight:var(--w-strong);white-space:nowrap}
+  html.lg-new .dsl-back span{font-size:12px;color:var(--color-neutral-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dsl-docs{display:flex;flex-direction:column}
+  html.lg-new .dsl-docs.is-open{max-height:360px;overflow-y:auto}
+  html.lg-new .dsl-doc{appearance:none;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;color:inherit;text-align:left;display:flex;align-items:center;gap:10px;padding:8px 0;width:100%;min-width:0;font-size:13.5px}
+  html.lg-new .dsl-doc:last-child{border-bottom:0}
+  html.lg-new .dsl-doc s{flex:none;width:16px;height:20px;border-radius:2px;background-color:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);background-image:linear-gradient(var(--color-divider),var(--color-divider)),linear-gradient(var(--color-divider),var(--color-divider)),linear-gradient(var(--hl-yes),var(--hl-yes));background-size:10px 1px,10px 1px,6px 3px;background-position:3px 5px,3px 9px,3px 12px;background-repeat:no-repeat}
+  html.lg-new .dsl-doc b{flex:1;min-width:0;font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dsl-doc span{flex:none;max-width:45%;font-size:12px;color:var(--color-neutral-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dsl-doc.is-more{cursor:pointer}
+  html.lg-new .dsl-doc.is-more b{color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .dsl-asked{display:flex;flex-direction:column}
+  html.lg-new .dsl-ask{appearance:none;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) 72px auto;align-items:center;gap:12px;padding:9px 0;width:100%;font-size:13.5px}
+  html.lg-new .dsl-ask:last-child{border-bottom:0}
+  html.lg-new .dsl-ask b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .dsl-ask.is-on b{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .dsl-ask u{display:block;height:4px;border-radius:999px;background:var(--color-divider);overflow:hidden}
+  html.lg-new .dsl-ask u i{display:block;height:100%;background:var(--st-green-dot)}
+  html.lg-new .dsl-ask span{font-size:12.5px;color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums}
+  html.lg-new .dsl-egs{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+  html.lg-new .dsl-eg{appearance:none;border:0;background:none;padding:0;font-family:var(--font-doc);font-size:14.5px;line-height:1.4;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-align:left;cursor:pointer}
   html.lg-new .dsn-fix-rows{display:flex;flex-direction:column}
   html.lg-new .dsn-fix-row{display:flex;align-items:baseline;gap:var(--s-3);width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;color:inherit;text-align:left}
   html.lg-new button.dsn-fix-row{cursor:pointer}
