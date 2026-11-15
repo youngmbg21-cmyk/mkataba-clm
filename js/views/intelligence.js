@@ -7170,7 +7170,7 @@ function igDayHtml(){
     const needs=T.find(t=>t.k==='needs');
     return `<div class="ig-day">${jamboOverviewHtml({ eyebrow:day.replace(/^./,c=>c.toUpperCase()),
       title:needs&&needs.n?i18tn('jov5_day_t',needs.n,{ n:needs.n }):i18t('jov5_day_clear'), sub:i18t('int_day_counted',{ t:at }),
-      glance:tiles.map(t=>({ n:t.n, l:word(t), warn:t.tone==='ruby'||t.tone==='amber', attr:may(t)?`data-ig-day="${t.k}"`:'' })),
+      glance:tiles.map(t=>({ n:t.n, l:t.k==='duties'?i18t('jov5_day_duties_tl'):word(t), warn:t.tone==='ruby'||t.tone==='amber', attr:may(t)?`data-ig-day="${t.k}"`:'' })),
       groups:rest.length?[{ label:i18t('jov5_day_next'), rows:rest.map(t=>({ mark:t.k==='renew'?'refresh':'calendar', tone:t.tone?'amber':'', t:word(t), s:t.sub||'', v:t.n?String(t.n):i18t('int_day_none'), attr:may(t)?`data-ig-day="${t.k}"`:'' })) }]:[],
       act:{ say:i18t('jov5_day_pin_say'), label:i18t(pin?'int_brief_unpin':'int_brief_pin'), attr:`data-ig-day-pin aria-pressed="${pin}"` },
       after:igSavedViewsHtml(), src:i18t('int_day_src') },'ig-day')}</div>`;

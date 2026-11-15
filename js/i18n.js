@@ -24827,7 +24827,7 @@ const STRINGS = {
     jov5_jh_from: "From here",
     /* ---- THE FIVE PARTS, ROUND 3a (owner, 15 Nov 2026) ---- */
     jov5_hb_live: "live contracts",
-    jov5_hb_days: "days to next end",
+    jov5_hb_days: "days to an end",
     jov5_hb_needs: "Needs you",
     jov5_hb_src: "Counted from your book",
     jov5_ct_paper: "{cur} on paper",
@@ -24840,6 +24840,7 @@ const STRINGS = {
     jov5_day_t_other: "Your day: {n} things need you.",
     jov5_day_clear: "Your day: nothing needs you.",
     jov5_day_next: "The next 30 days",
+    jov5_day_duties_tl: "duties due",
     jov5_day_pin_say: "Open Explorer on this view every morning.",
     jov5_gd_eb: "What this view does",
     jov5_pt_eb: "Counterparty",
@@ -48627,7 +48628,7 @@ const STRINGS = {
     jov5_jh_from: "Härifrån",
     /* ---- THE FIVE PARTS, ROUND 3a (owner, 15 Nov 2026) ---- */
     jov5_hb_live: "aktiva avtal",
-    jov5_hb_days: "dagar till nästa slut",
+    jov5_hb_days: "dagar kvar",
     jov5_hb_needs: "Behöver dig",
     jov5_hb_src: "Räknat från din avtalsbok",
     jov5_ct_paper: "{cur} på papper",
@@ -48640,6 +48641,7 @@ const STRINGS = {
     jov5_day_t_other: "Din dag: {n} saker behöver dig.",
     jov5_day_clear: "Din dag: inget behöver dig.",
     jov5_day_next: "De kommande 30 dagarna",
+    jov5_day_duties_tl: "åtaganden",
     jov5_day_pin_say: "Öppna Utforskaren i den här vyn varje morgon.",
     jov5_gd_eb: "Vad den här vyn gör",
     jov5_pt_eb: "Motpart",
