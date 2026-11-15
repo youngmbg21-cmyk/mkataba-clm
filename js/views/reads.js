@@ -616,7 +616,7 @@ function discoverLive(now){
 /* THE ONE WAY IN: the Contracts list's Discover pill, "discover" typed, the Guide's row — all land here */
 function discoverOpen(){
   _dsc.say = ''; _rd.table = null;
-  if (!(typeof AC !== 'undefined' && AC.busy)){ _dsn.screen = 'list'; _dsn.cid = null; }
+  if (!(typeof AC !== 'undefined' && AC.busy)){ _dsn.screen = 'list'; _dsn.cid = null; _dsn.picked = false; }
   if (state.view !== 'reads' && typeof setView === 'function') setView('reads'); else renderReads();
 }
 function dscSay(msg){ _dsc.say = String(msg || ''); renderReads(); }
@@ -980,6 +980,7 @@ function dsnFill(r){
 }
 function dsnGo(screen, o){
   _dsn.screen = screen; Object.assign(_dsn, o || {});
+  _dsn.picked = false;
   if (screen !== 'new'){ _dsc.say = ''; }
   if (typeof rdKeep === 'function') rdKeep();
   renderReads({ top: true });
@@ -998,8 +999,10 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
     if ((el = t.closest('[data-dsn-open]'))){ stop(e); dsnGo('results', { run: el.getAttribute('data-dsn-open'), cid: null, tab: 'all', q: '' }); return; }
     if ((el = t.closest('[data-dsn-more]'))){ stop(e); dsnAsk(el.getAttribute('data-dsn-more')); return; }
     if ((el = t.closest('[data-dsn-run]'))){ stop(e); const id = el.getAttribute('data-dsn-run');
-      if (_dsn.sel === id){ dsnGo('results', { run: id, cid: null, tab: 'all', q: '' }); return; }
-      _dsn.sel = id; renderReads(); return; }
+      /* A PRESS CHOOSES, A SECOND OPENS (the list inspector's rule): the read chosen for you on arrival is not yet yours,
+         so the first press on it shows its summary, never its results */
+      if (_dsn.sel === id && _dsn.picked){ dsnGo('results', { run: id, cid: null, tab: 'all', q: '' }); return; }
+      _dsn.sel = id; _dsn.picked = true; renderReads(); return; }
     if ((el = t.closest('[data-dsn-pick]'))){ stop(e); const k = el.getAttribute('data-dsn-pick');
       if (k === 'all') _dsn.pick = new Set(['all']);
       else { _dsn.pick.delete('all'); if (_dsn.pick.has(k)) _dsn.pick.delete(k); else _dsn.pick.add(k); if (!_dsn.pick.size) _dsn.pick.add('all'); }

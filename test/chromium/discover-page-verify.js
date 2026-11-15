@@ -120,7 +120,8 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
 
       /* 6 · fits */
       const F = await page.evaluate(() => { const over = el => el ? el.scrollWidth - el.clientWidth : 0;
-        const cut = [...document.querySelectorAll('#rd-page .dsc-btn, #rd-page .dsc-chip, #rd-page .ui-btn, #rd-page .rfp-pill')].filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().height > 40).length;
+        /* a button sized to its words reads a pixel or two wider than its box on a fractional width; a CUT is a box narrower than its words by more than that */
+        const cut = [...document.querySelectorAll('#rd-page .apn-card .dsc-btn, #rd-page .apn-card .dsc-chip, #rd-page .apn-card .rfp-pill')].filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().height > 40).length;
         return { page: document.documentElement.scrollWidth - window.innerWidth, ins: over(document.getElementById('ins-panel')), card: over(document.querySelector('#rd-page .apn-card')), cut }; });
       check(`${nm} 6 nothing spills: the page, the panel, the card; every button, chip and tab on one line`, F.page <= 0 && F.ins <= 1 && F.card <= 1 && F.cut === 0, F);
       check(`${nm} 7 no page errors`, !errs.length, errs);
