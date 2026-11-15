@@ -733,6 +733,18 @@ function dsnRunWhere(r){
   return fids.map(_dsnFolderName).join(', ') || '—';
 }
 /* how many were chosen: the record's own count */
+/* WHAT IS LEFT OF A READ (owner, 16 Nov 2026: "the 'read the x left' button is not working"): the contracts in the
+   read's folders that still have no answer to its question(s) — never "chosen minus read this time", which counted
+   contracts an earlier read had already answered, so the button offered a read of nothing and nothing happened. The
+   same contracts Read the N left then reads (dsnAsk(more): the read's folders, any status, any party). null while the
+   answers are still loading: no number is guessed. */
+function dsnRunLeft(r){
+  if (!r || !Array.isArray(r.askIds) || !r.askIds.length) return 0;
+  const got = r.askIds.map(k => rdnAnswers(k));
+  if (got.some(g => !g)) return null;
+  const w = Array.isArray(r.where) && r.where.length ? r.where : ['all'];
+  return _dsnLive().filter(c => w.includes('all') || w.includes(c.folder)).map(c => String(c.id)).filter(id => got.some(g => !g[id])).length;
+}
 function dsnRunOf(r){
   if (r.of) return r.of;
   /* an older read kept no count: its folders now, else every contract this person may see (as the old page counted) */
@@ -826,7 +838,7 @@ function dslSample(lbl){
 }
 /* the read chosen on the list of reads */
 function dslReadHtml(r){
-  const may = _dscMay(), rows = dsnRunRows(r), of = dsnRunOf(r), left = Math.max(0, of - r.n);
+  const may = _dscMay(), rows = dsnRunRows(r), left = dsnRunLeft(r) || 0;
   const ask = (typeof AC !== 'undefined' && AC.asks) ? AC.asks[r.askIds[0]] : null, q = dsnRunQuestion(r), name = dsnRunName(r);
   const head = `<p class="dsl-eb">${_rdE([_rdT('dsn_this_read'), rdWhen(r.last || r.at), r.by].filter(Boolean).join(' · '))}</p><h3 class="dsl-title">${_rdE(r.packId ? name : (q || name))}</h3>`;
   const more = left && may ? `<button type="button" class="dsl-a" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsl_read_them'))}</button>` : '';
@@ -1214,7 +1226,7 @@ function dsnResultsShown(r){
   return { rows, G, list };
 }
 function dsnResultsHtml(r){
-  const S = dsnResultsShown(r), may = _dscMay(), left = Math.max(0, dsnRunOf(r) - r.n), pack = r.askIds.length > 1;
+  const S = dsnResultsShown(r), may = _dscMay(), left = dsnRunLeft(r) || 0, pack = r.askIds.length > 1;
   const head = `<div class="rdsc-head"><div class="rdsc-top"><button type="button" class="ac-link rdt-back" data-dsn-back>${_rdE(_rdT('dsn_back'))}</button><h1 class="rdsc-nm" title="${_rdE(dsnRunName(r))}">${_rdE(dsnRunName(r))}</h1><span class="rdt-sp"></span>
       <button type="button" class="ui-btn ui-btn-sm" data-dsn-copy>${_rdE(_rdT('ac_chip_copy'))}</button>${left && may ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</div>
     <div class="rdsc-sub">${_rdE([r.by, rdWhen(r.last || r.at), dsnRunWhere(r), S ? dsnSubjectWords(S.rows.map(x => x.c)) : '', _rdT('dsn_of_read_k', { k: r.n, n: dsnRunOf(r) })].filter(Boolean).join(' · '))}</div>
@@ -1333,6 +1345,8 @@ async function dsnAsk(more){
   if (got && (got.short || got.portfolio || got.none)){
     _dsn.screen = more ? 'results' : 'new';
     if (got.portfolio && !more && typed){ dsnFixSet(typed); return; }
+    /* from the results or the list there is no box to say it under: said where the reader looks */
+    if (more){ renderReads(); if (typeof toast === 'function') toast(_rdT('dsn_all_read_here'), 'ok'); return; }
     dscSay(_rdT(got.short ? 'dsc_say_short' : got.portfolio ? 'dsc_say_count' : 'dsn_all_read_here')); return; }
   if (got){
     const askId = (got.asks && got.asks[0] && got.asks[0].id) || null;
@@ -1342,7 +1356,19 @@ async function dsnAsk(more){
   }
   _rd.loading = false;
   await rdLoad(true);
+  if (dsnEndsOnResults()) return;
   renderReads();
+}
+/* A READ THAT FINISHED GOES STRAIGHT TO ITS RESULTS (owner, 16 Nov 2026: "once the run is over, it should immediately
+   jump to the results page instead of leaving us to press to get there"). A read that stopped (Stop, or a batch that
+   broke) stays on its own screen, where Read the N left and Cancel read are. Only while the reader is still on that
+   screen: one who left Discover meanwhile is not pulled back. */
+function dsnEndsOnResults(){
+  const D = _dsn.done, A = _dscAC();
+  if (!D || D.stopped || (A && (A.busy || A.stopped)) || !_dsn.run || _dsn.screen !== 'reading') return false;
+  if (typeof state !== 'undefined' && state.view !== 'reads') return false;
+  dsnGo('results', { run: _dsn.run, cid: null, tab: 'all', q: '' });
+  return true;
 }
 /* READ THE REST OF A STOPPED READ (owner, 15 Nov 2026: "the page does not finish reading … and I can't move on"):
    the rest is read on the same screen, and when it ends the screen says so — the count, the heading and its buttons
@@ -1357,6 +1383,7 @@ async function dsnCarry(){
     _dsn.done = Object.assign({}, D, { k: Math.max(0, n - left), n, stopped: !!(got.stopped || (got.err && left)) }); }
   _rd.loading = false;
   await rdLoad(true);
+  if (dsnEndsOnResults()) return;
   renderReads();
 }
 /* THE EXIT RAMP (owner, 15 Nov 2026: "I should have an exit ramp to cancel the whole work and go back to the discover
@@ -1729,4 +1756,4 @@ function readsCss(){ return `
   #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+Object.assign(window, { dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });

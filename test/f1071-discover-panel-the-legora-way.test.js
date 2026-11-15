@@ -34,7 +34,7 @@ function panel(stub){
   const T = (k, v) => String(words[k] || k).replace(/\{(\w+)\}/g, (m, x) => (v && v[x] != null) ? v[x] : m);
   const env = Object.assign({ _rdE: E, _rdT: T, _rdTn: (k, n, v) => T(k + (n === 1 ? '_one' : '_other'), Object.assign({ n }, v || {})), rdWhen: () => '15 Nov',
     _rdName: c => c.name, _dscMay: () => true, dsnRunOf: r => r.of, dsnRunName: r => r.name, dsnRunQuestion: r => r.q, askColClauseNo: a => (String(a.clause || '').match(/^\d+/) || [''])[0],
-    dsnYesMarked: a => E(a.quote), _rdTone: a => a.tone, AC: { asks: {} }, _dsc: {}, _dsn: {}, _rd: { rows: [] }, rdnAnswers: () => null, _dsnFolderName: f => f, getContract: () => null }, stub || {});
+    dsnYesMarked: a => E(a.quote), dsnRunLeft: r => Math.max(0, (r.of || 0) - (r.n || 0)), _rdTone: a => a.tone, AC: { asks: {} }, _dsc: {}, _dsn: {}, _rd: { rows: [] }, rdnAnswers: () => null, _dsnFolderName: f => f, getContract: () => null }, stub || {});
   const names = Object.keys(env);
   return new Function(...names, RD.slice(a, b) + '; return { dslReadHtml, dslEmptyHtml, dslNewHtml };')(...names.map(k => env[k]));
 }
