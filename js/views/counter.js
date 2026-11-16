@@ -1100,7 +1100,9 @@ function ndRowGo(key){
   if (!r) return ndOpenBoard('all');
   if (r.g === 'jambo'){
     const c = r.it && (r.it.c || (r.it.cid && typeof getContract === 'function' ? getContract(r.it.cid) : null));
-    if (c && typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'open')) return true;
+    /* a renewal or notice piece opens where the renewal is decided (the contract's Obligations), as Decide does */
+    const tab = (r.it && /^(renewal|notice)$/.test(String(r.it.kind || ''))) ? 'oblig' : 'open';
+    if (c && typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, tab)) return true;
     if (c && typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
     /* the week ahead is about your days, not one contract: its own lead button is the Calendar */
     if (r.it && r.it.kind === 'week' && typeof caGo === 'function'){ caGo({ kind: 'go', place: 'calendar' }); return true; }

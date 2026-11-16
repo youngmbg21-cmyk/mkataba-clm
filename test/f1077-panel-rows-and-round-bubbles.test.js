@@ -46,7 +46,7 @@ test('f1077 (3) driven: a row opens where its work is', () => {
   };
   const go = new Function(...Object.keys(sb), body(CN, 'ndRowGo') + '\nreturn ndRowGo;')(...Object.values(sb));
   go('p:desk:MK-1:renewal'); go('p:week'); go('p:many'); go('y:2');
-  assert.deepEqual(calls, [['home', 'MK-1', 'open'], ['go', 'calendar'], ['board', 'jambo', 'km'], ['needs', 'details', 'MK-2']]);
+  assert.deepEqual(calls, [['home', 'MK-1', 'oblig'], ['go', 'calendar'], ['board', 'jambo', 'km'], ['needs', 'details', 'MK-2']]);
 });
 
 test('f1077 (4) every conversation bubble takes the one corner', () => {
