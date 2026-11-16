@@ -2455,7 +2455,9 @@ if(typeof document!=='undefined' && !window._stSheetWired){
 function stYouGo(key, focusSel){
   const it=stYouItem(key); if(!it) return;
   if(settingsTab()!=='you' || _stPage){ _stTab='you'; _stPage=null; renderTeam(); }
-  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`);
+  /* the new look's one list has a ROW where the old look had a You card (16 Nov 2026, #762): land on it */
+  const STN_OF={ lang:'lang', who:'name', away:'away', safety:'twostep', told:'push', data:'mydata', work:'agents' };
+  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`)||(STN_OF[it.key]?document.querySelector(`#stn-main [data-stn-row="${STN_OF[it.key]}"]`):null);
   /* LAND ON IT (owner, 18 Oct 2026): a form that opens in its row lands on
      its box; otherwise on the card, its control readied (the one lander) */
   if(it.door){
@@ -10132,8 +10134,8 @@ function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && 
    last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
    the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
 const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', email:'you', mydata:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
-const STN_ICON={ name:'user', email:'user', mydata:'download', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
+const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
+const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
 let _stnArea='all';
 function stnAreaOf(id){ return STN_AREA_OF[id]||'you'; }
 function stnRow(id, label, value, sub, act){
@@ -10187,6 +10189,8 @@ function stnYouHtml(){
     stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg)];
   /* YOUR EMAIL AND A COPY OF YOUR DATA keep their doors in the one list (16 Nov 2026, #762: the You cards that held
      them are the old look's; nothing of yours is left without a way in) */
+  /* WHEN YOU'RE AWAY: who answers your approvals and reviews while you are out (never signing) — its drawer, me:away */
+  if(api) out.push(stnRow('away', i18t('st_you_away'), esc(typeof stAwayState==='function'?stAwayState():''), '', stnDoor('data-st-panel="me:away"', i18t('st_you_change'))));
   if(api) out.splice(1, 0, stnRow('email', i18t('st_you_email_row'), esc(u.email||''), '', stnDoor('data-st-panel="me:email"', i18t('st_you_change'))));
   out.push(stnRow('mydata', i18t('st_you_data_line'), '', i18t(api?'st_you_data_kept':'st_you_data_sub'), `<button type="button" class="ui-link stn-go" data-st-mycopy>${esc(i18t('st_you_download'))}</button>`));
   if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));

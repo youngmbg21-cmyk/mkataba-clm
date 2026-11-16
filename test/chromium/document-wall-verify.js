@@ -63,6 +63,9 @@ const check = (name, pass, detail) => {
        place lands on the List now; this check is about the Wall, so it picks Wall as a reader would */
     await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'paper');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       Wall pill is the way to the wall */
+    await page.waitForSelector('[data-ctf-show="wall"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="wall"]')).catch(() => {});
     const up = await wallUp();
     check('0 the Document tab with nothing open shows the wall', up);
     if (!up) throw new Error('the wall never drew');

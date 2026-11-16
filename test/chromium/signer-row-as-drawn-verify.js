@@ -80,36 +80,42 @@ const TEXT = ['MUTUAL NON-DISCLOSURE AGREEMENT', '',
       await page.evaluate(() => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); setView('register'); });
       await waitFor(page, () => !!document.querySelector('#ct-place, #reg-root, .reg-card'), 6000);
       await page.evaluate(id => regOpenContract(id), ID);
-      await waitFor(page, id => !!document.querySelector(`#pd-glance[data-pd-glance-for="${id}"]`), 12000, ID);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a contract opened on purpose lands on its Cover
+         (THE COVER FIRST, owner's pick 16 Nov 2026); the reader presses its largest button, Open the dossier */
+      if (await waitFor(page, () => { const b = document.querySelector('[data-cv-open]'); return !!b && b.getClientRects().length > 0; }, 4000)) await page.click('[data-cv-open]');
+      await waitFor(page, id => !!document.querySelector(`#pd-glance[data-pd-glance-for="${id}"]`) || !!(window.pdContract && pdContract() && pdContract().id === id), 12000, ID);
       await page.evaluate(id => { if (typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'copilot'); }, ID);
-      const up = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'), 12000);
-      await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'); if (r) r.scrollIntoView({ block: 'center' }); });
+      const up = await waitFor(page, () => !!document.querySelector('#ig-dock .pd2-fact[data-pd2-fact="signer"]'), 12000);
+      await page.evaluate(() => { const r = document.querySelector('#ig-dock .pd2-fact[data-pd2-fact="signer"]'); if (r) r.scrollIntoView({ block: 'center' }); });
       await page.evaluate(() => document.fonts.ready); await pause(250);
       return up;
     };
-    const ROW = () => { const r = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'); if (!r) return null;
-      const v = r.querySelector('.pd-ck-v'), dock = document.getElementById('igd-feed'), q = r.getBoundingClientRect();
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's facts are the top card's rows
+       (.pd2-fact); the Signer row is [data-pd2-fact="signer"] — its value (.pd2-v) and its door, "Change"
+       ([data-pd-og-route]), which opens the signing route */
+    const ROW = () => { const r = document.querySelector('#ig-dock .pd2-fact[data-pd2-fact="signer"]'); if (!r) return null;
+      const v = r.querySelector('.pd2-v'), dock = document.getElementById('igd-feed'), q = r.getBoundingClientRect();
       const next = r.nextElementSibling;
       return { boxes: r.querySelectorAll('input, textarea').length, selects: r.querySelectorAll('select').length, ok: !!r.querySelector('[data-pd-og-ok]'),
-        door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]'), words: (r.querySelector('.pd-ck-hd') || {}).textContent || '',
+        door: !!r.querySelector('[data-pd-og-route]'), words: r.textContent || '',
         whole: !!v && v.scrollWidth <= v.clientWidth + 1, inside: !!dock && q.right <= dock.getBoundingClientRect().right + 1,
-        next: next ? next.getAttribute('data-pd-og-row') : null }; };
+        next: next ? (next.getAttribute('data-pd2-fact') || next.getAttribute('data-pd-og-row')) : null }; };
     check('0b the Signer row is up beside the paper', await open());
     const r0 = await page.evaluate(ROW);
     console.log('\n1 · no boxes on the row');
     check('1 the Signer row carries no box, no <select>, no Confirm', !!r0 && r0.boxes === 0 && r0.selects === 0 && !r0.ok, JSON.stringify(r0));
     console.log('\n2 · its line opens the signing route');
     check('2a its line is the signing route\'s door', !!r0 && r0.door, JSON.stringify(r0));
-    await page.click('#ig-dock #pd-og tr[data-pd-og-row="signers"] .pd-ck-hd');
+    await page.click('#ig-dock .pd2-fact[data-pd2-fact="signer"] [data-pd-og-route]');
     const route = await waitFor(page, () => !!document.getElementById('sr-win'), 8000);
     check('2b a press opens the signing route editor over the same page', route
-      && await page.evaluate(() => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]')));
+      && await page.evaluate(() => !!document.querySelector('#ig-dock .pd2-fact[data-pd2-fact="signer"]')));
     console.log('\n3 · closing it lands back on the line');
     await page.click('#sp-cancel').catch(() => {});
     const back = await waitFor(page, () => !document.getElementById('sr-win') && !!document.activeElement && !!document.activeElement.closest
-      && !!document.activeElement.closest('#ig-dock #pd-og tr[data-pd-og-row="signers"]'), 8000);
+      && !!document.activeElement.closest('#ig-dock .pd2-fact[data-pd2-fact="signer"]'), 8000);
     check('3 closing it lands back on the Signer line', back, await page.evaluate(() => String(document.activeElement && (document.activeElement.className || document.activeElement.tagName))));
-    await page.tap('#ig-dock #pd-og tr[data-pd-og-row="signers"] .pd-ck-hd');
+    await page.tap('#ig-dock .pd2-fact[data-pd2-fact="signer"] [data-pd-og-route]');
     const tapped = await waitFor(page, () => !!document.getElementById('sr-win'), 8000);
     check('2c a touch press opens it too', tapped);
     await page.click('#sp-cancel').catch(() => {});

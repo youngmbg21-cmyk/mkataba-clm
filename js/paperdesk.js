@@ -2580,13 +2580,24 @@ function pd2SignRowsHtml(c){
     }
   });
   if (!steps.length) row('now', T('pd_rd_who'), T('pd_rd_nobody'), ((typeof canEdit !== 'function') || canEdit()) ? { attr: `data-pd-og-route="${E(c.id)}"`, w: 'jov5_sg_go_who' } : null);
-  row(closed ? 'done' : 'later', T('pd2_sg_then'), T('pd2_sg_then_s'));
+  /* "SENT" MUST MEAN SENT: signed, the last row says the copies went out only when they did (copiesNotOut; #762) */
+  let cpOut = null; try { cpOut = (closed && typeof window.copiesNotOut === 'function') ? window.copiesNotOut(c) : null; } catch (_){ cpOut = null; }
+  const cpHeld = !!(cpOut && cpOut.n);
+  const thenWords = cpHeld ? T(cpOut.n >= ((c.distribution && c.distribution.recipients || []).length || 1) ? 'ct_copies_none_sent' : 'ct_copies_some_sent') : T('pd2_sg_then_s');
+  const cpWho = cpHeld ? (cpOut.rows || []).map(r => r && (r.name || r.email)).filter(Boolean).join(' \u00b7 ') : '';
+  row(closed ? (cpHeld ? 'now' : 'done') : 'later', T('pd2_sg_then'), thenWords);
   /* the card */
   const mineNow = steps.some(st => st.n === now && st.rows.some(r => r && r.party === 'internal' && String(r.memberId || '') === String(me.id || '') && !r.signed));
   /* A FILE THEY SIGN (the outside route): the card is the handover's own act — Agree and hand over, Send for approval,
      or, once out, File the signed copy (hoActOf, js/views/handover.js; #762: the foot that drew it is hidden here) */
   const HO = (!closed && typeof window.hoActOf === 'function') ? window.hoActOf(c) : null;
-  const card = closed ? '' : HO
+  /* AN APPROVAL THAT IS THE READER'S TO DECIDE NOW: its Approve and Refuse stand in the card (the road that drew them is
+     folded away in the five parts; the same presses, data-pd-rd-rule → approvalDecideAsk; 16 Nov 2026, #762) */
+  let DEC = null; try { DEC = (!closed && typeof window.approvalDecidableNow === 'function') ? window.approvalDecidableNow(c) : null; } catch (_){ DEC = null; }
+  const myRule = !!(DEC && DEC.kind === 'rule');
+  const card = closed ? '' : myRule
+    ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_appr_wait'))}</b><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd-rd-rule="approved">${E(T((DEC.step && (DEC.step.status === 'rejected' || DEC.step.status === 'stale')) ? 'pd_rd_approve_again' : 'pd_rd_approve'))}</button><button type="button" class="ui-btn" data-pd-rd-rule="refused">${E(T('pd_rd_refuse'))}</button></div></div>`
+    : HO
     ? `<div class="pd2-sg-card${HO.primary ? '' : ' is-held'}"><div class="pd2-sg-acts"><button type="button" id="${HO.id}" class="ui-btn${HO.primary ? ' ui-btn-primary' : ''}" data-pd2-ho="${E(c.id)}">${E(HO.label)}</button><span>${E(HO.line)}</span></div></div>`
     : !holds.length && mineNow
     ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_clear'))}</b><p>${E(T('pd2_sg_clear_s'))}</p><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd2-sign>${E(T('apn_sign'))}</button><button type="button" class="ui-btn" data-pd2-sign-read>${E(T('pd2_sg_read'))}</button><span>${E(T('pd2_sg_no_call'))}</span></div></div>`
@@ -2607,10 +2618,11 @@ function pd2SignRowsHtml(c){
     const bar = closed ? '' : `<div class="pd2-sg-prog"><p><span>${E(T('jov5_sg_ready'))}</span><span>${E(T('jov5_sg_k_of_n', { k: done, n: checks.length }))}</span></p><i aria-hidden="true"><b style="width:${pct}%"></b></i></div>`;
     /* only WHILE SOMETHING HOLDS THE SIGNATURE (signBlockers): an open check that holds nothing (standards not run yet)
        never takes Sign's place (16 Nov 2026, #762) */
-    const first = (closed || HO || !holds.length) ? null : checks.find(m => (m.st === 'now') && m.go);
+    /* the approval's own Send for approval leads when it can be asked now: it is what holds the signature (#762) */
+    const first = (closed || HO || myRule || !holds.length) ? null : (saGo && checks.find(m => m.go === saGo)) || checks.find(m => (m.st === 'now') && m.go);
     const go = first ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go pd2-sg-go" ${first.go.attr}>${E(T(first.go.w))}</button>` : card;
     return `<div class="pd2-sg is-five">${head}${bar}<p class="pd2-sg-l">${E(T('jov5_sg_checks'))}</p><div class="pd2-sg-g">${rows.slice(0, -1).join('')}</div>`
-      + `<p class="pd2-sg-l">${E(T('jov5_sg_then'))}</p><div class="pd2-sg-g"><div class="pd2-sg-r is-${meta[meta.length - 1].st}"><i class="pd2-sg-i" aria-hidden="true">${closed ? '\u2713' : ''}</i><div><b>${E(T('pd2_sg_then_s'))}</b></div></div></div>${go}</div>`;
+      + `<p class="pd2-sg-l">${E(T('jov5_sg_then'))}</p><div class="pd2-sg-g"><div class="pd2-sg-r is-${meta[meta.length - 1].st}"><i class="pd2-sg-i" aria-hidden="true">${closed && !cpHeld ? '\u2713' : ''}</i><div><b>${E(thenWords)}</b>${cpWho ? `<small>${E(cpWho)}</small>` : ''}</div></div></div>${go}</div>`;
   }
   return `<div class="pd2-sg">${rows.join('')}${card}</div>`;
 }
@@ -7607,7 +7619,11 @@ function pd2TurnHtml(c){
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
   const it = L[0]; if (!it) return '';
   const t = (typeof riskTitleOf === 'function') ? riskTitleOf(it) : '', w = (typeof riskWhyOf === 'function') ? riskWhyOf(it) : '';
-  return `<div class="pd2-turn" data-pd2-turn><i class="pd2-jface" aria-hidden="true"></i><div><b>${_pdE(_pdT('cn2_jambo'))}</b><p>${_pdE(_pdT('pd2_turn', { what: t, why: w || t }))}</p></div></div>`;
+  /* RISKS TO LOOK AT › OPEN keeps its door (MAP: RISKS; 16 Nov 2026, #762 — the new look's Dossier said the worst risk and
+     offered no way to the list): the remark ends in the one door, lands on the Redlines face's risk list (#rl-risks) */
+  let shut = ''; try { shut = (typeof negoMayStartLine === 'function') ? (negoMayStartLine(c) || '') : ''; } catch (_){ shut = ''; }
+  const go = shut ? '' : ` <button type="button" class="ui-link pd2-turn-go" data-pd-gl-risks>${_pdE(_pdTn('dos_risks_n', L.length, { n: L.length }))} \u203a</button>`;
+  return `<div class="pd2-turn" data-pd2-turn><i class="pd2-jface" aria-hidden="true"></i><div><b>${_pdE(_pdT('cn2_jambo'))}</b><p>${_pdE(_pdT('pd2_turn', { what: t, why: w || t }))}${go}</p></div></div>`;
 }
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';

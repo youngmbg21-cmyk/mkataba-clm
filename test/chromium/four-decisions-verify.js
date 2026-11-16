@@ -95,8 +95,8 @@ const blocked = [];
         /* the Board's list also carries its own moves (/compare, /trend…), which fill a question: no "Open" there */
         ['the Board', () => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} }, '#igd-input', '#hb-askpop', '[data-hb-pop-kind="place"]'],
         ['Approvals\' panel', () => setView('approvals'), '#jl-q', '[data-jl-pop]'],
-        /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo box is the list panel's #jl-q */
-        ['Settings\' Jambo box', () => openSettingsAt('you'), '#jl-q', '#ca-slash'],
+        /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo box is the list panel's #jl-q, its "/" list the panel's own pop [data-jl-pop] */
+        ['Settings\' Jambo box', () => openSettingsAt('you'), '#jl-q', '[data-jl-pop]'],
       ]){
         await clean(); await ev(go);
         const up = await until(sel => { const b = document.querySelector(sel); return !!(b && b.getBoundingClientRect().width); }, box);

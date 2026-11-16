@@ -108,8 +108,11 @@ const pastFirstWords = async page => {
     const i = await page.evaluate(([s, v]) => [...document.querySelector(s).options].findIndex(o => o.value === v), [sel, value]);
     if (i < 0) return false;
     await page.click(`.hati-selmenu [data-sm="${i}"]`); return page.evaluate(([s, v]) => document.querySelector(s).value === v, [sel, value]); };
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's Wall
+     pill turns it to the wall, and Jambo's panel beside it is the page's five-part Overview (.jov5), not the old .pd-wall */
   const wall = async () => { await page.evaluate(() => { setView('dashboard'); caHomeWall(); intel.history = []; renderIntelDock(); });
-    return waitFor(page, () => !intel.paper && !!document.querySelector('#ig-dock .pd-wall'), 8000); };
+    if (await waitFor(page, () => !!document.querySelector('[data-ctf-show="wall"]'), 6000)) await page.click('[data-ctf-show="wall"]').catch(() => {});
+    return waitFor(page, () => !intel.paper && !!document.querySelector('#ig-paper [data-ct-show="wall"]') && !!document.querySelector('#ig-dock .jov5, #ig-dock .pd-wall'), 8000); };
   /* RE-POINTED 28 Oct 2026 (owner: "the card no longer sits on a panel … it shows up as a pop up card"): the drop card
      is opened by its door, in a pop-up over the wall */
   const card = async () => { if (!(await wall())) return false; await page.evaluate(() => pdDropDoor());
@@ -123,7 +126,7 @@ const pastFirstWords = async page => {
     await page.evaluate(() => closeModal()); await pause(300);
     const head = await page.evaluate(() => ({ draft: !!document.querySelector('#hb-head #hero-draft, #hb-head .hm-primary'),
       chips: [...document.querySelectorAll('#ig-dock [data-ig-chips] button')].map(b => b.textContent.trim()),
-      hello: (document.querySelector('#ig-dock .pd-hello') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
+      hello: (document.querySelector('#ig-dock .pd-hello') || document.querySelector('#ig-dock .jov5') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
       first: (() => { const w = document.querySelector('#ig-dock [data-jb-hello]'), p = document.querySelector('#ig-dock .pd-hello');
         return !!(w && p && (w.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING)); })() }));
     check('1b Home\'s head carries no "+ Draft new agreement"', !head.draft);

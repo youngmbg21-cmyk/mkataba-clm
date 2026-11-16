@@ -72,6 +72,9 @@ async function signIn(page, base){
 }
 async function toList(page){
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+     List pill is the way to the list */
+  if (await until(page, () => !!document.querySelector('[data-ctf-show="list"]')) && !(await page.$('#reg-tbody tr[data-row]'))) await page.click('[data-ctf-show="list"]').catch(() => {});
   return until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'));
 }
 /* HATI_DV_ONLY=4 for one stage, or 4,5 for a few (a fault that only shows
@@ -103,15 +106,19 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       /* 2a RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the list's own box is a quiet filter and hands
          nothing on; the form's door is "Ask a column" — opened, the question typed, nothing read */
       const calls0 = h.ai.calls.length;
-      await until(page, () => !!document.querySelector('[data-ac-open]'));
-      await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ac-open]')].find(x => x.getClientRects().length); if (b) b.click(); });
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the list's head carries no "Ask a column" (owner,
+         15 Nov 2026: no Discover button on Contracts); the form is the one the Reads and Discover doors open on Contracts
+         (rdOnContracts → askColOpen), drawn in Jambo's panel (askColFormDrawnHtml) */
+      await page.evaluate(() => askColOpen());
       await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
       await page.fill('#ig-dock #ac-form #ac-q', CAP_Q);
-      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value) && !!document.querySelector('#ac-named'); });
+      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value) && !!document.querySelector('#ac-named, #ac-name'); });
       check('2a Ask a column opens the form; the question typed there, nothing read', filled && h.ai.calls.length === calls0);
       /* 2b the name, said */ /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
-      const hint = await page.evaluate(() => (document.querySelector('#ac-named') || {}).textContent || '');
-      check('2b the form says the column\'s name under the question, with Change', /Column: Liability capped\s*Change/.test(hint.replace(/\s+/g, ' ')), hint);
+      /* RE-POINTED 16 Nov 2026 (#762): the drawn form gives the column's name its own box under the question, filled from it */
+      await until(page, () => /Liability capped/.test((document.querySelector('#ac-name') || {}).value || ''), null, 3000);
+      const hint = await page.evaluate(() => (document.querySelector('#ac-name') || {}).value || '');
+      check('2b the form says the column\'s name under the question, where it can be changed', hint === 'Liability capped', hint);
       await page.click('[data-ac-ask]');
       /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
          so the card is read once the read has ended */
@@ -132,6 +139,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('2e the foot says what each dot means', /usual, or inside our rule/.test(col.foot) && /a risk, or outside our rule/.test(col.foot) && /not found/.test(col.foot), col.foot);
       await page.screenshot({ path: path.join(OUT, '2-column.png') });
       /* 2f show the ones at risk */
+      /* RE-POINTED 16 Nov 2026 (#762): a finished read lands on the column's short drawn card; its "‹ Overview" is the step
+         to the column card with Show · Draw it · Copy the table */
+      if (await page.$('#ig-dock [data-ac-colback]')) { await page.click('#ig-dock [data-ac-colback]').catch(() => {}); await until(page, () => !document.querySelector('#ig-dock [data-ac-colback]'), null, 4000); }
       const card = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '');
       check('2f′ the card offers Show the 2 at risk · Draw it · Copy the table', /Show the 2 at risk/.test(card) && /Draw it/.test(card) && /Copy the table/.test(card), card.slice(0, 300));
       const callsDraw = h.ai.calls.length;
@@ -170,120 +180,10 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.click('#ig-dock [data-ac-keep]');
       const keptNow = await until(page, () => !document.querySelector('#ig-dock [data-ac-col] [data-ac-keep]'));
       check('3a′ "Keep in Discover" puts the question on the team\'s list', keepable && keptNow);
-      await page.evaluate(() => { regState().ask = []; regState().only = null; regRepaint(); });
-      await page.evaluate(() => askColSummary(true).then(() => renderIntelDock()));
-      const disc = await until(page, () => /Liability cap/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const dt = await page.evaluate(() => (document.querySelector('#ig-dock #ac-disc') || {}).innerText || '');
-      check('3a Discover stands in the panel beside the list: the kept question, counted, at risk said', disc && /Discover/.test(dt) && /2 at risk/.test(dt) && /Due diligence · 5 questions/.test(dt) && /Ask a new question/.test(dt), dt.replace(/\s+/g, ' ').slice(0, 300));
-      await page.screenshot({ path: path.join(OUT, '3-discover.png') });
-      /* a question nobody kept is not on the list; the folded line finds it,
-         and from there it can be kept or deleted (owner, 26 Oct 2026) */
-      await page.evaluate(() => api('ai/column', 'POST', { question: 'Which country\u2019s law governs this contract?', name: 'Governing law', ids: ['DV-01'] }));
-      await page.evaluate(() => askColSummary(true).then(() => renderIntelDock()));
-      const folded = await until(page, () => /other question/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const noLaw = await page.evaluate(() => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      check('3a″ a question nobody kept stays off the list, counted in one folded line', folded && noLaw,
-        await page.evaluate(() => (document.querySelector('#ig-dock #ac-disc') || {}).innerText.replace(/\s+/g, ' ').slice(0, 200)));
-      await page.click('#ig-dock [data-ac-disc-all="1"]');
-      const shown = await until(page, () => /Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const acts = await page.evaluate(() => { const r = [...document.querySelectorAll('#ig-dock .ac-disc-row')].find(x => /Governing law/.test(x.innerText));
-        return r ? { keep: !!r.querySelector('[data-ac-keep]'), del: !!r.querySelector('[data-ac-del]') } : null; });
-      check('3a‴ the folded line opens them, each with Keep and Delete', shown && acts && acts.keep && acts.del, JSON.stringify(acts));
-      /* ON A SCREEN THAT CANNOT HOVER THEY SIMPLY STAND THERE (the owner's
-         iPad). Keep and Delete rest until the pointer arrives, which on a
-         finger-only screen never happens — so the quiet is kept behind
-         (hover:hover), the house pattern the width grip already follows.
-         Read off the live stylesheet, not the file: a rule moved out of its
-         media block is the fault, wherever the bytes end up. */
-      const hv = await page.evaluate(() => {
-        for (const sh of document.styleSheets){
-          let rules; try { rules = sh.cssRules; } catch (_) { continue; }
-          for (const r of rules || []){
-            if (!r.cssRules || !/hover\s*:\s*hover/.test(r.conditionText || '')) continue;
-            for (const k of r.cssRules) if (/\.ac-disc-acts/.test(k.selectorText || '') && /opacity:\s*0/.test(k.style.cssText || '')) return true;
-          }
-        }
-        return false;
-      });
-      check('3a⁗ on a screen that cannot hover, Keep and Delete simply stand there', hv);
-      await page.click('#ig-dock [data-ac-disc-all="0"]');
-      await until(page, () => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const c0 = h.ai.calls.length;
-      await page.click('#ig-dock [data-ac-bring]');
-      /* >= 10, not 11: a paper drawn from its template keeps no answer of its
-         own (the server writes none), so DV-11 is read only where the drawing
-         travelled with the ask — which stage 2 does and HATI_DV_ONLY=3 cannot */
-      const up = await until(page, () => [...document.querySelectorAll('.reg-table thead th')].some(th => /Liability cap/.test(th.textContent)) && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 10);
-      check('3b a press brings its column onto the list, no call', up && h.ai.calls.length === c0,
-        JSON.stringify({ calls: h.ai.calls.length - c0, cells: await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length), heads: await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.trim())) }));
-      /* THE DOOR TO THE FULL REPORT IS ON EVERY COLUMN (owner, 26 Oct 2026:
-         "when you have 3 columns or company facts that you run … you do not
-         get the full report … They should all have the door to the full
-         report"). Here one column stands on the list and no pack was run:
-         red at the parent, where the door only appeared after a pack's read. */
-      /* RE-POINTED 29 Oct 2026: the door stands under the card's More… */
-      if (!await page.$('#ig-dock [data-ac-col] [data-ac-table]') && await page.$('#ig-dock [data-ac-col] [data-ac-more]')) await page.click('#ig-dock [data-ac-col] [data-ac-more]');
-      const door = await until(page, () => !!document.querySelector('#ig-dock [data-ac-col] [data-ac-table]'));
-      check('3b′ a column asked on its own carries the door to the full report', door,
-        await page.evaluate(() => ((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '(no card)').replace(/\s+/g, ' ').slice(0, 220)));
-      await page.click('#ig-dock [data-ac-col] [data-ac-table]');
-      const solo = await until(page, () => !!document.querySelector('#ac-table-page .ac-tt-table'));
-      const soloCols = await page.evaluate(() => ({
-        cols: document.querySelectorAll('#ac-table-page thead th').length,
-        head: [...document.querySelectorAll('#ac-table-page thead th')].map(t => t.textContent.trim()).join(' | '),
-        rows: document.querySelectorAll('#ac-table-page tbody tr').length }));
-      check('3b″ it opens over the column in play, every contract under it', solo && soloCols.cols === 2 && /Liability cap/.test(soloCols.head) && soloCols.rows >= 10, JSON.stringify(soloCols));
-      await page.click('#ac-tt-back');
-      await until(page, () => !document.querySelector('#ac-table-page'));
-      await page.click('#ig-dock [data-ac-pack]');
-      await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
-      const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('3c the pack opens in the same form: five questions, one read each, no cost', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /* RE-POINTED 28 Oct 2026 (THE THREAD): one sentence, one read each */ /reads the 11 shown, once each/.test(pf) && /all 5 questions/.test(pf) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
-      await page.screenshot({ path: path.join(OUT, '3-pack-form.png') });
-      /* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026) */
-      const ticks = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ac-pick]').length);
-      await page.uncheck('#ig-dock [data-ac-pick="4"]');
-      await page.uncheck('#ig-dock [data-ac-pick="3"]');
-      const picked = await until(page, () => /3 of 5 chosen/.test((document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || ''));
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('3c′ each question has a tick: untick two and the count follows', ticks === 5 && picked,
-        await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText.replace(/\s+/g, ' ').slice(0, 220)));
-      await page.check('#ig-dock [data-ac-pick="3"]');
-      await page.check('#ig-dock [data-ac-pick="4"]');
-      await until(page, () => /5 of 5 chosen/.test((document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || ''));
-      const c1 = h.ai.calls.length;
-      await page.click('#ig-dock [data-ac-ask]');
-      const three = await until(page, () => document.querySelectorAll('.reg-table thead th.ac-th').length === 3 && !!document.querySelector('#ig-dock [data-ac-table]'), null, 20000);
-      const spent = h.ai.calls.length - c1;
-      const heads = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th.ac-th')].map(th => th.textContent.trim()));
-      check('3d asked: one call per contract read (11), three columns stand, the full report offered', three && spent <= 11 && heads.length === 3, JSON.stringify({ spent, heads }));
-      await page.click('#ig-dock [data-ac-table]');
-      const pg = await until(page, () => !!document.querySelector('#ac-table-page'));
-      const tt = await page.evaluate(() => {
-        const first = document.querySelector('#ac-table-page tbody th.ac-tt-a');
-        return { cols: document.querySelectorAll('#ac-table-page thead th').length, rows: document.querySelectorAll('#ac-table-page tbody tr').length,
-          copy: !!document.querySelector('#ac-tt-copy'), wide: document.documentElement.scrollWidth > window.innerWidth,
-          card: !!document.querySelector('#ac-table-page .ac-tt-card'), sub: (document.querySelector('.ac-tt-sub') || {}).innerText || '',
-          stuck: first ? getComputedStyle(first).position : '', legend: (document.querySelector('.ac-tt-foot') || {}).innerText || '',
-          risk: !!document.querySelector('#ac-tt-risk'), heads: (document.querySelector('#ac-table-page thead') || {}).innerText || '' };
-      });
-      check('3e the whole table is a page: five answer columns, every contract, Copy the table, nothing spilling the window', pg && tt.cols === 6 && tt.rows === 11 && tt.copy && !tt.wide, JSON.stringify({ cols: tt.cols, rows: tt.rows, copy: tt.copy, wide: tt.wide }));
-      /* THE LEDGER (the owner picked it, 26 Oct 2026) */
-      check('3e′ one framed card: what was read said under the title, the contract column standing still, the legend in the foot',
-        tt.card && /answers/.test(tt.sub) && /read/.test(tt.sub) && tt.stuck === 'sticky' && /inside our rule/.test(tt.legend),
-        JSON.stringify({ card: tt.card, sub: tt.sub.replace(/\s+/g, ' '), stuck: tt.stuck }));
-      check('3e″ the at-risk count stands in the head of the column it belongs to, and Only at risk narrows the table',
-        /at risk/.test(tt.heads) && tt.risk, tt.heads.replace(/\s+/g, ' ').slice(0, 160));
-      if (tt.risk){
-        await page.click('#ac-tt-risk');
-        const fewer = await until(page, () => document.querySelectorAll('#ac-table-page tbody tr').length < 11);
-        check('3e‴ pressed, only the rows at risk stand; pressed again they all come back', fewer && await (async () => {
-          await page.click('#ac-tt-risk');
-          return until(page, () => document.querySelectorAll('#ac-table-page tbody tr').length === 11);
-        })());
-      }
-      await page.screenshot({ path: path.join(OUT, '3-table.png') });
-      await page.click('#ac-tt-back');
-      check('3f Back to the list closes it', await until(page, () => !document.querySelector('#ac-table-page')));
+      /* RETIRED 16 Nov 2026 (#762): 3a, 3a″, 3a‴, 3a⁗, 3b–3f — "Discover beside the list" (#ac-disc, its kept questions,
+         packs and the whole-table page opened from it) is the old look's only: askColDiscoverHtml returns nothing in the new
+         look, which has its Discover page (dsnRender), pinned by discover-page-verify, read-table-verify,
+         reads-and-columns-as-drawn-verify and reads-new-look-fixes-verify */
     }
 
     if (stage(4)){

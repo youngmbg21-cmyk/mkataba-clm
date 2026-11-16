@@ -57,8 +57,12 @@ const FACE = () => {
     title: f ? ((f.querySelector('h3') || {}).textContent || '').trim() : '',
     pill: f ? ((f.querySelector('[data-pd-sf-pill]') || {}).innerText || '').trim() : '',
     btn: ((document.getElementById('sign-btn') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-    btnInFoot: !!document.querySelector('#pd-signface .pd-sf-foot #sign-btn'),
-    list: !!document.querySelector('#pd-signface #sign-check'),
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Before you sign is drawn as its five parts — the
+       checks as one list (.pd2-sg-r), and at its foot the one act: the clear card's Sign, the held Sign with how many
+       are left, or the first open check's own door. Asked as painted pixels, since the old column is not drawn. */
+    btnInFoot: (() => { const g = document.querySelector('#pd-signface .pd2-sg'); const last = g && g.lastElementChild;
+      return !!last && last.getClientRects().length > 0 && (last.matches('.pd2-sg-card, button') && !!(last.matches('button') ? last : last.querySelector('button'))); })(),
+    list: [...document.querySelectorAll('#pd-signface .pd2-sg .pd2-sg-r')].some(r => r.getClientRects().length > 0),
     copy: !!document.querySelector('#ig-paper .pg-sheet.pg-sign'),
     chip: ((document.querySelector('#ig-strip .ig-copy-chip') || {}).textContent || '').trim(),
     toggle: !!document.querySelector('#ig-strip [data-ig-red]'),
@@ -129,7 +133,10 @@ const FACE = () => {
     const ready = await waitFor(page, () => /^Sign as /.test(((document.getElementById('sign-btn') || {}).textContent || '').trim()), 6000);
     check('3a readied, the face\'s button says Sign as you', ready, await page.evaluate(() => ((document.getElementById('sign-btn') || {}).textContent || '').trim()));
     if (ready) {
-      await page.click('#sign-btn');
+      /* RE-POINTED 16 Nov 2026 (#762): the Sign a reader presses is the five-part face's clear card ([data-pd2-sign]),
+         which presses #sign-btn */
+      await page.waitForSelector('#pd-signface [data-pd2-sign]', { timeout: 5000 }).catch(() => {});
+      await page.click('#pd-signface [data-pd2-sign]');
       const pad = await waitFor(page, () => !!document.getElementById('sig-intent'), 5000);
       check('3b the pad opens with its intent line', pad);
       if (pad) {
@@ -159,7 +166,9 @@ const FACE = () => {
       title: ((document.querySelector('#pd-signface h3') || {}).textContent || '').trim(),
       next: ((document.querySelector('#pd-signface .pd-sf-next h6') || {}).textContent || '').trim(),
       seal: [...document.querySelectorAll('#pd-signface #sign-seal-acts button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean) }));
-    check('5a signed, the face is the receipt: no Sign foot, the title says Signed', f5.closed && !f5.foot && f5.title === 'Signed', JSON.stringify(f5));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the five-part face's headline says it — "Signed and
+       sealed." (jov5_sg_t_done) */
+    check('5a signed, the face is the receipt: no Sign foot, the title says Signed', f5.closed && !f5.foot && /^Signed\b/.test(f5.title), JSON.stringify(f5));
     check('5b "What starts now", and the seal\'s acts on top', f5.next === 'What starts now' && f5.seal.length >= 1, JSON.stringify(f5));
     await page.screenshot({ path: path.join(OUT, '5-receipt.png') });
 
@@ -170,7 +179,10 @@ const FACE = () => {
     check('6a the room keeps Overview and Where we are', JSON.stringify(tabs) === JSON.stringify(['terms', 'stands']), JSON.stringify(tabs));
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'oblig'));
     /* RE-POINTED 15 Oct 2026 (owner: the contract's views page went): Obligations is the Obligations page narrowed to the contract, History the Board's contract card */
-    check('6b its old Obligations door opens the Obligations page narrowed to the contract', await waitFor(page, () => state.view === 'obligations' && !!document.querySelector('#obw-one-host[data-ins-cid="MK-A2"]'), 8000));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look has no narrowed Obligations page — one contract asked for lands on
+       its paper's Obligations face (renderObligationsList → pd2ObGo) */
+    check('6b its old Obligations door opens the Obligations page narrowed to the contract', await waitFor(page, () => (state.view === 'obligations' && !!document.querySelector('#obw-one-host[data-ins-cid="MK-A2"]'))
+      || (state.view === 'dashboard' && !!(window.pdContract && pdContract() && pdContract().id === 'MK-A2') && typeof pdTab === 'function' && pdTab() === 'oblig'), 8000));
     await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); });
     await waitFor(page, () => state.view === 'workspace', 6000);
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'history'));
@@ -192,7 +204,16 @@ const FACE = () => {
        contract's tabs back, the Menu among them */
     if (await page.$('#ig-dock [data-pd-back]')) await page.click('#ig-dock [data-pd-back]').catch(() => {});
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the menu rows are the dossier's All acts fold */
-    const mt = await waitFor(page, () => { const m = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); return !!m && m.querySelectorAll('.pd-mn-rows button').length > 2; }, 6000);
+    /* RE-POINTED 16 Nov 2026 (#762): the contract's menu rows are reached through More on the paper's line
+       (#ig-actions → #pd-acts-pop, its last row All acts) */
+    if (await page.$('#ig-actions')) {
+      await page.click('#ig-actions').catch(() => {});
+      await waitFor(page, () => !!document.querySelector('#pd-acts-pop'), 3000);
+      if (await page.$('#pd-acts-pop [data-pd-acts-every]')) await page.click('#pd-acts-pop [data-pd-acts-every]').catch(() => {});
+    }
+    const mt = await waitFor(page, () => { const m = document.querySelector('#pd-acts-pop') || document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]');
+      return !!m && [...m.querySelectorAll('[data-pd-acts-go], .pd-mn-rows button')].filter(b => b.getClientRects().length).length > 2; }, 6000);
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); });
     check('7b the dossier\'s All acts holds the contract\'s menu rows', mt);
     await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
 
@@ -211,7 +232,9 @@ const FACE = () => {
         const fr = f.getBoundingClientRect();
         const r = s => { const e = f.querySelector(s); return e ? e.getBoundingClientRect() : null; };
         /* RE-POINTED 18 Oct 2026: the way back is the panel row's ‹ Jambo (no × in the face's head) */
-        const head = r('.pd-sf-h'), xe = document.querySelector('#ig-dock [data-pd-back="signing"]'), x = xe ? xe.getBoundingClientRect() : null, btn = r('#sign-btn');
+        /* RE-POINTED 16 Nov 2026 (#762): the five-part face's head (.jov5-intro) and its Sign (the clear card's
+           [data-pd2-sign]); the old head and #sign-btn are not drawn */
+        const head = r('.pd2-sg .jov5-intro') || r('.pd-sf-h'), xe = document.querySelector('#ig-dock [data-pd-back="signing"]'), x = xe ? xe.getBoundingClientRect() : null, btn = r('[data-pd2-sign]');
         const body = f.querySelector('.pd-sf-body');
         return { dock: Math.round(document.getElementById('ig-dock').getBoundingClientRect().width),
           headIn: !!head && head.top >= fr.top - 1 && head.bottom <= fr.bottom, xIn: !!x && x.right <= fr.right + 1,
@@ -236,7 +259,9 @@ const FACE = () => {
     await page.evaluate(() => { if (!document.getElementById('pd-signface') && window.pdSignOpen) pdSignOpen('MK-A2'); });
     await waitFor(page, () => !!document.querySelector('#pd-signface h3'), 5000);
     const s9 = await page.evaluate(() => ({ title: ((document.querySelector('#pd-signface h3') || {}).textContent || '').trim() }));
-    check('9a Svenska: the face speaks the reader\'s language', !!sv && s9.title === 'Innan du signerar', JSON.stringify(s9));
+    /* RE-POINTED 16 Nov 2026 (#762): the face's h3 is its five-part headline, said in Swedish */
+    const sv9 = await page.evaluate(() => { const t = document.querySelector('#pd-signface h3'); return { en: /before anyone can sign|Signed and sealed|ready to sign/i.test(t ? t.textContent : '') }; });
+    check('9a Svenska: the face speaks the reader\'s language', !!sv && !!s9.title && !sv9.en && /signer/i.test(s9.title), JSON.stringify(s9));
     await page.screenshot({ path: path.join(OUT, '9-svenska.png') });
     await page.evaluate(() => langSet('en')); await pause(500);
     await page.setViewportSize({ width: 390, height: 844 }); await pause(600);

@@ -227,9 +227,11 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       Q11.n >= 6 && Q11.rows === Q11.n && Q11.head === 'Term What it says Where it came from' && /^Our party/.test(Q11.first[0]) && /^The other company/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 40, JSON.stringify(Q11));
     /* 12 step 3 one row */
     /* RE-POINTED 24 Oct 2026 (the Legora way): "Filed in", the streams and "Needed before Create" on one line, the cost under it */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; its TIGHT SHEET): "Needed before Create" stands under its
+       own label "Filed in", beside the stream chips, the cost under */
     const R12 = await page.evaluate(() => { const row = document.querySelector('#na-file .na-file-b'), lab = row && row.querySelector('.na-file-l'), seg = row && row.querySelector('.na-seg'), need = row && row.querySelector('.na-need'), cost = document.getElementById('na-file-cost');
       const r = el => el.getBoundingClientRect();
-      return row && lab && seg && need && cost ? { label: lab.textContent.trim(), needBeside: r(need).left >= r(seg).left && r(need).top < r(seg).bottom, costUnder: r(cost).top >= r(row).bottom - 1,
+      return row && lab && seg && need && cost ? { label: lab.textContent.trim(), needBeside: Math.abs(r(need).left - r(lab).left) <= 1 && r(need).top >= r(lab).bottom - 1 && r(need).right <= r(seg).left + 1 && r(need).top < r(seg).bottom, costUnder: r(cost).top >= r(row).bottom - 1,
         newStream: !!row.querySelector('[data-na-stream="__new__"]') } : null; });
     check('12 step 3: "Filed in", the streams, "Needed before Create" — the cost under — no "+ New stream"', !!R12 && R12.label === 'Filed in' && R12.needBeside && R12.costUnder && !R12.newStream, JSON.stringify(R12));
     /* 15 (the third pass) the streams are separate buttons, each its own edge, amber while owed */

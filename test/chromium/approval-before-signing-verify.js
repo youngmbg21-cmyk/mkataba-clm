@@ -222,7 +222,8 @@ let H;
     check('4a  it is on the approver\'s Approvals page, named for the person, asked by the lead',
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn, "Jonas's yes before signing /
          Erik's contracts need it"): the line under the step names whose contracts need it */
-      /Unrestricted Legal/.test(list) && /contracts need it/.test(list), list);
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's row (apnRowHtml) says "asked by …" and the rule's line, "<name>'s contracts" */
+      /asked by Unrestricted Legal/.test(list) && /Unrestricted Legal['’]s contracts/.test(list), list);
     await shot(P.page, 'sa-05-list');
     await openSign(P.page);
     /* RE-POINTED 18 Oct 2026 (the gaps, round 10 "The road", f752): the approval
