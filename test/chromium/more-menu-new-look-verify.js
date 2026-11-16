@@ -4,7 +4,7 @@
    rows, never shown, beside the new look's Dossier, wired by the dock's own pass.
      1 · Every row in the More menu moves something: a page, a dialog, a window, a download, a new tab or Redlines
      2 · Edit clause opens Redlines and the clause editor
-     3 · Negotiation memo opens the close plan (the memo's one door in the new look)
+     3 · Negotiation memo opens the memo's own side panel (the close plan that held it was removed, owner, 16 Nov 2026, f1084)
      4 · The unseen rows are never shown
    At the parent 1–3 fail: every row is dead in the new look.
    Run: node test/chromium/more-menu-new-look-verify.js */
@@ -42,7 +42,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   const state = () => page.evaluate(() => ({ modal: ((document.getElementById('modal-root') || {}).innerText || '').length,
     overlays: [...document.body.children].filter(e => /overlay/.test(e.id) && e.getClientRects().length).map(e => e.id).join(','),
     red: !!(window.pdRedShows && pdRedShows()), view: state.view, printed: window._printed || 0,
-    mid: (() => { const d = document.querySelector('#modal-root [data-deal-mid]'); return d ? 'deal:' + d.getAttribute('data-deal-mid') : ''; })() }));
+    side: !!document.querySelector('#side-panel #ng-memo-copy'), deal: !!document.querySelector('[data-deal-mid]') }));
   await land();
   const names = await page.evaluate(async () => { document.getElementById('ig-actions').click(); await new Promise(r => setTimeout(r, 400));
     const n = [...document.querySelectorAll('#pd-acts-pop [data-pd-acts-go]')].filter(b => !b.disabled).map(b => b.textContent.trim()); document.getElementById('ig-actions').click(); return n; });
@@ -56,8 +56,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await until(page, () => !!document.querySelector('#pd-acts-pop [data-pd-acts-go]'), null, 5000);
     await page.evaluate(nm => { const b = [...document.querySelectorAll('#pd-acts-pop [data-pd-acts-go]')].find(x => x.textContent.trim() === nm); if (b) b.click(); }, nm);
     await until(page, ([b, d0, p0]) => { const a = { modal: ((document.getElementById('modal-root') || {}).innerText || '').length,
-      overlays: [...document.body.children].filter(e => /overlay/.test(e.id) && e.getClientRects().length).map(e => e.id).join(','), red: !!(window.pdRedShows && pdRedShows()) };
-      return a.modal !== b.modal || a.overlays !== b.overlays || a.red !== b.red || (window._printed || 0) !== b.printed; }, [before, d0, p0], 5000);
+      overlays: [...document.body.children].filter(e => /overlay/.test(e.id) && e.getClientRects().length).map(e => e.id).join(','), red: !!(window.pdRedShows && pdRedShows()), side: !!document.querySelector('#side-panel #ng-memo-copy') };
+      return a.modal !== b.modal || a.overlays !== b.overlays || a.red !== b.red || a.side !== b.side || (window._printed || 0) !== b.printed; }, [before, d0, p0], 5000);
     await page.waitForTimeout(400);
     const after = await state();
     const moved = JSON.stringify(after) !== JSON.stringify(before) || downloads > d0 || popups > p0;
@@ -69,7 +69,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   const ed = Object.keys(seen).find(k => /Edit clause/.test(k));
   check('2 · Edit clause opens Redlines and the clause editor', !!ed && seen[ed].after.red, ed ? seen[ed] : 'no row');
   const mm = Object.keys(seen).find(k => /Negotiation memo/.test(k));
-  check('3 · Negotiation memo opens the close plan', !!mm && /^deal:/.test(seen[mm].after.mid), mm ? seen[mm] : 'no row');
+  check('3 · Negotiation memo opens the memo side panel, no close plan', !!mm && seen[mm].after.side && !seen[mm].after.deal, mm ? seen[mm] : 'no row');
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

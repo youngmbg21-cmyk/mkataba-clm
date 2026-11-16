@@ -10476,21 +10476,19 @@ function hbPresent(on){
    board tab and the room's Obligations and History tabs stay until stage 5,
    and Jambo's Obligations tab stays beside the paper for working)
    ============================================================
-   ONE SWITCH AT THE BOARD'S TOP: Your book · Deal board · Obligations ·
-   History, the last three for the contract on the paper (pdContract — the
+   ONE SWITCH AT THE BOARD'S TOP: Your book · Obligations · History (the Deal
+   board view was removed by the owner, 16 Nov 2026, f1084), the last two for the contract on the paper (pdContract — the
    one fact both faces read), drawn only while one is there. One view at a
    time at the Board's full width, Print · Share · Download on the same line.
-   EACH VIEW IS THE ROOM'S OWN BUILDER IN A SECOND HOST — dealBoardHtml (its
-   presses find their host, rlBoardHostOf), roomPaintObligations and
+   EACH VIEW IS THE ROOM'S OWN BUILDER IN A SECOND HOST — roomPaintObligations and
    roomPaintHistory — so the Board, the room and the Negotiate page can never
    disagree. Its body is painted by its own painter (hbCvPaint) and the
    Board's morph leaves it alone (data-hb-own). Per sitting; a refresh keeps
-   it (hbPlace). The number on a switch is the list's own: the deal board's
-   "Needs you" (dealBoardFacts) and the tab's overdue (obtRowsOf/obtPass). */
-const HB_CVIEWS = ['book', 'deal', 'oblig', 'hist'];
-const HB_CV_WORD = { book: 'hb_book', deal: 'ng_board', oblig: 'tab_obligations', hist: 'tab_history' };
+   it (hbPlace). The number on a switch is the list's own: the tab's overdue (obtRowsOf/obtPass). */
+const HB_CVIEWS = ['book', 'oblig', 'hist'];
+const HB_CV_WORD = { book: 'hb_book', oblig: 'tab_obligations', hist: 'tab_history' };
 /* the phone draws the room: a view's own tab there */
-const HB_CV_ROOM_TAB = { deal: 'redline', oblig: 'oblig', hist: 'history' };
+const HB_CV_ROOM_TAB = { oblig: 'oblig', hist: 'history' };
 let _hbCvShare = false;
 function hbCvContract(){ try { return (typeof window.pdContract === 'function') ? pdContract() : null; } catch (_){ return null; } }
 /* the view shown: a contract's view only while that contract is the paper's */
@@ -10505,8 +10503,7 @@ function hbCvSet(v, id){ _hbCv = { v: HB_CVIEWS.includes(v) ? v : 'book', id: id
    on (obligationTabState — the count the room's Obligations tab carried),
    coloured late only when one of them is overdue, the sidebar counts' rule */
 function hbCvCounts(c){
-  const n = { deal: 0, oblig: 0, obligLate: false };
-  try { if (typeof window.dealBoardFacts === 'function') n.deal = dealBoardFacts(c, 'owner').n.you; } catch (_){}
+  const n = { oblig: 0, obligLate: false };
   try { if (typeof window.obligationTabState === 'function'){ const st = obligationTabState(c); n.oblig = st.open; n.obligLate = st.overdue > 0; } } catch (_){}
   return n;
 }
@@ -10519,7 +10516,7 @@ function hbCvSwitchHtml(now){
   const c = now.c; if (!c) return '';
   const n = hbCvCounts(c);
   const ic = k => (typeof icon === 'function') ? icon(k, 'hb-cv-ic', 2) : '';
-  const tab = v => { const k = v === 'deal' ? n.deal : v === 'oblig' ? n.oblig : 0;
+  const tab = v => { const k = v === 'oblig' ? n.oblig : 0;
     const tone = v === 'oblig' ? (n.obligLate ? ' is-late' : '') : ' is-owed';
     return `<button type="button" role="tab" data-hb-cv="${v}" aria-selected="${now.v === v}">${_hbE(i18t(HB_CV_WORD[v]))}${k ? `<span class="hb-cv-n${tone}">${k}</span>` : ''}</button>`; };
   const ready = hbCvReady(now), wait = ready ? '' : ` disabled title="${_hbE(i18t('hb_cv_reading'))}"`;
@@ -10531,7 +10528,7 @@ function hbCvSwitchHtml(now){
 }
 function hbCvBodyHtml(now){
   const id = _hbE(String(now.c.id));
-  return `<div class="hb-cv-body hb-cv-${now.v}" id="hb-cv-body" data-hb-own data-hb-cv="${now.v}" data-hb-cv-cid="${id}"${now.v === 'deal' ? ` data-db-host="${id}"` : ''}></div>`;
+  return `<div class="hb-cv-body hb-cv-${now.v}" id="hb-cv-body" data-hb-own data-hb-cv="${now.v}" data-hb-cv-cid="${id}"></div>`;
 }
 /* THE VIEW'S OWN PAINTER: the room's builder into the Board's host, and only
    when what it would draw has changed — the Board repaints on many presses,
@@ -10542,17 +10539,6 @@ function hbCvPaint(force){
   const v = host.getAttribute('data-hb-cv');
   const c = (typeof getContract === 'function') ? getContract(host.getAttribute('data-hb-cv-cid')) : null;
   if (!c) return;
-  if (v === 'deal'){
-    if (typeof window.dealBoardHtml !== 'function') return;
-    /* the board's own sheet, which only the Negotiate page had asked for */
-    if (typeof window.redlineLayoutCss === 'function') try { redlineLayoutCss(); } catch (_){}
-    const html = dealBoardHtml(c, 'owner');
-    if (!force && host._dbHtml === html) return;
-    const keep = ['#db-list', '#db-pane'].map(s => { const el = host.querySelector(s); return el ? el.scrollTop : 0; });
-    host.innerHTML = html; host._dbHtml = html;
-    ['#db-list', '#db-pane'].forEach((s, i) => { const el = host.querySelector(s); if (el && keep[i]) el.scrollTop = keep[i]; });
-    return;
-  }
   if (v === 'oblig'){
     if (typeof window.roomPaintObligations !== 'function') return;
     let sig = '';
@@ -10614,10 +10600,10 @@ function hbCvPick(v){
   hbPaintBoard();
 }
 /* PRINT AND DOWNLOAD ARE ONE PAGE: the history's own report (its export and
-   its print, unchanged), and for the other two the page each view makes of
-   itself (dealBoardReportHtml, obReportHtml) — printed through the one print
+   its print, unchanged), and for the obligations the page the view makes of
+   itself (obReportHtml) — printed through the one print
    runner (printWindowRun), saved through the one saver (downloadFile). */
-function hbCvReportOf(v){ return v === 'deal' ? window.dealBoardReportHtml : v === 'oblig' ? window.obReportHtml : null; }
+function hbCvReportOf(v){ return v === 'oblig' ? window.obReportHtml : null; }
 function hbCvPrint(){
   const now = hbCvNow(); if (!now.c || now.v === 'book' || !hbCvReady(now)) return;
   if (now.v === 'hist'){ if (typeof window.negoHistoryPrintRun === 'function') negoHistoryPrintRun(now.c); return; }
@@ -10629,7 +10615,7 @@ function hbCvDownload(){
   if (now.v === 'hist'){ if (typeof window.negoHistoryExportRun === 'function') negoHistoryExportRun(now.c); return; }
   const build = hbCvReportOf(now.v); if (typeof build !== 'function' || typeof window.downloadFile !== 'function') return;
   const ref = (typeof contractRef === 'function') ? contractRef(now.c) : now.c.id;
-  downloadFile(`${ref}-${now.v === 'deal' ? 'deal-board' : 'obligations'}.html`, build(now.c), 'text/html');
+  downloadFile(`${ref}-obligations.html`, build(now.c), 'text/html');
   if (typeof toast === 'function') toast(i18t('hb_cv_saved', { what: i18t(HB_CV_WORD[now.v]), ref }), 'ok');
 }
 /* SHARE: COLLEAGUES INSIDE HaTi ONLY (decision 1). The view is given by its

@@ -1,11 +1,11 @@
 /* THE NEW LOOK: NEGOTIATE (the Negotiate round, 31 Oct 2026; the review room's Redlines, Drag the counter, Clause editor,
-   The close plan, Where we are, History, Send; behind the switch). A SaaS agreement on which the other side asked two
+   Where we are, History, Send; behind the switch; the close plan removed 16 Nov 2026). A SaaS agreement on which the other side asked two
    figures: 60 days to pay (the standard is 45 at most) and 6 months' liability (the standard is 12 at least). With the
    switch on, at the owner's three screens:
      1 · their asks beside the redlined paper, numbered, Counter at the limit where it is not ours (else Reject · hold ours); one grey note for what they left alone
      2 · the Redlines face's four links above Jambo's box: ladder · notes · their view · history; the line keeps Clean ·
          Redline · Their view (owner, 8 Nov 2026)
-     3 · the close plan: one table (Point · us · them · Stand), a point opens to compare, the two wordings side by side
+     3 · no close plan (removed by the owner, 16 Nov 2026, f1084): no Deal on the face, nothing to open it
      4 · Send: the questions a column of lines, the letter beside them; a line pressed opens its list; From among the lines;
          Before you send in labelled rows
      5 · History: the quick links (only those that give rows), one press narrows the trail
@@ -15,7 +15,7 @@
      8 · the note's Counter at 45 files OUR counter on top of their ask (nothing sent)
      9 · their figure dragged on the paper to 50 files our counter "50" on top of theirs
    And the switch off:
-    10 · no notes beside the paper, no quick links, the close plan as before
+    10 · no notes beside the paper, no quick links
    At the parent (before this round) 1–9 fail: none of it is drawn.
    Run: node test/chromium/negotiate-new-look-verify.js   (pictures: NEGOTIATE_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -102,26 +102,12 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         return { send: b ? b.textContent.trim() : '', off: !!(b && b.disabled), sw: !!(sw && sw.getBoundingClientRect().width), ins: mk ? getComputedStyle(mk).color : '',
           chips: [...document.querySelectorAll('#ig-dock :is(.rl-head-review,.rl-head-notes,.rl-head-deal)')].map(x => x.textContent.trim()).join(' · ') }; });
       /* Clean · Redline · Their view STAYS on the line on the Redlines face (owner, 8 Nov 2026; reverses 31 Oct's "no switch") */
-      check(`${nm} 2 four links above Jambo's box; Send all grey until something is drafted; the Clean · Redline · Their view switch stays on the line; their additions green; Ask for review · Notes · Deal · Ladder`,
-        links === 'ladder · notes · their view · history' && line.send === 'Send all' && line.off && line.sw && line.chips.split(' · ').sort().join('|') === 'Ask for review|Deal|Ladder|Notes' && line.ins === 'rgb(31, 77, 59)', { links, line });
+      check(`${nm} 2 four links above Jambo's box; Send all grey until something is drafted; the Clean · Redline · Their view switch stays on the line; their additions green; Ask for review · Notes · Ladder`,
+        links === 'ladder · notes · their view · history' && line.send === 'Send all' && line.off && line.sw && line.chips.split(' · ').sort().join('|') === 'Ask for review|Ladder|Notes' && line.ins === 'rgb(31, 77, 59)', { links, line });
       await page.screenshot({ path: path.join(OUT, `redlines-${nm}.png`) });
-      /* 3 · the close plan */
-      await page.evaluate(id => pdDealOpen(id), ID);
-      await until(page, () => !!document.querySelector('#modal-root .dl2-t'), null, 10000);
-      await page.click('#modal-root [data-deal-toggle]').catch(() => {});
-      await until(page, () => !!document.querySelector('#modal-root .dl2-cmp'), null, 5000);
-      const d3 = await page.evaluate(() => ({
-        title: (document.querySelector('#modal-root .dl2-h') || {}).textContent || '',
-        heads: [...document.querySelectorAll('#modal-root .dl2-th span')].map(s => s.textContent.trim()),
-        rows: [...document.querySelectorAll('#modal-root .dl2-r')].map(r => [r.querySelector('.dl2-pt b').textContent, r.querySelector('.dl2-us').textContent, r.querySelector('.dl2-them').textContent, r.querySelector('.dl2-st').textContent].map(x => x.replace(/\s+/g, ' ').trim())),
-        cmpCols: document.querySelectorAll('#modal-root .dl2-cmp-b > div').length,
-        cmpMarks: !!document.querySelector('#modal-root .dl2-cmp .dl2-w ins, #modal-root .dl2-cmp .dl2-w del, #modal-root .dl2-cmp .dl2-w .rl-ins, #modal-root .dl2-cmp .dl2-w .rl-del'),
-        foot: [...document.querySelectorAll('#modal-root .dl2-foot button')].map(b => b.textContent.trim()) }));
-      check(`${nm} 3 the close plan: one table, a point opens to compare side by side`, /^The close plan/.test(d3.title)
-        && d3.heads.join('|') === 'Point|Highland Corporate Ltd|Parcelway Logistics Ltd|Stand'
-        && d3.rows.length === 1 && /Limitation of liability/.test(d3.rows[0][0]) /* as on the paper (owner, 12 Nov 2026) */ && d3.rows[0][1] === '12 months' && d3.rows[0][2] === '6 months'
-        && d3.cmpCols === 2 && d3.cmpMarks && d3.foot.includes('Send'), d3);
-      await page.screenshot({ path: path.join(OUT, `close-plan-${nm}.png`) });
+      /* 3 · no close plan (f1084) */
+      const d3 = await page.evaluate(() => ({ deal: document.querySelectorAll('[data-rl-deal], [data-deal-mid], .dl2').length, open: typeof window.pdDealOpen }));
+      check(`${nm} 3 no close plan: no Deal on the face, nothing to open it`, d3.deal === 0 && d3.open === 'undefined', d3);
       await back(page);
       /* 4 · Send */
       await page.evaluate(id => openShareModal(getContract(id)), ID);
@@ -225,10 +211,7 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       await face(page, 'MK-R6');
       await until(page, () => !!document.querySelector('#ig-canvas .ig-redpaper, #ig-canvas'), null, 5000);
       const off = await page.evaluate(() => ({ notes: document.querySelectorAll('#pd2-notes .pd2-mn').length }));
-      await page.evaluate(() => pdDealOpen('MK-R6'));
-      await until(page, () => !!document.querySelector('#modal-root [data-deal-mid]'), null, 10000);
-      off.dl2 = await page.evaluate(() => !!document.querySelector('#modal-root .dl2'));
-      check('10 the switch off: no notes beside the paper, the close plan as before', off.notes === 0 && !off.dl2, off);
+      check('10 the switch off: no notes beside the paper', off.notes === 0, off);
       await page.close(); }
   } finally { await browser.close(); await h.stop(); }
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

@@ -2446,7 +2446,7 @@ const ALERT_KINDS = [
      Ranked under the work somebody is owed and over what only waits. */
   { k:'watch',       tone:'amber', ic:'&#128065;' },
   /* ---- A VIEW A COLLEAGUE GAVE YOU (the one-page Home plan, stage 4) ----
-     A contract's deal board, obligations or history, given from the Board's
+     A contract's obligations or history, given from the Board's
      Share with a note (hbGiftAlerts). Amber: a colleague asked you to look.
      It clears once seen — drawn on your Board, or opened from here. */
   { k:'gift',        tone:'amber', ic:'&#127873;' },

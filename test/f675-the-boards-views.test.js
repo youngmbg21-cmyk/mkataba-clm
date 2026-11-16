@@ -30,6 +30,10 @@
    every door that opened a view lands on its home — History on the Board's
    contract card (the strip), Obligations on the panel's tab, the rest on the
    strip's Where we are. (1c), (6) and (7a) now pin that.
+   THE DEAL BOARD VIEW WENT TOO (owner, 16 Nov 2026, f1084): its builder,
+   its count, its report and its 'deal' view are gone; a door asking for the
+   deal opens the contract's Redlines face. (1b), (2b), (3), (4), (6b), (6d)
+   are re-pointed to that.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -40,7 +44,6 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const HB = R('js/views/homeboard.js');
 const NEGO = R('js/views/negotiation.js');
-const NCSS = R('js/views/negotiation-css.js');
 const OB = R('js/obligations.js');
 const CT = R('js/views/contract.js');
 const PD = R('js/paperdesk.js');
@@ -80,8 +83,8 @@ describe('f675 (1) one switch, for the contract on the paper', () => {
     assert.match(strip(fnBody(HB, 'hbCvContract')), /pdContract\(\)/, 'the paper\'s contract: one fact, both faces read it');
     assert.match(strip(fnBody(HB, 'hbCvSwitchHtml')), /const c = now\.c; if \(!c\) return '';/);
   });
-  test('1b the four, in order, with whose they are; Print · Share · Download only on a view', () => {
-    assert.match(HB, /const HB_CVIEWS = \['book', 'deal', 'oblig', 'hist'\];/);
+  test('1b the three, in order (the Deal board view gone, f1084); Print · Share · Download only on a view', () => {
+    assert.match(HB, /const HB_CVIEWS = \['book', 'oblig', 'hist'\];/);
     const sw = strip(fnBody(HB, 'hbCvSwitchHtml'));
     assert.match(sw, /const acts = now\.v === 'book' \? '' :/);
     assert.match(sw, /act\('print', 'hb_cv_print'[\s\S]*act\('share', 'act_share'[\s\S]*act\('down', 'act_download'/);
@@ -105,22 +108,13 @@ describe('f675 (2) the room\'s own builders, in a second host', () => {
     const p = strip(fnBody(HB, 'hbPaintBoard'));
     assert.match(p, /hbMorph\(host, hbBoardHtml\(\)\);\s*hbGlidePlay\(host, glide\);\s*host\.classList\.toggle\('is-cview'[^\n]*\n\s*hbCvPaint\(\);/);
   });
-  test('2b the deal board is dealBoardHtml; its presses find their own host and contract', () => {
+  test('2b the room\'s own painters, the deal board gone (f1084)', () => {
     const paint = strip(fnBody(HB, 'hbCvPaint'));
-    assert.match(paint, /const html = dealBoardHtml\(c, 'owner'\);/);
+    assert.doesNotMatch(paint, /dealBoardHtml|v === 'deal'/);
     assert.match(paint, /roomPaintObligations\(c, host\);/);
     assert.match(paint, /roomPaintHistory\(c, f, host\);/);
-    assert.match(strip(fnBody(HB, 'hbCvBodyHtml')), /data-db-host=/);
-    const hostOf = strip(fnBody(NEGO, 'rlBoardHostOf'));
-    assert.match(hostOf, /closest\('\[data-db-host\]'\)/);
-    assert.match(hostOf, /getElementById\('rl-boardpage'\) : null, c: rlLadderContract\(\)/, 'the Negotiate page keeps its own');
-    for (const call of ["rlBoardGoClause(bgo.getAttribute('data-rl-board-go'), bgo)", 'rlBoardGoClause(pid, bpick)', 'rlBoardRepaint(ev.detail === 0, bpick)', 'rlBoardRepaint(false, bf)', 'rlBoardHostOf(memo).c'])
-      assert.ok(NEGO.includes(call), call);
-  });
-  test('2c from the Board the clause opens on Home\'s paper with Jambo\'s Redlines face; the page keeps its own door', () => {
-    const go = strip(fnBody(NEGO, 'rlBoardGoClause'));
-    assert.match(go, /if \(on\.home\)\{ rlBoardGoOnHome\(on\.c, gid\); return; \}/);
-    assert.match(strip(fnBody(NEGO, 'rlBoardGoOnHome')), /pdRedOpen\(c\.id\)/);
+    assert.doesNotMatch(strip(fnBody(HB, 'hbCvBodyHtml')), /data-db-host=/);
+    assert.doesNotMatch(NEGO, /function (rlBoardHostOf|rlBoardGoClause|rlBoardGoOnHome)\(/);
   });
   test('2d the room\'s obligations and history paint into a host they are handed, and every repaint stays there', () => {
     const ob = strip(fnBody(OB, 'roomPaintObligations'));
@@ -146,19 +140,16 @@ describe('f675 (2) the room\'s own builders, in a second host', () => {
     assert.doesNotMatch(h, /opts\.board\?'':`<button type="button" id="ht-export">/);
     assert.match(h, /id="ht-export"/); assert.match(h, /id="ht-print"/);
   });
-  test('2f the deal board\'s own parts read alike in both hosts (the scale, the wording), not as the Negotiate page', () => {
-    assert.match(NCSS, /\.hb-cv-deal \.rl-sc-line,\.redline-page \.rl-sc-line\{/);
-    assert.match(NCSS, /\.hb-cv-deal \.db-words,\.redline-page \.db-words\{/);
+  test('2f the Board\'s host is never the Negotiate page', () => {
     assert.doesNotMatch(HB, /class="[^"]*redline-page/, 'the Board\'s host is never .redline-page: code reads that as the page being up');
   });
 });
 
 describe('f675 (3) the number on a switch is the list\'s own', () => {
-  test('3a dealBoardFacts is the board\'s one reading; obtRowsOf/obtPass the tab\'s', () => {
-    assert.match(strip(fnBody(NEGO, 'dealBoardHtml')), /const \{ rows, facts, n \} = dealBoardFacts\(c, side\);/);
+  test('3a obtRowsOf/obtPass is the tab\'s one reading; no deal count (f1084)', () => {
     assert.match(strip(fnBody(OB, 'roomObligationsInspector')), /const all = obtRowsOf\(c\);\s*const pass = obtPass;/);
     const n = strip(fnBody(HB, 'hbCvCounts'));
-    assert.match(n, /dealBoardFacts\(c, 'owner'\)\.n\.you/);
+    assert.doesNotMatch(n, /dealBoardFacts/);
     /* stage 5: the room's Obligations tab went home to this view, and its
        count with it (obligationTabState, the number the tab carried) */
     assert.match(n, /obligationTabState\(c\)/);
@@ -166,7 +157,6 @@ describe('f675 (3) the number on a switch is the list\'s own', () => {
   test('3b running: the counts on a real book', async () => {
     const w = await world();
     const c = book();
-    assert.equal(w.win.dealBoardFacts(c, 'owner').n.you, 2, 'two of their asks wait on us');
     assert.equal(w.win.obtRowsOf(c).filter(r => w.win.obtPass(r, 'overdue')).length, 1, 'one duty is late');
   });
 });
@@ -179,16 +169,13 @@ describe('f675 (4) print and download are one page', () => {
     assert.match(strip(fnBody(NEGO, 'negoHistoryPrintRun')), /return printWindowRun\(async \(\) => negoHistoryExportHtml\(c, await negoIntegrityReport\(c\)\)/);
     const pr = strip(fnBody(HB, 'hbCvPrint')), dl = strip(fnBody(HB, 'hbCvDownload'));
     assert.match(pr, /negoHistoryPrintRun\(now\.c\)/); assert.match(pr, /printWindowRun\(\(\) => build\(now\.c\)/);
-    assert.match(dl, /negoHistoryExportRun\(now\.c\)/); assert.match(dl, /downloadFile\(`\$\{ref\}-\$\{now\.v === 'deal' \? 'deal-board' : 'obligations'\}\.html`/);
+    assert.match(dl, /negoHistoryExportRun\(now\.c\)/); assert.match(dl, /downloadFile\(`\$\{ref\}-obligations\.html`/);
     assert.match(dl, /toast\(i18t\('hb_cv_saved'[^;]*'ok'\)/);
   });
-  test('4b running: each page stands alone, every point and every duty, amounts only where money is seen', async () => {
+  test('4b running: the page stands alone, every duty, amounts only where money is seen (the deal board report gone, f1084)', async () => {
     const w = await world();
     const c = book();
-    const d = w.win.dealBoardReportHtml(c, 'owner');
-    assert.match(d, /^<!doctype html>/); assert.doesNotMatch(d, /var\(--/);
-    assert.equal((d.match(/<article>/g) || []).length, 2);
-    assert.match(d, /six \(6\)/); assert.match(d, /five \(5\)/);
+    assert.equal(typeof w.win.dealBoardReportHtml, 'undefined');
     const o = w.win.obReportHtml(c);
     assert.match(o, /^<!doctype html>/); assert.doesNotMatch(o, /var\(--/);
     assert.match(o, /Deliver the monthly service report/); assert.match(o, /Pay the first invoice/);
@@ -227,8 +214,10 @@ describe('f675 (6) every door from outside lands on the Board\'s view', () => {
     assert.match(CA, /open: c => \(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
     assert.match(CA, /minor: c => \(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
   });
-  test('6b the panel\'s old Deal and History doors', () => {
-    assert.match(strip(fnBody(PD, 'pdOpenOnHome')), /if \(\(tab === 'deal' \|\| tab === 'hist'\) && typeof hbOpenView === 'function'\) return hbOpenView\(c\.id, tab\);/);
+  test('6b the panel\'s old Deal and History doors: Deal opens the Redlines face (f1084), History the Board\'s view', () => {
+    const o = strip(fnBody(PD, 'pdOpenOnHome'));
+    assert.match(o, /if \(tab === 'deal'\) return \(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
+    assert.match(o, /if \(tab === 'hist' && typeof hbOpenView === 'function'\) return hbOpenView\(c\.id, tab\);/);
   });
   test('6c the bell\'s trail rows; the phone keeps the room', () => {
     assert.match(APP, /if\(!\(typeof window\.hbOpenView==='function'&&hbOpenView\(id,'hist'\)\)\) selectContract\(id\);/);
@@ -239,8 +228,8 @@ describe('f675 (6) every door from outside lands on the Board\'s view', () => {
     assert.match(o, /hbStripBring\(c\.id, v === 'hist' \? 'hist' : 'where'\)/, 'History and the rest: the Board\'s contract card');
     assert.doesNotMatch(o, /hbCvSet\(/, 'no view is turned');
   });
-  test('[wall] 6d the room\'s tabs and Negotiate\'s Deal board tab stay until stage 5', () => {
-    assert.match(NEGO, /function openDealBoard\(\)\{/);
+  test('[wall] 6d the room\'s tabs stay until stage 5; Negotiate\'s Deal board tab is gone (f1084)', () => {
+    assert.doesNotMatch(NEGO, /function openDealBoard\(\)\{/);
     assert.match(CT, /if\(_wsTab==='history'\) roomPaintHistory\(c\);/);
   });
 });
