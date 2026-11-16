@@ -202,6 +202,7 @@ Words no free reader moved are HELD a minute (`jamboUnplacedNote`), sent only if
 ## ONE SEARCH OVER HaTi (docs/PLAN-jambo-copilot.md)
 - NEGOTIATIONS: `negoBandViews`, `regNegoCols`. APPROVALS: ONE WORKLIST `apWorkRows` (`apPaintHead`), `AP_LATE_DAYS`, `approvalUndo`, `apSinceLook` (`srvApprovalStamp`); one Approve per decidable row (`_apOkWired`). OBLIGATIONS `OBW_VIEWS`. People `dirNamedRoles`, `dirWaitingOn`.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+THE LIST SHOWS THE PAPER'S OWN NUMBERS AND TITLES (owner, 16 Nov 2026): the mark carries the reading's cite, any kind (3.2, IV, X.1; `docThreadRowHtml`); a section's title is the paper's heading; a short opening title sentence names a clause alone (`_xrLead`, `XR_TITLE_WORDS`). f1088.
 `stkDecorate` draws ONE kept reading `c.breakdown` (POST /api/ai/breakdown; opening Clauses is the press, `stkAutoRun`); `stkRedlineGo` files nothing. ONE reading `stkReview` (`stkNeedCount`); MARK REVIEWED only via POST …/points/:key/review (`c.pointReviews`). ONE "WHAT TO WATCH" PER CLAUSE: several points one card (`stkRowCardsHtml`, `stkGroupHtml`); blanks keep their own. f1005.
 A BLANK IS FILLED IN, NOT ARGUED: a `blank` point carries Fill it in (`stkFillGo` → `pdFillGo`, panel on the Dossier; `stkBlanksOf`) and Mark reviewed, never Deep dive; filled, it leaves `stkReview`.
 ## INSIGHTS (THE PAGE IS GONE, 29 Oct 2026: `setView('intel')` → Board, its map tab → Explorer; its counting stays)
@@ -285,6 +286,7 @@ Every change, picture, measurement, test and reference is against THE NEW LOOK (
 GEIST (f377). NAME AND FIGURE INK; THE DETAIL LINE GREY (`--color-neutral-400`; f982, f984, f990). THE SAP WAY MARK leads every row (`listSapMarkHtml`/`listSapCellHtml`; f997); Jambo's is his sparkle on black (`mkSpark`). THE FOLDERS, VIEWS FIRST: a tile's number = the list it opens (`regFolderViewsData`; f998). ONE quiet touch of colour per page, off a fact (`listStreamTone`; f986).
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER
+LESS SAID TWICE (owner, 16 Nov 2026): the card opens on its headline — no eyebrow (stage, party, number), no sentence under it; Jambo's panel headlines are 20. A typed contract number alone opens its Cover (`jamboRefGo`). f1088.
 THE DOSSIER'S TOP IS ONE CARD (`pd2CardHtml`): stage, next step, ONE black button, Jambo's read, "Read it | Watch the read | The brief". THE READ: notes wait for their clause (`pd2WalkNotesHold`); AN ARRIVAL PLAYS IT, quick (`pd2WalkArrive`); × keeps it away. f1018.
 Every paper draws ONE look (720px sheet, Source Serif 4 `--font-doc`; a designed paper keeps its type). ONE ZOOM (`rlSetDocZoom`, 60–200).
 THE PAPER STANDS IN THE MIDDLE OF ITS ROOM (owner's pick, the Legora way, 16 Nov 2026): with notes beside it the sheet's centre is the scroller's centre, held left only as far as the notes need, never nearer the edge than 40 (`pd2NotesPaint`). contract-new-look-verify 4, 4c.
