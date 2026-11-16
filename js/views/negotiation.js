@@ -15732,7 +15732,6 @@ function rlFiveHead(c, opts, k){
   const dealOn = typeof window.pdMidUp === 'function' && pdMidUp('deal:' + c.id);
   const chOn = !k.notesOn && !lad && !dealOn;
   const seg = `<button type="button" class="rl-head-chg${chOn ? ' is-on' : ''}" data-rl-head-changes="${id}" aria-pressed="${chOn ? 'true' : 'false'}">${_ne(i18t('jov5_rl_changes'))}${k.openTotal ? ` <i>${k.openTotal}</i>` : ''}</button>`;
-  const who = String(c.counterparty || '').trim();
   let head = '';
   if (lad){
     let rungs = []; try { rungs = (typeof window.ladderRungs === 'function') ? ladderRungs(c, String(lad.clauseId || '')) : []; } catch (_){ rungs = []; }
@@ -15740,9 +15739,11 @@ function rlFiveHead(c, opts, k){
     const name = String(lad.clauseLabel || '').trim();
     head = `<div class="rl-five-head is-ladder">${rlLadderFiveHtml(c, lad, rungs, name, steps)}</div>`;
   } else if (!k.notesOn){
-    let unsent = 0; try { unsent = rlUnsentCount(c, opts); } catch (_){ unsent = 0; }
-    const title = unsent ? i18tn('jov5_rl_unsent_t', unsent, { n: unsent }) : k.openTotal ? i18tn('jov5_rl_open_t', k.openTotal, { n: k.openTotal }) : '';
-    if (title) head = `<div class="rl-five-head">${jov5HeadHtml({ title, sub: unsent ? i18t('jov5_rl_unsent_sub', { who: who || i18t('ng_the_counterparty') }) : '' })}</div>`;
+    /* CARDS FIRST (owner's pick, 16 Nov 2026: "the redline cards should be the focal point … now they have been
+       relegated to the bottom"): on Changes the head is the switch and ONE line — what is not sent, the round, and
+       Send all at its end — so the cards start right under it. The serif headline, its sentence and the Send card said
+       what that line and the tab already say; they are gone here (the Ladder and Notes keep their own heads). */
+    head = '';
   }
   return { seg, head, lad: !!lad, notes: !!k.notesOn };
 }
@@ -23828,7 +23829,7 @@ function rlColumnHtml(c, opts = {}){
                      the head was built and nothing has ever been drawn after
                      it. The act arrives from the deleted "N not sent" strip
                      with its rules intact; only the slot is new. */}
-              ${(() => { const sendH = rlUnsentSendHtml(c, opts); return five && sendH && !five.lad && !notesOn ? `<div class="rl-five-act"><p>${_ne(i18t('jov5_rl_send_say'))}</p>${sendH}</div>` : sendH; })()}
+              ${(() => { const sendH = rlUnsentSendHtml(c, opts); return five && sendH && !five.lad && !notesOn ? `<div class="rl-five-act is-line">${sendH}</div>` : sendH; })()}
               ${''/* ---- AND CLOSE ROUND BESIDE IT (owner-asked 27 Aug 2026) ----
                      The two acts of a round, on one line, where it is plain
                      that only ever one of them is live: everything unsent has

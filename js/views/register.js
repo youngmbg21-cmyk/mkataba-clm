@@ -5275,7 +5275,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
    happened. The row whose move is yours is lifted; settled ones fade below the live ones (nothing hidden). The
    panel reads the chosen row: their asks, what is unsent, the desk, the doors (each an existing one) and one line
    from Jambo. Every reading is the list's own (negoLiveList, negWhoseMove, regNegoCols, regNegoLeadOf), RAW. */
-let _ngn = 'live', _ngnSel = null, _ngnQ = '';
+let _ngn = 'live', _ngnSel = null, _ngnQ = '', _ngnNone = false;
 function ngnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
 function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; } return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
 function ngnBook(){
@@ -5392,29 +5392,45 @@ function ngnPanelHtml(r, rows){
     + `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}${turn}</div>`;
 }
 function ngnPanelFiveHtml(r, rows){
-  const E = esc, c = r.c, live = rows.filter(x => x.b !== 'settled'), you = rows.filter(x => x.b === 'you'), them = rows.filter(x => x.b === 'them');
+  const E = esc, live = rows.filter(x => x.b !== 'settled'), you = rows.filter(x => x.b === 'you'), them = rows.filter(x => x.b === 'them');
   const may = typeof canEdit !== 'function' || canEdit();
-  const secs = [...new Set(r.asks.map(ngnSecOf).filter(Boolean))].join(' \u00b7 ');
-  const facts = [];
-  if (r.asks.length) facts.push({ t: i18t('ngn_p_asks'), s: [r.prep >= r.asks.length ? i18tn('ngn_p_asks_prep', r.asks.length, { n: r.asks.length }) : i18tn('ngn_p_asks_open', r.asks.length, { n: r.asks.length }), secs].filter(Boolean).join(' \u00b7 '), wrap: true });
-  else if (r.b === 'them') facts.push({ t: i18t('ngn_p_asks'), s: i18t('ngn_open_none_theirs'), wrap: true });
-  if (r.unsent) facts.push({ t: i18t('ngn_p_unsent'), s: i18tn('ngn_p_unsent_v', r.unsent, { n: r.unsent }), wrap: true });
-  else if (r.b === 'them') facts.push({ t: i18t('ngn_p_sent'), s: r.sub || '\u2014', wrap: true });
-  const contrib = (typeof deskContributors === 'function' ? deskContributors(c) : []).map(p => String(p.name || '').split(/\s+/)[0]).filter(Boolean);
-  if (r.lead.name) facts.push({ t: i18t('ngn_p_desk'), s: contrib.length ? i18tn('ngn_p_desk_v', contrib.length, { lead: String(r.lead.name).split(/\s+/)[0], who: contrib.join(', ') }) : i18t('ngn_p_desk_lead', { lead: String(r.lead.name).split(/\s+/)[0] }), wrap: true });
-  const roundRow = x => ({ mark: 'alert', tone: x.b === 'you' ? 'amber' : '', t: x.c.name || '', s: [x.c.counterparty || '', x.unsent ? i18tn('ngn5_unsent', x.unsent, { n: x.unsent }) : (x.open && x.open.n ? i18tn('ngn5_asks', x.open.n, { n: x.open.n }) : '')].filter(Boolean).join(' \u00b7 '), v: x.move || '', attr: `data-ngn-open="${E(x.c.id)}"` });
-  const wait = them[0], chase = wait && may ? { label: i18t('ngn_d_chase', { p: wait.c.counterparty || wait.c.name }), attr: `data-ngn-chase="${E(wait.c.id)}"` } : null;
+  /* THE PANEL IS THE ROW YOU PRESSED (owner, 16 Nov 2026: "the side panel information should reflect the contract you
+     have pressed"; the page's totals stood on top and the pressed round's facts under them, so a press seemed to do
+     nothing): its name the headline, its three numbers, its facts, its one black button. The page's own overview is
+     one press back (the tab, "‹ Overview"), and there a row CHOOSES as a row of the list does (data-ngn-pick). */
+  if (r){
+    const c = r.c, ref = window.contractRef ? contractRef(c) : c.id;
+    let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
+    const secs = [...new Set(r.asks.map(ngnSecOf).filter(Boolean))].join(' \u00b7 ');
+    const facts = [];
+    if (r.asks.length) facts.push({ t: i18t('ngn_p_asks'), s: [r.prep >= r.asks.length ? i18tn('ngn_p_asks_prep', r.asks.length, { n: r.asks.length }) : i18tn('ngn_p_asks_open', r.asks.length, { n: r.asks.length }), secs].filter(Boolean).join(' \u00b7 '), wrap: true });
+    else if (r.b === 'them') facts.push({ t: i18t('ngn_p_asks'), s: i18t('ngn_open_none_theirs'), wrap: true });
+    if (r.unsent) facts.push({ t: i18t('ngn_p_unsent'), s: i18tn('ngn_p_unsent_v', r.unsent, { n: r.unsent }), wrap: true });
+    else if (r.b === 'them') facts.push({ t: i18t('ngn_p_sent'), s: r.sub || '\u2014', wrap: true });
+    const contrib = (typeof deskContributors === 'function' ? deskContributors(c) : []).map(p => String(p.name || '').split(/\s+/)[0]).filter(Boolean);
+    if (r.lead.name) facts.push({ t: i18t('ngn_p_desk'), s: contrib.length ? i18tn('ngn_p_desk_v', contrib.length, { lead: String(r.lead.name).split(/\s+/)[0], who: contrib.join(', ') }) : i18t('ngn_p_desk_lead', { lead: String(r.lead.name).split(/\s+/)[0] }), wrap: true });
+    const n = (c.negotiation && Number(c.negotiation.round)) || 1;
+    const say = String(r.sub || (r.open && r.open.say) || ''); const sub = say ? say.charAt(0).toUpperCase() + say.slice(1) + (/[.!?]$/.test(say) ? '' : '.') : '';
+    const chase = r.b === 'them' && may ? { label: i18t('ngn_d_chase', { p: c.counterparty || c.name }), attr: `data-ngn-chase="${E(c.id)}"` } : null;
+    const o = { eyebrow: [c.counterparty || '', ref, money && money !== '\u2014' ? money : ''].filter(Boolean).join(' \u00b7 '), title: c.name || '', sub,
+      glance: [{ n: r.unsent || 0, l: i18tn('ngn5c_g_unsent', r.unsent || 0, { n: r.unsent || 0 }), warn: r.unsent > 0 }, { n: r.asks.length, l: i18tn('ngn5c_g_asks', r.asks.length, { n: r.asks.length }), warn: r.asks.length > 0 }, { n, l: i18t('ngn5c_g_round') }],
+      groups: facts.length ? [{ label: '', rows: facts }] : [],
+      act: { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"`, link: r.unsent && may ? { label: i18tn('ngn_d_send', r.unsent, { n: r.unsent }), attr: `data-ngn-send="${E(c.id)}"` } : chase }, src: false };
+    return `<div class="ngn-panel jl-words is-ov" data-ngn-for="${E(c.id)}">${jamboOverviewHtml(o, 'ngn')}</div>`;
+  }
+  const pick = x => ({ mark: 'alert', tone: x.b === 'you' ? 'amber' : '', t: x.c.name || '', s: [x.c.counterparty || '', x.unsent ? i18tn('ngn5_unsent', x.unsent, { n: x.unsent }) : (x.open && x.open.n ? i18tn('ngn5_asks', x.open.n, { n: x.open.n }) : '')].filter(Boolean).join(' \u00b7 '), v: x.move || '', attr: `data-ngn-pick="${E(x.c.id)}"` });
   const title = you.length ? i18tn('ngn5_t_you', you.length, { n: you.length }) : them.length ? i18tn('ngn5_t_them', them.length, { n: them.length }) : i18t('ngn_say_none');
+  const first = you.length ? you : them;
   const o = { eyebrow: i18t('ng_door_title'), title, sub: ngnPageSay(rows),
     glance: [{ n: live.length, l: i18t('ngn5_g_live'), attr: 'data-ngn-gotab="live"' }, { n: you.length, l: i18t('ngn5_g_you'), warn: you.length > 0, attr: you.length ? 'data-ngn-gotab="you"' : '' }, { n: them.length, l: i18t('ngn5_g_them'), attr: them.length ? 'data-ngn-gotab="them"' : '' }],
-    groups: [{ label: i18t('ngn5_g_yours'), rows: you.slice(0, 4).map(roundRow) }, { label: c.name || '', rows: facts }],
-    act: { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"`, link: r.unsent && may ? { label: i18tn('ngn_d_send', r.unsent, { n: r.unsent }), attr: `data-ngn-send="${E(c.id)}"` } : chase },
-    after: chase && r.unsent ? `<p class="jov5-src"><button type="button" class="jov-lnk" ${chase.attr}>${E(chase.label)}</button></p>` : '', src: false };
-  return `<div class="ngn-panel jl-words is-ov">${jamboOverviewHtml(o, 'ngn')}</div>`;
+    groups: first.length ? [{ label: i18t(you.length ? 'ngn5_g_yours' : 'ngn5_g_them'), rows: first.slice(0, 4).map(pick) }] : [], src: false };
+  return `<div class="ngn-panel jl-words is-ov" data-ngn-for="">${jamboOverviewHtml(o, 'ngn')}</div>`;
 }
 function ngnRender(host){
   const B = ngnBook(), rows = B.list.map(ngnRead), all = B.all.map(ngnRead);
-  if (!_ngnSel || !rows.some(r => String(r.c.id) === String(_ngnSel))){ const y = rows.find(r => r.b === 'you'); _ngnSel = (y || rows[0] || {}).c ? (y || rows[0]).c.id : null; }
+  /* a row is chosen on arrival; "‹ Overview" lets it go (_ngnNone) until a row is pressed again */
+  if (_ngnSel && !rows.some(r => String(r.c.id) === String(_ngnSel))) _ngnSel = null;
+  if (!_ngnSel && !_ngnNone){ const y = rows.find(r => r.b === 'you'); _ngnSel = (y || rows[0] || {}).c ? (y || rows[0]).c.id : null; }
   const live = B.n('live'), you = B.n('you');
   const facts = [i18tn('ngn_hf_live', live, { n: live }), you ? i18tn('ngn_hf_you', you, { n: you }) : ''].filter(Boolean).join(' · ');
   const tabs = [['live', i18t('ngn_tab_live'), live], ['you', i18t('ngn_tab_you'), you], ['them', i18t('ngn_tab_them'), B.n('them')], ['settled', i18t('ngn_tab_settled'), B.n('settled')]];
@@ -5429,9 +5445,18 @@ function ngnRender(host){
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ngn_foot', all.length, { n: all.length, live }))}</span><span></span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const r = rows.find(x => String(x.c.id) === String(_ngnSel)) || null;
+  const five = typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn();
   if (r) insPaintPanel({ seat: 'negotiations', jlWord: i18t('ng_door_title'), item: { id: String(r.c.id) }, head: false, tabCount: live, body: ngnPanelHtml(r, all) });
+  /* nothing chosen (the tab's way back): the page's own overview, its rows choosing as the list's rows do */
+  else if (five && rows.length) insPaintPanel({ seat: 'negotiations', jlWord: i18t('ng_door_title'), item: { id: '' }, solo: true, head: false, tabCount: live, body: ngnPanelFiveHtml(null, all) });
   /* nothing in play (THE FIVE PARTS, 15 Nov 2026): how a round starts and what was last agreed, never one line alone */
   else insPaintPanel({ seat: 'negotiations', empty: i18t('ngn_say_none'), jlSay: () => { const f = regNegoSayFive([], { you: 0, them: 0, out: 0 }); return Object.assign({ lines: [esc(f.title)] }, f); } });
+  /* the panel's tab is the way back from a chosen round to the page's overview; on the overview it does nothing */
+  const ph = document.getElementById('ins-panel');
+  /* its word says so while a round is chosen ("‹ Overview"), and keeps the page's count beside it */
+  const hw = ph && ph.querySelector('[data-jl-home] .pd-tab-w');
+  if (hw && five) hw.textContent = (r ? '\u2039 ' : '') + i18t('pd_tab_overview');
+  if (ph) ph._jlBack = () => { if (!document.querySelector('.ngn-page')) return false; if (_ngnSel){ _ngnSel = null; _ngnNone = true; ngnRepaint(); } return true; };
   if (typeof setActiveNav === 'function') setActiveNav('redline');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
@@ -5445,9 +5470,11 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
     if ((el = t.closest('[data-ngn-open]'))){ e.preventDefault(); if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(el.getAttribute('data-ngn-open')); return; }
     if ((el = t.closest('[data-ngn-send]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-send')); if (c && typeof pdSendWaiting === 'function') pdSendWaiting(c); return; }
     if ((el = t.closest('[data-ngn-chase]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-chase')); if (c && typeof openShareModal === 'function') openShareModal(c); return; }
+    /* ONE RULE FOR EVERY PRESS: a row chooses, in the list and in the panel alike; the chosen row pressed again opens */
+    if ((el = t.closest('[data-ngn-pick]'))){ e.preventDefault(); _ngnSel = el.getAttribute('data-ngn-pick'); _ngnNone = false; ngnRepaint(); return; }
     if ((el = t.closest('[data-ngn-row]'))){ const id = el.getAttribute('data-ngn-row');
       if (String(id) === String(_ngnSel)){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(id); return; }
-      _ngnSel = id; ngnRepaint(); }
+      _ngnSel = id; _ngnNone = false; ngnRepaint(); }
   });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ngn-q') return;
     _ngnQ = e.target.value; ngnRepaint(); const q = document.getElementById('ngn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
