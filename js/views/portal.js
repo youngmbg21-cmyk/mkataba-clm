@@ -4715,10 +4715,15 @@ function portalOutSideHtml(c, p){
   const last = agreed.map(x => x.at).filter(Boolean).sort().pop();
   const agreedRow = agreed.length ? `<li><span class="pol-o-k">${esc(agreed.map(x => portalOutClause({ clauseLabel: x.clause }).replace(/^§ (\S+).*$/, '§ $1')).join(' · '))}</span>
     <span class="pol-o-v">${esc(last ? i18t('pol_agreed_on', { when: portalDayWords(last) }) : i18t('pol_agreed'))}</span></li>` : '';
+  /* WHAT WE TURNED DOWN, WITH OUR REASON (16 Nov 2026, #762): the reply travels to them by rule (the clause panel drew
+     it, hidden in this look) — said here, on the clause, in our words */
+  const refused = (c.changes || []).filter(x => x && x.authorSide === 'counterparty' && x.status === 'rejected' && !x.withdrawn && String(x.reply || '').trim())
+    .map(ch => `<li><span class="pol-o-k">${esc(portalOutClause(ch) || i18t('ds_a_clause'))}</span><span class="pol-o-v">\u201c${esc(String(ch.reply).trim())}\u201d</span></li>`).join('');
   return `<div class="pol-side-in">${portalOutHeadHtml(c)}
     <div class="pol-side-body"><p class="pol-say">${esc(say)}</p>${portalOutRoadHtml(D, mineMove)}
       ${openRows ? `<h3 class="pol-h">${esc(i18t('pol_still_open'))}</h3><ul class="pol-open">${openRows}</ul>` : ''}
       ${agreedRow ? `<h3 class="pol-h">${esc(i18t('pol_agreed_h'))}</h3><ul class="pol-open">${agreedRow}</ul>` : ''}
+      ${refused ? `<h3 class="pol-h">${esc(i18t('pol_refused_h'))}</h3><ul class="pol-open">${refused}</ul>` : ''}
       <p class="pol-small">${esc(i18t('pol_both_see'))}</p></div>
     <div class="pol-side-ft">${PORTAL_OPTS && PORTAL_OPTS.token
       ? `${esc(i18t('pol_questions', { org }))} <button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('pol_reply_box'))}</button>.`

@@ -71,6 +71,10 @@ const check = (name, ok, detail) => {
        chip's x). What this file protects is unchanged: the control holds real
        choices, has a real width, and narrows. */
     await page.evaluate(() => { (regPlaceSet({ show: 'list' }), setView('register')); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the table */
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    await page.waitForTimeout(800);
     await page.waitForTimeout(1200);
     const HOLD = '[data-lh-seat="contracts"] [data-lh-chip="hold"]';
     const before = await page.evaluate(() => document.querySelectorAll('tr[data-row]').length);

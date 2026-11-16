@@ -168,7 +168,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance became the dossier — the spine for the stage,
        What Jambo read, and Still owed as one list (each empty detail, the signer, their asks · Reply ›) */
     console.log('\n2 · the dossier as drawn');
-    const gl = await page.evaluate(() => { const g = document.getElementById('pd-glance'); const owed = g.querySelector('[data-pd-ds-card="owed"]');
+    /* GUARDED 16 Nov 2026 (#762): the new look's Dossier draws no Still owed card — a missing card reports, never throws */
+    const gl = await page.evaluate(() => { const g = document.getElementById('pd-glance') || document.createElement('div'); const owed = g.querySelector('[data-pd-ds-card="owed"]') || document.createElement('div');
       const rows = [...owed.querySelectorAll('.pd-gl-row:not(.is-done)')];
       /* RE-POINTED 29 Oct 2026 (one grid): Their redlines · the ask in its own words · Reply; how long it waits on the hover */
       const row = k => rows.filter(r => r.getAttribute('data-pd-gl') === k).map(r => ({ say: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), sub: ((r.getAttribute('title') || '').split(' · ').pop() || '').trim(), btn: ((r.querySelector('button') || {}).textContent || '').trim() }));

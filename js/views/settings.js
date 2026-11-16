@@ -3199,9 +3199,25 @@ const stAdminsSaid=()=>stNamesSaid(stUsers().filter(u=>u.role==='admin'));
 /* FROM WHERE A RULE STOPPED SOMEBODY (piece 20): Settings opens with Jambo's
    ask card ready — the same card, the same tracked ask — its words naming
    what stopped them. Nothing is sent until they press Ask an admin. */
+/* THE NEW LOOK: Settings' Jambo is the list panel; an ask card is put in his one conversation there (the same card and
+   the same Send, stAskSend) — the old side feed is not drawn (16 Nov 2026, #762). True when it was put there. */
+function stAskCardNl(t){
+  if(typeof window!=='undefined'&&typeof window.newLookOn==='function'&&!window.newLookOn()) return false;
+  if(typeof jlTalkOpen!=='function'||typeof aiPush!=='function'||typeof renderAIFeed!=='function') return false;
+  if(!document.querySelector('.stn-page')){ if(typeof setView!=='function') return false; setView('team'); }
+  if(!document.querySelector('.stn-page')) return false;
+  jlTalkOpen();
+  aiPush('assistant',{ text:'', cards:`<div class="st-jb-turn" data-st-jb-turn="${t.id}">${stAskCardHtml(t.force.cards[0], t)}</div>`, free:true });
+  try{ const H=(typeof ai!=='undefined'&&ai&&Array.isArray(ai.history))?ai.history:[]; t._aiMsg=H[H.length-1]||null; }catch(_){ t._aiMsg=null; }
+  renderAIFeed();
+  const box=document.getElementById('st-ask-why-'+t.id)||document.getElementById('st-ask-what-'+t.id);
+  if(box) try{ box.focus({preventScroll:true}); }catch(_){ /* the card is there */ }
+  return true;
+}
 function stAskFrom(panel, words){
   const t={ id:++_stJbSeq, q:String(words||'').slice(0,200), force:{ say:'', cards:[{ k:'askadmin', panel }] } };
   stJbPush(t);
+  if(stAskCardNl(t)) return;
   _stSide='jambo';
   const feed=document.getElementById('st-jb-feed');
   if(feed && typeof state!=='undefined' && state.view==='team'){ stSideSet('jambo'); stJbTurnAdd(t); }
@@ -3241,7 +3257,9 @@ async function stAskSend(turnId, panel){
   const t=stJbLog().find(x=>String(x.id)===String(turnId)); if(!t) return;
   const why=String((document.getElementById('st-ask-why-'+turnId)||{}).value||'').trim();
   /* a question the reader wrote themselves (an ask begun from a door) */
-  const wbox=document.getElementById('st-ask-what-'+turnId);
+  /* the one conversation may stand in two places at once (the side panel and the list panel's talk): the box read is
+     the one the reader wrote in */
+  const wbox=[...document.querySelectorAll(`[id="st-ask-what-${turnId}"]`)].sort((a,b)=>String(b.value||'').trim().length-String(a.value||'').trim().length)[0]||null;
   if(wbox){ const w=String(wbox.value||'').trim();
     if(!w){ t.ask={ state:'err', error:i18t('st_ask_free_need') }; stJbTurnRepaint(t); return; }
     t.q=w; }
@@ -3251,6 +3269,12 @@ async function stAskSend(turnId, panel){
     toast(i18t('st_ask_toast',{who:stAdminsSaid()}),'ok');
     stAsksLoad();
   }catch(e){ t.ask={ state:'err', error:(e&&e.message)||'' }; }
+  /* the new look's card stands in the list panel's talk: written again in place */
+  if(t.force&&t.force.cards&&t.force.cards[0]){
+    const html=stAskCardHtml(t.force.cards[0], t);
+    /* the conversation keeps the card as it now stands, so a redraw does not bring the unsent one back */
+    if(t._aiMsg) t._aiMsg.cards=`<div class="st-jb-turn" data-st-jb-turn="${t.id}">${html}</div>`;
+    document.querySelectorAll(`.st-jb-turn[data-st-jb-turn="${t.id}"]`).forEach(here=>{ here.innerHTML=html; }); }
   stJbTurnRepaint(t);
 }
 /* ONE ASK, SENT FROM THE PLACE THE RULE STOOD IN THE WAY — the SAME record
@@ -3942,8 +3966,10 @@ function stAskGeneral(about){
   if(stIsAdmin()) return;
   const t={ id:++_stJbSeq, q:about==='role'?i18t('st_ask_role_words'):'', force:{ say:'', cards:[{ k:'askadmin', panel:about==='role'?'me:role':'', free:true }] } };
   stJbPush(t);
-  stSideSet('jambo');
-  stJbTurnAdd(t);
+  /* THE NEW LOOK: Settings' Jambo is the list panel; the ask is put in front of them there, the same card and the same
+     Send (stAskSend), drawn in his one conversation (16 Nov 2026, #762: the old side feed is not drawn, so the press
+     did nothing) */
+  if(!stAskCardNl(t)){ stSideSet('jambo'); stJbTurnAdd(t); }
   const box=document.getElementById('st-ask-what-'+t.id);
   if(box) try{ box.focus({preventScroll:true}); box.setSelectionRange(box.value.length,box.value.length); }catch(_){}
 }

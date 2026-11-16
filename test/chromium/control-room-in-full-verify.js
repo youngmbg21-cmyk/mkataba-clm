@@ -169,7 +169,10 @@ const signIn = async (page, base, email, pass) => {
     /* RE-POINTED 16 Nov 2026 (#762): the admin finds it as a row in Jambo's panel beside the one list */
     const ASK = '#ins-panel .jov5-row[data-st-panel^="ask:"]';
     await page.evaluate(async () => { await stAsksLoad(); setView('team'); });
-    const need = await until(q => { const r = document.querySelector(q); return r ? r.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : null; }, ASK);
+    /* RE-POINTED 16 Nov 2026 (#762): the admin typed in this panel at step 5, so it still shows his talk and the
+       Overview (where Needs you's rows stand) is hidden under it — the reader presses the one way back above the box first */
+    if (await page.evaluate(() => { const d = document.querySelector('#ins-panel [data-jb-door]'); return !!d && !d.hidden && d.offsetParent !== null; })) await page.click('#ins-panel [data-jb-door] .jb-door-back');
+    const need = await until(q => { const r = document.querySelector(q); return r && r.offsetParent !== null ? r.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : null; }, ASK);
     check('6b. the admin finds it in Needs you', !!need && /Unrestricted Legal/.test(need), need);
     const bell = await page.evaluate(() => buildAlerts().some(a => a.kind === 'settings-ask'));
     check('6c. and in the bell', bell);

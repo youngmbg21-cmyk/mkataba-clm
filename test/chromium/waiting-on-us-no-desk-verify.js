@@ -107,10 +107,14 @@ async function login(browser, email, pass, errors) {
        rows, so it says what the Board says — Jambo's answer to their round, one row (the quiet desk
        it stands for is not said twice) */
     const bell = await O.page.evaluate(() => {
-      const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].find(x => /MK-A2|Nandi Dairy/.test(x.textContent + (x.title || '')));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new bell's rows (ndBellNlHtml, .ndb-r) carry the
+         row's key and its words, and ONE Open pressing the row's own door */
+      const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r, #context-panel .ndb-r[data-nd-row]')].find(x => /MK-A2|Nandi Dairy/.test(x.textContent + (x.title || '')));
       const b = document.querySelector('#hm-agents [data-nd-agent="round"] .nd-c-what b');
       /* RE-POINTED 24 Oct 2026 (Round 2): the bell's row leads with the agreement; the Board's words ride its grey line */
-      return { says: !!r && !!b && (r.querySelector('.cn-w > span') || {}).textContent.includes(b.textContent.trim()), line: !!r && !!r.querySelector('[data-nd-look]') };
+      const words = r ? ((r.querySelector('.cn-w > span') || r.querySelector('.ndb-w') || {}).textContent || '') : '';
+      return { says: !!r && !!b && words.includes(b.textContent.trim()), line: !!r && !!r.querySelector('[data-nd-look]'),
+        row: r ? r.textContent.replace(/\s+/g, ' ').trim().slice(0, 140) : null, board: b ? b.textContent.trim() : null };
     });
     check('2c the bell says it too, with the same line', bell.says && bell.line, JSON.stringify(bell));
     await O.page.keyboard.press('Escape');
@@ -119,18 +123,26 @@ async function login(browser, email, pass, errors) {
        checklist is the Negotiations page's panel, where this negotiation stands */
     await O.page.evaluate(() => { if (window.insForce) insForce(true); openNegotiations({ list: true }); });
     await O.page.waitForTimeout(1200);
-    const row = O.page.locator('#reg-tbody tr[data-row="MK-A2"]').first();
-    if (await row.count()) { await row.click(); await O.page.waitForTimeout(1000); }
+    /* the bell's panel is still putting itself away when the door is first asked: ask for the state, bounded, and ask
+       the door again if the page did not come up */
+    for (let i = 0; i < 3 && !(await O.page.evaluate(() => state.view === 'redline')); i++){
+      await O.page.evaluate(() => openNegotiations({ list: true })); await O.page.waitForTimeout(800);
+    }
+    /* RE-POINTED 16 Nov 2026 (#762): the Negotiations list's rows are tr[data-ngn-row]; the pressed round's panel is
+       Jambo's five parts (ngnPanelFiveHtml), which says the round waits on our answer */
+    const row = O.page.locator('tr[data-ngn-row="MK-A2"], #reg-tbody tr[data-row="MK-A2"]').first();
+    /* a press CHOOSES a row and a second OPENS it (THE LIST INSPECTOR): a row the list already chose is not pressed again */
+    if (await row.count() && !(await row.evaluate(r => r.classList.contains('is-sel')))) { await row.click(); await O.page.waitForTimeout(1000); }
     /* RE-POINTED 19 Oct 2026 (round 14 as drawn, "Jambo's panel beside the
        lists": Needs you is its own section of Jambo's panel, jlNeedsHtml —
        the same reading, needsYouOf said by insNeedWords and pressed through
        needsYouGo — drawn as .jl-need in place of the old .ins-need box) */
     const panel = await O.page.evaluate(() => {
-      const box = document.querySelector('#ins-panel .jl-need');
+      const box = document.querySelector('#ins-panel .jl-need') || document.querySelector('#ins-panel [data-ngn-for="MK-A2"]');
       return { drawn: !!box, text: box ? box.textContent.replace(/\s+/g, ' ').trim() : '' };
     });
     check('2d and the side panel\'s checklist on its list page asks for an answer',
-      panel.drawn && /Answer Nandi Dairy/.test(panel.text), panel.text.slice(0, 140) || 'no checklist');
+      panel.drawn && (/Answer Nandi Dairy/.test(panel.text) || /waiting on your answer/i.test(panel.text)), panel.text.slice(0, 140) || 'no checklist');
     await O.ctx.close();
 
     /* ================= 3 · CONTROL: A COLLEAGUE IT DOES NOT BELONG TO ================= */

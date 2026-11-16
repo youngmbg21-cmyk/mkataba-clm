@@ -84,9 +84,13 @@ const MEASURE = () => {
     await pause(1200);
 
     /* ================= 1 · HOW DO YOU WANT TO START? ================ */
-    const newBtn = await page.$('#tpl-new');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Our paper's one door to a new standard is the row
+       in Jambo's panel beside the chosen paper ([data-tpln-new]); the old head's #tpl-new is the old look's */
+    const NEW = '#tpl-new:visible, #ins-panel [data-tpln-new], [data-tpln-new]';
+    await page.waitForSelector('[data-tpln-new], #tpl-new', { timeout: 8000 }).catch(() => {});
+    const newBtn = await page.$('[data-tpln-new]') || await page.$('#tpl-new');
     check('0 · the + New standard contract door is on the page', !!newBtn);
-    await page.click('#tpl-new');
+    await page.locator(NEW).first().click();
     await pause(500);
     const k = await page.evaluate(MEASURE);
     const title = await page.evaluate(() => i18t('ns_title'));

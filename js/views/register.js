@@ -5348,13 +5348,15 @@ function ngnRowHtml(r, sel){
   /* NAME THE CLAUSE (the harmony review, owner's yes 9 Nov 2026): an ask with no words of its own to quote says its
      clause's number and name in the row's own font, never an empty pair of quote marks */
   const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => q.q ? `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}` : `<span class="ngn-nm">${E([q.s, q.nm].filter(Boolean).join(' '))}</span>`).join(' · ')}` : `0 · ${E(r.open.say)}`;
-  const nm = r.lead.name ? (r.lead.mine ? ngnShortName(r.lead.name) : ngnShortName(r.lead.name)) : '—';
+  /* "You" on the reader's own deal, a colleague's short name on theirs; the whole name on its hover (#762: both branches
+     of this choice had become the short name) */
+  const nm = r.lead.name ? (r.lead.mine ? i18t('ng_you') : ngnShortName(r.lead.name)) : '—';
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
     + `<td>${listSapCellHtml(r.b === 'you' ? 'you' : r.b === 'them' ? 'them' : 'done', `<div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>`, r.move)}</td>`
     + `<td class="ngn-rd">${E(r.round)}</td>`
     + `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
     + `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
-    + `<td>${r.lead.name ? `<span class="ngn-lead"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
+    + `<td>${r.lead.name ? `<span class="ngn-lead" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
     + `<td><div class="ngn-last">${E(r.last || '—')}</div>${r.lastSub ? `<div class="cun-sub">${E(r.lastSub)}</div>` : ''}</td></tr>`;
 }
 /* the page in Jambo's words, counted from the list: whose answers wait, who holds our paper */

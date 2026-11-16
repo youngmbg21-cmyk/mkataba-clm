@@ -178,6 +178,8 @@ const MARK = cid => {
     const CHIP = '[data-lh-seat="contracts"] [data-lh-chip="stage"] > label';
     await page.evaluate(() => { const b = document.querySelector('#context-panel [data-panel-close],.side-panel-x');
       if (b) b.click(); setView('register'); }); await pause(1200);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the list head */
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); }); await pause(800);
     await page.evaluate(() => { const n = {}; regFiltered().forEach(c => { n[c.status] = (n[c.status] || 0) + 1; });
       const k = Object.keys(n).sort((a, b) => n[b] - n[a])[0]; if (k) LH_PAGES.contracts.apply({ stage: k }); }); await pause(600);
     const chip = await page.evaluate(S => { const c = document.querySelector(S);

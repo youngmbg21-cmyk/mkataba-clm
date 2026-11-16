@@ -51,6 +51,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* ════════ 2. THE CONTRACTS PAGE ════════
        Done first because it needs nothing staged. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the table */
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    await page.waitForTimeout(800);
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -279,6 +283,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
 
     /* ════════ 5. A BIT OF COLOUR ON THE FRAME ════════ */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the table */
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    await page.waitForTimeout(800);
     await page.waitForTimeout(900);
     /* RE-POINTED 15 Oct 2026 (the overnight build, steps 3 and 7): Home's head and the Contracts place carry no "+ Draft new agreement" (Jambo's panel has it); the two-door menu is the pages' own door, opened here as they open it (openNewDoors). */
     await page.evaluate(() => { if (typeof openNewDoors === 'function') openNewDoors(); });

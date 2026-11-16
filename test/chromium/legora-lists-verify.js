@@ -177,7 +177,7 @@ function theBook(){
    step: Show N more's page; filters/columns: true = the page has them,
    'maybe' = test them where drawn, false = none. */
 const DEFS = [
-  { key: 'contracts', title: 'Contracts', go: () => { regPlaceSet({ show: 'list' }); setView('register'); },
+  { key: 'contracts', title: 'Contracts', go: () => { regPlaceSet({ show: 'list' }); if (typeof regFoldersShut === 'function') regFoldersShut(); setView('register'); }, /* RE-POINTED 16 Nov 2026 (#762): Contracts opens on its Folders; the List pill's step */
     rows: '#ct-place #reg-tbody tr[data-row]', panel: '#ig-dock', step: 40, filters: true, columns: true },
   { key: 'negotiations', title: 'Negotiations', go: () => openNegotiations({ list: true }),
     rows: '#reg-tbody tr[data-row]', panel: '#ins-panel', filters: true, columns: 'maybe' },
@@ -685,7 +685,7 @@ function pageKit(){
     const wall = await until(() => { const b = document.querySelector('[data-ct-show="wall"]'); return b && (b.getAttribute('aria-pressed') === 'true' || b.classList.contains('on') || b.classList.contains('is-on')) || document.querySelector('#ig-wall, .igw-foot') ? true : null; }, null, 6000);
     const acW = await ev(() => [...document.querySelectorAll('[data-ac-open]')].filter(window.__lh.vis).length);
     check('contracts C6 the Wall carries no "Ask a column"', !!wall && acW === 0, JSON.stringify({ wall: !!wall, ac: acW }));
-    await ev(() => { regPlaceSet({ show: 'list' }); setView('register'); });
+    await ev(() => { regPlaceSet({ show: 'list' }); if (typeof regFoldersShut === 'function') regFoldersShut(); setView('register'); });
     await until(c => window.__lh.rows(c) > 0 ? true : null, cfgOf(d), 6000);
   }
   /* ===== CONTRACTS: THE FOUR OLD QUICK FILTERS UNDER + FILTER (22 Oct 2026) =====

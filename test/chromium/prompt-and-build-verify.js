@@ -43,7 +43,10 @@ const RAIL = () => {
     /* RE-POINTED 25 Oct 2026 (the builder works like the clause editor): the
        section in hand is named by the picker under the panel's head, "N. Head"
        as the paper prints it; the written count rides the pager's title */
-    scope: (() => { const p = document.getElementById('tb-secpick'); const o = p && p.options[p.selectedIndex]; return o ? o.textContent.trim() : ''; })(),
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; owner, 14 Nov 2026, approved drawing): the clause in
+       hand is NAMED in plain words (.tb-secpick.is-named .tb-secname) with "‹ All clauses", not chosen in a drop-down */
+    scope: (() => { const nm = document.querySelector('.tb-secpick.is-named .tb-secname'); if (nm) return nm.textContent.trim();
+      const p = document.getElementById('tb-secpick'); const o = p && p.options[p.selectedIndex]; return o ? o.textContent.trim() : ''; })(),
     written: ((document.querySelector('#tb-railfoot .tb-pg') || {}).title || ''),
     lane: (document.getElementById('tb-lane') || {}).textContent || '',
     foot: (document.getElementById('tb-railfoot') || {}).textContent || '',
@@ -96,8 +99,9 @@ const RAIL = () => {
     /* ================= 1 · THE SHAPE ================ */
     let s = await page.evaluate(RAIL);
     await page.screenshot({ path: path.join(OUT, '01-empty.png') });
-    check('1a · two columns: the page fills the screen and the rail is 380 wide, to the right of the paper',
-      !!s.page && s.page.w > 1000 && !!s.rail && Math.abs(s.rail.w - 380) <= 2 && s.rail.x > s.paper.x + s.paper.w - 1,
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's builder is ONE WHOLE PAPER with JAMBO 384 (MAP: THE BUILDER) */
+    check('1a · two columns: the page fills the screen and the rail is 384 wide, to the right of the paper',
+      !!s.page && s.page.w > 1000 && !!s.rail && Math.abs(s.rail.w - 384) <= 2 && s.rail.x > s.paper.x + s.paper.w - 1,
       { page: s.page && s.page.w, rail: s.rail, paper: s.paper });
     check('1b · no ask box under any heading — the rail is the one door', s.inlineAsks === 0 && !!s.lane, { inline: s.inlineAsks });
     check('1c · an empty template is asked the one question in the rail', /What is this template for\?/.test(s.lane), s.lane.slice(0, 80));
@@ -267,8 +271,8 @@ const RAIL = () => {
         editables: document.querySelectorAll('[contenteditable="true"]').length }; };
     const g0 = await page.evaluate(GEO);
     const seam0 = g0.left ? g0.left.x + g0.left.w + 8 : -1;
-    check('12a · a separator sits on the seam between the paper and the rail at rest, and the rail is still 380',
-      !!g0.rez && g0.role === 'separator' && Math.abs((g0.rez.x + g0.rez.w / 2) - seam0) <= 2 && Math.abs(g0.rail.w - 380) <= 2,
+    check('12a · a separator sits on the seam between the paper and the rail at rest, and the rail is still 384',
+      !!g0.rez && g0.role === 'separator' && Math.abs((g0.rez.x + g0.rez.w / 2) - seam0) <= 2 && Math.abs(g0.rail.w - 384) <= 2, /* RE-POINTED 16 Nov 2026 (#762): JAMBO 384 */
       { handle: g0.rez && Math.round(g0.rez.x + g0.rez.w / 2), seam: Math.round(seam0), rail: g0.rail && g0.rail.w });
     /* GUARDED (the standing rule): a build without the handle reports the
        four drags as failures rather than crashing the file on a null rect. */
@@ -313,6 +317,10 @@ const RAIL = () => {
         blocks.push({ orderIndex: blocks.length, blockType: 'fixed_text', content: 'The parties agree that clause ' + i + ' governs the matters described in it, and that every figure stated in it binds both of them for the whole term.' });
       }
       await api(`templates/${ids.tid}/versions/${ids.vid}`, 'PUT', { blocks, fields: [] });
+      /* RE-POINTED 16 Nov 2026 (#762): the builder is opened from the template's own page, as a reader opens it, so the
+         shell's ‹ (the only way back in the new look) has that page to return to */
+      if (typeof caGo === 'function') caGo('templates'); await new Promise(r => setTimeout(r, 600));
+      await openTemplateLibDetail(ids.tid); await new Promise(r => setTimeout(r, 600));
       await openTemplateBuilder(ids.tid, ids.vid);
     }, ids);
     await pause(1000);
@@ -320,7 +328,8 @@ const RAIL = () => {
       const sc = document.getElementById('content-scroll'), pg = document.getElementById('tb-page'), scroll = document.getElementById('tb-scroll');
       const strip = document.querySelector('#tb-page .tb-left > .tb-strip');
       return { shell: { clientH: sc.clientHeight, scrollH: sc.scrollHeight, top: sc.scrollTop, fixed: sc.classList.contains('view-fixed'), gutter: getComputedStyle(sc).scrollbarGutter },
-        page: R(pg), scroll: scroll ? { clientH: scroll.clientHeight, scrollH: scroll.scrollHeight, top: scroll.scrollTop, rect: R(scroll) } : null,
+        page: R(pg), scroll: scroll ? { clientH: scroll.clientHeight, scrollH: scroll.scrollHeight, top: scroll.scrollTop, rect: R(scroll),
+          inset: Math.round(parseFloat(getComputedStyle(scroll).borderTopWidth) + parseFloat(getComputedStyle(scroll).paddingTop)) } : null,
         strip: R(strip), stripMB: strip ? parseFloat(getComputedStyle(strip).marginBottom) : null,
         paper: R(document.getElementById('tb-paper')), title: R(document.querySelector('#tb-paper .tb-title')),
         rail: R(document.getElementById('tb-rail')), back: R(document.getElementById('tb-back')),
@@ -329,9 +338,11 @@ const RAIL = () => {
     check('13a · the page is exactly the shell\'s room and the shell has nothing to scroll; the paper column scrolls inside itself',
       !!k0.page && Math.abs(k0.page.h - k0.shell.clientH) <= 1 && k0.shell.scrollH <= k0.shell.clientH + 1 && !!k0.scroll && k0.scroll.scrollH > k0.scroll.clientH + 400,
       { page: k0.page && k0.page.h, shell: k0.shell, scroll: k0.scroll && { clientH: k0.scroll.clientH, scrollH: k0.scroll.scrollH } });
-    check('13b · the paper starts where the flowing page put it: the scroller begins at the strip\'s own margin and there is no padding above the sheet (refusal 3)',
-      !!k0.scroll && !!k0.strip && Math.abs(k0.scroll.rect.y - (k0.strip.bottom + k0.stripMB)) <= 1 && Math.abs(k0.paper.y - k0.scroll.rect.y) <= 1,
-      { stripBottom: k0.strip && k0.strip.bottom, margin: k0.stripMB, scrollerTop: k0.scroll && k0.scroll.rect.y, paperTop: k0.paper && k0.paper.y });
+    /* RE-POINTED 16 Nov 2026 (#762; owner, 13 Nov 2026, f1044: THE BUILDER'S PAPER LIES ON A DESK): under the strip the
+       scroller is the grey desk, its hairline and its own padding the only room above the sheet — nothing else */
+    check('13b · the paper starts where the flowing page put it: the scroller begins at the strip\'s own margin and only the desk\'s own inset stands above the sheet (refusal 3)',
+      !!k0.scroll && !!k0.strip && Math.abs(k0.scroll.rect.y - (k0.strip.bottom + k0.stripMB)) <= 1 && Math.abs(k0.paper.y - k0.scroll.rect.y - k0.scroll.inset) <= 1,
+      { stripBottom: k0.strip && k0.strip.bottom, margin: k0.stripMB, scrollerTop: k0.scroll && k0.scroll.rect.y, inset: k0.scroll && k0.scroll.inset, paperTop: k0.paper && k0.paper.y });
     check('13c · the shell\'s scrollbar channel is given back while the page is up', k0.shell.fixed && k0.shell.gutter === 'auto', k0.shell);
     /* GUARDED: a build without the scroller reports the three presses as failures rather than crashing on a null. */
     if (!k0.scroll){
@@ -353,7 +364,8 @@ const RAIL = () => {
       await page.screenshot({ path: path.join(OUT, '07-scroll.png') });
       /* Save (the strip is on screen, so the press needs no scroll), then Back: the page that grows gets its channel back. */
       await page.click('#tb-save'); await pause(500);
-      await page.click('#tb-back'); await pause(900);
+      console.log('DBGK', await page.evaluate(() => { const b = document.getElementById('dk-back'); return b.disabled + ' ' + b.title; }));
+      await page.click('#dk-back'); /* RE-POINTED 16 Nov 2026 (#762): the builder's own back steps out; the shell's ‹ is the way back */ await pause(900);
       const k3 = await page.evaluate(() => { const sc = document.getElementById('content-scroll'); return { fixed: sc.classList.contains('view-fixed'), gutter: getComputedStyle(sc).scrollbarGutter, builder: !!document.getElementById('tb-page'), detail: !!document.getElementById('tpllib-back') }; });
       check('13f · Back lands on the template\'s page with the channel reserved again', !k3.builder && k3.detail && !k3.fixed && k3.gutter === 'stable', k3);
     }
@@ -451,7 +463,7 @@ const RAIL = () => {
     /* Pressed INSIDE the debounce window on purpose: leaving must spend the
        pending keep, not lose the sentence the timer was still holding. */
     await pause(150);
-    await page.click('#tb-back'); await pause(900);
+    await page.click('#dk-back'); /* RE-POINTED 16 Nov 2026 (#762): the builder's own back steps out; the shell's ‹ is the way back */ await pause(900);
     d = await kept();
     check('14f · Back leaves straight away, with no blocking question, and the draft is still kept',
       !d.builder && !d.overlay && d.store.length === 1 && /One more line/.test(d.words),

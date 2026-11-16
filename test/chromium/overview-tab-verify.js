@@ -19,7 +19,7 @@
    sheet (they were his one window, or led with the greeting), and 5 fails (the drop stood first); 4 is the parent's
    own inventory and holds there by construction.
    Run: node test/chromium/overview-tab-verify.js */
-/* global state, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords , stTalkReopen, jamboTalkOpen, calPlanRepaint, jlTalkPress, pdTalkReopen, jamboTalkUp, jamboTalkBack */
+/* global state, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords , jamboTalkOpen, calPlanRepaint, jlTalkPress, pdTalkReopen, jamboTalkUp, jamboTalkBack */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -68,7 +68,8 @@ const PAGES = [
   ['settings-you', "setView('team')", 'st'],
   ['settings-company', "setView('team'); openSettingsAt('platform')", 'st'],
 ];
-const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mig-side', st: '#st-side' };
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list, its Jambo the list panel (#ins-panel) */
+const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mig-side', st: '#ins-panel' };
 
 (async () => {
   const h = await startHati({});
@@ -134,13 +135,19 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
          beside Contracts says "discover"; on Discover's own panel "Ask a column" became "Ask a question" (the ask box) */
       const RENAMED = { contracts: { reads: 'discover' }, reads: { 'Ask a column': 'Ask a question' } };
       const viaName = w => !!(RENAMED[key] && RENAMED[key][w]) && now.includes(norm(RENAMED[key][w]));
-      const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w) && !viaName(w));
+      /* GONE WITH THE OLD LOOK (16 Nov 2026, #762): Settings has no left menu in the new look — its pages are linked at
+         the foot of its one list (owner's pick, 14 Nov 2026, f1045) — so the panel's "Open the Menu" has nothing to open */
+      const RETIRED = { 'settings-you': ['Open the Menu'], 'settings-company': ['Open the Menu'] };
+      const viaRetired = w => (RETIRED[key] || []).includes(w);
+      const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w) && !viaName(w) && !viaRetired(w));
       check(`4 ${key}: nothing the panel offered before is lost (${was.length} kept)`, !!inv && !lost.length, lost.length ? 'lost: ' + JSON.stringify(lost) : '');
-      if (key === 'contracts') check('5 contracts: Discover stands above the list\'s facts; no drop card, no Ask me', read.order === 'disc-first', String(read.order));
-      if (key === 'settings-you' || key === 'settings-company') check(`6 ${key}: "Open the Menu" is still first`, read.menuFirst === true, String(read.menuFirst));
+      /* RETIRED 16 Nov 2026 (#762): 5 "contracts: Discover stands above the list's facts" — the new look's Contracts panel is
+         the folder's plain sentences, the Legora way (owner's pick, 14 Nov 2026, f1053); no Discover card or facts list there */
+      /* RETIRED 16 Nov 2026 (#762): 6 "settings: Open the Menu is still first" — the new look's Settings has no left menu (f1045) */
       /* the Jambo tab's first words are his greeting */
       /* the conversation, turned to as an answer turns it (each host's own reopen), opens on his greeting */
-      await P.evaluate(k => { if (/^settings/.test(k)) return stTalkReopen();
+      /* RE-POINTED 16 Nov 2026 (#762): Settings' talk opens as the list panel's (jlTalkPress), below */
+      await P.evaluate(k => {
         if (k === 'calendar'){ jamboTalkOpen('cal:week', document.getElementById('cal-plan-body')); return calPlanRepaint(); }
         if (document.querySelector('#ins-panel.is-jambo, #mig-side .jl-head')) return jlTalkPress();
         return pdTalkReopen(); }, key);

@@ -187,6 +187,10 @@ const symbol = page => page.evaluate(() => {
 
   /* ---- 1 · their landing ---- */
   await page.evaluate(() => window.SHOW_COUNTERPARTY());
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the real link's page marks itself with the outside
+     look (html.lg-out) when the share's answer arrives (portalFetchShare → outsideLookApply); this harness draws the
+     page without that fetch, so the mark is set here as the page sets it */
+  await page.evaluate(() => { if (typeof window.outsideLookApply === 'function') window.outsideLookApply(); });
   await until(page, () => !!document.querySelector('#rl-changes-col .rl-card'));
   /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their page draws the outside look, where Edit sits
      with every other head verb under More at the top (#pol-more opens #pol-pop); it is read with More open */
@@ -194,9 +198,10 @@ const symbol = page => page.evaluate(() => {
   const land = await page.evaluate(() => {
     const e = document.querySelector('#pt-edit');
     const r = e && e.getBoundingClientRect();
-    /* (the outside look: Edit is in More's pop-up, under the bar at the page's top — inside the head, in the top fifth) */
-    const pop = document.getElementById('pol-pop');
-    return { edit: !!e && r.width > 0 && (r.top < 80 || (!!pop && pop.contains(e) && r.top < innerHeight / 5)), word: e ? e.textContent.trim() : '',
+    /* (the outside look: Edit is a row of More's pop-up, which drops from the head at the page's top; painted there) */
+    const pop = document.getElementById('pol-pop'), more = document.getElementById('pol-more');
+    const hit = r ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+    return { edit: !!e && r.width > 0 && (r.top < 80 || (!!pop && pop.contains(e) && !!more && more.getBoundingClientRect().top < 80 && !!hit && (hit === e || e.contains(hit)))), word: e ? e.textContent.trim() : '',
       pencils: document.querySelectorAll('#pt-nego #rl-doc .rl-cp-pill, #pt-nego #rl-doc [data-rl-cp-editor]').length,
       rows: document.querySelectorAll('#rl-changes-col .rl-card').length,
       verbs: [...document.querySelectorAll('#rl-changes-col .rl-card button')].map(b => b.textContent.trim()).filter(Boolean) };

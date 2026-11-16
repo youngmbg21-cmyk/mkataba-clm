@@ -2520,9 +2520,11 @@ function pdRoadPaint(c){
    still holds, in the list's own words. Writes nothing. */
 function pd2SignRowsHtml(c){
   const E = _pdE, T = _pdT;
+  const closedEarly = !!pdSignState(c).closed;
   const rows = [], meta = [];
   /* `go` (the five parts, round 3b): the door an open check already has elsewhere — its press is the black button */
-  const row = (st, t, sub, go) => { meta.push({ st, go }); rows.push(`<div class="pd2-sg-r is-${st}"><i class="pd2-sg-i" aria-hidden="true">${st === 'done' ? '\u2713' : ''}</i><div><b>${E(t)}</b>${sub ? `<small>${E(sub)}</small>` : ''}</div></div>`); };
+  /* SIGNED, the checks list what was done before the signature; one never run is no open check after it (#762) */
+  const row = (st, t, sub, go, keep) => { if (closedEarly && st !== 'done' && !keep) return; meta.push({ st, go }); rows.push(`<div class="pd2-sg-r is-${st}"><i class="pd2-sg-i" aria-hidden="true">${st === 'done' ? '\u2713' : ''}</i><div><b>${E(t)}</b>${sub ? `<small>${E(sub)}</small>` : ''}</div></div>`); };
   const day = iso => { if (!iso) return ''; const d = new Date(iso); const loc = typeof langLocale === 'function' ? langLocale() : undefined;
     const t = d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
     return (typeof pdDayWord === 'function' ? pdDayWord(String(iso).slice(0, 10)) : String(iso).slice(0, 10)) + ' ' + t; };
@@ -2579,13 +2581,13 @@ function pd2SignRowsHtml(c){
       row(st.n === now ? 'turn' : 'later', T('pd2_sg_signs', { party }), [names, link ? T(link) : ''].filter(Boolean).join(' \u00b7 '));
     }
   });
-  if (!steps.length) row('now', T('pd_rd_who'), T('pd_rd_nobody'), ((typeof canEdit !== 'function') || canEdit()) ? { attr: `data-pd-og-route="${E(c.id)}"`, w: 'jov5_sg_go_who' } : null);
+  if (!steps.length && !closedEarly) row('now', T('pd_rd_who'), T('pd_rd_nobody'), ((typeof canEdit !== 'function') || canEdit()) ? { attr: `data-pd-og-route="${E(c.id)}"`, w: 'jov5_sg_go_who' } : null);
   /* "SENT" MUST MEAN SENT: signed, the last row says the copies went out only when they did (copiesNotOut; #762) */
   let cpOut = null; try { cpOut = (closed && typeof window.copiesNotOut === 'function') ? window.copiesNotOut(c) : null; } catch (_){ cpOut = null; }
   const cpHeld = !!(cpOut && cpOut.n);
   const thenWords = cpHeld ? T(cpOut.n >= ((c.distribution && c.distribution.recipients || []).length || 1) ? 'ct_copies_none_sent' : 'ct_copies_some_sent') : T('pd2_sg_then_s');
   const cpWho = cpHeld ? (cpOut.rows || []).map(r => r && (r.name || r.email)).filter(Boolean).join(' \u00b7 ') : '';
-  row(closed ? (cpHeld ? 'now' : 'done') : 'later', T('pd2_sg_then'), thenWords);
+  row(closed ? (cpHeld ? 'now' : 'done') : 'later', T('pd2_sg_then'), thenWords, null, true);
   /* the card */
   const mineNow = steps.some(st => st.n === now && st.rows.some(r => r && r.party === 'internal' && String(r.memberId || '') === String(me.id || '') && !r.signed));
   /* A FILE THEY SIGN (the outside route): the card is the handover's own act — Agree and hand over, Send for approval,

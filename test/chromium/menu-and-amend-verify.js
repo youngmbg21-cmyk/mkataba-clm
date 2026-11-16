@@ -166,6 +166,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* 4 the highlight's Comment keeps its words */
     await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B2'); });
     await until(page, () => !!document.querySelector('#ig-canvas [data-anchor="c1"] p, #ig-canvas [data-anchor="c1"]'), null, 10000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a contract opened on purpose lands on its Cover, which
+       lies over the paper (owner's "Margin Notes" pick); its largest button, Open the dossier, uncovers the paper to highlight */
+    if (await until(page, () => !!document.querySelector('[data-cv-open]'), null, 4000)) await page.click('[data-cv-open]');
+    await until(page, () => !document.querySelector('[data-cv-open]'), null, 4000);
     await page.waitForTimeout(600);
     const words = await page.evaluate(() => {
       const el = document.querySelector('#ig-canvas [data-anchor="c1"]'); const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -190,9 +194,15 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('5a not offered on an agreement still being written', await page.evaluate(() => pdAmendOpen('MK-B2') === false && !document.querySelector('#pd-amendface')));
     await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B1'); });
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the row stands in the dossier's All acts fold */
-    await until(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired && intel.paper && intel.paper.id === 'MK-B1', null, 10000);
-    await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-m-amend'); if (!b) return; b.closest('details').open = true; b.click(); });
-    ok('5b the All acts row opens Amend beside the paper', await until(page, () => !!document.querySelector('#pd-amendface'), null, 5000));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): opened on purpose it lands on its Cover — Open the dossier
+       uncovers it; the act is the paper line's More (#ig-actions, pdActsToggle), whose row presses the room's own #ws-m-amend */
+    if (await until(page, () => !!document.querySelector('[data-cv-open]'), null, 4000)) await page.click('[data-cv-open]');
+    await until(page, () => !document.querySelector('[data-cv-open]') && intel.paper && intel.paper.id === 'MK-B1' && !!document.getElementById('ig-actions'), null, 10000);
+    await page.click('#ig-actions');
+    await until(page, () => !!document.querySelector('#pd-acts-pop [data-pd-acts-go]'), null, 4000);
+    if (!await page.$('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]') && await page.$('#pd-acts-pop [data-pd-acts-every]')) await page.click('#pd-acts-pop [data-pd-acts-every]');
+    if (await page.$('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]')) await page.click('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]');
+    ok('5b the More menu\'s Amend row opens Amend beside the paper', await until(page, () => !!document.querySelector('#pd-amendface'), null, 5000));
     await page.waitForTimeout(400);
     const signedBefore = await page.evaluate(() => JSON.stringify([getContract('MK-B1').redlineText || '', getContract('MK-B1').status, (getContract('MK-B1').signatures || []).length]));
     await page.locator('#ig-canvas [data-anchor="c1"]').first().click({ position: { x: 30, y: 8 } });

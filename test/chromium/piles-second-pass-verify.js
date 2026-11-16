@@ -166,28 +166,36 @@ async function login(b, base, email, pass, errs){
 
     /* 2 the notes in the column */
     await page.click('#pd-redface [data-rl-notes-all]');
-    const nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); if (!v) return null;
-      return { tabs: [...v.querySelectorAll('.rl-fn-tab')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), lock: !!t.querySelector('svg'), on: t.classList.contains('on') })),
-        back: ((document.querySelector('#ig-dock > .pd-trail') || {}).textContent || ''),  /* ONE TRAIL: the back is the trail's (20 Oct 2026) */ lines: [...v.querySelectorAll('.rl-fn-line')].map(l => l.innerText.replace(/\s+/g, ' ').trim()),
-        say: [...v.querySelectorAll('.rl-fn-say')].map(s => s.textContent.trim()), ph: (v.querySelector('.rl-fn-in') || {}).placeholder,
-        post: (v.querySelector('[data-rl-fn-post]') || {}).textContent, piles: !!(document.querySelector('#pd-redface #rl-changes') || {}).hidden,
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; owner, 16 Nov 2026, f1087: "Redlines' notes are the
+       bar's notes"): the Notes face holds the bar's own drawer (rl-fn-same → rlChatPanelPaint) — its rooms are its tabs
+       (.rl-np-tab: our team's room, said only colleagues see it, then the party's), each note a face, the name, the time
+       and the clause it is on as a link, its words under it; ONE box with @ and "Add note" */
+    const nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); if (!v || !v.querySelector('.rl-np-tab')) return null;
+      return { tabs: [...v.querySelectorAll('.rl-np-tab')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), room: t.getAttribute('data-rl-np-room'), only: /Only your colleagues/.test(t.title || ''), on: t.classList.contains('on') })),
+        back: ((document.querySelector('#ig-dock > .pd-trail') || {}).textContent || ''),
+        lines: [...v.querySelectorAll('.rl-np-note')].map(l => ((l.querySelector('.rl-np-top b') || {}).textContent || '') + ' · ' + ((l.querySelector('.rl-chat-on em') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-np-top span') || {}).textContent || '') ? 'when' : '')),
+        say: [...v.querySelectorAll('.rl-np-note .rl-np-b > p')].map(x => x.textContent.trim()), ph: (v.querySelector('.rl-np-in') || {}).placeholder, at: !!v.querySelector('[data-rl-np-at]'),
+        post: (v.querySelector('.rl-np-send') || {}).textContent, piles: !!(document.querySelector('#pd-redface #rl-changes') || {}).hidden,
         drawer: !!(state.panelOpen && panelFace() === 'notes'), pressed: document.querySelector('#pd-redface [data-rl-notes-all]').getAttribute('aria-pressed') }; }, 6000);
     check('2a Notes opens the notes in the column (no drawer), the button pressed', !!nv && nv.piles && !nv.drawer && nv.pressed === 'true', JSON.stringify(nv && { piles: nv.piles, drawer: nv.drawer, pressed: nv.pressed }));
-    check('2b the rooms as tabs: "Internal 2" with its lock (on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && /^Internal 2$/.test(nv.tabs[0].t) && nv.tabs[0].lock && nv.tabs[0].on
+    check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && / 2$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
       && /^Nordvik Logistik AB 0$/.test(nv.tabs[1].t) && /Redlines[\s\S]*Notes/.test(nv.back || ''), JSON.stringify(nv && [nv.tabs, nv.back]));
-    check('2c each note "Name · clause 7 · when" with its words in a bubble', !!nv && nv.lines.length === 2 && nv.lines.every(l => /^Maria Lindgren · clause 7 · today$/.test(l))
+    check('2c each note "Name · clause 7 · when" with its words under it', !!nv && nv.lines.length === 2 && nv.lines.every(l => /^Maria Lindgren · 7\. Liability cap · when$/.test(l))
       && nv.say.join('|') === 'Their cap doubles our exposure.|Ask Sara before we move.', JSON.stringify(nv && [nv.lines, nv.say]));
-    check('2d "Write to Internal… type @ to name someone" and Post', !!nv && nv.ph === 'Write to Internal… type @ to name someone' && /^Post$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.post]));
+    check('2d ONE box with @ to name someone, and "Add note"', !!nv && /note/i.test(nv.ph || '') && nv.at && /^Add note$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.at, nv.post]));
     await shot(page, '9-notes-1440x780');
-    await page.click('#pd-redface .rl-fn [data-rl-fn-clause]');
+    await page.click('#pd-redface .rl-fn .rl-chat-on[data-rl-notes]'); /* RE-POINTED 16 Nov 2026 (#762): the note's clause link */
     /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the clause through the one lander */
     check('2e the clause is a link to it on the paper', !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)));
-    await page.fill('#pd-redface .rl-fn-in', 'Finance can live with 45 days. Not 60.');
-    await page.click('#pd-redface [data-rl-fn-post]');
+    if (!(await page.$('#pd-redface .rl-fn .rl-np-in'))){ await page.click('#pd-redface [data-rl-notes-all]'); await waitFor(page, () => !!document.querySelector('#pd-redface .rl-fn .rl-np-in'), 5000); }
+    await page.fill('#pd-redface .rl-fn .rl-np-in', 'Finance can live with 45 days. Not 60.');
+    await page.click('#pd-redface .rl-fn .rl-np-send'); /* RE-POINTED 16 Nov 2026 (#762): the bar's box and its Add note */
     const posted = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); const c = getContract('MK-0382');
-      const own = (c.thread || []).filter(m => /Finance can live with 45 days/.test(m.text || ''));
-      return v && own.length === 1 && own[0].visibility !== 'shared' && /Internal 3/.test(v.querySelector('.rl-fn-tab').innerText.replace(/\s+/g, ' '))
-        && [...v.querySelectorAll('.rl-fn-say')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
+      /* RE-POINTED 16 Nov 2026 (#762): the bar's box files the note where it is written — the contract's thread, or the
+         change's own (negoNoteHome) once the clause's link has scoped the notes to it */
+      const own = (c.thread || []).concat(...(c.changes || []).map(x => x.thread || [])).filter(m => /Finance can live with 45 days/.test(m.text || ''));
+      return v && own.length === 1 && own[0].visibility !== 'shared' && / 3$/.test(v.querySelector('.rl-np-tab[data-rl-np-room="internal"]').innerText.replace(/\s+/g, ' ').trim())
+        && [...v.querySelectorAll('.rl-np-note .rl-np-b > p')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
     check('2f Post files one internal note through the drawer\'s own send, and it shows', !!posted);
     await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]');
     check('2g ‹ Redlines brings the piles back', !!(await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn') && !!document.querySelector('#pd-redface [data-rl-pile="awaiting"]'), 5000)));

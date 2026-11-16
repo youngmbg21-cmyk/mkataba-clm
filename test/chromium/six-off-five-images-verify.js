@@ -70,6 +70,10 @@ const ok = (name, good, detail) => {
     }));
     /* the List of Home's Contracts place (step 7 of the overnight work order) */
     await page.evaluate(() => { regSetMode('table'); regPlaceSet({ show: 'list' }); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the table */
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    await page.waitForTimeout(800);
     await page.waitForTimeout(1200);
     const c1 = await heads();
     ok('1a the Contracts table draws no value stream column',

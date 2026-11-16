@@ -229,7 +229,9 @@ const EXTRA = [
       await page.waitForTimeout(500);
       const saved = await page.evaluate(() => ({
         t: Object.assign({}, payTargets()),
-        row: (document.querySelector('#st-list .st-mrow[data-st-panel="paydays"] .st-mrow-s') || {}).textContent || '',
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; the row whose door opens the
+           paydays drawer says its state in its value (.stn-val) */
+        row: (((document.querySelector('#stn-main [data-stn-row] [data-st-panel="paydays"]') || { closest: () => null }).closest('[data-stn-row]') || document.createElement('i')).querySelector('.stn-val') || {}).textContent || '',
         reading: ((window.SET_PANELS && SET_PANELS.paydays) ? (SET_PANELS.paydays.state() || {}).text : '') || '',
       }));
       check('11d the pair is stored and each side reads its own',

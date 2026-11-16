@@ -168,7 +168,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        floating 8px in, 12px apart (the drawing's gap), so the strip and the panel's head no longer touch;
        they still stand at ONE height, top and bottom. The wording has not moved: the sheet still starts
        87px under the bar (the card's 8px inset is taken back from the paper's own top padding). */
-    ok('3f the strip and the symbols stand at one height, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && bar.gap >= 0 && bar.gap <= 12 && bar.sheetTop - bar.barH === 87, JSON.stringify(bar));
+    ok('3f the strip and the symbols stand at one height, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && bar.gap >= 0 && bar.gap <= 12 && bar.sheetTop - bar.barH === 65, JSON.stringify(bar));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): ONE WHITE SHEET, no floating cards — the paper's half lies
+       edge to edge under the bar, so its wording starts 65px under the bar (was 87 with the card's inset); pinned there */
     await page.screenshot({ path: path.join(OUT, '3-desk.png') });
     await page.click('#ig-dock [data-pd-tab="copilot"]');
     ok('3e Copilot\'s symbol brings the conversation back', await page.evaluate(() => !!document.querySelector('#igd-feed:not([hidden])') && !document.getElementById('pd-body')));
@@ -196,9 +198,13 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        it does not touch): the Board may draw the card again between finding the act and pressing it */
     if (late) await page.click('#hm-agents .nd-br.is-look [data-ag-act="oblig"]', { timeout: 8000 }).catch(() => {});
     /* the act's own door (agRunAct 'oblig' → agGo): the Obligations worklist, where the late promise is a row with its chase */
-    await page.waitForFunction(() => state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
-    const l = await page.evaluate(() => ({ view: state.view, named: /MK-HF4/.test((document.getElementById('content') || {}).innerText || '') }));
-    ok('5b it lands on the Obligations worklist, the late promise\'s contract among its rows', l.view === 'obligations' && l.named, JSON.stringify(l));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): one contract's obligations asked for land on its paper's
+       Obligations face (renderObligationsList → pd2ObGo; "the new look has no narrowed page"), the late promise among its rows */
+    const ON = () => (state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''))
+      || (typeof pdContract === 'function' && pdContract() && pdContract().id === 'MK-HF4' && pdTab() === 'oblig' && document.querySelectorAll('#ig-dock .pd-ob[data-pd-ob-key]').length > 0);
+    await page.waitForFunction(ON, null, { timeout: 8000 }).catch(() => {});
+    const l = await page.evaluate(`(() => ({ view: state.view, at: ((window.pdContract && pdContract()) || {}).id || null, tab: window.pdTab ? pdTab() : null, ok: (${ON.toString()})() }))()`);
+    ok('5b it lands on the late promise\'s obligations, its contract\'s own rows', l.ok, JSON.stringify(l));
     await page.screenshot({ path: path.join(OUT, '5-late.png') });
 
     /* ===== 5c. A WORK ROW NAMES ITS CONTRACT (Young, 8 Oct 2026: "no contract number in the card") ===== */

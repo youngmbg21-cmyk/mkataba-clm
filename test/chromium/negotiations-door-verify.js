@@ -817,7 +817,9 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        page. Both halves are re-pointed rather than deleted, because both are
        still worth pinning: NEITHER seat draws a box of its own, and the row of
        filter controls still reads as one convention. */
-    await page.evaluate(() => { regSetScope(null); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders;
+       regFoldersShut() is the List pill's own step, so the list's head is the one measured */
+    await page.evaluate(() => { regSetScope(null); if (typeof regFoldersShut === 'function') regFoldersShut(); setView('register'); });
     await page.waitForTimeout(1400);
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way", and
        answered Q1 "B — keep both boxes"): the Contracts place draws the list

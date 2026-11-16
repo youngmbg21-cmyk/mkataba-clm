@@ -203,6 +203,10 @@ async function tabAround(page, sel, n = 25) {
   /* ---------- 8 · THE REGISTER'S COLUMN HEADS AND ITS COUNT ---------- */
   /* the List of Home's Contracts place (step 7) */
   await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await pause(700);
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's List
+     pill is the way to the list */
+  await page.click('[data-ctf-show="list"]', { timeout: 8000 }).catch(() => {});
+  await page.waitForSelector('#reg-tbody tr[data-row]', { timeout: 8000 }).catch(() => {});
   {
     const th = await page.evaluate(() => {
       const t = document.querySelector('[data-reg-sort]');
@@ -223,7 +227,8 @@ async function tabAround(page, sel, n = 25) {
     });
     check('and pressing Enter on it actually sorts', sorted.before !== sorted.after, JSON.stringify(sorted));
     const live = await page.evaluate(() => {
-      const el = document.getElementById('reg-showing');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's foot is its own count, #reg-nl-showing (regNlFootHtml) */
+      const el = document.getElementById('reg-showing') || document.getElementById('reg-nl-showing');
       return el ? { live: el.getAttribute('aria-live'), role: el.getAttribute('role') } : null;
     });
     check('the result count is announced when it changes',
