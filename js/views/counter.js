@@ -923,8 +923,10 @@ function ndBellNlHtml(D){
   const L = cn2Rows(D), news = D.news || [];
   const row = x => { const r = x.r, P = ndParts(r);
     const title = P.title || P.name || '';
-    const sub = r.g === 'jambo' ? _ndText(P.deal || P.line || '') : [P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
-    return `<div class="ndb-r" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}</div>`
+    /* its own line first (what came back, who asked, the note: P.note) — the new bell had dropped it (#762) */
+    const sub = r.g === 'jambo' ? _ndText(P.deal || P.line || '') : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
+    /* good news (they agreed, ready to sign) wears the green dot, as the old bell's row did (P.good; #762) */
+    return `<div class="ndb-r${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${P.good ? 'good' : x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}</div>`
       + `<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('act_open'))}</button></div>`; };
   const newsRow = (a, i) => `<button type="button" class="ndb-r is-news" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
   return `<div class="ndb">${L.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_need', { n: ndThings(D.jambo) + ndThings(D.you) }))}</div>${L.map(row).join('')}` : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`

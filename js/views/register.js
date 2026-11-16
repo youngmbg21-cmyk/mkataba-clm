@@ -3159,7 +3159,9 @@ function regRowsHtml(cs){
       return listChipHtml(listStreamTone(c.folder),short).replace(/ title="[^"]*"/,` title="${esc(n)}"`); })()}</td>`;
     /* the Scorecard (10 Nov 2026) names what is missing on its hover, so the cell is one line (regStdMissHtml no longer drawn here) */
     CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}</td>`;
-    if(regNl()){ const st=regStageTone(c); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)">${esc((st.m&&st.m.label)||'')}</td>`; }
+    /* the SHORT word in the cell (a column has no room for a sentence), the whole sentence on its hover — the same
+       reading the old grey line used (regStageShortOf; #762) */
+    if(regNl()){ const st=regStageTone(c), sh=regStageShortOf(st.m); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)"${st.m&&sh&&sh.label!==st.m.label?` title="${esc(st.m.label)}"`:''}>${esc((sh&&sh.label)||'')}</td>`; }
     /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
        7: in Home's narrower column "· in 25 days" was cut on every screen) —
        the row is two lines already, so it costs no height; the hover says
@@ -3287,6 +3289,13 @@ function regNegoClauseChips(c){
   const chips=names.slice(0,3).map(n=>window.listChipHtml?listChipHtml('gray',n):esc(n)).join(' ');
   return chips+(names.length>3?` <span class="reg-cl-more">+${names.length-3}</span>`:'');
 }
+/* a stage's SHORT word, where it has one (ready to sign, handed over, signed there) — else the stage itself */
+function regStageShortOf(m){
+  if(!m) return m;
+  const W=window;
+  return (W.READY_META&&m===W.READY_META&&W.READY_META_SHORT)||(W.HANDOVER_META&&m===W.HANDOVER_META&&W.HANDOVER_META_SHORT)
+    ||(W.HANDOVER_SIGNED_META&&m===W.HANDOVER_SIGNED_META&&W.HANDOVER_SIGNED_META_SHORT)||m;
+}
 function regStageLineHtml(c){
   /* the new look's list says the stage in its own Standing column (round 6), not on the grey line */
   if(regNl()) return '';
@@ -3294,8 +3303,7 @@ function regStageLineHtml(c){
   const at=c&&(c._lastAuditAt||c.updatedAt||c.lastAction);
   const ago=at&&typeof window.rlAgoWords==='function'?rlAgoWords(at):'';
   /* the SHORT word, as the stage column's dot printed it (contractStatusDotHtml) */
-  const W=window, short=(W.READY_META&&m===W.READY_META&&W.READY_META_SHORT)||(W.HANDOVER_META&&m===W.HANDOVER_META&&W.HANDOVER_META_SHORT)
-    ||(W.HANDOVER_SIGNED_META&&m===W.HANDOVER_SIGNED_META&&W.HANDOVER_SIGNED_META_SHORT)||m;
+  const short=regStageShortOf(m);
   return ` · <span class="reg-stg-w" style="color:${m.tx}" title="${esc(m.label)}">${esc(short.label)}</span>${ago?` · ${esc(ago)}`:''}`;
 }
 

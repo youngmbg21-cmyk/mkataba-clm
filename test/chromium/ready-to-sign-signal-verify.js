@@ -140,6 +140,8 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
     await page.waitForTimeout(1600);
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; its
        one table (#reg-tbody) is the All tab */
+    /* the new look's Contracts place opens on its Folders: the List pill shows the one table (#762) */
+    if (await page.$('[data-ctf-show="list"]')) { await page.click('[data-ctf-show="list"]').catch(() => {}); await page.waitForTimeout(600); }
     if (await page.$('[data-ctf-tab="all"]')) { await page.click('[data-ctf-tab="all"]').catch(() => {}); await page.waitForTimeout(800); }
     const row = await page.evaluate(id => {
       const tr = [...document.querySelectorAll('#reg-tbody tr')].find(r => r.textContent.includes(id));

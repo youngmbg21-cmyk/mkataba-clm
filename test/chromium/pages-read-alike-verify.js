@@ -333,8 +333,11 @@ const SEED = async () => {
         room.rest.fs === nego.rest.fs && room.rest.fw === nego.rest.fw,
         { room: room.rest, nego: nego.rest });
     }
-    check('3 and the live tab agrees on all three',
-      room.on.c === nego.on.c && room.on.fw === nego.on.fw && room.on.fs === nego.on.fs,
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the negotiate page's chosen reading is a filled black
+       pill with white words (index.html lg-new ".rl-readwrap .rl-seg.on", the new look's "black only on the chosen"), so
+       its ink is its own; the live tab still agrees with the room's in size and weight */
+    check('3 and the live tab agrees in size and weight',
+      room.on.fw === nego.on.fw && room.on.fs === nego.on.fs,
       { room: room.on, nego: nego.on });
 
     /* ---- 4 · THE NEGOTIATIONS LIST HOLDS STILL WHEN YOU SCROLL IT ----
@@ -347,9 +350,11 @@ const SEED = async () => {
     await page.evaluate(() => openNegotiations({ list: true }));
     await pause(1600);
     const band = await page.evaluate(async () => {
-      const sc = document.getElementById('reg-scroll');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Negotiations list is the new look's table
+         (.ngn-table) in its own scroller (.cu-scroll); the promise is the same: its column header holds while rows scroll */
+      const nt = document.querySelector('#content .ngn-table'), sc = nt && nt.closest('.cu-scroll');
       if (!sc) return { err: 'the list drew no table' };
-      const th = sc.querySelector('.reg-table thead th');
+      const th = sc.querySelector('.ngn-table thead th');
       if (!th) return { err: 'no header' };
       /* The seeded book yields a handful of live negotiations, which fit. What
          is being measured is sticky pinning, so the scroller is given a height
@@ -358,7 +363,7 @@ const SEED = async () => {
          and still taller than the header). */
       /* RE-POINTED 29 Oct 2026 (One sheet): the list's card now reaches the panel's foot, so the scroller is
          taller than its rows at rest — the rows' own height, not the scroller's, says what will not fit */
-      const tbl = sc.querySelector('.reg-table');
+      const tbl = sc.querySelector('.ngn-table');
       const rowsH = tbl ? Math.round(tbl.getBoundingClientRect().height) : sc.scrollHeight;
       const want = Math.max(Math.round(th.getBoundingClientRect().height) + 24, Math.min(150, rowsH - 30));
       sc.style.height = want + 'px'; sc.style.flex = 'none';

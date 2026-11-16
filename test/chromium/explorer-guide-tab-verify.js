@@ -97,8 +97,11 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       for (let v = 0; v < 5; v++) {
         await fresh(v, true); await page.waitForTimeout(200);
         const g = await page.evaluate(() => { const h = document.getElementById('ig-gd'); if (!h) return null;
-          return { view: Number(h.querySelector('[data-ig-gd-view]')?.getAttribute('data-ig-gd-view')), here: h.querySelector('.ig-gd-hn')?.textContent || '',
-            rows: [...h.querySelectorAll('[data-ig-gd]')].map(b => b.getAttribute('data-ig-gd')), mine: h.querySelectorAll('.ig-gd-rows')[0]?.querySelectorAll('[data-ig-gd]').length || 0 }; });
+          /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the guide is drawn in THE FIVE PARTS (igGuideHtml's
+             new-look branch, owner 15 Nov 2026): the view's name is the headline (.jov5-title), its moves soft rows in groups
+             (.jov5-group), the first group this view's own */
+          return { view: Number(h.querySelector('[data-ig-gd-view]')?.getAttribute('data-ig-gd-view')), here: h.querySelector('.jov5-title')?.textContent || '',
+            rows: [...h.querySelectorAll('[data-ig-gd]')].map(b => b.getAttribute('data-ig-gd')), mine: h.querySelectorAll('.jov5-group')[0]?.querySelectorAll('[data-ig-gd]').length || 0 }; });
         check(`3a-${lang} ${VIEW[v]}: the guide names this view and lists its own rows`, !!g && g.view === v && g.here.includes(NAME[lang][v]) && g.mine >= 2,
           JSON.stringify(g && { view: g.view, here: g.here, mine: g.mine }));
         for (const q of (g ? g.rows : [])) {
@@ -119,7 +122,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
           const viaRow = await pic();
           const after = await page.evaluate(w => ({ guide: !!document.getElementById('ig-gd'),
             live: [...document.querySelectorAll('#ig-gd [data-ig-gd]')].some(x => x.getAttribute('data-ig-gd') === w),
-            on: [...document.querySelectorAll('#ig-gd .ig-gd-row.is-on')].map(x => x.textContent) }), q);
+            /* RE-POINTED 16 Nov 2026 (#762): a row now drawn reads "Showing" as its value (.jov5-v), its Do it pill gone */
+            on: [...document.querySelectorAll('#ig-gd .jov5-row')].filter(x => !x.querySelector('[data-ig-gd]') && x.querySelector('.jov5-v')).map(x => x.textContent) }), q);
           await fresh(v, false); await page.waitForTimeout(150);
           const m = await page.evaluate(() => intel.history.length);
           await page.evaluate(w => intelAsk(w), q);
@@ -137,18 +141,21 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       const moved = await until(() => igbCam().view === 3 && Number(document.querySelector('#ig-gd [data-ig-gd-view]')?.getAttribute('data-ig-gd-view')) === 3);
       check(`4-${lang} Floors → the Grid door moves the map and the guide follows`, !!moved);
       /* THE VIEWS AT THE TOP (owner, 9 Nov 2026): all five in one row heading the guide, the map's own pressed, no cards at the foot */
+      /* RE-POINTED 16 Nov 2026 (#762): in the five parts the views' row heads the panel: nothing of the guide stands above it,
+         the headline (.jov5-title) right under it */
       const top = await page.evaluate(() => { const g = document.getElementById('ig-gd'); const row = g && g.querySelector('.ig-gd-views'); if (!row) return null;
-        const first = g.querySelector('.ig-gd').firstElementChild; const bs = [...row.querySelectorAll('[data-ig-gd-view-go]')];
+        const rb = row.getBoundingClientRect().bottom;
+        const first = [...g.querySelectorAll('.jov5-eb, .jov5-title, .jov5-sub, .jov5-row')].every(e => e.getBoundingClientRect().top >= rb - 1); const bs = [...row.querySelectorAll('[data-ig-gd-view-go]')];
         const tops = bs.map(b => Math.round(b.getBoundingClientRect().top));
         return { first: first === row, n: bs.length, pressed: bs.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-ig-gd-view-go')), oneLine: new Set(tops).size === 1,
-          below: row.getBoundingClientRect().bottom <= g.querySelector('.ig-gd-here').getBoundingClientRect().top, cards: g.querySelectorAll('.ig-gd-others').length }; });
+          below: !!g.querySelector('.jov5-title') && rb <= g.querySelector('.jov5-title').getBoundingClientRect().top, cards: g.querySelectorAll('.ig-gd-others').length }; });
       check(`4b-${lang} the five views head the guide in one row, the map's own pressed, its things to do right under, no cards at the foot`,
         !!top && top.first && top.n === 5 && JSON.stringify(top.pressed) === '["3"]' && top.oneLine && top.below && top.cards === 0, JSON.stringify(top));
 
       /* ================= 5. GO BACK ONE STEP ================= */
       await fresh(2, true); await page.waitForTimeout(200);
       const dead = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-gd [data-ig-gd]')].find(x => /^(undo|ångra)$/i.test(x.getAttribute('data-ig-gd'))); return b ? { d: b.disabled, t: b.title } : null; });
-      await page.evaluate(() => document.querySelector('#ig-gd .ig-gd-rows [data-ig-gd]')?.click());
+      await page.evaluate(() => document.querySelector('#ig-gd .jov5-group [data-ig-gd]')?.click());
       await until(() => !intel.busy && (intel.recipeStack || []).length > 0); await page.waitForTimeout(250);
       const live = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-gd [data-ig-gd]')].find(x => /^(undo|ångra)$/i.test(x.getAttribute('data-ig-gd'))); return b ? !b.disabled : null; });
       check(`5-${lang} "Go back one step" is grey with its reason before any change, live after one`, !!dead && dead.d && !!dead.t && live === true, JSON.stringify({ dead, live }));
@@ -161,7 +168,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       await page.setViewportSize({ width: w, height: hh });
       await fresh(2, true); await page.waitForTimeout(400);
       const fit = await page.evaluate(() => { const g = document.getElementById('ig-gd'), dock = document.getElementById('ig-dock'); if (!g || !dock) return null;
-        const d = dock.getBoundingClientRect(), rs = [...g.querySelectorAll('.ig-gd-row,.ig-gd-others button,.ig-gd-here')].map(x => x.getBoundingClientRect());
+        const d = dock.getBoundingClientRect(), rs = [...g.querySelectorAll('.jov5-row,.ig-gd-others button,.jov5-title')].map(x => x.getBoundingClientRect());
         return { inside: rs.every(r => r.left >= d.left - 0.5 && r.right <= d.right + 0.5), sideways: g.scrollWidth > g.clientWidth + 1, scrolls: g.scrollHeight > g.clientHeight, n: rs.length }; });
       check(`6 ${w}×${hh} the guide fits Jambo's panel (no sideways scroll; it scrolls down if long)`, !!fit && fit.inside && !fit.sideways && fit.n >= 8, JSON.stringify(fit));
       await page.screenshot({ path: path.join(OUT, `${w}x${hh}-floors.png`) });

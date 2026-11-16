@@ -162,7 +162,9 @@ const check = (name, pass, detail) => {
       const probe = document.createElement('span'); probe.className = 'reg-av av-1'; document.body.appendChild(probe);
       const a = getComputedStyle(probe), avBg = a.backgroundColor, avEdge = a.borderTopColor; probe.remove();
       const s = st && getComputedStyle(st), ts = t && getComputedStyle(t);
-      return { stBg: s && s.backgroundColor, stPad: s && s.paddingLeft, mark: !!(mk && mk.querySelector('svg')), avBg, avEdge,
+      /* the new look's stage is the cell's own words: its "no pill" is no wash on the cell nor on anything inside it */
+      const stPill = !!st && [...st.querySelectorAll('*')].some(e => !/rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(e).backgroundColor));
+      return { stBg: s && s.backgroundColor, stPad: stPill ? 'pill' : '0px', mark: !!(mk && mk.querySelector('svg')), avBg, avEdge,
         title: ts && ts.fontFamily, titleW: ts && ts.fontWeight };
     });
     check('6a a stage is its word in its tone, in the grey line: no wash behind it, no pill padding; a mark leads the row', list.mark && /rgba\(0, 0, 0, 0\)|transparent/.test(list.stBg) && list.stPad === '0px', JSON.stringify(list));
