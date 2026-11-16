@@ -6,6 +6,8 @@
      3 driven: ndRowGo opens a row's contract on Home (Jambo's piece and your move alike), the week ahead the Calendar,
        and only a row about no one contract the Board's list
      4 every conversation bubble takes the ONE CORNER (--radius), which no list sheet zeroes
+     5 the bell: its new-look list (.ndb) is the panel, so Company Open works, a piece's Open opens its contract, and
+       a press on a row's words does what its Open does
    At the parent (1)–(4) fail: every row said data-hbw="all", there was no ndRowGo, the bubbles took --radius-lg.
    Run: node --test test/f1077-panel-rows-and-round-bubbles.test.js */
 const { test } = require('node:test');
@@ -52,4 +54,12 @@ test('f1077 (4) every conversation bubble takes the one corner', () => {
   /* the sheet that squares a list page's parts zeroes --radius-lg only, so --radius still rounds the bubble there */
   assert.match(CSS, /\.sap-page:not\(\.st-page\)[^{]*\{--radius-lg:0px;/);
   assert.doesNotMatch(CSS, /\.sap-page:not\(\.st-page\)[^{]*\{[^}]*--radius:0/);
+});
+
+test('f1077 (5) the bell: its new-look list is the panel; Open and the row go where the work is', () => {
+  const i = CN.indexOf("document.addEventListener('click', e => {", CN.indexOf('PRESSES, ONE LISTENER EACH'));
+  const L = strip(CN.slice(i, CN.indexOf("document.addEventListener('input'", i)));
+  assert.match(L, /const inPanel = !!t\.closest\('#panel-body \.nd-pan, #panel-body \.ndb'\);/);
+  assert.match(L, /closest\('\[data-nd-look\]'\)\)\)\{ step\(\); const row = inPanel \? el\.closest\('\[data-nd-row\]'\) : null;\s*if \(row\)\{ ndRowGo\(row\.getAttribute\('data-nd-row'\)\); return; \}/);
+  assert.match(L, /if \(inPanel && !t\.closest\('button, a, input, select, textarea'\) && \(el = t\.closest\('\[data-nd-row\]'\)\)\)\{/);
 });

@@ -1136,11 +1136,17 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if (_dkMenuOpen && !t.closest('#dk-pg-w, #dk-recent')){ _dkMenuOpen = false; deskBarPaint(); }
     /* THE ONE DESK's own presses, on Home, on the Board's card and in the bell's panel
        (a row pressed in the panel steps the panel aside before its door is taken) */
-    const inPanel = !!t.closest('#panel-body .nd-pan');
+    /* the bell's list in the new look is drawn as .ndb (ndBellNlHtml): it is the panel too — read as the Board's own
+       card, its Company Open did nothing and its Opens pointed at the Board (owner, 16 Nov 2026) */
+    const inPanel = !!t.closest('#panel-body .nd-pan, #panel-body .ndb');
     const step = () => { if (inPanel && typeof closeContextPanel === 'function') try { closeContextPanel(); } catch (_){} };
     if ((el = t.closest('[data-nd-all]'))){ ndOpenBoard(el.getAttribute('data-nd-all')); return; }
     if ((el = t.closest('[data-cn-count]'))){ ndOpenBoard(el.getAttribute('data-cn-count')); return; }
-    if ((el = t.closest('[data-nd-look]'))){ step(); ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
+    /* in the bell's panel a prepared piece opens where its work is (its contract), never the Board's list first
+       (owner, 16 Nov 2026); on the Board's own card Open still unfolds it in place */
+    if ((el = t.closest('[data-nd-look]'))){ step(); const row = inPanel ? el.closest('[data-nd-row]') : null;
+      if (row){ ndRowGo(row.getAttribute('data-nd-row')); return; }
+      ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
     if ((el = t.closest('[data-nd-bundle]'))){ step(); ndBundleGo(); return; }
     /* a bell signal's row presses the bell's own door; from the slide-out panel the panel steps aside first */
     if ((el = t.closest('[data-nd-al]'))){ const k = el.getAttribute('data-nd-al');
@@ -1162,6 +1168,11 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
     if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }
     if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
+    /* THE ROW IS THE DOOR in the bell's panel: a press on a row's words does what its Open does (it did nothing) */
+    if (inPanel && !t.closest('button, a, input, select, textarea') && (el = t.closest('[data-nd-row]'))){
+      const btn = el.querySelector('button');
+      if (btn && !btn.disabled){ btn.click(); return; }
+      step(); ndRowGo(el.getAttribute('data-nd-row')); }
   });
   document.addEventListener('input', e => {
     if (e.target && e.target.id === 'nd-q'){ _nd = { ..._nd, q: e.target.value, more: 0 }; ndRowsRepaint(); } });
