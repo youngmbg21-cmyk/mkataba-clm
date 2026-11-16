@@ -647,7 +647,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
         || (x.it.kind === 'week' && (x.it.evs || []).some(e => e && ((a.obId && e.type === 'obligation' && String(e.obId) === String(a.obId)) || (a.ends && e.type === 'expiry' && String(e.cid) === id))))));
       return r ? { type: 'piece', key: r.key } : null;
     }, a);
-    const ROW_SAYS = { piece: 'the Board, Jambo\'s piece open on the one desk\'s card', bundle: 'Home\'s Contracts place, narrowed to the contracts owing details', company: 'Settings, the company\'s card', setup: 'the setup door' };
+    const ROW_SAYS = { piece: 'the contract, where the piece\'s work is (the Board for a piece about no one contract)', bundle: 'Home\'s Contracts place, narrowed to the contracts owing details', company: 'Settings, the company\'s card', setup: 'the setup door' };
     const seen = new Set();
     for (const a of alerts) {
       const k = a.kind === 'approval' ? a.kind + ':' + a.id : a.kind; if (seen.has(k)) continue; seen.add(k);
@@ -657,7 +657,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       const need = hit && hit.type === 'c' ? (hit.ck === 'look' ? { expect: E.paper(a.id), says: SAYS.paper } : NEED[hit.ck] ? NEED[hit.ck](a.id, 'dashboard') : null) : null;
       const expect = own ? (roomRow(a) ? stripRow(a) : (want || (L => !L.room && !L.negPage)))
         : need ? need.expect
-        : hit.type === 'piece' ? E.boardFace
+        /* RE-POINTED 16 Nov 2026 (owner: a Needs-you row "should take me to the contract and not point me to the board"):
+           a piece about one contract opens it where its work is (ndRowGo) — the bell kind's own place; else the Board */
+        : hit.type === 'piece' ? (a.kind === 'renewal' ? E.obTab(a.id) : a.id && want ? want : E.boardFace)
         : hit.type === 'bundle' ? (L => L.view === 'dashboard' && L.place && !!L.only)
         : hit.type === 'company' ? E.page('team')
         : (L => !L.room && !L.negPage);

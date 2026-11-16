@@ -34,6 +34,7 @@ test('f1077 (3) driven: a row opens where its work is', () => {
   const calls = [];
   const c1 = { id: 'MK-1' }, c2 = { id: 'MK-2' };
   const D = { jambo: [{ key: 'p:desk:MK-1:renewal', g: 'jambo', it: { key: 'k1', kind: 'renewal', c: c1 } },
+    { key: 'p:round:MK-2', g: 'jambo', it: { key: 'k2', kind: 'answer', c: c2 } },
     { key: 'p:week', g: 'jambo', it: { key: 'kw', kind: 'week', c: null } },
     { key: 'p:many', g: 'jambo', it: { key: 'km', kind: 'dates', c: null } }],
     you: [{ key: 'y:2', y: { k: 'details', x: { c: c2, it: { kind: 'details' } } } }] };
@@ -45,8 +46,8 @@ test('f1077 (3) driven: a row opens where its work is', () => {
     myNotesOpen: () => {}, watchGo: () => {}, intakeGoTo: () => {}, cnLand: () => {}, cnSel: v => v,
   };
   const go = new Function(...Object.keys(sb), body(CN, 'ndRowGo') + '\nreturn ndRowGo;')(...Object.values(sb));
-  go('p:desk:MK-1:renewal'); go('p:week'); go('p:many'); go('y:2');
-  assert.deepEqual(calls, [['home', 'MK-1', 'oblig'], ['go', 'calendar'], ['board', 'jambo', 'km'], ['needs', 'details', 'MK-2']]);
+  go('p:desk:MK-1:renewal'); go('p:round:MK-2'); go('p:week'); go('p:many'); go('y:2');
+  assert.deepEqual(calls, [['home', 'MK-1', 'oblig'], ['home', 'MK-2', 'red'], ['go', 'calendar'], ['board', 'jambo', 'km'], ['needs', 'details', 'MK-2']]);
 });
 
 test('f1077 (4) every conversation bubble takes the one corner', () => {

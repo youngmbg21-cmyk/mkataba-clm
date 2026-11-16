@@ -1101,7 +1101,9 @@ function ndRowGo(key){
   if (r.g === 'jambo'){
     const c = r.it && (r.it.c || (r.it.cid && typeof getContract === 'function' ? getContract(r.it.cid) : null));
     /* a renewal or notice piece opens where the renewal is decided (the contract's Obligations), as Decide does */
-    const tab = (r.it && /^(renewal|notice)$/.test(String(r.it.kind || ''))) ? 'oblig' : 'open';
+    /* their round to answer opens on its Redlines face, as the bell's own negotiation rows do */
+    const k = String((r.it && r.it.kind) || '');
+    const tab = /^(renewal|notice)$/.test(k) ? 'oblig' : k === 'answer' ? 'red' : 'open';
     if (c && typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, tab)) return true;
     if (c && typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
     /* the week ahead is about your days, not one contract: its own lead button is the Calendar */
