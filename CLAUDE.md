@@ -290,6 +290,7 @@ THE FOLDERS, VIEWS FIRST: ONE reading `regFolderViewsData`, a tile's number = th
 ## ONE PAPER EVERYWHERE — THE HOME PAPER
 THE DOSSIER'S TOP IS ONE CARD (`pd2CardHtml`): stage, next step, ONE black button, Jambo's read, "Read it | Watch the read | The brief". THE READ: notes wait for their clause (`pd2WalkNotesHold`); AN ARRIVAL PLAYS IT, quick (`pd2WalkArrive`, `pd2WalkWithRead`); × keeps it away (`_pd2WalkShut`). f1018.
 Every paper draws ONE look (720px sheet, Source Serif 4 `--font-doc`; a designed paper keeps its type). ONE ZOOM (`rlSetDocZoom`, 60–200).
+THE PAPER STANDS IN THE MIDDLE OF ITS ROOM (owner's pick, the Legora way, 16 Nov 2026): with notes beside it the sheet's centre is the scroller's centre, notes in its right margin; held left only as far as the notes need, never nearer the edge than 40 (`pd2NotesPaint` `left0`/`mid`); Jambo open or closed re-centres it. contract-new-look-verify 4, 4c.
 HOME'S PAPER HANGS ITS LIMBS AS THE EDITOR DOES: gutter and steps (`rl-hang`, `rl-marker`, `hati-lv-N`) stated for `.ig-redpaper` too, step by weight (`.ig-redpaper.nego-onpaper`). f1027 (1).
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
 No Document tab: `roomGoTab(c,'docs'|'contract')` → Home's paper. THE PAPER IS NEVER EDITED; `docBody` → `uploadDocBody`/`frozenDocBody`/`redlineDocBody`. TWO COPIES (`docSheetHtml`): WORKING (`rlPaginate`), SIGNING (A4, `docCopyOf`); print `pagesPrintPages`. A standard's form fills the wording only on "Fill the document" (`tplFormApply`); owed `tplFormPending` (in `linkRefusal`, `signBlockers`).
