@@ -380,6 +380,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
 - A company standard's fields on the paper: f1029 (node; red at the parent); company-standard-on-the-paper-verify (browser, GitHub).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
+- THE COVER (16 Nov 2026): f1085 (4 checks, red at the parent); the-cover-verify (browser, GitHub: the three screens, Open the dossier, a job door skips it, Where we are opens it). Re-pointed: f1066 (3).
 - A NEGOTIATED CONTRACT'S CLEAN PAPER CARRIES ITS NOTES (owner-reported 6 Nov 2026, MK-469): notes-on-clean-paper-verify 1 (new, red at the parent: no notes on Clean), 2 (Redline keeps their asks).
 - THE MEMO LIVES IN THE CLOSE PLAN (new look, owner picked "Inside the close plan" 6 Nov 2026): memo-in-close-plan-verify 1–4 (new, red at the parent: the memo opened its old side panel; Deal had no Send to a colleague), 5 (look off: the memo panel as before). Its step 1 presses the More menu's Negotiation memo.
 - THE MORE MENU PRESSES ITS ROWS IN THE NEW LOOK (owner, 6 Nov 2026: "fix the More menu"): more-menu-new-look-verify 1–3 (new, red at the parent: every row dead), 4 (the unseen rows never shown).

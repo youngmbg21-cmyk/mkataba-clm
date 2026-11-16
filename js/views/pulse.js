@@ -554,7 +554,7 @@ function puChoose(id, wide){
 }
 /* the contract's paper with its Dossier — the one landing every Workspace door shares */
 function puOpen(id){
-  const go = () => { if (!(typeof roomHomeLand === 'function' && roomHomeLand(id)) && typeof openWorkspace === 'function') openWorkspace(id); };
+  const go = () => { if (!(typeof roomHomeLand === 'function' && roomHomeLand(id, { cover: true })) && typeof openWorkspace === 'function') openWorkspace(id); };
   if (!(typeof window.dkLeavePageThen === 'function' && window.dkLeavePageThen(go))) go();
 }
 /* ---- LIVE: the book read again, the rows that moved glide to their place ---- */

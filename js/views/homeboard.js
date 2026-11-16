@@ -5911,7 +5911,7 @@ function hbSheetGo(id){
   /* the list is put away first: Home's paper is drawn on the same page, and a
      list left lying over it would cover the Dossier it just opened */
   if (_hbSheet) hbSheetClose();
-  if (window.roomHomeLand && roomHomeLand(id)) return true;
+  if (window.roomHomeLand && roomHomeLand(id, { cover: true })) return true;
   if (typeof openWorkspace === 'function'){ openWorkspace(id); return true; }
   return false;
 }
@@ -10925,7 +10925,7 @@ function hbOnClick(e){
   /* "Workspace" opens Home, never the room (the overnight work order, step 2;
      roomHomeLand, the one landing every Workspace door shares) */
   if ((el = on('[data-hb-room]'))){ const id = el.getAttribute('data-hb-room');
-    if (!(window.roomHomeLand && roomHomeLand(id)) && typeof openWorkspace === 'function') openWorkspace(id); return; }
+    if (!(window.roomHomeLand && roomHomeLand(id, { cover: true })) && typeof openWorkspace === 'function') openWorkspace(id); return; }
   if ((el = on('[data-hb-bs-x]'))){ hbBriefShut(); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
   /* the Pulse board, the head's last button (29 Oct 2026) */

@@ -1282,7 +1282,7 @@ function igLensDoorGo(kind, id){
     const c=(typeof getContract==='function')?getContract(id):null, who=c&&igLensOwnerOf(c);
     if(who){ const ids=(state.contracts||[]).filter(x=>igLensOwnerOf(x)===who).map(x=>x.id); regShowOnly(ids, who); return true; }
   }
-  if(window.roomHomeLand&&roomHomeLand(id)) return true;
+  if(window.roomHomeLand&&roomHomeLand(id,{ cover:true })) return true;
   if(typeof openWorkspace==='function') openWorkspace(id);
   return true;
 }
@@ -10791,7 +10791,7 @@ function renderIntelDock(){
     igOnce(el,'pointerleave','el-pointerleave',()=>igPaintIds(null));
   });
   /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
-  dock.querySelectorAll('[data-ig-ws]').forEach(b=>igOnce(b,'click','[data-ig-ws]',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
+  dock.querySelectorAll('[data-ig-ws]').forEach(b=>igOnce(b,'click','[data-ig-ws]',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }));
   /* the whole-book door (igFailTurn's stand-in): the Contracts page with nothing narrowing it, as the window's press */
   dock.querySelectorAll('[data-ai-worklist-all]').forEach(b=>igOnce(b,'click','[data-ai-worklist-all]',e=>{ e.stopPropagation(); if(typeof window.regShowOnly==='function') regShowOnly([], ''); }));
   /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
@@ -12103,7 +12103,7 @@ function igStripWire(){
       const faceUp=typeof window.pdRedShows==='function'&&pdRedShows()&&pdRedFor()===String(p.id);
       if((p.red==='theirs')!==was&&faceUp) renderIntelDock();
       return; }
-    const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
+    const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }
   });
 }
 /* ---- the paper ---- */

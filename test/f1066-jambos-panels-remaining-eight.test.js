@@ -50,8 +50,10 @@ test('f1066 (2) their view says whose eyes these are, and its way back', () => {
 });
 
 test('f1066 (3) Where we are and Clauses after a reading, by their own presses', () => {
-  const ws = region(PD, 'function pd2StandsFaceHtml(c){', 'return `<div class="pd2-st-face">');
-  assert.match(ws, /attr: may \? `data-ds-share data-ds-cid="\$\{E\(c\.id\)\}"`/);
+  /* RE-POINTED 16 Nov 2026 (owner: the owner-side "Where the deal stands" page is deleted; the Cover says where it stands,
+     f1085): its face is gone and its door opens the Cover */
+  assert.ok(!/function pd2StandsFaceHtml\(/.test(PD), 'the Where-we-are face is gone');
+  assert.match(PD, /function pd2StandsOpen\(id\)\{ return pdCoverOpen\(id\); \}/);
   /* the Deal's panel (dealPanelNewHtml) was removed with the close plan (owner, 16 Nov 2026, f1084) */
   assert.ok(!/function dealPanelNewHtml\(/.test(NEGO), 'the Deal panel is gone');
   const cl = region(read('js/views/breakdown.js'), 'function stkMarqueeHtml(c, all, busy){', 'THE SAME HEAD AS REDLINES');

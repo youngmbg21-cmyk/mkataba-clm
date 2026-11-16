@@ -84,7 +84,7 @@ describe('f392 (1) the card carries ONE door and Compare (owner, 23 Oct 2026: An
   });
   test('the dock wires Open to the Workspace door, and every passage chip to igLight', () => {
     const d = code(region(IG, 'renderIntelDock'));
-    assert.match(d, /\[data-ig-ws\][\s\S]*?roomHomeLand\(id\)/);
+    assert.match(d, /\[data-ig-ws\][\s\S]*?roomHomeLand\(id,\{ cover:true \}\)/);
     assert.ok(!/\[data-ig-analyze\]/.test(d));
     /* 8 Oct 2026: through igCiteGo, which first puts the passage's own paper up, then calls igLight */
     assert.match(d, /\[data-ig-cite\][\s\S]*?igCiteGo\(/);
