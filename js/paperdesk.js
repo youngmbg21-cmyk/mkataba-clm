@@ -8282,12 +8282,9 @@ function pd2ClauseTint(){
   /* THE PAPER STAYS WHITE (owner, 11 Nov 2026: "Drop it"): no amber wash on the open clause's words; the note
      beside it and its row in the panel carry the link (below) */
   void sec;
-  /* THE NOTE BESIDE IT AND ITS ROW LIGHT WITH IT (owner, 10 Nov 2026): one thing, one amber outline in three places; painted,
-     never stored */
-  const fold = t => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-  const nm = fold(name);
-  const note = nm ? [...document.querySelectorAll('#pd2-notes .pd2-mg')].find(g => { const h = fold((g.querySelector('.pd2-mg-h') || {}).textContent); return h && (nm.indexOf(h) === 0 || h.indexOf(nm) === 0); }) : null;
-  if (note){ note.classList.add('is-on'); row.classList.add('pd2-lit'); }
+  /* NO AMBER BOX ROUND THE NOTE (owner, 16 Nov 2026: "never"; reverses 10 Nov "the note beside it and its row light with
+     it"): it lit only after a press on a row, never when the list followed the paper, so one contract showed it and the
+     next did not. Nothing is lit now; the open row keeps its own line. The clearing above stays, for a page drawn before. */
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   if (e.target && e.target.closest && e.target.closest('#ig-dock #pd-thread') && pd2On()) setTimeout(pd2ClauseTint, 0);

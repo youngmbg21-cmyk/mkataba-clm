@@ -23556,6 +23556,16 @@ function rlFaceNotesHtml(c, opts = {}){
   const only = _rlFnChange && Array.isArray(c.changes) ? (c.changes.find(x => x && String(x.id) === _rlFnChange) || null) : null;
   const mine = x => !only || (x.ch && String(x.ch.id) === String(only.id));
   const all = rlChatRows(c, opts).filter(mine);
+  /* THE SAME NOTES AS THE BAR'S (owner, 16 Nov 2026: Redlines' Notes "should look exactly like how notes in the notes
+     located at the top of the page bar"): in the new look the face holds a host, and the wiring paints the bar's own
+     builder into it — rlChatPanelPaint for the whole contract, rlNotesPanelPaint for one change — so the two are one
+     drawing and cannot drift. Narrowed to one change, its line and "All notes" stay above. */
+  if (window.newLookOn && newLookOn()){
+    const lab1 = only ? ((typeof rlRowClauseName === 'function') ? rlRowClauseName(only) : (only.clauseLabel || '')) : '';
+    return `<div class="rl-fn rl-fn-same" data-rl-fn="${_nea(c.id)}"${only ? ` data-rl-fn-change="${_nea(only.id)}"` : ''}>${
+      only ? `<div class="rl-fn-only" data-rl-fn-only="${_nea(only.id)}"><b>${_ne(lab1)}</b><span>${all.length} ${_ne(i18tn('ng_row_notes_w', all.length))}</span><button type="button" class="rl-fn-all" data-rl-fn-all>${_ne(i18t('ng_fn_all'))}</button></div>` : ''
+    }<div class="rl-fn-host" data-rl-fn-host></div></div>`;
+  }
   const byRoom = {};
   for (const r of rooms) byRoom[r.key] = 0;
   for (const { m } of all){ const k = negoNoteRoomKey(c, m); byRoom[k] = (byRoom[k] || 0) + 1; }
@@ -23610,6 +23620,15 @@ function rlFaceNotesHtml(c, opts = {}){
 function rlFaceNotesWire(host, c, opts = {}){
   const root = host && host.querySelector ? host.querySelector('.rl-fn[data-rl-fn]') : null;
   if (!root || !c) return;
+  const same = root.querySelector('[data-rl-fn-host]');
+  if (same){
+    const me = (typeof currentUser === 'function' && currentUser()) || null;
+    const o = { side: 'owner', author: (me && me.name) || undefined, messages: c._messages };
+    const onCh = root.getAttribute('data-rl-fn-change');
+    const ch = onCh && typeof negoChangeById === 'function' ? negoChangeById(c, onCh) : null;
+    if (ch) rlNotesPanelPaint(same, c, ch, o); else rlChatPanelPaint(same, c, o);
+    return;
+  }
   const box = root.querySelector('.rl-fn-in');
   if (box){
     box.addEventListener('keydown', e => {
