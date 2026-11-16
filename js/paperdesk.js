@@ -9957,31 +9957,49 @@ function pdCoverOpen(id){
   return true;
 }
 /* a door that opened the contract on purpose asks for the Cover once the paper stands (bounded, as pd2DealGo did) */
+const CV_LAND_MS = 4000;
+function pdCoverVeil(on){
+  if (typeof document === 'undefined') return;
+  let v = document.getElementById('cv-veil');
+  if (!on){ if (v) v.remove(); return; }
+  if (v) return;
+  const bar = document.querySelector('#dk-bar, .dk-bar, header'); const top = bar ? Math.max(0, Math.round(bar.getBoundingClientRect().bottom)) : 0;
+  v = document.createElement('div'); v.id = 'cv-veil'; v.setAttribute('aria-hidden', 'true'); v.style.top = top + 'px';
+  document.body.appendChild(v);
+}
 function pdCoverLand(id){
   if (typeof document === 'undefined' || !pd2On()) return false;
   if (typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768))) return false;
-  let n = 0; const tick = () => { const pc = pdContract(); if (pc && String(pc.id) === String(id) && pdOnPaper() && pdMidMay()){ pdCoverOpen(id); return; } if (++n < 40) setTimeout(tick, 100); };
-  setTimeout(tick, 30);
+  /* NO PAPER FLASHES BEFORE THE COVER (owner, 16 Nov 2026: "i pick on a contract to view. the flash happens"): the
+     Cover is asked for AT ONCE, in the same turn the paper lands, and while the paper is still on its way a plain
+     veil in the page's own ground stands over it (pdCoverVeil), so no frame shows the paper and Dossier first. */
+  const ready = () => { const pc = pdContract(); return !!(pc && String(pc.id) === String(id) && pdOnPaper() && pdMidMay()); };
+  if (ready() && pdCoverOpen(id)) return true;
+  pdCoverVeil(true);
+  const t0 = Date.now();
+  const tick = () => { if (ready()){ pdCoverOpen(id); pdCoverVeil(false); return; } if (Date.now() - t0 < CV_LAND_MS) setTimeout(tick, 16); else pdCoverVeil(false); };
+  setTimeout(tick, 0);
   return true;
 }
 if (typeof document !== 'undefined') document.addEventListener('click', e => {
   const t = e.target && e.target.closest ? e.target.closest('[data-cv-go]') : null; if (!t) return;
   e.preventDefault();
   const id = t.getAttribute('data-cv-cid'), k = t.getAttribute('data-cv-go');
+  /* NO PAGE FLASHES ON THE WAY (owner, 16 Nov 2026: "a page of the paper and dossier flash before i land on
+     contracts"): the Cover is closed and the destination drawn in ONE turn, never a wait between them, so no
+     frame shows the paper it was lying on. A page that replaces the Cover (the brief) opens OVER it (f1046). */
+  if (k === 'brief' && typeof pd2BriefOpen === 'function'){ pd2BriefOpen(id); return; }
   pdMidClose();
-  setTimeout(() => {
-    if (k === 'red') pdRedOpen(id);
-    else if (k === 'fill') pdFillGo(id);
-    else if (k === 'send') pdSendOpen(id);
-    else if (k === 'sign') pdSignOpen(id);
-    else if (k === 'ob') pdObOpen();
-    else if (k === 'brief' && typeof pd2BriefOpen === 'function') pd2BriefOpen(id);
-    /* THE DOOR TO CONTRACTS (owner, 16 Nov 2026): Jambo's doors are not on the Cover, so it carries its own; the
-       Contracts place keeps the way back to this paper */
-    else if (k === 'contracts' && typeof setView === 'function') setView('register');
-  }, 60);
+  if (k === 'red') pdRedOpen(id);
+  else if (k === 'fill') pdFillGo(id);
+  else if (k === 'send') pdSendOpen(id);
+  else if (k === 'sign') pdSignOpen(id);
+  else if (k === 'ob') pdObOpen();
+  /* THE DOOR TO CONTRACTS (owner, 16 Nov 2026): Jambo's doors are not on the Cover, so it carries its own; the
+     Contracts place keeps the way back to this paper */
+  else if (k === 'contracts' && typeof setView === 'function') setView('register');
 });
-Object.assign(window, { pdCoverUp, pdCoverOf, pdCoverHtml, pdCoverSheetHtml, pdCoverRightHtml, pdCoverOpen, pdCoverLand, CV_NOTES_MAX, CV_ROWS_MAX, CV_PARTIES_SHOWN });
+Object.assign(window, { pdCoverVeil, CV_LAND_MS, pdCoverUp, pdCoverOf, pdCoverHtml, pdCoverSheetHtml, pdCoverRightHtml, pdCoverOpen, pdCoverLand, CV_NOTES_MAX, CV_ROWS_MAX, CV_PARTIES_SHOWN });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
