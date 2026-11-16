@@ -225,8 +225,9 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     let decide = await own.$('#context-panel .nd-pan [data-cn-need="renewal"][data-cn-id="MK-R9"], #context-panel .nd-pan [data-nd-al^="al:renewal:MK-R9:"]');
     if (!decide){
       const look = await own.$('#context-panel .nd-pan [data-nd-look*="MK-R9"]');
-      if (look){ await look.click().catch(() => {}); await pause(1200);
-        decide = await own.$('#hm-agents .nd-br.is-look [data-ag-act="renewal"]'); }
+      /* RE-POINTED 16 Nov 2026 (owner: a Needs-you row "should take me to the contract and not point me to the board"):
+         the piece's Open in the bell IS its Decide (ndRowGo → needsYouGo 'renewal'), with Decide's hover */
+      if (look) decide = look;
     }
     const hover = decide ? await decide.getAttribute('title') : null;
     ok('3a the stage: the renewal is on the bell, with its door, and the contract is still a light list row',

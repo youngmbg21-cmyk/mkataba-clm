@@ -42,12 +42,13 @@ test('f1077 (3) driven: a row opens where its work is', () => {
     ndRead: () => D, ndOpenBoard: (t, k) => { calls.push(['board', t, k]); return true; }, ndBundleGo: () => calls.push(['bundle']),
     getContract: id => [c1, c2].find(c => c.id === id) || null,
     pdOpenOnHome: (id, tab) => { calls.push(['home', id, tab]); return true; }, openWorkspace: id => calls.push(['ws', id]),
+    needsYouGo: (k, id) => { calls.push(['needs', k, id]); return true; },
     caGo: o => calls.push(['go', o.place]), hbNeedsPress: (k, id) => { calls.push(['needs', k, id]); return true; },
     myNotesOpen: () => {}, watchGo: () => {}, intakeGoTo: () => {}, cnLand: () => {}, cnSel: v => v,
   };
   const go = new Function(...Object.keys(sb), body(CN, 'ndRowGo') + '\nreturn ndRowGo;')(...Object.values(sb));
   go('p:desk:MK-1:renewal'); go('p:round:MK-2'); go('p:week'); go('p:many'); go('y:2');
-  assert.deepEqual(calls, [['home', 'MK-1', 'oblig'], ['home', 'MK-2', 'red'], ['go', 'calendar'], ['board', 'jambo', 'km'], ['needs', 'details', 'MK-2']]);
+  assert.deepEqual(calls, [['needs', 'renewal', 'MK-1'], ['home', 'MK-2', 'red'], ['go', 'calendar'], ['board', 'jambo', 'km'], ['needs', 'details', 'MK-2']]);
 });
 
 test('f1077 (4) every conversation bubble takes the one corner', () => {
