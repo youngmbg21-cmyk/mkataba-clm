@@ -1966,7 +1966,10 @@ function jamboRefGo(q){
   /* where the words were typed, for round 4's "Not this, go back" when the question then moves on from here */
   if (R.question) jamboRefGo._from = { q: R.question, p: caPlaceNow(), at: Date.now() };
   let landed = false;
-  try { landed = !!(typeof roomHomeLand === 'function' && roomHomeLand(R.c.id)); } catch (_){ landed = false; }
+  /* THE COVER IS THE DOOR (owner, 16 Nov 2026: "when you type a contract number the cover is the door to the contract"):
+     the number alone opens the contract on purpose, so its Cover stands first; a number inside a question goes to the
+     paper, where the question is asked beside it */
+  try { landed = !!(typeof roomHomeLand === 'function' && roomHomeLand(R.c.id, R.question ? undefined : { cover: true })); } catch (_){ landed = false; }
   if (!landed){ try { if (typeof openWorkspace === 'function'){ openWorkspace(R.c.id); landed = true; } } catch (_){ landed = false; } }
   if (!landed) return false;
   if (R.question) jamboRefAskThere(R.c.id, R.question);
