@@ -127,6 +127,15 @@ const FILM = async ([label, how, arg]) => {
     /* a list's own tab and a row chosen (the panel beside the list) */
     moves.push(['board -> approvals', 'place', 'approvals'], ['approvals: a row chosen', 'eval', "(document.querySelector('#content tbody tr')||{click(){}}).click()"], ['approvals: another row', 'eval', "(document.querySelectorAll('#content tbody tr')[1]||{click(){}}).click()"],
       ['approvals -> board', 'place', 'board']);
+    /* PRESSES INSIDE JAMBO'S PANELS (owner, 16 Nov 2026: "also fix the stutters, which I am still seeing"): a tile, a
+       Needs-you row, a chip on the Board's panel; a tile in a list page's panel; then back to the Board */
+    const press = sel => `(document.querySelector(${JSON.stringify(sel)})||{click(){}}).click()`;
+    moves.push(['board: panel tile (live)', 'eval', press('#ig-dock [data-hbw="live"]')], ['live -> board', 'place', 'board'],
+      ['board: panel row (needs you)', 'eval', press('#ig-dock [data-hbw-row]')], ['row -> board', 'place', 'board'],
+      ['board: panel chip', 'eval', press('#ig-dock [data-igsug]')], ['chip -> board', 'place', 'board'],
+      ['board: panel collapse', 'eval', press('#ig-dock .igd-fold, #ig-dock [aria-label="Collapse panel"]')], ['collapse again', 'eval', press('#ig-dock .igd-fold, #ig-dock [aria-label="Expand panel"], #ig-dock [aria-label="Collapse panel"]')],
+      ['board -> approvals (2nd)', 'place', 'approvals'], ['approvals: panel tile', 'eval', press('#ins-panel .jov5-g.is-door')],
+      ['approvals -> obligations', 'place', 'oblig'], ['obligations: panel tile', 'eval', press('#ins-panel .jov5-g.is-door')], ['obligations -> board', 'place', 'board']);
     for (const m of moves){
       let r = null; try { r = await p.evaluate(FILM, m); } catch (e){ say(`  ${m[0].padEnd(34)} COULD NOT FILM — ${String(e).slice(0, 120)}`); continue; }
       await p.waitForTimeout(500);                    /* the page at rest before the next move */

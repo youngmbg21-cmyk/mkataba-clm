@@ -1090,6 +1090,33 @@ function cn2QuoteHtml(r){
   return '';
 }
 
+/* A ROW PRESSED OUTSIDE THE BOARD'S CARD GOES WHERE ITS WORK IS (owner, 16 Nov 2026: "if I press on needs you
+   contracts in the Jambo panel in board page they should take me to the contract and not point me to the board"):
+   a row about one contract opens that contract (Jambo's prepared piece too — its Dossier carries the piece); a bell
+   signal presses its own door; a note, a request or a watch their own pages; only a row about no one contract (a
+   bundle, a piece over several) opens the Board's list, on that row. ONE door, read off the row's key. */
+function ndRowGo(key){
+  let r = null; try { const D = ndRead(); r = D.jambo.concat(D.you).find(x => x.key === key) || null; } catch (_){ r = null; }
+  if (!r) return ndOpenBoard('all');
+  if (r.g === 'jambo'){
+    const c = r.it && (r.it.c || (r.it.cid && typeof getContract === 'function' ? getContract(r.it.cid) : null));
+    if (c && typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'open')) return true;
+    if (c && typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
+    /* the week ahead is about your days, not one contract: its own lead button is the Calendar */
+    if (r.it && r.it.kind === 'week' && typeof caGo === 'function'){ caGo({ kind: 'go', place: 'calendar' }); return true; }
+    return ndOpenBoard('jambo', r.it && r.it.key);
+  }
+  if (r.bundle){ ndBundleGo(); return true; }
+  if (r.al){ if (typeof r.al.go === 'function'){ r.al.go(); return true; } return ndOpenBoard('all', key); }
+  const y = r.y;
+  if (!y) return ndOpenBoard('all', key);
+  if (y.k === 'note'){ if (typeof myNotesOpen === 'function') myNotesOpen(y.n.id); cnLand('[data-mn-row="' + cnSel(y.n.id) + '"]', 'cn_land_note_gone'); return true; }
+  if (y.k === 'watch'){ if (typeof watchGo === 'function') watchGo(String((y.w && y.w.id) || '')); return true; }
+  if (y.k === 'req'){ const id = String((y.r && y.r.id) || ''); if (typeof intakeGoTo === 'function') intakeGoTo(id); cnLand('[data-ik-row="' + cnSel(id) + '"]', 'cn_land_req_gone'); return true; }
+  if (y.x && y.x.c && typeof hbNeedsPress === 'function') return hbNeedsPress(y.x.it.kind, y.x.c.id);
+  return ndOpenBoard('all', key);
+}
+
 /* ---------------- PRESSES, ONE LISTENER EACH, ARMED ONCE ---------------- */
 if (typeof document !== 'undefined' && !window._cnWired){
   window._cnWired = true;
@@ -1156,5 +1183,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter, dkHomeHere, DK_HOME_KEY,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ndRowGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, counterNeedsCount });
