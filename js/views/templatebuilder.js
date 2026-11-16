@@ -170,11 +170,18 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
   if (window.tplLibCancelPending) tplLibCancelPending(); // a stale library list must not paint over the builder
   tbKeepCancel();   /* a timer still holding the LAST template must not fire under this one */
   let t, v;
+  /* THE BUILDER ARRIVES IN ONE STEP (owner, 15 Nov 2026: "it first flashes the our paper page before going to
+     builder. This is unacceptable"): a door that has to close a page or change the view first hands that over as
+     opts.arrive, run only once the template is read and in the same moment the Builder is drawn — so no page is
+     shown on the way. With arrive, a failure is THROWN to the door (its button and its own line say it), never a
+     toast over a page that stayed put. */
+  const arrive = typeof opts.arrive === 'function' ? opts.arrive : null;
   try {
     t = await api('templates/' + tid);
     v = await api(`templates/${tid}/versions/${vid}`);
-  } catch (e) { toast(e.message, 'err'); return; }
-  if (v.version.status !== 'draft') { toast(i18t('tb_not_draft', { n: v.version.versionNumber, status: v.version.status }), 'err'); return; }
+  } catch (e) { if (arrive) throw e; toast(e.message, 'err'); return; }
+  if (v.version.status !== 'draft') { const why = i18t('tb_not_draft', { n: v.version.versionNumber, status: v.version.status }); if (arrive) throw new Error(why); toast(why, 'err'); return; }
+  if (arrive) { arrive(); if (window.tplLibCancelPending) tplLibCancelPending(); /* the page arrive drew starts no list that paints over this */ }
   _tb = {
     tid, vid, template: t.template, versionNumber: v.version.versionNumber,
     /* `_k` IS A CLIENT KEY AND NEVER TRAVELS. A section's ask box, its answer
