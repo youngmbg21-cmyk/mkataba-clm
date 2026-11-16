@@ -5,15 +5,18 @@
  *
  * WHAT THIS DRIVES, where each person looks:
  *   1. two colleagues on the negotiate page, each seeing the other's face;
- *   2. the follower presses a face — it lights, and says so in words;
+ *   2. the follower presses a face — it ASKS; the leader gets a small pop-up
+ *      (Allow · Not now) and allows it; then the face lights (owner, 16 Nov 2026);
  *   3. the leader scrolls to a clause far down the paper, and the FOLLOWER'S
  *      OWN PAGE arrives there — measured off the rendered page, not from a
  *      flag;
  *   4. and it is a destination and not a mirror: the follower's text size,
  *      their notes and their hands are untouched;
  *   5. pressing the same face again stops it, and the page stops moving;
- *   6. the leader never learns they are being followed — this is the
- *      follower's own choice about their own page.
+ *   6. the leader, who allowed it, sees a ring round the follower's face and can
+ *      stop it (RE-POINTED 16 Nov 2026; was: the leader never learns).
+ *   And the clause labels are NOT saved first: the walk finds the same clause by
+ *   its heading (the fix, 16 Nov 2026).
  *
  * Every driven half is guarded, so a missing feature REPORTS rather than times
  * out (the house rule). */
@@ -81,17 +84,15 @@ const DEAL = {
   try {
     const a = await login('admin@example.co.ke', 'adminpassword1', 'a');
     const b = await login('everything@example.co.ke', 'their-own-pass-9', 'b');
-    /* The clause ids are stamped on the record by the first save, which is what
-       makes them the same id on both screens — the product's own rule. */
+    /* RE-POINTED 16 Nov 2026 (the fix the owner asked for): the clause labels are NOT saved first. Before a
+       contract's labels are on the record each screen labels its clauses for itself, and the walk used to find
+       nothing; the beat now carries the clause's heading, and the follower finds its own clause by it. */
     const ids = await a.p.evaluate(async () => {
       const c = getContract('MK-F1');
       c._loaded = false; await ensureFull(c);
-      const list = negoClauseList(c);
-      if (window.persist) persist(c);
-      if (window.flushSaves) await flushSaves();
-      return list.map(x => x.clauseId);
+      return negoClauseList(c).map(x => x.clauseId);
     });
-    ok('0 the contract has clauses, and their ids are on the record', ids.length >= 8, String(ids.length));
+    ok('0 the contract has clauses (their labels not saved on the record)', ids.length >= 8, String(ids.length));
     await b.p.reload({ waitUntil: 'networkidle' });
     await until(b.p, () => typeof getContract === 'function' && !!getContract('MK-F1'), null, 15000);
 
@@ -110,14 +111,29 @@ const DEAL = {
     /* RE-POINTED 18 Oct 2026 (round 6 as drawn, "One line"): the hover names
        the clause the colleague is on and what a press does */
     ok('1b and it is a real button that says what a press does',
-      row.tag === 'BUTTON' && row.pressed === 'false' && /^Amina Otieno (is reading (clause \S+|“[^”]+”) now|has this contract open now)\. Press to follow: the paper goes where Amina reads\.$/.test(row.title),
+      row.tag === 'BUTTON' && row.pressed === 'false' && /^Amina Otieno (is reading (clause \S+|“[^”]+”) now|has this contract open now)\. Press to ask to follow: once Amina allows it, your paper goes where Amina reads\.$/.test(row.title),
       JSON.stringify(row.title.slice(0, 60)));
     await b.p.screenshot({ path: path.join(OUT, '1-the-face.png') });
 
-    /* ===== 2. PRESSING IT LIGHTS IT ===== */
-    /* GUARDED, so a tree without the face REPORTS rather than spending thirty
-       seconds waiting for a button that is not there. */
+    /* ===== 2. PRESSING IT ASKS; THE LEADER ALLOWS; THEN IT LIGHTS =====
+       RE-POINTED 16 Nov 2026 (the owner: "I press on the other colleague's label, they then have to approve
+       on the other side, then the process begins"). GUARDED, so a tree without the face REPORTS rather than
+       spending thirty seconds waiting for a button that is not there. */
     if (row.btn) await b.p.click('[data-pz-follow]');
+    const asked = await b.p.evaluate(() => {
+      const f = document.querySelector('[data-pz-follow]');
+      return { asking: window.presenceAsking ? presenceAsking() : null, following: window.presenceFollowing ? presenceFollowing() : 'no-fn',
+        pressed: f ? f.getAttribute('aria-pressed') : null };
+    });
+    ok('2-ask the press asks and follows nobody yet', !!asked.asking && asked.following === null && asked.pressed === 'mixed', JSON.stringify(asked));
+    const popped = await until(a.p, () => !!document.querySelector('#pz-ask [data-pz-allow]'), null, 40000);
+    const pop = await a.p.evaluate(() => { const p = document.getElementById('pz-ask'); const r = p ? p.getBoundingClientRect() : null;
+      return { text: p ? p.innerText : '', black: p ? p.querySelectorAll('.ui-btn-primary').length : 0, inView: !!r && r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth }; });
+    ok('2-pop the leader gets the small pop-up: who asks, Allow (the one black) and Not now, in view',
+      popped && /wants to follow you/.test(pop.text) && /Allow/.test(pop.text) && /Not now/.test(pop.text) && pop.black === 1 && pop.inView, JSON.stringify(pop));
+    await a.p.screenshot({ path: path.join(OUT, '1b-the-ask.png') });
+    if (popped) await a.p.click('#pz-ask [data-pz-allow]');
+    await until(b.p, () => !!(window.presenceFollowing && presenceFollowing()), null, 30000);
     const lit = await b.p.evaluate(() => {
       const f = document.querySelector('[data-pz-follow]');
       const cs = f ? getComputedStyle(f) : null;
@@ -143,17 +159,19 @@ const DEAL = {
       !!leaderAt && leaderAt !== startedAt, JSON.stringify([startedAt, leaderAt]));
     /* A WAIT ASKS FOR THE STATE, BOUNDED — never a fixed pause before
        measuring. It travels on the beat, so it takes up to one beat. */
-    const arrived = await until(b.p, want => (window.presenceSpotNow ? presenceSpotNow() : null) === want,
-      leaderAt, 45000);
+    /* the same CLAUSE, read by its heading: the two screens' labels may differ until they are saved */
+    const leaderHead = await a.p.evaluate(at => presenceSpotHeading(at), leaderAt);
+    const arrived = await until(b.p, want => { const at = window.presenceSpotNow ? presenceSpotNow() : null; return !!at && presenceSpotHeading(at) === want; },
+      leaderHead, 45000);
     const followerAt = await where(b.p);
     ok('3b and the FOLLOWER\'S OWN PAGE arrives at the same clause — measured off the page',
-      arrived && followerAt === leaderAt, JSON.stringify([leaderAt, followerAt]));
+      arrived && !!leaderHead, JSON.stringify([leaderHead, followerAt]));
     const painted = await b.p.evaluate(cid => {
       const el = document.querySelector(`#rl-doc [data-clause="${cid}"]`);
       if (!el) return null;
       const r = el.getBoundingClientRect();
       return { onScreen: r.top < innerHeight && r.bottom > 0, lit: el.classList.contains('rl-arrived') };
-    }, leaderAt);
+    }, followerAt);
     ok('3c it is really on their screen, lit the way their own press lights it',
       !!painted && painted.onScreen && painted.lit, JSON.stringify(painted));
     await b.p.screenshot({ path: path.join(OUT, '2-arrived.png') });
@@ -166,15 +184,16 @@ const DEAL = {
       panel: !!document.querySelector('.rl-cp-open, [data-rl-cp-open].on') }));
     ok('4a the follower\'s own page is still theirs — no editor, no selection, no panel opened',
       !theirs.editing && !theirs.sel && !theirs.panel, JSON.stringify(theirs));
-    /* THE LEADER LEARNS NOTHING: following is the follower's own choice about
-       their own page, and there is nothing on the leader's screen about it. */
+    /* RE-POINTED 16 Nov 2026 (the owner: the one followed allowed it, so they see it and can stop it):
+       the follower's face on the leader's screen carries a ring, and says a press stops it. */
+    await until(a.p, () => !!document.querySelector('[data-pz-follow].is-follows-me'), null, 15000);
     const leaderSide = await a.p.evaluate(() => {
       const f = document.querySelector('[data-pz-follow]');
-      return { lit: !!(f && f.classList.contains('is-following')),
-        says: /[Ff]ollowing/.test(document.body.innerText) };
+      return { ring: !!(f && f.classList.contains('is-follows-me')), lit: !!(f && f.classList.contains('is-following')),
+        title: f ? (f.getAttribute('title') || '') : '' };
     });
-    ok('4b and the leader is told nothing about being followed',
-      leaderSide.lit === false && leaderSide.says === false, JSON.stringify(leaderSide));
+    ok('4b the leader sees who follows them (a ring), and that a press stops it',
+      leaderSide.ring && !leaderSide.lit && /is following you\. Press to stop it\.$/.test(leaderSide.title), JSON.stringify(leaderSide));
 
     /* ===== 5. ONE PRESS TO STOP ===== */
     if (row.btn) await b.p.click('[data-pz-follow]');
@@ -185,7 +204,7 @@ const DEAL = {
         title: f ? (f.getAttribute('title') || '') : '' };
     });
     ok('5a the same press stops it', off.on === false && off.following === null
-      && /Press to follow: the paper goes where Amina reads\.$/.test(off.title), JSON.stringify(off.following));
+      && /Press to ask to follow: once Amina allows it, your paper goes where Amina reads\.$/.test(off.title), JSON.stringify(off.following));
     /* ---- AND THE PAGE STOPS MOVING, DRIVEN RATHER THAN WAITED OUT ----
        Sitting out two beats would add a minute to this stage for one claim,
        and a test whose answer depends on a sleep is one nobody runs. So the
