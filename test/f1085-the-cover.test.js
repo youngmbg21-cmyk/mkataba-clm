@@ -59,5 +59,5 @@ test('f1085 (4) both books, the Handbook and the map', () => {
     assert.equal((I.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).length, 2, k + ' in both books');
   assert.match(read('js/handbook.js'), /lands first on its Cover/);
   assert.match(read('js/flowmap.js'), /shows its Cover first/);
-  assert.match(strip(read('index.html')), /\.cv-page\{display:grid;/);
+  assert.match(strip(read('index.html')), /\.cv-page\{--cv-pad:[^;]+;display:grid;/);
 });

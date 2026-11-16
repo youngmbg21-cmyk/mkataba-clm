@@ -523,22 +523,36 @@ const ROUTE = [
     await page.waitForTimeout(1200);
     /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the people stand in To, behind
        "+ Add a person" — pressed first, then read */
-    const addGo = await page.evaluate(() => { const b = document.querySelector('[data-sh-more-go]'); if (!b || !b.getClientRects().length) return false; b.click(); return true; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): FOUR STEPS — step 1's "+ Add someone"
+       ([data-sh-st-add]) opens a list of the people named on this contract ([data-sh-st-pick]) and Someone new; a row
+       is pressed to add that person. The same four promises are read off that list; "their own link" is read where
+       the screen says it once somebody is added. */
+    if (await page.$('[data-sh-st="to"]:not(.is-open) [data-sh-st-go="to"]')) { await page.click('[data-sh-st-go="to"]'); await page.waitForTimeout(200); }
+    const stepsAdd = !!(await page.$('[data-sh-st-add]'));
+    const addGo = await page.evaluate(sel => { const b = document.querySelector(sel); if (!b || !b.getClientRects().length) return false; b.click(); return true; },
+      stepsAdd ? '[data-sh-st-add]' : '[data-sh-more-go]');
     check('"+ Add a person" is in To where somebody is named', addGo);
-    const more = await page.evaluate(() => {
-      const box = document.querySelector('.sh-more-box');
+    await page.waitForTimeout(200);
+    const more = await page.evaluate(steps => {
+      const box = document.querySelector(steps ? '#sh-st-menu' : '.sh-more-box');
       if (!box) return { drawn: false };
       const r = box.getBoundingClientRect();
-      const ticks = [...box.querySelectorAll('[data-sh-more]')];
+      const ticks = [...box.querySelectorAll(steps ? '[data-sh-st-pick]' : '[data-sh-more]')];
       const first = ticks[0] ? ticks[0].getBoundingClientRect() : null;
+      const hit = first ? document.elementFromPoint(first.left + first.width / 2, first.top + first.height / 2) : null;
       return { drawn: r.width > 40 && r.height > 10, n: ticks.length,
-        tickable: !!first && first.width > 6 && first.height > 6,
-        who: ticks.map(t => t.getAttribute('data-sh-more')),
+        tickable: !!first && first.width > 6 && first.height > 6 && (!steps || (!!hit && (hit === ticks[0] || ticks[0].contains(hit)))),
+        who: ticks.map(t => t.getAttribute(steps ? 'data-sh-st-pick' : 'data-sh-more')),
         primary: (document.getElementById('sh-email') || {}).value || '',
         /* The note is the LAST line of the box; slicing the whole box to 90
            characters cut it off and the claim read the row list instead. */
         note: ((box.lastElementChild || {}).textContent || '').replace(/\s+/g, ' ').trim() };
-    });
+    }, stepsAdd);
+    if (stepsAdd && more.n) {
+      await page.click('#sh-st-menu [data-sh-st-pick]');
+      await page.waitForTimeout(300);
+      more.note = await page.evaluate(() => (document.getElementById('sh-letter') || { innerText: '' }).innerText.replace(/\s+/g, ' ').match(/[^.]*own link[^.]*\./i)?.[0] || '');
+    }
     check('the send screen offers the contract\'s own people', more.drawn,
       more.drawn ? more.n + ' offered: ' + (more.who || []).join(', ') : 'not drawn');
     check('and each one is a real tick, painted', !!more.tickable,

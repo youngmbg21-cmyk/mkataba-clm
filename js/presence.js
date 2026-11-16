@@ -88,6 +88,14 @@ const PRESENCE_GONE_MS = 75000;
    stops the beat between the room and the negotiate page of the SAME contract
    — that is not leaving, and the beat starting again on it cancels the leave. */
 const PRESENCE_ASK_BEAT_MS = 40000;
+/* ---- ASKED BEFORE FOLLOWED (owner, 16 Nov 2026) ----
+   While somebody here asks, follows or is followed, the beat runs every few
+   seconds instead of every twenty-five, so an answer and a walk arrive while
+   the two are still talking. An ask nobody answers lapses after a minute and
+   a half, and the asker is told. */
+const PRESENCE_FAST_BEAT_MS = 5000;
+const PRESENCE_TICK_MS = 2500;
+const PRESENCE_ASK_WAIT_MS = 90000;
 const PRESENCE_LEAVE_MS = 10000;
 const _pzMe = () => (window.currentUser ? window.currentUser() : null) || null;
 const _pzE = s => String(s == null ? '' : s)
@@ -97,6 +105,8 @@ const _pzE = s => String(s == null ? '' : s)
    belongs in the record the browser keeps. */
 const _pzSeen = Object.create(null);
 let _pzTimer = null, _pzCid = null, _pzBusy = false, _pzAfter = null, _pzWas = null;
+/* the beat's own clock, and a beat owed because a press came while one was out */
+let _pzLastBeat = 0, _pzAgain = false;
 /* The hidden tab's ask beat, and the leaves waiting out their grace, per
    contract. Per sitting and in memory, like everything else in this file. */
 let _pzAskTimer = null, _pzAskBusy = false;
@@ -146,9 +156,13 @@ async function presenceSay(cid){
        page, so a reader on a list, a dashboard or a signed contract sends
        nothing at all. */
     const spot = presenceSpotNow();
+    _pzLastBeat = Date.now();
     const r = await window.api('contracts/' + encodeURIComponent(id) + '/here', 'POST',
-      spot ? { spot } : {}, { quiet: true });
+      presenceBeatBody(spot), { quiet: true });
     const rows = (r && Array.isArray(r.here)) ? r.here : [];
+    /* THE ASK AND ITS ANSWER, before the walk: an Allow that just arrived is
+       what starts the follow the walk then carries out. */
+    try{ presenceAnswers(rows); }catch(_){}
     /* AND THE WALK, after the answer and before the paint: arriving at the
        leader's clause is what the reader is waiting for, and the row's lit face
        should already say who they are following when they get there. */
@@ -165,8 +179,32 @@ async function presenceSay(cid){
        toast: nobody asked for this and a network blip is not news. The row
        simply empties as the last answer ages out. */
     return null;
-  } finally { _pzBusy = false; }
+  } finally {
+    _pzBusy = false;
+    /* A PRESS THAT CAME WHILE A BEAT WAS OUT (an Allow, an ask, a stop) is
+       sent at once rather than waiting for the next tick. */
+    if (_pzAgain && _pzCid === id){ _pzAgain = false; presenceSay(id); }
+  }
 }
+/* what this reader's beat says: where they are, the clause's name as their
+   paper shows it, whom they ask to follow or follow, and their answers */
+function presenceBeatBody(spot){
+  const b = {};
+  if (spot){ b.spot = spot; const n = presenceSpotHeading(spot); if (n) b.spotName = n; }
+  const want = _pzFollow || (_pzAsk && _pzAsk.id) || '';
+  if (want) b.want = want;
+  if (_pzAllow.size) b.allow = [..._pzAllow];
+  if (_pzDeny.size) b.deny = [..._pzDeny];
+  return b;
+}
+/* a beat now: at once, or straight after the one already out */
+function presenceBeatNow(){
+  if (!_pzCid) return;
+  if (_pzBusy){ _pzAgain = true; return; }
+  presenceSay(_pzCid);
+}
+/* while an ask, a follow or a follower is live, the beat runs fast */
+function presenceBusyNow(){ return !!(_pzAsk || _pzFollow || _pzAllow.size || _pzAskShown); }
 /* ---- THE BEAT ----
    Started when a contract is opened and stopped when it is left. It says
    nothing about being here while the window is hidden, which is both the
@@ -184,7 +222,7 @@ function presenceStart(cid, after){
   /* A DIFFERENT CONTRACT IS A DIFFERENT ROOM, so whoever was being followed in
      the last one is not being followed here — the names, the clauses and the
      colleagues are all different. Same contract, the follow stands. */
-  if (String(_pzWas || '') !== id){ _pzFollow = null; _pzWent = null; }
+  if (String(_pzWas || '') !== id){ _pzFollow = null; _pzWent = null; _pzAsk = null; _pzAllow.clear(); _pzDeny.clear(); presenceAskClose(); }
   _pzCid = id;
   _pzWas = id;
   _pzAfter = after || null;
@@ -193,8 +231,10 @@ function presenceStart(cid, after){
   _pzTimer = setInterval(() => {
     if (_pzCid !== id){ presenceStop(); return; }
     if (typeof document !== 'undefined' && document.hidden) return;
+    const every = presenceBusyNow() ? PRESENCE_FAST_BEAT_MS : PRESENCE_BEAT_MS;
+    if (Date.now() - _pzLastBeat < every - 50) return;
     presenceSay(id);
-  }, PRESENCE_BEAT_MS);
+  }, PRESENCE_TICK_MS);
   /* AND THE HIDDEN TAB'S OWN BEAT, which keeps this reader's asks and nothing
      else. Visible, it stands aside: the ordinary beat keeps them already. */
   _pzAskTimer = setInterval(() => {
@@ -214,6 +254,7 @@ function presenceStop(){
      meaningless, so that is where it is dropped: in presenceStart. */
   _pzWas = _pzCid || _pzWas;
   _pzTimer = null; _pzAskTimer = null; _pzCid = null; _pzAfter = null;
+  if (typeof presenceAskClose === 'function') presenceAskClose();
   /* LEAVING THE CONTRACT TAKES THIS READER'S ASKS WITH THEM — once the grace
      has passed without the beat starting on it again. */
   if (left) presenceLeaveSoon(left);
@@ -397,28 +438,161 @@ function presenceSpotNow(){
 /* Per sitting, in memory, and one at a time: following two people would be two
    pages fighting over one scroll. */
 let _pzFollow = null, _pzWent = null;
+/* ---- ASKED BEFORE FOLLOWED (owner, 16 Nov 2026: "I press on the other
+   colleague's label, they then have to approve on the other side, then the
+   process begins"; the small pop-up, and the one followed can stop it) ----
+   REVERSES "there is no invitation and nothing to accept" (4 Oct 2026).
+   _pzAsk: whom this reader asked, and when — the press that waits for an
+   answer. _pzAllow / _pzDeny: whom this reader let follow them, or said Not now
+   to. All per sitting and in this browser only, like the follow itself; each
+   rides the beat that was already going, and the server keeps them only while
+   the reader is in the room. */
+let _pzAsk = null;
+const _pzAllow = new Set(), _pzDeny = new Set();
 function presenceFollowing(){ return _pzFollow; }
+function presenceAsking(){ return _pzAsk ? _pzAsk.id : null; }
+function presenceAllowed(){ return [..._pzAllow]; }
+/* the colleague's own row says they want to follow me */
+const _pzWantsMe = r => { const me = _pzMe() || {}; return !!(r && r.want && String(r.want) === String(me.id || '')); };
+const _pzLists = (r, k) => { const me = _pzMe() || {}; return !!(r && Array.isArray(r[k]) && r[k].some(x => String(x) === String(me.id || ''))); };
+/* ---- THE PRESS ON A FACE ----
+   Not following them: ASK (they get Allow · Not now; nothing moves yet).
+   Asked and waiting: the same press takes the ask back.
+   Following them: the same press stops (as before).
+   They follow ME (I allowed it): the press asks whether to stop it. */
 function presenceFollow(id){
   const to = String(id || '');
-  const was = _pzFollow;
-  _pzFollow = (to && _pzFollow !== to) ? to : null;
-  _pzWent = null;
-  if (_pzCid) presencePaint(_pzCid);
-  /* THE PAPER GOES AT ONCE (round 6 as drawn: "the paper goes to clause
-     11"): to where the last beat saw them — a beat already on its way would
-     leave the press waiting for the next one — then the beat asks again */
-  if (_pzFollow && _pzCid){
-    const rows = presenceHere(_pzCid);
-    if (rows.some(r => String(r.id) === _pzFollow)) presenceWalk(rows);
-    presenceSay(_pzCid);
+  if (!to) return null;
+  const r = presenceRowOf(to);
+  if (_pzFollow === to){
+    _pzFollow = null; _pzWent = null;
+    if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
+    presenceFollowSay(to, false);
+    return null;
   }
-  /* THE PRESS SAYS WHAT IT DID (round 6 as drawn, "One line"; the owner's
-     "build all the gaps", 18 Oct 2026): once, on the press — "Following Lina
-     Ek: the paper goes to clause 11 and moves when they do. Press the face
-     again to stop." — and once on the press that stops. Never on an arrival:
-     the walk itself stays silent (presenceWalk), the page moving is the news. */
-  presenceFollowSay(_pzFollow || was, !!_pzFollow);
-  return _pzFollow;
+  if (_pzAsk && _pzAsk.id === to){
+    _pzAsk = null;
+    if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
+    presenceSayOnce('pz_ask_cancelled', r, 'ok');
+    return null;
+  }
+  if (r && _pzAllow.has(to) && _pzWantsMe(r)){ presenceStopAsk(to); return null; }
+  /* ONE AT A TIME: a new ask stands down any follow or ask before it */
+  _pzFollow = null; _pzWent = null;
+  _pzAsk = { id: to, at: Date.now() };
+  if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
+  presenceSayOnce('pz_ask_sent', r, 'ok');
+  return null;
+}
+function presenceSayOnce(key, r, kind, said){
+  if (typeof window.toast !== 'function') return;
+  try { window.toast((said && said()) || i18t(key, { who: (r && r.name) || '', first: presenceFirstName(r && r.name) }), kind || 'ok'); } catch (_){}
+}
+/* ---- THE ANSWERS, READ OFF EACH BEAT ----
+   As the one asking: their Allow starts the follow; their Not now, their
+   silence past PRESENCE_ASK_WAIT_MS or their leaving ends the ask, said once.
+   Following: their taking the Allow back stops it, said once.
+   As the one asked: an Allow or Not now whose asker has stopped asking is
+   dropped, and the pop-up shows the next ask still waiting. */
+function presenceAnswers(rows){
+  const list = rows || [];
+  const rowOf = id => list.find(x => x && String(x.id) === String(id));
+  if (_pzAsk){
+    const lead = rowOf(_pzAsk.id);
+    if (!lead){ const was = presenceRowOf(_pzAsk.id) || { name: '' }; _pzAsk = null; presenceSayOnce('pz_ask_gone', was, 'warn'); }
+    else if (_pzLists(lead, 'allow')){
+      _pzFollow = String(lead.id); _pzWent = null; _pzAsk = null;
+      /* the start says where the paper goes ("clause 7"), the press's own sentence-maker */
+      presenceSayOnce('pz_follow_said', lead, 'ok', () => presenceFollowWords(lead, 'pz_follow_said'));
+    }
+    else if (_pzLists(lead, 'deny')){ _pzAsk = null; presenceSayOnce('pz_ask_no', lead, 'warn'); }
+    else if (Date.now() - _pzAsk.at > PRESENCE_ASK_WAIT_MS){ _pzAsk = null; presenceSayOnce('pz_ask_lapsed', lead, 'warn'); }
+  }
+  if (_pzFollow){
+    const lead = rowOf(_pzFollow);
+    if (lead && !_pzLists(lead, 'allow')){ _pzFollow = null; _pzWent = null; presenceSayOnce('pz_follow_ended', lead, 'warn'); }
+  }
+  [..._pzAllow].forEach(id => {
+    const r = rowOf(id);
+    if (!r || !_pzWantsMe(r)){ _pzAllow.delete(id); presenceSayOnce('pz_they_stopped', r || presenceRowOf(id) || { name: '' }, 'ok'); }
+  });
+  [..._pzDeny].forEach(id => { const r = rowOf(id); if (!r || !_pzWantsMe(r)) _pzDeny.delete(id); });
+  presenceAskSync(list);
+}
+/* ---- THE SMALL POP-UP, UNDER THE ONE ASKED'S OWN "HERE NOW" ----
+   "Amina wants to follow you · Allow · Not now". It does not block the page
+   and a press elsewhere leaves it standing — an ask waits for its answer —
+   but Esc says Not now. The stop question is the same pop-up, and Esc or a
+   press outside closes that one. Placed by measuring the slot in view. */
+let _pzAskShown = null;   // { kind: 'ask'|'stop', id }
+function presenceAskSync(rows){
+  if (_pzAskShown && _pzAskShown.kind === 'stop') return;
+  const ask = (rows || []).find(r => r && _pzWantsMe(r) && !_pzAllow.has(String(r.id)) && !_pzDeny.has(String(r.id)));
+  if (!ask){ if (_pzAskShown) presenceAskClose(); return; }
+  if (_pzAskShown && _pzAskShown.id === String(ask.id) && document.getElementById('pz-ask')) return;
+  presenceAskOpen('ask', ask);
+}
+function presenceStopAsk(id){ const r = presenceRowOf(id); if (r) presenceAskOpen('stop', r); }
+function presenceAskHtml(kind, r){
+  const who = _pzE(r.name || ''), id = _pzE(r.id);
+  if (kind === 'stop') return `<p class="pz-ask-h">${_pzE(i18t('pz_stop_title', { who: r.name || '' }))}</p>
+    <p class="pz-ask-p">${_pzE(i18t('pz_stop_body'))}</p>
+    <div class="pz-ask-acts"><button type="button" class="ui-btn ui-btn-primary" data-pz-stop="${id}">${_pzE(i18t('pz_stop_go'))}</button><button type="button" class="ui-btn" data-pz-keep="${id}">${_pzE(i18t('pz_stop_keep'))}</button></div>`;
+  return `<p class="pz-ask-h">${_pzE(i18t('pz_ask_title', { who: r.name || '' }))}</p>
+    <p class="pz-ask-p">${_pzE(i18t('pz_ask_body'))}</p>
+    <div class="pz-ask-acts"><button type="button" class="ui-btn ui-btn-primary" data-pz-allow="${id}">${_pzE(i18t('pz_ask_allow'))}</button><button type="button" class="ui-btn" data-pz-deny="${id}" title="${who}">${_pzE(i18t('pz_ask_deny'))}</button></div>`;
+}
+function presenceAskOpen(kind, r){
+  if (typeof document === 'undefined' || !r) return null;
+  let el = document.getElementById('pz-ask');
+  if (!el){ el = document.createElement('div'); el.id = 'pz-ask'; el.className = 'pz-ask'; el.setAttribute('role', 'dialog'); document.body.appendChild(el); }
+  el.setAttribute('aria-label', i18t(kind === 'stop' ? 'pz_stop_title' : 'pz_ask_title', { who: r.name || '' }));
+  el.innerHTML = presenceAskHtml(kind, r);
+  _pzAskShown = { kind, id: String(r.id) };
+  presenceAskPlace();
+  return el;
+}
+function presenceAskClose(){
+  _pzAskShown = null;
+  const el = (typeof document !== 'undefined') ? document.getElementById('pz-ask') : null;
+  if (el) el.remove();
+}
+/* under the first painted presence slot in view, its right edge on the
+   slot's; with none in view, under the bar at the right */
+function presenceAskPlace(){
+  const el = document.getElementById('pz-ask'); if (!el) return;
+  /* "Here now" on the Redlines head first, then the paper's line, then the contract's head (the owner's pick: under "Here now") */
+  const rank = x => ({ redlines: 0, paper: 1 }[x.getAttribute('data-pz-slot')] ?? 2);
+  const slot = [...document.querySelectorAll('[data-pz-slot]')].sort((a, b) => rank(a) - rank(b))
+    .find(x => { const q = x.getBoundingClientRect(); return q.width > 0 && q.bottom > 0 && q.top < window.innerHeight; });
+  const w = el.offsetWidth || 320, pad = 16;
+  let top = 64, left = window.innerWidth - w - pad;
+  if (slot){ const q = slot.getBoundingClientRect(); top = q.bottom + 8; left = Math.min(Math.max(pad, q.right - w), window.innerWidth - w - pad); }
+  el.style.top = Math.round(top) + 'px'; el.style.left = Math.round(left) + 'px';
+}
+function presenceAllow(id){
+  const to = String(id || ''); if (!to) return;
+  _pzDeny.delete(to); _pzAllow.add(to);
+  const r = presenceRowOf(to);
+  presenceAskClose();
+  if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
+  presenceSayOnce('pz_allowed_said', r, 'ok');
+  presenceAskSync(_pzCid ? (_pzSeen[_pzCid] || []) : []);
+}
+function presenceDeny(id){
+  const to = String(id || ''); if (!to) return;
+  _pzAllow.delete(to); _pzDeny.add(to);
+  presenceAskClose();
+  if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
+  presenceAskSync(_pzCid ? (_pzSeen[_pzCid] || []) : []);
+}
+function presenceStopFollower(id){
+  const to = String(id || ''); if (!to) return;
+  const r = presenceRowOf(to);
+  _pzAllow.delete(to); _pzDeny.add(to);
+  presenceAskClose();
+  if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
+  presenceSayOnce('pz_you_stopped', r, 'ok');
 }
 /* the colleague's row on the contract in front: their name, and where they are */
 function presenceRowOf(id){
@@ -430,7 +604,7 @@ function presenceRowOf(id){
    Negotiate page's own numbering reads it; never negoClauseList, which would
    start a negotiation), by its number, else its name. '' where it cannot be
    said, and the sentence then says only that they have it open. */
-function presenceClauseWord(c, spot){
+function presenceClauseWord(c, spot, name){
   const id = String(spot || ''); if (!id || !c) return '';
   const base = c.negotiation && c.negotiation.baselineBody;
   let k = null;
@@ -442,17 +616,21 @@ function presenceClauseWord(c, spot){
     const t = el ? String(el.textContent || '').replace(/\s+/g, ' ').trim() : '';
     if (t){ try { k = (typeof window.clauseParseHeading === 'function') ? (window.clauseParseHeading(t) || null) : null; } catch (_){ k = null; } if (!k) k = { title: t }; }
   }
+  /* NOT ON THIS PAPER BY ITS LABEL (16 Nov 2026): the heading their paper
+     showed, sent with the spot, says it */
+  const nm = String(name || '').trim();
+  if (!k && nm){ try { k = (typeof window.clauseParseHeading === 'function') ? (window.clauseParseHeading(nm) || null) : null; } catch (_){ k = null; } if (!k) k = { title: nm }; }
   if (!k) return '';
   const num = String(k.num || '').replace(/[.)\s]+$/, '');
   if (num) return i18t('pz_clause_n', { n: num });
-  const name = String(k.title || '').trim();
-  return name ? i18t('pz_clause_named', { name }) : '';
+  const title = String(k.title || '').trim();
+  return title ? i18t('pz_clause_named', { name: title }) : '';
 }
 function presenceFirstName(name){ return String(name || '').trim().split(/\s+/)[0] || String(name || ''); }
 /* one sentence per state, the hover's and the press's */
 function presenceFollowWords(r, kind, c){
   if (!c) c = (typeof window.getContract === 'function' && _pzCid) ? window.getContract(_pzCid) : null;
-  const who = String((r && r.name) || ''), where = presenceClauseWord(c, r && r.spot);
+  const who = String((r && r.name) || ''), where = presenceClauseWord(c, r && r.spot, r && r.spotName);
   return i18t(kind + (where ? '' : '_open'), { who, first: presenceFirstName(who), where });
 }
 function presenceFollowSay(id, on){
@@ -479,7 +657,44 @@ function presenceWalk(rows){
   const spot = lead.spot ? String(lead.spot) : '';
   if (!spot || spot === _pzWent) return false;
   _pzWent = spot;
-  return !!presenceGo(spot);
+  return !!presenceGo(presenceLocalSpot(spot, lead.spotName));
+}
+/* ---- THE SAME CLAUSE ON TWO PAPERS (fix, 16 Nov 2026) ----
+   A clause's label (its id) is the same on two screens only once it is saved
+   on the record. Before that — a contract nobody has changed yet, or a seat
+   that cannot save — each screen labels its clauses for itself, so the
+   leader's label was not on the follower's paper and the page never moved.
+   So the beat also says the clause's heading as the leader's paper shows it,
+   and the follower finds its own clause by that: the same words, else the
+   same number. READS ONLY. */
+function presencePaperBox(){
+  if (typeof document === 'undefined') return null;
+  return document.getElementById('rl-doc') || presenceHomePaper() || document.getElementById('doc-scroll');
+}
+function presenceHeadOf(el){
+  if (!el) return '';
+  const h = el.hasAttribute && el.hasAttribute('data-pz-clause') ? el : (el.querySelector ? el.querySelector('.rl-clause-h') : null);
+  return h ? String(h.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80) : '';
+}
+function presenceClauseEl(box, id){
+  if (!box || !id || !box.querySelector) return null;
+  const q = (window.CSS && CSS.escape) ? CSS.escape(id) : id;
+  return box.querySelector(`[data-clause="${q}"], [data-pz-clause="${q}"]`);
+}
+function presenceSpotHeading(spot){ return presenceHeadOf(presenceClauseEl(presencePaperBox(), String(spot || ''))); }
+const _pzNum = t => { const m = String(t || '').match(/^\s*(?:clause|section|article|§)?\s*(\d+(?:\.\d+)*)/i); return m ? m[1] : ''; };
+function presenceLocalSpot(spot, name){
+  const id = String(spot || ''), box = presencePaperBox();
+  if (!id || !box || presenceClauseEl(box, id)) return id;
+  const want = String(name || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (!want) return id;
+  const all = [...box.querySelectorAll('[data-clause], [data-pz-clause]')];
+  const idOf = el => el.getAttribute('data-clause') || el.getAttribute('data-pz-clause') || '';
+  const same = all.find(el => presenceHeadOf(el).toLowerCase() === want);
+  if (same) return idOf(same) || id;
+  const n = _pzNum(want);
+  const byNum = n ? all.find(el => _pzNum(presenceHeadOf(el)) === n) : null;
+  return byNum ? (idOf(byNum) || id) : id;
 }
 /* THE WALK'S ONE DOOR: Home's paper where it is up (igPaperGoClause — round 6
    as drawn, Follow me on Home), else the Negotiate page's own
@@ -558,13 +773,18 @@ function presenceRowHtml(c){
      alike wherever a surface chooses to colour it — the Redlines head does */
   const tone = r => (typeof window.regAvatarTone === 'function') ? window.regAvatarTone(r.name || r.id || '') : 0;
   const faceHtml = r => {
-    if (!canWalk) return `<span class="pz-face pz-t-${tone(r)}" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
-    const on = String(presenceFollowing() || '') === String(r.id);
+    /* THEY FOLLOW ME (I allowed it): a ring, and the press asks whether to
+       stop it — a button wherever the face is drawn, since stopping needs no paper */
+    const me = String(r.id), followsMe = _pzAllow.has(me) && _pzWantsMe(r);
+    if (!canWalk && !followsMe) return `<span class="pz-face pz-t-${tone(r)}" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
+    const on = String(presenceFollowing() || '') === me, asking = String(presenceAsking() || '') === me;
     /* the hover names where they are (round 6 as drawn): "Lina Ek is reading
-       clause 11 now. Press to follow: the paper goes where Lina reads." */
-    const t = presenceFollowWords(r, on ? 'pz_following' : 'pz_follow', c);
-    return `<button type="button" class="pz-face pz-t-${tone(r)}${on ? ' is-following' : ''}" data-pz-follow="${_pzE(r.id)}"
-      aria-pressed="${on ? 'true' : 'false'}" title="${_pzE(t)}">${_pzE(presenceInitials(r.name))}</button>`;
+       clause 11 now. Press to ask to follow…" */
+    const t = followsMe ? i18t('pz_follows_you', { who: r.name || '' })
+      : asking ? i18t('pz_asking', { who: r.name || '' })
+      : presenceFollowWords(r, on ? 'pz_following' : 'pz_follow', c);
+    return `<button type="button" class="pz-face pz-t-${tone(r)}${on ? ' is-following' : ''}${asking ? ' is-asking' : ''}${followsMe ? ' is-follows-me' : ''}" data-pz-follow="${_pzE(r.id)}"
+      aria-pressed="${on ? 'true' : asking ? 'mixed' : 'false'}" title="${_pzE(t)}">${_pzE(presenceInitials(r.name))}</button>`;
   };
   return `<span class="pz-row" data-pz-here="${here.length}" title="${_pzE(say + (all ? ' — ' + all : ''))}" aria-label="${_pzE(say)}">${
     shown.map(faceHtml).join('')}${
@@ -593,11 +813,32 @@ function presencePaint(cid){
 if (typeof document !== 'undefined') document.addEventListener('click', ev => {
   const t = ev.target;
   if (!t || !t.closest) return;
+  const a = t.closest('[data-pz-allow], [data-pz-deny], [data-pz-stop], [data-pz-keep]');
+  if (a){
+    ev.preventDefault(); ev.stopPropagation();
+    if (a.hasAttribute('data-pz-allow')) presenceAllow(a.getAttribute('data-pz-allow'));
+    else if (a.hasAttribute('data-pz-deny')) presenceDeny(a.getAttribute('data-pz-deny'));
+    else if (a.hasAttribute('data-pz-stop')) presenceStopFollower(a.getAttribute('data-pz-stop'));
+    else { presenceAskClose(); presenceAskSync(_pzCid ? (_pzSeen[_pzCid] || []) : []); }
+    return;
+  }
   const f = t.closest('[data-pz-follow]');
-  if (!f) return;
+  if (!f){
+    /* a press outside closes the stop question; an ask waits for its answer */
+    if (_pzAskShown && _pzAskShown.kind === 'stop' && !t.closest('#pz-ask')){ presenceAskClose(); presenceAskSync(_pzCid ? (_pzSeen[_pzCid] || []) : []); }
+    return;
+  }
   ev.preventDefault(); ev.stopPropagation();
   presenceFollow(f.getAttribute('data-pz-follow'));
 });
+/* Esc: the stop question closes; an ask is answered Not now */
+if (typeof document !== 'undefined') document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape' || !_pzAskShown) return;
+  ev.stopPropagation();
+  if (_pzAskShown.kind === 'ask') presenceDeny(_pzAskShown.id);
+  else { presenceAskClose(); presenceAskSync(_pzCid ? (_pzSeen[_pzCid] || []) : []); }
+}, true);
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', () => { if (_pzAskShown) presenceAskPlace(); });
 
 /* ---- AND THE PAGE GOING AWAY (gap E) ----
    Armed once at module load. Every leave still waiting out its grace goes now,
@@ -622,4 +863,8 @@ Object.assign(window, {
   presenceSpotNow, presenceFollow, presenceFollowing, presenceWalk,
   presenceHomePaper, presenceGo, presenceCanWalk,
   presenceRowOf, presenceClauseWord, presenceFirstName, presenceFollowWords, presenceFollowSay, presenceReWalk,
+  PRESENCE_FAST_BEAT_MS, PRESENCE_TICK_MS, PRESENCE_ASK_WAIT_MS,
+  presenceAsking, presenceAllowed, presenceAnswers, presenceAllow, presenceDeny, presenceStopFollower,
+  presenceAskOpen, presenceAskClose, presenceAskSync, presenceBeatBody, presenceBusyNow,
+  presenceSpotHeading, presenceLocalSpot,
 });

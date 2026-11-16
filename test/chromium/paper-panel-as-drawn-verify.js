@@ -279,6 +279,19 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     await onPaper();
     await page.evaluate(() => presenceSay('MK-0382'));
     const face = await until(() => { const b = document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'); return b ? b.getAttribute('data-pz-follow') : null; }, null, 10000);
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed): the press ASKS; the colleague's screen gets the small
+       pop-up and presses Allow; then the follow starts. Both sides say their beat until each has seen the other, bounded. */
+    const askAndAllow = async () => {
+      await page.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
+      for (let i = 0; i < 10; i++) {
+        await page.evaluate(() => presenceSay('MK-0382'));
+        if (await page.evaluate(() => !!presenceFollowing())) return true;
+        await peer.evaluate(() => presenceSay('MK-0382'));
+        if (await peer.evaluate(() => !!document.querySelector('#pz-ask [data-pz-allow]'))) await peer.click('#pz-ask [data-pz-allow]');
+        await until(() => !!presenceFollowing() || null, null, 1200);
+      }
+      return page.evaluate(() => !!presenceFollowing());
+    };
     check('6a the colleague\'s face on the paper\'s line is a button on Home', !!face, String(face));
     if (face) {
       /* THEIR SPOT RIDES THEIR NEXT BEAT (made steady 25 Oct 2026: with four checks running side by side the face
@@ -292,13 +305,13 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       }
       /* PASS 2: the hover names the clause they are on */
       const hover = await page.evaluate(() => (document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]') || {}).title || '');
-      check('6a2 (pass 2) its hover names where they are: "<name> is reading clause N now. Press to follow: the paper goes where <first> reads."',
-        /^Unrestricted Legal is reading clause \d+ now\. Press to follow: the paper goes where Unrestricted reads\.$/.test(hover), hover);
-      await page.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
+      check('6a2 (pass 2) its hover names where they are: "<name> is reading clause N now. Press to ask to follow: once <first> allows it, your paper goes where <first> reads."',
+        /^Unrestricted Legal is reading clause \d+ now\. Press to ask to follow: once Unrestricted allows it, your paper goes where Unrestricted reads\.$/.test(hover), hover);
+      await askAndAllow();
       const lit = await until(() => { const b = document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'); return b && b.classList.contains('is-following') && b.getAttribute('aria-pressed') === 'true' && !!presenceFollowing(); }, null, 6000);
-      check('6b pressed, it lights: following', !!lit);
+      check('6b pressed and allowed, it lights: following', !!lit);
       const said = await until(() => [...document.querySelectorAll('#toast-root > *')].map(e => e.textContent.trim()).find(t => /^Following /.test(t)) || null, null, 4000);
-      check('6b2 (pass 2) and the press says what it did, once', /^Following Unrestricted Legal: the paper goes to clause \d+ and moves when they do\. Press the face again to stop\.$/.test(said || ''), said);
+      check('6b2 (pass 2) and the start is said, once', /^Following Unrestricted Legal: the paper goes to clause \d+ and moves when they do\. Press the face again to stop\.$/.test(said || ''), said);
       /* the colleague goes to clause 7 on their own paper, and says so on their beat */
       const lead = await peer.evaluate(id => { igPaperGoClause(id); return new Promise(r => setTimeout(async () => { await presenceSay('MK-0382'); r(presenceSpotNow()); }, 900)); }, k7.id);
       await page.evaluate(() => presenceSay('MK-0382'));
@@ -328,7 +341,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         const btn = await until(() => !!document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'), null, 8000);
         check(`6f ${w}×${ht}: the signing copy's headings carry their clauses, and the face is a button there`, !!up && !!btn, JSON.stringify({ up, btn }));
         if (!btn) continue;
-        await page.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
+        await askAndAllow();
         const there = await until(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll'); if (!el || !sc) return null;
           const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect(); const spot = presenceSpotNow();
           /* the walk scrolls smoothly: asked until it has come to rest there */

@@ -186,7 +186,8 @@ describe('f454 (4) — reading never writes, and the beat is honest', () => {
     assert.ok(raise > 0 && away > raise,
       'an async body runs synchronously only to its first await, so the guard '
       + 'is raised before the promise exists');
-    assert.match(fn, /finally \{ _pzBusy = false; \}/);
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the finally also sends a beat a press asked for while one was out */
+    assert.match(fn, /finally \{\s*_pzBusy = false;/);
   });
 
   /* RE-WORDED 4 Oct 2026 (f494, gap E): a hidden tab now keeps a slower beat

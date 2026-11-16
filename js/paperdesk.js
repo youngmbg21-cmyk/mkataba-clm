@@ -9956,7 +9956,7 @@ function pdCoverRightHtml(V){
   const lately = V.lately.length ? V.lately.map(e => `<p>${av(e.who, e.ours)}<span>${E(e.t)}<small>${E(e.day)}</small></span></p>`).join('') : `<p class="is-none">${E(_pdT('cv_l_none'))}</p>`;
   const coming = V.coming.length ? V.coming.map(x => `<p>${cal(x.d)}<span>${E(x.t)}<small>${E([x.d ? _cvDay(x.d) : '', x.s].filter(Boolean).join(' · '))}</small></span></p>`).join('') : `<p class="is-none">${E(_pdT('cv_cu_none'))}</p>`;
   const briefW = (V.D && V.D.read && V.D.read.brief) ? _pdT('cv_brief') : _pdT('cv_brief_write');
-  return `<div class="cv-r"><div class="cv-top"><span class="cv-chip is-${tone}"><i></i>${E(chip)}</span>${V.last ? `<span>${E(_pdT('cv_last', { day: V.last }))}</span>` : ''}</div>
+  return `<div class="cv-r"><div class="cv-top"><span class="cv-chip is-${tone}"><i></i>${E(chip)}</span>${V.last ? `<span>${E(_pdT('cv_last', { day: V.last }))}</span>` : ''}<button type="button" class="cv-lnk cv-door" data-cv-go="contracts" data-cv-cid="${E(c.id)}">${E(_pdT('nav_contracts'))} ›</button></div>
     <div class="cv-h" role="heading" aria-level="1">${E(h)}</div><p class="cv-why">${E(why)}</p>${road}${count}
     <div class="cv-more"><div><div class="cv-lbl">${E(_pdT('cv_lately'))}</div>${lately}</div><div><div class="cv-lbl">${E(_pdT('cv_coming'))}</div>${coming}</div></div>
     <div class="cv-go"><button type="button" class="ui-btn ui-btn-primary cv-open" data-cv-open data-pd-mid-back>${E(_pdT('cv_open'))} ›</button><button type="button" class="cv-lnk" data-cv-go="brief" data-cv-cid="${E(c.id)}">${E(briefW)}</button></div></div>`;
@@ -9999,6 +9999,9 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
     else if (k === 'sign') pdSignOpen(id);
     else if (k === 'ob') pdObOpen();
     else if (k === 'brief' && typeof pd2BriefOpen === 'function') pd2BriefOpen(id);
+    /* THE DOOR TO CONTRACTS (owner, 16 Nov 2026): Jambo's doors are not on the Cover, so it carries its own; the
+       Contracts place keeps the way back to this paper */
+    else if (k === 'contracts' && typeof setView === 'function') setView('register');
   }, 60);
 });
 Object.assign(window, { pdCoverUp, pdCoverOf, pdCoverHtml, pdCoverSheetHtml, pdCoverRightHtml, pdCoverOpen, pdCoverLand, CV_NOTES_MAX, CV_ROWS_MAX, CV_PARTIES_SHOWN });
