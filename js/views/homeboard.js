@@ -10770,7 +10770,8 @@ function hbPlacePut(p){
            the meantime is never pulled back to this one (since the Cover, f1085, every contract opened on purpose keeps 'where') */
         const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try {
           const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
-          if (pc && String(pc.id) !== String(want.id)) return;
+          /* …and only while its paper is still what stands: a reader who left for a page with no paper (Contracts) is never pulled back */
+          if (!pc || String(pc.id) !== String(want.id) || (typeof window.pdOnPaper === 'function' && !pdOnPaper())) return;
           hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
         if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); done(); return; }
         igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); done(); return; }
