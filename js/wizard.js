@@ -883,12 +883,12 @@ function openNewAgreement(o){
   const sName=k=>(k&&typeof FOLDERS==='object'&&FOLDERS[k]&&FOLDERS[k].name)||'';
   const verOf=t=>'v'+((typeof templateVersionNo==='function')?templateVersionNo(t):1);
   const rows=()=>[
-    ...libOf().map(t=>({ kind:'lib', id:t.id, name:t.name, sub:t.description||'', stream:sName(t.folder), cat:t.category,
+    ...libOf().map(t=>({ kind:'lib', id:t.id, name:t.name, sub:t.description||'', stream:sName(t.folder), folder:t.folder, cat:t.category,
       go:'v'+(t.publishedVersion||1) })),
-    ...mineOf().map(t=>({ kind:'mine', id:t.id, name:t.name, sub:t.description||t.blurb||'', stream:sName(t.folder), cat:t.category,
+    ...mineOf().map(t=>({ kind:'mine', id:t.id, name:t.name, sub:t.description||t.blurb||'', stream:sName(t.folder), folder:t.folder, cat:t.category,
       go:verOf(t) })),
     ...forYouPick(tmpls).list.concat(tmpls.filter(t=>!forYouPick(tmpls).list.includes(t)))
-      .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder), cat:t.category })),
+      .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder), folder:t.folder, cat:t.category })),
   ];
   let sel=null, api=null;
   /* ---- ONE SHEET (owner picked "One sheet" by name, round 4 of the
@@ -954,6 +954,7 @@ function openNewAgreement(o){
      no figures is simply one line and the fault cannot come back. */
   /* ONE ROW BUILDER, two dresses: the list's row, or the sheet's card (card===true:
      a radio, and the shelf's own facts — the gaps, round 4, 18 Oct 2026) */
+  const naCardTone=r=>{ const t=(r&&r.folder&&typeof listStreamTone==='function')?listStreamTone(r.folder):''; return t==='gray'?'green':t; };
   const pickRow=(r,best,card)=>{ const on=!!(sel&&sel.kind===r.kind&&String(sel.id)===String(r.id)), hint=naCardTitle(r);
     const used=card===true?usedOf(r):0;
     /* WHAT IT SHARES WITH YOUR WORDS, in your spelling (round 2 of the first-timer rounds) */
@@ -969,7 +970,10 @@ function openNewAgreement(o){
     const inner=card===true
       ? `<span class="na-radio" aria-hidden="true"></span><span class="na-lr-t"><span class="na-lr-top"><span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}</span>${why?`<span class="na-pick-m">${esc(why)}</span>`:''}</span><span class="na-lr-used">${used?esc(i18tn('na_used_n',used,{n:used})):''}</span>`
       : `<span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}${use?`<span class="na-use">${esc(use)}</span>`:''}`;
-    return `<button type="button" class="na-pick${card===true?' na-close':''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>${inner}</button>`; };
+    /* SOFT TINT (owner's pick, 16 Nov 2026, "keep it as drawn"): a card wears its paper's stream colour, the list
+       language's own (listStreamTone); a stream whose colour is grey is drawn green here, on the card only */
+    const tint=card===true?naCardTone(r):'';
+    return `<button type="button" class="na-pick${card===true?' na-close':''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}${tint?` data-tone="${tint}"`:''}>${inner}</button>`; };
   /* ONE SHEET'S FIRST STEP: the closest rows, in the reading's order — drawn as
      cards (the gaps, round 4, 18 Oct 2026): a radio, the name, the best marked,
      and the shelf's own facts — "Company standard · v3 · Sales · used 14 times",
