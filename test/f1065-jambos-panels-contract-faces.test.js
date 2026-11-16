@@ -43,7 +43,9 @@ test('f1065 (1) the stage line is labelled, and the card keeps where it stands f
   assert.equal(sp.querySelectorAll('i em').length, 6, 'each its name under it');
   const c = d.ownerDocument.createElement('div');
   c.innerHTML = W.pd2CardFiveHtml({ id: 'X', counterparty: 'Toyota Kenya', contractNo: 'DV-D1' }, '', 'Fill · 1 to do', 'Fill in 1 detail', '<p class="pd2-card-say">s</p>', '<span class="pd2-spine"></span>', '<button class="pd2-card-go">Go</button>');
-  assert.equal(c.querySelector('.pd2-card-top > span').textContent, 'Fill · 1 to do', 'where it stands is the first word');
+  /* RE-POINTED 16 Nov 2026 (owner: no eyebrow, the same facts are said elsewhere; f1088): the card opens on its headline */
+  assert.equal(c.querySelector('.pd2-card-top'), null, 'no eyebrow');
+  assert.equal(c.querySelector('.pd2-card').firstElementChild.className, 'pd2-next', 'the headline first');
   assert.ok(c.querySelector('.pd2-card.is-five .pd2-card-act .pd2-card-go'), 'the long black button in its own soft card');
 });
 

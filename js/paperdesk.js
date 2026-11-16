@@ -7765,7 +7765,11 @@ function pd2CardWho(c){
    own soft card (the long black button as it is, then Jambo's read) */
 function pd2CardFiveHtml(c, cls, at, head, sayHtml, steps, act){
   const E = _pdE, who = pd2CardWho(c);
-  return `<div class="pd2-card is-five${cls ? ' ' + cls : ''}" data-pd2-card><div class="pd2-card-top"><span>${E(at)}</span>${who ? `<span class="pd2-card-who">${E(who)}</span>` : ''}</div>
+  /* NO EYEBROW (owner, 16 Nov 2026: "you share the same information … the name of the other party is mentioned
+     everywhere on the page and it takes away space"): the stage is the line of steps under the headline, the party and
+     the number are the bar's; the card opens on its headline */
+  void at; void who;
+  return `<div class="pd2-card is-five${cls ? ' ' + cls : ''}" data-pd2-card>
     <p class="pd2-next" data-pd2-next>${E(head)}</p>${sayHtml}${steps}${act ? `<div class="pd2-card-act">${act}</div>` : ''}</div>`;
 }
 function pd2CardHtml(c, D){
@@ -7801,7 +7805,8 @@ function pd2CardHtml(c, D){
     hasBrief ? `<button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''].filter(Boolean).join('<span class="pd2-card-sep" aria-hidden="true">|</span>');
   const foot = `<div class="pd2-card-foot"><p class="pd2-read">${E(sayRead)}</p><p class="pd2-card-links">${links}</p></div>`;
   if (typeof window.newLookOn === 'function' && newLookOn())
-    return pd2CardFiveHtml(c, '', at, String(N.head || '').replace(/\.$/, ''), say ? `<p class="pd2-card-say">${E(say)}</p>` : '', pd2StepsHtml(D, focus, words), btn + foot);
+    /* no sentence under the headline (owner, 16 Nov 2026): who it goes to is the bar's, what waits after is the steps' */
+    return pd2CardFiveHtml(c, '', at, String(N.head || '').replace(/\.$/, ''), '', pd2StepsHtml(D, focus, words), btn + foot);
   return `<div class="pd2-card" data-pd2-card><div class="pd2-card-top"><span>${E(at)}</span><span class="pd2-spine" data-pd2-spine role="img" aria-label="${E(words)}">${dots}</span></div>
     <p class="pd2-next" data-pd2-next>${E(String(N.head || '').replace(/\.$/, ''))}</p>${say ? `<p class="pd2-card-say">${E(say)}</p>` : ''}${btn}
     ${foot}</div>`;
