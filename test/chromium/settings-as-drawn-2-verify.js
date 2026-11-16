@@ -180,7 +180,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
          contract's Menu beside its paper, ON Release hold — where its hold
          is placed (End or pause) and released */
       /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
-      const held = await until(() => { const r = document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the paper's acts are its More pop-up; Open lands
+         there, on Release hold ([data-pd-acts-go="#ws-hold"]), lit, painted */
+      const held = await until(() => { const r = document.querySelector('#pd-acts-pop[data-pd-acts-pop="MK-S3"] [data-pd-acts-go="#ws-hold"]') || document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
         return state.view === 'dashboard' && r && r.classList.contains('is-landed') ? r.textContent.trim() : null; }, null, 10000);
       check('4f a held contract\'s Open lands on Release hold, in its Menu', !!held, String(held));
     }

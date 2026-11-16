@@ -171,6 +171,8 @@ const LAND = () => {
     obSel: (() => { const r = document.querySelector('#obw-one-host .is-sel[data-ob-key]'); return r ? r.getAttribute('data-ob-key') : null; })(),
     /* THE NEW LOOK (#762): an obligation opens on its contract's paper, the Obligations face, THAT row open (pd2ObGo) */
     /* THE NEW LOOK (#762): a party opens its OWN page (cuOpenCustomer → the party screen): its name and its agreements' rows */
+    /* THE NEW LOOK (#762): Fill in the contract is ON THE PAPER (pdFillGo → pd2FillStart), the Dossier beside it */
+    fillOn: !!(window.pd2FillOn && window.intel && intel.paper && pd2FillOn(intel.paper.id)),
     cuParty: (() => { const p = document.querySelector('.cunp-page[data-cu-screen="party"]'); const h = p && p.querySelector('.cunp-head .ctf-h'); return h ? h.textContent.trim() : null; })(),
     cuAgs: document.querySelectorAll('.cunp-page[data-cu-screen="party"] tr[data-cu-ag]').length,
     pdOb: (() => { const r = document.querySelector('#ig-dock .pd-ob.is-open[data-pd-ob-key]'); return r ? r.getAttribute('data-pd-ob-key') : null; })(),
@@ -195,7 +197,7 @@ const LAND = () => {
     ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.pdOb, L.cuParty, L.cuAgs, L.ceRisks, L.rkLanded, L.kt, L.ktMove].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.pdOb, L.fillOn, L.cuParty, L.cuAgs, L.ceRisks, L.rkLanded, L.kt, L.ktMove].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
   + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.kt ? ' KEY-TERMS' + (L.ktMove ? ' (Move open)' : '') : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
@@ -222,7 +224,10 @@ const E = {
      to enter the details?"): no Fill in face; Fill in is the Dossier with its grid's owed row in the hand */
   /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): a Fill in door turns the panel to the form of every
      owed detail (a tab state under the Dossier), its first owed box in the hand */
-  fill: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'form' && L.og,
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): "Fill in the contract" is the ONE way in, filled ON
+     THE PAPER with the Dossier beside it (pd2FillStart, CLAUDE.md FILL IN ON THE PAPER); a paper with no blank on it
+     keeps the form as its door (pdFillGo's fall-back) — either, never anything else */
+  fill: id => L => E.paper(id)(L) && L.pd === '' && ((L.tab === 'copilot' && L.fillOn) || (L.tab === 'form' && L.og)),
   red: id => L => E.paper(id)(L) && L.pd === 'red',
   signing: id => L => E.paper(id)(L) && L.pd === 'signing',
   obTab: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'oblig',
@@ -242,7 +247,8 @@ const E = {
   wall: n => L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.show === 'wall' && L.wall && (n == null ? !L.only : L.only === n),
   /* the Contracts place drawn as the List (step 7), and on a stage's tab */
   list: n => L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.show === 'list' && !L.wall && (n == null ? !L.only : L.only === n),
-  stageTab: st => L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.stage === st,
+  /* RE-POINTED 16 Nov 2026 (#762): the stage's contracts are SHOWN — the Wall or the List, never the Folders with the stage set out of sight */
+  stageTab: st => L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.stage === st && (L.show === 'wall' || L.show === 'list'),
   /* narrowed to a party: its set, and the count line reading the number the party's row showed */
   /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a party opens its own page (round 6, as drawn), its
      agreements its rows — the number pressed is the number of rows read there */
@@ -519,11 +525,14 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const naivasSaid = `${naivasN} of ${naivasN} contracts`;
     const naivasName = await page.evaluate(() => (typeof cuView === 'function') ? cuView(cuCustomerOf('naivas supermarkets')).name : '');
     const PARTY = E.party(naivas, naivasSaid, naivasName, naivasN), PSAYS = 'the party\'s own page, ' + naivasName + ', its ' + naivasN + ' agreements';
-    await door(A, 'Parties row, double-click (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => dbl(CU), expect: PARTY, says: PSAYS });
-    await door(A, 'Parties row, Enter (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => enter(CU), expect: PARTY, says: PSAYS });
+    /* RE-POINTED 16 Nov 2026 (#762): an opened party stays on its own page (the party screen) until its ‹ Parties — the
+       list is reached by that way back, as a person does */
+    const toParties = async () => { await goPage('customers'); await domClick('[data-cunp-back]'); await waitFor(page, s => !!document.querySelector(s), 6000, CU); };
+    await door(A, 'Parties row, double-click (Naivas)', { start: toParties, press: () => dbl(CU), expect: PARTY, says: PSAYS });
+    await door(A, 'Parties row, Enter (Naivas)', { start: toParties, press: () => enter(CU), expect: PARTY, says: PSAYS });
     /* RE-POINTED 16 Nov 2026 (#762): the party's panel is THE FIVE PARTS — its "Open party · N agreements" row
        (data-cun-open) is the door. RETIRED: "Open on Explorer" — old look only (the five parts draw no Explorer door) */
-    const cuChoose = async () => { await goPage('customers', s => !!document.querySelector(s), CU);
+    const cuChoose = async () => { await toParties();
       if (!(await page.evaluate(s => { const r = document.querySelector(s); return !!(r && r.classList.contains('is-sel')); }, CU))) await selectRow(CU); };
     await door(A, 'Parties panel, Open party (Naivas)', { start: cuChoose,
       press: () => domClick('#ins-panel [data-cun-open="naivas supermarkets"]'), expect: PARTY, says: PSAYS });
@@ -592,7 +601,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       press: () => click('.obw-table tr[data-obw-row="ob-a1-1"] .obw-when'), expect: E.obTab('MK-A1'), says: SAYS.obTab });
     await door(A, 'Obligations Open contract, narrow (MK-A1, a later one)', { start: () => goPage('obligations', () => !!document.querySelector('tr[data-obw-row="ob-a1-3"] [data-obw-open]')),
       press: () => click('tr[data-obw-row="ob-a1-3"] [data-obw-open]'), expect: E.obTab('MK-A1'), says: SAYS.obTab });
-    await door(A, 'Parties row, one press, narrow (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => click(CU), expect: PARTY, says: PSAYS });
+    await door(A, 'Parties row, one press, narrow (Naivas)', { start: toParties, press: () => click(CU), expect: PARTY, says: PSAYS });
     await door(A, 'Requests Open, narrow (→ MK-A2)', { start: async () => { await goPage('intake'); await domClick('[data-ik-view="all"]'); await waitFor(page, () => !!document.querySelector('[data-ik-open="MK-A2"]'), 6000); },
       press: () => click('[data-ik-open="MK-A2"]'), expect: E.paper('MK-A2'), says: SAYS.paper });
     await page.evaluate(() => insForce(null));
@@ -638,7 +647,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       'cp-accepted': a => E.signing(a.id), handover: a => E.signing(a.id),
       negotiation: a => E.red(a.id), 'review-mine': a => E.red(a.id), 'review-out': a => E.red(a.id), 'review-back': a => E.red(a.id),
       suggest: a => E.red(a.id), 'suggest-back': a => E.red(a.id), 'desk-quiet': a => E.red(a.id),
-      details: a => E.fill(a.id), obligation: a => E.board(a.id, 'oblig'),
+      /* RE-POINTED 16 Nov 2026 (#762): an obligation opens on its contract's paper, the Obligations face (obOpenContract → pd2ObGo) */
+      details: a => E.fill(a.id), obligation: a => E.obTab(a.id),
       link: () => E.boardFace, watch: () => E.boardFace, gift: () => E.boardFace,
       request: () => E.page('intake'), 'note-due': () => E.page('mynotes'),
     };
@@ -699,18 +709,19 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
         press: async () => {
           if (!hit) return false;
           await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
+          /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's Alerts face is ONE list (ndBellNlHtml,
+             .ndb): Needs you, then News under it — no tabs; each row's ONE Open (.ndb-open) presses its own door */
           if (hit.type === 'news') {
-            if (!(await waitFor(page, () => !!document.querySelector('#context-panel [data-al-tab="news"]'), 5000))) return false;
-            await page.evaluate(() => document.querySelector('#context-panel [data-al-tab="news"]').click());
+            if (await page.$('#context-panel [data-al-tab="news"]')) await page.evaluate(() => document.querySelector('#context-panel [data-al-tab="news"]').click());
             if (!(await waitFor(page, i => !!document.querySelector(`#context-panel [data-alert-i="${i}"]`), 5000, hit.i))) return false;
             return page.evaluate(i => { const b = document.querySelector(`#context-panel [data-alert-i="${i}"]`); if (!b) return false; b.click(); return true; }, hit.i);
           }
           /* the panel keeps the tab last chosen: Needs you first */
-          if (await waitFor(page, () => !!document.querySelector('#context-panel [data-al-tab="need"]'), 5000))
-            await page.evaluate(() => { const t = document.querySelector('#context-panel [data-al-tab="need"]'); if (t && !t.classList.contains('on')) t.click(); });
+          await waitFor(page, () => !!document.querySelector('#context-panel [data-al-tab="need"], #context-panel .ndb'), 5000);
+          await page.evaluate(() => { const t = document.querySelector('#context-panel [data-al-tab="need"]'); if (t && !t.classList.contains('on')) t.click(); });
           const sel = `#context-panel [data-nd-row="${hit.key}"]`;
           if (!(await waitFor(page, s => !!document.querySelector(s), 5000, sel))) return false;
-          return page.evaluate(s => { const b = document.querySelector(s + ' .nd-btn'); if (!b) return false; b.click(); return true; }, sel);
+          return page.evaluate(s => { const b = document.querySelector(s + ' .ndb-open, ' + s + ' .nd-btn'); if (!b) return false; b.click(); return true; }, sel);
         },
         expect, says });
     }
@@ -835,7 +846,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
          (THE LEGORA WAY, 20 Oct; THE SIGNER ROW, THE SAP WAY, 21 Oct — "an owed fact is answered WHERE IT
          IS ASKED"): no Fill in › or Name › door stands there to press; the grid is measured in
          still-owed-sap-way and signer-row-as-drawn. The glance's two remaining doors are pressed. */
-      for (const k of ['redline', 'share'])
+      /* RETIRED 16 Nov 2026 (#762): the glance's "share" — old look only: the new look's Dossier card draws no Share
+         (the paper's line's Send, #ws-share, is the ONE send door) */
+      for (const k of ['redline'])
         await door(D, `the glance's "${k}" button (on the dropped contract)`, { start: glanceStart, same: k === 'share',
           press: async () => { if (!(await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 6000, gid))) return false;
             /* RE-POINTED 20 Oct 2026 (the dossier): Still owed's Fill in › is each empty box's own door */
@@ -901,18 +914,21 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* RE-POINTED 15 Oct 2026 (owner, answer B): the paper's ⋯ went; its rows are the panel's Menu tab */
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is retired into the dossier's All acts fold */
     const EM = 'E the dossier\'s All acts';
-    const MN = '#ig-dock .ds-fold .pd-mn-rows';
-    /* from the Board, as every part here starts (since 9 Nov 2026 "bring up" lands on the paper with Jambo's answer in
-       his panel; opening the same paper again keeps that answer, so the Dossier is opened fresh from the Board) */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's All acts fold is the paper line's
+       More (pdActsToggle, #ig-actions): its short card, then "All acts (N)" turns it into every act (#pd-acts-pop);
+       a row is pressed by its words, as a person reads it */
+    const MN = '#pd-acts-pop';
     const menuOpen = id => async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); }); await settle(300); await onPaper(id)();
       await page.evaluate(x => { ['pdFillClose', 'pdSignClose', 'pdRedClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); pdOpenOnHome(x, 'copilot'); }, id);
-      await waitFor(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired, 4000);
-      await page.evaluate(() => document.querySelectorAll('#ig-dock .ds-fold').forEach(d => { d.open = true; })); };
-    const items = await (async () => { await menuOpen('MK-A2')(); return page.evaluate(m => [...document.querySelectorAll(m + ' button')].map(b => b.id).filter(Boolean), MN); })();
-    console.log(`  the dossier's All acts on Home's paper holds: ${items.join(' ')}`);
-    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick(MN + ' #ws-filing'), expect: E.kt('MK-A2', true), says: SAYS.kt + ', its filing line with Move open' });
+      await waitFor(page, i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('ig-actions'), 6000, id);
+      await domClick('#ig-actions'); await waitFor(page, s => !!document.querySelector(s), 4000, MN);
+      await domClick(MN + ' [data-pd-acts-every]'); await waitFor(page, s => !!document.querySelector(s + ' .pd-acts-r:not(.pd-acts-all)'), 4000, MN); };
+    const actRow = words => page.evaluate(([m, w]) => { const b = [...document.querySelectorAll(m + ' .pd-acts-r')].find(x => new RegExp(w).test(x.textContent.trim())); if (!b) return false; b.click(); return true; }, [MN, words]);
+    const items = await (async () => { await menuOpen('MK-A2')(); return page.evaluate(m => [...document.querySelectorAll(m + ' .pd-acts-r')].map(b => b.textContent.trim()), MN); })();
+    console.log(`  the paper's More (every act) on Home's paper holds: ${items.join(' · ')}`);
+    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => actRow('^Filing and stream'), expect: E.kt('MK-A2', true), says: SAYS.kt + ', its filing line with Move open' });
     await door(EM, 'Delete (MK-DEL)', { start: menuOpen('MK-DEL'),
-      press: async () => { if (!(await domClick(MN + ' #ws-delete'))) return false;
+      press: async () => { if (!(await actRow('^Delete'))) return false;
         const conf = await waitFor(page, () => [...document.querySelectorAll('button')].some(b => /^Delete/.test(b.textContent.trim()) && b.closest('.modal-overlay, #confirm-overlay, [role="dialog"]')), 4000);
         if (conf) await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /^Delete/.test(x.textContent.trim()) && x.closest('.modal-overlay, #confirm-overlay, [role="dialog"]')); b && b.click(); });
         return true; },
@@ -945,16 +961,20 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
          comes back to the Dossier (a hand in a box is not a place a refresh can keep) */
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form is a place of the panel (its tab state is kept), so a
          refresh standing on it comes back to it — A REFRESH LANDS AT THE SAME SPOT */
-      ['on Fill in (MK-A2)', () => page.evaluate(() => pdFillOpen('MK-A2')), L => E.paper('MK-A2')(L) && L.pd === '' && L.tab === 'form', 'the form beside the paper (Fill in the contract)', null],
+      /* RE-POINTED 16 Nov 2026 (#762): Fill in the contract's ONE way in is pdFillGo (on the paper; the form where the
+         paper has no blank) — a refresh standing on it comes back to it */
+      ['on Fill in (MK-A2)', async () => { await onPaperFn('MK-A2'); await page.evaluate(() => pdFillGo('MK-A2')); }, E.fill('MK-A2'), SAYS.fill, null],
       ['on Before you sign (MK-A2)', () => page.evaluate(() => pdSignOpen('MK-A2')), E.signing('MK-A2'), SAYS.signing, null],
-      ['on the Obligations page narrowed to a contract (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.obPage('MK-A1'), SAYS.obPage, null],
-      ['on the wall narrowed to a party', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],
+      /* RE-POINTED 16 Nov 2026 (#762): a contract's obligations open on its paper's Obligations face */
+      ['on a contract\'s Obligations (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.obTab('MK-A1'), SAYS.obTab, null],
+      ['on a party\'s own page', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],
       ['on the Negotiations list', () => go('redline'), E.ngList, 'the Negotiations list', null],
       /* the room by name (the checks' own door) and a refresh standing on it: the strip */
       ['on the room, opened by name (MK-A1)', () => page.evaluate(() => openWorkspace('MK-A1', { room: true })), E.dossier('MK-A1'), SAYS.dossier, null],
       ['on the strip, on Where we are (MK-A1)', () => page.evaluate(() => hbStripBring('MK-A1', 'where')), E.strip('MK-A1', 'where'), SAYS.stripWhere, null],
-      ['on the Contracts place (the Wall)', () => go('register'), E.wall(null), SAYS.wall, null],
-      ['on the Contracts place, the List', () => page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }), E.list(null), SAYS.list, null],
+      /* RE-POINTED 16 Nov 2026 (#762): Contracts opens on its Folders; the reader stands on the Wall or the List by its pill */
+      ['on the Contracts place (the Wall)', toPlace('wall'), E.wall(null), SAYS.wall, null],
+      ['on the Contracts place, the List', toPlace('list'), E.list(null), SAYS.list, null],
       ['on the Contracts place, on In Review', () => page.evaluate(() => regGoFiltered({ stage: 'Under Review' })), E.stageTab('Under Review'), 'Home\'s Contracts place, on In Review', null],
     ];
     for (const [nm, put, want, says, p] of REFRESH)

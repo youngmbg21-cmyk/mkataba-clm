@@ -80,7 +80,9 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* RE-POINTED 21 Oct 2026 (Part 8): a stream is picked under "+ Filter"
        and stands as a chip — the claim (a filter narrows and says so) is one. */
     const SEAT = '[data-lh-seat="contracts"]';
-    const pick = await page.evaluate(S => { const add = document.querySelector(S + ' select[data-lh-add]');
+    /* a "+ Filter" that is not drawn (the new look's Contracts head hides it: question Q-A) is no press — the run reports
+       instead of waiting out the clock on a hidden control */
+    const pick = await page.evaluate(S => { const add0 = document.querySelector(S + ' select[data-lh-add]'), add = add0 && add0.closest('.lh-add') && add0.closest('.lh-add').getClientRects().length ? add0 : null;
       const o = add && [...add.querySelectorAll('option')].find(x => { try { return JSON.parse(x.value)[0] === 'type'; } catch (_) { return false; } });
       return o ? { v: o.value, t: regTypes().find(t => t.k === JSON.parse(o.value)[1]).label } : null; }, SEAT);
     if (pick) await page.selectOption(SEAT + ' select[data-lh-add]', pick.v);

@@ -164,7 +164,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     }
     if (await press('#st-jb-feed [data-st-swp-open]', '6b the held contract\'s Open')) {
       /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
-      const held = await until(() => { const r = document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
+      /* RE-POINTED 16 Nov 2026 (#762): the paper's acts are its More pop-up; Open lands there, on Release hold */
+      const held = await until(() => { const r = document.querySelector('#pd-acts-pop[data-pd-acts-pop="MK-S3"] [data-pd-acts-go="#ws-hold"]') || document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
         return state.view === 'dashboard' && r && r.classList.contains('is-landed') && r.getBoundingClientRect().height > 0 ? r.textContent.trim() : null; }, null, 10000);
       check('6b it lands ON Release hold, in the contract\'s Menu beside its paper', !!held, String(held));
       await shot(page, '26-held-open-1440x780');
@@ -197,7 +198,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     /* RETIRED 16 Nov 2026 (#762): 9a (the contents list's first heading lit at the top), 9b (devices said once on the You
        sheet) and 9d (the You sheet's quiet closed dropdown) — the member's sheet with its contents list is the old look's;
        a member reads the one list. 9c (the away card) stays as written: the one list has no away row (a question) */
-    const away = await mem.evaluate(() => { const c = document.querySelector('[data-st-you-card="away"] .st-srows'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
+    const away = await mem.evaluate(() => { /* RE-POINTED 16 Nov 2026 (#762): the one list's away row (#stn-away) says what the card said */ const c = document.querySelector('[data-st-you-card="away"] .st-srows') || document.querySelector('#stn-main #stn-away'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
     check('9c the away card: the stand-in named whole once, then by first name, its days with their weekday', !!away && /from \w{3} \d{1,2} \w{3} to \w{3} \d{1,2} \w{3}\./.test(away) && /Each thing Amina answers says “for Unrestricted”/.test(away), away);
     await shot(mem, '24-you-member-1440x780');
   } catch (e) { check('the run itself', false, e.stack); }

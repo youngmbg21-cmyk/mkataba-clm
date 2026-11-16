@@ -147,7 +147,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
         const rb = row.getBoundingClientRect().bottom;
         const first = [...g.querySelectorAll('.jov5-eb, .jov5-title, .jov5-sub, .jov5-row')].every(e => !!(row.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING)); const bs = [...row.querySelectorAll('[data-ig-gd-view-go]')];
         const tops = bs.map(b => Math.round(b.getBoundingClientRect().top));
-        return { first: first === row, n: bs.length, pressed: bs.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-ig-gd-view-go')), oneLine: new Set(tops).size === 1,
+        return { first, n: bs.length, pressed: bs.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-ig-gd-view-go')), oneLine: new Set(tops).size === 1,
           below: !!g.querySelector('.jov5-title') && rb <= g.querySelector('.jov5-title').getBoundingClientRect().top, cards: g.querySelectorAll('.ig-gd-others').length }; });
       check(`4b-${lang} the five views head the guide in one row, the map's own pressed, its things to do right under, no cards at the foot`,
         !!top && top.first && top.n === 5 && JSON.stringify(top.pressed) === '["3"]' && top.oneLine && top.below && top.cards === 0, JSON.stringify(top));

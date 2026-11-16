@@ -59,6 +59,10 @@ const check = (name, pass, detail) => {
   const reload = async () => { await page.reload({ waitUntil: 'networkidle' });
     await until(() => window.state && state.contracts && state.contracts.length > 60 && document.getElementById('content') && document.getElementById('content').children.length > 0); };
   /* the scroll is re-asserted while the page fills in: wait for it, bounded */
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+  const toList = async () => { await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await until(() => document.querySelector('[data-ctf-show="list"]') || document.getElementById('reg-scroll'));
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && !document.getElementById('reg-scroll')) b.click(); }); };
   const cameBack = async (id, y) => (await until(([k, v]) => { const e = document.getElementById(k); return e && Math.abs(e.scrollTop - v) <= 2 ? Math.round(e.scrollTop) : null; }, [id, y])) || await top(id);
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -68,7 +72,7 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-R7'), null, { timeout: 15000 });
 
     /* ================= 1. THE CONTRACTS LIST, AND THE NEGOTIATIONS LIST ====== */
-    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await toList();
     await until(() => document.getElementById('reg-scroll'));
     const r0 = await scrollTo('reg-scroll', 700);
     await reload();
@@ -77,12 +81,14 @@ const check = (name, pass, detail) => {
     /* a list needs live negotiations to be a list: one change filed on each of five, through the funnel, saved */
     await page.evaluate(async () => { for (const id of ['MK-R1', 'MK-R6', 'MK-R11', 'MK-R16', 'MK-R21']) { const c = getContract(id); if (window.ensureFull) await ensureFull(c); negoInit(c); const cl = negoClauseList(c)[1] || negoClauseList(c)[0]; negoEditClause(c, cl.clauseId, String(cl.bodyHtml || '<p>' + cl.text + '</p>').replace(/<\/p>$/, ' promptly.</p>')); persist(c); } });
     await page.waitForTimeout(800);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Negotiations page is ngnRender's list (tr[data-ngn-row]) with its
+       own box (#ngn-q); what must come back is that list, still searched for "Bidco" */
     await page.evaluate(() => openNegotiations({ list: true }));
-    await until(() => window.regScope && regScope() === 'negotiations' && document.getElementById('reg-scroll'));
-    await page.evaluate(() => { regState().query = 'Bidco'; regRepaint(); });
-    await page.waitForTimeout(500);
+    await until(() => !!document.querySelector('.ngn-page tr[data-ngn-row]') && !!document.getElementById('ngn-q'));
+    await page.fill('#ngn-q', 'Bidco');
+    await page.waitForTimeout(600);
     await reload();
-    const n1 = await until(() => window.regScope && state.view === 'redline' && regScope() === 'negotiations' ? { view: state.view, scope: regScope(), q: regState().query } : null);
+    const n1 = await until(() => document.querySelector('.ngn-page') && document.getElementById('ngn-q') ? { view: state.view, q: document.getElementById('ngn-q').value, rows: document.querySelectorAll('.ngn-page tr[data-ngn-row]').length } : null);
     check('1b the Negotiations list comes back as the list, still searched for "Bidco"', !!n1 && n1.q === 'Bidco', JSON.stringify(n1));
 
     /* ================= 2. A CONTRACT: THE TAB, THE READING, THE SCROLL ======= */
@@ -91,11 +97,14 @@ const check = (name, pass, detail) => {
        the paper's scroller is #ig-paper-scroll, the list #pd-thread. */
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-R3', 'doc'); });
     await until(() => { const e = document.getElementById('ig-paper-scroll'); return e && e.scrollHeight > e.clientHeight + 1000 && document.querySelectorAll('#pd-thread .doc-th-row').length > 0; }, null, 15000);
-    const d0 = await scrollTo('ig-paper-scroll', 900);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's paper is in pages and shorter than 900px of scroll; the reader
+       stands half way down it (well clear of its foot, where a refresh's last pixels can settle) */
+    const dMax = await page.evaluate(() => { const e = document.getElementById('ig-paper-scroll'); return e ? e.scrollHeight - e.clientHeight : 0; });
+    const d0 = await scrollTo('ig-paper-scroll', Math.round(dMax / 2));
     await reload();
     const d1 = await cameBack('ig-paper-scroll', d0);
     const onDoc = await page.evaluate(() => ({ view: state.view, face: window.hbS ? hbS().face : null, id: window.pdContract && pdContract() ? pdContract().id : null, tab: window.pdTab ? pdTab() : null }));
-    check('2a Home\'s Document comes back on the same contract and the Clauses tab, scrolled to the same line', d0 >= 800 && d1 === d0 && onDoc.id === 'MK-R3' && onDoc.tab === 'doc', JSON.stringify({ d0, d1, onDoc }));
+    check('2a Home\'s Document comes back on the same contract and the Clauses tab, scrolled to the same line', d0 >= 300 && d1 === d0 && onDoc.id === 'MK-R3' && onDoc.tab === 'doc', JSON.stringify({ d0, d1, onDoc }));
     await page.screenshot({ path: path.join(OUT, '2a-document-kept.png') });
     /* RE-POINTED 5 Oct 2026 (the Thread): there is no reading mode to keep any
        more; what comes back is the thread's open row, which follows the line
@@ -142,7 +151,9 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(600);
     const s0 = await scrollTo('content-scroll', 500);
     await reload();
-    const st = await until(() => document.querySelector('[data-st-tab].on, [data-st-tab][aria-selected="true"]') ? document.querySelector('[data-st-tab].on, [data-st-tab][aria-selected="true"]').getAttribute('data-st-tab') : null);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Settings draws no tab row (one list by area, stnPaint); the face the
+       reader was on is read off the page's own state */
+    const st = await until(() => state.view === 'team' && typeof settingsTab === 'function' && document.getElementById('content-scroll') ? settingsTab() : null);
     const s1 = await cameBack('content-scroll', s0);
     check('4a Settings comes back on the tab the reader was on, at the same place down it', st === (await page.evaluate(() => ST_FACES[1])) && s0 >= 400 && s1 === s0, JSON.stringify({ st, s0, s1 }));
     await page.evaluate(() => setView('templates'));
@@ -175,13 +186,14 @@ const check = (name, pass, detail) => {
     check('5a the Negotiate page comes back on the same contract, scrolled to the same clause', w0 >= 400 && w1 === w0 && wOn.face === 'MK-R1' && wOn.paper === 'MK-R1', JSON.stringify({ w0, w1, wOn }));
 
     /* ================= 6. THE READER'S HAND WINS ============================= */
-    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await toList();
     await until(() => document.getElementById('reg-scroll'));
     const h0 = await scrollTo('reg-scroll', 900);
     await reload();
     const hb = await cameBack('reg-scroll', h0);
-    const box = await page.evaluate(() => { const r = document.getElementById('reg-scroll').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-    await page.mouse.move(box.x, box.y); await page.mouse.wheel(0, -400);
+    /* a missing list reports (the check below fails), never throws */
+    const box = await page.evaluate(() => { const e = document.getElementById('reg-scroll'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    if (box) { await page.mouse.move(box.x, box.y); await page.mouse.wheel(0, -400); }
     await page.waitForTimeout(1500);
     const h1 = await top('reg-scroll');
     check('6a the place is put back, and a scroll the reader makes straight after the reload is never pulled back to it', h0 >= 800 && hb === h0 && h1 <= h0 - 300, JSON.stringify({ h0, hb, h1 }));
@@ -189,10 +201,10 @@ const check = (name, pass, detail) => {
     /* ================= 7. GOING SOMEWHERE ELSE IS NOT A REFRESH ============== */
     await page.evaluate(() => setView('obligations'));
     await page.waitForTimeout(400);
-    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await toList();
     await page.waitForTimeout(600);
     const g1 = await top('reg-scroll');
-    check('7a a press that goes to another page and back still lands at the top, as before', g1 === 0 || g1 === null, g1);
+    check('7a a press that goes to another page and back still lands at the top, as before', g1 === 0, g1);
     check('9a no page errors', errors.length === 0, JSON.stringify(errors.slice(0, 3)));
   } catch (e) {
     check('the run finished', false, e.message);

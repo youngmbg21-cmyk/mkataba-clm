@@ -1749,7 +1749,12 @@ function jlAsk(text, opts){
       && typeof stFind === 'function' && typeof aiPush === 'function' && typeof renderAIFeed === 'function'){
     /* the finder's answer, and the readings before it (one of your own settings readied, a person, a stream): the free
        reader the old box asked, whether or not the finder alone matched */
-    let A = null; try { A = stJbAnswer(t); } catch (_){ A = null; }
+    /* a place or a door named by its words (navRead: "events out" opens its page) is the reader below's, as the old box
+       asked the readers before the finder */
+    let nav = null; try { nav = (typeof navRead === 'function') ? navRead(t, { box: 'list' }) : null; } catch (_){ nav = null; }
+    /* a setting found by its words stays the finder's (stfind, your own); a page or a company panel named goes there */
+    if (nav && !(nav.kind === 'go' && nav.nav && !['stfind', 'you'].includes(nav.nav.k))) nav = null;
+    let A = null; try { A = nav ? null : stJbAnswer(t); } catch (_){ A = null; }
     const cards = A && Array.isArray(A.cards) ? A.cards.filter(c => c && c.k !== 'why').map(c => { try { return stJbCardHtml(c, {}); } catch (_){ return ''; } }).filter(Boolean) : [];
     if (cards.length){
       if (_jlBusy()) return jlBusySay(t);

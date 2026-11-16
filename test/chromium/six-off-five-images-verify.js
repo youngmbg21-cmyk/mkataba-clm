@@ -56,7 +56,8 @@ const ok = (name, good, detail) => {
 
     /* ════════ 1. NO VALUE STREAM COLUMN, THE FILTER STAYS ════════ */
     const heads = () => page.evaluate(() => ({
-      heads: [...document.querySelectorAll('.reg-table thead th')]
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Negotiations list is its own table (.ngn-table) */
+      heads: [...document.querySelectorAll('.reg-table thead th, .ngn-table thead th')]
         .map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
       stream: i18t('reg_value_stream'),
       filter: (() => { const s = document.getElementById('reg-type-sel');

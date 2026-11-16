@@ -118,10 +118,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     {
       const page = await open(); const { until, press } = kit(page);
       const card = await until(() => { if (!document.getElementById('set-page') || settingsTab() !== 'you') { setView('team'); settingsGoTab('you'); return null; }
-        const b = document.querySelector('[data-st-you-card="away"] [data-st-away-open]'); return b ? { id: b.getAttribute('data-st-away-open'), line: b.closest('.st-aw-cover').textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
+        /* RE-POINTED 16 Nov 2026 (#762): whom you answer for is a row of the one list, its Open it the row's door */ const b = document.querySelector('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]') || document.querySelector('#stn-main [data-st-away-open]'); return b ? { id: b.getAttribute('data-st-away-open'), line: (b.closest('.st-aw-cover') || b.closest('.stn-row')).textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
       check('2a the away card says whom you answer for, what waits, and Open it', !!card && /^MK-[WB]\d$/.test(card.id) && /You answer for Unrestricted Legal/.test(card.line) && /\b\d+ waits? now\b/.test(card.line), JSON.stringify(card));
       await shot(page, 'main-24-away-open-it-1440x780');
-      if (card && await press('[data-st-you-card="away"] [data-st-away-open]', '2b Open it')) {
+      if (card && await press('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]', '2b Open it')) {
         const lit = await until(id => { const r = document.querySelector(`[data-ap-row="${id}"][data-ap-kind="approval"]`);
           return state.view === 'approvals' && r && r.classList.contains('is-landed') ? { lit: true, inView: (() => { const q = r.getBoundingClientRect(); return q.top >= 0 && q.bottom <= innerHeight; })(),
             decided: !!(getContract(id).approvalChain || []).some(s => s.status === 'approved') } : null; }, card.id, 10000);

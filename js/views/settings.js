@@ -1821,6 +1821,15 @@ function stHeldOpen(id){
   /* the Dossier's All acts fold (the Menu tab folded into it, 20 Oct 2026), in Jambo's panel */
   const sel=`#ig-dock .pd-nx[data-pd-menu="${String(id).replace(/["\\]/g,'')}"] .pd-mn-rows #ws-hold`;
   if(typeof pdOpenOnHome==='function' && pdOpenOnHome(id,'copilot')!==false){
+    /* THE NEW LOOK: the paper's acts live in its More pop-up (pdActsToggle) — it opens there, on Release hold, lit,
+       pressing nothing (#762: the folded rows the old landing found are drawn hidden) */
+    if(typeof newLookOn==='function'&&newLookOn()&&typeof pdActsToggle==='function'){
+      const pop='#pd-acts-pop [data-pd-acts-go="#ws-hold"]';
+      if(typeof landOn==='function') landOn(()=>{ let r=document.querySelector(pop); if(r) return r;
+        /* the pop-up opens once the paper's line (its anchor) is drawn */
+        if(!document.getElementById('pd-acts-pop')&&document.getElementById('ig-actions')) try{ pdActsToggle(id); }catch(_){ /* not yet */ }
+        r=document.querySelector(pop); return r; },{ focus:false, block:'nearest', missing:i18t('st_swp_hold_missing') });
+      return; }
     if(typeof landOn==='function') landOn(()=>{ const r=document.querySelector(sel); if(r){ const d=r.closest('details'); if(d&&!d.open) d.open=true; } return r; },
       { focus:false, block:'center', missing:i18t('st_swp_hold_missing') });
     return; }
@@ -10164,12 +10173,12 @@ function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && 
    last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
    the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
 const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
-const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
+const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', awayfor:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
+const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', awayfor:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
 let _stnArea='all';
-function stnAreaOf(id){ return STN_AREA_OF[id]||'you'; }
+function stnAreaOf(id){ return STN_AREA_OF[id]||STN_AREA_OF[String(id).replace(/\d+$/,'')]||'you'; }
 function stnRow(id, label, value, sub, act){
-  const ar=stnAreaOf(id), ic=(typeof icon==='function')?icon(STN_ICON[id]||'cog','w-4 h-4'):'';
+  const ar=stnAreaOf(id), ic=(typeof icon==='function')?icon(STN_ICON[id]||STN_ICON[String(id).replace(/\d+$/,'')]||'cog','w-4 h-4'):'';
   return { id, area:ar, html:`<div class="stn-row a-${ar}" id="stn-${id}" data-stn-row="${id}"><span class="stn-mark" aria-hidden="true">${ic}</span><div class="stn-t"><div class="stn-l">${esc(label)}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-v"><div class="stn-val">${value}</div></div><div class="stn-a">${act||''}</div></div>` };
 }
 const stnDoor=(attr,w)=>`<button type="button" class="ui-link stn-go" ${attr}>${esc(w)}</button>`;
@@ -10220,7 +10229,19 @@ function stnYouHtml(){
   /* YOUR EMAIL AND A COPY OF YOUR DATA keep their doors in the one list (16 Nov 2026, #762: the You cards that held
      them are the old look's; nothing of yours is left without a way in) */
   /* WHEN YOU'RE AWAY: who answers your approvals and reviews while you are out (never signing) — its drawer, me:away */
-  if(api) out.push(stnRow('away', i18t('st_you_away'), esc(typeof stAwayState==='function'?stAwayState():''), '', stnDoor('data-st-panel="me:away"', i18t('st_you_change'))));
+  if(api){
+    /* the old away card's words, said on its row (#762): the stand-in named whole, the days with their weekday, that it
+       ends on its own and never covers signing; Change and End it now; and whom THIS person answers for */
+    const aw=state.away||{}, m=aw.mine, meF=stFirstOf(u.name)||u.email||'';
+    if(m) out.push(stnRow('away', i18t('st_you_away'), esc(stAwayState()),
+      i18t('st_aw_line',{ who:m.deputyName||'', from:stAwayWeekDay(m.from), to:stAwayWeekDay(m.to) })+' '+i18t('st_aw_sub',{ who:stFirstOf(m.deputyName)||m.deputyName||'', me:meF }),
+      stnDoor('data-st-panel="me:away"', i18t('st_aw_change'))+stnDoor('data-st-away-end=""', i18t('st_aw_end'))));
+    else out.push(stnRow('away', i18t('st_you_away'), esc(stAwayState()), i18t('st_aw_none_sub'), stnDoor('data-st-panel="me:away"', i18t('st_aw_set'))));
+    (Array.isArray(aw.covering)?aw.covering:[]).forEach((r,i)=>{ const on=r.from<=(aw.today||todayISO()); const w=on?stAwayWaiting(r):[]; const first=w[0]&&w[0].c;
+      const waits=w.length?' '+i18tn('st_aw_waits',w.length,{ n:w.length, what:i18t('st_aw_waits_what',{ party:(first&&(first.counterparty||first.name))||'' }) }):'';
+      out.push(stnRow('awayfor'+i, i18t(on?'st_aw_covering':'st_aw_covering_later',{ who:r.userName, from:stAwayWeekDay(r.from), to:stAwayWeekDay(r.to) }), '', i18t('st_aw_cover_what')+waits,
+        on?stnDoor(`data-st-away-open="${PB_ATTR((first&&first.id)||'')}"`, i18t('st_aw_open_it')):'')); });
+  }
   if(api) out.splice(1, 0, stnRow('email', i18t('st_you_email_row'), esc(u.email||''), '', stnDoor('data-st-panel="me:email"', i18t('st_you_change'))));
   out.push(stnRow('mydata', i18t('st_you_data_line'), '', i18t(api?'st_you_data_kept':'st_you_data_sub'), `<button type="button" class="ui-link stn-go" data-st-mycopy>${esc(i18t('st_you_download'))}</button>`));
   if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));
@@ -10289,6 +10310,9 @@ function stnPanelHtml(admin){
       return { mark:'alert', tone:r.dot==='red'?'red':'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'', wrap:true }; });
     const groups=[];
     if(needRows.length) groups.push({ label:i18t('jov5_st_needs'), rows:needRows });
+    /* while you are away, Jambo says who answers for you, never your signing (the old side feed's words; #762) */
+    const awM=(state.away||{}).mine;
+    if(awM&&awM.deputyName) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
     groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""' }] });
     const L=_stLessons; const les=(L&&L.rows)||[];
     if(admin&&L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }

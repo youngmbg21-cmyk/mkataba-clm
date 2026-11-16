@@ -165,9 +165,14 @@ const MARK = cid => {
         .find(x => /standard/i.test((x.querySelector('.kt-tri-hw') || {}).textContent || ''));
       if (!t) return { pressed: false };
       t.click(); await new Promise(r => setTimeout(r, 700));
-      return { pressed: true, panel: !!document.getElementById('playbook-section') };
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the standards check is Jambo's read of the whole
+         agreement, so the tile's press opens its one door, the question "Check <ref> against your standards?" with
+         Check · Cancel (nothing spent until Check) — Cancel puts it away, so nothing is spent and nothing covers the page */
+      const ov = document.getElementById('confirm-overlay'), ask = ov && /against your standards/i.test(ov.innerText) && !!ov.querySelector('#cf-ok');
+      if (ask) ov.querySelector('#cf-cancel').click();
+      return { pressed: true, panel: !!document.getElementById('playbook-section') || !!ask };
     });
-    check('2d and pressing it really opens the playbook review panel',
+    check('2d and pressing it really opens the standards check (its question, nothing spent)',
       opened.pressed && opened.panel, JSON.stringify(opened));
 
     /* ═══ 3 · THE DROPDOWN ═══ */
@@ -277,9 +282,9 @@ const MARK = cid => {
     check('4a the bar is the artifact\'s eight pixels', !!bar && bar.h === 8, bar && `${bar.h}px`);
     /* [RELATION] the tick marks the exact expiry day and sits on the bar's
        own centre line — the reason the top moved with the height. */
-    check('4b and it still shares its centre line with the expiry tick',
-      !!bar && bar.endMid != null && Math.abs(bar.mid - bar.endMid) <= 1,
-      bar && `${bar.mid} vs ${bar.endMid}`);
+    /* RETIRED 16 Nov 2026 (#762): 4b "it shares its centre line with the expiry tick" — the new look's Horizon (the SAP
+       way, owner's pick 10 Nov 2026) draws no expiry tick (.cal-hz-end): the bar itself ends on the expiry day and its
+       date and days-left are a note beside it (.cal-hz-note), so there is no tick to line up */
 
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
   } finally {
