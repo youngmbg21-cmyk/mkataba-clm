@@ -1479,13 +1479,15 @@ function migSureCellHtml(c){
 /* THE PAGE'S FIGURES, EACH A PRESS THAT SHOWS ITS FILES (migKpis: the counts the page has always kept); a figure of
    nothing is no door */
 const MIGN_FIGS = [['all', 'files'], ['k:filed', 'filed'], ['k:check', 'check'], ['k:dupe', 'dupe'], ['k:none', 'none']];
+/* SOFT TINT (owner's pick, 16 Nov 2026): a figure wears the colour of what it means; a figure of nothing stays grey */
+const MIGN_FIG_TONE = { files: 'steel', filed: 'green', check: 'amber', dupe: 'amber', none: 'ruby' };
 function migNlFigsHtml(){
   const k = migKpis();
   return `<div class="mign-figs">${MIGN_FIGS.map(([key, f]) => { const n = Number(k[f]) || 0;
     const word = f === 'files' ? i18tn('mign_fig_files', n, { n }) : i18t('mign_fig_' + f);
     const on = _mign === key && key !== 'all';
     const inner = `<b>${n}</b><span>${esc(word)}</span>`;
-    return n ? `<button type="button" class="mign-fig${f === 'check' ? ' is-warn' : ''}${on ? ' is-on' : ''}" data-mign-fig="${key}" aria-pressed="${on ? 'true' : 'false'}">${inner}</button>` : `<span class="mign-fig is-zero">${inner}</span>`; }).join('')}</div>`;
+    return n ? `<button type="button" class="mign-fig is-t-${MIGN_FIG_TONE[f]}${f === 'check' ? ' is-warn' : ''}${on ? ' is-on' : ''}" data-mign-fig="${key}" aria-pressed="${on ? 'true' : 'false'}">${inner}</button>` : `<span class="mign-fig is-zero">${inner}</span>`; }).join('')}</div>`;
 }
 function migNlRowHtml(r){
   const c = r.c, q = r.q, st = r.st;

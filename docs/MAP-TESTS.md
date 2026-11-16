@@ -258,6 +258,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+- f1082 soft tint on the tiles (Import's figures, New agreement's cards): `node --test test/f1082-soft-tint-on-the-tiles.test.js`
 - A LANE'S LIMIT, READ BACK (the owner's yes, 27 Oct 2026): test/chromium/lane-limit-verify.js (new) — Settings › Request lanes says "Value limit · KES 5M" on a lane with one, nothing on one without, inside its row at the three screens; a save keeps it.
 - IMPORT STORES A SIGNING DAY ONLY WHERE ONE WAS READ (bug log batch 5, 27 Oct 2026): f946 (4) (new; red at the parent) — migBuildAndSave's signedAt is the manifest's signed day or null, never the start date.
 - A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
