@@ -770,7 +770,7 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: [], acts: [],
     words: { en: ['discover', 'kept questions', 'bring back answers'], sv: ['upptäck', 'sparade frågor'] },
     shots: [
-      { go: [{ newLook: true }, { place: 'reads' }, { waitFor: '#ins-panel .rfp-acts' }], boxes: [{ sel: "#rd-page tr[data-dsn-run].is-sel", step: 1 }, { sel: "#ins-panel .rfp-acts", step: 1 }], cap: { en: "A read chosen, and its doors in the panel (1).", sv: "En vald läsning, och dess dörrar i panelen (1)." } }] },
+      { go: [{ newLook: true }, { place: 'reads' }, { waitFor: '#ins-panel .dsl-go' }], boxes: [{ sel: "#rd-page tr[data-dsn-run].is-sel", step: 1 }, { sel: "#ins-panel .dsl-go", step: 1 }], cap: { en: "A read chosen, and its doors in the panel (1).", sv: "En vald läsning, och dess dörrar i panelen (1)." } }] },
   { k: '5.5.4', part: 'keep', round: 2,
     title: { en: 'Packs of questions', sv: 'Paket med frågor' },
     eyebrow: { en: "Discover page", sv: "Sidan Upptäck" },
@@ -925,7 +925,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['reads', 'every read', 'next batch', 'next 50', 'next 100', 'who read', 'read history', 'read the rest'], sv: ['läsningar', 'varje läsning', 'nästa omgång', 'nästa 50', 'nästa 100', 'vem läste', 'läs resten'] },
     shots: [
       { go: [{ newLook: true }, { eval: "return api('ai/column', 'POST', { question: 'What does each side pay, and when?', name: 'Payment', ids: ['MK-A1'], texts: (typeof askColTexts === 'function') ? askColTexts(['MK-A1']) : {} })" }, { place: 'reads' }, { waitFor: '#rd-page tr[data-dsn-run]' }], boxes: [{ sel: "#rd-page tr[data-dsn-run] td:nth-child(2)", step: 1 }, { sel: "#rd-page tr[data-dsn-run] td:nth-child(5)", step: 1 }], cap: { en: "A row: the question (1) and what it found, in colour (1).", sv: "En rad: frågan (1) och vad den hittade, i färg (1)." } },
-      { go: [{ newLook: true }, { eval: "return api('ai/column', 'POST', { question: 'What does each side pay, and when?', name: 'Payment', ids: ['MK-A1'], texts: (typeof askColTexts === 'function') ? askColTexts(['MK-A1']) : {} })" }, { place: 'reads' }, { waitFor: '#rd-page tr[data-dsn-run]' }, { click: '#rd-page tr[data-dsn-run]' }, { waitFor: '#ins-panel [data-dsn-open]' }], boxes: [{ sel: "#ins-panel .rfp-panel", step: 3 }, { sel: "#ins-panel [data-dsn-open]", step: 3 }], cap: { en: "A read chosen: its summary (3) and Open the results (3).", sv: "En vald läsning: sammanfattningen (3) och Öppna resultaten (3)." } },
+      { go: [{ newLook: true }, { eval: "return api('ai/column', 'POST', { question: 'What does each side pay, and when?', name: 'Payment', ids: ['MK-A1'], texts: (typeof askColTexts === 'function') ? askColTexts(['MK-A1']) : {} })" }, { place: 'reads' }, { waitFor: '#rd-page tr[data-dsn-run]' }, { click: '#rd-page tr[data-dsn-run]' }, { waitFor: '#ins-panel [data-dsn-open]' }], boxes: [{ sel: "#ins-panel .dsl", step: 3 }, { sel: "#ins-panel [data-dsn-open]", step: 3 }], cap: { en: "A read chosen: its summary (3) and Open the results (3).", sv: "En vald läsning: sammanfattningen (3) och Öppna resultaten (3)." } },
       { go: [{ newLook: true }, { eval: "return api('ai/column', 'POST', { question: 'What does each side pay, and when?', name: 'Payment', ids: ['MK-A1'], texts: (typeof askColTexts === 'function') ? askColTexts(['MK-A1']) : {} })" }, { place: 'reads' }, { waitFor: '#dsn-new' }], boxes: [{ sel: "#dsn-new", step: 4 }], cap: { en: "New read starts another (4).", sv: "Ny läsning startar en till (4)." } }] },
 
   { k: '5.7', part: 'keep', round: 2,
