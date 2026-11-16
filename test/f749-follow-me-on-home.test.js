@@ -268,13 +268,21 @@ describe('f749 (7) the words, as drawn', () => {
     const src = MOD.slice(MOD.indexOf('function presenceFollow('), MOD.indexOf('/* ---- AND THE WALK ----'));
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the press that stops says so; the start is said when their Allow arrives */
     assert.match(src, /presenceFollowSay\(to, false\);/);
-    assert.match(MOD, /presenceSayOnce\(lead\.spot \? 'pz_follow_said' : 'pz_follow_said_open'/);
+    assert.match(MOD, /presenceSayOnce\('pz_follow_said', lead, 'ok', \(\) => presenceFollowWords\(lead, 'pz_follow_said'\)\)/);
     const fs2 = MOD.slice(MOD.indexOf('function presenceFollowSay('), MOD.indexOf('/* ---- AND THE WALK ----'));
     assert.match(fs2, /window\.toast\(on \? presenceFollowWords\(r, 'pz_follow_said'\) : i18t\('pz_follow_stopped', \{ who: r\.name \|\| '' \}\), 'ok'\)/);
     const { ctx, c, toasts, row } = talk();
     assert.equal(ctx.presenceFollowWords(row, 'pz_follow_said', c), 'Following Lina Ek: the paper goes to clause 11 and moves when they do. Press the face again to stop.');
     assert.equal(BOOKS.en.pz_follow_stopped, 'You stopped following {who}.');
     assert.equal(toasts.length, 0, 'drawing the words says nothing by itself');
+    /* RE-POINTED 16 Nov 2026: the start is said when their Allow arrives, naming the clause in words —
+       never a {where} left in the sentence (seen on GitHub, paper-panel-as-drawn-verify 6b2) */
+    ctx.presenceFollow('u2');
+    ctx.presenceAnswers([Object.assign({}, row, { allow: ['me'] })]);
+    const started = toasts.map(t => t[0]).find(m => /^Following /.test(m)) || '';
+    /* (no contract is open in this harness, so the clause is named only on the real page: paper-panel-as-drawn-verify 6b2) */
+    assert.match(started, /^Following Lina Ek: the paper goes (to clause 11|where they read) and moves when they do\. Press the face again to stop\.$/);
+    assert.ok(!/[{}]/.test(started), 'no placeholder left in the sentence');
   });
   test('7c the walk itself is silent', () => {
     const walk = MOD.slice(MOD.indexOf('function presenceWalk('), MOD.indexOf('/* where the walk can work'));

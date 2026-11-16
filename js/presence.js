@@ -484,9 +484,9 @@ function presenceFollow(id){
   presenceSayOnce('pz_ask_sent', r, 'ok');
   return null;
 }
-function presenceSayOnce(key, r, kind){
+function presenceSayOnce(key, r, kind, said){
   if (typeof window.toast !== 'function') return;
-  try { window.toast(i18t(key, { who: (r && r.name) || '', first: presenceFirstName(r && r.name) }), kind || 'ok'); } catch (_){}
+  try { window.toast((said && said()) || i18t(key, { who: (r && r.name) || '', first: presenceFirstName(r && r.name) }), kind || 'ok'); } catch (_){}
 }
 /* ---- THE ANSWERS, READ OFF EACH BEAT ----
    As the one asking: their Allow starts the follow; their Not now, their
@@ -502,7 +502,8 @@ function presenceAnswers(rows){
     if (!lead){ const was = presenceRowOf(_pzAsk.id) || { name: '' }; _pzAsk = null; presenceSayOnce('pz_ask_gone', was, 'warn'); }
     else if (_pzLists(lead, 'allow')){
       _pzFollow = String(lead.id); _pzWent = null; _pzAsk = null;
-      presenceSayOnce(lead.spot ? 'pz_follow_said' : 'pz_follow_said_open', { name: lead.name }, 'ok');
+      /* the start says where the paper goes ("clause 7"), the press's own sentence-maker */
+      presenceSayOnce('pz_follow_said', lead, 'ok', () => presenceFollowWords(lead, 'pz_follow_said'));
     }
     else if (_pzLists(lead, 'deny')){ _pzAsk = null; presenceSayOnce('pz_ask_no', lead, 'warn'); }
     else if (Date.now() - _pzAsk.at > PRESENCE_ASK_WAIT_MS){ _pzAsk = null; presenceSayOnce('pz_ask_lapsed', lead, 'warn'); }
