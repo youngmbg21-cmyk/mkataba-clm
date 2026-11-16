@@ -102,7 +102,14 @@ describe('f749 (2) the walk\'s one door', () => {
   });
   test('2c presenceWalk moves only when the leader moved, through that door', () => {
     const { ctx, calls } = stage();
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the press asks; Lina's Allow starts the follow */
+    ctx.currentUser = () => ({ id: 'me', name: 'Amina' });
     ctx.presenceFollow('u2');
+    ctx.presenceWalk([{ id: 'u2', name: 'Lina', spot: 'c1' }]);
+    assert.equal(calls.length, 0, 'asked, nothing moves yet');
+    ctx.presenceAnswers([{ id: 'u2', name: 'Lina', spot: 'c0', allow: ['me'] }]);
+    assert.equal(ctx.presenceFollowing(), 'u2', 'allowed, it follows');
+    calls.length = 0;
     ctx.presenceWalk([{ id: 'u2', name: 'Lina', spot: 'c1' }]);
     ctx.presenceWalk([{ id: 'u2', name: 'Lina', spot: 'c1' }]);
     ctx.presenceWalk([{ id: 'u2', name: 'Lina', spot: 'c3' }]);
@@ -210,8 +217,9 @@ describe('f749 (6) a paper drawn without clause sections: its headings marked, w
     assert.match(R('js/paperdesk.js'), /const fit = \(\) => \{[\s\S]{0,700}presenceReWalk\(\)/);
     const fn = MOD.slice(MOD.indexOf('function presenceReWalk('), MOD.indexOf('/* where the walk can work'));
     assert.match(fn, /if \(!_pzFollow \|\| !_pzCid\) return false;[\s\S]*_pzWent = null;\s*return presenceWalk\(rows\);/);
-    const press = MOD.slice(MOD.indexOf('function presenceFollow('), MOD.indexOf('function presenceRowOf('));
-    assert.match(press, /if \(rows\.some\(r => String\(r\.id\) === _pzFollow\)\) presenceWalk\(rows\);\s*presenceSay\(_pzCid\);/);
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the follow starts on their Allow, read off a beat, and the same beat walks straight after */
+    const say = MOD.slice(MOD.indexOf('async function presenceSay('), MOD.indexOf('function presenceBeatBody('));
+    assert.match(say, /presenceAnswers\(rows\);[\s\S]{0,300}presenceWalk\(rows\);/);
   });
   test('6d the reader\'s place on such a paper: the last marked heading at or above the centre', () => {
     const rect = (top, h) => ({ top, bottom: top + h, left: 100, right: 900, width: 800, height: h });
@@ -251,13 +259,16 @@ describe('f749 (7) the words, as drawn', () => {
   test('7a the hover names where they are reading, by the clause\'s number', () => {
     const { ctx, c, row } = talk();
     assert.equal(ctx.presenceClauseWord(c, 'cl_11'), 'clause 11');
-    assert.equal(ctx.presenceFollowWords(row, 'pz_follow', c), 'Lina Ek is reading clause 11 now. Press to follow: the paper goes where Lina reads.');
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it) */
+    assert.equal(ctx.presenceFollowWords(row, 'pz_follow', c), 'Lina Ek is reading clause 11 now. Press to ask to follow: once Lina allows it, your paper goes where Lina reads.');
     assert.equal(ctx.presenceFollowWords(row, 'pz_following', c), 'Lina Ek is reading clause 11 now. Press to stop following.');
-    assert.equal(ctx.presenceFollowWords(Object.assign({}, row, { spot: '' }), 'pz_follow', c), 'Lina Ek has this contract open now. Press to follow: the paper goes where Lina reads.');
+    assert.equal(ctx.presenceFollowWords(Object.assign({}, row, { spot: '' }), 'pz_follow', c), 'Lina Ek has this contract open now. Press to ask to follow: once Lina allows it, your paper goes where Lina reads.');
   });
   test('7b the press says once what it did; the press that stops says so; kind ok', () => {
     const src = MOD.slice(MOD.indexOf('function presenceFollow('), MOD.indexOf('/* ---- AND THE WALK ----'));
-    assert.match(src, /presenceFollowSay\(_pzFollow \|\| was, !!_pzFollow\);/);
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the press that stops says so; the start is said when their Allow arrives */
+    assert.match(src, /presenceFollowSay\(to, false\);/);
+    assert.match(MOD, /presenceSayOnce\(lead\.spot \? 'pz_follow_said' : 'pz_follow_said_open'/);
     const fs2 = MOD.slice(MOD.indexOf('function presenceFollowSay('), MOD.indexOf('/* ---- AND THE WALK ----'));
     assert.match(fs2, /window\.toast\(on \? presenceFollowWords\(r, 'pz_follow_said'\) : i18t\('pz_follow_stopped', \{ who: r\.name \|\| '' \}\), 'ok'\)/);
     const { ctx, c, toasts, row } = talk();

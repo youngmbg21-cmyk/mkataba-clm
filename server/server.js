@@ -5054,7 +5054,14 @@ const srvHereOthers = (map, meId) => Object.keys(map || {})
      scroll position and no keystrokes, so the most it can ever say is which
      clause of this contract somebody has in the middle of their screen. */
   .map(k => ({ id: k, name: String((map[k] || {}).name || ''), at: map[k].at,
-    spot: (map[k] || {}).spot || null }))
+    spot: (map[k] || {}).spot || null,
+    /* ---- AND THE CLAUSE'S OWN NAME, and THE ASK TO FOLLOW (owner, 16 Nov 2026) ----
+       spotName: the heading the spot's clause carries on the reader's paper ("12. Entire Agreement"),
+       so a follower whose paper labels its clauses differently still finds it. want: whom this reader
+       asks to follow (or follows). allow / deny: whom this reader let follow them, or said Not now to.
+       Ids and a heading only — still no address, no seat and no role. */
+    spotName: (map[k] || {}).spotName || null, want: (map[k] || {}).want || null,
+    allow: Array.isArray((map[k] || {}).allow) ? map[k].allow : [], deny: Array.isArray((map[k] || {}).deny) ? map[k].deny : [] }))
   .sort((a, b) => String(a.at).localeCompare(String(b.at)));
 app.post('/api/contracts/:id/here', auth, (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
@@ -5080,6 +5087,21 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
     live[String(me.id)] = okSpot
       ? { name: me.name, at: new Date().toISOString(), spot: okSpot }
       : { name: me.name, at: new Date().toISOString() };
+    /* ---- ASKED BEFORE FOLLOWED (owner, 16 Nov 2026: "I press on the other colleague's label, they then
+       have to approve on the other side, then the process begins") ----
+       Four small fields ride the same beat, each clamped so none becomes a notice board: the clause's
+       heading as the reader's paper shows it (plain text, 80 at most), whom they ask to follow (one id),
+       and whom they allowed or said Not now to (ids, ten at most). Absent when not sent. */
+    const pzId = v => { const t = String(v == null ? '' : v).trim().slice(0, 64); return /^[A-Za-z0-9_-]+$/.test(t) ? t : ''; };
+    const pzIds = v => (Array.isArray(v) ? v : []).map(pzId).filter(Boolean).slice(0, 10);
+    const body = req.body || {};
+    const spotName = okSpot ? String(body.spotName || '').replace(/[<>\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) : '';
+    const want = pzId(body.want), allow = pzIds(body.allow), deny = pzIds(body.deny);
+    const mine = live[String(me.id)];
+    if (spotName) mine.spotName = spotName;
+    if (want && want !== String(me.id)) mine.want = want;
+    if (allow.length) mine.allow = allow;
+    if (deny.length) mine.deny = deny;
     if (Object.keys(live).length) next.here = live; else delete next.here;
   }
   /* ---- AN ASK FOR A CLAUSE LIVES AS LONG AS THE ASKER IS HERE (4 Oct 2026,
