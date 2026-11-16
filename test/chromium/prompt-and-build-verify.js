@@ -364,8 +364,7 @@ const RAIL = () => {
       await page.screenshot({ path: path.join(OUT, '07-scroll.png') });
       /* Save (the strip is on screen, so the press needs no scroll), then Back: the page that grows gets its channel back. */
       await page.click('#tb-save'); await pause(500);
-      console.log('DBGK', await page.evaluate(() => { const b = document.getElementById('dk-back'); return b.disabled + ' ' + b.title; }));
-      await page.click('#dk-back'); /* RE-POINTED 16 Nov 2026 (#762): the builder's own back steps out; the shell's ‹ is the way back */ await pause(900);
+      if (await page.$('#dk-back:not([disabled])')) await page.click('#dk-back'); /* RE-POINTED 16 Nov 2026 (#762): the builder's own back steps out; the shell's ‹ is the way back (guarded: a dead ‹ reports below) */ await pause(900);
       const k3 = await page.evaluate(() => { const sc = document.getElementById('content-scroll'); return { fixed: sc.classList.contains('view-fixed'), gutter: getComputedStyle(sc).scrollbarGutter, builder: !!document.getElementById('tb-page'), detail: !!document.getElementById('tpllib-back') }; });
       check('13f · Back lands on the template\'s page with the channel reserved again', !k3.builder && k3.detail && !k3.fixed && k3.gutter === 'stable', k3);
     }
@@ -429,7 +428,8 @@ const RAIL = () => {
        and again below once Discard has gone. */
     const GEOM = () => {
       const r = e => { const b = e && e.getBoundingClientRect(); return b ? { h: Math.round(b.height), top: Math.round(b.top) } : null; };
-      return { strip: r(document.querySelector('.tb-strip')), paper: r(document.getElementById('tb-paperslot')) };
+      return { strip: r(document.querySelector('.tb-strip')), paper: r(document.getElementById('tb-paperslot')),
+        railHead: Math.round(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-head-h')) || 58) };
     };
     const gWith = await page.evaluate(GEOM);
 
@@ -443,7 +443,9 @@ const RAIL = () => {
       { store: d.store, dirty: d.dirty });
     const gWithout = await page.evaluate(GEOM);
     check('14d2 · the restored line and Discard ride in the strip’s own slot: one row, and the paper does not move (refusal 3)',
-      !!gWith.strip && !!gWithout.strip && gWith.strip.h === gWithout.strip.h && gWith.strip.h <= 30 && gWith.paper.top === gWithout.paper.top,
+      /* RE-POINTED 16 Nov 2026 (#762; owner's yes, 14 Nov 2026, "one full bar in balance"): the new look's strip is one bar
+         the height of a rail head (--rail-head-h, 58), not a 30px line; one row is still one row */
+      !!gWith.strip && !!gWithout.strip && gWith.strip.h === gWithout.strip.h && gWith.strip.h <= gWith.railHead + 1 && gWith.paper.top === gWithout.paper.top,
       { withDraft: gWith, without: gWithout });
 
     /* Save spends the draft: the version holds it now, so nothing may restore
@@ -463,7 +465,7 @@ const RAIL = () => {
     /* Pressed INSIDE the debounce window on purpose: leaving must spend the
        pending keep, not lose the sentence the timer was still holding. */
     await pause(150);
-    await page.click('#dk-back'); /* RE-POINTED 16 Nov 2026 (#762): the builder's own back steps out; the shell's ‹ is the way back */ await pause(900);
+    if (await page.$('#dk-back:not([disabled])')) await page.click('#dk-back'); /* RE-POINTED 16 Nov 2026 (#762): the builder's own back steps out; the shell's ‹ is the way back (guarded: a dead ‹ reports below) */ await pause(900);
     d = await kept();
     check('14f · Back leaves straight away, with no blocking question, and the draft is still kept',
       !d.builder && !d.overlay && d.store.length === 1 && /One more line/.test(d.words),

@@ -207,15 +207,22 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const signedBefore = await page.evaluate(() => JSON.stringify([getContract('MK-B1').redlineText || '', getContract('MK-B1').status, (getContract('MK-B1').signatures || []).length]));
     await page.locator('#ig-canvas [data-anchor="c1"]').first().click({ position: { x: 30, y: 8 } });
     await page.waitForTimeout(300);
-    await page.fill('#pd-amendface [data-pd-am-txt="0"]', 'The Supplier shall supply an estimated 6000 metric tonnes per annum.');
-    await page.fill('#pd-amendface [data-pd-am-fact="expiry"]', '2028-12-31');
-    await page.waitForTimeout(200);
-    const marked = await page.evaluate(() => ({ items: document.querySelectorAll('#pd-amendface .pd-am-it').length,
-      mark: (document.querySelector('#ig-canvas [data-anchor="c1"] .pd-am-mk') || {}).textContent || '', ins: !!document.querySelector('#ig-canvas .pd-am-insert'),
-      go: !document.querySelector('#pd-amendface [data-pd-am-go]').disabled }));
-    ok('5c a clause pressed is change 1, numbered on the paper with its new words', marked.items === 1 && marked.mark === '1' && marked.ins && marked.go, JSON.stringify(marked));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Amend AS DRAWN (round 5, the owner's "as drawn: no
+       boxes") — the sealed paper and the amendment side by side; a clause pressed is change 1 in the panel's list and
+       numbered on the paper; the end date is SAID in Jambo's box (one call to the amendment reader, POST /api/ai/amend —
+       answered here by a stand-in) and read on the amendment beside it; Create is the paper line's [data-pd2-am-create] */
+    const listed = await until(page, () => document.querySelectorAll('#pd-amendface .pd2-am-list li').length === 1, null, 5000);
+    await page.route('**/api/ai/amend', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], facts: { expiry: '2028-12-31' } }) }));
+    const said = await page.$('#igd-input');
+    if (said){ await said.fill('The term now ends on 31 December 2028'); await page.keyboard.press('Enter'); }
+    await until(page, () => /2028/.test((document.querySelector('#ig-paper .pd2-am-col') || {}).textContent || ''), null, 8000);
+    const marked = await page.evaluate(() => ({ items: document.querySelectorAll('#pd-amendface .pd2-am-list li').length,
+      mark: (document.querySelector('#ig-canvas [data-anchor="c1"] .pd-am-mk') || {}).textContent || '',
+      end: /2028/.test((document.querySelector('#ig-paper .pd2-am-col') || {}).textContent || ''),
+      go: !!document.querySelector('[data-pd2-am-create]') && !document.querySelector('[data-pd2-am-create]').disabled }));
+    ok('5c a clause pressed is change 1, numbered on the paper; the end date said in the box is on the amendment beside it', listed && marked.items === 1 && marked.mark === '1' && marked.end && marked.go, JSON.stringify(marked));
     await page.screenshot({ path: path.join(OUT, '5-amend.png') });
-    await page.click('#pd-amendface [data-pd-am-go]');
+    if (marked.go) await page.click('[data-pd2-am-create]');
     await page.waitForTimeout(1500);
     const made = await page.evaluate(() => { const k = state.contracts.find(c => c.parentId === 'MK-B1');
       return k ? { status: k.status, n: (k.amends || []).length, op: k.amends && k.amends[0] && k.amends[0].op, end: k.amendFacts && k.amendFacts.expiry, on: intel.paper && intel.paper.id === k.id } : null; });

@@ -51,7 +51,12 @@ const Q = 'How much notice does each side need to end the contract?';
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length >= 120 && typeof window.askColOpen === 'function', null, 40000);
     await page.waitForTimeout(1200);
-    const toList = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list', only: null }); setView('register'); }); await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]')); await page.waitForTimeout(500); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the table of every
+       contract, where Ask a column's card stands beside it, is its All tab */
+    const toList = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list', only: null }); setView('register'); });
+      await until(page, () => !!document.querySelector('[data-ctf-tab="all"], #reg-tbody tr[data-row]'));
+      await page.evaluate(() => { const b = document.querySelector('[data-ctf-tab="all"]:not(.is-on)'); if (b) b.click(); });
+      await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]')); await page.waitForTimeout(500); };
     await toList();
     const guard = s => !!document.querySelector(s);
 
@@ -88,7 +93,10 @@ const Q = 'How much notice does each side need to end the contract?';
       const refs = c.querySelector('.ac-desk-refs'), stop = c.querySelector('[data-ac-stop]'), q = c.querySelector('.ac-dk-q');
       return { bg: cs.backgroundColor, pad: cs.paddingLeft, eb: (c.querySelector('.ac-dk-eb') || {}).textContent, q: q && q.textContent, qw: q && getComputedStyle(q).fontWeight,
         refLinks: refs ? refs.querySelectorAll('a').length : -1, refFont: refs ? getComputedStyle(refs).fontFamily : '', stopBtn: !!stop && stop.classList.contains('ui-btn'), bar: !!c.querySelector('.ac-prog') }; });
-    check('1d the card is Jambo\'s grey card, 16px inside, with "Ask a column · Notice to end" and the question in bold', !!G && G.bg === 'rgb(242, 242, 245)' && G.pad === '16px' && G.eb === 'Ask a column · Notice to end' && /How much notice/.test(G.q || '') && Number(G.qw) >= 600, G);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's card fill in the new look is its own token
+       (--jb-card-fill-new), read off the page, not the old look's literal grey */
+    const JBFILL = await page.evaluate(() => { const t = document.createElement('i'); t.style.background = 'var(--jb-card-fill-new)'; document.body.appendChild(t); const v = getComputedStyle(t).backgroundColor; t.remove(); return v; });
+    check('1d the card is Jambo\'s grey card, 16px inside, with "Ask a column · Notice to end" and the question in bold', !!G && G.bg === JBFILL && JBFILL !== 'rgba(0, 0, 0, 0)' && G.pad === '16px' && G.eb === 'Ask a column · Notice to end' && /How much notice/.test(G.q || '') && Number(G.qw) >= 600, G);
     check('1e the refs in flight are plain words in the reference face; Stop is a button; no bar', !!G && G.refLinks === 0 && /Mono/i.test(G.refFont) && G.stopBtn && !G.bar, G);
     /* THE LIGHTS IN THE CARD (the owner, 28 Oct 2026: "the reading or results are coming out color coded as well"): the desk's
        answer and every row of the stack wear a painted light, the same colour as the list's cell of that tone (a wrong-scoped
@@ -166,6 +174,8 @@ const Q = 'How much notice does each side need to end the contract?';
         toast: [...document.querySelectorAll('#toast-root *')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).pop() || '', timer: !!AC.deskTimer }; });
     /* who and when come from the reads' record, fetched as the read ends: asked for, bounded */
     let C = await card();
+    console.log('DBG5', ended, await page.evaluate(() => JSON.stringify({ busy: !!AC.busy, stop: !!document.querySelector('[data-ac-stop]'), stopped: !!document.querySelector('#ac-stopped'), cols: [...document.querySelectorAll('.ac-col, .ac-col-fold')].map(e => e.className + '@' + ((e.closest('[id]') || {}).id)), dock: ((document.getElementById('ig-dock') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 500), view: state.view })));
+    await browser.close(); process.exit(0);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('5 when the read ends: "100 of the 120 shown read · 20 still to read", ONE filled button "Read the remaining 20", no cost, no pill (the rest fits), Every read ›',
       ended && !!C && C.rest && C.restDesk && /How much notice/.test(C.restQ) && /100 of 120 are read, 20 to go\.$/.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20']) && C.primary && !C.pill && C.every && !C.timer, C);

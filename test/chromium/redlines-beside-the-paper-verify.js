@@ -249,14 +249,16 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     const c7 = await page.evaluate(FACE);
     check('7a a press on Clean while the face is open still wins; the face stays', !c7.red && c7.up, JSON.stringify(c7));
     /* RE-POINTED 18 Oct 2026: the face's way back is ‹ Jambo in the panel's row */
-    await page.click('#ig-dock [data-pd-back="red"]'); await pause(500);
-    const x7 = await page.evaluate(() => ({ face: !!document.getElementById('pd-redface'), feed: !!document.querySelector('#igd-feed:not([hidden])'),
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Redlines face draws no trail ("the tabs say where you
+       are", index.html); the way back is the panel's Dossier tab, and it lands on the Dossier, not the conversation */
+    await page.click('#ig-dock [data-pd-tab="copilot"]'); await pause(500);
+    const x7 = await page.evaluate(() => ({ face: !!document.getElementById('pd-redface'), dossier: !!document.querySelector('#ig-dock [data-pd2-card]'),
       red: igRedOn(getContract('MK-R1')), box: !!document.getElementById('igd-input') }));
-    check('7b ‹ Jambo goes back to the conversation, and the paper stays as it was before the face', !x7.face && x7.feed && x7.box && !x7.red, JSON.stringify(x7));
+    check('7b the Dossier tab goes back from the face, and the paper stays as it was before the face', !x7.face && x7.dossier && x7.box && !x7.red, JSON.stringify(x7));
     /* opened from Clean, closed: Clean again (decision 1) */
     await page.evaluate(() => pdRedOpen('MK-R1')); await waitFor(page, () => !!document.getElementById('pd-redface'), 5000);
     const o7 = await page.evaluate(FACE);
-    await page.click('#ig-dock [data-pd-back="red"]'); await pause(400);
+    await page.click('#ig-dock [data-pd-tab="copilot"]'); await pause(400); /* RE-POINTED 16 Nov 2026 (#762): the Dossier tab */
     const z7 = await page.evaluate(FACE);
     check('7c opened from Clean it turns Redlined, and closing puts Clean back', o7.red && !z7.red, `${o7.red} → ${z7.red}`);
     /* THEIR VIEW (stage 5, 14 Oct 2026): the Negotiate page's Internal |
@@ -316,8 +318,14 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await waitFor(page, () => !!document.getElementById('pd-redface'), 6000);
     await pause(500);
     const sheetFace = await sheetAt();
-    check('10a the paper neither moves nor shrinks when the face opens', !!sheetBefore && !!sheetFace && sheetBefore.left === sheetFace.left && sheetBefore.width === sheetFace.width && sheetBefore.top === sheetFace.top,
-      JSON.stringify({ sheetBefore, sheetFace }));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; owner's pick 16 Nov 2026, THE PAPER STANDS IN THE MIDDLE
+       OF ITS ROOM): the redlined paper carries its notes beside it (risks and standards' answers, pd2RedAnswers), so the
+       sheet is held left only as far as its notes need — never nearer the scroller's edge than 40 — and only then. It never
+       shrinks and never moves up or down. */
+    const notesBeside = await page.evaluate(() => [...document.querySelectorAll('#pd2-notes > *')].some(e => e.getClientRects().length));
+    check('10a the paper neither moves nor shrinks when the face opens (held left only for the notes beside it)', !!sheetBefore && !!sheetFace && sheetBefore.width === sheetFace.width && sheetBefore.top === sheetFace.top
+      && (sheetBefore.left === sheetFace.left || (notesBeside && sheetFace.left >= 40 && sheetFace.left < sheetBefore.left)),
+      JSON.stringify({ sheetBefore, sheetFace, notesBeside }));
     for (const [w, hh] of SCREENS) {
       await page.setViewportSize({ width: w, height: hh }); await pause(600);
       const fit = await page.evaluate(() => {
