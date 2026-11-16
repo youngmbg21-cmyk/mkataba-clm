@@ -281,7 +281,7 @@ THE OVERLAP, NOT THE SUM: only what every party may see — never the review, wh
 Behind the new-look switch, ONE block in index.html ("THE NEW LOOK: HARMONY"): ONE HEAD (`.ctf-h`); PILL TO ACT, black only on the chosen row; a same-on-every-row column steps out; EVEN TILES (`regTileBig`); SAME CARD TWICE. EVERY PAPER IN PAGES (`igPaperPaginate`); where a person TYPES, THIN PAGE LINES (`pagesLines`, f980). f977, f955.
 
 ## THE NEW LOOK IS THE ONLY LOOK
-Every change, picture, measurement, test and reference is against THE NEW LOOK (`newLookOn`/`html.lg-new`, the Harmony block; photos with `prefs.newLook` on). The old look is to be DELETED: nothing built or fixed on it; its removal is its own job, asked by name.
+ON FOR EVERYONE, NO SWITCH (owner, 16 Nov 2026): `newLookOn` = anyone signed in, every role; `outsideLookOn` true on both hosts (sign-in page, their pages, letters); no Settings switch (f967). Every change, picture, measurement and test is against it. The old look's code is to be DELETED, its own job, asked by name (owner: "do not delete yet").
 GEIST (f377). NAME AND FIGURE INK; THE DETAIL LINE GREY (`--color-neutral-400`; f982, f984, f990). THE SAP WAY MARK leads every row (`listSapMarkHtml`/`listSapCellHtml`; f997); Jambo's is his sparkle on black (`mkSpark`). THE FOLDERS, VIEWS FIRST: a tile's number = the list it opens (`regFolderViewsData`; f998). ONE quiet touch of colour per page, off a fact (`listStreamTone`; f986).
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER

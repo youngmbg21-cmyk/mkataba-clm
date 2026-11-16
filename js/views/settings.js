@@ -2290,7 +2290,8 @@ function stYouCardHtml(it){
     rows=stSrHtml(esc(i18t('st_you_chips')), `${stSwHtml('chips',chips,i18t('st_you_chips'))}${sub(esc(i18t('st_you_chips_box')))}`, '', 'is-sw')
       +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '')
       /* THE NEW LOOK (owner, 31 Oct 2026): an admin's own preview of the Legora way while it is built page by page */
-      +((typeof isAdmin==='function'&&isAdmin())?stSrHtml(esc(i18t('st_you_newlook')), `${stSwHtml('newlook',(typeof newLookOn==='function')&&newLookOn(),i18t('st_you_newlook'))}${sub(esc(i18t('st_you_newlook_sub')))}`, '', 'is-sw'):'');
+      /* the new look's switch is gone: it is on for everyone (owner, 16 Nov 2026) */
+      +'';
   } else if(it.key==='data'){
     rows=stSrHtml(esc(i18t('st_you_data_line')), sub(esc(i18t(apiOn?'st_you_data_kept':'st_you_data_sub'))), `<button type="button" class="ui-btn ui-btn-sm" data-st-mycopy>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_you_download'))}</button>`);
   } else if(it.key==='design'){
@@ -2432,10 +2433,6 @@ if(typeof document!=='undefined' && !window._stSheetWired){
     if((el=t.closest('[data-st-sw]'))){ const k=el.getAttribute('data-st-sw'), on=el.getAttribute('aria-checked')!=='true';
       el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
       if(k==='chips') stChipsSet(on);
-      if(k==='newlook') stNewLookSet(on);
-      /* the new look for people outside the company (round 8): the company's setting, an admin's, saved with the rest */
-      if(k==='outsidelook'){ state.settings=state.settings||{}; state.settings.outsideLook={ on };
-        Promise.resolve(typeof saveSettings==='function'?saveSettings():null).then(()=>{ window._outsideLook=on; if(typeof toast==='function') toast(i18t(on?'stn_out_on_t':'stn_out_off_t'),'ok'); }); }
       if(k==='push' && typeof pushToggle==='function'){ el.disabled=true;
         pushToggle(on).then(r=>{ _stPush=r.state; stPushPaint(); }); }
       return; }
@@ -10128,8 +10125,8 @@ function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && 
    last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
    the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
 const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg', outsidelook:'msg' };
-const STN_ICON={ name:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send', outsidelook:'building' };
+const STN_AREA_OF={ name:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
+const STN_ICON={ name:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
 let _stnArea='all';
 function stnAreaOf(id){ return STN_AREA_OF[id]||'you'; }
 function stnRow(id, label, value, sub, act){
@@ -10194,8 +10191,9 @@ function stnCompanyHtml(){
     stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change'))),
     stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change'))),
     stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update'))),
-    stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health'))),
-    stnRow('outsidelook', i18t('stn_out'), stnPill(esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), (state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'on':'off'), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')))];
+    stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health')))
+    /* the outside look's switch is gone: on for everyone (owner, 16 Nov 2026) */
+  ];
 }
 /* THE LIST: the rows grouped by area in STN_AREAS' order, each area under its own coloured head; a chosen chip shows
    one area. An area with no rows for this reader is not listed (a viewer has no Rules, no Money). */

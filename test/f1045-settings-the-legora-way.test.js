@@ -18,7 +18,7 @@ test('f1045 (1) every setting has ONE area and a drawn icon', () => {
   const of = new Function('return ' + /const STN_AREA_OF=(\{[^}]+\})/.exec(S)[1])();
   const ic = new Function('return ' + /const STN_ICON=(\{[^}]+\})/.exec(S)[1])();
   const rows = [...(fn('stnYouHtml') + fn('stnCompanyHtml')).matchAll(/stnRow\('(\w+)'/g)].map(m => m[1]);
-  assert.strictEqual(rows.length, 12);
+  assert.strictEqual(rows.length, 11); // the outside look's switch is gone (owner, 16 Nov 2026)
   const icons = read('js/components.js');
   rows.forEach(k => { assert.ok(areas.includes(of[k]), k + ' has an area'); assert.ok(ic[k] && new RegExp('\\n  ' + ic[k] + ':').test(icons), k + '\'s icon is one HaTi draws'); });
 });

@@ -21175,7 +21175,8 @@ function contractExecution(contractId) {
    cosmetics, as deskRuleOn beside it records. */
 /* THE NEW LOOK FOR PEOPLE OUTSIDE THE COMPANY (round 8, owner's answer 1 Nov 2026): an admin's company setting, off by
    default; the sign-in, the other side's page and an expired link read it (a boolean only, nothing else). */
-const outsideLookOn = () => { try { return !!((getSetting('appSettings') || {}).outsideLook || {}).on; } catch (_) { return false; } };
+/* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the other side's pages and letters wear it always; the company's switch is gone */
+const outsideLookOn = () => true;
 const shareCodeOn = () => { try { return !!((getSetting('appSettings') || {}).linkCode || {}).on; } catch (_) { return false; } };
 /* WHICH LINKS ASK. One reading, so the gate, the code route and the browser
    cannot disagree about whether a code is coming. */

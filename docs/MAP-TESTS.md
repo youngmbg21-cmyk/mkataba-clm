@@ -707,7 +707,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 30 Oct 2026 (the nav panel's door): test/chromium/nav-panel-door-verify.js (new; red at unmodified main 1): #hdr-nav just left of the bell at the three screens, the same size; a press opens the Guide face, again closes; from Alerts it swaps to the Guide and the bell swaps back; aria-expanded follows the Guide.
 
 ## THE NEW LOOK — THE FRAME (round 1 of the Legora way, rebuilt page by page behind one switch)
-- `node --test test/f967-the-new-look-switch.test.js` — the switch: an admin's own, off by default, the server's wall; every new-look rule waits on `html.lg-new`.
+- `node --test test/f967-the-new-look-switch.test.js` — THE NEW LOOK IS THE ONLY LOOK (16 Nov 2026): on for anyone signed in, the outside look always on (both hosts), no switch drawn or handled; every new-look rule waits on `html.lg-new`. Re-pointed with it: f974 (5) (outsiders always see it), f1045 (1) (eleven settings rows).
 - `node test/chromium/new-look-frame-verify.js` — the Page frame at the three screens: the panel square at the bar, side and foot behind one hairline; one-sheet pages edge to edge; card pages on the well 12 · 16; the box 44 and its 16; the line above the doors; the bar's order and "?"; one line to Jambo, green on hover; the Board joined; off = nothing moved; a non-admin refused.
 - `HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js` — the tidy sweep with the switch on (and without it, today's look).
 
