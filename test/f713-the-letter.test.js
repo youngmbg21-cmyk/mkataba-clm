@@ -136,7 +136,8 @@ describe('f713 (2) the screen draws the letter', () => {
        of labelled questions over the email — To, What goes, What they can do,
        Send by — then the email's own Subject and From */
     assert.deepEqual([...m.root.querySelectorAll('#sh-letter .sh-lt-k')].map(x => x.textContent.trim()),
-      ['To', 'What goes', 'What they can do', 'Send by', 'Subject', 'From']);
+      /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the letter on the paper carries its own To line */
+      ['To', 'What goes', 'What they can do', 'Send by', 'To', 'Subject', 'From']);
     assert.ok(m.$('.sh-lt-to #sh-name') && m.$('.sh-lt-to #sh-email'), 'the To row holds the two boxes');
     assert.ok(m.$('#sh-lt-can-row #share-purpose') && m.$('#sh-lt-by-row #share-tabs') && m.$('#sh-lt-by-row #sh-link-opts'),
       'the purpose under What they can do; the channel and the link\'s settings under Send by');
@@ -153,12 +154,14 @@ describe('f713 (2) the screen draws the letter', () => {
        Anna," over the note's dashed box, and Send names who it goes to) */
     assert.equal(m.txt('#sh-lt-before'), 'Hello,');
     m.type('sh-name', 'Anna Holm');
-    assert.equal(m.txt('#sh-lt-before'), 'Hello Anna,');
-    assert.equal(m.txt('#share-send').trim(), 'Send to Anna', 'Send names its first name');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the send screen's new-look words */ 
+    assert.equal(m.txt('#sh-lt-before'), 'Dear Anna,');
+    assert.equal(m.txt('#share-send').trim(), m.win.i18t('sh_nl_send'), 'the head already names who it goes to');
     m.type('sh-summary', 'We can meet you at 45 days.');
     /* RE-POINTED, the SAP Way (28 Oct 2026): Jambo's "word for word" line is
        gone; his panel says what goes, the note once typed */
-    assert.equal(m.txt('#sh-lt-goes-h'), 'What goes to Anna');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the send screen's new-look words */ 
+    assert.equal(m.txt('#sh-lt-goes-h'), 'Goes');
     assert.match(m.txt('#sh-lt-goes-l'), /Your note/);
     m.$('[data-share-purpose="view"]').click();
     assert.equal(m.$('#sh-lt-subject').value, 'The Master services agreement, from ' + m.win.FIRST_PARTY);
@@ -175,7 +178,8 @@ describe('f713 (2) the screen draws the letter', () => {
     const m = await openShare(contract());
     assert.match(m.txt('.sh-lt-jb'), /Before you send/);
     const heads = [...m.root.querySelectorAll('#share-step-1 .sh-lt-card h4')].map(x => x.textContent);
-    assert.ok(heads.includes('What Nordvik Logistik AB never sees'), JSON.stringify(heads));
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the send screen's new-look words */ 
+    assert.ok(heads.includes('Names'), JSON.stringify(heads));
     /* RE-POINTED, the SAP Way (28 Oct 2026): "Something else to send?" is not
        drawn — the form's What goes asks it, and its list presses these same
        two buttons, kept out of sight as the one door each has */

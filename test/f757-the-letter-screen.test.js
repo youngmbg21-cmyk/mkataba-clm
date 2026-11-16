@@ -55,10 +55,11 @@ describe('f757 (1) the head', () => {
     const m = await openShare(contract());
     const h = m.$('#share-lead-title');
     assert.ok(h, 'the head is drawn');
-    assert.equal(h.childNodes[0].textContent.trim(), 'Send the contract', 'nothing changed yet: the contract');
-    assert.match(m.win.shareLeadTitle({ id: 'MK-1', counterparty: 'Nordvik Logistik AB', negotiation: { round: 2, turn: 'counterparty' } }, { lines: [{}] }, 'negotiate'),
-      /^Send round 2 <span class="sh-hd-to">to Nordvik Logistik AB · MK-1<\/span>$/, 'a round with changes: its number');
-    assert.equal(m.txt('#share-lead-title .sh-hd-to'), 'to Nordvik Logistik AB · MK-757');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): "Send to Nordvik", the contract quieter beside it */
+    assert.equal(h.childNodes[0].textContent.trim(), 'Send to Nordvik', 'to whom, by the first word of their name');
+    assert.match(m.win.shareLeadTitle({ id: 'MK-1', name: 'Pilot', counterparty: 'Nordvik Logistik AB', negotiation: { round: 2, turn: 'counterparty' } }, { lines: [{}] }, 'negotiate'),
+      /^Send to Nordvik <span class="sh-hd-to">/, 'a round with changes: the same head');
+    assert.ok(m.txt('#share-lead-title .sh-hd-to').length > 0, 'which contract, quieter');
     assert.ok(m.$('.sh-hd .sh-hd-acts'), 'Send and Cancel stand in the head where the screen is a page');
   });
 });
@@ -78,7 +79,8 @@ describe('f757 (2) To, as the email says it', () => {
     const m = await openShare(contract(), { known: false });
     assert.equal(m.$('#sh-letter').getAttribute('data-sh-to'), 'open');
     const name = m.$('#sh-name'); name.value = 'Anna Holm'; name.dispatchEvent(new m.win.Event('input', { bubbles: true }));
-    assert.equal(m.txt('#share-send'), 'Send to Anna');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the send screen's new-look words */ 
+    assert.equal(m.txt('#share-send').trim(), m.win.i18t('sh_nl_send'));
   });
 });
 
@@ -91,8 +93,9 @@ describe('f757 (3) Sent as: four small choices, each the same controls', () => {
     const chips = [...m.root.querySelectorAll('#sh-as-chips [data-sh-as]')];
     assert.deepEqual(chips.map(x => x.getAttribute('data-sh-as')), ['what', 'purpose', 'ch', 'link']);
     const w = k => m.txt(`[data-sh-as-w="${k}"]`);
-    assert.equal(w('purpose'), 'Negotiate');
-    assert.equal(w('ch'), 'Email');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the send screen's new-look words */ 
+    assert.equal(w('purpose'), 'Reply with their own changes');
+    assert.equal(w('ch'), 'Email, with their link');
     assert.equal(w('what'), 'The contract, round 1');
     assert.equal(w('link'), 'Open for the whole negotiation');
     assert.equal(m.txt('#share-purpose-say'), 'They propose changes on their own page. Nothing can be signed on this link.', 'the chosen answer\'s sentence under its field');
@@ -149,7 +152,8 @@ describe('f757 (4) what stays here, and what they never see', () => {
   });
   test('4c what Anna never sees, by name; whose names stay inside', async () => {
     const m = await openShare(contract());
-    assert.equal(m.txt('#sh-lt-never-h'), 'What Anna never sees');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the send screen's new-look words */ 
+    assert.equal(m.txt('#sh-lt-never-h'), 'Names');
     assert.match(m.root.textContent, /The review, your internal notes and your colleagues' names stay inside /);
     /* RE-POINTED, the SAP Way (28 Oct 2026): the box named for who reads it */
     assert.equal(m.txt('#sh-summary-label'), 'Your note to Anna', 'and the one part she reads that you write');

@@ -109,7 +109,8 @@ describe('f590 (1) — the send screen, email channel', () => {
     const d = await shareDialog(c, { emailSent: false, emailConfigured: true,
       emailError: 'The from address is not verified.' });
     await d.send();
-    assert.equal(d.$('#sh-send-lbl').textContent, d.win.i18t('co_send_failed_btn'));
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the reason stands beside the letter, so "see beside" */
+    assert.equal(d.$('#sh-send-lbl').textContent, d.win.i18t('co_send_failed_beside'));
     assert.equal(c.status, 'Draft');
     assert.match(shared(c).pop() || '', /NOT sent — The from address is not verified/);
   });

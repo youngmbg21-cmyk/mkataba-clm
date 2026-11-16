@@ -91,7 +91,8 @@ describe('f439 — Notes and Focus are not hidden', () => {
   test('Notes and Focus are buttons on the page, and the copies are in More', () => {
     const v = theirPage();
     assert.ok(v.$('.pw-id #pt-notes-door'), 'Notes beside the bell');
-    assert.ok(v.$('.pw-id-row2 #pt-focus'), 'Focus beside the text size');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): Focus sits with the reading tools in More's pop-up */
+    assert.ok(v.$('#pol-pop .pol-pop-tools #pt-focus'), 'Focus with the reading tools, behind More');
     assert.ok(v.$('#pt-more'), 'More is back, because there is something in it again');
     assert.ok(v.$('#pt-menu #pt-pdf') || v.$('#pt-more-menu #pt-pdf'), 'the clean copy');
     assert.equal(v.$('#pt-where-pane [data-pt-copy="pdf"]'), null,
@@ -151,13 +152,22 @@ describe('f439 — Where we are borrows, never re-counts', () => {
 
 describe('f439 — a reason after every save, on their seat', () => {
   test('their save routes to portalAskReason; ours is untouched', async () => {
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): their seat is asked as ours is (8 Nov 2026, "mimic what is
+       in the owner side") — their Notes drawer opens with the change pinned; the old "Why this change?" pop-up
+       (portalAskReason, below) is the old look's */
     const v = theirPage();
-    let asked = 0;
-    const real = v.win.portalAskReason;
+    let asked = 0, pinned = null, opened = null;
+    const real = v.win.portalAskReason, realPin = v.win.rlNotesPin, realOpen = v.win.portalOpenNotes;
     v.win.portalAskReason = () => { asked++; return Promise.resolve(null); };
-    await v.win.rlNoteAskAfterFile({ id: 'MK-500' }, { id: 'CHG-9' }, { side: 'counterparty' });
-    assert.equal(asked, 1, 'their seat is asked');
-    v.win.portalAskReason = real;
+    v.win.rlNotesPin = o => { pinned = o; };
+    v.win.portalOpenNotes = o => { opened = o; };
+    const out = v.win.rlNoteAskAfterFile({ id: 'MK-500' }, { id: 'CHG-9', clauseId: 'c1' }, { side: 'counterparty' });
+    assert.ok(pinned && pinned.changeId === 'CHG-9' && pinned.filed === true, 'the change is pinned in their notes');
+    assert.ok(opened && opened.pin === true, 'their Notes drawer opens on it');
+    assert.equal(asked, 0, 'the old pop-up is not asked');
+    pinned.resolve(null);
+    assert.equal(await out, null, 'it ends when the note is written or skipped');
+    v.win.portalAskReason = real; v.win.rlNotesPin = realPin; v.win.portalOpenNotes = realOpen;
   });
   const HELD = ch => ({ 'hati.negoHeld.t': JSON.stringify({ v: 1, at: Date.now(), decisions: {}, withdrawn: {},
     proposed: { [ch.id]: { ...ch } } }) });
