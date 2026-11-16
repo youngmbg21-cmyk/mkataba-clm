@@ -70,7 +70,9 @@ test('f1016 (4) the panel: the paper just read, the chosen answer\'s paper, else
   assert.match(fnBody(RD, 'dsnResultsShown'), /_dscRank\(_rdTone\(x\)\)/, 'the risky answers first');
   assert.match(fnBody(RD, 'dscLand'), /askColLandOn\(cid, quote\)/, 'Open clause is the one lander');
   assert.match(fnBody(RD, 'dscLand'), /openRedlineWorkbench\(cid\)/, 'redlining goes through the one door');
-  assert.match(fnBody(RD, 'dsnListPanel'), /data-dsn-keep=/, 'Keep in Discover stands on the read\'s summary');
+  /* RE-POINTED (owner, 15 Nov 2026: Jambo's panel on Discover, the Legora way, f1071): the read's summary is drawn by
+     dslReadHtml, which dsnListPanel hands it to; Keep in Discover still stands on it */
+  assert.match(fnBody(RD, 'dslReadHtml'), /data-dsn-keep=/, 'Keep in Discover stands on the read\'s summary');
   assert.doesNotMatch(RD.slice(RD.indexOf('const DSC_OPEN_MAX')), /negoFileChange|changes\.push|persist\(/, 'the page files nothing');
 });
 

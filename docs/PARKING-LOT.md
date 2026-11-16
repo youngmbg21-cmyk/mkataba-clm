@@ -80,6 +80,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the Explorer review of 15 Nov 2026, after three proposals (a portfolio desk, three Board-style pictures, and the galaxy with "closer to the core means it needs you"). The owner set those aside for now: "lets forget this for now".
 - **Notes:** Brain is the view Explorer opens on today, so a new opening view must be chosen (asked before building). Some features live on those two views and need a home or a decision: "what if a party left" and "what depends on X" turn the map to Wiring, where the links between contracts are drawn; the morning figures and walk-throughs may land there too. The Handbook's Explorer chapter, its pictures, the Guide tab's rows and the browser checks that name Brain or Wiring all change with it. The three proposals stay as artifacts to come back to.
 
+### P-10 · Grey row highlights: room between the grey's edge and the first mark or letter
+- **Added:** 16 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "on the grey strips in these pages, the strip seems to leave no room between where it starts and the first symbol or letter which is ugly as well." When a row is chosen or under the pointer, its grey band begins right at the row's first round mark or first letter; there should be breathing room inside the grey on the left (and the right) before the first symbol or word.
+- **Where it came from:** the Panels Still To Fix drawing (artifact DLbLrKo3fjX7RzQwvgf3eG, 16 Nov 2026), on the list pages' grey rows: Approvals & signing, Negotiations, My notes, Import (and every list that shares the same row look).
+- **Notes:** the grey is painted by the table cells, and the first cell starts flush with the mark, so a fix adds inner room to the first and last cells (16px inside, the house rule) for the chosen and hovered rows, on every list page at once. It touches the same rows as the drawn Approvals change (one clean band, no bar), so it is best built with it or straight after.
+
 ## Done
 
 _(nothing yet)_

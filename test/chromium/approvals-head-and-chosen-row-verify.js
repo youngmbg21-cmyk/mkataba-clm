@@ -52,7 +52,10 @@ const NAMES = [['E-commerce Distribution Agreement', 'Copia Global'], ['Digital 
         return { has: b.content !== 'none' && b.position === 'absolute', barW, gap: Math.round(m.left - (barX + barW)), inside: barX >= sc.left, same: Math.abs(fm.left - m.left) < 0.6,
           fill: b.backgroundColor, rowFill: getComputedStyle(td).backgroundColor };
       }) : null;
-      check(`${at} 3 the chosen row's bar stands clear of the mark, inside the sheet, the mark where the others are`, !!row && row.has && row.barW >= 2 && row.gap >= 10 && row.inside && row.same && row.fill === row.rowFill, row);
+      /* RE-POINTED (owner, 16 Nov 2026: Negotiations' grey "is what this should look like … as if a patch was applied";
+         f1073): the chosen row is one grey band inside its own edges — no bar, no patch into the sheet's margin; the mark
+         where the others are */
+      check(`${at} 3 the chosen row is one grey band inside the row, no bar or patch, the mark where the others are`, !!row && !row.has && row.same && row.rowFill === 'rgb(240, 240, 243)', row);
       /* 1, 2 · scrolled */
       const moved = await page.evaluate(() => { const s = document.getElementById('ap-scroll'); s.scrollTop = 170; return s.scrollTop; });
       await until(page, () => document.getElementById('ap-scroll').scrollTop > 100, null, 4000);
