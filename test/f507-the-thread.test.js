@@ -118,12 +118,14 @@ describe('f507 (2) — the line decides the open row', () => {
        deliberately close STAYS closed while you scroll): the follow stands
        down while the reader's own close is latched, and nothing else about it
        moves. The latch is the contract's id, and the next press lets it go. */
-    assert.match(arm, /if\(c&&docThreadLive\(\)&&!docThreadShutOn\(c\)\) docThreadOpen\(c,docThreadLineRow\(\),\{follow:true\}\)/);
+    /* RE-POINTED 16 Nov 2026 (owner: closing a clause must not switch the follow off): the close holds only while
+       its clause is at the line; another clause at the line lets it go and opens */
+    assert.match(arm, /if\(docThreadShutOn\(c\)\)\{ if\(docThreadShutHolds\(row\)\) return; docThreadShutClear\(\); \}\s*docThreadOpen\(c,row,\{follow:true\}\)/);
     const shut = region(CONTRACT, 'docThreadShut');
     assert.match(shut, /_docThreadShut=String\(cur\.id\)/, 'the latch is this contract\'s own id');
     assert.match(shut, /docThreadOpen\(cur,-1\)/, 'and -1 is a real answer: nothing open');
     assert.match(region(CONTRACT, 'docThreadGoTo'), /docThreadShutClear\(\)/, 'the reader\'s next press lets the close go');
-    assert.match(region(CONTRACT, 'docThreadPaint'), /else if\(docThreadShutOn\(c\)\) _docThreadOn=-1;/, 'a repaint is not a press: the close holds through one');
+    assert.match(region(CONTRACT, 'docThreadPaint'), /else if\(docThreadShutOn\(c\)&&docThreadShutHolds\(docThreadNearest\(rows,docThreadAtLine\(\)\)\)\) _docThreadOn=-1;/, 'a repaint is not a press: the close holds through one, while its clause is at the line');
     assert.match(region(CONTRACT, 'docThreadLineRow'), /docThreadNearest\(rows, docThreadAtLine\(\)\)/);
     const open = region(CONTRACT, 'docThreadOpen');
     assert.ok(!open.includes('docReadSheet('), 'a scroll never walks the sheet');

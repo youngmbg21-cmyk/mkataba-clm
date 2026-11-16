@@ -408,6 +408,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)
 - f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-drawer, home-paper-clauses, runway-and-xray, reading-in-the-background, xray-who-does-what verify.
 - 24 Oct 2026: Home's Track opens Clauses — f424 (2), track-on-the-paper-verify 4a–4d, analyze-on-the-graph-verify 2s4–2s8, document-tab-track-verify.
+- 16 Nov 2026: a close never stops the follow — f1075, f507 and f278 re-pointed, clause-list-fixed-verify 3b re-pointed.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
 - THE CHECK READS THE DUTIES RIGHT (bug log batch 6, 27 Oct 2026): f947 (2, 3) (new; red at the parent) — signCheckObligations asks obligationReminderTo(o) and hashes obligationsText(c), the words the scan stamped; f421 (s7)'s stub takes the duty alone.

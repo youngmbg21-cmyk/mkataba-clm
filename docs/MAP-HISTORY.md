@@ -38438,3 +38438,14 @@ the 21 Oct ruling says. The page was right — photographed: the band 523→705,
 The check's arithmetic was wrong: it measured each row from the band's OUTER top (its 1px top line) against scrollHeight,
 which counts from the inside, so the last row came out 203 against 202 and the scrolling branch could never pass. Now
 measured from bandR.top + band.clientTop. No code of the page changed.
+
+## THE THREAD — A DRAWER OVER FORM & LINKS
+A CLOSE NEVER STOPS THE FOLLOW, 16 Nov 2026. The owner: "It should always be the case that when I am scrolling in the
+paper, the clauses side panel follows and they open one by one as the paper clauses get to the top of the page. It works
+now but if you close one of the clauses in the panel, the feature switches off." NARROWS the 21 Oct ruling "a clause you
+closed stays closed while you scroll": the latch held until the reader's next PRESS, so a close silenced the follow for
+the rest of the paper. Now the latch also keeps which clause was at the line when it was closed (`_docThreadShutAt`,
+`docThreadShutHolds`): a nudge that leaves that clause at the line keeps it shut (the 21 Oct fault — a close undone by
+the very next scroll — stays fixed), and the moment the paper brings another clause to the line the latch lets go and
+that clause opens. The scroll handler and docThreadPaint's repaint branch both read it. f1075 red at the parent; f507,
+f278 and clause-list-fixed-verify 3b re-pointed (3b used to expect the panel empty after a long scroll).
