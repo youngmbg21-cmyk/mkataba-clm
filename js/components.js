@@ -1896,7 +1896,9 @@ function jovArriveMark(key, now){ const st = jovArriveStore(), m = st.get(); m[k
 function jovPageKeyOf(el){
   const st = (typeof state !== 'undefined' && state) ? state : (window.state || {});
   if (el.closest && el.closest('#ig-dock') && document.querySelector('#ig-dock [data-pd-head]') && typeof window.pdContract === 'function'){
-    const c = pdContract(); if (c && c.id) return 'c:' + c.id; }
+    /* EVERY CONTRACT IS ONE PAGE (the owner's rule, 15 Nov 2026): going from one contract to the next is not an
+       arrival — keyed by contract, the card rose again on every paper (the flash measure, 16 Nov 2026) */
+    const c = pdContract(); if (c && c.id) return 'c'; }
   const v = String(st.view || '');
   const face = (v === 'dashboard' && typeof window.hbFace === 'function') ? ':' + hbFace() : '';
   return 'v:' + v + face;

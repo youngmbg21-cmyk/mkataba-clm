@@ -446,7 +446,9 @@ const ok = (name, good, detail) => {
       let row = el ? await say(el) : null;
       if (!el && kind === 'renewal'){
         const look = await page.$(`#context-panel .nd-pan [data-nd-look*="${ref}"]`);
-        if (look){ row = await say(look); await look.click(); await page.waitForTimeout(1200); el = await page.$('#hm-agents .nd-br.is-look [data-ag-act="renewal"]'); }
+        /* RE-POINTED 16 Nov 2026 (owner: a Needs-you row "should take me to the contract and not point me to the board"):
+           the piece's Open in the bell opens the contract where the renewal is decided, in one press (ndRowGo) */
+        if (look){ row = await say(look); await look.click(); await page.waitForTimeout(1300); return { row, g: await landing() }; }
       }
       if (!el) return { row: null, g: null };
       await el.click(); await page.waitForTimeout(1300);

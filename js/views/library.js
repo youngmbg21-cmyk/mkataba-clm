@@ -4690,8 +4690,13 @@ function sdOpenContract(id){
 async function sdCheckAgain(c){
   if(!(typeof canEdit==='function'&&canEdit())) return;
   const ai=!!((typeof API_MODE==='function')&&API_MODE()&&state.aiConfigured);
-  if(ai&&!await confirmDialog({ title:i18t('sd_check_q',{ref:sdRef(c)}), message:i18t('sd_check_ai'), confirmLabel:i18t('sd_check_go') })) return;
+  /* A FIRST CHECK IS NOT ASKED AS "AGAIN" (owner, 16 Nov 2026: the panel's buttons "using common sense"): pressed on
+     "Standards · Not checked yet · Check", the question said "…against your standards again?" over "Check again".
+     The whole record is read first, so whether it was ever checked is the record's answer, not the light list's. */
   try{ if(typeof ensureFull==='function') await ensureFull(c); }catch(_){ toast(i18t('sd_check_failed'),'err'); return; }
+  let before=false; try{ const R=(typeof stdRowReading==='function')?stdRowReading(c):null; before=!!(R&&R.total); }catch(_){ before=false; }
+  const k=before?'':'1';
+  if(ai&&!await confirmDialog({ title:i18t('sd_check_q'+k,{ref:sdRef(c)}), message:i18t('sd_check_ai'+k), confirmLabel:i18t('sd_check_go'+k) })) return;
   const res=await runPlaybookReview(c);
   if(res&&!res.error){
     c.playbook=res;

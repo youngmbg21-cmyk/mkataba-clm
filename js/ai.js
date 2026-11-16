@@ -1588,7 +1588,7 @@ function aiMsgHtml(m,i){
         ${m.press&&typeof jpHtml==='function'?jpHtml(m.press,'ai:'+i):''}
         ${m.watchAsk&&typeof watchAskHtml==='function'?watchAskHtml(m,'ai:'+i):''}
         ${m.watchList&&typeof watchListHtml==='function'?watchListHtml():''}
-        ${Array.isArray(m.choices)&&m.choices.length?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${j===0&&!c.retry?' ui-btn-primary':''}" data-ai-choice="${i}:${j}">${_aiEsc(c.label)}</button>`).join('')}</div>`:''}
+        ${Array.isArray(m.choices)&&m.choices.length?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${j===0&&!c.retry?' ui-btn-primary':''}" data-ai-choice="${i}:${j}" title="${_aiEsc(c.label)}"><span class="igd-ch-t">${_aiEsc(c.label)}</span></button>`).join('')}</div>`:''}
         ${m.read&&m.read.text?`<div class="ai-read" data-ai-read>${_aiEsc(m.read.text)}</div>`:''}
       </div>
     </div>`;

@@ -14546,7 +14546,11 @@ function copilotWayForward(cx, question, why) {
   for (const h of hits) {
     const door = aiDoorOf(hsDoorOf(h), cx);
     if (!door) continue;
-    const label = [h.title || h.contractName || '', h.contractId && h.kind !== 'contract' ? (h.contractNo || h.contractId) : ''].filter(Boolean).join(' · ').slice(0, 80);
+    /* a chapter is named in the reader's language only: its search title carries both books ("Parties … · Parter …"),
+       which drew one long chip that ran out of the panel (owner, 16 Nov 2026) */
+    let title = h.title || h.contractName || '';
+    if (h.kind === 'guide') { try { const ch = HBK.hbkChapterOf(h.ref); if (ch) title = HBK.hbkPlainOf(ch.title, cx && cx.user && cx.user.lang === 'sv' ? 'sv' : 'en', srvHbkWord); } catch (_) { /* the search title stands */ } }
+    const label = [title, h.contractId && h.kind !== 'contract' ? (h.contractNo || h.contractId) : ''].filter(Boolean).join(' · ').slice(0, 80);
     if (!label || seen.has(label)) continue;
     seen.add(label); choices.push({ label, door });
     if (choices.length >= 4) break;

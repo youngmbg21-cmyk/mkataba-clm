@@ -10182,7 +10182,7 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
-      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
+      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}" title="${igEsc(c.title||c.label)}"><span class="igd-ch-t">${igEsc(c.label)}</span></button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&m.sendNote)?igNoteCardHtml(m,i):''}
       ${''/* ONE ROW (owner, 11 Nov 2026): the answer's controls on one line, everything else under ⋯ */}
       ${igOneHtml(m,i)}

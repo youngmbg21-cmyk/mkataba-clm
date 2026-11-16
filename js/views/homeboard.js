@@ -1686,7 +1686,7 @@ function hbBoardHelloHtml(){
     const days = ends[0] ? Math.round((new Date(ends[0] + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
     let rows = []; try { const B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; rows = B ? B.jambo.concat(B.you).slice(0, 3) : []; } catch (_){ rows = []; }
     const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
-    const needRows = rows.map(r => { const P = parts(r); return { mark: r.late ? 'clock' : 'alert', tone: r.late ? 'amber' : (r.g === 'jambo' ? 'dark' : 'amber'), t: P.title || P.name || '', s: [P.deal, P.when].filter(Boolean).join(' \u00b7 '), attr: 'data-hbw="all"' }; }).filter(x => x.t);
+    const needRows = rows.map(r => { const P = parts(r); return { mark: r.late ? 'clock' : 'alert', tone: r.late ? 'amber' : (r.g === 'jambo' ? 'dark' : 'amber'), t: P.title || P.name || '', s: [P.deal, P.when].filter(Boolean).join(' \u00b7 '), attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
     return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five">${jamboOverviewHtml({ before: brain, title: say, sub,
       glance: [{ n, l: i18t('jov5_on_you'), warn: n > 0, attr: n ? 'data-hbw="all"' : '' }, { n: live, l: i18t('jov5_hb_live'), attr: live ? 'data-hbw="live"' : '' },
         { n: days == null ? '\u2014' : days, l: i18t('jov5_hb_days'), attr: days != null ? 'data-hbw="next"' : '' }],
@@ -7453,6 +7453,20 @@ function hbShowCard(host, el, opts){
     clearTimeout(card._hbLitT); card._hbLitT = setTimeout(() => card.classList.remove('is-lit'), 1800);
   }
 }
+/* A CHART FADES IN ONCE (the flash measure, 16 Nov 2026; owner: "also fix the stutters, which I am still seeing"):
+   its parts rise the first time that very picture is drawn; the same picture drawn again — back to the Board, a
+   repaint for another card — stands still. Kept per sitting, by the picture's own markup. */
+const _hbChartsSeen = new Set();
+function hbChartsStill(host){
+  if (!host || !host.querySelectorAll) return;
+  host.querySelectorAll('svg').forEach(svg => {
+    if (!svg.querySelector('.hb-in')) return;
+    const src = svg.outerHTML; let h = 0; for (let i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) | 0;
+    const key = src.length + ':' + h;
+    if (_hbChartsSeen.has(key)) svg.querySelectorAll('.hb-in').forEach(g => g.classList.remove('hb-in'));
+    else { if (_hbChartsSeen.size > 400) _hbChartsSeen.clear(); _hbChartsSeen.add(key); }
+  });
+}
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
   /* a hidden Board is not drawn: it is marked missed and drawn when turned to
@@ -7472,6 +7486,8 @@ function hbPaintBoard(opts){
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
   hbCvPaint();
   hbSheetPaint();
+  /* a chart drawn again stands still (before the frame is painted, so nothing is seen to fade) */
+  hbChartsStill(host);
   hbGiftsSeenSay();
   hbPaintHead();
   hbNyDockFollow();
@@ -10787,6 +10803,8 @@ function hbOnClick(e){
   if (hbFigMenuClick(e)) return;
   /* the welcome's doors in Jambo's panel (Brain welcome, 13 Nov 2026) */
   { const wb = t.closest('[data-hbw]'); if (wb){ e.preventDefault(); hbWelcomeGo(wb.getAttribute('data-hbw')); return; } }
+  /* a row of Needs you in the panel opens where its work is (ndRowGo), never the Board's list first */
+  { const wr = t.closest('[data-hbw-row]'); if (wr){ e.preventDefault(); if (typeof ndRowGo === 'function') ndRowGo(wr.getAttribute('data-hbw-row')); return; } }
   /* a press anywhere but the figure picker puts it away */
   if (_hbFigPick && !t.closest('.hb-figpick-w')){ _hbFigPick = false; hbPaintBoard(); }
   /* a door out of the side list (Open these, Show on the map) leaves it closed behind */

@@ -5837,7 +5837,7 @@
   .hist-lh.is-r{ grid-column:3; padding-left:12px; }
   .hist-lh i{ display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 6px; vertical-align:0; background:var(--hist-ours); }
   .hist-lh.is-r i{ background:var(--hist-theirs); }
-  .hist-bub{ min-width:0; max-width:440px; padding:7px 10px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .hist-bub{ min-width:0; max-width:440px; padding:7px 10px; border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); }
   .hist-ev.is-ours .hist-bub{ border-right:3px solid var(--hist-ours); }
   .hist-ev.is-theirs .hist-bub{ border-left:3px solid var(--hist-theirs); }
   .hist-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:2px; font-size:var(--t-meta); color:var(--color-neutral-600); }
@@ -17873,7 +17873,14 @@
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rk-row.is-linked:not(:hover):not(.is-none):not(.is-gone) .rk-why{background:transparent}
   /* YOUR WORDS TO JAMBO WEAR HIS ANSWERS' ROUNDING (owner, 24 Oct 2026): the generated sheet zeroes
      .rounded-2xl, so every "you" bubble (Home's panel, the chat window) takes the answer bubble's 18px here */
-  .ai-msg.justify-end > .ai-bub{border-radius:var(--radius-lg)}
+  /* EVERY CONVERSATION BUBBLE IS ROUNDED, ON EVERY PANEL (owner, 16 Nov 2026: "make sure all the conversation bubbles
+     are rounded as many pages are but some have square endings"): a list page's one sheet zeroes --radius-lg for its
+     parts, which squared every bubble in its Jambo panel, and the generated sheet zeroes .rounded-2xl (the error
+     bubble); the bubble's corner is the ONE CORNER (--radius, 10px), which no sheet zeroes. */
+  .ai-msg .ai-bub, .ai-msg .jl-bub{border-radius:var(--radius)}
+  /* A CHOICE UNDER AN ANSWER STAYS INSIDE ITS PANEL (16 Nov 2026): a long name ends in "…", the whole of it on hover */
+  .igd-choices > .ui-btn{max-width:100%;min-width:0}
+  .igd-choices .igd-ch-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* THE LISTS' TABLE, AS DRAWN (Contracts): the column heads on a faint grey band (#FAFAFC), the foot the same,
      a party's initials a rounded square on white. The row height stays the reader's own density choice. */
   #app-shell .reg-card .reg-table thead th{background:#FAFAFC}
