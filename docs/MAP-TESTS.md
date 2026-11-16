@@ -797,3 +797,4 @@ THE PULSE BOARD'S, READS' AND DISCOVER'S DOORS PUT A SCREEN AWAY, THEN GO (16 No
 ## THE ONE DESK — NEEDS YOU, ONE READING — 16 Nov 2026 additions
 - f1077 (renumbered from f1075, which main also took; panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
 - f1078 (renumbered from f1076, which main also took; every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.
+- f1079 (Company needs you lands on the exact job: `cnCompanyGo`, `stNeedGo`). Also run: f869, f1077.
