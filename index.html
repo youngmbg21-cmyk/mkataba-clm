@@ -17878,6 +17878,9 @@
      parts, which squared every bubble in its Jambo panel, and the generated sheet zeroes .rounded-2xl (the error
      bubble); the bubble's corner is the ONE CORNER (--radius, 10px), which no sheet zeroes. */
   .ai-msg .ai-bub, .ai-msg .jl-bub{border-radius:var(--radius)}
+  /* A CHOICE UNDER AN ANSWER STAYS INSIDE ITS PANEL (16 Nov 2026): a long name ends in "…", the whole of it on hover */
+  .igd-choices > .ui-btn{max-width:100%;min-width:0}
+  .igd-choices .igd-ch-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* THE LISTS' TABLE, AS DRAWN (Contracts): the column heads on a faint grey band (#FAFAFC), the foot the same,
      a party's initials a rounded square on white. The row height stays the reader's own density choice. */
   #app-shell .reg-card .reg-table thead th{background:#FAFAFC}

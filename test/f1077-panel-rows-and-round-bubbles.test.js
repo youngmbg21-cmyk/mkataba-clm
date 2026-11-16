@@ -8,6 +8,7 @@
      4 every conversation bubble takes the ONE CORNER (--radius), which no list sheet zeroes
      5 the bell: its new-look list (.ndb) is the panel, so Company Open works, a piece's Open opens its contract, and
        a press on a row's words does what its Open does
+     6 a choice under an answer stays inside its panel ("…", the whole on hover); a chapter is named in one language
    At the parent (1)–(4) fail: every row said data-hbw="all", there was no ndRowGo, the bubbles took --radius-lg.
    Run: node --test test/f1077-panel-rows-and-round-bubbles.test.js */
 const { test } = require('node:test');
@@ -62,4 +63,13 @@ test('f1077 (5) the bell: its new-look list is the panel; Open and the row go wh
   assert.match(L, /const inPanel = !!t\.closest\('#panel-body \.nd-pan, #panel-body \.ndb'\);/);
   assert.match(L, /closest\('\[data-nd-look\]'\)\)\)\{ step\(\); const row = inPanel \? el\.closest\('\[data-nd-row\]'\) : null;\s*if \(row\)\{ ndRowGo\(row\.getAttribute\('data-nd-row'\)\); return; \}/);
   assert.match(L, /if \(inPanel && !t\.closest\('button, a, input, select, textarea'\) && \(el = t\.closest\('\[data-nd-row\]'\)\)\)\{/);
+});
+
+test('f1077 (6) a choice under an answer stays inside its panel, a chapter named in one language', () => {
+  const SRV = read('server/server.js');
+  assert.match(body(SRV, 'copilotWayForward'), /if \(h\.kind === 'guide'\) \{ try \{ const ch = HBK\.hbkChapterOf\(h\.ref\); if \(ch\) title = HBK\.hbkPlainOf\(ch\.title, cx && cx\.user && cx\.user\.lang === 'sv' \? 'sv' : 'en', srvHbkWord\);/);
+  assert.match(read('js/ai.js'), /data-ai-choice="\$\{i\}:\$\{j\}" title="\$\{_aiEsc\(c\.label\)\}"><span class="igd-ch-t">/);
+  assert.match(read('js/views/intelligence.js'), /data-ig-choice="\$\{i\}:\$\{j\}" title="\$\{igEsc\(c\.title\|\|c\.label\)\}"><span class="igd-ch-t">/);
+  assert.match(CSS, /\.igd-choices > \.ui-btn\{max-width:100%;min-width:0\}/);
+  assert.match(CSS, /\.igd-choices \.igd-ch-t\{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\}/);
 });
