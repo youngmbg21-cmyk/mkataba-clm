@@ -94,19 +94,20 @@ describe('f678 (1) the Workspace door opens Home, never the room', () => {
   test('1e every door named Workspace asks it first; the room only as the fallback', () => {
     const doors = INS.slice(INS.indexOf('function insDoorActs'), INS.indexOf('function insActsHtml'));
     const ws = doors.slice(doors.indexOf("k: 'door-ws'"), doors.indexOf('const all ='));
-    assert.ok(ws.indexOf('roomHomeLand(c.id)') > 0 && ws.indexOf('roomHomeLand(c.id)') < ws.indexOf('openWorkspace(c.id)'), 'the list panel\'s Workspace door');
-    assert.match(fnBody(REG, 'regRunRowAct'), /if\(act==='open'\)\{ if\(!\(window\.roomHomeLand&&roomHomeLand\(id\)\)\) openWorkspace\(id\); \}/, 'the Contracts row\'s ⋯ Workspace');
+    /* RE-POINTED 16 Nov 2026: the Workspace door opens the contract on purpose, so it asks for its Cover (f1085) */
+    assert.ok(ws.indexOf('roomHomeLand(c.id, { cover: true })') > 0 && ws.indexOf('roomHomeLand(c.id, { cover: true })') < ws.indexOf('openWorkspace(c.id)'), 'the list panel\'s Workspace door');
+    assert.match(fnBody(REG, 'regRunRowAct'), /if\(act==='open'\)\{ if\(!\(window\.roomHomeLand&&roomHomeLand\(id,\{ cover:true \}\)\)\) openWorkspace\(id\); \}/, 'the Contracts row\'s ⋯ Workspace');
     const igCode = strip(IG);
     const wsHandlers = igCode.match(/\[data-ig-ws\][^\n]*/g) || [];
     assert.ok(wsHandlers.length >= 2, 'Explorer\'s card and the strip');
     for (const h of wsHandlers.filter(x => /openWorkspace/.test(x)))
-      assert.match(h, /if\(!\(window\.roomHomeLand&&roomHomeLand\(id\)\)\) openWorkspace\(id\)/, h.slice(0, 120));
+      assert.match(h, /if\(!\(window\.roomHomeLand&&roomHomeLand\(id,\{ cover:true \}\)\)\) openWorkspace\(id\)/, h.slice(0, 120));
     assert.match(R('js/views/contract.js'), /roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS/, 'published');
     const HB = strip(R('js/views/homeboard.js'));
-    assert.match(HB, /if \(\(el = on\('\[data-hb-room\]'\)\)\)\{ const id = el\.getAttribute\('data-hb-room'\);\s*if \(!\(window\.roomHomeLand && roomHomeLand\(id\)\) && typeof openWorkspace === 'function'\) openWorkspace\(id\); return; \}/, 'the Board\'s contract card');
+    assert.match(HB, /if \(\(el = on\('\[data-hb-room\]'\)\)\)\{ const id = el\.getAttribute\('data-hb-room'\);\s*if \(!\(window\.roomHomeLand && roomHomeLand\(id, \{ cover: true \}\)\) && typeof openWorkspace === 'function'\) openWorkspace\(id\); return; \}/, 'the Board\'s contract card');
     const NG = strip(R('js/views/negotiation.js'));
     const ng = NG.slice(NG.indexOf("host.querySelectorAll('[data-rl-open-ws]')"), NG.indexOf("host.querySelectorAll('[data-rl-open-doc]')"));
-    assert.ok(ng.indexOf('roomHomeLand(c.id)') > 0 && ng.indexOf('roomHomeLand(c.id)') < ng.indexOf('openWorkspace(c.id)'), 'the Negotiate page\'s Open workspace');
+    assert.ok(ng.indexOf('roomHomeLand(c.id, { cover: true })') > 0 && ng.indexOf('roomHomeLand(c.id, { cover: true })') < ng.indexOf('openWorkspace(c.id)'), 'the Negotiate page\'s Open workspace');
   });
   /* the plain landing, run on its own: a face left open is put away */
   test('1f pdOpenOnHome(\'plain\') puts away a face left open on that contract; \'copilot\' keeps it', () => {

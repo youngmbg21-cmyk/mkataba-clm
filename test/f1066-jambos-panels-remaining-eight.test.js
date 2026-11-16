@@ -24,14 +24,14 @@ const region = (src, start, end) => { const i = src.indexOf(start); assert.ok(i 
 const NEGO = read('js/views/negotiation.js'), PD = read('js/paperdesk.js');
 
 test('f1066 (1) the Redlines face: one switch, a headline, Send all in a card, the Ladder its own face', () => {
-  assert.match(NEGO, /\$\{five \? `<span class="rl-seg" role="group">\$\{five\.seg\}\$\{rlHeadNotesHtml\(c, opts\)\}\$\{rlHeadDealHtml\(c, opts\)\}<\/span>/, 'the switch, inside the head');
+  assert.match(NEGO, /\$\{five \? `<span class="rl-seg" role="group">\$\{five\.seg\}\$\{rlHeadNotesHtml\(c, opts\)\}\$\{rlHeadLadderHtml\(c, opts\)\}<\/span>/, 'the switch, inside the head (its Deal removed, f1084)');
   const f = region(NEGO, 'function rlFiveHead(c, opts, k){', 'function rlTheirViewFive(');
   assert.match(f, /opts\.dealDoor && rlHeadOurs\(opts\)/, 'Jambo\'s face, our seat');
   assert.match(f, /data-rl-head-changes=/);
   /* RE-POINTED (owner's pick, 16 Nov 2026, "Cards first"): Send all ends the head's one line, no card and no headline on Changes */
   assert.match(NEGO, /five && sendH && !five\.lad && !notesOn \? `<div class="rl-five-act is-line">\$\{sendH\}<\/div>`/, 'Send all on the head\'s line, not on Notes or the Ladder');
   assert.match(NEGO, /\$\{five && five\.lad \? ' is-ladder-face' : ''\}/);
-  assert.match(PD, /if \(t\.closest\('\[data-rl-head-changes\]'\)\)\{[^\n]*\n[^\n]*\[data-rl-notes-all\]\[aria-pressed="true"\][^\n]*\[data-rl-ladder\]\[aria-expanded="true"\][^\n]*\[data-rl-deal\]\[aria-pressed="true"\]/, 'Changes presses back the one that stands');
+  assert.match(PD, /if \(t\.closest\('\[data-rl-head-changes\]'\)\)\{[^\n]*\n[^\n]*\[data-rl-notes-all\]\[aria-pressed="true"\][^\n]*\[data-rl-ladder\]\[aria-expanded="true"\]/, 'Changes presses back the one that stands');
   assert.match(read('index.html'), /#rl-changes-col\.is-ladder-face #nego-cards, html\.lg-new #ig-dock #rl-changes-col\.is-ladder-face #rl-risks\{display:none\}/, 'the Ladder face drawn whole by its own block');
   const lad = region(NEGO, 'function rlLadderFiveHtml(', '/* their view, the five parts');
   assert.match(lad, /ladderRungs|rungs\.map\(r =>/); assert.match(lad, /ladderStand\(c, id, side\)/, 'the steps as rows, then the playbook (owner: the card-in-card ladder was too cluttered)');
@@ -49,11 +49,13 @@ test('f1066 (2) their view says whose eyes these are, and its way back', () => {
   assert.equal((NEGO.match(/class="rl-cards-empty"/g) || []).length, 2, 'f246 still holds');
 });
 
-test('f1066 (3) Where we are, Deal and Clauses after a reading, by their own presses', () => {
-  const ws = region(PD, 'function pd2StandsFaceHtml(c){', 'return `<div class="pd2-st-face">');
-  assert.match(ws, /attr: may \? `data-ds-share data-ds-cid="\$\{E\(c\.id\)\}"`/);
-  const dl = region(NEGO, 'function dealPanelNewHtml(c){', 'function dealPlanMemoText(');
-  assert.match(dl, /attr: `data-deal-sendall="\$\{id\}"`/); assert.match(dl, /attr: `data-deal-chase="\$\{id\}"`/); assert.match(dl, /data-deal-ask="\$\{_nea\(f\.by\.rule\[0\]\.r\.clauseId\)\}"/);
+test('f1066 (3) Where we are and Clauses after a reading, by their own presses', () => {
+  /* RE-POINTED 16 Nov 2026 (owner: the owner-side "Where the deal stands" page is deleted; the Cover says where it stands,
+     f1085): its face is gone and its door opens the Cover */
+  assert.ok(!/function pd2StandsFaceHtml\(/.test(PD), 'the Where-we-are face is gone');
+  assert.match(PD, /function pd2StandsOpen\(id\)\{ return pdCoverOpen\(id\); \}/);
+  /* the Deal's panel (dealPanelNewHtml) was removed with the close plan (owner, 16 Nov 2026, f1084) */
+  assert.ok(!/function dealPanelNewHtml\(/.test(NEGO), 'the Deal panel is gone');
   const cl = region(read('js/views/breakdown.js'), 'function stkMarqueeHtml(c, all, busy){', 'THE SAME HEAD AS REDLINES');
   /* RE-POINTED (owner, 16 Nov 2026: "move the start with liability part to the top where clauses review is and remove
      everything else in between"; f1073): one line, where to start read off the one tally — no headline, no counts */

@@ -236,7 +236,7 @@ const BRAIN_PARTS = [
      Jambo's panel draws the Negotiate page's own column; doors from outside land here */
   ['redface', 'pdRedOpen', 'see', 0],
   /* the contract's views on the Board (the one-page Home plan, stage 4, 14 Oct
-     2026): the deal board, obligations and history of the contract on the paper */
+     2026): the obligations and history of the contract on the paper (its deal board view removed, 16 Nov 2026) */
   ['boardviews', 'hbOpenView', 'see', 0],
   /* bring a contract up (the one door, hbStripBring; the Lifeline strip it landed on is gone, owner, 9 Nov 2026):
      it lands on the paper with its Dossier; Where we are and History open in the middle beside it */

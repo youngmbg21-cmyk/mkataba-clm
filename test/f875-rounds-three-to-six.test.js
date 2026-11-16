@@ -78,11 +78,8 @@ describe('f875 (3) beside the paper', () => {
   test('3g the chat window says the brain line only while the brain is not live', () => {
     assert.match(fnRegion(R('js/ai.js'), 'updateAiBrainPill'), /el\.hidden=!!b\.live;/);
   });
-  test('3h the Deal page (the Legora way of 24 Oct, replaced by the Close Plan on 25 Oct): each point under what to do with it, §N beside its name', () => {
-    const f = fnRegion(R('js/views/negotiation.js'), 'dealViewHtml');
-    assert.match(f, /dealPlanFacts\(c, side\)/);
-    assert.match(f, /class="deal-pr\$\{/);
-    assert.match(f, /s\.sec \?/);
+  test('3h the Deal page is gone (owner, 16 Nov 2026, f1084)', () => {
+    assert.doesNotMatch(R('js/views/negotiation.js'), /function (dealViewHtml|dealPlanFacts)\(/);
   });
 });
 
@@ -118,7 +115,7 @@ describe('f875 (5) the other side\'s page, and the old room', () => {
     assert.match(PO, /\$\{portalOtherHtml\('po_other_answers'\)\}/);
   });
   test('5c a door that opened the old room lands on the paper with its Dossier', () => {
-    assert.match(fnRegion(R('js/views/boardstrip.js'), 'roomRetiredLand'), /if \(page === 'ov' && typeof roomHomeLand === 'function'\)\{ const r = roomHomeLand\(id\); if \(r !== false\) return true; \}/);
+    assert.match(fnRegion(R('js/views/boardstrip.js'), 'roomRetiredLand'), /if \(page === 'ov' && typeof roomHomeLand === 'function'\)\{ const r = roomHomeLand\(id, \{ cover: true \}\); if \(r !== false\) return true; \}/);
   });
 });
 

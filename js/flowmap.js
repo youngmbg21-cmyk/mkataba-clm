@@ -49,7 +49,7 @@ const FLOW_MAP = [
     a: [['draft', _w('Start the draft → the one form, filled', 'Börja utkastet → formuläret, ifyllt')]], d: ['draft', 'ourpaper', 'people'],
     p: [['draft', _w('the paper that fits', 'pappret som passar')]] },
   /* ---- READ & FILL ---- */
-  { k: 'document', st: 'read', hub: true, s: _w('THE HUB: a contract\'s paper and Dossier; every door lands here', 'NAVET: avtalets papper och dossier; varje dörr landar här'),
+  { k: 'document', st: 'read', hub: true, s: _w('THE HUB: a contract opened on purpose shows its Cover first, then its paper and Dossier; every door lands here', 'NAVET: ett avtal som öppnas med avsikt visar först sitt omslag, sedan papper och dossier; varje dörr landar här'),
     a: [], d: ['brief', 'fill', 'redline', 'sign', 'history'],
     p: [['fill', _w('fill in what is owed', 'fyll i det som saknas')], ['approvals', _w('answer the approval', 'svara på godkännandet')], ['share', _w('send what waits', 'skicka det som väntar')]] },
   { k: 'brief', st: 'read', s: _w('Jambo\'s one reading of this wording', 'Jambos enda läsning av denna text'),

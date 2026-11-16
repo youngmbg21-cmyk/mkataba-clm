@@ -245,8 +245,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         'lineHeight', 'fontFeatureSettings', 'webkitFontSmoothing'].forEach(p => { o[p] = s[p]; });
       return o;
     });
+    /* RE-POINTED 16 Nov 2026 (the Deal board is gone, f1084): the reading switch keeps one tab, Redlined, and it is lit,
+       so the resting half of that page's other switch, the seat's Ours · Counterparty, is the reference now */
     check('5-ref the reference control really is on screen and resting',
-      ref && /agreed|changes|board|redline/i.test(ref._txt), ref && ref._txt);
+      ref && /agreed|changes|board|redline|counterparty|ours/i.test(ref._txt), ref && ref._txt);
 
     /* ================= 3 · THE SIDEBAR COUNTS ============================== */
     /* STANDING ON NEGOTIATIONS ON PURPOSE — see the header. This is the seat

@@ -19008,9 +19008,6 @@
   html.lg-new .rl-also .h{margin:0 0 4px; font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-text)}
   html.lg-new .rl-also .q{margin:0; font-family:var(--font-doc); color:var(--color-text); line-height:1.55}
   html.lg-new .rl-also .av{margin-top:var(--s-2)}
-  html.lg-new #pd2-notes .pd2-mg.is-on{outline:1.5px solid var(--st-amber-line);outline-offset:6px;border-radius:var(--radius-sm);background:var(--st-amber-bg)}
-  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open.pd2-lit{box-shadow:inset 0 0 0 1.5px var(--st-amber-line);border-radius:var(--radius-sm)}
-  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.is-open.pd2-lit::after{background:var(--st-amber-dot)}
   /* Clauses, as drawn: the head says what the list is; each row's own reading on its right; a fine clause's dot green; the Preamble first */
   html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view{display:flex;align-items:baseline;gap:8px}
   html.lg-new #ig-dock .pd-th .stk-head.is-mq .stk-view b{font-family:var(--font-title);font-size:17px;font-weight:var(--w-title-serif)}
@@ -19043,6 +19040,9 @@
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead[data-n]{background:var(--st-green-bg);color:var(--st-green-fg)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open:not(.stk-b-need):not(.stk-b-look):not(.stk-b-ok) .doc-th-bead[data-n]{background:var(--accent-solid);color:var(--surface-3)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-num{display:none}
+  /* A CLAUSE WITH NO NUMBER (owner, 16 Nov 2026, MK-301's "Company Information"): the row has no left room for a
+     floating dot here, so its small dot stands in the marks' own 26px slot, beside the name, never over its first letter */
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-bead:not([data-n]){position:static;flex:none;width:8px;height:8px;margin:0 9px}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-name{flex:1;min-width:0;font-size:13px}
   /* the open clause: no card, no grey; an amber line at its left (the paper's own mark for what needs you), 14px inside it */
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open.pd2-lit{margin:0;padding:0 0 10px 14px;border-top-color:var(--color-divider);border-radius:0;background:none;box-shadow:inset 2px 0 0 var(--st-amber-dot)}
@@ -21554,10 +21554,94 @@
   /* a page head standing outside a card (People & roles' "‹ Settings") keeps the sheet's 16 in */
   html.lg-new #set-page.st-cr .st-pg-head:not(.st-pg-card .st-pg-head){padding:12px 16px 0}
   html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  /* THE COVER (owner picked "Margin Notes", 16 Nov 2026; pdCoverHtml): the contract's title page on the desk with Jambo's
+     notes in its margin; on the right whose move it is, the road, one count with its door, Lately and Coming up, the two
+     ways on. A page over the paper and the panel (openModal page, bare). Tokens only. */
+  html.lg-new #modal-root [data-dlg-page].is-cover .dlg-pg-head{display:none}
+  html.lg-new #modal-root [data-dlg-page].is-cover .dlg-pg-body{padding:0;overflow:auto}
+  html.lg-new #modal-root [data-dlg-page].is-cover .dlg-pg-body > .cv-page{padding:0;margin:0}
+  html.lg-new .cv-page{display:grid;grid-template-columns:minmax(520px,42%) minmax(0,1fr);min-height:100%;background:var(--color-surface);color:var(--color-text)}
+  html.lg-new .cv-desk{position:relative;background:var(--surface-2);display:grid;align-items:center;justify-items:start;padding:24px 160px 24px 40px}
+  html.lg-new .cv-paper{position:relative;width:100%;max-width:400px;min-height:560px;box-sizing:border-box;background:var(--color-surface);box-shadow:var(--shadow-paper, var(--shadow-lg));padding:44px 30px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;font-family:var(--font-doc)}
+  html.lg-new .cv-k{font-family:var(--font-sans, inherit);font-size:11px;letter-spacing:.3em;color:var(--color-neutral-400)}
+  html.lg-new .cv-t{font-family:var(--font-doc);font-size:30px;font-weight:var(--w-strong);line-height:1.15;margin:18px 0 4px;text-wrap:balance}
+  html.lg-new .cv-ty{font-size:15px;color:var(--color-quiet)}
+  html.lg-new .cv-paper hr{width:44px;border:0;border-top:1px solid var(--rule-strong);margin:18px 0}
+  html.lg-new .cv-bt{font-size:13px;font-style:italic;color:var(--color-neutral-400);margin-bottom:12px}
+  html.lg-new .cv-face{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;width:100%}
+  html.lg-new .cv-face .cv-p{display:grid;justify-items:center;gap:4px}
+  html.lg-new .cv-face .cv-av{width:44px;height:44px;font-size:14px}
+  html.lg-new .cv-and{font-style:italic;font-size:14px;color:var(--color-neutral-400)}
+  html.lg-new .cv-p b{display:block;font-size:15px;font-weight:var(--w-strong);line-height:1.25;overflow-wrap:anywhere}
+  html.lg-new .cv-p small{display:block;font-family:var(--font-sans, inherit);font-size:11.5px;color:var(--color-neutral-400)}
+  html.lg-new .cv-p small.is-am{color:var(--st-amber-fg)}
+  html.lg-new .cv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;width:100%;text-align:left}
+  html.lg-new .cv-grid .cv-p{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);min-width:0}
+  html.lg-new .cv-grid .cv-p > span:last-child{min-width:0}
+  html.lg-new .cv-grid .cv-p.is-more{justify-content:center;font-family:var(--font-sans, inherit);font-size:13px;color:var(--color-neutral-400)}
+  html.lg-new .cv-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;font-family:var(--font-sans, inherit);font-size:12px;font-weight:var(--w-strong);background:var(--color-surface);color:var(--color-text);box-shadow:inset 0 0 0 1.4px var(--color-text)}
+  html.lg-new .cv-av.is-us{background:var(--color-text);color:var(--color-surface);box-shadow:none}
+  html.lg-new .cv-av.is-sm{width:24px;height:24px;font-size:9.5px}
+  html.lg-new .cv-sum{margin-top:18px;width:100%;text-align:left;font-size:14px;line-height:1.45;border-top:1px solid var(--color-divider)}
+  html.lg-new .cv-sum div{display:grid;grid-template-columns:56px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .cv-sum span{font-family:var(--font-sans, inherit);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400);padding-top:2px}
+  html.lg-new .cv-foot{margin-top:auto;padding-top:18px;font-family:var(--font-sans, inherit);font-size:12px;color:var(--color-neutral-400);display:grid;gap:2px}
+  html.lg-new .cv-stamp{position:absolute;right:24px;bottom:84px;transform:rotate(-8deg);border:2px solid var(--st-green-dot);color:var(--st-green-fg);background:var(--color-surface);font-family:var(--font-sans, inherit);font-size:12px;letter-spacing:.14em;font-weight:var(--w-strong);padding:4px 10px;border-radius:6px}
+  html.lg-new .cv-notes{position:absolute;top:24px;bottom:24px;right:16px;width:132px;display:flex;flex-direction:column;justify-content:center;gap:28px}
+  html.lg-new .cv-note{font-size:12.5px;line-height:1.4;color:var(--color-quiet);border-left:2px solid var(--rule-strong);padding:2px 0 2px 8px}
+  html.lg-new .cv-note b{display:block;font-size:12px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .cv-note.is-a{color:var(--st-amber-fg);border-left-color:var(--st-amber-dot)}
+  html.lg-new .cv-r{display:flex;flex-direction:column;padding:32px 56px 24px 48px;min-width:0}
+  html.lg-new .cv-top{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-neutral-400)}
+  html.lg-new .cv-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:var(--w-label);padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .cv-chip i{width:8px;height:8px;border-radius:50%;background:var(--st-gray-dot)}
+  html.lg-new .cv-chip.is-a{background:var(--st-amber-bg);color:var(--st-amber-fg)} html.lg-new .cv-chip.is-a i{background:var(--st-amber-dot)}
+  html.lg-new .cv-chip.is-g{background:var(--st-green-bg);color:var(--st-green-fg)} html.lg-new .cv-chip.is-g i{background:var(--st-green-dot)}
+  html.lg-new .cv-h{font-family:var(--font-title);font-size:44px;font-weight:var(--w-title-serif, var(--w-strong));line-height:1.08;margin:20px 0 10px}
+  html.lg-new .cv-why{margin:0;font-size:17px;line-height:1.55;max-width:46ch}
+  html.lg-new .cv-road{display:grid;grid-template-columns:repeat(6,1fr);position:relative;margin:24px 0 20px}
+  html.lg-new .cv-road::before{content:"";position:absolute;left:8.33%;right:8.33%;top:9px;height:2px;background:var(--rule-strong)}
+  html.lg-new .cv-st{display:grid;justify-items:center;align-content:start;gap:6px;position:relative;font-size:13px;text-align:center}
+  html.lg-new .cv-st i{width:20px;height:20px;border-radius:50%;background:var(--color-surface);box-shadow:inset 0 0 0 2px var(--rule-strong);display:grid;place-items:center;font-style:normal;font-size:11px;color:var(--color-surface)}
+  html.lg-new .cv-st.is-done i{background:var(--color-text);box-shadow:none}
+  html.lg-new .cv-st.is-now i{background:var(--st-amber-dot);box-shadow:0 0 0 5px var(--st-amber-bg)}
+  html.lg-new .cv-st.is-owe i{box-shadow:inset 0 0 0 2px var(--st-amber-dot)}
+  html.lg-new .cv-st b{font-weight:var(--w-label)} html.lg-new .cv-st small{font-size:12px;color:var(--st-amber-fg)}
+  html.lg-new .cv-page[data-cv-stage="live"] .cv-st:last-child i{background:var(--st-green-dot)}
+  html.lg-new .cv-count{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;background:var(--surface-2)}
+  html.lg-new .cv-count.is-a{background:var(--st-amber-bg)} html.lg-new .cv-count.is-g{background:var(--st-green-bg)}
+  html.lg-new .cv-n{font-family:var(--font-title);font-size:40px;font-weight:var(--w-strong);line-height:1;color:var(--color-quiet)}
+  html.lg-new .cv-count.is-a .cv-n, html.lg-new .cv-count.is-a .cv-ct span{color:var(--st-amber-fg)}
+  html.lg-new .cv-count.is-g .cv-n, html.lg-new .cv-count.is-g .cv-ct span{color:var(--st-green-fg)}
+  html.lg-new .cv-ct{display:grid;font-size:15px;line-height:1.35;min-width:0} html.lg-new .cv-ct b{font-weight:var(--w-strong)} html.lg-new .cv-ct span{font-size:13px;color:var(--color-neutral-400)}
+  html.lg-new .cv-lnk{border:0;background:none;padding:0;font:inherit;font-size:14px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .cv-count .cv-lnk{margin-left:auto}
+  html.lg-new .cv-more{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:22px}
+  html.lg-new .cv-more .cv-lbl{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400);font-weight:var(--w-label)}
+  html.lg-new .cv-more p{display:flex;gap:10px;align-items:flex-start;margin:0;padding:8px 0;border-top:1px solid var(--color-divider);font-size:13.5px;line-height:1.4}
+  html.lg-new .cv-more p.is-none{color:var(--color-neutral-400)}
+  html.lg-new .cv-more p small{display:block;font-size:12px;color:var(--color-neutral-400);margin-top:1px}
+  html.lg-new .cv-cal{flex:none;width:28px;display:grid;justify-items:center;font-size:9.5px;color:var(--color-neutral-400);line-height:1.1;text-transform:uppercase}
+  html.lg-new .cv-cal b{font-size:14px;color:var(--color-text);font-weight:var(--w-strong)}
+  html.lg-new .cv-go{margin-top:auto;padding-top:22px;display:grid;gap:12px;justify-items:center}
+  html.lg-new .cv-go .cv-open{width:100%;height:54px;font-size:17px;border-radius:12px;justify-content:center}
+  /* REDLINES' NOTES ARE THE BAR'S NOTES (owner, 16 Nov 2026): the face paints the bar's own builder (rlFaceNotesWire);
+     the contract's name line is left out here, the page already names it */
+  html.lg-new #ig-dock .rl-fn-same .rl-chat > .rl-np-which{display:none}
 </style>
 <style>
   /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */
   :is([class*="cost"], [class*="-free"], .pd2-q, .ag-sub, .pd2-ch-door > span, .rfp-ask > span, .ctfp-door > span):empty{display:none}
+  /* NO GREEN RING ON A FIELD, ANYWHERE (owner, 16 Nov 2026, over the Notes box: "i have continuously stated that i do
+     not want any green outlines in the entry fields across Hati. Fix this once and for all"). ONE RULE, LAST, every
+     place a person types: no outline and no glow, pressed or keyed to — the caret says where you are. The house ring
+     (button:focus-visible,…), the forms' green glow and every box's own ring lose to it by weight (:not(#_) twice) and
+     by order. Its own block, after the new look's (the HARMONY block holds only html.lg-new rules, f977). A field whose edge turned green now darkens to the ink instead; a box that holds a field the same. In
+     every look and on their page too. Buttons, tabs and rows keep their ring (keyboard use needs it). */
+  html:not(#_):not(#_) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"], [type="image"]), textarea, select, [contenteditable]:not([contenteditable="false"])):is(:focus, :focus-visible){outline:none;box-shadow:none}
+  html:not(#_):not(#_) :is(.na-inp, .field, .hati-editor, #na-root .na-kt-grid input, [data-kt], [data-ktm], .cd-fld :is(input, select, textarea)):focus{border-color:var(--color-text)}
+  html:not(#_):not(#_) :is(.sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .rl-np-box):focus-within{outline:none;box-shadow:none;border-color:var(--color-text)}
+  html:not(#_):not(#_) .jb-card:focus-within{outline:none;box-shadow:none}
 </style>
 
 

@@ -88,7 +88,7 @@ function roomRetiredLand(id, tab){
   const page = tab === 'stands' ? 'where' : tab === 'history' ? 'hist' : 'ov';
   /* RETIRE THE OLD ROOM (Round 5, owner's yes 24 Oct 2026): a door that opened the room lands on the paper with
      its Dossier (roomHomeLand, the one landing); Where we are and History keep their own pages */
-  if (page === 'ov' && typeof roomHomeLand === 'function'){ const r = roomHomeLand(id); if (r !== false) return true; }
+  if (page === 'ov' && typeof roomHomeLand === 'function'){ const r = roomHomeLand(id, { cover: true }); if (r !== false) return true; }
   return hbStripBring(id, page);
 }
 /* the Dossier beside the paper is drawn again when a reading here moved (the strip's repaint, before) */

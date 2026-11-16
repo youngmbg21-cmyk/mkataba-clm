@@ -5043,7 +5043,11 @@ function roomHomeLand(id, opts){
      lands on the paper and its Dossier, whose Next card carries "Fill in the contract ›" while details are owed; the
      form is its own door's (pdFillOpen), never a Workspace door's */
   void owed; void may;
-  return !!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open');
+  /* THE COVER (owner, 16 Nov 2026): a door that opens the contract itself says so (opts.cover); a door on its way to a
+     job inside it lands on the paper alone */
+  const ok=!!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open',{ cover:false });
+  if(ok&&opts&&opts.cover&&typeof window.pdCoverLand==='function') window.pdCoverLand(c.id);
+  return ok;
 }
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5
@@ -15425,8 +15429,10 @@ function docThreadRowHtml(x,i){
   /* THE CLAUSE LIST AS DRAWN (Jambo's panels, round 3b; owner, 15 Nov 2026: the list's BEHAVIOUR stays — it follows
      the paper, the clause the paper reaches opens, a press moves the paper — its look follows the drawing): on Home in
      the new look the clause's number stands in its round mark. The name's text is unchanged (what reads it still reads
-     "1. Definitions"): the number is wrapped, and the style folds it away where the mark shows it. */
-  const lab=docXrayLabel(x), num=(thOnHome()&&typeof window.newLookOn==='function'&&newLookOn())?(lab.match(/^(\d+(?:\.\d+)*)\.?\s+/)||null):null;
+     "1. Definitions"): the number is wrapped, and the style folds it away where the mark shows it.
+     A number written "1:" or "1)" is a number too (owner, 16 Nov 2026: MK-301's "1: Orders and Deliveries" drew a dot over
+     its first letter); a clause with no number keeps its small dot, in the same slot as the marks (index.html). */
+  const lab=docXrayLabel(x), num=(thOnHome()&&typeof window.newLookOn==='function'&&newLookOn())?(lab.match(/^(\d+(?:\.\d+)*)[.:)]?\s+/)||null):null;
   return `<div class="doc-th-row${tone?' is-'+tone:''}" data-th-row="${i}" role="listitem">
     <div class="doc-th-head">
       <button type="button" class="doc-th-go" data-th-go="${i}" aria-expanded="false">
