@@ -149,7 +149,8 @@ describe('f869 (2) the bell\'s signals: news apart, work never lost, never twice
     const b = h.slice(0, h.indexOf('return; }') + 9);
     assert.match(b, /ndRead\(\)\.you\.find\(x => x\.key === k\)/);
     assert.match(b, /step\(\);[\s\S]*r\.al\.go\(\)/);
-    assert.match(CN, /const inPanel = !!t\.closest\('#panel-body \.nd-pan'\);/);
+    /* the new look's bell list (.ndb) is the panel too (f1077 (5)) */
+    assert.match(CN, /const inPanel = !!t\.closest\('#panel-body \.nd-pan, #panel-body \.ndb'\);/);
   });
 });
 

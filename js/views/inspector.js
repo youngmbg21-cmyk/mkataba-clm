@@ -387,7 +387,7 @@ function insDoorActs(c, opt){
        paper while anything is owed, else the paper on Jambo's tab — the one
        landing every Workspace door shares (roomHomeLand). The phone, where
        Home has no paper, keeps the room. */
-    run: () => { if (typeof roomHomeLand === 'function' && roomHomeLand(c.id)) return;
+    run: () => { if (typeof roomHomeLand === 'function' && roomHomeLand(c.id, { cover: true })) return;
       openWorkspace(c.id); try { const live = getContract(c.id) || c;
       let left = 0; try { left = (typeof detailsOf === 'function') ? detailsOf(live).left : 0; } catch (_){ left = 0; }
       if (typeof roomGoTab === 'function') roomGoTab(live, left ? 'details' : 'terms'); } catch (_){} } };

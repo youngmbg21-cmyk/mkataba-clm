@@ -14568,7 +14568,11 @@ function copilotWayForward(cx, question, why) {
   for (const h of hits) {
     const door = aiDoorOf(hsDoorOf(h), cx);
     if (!door) continue;
-    const label = [h.title || h.contractName || '', h.contractId && h.kind !== 'contract' ? (h.contractNo || h.contractId) : ''].filter(Boolean).join(' · ').slice(0, 80);
+    /* a chapter is named in the reader's language only: its search title carries both books ("Parties … · Parter …"),
+       which drew one long chip that ran out of the panel (owner, 16 Nov 2026) */
+    let title = h.title || h.contractName || '';
+    if (h.kind === 'guide') { try { const ch = HBK.hbkChapterOf(h.ref); if (ch) title = HBK.hbkPlainOf(ch.title, cx && cx.user && cx.user.lang === 'sv' ? 'sv' : 'en', srvHbkWord); } catch (_) { /* the search title stands */ } }
+    const label = [title, h.contractId && h.kind !== 'contract' ? (h.contractNo || h.contractId) : ''].filter(Boolean).join(' · ').slice(0, 80);
     if (!label || seen.has(label)) continue;
     seen.add(label); choices.push({ label, door });
     if (choices.length >= 4) break;
@@ -23206,17 +23210,17 @@ function homeGiftSpec(b){
   return str.length <= 4000 ? str : null;
 }
 /* A CONTRACT'S VIEW is given by its name too (kind 'cv'; the one-page Home
-   plan, stage 4, 14 Oct 2026): which view — deal board, obligations, history —
-   and which contract, never a figure. The giver must be able to open the
+   plan, stage 4, 14 Oct 2026): which view — obligations, history (the deal
+   board view was removed by the owner, 16 Nov 2026, f1084) — and which contract, never a figure. The giver must be able to open the
    contract (it reads as not found otherwise, as every contract route does),
    and so must the colleague: the Board draws it from their own reach, so a
    gift they could never open is refused in words rather than kept. */
-const HOME_GIFT_CVIEWS = ['deal', 'oblig', 'hist'];
+const HOME_GIFT_CVIEWS = ['oblig', 'hist'];
 function homeGiftCvSpec(b, giver, taker){
   const v = b && typeof b === 'object' ? b : null;
   const view = v && typeof v.v === 'string' ? v.v : '';
   const cid = v && typeof v.cid === 'string' ? v.cid.trim().slice(0, 120) : '';
-  if (!HOME_GIFT_CVIEWS.includes(view) || !cid) return { error: 'A contract’s view is given by its name: deal, oblig or hist, and the contract’s id.', code: 400 };
+  if (!HOME_GIFT_CVIEWS.includes(view) || !cid) return { error: 'A contract’s view is given by its name: oblig or hist, and the contract’s id.', code: 400 };
   const row = db.prepare('SELECT folder FROM contracts WHERE id=?').get(cid);
   if (!row || !inScope(folderScopeFor(giver), row.folder)) return { error: 'Contract not found', code: 404 };
   if (!inScope(folderScopeFor(taker), row.folder)) return { error: `${taker.name} cannot open this contract, so it cannot be given to them.`, code: 400 };

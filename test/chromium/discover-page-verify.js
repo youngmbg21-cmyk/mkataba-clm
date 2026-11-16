@@ -98,11 +98,12 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       if (four) await page.click('#dsc-go');
       const live = four && await until(page, () => /^Reading/.test((document.querySelector('#rd-page .ctf-h') || {}).innerText || '') && !!document.getElementById('dsc-stop'), null, 15000);
       await shot('5-reading');
-      const done = live && await until(page, () => !(window.AC && AC.busy) && !!document.querySelector('#rd-page [data-dsn-results]'), null, 40000);
-      if (done) await page.click('#rd-page [data-dsn-results]');
-      const after = done && await until(page, () => !!document.getElementById('dsn-q'), null, 15000);
+      /* RE-POINTED (owner, 16 Nov 2026: "once the run is over, it should immediately jump to the results page instead of
+         leaving us to press to get there"; f1072): a read that finished lands on its results by itself — no press */
+      const done = live && await until(page, () => !(window.AC && AC.busy) && !!document.getElementById('dsn-q'), null, 40000);
+      const after = done && !(await page.$('#rd-page [data-dsn-results]'));
       const D = after ? await page.evaluate(() => ({ view: state.view, sub: (document.querySelector('#rd-page .rdsc-sub') || {}).innerText || '', rows: document.querySelectorAll('#rd-page tr[data-dsn-row]').length, cols: (state.reg && state.reg.ask) || [] })) : {};
-      check(`${nm} 4b the read stands on its own screen with Stop, then Open the results: the 4 of that folder, said where; the page never left; no column was brought onto Contracts`,
+      check(`${nm} 4b the read stands on its own screen with Stop, then lands on its results by itself: the 4 of that folder, said where; the page never left; no column was brought onto Contracts`,
         live && done && after && D.view === 'reads' && /Procurement/.test(D.sub) && /4 of 4 read/.test(D.sub) && D.rows === 4 && !views.includes('register') && !D.cols.length
         && (!h.ai || !h.ai.calls || h.ai.calls.length > calls0), { live, done, after, D, views });
       await shot('6-after');

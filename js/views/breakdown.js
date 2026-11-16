@@ -393,22 +393,20 @@ function stkClauseName(at){
 function stkNewLookOn(){ return typeof window.newLookOn === 'function' && !!window.newLookOn(); }
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
-  /* THE FIVE PARTS (Jambo's panels, the remaining eight; owner, 15 Nov 2026: "build all eight"): what the reading found
-     as the headline, where to start as its sentence, three numbers (needs you · worth a look · fine) counted off the
-     one reading (stkClauseTally) — the same counts the rows say. The company view's line stays (folded) for what reads
-     it; the list under it is untouched and still follows the paper. */
-  if (stkNewLookOn() && typeof jov5HeadHtml === 'function'){
+  /* THE LEGORA WAY (owner's pick, 16 Nov 2026: "move the start with liability part to the top where clauses review is
+     and remove everything else in between"; "Build the legora way"): the panel gives its room to the clauses — ONE line,
+     Clause review · the contract · where to start, then the list at once. No headline, no numbers (the Clauses tab's
+     number says how many need you), no "In this contract" label (kept in the page, unseen, for what reads it). Where to
+     start is read off the one reading (stkClauseTally); the company view's line stays folded for what reads it. */
+  if (stkNewLookOn()){
     const ats = Object.keys(T.live).map(Number).sort((a, b) => a - b);
     const lead = ats.find(at => T.live[at].has('need')), look = ats.find(at => T.live[at].has('look'));
     const at0 = lead != null ? lead : look;
     const who = typeof pd2CardWho === 'function' ? pd2CardWho(c) : '';
-    const title = T.need ? i18tn('jov5_cl_need_t', T.need, { n: T.need }) : T.look ? i18tn('jov5_cl_look_t', T.look, { n: T.look }) : i18t('jov5_cl_fine_t');
-    const g = (n, l, warn) => `<div class="jov5-g${warn ? ' is-warn' : ''}"><b>${n}</b><span>${E(l)}</span></div>`;
-    return `${stkViewHtml()}${jov5HeadHtml({ eyebrow: [i18t('stk_head'), who].filter(Boolean).join(' \u00b7 '), title, sub: at0 != null ? i18t('jov5_cl_start', { name: stkClauseName(at0) }) : '' })}`
-      + `<div class="jov5-glance">${g(T.need, i18t('jov5_cl_g_need'), T.need > 0)}${g(T.look, i18t('jov5_cl_g_look'))}${g(T.fine, i18t('jov5_cl_g_fine'))}</div>`
+    const go = at0 != null ? i18t('jov5_cl_start', { name: stkClauseName(at0) }) : (T.all ? i18t('jov5_cl_fine_t') : '');
+    return `${stkViewHtml()}<p class="stk-lg-top">${E([i18t('stk_head'), who].filter(Boolean).join(' \u00b7 '))}${go ? ` \u00b7 <b>${E(go)}</b>` : ''}</p>`
       + `${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
   }
-  if (stkNewLookOn()) return `${stkViewHtml()}${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}<div class="stk-all" data-stk-all></div>`;
   /* THE SAME HEAD AS REDLINES (owner picked "The SAP Way", 24 Oct 2026): the name in the serif, its count, then a
      grey line of what needs you — "Clauses 9 · 3 need you · 5 worth a look" — then the tabs */
   const said = [T.need ? i18t('stk_mq_need', { n: T.need }) : '', T.look ? i18t('stk_mq_look', { n: T.look }) : ''].filter(Boolean).join(' \u00b7 ');
@@ -563,10 +561,14 @@ function stkDecorate(c, card, rows){
         const fine = !words && !mine.some(p => !p.done && p.status !== 'fine');
         /* THE NEW LOOK, AS DRAWN: each row says its own short reading, the first point Jambo read on it, in its tone
            ("Three days to reject a load"; a clause read as fine says what it was read as, its dot green) */
-        const say = stkNewLookOn() ? (mine.find(p => !p.done && p.status !== 'fine') || mine.find(p => p.status === 'fine') || null) : null;
+        /* NO ORANGE SENTENCE ON THE ROW (owner, 16 Nov 2026: "in the clauses tab, remove the orange highlights"): a
+           clause with something live on it says it by its amber number and, opened, by its cards; the row keeps its
+           name and "read". A clause read as fine still says what it was read as. */
+        const live = mine.some(p => !p.done && p.status !== 'fine');
+        const say = stkNewLookOn() && !live ? (mine.find(p => p.status === 'fine') || null) : null;
         if (say && !words) row.classList.replace('stk-b-none', 'stk-b-ok');
         const parts = (say ? [`<span class="stk-n is-${words ? words.worst : 'fine'} is-say" title="${_bdE(say.stake || say.title)}">${_bdE(say.title)}</span>`]
-          : words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : (fine && !stkNewLookOn()) ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
+          : (words && !stkNewLookOn()) ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : (fine && !stkNewLookOn()) ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
         st.innerHTML = parts.join('<span class="doc-th-dot"> · </span>');
       }
       /* the open clause's cards, in the one order (stkReview), drawn once — UNDER its Plain English
@@ -1007,7 +1009,7 @@ function stkAllPaint(c, card){
   const going = _stkAll.run && _stkAll.id === String(c.id);
   let html;
   if (going) html = `<button type="button" class="stk-all-b" data-stk-all-stop>${E(i18t('stk_all_stop'))}</button><span class="stk-cost-n">${E(i18t('stk_all_going', { k: _stkAll.done, n: _stkAll.total }))}</span>`;
-  else if (!k) html = `<span class="stk-cost-n">${E(i18tn('stk_all_done', n, { n }))}</span>`;
+  else if (!k) html = stkNewLookOn() ? '' : `<span class="stk-cost-n">${E(i18tn('stk_all_done', n, { n }))}</span>`;
   else html = `<button type="button" class="stk-all-b" data-stk-all-go${noAi ? ` disabled aria-disabled="true" title="${E(i18t('th_no_ai'))}"` : ''}>${E(i18tn('stk_all_go', n, { n }))}</button><span class="stk-cost-n">${E([i18tn('pd2_n_calls', k, { n: k }), n - k ? i18tn('stk_all_read', n - k, { n: n - k }) : ''].filter(Boolean).join(' · '))}</span>`;
   if (slot.innerHTML !== html) slot.innerHTML = html;
 }

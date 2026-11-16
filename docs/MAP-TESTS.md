@@ -189,6 +189,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- f1086 (3) (16 Nov 2026): "1:" / "1)" is a number in the mark; an unnumbered clause's dot stands in the marks' slot, never over the name.
 - f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - f1010 (Start redlining opens the editor with no Redlines frame first; ‹ Clauses, Esc and the bar's ‹ land on the same clause); contract-new-look-verify 13e.
 - f1011 (Start redlining brings the clause's points to the editor, ticked, no numbers, words highlighted; one button through ceAsk; f505/f756 re-pointed); contract-new-look-verify 13f.
@@ -258,6 +259,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+- f1082 soft tint on the tiles (Import's figures, New agreement's cards): `node --test test/f1082-soft-tint-on-the-tiles.test.js`
 - A LANE'S LIMIT, READ BACK (the owner's yes, 27 Oct 2026): test/chromium/lane-limit-verify.js (new) — Settings › Request lanes says "Value limit · KES 5M" on a lane with one, nothing on one without, inside its row at the three screens; a save keeps it.
 - IMPORT STORES A SIGNING DAY ONLY WHERE ONE WAS READ (bug log batch 5, 27 Oct 2026): f946 (4) (new; red at the parent) — migBuildAndSave's signedAt is the manifest's signed day or null, never the start date.
 - A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
@@ -278,6 +280,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER'S RESULTS, THE OWNER'S FIVE (15 Nov 2026): f1058 (test/f1058-discover-results-round.test.js; 5 of 5 red at the parent) — a pack tiled by what was found, tiles coloured and chips wearing their tile's colour, the number under every name, every header sorts and reverses, both books.
 - BUILD A PACK, AND THE COLUMNS THAT LEAD (owner, 15 Nov 2026): f1061 (test/f1061-build-a-pack.test.js; 5 of 5 red at the parent) — the server's pack routes and walls, one pack in the row with a dropdown, the builder from our standards with its limit said, Number/Contract lead and a shared Party/Folder steps out, answer first, both books. Re-pointed: f1058 (3)(4), f1016 (3); f561 (the new routes named).
 - A QUESTION TURNED DOWN IS SHOWN HOW TO ASK IT (owner, 15 Nov 2026): f1064 (test/f1064-turned-down-shown-how-to-ask.test.js; 5 of 5 red at the parent) — the list words named and the rest turned into questions one contract can answer, none itself a counting question; words the rules cannot turn said so; turned down before the reading screen, a folded panel opened, no call; a press only fills the box, your words kept; both books and the Handbook. Re-ran green: f1016, f1055, f1057, f1058, f1061, f965, f937, f561, f232, f48, f1047. No browser check written yet (photos at the three screens only).
+- JAMBO'S PANEL ON DISCOVER, THE LEGORA WAY (owner, 15 Nov 2026): f1074 (test/f1074-discover-panel-the-legora-way.test.js; renumbered from f1071, which main also took; 5 of 5 red at the parent) — a read chosen: its question, one sentence counted from its answers with the page's own Read-the-rest press, the bar, each answer with its words opening the results on its tile, the long black button; nothing read yet: an example marked in yellow and the page's own New read; New read: five contracts by name then "and N more" with the parties, asked here before, what comes back, examples that only fill the box, a cap said; nothing spent, only tokens; both books. Re-pointed: f1016 (4) (Keep in Discover now stands in dslReadHtml). Re-ran green: f1055, f1057, f1058, f1061, f1062, f1063, f1064, f1040, f965, f967, f937, f232, f48. No browser check written (photos at the three screens only).
 - RENAME A COLUMN (8 Nov 2026): f976 (the route; 404 at the parent), reads-and-columns-as-drawn 5b.
 - DISCOVER IS A PAGE (12 Nov 2026): f1016 7 (the Contracts list's repaint waits while Discover is in front; red without `_acRegRepaint`). `node --test test/f1016-discover-is-a-page.test.js` (new; 0 of 6 at the parent c9aabab: the button by look, the one read over the list as filtered, the box · button · chips · tabs, the three panel faces, the quote in its place — dscSlice run on sample wording — the names in both books, Brain, flow map, Handbook); `node test/chromium/discover-page-verify.js` (new; GitHub only: the three screens, Contracts' pill, the page, open and close, asked with Stop in the box and a paper in the panel, Stop then Read the N left, nothing spills; pictures with DISCOVER_PAGE_SHOTS=<dir>). RE-POINTED: f954 4 (the Handbook title, ai.js names the page Discover), f705 1c (askOpen goes on to Discover in the new look), f986 (the row builder is dscRowHtml); browser, re-pointed unrun (GitHub will say): reads-and-columns-as-drawn 1 and 6, round6-new-look 6, reads-new-look-fixes 1, rows-only-on-a-press (Reads left out: it has an ask box, no filter box).
 - READS AND COLUMNS AS DRAWN (8 Nov 2026): reads-and-columns-as-drawn-verify (7 checks × three screens; red at the parent from 1). Re-pointed: round6-new-look 2 and 6; the cost re-points in ask-a-column, discover, jambo-asks, jambos-list-panel, reads, reading-desk (all green).
@@ -378,6 +381,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - KEY TERMS, THE LEGORA WAY (22 Oct 2026): `test/chromium/key-terms-legora-way-verify.js` (three screens, a drafted and an uploaded paper, every door and the way back, a reader; 18 red at 2a39d1b). Round 2, the head the SAP way: its parts 6 and 5b (7 red at dc50204).
 - A company standard's fields on the paper: f1029 (node; red at the parent); company-standard-on-the-paper-verify (browser, GitHub).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
+- THE COVER (16 Nov 2026): f1085 (4 checks, red at the parent); the-cover-verify (browser, GitHub: the three screens, Open the dossier, a job door skips it, Where we are opens it). Re-pointed: f1066 (3).
+- THE COVER, browser checks re-pointed (16 Nov 2026, run 43881067694): negotiate-new-look-verify 6 (Where we are is the Cover: headline, six stages, one count, Open the dossier); board-views-verify 4 (the Deal board door opens nothing, f1084); test/nav-read.js `mid` 'where' = `.cv-page` (door-exam-verify, nav-exam, jambo-doors); white-band-and-tabs-verify 5-ref (Deal board gone, f1084: the seat switch's resting half is the reference); panel-tidy-and-risk-footer-verify A4 (no glow round the card, f1082); a-refresh-lands-on-its-contract-verify 2b fixed in the product (a refresh's Cover/History comes back only while its contract is still in front, `hbPlacePut` midBack).
 - A NEGOTIATED CONTRACT'S CLEAN PAPER CARRIES ITS NOTES (owner-reported 6 Nov 2026, MK-469): notes-on-clean-paper-verify 1 (new, red at the parent: no notes on Clean), 2 (Redline keeps their asks).
 - THE MEMO LIVES IN THE CLOSE PLAN (new look, owner picked "Inside the close plan" 6 Nov 2026): memo-in-close-plan-verify 1–4 (new, red at the parent: the memo opened its old side panel; Deal had no Send to a colleague), 5 (look off: the memo panel as before). Its step 1 presses the More menu's Negotiation memo.
 - THE MORE MENU PRESSES ITS ROWS IN THE NEW LOOK (owner, 6 Nov 2026: "fix the More menu"): more-menu-new-look-verify 1–3 (new, red at the parent: every row dead), 4 (the unseen rows never shown).
@@ -386,6 +391,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f918 (the jw row's door).
 - deal-in-the-middle-verify (23 Oct 2026: Deal in the Redlines face at the three screens; the deal in the middle, Needs you lit, rows quoted under their §; All; ‹ Dossier and Esc back to the Dossier; Deal again and Open clause keep Redlines). Red at the parent (10 of 11).
 - THE CLOSE PLAN (25 Oct 2026): deal-in-the-middle-verify 2, 2b and 3 RE-POINTED to the plan (head "to close before … can sign", the road, memo on the way-back line, every point in a group, no tabs; nothing spills at the three screens; groups equal `dealPlanOf`, Send on the unsent draft, the memo is the plan). f936 (the reading against stubs, the page, the doors, both books; 10 of 12 red at eb67b55). f875 3h re-pointed off the Legora list. 3b (25 Oct, owner "Both"): a point they asked on opens on its name to both wordings whole and closes again (main's option 2 kept inside the plan); f936 2d (numbered f878 until main took f878).
+- THE DEAL TAB (THE CLOSE PLAN) AND THE DEAL BOARD REMOVED (owner, 16 Nov 2026): f1084 (new, red at the parent: (1)–(4)); f936 deleted; f313 (23)(34) and f675 (1b)(2b)(3)(4)(6b)(6d), f875 3h, f1066 (1)(3) re-pointed to "gone", f313 (40)–(43) deleted. Browser: deal-in-the-middle-verify 1 re-pointed (no Deal on the face; 2–7 deleted; 8–10 kept), memo-in-close-plan-verify 1 re-pointed (the memo's own side panel; 2–4 deleted), more-menu-new-look-verify 3, negotiate-new-look-verify 2/3/10, ladder-verify 6a (6b–6h and 20 deleted).
 
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
 - 21 Oct 2026 (overnight): where-we-are-verify 10a (the journey on the page's line; .ds-st spine rules scoped to .ds-spine).
@@ -400,6 +406,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE DOSSIER'S ONE CARD (8 Nov 2026): dossier-one-card-verify (3 checks × three screens; red at the parent on 1 and 2); contract-new-look 1 and 13c re-pointed.
 - test/chromium/the-read-bar-and-notes-verify.js (1–3 red at the parent; three screens): the read's bar the line's twin (13px, one line, every button whole); notes appear as the read reaches their clause and stay; Jambo's panel folded keeps the line's height and the brown ground. negotiate-new-look-verify 2 now expects Clean · Redline · Their view on the Redlines face.
 - one-zoom, one-paper-everywhere verify.
+- THE PAPER IN THE MIDDLE OF ITS ROOM (16 Nov 2026): contract-new-look-verify 4 (centred, or held left only by its notes, never nearer than 40) at the three screens plus a 2000×1000 desktop pass, 4c (centred with Jambo open, then closed); red at the parent.
 
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
 - f893, f225, f238, f277, f316, f377, f383, f458 (3), two-copies, paper-grows, readonly-copy, fill-the-document verify.
@@ -407,6 +414,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)
 - f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-drawer, home-paper-clauses, runway-and-xray, reading-in-the-background, xray-who-does-what verify.
 - 24 Oct 2026: Home's Track opens Clauses — f424 (2), track-on-the-paper-verify 4a–4d, analyze-on-the-graph-verify 2s4–2s8, document-tab-track-verify.
+- 16 Nov 2026: a close never stops the follow — f1075, f507 and f278 re-pointed, clause-list-fixed-verify 3b re-pointed.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
 - THE CHECK READS THE DUTIES RIGHT (bug log batch 6, 27 Oct 2026): f947 (2, 3) (new; red at the parent) — signCheckObligations asks obligationReminderTo(o) and hashes obligationsText(c), the words the scan stamped; f421 (s7)'s stub takes the duty alone.
@@ -455,6 +463,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - File / Save prominent (23 Oct 2026): deal-in-the-middle-verify 10; one-copilot-editor-verify 5a/5b re-pointed (rows read by their middles; ‹ › small, Save ≥30 tall and ≥110 wide).
 
 ## NOTES AND COMMENTS
+- f1087 (16 Nov 2026): the Notes face paints the bar's own builders; nothing lit amber beside the paper (contract-new-look-verify 13 re-pointed: nothing lit). Red at the parent.
 - 13 Nov 2026 (THE THREAD, owner picked it by name): f1032 (5 tests, all red at the parent 18357f4); re-pointed f248 (counts without brackets), f264 (the one box builder), f303 (the Done chip in place of the fold; the clause said once), f304 (the closed drawer resets the chips; Delete's reason), f446 (counts; the given chip's `is-you`), f756 (`return acts + facts`); browser: clause-editor-verify and notes-two-rooms-verify read the full stamp off the hover too; where-we-are-verify 12c and guide-panel-verify 6b read the count without brackets. Photographed at the three screens.
 - f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments, notes-two-rooms verify.
 
@@ -472,6 +481,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f452, named-guest-verify.
 
 ## THE SEND SCREEN
+- f1083 his question back is not the note: `node --test test/f1083-his-question-back-is-not-the-note.test.js` (with f1043, f1035)
 - test/f1038-write-it-for-me-the-legora-way.test.js: the note is a draft in Jambo's panel, tagged by clause, steered by chips, put in and undone by a press.
 - test/f1041-write-it-for-me-goes-to-jambo.test.js: the press and the steers go straight to Jambo, a steer carries the draft.
 - test/f1035-write-it-for-me-and-what-goes.test.js: What goes works while Jambo talks; Write it for me hidden for the history and answered plainly.
@@ -487,6 +497,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
 - f481 (view `playbook` = the standards tab)
 - f244, f907, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
+- f1071 (renumbered from f1057, which main also took; the Builder arrives in one step: no Our paper or page underneath on the way).
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
 - f1049 (10): From nothing's contents page on one paper size, scrolling inside; Jambo's panel; New agreement's head as tall as Jambo's (14 Nov 2026).
@@ -539,6 +550,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - No outlines on paper entry fields: f1028 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1086-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.
 - A SEARCH BOX WEARS NO RING (10 Nov 2026): `test/f996-search-boxes-no-ring-folders-scroll.test.js` (1) — one rule for the field, one for the line that holds it, every search box named, after the house ring (red at the parent).
 - NO JAMBO CALLS SAID (owner, 8 Nov 2026): f975 (red at the parent on all three). Re-pointed node: f273, f295, f499, f519, f527, f534, f615, f706, f745, f748, f753, f754, f759, f772, f792, f797, f798, f804, f811, f863, f864, f874, f954, f956, f957; browser contract-new-look-verify. f515 and f520 run out of memory here at the parent too (not this change).
@@ -785,3 +797,15 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NOTE'S LIMIT (15 Nov 2026): f1054 (5); send-note-on-the-paper-verify "the note stops at its limit".
 - THE ROUND LINE, SHORT (15 Nov 2026): f1054 (6); f972 (1) (2) and f1048 re-pointed.
 - WRITE IT FOR ME, TOP CORNER (15 Nov 2026): f1059 (four parts, red at the parent 1-3); send-note-on-the-paper-verify part 5 re-pointed.
+- A FULL-PAGE SCREEN GOES BEFORE THE PAGE OR HOME'S TAB MOVES (15 Nov 2026): f1061 (1)–(4); send-screen-keeps-its-way-back-verify 6, 7a, 7b.
+THE PULSE BOARD'S, READS' AND DISCOVER'S DOORS PUT A SCREEN AWAY, THEN GO (16 Nov 2026): f1076.
+A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (16 Nov 2026): f1080; a-refresh-lands-on-its-contract-verify.
+SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Import · Redlines cards first · Clauses): f1081; round6-new-look-verify 10, round7-new-look-verify 1c, contract-new-look-verify (the clause row), f1066 (1), f1073, f977 re-pointed.
+- A FINISHED READ OPENS ITS RESULTS, AND "READ THE N LEFT" READS WHAT IS LEFT (owner, 16 Nov 2026): f1072 (test/f1072-a-finished-read-opens-its-results.test.js; 3 of 3 red at the parent) — dsnEndsOnResults the one door for dsnAsk and dsnCarry (stopped stays; a reader who left is not pulled back); dsnRunLeft counts the read's folders' contracts with no answer (null while loading), used by Jambo's panel and the results head; nothing left is said by a toast. Re-pointed: discover-page-verify 4b (lands on its results with no press). Re-ran green: f1074, f1063, f1055, f1016, f1057, f1058, f1064, f937, f232.
+
+- CLAUSES THE LEGORA WAY, THE REDLINES STRIP, ONE BAND ON APPROVALS, THE FOUR LIST PANELS (owner, 16 Nov 2026): f1073 (test/f1073-clauses-legora-and-the-list-panels.test.js; 5 of 5 red at the parent). Re-pointed: f1066 (1)(3) (the open clause an amber line; one line, no counts), approvals-head-and-chosen-row-verify 3 (one band, no bar). Re-ran green: f1065, f1066, f1067, f1068, f1069, f1070, f184, f277, f314, f335, f337, f344, f385, f386, f875, f89, f965, f967, f937, f232, f48, f982, f984.
+
+## THE ONE DESK — NEEDS YOU, ONE READING — 16 Nov 2026 additions
+- f1077 (renumbered from f1075, which main also took; panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
+- f1078 (renumbered from f1076, which main also took; every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.
+- f1079 (Company needs you lands on the exact job: `cnCompanyGo`, `stNeedGo`). Also run: f869, f1077.

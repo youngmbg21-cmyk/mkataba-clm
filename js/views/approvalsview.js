@@ -830,8 +830,33 @@ function apInsPaint(rows){
 }
 /* BEFORE YOU DECIDE, AS DRAWN (the new look): one sentence, what the paper says in rows (each with where it was read),
    Jambo's remark and what happens after — every word a reading this page already makes, no call; the acts are the panel's own */
+function apnLeadFiveHtml(r, rule){
+  const c=r.c, id=esc(c.id), first=String(r.who||'').split(/\s+/)[0], cp=String(c.counterparty||'').split(/\s+/)[0];
+  const money=!(typeof canViewValues==='function'&&!canViewValues());
+  const deps=apnDepartures(c), verd=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+  const met=verd.filter(v=>v&&v.status==='aligned').length;
+  const clause={ attr:`data-apn-go="clause" data-id="${id}"` };
+  const rows=deps.slice(0,3).map(v=>{ let sec=''; try{ const qq=v.quote&&typeof pd2QuoteOf==='function'?pd2QuoteOf(c,[String(v.quote)]):null; sec=qq?qq.sec:''; }catch(_){ sec=''; }
+    return Object.assign({ mark:'file', tone:'amber', t:String(v.category||i18t('apn_p_std')), s:[sec, String(v.position||'')].filter(Boolean).join(' \u00b7 '), wrap:true }, clause); });
+  if(money&&Number(c.value)) rows.push(Object.assign({ mark:'file', t:i18t('apn5_value',{ v:(typeof fmtMoneyOf==='function'?fmtMoneyOf(c):String(c.value)) }), s:rule?i18t('apn5_rule',{ rule }):'' }, clause));
+  if(met) rows.push({ mark:'mkTick', tone:'green', t:i18tn('apn5_met',met,{ n:met }), s:c.playbook&&c.playbook.at?i18t('apn_p_checked',{ d:(typeof regDotDate==='function'?regDotDate(String(c.playbook.at).slice(0,10)):String(c.playbook.at).slice(0,10)) }):'' });
+  const sub=i18t(r.who?'apn5_sub_who':'apn5_sub',{ who:first, rule:rule||'' })+' '+i18t('apn5_moves',{ cp });
+  const o={ eyebrow:[i18t('apn_p_tab'), c.counterparty||'', (typeof contractRef==='function'?contractRef(c):c.id)].filter(Boolean).join(' \u00b7 '),
+    title:i18t('apn5_t',{ name:c.name||'' }), sub,
+    glance:[money?{ n:(typeof fmtMoneyShortIn==='function'&&typeof contractCurrency==='function')?String(fmtMoneyShortIn(Number(c.value)||0,contractCurrency(c))).replace(/^[A-Z]{3}\s*/,''):String(c.value||'\u2014'), l:i18t('apn5_g_value',{ cur:(typeof contractCurrency==='function'?contractCurrency(c):'') }) }:null,
+      { n:r.idle!=null?Math.max(0,Number(r.idle)||0):'\u2014', l:i18t('apn5_g_waited'), warn:r.idle!=null&&typeof AP_LATE_DAYS!=='undefined'&&r.idle>=AP_LATE_DAYS },
+      { n:deps.length, l:i18t('apn5_g_off'), warn:deps.length>0, attr:deps.length?clause.attr:'' }].filter(Boolean),
+    groups:[{ label:i18t('apn_p_says'), rows }, { label:i18t('apn5_after'), rows:[{ t:i18t('ap_pg_approve'), s:i18t(r.who?'apn_p_after_who':'apn_p_after',{ who:first }), wrap:true }, { t:i18t('apn_decline'), s:i18t('apn5_decline_s'), wrap:true }] }],
+    src:i18t('apn5_src') };
+  return `<div class="jl-words is-ov">${jamboOverviewHtml(o,'apn')}</div>`;
+}
 function apnLeadHtml(r, acts){
   const c=r.c, q=apnQuote(c), [rule]=apWhyLines(r);
+  /* THE FIVE PARTS (owner, 16 Nov 2026: "These pages still have old Panels"; drawn and built on "Build the legora way"):
+     the agreement and who asks as the headline, three numbers (value, days waited, how far off our standards), what the
+     paper says as rows that open the clause, what Approve and Decline do; no button (Approve and Decline stay on the row,
+     apInsActs) — every word a reading this page already makes */
+  if(typeof jamboOverviewHtml==='function') return apnLeadFiveHtml(r, rule);
   const money=!(typeof canViewValues==='function'&&!canViewValues());
   const cp=String(c.counterparty||'').split(/\s+/)[0];
   const row=(k,v,src)=>`<div class="apn-pr"><b>${esc(k)}</b><span>${v}</span><i>${esc(src||'')}</i></div>`;

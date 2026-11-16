@@ -21,6 +21,8 @@
    chose). 1d and 2c held there too: they guard the opening that must still
    happen.
 
+   2b re-pointed 16 Nov 2026: the refresh shows "Opening…" in the wall's stead (f1080); a scroll during it still wins.
+
    Run: node test/chromium/late-open-stays-put-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -153,12 +155,17 @@ const check = (name, pass, detail) => {
     await until(() => intel.paper && intel.paper.id === 'MK-L11', null, SLOW + 6000);
     slow = new Set(['MK-L11']);
     await reload();
-    const w2 = await onWall();
+    /* RE-POINTED 16 Nov 2026 (owner: "every time i refresh … it lands on the screen attached before going back"): while
+       a refresh puts the paper back, Home's paper says "Opening…" (.ig-pick-wait) and no longer draws the wall in its
+       stead (f1080). The guarantee stands: the reader's hand during that wait wins — the paper is not put back, and the
+       wall is what they then see */
+    const w2 = await until(() => !!document.querySelector('#ig-paper .ig-pick-wait') && !intel.paper, null, 8000);
     await page.mouse.move(500, 500);
     await page.mouse.wheel(0, 300);
     await page.waitForTimeout(SLOW + 1200);
     const b2 = await now();
-    check('2b after a refresh, a scroll on the wall keeps the reader there when the read comes back', !!w2 && !b2.paper, JSON.stringify(b2));
+    const wallAfter = await onWall();
+    check('2b after a refresh, a scroll while the paper is opening keeps the reader off it, on the wall, when the read comes back', !!w2 && !b2.paper && !!wallAfter, JSON.stringify({ waited: !!w2, b2, wall: !!wallAfter }));
 
     /* 2c: a refresh the reader does not touch still brings the paper back */
     await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); }); await onWall();

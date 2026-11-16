@@ -1686,7 +1686,7 @@ function hbBoardHelloHtml(){
     const days = ends[0] ? Math.round((new Date(ends[0] + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
     let rows = []; try { const B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; rows = B ? B.jambo.concat(B.you).slice(0, 3) : []; } catch (_){ rows = []; }
     const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
-    const needRows = rows.map(r => { const P = parts(r); return { mark: r.late ? 'clock' : 'alert', tone: r.late ? 'amber' : (r.g === 'jambo' ? 'dark' : 'amber'), t: P.title || P.name || '', s: [P.deal, P.when].filter(Boolean).join(' \u00b7 '), attr: 'data-hbw="all"' }; }).filter(x => x.t);
+    const needRows = rows.map(r => { const P = parts(r); return { mark: r.late ? 'clock' : 'alert', tone: r.late ? 'amber' : (r.g === 'jambo' ? 'dark' : 'amber'), t: P.title || P.name || '', s: [P.deal, P.when].filter(Boolean).join(' \u00b7 '), attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
     return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five">${jamboOverviewHtml({ before: brain, title: say, sub,
       glance: [{ n, l: i18t('jov5_on_you'), warn: n > 0, attr: n ? 'data-hbw="all"' : '' }, { n: live, l: i18t('jov5_hb_live'), attr: live ? 'data-hbw="live"' : '' },
         { n: days == null ? '\u2014' : days, l: i18t('jov5_hb_days'), attr: days != null ? 'data-hbw="next"' : '' }],
@@ -5911,7 +5911,7 @@ function hbSheetGo(id){
   /* the list is put away first: Home's paper is drawn on the same page, and a
      list left lying over it would cover the Dossier it just opened */
   if (_hbSheet) hbSheetClose();
-  if (window.roomHomeLand && roomHomeLand(id)) return true;
+  if (window.roomHomeLand && roomHomeLand(id, { cover: true })) return true;
   if (typeof openWorkspace === 'function'){ openWorkspace(id); return true; }
   return false;
 }
@@ -7453,6 +7453,20 @@ function hbShowCard(host, el, opts){
     clearTimeout(card._hbLitT); card._hbLitT = setTimeout(() => card.classList.remove('is-lit'), 1800);
   }
 }
+/* A CHART FADES IN ONCE (the flash measure, 16 Nov 2026; owner: "also fix the stutters, which I am still seeing"):
+   its parts rise the first time that very picture is drawn; the same picture drawn again — back to the Board, a
+   repaint for another card — stands still. Kept per sitting, by the picture's own markup. */
+const _hbChartsSeen = new Set();
+function hbChartsStill(host){
+  if (!host || !host.querySelectorAll) return;
+  host.querySelectorAll('svg').forEach(svg => {
+    if (!svg.querySelector('.hb-in')) return;
+    const src = svg.outerHTML; let h = 0; for (let i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) | 0;
+    const key = src.length + ':' + h;
+    if (_hbChartsSeen.has(key)) svg.querySelectorAll('.hb-in').forEach(g => g.classList.remove('hb-in'));
+    else { if (_hbChartsSeen.size > 400) _hbChartsSeen.clear(); _hbChartsSeen.add(key); }
+  });
+}
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
   /* a hidden Board is not drawn: it is marked missed and drawn when turned to
@@ -7472,6 +7486,8 @@ function hbPaintBoard(opts){
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
   hbCvPaint();
   hbSheetPaint();
+  /* a chart drawn again stands still (before the frame is painted, so nothing is seen to fade) */
+  hbChartsStill(host);
   hbGiftsSeenSay();
   hbPaintHead();
   hbNyDockFollow();
@@ -7644,7 +7660,26 @@ function hbAskInPanel(q, id){
   if (!ok && typeof toast === 'function') toast(i18t('hb_ask_kept_typed'), 'warn');
   return ok;
 }
+/* A FULL-PAGE SCREEN GOES BEFORE HOME TURNS (owner, 15 Nov 2026: the Send screen stayed over Discover, then "check if
+   this issue is anywhere else in hati"): a screen standing in front (the Send screen, the Brief, Where we stand, the
+   Fill in form, a list's own page) belongs to the tab it was opened on; turning Home to another tab through Jambo,
+   the strip or a typed name left it over that tab. It is put away first through its own guard (a typed note asks),
+   then the turn goes on, as the bar already does (dkLeavePageThen). A Send screen waiting out of sight is kept. */
+function hbPageScreenUp(){
+  if (typeof document === 'undefined') return false;
+  const waiting = typeof window.pdSendIsWaiting === 'function' && !!window.pdSendIsWaiting();
+  return !!document.querySelector(waiting ? '#modal-root .modal-in[data-dlg-page]:not([data-sh-page])' : '#modal-root .modal-in[data-dlg-page], #modal-root .modal-in[data-sh-page]');
+}
+function hbPageLeaveThen(go){
+  if (!hbPageScreenUp() || typeof window.closeModalFirst !== 'function') return false;
+  const r = window.closeModalFirst();
+  if (r === true) return hbPageScreenUp();
+  if (r === false) return true;
+  Promise.resolve(r).then(ok => { if (ok !== false && !hbPageScreenUp()) go(); }).catch(() => {});
+  return true;
+}
 function hbOpenExplorer(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenExplorer)) return;
   const s = hbS(); s.face = 'explorer'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
 }
@@ -7652,6 +7687,7 @@ function hbOpenExplorer(){
    refresh, the obligations card's "Open calendar") lands on Home's Calendar
    tab — its one way in since the menu row went (owner, 11 Oct 2026) */
 function hbOpenCalendar(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenCalendar)) return;
   const s = hbS(); s.face = 'calendar'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
 }
@@ -7662,6 +7698,7 @@ function hbOpenCalendar(){
    owner's "Go", 14 Oct 2026). Whatever paper was up is put down first
    (igPickAgain, the strip's own "‹ Contracts"), so the place is what shows. */
 function hbOpenContracts(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenContracts)) return;
   const s = hbS();
   if (window.state && state.view === 'dashboard' && hbPage()){
     if (s.face !== 'paper') hbSetFace('paper');
@@ -7679,6 +7716,7 @@ function hbOpenContracts(){
    with no paper chosen is the Contracts door's now, so from there (or with
    it remembered) Home is the Board, and the rail lights Home again. */
 function hbOpenHome(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenHome)) return;
   const s = hbS();
   if (s.face === 'paper' && !(window.intel && intel.paper)){
     /* the rail's Home press has always painted the Board afresh: marked
@@ -7710,6 +7748,7 @@ function hbSetFace(f){
   /* the Board pressed while a contract stands on it is the Board (the glitch audit, 24 Oct 2026) */
   if (f === 'board') hbSheetLetGo();
   if (s.face === f) return;
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(() => hbSetFace(f))) return;
   const kb = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-hb-face') != null;
   s.face = f;
   hbSave();
@@ -10437,21 +10476,19 @@ function hbPresent(on){
    board tab and the room's Obligations and History tabs stay until stage 5,
    and Jambo's Obligations tab stays beside the paper for working)
    ============================================================
-   ONE SWITCH AT THE BOARD'S TOP: Your book · Deal board · Obligations ·
-   History, the last three for the contract on the paper (pdContract — the
+   ONE SWITCH AT THE BOARD'S TOP: Your book · Obligations · History (the Deal
+   board view was removed by the owner, 16 Nov 2026, f1084), the last two for the contract on the paper (pdContract — the
    one fact both faces read), drawn only while one is there. One view at a
    time at the Board's full width, Print · Share · Download on the same line.
-   EACH VIEW IS THE ROOM'S OWN BUILDER IN A SECOND HOST — dealBoardHtml (its
-   presses find their host, rlBoardHostOf), roomPaintObligations and
+   EACH VIEW IS THE ROOM'S OWN BUILDER IN A SECOND HOST — roomPaintObligations and
    roomPaintHistory — so the Board, the room and the Negotiate page can never
    disagree. Its body is painted by its own painter (hbCvPaint) and the
    Board's morph leaves it alone (data-hb-own). Per sitting; a refresh keeps
-   it (hbPlace). The number on a switch is the list's own: the deal board's
-   "Needs you" (dealBoardFacts) and the tab's overdue (obtRowsOf/obtPass). */
-const HB_CVIEWS = ['book', 'deal', 'oblig', 'hist'];
-const HB_CV_WORD = { book: 'hb_book', deal: 'ng_board', oblig: 'tab_obligations', hist: 'tab_history' };
+   it (hbPlace). The number on a switch is the list's own: the tab's overdue (obtRowsOf/obtPass). */
+const HB_CVIEWS = ['book', 'oblig', 'hist'];
+const HB_CV_WORD = { book: 'hb_book', oblig: 'tab_obligations', hist: 'tab_history' };
 /* the phone draws the room: a view's own tab there */
-const HB_CV_ROOM_TAB = { deal: 'redline', oblig: 'oblig', hist: 'history' };
+const HB_CV_ROOM_TAB = { oblig: 'oblig', hist: 'history' };
 let _hbCvShare = false;
 function hbCvContract(){ try { return (typeof window.pdContract === 'function') ? pdContract() : null; } catch (_){ return null; } }
 /* the view shown: a contract's view only while that contract is the paper's */
@@ -10466,8 +10503,7 @@ function hbCvSet(v, id){ _hbCv = { v: HB_CVIEWS.includes(v) ? v : 'book', id: id
    on (obligationTabState — the count the room's Obligations tab carried),
    coloured late only when one of them is overdue, the sidebar counts' rule */
 function hbCvCounts(c){
-  const n = { deal: 0, oblig: 0, obligLate: false };
-  try { if (typeof window.dealBoardFacts === 'function') n.deal = dealBoardFacts(c, 'owner').n.you; } catch (_){}
+  const n = { oblig: 0, obligLate: false };
   try { if (typeof window.obligationTabState === 'function'){ const st = obligationTabState(c); n.oblig = st.open; n.obligLate = st.overdue > 0; } } catch (_){}
   return n;
 }
@@ -10480,7 +10516,7 @@ function hbCvSwitchHtml(now){
   const c = now.c; if (!c) return '';
   const n = hbCvCounts(c);
   const ic = k => (typeof icon === 'function') ? icon(k, 'hb-cv-ic', 2) : '';
-  const tab = v => { const k = v === 'deal' ? n.deal : v === 'oblig' ? n.oblig : 0;
+  const tab = v => { const k = v === 'oblig' ? n.oblig : 0;
     const tone = v === 'oblig' ? (n.obligLate ? ' is-late' : '') : ' is-owed';
     return `<button type="button" role="tab" data-hb-cv="${v}" aria-selected="${now.v === v}">${_hbE(i18t(HB_CV_WORD[v]))}${k ? `<span class="hb-cv-n${tone}">${k}</span>` : ''}</button>`; };
   const ready = hbCvReady(now), wait = ready ? '' : ` disabled title="${_hbE(i18t('hb_cv_reading'))}"`;
@@ -10492,7 +10528,7 @@ function hbCvSwitchHtml(now){
 }
 function hbCvBodyHtml(now){
   const id = _hbE(String(now.c.id));
-  return `<div class="hb-cv-body hb-cv-${now.v}" id="hb-cv-body" data-hb-own data-hb-cv="${now.v}" data-hb-cv-cid="${id}"${now.v === 'deal' ? ` data-db-host="${id}"` : ''}></div>`;
+  return `<div class="hb-cv-body hb-cv-${now.v}" id="hb-cv-body" data-hb-own data-hb-cv="${now.v}" data-hb-cv-cid="${id}"></div>`;
 }
 /* THE VIEW'S OWN PAINTER: the room's builder into the Board's host, and only
    when what it would draw has changed — the Board repaints on many presses,
@@ -10503,17 +10539,6 @@ function hbCvPaint(force){
   const v = host.getAttribute('data-hb-cv');
   const c = (typeof getContract === 'function') ? getContract(host.getAttribute('data-hb-cv-cid')) : null;
   if (!c) return;
-  if (v === 'deal'){
-    if (typeof window.dealBoardHtml !== 'function') return;
-    /* the board's own sheet, which only the Negotiate page had asked for */
-    if (typeof window.redlineLayoutCss === 'function') try { redlineLayoutCss(); } catch (_){}
-    const html = dealBoardHtml(c, 'owner');
-    if (!force && host._dbHtml === html) return;
-    const keep = ['#db-list', '#db-pane'].map(s => { const el = host.querySelector(s); return el ? el.scrollTop : 0; });
-    host.innerHTML = html; host._dbHtml = html;
-    ['#db-list', '#db-pane'].forEach((s, i) => { const el = host.querySelector(s); if (el && keep[i]) el.scrollTop = keep[i]; });
-    return;
-  }
   if (v === 'oblig'){
     if (typeof window.roomPaintObligations !== 'function') return;
     let sig = '';
@@ -10575,10 +10600,10 @@ function hbCvPick(v){
   hbPaintBoard();
 }
 /* PRINT AND DOWNLOAD ARE ONE PAGE: the history's own report (its export and
-   its print, unchanged), and for the other two the page each view makes of
-   itself (dealBoardReportHtml, obReportHtml) — printed through the one print
+   its print, unchanged), and for the obligations the page the view makes of
+   itself (obReportHtml) — printed through the one print
    runner (printWindowRun), saved through the one saver (downloadFile). */
-function hbCvReportOf(v){ return v === 'deal' ? window.dealBoardReportHtml : v === 'oblig' ? window.obReportHtml : null; }
+function hbCvReportOf(v){ return v === 'oblig' ? window.obReportHtml : null; }
 function hbCvPrint(){
   const now = hbCvNow(); if (!now.c || now.v === 'book' || !hbCvReady(now)) return;
   if (now.v === 'hist'){ if (typeof window.negoHistoryPrintRun === 'function') negoHistoryPrintRun(now.c); return; }
@@ -10590,7 +10615,7 @@ function hbCvDownload(){
   if (now.v === 'hist'){ if (typeof window.negoHistoryExportRun === 'function') negoHistoryExportRun(now.c); return; }
   const build = hbCvReportOf(now.v); if (typeof build !== 'function' || typeof window.downloadFile !== 'function') return;
   const ref = (typeof contractRef === 'function') ? contractRef(now.c) : now.c.id;
-  downloadFile(`${ref}-${now.v === 'deal' ? 'deal-board' : 'obligations'}.html`, build(now.c), 'text/html');
+  downloadFile(`${ref}-obligations.html`, build(now.c), 'text/html');
   if (typeof toast === 'function') toast(i18t('hb_cv_saved', { what: i18t(HB_CV_WORD[now.v]), ref }), 'ok');
 }
 /* SHARE: COLLEAGUES INSIDE HaTi ONLY (decision 1). The view is given by its
@@ -10720,20 +10745,37 @@ function hbPlacePut(p){
        gives up, and a read still out puts nothing up (igOpenNewer), the way
        placeScrollBack lets go of the scroll. */
     let gaveUp = false;
+    /* THE PAPER WAITS FOR ITS CONTRACT (owner, 16 Nov 2026): until it lands, Home's paper says "Opening…" and never
+       draws the Contracts place in its stead (igPaintPaper reads intel.resuming); every way this ends lets go of it */
+    if (window.intel) intel.resuming = { id: String(want.id) };
+    let held = 0;
+    const done = () => {
+      if (!(window.intel && intel.resuming && intel.resuming.id === String(want.id))) return;
+      /* still being read (igAnalyze's ensureFull): the wait holds until it lands, bounded */
+      if (intel.opening && String(intel.opening.id) === String(want.id) && ++held < 100){ setTimeout(done, 100); return; }
+      intel.resuming = null;
+      if (!intel.paper && !intel.opening && window.state && state.view === 'dashboard' && hbS().face === 'paper' && typeof window.igPaintPaper === 'function'){ igPaintPaper(); if (typeof window.renderIntelDock === 'function') renderIntelDock(); }
+    };
     const unhand = () => HB_RESUME_HAND.forEach(k => window.removeEventListener(k, hand, true));
-    const hand = () => { unhand(); if (window.intel && intel.paper) return; gaveUp = true; if (typeof window.igOpenNewer === 'function') igOpenNewer(); };
+    const hand = () => { unhand(); if (window.intel && intel.paper) return; gaveUp = true; if (typeof window.igOpenNewer === 'function') igOpenNewer(); done(); };
     HB_RESUME_HAND.forEach(k => window.addEventListener(k, hand, { capture: true, passive: true }));
     setTimeout(unhand, HB_RESUME_HAND_MS);
     const go = () => {
       if (gaveUp) return;
-      if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)) return;
+      if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)){ done(); return; }
       if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){
         /* the face through its own door (pdOpenOnHome), which puts the
            contract on the paper the same way */
-        const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try { hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
-        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); return; }
-        igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); return; }
-      if (++n < 60) setTimeout(go, 150);
+        /* the middle page comes back only while this contract is still the one in front: a reader who opened another in
+           the meantime is never pulled back to this one (since the Cover, f1085, every contract opened on purpose keeps 'where') */
+        const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try {
+          const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
+          /* …and only while its paper is still what stands: a reader who left for a page with no paper (Contracts) is never pulled back */
+          if (!pc || String(pc.id) !== String(want.id) || (typeof window.pdOnPaper === 'function' && !pdOnPaper())) return;
+          hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
+        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); done(); return; }
+        igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); done(); return; }
+      if (++n < 60) setTimeout(go, 150); else done();
     };
     setTimeout(go, 0);
   }
@@ -10764,6 +10806,8 @@ function hbOnClick(e){
   if (hbFigMenuClick(e)) return;
   /* the welcome's doors in Jambo's panel (Brain welcome, 13 Nov 2026) */
   { const wb = t.closest('[data-hbw]'); if (wb){ e.preventDefault(); hbWelcomeGo(wb.getAttribute('data-hbw')); return; } }
+  /* a row of Needs you in the panel opens where its work is (ndRowGo), never the Board's list first */
+  { const wr = t.closest('[data-hbw-row]'); if (wr){ e.preventDefault(); if (typeof ndRowGo === 'function') ndRowGo(wr.getAttribute('data-hbw-row')); return; } }
   /* a press anywhere but the figure picker puts it away */
   if (_hbFigPick && !t.closest('.hb-figpick-w')){ _hbFigPick = false; hbPaintBoard(); }
   /* a door out of the side list (Open these, Show on the map) leaves it closed behind */
@@ -10887,7 +10931,7 @@ function hbOnClick(e){
   /* "Workspace" opens Home, never the room (the overnight work order, step 2;
      roomHomeLand, the one landing every Workspace door shares) */
   if ((el = on('[data-hb-room]'))){ const id = el.getAttribute('data-hb-room');
-    if (!(window.roomHomeLand && roomHomeLand(id)) && typeof openWorkspace === 'function') openWorkspace(id); return; }
+    if (!(window.roomHomeLand && roomHomeLand(id, { cover: true })) && typeof openWorkspace === 'function') openWorkspace(id); return; }
   if ((el = on('[data-hb-bs-x]'))){ hbBriefShut(); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
   /* the Pulse board, the head's last button (29 Oct 2026) */

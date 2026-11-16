@@ -5043,7 +5043,11 @@ function roomHomeLand(id, opts){
      lands on the paper and its Dossier, whose Next card carries "Fill in the contract ›" while details are owed; the
      form is its own door's (pdFillOpen), never a Workspace door's */
   void owed; void may;
-  return !!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open');
+  /* THE COVER (owner, 16 Nov 2026): a door that opens the contract itself says so (opts.cover); a door on its way to a
+     job inside it lands on the paper alone */
+  const ok=!!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open',{ cover:false });
+  if(ok&&opts&&opts.cover&&typeof window.pdCoverLand==='function') window.pdCoverLand(c.id);
+  return ok;
 }
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5
@@ -15210,9 +15214,12 @@ function docThreadFollowArm(){
       return;
     }
     if(raf) return;
-    /* THE FOLLOW STANDS DOWN WHILE THE READER'S CLOSE HOLDS: scrolling past a
-       clause may not re-open the list they shut (docThreadShut). */
-    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()&&!docThreadShutOn(c)) docThreadOpen(c,docThreadLineRow(),{follow:true}); });
+    /* A CLOSE HOLDS ONLY WHILE ITS CLAUSE IS AT THE LINE (owner, 16 Nov 2026: "if you close one of the clauses in
+       the panel, the feature switches off"): the next clause the paper brings up opens, and the close is let go
+       (docThreadShutHolds). */
+    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(!c||!docThreadLive()) return; const row=docThreadLineRow();
+      if(docThreadShutOn(c)){ if(docThreadShutHolds(row)) return; docThreadShutClear(); }
+      docThreadOpen(c,row,{follow:true}); });
   },{passive:true});
   if('onscrollend' in window) sc.addEventListener('scrollend',()=>{ if(_docThreadGlide>=0) docThreadSettle(live()); });
 }
@@ -15422,8 +15429,10 @@ function docThreadRowHtml(x,i){
   /* THE CLAUSE LIST AS DRAWN (Jambo's panels, round 3b; owner, 15 Nov 2026: the list's BEHAVIOUR stays — it follows
      the paper, the clause the paper reaches opens, a press moves the paper — its look follows the drawing): on Home in
      the new look the clause's number stands in its round mark. The name's text is unchanged (what reads it still reads
-     "1. Definitions"): the number is wrapped, and the style folds it away where the mark shows it. */
-  const lab=docXrayLabel(x), num=(thOnHome()&&typeof window.newLookOn==='function'&&newLookOn())?(lab.match(/^(\d+(?:\.\d+)*)\.?\s+/)||null):null;
+     "1. Definitions"): the number is wrapped, and the style folds it away where the mark shows it.
+     A number written "1:" or "1)" is a number too (owner, 16 Nov 2026: MK-301's "1: Orders and Deliveries" drew a dot over
+     its first letter); a clause with no number keeps its small dot, in the same slot as the marks (index.html). */
+  const lab=docXrayLabel(x), num=(thOnHome()&&typeof window.newLookOn==='function'&&newLookOn())?(lab.match(/^(\d+(?:\.\d+)*)[.:)]?\s+/)||null):null;
   return `<div class="doc-th-row${tone?' is-'+tone:''}" data-th-row="${i}" role="listitem">
     <div class="doc-th-head">
       <button type="button" class="doc-th-go" data-th-go="${i}" aria-expanded="false">
@@ -15684,9 +15693,15 @@ let _docThreadStillT=null;
    contract starts fresh, and the reader's NEXT PRESS clears it — every press
    that opens a row goes through docThreadGoTo, the filter, a step, or the
    paper's own press, and each lets it go. */
-let _docThreadShut='';
+/* NARROWED 16 Nov 2026 (owner: "It should always be the case that when I am scrolling in the paper, the clauses side
+   panel follows … if you close one of the clauses in the panel, the feature switches off"): the latch also keeps WHICH
+   clause was at the line when it was closed (_docThreadShutAt). It holds while the line stays on that clause — so the
+   21 Oct fault, a close undone by the very next nudge of the paper, stays fixed — and lets go the moment the paper
+   brings another clause to the line, which then opens as the follow always opens it. */
+let _docThreadShut='', _docThreadShutAt=-1;
 const docThreadShutOn = c => !!_docThreadShut&&_docThreadShut===String(c&&c.id);
-const docThreadShutClear = () => { _docThreadShut=''; };
+const docThreadShutHolds = row => row===_docThreadShutAt;
+const docThreadShutClear = () => { _docThreadShut=''; _docThreadShutAt=-1; };
 /* ---- A PRESS ON HOME'S TRACK OPENS THE CLAUSE IN CLAUSES (owner, 24 Oct
    2026: "Simply stop asking the question and move me to where image 2 is so i
    can read there and deepdive") ----
@@ -15720,7 +15735,7 @@ function docThreadWantDrop(){ if(docThreadWantPending()) _docThreadWant=''; }
 function docThreadShut(c){
   const cur=docThreadCur(c); if(!cur) return;
   clearTimeout(_docThreadGlideT); _docThreadGlideT=null; _docThreadGlide=-1; _docThreadHold=-1;
-  _docThreadShut=String(cur.id);
+  _docThreadShut=String(cur.id); _docThreadShutAt=docThreadLineRow();
   docThreadOpen(cur,-1);
 }
 /* THE FILTER MOVED: the rows it hides step aside; where the open clause is
@@ -15929,7 +15944,8 @@ function docThreadPaint(c){
      Otherwise the close HOLDS through every repaint — a poll, a reading
      landing, a scan — because a repaint is not a press. */
   if(land>=0){ docThreadShutClear(); _docThreadOn=land; }
-  else if(docThreadShutOn(c)) _docThreadOn=-1;
+  else if(docThreadShutOn(c)&&docThreadShutHolds(docThreadNearest(rows,docThreadAtLine()))) _docThreadOn=-1;
+  else if(docThreadShutOn(c)){ docThreadShutClear(); _docThreadOn=docThreadNearest(rows,docThreadAtLine()); }
   else if(!docThreadShown(rows[_docThreadOn])) _docThreadOn=docThreadNearest(rows,docThreadAtLine());
   /* ---- THE PAPER AND THE PANEL LINE UP (owner, 11 Nov 2026: "the clauses on the page and the panel do not
      line up") ---- the follow only listens while the list is up, so a paper scrolled on the Dossier tab came back

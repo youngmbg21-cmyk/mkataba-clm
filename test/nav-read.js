@@ -116,7 +116,8 @@ function navWhereSrc(){
   W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold')).join(',') || null;
   { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null; }
   /* what stands in the middle beside the paper (the strip is gone, owner, 9 Nov 2026): History or Where we are */
-  W.mid = document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.pd2-stands') ? 'where' : null;
+  /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): 'where' is the Cover over the paper */
+  W.mid = document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.cv-page') ? 'where' : null;
   try { W.archived = typeof regState === 'function' && regState().view === 'archived'; } catch (_){ W.archived = false; }
   W.present = !!document.querySelector('.hb-presenting');
   { const r = document.getElementById('dk-recent'); W.recent = !!(r && r.getClientRects().length); }

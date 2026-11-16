@@ -99,7 +99,7 @@ describe('F690 (4) — the side list lies outside the board and its door closes 
      through hbSheetGo, so there is no record to load here. */
   test('a row pressed lands on the contract, through the one door', () => {
     assert.match(strip(bodyOf(HB, 'hbOnClick')), /data-hb-sheet-c[^\n]*hbSheetGo\(/);
-    assert.match(bodyOf(HB, 'hbSheetGo'), /roomHomeLand\(id\)/);
+    assert.match(bodyOf(HB, 'hbSheetGo'), /roomHomeLand\(id, \{ cover: true \}\)/);
     assert.ok(!/hbCardHtml\(/.test(bodyOf(HB, 'hbSheetHtml')), 'the sheet draws no contract card');
   });
 });

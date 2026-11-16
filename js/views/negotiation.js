@@ -5901,8 +5901,6 @@ if (typeof document !== 'undefined' && !document._rlReadWired){
     if (!b) return;
     ev.preventDefault();
     rlSetReadMode(b.getAttribute('data-rl-read'));
-    /* THE DEAL BOARD STEPS ASIDE for a reading (14 Sep 2026). */
-    if (typeof rlBoardIsOpen === 'function' && rlBoardIsOpen()){ rlBoardSet(false); rlBoardPaintTitle(); }
     rlRepaintFrom(b);
   });
   /* ---- AND THE ASK TAG, ON THE SAME TERMS (OI-12) ----
@@ -7919,26 +7917,16 @@ function rlLadderTailHtml(c, cl, chs, side, opts = {}){
     + (opts.noNotes ? '' : rlNotesSecHtml(c, id, chs, side));
 }
 
-/* ============================================================
-   THE DEAL BOARD IS A PAGE (Young ruled 14 Sep 2026: "3, yes build as in
-   the artifact")
-   ============================================================
-   A fourth tab beside the three readings, drawn IN the working area in the
-   grid's place. NOT a fourth reading: RL_READS is how the DOCUMENT is drawn
-   and a value there would fall through every clause branch; this is one
-   flag, per sitting, that renderRedline reads. Our seat only. */
-let _rlBoardOpen = false;
-function rlBoardIsOpen(){ return !!_rlBoardOpen; }
-function rlBoardSet(on){ _rlBoardOpen = !!on; }
-function rlBoardPaintTitle(){
+/* THE BAR SAYS WHICH PAGE THIS IS (the Deal board that once shared this painter was removed by the owner,
+   16 Nov 2026, f1084): with a contract on the bench the crumb, else the page's name. */
+function rlPaintTitle(){
   const el = (typeof document !== 'undefined') ? document.getElementById('shell-title') : null;
   if (!el) return;
-  if (_rlBoardOpen){ el.classList.remove('is-crumb'); el.textContent = i18t('ng_board'); }
   /* THE CRUMB, NOT THE PAGE NAME, once a contract is on the bench (second pass,
      21 Sep 2026): this paint runs AFTER wireRoomHead adopted #ws-back into
      the bar, and writing textContent over it threw the button away. Re-adopt;
      the plain name is the fallback for the list and for a stage with no bar. */
-  else if (typeof window.shellCrumbAdopt === 'function' && window.getContract && typeof redlineHeldId === 'function' && redlineHeldId()
+  if (typeof window.shellCrumbAdopt === 'function' && window.getContract && typeof redlineHeldId === 'function' && redlineHeldId()
     && (document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))
     && shellCrumbAdopt(getContract(redlineHeldId()), document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))) { /* crumb painted */ }
   /* The back button left the page (10 Oct 2026), so with a contract on the
@@ -7947,793 +7935,6 @@ function rlBoardPaintTitle(){
     el.innerHTML = ''; const s = document.createElement('span'); s.className = 'crumb-here';
     s.textContent = i18t('tab_negotiate'); s.title = s.textContent; el.appendChild(s); }
   else if (!el.querySelector('.crumb-here') && typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
-}
-function rlBoardPageHtml(c){
-  return `<div class="rl-boardpage" id="rl-boardpage">${dealBoardHtml(c, 'owner')}</div>`;
-}
-function rlBoardMemoText(c){
-  if (typeof window.ladderBoard !== 'function') return '';
-  const rows = ladderBoard(c, 'owner');
-  const f = (n, u) => n == null ? '—' : `${n}${u ? ' ' + u : ''}`;
-  return `${i18t('ng_board')} · ${c.name || (window.contractRef ? contractRef(c) : c.id)} · ${c.counterparty || ''}\n` + rows.map(r =>
-    `- ${r.label || r.clauseId}: ${i18t('ng_board_col_ours').toLowerCase()} ${f(r.ourFig, r.unit)} / ${
-      i18t('ng_board_col_theirs').toLowerCase()} ${f(r.theirFig, r.unit)} / ${i18t('ng_board_col_gap').toLowerCase()} ${
-      r.dist != null ? f(r.dist, r.unit) : (r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))} / ${r.state}`).join('\n');
-}
-/* ---- THE DEAL BOARD IS AN INSPECTOR (Young picked "Inspector", 3 Oct 2026:
-   "Build Inspector, no Accept/Counter/Reject, no walk-away") ----
-   The nine-column table cut every wording at 40 characters and the fallback
-   at 32, drew a Walk-away column that could only ever say "—", and counted
-   the moves without listing them, so the board the reader opened to see the
-   whole deal hid most of it. Now: a short list of every point argued on the
-   left, grouped by whose move it is, and the WHOLE of one point on the right —
-   the figures on the scale, their last ask and our position in full with their
-   marks, the playbook, every move in order, and why they asked.
-   - A press SELECTS; a second press on the selected row (or the card's own
-     button) OPENS the clause — the list inspector's own grammar
-     (js/views/inspector.js), so the board reads like every other list.
-   - Nothing is cut short. Wording is drawn by rlChangeWordingHtml, the ONE
-     "what this change proposed" builder, inside .rl-cp-src so it wears the
-     clause panel's own marks; the precedent line is rlPrecedentSay, the
-     panel's own sentence.
-   - NO WALK-AWAY (the owner, again, 3 Oct): the playbook holds none and HaTi
-     invents none, so there is no column for one.
-   - NO ACCEPT / COUNTER / REJECT (the owner, 3 Oct): those are the Redlines
-     column's acts and the board is not a second door onto them. Its only door
-     is the clause.
-   - The verdict is ARITHMETIC on the playbook's own figures (ladderWithin,
-     ladderFallback, the standard) and never a model's.
-   - Pick and filter are per sitting, in memory, and are forgotten with the
-     contract (rlPinFor), exactly as the board's own open flag is. */
-let _rlBoardPick = null;
-let _rlBoardFilter = 'all';
-const RL_BOARD_FILTERS = ['all', 'you', 'them', 'within', 'beyond', 'done'];
-function rlBoardPickSet(id){ _rlBoardPick = id == null ? null : String(id); }
-function rlBoardFilterSet(f){ _rlBoardFilter = RL_BOARD_FILTERS.includes(f) ? f : 'all'; }
-/* Which pile a row sits in. Our own unsent draft is OUR move — the old
-   board's fifth word — so it files under "Needs you". */
-function dealBoardGroupOf(c, r, side){
-  if (r.state === 'awaiting') return 'you';
-  if (r.state === 'with'){
-    const unsent = r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
-    return unsent ? 'you' : 'them';
-  }
-  return 'done';
-}
-/* WHERE THEIR LAST ASK SITS AGAINST YOUR PLAYBOOK, as arithmetic. `k` is the
-   tone: std · in (green) · out (ruby) · words · ours · none (quiet) · agreed ·
-   back. `fb` is answered so the counts and the verdict ask one reading. */
-function dealBoardVerdict(r){
-  const fb = (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
-  const fbN = fb && fb.figure != null ? fb.figure : null;
-  const unit = r.unit || '';
-  const out = (k, key, vars) => ({ k, text: i18t(key, vars || {}), fbN,
-    within: (fbN != null && r.theirFig != null && typeof window.ladderWithin === 'function') ? ladderWithin(r.topic, r.theirFig, fbN) : null });
-  if (r.state === 'settled') return out('agreed', 'ng_board_v_agreed');
-  if (r.state === 'refused' || r.state === 'quiet') return out('back', 'ng_board_v_back');
-  if (!r.theirs) return out('ours', 'ng_board_v_ours');
-  if (r.theirFig == null) return out('words', 'ng_board_v_words');
-  const within = (bound) => typeof window.ladderWithin === 'function' ? ladderWithin(r.topic, r.theirFig, bound) : null;
-  if (r.standard && within(r.standard.value) === true) return out('std', 'ng_board_v_std');
-  if (fbN != null){
-    return within(fbN) === true ? out('in', 'ng_board_v_in')
-      : out('out', 'ng_board_v_out', { n: Math.abs(r.theirFig - fbN), unit });
-  }
-  if (r.standard) return out('out', 'ng_board_v_out_std', { n: Math.abs(r.theirFig - r.standard.value), unit });
-  return out('none', 'ng_board_v_noplay');
-}
-/* THE BOARD'S FACTS, READ ONCE: every point argued with its pile and its
-   verdict, and how many sit in each. The head's filters count these, and so
-   does the number on the Board's own Deal board switch (the one-page Home
-   plan, stage 4) — one reading, so the door and the list behind it agree. */
-function dealBoardFacts(c, side){
-  const rows = (typeof window.ladderBoard === 'function') ? ladderBoard(c, side) : [];
-  const facts = rows.map(r => ({ r, g: dealBoardGroupOf(c, r, side), v: dealBoardVerdict(r) }));
-  const n = {
-    all: facts.length,
-    you: facts.filter(x => x.g === 'you').length,
-    them: facts.filter(x => x.g === 'them').length,
-    within: facts.filter(x => x.g !== 'done' && x.v.within === true).length,
-    beyond: facts.filter(x => x.g !== 'done' && x.v.within === false).length,
-    done: facts.filter(x => x.g === 'done').length
-  };
-  return { rows, facts, n };
-}
-/* Whose move a point waits on, in the board's own words: [tone, words]. */
-function dealBoardMoveOf(c, r, side){
-  const unsent = r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
-  return r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
-    : r.state === 'with' ? (unsent ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
-    : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
-    : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
-    : ['quiet', i18t('ng_board_move_none')];
-}
-function dealBoardHtml(c, side){
-  if (typeof window.ladderBoard !== 'function') return '';
-  const { rows, facts, n } = dealBoardFacts(c, side);
-  const names = rlLegendNames(c, side);
-  const cp = names.them;
-  const memo = `<button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
-  if (!rows.length){
-    return `<div class="db"><div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b><span class="sp"></span>${memo}</div>
-      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
-  }
-  const f =(RL_BOARD_FILTERS.includes(_rlBoardFilter) && (_rlBoardFilter === 'all' || n[_rlBoardFilter])) ? _rlBoardFilter : 'all';
-  const passes = x => f === 'all' || (f === 'within' ? x.g !== 'done' && x.v.within === true
-    : f === 'beyond' ? x.g !== 'done' && x.v.within === false : x.g === f);
-  /* THE HEAD LINE'S NUMBERS ARE ITS FILTERS (it was a line of facts). A zero
-     is not a door: it is said, never pressed. */
-  const chip = (k, text) => n[k] || k === 'all'
-    ? `<button type="button" class="db-f${f === k ? ' on' : ''}" data-rl-board-f="${k}" aria-pressed="${f === k ? 'true' : 'false'}">${_ne(text)}</button>`
-    : `<span class="db-f is-zero">${_ne(text)}</span>`;
-  const head = `<div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b>
-      ${chip('all', i18tn('ng_board_f_all', n.all, { n: n.all }))}
-      ${chip('you', i18tn('ng_board_f_you', n.you, { n: n.you }))}
-      ${chip('them', i18tn('ng_board_f_them', n.them, { n: n.them, cp }))}
-      ${chip('within', i18tn('ng_board_within', n.within, { n: n.within }))}
-      ${chip('beyond', i18tn('ng_board_f_beyond', n.beyond, { n: n.beyond }))}
-      ${chip('done', i18tn('ng_board_f_done', n.done, { n: n.done }))}
-      <span class="sp"></span>${memo}</div>`;
-  const move = r => {
-    const k = dealBoardMoveOf(c, r, side);
-    return `<span class="db-move db-move-${k[0]}">${_ne(k[1])}</span>`;
-  };
-  const verdict = v => `<span class="db-vd db-vd-${v.k}"><i aria-hidden="true"></i>${_ne(v.text)}</span>`;
-  /* The list's small bar: the same object as the old board's Distance column,
-     their dot, ours and the fallback tick, drawn to one scale per row. */
-  const bar = (r, v) => {
-    if (r.dist == null){
-      return `<span class="db-gap"><span class="db-gap-w">${_ne(
-        r.state === 'settled' ? i18t('ng_board_gap_settled')
-          : r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))}</span></span>`;
-    }
-    const hi = Math.max(r.theirFig, r.ourFig, v.fbN != null ? v.fbN : 0, r.standard ? r.standard.value : 0, 1);
-    const pct = x => Math.max(0, Math.min(100, (x / hi) * 100));
-    const a = pct(r.theirFig), b = pct(r.ourFig);
-    return `<span class="db-gap"><span class="db-bar" role="img" aria-label="${
-      _nea(i18t('ng_board_gap_n', { n: r.dist, unit: r.unit || '' }))}"><b style="left:${
-      Math.min(a, b)}%;width:${Math.abs(a - b)}%"></b>${v.fbN != null ? `<i class="s" style="left:${pct(v.fbN)}%"></i>` : ''}<i class="t" style="left:${a}%"></i><i class="y" style="left:${
-      b}%"></i></span><span class="db-gap-n">${r.dist ? _ne(i18t('ng_board_gap_n', { n: r.dist, unit: r.unit || '' })) : _ne(i18t('ng_board_agreed_fig'))}</span></span>`;
-  };
-  const shown = facts.filter(passes);
-  const GROUPS = [['you', i18t('ng_board_g_you')], ['them', i18t('ng_board_g_them', { cp })], ['done', i18t('ng_board_g_done')]];
-  const pick = (shown.find(x => String(x.r.clauseId) === String(_rlBoardPick))
-    || shown.find(x => x.g === 'you') || shown.find(x => x.g === 'them') || shown[0] || {}).r || null;
-  const list = GROUPS.map(([g, label]) => {
-    const inG = shown.filter(x => x.g === g);
-    if (!inG.length) return '';
-    return `<div class="db-lg">${_ne(label)} <span class="db-lg-n">${inG.length}</span></div>` + inG.map(({ r, v }) => {
-      const on = pick && String(pick.clauseId) === String(r.clauseId);
-      return `<button type="button" class="db-irow${on ? ' is-on' : ''}" data-rl-board-pick="${_nea(r.clauseId)}"
-        aria-current="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_board_pick_title'))}">
-        <span class="db-ir-top"><span class="db-ir-nm">${_ne(r.label || r.clauseId)}</span>${move(r)}</span>
-        <span class="db-ir-bar">${bar(r, v)}</span>
-        <span class="db-ir-vd">${verdict(v)}</span></button>`;
-    }).join('');
-  }).join('');
-  const pane = pick ? dealBoardCardHtml(c, pick, side, { move, verdict, v: (facts.find(x => x.r === pick) || {}).v || dealBoardVerdict(pick), names })
-    : `<p class="db-empty">${_ne(i18t('ng_board_f_none'))}</p>`;
-  return `<div class="db">
-    ${head}
-    <div class="db-insp">
-      <nav class="db-list" id="db-list" aria-label="${_nea(i18t('ng_board_list_label'))}">${list}</nav>
-      <div class="db-pane" id="db-pane">${pane}<p class="db-foot">${_ne(i18t('ng_board_foot'))}</p></div>
-    </div>
-  </div>`;
-}
-/* ---- THE DEAL, IN THE MIDDLE: THE CLOSE PLAN (owner picked "The Close Plan", 25 Oct 2026;
-   reverses the Legora pick of 23 Oct, which quoted the Redlines column back beside itself) ----
-   The deal where the paper was (pdDealOpen), answering "how far from a signature, and what do
-   I do with each point": one line of how many points stand open and how many the other side
-   has not seen, a bar of where they sit, then every point under what to do with it — Room to
-   give · Hold firm · Needs a rule · Waiting on them · Agreed (dealPlanOf). Every word is a
-   READING of facts HaTi holds (the playbook's standard and fallback, past deals, what was
-   sent and when), never a model's; it spends nothing. Still no Accept / Counter / Reject and
-   no walk-away (the owner, 3 Oct): a row's doors are Send (the card's own), Open clause, Chase
-   (the Send screen) and Ask an admin (the tracked ask; an admin, the standard itself). */
-/* A POINT OPENS TO COMPARE (owner picked option 2, 25 Oct 2026: "the deal card only shows parts of the
-   clause"): a press on a point where they asked something opens it, both wordings whole with the words each
-   moved marked (the changes' own stored ops, `rlChangeWordingHtml` changedOnly — the card's reading); a point
-   they asked nothing on stays one quiet line. Per sitting, in memory. */
-const _dealOpen = new Set();
-function dealRowToggle(id){ id = String(id); if (_dealOpen.has(id)) _dealOpen.delete(id); else _dealOpen.add(id); return _dealOpen.has(id); }
-function dealRowOpen(id){ return _dealOpen.has(String(id)); }
-/* the paragraphs a move touches, as plain words: `drop` names the ops left
-   out (what it proposes: drop its deletions; what stood before it: drop its
-   insertions) */
-function dealWordsOf(ch, drop){
-  if (!ch || typeof window.redlineShownBlocks !== 'function') return '';
-  const blocks = redlineShownBlocks(rlChangeOps(ch), { changedOnly: true });
-  return blocks.map(g => g.filter(o => o.op !== drop).map(o => o.text).join('')).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' ');
-}
-/* what we hold on a point: the agreed wording once agreed, our last standing
-   move, else the wording as it stood before anybody moved */
-function dealHeldWords(r){
-  if (r.state === 'settled' && r.accepted) return dealWordsOf(r.accepted.ch, 'del');
-  if (r.ours) return dealWordsOf(r.ours.ch, 'del');
-  const ref = r.theirs || r.top || (r.rungs || [])[r.rungs.length - 1];
-  return ref ? dealWordsOf(ref.ch, 'ins') : '';
-}
-/* "5. Limitation of Liability" → § 5 and its name; a label with no number keeps its name */
-function dealSecOf(r){
-  const m = String(r.label || r.clauseId || '').match(/^\s*(\d+(?:\.\d+)*)\.?\s+(.+)$/);
-  return m ? { sec: '§' + m[1], name: m[2] } : { sec: '', name: String(r.label || r.clauseId || '') };
-}
-/* WHAT TO DO WITH ONE POINT, read off the playbook and the record:
-   { k: give · hold · rule · wait · agreed, why, tag, tone, room, std, unsent }.
-   OUR OWN POSITION is measured where we hold one that has not been answered: a figure against
-   the fallback's figure (room = how far we could still move), else the standard's wording
-   (a fallback wording in the library = room; the preferred one alone = hold; none = a rule
-   is owed). THEIR ASK is Jambo's read of their row (rlpJudge), so the two never disagree. */
-const DEAL_PLAN_GROUPS = ['give', 'hold', 'rule', 'wait', 'agreed'];
-function dealStandardOf(c, r){
-  if (typeof window.pbStandardsFor !== 'function') return null;
-  let list = []; try { list = pbStandardsFor(c).standards || []; } catch (_){ list = []; }
-  const norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9åäö]+/g, ' ').trim();
-  const lead = (r.ours || r.theirs || r.top || {}).ch || null;
-  let topic = null; try { topic = (lead && typeof window.precedentTopicOf === 'function') ? precedentTopicOf(lead) : null; } catch (_){ topic = null; }
-  /* the playbook's own note on a change it filed: "Playbook — <category>…" */
-  const noted = String((r.ours && r.ours.ch && (r.ours.ch.note || r.ours.ch.why)) || '').match(/^Playbook\s+—\s+([^:(]+)/);
-  const rangeKey = (r.topic && window.LADDER_RANGE_TOPIC) ? LADDER_RANGE_TOPIC[r.topic.key] : null;
-  const names = [topic && topic.category, noted && noted[1], dealSecOf(r).name].map(norm).filter(Boolean);
-  return list.find(s => rangeKey && s.range && s.range.key === rangeKey)
-    || list.find(s => names.includes(norm(s.category)) || (s.range && names.includes(norm(s.range.key))))
-    || list.find(s => { const k = norm(s.category); return k && names.some(n => n.includes(k) || k.includes(n)); })
-    || null;
-}
-function dealPlanOf(c, r, g, side){
-  const unit = r.unit ? ' ' + r.unit : '';
-  const fig = n => n == null ? '' : n + unit;
-  const unsent = side !== 'counterparty' && r.ours && r.ours.ch && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.ours, side) ? r.ours.ch.id : '';
-  const prec = (typeof rlPrecedentSay === 'function') ? rlPrecedentSay(c, r) : '';
-  const out = (k, tone, tag, why, more) => Object.assign({ k, tone, tag, why: [why, prec].filter(Boolean).join(' '), unsent }, more || {});
-  if (g === 'done') return out('agreed', 'agreed', i18t('ng_plan_tag_agreed'), r.state === 'settled' ? i18t('ng_plan_why_agreed') : i18t('ng_plan_why_closed'));
-  if (g === 'them'){
-    const neg = c.negotiation || {};
-    const at = [String((r.ours && r.ours.at) || ''), String(neg.turnAt || '')].sort().pop();
-    const ago = (typeof rlAgoWords === 'function') ? rlAgoWords(at) : '';
-    const held = dealHeldWords(r);
-    const cut = held.length > 120 ? held.slice(0, 117).replace(/\s+\S*$/, '') + '…' : held;
-    return { k: 'wait', tone: 'wait', tag: ago ? i18t('ng_plan_tag_wait', { ago }) : i18t('ng_plan_tag_wait_none'),
-      why: cut ? i18t('ng_plan_why_wait', { words: cut }) : i18t('ng_plan_why_wait_none'), unsent: '' };
-  }
-  const std = dealStandardOf(c, r);
-  const fb = (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
-  const fbN = fb && fb.figure != null ? fb.figure : null;
-  const within = (n, bound) => (typeof window.ladderWithin === 'function') ? ladderWithin(r.topic, n, bound) : null;
-  /* their ask, still unanswered, with nothing of ours over it: Jambo's read of their row */
-  if (r.state === 'awaiting' && r.theirs && !unsent){
-    let j = null; try { j = (typeof window.rlpJudge === 'function') ? rlpJudge(c, r.theirs.ch) : null; } catch (_){ j = null; }
-    const said = String(((j && j.why) || [])[0] || '').trim();
-    if (j && j.verdict === 'accept') return out('give', 'ok', i18t('ng_plan_tag_inside'), said, { std, theirs: true });
-    if (j && (j.verdict === 'push' || j.verdict === 'escalate')) return out('hold', j.verdict === 'escalate' ? 'ruby' : 'ok', i18t('ng_plan_tag_past'), said, { std, theirs: true });
-    const plain = (typeof rlPlainReasonOf === 'function') ? rlPlainReasonOf(r.theirs.ch) : '';
-    return out('rule', 'none', i18t('ng_plan_tag_none'), said || plain || i18t('ng_plan_why_rule', { name: dealSecOf(r).name }), { std });
-  }
-  /* our own position: a figure against the fallback's */
-  if (r.topic && fbN != null && r.ourFig != null){
-    const room = Math.abs(r.ourFig - fbN);
-    if (within(r.ourFig, fbN) === true && room > 0)
-      return out('give', 'ok', i18t('ng_plan_tag_room', { n: room, unit: r.unit || '' }), i18t('ng_plan_why_room', { ours: fig(r.ourFig), fb: fig(fbN) }), { std, room, fbN });
-    return out('hold', 'ok', room ? i18t('ng_plan_tag_beyond') : i18t('ng_plan_tag_at_fb'),
-      room ? i18t('ng_plan_why_beyond', { ours: fig(r.ourFig), fb: fig(fbN) }) : i18t('ng_plan_why_at_fb', { fb: fig(fbN) }), { std });
-  }
-  if (std){
-    const L = (std.clause && typeof window.clauseById === 'function') ? clauseById(std.clause) : null;
-    const cat = String(std.category || '');
-    const lower = /^[A-ZÅÄÖ][a-zåäö]/.test(cat) ? cat.charAt(0).toLowerCase() + cat.slice(1) : cat;
-    if (L && L.fallback && String(L.fallback).trim() && String(L.fallback).trim() !== String(L.preferred || '').trim())
-      return out('give', 'ok', i18t('ng_plan_tag_fb_words'), i18t('ng_plan_why_fb_words', { cat: lower }), { std });
-    if (std.range && r.ourFig != null)
-      return out('hold', 'ok', i18t('ng_plan_tag_std'), i18t('ng_plan_why_std_fig', { ours: fig(r.ourFig), op: std.range.op === '<=' ? '≤' : '≥', v: fig(std.range.value) }), { std });
-    return out('hold', 'ok', std.pos === 'required' ? i18t('ng_plan_tag_required') : i18t('ng_plan_tag_preferred'),
-      i18t(std.pos === 'required' ? 'ng_plan_why_required' : 'ng_plan_why_preferred', { cat: lower }), { std });
-  }
-  return out('rule', 'none', i18t('ng_plan_tag_none'), i18t('ng_plan_why_rule', { name: dealSecOf(r).name }), { std: null });
-}
-/* THE PLAN, READ ONCE: every point with what to do with it, the open count, the unsent count */
-function dealPlanFacts(c, side){
-  side = side || 'owner';
-  const { rows, facts, n } = dealBoardFacts(c, side);
-  const plan = facts.map(x => Object.assign({}, x, { p: dealPlanOf(c, x.r, x.g, side) }));
-  const by = {}; DEAL_PLAN_GROUPS.forEach(k => { by[k] = plan.filter(x => x.p.k === k); });
-  const open = plan.filter(x => x.p.k !== 'agreed').length;
-  const unseen = plan.filter(x => x.p.k !== 'agreed' && x.p.unsent).length;
-  return { rows, plan, by, n, open, unseen, cp: rlLegendNames(c, side).them };
-}
-/* "5 points to close before AIT can sign" and the line under it */
-function dealPlanHead(c, f){
-  const round = (c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0) ? c.negotiation.round : 1;
-  const since = (typeof window.negoRoundSince === 'function') ? negoRoundSince(c) : null;
-  let day = '';
-  if (since){ const d = new Date(since); if (!isNaN(d.getTime())) try { day = d.toLocaleDateString(window.langLocale ? langLocale() : 'en-GB', { day: 'numeric', month: 'short' }); } catch (_){ day = ''; } }
-  const head = f.open ? i18tn('ng_plan_head', f.open, { n: f.open, cp: f.cp }) : i18t('ng_plan_head_none');
-  const sub = [
-    f.unseen ? i18tn('ng_plan_unseen', f.unseen, { n: f.unseen, cp: f.cp }) : '',
-    [day ? i18t('ng_round_since', { n: round, day }) : i18t('ng_round_n', { n: round }), f.by.agreed.length ? i18t('ng_plan_agreed_n', { n: f.by.agreed.length }) : ''].filter(Boolean).join(' · ') + '.'
-  ].filter(Boolean).join(' ');
-  return { head, sub };
-}
-function dealViewHtml(c, side){
-  side = side || 'owner';
-  const f = dealPlanFacts(c, side);
-  const id = _nea(String(c.id));
-  const memo = `<button type="button" class="ui-btn" id="deal-memo" data-rl-board-memo data-deal-memo="${id}" title="${_nea(i18t('ng_plan_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`
-    /* THE MEMO LIVES IN THE CLOSE PLAN (owner picked "Inside the close plan", 6 Nov 2026): sent as it is copied, to a colleague */
-    + ((typeof window.newLookOn === 'function' && newLookOn() && f.rows.length && negoMemoRecipients().length)
-      ? `<button type="button" class="ui-btn" id="deal-memo-send" data-deal-memo-send="${id}">${_ne(i18t('ng_memo_send'))}</button>` : '');
-  if (!f.rows.length){
-    return `<div class="deal-mid" data-deal-mid="${id}" data-db-host="${id}"><h2 class="deal-h">${_ne(i18t('ng_deal'))}</h2>${memo}
-      <p class="deal-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
-  }
-  const h = dealPlanHead(c, f);
-  if (typeof window.newLookOn === 'function' && newLookOn()) return dealViewNewHtml(c, side, f, memo);
-  const cnt = k => f.by[k].length;
-  /* THE ROAD: one bar, a segment per kind of point, the legend its words and counts */
-  const seg = [['go', cnt('give') + cnt('hold'), i18t('ng_plan_road_go')], ['rule', cnt('rule'), i18t('ng_plan_g_rule')],
-    ['wait', cnt('wait'), i18t('ng_plan_g_wait', { cp: f.cp })], ['agreed', cnt('agreed'), i18t('ng_plan_g_agreed')]].filter(s => s[1]);
-  const road = `<div class="deal-road" id="deal-road" role="img" aria-label="${_nea(seg.map(s => s[2] + ' ' + s[1]).join(', '))}">
-    <div class="deal-road-bar">${seg.map(s => `<i class="is-${s[0]}" style="flex:${s[1]}"></i>`).join('')}</div>
-    <div class="deal-road-key">${seg.map(s => `<span><i class="is-${s[0]}" aria-hidden="true"></i>${_ne(s[2])} <b>${s[1]}</b></span>`).join('')}</div></div>`;
-  const admin = typeof window.isAdmin === 'function' && isAdmin();
-  /* the room drawn to one scale: the fallback a tick, our position a dot, theirs where they asked */
-  const track = (r, p) => {
-    if (p.room == null || p.fbN == null || r.ourFig == null) return '';
-    const hi = Math.max(r.ourFig, p.fbN, r.theirFig || 0, 1);
-    const pct = x => Math.max(0, Math.min(100, (x / hi) * 100));
-    return `<span class="deal-track" aria-hidden="true"><i class="fb" style="left:${pct(p.fbN)}%"></i>${r.theirFig != null ? `<b class="t" style="left:${pct(r.theirFig)}%"></b>` : ''}<b class="y" style="left:${pct(r.ourFig)}%"></b></span>`;
-  };
-  const row = ({ r, p }) => {
-    const s = dealSecOf(r);
-    const send = p.unsent ? `<button type="button" class="deal-go" data-deal-send="${_nea(p.unsent)}">${_ne(i18t('ng_send'))}</button>` : '';
-    const open = `<button type="button" class="deal-go" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))} ›</button>`;
-    const acts = p.k === 'wait' ? `<button type="button" class="deal-go" data-deal-chase="${id}">${_ne(i18t('ng_plan_chase'))}</button>${open}`
-      : p.k === 'rule' ? `${send}<button type="button" class="deal-go" data-deal-ask="${_nea(r.clauseId)}" data-deal-ask-cat="${_nea((p.std && p.std.category) || s.name)}">${_ne(i18t(admin ? 'ng_plan_set_rule' : 'ng_plan_ask_admin'))}</button>${send ? '' : open}`
-      : `${send}${open}`;
-    const t = track(r, p);
-    /* A POINT OPENS TO COMPARE (the owner's option 2, kept in the plan): where they asked something, the name
-       opens both wordings whole under the row, the moved words marked (the card's own reading) */
-    const canCmp = !!(r.theirs && r.theirs.ch), cmp = canCmp && dealRowOpen(r.clauseId);
-    const name = canCmp
-      ? `<button type="button" class="deal-tg" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="${cmp}" title="${_nea(i18t(cmp ? 'ng_deal_close_cmp' : 'ng_deal_open_cmp'))}"><b>${_ne(s.name)}</b><span class="deal-chev" aria-hidden="true">${cmp ? '\u25be' : '\u25b8'}</span></button>`
-      : `<b>${_ne(s.name)}</b>`;
-    const heldCh = r.state === 'settled' && r.accepted ? r.accepted.ch : r.ours ? r.ours.ch : null;
-    const whole = ch => `<div class="rl-cp-src deal-w">${rlChangeWordingHtml(ch, { side, changedOnly: true })}</div>`;
-    const held = cmp && !heldCh ? dealHeldWords(r) : '';
-    const body = cmp ? `<div class="deal-cmp"><span>${_ne(i18t('ng_deal_you'))}</span>${heldCh ? whole(heldCh) : (held ? `<div class="deal-w">${_ne(held)}</div>` : '<span class="deal-none">\u2014</span>')}
-        <span>${_ne(i18t('ng_deal_they'))}</span>${whole(r.theirs.ch)}</div>` : '';
-    return `<div class="deal-pr${cmp ? ' is-open' : ''}" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
-      <div class="deal-pr-nm">${name}${s.sec ? `<span>${_ne(s.sec)}</span>` : ''}</div>
-      <p class="deal-pr-why">${_ne(p.why)}</p>
-      <div class="deal-pr-st">${t ? `${t}<span class="deal-pr-room">${_ne(p.tag)}</span>` : `<span class="deal-tag is-${p.tone}"><i aria-hidden="true"></i>${_ne(p.tag)}</span>`}</div>
-      <div class="deal-pr-acts">${acts}</div>${body}
-    </div>`;
-  };
-  const hint = { give: 'ng_plan_h_give', hold: 'ng_plan_h_hold', rule: 'ng_plan_h_rule', wait: 'ng_plan_h_wait', agreed: 'ng_plan_h_agreed' };
-  const groups = DEAL_PLAN_GROUPS.filter(k => cnt(k)).map(k => `<section class="deal-grp" data-deal-grp="${k}">
-      <div class="deal-grp-h"><h3>${_ne(i18t('ng_plan_g_' + k, { cp: f.cp }))}</h3><span>${_ne(i18t(hint[k], { cp: f.cp }))}</span></div>
-      ${f.by[k].map(row).join('')}</section>`).join('');
-  return `<div class="deal-mid is-plan" data-deal-mid="${id}" data-db-host="${id}">
-    <h2 class="deal-h deal-plan-h">${_ne(h.head)}<small class="deal-sub">${_ne(h.sub)}</small></h2>${memo}${road}
-    <div class="deal-list">${groups}</div>
-  </div>`;
-}
-/* THE CLOSE PLAN, AS DRAWN (the new look, Negotiate round): flat on the page, one table —
-   Point (name, § and their words quoted) · us · them · Stand. The stand is the plan's own reading
-   (dealPlanOf, no call); a point they asked something on opens to compare, the two wordings side by
-   side with only the differences marked. Doors only Send, Open clause, Counter, Chase, Ask an admin,
-   each pressing the one it always pressed. */
-/* their words where they moved them: two words before the first insertion, the insertion, three after */
-function dl2QuoteOf(ch){
-  if (!ch) return '';
-  const ops = rlChangeOps(ch);
-  const k = ops.findIndex(o => o && o.op === 'ins' && String(o.text || '').trim());
-  if (k < 0) return '';
-  const words = t => String(t || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
-  const pre = words(ops.slice(0, k).filter(o => o.op !== 'ins' && o.op !== 'del').map(o => o.text).join('')).slice(-2);
-  const mid = words(ops[k].text).slice(0, 10);
-  const post = words(ops.slice(k + 1).filter(o => o.op !== 'del').map(o => o.text).join('')).slice(0, 3);
-  return pre.concat(mid, post).join(' ').replace(/[.,;:]+$/, '');
-}
-function dealViewNewHtml(c, side, f, memo){
-  const id = _nea(String(c.id));
-  const names = rlLegendNames(c, side);
-  const cut = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t; };
-  const tagOf = p => p.k === 'wait' ? i18t('ng_plan_g_wait', { cp: i18t('dl2_them') }) : i18t('ng_plan_g_' + p.k, { cp: f.cp });
-  const pill = p => `<span class="dl2-st is-${p.k}" title="${_nea(p.why)}">${_ne(tagOf(p))}</span>`;
-  const admin = typeof window.isAdmin === 'function' && isAdmin();
-  const mine = f.plan.filter(x => x.p.k !== 'agreed' && x.p.k !== 'wait').length;
-  const fig = (r, n) => n == null ? '' : n + (r.unit ? ' ' + r.unit : '');
-  const row = ({ r, p }) => {
-    const s = dealSecOf(r);
-    const th = r.theirs && r.theirs.ch ? dealWordsOf(r.theirs.ch, 'del') : '';
-    const heldW = dealHeldWords(r);
-    const q = cut(dl2QuoteOf(r.theirs && r.theirs.ch) || th || heldW, 70);
-    let press = null; try { press = (r.theirs && typeof rlOnePressOf === 'function') ? rlOnePressOf(c, r.theirs.ch, side) : null; } catch (_){ press = null; }
-    const ours = r.ourFig != null ? fig(r, r.ourFig) : cut(heldW, 60);
-    const oursMore = p.unsent ? i18t('dl2_unsent') : (press && press.at != null) ? i18t('dl2_counter_at', { v: press.at + (press.unit ? ' ' + press.unit : '') }) : '';
-    const theirs = r.theirFig != null ? fig(r, r.theirFig) : (r.theirs ? cut(th, 60) : '—');
-    const canCmp = !!(r.theirs && r.theirs.ch), cmp = canCmp && dealRowOpen(r.clauseId);
-    const lines = Math.max(1, Math.round((th || heldW).length / 90));
-    const long = (th || heldW).length > 300;
-    const opener = canCmp && !cmp ? `<div class="dl2-long">${long ? _ne(i18t('dl2_long', { n: lines })) + ' · ' : ''}<button type="button" class="dl2-a" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="false">${_ne(i18t('dl2_open_cmp'))}</button></div>` : '';
-    const main = `<div class="dl2-r${cmp ? ' is-open' : ''}" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
-      <div class="dl2-pt"><b>${_ne(s.name)}</b>${q ? `<i class="dl2-q">${s.sec ? _ne(s.sec) + ' · ' : ''}“${_ne(q)}”</i>` : ''}${opener}</div>
-      <div class="dl2-us">${_ne(ours)}${oursMore ? `<span>${_ne(oursMore)}</span>` : ''}</div>
-      <div class="dl2-them">${_ne(theirs)}</div>
-      <div class="dl2-stc">${pill(p)}</div></div>`;
-    if (!cmp) return main;
-    const heldCh = r.state === 'settled' && r.accepted ? r.accepted.ch : r.ours ? r.ours.ch : null;
-    const left = heldCh ? rlChangeWordingHtml(heldCh, { side, changedOnly: true }) : `<p>${_ne(heldW || '—')}</p>`;
-    const counter = p.k !== 'agreed' && p.k !== 'wait' ? ` · <button type="button" class="dl2-a" data-deal-counter="${_nea(r.clauseId)}">${_ne(i18t('ng_counter'))}</button>` : '';
-    return `<div class="dl2-cmp" data-deal-row="${_nea(r.clauseId)}" data-deal-plan="${p.k}">
-      <div class="dl2-cmp-h"><b>${s.sec ? _ne(s.sec) + ' ' : ''}${_ne(s.name)}</b><span>${_ne(i18t(long ? 'dl2_cmp_long' : 'dl2_cmp', { n: lines }))}</span>
-        <button type="button" class="dl2-a" data-deal-toggle="${_nea(r.clauseId)}" aria-expanded="true">${_ne(i18t('dl2_close'))}</button></div>
-      <div class="dl2-cmp-b"><div><div class="dl2-cap">${_ne(names.us)}</div><div class="dl2-w rl-cp-src">${left}</div></div>
-        <div><div class="dl2-cap">${_ne(names.them)}</div><div class="dl2-w rl-cp-src">${rlChangeWordingHtml(r.theirs.ch, { side, changedOnly: true })}</div></div></div>
-      <div class="dl2-cmp-f">${pill(p)}<span class="dl2-why">${_ne(p.why)}</span><span class="sp"></span>
-        <button type="button" class="dl2-a" data-deal-open="${_nea(r.clauseId)}">${_ne(i18t('ng_deal_open'))}</button>${counter}<span class="dl2-only">${_ne(i18t('dl2_only_diff'))}</span></div></div>`;
-  };
-  const order = ['give', 'hold', 'rule', 'wait', 'agreed'];
-  const rows = f.plan.slice().sort((a, b) => order.indexOf(a.p.k) - order.indexOf(b.p.k)).map(row).join('');
-  const rule = f.by.rule[0], wait = f.by.wait[0];
-  const firstMine = f.plan.find(x => x.p.k !== 'agreed' && x.p.k !== 'wait');
-  const ask = rule ? `<button type="button" class="dl2-a" data-deal-ask="${_nea(rule.r.clauseId)}" data-deal-ask-cat="${_nea((rule.p.std && rule.p.std.category) || dealSecOf(rule.r).name)}">${_ne(i18t(admin ? 'dl2_set_rule' : 'dl2_ask_rule', { name: dealSecOf(rule.r).name.toLowerCase() }))}</button>` : '';
-  const chase = wait ? `<button type="button" class="dl2-a" data-deal-chase="${id}">${_ne(i18t('ng_plan_chase'))}</button>` : '';
-  const open = firstMine ? `<button type="button" class="ui-btn" data-deal-open="${_nea(firstMine.r.clauseId)}">${_ne(i18t('ng_deal_open'))}</button>` : '';
-  const send = `<button type="button" class="ui-btn ui-btn-primary" data-deal-sendall="${id}">${_ne(i18t('ng_send'))}</button>`;
-  return `<div class="deal-mid is-plan dl2" data-deal-mid="${id}" data-db-host="${id}">
-    <h2 class="deal-h dl2-h">${_ne(i18t('dl2_title'))}<small class="deal-sub">${_ne(i18t('dl2_sub', { n: f.plan.length, m: mine }))}</small></h2>${memo}
-    <div class="deal-list"><div class="dl2-t"><div class="dl2-th"><span>${_ne(i18t('dl2_point'))}</span><span>${_ne(names.us)}</span><span>${_ne(names.them)}</span><span>${_ne(i18t('dl2_stand'))}</span></div>${rows}</div></div>
-    <div class="dl2-foot"><span>${_ne(i18t('dl2_foot'))}</span><span class="sp"></span>${chase}${ask}${open}${send}</div>
-  </div>`;
-}
-/* THE CLOSE PLAN'S PANEL, AS DRAWN (the new look): Jambo's face beside the plan — one sentence, the road (their round,
-   your answers, then), his one remark and the doors. Every word read off the plan (dealPlanFacts), no call. */
-function dealPanelNewHtml(c){
-  const f = dealPlanFacts(c, 'owner'); if (!f.rows.length) return '';
-  const id = _nea(String(c.id));
-  const names = k => f.by[k].map(x => dealSecOf(x.r).name.toLowerCase());
-  const list = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' ' + i18t('dl2_and') + ' ' + a[a.length - 1];
-  const mine = f.by.give.length + f.by.hold.length + f.by.rule.length;
-  const prepared = f.plan.filter(x => x.p.unsent).length;
-  const rule = names('rule');
-  const lead = [i18t('dl2_p_mine', { k: mine, n: f.plan.length }),
-    prepared ? i18tn('dl2_p_prepared', prepared, { n: prepared }) : '',
-    rule.length ? i18tn('dl2_p_rule', rule.length, { n: rule.length, what: list(rule) }) : ''].filter(Boolean).join(' ');
-  /* the road: their round as the record has it, your answers, then */
-  const neg = c.negotiation || {};
-  const r = Number(neg.round) || 1;
-  const theirs = (Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'counterparty' && Number(x.roundN || r) === r);
-  const since = (typeof window.negoRoundSince === 'function') ? negoRoundSince(c) : null;
-  let when = ''; if (since){ const d = new Date(since); if (!isNaN(d.getTime())) try { when = d.toLocaleString(window.langLocale ? langLocale() : 'en-GB', { weekday: 'long', hour: '2-digit', minute: '2-digit' }); } catch (_){ when = ''; } }
-  const who = String((theirs[0] && theirs[0].author) || '').trim().split(/\s+/)[0];
-  const road = [[i18t('dl2_road_theirs', { n: r }), [when, i18tn('dl2_road_asks', theirs.length, { n: theirs.length })].filter(Boolean).join(' · '), _ne(who)],
-    [i18t('dl2_road_yours'), prepared ? i18t('dl2_road_prepared') : i18t('dl2_road_none'), prepared ? `<button type="button" class="dl2-a" data-deal-sendall="${id}">${_ne(i18t('ig_send_all'))}</button>` : ''],
-    [i18t('dl2_road_then'), i18t('dl2_road_then_w'), '']];
-  const give = names('give'), hold = names('hold');
-  const say = [give.length ? i18t('dl2_j_give', { what: list(give) }) : '', hold.length ? i18t('dl2_j_hold', { what: list(hold) }) : '',
-    rule.length ? i18t('dl2_j_rule', { what: list(rule) }) : ''].filter(Boolean).join(' ');
-  const admin = typeof window.isAdmin === 'function' && isAdmin();
-  const doors = [prepared ? [`<button type="button" class="dl2-a" data-deal-sendall="${id}">${_ne(i18tn('dl2_d_send', prepared, { n: prepared }))}</button>`, i18t('dl2_free')] : null,
-    f.by.wait.length ? [`<button type="button" class="dl2-a" data-deal-chase="${id}">${_ne(who ? i18t('dl2_d_chase_who', { who }) : i18t('ng_plan_chase'))}</button>`, i18t('dl2_free')] : null,
-    rule.length ? [`<button type="button" class="dl2-a" data-deal-ask="${_nea(f.by.rule[0].r.clauseId)}" data-deal-ask-cat="${_nea((f.by.rule[0].p.std && f.by.rule[0].p.std.category) || dealSecOf(f.by.rule[0].r).name)}">${_ne(i18t(admin ? 'dl2_d_set_rule' : 'dl2_d_ask_rule'))}</button>`, i18t(admin ? 'dl2_free' : 'dl2_free_record')] : null].filter(Boolean);
-  /* THE FIVE PARTS (Jambo's panels, the remaining eight; owner, 15 Nov 2026: "build all eight"): how many points are
-     your move as the headline, the plan's three numbers, the road as one group (a mark per step: done, yours, then),
-     Jambo's one remark as its own row with where it was read from, and the plan's first door the long black button
-     (Send · Chase · Ask an admin, as today), the others as rows. The same facts (dealPlanFacts); no call. */
-  if (window.newLookOn && newLookOn() && typeof jamboOverviewHtml === 'function'){
-    const D = [];
-    if (prepared) D.push({ label: i18tn('dl2_d_send', prepared, { n: prepared }), attr: `data-deal-sendall="${id}"` });
-    if (f.by.wait.length) D.push({ label: who ? i18t('dl2_d_chase_who', { who }) : i18t('ng_plan_chase'), attr: `data-deal-chase="${id}"` });
-    if (rule.length) D.push({ label: i18t(admin ? 'dl2_d_set_rule' : 'dl2_d_ask_rule'), attr: `data-deal-ask="${_nea(f.by.rule[0].r.clauseId)}" data-deal-ask-cat="${_nea((f.by.rule[0].p.std && f.by.rule[0].p.std.category) || dealSecOf(f.by.rule[0].r).name)}"` });
-    const groups = [{ label: i18t('jov5_dl_road'), rows: [
-      { mark: 'mkTick', tone: 'green', t: road[0][0], s: road[0][1] },
-      { mark: 'pencil', tone: prepared ? 'amber' : '', t: road[1][0], s: road[1][1] },
-      { mark: 'clock', t: road[2][0], s: road[2][1] }] }];
-    if (say) groups.push({ label: 'Jambo', rows: [{ mark: 'sparkle', tone: 'dark', t: say, s: i18t('dl2_foot'), wrap: true }] });
-    if (D.length > 1) groups.push({ label: i18t('jov5_dl_more'), rows: D.slice(1).map(d => ({ t: d.label, attr: d.attr })) });
-    return `<div class="dl2-panel is-five" data-dl2-panel="${id}">${jamboOverviewHtml({ eyebrow: [i18t('jov5_dl_eb'), String(c.counterparty || '').trim()].filter(Boolean).join(' \u00b7 '),
-      title: i18tn('jov5_dl_t', mine, { n: mine }), sub: [prepared ? i18tn('dl2_p_prepared', prepared, { n: prepared }) : '', rule.length ? i18tn('dl2_p_rule', rule.length, { n: rule.length, what: list(rule) }) : ''].filter(Boolean).join(' '),
-      glance: [{ n: mine, l: i18t('jov5_dl_mine'), warn: !!mine }, { n: prepared, l: i18t('jov5_dl_prepared') }, { n: theirs.length, l: i18t('jov5_dl_asks') }],
-      groups, act: D.length ? { label: D[0].label, attr: D[0].attr } : null }, 'dl2')}</div>`;
-  }
-  return `<div class="dl2-panel" data-dl2-panel="${id}">
-    <p class="dl2-pl">${_ne(lead)}</p>
-    <div class="dl2-cap">${_ne(i18t('dl2_road'))}</div>
-    <div class="dl2-road">${road.map(x => `<div><b>${_ne(x[0])}</b><span>${_ne(x[1])}</span><i>${x[2]}</i></div>`).join('')}</div>
-    ${say ? `<div class="dl2-j"><span class="dl2-jdot" aria-hidden="true"></span><div><div class="dl2-cap">Jambo</div><p>${_ne(say)}</p></div></div>` : ''}
-    ${doors.length ? `<div class="dl2-cap">${_ne(i18t('dl2_doors'))}</div><div class="dl2-doors">${doors.map(d => `<div>${d[0]}<span>${_ne(d[1])}</span></div>`).join('')}</div>` : ''}
-  </div>`;
-}
-/* COPY AS MEMO, the plan in words: the head, then each group and its points */
-function dealPlanMemoText(c){
-  if (!c) return '';
-  const f = dealPlanFacts(c, 'owner'); if (!f.rows.length) return '';
-  const h = dealPlanHead(c, f);
-  const ref = (typeof window.contractRef === 'function') ? contractRef(c) : c.id;
-  return [`${i18t('ng_deal')} · ${c.name || ref} · ${c.counterparty || ''}`, h.head, h.sub, '']
-    .concat(...DEAL_PLAN_GROUPS.filter(k => f.by[k].length).map(k => [i18t('ng_plan_g_' + k, { cp: f.cp }),
-      ...f.by[k].map(({ r, p }) => { const s = dealSecOf(r); return `- ${s.name}${s.sec ? ' (' + s.sec + ')' : ''}: ${p.tag}. ${p.why}`; }), '']))
-    .join('\n').trim();
-}
-/* ONE POINT, WHOLE. Every piece is a reading the negotiate page already
-   draws somewhere — the scale (rlScaleHtml), the wording (rlChangeWordingHtml),
-   the precedent sentence (rlPrecedentSay), the note count (negoNoteCounts) —
-   so the board and the clause panel cannot disagree about a clause. */
-function dealBoardCardHtml(c, r, side, k){
-  const id = String(r.clauseId);
-  const unit = r.unit || '';
-  const words = html => `<div class="rl-cp-src db-words">${html}</div>`;
-  /* ONLY THE PARAGRAPHS THE REDLINE TOUCHES (Young, 3 Oct 2026: "Only include
-     the clause or subclause in question as in the paragraph impacted by the
-     redline"). `changedOnly` is the open card's own reading
-     (redlineShownBlocks), so the board and the card show the same paragraphs. */
-  const marked = ch => words(rlChangeWordingHtml(ch, { side, changedOnly: true }));
-  const when = at => (at && typeof negoWhenFull === 'function') ? negoWhenFull(at) : '';
-  const whoOf = rg => {
-    const mine = (rg.side === 'counterparty') === (side === 'counterparty');
-    return [mine ? k.names.us : k.names.them, rg.author, i18t('ng_rung_round', { n: rg.round }), when(rg.at)]
-      .filter(Boolean).map(x => _ne(String(x))).join(' · ');
-  };
-  const why = (ch, key) => {
-    const w = (ch && typeof window.negoReasonOf === 'function') ? negoReasonOf(ch) : (ch && ch.why) || '';
-    return w ? `<p class="db-why"><b>${_ne(i18t(key))}</b> ${_ne(String(w))}</p>` : '';
-  };
-  const unsent = rg => typeof window.ladderUnsent === 'function' && ladderUnsent(c, rg, side);
-  /* THEIRS: the last thing they asked for that is still a position. */
-  const theirs = r.theirs
-    ? `<p class="db-who">${whoOf(r.theirs)}</p>${marked(r.theirs.ch)}${why(r.theirs.ch, 'ng_why_they_asked')}`
-    : `<p class="db-none-say">${_ne(i18t('ng_board_c_none_theirs'))}</p>`;
-  /* OURS: what this clause says on our side now — the agreed rung once one
-     is, our last standing move, else the wording before anybody moved. */
-  const base = (typeof window.ladderBaseText === 'function') ? ladderBaseText(r.rungs) : '';
-  /* THE WORDING NOBODY ON OUR SIDE HAS MOVED, cut to the same paragraphs: the
-     ones the reference move touches, as they stood before it (the move's own
-     ops read without their insertions). Where no move says which paragraphs,
-     the whole wording is drawn rather than a guess. */
-  const plain = t => {
-    const ref = r.theirs || r.top || r.rungs[r.rungs.length - 1];
-    const blocks = (ref && ref.ch && typeof window.redlineShownBlocks === 'function')
-      ? redlineShownBlocks(rlChangeOps(ref.ch), { changedOnly: true }) : [];
-    const was = blocks.map(g => g.filter(o => o.op !== 'ins').map(o => o.text).join('')).filter(x => x.trim());
-    return words(was.length ? was.map(x => `<p>${_ne(x)}</p>`).join('') : `<p>${_ne(String(t || ''))}</p>`);
-  };
-  let oursHead = i18t('ng_board_c_ours'), ours;
-  if (r.state === 'settled' && r.accepted){
-    oursHead = i18t('ng_base_agreed');
-    ours = `<p class="db-who">${whoOf(r.accepted)}</p>${marked(r.accepted.ch)}`;
-  } else if ((r.state === 'refused' || r.state === 'quiet') && !r.ours){
-    oursHead = i18t('ng_rung_agreed');
-    ours = plain(base);
-  } else if (r.ours){
-    ours = `<p class="db-who">${whoOf(r.ours)}${unsent(r.ours) ? ` · ${_ne(i18t('ng_rung_not_sent'))}` : ''}</p>${
-      marked(r.ours.ch)}${why(r.ours.ch, 'ng_board_your_reason')}`;
-  } else {
-    ours = `<p class="db-who">${_ne(i18t('ng_board_as_drafted_words'))}</p>${plain(base)}`;
-  }
-  /* THE PLAYBOOK, IN FULL: the standard as the range states it, the fallback
-     as the library words it, and what this workspace has settled before. */
-  const fb = (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
-  const std = r.standard
-    ? `<b>${_ne(r.standard.op === '<=' ? '≤' : r.standard.op === '>=' ? '≥' : '')} ${_ne(String(r.standard.value))}${unit ? ` ${_ne(unit)}` : ''}</b>${
-      r.standard.note ? `<span class="db-pb-note">${_ne(r.standard.note)}</span>` : ''}`
-    : `<span class="db-none">${_ne(i18t('ng_board_std_none'))}</span>`;
-  const fbCell = fb && (fb.figure != null || fb.text)
-    ? `${fb.figure != null ? `<b>${_ne(String(fb.figure))}${unit ? ` ${_ne(unit)}` : ''}</b>` : ''}${fb.text ? words(`<p>${_ne(fb.text)}</p>`) : ''}`
-    : `<span class="db-none">${_ne(i18t('ng_board_fb_none'))}</span>`;
-  const prec = rlPrecedentSay(c, r);
-  /* EVERY MOVE, oldest first, in the record's own words (`summary` is what the
-     funnel wrote at filing and what the card prints). */
-  const tag = rg => rg.withdrawn ? i18t('ng_rung_tag_withdrawn')
-    : rg.status === 'rejected' ? i18t('ng_rung_tag_refused')
-    : rg.status === 'accepted' ? i18t('ng_rung_tag_accepted')
-    : rg.status === 'superseded' ? i18t('ng_rung_tag_replaced')
-    : rg.status === 'countered' ? i18t('ng_rung_tag_countered')
-    : unsent(rg) ? i18t('ng_rung_tag_draft') : '';
-  const fig = rg => (r.topic && typeof window.ladderFigure === 'function') ? ladderFigure(r.topic, rg.text) : null;
-  const moves = r.rungs.map(rg => {
-    const mine = (rg.side === 'counterparty') === (side === 'counterparty');
-    const t = tag(rg), fn = fig(rg);
-    return `<li class="db-mv db-mv-${mine ? 'you' : 'them'}"><span class="db-mv-n">${_ne(i18t('ng_rung_step', { n: rg.n }))}</span><span class="db-mv-b">
-      <span class="db-mv-who">${whoOf(rg)}${t ? ` <span class="db-mv-tag">${_ne(t)}</span>` : ''}</span>
-      ${rg.summary ? `<span class="db-mv-what">${_ne(rg.summary)}</span>`
-        : fn != null ? `<span class="db-mv-what">${_ne(String(fn))}${unit ? ` ${_ne(unit)}` : ''}</span>` : ''}${
-      rg.say ? `<span class="db-mv-say">${_ne(String(rg.say))}</span>` : ''}</span></li>`;
-  }).join('');
-  const over = (typeof window.ladderOverflow === 'function') ? ladderOverflow(c, id) : 0;
-  let notes = 0;
-  r.rungs.forEach(rg => { try { notes += negoNoteCounts(c, rg.ch, {}, side).total; } catch (_){} });
-  const last = r.rungs[r.rungs.length - 1];
-  const scale = r.topic && typeof rlScaleHtml === 'function' ? rlScaleHtml(r) : '';
-  return `<article class="db-card" data-db-card="${_nea(id)}">
-    <header class="db-card-h"><h3 class="db-card-nm">${_ne(r.label || id)}</h3>${k.move(r)}${
-      last && last.at ? `<span class="db-card-when">${_ne(i18t('ng_board_last_move', { when: when(last.at) }))}</span>` : ''}
-      <span class="sp"></span>${k.verdict(k.v)}</header>
-    ${scale ? `<div class="db-card-scale">${scale}${r.dist != null ? `<p class="db-gapline">${_ne(i18t('ng_board_gap_n', { n: r.dist, unit }))}</p>` : ''}</div>` : ''}
-    <div class="db-two">
-      <section><h4 class="db-h4">${_ne(i18t('ng_board_c_theirs'))}</h4>${theirs}</section>
-      <section><h4 class="db-h4">${_ne(oursHead)}</h4>${ours}</section>
-    </div>
-    <section class="db-pb"><h4 class="db-h4">${_ne(i18t('ng_pb_sec'))}${r.topic && r.topic.category ? ` · ${_ne(String(r.topic.category))}` : ''}</h4>
-      <dl class="db-pb-grid">
-        <div><dt>${_ne(i18t('ng_pb_std'))}</dt><dd>${std}</dd></div>
-        <div><dt>${_ne(i18t('ng_pb_fb'))}</dt><dd>${fbCell}</dd></div>
-        <div><dt>${_ne(i18t('ng_board_col_prec'))}</dt><dd>${prec ? _ne(prec) : `<span class="db-none">${_ne(i18t('ng_board_prec_none'))}</span>`}</dd></div>
-      </dl></section>
-    <section class="db-moves-sec"><h4 class="db-h4">${_ne(i18tn('ng_board_c_moves', r.rungs.length, { n: r.rungs.length }))}</h4>
-      <ol class="db-moves-list">${moves}</ol>
-      ${over ? `<p class="db-none">${_ne(i18t('ng_ladder_capped', { n: over }))}</p>` : ''}</section>
-    <footer class="db-card-f"><span>${_ne(notes ? i18tn('ng_notes_n', notes, { n: notes }) : i18t('ng_notes_none'))}</span><span class="sp"></span>
-      <button type="button" class="ui-btn ui-btn-primary" data-rl-board-go="${_nea(id)}">${_ne(i18t('ng_board_go'))}</button></footer>
-  </article>`;
-}
-/* ---- THE DEAL BOARD ON PAPER AND AS A FILE (the one-page Home plan, stage 4,
-   14 Oct 2026: Print and Download on Home's Board) ----
-   ONE DOCUMENT BOTH WAYS: Print hands it to the printer (printWindowRun),
-   Download saves it, so the paper and the file can never say different
-   things. Every point, piled as the board piles it, read off the board's own
-   readings (dealBoardFacts, dealBoardMoveOf, dealBoardVerdict) and its
-   wording drawn by rlChangeWordingHtml with the memo's inline marks. OUR SEAT
-   ONLY: it carries the standard and the fallback and is never sent outside.
-   A STANDALONE DOCUMENT CARRIES NO :root — literal values only (MEMO_DOC). */
-function dealBoardReportHtml(c, side = 'owner'){
-  const D = MEMO_DOC;
-  const { facts } = dealBoardFacts(c, side);
-  const cp = rlLegendNames(c, side).them;
-  const ref = window.contractRef ? contractRef(c) : c.id;
-  const loc = typeof langLocale === 'function' ? langLocale() : undefined;
-  let when = ''; try { when = new Date().toLocaleString(loc, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (_){}
-  const wording = ch => (ch && typeof rlChangeWordingHtml === 'function') ? rlChangeWordingHtml(ch, { side, changedOnly: true,
-    insStyle: `color:${D.ins};text-decoration:underline`, delStyle: `color:${D.del};text-decoration:line-through`, blockStyle: 'margin:0 0 4px' }) : '';
-  const fig = (n, u) => `${n}${u ? ' ' + u : ''}`;
-  const tone = { you: '#92400e', them: '#1d4ed8', ok: '#047857', quiet: D.quiet };
-  const point = ({ r, v }) => {
-    const mv = dealBoardMoveOf(c, r, side);
-    const op = r.standard ? (r.standard.op === '<=' ? '≤ ' : r.standard.op === '>=' ? '≥ ' : '') : '';
-    const figs = [
-      r.theirFig != null ? [i18t('ng_board_col_theirs'), fig(r.theirFig, r.unit)] : null,
-      r.ourFig != null ? [i18t('ng_board_col_ours'), fig(r.ourFig, r.unit)] : null,
-      r.dist != null ? [i18t('ng_board_col_gap'), fig(r.dist, r.unit)] : null,
-      r.standard ? [i18t('ng_pb_std'), op + fig(r.standard.value, r.unit)] : null,
-      v.fbN != null ? [i18t('ng_pb_fb'), fig(v.fbN, r.unit)] : null,
-    ].filter(Boolean);
-    const theirs = r.theirs ? wording(r.theirs.ch) : `<p class="q">${_ne(i18t('ng_board_c_none_theirs'))}</p>`;
-    const settled = r.state === 'settled' && r.accepted;
-    const ours = settled ? wording(r.accepted.ch) : r.ours ? wording(r.ours.ch) : `<p class="q">${_ne(i18t('ng_board_as_drafted_words'))}</p>`;
-    return `<article><header><h3>${_ne(r.label || r.clauseId)}</h3><span class="mv" style="color:${tone[mv[0]] || D.quiet}">${_ne(mv[1])}</span><span class="vd">${_ne(v.text)}</span></header>
-      ${figs.length ? `<dl>${figs.map(([k, x]) => `<div><dt>${_ne(k)}</dt><dd>${_ne(x)}</dd></div>`).join('')}</dl>` : ''}
-      <div class="two"><section><h4>${_ne(i18t('ng_board_c_theirs'))}</h4>${theirs}</section><section><h4>${_ne(i18t(settled ? 'ng_base_agreed' : 'ng_board_c_ours'))}</h4>${ours}</section></div></article>`;
-  };
-  const groups = [['you', i18t('ng_board_g_you')], ['them', i18t('ng_board_g_them', { cp })], ['done', i18t('ng_board_g_done')]];
-  const body = facts.length ? groups.map(([g, label]) => {
-    const inG = facts.filter(x => x.g === g);
-    return inG.length ? `<h2>${_ne(label)} <span>${inG.length}</span></h2>${inG.map(point).join('')}` : '';
-  }).join('') : `<p class="q">${_ne(i18t('ng_board_empty'))}</p>`;
-  const title = `${i18t('ng_board_head')} · ${ref}`;
-  return `<!doctype html><html lang="${typeof langId === 'function' ? langId() : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${_ne(title)}</title><style>
-body{margin:0;background:#fff;color:${D.ink};font-family:${D.font};font-size:10.5pt;line-height:1.45}
-.wrap{max-width:780px;margin:0 auto;padding:32px 28px}
-h1{font-size:16pt;margin:0}
-.sub{color:${D.quiet};font-size:9.5pt;margin-top:2px}
-h2{font-size:11pt;margin:22px 0 6px;padding-bottom:4px;border-bottom:1px solid ${D.rule}}
-h2 span{color:${D.quiet};font-weight:normal}
-article{border:1px solid ${D.rule};border-radius:6px;padding:10px 12px;margin:0 0 10px;break-inside:avoid}
-article header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
-h3{font-size:11pt;margin:0}
-.mv{font-size:9.5pt;font-weight:bold}
-.vd{font-size:9.5pt;color:${D.quiet};margin-left:auto}
-dl{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 0}
-dl div{display:flex;gap:6px}
-dt{color:${D.quiet}}
-dd{margin:0;font-weight:bold}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
-h4{font-size:9pt;color:${D.quiet};margin:0 0 3px;font-weight:normal}
-.q{color:${D.quiet};margin:0}
-footer{margin-top:22px;color:${D.quiet};font-size:9pt;border-top:1px solid ${D.rule};padding-top:8px}
-@media print{.wrap{padding:0}}
-</style></head><body><div class="wrap">
-<header><h1>${_ne(i18t('ng_board_head'))}</h1><div class="sub">${_ne([c.name || '', ref, c.counterparty || ''].filter(Boolean).join(' · '))}</div></header>
-${body}
-<footer>${_ne(i18t('ng_board_rep_foot', { when }))}</footer>
-</div></body></html>`;
-}
-/* Repaint the board in place (a pick or a filter): the list keeps its scroll,
-   and a keyboard pick keeps its focus. */
-/* THE BOARD HAS TWO HOSTS (the one-page Home plan, stage 4, 14 Oct 2026): the
-   Negotiate page's own (#rl-boardpage, the bench's contract) and Home's Board,
-   whose host names its contract (data-db-host). A press finds the host it was
-   made in, so each repaints itself, with its own contract. */
-function rlBoardHostOf(el){
-  const h = el && el.closest ? el.closest('[data-db-host]') : null;
-  if (h) return { host: h, c: (window.getContract && getContract(h.getAttribute('data-db-host'))) || null, home: true };
-  return { host: (typeof document !== 'undefined') ? document.getElementById('rl-boardpage') : null, c: rlLadderContract(), home: false };
-}
-function rlBoardRepaint(focusPick, at){
-  if (typeof document === 'undefined') return;
-  const { host, c } = rlBoardHostOf(at);
-  if (!host || !c) return;
-  const was = host.querySelector('#db-list');
-  const keep = was ? was.scrollTop : 0;
-  /* what was drawn is kept on the host, so Home's Board does not draw it twice */
-  const html = dealBoardHtml(c, 'owner');
-  host.innerHTML = html; host._dbHtml = html;
-  const now = host.querySelector('#db-list');
-  if (now) now.scrollTop = keep;
-  if (focusPick){
-    const b = host.querySelector('.db-irow.is-on');
-    if (b){ b.focus({ preventScroll: true }); if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest' }); }
-  }
-}
-/* From Home's Board the clause opens on Home's paper, with Jambo's Redlines
-   face beside it (stage 3's face: the one door onto that contract's redlines),
-   lit once the paper has drawn it — bounded. */
-const RL_BOARD_LAND_TRIES = 40;
-const RL_BOARD_LAND_MS = 120;
-const RL_BOARD_SETTLE_BEATS = 12;
-function rlBoardGoOnHome(c, gid){
-  if (!c || typeof window.pdRedOpen !== 'function' || !pdRedOpen(c.id)) return false;
-  /* the paper turns Redlined once the face is up and is drawn again then: the
-     clause is lit on THAT paper (their marks drawn), or past half the wait on
-     whatever paper stands */
-  let n = 0, lit = null, k = 0;
-  /* and while the panel settles the paper may be drawn once more: the clause
-     is lit again on the paper that stands, for a few beats, never otherwise */
-  const settle = () => setTimeout(() => {
-    if (lit && !lit.isConnected){ const again = rlJumpToClause(gid); if (again) lit = again; }
-    if (++k < RL_BOARD_SETTLE_BEATS) settle();
-  }, RL_BOARD_LAND_MS);
-  const go = () => {
-    const red = document.querySelector('.redline-page.rl-face') && document.querySelector('#ig-paper [data-nego-card-anchor]');
-    lit = (red || n > RL_BOARD_LAND_TRIES / 2) ? rlJumpToClause(gid) : null;
-    if (lit){ settle(); return; }
-    if (++n < RL_BOARD_LAND_TRIES) setTimeout(go, RL_BOARD_LAND_MS);
-  };
-  setTimeout(go, 0);
-  return true;
-}
-/* The board's one door: the clause, on the paper, with its ladder. */
-function rlBoardGoClause(gid, at){
-  const on = rlBoardHostOf(at);
-  if (on.home){ rlBoardGoOnHome(on.c, gid); return; }
-  rlBoardSet(false);
-  if (typeof renderRedline === 'function') renderRedline();
-  rlBoardPaintTitle();
-  const gscope = document.querySelector('.redline-page') || document;
-  if (typeof rlCpSetShown === 'function') rlCpSetShown(gscope, gid);
-  const gsec = document.querySelector(`.rl-clause[data-clause="${CSS.escape(String(gid))}"]`);
-  if (gsec && gsec.scrollIntoView) gsec.scrollIntoView({ block: 'center' });
-}
-/* Arrows move the pick, as on every list inspector. Delegated once on the
-   document, so a board painted any number of times is live. */
-if (typeof document !== 'undefined' && !document._rlBoardKeysWired){
-  document._rlBoardKeysWired = true;
-  document.addEventListener('keydown', ev => {
-    if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
-    const row = ev.target && ev.target.closest ? ev.target.closest('[data-rl-board-pick]') : null;
-    if (!row) return;
-    const list = row.closest('#db-list') || document;
-    const all = [...list.querySelectorAll('[data-rl-board-pick]')];
-    const at = all.indexOf(row);
-    const next = all[at + (ev.key === 'ArrowDown' ? 1 : -1)];
-    if (!next) return;
-    ev.preventDefault();
-    rlBoardPickSet(next.getAttribute('data-rl-board-pick'));
-    rlBoardRepaint(true, row);
-  });
-}
-/* OUR SEAT ONLY. The board reads our playbook and our precedent; it is not
-   drawn on the counterparty's page and its door is not either. A PAGE since
-   14 Sep 2026: the flag is set and the negotiate page repaints with the board
-   in the working area; pressing any reading tab, or the board's tab again,
-   puts the paper back. */
-function openDealBoard(){
-  const c = rlLadderContract();
-  if (!c){ if (window.toast) toast(i18t('ng_board_no_contract'), 'warn'); return; }
-  rlBoardSet(true);
-  if (typeof renderRedline === 'function') renderRedline();
-  rlBoardPaintTitle();
 }
 
 
@@ -10199,8 +9400,7 @@ function negoMemoText(m){
    Escape, and it navigates nowhere: the reader is left exactly where they
    were. It DECIDES NOTHING and FILES NOTHING — f269 greps for that. */
 function openNegoMemo(c){
-  /* THE NEW LOOK: the memo is the close plan's to copy or send (owner picked "Inside the close plan", 6 Nov 2026) */
-  if (c && typeof window.pd2DealGo === 'function' && window.pd2DealGo(c)) return true;
+  /* the close plan that carried the memo in the new look was removed by the owner (16 Nov 2026, f1084): the memo panel answers */
   if (!c || typeof window.openSidePanel !== 'function') return null;
   const m = negoMemo(c);
   /* A VERB THAT CANNOT WORK IS NOT DRAWN — the product's own rule, and the
@@ -10281,26 +9481,6 @@ function negoMemoRecipients(){
    NOTHING IS WRITTEN TO THE RECORD, on purpose. The memo decides nothing and
    files nothing, and that property is exactly what lets it be opened on an
    executed contract. */
-/* o.lines / o.html: the words to send when they are another page's (the close plan's Copy as memo, owner picked "Inside
-   the close plan", 6 Nov 2026: what is sent is what is copied); o.back: where the reader goes when this dialog shuts */
-function dealMemoSend(c){
-  if (!c) return null;
-  const text = dealPlanMemoText(c); if (!text) return null;
-  const lines = text.split('\n');
-  const html = lines.map(l => l ? `<p style="margin:0 0 4px">${_ne(l)}</p>` : '<p style="margin:0 0 8px"></p>').join('');
-  /* the way back is the close plan, opened once this dialog has quite gone (its close is not instant) */
-  const back = () => { let n = 0; const tick = () => {
-    if (document.querySelector('#modal-root [role="dialog"]') && ++n < 40) return setTimeout(tick, 50);
-    if (typeof window.pdDealOpen === 'function' && !(window.pdMidUp && pdMidUp())) pdDealOpen(c.id); }; tick(); };
-  return openNegoMemoShare(c, negoMemo(c), { lines, html, back });
-}
-if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !window._dealMemoSendWired){
-  window._dealMemoSendWired = true;
-  document.addEventListener('click', e => {
-    const b = e.target && e.target.closest ? e.target.closest('[data-deal-memo-send]') : null; if (!b) return;
-    e.preventDefault(); const c = typeof getContract === 'function' ? getContract(b.getAttribute('data-deal-memo-send')) : null; if (c) dealMemoSend(c);
-  });
-}
 function openNegoMemoShare(c, m, o){
   o = o || {};
   if (!c || !m || (m.empty && !o.lines) || typeof window.openModal !== 'function') return null;
@@ -10563,7 +9743,7 @@ function renderNegotiationsList(host){
      2026, the overnight clean-up): the list paints into its own host without
      setView, so nothing else repainted the bar. The held contract is already
      let go on every path that arrives here. */
-  if (typeof rlBoardPaintTitle === 'function') rlBoardPaintTitle();
+  if (typeof rlPaintTitle === 'function') rlPaintTitle();
   /* THE NEW LOOK (round 7, as drawn): one quiet list with the chosen row read in Jambo's panel */
   if (typeof window.ngnOn === 'function' && ngnOn()){ ngnRender(el); return; }
   const live = negoLiveList();
@@ -11360,17 +10540,6 @@ function renderRedline(){
     ? `<button type="button" data-rl-memo${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
         title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_memo_title'))}"
       ><span aria-hidden="true">&#9636;</span>${i18t('ng_memo')}</button>` : '')
-  /* ---- AND THE DEAL BOARD (Young ruled 14 Sep 2026) ----
-     Where every open point stands against the playbook and against what we
-     have settled before. A whole-negotiation READING, so it sits with the
-     memo and the timeline rather than on the head row. TWO DOORS, ONE ACT:
-     this row and the button on the control row both carry data-rl-board and
-     one handler answers both — the lesson f295 wrote down. Our seat only:
-     the board reads our playbook and our own negotiating history. */
-    + (mayMenu
-    ? `<button type="button" data-rl-board${preview ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
-        title="${_nea(preview ? i18t('ng_preview_dead') : i18t('ng_board_title'))}"
-      ><span aria-hidden="true">&#9707;</span>${i18t('ng_board')}</button>` : '')
   /* ---- AND "PREPARE REDLINES", THE THIRD ROW (A12, 11 Sep 2026) ----
      A job rather than an act, so it lives beside the playbook pass and the
      memo and not on the head row. Same gate, and NOT DRAWN on an executed
@@ -11395,7 +10564,7 @@ function renderRedline(){
            as two floating strips rather than as the top of a page. Nothing else
            moved: --view-h, the flex column and min-height:0 are what make the
            columns scroll inside themselves and are untouched. */}
-    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}${_rlBoardOpen ? ' rl-board-on' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:0;padding:0;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:0;padding:0;min-height:0;">
       <!-- ---- THE SAME SHELL AS THE DOC PAGE ----
            The back arrow, the contract's name and status, and the document
            verbs (Share / Import / Compare), exactly where the Doc page puts
@@ -11499,17 +10668,7 @@ function renderRedline(){
                clauses, drawn three ways. See rlReadMode for what each one
                means and why only LIVE proposals are affected. */}
         ${rlReadSegsHtml({ n: (typeof redlineCardIds === 'function')
-          ? redlineCardIds(c, { side: rowSide, countAll: true }).length : 0, none: _rlBoardOpen && rowSide !== 'counterparty' && !preview })}
-        ${''/* ---- THE DEAL BOARD SITS BESIDE THE READINGS, NOT AMONG THEM ----
-               It reads like a fourth tab and it is deliberately not one:
-               RL_READS is how the DOCUMENT is drawn (see rlReadSideOf), and a
-               fourth value there would fall through every clause branch as an
-               unknown mode and shut the pencil everywhere through
-               rlReadOnlyReading. So it is its own control, our seat only,
-               carrying the same data-rl-board the More menu's row does. */}
-        ${(rowSide !== 'counterparty' && !preview)
-          ? `<button type="button" class="rl-seg rl-boardseg${_rlBoardOpen ? ' on' : ''}" data-rl-board aria-pressed="${_rlBoardOpen ? 'true' : 'false'}"
-              title="${_nea(i18t('ng_board_title'))}">${_ne(i18t('ng_board'))}</button>` : ''}
+          ? redlineCardIds(c, { side: rowSide, countAll: true }).length : 0 })}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -11695,7 +10854,7 @@ function renderRedline(){
       rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
       /* "Open workspace" opens Home, never the room (the overnight work order,
          step 2; roomHomeLand, the one landing every Workspace door shares) */
-      if (window.roomHomeLand && roomHomeLand(c.id)) return;
+      if (window.roomHomeLand && roomHomeLand(c.id, { cover: true })) return;
       if (typeof openWorkspace === 'function') openWorkspace(c.id);
     }));
   host.querySelectorAll('[data-rl-open-doc]').forEach(el =>
@@ -12696,8 +11855,6 @@ function rlCardForgetPins(contractId){
      not have, so the paper would look right and one clause would quietly be
      drawing nothing. */
   if (typeof rlClearReadAt === 'function') rlClearReadAt();
-  _rlBoardOpen = false;
-  if (typeof rlBoardPickSet === 'function'){ rlBoardPickSet(null); rlBoardFilterSet('all'); }
   /* AND THE NOTES DRAWER DOES NOT STAY ON THE LAST CONTRACT (26 Sep 2026, the
      overnight clean-up): a note typed there was filed on the other contract,
      and in the External room sent to the other counterparty. */
@@ -15729,10 +14886,8 @@ function rlFiveHead(c, opts, k){
   if (!(window.newLookOn && newLookOn() && opts && opts.dealDoor && rlHeadOurs(opts) && typeof jov5HeadHtml === 'function')) return null;
   const id = _nea(String(c.id));
   let lad = null; if (_rlFaceLad){ lad = (Array.isArray(c.changes) ? c.changes : []).find(x => x && String(x.id) === _rlFaceLad) || null; }
-  const dealOn = typeof window.pdMidUp === 'function' && pdMidUp('deal:' + c.id);
-  const chOn = !k.notesOn && !lad && !dealOn;
+  const chOn = !k.notesOn && !lad;
   const seg = `<button type="button" class="rl-head-chg${chOn ? ' is-on' : ''}" data-rl-head-changes="${id}" aria-pressed="${chOn ? 'true' : 'false'}">${_ne(i18t('jov5_rl_changes'))}${k.openTotal ? ` <i>${k.openTotal}</i>` : ''}</button>`;
-  const who = String(c.counterparty || '').trim();
   let head = '';
   if (lad){
     let rungs = []; try { rungs = (typeof window.ladderRungs === 'function') ? ladderRungs(c, String(lad.clauseId || '')) : []; } catch (_){ rungs = []; }
@@ -15740,9 +14895,11 @@ function rlFiveHead(c, opts, k){
     const name = String(lad.clauseLabel || '').trim();
     head = `<div class="rl-five-head is-ladder">${rlLadderFiveHtml(c, lad, rungs, name, steps)}</div>`;
   } else if (!k.notesOn){
-    let unsent = 0; try { unsent = rlUnsentCount(c, opts); } catch (_){ unsent = 0; }
-    const title = unsent ? i18tn('jov5_rl_unsent_t', unsent, { n: unsent }) : k.openTotal ? i18tn('jov5_rl_open_t', k.openTotal, { n: k.openTotal }) : '';
-    if (title) head = `<div class="rl-five-head">${jov5HeadHtml({ title, sub: unsent ? i18t('jov5_rl_unsent_sub', { who: who || i18t('ng_the_counterparty') }) : '' })}</div>`;
+    /* CARDS FIRST (owner's pick, 16 Nov 2026: "the redline cards should be the focal point … now they have been
+       relegated to the bottom"): on Changes the head is the switch and ONE line — what is not sent, the round, and
+       Send all at its end — so the cards start right under it. The serif headline, its sentence and the Send card said
+       what that line and the tab already say; they are gone here (the Ladder and Notes keep their own heads). */
+    head = '';
   }
   return { seg, head, lad: !!lad, notes: !!k.notesOn };
 }
@@ -22611,54 +21768,6 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
           openLadderCompare(cmp.getAttribute('data-rl-rung-compare'));
           return;
         }
-        const board = t.closest('[data-rl-board]');
-        if (board){
-          ev.preventDefault(); ev.stopPropagation();
-          /* A PAGE, NOT A WINDOW (14 Sep 2026): the tab and the More row both
-             toggle it, and the reading tabs put the paper back. */
-          if (rlBoardIsOpen()){ rlBoardSet(false); if (typeof renderRedline === 'function') renderRedline(); rlBoardPaintTitle(); }
-          else openDealBoard();
-          return;
-        }
-        const bgo = t.closest('[data-rl-board-go]');
-        if (bgo){
-          ev.preventDefault(); ev.stopPropagation();
-          rlBoardGoClause(bgo.getAttribute('data-rl-board-go'), bgo);
-          return;
-        }
-        /* THE INSPECTOR'S GRAMMAR (3 Oct 2026): a press selects, a second
-           press on the selected row opens the clause. */
-        const bpick = t.closest('[data-rl-board-pick]');
-        if (bpick){
-          ev.preventDefault(); ev.stopPropagation();
-          const pid = bpick.getAttribute('data-rl-board-pick');
-          if (bpick.getAttribute('aria-current') === 'true'){ rlBoardGoClause(pid, bpick); return; }
-          rlBoardPickSet(pid);
-          rlBoardRepaint(ev.detail === 0, bpick);
-          return;
-        }
-        const bf = t.closest('[data-rl-board-f]');
-        if (bf){
-          ev.preventDefault(); ev.stopPropagation();
-          const fk = bf.getAttribute('data-rl-board-f');
-          rlBoardFilterSet(fk === _rlBoardFilter ? 'all' : fk);
-          rlBoardPickSet(null);
-          rlBoardRepaint(false, bf);
-          return;
-        }
-        const memo = t.closest('[data-rl-board-memo]');
-        if (memo){
-          ev.preventDefault(); ev.stopPropagation();
-          /* the Deal page's Copy as memo names its contract and copies the close plan */
-          const dm = memo.getAttribute('data-deal-memo');
-          const mc = dm ? (window.getContract ? getContract(dm) : null) : rlBoardHostOf(memo).c;
-          const txt = mc ? (dm ? dealPlanMemoText(mc) : rlBoardMemoText(mc)) : '';
-          const ok = () => { if (window.toast) toast(i18t('ng_board_memo_ok'), 'ok'); };
-          const no = () => { if (window.toast) toast(i18t('ng_board_memo_fail'), 'warn'); };
-          if (txt && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, no);
-          else no();
-          return;
-        }
         const nopen = t.closest('[data-rl-cp-notes-open]');
         if (nopen){
           ev.preventDefault(); ev.stopPropagation();
@@ -22743,7 +21852,6 @@ function redlinePanesHtml(c, opts = {}){
            bottom-right stack now, with its own "Issue a signing link" button
            still on it; see rlFloatingNoticesHtml at the foot of this builder. */
     }</div>
-    ${(opts.side !== 'counterparty' && !opts.preview && _rlBoardOpen) ? rlBoardPageHtml(c) : ''}
     <div class="rl-turnwrap">${negoTurnBannerHtml(c, opts)}</div>
     <!-- nego-work is kept on the grid because the engine scopes its clause
          tooling under it (.nego-work .nego-pane …). Without it Change and
@@ -23442,17 +22550,12 @@ function rlHeadNotesHtml(c, opts = {}){
   const on = rlFaceNotesOn(c, opts);
   return `<button type="button" class="rl-head-notes${on ? ' is-on' : ''}" data-rl-notes-all="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t(on ? 'ng_fn_notes_on' : 'ng_chat_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg><span>${_ne(i18t('ig_line_notes'))}</span>${n ? `<b>${n}</b>` : ''}</button>`;
 }
-/* DEAL (owner, 23 Oct 2026: the Negotiate page's "Deal board" tab, brought
-   into the Redlines face beside Notes and called Deal): drawn only where the
-   host asks (Jambo's face, opts.dealDoor), our seat only; it opens the Deal
-   in the middle (pdDealOpen) and, pressed again while it stands, puts the
-   paper back */
-function rlHeadDealHtml(c, opts = {}){
+/* THE LADDER AT THE HEAD (new look): drawn only where the host asks (Jambo's face, opts.dealDoor), our seat only,
+   pressing the first row's own Ladder (the one door). The Deal button that stood before it was removed by the owner
+   (16 Nov 2026, f1084). */
+function rlHeadLadderHtml(c, opts = {}){
   if (!c || !opts.dealDoor || !rlHeadOurs(opts)) return '';
-  const on = typeof window.pdMidUp === 'function' && pdMidUp('deal:' + c.id);
-  /* THE NEW LOOK, AS DRAWN: Ladder beside Deal, pressing the first row's own Ladder (the one door) */
-  const ladder = (typeof window.newLookOn === 'function' && newLookOn()) ? `<button type="button" class="rl-head-deal rl-head-ladder${_rlFaceLad ? ' is-on' : ''}" data-rl-head-ladder="${_nea(c.id)}" aria-pressed="${_rlFaceLad ? 'true' : 'false'}">${_ne(i18t('ng_row_ladder'))}</button>` : '';
-  return `<button type="button" class="rl-head-deal${on ? ' is-on' : ''}" data-rl-deal="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_deal_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><path d="M2 5h10M9.5 2.5 12 5 9.5 7.5M14 11H4M6.5 8.5 4 11l2.5 2.5"/></svg><span>${_ne(i18t('ng_deal'))}</span></button>` + ladder;
+  return (typeof window.newLookOn === 'function' && newLookOn()) ? `<button type="button" class="rl-head-deal rl-head-ladder${_rlFaceLad ? ' is-on' : ''}" data-rl-head-ladder="${_nea(c.id)}" aria-pressed="${_rlFaceLad ? 'true' : 'false'}">${_ne(i18t('ng_row_ladder'))}</button>` : '';
 }
 function rlHeadHereHtml(c, opts = {}){
   if (!c || !rlHeadOurs(opts)) return '';
@@ -23555,6 +22658,16 @@ function rlFaceNotesHtml(c, opts = {}){
   const only = _rlFnChange && Array.isArray(c.changes) ? (c.changes.find(x => x && String(x.id) === _rlFnChange) || null) : null;
   const mine = x => !only || (x.ch && String(x.ch.id) === String(only.id));
   const all = rlChatRows(c, opts).filter(mine);
+  /* THE SAME NOTES AS THE BAR'S (owner, 16 Nov 2026: Redlines' Notes "should look exactly like how notes in the notes
+     located at the top of the page bar"): in the new look the face holds a host, and the wiring paints the bar's own
+     builder into it — rlChatPanelPaint for the whole contract, rlNotesPanelPaint for one change — so the two are one
+     drawing and cannot drift. Narrowed to one change, its line and "All notes" stay above. */
+  if (window.newLookOn && newLookOn()){
+    const lab1 = only ? ((typeof rlRowClauseName === 'function') ? rlRowClauseName(only) : (only.clauseLabel || '')) : '';
+    return `<div class="rl-fn rl-fn-same" data-rl-fn="${_nea(c.id)}"${only ? ` data-rl-fn-change="${_nea(only.id)}"` : ''}>${
+      only ? `<div class="rl-fn-only" data-rl-fn-only="${_nea(only.id)}"><b>${_ne(lab1)}</b><span>${all.length} ${_ne(i18tn('ng_row_notes_w', all.length))}</span><button type="button" class="rl-fn-all" data-rl-fn-all>${_ne(i18t('ng_fn_all'))}</button></div>` : ''
+    }<div class="rl-fn-host" data-rl-fn-host></div></div>`;
+  }
   const byRoom = {};
   for (const r of rooms) byRoom[r.key] = 0;
   for (const { m } of all){ const k = negoNoteRoomKey(c, m); byRoom[k] = (byRoom[k] || 0) + 1; }
@@ -23609,6 +22722,15 @@ function rlFaceNotesHtml(c, opts = {}){
 function rlFaceNotesWire(host, c, opts = {}){
   const root = host && host.querySelector ? host.querySelector('.rl-fn[data-rl-fn]') : null;
   if (!root || !c) return;
+  const same = root.querySelector('[data-rl-fn-host]');
+  if (same){
+    const me = (typeof currentUser === 'function' && currentUser()) || null;
+    const o = { side: 'owner', author: (me && me.name) || undefined, messages: c._messages };
+    const onCh = root.getAttribute('data-rl-fn-change');
+    const ch = onCh && typeof negoChangeById === 'function' ? negoChangeById(c, onCh) : null;
+    if (ch) rlNotesPanelPaint(same, c, ch, o); else rlChatPanelPaint(same, c, o);
+    return;
+  }
   const box = root.querySelector('.rl-fn-in');
   if (box){
     box.addEventListener('keydown', e => {
@@ -23818,7 +22940,7 @@ function rlColumnHtml(c, opts = {}){
                      under it; then Send all with Ask for review beside it.
                      One flex row that breaks (.rl-idx-br), so every part is
                      still inside .rl-idx-top where the checks look for it. */}
-              ${five ? `<span class="rl-seg" role="group">${five.seg}${rlHeadNotesHtml(c, opts)}${rlHeadDealHtml(c, opts)}</span>${rlHeadHereHtml(c, opts)}` : `${rlHeadNotesHtml(c, opts)}${rlHeadDealHtml(c, opts)}${rlHeadHereHtml(c, opts)}`}
+              ${five ? `<span class="rl-seg" role="group">${five.seg}${rlHeadNotesHtml(c, opts)}${rlHeadLadderHtml(c, opts)}</span>${rlHeadHereHtml(c, opts)}` : `${rlHeadNotesHtml(c, opts)}${rlHeadLadderHtml(c, opts)}${rlHeadHereHtml(c, opts)}`}
               <span class="rl-idx-br" aria-hidden="true"></span>
               ${five ? five.head : ''}${rlRoundLabelHtml(c, opts)}
               <span class="rl-idx-br" aria-hidden="true"></span>
@@ -23828,7 +22950,7 @@ function rlColumnHtml(c, opts = {}){
                      the head was built and nothing has ever been drawn after
                      it. The act arrives from the deleted "N not sent" strip
                      with its rules intact; only the slot is new. */}
-              ${(() => { const sendH = rlUnsentSendHtml(c, opts); return five && sendH && !five.lad && !notesOn ? `<div class="rl-five-act"><p>${_ne(i18t('jov5_rl_send_say'))}</p>${sendH}</div>` : sendH; })()}
+              ${(() => { const sendH = rlUnsentSendHtml(c, opts); return five && sendH && !five.lad && !notesOn ? `<div class="rl-five-act is-line">${sendH}</div>` : sendH; })()}
               ${''/* ---- AND CLOSE ROUND BESIDE IT (owner-asked 27 Aug 2026) ----
                      The two acts of a round, on one line, where it is plain
                      that only ever one of them is live: everything unsent has
@@ -24137,7 +23259,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   negoBlanksOpen, negoBlanksAsk, negoBlanksFill, NG_BLANKS_NAMED,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   negoClauseByRef, rlAlsoHtml, rlPbFindClause, rlPlaybookProposals, rlPbWordingLabel, rlFilePlaybookProposal, rlOpenPlaybookReview,
-  rlPrepareRedlines, rlPrepareRowHtml, rlEmptyColumnActsHtml, rlFirstClauseId, dealMemoSend,
+  rlPrepareRedlines, rlPrepareRowHtml, rlEmptyColumnActsHtml, rlFirstClauseId,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,
@@ -24214,8 +23336,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
-  rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard, dealViewHtml, dealPanelNewHtml, dealPlanOf, dealPlanFacts, dealPlanMemoText, dealStandardOf, DEAL_PLAN_GROUPS, dealRowToggle, dealRowOpen,
-  dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
+  rlPaintTitle, printWindowRun, rlPrecedentSay,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,

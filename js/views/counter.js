@@ -758,6 +758,8 @@ function ndParts(r){
     P.line = _ndCall('agPieceLine', it, '');
     P.btn = 'look';
     P.attrs = `data-nd-look="${_cnE(it.key)}"`;
+    /* a renewal's Open is its Decide (ndRowGo): it says what it spends, as Decide does */
+    if (it.kind === 'renewal' || it.kind === 'notice') P.tip = _cnT('ins_need_go_terms');
     if (c){ P.name = _ndName(c); P.party = String(c.counterparty || '').trim(); }
     return P;
   }
@@ -1090,6 +1092,51 @@ function cn2QuoteHtml(r){
   return '';
 }
 
+/* COMPANY NEEDS YOU LANDS ON THE EXACT JOB (owner, 16 Nov 2026): one job opens that job; several open Settings
+   landed on the first (stNeedGo, Settings' own doors); the email warning alone is its own job (the Outbox) */
+function cnCompanyGo(r){
+  const R = (r && r.company) || cnCompany(), mail = r ? r.mail : null;
+  if (mail && !R.length && typeof mail.go === 'function'){ mail.go(); return true; }
+  const one = R.length === 1 && !mail;
+  if (typeof stNeedGo === 'function') return stNeedGo(one ? R[0].key : null) !== false;
+  if (typeof openSettingsAt === 'function') openSettingsAt('company');
+  return true;
+}
+/* A ROW PRESSED OUTSIDE THE BOARD'S CARD GOES WHERE ITS WORK IS (owner, 16 Nov 2026: "if I press on needs you
+   contracts in the Jambo panel in board page they should take me to the contract and not point me to the board"):
+   a row about one contract opens that contract (Jambo's prepared piece too — its Dossier carries the piece); a bell
+   signal presses its own door; a note, a request or a watch their own pages; only a row about no one contract (a
+   bundle, a piece over several) opens the Board's list, on that row. ONE door, read off the row's key. */
+function ndRowGo(key){
+  let r = null; try { const D = ndRead(); r = D.jambo.concat(D.you).find(x => x.key === key) || null; } catch (_){ r = null; }
+  if (!r) return ndOpenBoard('all');
+  if (r.g === 'jambo'){
+    const c = r.it && (r.it.c || (r.it.cid && typeof getContract === 'function' ? getContract(r.it.cid) : null));
+    /* a renewal or notice piece opens where the renewal is decided (the contract's Obligations), as Decide does */
+    /* their round to answer opens on its Redlines face, as the bell's own negotiation rows do */
+    const k = String((r.it && r.it.kind) || '');
+    /* a renewal (or its notice deadline) presses the piece's Decide (needsYouGo 'renewal': its Obligations, and Jambo reads the
+       contract again, as its hover says) — the same act the Board's card would have pressed one step later */
+    if ((k === 'renewal' || k === 'notice') && c && typeof needsYouGo === 'function' && needsYouGo('renewal', c.id)) return true;
+    const tab = /^(renewal|notice)$/.test(k) ? 'oblig' : k === 'answer' ? 'red' : 'open';
+    if (c && typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, tab)) return true;
+    if (c && typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
+    /* the week ahead is about your days, not one contract: its own lead button is the Calendar */
+    if (r.it && r.it.kind === 'week' && typeof caGo === 'function'){ caGo({ kind: 'go', place: 'calendar' }); return true; }
+    return ndOpenBoard('jambo', r.it && r.it.key);
+  }
+  if (r.bundle){ ndBundleGo(); return true; }
+  if (r.company) return cnCompanyGo(r);
+  if (r.al){ if (typeof r.al.go === 'function'){ r.al.go(); return true; } return ndOpenBoard('all', key); }
+  const y = r.y;
+  if (!y) return ndOpenBoard('all', key);
+  if (y.k === 'note'){ if (typeof myNotesOpen === 'function') myNotesOpen(y.n.id); cnLand('[data-mn-row="' + cnSel(y.n.id) + '"]', 'cn_land_note_gone'); return true; }
+  if (y.k === 'watch'){ if (typeof watchGo === 'function') watchGo(String((y.w && y.w.id) || '')); return true; }
+  if (y.k === 'req'){ const id = String((y.r && y.r.id) || ''); if (typeof intakeGoTo === 'function') intakeGoTo(id); cnLand('[data-ik-row="' + cnSel(id) + '"]', 'cn_land_req_gone'); return true; }
+  if (y.x && y.x.c && typeof hbNeedsPress === 'function') return hbNeedsPress(y.x.it.kind, y.x.c.id);
+  return ndOpenBoard('all', key);
+}
+
 /* ---------------- PRESSES, ONE LISTENER EACH, ARMED ONCE ---------------- */
 if (typeof document !== 'undefined' && !window._cnWired){
   window._cnWired = true;
@@ -1109,11 +1156,17 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if (_dkMenuOpen && !t.closest('#dk-pg-w, #dk-recent')){ _dkMenuOpen = false; deskBarPaint(); }
     /* THE ONE DESK's own presses, on Home, on the Board's card and in the bell's panel
        (a row pressed in the panel steps the panel aside before its door is taken) */
-    const inPanel = !!t.closest('#panel-body .nd-pan');
+    /* the bell's list in the new look is drawn as .ndb (ndBellNlHtml): it is the panel too — read as the Board's own
+       card, its Company Open did nothing and its Opens pointed at the Board (owner, 16 Nov 2026) */
+    const inPanel = !!t.closest('#panel-body .nd-pan, #panel-body .ndb');
     const step = () => { if (inPanel && typeof closeContextPanel === 'function') try { closeContextPanel(); } catch (_){} };
     if ((el = t.closest('[data-nd-all]'))){ ndOpenBoard(el.getAttribute('data-nd-all')); return; }
     if ((el = t.closest('[data-cn-count]'))){ ndOpenBoard(el.getAttribute('data-cn-count')); return; }
-    if ((el = t.closest('[data-nd-look]'))){ step(); ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
+    /* in the bell's panel a prepared piece opens where its work is (its contract), never the Board's list first
+       (owner, 16 Nov 2026); on the Board's own card Open still unfolds it in place */
+    if ((el = t.closest('[data-nd-look]'))){ step(); const row = inPanel ? el.closest('[data-nd-row]') : null;
+      if (row){ ndRowGo(row.getAttribute('data-nd-row')); return; }
+      ndOpenBoard('jambo', el.getAttribute('data-nd-look')); return; }
     if ((el = t.closest('[data-nd-bundle]'))){ step(); ndBundleGo(); return; }
     /* a bell signal's row presses the bell's own door; from the slide-out panel the panel steps aside first */
     if ((el = t.closest('[data-nd-al]'))){ const k = el.getAttribute('data-nd-al');
@@ -1134,7 +1187,12 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-cn-req]'))){ const id = el.getAttribute('data-cn-req'); if (typeof intakeGoTo === 'function') intakeGoTo(id); cnLand('[data-ik-row="' + cnSel(id) + '"]', 'cn_land_req_gone'); return; }
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
     if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }
-    if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
+    if ((el = t.closest('[data-cn-co]'))){ cnCompanyGo(); return; }
+    /* THE ROW IS THE DOOR in the bell's panel: a press on a row's words does what its Open does (it did nothing) */
+    if (inPanel && !t.closest('button, a, input, select, textarea') && (el = t.closest('[data-nd-row]'))){
+      const btn = el.querySelector('button');
+      if (btn && !btn.disabled){ btn.click(); return; }
+      step(); ndRowGo(el.getAttribute('data-nd-row')); }
   });
   document.addEventListener('input', e => {
     if (e.target && e.target.id === 'nd-q'){ _nd = { ..._nd, q: e.target.value, more: 0 }; ndRowsRepaint(); } });
@@ -1154,7 +1212,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
+Object.assign(window, { dkLeavePageThen, deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter, dkHomeHere, DK_HOME_KEY,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, counterNeedsCount });

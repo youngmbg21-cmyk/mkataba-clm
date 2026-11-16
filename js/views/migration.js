@@ -1461,6 +1461,34 @@ function migRowHtml(r){
    waits, how it looks (signed, or unsigned in amber), its stream (or Choose), its value, and its one word — Fill in,
    Name it, Open — each the page's own door (the check view, the contract); the ones that need you first, then
    "Read whole · N". A row press chooses it for the panel, as before. */
+/* HOW SURE JAMBO WAS OF A FILE (owner, 16 Nov 2026: "the main imports page used to have stats for the imported
+   contracts and the level of confidence for each contract. That is missing now"): counted from the readings the page
+   already keeps, nothing new read — of the details every file is asked for (migSideFacts), how many were found and
+   are not marked low. All of them = high; half or more = medium; fewer = low. */
+function migSureOf(c){
+  if (!c) return null;
+  let F = []; try { F = migSideFacts(c); } catch (_){ F = []; }
+  if (!F.length) return null;
+  const n = F.filter(x => !x.missing && !x.unsure).length, of = F.length;
+  return { n, of, level: n >= of ? 'high' : (n * 2 >= of ? 'med' : 'low') };
+}
+function migSureCellHtml(c){
+  const s = migSureOf(c); if (!s) return '\u2014';
+  return `<span class="mign-sure is-${s.level}"><span class="mign-bar" aria-hidden="true"><i></i><i></i><i></i></span>${esc(i18t('mign_sure_' + s.level))}</span><div class="cun-sub">${esc(i18t('mign_sure_n', { n: s.n, of: s.of }))}</div>`;
+}
+/* THE PAGE'S FIGURES, EACH A PRESS THAT SHOWS ITS FILES (migKpis: the counts the page has always kept); a figure of
+   nothing is no door */
+const MIGN_FIGS = [['all', 'files'], ['k:filed', 'filed'], ['k:check', 'check'], ['k:dupe', 'dupe'], ['k:none', 'none']];
+/* SOFT TINT (owner's pick, 16 Nov 2026): a figure wears the colour of what it means; a figure of nothing stays grey */
+const MIGN_FIG_TONE = { files: 'steel', filed: 'green', check: 'amber', dupe: 'amber', none: 'ruby' };
+function migNlFigsHtml(){
+  const k = migKpis();
+  return `<div class="mign-figs">${MIGN_FIGS.map(([key, f]) => { const n = Number(k[f]) || 0;
+    const word = f === 'files' ? i18tn('mign_fig_files', n, { n }) : i18t('mign_fig_' + f);
+    const on = _mign === key && key !== 'all';
+    const inner = `<b>${n}</b><span>${esc(word)}</span>`;
+    return n ? `<button type="button" class="mign-fig is-t-${MIGN_FIG_TONE[f]}${f === 'check' ? ' is-warn' : ''}${on ? ' is-on' : ''}" data-mign-fig="${key}" aria-pressed="${on ? 'true' : 'false'}">${inner}</button>` : `<span class="mign-fig is-zero">${inner}</span>`; }).join('')}</div>`;
+}
 function migNlRowHtml(r){
   const c = r.c, q = r.q, st = r.st;
   const pages = c && c.migration && c.migration.ocrTotalPages ? c.migration.ocrTotalPages : (c && c.upload && c.upload.pages) || (q && q.pages) || 0;
@@ -1483,17 +1511,20 @@ function migNlRowHtml(r){
   const choose = !stream && c && need ? `<button type="button" class="rfp-a" data-mign-go="${esc(r.key)}" data-mign-need="1">${esc(i18t('mign_choose'))}</button>` : esc(stream || '\u2014');
   return `<tr data-row="${esc(r.key)}" class="${_migPick === r.key ? 'is-picked' : ''}${need ? '' : ' is-done'}" tabindex="-1"><td><div class="cun-name">${esc(r.file || '')}</div>${sub ? `<div class="cun-sub">${esc(sub)}</div>` : ''}</td>
     <td class="cun-wait"><b class="mign-read">${esc(read)}</b>${need && st.why ? `<div class="cun-sub">${esc(st.why)}</div>` : ''}</td>
+    <td class="cun-wait">${migSureCellHtml(c)}</td>
     <td class="cun-wait${looks === i18t('mign_unsigned') ? ' mign-amb' : ''}">${esc(looks)}</td><td class="cun-wait">${choose}</td><td class="cun-wait">${esc(value)}</td><td class="cun-go">${act}</td></tr>`;
 }
 function migNlListHtml(rows){
   const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)), rest = rows.filter(r => !MIG_NEEDS.includes(r.st.k));
   const q = String(_migQ || '').trim().toLowerCase();
   const hit = r => !q || [r.file, r.c && r.c.counterparty, r.c && r.c.name].some(x => String(x || '').toLowerCase().includes(q));
-  const A = _mign === 'read' ? [] : need.filter(hit), B = _mign === 'need' ? [] : rest.filter(hit);
+  /* a figure pressed shows its own files, whole */
+  const kind = String(_mign).indexOf('k:') === 0 ? String(_mign).slice(2) : '';
+  const A = kind ? rows.filter(r => r.st.k === kind && hit(r)) : _mign === 'read' ? [] : need.filter(hit), B = kind ? [] : _mign === 'need' ? [] : rest.filter(hit);
   return `
-    <table class="apn-table cun-table mign-table"><colgroup><col style="width:22%" data-floor="160"><col style="width:32%" data-floor="220"><col style="width:11%" data-floor="80"><col style="width:12%" data-floor="96"><col style="width:11%" data-floor="84"><col data-floor="84"></colgroup>
-    <thead><tr><th>${esc(i18t('mign_c_file'))}</th><th>${esc(i18t('mign_c_read'))}</th><th>${esc(i18t('mign_c_looks'))}</th><th>${esc(i18t('mig_col_stream'))}</th><th>${esc(i18t('reg_col_value'))}</th><th></th></tr></thead>
-    <tbody>${A.map(migNlRowHtml).join('')}${B.length && A.length ? `<tr class="rdn-grp"><td colspan="6">${esc(i18t('mign_read_whole', { n: rest.length }))}</td></tr>` : ''}${B.map(migNlRowHtml).join('')}</tbody></table>
+    <table class="apn-table cun-table mign-table"><colgroup><col style="width:21%" data-floor="160"><col style="width:27%" data-floor="200"><col style="width:13%" data-floor="120"><col style="width:10%" data-floor="80"><col style="width:11%" data-floor="96"><col style="width:9%" data-floor="84"><col data-floor="84"></colgroup>
+    <thead><tr><th>${esc(i18t('mign_c_file'))}</th><th>${esc(i18t('mign_c_read'))}</th><th>${esc(i18t('mign_c_sure'))}</th><th>${esc(i18t('mign_c_looks'))}</th><th>${esc(i18t('mig_col_stream'))}</th><th>${esc(i18t('reg_col_value'))}</th><th></th></tr></thead>
+    <tbody>${A.map(migNlRowHtml).join('')}${B.length && A.length ? `<tr class="rdn-grp"><td colspan="7">${esc(i18t('mign_read_whole', { n: rest.length }))}</td></tr>` : ''}${B.map(migNlRowHtml).join('')}</tbody></table>
     <div class="apn-foot rdn-foot"><span>${esc(i18tn('mign_foot', rows.length, { n: rows.length }))}</span><span>${esc(i18t('mign_foot_r'))}</span></div>`;
 }
 /* THE PAGE, AS DRAWN: "Import · N files · N read whole · N need you", Check all and Choose files; the box and the tabs
@@ -1510,8 +1541,34 @@ function migNlPageHtml(rows){
         ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" id="mign-choose">${esc(i18t('mign_choose_files'))}</button><input type="file" id="mign-files" multiple hidden>` : ''}</div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_migQ || '')}"></label><span class="apn-sp"></span>
         ${tab('need', i18t('mign_tab_need'), need)}${tab('read', i18t('mign_tab_read'), read)}${tab('all', i18t('ctf_tab_all'), rows.length)}</div>
+      ${migNlFigsHtml()}
       <div class="cu-scroll">${migNlListHtml(rows)}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('mig_side_label'))}"></aside></div></div>`;
+}
+function migNlPanelFiveHtml(r, rows, need){
+  const E = esc, f = Object.fromEntries(migSideFacts(r.c).map(x => [x.k, x]));
+  const mg = r.c.migration || {}, pages = mg.ocrTotalPages || (r.c.upload && r.c.upload.pages) || 0, scan = typeof isOcrText === 'function' && isOcrText(mg.textSource);
+  const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' \u2013 ');
+  const isNeed = MIG_NEEDS.includes(r.st.k), none = r.st.k === 'none', signed = r.c.status === 'Signed';
+  const parked = rows.filter(x => x.q && x.q.status === 'unsigned').length;
+  const filed = rows.length - need.length;
+  const lines = [{ mark: none ? 'alert' : 'mkTick', tone: none ? 'amber' : 'green', t: none ? i18t('mign_p_nothing') : (scan ? i18t('mign_scan') : i18t('mign_p_whole')), s: pages ? i18tn('mign_pages', pages, { n: pages }) : '' }];
+  if (!none){
+    lines.push({ mark: 'calendar', tone: term ? '' : 'amber', t: term || i18t('mign_p_no_end'), s: term ? i18t('mign_p_term') : i18t('mign5_end_add'), attr: term ? '' : `data-mign-go="${E(r.key)}" data-mign-need="1"` });
+    lines.push({ mark: signed ? 'mkTick' : 'alert', tone: signed ? 'green' : 'amber', t: signed ? i18t('mign_signed') : i18t('mign_p_none_found'), s: signed ? i18t('mign5_filed_not_parked') : '' });
+    if (r.c.counterparty) lines.push({ mark: 'users', t: `${String(window.FIRST_PARTY || '').split(/\s+/)[0]} \u00b7 ${r.c.counterparty}`, s: i18t('mign_p_parties') });
+  }
+  const cap = t => { t = String(t || ''); return t.charAt(0).toUpperCase() + t.slice(1); };
+  lines.forEach(l => { l.t = cap(l.t); l.s = cap(l.s); });
+  const title = none ? i18t('mign5_t_none') : isNeed ? i18t('mign5_t_check') : signed ? i18t('mign5_t_filed') : i18t('mign5_t_nosig');
+  const sub = none ? i18t('mign_p_j_none') : isNeed ? i18t('mign_p_j_check') : i18t('mign_p_j_filed');
+  const o = { eyebrow: [i18t('mign_title'), r.file || ''].filter(Boolean).join(' \u00b7 '), title, sub,
+    glance: [{ n: filed, l: i18tn('mign5_g_filed', rows.length, { n: rows.length }) }, { n: need.length, l: i18t('mign5_g_need'), warn: need.length > 0, attr: need.length > 1 ? 'data-mign-checkall' : '' }, { n: parked, l: i18t('mign5_g_parked') }],
+    groups: [{ label: i18t('mign5_read'), rows: lines }],
+    act: { label: i18t(isNeed ? (none ? 'mign_name_it' : 'mign_fill') : 'mign5_open'), attr: `data-mign-go="${E(r.key)}" data-mign-need="${isNeed ? 1 : 0}"`,
+      link: isNeed && need.length > 1 ? { label: i18t('mign_check_all', { n: need.length }), attr: 'data-mign-checkall' } : null },
+    src: i18t('mign5_src') };
+  return `<div class="jl-words is-ov">${jamboOverviewHtml(o, 'mign')}</div>`;
 }
 function migNlPanelPaint(rows){
   if (typeof insPaintPanel !== 'function') return;
@@ -1540,8 +1597,13 @@ function migNlPanelPaint(rows){
       <div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(say)}</p></div></div>
       <div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}`;
   }
+  /* THE FIVE PARTS (owner, 16 Nov 2026: "These pages still have old Panels"; drawn and built on "Build the legora way"):
+     what happened to the chosen file as the headline, three numbers (filed · need you · parked), what Jambo read as rows
+     (an end date not read in amber), the file's own door the one black button — the page's own presses (data-mign-go,
+     data-mign-checkall); the counts are the list's, no call */
+  const five = r && r.c && typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn();
   insPaintPanel({ seat: 'migration', item: { id: (r && r.key) || '__import' }, head: false, jlWord: i18t('mig_side_word'), jlPh: i18t('jl_ph_any'),
-    body: `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${file}</div>` });
+    body: five ? migNlPanelFiveHtml(r, rows, need) : `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${file}</div>` });
 }
 /* IMPORT'S THREE TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Need you · Read · All only pick which files), so a
    tab press and a typed letter redraw only the rows (listRowsSwapHtml); anything it will not swap draws the whole
@@ -1552,7 +1614,7 @@ function migNlRender(rows, o){
   if (!_migPick || !migRowByKey(_migPick)){ const first = rows.find(x => MIG_NEEDS.includes(x.st.k)) || rows[0]; _migPick = first ? first.key : null; }
   const PAGE = migNlPageHtml(rows);
   if (o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '.mign-page', html: PAGE, table: '.mign-table', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab', footSel: '.mign-page .apn-foot', also: '.mign-page .cun-head .ctf-hf' })){
+    && listRowsSwapHtml({ page: '.mign-page', html: PAGE, table: '.mign-table', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab', footSel: '.mign-page .apn-foot', also: ['.mign-page .cun-head .ctf-hf', '.mign-page .mign-figs'] })){
     /* the panel stays as it stands while the rows move, unless the file it reads has gone */
     if (_migPick !== _mignPanelPick){ _mignPanelPick = _migPick; migNlPanelPaint(rows); }
     return;
@@ -1576,6 +1638,8 @@ if (typeof document !== 'undefined' && !document._mignWired){ document._mignWire
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('.mig-page, .mign-page')) return; let el;
     if ((el = t.closest('.mign-page #mig-check-all, [data-mign-checkall]'))){ e.preventDefault(); migCheckOpen(); return; }
     if ((el = t.closest('[data-mign-tab]'))){ e.preventDefault(); _mign = el.getAttribute('data-mign-tab'); renderMigration({ rows: true }); return; }
+    /* a figure shows its files; pressed again it lets go (press it again and it closes) */
+    if ((el = t.closest('[data-mign-fig]'))){ e.preventDefault(); const k = el.getAttribute('data-mign-fig'); _mign = (_mign === k && k !== 'all') ? 'all' : k; renderMigration({ rows: true }); return; }
     if ((el = t.closest('#mign-choose'))){ e.preventDefault(); const fi = document.getElementById('mign-files'); if (fi) fi.click(); return; }
     if ((el = t.closest('.mign-page tr[data-row]')) && !t.closest('[data-mign-go]')){ const k = el.getAttribute('data-row'); if (k !== _migPick){ _migPick = k; renderMigration(); } return; }
     if ((el = t.closest('[data-mign-go]'))){ e.preventDefault(); e.stopPropagation(); const key = el.getAttribute('data-mign-go');
@@ -2279,6 +2343,17 @@ function migCheckRekey(){
   if (!_migCheck) return;
   const Q = migState().queue || [];
   _migCheck.ids = _migCheck.ids.map(k => { const m = /^q:(\d+)$/.exec(k); const q = m && Q[Number(m[1])]; return (q && q.id && getContract(q.id)) ? q.id : k; });
+}
+/* ESC IS A WAY BACK FROM THE CHECK SCREEN (owner, 16 Nov 2026: "imports page is locked on this page"), where no pop-up
+   or menu is up and nothing is being typed */
+if (typeof document !== 'undefined' && !document._migEscWired){ document._migEscWired = true;
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !_migCheck || !document.querySelector('.mig-page.is-checking')) return;
+    const t = e.target, tag = t && t.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+    if (document.querySelector('#modal-root [role="dialog"]')) return;
+    e.preventDefault(); migCheckClose();
+  });
 }
 function migCheckClose(){
   const id = migCheckId();

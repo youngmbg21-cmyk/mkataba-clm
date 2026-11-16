@@ -1588,7 +1588,7 @@ function aiMsgHtml(m,i){
         ${m.press&&typeof jpHtml==='function'?jpHtml(m.press,'ai:'+i):''}
         ${m.watchAsk&&typeof watchAskHtml==='function'?watchAskHtml(m,'ai:'+i):''}
         ${m.watchList&&typeof watchListHtml==='function'?watchListHtml():''}
-        ${Array.isArray(m.choices)&&m.choices.length?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${j===0&&!c.retry?' ui-btn-primary':''}" data-ai-choice="${i}:${j}">${_aiEsc(c.label)}</button>`).join('')}</div>`:''}
+        ${Array.isArray(m.choices)&&m.choices.length?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${j===0&&!c.retry?' ui-btn-primary':''}" data-ai-choice="${i}:${j}" title="${_aiEsc(c.label)}"><span class="igd-ch-t">${_aiEsc(c.label)}</span></button>`).join('')}</div>`:''}
         ${m.read&&m.read.text?`<div class="ai-read" data-ai-read>${_aiEsc(m.read.text)}</div>`:''}
       </div>
     </div>`;
@@ -2811,11 +2811,23 @@ function aiSendNoteClean(v){
    press on the send screen (Write it for me, a steer), a reply whose note slot is empty but whose answer is written
    is the note itself — he wrote it in the wrong place. HaTi takes the answer's words (a lead-in line ending in ":"
    and stray markup taken off) as the draft. Never on an unpressed ask, a failed or empty answer, or a few words. */
+/* HIS QUESTION BACK IS NOT THE NOTE (f1083; owner, 16 Nov 2026: "fix the note bug too" — the letter held "I need you
+   to tell me what the note should say. What message do you want to send with this round…"). A written answer that
+   speaks ABOUT the note to the sender (names the note or the message, and asks or says what he needs) is his talk:
+   it is shown as his answer, never taken as the draft. A note to the other side never speaks of "the note". */
+const AI_NOTE_ABOUT_RE=/\b(?:the|this|your|a|that)\s+(?:note|message|cover\s+note)\b|\b(?:meddelandet|anteckningen|följebrevet|ditt\s+meddelande|din\s+anteckning)\b/i;
+const AI_NOTE_ASK_RE=/\?|\b(?:tell\s+me|let\s+me\s+know|i\s+need\s+you\s+to|i(?:'|’)d\s+need|i\s+need\s+(?:to\s+know|more)|what\s+(?:would|do|should)\s+you|could\s+you\s+(?:tell|share|say)|berätta|säg\s+vad|vad\s+vill\s+du|jag\s+behöver\s+(?:veta|att\s+du))\b/i;
+function aiSendNoteAsksBack(res){
+  if(!res||aiSendNoteClean(res.note)) return false;
+  const t=String(res.answer||'').replace(/<[^>]+>/g,' ');
+  return AI_NOTE_ABOUT_RE.test(t)&&AI_NOTE_ASK_RE.test(t);
+}
 function aiSendNoteFrom(res){
   const own=aiSendNoteClean(res&&res.note);
   if(own||!window._shNlWrite||!res||res.empty||res.retry||res.unfinished||res.err) return own;
   let t=String(res.answer||'');
   if(!t.trim()||t.trim()===AI_EMPTY_ANSWER) return '';
+  if(aiSendNoteAsksBack(res)) return '';
   t=t.replace(/<\/?answer>/gi,'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/(p|div|li)>/gi,'\n').replace(/<[^>]+>/g,'')
     .replace(/&nbsp;/g,' ').replace(/&quot;/g,'"').replace(/&#0?39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
     .replace(/\*\*/g,'').trim();
@@ -2845,6 +2857,7 @@ if(typeof document!=='undefined' && document.addEventListener) document.addEvent
 function aiSendNoteSaid(res){
   if(!aiSendNoteHtml.pressed) return (res&&res.answer)||'';
   window._shNlWrite=null; aiSendNoteHtml.pressed=false;
+  if(!aiSendNoteHtml.placed&&aiSendNoteAsksBack(res)) return res.answer; /* f1083: his question is shown, to be answered */
   return i18t(aiSendNoteHtml.placed?'sh_nl_here':'sh_nl_none');
 }
 function aiRuleDoorHtml(d, q){
@@ -6267,7 +6280,7 @@ async function aiFillSaid(c, said, blanks){
   return api('ai/fill', 'POST', { id: c.id, text: '', said: String(said || ''), blanks: Array.isArray(blanks) ? blanks : [] }, { quiet: true });
 }
 Object.assign(window,{ aiFillSaid });
-Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiSendNoteFrom,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
+Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiSendNoteFrom,aiSendNoteAsksBack,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
 Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiStarPress,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,

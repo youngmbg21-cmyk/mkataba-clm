@@ -1219,6 +1219,13 @@ const POLL_ON_ARRIVAL = ['workspace','redline'];
    the answer re-enters through this same door with `_leavingCe` set: one
    question per press, and no second guard on the way back in. */
 let _leavingCe = false;
+/* A FULL-PAGE SCREEN THAT WOULD STAY OVER THE NEXT PAGE (15 Nov 2026): Home's own (the Send screen, any page beside
+   Home's panel) on a move off Home; any other full-page screen on any move to another page. */
+function pageScreenStays(view){
+  if(typeof document==='undefined') return false;
+  if(view!=='dashboard' && document.querySelector('#modal-root .modal-in[data-sh-page], #modal-root .modal-in[data-dlg-home]')) return true;
+  return !!document.querySelector('#modal-root .modal-in[data-dlg-page]:not([data-dlg-home]):not([data-sh-page])');
+}
 function viewLayersClosed(view){
   /* A REPAINT IS NOT A NAVIGATION, and this is the half of that rule that
      matters most here: a background answer landing repaints the page under the
@@ -1238,6 +1245,26 @@ function viewLayersClosed(view){
       try{ setView(view); } finally { _leavingCe = false; }
     }).catch(()=>{});
     return false;
+  }
+  /* …AND EVERY PAGE THAT STANDS BESIDE JAMBO ON HOME (owner, 15 Nov 2026: "I was on the email page then i clicked
+     discover on jambo… the email is now above the discover page and the jambo has disappeared"): the Send screen
+     (and any page opened beside Home's panel, data-dlg-home) belongs to Home as the sheet does; a move to another
+     page puts it away first through its own guarded close, then goes on. */
+  /* …AND EVERY OTHER FULL-PAGE SCREEN TOO (owner, 15 Nov 2026: "check if this issue is anywhere else in hati"):
+     a page opened over Contracts, Requests, Import, Settings or any list (data-dlg-page) belongs to the page it was
+     opened on; the bar's own doors already put it away (dkLeavePageThen), Jambo's doors, the strip and a typed
+     page name did not, so it stood over the next page and its Jambo panel. One rule: pageScreenStays(view). */
+  if(!_leavingCe && typeof window!=='undefined' && typeof window.closeModalFirst==='function' && pageScreenStays(view)){
+    const r=window.closeModalFirst();
+    if(r===false) return false;
+    if(r!==true){
+      Promise.resolve(r).then(ok=>{
+        if(ok===false || pageScreenStays(view)) return;
+        _leavingCe = true;
+        try{ setView(view); } finally { _leavingCe = false; }
+      }).catch(()=>{});
+      return false;
+    }
   }
   /* THE DESIGN STEP (js/views/designstep.js) paints over the page too, and its
      choices are lost on the way out — so it is asked the same way. */
@@ -2419,7 +2446,7 @@ const ALERT_KINDS = [
      Ranked under the work somebody is owed and over what only waits. */
   { k:'watch',       tone:'amber', ic:'&#128065;' },
   /* ---- A VIEW A COLLEAGUE GAVE YOU (the one-page Home plan, stage 4) ----
-     A contract's deal board, obligations or history, given from the Board's
+     A contract's obligations or history, given from the Board's
      Share with a note (hbGiftAlerts). Amber: a colleague asked you to look.
      It clears once seen — drawn on your Board, or opened from here. */
   { k:'gift',        tone:'amber', ic:'&#127873;' },

@@ -1282,7 +1282,7 @@ function igLensDoorGo(kind, id){
     const c=(typeof getContract==='function')?getContract(id):null, who=c&&igLensOwnerOf(c);
     if(who){ const ids=(state.contracts||[]).filter(x=>igLensOwnerOf(x)===who).map(x=>x.id); regShowOnly(ids, who); return true; }
   }
-  if(window.roomHomeLand&&roomHomeLand(id)) return true;
+  if(window.roomHomeLand&&roomHomeLand(id,{ cover:true })) return true;
   if(typeof openWorkspace==='function') openWorkspace(id);
   return true;
 }
@@ -4296,6 +4296,8 @@ function igNoteOf(res){
   const words=(typeof window.aiSendNoteFrom==='function')?aiSendNoteFrom(res):(typeof window.aiSendNoteClean==='function')?aiSendNoteClean(res&&res.note):String((res&&res.note)||'').trim();
   const S=(typeof window.shareScreenSays==='function')?shareScreenSays():null;
   if(pressed) window._shNlWrite=null;
+  /* f1083: his question back about the note is his answer, shown to be answered; never "no note came back" over it */
+  if(!words && pressed && S && typeof window.aiSendNoteAsksBack==='function' && aiSendNoteAsksBack(res)) return null;
   if(!words || !S) return pressed ? { say:i18t('sh_nl_none') } : null;
   const clauses=igNoteClauses(S.goes);
   const tags=igNoteSentences(words).map(x=>{ const c=igNoteTagOf(x, clauses); return c?c.n:null; });
@@ -10182,7 +10184,7 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
-      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
+      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}" title="${igEsc(c.title||c.label)}"><span class="igd-ch-t">${igEsc(c.label)}</span></button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&m.sendNote)?igNoteCardHtml(m,i):''}
       ${''/* ONE ROW (owner, 11 Nov 2026): the answer's controls on one line, everything else under ⋯ */}
       ${igOneHtml(m,i)}
@@ -10791,7 +10793,7 @@ function renderIntelDock(){
     igOnce(el,'pointerleave','el-pointerleave',()=>igPaintIds(null));
   });
   /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
-  dock.querySelectorAll('[data-ig-ws]').forEach(b=>igOnce(b,'click','[data-ig-ws]',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
+  dock.querySelectorAll('[data-ig-ws]').forEach(b=>igOnce(b,'click','[data-ig-ws]',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }));
   /* the whole-book door (igFailTurn's stand-in): the Contracts page with nothing narrowing it, as the window's press */
   dock.querySelectorAll('[data-ai-worklist-all]').forEach(b=>igOnce(b,'click','[data-ai-worklist-all]',e=>{ e.stopPropagation(); if(typeof window.regShowOnly==='function') regShowOnly([], ''); }));
   /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
@@ -12103,7 +12105,7 @@ function igStripWire(){
       const faceUp=typeof window.pdRedShows==='function'&&pdRedShows()&&pdRedFor()===String(p.id);
       if((p.red==='theirs')!==was&&faceUp) renderIntelDock();
       return; }
-    const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
+    const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }
   });
 }
 /* ---- the paper ---- */
@@ -12305,6 +12307,13 @@ function igPaintPaper(){
     /* HOME'S PAPER SIDE WITH NOTHING CHOSEN YET asks which contract to read */
     /* the Contracts place (step 7): its frame, then the register draws the
        place into it (the head, the wall or the list) */
+    /* A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (owner, 16 Nov 2026: "every time i refresh … it lands on the
+       screen attached before going back to where i refreshed from"): while the paper a refresh is putting back is
+       on its way or being read (intel.resuming, hbPlacePut), the Contracts place is not drawn in its
+       stead — the paper's own "Opening…" stands there until it lands, or the put-back lets go */
+    if(homePaper&&intel.resuming&&getContract(intel.resuming.id)){
+      if(host.dataset.for!=='__wait'){ host.innerHTML='<div class="ig-pick-wait" aria-busy="true">'+igOpeningHtml()+'</div>'; host.dataset.for='__wait'; }
+      host.hidden=false; return; }
     if(homePaper){ if(host.dataset.for!=='__pick'||!document.getElementById('ct-place')){ host.innerHTML=igPickHtml(); host.dataset.for='__pick'; }
       host.hidden=false; igPickWire(host); if(_igPlaceLater) _igPlaceOwed=true; else igPlacePaint(); return; }
     if(homePaper===false) igPlaceNav(false);
@@ -12819,7 +12828,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igPaperPatch,igPaperLastPatch,igRedBodyHtml,igStripRepaint,igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
+Object.assign(window,{igPaperPatch,igPaperLastPatch,igRedBodyHtml,igStripRepaint,igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningHtml,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandOpensRead,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallAppend,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
 Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugInRows,igOverviewFive,igOverviewHtml,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingsShow,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,igFailTurn,igAsksOtherThan,igAsksThisPaper,IG_PAPER_TOPIC_RE,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockBatch,igDockPaintCount,igPaperDown,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint,igAskBrain});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

@@ -183,7 +183,8 @@ const LAND = () => {
     /* RE-POINTED 9 Nov 2026 (the Lifeline strip is gone): a contract brought up is its paper on Home, and its page is
        what stands in the middle beside it — Where we are (.pd2-stands), History (#pd2-hist), or the paper itself */
     strip: (() => { try { const c = (window.intel && intel.paper) ? intel.paper : null; return c ? String(c.id) : null; } catch (_){ return null; } })(),
-    stripPage: document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.pd2-stands') ? 'where' : 'ov',
+    /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): 'where' is the Cover standing over the paper */
+    stripPage: document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.cv-page') ? 'where' : 'ov',
     /* Key terms standing in the middle (since the Details page retired, 22 Oct 2026), and its Move open */
     kt: !!document.querySelector('[data-pd-mid-kt]'),
     ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
@@ -249,7 +250,7 @@ const E = {
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the form beside the paper (Fill in the contract), its first owed box in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
-  strip: 'its paper on Home (History or Where we are in the middle where named)', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its paper on Home, Where we are in the middle', stripDetails: 'its paper on Home', kt: 'its paper on Home, Key terms in the middle' };
+  strip: 'its paper on Home (History or Where we are in the middle where named)', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its paper on Home, its Cover over it (Where we are is the Cover)', stripDetails: 'its paper on Home', kt: 'its paper on Home, Key terms in the middle' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -647,7 +648,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
         || (x.it.kind === 'week' && (x.it.evs || []).some(e => e && ((a.obId && e.type === 'obligation' && String(e.obId) === String(a.obId)) || (a.ends && e.type === 'expiry' && String(e.cid) === id))))));
       return r ? { type: 'piece', key: r.key } : null;
     }, a);
-    const ROW_SAYS = { piece: 'the Board, Jambo\'s piece open on the one desk\'s card', bundle: 'Home\'s Contracts place, narrowed to the contracts owing details', company: 'Settings, the company\'s card', setup: 'the setup door' };
+    const ROW_SAYS = { piece: 'the contract, where the piece\'s work is (the Board for a piece about no one contract)', bundle: 'Home\'s Contracts place, narrowed to the contracts owing details', company: 'Settings, the company\'s card', setup: 'the setup door' };
     const seen = new Set();
     for (const a of alerts) {
       const k = a.kind === 'approval' ? a.kind + ':' + a.id : a.kind; if (seen.has(k)) continue; seen.add(k);
@@ -657,7 +658,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       const need = hit && hit.type === 'c' ? (hit.ck === 'look' ? { expect: E.paper(a.id), says: SAYS.paper } : NEED[hit.ck] ? NEED[hit.ck](a.id, 'dashboard') : null) : null;
       const expect = own ? (roomRow(a) ? stripRow(a) : (want || (L => !L.room && !L.negPage)))
         : need ? need.expect
-        : hit.type === 'piece' ? E.boardFace
+        /* RE-POINTED 16 Nov 2026 (owner: a Needs-you row "should take me to the contract and not point me to the board"):
+           a piece about one contract opens it where its work is (ndRowGo) — the bell kind's own place; else the Board */
+        : hit.type === 'piece' ? (a.kind === 'renewal' ? E.obTab(a.id) : a.id && want ? want : E.boardFace)
         : hit.type === 'bundle' ? (L => L.view === 'dashboard' && L.place && !!L.only)
         : hit.type === 'company' ? E.page('team')
         : (L => !L.room && !L.negPage);

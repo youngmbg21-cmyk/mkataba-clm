@@ -11,7 +11,7 @@
        clause panel restores real list markers to every ol inside it and a
        TYPE selector beat the plainly-written class rule;
      · two of the deal board's seven columns fell off the right of its own
-       dialog, and the two that fell were the ones saying whose turn it is.
+       dialog (the deal board itself was removed, owner, 16 Nov 2026, f1084).
    Every number below is measured from getBoundingClientRect or
    getComputedStyle, and every door is pressed with a real mouse.
    Screenshots go to test/chromium/shots/ladder/. */
@@ -197,78 +197,11 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   check('5b the key\'s swatches are the marks\' own colours', !!leg && !!marks.us && !!marks.them
     && leg.sw[1] === marks.us && leg.sw[0] === marks.them, JSON.stringify({ leg: leg && leg.sw, marks }));
 
-  /* 6 · the deal board, both doors */
-  const doors = await page.evaluate(() => document.querySelectorAll('[data-rl-board]').length);
-  check('6a the board has its control-row door', doors >= 1, 'doors ' + doors);
-  await page.click('.rl-boardseg'); await pause(450);
-  /* ---- THE BOARD IS AN INSPECTOR (Young picked it, 3 Oct 2026: "Build
-     Inspector, no Accept/Counter/Reject, no walk-away") ---- re-pointed in
-     place: the nine-column table is gone. A list of every point argued, and
-     the WHOLE of the one picked — nothing cut short. */
-  const board = await page.evaluate(() => {
-    const list = document.querySelector('#db-list');
-    if (!list) return null;
-    const rows = Array.from(list.querySelectorAll('[data-rl-board-pick]')).map(r => ({
-      name: (r.querySelector('.db-ir-nm') || {}).textContent || '', go: r.getAttribute('data-rl-board-pick'),
-      on: r.getAttribute('aria-current') === 'true', bar: !!r.querySelector('.db-bar') }));
-    const card = document.querySelector('.db-card');
-    return { rows, card: card ? card.getAttribute('data-db-card') : null,
-      words: Array.from(document.querySelectorAll('.db-card .db-words')).map(w => w.textContent.trim()),
-      foot: (document.querySelector('.db-foot') || {}).textContent || '',
-      text: (document.querySelector('.rl-boardpage') || {}).textContent || '',
-      acts: document.querySelectorAll('.rl-boardpage [data-nego-accept],.rl-boardpage [data-nego-reject],.rl-boardpage [data-rl-cp-editor-row]').length };
-  });
-  check('6b the board lists a row per clause with a move', !!board && board.rows.length === 2, board && JSON.stringify(board.rows.map(r => r.name)));
-  check('6c the distance bar is drawn where the clause is a number', !!board && board.rows.some(r => r.bar));
-  check('6d it says nothing on it is written by a model', !!board && /model/i.test(board.foot));
-  check('6g the picked point is drawn whole — no wording ends in "…", no walk-away, none of the column\'s acts',
-    !!board && !!board.card && board.words.length >= 2 && board.words.every(w => w && !/…$/.test(w))
-      && !/walk-away/i.test(board.text) && board.acts === 0, board && JSON.stringify({ card: board.card, words: board.words, acts: board.acts }));
-  const fit = await page.evaluate(() => {
-    const pg = document.querySelector('.rl-boardpage'); const card = document.querySelector('.db-card');
-    if (!pg || !card) return null;
-    const p = pg.getBoundingClientRect(), k = card.getBoundingClientRect();
-    return { cardRight: Math.round(k.right), pageRight: Math.round(p.right), fits: k.right <= p.right + 1,
-      sideways: pg.scrollWidth > pg.clientWidth + 1 };
-  });
-  check('6f the card is on screen — nothing falls off the right', !!fit && fit.fits && !fit.sideways, JSON.stringify(fit));
-  await page.screenshot({ path: OUT + '/05-board.png' });
-  /* 6h a press SELECTS: the other row's point fills the card */
-  const other = board && board.rows.find(r => !r.on);
-  if (other){ await page.click(`[data-rl-board-pick="${other.go}"]`); await pause(300); }
-  const picked = await page.evaluate(() => ({ card: (document.querySelector('.db-card') || { getAttribute: () => null }).getAttribute('data-db-card'),
-    on: (document.querySelector('.db-irow.is-on') || { getAttribute: () => null }).getAttribute('data-rl-board-pick'),
-    still: !!document.querySelector('#db-list') }));
-  check('6h a press on a row selects it and the card follows', !!other && picked.still && picked.card === other.go && picked.on === other.go, JSON.stringify(picked));
-  /* 6e a second press on the shown row is the door back onto its clause.
-     Back to the point the board opened on first (the widest gap, which is the
-     clause the old table's first row opened), so the panel state the later
-     stages inherit is the one they always did. */
-  const first = board && board.rows.find(r => r.on);
-  const goId = first ? first.go : null;
-  if (goId){
-    await page.click(`[data-rl-board-pick="${goId}"]`); await pause(300);
-    await page.click(`[data-rl-board-pick="${goId}"]`); await pause(500);
-  }
-  const landed = await page.evaluate(id => {
-    const p = document.querySelector('#rl-cp');
-    const body = p && p.querySelector(`.rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`);
-    return { closed: !document.querySelector('#db-list'), open: !!(p && p.classList.contains('is-open')),
-      onClause: !!(body && body.classList.contains('is-on')),
-      /* ---- THE DOOR THE OWNER COULD NOT TRACE (Young, 15 Sep 2026: "still
-         appears here and there but I cannot trace what is making it appear") ----
-         This row is it: every other door on our seat asks rlEditorTakesIt at
-         the DRAW and sends the reader to the clause editor, and this one opened
-         the panel in full with no such reading. It is the reason the narrowing
-         is a POSTURE rather than a third argument passed by hand — a door that
-         has to remember to ask is a door that will forget. */
-      stands: (() => { const e = body && body.querySelector(
-        '.rl-cp-sec:not(.rl-ladder-sec):not(.rl-pb-sec):not(.rl-fig-sec):not(.rl-notes-sec)');
-        return !!(e && e.getBoundingClientRect().height > 0); })() };
-  }, goId);
-  check('6e a board row lands on that clause\'s own ladder', landed.closed && landed.open && landed.onClause, JSON.stringify(landed));
-  check('6e2 …and on the ladder ALONE — not the wording, the acts, the table and the history',
-    !landed.stands, JSON.stringify(landed));
+  /* 6 · THE DEAL BOARD IS GONE (owner, 16 Nov 2026, f1084): no tab beside the readings, no More row, no page
+     (was 6a–6h: the board's doors, its list and card, a row landing on its clause's ladder) */
+  const gone6 = await page.evaluate(() => ({ doors: document.querySelectorAll('[data-rl-board], .rl-boardseg, .rl-boardpage').length,
+    fn: typeof window.openDealBoard }));
+  check('6a there is no Deal board: no door, no tab, no page', gone6.doors === 0 && gone6.fn === 'undefined', JSON.stringify(gone6));
 
   /* 7 · nothing else moved: the counterparty's seat draws no board door */
   const cp = await page.evaluate(async () => {
@@ -379,7 +312,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
      stacked clause, the column's verbs and track, the panel's tail, the
      board as a page and the editor's three tabs. */
   await page.evaluate(() => { if (window.rlCloseClauseEditor && window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor();
-    if (window.rlSetReadMode) rlSetReadMode('marks'); if (window.rlBoardSet) rlBoardSet(false); if (window.rlCpSetShown) rlCpSetShown(document, null); renderRedline(); });
+    if (window.rlSetReadMode) rlSetReadMode('marks'); if (window.rlCpSetShown) rlCpSetShown(document, null); renderRedline(); });
   await pause(400);
 
   /* 15 · every mark wears its side */
@@ -590,28 +523,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   await page.evaluate(() => { if (window.ceDiscard) ceDiscard(); rlCloseClauseEditor(); }); await pause(400);
   await page.evaluate(() => { const c = window.CONTRACT; if (window.confirmDialog) window.confirmDialog = (o) => Promise.resolve(true); });
 
-  /* 20 · the deal board is a page */
-  await page.evaluate(() => { const p = document.querySelector('#rl-cp'); if (p) p.classList.remove('is-open'); });
-  await page.evaluate(() => document.querySelector('.rl-boardseg').click()); await pause(500);
-  const board20 = await page.evaluate(() => {
-    const pg = document.querySelector('.rl-boardpage'); const grid = document.getElementById('rl-grid');
-    const seg = document.querySelector('.rl-boardseg'); const title = document.getElementById('shell-title');
-    return { page: !!pg && pg.getBoundingClientRect().height > 0, gridHidden: !!grid && getComputedStyle(grid).display === 'none',
-      lit: !!seg && seg.classList.contains('on'), list: !!document.querySelector('#db-list'), card: !!document.querySelector('.db-card'),
-      walk: /walk-away/i.test((pg || {}).textContent || ''),
-      memo: !!document.querySelector('[data-rl-board-memo]'), noReadingLit: !document.querySelector('.rl-readwrap .rl-seg.on'),
-      modal: (document.getElementById('modal-root') || { innerHTML: '' }).innerHTML.trim().length,
-      title: title ? title.textContent.trim() : null, within: /within your fallback/.test((document.querySelector('.db-sum') || {}).textContent || '') };
-  });
-  check('20a the board is a PAGE in the working area, and the grid steps aside', board20.page && board20.gridHidden && board20.modal === 0, JSON.stringify(board20));
-  check('20b its tab is lit and no reading is', board20.lit && board20.noReadingLit);
-  /* Re-pointed in place (Young, 3 Oct 2026: "Build Inspector … no walk-away"):
-     a list and a card where nine columns stood, and no walk-away. */
-  check('20c a list and a card, no walk-away, the fallback count and Copy as memo', board20.list && board20.card && !board20.walk && board20.memo && board20.within,
-    JSON.stringify({ list: board20.list, card: board20.card, walk: board20.walk, memo: board20.memo }));
-  await page.evaluate(() => document.querySelector('.rl-readwrap [data-rl-read="marks"]').click()); await pause(500);
-  const back20 = await page.evaluate(() => ({ page: !!document.querySelector('.rl-boardpage'), grid: getComputedStyle(document.getElementById('rl-grid')).display !== 'none', lit: !!document.querySelector('.rl-readwrap .rl-seg.on') }));
-  check('20d pressing a reading puts the paper back', !back20.page && back20.grid && back20.lit, JSON.stringify(back20));
+  /* 20 · the deal board was a page here; it is gone (owner, 16 Nov 2026, f1084) — 6a checks it */
 
   /* ============ 22 · THE CLAUSE SAYS A COUNT, NEVER A VERDICT ============
      Young, 17 Sep 2026, over a clause badged `SETTLED · R1 ACCEPTED`: *"What

@@ -554,8 +554,8 @@ function puChoose(id, wide){
 }
 /* the contract's paper with its Dossier — the one landing every Workspace door shares */
 function puOpen(id){
-  const go = () => { if (!(typeof roomHomeLand === 'function' && roomHomeLand(id)) && typeof openWorkspace === 'function') openWorkspace(id); };
-  if (typeof dkLeavePageThen === 'function') dkLeavePageThen(go); else go();
+  const go = () => { if (!(typeof roomHomeLand === 'function' && roomHomeLand(id, { cover: true })) && typeof openWorkspace === 'function') openWorkspace(id); };
+  if (!(typeof window.dkLeavePageThen === 'function' && window.dkLeavePageThen(go))) go();
 }
 /* ---- LIVE: the book read again, the rows that moved glide to their place ---- */
 function puRepaint(){
@@ -659,7 +659,7 @@ function puWire(){
     if (t.closest('[data-pu-more]')){ _pu.shown += PU_PAGE; renderPulse(); puKeep(); return; }
     if ((el = t.closest('[data-pu-open]'))){ puOpen(el.getAttribute('data-pu-open')); return; }
     if ((el = t.closest('[data-pu-red]'))){ const id = el.getAttribute('data-pu-red'); const go = () => { if (!(typeof pdRedOpen === 'function' && pdRedOpen(id)) && typeof openRedlineWorkbench === 'function') openRedlineWorkbench(id); };
-      if (typeof dkLeavePageThen === 'function') dkLeavePageThen(go); else go(); return; }
+      if (!(typeof window.dkLeavePageThen === 'function' && window.dkLeavePageThen(go))) go(); return; }
     if ((el = t.closest('[data-pu-review]'))){ const c = typeof getContract === 'function' ? getContract(el.getAttribute('data-pu-review')) : null;
       if (c && typeof rlReviewDoor === 'function') rlReviewDoor(c, () => puRepaint()); return; }
   });

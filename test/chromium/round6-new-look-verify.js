@@ -184,7 +184,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => setView('mynotes'));
     const up = await until(page, () => !!document.querySelector('.mnn-table tbody tr[data-mn-row]'), null, 12000);
     const due = await txt(page, '.mnn-table .mnn-due');
-    const panel = await until(page, () => /The note/i.test((document.querySelector('#ins-panel .cun-panel') || {}).innerText || ''), null, 8000);
+    /* RE-POINTED (owner, 16 Nov 2026: the chosen row's panel in the five parts; f1073): the note's panel is drawn by the
+       one builder (data-jov-slot="mnn"), "This note" over its rows, Mark reviewed its button */
+    const panel = await until(page, () => { const p = document.querySelector('#ins-panel [data-jov-slot="mnn"]'); return !!p && /This note/i.test(p.innerText) && /Mark reviewed|Review again/i.test(p.innerText); }, null, 8000);
     await shot('8-my-notes');
     check('8 My notes: the ledger with Today in amber, the note\'s panel', up && /Today/.test(due) && panel, due);
   } catch (e) { check('8 My notes', false, String(e).slice(0, 200)); }
@@ -207,7 +209,11 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const heads = await page.evaluate(() => [...document.querySelectorAll('.mign-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
     const first = await txt(page, '.mign-table tbody tr[data-row]');
     await shot('10-import');
-    check('10 Import: What Jambo read · Looks · Stream · Value, the ones that need you first', up && heads.join('|') === 'file|what jambo read|looks|stream|value' && /Fill in|Name it/.test(first), { heads, first: first.slice(0, 120) });
+    /* RE-POINTED (owner, 16 Nov 2026: the figures and "the level of confidence for each contract" are back; f1081): How sure
+       stands after What Jambo read, and five figures over the list */
+    const figs = await page.evaluate(() => [...document.querySelectorAll('.mign-page .mign-figs .mign-fig')].map(x => x.innerText.replace(/\s+/g, ' ').trim()));
+    check('10 Import: What Jambo read · How sure · Looks · Stream · Value, five figures over the list, the ones that need you first', up && heads.join('|') === 'file|what jambo read|how sure|looks|stream|value'
+      && figs.length === 5 && /files? brought in/.test(figs[0]) && /to check/.test(figs[2]) && /Fill in|Name it/.test(first) && /(High|Medium|Low)/.test(first), { heads, figs, first: first.slice(0, 160) });
   } catch (e) { check('10 Import', false, String(e).slice(0, 200)); }
 
   /* 11 · DNA by contract — RE-POINTED 10 Nov 2026: the owner deleted the DNA page and its button.

@@ -47,7 +47,6 @@ const HBK_EXAM = [
   ['what is the negotiation desk and who is the lead', ['3.6']],
   ['how do I leave a comment on a clause', ['3.7']],
   ['where are the risky clauses', ['3.8']],
-  ['what is the close plan', ['3.9']],
   /* 4 · sign */
   ['how do I approve a contract', ['4.1']],
   ['what still blocks signing', ['4.2']],
