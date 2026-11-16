@@ -22544,3 +22544,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 16 Nov 2026 — Correction to the line above: the Follow me check is f1088 (renamed from f1071, which main had given to the builder's check the same day).
 - Noticed, not fixed (16 Nov 2026): owner reports Board → "contracts" left the Board drawn while Jambo's panel turned to the Contracts panel; not reproduced on the fixtures by four routes (chip, after a contract, after the Cover, after Open the dossier). Asked which button and whether the list came after a moment (their book holds 190 contracts).
 - Noticed, not fixed (16 Nov 2026): an article numbered "X" with paragraphs "X.1 …" stays ONE clause row, while "ARTICLE IV" with "4.1 …" splits into a section and rows (the paragraph rule DOC_READ_NUM is digits only, by rule).
+- 16 Nov 2026 — Correction again: the Follow me check is now f1089 (main gave f1088 to another check the same evening).

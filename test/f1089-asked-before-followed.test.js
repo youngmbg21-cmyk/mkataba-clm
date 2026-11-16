@@ -1,5 +1,5 @@
 'use strict';
-/* f1088 — ASKED BEFORE FOLLOWED, AND THE SAME CLAUSE ON TWO PAPERS (owner, 16 Nov 2026: "I press on the
+/* f1089 — ASKED BEFORE FOLLOWED, AND THE SAME CLAUSE ON TWO PAPERS (owner, 16 Nov 2026: "I press on the
    other colleague's label, they then have to approve on the other side, then the process begins. Build this
    plus the fix you suggested"; picks: the small pop-up, and the one followed can stop it).
 
@@ -20,7 +20,7 @@ const assert = require('node:assert/strict');
 const { JSDOM } = require('jsdom');
 const { startHati, seedWorkspace } = require('./helpers');
 
-describe('f1088 (1) the server carries the ask, clamped', () => {
+describe('f1089 (1) the server carries the ask, clamped', () => {
   let h, w;
   const CID = 'MK-A2';
   before(async () => { h = await startHati(); w = await seedWorkspace(h, { approvalRules: [] }); });
@@ -51,7 +51,7 @@ describe('f1088 (1) the server carries the ask, clamped', () => {
   });
 });
 
-describe('f1088 (2)-(4) the browser: ask, allow, stop, and the same clause on two papers', () => {
+describe('f1089 (2)-(4) the browser: ask, allow, stop, and the same clause on two papers', () => {
   let W, dom, toasts, calls;
   const ME = { id: 'u_me', name: 'Amina Otieno' };
   const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(r => setImmediate(r)); };
