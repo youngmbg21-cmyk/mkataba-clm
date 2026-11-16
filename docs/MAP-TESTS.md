@@ -793,3 +793,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE ONE DESK — NEEDS YOU, ONE READING — 16 Nov 2026 additions
 - f1075 (panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
+- f1076 (every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.

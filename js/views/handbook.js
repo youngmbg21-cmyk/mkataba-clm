@@ -380,7 +380,12 @@ function hbknPanelHtml(){
      asked chapters as rows by their own press (data-hbkn-ch), Jambo's note as a row, two questions to ask him. The
      new look only. */
   if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
-    const ask = q => ({ verb: q, run: () => { if (typeof jlAsk === 'function') jlAsk(q); else if (typeof caAskAnywhere === 'function') caAskAnywhere(q); } });
+    /* A "HOW DO I…?" ASKED IN THE BOOK OPENS ITS CHAPTER (owner, 16 Nov 2026: the panel's buttons work "using common
+       sense"): pressed, "How do I send for signing?" took the reader off the Handbook to the Contracts page. The chapter
+       that answers it is opened here (hbkFind, the book's own words); only a question no chapter answers goes to Jambo. */
+    const ask = q => ({ verb: q, run: () => { const f = (typeof hbkFind === 'function') ? hbkFind(q, _hbkLang()) : null;
+      if (f && f.k && typeof hbkOpen === 'function'){ hbkOpen(f.k); return; }
+      if (typeof jlAsk === 'function') jlAsk(q); else if (typeof caAskAnywhere === 'function') caAskAnywhere(q); } });
     return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow: _hbkT('nav_handbook'), title: _hbkT('jov5_hbk_t'),
       sub: _hbkT('jov5_hbk_s', { n: HANDBOOK_CHAPTERS.length, p: HANDBOOK_PARTS.length }),
       groups: [{ label: _hbkT('hbkn_p_often'), rows: hbknOftenAsked().map(c => ({ mark: 'scroll', t: _hbkW(c.title), s: _hbkT('hbkn_free_ch', { k: c.k }), attr: `data-hbkn-ch="${E(c.k)}"` })) },

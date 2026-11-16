@@ -7453,6 +7453,20 @@ function hbShowCard(host, el, opts){
     clearTimeout(card._hbLitT); card._hbLitT = setTimeout(() => card.classList.remove('is-lit'), 1800);
   }
 }
+/* A CHART FADES IN ONCE (the flash measure, 16 Nov 2026; owner: "also fix the stutters, which I am still seeing"):
+   its parts rise the first time that very picture is drawn; the same picture drawn again — back to the Board, a
+   repaint for another card — stands still. Kept per sitting, by the picture's own markup. */
+const _hbChartsSeen = new Set();
+function hbChartsStill(host){
+  if (!host || !host.querySelectorAll) return;
+  host.querySelectorAll('svg').forEach(svg => {
+    if (!svg.querySelector('.hb-in')) return;
+    const src = svg.outerHTML; let h = 0; for (let i = 0; i < src.length; i++) h = (h * 31 + src.charCodeAt(i)) | 0;
+    const key = src.length + ':' + h;
+    if (_hbChartsSeen.has(key)) svg.querySelectorAll('.hb-in').forEach(g => g.classList.remove('hb-in'));
+    else { if (_hbChartsSeen.size > 400) _hbChartsSeen.clear(); _hbChartsSeen.add(key); }
+  });
+}
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
   /* a hidden Board is not drawn: it is marked missed and drawn when turned to
@@ -7467,6 +7481,7 @@ function hbPaintBoard(opts){
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
   const glide = hbGlideTake(host);
   hbMorph(host, hbBoardHtml());
+  hbChartsStill(host);
   hbGlidePlay(host, glide);
   /* a contract's view (stage 4): its host is filled by its own painter */
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
