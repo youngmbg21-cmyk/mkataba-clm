@@ -17,7 +17,7 @@ const fnBody = (src, name) => { const i = src.search(new RegExp('function ' + na
 function world(pressed){
   const ctx = { AI_EMPTY_ANSWER: 'I couldn\'t finish an answer to that one.' };
   ctx.window = ctx; ctx._shNlWrite = pressed ? 'MK-382' : null; vm.createContext(ctx);
-  vm.runInContext(fnBody(AI, 'aiSendNoteClean') + '\n' + fnBody(AI, 'aiSendNoteFrom'), ctx);
+  vm.runInContext(fnBody(AI, 'aiSendNoteClean') + '\n' + fnBody(AI, 'aiSendNoteAsksBack') + '\n' + fnBody(AI, 'aiSendNoteFrom'), ctx);
   return ctx;
 }
 const NOTE = 'Thank you for accepting our change to Clause 2. We have filed our answers on the rest and would be grateful for your reply by Friday.';

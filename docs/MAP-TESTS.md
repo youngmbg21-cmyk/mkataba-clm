@@ -476,6 +476,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f452, named-guest-verify.
 
 ## THE SEND SCREEN
+- f1083 his question back is not the note: `node --test test/f1083-his-question-back-is-not-the-note.test.js` (with f1043, f1035)
 - test/f1038-write-it-for-me-the-legora-way.test.js: the note is a draft in Jambo's panel, tagged by clause, steered by chips, put in and undone by a press.
 - test/f1041-write-it-for-me-goes-to-jambo.test.js: the press and the steers go straight to Jambo, a steer carries the draft.
 - test/f1035-write-it-for-me-and-what-goes.test.js: What goes works while Jambo talks; Write it for me hidden for the history and answered plainly.
