@@ -408,6 +408,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)
 - f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-drawer, home-paper-clauses, runway-and-xray, reading-in-the-background, xray-who-does-what verify.
 - 24 Oct 2026: Home's Track opens Clauses — f424 (2), track-on-the-paper-verify 4a–4d, analyze-on-the-graph-verify 2s4–2s8, document-tab-track-verify.
+- 16 Nov 2026: a close never stops the follow — f1075, f507 and f278 re-pointed, clause-list-fixed-verify 3b re-pointed.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
 - THE CHECK READS THE DUTIES RIGHT (bug log batch 6, 27 Oct 2026): f947 (2, 3) (new; red at the parent) — signCheckObligations asks obligationReminderTo(o) and hashes obligationsText(c), the words the scan stamped; f421 (s7)'s stub takes the duty alone.
@@ -787,10 +788,11 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NOTE'S LIMIT (15 Nov 2026): f1054 (5); send-note-on-the-paper-verify "the note stops at its limit".
 - THE ROUND LINE, SHORT (15 Nov 2026): f1054 (6); f972 (1) (2) and f1048 re-pointed.
 - WRITE IT FOR ME, TOP CORNER (15 Nov 2026): f1059 (four parts, red at the parent 1-3); send-note-on-the-paper-verify part 5 re-pointed.
+- A FULL-PAGE SCREEN GOES BEFORE THE PAGE OR HOME'S TAB MOVES (15 Nov 2026): f1061 (1)–(4); send-screen-keeps-its-way-back-verify 6, 7a, 7b.
 - A FINISHED READ OPENS ITS RESULTS, AND "READ THE N LEFT" READS WHAT IS LEFT (owner, 16 Nov 2026): f1072 (test/f1072-a-finished-read-opens-its-results.test.js; 3 of 3 red at the parent) — dsnEndsOnResults the one door for dsnAsk and dsnCarry (stopped stays; a reader who left is not pulled back); dsnRunLeft counts the read's folders' contracts with no answer (null while loading), used by Jambo's panel and the results head; nothing left is said by a toast. Re-pointed: discover-page-verify 4b (lands on its results with no press). Re-ran green: f1074, f1063, f1055, f1016, f1057, f1058, f1064, f937, f232.
 
 - CLAUSES THE LEGORA WAY, THE REDLINES STRIP, ONE BAND ON APPROVALS, THE FOUR LIST PANELS (owner, 16 Nov 2026): f1073 (test/f1073-clauses-legora-and-the-list-panels.test.js; 5 of 5 red at the parent). Re-pointed: f1066 (1)(3) (the open clause an amber line; one line, no counts), approvals-head-and-chosen-row-verify 3 (one band, no bar). Re-ran green: f1065, f1066, f1067, f1068, f1069, f1070, f184, f277, f314, f335, f337, f344, f385, f386, f875, f89, f965, f967, f937, f232, f48, f982, f984.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING — 16 Nov 2026 additions
-- f1075 (panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
+- f1077 (renumbered from f1075, which main also took; panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
 - f1076 (every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.

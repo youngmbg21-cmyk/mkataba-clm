@@ -74,7 +74,9 @@ test('f278 (1) the fact row has no second opinion about folding', () => {
   /* RE-POINTED 21 Oct 2026 (owner: "a clause you close stays closed"): the
      follow stands down while the reader's close holds (docThreadShutOn) —
      still a row opened, still never the head. */
-  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; const c=live\(\); if\(c&&docThreadLive\(\)&&!docThreadShutOn\(c\)\) docThreadOpen\(c,docThreadLineRow\(\),\{follow:true\}\); \}\)/.test(CODE),
+  /* RE-POINTED 16 Nov 2026 (owner: a close must not switch the follow off): the close holds only while its
+     clause is at the line (docThreadShutHolds) — still a row opened, still never the head. */
+  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; const c=live\(\); if\(!c\|\|!docThreadLive\(\)\) return; const row=docThreadLineRow\(\);\s*if\(docThreadShutOn\(c\)\)\{ if\(docThreadShutHolds\(row\)\) return; docThreadShutClear\(\); \}\s*docThreadOpen\(c,row,\{follow:true\}\); \}\)/.test(CODE),
     'and it opens a row and never touches the head');
   assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; scPaintPage\(\); \}\)/.test(CODE),
     'and the signing copy\'s page number, which writes a number and never touches the head');
