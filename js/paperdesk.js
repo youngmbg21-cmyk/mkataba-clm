@@ -6897,6 +6897,10 @@ function pdJamboTopHtml(){
      beside the list carries no Discover section in the new look; the button is the one way in. The old look keeps its
      section until it is deleted. */
   const disc = (!c && !ac && typeof askColDiscoverHtml === 'function' && !(typeof window.newLookOn === 'function' && newLookOn())) ? askColDiscoverHtml() : '';
+  /* A REFRESH ON A CONTRACT (owner, 16 Nov 2026): while the paper a refresh puts back is on its way (intel.resuming,
+     hbPlacePut) his panel says it is opening, never the Contracts place's overview in its stead */
+  if (!c && typeof window !== 'undefined' && window.intel && intel.resuming && typeof getContract === 'function' && getContract(intel.resuming.id))
+    return `<div class="ig-pick-wait" aria-busy="true">${typeof window.igOpeningHtml === 'function' ? window.igOpeningHtml() : ''}</div>`;
   return c ? (pd2On() ? pd2Html(c) + pdMenuRowsHtml(c) : pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true })) : (ac || pdWallHtml(disc));
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
