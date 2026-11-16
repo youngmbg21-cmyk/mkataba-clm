@@ -35,7 +35,9 @@ test('f1066 (1) the Redlines face: one switch, a headline, Send all in a card, t
   const lad = region(NEGO, 'function rlLadderFiveHtml(', '/* their view, the five parts');
   assert.match(lad, /ladderRungs|rungs\.map\(r =>/); assert.match(lad, /ladderStand\(c, id, side\)/, 'the steps as rows, then the playbook (owner: the card-in-card ladder was too cluttered)');
   assert.match(NEGO, /mid: roomsHtml \|\| ''/, 'the notes rooms under the headline');
-  assert.match(read('index.html'), /\.doc-th-row\.is-open\.pd2-lit\{[^}]*background:var\(--color-surface\);box-shadow:0 0 0 1px var\(--color-divider\)\}/, 'the open clause a white card');
+  /* RE-POINTED (owner, 16 Nov 2026: Clauses "the Legora way", f1073): the open clause is no card — an amber line at its
+     left on the white list */
+  assert.match(read('index.html'), /\.doc-th-row\.is-open\.pd2-lit\{[^}]*background:none;box-shadow:inset 2px 0 0 var\(--st-amber-dot\)\}/, 'the open clause: an amber line, no card');
 });
 
 test('f1066 (2) their view says whose eyes these are, and its way back', () => {
@@ -52,8 +54,10 @@ test('f1066 (3) Where we are, Deal and Clauses after a reading, by their own pre
   const dl = region(NEGO, 'function dealPanelNewHtml(c){', 'function dealPlanMemoText(');
   assert.match(dl, /attr: `data-deal-sendall="\$\{id\}"`/); assert.match(dl, /attr: `data-deal-chase="\$\{id\}"`/); assert.match(dl, /data-deal-ask="\$\{_nea\(f\.by\.rule\[0\]\.r\.clauseId\)\}"/);
   const cl = region(read('js/views/breakdown.js'), 'function stkMarqueeHtml(c, all, busy){', 'THE SAME HEAD AS REDLINES');
-  assert.match(cl, /g\(T\.need, i18t\('jov5_cl_g_need'\), T\.need > 0\)\}\$\{g\(T\.look, i18t\('jov5_cl_g_look'\)\)\}\$\{g\(T\.fine/, 'the counts off the one tally');
-  assert.match(cl, /\$\{stkViewHtml\(\)\}\$\{jov5HeadHtml/, 'the company view\'s line kept');
+  /* RE-POINTED (owner, 16 Nov 2026: "move the start with liability part to the top where clauses review is and remove
+     everything else in between"; f1073): one line, where to start read off the one tally — no headline, no counts */
+  assert.match(cl, /const at0 = lead != null \? lead : look;/, 'where to start, off the one tally');
+  assert.match(cl, /\$\{stkViewHtml\(\)\}<p class="stk-lg-top">/, 'the company view\'s line kept, then the one line');
 });
 
 test('f1066 (4) an empty notes room says how notes work, in both rooms', () => {
