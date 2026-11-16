@@ -19040,6 +19040,9 @@
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead[data-n]{background:var(--st-green-bg);color:var(--st-green-fg)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open:not(.stk-b-need):not(.stk-b-look):not(.stk-b-ok) .doc-th-bead[data-n]{background:var(--accent-solid);color:var(--surface-3)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-num{display:none}
+  /* A CLAUSE WITH NO NUMBER (owner, 16 Nov 2026, MK-301's "Company Information"): the row has no left room for a
+     floating dot here, so its small dot stands in the marks' own 26px slot, beside the name, never over its first letter */
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-bead:not([data-n]){position:static;flex:none;width:8px;height:8px;margin:0 9px}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-name{flex:1;min-width:0;font-size:14px}
   /* the open clause: no card, no grey; an amber line at its left (the paper's own mark for what needs you), 14px inside it */
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open.pd2-lit{margin:0;padding:0 0 10px 14px;border-top-color:var(--color-divider);border-radius:0;background:none;box-shadow:inset 2px 0 0 var(--st-amber-dot)}
@@ -21513,6 +21516,16 @@
   /* a page head standing outside a card (People & roles' "‹ Settings") keeps the sheet's 16 in */
   html.lg-new #set-page.st-cr .st-pg-head:not(.st-pg-card .st-pg-head){padding:12px 16px 0}
   html.lg-new #ig-dock .pd2-sgo.is-link{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  /* NO GREEN RING ON A FIELD, ANYWHERE (owner, 16 Nov 2026, over the Notes box: "i have continuously stated that i do
+     not want any green outlines in the entry fields across Hati. Fix this once and for all"). ONE RULE, LAST, every
+     place a person types: no outline and no glow, pressed or keyed to — the caret says where you are. The house ring
+     (button:focus-visible,…), the forms' green glow and every box's own ring lose to it by weight (:not(#_) twice) and
+     by order. A field whose edge turned green now darkens to the ink instead; a box that holds a field the same. In
+     every look and on their page too. Buttons, tabs and rows keep their ring (keyboard use needs it). */
+  html:not(#_):not(#_) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"], [type="image"]), textarea, select, [contenteditable]:not([contenteditable="false"])):is(:focus, :focus-visible){outline:none;box-shadow:none}
+  html:not(#_):not(#_) :is(.na-inp, .field, .hati-editor, #na-root .na-kt-grid input, [data-kt], [data-ktm], .cd-fld :is(input, select, textarea)):focus{border-color:var(--color-text)}
+  html:not(#_):not(#_) :is(.sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .rl-np-box):focus-within{outline:none;box-shadow:none;border-color:var(--color-text)}
+  html:not(#_):not(#_) .jb-card:focus-within{outline:none;box-shadow:none}
 </style>
 <style>
   /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */

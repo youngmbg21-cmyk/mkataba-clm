@@ -189,6 +189,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- f1081 (3) (16 Nov 2026): "1:" / "1)" is a number in the mark; an unnumbered clause's dot stands in the marks' slot, never over the name.
 - f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - f1010 (Start redlining opens the editor with no Redlines frame first; ‹ Clauses, Esc and the bar's ‹ land on the same clause); contract-new-look-verify 13e.
 - f1011 (Start redlining brings the clause's points to the editor, ticked, no numbers, words highlighted; one button through ceAsk; f505/f756 re-pointed); contract-new-look-verify 13f.
@@ -543,6 +544,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - No outlines on paper entry fields: f1028 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1081-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.
 - A SEARCH BOX WEARS NO RING (10 Nov 2026): `test/f996-search-boxes-no-ring-folders-scroll.test.js` (1) — one rule for the field, one for the line that holds it, every search box named, after the house ring (red at the parent).
 - NO JAMBO CALLS SAID (owner, 8 Nov 2026): f975 (red at the parent on all three). Re-pointed node: f273, f295, f499, f519, f527, f534, f615, f706, f745, f748, f753, f754, f759, f772, f792, f797, f798, f804, f811, f863, f864, f874, f954, f956, f957; browser contract-new-look-verify. f515 and f520 run out of memory here at the parent too (not this change).
