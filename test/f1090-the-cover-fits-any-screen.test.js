@@ -1,5 +1,5 @@
 'use strict';
-/* f1089 — THE COVER FITS ANY SCREEN, AND CARRIES A DOOR TO CONTRACTS (owner picked "A4 Sheet", 16 Nov 2026: "The paper
+/* f1090 — THE COVER FITS ANY SCREEN, AND CARRIES A DOOR TO CONTRACTS (owner picked "A4 Sheet", 16 Nov 2026: "The paper
    should look proportional … Everything should fit on screen looking normal and not stretched. Also, add a door to the
    contracts page … since Jambo is not there").
    (1) THE PAPER KEEPS A REAL PAGE'S SHAPE: as tall as the window allows (never a fixed 560px), A4's proportion, its
@@ -17,7 +17,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const CSS = strip(read('index.html'));
 const rule = sel => { const i = CSS.indexOf(sel + '{'); assert.ok(i >= 0, sel + ' is styled'); return CSS.slice(i, CSS.indexOf('}', i)); };
 
-test('f1089 (1) the paper keeps a real page\'s shape and fits the window', () => {
+test('f1090 (1) the paper keeps a real page\'s shape and fits the window', () => {
   const p = rule('html.lg-new .cv-paper');
   assert.match(p, /aspect-ratio:1 \/ 1\.414/, 'A4\'s shape');
   assert.match(p, /height:min\(calc\(100vh - /, 'as tall as the window allows');
@@ -27,7 +27,7 @@ test('f1089 (1) the paper keeps a real page\'s shape and fits the window', () =>
     assert.match(rule(sel), /cqh/, sel + ' is sized off the paper');
 });
 
-test('f1089 (2) the right side is one measured column that steps down', () => {
+test('f1090 (2) the right side is one measured column that steps down', () => {
   const r = rule('html.lg-new .cv-r');
   assert.match(r, /max-width:\d+px/, 'a set width, never stretched');
   assert.match(r, /overflow-y:auto/, 'a scroller inside if it must, never cut');
@@ -35,7 +35,7 @@ test('f1089 (2) the right side is one measured column that steps down', () => {
   assert.match(rule('html.lg-new .cv-go .cv-open'), /height:clamp\(/, 'and the button');
 });
 
-test('f1089 (3) the Cover carries a door to Contracts, said in the Handbook', () => {
+test('f1090 (3) the Cover carries a door to Contracts, said in the Handbook', () => {
   const PD = read('js/paperdesk.js');
   const right = PD.slice(PD.indexOf('function pdCoverRightHtml('), PD.indexOf('function pdCoverHtml('));
   assert.match(right, /class="cv-lnk cv-door" data-cv-go="contracts"/, 'a green link in the top row');

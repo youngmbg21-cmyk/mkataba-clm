@@ -76,8 +76,9 @@ describe('f456 (1) — one clause id, and nothing else', () => {
   });
 
   test('it rides the beat that was already going — no route, no table, no timer', () => {
-    assert.match(MOD, /spot \? \{ spot \} : \{\}/,
-      'one more field on the row presence already sends');
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the beat's body is built by presenceBeatBody */
+    assert.match(MOD, /presenceBeatBody\(spot\)/, 'one more field on the row presence already sends');
+    assert.match(MOD, /if \(spot\)\{ b\.spot = spot;/);
     assert.equal((bare(SRV).match(/app\.post\('\/api\/contracts\/:id\/here'/g) || []).length, 1);
     assert.ok(!/setInterval/.test(MOD.slice(MOD.indexOf('function presenceWalk'))),
       'and no clock of its own');
@@ -147,13 +148,15 @@ describe('f456 (3) — the walk goes through the door a press already uses', () 
 describe('f456 (4) — one at a time, per sitting, and the way out is the way in', () => {
   test('following two people is not possible', () => {
     const fn = MOD.slice(MOD.indexOf('function presenceFollow(id)'), MOD.indexOf('/* ---- AND THE WALK ----'));
-    assert.match(fn, /_pzFollow = \(to && _pzFollow !== to\) \? to : null/,
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): a new ask stands down any follow before it; the follow starts only on their Allow */
+    assert.match(fn, /_pzFollow = null; _pzWent = null;\s*_pzAsk = \{ id: to, at: Date\.now\(\) \};/,
       'two pages fighting over one scroll');
   });
 
   test('the same press stops it', () => {
     const fn = MOD.slice(MOD.indexOf('function presenceFollow(id)'), MOD.indexOf('/* ---- AND THE WALK ----'));
-    assert.match(fn, /_pzFollow !== to\) \? to : null/,
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it) */
+    assert.match(fn, /if \(_pzFollow === to\)\{\s*_pzFollow = null;/,
       'pressing the face you are following turns it off — the owner\'s own rule '
       + 'that the press which opens a thing closes it');
   });
@@ -166,7 +169,8 @@ describe('f456 (4) — one at a time, per sitting, and the way out is the way in
 
   test('and a different contract is a different room', () => {
     const fn = MOD.slice(MOD.indexOf('function presenceStart'), MOD.indexOf('function presenceStop'));
-    assert.match(fn, /String\(_pzWas \|\| ''\) !== id\)\{ _pzFollow = null; _pzWent = null; \}/,
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the ask and the allows go with it */
+    assert.match(fn, /String\(_pzWas \|\| ''\) !== id\)\{ _pzFollow = null; _pzWent = null; _pzAsk = null; _pzAllow\.clear\(\); _pzDeny\.clear\(\);/,
       'the names, the clauses and the colleagues are all different — while the '
       + 'SAME contract keeps the follow across the room and the negotiate page, '
       + 'which setView stops the beat between');
@@ -178,8 +182,9 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     const fn = MOD.slice(MOD.indexOf('const faceHtml ='), MOD.indexOf('return `<span class="pz-row"'));
     /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2): each face
        carries its person's one tone (pz-t-N, the house's avatar reading) */
-    assert.match(fn, /<button type="button" class="pz-face pz-t-\$\{tone\(r\)\}\$\{on \? ' is-following' : ''\}"/);
-    assert.match(fn, /aria-pressed="\$\{on \? 'true' : 'false'\}"/,
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): asking (dashed) and followed-by-them (a ring) are states of the same face */
+    assert.match(fn, /<button type="button" class="pz-face pz-t-\$\{tone\(r\)\}\$\{on \? ' is-following' : ''\}\$\{asking \? ' is-asking' : ''\}/);
+    assert.match(fn, /aria-pressed="\$\{on \? 'true' : asking \? 'mixed' : 'false'\}"/,
       'a toggle says which way it is set, or a keyboard reader cannot tell');
     assert.match(fn, /data-pz-follow="/);
   });
@@ -190,6 +195,9 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
        for both states, naming the clause the colleague is on
        (presenceFollowWords) */
     assert.match(fn, /presenceFollowWords\(r, on \? 'pz_following' : 'pz_follow', c\)/);
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it) */
+    assert.match(fn, /i18t\('pz_asking'/);
+    assert.match(fn, /i18t\('pz_follows_you'/);
     for (const k of ['pz_follow', 'pz_following'])
       assert.ok(I18N.split(k + ':').length - 1 >= 2, k + ' is missing from one of the two books');
   });
@@ -208,7 +216,8 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     assert.ok(!/toast\(|presenceFollowSay/.test(walk),
       'and a toast on every arrival would be the loudest possible way to say '
       + '"the page moved", about a page the reader is watching move');
-    assert.equal((MOD.match(/toast\(/g) || []).length, 1, 'one toast, the press\'s own');
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the ask's answers are said once each, through one sayer (presenceSayOnce) */
+    assert.equal((MOD.match(/toast\(/g) || []).length, 2, 'the press\'s own, and the one sayer of the ask\'s answers');
     assert.match(MOD.slice(MOD.indexOf('function presenceFollow('), MOD.indexOf('function presenceRowOf(')), /presenceFollowSay\(/);
   });
 
@@ -231,7 +240,8 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     assert.match(can, /typeof window\.rlJumpToClause === 'function'/);
     /* RE-POINTED 18 Oct 2026 (pass 2): Home's paper only while it carries clause marks to walk to */
     assert.match(can, /const sc = presenceHomePaper\(\);\s*return !!sc && typeof window\.igPaperGoClause === 'function' && /, '…or Home\'s paper and its own door');
-    assert.match(fn, /if \(!canWalk\) return `<span class="pz-face pz-t-/,
+    /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): a follower's face on the followed one's screen is a button anywhere - stopping needs no paper */
+    assert.match(fn, /if \(!canWalk && !followsMe\) return `<span class="pz-face pz-t-/,
       'on the Document tab a button would quietly do nothing — the dead-button '
       + 'fault this codebase names in four other places. Presence is drawn '
       + 'everywhere; Follow me is offered where it works');

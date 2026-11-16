@@ -59,7 +59,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f455, take-it-in-turns-verify.
 
 ## FOLLOW ME — WALKING THROUGH IT TOGETHER
-- f456, f749, follow-me, paper-panel-as-drawn verify.
+- f456, f749, f1089 (asked before followed; the same clause by its heading — new, red at the parent), follow-me, paper-panel-as-drawn verify.
 
 ## WHO IS IN THE ROOM — "ON THIS CONTRACT"
 - f454, who-is-in-the-room-verify 2f.
@@ -810,4 +810,4 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - f1077 (renumbered from f1075, which main also took; panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
 - f1078 (renumbered from f1076, which main also took; every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.
 - f1079 (Company needs you lands on the exact job: `cnCompanyGo`, `stNeedGo`). Also run: f869, f1077.
-- THE COVER FITS ANY SCREEN (16 Nov 2026): f1089 (test/f1089-the-cover-fits-any-screen.test.js; 3 of 3 red at the parent) — the paper A4-shaped and sized off the window, its words in container units, never a fixed 560px; the right column a set width with clamp() type and a scroller inside, never cut; the Contracts door (top right, → setView('register')) said in both books. Re-pointed: f1085 (4) (the Cover's grid rule now opens on --cv-pad). Photographed at 1280×640 (a ThinkPad at 150%), 1440×780, 1536×730, 1366×950 and 1920×1000: nothing spills, nothing scrolls sideways, the right column scrolls 0px.
+- THE COVER FITS ANY SCREEN (16 Nov 2026): f1090 (test/f1090-the-cover-fits-any-screen.test.js; 3 of 3 red at the parent) — the paper A4-shaped and sized off the window, its words in container units, never a fixed 560px; the right column a set width with clamp() type and a scroller inside, never cut; the Contracts door (top right, → setView('register')) said in both books. Re-pointed: f1085 (4) (the Cover's grid rule now opens on --cv-pad). Photographed at 1280×640 (a ThinkPad at 150%), 1440×780, 1536×730, 1366×950 and 1920×1000: nothing spills, nothing scrolls sideways, the right column scrolls 0px.
