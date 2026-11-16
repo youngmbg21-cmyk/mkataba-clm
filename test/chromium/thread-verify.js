@@ -259,7 +259,9 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
        (--font-doc); the Plain reading is the panel's voice (--font-body, the
        6 Oct ruling "the font should follow the fonts in the panel"), so it
        is no longer the paper's face */
-    check('4c set in the panel\'s own face (--font-body), not the paper\'s serif', !!s5.plainFace && s5.plainFace === s5.bodyFace && s5.plainFace !== s5.paperFace,
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; owner, 16 Nov 2026, "Clauses the Legora way", f1073/f1081):
+       the open clause's plain English is set in the paper's own face (--font-doc), quoted as the paper is */
+    check('4c set in the paper\'s own face (--font-doc), as the new look\'s Clauses draws it', !!s5.plainFace && s5.plainFace === s5.paperFace,
       s5.plainFace.slice(0, 40) + ' vs body ' + s5.bodyFace.slice(0, 40) + ' · paper ' + s5.paperFace.slice(0, 40));
     check('4d that row says Read, and no other does', s5.rows.filter(r => /Read\b/.test(r.state) && !/Reading/.test(r.state)).length === 1 && /Read/.test(s5.rows[2].state),
       s5.rows.map(r => r.state || '-').join(' | '));

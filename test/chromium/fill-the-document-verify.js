@@ -146,7 +146,8 @@ const owed = (page, id) => page.evaluate(x => {
     check('2b the wording waits for the press', !!w2 && !w2.includes('Wanjiru Catering Ltd'), w2 ? '' : 'no wording');
     /* the hand leaves the grid: Still owed is drawn again with what it now owes */
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form's one Save, and the Dossier says what the wording still owes */
-    await page.click('#ig-dock [data-pd-fm-save]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the form opens as a page over Home (#modal-root), its Save there */
+    await page.click('#modal-root [data-pd-fm-save], #ig-dock [data-pd-fm-save]');
     await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 4000);
     const fb = await fillBtn(page);
     check('2c "Fill the document" is a line of Still owed while the answers are owed', !!fb && fb.inCard && /Fill the document/.test(fb.text), fb && fb.text);
@@ -186,7 +187,7 @@ const owed = (page, id) => page.evaluate(x => {
     if (await page.evaluate(s => !!document.querySelector(s), '#pd-og [data-tplf="1"]')) {
       await ckOpenRowOf(page, '#pd-og [data-tplf="1"]'); await page.click('#pd-og [data-tplf="1"]');
       await page.keyboard.type('Juno Limited');
-      await page.click('#ig-dock [data-pd-fm-save]');
+      await page.click('#modal-root [data-pd-fm-save], #ig-dock [data-pd-fm-save]');
       await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 6000);
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is

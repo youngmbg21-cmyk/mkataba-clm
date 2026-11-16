@@ -225,8 +225,14 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 13 Nov 2026 (f1042; owner: "they can never be filled in unless you are on dossier and press on
        fill in the contract"): a press on the blank opens nothing now, so the way in is that one door, pdFillGo */
     await page.evaluate(id => { if (typeof pdFillGo === 'function') pdFillGo(id, 'termYears'); }, filled);
-    await page.waitForFunction(() => !!(window.contractFieldPeer && contractFieldPeer('termYears', 'panel')), null, { timeout: 5000 }).catch(() => {});
-    const typed = await page.evaluate(() => {
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; MAP: FILL IN ON THE PAPER): "Fill in the contract"
+       (pdFillGo → pd2FillStart) turns the paper's blanks into boxes typed IN PLACE ([data-pd2-bl]), and its one Save
+       ([data-pd2-fill-save]) stores them — the answer box is on the paper, not a peer on the panel */
+    await page.waitForFunction(() => !!document.querySelector('#ig-canvas [data-pd2-bl="termYears"]') || !!(window.contractFieldPeer && contractFieldPeer('termYears', 'panel')), null, { timeout: 5000 }).catch(() => {});
+    const inPlace = await page.$('#ig-canvas [data-pd2-bl="termYears"]');
+    if (inPlace) { await inPlace.click(); await inPlace.fill(''); await page.keyboard.type('3'); await page.keyboard.press('Tab'); await page.waitForTimeout(400);
+      const sv = await page.$('[data-pd2-fill-save]:not([disabled])'); if (sv) await sv.click(); }
+    const typed = inPlace ? { found: true, peer: true } : await page.evaluate(() => {
       /* RE-POINTED 11 Oct 2026: THE DOCUMENT TAB IS NEVER EDITED (Young,
          9 Oct) — the paper draws the blank as a read-only answer and the
          reader types in its peer on the panel (docAnswersWire →
@@ -250,7 +256,7 @@ const check = (name, pass, detail) => {
       return { expiry: c.expiry, meta: (c.metadata || {}).expiryDate, doc: doc.replace(/\s+/g, ' ') };
     }, filled);
     check('the term blank is drawn while the record has no end date', typed.found);
-    check('and its answer box is on the panel', typed.peer !== false);
+    check('and its answer box is on the paper, typed in place (Fill in the contract)', typed.peer !== false); /* RE-POINTED 16 Nov 2026 (#762) */
     check('typing a term fills the empty end date the whole product runs off',
       after.expiry === '2029-08-09' && after.meta === '2029-08-09', after.expiry);
     check('and the clause then states the dates instead of the blank',

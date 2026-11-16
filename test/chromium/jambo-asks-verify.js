@@ -39,7 +39,10 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length >= 16 && typeof window.askColOpen === 'function', null, 40000);
     await page.waitForTimeout(1000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
     const toList = async () => { await page.evaluate(() => { regState().ask = []; regPlaceSet({ show: 'list', only: null }); if (typeof regShowOnly === 'function' && regState().only) regState().only = null; setView('register'); });
+      if (await until(page, () => !!document.querySelector('[data-ctf-show="list"]'), null, 4000) && !(await page.$('#reg-tbody tr[data-row]'))) await page.click('[data-ctf-show="list"]').catch(() => {});
       await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 16); };
     const rows = () => page.evaluate(() => document.querySelectorAll('#reg-tbody tr[data-row]').length);
     const card = () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-count]');

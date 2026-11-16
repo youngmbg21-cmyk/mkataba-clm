@@ -84,7 +84,8 @@ const BOXES = sel => {
 
     /* ================= 1. THE DOSSIER BESIDE A PAPER ================= */
     await page.evaluate(() => regOpenContract('MK-B2'));
-    const up = await until(() => !!document.querySelector('#ig-dock .pd-glance .pd-gl-h') && !!document.querySelector('#ig-dock .igd-head .pd-tab'), null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier is ONE card ([data-pd2-card]) */
+    const up = await until(() => !!document.querySelector('#ig-dock .pd-glance .pd-gl-h, #ig-dock [data-pd2-card]') && !!document.querySelector('#ig-dock .igd-head .pd-tab'), null, 15000);
     if (!up) check('1 the Dossier beside the paper is drawn', false, 'no #ig-dock .pd-glance');
     else {
       await page.waitForTimeout(500);
@@ -122,7 +123,8 @@ const BOXES = sel => {
          Next card's pale ground and its progress bar; nothing else is boxed */
       const CK_DRAWN = /^(i\.pd-ck-ring[\w.-]* edge( fill)?|span\.pd-ck-pill fill|i\.ds-ln-dot( edge)?( fill)?|div\.ds-nx fill|i\. fill)$/;
       const B2 = Array.isArray(B) ? B.filter(x => !CK_DRAWN.test(x)) : B;
-      check('1e nothing is boxed inside the Dossier: no edge, band or shadow on a section, row or table cell', Array.isArray(B2) && B2.length === 0, JSON.stringify(B2 && B2.slice(0, 8)));
+      /* RETIRED 16 Nov 2026 (#762): 1e (nothing boxed in the Dossier) — the new look's Dossier is ONE card whose act stands in its own soft card and whose facts are a ruled table, as drawn (owner, 15–16 Nov 2026, pd2CardFiveHtml) */
+      void 0;
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a section's label is in small capitals, 11px, still 16 in from the edge */
       /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the six stages are one line across with ticks and
          dates (.ds-ln-st), the old spine's six lines folded away; each named in sentence case */
@@ -133,8 +135,10 @@ const BOXES = sel => {
              the small head over its rows — 11.5px words, no dot, no door of its own drawn bigger */
           spine: [...document.querySelectorAll('#ig-dock .ds-sp-st')].filter(x => x.getBoundingClientRect().height > 0)
             .filter(x => { const w = x.querySelector('b'), d = x.querySelector('.ds-sp-dot'); return !(w && parseFloat(getComputedStyle(w).fontSize) <= 12 && !(d && d.getBoundingClientRect().height > 0)); }).length }; });
-      check('1f the six stages are one line across, named in sentence case; the old six lines are drawn only as small group heads', L.n === 6 && L.oneLine && L.cs === 'none' && L.spine === 0, JSON.stringify(L));
-      check('1g Still owed\'s head row takes no room (no band over the grid)', D.thH === 0, D.thH);
+      /* RETIRED 16 Nov 2026 (#762): 1f (the six stages one line, old lines as group heads) — the new look draws the stages as the card's labelled line of steps (pd2StepsHtml), no spine */
+      void 0;
+      /* RETIRED 16 Nov 2026 (#762): 1g (Still owed's head row) — the new-look Dossier has no Still owed grid */
+      void 0;
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-dossier-1440x780.png') });
     }
 
@@ -156,12 +160,15 @@ const BOXES = sel => {
           notesAfter: notes && review ? notes.getBoundingClientRect().left > review.getBoundingClientRect().right : null };
       });
       check('2a the piles are labels over their rows: no box round a pile, no shaded band', R.piles.length > 0 && R.piles.every(p => p.edge === '0px' && /rgba\(0, 0, 0, 0\)|transparent/.test(p.bandBg) && p.bandEdge === '0px'), JSON.stringify(R.piles));
-      check('2b the face\'s name is the serif', /Source Serif 4/.test(R.face || ''), R.face);
-      check('2c Notes stands after Ask for review, on Send all\'s line', R.notesY != null && R.reviewY != null && Math.abs(R.notesY - R.reviewY) <= 2 && R.notesAfter === true, JSON.stringify(R));
+      /* RETIRED 16 Nov 2026 (#762): 2b "the face's name is the serif" and 2c "Notes stands after Ask for review, on Send all's
+         line" — the new look's Redlines face has no head (owner's pick, 16 Nov 2026, "cards first": one line, the round
+         label + Send all; Notes is the face's switch, Ask for review the paper line's) */
       /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2, the owner's pick "Boxes, as drawn"): each change is
          its own soft grey card — a FILL, never an edge or a lift; nothing else among the piles is boxed */
       const B0 = await page.evaluate(BOXES, '#ig-dock #rl-changes');
-      const B = Array.isArray(B0) ? B0.filter(x => !/^article\.rl-card\.rl-card-d fill$/.test(x)) : B0;
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's SAP WAY MARK that leads every row (.ls-mk, listSapMarkHtml, f997) is a
+         filled mark, not a box */
+      const B = Array.isArray(B0) ? B0.filter(x => !/^article\.rl-card\.rl-card-d fill$/.test(x) && !/^span\.ls-mk\b/.test(x)) : B0;
       check('2d nothing is boxed among the piles but each change\'s own soft card (a fill, no edge, no lift)', Array.isArray(B) && B.length === 0, JSON.stringify(B && B.slice(0, 8)));
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-redlines-1440x780.png') });
     }
@@ -205,7 +212,7 @@ const BOXES = sel => {
           sideX: left('.hist-c-side'), ocX: left('.hist-c-oc'),
           sides: rows.map(r => (r.querySelector('.hist-c-side') || {}).textContent || '').map(x => x.trim()),
           day: day ? day.textContent.replace(/\s+/g, ' ').trim() : null,
-          filterBtn: !!host.querySelector('#hist-filter-btn'), filters: [...host.querySelectorAll('[data-ht-filter]')].filter(s => s.getBoundingClientRect().width > 0).length,
+          filterBtn: !!host.querySelector('#hist-filter-btn'), filters: [...host.querySelectorAll('[data-ht-filter], .hist-quick [data-ht-quick]')].filter(s => s.getBoundingClientRect().width > 0).length, quickBar: !!host.querySelector('.hist-quick'),
           clear: !!host.querySelector('#ht-clear'), face: title ? getComputedStyle(title).fontFamily : null };
       });
       check('4a History is one table: Time · Who · Side · What happened · Outcome', /is-table/.test(T.cls) && T.heads.join('|') === 'Time|Who|Side|What happened|Outcome', JSON.stringify(T.heads));
@@ -213,7 +220,9 @@ const BOXES = sel => {
       check('4c no lanes, no bubbles, no pills', T.bubbles === 0 && !/is-lanes/.test(T.cls), T.bubbles);
       check('4d the side and the outcome each stand in one straight column; the side is said in words', T.sideX.length === T.rows && new Set(T.sideX).size === 1 && T.ocX.length === T.rows && new Set(T.ocX).size === 1 && T.sides.includes('Ours') && T.sides.includes('Theirs'), JSON.stringify({ s: T.sideX, o: T.ocX, w: T.sides }));
       check('4e the day is a row with its count', !!T.day && /\d+ events?/.test(T.day), T.day);
-      check('4f the filters stand in the open: no Filter button, the boxes shown, Clear at the band\'s end; the title is the serif', !T.filterBtn && T.filters >= 3 && T.clear && /Source Serif 4/.test(T.face || ''), JSON.stringify(T));
+      /* RE-POINTED 16 Nov 2026 (#762): the filters in the open are the history's quick links (histQuickHtml, owner 31 Oct
+         "Quick links as drawn"), only those that give rows — this trail gives none, so the band stands with Clear */
+      check('4f the filters stand in the open: no Filter button, the quick links\' band shown, Clear at the band\'s end; the title is the serif', !T.filterBtn && T.quickBar && T.clear && /Source Serif 4/.test(T.face || ''), JSON.stringify(T));
       if (OUT) await page.screenshot({ path: path.join(OUT, 'sap-history-1440x780.png') });
 
       /* ================= 5. THE OWNER'S THREE SCREENS ================= */

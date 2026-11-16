@@ -128,28 +128,23 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
     ok('3a the column is one panel', sg.one && sg.cards === 0, `rounded sections inside: ${sg.cards}`);
     ok('3b Verify seal leads it, filled', sg.actsFirst && sg.verify);
 
-    console.log('\n4 · Where we are');
-    await tab('MK-R2', 'stands');
-    const ws = await page.evaluate(() => ({
-      th: [...document.querySelectorAll('.ds-pt-table th')].map(t => t.textContent.trim()),
-      row: ((document.querySelector('.ds-pt') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-      cards: document.querySelectorAll('.ds-sheet .ds-card').length,
-      share: !!document.querySelector('.ds-hrow [data-ds-share]') }));
-    ok('4a the open points are a table: Clause · What is proposed · Proposed by', ws.th.length === 3, ws.th.join(' · '));
-    ok('4b a row says what is proposed and by whom', /Price reviewed every month/.test(ws.row) && /Nandi Dairy/.test(ws.row), ws.row);
-    ok('4c the sheet is cards: the top, Still open, Settled, Lately', ws.cards >= 4, String(ws.cards));
-    await page.waitForFunction(() => !!document.querySelector('.ds-hrow [data-ds-share]'), null, { timeout: 5000 }).catch(() => {});
-    ok('4d our own act sits on the title line: Share a status link',
-      await page.evaluate(() => !!document.querySelector('.ds-hrow [data-ds-share]')));
-
+    /* RETIRED 16 Nov 2026 (#762): 4a–4d (our Where we are sheet: open points as a table, cards, Share a status link on its
+       title line) — in the new look the Cover REPLACES our Where we are (owner picked "Margin Notes", 16 Nov 2026, f1085;
+       pd2StandsOpen → the Cover); their status page stays. New-look coverage: the-cover-verify.js */
     console.log('\n5 · Obligations');
     await tab('MK-R1', 'oblig');
     const ob = await page.evaluate(() => ({
       tabs: [...document.querySelectorAll('.obt-head [data-obt-view]')].map(b => b.getAttribute('data-obt-view')),
       th: [...document.querySelectorAll('#obt-scroll .ob-lt th')].map(t => t.textContent.trim()),
-      nobody: [...document.querySelectorAll('#obt-scroll .ob-nobody')].map(x => x.textContent.trim()) }));
-    ok('5a Overdue is a tab on the list\'s card', ob.tabs.includes('overdue') && ob.tabs.length === 4, ob.tabs.join(','));
-    ok('5b Amount is a column', ob.th.length === 4, ob.th.join(' · '));
+      /* RE-POINTED 16 Nov 2026 (#762): a contract's obligations are the Dossier's own Obligations panel (pdObOpen) — the
+         unassigned duty's "Nobody" is looked for there as well as in the old room's table */
+      nobody: [...document.querySelectorAll('#obt-scroll .ob-nobody, #ig-dock .ob-nobody')].map(x => x.textContent.trim())
+        .concat([...document.querySelectorAll('#ig-dock .pd-ob, #ig-dock [data-pd-ob]')].filter(e => /\bNobody\b/.test(e.textContent)).map(() => 'Nobody')) }));
+    /* RETIRED 16 Nov 2026 (#762): 5a "Overdue is a tab on the list's card" and 5b "Amount is a column" — the old room's
+       Obligations tab; in the new look a contract's obligations open as the Dossier's own panel beside the paper (owner,
+       23 Oct 2026: "it gets its own side panel and its own jambo"), which draws no tabs or table columns */
+    void ob.tabs;
+    void ob.th; /* 5b RETIRED with 5a, above */
     ok('5c an unassigned duty of ours says Nobody', ob.nobody.length === 1 && /Nobody/.test(ob.nobody[0]), JSON.stringify(ob.nobody));
 
     console.log('\n6 · History');
@@ -160,12 +155,18 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
        dot and a word in its own column. */
     const hi = await page.evaluate(() => ({
       q: !!document.getElementById('hist-q'),
-      open: [...document.querySelectorAll('.hist-tools .hist-filters select')].filter(x => x.offsetParent).length,
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the filters in the open are the history's quick links
+         (histQuickHtml, owner 31 Oct "Quick links as drawn"), only those that give rows */
+      open: [...document.querySelectorAll('.hist-quick [data-ht-quick]')].filter(x => x.offsetParent).length,
+      bar: !!(document.querySelector('.hist-quick') || {}).offsetParent,
       btn: !!document.getElementById('hist-filter-btn'),
       days: document.querySelectorAll('.hist-day-h').length,
       words: [...document.querySelectorAll('.hist-ocw')].map(x => x.textContent.trim()) }));
     ok('6a a search box on the head', hi.q);
-    ok('6b the filters stand in the open (only those that give results), no Filter button', hi.open >= 1 && !hi.btn, JSON.stringify(hi));
+    /* RE-POINTED 16 Nov 2026 (#762): the quick links stand in the open, only those that give rows — on this record's trail
+       none of the four (theirs · sent · decisions · Jambo) gives a row, so the bar stands with none drawn; the old filter
+       boxes' "at least one" is not a promise of the quick links (history-head-verify presses them on a fuller trail) */
+    ok('6b the filters stand in the open (only those that give results), no Filter button', hi.bar && !hi.btn, JSON.stringify(hi));
     ok('6c entries sit under a day row, with an outcome word', hi.days >= 1 && hi.words.length >= 1, JSON.stringify(hi));
   } catch (e) {
     fail++; console.log('  FAIL harness — ' + e.message);

@@ -700,6 +700,10 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       renderRedline();
     });
     await page.waitForTimeout(600);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a pile of sent changes ("with them") is folded under
+       its band in the new look (.rl-pile-nlfold); it is opened as a reader opens it, by its band, so the sent card is drawn */
+    await page.evaluate(() => { const b = document.querySelector('#rl-changes .rl-pile-nlfold:not(.is-open) [data-rl-nlfold]'); if (b) b.click(); });
+    await page.waitForTimeout(400);
     const narrow = await page.evaluate(() => {
       const cards = [...document.querySelectorAll('#rl-changes .rl-card')];
       const sent = cards.filter(el => !el.querySelector('[data-rl-send]')
