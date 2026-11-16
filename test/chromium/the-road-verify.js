@@ -106,7 +106,11 @@ const DOC = ['POWER PURCHASE AGREEMENT', '', '1. Supply', '', 'The Seller delive
     /* RE-POINTED (the gaps' third pass, 18 Oct 2026; round 10 as drawn: "the page arrows and size sit in
        the head card, so nothing is added above the paper … the signing copy starts a little higher than
        today, never lower"): it moves only up, by the zoom row's room */
-    check('5a the paper moves only up — nothing above the signing copy', at0 != null && at1 != null && at1 <= at0 && at0 - at1 <= 40, `${at0} → ${at1}`);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the signing copy is drawn with its one caption line
+       over it (".ig-sg-cap", BEFORE YOU SIGN AS DRAWN); that line, and nothing else, may stand above it */
+    const capH = await page.evaluate(() => { const c = document.querySelector('#ig-paper .ig-sg-cap'); if (!c || !c.getClientRects().length) return 0;
+      const cs = getComputedStyle(c); return Math.round(c.getBoundingClientRect().height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)); });
+    check('5a the paper moves only up — nothing above the signing copy', at0 != null && at1 != null && at1 <= at0 + capH && at0 + capH - at1 <= 40, `${at0} → ${at1} (caption ${capH})`);
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       const S = await page.evaluate(() => { const f = document.getElementById('pd-signface'), hd = f && f.querySelector('.pd-sf-h'), st = f && f.querySelector('[data-pd-road-stop]');

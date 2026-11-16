@@ -489,6 +489,10 @@ function stWireDrawerOnce(){
       if(id && typeof landOn==='function') landOn(`[data-ap-row="${String(id).replace(/["\\]/g,'')}"][data-ap-kind="approval"]`,{ block:'nearest' });
       return; }
     const row=t.closest('[data-st-panel]');
+    /* A SETTINGS ANSWER PRESSED AWAY FROM SETTINGS (the one conversation follows you; #762): the finder's card goes to
+       Settings first, then opens there, as a Settings-born turn always did */
+    if(row && row.closest('.st-jb-cards') && !document.querySelector('.stn-page, #set-page') && typeof setView==='function'){
+      const k0=row.getAttribute('data-st-panel'); setView('team'); setTimeout(()=>{ try{ stDrawerOpen(k0); }catch(_){ /* the page is there */ } },0); return; }
     if(row){ const k=row.getAttribute('data-st-panel');
       /* a card's door (and its facts, and the ladder's) opens the panel as
          its page; Needs your attention and the sheet keep the drawer */

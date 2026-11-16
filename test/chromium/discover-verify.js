@@ -294,9 +294,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
         wc || await page.evaluate(() => (document.querySelector('#ig-dock') || {}).innerText.replace(/\s+/g, ' ').slice(0, 400)));
       await page.click('#ig-dock [data-ac-watch]');
       const set = await until(page, () => !!document.querySelector('#ig-dock [data-ac-unwatch]'));
-      await page.evaluate(() => { regState().ask = []; regRepaint(); renderIntelDock(); });
-      const tagged = await until(page, () => /watched/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      check('5a pressed, the watch is set and Discover tags it watched', set && tagged);
+      /* RE-POINTED 16 Nov 2026 (#762): the "watched" tag stood in Discover beside the list (#ac-disc), which the new look does
+         not draw (askColDiscoverHtml returns nothing); the watch itself is asked as before: set, and Unwatch offered */
+      check('5a pressed, the watch is set', set);
       /* DV-05 arrives and answers outside the rule; the sweep runs */
       await page.evaluate(() => askColFactsArrive(getContract('DV-05')));
       for (let i = 0; i < 40; i++){ const f = await W.admin.json('/api/columns/facts/DV-05'); if (f.facts.some(x => x.answer)) break; await new Promise(r => setTimeout(r, 100)); }
@@ -322,7 +322,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const line = await page.evaluate(() => (document.querySelector('[data-ac-odd-for="DV-04"]') || {}).innerText || '');
       check('6a DV-04\'s Dossier says its cap stands apart from the other services contracts', said && /Liability cap here is “Not capped”/.test(line) && /3 of your other 3/.test(line), line.replace(/\s+/g, ' '));
       await page.screenshot({ path: path.join(OUT, '6-dossier.png') });
-      await page.click('[data-ac-odd-show]');
+      await page.click('[data-ac-odd-show]', { timeout: 5000 }).catch(() => {});   /* a door not drawn REPORTS (6b), the run goes on */
       const three = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 3, null, 10000);
       const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(tr => tr.getAttribute('data-row')).sort());
       check('6b "Show the 3" lands on the list narrowed to those three', three && rows.join() === 'DV-03,DV-10,DV-11', JSON.stringify(rows));
@@ -346,41 +346,10 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('7b the counterparty\'s seat draws no memory', !/data-rl-row-memory/.test(m.theirs || ''));
     }
 
-    if (stage(8)){
-      await W.admin.json('/api/settings', { method: 'PUT', body: { approvalRules: [{ id: 'r-dv', name: 'Finance director', order: 1,
-        cond: { type: 'value', op: '>=', value: 1000000 }, approver: { kind: 'role', role: 'admin' } }] } });
-      await W.admin.json('/api/contracts/DV-AP1', { method: 'PUT', body: { baseVersion: 0, contract: {
-        id: 'DV-AP1', name: 'Managed IT Services', counterparty: 'Equity Bank', folder: 'sales', status: 'Under Review', value: 145000000, expiry: '2028-01-31',
-        valueType: 'standard', template: 'RM', fields: {}, metadata: { value: 145000000, currency: 'KES' }, comments: [], audit: [], signatures: [], format: 'text',
-        redlineText: 'MANAGED IT SERVICES\n\n1. Liability\nNothing in this Agreement limits the Supplier\'s liability arising from the Services.\n\n2. Term\nThis Agreement ends on 31 January 2028.' } } });
-      await page.goto(h.base + '/', { waitUntil: 'networkidle' });
-      await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.some(c => c.id === 'DV-AP1'), null, 15000);
-      await page.evaluate(() => { apSetTab('approvals'); setView('approvals'); });
-      const listed = await until(page, () => !!document.querySelector('[data-ap-row="DV-AP1"]'), null, 10000);
-      if (listed) await page.click('[data-ap-row="DV-AP1"]');
-      const card = await until(page, () => !!document.querySelector('#ins-panel [data-ap-what-for="DV-AP1"]'), null, 10000);
-      const t = await page.evaluate(() => (document.querySelector('#ins-panel [data-ap-what-for]') || {}).innerText || '');
-      const above = await page.evaluate(() => { const a = document.querySelector('#ins-panel .ap-what'), b = [...document.querySelectorAll('#ins-panel *')].find(x => /^Why it waits$/.test((x.textContent || '').trim()));
-        return !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)); });
-      check('8a the panel says What you are approving above Why it waits: money, unchecked standards said, plain words offered', listed && card && above
-        && /What you are approving/.test(t) && /KES/.test(t) && /2028-01-31/.test(t) && /not been checked/.test(t) && /Put it in plain words/.test(t), t.replace(/\s+/g, ' ').slice(0, 400));
-      await page.screenshot({ path: path.join(OUT, '8-approvals.png') });
-      const c0 = h.ai.calls.length;
-      await page.click('#ins-panel [data-ap-what-brief]');
-      /* RE-POINTED (the owner picked "Jambo's card", 26 Oct 2026): his words
-         come back in HIS card — the one soft grey card on the panel, named for
-         him — not as a paragraph among the facts, where it was missed. */
-      const said = await until(page, () => !!document.querySelector('#ins-panel [data-ap-what-say]:not(.is-ask) .jb-say-b'), null, 10000);
-      const say = await page.evaluate(() => { const el = document.querySelector('#ins-panel [data-ap-what-say]');
-        if (!el) return null; const cs = getComputedStyle(el);
-        return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius, pad: cs.padding }; });
-      check('8b "Put it in plain words" spends one call and the brief is said there', said && h.ai.calls.length - c0 === 1, String(h.ai.calls.length - c0));
-      /* RE-POINTED 29 Oct 2026 (ONE CORNER): his card is 10px round, like every card */
-      check('8b′ it comes back in Jambo\'s own card: his name on it, the soft grey fill, the card corner, 16px inside',
-        !!say && /jb-say/.test(say.cls) && /Jambo/.test(say.head) && /In plain words/.test(say.head)
-        && say.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(say.r) >= 10 && parseFloat(say.pad) >= 16, JSON.stringify(say));
-      check('8c Approve and Refuse are where they were', await page.evaluate(() => !!document.querySelector('#ins-panel [data-ins-act="approve"]') && !!document.querySelector('#ins-panel [data-ins-act="refuse"]')));
-    }
+    /* RETIRED 16 Nov 2026 (#762): stage 8 (8a, 8b, 8b′, 8c) — the old Approvals inspector panel's "What you are approving"
+       with its "Put it in plain words" press (#ins-panel [data-ap-what-for]); the new look's chosen approval's panel is the
+       five parts (apnLeadFiveHtml: no button, Approve/Decline on the row), pinned by approve-from-the-list-verify and
+       approve-on-row-verify */
 
     if (stage(9)){
       await fresh(page);

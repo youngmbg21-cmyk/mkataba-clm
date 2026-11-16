@@ -71,7 +71,7 @@ const CONTRACTS = [
        box #jl-q, its conversation the panel's talk [data-jt-talk]), no longer its own #st-side / #st-jb-feed */
     await until(() => state.view === 'team' && !!document.querySelector('#ins-panel #jl-q'), null, 8000);
     /* the page may draw again as it settles (a docked panel): reopen until the conversation is up */
-    await until(() => { if (window.jlTalkOpen && !(window.jlTalkShows && jlTalkShows())) jlTalkOpen(); const T = document.querySelector('#ins-panel [data-jt-talk]'); return T && !T.hidden && window.jlTalkShows && jlTalkShows() ? true : null; }, null, 6000);
+    await until(() => { if (window.jlTalkPress && !(window.jlTalkShows && jlTalkShows())) jlTalkPress(); const T = document.querySelector('#ins-panel [data-jt-talk]'); return T && !T.hidden && window.jlTalkShows && jlTalkShows() ? true : null; }, null, 6000);
   };
   const toSide = async () => {
     await page.evaluate(() => { setView('brain'); });
@@ -140,7 +140,9 @@ const CONTRACTS = [
     /* ===== 5 · A PRESS AWAY FROM ITS HOST ===== */
     /* RE-POINTED 16 Nov 2026 (#762): Settings' answers are born in the list panel there (born "jl" on Settings, the
        finder's cards) as well as the old side ("st") */
-    const ST_TURN = '#ig-dock .jb-turn:is([data-jb-born="st"], [data-jb-born="jl"]) button';
+    /* the finder's answer asked in Settings' new-look box is pushed into the one conversation (aiPush) carrying the
+       settings cards (.st-jb-cards), each its own door — that card's press is the one asked of here */
+    const ST_TURN = '#ig-dock .jb-turn:is([data-jb-born="st"], [data-jb-born="jl"]) button, #ig-dock .jb-turn .st-jb-cards button';
     const stBtn = await page.evaluate(sel => { const b = document.querySelector(sel); return b ? (b.textContent || '').trim() : null; }, ST_TURN);
     if (stBtn) {
       await page.click(ST_TURN);
@@ -169,13 +171,16 @@ const CONTRACTS = [
 
     /* ===== 6 · CLEAR, EVERYWHERE ===== */
     await toSide();
-    await page.click('#ai-clear');
+    /* the side panel's own Delete conversation (#ai-clear, its head), pressed as a reader does once the panel has
+       settled; where a slide still covers it the press is made on the element so the claim below is still measured */
+    await until(() => { const b = document.getElementById('ai-clear'); const r = b && b.getBoundingClientRect(); return r && r.width > 0 && r.right <= innerWidth ? true : null; }, null, 4000);
+    try { await page.click('#ai-clear', { timeout: 4000 }); } catch (_){ await page.evaluate(() => document.getElementById('ai-clear').click()); }
     await page.evaluate(() => closeAI());
     await toHome(); await homeTalk();
     const gone = await page.evaluate(() => !/QHOME|QSET|QSIDE/.test((document.getElementById('ig-dock') || {}).textContent || '') && intel.history.length === 0);
     await toSettings();
     /* RE-POINTED 16 Nov 2026 (#762): Settings' conversation is the list panel's talk — opened, as a reader opens it */
-    await page.evaluate(() => { try { if (window.jlTalkOpen) jlTalkOpen(); } catch (_){} }); await page.waitForTimeout(400);
+    await page.evaluate(() => { try { if (window.jlTalkPress) jlTalkPress(); } catch (_){} }); await page.waitForTimeout(400);
     const gone2 = await page.evaluate(() => !/QHOME|QSET|QSIDE/.test((document.querySelector('#ins-panel [data-jt-talk]') || {}).textContent || ''));
     check('6 Clear in the side panel clears the one conversation on Home and in Settings', gone && gone2, JSON.stringify({ gone, gone2 }));
   } catch (e) {

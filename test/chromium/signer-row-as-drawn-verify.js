@@ -121,7 +121,9 @@ const TEXT = ['MUTUAL NON-DISCLOSURE AGREEMENT', '',
     await page.click('#sp-cancel').catch(() => {});
     await waitFor(page, () => !document.getElementById('sr-win'), 6000);
     console.log('\n4 · who else, right after the signer line');
-    check('4 "Who else is on this agreement" stands right after the signer line', !!r0 && r0.next === 'people', JSON.stringify(r0 && r0.next));
+    /* RETIRED 16 Nov 2026 (#762): "Who else is on this agreement" right after the Signer line was the old form's
+       order (#pd-og); the new look's Dossier facts are value · ends · signer · stream · approval · standards
+       (pd2Facts), and Who else is a row of the contract's acts, not a fact. */
     console.log('\n5 · the owner\'s three screens');
     for (const [w, hh] of SCREENS) {
       await page.setViewportSize({ width: w, height: hh });

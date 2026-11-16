@@ -191,9 +191,12 @@ const SEED_UNSENT = async () => {
     await page.screenshot({ path: path.join(OUT, '01b-alerts-ordered.png') });
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk — Jambo's
        prepared work first, then Your move, which your own signature leads */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell is one list in Home's own order (ndBellNlHtml,
+       .ndb-r rows, no groups); the reader's own move is the first row whose Open presses a need of theirs, not Jambo's piece */
     const firstRow = await page.evaluate(() => {
       const g = document.querySelector('#context-panel .nd-pan [data-nd-g="you"]');
       let r = g && g.nextElementSibling; while (r && !r.classList.contains('nd-r')) r = r.nextElementSibling;
+      if (!g) r = [...document.querySelectorAll('#context-panel .ndb .ndb-r:not(.is-news)')].find(x => x.querySelector('[data-cn-need],[data-nd-al]'));
       const b = r && r.querySelector('[data-cn-need],[data-nd-al]');
       return r ? { kind: b ? (b.getAttribute('data-cn-need') || (b.getAttribute('data-nd-al') || '').split(':')[1]) : null,
         text: (r.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60) } : null;
@@ -376,7 +379,8 @@ const SEED_UNSENT = async () => {
        shape has no date column. */
     for (const [shape, force] of [['', false], ['i', true]]) {
     await page.evaluate(f => { if (window.insForce) insForce(f); }, force);
-    for (const [label, go] of [['contracts', () => (regPlaceSet({ show: 'list' }), setView('register'))],
+    /* RE-POINTED 16 Nov 2026 (#762): the Contracts place opens on its Folders; regFoldersShut() is the List pill's own step */
+    for (const [label, go] of [['contracts', () => (regPlaceSet({ show: 'list' }), regFoldersShut(), setView('register'))],
       ['negotiations', () => openNegotiations({ list: true })]]) {
       await page.evaluate(fn => eval('(' + fn + ')()'), go.toString());
       await pause(1800);

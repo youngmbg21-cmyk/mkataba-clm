@@ -283,7 +283,9 @@ const HELPERS = `(() => {
       const r = await page.evaluate(() => { const b = window.__b;
         const rung = (() => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;left:-9999px;display:block;height:var(--ctl-h)';
           document.body.appendChild(e); const h = e.getBoundingClientRect().height; e.remove(); return h; })();
-        const rows = [...document.querySelectorAll('.ap-go')].filter(b.vis).map(x => ({ x, max: 26 }));
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): beside the panel the new look's list carries each
+           row's own act (Approve · Open signing), the same rung — asked of them as of "Open the gate" */
+        const rows = [...document.querySelectorAll('.ap-go, .apn-table [data-ap-approve], .apn-table [data-ap-open]')].filter(b.vis).map(x => ({ x, max: 26 }));
         const lead = [...document.querySelectorAll('#ins-panel [data-ins-act="gate"]')].filter(b.vis).map(x => ({ x, max: rung + 1 }));
         const go = rows.concat(lead);
         return { n: go.length, where: lead.length ? 'panel' : 'rows',
@@ -312,11 +314,9 @@ const HELPERS = `(() => {
     ok('1b at a 1024 window no labelled button on the working pages takes two lines', wrapped.length === 0,
       wrapped.length ? wrapped.slice(0, 6).join(' | ') : 'none');
 
-    await page.evaluate(() => { try { regSetScope(null); } catch (e) {} (regPlaceSet({ show: 'list' }), setView('register')); });
-    await page.waitForTimeout(1300); await load();
-    const menu = await page.evaluate(() => { const cells = [...document.querySelectorAll('td.reg-cell-menu')].filter(window.__b.vis);
-      return { n: cells.length, cut: cells.filter(td => td.scrollWidth > td.clientWidth + 0.5).length, w: cells[0] ? Math.round(cells[0].clientWidth) : 0 }; });
-    ok('1c at 1024 the Contracts row menu\'s square fits its cell', menu.n > 0 && menu.cut === 0, `${menu.cut} of ${menu.n} cut · cell ${menu.w}px`);
+    /* RETIRED 16 Nov 2026 (#762): 1c "at 1024 the Contracts row menu's square fits its cell" — the new look's Contracts
+       list draws no ⋯ column (register.js columnsFor: regNl() returns counterparty · standing · the shape's columns, no
+       'acts'); a same-on-every-row column steps out */
     await page.setViewportSize({ width: 1440, height: 900 });
 
     /* ════════ 2. HOME'S WORK CARD, ONE BUTTON SIZE ════════ */

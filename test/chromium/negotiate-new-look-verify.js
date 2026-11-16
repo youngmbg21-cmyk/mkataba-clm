@@ -14,8 +14,7 @@
    Then, once, at the first screen:
      8 · the note's Counter at 45 files OUR counter on top of their ask (nothing sent)
      9 · their figure dragged on the paper to 50 files our counter "50" on top of theirs
-   And the switch off:
-    10 · no notes beside the paper, no quick links
+   (10, the switch off, RETIRED 16 Nov 2026, #762: there is no switch.)
    At the parent (before this round) 1–9 fail: none of it is drawn.
    Run: node test/chromium/negotiate-new-look-verify.js   (pictures: NEGOTIATE_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -206,15 +205,7 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       const c9 = await page.evaluate(() => { const o = (getContract('MK-R5').changes || []).find(x => x.authorSide === 'owner'); return o ? String(o.newText || '').slice(0, 80) : ''; });
       check('9 their figure dragged to 50 files our counter "50" on top of theirs', dial && /\b50\b/.test(c9), { dial, c9 });
       await page.close(); }
-    /* 10 · the switch off */
-    { const page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
-      await open(page, h.base, false);
-      await page.evaluate(THEIR_ROUND, 'MK-R6');
-      await face(page, 'MK-R6');
-      await until(page, () => !!document.querySelector('#ig-canvas .ig-redpaper, #ig-canvas'), null, 5000);
-      const off = await page.evaluate(() => ({ notes: document.querySelectorAll('#pd2-notes .pd2-mn').length }));
-      check('10 the switch off: no notes beside the paper', off.notes === 0, off);
-      await page.close(); }
+    /* RETIRED 16 Nov 2026 (#762): 10 "the switch off: no notes beside the paper" — there is no switch; the new look is the only look */
   } finally { await browser.close(); await h.stop(); }
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');
   process.exit(fails ? 1 : 0);

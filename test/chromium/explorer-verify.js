@@ -151,8 +151,10 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 6 Oct 2026 (Young: the divider took presses aimed at the
        board's scrollbar): the strip starts AT the seam and lies on the panel's
        side, so its left edge is the seam, not its middle. */
-    check('4a a divider stands at the seam between the column and the panel, on the panel\'s side, the full height of the row',
-      g0.handle && !g0.handle.hidden && Math.abs(g0.handle.left - g0.dockLeft) <= 1 && g0.handle.w === 14 && g0.handle.bottom - g0.handle.top > 300, JSON.stringify(g0));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the slider IS the seam — its strip straddles the hairline
+       (index.html `html.lg-new #ig-resizer{transform:translateX(-7px)}`), so its MIDDLE is the seam */
+    check('4a a divider stands at the seam between the column and the panel, straddling it, the full height of the row',
+      g0.handle && !g0.handle.hidden && Math.abs(g0.handle.mid - g0.dockLeft) <= 1 && g0.handle.w === 14 && g0.handle.bottom - g0.handle.top > 300, JSON.stringify(g0));
     /* GUARDED: a build without the divider has nothing to drag, and every
        claim below REPORTS that rather than stopping the file. */
     if (!g0.handle) {
@@ -209,7 +211,7 @@ const check = (name, pass, detail) => {
     check('4k folded to its strip by the kept ›, the divider stands down', g6.handle && g6.handle.hidden && g6.dockW === 46, JSON.stringify(g6));
     await page.click('#igd-expand'); await page.waitForTimeout(600);
     const g7 = await geo();
-    check('4l opened again, the divider is back at the seam', g7.handle && !g7.handle.hidden && Math.abs(g7.handle.left - g7.dockLeft) <= 1, JSON.stringify(g7));
+    check('4l opened again, the divider is back at the seam', g7.handle && !g7.handle.hidden && Math.abs(g7.handle.mid - g7.dockLeft) <= 1, JSON.stringify(g7));
 
     /* ================= 5. THE DIVIDER WITH THE PAPER UP ==================== */
     await page.evaluate(() => { igExplain('MK-A2'); });

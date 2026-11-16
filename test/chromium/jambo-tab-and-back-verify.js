@@ -191,11 +191,16 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Negotiations is drawn by ngnRender, its rows
          [data-ngn-row] (a press chooses) */
       await until(() => document.querySelectorAll('#reg-tbody tr[data-row], [data-ngn-row]').length >= 1 && document.querySelector('#ins-panel.is-jambo .jl-body'), null, 10000);
-      await page.click('#reg-tbody tr[data-row], [data-ngn-row]');
+      /* the new look already holds the first row chosen (a press on the CHOSEN row opens it, ngnRender's one rule), so
+         the press chooses a row not yet chosen, as a reader choosing another would; with one row, it stands chosen */
+      if (await page.$('#reg-tbody tr[data-row]')) await page.click('#reg-tbody tr[data-row]');
+      else if (await page.$('[data-ngn-row]:not(.is-sel)')) await page.click('[data-ngn-row]:not(.is-sel)');
       await until(() => document.getElementById('ins-panel').getAttribute('data-ins-id'), null, 5000);
       const L0 = await page.evaluate(() => { const p = document.getElementById('ins-panel'); return { id: p.getAttribute('data-ins-id'), tab: (p.querySelector('[data-jl-home] .pd-tab-w') || {}).textContent,
         talk: !p.querySelector('.jl-talk').hidden }; });
-      check('4a the list panel lands on the row\'s panel, its tab "Overview"', !!L0 && !L0.talk && L0.tab === 'Overview', JSON.stringify(L0));
+      /* RE-POINTED 16 Nov 2026 (#762): on the new look's Negotiations the chosen round's tab reads "‹ Overview" — its way
+         back to the page's Overview (MAP: THE CHOSEN ROW'S PANELS, _jlBack) */
+      check('4a the list panel lands on the row\'s panel, its tab "Overview"', !!L0 && !L0.talk && /^(‹\s*)?Overview$/.test(String(L0.tab || '').trim()), JSON.stringify(L0));
       await ask('#jl-q', 'why has this not moved?');
       await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.jl-talk').hidden; }, null, 8000);
       const L1 = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const d = p.querySelector('.jl-foot [data-jb-door]');

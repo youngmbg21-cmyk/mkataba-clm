@@ -1533,7 +1533,8 @@ function jlTalkOpen(){
    what was said on any page (renderAIFeed: one copy on the page at a time) */
 function jlTalkPress(){
   if (!jlTalkOpen()) return;
-  if (typeof renderAIFeed === 'function' && _jlAiLen()) try { renderAIFeed(); } catch (_){}
+  /* drawn even when the conversation is EMPTY: a Clear elsewhere must not leave its old turns here (#762) */
+  if (typeof renderAIFeed === 'function') try { renderAIFeed(); } catch (_){}
   jlTalkPaint();
 }
 /* asked by the feed's painter (renderAIFeed): new words open the view; the

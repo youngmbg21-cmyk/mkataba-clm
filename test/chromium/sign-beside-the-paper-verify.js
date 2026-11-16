@@ -206,6 +206,11 @@ const FACE = () => {
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the menu rows are the dossier's All acts fold */
     /* RE-POINTED 16 Nov 2026 (#762): the contract's menu rows are reached through More on the paper's line
        (#ig-actions → #pd-acts-pop, its last row All acts) */
+    /* the middle page History left open (6c) still lies over the paper's line after the reload: put away by its own
+       way back, as a reader would, before More is pressed */
+    if (await page.evaluate(() => { const x = document.querySelector('.pd-mid-x'); return !!x && x.getClientRects().length > 0; })) {
+      await page.click('.pd-mid-x').catch(() => {}); await pause(300);
+    }
     if (await page.$('#ig-actions')) {
       await page.click('#ig-actions').catch(() => {});
       await waitFor(page, () => !!document.querySelector('#pd-acts-pop'), 3000);

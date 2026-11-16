@@ -277,6 +277,8 @@ const SWEEP = KNOWN => {
   {
     const { ctx, page } = await open();
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register'))); await pause(700);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the list and its foot */
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); }); await pause(700);
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
        Contracts place's pager became the shared list foot ("1–40 of N · Show
        40 more"); what this pins is the same — the foot's live words and its

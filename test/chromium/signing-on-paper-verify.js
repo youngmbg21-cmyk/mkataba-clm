@@ -216,10 +216,14 @@ const SHEET_TOP = `(() => {
        working copy's sheet did — nothing grew above it — and its first line
        sits inside the page, below the page's own margin. */
     const above = await gapAbove();
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the signing copy is drawn with its one caption line
+       over it (".ig-sg-cap", BEFORE YOU SIGN AS DRAWN, round 5); that line, and nothing else, may stand above it */
+    const capH = await page.evaluate(() => { const c = document.querySelector('#ig-paper .ig-sg-cap'); if (!c || !c.getClientRects().length) return 0;
+      const cs = getComputedStyle(c); return Math.round(c.getBoundingClientRect().height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)); });
     const inkIn = (ink, sh) => (ink != null && sh) ? ink - sh.top - sh.pad : null;
     check('1c no chrome grew above the signing copy, and its first line sits inside its own page’s margin',
-      above && above.sign && workAbove && !workAbove.sign && signSheet && above.gap <= workAbove.gap + 1 && inkIn(signInk, signSheet) != null && inkIn(signInk, signSheet) >= 0,
-      `signing ${JSON.stringify(above)} · working ${JSON.stringify(workAbove)} · signing ink ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
+      above && above.sign && workAbove && !workAbove.sign && signSheet && above.gap <= workAbove.gap + capH + 1 && inkIn(signInk, signSheet) != null && inkIn(signInk, signSheet) >= 0,
+      `signing ${JSON.stringify(above)} · working ${JSON.stringify(workAbove)} · caption ${capH} · signing ink ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
 
     /* THE COLUMN SWAPS AND THE PAPER DOES NOT. */
     /* RE-POINTED 14 Oct 2026 (stage 5): the room's two right-hand columns

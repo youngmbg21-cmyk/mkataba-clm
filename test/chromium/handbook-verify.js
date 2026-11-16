@@ -169,7 +169,9 @@ async function reset(P, base){
       /* ---- 1 the doors in ---- */
       await P.evaluate(() => { setView('counter'); openPanel('guide'); });
       await until(P, () => document.querySelector('[data-gd-go="handbook"]'));
-      const rows = await P.evaluate(() => [...document.querySelectorAll('#context-panel .gd > [data-gd-go]')].map(b => b.getAttribute('data-gd-go')));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Guide is drawn by stage (.gdn), each page a
+         .gdn-go door; its foot is read */
+      const rows = await P.evaluate(() => [...document.querySelectorAll('#context-panel [data-gd-go]')].map(b => b.getAttribute('data-gd-go')));
       check('1a the Guide draws the Handbook\'s row at the foot, above Settings', rows.slice(-2).join() === 'handbook,settings', rows.join());
       await P.click('[data-gd-go="handbook"]'); await settle(P);
       check('1b pressing it lands on the Handbook page, the panel let go, the bar naming it', await P.evaluate(() => state.view === 'handbook' && !!document.getElementById('hbk-page') && !document.getElementById('context-panel').classList.contains('open') && /handbook/i.test((document.getElementById('dk-page') || {}).textContent || '')));
