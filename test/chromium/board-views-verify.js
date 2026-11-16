@@ -11,7 +11,7 @@
      2  the old Obligations door opens the Obligations page narrowed to the
         contract — its own table (tabs, amounts, panel) and a chip back
      3  the old History door opens the History page of the Board's contract card
-     4  any other old door (Deal board) opens the card's Where we are
+     4  the old Deal board door opens nothing (the Deal board is gone, f1084)
      5  Jambo's words: no "deal board" place; "history" opens the card
    AT THE PARENT 1–4 FAIL: the switch and the views are drawn there.
      node test/chromium/board-views-verify.js
@@ -73,9 +73,12 @@ const waitFor = (page, fn, ms = 8000, arg) => page.waitForFunction(fn, arg, { ti
       await waitFor(page, id => state.view === 'dashboard' && !!document.querySelector(`#pd2-hist`), 8000, ID));
 
     /* 4 anything else → Where we are */
-    await page.evaluate(id => hbOpenView(id, 'deal'), ID);
-    check('4 the old Deal board door opens Where we are in the middle beside the paper',
-      await waitFor(page, id => state.view === 'dashboard' && !!document.querySelector(`.pd2-stands[data-ds-cid="${id}"]`), 8000, ID));
+    /* RE-POINTED 16 Nov 2026 (the Deal board is gone, f1084): its old door is no door now; it opens nothing, no
+       view, no Cover, no deal page, and the paper stays as it was */
+    const d4 = await page.evaluate(id => { const r = hbOpenView(id, 'deal'); return { r, view: state.view }; }, ID);
+    const none4 = await waitFor(page, () => !!document.querySelector('#modal-root .cv-page, .pd2-stands, .hb-cv-deal, [data-db-host]'), 1500).then(x => !x);
+    check('4 the old Deal board door is gone (f1084): it opens nothing',
+      d4.r === false && d4.view === 'dashboard' && none4, JSON.stringify(Object.assign(d4, { none: none4 })));
 
     /* 5 Jambo's words */
     const words = await page.evaluate(() => ({ deal: ((typeof caActOf === 'function' && caActOf('deal board')) || {}).place || null }));

@@ -129,6 +129,8 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
     /* RE-POINTED 20 Oct 2026 (owner: "one line field … when you need to text wrap it is when it becomes bigger"): at rest the tag rides the one line before the words; tall, it rides the row under them */
     check(!!a && a.tagBefore, 'A2 at rest the tag sits on the one line, before the words', a && JSON.stringify({ tagBefore: a.tagBefore, taLeft: a.taLeft }));
     check(!!a && a.pillBg !== a.boxBg && !/rgba\(0, 0, 0, 0\)/.test(a.pillBg) && a.pillInk === 'rgb(255, 255, 255)' && a.x >= 16, 'A3 the tag is a filled pill with a × the hand can find', a && JSON.stringify({ pill: a.pillBg, ink: a.pillInk, x: a.x }));
+    /* RE-POINTED 16 Nov 2026 (owner: no green ring on a field, anywhere, f1082): the card's glow is gone too; the caret
+       says where you are, and neither the textarea nor the card round it wears a ring */
     await page.focus('#ce-ask');
     await page.keyboard.type('Keep the cap but carve out data protection');
     const f = await page.evaluate(() => {
@@ -137,7 +139,7 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
       return { taOutline: k.outlineStyle + ' ' + k.outlineWidth, taShadow: k.boxShadow, boxShadow: b.boxShadow };
     });
     const taRing = !/^none/.test(f.taOutline) && !/^\S+ 0px/.test(f.taOutline.replace(/^\S+ /, 'x ')) || (f.taShadow && f.taShadow !== 'none');
-    check(!taRing && !!f.boxShadow && f.boxShadow !== 'none', 'A4 while typing, ONE focus mark: the card\'s ring, no ring round the textarea', JSON.stringify(f));
+    check(!taRing && f.boxShadow === 'none', 'A4 while typing, no ring: none round the textarea, no glow round the card (f1082)', JSON.stringify(f));
     await railShot('2-typing.png');
     await page.evaluate(() => { const t = document.getElementById('ce-ask'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); t.blur(); });
 

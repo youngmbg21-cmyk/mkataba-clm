@@ -156,18 +156,20 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         && h5b.rows === 2 && h5a.rows > h5b.rows && h5b.sides.every(s => s === 'Theirs'), { h5a, h5b });
       await page.screenshot({ path: path.join(OUT, `history-${nm}.png`) });
       /* 6 · Where we are, as drawn: in the middle beside the paper, the six stages, each side's position, the overlap panel */
+      /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): the door opens the Cover over the
+         paper and the panel: its headline, the Dossier's six stages, ONE count, and its way back (Open the dossier) */
       await page.evaluate(id => hbStripBring(id, 'where'), ID);
-      await until(page, () => !!document.querySelector('.pd2-stands .ds2'), null, 10000);
+      await until(page, () => !!document.querySelector('#modal-root .cv-page .cv-road'), null, 10000);
       const w6 = await page.evaluate(() => ({
-        stages: [...document.querySelectorAll('.pd2-stands .ds2-st b')].map(b => b.textContent.trim()).join(' · '),
-        heads: [...document.querySelectorAll('.pd2-stands .ds2-t thead th')].map(t => t.textContent.trim()).join(' | '),
-        first: [...((document.querySelector('.pd2-stands .ds2-t tbody tr') || {}).cells || [])].map(td => td.textContent.trim()).join(' | '),
-        back: !!document.querySelector('#modal-root [data-pd-mid-back]'),
-        panel: !!document.querySelector('#ig-dock .pd2-st-face, #ig-dock .pd2-dossier.is-stands .jov5') /* re-pointed 15 Nov 2026: the five-part panel */ }));
-      check(`${nm} 6 Where we are as drawn: in the middle, six stages, each side's position and whose move, the overlap panel`,
-        w6.stages === 'Arrive · Read · Fill · Negotiate · Sign · Live' && /^Still open · 2 \| Highland \| Parcelway \| Whose move$/.test(w6.heads)
-        && /^§ 5 Payment \| 30 days \| 60 days/.test(w6.first) && /Highland$/.test(w6.first) && w6.back && w6.panel, w6);
+        stages: [...document.querySelectorAll('#modal-root .cv-page .cv-road .cv-st b')].map(b => b.textContent.trim()).join(' · '),
+        head: ((document.querySelector('#modal-root .cv-page .cv-h') || {}).textContent || '').trim(),
+        counts: document.querySelectorAll('#modal-root .cv-page .cv-count').length,
+        old: document.querySelectorAll('.pd2-stands').length,
+        back: !!document.querySelector('#modal-root .cv-page .cv-open[data-pd-mid-back]') }));
+      check(`${nm} 6 Where we are is the Cover: its headline, the six stages, one count, Open the dossier the way back`,
+        w6.stages === 'Arrive · Read · Fill · Negotiate · Sign · Live' && !!w6.head && w6.counts === 1 && w6.old === 0 && w6.back, w6);
       await page.screenshot({ path: path.join(OUT, `where-${nm}.png`) });
+      await back(page);
       /* 7 · the clause editor's card */
       await face(page, ID);
       await page.click('#ig-dock [data-rl-cp-editor-row]').catch(() => {});

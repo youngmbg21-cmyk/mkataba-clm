@@ -10766,7 +10766,12 @@ function hbPlacePut(p){
       if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){
         /* the face through its own door (pdOpenOnHome), which puts the
            contract on the paper the same way */
-        const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try { hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
+        /* the middle page comes back only while this contract is still the one in front: a reader who opened another in
+           the meantime is never pulled back to this one (since the Cover, f1085, every contract opened on purpose keeps 'where') */
+        const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try {
+          const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
+          if (pc && String(pc.id) !== String(want.id)) return;
+          hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
         if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); done(); return; }
         igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); done(); return; }
       if (++n < 60) setTimeout(go, 150); else done();
