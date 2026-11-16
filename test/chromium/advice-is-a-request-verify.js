@@ -44,26 +44,32 @@ const READ = () => {
      stands in the list head, drawn from the same one reading (ikTabViews) as
      the board's own row (.rq-kinds); a tab of a view of the list carries
      data-ik-view, the asker's page change data-rq-kind="advice" */
-  const row = document.querySelector('#content .rq-kinds, #content [data-lh-seat="intake"] [role="tablist"]');
-  const tabEls = row ? [...row.querySelectorAll('[role="tab"]')] : [];
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Requests is
+     drawn by iknRender — its tabs are the bar's pills (.ikn-page .apn-bar
+     [data-ikn-tab], the lit one .is-on: Open · Mine · Drafted · Advice) and
+     its rows [data-ikn-row] (an advice row carries the advice request's own id).
+     The Advice board (setView('advice')) still draws its .rq-kinds row, read as
+     before. The head's name is the page's .ctf-h. */
+  const row = document.querySelector('#content .ikn-page .apn-bar, #content .rq-kinds, #content [data-lh-seat="intake"] [role="tablist"]');
+  const tabEls = row ? [...row.querySelectorAll('[data-ikn-tab], [role="tab"]')] : [];
+  const advIds = new Set(((window.state && state.advice) || []).map(a => String(a.id)));
+  const iknRows = [...document.querySelectorAll('#content .ikn-page [data-ikn-row]')];
+  const tabN = b => { const el = b && (b.querySelector('.n') || b.querySelector('span')); return n(el); };
+  const tabOf = k => row && row.querySelector(`[data-ikn-tab="${k}"], [data-ik-view="${k}"]`);
   return {
     view: state.view,
     lit: [...document.querySelectorAll('#side-nav .nav-item[aria-current="page"]')].map(b => b.getAttribute('data-view')),
     adviceDoor: !!document.querySelector('#side-nav [data-view="advice"]'),
     doorN: door ? n(door.querySelector('[data-count="intake"]')) : null,
-    tabs: tabEls.map(b => b.getAttribute('data-rq-kind') || (b.hasAttribute('data-ik-view') ? 'contracts' : null)),
-    views: tabEls.map(b => b.getAttribute('data-ik-view')),
-    tabNs: tabEls.map(b => n(b.querySelector('.n'))),
-    /* the lit tab, named by the view it opens (one row of views since 9 Oct
-       2026: Open · Mine · Advice · Finished · All) */
-    on: (() => { const b = row && row.querySelector('.on'); return b ? (b.getAttribute('data-ik-view') || b.getAttribute('data-rq-kind')) : null; })(),
-    advRows: document.querySelectorAll('#content [data-ik-row^="adv:"]').length,
-    ikRows: document.querySelectorAll('#content [data-ik-row]:not([data-ik-row^="adv:"])').length,
-    /* ONE ROW since 9 Oct 2026 (SAP benchmark, batch 2): the contracts half is
-       the Open tab's count — the queue the door opens on */
-    nContracts: n(row && row.querySelector('[data-ik-view="open"] .n')),
-    nAdvice: n(row && row.querySelector('[data-rq-n="advice"], [data-ik-view="advice"] .n')),
-    title: ((document.querySelector('#page-head h1') || {}).textContent || '').trim(),
+    tabs: tabEls.map(b => b.getAttribute('data-rq-kind') || ((b.hasAttribute('data-ik-view') || b.hasAttribute('data-ikn-tab')) ? 'contracts' : null)),
+    views: tabEls.map(b => b.getAttribute('data-ikn-tab') || b.getAttribute('data-ik-view')),
+    tabNs: tabEls.map(tabN),
+    on: (() => { const b = row && row.querySelector('.on, .is-on'); return b ? (b.getAttribute('data-ikn-tab') || b.getAttribute('data-ik-view') || b.getAttribute('data-rq-kind')) : null; })(),
+    advRows: document.querySelectorAll('#content [data-ik-row^="adv:"]').length + iknRows.filter(r => advIds.has(String(r.getAttribute('data-ikn-row')))).length,
+    ikRows: document.querySelectorAll('#content [data-ik-row]:not([data-ik-row^="adv:"])').length + iknRows.filter(r => !advIds.has(String(r.getAttribute('data-ikn-row')))).length,
+    nContracts: tabN(tabOf('open')),
+    nAdvice: (() => { const b = row && row.querySelector('[data-rq-n="advice"]'); return b ? n(b) : tabN(tabOf('advice')); })(),
+    title: ((document.querySelector('#page-head h1') || document.querySelector('#content .ikn-page .ctf-h') || {}).textContent || '').trim(),
     rowTop: row ? Math.round(row.getBoundingClientRect().top) : null,
     rowLeft: row ? Math.round(row.getBoundingClientRect().left) : null,
     board: document.querySelectorAll('#content [data-adv-drop]').length,
@@ -121,7 +127,7 @@ const READ = () => {
 
     /* ---- 2 · REQUESTS OPENS ON CONTRACTS ---- */
     /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'requests');
-    await until(page, () => state.view === 'intake' && !!document.querySelector('#content [data-lh-seat="intake"] [role="tablist"]'));
+    await until(page, () => state.view === 'intake' && !!document.querySelector('#content [data-lh-seat="intake"] [role="tablist"], #content .ikn-page [data-ikn-tab]'));
     s = await page.evaluate(READ);
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
        the target): ONE row, Open · Mine · Advice · Finished this month · All;
@@ -130,9 +136,10 @@ const READ = () => {
        requests are listed in the same table, and Advice is a cut of it. */
     /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): a view with no rows is
        left out unless lit or All — the admin asked for nothing, so no Mine */
-    const ORDER = ['open', 'mine', 'advice', 'fin', 'all'];
-    ok('2a Requests draws one tab row of views in their order, Advice among them, each with rows', s.tabs.length >= 3 && s.tabs.every(k => k === 'contracts')
-      && s.views.every((v, i) => i === 0 || ORDER.indexOf(v) > ORDER.indexOf(s.views[i - 1])) && ['open', 'advice', 'all'].every(v => s.views.includes(v))
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's row is Open · Mine · Drafted · Advice — no All */
+    const ORDER = ['open', 'mine', 'drafted', 'advice', 'fin', 'all'];
+    ok('2a Requests draws one tab row of views in their order, Advice among them, each with rows', s.tabs.length >= 2 && s.tabs.every(k => k === 'contracts')
+      && s.views.every((v, i) => i === 0 || ORDER.indexOf(v) > ORDER.indexOf(s.views[i - 1])) && ['open', 'advice'].every(v => s.views.includes(v))
       && s.views.every((v, i) => v === 'all' || v === s.on || s.tabNs[i] > 0), { views: s.views, n: s.tabNs });
     ok('2b it opens on Open, with both kinds in the one list', s.on === 'open' && s.ikPage && s.advRows === s.adviceN && s.ikRows === s.intakeN,
       { on: s.on, ikPage: s.ikPage, advice: s.advRows, contract: s.ikRows });
@@ -144,9 +151,9 @@ const READ = () => {
     await page.screenshot({ path: path.join(OUT, '2-contracts.png') });
 
     /* ---- 3 · THE ADVICE TAB ---- */
-    const adv = await page.$('#content [data-ik-view="advice"]');
+    const adv = await page.$('#content [data-ik-view="advice"], #content [data-ikn-tab="advice"]');
     if (adv) await adv.click();
-    await until(page, () => !!document.querySelector('#content [data-ik-view="advice"].on'));
+    await until(page, () => !!document.querySelector('#content [data-ik-view="advice"].on, #content [data-ikn-tab="advice"].is-on'));
     s = await page.evaluate(READ);
     ok('3 the Advice tab is a cut of the list: advice rows only, on Requests', s.view === 'intake' && s.on === 'advice'
       && s.advRows === s.adviceN && s.ikRows === 0, { view: s.view, on: s.on, advice: s.advRows, contract: s.ikRows });
@@ -159,7 +166,9 @@ const READ = () => {
     ok('3b the Advice tab is lit', s.on === 'advice', s.on);
     ok('3c the rail lights Requests, and only Requests', s.lit.join(',') === 'intake', s.lit);
     ok('3d the head carries the page\'s name', s.title === 'Requests', s.title);
-    ok('3e the door still says the same total on this tab', s.doorN === s.intakeN + s.nAdvice, { door: s.doorN });
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Advice tab counts every advice request, finished too, so the
+       door's total is checked against the two books (contract requests + OPEN advice), the promise unchanged */
+    ok('3e the door still says the same total on this tab', s.doorN === s.intakeN + s.adviceN, { door: s.doorN });
     await page.screenshot({ path: path.join(OUT, '3-advice.png') });
 
     /* ---- 4 · THE ROW HOLDS STILL, WIDE AND NARROW ---- */

@@ -138,6 +138,11 @@ let H;
     });
     const st0 = await stage();
     check('2a  the lead\'s browser knows the contract needs an approval', st0.needs === 1, JSON.stringify(st0));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): on the new look's Before you sign face the waiting
+       approval row carries its own door, "Send for approval" (.pd2-sg [data-sa-ask]); #sign-btn stands in the foot only in
+       the reader's own stop. The asking press is that door wherever #sign-btn is not drawn. */
+    const askPress = async P => { const b = await P.$('#sign-btn'); if (b && await b.isVisible()) return b.click();
+      return P.click('.pd2-sg [data-sa-ask]', { timeout: 10000 }); };
     const openSign = async (P) => {
       await P.evaluate(() => { const c = getContract('MK-A2'); openWorkspace(c.id, { room: true }); });
       await P.waitForTimeout(700);
@@ -176,7 +181,7 @@ let H;
     const top0 = s2.canvasTop;
 
     /* ================= 3 · SEND FOR APPROVAL ================= */
-    await L.page.click('#sign-btn');
+    await askPress(L.page);
     await L.page.waitForTimeout(500);
     const dlg = await L.page.evaluate(() => {
       const d = document.querySelector('.sa-dlg');
@@ -321,7 +326,7 @@ let H;
     check('5a  the lead sees who refused and why, and may send it again', /Refused by Restricted Legal/.test(s5.row) && /45 days/.test(s5.row)
       && /^Send for approval$/.test(s5.label), `${s5.row} · ${s5.label}`);
     await shot(L.page, 'sa-07-refused');
-    await L.page.click('#sign-btn');
+    await askPress(L.page);
     await L.page.waitForTimeout(500);
     if (await L.page.$('#sa-ask-go')) { await L.page.fill('#sa-ask-note', 'Now 45 days, as asked.'); await L.page.click('#sa-ask-go'); await L.page.waitForTimeout(1500); }
     await P.page.reload({ waitUntil: 'networkidle' });
@@ -377,7 +382,7 @@ let H;
        desktop's own approveContract, which hands a personal approval to the
        one decider — so what is proved here is that the door is drawn, the
        note box is there, and the answer lands on the record. */
-    await L.page.click('#sign-btn');
+    await askPress(L.page);
     await L.page.waitForTimeout(500);
     if (await L.page.$('#sa-ask-go')) { await L.page.click('#sa-ask-go'); await L.page.waitForTimeout(1500); }
     const M = await (async () => {

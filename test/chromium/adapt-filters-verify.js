@@ -45,6 +45,9 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
        a list read then counts for nobody ("7 groups for 0"). Wait for the person too. */
     await page.waitForFunction(() => typeof setView === 'function' && typeof currentUser === 'function' && !!currentUser() && window.state && state.contracts && state.contracts.length > 0, null, { timeout: 20000 });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the
+       head's List pill is the person's way to the list this file reads */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
     await page.waitForFunction(S => !!document.querySelector(S) && !!document.querySelector('#reg-tbody [data-row]'), SEAT, { timeout: 10000 }).catch(() => {});
   };
 
@@ -104,7 +107,9 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
     return null; });
   ok('the book has a filter beyond Stage and Stream with a choice to pick', !!pick, JSON.stringify(pick));
   if (pick) {
-    await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(pick));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look draws no + Filter on the Contracts place, so the choice is made on the
+       hidden control itself (force); what this file pins — the chosen filter DRAWS — is asked unchanged below */
+    await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(pick), { force: true });
     await page.waitForFunction(([S, k]) => !!document.querySelector(`${S} [data-lh-chip="${k}"]`), [SEAT, pick[0]], { timeout: 5000 }).catch(() => {});
     const six = await chipFits(pick[0]);
     ok('it is drawn, whole, inside the chip row', !!six && six.drawn && six.inside, JSON.stringify(six));

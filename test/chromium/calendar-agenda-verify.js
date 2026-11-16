@@ -40,39 +40,46 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     await until(P, () => !!document.getElementById('igd-input'), null, 10000); await settled(P);
     await P.evaluate(() => setView('calendar'));
     const seg = await until(P, () => document.querySelectorAll('[data-cal-view]').length >= 4, null, 10000);
-    const s1 = await P.evaluate(() => ({ view: calView(), tabs: [...document.querySelectorAll('[data-cal-view]')].map(x => x.getAttribute('data-cal-view')) }));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the tabs a person sees are the new head's
+       (.cal-nl-tabs); the old segmented row is still in the markup, hidden */
+    const s1 = await P.evaluate(() => ({ view: calView(), tabs: [...document.querySelectorAll('.cal-nl-tabs [data-cal-view]')].map(x => x.getAttribute('data-cal-view')) }));
     /* RE-POINTED 29 Oct 2026 (round 12's last part, owner's yes): the calendar opens on the Agenda, its first tab */
     check(seg && s1.view === 'agenda' && s1.tabs[0] === 'agenda' && s1.tabs.join() === 'agenda,month,week,horizon', '1 it opens on the Agenda, its first tab', s1);
 
     await settled(P);
-    await P.click('[data-cal-view="agenda"]');
-    const on = await until(P, () => !!document.querySelector('#cal-ag .cal-ag-day'), null, 8000);
+    await P.click('.cal-nl-tabs [data-cal-view="agenda"]');
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Agenda (calAgendaNlHtml) is one row per DAY (data-cal-ag-day): its
+       kind mark, the day's dates in words, the first one's contract under them and one word to press; a run of empty
+       weeks is one quiet row (.is-none, no day of its own) */
+    const on = await until(P, () => !!document.querySelector('#cal-ag .cal-nl-r[data-cal-ag-day]'), null, 8000);
     const A = await P.evaluate(() => {
-      const want = calUpcoming(calVisible(calendarEvents()), CAL_AGENDA_VIEW_DAYS).map(e => e.cid + '@' + e.date).sort();
-      const got = [...document.querySelectorAll('#cal-ag .cal-ag-ev[data-cal-ag]')].map(r => r.getAttribute('data-cal-ag') + '@' + r.closest('.cal-ag-day').querySelector('.cal-ag-d b').textContent);
-      const rows = [...document.querySelectorAll('#cal-ag .cal-ag-ev[data-cal-ag]')];
-      const none = [...document.querySelectorAll('#cal-ag .cal-ag-day.is-none')];
-      const days = [...document.querySelectorAll('#cal-ag .cal-ag-day')];
-      let twoNoneInARow = false; days.forEach((d, i) => { if (i && d.classList.contains('is-none') && days[i - 1].classList.contains('is-none')) twoNoneInARow = true; });
-      return { want: want.length, got: got.length, eachHas: rows.every(r => r.querySelector('.cal-ag-k') && r.querySelector('.cal-ag-a') && r.querySelector('.cal-ag-s')),
-        none: none.length, twoNoneInARow, foot: (document.querySelector('#cal-ag .cal-ag-ft') || {}).textContent || '' };
+      const T = todayISO();
+      const want = [...new Set(calUpcoming(calVisible(calendarEvents()), CAL_AGENDA_VIEW_DAYS).map(e => e.date))].filter(d => d !== T).sort();
+      const rows = [...document.querySelectorAll('#cal-ag .cal-nl-r[data-cal-ag-day]')].filter(r => r.getAttribute('data-cal-ag-day') !== T);
+      const got = rows.map(r => r.getAttribute('data-cal-ag-day')).sort();
+      const all = [...document.querySelectorAll('#cal-ag .cal-nl-r')];
+      const weeks = all.filter(r => r.classList.contains('is-none') && !r.hasAttribute('data-cal-ag-day'));
+      let twoNoneInARow = false; all.forEach((d, i) => { if (i && weeks.includes(d) && weeks.includes(all[i - 1])) twoNoneInARow = true; });
+      return { want: want.length, got: got.length, same: JSON.stringify(want) === JSON.stringify(got),
+        eachHas: rows.every(r => r.querySelector('.cal-kind') && r.querySelector('.cal-nl-t small') && r.querySelector('.cal-nl-a .cal-nl-go')),
+        none: weeks.length, twoNoneInARow };
     });
-    check(on && A.want > 0 && A.got === A.want && A.eachHas, '2a every date of the next 90 days is a row with its mark, contract and one word', A);
+    check(on && A.want > 0 && A.same && A.eachHas, '2a every date of the next 90 days is a row with its mark, contract and one word', A);
     check(A.none >= 1 && !A.twoNoneInARow, '2b a run of empty weeks is one line', A);
-    check(new RegExp('^' + A.want + ' dates? in the next 90 days$').test(A.foot.trim()), '2c the foot counts the dates', A.foot);
+    /* RETIRED 16 Nov 2026 (#762): 2c "the foot counts the dates" — the new look's Agenda draws no foot (calAgendaNlHtml) */
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780.png') });
 
     /* 4 · the tab survives a refresh (before 3 leaves the page) */
     await P.evaluate(() => { if (typeof placeSave === 'function') placeSave(); });
     await P.reload({ waitUntil: 'networkidle' });
     await until(P, () => !!(window.state && Array.isArray(state.contracts) && state.contracts.length), null, 20000);
-    const kept = await until(P, () => typeof calView === 'function' && calView() === 'agenda' && !!document.querySelector('#cal-ag'), null, 10000);
+    const kept = await until(P, () => typeof calView === 'function' && calView() === 'agenda' && !!document.querySelector('#cal-ag .cal-nl'), null, 10000);
     check(kept, '4 a refresh lands on the Agenda again');
 
     /* 3 · Open lands on that contract */
-    const first = await P.evaluate(() => { const b = document.querySelector('#cal-ag .cal-ag-a:not([data-cal-act])'); return b ? b.getAttribute('data-cal-ct') : null; });
+    const first = await P.evaluate(() => { const b = document.querySelector('#cal-ag .cal-nl-go[data-cal-ct]:not([data-cal-act])'); return b ? b.getAttribute('data-cal-ct') : null; });
     if (first){
-      await P.click(`#cal-ag .cal-ag-a[data-cal-ct="${first}"]:not([data-cal-act])`);
+      await P.click(`#cal-ag .cal-nl-go[data-cal-ct="${first}"]:not([data-cal-act])`);
       const landed = await until(P, id => (window.pdContract && pdContract() && pdContract().id === id) || (state.activeId === id && state.view !== 'calendar'), first, 10000);
       check(landed, '3 a row\'s Open lands on that contract', { first, view: await P.evaluate(() => state.view) });
       await P.evaluate(() => { setView('calendar'); });
@@ -82,7 +89,10 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     for (const [w, hh] of [[1536, 730], [1366, 950]]){
       await P.setViewportSize({ width: w, height: hh }); await P.waitForTimeout(300); await still(P);
       const fit = await P.evaluate(() => { const card = document.querySelector('#cal-ag'); const cr = card && card.getBoundingClientRect();
-        const bad = [...document.querySelectorAll('#cal-ag .cal-ag-ev')].filter(r => { const b = r.getBoundingClientRect(); return b.height > 30 || b.right > cr.right + 1; }).length;
+        /* RE-POINTED 16 Nov 2026 (#762): a new-look row is two lines by drawing (the dates, the contract under them):
+           each of its lines on ONE line, the row inside the card */
+        const one = el => { if (!el) return true; const lh = parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.5; return el.getBoundingClientRect().height < lh * 1.6; };
+        const bad = [...document.querySelectorAll('#cal-ag .cal-nl-r')].filter(r => { const b = r.getBoundingClientRect(); return !one(r.querySelector('.cal-nl-t b')) || !one(r.querySelector('.cal-nl-t small')) || (r.querySelector('.cal-nl-go') && r.querySelector('.cal-nl-go').getBoundingClientRect().height >= 40) || b.right > cr.right + 1; }).length;
         return { side: document.documentElement.scrollWidth > innerWidth, bad }; });
       check(!fit.side && fit.bad === 0, `5 ${w}×${hh}: each row on one line inside the card, nothing sideways`, fit);
       await P.screenshot({ path: path.join(OUT, `${w}x${hh}.png`) });

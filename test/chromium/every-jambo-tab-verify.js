@@ -54,7 +54,8 @@ const PAGES = [
   ['pulse', "setView('pulse')", '#ins-panel', '#jl-q', 'pulse', null],   /* THE PULSE BOARD (29 Oct 2026) */
   ['handbook', "setView('handbook')", '#ins-panel', '#jl-q', 'handbook', null],
   ['migration', "setView('migration')", '#mig-side', '#jl-q', 'migration', null],
-  ['settings', "setView('team')", '#st-side', '#st-jb-q', 'team', null],
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel, box #jl-q), no longer its own #st-side */
+  ['settings', "setView('team')", '#ins-panel', '#jl-q', 'team', null],
 ];
 const deliver = (answer, extra) => ({ content: [{ type: 'tool_use', id: 'tu_e', name: 'deliver_answer', input: Object.assign({ answer, citations: [] }, extra || {}) }] });
 const toolsOf = c => (c && c.body && Array.isArray(c.body.tools)) ? c.body.tools.map(t => t.name) : [];

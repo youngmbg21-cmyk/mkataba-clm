@@ -263,7 +263,9 @@ async function watch(page, press) {
       /* "Elsewhere on the page" is the tab row now — the page's own furniture,
          outside the drawer that was being answered (the You · Company pill
          since 16 Oct 2026, the Control Room; "You" is "Du" in Swedish). */
-      elsewhere: document.querySelector('#set-page .st-face') ? document.querySelector('#set-page .st-face').textContent : '',
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the page's own furniture is the one list's area
+         heads — "You" leads it ("Du" in Swedish) */
+      elsewhere: document.querySelector('#set-page #stn-sec-you') ? document.querySelector('#set-page #stn-sec-you').textContent : '',
       facts: document.getElementById('set-market-facts').textContent,
     }));
     check('a market that would have changed the language keeps the reader\'s own (owner, 9 Oct 2026)',

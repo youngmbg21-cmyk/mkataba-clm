@@ -21,8 +21,7 @@
     11 · DNA by contract: one strand each, its worst mark, the Board's DNA door
     13 · New agreement: the papers as cards; two tabs, no From scratch (re-pointed 14 Nov 2026)
          the rest (one call each), Create files the paper through the one creator
-   And the switch off:
-    12 · Contracts opens on the list (no folders), Parties and Reads are drawn as before
+   (12, the switch off, RETIRED 16 Nov 2026, #762: the new look is the only look)
    At the parent (before this round) 1–11 and 13 fail: none of it is drawn.
    Run: node test/chromium/round6-new-look-verify.js   (pictures: ROUND6_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -242,21 +241,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
   } catch (e) { check('13 New agreement', false, String(e).slice(0, 200)); }
 
-  /* 12 · the switch off */
-  try {
-    await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); });
-    await page.evaluate(() => caGo({ kind: 'go', place: 'contracts' }));
-    await until(page, () => !!document.querySelector('#ct-place'), null, 10000);
-    await page.waitForTimeout(800);
-    const folders = await page.evaluate(() => !!document.querySelector('[data-ctf-folder]'));
-    await page.evaluate(() => setView('customers'));
-    await page.waitForTimeout(800);
-    const cun = await page.evaluate(() => !!document.querySelector('.cun-page'));
-    await page.evaluate(() => caGo({ kind: 'go', place: 'reads' }));
-    await page.waitForTimeout(800);
-    const rdn = await page.evaluate(() => !!document.querySelector('.rdn-page'));
-    check('12 the switch off: no folders, Parties and Reads as before', !folders && !cun && !rdn, { folders, cun, rdn });
-  } catch (e) { check('12 the switch off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 12 "the switch off: as before" — there is no switch; the new look is the only look */
 
   await browser.close(); await h.stop();
   console.log(fails ? `${fails} FAILED` : 'all passed');

@@ -109,8 +109,11 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       return { title: (el.querySelector('h2.hb-bh-t') || {}).textContent || '', sub: (el.querySelector('.hb-bh-s') || {}).textContent || '',
         live: !!el.querySelector('.hb-live'), at: (el.querySelector('.hb-bh-at') || {}).textContent || '',
         cost: b ? (b.querySelector('.hb-bs-cost') ? 'ON THE FACE' : (/\bcalls?\b|\bfree\b|costs? nothing/i.test((b.title || '') + ' ' + b.textContent) ? 'SAID' : '')) : null, btn: b ? b.textContent.trim() : null, keyed: typeof copilotAvailable === 'function' && copilotAvailable(),
-        note: !!el.querySelector('.hb-note'), first: document.getElementById('hb-board').firstElementChild === el }; }, null, 8000);
-    check('1a the head says Board, what it is, and that it is live and when it was counted', !!hd && hd.title === 'Board' && hd.sub === 'your book against six months ago' && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
+        note: !!el.querySelector('.hb-note'), first: document.getElementById('hb-board').firstElementChild === el,
+        greet: typeof cn2Greet === 'function' ? cn2Greet() : null, day: (el.querySelector('.hb-bh-day') || {}).textContent || '' }; }, null, 8000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Board's head is the greeting (cn2Greet) with the
+       day, CLAUDE.md "YOU LAND ON THE BOARD: head cn2Greet · pills · Live" — "Board" and its sub line were the old head */
+    check('1a the head greets the reader, says the day, and that it is live and when it was counted', !!hd && !!hd.greet && hd.title === hd.greet && !!hd.day.trim() && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
     /* RE-POINTED 29 Oct 2026 (owner: "the jambo count next to summarise my board disappears"): the cost is said in its hover, never on its face */
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('1b Summarise my board stands in the head, no cost on its face or its hover', !!hd && hd.cost === '' && (!hd.keyed || /Summarise my board/.test(hd.btn || '')), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost, btn: hd.btn }));
@@ -167,8 +170,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       const ov = dock.querySelector('#igd-feed .hb-jb-hello .jov'); if (!ov) return null;
       /* RE-POINTED 13 Nov 2026 (owner picked "Brain welcome"): the head sentence and the facts gave way to the brain card, his line and the count under it */
       const t = s => (ov.querySelector(s) || {}).textContent || '';
-      return { word: (dock.querySelector('.igd-head-w') || {}).textContent || '', head: t('.hbw-say'), brain: !!ov.querySelector('.hbw-brain canvas[data-hb-brain-cv]'),
-        chips: [...ov.querySelectorAll('[data-igsug]')].map(b => b.getAttribute('data-igsug')), needs: (t('.hbw-say') + ' ' + t('.hbw-sub')).trim(), n: counterNeedsCount(),
+      /* RE-POINTED 16 Nov 2026 (#762): his line is the five parts' headline (.jov5-title), its second line .jov5-sub */
+      return { word: (dock.querySelector('.igd-head-w') || {}).textContent || '', head: t('.hbw-say, .jov5-title'), brain: !!ov.querySelector('.hbw-brain canvas[data-hb-brain-cv]'),
+        chips: [...ov.querySelectorAll('[data-igsug]')].map(b => b.getAttribute('data-igsug')), needs: (t('.hbw-say, .jov5-title') + ' ' + t('.hbw-sub, .jov5-sub')).trim(), n: counterNeedsCount(),
         hello: !!ov.querySelector('[data-jb-hello]'), bottom: !!dock.querySelector('[data-ig-chips]'),
         badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
     /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): Overview alone, no Jambo tab */
@@ -311,8 +315,10 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     if (late) {
       await page.click('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]');
       await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
-      const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obw-view="overdue"][aria-selected="true"], [data-obw-view="overdue"].on, [data-obw-view="overdue"].is-on') ? true : null, null, 8000);
-      const obl = await until(() => !!document.querySelector('[data-obw-view="overdue"].is-landed'), null, 6000);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Obligations page's tabs are its pills Late ·
+         Tracked · Proposals (obnRender, data-obn-tab); the overdue figure's list is the Late pill */
+      const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obn-tab="late"].is-on') ? true : null, null, 8000);
+      const obl = await until(() => !!document.querySelector('[data-obn-tab="late"].is-landed'), null, 6000);
       check('12 Obligations overdue: the Obligations page, on its Overdue tab, landed on it (landOn)', !!ob && !!obl, JSON.stringify({ ob, obl }));
       await shot(page, '17-board-figure-overdue-1440x780');
     } else check('12 the stage carries a late obligation of ours, so the overdue door can be pressed', false, 'no overdue figure');

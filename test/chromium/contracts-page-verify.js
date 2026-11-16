@@ -71,6 +71,10 @@ const check = (name, ok, detail) => {
        memory for this sitting. The page loads once, so it holds for the file. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the
+       head's List pill is the way to the list */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('tr[data-row]', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -118,10 +122,12 @@ const check = (name, ok, detail) => {
        stage is its word in its own tone in the grey line under the agreement, and the row's MARK in the same
        tone leads it — the mark is the dot's job now, its colour the meta's brighter shade */
     const stage = await page.evaluate(() => {
-      const s = document.querySelector('tr[data-row] .reg-stg-w');
-      if (!s) return { err: 'no .reg-stg-w' };
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the stage word stands in its own Standing column
+         (td.reg-standing, in its tone's ink) and THE SAP WAY MARK leads the row (.reg-id .ls-mk, listSapMarkHtml) */
+      const s = document.querySelector('tr[data-row] td.reg-standing');
+      if (!s) return { err: 'no td.reg-standing' };
       const cs = getComputedStyle(s);
-      const mark = s.closest('tr').querySelector('.reg-id .ls-mark');
+      const mark = s.closest('tr').querySelector('.reg-id .ls-mk');
       const dcs = mark ? getComputedStyle(mark) : null;
       return {
         word: s.textContent.trim(),
@@ -142,7 +148,8 @@ const check = (name, ok, detail) => {
       };
     });
     check('2a the stage is a word, and a mark leads the row',
-      !stage.err && stage.svg && stage.dotW === '22px',
+      /* RE-POINTED 16 Nov 2026 (#762): THE SAP WAY MARK is 20px (listSapMarkHtml) */
+      !stage.err && stage.svg && stage.dotW === '20px',
       `${stage.err || ''} ${stage.dotW} ${stage.svg}`);
     check('2b the word carries the meaning ink, so colour is not the only carrier',
       !!stage.word && stage.ink !== 'rgb(0, 0, 0)', `"${stage.word}" ${stage.ink}`);
@@ -191,7 +198,7 @@ const check = (name, ok, detail) => {
     check('4a no row draws a text verb', verbs.actlink === 0, `${verbs.actlink} found`);
     check('4b every row keeps its ⋯', verbs.dots === rows.n, `${verbs.dots} of ${rows.n}`);
     /* IT MUST STILL OPEN — a menu that is drawn and dead is worse than none. */
-    await page.evaluate(() => document.querySelector('tr[data-row] [data-menu]').click());
+    await page.evaluate(() => { const m = document.querySelector('tr[data-row] [data-menu]'); if (m) m.click(); });
     await page.waitForTimeout(400);
     const menuOpen = await page.evaluate(() => {
       const p = document.querySelector('[data-menu-pop]');
@@ -290,11 +297,14 @@ const check = (name, ok, detail) => {
        one edge, level with each other. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1500);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): ONE SHEET — the head draws no card of its own, it lies
+       on the page's white sheet; the white it sits on is the first painted ground under it */
     const band = await page.evaluate(() => {
+      const under = e => { for (let n = e; n; n = n.parentElement){ const b = getComputedStyle(n).backgroundColor; if (!/rgba\([^)]*,\s*0\s*\)|transparent/.test(b)) return b; } return ''; };
       const box = s => { const e = document.querySelector(s); if (!e) return null;
-        const r = e.getBoundingClientRect(), c = getComputedStyle(e);
+        const r = e.getBoundingClientRect();
         return { top: Math.round(r.top), bottom: Math.round(r.bottom),
-          left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), bg: c.backgroundColor }; };
+          left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), bg: under(e) }; };
       const paint = v => { const d = document.createElement('div'); d.style.background = 'var(' + v + ')';
         document.body.appendChild(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; };
       const gap = (() => { const d = document.createElement('div'); d.style.height = 'var(--s-3)'; document.body.appendChild(d);
@@ -664,7 +674,7 @@ const check = (name, ok, detail) => {
        only honest question, and it is one a browser alone can answer. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1600);
-    await page.click('#reg-tbody [data-menu]');
+    await page.click('#reg-tbody [data-menu]', { timeout: 5000 }).catch(() => {});   /* a menu not drawn REPORTS (14a) */
     await page.waitForTimeout(600);
     const menu = await page.evaluate(() => {
       const pop = document.querySelector('#reg-tbody [data-menu-pop]');
@@ -697,8 +707,8 @@ const check = (name, ok, detail) => {
       `${menu.reachable}/${menu.items} reachable · missing ${JSON.stringify(menu.unreachable)}`);
     check('14c and it still carries the acts the row menu is for',
       /* archive is an answer in End or pause since 15 Oct 2026 (owner picked "One question") */
-      /end or pause/i.test(menu.labels.join(' ')) && /delete/i.test(menu.labels.join(' ')),
-      menu.labels.join(' · '));
+      /end or pause/i.test((menu.labels || []).join(' ')) && /delete/i.test((menu.labels || []).join(' ')),
+      (menu.labels || []).join(' · '));
     /* THE EXEMPTION IS NARROW, which is the other half: WO-9's clip must still
        be doing its job on every cell that holds text. */
     check('14d the exemption is the menu cell alone — every text cell still clips',
@@ -887,7 +897,10 @@ const check = (name, ok, detail) => {
        <style>, so the next view gets the shell's reserved gutter back — which
        is what stops content jolting sideways between a scrolling page and a
        fixed one. A rule that leaked would take that with it. */
-    await page.evaluate(() => setView('dashboard'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Home holds no gutter by design in the new look
+       (`html.lg-new #content-scroll:has(#ig-page){scrollbar-gutter:auto}`), so the next page asked is one that reserves
+       it, Settings */
+    await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1500);
     const elsewhere = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
@@ -897,6 +910,8 @@ const check = (name, ok, detail) => {
     check('15 and the next page gets its reserved gutter back',
       elsewhere.gutter > 0 || /stable/.test(elsewhere.rule || ''),
       `${elsewhere.gutter}px · ${elsewhere.rule}`);
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));   /* back to the list for 16 */
+    await page.waitForTimeout(1500);
 
     /* ============================================================
        16. ONE SEARCH BOX, AND IT IS THE SHELL'S (N-3, 31 Aug 2026)
@@ -1060,9 +1075,8 @@ const check = (name, ok, detail) => {
       heads.some(h => h.sort === 'party') && heads.some(h => h.sort === 'stream')
         && (await page.evaluate(() => !!document.querySelector('#reg-sort option[value="ref"]'))),
       JSON.stringify(heads.map(h => h.sort)));
-    check('18b and the last column, which has no heading, still does not',
-      heads.length > 0 && heads[heads.length - 1].sort === null,
-      JSON.stringify(heads[heads.length - 1] || null));
+    /* RETIRED 16 Nov 2026 (#762): 18b "the last column, which has no heading, does not sort" — that column was the row's ⋯,
+       which the new look's list does not draw (regColKeys: counterparty, standing, …, no 'acts'); its last column is Value, which sorts */
 
     /* THE TABLE PAGES AT 40, so ascending and descending show two different
        slices of the book rather than one list reversed — the claim is that

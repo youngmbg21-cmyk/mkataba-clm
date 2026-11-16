@@ -106,47 +106,41 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     /* RE-POINTED 23 Oct 2026 (owner: "below '3 clauses need you', remove all the other supporting words"): no sentence */
     /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes, "SAP heads"): the head names the tab and its count, then
        "· N need you · M worth a look" in grey on the same line; still no count line, no boxes */
-    ok('1 the head names the tab, its count and what needs you, on one line; tabs with counts, no boxes', read && /^Clauses ?4 ?· 2 need you · 2 worth a look$/.test(e1.title)
-      && /^· 2 need you · 2 worth a look$/.test(e1.sub) && !e1.line && e1.boxes === 0
-      && e1.tabs === 'All4|Needs you2|Worth a look2|Fine2' && e1.need === 2, JSON.stringify(e1));
-    /* 1b THE "WORTH A LOOK" TAB narrows the list and lets go (the Severity box's act, kept) */
-    const e1b = await page.evaluate(async () => {
-      const tab = k => document.querySelector(`#pd-thread [data-stk-tab="${k}"]`);
-      if (!tab('look')) return { box: false };
-      const cards = () => document.querySelectorAll('#pd-thread .stk-card').length;
-      const all = cards();
-      tab('look').click(); await new Promise(r => setTimeout(r, 250));
-      const look = cards(), lit = (tab('look') || {}).getAttribute && tab('look').getAttribute('aria-selected');
-      tab('').click(); await new Promise(r => setTimeout(r, 250));
-      return { box: true, all, look, lit, back: cards() };
-    });
-    ok('1b the "Worth a look" tab narrows to the same points, and All lets go',
-      e1b.box && e1b.lit === 'true' && e1b.look === 2 && e1b.back === e1b.all && e1b.all === 4, JSON.stringify(e1b));
-
+    /* RETIRED 16 Nov 2026 (#762): 1 "the head names the tab, its count and what needs you; tabs with counts" and
+       1b "the Worth a look tab narrows the list" — the new look's Clauses is ONE line (stk-lg-top: Clause review ·
+       contract · Start with X), no headline, counts, label or tabs (CLAUSES THE LEGORA WAY, owner 16 Nov 2026, f1081) */
+    ok('1 the head is ONE line naming the review, the contract and where to start; no count line, no boxes, no tabs',
+      read && /^Clause review · Juno Limited · MK-L1 · Start with Payment\.$/.test(await page.evaluate(() => ((document.querySelector('#pd-thread .stk-lg-top') || {}).textContent || '').replace(/\s+/g, ' ').trim()))
+      && !e1.line && e1.boxes === 0 && e1.tabs === '' && e1.need === 2, JSON.stringify(e1));
     /* 1c THE SPINE ALWAYS ENDS ON A DOT (owner, 28 Oct 2026: "I want the spine to always end with a ball"):
        on every tab, the hairline starts at the first dot left showing and stops at the last one */
     const e1c = {};
-    for (const k of ['', 'need', 'look', 'fine']) {
+    /* RE-POINTED 16 Nov 2026 (#762): no tabs in the new look — the spine is measured on the one list */
+    for (const k of ['']) {
       e1c[k || 'all'] = await page.evaluate(async k => {
-        const t = document.querySelector(`#pd-thread [data-stk-tab="${k}"]`); if (!t) return null;
-        t.click(); await new Promise(r => setTimeout(r, 300));
+        const t = document.querySelector(`#pd-thread [data-stk-tab="${k}"]`); if (t){ t.click(); await new Promise(r => setTimeout(r, 300)); }
         const els = [...document.querySelectorAll('#pd-thread .doc-th-row, #pd-thread .doc-th-sec')].filter(e => e.getBoundingClientRect().height > 0);
         let top = 1e9, bot = -1e9;
         els.forEach(e => { const cs = getComputedStyle(e, '::before'); if (cs.content === 'none' || cs.display === 'none') return;
           const r = e.getBoundingClientRect(), tp = r.top + parseFloat(cs.top); top = Math.min(top, tp); bot = Math.max(bot, tp + parseFloat(cs.height)); });
         const beads = els.map(e => e.querySelector('.doc-th-bead')).filter(Boolean).map(b => { const r = b.getBoundingClientRect(); return r.top + r.height / 2; });
         if (beads.length < 2) return { beads: beads.length };
+        /* RE-POINTED 16 Nov 2026 (#762): the new look may draw no hairline at all — then nothing is open-ended */
+        if (top === 1e9 && bot === -1e9) return { beads: beads.length, top: 0, bottom: 0, noSpine: true };
         return { beads: beads.length, top: Math.round(top - beads[0]), bottom: Math.round(bot - beads[beads.length - 1]) };
       }, k);
     }
     await page.evaluate(async () => { const t = document.querySelector('#pd-thread [data-stk-tab=""]'); if (t) { t.click(); await new Promise(r => setTimeout(r, 300)); } });
     ok('1c on every tab the spine starts at the first dot shown and ends at the last — never open-ended',
-      Object.values(e1c).every(v => v && (v.beads < 2 || (Math.abs(v.top) <= 1 && Math.abs(v.bottom) <= 1))) && !!e1c.need && e1c.need.beads >= 2,
+      Object.values(e1c).every(v => v && (v.beads < 2 || (Math.abs(v.top) <= 1 && Math.abs(v.bottom) <= 1))) && !!e1c.all && e1c.all.beads >= 2,
       JSON.stringify(e1c));
 
     /* 2 + 3: open clause 2, then clause 3 */
     const openRow = n => page.evaluate(async n => {
-      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => new RegExp('^' + n + '\\b').test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      /* RE-POINTED 16 Nov 2026 (#762): the new look carries the clause's number in its mark (the bead's data-n, f1088),
+         not in the name's painted words — a clause is found by its number, read off the mark or the name's own text */
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => String((r.querySelector('.doc-th-bead') || { getAttribute: () => '' }).getAttribute('data-n')) === String(n)
+        || new RegExp('^' + n + '\\b').test(((r.querySelector('.doc-th-name') || {}).textContent || '').trim()));
       if (!row) return false;
       if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); }
       return true;
@@ -155,21 +149,30 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     const e2 = await page.evaluate(() => {
       const row = document.querySelector('#pd-thread .doc-th-row.is-open');
       const cards = row ? [...row.querySelectorAll(':scope > .stk-card')] : [];   /* the clause's OWN cards; its missing point stands in it under its own head (22 Oct 2026) */
-      return { name: row ? row.querySelector('.doc-th-name').innerText : null, n: cards.length,
+      return { name: row ? row.querySelector('.doc-th-name').textContent.trim() : null, n: cards.length,
         verd: cards.map(c => (c.querySelector('.stk-verd') || {}).textContent), by: cards.map(c => (c.querySelector('.stk-by') || {}).textContent),
         std: cards.map(c => (c.querySelector('.stk-std') || {}).textContent || ''), state: (row && row.querySelector('[data-th-state]') || {}).textContent || '' };
     });
     /* RE-POINTED 22 Oct 2026: the clause's word counts its missing point too ("Needs you · 2": the twin and the price-rise notice) */
     ok('2 the twin is ONE card: worst verdict, both finders, our standard beside it', /^2\b/.test(e2.name || '') && e2.n === 1 && e2.verd[0] === 'Needs you'
-      && e2.by[0] === 'Found by Jambo · Our standards' && /Our standard: Paid within 14 days/.test(e2.std[0]) && /^Needs you · 2$/.test(e2.state.trim()), JSON.stringify(e2));
+      /* RE-POINTED 16 Nov 2026 (#762): no word on a clause's row in the new look ("no amber sentence on a row", f1081) */
+      && e2.by[0] === 'Found by Jambo · Our standards' && /Our standard: Paid within 14 days/.test(e2.std[0]) && e2.state.trim() === '', JSON.stringify(e2));
     await openRow(3);
     const e3 = await page.evaluate(() => {
       const row = document.querySelector('#pd-thread .doc-th-row.is-open');
       const cards = row ? [...row.querySelectorAll(':scope > .stk-card')] : [];   /* the clause's OWN cards; its missing point stands in it under its own head (22 Oct 2026) */
       const all = [...document.querySelectorAll('#pd-thread .doc-th-rows [data-stk-dive]')].map(b => Number(b.getAttribute('data-stk-dive')));
       const titles = [...document.querySelectorAll('#pd-thread .doc-th-rows .stk-card')].map(c => (c.querySelector('.stk-ct') || {}).textContent);
-      return { titles: cards.map(c => (c.querySelector('.stk-ct') || {}).textContent), verd: cards.map(c => (c.querySelector('.stk-verd') || {}).textContent),
-        order: all, listTitles: titles };
+      /* RE-POINTED 16 Nov 2026 (#762): ONE "WHAT TO WATCH" PER CLAUSE — a clause's several points are one card, each a
+         line (.stk-gi) in its verdict's tone; the points are named through the one reading (stkReview) by their key */
+      const pts = (typeof stkReview === 'function') ? stkReview(getContract('MK-L1'), getContract('MK-L1').breakdown) : [];
+      const tOf = k => { const p = pts.find(x => String(x.key) === String(k)); return p ? p.title : null; };
+      const VERD = { need: 'Needs you', look: 'Worth a look', fine: 'Fine' };
+      const lines = row ? [...row.querySelectorAll(':scope > .stk-group .stk-gi')] : [];
+      const listed = [...document.querySelectorAll('#pd-thread .doc-th-rows [data-stk-key]')].filter(e => !e.querySelector('[data-stk-key]'));
+      return { titles: cards.filter(c => !c.classList.contains('stk-group')).map(c => (c.querySelector('.stk-ct') || {}).textContent).concat(lines.map(l => tOf(l.getAttribute('data-stk-key')))),
+        verd: cards.filter(c => !c.classList.contains('stk-group')).map(c => (c.querySelector('.stk-verd') || {}).textContent).concat(lines.map(l => VERD[(l.className.match(/is-(need|look|fine)/) || [])[1]])),
+        order: all, listTitles: listed.map(e => tOf(e.getAttribute('data-stk-key'))) };
     });
     ok('3 under a clause the cards stand worst first, though the paper puts the other sentence first',
       e3.verd.join('|') === 'Needs you|Worth a look' && /cover stops/.test(e3.titles[0] || ''), JSON.stringify(e3));
@@ -211,7 +214,7 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
          arrow; its words are read from their own span */
       const hb = m && m.querySelector('.stk-miss-h'), hcs = hb && getComputedStyle(hb);
       const out = { h: m ? (m.querySelector('.stk-miss-hw') || {}).textContent : null, hn: m ? (m.querySelector('.stk-miss-hn') || {}).textContent : null,
-        hEdge: hcs ? hcs.borderTopWidth + ' ' + hcs.borderTopStyle : '', hArrow: !!(hb && hb.querySelector('svg')), prev: prev && prev.classList.contains('doc-th-row') ? prev.querySelector('.doc-th-name').innerText : null,
+        hEdge: hcs ? hcs.borderTopWidth + ' ' + hcs.borderTopStyle : '', hArrow: !!(hb && hb.querySelector('svg')), prev: prev && prev.classList.contains('doc-th-row') ? prev.querySelector('.doc-th-name').textContent.trim() : null,
         card: m ? ((m.querySelector('.stk-ct') || {}).textContent || '') : '', shows: !!(m && m.querySelector('.stk-card') && m.querySelector('.stk-card').getClientRects().length),
         border: cs ? cs.borderTopStyle + '/' + cs.borderTopWidth : '', indent: cs ? cs.marginLeft : '', fold: !!document.querySelector('#pd-thread [data-stk-mopen]'), close: !!btn };
       if (btn){ btn.click(); await new Promise(r => setTimeout(r, 150)); out.shut = !seen();
@@ -241,13 +244,16 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
       return { row: !!row, before: !!(body && card && (body.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)) };
     });
     ok('5d in an open clause its Plain English stands above its cards', e5d.row && e5d.before, JSON.stringify(e5d));
-    ok('5b pressing clause 2 closes its missing point with it and opens it again; the clause\'s word counts it',
-      e5.clauseShut === true && e5.clauseOpen === true && /· 2$/.test(e5.word.trim()), JSON.stringify({ shut: e5.clauseShut, open: e5.clauseOpen, word: e5.word }));
+    ok('5b pressing clause 2 closes its missing point with it and opens it again',
+      /* RE-POINTED 16 Nov 2026 (#762): the clause's row carries no word in the new look (f1081) — the shut and open stand */
+      e5.clauseShut === true && e5.clauseOpen === true && e5.word.trim() === '', JSON.stringify({ shut: e5.clauseShut, open: e5.clauseOpen, word: e5.word }));
 
     /* 6 Mark reviewed (the walk above moved the paper, so clause 3 is opened again) */
-    await openRow(3);
+    /* RE-POINTED 16 Nov 2026 (#762): clause 3's two points are ONE "What to watch" card in the new look, marked all at
+       once; the one-point mark is measured on clause 2's own card ("We pay in thirty days", a Needs you point) */
+    await openRow(2);
     const e6 = await page.evaluate(async () => {
-      const card = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open .stk-card')].find(c => /cover stops/.test(c.textContent));
+      const card = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open > .stk-card')].find(c => /We pay in thirty days/.test(c.textContent));
       const btn = card && card.querySelector('[data-stk-review]');
       if (!btn) return { btn: false };
       const calls = []; const o = window.api; window.api = async function (p, ...a){ calls.push(p); return o.call(this, p, ...a); };
@@ -269,7 +275,7 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-L1', 'doc'); });
     await page.waitForSelector('#pd-thread .doc-th-row', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(900);
-    await openRow(3);
+    await openRow(2);
     const e6b = await page.evaluate(async () => {
       const c = getContract('MK-L1'); if (typeof ensureFull === 'function') await ensureFull(c);
       const live = getContract('MK-L1');
@@ -278,7 +284,7 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     });
     const t2 = await tally(), b2 = await badge();
     ok('6b after a reload (and a save echoing an old map) the tick stands, the counts still leave it out, the trail has its line',
-      e6b.map === 1 && e6b.done && t2 === 1 && b2 === '1' && e6b.trail.some(d => /Marked reviewed: Their cover stops/.test(d)), JSON.stringify({ e6b, tally: t2, badge: b2 }));
+      e6b.map === 1 && e6b.done && t2 === 1 && b2 === '1' && e6b.trail.some(d => /Marked reviewed: We pay in thirty days/.test(d)), JSON.stringify({ e6b, tally: t2, badge: b2 }));
     const e6c = await page.evaluate(async () => {
       const u = document.querySelector('#pd-thread .stk-card.is-done [data-stk-unreview]'); if (!u) return { undo: false };
       u.click();

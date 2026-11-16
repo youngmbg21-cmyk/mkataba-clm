@@ -55,7 +55,11 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length >= 60 && typeof window.askColOpen === 'function', null, 40000);
     await page.waitForTimeout(1000);
-    const toList = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list', only: null }); setView('register'); }); await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]')); await page.waitForTimeout(400); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
+    const toList = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list', only: null }); setView('register'); });
+      if (await until(page, () => !!document.querySelector('[data-ctf-show="list"]'), null, 4000) && !(await page.$('#reg-tbody tr[data-row]'))) await page.click('[data-ctf-show="list"]').catch(() => {});
+      await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]')); await page.waitForTimeout(400); };
     await toList();
     const ask = async (q, name) => {
       await page.evaluate(([q, name]) => { acSizeSet(100); askColOpen({ question: q, name }); }, [q, name]);
@@ -63,7 +67,12 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
       await page.click('[data-ac-ask]');
       return until(page, () => !!AC.busy, null, 8000);
     };
-    const ended = () => until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]'), null, 60000);
+    /* RE-POINTED 16 Nov 2026 (#762): a finished read lands on the new look's short card of that column (askColDoneDrawnHtml);
+       its "‹ Overview" (data-ac-colback) is the step to the panel's Overview, where the column card this file reads stands */
+    const ended = async () => { const ok = await until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]'), null, 60000);
+      await page.waitForTimeout(400);
+      if (await page.$('#ig-dock [data-ac-colback]')){ await page.click('#ig-dock [data-ac-colback]').catch(() => {}); await until(page, () => !document.querySelector('#ig-dock [data-ac-colback]'), null, 4000); }
+      return ok; };
 
     /* ---- 1 Stop stands still while the read runs ---- */
     h.ai.slow(500);
@@ -164,11 +173,14 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     /* as the owner had it: a question to Jambo on Reads; his answer is the one conversation, and Contracts'
        panel turned to it on arrival — hiding the read that the press started (red at the parent) */
     await page.evaluate(() => setView('reads'));
-    await until(page, () => !!document.querySelector('[data-rd-next]') && !!document.querySelector('#jl-q'), null, 15000);
+    /* RE-POINTED 16 Nov 2026 (#762): the new Discover's "read the rest" door is [data-dsn-more] (Jambo's panel on a read,
+       dslReadHtml); the old Reads row's [data-rd-next] is taken where it still stands. A door that is not drawn REPORTS. */
+    const NEXT = '[data-rd-next], [data-dsn-more]';
+    await until(page, () => !!document.querySelector('[data-rd-next], [data-dsn-more]') && !!document.querySelector('#jl-q'), null, 15000);
     await page.fill('#jl-q', 'what does this page tell me about my reads?'); await page.press('#jl-q', 'Enter');
     check('7a Jambo answers on Reads', await until(page, () => (ai.history || []).length >= 2 && !ai.busy, null, 15000));
     h.ai.slow(700);
-    await page.click('[data-rd-next] >> nth=0');
+    check('7a′ the read-the-rest door stands on Reads', await page.click(NEXT + ' >> nth=0', { timeout: 5000 }).then(() => true, () => false));
     const back = await until(page, () => !!document.querySelector('#reg-tbody') && !!AC.busy && !!document.querySelector('#ig-dock [data-ac-desk-card]') && !(typeof pdTalkShows === 'function' && pdTalkShows()), null, 20000);
     check('7b Next 50 lands on Contracts with the panel on its Overview, the read in sight', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy, talk: typeof pdTalkShows === 'function' && pdTalkShows() })));
     await page.screenshot({ path: path.join(OUT, '7-next-from-reads.png') });
@@ -176,6 +188,8 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     await ended();
 
     /* ---- 8 the three screens ---- */
+    /* RE-POINTED 16 Nov 2026 (#762): the column card is measured where it stands, on Contracts (the run may still be on Reads) */
+    if (await page.evaluate(() => state.view === 'reads')) await toList();
     await page.evaluate(() => { AC.openQ = null; renderIntelDock(); });
     for (const [w, hh] of SCREENS){
       await page.setViewportSize({ width: w, height: hh });

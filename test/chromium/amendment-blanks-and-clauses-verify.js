@@ -184,14 +184,20 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     });
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows stand in the dossier's All acts fold */
     await page.evaluate(id => { if (window.pdSignClose) try { pdSignClose(); } catch (_){} pdOpenOnHome(id, 'copilot'); }, id8);
-    await waitFor(page, () => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (!f) return null; f.open = true; return true; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every act is pressed from the paper line's More
+       (#ig-actions → pdActsToggle → #pd-acts-pop, "More, halved"; the Dossier's All acts fold is kept closed and
+       unseen). The row is measured where the reader sees it now: in the More card, its words whole, inside the card. */
+    await waitFor(page, () => !!document.getElementById('ig-actions'));
+    await page.evaluate(id => { if (window.pdActsPopClose) pdActsPopClose(); pdActsToggle(id, document.getElementById('ig-actions')); }, id8);
     const p8 = await waitFor(page, () => {
-      const b = Array.from(document.querySelectorAll('#ig-dock .ds-fold #ws-m-their-way')).find(x => x.getBoundingClientRect().width > 0);
+      const pop = document.getElementById('pd-acts-pop'); if (!pop) return null;
+      const b = Array.from(pop.querySelectorAll('[data-pd-acts-go="#ws-m-their-way"]')).find(x => x.getBoundingClientRect().width > 0);
       if (!b) return null;
-      const r = b.getBoundingClientRect(), p = document.getElementById('ig-dock').getBoundingClientRect();
-      return { sw: b.scrollWidth, cw: b.clientWidth, inside: r.left >= p.left - 1 && r.right <= p.right + 1, t: b.textContent.trim() };
+      const r = b.getBoundingClientRect(), p = pop.getBoundingClientRect();
+      return { sw: b.scrollWidth, cw: b.clientWidth, inside: r.left >= p.left - 1 && r.right <= p.right + 1 && r.right <= window.innerWidth, t: b.textContent.trim() };
     });
-    check('8  "Hand it over to sign their way" sits whole inside the dossier\'s All acts fold, and the face no longer draws the line',
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); });
+    check('8  "Hand it over to sign their way" sits whole inside the paper\'s More card, and the face no longer draws the line',
       face8 && !face8.line && p8 && p8.sw <= p8.cw + 1 && p8.inside, JSON.stringify({ face8, p8 }));
 
     await page.screenshot({ path: process.env.SHOT || '/tmp/amend-blanks.png' });

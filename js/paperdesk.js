@@ -2543,12 +2543,17 @@ function pd2SignRowsHtml(c){
     row(open > 0 ? 'now' : 'done', T(open > 0 ? 'pd2_sg_std_open' : 'pd2_sg_std'), sub, open > 0 ? { attr: 'data-pd-ds-std=""', w: 'jov5_sg_go_std' } : null);
   } else row('now', T('pd2_sg_std_none'), T('pd2_sg_std_none_s'), { attr: 'data-pd-ds-std=""', w: 'jov5_sg_go_std' });
   /* the approval */
+  /* A NAMED PERSON'S YES THAT CAN BE ASKED FOR NOW carries its own door, Send for approval (16 Nov 2026, #762:
+     the five parts hid the foot's #sign-btn that used to say it, so the waiting row had no way forward) */
+  let SA = []; try { SA = (typeof window.signApprovalRows === 'function') ? (window.signApprovalRows(c) || []) : []; } catch (_){ SA = []; }
+  const saGo = (!closed && SA.some(r => r && r.askable)) ? { attr: 'data-sa-ask="1"', w: 'pd_rd_send' } : null;
+  const saWho = SA.filter(r => r && !r.settled).map(r => (r.need && r.need.approverName) || '').filter(Boolean).join(' · ');
   let A = null; try { A = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ A = null; }
   if (A && A.required){
     const last = (A.chain || []).filter(x => x && x.status === 'approved').pop();
     if (A.ok && last) row('done', T('pd2_sg_appr'), T('pd2_sg_appr_by', { who: last.by || '', when: day(last.at), rule: last.name || '' }));
-    else row('now', T('pd2_sg_appr_wait'), (A.chain || []).filter(x => x && x.status !== 'approved').map(x => x.name).join(' · '));
-  }
+    else row('now', T('pd2_sg_appr_wait'), (A.chain || []).filter(x => x && x.status !== 'approved').map(x => x.name).join(' · '), saGo);
+  } else if (saGo) row('now', T('pd2_sg_appr_wait'), saWho, saGo);
   /* each side's signature, in the route's order */
   let steps = []; try { steps = (typeof signSteps === 'function') ? signSteps(c) : []; } catch (_){ steps = []; }
   const now = (typeof signStepNow === 'function') ? signStepNow(c) : 0;
@@ -2571,7 +2576,12 @@ function pd2SignRowsHtml(c){
   row(closed ? 'done' : 'later', T('pd2_sg_then'), T('pd2_sg_then_s'));
   /* the card */
   const mineNow = steps.some(st => st.n === now && st.rows.some(r => r && r.party === 'internal' && String(r.memberId || '') === String(me.id || '') && !r.signed));
-  const card = closed ? '' : !holds.length && mineNow
+  /* A FILE THEY SIGN (the outside route): the card is the handover's own act — Agree and hand over, Send for approval,
+     or, once out, File the signed copy (hoActOf, js/views/handover.js; #762: the foot that drew it is hidden here) */
+  const HO = (!closed && typeof window.hoActOf === 'function') ? window.hoActOf(c) : null;
+  const card = closed ? '' : HO
+    ? `<div class="pd2-sg-card${HO.primary ? '' : ' is-held'}"><div class="pd2-sg-acts"><button type="button" id="${HO.id}" class="ui-btn${HO.primary ? ' ui-btn-primary' : ''}" data-pd2-ho="${E(c.id)}">${E(HO.label)}</button><span>${E(HO.line)}</span></div></div>`
+    : !holds.length && mineNow
     ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_clear'))}</b><p>${E(T('pd2_sg_clear_s'))}</p><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd2-sign>${E(T('apn_sign'))}</button><button type="button" class="ui-btn" data-pd2-sign-read>${E(T('pd2_sg_read'))}</button><span>${E(T('pd2_sg_no_call'))}</span></div></div>`
     /* SAID ONCE (the harmony review, owner's yes 9 Nov 2026): the list above already names what holds the signature, so
        the card under it is the greyed Sign with how many are left, never the same list again */
@@ -2588,7 +2598,7 @@ function pd2SignRowsHtml(c){
     const head = jov5HeadHtml({ eyebrow: T('jov5_sg_eb'), title, sub: [who, closed ? '' : open ? T('jov5_sg_sub') : ''].filter(Boolean).join('. ') + (open && !closed ? '' : '') });
     const pct = checks.length ? Math.round(100 * done / checks.length) : 0;
     const bar = closed ? '' : `<div class="pd2-sg-prog"><p><span>${E(T('jov5_sg_ready'))}</span><span>${E(T('jov5_sg_k_of_n', { k: done, n: checks.length }))}</span></p><i aria-hidden="true"><b style="width:${pct}%"></b></i></div>`;
-    const first = closed ? null : checks.find(m => (m.st === 'now') && m.go);
+    const first = (closed || HO) ? null : checks.find(m => (m.st === 'now') && m.go);
     const go = first ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go pd2-sg-go" ${first.go.attr}>${E(T(first.go.w))}</button>` : card;
     return `<div class="pd2-sg is-five">${head}${bar}<p class="pd2-sg-l">${E(T('jov5_sg_checks'))}</p><div class="pd2-sg-g">${rows.slice(0, -1).join('')}</div>`
       + `<p class="pd2-sg-l">${E(T('jov5_sg_then'))}</p><div class="pd2-sg-g"><div class="pd2-sg-r is-${meta[meta.length - 1].st}"><i class="pd2-sg-i" aria-hidden="true">${closed ? '\u2713' : ''}</i><div><b>${E(T('pd2_sg_then_s'))}</b></div></div></div>${go}</div>`;
@@ -6970,6 +6980,8 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       let found = []; try { found = (cc && typeof triageHeldObligations === 'function') ? triageHeldObligations(cc) : []; } catch (_){ found = []; }
       if (cc && found.length && typeof openObligationsReview === 'function') openObligationsReview(cc, found, () => { try { pdGlanceRepaint(); } catch (_){} });
       return; }
+    if (t.closest('.pd2-sg [data-pd2-ho]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.hoActPress === 'function') window.hoActPress(cc); return; }
+    if (t.closest('.pd2-sg [data-sa-ask]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.openSignApprovalDialog === 'function') window.openSignApprovalDialog(cc); return; }
     if (t.closest('[data-pd-ds-std]')){ e.preventDefault(); const cc = full(); if (cc && typeof openCheckPanel === 'function') openCheckPanel(cc, 'playbook'); return; }
     /* (Round 4) the stage line: a stage's press brings its work under the Next card; "What happened so far" opens */
     const dfo = t.closest('#pd-glance [data-ds-focus]');
@@ -8531,6 +8543,8 @@ function pd2BriefHeadHtml(c){
   const E = _pdE;
   return `<div class="pd2-br-head"><button type="button" class="ui-link" data-pd-mid-back>‹ ${E(_pdT('pd_stage_paper'))}</button><b class="pd2-br-t">${E(_pdT('pd2_brief'))}</b><span class="pd2-br-m" data-pd2-br-meta>${E(pd2BriefHas(c) ? pd2BriefMeta(c) : '')}</span><span class="pd2-br-sp"></span><span class="pd2-br-cost">${E(_pdT('pd2_br_cost'))}</span></div>`;
 }
+/* a cut-short brief carries its way forward ON its page, as a missing one does (16 Nov 2026, #762) */
+const pd2BriefMayWrite = () => (typeof canEdit !== 'function' || canEdit()) && typeof runContractBrief === 'function';
 function pd2BriefHtml(c){
   const E = _pdE, d = (c._brief && c._brief.data) || {}, S = pd2Sentences(c);
   const mark = t => (typeof briefMark === 'function') ? briefMark(t) : E(t);
@@ -8547,7 +8561,7 @@ function pd2BriefHtml(c){
     <div class="pd2-br-kick">${E([_pdT('pd2_br_kick'), c.name, c.counterparty, ref].filter(Boolean).join(' · '))}</div>
     <div class="pd2-br-what">${E(_pdT('pd2_br_what'))}</div><div class="pd2-br-lead">${mark(d.overview || '')}</div>
     ${sect('pd2_br_money', money)}${sect('pd2_br_dates', dates)}${sect('pd2_br_watch', watch)}${sect('pd2_br_odd', odd)}
-    ${c._brief && c._brief.truncated ? `<p class="pd2-br-cut">${E(_pdT('br_partial'))}</p>` : ''}
+    ${c._brief && c._brief.truncated ? `<p class="pd2-br-cut">${E(_pdT('br_partial'))}</p>${pd2BriefMayWrite() ? `<p class="pd2-br-none-act"><button type="button" class="ui-btn" data-pd2-br-write="${E(c.id)}" title="${E(_pdT('br_partial_sub'))}">${E(_pdT('br_rewrite'))}</button></p>` : ''}` : ''}
     <div class="pd2-br-foot" data-pd2-br-foot>${(typeof briefReadFootHtml === 'function') ? briefReadFootHtml(c) : ''}</div>
   </div><div class="pd2-br-pfoot"><span>${E(_pdT('pd2_br_f1'))}</span><span>${E(_pdT('pd2_br_f2'))}</span></div></div>`;
 }

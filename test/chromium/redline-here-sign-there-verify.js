@@ -169,7 +169,10 @@ const AGREED = [
     await page.evaluate(() => { const R = regState(); R.query = ''; regRepaint(); });
     await page.evaluate(() => { if (window.openNegotiations) openNegotiations({ list: true }); else setView('redline'); });
     await page.waitForTimeout(1200);
-    const onNego = await page.evaluate(id => [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Negotiations page is the new list, a row a
+       tr[data-ngn-row] */
+    const onNego = await page.evaluate(id => !!document.querySelector(`tr[data-ngn-row="${id}"]`)
+      || [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
     await page.screenshot({ path: path.join(OUT, '2-negotiations.png') });
     check('2c the Negotiations page lists it from the day it is opened, before a change is filed', onNego);
 

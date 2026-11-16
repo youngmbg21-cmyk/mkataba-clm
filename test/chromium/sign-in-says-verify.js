@@ -26,16 +26,18 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
   try {
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await until(P, () => !!document.getElementById('li-email'), null, 10000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the sign-in is round 8's page (.lin-wrap) — the
+       wordmark in the serif, ONE sentence under it saying what HaTi is (.lin-say), the fields as labelled lines, and
+       under the form what stays inside the company (.lin-foot); the old card's .li-say/.li-foot are not drawn */
     const S = await P.evaluate(() => {
-      const say = document.querySelector('.li-say'), foot = document.querySelector('.li-foot');
+      const say = document.querySelector('.lin-say'), foot = document.querySelector('.lin-foot'), h1 = document.querySelector('.lin-main h1');
       const lab = document.getElementById('li-email').closest('label').querySelector('span').textContent.trim();
-      const h1 = document.querySelector('h1'); const after = h1 && h1.nextElementSibling;
-      return { say: say ? say.textContent.trim() : '', serif: say ? getComputedStyle(say).fontFamily : '', foot: foot ? foot.textContent.trim() : '', lab,
-        subAfterHead: !!(after && after.tagName === 'P') };
+      const between = []; for (let el = h1 && h1.nextElementSibling; el && !el.contains(document.getElementById('li-email')); el = el.nextElementSibling) between.push(el.className);
+      return { say: say ? say.textContent.trim() : '', serif: h1 ? getComputedStyle(h1).fontFamily : '', foot: foot ? foot.textContent.trim() : '', lab, between };
     });
-    check(/^Say what you want done\. HaTi takes you there/.test(S.say) && /Serif|serif/.test(S.serif), '1 one sentence in the serif says what HaTi is', S);
-    check(S.lab === 'Work email' && !S.subAfterHead, '2 Work email, and no grey line under the heading', S);
-    check(/stays inside .+\. The other side sees only the contract\.$/.test(S.foot), '3 under the form: what stays inside the company', S.foot);
+    check(/read by Jambo/.test(S.say) && S.say.split(/[.!?](\s|$)/).filter(x => x && x.trim()).length === 1 && /Serif|serif/.test(S.serif), '1 one sentence under the wordmark (in the serif) says what HaTi is', S);
+    check(S.lab === 'Work email' && S.between.join() === 'lin-say', '2 Work email, and no second grey line between the wordmark and the form', S);
+    check(/^What stays inside .+: the papers, the names, the money\./.test(S.foot), '3 under the form: what stays inside the company', S.foot);
     await P.screenshot({ path: path.join(OUT, '1440x780.png') });
     for (const [w, hh] of [[1536, 730], [1366, 950]]){
       await P.setViewportSize({ width: w, height: hh });

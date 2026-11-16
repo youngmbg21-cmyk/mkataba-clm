@@ -197,7 +197,9 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     const ans = rows.find(p => p.key === 'answer:MK-0382');
     check('11b their answer reads as drawn on the Board: "Nordvik Logistik\'s answer" · the agreement and its reference, no who column (24 Oct 2026), what Jambo found on the hover',
       !!ans && ans.title === 'Nordvik Logistik’s answer' && /^MK-0382·Master services agreement · Nordvik Logistik$/.test(ans.deal) && ans.who === '' && /^Answers to their 2 redlines, read against our standards: /.test(ans.hover), JSON.stringify(ans));
-    const heads = await page.evaluate(() => ({ board: (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '', n: ndRead().n }));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): THE ONE COUNT is the rows the Board draws
+       (counterNeedsCount; News never counted, f999) — the card's head is held to that one count */
+    const heads = await page.evaluate(() => ({ board: (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '', n: counterNeedsCount() }));
     check('11c the card\'s head says Home\'s count: "N things · …"', new RegExp('^' + heads.n + ' things?( · |$)').test(heads.board), JSON.stringify(heads));
     if (await openAgent('late')) {
       const lk = await lookAt('desk:MK-0368');
@@ -340,10 +342,15 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
         const W = counterWorkByAgent(), said = window._jhSaid.slice(), L = jhLinks();
         const door = document.getElementById('jh-jambo'), dr = door && door.getBoundingClientRect(), n = door && door.querySelector('[data-jh-jambo-n]');
         const ct = document.getElementById('content'), edge = ct ? Math.round(ct.getBoundingClientRect().left + ct.clientWidth) : innerWidth;
-        const pg = document.querySelector('.jh-page'), pr = pg && pg.getBoundingClientRect(), st = document.getElementById('jh-stage'), sr = st && st.getBoundingClientRect(), cr = ct ? ct.getBoundingClientRect() : { left: 0 };
+        /* RE-POINTED 16 Nov 2026 (#762): the folded strip (#jh-jambo) is gone — Jambo's agents carries Jambo's Five-parts
+           panel at the right edge (#ins-panel); the house fills its page up to it, the slider between (SPLIT) */
+        const ip = document.getElementById('ins-panel'), ipr = ip && ip.getBoundingClientRect();
+        const pg = document.querySelector('.jh-page'), pr = pg && pg.getBoundingClientRect(), st = document.getElementById('jh-stage') || document.getElementById('jh-cv'), sr = st && st.getBoundingClientRect(), cr = ct ? ct.getBoundingClientRect() : { left: 0 };
         const names = L.filter(l => l.k !== 'desk').map(l => ({ k: l.k, whole: said.includes(i18t('ag_' + l.k) + ' · ') }));
         return { ready: W.ready, card: ndRead().jambo.length, by: W.by, said, links: L.map(l => l.k), g: jhGeom(), audit: jhOverlapAudit(), sx: document.scrollingElement.scrollWidth > innerWidth, readings: AG_READINGS.slice(),
-          fill: pr && dr ? { pageL: Math.round(pr.left - cr.left), pageR: Math.round(pr.right), strip: Math.round(dr.left), stageL: sr ? Math.round(sr.left - cr.left) : null } : null, names,
+          /* the house's 16px is measured inside its white sheet (the new look's ONE SHEET), not from the window's edge */
+          fill: pr && ipr ? { pageL: Math.round(pr.left - cr.left), pageR: Math.round(pr.right), ctR: Math.round(cr.right), panel: Math.round(ipr.left),
+            stageL: sr ? Math.round(sr.left - (() => { let e = st.parentElement; while (e && e !== ct){ const bg = getComputedStyle(e).backgroundColor; if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return e.getBoundingClientRect().left; e = e.parentElement; } return cr.left; })()) : null } : null, names,
           door: door ? { right: Math.round(dr.right), w: Math.round(dr.width), n: n ? n.textContent : '', count: counterNeedsCount(), word: (door.querySelector('.igd-door-w') || {}).textContent || '', edge } : null }; });
       if (v) return v; await page.waitForTimeout(150); } return null; };
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
@@ -357,12 +364,13 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
         check('10b each acting room with a piece says its own "N waiting for you" where it has the room, and the approvals desk waits for nobody',
           acting.length >= 3 && acting.some(k => H0.links.includes(k)) && !H0.links.includes('approve') && !('approve' in H0.by), JSON.stringify({ by: H0.by, links: H0.links }));
         check('10c four and three rooms a floor, five floors, as drawn', H0.g.cols === 4 && H0.g.floors === 5, JSON.stringify(H0.g));
-        check('10d Jambo folded to the right edge: his face, Home\'s count, his name, ‹', !!H0.door && Math.abs(H0.door.right - H0.door.edge) <= 1 && H0.door.w >= 40 && H0.door.w <= 50
-          && H0.door.n === String(H0.door.count) && H0.door.word === 'Jambo', JSON.stringify(H0.door));
+        /* RETIRED 16 Nov 2026 (#762): 10d "Jambo folded to the right edge: his face, Home's count, his name" — the
+           folded strip was the old look's; the new look draws Jambo's Five-parts panel beside the house */
       }
       check(`10e at ${w}×${hh}: every agent clear of his room's words, nothing out of its room (the overlap audit), no sideways scroll`, H0.audit.ok && !H0.sx, JSON.stringify(H0.audit.faults.slice(0, 4)));
-      check(`11l at ${w}×${hh}: the house fills its page, from 16px at the left to Jambo's folded strip, no band between`,
-        !!H0.fill && H0.fill.pageL <= 1 && Math.abs(H0.fill.pageR - H0.fill.strip) <= 1 && H0.fill.stageL != null && H0.fill.stageL <= 17, JSON.stringify(H0.fill));
+      check(`11l at ${w}×${hh}: the house fills its page, from 16px at the left to Jambo's panel, no band between but the slider`,
+        !!H0.fill && H0.fill.pageL <= 1 && Math.abs(H0.fill.pageR - H0.fill.ctR) <= 1 && H0.fill.panel - H0.fill.pageR >= 0 && H0.fill.panel - H0.fill.pageR <= 12
+          && H0.fill.stageL != null && H0.fill.stageL <= 17, JSON.stringify(H0.fill));
       check(`11m at ${w}×${hh}: each room's work line keeps its agent's name whole, " · " and all — only the link's end may be cut`,
         H0.names.length > 0 && H0.names.every(n => n.whole), JSON.stringify(H0.names));
       await shot(page, `main-23-house-${w}x${hh}`);
@@ -392,13 +400,8 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
         return state.view === 'dashboard' && r && r.classList.contains('is-landed') && on && on.getAttribute('data-nd-tab') === 'jambo' ? true : null; }, roomK, 6000);
       check('10h a room\'s "N waiting for you" lands on that agent\'s first row in the Board\'s card, on Jambo\'s tab', !!landed, roomK);
     }
-    await page.evaluate(() => setView('jambo'));
-    await until(() => !!document.querySelector('[data-jh-jambo]'), null, 6000);
-    if (await press('[data-jh-jambo]', '10g the folded strip')) {
-      const opened = await until(() => { const p = document.getElementById('ai-panel'); return p && p.classList.contains('open') ? true : null; }, null, 4000);
-      check('10g a press on the strip opens Jambo beside the page (his window, the one Copilot door\'s own act)', !!opened);
-      await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
-    }
+    /* RETIRED 16 Nov 2026 (#762): 10g "a press on the folded strip opens Jambo beside the page" — no strip in the new
+       look: Jambo's panel already stands beside the house (11l measures it) */
 
     check('no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

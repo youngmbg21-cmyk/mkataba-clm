@@ -80,156 +80,18 @@ const PAINTED = (sel) => {
     await signIn(page, h.base, 'admin@example.co.ke', 'adminpassword1');
     await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1000);
-    await page.click('.st-face[data-st-tab="company"]');
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main .stn-row'), null, { timeout: 10000 }).catch(() => {});
     await shot(page, 'settings-company');
 
-    /* ============ 1. THE CARDS ARE PAINTED AND NAMED ============
-       RE-POINTED 16 Oct 2026 (the Control Room built in full, the owner's
-       "build"): a group is a SHORT card — two facts that are doors, and the
-       rest of the area's settings as doors under them. Every claim below is
-       the old claim asked of the cards: every panel drawn, once, under a
-       painted name, and no card a wall. */
-    const cards = await page.evaluate(() =>
-      [...document.querySelectorAll('.st-cards > .st-card[data-st-card]')].filter(s => !['people', 'ladder'].includes(s.getAttribute('data-st-card'))).map(s => ({
-        key: s.getAttribute('data-st-card'),
-        name: (s.querySelector('.st-card-h')?.childNodes[0]?.textContent || '').trim(),
-        facts: s.querySelectorAll('.st-fact').length,
-        panels: [...s.querySelectorAll('[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => window.SET_PANELS[k]),
-        h: s.querySelector('.st-card-h') ? Math.round(s.querySelector('.st-card-h').getBoundingClientRect().height) : 0
-      })));
-    const declared = await page.evaluate(() => {
-      const P = window.SET_PANELS, G = (window.ST_GROUPS || []).filter(g => g.tab === 'platform' || g.tab === 'build');
-      return G.map(g => Object.keys(P).filter(k => P[k].group === g.key && P[k].tab === g.tab && (!P[k].show || P[k].show())));
-    });
-    /* RE-POINTED 18 Oct 2026 (round 25 as drawn, the gaps): a card carries the
-       drawing's two facts and its doors — no longer every panel of its group;
-       every panel is still one press away in the Menu beside the board (1d) */
-    check('1a. the Company board draws every group it declares, each on one card',
-      declared.length > 1 && declared.filter(ks => ks.length).every(ks => cards.some(c => ks.some(k => c.panels.includes(k)))),
-      cards.map(c => `${c.name}(${c.panels.length})`).join(' · '));
-    check('1b. every card\'s name is painted ink, not an empty box',
-      cards.length > 3 && cards.every(c => c.name.length && c.h > 0), cards.map(c => c.h + 'px').join(' ') || 'no cards');
-    check('1c. no card is a wall — two facts at most, the rest are doors',
-      cards.length && cards.every(c => c.facts >= 1 && c.facts <= 2), cards.map(c => c.facts).join(' '));
-    const all = await page.evaluate(() => {
-      const P = window.SET_PANELS;
-      return { want: Object.keys(P).filter(k => (P[k].tab === 'platform' || P[k].tab === 'build') && (!P[k].show || P[k].show())) };
-    });
-    /* the Menu beside the board holds the whole list (re-pointed 18 Oct 2026) */
-    const keys = await page.evaluate(() => [...document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => window.SET_PANELS[k]));
-    check('1d. every company panel is still there, once each',
-      all.want.length > 0 && keys.length === all.want.length && new Set(keys).size === keys.length && all.want.every(k => keys.includes(k)),
-      `${keys.length} rows in the Menu for ${all.want.length} panels`);
-    const spans = await page.evaluate(() => {
-      const w = k => { const el = document.querySelector(`.st-cards > [data-st-card="${k}"], .st-board > [data-st-card="${k}"]`); return el ? el.getBoundingClientRect().width : 0; };
-      return { people: w('people'), ladder: w('ladder'), one: w('signing') };
-    });
-    /* since round 25 ("Control room"): nine even cards, the ladder across the page under them */
-    check('1e. People & access is one card like the rest; the ladder runs across the page',
-      spans.one > 0 && Math.abs(spans.people - spans.one) < 2 && spans.ladder > spans.one * 2.5, JSON.stringify(spans));
-
-    /* ============ 2. NO TAG; THE DOT IS THE STATE ============
-       2b ("Required") and 2d (the dot legend) were retired with the rows they
-       sat on: a card's fact carries the panel's dot beside its name. */
-    const tags = await page.evaluate(() => {
-      /* the area cards' facts (People & access states its counts in words, no dots) */
-      const facts = [...document.querySelectorAll('.st-cards > .st-card:not([data-st-card="people"]) .st-fact[data-st-panel]')].filter(f => window.SET_PANELS[f.getAttribute('data-st-panel')]);
-      const dots = facts.map(f => f.querySelector('.st-dot')).filter(Boolean).map(d => getComputedStyle(d).backgroundColor);
-      return { facts: facts.length, painted: dots.filter(c => c && c !== 'rgba(0, 0, 0, 0)').length,
-        optional: /\b(optional|valfri)\b/i.test(document.querySelector('.st-cards').textContent) };
-    });
-    check('2a. "Optional" is printed nowhere on the board', tags.facts >= 10 && !tags.optional, `${tags.facts} facts`);
-    check('2c. every fact carries a painted status dot', tags.facts >= 10 && tags.painted === tags.facts, `${tags.painted} of ${tags.facts} dots painted`);
-
-    /* ============ 3. NEEDS YOU LEADS, AND CROSSES AREAS ============ */
-    const att = await page.evaluate(() => {
-      const el = document.getElementById('st-att');
-      if (!el) return { drawn: false };
-      const rows = [...el.querySelectorAll('.st-need[data-st-need]')];
-      return {
-        drawn: true,
-        h: Math.round(el.getBoundingClientRect().height),
-        top: Math.round(el.getBoundingClientRect().top),
-        rows: rows.map(r => r.getAttribute('data-st-need')),
-        buttons: rows.filter(r => { const b = r.querySelector('.st-need-go'); return b && b.getBoundingClientRect().width > 0; }).length,
-        firstCardTop: Math.round(document.querySelector('.st-cards > .st-card').getBoundingClientRect().top)
-      };
-    });
-    check('3a. Needs you is drawn and painted', att.drawn && att.h > 0, (att.h || 0) + 'px');
-    check('3b. it leads the board, above the first card',
-      att.drawn && att.top < att.firstCardTop, `needs ${att.top} · first card ${att.firstCardTop}`);
-    check('3c. every row carries the painted button that settles it',
-      att.drawn && att.rows.length > 0 && att.buttons === att.rows.length, `${att.buttons} of ${(att.rows || []).length}`);
-    const crossed = await page.evaluate(rows =>
-      rows.some(k => /^panel:/.test(k) && window.SET_PANELS[k.slice(6)] && window.SET_PANELS[k.slice(6)].tab !== 'platform'), att.rows || []);
-    check('3d. AND IT REACHES ACROSS AREAS — the plumbing as well as the agreement',
-      crossed, (att.rows || []).join(' · '));
-
-    /* ============ 4. ONE BOX OVER ALL OF THEM — the Menu's ============ */
-    /* re-pointed 18 Oct 2026 (rounds 24–26 as drawn): "/" in Jambo's box opens the Menu.
-       RE-POINTED AGAIN 19 Oct 2026 (lane F's fourth pass): main's rule won —
-       "/" in every Jambo box lists the places (caSlRead) — so the Menu is
-       reached through Jambo's own door, "Open the Menu", under the answer
-       he gives when he finds no setting */
-    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the finder's free answer, asked as a chip asks */
-    await page.fill('#st-jb-q', 'zzqx nothing here');
-    await chipEnter(page, '#st-jb-q');
-    await page.waitForSelector('#st-jb-feed [data-st-side="menu"]', { timeout: 6000 }).catch(() => null);
-    if (await page.locator('#st-jb-feed [data-st-side="menu"]').count()) await page.locator('#st-jb-feed [data-st-side="menu"]').last().click();
-    await page.waitForTimeout(300);
-    const box = await page.evaluate(PAINTED, '#st-q');
-    check('4a. the search box is painted', box.ok, box.why);
-    /* GUARDED so a build without the box REPORTS the rest as failures rather
-       than throwing on the first click and hiding everything under it. */
-    if (!box.ok) {
-      for (const n of ['4b. typing narrows the list to real hits',
-        '4c. and the groups stand down while a search is running',
-        '4d. a hit from ANOTHER tab is found — nobody knows which tab a setting is on',
-        '4e. the caret never leaves the box',
-        '4f. AND THE PAGE HOLDS STILL while it narrows',
-        '4g. a query that matches nothing says so',
-        '4h. clearing it brings the groups back']) check(n, false, 'no search box on this build');
-    } else {
-    const before = await page.evaluate(() => ({
-      y: document.getElementById('st-q').getBoundingClientRect().top,
-      scroll: (document.getElementById('content-scroll') || document.scrollingElement).scrollTop
-    }));
-    await page.click('#st-q');
-    await page.type('#st-q', 'email', { delay: 40 });
-    await page.waitForTimeout(350);
-    await shot(page, 'settings-search');
-    const found = await page.evaluate(() => ({
-      hits: [...document.querySelectorAll('#st-list .st-mrow')].map(r => r.getAttribute('data-st-panel') || r.getAttribute('data-st-you')),
-      says: (document.querySelector('.st-found') || {}).textContent || '',
-      groups: document.querySelectorAll('#st-list .st-mgrp').length,
-      focused: document.activeElement && document.activeElement.id,
-      y: document.getElementById('st-q').getBoundingClientRect().top
-    }));
-    check('4b. typing narrows the list to real hits', found.hits.length > 0 && found.hits.length < 17,
-      found.hits.join(' · '));
-    check('4c. and the groups stand down while a search is running', found.groups === 0, found.groups + ' groups');
-    check('4d. a hit from ANOTHER tab is found — nobody knows which tab a setting is on',
-      await page.evaluate(hits => hits.some(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab === 'build'), found.hits),
-      found.says.trim());
-    check('4e. the caret never leaves the box', found.focused === 'st-q', 'focus ' + found.focused);
-    check('4f. AND THE PAGE HOLDS STILL while it narrows',
-      Math.abs(found.y - before.y) < 1, `box moved ${Math.round(Math.abs(found.y - before.y))}px`);
-    /* A query nobody can match is a sentence, never an empty box. */
-    await page.fill('#st-q', 'zzzznothing');
-    await page.waitForTimeout(300);
-    const none = await page.evaluate(PAINTED, '.st-none');
-    check('4g. a query that matches nothing says so', none.ok, none.why);
-    await page.fill('#st-q', '');
-    await page.waitForTimeout(300);
-    /* You, People, then every company group */
-    check('4h. clearing it brings the groups back',
-      (await page.evaluate(() => document.querySelectorAll('#st-list .st-mgrp').length))
-        === (await page.evaluate(() => 2 + (window.ST_GROUPS || []).filter(g => g.tab === 'platform' || g.tab === 'build').length)));
-    }
+    /* RETIRED 16 Nov 2026 (#762): 1a–1e (the Company board's cards: painted names, no card a wall, every panel once,
+       People & the ladder), 2a/2c (the cards' facts and their dots), 3a–3d (Needs you leading the board), 4a–4h (the
+       Menu's search box narrowing the groups) and 6a–6c (Build & launch's card, the Menu's seven, a tab press clearing
+       the search) — the Company board, its Menu and the You · Company tabs are the old look's. Settings is one list by
+       area (settings-menu-verify); what needs an admin is Jambo's panel beside it. Section 5, the drawer, stands. */
 
     /* ============ 5. THE DRAWER SAYS WHERE YOU ARE ============ */
-    await page.click('.st-cards [data-st-panel="approvals"]');
+    /* RE-POINTED 16 Nov 2026 (#762): the approvals door is its row on the one list */
+    await page.click('.stn-page #stn-main [data-st-panel="approvals"]');
     await page.waitForTimeout(600);
     await shot(page, 'settings-drawer');
     const crumb = await page.evaluate(PAINTED, '.st-dcrumb');
@@ -273,30 +135,7 @@ const PAINTED = (sel) => {
       check('5h. and the position counts up with it', at(landed.n) === at(crumbText.n) + 1, `${crumbText.n} -> ${landed.n}`);
     }
 
-    /* ============ 6. THE BUILD TAB GOT THE SAME TREATMENT ============ */
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(400);
-    /* the search left standing, then a tab press: the box comes back empty */
-    await page.fill('#st-q', 'email'); await page.waitForTimeout(200);
-    await page.click('.st-face[data-st-tab="you"]'); await page.waitForTimeout(400);
-    await page.click('.st-face[data-st-tab="company"]');
-    await page.waitForTimeout(500);
-    const build = await page.evaluate(() => ({
-      panels: [...document.querySelectorAll('.st-cards > [data-st-card="live"] [data-st-panel]')].map(b => b.getAttribute('data-st-panel'))
-        .filter(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab === 'build'),
-      q: (document.getElementById('st-q') || {}).value
-    }));
-    /* RE-POINTED 16 Oct 2026: Going live and the plumbing are one card, as drawn */
-    check('6a. Build & launch is on the board too, on its own card', build.panels.length > 0, build.panels.join(' · '));
-    /* RE-POINTED 18 Oct 2026 (round 25 as drawn): its card says Before going
-       live and Email delivery, with Email & outbox and History integrity
-       check as doors; all seven are in the Menu */
-    const buildMenu = await page.evaluate(() => [...document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab === 'build'));
-    check('6b. and all seven of its panels are still drawn', new Set(build.panels).size === 3 && ['golive', 'mail', 'integrity'].every(k => build.panels.includes(k)) && new Set(buildMenu).size === 7, `${[...new Set(build.panels)].join(',')} on the card · ${buildMenu.length} in the Menu`);
-    /* `=== ''` rather than falsy: on a build with no box at all the value reads
-       undefined, and "not truthy" would call that a pass. */
-    check('6c. changing tab clears the search, so the tab press cannot look broken',
-      build.q === '', JSON.stringify(build.q));
 
     check('no page errors anywhere', errors.length === 0, errors.slice(0, 3).join(' | ') || 'clean');
   } catch (e) {

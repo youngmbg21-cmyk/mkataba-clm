@@ -53,7 +53,8 @@ async function readHead(page, hostSel, sel){
     const host = document.querySelector(hostSel);
     if (!host) return null;
     const box = host.querySelector(sel);
-    if (!box) return { id: host.getAttribute('data-ins-id'), box: false };
+    /* a head that is not drawn reports as empty lines, so every check below says so rather than throwing */
+    if (!box) return { id: host.getAttribute('data-ins-id'), box: false, many: false, text: '', names: [], roles: [], tops: [], shown: [], inside: false, titles: [], plusN: false };
     const lines = [...box.querySelectorAll('[data-ins-party]')];
     const pr = host.getBoundingClientRect();
     return {
@@ -155,8 +156,10 @@ async function readHead(page, hostSel, sel){
        read where it still stands for these contracts — Negotiations (A, and
        the control D, each given the other side's ask). */
     const toContracts = async () => { await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1000); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Negotiations list's rows are
+       tr[data-ngn-row] (the new list); a press on one CHOOSES it and its panel is Jambo's five-part panel */
     const pickRow = async (tbodySel, attr, id) => {
-      const row = await page.$(`${tbodySel} tr[${attr}="${id}"]`);
+      const row = (attr === 'data-row' ? await page.$(`tr[data-ngn-row="${id}"]`) : null) || await page.$(`${tbodySel} tr[${attr}="${id}"]`);
       if (!row) return false;
       await row.click(); await page.waitForTimeout(350);
       return true;

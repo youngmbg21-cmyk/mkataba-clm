@@ -25,7 +25,9 @@ const waitFor = async (page, fn, arg, ms = 8000) => { try { await page.waitForFu
 /* what a press on a row's door, or on a link at the foot, should do */
 const ROWS = { name: 'drawer', twostep: 'drawer', agents: 'view:jambo', approvals: 'drawer', review: 'drawer', signcap: 'drawer', linkcode: 'drawer', rates: 'drawer', mail: 'drawer' };
 const FOOT = { 'data-st-page=team': 'page', 'data-st-page=streams': 'page', 'data-st-panel=lessons': 'drawer', 'data-st-panel=trail': 'page' };
-const AREAS = { you: ['name', 'lang', 'agents'], sec: ['twostep', 'signcap', 'linkcode'], rule: ['approvals', 'review'], money: ['rates'], msg: ['push', 'mail', 'outsidelook'] };
+const AREAS = { you: ['name', 'lang', 'agents'], sec: ['twostep', 'signcap', 'linkcode'], rule: ['approvals', 'review'], money: ['rates'], msg: ['push', 'mail'] };
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the outside look's row and switch are gone (on for everyone),
+   so Messages holds Push and Mail; the one switch left is Push's, drawn once its state is read, so it is waited for */
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -46,7 +48,8 @@ const AREAS = { you: ['name', 'lang', 'agents'], sec: ['twostep', 'signcap', 'li
     await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
     const open = async () => { await page.reload({ waitUntil: 'networkidle' }); await waitFor(page, () => typeof openSettingsAt === 'function' && !!(window.state && Array.isArray(state.contracts) && state.contracts.length) && typeof currentUser === 'function' && !!currentUser(), null, 20000); await page.keyboard.press('Escape').catch(() => {});
       if (!(await page.evaluate(() => document.documentElement.classList.contains('lg-new')))) await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
-      await page.evaluate(() => openSettingsAt('you')); return waitFor(page, () => document.querySelectorAll('#stn-main .stn-row').length >= 10, null, 10000); };
+      await page.evaluate(() => openSettingsAt('you')); const ok = await waitFor(page, () => document.querySelectorAll('#stn-main .stn-row').length >= 10, null, 10000);
+      if (ok) await waitFor(page, () => !!document.querySelector('#stn-main .st-swt'), null, 8000); return ok; };
     const scrim = () => page.evaluate(() => { const sc = document.getElementById('st-scrim'); return !!sc && getComputedStyle(sc).display !== 'none' && sc.getBoundingClientRect().width > 0; });
     const first = await open();
     check('0 Settings draws its list, the new look on', first);

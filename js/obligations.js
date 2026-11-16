@@ -2600,6 +2600,12 @@ function obligationsDoorCount(){
    stale to inherit. */
 function obwGoFiltered(patch){
   _obwF = { whose:'all', state:'open', side:'all', folder:'all', due:'all', ...(patch || {}) };
+  /* THE NEW LOOK'S PAGE (obnRender) READS ITS OWN PILLS (16 Nov 2026, #762): a door asking for the late ones
+     lands on Late, one asking for their side or ours on that choice, and a fresh landing starts unsearched */
+  const p = patch || {};
+  _obnTab = p.state === 'overdue' ? 'late' : 'open';
+  _obnWho = (p.side === 'ours' || p.side === 'theirs') ? p.side : 'all';
+  _obnQ = '';
   if(typeof setView === 'function') setView('obligations');
   else renderObligationsList();
 }

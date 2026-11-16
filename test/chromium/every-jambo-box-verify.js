@@ -164,8 +164,9 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
       await part('1e Settings', async () => {
         await page.evaluate(() => setView('team'));
         /* the page re-measures its side once its entrance has settled (stSideFit): wait for that, bounded */
-        await until(() => { const sd = document.getElementById('st-side'); return sd && document.querySelector('#st-jb-form .jb-card') && sd.getBoundingClientRect().bottom <= innerHeight + 1; }, null, 4000);
-        const L = await until(NO_LINE_OF, ARG('#st-jb-form .jb-card', '#st-side'), 10000);
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel, box #jl-q), no longer its own #st-side */
+        await until(() => { const sd = document.getElementById('ins-panel'); return sd && sd.querySelector('.jb-card') && sd.getBoundingClientRect().bottom <= innerHeight + 1; }, null, 4000);
+        const L = await until(NO_LINE_OF, ARG('#ins-panel .jb-card', '#ins-panel'), 10000);
         check(`1e ${at} Settings' Jambo side: no line under its box`, ok(L), JSON.stringify(L));
       });
       await part('1f Import', async () => {

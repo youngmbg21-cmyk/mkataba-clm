@@ -1558,7 +1558,7 @@ function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){

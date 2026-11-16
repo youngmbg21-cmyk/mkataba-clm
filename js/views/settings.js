@@ -2198,7 +2198,9 @@ function stPushHtml(){
   const sw=(st==='on'||st==='off')?stSwHtml('push',st==='on',i18t('st_you_push_row')):'';
   return `<span data-st-push class="st-push">${sw}<span class="st-you-sub">${esc(typeof pushStateSaid==='function'?pushStateSaid(st):st)}</span></span>`;
 }
-function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); }); }
+function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); });
+  /* the new look's one list draws the row itself (stnYouHtml): repaint it when the answer lands */
+  if(document.querySelector('.stn-page')&&typeof stnPaint==='function') stnPaint(stIsAdmin()); }
 function stPushRefresh(){
   if(typeof pushState!=='function') return;
   pushState().then(st=>{ if(st!==_stPush){ _stPush=st; stPushPaint(); } }).catch(()=>{});
@@ -10174,7 +10176,8 @@ function stnYouHtml(){
   const seg=`<span class="st-yseg stn-seg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===now?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>`;
   const ps=_stPush;
   const push=ps?esc(ps==='on'?i18t('stn_push_on'):(typeof pushStateSaid==='function'?pushStateSaid(ps):ps)):'';
-  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ if(st!==_stPush){ _stPush=st; if(document.querySelector('.stn-page')) stnPaint(stIsAdmin()); } }).catch(()=>{}); },0);
+  /* compared with what THIS row drew (nothing), not with _stPush: stPushRefresh may have stored the answer first and painted only the old row (16 Nov 2026, #762) */
+  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ _stPush=st; if(st&&document.querySelector('.stn-page')) stnPaint(stIsAdmin()); }).catch(()=>{}); },0);
   const out=[stnRow('name', i18t('st_you_name_row'), esc(name), i18t('stn_name_sub'), stnDoor('data-st-panel="me:name"', i18t('st_you_change'))),
     stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg)];
   if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));
@@ -10227,11 +10230,13 @@ function stnPanelHtml(admin){
      door (the need's own press attributes), Ask an admin a row (data-st-ask-head), what Jambo was taught a row
      (data-st-panel="lessons"). The same readings (stNeedsAll, _stLessons). The new look only. */
   if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
-    const needRows=needs.slice(0,5).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
+    /* EVERY NEED IS SAID, and each row's sentence whole (16 Nov 2026, #762: five of eight were drawn and the rest went
+       unsaid; a clash's sentence was cut to an ellipsis) — a cap is a fact, never a silent trim */
+    const needRows=needs.map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
       const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):''); const what=k==='panel'?(sub?stShortState(sub):r.text):r.text;
       /* a need with no kind of its own is named by what it is ("Quarterly access review · Q4 2026"), never the bare word "Setting" */
-      if(!(k==='panel'&&SET_PANELS[String(r.key).slice(6)])&&!STN_NEED_KIND[k]) return { mark:'alert', tone:'amber', t:what||lab, s:sub, attr:r.btn||'' };
-      return { mark:'alert', tone:'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'' }; });
+      if(!(k==='panel'&&SET_PANELS[String(r.key).slice(6)])&&!STN_NEED_KIND[k]) return { mark:'alert', tone:r.dot==='red'?'red':'amber', t:what||lab, s:sub, attr:r.btn||'', wrap:true };
+      return { mark:'alert', tone:r.dot==='red'?'red':'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'', wrap:true }; });
     const groups=[];
     if(needRows.length) groups.push({ label:i18t('jov5_st_needs'), rows:needRows });
     groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""' }] });

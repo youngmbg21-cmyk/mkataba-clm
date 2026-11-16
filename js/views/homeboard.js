@@ -1403,7 +1403,8 @@ function hbFigDoor(key){
      narrowing of the Contracts list — lit, pressing nothing (focus:false: the
      narrowing's × is never the readied button) */
   if (k === 'overdue'){ if (typeof obwGoFiltered !== 'function') return false; obwGoFiltered({ state: 'overdue' });
-    if (typeof landOn === 'function') landOn('[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
+    /* the new look's page names its Late pill (obnRender, #762); the old page its Overdue view */
+    if (typeof landOn === 'function') landOn((typeof newLookOn === 'function' && newLookOn()) ? '[data-obn-tab="late"]' : '[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
   if (!HB_FIG_TO_CONTRACTS.includes(k) || typeof regShowOnly !== 'function') return false;
   let F = null; try { F = hbBookData(hbS().lens || 'all').figs[k]; } catch (_){ F = null; }
   const ids = (F && Array.isArray(F.ids)) ? F.ids : []; if (!ids.length) return false;

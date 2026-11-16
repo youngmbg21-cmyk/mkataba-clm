@@ -154,6 +154,7 @@ const HELPERS = `(() => {
     await page.evaluate(() => { try { regSetScope(null); } catch (e) {} (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForFunction(() => [...document.querySelectorAll('.reg-row-more')].some(b => b.getBoundingClientRect().height > 0)
       && !!document.querySelector('#page-head button, .ct-head .reg-seg'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#content .ctf-pill, #content .ctf-new'), null, { timeout: 6000 }).catch(() => {});
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     const c1 = await page.evaluate(() => {
@@ -181,14 +182,17 @@ const HELPERS = `(() => {
         edge = { h: +r.height.toFixed(1), w: +r.width.toFixed(1), above: !!(a && more.contains(a)), below: !!(b && more.contains(b)) }; }
       return { head, bar, edge };
     });
-    ok('1a the page head\'s buttons are the everyday rung (28)',
-      c1.head.length > 0 && c1.head.every(b => near(b.h, 28)), JSON.stringify(c1.head.map(b => b.t + ':' + b.h)));
-    ok('1b the filter bar\'s chips and switches are the same height as the buttons',
-      c1.bar.length > 0 && c1.bar.every(b => near(b.h, 28)), JSON.stringify(c1.bar.map(b => b.t.slice(0, 12) + ':' + b.h)));
-    ok('1c a row\'s menu is the row rung, a square (22 × 22)',
-      !!c1.edge && near(c1.edge.h, 22) && near(c1.edge.w, 22), JSON.stringify(c1.edge));
-    ok('1d and a press half a pixel outside its drawn box still reaches it (a 24px target)',
-      !!c1.edge && c1.edge.above && c1.edge.below, JSON.stringify(c1.edge));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place's head is the new look's ONE
+       head (.ctf-h): its List | Wall pills and New agreement stand on the LARGE rung, the token --ctl-h-lg (32), all
+       alike (THE HARMONY REVIEW, PILL TO ACT). The promise kept: the head's controls stand on one ruled rung. */
+    const head5 = await page.evaluate(() => { const m = window.__m;
+      const lg = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ctl-h-lg')) || 0;
+      return { lg, b: [...document.querySelectorAll('#content .ctf-pill, #content .ctf-new')].filter(m.vis).map(m.box) }; });
+    ok('1a the page head\'s buttons stand on one ruled rung (the large rung, --ctl-h-lg)',
+      head5.b.length > 0 && head5.lg > 0 && head5.b.every(b => near(b.h, head5.lg)), JSON.stringify({ lg: head5.lg, b: head5.b.map(b => b.t + ':' + b.h) }));
+    /* RETIRED 16 Nov 2026 (#762): 1b (the filter bar's chips), 1c and 1d (a row's ⋯ menu, 22 × 22 with a 24px target) —
+       the new look's Contracts list draws no filter bar and no row menu: a row press chooses, a second opens, and the
+       acts are in the panel beside it (CONTRACTS IS A PLACE BESIDE THE BOARD, igWallChoose / igWallOpen) */
     await sweep('contracts');
     await page.evaluate(() => { if (window.insForce) insForce(null); });
 

@@ -433,7 +433,12 @@ const ok = (name, good, detail) => {
       await page.screenshot({ path: path.join(OUT, '10-new-paper-panel.png') });
       const rb = await page.$(`${CA} [data-ag-act="brief"]`);
       if (rb) { await rb.click(); await page.waitForTimeout(1800); }
-      const briefShown = await page.evaluate(() => { const s = document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every brief door lands on the ONE brief page in
+         the middle beside the paper (pd2BriefGo → pd2BriefOpen, [data-pd2-brief]), no longer the side panel's
+         #brief-section; the promise is the same — the brief itself, never "Nothing has been briefed". */
+      const BRIEF_AT = () => { const s = document.querySelector('[data-pd2-brief]') || document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); };
+      await page.waitForFunction(`(${BRIEF_AT})() && /FY2026 external audit/.test((${BRIEF_AT})())`, null, { timeout: 8000 }).catch(() => {});
+      const briefShown = await page.evaluate(() => { const s = document.querySelector('[data-pd2-brief]') || document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
       ok('10d "Read the brief" opens the brief, not an empty panel — the owner\'s report (RED at faa8f95)',
         !!briefShown && /FY2026 external audit/.test(briefShown) && !/Nothing has been briefed/.test(briefShown), String(briefShown).slice(0, 140));
       await page.screenshot({ path: path.join(OUT, '10-brief.png') });
@@ -455,7 +460,9 @@ const ok = (name, good, detail) => {
       ok('10f GATE — the second contract is still a light row that carries no brief', stillLight);
       await page.evaluate(id => openCheckPanel(getContract(id), 'brief'), fresh.b);
       await page.waitForTimeout(1500);
-      const funnel = await page.evaluate(() => { const s = document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
+      /* RE-POINTED 16 Nov 2026 (#762): read on the brief page in the middle, as 10d */
+      await page.waitForFunction(id => { const s = document.querySelector(`[data-pd2-brief="${id}"]`); return !!s && /supply agreement for packaging/.test(s.textContent); }, fresh.b, { timeout: 8000 }).catch(() => {});
+      const funnel = await page.evaluate(id => { const s = document.querySelector(`[data-pd2-brief="${id}"]`) || document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); }, fresh.b);
       ok('10f the brief panel\'s own funnel loads a light record first, whatever door opened it (RED at faa8f95)',
         !!funnel && /supply agreement for packaging/.test(funnel), String(funnel).slice(0, 140));
       await page.evaluate(() => { try { closeModal(); } catch (_){} });

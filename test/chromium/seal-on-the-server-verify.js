@@ -80,7 +80,9 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
     check('0   staged: nothing holds the Sign button', !ready.blockers.length, JSON.stringify(ready));
 
     /* ---- 1 · WE SIGN FIRST ---- */
-    await page.click('#sign-btn');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Before you sign is drawn as its five parts; the
+       Sign a reader presses is the clear card's ([data-pd2-sign]), which presses the Signing tab's own #sign-btn */
+    await page.click((await page.$('#pd-signface [data-pd2-sign]')) ? '#pd-signface [data-pd2-sign]' : '#sign-btn');
     await page.waitForSelector('#sig-pad', { timeout: 5000 });
     await page.click('[data-sig-tab="type"]');
     await page.fill('#sig-typed', 'Amina Otieno');

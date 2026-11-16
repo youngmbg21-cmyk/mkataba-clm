@@ -97,8 +97,10 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
 
     /* 9 — Risks to look at › Open */
     await page.evaluate(() => { if (typeof pdRedClose === 'function') pdRedClose(); });
-    const rk = await waitFor(page, () => !!document.querySelector('#pd-glance [data-pd-gl-risks]'), 8000);
-    if (rk) await press('#pd-glance [data-pd-gl-risks]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier card carries the risks'
+       door (data-pd-gl-risks) on its own rows (the road's "fix" row, the risk quotes' "more"), not the old glance list */
+    const rk = await waitFor(page, () => [...document.querySelectorAll('#ig-dock [data-pd-gl-risks]')].some(b => b.getBoundingClientRect().width > 0), 8000);
+    if (rk) await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock [data-pd-gl-risks]')].find(x => x.getBoundingClientRect().width > 0); if (b) b.click(); });
     await waitFor(page, () => { const r = document.querySelector('#ig-dock #rl-risks'); return !!(r && r.classList.contains('is-landed')); }, 8000);
     const s9 = await page.evaluate(() => { const r = document.querySelector('#ig-dock #rl-risks'); const d = document.getElementById('ig-dock');
       const rr = r && r.getBoundingClientRect(), dr = d && d.getBoundingClientRect();
