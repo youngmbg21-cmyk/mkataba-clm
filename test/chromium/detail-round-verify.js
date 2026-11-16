@@ -111,7 +111,10 @@ const blocked = [];
             const head = await ev(() => { const e = document.querySelector('.cal-head'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.parentElement.getBoundingClientRect();
               return { rad: parseFloat(cs.borderTopLeftRadius), shadow: cs.boxShadow !== 'none', inset: Math.round(r.left - pr.left) }; });
             /* RE-POINTED 29 Oct 2026 (ONE CORNER): every card is 10px round now, "half as round" */
-            check(`${at} · 1b — the Calendar's head floats as a card`, head && head.rad >= 10 && head.shadow && head.inset >= 8, JSON.stringify(head));
+            /* RETIRED 16 Nov 2026 (#762): 1b "the Calendar's head floats as a card" (lift, inset 8) — the Legora look's floating
+               halves; the new look's head and page are ONE white sheet, no gap, no lift (ONE SHEET; CLAUDE.md: cards with gaps
+               are the old look) */
+            void head;
           }
         }
         if (on(3)){ await ev(() => { const t = document.querySelector('.cal-cop [data-cal-talk]'); if (t) t.click(); }); await until(() => document.querySelector('.cal-cop .jb-hello'), undefined, 4000);
@@ -201,16 +204,20 @@ const blocked = [];
       /* ---- 9 · NEEDS YOU'S CHIPS, SETTINGS' ON/OFF ---- */
       if (on(9)) {
         await clean(); await ev(() => hbOpenAgent());
-        await until(() => document.querySelector('.nd-chip'));
+        await until(() => document.querySelector('.nd-chip'), undefined, 2000);
         await settle();
         const hs = await ev(() => [...document.querySelectorAll('.nd-chip')].filter(b => b.getBoundingClientRect().width).map(b => Math.round(b.getBoundingClientRect().height)));
-        check(`${at} · 9a — Needs you's chips are 28px pills`, hs && hs.length && hs.every(x => x === 28), JSON.stringify(hs));
+        /* RETIRED 16 Nov 2026 (#762): 9a "Needs you's chips are 28px pills" — the new look's Needs you draws no kind chips
+           (.nd-chips display:none, as drawn; see found-promises-verify) */
+        void hs;
         await clean(); await ev(() => openSettingsAt('you'));
-        await until(() => document.querySelector('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on'));
+        await until(() => document.querySelector('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on'), undefined, 2000);
         await settle();
         if (on(8)) await levelCheck('Settings', '.st-cr .st-headcard');
         const cs = await ev(() => [...document.querySelectorAll('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on')].filter(b => b.getBoundingClientRect().width).map(b => Math.round(b.getBoundingClientRect().height)));
-        check(`${at} · 9c — Settings' On/Off chip is a 22px pill`, cs && cs.length && cs.every(x => x === 22), JSON.stringify(cs));
+        /* RETIRED 16 Nov 2026 (#762): 9c "Settings' On/Off chip is a 22px pill" — the old You cards' chip; the new look's
+           Settings is one list by area with a round mark per row (stnRow, f1045), no On/Off chip */
+        void cs;
       }
 
       /* ---- 6 + 7 · THE DOSSIER AND KEY TERMS ---- */
@@ -221,17 +228,21 @@ const blocked = [];
         if (on(6)) {
           /* every contract in the sample book: the first act wears its WHOLE name, so the longest names show */
           const ids = await ev(() => state.contracts.filter(c => !c._fake).slice(0, 40).map(c => c.id));
-          const seen = [], bad = [];
+          const seen = [], bad = []; let measured = 0;
           for (const cid of ids || []) {
             await ev(x => pdOpenOnHome(x, 'copilot'), cid);
-            if (!(await until(x => { const p = window.pdContract && pdContract(); return p && p.id === x && document.querySelector('#ig-dock .ds-acts-b.is-mq'); }, cid, 3000))) continue;
-            const row = await ev(() => [...document.querySelectorAll('#ig-dock .ds-acts-b.is-mq > *')].filter(b => b.getBoundingClientRect().width).map(b => {
+            /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml) whose
+               act is its one black button (.pd2-card-go) — measured the same way, over every contract in the book */
+            if (!(await until(x => { const p = window.pdContract && pdContract(); return p && p.id === x && document.querySelector('#ig-dock [data-pd2-card] .pd2-card-go'); }, cid, 3000))) continue;
+            const row = await ev(() => [...document.querySelectorAll('#ig-dock [data-pd2-card] .pd2-card-go')].filter(b => b.getBoundingClientRect().width).map(b => {
               const r = document.createRange(); r.selectNodeContents(b); const t = r.getBoundingClientRect(), cs = getComputedStyle(b), bx = b.getBoundingClientRect();
               const room = bx.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
               return { t: b.textContent.trim(), cut: t.width > room + 0.5, out: Math.round(bx.right - b.closest('#ig-dock').getBoundingClientRect().right) }; }));
             for (const x of row || []) { if (!seen.includes(x.t)) seen.push(x.t); if (x.cut || x.out > 0) bad.push(x.t); }
+            if ((row || []).length) measured++;
           }
-          check(`${at} · 6 — the Dossier's act buttons keep their words`, seen.length > 2 && !bad.length, bad.length ? [...new Set(bad)].map(t => `"${t}" cut`).join(', ') : `${seen.length} buttons whole`);
+          /* the new look's card carries ONE button, so "it really drew" is asked as several contracts measured, not several words */
+          check(`${at} · 6 — the Dossier's act buttons keep their words`, measured > 2 && !bad.length, bad.length ? [...new Set(bad)].map(t => `"${t}" cut`).join(', ') : `${measured} contracts, ${seen.length} words, all whole`);
           await ev(id => pdOpenOnHome(id, 'copilot'), reviewId);
           await until(x => { const p = window.pdContract && pdContract(); return p && p.id === x; }, reviewId, 4000);
         }
@@ -259,7 +270,9 @@ const blocked = [];
           else {
             const hd = await ev(() => { const e = document.querySelector('#modal-root .modal-in[data-sh-page] .sh-hd'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.closest('.modal-in').getBoundingClientRect();
               return { rad: parseFloat(cs.borderTopLeftRadius), shadow: cs.boxShadow !== 'none', inset: Math.round(r.left - pr.left) }; });
-            check(`${at} · 2a — the Send screen's head floats as a card`, hd && hd.rad >= 10 && hd.shadow && hd.inset >= 8, JSON.stringify(hd));
+            /* RETIRED 16 Nov 2026 (#762): 2a "the Send screen's head floats as a card" — the old look's floating head; the new
+               look draws heads flat on the one white sheet */
+            void hd;
             if (on(8)) await levelCheck('Send screen', '#modal-root .modal-in[data-sh-page] .sh-hd');
             const ln = await ev(() => { const p = document.querySelector('#sh-noemail'); if (!p || !p.getBoundingClientRect().width) return null;
               const box = p.previousElementSibling || p.parentElement.previousElementSibling; const card = [...document.querySelectorAll('#pd-sendface .sh-lt-card')].find(e => e.getClientRects().length); /* RE-POINTED, the SAP Way (28 Oct 2026): the first card SHOWN — the verdict card leads and steps out where a blocking check says no */

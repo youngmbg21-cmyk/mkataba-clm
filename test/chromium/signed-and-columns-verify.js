@@ -70,6 +70,10 @@ const check = (name, ok, detail) => {
       if (cs[2]) { cs[2].status = 'Draft'; delete cs[2].execution; delete cs[2].signedAt; }
     });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+    await page.waitForFunction(() => !!document.querySelector('[data-ctf-show="list"]') || !!document.querySelector('.reg-table'), null, { timeout: 10000 }).catch(() => {});
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
+    await page.waitForFunction(() => !!document.querySelector('.reg-table'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 

@@ -395,8 +395,10 @@ const ok = (name, good, detail) => {
       /* the surface a word sits on: the nearest box that paints a ground */
       const ground = el => { for (let e = el; e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor, a = (b.match(/[\d.]+/g) || []);
         if (b && b !== 'transparent' && !(a.length === 4 && Number(a[3]) === 0)) return b; } return 'rgb(255, 255, 255)'; };
-      const cpE = p.querySelector('.ins-cp'), dtE = p.querySelector('.ins-facts dt');
-      if (!cpE || !dtE) return { missing: [!cpE && '.ins-cp', !dtE && '.ins-facts dt'].filter(Boolean) };
+      /* RE-POINTED 16 Nov 2026 (#762): the chosen round's panel is the five parts — its headline (.jov5-title) and a
+         fact's small line (.jov5-rt > span) are the words read */
+      const cpE = p.querySelector('.jov5-title'), dtE = p.querySelector('.jov5-group .jov5-rt > span');
+      if (!cpE || !dtE) return { missing: [!cpE && '.jov5-title', !dtE && '.jov5-rt > span'].filter(Boolean) };
       const cpBg = ground(cpE), dtBg = ground(dtE);
       return { cpBg, dtBg, cp: ratio(getComputedStyle(cpE).color, cpBg), dt: ratio(getComputedStyle(dtE).color, dtBg) };
     });

@@ -71,7 +71,13 @@ const ID = 'MK-WE1';
 
     console.log('\n2 · add someone');
     let saved = null;
-    if (opened){
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): where the Dossier's line is not drawn (1a reports it),
+       the person is added through Key terms' door, so 2a and 3 still measure the one pop-up and the record */
+    let via = opened;
+    if (!opened){ await page.evaluate(id => pdKtMid(id), ID);
+      via = (await waitFor(page, () => !!document.querySelector('[data-pd-mid-kt] tr[data-pd-og-row="people"] [data-pd-people]'), 6000))
+        && (await click('[data-pd-mid-kt] tr[data-pd-og-row="people"] [data-pd-people]')) && await waitFor(page, () => !!document.querySelector('[role="dialog"] #pd-ppl [data-pt-add]'), 5000); }
+    if (via){
       await click('#pd-ppl [data-pt-add]');
       const form = await waitFor(page, () => !!document.querySelector('#pd-ppl .pt-dir-form [data-pt-f="name"]'), 4000);
       if (form){
@@ -90,7 +96,7 @@ const ID = 'MK-WE1';
     check('2b the Dossier line names them', !!n1, String(n1));
 
     console.log('\n3 · Key terms');
-    await page.evaluate(id => pdKtMid(id), ID);
+    await page.evaluate(id => { if (!document.querySelector('[data-pd-mid-kt]')) pdKtMid(id); }, ID);
     const row = await waitFor(page, () => { const r = document.querySelector('[data-pd-mid-kt] tr[data-pd-og-row="people"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; }, 6000);
     check('3a Key terms has a "Who else" row naming the person', !!row && /Who else is on this agreement/.test(row) && /Halima Noor/.test(row), row);
     const fromKt = (await click('[data-pd-mid-kt] tr[data-pd-og-row="people"] [data-pd-people]')) && await waitFor(page, () => !!document.querySelector('[role="dialog"] #pd-ppl'), 5000);

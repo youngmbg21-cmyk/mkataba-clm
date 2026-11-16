@@ -1376,7 +1376,7 @@ function cunPanelHtml(r){
   const people = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(r.key) : [];
   const signer = people.find(p => p && p.signs) || people[0] || null;
   const nda = cuNdaOf(r.key);
-  const ndaV = !nda || nda.state === 'none' ? i18t('cu_nda_none') : nda.state === 'inforce' && nda.c && nda.c.signedAt ? i18t('cun_p_nda_signed', { d: cuDay(String(nda.c.signedAt).slice(0, 10)) }) : i18t('cun_nda_conf');
+  const ndaV = !nda || nda.state === 'none' ? i18t('cu_nda_none') : nda.state === 'inforce' && nda.c && nda.c.signedAt ? i18t('cun_p_nda_signed', { d: cuDay(String(nda.c.signedAt).slice(0, 10)) }) : nda.state === 'unconfirmed' ? i18t('cu_nda_unconfirmed') : nda.state === 'ended' ? i18t('cun_nda_ended') : nda.state === 'draft' ? i18t('cun_nda_draft') : i18t('cun_nda_conf');
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src)}</i></div>`;
   const facts = [rec.city ? row(i18t('cun_p_city'), rec.city, i18t('cun_p_src_rec')) : '', row(i18t('cun_p_org'), rec.orgNo || i18t('cu_org_none'), rec.orgNo ? i18t('cun_p_src_rec') : ''),
     signer ? row(i18t('cun_p_signer'), [signer.name, signer.title].filter(Boolean).join(', '), i18t('cun_p_src_link')) : '',
@@ -1438,8 +1438,9 @@ function cunRowHtml(v, nda){
   const stand = sm ? `<span class="cun-st"><i style="background:${sm.dot}"></i>${esc(sm.label || '')}</span>` : '—';
   const n = nda || { state: 'none' };
   const yr = n.c && n.c.signedAt ? String(n.c.signedAt).slice(0, 4) : '';
-  const ndaW = n.state === 'inforce' ? (yr ? i18t('cun_nda_signed', { y: yr }) : i18t('cun_nda_conf')) : n.state === 'unconfirmed' ? i18t('cun_nda_conf') : n.state === 'ended' ? i18t('cun_nda_ended') : n.state === 'draft' ? i18t('cun_nda_draft') : i18t('cun_nda_none');
-  const ndaH = `<span class="cun-st${n.state === 'none' || n.state === 'ended' ? ' is-none' : ''}"><i></i>${esc(ndaW)}</span>`;
+  const ndaW = n.state === 'inforce' ? (yr ? i18t('cun_nda_signed', { y: yr }) : i18t('cun_nda_conf')) : n.state === 'unconfirmed' ? i18t('cu_nda_unconfirmed') : n.state === 'ended' ? i18t('cun_nda_ended') : n.state === 'draft' ? i18t('cun_nda_draft') : i18t('cun_nda_none');
+  /* NOT CONFIRMED IS NOT CONFIRMED (#762): an NDA nobody confirmed says so, in amber, never the green of one in force */
+  const ndaH = `<span class="cun-st${n.state === 'none' || n.state === 'ended' ? ' is-none' : n.state === 'unconfirmed' ? ' is-amber' : ''}"><i></i>${esc(ndaW)}</span>`;
   const needs = (v.needs || []).filter(x => x && x.it);
   const verb = x => { const k = x.it.kind, n = x.it.n || 1;
     return k === 'approval' ? i18t('cun_w_approve', { name: x.c.name || '' }) : k === 'sign' ? i18t('cun_w_sign') : k === 'details' ? i18tn('cun_w_details', n, { n })
@@ -1590,7 +1591,7 @@ function cunPartyRender(host, INS, key){
   let sm = null; try { sm = lead && typeof contractStatusMeta === 'function' ? contractStatusMeta(lead) : null; } catch (_){ sm = null; }
   const signedN = v.items.filter(c => c.status === 'Signed').length, rest = v.items.length - signedN;
   const row = (l, val2, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(val2)}</b><i>${E(src || '')}</i></div>`;
-  const ndaV = !nda || nda.state === 'none' ? i18t('cu_nda_none') : nda.state === 'inforce' && nda.c && nda.c.signedAt ? i18t('cun_p_nda_signed', { d: cuDay(String(nda.c.signedAt).slice(0, 10)) }) : i18t('cun_nda_conf');
+  const ndaV = !nda || nda.state === 'none' ? i18t('cu_nda_none') : nda.state === 'inforce' && nda.c && nda.c.signedAt ? i18t('cun_p_nda_signed', { d: cuDay(String(nda.c.signedAt).slice(0, 10)) }) : nda.state === 'unconfirmed' ? i18t('cu_nda_unconfirmed') : nda.state === 'ended' ? i18t('cun_nda_ended') : nda.state === 'draft' ? i18t('cun_nda_draft') : i18t('cun_nda_conf');
   const own = (rec.city ? row(i18t('cun_p_city'), rec.city, i18t('cun_p_src_rec')) : '') + row(i18t('cun_p_org'), rec.orgNo || i18t('cu_org_none'), rec.orgNo ? i18t('cun_p_src_rec') : '')
     + (signer ? row(i18t('cun_p_signer'), [signer.name, signer.title].filter(Boolean).join(', '), i18t('cun_p_src_link')) : '')
     + (theirLead ? row(i18t('cun_pp_lead'), theirLead.name || theirLead.email || '', i18t('cun_pp_src_link')) : '')

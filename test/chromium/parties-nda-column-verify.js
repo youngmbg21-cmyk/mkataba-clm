@@ -38,7 +38,6 @@ let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 /* every day is counted from the day the check runs, never written down */
 const day = off => { const t = new Date(); t.setUTCDate(t.getUTCDate() + off); return t.toISOString().slice(0, 10); };
-const month = iso => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 const GV_ENDS = day(1400), CK_ENDS = day(-200);
 const nda = (id, cp, status, rec) => ({ ...H.fixtureContract(id, 'Mutual NDA — ' + cp, cp, H.FOLDER_A, 0, status),
@@ -75,30 +74,33 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     await page.evaluate(() => setView('customers'));
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"] tr[data-cu-cust]'), null, { timeout: 8000 }).catch(() => {});
 
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; Parties as drawn, round 6): the table is .cun-table and
+       its NDA cell one status — a dot and a word (.cun-st: "Signed <year>", "Confirmed", "Ended", "In draft", "None"), the
+       none and the ended greyed (.is-none); no second line under it */
     const readList = () => page.evaluate(() => {
-      const heads = [...document.querySelectorAll('.cu-table thead th')].map(th => th.textContent.trim());
+      const heads = [...document.querySelectorAll('.cun-table thead th')].map(th => th.textContent.trim());
       const at = heads.indexOf('NDA');
       return { heads, rows: Object.fromEntries([...document.querySelectorAll('tr[data-cu-cust]')].map(tr => {
         const td = at >= 0 ? tr.querySelectorAll('td')[at] : null;
-        const pill = td && td.querySelector('.cu-nda');
-        const sub = td && td.querySelector('.cu-nda-sub');
+        const pill = td && td.querySelector('.cun-st');
+        const sub = null;
         return [tr.getAttribute('data-cu-cust'), { text: td ? [pill ? pill.textContent.trim() : td.textContent.trim(), sub ? sub.textContent.trim() : ''].filter(Boolean).join(' / ') : '', st: pill ? pill.getAttribute('data-cu-nda-st') : '',
-          tone: pill ? (pill.className.match(/is-(\w+)/) || [])[1] || 'grey' : '', bg: pill ? getComputedStyle(pill).backgroundColor : '',
+          tone: pill ? (pill.classList.contains('is-none') ? 'grey' : 'on') : '', bg: pill ? getComputedStyle(pill).backgroundColor : '',
           dot: pill && pill.querySelector('i') ? getComputedStyle(pill.querySelector('i')).backgroundColor : '' }];
-      })), foot: ((document.querySelector('.cu-foot') || {}).textContent || '').trim() };
+      })), foot: ((document.querySelector('.cun-page .apn-foot') || {}).textContent || '').trim() };
     });
 
     console.log('\n1 · the NDA column answers for every party at once');
     const L = await readList();
     ok('1a the list carries an NDA column', L.heads.includes('NDA'), L.heads.join(' | '));
     const R = L.rows;
-    ok('1b Givaudan: green "Mutual", then "to ' + month(GV_ENDS) + '"', R['givaudan east africa'] && R['givaudan east africa'].text === 'Mutual / to ' + month(GV_ENDS) && R['givaudan east africa'].tone === 'green', JSON.stringify(R['givaudan east africa']));
-    ok('1c Naivas (two contracts, one of them the NDA): green "One-way", then "for good"', R['naivas supermarkets'] && R['naivas supermarkets'].text === 'One-way / for good' && R['naivas supermarkets'].tone === 'green', JSON.stringify(R['naivas supermarkets']));
-    ok('1d SAP: signed, nobody confirmed — amber "Not confirmed", never the wording\'s guess', R['sap east africa'] && R['sap east africa'].text === 'Not confirmed' && R['sap east africa'].tone === 'amber', JSON.stringify(R['sap east africa']));
-    ok('1e Carrefour: its secrecy ran out — "Ended", then "' + month(CK_ENDS) + '", not green', R['carrefour kenya'] && R['carrefour kenya'].text === 'Ended / ' + month(CK_ENDS) && R['carrefour kenya'].tone === 'grey', JSON.stringify(R['carrefour kenya']));
+    ok('1b Givaudan: in force, "Signed <year>" (or "Confirmed" where no signing day is held), not greyed', R['givaudan east africa'] && /^(Signed \d{4}|Confirmed)$/.test(R['givaudan east africa'].text) && R['givaudan east africa'].tone === 'on', JSON.stringify(R['givaudan east africa']));
+    ok('1c Naivas (two contracts, one of them the NDA): in force, "Signed <year>"', R['naivas supermarkets'] && /^(Signed \d{4}|Confirmed)$/.test(R['naivas supermarkets'].text) && R['naivas supermarkets'].tone === 'on', JSON.stringify(R['naivas supermarkets']));
+    ok('1d SAP: signed, nobody confirmed — "Not confirmed", never the wording\'s guess, never "Confirmed"', R['sap east africa'] && /^Not confirmed$/i.test(R['sap east africa'].text), JSON.stringify(R['sap east africa']));
+    ok('1e Carrefour: its secrecy ran out — "Ended", greyed', R['carrefour kenya'] && R['carrefour kenya'].text === 'Ended' && R['carrefour kenya'].tone === 'grey', JSON.stringify(R['carrefour kenya']));
     /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn: "Not signed yet / draft") */
-    ok('1f Krones: only a draft NDA — "Not signed yet", "draft" under it', R['krones east africa'] && R['krones east africa'].text === 'Not signed yet / draft' && R['krones east africa'].st === 'draft', JSON.stringify(R['krones east africa']));
-    ok('1g Kabras: no NDA — "None"', R['kabras sugar'] && R['kabras sugar'].text === 'None' && !R['kabras sugar'].st, JSON.stringify(R['kabras sugar']));
+    ok('1f Krones: only a draft NDA — "In draft"', R['krones east africa'] && R['krones east africa'].text === 'In draft', JSON.stringify(R['krones east africa']));
+    ok('1g Kabras: no NDA — "None"', R['kabras sugar'] && R['kabras sugar'].text === 'None' && R['kabras sugar'].tone === 'grey', JSON.stringify(R['kabras sugar']));
     /* RE-POINTED 21 Oct 2026 (Chambers): a status is a dot and a word — the pill
        lost its wash, so the tone is read off the painted DOT. */
     const gvBg = (R['givaudan east africa'] || {}).dot || '', saBg = (R['sap east africa'] || {}).dot || '';
