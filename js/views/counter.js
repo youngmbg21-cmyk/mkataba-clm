@@ -759,7 +759,7 @@ function ndParts(r){
     P.btn = 'look';
     P.attrs = `data-nd-look="${_cnE(it.key)}"`;
     /* a renewal's Open is its Decide (ndRowGo): it says what it spends, as Decide does */
-    if (it.kind === 'renewal') P.tip = _cnT('ins_need_go_terms');
+    if (it.kind === 'renewal' || it.kind === 'notice') P.tip = _cnT('ins_need_go_terms');
     if (c){ P.name = _ndName(c); P.party = String(c.counterparty || '').trim(); }
     return P;
   }
@@ -1105,9 +1105,9 @@ function ndRowGo(key){
     /* a renewal or notice piece opens where the renewal is decided (the contract's Obligations), as Decide does */
     /* their round to answer opens on its Redlines face, as the bell's own negotiation rows do */
     const k = String((r.it && r.it.kind) || '');
-    /* a renewal presses the piece's own lead, Decide (needsYouGo 'renewal': its Obligations, and Jambo reads the
+    /* a renewal (or its notice deadline) presses the piece's Decide (needsYouGo 'renewal': its Obligations, and Jambo reads the
        contract again, as its hover says) — the same act the Board's card would have pressed one step later */
-    if (k === 'renewal' && c && typeof needsYouGo === 'function' && needsYouGo('renewal', c.id)) return true;
+    if ((k === 'renewal' || k === 'notice') && c && typeof needsYouGo === 'function' && needsYouGo('renewal', c.id)) return true;
     const tab = /^(renewal|notice)$/.test(k) ? 'oblig' : k === 'answer' ? 'red' : 'open';
     if (c && typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, tab)) return true;
     if (c && typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
