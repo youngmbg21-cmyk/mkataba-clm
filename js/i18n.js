@@ -39940,7 +39940,7 @@ const STRINGS = {
     dsl_steps: '<b>Fråga</b> en fråga, <b>välj</b> mapparna, <b>läs</b> 50 eller 100 per tryck och <b>öppna sedan resultaten</b>.',
     dsl_new_t_one: '{n} avtal, läst en gång', dsl_new_t_other: '{n} avtal, vart och ett läst en gång', dsl_new_t0: 'Välj var det ska läsas',
     dsl_new_s0: 'Bocka i en mapp till vänster, eller Alla avtal.', dsl_new_s_done: 'Alla valda avtal har redan svarat på den här frågan.',
-    dsl_new_first_one: 'Det första läses vid det här trycket.', dsl_new_first_other: 'De första {n} läses vid det här trycket.',
+    dsl_new_first_one: 'Det första ({n}) läses vid det här trycket.', dsl_new_first_other: 'De första {n} läses vid det här trycket.',
     dsl_new_wait_one: '{n} väntar till nästa.', dsl_new_wait_other: '{n} väntar till nästa.',
     dsl_new_all_one: 'Det läses vid det här trycket.', dsl_new_all_other: 'Alla {n} läses vid det här trycket.', dsl_new_none_wait: 'Inget väntar till senare.',
     dsl_new_type: 'Skriv frågan till vänster och tryck sedan på Läs.',
