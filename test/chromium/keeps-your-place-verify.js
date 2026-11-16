@@ -86,16 +86,20 @@ const check = (name, pass, detail) => {
        of templates and the chosen one's paper — every template whatever the
        window, the two halves are the index and the paper, and the book still
        reaches down a tall screen. */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Our paper is
+       drawn the Legora way (tplnHtml) — the index is the row list beside the
+       paper (.tpln-side .tpln-lrs, a row a template, none hidden with no filter)
+       and the two halves are the paper (.tpln-sheet) and the side (.tpln-side). */
     const tall = await page.evaluate(() => ({
-      cards: document.querySelectorAll('.tpl-pf-idx [data-tpl-pf]').length,
-      bands: document.querySelectorAll('.tpl-pf > .tpl-pf-idx, .tpl-pf > .tpl-pf-paper').length,
+      cards: document.querySelectorAll('.tpln-lrs [data-tpl-pf]:not([hidden])').length,
+      bands: document.querySelectorAll('.tpl-pf > .tpln-sheet, .tpl-pf > .tpln-side').length,
       seeAll: !!document.getElementById('tpl-ov-all'),
       bottom: Math.round((document.querySelector('.tpl-pf') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom) }));
     await page.setViewportSize({ width: 2000, height: 700 });
     await page.evaluate(() => renderTemplatesPage());
     await page.waitForTimeout(1600);
     const short = await page.evaluate(() =>
-      document.querySelectorAll('.tpl-pf-idx [data-tpl-pf]').length);
+      document.querySelectorAll('.tpln-lrs [data-tpl-pf]:not([hidden])').length);
     check('the templates book shows every template, whatever the window',
       tall.cards > 0 && tall.cards === short, `${tall.cards} at 1030, ${short} at 700`);
     check('and nothing is held back behind a "see all"', !tall.seeAll, tall.seeAll);

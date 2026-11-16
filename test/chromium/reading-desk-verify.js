@@ -174,8 +174,6 @@ const Q = 'How much notice does each side need to end the contract?';
         toast: [...document.querySelectorAll('#toast-root *')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).pop() || '', timer: !!AC.deskTimer }; });
     /* who and when come from the reads' record, fetched as the read ends: asked for, bounded */
     let C = await card();
-    console.log('DBG5', ended, await page.evaluate(() => JSON.stringify({ busy: !!AC.busy, stop: !!document.querySelector('[data-ac-stop]'), stopped: !!document.querySelector('#ac-stopped'), cols: [...document.querySelectorAll('.ac-col, .ac-col-fold')].map(e => e.className + '@' + ((e.closest('[id]') || {}).id)), dock: ((document.getElementById('ig-dock') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 500), view: state.view })));
-    await browser.close(); process.exit(0);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('5 when the read ends: "100 of the 120 shown read · 20 still to read", ONE filled button "Read the remaining 20", no cost, no pill (the rest fits), Every read ›',
       ended && !!C && C.rest && C.restDesk && /How much notice/.test(C.restQ) && /100 of 120 are read, 20 to go\.$/.test(C.prog) && JSON.stringify(C.btn) === JSON.stringify(['Read the remaining 20']) && C.primary && !C.pill && C.every && !C.timer, C);

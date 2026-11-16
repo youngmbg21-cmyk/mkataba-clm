@@ -73,10 +73,11 @@ const KEY = 'k'.repeat(32);
     const row = await waitFor(page, sel => !!document.querySelector(sel), 5000, ROW_OPEN(ID));
     await page.screenshot({ path: path.join(OUT, 'bell-1440x780.png') });
     if (row) await page.click(ROW_OPEN(ID));
-    const landed = await waitFor(page, id => { const tr = document.querySelector(`.mig-table tbody tr[data-row="${id}"]`);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Import table is .mign-table (the same rows, data-row, .is-picked) */
+    const landed = await waitFor(page, id => { const tr = document.querySelector(`:is(.mig-table, .mign-table) tbody tr[data-row="${id}"]`);
       return state.view === 'migration' && tr && tr.classList.contains('is-picked') ? true : null; }, 8000, ID);
     check('2 the press opens the Import page with that document chosen', !!row && !!landed,
-      await page.evaluate(() => ({ view: state.view, picked: (document.querySelector('.mig-table tr.is-picked') || {}).getAttribute?.('data-row') || null })));
+      await page.evaluate(() => ({ view: state.view, picked: (document.querySelector(':is(.mig-table, .mign-table) tr.is-picked') || {}).getAttribute?.('data-row') || null })));
     await page.screenshot({ path: path.join(OUT, 'import-1440x780.png') });
 
     console.log('\n3 · not on the admin\'s bell');

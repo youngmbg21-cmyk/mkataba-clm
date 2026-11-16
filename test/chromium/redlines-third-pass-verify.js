@@ -314,7 +314,8 @@ const openFace = async page => {
     await waitFor(page, () => !document.querySelector('#modal-root .modal-in'), 15000);
     await openFace(page);
     const after = await waitFor(page, () => { const hd = document.querySelector('#pd-redface .rl-round-at'); const w = document.querySelector('#pd-redface [data-rl-band="with"]');
-      return hd && w ? { head: hd.textContent, with: w.innerText.replace(/\s+\d+\s*$/, '').trim() } : null; }, 8000);
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's band ends in its fold's chevron (›) after the count */
+      return hd && w ? { head: hd.textContent, with: w.innerText.replace(/\s*›\s*$/, '').replace(/\s+\d+\s*$/, '').trim() } : null; }, 8000);
     check('5a after Send the head says the round\'s own day, not that their asks just came', !!after && /^Round 3 · since /.test(after.head), JSON.stringify(after));
     check('5b the pile with the other side is named for the party', !!after && after.with === 'With Nordvik Logistik AB', JSON.stringify(after));
     await shot(page, '11-after-send-1440x780');

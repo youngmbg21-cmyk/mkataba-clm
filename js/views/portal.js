@@ -4717,7 +4717,8 @@ function portalOutSideHtml(c, p){
     <span class="pol-o-v">${esc(last ? i18t('pol_agreed_on', { when: portalDayWords(last) }) : i18t('pol_agreed'))}</span></li>` : '';
   /* WHAT WE TURNED DOWN, WITH OUR REASON (16 Nov 2026, #762): the reply travels to them by rule (the clause panel drew
      it, hidden in this look) — said here, on the clause, in our words */
-  const refused = (c.changes || []).filter(x => x && x.authorSide === 'counterparty' && x.status === 'rejected' && !x.withdrawn && String(x.reply || '').trim())
+  let NC = c; try { NC = (p && typeof portalNegoContract === 'function') ? (portalNegoContract(p) || c) : c; } catch (_){ NC = c; }
+  const refused = ((NC && NC.changes) || c.changes || []).filter(x => x && x.authorSide === 'counterparty' && x.status === 'rejected' && !x.withdrawn && String(x.reply || '').trim())
     .map(ch => `<li><span class="pol-o-k">${esc(portalOutClause(ch) || i18t('ds_a_clause'))}</span><span class="pol-o-v">\u201c${esc(String(ch.reply).trim())}\u201d</span></li>`).join('');
   return `<div class="pol-side-in">${portalOutHeadHtml(c)}
     <div class="pol-side-body"><p class="pol-say">${esc(say)}</p>${portalOutRoadHtml(D, mineMove)}
