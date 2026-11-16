@@ -73,7 +73,7 @@ test('f1081 (5) Redlines: cards first — no headline on Changes, Send all ends 
   const N = read('js/views/negotiation.js'), f = fnSrc(N, 'rlFiveHead');
   assert.ok(!/jov5_rl_unsent_t|jov5HeadHtml\(\{ title/.test(f), 'no serif headline on Changes');
   assert.match(N, /`<div class="rl-five-act is-line">\$\{sendH\}<\/div>`/);
-  assert.match(HTML, /#rl-changes-col\.is-five:not\(\.is-ladder-face\):not\(\.is-notes-face\) :is\(\.rl-idx-title, \.rl-idx-br\)\{display:none\}/, 'the count and the round share one line with Send all');
+  assert.match(HTML, /#rl-changes-col\.is-five:not\(\.is-ladder-face\):not\(\.is-notes-face\) :is\(\.rl-idx-title, \.rl-idx-br, \.rl-idx-sp\)\{display:none\}/, 'the count and the round share one line with Send all');
   assert.match(HTML, /\.rl-five-act\.is-line\{flex:0 0 auto;display:block;margin:0;padding:0;border-radius:0;background:none\}/, 'no card round the button');
 });
 
