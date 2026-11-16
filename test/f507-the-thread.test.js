@@ -367,7 +367,8 @@ describe('f507 (8) — Plain always turns the clause into plain English, and nev
 describe('f507 (9) — a section title is a label; the open row grows', () => {
   test('a section row draws no bead and no button', () => {
     const row = region(CONTRACT, 'docThreadRowHtml');
-    assert.match(row, /if\(docThreadIsSec\(x\)\) return `<div class="doc-th-sec" data-th-row="\$\{i\}" data-th-sec role="listitem">/);
+    /* RE-POINTED 16 Nov 2026 (owner: a section's title is the paper's own heading; f1088): still no bead, no button */
+    assert.match(row, /if\(docThreadIsSec\(x\)\)\{[^\n]*\n\s*return `<div class="doc-th-sec" data-th-row="\$\{i\}" data-th-sec role="listitem">\$\{esc\(own&&own\.length<=120\?own:docXrayLabel\(x\)\)\}<\/div>`; \}/);
     assert.match(CONTRACT, /const docThreadShown = x => !!x && !docThreadIsSec\(x\)/, 'and is never opened');
   });
   test('the list is the one scroller', () => {

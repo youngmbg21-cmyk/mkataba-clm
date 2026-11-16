@@ -55,15 +55,15 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
         const go = c.querySelector('.pd2-card-go'), gr = go.getBoundingClientRect(), dots = c.querySelectorAll('.pd2-spine i');
         const links = [...c.querySelectorAll('.pd2-card-links .ui-link')], L = links.map(a => ({ t: a.textContent.trim(), color: getComputedStyle(a).color, under: getComputedStyle(a).textDecorationLine }));
         const tops = new Set(links.map(a => Math.round(a.getBoundingClientRect().top)));
-        return { at: c.querySelector('.pd2-card-top > span').textContent.trim(), dots: dots.length, label: c.querySelector('.pd2-spine').getAttribute('aria-label'),
+        return { at: ((c.querySelector('.pd2-card-top > span') || {}).textContent || '').trim(), dots: dots.length, label: c.querySelector('.pd2-spine').getAttribute('aria-label'),
           head: c.querySelector('.pd2-next').textContent.trim(), say: (c.querySelector('.pd2-card-say') || {}).textContent || '',
           go: go.textContent.trim(), goBg: getComputedStyle(go).backgroundColor, goFull: Math.abs((r.width - 32) - gr.width) < 2,
           read: c.querySelector('.pd2-read').textContent.trim(), L, oneLine: tops.size === 1,
           seps: [...c.querySelectorAll('.pd2-card-sep')].map(x => x.textContent), cardBg: getComputedStyle(c).backgroundColor,
           accent: getComputedStyle(document.documentElement).getPropertyValue('--accent-ink').trim(), old: !!document.querySelector('#ig-dock .pd2-dossier > .pd2-spine, #ig-dock .pd2-dossier > .pd2-next') }; }) : null;
       check(`${nm} 1 one card: where it stands and six dots, the next step as its heading, one sentence, one full-width black button`,
-        !!C && C.at === 'Negotiate · 1 to do' && C.dots === 6 && /Arrived 10 Sep.*Negotiate, 1 to do.*Sign, 1 to do.*Live/.test(C.label) && C.head === 'Send your 3 changes'
-        && /They go to Jumenza LLC together\./.test(C.say) && /Sign has 1 thing to do after this\./.test(C.say) && C.go === 'Send 3 changes' && C.goFull && C.goBg !== C.cardBg && !C.old, C);
+        /* RE-POINTED 16 Nov 2026 (owner: no eyebrow and no sentence, the same facts are said elsewhere; f1088) */ !!C && C.at === '' && C.dots === 6 && /Arrived 10 Sep.*Negotiate, 1 to do.*Sign, 1 to do.*Live/.test(C.label) && C.head === 'Send your 3 changes'
+        && C.say === '' && C.go === 'Send 3 changes' && C.goFull && C.goBg !== C.cardBg && !C.old, C);
       check(`${nm} 2 the foot: the read in one line, no cost; "Read it | Watch the read" green, underlined, one line`,
         !!C && C.read === 'Jambo has not read the paper yet' && !/call|free|cost/i.test(C.read + C.say) && C.L.map(x => x.t).join('|') === 'Read it|Watch the read'
         && C.seps.join('') === '|' && C.L.every(x => /underline/.test(x.under) && x.color === C.L[0].color) && C.oneLine, C && { read: C.read, L: C.L, seps: C.seps, oneLine: C.oneLine });

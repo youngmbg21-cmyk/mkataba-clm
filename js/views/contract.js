@@ -14588,11 +14588,16 @@ function docXrayRows(c, root){
   out.forEach(x=>{ x.share=Math.round(x.words/total*100); });
   return out;
 }
-const XR_LEAD_WORDS=7;
+const XR_LEAD_WORDS=7, XR_TITLE_WORDS=6;
 function _xrLead(text, cite){
   let t=String(text||'').replace(/\s+/g,' ').trim();
   if(cite&&t.indexOf(cite)===0) t=t.slice(cite.length);
   t=t.replace(/^[\s.):\-\u2013\u2014]+/,'').replace(/^\(?[a-z0-9ivx]{1,4}[.)]\s+/i,'');
+  /* A SHORT TITLE SENTENCE IS THE NAME, ALONE (owner, 16 Nov 2026: "3.2 Maintenance and Repairs." on its own line read
+     "Maintenance and Repairs. Tenant shall keep the…"): where the clause opens with a sentence of at most XR_TITLE_WORDS
+     words and more follows, that sentence names it, without the wording run on behind it */
+  const ts=t.match(/^([^.!?]{2,80})\.\s+\S/);
+  if(ts&&ts[1].split(' ').filter(Boolean).length<=XR_TITLE_WORDS&&!/[,;:]/.test(ts[1])) return ts[1].trim();
   const w=t.split(' ').filter(Boolean);
   return w.length?w.slice(0,XR_LEAD_WORDS).join(' ').replace(/[,;:]$/,'')+(w.length>XR_LEAD_WORDS?'\u2026':''):'';
 }
@@ -15423,7 +15428,11 @@ function docThreadDoorPaint(rows, has, up){
 
 /* ---------- the rows ---------- */
 function docThreadRowHtml(x,i){
-  if(docThreadIsSec(x)) return `<div class="doc-th-sec" data-th-row="${i}" data-th-sec role="listitem">${esc(docXrayLabel(x))}</div>`;
+  /* A SECTION'S TITLE IS THE PAPER'S OWN (owner, 16 Nov 2026, over "IV: INSURANCE AND INDEMNIFICATION" on a paper that
+     says "ARTICLE IV: INSURANCE AND INDEMNIFICATION": "the roman letters … are supposed to be the title for clause
+     beneath as seen in the contract"): the heading's words as the paper prints them, so it reads as the title it is */
+  if(docThreadIsSec(x)){ let own=''; try{ own=String((x.el&&x.el.textContent)||'').replace(/\s+/g,' ').trim(); }catch(_){ own=''; }
+    return `<div class="doc-th-sec" data-th-row="${i}" data-th-sec role="listitem">${esc(own&&own.length<=120?own:docXrayLabel(x))}</div>`; }
   const tone=x.tone||'';
   const prev=esc(i18t('th_prev')), next=esc(i18t('th_next'));
   /* THE CLAUSE LIST AS DRAWN (Jambo's panels, round 3b; owner, 15 Nov 2026: the list's BEHAVIOUR stays — it follows
@@ -15432,7 +15441,13 @@ function docThreadRowHtml(x,i){
      "1. Definitions"): the number is wrapped, and the style folds it away where the mark shows it.
      A number written "1:" or "1)" is a number too (owner, 16 Nov 2026: MK-301's "1: Orders and Deliveries" drew a dot over
      its first letter); a clause with no number keeps its small dot, in the same slot as the marks (index.html). */
-  const lab=docXrayLabel(x), num=(thOnHome()&&typeof window.newLookOn==='function'&&newLookOn())?(lab.match(/^(\d+(?:\.\d+)*)[.:)]?\s+/)||null):null;
+  /* THE MARK IS THE CLAUSE'S OWN NUMBER, WHATEVER ITS KIND (owner, 16 Nov 2026: "ensuring other types of contracts formats
+     … have a way of displaying the right information"): the reading's own cite — 3, 4.2, IV, X.1, B — stands in the
+     mark, and the name is the clause's name without it; only where the label starts with it, else the old reading */
+  const lab=docXrayLabel(x), five=thOnHome()&&typeof window.newLookOn==='function'&&newLookOn();
+  const cite=String(x.cite||'').trim();
+  let num=five?(lab.match(/^(\d+(?:\.\d+)*)[.:)]?\s+/)||null):null;
+  if(five&&cite&&cite.length<=8&&lab.indexOf(cite)===0){ const m=lab.slice(cite.length).match(/^[.:)]?\s+/); if(m) num=[cite+m[0], cite]; }
   return `<div class="doc-th-row${tone?' is-'+tone:''}" data-th-row="${i}" role="listitem">
     <div class="doc-th-head">
       <button type="button" class="doc-th-go" data-th-go="${i}" aria-expanded="false">
