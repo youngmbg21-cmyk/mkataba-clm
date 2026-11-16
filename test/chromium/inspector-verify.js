@@ -185,6 +185,14 @@ const ok = (name, good, detail) => {
         placeFilled: [...document.querySelectorAll('[data-reg-home] button')].filter(b => !b.hasAttribute('data-ct-show')).filter(b => {
           const r = b.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
           const cs = getComputedStyle(b); return cs.backgroundColor === tok('--accent-fill') && cs.color === 'rgb(255, 255, 255)'; }).length,
+        /* RE-POINTED 16 Nov 2026 (#762): the new look draws the page's head IN the place (.ct-head): its filled buttons, by name, and where they stand */
+        placeFilledAt: [...document.querySelectorAll('[data-reg-home] button')].filter(b => !b.hasAttribute('data-ct-show')).filter(b => {
+          const r = b.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
+          const cs = getComputedStyle(b); return (cs.backgroundColor === tok('--accent-fill') || cs.backgroundColor === tok('--color-text')) && cs.color === 'rgb(255, 255, 255)'; })
+          .map(b => (b.closest('.ct-head') ? 'head:' : 'place:') + b.textContent.trim()),
+        liveBook: state.contracts.filter(c => c && !c.archived && c.status !== 'Declined' && !c.parentId && !c._codeNamed).length,
+        headGround: (() => { for (let e = document.querySelector('.reg-band[data-lh-seat="contracts"]'); e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor, a = (b.match(/[\d.]+/g) || []);
+          if (b && b !== 'transparent' && !(a.length === 4 && Number(a[3]) === 0)) return b; } return null; })(),
         litShow: [...document.querySelectorAll('[data-reg-home] [data-ct-show][aria-pressed="true"]')].map(b => b.getAttribute('data-ct-show')),
         accent: tok('--accent-ink'),
         filled: filled.map(b => b.innerText.trim()),
@@ -198,7 +206,9 @@ const ok = (name, good, detail) => {
     });
     ok('1i a name prints "&", never "&amp;"', !floor.amp);
     ok('1j "Non-monetary", never "n/m"', !floor.nm);
-    ok('1k the head counts the live book, and says so', /\blive\b/.test(floor.facts), floor.facts);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's head says, as drawn, "N · money on paper · N signed" (regHeadFactsHtml
+       over regFolderRead) — its first number is the live book; the word "live" went with the old head */
+    ok('1k the head counts the live book', new RegExp('^' + floor.liveBook + ' · ').test(floor.facts.trim()), floor.facts + ' · live ' + floor.liveBook);
     ok('1l a stage with nothing in it is not offered, and no choice prints a zero', floor.stageOpts >= 2 && floor.zeroTabs === 0 && floor.zeroCounts === 0, `${floor.stageOpts} stage choices, ${floor.zeroTabs} empty offered, ${floor.zeroCounts} zeros printed`);
     ok('1m no idle sort arrows', !floor.idle);
     /* (its "the selected one is" half retired with the selection, step 7) */
@@ -208,12 +218,16 @@ const ok = (name, good, detail) => {
        AREA — the page head's Draft new agreement and the panel's lead act. */
     /* RE-POINTED AT STEP 7: no panel, so the place itself fills no act; the
        page head fills at most one; the switch lights the one view shown */
-    ok('1o one filled button in each area: none in the Contracts place (its switch lights its view), at most one in the head', floor.placeFilled === 0
-      && floor.filled.length <= 1 && floor.litShow.join() === 'list', floor.filled.join(' | ') + ' · lit ' + floor.litShow.join());
+    /* RE-POINTED 16 Nov 2026 (#762): the page's head stands IN the place (.ct-head) — so the one filled button allowed is
+       the head's (New agreement), and none anywhere else in the place */
+    ok('1o one filled button in each area: the place\'s head at most one, none elsewhere in the place (its switch lights its view)', floor.placeFilledAt.filter(x => /^head:/.test(x)).length <= 1
+      && !floor.placeFilledAt.some(x => /^place:/.test(x)) && floor.filled.length <= 1 && floor.litShow.join() === 'list', floor.placeFilledAt.join(' | ') + ' · ' + floor.filled.join(' | ') + ' · lit ' + floor.litShow.join());
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the filters sit in
        the page's white band; the list's own head (name, count, Sort, Display)
        is its card's top row. */
-    ok('1p the filters sit in the white head card; the list draws no card head of its own', floor.barInCard && floor.filtersInBand && !/rgba\(0, 0, 0, 0\)|transparent/.test(String(floor.bandBg)),
+    /* RE-POINTED 16 Nov 2026 (#762): ONE SHEET — the head band is clear over the page's white sheet, so the white is read
+       off the nearest painted ground under it */
+    ok('1p the filters sit in the white head card; the list draws no card head of its own', floor.barInCard && floor.filtersInBand && floor.headGround === 'rgb(255, 255, 255)',
       `no card head ${floor.barInCard} · filters in the head ${floor.filtersInBand} · band ${floor.bandBg}`);
 
     /* the one line, at every laptop width, in both languages */

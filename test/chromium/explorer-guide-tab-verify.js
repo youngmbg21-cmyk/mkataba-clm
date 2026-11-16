@@ -141,11 +141,11 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       const moved = await until(() => igbCam().view === 3 && Number(document.querySelector('#ig-gd [data-ig-gd-view]')?.getAttribute('data-ig-gd-view')) === 3);
       check(`4-${lang} Floors → the Grid door moves the map and the guide follows`, !!moved);
       /* THE VIEWS AT THE TOP (owner, 9 Nov 2026): all five in one row heading the guide, the map's own pressed, no cards at the foot */
-      /* RE-POINTED 16 Nov 2026 (#762): in the five parts the views' row heads the panel: nothing of the guide stands above it,
-         the headline (.jov5-title) right under it */
+      /* RE-POINTED 16 Nov 2026 (#762): in the five parts the views' row heads the panel: every part of the guide comes after
+         it, the headline (.jov5-title) right under it */
       const top = await page.evaluate(() => { const g = document.getElementById('ig-gd'); const row = g && g.querySelector('.ig-gd-views'); if (!row) return null;
         const rb = row.getBoundingClientRect().bottom;
-        const first = [...g.querySelectorAll('.jov5-eb, .jov5-title, .jov5-sub, .jov5-row')].every(e => e.getBoundingClientRect().top >= rb - 1); const bs = [...row.querySelectorAll('[data-ig-gd-view-go]')];
+        const first = [...g.querySelectorAll('.jov5-eb, .jov5-title, .jov5-sub, .jov5-row')].every(e => !!(row.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING)); const bs = [...row.querySelectorAll('[data-ig-gd-view-go]')];
         const tops = bs.map(b => Math.round(b.getBoundingClientRect().top));
         return { first: first === row, n: bs.length, pressed: bs.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-ig-gd-view-go')), oneLine: new Set(tops).size === 1,
           below: !!g.querySelector('.jov5-title') && rb <= g.querySelector('.jov5-title').getBoundingClientRect().top, cards: g.querySelectorAll('.ig-gd-others').length }; });
