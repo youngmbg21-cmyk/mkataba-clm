@@ -5364,6 +5364,11 @@ function ngnPageSay(rows){
 }
 function ngnPanelHtml(r, rows){
   const E = esc, c = r.c;
+  /* THE FIVE PARTS (owner, 16 Nov 2026: "These pages still have old Panels"; drawn in Panels Still To Fix and built on
+     "Build the legora way"): the page in one headline, three numbers (each its own tab), every round waiting on you as a
+     row that opens its redlines, the chosen round's facts, and its one black button — the page's own presses
+     (data-ngn-tab / -open / -send / -chase), wrapped in .ngn-panel so the page's one listener hears them */
+  if (typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn()) return ngnPanelFiveHtml(r, rows);
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
   const secs = [...new Set(r.asks.map(ngnSecOf).filter(Boolean))].join(' · ');
   let rowsH = '';
@@ -5385,6 +5390,27 @@ function ngnPanelHtml(r, rows){
     turn = `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(i18t('ngn_turn_chase', { p: wait.c.counterparty || wait.c.name, day: by ? by.toLocaleDateString(loc, { weekday: 'long' }) : '' }))}</p></div></div>`; }
   return `<div class="pd2-chosen cun-panel ngn-panel"><p class="pd2-ch-head">${E(ngnPageSay(rows))}</p><div class="pd2-ch-cap">${E(c.name || '')}</div><div class="pd2-ch-tbl">${rowsH}</div>`
     + `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}${turn}</div>`;
+}
+function ngnPanelFiveHtml(r, rows){
+  const E = esc, c = r.c, live = rows.filter(x => x.b !== 'settled'), you = rows.filter(x => x.b === 'you'), them = rows.filter(x => x.b === 'them');
+  const may = typeof canEdit !== 'function' || canEdit();
+  const secs = [...new Set(r.asks.map(ngnSecOf).filter(Boolean))].join(' \u00b7 ');
+  const facts = [];
+  if (r.asks.length) facts.push({ t: i18t('ngn_p_asks'), s: [r.prep >= r.asks.length ? i18tn('ngn_p_asks_prep', r.asks.length, { n: r.asks.length }) : i18tn('ngn_p_asks_open', r.asks.length, { n: r.asks.length }), secs].filter(Boolean).join(' \u00b7 '), wrap: true });
+  else if (r.b === 'them') facts.push({ t: i18t('ngn_p_asks'), s: i18t('ngn_open_none_theirs'), wrap: true });
+  if (r.unsent) facts.push({ t: i18t('ngn_p_unsent'), s: i18tn('ngn_p_unsent_v', r.unsent, { n: r.unsent }), wrap: true });
+  else if (r.b === 'them') facts.push({ t: i18t('ngn_p_sent'), s: r.sub || '\u2014', wrap: true });
+  const contrib = (typeof deskContributors === 'function' ? deskContributors(c) : []).map(p => String(p.name || '').split(/\s+/)[0]).filter(Boolean);
+  if (r.lead.name) facts.push({ t: i18t('ngn_p_desk'), s: contrib.length ? i18tn('ngn_p_desk_v', contrib.length, { lead: String(r.lead.name).split(/\s+/)[0], who: contrib.join(', ') }) : i18t('ngn_p_desk_lead', { lead: String(r.lead.name).split(/\s+/)[0] }), wrap: true });
+  const roundRow = x => ({ mark: 'alert', tone: x.b === 'you' ? 'amber' : '', t: x.c.name || '', s: [x.c.counterparty || '', x.unsent ? i18tn('ngn5_unsent', x.unsent, { n: x.unsent }) : (x.open && x.open.n ? i18tn('ngn5_asks', x.open.n, { n: x.open.n }) : '')].filter(Boolean).join(' \u00b7 '), v: x.move || '', attr: `data-ngn-open="${E(x.c.id)}"` });
+  const wait = them[0], chase = wait && may ? { label: i18t('ngn_d_chase', { p: wait.c.counterparty || wait.c.name }), attr: `data-ngn-chase="${E(wait.c.id)}"` } : null;
+  const title = you.length ? i18tn('ngn5_t_you', you.length, { n: you.length }) : them.length ? i18tn('ngn5_t_them', them.length, { n: them.length }) : i18t('ngn_say_none');
+  const o = { eyebrow: i18t('ng_door_title'), title, sub: ngnPageSay(rows),
+    glance: [{ n: live.length, l: i18t('ngn5_g_live'), attr: 'data-ngn-tab="live"' }, { n: you.length, l: i18t('ngn5_g_you'), warn: you.length > 0, attr: you.length ? 'data-ngn-tab="you"' : '' }, { n: them.length, l: i18t('ngn5_g_them'), attr: them.length ? 'data-ngn-tab="them"' : '' }],
+    groups: [{ label: i18t('ngn5_g_yours'), rows: you.slice(0, 4).map(roundRow) }, { label: c.name || '', rows: facts }],
+    act: { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"`, link: r.unsent && may ? { label: i18tn('ngn_d_send', r.unsent, { n: r.unsent }), attr: `data-ngn-send="${E(c.id)}"` } : chase },
+    after: chase && r.unsent ? `<p class="jov5-src"><button type="button" class="jov-lnk" ${chase.attr}>${E(chase.label)}</button></p>` : '', src: false };
+  return `<div class="ngn-panel jl-words is-ov">${jamboOverviewHtml(o, 'ngn')}</div>`;
 }
 function ngnRender(host){
   const B = ngnBook(), rows = B.list.map(ngnRead), all = B.all.map(ngnRead);
@@ -5425,5 +5451,5 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ngn-q') return;
     _ngnQ = e.target.value; ngnRepaint(); const q = document.getElementById('ngn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
 }
-Object.assign(window,{ngnOn,ngnRender,ngnRead,ngnBook,ngnAskWords,ngnRepaint});
+Object.assign(window,{ngnPanelFiveHtml,ngnOn,ngnRender,ngnRead,ngnBook,ngnAskWords,ngnRepaint});
 Object.assign(window,{regFolderSays,RFP_SOON_DAYS,regGlanceEnds,regGlanceMoney,regFolderGlanceHtml,regFoldersGlanceHtml,RFG_MONTHS,RFG_DOTS,RFG_BARS});

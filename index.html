@@ -19020,8 +19020,9 @@
   /* THE CLAUSE LIST AS DRAWN (round 3b; owner, 15 Nov 2026): its behaviour untouched, its look the drawing's — a small
      label over it, the rows one soft group, each clause's number in its round mark (amber where a point waits, green
      where it is fine), the open row a white card. Only the look: nothing here moves the paper or the list. */
-  html.lg-new #ig-dock .pd-th .doc-th-lbl{display:flex;justify-content:space-between;gap:12px;margin:12px 16px 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
-  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows{flex:0 1 auto;min-height:0;margin:0 16px 16px;padding:0 12px;border-radius:var(--radius);background:var(--jb-card-fill)}
+  /* THE LEGORA WAY (owner's pick, 16 Nov 2026): the label stays in the page, unseen; the list is one quiet list on white */
+  html.lg-new #ig-dock .pd-th .doc-th-lbl{display:none}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows{flex:0 1 auto;min-height:0;margin:0 0 16px;padding:0 16px;border-radius:0;background:none}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row{padding-left:0}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row:first-child{border-top:0}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go{padding:9px 0;gap:12px;align-items:center}
@@ -19032,7 +19033,17 @@
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open:not(.stk-b-need):not(.stk-b-look):not(.stk-b-ok) .doc-th-bead[data-n]{background:var(--accent-solid);color:var(--surface-3)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-num{display:none}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-name{flex:1;min-width:0;font-size:14px}
-  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open.pd2-lit{margin:0 -12px;padding:0 12px 8px;border-top-color:transparent;border-radius:var(--radius);background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider)}
+  /* the open clause: no card, no grey; an amber line at its left (the paper's own mark for what needs you), 14px inside it */
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open.pd2-lit{margin:0;padding:0 0 10px 14px;border-top-color:var(--color-divider);border-radius:0;background:none;box-shadow:inset 2px 0 0 var(--st-amber-dot)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open:not(.stk-b-need):not(.stk-b-look){box-shadow:inset 2px 0 0 var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go:hover{background:none}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go:hover .doc-th-name{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .doc-th-plain{font-family:var(--font-doc);font-size:14px;line-height:1.55;color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .stk-card.is-mq{padding-left:38px}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .stk-card.is-mq .stk-cacts{gap:6px 14px;margin-top:10px}
+  html.lg-new #ig-dock .pd-th .stk-head.is-mq.is-five{gap:6px;padding:14px 16px 4px}
+  html.lg-new #ig-dock .pd-th .stk-lg-top{margin:0;font-size:13px;line-height:1.45;color:var(--color-neutral-400)}
+  html.lg-new #ig-dock .pd-th .stk-lg-top b{font-weight:var(--w-strong);color:var(--color-text)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open::after{display:none}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open + .doc-th-row{border-top-color:transparent}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .doc-th-body{padding-left:38px}
@@ -19417,7 +19428,7 @@
      what it does (shown here, as drawn — the paper's line keeps its own), and the Ladder a face of its own: only the
      change whose ladder is open, its bands and the risks put away */
   html.lg-new #ig-dock #rl-changes-col.is-five .rl-idx-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
-  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg{order:-2;flex:1 1 100%;display:flex;gap:2px;margin:0 0 10px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg{order:-2;flex:1 1 100%;display:flex;align-items:center;gap:2px;margin:0 0 10px;padding:3px;border-radius:999px;background:var(--surface-2);height:auto;min-height:34px;box-sizing:border-box}
   html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button{flex:1 1 0;min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:28px;margin:0;padding:0 8px;border:0;border-radius:999px;background:transparent;box-shadow:none;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
   html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button svg{display:none}
   html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button i{font-style:normal;color:inherit;opacity:.7}
@@ -19546,7 +19557,7 @@
   html.lg-new .apn-link{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   html.lg-new .apn-table tr.apn-group td{padding:16px 0 8px;font-size:13px;font-weight:var(--w-label);border-bottom:1px solid var(--color-divider)}
   html.lg-new .apn-table tr.is-done td{color:var(--color-quiet)}
-  html.lg-new .apn-table tr.is-sel{background:var(--color-bg)}
+  html.lg-new .apn-table tr.is-sel{background:var(--surface-2)}
   /* THE HEAD STAYS AT THE TOP, AND THE CHOSEN ROW KEEPS ITS ROOM (owner's screenshots, 10 Nov 2026). The sheet is the
      scroller and carries 20px above its first line: a head stuck at 0 stops 20px short, and rows showed through the gap
      above it, so it sticks at minus that room. Its hairline is a shadow, since a collapsed table's border does not
@@ -19554,10 +19565,12 @@
      into the sheet's margin, so the bar never touches the mark; one grey, the row's own (drawn by the first cell, since a
      collapsed table's cell paints no outer shadow) */
   html.lg-new #ap-scroll .apn-table th{top:-20px;border-bottom:0;box-shadow:inset 0 -1px 0 var(--color-divider)}
-  html.lg-new #ap-scroll .apn-table tbody tr.is-sel td{background:var(--color-bg)}
+  /* ONE CLEAN BAND (owner, 16 Nov 2026: Negotiations' grey "is what this should look like … as if a patch was applied"):
+     the chosen row and a row under the pointer are one grey band inside the row's own edges, as on Negotiations; the
+     bar and the patch that reached into the sheet's margin are gone (replaces the 10 Nov bar) */
+  html.lg-new #ap-scroll .apn-table tbody tr.is-sel td{background:var(--surface-2)}
   html.lg-new #ap-scroll .apn-table tbody tr[data-ap-row] td:first-child{position:relative;overflow:visible;box-shadow:none}
-  html.lg-new #ap-scroll .apn-table tbody tr.is-sel td:first-child::before{content:"";position:absolute;top:0;bottom:0;left:-14px;width:12px;background:var(--color-bg);border-left:2px solid var(--color-text)}
-  @media (hover:hover){ html.lg-new #ap-scroll .apn-table tbody tr[data-ap-row]:not(.is-sel):hover td:first-child::before{content:"";position:absolute;top:0;bottom:0;left:-12px;width:12px;background:var(--surface-2)} }
+  @media (hover:hover){ html.lg-new #ap-scroll .apn-table tbody tr[data-ap-row]:not(.is-sel):hover td{background:var(--surface-2)} }
   html.lg-new .apn-none{color:var(--color-quiet)}
   html.lg-new .apn-foot{margin-top:auto;padding:14px 0;border-top:1px solid var(--color-divider);font-size:12.5px;font-weight:var(--w-label)}
   /* THE CALENDAR, AS DRAWN (round 5): one white page, the name in the serif with its four views as words beside it,
