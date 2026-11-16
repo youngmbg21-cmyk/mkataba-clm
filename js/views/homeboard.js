@@ -10759,20 +10759,31 @@ function hbPlacePut(p){
        gives up, and a read still out puts nothing up (igOpenNewer), the way
        placeScrollBack lets go of the scroll. */
     let gaveUp = false;
+    /* THE PAPER WAITS FOR ITS CONTRACT (owner, 16 Nov 2026): until it lands, Home's paper says "Opening…" and never
+       draws the Contracts place in its stead (igPaintPaper reads intel.resuming); every way this ends lets go of it */
+    if (window.intel) intel.resuming = { id: String(want.id) };
+    let held = 0;
+    const done = () => {
+      if (!(window.intel && intel.resuming && intel.resuming.id === String(want.id))) return;
+      /* still being read (igAnalyze's ensureFull): the wait holds until it lands, bounded */
+      if (intel.opening && String(intel.opening.id) === String(want.id) && ++held < 100){ setTimeout(done, 100); return; }
+      intel.resuming = null;
+      if (!intel.paper && !intel.opening && window.state && state.view === 'dashboard' && hbS().face === 'paper' && typeof window.igPaintPaper === 'function'){ igPaintPaper(); if (typeof window.renderIntelDock === 'function') renderIntelDock(); }
+    };
     const unhand = () => HB_RESUME_HAND.forEach(k => window.removeEventListener(k, hand, true));
-    const hand = () => { unhand(); if (window.intel && intel.paper) return; gaveUp = true; if (typeof window.igOpenNewer === 'function') igOpenNewer(); };
+    const hand = () => { unhand(); if (window.intel && intel.paper) return; gaveUp = true; if (typeof window.igOpenNewer === 'function') igOpenNewer(); done(); };
     HB_RESUME_HAND.forEach(k => window.addEventListener(k, hand, { capture: true, passive: true }));
     setTimeout(unhand, HB_RESUME_HAND_MS);
     const go = () => {
       if (gaveUp) return;
-      if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)) return;
+      if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)){ done(); return; }
       if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){
         /* the face through its own door (pdOpenOnHome), which puts the
            contract on the paper the same way */
         const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try { hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
-        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); return; }
-        igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); return; }
-      if (++n < 60) setTimeout(go, 150);
+        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); done(); return; }
+        igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); done(); return; }
+      if (++n < 60) setTimeout(go, 150); else done();
     };
     setTimeout(go, 0);
   }
