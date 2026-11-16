@@ -1179,6 +1179,36 @@ function stClashRowsRepaint(){
     const d=document.createElement('div'); d.innerHTML=stNeedRowHtml(r);
     if(d.firstElementChild) el.replaceWith(d.firstElementChild); });
 }
+/* "COMPANY NEEDS YOU" LANDS ON THE EXACT JOB (owner, 16 Nov 2026: "Make Company needs you land on the exact job"):
+   the company's jobs (stNeedsAll) each carry their own door (r.btn — the attributes Settings' own panel presses),
+   so the one door from outside presses that very door: ONE job, it opens; several, Settings opens with its jobs
+   listed in Jambo's panel and lands ON the first (LAND ON IT: in view, pressing nothing). A key names one job. */
+function stNeedDoorEl(r){
+  if(!r||!r.btn||typeof document==='undefined') return null;
+  const tpl=document.createElement('template'); tpl.innerHTML=`<button type="button" ${r.btn}></button>`;
+  return tpl.content.firstElementChild||null;
+}
+function stNeedGo(key){
+  if(!stIsAdmin()){ if(typeof openMyAccount==='function') openMyAccount(); return false; }
+  const rows=stNeedsAll(), one=key?rows.find(x=>x.key===key):(rows.length===1?rows[0]:null);
+  const el=one?stNeedDoorEl(one):null;
+  if(el){
+    /* the job's own door, pressed on the Settings page (its listener reads the press wherever it lands) */
+    openSettingsAt('company');
+    const host=document.getElementById('set-page')||document.getElementById('content')||document.body;
+    el.hidden=true; host.appendChild(el);
+    try{ el.click(); } finally { el.remove(); }
+    return true;
+  }
+  openSettingsAt('company');
+  /* several: land on the first job's row where Settings lists them (its panel, else the attention list) */
+  const first=rows[0], fe=stNeedDoorEl(first);
+  if(fe&&typeof landOn==='function'){
+    const sel=[...fe.attributes].filter(a=>a.name!=='type').map(a=>`[${a.name}="${String(a.value).replace(/["\\]/g,'')}"]`).join('');
+    if(sel) setTimeout(()=>{ try{ landOn(`#ins-panel ${sel}, #st-att ${sel}, #set-page ${sel}`,{ block:'nearest' }); }catch(_){} },60);
+  }
+  return true;
+}
 function stNeedsAll(){
   const out=[];
   if(!stIsAdmin()) return out;
@@ -10065,7 +10095,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,stdPositionOpen,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
