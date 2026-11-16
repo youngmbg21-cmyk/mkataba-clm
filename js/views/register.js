@@ -5406,7 +5406,7 @@ function ngnPanelFiveHtml(r, rows){
   const wait = them[0], chase = wait && may ? { label: i18t('ngn_d_chase', { p: wait.c.counterparty || wait.c.name }), attr: `data-ngn-chase="${E(wait.c.id)}"` } : null;
   const title = you.length ? i18tn('ngn5_t_you', you.length, { n: you.length }) : them.length ? i18tn('ngn5_t_them', them.length, { n: them.length }) : i18t('ngn_say_none');
   const o = { eyebrow: i18t('ng_door_title'), title, sub: ngnPageSay(rows),
-    glance: [{ n: live.length, l: i18t('ngn5_g_live'), attr: 'data-ngn-tab="live"' }, { n: you.length, l: i18t('ngn5_g_you'), warn: you.length > 0, attr: you.length ? 'data-ngn-tab="you"' : '' }, { n: them.length, l: i18t('ngn5_g_them'), attr: them.length ? 'data-ngn-tab="them"' : '' }],
+    glance: [{ n: live.length, l: i18t('ngn5_g_live'), attr: 'data-ngn-gotab="live"' }, { n: you.length, l: i18t('ngn5_g_you'), warn: you.length > 0, attr: you.length ? 'data-ngn-gotab="you"' : '' }, { n: them.length, l: i18t('ngn5_g_them'), attr: them.length ? 'data-ngn-gotab="them"' : '' }],
     groups: [{ label: i18t('ngn5_g_yours'), rows: you.slice(0, 4).map(roundRow) }, { label: c.name || '', rows: facts }],
     act: { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"`, link: r.unsent && may ? { label: i18tn('ngn_d_send', r.unsent, { n: r.unsent }), attr: `data-ngn-send="${E(c.id)}"` } : chase },
     after: chase && r.unsent ? `<p class="jov5-src"><button type="button" class="jov-lnk" ${chase.attr}>${E(chase.label)}</button></p>` : '', src: false };
@@ -5440,7 +5440,8 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
     if (!t.closest('.ngn-page') && !t.closest('#ins-panel .ngn-panel')) return;
-    if ((el = t.closest('[data-ngn-tab]'))){ e.preventDefault(); _ngn = el.getAttribute('data-ngn-tab'); ngnRepaint(); return; }
+    /* the page's tabs, and the panel's three numbers (their own attribute, so nothing that counts the page's tabs counts them) */
+    if ((el = t.closest('[data-ngn-tab], [data-ngn-gotab]'))){ e.preventDefault(); _ngn = el.getAttribute('data-ngn-tab') || el.getAttribute('data-ngn-gotab'); ngnRepaint(); return; }
     if ((el = t.closest('[data-ngn-open]'))){ e.preventDefault(); if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(el.getAttribute('data-ngn-open')); return; }
     if ((el = t.closest('[data-ngn-send]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-send')); if (c && typeof pdSendWaiting === 'function') pdSendWaiting(c); return; }
     if ((el = t.closest('[data-ngn-chase]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-chase')); if (c && typeof openShareModal === 'function') openShareModal(c); return; }

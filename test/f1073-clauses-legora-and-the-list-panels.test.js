@@ -52,7 +52,7 @@ test('f1073 (4) the four list panels speak the five parts, by the page\'s own pr
   assert.match(ap, /data-apn-go="clause" data-id=/, 'what the paper says opens the clause'); assert.doesNotMatch(ap, /act:/, 'no button: Approve and Decline stay on the row');
   assert.match(fnBody(NG, 'ngnPanelHtml'), /newLookOn\(\)\) return ngnPanelFiveHtml\(r, rows\);/);
   const ng = fnBody(NG, 'ngnPanelFiveHtml');
-  for (const a of ['data-ngn-tab="live"', 'data-ngn-open=', 'data-ngn-send=', 'data-ngn-chase=']) assert.ok(ng.includes(a), a);
+  for (const a of ['data-ngn-gotab="live"', 'data-ngn-open=', 'data-ngn-send=', 'data-ngn-chase=']) assert.ok(ng.includes(a), a);
   assert.match(ng, /<div class="ngn-panel jl-words is-ov">/, 'inside .ngn-panel, where the page listens');
   assert.match(fnBody(MN, 'mnnPanelHtml'), /newLookOn\(\)\) return mnnPanelFiveHtml\(n\);/);
   const mn = fnBody(MN, 'mnnPanelFiveHtml');
