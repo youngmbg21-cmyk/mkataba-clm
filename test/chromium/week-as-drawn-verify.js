@@ -334,7 +334,9 @@ const weekOf = () => {
         const inView = rows.every(r => r.getBoundingClientRect().bottom <= H + 1);
         const scrolls = !!band && /auto|scroll/.test(getComputedStyle(band).overflowY) && band.scrollHeight > band.clientHeight
           && bandR.bottom <= H + 1 && bandR.top + 38 <= H
-          && rows.every(r => r.getBoundingClientRect().bottom - bandR.top + band.scrollTop <= band.scrollHeight + 1);
+          /* measured from the band's INSIDE (below its 1px top line, band.clientTop): from its outer edge every
+             Monday came out 1px short and the scrolling branch could never pass (fixed 16 Nov 2026) */
+          && rows.every(r => r.getBoundingClientRect().bottom - (bandR.top + band.clientTop) + band.scrollTop <= band.scrollHeight + 1);
         const whole = rows.length === 5 && rows.every(r => r.getBoundingClientRect().height >= 37) && (inView || scrolls);
         const head = [...document.querySelectorAll('.cal-head-r > *')].every(b => b.getBoundingClientRect().right <= stage.right + 1);
         const key = document.querySelector('.cal-key').getBoundingClientRect();

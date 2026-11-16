@@ -38424,3 +38424,12 @@ The owner: "when I am trying to build a contract from scratch, I give it instruc
 Cause: every start (From nothing, From a template you have, From one of our contracts, the older scratch pop-up) closed its page (`closeModal`), then `nsOpen` called `setView('templates')` — which drew Our paper — and only then `openTemplateBuilder` read the template and its version from the server (two requests) before drawing. So the reader saw the page underneath, then Our paper, then the Builder.
 Fix: `openTemplateBuilder(tid, vid, { arrive })` runs `arrive` after both reads and in the same step as `tbPaint`; `nsOpen` puts the close and the view turn inside it; the starts no longer close first. With `arrive`, a failed read is thrown to the start (button restored, its line says why) rather than a toast over a page that stayed. `tplLibCancelPending` is called again after `arrive`, so the list the view turn starts can never paint over the Builder.
 Audited for the same shape: no other `setView(...)` is followed by an awaited read; the other `openTemplateBuilder` callers (Edit, Continue editing, the field check, Build from a version) are already on the Templates page, so the wait shows nothing else. Left as designed: Their paper's Create closes the sheet and reads the file with a busy toast ("Reading …") over the page beneath — a stated wait, not another page shown in passing. Red at the parent: f1071 (1)–(4) (first numbered f1057, which main also took).
+
+## CALENDAR
+THE MONDAY RED, 16 Nov 2026 (owner: "Fix the Calendar check"). week-as-drawn-verify (5) at 1536×730 went red only on
+Mondays (green Saturday and Sunday, red from 00:00 UTC Monday). On a Monday the week's All day row holds three chips
+(late work carried onto today, two due today), so the five later weeks no longer fit and scroll inside their own band, as
+the 21 Oct ruling says. The page was right — photographed: the band 523→705, scrollHeight 201, the last row reachable.
+The check's arithmetic was wrong: it measured each row from the band's OUTER top (its 1px top line) against scrollHeight,
+which counts from the inside, so the last row came out 203 against 202 and the scrolling branch could never pass. Now
+measured from bandR.top + band.clientTop. No code of the page changed.
