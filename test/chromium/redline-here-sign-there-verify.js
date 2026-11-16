@@ -158,6 +158,8 @@ const AGREED = [
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the Contracts place prints the reference under the party ("kind · ref", .reg-sub .hati-ref) — its Ref column (.reg-mk) went */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
+    /* RE-POINTED 16 Nov 2026 (#762): asked of the All tab, the one table, not the Folders the place opens on */
+    if (await page.$('[data-ctf-tab="all"]')) { await page.click('[data-ctf-tab="all"]').catch(() => {}); await page.waitForTimeout(700); }
     const onContracts = await page.evaluate(id => !!document.querySelector(`.reg-table tr[data-row="${id}"], .reg-table [data-sel="${id}"], .reg-table [data-row-id="${id}"]`)
       || [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
     check('2a the Contracts list does not carry a working file', !onContracts);
@@ -319,6 +321,9 @@ const AGREED = [
       `${filed.crumb} · want ${filed.barWord}`);
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the one
+       table is its All tab */
+    if (await page.$('[data-ctf-tab="all"]')) { await page.click('[data-ctf-tab="all"]').catch(() => {}); await page.waitForTimeout(700); }
     const row = await page.evaluate(no => [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === no), filed.no);
     check('6f it is on the Contracts list now, under its number', row);
     await page.evaluate(() => { if (window.openNegotiations) openNegotiations({ list: true }); });

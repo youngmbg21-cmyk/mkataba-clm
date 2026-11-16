@@ -2570,7 +2570,14 @@ function pd2SignRowsHtml(c){
       row('done', T('pd2_sg_signed', { party }), [names, at ? day(at) : '', theirs ? T('pd2_sg_by_link') : ''].filter(Boolean).join(', ')); return; }
     const mine = st.n === now && st.rows.some(r => r && r.party === 'internal' && String(r.memberId || '') === String(me.id || ''));
     if (mine) row('turn', T('pd2_sg_turn'), [T('pd2_sg_as', { me: me.name || '', org: ours }), capOk ? T('apn_cap_ok') : ''].filter(Boolean).join(' · '));
-    else row(st.n === now ? 'turn' : 'later', T('pd2_sg_signs', { party }), names);
+    else {
+      /* THEIR LINK'S JOURNEY on their row (16 Nov 2026, #762: the signing order that said it is folded away here) —
+         sent, opened, failed, waiting in the outbox, or ready for their turn; one reading, signerLinkState */
+      const LS = { opened: 'sgx_m_opened', sent: 'sgx_m_sent', failed: 'sgx_m_failed', outbox: 'sp_link_outbox', held: 'sgx_m_held' };
+      const link = theirs && typeof window.signerLinkState === 'function'
+        ? st.rows.map(r => { try { return LS[window.signerLinkState(c, r)] || ''; } catch (_){ return ''; } }).filter(Boolean)[0] || '' : '';
+      row(st.n === now ? 'turn' : 'later', T('pd2_sg_signs', { party }), [names, link ? T(link) : ''].filter(Boolean).join(' \u00b7 '));
+    }
   });
   if (!steps.length) row('now', T('pd_rd_who'), T('pd_rd_nobody'), ((typeof canEdit !== 'function') || canEdit()) ? { attr: `data-pd-og-route="${E(c.id)}"`, w: 'jov5_sg_go_who' } : null);
   row(closed ? 'done' : 'later', T('pd2_sg_then'), T('pd2_sg_then_s'));
@@ -2598,7 +2605,9 @@ function pd2SignRowsHtml(c){
     const head = jov5HeadHtml({ eyebrow: T('jov5_sg_eb'), title, sub: [who, closed ? '' : open ? T('jov5_sg_sub') : ''].filter(Boolean).join('. ') + (open && !closed ? '' : '') });
     const pct = checks.length ? Math.round(100 * done / checks.length) : 0;
     const bar = closed ? '' : `<div class="pd2-sg-prog"><p><span>${E(T('jov5_sg_ready'))}</span><span>${E(T('jov5_sg_k_of_n', { k: done, n: checks.length }))}</span></p><i aria-hidden="true"><b style="width:${pct}%"></b></i></div>`;
-    const first = (closed || HO) ? null : checks.find(m => (m.st === 'now') && m.go);
+    /* only WHILE SOMETHING HOLDS THE SIGNATURE (signBlockers): an open check that holds nothing (standards not run yet)
+       never takes Sign's place (16 Nov 2026, #762) */
+    const first = (closed || HO || !holds.length) ? null : checks.find(m => (m.st === 'now') && m.go);
     const go = first ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go pd2-sg-go" ${first.go.attr}>${E(T(first.go.w))}</button>` : card;
     return `<div class="pd2-sg is-five">${head}${bar}<p class="pd2-sg-l">${E(T('jov5_sg_checks'))}</p><div class="pd2-sg-g">${rows.slice(0, -1).join('')}</div>`
       + `<p class="pd2-sg-l">${E(T('jov5_sg_then'))}</p><div class="pd2-sg-g"><div class="pd2-sg-r is-${meta[meta.length - 1].st}"><i class="pd2-sg-i" aria-hidden="true">${closed ? '\u2713' : ''}</i><div><b>${E(T('pd2_sg_then_s'))}</b></div></div></div>${go}</div>`;

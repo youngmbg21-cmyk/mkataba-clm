@@ -139,13 +139,19 @@ const pastFirstWords = async page => {
        Fill in door opens (pdFillOpen), not on the Dossier */
     await page.evaluate(() => { const c = pdContract(); if (c) pdFillOpen(c.id); });
     await waitFor(page, () => !!document.querySelector('#pd-og .pd-og-row.is-amb .dp-face'), 5000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): an owed box is marked by an amber EDGE on a clear box,
+       not an amber fill; the claim is unchanged — every owed date's face wears exactly what its owed neighbours (the owed
+       text boxes) wear, fill and edge, and that is an amber mark */
     const cdt = await page.evaluate(() => {
-      const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
-      const amber = getComputedStyle(probe).backgroundColor; probe.remove();
+      const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; probe.style.color = 'var(--st-amber-fg)'; probe.style.borderColor = 'var(--st-amber-dot)'; document.body.appendChild(probe);
+      const amber = [getComputedStyle(probe).backgroundColor, getComputedStyle(probe).color, getComputedStyle(probe).borderTopColor]; probe.remove();
+      const look = el => { const c = getComputedStyle(el); return c.backgroundColor + ' / ' + c.borderBottomColor; };
+      const nb = [...document.querySelectorAll('#pd-og .pd-og-row.is-amb .pd-og-in:not(.dp-native)')].filter(e => !e.closest('.dp-wrap, .dp') && e.getClientRects().length);
+      const want = nb.length ? look(nb[0]) : null;
       const faces = [...document.querySelectorAll('#pd-og .pd-og-row.is-amb .dp-face')];
-      return { n: faces.length, amber: faces.filter(f => getComputedStyle(f).backgroundColor === amber).length };
+      return { n: faces.length, want, isAmber: !!want && amber.some(a => want.includes(a)), amber: faces.filter(f => look(f) === want).length, faces: faces.map(look) };
     });
-    check('5a every owed date in the grid wears the amber its neighbours wear', cdt.n > 0 && cdt.amber === cdt.n, JSON.stringify(cdt));
+    check('5a every owed date in the grid wears the amber its neighbours wear', cdt.n > 0 && cdt.isAmber && cdt.amber === cdt.n, JSON.stringify(cdt));
     await page.unroute('**/api/templates/*/contracts');
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); }); await pause(500);
     await page.evaluate(() => setView('register')); await pause(500);

@@ -59,12 +59,12 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2, null, { timeout: 20000 });
 
     console.log('\n1 · the Roles page, and a role made');
-    const door = await until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
-      const d = document.querySelector('[data-st-card="people"] [data-st-page="roles"]');
-      return d && d.getBoundingClientRect().width > 0 ? d.textContent.replace(/\s+/g, ' ').trim() : null; }, null, 15000);
-    check('1a Company › People carries a door, Roles', /^Roles ›$/.test(door || ''), door);
-    if (door) await press('[data-st-card="people"] [data-st-page="roles"]', '1a Roles');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the People card and its Roles door are the old look's;
+       on the one list the Roles page is found by its name, asked in Jambo's box beside it */
+    const door = await until(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; } return document.querySelector('#ins-panel #jl-q') ? 'Roles ›' : null; }, null, 15000);
+    if (door) { await page.fill('#jl-q', 'business roles'); await H.chipEnter(page, '#jl-q'); }
+    const landed = await until(() => !!document.querySelector('[data-st-pg="roles"]'), null, 8000);
+    check('1a "business roles" asked in Settings\' box opens the Roles page', !!landed, String(landed));
     const empty = await until(() => { const p = document.querySelector('[data-st-pg="roles"]'); return p ? (p.querySelector('.st-bz-empty') || {}).textContent || 'listed' : null; });
     check('1b the page lands, saying no roles yet and what one is', /No business roles yet/.test(empty || ''), empty);
     await shot(page, 'roles-empty');

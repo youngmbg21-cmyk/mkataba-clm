@@ -126,6 +126,11 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         selects: [...host.querySelectorAll('.hist-f select')].map(s =>
           ({ k: s.getAttribute('data-ht-filter'), ...seen(s) })),
         labels: [...host.querySelectorAll('.hist-f > span')].map(s => s.textContent.trim()),
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's filters are QUICK LINKS in the open
+           (owner, 31 Oct 2026, "Quick links as drawn"; histQuickHtml): theirs · sent · decisions · Jambo, a link that
+           would give nothing not drawn, named by one "Filters" label, Clear beside them */
+        quick: [...host.querySelectorAll('.hist-quick [data-ht-quick]')].map(b => ({ k: b.getAttribute('data-ht-quick'), ...seen(b) })),
+        quickLabel: (host.querySelector('.hist-quick .hist-qk-l') || {}).textContent || '',
         clear: seen(host.querySelector('#ht-clear')),
         more: (() => { const b = host.querySelector('#hist-more');
           return b ? { tag: b.tagName, text: (b.textContent || '').replace(/\\s+/g, ' ').trim(), aria: b.getAttribute('aria-label') || '', tip: b.getAttribute('title') || '',
@@ -155,13 +160,14 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        labelled boxes in the band beside the search — the Filter button that
        folded them (SAP batch 3, 9 Oct) is gone. What still holds: the
        filters, Clear, one handle per filter, Side not among them. */
-    check('the filters stand in the open at rest: no Filter button, every box on screen, Clear with them',
-      !(head.btn && head.btn.on) && head.selects.length >= 4 && head.selects.every(s => s.on) && !!(head.clear && head.clear.on),
-      head.selects.map(s => `${s.k}:${s.w}x${s.h}`).join(' · ') + ` · button ${head.btn ? 'present' : 'absent'}`);
+    check('the filters stand in the open at rest: no Filter button, every quick link on screen, Clear with them',
+      !(head.btn && head.btn.on) && head.quick.length >= 2 && head.quick.every(s => s.on) && !!(head.clear && head.clear.on),
+      head.quick.map(s => `${s.k}:${s.w}x${s.h}`).join(' · ') + ` · button ${head.btn ? 'present' : 'absent'}`);
+    const QORDER = ['theirs', 'sent', 'decisions', 'jambo'];
     check('in the drawing\'s order, and side is NOT among them (one handle)',
-      !head.selects.some(s => s.k === 'side') && JSON.stringify(head.selects.map(s => s.k)) === JSON.stringify(['actor', 'clauseId', 'outcome', 'round']),
-      head.selects.map(s => s.k).join(' · '));
-    check('the band still names each filter', head.labels.length === 4, head.labels.join(' | '));
+      !head.quick.some(s => s.k === 'side') && head.quick.every((s, i) => QORDER.includes(s.k) && (i === 0 || QORDER.indexOf(s.k) > QORDER.indexOf(head.quick[i - 1].k))),
+      head.quick.map(s => s.k).join(' · '));
+    check('the band still names its filters', /Filter/i.test(head.quickLabel), head.quickLabel);
 
     /* ---- the Side column says Ours / Theirs, in the owner's chair ---- */
     check('the Side column says whose, in plain words: Ours and Theirs',
@@ -228,20 +234,21 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     const before = head.rows;
     /* RE-POINTED 17 Oct 2026 (round 12): with the side switch gone, the
        narrowing is asked of the Person filter in the fold (still open). */
-    const person = await page.evaluate(() => { const s = document.querySelector('#pd2-hist [data-ht-filter="actor"]');
-      const o = s && [...s.options].find(x => x.value); return o ? o.value : ''; });
-    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', person);
+    /* RE-POINTED 16 Nov 2026 (#762): the narrowing is a quick link's press (the first one drawn that narrows) */
+    const person = await page.evaluate(() => { const b = document.querySelector('#pd2-hist .hist-quick [data-ht-quick]'); return b ? b.getAttribute('data-ht-quick') : ''; });
+    const pressQuick = k => page.evaluate(k => { const b = document.querySelector(`#pd2-hist [data-ht-quick="${k}"]`); if (b) b.click(); }, k);
+    await pressQuick(person);
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, '03-filtered-ours.png') });
     const narrowed = await page.evaluate(`(() => {
       const host = document.querySelector('#pd2-hist');
+      const on = host.querySelector('[data-ht-quick][aria-pressed="true"]');
       return { rows: host.querySelectorAll('.hist-ev').length,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
-        side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
-        /* the band's own filter, not its wrapper (which takes no box since the SAP way) */
-        row: ${SEEN}(host.querySelector('[data-ht-filter="actor"]')) };
+        side: on ? on.getAttribute('data-ht-quick') : '',
+        row: ${SEEN}(host.querySelector('.hist-quick')) };
     })()`);
-    check('picking a person narrows the record', narrowed.rows > 0 && narrowed.rows < before,
+    check('picking a quick link narrows the record', narrowed.rows > 0 && narrowed.rows < before,
       `${before} → ${narrowed.rows}`);
     check('the count says how much of the record is showing', /of/.test(narrowed.pill || ''), narrowed.pill);
     check('the repaint keeps the choice on the control that made it',
@@ -253,9 +260,9 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        filter change, and it used to add a document listener per paint. Proved
        from the reader's chair — after several repaints the menu must still take
        exactly one press to open and one to shut. */
-    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', '');
+    await pressQuick(person);
     await page.waitForTimeout(450);
-    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', person);
+    await pressQuick(person);
     await page.waitForTimeout(450);
     await page.click('#pd2-hist #hist-more');
     await page.waitForTimeout(300);
@@ -276,7 +283,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     const cleared = await page.evaluate(`(() => {
       const host = document.querySelector('#pd2-hist');
       return { rows: host.querySelectorAll('.hist-ev').length,
-        side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
+        side: host.querySelector('[data-ht-quick][aria-pressed="true"]') ? 'on' : '',
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim() };
     })()`);
     check('Clear is the one way back, and it puts every filter back',

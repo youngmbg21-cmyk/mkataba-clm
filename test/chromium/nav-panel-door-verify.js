@@ -50,7 +50,8 @@ const panelNow = () => ({ open: !!(window.state && state.panelOpen), face: typeo
         /* ---- 2 opens on the Guide, even with something waiting (owner, 14 Nov 2026; reverses "on Alerts"); closes on a second press ---- */
         const waiting = await page.evaluate(() => alertCount());
         await page.click('#hdr-notify');
-        const open = await until(page, () => state.panelOpen && panelFace() === 'guide' && !!document.querySelector('#panel-body .gd'));
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the side Guide is drawn as .gdn (guidePanelNlHtml) */
+        const open = await until(page, () => state.panelOpen && panelFace() === 'guide' && !!document.querySelector('#panel-body :is(.gd, .gdn)'));
         const p1 = await page.evaluate(panelNow);
         check('2 with something waiting, a press opens the panel on the Guide, and says so', waiting > 0 && open && p1.navX === 'true', { waiting, p1 });
         await page.screenshot({ path: path.join(OUT, `guide-${nm}.png`) });

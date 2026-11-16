@@ -202,7 +202,9 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
       const homeWhen = (cond, arg, ms = 10000) => until(([sel, k, a2]) => {
         const W = { card: () => false, /* the contract's card on the Board is gone (9 Nov 2026) */
           paper: id => !!(window.pdContract && pdContract() && pdContract().id === id),
-          owed: id => !!(window.pdContract && pdContract() && pdContract().id === id && document.getElementById('pd-needs')),
+          /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier is ONE card with no
+             #pd-needs list; what is still owed is read through the Dossier's one reading (pdNeedsRows) */
+          owed: id => !!(window.pdContract && pdContract() && pdContract().id === id && (document.getElementById('pd-needs') || document.querySelector('#ig-dock .pd2-card, #ig-dock [data-pd2-card]') || document.getElementById('pd-glance'))),
           sign: () => !!(window.pdSignShows && pdSignShows()),
           board: () => !(window.igPaperUp && igPaperUp()) && !(window.pdOnPaper && pdOnPaper()) };
         if (!W[k] || !W[k](a2)) return null;
@@ -212,7 +214,8 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
         return { lines: drawn.length, words: (h.textContent || '').includes(sel.line),
           inView: br.top >= 0 && br.bottom <= innerHeight + 1, side: document.documentElement.scrollWidth <= innerWidth + 1,
           /* the rows Still owed draws (a ticked-off row is not owed), so "with rows" is measured, not assumed */
-          owed: document.querySelectorAll('#ig-dock #pd-needs .pd-gl-row:not(.is-done)').length };
+          owed: document.querySelectorAll('#ig-dock #pd-needs .pd-gl-row:not(.is-done)').length
+            || (window.pdContract && pdContract() && typeof pdNeedsRows === 'function' ? (pdNeedsRows(getContract(pdContract().id) || pdContract()) || []).length : 0) };
       }, [HOME, cond, arg], ms);
       /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): bringing a contract up lands on its paper, and its
          History stands in the middle beside it */

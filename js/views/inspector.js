@@ -1742,6 +1742,24 @@ function jlAsk(text, opts){
       if (typeof jmRunAct === 'function' && jmRunAct(a, t)) return 'card';
     }
   }
+  /* ON SETTINGS, A SETTING ASKED FOR IS THE ONE FINDER'S (stFind, through stJbAnswer — the cards the old box drew, each
+     its own door): the new look's Settings box is this one, and it had stopped asking the finder (16 Nov 2026, #762) */
+  if (document.querySelector('.stn-page') && typeof stJbAnswer === 'function' && typeof stJbCardHtml === 'function'
+      && typeof stFind === 'function' && typeof aiPush === 'function' && typeof renderAIFeed === 'function'){
+    let hits = []; try { hits = stFind(t) || []; } catch (_){ hits = []; }
+    let A = null; try { A = hits.length ? stJbAnswer(t) : null; } catch (_){ A = null; }
+    const cards = A && Array.isArray(A.cards) ? A.cards.filter(c => c && c.k !== 'why').map(c => { try { return stJbCardHtml(c, {}); } catch (_){ return ''; } }).filter(Boolean) : [];
+    if (cards.length){
+      if (_jlBusy()) return jlBusySay(t);
+      jlTalkOpen();
+      let page = ''; try { page = (typeof deskPageName === 'function' && deskPageName()) || ''; } catch (_){ page = ''; }
+      aiPush('user', { text: esc(t), raw: t });
+      aiPush('assistant', { text: `<div>${esc(A.say || '')}</div>`, cards: `<div class="st-jb-cards">${cards.join('')}</div>`,
+        read: { cid: null, page, text: i18t('jl_read_book_free') }, free: true });
+      renderAIFeed();
+      return 'said';
+    }
+  }
   /* answer where you stand: contracts asked to see with no place named, and a
      number nobody here can see, are said here — the list stays as it was */
   let u = null; try { u = (typeof caUnderstand === 'function') ? caUnderstand(t, { box: 'list' }) : null; } catch (_){ u = null; }

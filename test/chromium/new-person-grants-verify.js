@@ -58,14 +58,17 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2, null, { timeout: 20000 });
 
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the People card is the old look's; Add member is on
+       the People & roles page, linked at the one list's foot */
     const door = await until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
-      const d = document.querySelector('[data-st-card="people"] [data-st-panel="person:new"]');
+      if (!document.getElementById('set-page')) { setView('team'); return null; }
+      if (!document.querySelector('[data-st-pg="team"]')) { const f = document.querySelector('#stn-pages [data-st-page="team"]'); if (f) f.click(); return null; }
+      const d = document.querySelector('[data-st-pg="team"] [data-st-panel="person:new"]');
       return d && d.getBoundingClientRect().width > 0;
     }, null, 15000);
-    check('0 Company › People & access carries Add member', !!door);
+    check('0 Settings › People & roles carries Add member', !!door);
     if (!door) throw new Error('no Add member door');
-    await page.locator('[data-st-card="people"] [data-st-panel="person:new"]').first().click();
+    await page.locator('[data-st-pg="team"] [data-st-panel="person:new"]').first().click();
     await drawerOpen();
 
     console.log('\n1 · a Viewer');

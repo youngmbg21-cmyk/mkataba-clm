@@ -158,7 +158,12 @@ const READ = () => {
     ok('3 the Advice tab is a cut of the list: advice rows only, on Requests', s.view === 'intake' && s.on === 'advice'
       && s.advRows === s.adviceN && s.ikRows === 0, { view: s.view, on: s.on, advice: s.advRows, contract: s.ikRows });
     /* the board is still a door away: the advice row's panel carries it */
-    await page.click('#ins-panel [data-ins-act="board"]').catch(() => {});
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): an advice request's panel carries its own
+       "Advice board" door ([data-ikn-adv-board]) — the advice row is chosen first, as a reader chooses it */
+    await page.evaluate(() => { const ids = new Set(((window.state && state.advice) || []).map(a => String(a.id)));
+      const r = [...document.querySelectorAll('#content .ikn-page [data-ikn-row]')].find(x => ids.has(String(x.getAttribute('data-ikn-row')))); if (r) r.click(); });
+    await page.waitForSelector('#ins-panel [data-ikn-adv-board], #ins-panel [data-ins-act="board"]', { timeout: 4000 }).catch(() => {});
+    await page.click('#ins-panel [data-ikn-adv-board], #ins-panel [data-ins-act="board"]', { timeout: 4000 }).catch(() => {});
     await until(page, () => state.view === 'advice' && document.querySelectorAll('#content [data-adv-drop]').length > 0);
     s = await page.evaluate(READ);
     ok('3a the panel\'s Advice board door draws the board — all five stages, every request',

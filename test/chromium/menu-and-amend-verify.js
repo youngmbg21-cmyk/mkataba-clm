@@ -57,9 +57,15 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('1a no ⋯ on the paper\'s line', await page.evaluate(() => !document.querySelector('#ig-strip #ws-more')));
     await page.evaluate(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; });
     await until(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired, null, 8000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every act is pressed from the paper line's More
+       (#ig-actions → pdActsToggle → #pd-acts-pop, "More, halved"; the Dossier's All acts fold is kept closed and unseen) —
+       the rows are read in that card, in their groups */
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); const a = document.getElementById('ig-actions'); if (a && window.pdActsToggle) pdActsToggle('MK-B2', a); });
+    await until(page, () => !!document.getElementById('pd-acts-pop'), null, 4000);
     const menu = await page.evaluate(() => ({ tab: !!document.querySelector('#ig-dock [data-pd-tab="menu"]'),
-      groups: [...document.querySelectorAll('#ig-dock .ds-fold[data-ds-fold="acts"] .ds-fold-h')].map(x => x.textContent.trim()),
-      rows: ['#ws-pdf', '#ws-word', '#ws-filing', '#ws-import'].filter(s => document.querySelector('#ig-dock .ds-fold .pd-mn-rows ' + s)) }));
+      groups: [...document.querySelectorAll('#pd-acts-pop .pd-acts-h')].map(x => x.textContent.trim()),
+      rows: ['#ws-pdf', '#ws-word', '#ws-filing', '#ws-import'].filter(s => document.querySelector(`#pd-acts-pop [data-pd-acts-go="${s}"]`)) }));
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); });
     ok('1b All acts: the ⋯ rows in their groups, no Menu tab', !menu.tab && menu.groups.length >= 3 && menu.rows.length === 4, JSON.stringify(menu));
     await page.screenshot({ path: path.join(OUT, '1-menu.png') });
 

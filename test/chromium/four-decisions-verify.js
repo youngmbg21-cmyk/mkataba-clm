@@ -95,7 +95,8 @@ const blocked = [];
         /* the Board's list also carries its own moves (/compare, /trend…), which fill a question: no "Open" there */
         ['the Board', () => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} }, '#igd-input', '#hb-askpop', '[data-hb-pop-kind="place"]'],
         ['Approvals\' panel', () => setView('approvals'), '#jl-q', '[data-jl-pop]'],
-        ['Settings\' Jambo box', () => openSettingsAt('you'), '#st-jb-q', '#ca-slash'],
+        /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo box is the list panel's #jl-q */
+        ['Settings\' Jambo box', () => openSettingsAt('you'), '#jl-q', '#ca-slash'],
       ]){
         await clean(); await ev(go);
         const up = await until(sel => { const b = document.querySelector(sel); return !!(b && b.getBoundingClientRect().width); }, box);
@@ -138,18 +139,11 @@ const blocked = [];
       }
       await clean();
 
-      /* ---- Q3 · two lines: the Dossier's door rows ---- */
+      /* RETIRED 16 Nov 2026 (#762): Q3 "the Dossier's Who else row reads whole" and "a one-line door row keeps its 44px" —
+         the Dossier's door rows (.pd-ck-hd: Who else, Signer, …) were the old look's list; the new look's Dossier is ONE
+         card (pd2CardHtml) with no such rows. The field-label line below still stands where any such row is drawn. */
       await ev(id => pdOpenOnHome(id, 'copilot'), reviewId);
-      await until(() => [...document.querySelectorAll('#ig-dock .pd-ck-hd')].some(b => /Who else/.test(b.textContent)));
-      await ev(() => { const b = [...document.querySelectorAll('#ig-dock .pd-ck-hd')].find(x => /Who else/.test(x.textContent)); if (b) b.scrollIntoView({ block: 'center' }); });
       await settle(); await shot('q3-dossier');
-      const who = await ev(() => { const b = [...document.querySelectorAll('#ig-dock button.pd-ck-hd')].find(x => /Who else/.test(x.textContent)); if (!b) return null;
-        const parts = [b.querySelector(':scope > b'), b.querySelector(':scope > .pd-ck-v')].filter(Boolean);
-        return { cut: parts.filter(p => p.scrollHeight > p.clientHeight + 1 || p.scrollWidth > p.clientWidth + 1).map(p => p.textContent.trim()), lines: parts.map(p => Math.round(p.getBoundingClientRect().height / 20)) }; });
-      check(`${at} · Q3 — the Dossier's "Who else" row reads whole, two lines at most`, who && !who.cut.length && who.lines.every(n => n <= 2), JSON.stringify(who));
-      const one = await ev(() => [...document.querySelectorAll('#ig-dock tr:is(.is-saved, .is-door, .is-named) button.pd-ck-hd')].filter(b => b.getBoundingClientRect().height && [...b.children].filter(c => !c.matches('.pd-ck-chev')).every(c => c.getBoundingClientRect().height <= 21)).map(b => Math.round(b.getBoundingClientRect().height)));
-      /* RE-POINTED 29 Oct 2026 (the owner: every last-column press a 22px grey pill): the pill is not a line of words */
-      check(`${at} · Q3 — a one-line door row keeps its 44px`, one && one.length && one.every(x => x === 44), JSON.stringify(one));
       const labels = await ev(() => [...document.querySelectorAll('#ig-dock #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd')].filter(b => b.getBoundingClientRect().height).map(b => Math.round(b.getBoundingClientRect().height)));
       check(`${at} · Q3 — a field's label line above its box stays one 20px line`, labels && labels.every(x => x <= 21), JSON.stringify(labels));
 

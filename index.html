@@ -19926,7 +19926,9 @@
   html.lg-new #ct-place .ct-page .ct-head .lh-ask{flex:1 1 320px;min-width:0;max-width:none;height:38px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:transparent;box-shadow:none}
   html.lg-new #ct-place .ct-page .ct-head .reg-views{order:2;margin:0;border:0}
   html.lg-new #ct-place .ct-page .ct-head .lh-chips{display:contents}
-  html.lg-new #ct-place .ct-page .ct-head :is(.lh-chip,.lh-add,.lh-sp,.reg-filterbar,.ct-cohort,.lh-save){display:none}
+  /* an APPLIED filter's chip stays (lhChipHtml draws only applied ones): a filter narrowing the list is never quietly on,
+     and its × is the way out (16 Nov 2026, #762); the drawn head has no + Filter */
+  html.lg-new #ct-place .ct-page .ct-head :is(.lh-add,.lh-sp,.reg-filterbar,.ct-cohort,.lh-save){display:none}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn{order:3;margin-left:auto;border:0;border-radius:999px;background:var(--surface-2);box-shadow:none;padding:0 14px;color:var(--color-text);font-size:13px;font-weight:var(--w-label);white-space:nowrap}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn.is-open{background:var(--color-text);color:var(--color-surface)}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn svg{display:none}
@@ -20499,7 +20501,7 @@
   html.lg-out #pt-hist-pane .ht-filters{justify-content:flex-end;margin:0 0 -40px;padding:0;border:0}
   html.lg-out #pt-hist-pane .ht-filters .ui-btn{border:0;border-radius:999px;background:var(--surface-2);height:var(--ctl-h-sm);font-size:13px}
   html.lg-out .pt-code-out .pt-code-wrap{min-height:0;display:block;background:transparent;padding:0}
-  html.lg-out .pt-code-out .pt-code{max-width:520px;margin:0 auto;padding:150px 0 40px;border:0;border-radius:0;box-shadow:none;background:transparent}
+  html.lg-out .pt-code-out .pt-code{max-width:520px;width:calc(100% - 32px);margin:0 auto;padding:150px 0 40px;border:0;border-radius:0;box-shadow:none;background:transparent}
   html.lg-out .pt-code-out .pt-code-brand{display:none}
   html.lg-out .pt-code-out .pt-code h1{font-family:var(--font-title);font-weight:400;font-size:24px;margin:0 0 8px}
   html.lg-out .pt-code-out #pt-code-in{background:var(--color-surface);border-color:var(--color-text);font-family:var(--font-ref)}

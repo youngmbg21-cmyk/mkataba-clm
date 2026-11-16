@@ -1869,7 +1869,9 @@ function iknPanelHtml(r, may){
     + (fit ? row(i18t('ikn_paper'), fit.name, i18t('ikn_src_fits')) : '')
     + ((r.files || []).length ? row(i18t('ikn_files'), i18tn('ikn_files_n', r.files.length, { n: r.files.length }), '') : '');
   const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
-  const doors = r._adv ? '' : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
+  /* AN ADVICE REQUEST KEEPS ITS TWO DOORS (16 Nov 2026, #762: the new look's panel drew none, a dead end) — the advice
+     itself and the board it lives on, the same two the old panel carried (ik_act_open_advice, ik_act_advice_board) */
+  const doors = r._adv ? door(`data-ikn-adv="${E(r.id)}"`, i18t('ik_act_open_advice'), i18t('pd2_ch_free')) + door('data-ikn-adv-board=""', i18t('ik_act_advice_board'), i18t('pd2_ch_free')) : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
     : may ? door(`data-ikn-draft="${E(r.id)}"`, i18t('ikn_start'), i18t('ikn_start_cost')) : '';
   return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${r.need ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_words'))}</div><div class="mnn-note"><p>${E(r.need)}</p></div>` : ''}
     ${rows ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
@@ -1879,6 +1881,8 @@ if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired 
     if (typeof state === 'undefined' || state.view !== 'intake') return;
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
     if ((el = t.closest('[data-ikn-tab]'))){ e.preventDefault(); _ikn = el.getAttribute('data-ikn-tab'); renderIntake({ rows: true }); return; }
+    if ((el = t.closest('[data-ikn-adv]'))){ e.preventDefault(); e.stopPropagation(); if (typeof window.openAdviceModal === 'function') window.openAdviceModal(el.getAttribute('data-ikn-adv')); return; }
+    if (t.closest('[data-ikn-adv-board]')){ e.preventDefault(); e.stopPropagation(); setView('advice'); return; }
     if ((el = t.closest('[data-ikn-draft]'))){ e.preventDefault(); e.stopPropagation(); intakeDraft(el.getAttribute('data-ikn-draft')); return; }
     if ((el = t.closest('[data-ikn-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-ikn-open'); if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open')) && typeof openWorkspace === 'function') openWorkspace(id); return; }
     if ((el = t.closest('#ik-new')) && t.closest('.ikn-page')){ e.preventDefault(); openIntakeForm(); return; }

@@ -138,14 +138,16 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       const nb = await w.unrestricted.json('/api/bootstrap');
       check('5c saved on the server, said in the row', !!saved && nb.me.name === 'Wanjiru Kamau', nb.me.name);
     }
-    if (await pressM('[data-st-rform="me:email"]', '5d Email · Change')) {
+    /* RE-POINTED 16 Nov 2026 (#762): Your email is a row on the one list; its Change opens the email drawer */
+    if (await pressM('#stn-email [data-st-panel="me:email"]', '5d Email · Change')) {
+      await mu(() => document.getElementById('st-me-email') ? true : null, null, 4000);
       await m.fill('#st-me-email', 'wanjiru@example.co.ke'); await m.fill('#st-me-email-pw', 'not-my-password');
-      await pressM('#st-rform-save', '5d Save');
-      const refused = await mu(() => { const r = document.getElementById('st-rform-refusal'); return r && !r.hidden && r.textContent.trim() ? r.textContent.trim() : null; }, null, 6000);
-      check('5d a wrong password is refused in the row', !!refused, refused);
+      await pressM('#st-dsave', '5d Save');
+      const refused = await mu(() => { const r = document.getElementById('st-drawer-refusal'); return r && !r.hidden && r.textContent.trim() ? r.textContent.trim() : null; }, null, 6000);
+      check('5d a wrong password is refused in its form', !!refused, refused);
       await m.fill('#st-me-email-pw', 'their-own-pass-9');
-      await pressM('#st-rform-save', '5e Save');
-      const ok = await mu(() => !document.getElementById('st-rform') ? true : null, null, 6000);
+      await pressM('#st-dsave', '5e Save');
+      const ok = await mu(() => { const d = document.getElementById('st-drawer'); return !(d && d.classList.contains('open')) ? true : null; }, null, 6000);
       const eb = await w.unrestricted.json('/api/bootstrap');
       check('5e with the password: saved on the server', !!ok && eb.me.email === 'wanjiru@example.co.ke', eb.me.email);
     }

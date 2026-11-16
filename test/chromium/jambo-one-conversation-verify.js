@@ -114,9 +114,9 @@ const CONTRACTS = [
        settings finder's free answer (its press, part 5) is Overview's; typed on Jambo's tab it would go to the chat */
     await page.evaluate(() => { try { jlTalkBack(); } catch (_) {} });
     /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#jl-q', 'QSET signing limit');
-    /* RE-POINTED 16 Nov 2026 (#762): on the new look's Settings panel every word TYPED is the brain's (jlAsk typed →
-       aiAskWords, "Door above the box"), so the question is sent as a person sends it — Enter */
-    await page.press('#jl-q', 'Enter');
+    /* RE-POINTED 16 Nov 2026 (#762): Settings' box is the list panel's (#jl-q); asked as a chip asks it, its reader
+       (jlAsk) asks Settings' one finder (stFind) first */
+    await H.chipEnter(page, '#jl-q');
     const st2 = await until(() => { const f = document.querySelector('#ins-panel [data-jt-talk]'); return f && /QSET/.test(f.textContent) && /QSIDE/.test(f.textContent) ? true : null; }, null, 6000);
     check('2a in Settings: its own question and the side panel\'s, one conversation', !!st2, (await txt(ST_FEED)).slice(0, 300));
     await toHome(); await homeTalk();
@@ -138,9 +138,12 @@ const CONTRACTS = [
     check('4 another contract on Home\'s paper keeps the one conversation', !!paper, (await txt('#ig-dock')).slice(0, 200));
 
     /* ===== 5 · A PRESS AWAY FROM ITS HOST ===== */
-    const stBtn = await page.evaluate(() => { const b = document.querySelector('#ig-dock .jb-turn[data-jb-born="st"] button'); return b ? (b.textContent || '').trim() : null; });
+    /* RE-POINTED 16 Nov 2026 (#762): Settings' answers are born in the list panel there (born "jl" on Settings, the
+       finder's cards) as well as the old side ("st") */
+    const ST_TURN = '#ig-dock .jb-turn:is([data-jb-born="st"], [data-jb-born="jl"]) button';
+    const stBtn = await page.evaluate(sel => { const b = document.querySelector(sel); return b ? (b.textContent || '').trim() : null; }, ST_TURN);
     if (stBtn) {
-      await page.click('#ig-dock .jb-turn[data-jb-born="st"] button');
+      await page.click(ST_TURN);
       const went = await until(() => state.view === 'team' ? true : null, null, 6000);
       check('5a a Settings answer\'s press shown on Home takes you to Settings and presses there', !!went, stBtn);
     } else check('5a (no Settings answer carried a press to try)', false, (await txt('#ig-dock')).slice(0, 200));

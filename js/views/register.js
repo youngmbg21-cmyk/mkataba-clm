@@ -2237,7 +2237,11 @@ function regNlFootHtml(cs){
   const more=inF&&all>n?` · <button type="button" class="reg-nl-all" data-ctf-tab="all">${esc(i18t('reg_nl_show_all',{ n:all }))}</button>`:'';
   /* THE FOOT SAYS ONLY THE COUNT (owner, 9 Nov 2026: "Why do you need 2 columns?"): the sentence about the question
      column and Our standards is gone; how far a column is read is said in its ⋯ menu */
-  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span>`;
+  /* A CAP IS A FACT, NEVER A SILENT TRIM (16 Nov 2026, #762): the rows stop at a page (REG_PAGE), so the foot offers
+     the next ones, as the old foot did (lhFootHtml's Show N more, the same seat and press) */
+  const list=cs||[], shown=regMode()==='board'?n:Math.min(n, regCurPage(list)*REG_PAGE), k=Math.min(REG_PAGE, n-shown);
+  const next=k>0?` · <button type="button" class="ui-link lh-more" data-lh-more="${REG_CT_SEAT}">${esc(i18t('lh_more',{ n:k.toLocaleString(jxLocale()) }))}</button>`:'';
+  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}${next}</span>`;
 }
 /* the new look's foot is the count in its own row: as the list narrows, the row is written again whole */
 function regNlFootPut(cs){ const f=regNl()&&document.getElementById('reg-nl-showing'); if(f&&f.parentElement) f.parentElement.innerHTML=regNlFootHtml(cs); }

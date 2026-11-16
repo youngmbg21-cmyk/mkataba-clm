@@ -185,8 +185,7 @@ const check = (name, ok, detail) => {
     check('3a the stream is a column again, a soft chip in every row that has one',
       cols.heads.some(x => /^stream$|^värdeflöde$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
     check('3b and no row draws its stream tick', !cols.tick);
-    check('3c CONTROL the Stream filter is still offered (under + Filter), with its streams to pick',
-      !!cols.streamChip && cols.streamChip.w > 0 && cols.streamChip.opts >= 1, JSON.stringify(cols.streamChip));
+    /* RETIRED 16 Nov 2026 (#762): 3c "the Stream filter is still offered under + Filter" — the new look's Contracts head draws no + Filter (lead's ruling) */
     check('3d the LINK column is gone from this table',
       !cols.heads.some(x => /^link$|^länk$/i.test(x)), cols.heads.join(' · '));
 
@@ -196,15 +195,30 @@ const check = (name, ok, detail) => {
       dots: document.querySelectorAll('tr[data-row] [data-menu]').length,
     }));
     check('4a no row draws a text verb', verbs.actlink === 0, `${verbs.actlink} found`);
-    check('4b every row keeps its ⋯', verbs.dots === rows.n, `${verbs.dots} of ${rows.n}`);
-    /* IT MUST STILL OPEN — a menu that is drawn and dead is worse than none. */
-    await page.evaluate(() => { const m = document.querySelector('tr[data-row] [data-menu]'); if (m) m.click(); });
-    await page.waitForTimeout(400);
-    const menuOpen = await page.evaluate(() => {
-      const p = document.querySelector('[data-menu-pop]');
-      return p ? getComputedStyle(p).display !== 'none' : false;
-    });
-    check('4c and pressing it really opens the menu', menuOpen);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's list draws no ⋯ column (regColKeys has no
+       'acts' when regNl()); a row's ONE press opens its contract, and the contract's ⋯ (#ig-actions) carries the row's acts.
+       4b/4c and 14 ask that way: the press opens it, and its ⋯ opens painted with End or pause and Delete */
+    const firstId = await page.evaluate(() => (document.querySelector('#reg-tbody tr[data-row]') || {}).getAttribute?.('data-row') || null);
+    await page.click('#reg-tbody tr[data-row] td:nth-child(2)', { timeout: 5000 }).catch(() => {});
+    const opened = await page.waitForFunction(id => !!(window.pdContract && pdContract() && pdContract().id === id), firstId, { timeout: 8000 }).then(() => true, () => false);
+    check('4b a row\'s one press opens its contract, where its acts are', !!firstId && opened, String(firstId));
+    /* a contract opened on purpose lands on its Cover (f1085); its Open the dossier is the step onto the paper */
+    if (await page.$('[data-cv-open]')) { await page.click('[data-cv-open]', { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(800); }
+    const menuUp = await page.click('#ig-actions', { timeout: 5000 }).then(() => true, () => false);
+    await page.waitForTimeout(500);
+    const actsSeen = () => page.evaluate(() => [...document.querySelectorAll('button, a, [role="menuitem"]')].filter(b => { const r = b.getBoundingClientRect();
+      if (!r.width || !r.height) return false; const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && (el === b || b.contains(el)); })
+      .map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+    const seen = await actsSeen();
+    check('4c and its ⋯ really opens, End or pause among its painted acts', menuUp && seen.some(t => /^End or pause$/i.test(t)), seen.filter(t => t.length < 40).slice(-8).join(' · '));
+    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /^All acts/.test(x.textContent.trim()) && x.getBoundingClientRect().width > 0); if (b) b.click(); });
+    await page.waitForTimeout(600);
+    const all = await actsSeen();
+    check('4d and every act, Delete among them, one press further (All acts), painted', all.some(t => /delete/i.test(t)), all.filter(t => t.length < 40).slice(-12).join(' · '));
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 8000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('#reg-tbody [data-row]', { timeout: 8000 }).catch(() => {});
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
 
@@ -236,14 +250,8 @@ const check = (name, ok, detail) => {
       await new Promise(r => setTimeout(r, 400));
       return out;
     });
-    check('5a every filter "+ Filter" offers carries its label',
-      filters.n >= 4 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}: ${filters.groups.join(' | ')}`);
-    /* The fault this guards: the quick-filter dropdown's own sentence — 57
-       characters — used as a LABEL, which ran to 460px and pushed the bar off
-       its row. The claim is about LENGTH, so it costs nothing when a label is
-       renamed. */
-    check('5b no label is a sentence — the long one stays a tooltip',
-      filters.widest <= 24, `longest label ${filters.widest} chars`);
+    /* RETIRED 16 Nov 2026 (#762): 5a/5b, the labels "+ Filter" offers — the new look's Contracts head draws no + Filter
+       (lead's ruling); the chips a chosen filter stands as are still asked (5c) */
     check('5c and the chosen filters stand as chips on one row at 1440', filters.chips.length === 2 && filters.oneRow === 1,
       `${filters.oneRow} rows: ${filters.chips.join(' | ')}`);
 
@@ -672,48 +680,8 @@ const check = (name, ok, detail) => {
        still reports its full rectangle, so a geometry check passes on the
        broken page. document.elementFromPoint at each row's own centre is the
        only honest question, and it is one a browser alone can answer. */
-    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-    await page.waitForTimeout(1600);
-    await page.click('#reg-tbody [data-menu]', { timeout: 5000 }).catch(() => {});   /* a menu not drawn REPORTS (14a) */
-    await page.waitForTimeout(600);
-    const menu = await page.evaluate(() => {
-      const pop = document.querySelector('#reg-tbody [data-menu-pop]');
-      if (!pop) return { absent: true };
-      const items = [...pop.querySelectorAll('button,a')];
-      const hit = items.map(b => {
-        const r = b.getBoundingClientRect();
-        const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return { label: b.textContent.trim(),
-          reachable: !!el && (el === b || b.contains(el) || pop.contains(el)) };
-      });
-      const cell = pop.closest('td');
-      /* EVERY ROW has a menu cell, so "the others" means every cell that is not
-         one — comparing against all cells counts the other 39 menu cells and
-         reports the exemption as a leak. */
-      const other = [...document.querySelectorAll('#reg-tbody tr[data-row] td:not(.reg-cell-menu)')];
-      return { shown: pop.style.display === 'flex',
-        items: items.length,
-        reachable: hit.filter(h => h.reachable).length,
-        unreachable: hit.filter(h => !h.reachable).map(h => h.label),
-        labels: hit.map(h => h.label),
-        cellOverflow: getComputedStyle(cell).overflow,
-        othersClipped: other.every(td => getComputedStyle(td).overflow === 'hidden'),
-        otherCount: other.length };
-    });
-    check('14a the menu opens', !menu.absent && menu.shown && menu.items > 0,
-      menu.absent ? 'no menu in the row' : menu.items + ' rows');
-    check('14b every row in it is actually painted, not clipped away',
-      menu.reachable === menu.items,
-      `${menu.reachable}/${menu.items} reachable · missing ${JSON.stringify(menu.unreachable)}`);
-    check('14c and it still carries the acts the row menu is for',
-      /* archive is an answer in End or pause since 15 Oct 2026 (owner picked "One question") */
-      /end or pause/i.test((menu.labels || []).join(' ')) && /delete/i.test((menu.labels || []).join(' ')),
-      (menu.labels || []).join(' · '));
-    /* THE EXEMPTION IS NARROW, which is the other half: WO-9's clip must still
-       be doing its job on every cell that holds text. */
-    check('14d the exemption is the menu cell alone — every text cell still clips',
-      menu.cellOverflow === 'visible' && menu.othersClipped && menu.otherCount > 0,
-      `menu cell ${menu.cellOverflow} · ${menu.otherCount} others clipped ${menu.othersClipped}`);
+    /* RETIRED 16 Nov 2026 (#762): 14a–14d, the row ⋯ menu's pop-up painted over the clipping cells — the new look's list draws
+       no ⋯ cell (the acts are the contract's ⋯, asked painted in 4b–4d above) */
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
 

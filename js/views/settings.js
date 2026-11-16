@@ -946,6 +946,9 @@ function stRepaintRow(key){
    out again on the next paint of the page. */
 function stSyncAttention(){
   stCrSync();
+  /* THE NEW LOOK'S ONE LIST AND ITS PANEL say the same as the record after a save (16 Nov 2026, #762: a saved name, a
+     stream that now names an admin, a mail key — each row and need went on saying what was) */
+  if(document.querySelector('.stn-page')) stnRepaintKept();
   const host=document.getElementById('st-att'); if(!host) return;
   const rows=stNeedsAll(), keep=new Set(rows.map(r=>r.key));
   [...host.querySelectorAll('.st-need[data-st-need]')].forEach(el=>{
@@ -2200,7 +2203,7 @@ function stPushHtml(){
 }
 function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); });
   /* the new look's one list draws the row itself (stnYouHtml): repaint it when the answer lands */
-  if(document.querySelector('.stn-page')&&typeof stnPaint==='function') stnPaint(stIsAdmin()); }
+  if(document.querySelector('.stn-page')) stnRepaintKept(); }
 function stPushRefresh(){
   if(typeof pushState!=='function') return;
   pushState().then(st=>{ if(st!==_stPush){ _stPush=st; stPushPaint(); } }).catch(()=>{});
@@ -2469,6 +2472,8 @@ function stYouGo(key, focusSel){
 /* a You card redrawn where it stands after its form wrote (THE SETTINGS PAGE
    HOLDS STILL); a form open in one of its rows is drawn open again */
 function stYouCardRepaint(key){
+  /* the new look draws no You cards: its one list says the saved value (16 Nov 2026, #762) */
+  if(document.querySelector('.stn-page')){ stnRepaintKept(); return; }
   const card=document.querySelector(`#set-page [data-st-you-card="${key}"]`); if(!card) return;
   /* the open form is carried across, as it stands — what the hand typed and
      what its wiring listens to stay where they were */
@@ -10111,7 +10116,7 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnListHtml,stnListPaint,stnRowsAll,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnListHtml,stnListPaint,stnRowsAll,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
@@ -10127,8 +10132,8 @@ function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && 
    last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
    the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
 const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
-const STN_ICON={ name:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
+const STN_AREA_OF={ name:'you', email:'you', mydata:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
+const STN_ICON={ name:'user', email:'user', mydata:'download', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
 let _stnArea='all';
 function stnAreaOf(id){ return STN_AREA_OF[id]||'you'; }
 function stnRow(id, label, value, sub, act){
@@ -10177,9 +10182,13 @@ function stnYouHtml(){
   const ps=_stPush;
   const push=ps?esc(ps==='on'?i18t('stn_push_on'):(typeof pushStateSaid==='function'?pushStateSaid(ps):ps)):'';
   /* compared with what THIS row drew (nothing), not with _stPush: stPushRefresh may have stored the answer first and painted only the old row (16 Nov 2026, #762) */
-  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ _stPush=st; if(st&&document.querySelector('.stn-page')) stnPaint(stIsAdmin()); }).catch(()=>{}); },0);
+  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ _stPush=st; if(st&&document.querySelector('.stn-page')) stnRepaintKept(); }).catch(()=>{}); },0);
   const out=[stnRow('name', i18t('st_you_name_row'), esc(name), i18t('stn_name_sub'), stnDoor('data-st-panel="me:name"', i18t('st_you_change'))),
     stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg)];
+  /* YOUR EMAIL AND A COPY OF YOUR DATA keep their doors in the one list (16 Nov 2026, #762: the You cards that held
+     them are the old look's; nothing of yours is left without a way in) */
+  if(api) out.splice(1, 0, stnRow('email', i18t('st_you_email_row'), esc(u.email||''), '', stnDoor('data-st-panel="me:email"', i18t('st_you_change'))));
+  out.push(stnRow('mydata', i18t('st_you_data_line'), '', i18t(api?'st_you_data_kept':'st_you_data_sub'), `<button type="button" class="ui-link stn-go" data-st-mycopy>${esc(i18t('st_you_download'))}</button>`));
   if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));
   if(api) out.push(stnRow('push', i18t('stn_push'), push?stnPushSaid(ps, push):esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):''));
   const ag=stnAgentsSaid();
@@ -10221,6 +10230,13 @@ function stnListHtml(admin){
 }
 /* a chip's press redraws the list alone: the title, the panel and the page stand */
 function stnListPaint(){ const m=document.getElementById('stn-main'); if(m) m.innerHTML=stnListHtml(stIsAdmin()); }
+/* the list and the panel written again, the list's place kept (a redraw keeps your place) */
+function stnRepaintKept(){
+  const m=document.getElementById('stn-main'); const top=m?m.scrollTop:0;
+  try{ stnListPaint(); }catch(_){ /* the list stays as drawn */ }
+  if(m) m.scrollTop=top;
+  try{ if(typeof stnPanelPaint==='function') stnPanelPaint(); }catch(_){ /* the panel stays as drawn */ }
+}
 const STN_NEED_KIND={ ask:'stn_nk_ask', backup:'stn_nk_rule', limits:'stn_nk_caps', invite:'stn_nk_people', access:'stn_nk_access' };
 function stnPanelHtml(admin){
   const E=esc;
