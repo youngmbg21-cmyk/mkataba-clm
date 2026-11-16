@@ -60,7 +60,8 @@ describe('f1035 — the send screen while Jambo talks', () => {
     assert.match(note, /aiSendNoteHtml\.placed=true;/, 'drawn only when a note came back');  /* RE-POINTED 13 Nov 2026 (f1038, the Legora Way): the draft stays beside the letter */
     /* run it: a press with no note says so; a press with the note placed says it is in the box; no press = the model's words */
     const ctx = { window: {}, i18t: k => k }; ctx.window = ctx;
-    vm.createContext(ctx); vm.runInContext('function aiSendNoteHtml(){}\n' + fnBody(AI, 'aiSendNoteSaid'), ctx);
+    vm.createContext(ctx); /* RE-POINTED 16 Nov 2026 (f1083): the reading asks whether his answer is a question back about the note */
+    vm.runInContext('function aiSendNoteHtml(){}\n' + fnBody(AI, 'aiSendNoteClean') + '\n' + fnBody(AI, 'aiSendNoteAsksBack') + '\n' + fnBody(AI, 'aiSendNoteSaid'), ctx);
     ctx.aiSendNoteHtml.pressed = true; ctx.aiSendNoteHtml.placed = false; ctx._shNlWrite = 'MK-1';
     assert.equal(ctx.aiSendNoteSaid({ answer: 'Note ready to go in your note box with the button under it.' }), 'sh_nl_none');
     assert.equal(ctx._shNlWrite, null, 'the press is spent');

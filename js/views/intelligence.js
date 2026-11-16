@@ -4296,6 +4296,8 @@ function igNoteOf(res){
   const words=(typeof window.aiSendNoteFrom==='function')?aiSendNoteFrom(res):(typeof window.aiSendNoteClean==='function')?aiSendNoteClean(res&&res.note):String((res&&res.note)||'').trim();
   const S=(typeof window.shareScreenSays==='function')?shareScreenSays():null;
   if(pressed) window._shNlWrite=null;
+  /* f1083: his question back about the note is his answer, shown to be answered; never "no note came back" over it */
+  if(!words && pressed && S && typeof window.aiSendNoteAsksBack==='function' && aiSendNoteAsksBack(res)) return null;
   if(!words || !S) return pressed ? { say:i18t('sh_nl_none') } : null;
   const clauses=igNoteClauses(S.goes);
   const tags=igNoteSentences(words).map(x=>{ const c=igNoteTagOf(x, clauses); return c?c.n:null; });

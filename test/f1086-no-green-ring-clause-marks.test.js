@@ -1,5 +1,5 @@
 'use strict';
-/* f1082 — NO GREEN RING ON A FIELD, ANYWHERE; A CLAUSE LIST WITH NO NUMBERS DRAWS ITS DOTS BESIDE THE NAME
+/* f1086 — NO GREEN RING ON A FIELD, ANYWHERE; A CLAUSE LIST WITH NO NUMBERS DRAWS ITS DOTS BESIDE THE NAME
    (owner, 16 Nov 2026, over the Notes box in Redlines: "i have continuously stated that i do not want any green
    outlines in the entry fields across Hati. Fix this once and for all"; and over MK-301's Clauses list, whose dots sat
    on the first letter of each name while MK-382's numbered marks stood beside theirs)
@@ -17,7 +17,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const CSS = strip(read('index.html'));
 
-test('f1082 (1) one rule, last: no ring and no glow on any field', () => {
+test('f1086 (1) one rule, last: no ring and no glow on any field', () => {
   const m = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):is\(:focus, :focus-visible\)\{outline:none;box-shadow:none\}/.exec(CSS);
   assert.ok(m, 'the one rule');
   for (const who of ['textarea', 'select', '[contenteditable]:not([contenteditable="false"])']) assert.ok(m[1].includes(who), who + ' is named');
@@ -27,7 +27,7 @@ test('f1082 (1) one rule, last: no ring and no glow on any field', () => {
   assert.ok(m.index > CSS.lastIndexOf('#ig-dock .ac-in:focus{'), 'after a box\'s own ring');
 });
 
-test('f1082 (2) a green edge darkens to the ink; the boxes that hold a field the same', () => {
+test('f1086 (2) a green edge darkens to the ink; the boxes that hold a field the same', () => {
   const f = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):focus\{border-color:var\(--color-text\)\}/.exec(CSS);
   assert.ok(f, 'the fields');
   for (const who of ['.na-inp', '.field', '.hati-editor', '.cd-fld :is(input, select, textarea)']) assert.ok(f[1].includes(who), who);
@@ -37,7 +37,7 @@ test('f1082 (2) a green edge darkens to the ink; the boxes that hold a field the
   assert.match(CSS, /html:not\(#_\):not\(#_\) \.jb-card:focus-within\{outline:none;box-shadow:none\}/);
 });
 
-test('f1082 (3) the clause list: "1:" is a number; no number keeps its dot beside the name', () => {
+test('f1086 (3) the clause list: "1:" is a number; no number keeps its dot beside the name', () => {
   const J = strip(read('js/views/contract.js'));
   assert.ok(J.includes('lab.match(/^(\\d+(?:\\.\\d+)*)[.:)]?\\s+/)'), 'a colon or bracket after the number');
   const re = /^(\d+(?:\.\d+)*)[.:)]?\s+/;

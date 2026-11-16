@@ -129,7 +129,7 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
     /* RE-POINTED 20 Oct 2026 (owner: "one line field … when you need to text wrap it is when it becomes bigger"): at rest the tag rides the one line before the words; tall, it rides the row under them */
     check(!!a && a.tagBefore, 'A2 at rest the tag sits on the one line, before the words', a && JSON.stringify({ tagBefore: a.tagBefore, taLeft: a.taLeft }));
     check(!!a && a.pillBg !== a.boxBg && !/rgba\(0, 0, 0, 0\)/.test(a.pillBg) && a.pillInk === 'rgb(255, 255, 255)' && a.x >= 16, 'A3 the tag is a filled pill with a × the hand can find', a && JSON.stringify({ pill: a.pillBg, ink: a.pillInk, x: a.x }));
-    /* RE-POINTED 16 Nov 2026 (owner: no green ring on a field, anywhere, f1082): the card's glow is gone too; the caret
+    /* RE-POINTED 16 Nov 2026 (owner: no green ring on a field, anywhere, f1086): the card's glow is gone too; the caret
        says where you are, and neither the textarea nor the card round it wears a ring */
     await page.focus('#ce-ask');
     await page.keyboard.type('Keep the cap but carve out data protection');

@@ -189,7 +189,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
-- f1082 (3) (16 Nov 2026): "1:" / "1)" is a number in the mark; an unnumbered clause's dot stands in the marks' slot, never over the name.
+- f1086 (3) (16 Nov 2026): "1:" / "1)" is a number in the mark; an unnumbered clause's dot stands in the marks' slot, never over the name.
 - f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - f1010 (Start redlining opens the editor with no Redlines frame first; ‹ Clauses, Esc and the bar's ‹ land on the same clause); contract-new-look-verify 13e.
 - f1011 (Start redlining brings the clause's points to the editor, ticked, no numbers, words highlighted; one button through ceAsk; f505/f756 re-pointed); contract-new-look-verify 13f.
@@ -259,6 +259,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
 
 ## THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct)
+- f1082 soft tint on the tiles (Import's figures, New agreement's cards): `node --test test/f1082-soft-tint-on-the-tiles.test.js`
 - A LANE'S LIMIT, READ BACK (the owner's yes, 27 Oct 2026): test/chromium/lane-limit-verify.js (new) — Settings › Request lanes says "Value limit · KES 5M" on a lane with one, nothing on one without, inside its row at the three screens; a save keeps it.
 - IMPORT STORES A SIGNING DAY ONLY WHERE ONE WAS READ (bug log batch 5, 27 Oct 2026): f946 (4) (new; red at the parent) — migBuildAndSave's signedAt is the manifest's signed day or null, never the start date.
 - A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
@@ -462,7 +463,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - File / Save prominent (23 Oct 2026): deal-in-the-middle-verify 10; one-copilot-editor-verify 5a/5b re-pointed (rows read by their middles; ‹ › small, Save ≥30 tall and ≥110 wide).
 
 ## NOTES AND COMMENTS
-- f1083 (16 Nov 2026): the Notes face paints the bar's own builders; nothing lit amber beside the paper (contract-new-look-verify 13 re-pointed: nothing lit). Red at the parent.
+- f1087 (16 Nov 2026): the Notes face paints the bar's own builders; nothing lit amber beside the paper (contract-new-look-verify 13 re-pointed: nothing lit). Red at the parent.
 - 13 Nov 2026 (THE THREAD, owner picked it by name): f1032 (5 tests, all red at the parent 18357f4); re-pointed f248 (counts without brackets), f264 (the one box builder), f303 (the Done chip in place of the fold; the clause said once), f304 (the closed drawer resets the chips; Delete's reason), f446 (counts; the given chip's `is-you`), f756 (`return acts + facts`); browser: clause-editor-verify and notes-two-rooms-verify read the full stamp off the hover too; where-we-are-verify 12c and guide-panel-verify 6b read the count without brackets. Photographed at the three screens.
 - f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments, notes-two-rooms verify.
 
@@ -480,6 +481,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f452, named-guest-verify.
 
 ## THE SEND SCREEN
+- f1083 his question back is not the note: `node --test test/f1083-his-question-back-is-not-the-note.test.js` (with f1043, f1035)
 - test/f1038-write-it-for-me-the-legora-way.test.js: the note is a draft in Jambo's panel, tagged by clause, steered by chips, put in and undone by a press.
 - test/f1041-write-it-for-me-goes-to-jambo.test.js: the press and the steers go straight to Jambo, a steer carries the draft.
 - test/f1035-write-it-for-me-and-what-goes.test.js: What goes works while Jambo talks; Write it for me hidden for the history and answered plainly.
@@ -548,7 +550,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - No outlines on paper entry fields: f1028 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
-- NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1082-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
+- NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1086-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.
 - A SEARCH BOX WEARS NO RING (10 Nov 2026): `test/f996-search-boxes-no-ring-folders-scroll.test.js` (1) — one rule for the field, one for the line that holds it, every search box named, after the house ring (red at the parent).
 - NO JAMBO CALLS SAID (owner, 8 Nov 2026): f975 (red at the parent on all three). Re-pointed node: f273, f295, f499, f519, f527, f534, f615, f706, f745, f748, f753, f754, f759, f772, f792, f797, f798, f804, f811, f863, f864, f874, f954, f956, f957; browser contract-new-look-verify. f515 and f520 run out of memory here at the parent too (not this change).

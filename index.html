@@ -20796,6 +20796,12 @@
   html.lg-new .mign-fig.is-warn b{color:var(--st-amber-fg)}
   html.lg-new .mign-fig.is-zero b{color:var(--color-neutral-400)}
   html.lg-new .mign-fig.is-on{box-shadow:inset 0 0 0 1.5px var(--color-text)}
+  /* SOFT TINT (owner's pick, 16 Nov 2026): a figure wears the pale colour of what it means, its number the deep one; a figure of nothing stays grey */
+  html.lg-new .mign-fig.is-t-steel{background:var(--st-steel-bg)} html.lg-new .mign-fig.is-t-steel b{color:var(--st-steel-fg)}
+  html.lg-new .mign-fig.is-t-green{background:var(--st-green-bg)} html.lg-new .mign-fig.is-t-green b{color:var(--st-green-fg)}
+  html.lg-new .mign-fig.is-t-amber{background:var(--st-amber-bg)} html.lg-new .mign-fig.is-t-amber b{color:var(--st-amber-fg)}
+  html.lg-new .mign-fig.is-t-ruby{background:var(--st-ruby-bg)} html.lg-new .mign-fig.is-t-ruby b{color:var(--st-ruby-fg)}
+  html.lg-new button.mign-fig span{color:var(--color-neutral-600)}
   html.lg-new .mign-sure{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;color:var(--color-text)}
   html.lg-new .mign-bar{display:inline-flex;gap:2px}
   html.lg-new .mign-bar i{width:12px;height:5px;border-radius:2px;background:var(--rule-strong)}
@@ -20829,6 +20835,14 @@
   html.lg-new #na-root.na-one .na-closest .na-pick.na-close{border:1px solid var(--color-divider);border-radius:var(--radius);padding:14px 16px;background:var(--color-surface);align-items:flex-start;min-height:118px}
   html.lg-new #na-root.na-one .na-closest .na-pick.na-close:last-child{border-bottom:1px solid var(--color-divider)}
   html.lg-new #na-root.na-one .na-closest .na-pick.na-close.on{border:2px solid var(--color-text);background:var(--color-surface);padding:13px 15px}
+  /* SOFT TINT: a card wears its paper's stream colour; the chosen card keeps its black outline over it */
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone="violet"]{background:var(--st-violet-bg);border-color:transparent}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone="steel"]{background:var(--st-steel-bg);border-color:transparent}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone="amber"]{background:var(--st-amber-bg);border-color:transparent}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone="pink"]{background:var(--st-pink-bg);border-color:transparent}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone="green"]{background:var(--st-green-bg);border-color:transparent}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone] .na-pick-m{color:var(--color-neutral-600)}
+  html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone].on{border-color:var(--color-text)}
   html.lg-new #na-root.na-one .na-closest .na-radio{display:none}
   html.lg-new #na-root.na-one .na-closest .na-pick.na-close.on .na-pick-n::before{content:"\2713";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:8px;border-radius:50%;background:var(--color-text);color:var(--color-surface);font-size:11px}
   html.lg-new #na-root.na-one .na-lr-t .na-pick-m{white-space:normal}
