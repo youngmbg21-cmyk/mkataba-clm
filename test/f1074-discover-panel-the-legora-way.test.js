@@ -1,4 +1,4 @@
-/* f1071 · JAMBO'S PANEL ON DISCOVER, THE LEGORA WAY (owner, 15 Nov 2026: "Discover will be one of the centre pieces
+/* f1074 · JAMBO'S PANEL ON DISCOVER, THE LEGORA WAY (owner, 15 Nov 2026: "Discover will be one of the centre pieces
    of the platform. Make it stand out but not too much. Refine with a bit of color"; "The blueish purple color is a no
    go … make the panels world class"; "New read in legora is disappointing" → redrawn; "If its 50 contracts what will
    the panel look like" → drawn; "Now build the Legora way for discover").
@@ -40,7 +40,7 @@ function panel(stub){
 }
 const row = (id, party, answer, tone, quote) => ({ id, c: { id, name: id, counterparty: party }, a: [{ found: true, answer, tone, quote, clause: '9 · Liability' }] });
 
-test('f1071 (1) the read chosen: its question, one counted sentence, the bar, each answer with its words', () => {
+test('f1074 (1) the read chosen: its question, one counted sentence, the bar, each answer with its words', () => {
   const rows = [row('a', 'Equity Bank', 'Not capped', 'ruby', 'Nothing limits the liability.'), row('b', 'Siginon', '12 months', 'green', 'shall not exceed the fees'), row('c', 'Kenafric', '12 months', 'green', 'shall not exceed the fees')];
   const G = [{ k: 'g:not capped', l: 'Not capped', n: 1, c: 'ruby', ids: ['a'] }, { k: 'g:12 months', l: '12 months', n: 2, c: 'green', ids: ['b', 'c'] }];
   const P = panel({ dsnRunRows: () => rows, dsnGroups: () => G, AC: { asks: { k1: { rule: 'one year of fees' } } } });
@@ -57,14 +57,14 @@ test('f1071 (1) the read chosen: its question, one counted sentence, the bar, ea
   assert.match(loading, /dsc_loading/, 'answers still loading: said, never guessed');
 });
 
-test('f1071 (2) nothing read yet: what it is for, an example marked in yellow, the steps, the page\'s own New read', () => {
+test('f1074 (2) nothing read yet: what it is for, an example marked in yellow, the steps, the page\'s own New read', () => {
   const h = panel().dslEmptyHtml();
   assert.match(h, /dsl_none_t[\s\S]*dsl_none_s/); assert.match(h, /<mark class="dsn-yes">dsl_eg_mark<\/mark>/, 'the words found, in Discover\'s own yellow');
   assert.match(h, /dsl_steps/); assert.match(h, /<button type="button" class="dsl-go" data-dsn-new>dsn_new<\/button>/);
   assert.match(RD, /t\.closest\('#dsn-new, \[data-dsn-new\]'\)/, 'one door: the panel\'s New read is the page\'s');
 });
 
-test('f1071 (3) New read: the contracts by name, asked here before, what comes back, questions one contract can answer', () => {
+test('f1074 (3) New read: the contracts by name, asked here before, what comes back, questions one contract can answer', () => {
   const cs = Array.from({ length: 50 }, (_, i) => ({ id: 'c' + i, name: 'Supply ' + i, counterparty: 'P' + (i % 20) }));
   const by = Object.fromEntries(cs.map(c => [c.id, c]));
   const P = panel({ dsnChosen: () => ({ ids: cs.map(c => c.id), where: ['proc'] }), dsnPlan: ids => ({ size: 100, unread: ids.length, pick: ids.length }), getContract: id => by[id],
@@ -85,7 +85,7 @@ test('f1071 (3) New read: the contracts by name, asked here before, what comes b
   assert.ok(eg, 'the example\'s press'); assert.match(eg[0], /_dsc\.q = q;[\s\S]*renderReads\(\)/); assert.doesNotMatch(eg[0], /dsnAsk|api\(|askColAskHere/, 'it fills the box; it reads nothing');
 });
 
-test('f1071 (4) nothing spent, nothing boxed, only tokens; the panel is not wrapped again', () => {
+test('f1074 (4) nothing spent, nothing boxed, only tokens; the panel is not wrapped again', () => {
   const a = RD.indexOf('const DSL_DOCS_SHOWN'), b = RD.indexOf('function dsnListHtml(');
   assert.doesNotMatch(RD.slice(a, b), /api\(|fetch\(|askColAskHere|aiAsk|intelChatAsk|dsnAsk\(/, 'counted from the read\'s own answers, no Jambo call');
   assert.match(fnBody(RD, 'dsnListPanel'), /return r \? dslReadHtml\(r\) : dslEmptyHtml\(\);/);
@@ -97,7 +97,7 @@ test('f1071 (4) nothing spent, nothing boxed, only tokens; the panel is not wrap
   assert.ok(css.some(l => /\.dsl mark\.dsn-yes\{[^}]*background:var\(--hl-yes\)/.test(l)), 'Discover\'s own yellow');
 });
 
-test('f1071 (5) every word of the panel is in both books', () => {
+test('f1074 (5) every word of the panel is in both books', () => {
   const keys = new Set([...RD.matchAll(/['"](dsl_[a-z0-9_]+)['"]/g)].map(m => m[1]));
   ['dsl_need', 'dsl_left', 'dsl_new_t', 'dsl_new_first', 'dsl_new_wait', 'dsl_new_all', 'dsl_more', 'dsl_parties'].forEach(k => keys.add(k));
   const en = I18N.slice(0, I18N.search(/\n\s{2}sv\s*:\s*\{/)), sv = I18N.slice(I18N.search(/\n\s{2}sv\s*:\s*\{/));
