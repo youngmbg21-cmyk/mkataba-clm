@@ -64,7 +64,8 @@ test('f977 (6, 7) the foot follows, one thing when empty — every HARMONY rule 
   const b = strip(block());
   assert.match(b, /html\.lg-new \.apn-card > \.apn-foot, html\.lg-new \.ctf-foot\{margin-top:0\}/);
   assert.match(b, /html\.lg-new \.cun-page\.is-empty :is\(\.apn-bar, thead, \.apn-foot\)\{display:none\}/);
-  assert.match(b, /html\.lg-new \.mig-page:not\(:has\(table\)\) #mig-band\{display:none\}/);
+  /* RE-POINTED (owner, 16 Nov 2026: "imports page is locked on this page"; f1081): the empty band is hidden, never the check screen's bar */
+  assert.match(b, /html\.lg-new \.mig-page:not\(\.is-checking\):not\(:has\(table\)\) #mig-band\{display:none\}/);
   assert.doesNotMatch(b, /!important/);
   const rules = [...b.matchAll(/([^{}]+)\{[^{}]*\}/g)].map(m => m[1].trim()).filter(s => s && !/^@media/.test(s));
   assert.ok(rules.length > 10);

@@ -59,8 +59,11 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       && /within 60 days/.test(first.t) && /§ 5/.test(first.t) && /§ 26/.test(first.t) && /Their 2/.test(first.t) && /Yours ·/.test(first.t)
       && R.rows[1].id === 'MK-A2' && /Ours 1/.test(R.rows[1].t) && /Theirs ·/.test(R.rows[1].t)
       && R.rows.slice(2).every(r => /is-settled/.test(r.cls)), R && R.rows.map(r => r.id + ' ' + r.t.slice(0, 80)));
-    check('1c the panel reads the chosen row: their asks, the desk, Open the redlines and Chase Nandi; its tab counts the live', !!R && /Their asks/.test(R.panel) && /Amina leads · Wanjiru contributes/.test(R.panel)
-      && /Open the redlines/.test(R.panel) && /Chase Nandi Dairy for their round/.test(R.panel) && R.tabN === '2', R && { panel: R.panel.slice(0, 300), tabN: R.tabN });
+    /* RE-POINTED (owner, 16 Nov 2026: "the side panel information should reflect the contract you have pressed"): the
+       panel is the chosen round alone — its name the headline, its asks, its desk, its one black button; another
+       round's chase is no longer on it */
+    check('1c the panel is the chosen row: its name, their asks, the desk, Open the redlines, nothing of another round; its tab counts the live', !!R && /Their asks/.test(R.panel) && /Amina leads · Wanjiru contributes/.test(R.panel)
+      && /Open the redlines/.test(R.panel) && !/Nandi Dairy/.test(R.panel) && R.tabN === '2', R && { panel: R.panel.slice(0, 300), tabN: R.tabN });
     /* NOTHING SPILLS: at the iPad's width the list and its tabs end before Jambo's panel starts */
     await page.setViewportSize({ width: 1366, height: 950 });
     await page.waitForTimeout(600);
