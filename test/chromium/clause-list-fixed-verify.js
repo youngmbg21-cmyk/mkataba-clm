@@ -10,7 +10,8 @@
    2  the finding about that clause sits ON clause 2's row, not above it under
       "After §1 — not in the contract"; the tab's number counts it
    3  a press on the open row CLOSES it ("nothing open" is allowed), the close
-      HOLDS while the reader scrolls the paper, the next press lets it go —
+      holds while its clause is at the line and the next clause the paper
+      brings up opens (re-pointed 16 Nov 2026), the next press lets it go —
       and the paper's follow still opens the clause at the line afterwards
       (the one-page Home plan's own mechanism)
    4  the not-in-the-contract group has its own open and close, so nothing in
@@ -173,14 +174,22 @@ const READING = {
     const shut = { name: await openName(), cards: await shownCards() };
     ok('3a a press on the open row closes it — nothing open, its card put away',
       /^2\. Term/.test(before.name) && before.cards === 1 && shut.name === '' && shut.cards === 0, JSON.stringify({ before, shut }));
-    /* the reader scrolls the paper: the close HOLDS */
+    /* RE-POINTED 16 Nov 2026 (owner: "if you close one of the clauses in the panel, the feature switches off"):
+       the close holds while ITS clause is at the line — a nudge of the paper does not undo it — and the next clause
+       the paper brings up opens, as the follow always opens it. AT THE PARENT 3b fails: the panel stayed empty. */
     const wheel = async n => { const b = await page.evaluate(() => { const r = document.getElementById('ig-paper-scroll').getBoundingClientRect();
       return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
       await page.mouse.move(b.x, b.y);
       for (let k = 0; k < n; k++){ await page.mouse.wheel(0, 90); await page.waitForTimeout(40); } };
+    await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); sc.scrollTop += 2; });
+    await page.waitForTimeout(300);
+    const nudged = await openName();
     await wheel(14);
-    const held = { name: await openName(), top: await page.evaluate(() => document.getElementById('ig-paper-scroll').scrollTop) };
-    ok('3b scrolling the paper does not open it again (the reader\'s close holds)', held.name === '' && held.top > 100, JSON.stringify(held));
+    let moved = null;
+    for (let k = 0; k < 20 && !moved; k++){ const n = await openName(); if (n) moved = n; else await page.waitForTimeout(100); }
+    const held = { nudged, moved, top: await page.evaluate(() => document.getElementById('ig-paper-scroll').scrollTop) };
+    ok('3b a nudge keeps the close (its clause still at the line); scrolling on, the next clause at the line opens',
+      nudged === '' && !!moved && !/^2\. Term/.test(moved) && held.top > 100, JSON.stringify(held));
     await page.screenshot({ path: path.join(OUT, '3-closed-and-scrolled.png') });
     /* the next press lets the close go, and the paper's follow works again */
     await page.evaluate(async () => {
