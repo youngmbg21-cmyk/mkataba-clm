@@ -1923,7 +1923,7 @@ if (typeof document !== 'undefined' && !document._acWired){
        asked and kept. Settings' own page guard is asked first, as any leave is. */
     if (t.closest('[data-fa-go]')){ e.preventDefault();
       const go = () => { if (typeof setView === 'function') setView('register'); };
-      if (typeof dkLeavePageThen === 'function') dkLeavePageThen(go); else go();
+      if (!(typeof window.dkLeavePageThen === 'function' && window.dkLeavePageThen(go))) go();
       return; }
     const chip = t.closest('[data-ac-chip]');
     if (chip){ e.preventDefault(); const a = (AC.team || []).find(x => x.id === chip.getAttribute('data-ac-chip')); if (a && AC.form){ Object.assign(AC.form, { question: a.question, name: a.name, askId: a.id, kept: 0 }); askColPaintPanel(); askColKept(AC.form); } return; }
