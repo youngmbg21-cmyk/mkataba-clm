@@ -27,7 +27,8 @@ test('f1082 (2) New agreement: a card wears its stream\'s colour, grey drawn gre
   const tone = new Function('listStreamTone', m[0] + ' return naCardTone;')(k => ({ proc: 'violet', corp: 'gray' })[k]);
   assert.equal(tone({ folder: 'proc' }), 'violet'); assert.equal(tone({ folder: 'corp' }), 'green'); assert.equal(tone({}), '');
   assert.match(W, /const tint=card===true\?naCardTone\(r\):'';/, 'the sheet\'s card only, never the list\'s row');
+  assert.match(W, /\$\{tint\?` data-tone="\$\{tint\}"`:''\}>\$\{inner\}<\/button>/, 'carried as an attribute, the row\'s class left as it was');
   for (const t of ['violet', 'steel', 'amber', 'pink', 'green'])
-    assert.ok(HTML.includes(`html.lg-new #na-root.na-one .na-closest .na-pick.na-close.is-t-${t}{background:var(--st-${t}-bg);border-color:transparent}`), t);
-  assert.ok(HTML.includes('html.lg-new #na-root.na-one .na-closest .na-pick.na-close[class*="is-t-"].on{border-color:var(--color-text)}'));
+    assert.ok(HTML.includes(`html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone="${t}"]{background:var(--st-${t}-bg);border-color:transparent}`), t);
+  assert.ok(HTML.includes('html.lg-new #na-root.na-one .na-closest .na-pick.na-close[data-tone].on{border-color:var(--color-text)}'));
 });

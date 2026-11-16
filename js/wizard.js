@@ -973,7 +973,7 @@ function openNewAgreement(o){
     /* SOFT TINT (owner's pick, 16 Nov 2026, "keep it as drawn"): a card wears its paper's stream colour, the list
        language's own (listStreamTone); a stream whose colour is grey is drawn green here, on the card only */
     const tint=card===true?naCardTone(r):'';
-    return `<button type="button" class="na-pick${card===true?' na-close':''}${tint?' is-t-'+tint:''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>${inner}</button>`; };
+    return `<button type="button" class="na-pick${card===true?' na-close':''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}${tint?` data-tone="${tint}"`:''}>${inner}</button>`; };
   /* ONE SHEET'S FIRST STEP: the closest rows, in the reading's order — drawn as
      cards (the gaps, round 4, 18 Oct 2026): a radio, the name, the best marked,
      and the shelf's own facts — "Company standard · v3 · Sales · used 14 times",
