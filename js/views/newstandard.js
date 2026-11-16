@@ -208,10 +208,15 @@ async function nsFill(made, body) {
   try { await api(`templates/${made.tid}/versions/${made.vid}`, 'PUT', body); }
   catch (e) { try { await api('templates/' + made.tid, 'DELETE', undefined, { quiet: true }); } catch (_) { /* said below */ } throw e; }
 }
+/* THE START'S PAGE CLOSES AND THE VIEW TURNS ONLY WHEN THE BUILDER IS READ AND DRAWN, in one step (opts.arrive):
+   closing first showed the page underneath, and turning to Templates first showed Our paper, while the Builder was
+   still being read (owner, 15 Nov 2026). A failure is thrown to the start, whose button and line say it. */
 function nsOpen(tid, vid, start) {
   if (typeof tplLibRefresh === 'function') tplLibRefresh().catch(() => {});
-  if (typeof state === 'object' && state && state.view !== 'templates' && typeof setView === 'function') setView('templates');
-  return openTemplateBuilder(tid, vid, { start });
+  return openTemplateBuilder(tid, vid, { start, arrive: () => {
+    closeModal();
+    if (typeof state === 'object' && state && state.view !== 'templates' && typeof setView === 'function') setView('templates');
+  } });
 }
 
 /* ═══════════════════════════ FROM SCRATCH ═══════════════════════════════
@@ -264,8 +269,7 @@ function nsOpenScratch(o = {}) {
       const cats = typeof templateCategories === 'function' ? templateCategories().map(c => c.id) : ['sales', 'procurement', 'employment', 'nda', 'other'];
       const made = await nsCreate({ name: (d && d.title) || nsNameFromSentence(said) || i18t('ns_untitled'),
         category: d && cats.includes(d.category) ? d.category : 'other', origin: 'built_in_hati' });
-      closeModal();
-      nsOpen(made.tid, made.vid, { kind: 'scratch', said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null });
+      await nsOpen(made.tid, made.vid, { kind: 'scratch', said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null });
     } catch (e) { go.disabled = false; go.textContent = was; nsSayOn(e.message || String(e), true); }
   });
 }
@@ -452,7 +456,6 @@ async function nsTplMake(tab, o) {
       blocks: built.blocks.map((b, i) => ({ ...b, orderIndex: i })),
       fields: built.fields.map((f, i) => ({ fieldKey: f.key, label: f.label || f.key, orderIndex: i,
         fieldType: 'short_text', control: 'free', required: !!f.required })) });
-    closeModal();
     return nsOpen(made.tid, made.vid, { kind: 'template', from: 'hati', builtin: pick });
   }
   const c = o.copy;
@@ -460,7 +463,6 @@ async function nsTplMake(tab, o) {
   const made = await nsCreate({ name: c.name || i18t('ns_untitled'), category: 'other', folder: null, origin: 'upload',
     sourceType: tab === 'upload' && ['docx', 'pdf_digital', 'pdf_scanned'].includes(c.kind) ? c.kind : null });
   await nsFill(made, { blocks: c.blocks.map((b, i) => ({ ...b, orderIndex: i })), fields: [] });
-  closeModal();
   return nsOpen(made.tid, made.vid, { kind: 'template', from: tab, facts: c.facts, same: c.same, scanned: c.kind === 'pdf_scanned' });
 }
 
@@ -518,7 +520,6 @@ function nsOpenContract() {
 /* ONE WAY TO MAKE A STANDARD FROM ONE OF OUR CONTRACTS, for the pop-up and the start drawn in the tab */
 async function nsCtrMake(c) {
   const r = await api(`contracts/${c.id}/save-as-template`, 'POST', {});
-  closeModal();
   return nsOpen(r.templateId, r.versionId, { kind: 'contract', contractId: c.id, contractRef: (window.contractRef ? contractRef(c) : c.id), contractName: c.name || (window.contractRef ? contractRef(c) : c.id),
     counterparty: c.counterparty || '', taken: r.taken || [], negotiated: r.negotiated || [] });
 }
@@ -765,10 +766,9 @@ function nsLgScratch(o = {}) {
       const cats = typeof templateCategories === 'function' ? templateCategories().map(c => c.id) : ['sales', 'procurement', 'employment', 'nda', 'other'];
       const d = st.d;
       const made = await nsCreate({ name: nameOf() || i18t('ns_untitled'), category: d && cats.includes(d.category) ? d.category : 'other', origin: 'built_in_hati' });
-      closeModal();
       /* THE BUILDER OPENS ALREADY HOLDING THE SECTIONS KEPT HERE: the same outline, the unticked named, added at once */
       const off = (st.list || []).filter(x => !x.on).map(x => x.heading);
-      nsOpen(made.tid, made.vid, { kind: 'scratch', said: st.said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null, off, extra: st.extra.filter(x => x.on).map(x => ({ heading: x.heading, intent: x.intent || '' })), add: !!d, walk });
+      await nsOpen(made.tid, made.vid, { kind: 'scratch', said: st.said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null, off, extra: st.extra.filter(x => x.on).map(x => ({ heading: x.heading, intent: x.intent || '' })), add: !!d, walk });
     } catch (e) { st.busy = false; if (btn) { btn.disabled = false; btn.textContent = was; } nsLgSay(nsLgHost(), e.message || String(e), true); }
   };
   const propose = async btn => {
