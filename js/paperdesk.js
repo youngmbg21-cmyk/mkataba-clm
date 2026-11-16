@@ -8388,10 +8388,18 @@ function pd2NotesPaint(c){
   const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
   /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
   const sc = zoom.parentElement, inset = sc ? Math.max(0, (zoom.getBoundingClientRect().left - sc.getBoundingClientRect().left) / f) : 0;
-  const left = Math.round(PD2_SHEET_LEFT - inset);
-  const room = W - left - PD2_NOTES_GUTTER - 16;
+  const left0 = Math.round(PD2_SHEET_LEFT - inset);
+  const room = W - left0 - PD2_NOTES_GUTTER - 16;
   const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
   const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));
+  /* THE PAPER STANDS IN THE MIDDLE OF THE ROOM IT HAS (owner's pick, the Legora way, 16 Nov 2026: "the page is always at the
+     centre of the space available, even when you close Jambo"): the sheet's own centre at the scroller's centre, its notes
+     hanging in the margin to its right; where the notes would not fit, it moves only as far right as they leave it, never
+     nearer the edge than 40 (a laptop keeps today's place). Jambo opening or closing moves the width, so the watcher below
+     lays it out again at the new centre. */
+  const scW = sc ? sc.clientWidth / f : W;
+  const mid = Math.round(scW / 2 - inset - sheetW / 2);
+  const left = Math.max(left0, Math.min(mid, Math.floor(W - 16 - notesW - PD2_NOTES_GUTTER - sheetW)));
   /* written only where it moved: a paper born at this width (pd2SheetPre) is not laid out a second time */
   if (!zoom.classList.contains('has-pd2')) zoom.classList.add('has-pd2');
   if (zoom.style.getPropertyValue('--doc-sheet-max') !== sheetW + 'px') zoom.style.setProperty('--doc-sheet-max', sheetW + 'px');

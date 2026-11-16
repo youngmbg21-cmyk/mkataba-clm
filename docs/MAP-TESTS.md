@@ -401,6 +401,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE DOSSIER'S ONE CARD (8 Nov 2026): dossier-one-card-verify (3 checks × three screens; red at the parent on 1 and 2); contract-new-look 1 and 13c re-pointed.
 - test/chromium/the-read-bar-and-notes-verify.js (1–3 red at the parent; three screens): the read's bar the line's twin (13px, one line, every button whole); notes appear as the read reaches their clause and stay; Jambo's panel folded keeps the line's height and the brown ground. negotiate-new-look-verify 2 now expects Clean · Redline · Their view on the Redlines face.
 - one-zoom, one-paper-everywhere verify.
+- THE PAPER IN THE MIDDLE OF ITS ROOM (16 Nov 2026): contract-new-look-verify 4 (centred, or held left only by its notes, never nearer than 40) at the three screens plus a 2000×1000 desktop pass, 4c (centred with Jambo open, then closed); red at the parent.
 
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
 - f893, f225, f238, f277, f316, f377, f383, f458 (3), two-copies, paper-grows, readonly-copy, fill-the-document verify.
