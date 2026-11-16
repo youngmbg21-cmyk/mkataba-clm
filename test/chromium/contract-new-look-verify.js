@@ -8,7 +8,8 @@
      3 · the notes beside the paper, only what HaTi read: the two blanks (amber, Fill in), the value (the approval rests
          on it, Approve), the end date (grey), the risk (Start redlining); each by the line it was read from (or pushed
          under the one above), none overlapping, all to the right of the paper, in the paper's order
-     4 · the paper stands at the left, 40 from the page's edge, and nothing goes sideways
+     4 · the paper stands in the middle of the room it has, as far as its notes leave it (never nearer the page's edge
+         than 40; owner's pick, the Legora way, 16 Nov 2026), its notes inside the page, and nothing goes sideways
      5 · a note's Fill in is the one Fill in door: the form opens on that blank
    And the switch off:
      6 · the old Dossier and no notes, the paper where it was
@@ -57,6 +58,9 @@ const READ = () => {
     old: !!(dock && dock.querySelector('.pd-dossier')),
     notes, sheetLeft: sheet && sc ? Math.round(sheet.getBoundingClientRect().left - sc.getBoundingClientRect().left) : null,
     sheetRight: sheet ? sheet.getBoundingClientRect().right : null, scRight: sc ? sc.getBoundingClientRect().right : null,
+    /* the room's middle (inside its scrollbar) less the paper's middle, and the notes' right edge against the room's */
+    offMid: sheet && sc ? Math.round((sc.getBoundingClientRect().left + sc.clientWidth / 2) - (sheet.getBoundingClientRect().left + sheet.getBoundingClientRect().width / 2)) : null,
+    notesGap: sc && document.getElementById('pd2-notes') ? Math.round(sc.getBoundingClientRect().left + sc.clientWidth - document.getElementById('pd2-notes').getBoundingClientRect().right) : null,
     anchors: { date: anchorTop(/\[DATE\]/), value: anchorTop(/36,000,000/), risk: anchorTop(/rejected within 3 days/), ends: anchorTop(/30 June 2027/) },
     sideways: document.documentElement.scrollWidth - innerWidth
   };
@@ -75,7 +79,7 @@ const READ = () => {
   await seedWorkspace(h, { contracts: [b] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   try {
-    for (const [nm, W, H] of [['laptop-a', 1440, 780], ['laptop-b', 1536, 730], ['ipad', 1366, 950]]){
+    for (const [nm, W, H] of [['laptop-a', 1440, 780], ['laptop-b', 1536, 730], ['ipad', 1366, 950], ['desktop', 2000, 1000]]){
       const page = await browser.newPage({ viewport: { width: W, height: H } });
       page.on('pageerror', e => console.log('PAGE ERROR', String(e).slice(0, 300)));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -106,8 +110,26 @@ const READ = () => {
       check(`${nm} 3 the notes: the blanks, the value, the risk, the end date — each by its line, none overlapping, right of the paper`,
         tones === 'is-owe,is-owe,is-ask,is-risk,is-fact' && ordered && R.notes.every(n => n.left >= R.sheetRight + 8 && n.right <= R.scRight)
         && byLine(/^Date/, R.anchors.date) && byLine(/^Value/, R.anchors.value) && byLine(/^Rejection/, R.anchors.risk), { tones, notes: four.map(n => [n.k, Math.round(n.top)]), anchors: R.anchors, sheetRight: R.sheetRight });
-      check(`${nm} 4 the paper 40 from the page's edge, nothing sideways`, R.sheetLeft != null && Math.abs(R.sheetLeft - 40) <= 2 && R.sideways <= 0, { sheetLeft: R.sheetLeft, sideways: R.sideways });
+      /* in the middle, or held left of it only because the notes reach the room's right edge (within 48) */
+      check(`${nm} 4 the paper in the middle of its room as far as its notes leave it, never nearer the edge than 40, nothing sideways`,
+        R.sheetLeft != null && R.sheetLeft >= 38 && R.offMid != null && (Math.abs(R.offMid) <= 2 || (R.offMid > 0 && R.notesGap != null && R.notesGap >= 0 && R.notesGap <= 48))
+        && R.sideways <= 0, { sheetLeft: R.sheetLeft, offMid: R.offMid, notesGap: R.notesGap, sideways: R.sideways });
       await page.screenshot({ path: path.join(OUT, `contract-${nm}.png`) });
+      if (nm === 'desktop'){
+        /* 4c ROOM TO SPARE (owner, 16 Nov 2026: "even when you close Jambo the page is centred"): on a wide screen the paper
+           stands in the very middle with Jambo open, and again in the new middle once he is closed */
+        check('4c desktop, Jambo open: the paper in the very middle of its room', R.offMid != null && Math.abs(R.offMid) <= 2, { offMid: R.offMid });
+        const w0 = await page.evaluate(() => document.getElementById('ig-paper-scroll').clientWidth);
+        await page.evaluate(() => { intel.dockOpen = false; renderIntelDock(); igSyncDockWidth(); });
+        await until(page, w0 => document.getElementById('ig-paper-scroll').clientWidth > w0 + 100, w0, 8000);
+        const moved = await until(page, () => { const sc = document.getElementById('ig-paper-scroll'), sh = document.querySelector('#ig-paper [data-pd2-left]');
+          if (!sc || !sh) return false; const a = sc.getBoundingClientRect(), b = sh.getBoundingClientRect();
+          return Math.abs((a.left + sc.clientWidth / 2) - (b.left + b.width / 2)) <= 2; }, null, 8000);
+        const R2 = await page.evaluate(READ);
+        check('4c desktop, Jambo closed: the paper moves to the new middle, nothing sideways', moved && R2.sideways <= 0, { offMid: R2.offMid, sideways: R2.sideways });
+        await page.screenshot({ path: path.join(OUT, `contract-${nm}-jambo-closed.png`) });
+        await page.close(); continue;
+      }
       if (nm === 'laptop-a'){
         /* 4b the paper scrolls in its own scroller (it once grew to its whole length and stood still) */
         const S = await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); return { client: sc.clientHeight, whole: sc.scrollHeight }; });
