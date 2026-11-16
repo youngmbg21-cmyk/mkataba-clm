@@ -669,7 +669,7 @@ function naHit(r, q){
    The box takes its own content's height, bounded at NA_SAY_MAX_LINES so a
    pasted paragraph cannot push the shelf off the screen; past that it scrolls,
    which is honest. Asked of the element, never of the character count. */
-const NA_SAY_MAX_LINES = 7;
+const NA_SAY_MAX_LINES = 5;
 function naSayFit(el){
   if(!el || !el.style) return;
   try{
@@ -678,8 +678,18 @@ function naSayFit(el){
     const edge=cs?((parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0)):2;
     const pad=cs?((parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0)):0;
     el.style.height='auto';
+    const one=el.scrollHeight<=Math.round(line*1.5+pad);
     el.style.height=Math.min(el.scrollHeight+edge, Math.round(line*NA_SAY_MAX_LINES+pad+edge))+'px';
+    /* ONE LINE IS A PILL, MORE IS A BOX (owner, 16 Nov 2026: a long pasted text ran into the pill's round ends): the
+       frame is told how tall its words stand, and the sheet draws the rounded rectangle for several lines */
+    const box=el.closest&&el.closest('.na-askbox'); if(box) box.classList.toggle('is-many', !one);
   }catch(_){}
+}
+/* the words of a paste with their line breaks joined; null where the paste carries none (the browser's own paste stands) */
+function naPasteJoined(e){
+  let t=''; try{ t=(e&&e.clipboardData&&e.clipboardData.getData('text/plain'))||''; }catch(_){ t=''; }
+  if(!/[\r\n]/.test(t)) return null;
+  return t.replace(/\s*[\r\n]+\s*/g,' ').trim();
 }
 function naHasWords(q){ return String(q||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).some(w=>w.length>=3); }
 /* ---- WHAT A CARD SAYS UNDER ITS NAME (Young ruled 21 Sep 2026: "the
@@ -1668,6 +1678,12 @@ function openNewAgreement(o){
   document.getElementById('na-q')?.addEventListener('input',()=>{ clearTimeout(_q); _q=setTimeout(()=>{ paintLists(); light(); }, 80); });
   const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
   say?.addEventListener('input',()=>naSayFit(say));
+  /* A PASTED PARAGRAPH FILLS THE BOX (owner, 16 Nov 2026): the line breaks a paste carries are joined, so its lines
+     run the box's width instead of stopping half way; Shift+Enter still makes a line of the reader's own */
+  say?.addEventListener('paste',e=>{ const t=naPasteJoined(e); if(t==null) return; e.preventDefault();
+    const a=say.selectionStart||0, b=say.selectionEnd||0, max=say.maxLength>0?say.maxLength:Infinity;
+    const room=Math.max(0, max-(say.value.length-(b-a)));
+    say.setRangeText(t.slice(0, room), a, b, 'end'); say.dispatchEvent(new Event('input',{ bubbles:true })); });
   /* ENTER STILL PRESSES FIND, and Shift+Enter is a newline — the box wraps
      now, so a reader who wants a second line has a way to ask for one. */
   say?.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault();
@@ -1791,4 +1807,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{naNewPaperOk,naNewPaperDoorHtml,naNewPaperGo,naOursNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{naNewPaperOk,naNewPaperDoorHtml,naNewPaperGo,naOursNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,naPasteJoined,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

@@ -561,10 +561,14 @@ function stkDecorate(c, card, rows){
         const fine = !words && !mine.some(p => !p.done && p.status !== 'fine');
         /* THE NEW LOOK, AS DRAWN: each row says its own short reading, the first point Jambo read on it, in its tone
            ("Three days to reject a load"; a clause read as fine says what it was read as, its dot green) */
-        const say = stkNewLookOn() ? (mine.find(p => !p.done && p.status !== 'fine') || mine.find(p => p.status === 'fine') || null) : null;
+        /* NO ORANGE SENTENCE ON THE ROW (owner, 16 Nov 2026: "in the clauses tab, remove the orange highlights"): a
+           clause with something live on it says it by its amber number and, opened, by its cards; the row keeps its
+           name and "read". A clause read as fine still says what it was read as. */
+        const live = mine.some(p => !p.done && p.status !== 'fine');
+        const say = stkNewLookOn() && !live ? (mine.find(p => p.status === 'fine') || null) : null;
         if (say && !words) row.classList.replace('stk-b-none', 'stk-b-ok');
         const parts = (say ? [`<span class="stk-n is-${words ? words.worst : 'fine'} is-say" title="${_bdE(say.stake || say.title)}">${_bdE(say.title)}</span>`]
-          : words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : (fine && !stkNewLookOn()) ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
+          : (words && !stkNewLookOn()) ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : (fine && !stkNewLookOn()) ? [`<span class="stk-n is-fine">${_bdE(i18t('stk_row_fine'))}</span>`] : []).concat(rest.map(el => el.outerHTML));
         st.innerHTML = parts.join('<span class="doc-th-dot"> · </span>');
       }
       /* the open clause's cards, in the one order (stkReview), drawn once — UNDER its Plain English

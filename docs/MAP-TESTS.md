@@ -189,7 +189,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f920 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
-- f1081 (3) (16 Nov 2026): "1:" / "1)" is a number in the mark; an unnumbered clause's dot stands in the marks' slot, never over the name.
+- f1082 (3) (16 Nov 2026): "1:" / "1)" is a number in the mark; an unnumbered clause's dot stands in the marks' slot, never over the name.
 - f1005 (one "What to watch" per clause; the paper and the panel line up; the paper stays white); contract-new-look-verify 13/13b.
 - f1010 (Start redlining opens the editor with no Redlines frame first; ‹ Clauses, Esc and the bar's ‹ land on the same clause); contract-new-look-verify 13e.
 - f1011 (Start redlining brings the clause's points to the editor, ticked, no numbers, words highlighted; one button through ceAsk; f505/f756 re-pointed); contract-new-look-verify 13f.
@@ -544,7 +544,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - No outlines on paper entry fields: f1028 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
-- NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1081-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
+- NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1082-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.
 - A SEARCH BOX WEARS NO RING (10 Nov 2026): `test/f996-search-boxes-no-ring-folders-scroll.test.js` (1) — one rule for the field, one for the line that holds it, every search box named, after the house ring (red at the parent).
 - NO JAMBO CALLS SAID (owner, 8 Nov 2026): f975 (red at the parent on all three). Re-pointed node: f273, f295, f499, f519, f527, f534, f615, f706, f745, f748, f753, f754, f759, f772, f792, f797, f798, f804, f811, f863, f864, f874, f954, f956, f957; browser contract-new-look-verify. f515 and f520 run out of memory here at the parent too (not this change).
@@ -794,6 +794,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A FULL-PAGE SCREEN GOES BEFORE THE PAGE OR HOME'S TAB MOVES (15 Nov 2026): f1061 (1)–(4); send-screen-keeps-its-way-back-verify 6, 7a, 7b.
 THE PULSE BOARD'S, READS' AND DISCOVER'S DOORS PUT A SCREEN AWAY, THEN GO (16 Nov 2026): f1076.
 A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (16 Nov 2026): f1080; a-refresh-lands-on-its-contract-verify.
+SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Import · Redlines cards first · Clauses): f1081; round6-new-look-verify 10, round7-new-look-verify 1c, contract-new-look-verify (the clause row), f1066 (1), f1073, f977 re-pointed.
 - A FINISHED READ OPENS ITS RESULTS, AND "READ THE N LEFT" READS WHAT IS LEFT (owner, 16 Nov 2026): f1072 (test/f1072-a-finished-read-opens-its-results.test.js; 3 of 3 red at the parent) — dsnEndsOnResults the one door for dsnAsk and dsnCarry (stopped stays; a reader who left is not pulled back); dsnRunLeft counts the read's folders' contracts with no answer (null while loading), used by Jambo's panel and the results head; nothing left is said by a toast. Re-pointed: discover-page-verify 4b (lands on its results with no press). Re-ran green: f1074, f1063, f1055, f1016, f1057, f1058, f1064, f937, f232.
 
 - CLAUSES THE LEGORA WAY, THE REDLINES STRIP, ONE BAND ON APPROVALS, THE FOUR LIST PANELS (owner, 16 Nov 2026): f1073 (test/f1073-clauses-legora-and-the-list-panels.test.js; 5 of 5 red at the parent). Re-pointed: f1066 (1)(3) (the open clause an amber line; one line, no counts), approvals-head-and-chosen-row-verify 3 (one band, no bar). Re-ran green: f1065, f1066, f1067, f1068, f1069, f1070, f184, f277, f314, f335, f337, f344, f385, f386, f875, f89, f965, f967, f937, f232, f48, f982, f984.

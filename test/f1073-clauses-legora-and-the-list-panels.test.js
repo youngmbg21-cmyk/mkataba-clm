@@ -53,7 +53,11 @@ test('f1073 (4) the four list panels speak the five parts, by the page\'s own pr
   assert.match(fnBody(NG, 'ngnPanelHtml'), /newLookOn\(\)\) return ngnPanelFiveHtml\(r, rows\);/);
   const ng = fnBody(NG, 'ngnPanelFiveHtml');
   for (const a of ['data-ngn-gotab="live"', 'data-ngn-open=', 'data-ngn-send=', 'data-ngn-chase=']) assert.ok(ng.includes(a), a);
-  assert.match(ng, /<div class="ngn-panel jl-words is-ov">/, 'inside .ngn-panel, where the page listens');
+  /* RE-POINTED (owner, 16 Nov 2026: "the side panel information should reflect the contract you have pressed"): the
+     panel is the pressed round's own; the page's overview is one press back and its rows choose (data-ngn-pick) */
+  assert.match(ng, /<div class="ngn-panel jl-words is-ov" data-ngn-for="\$\{E\(c\.id\)\}">/, 'inside .ngn-panel, where the page listens');
+  assert.match(ng, /title: c\.name \|\| ''/, 'the pressed round\'s name is the headline');
+  assert.ok(ng.includes('data-ngn-pick='), 'a row of the overview chooses, as a row of the list does');
   assert.match(fnBody(MN, 'mnnPanelHtml'), /newLookOn\(\)\) return mnnPanelFiveHtml\(n\);/);
   const mn = fnBody(MN, 'mnnPanelFiveHtml');
   assert.match(mn, /act: \{ label: i18t\(n\.reviewedAt \? 'mn_review_again' : 'mn_mark_reviewed'\), attr: `data-mn-act=/); assert.match(mn, /data-mn-act="delete"/);

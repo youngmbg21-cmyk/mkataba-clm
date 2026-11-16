@@ -240,9 +240,9 @@ const READ = () => {
         check('13 Clauses: the notes stay beside the paper, the open clause\'s note and row lit, "Shown in Clauses", the one row of links, the paper left white',
           tinted && Cl.notes && Cl.lit && Cl.shown.every(t => t === 'Shown in Clauses ›') && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);
         const Cd = await page.evaluate(() => ({ head: ((document.querySelector('#pd-thread .stk-view') || {}).textContent || '').trim(), tabs: !!document.querySelector('#pd-thread .stk-tabs'),
-          say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n.is-say') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));
+          say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));
         check('13b Clauses as drawn (your answer): "Clause review · one view for the whole company", no filter tabs, the row says its reading, the Preamble first with its blanks',
-          /^Clause review\s*one view for the whole company/.test(Cd.head) && !Cd.tabs && Cd.say === 'Three days to reject a load' && /^Preamble/.test(Cd.pre) && /date/i.test(Cd.pre) && /Fill it in/.test(Cd.pre), Cd);
+          /^Clause review\s*one view for the whole company/.test(Cd.head) && !Cd.tabs && /* RE-POINTED (owner, 16 Nov 2026: no orange sentence on a clause's row) */ Cd.say === '' && /^Preamble/.test(Cd.pre) && /date/i.test(Cd.pre) && /Fill it in/.test(Cd.pre), Cd);
         /* 13c ALL N IN PLAIN ENGLISH, ONE AT A TIME (owner, 31 Oct 2026): one press reads each clause not yet read, one
            clause per reading, in order (the single-clause reader stood in for: no key in a test); Stop ends it */
         const Al = await page.evaluate(async () => { window.__calls = []; const real = window.docReadRun;

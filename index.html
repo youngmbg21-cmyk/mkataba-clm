@@ -16937,9 +16937,12 @@
   /* lifted out of the app's frame while open, so it stands in front of every page (deskBarPaint, 26 Oct 2026) */
   .dk-recent.is-lifted{position:fixed;z-index:76;max-height:calc(100vh - 72px)}
   .dk-r{display:flex;align-items:center;border-radius:var(--radius)}
-  .dk-r.is-on{background:var(--color-accent-50)}
+  /* ONE SHADE, ONE SHAPE (owner, 16 Nov 2026: "the shading of the options is off"): only the row under the pointer is shaded, across the whole row; the page you are on says so by its tick and a bolder name, never a second shade */
+  .dk-r.is-on{background:none}
+  .dk-r.is-on .dk-r-t{font-weight:var(--w-strong)}
+  .dk-r:hover{background:var(--surface-2)}
   .dk-r-go{flex:1;min-width:0;display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:center;border:0;background:none;text-align:left;padding:7px 8px;border-radius:var(--radius);color:inherit;font:inherit;cursor:pointer}
-  .dk-r-go:hover{background:var(--color-accent-50)}
+  .dk-r-go:hover{background:none}
   .dk-r-go:focus-visible,.dk-r-x:focus-visible,.dk-r-act:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
   .dk-r-tick{display:grid;place-items:center;color:var(--accent-ink)}
   .dk-r-ic{width:14px;height:14px}
@@ -16947,7 +16950,7 @@
   .dk-r-t{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dk-r-w small{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dk-r-x{flex:none;width:24px;height:24px;margin-right:4px;border:0;background:none;border-radius:12px;color:var(--color-neutral-500);font-size:15px;line-height:1;cursor:pointer;padding:0}
-  .dk-r-x:hover{background:var(--color-neutral-100);color:var(--color-text)}
+  .dk-r-x:hover{background:var(--color-divider);color:var(--color-text)}
   .dk-r-home{margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--color-divider);border-radius:var(--radius) var(--radius) 0 0}
   .dk-r-h{margin:4px 8px 4px;font-size:var(--t-label);color:var(--color-neutral-600)}
   .dk-r-none,.dk-r-foot{margin:6px 8px 4px;font-size:var(--t-label);color:var(--color-neutral-600)}
@@ -19043,13 +19046,13 @@
   /* A CLAUSE WITH NO NUMBER (owner, 16 Nov 2026, MK-301's "Company Information"): the row has no left room for a
      floating dot here, so its small dot stands in the marks' own 26px slot, beside the name, never over its first letter */
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-bead:not([data-n]){position:static;flex:none;width:8px;height:8px;margin:0 9px}
-  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-name{flex:1;min-width:0;font-size:14px}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-name{flex:1;min-width:0;font-size:13px}
   /* the open clause: no card, no grey; an amber line at its left (the paper's own mark for what needs you), 14px inside it */
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open.pd2-lit{margin:0;padding:0 0 10px 14px;border-top-color:var(--color-divider);border-radius:0;background:none;box-shadow:inset 2px 0 0 var(--st-amber-dot)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open:not(.stk-b-need):not(.stk-b-look){box-shadow:inset 2px 0 0 var(--color-text)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go, html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go:hover{background:none}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row .doc-th-go:hover .doc-th-name{text-decoration:underline;text-underline-offset:3px}
-  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .doc-th-plain{font-family:var(--font-doc);font-size:14px;line-height:1.55;color:var(--color-text)}
+  html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .doc-th-plain{font-family:var(--font-doc);font-size:13px;line-height:1.55;color:var(--color-text)}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .stk-card.is-mq{padding-left:38px}
   html.lg-new #ig-dock .pd-th .doc-th-lbl ~ .doc-th-rows .doc-th-row.is-open .stk-card.is-mq .stk-cacts{gap:6px 14px;margin-top:10px}
   html.lg-new #ig-dock .pd-th .stk-head.is-mq.is-five{gap:6px;padding:14px 16px 4px}
@@ -19457,6 +19460,11 @@
   html.lg-new #ig-dock #rl-changes-col.is-ladder-face #nego-cards, html.lg-new #ig-dock #rl-changes-col.is-ladder-face #rl-risks{display:none}
   /* on the Ladder and Notes faces the switch leads straight into the face's own headline, as drawn */
   html.lg-new #ig-dock #rl-changes-col:is(.is-ladder-face, .is-notes-face) :is(.rl-idx-title, .rl-round-at, .rl-idx-br){display:none}
+  /* CARDS FIRST (owner's pick, 16 Nov 2026): on Changes the head is the switch and one line (what is not sent, the round, Send all at its end); the cards start under it */
+  html.lg-new #ig-dock #rl-changes-col.is-five:not(.is-ladder-face):not(.is-notes-face) :is(.rl-idx-title, .rl-idx-br, .rl-idx-sp){display:none}
+  html.lg-new #ig-dock #rl-changes-col.is-five:not(.is-ladder-face):not(.is-notes-face) .rl-round-at{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act.is-line{flex:0 0 auto;display:block;margin:0;padding:0;border-radius:0;background:none}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-act.is-line .rl-unsent-go{display:inline-flex;width:auto;padding:0 14px;white-space:nowrap}
   html.lg-new #ig-dock #rl-changes-col.is-five .rl-five-head.is-ladder .jov5-title{margin:0;font-family:var(--font-title);font-size:24px;line-height:1.18;font-weight:500;color:var(--color-text)}
   /* the notes rooms under the headline: one pill switch, as drawn */
   html.lg-new #ig-dock .rl-fn-tabs.is-five{display:flex;gap:2px;margin:0;padding:3px;border:0;border-radius:999px;background:var(--surface-2)}
@@ -20765,9 +20773,9 @@
   /* NEGOTIATIONS, THE NEW LOOK (round 7): your move lifted, settled faded, their words in the paper's type */
   html.lg-new .ngn-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .ngn-table tbody tr{cursor:pointer}
-  html.lg-new .ngn-table tr.is-yours td{background:var(--surface-2)}
+  /* WHITE ROWS, ONE GREY (owner, 16 Nov 2026: "every line is grey when they should be white apart from the line you have pressed"): whose move it is stays in its column; only the chosen row is shaded */
   html.lg-new .ngn-table tr.is-settled td,html.lg-new .ngn-table tr.is-settled .cun-name{color:var(--color-quiet)}
-  html.lg-new .ngn-table tr.is-sel:not(.is-yours) td{background:var(--color-bg)}
+  html.lg-new .ngn-table tr.is-sel td{background:var(--surface-2)}
   html.lg-new .ngn-table td:first-child{padding-left:12px}
   html.lg-new .ngn-table th:first-child{padding-left:12px}
   html.lg-new .ngn-ref{font-family:var(--font-mono);font-weight:var(--w-strong)}
@@ -20782,6 +20790,21 @@
   html.lg-new .mign-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .mig-page:has(.mign-table){background:var(--color-surface);padding-left:40px;padding-right:40px}
   html.lg-new .mig-page .mign-table{margin-top:4px}
+  /* THE FIGURES AND HOW SURE (owner, 16 Nov 2026): five figures over the list, each a press that shows its files; a file's row says how sure Jambo was, three bars and a word */
+  html.lg-new .mign-figs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:12px 0 4px}
+  html.lg-new .mign-fig{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;padding:9px 12px;border:0;border-radius:var(--radius);background:var(--surface-2);font:inherit;text-align:left;color:var(--color-text)}
+  html.lg-new button.mign-fig{cursor:pointer}
+  html.lg-new .mign-fig b{font-size:19px;line-height:1.2;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  html.lg-new .mign-fig span{font-size:var(--t-label);color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  html.lg-new .mign-fig.is-warn b{color:var(--st-amber-fg)}
+  html.lg-new .mign-fig.is-zero b{color:var(--color-neutral-400)}
+  html.lg-new .mign-fig.is-on{box-shadow:inset 0 0 0 1.5px var(--color-text)}
+  html.lg-new .mign-sure{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;color:var(--color-text)}
+  html.lg-new .mign-bar{display:inline-flex;gap:2px}
+  html.lg-new .mign-bar i{width:12px;height:5px;border-radius:2px;background:var(--rule-strong)}
+  html.lg-new .mign-sure.is-high .mign-bar i{background:var(--st-green-dot)}
+  html.lg-new .mign-sure.is-med .mign-bar i:nth-child(-n+2){background:var(--st-amber-dot)}
+  html.lg-new .mign-sure.is-low .mign-bar i:first-child{background:var(--st-ruby-dot)}
   html.lg-new .mign-read{font-weight:var(--w-label)}
   html.lg-new .mign-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
   html.lg-new .mign-table tr.is-picked td{background:var(--surface-2)}
@@ -20799,6 +20822,9 @@
      like the jambo entry field"): the words wear no ring of their own (the page-wide :focus-visible ring drew a green
      rectangle inside the pill); the pill keeps Jambo's 1.5px green edge and, while typed in, his soft glow (.jb-card) */
   html.lg-new #na-root.na-one .na-askbox{border-width:1.5px}
+  /* ONE LINE IS A PILL, MORE IS A BOX (owner, 16 Nov 2026): several lines stand in the one corner, 16px inside, clear of every edge; past five lines the words scroll inside (naSayFit) */
+  html.lg-new #na-root.na-one .na-askbox.is-many{border-radius:var(--radius);padding:16px 12px 12px 16px;align-items:flex-end}
+  html.lg-new #na-root.na-one .na-askbox.is-many .na-say{padding:0 12px 0 0}
   html.lg-new #na-root.na-one .na-askbox:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px rgba(10,124,107,.12)}
   html.lg-new #na-root.na-one .na-askbox .na-say:is(:focus, :focus-visible){outline:none;box-shadow:none;border:0}
   html.lg-new #na-root.na-one.is-picked #wz-pick{display:flex}
@@ -21052,7 +21078,8 @@
      stands in the middle of the sheet. Import with nothing brought in: no filter over nothing, the drop area is the page */
   html.lg-new .cun-page.is-empty :is(.apn-bar, thead, .apn-foot){display:none}
   html.lg-new .cun-page.is-empty .apn-table td.apn-none{border:0;padding:96px 0 0;text-align:center;font-size:15px}
-  html.lg-new .mig-page:not(:has(table)) #mig-band{display:none}
+  /* …but never on the check screen (owner, 16 Nov 2026: "imports page is locked on this page"): it has no table, and its band is its bar, "‹ All files", the tabs, "1 of N" and the arrows — the only way back */
+  html.lg-new .mig-page:not(.is-checking):not(:has(table)) #mig-band{display:none}
   html.lg-new .mig-page:not(:has(table)) .mig-drop-card{padding:56px 40px 24px;display:flex;flex-direction:column;align-items:center;gap:20px}
   html.lg-new .mig-page:not(:has(table)) #mig-drop{width:min(100%, 680px);flex-direction:column;text-align:center;padding:48px 32px;gap:12px}
   html.lg-new .mig-page:not(:has(table)) #mig-drop .mig-drop-w{flex:none;width:auto}
