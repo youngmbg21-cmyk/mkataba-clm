@@ -7481,12 +7481,13 @@ function hbPaintBoard(opts){
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
   const glide = hbGlideTake(host);
   hbMorph(host, hbBoardHtml());
-  hbChartsStill(host);
   hbGlidePlay(host, glide);
   /* a contract's view (stage 4): its host is filled by its own painter */
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
   hbCvPaint();
   hbSheetPaint();
+  /* a chart drawn again stands still (before the frame is painted, so nothing is seen to fade) */
+  hbChartsStill(host);
   hbGiftsSeenSay();
   hbPaintHead();
   hbNyDockFollow();

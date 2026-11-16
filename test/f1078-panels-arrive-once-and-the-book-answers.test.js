@@ -25,7 +25,7 @@ test('f1078 (1) every contract is one page to the arrival', () => {
 
 test('f1078 (2) driven: a chart drawn again stands still', () => {
   const HB = read('js/views/homeboard.js');
-  assert.match(body(HB, 'hbPaintBoard'), /hbMorph\(host, hbBoardHtml\(\)\);\s*hbChartsStill\(host\);/);
+  assert.match(body(HB, 'hbPaintBoard'), /hbMorph\(host, hbBoardHtml\(\)\);[\s\S]{0,600}?hbSheetPaint\(\);\s*hbChartsStill\(host\);/);
   const i = HB.indexOf('const _hbChartsSeen'); assert.ok(i >= 0);
   const src = HB.slice(i, HB.indexOf('\n}', HB.indexOf('function hbChartsStill(')) + 2);
   const mkSvg = html => { const gs = [{ cl: new Set(['hb-in']) }, { cl: new Set(['hb-in']) }];
