@@ -7644,7 +7644,26 @@ function hbAskInPanel(q, id){
   if (!ok && typeof toast === 'function') toast(i18t('hb_ask_kept_typed'), 'warn');
   return ok;
 }
+/* A FULL-PAGE SCREEN GOES BEFORE HOME TURNS (owner, 15 Nov 2026: the Send screen stayed over Discover, then "check if
+   this issue is anywhere else in hati"): a screen standing in front (the Send screen, the Brief, Where we stand, the
+   Fill in form, a list's own page) belongs to the tab it was opened on; turning Home to another tab through Jambo,
+   the strip or a typed name left it over that tab. It is put away first through its own guard (a typed note asks),
+   then the turn goes on, as the bar already does (dkLeavePageThen). A Send screen waiting out of sight is kept. */
+function hbPageScreenUp(){
+  if (typeof document === 'undefined') return false;
+  const waiting = typeof window.pdSendIsWaiting === 'function' && !!window.pdSendIsWaiting();
+  return !!document.querySelector(waiting ? '#modal-root .modal-in[data-dlg-page]:not([data-sh-page])' : '#modal-root .modal-in[data-dlg-page], #modal-root .modal-in[data-sh-page]');
+}
+function hbPageLeaveThen(go){
+  if (!hbPageScreenUp() || typeof window.closeModalFirst !== 'function') return false;
+  const r = window.closeModalFirst();
+  if (r === true) return hbPageScreenUp();
+  if (r === false) return true;
+  Promise.resolve(r).then(ok => { if (ok !== false && !hbPageScreenUp()) go(); }).catch(() => {});
+  return true;
+}
 function hbOpenExplorer(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenExplorer)) return;
   const s = hbS(); s.face = 'explorer'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
 }
@@ -7652,6 +7671,7 @@ function hbOpenExplorer(){
    refresh, the obligations card's "Open calendar") lands on Home's Calendar
    tab — its one way in since the menu row went (owner, 11 Oct 2026) */
 function hbOpenCalendar(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenCalendar)) return;
   const s = hbS(); s.face = 'calendar'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
 }
@@ -7662,6 +7682,7 @@ function hbOpenCalendar(){
    owner's "Go", 14 Oct 2026). Whatever paper was up is put down first
    (igPickAgain, the strip's own "‹ Contracts"), so the place is what shows. */
 function hbOpenContracts(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenContracts)) return;
   const s = hbS();
   if (window.state && state.view === 'dashboard' && hbPage()){
     if (s.face !== 'paper') hbSetFace('paper');
@@ -7679,6 +7700,7 @@ function hbOpenContracts(){
    with no paper chosen is the Contracts door's now, so from there (or with
    it remembered) Home is the Board, and the rail lights Home again. */
 function hbOpenHome(){
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenHome)) return;
   const s = hbS();
   if (s.face === 'paper' && !(window.intel && intel.paper)){
     /* the rail's Home press has always painted the Board afresh: marked
@@ -7710,6 +7732,7 @@ function hbSetFace(f){
   /* the Board pressed while a contract stands on it is the Board (the glitch audit, 24 Oct 2026) */
   if (f === 'board') hbSheetLetGo();
   if (s.face === f) return;
+  if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(() => hbSetFace(f))) return;
   const kb = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-hb-face') != null;
   s.face = f;
   hbSave();
