@@ -42,6 +42,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.waitForTimeout(1600);
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+  await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
+  await page.waitForTimeout(900);
 
   const rowH  = () => page.evaluate(() => { const td = document.querySelector('.reg-table tbody td');
                                             return td ? Math.round(td.getBoundingClientRect().height) : 0; });
