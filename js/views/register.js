@@ -1148,10 +1148,12 @@ const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sig
    back as it was, or not at all; an unknown way of looking is the List
    (owner, 20 Oct 2026: "make the contracts landing page be on list as opposed
    to paper" — the place lands on the List until the reader picks Wall). */
-function regPlace(){ return { scope:regScope(), st:{ ...regState() } }; }
+/* the Contracts place's Folders-or-list choice rides the place too, so a refresh lands where the reader stood (#762) */
+function regPlace(){ return { scope:regScope(), st:{ ...regState() }, folders:(typeof _ctFolders==='boolean')?_ctFolders:true }; }
 function regPlacePut(p){
   if(!p) return;
   regSetScope(p.scope);
+  if(typeof p.folders==='boolean') _ctFolders=p.folders;
   const s={ ...REG_STATE_DEF(), ...(p.st||{}) };
   const o=s.only;
   s.only=(o&&Array.isArray(o.ids)&&o.ids.length&&o.ids.every(x=>typeof x==='string'))
@@ -3810,7 +3812,8 @@ let _ctFolders = true;
 /* Jambo's panel follows the page's face (the folders' reading, or the list's) */
 function ctfDockAgain(){ if (typeof window.renderIntelDock === 'function') setTimeout(() => { try { renderIntelDock(); } catch (_){} }, 0); }
 const CTF_WORDS = { sign:'ctf_n_sign', approval:'ctf_n_approval', details:'ctf_n_details', review:'ctf_n_review', note:'ctf_n_note', suggest:'ctf_n_suggest', look:'ctf_n_look', refused:'ctf_n_refused', quiet:'ctf_n_quiet', join:'ctf_n_join' };
-function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }
+/* a door asking for a stage (regGoFiltered({stage})) shows that list, never the Folders with the stage out of sight (#762) */
+function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && !(R.stage && R.stage !== 'all') && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }
 function regFolderRead(cs){
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = cs.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
