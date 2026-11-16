@@ -51,7 +51,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const row = up ? await page.evaluate(() => { const r = document.querySelector('.apn-table [data-ap-kind="approval"]'); return r ? { approve: !!r.querySelector('[data-ap-approve]'), decline: !!r.querySelector('[data-ap-refuse]'), quote: !!r.querySelector('.apn-q') } : null; }) : null;
     const signing = up ? await page.evaluate(() => !!document.querySelector('.apn-table [data-ap-kind="signature"] [data-ap-open]')) : false;
     if (up) await page.click('.apn-table [data-ap-kind="approval"] td');
-    const panel = up && await until(page, () => !!document.querySelector('#ins-panel .apn-panel'), null, 8000);
+    /* RE-POINTED (owner, 16 Nov 2026: the chosen row's panel in the five parts; f1073): Before you decide is drawn by the
+       one builder (data-jov-slot="apn"), its own links still above the box */
+    const panel = up && await until(page, () => !!document.querySelector('#ins-panel [data-jov-slot="apn"]') && /What the paper says/i.test(document.getElementById('ins-panel').innerText), null, 8000);
     const tab = await txt(page, '#ins-panel [data-jl-home]');
     const links = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .jb-ways.is-own [data-apn-go]')].map(b => b.getAttribute('data-apn-go')));
     const junk = /\[object Object\]/.test(await txt(page, '#ins-panel'));

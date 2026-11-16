@@ -1513,6 +1513,31 @@ function migNlPageHtml(rows){
       <div class="cu-scroll">${migNlListHtml(rows)}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('mig_side_label'))}"></aside></div></div>`;
 }
+function migNlPanelFiveHtml(r, rows, need){
+  const E = esc, f = Object.fromEntries(migSideFacts(r.c).map(x => [x.k, x]));
+  const mg = r.c.migration || {}, pages = mg.ocrTotalPages || (r.c.upload && r.c.upload.pages) || 0, scan = typeof isOcrText === 'function' && isOcrText(mg.textSource);
+  const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' \u2013 ');
+  const isNeed = MIG_NEEDS.includes(r.st.k), none = r.st.k === 'none', signed = r.c.status === 'Signed';
+  const parked = rows.filter(x => x.q && x.q.status === 'unsigned').length;
+  const filed = rows.length - need.length;
+  const lines = [{ mark: none ? 'alert' : 'mkTick', tone: none ? 'amber' : 'green', t: none ? i18t('mign_p_nothing') : (scan ? i18t('mign_scan') : i18t('mign_p_whole')), s: pages ? i18tn('mign_pages', pages, { n: pages }) : '' }];
+  if (!none){
+    lines.push({ mark: 'calendar', tone: term ? '' : 'amber', t: term || i18t('mign_p_no_end'), s: term ? i18t('mign_p_term') : i18t('mign5_end_add'), attr: term ? '' : `data-mign-go="${E(r.key)}" data-mign-need="1"` });
+    lines.push({ mark: signed ? 'mkTick' : 'alert', tone: signed ? 'green' : 'amber', t: signed ? i18t('mign_signed') : i18t('mign_p_none_found'), s: signed ? i18t('mign5_filed_not_parked') : '' });
+    if (r.c.counterparty) lines.push({ mark: 'users', t: `${String(window.FIRST_PARTY || '').split(/\s+/)[0]} \u00b7 ${r.c.counterparty}`, s: i18t('mign_p_parties') });
+  }
+  const cap = t => { t = String(t || ''); return t.charAt(0).toUpperCase() + t.slice(1); };
+  lines.forEach(l => { l.t = cap(l.t); l.s = cap(l.s); });
+  const title = none ? i18t('mign5_t_none') : isNeed ? i18t('mign5_t_check') : signed ? i18t('mign5_t_filed') : i18t('mign5_t_nosig');
+  const sub = none ? i18t('mign_p_j_none') : isNeed ? i18t('mign_p_j_check') : i18t('mign_p_j_filed');
+  const o = { eyebrow: [i18t('mign_title'), r.file || ''].filter(Boolean).join(' \u00b7 '), title, sub,
+    glance: [{ n: filed, l: i18tn('mign5_g_filed', rows.length, { n: rows.length }) }, { n: need.length, l: i18t('mign5_g_need'), warn: need.length > 0, attr: need.length > 1 ? 'data-mign-checkall' : '' }, { n: parked, l: i18t('mign5_g_parked') }],
+    groups: [{ label: i18t('mign5_read'), rows: lines }],
+    act: { label: i18t(isNeed ? (none ? 'mign_name_it' : 'mign_fill') : 'mign5_open'), attr: `data-mign-go="${E(r.key)}" data-mign-need="${isNeed ? 1 : 0}"`,
+      link: isNeed && need.length > 1 ? { label: i18t('mign_check_all', { n: need.length }), attr: 'data-mign-checkall' } : null },
+    src: i18t('mign5_src') };
+  return `<div class="jl-words is-ov">${jamboOverviewHtml(o, 'mign')}</div>`;
+}
 function migNlPanelPaint(rows){
   if (typeof insPaintPanel !== 'function') return;
   const E = esc, r = (_migPick && migRowByKey(_migPick)) || null;
@@ -1540,8 +1565,13 @@ function migNlPanelPaint(rows){
       <div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(i18t('cn2_jambo'))}</b><p>${E(say)}</p></div></div>
       <div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}`;
   }
+  /* THE FIVE PARTS (owner, 16 Nov 2026: "These pages still have old Panels"; drawn and built on "Build the legora way"):
+     what happened to the chosen file as the headline, three numbers (filed · need you · parked), what Jambo read as rows
+     (an end date not read in amber), the file's own door the one black button — the page's own presses (data-mign-go,
+     data-mign-checkall); the counts are the list's, no call */
+  const five = r && r.c && typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn();
   insPaintPanel({ seat: 'migration', item: { id: (r && r.key) || '__import' }, head: false, jlWord: i18t('mig_side_word'), jlPh: i18t('jl_ph_any'),
-    body: `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${file}</div>` });
+    body: five ? migNlPanelFiveHtml(r, rows, need) : `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${file}</div>` });
 }
 /* IMPORT'S THREE TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Need you · Read · All only pick which files), so a
    tab press and a typed letter redraw only the rows (listRowsSwapHtml); anything it will not swap draws the whole

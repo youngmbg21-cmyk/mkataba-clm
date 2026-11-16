@@ -446,7 +446,32 @@ function mnnRender(host, list, n, o){
   if (typeof setActiveNav === 'function') setActiveNav('mynotes');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
+function mnnPanelFiveHtml(n){
+  const E = _mnE, st = myNoteState(n), c = _mnContract(n.contractId), rows = [];
+  const what = String(n.title || n.body || '').trim();
+  if (st.k !== 'none') rows.push({ mark: 'calendar', tone: st.k === 'today' || st.k === 'late' ? 'amber' : st.k === 'done' ? 'green' : '', t: st.word, s: st.k === 'done' ? '' : i18t('mnn5_rings') });
+  if (c){
+    let mine = false; try { mine = !!(typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ mine = false; }
+    rows.push({ mark: 'file', t: c.name || _mnRef(c), s: [c.counterparty || '', _mnRef(c)].filter(Boolean).join(' \u00b7 '), attr: mine ? `data-mnn-ap="${E(c.id)}"` : 'data-mn-act="open"' });
+    let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
+    if (ap && ap.required && !ap.ok) rows.push({ mark: 'shield', tone: 'amber', t: i18t('mnn_p_approval'), s: i18t('mnn_p_asked') });
+    if (c.expiry){ const nd = Number((c.metadata || {}).noticePeriodDays) || 0; rows.push({ mark: 'clock', t: i18t('mnn_p_ends'), s: [_mnShort(String(c.expiry).slice(0, 10)), nd ? i18t('mnn_p_notice', { n: nd }) : ''].filter(Boolean).join(' \u00b7 ') }); }
+  }
+  const written = n.createdAt ? _mnShort(String(n.createdAt).slice(0, 10)) : '';
+  const o = { eyebrow: [i18t('nav_mynotes'), st.k === 'today' ? i18t('mn_pill_today') : st.k === 'late' ? i18t('mnn5_late') : ''].filter(Boolean).join(' \u00b7 '),
+    title: what.length > 120 ? what.slice(0, 117) + '\u2026' : what,
+    sub: [written ? i18t('mnn5_written', { d: written }) : '', c ? '' : i18t('mnn5_no_contract'), i18t('mnn5_only_you')].filter(Boolean).join(' '),
+    mid: n.quote ? `<q class="mnn5-q">${E(n.quote)}</q>` : '',
+    groups: [{ label: i18t('mnn5_this'), rows }],
+    act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`, link: { label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' } },
+    src: i18t('mnn5_src') };
+  return `<div class="jl-words is-ov mnn5">${jamboOverviewHtml(o, 'mnn')}</div>`;
+}
 function mnnPanelHtml(n){
+  /* THE FIVE PARTS (owner, 16 Nov 2026: "These pages still have old Panels"; drawn and built on "Build the legora way"):
+     the note itself as the headline, when it is due and what it sits beside as rows, Mark reviewed (or Review again) the
+     one black button, Delete a quiet link — the page's own presses (data-mn-act, data-mnn-ap), nothing new */
+  if (typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn()) return mnnPanelFiveHtml(n);
   const E = _mnE, st = myNoteState(n), c = _mnContract(n.contractId);
   const head = (st.k === 'today' || st.k === 'late' ? i18t('mnn_p_due', { what: String(n.title || n.body || '') }) : st.k === 'done' ? i18t('mnn_p_done', { what: String(n.title || n.body || '') }) : String(n.title || n.body || ''));
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
