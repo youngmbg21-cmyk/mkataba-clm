@@ -78,7 +78,12 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     console.log('\n2 · "Next up" on the Overview');
     page = await signIn('admin@example.co.ke', 'adminpassword1');
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-D1', 'copilot'); });
-    const nx = await until(page, () => { const n = document.querySelector('#ig-dock .pd-nx'); if (!n) return null;
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): THE DOSSIER'S TOP IS ONE CARD (pd2CardHtml) — stage, next
+       step, ONE black button; "Next up" is that card's next step and its button the act (the card stands in #pd-glance) */
+    const nx = await until(page, () => { const n = document.querySelector('#ig-dock .pd2-card .pd2-card-act button') ? document.querySelector('#ig-dock .pd2-card') : document.querySelector('#ig-dock .pd-nx'); if (!n) return null;
+      if (n.classList.contains('pd2-card')){ const cards = [...n.querySelectorAll('.pd2-card-act button')]; if (!cards.length) return null; const g = document.getElementById('pd-glance');
+        return { cards: cards.map(c => (c.textContent || '').replace(/\s+/g, ' ').trim()), tips: cards.map(c => c.getAttribute('aria-label') || c.getAttribute('title') || c.textContent.trim()), shown: cards.every(c => c.getBoundingClientRect().height > 0),
+          under: !!g && g.contains(n), lead: '' }; }
       const cards = [...n.querySelectorAll('[data-pd-mn-go]')]; const g = document.getElementById('pd-glance');
       return { cards: cards.map(c => ((c.querySelector('b') || c).textContent || '').trim()), tips: cards.map(c => c.getAttribute('aria-label') || ''), shown: cards.every(c => c.getBoundingClientRect().height > 0),
         under: !!g && (g.compareDocumentPosition(n) & 4) > 0, lead: (n.querySelector('.pd-mn-lead') || {}).textContent || '' }; }, null, 12000);
@@ -88,7 +93,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the first act stands in its whole name, the next in its short word */
     check('2c … led by Draft from our standards on a draft', !!nx && nx.cards[0] === 'Draft from our standards' && nx.tips[0] === 'Draft from our standards', nx && JSON.stringify([nx.cards[0], nx.tips[0]]));
     await shot(page, '2-overview-next-up');
-    await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-nx [data-pd-mn-go]'); if (b) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd2-card .pd2-card-act button') || document.querySelector('#ig-dock .pd-nx [data-pd-mn-go]'); if (b) b.click(); });
     const ask = await until(page, () => !!document.getElementById('cf-ok'), null, 6000);
     check('2d the card does its row\'s act (the confirm before drafting)', !!ask);
     if (ask) await page.click('#cf-cancel');

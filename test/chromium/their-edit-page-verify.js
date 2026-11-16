@@ -188,15 +188,21 @@ const symbol = page => page.evaluate(() => {
   /* ---- 1 · their landing ---- */
   await page.evaluate(() => window.SHOW_COUNTERPARTY());
   await until(page, () => !!document.querySelector('#rl-changes-col .rl-card'));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their page draws the outside look, where Edit sits
+     with every other head verb under More at the top (#pol-more opens #pol-pop); it is read with More open */
+  if (await page.$('#pol-more')) { await page.click('#pol-more'); await pause(250); }
   const land = await page.evaluate(() => {
     const e = document.querySelector('#pt-edit');
     const r = e && e.getBoundingClientRect();
-    return { edit: !!e && r.width > 0 && r.top < 80, word: e ? e.textContent.trim() : '',
+    /* (the outside look: Edit is in More's pop-up, under the bar at the page's top — inside the head, in the top fifth) */
+    const pop = document.getElementById('pol-pop');
+    return { edit: !!e && r.width > 0 && (r.top < 80 || (!!pop && pop.contains(e) && r.top < innerHeight / 5)), word: e ? e.textContent.trim() : '',
       pencils: document.querySelectorAll('#pt-nego #rl-doc .rl-cp-pill, #pt-nego #rl-doc [data-rl-cp-editor]').length,
       rows: document.querySelectorAll('#rl-changes-col .rl-card').length,
       verbs: [...document.querySelectorAll('#rl-changes-col .rl-card button')].map(b => b.textContent.trim()).filter(Boolean) };
   });
   await page.screenshot({ path: path.join(OUT, '01-landing.png') });
+  if (await page.evaluate(() => { const p = document.getElementById('pol-pop'); return !!p && !p.hidden; })) { await page.click('#pol-more'); await pause(200); }
   check('1a Edit is at the top of their page', land.edit && land.word === 'Edit', JSON.stringify({ edit: land.edit, word: land.word }));
   check('1b their paper draws no pencil', land.pencils === 0, land.pencils);
   check('1c their rows keep every button — Accept, Reject, Counter, Edit, Ladder',

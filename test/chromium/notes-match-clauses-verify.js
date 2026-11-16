@@ -9,7 +9,7 @@
      5 · many notes: no group overlaps another; a group that drifted folds to its first line and "+ N more here", which opens it
      6 · nothing guessed: the point with no place on the paper is not drawn
      7 · Open in Clauses opens that clause's own row on the Clauses tab
-     8 · the switch off: no notes
+     (8 · the switch off — RETIRED 16 Nov 2026, #762: there is no switch)
    At the parent 1–7 fail: only the blanks were drawn.
    Run: node test/chromium/notes-match-clauses-verify.js */
 const fs = require('node:fs');
@@ -111,12 +111,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     const ok = await until(page, at => { const r = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${at}"]`); return !!r && r.classList.contains('is-open'); }, at, 10000);
     check('7 Open in Clauses opens that clause\'s own row on the Clauses tab', ok, { at });
   } catch (e) { check('7 open in clauses', false, String(e).slice(0, 200)); }
-  /* 8 · off */
-  try {
-    await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); pdOpenOnHome('MK-110', 'copilot'); });
-    await page.waitForTimeout(1500);
-    check('8 the switch off: no notes beside the paper', await page.evaluate(() => !document.querySelector('#pd2-notes .pd2-mg')));
-  } catch (e) { check('8 off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 8 "the switch off: no notes beside the paper" — there is no switch; the new look is the only look */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nall passed');

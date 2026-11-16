@@ -284,7 +284,9 @@ const SWEEP = KNOWN => {
        40 more"); what this pins is the same — the foot's live words and its
        way to the rest never stand on the 3.74:1 fill */
     const pager = await page.evaluate(() => {
-      const f = document.querySelector('#reg-showing[data-lh-foot]') || document.querySelector('[data-reg-page]:not([disabled])');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's list foot is its "Show N more" and the line it stands in */
+      const more = [...document.querySelectorAll('#ct-place button')].find(b => /Show \d+ more/.test(b.textContent));
+      const f = document.querySelector('#reg-showing[data-lh-foot]') || document.querySelector('[data-reg-page]:not([disabled])') || (more && (more.closest('[class*="foot"]') || more.parentElement));
       if (!f) return null;
       return [f, ...f.querySelectorAll('*')].map(x => getComputedStyle(x).backgroundColor).join(' | ');
     });
