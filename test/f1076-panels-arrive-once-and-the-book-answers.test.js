@@ -4,6 +4,7 @@
      1 every contract is ONE page to the arrival watcher: going from one contract to the next does not replay it
      2 the Board draws a chart's fade-in only the first time that very picture is drawn (hbChartsStill)
      3 the Handbook panel's "How do I…?" opens the chapter that answers it (hbkFind), in both books
+     4 "Standards · Not checked yet · Check" asks a first check, never "check … again?"
    At the parent (1)–(3) fail: the key was 'c:' + the contract's id, no hbChartsStill, the questions went to Jambo
    (and from there to the Contracts page or Settings).
    Run: node --test test/f1076-panels-arrive-once-and-the-book-answers.test.js */
@@ -48,4 +49,14 @@ test('f1076 (3) the Handbook panel opens the chapter its question names', () => 
   assert.equal(ctx.hbkFind(EN.jov5_hbk_q2, 'en').k, '7.1');
   assert.equal(ctx.hbkFind(SV.jov5_hbk_q1, 'sv').k, '4.3');
   assert.equal(ctx.hbkFind(SV.jov5_hbk_q2, 'sv').k, '7.1');
+});
+
+test('f1076 (4) a first standards check is not asked as "again"', () => {
+  const b = body(read('js/views/library.js'), 'sdCheckAgain');
+  const full = b.indexOf('ensureFull'), ask = b.indexOf('confirmDialog');
+  assert.ok(full > 0 && ask > full, 'the whole record is read before the question');
+  assert.match(b, /before=!!\(R&&R\.total\)/);
+  assert.match(b, /i18t\('sd_check_q'\+k,\{ref:sdRef\(c\)\}\), message:i18t\('sd_check_ai'\+k\), confirmLabel:i18t\('sd_check_go'\+k\)/);
+  const EN = require('../js/i18n.js').STRINGS.en, SV = require('../js/i18n.js').STRINGS.sv;
+  for (const L of [EN, SV]) for (const k of ['sd_check_q1', 'sd_check_ai1', 'sd_check_go1']) assert.ok(L[k] && !/\bagain\b|\bigen\b/i.test(L[k]), k);
 });
