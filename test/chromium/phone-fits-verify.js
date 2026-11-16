@@ -59,9 +59,12 @@ const iso = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.to
     const page = await ctx.newPage();
     await login(page);
     await page.waitForFunction(() => document.querySelector('.m-tabs'), null, { timeout: 15000 }).catch(() => {});
-    await page.waitForFunction(() => document.querySelectorAll('[data-m-need]').length > 0, null, { timeout: 8000 }).catch(() => {});
-    const needs = await page.evaluate(() => Array.from(document.querySelectorAll('[data-m-open="MK-A2"][data-m-need]')).map(b => b.getAttribute('data-m-need')));
-    check('3 Needs you lists the look and the approval on one contract', needs.includes('look') && needs.includes('approval'), JSON.stringify(needs));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the phone's Home is THE ONE DESK phone-shaped
+       (mHomeNlHtml: a row per ndRead row, .m-nl-row, the row's door data-m-open); a row carries no kind, so the look and
+       the approval are read off the rows' own words for this contract */
+    await page.waitForFunction(() => document.querySelectorAll('.m-nl-row[data-m-open]').length > 0, null, { timeout: 8000 }).catch(() => {});
+    const needs = await page.evaluate(() => Array.from(document.querySelectorAll('.m-nl-row[data-m-open="MK-A2"]')).map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+    check('3 Needs you lists the look and the approval on one contract', needs.some(t => /sent you this to look at/.test(t)) && needs.some(t => /Answer an approval/.test(t)), JSON.stringify(needs));
 
     await page.evaluate(() => { state.activeId = 'MK-A2'; mGo('contract', { tab: 'oblig' }); });
     await page.waitForFunction(() => document.querySelector('.m-ob-row'), null, { timeout: 8000 }).catch(() => {});
@@ -139,7 +142,9 @@ const iso = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.to
       openWorkspace('MK-A2'); await new Promise(r => setTimeout(r, 1200)); roomGoTab(getContract('MK-A2'), 'sign'); await new Promise(r => setTimeout(r, 1200));
       out.room = cs.scrollWidth - cs.clientWidth;
       (regPlaceSet({ show: 'list' }), setView('register')); await new Promise(r => setTimeout(r, 1200));
-      const rs = document.getElementById('reg-scroll'); out.reg = rs ? rs.scrollWidth - rs.clientWidth : -1; return out; });
+      /* RE-POINTED 16 Nov 2026 (#762): the Contracts place's list scrolls in .ctf-list (no #reg-scroll in the new look) */
+      const rs = document.getElementById('reg-scroll') || document.querySelector('#ct-place .ctf-list');
+      out.reg = rs && rs.querySelector('[data-id], tr, button') ? rs.scrollWidth - rs.clientWidth : -1; return out; });
     check('15 at 820px the room does not pan sideways', pan.room <= 1, pan.room + 'px over');
     check('15 at 820px the Contracts table fits its page', pan.reg >= 0 && pan.reg <= 1, pan.reg + 'px over');
     await tb.close();

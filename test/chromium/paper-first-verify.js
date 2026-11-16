@@ -41,24 +41,30 @@ const check = (name, pass, detail) => {
     await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2'), null, 20000);
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { setView('templates'); if (typeof tplPageSetTab === 'function') tplPageSetTab('book'); });
-    const A = await until(() => { const sec = document.querySelector('[data-tpl-sec="book"]'); if (!sec || !sec.querySelector('.tpl-pf-idx')) return null;
-      return { rows: sec.querySelectorAll('[data-tpl-pf]').length, groups: [...sec.querySelectorAll('.tpl-pf-g')].map(g => g.textContent.trim()),
-        on: (sec.querySelector('.tpl-pf-i.is-on b') || {}).textContent || '', title: (sec.querySelector('.tpl-pf-h h2') || {}).textContent || '',
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; OUR PAPER, THE LEGORA WAY, owner's pick 14 Nov 2026):
+       the index is ONE list (.tpln-lrs) with the streams as chips over it in place of shelves; the chosen row is lit and
+       its name heads the list (.tpln-line .tpln-name); the paper (.tpln-sheet, the one renderer's .tpl-pf-sheet) beside it */
+    const A = await until(() => { const sec = document.querySelector('[data-tpl-sec="book"]'); if (!sec || !sec.querySelector('.tpln .tpln-lrs')) return null;
+      return { rows: sec.querySelectorAll('.tpln-lrs [data-tpl-pf]').length, groups: [...sec.querySelectorAll('[data-tpln-chip]')].map(g => g.textContent.trim()),
+        on: (sec.querySelector('.tpln-lr.is-on .tpln-n') || {}).textContent || '', title: (sec.querySelector('.tpln-line .tpln-name') || {}).textContent || '',
         clauses: sec.querySelectorAll('.tpl-pf-sheet h2, .tpl-pf-sheet h3, .tpl-pf-sheet h4, .tpl-pf-sheet [data-clause-id], .tpl-pf-sheet .hati-cl').length,
         words: ((sec.querySelector('.tpl-pf-sheet') || {}).textContent || '').length }; }, null, 12000);
-    check('1 an index of every template under its shelf, and the chosen one\'s own paper beside it',
-      !!A && A.rows >= 12 && A.groups.length >= 1 && A.title.indexOf(A.on) === 0 && A.words > 500, JSON.stringify(A && { rows: A.rows, groups: A.groups, on: A.on, title: A.title, words: A.words }));
+    check('1 an index of every template with its streams as chips, and the chosen one\'s own paper beside it',
+      !!A && A.rows >= 12 && A.groups.length >= 2 && !!A.on && A.title.indexOf(A.on) === 0 && A.words > 500, JSON.stringify(A && { rows: A.rows, groups: A.groups, on: A.on, title: A.title, words: A.words }));
 
     const target = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tpl-pf]')].find(x => /Non-Disclosure/i.test(x.textContent)); return b ? b.getAttribute('data-tpl-pf') : null; });
     if (target) await page.click(`[data-tpl-pf="${target}"]`);
-    const B = await until(t => { const on = document.querySelector('.tpl-pf-i.is-on'); return on && on.getAttribute('data-tpl-pf') === t ? { title: document.querySelector('.tpl-pf-h h2').textContent, text: document.querySelector('.tpl-pf-sheet').textContent.slice(0, 2000) } : null; }, target);
+    const B = await until(t => { const on = document.querySelector('.tpln-lr.is-on'), h = document.querySelector('.tpln-line .tpln-name'), sh = document.querySelector('.tpln-sheet .tpl-pf-sheet');
+      return on && h && sh && on.getAttribute('data-tpl-pf') === t ? { title: h.textContent, text: sh.textContent.slice(0, 2000) } : null; }, target);
     check('2a a press on another template brings its paper up', !!B && /Non-Disclosure/i.test(B.title) && /confidential/i.test(B.text), JSON.stringify(B && { title: B.title }));
-    await page.click('[data-tpl-pf-q]'); await page.keyboard.type('lease');
-    const Q = await until(() => { const q = document.querySelector('[data-tpl-pf-q]'); const rows = [...document.querySelectorAll('[data-tpl-pf]')];
-      return q && q.value === 'lease' && rows.length && rows.every(r => /lease/i.test(r.textContent)) ? { n: rows.length, focus: document.activeElement === q } : null; });
-    check('2b the find box narrows the index and keeps the caret', !!Q && Q.focus, JSON.stringify(Q));
-    await page.fill('[data-tpl-pf-q]', '');
-    await until(() => document.querySelectorAll('[data-tpl-pf]').length >= 12);
+    /* RE-POINTED 16 Nov 2026 (#762): the find box is the one ask box [data-tpln-q]; the list narrows where it stands (rows hidden) */
+    const all = await page.evaluate(() => document.querySelectorAll('.tpln-lrs [data-tpl-pf]').length);
+    await page.click('[data-tpln-q]'); await page.keyboard.type('lease');
+    const Q = await until(n => { const q = document.querySelector('[data-tpln-q]'); const rows = [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(r => !r.hidden);
+      return q && q.value === 'lease' && rows.length && rows.length < n && rows.every(r => /lease/i.test(r.textContent)) ? { n: rows.length, focus: document.activeElement === q, caret: q.selectionStart } : null; }, all);
+    check('2b the find box narrows the index and keeps the caret', !!Q && Q.focus && Q.caret === 5, JSON.stringify(Q));
+    await page.fill('[data-tpln-q]', '');
+    await until(() => [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(r => !r.hidden).length >= 12);
 
     const acts = await page.evaluate(() => [...document.querySelectorAll('[data-tpl-pf-act]')].map(b => b.textContent.trim()));
     /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the head's verbs
@@ -70,10 +76,12 @@ const check = (name, pass, detail) => {
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       const F = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-        const i = r('.tpl-pf-idx'), p = r('.tpl-pf-paper'), sc = document.querySelector('.tpl-pf-scroll'), li = document.querySelector('.tpl-pf-list');
-        return { side: document.documentElement.scrollWidth <= innerWidth + 1, beside: !!i && !!p && i.right <= p.left && Math.abs(i.top - p.top) < 2,
-          inView: !!p && p.top < innerHeight && p.bottom <= innerHeight + 1, own: !!sc && !!li && getComputedStyle(sc).overflowY === 'auto' && getComputedStyle(li).overflowY === 'auto' }; });
-      check(`4 ${w}×${ht}: the index and the paper side by side, each scrolling in its own box, nothing sideways`, F.side && F.beside && F.inView && F.own, JSON.stringify(F));
+        /* RE-POINTED 16 Nov 2026 (#762; the Legora way): the paper is a peek in its own clipped frame that stays put
+           (sticky) while the list beside it scrolls with the page — no longer two boxes each scrolling */
+        const p = r('.tpln .tpln-sheet'), i = r('.tpln .tpln-side'), sh = document.querySelector('.tpln .tpln-sheet');
+        return { side: document.documentElement.scrollWidth <= innerWidth + 1, beside: !!i && !!p && p.right <= i.left && Math.abs(i.top - p.top) < 2,
+          inView: !!p && p.top < innerHeight && p.bottom <= innerHeight + 1, own: !!sh && getComputedStyle(sh).overflowY === 'hidden' && getComputedStyle(sh).position === 'sticky' }; });
+      check(`4 ${w}×${ht}: the paper and the index side by side, the paper held in view in its own frame, nothing sideways`, F.side && F.beside && F.inView && F.own, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `paper-first-${w}x${ht}.png`) });
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

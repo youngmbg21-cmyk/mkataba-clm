@@ -1747,8 +1747,9 @@ function jlAsk(text, opts){
      its own door): the new look's Settings box is this one, and it had stopped asking the finder (16 Nov 2026, #762) */
   if (document.querySelector('.stn-page') && typeof stJbAnswer === 'function' && typeof stJbCardHtml === 'function'
       && typeof stFind === 'function' && typeof aiPush === 'function' && typeof renderAIFeed === 'function'){
-    let hits = []; try { hits = stFind(t) || []; } catch (_){ hits = []; }
-    let A = null; try { A = hits.length ? stJbAnswer(t) : null; } catch (_){ A = null; }
+    /* the finder's answer, and the readings before it (one of your own settings readied, a person, a stream): the free
+       reader the old box asked, whether or not the finder alone matched */
+    let A = null; try { A = stJbAnswer(t); } catch (_){ A = null; }
     const cards = A && Array.isArray(A.cards) ? A.cards.filter(c => c && c.k !== 'why').map(c => { try { return stJbCardHtml(c, {}); } catch (_){ return ''; } }).filter(Boolean) : [];
     if (cards.length){
       if (_jlBusy()) return jlBusySay(t);

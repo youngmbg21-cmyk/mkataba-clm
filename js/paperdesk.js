@@ -396,7 +396,10 @@ function pdObligHtml(c){
   /* as drawn: the renewal stands at the top of the tab, the "none yet" under it */
   const none = n ? '' : pdEmpty(_pdT('pd_obs_none'), 'flag');
   const link = (w, fn) => `<button type="button" class="pd-go" data-pd-act="${pdAct(fn)}">${E(w)}</button>`;
-  const add = may ? `<div class="pd-ob-foot">${typeof openObligationForm === 'function' ? link(_pdT('pd_ob_add_mq'), () => openObligationForm(getContract(c.id) || c)) : ''}${typeof runFindObligations === 'function' ? link(_pdT('pd_ob_find_mq'), () => runFindObligations(getContract(c.id) || c)) : ''}</div>` : '';
+  /* THE NUMBER ON THE DOOR IS THE LIST BEHIND IT (#762): duties Jambo already found and holds open the review with N to decide,
+     free, so the door says so ("Review N proposed"); with none held it offers to find more in the wording */
+  let obHeldN = 0; try { obHeldN = (typeof window.obReviewWaiting === 'function') ? ((window.obReviewWaiting(getContract(c.id) || c) || []).length) : 0; } catch (_){ obHeldN = 0; }
+  const add = may ? `<div class="pd-ob-foot">${typeof openObligationForm === 'function' ? link(_pdT('pd_ob_add_mq'), () => openObligationForm(getContract(c.id) || c)) : ''}${typeof runFindObligations === 'function' ? link(obHeldN ? _pdTn('obd_review_n', obHeldN, { n: obHeldN }) : _pdT('pd_ob_find_mq'), () => runFindObligations(getContract(c.id) || c)) : ''}</div>` : '';
   /* the renewal's decision card is drawn into its holder once the tab is on the page */
   const rn = pdObRenewHtml(c);
   if (rn && typeof renderRenewalSection === 'function') setTimeout(() => { try { if (document.querySelector('[data-pd-rn] #renewal-host')) renderRenewalSection(getContract(c.id) || c); } catch (_){} }, 0);

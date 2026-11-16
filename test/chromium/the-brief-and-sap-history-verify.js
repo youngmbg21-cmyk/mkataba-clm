@@ -105,7 +105,10 @@ const BOXES = sel => {
         const labels = [...d.querySelectorAll('.ds-sp-st')].filter(x => x.getBoundingClientRect().height > 0);
         const lab = labels[0], ls = lab && getComputedStyle(lab), lb = lab && getComputedStyle(lab.querySelector('b') || lab);
         const th = d.querySelector('.pd-og th');
+        const fcs = foot && getComputedStyle(foot), root = getComputedStyle(document.documentElement);
         return { w: Math.round(dr.width), headH: Math.round(head.getBoundingClientRect().height), stripH: strip ? Math.round(strip.getBoundingClientRect().height) : null,
+          footPad: fcs ? [fcs.paddingTop, fcs.paddingBottom, fcs.borderTopWidth, fcs.borderBottomWidth].map(parseFloat) : null,
+          boxTok: parseFloat(root.getPropertyValue('--jb-box-h')), wellB: parseFloat(root.getPropertyValue('--well-b')),
           footH: foot ? Math.round(foot.getBoundingClientRect().height) : null, boxH: box ? Math.round(box.getBoundingClientRect().height) : null,
           /* from the panel's inner edge (its own 1px line is not the gutter) */
           tabs, labels: labels.length, labLeft: lab ? Math.round(lab.getBoundingClientRect().left - dr.left - d.clientLeft) : null,
@@ -114,7 +117,11 @@ const BOXES = sel => {
       });
       check('1a the panel is 384 wide (48 x 8)', D.w === 384, D.w);
       check('1b the head beside a paper keeps the paper strip\'s height, so the two lines meet', D.stripH != null && Math.abs(D.headH - D.stripH) <= 1, `head ${D.headH} · strip ${D.stripH}`);
-      check('1c the foot is 56 with a 40 ask box', D.footH === 56 && D.boxH === 40, `foot ${D.footH} · box ${D.boxH}`);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's box is its token (--jb-box-h, 44)
+         and its foot is the box in its wells — 12 above, --well-b below, its hairline — not the old 56 with a 40 box */
+      const FP = D.footPad || [];
+      check('1c the foot is the ask box (its token\'s height) in its wells: 12 above, the well below, nothing more',
+        D.boxH === D.boxTok && FP[0] === 12 && FP[1] === D.wellB && D.footH === D.boxH + FP[0] + FP[1] + FP[2] + FP[3], `foot ${D.footH} · box ${D.boxH} (token ${D.boxTok}) · pads ${JSON.stringify(FP)} · well ${D.wellB}`);
       check('1d the tabs are words: no glyph over them but Jambo\'s mark, and a count stands after its word', D.tabs.length >= 3 && D.tabs.every(t => (t.glyph ? t.mark : true) && t.sameLine && t.nAfter !== false) && D.tabs.some(t => t.nAfter === true), JSON.stringify(D.tabs));
       const B = await page.evaluate(BOXES, '#igd-feed');
       /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"; asked about its lines, the owner said "no lines",
@@ -175,23 +182,34 @@ const BOXES = sel => {
 
     /* ================= 3. BESIDE THE LISTS ================= */
     await page.evaluate(() => openNegotiations());
-    await until(() => !!document.querySelector('#content .ins-panel.is-jambo .jl-head') && !!document.querySelector('#content tr[data-row]'), null, 12000);
-    await page.evaluate(() => { const r = document.querySelector('#content tr[data-row]'); if (r) r.click(); });
-    const facts = await until(() => !!document.querySelector('#content .ins-panel.is-jambo .ins-facts'), null, 8000);
-    if (!facts) check('3 Jambo\'s panel beside Negotiations shows a chosen row', false, 'no .ins-facts');
+    /* RE-POINTED 16 Nov 2026 (#762): the new-look Negotiations rows are tr[data-ngn-row]; the chosen row's panel is
+       the pressed round alone in Jambo's five parts (ngnPanelFiveHtml: name, three numbers, its facts, one button) */
+    await until(() => !!document.querySelector('#content .ins-panel.is-jambo .jl-head') && !!document.querySelector('#content tr[data-ngn-row]'), null, 12000);
+    /* a row is chosen on arrival (a second press on a chosen row OPENS it), so a row is pressed only if none is chosen */
+    const picked = await page.evaluate(() => { const r = document.querySelector('#content tr[data-ngn-row].is-sel') || document.querySelector('#content tr[data-ngn-row]'); if (r && !r.classList.contains('is-sel')) r.click(); return r ? r.getAttribute('data-ngn-row') : null; });
+    const facts = await until(id => !!id && !!document.querySelector(`#content .ins-panel.is-jambo .ngn-panel[data-ngn-for="${id}"] .jov5-group`), picked, 8000);
+    if (!facts) check('3 Jambo\'s panel beside Negotiations shows a chosen row', false, await page.evaluate(id => JSON.stringify({ picked: id, rows: document.querySelectorAll('#content tr[data-ngn-row]').length,
+      panel: [...document.querySelectorAll('#content .ins-panel .ngn-panel')].map(x => x.getAttribute('data-ngn-for') + ':' + x.querySelectorAll('.jov5-group').length) }), picked));
     else {
       await page.waitForTimeout(400);
       const L = await page.evaluate(() => {
         const p = document.querySelector('#content .ins-panel.is-jambo'), pr = p.getBoundingClientRect();
-        const head = p.querySelector('.jl-head'), foot = p.querySelector('.jl-foot'), f = p.querySelector('.ins-facts');
-        const secs = [...p.querySelectorAll('.ins-h, .ins-facts, .ins-sec')].map(x => getComputedStyle(x).borderBottomWidth);
+        const head = p.querySelector('.jl-head'), foot = p.querySelector('.jl-foot'), box = p.querySelector('#jl-q');
+        const secs = [...p.querySelectorAll('.jov5-sec, .jov5-group, .jov5-row, .jov5-glance')].map(x => getComputedStyle(x).borderBottomWidth);
         const need = p.querySelector('.jl-need');
+        const fcs = getComputedStyle(foot), root = getComputedStyle(document.documentElement);
         return { w: Math.round(pr.width), headH: Math.round(head.getBoundingClientRect().height), footH: Math.round(foot.getBoundingClientRect().height),
-          label: getComputedStyle(f, '::before').content, secs, needEdge: need ? getComputedStyle(need).borderTopWidth : null };
+          boxH: box ? Math.round(box.getBoundingClientRect().height) : null, boxTok: parseFloat(root.getPropertyValue('--jb-box-h')),
+          footPad: [fcs.paddingTop, fcs.paddingBottom, fcs.borderTopWidth, fcs.borderBottomWidth].map(parseFloat), dockFootH: null,
+          secs, needEdge: need ? getComputedStyle(need).borderTopWidth : null };
       });
-      check('3a the panel beside the lists is 384 wide, its head and foot 56', L.w === 384 && L.headH === 56 && L.footH === 56, JSON.stringify(L));
-      check('3b the facts carry their label, "Facts"', /Facts/.test(L.label || ''), L.label);
-      check('3c no rule between the sections; Needs you is rows, not a card', L.secs.every(b => b === '0px') && (L.needEdge == null || L.needEdge === '0px'), JSON.stringify(L));
+      /* the same head and foot as the Dossier's (1b, 1c): the head 56, the foot the box in its wells */
+      const LP = L.footPad; /* the box's row is the token's height (#jl-q is the text inside it) */
+      check('3a the panel beside the lists is 384 wide, its head 56, its foot the ask box in its wells as beside the paper', L.w === 384 && L.headH === 56
+        && L.footH - (LP[0] + LP[1] + LP[2] + LP[3]) === L.boxTok && LP[0] === 12, JSON.stringify(L));
+      /* RETIRED 16 Nov 2026 (#762): 3b 'the facts carry their label, "Facts"' — the new look's pressed-round panel draws its facts
+         as Jambo's five parts' rows under the round's name and three numbers, with no "Facts" label (owner, 16 Nov 2026, f1081) */
+      check('3c no rule between the sections; Needs you is rows, not a card', L.secs.length > 0 && L.secs.every(b => b === '0px') && (L.needEdge == null || L.needEdge === '0px'), JSON.stringify(L));
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-negotiations-1440x780.png') });
     }
 

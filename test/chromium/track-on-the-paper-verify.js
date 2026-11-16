@@ -194,7 +194,12 @@ const check = (name, pass, detail) => {
       const out = { wide, room, track: sp.classList.contains('is-track'), size: sp.dataset.trackSize, labs: sp.querySelectorAll('.ig-trk-lab').length, strip: !!sp.querySelector('.doc-xr-seg:not(.ig-trk-lab)'), width: sp.style.width, left, left2 };
       /* and with almost no room, the hairline */
       sheet.style.transform = `translateX(${-shift - 24}px)`; igStrandPaint(c); out.hair = sp.dataset.trackSize; out.hairW = sp.style.width;
-      sheet.style.transform = ''; igStrandPaint(c); out.back = sp.classList.contains('is-track') && sp.dataset.trackSize === 'full';
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look holds the sheet
+         40 from the edge when notes stand beside it (pd2NotesPaint), so its own margin is the slim
+         one; "room again" is given as 60 more than that (100 > the full Track's 74) */
+      sheet.style.transform = `translateX(${-shift + 60}px)`; igStrandPaint(c); out.backRoom = Math.round(sheet.getBoundingClientRect().left - sp.parentElement.getBoundingClientRect().left);
+      out.back = sp.classList.contains('is-track') && sp.dataset.trackSize === 'full';
+      sheet.style.transform = ''; igStrandPaint(c);
       return out;
     });
     check('6a. with room, the Track', narrow.wide, JSON.stringify(narrow));
@@ -203,7 +208,7 @@ const check = (name, pass, detail) => {
     check('6b. a margin narrower than the Track draws the SLIM Track — never the old strip — and the paper does not move',
       narrow.track && narrow.size === 'slim' && narrow.labs > 0 && !narrow.strip && narrow.width === '34px' && narrow.left === narrow.left2, JSON.stringify(narrow));
     check('6b2. with almost no room, a hairline of dots', narrow.hair === 'hair' && narrow.hairW === '14px', JSON.stringify(narrow));
-    check('6c. given room again, the full Track comes back', narrow.back);
+    check('6c. given room again, the full Track comes back', narrow.back, JSON.stringify(narrow));
     check('7. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close(); await h.stop();

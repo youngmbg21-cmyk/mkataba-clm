@@ -410,7 +410,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* HOME'S CONTRACTS PLACE (step 7): the List has no panel — a row's one
        press, and Enter, open the paper; so does a paper on the Wall. The
        page's panel rows (three doors on MK-A2, MK-A1, MK-R1) retired with it. */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the List and the
+       Wall are the Folders' pills ([data-ctf-show]), pressed as a person does */
     const toPlace = k => async () => { await page.evaluate(k => { regPlaceSet({ show: k }); setView('register'); }, k);
+      await waitFor(page, k => !!document.querySelector(`[data-reg-home][data-ct-show="${k}"], [data-ctf-show="${k}"]`), 8000, k);
+      await domClick(`[data-ctf-show="${k}"]`);
       await waitFor(page, k => !!document.querySelector(`[data-reg-home][data-ct-show="${k}"]`), 8000, k); };
     const LROW = '[data-reg-home] #reg-tbody [data-row="MK-A2"]', WCARD = '[data-reg-home] #ig-wall [data-ig-pick="MK-A2"]';
     const atList = async () => { await toPlace('list')(); await waitFor(page, s => !!document.querySelector(s), 6000, LROW); };
@@ -456,10 +460,13 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     await door(A, 'the Board\'s Open N, a stage (f:review)', { start: boardDoor('f:review', 'Under Review'), press: () => domClick('[data-hb-open][data-hb-stage="Under Review"]'),
       expect: L => E.wall(null)(L) && E.stageTab('Under Review')(L), says: SAYS.wall + ', on In Review' });
     /* Negotiations */
-    const NG = () => !!document.querySelector('#reg-tbody [data-row="MK-R1"]');
-    await door(A, 'Negotiations row, double-click (MK-R1)', { start: () => goPage('redline', NG), press: () => dbl('#reg-tbody [data-row="MK-R1"]'), expect: E.red('MK-R1'), says: SAYS.red });
-    await door(A, 'Negotiations row, Enter (MK-R1)', { start: () => goPage('redline', NG), press: () => enter('#reg-tbody [data-row="MK-R1"]'), expect: E.red('MK-R1'), says: SAYS.red });
-    await threeDoors(A + ' · Negotiations', 'redline', '#reg-tbody [data-row="MK-R1"]', 'MK-R1');
+    /* RE-POINTED 16 Nov 2026 (#762): Negotiations is ONE table (.ngn-table, tr[data-ngn-row]); a row CHOOSES, the chosen
+       row pressed again opens it (a double-click is both presses) */
+    const NGR = '.ngn-table tr[data-ngn-row="MK-R1"]';
+    const NG = () => !!document.querySelector('.ngn-table tr[data-ngn-row="MK-R1"]');
+    await door(A, 'Negotiations row, double-click (MK-R1)', { start: () => goPage('redline', NG), press: () => dbl(NGR), expect: E.red('MK-R1'), says: SAYS.red });
+    await door(A, 'Negotiations row, Enter (MK-R1)', { start: () => goPage('redline', NG), press: () => enter(NGR), expect: E.red('MK-R1'), says: SAYS.red });
+    await threeDoors(A + ' · Negotiations', 'redline', NGR, 'MK-R1');
     /* Approvals & signing */
     const AP = () => !!document.querySelector('[data-ap-row="MK-A2"]');
     await door(A, 'Approvals row, double-click (MK-A2)', { start: () => goPage('approvals', AP), press: () => dbl('[data-ap-row="MK-A2"]'), expect: E.signing('MK-A2'), says: SAYS.signing });
@@ -545,7 +552,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const reachList = (view, sel) => () => goPage(view, s => !!document.querySelector(s), sel);
     /* (the Contracts panel's checklist retired with the page's panel, step 7;
        the same builder is pressed below on four lists) */
-    await checklist(A + ' · Negotiations', 'redline', reachList('redline', '#reg-tbody [data-row="MK-R1"]'), '#reg-tbody [data-row="MK-R1"]', 'MK-R1');
+    await checklist(A + ' · Negotiations', 'redline', reachList('redline', NGR), NGR, 'MK-R1');
     await checklist(A + ' · Approvals', 'approvals', reachList('approvals', '[data-ap-row="MK-A2"]'), '[data-ap-row="MK-A2"]', 'MK-A2');
     await checklist(A + ' · Obligations', 'obligations', reachList('obligations', OBROW), OBROW, 'MK-A1');
     await checklist(A + ' · Requests', 'intake', toRequests, RQ, 'MK-A2');

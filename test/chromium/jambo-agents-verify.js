@@ -114,8 +114,13 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     ok('2b the office fits the window (no part below the screen): two floors of shared rooms, the agents\' offices three (or four) a floor, your desk on top', f2.bottom <= f2.win && f2.floors === 3 + Math.ceil(offices / cols2), JSON.stringify({ f2, offices, cols2 }));
     ok('2b2 drawn at its real size on screen, not a stretched picture', f2.sharp, JSON.stringify(f2));
     ok('2b3 no facts line under the title', await page.evaluate(() => !document.getElementById('jh-facts') && !document.querySelector('.jh-band .page-facts')));
-    ok('2c three tabs: the house, jobs, how points work', pg.tabs.join(' ') === 'house jobs how', pg.tabs.join(' '));
-    const row = await page.evaluate(() => { const bar = document.querySelector('.jh-band .jh-tabbar'), tabs = bar && bar.querySelector('.jh-tabs'), fb = bar && bar.querySelector('.jh-fb');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the page's head is the new look's (jhnHeadHtml): its
+       tabs are The house · Agents · Jobs · How points work (round 7 as drawn), read off the head's own tab list — other
+       [data-jh-tab] doors stand in Jambo's panel and the agents' foot */
+    const tabsN = await page.evaluate(() => [...document.querySelectorAll('.jhn-head .jhn-tabs [data-jh-tab]')].map(x => x.getAttribute('data-jh-tab')));
+    ok('2c four tabs: the house, agents, jobs, how points work', tabsN.join(' ') === 'house agents jobs how', tabsN.join(' '));
+    /* RE-POINTED 16 Nov 2026 (#762): the tab row is the new look's one head (.jhn-head), its tabs .jhn-tabs */
+    const row = await page.evaluate(() => { const bar = document.querySelector('.jhn-head'), tabs = bar && bar.querySelector('.jhn-tabs'), fb = bar && bar.querySelector('.jh-fb');
       const inBar = ['jh-range', 'jh-one', 'jh-look', 'jh-speed'].map(id => !!(bar && bar.querySelector('#' + id)));
       const tb = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
       return { inBar, oldRows: document.querySelectorAll('.jh-bar').length, sameLine: !!(tb && fr && Math.abs((tb.top + tb.bottom) / 2 - (fr.top + fr.bottom) / 2) < 12 && fr.left > tb.right),
@@ -265,7 +270,9 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     ok('10f a refresh keeps the typed period', back === '45 days|true', back);
 
     console.log('\n11 · a sharp screen and a short window');
-    const ctx2 = await b.newContext({ viewport: { width: 1440, height: 760 }, deviceScaleFactor: 2, storageState: await page.context().storageState() });
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's page has no band above the house, so at 760 the house already ends
+       on screen at its full floors (bottom 664, fh 132); "a short window" is now one shorter than the house (640) */
+    const ctx2 = await b.newContext({ viewport: { width: 1440, height: 640 }, deviceScaleFactor: 2, storageState: await page.context().storageState() });
     const p2 = await ctx2.newPage(); p2.on('pageerror', e => errs.push(e.message));
     await p2.goto(h.base + '/', { waitUntil: 'networkidle' });
     await p2.waitForFunction(() => typeof setView === 'function' && state.contracts && state.contracts.length === 5, null, { timeout: 15000 }).catch(() => {});

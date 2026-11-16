@@ -134,7 +134,13 @@ const TEXT = [
        second line of words adds less than a full 20 over the pill's 22 */
     check(!!(row && row.afterPeople && row.h === row.hs && (row.hp === row.hs || (row.hp > row.hs && row.hp <= row.hs + 20))), '1c right after Who else, a door row of the same dress (one line as the Signer\'s; Who else one or two lines)', row && { afterPeople: row.afterPeople, h: row.h, hp: row.hp, hs: row.hs });
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-dossier-line.png') });
-    await drive(s => document.querySelector(s + ' [data-pd-web]').click(), ROW, null);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the pop-up's one door that the new look draws is the
+       Parties panel's "Web search on <name>" ([data-cun-web], customers.js cunPanelHtml, MK-B2's party chosen through
+       cuSelectParty) — the pop-up and its press are the same (partyWebOpen); 1a–1c and 2g still ask for the Dossier's
+       own line (QUESTION Q-D3-2: the new-look Dossier draws none) */
+    await drive(() => cuSelectParty(cuKeyOf(getContract('MK-B2').counterparty)), null, null);
+    const WEB = '#ins-panel [data-cun-web="MK-B2"]';
+    if (await until(P, s => { const w = document.querySelector(s); const r = w && w.getBoundingClientRect(); return !!(r && r.width > 0 && r.height > 0); }, WEB, 8000)) await P.locator(WEB).click();
     const dlg = await until(P, () => !!document.querySelector('.pw-dlg [data-pw-go]'), null, 5000);
     const say = await drive(() => { const g = document.querySelector('.pw-dlg [data-pw-go]'); const d = document.querySelector('.pw-dlg');
       return g && { go: g.innerText.trim(), title: g.title, hidden: g.hidden, text: d.innerText.replace(/\s+/g, ' ') }; }, null, null);
@@ -190,6 +196,12 @@ const TEXT = [
     await P.setViewportSize({ width: 1440, height: 780 });
 
     /* ============ 3 · HIS FIRST WORDS OFFER IT ============ */
+    /* RE-POINTED 16 Nov 2026 (#762): the pop-up was opened from the Parties page; his panel and its drop area are Home's,
+       so the run goes back to Home's paper first (bounded, as part 1 does) */
+    for (let i = 0; i < 20; i++){
+      await drive(() => pdOpenOnHome('MK-B2', 'copilot'), null, null);
+      if (await until(P, () => !!(window.pdOnPaper && pdOnPaper() && document.querySelector('#pd-glance')), null, 1500)) break;
+    }
     /* the provider's reading names the other side; the stand-in names nobody, so while its answers are
        held the record is given the name the reading would have found (the arrival reader then reads it) */
     const go = ai.holdOn();

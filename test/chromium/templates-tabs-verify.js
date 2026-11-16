@@ -300,7 +300,9 @@ const BOX = sel => {
     /* The probe STAYS up through 4a–4d, because the category journey below
        presses a wall card and the wall is what the probe is. It comes down
        after 4d, before the claims that are about the tab itself. */
-    await page.click('[data-tpl-tab="list"]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the book (the Legora way) draws no switch at its
+       head; the way to the Templates table is the Shelves row's Open beside the list ([data-tpln-tab="list"]) */
+    await page.click('[data-tpln-tab="list"]');
     await pause(500);
     const flipped = await page.evaluate(() => {
       const b = sel => { const e = document.querySelector(sel); const r = e.getBoundingClientRect();
@@ -313,7 +315,7 @@ const BOX = sel => {
       && flipped.rows > 1, flipped);
     await page.screenshot({ path: path.join(OUT, '02-list.png'), fullPage: true });
 
-    await page.click('[data-tpl-tab="book"]');
+    await page.locator('[data-tpl-tab="book"]:visible').first().click(); /* RE-POINTED 16 Nov 2026 (#762): the switch drawn on screen, not a hidden copy */
     await pause(400);
     /* RE-POINTED: the wall's cards narrow the table by the RAIL now, not by
        the search box — the search box is what a NAME needs, and these are
@@ -369,7 +371,7 @@ const BOX = sel => {
        the page at left:-4000px, so it covers nothing a reader presses and no
        claim about the tab itself can pick it up — every one of those names
        `[data-tpl-sec="book"]`, which the probe is not inside. */
-    await page.click('[data-tpl-tab="book"]');
+    await page.locator('[data-tpl-tab="book"]:visible').first().click(); /* RE-POINTED 16 Nov 2026 (#762): the switch drawn on screen, not a hidden copy */
     await pause(400);
     /* THERE IS NO "SEE ALL" ANY MORE, and its absence is the claim: the wall
        withholds nothing, so a door onto "the rest" would open onto nothing. */
@@ -396,7 +398,9 @@ const BOX = sel => {
        "the rate at 67% is not the colour of the rate at 0%", never a typed
        rgb — so a palette pass costs no edit here. What is pinned as a number
        is the type ladder, because that is exactly what the ask was about. */
-    await page.click('[data-tpl-tab="book"]');
+    /* RE-POINTED 16 Nov 2026 (#762): the book draws no switch of its own in the new look, so it is pressed only from the
+       Templates table (section 4 already came back to the book) */
+    if (await page.evaluate(() => tplPageTab()) !== 'book') await page.locator('[data-tpl-tab="book"]:visible').first().click();
     await pause(500);
     const dm = await page.evaluate(() => {
       const px = e => { const s = getComputedStyle(e);
@@ -605,7 +609,8 @@ const BOX = sel => {
        The tab's presence is its own claim, and the rest stands down. */
     const hasBook = await page.$('[data-tpl-tab="book"]');
     check('9 · there is a book tab to press', !!hasBook);
-    if (hasBook) { await page.click('[data-tpl-tab="book"]'); await pause(700); }
+    /* RE-POINTED 16 Nov 2026 (#762): the book draws no switch of its own in the new look; pressed only from elsewhere */
+    if (hasBook && await page.evaluate(() => tplPageTab()) !== 'book') { await page.locator('[data-tpl-tab="book"]:visible').first().click(); await pause(700); }
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the owner's
        "go"; the drawing is the target): the book is a shelves table with a
        Shelves | Value streams switch and two small cards beside it; its three
@@ -621,18 +626,20 @@ const BOX = sel => {
     const bk = !hasBook ? null : await page.evaluate(() => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       if (!sec) return null;
-      const rows = [...sec.querySelectorAll('.tpl-pf-idx [data-tpl-pf]')];
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; OUR PAPER, THE LEGORA WAY): the index is ONE list
+         (.tpln-lrs), the streams its chips (no shelves); the chosen row lit (.tpln-lr.is-on) */
+      const rows = [...sec.querySelectorAll('.tpln-lrs [data-tpl-pf]')];
       const gl = [...document.querySelectorAll('[data-tpl-head="book"] .tpl-gl')].map(g => ({
         label: (g.querySelector('.tpl-gl-l') || {}).textContent || '', title: g.getAttribute('title') || '' }));
-      const groups = [...sec.querySelectorAll('.tpl-pf-g')].map(g => g.textContent.trim());
+      const groups = [...sec.querySelectorAll('[data-tpln-chip]')].map(g => g.textContent.trim());
       return { h: Math.round(sec.scrollHeight), hidden: sec.hidden, n: rows.length, groups,
         rowH: rows.length ? Math.round(rows[0].getBoundingClientRect().height) : 0,
-        gl, paper: !!sec.querySelector('.tpl-pf-sheet'), on: (sec.querySelector('.tpl-pf-i.is-on') || {}).getAttribute ? sec.querySelector('.tpl-pf-i.is-on').getAttribute('data-tpl-pf') : null };
+        gl, paper: !!sec.querySelector('.tpl-pf-sheet'), on: (sec.querySelector('.tpln-lr.is-on') || {}).getAttribute ? sec.querySelector('.tpln-lr.is-on').getAttribute('data-tpl-pf') : null };
     });
     check('9a · the book is a real tab and it draws: an index and a paper', !!bk && !bk.hidden && bk.h > 250 && bk.rowH > 30 && bk.paper,
       bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH, paper: bk.paper });
-    check('9b · every template a row, under its shelf, our own paper first',
-      !!bk && bk.n >= 12 && bk.groups.length >= 1 && !/^Counterparty/.test(bk.groups[0] || ''), bk && { n: bk.n, groups: bk.groups });
+    check('9b · every template a row, the streams as chips over the list, All first',
+      !!bk && bk.n >= 12 && bk.groups.length >= 2 && /^All\b/.test(bk.groups[0] || ''), bk && { n: bk.n, groups: bk.groups });
     /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the book's facts
        are ONE line beside the page's name — "N contracts drafted from them in
        12 months · N came back changed" — where the three figures stood */
@@ -643,15 +650,15 @@ const BOX = sel => {
     const cut = !hasBook ? null : await page.evaluate(async () => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       const list = document.querySelector('[data-tpl-sec="list"]');
-      const rows = [...sec.querySelectorAll('[data-tpl-pf]')];
+      const rows = [...sec.querySelectorAll('.tpln-lrs [data-tpl-pf]')];
       const btn = rows[1];
       if (!btn) return null;
       const want = btn.getAttribute('data-tpl-pf');
       btn.click();
       await new Promise(r => setTimeout(r, 320));
       const again = document.querySelector('[data-tpl-sec="book"]');
-      return { on: (again.querySelector('.tpl-pf-i.is-on') || {}).getAttribute ? again.querySelector('.tpl-pf-i.is-on').getAttribute('data-tpl-pf') : null, want,
-        title: (again.querySelector('.tpl-pf-h h2') || {}).textContent || '', paper: !!again.querySelector('.tpl-pf-sheet'),
+      return { on: (again.querySelector('.tpln-lr.is-on') || {}).getAttribute ? again.querySelector('.tpln-lr.is-on').getAttribute('data-tpl-pf') : null, want,
+        title: (again.querySelector('.tpln-line .tpln-name') || {}).textContent || '', paper: !!again.querySelector('.tpl-pf-sheet'),
         sameSection: sec === again, sameList: list === document.querySelector('[data-tpl-sec="list"]') };
     });
     check('9h · pressing a template in the index brings up its paper',
@@ -805,19 +812,21 @@ const BOX = sel => {
        press from the stream picker and its create door. */
     await page.evaluate(() => { try { closeModal(); } catch (_) {} setView('templates'); });
     await pause(900);
-    await page.evaluate(() => { const b = document.querySelector('[data-tpl-tab="list"]'); if (b) b.click(); });
-    await pause(700);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the ONE door to a standard is a row in Jambo's panel
+       on the book ([data-tpln-new], MAP: #tpl-new → openNewStandard), its mark the drawn plus; no #tpl-new on the page */
+    await page.evaluate(() => { tplPageSetTab('book'); });
+    for (let i = 0; i < 20 && !(await page.evaluate(() => !!document.querySelector('#ins-panel [data-tpln-new]'))); i++) await pause(250);
     const words = await page.evaluate(() => {
-      const n = document.getElementById('tpl-new'), c = document.getElementById('tpl-convert');
-      return { newBtn: n ? n.textContent.trim() : null, drawn: !!(n && n.querySelector('svg')), conv: c ? c.textContent.trim() : null };
+      const n = document.querySelector('#ins-panel [data-tpln-new]'), c = document.getElementById('tpl-convert');
+      return { newBtn: n ? ((n.querySelector('.jov5-rt') || n).textContent || '').trim() : null, drawn: !!(n && n.querySelector('.jov5-mk svg')), conv: c ? c.textContent.trim() : null, old: !!document.getElementById('tpl-new') };
     });
     /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the plus is a
        drawn icon now, never a typed "+", so the words stand alone beside it. */
     check('9a · the button says what it does: New standard contract, with a drawn plus',
       words.newBtn === 'New standard contract' && words.drawn, words);
-    check('9b · and it is the ONE door — Convert a document is no longer beside it', words.conv === null, words);
+    check('9b · and it is the ONE door — Convert a document is no longer beside it', words.conv === null && !words.old, words);
 
-    await page.evaluate(() => { const b = document.getElementById('tpl-new'); if (b) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-tpln-new]'); if (b) b.click(); });
     await pause(500);
     /* RE-POINTED 11 Oct 2026: the three starts are a choice and a Continue
        (THE POP-UPS, THE SAP WAY — the act first, Cancel last) */
@@ -847,11 +856,15 @@ const BOX = sel => {
     await pause(800);
     const chip = await page.evaluate(() => {
       const b = document.querySelector('[data-tb-meta="stream"]');
-      return b ? { empty: b.classList.contains('empty'), dashed: getComputedStyle(b).borderTopStyle, text: b.textContent.replace(/\s+/g, ' ').trim() } : null;
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the head's chips are words on the white band, no
+         box — an empty one says it by its word's amber ink (index.html .tb-fchip.empty .v), set against a filed chip's ink */
+      const v = e => e && e.querySelector('.v') ? getComputedStyle(e.querySelector('.v')).color : '';
+      const filed = [...document.querySelectorAll('.tb-fchip[data-tb-meta]:not(.empty)')][0];
+      return b ? { empty: b.classList.contains('empty'), ink: v(b), filedInk: v(filed), text: b.textContent.replace(/\s+/g, ' ').trim() } : null;
     });
     await page.screenshot({ path: path.join(OUT, '09-copied-head.png') });
     check('9d · THE REPORTED GAP, WHERE IT LIVES NOW: the copy opens with a Stream chip that is plainly not filed yet',
-      !!chip && chip.empty && chip.dashed === 'dashed', chip);
+      !!chip && chip.empty && !!chip.ink && !!chip.filedInk && chip.ink !== chip.filedInk && /choose/i.test(chip.text), chip);
     await page.evaluate(() => { const b = document.querySelector('[data-tb-meta="stream"]'); if (b) b.click(); });
     await pause(700);
     const streamBox = await page.evaluate(() => {

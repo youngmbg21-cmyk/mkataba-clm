@@ -149,12 +149,16 @@ const check = (name, pass, detail) => {
 
     /* ================= 6. THE CONTRACTS LIST ================================ */
     await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the head's List pill shows the list */
+    if (await until(() => { const b = document.querySelector('[data-ctf-show="list"]'); return !!b && b.getClientRects().length > 0 && !document.querySelector('#reg-tbody tr[data-row]'); }, null, 4000)) await page.click('[data-ctf-show="list"]');
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): the stage is a
        word in its own tone in the grey line under the agreement, and a mark leads the row; a party's
        initials (where a list still draws them) wear their tone's wash, not Chambers' outline */
-    await until(() => !!document.querySelector('#reg-tbody tr[data-row] .reg-stg-w'));
+    await until(() => !!document.querySelector('#reg-tbody tr[data-row] .reg-standing'));
     const list = await page.evaluate(() => {
-      const st = document.querySelector('#reg-tbody .reg-stg-w'), mk = document.querySelector('#reg-tbody .reg-id .ls-mark'), t = document.querySelector('.ct-h');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's row leads with THE SAP WAY MARK (.ls-mk, f997) and says the stage as
+         its word in its tone in its own column (.reg-standing) */
+      const st = document.querySelector('#reg-tbody .reg-standing'), mk = document.querySelector('#reg-tbody .reg-id .ls-mk'), t = document.querySelector('.ct-h');
       const probe = document.createElement('span'); probe.className = 'reg-av av-1'; document.body.appendChild(probe);
       const a = getComputedStyle(probe), avBg = a.backgroundColor, avEdge = a.borderTopColor; probe.remove();
       const s = st && getComputedStyle(st), ts = t && getComputedStyle(t);
@@ -163,7 +167,8 @@ const check = (name, pass, detail) => {
     });
     check('6a a stage is its word in its tone, in the grey line: no wash behind it, no pill padding; a mark leads the row', list.mark && /rgba\(0, 0, 0, 0\)|transparent/.test(list.stBg) && list.stPad === '0px', JSON.stringify(list));
     check('6b a party\'s initials wear their tone\'s wash, no outline', !/rgba\(0, 0, 0, 0\)|transparent/.test(list.avBg) && /rgba\(0, 0, 0, 0\)|transparent/.test(list.avEdge), JSON.stringify(list));
-    check('6c the page title is the serif at 500', /^"?Source Serif 4/.test(list.title || '') && list.titleW === '500', JSON.stringify(list));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's page titles are Geist (f377), the furniture's face; the serif is the paper's */
+    check('6c the page title is Geist, strong', /^"?Geist/.test(list.title || '') && Number(list.titleW) >= 500, JSON.stringify(list));
 
     /* ================= 5. BESIDE A PAPER ==================================== */
     await page.evaluate(() => regOpenContract('MK-B2'));
@@ -234,9 +239,11 @@ const check = (name, pass, detail) => {
     /* on Parties: a party is chosen on arrival, its agreements listed with their status in Jambo's panel.
        RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the list's
        count is its lit tab's number (the card's own head and its pill went) */
-    const LIT_N = '[data-lh-seat="customers"] [role="tab"][aria-selected="true"] .n';
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Parties head is ONE HEAD (.cun-head): its title and the count beside it
+       as a plain fact (.ctf-hf, "3 counterparties"); it draws no tabs */
+    const LIT_N = '.cun-head .ctf-hf';
     await page.evaluate(() => setView('customers'));
-    await until(s => !!document.querySelector(s) && !!document.querySelector('#ins-panel .reg-stg'), LIT_N, 10000);
+    await until(s => !!document.querySelector(s) && !!document.querySelector('#ins-panel'), LIT_N, 10000);
     const ap = await page.evaluate(s => { const n = document.querySelector(s), ns = n && getComputedStyle(n);
       const st = document.querySelector('#ins-panel .reg-stg'), d = st && st.querySelector(':scope > i'), dr = d && d.getBoundingClientRect();
       const pn = document.querySelector('#content .ins-panel.is-jambo');
@@ -247,9 +254,11 @@ const check = (name, pass, detail) => {
         shadow: pn && getComputedStyle(pn).boxShadow, kind: kr }; }, LIT_N);
     /* a tab's number keeps its 2px from its word (the head card's one rule for a tab count); a bubble would pad both sides */
     check('11a a count beside a list\'s heading is a plain number: no bubble, no padding', !!ap.nBg && NONE.test(ap.nBg) && ap.nPadR === '0px' && parseFloat(ap.nPad) <= 2, JSON.stringify(ap));
+    /* 11b is kept as written: QUESTION Q-D3-3 (the new look says a status as its word in its tone with THE SAP WAY MARK, no dot) */
     check('11b a status in Jambo\'s panel carries its dot (8 × 8), not only its word', !!ap.dot && ap.dot[0] === 8 && ap.dot[1] === 8, JSON.stringify(ap.dot));
     /* LEGORA: the panel beside a list floats, a white card with the faint lift; a tag has the soft corner */
-    check('11c Jambo\'s panel beside a list floats: a card with the faint lift', !!ap.shadow && ap.shadow !== 'none' && /0px 8px 28px/.test(ap.shadow), String(ap.shadow));
+    /* RETIRED 16 Nov 2026 (#762): 11c "Jambo's panel beside a list floats: a card with the faint lift" — the Legora look's floating panel;
+       in the new look the panel stands edge to edge beside the white sheet (CLAUDE.md: a panel not edge to edge is the old look) */
     check('11d a tag in a list (Kind) has the soft corner of the new look', !!ap.kind && parseFloat(ap.kind) >= 8, String(ap.kind));
     await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('board'); });
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way": nothing boxed): his words beside the page are the Overview's head and lines (.jov-head, .jov-v), and his chips its offers (.jov-lnk.is-ask) */
@@ -259,7 +268,9 @@ const check = (name, pass, detail) => {
       return { edge: c && getComputedStyle(c).borderTopColor, lift: c && getComputedStyle(c).boxShadow, bub: b && getComputedStyle(b).backgroundColor, pill: p ? getComputedStyle(p).backgroundColor : 'none drawn' }; });
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2: cards float with no outline, as drawn): the card's edge
        is clear and it stands off the ground by the faint lift */
-    check('11e the Board\'s cards float by their lift with no outline, and Jambo\'s Overview beside them is not boxed', NONE.test(bd.edge) && /0px 8px 28px/.test(bd.lift || '') && bd.bub === s2, JSON.stringify(bd) + ' box ' + s2);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's lift is its own token (not the Legora look's 0 8px 28px): the card still
+       floats by a lift and has no outline */
+    check('11e the Board\'s cards float by their lift with no outline, and Jambo\'s Overview beside them is not boxed', NONE.test(bd.edge) && !!bd.lift && bd.lift !== 'none' && bd.bub === s2, JSON.stringify(bd) + ' box ' + s2);
     check('11f the Board\'s counts are plain numbers', bd.pill === 'none drawn' || NONE.test(bd.pill), String(bd.pill));
     /* ours, on the paper: three redlines staged the way a person files them */
     const ins = await page.evaluate(async () => { const c = getContract('MK-B2'); if (c._light && window.ensureFull) await ensureFull(c);
@@ -298,8 +309,10 @@ const check = (name, pass, detail) => {
       const html = res ? await res.text() : '';
       const sp = await them.evaluate(() => ({ ground: getComputedStyle(document.body).backgroundColor, band: getComputedStyle(document.body.firstElementChild).backgroundColor,
         caps: [...document.querySelectorAll('*')].filter(e => getComputedStyle(e).textTransform === 'uppercase' && e.textContent.trim()).length }));
-      check('11j the public status page wears the one look: the soft grey ground, a white band, no old blue, no capitals',
-        sp.ground === 'rgb(245, 245, 247)' && sp.band === 'rgb(255, 255, 255)' && !/#264C9E|#EDF1F2|#EEF2F8|#2A4A86/i.test(html) && sp.caps === 0, JSON.stringify(sp));
+      /* RE-POINTED 16 Nov 2026 (#762): the outside look (outsideLookOn, both hosts) draws the status page on the new look's
+         white page, its parts unboxed (dealPageHtml {out}); the Legora look's grey ground and white band are retired */
+      check('11j the public status page wears the one look: the white page, no old blue, no capitals',
+        sp.ground === 'rgb(255, 255, 255)' && !/#264C9E|#EDF1F2|#EEF2F8|#2A4A86/i.test(html) && sp.caps === 0, JSON.stringify(sp));
     } else check('11j the status page could be opened', false, JSON.stringify(links));
     await them.close();
 
@@ -319,12 +332,20 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 24 Oct 2026 (Round 2): the ring ended in red and read as an error; one calm green edge */
     check('12c Jambo\'s box is a pill wearing the one coloured edge, plain green', !!hm.jb && pill(hm.jb.r) && hm.jb.img === 'none' && hm.jb.edge === 'rgb(8, 115, 99)', JSON.stringify(hm.jb));
     await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (#762): Contracts opens on its Folders; the List pill shows the list */
+    if (await until(() => { const b = document.querySelector('[data-ctf-show="list"]'); return !!b && b.getClientRects().length > 0 && !document.querySelector('#reg-tbody tr[data-row]'); }, null, 4000)) await page.click('[data-ctf-show="list"]');
     await until(() => !!document.querySelector('#reg-tbody tr[data-row]'));
     const ls = await page.evaluate(() => { const t = document.querySelector('.reg-vtab.on'), ts = t && getComputedStyle(t);
       const sg = document.querySelector('.reg-seg.ct-seg'), ss = sg && getComputedStyle(sg), on = sg && sg.querySelector('button.on, button[aria-pressed="true"]'), os = on && getComputedStyle(on);
       return { tab: ts ? { bg: ts.backgroundColor, bb: ts.borderBottomWidth, r: ts.borderTopLeftRadius } : null, seg: ss ? { bg: ss.backgroundColor, r: ss.borderTopLeftRadius, b: ss.borderTopWidth } : null, on: os ? { bg: os.backgroundColor, r: os.borderTopLeftRadius } : null }; });
     check('12d a list\'s chosen tab is a filled grey pill, never an underline', !!ls.tab && ls.tab.bg === GREY && ls.tab.bb === '0px' && pill(ls.tab.r), JSON.stringify(ls.tab));
-    check('12e a switch (List | Wall) is a grey pill holding pills, the chosen one the ink', !!ls.seg && ls.seg.bg === GREY && pill(ls.seg.r) && ls.seg.b === '0px' && !!ls.on && ls.on.bg === INK && pill(ls.on.r), JSON.stringify(ls));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's head draws List · Wall as separate grey pills (no holding pill), the
+       chosen one in the strong weight (index.html "the list's head as drawn") */
+    const sw = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ct-head .ct-seg button')].map(b => { const c = getComputedStyle(b);
+      return { on: b.getAttribute('aria-pressed') === 'true', bg: c.backgroundColor, r: c.borderTopLeftRadius, w: Number(c.fontWeight), shown: b.getClientRects().length > 0 }; }));
+    const swOn = sw.find(b => b.on), swOff = sw.find(b => !b.on);
+    check('12e a switch (List | Wall) is grey pills, the chosen one in the strong weight', !!ls.seg && NONE.test(ls.seg.bg) && sw.length === 2 && sw.every(b => b.shown && b.bg === GREY && pill(b.r)) && !!swOn && !!swOff && swOn.w > swOff.w, JSON.stringify({ seg: ls.seg, sw }));
+    void INK;
     await page.evaluate(() => regOpenContract('MK-B2'));
     await until(() => !!document.querySelector('#ig-paper .doc-surface') && !!document.querySelector('#ig-dock .pd-tab.on'), null, 12000);
     const fl = await page.evaluate(() => { const g = id => { const e = document.getElementById(id); if (!e) return null; const c = getComputedStyle(e);
@@ -337,8 +358,9 @@ const check = (name, pass, detail) => {
       const shr = sheets.length ? [...new Set(sheets.map(e => getComputedStyle(e).borderTopLeftRadius))].join(',') : null;
       const diag = sheets.map(e => e.tagName + '.' + String(e.className).slice(0, 30)).join(' | ');
       return { dock: g('ig-dock'), col: g('hb-col'), paper: g('ig-paper'), tab: tc ? { bg: tc.backgroundColor, r: tc.borderTopLeftRadius, h: Math.round(t.getBoundingClientRect().height), after: ta.content } : null, sheetR: shr, diag }; });
-    check('12f beside a paper Jambo\'s panel floats: an 8px margin, 10px corners (29 Oct 2026, "half as round"), the faint lift, white', !!fl.dock && fl.dock.m === '8px 8px 8px' && fl.dock.r === '10px' && /0px 8px 28px/.test(fl.dock.sh) && fl.dock.bg === 'rgb(255, 255, 255)', JSON.stringify(fl.dock));
-    check('12g … and so does the paper\'s half: a white card, its canvas inset, all at the one 10px corner', !!fl.col && fl.col.r === '10px' && fl.col.bg === 'rgb(255, 255, 255)' && !!fl.paper && fl.paper.r === '10px', JSON.stringify({ col: fl.col, paper: fl.paper }));
+    /* RETIRED 16 Nov 2026 (#762): 12f "beside a paper Jambo's panel floats: an 8px margin, 10px corners, the faint lift" and
+       12g "the paper's half a white card at the 10px corner" — the Legora look's floating halves; the new look sets the panel
+       edge to edge and the paper on its desk (ONE SHEET; CLAUDE.md: "a panel that is not edge to edge is the old look") */
     check('12h the panel\'s chosen tab is a slim filled pill (no underline mark)', !!fl.tab && fl.tab.bg === GREY && pill(fl.tab.r) && fl.tab.h <= 32 && (fl.tab.after === 'none' || fl.tab.after === 'normal'), JSON.stringify(fl.tab));
     check('12i the paper itself keeps its square corners — it reads as a document, not a card', fl.sheetR === '0px', String(fl.sheetR) + ' ' + fl.diag);
     await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('explorer'); });

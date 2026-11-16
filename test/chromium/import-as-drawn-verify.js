@@ -300,21 +300,25 @@ const FILES = {
       const again = await until(() => (state.view === 'migration' && document.getElementById('mig-ck-facts')) ? migCheckId() : null, null, 12000);
       check('7a after a refresh the check view is up on the same file', !!was && again === was, JSON.stringify({ was, again }));
       if (await press('[data-mig-ck-close]', '7b ‹ All files')) {
-        const lst = await until(() => document.querySelector('.mig-table') && !document.getElementById('mig-ck-facts') ? true : null, null, 4000);
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the list it goes back to is the one table (.mign-table) */
+        const lst = await until(() => document.querySelector('.mign-table') && !document.getElementById('mig-ck-facts') ? true : null, null, 4000);
         check('7b ‹ All files goes back to the list', !!lst);
       }
       console.log('\n14 · fix pass 2');
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-      const cost = await until(() => { const e = document.getElementById('mig-cost'); const t = e && e.textContent; return t && /Jambo reads each one\. You see the total before it starts\./.test(t) ? t : null; }, null, 6000);
-      check('14a after a refresh the drop strip says Jambo reads each one and the total comes first, before any batch, no cost', !!cost && !/\bcalls?\b|\bfree\b|costs? nothing|\$|KES|SEK|money/i.test(cost), String(cost));
+      /* RETIRED 16 Nov 2026 (#762): 14a "after a refresh the drop strip says Jambo reads each one and the total comes first"
+         — old look only: with files in, the new look's Import draws no drop strip (it stands only on the empty page; Choose
+         files is the head's button); that the total is asked before Jambo reads, with no cost said, stays pinned by 1a/1b */
       if (await page.evaluate(() => migCheckOpen())){
         await until(() => !!document.querySelector('[data-mig-ck-tab="decide"]'), null, 4000);
         if (await press('[data-mig-ck-tab="decide"]', '14b the Decide tab')){
-          const DB = await until(() => { const on = document.querySelector('#mig-band .mig-ck-tab.is-on'); const rows = [...document.querySelectorAll('.mig-table tbody tr[data-row]')].map(r => r.className.match(/is-(\w+)/)[1]);
-            return on && !document.getElementById('mig-ck-facts') ? { on: on.textContent.replace(/\s+/g, ' ').trim(), rows } : null; }, null, 4000);
-          check('14b Decide keeps the tab row as its frame, Decide lit, the list the files that want a decision', !!DB && /^Decide \d+$/.test(DB.on) && DB.rows.length > 0 && DB.rows.every(k => k === 'dupe' || k === 'none'), JSON.stringify(DB));
-          if (await press('[data-mig-ck-tab="check"]', '14c the Check tab')){
-            check('14c the Check tab opens the walk again', !!(await until(() => !!document.getElementById('mig-ck-facts'), null, 4000)));
+          /* RE-POINTED 16 Nov 2026 (#762): Decide lands on the one table (.mign-table, no tab row of the old list head);
+             the promise kept: the list shows the files that want a decision, and only those (a row's state off migRowByKey) */
+          const DB = await until(() => { const rows = [...document.querySelectorAll('.mign-table tbody tr[data-row]')].map(r => (migRowByKey(r.getAttribute('data-row')) || { st: {} }).st.k);
+            return rows.length && !document.getElementById('mig-ck-facts') ? { rows } : null; }, null, 4000);
+          check('14b Decide shows the list of the files that want a decision, and only those', !!DB && DB.rows.length > 0 && DB.rows.every(k => k === 'dupe' || k === 'none'), JSON.stringify(DB));
+          /* RE-POINTED 16 Nov 2026 (#762): back on the list, the walk opens again from the head's Check all (#mig-check-all) */
+          if (await press('#mig-check-all', '14c Check all')){
+            check('14c Check all opens the walk again', !!(await until(() => !!document.getElementById('mig-ck-facts'), null, 4000)));
             await page.evaluate(() => migCheckClose());
           }
         }

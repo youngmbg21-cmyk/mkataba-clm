@@ -100,7 +100,10 @@ const ok = (name, good, detail) => {
        arrows move the selection on Contracts) retired with the panel — the
        inspector's own mechanics are measured where it still stands
        (four-inspectors-verify, and section 4 below on Negotiations). */
-    const toContracts = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await page.waitForTimeout(1000); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the List is the
+       Folders' "List" pill ([data-ctf-show="list"]), which draws the place's List ([data-ct-show="list"]) */
+    const toContracts = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await page.waitForTimeout(600);
+      await page.click('[data-ctf-show="list"]').catch(() => {}); await page.waitForTimeout(900); };
     const toNego = async () => { await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1000); };
     await toContracts();
     const shape = await page.evaluate(() => ({
@@ -115,7 +118,9 @@ const ok = (name, good, detail) => {
        reference rides under the party ("kind · ref") and Owner waits under
        Columns — and the row's ⋯ unheaded */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): Stream and Our standards stand where Stage stood */
-    ok('1b the List is the drawing\'s five columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Agreement|Stream|Our standards|Ends|Value|', shape.heads.join(' | '));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's List (THE NEW LOOK IS THE ONLY LOOK: "a status = dot + word") adds
+       Standing after the agreement, and draws no ⋯ column — a row's one press opens it (1f) */
+    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Stream · Our standards · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Stream|Our standards|Ends|Value', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');
