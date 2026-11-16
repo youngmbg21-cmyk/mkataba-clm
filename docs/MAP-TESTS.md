@@ -790,7 +790,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - WRITE IT FOR ME, TOP CORNER (15 Nov 2026): f1059 (four parts, red at the parent 1-3); send-note-on-the-paper-verify part 5 re-pointed.
 - A FULL-PAGE SCREEN GOES BEFORE THE PAGE OR HOME'S TAB MOVES (15 Nov 2026): f1061 (1)–(4); send-screen-keeps-its-way-back-verify 6, 7a, 7b.
 THE PULSE BOARD'S, READS' AND DISCOVER'S DOORS PUT A SCREEN AWAY, THEN GO (16 Nov 2026): f1076.
-A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (16 Nov 2026): f1077; a-refresh-lands-on-its-contract-verify.
+A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (16 Nov 2026): f1080; a-refresh-lands-on-its-contract-verify.
 - A FINISHED READ OPENS ITS RESULTS, AND "READ THE N LEFT" READS WHAT IS LEFT (owner, 16 Nov 2026): f1072 (test/f1072-a-finished-read-opens-its-results.test.js; 3 of 3 red at the parent) — dsnEndsOnResults the one door for dsnAsk and dsnCarry (stopped stays; a reader who left is not pulled back); dsnRunLeft counts the read's folders' contracts with no answer (null while loading), used by Jambo's panel and the results head; nothing left is said by a toast. Re-pointed: discover-page-verify 4b (lands on its results with no press). Re-ran green: f1074, f1063, f1055, f1016, f1057, f1058, f1064, f937, f232.
 
 - CLAUSES THE LEGORA WAY, THE REDLINES STRIP, ONE BAND ON APPROVALS, THE FOUR LIST PANELS (owner, 16 Nov 2026): f1073 (test/f1073-clauses-legora-and-the-list-panels.test.js; 5 of 5 red at the parent). Re-pointed: f1066 (1)(3) (the open clause an amber line; one line, no counts), approvals-head-and-chosen-row-verify 3 (one band, no bar). Re-ran green: f1065, f1066, f1067, f1068, f1069, f1070, f184, f277, f314, f335, f337, f344, f385, f386, f875, f89, f965, f967, f937, f232, f48, f982, f984.
@@ -798,3 +798,4 @@ A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (16 Nov 2026): f1077; a-refresh-l
 ## THE ONE DESK — NEEDS YOU, ONE READING — 16 Nov 2026 additions
 - f1077 (renumbered from f1075, which main also took; panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
 - f1078 (renumbered from f1076, which main also took; every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.
+- f1079 (Company needs you lands on the exact job: `cnCompanyGo`, `stNeedGo`). Also run: f869, f1077.

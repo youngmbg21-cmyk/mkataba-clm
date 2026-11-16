@@ -21,7 +21,7 @@
    chose). 1d and 2c held there too: they guard the opening that must still
    happen.
 
-   2b re-pointed 16 Nov 2026: the refresh shows "Opening…" in the wall's stead (f1077); a scroll during it still wins.
+   2b re-pointed 16 Nov 2026: the refresh shows "Opening…" in the wall's stead (f1080); a scroll during it still wins.
 
    Run: node test/chromium/late-open-stays-put-verify.js */
 const fs = require('node:fs');
@@ -157,7 +157,7 @@ const check = (name, pass, detail) => {
     await reload();
     /* RE-POINTED 16 Nov 2026 (owner: "every time i refresh … it lands on the screen attached before going back"): while
        a refresh puts the paper back, Home's paper says "Opening…" (.ig-pick-wait) and no longer draws the wall in its
-       stead (f1077). The guarantee stands: the reader's hand during that wait wins — the paper is not put back, and the
+       stead (f1080). The guarantee stands: the reader's hand during that wait wins — the paper is not put back, and the
        wall is what they then see */
     const w2 = await until(() => !!document.querySelector('#ig-paper .ig-pick-wait') && !intel.paper, null, 8000);
     await page.mouse.move(500, 500);

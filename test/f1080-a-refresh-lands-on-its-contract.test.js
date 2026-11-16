@@ -1,5 +1,5 @@
 'use strict';
-/* f1077 — A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (owner, 16 Nov 2026: "every time i refresh my screen from any
+/* f1080 — A REFRESH ON A CONTRACT LANDS ON THAT CONTRACT (owner, 16 Nov 2026: "every time i refresh my screen from any
    page, it refreshed but then lands on the screen attached before going back to where i refreshed from"; the screen
    was Home's Contracts place). Home is drawn before the paper the refresh puts back has landed, and with no paper on
    it Home drew the Contracts place for a moment. Now hbPlacePut marks the paper on its way (intel.resuming) before the
@@ -15,7 +15,7 @@ const read = f => strip(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
 const fnSrc = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, 'missing ' + name);
   let d = 0; for (let k = src.indexOf('{', i); k < src.length; k++){ if (src[k] === '{') d++; else if (src[k] === '}'){ d--; if (!d) return src.slice(i, k + 1); } } return ''; };
 
-test('f1077 (1) the paper a refresh puts back is marked before the first paint, and let go every way it ends', () => {
+test('f1080 (1) the paper a refresh puts back is marked before the first paint, and let go every way it ends', () => {
   const put = fnSrc(read('js/views/homeboard.js'), 'hbPlacePut');
   const at = put.indexOf("intel.resuming = { id: String(want.id) }");
   assert.ok(at > 0, 'marked while the put-back is set up');
@@ -29,7 +29,7 @@ test('f1077 (1) the paper a refresh puts back is marked before the first paint, 
   assert.match(put, /intel\.resuming = null;\s*if \(!intel\.paper && !intel\.opening[^\n]*igPaintPaper\(\); if \(typeof window\.renderIntelDock === 'function'\) renderIntelDock\(\); \}/, 'let go with no paper: the paper and his panel draw what is due');
 });
 
-test('f1077 (2) Home\'s paper draws "Opening…" in the Contracts place\'s stead while that paper is on its way', () => {
+test('f1080 (2) Home\'s paper draws "Opening…" in the Contracts place\'s stead while that paper is on its way', () => {
   const p = fnSrc(read('js/views/intelligence.js'), 'igPaintPaper');
   const wait = p.indexOf('if(homePaper&&intel.resuming&&getContract(intel.resuming.id)){');
   const pick = p.indexOf('host.innerHTML=igPickHtml()');
@@ -39,7 +39,7 @@ test('f1077 (2) Home\'s paper draws "Opening…" in the Contracts place\'s stead
   assert.ok(!/intel\.opening\)\{/.test(p.slice(wait - 80, wait + 80)), 'an ordinary open from the list is not changed');
 });
 
-test('f1077 (3) Jambo\'s panel beside the paper says it is opening, never the Contracts place\'s overview, while it waits', () => {
+test('f1080 (3) Jambo\'s panel beside the paper says it is opening, never the Contracts place\'s overview, while it waits', () => {
   const s = read('js/paperdesk.js');
   const at = s.indexOf('window.intel && intel.resuming && typeof getContract');
   const wall = s.indexOf('(ac || pdWallHtml(disc))');
