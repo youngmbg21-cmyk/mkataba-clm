@@ -3378,6 +3378,9 @@ function obPanelActs(o, c, i, ctx){
   if(ctx === 'tab'){
     if(may && w === 'done') acts.push({ k:'reopen', label: i18t('ob_reopen_cap'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) toggleObligation(h.c, h.i, { from:'obligations tab' }); } });
     if(may) acts.push({ k:'edit', label: i18t('ob_edit_cap'), icon:'pencil', run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) openObligationForm(h.c, { ...h.o, _i: h.i }); } });
+    /* REMOVE, last, at once with Undo (obligationRemove): the old tab's ⋯ menu carried it, the new look's face draws
+       these acts only, so it stands here — otherwise no way to take an obligation off is left (#762) */
+    if(may && typeof newLookOn === 'function' && newLookOn()) acts.push({ k:'remove', label: i18t('ob_remove_cap'), icon:'trash', title: i18t('ob_remove_says'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } });
   } else {
     /* the doors every list draws: Negotiation · Workspace (the Document door
        went, owner 15 Oct 2026; the row itself opens the Board's Obligations) */

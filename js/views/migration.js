@@ -1551,7 +1551,8 @@ function migNlPanelFiveHtml(r, rows, need){
   const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' \u2013 ');
   const isNeed = MIG_NEEDS.includes(r.st.k), none = r.st.k === 'none', signed = r.c.status === 'Signed';
   const parked = rows.filter(x => x.q && x.q.status === 'unsigned').length;
-  const filed = rows.length - need.length;
+  /* the panel's "N filed" is the files filed — the page's own figure (migKpis().filed), never "not waiting on you" (#762) */
+  const filed = rows.filter(x => x && x.st && x.st.k === 'filed').length;
   const lines = [{ mark: none ? 'alert' : 'mkTick', tone: none ? 'amber' : 'green', t: none ? i18t('mign_p_nothing') : (scan ? i18t('mign_scan') : i18t('mign_p_whole')), s: pages ? i18tn('mign_pages', pages, { n: pages }) : '' }];
   if (!none){
     lines.push({ mark: 'calendar', tone: term ? '' : 'amber', t: term || i18t('mign_p_no_end'), s: term ? i18t('mign_p_term') : i18t('mign5_end_add'), attr: term ? '' : `data-mign-go="${E(r.key)}" data-mign-need="1"` });

@@ -860,7 +860,7 @@ function dirnPanelFive(p, sub, w, away){
   if (n) reach.push({ mark:'users', t:i18t('jov5_dir_show'), v:String(n), attr:`data-dirn-contracts="${_dE(p.key)}"` });
   if (reach.length) groups.push({ label:i18t('jov5_dir_reach'), rows:reach });
   return { avatar:initials, title:p.name || p.email || '', sub,
-    glance:[{ n, l:i18t('jov5_dir_agreements'), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
+    glance:[{ n, l:i18tn('jov5_dir_agreements', n, { n }), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
       { n:away && away !== i18t('dirn_p_not_away') ? i18t('jov5_dir_away') : i18t('jov5_dir_in'), l:away ? (away === i18t('dirn_p_not_away') ? i18t('jov5_dir_not_away') : away) : i18t('jov5_dir_side') }],
     groups, src:i18t('jov5_dir_src') };
 }
