@@ -1192,7 +1192,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
+Object.assign(window, { dkLeavePageThen, deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter, dkHomeHere, DK_HOME_KEY,
   ndRowGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, counterNeedsCount });

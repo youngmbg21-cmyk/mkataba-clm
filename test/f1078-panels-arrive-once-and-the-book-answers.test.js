@@ -1,4 +1,4 @@
-/* f1076 — NO STUTTER BETWEEN CONTRACTS, A CHART FADES IN ONCE, AND THE BOOK ANSWERS ITS OWN QUESTIONS (owner, 16 Nov
+/* f1078 — NO STUTTER BETWEEN CONTRACTS, A CHART FADES IN ONCE, AND THE BOOK ANSWERS ITS OWN QUESTIONS (owner, 16 Nov
    2026: "also fix the stutters, which I am still seeing"; "Review all the buttons in the jambo panels and make sure
    they work using common sense"):
      1 every contract is ONE page to the arrival watcher: going from one contract to the next does not replay it
@@ -7,7 +7,7 @@
      4 "Standards · Not checked yet · Check" asks a first check, never "check … again?"
    At the parent (1)–(3) fail: the key was 'c:' + the contract's id, no hbChartsStill, the questions went to Jambo
    (and from there to the Contracts page or Settings).
-   Run: node --test test/f1076-panels-arrive-once-and-the-book-answers.test.js */
+   Run: node --test test/f1078-panels-arrive-once-and-the-book-answers.test.js */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -17,13 +17,13 @@ const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const body = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); return strip(src.slice(i, src.indexOf('\n}', i) + 2)); };
 
-test('f1076 (1) every contract is one page to the arrival', () => {
+test('f1078 (1) every contract is one page to the arrival', () => {
   const b = body(read('js/components.js'), 'jovPageKeyOf');
   assert.match(b, /if \(c && c\.id\) return 'c';/);
   assert.doesNotMatch(b, /'c:' \+ c\.id/);
 });
 
-test('f1076 (2) driven: a chart drawn again stands still', () => {
+test('f1078 (2) driven: a chart drawn again stands still', () => {
   const HB = read('js/views/homeboard.js');
   assert.match(body(HB, 'hbPaintBoard'), /hbMorph\(host, hbBoardHtml\(\)\);\s*hbChartsStill\(host\);/);
   const i = HB.indexOf('const _hbChartsSeen'); assert.ok(i >= 0);
@@ -40,7 +40,7 @@ test('f1076 (2) driven: a chart drawn again stands still', () => {
   assert.equal(b.gs.filter(g => g.cl.has('hb-in')).length, 2, 'a new picture fades in');
 });
 
-test('f1076 (3) the Handbook panel opens the chapter its question names', () => {
+test('f1078 (3) the Handbook panel opens the chapter its question names', () => {
   assert.match(body(read('js/views/handbook.js'), 'hbknPanelHtml'), /hbkFind\(q, _hbkLang\(\)\)[\s\S]*hbkOpen\(f\.k\); return;/);
   const ctx = { window: {}, console }; ctx.window = ctx; vm.createContext(ctx);
   vm.runInContext(read('js/handbook.js'), ctx);
@@ -51,7 +51,7 @@ test('f1076 (3) the Handbook panel opens the chapter its question names', () => 
   assert.equal(ctx.hbkFind(SV.jov5_hbk_q2, 'sv').k, '7.1');
 });
 
-test('f1076 (4) a first standards check is not asked as "again"', () => {
+test('f1078 (4) a first standards check is not asked as "again"', () => {
   const b = body(read('js/views/library.js'), 'sdCheckAgain');
   const full = b.indexOf('ensureFull'), ask = b.indexOf('confirmDialog');
   assert.ok(full > 0 && ask > full, 'the whole record is read before the question');
