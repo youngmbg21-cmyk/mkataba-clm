@@ -1878,17 +1878,33 @@ function iknPanelHtml(r, may){
   const E = esc, st = iknStands(r);
   const fit = st.fit && st.fit.strong ? st.fit : null;
   const head = r.contractId ? st.t + '.' : fit ? i18t('ikn_p_fits', { title: r.title || '', name: fit.name }) : i18t('ikn_p_open', { title: r.title || '' });
-  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
-  const rows = (r.counterparty ? row(i18t('cun_c_party'), r.counterparty, i18t('ikn_src_ask')) : '')
+  const row = (l, v, src, vHtml, srcCls) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${vHtml || E(v)}</b><i${srcCls ? ` class="${srcCls}"` : ''}>${E(src || '')}</i></div>`;
+  /* BROUGHT BACK (owner's picks on the drawings, 17 Nov 2026: "2 Bring it back"): the party's name is the door to their
+     contracts (cuOpenCustomer, where the book holds any), whether an NDA with them stands today (ikCpNdaWords, the
+     Parties page's own reading), and each file with who added it */
+  const cp = String(r.counterparty || '').trim();
+  let cpKey = '', cpDoor = false;
+  try { cpKey = cp && typeof window.cuKeyOf === 'function' ? cuKeyOf(cp) : ''; const v = cpKey && typeof window.cuCustomerOf === 'function' ? cuCustomerOf(cpKey) : null; cpDoor = !!(v && v.items && v.items.length); } catch (_){ cpDoor = false; }
+  const nda = cp && !r._adv ? ikCpNdaWords(cp) : '';
+  const ndaOwed = nda && nda === i18t('ik_cp_nda_none');
+  const who = ikIsMine(r) ? '' : String((r.by && r.by.name) || '').trim();
+  const files = (r.files || []).map(fl => row(i18t('ikn_files'), '', who ? i18t('ik_file_by', { size: ikFileSize(fl.size), who }) : i18t('ik_file_by_you', { size: ikFileSize(fl.size) }),
+    `<button type="button" class="rfp-a" data-ikn-file="${E(fl.id)}" data-ikn-fname="${E(fl.name)}">${E(fl.name)}</button>`)).join('');
+  const rows = (cp ? row(i18t('cun_c_party'), cp, i18t('ikn_src_ask'), cpDoor ? `<button type="button" class="rfp-a" data-ikn-cp="${E(cpKey)}" title="${E(i18t('ik_cp_go', { cp }))}">${E(cp)}</button>` : '') : '')
+    + (nda ? row(i18t('cu_col_nda'), nda, ndaOwed ? i18t('ikn_p_nda_todo') : '', '', ndaOwed ? 'is-amb' : '') : '')
     + (r.folder && window.FOLDERS && FOLDERS[r.folder] ? row(i18t('reg_chip_stream'), FOLDERS[r.folder].name, i18t('ikn_src_ask')) : '')
     + (fit ? row(i18t('ikn_paper'), fit.name, i18t('ikn_src_fits')) : '')
-    + ((r.files || []).length ? row(i18t('ikn_files'), i18tn('ikn_files_n', r.files.length, { n: r.files.length }), '') : '');
+    + files;
   const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
   /* AN ADVICE REQUEST KEEPS ITS TWO DOORS (16 Nov 2026, #762: the new look's panel drew none, a dead end) — the advice
      itself and the board it lives on, the same two the old panel carried (ik_act_open_advice, ik_act_advice_board) */
   const doors = r._adv ? door(`data-ikn-adv="${E(r.id)}"`, i18t('ik_act_open_advice'), i18t('pd2_ch_free')) + door('data-ikn-adv-board=""', i18t('ik_act_advice_board'), i18t('pd2_ch_free')) : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
-    : may ? door(`data-ikn-draft="${E(r.id)}"`, i18t('ikn_start'), i18t('ikn_start_cost')) : '';
-  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${r.need ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_words'))}</div><div class="mnn-note"><p>${E(r.need)}</p></div>` : ''}
+    : may ? door(`data-ikn-draft="${E(r.id)}"`, i18t('ikn_start'), i18t('ikn_start_cost'))
+      /* HAND BACK (owner's pick, "1 Bring it back"): the decline with its reason, told to whoever asked (intakeSetStatus) */
+      + (r.status === 'open' ? door(`data-ikn-back="${E(r.id)}"`, i18t('ik_act_hand_back'), i18t('ikn_back_cost', { who: ikFirst((r.by && r.by.name) || '') || i18t('ikn_back_them') })) : '') : '';
+  /* WHICH ROUTE SENT IT IN (owner's pick, "3 Bring it back"): one quiet line under the headline */
+  const lane = r.lane ? `<p class="pd2-ch-sub ikn-lane">${E(i18t('ikn_p_lane', { lane: r.lane }))}</p>` : '';
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${lane}${r.need ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_words'))}</div><div class="mnn-note"><p>${E(r.need)}</p></div>` : ''}
     ${rows ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
 }
 if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired = true;
@@ -1899,6 +1915,12 @@ if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired 
     if ((el = t.closest('[data-ikn-adv]'))){ e.preventDefault(); e.stopPropagation(); if (typeof window.openAdviceModal === 'function') window.openAdviceModal(el.getAttribute('data-ikn-adv')); return; }
     if (t.closest('[data-ikn-adv-board]')){ e.preventDefault(); e.stopPropagation(); setView('advice'); return; }
     if ((el = t.closest('[data-ikn-draft]'))){ e.preventDefault(); e.stopPropagation(); intakeDraft(el.getAttribute('data-ikn-draft')); return; }
+    if ((el = t.closest('[data-ikn-back]'))){ e.preventDefault(); e.stopPropagation(); intakeSetStatus(el.getAttribute('data-ikn-back'), 'declined'); return; }
+    if ((el = t.closest('[data-ikn-cp]'))){ e.preventDefault(); e.stopPropagation(); if (typeof window.cuOpenCustomer === 'function'){ cuOpenCustomer(el.getAttribute('data-ikn-cp'));
+      /* LAND ON IT: the party's own page, on its agreements (asked for once drawn, bounded) */
+      let n = 0; const land = () => { const tb = document.querySelector('.cun-page[data-cu-screen="party"] .cunp-table');
+        if (tb && typeof window.landOn === 'function'){ window.landOn(tb, { block: 'nearest', focus: false }); return; } if (++n < 30) setTimeout(land, 80); }; setTimeout(land, 0); } return; }
+    if ((el = t.closest('[data-ikn-file]'))){ e.preventDefault(); e.stopPropagation(); const r = (_intake.list || []).find(x => x && x.files && x.files.some(f => String(f.id) === el.getAttribute('data-ikn-file'))); if (r) intakeFileGet(r.id, el.getAttribute('data-ikn-file'), el.getAttribute('data-ikn-fname'), { open: true }); return; }
     if ((el = t.closest('[data-ikn-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-ikn-open'); if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open')) && typeof openWorkspace === 'function') openWorkspace(id); return; }
     if ((el = t.closest('#ik-new')) && t.closest('.ikn-page')){ e.preventDefault(); openIntakeForm(); return; }
     if ((el = t.closest('[data-ikn-row]'))){ const id = el.getAttribute('data-ikn-row'); if (String(id) === String(_iknSel)) return; _iknSel = id; renderIntake(); }

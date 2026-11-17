@@ -1603,7 +1603,9 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const a = o.act;
   const act = a && (a.say || a.label) ? `<div class="jov5-act">${a.say ? `<p class="jov5-say">${E(a.say)}</p>` : ''}${a.q ? `<p class="jov5-q">${E(a.q)}</p>` : ''}`
     + `<div class="jov5-acts">${a.label ? `<button type="button" class="jov5-go"${door(a.run, a.attr)}>${E(a.label)}</button>` : ''}`
-    + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}</div></div>` : '';
+    + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}`
+    /* more quiet links after the first, in order (My notes' Snooze a week, owner's pick 17 Nov 2026) */
+    + `${(a.links || []).map(l => lnk(l.attr ? -1 : reg(l.run), E(l.label), l.title, '', l.attr)).join('')}</div></div>` : '';
   const askHtml = asks.length ? `<div class="jov5-sec"><p class="jov5-label">${E(_jovT('jov_ask_me'))}</p><div class="jov5-chips">${asks.map(x =>
     x.attr ? `<button type="button" class="jov5-chip" ${x.attr}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`
       : `<button type="button" class="jov5-chip" data-jov="${E(slot)}:${reg(x.run)}"${x.title ? ` title="${E(x.title)}"` : ''}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`).join('')}</div></div>` : '';

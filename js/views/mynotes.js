@@ -463,7 +463,9 @@ function mnnPanelFiveHtml(n){
     sub: [written ? i18t('mnn5_written', { d: written }) : '', c ? '' : i18t('mnn5_no_contract'), i18t('mnn5_only_you')].filter(Boolean).join(' '),
     mid: n.quote ? `<q class="mnn5-q">${E(n.quote)}</q>` : '',
     groups: [{ label: i18t('mnn5_this'), rows }],
-    act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`, link: { label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' } },
+    act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`, link: { label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' },
+      /* SNOOZE A WEEK (owner's pick on the drawings, 17 Nov 2026: "4 Bring it back"): the note out of the way for seven days */
+      links: n.reviewedAt ? [] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }] },
     src: i18t('mnn5_src') };
   return `<div class="jl-words is-ov mnn5">${jamboOverviewHtml(o, 'mnn')}</div>`;
 }

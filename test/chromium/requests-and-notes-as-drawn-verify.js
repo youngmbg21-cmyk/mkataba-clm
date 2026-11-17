@@ -165,8 +165,10 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     check('2a+ the panel says the lane that sent it ("by the NDA lane")', !!P && /NDA lane/.test(P.text), P && P.text.slice(0, 240));
     /* KEPT: Hand back (the decline with its reason) is an act the old panel carried and the new one does not draw — a question for the owner */
     check('2b Start the draft and Hand back, each whole, inside the panel', !!P && JSON.stringify(P.doors) === '["Start the draft","Hand back"]' && P.inside, P && JSON.stringify(P.doors));
-    check('2c her words whole; Party · Stream · Paper · Files read from the ask, the one file counted', !!P && /^Naivas want/.test(P.quote || '') && /standard one\?$/.test(P.quote || '')
-      && JSON.stringify(Object.keys(P.rows)) === '["Party","Stream","Paper","Files"]' && P.rows.Party === 'Naivas Supermarkets' && /^1 file/.test(P.rows.Files || ''), P && JSON.stringify({ quote: (P.quote || '').slice(0, 40), rows: P.rows }));
+    /* RE-POINTED 17 Nov 2026 (the owner's picks on the drawings, "2 Bring it back"): the NDA line stands under the party,
+       and each file is its own row by name, who added it beside it */
+    check('2c her words whole; Party · NDA · Stream · Paper · Files read from the ask, the one file by name', !!P && /^Naivas want/.test(P.quote || '') && /standard one\?$/.test(P.quote || '')
+      && JSON.stringify(Object.keys(P.rows)) === '["Party","NDA","Stream","Paper","Files"]' && P.rows.Party === 'Naivas Supermarkets' && /pilot-brief\.pdf/.test(P.rows.Files || ''), P && JSON.stringify({ quote: (P.quote || '').slice(0, 40), rows: P.rows }));
     /* KEPT AS IT WAS PROMISED (question for the owner): "no NDA with them today" beside the party, and who added each attachment */
     check('2c+ "no NDA with them today" and who added the file', !!P && /no NDA with them today/.test(P.text) && /added by Wanjiru/.test(P.text), P && P.text.slice(0, 300));
     /* re-pointed 19 Oct 2026 (second pass): the name the New agreement form lists it under
@@ -206,7 +208,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await page.evaluate(() => setView('intake'));
     await press(`.ikn-table [data-ikn-row="${r1.id}"]`);
     await until(id => document.querySelector('#ins-panel.is-jambo') && document.querySelector('#ins-panel').getAttribute('data-ins-id') === id ? true : null, r1.id);
-    await press('#ins-panel [data-ik-cp]');
+    await press('#ins-panel [data-ik-cp], #ins-panel [data-ikn-cp]');
     const C = await until(() => { const el = document.querySelector('.is-landed, .is-landed-held'); return el && /Naivas/.test(document.body.innerText) && (state.view !== 'intake') ? { view: state.view, lit: el.className } : null; });
     check('4 the counterparty\'s name lands on their contracts', !!C, JSON.stringify(C));
 
