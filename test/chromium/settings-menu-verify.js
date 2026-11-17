@@ -27,7 +27,8 @@ const ROWS = { name: 'drawer', twostep: 'drawer', agents: 'view:jambo', approval
 const FOOT = { 'data-st-page=team': 'page', 'data-st-page=streams': 'page', 'data-st-panel=lessons': 'drawer', 'data-st-panel=trail': 'page' };
 /* RE-POINTED 17 Nov 2026 (#762): the You area holds again the doors the old Settings had — Change your email, When you're
    away, Download your data (put back in the new look's list, settings.js stnYouHtml) — in the order the list draws them */
-const AREAS = { you: ['name', 'email', 'lang', 'away', 'mydata', 'agents'], sec: ['twostep', 'signcap', 'linkcode'], rule: ['approvals', 'review'], money: ['rates'], msg: ['push', 'mail'] };
+const AREAS = { you: ['name', 'email', 'lang', 'away', 'mydata', 'agents'], sec: ['twostep', 'signcap', 'linkcode'], rule: ['approvals', 'review'], money: ['rates', 'paydays'], msg: ['push', 'mail'] };
+/* RE-POINTED 17 Nov 2026 (#762): Money holds the payment targets' row too (their door had been lost with the old card) */
 /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the outside look's row and switch are gone (on for everyone),
    so Messages holds Push and Mail; the one switch left is Push's, drawn once its state is read, so it is waited for */
 
