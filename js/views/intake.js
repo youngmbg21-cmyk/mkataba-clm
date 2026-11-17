@@ -1814,7 +1814,9 @@ function iknRowHtml(r, may){
   const stream = streamName ? (typeof listChipHtml === 'function' ? listChipHtml(typeof listStreamTone === 'function' ? listStreamTone(r.folder) : 'gray', streamName) : esc(streamName)) : '—';
   const fits = st.fit && st.fit.strong ? i18t('ikn_s_fits', { name: st.fit.name }) : '';
   const word = r.contractId || r._adv ? st.t : r.assignee ? i18t('ikn_s_with', { name: String(r.assignee.name || '').split(/\s+/)[0] }) : i18t('ikn_s_needs');
-  const stands = typeof listWordHtml === 'function' ? listWordHtml(S.tone, word, r.contractId || r._adv ? '' : fits) : esc(word);
+  /* a DRAFTED request says who holds it under its word, by full name (#762: the old row's "with" cell) */
+  const held = r.contractId && r.assignee && String(r.assignee.name || '').trim() ? i18t('ikn_s_with', { name: String(r.assignee.name).trim() }) : '';
+  const stands = typeof listWordHtml === 'function' ? listWordHtml(S.tone, word, r._adv ? '' : r.contractId ? held : fits) : esc(word);
   const act = r._adv ? '' : r.contractId ? `<button type="button" class="rfp-a" data-ikn-open="${esc(r.contractId)}">${esc(i18t('ikn_open_go'))}</button>`
     : may ? `<button type="button" class="ui-btn ${sel ? 'ui-btn-primary ' : ''}ui-btn-sm ikn-go" data-ikn-draft="${esc(r.id)}">${esc(i18t('ikn_start'))}</button>` : '';
   const name = `<div class="cun-name">${esc(r.title || '')}</div>${r._adv ? `<div class="cun-sub">${esc(i18t('ikn_advice_w'))}</div>` : ''}${r.need ? `<div class="ikn-q">“${esc(String(r.need).slice(0, 120))}${String(r.need).length > 120 ? '…' : ''}”</div>` : ''}`;
