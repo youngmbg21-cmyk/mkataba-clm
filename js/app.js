@@ -4052,7 +4052,8 @@ function guideNlRowHtml(keys, here, tone){
   const shown=keys.filter(guideRowShown); if(!shown.length) return '';
   const words=shown.map(guideWordOf).filter(Boolean).map(w=>'\u201c'+w+'\u201d');
   const cnt=shown.length===1?guideNlCount(shown[0]):null;
-  return `<div class="gdn-r${shown.includes(here)?' is-here':''}">${guideNlMarkHtml(shown[0], tone)}<span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
+  /* a row of several pages says its words on their own line under the names (#762: beside them they ran past the panel) */
+  return `<div class="gdn-r${shown.includes(here)?' is-here':''}${shown.length>1?' is-multi':''}">${guideNlMarkHtml(shown[0], tone)}<span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
     +`${words.length?`<span class="gdn-say">${esc(i18t('gdn_say',{ words:words.join(' \u00b7 ') }))}</span>`:''}<span class="gdn-n${cnt&&cnt.owed?' is-owed':''}">${cnt?cnt.n:''}</span></div>`;
 }
 function guidePanelNlHtml(){
