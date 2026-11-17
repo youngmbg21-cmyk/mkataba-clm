@@ -94,21 +94,22 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         kinds: rows.map(r => r.getAttribute('data-pd-nd-kind') || 'jw'),
         all: (el.querySelector('[data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount(),
         badge: (document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '' }; }, null, 10000);
-    check('1a Needs you is the dossier\'s card above Jambo read', !!nd && nd.before && /^Needs you \d+$/.test(nd.title), JSON.stringify(nd));
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1a "Needs you N" card above Jambo read */
     /* RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark (jamboFaceHtml's svg.jambo-mark), not the bird */
     /* RE-POINTED 23 Oct 2026 (the rest of Round A, as drawn): the one desk's own row — "Jambo read …" says whose it is, no face */
-    check('1b Jambo\'s prepared work on this contract is one of its rows, with his face (the ✦ mark)', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
-    check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1b Jambo's prepared work as a row of that card */
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1d that card's number is its rows */
     /* RETIRED 16 Nov 2026 (#762): 1e pinned the old-look Still owed card's head ("no all N of its own"); the new look's Dossier opens on one card, its headline, with no Still owed head at all */
     /* RE-POINTED 22 Oct 2026 (owner: "1, drawing"): the tab beside a paper carries this contract's Needs you number */
-    check('1f his tab carries the same number', !!nd && Number(nd.badge) === Number(nd.n), nd && (nd.badge + ' / ' + nd.n));
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1f the tab's number equals that card's (no card to equal; the tab's count is noted in BUGLOG) */
     await shot(page, 'jambos-panel-1440x780');
 
     console.log('\n2 · the two cards do not say it twice');
     /* RETIRED 16 Nov 2026 (#762): 2a pinned the old-look glance's owed-details GRID (#pd-og) beside Needs you here; in the new look the details are filled on the paper and in the form in the middle (owner, 11 Nov 2026), there is no grid on the Dossier */
 
     console.log('\n3 · a row\'s door, and the way back to Jambo');
-    if (await press('#pd-needs [data-pd-nd-jw]', '3a Jambo\'s work row')) {
+    /* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 3a pressed Jambo's work row in that card; the piece in the middle is measured by the-middle-verify */
+    if (false) {
       /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner: "When you press, you never leave dossier … everything
          needed comes to you"): the piece stands in the middle beside the Dossier, the paper's face kept;
          "‹ Paper" brings the paper back (the-middle-verify measures the rest) */
