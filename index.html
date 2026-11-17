@@ -18680,6 +18680,8 @@
   html.lg-new #ig-dock .pd2-fact{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--color-divider)}
   html.lg-new #ig-dock .pd2-l{color:var(--color-text)}
   html.lg-new #ig-dock .pd2-v{min-width:0;overflow-wrap:anywhere}
+  /* who else: names and addresses are never broken inside a word — one line, then "…" (the whole on its hover) (#762) */
+  html.lg-new #ig-dock .pd2-fact[data-pd2-fact="people"] .pd2-v{overflow-wrap:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new #ig-dock .pd2-s{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;text-align:right}
   html.lg-new #ig-dock .pd2-sgo{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--color-quiet);cursor:pointer}
   @media (hover:hover){ html.lg-new #ig-dock .pd2-sgo:hover{color:var(--accent-ink);text-decoration:underline} }

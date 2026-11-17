@@ -2691,7 +2691,7 @@ function renderMigration(o){
       .mig-page{padding:0 var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
       /* the shell's title strip, drawn in the page: the same 26px top, 40px edge, white ground and hairline under it */
       /* and what stands under it where it stood under the strip: the page's two gaps and the band are taken back */
-      .mig-own-head{flex:none;position:relative;z-index:1;padding:23px 40px 0;margin:0 10px -21px 0;background:var(--color-surface)}
+      .mig-own-head{flex:none;position:relative;z-index:1;padding:23px 40px 0;margin:0 0 -21px 0;background:var(--color-surface)}
       .mig-own-head .ctf-h{line-height:1.2}
       .mig-own-head .cun-head{margin:0;min-height:44px;box-sizing:border-box;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
       .mig-own-head .apn-acts:empty{display:none}
