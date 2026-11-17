@@ -78,9 +78,13 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const r = pane ? pane.getBoundingClientRect() : null;
     const mid = r ? document.elementFromPoint(r.left + r.width / 2, r.top + 60) : null;
     const lit = document.querySelector('.pw-tab[aria-selected="true"]');
-    const tools = document.querySelector('.pw-rl-tools');
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling 5: their page keeps round 8's
+       More): on the outside look the reading tools (the key, Compare wording, Focus) are not drawn on the page at
+       all — they sit in More's pop-up (.pol-pop-tools), closed until pressed. Still: none of them stands on Where we are. */
+    const tools = [...document.querySelectorAll('.pw-rl-tools, .pol-pop-tools')];
+    const seen = e => e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
     return { lit: lit ? lit.id : null, onTop: !!(mid && pane.contains(mid)),
-      toolsShown: tools ? getComputedStyle(tools).display !== 'none' : null,
+      toolsShown: tools.length ? tools.some(seen) : null,
       inert: !!(document.getElementById('pt-nego') || {}).inert,
       steps: document.querySelectorAll('#pt-where-pane .ds-j li').length,
       now: (document.querySelector('#pt-where-pane .ds-j li.is-now b') || {}).textContent || '' };

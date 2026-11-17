@@ -37,7 +37,10 @@ const AREAS = { you: ['name', 'email', 'lang', 'away', 'mydata', 'agents'], sec:
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new list's one switch is Push's, drawn only once
+       the browser can say on/off — GitHub's Chromium denies notifications by default ('blocked', no switch, so check 2
+       measured nothing). The reader here has allowed notifications, so the switch is drawn and measured. */
+    const page = await (await browser.newContext({ viewport: { width: 1440, height: 780 }, permissions: ['notifications'] })).newPage();
     page.on('pageerror', e => errors.push(String(e).slice(0, 180)));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.waitForSelector('#su-org', { timeout: 15000 });

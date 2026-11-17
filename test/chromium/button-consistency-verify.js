@@ -151,7 +151,8 @@ const HELPERS = `(() => {
          was): the stepper is the paper's instrument, not an act, and reads
          the hairline (--chip-edge); Open Negotiate keeps the accent edge. */
       return { want, hair: b.tok('--chip-edge'), rule: b.tok('--rule-strong'), field: b.tok('--field-line'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
-        nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), thFill: thStep ? getComputedStyle(thStep).backgroundColor : null,
+        nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), thFill: thStep ? getComputedStyle(thStep).backgroundColor : null, thEdgeW: thStep ? getComputedStyle(thStep).borderTopWidth : null,
+        black: (() => { const p = document.createElement('i'); p.style.background = 'var(--bar-black)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
         grey: (() => { const p = document.createElement('i'); p.style.background = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
         switchGone: !document.querySelector('[data-doc-read]') };
     }, negoEdge);
@@ -176,7 +177,10 @@ const HELPERS = `(() => {
     ok('3b and it is the light grey RULE, the strong hairline — not a text box\'s edge, not the ink',
       !!row.rule && row.want === row.rule && row.want !== row.accent && row.want !== row.field,
       `${row.want} vs --rule-strong ${row.rule} · --field-line ${row.field} · ink ${row.accent}`);
-    ok('3c the open row\'s Plain English takes the same face (the grey pill, no edge)', !!row.thStep && NONE.test(row.thStep) && row.thFill === row.grey, `step ${row.thStep} / ${row.thFill}`);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the open clause's Plain English is that
+       row's ONE filled press (index.html "the open clause: … its Plain English press filled", the black pill,
+       border 0) — one black per area, never an outlined control. Still no edge drawn; the fill is the black. */
+    ok('3c the open row\'s Plain English is the open clause\'s one filled press (the black pill, no edge drawn)', !!row.thStep && (NONE.test(row.thStep) || row.thEdgeW === '0px') && row.thFill === row.black, `step ${row.thStep} ${row.thEdgeW} / ${row.thFill} (want the black ${row.black})`);
 
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
        onto Negotiate lands on Jambo's Redlines face on Home, which has no
