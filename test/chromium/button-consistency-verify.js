@@ -254,16 +254,8 @@ const HELPERS = `(() => {
       night.switches.length === 0 && !night.dark && !!night.btn && NONE.test(night.btn) && night.btnFill === night.grey && night.want === night.rule,
       `switches ${night.switches.join(',') || 'none'} · dark ${night.dark} · button ${night.btn} / ${night.btnFill} · edge token ${night.want}`);
 
-    const wall = await page.evaluate(i => { try { openShareModal(getContract(i)); } catch (e) {} return i; }, id);
-    await page.waitForTimeout(1500); await load();
-    const field = await page.evaluate(() => { const b = window.__b;
-      const inp = [...document.querySelectorAll('#modal-root input[type=email], #modal-root input[type=text], #sh-email')].find(b.vis);
-      const out = { field: b.edge(inp), line: b.tok('--field-line'), btn: b.tok('--btn-edge') };
-      try { closeModal(); } catch (e) {}
-      return out; });
-    ok('3h [wall] a text box keeps its own stronger edge — it tells a reader where to type',
-      !!field.field && field.field === field.line && field.field !== field.btn, `box ${field.field} · --field-line ${field.line}`);
-    void wall;
+    /* RETIRED 17 Nov 2026 (#762, owner's pick on the drawings: "7 No outline"): 3h — a text box's stronger edge, measured
+       on the Send screen's step 1, whose Name and Email boxes are drawn with no outline on purpose (the plain letter) */
 
     /* ════════ 1. NO LABEL WRAPS ════════ */
     /* THE OWNER'S OWN SQUEEZE: three contract titles lengthened, so the
