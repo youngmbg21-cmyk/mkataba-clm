@@ -2483,6 +2483,22 @@ function stYouGo(key, focusSel){
   const ctl=f&&f.matches&&f.matches('button,input,a')?null:'button:not([aria-pressed="true"]),button,input';
   if(card && typeof landOn==='function') landOn(card,{ block:'nearest', focus:ctl||false });
   if(f && !ctl) try{ f.focus({preventScroll:true}); }catch(_){}
+  /* THE NEW LOOK'S LIST IS DRAWN AGAIN A MOMENT AFTER IT OPENS (#762: the light went with the old row): the row is asked
+     for again, bounded, and the landing put on the one that stands */
+  const stn=STN_OF[it.key]; if(!stn||typeof landOn!=='function') return;
+  let n=0, pressed=false; const off=()=>{ pressed=true; };
+  document.addEventListener('pointerdown',off,{ once:true, capture:true });
+  let held=0;
+  const stop=()=>document.removeEventListener('pointerdown',off,{ capture:true });
+  const again=()=>{
+    /* never past the reader: a press, another page, or another landing ends it */
+    if(pressed||state.view!=='team'||settingsTab()!=='you'){ stop(); return; }
+    const other=document.querySelector('.is-landed:not([data-stn-row])'); if(other){ stop(); return; }
+    const row=document.querySelector(`#stn-main [data-stn-row="${stn}"]`);
+    if(row&&row.classList.contains('is-landed')){ if(++held>=4){ stop(); return; } }
+    else if(row){ held=0; landOn(row,{ block:'nearest', focus:ctl||false }); }
+    if(++n<24) setTimeout(again,60); else stop(); };
+  setTimeout(again,30);
 }
 /* a You card redrawn where it stands after its form wrote (THE SETTINGS PAGE
    HOLDS STILL); a form open in one of its rows is drawn open again */
@@ -9030,7 +9046,8 @@ function stPagePaint(admin){
      by scope), and "‹ Settings" on the page is the way back */
   const sub=(admin&&face==='company'&&_stPage)?_stPage:'';
   /* THE NEW LOOK (round 7, as drawn): one list of sentences; the pages inside Settings (People & roles, Streams…) stay as they are */
-  if(!_stPage && typeof stnOn==='function' && stnOn()){ stnPaint(admin); return; }
+  /* the new look's list takes a door's panel too (a person, a role…), consumed once as below (#762: it was never opened) */
+  if(!_stPage && typeof stnOn==='function' && stnOn()){ stnPaint(admin); if(admin && _stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); } return; }
   /* a docked drawer lives in the page: it is lifted out before the page is
      drawn again, and put back after (stDockPaint) — nothing typed is lost */
   { const dr=document.getElementById('st-drawer');

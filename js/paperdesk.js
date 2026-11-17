@@ -6393,6 +6393,13 @@ function pdOgLand(id, key){
   const go = () => {
     const want = _pdOgLand; if (!want) return;
     const host = pdOgHost();
+    /* THE NEW LOOK'S DOSSIER DRAWS NO GRID (#762: Jambo's "what is owed" opened the Dossier and stopped): once the paper is
+       the wanted contract's, the form is asked for in the middle, and the landing tries again on it */
+    if (!host && !['signers', 'people', 'web'].includes(want.key)){
+      const c = pdContract();
+      if (c && String(c.id) === want.id){ let rows = []; try { rows = pdFormRows(c); } catch (_){ rows = []; }
+        if (rows.length && (!want.key || rows.some(f => String(f.key) === want.key))) pdFormOpen(want.id); }
+    }
     /* FILL IN THE CONTRACT: the Dossier came up first (the paper was opened on the way) — the form is asked for, then
        the landing tries again on it */
     if (host && host.getAttribute('data-pd-og-for') === want.id && host.classList.contains('is-dossier')
