@@ -123,7 +123,9 @@ const ID = 'MK-DBJ1';
     check('4a "take me to my settings for jambo" lands on Jambo\'s own settings row', r1 === 'st-you-work' || r1 === 'stn-agents', String(r1));
     await page.screenshot({ path: path.join(OUT, 'jambo-settings-1440x780.png') });
     const r2 = await ask('take me to jambo points');
-    check('4b "take me to jambo points" lands on Jambo\'s points', r2 === 'st-you-points', String(r2));
+    /* RE-POINTED 17 Nov 2026 (#762): the new Settings list keeps Jambo's points with his agents (#stn-agents, whose door is
+       the house where Change points stands) */
+    check('4b "take me to jambo points" lands on Jambo\'s points', r2 === 'st-you-points' || r2 === 'stn-agents', String(r2));
     const r3 = await ask('take me to the language settings');
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new Settings is one list (stnPaint); its Language row is #stn-lang */
     check('4c without his name, "the language settings" stays Language', r3 === 'st-you-lang' || r3 === 'stn-lang', String(r3));

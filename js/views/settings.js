@@ -2469,7 +2469,8 @@ function stYouGo(key, focusSel){
   const it=stYouItem(key); if(!it) return;
   if(settingsTab()!=='you' || _stPage){ _stTab='you'; _stPage=null; renderTeam(); }
   /* the new look's one list has a ROW where the old look had a You card (16 Nov 2026, #762): land on it */
-  const STN_OF={ lang:'lang', who:'name', away:'away', safety:'twostep', told:'push', data:'mydata', work:'agents' };
+  /* Jambo's points are kept with his agents in the new look (the house's Change points): their door lands on that row (#762) */
+  const STN_OF={ lang:'lang', who:'name', away:'away', safety:'twostep', told:'push', data:'mydata', work:'agents', points:'agents' };
   const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`)||(STN_OF[it.key]?document.querySelector(`#stn-main [data-stn-row="${STN_OF[it.key]}"]`):null);
   /* LAND ON IT (owner, 18 Oct 2026): a form that opens in its row lands on
      its box; otherwise on the card, its control readied (the one lander) */
