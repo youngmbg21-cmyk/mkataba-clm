@@ -39,7 +39,7 @@ test('f1069 (1) the builder draws the week, the face and the crew', () => {
 test('f1069 (2) the four panels say the five parts in the new look, as before in the old', () => {
   const cal = read('js/views/calendar.js');
   assert.match(strip(cal), /jamboOverviewHtml\(\(typeof window\.newLookOn==='function'&&newLookOn\(\)\)\?calOverviewFive\(off\):\{/, "Calendar's panel");
-  const lib = region(read('js/views/library.js'), 'function tplnPanelHtml(card){', 'if (typeof document');
+  const lib = region(read('js/views/library.js'), 'function tplnPanelHtml(card, opts){', 'if (typeof document'); /* RE-POINTED 17 Nov 2026 (Shelves, then the Legora way): the panel takes opts (Open the paper while the list is up) */
   assert.match(lib, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\s*return `<div class="jl-words is-ov">\$\{jamboOverviewHtml\(tplnPanelFive\(/, "Our paper's panel");
   const dir = region(read('js/views/directory.js'), 'function dirnPanelHtml(p){', 'if (typeof document');
   assert.match(dir, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\{[\s\S]*dirnPanelFive\(p, sub, w, away\)/, "People's panel");

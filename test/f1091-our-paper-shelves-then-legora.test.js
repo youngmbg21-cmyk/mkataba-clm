@@ -1,0 +1,85 @@
+/* f1091 · OUR PAPER: SHELVES, THEN THE LEGORA WAY (owner's pick by prototype, 17 Nov 2026: "I LIKE the shelves landing
+   page but the rest is legora"; "make the search filter to be above the kpi cards and similar to this" (Contracts);
+   "both pages should have a similar looking filter"; "build it").
+   (1) three steps in the new look: Shelves, a folder's list, the paper — the step decides what tplnHtml draws
+   (2) Shelves: the filter line, then four figures (each the list it counts), then a coloured shelf per folder
+   (3) the folder's list: the same filter line, one counted sentence, the chips, the quoted rows (grouped under All)
+   (4) a row press chooses, a second opens; the head says the step with the way back above it; Esc goes back one step
+   (5) the doors that led to the Templates table open the list; a refresh keeps the step, the folder and the words
+   (6) Jambo's panel speaks for the step; the drawn parts in HaTi's sheet; every word in both books
+   AT THE PARENT every test here fails. */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
+const L = strip(read('js/views/library.js'));
+const H = read('index.html');
+const body = name => { const at = L.search(new RegExp('\\nfunction ' + name + '\\(')); assert.ok(at >= 0, name + ' exists'); const nx = L.slice(at + 10).search(/\n(?:function |if \(typeof document)/); return L.slice(at, nx < 0 ? undefined : at + 10 + nx); };
+
+test('f1091 (1) the step decides what the book draws, in the new look only', () => {
+  assert.match(L, /const _tplPf = \{.*view:'shelves', lf:'' \};/);
+  assert.match(body('tplnOn'), /newLookOn\(\) && tplListIns\(\)/);
+  const h = body('tplnHtml');
+  assert.match(h, /if \(tplnView\(\) === 'paper'\)\{ const x = tplnPicked\(rows\); if \(x\) return tplnPaperHtml\(x\); _tplPf\.view = 'list'; \}/, 'the paper only once one is chosen');
+  assert.match(h, /if \(tplnView\(\) === 'list'\) return tplnListHtml\(rows\);\s*return tplnShelvesHtml\(rows\);/);
+});
+
+test('f1091 (2) Shelves: the filter line, four figures that open what they count, a shelf per folder', () => {
+  const s = body('tplnShelvesHtml');
+  assert.match(s, /\$\{tplnFilterLineHtml\(rows, shelves\)\}<div class="tpln5-figs">\$\{figs\}<\/div><div class="tpln5-shelves">/, 'the filter above the figures, the shelves under them');
+  for (const a of ['data-tpln-view="list"', 'data-tpln-ready', 'data-tpln-ids="used"', 'data-tpln-ids="changed"']) assert.ok(s.includes(a), a);
+  assert.match(s, /' disabled'/, 'a 0 is no door');
+  assert.match(s, /data-tpln-shelf="\$\{_tplEsc\(sh\.fid\)\}" style="--sb:var\(--st-\$\{tone\}-bg\);--sd:var\(--st-\$\{tone\}-dot\)"/, 'the shelf in its folder\'s colour');
+  const f = body('tplnFilterLineHtml');
+  assert.match(f, /<input type="search" data-tpln-q[^>]*placeholder="\$\{_tplEsc\(i18t\('lh_filter_ph'\)\)\}"/, 'Filter this list, as Contracts');
+  assert.match(f, /data-tpln-view="shelves"[\s\S]*data-tpln-view="list"/, 'Shelves · All at its right');
+  assert.match(body('tplnFigs'), /usedIds[\s\S]*st\.ids/, 'the figures count the tally\'s own contracts');
+  assert.match(L, /return \{ used:recent\.length, usedIds:recent\.map\(c => c\.id\), checked/);
+});
+
+test('f1091 (3) the folder\'s list, the Legora way: the same filter, a counted sentence, the chips, the quoted rows', () => {
+  const l = body('tplnListHtml');
+  assert.match(l, /\$\{tplnFilterLineHtml\(rows, shelves\)\}<p class="tpln5-say">\$\{tplnSayHtml\(shown, shelves\)\}<\/p>/);
+  assert.match(l, /tplnChipsHtml\(rows\.map\(x => x\.c\)\)/);
+  assert.match(l, /_tplPf\.ls \? '' : `<div class="tpln5-glab" data-tpln-glab>/, 'grouped by folder under All');
+  assert.match(l, /tplnRowHtml\(x\.c, x\.last\.cs\.length, tplPfKey\(x\.c\) === pick\)/);
+  assert.match(body('tplnFilter'), /\[data-tpln-glab\][\s\S]*g\.hidden = !any/, 'a folder\'s label steps aside when none of its rows stands');
+});
+
+test('f1091 (4) a row chooses, a second press opens; the head says the step; Esc goes back one step', () => {
+  const c = body('tplnChoose');
+  assert.match(c, /if \(_tplPf\.pick === k && tplnView\(\) === 'list'\)\{ _tplPf\.view = 'paper'; \}/);
+  assert.match(L, /if\(tplnOn\(\)\)\{ tplnChoose\(k\); return; \}/, 'the book\'s row press');
+  const hd = body('tplnHeadHtml');
+  assert.match(hd, /data-tpln-back>(?:\\u2039|\u2039)/, 'the way back above the title');
+  assert.match(hd, /data-paper-tab="standards"/, 'Our standards, its own page');
+  assert.match(body('tplnBack'), /if \(tplnView\(\) === 'paper'\) _tplPf\.view = 'list';/);
+  assert.match(L, /e\.key !== 'Escape'[\s\S]{0,200}tplnView\(\) === 'shelves'[\s\S]{0,400}tplnBack\(\);/);
+  assert.match(L, /const hd=document\.querySelector\('\[data-tpln-head\]'\); if\(hd&&tplnOn\(\)\)\{ hd\.innerHTML=tplnHeadHtml\(tplnRowsNow\(\)\);/, 'the head is drawn with the book');
+});
+
+test('f1091 (5) the table\'s doors open the list; a refresh keeps the step, the folder and the words', () => {
+  assert.match(L, /if\(k==='list'&&tplnOn\(\)\)\{ _tplPf\.view='list';/);
+  assert.match(L, /function tplGoList\(name\)\{\n  if\(tplnOn\(\)\)\{ _tplPf\.view='list';[^\n]*_tplPf\.lq=String\(name\|\|''\)/);
+  assert.match(L, /if\(tplnOn\(\)\)\{ _tplPf\.view='list'; _tplPf\.ls=k\.startsWith\('stream:'\)\?k\.slice\(7\):''/);
+  assert.match(L, /view:tplnView\(\), ls:String\(_tplPf\.ls\|\|''\), lq:String\(_tplPf\.lq\|\|''\)/);
+  assert.match(L, /if\(p&&\['shelves','list','paper'\]\.includes\(p\.view\)\) _tplPf\.view=p\.view;/);
+  assert.match(L, /typing on Shelves|tplnView\(\) === 'shelves' && _tplPf\.lq\.trim\(\)\)\{ _tplPf\.view = 'list';/, 'typing on Shelves opens the list with the words kept');
+});
+
+test('f1091 (6) the panel speaks for the step; the drawn parts; both books', () => {
+  const p = body('tplnPanelBody');
+  assert.match(p, /tplnPanelHtml\(pick\.c, \{ open:v === 'list' \}\)/, 'the chosen paper, with Open the paper while the list is up');
+  assert.match(p, /sh \? tplnShelfFive\(sh\) : tplnBookFive\(rows\)/);
+  assert.match(L, /const P = tplnPanelBody\(\); insPaintPanel/);
+  for (const r of [/html\.lg-new \.tpl-page\.is-tpln5 \.ph-top\{border-bottom:0/, /html\.lg-new \.tpln5-box\{flex:1;[^}]*border-bottom:1px solid var\(--color-divider\)/,
+    /html\.lg-new \.tpln5-figs\{display:grid;grid-template-columns:repeat\(4,/, /html\.lg-new \.tpln5-shelves\{display:grid;grid-template-columns:repeat\(3,/,
+    /html\.lg-new \.tpln5-shelf\{[^}]*background:var\(--sb\)/, /html\.lg-new \.tpln5\.is-paper\{display:grid;grid-template-columns:max-content/]) assert.match(H, r);
+  const I = read('js/i18n.js'), sv = I.search(/\n {2}sv\s*:\s*\{/), EN = I.slice(0, sv), SV = I.slice(sv);
+  const keys = new Set([...read('js/views/library.js').matchAll(/['"](tpln5_[a-z0-9_]+)['"]/g)].map(m => m[1]));
+  assert.ok(keys.size >= 30, 'found ' + keys.size);
+  const has = (b, k) => new RegExp('\\b' + k + '(?:_one|_other)?:').test(b);
+  assert.deepEqual([...keys].filter(k => !has(EN, k) || !has(SV, k)), []);
+});
