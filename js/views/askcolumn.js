@@ -1082,6 +1082,8 @@ function askColFormDrawnHtml(f){
 /* A COLUMN'S CARD AS DRAWN (owner, 8 Nov 2026, the drawing's step 4): ‹ Overview; the question, how far it is read and
    when; ANSWERS — the coloured bar, then each answer with its count and Show (the list narrows to those contracts);
    THIS COLUMN — what is not read yet with Read the rest, and Remove column (the answers are kept either way). */
+/* a COUNTING question says its count under the question, "5 of 16 mention a rebate · Show those 5" (askColCountLineHtml),
+   as the older cards did (#762) */
 function askColDoneDrawnHtml(askId){
   const a = AC.asks[askId] || {}, p = askColPlan({ askId }), s = askColStats(askId), rows = askColGroupRows(askId), may = askColMay();
   const cap = t => `<div class="rfp-cap">${_acE(t)}</div>`;
@@ -1091,7 +1093,7 @@ function askColDoneDrawnHtml(askId){
   const nx = p.unread && may ? row(_acE(_acT('ac_nl_unread')), `<button type="button" class="rfp-a" data-ac-next="${_acE(askId)}" data-ac-n="${Math.min(p.unread, AC_SIZES[AC_SIZES.length - 1])}">${_acE(_acT('ac_nl_read_rest'))}</button>`, _acT('ac_nl_unread_n', { n: p.unread })) : '';
   const rm = row(_acE(_acT('ac_nl_on_list')), `<button type="button" class="rfp-a" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_nl_remove'))}</button>`, _acT('ac_nl_kept'));
   return `<div class="rfp-panel is-drawn ac-nl-done" data-ac-col="${_acE(askId)}"><button type="button" class="rfp-a ac-nl-back" data-ac-colback>${_acE(_acT('ac_nl_back'))}</button>
-    <p class="ac-nl-q">${_acE(a.question || a.name || '')}</p><p class="ac-nl-hint">${_acE(sub)}</p>
+    <p class="ac-nl-q">${_acE(a.question || a.name || '')}</p><p class="ac-nl-hint">${_acE(sub)}</p>${askColCountLineHtml(askId)}
     ${rows.length ? cap(_acT('ac_nl_answers')) + askColGroupBarHtml(askId, rows, p.shown, 'ac-nl-bar') + ans : ''}
     ${cap(_acT('ac_nl_this_col'))}${nx}${rm}</div>`;
 }
