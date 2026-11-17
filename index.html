@@ -20489,7 +20489,10 @@
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > #pt-nego{grid-column:1;grid-row:1;min-height:0}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--color-divider);background:var(--color-surface)}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-foot{grid-column:1;grid-row:2;display:flex;align-items:center;gap:8px;min-height:60px;padding:0 24px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
-  @media (max-width:1499px){ html.lg-out #pw-page{--pol-side-w:340px} }
+  /* THEIR PAGE AND OURS MATCH (owner's pick on the drawings, 17 Nov 2026: "8 Make them match"): the changes column is our
+     Negotiate page's 460 (.rl-grid) plus the side's own 16px padding each side and its hairline, so the paper and the list
+     take the same widths on both seats */
+  html.lg-out #pw-page{--pol-side-w:493px}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-id{padding-right:calc(var(--pol-side-w,384px) + 24px)}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{position:relative;z-index:2;margin-top:-57px}
   html.lg-out #pw-page #pt-nego #rl-cp,html.lg-out #pw-page #pt-nego #rl-resizer{display:none}
