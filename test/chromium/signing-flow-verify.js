@@ -142,18 +142,29 @@ const check = (name, pass, detail) => {
     setup.headLabel = await roomHead();
     check('5a  the head\'s Sign carries the same count', /1 to settle/.test(setup.headLabel), setup.headLabel);
 
-    /* 1 · the held button is a door onto the first held row */
-    await page.click('#sign-btn');
-    await page.waitForTimeout(500);
-    const landed = await page.evaluate(() => {
-      const row = document.querySelector('#sign-check .sc-find.is-hold');
-      const r = row && row.getBoundingClientRect();
-      return { flash: !!(row && row.classList.contains('anchor-flash')), inView: !!(r && r.top >= 0 && r.bottom <= window.innerHeight) };
-    });
-    check('1e  pressing the held button lands on the first held row and lights it', landed.flash && landed.inView, JSON.stringify(landed));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 1e "pressing the held Sign lands on the first held row" — the held
+       Sign and its held rows are the old column's, folded away under the five parts; the five parts name what holds in
+       their list and the black button opens that check's own door. */
+    /* RE-POINTED 17 Nov 2026 (#762; owner, 17 Nov 2026: "1 yes" — Ask a colleague and Accept with a reason brought
+       back on Before you sign): the escalated standard is NAMED in the five parts' list, PAINTED, with its two presses;
+       the ordinary departure holds nothing and gets no row of its own. */
+    const painted = sel => { const el = document.querySelector(sel); if (!el) return false; const r = el.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return false; const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!(hit && (hit === el || el.contains(hit))); };
+    await page.waitForFunction(() => !!document.querySelector('.pd2-sg.is-five'), null, { timeout: 8000 }).catch(() => {});
+    const face = await page.evaluate(ps => { const painted = eval(ps);
+      const std = [...document.querySelectorAll('.pd2-sg .pd2-sg-std')].map(r => r.textContent.replace(/\s+/g, ' ').trim());
+      const esc = document.querySelector('.pd2-sg [data-pd2-sc-esc="0"]'); if (esc) esc.scrollIntoView({ block: 'center' });
+      return { std, ask: painted('.pd2-sg [data-pd2-sc-esc="0"]'), acc: painted('.pd2-sg [data-pd2-sc-acc="0"]'),
+        sign: !!document.querySelector('.pd2-sg [data-pd2-sign]') }; }, '(' + painted.toString() + ')');
+    check('1b\u2032 the five parts name the escalated standard, painted, with Ask a colleague',
+      face.std.length === 1 && /Governing law/.test(face.std[0]) && face.ask, JSON.stringify(face));
+    check('1c\u2032 the ordinary departure holds nothing: no row of its own, and Sign is not offered while one holds',
+      !face.std.some(t => /Payment terms/.test(t)) && !face.sign, JSON.stringify(face));
 
     /* 2 · Ask a colleague, through the real dialog */
-    await page.click('#sign-check [data-sc-escalate]');
+    /* RE-POINTED 17 Nov 2026 (#762): pressed on the five parts' row, where a person sees it */
+    await page.click('.pd2-sg [data-pd2-sc-esc="0"]');
     await page.waitForTimeout(400);
     const dlg = await page.evaluate(id => {
       const sel = document.getElementById('sc-esc-who'); if (!sel) return { there: false };
@@ -166,11 +177,13 @@ const check = (name, pass, detail) => {
     const asked = await page.evaluate(() => {
       const c = getContract('MK-A2'); const v = c.playbook.verdicts[0];
       const b = document.getElementById('sign-btn');
-      return { to: v.escalation && v.escalation.to && v.escalation.to.name, label: b && b.textContent.replace(/\s+/g, ' ').trim(),
-        line: (document.querySelector('#sign-check .sc-find.is-hold .sc-find-w') || {}).textContent || '', modal: !!document.getElementById('sc-esc-who') };
+      /* RE-POINTED 17 Nov 2026 (#762): the row that still holds is the five parts' own, and its press now says Ask again */
+      const row = document.querySelector('.pd2-sg .pd2-sg-std');
+      return { to: v.escalation && v.escalation.to && v.escalation.to.name, n: signReadiness(c).n, label: b && b.textContent.replace(/\s+/g, ' ').trim(),
+        line: row ? row.textContent.replace(/\s+/g, ' ').trim() : '', modal: !!document.getElementById('sc-esc-who') };
     });
     check('2b  the ask is stamped on the verdict, the dialog is gone, and the row still holds',
-      asked.to === 'Unrestricted Legal' && !asked.modal && /1 to settle/.test(asked.label) && /Asked Unrestricted Legal/.test(asked.line), JSON.stringify(asked));
+      asked.to === 'Unrestricted Legal' && !asked.modal && asked.n === 1 && /Governing law/.test(asked.line) && /Ask again/.test(asked.line), JSON.stringify(asked));
     /* THE COLLEAGUE'S TURN, and the wall: the signer cannot accept it; the
        server refuses a signature over it even if the browser were bypassed. */
     const wall = await W.admin.json('/api/contracts/MK-A2').then(async seen => {
@@ -179,9 +192,10 @@ const check = (name, pass, detail) => {
       catch (e) { return String(e.message || e); } });
     check('2c  the server refuses a signature over the open escalation', /escalated departure/i.test(wall), wall.slice(0, 90));
     /* An admin (the person at this screen) may accept it with a reason. */
-    const acceptBtn = await page.$('#sign-check [data-sc-accept="0"]');
-    check('2d  an admin is offered Accept with a reason on the escalated row', !!acceptBtn);
-    await acceptBtn.click();
+    /* RE-POINTED 17 Nov 2026 (#762): Accept with a reason on the five parts' row, painted */
+    const accOk = await page.evaluate(ps => eval(ps)('.pd2-sg [data-pd2-sc-acc="0"]'), '(' + painted.toString() + ')');
+    check('2d  an admin is offered Accept with a reason on the escalated row', accOk);
+    if (accOk) await page.click('.pd2-sg [data-pd2-sc-acc="0"]');
     await page.waitForTimeout(400);
     await page.fill('#pd-input', 'Kenyan law is acceptable for this supplier; Legal agreed.');
     await page.click('#pd-ok');
@@ -190,17 +204,25 @@ const check = (name, pass, detail) => {
       const c = getContract('MK-A2'); const v = c.playbook.verdicts[0];
       const b = document.getElementById('sign-btn'); const head = document.getElementById('ws-next-action');
       return { role: v.accepted && v.accepted.role, label: b && b.textContent.replace(/\s+/g, ' ').trim(), title: b && b.title,
-        headLabel: head ? head.textContent.replace(/\s+/g, ' ').trim() : '', n: signReadiness(c).n, settled: document.querySelectorAll('#sign-check [data-sc-fold]').length };
+        headLabel: head ? head.textContent.replace(/\s+/g, ' ').trim() : '', n: signReadiness(c).n,
+        /* RE-POINTED 17 Nov 2026 (#762): read on the five parts — the held row is gone, the standards row says it was
+           accepted with a note, and the card offers Sign */
+        stdRows: document.querySelectorAll('.pd2-sg .pd2-sg-std').length, sign: !!document.querySelector('.pd2-sg [data-pd2-sign]'),
+        said: (document.querySelector('.pd2-sg') || {}).textContent || '' };
     });
-    check('3a  accepted by the admin, nothing holds: the button reads "Sign — 1 noted" and names the row on the hover',
-      after.role === 'admin' && after.n === 0 && /^Sign — 1 noted/.test(after.label || '') && /Payment terms/.test(after.title || ''), `${after.label} · ${after.title}`);
-    check('3b  the settled row folds under its count', after.settled === 1);
+    check('3a  accepted by the admin, nothing holds: the five parts offer Sign',
+      after.role === 'admin' && after.n === 0 && after.sign, JSON.stringify({ role: after.role, n: after.n, sign: after.sign }));
+    /* RETIRED 17 Nov 2026 (#762): "Sign — 1 noted" with the row on the hover, and the settled row folding under its
+       count, were the old column's Sign and card; the five parts say the acceptance on the standards row instead (3b′). */
+    check('3b\u2032 the settled standard leaves the held rows, and the standards row says it was accepted with a note',
+      after.stdRows === 0 && /accepted with a note/.test(after.said), after.said.replace(/\s+/g, ' ').slice(0, 200));
     /* RE-POINTED 14 Oct 2026 (stage 5): read in the room, as 5a above. */
     after.headLabel = await roomHead();
     check('5b  the head\'s Sign no longer carries a count', after.headLabel === 'Sign', after.headLabel);
 
-    /* 4 · the pad, and its first line */
-    await page.click('#sign-btn');
+    /* 4 · the pad, and its first line — RE-POINTED 17 Nov 2026 (#762): the five parts' Sign is the press */
+    await page.waitForFunction(() => !!document.querySelector('.pd2-sg [data-pd2-sign]'), null, { timeout: 8000 }).catch(() => {});
+    await page.click('.pd2-sg [data-pd2-sign]', { timeout: 8000 });
     await page.waitForTimeout(700);
     const pad = await page.evaluate(() => ({ there: !!document.getElementById('sig-pad'), intent: !!document.getElementById('sig-intent'),
       first: (() => { const p = document.getElementById('sig-pad'); const row = p && document.getElementById('sig-intent-row'); const go = p && document.getElementById('sig-adopt-go');
@@ -296,9 +318,9 @@ const check = (name, pass, detail) => {
         check('6a THE REPORT: the three readings are on the list before any signer is named',
           has('brief') && has('standards-read') && has('obligations'),
           JSON.stringify(a6.kinds));
-        check('6b and so is the one press that answers them, on the readings\' own stage',
-          a6.run && a6.runOn && a6.runStage === 'read',
-          `drawn ${a6.run} · visible ${a6.runOn} · stage ${a6.runStage}`);
+        /* RETIRED 17 Nov 2026 (#762, owner's ruling — the old road column under the five parts stays gone): 6b "the one
+           Run all press, painted on the readings' stage" — that press lived in the old column's check card; the five parts
+           give each open check its own door (the black button). The readings still being LISTED (6a) is kept. */
         check('6c every stage drawn carries its own question',
           a6.stages.length >= 2 && a6.stages.every(s => s.heading.trim().length > 0),
           a6.stages.map(s => `${s.stage}: ${s.heading}`).join(' · '));
@@ -356,52 +378,9 @@ const check = (name, pass, detail) => {
        MEASURED, because the fault was a measurement: the control read as part
        of the label beside it. So this compares the two against each other
        rather than typing a number — the claim is a RELATION. */
-    {
-      const b7 = await page.evaluate(() => {
-        const b = document.getElementById('sc-run');
-        if (!b) return { drawn: false };
-        const cs = getComputedStyle(b), r = b.getBoundingClientRect();
-        const t = b.closest('.sc-stage-h') ? b.closest('.sc-stage-h').querySelector('.sc-stage-t') : null;
-        const ts = t ? getComputedStyle(t) : null;
-        return { drawn: r.width > 0 && r.height > 0,
-          h: Math.round(r.height), label: b.textContent.replace(/\s+/g, ' ').trim(),
-          border: cs.borderTopWidth, bg: cs.backgroundColor, weight: cs.fontWeight,
-          glyph: !!b.querySelector('svg'),
-          glyphBox: (() => { const g = b.querySelector('svg');
-            if (!g || !g.getBBox) return null;
-            try { const bb = g.getBBox(); return Math.round(bb.width) + 'x' + Math.round(bb.height); }
-            catch (_) { return null; } })(),
-          headingWeight: ts ? ts.fontWeight : null, headingSize: ts ? ts.fontSize : null,
-          size: cs.fontSize };
-      });
-      check('7a the run control is drawn', b7.drawn === true, JSON.stringify(b7).slice(0, 160));
-      check('7b it is a BUTTON, not a bare word — it carries an edge',
-        b7.drawn && parseFloat(b7.border) >= 1, 'border ' + b7.border);
-      /* RE-POINTED 24 Oct 2026 (Round 3's run box / THE LEGORA LOOK: a control is a grey pill, so "not filled"
-         is measured against the filled fill itself, the theme's --accent-fill) */
-      const fill7 = await page.evaluate(() => { const d = document.createElement('span'); d.style.background = 'var(--accent-fill)'; document.body.appendChild(d);
-        const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
-      check('7c and it is NOT the filled one — Sign is this screen\'s filled button',
-        b7.drawn && b7.bg !== fill7, b7.bg + ' vs filled ' + fill7);
-      check('7d it stands on the product\'s own control rung, not the label\'s',
-        b7.drawn && b7.h >= 28, b7.h + 'px');
-      /* THE FAULT ITSELF: it used to share the heading's weight. */
-      check('7e it no longer wears the stage heading\'s weight',
-        b7.drawn && b7.weight !== b7.headingWeight,
-        `button ${b7.weight} · heading ${b7.headingWeight}`);
-      check('7f it carries the magnifier, and the symbol really paints',
-        b7.glyph === true && b7.glyphBox !== null && b7.glyphBox !== '0x0', String(b7.glyphBox));
-      /* AND IT SAYS WHAT THE PRESS COSTS, from the press's own reading. */
-      const n7 = await page.evaluate(() => {
-        try { const c = state.contracts.find(x => x.id === (window.state || {}).activeId) || null;
-          return c && window.signCheck && window.signCheckWillRun
-            ? signCheckWillRun(signCheck(c)).n : null; } catch (_) { return null; }
-      });
-      check('7g the label names a COUNT, and it is the press\'s own',
-        n7 === null || n7 === 0 ? /Run the check/i.test(b7.label || '')
-          : new RegExp('\\b' + n7 + '\\b').test(b7.label || ''),
-        `label "${b7.label}" · will run ${n7}`);
-    }
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling — the old road column under the five parts stays gone): 7a–7g measured
+       the old column's "Run all" button (its edge, weight, rung, magnifier and count). The five parts carry no Run all;
+       each open check has its own door. */
 
     /* ---- 8 · SAY OUT LOUD WHEN NOTHING IS IN THE WAY (upgrade 6) ----
        18 Sep 2026, and it is a RECEIPT: one line per rule that was actually
@@ -442,7 +421,9 @@ const check = (name, pass, detail) => {
           signBtn: (document.getElementById('sign-btn') || {}).textContent || '',
         };
       });
-      check('8a the card is drawn where NOTHING is owed', !r8.none && r8.painted, r8.lead);
+      /* RETIRED 17 Nov 2026 (#762, owner's ruling — the old road column under the five parts stays gone): 8a "the
+         nothing-owed receipt is PAINTED" — the receipt card sits in the folded old column; the five parts draw no approval
+         row where none is owed. 8b–8d (what the receipt reads) are kept. */
       check('8b one line per rule that was actually checked',
         (r8.keys || []).length >= 5 && ['value', 'folder', 'kind', 'foreignLaw', 'deviation'].every(k => (r8.keys || []).includes(k)),
         (r8.keys || []).join(' · '));

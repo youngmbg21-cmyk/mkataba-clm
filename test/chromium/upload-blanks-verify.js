@@ -566,6 +566,11 @@ const CONTRACT = (id, over) => Object.assign({
     /* RE-POINTED 17 Nov 2026 (#762, owner's "2 yes"): the way back is the five parts' card's own "We sign in HaTi instead" */
     const toOurs = await pressRoute('[data-pd2-ho-in]') || await pressRoute('[data-ho-route="inside"]');
     const route2 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).signRoute || 'inside');
+    /* RE-POINTED 17 Nov 2026 (#762): the way back is pressed on Before you sign, whose paper is the SIGNING copy; the
+       marks belong to the working copy, so the face is put away (its own close) before the room is read — as 9b's door
+       put it away before the trip out */
+    await page.evaluate(() => { if (typeof window.pdSignClose === 'function') try { window.pdSignClose(); } catch (_){} });
+    await page.waitForTimeout(600);
     await openRoom(page, up.id);
     const b9 = await page.evaluate(SEEN);
     check('9h CONTROL — switched back to HaTi\'s own signing, the panel returns with every box',

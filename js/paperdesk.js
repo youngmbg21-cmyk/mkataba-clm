@@ -5087,6 +5087,24 @@ function pd2FormMidOpen(c){
   try { pdGlanceRepaint(); } catch (_){}
   return true;
 }
+/* A FORM STANDING IN THE MIDDLE IS DRAWN AGAIN, IN PLACE, when what it reads moves under it — the signing route changed
+   (whose blanks they are) — never closed and opened again (17 Nov 2026, #762: it kept "theirs to fill" after
+   "We sign in HaTi instead") */
+function pd2FormMidRedraw(c){
+  if (!c || !pdMidUp('form:' + String(c.id))) return false;
+  const box = document.querySelector('[data-pd-mid] .pd2-fm-mid'); if (!box) return false;
+  const n = pdFormRows(c).filter(f => !f.read).length;
+  const H = pd2FormHeadHtml(c, n);
+  const t = document.createElement('div');
+  /* the title and the line under it stand in the page's head (dlgPageAdopt lifted them): only the body is drawn again */
+  t.innerHTML = pdFormHtml(c).replace(/<h3>[^<]*<\/h3>/, '');
+  box.innerHTML = t.innerHTML;
+  const under = document.getElementById('pd2-fm-under'); if (under){ const u = document.createElement('div'); u.innerHTML = H.under; if (u.firstElementChild) under.textContent = u.firstElementChild.textContent; }
+  try { pd2FormRegroup(c); } catch (_){}
+  pd2FormAskPh();
+  const host = box.querySelector('#pd-og.is-form'); if (host) pdOgPaint(host);
+  return true;
+}
 /* THE FORM AS DRAWN (the owner's answer, 31 Oct 2026): Arrive · Fill · Sign. The form's own rows (its boxes, its one Save)
    are moved into the three groups; the facts already known stand among them, read only, each with where it came from (the
    paper's sentence and its §, or "filed", or "the route"); the other side's signer is the existing signer box (its writer
@@ -7030,10 +7048,10 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       if (cc && found.length && typeof openObligationsReview === 'function') openObligationsReview(cc, found, () => { try { pdGlanceRepaint(); } catch (_){} });
       return; }
     const scE = t.closest('.pd2-sg [data-pd2-sc-esc]');
-    if (scE){ e.preventDefault(); const cc = full(); if (cc && typeof window.signCheckEscalate === 'function') window.signCheckEscalate(cc, Number(scE.getAttribute('data-pd2-sc-esc')), () => { try { pdGlanceRepaint(); } catch (_){} }); return; }
+    if (scE){ e.preventDefault(); const cc = full(); if (cc && typeof window.signCheckEscalate === 'function') window.signCheckEscalate(cc, Number(scE.getAttribute('data-pd2-sc-esc')), () => { try { pdGlanceRepaint(); } catch (_){} try { pdSignCounts(cc); } catch (_){} }); return; }
     const scA = t.closest('.pd2-sg [data-pd2-sc-acc]');
-    if (scA){ e.preventDefault(); const cc = full(); if (cc && typeof window.signCheckAccept === 'function') window.signCheckAccept(cc, Number(scA.getAttribute('data-pd2-sc-acc')), () => { try { pdGlanceRepaint(); } catch (_){} }); return; }
-    if (t.closest('.pd2-sg [data-pd2-ho-in]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.outsideSetRoute === 'function') Promise.resolve(window.outsideSetRoute(cc, 'inside')).then(() => { try { pdGlanceRepaint(); } catch (_){} }); return; }
+    if (scA){ e.preventDefault(); const cc = full(); if (cc && typeof window.signCheckAccept === 'function') window.signCheckAccept(cc, Number(scA.getAttribute('data-pd2-sc-acc')), () => { try { pdGlanceRepaint(); } catch (_){} try { pdSignCounts(cc); } catch (_){} }); return; }
+    if (t.closest('.pd2-sg [data-pd2-ho-in]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.outsideSetRoute === 'function') Promise.resolve(window.outsideSetRoute(cc, 'inside')).then(() => { try { pdGlanceRepaint(); } catch (_){} try { pdSignCounts(cc); } catch (_){} }); return; }
     if (t.closest('.pd2-sg [data-pd2-ho]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.hoActPress === 'function') window.hoActPress(cc); return; }
     if (t.closest('.pd2-sg [data-sa-ask]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.openSignApprovalDialog === 'function') window.openSignApprovalDialog(cc); return; }
     if (t.closest('[data-pd-ds-std]')){ e.preventDefault(); const cc = full(); if (cc && typeof openCheckPanel === 'function') openCheckPanel(cc, 'playbook'); return; }
@@ -9864,7 +9882,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 });
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
-Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
+Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });

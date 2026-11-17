@@ -191,6 +191,8 @@ async function outsideSetRoute(c, route, after){
   if (typeof persist === 'function') persist(c);
   if (typeof flushSaves === 'function'){ try { await flushSaves(); } catch (_) {} }
   if (typeof toast === 'function') toast(i18t(to === 'outside' ? 'ho_route_now_out' : 'ho_route_now_in', { no: contractRef(c) }), 'ok');
+  /* a Fill in form standing in the middle reads whose blanks they are: drawn again in place (#762) */
+  if (typeof window.pd2FormMidRedraw === 'function') { try { window.pd2FormMidRedraw(c); } catch (_) {} }
   if (typeof after === 'function') after(); else _hoRepaint(c);
   return true;
 }
