@@ -2610,7 +2610,9 @@ function pd2SignRowsHtml(c){
   const card = closed ? '' : saCard ? saCard : myRule
     ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_appr_wait'))}</b><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd-rd-rule="approved">${E(T((DEC.step && (DEC.step.status === 'rejected' || DEC.step.status === 'stale')) ? 'pd_rd_approve_again' : 'pd_rd_approve'))}</button><button type="button" class="ui-btn" data-pd-rd-rule="refused">${E(T('pd_rd_refuse'))}</button></div></div>`
     : HO
-    ? `<div class="pd2-sg-card${HO.primary ? '' : ' is-held'}"><div class="pd2-sg-acts"><button type="button" id="${HO.id}" class="ui-btn${HO.primary ? ' ui-btn-primary' : ''}" data-pd2-ho="${E(c.id)}">${E(HO.label)}</button><span>${E(HO.line)}</span></div></div>`
+    ? `<div class="pd2-sg-card${HO.primary ? '' : ' is-held'}"><div class="pd2-sg-acts"><button type="button" id="${HO.id}" class="ui-btn${HO.primary ? ' ui-btn-primary' : ''}" data-pd2-ho="${E(c.id)}">${E(HO.label)}</button><span>${E(HO.line)}</span></div>${
+      /* the way back to signing in HaTi (owner, 17 Nov 2026: "2 yes"), the route card's own press, while the route may change */
+      (typeof window.outsideMayChangeRoute === 'function' && window.outsideMayChangeRoute(c)) ? `<p class="pd2-sg-back"><button type="button" class="ui-link" data-pd2-ho-in="${E(c.id)}">${E(T('ho_route_change_in'))}</button></p>` : ''}</div>`
     : !holds.length && mineNow
     ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_clear'))}</b><p>${E(T('pd2_sg_clear_s'))}</p><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd2-sign>${E(T('apn_sign'))}</button><button type="button" class="ui-btn" data-pd2-sign-read>${E(T('pd2_sg_read'))}</button><span>${E(T('pd2_sg_no_call'))}</span></div></div>`
     /* SAID ONCE (the harmony review, owner's yes 9 Nov 2026): the list above already names what holds the signature, so
@@ -2633,7 +2635,21 @@ function pd2SignRowsHtml(c){
     /* the approval's own Send for approval leads when it can be asked now: it is what holds the signature (#762) */
     const first = (closed || HO || myRule || saCard || !holds.length) ? null : (saGo && checks.find(m => m.go === saGo)) || checks.find(m => (m.st === 'now') && m.go);
     const go = first ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go pd2-sg-go" ${first.go.attr}>${E(T(first.go.w))}</button>` : card;
-    return `<div class="pd2-sg is-five">${head}${bar}<p class="pd2-sg-l">${E(T('jov5_sg_checks'))}</p><div class="pd2-sg-g">${rows.slice(0, -1).join('')}</div>`
+    /* A STANDARD THAT HOLDS THE SIGNATURE CARRIES ITS OWN WAY ON (owner, 17 Nov 2026: "1 yes"): each differing standard
+       named, with Ask a colleague and Accept with a reason — the sign check's own two acts (signCheckEscalate,
+       signCheckAccept), never a dead end */
+    let stdHold = '';
+    try { if (!closed && typeof window.signReadiness === 'function'){
+      const meU = (typeof currentUser === 'function' && currentUser()) || null;
+      const vs = (c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+      const hold = ((window.signReadiness(c) || {}).rows || []).filter(r => r && r.kind === 'standard' && r.holds && !r.settled);
+      stdHold = hold.map(r => { const v = vs[r.i] || {};
+        const mayAcc = typeof window.signCheckMayAccept === 'function' ? window.signCheckMayAccept(c, v, meU) : !r.escalate;
+        const acts = [r.escalate ? `<button type="button" class="ui-btn ui-btn-sm" data-pd2-sc-esc="${r.i}">${E(T(r.escalation ? 'sc_ask_again' : 'sc_ask_colleague'))}</button>` : '',
+          mayAcc ? `<button type="button" class="ui-btn ui-btn-sm" data-pd2-sc-acc="${r.i}">${E(T('sc_accept_btn'))}</button>` : ''].filter(Boolean).join('');
+        return acts ? `<div class="pd2-sg-r is-now pd2-sg-std"><i class="pd2-sg-i" aria-hidden="true"></i><div><b>${E(String(v.category || T('pd2_sg_std_open')))}</b><div class="pd2-sg-acts">${acts}</div></div></div>` : ''; }).join('');
+    } } catch (_){ stdHold = ''; }
+    return `<div class="pd2-sg is-five">${head}${bar}<p class="pd2-sg-l">${E(T('jov5_sg_checks'))}</p><div class="pd2-sg-g">${rows.slice(0, -1).join('')}${stdHold}</div>`
       + `<p class="pd2-sg-l">${E(T('jov5_sg_then'))}</p><div class="pd2-sg-g"><div class="pd2-sg-r is-${meta[meta.length - 1].st}"><i class="pd2-sg-i" aria-hidden="true">${closed && !cpHeld ? '\u2713' : ''}</i><div><b>${E(thenWords)}</b>${cpWho ? `<small>${E(cpWho)}</small>` : ''}</div></div></div>${go}</div>`;
   }
   return `<div class="pd2-sg">${rows.join('')}${card}</div>`;
@@ -7013,6 +7029,11 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       let found = []; try { found = (cc && typeof triageHeldObligations === 'function') ? triageHeldObligations(cc) : []; } catch (_){ found = []; }
       if (cc && found.length && typeof openObligationsReview === 'function') openObligationsReview(cc, found, () => { try { pdGlanceRepaint(); } catch (_){} });
       return; }
+    const scE = t.closest('.pd2-sg [data-pd2-sc-esc]');
+    if (scE){ e.preventDefault(); const cc = full(); if (cc && typeof window.signCheckEscalate === 'function') window.signCheckEscalate(cc, Number(scE.getAttribute('data-pd2-sc-esc')), () => { try { pdGlanceRepaint(); } catch (_){} }); return; }
+    const scA = t.closest('.pd2-sg [data-pd2-sc-acc]');
+    if (scA){ e.preventDefault(); const cc = full(); if (cc && typeof window.signCheckAccept === 'function') window.signCheckAccept(cc, Number(scA.getAttribute('data-pd2-sc-acc')), () => { try { pdGlanceRepaint(); } catch (_){} }); return; }
+    if (t.closest('.pd2-sg [data-pd2-ho-in]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.outsideSetRoute === 'function') Promise.resolve(window.outsideSetRoute(cc, 'inside')).then(() => { try { pdGlanceRepaint(); } catch (_){} }); return; }
     if (t.closest('.pd2-sg [data-pd2-ho]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.hoActPress === 'function') window.hoActPress(cc); return; }
     if (t.closest('.pd2-sg [data-sa-ask]')){ e.preventDefault(); const cc = full(); if (cc && typeof window.openSignApprovalDialog === 'function') window.openSignApprovalDialog(cc); return; }
     if (t.closest('[data-pd-ds-std]')){ e.preventDefault(); const cc = full(); if (cc && typeof openCheckPanel === 'function') openCheckPanel(cc, 'playbook'); return; }

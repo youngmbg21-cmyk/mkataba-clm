@@ -563,7 +563,8 @@ const CONTRACT = (id, over) => Object.assign({
       'before: "' + tile0 + '" · after: "' + tile1 + '"');
     /* AND BACK, through the route card's own link — the other half of one
        door, not a second one. */
-    const toOurs = await pressRoute('[data-ho-route="inside"]');
+    /* RE-POINTED 17 Nov 2026 (#762, owner's "2 yes"): the way back is the five parts' card's own "We sign in HaTi instead" */
+    const toOurs = await pressRoute('[data-pd2-ho-in]') || await pressRoute('[data-ho-route="inside"]');
     const route2 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).signRoute || 'inside');
     await openRoom(page, up.id);
     const b9 = await page.evaluate(SEEN);
