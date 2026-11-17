@@ -288,7 +288,11 @@ const MEASURE = `(() => {
       const ctl = ctl0 && el.contains(ctl0) && ctl0 !== el && paintOf(ctl0) ? ctl0 : null;
       /* words cut with "…" paint only inside their box: their range runs on past it */
       const clipTo = (() => { for (let q = pe; q && q !== el; q = q.parentElement) { if (/(hidden|clip)/.test(getComputedStyle(q).overflowX)) return R(q); } return null; })();
-      const clip = q => clipTo ? { top: q.top, bottom: q.bottom, left: Math.max(q.left, clipTo.left), right: Math.min(q.right, clipTo.right), width: Math.min(q.right, clipTo.right) - Math.max(q.left, clipTo.left), height: q.height } : q;
+      /* RE-POINTED 17 Nov 2026 (#762): words held to two lines ("…", -webkit-line-clamp) paint only inside their box downward
+         too — the hidden lines' range is not what the eye sees */
+      const clipY = (() => { for (let q = pe; q && q !== el; q = q.parentElement) { const qc = getComputedStyle(q); if (/(hidden|clip)/.test(qc.overflowY) && qc.webkitLineClamp && qc.webkitLineClamp !== 'none') return R(q); } return null; })();
+      const clip0 = q => clipTo ? { top: q.top, bottom: q.bottom, left: Math.max(q.left, clipTo.left), right: Math.min(q.right, clipTo.right), width: Math.min(q.right, clipTo.right) - Math.max(q.left, clipTo.left), height: q.height } : q;
+      const clip = q => { const a = clip0(q); if (!clipY) return a; const top = Math.max(a.top, clipY.top), bottom = Math.min(a.bottom, clipY.bottom); return { top, bottom, left: a.left, right: a.right, width: a.width, height: bottom - top }; };
       const rects = ctl && el.contains(ctl) && ctl !== el ? [R(ctl)] : (() => { const rg = document.createRange(); rg.selectNodeContents(n); return [...rg.getClientRects()].map(clip); })();
       for (const q of rects) { if (q.width < 1 || q.height < 1) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
       /* a wrapped line ends where its block ends: the nearest block's content edge stands for the right */
@@ -300,6 +304,10 @@ const MEASURE = `(() => {
       txt = txt || n.textContent.trim();
     }
     for (const c of el.querySelectorAll('button, input, select, textarea, svg, img')) { if (hidden(c) || getComputedStyle(c).position === 'absolute' || (c.matches('button') && !paintOf(c)) || (c.matches('svg, img') && c.closest('button, a') && el.contains(c.closest('button, a')))) continue; const q = R(c); if (!q.width) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
+    /* RE-POINTED 17 Nov 2026 (#762): a small painted mark with no words — an icon's disc, a face — is content the eye sees at
+       the card's edge, as an svg is (Import's drop disc, Jambo's crew of faces) */
+    for (const c of el.querySelectorAll('span, i, div')) { if (hidden(c) || c.textContent.trim() || !paintOf(c)) continue; const q = R(c); if (!q.width || q.width > 64 || q.height > 64 || q.width < 8) continue;
+      t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
     if (!isFinite(t) || !txt) continue;
     if (!isFinite(rt)) rt = r.right - (l - r.left);
     const room = { top: Math.round(t - r.top), bottom: Math.round(r.bottom - b), left: Math.round(l - r.left), right: Math.round(r.right - rt) };
