@@ -13,6 +13,7 @@ import './migread.js';      // Archive import: what an imported contract's readi
 import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
 import './asks.js';         // one ask record: who was asked, the answer, when and for what — both hosts (4 Oct 2026)
 import './sharemail.js';    // the letter: the share email's words, the send screen and the server alike (round 11, 17 Oct 2026)
+import './stdladder.js';     // the Ladder: a standard's rules, read and applied one way, the page and the server alike (17 Nov 2026)
 import './nda.js';          // an NDA's two facts: who keeps it secret, and until when — both hosts (17 Oct 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
@@ -141,6 +142,7 @@ import './intakelanes.js';      // a request's lane and answers: one reading, bo
 import './views/intake.js';     // the intake front door: anybody may ASK for a contract (W2-2)
 import './templatefields.js';
 import './views/library.js';
+import './views/ladder.js';  // Standards, a page of its own: the Ladder (owner's pick, 17 Nov 2026)
 import './fieldlib.js';            // the template-library field catalogue (shared with the server)
 import './branding.js';            // document designs AND structures (shared with the server — one catalogue)
 import './pages.js';               // a contract drawn as pages: the working copy and the signing copy (25 Sep 2026)
@@ -314,7 +316,7 @@ function commandMeta(view){
     case 'templates': return [i18t('nav_tpl_std'), i18t('pg_templates_sub')];
     /* ONE PAGE (4 Oct 2026): Our standards is a tab of Templates & standards,
        so its head carries the page's name, not the tab's. */
-    case 'playbook':  return [i18t('nav_tpl_std'), i18t('pg_standards_sub')];
+    case 'playbook':  return [i18t('ld_page'), ''];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
     /* ONE PAGE (gap F, 4 Oct 2026): the Advice desk is the Advice tab of
        Requests, so its head carries the page's name, not the tab's. */
@@ -424,7 +426,7 @@ const PAGE_ACTIONS = {
    Filter and + Add an obligation at the right (obwPaintHead). */
 /* Import (round 22 as drawn, 18 Oct 2026): what the batch is beside the name
    ("Old contracts from … · started … by you · 24 files") and Choose files… */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'ldPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -1145,7 +1147,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Standards',
   team:'Team & settings', directory:'Directory', workspace:'the contract workspace',
   redline:'Negotiations', counter:'the counter' };
 
@@ -1497,7 +1499,7 @@ function setView(view){
     else if(view==='jambo') renderJamboHouse();
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
-    else if(view==='playbook') renderPlaybookPage();
+    else if(view==='playbook') renderStandardsPage();
     /* ON THE PHONE THE SETTINGS PAGE IS NOT BUILT BEHIND THE SCENES (the
        owner's list, 27 Sep 2026): the phone draws its own screens, and the
        desktop's four tabs and every drawer were being built underneath where
@@ -3965,7 +3967,7 @@ function renderContextPanel(){
    writes beyond the reader's own "seen" mark for the tab's "new". */
 const GUIDE_STAGES = [
   { k: 'ask', rows: ['requests', 'import'] },
-  { k: 'draft', rows: ['ourpaper', 'draft'] },
+  { k: 'draft', rows: ['ourpaper', 'standards', 'draft'] },
   { k: 'agree', rows: ['document', 'negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
   { k: 'keep', rows: ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'] },
@@ -3982,7 +3984,9 @@ function guideCountOf(k){
     approvals:()=>typeof approvalsDoorCount==='function'?approvalsDoorCount():0,
     oblig:()=>typeof obligationsDoorCount==='function'?obligationsDoorCount():0,
     mynotes:()=>typeof mineNotesDue==='function'?mineNotesDue().length:0,
-    house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0 };
+    house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0,
+    /* open departures from the standards (the Ladder, 17 Nov 2026), the number its head prints */
+    standards:()=>typeof window.ldStandards==='function'?window.ldStandards().reduce((t,r)=>t+r.open.length,0):0 };
   if(!W[k]) return null;
   const v=n(W[k]); return v>0?{ n:v, w:i18t('gd_n_'+k,{ n:v }) }:null;
 }
@@ -3993,7 +3997,7 @@ function guideHereKey(){
     if(v==='dashboard'){ const f=(typeof hbFace==='function')?hbFace():'board';
       if(f==='paper'){ const c=(typeof pdOnPaper==='function'&&pdOnPaper()&&typeof pdContract==='function')?pdContract():null; return c?'document':'contracts'; }
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
-    return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'ourpaper', redline:'negotiations', customers:'parties',
+    return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'standards', redline:'negotiations', customers:'parties',
       directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:'reads', pulse:'pulse', jambo:'house',
       team:'settings', workspace:'document', doc:'document', handbook:'handbook', flowmap:'flowmap' })[v]||null;
   }catch(_){ return null; }
@@ -4021,7 +4025,7 @@ function guideRowHtml(k, here, cls){
    it and its count — amber where something needs you, plain where it is a size. Every page the Guide had stays on it
    (rule 9c): the drawing's rows, and the pages it did not draw in the stage they belong to. */
 const GUIDE_NL=[
-  { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['draft']] },
+  { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['standards'],['draft']] },
   { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals'],['document']] },
   { k:'live', tone:'steel', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
   { k:'book', tone:'violet', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
@@ -4041,7 +4045,7 @@ function guideNlCount(k){
 /* EACH PAGE WEARS ITS SYMBOL (owner, 14 Nov 2026: "Give it symbols in color as well"): a drawn mark per row, the
    stage's tone behind it (HaTi's own tones, as Settings wears them); the row you stand on is ink. A row naming several
    pages wears its first page's symbol. */
-const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', draft:'filenew',
+const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', standards:'shield', draft:'filenew',
   negotiations:'refresh', approvals:'check2', document:'readpaper', oblig:'list', calendar:'calendar', parties:'users', people:'users',
   mynotes:'pencil', explorer:'network', reads:'search', pulse:'trend', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
 function guideNlMarkHtml(k, tone){

@@ -1020,6 +1020,10 @@ function navGoStage2(n){
     /* a standard named in Jambo's own words: the row that says them */
     const re = NAV_STD_ROW_RE[n.row] || new RegExp(String(n.row).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).slice(0, 3).join('.*'), 'i');
     return navLandWhen(() => {
+      /* THE LADDER (17 Nov 2026): the standard's own row in the list is pressed (its own press chooses it), and the
+         ladder it draws is landed on */
+      const it = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => re.test(x.textContent || '') || re.test(x.querySelector('[title]')?.getAttribute('title') || ''));
+      if (it){ if (!it.classList.contains('is-on')) it.click(); return document.querySelector('.ld-main .ld-title'); }
       const host = document.querySelector('#ins-panel') || document.querySelector('.sd-ins'); if (!host) return null;
       const all = [...host.querySelectorAll('li, tr, dt, dd, p, [class*="row"]')].filter(x => re.test(x.textContent || ''));
       return all.find(x => !all.some(y => y !== x && x.contains(y))) || null;   // the innermost row that says it

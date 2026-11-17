@@ -1225,6 +1225,8 @@ function stNeedsAll(){
     out.push((r.sub||r.subHtml)?r:{ ...r, sub:seen?i18t('st_need_kind_clash_since',{ day:seen }):i18t('st_need_kind_clash') }); });
   /* the quarter's access review, until it is done (piece 8) */
   const arRow=stArNeedRow(); if(arRow) out.push(arRow);
+  /* a change to a standard waiting for an admin's yes (the Ladder, 17 Nov 2026) */
+  if(typeof window.ldNeedRows==='function') window.ldNeedRows().forEach(r=>out.push(r));
   /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
   stKpNeedRows().forEach(r=>out.push(r));
   const unset=stCapUnset();

@@ -1798,7 +1798,9 @@ const CA_PLACES = [
   { k: 'requests', w: ['requests', 'request', 'my requests', 'förfrågningar', 'förfrågan', 'mina förfrågningar'] },
   { k: 'parties', w: ['parties', 'party', 'counterparties', 'customers', 'suppliers', 'parter', 'motparter', 'kunder', 'leverantörer'] },
   { k: 'people', w: ['people', 'directory', 'colleagues', 'contacts', 'personer', 'katalog', 'katalogen', 'kollegor', 'kontakter'] },
-  { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'standards', 'our standards', 'playbook', 'vårt papper', 'mallar', 'mall', 'standarder', 'våra standarder'] },
+  { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'vårt papper', 'mallar', 'mall'] },
+  /* STANDARDS, A PAGE OF ITS OWN (the Ladder, 17 Nov 2026): its words left Our paper with it */
+  { k: 'standards', w: ['standards', 'our standards', 'standard', 'playbook', 'the ladder', 'standarder', 'våra standarder', 'stegen'] },
   { k: 'import', w: ['import', 'imports', 'import contracts', 'importera', 'importera avtal'] },
   { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
   /* READS (The thread, 28 Oct 2026): every read of the wording, and the next batch */
@@ -1863,20 +1865,19 @@ function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && st
    wall of paper is opened to choose from — never a guess. */
 /* the words that mean Our paper's standards tab, not its templates */
 const CA_STD_WORD = /(?<!\p{L})(?:standards?|playbook|standarder(?:na)?)(?!\p{L})/iu;
-function caOpenStandards(book){
+function caOpenStandards(){
+  /* THE LADDER (17 Nov 2026): Standards is one page; a book named in the words lands on the page (the books are its
+     "Applies to", not a tab any more) */
   setView('playbook');
-  if (!book) return;
-  /* the inspector's list selects the book; a narrow page turns to the books tab */
-  if (typeof sdGoBook === 'function' && (typeof document === 'undefined' || document.querySelector('.sd-ins'))) sdGoBook(book);
-  else if (typeof pbTabGo === 'function') pbTabGo('playbook');
 }
 /* ONE READING FOR EVERY PLACE READER (caReadPlace, caReadGoPlace,
    caReadPlaceAnd): Our paper asked as standards is the standards tab, on the
    book the words name (jmStdBook) */
 function caPlaceStd(a, q){
-  if (a && a.kind === 'go' && a.place === 'ourpaper' && CA_STD_WORD.test(String(q || '')) && typeof jmStdGo === 'function'){
+  if (a && a.kind === 'go' && (a.place === 'ourpaper' || a.place === 'standards') && CA_STD_WORD.test(String(q || '')) && typeof jmStdGo === 'function'){
     for (const k of ['narrow', 'narrowOff', 'all']) delete a[k];
     Object.assign(a, jmStdGo(typeof jmStdBook === 'function' ? jmStdBook(q) : null));
+    a.place = 'standards';
   }
   return a;
 }
@@ -1896,7 +1897,7 @@ function caReadPlace(q){
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
-  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
+  'requests', 'parties', 'people', 'ourpaper', 'standards', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
   /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
   'upload'];
@@ -2002,7 +2003,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'guide', 'handbook', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'standards', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2177,6 +2178,8 @@ const CA_GO = {
   people: () => setView('directory'),
   /* our standards (a.std) open the standards tab, on the book named (owner, 22 Oct 2026) */
   ourpaper: (c, a) => { if (!(a && a.std)){ setView('templates'); return; } caOpenStandards(a.book); },
+  /* Standards, its own page (the Ladder, 17 Nov 2026) */
+  standards: () => caOpenStandards(),
   import: () => !caMayAdd() ? false : setView('migration'),
   mynotes: () => setView('mynotes'),
   /* Reads, on a question where one was named (The thread, 28 Oct 2026) */
@@ -2490,7 +2493,7 @@ const CA_AND_JOIN = /^(?:,\s*)?(?:and(?:\s+then|\s+only)?|then|with|where|showin
 /* a place named after "in", "on", "at" at the end ("drafts on the map") */
 const CA_AND_TAIL = /\s(?:in|on|at|inside|within|i|på)\s+/giu;
 /* the places that hold contracts and may be named with a narrowing, and the other words for them */
-const CA_AND_PLACES = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig', 'parties', 'approvals', 'requests', 'import', 'calendar', 'people', 'mynotes', 'ourpaper', 'counter', 'work', 'needs', 'house', 'settings', 'brain'];
+const CA_AND_PLACES = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig', 'parties', 'approvals', 'requests', 'import', 'calendar', 'people', 'mynotes', 'ourpaper', 'standards', 'counter', 'work', 'needs', 'house', 'settings', 'brain'];
 const CA_AND_WORDS = [['map', 'explorer'], ['the map', 'explorer'], ['contract map', 'explorer'], ['kartan', 'explorer'], ['karta', 'explorer'], ['avtalskartan', 'explorer'],
   ['contracts page', 'contracts'], ['contracts list', 'contracts'], ['contract list', 'contracts'], ['the contracts', 'contracts'], ['workspace', 'contracts'], ['the workspace', 'contracts'], ['arbetsytan', 'contracts'], ['avtalen', 'contracts'],
   ['dashboard', 'board'], ['the board', 'board'], ['obligations page', 'oblig'], ['negotiations page', 'negotiations']];
@@ -2573,7 +2576,7 @@ function caReadPlaceAnd(q){
     if (place && lead && rest.startsWith(lead[0].trim())) rest = rest.slice(lead[0].trim().length).trim();
   }
   if (!place || !rest) return null;
-  if (place === 'ourpaper' && typeof caPlaceStd === 'function' && CA_STD_WORD.test(s)) return caPlaceStd({ kind: 'go', place, state: 'ready' }, q);
+  if ((place === 'ourpaper' || place === 'standards') && typeof caPlaceStd === 'function' && CA_STD_WORD.test(s)) return caPlaceStd({ kind: 'go', place, state: 'ready' }, q);
   const N = caNarrowOf(rest, place); if (!N) return null;
   /* every contract asked for at a place is that place at rest */
   if (N.all) return { kind: 'go', place, state: 'ready', all: true };

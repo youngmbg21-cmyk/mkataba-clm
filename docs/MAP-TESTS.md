@@ -520,6 +520,11 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js)
 - f558.
 
+## STANDARDS — THE LADDER
+- f1091 (new; red at the parent: js/stdladder.js and the routes did not exist) — (1) firmness and the strictest book, the ladder off the clause, a draft cleaned, an approved change applied into copies (version, review, books in and out, the old readers' fields), a new standard; (2) propose / the proposer may not decide / Legal proposes, not decides / a colleague's waiting change said / another admin's yes applies / only the proposer withdraws; (3) once governed a settings save keeps the stored standards; (4) Jambo's route writes the ladder with AI_GOVERNANCE_RULE and the signed quotes; (5) page wiring and both books.
+- RE-POINTED 17 Nov 2026 (Our standards left Our paper): f390 5a, f481 (2), f760 5b, f705 1a, f841 2a, f920 (4), f1055 (1).
+- Platform: f561, f564, f842, f937 (chapter 2.5), f964, f965.
+
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
 - f996 (3) (the other clause's ask: the review window's box, Prepare redlines files it as that clause's own draft).
 - f996 (Jambo's instruction is not wording: pbDraftRead, pbFitAdd, draftFit, the applied card marked against what stands); contract-new-look-verify 13 (the notes stay on Clauses).
