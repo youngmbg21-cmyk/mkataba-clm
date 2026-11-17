@@ -165,7 +165,9 @@ async function SEED(){
       acts: [...document.querySelectorAll('[data-tpl-pf-act]')].map(b => [b.textContent.trim(), b.disabled, b.classList.contains('ui-btn-primary')]) }));
     check('3a the chosen paper\'s name heads the list', /^Master services agreement$/.test(C.h2.trim()), C.h2);
     check('3b "<kind> · used 5 times, last with <party> in <month> · 2 came back changed"',
-      /^[^·]+ · used 5 times, last with \S+ in \S+( \d{4})? · 2 came back changed$/.test(C.facts.trim()), C.facts);
+      /* RE-POINTED 17 Nov 2026 (#762): the month is said only where the contracts carry a day (these fixtures carry none),
+         never an empty "in ·" */
+      /^[^·]+ · used 5 times, last with \S+( in \S+( \d{4})?)? · 2 came back changed$/.test(C.facts.trim()) && !/ in\s*·/.test(C.facts), C.facts);
     check('3c the verbs: Open in the builder · Draft from it (the primary)', JSON.stringify(C.acts.map(a => a[0])) === JSON.stringify(['Open in the builder', 'Draft from it']) && C.acts[1][2] === true && !C.acts[1][1], JSON.stringify(C.acts));
 
     /* 4 THE PAPER */

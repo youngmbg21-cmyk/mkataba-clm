@@ -2963,7 +2963,7 @@ function tplnHtml(d, groups, card){
     let blanks = 0; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).length : 0; } catch (_){ blanks = 0; }
     /* READABLE PREVIEW (the harmony review, owner's yes 9 Nov 2026): the name and its buttons share one line; the facts
        stand under the name, never wrapping beside the buttons */
-    line = [tplOvBucketLabel({ key: card.kind, sec: 'library' }), last.cs.length ? i18tn('tpln_used', last.cs.length, { n: last.cs.length, who: last.who || '', mon: last.mon || '' }) : i18t('tpln_unused'),
+    line = [tplOvBucketLabel({ key: card.kind, sec: 'library' }), last.cs.length ? i18tn(last.who && last.mon ? 'tpln_used' : last.who ? 'tpln_used_nm' : 'tpln_used_bare', last.cs.length, { n: last.cs.length, who: last.who || '', mon: last.mon || '' }) : i18t('tpln_unused'),
       st.changed ? i18tn('lib_pf_came_back', st.changed, { n: st.changed }) : '', blanks ? i18tn('tpln_blanks', blanks, { n: blanks }) : ''].filter(Boolean).join(' \u00b7 ');
     paper = tplPfPaperHtml(card);
     const verbs = tplPfVerbs(card); _tplPf.acts = verbs;

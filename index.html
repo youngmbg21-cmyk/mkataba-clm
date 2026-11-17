@@ -20637,7 +20637,8 @@
      own black bar with the sheet below the paper. Labels keep the phone's 14px floor. */
   html.lg-new #m-root .m-nl-bar{background:var(--bar-black);border-bottom:0;padding-left:16px;padding-right:8px}
   html.lg-new #m-root .m-nl-mark{font-family:var(--font-title);font-weight:600;font-size:19px;color:var(--color-surface)}
-  html.lg-new #m-root .m-nl-me{width:36px;height:36px;border-radius:50%;background:var(--color-surface);color:var(--color-text);font-size:14px;font-weight:var(--w-label)}
+  /* the thumb's floor is 44 (the phone's touch rule; #762) */
+  html.lg-new #m-root .m-nl-me{width:44px;height:44px;border-radius:50%;background:var(--color-surface);color:var(--color-text);font-size:14px;font-weight:var(--w-label)}
   html.lg-new #m-root .m-nl-home{background:var(--color-surface);padding:20px 16px 24px}
   html.lg-new #m-root .m-nl-hello{margin:0;font-family:var(--font-title);font-weight:400;font-size:26px;line-height:1.2;color:var(--color-text)}
   html.lg-new #m-root .m-nl-say{margin:8px 0 12px;font-size:15px;font-weight:var(--w-label);line-height:1.4;color:var(--color-text)}
@@ -20651,6 +20652,7 @@
   html.lg-new #m-root .m-nl-none{margin:16px 0;font-size:15px}
   html.lg-new #m-root .m-nl-ask{margin:16px 0 0}
   html.lg-new #m-root .m-nl-more{margin:16px 0 0}
+  html.lg-new #m-root .m-nl-more .m-row > span{font-size:14px}
   html.lg-new #m-root .m-tab.on{color:var(--color-text)}
   html.lg-new #m-root .m-nl-cbar{flex:none;display:flex;align-items:center;gap:4px;padding:calc(env(safe-area-inset-top,0px) + 6px) 4px 6px;background:var(--bar-black);color:var(--color-surface)}
   html.lg-new #m-root .m-nl-cbar .m-head-btn{color:var(--color-surface)}
