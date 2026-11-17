@@ -209,6 +209,9 @@ function deskGoBack(){
      beside it — the sentence that drafted it stands in Jambo's conversation
      there (19 Oct 2026, one-sheet-as-drawn 7a) */
   if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
+  /* THE TEMPLATE BUILDER'S WAY OUT IS ‹ (#762: its own back button is the old look's): it leaves through the builder's
+     own leave (tbLeave — asks first if anything is unsaved) and lands on the template's page */
+  if (deskBuilderUp()){ window.tbLeave(); return true; }
   /* a page standing in the middle beside the Dossier: ‹ brings the paper back (the middle, 21 Oct 2026) */
   if (typeof window.pdMidClose === 'function' && window.pdMidClose()) return true;
   if (deskStepBack(true)){ deskBarPaint(); return true; }
@@ -219,6 +222,7 @@ function deskGoBack(){
 }
 /* THE ONE SHEET AND THE TRAIL: the page settled on when the sheet opened is
    where its ‹ returns (a page the reader is already on is not opened twice) */
+function deskBuilderUp(){ return typeof document !== 'undefined' && !!document.getElementById('tb-page') && typeof window.tbLeave === 'function'; }
 function deskSheetUp(){ return typeof window !== 'undefined' && typeof window.naSheetUp === 'function' && !!window.naSheetUp(); }
 function deskSheetFrom(){
   return _dkTrail[_dkTrail.length - 1] || (dkHomeHere() ? 'home' : null);
@@ -320,7 +324,7 @@ function deskBarPaint(){
   const back = document.getElementById('dk-back'), w = document.getElementById('dk-pg-w'), btn = document.getElementById('dk-page');
   if (back){
     back.hidden = !on;
-    const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
+    const can = deskSheetUp() || deskBuilderUp() || deskStepBack(false) || !!deskBackTarget();
     back.disabled = !can;
     /* ‹ SAYS WHERE IT GOES (the glitch audit, 24 Oct 2026: it said only "Back", and a press that
        stepped the panel looked like one that did nothing) */
