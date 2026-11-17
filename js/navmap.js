@@ -714,11 +714,13 @@ function navGoClause(n){
   setTimeout(look, 0);
   return true;
 }
+const NAV_CLAUSE_MARKS = '[data-clause], [data-pz-clause]:not([data-pz-clause^="pzh"])';
 /* the clause on the paper: its number at the head, else its heading's words, else the first clause whose words say it */
 function navClauseEl(n){
   if (typeof document === 'undefined') return null;
   const host = document.getElementById('ig-paper'); if (!host || host.hidden) return null;
-  const els = [...host.querySelectorAll('[data-clause], [data-pz-clause]')]; if (!els.length) return null;
+  /* a heading marked only for Follow me (igPaperHeadMark, "pzh…") carries no wording, so the paper stays unmarked here */
+  const els = [...host.querySelectorAll(NAV_CLAUSE_MARKS)]; if (!els.length) return null;
   const head = el => String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120).toLowerCase();
   if (n.num){
     const re = new RegExp('^(?:clause\\s+|§\\s*)?' + n.num + '(?:[.)\\s]|$)');
@@ -812,7 +814,7 @@ function navGoAct(n){
 /* does the paper in front mark its clauses at all? */
 function navPaperMarked(){
   const host = (typeof document !== 'undefined') ? document.getElementById('ig-paper') : null;
-  return !!(host && host.querySelector('[data-clause], [data-pz-clause]'));
+  return !!(host && host.querySelector(NAV_CLAUSE_MARKS));
 }
 /* the clause's row on the Clauses tab beside the paper ("7. Liability") */
 function navClauseRow(n){

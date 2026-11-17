@@ -111,7 +111,7 @@ const DEAL = {
     /* RE-POINTED 18 Oct 2026 (round 6 as drawn, "One line"): the hover names
        the clause the colleague is on and what a press does */
     ok('1b and it is a real button that says what a press does',
-      row.tag === 'BUTTON' && row.pressed === 'false' && /^Amina Otieno (is reading (clause \S+|“[^”]+”) now|has this contract open now)\. Press to ask to follow: once Amina allows it, your paper goes where Amina reads\.$/.test(row.title),
+      row.tag === 'BUTTON' && row.pressed === 'false' && /^Amina Otieno (is reading (clause \S+|“[^”]+”) now|has this contract open now)\. Press to ask Amina to follow you: once they allow it, their page goes where you read and opens the redline cards you open\.$/.test(row.title),
       JSON.stringify(row.title.slice(0, 60)));
     await b.p.screenshot({ path: path.join(OUT, '1-the-face.png') });
 
@@ -119,20 +119,23 @@ const DEAL = {
        RE-POINTED 16 Nov 2026 (the owner: "I press on the other colleague's label, they then have to approve
        on the other side, then the process begins"). GUARDED, so a tree without the face REPORTS rather than
        spending thirty seconds waiting for a button that is not there. */
-    if (row.btn) await b.p.click('[data-pz-follow]');
-    const asked = await b.p.evaluate(() => {
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me"): the LEADER presses the colleague's face, asking
+       them to follow; the colleague's screen gets the pop-up and allows */
+    const aFace = await until(a.p, () => !!document.querySelector('[data-pz-follow]'), null, 40000);
+    if (aFace) await a.p.click('[data-pz-follow]');
+    const asked = await a.p.evaluate(() => {
       const f = document.querySelector('[data-pz-follow]');
       return { asking: window.presenceAsking ? presenceAsking() : null, following: window.presenceFollowing ? presenceFollowing() : 'no-fn',
         pressed: f ? f.getAttribute('aria-pressed') : null };
     });
-    ok('2-ask the press asks and follows nobody yet', !!asked.asking && asked.following === null && asked.pressed === 'mixed', JSON.stringify(asked));
-    const popped = await until(a.p, () => !!document.querySelector('#pz-ask [data-pz-allow]'), null, 40000);
-    const pop = await a.p.evaluate(() => { const p = document.getElementById('pz-ask'); const r = p ? p.getBoundingClientRect() : null;
+    ok('2-ask the leader\'s press asks the colleague to follow, and moves nothing yet', !!asked.asking && asked.following === null && asked.pressed === 'mixed', JSON.stringify(asked));
+    const popped = await until(b.p, () => !!document.querySelector('#pz-ask [data-pz-allow]'), null, 40000);
+    const pop = await b.p.evaluate(() => { const p = document.getElementById('pz-ask'); const r = p ? p.getBoundingClientRect() : null;
       return { text: p ? p.innerText : '', black: p ? p.querySelectorAll('.ui-btn-primary').length : 0, inView: !!r && r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth }; });
-    ok('2-pop the leader gets the small pop-up: who asks, Allow (the one black) and Not now, in view',
-      popped && /wants to follow you/.test(pop.text) && /Allow/.test(pop.text) && /Not now/.test(pop.text) && pop.black === 1 && pop.inView, JSON.stringify(pop));
-    await a.p.screenshot({ path: path.join(OUT, '1b-the-ask.png') });
-    if (popped) await a.p.click('#pz-ask [data-pz-allow]');
+    ok('2-pop the colleague gets the small pop-up: who asks, Allow (the one black) and Not now, in view',
+      popped && /asks you to follow along/.test(pop.text) && /Allow/.test(pop.text) && /Not now/.test(pop.text) && pop.black === 1 && pop.inView, JSON.stringify(pop));
+    await b.p.screenshot({ path: path.join(OUT, '1b-the-ask.png') });
+    if (popped) await b.p.click('#pz-ask [data-pz-allow]');
     await until(b.p, () => !!(window.presenceFollowing && presenceFollowing()), null, 30000);
     const lit = await b.p.evaluate(() => {
       const f = document.querySelector('[data-pz-follow]');

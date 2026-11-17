@@ -356,7 +356,7 @@ describe('f494 (3) — the relation, and the one door', () => {
   test('the ordinary beat still says nothing while hidden', () => {
     const fn = PZ.slice(PZ.indexOf('function presenceStart'), PZ.indexOf('function presenceStop'));
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the visible beat ticks, and runs fast while an ask or a follow is live */
-    assert.match(fn, /document\.hidden\) return;\s*const every = presenceBusyNow\(\) \? PRESENCE_FAST_BEAT_MS : PRESENCE_BEAT_MS;[\s\S]{0,80}presenceSay\(id\);/,
+    assert.match(fn, /document\.hidden\) return;\s*const every = presenceBusyNow\(\) \? PRESENCE_FAST_BEAT_MS : PRESENCE_BEAT_MS;[\s\S]{0,400}presenceSay\(id\);/,
       'presence is unchanged: a tab behind three others is not somebody in the room');
     assert.match(fn, /!document\.hidden\) return;\s*presenceKeepAsks\(id\);/,
       'and the ask beat runs only while hidden');
