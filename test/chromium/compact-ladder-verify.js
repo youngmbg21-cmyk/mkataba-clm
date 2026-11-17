@@ -276,7 +276,12 @@ const HELPERS = `(() => {
     await page.waitForTimeout(1500);
     await load();
     const c4 = await page.evaluate(() => {
-      const m = window.__m; const b = document.getElementById('sign-btn');
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): #sign-btn stands in the old column, 0px wide in
+         the new look; the Sign drawn is the five-part card's ([data-pd2-sign], or the greyed Sign while checks hold) */
+      const m = window.__m; const old = document.getElementById('sign-btn');
+      const drawn = x => x.getBoundingClientRect().width > 0 && x.getBoundingClientRect().height > 0;
+      const b = (old && drawn(old)) ? old : [...document.querySelectorAll('#ig-dock .pd2-sg-card [data-pd2-sign], #ig-dock .pd2-sg-card .ui-btn')].filter(drawn)
+        .find(x => /^Sign\b/.test((x.textContent || '').trim())) || null;
       if (b) b.scrollIntoView({ block: 'center' });
       return { sign: b ? m.box(b) : null, ink: m.ink('#doc-canvas') ?? m.ink('.doc-surface') };
     });

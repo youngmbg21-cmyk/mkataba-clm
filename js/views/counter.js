@@ -924,7 +924,8 @@ function ndBellNlHtml(D){
   const row = x => { const r = x.r, P = ndParts(r);
     const title = P.title || P.name || '';
     /* its own line first (what came back, who asked, the note: P.note) — the new bell had dropped it (#762) */
-    const sub = r.g === 'jambo' ? _ndText(P.deal || P.line || '') : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
+    /* the company row says what it holds (the email warning among them) in its own line, as the old bell did (#762) */
+    const sub = (r.g === 'jambo' || r.company) ? _ndText(P.deal || P.line || '') : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
     /* good news (they agreed, ready to sign) wears the green dot, as the old bell's row did (P.good; #762) */
     return `<div class="ndb-r${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${P.good ? 'good' : x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}</div>`
       + `<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('act_open'))}</button></div>`; };

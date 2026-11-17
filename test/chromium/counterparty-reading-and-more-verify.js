@@ -518,14 +518,9 @@ const PAPER = `(() => {
        live one heavier) still holds; the underline and the bare row are what the pick replaced. */
     const shade = await page.evaluate(() => { const g = v => { const p = document.createElement('span'); p.style.background = v; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; };
       return { track: g('var(--surface-2)'), white: g('var(--color-surface)') }; });
-    check('14 their tabs stand on the grey track',
-      tabLook.wrapBg === shade.track, tabLook.wrapBg + ' vs ' + shade.track);
-    check('14 the chosen tab is the white pill and heavier; a resting one has no fill',
-      tabLook.on && tabLook.off && tabLook.on.bg === shade.white && tabLook.off.bg === 'rgba(0, 0, 0, 0)' && tabLook.on.fw > tabLook.off.fw,
-      JSON.stringify(tabLook));
-    check('14 no underline on either tab',
-      tabLook.on && tabLook.off && !(tabLook.on.bw > 0 && tabLook.on.bs !== 'none') && !(tabLook.off.bw > 0 && tabLook.off.bs !== 'none'),
-      JSON.stringify({ on: tabLook.on, off: tabLook.off }));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 5): the three 14 checks (grey track, white chosen pill, no underline) —
+       the other side's page keeps the new look's underlined tabs */
+    void tabLook; void shade;
 
     /* ---- 15. MORE IS WHITE INSIDE, LIKE THE THREE BESIDE IT ----
        It carried .pt-verb, which fills the face with --color-accent-100 —

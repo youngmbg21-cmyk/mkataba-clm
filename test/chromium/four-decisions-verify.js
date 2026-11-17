@@ -124,7 +124,8 @@ const blocked = [];
       await page.click('#ig-dock .igd-head [data-pd-tab="copilot"]').catch(() => {});
       const five = await until(() => document.querySelector('#ig-dock .igd-head [data-pd-send-back]'), undefined, 5000);
       await settle(); await shot('q2-five-tabs');
-      if (!five) check(`${at} · Q2 — the waiting letter's tab is drawn`, false);
+      if (!five) check(`${at} · Q2 — the waiting letter's tab is drawn`, false, await ev(() => JSON.stringify({ modal: !!document.querySelector('#modal-root .modal-in[data-sh-page]'),
+        tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab], #ig-dock .igd-head button')].map(b => (b.getAttribute('data-pd-tab') || b.id || '') + ':' + b.textContent.trim().slice(0, 14)) })));
       else {
         const m = await ev(() => { const hd = document.querySelector('#ig-dock > .igd-head'), dock = document.querySelector('#ig-dock').getBoundingClientRect();
           const tabs = [...hd.querySelectorAll(':scope > .pd-tab')].map(t => { const w = t.querySelector('.pd-tab-w') || t, r = document.createRange(); r.selectNodeContents(w);
@@ -151,11 +152,16 @@ const blocked = [];
       await clean(); await ev(() => setView('directory'));
       await until(() => document.querySelector('#content table tbody tr'));
       await page.click('#content table tbody tr').catch(() => {});
-      const list = await until(() => document.querySelector('.ins-panel .jl-ct-list .dir-ct-n'), undefined, 6000);
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the chosen person's panel is Jambo's five parts
+         (dirnPanelFive) — their contracts are the rows under "Named on, most recent", each name the row's <b> */
+      const NAMES = () => { const sec = [...document.querySelectorAll('.ins-panel .jov5-sec')].find(x => { const l = x.querySelector('.jov5-label'); return l && l.textContent.trim() === i18t('jov5_dir_named'); });
+        return sec ? [...sec.querySelectorAll('.jov5-row .jov5-rt > b')] : []; };
+      await ev(`window.__q3names = ${NAMES.toString()}`);
+      const list = await until(() => window.__q3names().length > 0, undefined, 6000);
       await settle(); await shot('q3-people');
       if (!list) check(`${at} · Q3 — People: a person's contracts are listed`, false);
       else {
-        const ns = await ev(() => [...document.querySelectorAll('.ins-panel .jl-ct-list .dir-ct-n')].map(n => ({ t: n.textContent.trim(), lines: Math.round(n.getBoundingClientRect().height / parseFloat(getComputedStyle(n).lineHeight || 20)), cut: n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1 })));
+        const ns = await ev(() => window.__q3names().map(n => ({ t: n.textContent.trim(), lines: Math.round(n.getBoundingClientRect().height / parseFloat(getComputedStyle(n).lineHeight || 20)), cut: n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1 })));
         const bad = ns.filter(x => x.cut || x.lines > 2);
         const long = ns.find(x => /Regulatory/.test(x.t));
         check(`${at} · Q3 — People: every contract name whole in two lines or fewer`, ns.length && !bad.length && (!long || !long.cut), bad.map(x => `"${x.t}" ${x.cut ? 'cut' : x.lines + ' lines'}`).join(' · ') || ns.map(x => `${x.t.slice(0, 22)}… ${x.lines}`).join(' · '));

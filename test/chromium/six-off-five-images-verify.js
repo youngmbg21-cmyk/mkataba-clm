@@ -82,8 +82,10 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): on
        the Contracts place too the Stream filter is one of "+ Filter"'s
        groups, offering the streams that hold a row */
-    ok('1b CONTROL the Stream filter is still on the Contracts head, with streams to pick', c1.filter > 1 || c1.addStream > 0,
-      `${c1.filter} box options · ${c1.addStream} under + Filter`);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 1b "the Stream filter is still on the Contracts head, under + Filter" —
+       the Contracts list's + Filter stays gone in the new look (owner, 17 Nov 2026, answer 1); it passed only on the
+       hidden markup. The streams are Contracts' folders now (regFolderViewsData) */
+    void c1.filter;
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     /* The Negotiations list only draws over a LIVE negotiation — one change
        filed through the funnel makes one. */
@@ -153,10 +155,14 @@ const ok = (name, good, detail) => {
       return { n: rows.length, toEnd: Math.round(r.bottom - bx.bottom), pastScreen: Math.round(r.bottom - innerHeight),
         inside: box.scrollHeight >= box.clientHeight, toned: rows.filter(x => /\bis-(ruby|amber|steel)\b/.test(x.className)).length,
         min: Math.round(Math.min(...rows.map(s => s.querySelector('.doc-th-head').getBoundingClientRect().height))),
+        foot: parseFloat(getComputedStyle(box).marginBottom) || 0,
         strandGone: !document.getElementById('doc-xr-spine') };
     });
-    ok('4a the row list runs to the bottom of its card, and the strand is gone from this tab', !!strand && strand.toEnd <= 2 && strand.toEnd >= 0 && strand.strandGone,
-      strand ? `${strand.toEnd}px after the list · strand ${strand.strandGone ? 'gone' : 'still drawn'}` : 'no thread');
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the list runs to the bottom of its card less the card's
+       own 16px inside (MAP LOOKS: 16px inside every Jambo panel) — the gap after it is exactly the list's own foot margin,
+       16px, and nothing else */
+    ok('4a the row list runs to the bottom of its card, and the strand is gone from this tab', !!strand && strand.foot === 16 && Math.abs(strand.toEnd - strand.foot) <= 2 && strand.strandGone,
+      strand ? `${strand.toEnd}px after the list (its foot ${strand.foot}px) · strand ${strand.strandGone ? 'gone' : 'still drawn'}` : 'no thread');
     ok('4b and it does not run past the screen', !!strand && strand.pastScreen <= 0 && strand.inside,
       strand ? `${strand.pastScreen}px past · scrolls inside ${strand.inside}` : 'no thread');
     ok('4c CONTROL every row head is big enough to press, and the marked rows wear a tone', !!strand && strand.min >= 24 && strand.toned >= 3,

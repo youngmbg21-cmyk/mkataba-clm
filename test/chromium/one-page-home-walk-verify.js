@@ -150,8 +150,19 @@ const WATCH = () => { window._walk = {}; const tick = () => {
       await pause(300);
     }
     /* then the one Save, back to the Dossier */
-    if (id) await page.click('#ig-dock [data-pd-fm-save]').catch(() => {});
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the form stands in THE MIDDLE where the paper was
+       (pd2FormMidOpen), its one Save at its own foot ([data-pd-mid] [data-pd-fm-save]) */
+    if (id) await page.click('[data-pd-mid] [data-pd-fm-save], #ig-dock [data-pd-fm-save]', { timeout: 4000 }).catch(() => {});
     const filled = id ? await waitFor(page, i => !detailsOf(getContract(i)).left, 5000, id) : false;
+    /* RE-POINTED 17 Nov 2026 (#762): the Save hands back to the paper still filling in its own spaces (the signature
+       lines, pd2FillStart); the signers are named at signing (stage 5), so the reader stops filling in (Stop,
+       data-pd2-fill-discard) and the paper's line, with its Share, is back */
+    if (id && await page.$('[data-pd2-fill-discard]')) {
+      await page.waitForTimeout(400);
+      await page.click('[data-pd2-fill-discard]', { timeout: 4000 }).catch(() => {});
+      await page.evaluate(() => { const ok = document.querySelector('#confirm-overlay #cf-ok'); if (ok) ok.click(); });
+      await waitFor(page, () => !document.querySelector('[data-pd2-fill-discard]') && !!document.querySelector('#ig-strip #ws-share'), 5000);
+    }
     check('2 every owed box is filled in beside the paper, nothing owed after', left0 > 0 && filled && await page.evaluate(() => state.view === 'dashboard'),
       JSON.stringify({ before: left0, open: id && await page.evaluate(i => detailsOf(getContract(i)).items.filter(x => x.open).map(x => x.key), id),
         boxes: await page.evaluate(() => [...document.querySelectorAll('#pd-og [data-kt], #pd-og [data-blankf]')].map(b => (b.getAttribute('data-kt') || b.getAttribute('data-blankf')) + ':' + b.tagName + ':' + (b.type || '') + ':' + String(b.value || '').slice(0, 12) + (b.offsetParent ? '' : ':hidden'))) }));

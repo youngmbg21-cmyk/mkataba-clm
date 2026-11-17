@@ -72,24 +72,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* 1c RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's own row went with Home */
     await page.evaluate(() => setView('dashboard'));
 
-    /* ════ 2. THE DROPDOWN'S CHOICES ════ */
-    await page.evaluate(() => setView('register'));
-    await page.waitForTimeout(1400);
-    const opts = await page.evaluate(() => {
-      const s = document.querySelector('.reg-filterbar .reg-chip-sel');
-      if (!s || !s.options.length) return null;
-      const cs = getComputedStyle(s), os = getComputedStyle(s.options[1] || s.options[0]);
-      return { hidden: cs.opacity === '0', selColor: cs.color,
-        optColor: os.color, optBg: os.backgroundColor, radius: cs.borderTopLeftRadius,
-        chipRadius: getComputedStyle(s.closest('.reg-chip')).borderTopLeftRadius };
-    });
-    ok('2 the choices carry an ink of their own',
-      !!opts && opts.hidden && opts.optColor !== opts.optBg
-        && opts.optColor !== 'rgba(0, 0, 0, 0)', JSON.stringify(opts));
-    /* RE-POINTED 7 Oct 2026 (the bright brand): the chips are soft boxes now,
-       not pills, so the control matches the chip's own corner, whatever it is */
-    ok('2b and the control itself takes the chip\'s corner',
-      !!opts && opts.radius === opts.chipRadius && parseFloat(opts.radius) > 0, opts && (opts.radius + ' vs chip ' + opts.chipRadius));
+    /* ════ 2. THE DROPDOWN'S CHOICES ════
+       RETIRED 17 Nov 2026 (#762, owner's ruling): 2 "the choices carry an ink of their own" and 2b "the control takes the
+       chip's corner" measured the Contracts list's filter chips (.reg-filterbar .reg-chip-sel: + Filter, Sort) — those stay
+       gone in the new look, so there is no dropdown chip to measure. */
 
     /* ════ 3. THE HORIZON ════
        MORE ROWS THAN THE CARD, or a sticky header proves nothing. */

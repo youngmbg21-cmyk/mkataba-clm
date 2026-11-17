@@ -107,63 +107,53 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     ok('1h the pills are painted, green and amber apart', !!gvBg && gvBg !== 'rgba(0, 0, 0, 0)' && !!saBg && saBg !== 'rgba(0, 0, 0, 0)' && gvBg !== saBg, gvBg + ' / ' + saBg);
 
     console.log('\n2 · a filter finds the gaps');
-    /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the NDA
-       filter waits under "+ Filter" beside Stream and Owner, each choice
-       counted; once chosen it is a chip whose own list re-chooses, its ×
-       returns it to rest */
-    const box = await page.evaluate(() => {
-      const g = [...document.querySelectorAll('[data-lh-seat="customers"] select[data-lh-add] optgroup')];
-      const nda = g.find(x => x.getAttribute('label') === 'NDA');
-      return nda ? { groups: g.map(x => x.getAttribute('label')), opts: [...nda.querySelectorAll('option')].map(o => o.textContent.replace(/\s*\(\d+\)$/, '').trim()) } : null;
-    });
-    ok('2a "+ Filter" offers NDA beside Stream and Owner: In force · Not confirmed · None in force', !!box && box.groups.join(' · ') === 'Stream · Owner · NDA' && box.opts.join(' · ') === 'In force · Not confirmed · None in force', JSON.stringify(box));
-    const pick = async v => {
-      const done = await page.evaluate(v => {
-        const chip = document.querySelector('[data-lh-seat="customers"] select[data-lh-f="nda"]');
-        if (v === 'all'){ const x = document.querySelector('[data-lh-seat="customers"] [data-lh-x="nda"]'); if (x) x.click(); return true; }
-        if (chip){ chip.value = v; chip.dispatchEvent(new Event('change', { bubbles: true })); return true; }
-        const add = document.querySelector('[data-lh-seat="customers"] select[data-lh-add]'); if (!add) return false;
-        const o = [...add.options].find(x => x.value === JSON.stringify(['nda', v])); if (!o) return false;
-        add.value = o.value; add.dispatchEvent(new Event('change', { bubbles: true })); return true; }, v);
-      if (done) await page.waitForFunction(v => { const s = document.querySelector('[data-lh-seat="customers"] select[data-lh-f="nda"]'); return v === 'all' ? !s : (!!s && s.value === v); }, v, { timeout: 4000 }).catch(() => {});
-      return done;
-    };
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; Parties as drawn, round 6): the list has no + Filter;
+       the gaps are its own tab, "NDA missing" ([data-cun-tab="nda"]): the parties with no NDA in force — none at all, or
+       one whose secrecy ran out (a draft on its way is not missing). The tab's number is the rows it draws and the foot
+       counts the same; a refresh keeps it.
+       RETIRED 17 Nov 2026 (#762): 2a ("+ Filter" offers NDA: In force · Not confirmed · None in force), 2b (In force
+       leaves Givaudan and Naivas) and 2d (Not confirmed leaves SAP) — the new look's Parties has no NDA filter with those
+       choices; the column itself says In force / Not confirmed on every row (1b–1d) */
+    const tabN = () => page.evaluate(() => Number(((document.querySelector('[data-cun-tab="nda"] span') || {}).textContent || 'NaN').trim()));
     const keys = async () => Object.keys((await readList()).rows).sort().join(', ');
-    if (box){
-      await pick('inforce');
-      ok('2b In force leaves Givaudan and Naivas', (await keys()) === 'givaudan east africa, naivas supermarkets', await keys());
-      /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the card's head
-         counts the rows ("Parties 2"), the foot how many of them are drawn */
-      /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's one foot, "1–2 of 2" */
-      /* (Part 8) the list's count is the lit tab's number */
-      ok('2c …and the list counts the same: "Live 2", "1–2 of 2"', /^1–2 of 2/.test((await readList()).foot)
-        && await page.evaluate(() => (document.querySelector('[data-lh-seat="customers"] [role="tab"][aria-selected="true"] .n') || {}).textContent) === '2', (await readList()).foot);
-      await pick('unconfirmed');
-      ok('2d Not confirmed leaves SAP East Africa', (await keys()) === 'sap east africa', await keys());
-      await pick('none');
-      ok('2e None in force leaves Carrefour (ended), Kabras (none) and Krones (a draft)', (await keys()) === 'carrefour kenya, kabras sugar, krones east africa', await keys());
+    const hasTab = await page.evaluate(() => !!document.querySelector('[data-cun-tab="nda"]'));
+    if (hasTab){
+      await page.click('[data-cun-tab="nda"]');
+      await page.waitForFunction(() => !!document.querySelector('[data-cun-tab="nda"].is-on'), null, { timeout: 4000 }).catch(() => {});
+      await page.waitForTimeout(300);
+      ok('2e NDA missing leaves Carrefour (ended) and Kabras (none)', (await keys()) === 'carrefour kenya, kabras sugar', await keys());
+      const L2 = await readList();
+      /* the foot counts the whole book (every party, every agreement), not the tab: the tab's number is what this pins */
+      ok('2c …and the list counts the same: the tab\'s number is its rows',
+        (await tabN()) === Object.keys(L2.rows).length, (await tabN()) + ' · ' + Object.keys(L2.rows).length + ' rows');
       await page.evaluate(() => { if (typeof placeSave === 'function') placeSave(); });
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"] tr[data-cu-cust]'), null, { timeout: 10000 }).catch(() => {});
-      ok('2f a refresh keeps it', (await keys()) === 'carrefour kenya, kabras sugar, krones east africa'
-        && await page.evaluate(() => (document.querySelector('[data-lh-seat="customers"] select[data-lh-f="nda"]') || {}).value) === 'none', await keys());
-      await pick('all');
-    } else ['2b', '2c', '2d', '2e', '2f'].forEach(n => ok(n + ' (no NDA filter to choose from)', false));
+      ok('2f a refresh keeps it', (await keys()) === 'carrefour kenya, kabras sugar'
+        && await page.evaluate(() => !!document.querySelector('[data-cun-tab="nda"].is-on')), await keys());
+      if (await page.$('[data-cun-tab="all"]')) await page.click('[data-cun-tab="all"]').catch(() => {});
+      await page.waitForTimeout(300);
+    } else ['2e', '2c', '2f'].forEach(n => ok(n + ' (no NDA missing tab to choose)', false));
 
     console.log('\n3 · the party\'s panel says it, with the door to the NDA');
+    /* RE-POINTED 17 Nov 2026 (#762): the chosen party's panel is Jambo's five parts; the NDA is a row of "The party's own
+       facts" (.jov5-row: .jov5-k "NDA", its word in .jov5-rt) — the column's own reading in a sentence's words; the door to
+       the NDA is looked for in that row or anywhere in the panel ([data-cu-nda]) */
     const panelOf = async key => {
       await page.click(`tr[data-cu-cust="${key}"]`).catch(() => {});
-      await page.waitForFunction(k => (document.querySelector('#ins-panel h2, #ins-panel .ins-cp') || {}).textContent && document.querySelector('tr.is-sel[data-cu-cust="' + k + '"]'), key, { timeout: 4000 }).catch(() => {});
-      return page.evaluate(() => { const f = document.querySelector('#ins-panel [data-ins-fact="nda"]');
-        return f ? { text: f.textContent.replace(/\s+/g, ' ').trim(), amber: !!f.querySelector('.is-amber'), door: !!f.querySelector('[data-cu-nda]') } : null; });
+      await page.waitForFunction(k => !!document.querySelector('tr.is-sel[data-cu-cust="' + k + '"]') && !!document.querySelector('#ins-panel .jov5-title'), key, { timeout: 4000 }).catch(() => {});
+      await page.waitForTimeout(200);
+      return page.evaluate(() => { const f = [...document.querySelectorAll('#ins-panel .jov5-row')].find(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() === 'NDA');
+        if (!f) return null;
+        const v = f.querySelector('.jov5-rt'); const col = v ? getComputedStyle(v.querySelector('b') || v).color : '';
+        return { text: (v ? v.textContent : '').replace(/\s+/g, ' ').trim(), color: col, door: !!(f.querySelector('[data-cu-nda]') || document.querySelector('#ins-panel [data-cu-nda]')) }; });
     };
     const gv = await panelOf('givaudan east africa');
-    ok('3a Givaudan\'s panel: "Both sides (mutual) · secret until …" and Open the NDA', !!gv && /^NDA ?Both sides \(mutual\) · secret until .+ Open the NDA ›$/.test(gv.text) && gv.door, JSON.stringify(gv));
+    ok('3a Givaudan\'s panel says it is in force ("Signed <day>") and opens the NDA', !!gv && /^(Signed .+|Confirmed)$/.test(gv.text) && gv.door, JSON.stringify(gv));
     const sa = await panelOf('sap east africa');
-    ok('3b SAP\'s panel says, in amber, that nobody has confirmed it — and still opens it', !!sa && /nobody has confirmed/.test(sa.text) && sa.amber && sa.door, JSON.stringify(sa));
+    ok('3b SAP\'s panel says nobody has confirmed it ("Not confirmed") — and still opens it', !!sa && /^Not confirmed$/.test(sa.text) && sa.door, JSON.stringify(sa));
     const ks = await panelOf('kabras sugar');
-    /* RE-POINTED 19 Oct 2026 (round 19 as drawn: "None — no NDA with Kettle & Co, signed or in draft") */
-    ok('3c Kabras\'s panel says None, in the drawing\'s sentence, with no door', !!ks && /^NDA ?None — no NDA with Kabras Sugar, signed or in draft$/.test(ks.text) && !ks.door, JSON.stringify(ks));
+    ok('3c Kabras\'s panel says None, with no door', !!ks && /^None$/.test(ks.text) && !ks.door, JSON.stringify(ks));
     await panelOf('givaudan east africa');
     if (await press('#ins-panel [data-cu-nda]', '3d the door to the NDA')) {
       /* RE-POINTED 9 Nov 2026 (the Board's contract card and its life line are gone): the NDA's facts open beside its
@@ -180,31 +170,41 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
       await page.setViewportSize(vp);
       await page.evaluate(() => setView('customers'));
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"] tr[data-cu-cust]'), null, { timeout: 8000 }).catch(() => {});
+      /* RE-POINTED 17 Nov 2026 (#762): the new look's table (.cun-table in .cu-scroll), the NDA cell one status (.cun-st) */
       const fit = await page.evaluate(() => {
-        const sc = document.querySelector('.cu-scroll'), cells = [...document.querySelectorAll('.cu-table .cu-nda-td')];
-        /* a row is as tall as its party's two lines; the NDA cell never adds a line */
-        const tall = cells.filter(td => { const tr = td.closest('tr'), id = tr.querySelector('.ap-id');
-          return td.getBoundingClientRect().height > (id ? id.getBoundingClientRect().height : 40) + 20; }).length;
-        const pills = [...document.querySelectorAll('.cu-table .cu-nda')].filter(p => p.scrollWidth > p.clientWidth + 1 || p.getBoundingClientRect().height > 30).length
-          + [...document.querySelectorAll('.cu-table thead th, .cu-table td:not(:first-child)')].filter(x => x.scrollWidth > x.clientWidth + 1).length;
-        const party = Math.round((document.querySelector('.cu-table thead th') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width);
-        return { side: sc ? sc.scrollWidth - sc.clientWidth : -1, tall, pills, party, page: document.documentElement.scrollWidth - innerWidth };
+        const sc = document.querySelector('.cu-scroll'), heads = [...document.querySelectorAll('.cun-table thead th')].map(th => th.textContent.trim());
+        const at = heads.indexOf('NDA');
+        const cells = at < 0 ? [] : [...document.querySelectorAll('.cun-table tr[data-cu-cust]')].map(tr => tr.querySelectorAll('td')[at]).filter(Boolean);
+        /* a row is as tall as its party's lines; the NDA cell never adds a line */
+        const tall = cells.filter(td => { const tr = td.closest('tr'), nm = tr.querySelector('td');
+          return td.getBoundingClientRect().height > (nm ? nm.getBoundingClientRect().height : 40) + 1; }).length;
+        const pills = cells.map(td => td.querySelector('.cun-st')).filter(Boolean).filter(p => p.scrollWidth > p.clientWidth + 1 || p.getBoundingClientRect().height > 30).length
+          + [...document.querySelectorAll('.cun-table thead th, .cun-table td:not(:first-child)')].filter(x => x.scrollWidth > x.clientWidth + 1).length;
+        const party = Math.round((document.querySelector('.cun-table thead th') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width);
+        return { side: sc ? sc.scrollWidth - sc.clientWidth : -1, tall, pills, party, page: document.documentElement.scrollWidth - innerWidth, cells: cells.length };
       });
       if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/parties-${vp.width}x${vp.height}.png` });
-      ok(`4 ${vp.width}×${vp.height}: the party's column keeps its room, no sideways scroll, no row grows, no pill cut`, fit.party >= 186 && fit.side <= 0 && fit.tall === 0 && fit.pills === 0 && fit.page <= 0, JSON.stringify(fit));
+      ok(`4 ${vp.width}×${vp.height}: the party's column keeps its room, no sideways scroll, no row grows, no pill cut`, fit.cells >= 6 && fit.party >= 186 && fit.side <= 0 && fit.tall === 0 && fit.pills === 0 && fit.page <= 0, JSON.stringify(fit));
     }
 
     console.log('\n5 · in Swedish the words fit too');
     await page.setViewportSize({ width: 1536, height: 730 });
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('sv'); setView('customers'); });
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"] tr[data-cu-cust]'), null, { timeout: 8000 }).catch(() => {});
-    const sv = await page.evaluate(() => ({
-      head: [...document.querySelectorAll('.cu-table thead th')].filter(th => th.scrollWidth > th.clientWidth + 1).map(th => th.textContent.trim()),
-      pills: [...document.querySelectorAll('.cu-table .cu-nda, .cu-table .cu-nda-sub, .cu-table td:not(:first-child)')].filter(p => p.scrollWidth > p.clientWidth + 1).map(p => p.textContent.trim()),
-      words: [...document.querySelectorAll('.cu-table .cu-nda')].map(p => p.textContent.trim()).sort().join(', '),
-      /* (Part 8) the NDA filter is still offered, under + Filter */
-      box: [...document.querySelectorAll('[data-lh-seat="customers"] select[data-lh-add] option')].some(o => o.value.indexOf('["nda"') === 0) }));
-    ok('5 Swedish: no head and no NDA word cut, the box still there', sv.box && !sv.head.length && !sv.pills.length && /Ömsesidigt/.test(sv.words) && /Inte bekräftat/.test(sv.words), JSON.stringify(sv));
+    /* RE-POINTED 17 Nov 2026 (#762): the new look's table; the words are the new column's ("Inte bekräftat" for the one
+       nobody confirmed, "Signerat <år>" — or "Bekräftat" where no signing day is held — for one in force); the gaps' tab ("NDA saknas") stands where the box stood */
+    await page.waitForTimeout(300);
+    const sv = await page.evaluate(() => {
+      const heads = [...document.querySelectorAll('.cun-table thead th')];
+      const at = heads.map(th => th.textContent.trim()).indexOf('NDA');
+      const cells = at < 0 ? [] : [...document.querySelectorAll('.cun-table tr[data-cu-cust]')].map(tr => tr.querySelectorAll('td')[at]).filter(Boolean);
+      return {
+        head: heads.filter(th => th.scrollWidth > th.clientWidth + 1).map(th => th.textContent.trim()),
+        pills: [...cells.map(td => td.querySelector('.cun-st')).filter(Boolean), ...document.querySelectorAll('.cun-table td:not(:first-child)')].filter(p => p.scrollWidth > p.clientWidth + 1).map(p => p.textContent.trim()),
+        words: cells.map(td => td.textContent.trim()).sort().join(', '),
+        box: !!document.querySelector('[data-cun-tab="nda"]') };
+    });
+    ok('5 Swedish: no head and no NDA word cut, the box still there', sv.box && !sv.head.length && !sv.pills.length && /(Signerat \d{4}|Bekräftat)/.test(sv.words) && /Inte bekräftat/.test(sv.words), JSON.stringify(sv));
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/parties-sv-1536x730.png` });
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); });
 

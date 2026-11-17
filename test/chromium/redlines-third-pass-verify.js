@@ -160,10 +160,11 @@ const openFace = async page => {
     }
     check('1a Ladder opens the clause\'s ladder under its own row (the steps, our standard)', !!la && la.under && /ladder/i.test(la.text) && !la.panel, JSON.stringify(la));
     await shot(page, '9-ladder-1440x780');
-    if (la){
-      await page.evaluate(() => { const l = document.querySelector('#pd-redface [data-rl-ladder-ch][aria-expanded="true"]'); const m = l && l.closest('[data-nego-card]') && l.closest('[data-nego-card]').querySelector('[data-rl-more]'); if (m && l.closest('.rl-card-more[hidden]')) m.click(); });
-      await page.click('#pd-redface [data-rl-ladder-ch][aria-expanded="true"]', { timeout: 5000 }).catch(() => {}); }
-    const folded = await waitFor(page, () => !document.querySelector('#pd-redface .rl-row-ladder'), 4000);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; THE REDLINES FACE, rlFiveHead): a row's Ladder turns
+       the face to its Ladder (the cards step aside), and the face's ONE switch puts it away — Changes
+       ([data-rl-head-changes]) brings the cards back with the ladder folded */
+    if (la) await page.click('#pd-redface [data-rl-head-changes]', { timeout: 5000 }).catch(() => {});
+    const folded = await waitFor(page, () => !document.querySelector('#pd-redface .rl-row-ladder') && !!document.querySelector('#pd-redface [data-rl-pile="awaiting"] [data-nego-card]'), 4000);
     check('1a the same press folds it', !!la && !!folded);
 
     /* 1b a row's "2 notes" */
@@ -171,13 +172,17 @@ const openFace = async page => {
     let nv = null;
     if (await rn.count()){
       await rn.click({ timeout: 5000 }).catch(() => {});
+      /* RE-POINTED 17 Nov 2026 (#762; REDLINES' NOTES ARE THE BAR'S NOTES, f1087): the change's notes stand in the face's
+         own host (.rl-fn-same), each note a thread of the bar's builder (.rl-np-thread) */
       nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn[data-rl-fn-change]'); if (!v) return null;
-        return { only: (v.querySelector('.rl-fn-only') || {}).innerText, all: !!v.querySelector('[data-rl-fn-all]'), say: [...v.querySelectorAll('.rl-fn-say')].map(s => s.textContent.trim()),
+        return { only: (v.querySelector('.rl-fn-only') || {}).innerText, all: !!v.querySelector('[data-rl-fn-all]'), say: [...v.querySelectorAll('.rl-fn-say, .rl-np-list .rl-np-thread')].map(s => s.textContent.trim()),
           drawer: !!(state.panelOpen), ctx: (() => { const p = document.getElementById('context-panel'); return !!(p && p.getClientRects().length && p.getBoundingClientRect().width > 50 && getComputedStyle(p).visibility !== 'hidden' && p.classList.contains('open')); })() }; }, 5000);
     }
     check('1b a row\'s "2 notes" opens that change\'s notes in the same panel, not the drawer', !!nv && /Liability cap/.test(nv.only || '') && nv.all && nv.say.length === 2 && !nv.drawer && !nv.ctx, JSON.stringify(nv));
     await shot(page, '9-rownotes-1440x780');
-    await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]', { timeout: 5000 }).catch(() => {});  /* ONE TRAIL's back (20 Oct 2026) */
+    await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]', { timeout: 2000 }).catch(() => {});  /* ONE TRAIL's back (20 Oct 2026) */
+    /* RE-POINTED 17 Nov 2026 (#762): the new look draws no trail over the face; its switch's Changes is the way back */
+    if (await page.$('#pd-redface .rl-fn')) await page.click('#pd-redface [data-rl-head-changes]', { timeout: 5000 }).catch(() => {});
     await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn'), 4000);
 
     /* 1c Discard last asks first (owner decision D3, 9 Oct 2026; the drawing's
@@ -212,7 +217,9 @@ const openFace = async page => {
     check('1d Reject and Discard last stay red', !!ink.reject && ink.reject === ink.discard && ink.reject !== ink.accept, JSON.stringify({ reject: ink.reject, discard: ink.discard }));
     check('1e "Here now": 22px filled circles, white initials, one colour each', ink.faces.length >= 2 && ink.faces.every(f => f.w === '22px' && f.fg === 'rgb(255, 255, 255)')
       && new Set(ink.faces.map(f => f.bg)).size === ink.faces.length, JSON.stringify(ink.faces));
-    check('1f Lina\'s suggestion is dashed on the paper, our draft solid', ink.sg === 'dashed' && ink.ours === 'solid', JSON.stringify({ sg: ink.sg, ours: ink.ours }));
+    /* RETIRED 17 Nov 2026 (#762): 1f "Lina's suggestion is dashed on the paper, our draft solid" — the new look draws THE
+       REDLINE AS DRAWN (owner, 31 Oct 2026: "build as drawn"; index.html): added words green and underlined, "whoever
+       wrote them", so a colleague's suggestion is no longer told apart on the paper by a dashed line */
 
     /* 2 the editor from Counter on clause 7 */
     const ctr = page.locator('#pd-redface [data-rl-pile="awaiting"] [data-nego-card]').first().locator('button:has-text("Counter")');
@@ -281,10 +288,19 @@ const openFace = async page => {
       await shot(page, `11-letter-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(500);
-    const gap = await page.evaluate(() => { const f = document.querySelector('#sh-letter .sh-lt-foot'); const p = f && f.previousElementSibling;
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; PLAIN LETTER): the sign-off is "Kind regards" and the
+       sender under it (.sh-lt-say.is-lead, then .sh-lt-sign), where the old foot (.sh-lt-foot) stood; the gap is the one
+       above its first line */
+    const gap = await page.evaluate(() => { const g = document.querySelector('#sh-letter .sh-lt-sign');
+      const f = document.querySelector('#sh-letter .sh-lt-foot') || (g && g.previousElementSibling && /^Kind regards/.test(g.previousElementSibling.textContent.trim()) ? g.previousElementSibling : g);
+      const p = f && f.previousElementSibling;
       return f && p ? Math.round(f.getBoundingClientRect().top - p.getBoundingClientRect().bottom) : null; });
     check('3e a gap before the sign-off', gap != null && gap >= 14, String(gap));
-    await page.click('[data-sh-as-go="what"]', { timeout: 5000 }).catch(() => {}); await page.click('[data-sh-as-what="history"]', { timeout: 5000 }).catch(() => {});
+    /* RE-POINTED 17 Nov 2026 (#762; FOUR STEPS, owner's pick 14 Nov 2026): "What goes" is the second step, opened in place
+       by its Change ([data-sh-st-go="what"]); its choice of what goes is the same list as before */
+    if (await page.$('[data-sh-st-go="what"]')) await page.click('[data-sh-st-go="what"]', { timeout: 5000 }).catch(() => {});
+    if (!(await page.$('[data-sh-as-what="history"]:visible'))) await page.click('[data-sh-as-go="what"]', { timeout: 5000 }).catch(() => {});
+    await page.click('[data-sh-as-what="history"]', { timeout: 5000 }).catch(() => {});
     const hist = await waitFor(page, () => { const p = document.getElementById('share-hist-preview'); return p && !p.classList.contains('hidden') && /Negotiation history/.test(p.innerText) ? p.innerText.length : null; }, 6000);
     check('3f the history preview keeps its rows', !!hist, String(hist));
     await shot(page, '11-history-1440x780');

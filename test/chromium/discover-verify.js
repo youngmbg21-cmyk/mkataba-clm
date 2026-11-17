@@ -351,24 +351,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
        five parts (apnLeadFiveHtml: no button, Approve/Decline on the row), pinned by approve-from-the-list-verify and
        approve-on-row-verify */
 
-    if (stage(9)){
-      await fresh(page);
-      await page.evaluate(() => cuSelectParty('siginon group'));
-      const sec = await until(page, () => /Before the call/.test((document.querySelector('#ins-panel') || {}).innerText || '') && !!document.querySelector('#ins-panel [data-cu-brief]'), null, 10000);
-      const t = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('9a the party\'s panel says Before the call and offers the brief, no cost', sec && /How they negotiate|No settled rounds/.test(t) && /Write the two-minute brief/.test(t) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(t), t.replace(/\s+/g, ' ').slice(0, 300));
-      await page.screenshot({ path: path.join(OUT, '9-party.png') });
-      const c0 = h.ai.calls.length;
-      await page.click('#ins-panel [data-cu-brief]', { timeout: 5000 }).catch(() => {});   /* a door not drawn REPORTS, the run goes on */
-      const said = await until(page, () => !!document.querySelector('#ins-panel .cu-br-text'), null, 10000);
-      const t2 = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
-      check('9b pressed: one call, the brief said, the unfound figure named', said && h.ai.calls.length - c0 === 1 && /2 agreements/.test(t2) && /check them: 999/.test(t2), t2.replace(/\s+/g, ' ').slice(0, 300));
-      const psay = await page.evaluate(() => { const el = document.querySelector('#ins-panel [data-cu-br-say]');
-        if (!el) return null; const cs = getComputedStyle(el);
-        return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius }; });
-      check('9b\u2032 the two minutes wear the same card as the approver\'s brief (one builder, both panels)',
-        !!psay && /jb-say/.test(psay.cls) && /The two minutes/.test(psay.head) && psay.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(psay.r) >= 10, JSON.stringify(psay));
-    }
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): stage 9 (9a, 9b, 9b′) — the party's panel "Before the call" with its
+       two-minute brief ([data-cu-brief]); the new look's Parties panel has no Before the call brief, and the owner ruled
+       it stays gone */
     /* ============ 11. STOP WHILE HE READS (the owner's note 1, 26 Oct 2026) ============ */
     if (stage(11)){
       await fresh(page);

@@ -180,9 +180,17 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     await page.fill('#jl-q', 'what does this page tell me about my reads?'); await page.press('#jl-q', 'Enter');
     check('7a Jambo answers on Reads', await until(page, () => (ai.history || []).length >= 2 && !ai.busy, null, 15000));
     h.ai.slow(700);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new Discover keeps a further read ON Reads — the
+       read's row is pressed (its panel carries "read them", [data-dsn-more]) and the press opens the while-it-reads
+       screen (#dsn-cancel) with the run going; the promise is the same: the press shows the read, not Jambo's talk
+       ("A FINISHED READ LANDS ON ITS RESULTS"; the old landing on Contracts is gone with the old Reads rows) */
+    await page.evaluate(() => { const r = document.querySelector('#rd-page [data-dsn-run]'); if (r) r.click(); });
+    await until(page, () => !!document.querySelector('[data-rd-next], [data-dsn-more]'), null, 8000);
     check('7a′ the read-the-rest door stands on Reads', await page.click(NEXT + ' >> nth=0', { timeout: 5000 }).then(() => true, () => false));
-    const back = await until(page, () => !!document.querySelector('#reg-tbody') && !!AC.busy && !!document.querySelector('#ig-dock [data-ac-desk-card]') && !(typeof pdTalkShows === 'function' && pdTalkShows()), null, 20000);
-    check('7b Next 50 lands on Contracts with the panel on its Overview, the read in sight', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy, talk: typeof pdTalkShows === 'function' && pdTalkShows() })));
+    const back = await until(page, () => state.view === 'reads' && !!AC.busy && !!document.querySelector('#rd-page #dsn-cancel')
+      && !(typeof jlTalkShows === 'function' && jlTalkShows()), null, 20000);
+    check('7b the further read stays on Reads, its while-it-reads screen in sight, not Jambo\'s talk', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy,
+      reading: !!document.querySelector('#rd-page #dsn-cancel'), talk: typeof jlTalkShows === 'function' && jlTalkShows() })));
     await page.screenshot({ path: path.join(OUT, '7-next-from-reads.png') });
     h.ai.slow(0);
     await ended();

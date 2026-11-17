@@ -15033,7 +15033,9 @@
   .jov5-ic{width:14px;height:14px;}
   .jov5-k{flex:none;width:84px;font-size:13px;color:var(--color-neutral-400);}
   .jov5-rt{flex:1;min-width:0;display:flex;flex-direction:column;}
-  .jov5-rt b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* A LONG NAME TWO LINES, THEN "…" (the standing rule; #762: a row's name was cut at one line) */
+  .jov5-rt b{font-weight:var(--w-label);white-space:normal;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;}
+  .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{display:block;-webkit-line-clamp:unset}
   .jov5-rt span{font-size:12px;line-height:1.4;color:var(--color-neutral-400);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
   .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{white-space:normal;}
   .jov5-v{flex:none;font-size:12.5px;color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums;}
@@ -19099,7 +19101,7 @@
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-ct{display:none}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-st{margin:0 0 6px;font-size:12.5px;line-height:1.45;color:var(--color-text)}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-cacts{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-left:0}
-  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-a{height:auto;padding:0;border:0;background:none;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-a:not(.stk-mk){height:auto;padding:0;border:0;background:none;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mk .stk-ring{display:none}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mks{margin-left:0}
   html.lg-new #ig-dock .pd-th .stk-cost-n{font-size:11.5px;color:var(--color-quiet)}
@@ -20804,7 +20806,9 @@
   html.lg-new .ngn-table tr.is-sel td{background:var(--surface-2)}
   html.lg-new .ngn-table td:first-child{padding-left:12px}
   html.lg-new .ngn-table th:first-child{padding-left:12px}
-  html.lg-new .ngn-ref{font-family:var(--font-mono);font-weight:var(--w-strong)}
+  /* one size on a row, nothing heavier than its name (the list title rung, as Contracts' .reg-title; #762) */
+  html.lg-new .ngn-ref{font-family:var(--font-mono);font-weight:var(--w-label)}
+  html.lg-new .ngn-table tr[data-ngn-row] .cun-name{font-size:13px}
   html.lg-new .ngn-rd,html.lg-new .ngn-mv,html.lg-new .ngn-open,html.lg-new .ngn-last{font-weight:var(--w-label)}
   html.lg-new .ngn-mv.is-you{color:var(--st-amber-fg)}
   html.lg-new .ngn-q{font-family:var(--font-doc);font-style:italic;font-weight:400;quotes:'\201C' '\201D'}

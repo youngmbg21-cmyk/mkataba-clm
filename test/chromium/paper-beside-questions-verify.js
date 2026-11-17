@@ -195,9 +195,12 @@ const check = (name, pass, detail) => {
      ============================================================ */
   await page.evaluate(() => window.setView('templates'));
   await page.waitForTimeout(900);
+  /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): Our paper's one door to a new standard is the row in
+     Jambo's five parts beside the chosen paper ([data-tpln-new], "New standard", which presses #tpl-new's door); where
+     the old head's #tpllib-new / #tpl-new is drawn it is still read first */
   const asAdmin = await page.evaluate(() => {
-    const b = document.getElementById('tpllib-new') || document.getElementById('tpl-new');
-    return b ? { id: b.id, off: b.disabled } : null;
+    const b = document.getElementById('tpllib-new') || document.getElementById('tpl-new') || document.querySelector('#ins-panel [data-tpln-new], [data-tpln-new]');
+    return b ? { id: b.id || 'data-tpln-new', off: b.disabled } : null;
   });
   check('4a an admin still has the door', asAdmin && asAdmin.off === false,
     asAdmin ? `${asAdmin.id} disabled=${asAdmin.off}` : 'no button');
@@ -205,14 +208,16 @@ const check = (name, pass, detail) => {
   /* An Editor WITHOUT the grant. The reading is the product's own, so this
      flips the answer the same way the product does rather than faking a
      button state. */
-  const asEditor = await page.evaluate(() => {
+  const asEditor = await page.evaluate(async () => {
     const me = window.REMOTE && window.REMOTE.me;
     if (!me) return { err: 'no session' };
     const wasRole = me.role, wasPaper = me.newPaper;
     me.role = 'legal'; me.newPaper = false;
     window.setView('templates');
+    /* the five parts beside the paper are painted after the page (#762): read them once they are drawn again */
+    await new Promise(r => setTimeout(r, 900));
     const out = (() => {
-      const b = document.getElementById('tpllib-new') || document.getElementById('tpl-new');
+      const b = document.getElementById('tpllib-new') || document.getElementById('tpl-new') || document.querySelector('#ins-panel [data-tpln-new], [data-tpln-new]');
       return b ? { off: !!b.disabled, title: b.getAttribute('title') || '' } : null;
     })();
     me.role = wasRole; me.newPaper = wasPaper;

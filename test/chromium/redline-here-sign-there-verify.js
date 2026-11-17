@@ -414,18 +414,10 @@ const AGREED = [
       para('Signed for Kijani Foods Ltd: Wanjiru Kamau, 29 September 2026'),
       para('Signed for Highland Corporate Ltd: Amina Otieno, 30 September 2026'),
     ].join(''))));
-    /* The check our signatory runs before signing draws the same list, off the
-       same builder, in its own window — pressed through the waiting card. */
-    await press('[data-ho-act="check"]').catch(() => {});
-    await page.waitForSelector('#ho-fd-file', { timeout: 5000 }).catch(() => {});
-    await page.setInputFiles('#ho-fd-file', signedB).catch(() => {});
-    await page.click('#ho-fd-go', { timeout: 5000 }).catch(() => {});
-    await page.waitForSelector('#ho-fd-out .ho-res', { timeout: 15000 }).catch(() => {});
-    const chk = await page.evaluate(() => { const r = document.querySelector('#ho-fd-out .ho-res');
-      return r ? { same: r.classList.contains('is-same'), text: r.innerText.replace(/\s+/g, ' '),
-        rows: [...r.querySelectorAll('.ho-fills[open] .ho-fill')].length } : null; });
-    check('8a0 the check before we sign reads the filled blanks as the same wording and lists them',
-      chk && chk.same && chk.rows === 3 && /3 blanks they filled in/.test(chk.text), JSON.stringify(chk).slice(0, 220));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 8a0 "the check before we sign reads the filled blanks as the same
+       wording" was pressed through the waiting card ([data-ho-act="check"]), which the new look keeps gone (the owner's
+       answer 2, 17 Nov 2026: the handed-over waiting card with Chase / Send again / Reopen stays gone); the same list,
+       off the same builder, is still read on the filing screen (8a, 8b) */
     await page.click('#ho-fd-cancel').catch(() => {});
     await page.waitForTimeout(400);
     await page.evaluate(() => { state.aiConfigured = false; openUploadModal(); });

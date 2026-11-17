@@ -72,29 +72,34 @@ const signIn = async (page, base, email, pass) => {
 };
 
 /* What the table is showing, read off the rendered DOM. */
+/* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): People is drawn as round 6 drew it (dirnRender): ONE
+   table (#dir-tbody tr[data-dir-row]) — the name (.cun-name), what differs under it (.cun-sub: a title, their party,
+   "you"), then Role · Does for you · Waiting · Reach (td.cun-wait); tabs All · Yours · Outside · Waiting
+   ([data-dirn-tab], the lit one .is-on); the chosen person's panel is Jambo's five parts (.jov5: the name as the
+   headline .jov5-title; Email them [data-dirn-mail] and Show their contracts [data-dirn-contracts] as rows). No
+   address rides a row: Email is the panel's door (PILL TO ACT, the harmony review). */
 const PAGE = () => {
-  const cards = [...document.querySelectorAll('#dir-page [data-dir-row]')];
+  const cards = [...document.querySelectorAll('#dir-page #dir-tbody tr[data-dir-row]')];
   const txt = (el, sel) => { const x = el.querySelector(sel); return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
-  const heads = [...document.querySelectorAll('#dir-page thead th')].map(t => t.getAttribute('data-dir-col') || 'name');
-  const col = (c, k) => { const i = heads.indexOf(k); const td = i >= 0 ? c.children[i] : null; return td ? td.textContent.replace(/\s+/g, ' ').trim() : ''; };
-  /* (Part 8) the side is the lit tab of the list head */
-  const side = document.querySelector('#dir-page [role="tab"][data-dir-tab][aria-selected="true"]');
+  const side = document.querySelector('#dir-page [data-dirn-tab].is-on');
+  const tabs = [...document.querySelectorAll('#dir-page [data-dirn-tab]')].map(t => ({ k: t.getAttribute('data-dirn-tab'), n: Number((t.querySelector('span') || {}).textContent || NaN) }));
+  const P = document.getElementById('ins-panel');
+  const door = (sel) => { const b = P && P.querySelector(sel); return b ? { t: b.textContent.replace(/\s+/g, ' ').trim(), dead: !!b.disabled } : null; };
   return {
     n: cards.length,
-    names: cards.map(c => txt(c, '.dir-name')),
-    roles: cards.map(c => txt(c, '.dir-sub .dir-role')),
-    subs: cards.map(c => col(c, 'party')),
-    mails: cards.map(c => { const w = c.querySelector('.dir-nm-w'); return w ? w.getAttribute('title') : null; }),
+    names: cards.map(c => txt(c, '.cun-name')),
+    roles: cards.map(c => { const td = c.querySelectorAll('td.cun-wait')[0]; return td ? td.textContent.replace(/\s+/g, ' ').trim() : ''; }),
+    subs: cards.map(c => txt(c, '.cun-sub')),
     rowLinks: cards.reduce((n, c) => n + c.querySelectorAll('a').length, 0),
-    panelMail: !!document.querySelector('#ins-panel a[href^="mailto:"]'),
     words: (document.getElementById('dir-page') || {}).textContent || '',
     manage: !!document.getElementById('dir-manage'),
-    tab: side ? side.getAttribute('data-dir-tab') : null,
-    tabs: (typeof dirTabCount === 'function') ? DIR_TABS.map(k => ({ k, n: dirTabCount(dirBook(), k) })) : [],
+    tab: side ? side.getAttribute('data-dirn-tab') : null,
+    tabs,
+    foot: ((document.querySelector('#dir-page .apn-foot') || {}).textContent || '').trim(),
     links: [...document.querySelectorAll('#dir-page a')].map(a => a.getAttribute('href')),
-    panel: { id: (document.getElementById('ins-panel') || {}).getAttribute ? document.getElementById('ins-panel').getAttribute('data-ins-id') : null,
-      name: txt(document.getElementById('ins-panel') || document.body, '.ins-cp'),
-      acts: [...document.querySelectorAll('#ins-panel [data-ins-act]')].map(b => ({ k: b.getAttribute('data-ins-act'), t: b.textContent.trim(), dead: b.disabled })) },
+    panel: { id: P && P.getAttribute ? P.getAttribute('data-ins-id') : null,
+      name: P ? txt(P, '.jov5-title') : '',
+      mail: door('[data-dirn-mail]'), contracts: door('.jov5-group [data-dirn-contracts]') || door('[data-dirn-contracts]') },
   };
 };
 
@@ -139,7 +144,7 @@ const PAGE = () => {
     /* PRESSED, not called. */
     await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await page.waitForTimeout(1200);
-    const card = await page.evaluate(VISIBLE, '#dir-page .dir-card');
+    const card = await page.evaluate(VISIBLE, '#dir-page .apn-card #dir-tbody');
     check('pressing it lands on a page with the table on it', card.ok, card.why);
     const firstFace = await page.evaluate(VISIBLE, '#dir-page #dir-tbody tr[data-dir-row]');
     check('and a person is a painted row of the table', firstFace.ok, firstFace.why);
@@ -147,22 +152,27 @@ const PAGE = () => {
     const all = await page.evaluate(PAGE);
     const boot = await W.restricted.json('/api/bootstrap');
     check('the tabs open on Everyone', all.tab === 'all', all.tab);
-    const sum = all.tabs.filter(t => t.k !== 'all').reduce((s, t) => s + t.n, 0);
+    /* RE-POINTED 17 Nov 2026 (#762): the sides are Yours and Outside (Waiting on them picks from both, it is no side) */
+    const sum = all.tabs.filter(t => t.k === 'yours' || t.k === 'outside').reduce((s, t) => s + t.n, 0);
     check('the three sides add up to Everyone, and Everyone is the cards on the wall',
       sum === all.n && (all.tabs.find(t => t.k === 'all') || {}).n === all.n, JSON.stringify(all.tabs) + ' vs ' + all.n);
 
     /* ---- OUR PEOPLE: the roster, the reader first ---- */
-    await page.click('#dir-page [role="tab"][data-dir-tab="ours"]');
+    await page.click('#dir-page [data-dirn-tab="yours"]');
     await page.waitForTimeout(700);
     const p = await page.evaluate(PAGE);
     check('Our people is every colleague', p.n === boot.users.length, `${p.n} rows for ${boot.users.length} people`);
     const ai = p.names.findIndex(n => /Amina Otieno/.test(n));
     check('the reader first, then by name; the admin\'s row says Admin', /Restricted Legal/.test(p.names[0]) && ai > 0 && /Admin/i.test(p.roles[ai]), `${p.names[0]} · ${p.names[ai]} ${p.roles[ai]}`);
     /* (Part 8) the address rides the name's hover; the chosen person's panel carries it as the link */
+    /* RE-POINTED 17 Nov 2026 (#762): no address rides a row (PILL TO ACT: Email is the panel's door); every colleague has
+       an address on the record, and the chosen person's panel carries Email them, which writes to it */
+    const mailsOk = await page.evaluate(() => dirBook().filter(x => x.side === 'ours').every(x => /@/.test(x.email || '')));
     check('each row carries its address, and the panel\'s address is a mailto, so the wall can be acted on',
-      p.mails.filter(m => /@/.test(m || '')).length === p.n && p.rowLinks === 0 && p.panelMail, JSON.stringify({ first: p.mails[0], rowLinks: p.rowLinks, panelMail: p.panelMail }));
+      mailsOk && p.rowLinks === 0 && !!p.panel.mail, JSON.stringify({ mailsOk, rowLinks: p.rowLinks, panelMail: p.panel.mail }));
     check('a job title an admin set is printed', /Commercial Counsel/.test(p.words));
-    check('and the only links on the page are addresses', p.links.length > 0 && p.links.every(l => l.startsWith('mailto:')), `${p.links.length} links`);
+    /* RE-POINTED 17 Nov 2026 (#762): the page draws no link at all now (the address is the panel's Email door) */
+    check('and the only links on the page are addresses', p.links.every(l => l.startsWith('mailto:')) && !!p.panel.mail, `${p.links.length} links`);
 
     /* ---- THE ABSENCE, AS PIXELS ---- */
     const leaks = ['Sales & Route', 'signing limit', 'Signing limit', 'reviewed by'].filter(w => p.words.includes(w));
@@ -170,7 +180,7 @@ const PAGE = () => {
     check('a non-admin is offered no door to Settings, because they have none', !p.manage);
 
     /* ---- THEIR PEOPLE: the other side, with their party ---- */
-    await page.click('#dir-page [role="tab"][data-dir-tab="theirs"]');
+    await page.click('#dir-page [data-dirn-tab="outside"]');
     await page.waitForTimeout(700);
     const t = await page.evaluate(PAGE);
     check('Their people names at least one outside person', t.n >= 1, `${t.n} rows`);
@@ -190,9 +200,10 @@ const PAGE = () => {
        scene, Henrik Dahl): someone on their side has the drawn two doors —
        Show their contracts · Email — and the party is a row of its own whose
        door lands on Parties with that party chosen and lit */
-    const acts = (await page.evaluate(PAGE)).panel.acts;
-    const show = acts.find(a => a.k === 'contracts');
-    check('the panel offers Show their contracts and Email, as drawn', !!show && acts.map(a => a.k).join(',') === 'contracts,email', acts.map(a => a.t).join(' · '));
+    /* RE-POINTED 17 Nov 2026 (#762): the five parts' "Reach them" rows — Email them · Show their contracts */
+    const pan = (await page.evaluate(PAGE)).panel;
+    const show = pan.contracts;
+    check('the panel offers Show their contracts and Email, as drawn', !!show && !!pan.mail, JSON.stringify(pan));
     check('and Show their contracts is live, because they are named on contracts', show && !show.dead);
     const partyKey = await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-dir-party]'); return b ? b.getAttribute('data-dir-party') : null; });
     check('the Party row is a door onto the party', !!partyKey, String(partyKey));
@@ -208,16 +219,18 @@ const PAGE = () => {
     await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await page.waitForTimeout(1000);
     const back = await page.evaluate(PAGE);
-    check('the rail brings you back to the side you were on', back.tab === 'theirs', back.tab);
+    check('the rail brings you back to the side you were on', back.tab === 'outside', back.tab);
     /* RE-POINTED 19 Oct 2026: the drawing draws no A to Z edge; the table pages
        instead ("N of M shown · Show more") */
-    const edge = await page.evaluate(() => ({ az: !!document.querySelector('#dir-page .dir-az'), foot: ((document.querySelector('#dir-page .dir-cardfoot') || {}).textContent || '').trim() }));
-    /* RE-POINTED 21 Oct 2026 (Part 8): the list head's one foot, "1–12 of N" */
-    check('no A to Z edge; the foot says how many are shown', !edge.az && /^1–\d+ of \d+/.test(edge.foot), JSON.stringify(edge));
+    /* RE-POINTED 17 Nov 2026 (#762): the new look's table does not page; its foot says how many people the list holds,
+       the All tab's own number */
+    const edge = await page.evaluate(() => ({ az: !!document.querySelector('#dir-page .dir-az'), foot: ((document.querySelector('#dir-page .apn-foot') || {}).textContent || '').trim(),
+      all: Number((document.querySelector('#dir-page [data-dirn-tab="all"] span') || {}).textContent || NaN) }));
+    check('no A to Z edge; the foot says how many are shown', !edge.az && new RegExp('^' + edge.all + ' (people|person)$').test(edge.foot), JSON.stringify(edge));
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
-    const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page [role="tab"][data-dir-tab][aria-selected="true"]') || { getAttribute: () => null }).getAttribute('data-dir-tab') }));
-    check('a refresh lands on People, on the same side', kept.view === 'directory' && kept.tab === 'theirs', JSON.stringify(kept));
+    const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page [data-dirn-tab].is-on') || { getAttribute: () => null }).getAttribute('data-dirn-tab') }));
+    check('a refresh lands on People, on the same side', kept.view === 'directory' && kept.tab === 'outside', JSON.stringify(kept));
 
     await ctx.close();
 
@@ -230,12 +243,14 @@ const PAGE = () => {
     check('a Viewer has the place too', vDoor === 'people', String(vDoor));
     await pv.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await pv.waitForTimeout(1200);
-    await pv.click('#dir-page [role="tab"][data-dir-tab="ours"]');
+    await pv.click('#dir-page [data-dirn-tab="yours"]');
     await pv.waitForTimeout(600);
     const vp = await pv.evaluate(PAGE);
     check('and gets the whole roster — reading who is here is their level of access', vp.n >= 5, `${vp.n} rows`);
     const vr = await pv.evaluate(() => { const r = [...document.querySelectorAll('#dir-page [data-dir-row]')].find(x => /Vera Reader/.test(x.textContent)); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
-    check('marked on their own row', /Vera Reader \(you\)/.test(vr), vr);
+    /* RE-POINTED 17 Nov 2026 (#762): "you" is said under the name (.cun-sub), not in brackets */
+    const vrSub = await pv.evaluate(() => { const r = [...document.querySelectorAll('#dir-page [data-dir-row]')].find(x => /Vera Reader/.test(x.textContent)); const s = r && r.querySelector('.cun-sub'); return s ? s.textContent.trim() : ''; });
+    check('marked on their own row', /Vera Reader/.test(vr) && /(^|· )you$/i.test(vrSub), vr + ' | ' + vrSub);
     check('a Viewer is offered no door to Settings', !vp.manage);
     await ctxV.close();
 
@@ -248,7 +263,7 @@ const PAGE = () => {
     await pa.waitForTimeout(1200);
     const manage = await pa.evaluate(VISIBLE, '#dir-manage');
     check('an admin is pointed at Settings → People', manage.ok, manage.why);
-    await pa.click('#dir-manage');
+    await pa.click('#dir-manage', { timeout: 3000 }).catch(() => {});
     await pa.waitForTimeout(1400);
     const landedA = await pa.evaluate(() => ({
       view: state.view, tab: typeof settingsTab === 'function' ? settingsTab() : null,
@@ -282,8 +297,8 @@ const PAGE = () => {
          each; pressing one lands on People with that person chosen and lit */
       const sec = await pa.evaluate(() => { const s = document.querySelector('#ins-panel .cu-people'); return s ? { head: (s.querySelector('h3') || {}).textContent || '', rows: s.querySelectorAll('[data-cu-pp]').length } : null; });
       check('its panel names the people at the party, the number on its head the rows under it', !!sec && sec.rows === party.n && sec.head.includes(String(party.n)), JSON.stringify(sec));
-      const who = await pa.evaluate(() => (document.querySelector('#ins-panel [data-cu-pp]') || {}).getAttribute('data-cu-pp'));
-      await pa.click('#ins-panel [data-cu-pp]');
+      const who = await pa.evaluate(() => { const b = document.querySelector('#ins-panel [data-cu-pp]'); return b ? b.getAttribute('data-cu-pp') : null; });
+      await pa.click('#ins-panel [data-cu-pp]', { timeout: 3000 }).catch(() => {});
       await pa.waitForFunction(k => state.view === 'directory' && !!document.querySelector('#dir-tbody tr.is-sel'), who, { timeout: 8000 }).catch(() => {});
       const here = await pa.evaluate(() => { const r = document.querySelector('#dir-tbody tr.is-sel'); return { view: state.view, sel: r ? r.getAttribute('data-dir-row') : null, lit: !!(r && r.classList.contains('is-landed')) }; });
       check('and a row lands on People with that person chosen and lit', here.view === 'directory' && here.sel === who && here.lit, JSON.stringify(here));

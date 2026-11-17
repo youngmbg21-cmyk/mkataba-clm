@@ -386,10 +386,13 @@ const SEED_UNSENT = async () => {
       await pause(1800);
       await page.screenshot({ path: path.join(OUT, `03${shape}-${label}.png`) });
 
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Inspector shape of Negotiations is the new look's
+         own table (.ngn-table, ngnRowHtml: rows tr[data-ngn-row], the name .cun-name, the reference b.ngn-ref, the lead's
+         initials .ngn-av, the sub-line .cun-sub) — the same rules are asked of its rows */
       const rows = await page.evaluate(() => {
-        const tbody = document.getElementById('reg-tbody');
+        const tbody = document.getElementById('reg-tbody') || document.querySelector('.ngn-table tbody');
         if (!tbody) return { absent: true };
-        const trs = [...tbody.querySelectorAll('tr[data-row]')].slice(0, 10);
+        const trs = [...tbody.querySelectorAll('tr[data-row], tr[data-ngn-row]')].slice(0, 10);
         const cells = [];
         for (const tr of trs) {
           for (const el of tr.querySelectorAll('*')) {
@@ -403,9 +406,9 @@ const SEED_UNSENT = async () => {
               weight: cs.fontWeight, color: cs.color, cls: el.className || '' });
           }
         }
-        const th = [...document.querySelectorAll('#reg-tbody, .reg-table thead th')]
-          .filter(e => e.tagName === 'TH')
-          .map(e => ({ w: getComputedStyle(e).fontWeight, s: getComputedStyle(e).fontSize }));
+        const th = [...document.querySelectorAll('#reg-tbody, .reg-table thead th, .ngn-table thead th')]
+          .filter(e => e.tagName === 'TH' && e.getClientRects().length && e.textContent.trim())
+          .map(e => ({ w: getComputedStyle(e).fontWeight, s: getComputedStyle(e).fontSize, up: getComputedStyle(e).textTransform === 'uppercase' }));
         const bands = [...tbody.querySelectorAll('.ngl-band-k')]
           .map(e => getComputedStyle(e).fontWeight);
         const bandN = [...tbody.querySelectorAll('.ngl-band-n')]
@@ -415,7 +418,8 @@ const SEED_UNSENT = async () => {
         const probe = document.createElement('span');
         probe.style.cssText = 'position:absolute;left:-9999px;font-weight:var(--w-label);font-size:var(--t-label)';
         document.body.appendChild(probe);
-        const label = { w: getComputedStyle(probe).fontWeight, s: getComputedStyle(probe).fontSize }; probe.remove();
+        const label = { w: getComputedStyle(probe).fontWeight, s: getComputedStyle(probe).fontSize };
+        probe.style.fontSize = 'var(--t-micro)'; label.micro = getComputedStyle(probe).fontSize; probe.remove();
         return { cells, th, bands, bandN, label, n: trs.length };
       });
 
@@ -450,12 +454,12 @@ const SEED_UNSENT = async () => {
       /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the row's new marks are marks too — a kind's soft chip
          (ls-chip), the grey line under a reading (ls-word-m, reg-wait-s, the stage's word in the grey line
          reg-stg-w) and the small print "Not checked yet" (ls-quiet) — so they stand outside the one size */
-      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av|ls-chip|ls-word-m|ls-quiet|reg-stg-w|reg-wait-s/;
+      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av|ls-chip|ls-word-m|ls-quiet|reg-stg-w|reg-wait-s|cun-sub|ngn-av/;
       /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): on
          the Contracts place the reference rides under the party ("kind ·
          ref", refHtml's .hati-ref) instead of a Ref column — still the row's
          label, one rung under the row */
-      const REF = /reg-mk|reg-day|hati-ref/;   /* the reference and the day: the row's labels (regDotDate prints the day at the label rung) */
+      const REF = /reg-mk|reg-day|hati-ref|ngn-ref/;   /* the reference and the day: the row's labels (regDotDate prints the day at the label rung) */
       const body = rows.cells.filter(c => !KIND.test(c.cls));
       const text = body.filter(c => !REF.test(c.cls));
       const refs = body.filter(c => REF.test(c.cls));
@@ -478,8 +482,8 @@ const SEED_UNSENT = async () => {
          nothing on the row heavier than the column heading above it, which is
          what stops a row shouting. */
       const weights = [...new Set(body.map(c => Number(c.weight)))].sort((a, b) => a - b);
-      const titles = body.filter(c => /reg-title/.test(c.cls));
-      const others = body.filter(c => !/reg-title/.test(c.cls));
+      const titles = body.filter(c => /reg-title|cun-name/.test(c.cls));
+      const others = body.filter(c => !/reg-title|cun-name/.test(c.cls));
       /* RE-POINTED 11 Oct 2026 to the SAP list: three rungs, each one meaning
          one thing — the body, the LABEL weight for the reference and the stage
          (--w-label), and the title above them both. */
@@ -517,8 +521,12 @@ const SEED_UNSENT = async () => {
          always protected is that a heading is not LOST among the rows; 5c2
          holds that nothing on a row outweighs it, and this holds it to the
          design's own label rung, read live, on both shapes. */
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new look heads a list's columns as an EYEBROW
+         (index.html "THE NEW LOOK: HARMONY": 11px capitals at the label weight, as its other column heads and eyebrows are) —
+         a heading in capitals stands on the capitals' own rung (--t-micro, "the UPPERCASE token only"), one in plain words on
+         the label rung; either way at the label weight, never lost among the rows (5c2) */
       check(`5${shape}-${label}f the column headings sit on the design's label rung, in plain words`,
-        rows.th.length > 0 && rows.th.every(t => t.w === rows.label.w && t.s === rows.label.s),
+        rows.th.length > 0 && rows.th.every(t => t.w === rows.label.w && t.s === (t.up ? rows.label.micro : rows.label.s)),
         { th: rows.th.slice(0, 3), label: rows.label });
 
       /* RE-POINTED IN PLACE 26 Sep 2026: a group's NAME keeps the strong

@@ -62,14 +62,18 @@ const wait = async (page, fn, arg, ms = 5000) => {
        wait until that is known before the list is painted. */
     await wait(page, () => typeof canViewValues === 'function' && canViewValues(), null, 8000);
     await page.evaluate(() => { if (window.regSetScope) regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); });
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders, its List is pressed;
+       the foot's count is the new look's own line (#reg-nl-showing, regNlFootHtml: "N contracts") and the All tab's number
+       is its text's digits (the tab draws no .n pill) — the same claim: the tab and the foot say one count, no card head */
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
     await wait(page, () => !!document.querySelector('#reg-tbody tr'));
     const reg = await page.evaluate(() => {
       const tt = document.getElementById('reg-tt');
-      const foot = (document.getElementById('reg-showing') || {}).textContent || '';
+      const foot = (document.getElementById('reg-nl-showing') || document.getElementById('reg-showing') || {}).textContent || '';
       /* the list's own count, as its foot states it ("Showing 1–30 of 30") */
       /* RE-POINTED 24 Oct 2026 (Round 2): the whole list says "N contracts · M live"; a cut list still "1–40 of N" */
       const of = foot.match(/of\s+([\d,]+)/) || foot.match(/^\s*([\d,]+)\s+contracts?\b/);
-      const all = document.querySelector('[data-lh-seat="contracts"] [data-reg-view=""] .n');
+      const all = document.querySelector('[data-lh-seat="contracts"] [data-reg-view=""]');
       return { tt: tt ? tt.textContent.trim() : null, shown: tt ? getComputedStyle(tt).display : null,
         n: of ? Number(of[1].replace(/,/g, '')) : -1, foot, all: all ? Number(all.textContent.replace(/[^\d]/g, '')) : null };
     });
@@ -99,10 +103,16 @@ const wait = async (page, fn, arg, ms = 5000) => {
       /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
          card's head went (ruling 5); what it said is the All tab's — its
          words on the tab's hover, its count the tab's number */
-      const all = document.querySelector('[data-lh-seat="approvals"] [data-ap-view="all"]');
+      /* RE-POINTED 17 Nov 2026 (#762): the new look's Approvals is ONE table (.apn-table) under the page's own head
+         ("Approvals & signing"), its tabs Mine · Waiting on others · Done ([data-apn-tab], an empty one not drawn); what the
+         table is is the head's name, how many the lit tab's number — which must equal the rows drawn under it */
+      const lit = document.querySelector('[data-apn-tab].is-on') || document.querySelector('[data-apn-tab]');
+      const hd = document.querySelector('.ap-page .ctf-h, .ap-page h1, .ap-page h2');
+      const all = lit ? { title: hd ? hd.textContent.trim() : '', querySelector: () => ({ textContent: String(Number(lit.textContent.replace(/\D/g, '')) || 0) }) } : null;
       const t = all ? { textContent: all.title } : null;
       const tab = document.querySelector('[data-ap-tab="approvals"] .ap-n');
       const rows = window.apApprovalRows ? apApprovalRows() : [];
+      const drawn = document.querySelectorAll('.apn-table tbody tr[data-ap-row]').length;
       const wrong = rows.filter(r => {
         const tr = document.querySelector(`[data-ap-row="${r.c.id}"]`);
         const red = !!(tr && tr.querySelector('.late'));
@@ -111,20 +121,26 @@ const wait = async (page, fn, arg, ms = 5000) => {
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn): the count is a pill beside the title ("· 4 ·"), no brackets */
       const pill = all && all.querySelector('.n');
       return { title: t ? t.textContent.trim() : null, pill: pill ? pill.textContent.trim() : null, tab: tab ? tab.textContent.trim() : '', n: rows.length,
-        mine: rows.filter(r => r.mine).length, wrong, idles: rows.map(r => r.idle) };
+        mine: rows.filter(r => r.mine).length, wrong, idles: rows.map(r => r.idle), drawn };
     }) : null;
-    check('2a the table says what it is and how many', !!ap && /^What waits for a yes or a signature/.test(ap.title || '') && ap.pill === String(ap.n),
-      ap ? `${ap.title} · ${ap.n} rows` : 'page missing');
+    check('2a the table says what it is and how many', !!ap && /^Approvals/.test(ap.title || '') && ap.pill === String(ap.drawn) && ap.drawn === ap.n,
+      ap ? `${ap.title} · tab ${ap.pill} · ${ap.drawn} drawn · ${ap.n} rows` : 'page missing');
     check('2b a waiting row is red only from 7 days', !!ap && ap.n > 0 && ap.wrong.length === 0,
       ap ? `idle ${ap.idles.join(',')} · wrong ${ap.wrong.join(',') || 'none'}` : 'page missing');
     const sel = ap && ap.n ? await page.evaluate(() => (document.getElementById('ins-panel') || {}).getAttribute
       ? document.getElementById('ins-panel').getAttribute('data-ins-id') : null) : null;
     const head = sel ? await page.evaluate(() => {
       const p = document.getElementById('ins-panel');
-      return { beside: !!p.querySelector('.ins-cp .ins-st-side'), av: !!p.querySelector('.ins-cp .reg-av'),
+      /* RE-POINTED 17 Nov 2026 (#762): the chosen approval's panel is Jambo's Five panel (apnLeadFiveHtml): its head names
+         the party and the reference ("Before you decide · Naivas · MK-B2"), draws no initials and no doors, and carries no
+         button — Approve and Decline stand on the chosen ROW (one press away, never a second Decide door) */
+      const tr = document.querySelector(`.apn-table tr[data-ap-row="${p.getAttribute('data-ins-id')}"]`);
+      const c = getContract(p.getAttribute('data-ins-id')) || {};
+      return { beside: p.textContent.includes(c.counterparty || '\u0000') && p.textContent.includes(c.id || '\u0000'), av: !!p.querySelector('.reg-av'),
         line: ((p.querySelector('[data-ins-need-line]') || {}).textContent || ''), decide: p.querySelectorAll('[data-ins-need="approval"]').length,
         /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the gaps"): an Approval's panel draws no doors */
-        sub: !p.querySelector('.ins-doors') && !p.querySelector('[data-ins-act^="door-"]') && !p.querySelector('.ins-sub [data-ins-act]'), approve: !!p.querySelector('[data-ins-act="approve"]') };
+        sub: !p.querySelector('.ins-doors') && !p.querySelector('[data-ins-act^="door-"]') && !p.querySelector('.ins-sub [data-ins-act]'),
+        approve: !p.querySelector('[data-ins-act="approve"]') && !!(tr && tr.querySelector('[data-ap-approve]')) };
     }) : null;
     /* RE-POINTED 12 Oct 2026 (owner): the sub line's Open contract became the Document door in the doors row */
     /* RE-POINTED 15 Oct 2026 (owner): the Document door went; the doors row is Negotiation · Workspace */
@@ -137,22 +153,29 @@ const wait = async (page, fn, arg, ms = 5000) => {
        Approve button say it; a line stays only for something else owed */
     check('2d no line repeats "Your approval is asked for", and no second Decide door', !!head && !/approval is asked for/i.test(head.line) && head.decide === 0 && head.approve, JSON.stringify(head));
     if (head && head.approve) {
-      await page.click('#ins-panel [data-ins-act="approve"]');
-      const done = await wait(page, id => {
-        const tr = document.querySelector(`[data-ap-row="${id}"]`);
-        return !!(tr && tr.querySelector('.done')) && !!document.querySelector('#ins-panel [data-ins-act="undo"]');
-      }, sel, 8000);
+      /* RE-POINTED 17 Nov 2026 (#762): Approve is the chosen ROW's button; the decided row moves to the table's Done tab
+         (the new look's tabs are Mine · Waiting on others · Done), where it stands marked done; chosen there, its panel says
+         it was approved and carries Undo — the same promise: the decision is seen where it was made, and undoable */
+      await page.click(`.apn-table tr[data-ap-row="${sel}"] [data-ap-approve]`);
+      const moved = await wait(page, () => !!document.querySelector('[data-apn-tab="done"]'), null, 8000);
+      await page.evaluate(() => { const b = document.querySelector('[data-apn-tab="done"]'); if (b) b.click(); });
+      const inDone = moved && await wait(page, id => { const b = document.querySelector('[data-apn-tab="done"]');
+        return !!(b && b.classList.contains('is-on') && document.querySelector(`.apn-table tr[data-ap-row="${id}"]`)); }, sel, 6000);
+      if (inDone) await page.click(`.apn-table tr[data-ap-row="${sel}"] .apn-name`);
+      const done = inDone && await wait(page, () => !!document.querySelector('#ins-panel [data-ins-act="undo"]'), null, 8000);
       const after = await page.evaluate(id => ({
-        row: !!document.querySelector(`[data-ap-row="${id}"]`),
-        line: !!document.querySelector('#ins-panel [data-ap-done-line]'),
-        title: (document.querySelector('.ap-card-t') || {}).textContent }), sel);
-      check('2e Approve leaves the row in its place, marked Approved, with Undo in the panel',
-        done && after.row && after.line, JSON.stringify(after));
+        row: !!document.querySelector(`.apn-table tr[data-ap-row="${id}"]`),
+        mark: (document.querySelector(`.apn-table tr[data-ap-row="${id}"] [data-ls-mk]`) || { getAttribute: () => null }).getAttribute('data-ls-mk'),
+        line: !!document.querySelector('#ins-panel [data-ap-done-line]') }), sel);
+      check('2e Approve keeps the row (on Done, marked done), with Undo in its panel',
+        done && after.row && after.mark === 'done' && after.line, JSON.stringify(after));
       if (done) {
         await page.click('#ins-panel [data-ins-act="undo"]');
+        /* RE-POINTED 17 Nov 2026 (#762): back to waiting = the row is under Mine again with its own Approve */
+        await page.evaluate(() => { const b = document.querySelector('[data-apn-tab="mine"]'); if (b) b.click(); });
         const back = await wait(page, id => {
-          const tr = document.querySelector(`[data-ap-row="${id}"]`);
-          return !!(tr && !tr.querySelector('.done')) && !!document.querySelector('#ins-panel [data-ins-act="approve"]');
+          const tr = document.querySelector(`.apn-table tr[data-ap-row="${id}"]`);
+          return !!(tr && tr.querySelector('[data-ap-approve]'));
         }, sel, 8000);
         const st = await page.evaluate(id => {
           const c = getContract(id);
@@ -173,29 +196,38 @@ const wait = async (page, fn, arg, ms = 5000) => {
 
     /* ---- 3. OBLIGATIONS ---- */
     await page.evaluate(() => setView('obligations'));
-    const obUp = await wait(page, () => !!document.querySelector('.ob-lt tbody tr[data-ins-row]'));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): Obligations is the PROJECT LIST (obnRender: pills
+       Late · Tracked · Proposals, rows tr.obn-r, columns Obligation · Whose job · When), not the week page. Tracked holds
+       every live duty. An owner-less duty of ours is said where its row opens: the panel's Reminders line names that nobody
+       is named and who is reminded instead (obligationReminderSay) — never the amber alarm on the row */
+    await wait(page, () => !!document.querySelector('[data-obn-tab="open"]'));
+    await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });
+    const obUp = await wait(page, () => { const b = document.querySelector('[data-obn-tab="open"]');
+      return !!(b && b.classList.contains('is-on') && document.querySelector('tr.obn-r')); });
     const obs = obUp ? await page.evaluate(() => {
-      const heads = [...document.querySelectorAll('.ob-lt thead th')].map(th => th.textContent.trim());
-      const un = document.querySelector('.ob-lt .ins-unassigned');
-      const nobody = document.querySelectorAll('.ob-lt .ins-nobody').length;
-      const av = document.querySelectorAll('.ob-lt .ob-id .reg-av, .ob-lt .ob-id .obw-av').length;
-      const ring = document.querySelectorAll('.ob-lt .ob-id .obw-av.is-nobody').length;
-      const marks = document.querySelectorAll('.ob-lt tr[data-ins-row] .ob-id .ls-mark svg').length;
-      const rowsN = document.querySelectorAll('.ob-lt tr[data-ins-row]').length;
-      return { heads, un: un ? { t: un.textContent.trim(), c: getComputedStyle(un).color } : null, nobody, av, ring, marks, rowsN,
+      const heads = [...document.querySelectorAll('.obn-table thead th, #content table thead th')].map(th => th.textContent.trim());
+      const ours = [...document.querySelectorAll('tr.obn-r')].find(tr => /Pay invoice/.test(tr.textContent));
+      const who = ours && ours.querySelector('.obn-who');
+      const marks = document.querySelectorAll('tr.obn-r .ls-mk[data-ls-mk]').length;
+      const rowsN = document.querySelectorAll('tr.obn-r').length;
+      return { heads, un: who ? { t: who.textContent.trim(), c: getComputedStyle(who).color } : null, nobody: 0, marks, rowsN,
         amber: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-fg').trim() };
     }) : null;
-    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the week groups, the proposal as drawn): the
-       duty's Kind, Due and Amount are columns now, the money on the row where the record carries it */
-    check('3a the week names its columns: Obligation · Kind · Due · Amount', !!obs && ['Obligation', 'Kind', 'Due', 'Amount'].every(h => obs.heads.includes(h)), obs ? obs.heads.join(' | ') : 'page missing');
-    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): who acts is said in the row's line — "yours", a colleague's
-       name, "theirs", or "nobody owns it yet" (never the amber alarm) — and a mark leads in the face's place
-       RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn) */
-    check('3b an owner-less duty of ours says so in its line, never in amber', !!obs && !!obs.un && obs.un.t === 'nobody owns it yet' && obs.nobody === 0 && obs.un.c !== obs.amber,
-      obs ? JSON.stringify(obs.un) + ' · nobody ' + obs.nobody : 'page missing');
+    /* RETIRED 17 Nov 2026 (#762): 3a "the week names its columns: Obligation · Kind · Due · Amount" — the week page's
+       table; the new look's Obligations is the project list (MAP OBLIGATIONS: A PROJECT LIST), its columns Obligation ·
+       Whose job · When, which obligations' own new-look checks pin */
+    void (obs && obs.heads);
+    let unSaid = null;
+    if (obs && obs.un) {
+      await page.evaluate(() => { const tr = [...document.querySelectorAll('tr.obn-r')].find(t => /Pay invoice/.test(t.textContent)); if (tr) tr.click(); });
+      await wait(page, () => /Pay invoice/.test((document.getElementById('ins-panel') || {}).textContent || ''), null, 4000);
+      unSaid = await page.evaluate(() => { const r = document.querySelector('#ins-panel .ins-rem'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
+    }
+    check('3b an owner-less duty of ours says so where its row opens, never in amber', !!obs && !!obs.un && /Nobody is named/.test(unSaid || '') && obs.un.c !== obs.amber,
+      obs ? JSON.stringify(obs.un) + ' · ' + JSON.stringify(unSaid) : 'page missing');
     check('3c every duty carries its mark', !!obs && obs.rowsN > 0 && obs.marks >= obs.rowsN, obs ? obs.marks + ' marks · ' + obs.rowsN + ' rows' : 'page missing');
     if (obUp) {
-      await page.evaluate(() => { const r = document.querySelector('.ob-lt tbody tr[data-ins-row]'); if (r) r.click(); });
+      await page.evaluate(() => { const r = document.querySelector('tr.obn-r'); if (r) r.click(); });
       await wait(page, () => !!document.querySelector('#ins-panel [data-ob-rem-more]'), null, 4000);
       const rem = await page.evaluate(() => {
         const more = document.querySelector('#ins-panel [data-ob-rem-more]');

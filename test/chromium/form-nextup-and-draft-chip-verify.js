@@ -91,16 +91,33 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('2b … under the paper\'s "at a glance"', !!nx && nx.under);
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the act's short word; its whole name is its label (and its why on hover) */
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the first act stands in its whole name, the next in its short word */
-    check('2c … led by Draft from our standards on a draft', !!nx && nx.cards[0] === 'Draft from our standards' && nx.tips[0] === 'Draft from our standards', nx && JSON.stringify([nx.cards[0], nx.tips[0]]));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the one card's ONE black button is the contract's next
+       step (pd2CardHtml) — on this draft with details owed it is "Fill in the contract" (FILL IN ON THE PAPER, the ONE way
+       in); the button stands in its whole name. Draft from our standards (the 23 Oct "Marquee" lead) is a row of the paper
+       line's More (#ig-actions → pdActsPopHtml), the old All acts rows drawn once, there (2e). */
+    check('2c … led by the next step, in its whole name, on a draft', !!nx && nx.cards[0] === 'Fill in the contract' && nx.tips[0] === nx.cards[0], nx && JSON.stringify([nx.cards[0], nx.tips[0]]));
     await shot(page, '2-overview-next-up');
-    await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd2-card .pd2-card-act button') || document.querySelector('#ig-dock .pd-nx [data-pd-mn-go]'); if (b) b.click(); });
-    const ask = await until(page, () => !!document.getElementById('cf-ok'), null, 6000);
-    check('2d the card does its row\'s act (the confirm before drafting)', !!ask);
-    if (ask) await page.click('#cf-cancel');
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd2-card .pd2-card-act button'); if (b) b.click(); });
+    const did = await until(page, () => (typeof pd2FillOn === 'function' && pd2FillOn('MK-D1')) || !!document.querySelector('[data-pd-mid^="form:"]') ? true : null, null, 6000);
+    check('2d the card does its act (filling in starts on the paper)', !!did);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => { try { if (typeof pd2FillStop === 'function') pd2FillStop(); } catch (_) {} });
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is
-       retired into the dossier's All acts fold — the rows drawn once, there */
-    const menu = await until(page, () => { const m = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); return m ? { acts: m.querySelectorAll('[data-pd-mn-go]').length, rows: m.querySelectorAll('.pd-mn-rows button').length, tab: !!document.querySelector('#ig-dock [data-pd-tab="menu"]') } : null; }, null, 8000);
-    check('2e All acts folds the rows (no Menu tab, the act buttons stand above it)', !!menu && menu.acts === 0 && menu.rows > 0 && !menu.tab, JSON.stringify(menu));
+       retired into the dossier's All acts fold — the rows drawn once, there.
+       RE-POINTED 17 Nov 2026 (#762): the rows are the paper line's More pop-up (pdActsToggle) — the card's button stands
+       outside it, every act is a row in it, Draft from our standards among them, and there is no Menu tab */
+    await page.evaluate(() => { pdActsPopClose && pdActsPopClose(); const b = document.getElementById('ig-actions'); if (b) b.click(); });
+    /* the short card first, then its "All acts (N)" — every act, where it stands */
+    await until(page, () => { const e = document.querySelector('#pd-acts-pop [data-pd-acts-every]'); if (!e) return null; e.click(); return true; }, null, 4000);
+    const menu = await until(page, () => { const m = document.getElementById('pd-acts-pop'); return m && !m.querySelector('[data-pd-acts-every]') ? { rows: m.querySelectorAll('[data-pd-acts-go]').length,
+      std: [...m.querySelectorAll('[data-pd-acts-go]')].some(r => /Draft from our standards/.test(r.textContent)),
+      card: !!document.querySelector('#ig-dock .pd2-card .pd2-card-act button') && !m.querySelector('.pd2-card-act'),
+      tab: !!document.querySelector('#ig-dock [data-pd-tab="menu"]') } : null; }, null, 8000);
+    check('2e All acts folds the rows (no Menu tab, the act buttons stand above it)', !!menu && menu.card && menu.rows > 0 && menu.std && !menu.tab, JSON.stringify(menu));
+    const ask = await (async () => { await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-acts-pop [data-pd-acts-go]')].find(x => /Draft from our standards/.test(x.textContent)); if (r) r.click(); });
+      return until(page, () => !!document.getElementById('cf-ok'), null, 6000); })();
+    check('2f its row does the act (the confirm before drafting)', !!ask);
+    if (ask) await page.click('#cf-cancel');
 
     console.log('\n3 · "draft a new agreement", pressed again');
     const press = async () => {

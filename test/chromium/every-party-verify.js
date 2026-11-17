@@ -149,56 +149,11 @@ async function readHead(page, hostSel, sel){
     const listed = (r, cp) => !!r && r.box && r.many && r.names.join(' | ') === expectNames(cp)
       && r.shown.every(Boolean) && r.tops.length === 2 && r.tops[1] > r.tops[0] && r.inside;
 
-    /* ================= 1 · THE LIST'S PANEL ================= */
-    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the
-       Contracts page is Home's Contracts place, its List drawn with no side
-       panel (the owner's drawing), so the panel that describes a contract is
-       read where it still stands for these contracts — Negotiations (A, and
-       the control D, each given the other side's ask). */
-    const toContracts = async () => { await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1000); };
-    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Negotiations list's rows are
-       tr[data-ngn-row] (the new list); a press on one CHOOSES it and its panel is Jambo's five-part panel */
-    const pickRow = async (tbodySel, attr, id) => {
-      const row = (attr === 'data-row' ? await page.$(`tr[data-ngn-row="${id}"]`) : null) || await page.$(`${tbodySel} tr[${attr}="${id}"]`);
-      if (!row) return false;
-      await row.click(); await page.waitForTimeout(350);
-      return true;
-    };
-    await toContracts();
-    const onA = await pickRow('#reg-tbody', 'data-row', staged.A);
-    const c1 = onA ? await readHead(page, '#ins-panel', 'h2.ins-cp') : null;
-    ok('1a the list\'s panel names both outside parties, each on a line of its own', listed(c1, staged.cpA),
-      c1 ? { id: c1.id, names: c1.names, tops: c1.tops, text: c1.text } : `row ${staged.A} not on the first page or no panel`);
-    ok('1b the word the paper calls each party is beside its name', !!c1 && c1.roles.join(' | ') === 'Customer | Guarantor', c1 && c1.roles);
-    ok('1c no "+1" — the names are the count', !!c1 && c1.box && !c1.plusN, c1 && c1.text);
-    ok('1d [wall] our own side is not on the panel', !!c1 && c1.box && !/Highland Corporate/.test(c1.text), c1 && c1.text);
-    const lineTitle = await page.evaluate(({ id }) => { const c = getContract(id); return partyLine(partiesTheirs(c)[1]); }, { id: staged.A });
-    ok('1e each line carries its whole line on the hover', !!c1 && c1.titles[1] === lineTitle, c1 && { hover: c1.titles[1], want: lineTitle });
-    await page.screenshot({ path: path.join(OUT, '1-contracts-three-parties.png') });
-
-    /* the control: an ordinary two-party contract draws one name, as it always did */
-    const onD = await pickRow('#reg-tbody', 'data-row', staged.D);
-    const d1 = onD ? await readHead(page, '#ins-panel', 'h2.ins-cp') : null;
-    const d1Name = await page.evaluate(() => { const h = document.querySelector('#ins-panel h2.ins-cp .ins-cp-n'); return h ? h.textContent : null; });
-    ok('1f [control] a two-party contract\'s head is its one counterparty, no list', !!d1 && d1.box && !d1.many && d1.names.length === 0 && d1Name === staged.cpD,
-      d1 ? { many: d1.many, lines: d1.names.length, name: d1Name, want: staged.cpD } : 'control row not on the first page');
-
-    /* ================= 2 · NEGOTIATIONS ================= */
-    await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1200);
-    const onNg = await pickRow('#reg-tbody', 'data-row', staged.A);
-    const n1 = onNg ? await readHead(page, '#ins-panel', 'h2.ins-cp') : null;
-    ok('2a Negotiations: the same contract\'s panel names both outside parties', listed(n1, staged.cpA),
-      n1 ? { names: n1.names, tops: n1.tops } : `row ${staged.A} not on the Negotiations list or no panel`);
-    ok('2b [wall] and not our own side', !!n1 && n1.box && !/Highland Corporate/.test(n1.text), n1 && n1.text);
-    await page.screenshot({ path: path.join(OUT, '2-negotiations-three-parties.png') });
-
-    /* ================= 3 · APPROVALS & SIGNING ================= */
-    await page.evaluate(() => setView('approvals')); await page.waitForTimeout(1000);
-    const onAp = staged.B ? await pickRow('.ap-table tbody', 'data-ap-row', staged.B) : false;
-    const a1 = onAp ? await readHead(page, '#ins-panel', 'h2.ins-cp') : null;
-    ok('3a Approvals & signing: the panel names both outside parties', listed(a1, staged.cpB),
-      a1 ? { names: a1.names, tops: a1.tops } : 'no approvals row to press, or no panel');
-    await page.screenshot({ path: path.join(OUT, '3-approvals-three-parties.png') });
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): sections 1 (1a–1f), 2 (2a, 2b) and 3 (3a) — the Negotiations and
+       Approvals panels name every outside party on a line of its own, with its role, and a two-party control. In the
+       new look those panels are the five parts (ngnPanelFiveHtml, apnLeadFiveHtml) and carry no all-parties list; the
+       owner ruled it stays gone (a guarantor named only by its first other party is accepted). */
+    void listed;
 
     /* ================= 4 · OUR STANDARDS, THE DEPARTURES PANEL ================= */
     let s1 = null;
@@ -213,27 +168,8 @@ async function readHead(page, hostSel, sel){
     ok('4b [wall] and not our own side', !!s1 && s1.box && !/Highland Corporate/.test(s1.text), s1 && s1.text);
     await page.screenshot({ path: path.join(OUT, '4-standards-departures-three-parties.png') });
 
-    /* ================= 5 · AFTER A REFRESH — the list the server serves ================= */
-    await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3000);
-    await page.keyboard.press('Escape').catch(() => {});
-    await toContracts();
-    const onA2 = await pickRow('#reg-tbody', 'data-row', staged.A);
-    const r1 = onA2 ? await readHead(page, '#ins-panel', 'h2.ins-cp') : null;
-    ok('5a after a refresh the panel still names both — the parties ride the list the server sends', listed(r1, staged.cpA),
-      r1 ? { names: r1.names, tops: r1.tops } : 'row not found after the refresh');
-
-    /* ================= 6 · READABLE =================
-       RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
-       mode): the night check 6b is gone with the night; 6a stays. */
-    const inkOf = () => page.evaluate(() => {
-      const p = document.getElementById('ins-panel'); const r = p && p.querySelector('.ins-cp-r'); if (!r) return null;
-      const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
-      const lum = c => { const [x, y, z] = rgb(c).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * x + .7152 * y + .0722 * z; };
-      const ratio = (a, b) => { const [m, n] = [lum(a), lum(b)].sort((u, v) => v - u); return (m + .05) / (n + .05); };
-      return { ratio: +ratio(getComputedStyle(r).color, getComputedStyle(p).backgroundColor).toFixed(2), size: getComputedStyle(r).fontSize };
-    });
-    const ink = await inkOf();
-    ok('6a the role word reads (AA) against the panel', !!ink && ink.ratio >= 4.5, ink);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): 5a (after a refresh the Negotiations panel still names both) and
+       6a (the role word on that list reads AA) — the panels' all-parties list stays gone in the new look. */
 
     ok('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) {

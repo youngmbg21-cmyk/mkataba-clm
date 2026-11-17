@@ -127,18 +127,19 @@ const blocked = [];
       for (const [v, name] of [['mynotes', 'My notes'], ['obligations', 'Obligations'], ['intake', 'Requests'], ['migration', 'Import'], ['approvals', 'Approvals'], ['customers', 'Customers']]) {
         if (!(on(3) || on(8) || on(10))) break;
         await clean(); await ev(v2 => setView(v2), v);
-        await until(() => document.querySelector('.ins-panel.is-jambo, #ig-dock') && document.querySelector('.ph-card'));
+        /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): a list page's head and its list are ONE white
+           sheet (MAP "ONE SHEET AND THREE BUTTONS"): the list pages' .apn-card, Import's own head .mig-own-head — the
+           old floating .ph-card is not drawn; the sheet's top is what must be level with Jambo's panel */
+        await until(() => document.querySelector('.ins-panel.is-jambo, #ig-dock') && document.querySelector('#content .apn-card, #content .mig-own-head, .ph-card'));
         await settle();
         if (on(3) && !['approvals', 'customers'].includes(v)) await greetCheck(name);
-        if (on(8)) await levelCheck(name, '.ph-card');
+        if (on(8)) await levelCheck(name, '#content .apn-card, #content .mig-own-head, .ph-card');
         if (on(8) && ['approvals', 'customers', 'obligations'].includes(v)) await bottomCheck(name);
-        if (on(10) && v === 'mynotes') {
-          const gap = await ev(() => { const e = document.querySelector('.mn-card2 .hati-empty'); const c = e && e.closest('section'); const r = document.createRange(); if (e) r.selectNodeContents(e);
-            return e && c ? Math.round(r.getBoundingClientRect().top - c.getBoundingClientRect().top) : null; });
-          check(`${at} · 10a — "No notes yet." clear of its card's top`, gap != null && gap >= 12, `${gap}px`);
-        }
+        /* RETIRED 17 Nov 2026 (#762): 10a "No notes yet." clear of its card's top (.mn-card2) — the old My notes ledger's
+           own card; the new look's My notes is the one sheet (mnnRender) whose empty sentence is a row of its table */
         if (on(10) && v === 'migration') {
-          const w = await ev(() => { const hd = document.querySelector('#page-head .ph-card, .ph-card'), ft = document.querySelector('#content .ph-foot'); if (!hd || !ft) return null;
+          /* RE-POINTED 17 Nov 2026 (#762): Import's head is its own white head (.mig-own-head), the strip under it the drop card */
+          const w = await ev(() => { const hd = document.querySelector('#content .mig-own-head, #page-head .ph-card, .ph-card'), ft = document.querySelector('#content .mig-drop-card, #content .ph-foot'); if (!hd || !ft) return null;
             const a = hd.getBoundingClientRect(), b = ft.getBoundingClientRect(); return { l: Math.round(a.left - b.left), r: Math.round(a.right - b.right) }; });
           check(`${at} · 10b — Import's head card is as wide as the strip under it`, w && Math.abs(w.l) <= 1 && Math.abs(w.r) <= 1, JSON.stringify(w));
           await shot('import');
@@ -148,8 +149,9 @@ const blocked = [];
       /* ---- 8 · CONTRACTS (a place on Home) ---- */
       if (on(8)) {
         await clean(); await ev(() => setView('register'));
-        await until(() => document.querySelector('#ct-place .ph-card') && document.querySelector('#ig-dock'));
-        await settle(); await levelCheck('Contracts', '#ct-place .ph-card'); await bottomCheck('Contracts');
+        /* RE-POINTED 17 Nov 2026 (#762): the Contracts place is one white sheet, .ctf-page (head and list together) */
+        await until(() => document.querySelector('#ct-place .ctf-page, #ct-place .ph-card') && document.querySelector('#ig-dock'));
+        await settle(); await levelCheck('Contracts', '#ct-place .ctf-page, #ct-place .ph-card'); await bottomCheck('Contracts');
       }
 
       /* ---- 4 · OUR PAPER ---- */
@@ -213,7 +215,8 @@ const blocked = [];
         await clean(); await ev(() => openSettingsAt('you'));
         await until(() => document.querySelector('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on'), undefined, 2000);
         await settle();
-        if (on(8)) await levelCheck('Settings', '.st-cr .st-headcard');
+        /* RE-POINTED 17 Nov 2026 (#762): Settings is the one list on one white sheet (.stn-card, stnPaint) */
+        if (on(8)) await levelCheck('Settings', '#content .stn-card, .st-cr .st-headcard');
         const cs = await ev(() => [...document.querySelectorAll('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on')].filter(b => b.getBoundingClientRect().width).map(b => Math.round(b.getBoundingClientRect().height)));
         /* RETIRED 16 Nov 2026 (#762): 9c "Settings' On/Off chip is a 22px pill" — the old You cards' chip; the new look's
            Settings is one list by area with a round mark per row (stnRow, f1045), no On/Off chip */
@@ -324,7 +327,7 @@ const blocked = [];
       }
       async function bottomCheck(name) {
         const m = await ev(() => { const pn = [...document.querySelectorAll('.ins-panel.is-jambo, #ig-dock')].find(x => x.getBoundingClientRect().width); if (!pn) return null;
-          const cards = [...document.querySelectorAll('#content .ap-card, #content .ins-card, #ct-place .reg-body > *')].filter(x => x.getBoundingClientRect().height > 100 && !x.closest('#ins-panel'));
+          const cards = [...document.querySelectorAll('#content .ap-card, #content .ins-card, #ct-place .reg-body > *, #ct-place .ctf-page')].filter(x => x.getBoundingClientRect().height > 100 && !x.closest('#ins-panel'));
           const low = cards.map(x => x.closest('.ap-body, .ins-body, .reg-body') || x).map(x => Math.round(x.getBoundingClientRect().bottom));
           return low.length ? { list: Math.max(...low), panel: Math.round(pn.getBoundingClientRect().bottom) } : null; });
         check(`${at} · 8 — ${name}: the list ends level with Jambo's panel`, m && Math.abs(m.list - m.panel) <= 1, JSON.stringify(m));

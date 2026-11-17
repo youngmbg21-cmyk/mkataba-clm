@@ -137,8 +137,14 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦. */
     ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u21C4' && sym.map(s => s.txt).join('|') === 'Dossier|Clauses|Redlines' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): pressing Clauses plays THE READ quickly over the paper
+       (pd2WalkWithRead), and while it walks the paper's strip steps aside (#ig-page.is-pd2-walk); a quick read closes itself
+       at its end — the strip is measured once the read has ended (bounded; a read that never ends leaves the strip at 0) */
+    await page.waitForFunction(() => !document.querySelector('#ig-page.is-pd2-walk'), null, { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(300);
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
-      return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });
+      return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top),
+        why: (s => ({ disp: getComputedStyle(s).display, h: Math.round(s.getBoundingClientRect().height), kids: s.children.length, hidden: s.hidden, cls: s.className, par: s.parentElement && (s.parentElement.id || s.parentElement.className), parDisp: s.parentElement && getComputedStyle(s.parentElement).display, page: (document.getElementById('ig-page') || {}).className }))(document.getElementById('ig-strip')) }; });
     ok('3a4 the panel is plain white, no lifted card, its top level with the contract strip', white.dock === 'rgb(255, 255, 255)' && (white.card === 'none' || white.card === 'normal') && white.top === white.bar, JSON.stringify(white));
     /* 3b "Overview carries the parties" RETIRED 13 Oct 2026: the Overview tab is
        gone from Home's panel (owner); the parties stay on the room's Overview */
