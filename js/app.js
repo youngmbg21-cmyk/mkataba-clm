@@ -1342,6 +1342,10 @@ function setView(view){
   if(typeof window!=='undefined' && typeof window.hbSheetLetGo==='function') try{ window.hbSheetLetGo(); }catch(_){ }
   /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */
   if(typeof window!=='undefined' && window._cnSignedIn && view!=='counter') window._cnSignedIn=false;
+  /* THE ADVICE BOARD IS GONE (owner's pick on the drawings, 17 Nov 2026: "6 The tab alone"): on a computer every door
+     still asking for it lands on Requests' own Advice tab (iknTabSet); the phone keeps its own pages */
+  if(view==='advice' && typeof window!=='undefined' && typeof window.newLookOn==='function' && window.newLookOn() && !(window.innerWidth && window.innerWidth<768) && typeof window.iknTabSet==='function'){
+    window.iknTabSet('advice'); view='intake'; }
   /* THE HOME PAGE IS GONE (owner, 10 Nov 2026: "Home page should be removed / deleted"; it was the Counter, 17 Oct
      2026): an old link, a kept place or a door still asking for it lands on the Board, the page you sign in to */
   if(view==='counter'){ view='dashboard'; if(typeof window!=='undefined' && typeof window.hbS==='function'){ try{ window.hbS().face='board'; if(typeof window.hbSave==='function') window.hbSave(); }catch(_){ } } }

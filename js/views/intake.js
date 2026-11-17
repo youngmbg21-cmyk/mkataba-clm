@@ -1827,6 +1827,8 @@ function iknRowHtml(r, may){
     <td class="cun-wait ikn-age${iknAgeTone(r)}">${esc(by || '—')}${age ? `<div class="cun-sub">${esc(age)}</div>` : ''}</td><td class="cun-go">${act}</td></tr>`;
 }
 let _iknSel = null;
+/* a door choosing Requests' tab before the page is drawn (the Advice board's old doors land on the Advice tab, #762) */
+function iknTabSet(k){ if (['open', 'mine', 'drafted', 'advice'].includes(k)){ _ikn = k; _iknSel = null; } }
 /* REQUESTS' TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Open · Mine · Drafted · Advice only pick which requests),
    so a tab press and a typed letter redraw only the rows (listRowsSwapHtml); a tab that comes or goes (a tab at 0
    steps out) draws the whole page, with the caret put back. */
@@ -1896,9 +1898,9 @@ function iknPanelHtml(r, may){
     + (fit ? row(i18t('ikn_paper'), fit.name, i18t('ikn_src_fits')) : '')
     + files;
   const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
-  /* AN ADVICE REQUEST KEEPS ITS TWO DOORS (16 Nov 2026, #762: the new look's panel drew none, a dead end) — the advice
-     itself and the board it lives on, the same two the old panel carried (ik_act_open_advice, ik_act_advice_board) */
-  const doors = r._adv ? door(`data-ikn-adv="${E(r.id)}"`, i18t('ik_act_open_advice'), i18t('pd2_ch_free')) + door('data-ikn-adv-board=""', i18t('ik_act_advice_board'), i18t('pd2_ch_free')) : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
+  /* AN ADVICE REQUEST KEEPS ITS DOOR (16 Nov 2026, #762: the new look's panel drew none, a dead end) — the advice itself
+     (ik_act_open_advice); the board it lived on is gone (owner's pick, 17 Nov 2026: "6 The tab alone") */
+  const doors = r._adv ? door(`data-ikn-adv="${E(r.id)}"`, i18t('ik_act_open_advice'), i18t('pd2_ch_free')) : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
     : may ? door(`data-ikn-draft="${E(r.id)}"`, i18t('ikn_start'), i18t('ikn_start_cost'))
       /* HAND BACK (owner's pick, "1 Bring it back"): the decline with its reason, told to whoever asked (intakeSetStatus) */
       + (r.status === 'open' ? door(`data-ikn-back="${E(r.id)}"`, i18t('ik_act_hand_back'), i18t('ikn_back_cost', { who: ikFirst((r.by && r.by.name) || '') || i18t('ikn_back_them') })) : '') : '';
@@ -2215,7 +2217,7 @@ async function intakeTrackCopy(id){
   catch(_){ try{ window.open(url,'_blank'); }catch(__){ toast(url,'warn'); } }
 }
 
-Object.assign(window,{ikPlace,ikPlacePut,ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
+Object.assign(window,{ikPlace,ikPlacePut,iknTabSet,ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
   ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
   intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,intakeLaneDraftRows,intakeLaneArrivals,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,

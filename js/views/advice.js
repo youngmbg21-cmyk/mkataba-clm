@@ -146,6 +146,8 @@ async function refreshAdviceBoard(){
     await loadAdviceRequests();
     const after=JSON.stringify((state.advice||[]).map(r=>[r.id,r.status,r.assignee,(r.notes||[]).length]));
     if(before!==after && state.view==='advice') renderAdviceDesk();
+    /* Requests' Advice tab reads the same book: drawn again where it is the page on screen (#762: its count stood still) */
+    if(before!==after && state.view==='intake' && typeof window.renderIntake==='function') try{ window.renderIntake({ rows:true }); }catch(_){ }
     updateSidebarCounts();
   }catch(e){ /* transient — next visit retries */ }
   finally{ adviceRefreshing=false; }

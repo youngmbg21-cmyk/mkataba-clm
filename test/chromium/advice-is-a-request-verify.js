@@ -159,17 +159,8 @@ const READ = () => {
     ok('3 the Advice tab is a cut of the list: advice rows only, on Requests', s.view === 'intake' && s.on === 'advice'
       && s.advRows === s.adviceAll && s.advRows === s.nAdvice && s.adviceAll >= s.adviceN && s.ikRows === 0,
       { view: s.view, on: s.on, advice: s.advRows, tab: s.nAdvice, book: s.adviceAll, contract: s.ikRows });
-    /* the board is still a door away: the advice row's panel carries it */
-    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): an advice request's panel carries its own
-       "Advice board" door ([data-ikn-adv-board]) — the advice row is chosen first, as a reader chooses it */
-    await page.evaluate(() => { const ids = new Set(((window.state && state.advice) || []).map(a => String(a.id)));
-      const r = [...document.querySelectorAll('#content .ikn-page [data-ikn-row]')].find(x => ids.has(String(x.getAttribute('data-ikn-row')))); if (r) r.click(); });
-    await page.waitForSelector('#ins-panel [data-ikn-adv-board], #ins-panel [data-ins-act="board"]', { timeout: 4000 }).catch(() => {});
-    await page.click('#ins-panel [data-ikn-adv-board], #ins-panel [data-ins-act="board"]', { timeout: 4000 }).catch(() => {});
-    await until(page, () => state.view === 'advice' && document.querySelectorAll('#content [data-adv-drop]').length > 0);
-    s = await page.evaluate(READ);
-    ok('3a the panel\'s Advice board door draws the board — all five stages, every request',
-      s.view === 'advice' && s.board === 5 && s.cards === 3, { view: s.view, columns: s.board, cards: s.cards });
+    /* RETIRED 17 Nov 2026 (#762, owner's pick on the drawings: "6 The tab alone"): 3a — the advice row's "Advice board" door
+       and the board's five stages; the board is gone, Requests' Advice tab is advice's one home (3b–3e read it) */
     ok('3b the Advice tab is lit', s.on === 'advice', s.on);
     ok('3c the rail lights Requests, and only Requests', s.lit.join(',') === 'intake', s.lit);
     ok('3d the head carries the page\'s name', s.title === 'Requests', s.title);
@@ -183,39 +174,30 @@ const READ = () => {
        stand under the list head's box, so the board's row (which draws the
        tabs alone) is no longer at the same height; it starts at the same
        edge and carries the same tabs, from the one reading */
-    ok('4a wide: the board\'s tab row starts where Requests\' does, with the same tabs', s.rowLeft != null && s.rowLeft === wideLeft && JSON.stringify(s.views) === wideViews,
-      { requests: [wideLeft, wideViews], advice: [s.rowLeft, s.views] });
-    await page.setViewportSize({ width: 1000, height: 820 });
-    await until(page, () => (document.querySelector('#content [data-ins-page="advice"]') || {}).getAttribute
-      && document.querySelector('#content [data-ins-page="advice"]').getAttribute('data-ins') === '0', null, 4000);
-    await page.waitForTimeout(400);
-    const narrowAdvice = await page.evaluate(READ);
-    await page.evaluate(() => setView('intake')); await page.waitForTimeout(900);
-    const narrowContracts = await page.evaluate(READ);
-    ok('4b narrow: the Requests page is its plain shape, and the tab row sits where the Advice tab\'s does',
-      narrowContracts.rowTop != null && narrowContracts.rowTop === narrowAdvice.rowTop && narrowContracts.rowLeft === narrowAdvice.rowLeft,
-      { contracts: [narrowContracts.rowTop, narrowContracts.rowLeft], advice: [narrowAdvice.rowTop, narrowAdvice.rowLeft] });
+    /* RETIRED 17 Nov 2026 (#762, owner's pick "6 The tab alone"): 4a, 4b — the board's tab row standing where Requests'
+       does, wide and narrow; there is no board to stand beside */
     await page.screenshot({ path: path.join(OUT, '4-narrow-contracts.png') });
-    await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(600);
 
     /* ---- 5 · A REFRESH LANDS ON THE SAME TAB ---- */
     await page.evaluate(() => setView('advice')); await page.waitForTimeout(700);
     await page.reload({ waitUntil: 'networkidle' });
-    await until(page, () => typeof state !== 'undefined' && state.view === 'advice' && !!document.querySelector('#content .rq-kinds'), null, 12000);
+    /* RE-POINTED 17 Nov 2026 (#762, owner's pick "6 The tab alone"): the old view id lands on Requests' Advice tab */
+    await until(page, () => typeof state !== 'undefined' && state.view === 'intake' && !!document.querySelector('#content [data-ikn-tab="advice"].is-on'), null, 12000);
     await page.waitForTimeout(800);
     s = await page.evaluate(READ);
-    ok('5a a refresh on the Advice tab comes back to the Advice tab', s.view === 'advice' && s.on === 'advice', { view: s.view, on: s.on });
-    ok('5b with Requests lit and the board drawn', s.lit.join(',') === 'intake' && s.board === 5, { lit: s.lit, board: s.board });
+    ok('5a a refresh on the Advice tab comes back to the Advice tab', s.view === 'intake' && s.on === 'advice', { view: s.view, on: s.on });
+    /* RETIRED (#762, "6 The tab alone"): "and the board drawn"; Requests stays the one lit */
+    ok('5b with Requests lit', s.lit.join(',') === 'intake', { lit: s.lit });
 
     /* ---- 6 · THE OLD VIEW ID, AND THE WAY BACK ---- */
     await page.evaluate(() => setView('calendar')); await page.waitForTimeout(700);
     await page.evaluate(() => setView('advice')); await page.waitForTimeout(900);
     s = await page.evaluate(READ);
     ok('6a setView(\'advice\') from another page lands on the Advice tab of Requests',
-      s.view === 'advice' && s.on === 'advice' && s.lit.join(',') === 'intake', { view: s.view, on: s.on, lit: s.lit });
-    const back = await page.$('#content [data-rq-kind="contracts"]');
+      s.view === 'intake' && s.on === 'advice' && s.lit.join(',') === 'intake', { view: s.view, on: s.on, lit: s.lit });
+    const back = await page.$('#content [data-rq-kind="contracts"], #content [data-ikn-tab="open"]');
     if (back) await back.click();
-    await until(page, () => state.view === 'intake' && !!document.querySelector('#content [data-ins-page="intake"]'));
+    await until(page, () => state.view === 'intake' && !!document.querySelector('#content [data-ikn-tab="open"].is-on'));
     s = await page.evaluate(READ);
     ok('6b Open goes back to the Requests list', s.view === 'intake' && s.on === 'open' && s.lit.join(',') === 'intake',
       { view: s.view, on: s.on, lit: s.lit });
@@ -229,7 +211,8 @@ const READ = () => {
     await page.waitForTimeout(500);
     const after = await page.evaluate(READ);
     ok('7 a new advice request moves the door and the Advice tab by one, together',
-      after.nAdvice === before.nAdvice + 1 && after.doorN === before.doorN + 1 && after.doorN === after.intakeN + after.nAdvice,
+      /* RE-POINTED 17 Nov 2026 (#762): the door's total is the two books' OPEN ones, as 3e reads it (the tab counts finished advice too) */
+      after.nAdvice === before.nAdvice + 1 && after.doorN === before.doorN + 1 && after.doorN === after.intakeN + after.adviceN,
       { before: [before.doorN, before.nAdvice], after: [after.doorN, after.nAdvice] });
 
     /* ---- 8 · THE PUBLIC PORTAL IS UNTOUCHED ---- */
