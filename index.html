@@ -18613,7 +18613,9 @@
   @media (hover:hover){ html.lg-new .hb-gr-a:hover{text-decoration-color:currentColor} }
   /* -- the slider IS the seam: its strip straddles the hairline, the line drawn by the panel's own edge; hovered, pressed or
      reached by keyboard, a green line two pixels wide lies over it (Home's grip is placed on the panel's edge by igFitSplit) -- */
-  html.lg-new #ig-resizer{transform:translateX(-7px)}
+  /* …and stands BESIDE the paper's scrollbar, never over it (#762, clean-sans 3a/6a): the strip starts at the seam, its line
+     drawn at its own left edge on the hairline */
+  html.lg-new #ig-resizer{transform:translateX(-1px);justify-content:flex-start}
   html.lg-new :is(#content .ins-panel.is-jambo, .st-cr .st-side) > .ig-resizer{left:-8px;width:14px}
   html.lg-new :is(#content .ins-panel.is-jambo, .st-cr .st-side){overflow:clip;overflow-clip-margin:8px}
   html.lg-new .ig-resizer span{opacity:1;width:2px;height:auto;align-self:stretch;border-radius:0;background:transparent}

@@ -1264,19 +1264,23 @@ function apnRender(W, o){
   const same=rs.length>1&&rs.every(x=>x!=null&&x===rs[0]);
   const sameWords=same?String(rs[0]).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim():'';
   if(same){ const cut=h=>h.replace(/<td class="apn-rests">[\s\S]*?<\/td><td class="apn-rule">/,'<td class="apn-rule">'); rowsA=rowsA.map(cut); rowsS=rowsS.map(cut); }
-  const cols=same?4:5;
+  let cols=same?4:5;
   /* THE LIST'S COLUMNS, ONE RULE (listCols; #762, 17 Nov 2026): the new look's table takes the old one's seat, so a
      reader's dragged widths carry over; the name under its ceiling, each head but the acts' a grip */
-  const NDEFS=[{k:'name'},...(same?[]:[{k:'rests',w:300}]),{k:'rule',w:140},{k:'wait',w:96},{k:'acts',w:170}];
+  const NDEFS=[{k:'name'},...(same?[]:[{k:'rests',w:300,rank:1}]),{k:'rule',w:140},{k:'wait',w:96},{k:'acts',w:170}];
   const NFIT=typeof listCols==='function'?listCols('approvals',NDEFS,()=>apPaintList()):{ cols:NDEFS };
   const nw=k=>(NFIT.cols.find(c=>c.k===k)||NDEFS.find(c=>c.k===k));
+  /* where the room is short "What it rests on" steps aside first (rank 1), as every list's widest says-more column does, so
+     the list's floor is the columns that always stand and the panel slides over it where it does on every list (#762) */
+  const restsOut=!same&&!NFIT.cols.some(c=>c.k==='rests');
+  if(restsOut){ const cut2=h=>h.replace(/<td class="apn-rests">[\s\S]*?<\/td><td class="apn-rule">/,'<td class="apn-rule">'); rowsA=rowsA.map(cut2); rowsS=rowsS.map(cut2); cols=4; }
   const grip=k=>typeof listGripHtml==='function'?listGripHtml('approvals',k):'';
-  const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}${grip('name')}</th>${same?'':`<th>${esc(i18t('apn_col_rests'))}${grip('rests')}</th>`}<th>${esc(i18t('apn_col_rule'))}${grip('rule')}</th><th>${esc(i18t('apn_col_waited'))}${grip('wait')}</th><th></th></tr></thead>`;
+  const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}${grip('name')}</th>${same||restsOut?'':`<th>${esc(i18t('apn_col_rests'))}${grip('rests')}</th>`}<th>${esc(i18t('apn_col_rule'))}${grip('rule')}</th><th>${esc(i18t('apn_col_waited'))}${grip('wait')}</th><th></th></tr></thead>`;
   const group=sg.length&&ap.length&&_apnTab!=='done'?`<tr class="apn-group"><td colspan="${cols}">${esc(i18t('apn_group_sign'))}</td></tr>`:'';
   const bodyInner=all.length?`${rowsA.join('')}${group}${rowsS.join('')}`:`<tr><td colspan="${cols}" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr>`;
   const body=`<tbody>${bodyInner}</tbody>`;
   const shown=ap.concat(sg);
-  const colg=`<colgroup>${NDEFS.map(d=>{ const c=nw(d.k); return typeof listColTag==='function'?listColTag(Object.assign({ name:d.k==='name' },c),true):`<col${c.w?` style="width:${c.w}px"`:''}>`; }).join('')}</colgroup>`;
+  const colg=`<colgroup>${NDEFS.filter(d=>!(restsOut&&d.k==='rests')).map(d=>{ const c=nw(d.k); return typeof listColTag==='function'?listColTag(Object.assign({ name:d.k==='name' },c),true):`<col${c.w?` style="width:${c.w}px"`:''}>`; }).join('')}</colgroup>`;
   const table=`<table class="ap-table ap-ins apn-table" data-list-seat="approvals">${colg}${th}${body}</table>`;
   const nYours=W.all.yours.filter(r=>!r.done).length;
   const foot=`<div class="apn-foot">${esc([i18tn('apn_for_you',nYours,{ n:nYours }), sameWords?i18t('apn_foot_same',{ w:sameWords.charAt(0).toLowerCase()+sameWords.slice(1) }):''].filter(Boolean).join(' · '))}</div>`;
