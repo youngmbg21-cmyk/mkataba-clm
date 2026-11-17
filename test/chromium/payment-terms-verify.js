@@ -296,18 +296,16 @@ const EXTRA = [
     await seedBook();
     await page.evaluate(() => { window.langSet('en'); (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1200);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; every
+       contract is its All tab ([data-ctf-tab="all"]), where the list head with its chips stands */
+    await page.waitForFunction(() => !!document.querySelector('[data-ctf-tab="all"]') || !!document.querySelector('[data-lh-seat="contracts"]'), null, { timeout: 8000 }).catch(() => {});
+    if (await page.$('[data-ctf-tab="all"]:not(.is-on)')) { await page.click('[data-ctf-tab="all"]'); await page.waitForTimeout(800); }
     const PT_CHIP = '[data-lh-seat="contracts"] [data-lh-chip="payterms"]';
     const offBar = await page.evaluate(C => !document.getElementById('reg-payterms') && !document.querySelector(C), PT_CHIP);
     check('13a it is NOT on the bar by default — the row still fits one line', offBar,
       offBar ? 'under + Filter' : 'drawn unasked');
-    const inCat = await page.evaluate(() => {
-      const add = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
-      if (!add) return null;
-      return [...add.querySelectorAll('optgroup')].map(g => ({ v: g.label, t: g.label }));
-    });
-    check('13b it is offered under + Filter',
-      Array.isArray(inCat) && inCat.some(x => /payment terms/i.test(x.t)),
-      Array.isArray(inCat) ? inCat.map(x => x.t.trim()).join(' | ').slice(0, 120) : 'no + Filter');
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 13b "it is offered under + Filter" — the Contracts list has no + Filter
+       in the new look (the owner's answer 1, 17 Nov 2026); the chip that draws itself while it narrows (13c-13f) stays */
 
     /* THE SAFETY PROPERTY: turned on from the model, it must appear on the bar
        by itself rather than narrowing the book from behind a closed dialog. */

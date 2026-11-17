@@ -231,7 +231,10 @@ let H;
        it covers, the asker's note, Approve · Refuse… — and carries the card's id */
     const card = await P.page.evaluate(() => {
       const c = document.getElementById('sa-card');
-      return { there: !!c, text: c ? c.textContent.replace(/\s+/g, ' ') : '', stop: !!(c && c.closest('[data-pd-road-stop="yes"]')),
+      /* RE-POINTED 17 Nov 2026 (#762): the card must be PAINTED — the old road column is still in the markup but
+         0px wide in the new look, so "there" asks for a drawn box, not only the element */
+      const seen = !!(c && c.getBoundingClientRect().width > 0 && c.getBoundingClientRect().height > 0);
+      return { there: seen, text: c ? c.textContent.replace(/\s+/g, ' ') : '', stop: !!(c && c.closest('[data-pd-road-stop="yes"]')),
         approve: !!(c && c.querySelector('[data-pd-rd-approve]')), refuse: !!(c && c.querySelector('[data-pd-rd-refuse]')) };
     });
     check('4b  the approval asked of you stands at its stop, with what it covers, the note, Approve and Refuse…',
@@ -261,7 +264,8 @@ let H;
             if (!c) return r({ card: false });
             const b = c.getBoundingClientRect();
             return r({ card: true, lit: wasLit,
-              inView: b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
+              /* RE-POINTED 17 Nov 2026 (#762): in view means a drawn box (a 0px card in the folded column is not in view) */
+              inView: b.width > 0 && b.height > 0 && b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
               approve: !!c.querySelector('[data-pd-rd-approve]'),
               hash: location.hash });
           }
@@ -294,7 +298,8 @@ let H;
     check('4L5 an unknown word opens the room and lands on nothing',
       junk.ok && junk.onRoom && !junk.lit, JSON.stringify(junk));
 
-    if (card.refuse) {
+    /* only a PAINTED Refuse is pressed (17 Nov 2026, #762): a hidden one reports below instead of timing out */
+    if (card.there && card.refuse) {
       await P.page.click('[data-pd-rd-refuse]');
       await P.page.waitForTimeout(400);
       const empty = await P.page.evaluate(() => !!document.getElementById('pd-input'));

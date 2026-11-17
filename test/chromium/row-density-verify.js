@@ -48,42 +48,10 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
 
   const rowH  = () => page.evaluate(() => { const td = document.querySelector('.reg-table tbody td');
                                             return td ? Math.round(td.getBoundingClientRect().height) : 0; });
-  const bodyH = () => page.evaluate(() => { const tb = document.querySelector('.reg-table tbody');
-                                            return tb ? Math.round(tb.getBoundingClientRect().height) : 0; });
-  const rows  = () => page.evaluate(() => document.querySelectorAll('.reg-table tbody tr[data-row]').length);
-  /* RE-POINTED 20 Sep 2026 (the redesign order): the density is a SEGMENTED
-     CONTROL — three real buttons carrying data-reg-density, the live one
-     aria-pressed — in place of the labelled dropdown. Same three rungs, same
-     store (regSetDensity), same repaint; only the control's shape moved, so
-     every claim below is asked of the segments instead of the select. */
-  const live  = () => page.evaluate(() => { const b = document.querySelector('button[data-reg-density][aria-pressed="true"]');
-                                            return b ? b.getAttribute('data-reg-density') : null; });
-  /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing): the three
-     segments moved into ONE Display menu beside Sort, with Table · Board and
-     the amendment fold — the same buttons, the same attribute, the same store
-     and repaint — so a press opens the menu first, exactly as a reader's does.
-     Pressing a segment repaints the page, which draws the menu shut again. */
-  const set   = async v => {
-    const shut = await page.evaluate(() => { const p = document.getElementById('reg-display-pop'); return !p || p.hidden; });
-    if (shut && await page.$('#reg-display')) await page.click('#reg-display');
-    await page.click(`button[data-reg-density="${v}"]`); await page.waitForTimeout(450); };
+  /* RETIRED 17 Nov 2026 (#762, owner's ruling): the helpers that pressed and read the row-height control (bodyH, rows, live, set) went with it */
 
   console.log('\n1 · the control');
-  ok('drawn', await page.evaluate(() => !!document.querySelector('button[data-reg-density]')));
-  /* THE LADDER'S OWN LENGTH, not a typed number: section 2 names the rungs. */
-  ok('offers exactly the rungs on the ladder', await page.evaluate(() =>
-     document.querySelectorAll('button[data-reg-density]').length
-       === Object.keys(window.REG_DENSITY || {}).length));
-  ok('defaults to compact, so nobody\'s book moves on the day it ships', (await live()) === 'compact');
-  /* IT IS A VIEW SETTING, NOT A FILTER: it sits after the spacer with Sort and
-     the RESTING segments never wear the accent ink, which on this bar means
-     "narrowing your list" (the pressed segment is the control's own state). */
-  ok('does not claim to be narrowing the list', await page.evaluate(() => {
-    const accent = (() => { const e = document.createElement('i'); e.style.color = 'var(--accent-ink)'; document.body.appendChild(e);
-      const c = getComputedStyle(e).color; e.remove(); return c; })();
-    return [...document.querySelectorAll('button[data-reg-density][aria-pressed="false"]')]
-      .every(b => { const cs = getComputedStyle(b); return cs.color !== accent && cs.fontWeight !== '600' && cs.fontWeight !== '700'; });
-  }));
+  /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'drawn', 'offers exactly the rungs', 'defaults to compact' and 'does not claim to be narrowing the list' asked of that control */
 
   console.log('\n2 · the two rungs');
   /* ---- CONDENSED IS GONE (Young ruled 21 Sep 2026: "Delete condensed"), AND
@@ -95,11 +63,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      RE-POINTED 21 Sep 2026 (the redesign's second pass): the title is two lines
      on compact, so the row stands ABOVE its 36px floor and under 44. */
   ok('compact stands on its 36px floor', (await rowH()) >= 36 && (await rowH()) < 44, (await rowH()) + 'px');
-  await set('comfortable'); ok('comfortable 44px', (await rowH()) === 44, (await rowH()) + 'px');
-  const rungs = await page.$$eval('button[data-reg-density]', els => els.map(e => e.getAttribute('data-reg-density')));
-  ok('the ladder offers two rungs and neither is condensed',
-     rungs.length === 2 && !rungs.includes('condensed'), rungs.join(' | '));
-  await set('compact');
+  /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'comfortable 44px' and 'the ladder offers two rungs' pressed that control; the rows' own geometry is still pinned here */
   ok('padding travels with the height', (await page.evaluate(() =>
      getComputedStyle(document.querySelector('.reg-table tbody td')).paddingLeft)) === '12px');
   /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
@@ -111,34 +75,18 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
 
   console.log('\n3 · it buys what it claims to buy');
   /* HEIGHT, NOT COUNT — a count cannot move on a book shorter than the page. */
-  const n = await rows();
-  await set('comfortable'); const hCom = await bodyH();
-  await set('compact');     const hCon = await bodyH();
-  /* PIN THE RELATION, NOT THE NUMBER (re-pointed 21 Sep 2026): this multiplied
-     by the exact difference between two rungs, so it cost an edit at every
-     retune and would pass on the wrong thing — the two-line title puts compact
-     at 43 rather than its 36px floor, which is a fact about the TITLE and not
-     about the density. The claim is that the shorter rung really is shorter,
-     by at least a pixel a row. */
-  ok('the same rows take measurably less room',
-     hCon < hCom && (hCom - hCon) >= n, `${n} rows: ${hCom}px → ${hCon}px (${hCom - hCon}px saved)`);
+  /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'the same rows take measurably less room' compared the two rungs */
 
   console.log('\n4 · it is remembered, and it is the reader\'s own');
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+  /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+  await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
   await page.waitForTimeout(900);
-  ok('survives a reload', (await live()) === 'compact');
+  /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'survives a reload' read the control's pressed rung */
   ok('and the rows really are compact', (await rowH()) >= 36 && (await rowH()) < 44, (await rowH()) + 'px');
-  /* A BROWSER THAT REMEMBERS THE DELETED RUNG READS COMPACT, with no migration:
-     an unknown stored value has always fallen back. */
-  await page.evaluate(() => { try { localStorage.setItem('hati.v1.regDensity', 'condensed'); } catch (e) {} });
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForTimeout(1600);
-  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-  await page.waitForTimeout(900);
-  ok('a browser that remembers condensed simply reads compact', (await live()) === 'compact', await live());
-  await set('compact');
+  /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'a browser that remembers condensed simply reads compact' read the control's pressed rung */
 
   console.log('\n5 · one renderer, both pages');
   /* THE STRUCTURAL CLAIM, because the Negotiations page draws no table when
@@ -165,6 +113,8 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
 
   console.log('\n6 · nothing else moved');
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+  /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+  await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
   await page.waitForTimeout(700);
   ok('no sideways scroll at any density',
      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));

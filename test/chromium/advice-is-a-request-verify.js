@@ -77,6 +77,7 @@ const READ = () => {
     ikPage: !!document.querySelector('#content [data-ins-page="intake"]'),
     intakeN: typeof intakeCount === 'function' ? intakeCount() : null,
     adviceN: typeof adviceActiveCount === 'function' ? adviceActiveCount() : null,
+    adviceAll: ((window.state && state.advice) || []).length,
   };
 };
 
@@ -141,12 +142,9 @@ const READ = () => {
     ok('2a Requests draws one tab row of views in their order, Advice among them, each with rows', s.tabs.length >= 2 && s.tabs.every(k => k === 'contracts')
       && s.views.every((v, i) => i === 0 || ORDER.indexOf(v) > ORDER.indexOf(s.views[i - 1])) && ['open', 'advice'].every(v => s.views.includes(v))
       && s.views.every((v, i) => v === 'all' || v === s.on || s.tabNs[i] > 0), { views: s.views, n: s.tabNs });
-    ok('2b it opens on Open, with both kinds in the one list', s.on === 'open' && s.ikPage && s.advRows === s.adviceN && s.ikRows === s.intakeN,
-      { on: s.on, ikPage: s.ikPage, advice: s.advRows, contract: s.ikRows });
-    ok('2c Open counts both kinds, and Advice counts the open advice', s.nContracts === s.intakeN + s.adviceN && s.nAdvice === s.adviceN,
-      { open: s.nContracts, advice: s.nAdvice });
-    ok('2d the door is the Open list it opens', s.doorN === s.nContracts,
-      { door: s.doorN, open: s.nContracts });
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 3): 2b "Open holds both kinds", 2c "Open counts both kinds" and
+       2d "the door is the Open list" — Open now holds contract requests only and advice lives under its own Advice
+       tab (the round-6 drawing); the door's total is still pinned against the two books in 1c and 3e */
     const wideLeft = s.rowLeft, wideViews = JSON.stringify(s.views);
     await page.screenshot({ path: path.join(OUT, '2-contracts.png') });
 
@@ -155,8 +153,12 @@ const READ = () => {
     if (adv) await adv.click();
     await until(page, () => !!document.querySelector('#content [data-ik-view="advice"].on, #content [data-ikn-tab="advice"].is-on'));
     s = await page.evaluate(READ);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling 3): the Advice tab is advice's own
+       home — advice rows only, every advice request the book holds (finished ones too, as the new tab draws them),
+       and the tab's number is the rows it shows */
     ok('3 the Advice tab is a cut of the list: advice rows only, on Requests', s.view === 'intake' && s.on === 'advice'
-      && s.advRows === s.adviceN && s.ikRows === 0, { view: s.view, on: s.on, advice: s.advRows, contract: s.ikRows });
+      && s.advRows === s.adviceAll && s.advRows === s.nAdvice && s.adviceAll >= s.adviceN && s.ikRows === 0,
+      { view: s.view, on: s.on, advice: s.advRows, tab: s.nAdvice, book: s.adviceAll, contract: s.ikRows });
     /* the board is still a door away: the advice row's panel carries it */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): an advice request's panel carries its own
        "Advice board" door ([data-ikn-adv-board]) — the advice row is chosen first, as a reader chooses it */

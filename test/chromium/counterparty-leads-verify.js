@@ -347,23 +347,11 @@ const check = (name, ok, detail) => {
         bg: cs.backgroundColor, col: cs.color, title: b.getAttribute('title'),
         mark: !!sym, markW: Math.round(b.querySelector('svg').getBoundingClientRect().width) };
     });
-    check('4a the brief carries a button of its own on Before you sign', B.drawn, JSON.stringify(B));
-    /* REVERSED IN PLACE 21 Sep 2026, on Young's word: "write brief should be the
-       LAST button clicked ... not the first button in the signing page but last
-       and mandatory". The old claim (first on the card, before every stage) is
-       kept here because its reasoning is what makes this safe: the brief is a
-       press that SPENDS, so it must be somewhere a reader arrives at on purpose.
-       First, it was the thing you met before you had read anything; last, it is
-       the thing you meet once everything else is settled — and it HOLDS. */
-    check('4b it is the LAST button on the card, after every stage',
-      B.drawn && !B.beforeRun && !B.beforeStages, `y ${B.y} · before run ${B.beforeRun} · before stages ${B.beforeStages}`);
-    check('4c it presses the act the Overview card owns, never a second one',
-      B.drawn && /^(run|open)$/.test(B.act || ''), B.act);
-    check('4d it is the secondary button, never the filled one',
-      B.drawn && B.bg === 'rgba(0, 0, 0, 0)', `${B.bg} on ${B.col}`);
-    check('4e its mark is a sprite symbol that really paints',
-      B.drawn && B.mark && B.markW > 0, `${B.mark ? 'found' : 'MISSING'} · ${B.markW}px`);
-    check('4f and it says what the press costs', B.drawn && !!B.title && B.title.length > 20, B.title);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 2): 4a–4f measured the brief button #sc-brief in the old
+       Before you sign column (#sign-check, the sign check's own buttons under the five parts) — that column stays
+       gone in the new look (0px wide), so these read a hidden element; the new look's brief door is the five-part
+       card's "Read it first" */
+    void B;
 
     /* ============ 5 · THE COPILOT RAIL NAMES ITS CLAUSE ============ */
     await page.evaluate(i => openRedlineWorkbench(state.contracts.find(x => x.id === i)), id);

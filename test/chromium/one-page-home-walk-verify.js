@@ -222,10 +222,13 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     }
     /* pressable, and nothing on the one list before a signature holds it */
     const ready = face ? await waitFor(page, i => { const b = document.getElementById('sign-btn');
-      return !!b && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && signBlockers(getContract(i)).length === 0; }, 8000, id) : false;
+      return !!b && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && signBlockers(getContract(i)).length === 0
+        /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the foot's #sign-btn is folded away under the five
+           parts; the face's own Sign (the clear card's [data-pd2-sign], which presses the same #sign-btn) is the door */
+        && !!document.querySelector('#pd-signface [data-pd2-sign]') && !!document.querySelector('#pd-signface [data-pd2-sign]').offsetParent; }, 8000, id) : false;
     let stored = 0;
     if (ready) {
-      await page.click('#sign-btn');
+      await page.click('#pd-signface [data-pd2-sign]');
       const pad = await waitFor(page, () => !!document.getElementById('sig-intent'), 6000);
       if (pad) {
         await page.click('[data-sig-tab="type"]').catch(() => {}); await page.fill('#sig-typed', 'Amina Otieno').catch(() => {});
