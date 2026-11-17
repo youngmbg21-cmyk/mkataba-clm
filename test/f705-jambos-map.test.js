@@ -132,7 +132,7 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
     assert.ok(!T.some(x => x.k === 'insights'), 'no task leads to Insights');
     assert.ok(T.some(x => x.k === 'jamboset' && x.jambo === true && x.to.st === 'you:work'));
     assert.ok(T.some(x => x.k === 'jambopts' && x.jambo === true && x.to.st === 'you:points'));
-    assert.ok(T.some(x => x.k === 'standards' && x.to.place === 'ourpaper' && x.to.std === true));
+    assert.ok(T.some(x => x.k === 'standards' && x.to.place === 'standards' && x.to.std === true));   // its own page since 17 Nov 2026
     assert.ok(T.some(x => x.k === 'brief' && x.to.place === 'brief'));
     assert.ok(T.some(x => x.k === 'askcol' && x.to.reg && x.to.reg.askOpen === true));
   });

@@ -387,11 +387,12 @@ const PLACES = [
   { k: 'approvals', name: 'Approvals', go: `setView('approvals')`, wait: `document.querySelector('.ap-page, #ap-root, .sap-page')` },
   { k: 'requests', name: 'Requests', go: `setView('intake')`, wait: `document.querySelector('.ik-page, #ik-root, .sap-page')` },
   { k: 'import', name: 'Import', go: `setView('migration')`, wait: `document.querySelector('#mig-drop, #mig-side')` },
-  { k: 'paper-book', name: 'Our paper', go: `setView('templates')`, wait: `document.querySelector('.tpl-pf, #tpl-new, .tpl-shelf')` },
+  { k: 'paper-book', name: 'Our paper', go: `setView('templates')`, wait: `document.querySelector('.tpln5, .tpl-pf, #tpl-new, .tpl-shelf')` },
   /* the template's own page and the builder (25 Oct 2026): a template made for the sweep, nothing else saved */
   { k: 'template', name: "Our paper · a template's page", go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', description: 'Warehousing and logistics services, our standard', category: 'procurement' })); openTemplateLibDetail(t.template.id); })()`, wait: `document.querySelector('#tpl-dt .tpl-dt-line')` },
   { k: 'builder', name: 'Our paper · the builder', go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', category: 'procurement' })); const d = await api('templates/' + t.template.id); openTemplateBuilder(t.template.id, d.versions[0].id); })()`, wait: `document.querySelector('#tb-page #tb-rail, #tb-page .tb-strip')` },
-  { k: 'standards', name: 'Our standards', go: `setView('playbook')`, wait: `document.querySelector('.sd-page, #sd-root, .sap-page')` },
+  /* the Ladder (17 Nov 2026): Standards is its own page */
+  { k: 'standards', name: 'Standards', go: `setView('playbook')`, wait: `document.querySelector('.ld-page .ld-rung')` },
   { k: 'people', name: 'People', go: `setView('directory')`, wait: `document.querySelector('.dir-td-wrap, .dir-table, .sap-page')` },
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },

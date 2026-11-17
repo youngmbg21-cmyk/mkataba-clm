@@ -60,6 +60,7 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
       const target = (B.find(b => !b.sel) || {}).id;
       const v0 = await P.evaluate(() => state.view);
       await P.click(`.ap-table.ap-ins tr[data-ap-row="${target}"] .apn-ok`);
+      { const ok = await P.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); } /* a yes offers an optional note (17 Nov 2026) */
       const done = await until(P, id => { const c = getContract(id); const ch = (c && c.approvalChain) || [];
         return !document.querySelector(`.apn-table tr[data-ap-row="${id}"]`) && ch.some(x => x && x.status === 'approved'); }, target, 10000);
       const rowSays = await P.evaluate(id => { const tr = document.querySelector(`tr[data-ap-row="${id}"]`); return tr ? tr.innerText.replace(/\s+/g, ' ') : '(row left the list)'; }, target);

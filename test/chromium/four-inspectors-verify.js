@@ -203,67 +203,11 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const after = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
     ok('2c Remove goes at once, and its Undo puts it back', rm && gone === before - 1 && undone && after === before, { rm, before, gone, undone, after });
 
-    /* ================= 3 · OUR STANDARDS, THREE TABS ================= */
-    await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);
-    await page.screenshot({ path: path.join(OUT, '3-standards.png') });
-    const sd = await page.evaluate(() => ({ ins: !!document.querySelector('.sd-ins'),
-      /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): the three tabs are each
-         card's own top row (one copy per card, the visible card's read) and the
-         count is the row's `.n`. RE-POINTED AGAIN 21 Oct 2026 (Part 8, the
-         owner's pick of "the Legora way"): ONE tab row, the list head's under
-         the shared head ([data-lh-seat]), every press on it there */
-      tabs: [...document.querySelectorAll('.sd-ins [data-lh-seat] [data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.n, .st-tab-n') || {}).textContent || null })),
-      rows: document.querySelectorAll('[data-pb-sec="clauses"] tbody [data-ins-row]').length, lib: clauseLibrary().length,
-      title: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
-    ok('3a three tabs, each carrying its count, and every standard is a row', sd.ins && sd.tabs.length === 3
-      && sd.tabs.every(t => t.n != null) && sd.rows === sd.lib && !!sd.title, sd);
-    /* JAMBO'S PANEL ON OUR STANDARDS (owner, 19 Oct 2026): the three lists share the one list panel, dressed as his */
-    ok('3a2 Our standards carries Jambo\'s panel, his box at its foot', await page.evaluate(() => { const q = document.querySelector('.sd-ins #ins-panel.is-jambo #jl-q'); return !!q && q.getClientRects().length > 0; }));
-    await page.evaluate(() => { const r = document.querySelector('.sd-ins'); if (r) r._probe = 1; });
-    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="playbook"]'); await page.waitForTimeout(400);
-    ok('3b a tab press flips the tab — the page is not rebuilt under the reader',
-      await page.evaluate(() => { const r = document.querySelector('.sd-ins'); return !!(r && r._probe === 1)
-        && !document.querySelector('[data-pb-sec="playbook"]').hidden && document.querySelector('[data-pb-sec="clauses"]').hidden; }));
-    await page.click('[data-sd-book="supply"]').catch(() => {}); await page.waitForTimeout(300);
-    const caps = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-stdl li b')].filter(b => /^Liability cap/.test(b.textContent)).length);
-    ok('3c a book lists each standard once — Liability cap is one line on the supply book', caps === 1, caps);
-    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
-    await page.click('[data-sd-row="cl-pay"]').catch(() => {}); await page.waitForTimeout(300);
-    await page.click('#ins-panel [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
-    /* RE-POINTED 23 Oct 2026 (owner: "open straight onto the rule you clicked, ready to change"): the
-       button — now "Set how firm we are" — opens the book's editor ON the standard's row (set-how-firm verify) */
-    const pos = await page.evaluate(() => { const el = document.querySelector('#pb-rng-list .is-landed, #pb-rng-list .is-landed-held, #pb-pos-list .is-landed, #pb-pos-list .is-landed-held');
-      const inp = el && el.querySelector('[data-pb-cat],[data-pb-rlabel]'); return { editor: !!document.getElementById('pb-save'), row: inp ? inp.value : '' }; });
-    ok('3d "Set how firm we are" opens the book\'s editor on its standard\'s row', pos.editor && /payment/i.test(pos.row), pos);
-    await page.evaluate(() => { const c = document.getElementById('pb-cancel'); if (c) c.click(); }); await page.waitForTimeout(300);
-    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
-    const godev = await page.$('#ins-panel [data-sd-godev]');
-    let gd = null;
-    if (godev) {
-      const cid = await godev.getAttribute('data-sd-godev');
-      await godev.click(); await page.waitForTimeout(500);
-      gd = await page.evaluate(id => ({ tab: document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab'),
-        sel: (document.querySelector('[data-pb-sec="deviations"] tr.is-sel') || {}).getAttribute ? document.querySelector('[data-pb-sec="deviations"] tr.is-sel').getAttribute('data-sd-dev') : null, want: id }), cid);
-    }
-    ok('3e a departure in a standard\'s panel lands on that contract under Portfolio deviations', !!gd && gd.tab === 'deviations' && gd.sel === gd.want, gd);
-    await page.screenshot({ path: path.join(OUT, '3e-deviations.png') });
-    const see = await page.$('#ins-panel [data-sd-gostd]');
-    let sw = null;
-    if (see) {
-      const clid = await see.getAttribute('data-sd-gostd');
-      await see.click(); await page.waitForTimeout(500);
-      sw = await page.evaluate(id => ({ tab: document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab'),
-        sel: (document.querySelector('[data-pb-sec="clauses"] tr.is-sel') || {}).getAttribute ? document.querySelector('[data-pb-sec="clauses"] tr.is-sel').getAttribute('data-sd-row') : null, want: id }), clid);
-    }
-    ok('3f "See the standard" lands on the standard it misses', !!sw && sw.tab === 'clauses' && sw.sel === sw.want, sw);
-    const libBefore = await page.evaluate(() => clauseLibrary().length);
-    await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
-    await page.click('#ins-panel [data-act="remove"]').catch(() => {}); await page.waitForTimeout(500);
-    const askedStd = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
-      return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 160) : ''; });
-    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
-    ok('3g removing a standard asks first, and a cancel removes nothing',
-      !!askedStd && (await page.evaluate(() => clauseLibrary().length)) === libBefore, askedStd);
+    /* ================= 3 · OUR STANDARDS ================= */
+    /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder): Our standards is no longer three lists in an Inspector but a
+       page of its own, drawn as a ladder; it is measured by standards-page-verify. Asked here only: it draws. */
+    await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1000);
+    ok('3 Our standards draws as its own page, the Ladder', await page.evaluate(() => !!document.querySelector('.ld-page .ld-list') && !!document.querySelector('.ld-page #ins-panel')));
 
     /* ================= 4 · REQUESTS ================= */
     await page.evaluate(() => setView('intake')); await page.waitForTimeout(2200);
@@ -313,14 +257,14 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* ================= 5 · BELOW THE WIDTH LINE, NOTHING CHANGED ================= */
     await page.setViewportSize({ width: 1000, height: 900 }); await page.waitForTimeout(900);
     for (const [k, view, sel, classic] of [['5a', 'obligations', '.obw-ins', '.obw-page'], ['5b', 'intake', '.ik-ins', '#ik-new'],
-      ['5c', 'playbook', '.sd-ins', '#clause-lib']]) {
+      /* Our standards left this list 17 Nov 2026: the Ladder has one shape at every width */]) {
       await page.evaluate(v => setView(v), view); await page.waitForTimeout(1000);
       const r = await page.evaluate(([s, c]) => ({ ins: !!document.querySelector(s), classic: !!document.querySelector(c) }), [sel, classic]);
       ok(`${k} [control] ${view} below the line draws its classic page`, !r.ins && r.classic, r);
     }
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
     ok('5d and widening the window puts the Inspector back without a navigation',
-      await page.evaluate(() => !!document.querySelector('.sd-ins')));
+      await page.evaluate(() => !!document.querySelector('.ik-ins')));
 
     ok('6 [control] the whole journey raised no page error', errs.length === 0, errs.join(' | ') || 'clean');
   } catch (e) {

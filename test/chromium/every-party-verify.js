@@ -158,13 +158,18 @@ async function readHead(page, hostSel, sel){
     /* ================= 4 · OUR STANDARDS, THE DEPARTURES PANEL ================= */
     let s1 = null;
     if (staged.C) {
+      /* RE-POINTED 17 Nov 2026 (the Ladder): a departure stands on its standard's ladder, as a card naming the contract's
+         outside parties; Departures lists every open one across the standards */
       await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);
-      await page.evaluate(({ id }) => sdGoDev({ id }), { id: staged.C }); await page.waitForTimeout(600);
-      s1 = await readHead(page, '#ins-panel', '.ins-sub.is-item');
+      await page.evaluate(() => document.querySelector('[data-ld-mode="departures"]')?.click()); await page.waitForTimeout(600);
+      s1 = await page.evaluate(id => { const card = document.querySelector(`.ld-dep[data-ld-dep="${CSS.escape(id)}"]`); if (!card) return null;
+        const ns = [...card.querySelectorAll('.ld-dep-p')]; const r = card.getBoundingClientRect();
+        return { box: true, names: ns.map(n => n.textContent.trim()), tops: ns.map(n => Math.round(n.getBoundingClientRect().top)), text: card.textContent,
+          inside: ns.every(n => { const q = n.getBoundingClientRect(); return q.left >= r.left - 1 && q.right <= r.right + 1; }) }; }, staged.C);
     }
-    ok('4a Our standards: under the contract\'s name, both outside parties, one line each', !!s1 && s1.box
+    ok('4a Our standards: the departure names both outside parties, one line each', !!s1 && s1.box
       && s1.names.join(' | ') === expectNames(staged.cpC) && s1.tops.length === 2 && s1.tops[1] > s1.tops[0] && s1.inside,
-      s1 ? { id: s1.id, names: s1.names, tops: s1.tops, text: s1.text } : 'no departing contract, or no panel');
+      s1 ? { names: s1.names, tops: s1.tops, text: s1.text } : 'no departing contract, or no card');
     ok('4b [wall] and not our own side', !!s1 && s1.box && !/Highland Corporate/.test(s1.text), s1 && s1.text);
     await page.screenshot({ path: path.join(OUT, '4-standards-departures-three-parties.png') });
 

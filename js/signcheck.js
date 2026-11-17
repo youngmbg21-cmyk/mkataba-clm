@@ -456,7 +456,9 @@ function signCheckMayAccept(c, v, user){
   if (!v.escalate) return true;
   const u = user || _scCall('currentUser') || null;
   if (!u) return false;
-  if (String(u.role || '') === 'admin') return true;
+  /* AN ADMIN, OR SOMEBODY AN ADMIN NAMED (owner, 17 Nov 2026: "admins plus named people") */
+  const named = _scW('mayDecideStandards');
+  if (String(u.role || '') === 'admin' || (typeof named === 'function' && named(u))) return true;
   const to = v.escalation && v.escalation.to;
   return !!(to && to.id && String(to.id) === String(u.id));
 }
@@ -474,7 +476,7 @@ function signCheckAcceptStale(v){ const a = v && v.accepted; return !!(a && a.st
 function signCheckIsAdminId(id){
   const users = _scCall('getUsers');
   const u = Array.isArray(users) ? users.find(x => x && String(x.id) === String(id)) : null;
-  return !!(u && String(u.role || '') === 'admin');
+  return !!(u && (String(u.role || '') === 'admin' || (u.role !== 'viewer' && u.decideStandards === true)));
 }
 function signCheckAcceptedProperly(v){
   const sg = _scW('sgAcceptedProperly');

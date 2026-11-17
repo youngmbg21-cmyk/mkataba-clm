@@ -171,20 +171,12 @@ const BOX = sel => {
       const mine = document.querySelector('[data-tpl-tab="list"]');
       return { mine: pull(mine) };
     });
+    /* RE-POINTED 17 Nov 2026 (the Ladder; the owner answered "Remove it"): Our standards is a page of its own with no
+       tab row of Our paper's, so there is no second home to dress alike; asked instead: it carries no Our paper switch */
     await page.evaluate(() => setView('playbook'));
     await pause(1200);
-    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "the Legora way"):
-       where the inspector fits, the page's row is the switch at the head's
-       right on both views (.paper-seg, one builder), so a resting part there
-       is asked of it; the narrow page keeps its .st-tab row */
-    const other = await page.evaluate(() => {
-      const e = document.querySelector('.paper-seg button:not(.on)') || document.querySelector('.st-tab:not(.on)'); if (!e) return null;
-      const s = getComputedStyle(e);
-      return { family: s.fontFamily, size: s.fontSize, weight: s.fontWeight, color: s.color,
-        padding: s.padding, borderBottomWidth: s.borderBottomWidth };
-    });
-    check('1f · a resting tab here is dressed exactly like a resting tab on Our standards',
-      other && JSON.stringify(other) === JSON.stringify(ref.mine), { mine: ref.mine, other });
+    const other = await page.evaluate(() => ({ seg: !!document.querySelector('.paper-seg, [data-paper-tab]'), ladder: !!document.querySelector('.ld-page') }));
+    check('1f · Standards is its own page: no Our paper switch on it', other.ladder && !other.seg && !!ref.mine, other);
     await page.evaluate(() => setView('templates'));
     await pause(1200);
 

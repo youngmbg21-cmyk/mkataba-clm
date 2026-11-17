@@ -105,8 +105,11 @@ const FLOW_MAP = [
     a: [['contracts', _w('Open party → its deals', 'Öppna part → dess avtal')]], d: ['contracts', 'people', 'explorer'], p: [] },
   { k: 'people', st: 'book', s: _w('the people, as a table', 'personerna, som tabell'),
     a: [], d: ['settings', 'contracts'], p: [] },
-  { k: 'ourpaper', st: 'book', s: _w('standards and shelves', 'standarder och hyllor'),
-    a: [['draft', _w('Use it → New agreement', 'Använd → nytt avtal')]], d: ['draft', 'settings'], p: [] },
+  { k: 'ourpaper', st: 'book', s: _w('templates and shelves', 'mallar och hyllor'),
+    a: [['draft', _w('Use it → New agreement', 'Använd → nytt avtal')]], d: ['draft', 'standards', 'settings'], p: [] },
+  /* STANDARDS, THE LADDER (owner's pick, 17 Nov 2026): its own page; a change waits for another admin's yes */
+  { k: 'standards', st: 'book', s: _w('each standard as a ladder, and its departures', 'varje standard som en stege, och dess avvikelser'),
+    a: [['document', _w('a departure → Open the paper', 'en avvikelse → Öppna pappret')]], d: ['ourpaper', 'approvals', 'settings'], p: [] },
   { k: 'mynotes', st: 'book', s: _w('your private notes', 'dina privata anteckningar'),
     a: [], d: ['calendar', 'approvals'], p: [] },
   { k: 'reads', st: 'book', s: _w('Discover: ask every contract a question, the answers kept', 'Upptäck: ställ en fråga till varje avtal, svaren sparas'),

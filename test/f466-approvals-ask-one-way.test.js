@@ -79,6 +79,10 @@ describe('f466 (1)(3) one way to decide, and a refusal says why — the browser 
 
   test('Approve from the page is the room\'s approval, and clears the rules', async () => {
     const w = world(ADMIN);
+    /* a yes offers an optional note (17 Nov 2026): left empty, the yes still goes; cancelled, nothing is decided */
+    w.promptDialog = async () => null;
+    assert.equal(await w.approvalDecideAsk(contract(), 'approved'), false, 'cancelled, nothing decided');
+    w.promptDialog = async () => '';
     const c = contract();
     assert.equal(w.approvalRulesCleared(c), false);
     assert.equal(await w.approvalDecideAsk(c, 'approved'), true);

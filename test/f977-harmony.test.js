@@ -49,9 +49,9 @@ test('f977 (3) one voice', () => {
 
 test('f977 (4) say it once', () => {
   const ap = strip(fnBody(read('js/views/approvalsview.js'), 'apnRender'));
-  assert.match(ap, /const same=rs\.length>1&&rs\.every\(x=>x!=null&&x===rs\[0\]\);/);
+  /* RE-POINTED 17 Nov 2026 (the three piles): a pile row has no rests of its own, so the contract rows decide */
+  assert.match(ap, /const same=\(pDep\.length\+pStd\.length>0&&!rs\.length\)\|\|\(rs\.length>1&&rs\.every\(x=>x===rs\[0\]\)\);/);
   /* RE-POINTED 17 Nov 2026 (#762): the head now carries its column's grip (listCols, the one column rule); the column still steps out when it says the same */
-  /* RE-POINTED 17 Nov 2026 (#762): …and it steps aside first where the room is short (restsOut, rank 1) */
   assert.match(ap, /\$\{same\|\|restsOut\?'':`<th>\$\{esc\(i18t\('apn_col_rests'\)\)\}\$\{grip\('rests'\)\}<\/th>`\}/);
   assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnRender')), /const reachAny = list\.some/);
   assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
@@ -140,7 +140,8 @@ test('f977 (20, 22, 23) one toolbar, a readable preview, a tight sheet', () => {
   assert.match(b, /html\.lg-new \.ig-brain \.ig-viewbar \.ig-lensrow\{position:static;display:flex\}/, 'the lenses join the one bar');
   assert.match(b, /html\.lg-new \.tpln-zoom\{zoom:\.72\}/);
   const lib = read('js/views/library.js');
-  assert.match(lib, /<b class="tpln-name">\$\{_tplEsc\(card\.name\)\}<\/b>/);
+  /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the chosen paper's name is the step's head, its verbs beside the paper */
+  assert.match(lib, /if \(v === 'paper' && pick\)[\s\S]{0,200}h1\(pick\.c\.name\)/);
   assert.doesNotMatch(lib, /i18t\('tpln_p_src_(book|learned)'\)/, 'no stray source words in the panel');
   assert.match(b, /html\.lg-new #na-root\.na-one \.na-closest \.na-pick\.na-close\{min-height:0\}/);
   assert.match(b, /html\.lg-new #modal-root \.na-why\{color:var\(--color-quiet\);font-weight:400\}/);

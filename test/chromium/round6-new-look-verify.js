@@ -14,7 +14,7 @@
      4 · Parties: Folders (a card per party) and a party's own page (its facts, what waits on you, its agreements)
      5 · People: the person's panel (Right now · Doors)
      6 · Reads: kept questions and packs in one table, Read N more on the row
-     7 · Our paper: the chosen paper small, Standards and Shelves beside it
+     7 · Our paper: Shelves with Cover flow, then the list, then the paper small
      8 · My notes: the ledger (Note · Contract · Due) and the note's panel
      9 · Requests: Request · Where it stands · Asked by · Lane, Start the draft on the row
     10 · Import: What Jambo read · Looks · Stream · Value, the ones that need you first
@@ -166,16 +166,22 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
 
   /* 7 · Our paper */
   try {
+    /* RE-POINTED 17 Nov 2026 (f1091, the owner's pick: Shelves with Cover flow, then the Legora way, then the paper):
+       Shelves first (the filter line, the figures, a Cover flow row per folder), All opens the list (chips, rows quoting
+       their first line), a row pressed twice opens the paper small beside its facts; the panel speaks for the step */
     await page.evaluate(() => setView('templates'));
-    const up = await until(page, () => !!document.querySelector('.tpln .tpln-r[data-tpl-pf]'), null, 12000);
-    const caps = await page.evaluate(() => [...document.querySelectorAll('.tpln .pd2-ch-cap')].map(x => x.innerText.trim().toLowerCase()));
-    const sheet = await page.evaluate(() => !!document.querySelector('.tpln-sheet .tpl-pf-sheet, .tpln-sheet .tpl-pf-none'));
-/* RE-POINTED 15 Nov 2026 (owner: Jambo's panels "Build as drawn", the five parts): the panel is the five-part builder's now */ 
+    const up = await until(page, () => !!document.querySelector('.tpln5 .tpln5-cf .tpln5-cfr'), null, 12000);
+    const shelf = await page.evaluate(() => ({ ask: !!document.querySelector('.tpln5 [data-tpln-q]'), figs: !!document.querySelector('.tpln5 .tpln5-figs') }));
     const used = await until(page, () => /came back changed/i.test((document.querySelector('#ins-panel') || {}).innerText || ''), null, 8000);
     await shot('7-our-paper');
-    /* THE LEGORA WAY (owner's pick, 14 Nov 2026): one ask box, the streams as chips on one line, a quiet list whose rows quote their first line; Shelves stay beside the paper */
-    const lg = await page.evaluate(() => ({ ask: !!document.querySelector('.tpln [data-tpln-q]'), chips: !!document.querySelector('.tpln .tpln-chips'), quote: !!document.querySelector('.tpln .tpln-r .tpln-q') }));
-    check('7 Our paper: one ask box, the streams on one line, each row quoting its first line; the paper small, Shelves beside it, its use in the panel', up && lg.ask && lg.chips && lg.quote && caps.includes('shelves') && sheet && used, { caps, lg });
+    await page.evaluate(() => { const b = document.querySelector('.tpln5-fl [data-tpln-view="list"]'); if (b) b.click(); });
+    const listed = await until(page, () => !!document.querySelector('.tpln5.is-list .tpln-r[data-tpl-pf]'), null, 8000);
+    const lg = await page.evaluate(() => ({ chips: !!document.querySelector('.tpln5.is-list .tpln-chips'), quote: !!document.querySelector('.tpln5.is-list .tpln-r .tpln-q') }));
+    await page.evaluate(() => { const r = document.querySelector('.tpln5.is-list .tpln-r[data-tpl-pf]:not([hidden])'); if (r) r.click(); });
+    await until(page, () => !!document.querySelector('.tpln5.is-list .tpln-r.is-on'), null, 6000);
+    await page.evaluate(() => { const r = document.querySelector('.tpln5.is-list .tpln-r.is-on'); if (r) r.click(); });
+    const sheet = await until(page, () => !!document.querySelector('.tpln5.is-paper .tpln-sheet .tpl-pf-sheet, .tpln5.is-paper .tpln-sheet .tpl-pf-none'), null, 8000);
+    check('7 Our paper: Shelves (the filter, the figures, a Cover flow row per folder), then the list (chips, each row quoting its first line), then the paper small; its use in the panel', up && shelf.ask && shelf.figs && used && listed && lg.chips && lg.quote && sheet, { shelf, lg, listed, sheet });
   } catch (e) { check('7 Our paper', false, String(e).slice(0, 200)); }
 
   /* 8 · My notes */

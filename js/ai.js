@@ -1582,6 +1582,7 @@ function aiMsgHtml(m,i){
       <div class="max-w-[88%] space-y-2">
         ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
         ${proposal}
+        ${m.stdDraft&&typeof window.ldJbDraftHtml==='function'?window.ldJbDraftHtml(m,i):''}
         ${m.cards?m.cards:''}
         ${(Array.isArray(m.cardIds)&&m.cardIds.length>=2&&typeof window.hbShowFound==='function'&&typeof window.caHomeFace==='function'&&!(typeof window.mPhone==='function'&&mPhone()))?`<div class="igd-doors"><button type="button" class="ui-btn ui-btn-sm" data-ai-board-go="${i}">${_aiEsc(i18t('int_show_on_board'))}</button></div>`:''}
         ${''/* THE PREPARED PRESS AND SHOW ME › (js/jambopress.js, 21 Oct 2026); a watch Jambo proposes, and Your watches, drawn live from the store */}

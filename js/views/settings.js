@@ -1232,6 +1232,7 @@ function stNeedsAll(){
     out.push((r.sub||r.subHtml)?r:{ ...r, sub:seen?i18t('st_need_kind_clash_since',{ day:seen }):i18t('st_need_kind_clash') }); });
   /* the quarter's access review, until it is done (piece 8) */
   const arRow=stArNeedRow(); if(arRow) out.push(arRow);
+  /* (a change to a standard waiting for a yes is on Approvals & signing's second pile, owner 17 Nov 2026 — not here) */
   /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
   stKpNeedRows().forEach(r=>out.push(r));
   const unset=stCapUnset();
@@ -4076,6 +4077,9 @@ const stReFileOn=u=>(typeof mayReFile==='function')
 /* THE EIGHTH GRANT'S READING, asked through the one predicate exactly as its
    two neighbours are, with the same literal fallback for a stage that has not
    loaded js/core.js. */
+/* WHO DECIDES ON OUR STANDARDS (17 Nov 2026), read through the one predicate (js/core.js) */
+const stStdDecOn=u=>(typeof window.mayDecideStandards==='function')
+  ? window.mayDecideStandards(u) : (u.role==='admin'||u.decideStandards===true);
 const stHoldOn=u=>(typeof mayHoldContract==='function')
   ? mayHoldContract(u) : (u.role==='admin'||u.holdContracts===true);
 /* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
@@ -4154,6 +4158,7 @@ function stPersonSays(u){
   if(u.newPaper === true) grants.push(say('st_sum_g_paper'));
   if(u.reFile === true) grants.push(say('st_sum_g_refile'));
   if(u.holdContracts === true) grants.push(say('st_sum_g_hold'));
+  if(u.decideStandards === true) grants.push(say('st_sum_g_std'));
   out.push(grants.length ? say('st_sum_grants', { list: grants.join(', ') }) : say('st_sum_no_grants'));
   return out;
 }
@@ -4718,7 +4723,9 @@ function stNewGrantRowsHtml(u){
     +row('legal',tick('tm-refile',stReFileOn(u),'st_refile_on','st_refile_off','st_refile_note'))
     +row('admin',note('st_refile_admin'))
     +row('legal',tick('tm-hold',stHoldOn(u),'st_hold_on','st_hold_off','st_hold_note'))
-    +row('admin',note('st_hold_admin'));
+    +row('admin',note('st_hold_admin'))
+    +row('legal',tick('tm-stddec',stStdDecOn(u),'st_stddec_on','st_stddec_off','st_stddec_note'))
+    +row('admin',note('st_stddec_admin'));
 }
 function stGrantRowsSync(role){
   document.querySelectorAll('#st-dbody [data-tm-for]').forEach(el=>{
@@ -4732,7 +4739,7 @@ function stGrantBox(id){
 /* A TICK SAYS WHICH WAY IT IS SET, AS IT IS PRESSED: the row's words were
    painted once, so "May not create new paper" stayed beside a ticked box */
 const ST_GRANT_WORDS={ 'tm-values':['st_values_on','st_values_off'], 'tm-paper':['st_paper_on','st_paper_off'],
-  'tm-refile':['st_refile_on','st_refile_off'], 'tm-hold':['st_hold_on','st_hold_off'] };
+  'tm-refile':['st_refile_on','st_refile_off'], 'tm-hold':['st_hold_on','st_hold_off'], 'tm-stddec':['st_stddec_on','st_stddec_off'] };
 function stGrantWordsWire(){
   Object.keys(ST_GRANT_WORDS).forEach(id=>{
     const b=document.getElementById(id); if(!b) return;
@@ -5007,6 +5014,15 @@ function settingsPersonDrawer(idOrNew){
         <span><span class="st-role-name">${esc(stHoldOn(u)?i18t('st_hold_on'):i18t('st_hold_off'))}</span>
         <span class="st-note">${esc(i18t('st_hold_note'))}</span></span>
       </label>`):''}
+      ${/* WHO DECIDES ON OUR STANDARDS (owner, 17 Nov 2026: "admins plus named people") — the hold's twin */''}
+      ${(!isNew && isAdmin() && !isMe && API_MODE() && u.role!=='viewer')?(
+        u.role==='admin'
+        ? `<p class="st-note" style="margin-top:10px">${esc(i18t('st_stddec_admin'))}</p>`
+        : `<label class="st-toggle" style="margin-top:10px">
+        <input id="tm-stddec" type="checkbox" ${stStdDecOn(u)?'checked':''}/>
+        <span><span class="st-role-name">${esc(stStdDecOn(u)?i18t('st_stddec_on'):i18t('st_stddec_off'))}</span>
+        <span class="st-note">${esc(i18t('st_stddec_note'))}</span></span>
+      </label>`):''}
       ${(isNew && isAdmin() && API_MODE())?stNewGrantRowsHtml(u):''}`)}
 
     ${sec(3,i18t('st_sec_folders'),
@@ -5181,12 +5197,13 @@ async function settingsSavePerson(existing){
     Object.assign(after, ovPatch.patch||{});
     if(API_MODE()) Object.assign(after, stBzNewGrants());
     /* the grants ticked on the form win over the role's; only rows shown */
-    const gv=stGrantBox('tm-values'), gp=stGrantBox('tm-paper'), gr=stGrantBox('tm-refile'), gh=stGrantBox('tm-hold');
+    const gv=stGrantBox('tm-values'), gp=stGrantBox('tm-paper'), gr=stGrantBox('tm-refile'), gh=stGrantBox('tm-hold'), gs=stGrantBox('tm-stddec');
     if(gv&&role!=='admin') after.canViewValues=!!gv.checked;
     if(role==='legal'){
       if(gp) after.newPaper=!!gp.checked;
       if(gr) after.reFile=!!gr.checked;
       if(gh) after.holdContracts=!!gh.checked;
+      if(gs) after.decideStandards=!!gs.checked;
     }
     if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
       try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
@@ -5246,6 +5263,9 @@ async function settingsSavePerson(existing){
   const holdBox=document.getElementById('tm-hold');
   const holdTo = holdBox ? !!holdBox.checked : null;
   const holdChanged = holdTo!==null && holdTo!==stHoldOn(target);
+  const stdBox=document.getElementById('tm-stddec');
+  const stdTo = stdBox ? !!stdBox.checked : null;
+  const stdChanged = stdTo!==null && stdTo!==stStdDecOn(target);
   if(valuesChanged && valuesTo===false){
     const ok=await confirmDialog({ title:i18t('st_hide_values_q',{who:target.name}),
       message:i18t('st_hide_values_msg'),
@@ -5260,6 +5280,7 @@ async function settingsSavePerson(existing){
     if(paperChanged) patch.newPaper=paperTo;
     if(reFileChanged) patch.reFile=reFileTo;
     if(holdChanged) patch.holdContracts=holdTo;
+    if(stdChanged) patch.decideStandards=stdTo;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
@@ -5277,6 +5298,7 @@ async function settingsSavePerson(existing){
     if(patch.newPaper!==undefined) body.newPaper=patch.newPaper;
     if(patch.reFile!==undefined) body.reFile=patch.reFile;
     if(patch.holdContracts!==undefined) body.holdContracts=patch.holdContracts;
+    if(patch.decideStandards!==undefined) body.decideStandards=patch.decideStandards;
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
@@ -5293,6 +5315,7 @@ async function settingsSavePerson(existing){
     if(paperChanged) target.newPaper=paperTo;
     if(reFileChanged) target.reFile=reFileTo;
     if(holdChanged) target.holdContracts=holdTo;
+    if(stdChanged) target.decideStandards=stdTo;
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;

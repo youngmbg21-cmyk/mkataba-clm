@@ -341,8 +341,12 @@ let H;
     /* RE-POINTED 18 Oct 2026 (the gaps, round 10): the road's Approve is one
        press, as drawn — the optional note went with the column's card (the
        phone keeps its note box, 8b) */
+    /* RE-POINTED 17 Nov 2026 (owner: "optional note"): every Approve offers a note in a small pop-up; its own
+       Approve sends the yes, here with a note */
     if (await P.page.$('[data-pd-rd-approve]')) {
       await P.page.click('[data-pd-rd-approve]');
+      const ok = await P.page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null);
+      if (ok) { await P.page.fill('#pd-input', 'Fine at 45 days.'); await ok.click(); }
       await P.page.waitForTimeout(1500);
     }
     const rec5 = await W.admin.json('/api/contracts/MK-A2');

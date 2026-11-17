@@ -492,6 +492,14 @@ const BRAIN_PARTS = [
      every total, and the bell line that tells the named when somebody named
      themself */
   ['privpage', 'stStreamDrawer', 'see', 0],
+  /* STANDARDS, THE LADDER (owner's pick, 17 Nov 2026): its own page; a change waits for another admin's yes, applied by
+     the one applier both hosts share; Jambo writes a standard's ladder on a press */
+  ['stdpage', 'renderStandardsPage', 'see', 0],
+  ['stdapply', 'stdChangeApply', 'ai', 1],
+  ['stdpropose', 'POST /api/standards/changes', 'wall', 2],
+  ['stddecide', 'POST /api/standards/changes/:id/decide', 'wall', 2],
+  ['stdwithdraw', 'POST /api/standards/changes/:id/withdraw', 'wall', 2],
+  ['stdwrite', 'POST /api/ai/standard', 'ai', 2],
   ['privwall', 'folderScopeFor', 'wall', 2],
   ['privsave', 'PUT /api/private-streams/:fid', 'wall', 2],
   ['privlist', 'GET /api/private-streams', 'wall', 2],
@@ -631,7 +639,7 @@ const BRAIN_FLOWS = [
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
   { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'tpllook', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
-  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
+  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr'], ['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'stdwithdraw', 'stdapply']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'streamside', 'youform', 'myemail', 'mycopy', 'acctrec']] },
@@ -652,13 +660,13 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
+  own: ['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'stdwithdraw', 'lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'youform', 'streamside', 'navread', 'handbook', 'hbkask', 'flowmap', 'flowtable', 'hswords', 'navdoor', 'aifirst', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcol', 'askcolcells', 'askcoldisc', 'askcolnext', 'reads', 'dsnpacks', 'discover', 'discoverask', 'pulse', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',
     'readchips', 'nextq', 'mapwalk', 'pointsay', 'thennow', 'mappicture', 'lenses', 'figmenu', 'briefing', 'cliffcard', 'whatif', 'lensthen', 'riskdays', 'findings', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'ptmark', 'jambohouse', 'onesearch', 'listask', 'totpcount', 'totpnew', 'onereader', 'contractfind', 'briefword', 'askbar', 'jambopop', 'jambohere', 'jbpresses', 'watchread', 'watchlist', 'listhead', 'listfoot'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
-  hati: ['unplacednote', 'unplacedpost', 'unplacedlist', 'unplacedfine', 'lessonsget', 'lessonteach', 'hatisearch', 'hbkbook', 'hsroute', 'aidoor', 'wayon', 'docx', 'clauses', 'putguard', 'db', 'tplskip', 'tpllook', 'chasepreview', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'firstread', 'partyhist', 'partyweb', 'partylookup', 'rowread', 'signedturn', 'pushalerts', 'pushsw', 'pushsub', 'pushunsub', 'pushkey', 'pushswroute', 'manifest', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
+  hati: ['stdapply', 'unplacednote', 'unplacedpost', 'unplacedlist', 'unplacedfine', 'lessonsget', 'lessonteach', 'hatisearch', 'hbkbook', 'hsroute', 'aidoor', 'wayon', 'docx', 'clauses', 'putguard', 'db', 'tplskip', 'tpllook', 'chasepreview', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'firstread', 'partyhist', 'partyweb', 'partylookup', 'rowread', 'signedturn', 'pushalerts', 'pushsw', 'pushsub', 'pushunsub', 'pushkey', 'pushswroute', 'manifest', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'myemail', 'mycopy', 'acctrec', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'sharemail', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
     'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
@@ -676,7 +684,7 @@ const BRAIN_FLOW_STAGES = {
   night: ['keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep'],
   ask: ['ask', 'ask', 'ask', 'ask', 'ask', 'ask'],
   draft: ['create', 'create', 'prepare', 'prepare', 'nego', 'nego', 'nego'],
-  request: ['ask', 'ask', 'create', 'prepare', 'create'],
+  request: ['ask', 'ask', 'create', 'prepare', 'create', 'prepare'],
   theysign: ['sign', 'sign', 'sign', 'sign', 'keep', 'keep'],
   amend: ['create', 'prepare', 'approve', 'sign', 'keep'],
   end: ['keep', 'keep', 'keep', 'keep', 'keep'],
@@ -712,7 +720,7 @@ const BRAIN_FILE_REGION = [
   [/^js\/(signgate|asks|sealtext)\.js$/, 'sign'],
   [/^js\/clashkeys\.js$/, 'wall'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],
-  [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft|navmap|copilotacts|jambomap)\.js$/, 'ai'],
+  [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|stdladder|draft|navmap|copilotacts|jambomap)\.js$/, 'ai'],
   /* the one search's words (Jambo works like Copilot, stage 1, 22 Oct 2026) */
   [/^js\/hatisearch\.js$/, 'ai'],
   /* the Handbook's chapters (26 Oct 2026) */

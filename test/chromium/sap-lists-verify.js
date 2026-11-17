@@ -157,6 +157,7 @@ const wait = async (page, fn, arg, ms = 5000) => {
          (the new look's tabs are Mine · Waiting on others · Done), where it stands marked done; chosen there, its panel says
          it was approved and carries Undo — the same promise: the decision is seen where it was made, and undoable */
       await page.click(`.apn-table tr[data-ap-row="${sel}"] [data-ap-approve]`);
+      { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); } /* a yes offers an optional note (17 Nov 2026) */
       const moved = await wait(page, () => !!document.querySelector('[data-apn-tab="done"]'), null, 8000);
       await page.evaluate(() => { const b = document.querySelector('[data-apn-tab="done"]'); if (b) b.click(); });
       const inDone = moved && await wait(page, id => { const b = document.querySelector('[data-apn-tab="done"]');
