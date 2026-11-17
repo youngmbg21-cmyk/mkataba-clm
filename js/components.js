@@ -979,6 +979,12 @@ function listColsLearn(seat, raw){
     const cs = getComputedStyle(host);
     const real = host.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
     if (!(real > 0)) return;
+    /* DRAWN WIDER THAN ITS ROOM (#762: measured before the panel beside it had taken its place, the columns were shared
+       out over room it never had): it draws once more on the room its own host really has, once per window width */
+    { const v0 = _listFit.get(seat), iw0 = typeof innerWidth === 'number' ? innerWidth : 0;
+      if (v0 && t.getBoundingClientRect().width > real + 2 && v0.overIw !== iw0 && typeof v0.repaint === 'function'){
+        v0.overIw = iw0; v0.settled = Math.max(0, Math.round(real - (_listOff.get(seat) || 0))); v0.settledPanel = true; v0.iw = iw0;
+        try { v0.repaint(); } catch (_){} return; } }
     /* drawn before its page was in sight (no room measured): measured now, drawn once more */
     if (!(raw > 0)){
       if (!(listSpreadMeasure().room > 0) || _listZeroOnce.has(seat)) return;
@@ -1002,13 +1008,16 @@ function listColsLearn(seat, raw){
   });
 }
 let _listFitObs = null;
+let _listFitObsOn = null;
 function listColsWatch(){
-  if (_listFitObs || typeof ResizeObserver !== 'function' || typeof document === 'undefined') return;
+  if (typeof ResizeObserver !== 'function' || typeof document === 'undefined') return;
   const cs = document.getElementById('content-scroll'); if (!cs) return;
+  /* the page's scroller can be built again: the watch follows the one on screen, or a panel taking its room is never seen (#762) */
+  if (_listFitObs){ if (_listFitObsOn !== cs){ _listFitObs.disconnect(); _listFitObs.observe(cs); _listFitObsOn = cs; } return; }
   let queued = false;
   _listFitObs = new ResizeObserver(() => { if (queued) return; queued = true;
     (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f => setTimeout(f, 16)))(() => { queued = false; listColsCheck(); }); });
-  _listFitObs.observe(cs);
+  _listFitObs.observe(cs); _listFitObsOn = cs;
 }
 /* a list still on screen whose columns would change draws again (a window resized, the panel dragged);
    the same breath's net as the spread's: asked again after it, never dropped */
