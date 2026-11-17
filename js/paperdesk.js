@@ -2612,7 +2612,7 @@ function pd2SignRowsHtml(c){
     : HO
     ? `<div class="pd2-sg-card${HO.primary ? '' : ' is-held'}"><div class="pd2-sg-acts"><button type="button" id="${HO.id}" class="ui-btn${HO.primary ? ' ui-btn-primary' : ''}" data-pd2-ho="${E(c.id)}">${E(HO.label)}</button><span>${E(HO.line)}</span></div>${
       /* the way back to signing in HaTi (owner, 17 Nov 2026: "2 yes"), the route card's own press, while the route may change */
-      (typeof window.outsideMayChangeRoute === 'function' && window.outsideMayChangeRoute(c)) ? `<p class="pd2-sg-back"><button type="button" class="ui-link" data-pd2-ho-in="${E(c.id)}">${E(T('ho_route_change_in'))}</button></p>` : ''}</div>`
+      (typeof window.outsideMayChangeRoute === 'function' && window.outsideMayChangeRoute(c)) ? `<p class="pd2-sg-back"><button type="button" class="ui-link pd2-sg-link" data-pd2-ho-in="${E(c.id)}">${E(T('ho_route_change_in'))}</button></p>` : ''}</div>`
     : !holds.length && mineNow
     ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_clear'))}</b><p>${E(T('pd2_sg_clear_s'))}</p><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd2-sign>${E(T('apn_sign'))}</button><button type="button" class="ui-btn" data-pd2-sign-read>${E(T('pd2_sg_read'))}</button><span>${E(T('pd2_sg_no_call'))}</span></div></div>`
     /* SAID ONCE (the harmony review, owner's yes 9 Nov 2026): the list above already names what holds the signature, so
@@ -2645,8 +2645,8 @@ function pd2SignRowsHtml(c){
       const hold = ((window.signReadiness(c) || {}).rows || []).filter(r => r && r.kind === 'standard' && r.holds && !r.settled);
       stdHold = hold.map(r => { const v = vs[r.i] || {};
         const mayAcc = typeof window.signCheckMayAccept === 'function' ? window.signCheckMayAccept(c, v, meU) : !r.escalate;
-        const acts = [r.escalate ? `<button type="button" class="ui-btn ui-btn-sm" data-pd2-sc-esc="${r.i}">${E(T(r.escalation ? 'sc_ask_again' : 'sc_ask_colleague'))}</button>` : '',
-          mayAcc ? `<button type="button" class="ui-btn ui-btn-sm" data-pd2-sc-acc="${r.i}">${E(T('sc_accept_btn'))}</button>` : ''].filter(Boolean).join('');
+        const acts = [r.escalate ? `<button type="button" class="ui-link pd2-sg-link" data-pd2-sc-esc="${r.i}">${E(T(r.escalation ? 'sc_ask_again' : 'sc_ask_colleague'))}</button>` : '',
+          mayAcc ? `<button type="button" class="ui-link pd2-sg-link" data-pd2-sc-acc="${r.i}">${E(T('sc_accept_btn'))}</button>` : ''].filter(Boolean).join('');
         return acts ? `<div class="pd2-sg-r is-now pd2-sg-std"><i class="pd2-sg-i" aria-hidden="true"></i><div><b>${E(String(v.category || T('pd2_sg_std_open')))}</b><div class="pd2-sg-acts">${acts}</div></div></div>` : ''; }).join('');
     } } catch (_){ stdHold = ''; }
     return `<div class="pd2-sg is-five">${head}${bar}<p class="pd2-sg-l">${E(T('jov5_sg_checks'))}</p><div class="pd2-sg-g">${rows.slice(0, -1).join('')}${stdHold}</div>`
