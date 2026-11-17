@@ -173,6 +173,8 @@ const LAND = () => {
     /* THE NEW LOOK (#762): a party opens its OWN page (cuOpenCustomer → the party screen): its name and its agreements' rows */
     /* THE NEW LOOK (#762): Fill in the contract is ON THE PAPER (pdFillGo → pd2FillStart), the Dossier beside it */
     fillOn: !!(window.pd2FillOn && window.intel && intel.paper && pd2FillOn(intel.paper.id)),
+    /* RE-POINTED 17 Nov 2026 (#762): the Fill in door brings the form to THE MIDDLE, where the paper was ([data-pd-mid^="form:"]) */
+    midForm: !!document.querySelector('[data-pd-mid^="form:"]'),
     cuParty: (() => { const p = document.querySelector('.cunp-page[data-cu-screen="party"]'); const h = p && p.querySelector('.cunp-head .ctf-h'); return h ? h.textContent.trim() : null; })(),
     cuAgs: document.querySelectorAll('.cunp-page[data-cu-screen="party"] tr[data-cu-ag]').length,
     pdOb: (() => { const r = document.querySelector('#ig-dock .pd-ob.is-open[data-pd-ob-key]'); return r ? r.getAttribute('data-pd-ob-key') : null; })(),
@@ -197,7 +199,7 @@ const LAND = () => {
     ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.pdOb, L.fillOn, L.cuParty, L.cuAgs, L.ceRisks, L.rkLanded, L.kt, L.ktMove].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.pdOb, L.fillOn, L.midForm, L.cuParty, L.cuAgs, L.ceRisks, L.rkLanded, L.kt, L.ktMove].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
   + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.kt ? ' KEY-TERMS' + (L.ktMove ? ' (Move open)' : '') : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
@@ -227,7 +229,7 @@ const E = {
   /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): "Fill in the contract" is the ONE way in, filled ON
      THE PAPER with the Dossier beside it (pd2FillStart, CLAUDE.md FILL IN ON THE PAPER); a paper with no blank on it
      keeps the form as its door (pdFillGo's fall-back) — either, never anything else */
-  fill: id => L => E.paper(id)(L) && L.pd === '' && ((L.tab === 'copilot' && L.fillOn) || (L.tab === 'form' && L.og)),
+  fill: id => L => E.paper(id)(L) && L.pd === '' && ((L.tab === 'copilot' && (L.fillOn || L.midForm)) || (L.tab === 'form' && L.og)),
   red: id => L => E.paper(id)(L) && L.pd === 'red',
   signing: id => L => E.paper(id)(L) && L.pd === 'signing',
   obTab: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'oblig',

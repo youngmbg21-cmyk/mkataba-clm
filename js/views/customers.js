@@ -406,10 +406,12 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
 /* ---- THE PLACE A REFRESH PUTS BACK ---- the list's own find and filters; a
    customer kept by an older refresh ("cust") is ignored and lands on the list. */
 /* the new look's own tab (_cun) rides the place too, so a refresh lands on it (#762) */
-function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, nda: _cu.nda, status: _cu.status, q: _cu.q, nl: _cun }; }
+function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, nda: _cu.nda, status: _cu.status, q: _cu.q, nl: _cun, party: (typeof _cunParty !== 'undefined' && _cunParty) || null }; }
 function cuPlacePut(p){
   if (!p || typeof p !== 'object') return;
   if (typeof p.nl === 'string' && p.nl) _cun = p.nl;
+  /* A REFRESH LANDS AT THE SAME SPOT: on a party's own page, that party (#762) */
+  if (typeof p.party === 'string' && p.party) _cunParty = p.party;
   _cu.stream = p.stream ? String(p.stream) : 'all';
   _cu.owner = p.owner ? String(p.owner) : 'all';
   _cu.nda = ['inforce', 'unconfirmed', 'none'].includes(p.nda) ? p.nda : 'all';
@@ -1669,7 +1671,7 @@ function cunPartyRender(host, INS, key){
         <thead><tr><th></th><th>${E(i18t('reg_col_agreement'))}</th><th>${E(i18t('cun_c_standing'))}</th><th>${E(i18t('cun_pp_out'))}</th><th>${E(i18t('reg_col_ends'))}</th><th style="text-align:right">${E(i18t('reg_col_value'))}</th></tr></thead>
         <tbody>${ags}</tbody></table></div>
       <div class="apn-foot">${E([i18tn('cun_pp_n', v.items.length, { n: v.items.length }), val ? i18t('ctf_on_paper', { v: typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : '' }) : ''].filter(Boolean).join(' \u00b7 '))}</div>
-    </section><aside id="ins-panel" class="ins-panel" aria-label="${E(i18t('ins_panel_label'))}"></aside></div></div>`;
+    </section>${INS ? `<aside id="ins-panel" class="ins-panel" aria-label="${E(i18t('ins_panel_label'))}"></aside>` : ''}</div></div>`;
   if (INS) insPaintPanel({ seat: 'customers', jlWord: i18t('jl_w_party'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay, item: { id: v.key }, head: false,
     body: (_cu.edit === v.key ? cuPrFormHtml(v) : '') + cunPartyPanelHtml(v) });
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
@@ -1701,7 +1703,8 @@ function renderCustomers(o){
   cuLcReg();
   /* the new look draws Parties as drawn (round 6); the old look is unchanged */
   /* the requests about a party are loaded here too: the new look's Waiting column and party page read them (#762) */
-  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS, o); cuRequestsLoad(); return; }
+  /* a party's own page is drawn in a narrow window too: it has no panel to need (#762: a press there redrew the old list) */
+  if ((INS || (_cunParty && cuCustomerOf(_cunParty))) && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS, o); cuRequestsLoad(); return; }
   host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     ${cuListHtml(INS)}

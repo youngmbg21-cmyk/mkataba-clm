@@ -9637,6 +9637,9 @@ function pd2ListWords(L){
 /* THE BLACK BUTTON'S DOOR (owner, 11 Nov 2026: "Open the paper"): in the new look "Fill in the contract" fills on
    the paper; a detail with no place there, or a paper with nothing to fill, keeps the form */
 function pdFillGo(id, key){
+  /* FILLING IN IS NEVER ON THE SIGNING COPY (#762: "fill in" typed beside Before you sign stayed on that face): the face
+     closes first, the paper comes back, then the one Fill in door */
+  if (_pdSign && String(_pdSign) === String(id)) try { pdSignClose(); } catch (_){}
   if (pd2On() && (!key || !pdFillGoFormOnly(id, key)) && pd2FillStart(id, key || '')) return true;
   return pdFillOpen(id, key ? { key } : {});
 }

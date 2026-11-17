@@ -1929,6 +1929,11 @@ function iknPanelHtml(r, may){
   return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${lane}${r.need ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_words'))}</div><div class="mnn-note"><p>${E(r.need)}</p></div>` : ''}
     ${rows ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
 }
+function iknOpenDraftOf(id){
+  const r = (_intake.list || []).find(x => x && String(x.id) === String(id)); const cid = r && r.contractId; if (!cid) return false;
+  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'open')) && typeof openWorkspace === 'function') openWorkspace(cid);
+  return true;
+}
 if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired = true;
   document.addEventListener('click', e => {
     if (typeof state === 'undefined' || state.view !== 'intake') return;
@@ -1945,7 +1950,16 @@ if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired 
     if ((el = t.closest('[data-ikn-file]'))){ e.preventDefault(); e.stopPropagation(); const r = (_intake.list || []).find(x => x && x.files && x.files.some(f => String(f.id) === el.getAttribute('data-ikn-file'))); if (r) intakeFileGet(r.id, el.getAttribute('data-ikn-file'), el.getAttribute('data-ikn-fname'), { open: true }); return; }
     if ((el = t.closest('[data-ikn-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-ikn-open'); if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open')) && typeof openWorkspace === 'function') openWorkspace(id); return; }
     if ((el = t.closest('#ik-new')) && t.closest('.ikn-page')){ e.preventDefault(); openIntakeForm(); return; }
-    if ((el = t.closest('[data-ikn-row]'))){ const id = el.getAttribute('data-ikn-row'); if (String(id) === String(_iknSel)) return; _iknSel = id; renderIntake(); }
+    /* A PRESS SELECTS, A DOUBLE PRESS OPENS (the list rule, insListWire; #762): the second press of a double press on the
+       chosen row opens a drafted request's draft, as its panel's door does (the row is redrawn between the two presses,
+       so the press's own count is read rather than a dblclick) */
+    if ((el = t.closest('[data-ikn-row]'))){ const id = el.getAttribute('data-ikn-row'); if (String(id) === String(_iknSel)){ if (e.detail >= 2) iknOpenDraftOf(id); return; } _iknSel = id; renderIntake(); }
+  });
+  /* Enter on the chosen row opens it too (the keyboard's second press) */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || typeof state === 'undefined' || state.view !== 'intake' || !_iknSel) return;
+    const a = document.activeElement; if (a && a !== document.body && !(a.closest && a.closest('[data-ikn-row]'))) return;
+    if (iknOpenDraftOf(_iknSel)){ e.preventDefault(); e.stopPropagation(); }
   });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ikn-q' || typeof state === 'undefined' || state.view !== 'intake') return;
     /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
