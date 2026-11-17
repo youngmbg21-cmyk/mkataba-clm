@@ -5061,6 +5061,7 @@ const srvHereOthers = (map, meId) => Object.keys(map || {})
        asks to follow (or follows). allow / deny: whom this reader let follow them, or said Not now to.
        Ids and a heading only — still no address, no seat and no role. */
     spotName: (map[k] || {}).spotName || null, want: (map[k] || {}).want || null,
+    card: (map[k] || {}).card || null, face: (map[k] || {}).face || null, askAt: (map[k] || {}).askAt || null,
     allow: Array.isArray((map[k] || {}).allow) ? map[k].allow : [], deny: Array.isArray((map[k] || {}).deny) ? map[k].deny : [] }))
   .sort((a, b) => String(a.at).localeCompare(String(b.at)));
 app.post('/api/contracts/:id/here', auth, (req, res) => {
@@ -5096,10 +5097,18 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
     const pzIds = v => (Array.isArray(v) ? v : []).map(pzId).filter(Boolean).slice(0, 10);
     const body = req.body || {};
     const spotName = okSpot ? String(body.spotName || '').replace(/[<>\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) : '';
-    const want = pzId(body.want), allow = pzIds(body.allow), deny = pzIds(body.deny);
+    /* `want` (17 Nov 2026, "they follow me"): whom this reader asks to follow THEM, and who does — one id or a
+       list; `card`: the redline card they have open; `face`: 'red' while their Redlines face is up */
+    const want = (Array.isArray(body.want) ? pzIds(body.want) : [pzId(body.want)].filter(Boolean)).filter(x => x !== String(me.id));
+    const allow = pzIds(body.allow), deny = pzIds(body.deny), card = pzId(body.card), face = body.face === 'red' ? 'red' : '';
     const mine = live[String(me.id)];
     if (spotName) mine.spotName = spotName;
-    if (want && want !== String(me.id)) mine.want = want;
+    if (want.length) mine.want = want;
+    if (card) mine.card = card;
+    if (face) mine.face = face;
+    /* the ask's own stamp (the asker's clock, compared only with itself): a new ask is told from an old one */
+    const askAt = Number(body.askAt);
+    if (want.length && Number.isFinite(askAt) && askAt > 0) mine.askAt = Math.floor(askAt);
     if (allow.length) mine.allow = allow;
     if (deny.length) mine.deny = deny;
     if (Object.keys(live).length) next.here = live; else delete next.here;

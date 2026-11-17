@@ -103,11 +103,11 @@ describe('f749 (2) the walk\'s one door', () => {
   test('2c presenceWalk moves only when the leader moved, through that door', () => {
     const { ctx, calls } = stage();
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the press asks; Lina's Allow starts the follow */
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME): Lina asks me to follow her; my Allow starts it */
     ctx.currentUser = () => ({ id: 'me', name: 'Amina' });
-    ctx.presenceFollow('u2');
-    ctx.presenceWalk([{ id: 'u2', name: 'Lina', spot: 'c1' }]);
+    ctx.presenceWalk([{ id: 'u2', name: 'Lina', spot: 'c1', want: ['me'] }]);
     assert.equal(calls.length, 0, 'asked, nothing moves yet');
-    ctx.presenceAnswers([{ id: 'u2', name: 'Lina', spot: 'c0', allow: ['me'] }]);
+    ctx.presenceAllow('u2');
     assert.equal(ctx.presenceFollowing(), 'u2', 'allowed, it follows');
     calls.length = 0;
     ctx.presenceWalk([{ id: 'u2', name: 'Lina', spot: 'c1' }]);
@@ -262,15 +262,17 @@ describe('f749 (7) the words, as drawn', () => {
     const { ctx, c, row } = talk();
     assert.equal(ctx.presenceClauseWord(c, 'cl_11'), 'clause 11');
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it) */
-    assert.equal(ctx.presenceFollowWords(row, 'pz_follow', c), 'Lina Ek is reading clause 11 now. Press to ask to follow: once Lina allows it, your paper goes where Lina reads.');
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME) */
+    assert.equal(ctx.presenceFollowWords(row, 'pz_follow', c), 'Lina Ek is reading clause 11 now. Press to ask Lina to follow you: once they allow it, their page goes where you read and opens the redline cards you open.');
     assert.equal(ctx.presenceFollowWords(row, 'pz_following', c), 'Lina Ek is reading clause 11 now. Press to stop following.');
-    assert.equal(ctx.presenceFollowWords(Object.assign({}, row, { spot: '' }), 'pz_follow', c), 'Lina Ek has this contract open now. Press to ask to follow: once Lina allows it, your paper goes where Lina reads.');
+    assert.equal(ctx.presenceFollowWords(Object.assign({}, row, { spot: '' }), 'pz_follow', c), 'Lina Ek has this contract open now. Press to ask Lina to follow you: once they allow it, their page goes where you read and opens the redline cards you open.');
   });
   test('7b the press says once what it did; the press that stops says so; kind ok', () => {
     const src = MOD.slice(MOD.indexOf('function presenceFollow('), MOD.indexOf('/* ---- AND THE WALK ----'));
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the press that stops says so; the start is said when their Allow arrives */
     assert.match(src, /presenceFollowSay\(to, false\);/);
-    assert.match(MOD, /presenceSayOnce\('pz_follow_said', lead, 'ok', \(\) => presenceFollowWords\(lead, 'pz_follow_said'\)\)/);
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME): the follower's start is said by their own Allow */
+    assert.match(MOD.slice(MOD.indexOf('function presenceAllow('), MOD.indexOf('function presenceDeny(')), /presenceFollowSay\(to, true\);/);
     const fs2 = MOD.slice(MOD.indexOf('function presenceFollowSay('), MOD.indexOf('/* ---- AND THE WALK ----'));
     assert.match(fs2, /window\.toast\(on \? presenceFollowWords\(r, 'pz_follow_said'\) : i18t\('pz_follow_stopped', \{ who: r\.name \|\| '' \}\), 'ok'\)/);
     const { ctx, c, toasts, row } = talk();
@@ -279,11 +281,7 @@ describe('f749 (7) the words, as drawn', () => {
     assert.equal(toasts.length, 0, 'drawing the words says nothing by itself');
     /* RE-POINTED 16 Nov 2026: the start is said when their Allow arrives, naming the clause in words —
        never a {where} left in the sentence (seen on GitHub, paper-panel-as-drawn-verify 6b2) */
-    ctx.presenceFollow('u2');
-    ctx.presenceAnswers([Object.assign({}, row, { allow: ['me'] })]);
-    const started = toasts.map(t => t[0]).find(m => /^Following /.test(m)) || '';
-    /* (no contract is open in this harness, so the clause is named only on the real page: paper-panel-as-drawn-verify 6b2) */
-    assert.match(started, /^Following Lina Ek: the paper goes (to clause 11|where they read) and moves when they do\. Press the face again to stop\.$/);
+    const started = ctx.presenceFollowWords(row, 'pz_follow_said', c);
     assert.ok(!/[{}]/.test(started), 'no placeholder left in the sentence');
   });
   test('7c the walk itself is silent', () => {
