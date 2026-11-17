@@ -639,7 +639,7 @@ const BRAIN_FLOWS = [
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
   { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'tpllook', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
-  { id: 'request', steps: [['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'stdwithdraw', 'stdapply'], ['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
+  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr'], ['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'stdwithdraw', 'stdapply']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'streamside', 'youform', 'myemail', 'mycopy', 'acctrec']] },
@@ -684,7 +684,7 @@ const BRAIN_FLOW_STAGES = {
   night: ['keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep'],
   ask: ['ask', 'ask', 'ask', 'ask', 'ask', 'ask'],
   draft: ['create', 'create', 'prepare', 'prepare', 'nego', 'nego', 'nego'],
-  request: ['prepare', 'ask', 'ask', 'create', 'prepare', 'create'],
+  request: ['ask', 'ask', 'create', 'prepare', 'create', 'prepare'],
   theysign: ['sign', 'sign', 'sign', 'sign', 'keep', 'keep'],
   amend: ['create', 'prepare', 'approve', 'sign', 'keep'],
   end: ['keep', 'keep', 'keep', 'keep', 'keep'],

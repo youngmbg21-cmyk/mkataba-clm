@@ -103,7 +103,7 @@ function ldPaintHead(){
   const deps = rows.reduce((n, r) => n + r.open.length, 0), waits = ldChanges().filter(c => c.state === 'waiting').length;
   a.innerHTML = `<button type="button" class="ui-btn${_ld.mode === 'departures' ? ' is-on' : ''}" data-ld-mode="departures">${LD_E(i18t('ld_departures'))}${deps ? ` <span class="ld-n">${deps}</span>` : ''}</button>`
     + `<button type="button" class="ui-btn${_ld.mode === 'history' ? ' is-on' : ''}" data-ld-mode="history">${LD_E(i18t('ld_history'))}${waits ? ` <span class="ld-n is-warn">${waits}</span>` : ''}</button>`
-    + (ldMayEdit() ? `<button type="button" class="ui-btn ui-btn-primary" data-ld-new>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5', 2) : '+'} ${LD_E(i18t('ld_new'))}</button>` : '');
+    + (ldMayEdit() ? `<button type="button" class="ui-btn ui-btn-primary" data-ld-new>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${LD_E(i18t('ld_new'))}</button>` : '');
 }
 
 /* ---- THE LIST BY HOW FIRM ---- */
@@ -164,7 +164,7 @@ function ldLadderHtml(r){
 /* ---- DEPARTURES: every one still open, across the standards ---- */
 function ldDeparturesHtml(rows){
   const all = rows.flatMap(r => r.open.map(x => ({ r, x })));
-  return `<section class="ld-main ld-wide"><div class="ld-top"><h2 class="ld-title">${LD_E(i18t('ld_departures'))}</h2><button type="button" class="ui-link ld-back" data-ld-mode="ladder">‹ ${LD_E(i18t('ld_back'))}</button></div>`
+  return `<section class="ld-main ld-wide"><div class="ld-top"><h2 class="ld-title">${LD_E(i18t('ld_departures'))}</h2><button type="button" class="ui-link ld-back" data-ld-mode="ladder">${typeof icon === 'function' ? icon('chevL', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_back'))}</button></div>`
     + (all.length ? all.map(({ r, x }) => `<p class="ld-g">${LD_E(r.topic)} · ${ldFirmHtml(r.firm)}</p>${ldDepHtml(x)}`).join('') : `<p class="ld-empty">${LD_E(i18t('ld_dep_none'))}</p>`) + '</section>';
 }
 /* ---- HISTORY: every change, waiting first ---- */
@@ -175,7 +175,7 @@ function ldHistoryHtml(){
     + `<small>${LD_E(i18t('ld_h_by', { who: ch.by || '', day: ldDay(ch.at) }))}${ch.why ? ' · “' + LD_E(ch.why) + '”' : ''}${ch.decidedBy ? ' · ' + LD_E(i18t('ld_h_decided', { who: ch.decidedBy, day: ldDay(ch.decidedAt) })) : ''}</small></span>`
     + (ldMayDecide(ch) ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ld-decide="${LD_E(ch.id)}">${LD_E(i18t('ld_decide'))}</button>`
       : ch.state === 'waiting' && String(ch.byId) === me ? `<button type="button" class="ui-btn ui-btn-sm" data-ld-withdraw="${LD_E(ch.id)}">${LD_E(i18t('ld_withdraw'))}</button>` : '') + '</div>';
-  return `<section class="ld-main ld-wide"><div class="ld-top"><h2 class="ld-title">${LD_E(i18t('ld_history'))}</h2><button type="button" class="ui-link ld-back" data-ld-mode="ladder">‹ ${LD_E(i18t('ld_back'))}</button></div>`
+  return `<section class="ld-main ld-wide"><div class="ld-top"><h2 class="ld-title">${LD_E(i18t('ld_history'))}</h2><button type="button" class="ui-link ld-back" data-ld-mode="ladder">${typeof icon === 'function' ? icon('chevL', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_back'))}</button></div>`
     + (L.length ? L.map(row).join('') : `<p class="ld-empty">${LD_E(i18t('ld_history_none'))}</p>`) + '</section>';
 }
 
@@ -196,21 +196,21 @@ function ldEditHtml(){
   const box = (k, val, ph, rows) => `<textarea class="ld-box" data-ld-f="${k}" rows="${rows || 2}" placeholder="${LD_E(ph)}">${LD_E(val || '')}</textarea>`;
   const rung = (tone, lab, inner, who) => `<div class="ld-erung"><i class="ld-mark is-${tone}" aria-hidden="true"></i><label class="ld-ebox"><span class="ld-lab">${LD_E(lab)}</span>${inner}</label>${who}</div>`;
   const fbs = d.fallbacks.map((f, k) => rung('amber', i18t('ld_rung_fb', { n: k + 1 }), box('fb:' + k, f.text, i18t('ld_ph_fb' + (k ? '_n' : '')), 2),
-    `<select class="ld-who-sel" data-ld-f="who:${k}" aria-label="${LD_E(i18t('ld_col_who'))}">${ldWhoOptions(f.who)}</select><button type="button" class="ui-btn ui-btn-plain ui-btn-icon ld-x" data-ld-fb-x="${k}" title="${LD_E(i18t('ld_fb_remove'))}" aria-label="${LD_E(i18t('ld_fb_remove'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button>`)).join('');
+    `<select class="ld-who-sel" data-ld-f="who:${k}" aria-label="${LD_E(i18t('ld_col_who'))}">${ldWhoOptions(f.who)}</select><button type="button" class="ui-btn ui-btn-plain ui-btn-icon ld-x" data-ld-fb-x="${k}" title="${LD_E(i18t('ld_fb_remove'))}" aria-label="${LD_E(i18t('ld_fb_remove'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : ''}</button>`)).join('');
   return `<section class="ld-main ld-edit" aria-label="${LD_E(i18t(e.clauseId ? 'ld_edit_title' : 'ld_new_title'))}">
     <div class="ld-ehead"><h2 class="ld-title">${LD_E(i18t(e.clauseId ? 'ld_edit_title' : 'ld_new_title'))}</h2><span class="ld-quiet">${LD_E(e.ver ? i18t('ld_edit_ver', { v: e.ver, n: e.ver + 1 }) : i18t('ld_edit_new'))}</span>
       <span class="ld-top-a"><button type="button" class="ui-btn ui-btn-primary" data-ld-send>${LD_E(i18t('ld_send'))}</button><button type="button" class="ui-btn" data-ld-cancel>${LD_E(i18t('act_cancel'))}</button></span></div>
     <div class="ld-erow"><label class="ld-fld is-grow"><span>${LD_E(i18t('ld_f_name'))}</span><input type="text" class="ld-in" data-ld-f="name" value="${LD_E(d.name)}" maxlength="120"></label>
       <div class="ld-fld"><span>${LD_E(i18t('ld_f_firm'))}</span><div class="ld-segs" role="radiogroup" aria-label="${LD_E(i18t('ld_f_firm'))}">${LD_FIRM_ORDER.map(f => `<button type="button" role="radio" aria-checked="${f === d.firm}" class="ld-seg${f === d.firm ? ' is-on' : ''} is-${f}" data-ld-firm="${f}"><i class="ld-dot is-${f}" aria-hidden="true"></i>${LD_E(ldFirmWord(f))}</button>`).join('')}</div></div></div>
     <p class="ld-firm-says">${LD_E(i18t('ld_firm_says_' + d.firm))}</p>
-    <div class="ld-erow"><div class="ld-fld is-grow"><span>${LD_E(i18t('ld_f_books'))}</span><button type="button" class="ld-in ld-pick" data-ld-books aria-haspopup="true">${LD_E(booksSaid)}<i aria-hidden="true">▾</i></button></div>
+    <div class="ld-erow"><div class="ld-fld is-grow"><span>${LD_E(i18t('ld_f_books'))}</span><button type="button" class="ld-in ld-pick" data-ld-books aria-haspopup="true"><span>${LD_E(booksSaid)}</span>${typeof icon === 'function' ? icon('chevD', 'w-3.5 h-3.5') : ''}</button></div>
       <label class="ld-fld"><span>${LD_E(i18t('ld_f_owner'))}</span><select class="ld-in" data-ld-f="ownerId">${ownerOpts}</select></label>
       <label class="ld-fld"><span>${LD_E(i18t('ld_f_review'))}</span><select class="ld-in" data-ld-f="reviewMonths">${STD_REVIEW_MONTHS.map(m => `<option value="${m}"${m === Number(d.reviewMonths) ? ' selected' : ''}>${LD_E(i18tn('ld_months', m, { n: m }))}</option>`).join('')}</select></label></div>
     <div class="ld-ladhead"><b>${LD_E(i18t('ld_ladder'))}</b><small>${LD_E(i18t('ld_col_rungs'))}</small><button type="button" class="ui-btn ui-btn-sm" data-ld-write ${_ld.jbBusy ? 'disabled' : ''}>${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_write'))}</button><span class="ld-ladwho">${LD_E(i18t('ld_col_who'))}</span></div>
     <div class="ld-erungs">
       ${rung('green', i18t('ld_rung_ask'), box('ask', d.ask, i18t('ld_ph_ask'), 3), `<span class="ld-who-fix">${LD_E(ldWho('anyone'))}</span>`)}
       ${fbs}
-      ${d.fallbacks.length >= STD_FALLBACKS_MAX ? '' : `<p class="ld-add"><button type="button" class="ui-link" data-ld-fb-add>+ ${LD_E(i18t('ld_fb_add'))}</button></p>`}
+      ${d.fallbacks.length >= STD_FALLBACKS_MAX ? '' : `<p class="ld-add"><button type="button" class="ui-link" data-ld-fb-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_fb_add'))}</button></p>`}
       ${rung('dark', i18t('ld_rung_never'), box('never', d.never, i18t('ld_ph_never'), 2), `<span class="ld-who-fix">${LD_E(ldWho('admin'))}</span>`)}
     </div>
     <label class="ld-fld"><span>${LD_E(i18t('ld_f_why'))}</span>${box('why', d.why, i18t('ld_ph_why'), 2)}</label>
@@ -380,7 +380,7 @@ function ldBooksOpen(btn){
   pop.addEventListener('change', () => {
     const on = [...pop.querySelectorAll('input:checked')].map(x => x.value);
     d.books = on.length ? on : ['_default'];
-    btn.firstChild.textContent = d.books.length === keys.length && keys.length > 1 ? i18t('ld_books_every') : d.books.map(ldBookLabel).join(', ');
+    btn.querySelector('span').textContent = d.books.length === keys.length && keys.length > 1 ? i18t('ld_books_every') : d.books.map(ldBookLabel).join(', ');
   });
   const off = ev => { if (!pop.contains(ev.target) && ev.target !== btn && !btn.contains(ev.target)){ pop.remove(); document.removeEventListener('pointerdown', off, true); } };
   setTimeout(() => document.addEventListener('pointerdown', off, true), 0);
@@ -399,7 +399,7 @@ async function ldWrite(steer, from){
   const d = e.draft, what = d.name || d.category || i18t('ld_new_title');
   if (!(typeof copilotAvailable !== 'function' || copilotAvailable())){ toast(i18t('ld_jb_nokey'), 'warn'); return; }
   const cur = from || { ask: d.ask, fallbacks: d.fallbacks.map(f => f.text), never: d.never, why: d.why };
-  ai.history.push({ role: 'user', host: 'ai', text: LD_E(steer ? i18t('ld_jb_steer', { what: steer }) : i18t('ld_jb_ask', { what })) });
+  ai.history.push({ role: 'user', host: 'ai', text: LD_E(steer || i18t('ld_jb_ask', { what })) });
   _ld.jbBusy = true; if (typeof renderAIFeed === 'function') renderAIFeed(true);
   if (typeof jlTalkOpen === 'function') jlTalkOpen();
   try {
@@ -427,7 +427,7 @@ function ldJbDraftHtml(m, i){
   if (d.put) return card + `<div class="ld-jrow"><span class="ld-quiet">${LD_E(i18t('ld_jb_in'))}</span><button type="button" class="ui-link" data-ld-jb-undo="${i}">${LD_E(i18t('ce_sug_undo'))}</button></div>`;
   return card + `<div class="ld-jchips">${['stricter', 'softer', 'shorter', 'fallback'].map(k => `<button type="button" class="igd-note-chip" data-ld-jb-chip="${k}" data-ld-jb-i="${i}">${LD_E(i18t('ld_jb_chip_' + k))}</button>`).join('')}</div>`
     + `<div class="ld-jrow"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ld-jb-put="${i}">${LD_E(i18t('ld_jb_put'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ld-jb-again="${i}">${LD_E(i18t('ce_ask_retry'))}</button>`
-    + `<span class="ld-jmore"><button type="button" class="ld-jdots" data-ld-jb-more="${i}" aria-expanded="${_ld.moreOpen === i}" title="${LD_E(i18t('reg_more_actions'))}" aria-label="${LD_E(i18t('reg_more_actions'))}">⋯</button>`
+    + `<span class="ld-jmore"><button type="button" class="ld-jdots" data-ld-jb-more="${i}" aria-expanded="${_ld.moreOpen === i}" title="${LD_E(i18t('reg_more_actions'))}" aria-label="${LD_E(i18t('reg_more_actions'))}">${typeof icon === 'function' ? icon('more', 'w-3.5 h-3.5') : ''}</button>`
     + (_ld.moreOpen === i ? `<span class="ld-jmenu" role="menu"><button type="button" class="ui-link" data-ld-jb-copy="${i}">${LD_E(i18t('sh_nl_copy'))}</button><button type="button" class="ui-link" data-ld-jb-drop="${i}">${LD_E(i18t('ce_sug_discard'))}</button></span>` : '') + '</span></div>';
 }
 function ldJbPut(i){
