@@ -1416,7 +1416,7 @@ function cunPanelHtml(r){
      data-cun-web, data-cu-pr-edit) and Jambo's remark. Read from the record, no AI. The new look only. */
   if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
     const end = c => { try { const d = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); return d ? cuDay(d) : ''; } catch (_){ return ''; } };
-    const ags = r.items.filter(c => !c.archived).slice(0, 3).map(c => ({ mark: 'file', t: c.name || c.id, s: end(c) ? i18t('jov5_pt_ends', { day: end(c) }) : String(c.status || ''), v: (typeof jov5Money === 'function') ? jov5Money(c) : '', run: () => jov5Open(c.id) }));
+    const ags = r.items.filter(c => !c.archived).slice(0, 3).map(c => ({ mark: 'file', t: c.name || c.id, s: end(c) ? i18t('jov5_pt_ends', { day: end(c) }) : String(c.status || ''), stg: (() => { try { const m = typeof contractStatusMeta === 'function' ? contractStatusMeta(c) : null; return m ? { label: m.label, dot: m.dot } : null; } catch (_){ return null; } })(), v: (typeof jov5Money === 'function') ? jov5Money(c) : '', run: () => jov5Open(c.id) }));
     const may = typeof partyRecordMay === 'function' && partyRecordMay();
     const own = [{ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none'), btn: !rec.orgNo && may ? '' : '', attr: '' }];
     if (rec.city) own.unshift({ k: i18t('cun_p_city'), t: rec.city });

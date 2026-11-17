@@ -840,6 +840,9 @@ function apnLeadFiveHtml(r, rule){
     return Object.assign({ mark:'file', tone:'amber', t:String(v.category||i18t('apn_p_std')), s:[sec, String(v.position||'')].filter(Boolean).join(' \u00b7 '), wrap:true }, clause); });
   if(money&&Number(c.value)) rows.push(Object.assign({ mark:'file', t:i18t('apn5_value',{ v:(typeof fmtMoneyOf==='function'?fmtMoneyOf(c):String(c.value)) }), s:rule?i18t('apn5_rule',{ rule }):'' }, clause));
   if(met) rows.push({ mark:'mkTick', tone:'green', t:i18tn('apn5_met',met,{ n:met }), s:c.playbook&&c.playbook.at?i18t('apn_p_checked',{ d:(typeof regDotDate==='function'?regDotDate(String(c.playbook.at).slice(0,10)):String(c.playbook.at).slice(0,10)) }):'' });
+  /* SINCE IT WAS ASKED (#762, round 6 item 12): something moved after the question was put — said first, from the question's own stamp */
+  let since=''; try{ since=typeof apSinceLook==='function'?apSinceLook(r):''; }catch(_){ since=''; }
+  if(since==='value'||since==='wording'||since==='terms') rows.unshift(Object.assign({ mark:'file', tone:'amber', t:i18t(AP_SINCE_WORDS[since]), s:i18t('jl_ap_since'), wrap:true }, clause));
   const sub=i18t(r.who?'apn5_sub_who':'apn5_sub',{ who:first, rule:rule||'' })+' '+i18t('apn5_moves',{ cp });
   const o={ eyebrow:[i18t('apn_p_tab'), c.counterparty||'', (typeof contractRef==='function'?contractRef(c):c.id)].filter(Boolean).join(' \u00b7 '),
     title:i18t('apn5_t',{ name:c.name||'' }), sub,

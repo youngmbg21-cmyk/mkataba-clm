@@ -125,9 +125,9 @@ const signIn = async (page, base, email, pass) => {
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     /* RETIRED 16 Nov 2026 (#762): 4b "none beside Settings" — the old side feed's chips; 4d below keeps the promise on Home */
     await page.evaluate(() => { const c = state.contracts.find(x => x.status === 'Draft') || state.contracts[0]; regOpenContract(c.id); });
-    /* RE-POINTED 20 Oct 2026 (the Legora way): "Fill in" is the Dossier's Still owed grid, its first owed row in the hand */
-    const fill = await until(() => { const a = document.activeElement; return !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#pd-og')); }, null, 12000);
-    check('4c. a contract opened from the list lands on Fill in (Still owed\'s grid), as chosen', !!fill);
+    /* RETIRED 17 Nov 2026 (#762, round 6 default): 4c "a contract opened from the list lands on Fill in (Still owed's grid)" — a contract opened
+       from a list lands on its Cover (Cover-first), and the new one-card Dossier has no Still owed grid */
+    await until(() => !!document.getElementById('ig-dock'), null, 12000);
     const homeChips = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ig-chips] button').length);
     check('4d. and Home\'s Jambo shows no suggestion chips', homeChips === 0, homeChips + ' chips');
     await page.evaluate(() => stPrefSet('jamboChips', true));
@@ -137,16 +137,21 @@ const signIn = async (page, base, email, pass) => {
     /* RE-POINTED 16 Nov 2026 (#762): asked in the panel's own box (#jl-q) beside the one list */
     await page.evaluate(() => { try { settingsGoPage(''); } catch (_) {} setView('team'); });
     await until(() => !!document.querySelector('.stn-page #ins-panel #jl-q'));
-    await page.fill('#jl-q', 'Why can\'t Restricted Legal sign the Naivas deal?'); await chipEnter(page, '#jl-q');
-    const cost = await until(() => { const t = [...document.querySelectorAll('.st-jb-turn')].pop(); return t && t.querySelector('[data-st-jb-why]') ? t.textContent : null; });
-    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('5. a "why" offers the AI before the press, no cost said', !!cost && !/\bcalls?\b|Jambo-anrop|\bfree\b|costs? nothing/i.test(cost), cost);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; round 6 default, and the owner 8 Nov 2026: "no Jambo call is
+       said anywhere"): the old side feed's "why" card with its own AI press is the old look's — jlAsk's Settings block leaves
+       the 'why' card out. A "why" typed is answered in the panel's talk by HaTi's own reading of the rules: the person asked
+       about, their card (what they see, their signing limit), no Jambo call made and no cost said; never silence */
     const callsBefore = h.ai.calls.length;
-    /* RE-POINTED 21 Oct 2026 (one conversation): a turn sits in its host wrapper with its read line after it, so the last turn is the last wrapper's */
-    /* a press on a part that may not exist reports instead of waiting out the clock (16 Nov 2026) */
-    if (cost) await page.locator('.st-jb-turn [data-st-jb-why]').last().click();
-    const said = await until(() => { const t = [...document.querySelectorAll('.st-jb-turn')].pop(); const c = t && t.querySelector('.st-jb-ai .st-jb-cb'); return c && !c.querySelector('.ob-spin') && c.textContent.trim().length > 10 ? c.textContent.trim().slice(0, 100) : null; }, null, 15000);
-    check('5b. the press is one Jambo call, and its answer — or why there is none — is said on the card', h.ai.calls.length === callsBefore + 1 && !!said, said);
+    await page.fill('#jl-q', 'Why can\'t Restricted Legal sign the Naivas deal?'); await chipEnter(page, '#jl-q');
+    const said = await until(() => { const f = document.querySelector('#ins-panel #jl-feed'); if (!f) return null;
+      const t = [...f.querySelectorAll('.jb-turn[data-jb-born="ai"]')].pop(); const m = t && t.querySelector('.ai-msg:not(.justify-end)');
+      const txt = m ? m.textContent.replace(/\s+/g, ' ').trim() : '';
+      return txt.length > 10 ? txt.slice(0, 240) : null; }, null, 15000);
+    const talk = await page.evaluate(() => ((document.querySelector('#ins-panel') || {}).innerText || ''));
+    check('5. a "why" is answered in the panel from the rules — the person\'s own card, no Jambo call, no cost said',
+      !!said && /Restricted Legal/.test(said) && /sign up to/i.test(said) && h.ai.calls.length === callsBefore && !/\bcalls?\b|Jambo-anrop|\bfree\b|costs? nothing/i.test(talk), JSON.stringify({ said, calls: h.ai.calls.length - callsBefore }));
+    /* RETIRED 17 Nov 2026 (#762, round 6 default): 5b "the press is one Jambo call, its answer said on the card" — the "why" card's
+       own AI press is the old side feed's; the new panel answers a why from the rules without Jambo (above) */
 
     /* ---- 6. ask an admin ---- */
     const ed = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();

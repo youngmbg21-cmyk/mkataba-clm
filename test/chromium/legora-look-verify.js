@@ -302,8 +302,18 @@ const check = (name, pass, detail) => {
           turn = document.getElementById('pt-turn'), tb = turn && turn.querySelector('.pw-turn'), bd = document.querySelector('.pw-id-badge'), pch = document.querySelector('.ds-pch.is-ours');
         return { face: h1 && getComputedStyle(h1).fontFamily, dot: d ? Math.round(d.getBoundingClientRect().width) : 0, turnBg: tb ? getComputedStyle(tb).backgroundColor : 'none drawn',
           mark: bd && bd.textContent.trim(), pch: pch ? getComputedStyle(pch).backgroundColor + ' ' + getComputedStyle(pch).borderTopLeftRadius : 'none drawn' }; });
-      check('11h the other side\'s page: the title in the serif, the status with its dot, whose turn unboxed, the word HaTi for the mark',
-        /^"?Source Serif 4/.test(pt.face || '') && pt.dot === 7 && (pt.turnBg === 'none drawn' || NONE.test(pt.turnBg)) && pt.mark === 'HaTi', JSON.stringify(pt));
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; their page as drawn in round 8, owner's ruling round 2
+         answer 5): the identity line (.pw-id-main: the serif title, the status pill with its dot, whose turn) is not drawn on
+         their page — the black bar stands there, the word HaTi for the mark (.pol-mark) and the contract named beside it
+         (.pol-what). Asked: both painted, the mark the word HaTi, the bar naming this contract, and the old identity line
+         not left half-drawn (hidden whole). RETIRED with it (round 2 answer 5): the serif title and the status pill's dot
+         on that line — their page's status lives in its Where we are tab. */
+      const bar = await them.evaluate(() => { const vis = e => !!e && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0;
+        const m = document.querySelector('.pol-bar .pol-mark'), w = document.querySelector('.pol-bar .pol-what'), id = document.querySelector('.pw-id-main');
+        return { mark: vis(m) ? m.textContent.trim() : null, what: vis(w) ? w.textContent.replace(/\s+/g, ' ').trim() : null, idShown: vis(id) }; });
+      const nm = await page.evaluate(() => (getContract('MK-B2') || {}).name || '');
+      check('11h the other side\'s page: the black bar\'s mark is the word HaTi and it names the contract; no half-drawn identity line',
+        bar.mark === 'HaTi' && !!nm && (bar.what || '').includes(nm) && !bar.idShown && (pt.turnBg === 'none drawn' || NONE.test(pt.turnBg)), JSON.stringify({ bar, nm, turnBg: pt.turnBg }));
       check('11i … and the parties on the deal card are soft tags, ours untinted', pt.pch === 'none drawn' || /^(rgba\(0, 0, 0, 0\)|transparent) 10px$/.test(pt.pch), String(pt.pch));
     } else check('11h the other side\'s page could be opened', false, JSON.stringify(links));
     if (links.status){

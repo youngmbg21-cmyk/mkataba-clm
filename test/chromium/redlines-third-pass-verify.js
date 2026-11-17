@@ -213,7 +213,10 @@ const openFace = async page => {
        the accent roll-call; Ladder, Review and Edit still wear Accept's ink. */
     const live = [ink.ladder, ink.review, ink.edit];
     check('1d Ladder, Review and Edit wear the same accent ink as Accept', !!ink.accept && live.every(x => x === ink.accept), JSON.stringify(ink));
-    check('1d the lead Counter is the picked card\'s filled button, its word white', ink.counter === 'rgb(255, 255, 255)', ink.counter);
+    /* RETIRED 17 Nov 2026 (#762, round 6 default 4): "the lead Counter is the picked card's filled button, its word white" —
+       Counter is a word on the card, like Accept, not a black button (one black button per area: the face's Send all).
+       What stays is asked instead: Counter wears the same ink as Accept, never white on a fill. */
+    check('1d Counter is a word on the card, in Accept\'s ink (not a filled button)', !!ink.counter && ink.counter === ink.accept && ink.counter !== 'rgb(255, 255, 255)', JSON.stringify({ counter: ink.counter, accept: ink.accept }));
     check('1d Reject and Discard last stay red', !!ink.reject && ink.reject === ink.discard && ink.reject !== ink.accept, JSON.stringify({ reject: ink.reject, discard: ink.discard }));
     check('1e "Here now": 22px filled circles, white initials, one colour each', ink.faces.length >= 2 && ink.faces.every(f => f.w === '22px' && f.fg === 'rgb(255, 255, 255)')
       && new Set(ink.faces.map(f => f.bg)).size === ink.faces.length, JSON.stringify(ink.faces));

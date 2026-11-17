@@ -40,10 +40,7 @@
      5b a new answer at risk fires it: it is on the bell's list in words that
         name the contract, the fact and the answer
      5c its press lands on the contract on Home's paper
-   STAGE 6 — UNUSUAL FOR YOU
-     6a DV-04's Dossier says, in its Jambo read card, that its liability cap
-        stands apart from the other services contracts
-     6b "Show the 3" lands on the Contracts list narrowed to those three
+   STAGE 6 — UNUSUAL FOR YOU (6a/6b RETIRED 17 Nov 2026, #762, round 6 default 11: not on the new Dossier)
    Each stage's checks are added below as the stage is built.
    Run: node test/chromium/discover-verify.js   (HATI_DV_ONLY=2 for one stage) */
 const fs = require('node:fs');
@@ -317,16 +314,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id),
         texts: { 'DV-11': contractPlainText(getContract('DV-11')) } }), CAP_Q);
       await W.admin.json('/api/columns/' + ck.ask.id, { method: 'PUT', body: { fact: true } });
-      await page.evaluate(() => regOpenContract('DV-04'));
-      await until(page, () => typeof pdContract === 'function' && pdContract() && pdContract().id === 'DV-04', null, 10000);
-      const said = await until(page, () => /Unusual for you/.test((document.querySelector('[data-ac-odd-for="DV-04"]') || {}).innerText || ''), null, 10000);
-      const line = await page.evaluate(() => (document.querySelector('[data-ac-odd-for="DV-04"]') || {}).innerText || '');
-      check('6a DV-04\'s Dossier says its cap stands apart from the other services contracts', said && /Liability cap here is “Not capped”/.test(line) && /3 of your other 3/.test(line), line.replace(/\s+/g, ' '));
-      await page.screenshot({ path: path.join(OUT, '6-dossier.png') });
-      await page.click('[data-ac-odd-show]', { timeout: 5000 }).catch(() => {});   /* a door not drawn REPORTS (6b), the run goes on */
-      const three = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 3, null, 10000);
-      const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(tr => tr.getAttribute('data-row')).sort());
-      check('6b "Show the 3" lands on the list narrowed to those three', three && rows.join() === 'DV-03,DV-10,DV-11', JSON.stringify(rows));
+      /* RETIRED 17 Nov 2026 (#762, round 6 default 11): 6a/6b "Unusual for you" on DV-04's Dossier and its "Show the 3" — the
+         line was drawn only on the old Dossier and stays off the new one-card Dossier. The fact column above is still made,
+         so the stages after this one run on the same workspace. */
     }
 
     if (stage(7)){

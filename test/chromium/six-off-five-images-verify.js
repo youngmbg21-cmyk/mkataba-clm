@@ -108,7 +108,7 @@ const ok = (name, good, detail) => {
        Negotiations the Stream filter is one of "+ Filter"'s groups, offering
        the streams that hold a row (never "All streams", never an empty one);
        and the group headings between the rows went (Q2 "A — tabs only"). */
-    ok('1d CONTROL and its Stream filter is still there, under + Filter', n1.addStream >= 1, n1.addStream + ' streams offered');
+    /* RETIRED 17 Nov 2026 (#762, round 6 default 5): 1d "the Stream filter under Negotiations' + Filter" — Negotiations has no "+ Filter" (as Contracts, owner's ruling 1) */
     ok('1e no group heading between the rows: every row of the table is a contract',
       n1.band == null && n1.plain, `colspan ${n1.band} · plain ${n1.plain}`);
     await page.screenshot({ path: path.join(OUT, '02-negotiations.png') });
@@ -197,8 +197,7 @@ const ok = (name, good, detail) => {
        not drawn there. Asserted as absent on an open row. */
     ok('5a Home\'s open row draws no "Why it matters:" (Stakes as drawn)', weights.open && weights.xw == null,
       JSON.stringify(weights));
-    ok('5b and so is the brief panel\'s', weights.bw != null && weights.bw >= weights.want && weights.bw > 500,
-      JSON.stringify(weights));
+    /* RETIRED 17 Nov 2026 (#762, round 6 default 5): 5b "the brief's Why it matters is bold" — the new brief's reason is not bold, and stays so */
 
     /* ════════ 6. THE FOCUS CHIP STAYS ON ITS OWN PAGE ════════
        A real press on the room's focus door, then a real press on the rail,

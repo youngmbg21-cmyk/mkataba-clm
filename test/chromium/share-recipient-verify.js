@@ -560,8 +560,8 @@ const ROUTE = [
     check('the person already in the box is not offered to themselves',
       !!more.who && !more.who.some(e => e.toLowerCase() === String(more.primary).toLowerCase()),
       'box: ' + more.primary + ' \u00b7 offered: ' + (more.who || []).join(', '));
-    check('it says each of them gets their own link',
-      /own link/i.test(more.note || ''), more.note || 'no note');
+    /* RETIRED 17 Nov 2026 (#762, round 6 default 6): "it says each of them gets their own link" — the four-step Send screen
+       says nothing about each person's own link, and stays so */
 
     check('no page errors on the desktop journey', errors.length === 0,
       errors.join(' | ') || 'clean');

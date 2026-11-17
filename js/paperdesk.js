@@ -1508,6 +1508,12 @@ function pdRedWire(host){
       const c = pdContract(); const id = notes.getAttribute('data-rl-notes');
       if (!c || !id) return;
       const ch = (typeof negoChangeById === 'function') ? negoChangeById(c, id) : null;
+      /* A NOTE'S CLAUSE NAME ON THE NOTES FACE TAKES THE PAPER TO ITS CLAUSE (#762, round 6 item 9): the bar's notes
+         drawn here label each note with the clause it is on; pressed, the one lander brings that clause into view */
+      if (ch && notes.classList.contains('rl-chat-on') && notes.closest('.rl-fn') && typeof igPaperGoClause === 'function'){
+        const cl = ch.clauseId || (ch.anchor && ch.anchor.clauseId) || '';
+        if (cl && igPaperGoClause(cl)) return;
+      }
       /* A ROW'S "N notes" OPENS THAT CHANGE'S NOTES IN THIS PANEL (round 9's
          gaps, third pass: "This opens that change's notes", one room per
          side) — the head's own notes view, narrowed to the change, on the room
@@ -7725,6 +7731,12 @@ function pdDocFillRowHtml(c){
   let pend = 0; try { pend = (typeof tplFormPending === 'function' && tplFormPending(c)) ? ((typeof tplFormPendingKeys === 'function' ? tplFormPendingKeys(c).length : 0) || 1) : 0; } catch (_){ pend = 0; }
   return pend ? `<div class="pd-gl-row ds-row" data-ds-at="fill" data-pd-gl="docfill"><span>${_pdE(_pdTn('pd_ff_doc_n', pend, { n: pend }))}</span>${((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary hati-fill-btn" data-pd-og-docfill="${_pdE(c.id)}">${_pdE(_pdT('tl_fill_doc'))}</button>` : ''}</div>` : '';
 }
+/* ITS AMENDMENTS, UNDER THE FACTS (#762, round 6 item 10: the new Dossier had lost the family line): the same fold the
+   old Dossier drew (dossierFamilyFoldHtml — its rows open each paper, its acts the family's own), drawn whether the
+   agreement has one or not (it then says so, and offers the family's own acts); the family door lands on it */
+function pd2FamilyHtml(c){
+  return typeof dossierFamilyFoldHtml === 'function' ? `<div class="pd2-fam">${dossierFamilyFoldHtml(c)}</div>` : '';
+}
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
   if (pd2WalkOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-walk" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2WalkFaceHtml(c)}</div>`;
@@ -7735,7 +7747,7 @@ function pd2Html(c){
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
   const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
-  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
    read and the brief need to be better designed … 'Read it | Watch the read | The brief' in green and underlined") ----

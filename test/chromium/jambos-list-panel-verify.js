@@ -273,8 +273,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('#ins-panel [data-jl-home]');
       const A0w = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title'); return t ? p.innerText.replace(/\s+/g, ' ') : null; });
       check('5c nothing chosen: the page in his words — how many wait, and the late ones', !!A0w && /wait for a yes or a signature/.test(A0w) && /late — past 7 days/.test(A0w), JSON.stringify(A0w && A0w.slice(0, 300)));
-      /* kept from 5c: whom the reader stands in for, said on the page's overview */
-      check('5c2 nothing chosen: whom the reader stands in for', !!A0w && /Jonas/.test(A0w), JSON.stringify(A0w && A0w.slice(0, 300)));
+      /* RETIRED 17 Nov 2026 (#762, round 6 default): 5c2 "whom the reader stands in for, said on the page's overview" — the
+         stand-in is told on the row's own mark ("You for Jonas", its hover; 5b keeps it), and that stays as it is */
       await shot('r15-approvals-words-1440x780.png');
       await page.click('[data-ap-row="MK-AP1"]');
       const A1 = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Helio/.test(p.textContent) || !p.querySelector('.jov5-title')) return null;
@@ -290,7 +290,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('5e who asks, under which rule, and the value', !!A1 && /asks under the rule “Over 10 M”/.test(A1.sub) && A1.rows.some(r => /^Value KES 20,000,000/.test(r)), JSON.stringify(A1 && { sub: A1.sub, rows: A1.rows }));
       /* RETIRED 16 Nov 2026 (#762): 5e's "Since last look · Nothing changed in the wording" row — old look only: the five
          parts say nothing when nothing moved; when something moved it must still be said (5i, kept) */
-      check('5f the panel says whom the answer is for', !!A1 && /for Jonas/i.test(A1.text), JSON.stringify(A1 && A1.text.slice(0, 300)));
+      /* RETIRED 17 Nov 2026 (#762, round 6 default): 5f "the panel says whom the answer is for" — the stand-in is told on the
+         row's own mark ("You for Jonas"; 5b keeps it), not again in the panel, and that stays as it is */
       /* was: no Negotiation · Workspace doors, the head straight into Why it waits */
       check('5g the Approval\'s panel: no Negotiation · Workspace — the headline goes straight into what the paper says', !!A1 && !A1.text.match(/\bWorkspace\b/) && A1.labels[0] === 'What the paper says', JSON.stringify(A1 && A1.labels));
       await shot('r15-approval-panel-1440x780.png');
