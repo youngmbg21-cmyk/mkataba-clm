@@ -21126,6 +21126,10 @@
      its right); four figures; a coloured shelf per folder, its papers stacked; the folder's list the Legora way; the
      paper with its facts and verbs beside it */
   html.lg-new .tpl-page.is-tpln5 .ph-top{border-bottom:0;padding-bottom:0}
+  /* the head's first glyph at the ONE HEAD's height under the bar, as every list page draws it (.apn-card's 20px and
+     .cun-head's 4px = 24): the band's 1px top edge and the title's own 36px line (it keeps its line, so no glyph is
+     clipped by its "…") put it 3px lower on the shared 26px band (pages-read-alike 8) */
+  html.lg-new #content .tpl-page.is-tpln5 .tpl-band.ph-card{padding-top:23px}
   html.lg-new .tpln5-head{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
   html.lg-new .tpln5-hrow{display:flex;align-items:baseline;gap:12px;min-width:0}
   html.lg-new .tpln5-h1{margin:0;font-family:var(--font-title);font-size:26px;font-weight:400;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}

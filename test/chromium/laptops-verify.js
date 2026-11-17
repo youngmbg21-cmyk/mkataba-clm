@@ -105,8 +105,11 @@ const PROBE = () => {
          .ctfp (Contracts' folders) and Our paper's body is ONE page (.tpln: the peek, then the shelves) — each one block,
          its row its own first part, as above. The Redlines face with nothing on the table is ONE Five card too
          (.rl-cards-empty: headline, the Draft card, Or yourself), not a list of change cards. */
+      /* RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way): Our paper's body is ONE page per step
+         (.tpln5: the filter line, the figures, the shelves — or the list, or the paper), one block as .tpln was; its row
+         is its own first part. */
       if (kid && kid.firstElementChild && kid.firstElementChild.classList && kid.firstElementChild.classList.contains('rl-cards-empty')) kid = kid.firstElementChild;
-      while (kid && kid.classList && (kid.classList.contains('pd-wall') || kid.classList.contains('is-ov') || kid.classList.contains('jov') || kid.classList.contains('ctfp') || kid.classList.contains('tpln') || kid.classList.contains('rl-cards-empty')) && kid.firstElementChild) kid = kid.firstElementChild;
+      while (kid && kid.classList && (kid.classList.contains('pd-wall') || kid.classList.contains('is-ov') || kid.classList.contains('jov') || kid.classList.contains('ctfp') || kid.classList.contains('tpln') || kid.classList.contains('tpln5') || kid.classList.contains('rl-cards-empty')) && kid.firstElementChild) kid = kid.firstElementChild;
       const first = kid && kid.tagName === 'TABLE' ? (kid.querySelector('tbody tr') || kid) : kid;
       const rowH = first ? first.getBoundingClientRect().height : 0;
       if (rowH > 8 && el.clientHeight < rowH) {

@@ -2833,7 +2833,7 @@ function tplPfDocLoad(id){
   if (typeof api !== 'function' || typeof templateFormDocHtml !== 'function'){ _tplPf.docs[id] = { failed:true }; return; }
   const stamp = tplPfDocStamp(id);
   _tplPf.docs[id] = { busy:true, stamp };
-  Promise.resolve().then(async () => {
+  return Promise.resolve().then(async () => {
     const d = await api('templates/' + id, 'GET', null, { quiet:true });
     const vs = (d && d.versions) || [];
     const v = vs.find(x => x.status === 'published') || vs.find(x => x.status === 'draft') || null;
@@ -3114,6 +3114,27 @@ function tplnHtml(d, groups, card){
 }
 /* the stream a paper is filed in (its id), read as the page's own stream reader reads it */
 function tplnFid(c){ return String((c && c.stream) || ((tplPfLib(c) || {}).folder) || ''); }
+/* THE QUOTED ROWS ARE READ, NEVER GUESSED (Shelves, then the Legora way, 17 Nov 2026): a company paper's first line is
+   known only once its words are read, and with no paper beside the list nothing read them. The shelves and the list
+   read the company papers they show in the background (TPLN_QUOTE_READS a paint, each once per stamp) and put each
+   quote in where its row stands — no repaint, so a box being typed in keeps its words and the carousel keeps turning */
+const TPLN_QUOTE_READS = 24;
+function tplnQuotesFill(){
+  if (typeof document === 'undefined' || !tplnOn() || tplnView() === 'paper') return;
+  tplnRowsNow().filter(x => x.c.kind === 'company' && !tplnQuote(x.c)).slice(0, TPLN_QUOTE_READS).forEach(x => {
+    const p = tplPfDocLoad(x.c.id); if (p && typeof p.then === 'function') p.then(() => tplnQuotePut(x.c), () => {});
+  });
+}
+function tplnQuotePut(c){
+  const q = tplnQuote(c); if (!q || typeof document === 'undefined') return;
+  const k = tplPfKey(c), at = typeof CSS === 'object' && CSS.escape ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
+  document.querySelectorAll(`.tpln-lrs [data-tpl-pf="${at}"]`).forEach(r => {
+    const lt = r.querySelector('.tpln-lt'); if (!lt || lt.querySelector('.tpln-q')) return;
+    lt.insertAdjacentHTML('beforeend', `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>`);
+    r.setAttribute('data-tpln-text', (String(r.getAttribute('data-tpln-text') || '') + ' ' + q.toLowerCase()).trim());
+  });
+  document.querySelectorAll(`.tpln5-cfp[data-tpln-open="${at}"]`).forEach(b => { if (!b.querySelector('q')) b.insertAdjacentHTML('beforeend', `<q>“${_tplEsc(q)}…”</q>`); });
+}
 /* THE PAPER'S FIRST LINE, QUOTED (the Legora way: each fact shows where on the paper it was read): HaTi's own paper is read
    at once; a company paper once its words have been read for the paper beside the list; never guessed */
 function tplnQuote(c){
@@ -3569,6 +3590,7 @@ function tplPfAfterPaint(){
   const card=tplPfChosen(tplOverviewData());
   try{ tplPfMarksPaint(card); }catch(e){ if(typeof console!=='undefined') console.warn('book: marks failed', e); }
   try{ tplPfPanelPaint(); }catch(e){ if(typeof console!=='undefined') console.warn('book: panel failed', e); }
+  try{ tplnQuotesFill(); }catch(e){ if(typeof console!=='undefined') console.warn('book: quotes failed', e); }
 }
 /* The book's own doors, bound on its host each paint (the rows are rebuilt):
    a shelf row lands on the Templates list narrowed to it; the switch flips

@@ -172,7 +172,9 @@ const MEASURE = `(() => {
        drawn"; js/components.js jamboOverviewFiveHtml): a tile's number over its word (.jov5-g: <b> over <span>, a column),
        a row's name over its grey line (.jov5-row: .jov5-rt a column; a long name two lines, then "…"), and Contracts'
        view tiles (.ctf-view: the number · the view's name · its grey line, each held to one line with "…") */
-    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row, .jov5-g, .jov5-row, .ctf-view')) continue;
+    /* …and, RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way), Our paper's four figures on Shelves
+       (.tpln5-fig: the number over its word, a column, the word held to one line with "…" — the same tile as .jov5-g) */
+    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row, .jov5-g, .jov5-row, .ctf-view, .tpln5-fig')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
     /* THE LINES THE WORDS TOOK, not the box's height: a tag with a fixed height folds its words inside it and the box never grows */

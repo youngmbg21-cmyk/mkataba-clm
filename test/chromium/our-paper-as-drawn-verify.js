@@ -126,26 +126,48 @@ async function SEED(){
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's panel for the chosen template is the
        Five panel (tplnPanelHtml → jamboOverviewHtml, .jov5), no longer the old .tpl-pf-jl words */
     const JL = '#ins-panel .jl-words.is-ov .jov5';
-    const ready = await until(q => document.querySelector('[data-tpl-sec="book"] .tpl-pf-sheet .tpl-mks') && !!document.querySelector(q), JL, 12000);
-    check('0b the book paints its paper, its marks and Jambo\'s panel', !!ready);
+    /* RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way, owner's pick by prototype): the book is three
+       steps — Shelves › a folder's list (or All) › the paper. Every promise below is asked on the step that now carries
+       it: the head and its counts on Shelves (1), the index on All with the chosen row lit (2), the chosen paper as its
+       own step — its name the head, its facts and verbs beside it (3), its blanks and marks (4), Jambo's panel (5).
+       0b moved to where the paper is first drawn. */
+    await until(() => document.querySelector('[data-tpl-sec="book"] .tpln5.is-shelves'), null, 12000);
+    const MSA = 'company:' + ids.msa.tid, RES = 'company:' + ids.res.tid;
+    /* a row: one press chooses, a second opens its paper (a row already chosen opens at once) */
+    const openPaper = async key => {
+      if (await page.evaluate(() => tplPlace().view) === 'paper') { await press('[data-tpln-back]'); await until(() => tplPlace().view === 'list'); }
+      if (await page.evaluate(() => tplPlace().view) === 'shelves') { await press('[data-tpl-sec="book"] [data-tpln-view="list"]'); await until(() => tplPlace().view === 'list'); }
+      await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${key}"]`);
+      if (await until(k => tplPlace().pick === k ? tplPlace().view : null, key) === 'list') await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${key}"]`);
+      return until(k => tplPlace().view === 'paper' && tplPlace().pick === k && !!document.querySelector('[data-tpl-sec="book"] .tpln5.is-paper .tpl-pf-sheet'), key);
+    };
 
     /* 1 THE HEAD */
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "the Legora way"):
        the page's three parts are the switch at the head's right, drawn like
        Contracts' List | Wall (.paper-seg), no longer a tab row; each still
        carries its count */
-    const A = await page.evaluate(() => ({ h1: (document.querySelector('.tpl-hd-row h1') || {}).textContent || '', sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '',
-      tabs: [...document.querySelectorAll('.tpl-band .paper-seg button')].map(b => b.textContent.trim()) }));
+    /* RE-POINTED 17 Nov 2026 (#762): the head's name is .tpln5-h1 with its count beside it (.tpl-hd-n); the switch is
+       the filter line's Shelves · All, each with its count */
+    const A = await page.evaluate(() => ({ h1: ((document.querySelector('.tpln5-h1') || {}).textContent || '') + ' ' + ((document.querySelector('.tpln5-hrow .tpl-hd-n') || {}).textContent || ''), sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '',
+      tabs: [...document.querySelectorAll('[data-tpl-sec="book"] .tpln5-tab')].map(b => b.textContent.trim()) }));
     check('1a the head says the page\'s name with its count', /^Our paper\s*\d+ templates$/.test(A.h1.trim()), A.h1);
     check('1b one facts line: contracts drafted in 12 months · came back changed', /^\d+ contracts? drafted from them in 12 months · \d+ came back changed$/.test(A.sub.trim()) && /^5 |^[5-9]|^\d{2}/.test(A.sub.trim()), A.sub);
     /* RE-POINTED 17 Nov 2026 (the Ladder): Our standards left Our paper; two parts remain, the book and Templates */
-    check('1c a count on each of the two tabs', A.tabs.length === 2 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
+    check('1c a count on each of the two switches (Shelves · All)', A.tabs.length === 2 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
 
     /* 2 THE INDEX */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; OUR PAPER, THE LEGORA WAY, owner's pick 14 Nov 2026):
        no shelves — every template is ONE row in one list (.tpln-lrs), the chosen one lit; a row says its name, its
        stream, its first line quoted and its uses; the streams are chips that narrow the list in place (tplnFilter).
        "2 changed" moved to the chosen paper's facts line (3b) and Jambo's "came back changed" tile (5b) */
+    /* RE-POINTED 17 Nov 2026 (#762): the one list is the All step; a press there chooses (lit) */
+    await press('[data-tpl-sec="book"] [data-tpln-view="list"]');
+    await until(() => tplPlace().view === 'list' && !!document.querySelector('.tpln-lrs [data-tpl-pf]'));
+    await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${MSA}"]`);
+    await until(k => tplPlace().pick === k && document.querySelector('.tpln-lrs .tpln-lr.is-on'), MSA);
+    /* a company paper's first line is read in the background (tplnQuotesFill), bounded */
+    await until(k => !!document.querySelector(`.tpln-lrs [data-tpl-pf="${k}"] .tpln-q`), MSA, 6000);
     const B = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].map(b => [b.textContent.replace(/\s+/g, ' ').trim(), b.classList.contains('is-on') && b.getAttribute('aria-pressed') === 'true', !b.hidden]) }));
     const lit = B.rows.filter(r => r[1]);
     check('2a every template one row in one list, the chosen one lit, the rest one line each', B.rows.length >= 14 && lit.length === 1 && /^M Master services agreement/.test(lit[0][0]) && B.rows.every(r => r[2]), JSON.stringify(B.rows.map(r => r[0].slice(0, 40) + (r[1] ? ' *' : ''))));
@@ -156,20 +178,23 @@ async function SEED(){
     const B2 = salesChip ? await until(n => { const k = [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden); return k.length && k.length < n && k.every(b => /Sales/.test(b.textContent)) ? k.length : null; }, B.rows.length) : 0;
     await press('[data-tpln-chip=""]');
     const B3 = await until(n => [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden).length === n ? n : null, B.rows.length);
-    check('2c a stream\'s chip narrows the list where it stands, All brings every row back', !!salesChip && B2 >= 2 && B3 === B.rows.length, `${salesChip} ${B2} → ${B3 || await shown()}`);
+    check('2c a stream\'s chip narrows the list, All brings every row back', !!salesChip && B2 >= 2 && B3 === B.rows.length, `${salesChip} ${B2} → ${B3 || await shown()}`);
+
+    const ready = await openPaper(MSA) && await until(q => document.querySelector('[data-tpl-sec="book"] .tpln5.is-paper .tpl-pf-sheet .tpl-mks') && !!document.querySelector(q), JL, 12000);
+    check('0b the book paints its paper, its marks and Jambo\'s panel', !!ready);
 
     /* 3 THE TEMPLATE'S HEAD */
-    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; the Legora way): the chosen paper's head is ONE line
-       over the list (.tpln-line): its name, and its facts under it — kind · "used 5 times, last with <party> in <month>" ·
-       "2 came back changed". The stream is said on its row (2b); no version pill and no "updated … by" are drawn */
-    const C = await page.evaluate(() => ({ h2: (document.querySelector('.tpln-line .tpln-name') || {}).textContent || '', facts: (document.querySelector('.tpln-line .tpln-facts') || {}).textContent || '',
-      acts: [...document.querySelectorAll('[data-tpl-pf-act]')].map(b => [b.textContent.trim(), b.disabled, b.classList.contains('ui-btn-primary')]) }));
-    check('3a the chosen paper\'s name heads the list', /^Master services agreement$/.test(C.h2.trim()), C.h2);
-    check('3b "<kind> · used 5 times, last with <party> in <month> · 2 came back changed"',
-      /* RE-POINTED 17 Nov 2026 (#762): the month is said only where the contracts carry a day (these fixtures carry none),
-         never an empty "in ·" */
-      /^[^·]+ · used 5 times, last with \S+( in \S+( \d{4})?)? · 2 came back changed$/.test(C.facts.trim()) && !/ in\s*·/.test(C.facts), C.facts);
-    check('3c the verbs: Open in the builder · Draft from it (the primary)', JSON.stringify(C.acts.map(a => a[0])) === JSON.stringify(['Open in the builder', 'Draft from it']) && C.acts[1][2] === true && !C.acts[1][1], JSON.stringify(C.acts));
+    /* RE-POINTED 17 Nov 2026 (#762): the chosen paper is a step of its own — its name the step's head (.tpln5-h1); beside
+       the paper its facts line (kind · folder · N uses; .tpln5-meta), its figures (made · signed · came back changed;
+       .tpln5-facts) and its own verbs, the black one first (tplnPaperHtml, as drawn). The 16 Nov "used 5 times, last
+       with <party>" line is not drawn on this step (MAP-HISTORY: "the paper step says 'N uses'") */
+    const C = await page.evaluate(() => ({ h2: (document.querySelector('.tpln5-h1') || {}).textContent || '', facts: (document.querySelector('.tpln5.is-paper .tpln5-meta') || {}).textContent || '',
+      figs: [...document.querySelectorAll('.tpln5.is-paper .tpln5-facts > div')].map(d => d.textContent.replace(/\s+/g, ' ').trim()),
+      acts: [...document.querySelectorAll('.tpln5.is-paper [data-tpl-pf-act]')].map(b => [b.textContent.trim(), b.disabled, b.classList.contains('ui-btn-primary')]) }));
+    check('3a the chosen paper\'s name heads the step', /^Master services agreement$/.test(C.h2.trim()), C.h2);
+    check('3b "<kind> · Sales · 5 uses", and its figures: made 5 · 2 came back changed',
+      /^[^·]+ · Sales[^·]* · 5 uses$/.test(C.facts.trim()) && C.figs.some(f => /5$/.test(f) && /made/i.test(f)) && C.figs.some(f => /came back changed\s*2$/i.test(f)), JSON.stringify({ facts: C.facts, figs: C.figs }));
+    check('3c the verbs: Draft from it (the primary, first) · Open in the builder', JSON.stringify(C.acts.map(a => a[0])) === JSON.stringify(['Draft from it', 'Open in the builder']) && C.acts[0][2] === true && !C.acts[0][1], JSON.stringify(C.acts));
 
     /* 4 THE PAPER */
     const D = await page.evaluate(() => { const sh = document.querySelector('[data-tpl-sec="book"] .tpl-pf-sheet');
@@ -218,7 +243,10 @@ async function SEED(){
     await press('#ins-panel [data-jl-home]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && ![...p.querySelectorAll('.jov5-title')].some(t => /Master services agreement/.test(t.textContent)) && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);
-    await press('[data-tpl-pf="company:' + ids.msa.tid + '"]');
+    /* RE-POINTED 17 Nov 2026 (#762): the template is pressed where its row stands now — the list, one step back */
+    await press('[data-tpln-back]');
+    await until(() => tplPlace().view === 'list' && !!document.querySelector('.tpln-lrs [data-tpl-pf]'));
+    await press('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="' + MSA + '"]');
     const E3 = await until(q => [...document.querySelectorAll(q + ' .jov5-title')].some(t => t.textContent.trim() === 'Master services agreement'), JL);
     check('5f a press on the template holds it again', !!E3);
 
@@ -244,8 +272,9 @@ async function SEED(){
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await page.evaluate(() => { setView('templates'); tplPageSetTab('book'); });
-    await press('[data-tpl-pf="company:' + ids.res.tid + '"]');
-    const F4 = await until(() => { const b = [...document.querySelectorAll('[data-tpl-pf-act]')].find(x => x.textContent.trim() === 'Draft from it'); return b ? { off: b.disabled, why: b.title } : null; });
+    /* RE-POINTED 17 Nov 2026 (#762): the draft's verbs are read on its own paper's step */
+    await openPaper(RES);
+    const F4 = await until(() => { const b = [...document.querySelectorAll('.tpln5.is-paper [data-tpl-pf-act]')].find(x => x.textContent.trim() === 'Draft from it'); return b ? { off: b.disabled, why: b.title } : null; });
     check('6d on a draft, Draft from it is greyed with its reason', !!F4 && F4.off && /publish it first/i.test(F4.why), JSON.stringify(F4));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'our-paper-book-1440x780.png') });
 
@@ -328,17 +357,20 @@ async function SEED(){
     }
     await page.evaluate(() => { tbLeave(() => { setView('templates'); tplPageSetTab('book'); }); });
     await until(q => !!document.querySelector(q), JL);
+    await openPaper(MSA);
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; the Legora way): the paper (.tpln-sheet), the list
          with the chosen paper's head and verbs (.tpln-side) and Jambo's panel stand side by side */
+      /* RE-POINTED 17 Nov 2026 (#762): on the paper's own step — the paper, its facts and verbs (.tpln5-side) and
+         Jambo's panel side by side */
       const T = await page.evaluate(() => { const q = s => document.querySelector(s), R = e => e ? e.getBoundingClientRect() : null;
-        const parts = [R(q('.tpln .tpln-sheet')), R(q('.tpln .tpln-side')), R(document.getElementById('ins-panel'))], acts = R(q('.tpln .tpln-acts')), side = parts[1];
+        const parts = [R(q('.tpln5.is-paper .tpln-sheet')), R(q('.tpln5.is-paper .tpln5-side')), R(document.getElementById('ins-panel'))], acts = R(q('.tpln5.is-paper .tpln-acts')), side = parts[1];
         if (parts.some(x => !x) || !acts) return { missing: parts.map(x => !!x).concat(!!acts) };
         const lr = parts.slice().sort((a, b) => a.left - b.left);
         return { side: document.documentElement.scrollWidth <= innerWidth + 1, beside: lr.every((x, i) => i === 0 || lr[i - 1].right <= x.left + 1),
           acts: acts.right <= side.right + 1 && acts.left >= side.left - 1, inView: parts[0].bottom <= innerHeight + 1 && parts[0].top < innerHeight }; });
-      check(`10 ${w}×${ht} the book: paper, list and Jambo's panel side by side, the verbs inside the list's head, nothing sideways`, T.side && T.beside && T.acts && T.inView, JSON.stringify(T));
+      check(`10 ${w}×${ht} the book: paper, its facts and verbs, and Jambo's panel side by side, nothing sideways`, T.side && T.beside && T.acts && T.inView, JSON.stringify(T));
       if (OUT) await page.screenshot({ path: path.join(OUT, `our-paper-book-${w}x${ht}.png`) });
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
