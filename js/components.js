@@ -791,7 +791,10 @@ function splitWire(rez, h){
     settle(); };
   rez.addEventListener('pointerdown', e => { e.preventDefault(); rez.dataset.drag = '1';
     /* the strip's LEFT edge is the seam (it lies on the panel's side) */
-    const hb = rez.getBoundingClientRect(); grabDx = hb.left - e.clientX;
+    /* measured from the SEAM itself (the edge less the width in force), never the strip's drawn box: a strip shifted by
+       a transform (#ig-resizer's -7px) made the panel jump by the shift at the first move (#762) */
+    let seam = null; try { seam = h.edge() - splitWidth(h); } catch (_){ seam = null; }
+    const hb = rez.getBoundingClientRect(); grabDx = (Number.isFinite(seam) ? seam : hb.left) - e.clientX;
     /* a width transition would make the handle trail the pointer */
     if (typeof h.dragging === 'function') h.dragging(true);
     document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';

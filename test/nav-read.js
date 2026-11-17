@@ -120,7 +120,9 @@ function navWhereSrc(){
   W.panel = (state.panelOpen && typeof panelFace === 'function') ? panelFace() : null;
   W.kt = !!document.querySelector('[data-pd-kt-file]');
   W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold')).join(',') || null;
-  { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null; }
+  { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null;
+    /* RE-POINTED 17 Nov 2026 (#762): in the new look the risk list is the Redlines face's (#rl-risks), landed on there */
+    if (!W.landedDs && document.querySelector('#ig-dock #rl-risks.is-landed')) W.landedDs = 'risks'; }
   /* what stands in the middle beside the paper (the strip is gone, owner, 9 Nov 2026): History or Where we are */
   /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): 'where' is the Cover over the paper */
   W.mid = document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.cv-page') ? 'where' : null;

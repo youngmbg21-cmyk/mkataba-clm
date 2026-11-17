@@ -1753,8 +1753,12 @@ function jlAsk(text, opts){
        asked the readers before the finder */
     let nav = null; try { nav = (typeof navRead === 'function') ? navRead(t, { box: 'list' }) : null; } catch (_){ nav = null; }
     /* a setting found by its words stays the finder's (stfind, your own); a page or a company panel named goes there */
-    if (nav && !(nav.kind === 'go' && nav.nav && !['stfind', 'you'].includes(nav.nav.k))) nav = null;
-    let A = null; try { A = nav ? null : stJbAnswer(t); } catch (_){ A = null; }
+    /* …and a PLACE named ("my week" → the Calendar) goes there too (#762: a place answer was thrown away here) */
+    if (nav && !(nav.kind === 'go' && ((nav.nav && !['stfind', 'you'].includes(nav.nav.k)) || (!nav.nav && nav.place)))) nav = null;
+    /* WORK ASKED FOR IS NOT A SETTING (#762: "upload a contract", "new contract" got Settings cards): Jambo's map of the
+       everyday tasks (jmRead) answers first where it names somewhere other than Settings */
+    let work = false; try { const jm = (typeof jmRead === 'function') ? jmRead(t) : null; work = !!(jm && jm.place !== 'settings'); } catch (_){ work = false; }
+    let A = null; try { A = (nav || work) ? null : stJbAnswer(t); } catch (_){ A = null; }
     const cards = A && Array.isArray(A.cards) ? A.cards.filter(c => c && c.k !== 'why').map(c => { try { return stJbCardHtml(c, {}); } catch (_){ return ''; } }).filter(Boolean) : [];
     if (cards.length){
       if (_jlBusy()) return jlBusySay(t);
