@@ -3000,11 +3000,12 @@ function tplnQuote(c){
 }
 function tplnRowHtml(c, uses, lit){
   const fid = tplnFid(c), stream = tplPfStream(c), q = tplnQuote(c);
+  /* the stream's mark wears its tone's own soft pair (bg/fg), never white on the dot, which failed AA (#762) */
   const tone = typeof listStreamTone === 'function' && fid ? listStreamTone(fid) : 'gray';
   const text = [c.name, stream, q].join(' ').toLowerCase();
   const shown = tplnMatches(text, fid);
   return `<button type="button" class="tpln-r tpln-lr${lit ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(c))}" aria-pressed="${lit ? 'true' : 'false'}" data-tpln-text="${_tplEsc(text)}" data-tpln-stream="${_tplEsc(fid)}"${shown ? '' : ' hidden'}>
-    <i class="tpln-mk" style="background:var(--st-${tone}-dot)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
+    <i class="tpln-mk" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
     <span class="tpln-lt"><span class="tpln-l1"><b class="tpln-n">${_tplEsc(c.name)}</b>${stream ? `<span class="tpln-st">${_tplEsc(stream)}</span>` : ''}</span>${q ? `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>` : ''}</span>
     <span class="tpln-u">${_tplEsc(i18tn('tpln_uses', uses, { n: uses }))}</span></button>`;
 }
