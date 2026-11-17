@@ -15036,6 +15036,7 @@
   /* A LONG NAME TWO LINES, THEN "…" (the standing rule; #762: a row's name was cut at one line) */
   .jov5-rt b{font-weight:var(--w-label);white-space:normal;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;}
   .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{display:block;-webkit-line-clamp:unset}
+  .jov5-row.is-wrap .jov5-rt > span{display:block;-webkit-line-clamp:unset;overflow:visible} /* a row that wraps says its line whole too (#762) */
   .jov5-rt span{font-size:12px;line-height:1.4;color:var(--color-neutral-400);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
   .jov5-rt .reg-stg{display:inline-flex;-webkit-line-clamp:unset;overflow:visible;}
   .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{white-space:normal;}
@@ -21087,6 +21088,7 @@
   html.lg-new .tpln-ask input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:var(--t-body);outline:none}
   html.lg-new .tpln-chips{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin:0 0 var(--s-3);min-width:0}
   html.lg-new .tpln-chip{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;height:26px;padding:0 10px;border-radius:999px;border:0;background:var(--tn,var(--surface-2));color:var(--tf,var(--color-text));font:inherit;font-size:var(--t-label);white-space:nowrap;cursor:pointer}
+  html.lg-new .tpln-chip.is-more{display:inline-flex;align-items:center;gap:4px} /* More's words and its mark inside its own 26px (#762, laptops) */
   html.lg-new .tpln-chip.is-on{background:var(--accent-fill);color:var(--color-surface);flex:none}
   html.lg-new .tpln-chip.is-more{--tn:var(--surface-2);--tf:var(--color-text);flex:none}
   html.lg-new .tpln-more{position:relative;margin-left:auto;flex:none}

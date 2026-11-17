@@ -10333,7 +10333,7 @@ function stnPanelHtml(admin){
     /* while you are away, Jambo says who answers for you, never your signing (the old side feed's words; #762) */
     const awM=(state.away||{}).mine;
     if(awM&&awM.deputyName) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
-    groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""' }] });
+    groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
     const L=_stLessons; const les=(L&&L.rows)||[];
     if(admin&&L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
     if(admin&&les.length) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(r=>'\u201c'+String(r.text||'')+'\u201d').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
