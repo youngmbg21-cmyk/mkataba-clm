@@ -125,7 +125,9 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
       const tb = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
       return { inBar, oldRows: document.querySelectorAll('.jh-bar').length, sameLine: !!(tb && fr && Math.abs((tb.top + tb.bottom) / 2 - (fr.top + fr.bottom) / 2) < 12 && fr.left > tb.right),
         playInHouse: !!document.querySelector('.jh-housecard .jh-sh [data-jh-play]') && !!document.querySelector('.jh-housecard .jh-sh [data-jh-restart]') && !!document.querySelector('.jh-housecard .jh-sh #jh-prog') }; });
-    ok('2f the four filters are labelled boxes on the tab row, beside the tabs (no control rows above the house)', row.inBar.every(Boolean) && row.oldRows === 0 && row.sameLine, JSON.stringify(row));
+    /* RE-POINTED 17 Nov 2026 (#762, owner's pick on the drawings: "Two rows"): the four filters stand in the page's ONE head,
+       on its second row under the tabs where they do not fit beside them — never a control row of their own above the house */
+    ok('2f the four filters are labelled boxes in the page\'s one head, with the tabs (no control rows above the house)', row.inBar.every(Boolean) && row.oldRows === 0, JSON.stringify(row));
     ok('2g Play, Start again and the progress line ride in the house\'s own header', row.playInHouse, JSON.stringify(row));
     const rings = await page.evaluate(() => ['jh-range', 'jh-look', 'jh-speed'].map(id => { const e = document.getElementById(id); e.focus(); const c = getComputedStyle(e);
       const r = { id, outline: c.outlineStyle === 'none' || parseFloat(c.outlineWidth) === 0 ? '' : c.outlineStyle + ' ' + c.outlineWidth + ' ' + c.outlineColor, shadow: c.boxShadow }; e.blur(); return r; }));

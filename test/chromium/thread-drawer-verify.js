@@ -184,6 +184,9 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     await page.waitForTimeout(500);
     const ink1 = await ink();
     const opened = await pressDoor();
+    /* RE-POINTED 17 Nov 2026 (#762, owner's pick on the drawings: "Paper glides to line up"): the paper may glide so the open
+       clause stands at the line — read once it has settled (bounded), the open row and the line's clause the same */
+    for (let i = 0; i < 20; i++){ const q = await read(); if (q && q.openIdx === q.atLine) break; await page.waitForTimeout(150); }
     const s2 = await read();
     const ink2 = await ink();
     const second = s2.rows[1];
@@ -197,8 +200,10 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       JSON.stringify(s2.secs));
     check('2e ONE scroller: the open row grows, the list scrolls', !!(s2.bodyScroll && s2.bodyScroll.y !== 'auto' && s2.bodyScroll.max === 'none' && s2.listScroll === 'auto'),
       JSON.stringify({ body: s2.bodyScroll, list: s2.listScroll }));
-    check('2f [control] THE CONTRACT DOES NOT MOVE when the Clauses tab opens (refusal 3)', !!(ink1 && ink2 && ink1.top === ink2.top && ink1.left === ink2.left && ink1.w === ink2.w && ink0 && ink0.w === ink2.w),
-      JSON.stringify({ before: ink1, after: ink2 }));
+    /* RETIRED 17 Nov 2026 (#762, owner's pick on the drawings: "Paper glides to line up"): 2f — "the contract does not move
+       when the Clauses tab opens"; the paper glides to line the open clause up, and stands in the middle of its room
+       once the notes beside it stand down (THE PAPER STANDS IN THE MIDDLE, 16 Nov 2026). Its width stays (2f′). */
+    check('2f\u2032 the paper keeps its width when the Clauses tab opens', !!(ink1 && ink2 && ink1.w === ink2.w), JSON.stringify({ before: ink1, after: ink2 }));
     await page.screenshot({ path: path.join(OUT, '02-drawer.png') });
 
     /* ===== 3. THE COLOUR FILTER — RETIRED 13 Oct 2026 =====
