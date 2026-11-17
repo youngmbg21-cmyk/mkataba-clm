@@ -21683,9 +21683,11 @@
   .ld-dot.is-must{background:var(--st-ruby-dot)} .ld-dot.is-push{background:var(--st-amber-dot)} .ld-dot.is-nice{background:var(--st-green-dot)} .ld-dot.is-never{background:var(--color-text)}
   .ld-firm{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:var(--t-body)}
   .ld-main{flex:1;min-width:0;padding:var(--s-6) var(--s-8);overflow-y:auto;display:flex;flex-direction:column;gap:var(--s-3)}
-  .ld-top{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap}
-  .ld-title{font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:22px;margin:0;line-height:1.25}
-  .ld-top-a{margin-left:auto;display:flex;gap:var(--s-2);align-self:center}
+  .ld-top{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:nowrap}
+  .ld-title{font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:22px;margin:0;line-height:1.25;flex:0 1 auto;min-width:0}
+  .ld-top-a{margin-left:auto;display:flex;gap:var(--s-2);align-self:center;flex:none}
+  /* a long standard's name wraps on its own line's left; how firm and the two buttons keep the title's line (1366) */
+  .ld-top .ld-firm{flex:none}
   .ld-back{margin-left:auto}
   .ld-why{margin:0;color:var(--color-quiet);font-size:var(--t-body);max-width:72ch}
   .ld-quiet{color:var(--color-neutral-400);font-size:var(--t-meta)}
