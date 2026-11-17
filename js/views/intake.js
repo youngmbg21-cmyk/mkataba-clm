@@ -1848,7 +1848,7 @@ function iknRender(host, o){
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:36%"><col style="width:15%"><col style="width:22%"><col style="width:13%"><col></colgroup>
+      <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:36%"><col style="width:15%" data-spread><col style="width:22%"><col style="width:13%"><col data-floor="120"></colgroup>
         <thead><tr><th>${esc(i18t('ikn_c_req'))}</th><th>${esc(i18t('ikn_c_stream'))}</th><th>${esc(i18t('ikn_c_stands'))}</th><th>${esc(i18t('ikn_c_by'))}</th><th></th></tr></thead>
         <tbody>${R.list.map(r => iknRowHtml(r, may)).join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span></div>
