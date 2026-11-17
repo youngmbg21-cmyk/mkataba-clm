@@ -623,7 +623,14 @@ function intakeGoTo(id){
   /* the list head's box says the words at rest too (a question typed there goes) */
   if(typeof lhBoxSet==='function') lhBoxSet(IK_SEAT, '');
   try{ if(typeof window.insSelect==='function') window.insSelect('intake:team', String(id)); }catch(_){}
+  /* THE NEW LOOK LANDS ON IT TOO (#762): the tab that lists it, the row chosen, then lit through the one lander */
+  const nl=typeof window.newLookOn==='function'&&newLookOn();
+  if(nl){ const keep=_ikn; const tab=['open','mine','drafted','advice'].find(k=>{ _ikn=k; return iknRows().list.some(r=>String(r.id)===String(id)); });
+    _ikn=tab||keep; _iknSel=String(id); _iknBack=null; }
   if(typeof setView==='function') setView('intake');
+  /* the row is drawn once the page (and the list) stands: asked for, bounded, never a fixed wait */
+  if(nl){ let n=0; const look=()=>{ const row=document.querySelector(`[data-ikn-row="${CSS.escape(String(id))}"]`);
+    if(row&&typeof window.landOn==='function'){ window.landOn(row,{ block:'nearest' }); return; } if(++n<30) setTimeout(look,100); }; setTimeout(look,0); }
 }
 /* WHAT THE BELL SAYS: open requests nobody holds, raised by a colleague, for
    a reader who may draft. Borrowed off the list GET /api/intake already

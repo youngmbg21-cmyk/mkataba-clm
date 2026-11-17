@@ -272,7 +272,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const ND = await partyPage('nandi dairy');
       const Qp = await until(() => { const b = document.querySelector('.cun-page[data-cu-screen="party"] [data-cu-need="request"]'); return b ? { row: b.closest('.cunp-w').textContent.replace(/\s+/g, ' ').trim(), btn: b.textContent.trim() } : null; }, null, 10000);
       await backToList();
-      const col = await page.evaluate(() => ((document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"] td.cun-wait') || {}).textContent || '').replace(/\s+/g, ' ').trim());
+      /* the Waiting column says two in words and names every one on its hover, as the old column did (17 Nov 2026, #762) */
+      const col = await page.evaluate(() => { const td = document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"] td.cun-wait'); return td ? (td.textContent + ' ' + (td.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : ''; });
       check('4g a colleague\'s request about the party waits on you: the page says "Restricted asked for an NDA with Nandi Dairy" with "Open request", the row\'s Waiting column too',
         !!Qp && /Restricted asked for an NDA with Nandi Dairy/.test(Qp.row) && Qp.btn === 'Open request' && /Restricted asked for an NDA/.test(col), JSON.stringify({ page: Qp || (ND && ND.waits), col }));
       if (Qp){ await partyPage('nandi dairy'); await page.click('.cun-page[data-cu-screen="party"] [data-cu-need="request"]');

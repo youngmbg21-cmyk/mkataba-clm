@@ -261,23 +261,9 @@ const PAGE = () => {
     await signIn(pa, h.base, 'admin@example.co.ke', 'adminpassword1');
     await pa.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'people');
     await pa.waitForTimeout(1200);
-    const manage = await pa.evaluate(VISIBLE, '#dir-manage');
-    check('an admin is pointed at Settings → People', manage.ok, manage.why);
-    await pa.click('#dir-manage', { timeout: 3000 }).catch(() => {});
-    await pa.waitForTimeout(1400);
-    const landedA = await pa.evaluate(() => ({
-      view: state.view, tab: typeof settingsTab === 'function' ? settingsTab() : null,
-      roster: document.querySelectorAll('.st-person').length,
-      /* the People table is on the Company board since 16 Oct 2026 (the
-         Control Room), and a door that names People jumps down to it */
-      inView: (() => { const el = document.getElementById('st-people-sec'); if (!el) return false;
-        const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; })(),
-    }));
-    check('and the line is a real door — it lands on the editable roster',
-      landedA.view === 'team' && landedA.tab === 'company' && landedA.roster > 0 && landedA.inView, JSON.stringify(landedA));
-    check('which is unchanged: its rows still open the person drawer',
-      await pa.evaluate(() => !!document.querySelector('.st-person[data-st-panel^="person:"]')));
-
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3): People's door for an admin to the editable roster
+       ("Manage people in Settings ›", #dir-manage) stays gone in the new look — Settings' own list holds People & roles.
+       The three checks on it (the line, its landing, the drawer behind it) are retired. */
     /* ---- THE PARTIES PANEL'S PEOPLE DOOR ---- */
     await pa.evaluate(() => setView('customers'));
     await pa.waitForTimeout(1200);
@@ -293,15 +279,8 @@ const PAGE = () => {
     check('a party with people named is on the Parties page', !!party, party && `${party.key} · ${party.n}`);
     if (party){
       await pa.waitForTimeout(600);
-      /* RE-POINTED 19 Oct 2026 (round 19 as drawn): "People at <party>", a row
-         each; pressing one lands on People with that person chosen and lit */
-      const sec = await pa.evaluate(() => { const s = document.querySelector('#ins-panel .cu-people'); return s ? { head: (s.querySelector('h3') || {}).textContent || '', rows: s.querySelectorAll('[data-cu-pp]').length } : null; });
-      check('its panel names the people at the party, the number on its head the rows under it', !!sec && sec.rows === party.n && sec.head.includes(String(party.n)), JSON.stringify(sec));
-      const who = await pa.evaluate(() => { const b = document.querySelector('#ins-panel [data-cu-pp]'); return b ? b.getAttribute('data-cu-pp') : null; });
-      await pa.click('#ins-panel [data-cu-pp]', { timeout: 3000 }).catch(() => {});
-      await pa.waitForFunction(k => state.view === 'directory' && !!document.querySelector('#dir-tbody tr.is-sel'), who, { timeout: 8000 }).catch(() => {});
-      const here = await pa.evaluate(() => { const r = document.querySelector('#dir-tbody tr.is-sel'); return { view: state.view, sel: r ? r.getAttribute('data-dir-row') : null, lit: !!(r && r.classList.contains('is-landed')) }; });
-      check('and a row lands on People with that person chosen and lit', here.view === 'directory' && here.sel === who && here.lit, JSON.stringify(here));
+      /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3): a party's "People at <party>" rows on the Parties panel,
+         each landing on People with that person lit, stay gone in the new look (the two checks on them retired). */
     }
     await ctxA.close();
 

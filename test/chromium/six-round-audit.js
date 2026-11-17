@@ -432,11 +432,20 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         [...b.querySelectorAll('.rl-cp-why')].some(n => /whole point of the facility/.test(n.textContent)));
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; their pages as ours, portalOutOn): the clause panel
          gave way to our cards in their panel; the reason is read where it is painted (elementFromPoint at its own line) */
-      const painted = async () => {
+      /* RE-POINTED 17 Nov 2026 (#762): the reason may be said on the tab Erik lands on (Where we are) or beside the paper
+         on the Redlines tab, where the clause panel stood (portal.js "Turned down, and why") — read on the first, then
+         Erik's own press opens Redlines and it is read there */
+      const paintedHere = async () => {
         const hit = [...document.querySelectorAll('body *')].filter(n => n.children.length === 0 && /whole point of the facility/.test(n.textContent));
         for (const n of hit){ n.scrollIntoView({ block: 'center' }); await wait(200); const r = n.getBoundingClientRect(); if (!r.width || !r.height) continue;
           const at = document.elementFromPoint(r.left + Math.min(10, r.width / 2), r.top + r.height / 2); if (at && (at === n || n.contains(at) || at.contains(n))) return n.textContent; }
         return ''; };
+      const painted = async () => {
+        const here = await paintedHere(); if (here) return here;
+        const rt = document.querySelector('.pw-tab[data-pt-tab="redlines"]');
+        if (!rt || rt.getAttribute('aria-selected') === 'true') return '';
+        rt.click(); await wait(500);
+        return paintedHere(); };
       if (!src || !window.rlCpSetShown) return painted();
       rlCpSetShown(document, src.getAttribute('data-rl-cp-for'));
       await wait(400);

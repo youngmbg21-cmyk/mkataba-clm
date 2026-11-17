@@ -255,6 +255,11 @@ const MEASURE = `(() => {
   for (const el of all) {
     if (el.matches(CTRL)) continue;
     if (el.closest('svg, canvas, .tb-paper, .hati-doc, .doc-surface, .doc-sheet, [contenteditable="true"], .hb-dark, [data-toast], .toast')) continue;
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling, round 3 "KEEP AS DRAWN"): Jambo's soft
+       groups (.jov5-group, js/components.js jamboOverviewFiveHtml) are a LIST of rows with 8–12px inside, not a card — the
+       16px rule is not asked of the group; what is still asked of it is that nothing runs PAST its edges (the ruling: "the
+       8px overflow past a group's foot is still a fault") */
+    const listGroup = el.matches('.jov5-group');
     const cs = getComputedStyle(el);
     if (parseFloat(cs.borderTopLeftRadius) < 8 || !paintOf(el)) continue;
     const edged = cs.boxShadow !== 'none' || parseFloat(cs.borderTopWidth) > 0;
@@ -306,7 +311,7 @@ const MEASURE = `(() => {
     const stretched = room.bottom > 2 * room.top + 8 || !!pcs && /flex|grid/.test(pcs.display) && (parseFloat(cs.flexGrow) > 0 || /stretch|normal/.test(cs.alignSelf + pcs.alignItems) && (pcs.display.includes('grid') || !/column/.test(pcs.flexDirection)) && [...par.children].some(k => k !== el && !hidden(k) && Math.abs(R(k).top - r.top) < 2));
     /* centred words far from both edges read as centred: the slack grows with the room (5%) */
     const near = (a, b2) => Math.abs(a - b2) <= Math.max(CARD_ROOM_SLACK, Math.min(a, b2) * 0.05);
-    const bad = ['top', 'bottom', 'left', 'right'].some(k => room[k] < CARD_ROOM - CARD_ROOM_SLACK) || (!stretched && !near(room.top, room.bottom)) || !near(room.left, room.right);
+    const bad = listGroup ? ['top', 'bottom', 'left', 'right'].some(k => room[k] < 0) : ['top', 'bottom', 'left', 'right'].some(k => room[k] < CARD_ROOM - CARD_ROOM_SLACK) || (!stretched && !near(room.top, room.bottom)) || !near(room.left, room.right);
     if (bad) out.room.push({ who: who(el), in: inside(el), text: txt.slice(0, 40), room });
   }
   { const seenRoom = new Set(); out.room = out.room.filter(x => { if (seenRoom.has(x.who)) return false; seenRoom.add(x.who); return true; }); }

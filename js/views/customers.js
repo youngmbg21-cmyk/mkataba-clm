@@ -1115,6 +1115,20 @@ function cuNextSay(v){
    stands as the NDA chip, "all parties" lights the All tab). Counted, no
    Jambo call. */
 function cuSay(){
+  /* THE NEW LOOK COUNTS THE LISTS ITS OWN TABS DRAW (#762: it counted the old page's Live list, 15 where List said 16):
+     every party, the ones waiting, the ones with no NDA in force — cunRender's own three sets; the chip opens its tab */
+  if (typeof window.newLookOn === 'function' && newLookOn()){
+    const vs = cuCustomers().map(r => cuView(r)).filter(Boolean);
+    if (!vs.length) return { lines: [_cuE(i18t('cu_none_yet'))] };
+    const nm = cuNdaMap();
+    const wait = vs.filter(v => (v.needs || []).length).length;
+    const noNda = vs.filter(v => { const st = (nm.get(v.key) || { state: 'none' }).state; return st === 'none' || st === 'ended'; }).length;
+    const lines = [`<b>${_cuE(i18tn('cu_say', vs.length, { n: vs.length }))}</b>.`];
+    if (wait) lines.push(_cuE(i18tn('cu_say_waiting', wait, { n: wait }) + '.'));
+    if (noNda) lines.push(_cuE(i18tn('cu_say_no_nda', noNda, { n: noNda }) + '.'));
+    const chips = (noNda && _cun !== 'nda') ? [{ label: i18t('cu_say_chip_no_nda'), run: () => { _cun = 'nda'; renderCustomers({ rows: true }); if (typeof placeSave === 'function') placeSave(); } }] : [];
+    return { lines, chips };
+  }
   const all = cuCustomers(), ndas = cuNdaMap();
   const rows = cuRowsOf(all, ndas);
   if (!all.length) return { lines: [_cuE(i18t('cu_none_yet'))] };
@@ -1376,7 +1390,8 @@ function cunPanelHtml(r){
     next ? i18t('cun_p_next', { next }) : ''].filter(Boolean).join(' ');
   const rec = (typeof partyRecordOf === 'function' && partyRecordOf(r.key)) || {};
   const people = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(r.key) : [];
-  const signer = people.find(p => p && p.signs) || people[0] || null;
+  /* who SIGNS for them is read off their role (cpsign), as the party's own page reads it — never the first person named (#762) */
+  const signer = people.find(p => p && [...(p.roles || [])].includes('cpsign')) || null;
   const nda = cuNdaOf(r.key);
   const ndaV = !nda || nda.state === 'none' ? i18t('cu_nda_none') : nda.state === 'inforce' && nda.c && nda.c.signedAt ? i18t('cun_p_nda_signed', { d: cuDay(String(nda.c.signedAt).slice(0, 10)) }) : nda.state === 'unconfirmed' ? i18t('cu_nda_unconfirmed') : nda.state === 'ended' ? i18t('cun_nda_ended') : nda.state === 'draft' ? i18t('cun_nda_draft') : i18t('cun_nda_conf');
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src)}</i></div>`;
@@ -1445,14 +1460,15 @@ function cunRowHtml(v, nda){
   const ndaH = `<span class="cun-st${n.state === 'none' || n.state === 'ended' ? ' is-none' : n.state === 'unconfirmed' ? ' is-amber' : ''}"><i></i>${esc(ndaW)}</span>`;
   const needs = (v.needs || []).filter(x => x && x.it);
   const verb = x => { const k = x.it.kind, n = x.it.n || 1;
-    return k === 'approval' ? i18t('cun_w_approve', { name: x.c.name || '' }) : k === 'sign' ? i18t('cun_w_sign') : k === 'details' ? i18tn('cun_w_details', n, { n })
+    return k === 'request' ? cuNeedShort(x) : k === 'approval' ? i18t('cun_w_approve', { name: x.c.name || '' }) : k === 'sign' ? i18t('cun_w_sign') : k === 'details' ? i18tn('cun_w_details', n, { n })
       : k === 'move' ? i18t('cun_w_move') : k === 'look' ? i18t('cun_w_look') : k === 'note' ? i18t('cun_w_note') : k === 'review' ? i18t('cun_w_review') : k === 'refused' ? i18t('cun_w_refused')
       : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : ''); };
+  /* two said in the column; more are named on its hover, as the old column did (#762) */
   const words = needs.slice(0, 2).map(x => { const w = verb(x); return w ? (x.it.urgent ? `${esc(w)} · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : esc(w)) : ''; }).filter(Boolean).join(' · ');
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
     <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${facts ? `${esc(facts)} ` : ''}${chips}</div></div></div></td>
     <td class="cun-num">${v.items.length}</td><td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>
-    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait${words ? ' is-owed' : ''}">${words || '—'}</td></tr>`;
+    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait${words ? ' is-owed' : ''}"${needs.length > 2 ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${words || '—'}</td></tr>`;
 }
 let _cunParty = null;
 /* PARTIES' TABS DO NOT ALL DRAW THE SAME SHAPE (read 10 Nov 2026): Folders draws a grid of cards and HIDES the table;
@@ -1467,7 +1483,7 @@ function cunRender(host, INS, o){
   const nda = cuNdaMap();
   const q = String(((state.cu || {}).q) || (document.getElementById('cun-q') || {}).value || '').trim().toLowerCase();
   const waiting = all.filter(v => (v.needs || []).length), missing = all.filter(v => { const s = (nda.get(v.key) || { state: 'none' }).state; return s === 'none' || s === 'ended'; });
-  const list = (_cun === 'wait' ? waiting : _cun === 'nda' ? missing : all).filter(v => !q || v.name.toLowerCase().includes(q))
+  const list = (_cun === 'wait' ? waiting : _cun === 'nda' ? missing : all).filter(v => !q || v.name.toLowerCase().includes(q) || cuCityMatch(v, cuKeyOf(q)))
     .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
   const tabs = [['folders', i18t('ctf_tab_folders'), null], ['all', i18t('cun_tab_list'), all.length], ['wait', i18t('cun_tab_wait'), waiting.length], ['nda', i18t('cun_tab_nda'), missing.length]].filter(t => t[2] || t[0] === 'all' || t[0] === 'folders' || t[0] === _cun);
   const agreements = all.reduce((s, v) => s + v.items.length, 0);
@@ -1599,8 +1615,10 @@ function cunPartyRender(host, INS, key){
     + (theirLead ? row(i18t('cun_pp_lead'), theirLead.name || theirLead.email || '', i18t('cun_pp_src_link')) : '')
     + row(i18t('cu_col_nda'), ndaV, nda && nda.c && typeof contractRef === 'function' ? contractRef(nda.c) : '')
     + (sm ? row(i18t('cun_c_standing'), [sm.label, signedN ? i18t('cun_pp_signed', { n: signedN }) : '', rest ? i18t('cun_pp_rest', { n: rest }) : ''].filter(Boolean).join(' \u00b7 '), i18t('cun_pp_src_read')) : '');
-  const needs = (v.needs || []).filter(x => x && x.it && x.c);
-  const waits = needs.length ? needs.slice(0, 4).map(x => `<div class="cunp-w"><div><b>${E(cuNeedTitle(x))}</b><span>${E(x.c.name || '')}</span></div><button type="button" class="rfp-a" data-cu-need="${E(x.it.kind)}" data-cu-id="${E(x.c.id)}">${E(i18t(CU_NEED_DOOR[x.it.kind] || 'cu_need_go_move'))}</button></div>`).join('')
+  /* a request about the party has no contract yet: it waits here too, with its own door (#762: it was dropped) */
+  const needs = (v.needs || []).filter(x => x && x.it && (x.c || (x.it.kind === 'request' && x.r)));
+  const waits = needs.length ? needs.slice(0, 4).map(x => x.c ? `<div class="cunp-w"><div><b>${E(cuNeedTitle(x))}</b><span>${E(x.c.name || '')}</span></div><button type="button" class="rfp-a" data-cu-need="${E(x.it.kind)}" data-cu-id="${E(x.c.id)}">${E(i18t(CU_NEED_DOOR[x.it.kind] || 'cu_need_go_move'))}</button></div>`
+    : `<div class="cunp-w"><div><b>${E(cuNeedTitle(x))}</b></div><button type="button" class="rfp-a" data-cu-need="request" data-cu-id="${E(x.r.id)}">${E(i18t('cu_need_go_request'))}</button></div>`).join('')
     : `<p class="cunp-none">${E(i18t('cun_f_quiet'))}</p>`;
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const ags = v.items.slice().sort((a, b) => String(a.archived ? 1 : 0).localeCompare(String(b.archived ? 1 : 0))).map(c => {
@@ -1658,7 +1676,8 @@ function renderCustomers(o){
   const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cu-pr-form') ? document.activeElement.id : '';
   cuLcReg();
   /* the new look draws Parties as drawn (round 6); the old look is unchanged */
-  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS, o); return; }
+  /* the requests about a party are loaded here too: the new look's Waiting column and party page read them (#762) */
+  if (INS && typeof window.newLookOn === 'function' && newLookOn()){ cunRender(host, INS, o); cuRequestsLoad(); return; }
   host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     ${cuListHtml(INS)}
