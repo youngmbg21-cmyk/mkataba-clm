@@ -139,7 +139,7 @@ const blocked = [];
            own card; the new look's My notes is the one sheet (mnnRender) whose empty sentence is a row of its table */
         if (on(10) && v === 'migration') {
           /* RE-POINTED 17 Nov 2026 (#762): Import's head is its own white head (.mig-own-head), the strip under it the drop card */
-          const w = await ev(() => { const hd = document.querySelector('#content .mig-own-head, #page-head .ph-card, .ph-card'), ft = document.querySelector('#content .mig-drop-card, #content .ph-foot'); if (!hd || !ft) return null;
+          const w = await ev(() => { const hd = document.querySelector('#content .mig-own-head, #page-head .ph-card, .ph-card'), ft = document.querySelector('#content .mig-drop-card') || document.querySelector('#content .ph-foot'); if (!hd || !ft) return null;
             const a = hd.getBoundingClientRect(), b = ft.getBoundingClientRect(); return { l: Math.round(a.left - b.left), r: Math.round(a.right - b.right) }; });
           check(`${at} · 10b — Import's head card is as wide as the strip under it`, w && Math.abs(w.l) <= 1 && Math.abs(w.r) <= 1, JSON.stringify(w));
           await shot('import');

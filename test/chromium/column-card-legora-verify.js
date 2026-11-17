@@ -175,22 +175,29 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     await page.evaluate(() => setView('reads'));
     /* RE-POINTED 16 Nov 2026 (#762): the new Discover's "read the rest" door is [data-dsn-more] (Jambo's panel on a read,
        dslReadHtml); the old Reads row's [data-rd-next] is taken where it still stands. A door that is not drawn REPORTS. */
-    const NEXT = '[data-rd-next], [data-dsn-more]';
-    await until(page, () => !!document.querySelector('[data-rd-next], [data-dsn-more]') && !!document.querySelector('#jl-q'), null, 15000);
+    await until(page, () => !!document.querySelector('#rd-page [data-dsn-run]') && !!document.querySelector('#jl-q'), null, 15000);
     await page.fill('#jl-q', 'what does this page tell me about my reads?'); await page.press('#jl-q', 'Enter');
     check('7a Jambo answers on Reads', await until(page, () => (ai.history || []).length >= 2 && !ai.busy, null, 15000));
     h.ai.slow(700);
-    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new Discover keeps a further read ON Reads — the
-       read's row is pressed (its panel carries "read them", [data-dsn-more]) and the press opens the while-it-reads
-       screen (#dsn-cancel) with the run going; the promise is the same: the press shows the read, not Jambo's talk
-       ("A FINISHED READ LANDS ON ITS RESULTS"; the old landing on Contracts is gone with the old Reads rows) */
-    await page.evaluate(() => { const r = document.querySelector('#rd-page [data-dsn-run]'); if (r) r.click(); });
-    await until(page, () => !!document.querySelector('[data-rd-next], [data-dsn-more]'), null, 8000);
-    check('7a′ the read-the-rest door stands on Reads', await page.click(NEXT + ' >> nth=0', { timeout: 5000 }).then(() => true, () => false));
-    const back = await until(page, () => state.view === 'reads' && !!AC.busy && !!document.querySelector('#rd-page #dsn-cancel')
-      && !(typeof jlTalkShows === 'function' && jlTalkShows()), null, 20000);
-    check('7b the further read stays on Reads, its while-it-reads screen in sight, not Jambo\'s talk', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy,
-      reading: !!document.querySelector('#rd-page #dsn-cancel'), talk: typeof jlTalkShows === 'function' && jlTalkShows() })));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new Discover keeps a further read ON Reads, in
+       the page, never in Jambo's panel — a read is opened from the list of reads (a press chooses, a second opens its
+       results) and its head's "Read N left" ([data-dsn-more]) starts the rest; the promise is the same: the press shows
+       the read (the while-it-reads screen, #dsn-cancel, in the page) and the run going, whatever the panel holds
+       ("A FINISHED READ LANDS ON ITS RESULTS"; the old landing on Contracts' column card is gone with the old Reads rows) */
+    const runIds = await page.evaluate(() => [...document.querySelectorAll('#rd-page [data-dsn-run]')].map(r => r.getAttribute('data-dsn-run')).slice(0, 5));
+    let moreUp = false;
+    for (const rid of runIds){
+      await page.click(`#rd-page [data-dsn-run="${rid}"]`).catch(() => {});
+      await page.click(`#rd-page [data-dsn-run="${rid}"]`).catch(() => {});
+      moreUp = await until(page, () => !!document.querySelector('#rd-page [data-dsn-more]'), null, 3000);
+      if (moreUp) break;
+      await page.click('#rd-page [data-dsn-back]').catch(() => {});
+      await until(page, () => !!document.querySelector('#rd-page [data-dsn-run]'), null, 3000);
+    }
+    check('7a′ the read-the-rest door stands on Reads', moreUp && await page.click('#rd-page [data-dsn-more] >> nth=0', { timeout: 5000 }).then(() => true, () => false), { reads: runIds.length });
+    const back = await until(page, () => state.view === 'reads' && !!AC.busy && (() => { const x = document.querySelector('#rd-page #dsn-cancel'); return !!x && x.getBoundingClientRect().width > 0; })(), null, 20000);
+    check('7b the further read stays on Reads, its while-it-reads screen in sight', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy,
+      reading: !!document.querySelector('#rd-page #dsn-cancel') })));
     await page.screenshot({ path: path.join(OUT, '7-next-from-reads.png') });
     h.ai.slow(0);
     await ended();

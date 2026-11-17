@@ -2600,7 +2600,14 @@ function pd2SignRowsHtml(c){
      folded away in the five parts; the same presses, data-pd-rd-rule → approvalDecideAsk; 16 Nov 2026, #762) */
   let DEC = null; try { DEC = (!closed && typeof window.approvalDecidableNow === 'function') ? window.approvalDecidableNow(c) : null; } catch (_){ DEC = null; }
   const myRule = !!(DEC && DEC.kind === 'rule');
-  const card = closed ? '' : myRule
+  /* A NAMED PERSON'S YES THAT IS THE READER'S TO GIVE: the asker's card (what they ask, the checks, a note, Approve and
+     Refuse — the road's own yes stop, pdRoadYesHtml, pressed through pdRoadPress) stands in the card, where the approval
+     email's link lands (#762: it sat in the folded old column) */
+  let saCard = '';
+  try { if (!closed && typeof pdRoadStops === 'function'){
+    for (const x of (pdRoadStops(c) || [])){ if (!x || !x.yes) continue; const h = pdRoadYesHtml(c, x.yes); if (/data-pd-rd-approve=/.test(h)){ saCard = `<div class="pd2-sg-card is-yes" data-pd-road-stop="yes">${h}</div>`; break; } } } }
+  catch (_){ saCard = ''; }
+  const card = closed ? '' : saCard ? saCard : myRule
     ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_appr_wait'))}</b><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd-rd-rule="approved">${E(T((DEC.step && (DEC.step.status === 'rejected' || DEC.step.status === 'stale')) ? 'pd_rd_approve_again' : 'pd_rd_approve'))}</button><button type="button" class="ui-btn" data-pd-rd-rule="refused">${E(T('pd_rd_refuse'))}</button></div></div>`
     : HO
     ? `<div class="pd2-sg-card${HO.primary ? '' : ' is-held'}"><div class="pd2-sg-acts"><button type="button" id="${HO.id}" class="ui-btn${HO.primary ? ' ui-btn-primary' : ''}" data-pd2-ho="${E(c.id)}">${E(HO.label)}</button><span>${E(HO.line)}</span></div></div>`
@@ -2624,7 +2631,7 @@ function pd2SignRowsHtml(c){
     /* only WHILE SOMETHING HOLDS THE SIGNATURE (signBlockers): an open check that holds nothing (standards not run yet)
        never takes Sign's place (16 Nov 2026, #762) */
     /* the approval's own Send for approval leads when it can be asked now: it is what holds the signature (#762) */
-    const first = (closed || HO || myRule || !holds.length) ? null : (saGo && checks.find(m => m.go === saGo)) || checks.find(m => (m.st === 'now') && m.go);
+    const first = (closed || HO || myRule || saCard || !holds.length) ? null : (saGo && checks.find(m => m.go === saGo)) || checks.find(m => (m.st === 'now') && m.go);
     const go = first ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go pd2-sg-go" ${first.go.attr}>${E(T(first.go.w))}</button>` : card;
     return `<div class="pd2-sg is-five">${head}${bar}<p class="pd2-sg-l">${E(T('jov5_sg_checks'))}</p><div class="pd2-sg-g">${rows.slice(0, -1).join('')}</div>`
       + `<p class="pd2-sg-l">${E(T('jov5_sg_then'))}</p><div class="pd2-sg-g"><div class="pd2-sg-r is-${meta[meta.length - 1].st}"><i class="pd2-sg-i" aria-hidden="true">${closed && !cpHeld ? '\u2713' : ''}</i><div><b>${E(thenWords)}</b>${cpWho ? `<small>${E(cpWho)}</small>` : ''}</div></div></div>${go}</div>`;

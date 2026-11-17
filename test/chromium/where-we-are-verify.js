@@ -163,12 +163,18 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const card = pane.querySelector('.ds-sheet');
     return { head: ink(pane.querySelector('.ds-sheet .ds-h1')), step: ink(pane.querySelector('.ds-j li b')),
       cardHead: ink(pane.querySelector('.ds-facts > div')), cardEdge: card ? card.getBoundingClientRect().left : null,
-      paneEdge: pane.getBoundingClientRect().left };
+      paneEdge: pane.getBoundingClientRect().left,
+      flat: card ? (cs => parseFloat(cs.borderLeftWidth) === 0 && cs.boxShadow === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor))(getComputedStyle(card)) : false };
   });
   check('10a the title, the facts and the journey start on ONE line',
     line.head != null && Math.abs(line.head - line.step) <= 1 && Math.abs(line.head - line.cardHead) <= 1, JSON.stringify(line));
-  check('10b that line is the Overview\'s: the sheet\'s border and 16px inside its edge',
-    line.head != null && Math.abs(line.head - line.cardEdge - 17) <= 1, `${Math.round(line.head - line.cardEdge)}px inside the sheet`);
+  /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling 17 Nov 2026, answer 5: their page keeps the
+     new look): on the outside look the sheet is drawn FLAT — no border, no wash, no shadow, nothing inside it to pad — so
+     the line keeps its room from the page's own edge instead: never closer than 16px (the owner's 4 Oct complaint, "the
+     sentences start very close to the edge"). Where a sheet IS drawn, its border and 16px inside it, as before */
+  check('10b that line is the Overview\'s: the sheet\'s border and 16px inside its edge (a flat sheet: 16px or more from the page\'s edge)',
+    line.head != null && (line.flat ? line.head - line.paneEdge >= 16 && Math.abs(line.cardEdge - line.head) <= 1 : Math.abs(line.head - line.cardEdge - 17) <= 1),
+    line.flat ? `flat sheet · ${Math.round(line.head - line.paneEdge)}px from the page's edge` : `${Math.round(line.head - line.cardEdge)}px inside the sheet`);
 
   /* ---- 11 · Edit from another tab (Young, 3 Oct 2026: "half the page not
      being what redline page should look like") ---- */

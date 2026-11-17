@@ -168,7 +168,11 @@ const MEASURE = `(() => {
        with the last column's one grey pill (29 Oct 2026) a value like "Warehousing & Distribution" reads whole on two lines */
     /* …and a folder tile (the new look's Contracts › Folders, 9 Nov 2026): a button-card of four lines, name · count · bar · money */
     /* …and a folder row (the folders, the Legora way, owner's pick 9 Nov 2026, f983): the name over its grey line */
-    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row')) continue;
+    /* …and, RE-POINTED 17 Nov 2026 (the new look is the only look, #762), Jambo's five parts (owner, 15 Nov 2026, "Build as
+       drawn"; js/components.js jamboOverviewFiveHtml): a tile's number over its word (.jov5-g: <b> over <span>, a column),
+       a row's name over its grey line (.jov5-row: .jov5-rt a column; a long name two lines, then "…"), and Contracts'
+       view tiles (.ctf-view: the number · the view's name · its grey line, each held to one line with "…") */
+    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row, .jov5-g, .jov5-row, .ctf-view')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
     /* THE LINES THE WORDS TOOK, not the box's height: a tag with a fixed height folds its words inside it and the box never grows */
@@ -327,6 +331,11 @@ const LEVEL = `(() => {
      the page is one surface beside it, so there is no card to level; the Board's head is the white strip level with it.
      The frame's own measures are new-look-frame-verify's */
   if (document.documentElement.classList.contains('lg-new') && getComputedStyle(panel).borderTopLeftRadius === '0px'){
+    /* RE-POINTED 17 Nov 2026 (#762): the old frame's own rule, now asked here too — a page a door (or an earlier measure)
+       scrolled down is measured where it starts, not here; and a Board head under a page laid over it (a form, the side
+       panel's own page) is not the page in front */
+    if ([document.getElementById('hb-board'), document.getElementById('content-scroll')].some(el => el && el.scrollTop > 0)) return null;
+    if (state.view !== 'dashboard' || document.querySelector('#modal-root .modal-in, [data-pd-mid]')) return null;
     const hd = document.getElementById('hb-bhead');
     return vis(hd) && panel.id === 'ig-dock' ? { dTop: Math.round(hd.getBoundingClientRect().top - pr.top), dBot: 0 } : null;
   }

@@ -150,12 +150,16 @@ const check = (name, pass, detail) => {
     /* ================= 2. SIX A LINE ON A THINKPAD, SMALL, PAINTED ========= */
     const fit = await page.evaluate(() => {
       const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
+      /* RE-POINTED 17 Nov 2026 (#762): Show more (1a2) leaves the new wall scrolled down, its first paper under the
+         place's head; it is brought into view before it is asked whether it is painted */
+      cards[0].scrollIntoView({ block: 'center' });
       const top0 = cards[0].getBoundingClientRect().top;
       const perLine = cards.filter(b => Math.abs(b.getBoundingClientRect().top - top0) < 2).length;
       const s = cards[0].querySelector('.igw-sheet').getBoundingClientRect();
       const hit = document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2);
       const dock = document.getElementById('ig-dock');
       return { perLine, w: Math.round(s.width), h: Math.round(s.height), painted: !!(hit && hit.closest('.igw-card') === cards[0]),
+        hit: hit ? hit.tagName + '.' + String(hit.className).slice(0, 40) + ' in ' + ((hit.closest('[id]') || {}).id || '?') : null, at: [Math.round(s.left), Math.round(s.top)],
         dock: dock ? Math.round(dock.getBoundingClientRect().width) : 0, total: cards.length };
     });
     /* RETIRED 17 Nov 2026 (#762): 2a (six papers a line at 1280) and 2b (small 120–160px papers) — the old wall's
@@ -163,7 +167,7 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 17 Oct 2026 (round 13, the owner picked "Wall of papers"):
        each paper is the top of its first page — wider than tall — so two rows
        stand on a laptop's screen; the facts sit under it */
-    check('2c the first paper is painted where it stands', fit.painted);
+    check('2c the first paper is painted where it stands', fit.painted, JSON.stringify({ hit: fit.hit, at: fit.at }));
 
     /* ================= 3. SEARCH NARROWS (the place's own box; RE-POINTED 29 Oct 2026, round 1: the bar's search left) ================= */
     const one = await page.evaluate(() => contractRef(regFiltered()[0]));
@@ -191,7 +195,10 @@ const check = (name, pass, detail) => {
     check('6a a refresh lands on the wall', !!kept && kept.papers > 0, JSON.stringify(kept));
 
     /* ================= 7. A PRESS OPENS THE PAPER ========================= */
-    const pick = await page.evaluate(() => document.querySelector('#ig-paper .igw-card').getAttribute('data-ig-pick'));
+    /* a refresh that did not land on the wall (6a reports it) must not stop the press below: the wall is asked for again */
+    if (!(await page.$('#ig-paper .igw-card'))) await page.click('[data-ctf-show="wall"]', { timeout: 8000 }).catch(() => {});
+    await page.waitForSelector('#ig-paper .igw-card', { timeout: 8000 }).catch(() => {});
+    const pick = await page.evaluate(() => { const b = document.querySelector('#ig-paper .igw-card'); return b ? b.getAttribute('data-ig-pick') : null; });
     /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press CHOOSES the paper,
        a second press opens it */
     await page.click(`#ig-paper .igw-card[data-ig-pick="${pick}"]`);

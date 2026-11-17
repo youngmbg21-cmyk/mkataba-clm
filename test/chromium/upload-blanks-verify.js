@@ -88,7 +88,7 @@ const typeInto = async (page, sel, value, ev) => {
 const openRoom = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
     if (await page.evaluate(x => state.view === 'dashboard' && !!(window.pdContract && pdContract() && pdContract().id === x)
-      && !!document.querySelector('#ig-canvas') && !!document.querySelector(`#ig-dock :is(#pd-og.is-form[data-pd-og-for="${x}"], #pd-needs)`), id)) break;
+      && !!document.querySelector('#ig-canvas') && !!document.querySelector(`:is(#ig-dock, [data-pd-mid]) :is(#pd-og.is-form[data-pd-og-for="${x}"], #pd-needs)`), id)) break;
     await page.evaluate(x => { if (document.getElementById('cd-page') && window.closeModal) closeModal(); pdFillOpen(x); }, id);
     await page.waitForTimeout(300);
   }
@@ -131,8 +131,13 @@ const SEEN = () => {
   /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the stages are one line across; the Fill in stage's mark on it */
   /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the blanks stand in the form beside the paper; its head
      names it and carries the count */
-  const card = document.querySelector('#ig-dock .pd-fm-h') || document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="fill"]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]');
-  const pr = host && card ? card.getBoundingClientRect() : null;
+  /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): Fill in the contract is a page IN THE MIDDLE where the
+     paper was (THE MIDDLE, pdMidPage: [data-pd-mid="form:<id>"]); its head names it ("Fill in the contract", h3) and the
+     form's own line carries the count ([data-pd-fm-count], "N needed · k of N ready"); the form (#pd-og.is-form) is the
+     panel measured */
+  const mid = host ? host.closest('[data-pd-mid]') : null;
+  const card = (mid && mid.querySelector('.dlg-pg-head')) || document.querySelector('#ig-dock .pd-fm-h') || document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="fill"]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]');
+  const pr = host && card ? (mid ? host : card).getBoundingClientRect() : null;
   const cr = canvas ? canvas.getBoundingClientRect() : null;
   /* THE GEOMETRY OF THE WORDING, block by block — this is what says the marks
      cost the contract nothing. Rounded to whole pixels; sub-pixel reflow of a
@@ -163,7 +168,8 @@ const SEEN = () => {
     boxKeys: boxes.map(b => b.getAttribute('data-blankf')),
     boxLabels: boxes.map(b => { const tr = b.closest('tr'); return ((tr && tr.querySelector('.pd-og-f b')) || {}).textContent || ''; }).map(t => t.trim()),
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the number stands beside "Needs you" */
-    count: host && card ? ((card.querySelector('[data-pd-fm-count], .ds-ln-sub, .ds-sp-v') || {}).textContent || '').trim() : '',   /* RE-POINTED 24 Oct 2026 (Round 4): the line's count */
+    count: host && card ? (((mid && mid.querySelector('[data-pd-fm-count]')) || card.querySelector('[data-pd-fm-count], .ds-ln-sub, .ds-sp-v') || {}).textContent || '').trim() : '',
+    inMid: !!mid, midBack: !!(mid && mid.querySelector('[data-pd-mid-back]')),   /* RE-POINTED 24 Oct 2026 (Round 4): the line's count */
     blocks,
     /* WHAT SITS ON THE CANVAS BUT OUTSIDE THE AGREEMENT — HaTi's own signature
        block and the seal card. The scope claim is about these. */
@@ -276,9 +282,11 @@ const CONTRACT = (id, over) => Object.assign({
     /* ============ 3. THE PANEL ============ */
     check('3a the panel is DRAWN on a received document', s.panel && s.panelW > 2,
       s.panel ? s.panelW + 'px' : '#pd-og missing');
-    check('3b beside the paper, never over it',
-      s.panelW > 2 && s.canvasRight != null && s.panelX > s.canvasRight - 40,
-      `panel x ${s.panelX}, paper ends ${s.canvasRight}`);
+    /* RE-POINTED 17 Nov 2026 (#762): THE MIDDLE (the one-page Home plan, owner 14 Oct 2026: what a Dossier line opens
+       comes to the middle where the paper was; the Dossier never moves): the form is its own page in the middle, the
+       paper put by under it with ONE way back ("‹ Paper", pdMidClose) — no longer a card beside the paper */
+    check('3b in the middle where the paper was, with its way back to the paper',
+      s.panelW > 2 && s.inMid && s.midBack, `in the middle ${s.inMid} · ‹ Paper ${s.midBack} · ${s.panelW}px`);
     /* RE-POINTED 21 Oct 2026: the card is Still owed (no "Blanks in this document" heading, no hover
        of its own); each blank is a row of the grid, one per question */
     check('3c the blanks stand under the Fill in stage, one row each', /^fill( in)?( the contract)?$/i.test(s.panelHead) /* RE-POINTED 24 Oct 2026 (Round 4): the line says "Fill" */ && s.blankRows === s.boxKeys.length, `${s.panelHead} · ${s.blankRows} rows`);
@@ -318,7 +326,8 @@ const CONTRACT = (id, over) => Object.assign({
     /* RE-POINTED 21 Oct 2026 (the Legora way): the grid is never repainted under a hand (pdOgHolds) —
        the row's Confirm is the answer's press, and the count moves on it */
     const n1 = drove ? await page.evaluate(async () => { const b = document.querySelector('#pd-og [data-pd-og-ok="up_insert_company_name"]'); if (b) b.click();
-      await new Promise(r => setTimeout(r, 700)); return ((document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"] .ds-sp-v') || {}).textContent || '').trim(); }) : '';
+      /* RE-POINTED 17 Nov 2026 (#762): the count is the form's own line in the middle */
+      await new Promise(r => setTimeout(r, 700)); return ((document.querySelector('[data-pd-mid] [data-pd-fm-count]') || document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"] .ds-sp-v') || {}).textContent || '').trim(); }) : '';
     check('4f the counter moved once the row was confirmed', !!after && n1 !== s.count,
       after ? s.count + ' → ' + n1 : 'not driven');
 
@@ -480,9 +489,11 @@ const CONTRACT = (id, over) => Object.assign({
     const pressRoute = async (sel) => {
       await page.evaluate(x => roomOpenAt(x, 'sign'), up.id);
       await page.waitForFunction(x => !!document.querySelector('#pd-signface ' + x), sel, { timeout: 8000 }).catch(() => {});
-      const there = await page.evaluate(x => !!document.querySelector('#pd-signface ' + x), sel);
+      /* GUARDED 17 Nov 2026 (#762): a door in the markup but not painted (the new look folds the old column away) is
+         reported as missing, never pressed into a timeout that takes the file down */
+      const there = await page.evaluate(x => { const e = document.querySelector('#pd-signface ' + x); return !!e && e.getClientRects().length > 0; }, sel);
       if (!there) return false;
-      await page.click(sel);
+      await page.click('#pd-signface ' + sel);
       await page.waitForTimeout(600);
       if (await page.evaluate(() => !!document.getElementById('cf-ok'))) await page.click('#cf-ok');
       await page.waitForTimeout(2000);
@@ -492,7 +503,23 @@ const CONTRACT = (id, over) => Object.assign({
        the Sign button left Before you sign ("the foot follows the last stop"); its one
        door is the dossier's All acts row now (#ws-m-their-way, roomActsRowsHtml) — the same
        press, outsideSetRoute(c, 'outside') */
+    /* RE-POINTED 17 Nov 2026 (#762): the Dossier's All acts fold is the paper line's More (#ig-actions → pdActsToggle): its
+       short card carries the same row by key ([data-pd-acts-go="#ws-m-their-way"], pdActsGo presses the Dossier's own
+       row) — the same press, outsideSetRoute(c, 'outside'). The old fold is tried first, then More */
     const pressMenuRoute = async () => {
+      await page.evaluate(x => { ['pdFillClose', 'pdSignClose', 'pdRedClose', 'pdMidClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); pdOpenOnHome(x, 'copilot'); }, up.id);
+      await page.waitForFunction(() => !!document.getElementById('ig-actions'), null, { timeout: 8000 }).catch(() => {});
+      if (await page.evaluate(() => !document.querySelector('#ig-dock .ds-fold #ws-m-their-way') && !!document.getElementById('ig-actions'))) {
+        await page.click('#ig-actions');
+        const row = '#pd-acts-pop [data-pd-acts-go="#ws-m-their-way"]';
+        await page.waitForFunction(r => !!document.querySelector(r), row, { timeout: 4000 }).catch(() => {});
+        if (!(await page.evaluate(r => !!document.querySelector(r), row))) return false;
+        await page.click(row);
+        await page.waitForTimeout(600);
+        if (await page.evaluate(() => !!document.getElementById('cf-ok'))) await page.click('#cf-ok');
+        await page.waitForTimeout(2000);
+        return true;
+      }
       /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the row stands in the dossier's All acts fold */
       await page.evaluate(x => { ['pdFillClose', 'pdSignClose', 'pdRedClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); pdOpenOnHome(x, 'copilot'); }, up.id);
       await page.waitForFunction(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; return !!document.querySelector('#ig-dock .ds-fold #ws-m-their-way'); }, null, { timeout: 8000 }).catch(() => {});
