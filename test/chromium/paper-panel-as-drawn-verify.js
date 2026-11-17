@@ -347,7 +347,9 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         const btn = await until(() => !!document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'), null, 8000);
         check(`6f ${w}×${ht}: the signing copy's headings carry their clauses, and the face is a button there`, !!up && !!btn, JSON.stringify({ up, btn }));
         if (!btn) continue;
-        await askAndAllow();
+        /* a stale "you are followed" on the colleague's side turns the first press into a STOP (red at 1536×730,
+           the follow from 1440 not yet known gone): asked once more, bounded */
+        if (!await askAndAllow()) await askAndAllow();
         const there = await until(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll'); if (!el || !sc) return null;
           const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect(); const spot = presenceSpotNow();
           /* the walk scrolls smoothly: asked until it has come to rest there */
