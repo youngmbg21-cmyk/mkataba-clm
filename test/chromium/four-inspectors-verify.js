@@ -264,7 +264,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     }
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
     ok('5d and widening the window puts the Inspector back without a navigation',
-      await page.evaluate(() => !!document.querySelector('.ik-ins')));
+      /* RE-POINTED 17 Nov 2026 (#762): the last page is now Requests (main took Standards out of this list); the new look draws
+         it as its own page with Jambo's panel beside the list (.ikn-page #ins-panel), not the old .ik-ins */
+      await page.evaluate(() => !!document.querySelector('.ikn-page #ins-panel, .ik-ins')));
 
     ok('6 [control] the whole journey raised no page error', errs.length === 0, errs.join(' | ') || 'clean');
   } catch (e) {
