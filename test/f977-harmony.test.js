@@ -138,7 +138,8 @@ test('f977 (20, 22, 23) one toolbar, a readable preview, a tight sheet', () => {
   assert.match(b, /html\.lg-new \.ig-brain \.ig-viewbar \.ig-lensrow\{position:static;display:flex\}/, 'the lenses join the one bar');
   assert.match(b, /html\.lg-new \.tpln-zoom\{zoom:\.72\}/);
   const lib = read('js/views/library.js');
-  assert.match(lib, /<b class="tpln-name">\$\{_tplEsc\(card\.name\)\}<\/b>/);
+  /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the chosen paper's name is the step's head, its verbs beside the paper */
+  assert.match(lib, /if \(v === 'paper' && pick\)[\s\S]{0,200}h1\(pick\.c\.name\)/);
   assert.doesNotMatch(lib, /i18t\('tpln_p_src_(book|learned)'\)/, 'no stray source words in the panel');
   assert.match(b, /html\.lg-new #na-root\.na-one \.na-closest \.na-pick\.na-close\{min-height:0\}/);
   assert.match(b, /html\.lg-new #modal-root \.na-why\{color:var\(--color-quiet\);font-weight:400\}/);

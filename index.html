@@ -21060,6 +21060,66 @@
   html.lg-new .tpln-none{margin:var(--s-3) var(--s-2);font-size:var(--t-label);color:var(--color-neutral-600)}
   html.lg-new .tpln-none[hidden]{display:none}
   html.lg-new .tpln-u{white-space:nowrap}
+  /* OUR PAPER: SHELVES, THEN THE LEGORA WAY (owner's pick by prototype, 17 Nov 2026): the head says the step with the
+     way back above it; ONE filter line on both pages as Contracts draws its own (the box on a hairline, Shelves · All at
+     its right); four figures; a coloured shelf per folder, its papers stacked; the folder's list the Legora way; the
+     paper with its facts and verbs beside it */
+  html.lg-new .tpl-page.is-tpln5 .ph-top{border-bottom:0;padding-bottom:0}
+  html.lg-new .tpln5-head{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+  html.lg-new .tpln5-hrow{display:flex;align-items:baseline;gap:12px;min-width:0}
+  html.lg-new .tpln5-h1{margin:0;font-family:var(--font-title);font-size:26px;font-weight:400;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+  html.lg-new .tpln5-hrow .tpl-hd-n,html.lg-new .tpln5-hrow .tpl-hd-sub{white-space:nowrap}
+  html.lg-new .tpln5-sp{flex:1}
+  html.lg-new .tpln5-std,html.lg-new .tpln5-back,html.lg-new .tpln5-lk{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer}
+  html.lg-new .tpln5-std{font-size:14px;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;flex:none}
+  html.lg-new .tpln5-back{font-size:13px;align-self:flex-start}
+  html.lg-new .tpln5-lk{text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent-ink) 35%,transparent);text-underline-offset:3px}
+  html.lg-new .tpln5{display:flex;flex-direction:column;min-width:0;padding:8px 40px 16px;box-sizing:border-box}
+  html.lg-new .tpln5-fl{display:flex;align-items:flex-end;gap:28px;margin:0 0 18px}
+  html.lg-new .tpln5-box{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--color-divider);padding:8px 0 10px;color:var(--color-quiet)}
+  html.lg-new .tpln5-box input{flex:1;min-width:0;border:0;outline:none;box-shadow:none;background:none;font:inherit;font-size:15px;color:var(--color-text)}
+  html.lg-new .tpln5-tabs{display:flex;gap:22px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .tpln5-tab{border:0;background:none;font:inherit;font-size:15px;color:var(--color-text);padding:8px 0 10px;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+  html.lg-new .tpln5-tab span{color:var(--color-neutral-400)}
+  html.lg-new .tpln5-tab.is-on{border-bottom:2px solid var(--accent-ink)}
+  html.lg-new .tpln5-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
+  html.lg-new .tpln5-fig{background:var(--surface-2);border:0;border-radius:var(--radius);padding:14px 16px;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-new .tpln5-fig:disabled{cursor:default}
+  html.lg-new .tpln5-fig b{font-size:24px;font-weight:var(--w-strong);line-height:1.15}
+  html.lg-new .tpln5-fig span{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* COVER FLOW (owner's pick, 17 Nov 2026): a row per folder, its papers a carousel; colour only the folder's mark and the
+     front paper's top edge */
+  html.lg-new .tpln5-cf{display:flex;flex-direction:column;border-top:1px solid var(--color-divider)}
+  html.lg-new .tpln5-cfr{display:flex;align-items:center;gap:22px;min-height:78px;padding:0 8px;border-bottom:1px solid var(--color-divider);cursor:pointer;outline:none;border-radius:0}
+  html.lg-new .tpln5-cfr:hover,html.lg-new .tpln5-cfr:focus-visible{background:var(--surface-2)}
+  html.lg-new .tpln5-cfw{flex:none;width:250px;display:flex;align-items:center;gap:10px;min-width:0}
+  html.lg-new .tpln5-cfw i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--sd)}
+  html.lg-new .tpln5-cfw > span{min-width:0;display:flex;flex-direction:column}
+  html.lg-new .tpln5-cfw b{font-size:14.5px;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text)}
+  html.lg-new .tpln5-cfw small{font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-cff{flex:1;min-width:0;position:relative;height:78px;perspective:900px;overflow:hidden}
+  html.lg-new .tpln5-cfp{position:absolute;left:16px;top:10px;width:160px;height:58px;box-sizing:border-box;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:4px;box-shadow:0 10px 16px -12px rgba(0,0,0,.45);padding:8px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;font:inherit;color:inherit;cursor:pointer;
+    transform:translateX(calc(var(--o) * 140px)) rotateY(calc(var(--o) * -42deg)) translateZ(calc(var(--a) * -60px));opacity:calc(1 - var(--a) * .25);z-index:calc(10 - var(--a));transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .6s}
+  html.lg-new .tpln5-cfp b{font:600 11px/1.25 var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text)}
+  html.lg-new .tpln5-cfp q{font:italic 10px/1.3 var(--font-doc);color:var(--color-neutral-400);quotes:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln5-cfp.is-on{box-shadow:0 14px 22px -12px rgba(0,0,0,.45),inset 0 3px 0 var(--sd)}
+  html.lg-new .tpln5-cfgo{flex:none;font-size:13px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-cfr:hover .tpln5-cfgo{color:var(--accent-ink)}
+  @media (prefers-reduced-motion: reduce){ html.lg-new .tpln5-cfp{transition:none} }
+  html.lg-new .tpln5-say{font-family:var(--font-title);font-size:17px;line-height:1.55;margin:0 0 14px;max-width:760px}
+  html.lg-new .tpln5-chiprow{display:flex;gap:6px;align-items:center;min-width:0}
+  html.lg-new .tpln5-chiprow .tpln-chips{flex:1}
+  html.lg-new .tpln5-glab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400);margin:14px 0 2px;display:flex;gap:10px}
+  html.lg-new .tpln5-glab[hidden]{display:none}
+  html.lg-new .tpln5-glab span{text-transform:none;letter-spacing:0}
+  html.lg-new .tpln5.is-paper{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:32px;align-items:start}
+  html.lg-new .tpln5.is-paper .tpln-zoom{zoom:.78}
+  html.lg-new .tpln5-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+  html.lg-new .tpln5-meta{margin:0;color:var(--color-neutral-400);font-size:14px}
+  html.lg-new .tpln5-side .tpln-acts{flex-wrap:wrap}
+  html.lg-new .tpln5-facts{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;max-width:420px}
+  html.lg-new .tpln5-facts span{display:block;font-size:13px;color:var(--color-neutral-400)}
+  html.lg-new .tpln5-facts b{font-size:15px;font-weight:var(--w-strong)}
   html.lg-new .tpln-bar{display:inline-block;height:6px;border-radius:3px;margin-left:8px;vertical-align:middle;background:var(--st-green-dot)}
   html.lg-new .cal-kind{display:inline-block;border-radius:6px;padding:1px 7px;margin-right:8px;font-size:11.5px;font-weight:var(--w-strong);vertical-align:1px}
   html.lg-new .stn-pill.stn-dot{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:var(--w-label);color:var(--color-text)}
