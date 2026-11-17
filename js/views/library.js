@@ -1325,6 +1325,12 @@ function tplBuiltinDraftBody(bid){
    copy every start makes: filed in the template's own value stream, with the
    category its stream states, and opened in the builder with Copilot's list of
    likely blanks. The creation itself lives in the start (nsOpenTemplate). */
+/* THE DOOR TO NEW AGREEMENT (owner, 17 Nov 2026): From scratch › From one of our templates, this paper chosen and in view;
+   without the new-paper grant, the grant's own refusal (Requests) */
+function tplnOursGo(bid){
+  if (typeof naNewPaperOk === 'function' && !naNewPaperOk()){ if (typeof window.newPaperBlock === 'function' && window.newPaperBlock()) return; toast(i18t('lb_viewers_no_add'), 'err'); return; }
+  return openNewAgreement({ newPaper:true, start:'template', pick:bid });
+}
 function tplMakeItOurs(bid){
   if(typeof window.newPaperBlock==='function' && window.newPaperBlock()) return;
   if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
@@ -2905,9 +2911,12 @@ function tplDraftFrom(id){
 }
 function tplPfVerbs(card){
   const row = { kind:card.kind, id:card.id, i:card.i, name:card.name, draft:card.draft, imported:card.imported };
-  let own = []; try { own = (tplPanelActs(row).acts || []).filter(a => !['more', 'use', 'edit'].includes(a.k)); } catch (_){ own = []; }
+  /* "Make it ours" is not pressed here (owner, 17 Nov 2026): a door to New agreement's From scratch takes its place,
+     landing on this very paper there (tplnOursGo) */
+  let own = []; try { own = (tplPanelActs(row).acts || []).filter(a => !['more', 'use', 'edit', 'ours'].includes(a.k)); } catch (_){ own = []; }
   const out = own.map(a => Object.assign({}, a, { kind:a.k === 'import' ? 'accent' : '' }));
   const mayMake = tplCanManage();
+  if (card.kind === 'builtin' && mayMake && typeof openNewAgreement === 'function') out.push({ k:'ours', kind:'link', label:i18t('tpln5_ours_door'), run:() => tplnOursGo(card.id) });
   if (card.kind === 'company' && mayMake) out.push({ k:'builder', label:i18t('lib_pf_open_builder'), run:() => tplLibEdit(card.id) });
   const mayDraft = (typeof canEdit !== 'function') || canEdit();
   const pick = card.kind === 'company' ? 'lib' : card.kind === 'cp' ? 'mine' : card.kind === 'builtin' ? 'tid' : null;
@@ -3047,7 +3056,7 @@ function tplnPaperHtml(x){
   let blanks = 0; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).length : 0; } catch (_){ blanks = 0; }
   const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
   /* the black button first, as drawn; each keeps its own index (the one handler reads it) */
-  const acts = verbs.map((a, i) => ({ a, i })).sort((x, y) => (y.a.kind === 'accent') - (x.a.kind === 'accent')).map(({ a, i }) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
+  const acts = verbs.map((a, i) => ({ a, i })).sort((x, y) => (y.a.kind === 'accent') - (x.a.kind === 'accent')).map(({ a, i }) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : a.kind === 'link' ? 'tpln5-door' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
   const meta = [tplOvBucketLabel({ key: card.kind, sec: 'library' }), tplnFolderName(tplnFid(card)), cs.length ? i18tn('tpln_uses', cs.length, { n: cs.length }) : i18t('tpln_unused')].filter(Boolean).join(' · ');
   const fact = (w, n) => `<div><span>${_tplEsc(w)}</span><b>${n}</b></div>`;
   return `<div class="tpln5 is-paper tpln"><aside class="tpln-sheet"><div class="tpln-zoom">${tplPfPaperHtml(card)}</div></aside>
@@ -5107,7 +5116,7 @@ function sdWire(d, mayEdit){
   PB_PAGE_TABS.forEach(sdWireList);
 }
 
-Object.assign(window,{tplnPanelFive,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+Object.assign(window,{tplnPanelFive,tplnOursGo,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfReadOf,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

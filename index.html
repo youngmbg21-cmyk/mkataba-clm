@@ -21101,8 +21101,13 @@
   html.lg-new .tpln5-glab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400);margin:14px 0 2px;display:flex;gap:10px}
   html.lg-new .tpln5-glab[hidden]{display:none}
   html.lg-new .tpln5-glab span{text-transform:none;letter-spacing:0}
-  html.lg-new .tpln5.is-paper{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:32px;align-items:start}
-  html.lg-new .tpln5.is-paper .tpln-zoom{zoom:.78}
+  html.lg-new .tpln5.is-paper{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:32px;align-items:start}
+  /* THE PAPER FILLS ITS ROOM (owner, 17 Nov 2026: "increase the size of the paper to make better use of the empty space"): read at its own size, up to the agreement's measure */
+  html.lg-new .tpln5.is-paper .tpln-zoom{zoom:1}
+  html.lg-new .tpln5.is-paper .tpln-sheet{max-width:var(--doc-sheet-max, 720px);width:100%;max-height:calc(100vh - 210px)}
+  html.lg-new .tpln5.is-paper .tpln-zoom .tpl-pf-sheet{width:auto;max-width:none}
+  html.lg-new .tpln5-door{align-self:flex-start;background:none;border:0;padding:0;font:inherit;font-size:14px;color:var(--accent-ink);cursor:pointer;text-align:left}
+  html.lg-new .tpln5-door:hover{text-decoration:underline}
   html.lg-new .tpln5-side{display:flex;flex-direction:column;gap:16px;min-width:0}
   html.lg-new .tpln5-meta{margin:0;color:var(--color-neutral-400);font-size:14px}
   html.lg-new .tpln5-side .tpln-acts{flex-wrap:wrap}
