@@ -394,6 +394,8 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
   newPaper: !!u.new_paper,
   reFile: !!u.re_file,
   holdContracts: !!u.hold_contracts,
+  /* WHO DECIDES ON OUR STANDARDS besides the admins (owner, 17 Nov 2026: "admins plus named people") */
+  decideStandards: !!u.decide_standards,
   overseerId: u.overseer_id || null,
   /* The stored answers, never the resolved rule — saRuleOf reads them on both
      hosts, and a server that pre-resolved them would be a second place the
@@ -409,7 +411,7 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'pwAt', 'roleBy', 'holdContracts'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'pwAt', 'roleBy', 'holdContracts', 'decideStandards'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -1150,6 +1152,7 @@ addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
 addColumnIfMissing('users', 'new_paper', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 're_file', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 'hold_contracts', 'INTEGER NOT NULL DEFAULT 0');
+addColumnIfMissing('users', 'decide_standards', 'INTEGER NOT NULL DEFAULT 0');
 /* A member's JOB TITLE — "COO", "Finance Director" — which is a different
    thing from their `role` ("admin"/"legal"/"viewer"). `role` is a permission
    level: what they may do in the software. `title` is the capacity they sign
@@ -1701,9 +1704,12 @@ function scGate(){
    is what it was at the time. The question itself is js/signgate.js's
    (sgAcceptedProperly), which the card asks too; this is only its roster. */
 function scIsAdminId(id){
-  const u = id ? db.prepare('SELECT role FROM users WHERE id=?').get(String(id)) : null;
-  return !!(u && u.role === 'admin');
+  const u = id ? db.prepare('SELECT role, decide_standards FROM users WHERE id=?').get(String(id)) : null;
+  /* AN ADMIN, OR SOMEBODY AN ADMIN NAMED to decide on our standards (owner, 17 Nov 2026) — never a viewer */
+  return !!(u && (u.role === 'admin' || (u.role !== 'viewer' && Number(u.decide_standards || 0) !== 0)));
 }
+/* the same question of a signed-in person (the standards' decide route) */
+function stdDecides(user){ return !!user && (user.role === 'admin' || (user.role !== 'viewer' && Number(user.decide_standards || 0) !== 0)); }
 /* The brief as the wall reads it: its own table, never the record (WO-2).
    Only `at` and `truncated` are asked — the brief-read stamp is keyed on when
    it was written. */
@@ -6933,15 +6939,16 @@ app.post('/api/standards/changes', auth, (req, res) => {
     ...(base ? { baseLibrary: base } : {}), ...(basePb ? { basePlaybook: basePb } : {}) };
   const next = [...kept, ch].slice(-STD_CHANGES_KEEP);
   setSetting('appSettings', { ...stored, standardChanges: next });
-  const admins = db.prepare("SELECT id FROM users WHERE role='admin'").all().map(u => String(u.id)).filter(id => id !== String(req.user.id));
+  const admins = db.prepare("SELECT id FROM users WHERE role='admin' OR (role<>'viewer' AND decide_standards<>0)").all().map(u => String(u.id)).filter(id => id !== String(req.user.id));
   res.json({ ok: true, change: ch, standardChanges: next, approvers: admins.length });
 });
-app.post('/api/standards/changes/:id/decide', auth, admin, (req, res) => {
+app.post('/api/standards/changes/:id/decide', auth, (req, res) => {
+  if (!stdDecides(req.user)) return res.status(403).json({ error: 'Only an admin, or somebody an admin named, may decide a change to a standard.' });
   const stored = getSetting('appSettings') || {};
   const all = stdChangesOf(stored);
   const ch = all.find(c => c.id === req.params.id);
   if (!ch || ch.state !== 'waiting') return res.status(404).json({ error: 'This change has already been decided or withdrawn.' });
-  if (String(ch.byId) === String(req.user.id)) return res.status(409).json({ error: 'You proposed this change, so another admin must decide it.', own: true });
+  if (String(ch.byId) === String(req.user.id)) return res.status(409).json({ error: 'You proposed this change, so somebody else must decide it.', own: true });
   const yes = !!(req.body || {}).yes;
   const at = new Date().toISOString();
   const done = { ...ch, state: yes ? 'approved' : 'refused', decidedById: String(req.user.id), decidedBy: req.user.name || req.user.email || '', decidedAt: at,
@@ -19419,11 +19426,11 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* RE-FILE AND HOLD ARE GRANTS OF THEIR OWN (9 Oct 2026). They were written
      only inside the new-paper block and this check never counted them, so a
      tick on either alone was refused "Nothing to change". */
-  const hasReFile = b.reFile !== undefined, hasHold = b.holdContracts !== undefined;
+  const hasReFile = b.reFile !== undefined, hasHold = b.holdContracts !== undefined, hasStd = b.decideStandards !== undefined;
   /* A NAME IS AN ADMIN'S TO CHANGE (9 Oct 2026): the browser said "Saved" and
      kept it in its own memory only, so a refresh brought the old name back. */
   const hasName = b.name !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName)
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasStd && !hasName)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   /* Only a title — and, since the gaps of 18 Oct 2026 (round 24 "One sheet":
@@ -19562,6 +19569,14 @@ app.patch('/api/users/:id', auth, (req, res) => {
       if (role === 'admin' && !b.canViewValues)
         return no(400, { error: 'Admins always see contract values. Change the role first if this member should not.' });
       db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
+    }
+    if (hasStd) {
+      const role = hasRole ? b.role : target.role;
+      if (role === 'admin' && !b.decideStandards)
+        return no(400, { error: 'An admin always decides on our standards — the tick cannot be removed from them.' });
+      if (role === 'viewer' && b.decideStandards)
+        return no(400, { error: 'A viewer cannot decide on our standards.' });
+      db.prepare('UPDATE users SET decide_standards=? WHERE id=?').run(b.decideStandards ? 1 : 0, req.params.id);
     }
     if (hasHold || hasReFile) {
       const role = hasRole ? b.role : target.role;

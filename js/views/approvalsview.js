@@ -1222,16 +1222,16 @@ function apnRowHtml(r){
 /* ═══ THE THREE PILES (owner's pick, 17 Nov 2026: "Build Three Piles, admins and Legal, optional note, bell only") ═══
    Mine is one list in three titled groups, in the order they matter: DEPARTURES FROM OUR STANDARDS first (they can
    stop a signing), then CHANGES TO OUR STANDARDS, then the contracts waiting for a yes, as before. A departure is
-   listed for an admin, or for the colleague it was escalated to (who decides it today: signCheckMayAccept), never a
-   Nice to have; a change for an admin who did not propose it (ldMayDecide). WHO ELSE DECIDES is the owner's open
-   question (17 Nov 2026: HaTi's "Legal" role is the Editor everyone has). Every press is the Standards page's own door
+   listed for whoever decides on our standards — an admin, or somebody an admin named (mayDecideStandards; owner,
+   17 Nov 2026: "admins plus named people") — or for the colleague it was escalated to (signCheckMayAccept), never a
+   Nice to have; a change for a decider who did not propose it (ldMayDecide). Every press is the Standards page's own door
    (ldDepRun, ldDecideOpen), so there is one way to decide each. */
 const _apnAge=iso=>{ const t=Date.parse(String(iso||'')); return isFinite(t)?Math.max(0,Math.floor((Date.now()-t)/864e5)):null; };
 function apnKeyOf(r){ return r?(r.key||String(r.c&&r.c.id||'')):''; }
 function apnDepRows(){
   const me=(typeof currentUser==='function'&&currentUser())||null;
   if(!me||typeof ldStandards!=='function') return [];
-  const boss=String(me.role||'')==='admin';
+  const boss=typeof window.mayDecideStandards==='function'?window.mayDecideStandards(me):String(me.role||'')==='admin';
   const out=[];
   for(const s of ldStandards()){
     if(s.firm==='nice') continue;

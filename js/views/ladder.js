@@ -42,7 +42,7 @@ function ldMayEdit(){ const u = ldMe(); return !!u && (u.role === 'admin' || u.r
 function ldIsAdmin(){ const u = ldMe(); return !!u && u.role === 'admin'; }
 function ldChanges(){ const s = state && state.settings; return Array.isArray(s && s.standardChanges) ? s.standardChanges : []; }
 function ldWaitingFor(id){ return ldChanges().find(c => c && c.state === 'waiting' && String(c.clauseId || '') === String(id || '')) || null; }
-function ldMayDecide(ch){ const u = ldMe(); return !!ch && ch.state === 'waiting' && ldIsAdmin() && String(ch.byId) !== String(u && u.id); }
+function ldMayDecide(ch){ const u = ldMe(); return !!ch && ch.state === 'waiting' && (typeof window.mayDecideStandards === 'function' ? window.mayDecideStandards(u) : ldIsAdmin()) && String(ch.byId) !== String(u && u.id); }
 function ldDay(iso){
   const d = String(iso || '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
   try { return new Date(d + 'T00:00:00').toLocaleDateString(typeof langLocale === 'function' ? langLocale() : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_){ return d; }
@@ -330,7 +330,7 @@ async function ldSendOpen(){
   const e = _ld.edit; if (!e) return;
   const clean = stdDraftClean(e.draft, stdBookKeys(playbook()));
   if (!clean){ toast(i18t('ld_send_needs'), 'warn'); return; }
-  const others = (getUsers() || []).filter(u => u && u.role === 'admin' && String(u.id) !== String((ldMe() || {}).id));
+  const others = (getUsers() || []).filter(u => u && (typeof window.mayDecideStandards === 'function' ? window.mayDecideStandards(u) : u.role === 'admin') && String(u.id) !== String((ldMe() || {}).id));
   const old = e.base ? e.base.ask : '';
   const what = e.clauseId && typeof diffHtml === 'function' && old !== clean.ask ? `<div class="ld-diff">${diffHtml(old, clean.ask)}</div>` : `<p class="ld-dw">${LD_E(clean.ask)}</p>`;
   openModal(`<div class="ld-dlg"><h3>${LD_E(i18t('ld_dlg_title', { n: e.ver ? e.ver + 1 : 1 }))}</h3>

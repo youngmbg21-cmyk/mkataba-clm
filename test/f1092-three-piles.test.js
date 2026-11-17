@@ -9,7 +9,8 @@
    (2) A yes offers a note, never requires it; a no always asks why. Standard changes left Settings' job list.
    (3) The answer comes back on the bell only — a no light red, a yes light green, the note quoted. Nothing mailed.
    (4) THE WALL: a decision's note never leaves HaTi — not in the copy the other side receives.
-   ("Admins and Legal" is the owner's open question: HaTi's Legal role is the Editor everyone has. Not built.)
+   (5) WHO DECIDES: "admins plus named people" (the owner's answer, 17 Nov 2026 — HaTi's Legal role is the Editor
+       everyone has): a per-person tick, off by default, an admin's to give; the server is the wall.
 */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -34,7 +35,7 @@ describe('f1092 (1) three piles, in the order they matter', () => {
   test('a Nice to have never waits on anybody; a departure is listed for an admin or the colleague it was sent to', () => {
     const d = fnBody(V, 'apnDepRows');
     assert.match(d, /if\(s\.firm==='nice'\) continue;/);
-    assert.match(d, /const boss=String\(me\.role\|\|''\)==='admin';/);
+    assert.match(d, /const boss=typeof window\.mayDecideStandards==='function'\?window\.mayDecideStandards\(me\)/);
     assert.match(d, /to&&to\.id&&String\(to\.id\)===String\(me\.id\)/);
   });
   test('a change is listed only for somebody who may decide it (never its author)', () => {
@@ -133,5 +134,39 @@ describe('f1092 (4) the wall: a decision\'s note never leaves HaTi', () => {
     assert.ok(!/playbook|approvalChain|decidedWhy|\.audit/.test(h));
     const D = strip(R('js/dealstands.js'));
     assert.ok(!/approvalChain|decidedWhy|\.accepted|\.refused/.test(D));
+  });
+});
+
+describe('f1092 (5) who decides: an admin, or somebody an admin named', () => {
+  test('the one reading: admins always, a ticked Editor, never a viewer, never by role alone', () => {
+    const w = loadViews(['js/richdoc.js', 'js/core.js'], { TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS });
+    assert.equal(w.mayDecideStandards({ role: 'admin' }), true);
+    assert.equal(w.mayDecideStandards({ role: 'legal' }), false, 'the Editor role alone decides nothing');
+    assert.equal(w.mayDecideStandards({ role: 'legal', decideStandards: true }), true);
+    assert.equal(w.mayDecideStandards({ role: 'viewer', decideStandards: true }), false);
+  });
+  test('the sign check and both lists ask it', () => {
+    assert.match(fnBody(strip(R('js/signcheck.js')), 'signCheckMayAccept'), /_scW\('mayDecideStandards'\)/);
+    assert.match(fnBody(strip(R('js/views/ladder.js')), 'ldMayDecide'), /mayDecideStandards\(u\)/);
+  });
+  const { startHati, seedWorkspace } = require('./helpers');
+  test('the server is the wall: the tick is an admin’s, and it opens the decide route', async () => {
+    const h = await startHati();
+    try {
+      const W = await seedWorkspace(h, { approvalRules: [] });
+      const LIB = [{ id: 'cl-law', category: 'Governing law', name: 'Kenyan law', preferred: 'Kenya.' }];
+      const PB = { _default: { label: 'All', positions: [{ category: 'Governing law', clause: 'cl-law', pos: 'must' }] } };
+      const ch = await W.admin.json('/api/standards/changes', { method: 'POST', body: { clauseId: 'cl-law', draft: { name: 'Kenyan law', category: 'Governing law', ask: 'Kenya, save arbitration.', firm: 'must' }, why: 'w', baseLibrary: LIB, basePlaybook: PB } });
+      assert.equal(ch.approvers, 0, 'nobody else decides yet: no other admin, no tick');
+      const before = await W.unrestricted.raw('/api/standards/changes/' + ch.change.id + '/decide', { method: 'POST', body: { yes: true } });
+      assert.equal(before.status, 403, 'an Editor without the tick may not decide');
+      const self = await W.unrestricted.raw('/api/users/' + W.users.unrestricted.id, { method: 'PATCH', body: { decideStandards: true } });
+      assert.ok(self.status >= 400, 'never self-service');
+      const g = await W.admin.json('/api/users/' + W.users.unrestricted.id, { method: 'PATCH', body: { decideStandards: true } });
+      assert.equal(g.user.decideStandards, true);
+      const d = await W.unrestricted.json('/api/standards/changes/' + ch.change.id + '/decide', { method: 'POST', body: { yes: false, why: 'Keep the arbitration seat named.' } });
+      assert.equal(d.change.state, 'refused');
+      assert.equal(d.change.decidedWhy, 'Keep the arbitration seat named.', 'the note rides with the decision');
+    } finally { await h.stop(); }
   });
 });
