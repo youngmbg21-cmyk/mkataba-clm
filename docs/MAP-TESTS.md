@@ -59,7 +59,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f455, take-it-in-turns-verify.
 
 ## FOLLOW ME — WALKING THROUGH IT TOGETHER
-- f456, f749, f1089 (asked before followed; the same clause by its heading — new, red at the parent), follow-me, paper-panel-as-drawn verify.
+- f456, f749, f1089 (asked before followed; the same clause by its heading; (5) a paper never negotiated walked by its own headings — new, red at the parent), follow-me, paper-panel-as-drawn verify.
 
 ## WHO IS IN THE ROOM — "ON THIS CONTRACT"
 - f454, who-is-in-the-room-verify 2f.

@@ -282,13 +282,19 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     const face = await until(() => { const b = document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'); return b ? b.getAttribute('data-pz-follow') : null; }, null, 10000);
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed): the press ASKS; the colleague's screen gets the small
        pop-up and presses Allow; then the follow starts. Both sides say their beat until each has seen the other, bounded. */
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me"): the COLLEAGUE presses the reader's face, asking the
+       reader to follow them; the reader's screen gets the pop-up and allows */
     const askAndAllow = async () => {
-      await page.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
+      await until(() => !!document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]') || null, null, 8000, peer);
+      /* a follow stopped a moment ago is known to both sides first, bounded */
+      for (let i = 0; i < 6 && await peer.evaluate(() => presenceLeading().length > 0); i++){
+        await page.evaluate(() => presenceSay('MK-0382')); await peer.evaluate(() => presenceSay('MK-0382')); }
+      await peer.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
       for (let i = 0; i < 10; i++) {
-        await page.evaluate(() => presenceSay('MK-0382'));
-        if (await page.evaluate(() => !!presenceFollowing())) return true;
         await peer.evaluate(() => presenceSay('MK-0382'));
-        if (await peer.evaluate(() => !!document.querySelector('#pz-ask [data-pz-allow]'))) await peer.click('#pz-ask [data-pz-allow]');
+        await page.evaluate(() => presenceSay('MK-0382'));
+        if (await page.evaluate(() => !!document.querySelector('#pz-ask [data-pz-allow]'))) await page.click('#pz-ask [data-pz-allow]');
+        if (await page.evaluate(() => !!presenceFollowing())) return true;
         await until(() => !!presenceFollowing() || null, null, 1200);
       }
       return page.evaluate(() => !!presenceFollowing());
@@ -306,8 +312,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       }
       /* PASS 2: the hover names the clause they are on */
       const hover = await page.evaluate(() => (document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]') || {}).title || '');
-      check('6a2 (pass 2) its hover names where they are: "<name> is reading clause N now. Press to ask to follow: once <first> allows it, your paper goes where <first> reads."',
-        /^Unrestricted Legal is reading clause \d+ now\. Press to ask to follow: once Unrestricted allows it, your paper goes where Unrestricted reads\.$/.test(hover), hover);
+      check('6a2 (pass 2) its hover names where they are: "<name> is reading clause N now. Press to ask <first> to follow you: …"',
+        /^Unrestricted Legal is reading clause \d+ now\. Press to ask Unrestricted to follow you: once they allow it, their page goes where you read and opens the redline cards you open\.$/.test(hover), hover);
       await askAndAllow();
       const lit = await until(() => { const b = document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'); return b && b.classList.contains('is-following') && b.getAttribute('aria-pressed') === 'true' && !!presenceFollowing(); }, null, 6000);
       check('6b pressed and allowed, it lights: following', !!lit);
