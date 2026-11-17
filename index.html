@@ -19627,6 +19627,7 @@
   html.lg-new #app-shell .cal-page.is-nl .cal-head:not(.is-nl),html.lg-new #app-shell .cal-page .cal-bar1[hidden]{display:none}
   html.lg-new #app-shell .cal-page.is-home .cal-head.is-nl{margin:0}
   html.lg-new #app-shell .cal-page .cal-head.is-nl{display:flex;align-items:center;gap:28px;padding:24px 40px 10px;background:transparent;border:0;box-shadow:none}
+  html.lg-new #app-shell .cal-page .cal-head.is-nl{flex-wrap:wrap;row-gap:8px}
   html.lg-new .cal-page .cal-head.is-nl .ttl{font-family:var(--font-title);font-size:26px;font-weight:400;letter-spacing:0;color:var(--color-text)}
   html.lg-new .cal-nl-tabs{display:flex;gap:16px;align-self:flex-end;padding-bottom:4px}
   html.lg-new .cal-nl-tabs a{font-size:14px;font-weight:var(--w-label);color:var(--color-text);padding:4px 0;border-bottom:2px solid transparent;cursor:pointer;text-decoration:none}
@@ -19911,6 +19912,8 @@
   /* CONTRACTS BY FOLDER, AS DRAWN (round 6): one white page; a card per folder with its tab, the facts, what needs you in amber */
   html.lg-new #ig-page #ct-place .sap-page.ct-page.ctf-page,html.lg-new .ctf-page{background:var(--color-surface);padding:24px 40px 16px;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
   html.lg-new .ctf-head{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+  /* a narrow place (a window of 800, Swedish words) lets the head's buttons go to a second line, never past the edge (#762) */
+  html.lg-new .ctf-head{flex-wrap:wrap;row-gap:8px}
   html.lg-new .ctf-h{font-family:var(--font-title);font-size:26px;font-weight:400;margin:0;color:var(--color-text)}
   html.lg-new .ctf-hf{font-size:14px;font-weight:var(--w-label)}
   html.lg-new .ctf-sp{flex:1}
@@ -21304,7 +21307,7 @@
   html.lg-new .ctf-list.is-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:32px;align-content:start;border-top:0}
   html.lg-new .ctf-row.is-compact{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 4px}
   html.lg-new .ctf-row.is-compact .ctf-name{flex:1 1 auto;min-width:0;padding-right:0}
-  html.lg-new .ctf-row.is-compact .ctf-rl{flex:none}
+  html.lg-new .ctf-row.is-compact .ctf-rl{flex:0 1 auto;min-width:0}
   html.lg-new .ctf-row.is-compact .ctf-rn{font-size:inherit}
   @media (max-width:1100px){ html.lg-new .ctf-list.is-two{grid-template-columns:minmax(0,1fr)} }
   /* A SEARCH BOX WEARS NO RING (owner, 10 Nov 2026: "the search areas should never have outlines. They should be like
