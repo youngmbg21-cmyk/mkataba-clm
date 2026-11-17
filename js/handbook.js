@@ -314,8 +314,8 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['ourpaper'], acts: [],
     words: { en: ['templates', 'our paper', 'template builder', 'new standard', 'new template'], sv: ['mallar', 'vårt papper', 'mallbyggaren', 'ny standard'] },
     shots: [
-      { go: [{ place: 'ourpaper' }], boxes: [{ sel: '[data-tpl-pf="builtin:RM"]', step: 1 }, { sel: '[data-tpl-pf-act="1"]', step: 2 }], cap: { en: 'A template pressed (1); Draft from it opens the one sheet with it chosen (2).', sv: 'En mall tryckt (1); Utkast från den öppnar det enda arket med den vald (2).' } },
-      { go: [{ newLook: true }, { place: 'ourpaper' }, { waitFor: '[data-tpln-q]' }], boxes: [{ sel: '[data-tpln-q]', step: 3 }, { sel: '.tpln5-cfr', step: 2 }], cap: { en: 'A row per folder opens its list (2); the filter finds a paper by name or by what you need (3).', sv: 'En rad per mapp öppnar sin lista (2); filtret hittar ett papper på namnet eller på vad du behöver (3).' } }] },
+      { go: [{ place: 'ourpaper' }, { waitFor: '[data-tpln-view="list"]' }, { click: '[data-tpln-view="list"]' }, { waitFor: '[data-tpln-open="builtin:RM"]' }, { click: '[data-tpln-open="builtin:RM"]' }, { waitFor: '.tpln5.is-paper .tpln-go' }], boxes: [{ sel: '.tpln5.is-paper .tpln5-meta', step: 2 }, { sel: '.tpln5.is-paper .tpln-go', step: 3 }], cap: { en: 'A template pressed twice opens its paper (2); Draft from it opens the one sheet with it chosen (3).', sv: 'En mall tryckt två gånger öppnar sitt papper (2); Utkast från den öppnar det enda arket med den vald (3).' } },
+      { go: [{ newLook: true }, { place: 'ourpaper' }, { fn: 'tplnBack' }, { fn: 'tplnBack' }, { waitFor: '[data-tpln-q]' }], boxes: [{ sel: '[data-tpln-q]', step: 3 }, { sel: '.tpln5-cfr', step: 2 }], cap: { en: 'A row per folder opens its list (2); the filter finds a paper by name or by what you need (3).', sv: 'En rad per mapp öppnar sin lista (2); filtret hittar ett papper på namnet eller på vad du behöver (3).' } }] },
 
   { k: '2.5', part: 'draft', round: 2,
     title: { en: 'Standards: the ladder, and who says yes', sv: 'Standarder: stegen, och vem som säger ja' },
