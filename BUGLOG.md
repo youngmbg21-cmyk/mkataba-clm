@@ -22551,3 +22551,7 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 16 Nov 2026 — Correction again: the Follow me check is now f1089 (main gave f1088 to another check the same evening).
 - Noticed, not fixed (16 Nov 2026, #762 photos): Contracts' All tab with 46 fixture contracts (KES 108.10M in the head) — Jambo's panel beside it says "26.40M KES on paper" over the same list; which sum the panel's tile counts is not said. Also the Calendar's new head shows a Print button and its ⋯ repeats "Print this view".
 - Noticed, not fixed (16 Nov 2026, #762 browser-check work): an admin's chat answer from the deep tier still prints its cost ("Weighed by the stronger model · $0.057", aiDeepLineHtml / ai_deep_line_cost, js/ai.js) — against "no Jambo call is said anywhere but the admin's spending pages" (f975).
+
+## Noticed, not fixed (17 Nov 2026, #762)
+- Requests › Advice tab: an advice request's panel headline says "…Start the draft opens the form to choose the paper." (iknPanelHtml head for a request with no fit) — an advice request has no Start the draft; its door is Open the request.
+- The separate Advice board went on a computer (owner's pick "6 The tab alone"): its Rate card, Intake link, New request and fee figures are no longer reachable on a computer (the phone keeps its own page).
