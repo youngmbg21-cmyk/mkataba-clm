@@ -6257,7 +6257,8 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     if (kt) pdKtDone(c, row.getAttribute('data-pd-og-row')); else pdOgConfirm(c, row.getAttribute('data-pd-og-row'));
   });
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt], [data-pd-kt-file], [data-pd-kt-read], [data-pd-kt-title]')) return;
+    /* the Fill in form in the middle answers its own "§ · quote" presses here too (#762: they did nothing) */
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt], [data-pd-kt-file], [data-pd-kt-read], [data-pd-kt-title], [data-pd-mid^="form:"] [data-pd-og-spot], [data-pd-mid^="form:"] [data-pd-og-quote]')) return;
     /* Key terms' one line in the Dossier: the table comes to the middle (pressed again, the paper comes back) */
     const ppl = t.closest('[data-pd-people]');
     if (ppl){ e.preventDefault(); pdPeopleOpen(ppl.getAttribute('data-pd-people'), ppl.getAttribute('data-pd-people-from') || ''); return; }
@@ -6336,11 +6337,24 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     const q = t.closest('#pd-og [data-pd-og-quote], #pd-kt [data-pd-og-quote]');
     if (q){ e.preventDefault();
       /* from the middle the wording is read on the paper: the paper comes back, at the clause */
-      if (q.closest('[data-pd-mid-kt]')) pdMidClose();
+      /* the Fill in form in the middle stands down too, so the paper is what is seen (#762) */
+      if (q.closest('[data-pd-mid-kt], [data-pd-mid^="form:"]')) pdMidClose();
       if (typeof igQuoteGo === 'function') igQuoteGo(q.getAttribute('data-pd-og-quote')); return; }
     const sp = t.closest('#pd-og [data-pd-og-spot], [data-pd-mid-kt] [data-pd-og-spot]');
-    if (sp){ e.preventDefault(); if (sp.closest('[data-pd-mid-kt]')) pdMidClose(); let el = null; try { el = (typeof contractFieldPeer === 'function') ? contractFieldPeer(sp.getAttribute('data-pd-og-spot'), 'paper') : null; } catch (_){ el = null; }
-      if (el && typeof landOn === 'function') landOn(el, { block: 'center', focus: false }); else pdOgSay(_pdT('og_not_on_paper'));
+    if (sp){ e.preventDefault(); const key = sp.getAttribute('data-pd-og-spot');
+      const fromMid = !!sp.closest('[data-pd-mid-kt], [data-pd-mid^="form:"]'); if (fromMid) pdMidClose();
+      /* with the form put away the paper is asked directly: the blank's own mark on Home's paper */
+      const peer = () => { let el = null; try { el = (typeof contractFieldPeer === 'function') ? contractFieldPeer(key, 'paper') : null; } catch (_){ el = null; }
+        if (el) return el; const q = CSS.escape(String(key));
+        return document.querySelector(`#ig-canvas [data-upblank="${q}"], #ig-canvas [data-field="${q}"], #ig-canvas [data-field-key="${q}"]`); };
+      /* from the middle the paper comes back first: the spot is asked for once it is drawn, bounded (#762) */
+      if (!fromMid){ const el = peer(); if (el && typeof landOn === 'function') landOn(el, { block: 'center', focus: false }); else pdOgSay(_pdT('og_not_on_paper')); return; }
+      /* the paper is drawn again as the middle stands down: the light goes on the spot that STANDS, asked again until it holds */
+      let n = 0, held = 0; const land = () => { const el = peer();
+        if (el && el.isConnected && el.getClientRects().length){ if (el.classList.contains('is-landed')){ if (++held >= 3) return; }
+          else if (typeof landOn === 'function'){ held = 0; landOn(el, { block: 'center', focus: false }); } }
+        if (++n < PD_FILL_TRIES) setTimeout(land, PD_FILL_BEAT_MS); else if (!el) pdOgSay(_pdT('og_not_on_paper')); };
+      setTimeout(land, PD_FILL_BEAT_MS);
       return; }
     /* KEY TERMS IN THE MIDDLE, THE LEGORA WAY: each press an existing door, the middle back after a pop-up (pdKtAway) */
     /* Rename: the name box in the title, written on change by wireKeyTerms; Done (or Rename again) puts the title back */

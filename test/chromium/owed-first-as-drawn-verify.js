@@ -127,6 +127,9 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     await ckOpenRowOf(page, '#pd-og [data-pd-og-spot="up_start_date"]'); await page.click('#pd-og [data-pd-og-spot="up_start_date"]');
     const atPress = await until(() => !!document.querySelector('#ig-canvas .is-landed[data-upblank="up_start_date"]'), null, 4000);
     check('1e pressed, "§3" lands on its spot on the paper through the one lander', !!atPress);
+    /* RE-POINTED 17 Nov 2026 (#762): the form stands IN THE MIDDLE over the paper, so "§3" puts it away to show the spot;
+       the form is opened again for what follows */
+    await openFill('MK-0405');
     await shot(page, '8-owed-first-1440x780');
 
     /* 2 our standard, the reading in the box */
