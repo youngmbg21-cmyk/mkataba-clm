@@ -4482,8 +4482,7 @@ function dossierOwedHtml(c, D, o){
   const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-ds-at="${_pdE(DOSSIER_STAGE_OF[String(d.k).split(':')[0].replace(/-more$/, '').replace(/^need$/, '')] || D.now)}" data-pd-gl-done="${_pdE(String(d.k).split(':')[0].replace(/-more$/, '').replace(/^signer$/, 'sign'))}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
   /* FILL THE DOCUMENT, the company template's one press, where the answers are owed to the wording
      (tplFormPending, the signing list's and the link check's own reading) */
-  let pend = 0; try { pend = (!held && typeof tplFormPending === 'function' && tplFormPending(c)) ? ((typeof tplFormPendingKeys === 'function' ? tplFormPendingKeys(c).length : 0) || 1) : 0; } catch (_){ pend = 0; }
-  const docFill = pend ? `<div class="pd-gl-row ds-row" data-ds-at="fill" data-pd-gl="docfill"><span>${_pdE(_pdTn('pd_ff_doc_n', pend, { n: pend }))}</span>${((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary hati-fill-btn" data-pd-og-docfill="${_pdE(c.id)}">${_pdE(_pdT('tl_fill_doc'))}</button>` : ''}</div>` : '';
+  const docFill = held ? '' : pdDocFillRowHtml(c);
   const body = (D.owed.length || grid || docFill) ? grid + docFill + rest.map(rowHtml).join('') + doneHtml
     : doneHtml + `<div class="pd-gl-none" data-ds-at="${_pdE(D.now)}"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('dos_owed_none'))}</span></div>`;
   /* SPINE: "Confirm N read" stands on the Fill in stage's line (dossierStagesHtml); this head is not drawn */
@@ -6242,7 +6241,7 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
   });
   document.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
-    const b = e.target && e.target.closest ? e.target.closest('#ig-dock #pd-needs [data-pd-og-docfill]') : null;
+    const b = e.target && e.target.closest ? e.target.closest('#ig-dock #pd-needs [data-pd-og-docfill], #ig-dock .pd2-dossier [data-pd-og-docfill]') : null;
     if (!b || b.disabled || b.closest('[data-pd-held-dossier]')) return;
     e.preventDefault(); _pdOgDocDown = true; setTimeout(() => { _pdOgDocDown = false; }, 1500);
     pdOgDocFill();
@@ -6387,7 +6386,7 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       pdKtOpen(c.id, ch.getAttribute('data-pd-kt-change')); pdOgRepaint(); return; }
     const dn = t.closest('#pd-kt [data-pd-kt-done]');
     if (dn){ e.preventDefault(); const c = pdOgContract(pdOgHostOf(dn)); if (c) pdKtDone(c, dn.getAttribute('data-pd-kt-done')); return; }
-    const df = t.closest('#pd-needs [data-pd-og-docfill]');
+    const df = t.closest('#pd-needs [data-pd-og-docfill], .pd2-dossier [data-pd-og-docfill]');
     if (df && !t.closest('[data-pd-held-dossier]')){ e.preventDefault(); if (_pdOgDocDown){ _pdOgDocDown = false; return; } pdOgDocFill(); return; }
     const pay = t.closest('#pd-og [data-pd-og-pay], #pd-kt [data-pd-og-pay]');
     if (pay){ e.preventDefault(); if (typeof payEditOpen === 'function') payEditOpen(pay.getAttribute('data-pd-og-pay')); return; }
@@ -7682,6 +7681,10 @@ function pd2Facts(c, D){
     /* A VIEWER CANNOT SAVE A SIGNER (BUGLOG 22086): no Change drawn for them, the fact stands alone */
     go: ((typeof canEdit !== 'function') || canEdit()) ? `data-pd-og-route="${E(c.id)}"` : '' });
   if (R.stream) out.push({ k: 'stream', l: _pdT('pd2_f_stream'), v: R.stream, s: _pdT('pd2_src_filed') });
+  /* A PRIVATE CONTRACT SAYS WHO MAY OPEN IT, beside the paper too (MAP: private streams; #762: the new Dossier had lost it) */
+  let P = null; try { P = (typeof window.bsPrivateOf === 'function') ? window.bsPrivateOf(c) : null; } catch (_){ P = null; }
+  if (P){ const who = P.first.length ? pdListSay(P.first) : '';
+    out.push({ k: 'private', l: _pdT('pd2_f_private'), v: E(who ? _pdT('pd_cg_private', { s: P.stream, who }) : _pdT('pd_cg_private_plain', { s: P.stream })), s: '' }); }
   let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
   if (ap && ap.required){
     const mine = (() => { try { return !!(typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ return false; } })();
@@ -7705,6 +7708,13 @@ function pd2TurnHtml(c){
   const go = shut ? '' : ` <button type="button" class="ui-link pd2-turn-go" data-pd-gl-risks>${_pdE(_pdTn('dos_risks_n', L.length, { n: L.length }))} \u203a</button>`;
   return `<div class="pd2-turn" data-pd2-turn><i class="pd2-jface" aria-hidden="true"></i><div><b>${_pdE(_pdT('cn2_jambo'))}</b><p>${_pdE(_pdT('pd2_turn', { what: t, why: w || t }))}${go}</p></div></div>`;
 }
+/* FILL THE DOCUMENT, the company template's one press, where the answers are owed to the wording (tplFormPending, the
+   signing list's and the link check's own reading) — ONE builder, the old Dossier and the new (#762: the new had none,
+   and pending answers hold the signature) */
+function pdDocFillRowHtml(c){
+  let pend = 0; try { pend = (typeof tplFormPending === 'function' && tplFormPending(c)) ? ((typeof tplFormPendingKeys === 'function' ? tplFormPendingKeys(c).length : 0) || 1) : 0; } catch (_){ pend = 0; }
+  return pend ? `<div class="pd-gl-row ds-row" data-ds-at="fill" data-pd-gl="docfill"><span>${_pdE(_pdTn('pd_ff_doc_n', pend, { n: pend }))}</span>${((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary hati-fill-btn" data-pd-og-docfill="${_pdE(c.id)}">${_pdE(_pdT('tl_fill_doc'))}</button>` : ''}</div>` : '';
+}
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
   if (pd2WalkOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-walk" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2WalkFaceHtml(c)}</div>`;
@@ -7715,7 +7725,7 @@ function pd2Html(c){
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
   const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
-  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pd2TurnHtml(c)}</div>`;
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
    read and the brief need to be better designed … 'Read it | Watch the read | The brief' in green and underlined") ----

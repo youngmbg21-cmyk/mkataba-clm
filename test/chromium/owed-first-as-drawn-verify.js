@@ -235,7 +235,8 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     await untilA(() => !!document.getElementById('pd-glance'), null, 6000);
     const P9raw = await pa.evaluate(() => { const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
       const v = document.querySelector('#pd-og tr[data-pd-og-row="value"]');
-      return { priv: t(document.querySelector('#pd-glance [data-pd-ds-card="private"]')), pay: !!(v && v.querySelector('[data-pd-og-pay]')), payWord: t(v && v.querySelector('.pd-og-f b')),
+      /* RE-POINTED 17 Nov 2026 (#762): the new Dossier says it among its facts ("Who may open", data-pd2-fact="private") */
+      return { priv: t(document.querySelector('#pd-glance [data-pd-ds-card="private"], #pd-glance [data-pd2-fact="private"]')), pay: !!(v && v.querySelector('[data-pd-og-pay]')), payWord: t(v && v.querySelector('.pd-og-f b')),
         wait: t(document.querySelector('#pd-glance [data-pd-ds-card="read"] .pd-gl-h')), cost: (document.querySelector('#pd-glance [data-pd-ds-read]') || {}).title || '', door: ((document.querySelector('#pd-glance [data-pd-ds-read]') || {}).textContent || '').trim() }; });
     const P9 = Object.assign(P9raw, pay9);
     check('9a a private stream: the Dossier says who may open it', P9.priv.length > 0 && /Private|private/.test(P9.priv), P9.priv);
