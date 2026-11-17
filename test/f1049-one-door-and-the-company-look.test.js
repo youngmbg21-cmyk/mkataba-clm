@@ -149,8 +149,9 @@ test('f1049 (7) the send screen, Four steps', () => {
 
 test('f1049 (8) Our paper, the Legora way: one ask box, the streams on one line with More, a quoted first line, uses on the right; no New standard here', () => {
   const L = read('js/views/library.js');
-  const H = body(L, 'tplnHtml');
-  assert.match(H, /\$\{tplnAskHtml\(\)\}\$\{tplnChipsHtml\(rows\.map\(x => x\.c\)\)\}/, 'the box and the chips lead the list');
+  /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the folder's list leads with the one filter line, then the chips */
+  const H = body(L, 'tplnListHtml');
+  assert.match(H, /\$\{tplnFilterLineHtml\(rows, shelves\)\}[\s\S]*\$\{tplnChipsHtml\(rows\.map\(x => x\.c\)\)\}/, 'the filter and the chips lead the list');
   assert.doesNotMatch(H, /data-tpln-new/, 'no New standard on Our paper: From scratch starts on the New agreement page');
   assert.match(L, /\$\{canManage&&!\(typeof newLookOn==='function'&&newLookOn\(\)\)\?`<button id="tpl-new"/, 'the head\'s New standard contract steps aside in the new look');
   const R = body(L, 'tplnRowHtml');

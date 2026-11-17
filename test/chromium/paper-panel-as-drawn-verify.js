@@ -347,12 +347,18 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         const btn = await until(() => !!document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'), null, 8000);
         check(`6f ${w}×${ht}: the signing copy's headings carry their clauses, and the face is a button there`, !!up && !!btn, JSON.stringify({ up, btn }));
         if (!btn) continue;
-        await askAndAllow();
+        /* a stale "you are followed" on the colleague's side turns the first press into a STOP (red at 1536×730,
+           the follow from 1440 not yet known gone): asked once more, bounded */
+        if (!await askAndAllow()) await askAndAllow();
         const there = await until(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll'); if (!el || !sc) return null;
           const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect(); const spot = presenceSpotNow();
           /* the walk scrolls smoothly: asked until it has come to rest there */
-          return (r.top >= b.top - 1 && r.bottom <= b.bottom + 1 && spot === id) ? { top: Math.round(sc.scrollTop), spot } : null; }, k11.id, 8000);
-        check(`6g ${w}×${ht}: pressed, the signing copy goes to the clause the colleague reads, and the reader's own place is that clause`, !!there && there.top > 0 && there.spot === k11.id, JSON.stringify(there));
+          /* RE-POINTED 17 Nov 2026: the clause's HEADING is in view (a clause taller than a short window cannot fit whole; red at 1536×730) */
+          return (r.top >= b.top - 1 && r.top <= b.bottom - 24 && spot === id) ? { top: Math.round(sc.scrollTop), spot } : null; }, k11.id, 8000);
+        const seen = there || await page.evaluate(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll');
+          if (!el || !sc) return { el: !!el, sc: !!sc, spot: presenceSpotNow() }; const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect();
+          return { elTop: Math.round(r.top), elBottom: Math.round(r.bottom), scTop: Math.round(b.top), scBottom: Math.round(b.bottom), scroll: Math.round(sc.scrollTop), spot: presenceSpotNow(), want: id }; }, k11.id);
+        check(`6g ${w}×${ht}: pressed, the signing copy goes to the clause the colleague reads, and the reader's own place is that clause`, !!there && there.top > 0 && there.spot === k11.id, JSON.stringify(seen));
         await shot(page, `6-follow-me-signing-copy-${w}x${ht}`);
         await page.evaluate(() => { if (presenceFollowing()) presenceFollow(presenceFollowing()); });
         await page.evaluate(() => { if (typeof pdSignClose === 'function') pdSignClose(); });

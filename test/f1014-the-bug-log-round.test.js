@@ -81,7 +81,8 @@ test('f1014 (8) nothing found is not a range', () => {
 });
 
 test('f1014 (9) Our paper carries its marks for the resize watcher', () => {
-  assert.match(read('js/views/library.js'), /<div class="view-enter sap-page tpl-page" data-ins-page="templates" data-ins="\$\{INS\?'1':'0'\}"/);
+  /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the page also says is-tpln5 in the new look */
+  assert.match(read('js/views/library.js'), /<div class="view-enter sap-page tpl-page\$\{T5\?' is-tpln5':''\}" data-ins-page="templates" data-ins="\$\{INS\?'1':'0'\}"/);
   assert.match(read('js/views/inspector.js'), /templates: 'renderTemplatesPage'/);
 });
 
