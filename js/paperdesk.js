@@ -2543,7 +2543,7 @@ function pd2SignRowsHtml(c){
     const vs = (c.playbook && c.playbook.verdicts) || [];
     const acc = vs.filter(v => v && v.accepted && v.accepted.at && (v.status === 'deviation' || v.status === 'missing'));
     const open = R.miss + R.off - acc.length;
-    const sub = R.off || R.miss ? [R.off ? T('pd2_sg_differs', { n: R.off, what: acc.map(v => String(v.category || '').toLowerCase()).filter(Boolean).join(', ') || '' }) : '',
+    const sub = R.off || R.miss ? [R.off ? T('pd2_sg_differs', { n: R.off, what: (acc.length ? acc : vs.filter(v => v && (v.status === 'deviation' || v.status === 'missing'))).map(v => String(v.category || '').toLowerCase()).filter(Boolean).join(', ') || '' }) : '',
       acc.length ? _pdTn('pd2_sg_accepted', acc.length, { n: acc.length }) : ''].filter(Boolean).join(' · ') : T('pd2_sg_all_met', { n: R.total });
     row(open > 0 ? 'now' : 'done', T(open > 0 ? 'pd2_sg_std_open' : 'pd2_sg_std'), sub, open > 0 ? { attr: 'data-pd-ds-std=""', w: 'jov5_sg_go_std' } : null);
   } else row('now', T('pd2_sg_std_none'), T('pd2_sg_std_none_s'), { attr: 'data-pd-ds-std=""', w: 'jov5_sg_go_std' });
