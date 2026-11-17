@@ -599,9 +599,9 @@ function nsLgBuiltinMeta(id) {
   } catch (_) { /* a paper that cannot be read shows its name alone */ }
   return (_nsBuiltinMeta[id] = { secs, q });
 }
-function nsLgTemplate() {
+function nsLgTemplate(o = {}) {
   nsStyle();
-  const st = { q: '', ls: '', more: false, pick: null, got: null, paste: false, pasted: null, busy: false };
+  const st = { q: '', ls: '', more: false, pick: (typeof TEMPLATES === 'object' && o.pick && TEMPLATES[o.pick]) ? o.pick : null, got: null, paste: false, pasted: null, busy: false };
   let editor = null;
   const builtins = (typeof TEMPLATES === 'object' ? Object.values(TEMPLATES) : [])
     .filter(t => typeof templateAllowedForRole !== 'function' || templateAllowedForRole(t.id, (typeof currentUser === 'function' && currentUser() || {}).role || 'viewer'));
@@ -668,6 +668,9 @@ function nsLgTemplate() {
       z.classList.toggle('is-over', ev === 'dragover'); if (ev === 'drop') readFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); },
   });
   paint();
+  /* ARRIVED FOR ONE PAPER (Our paper's door): it is chosen, its Open in the builder ready, and in view; nothing pressed */
+  if (st.pick) { const r = host.querySelector(`[data-nsl-row="${(window.CSS && CSS.escape) ? CSS.escape(st.pick) : st.pick}"]`);
+    if (r) { if (typeof landOn === 'function') landOn(r, { block: 'nearest' }); else try { r.scrollIntoView({ block: 'nearest' }); } catch (_) { } } }
 }
 
 /* ---------------- FROM ONE OF OUR CONTRACTS — the Legora way ---------------- */

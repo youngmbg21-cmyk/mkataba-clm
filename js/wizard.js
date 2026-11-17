@@ -850,7 +850,7 @@ function naNewPaperShow(root,on){
   if(on) root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected','false'));
   else { const cur=root.getAttribute('data-paper'); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===cur))); }
 }
-function naNewPaperGo(k){
+function naNewPaperGo(k,x){
   if(!naNewPaperOk()) return;
   /* each start opens INSIDE this tab (owner, 14 Nov 2026), and Back brings the four starts back to the same place */
   const host=document.getElementById('na-np');
@@ -860,7 +860,8 @@ function naNewPaperGo(k){
     /* the new look draws it the Legora way (owner's pick, 14 Nov 2026); elsewhere the door that has always filed it */
     if(typeof nsLgOn==='function'&&nsLgOn()&&typeof nsOpenTheirs==='function') return nsOpenTheirs();
     if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
-  openNewStandard({ start:k||'scratch', back, host });
+  /* a door that names a paper (Our paper's "Make our own", tplnOursGo) lands on that paper in its start */
+  openNewStandard({ start:k||'scratch', back, host, pick:(x&&x.pick)||null });
 }
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
@@ -1622,7 +1623,7 @@ function openNewAgreement(o){
     /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
     /* delegated: Back from a start puts the four starts back, a fresh Continue with them */
     root.addEventListener('click',e=>{ if(!e.target.closest||!e.target.closest('#na-np-go')) return; const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
-    if(o&&o.newPaper) naNewPaperShow(root,true);
+    if(o&&o.newPaper){ naNewPaperShow(root,true); if(o.start) naNewPaperGo(o.start,{ pick:o.pick }); }
     /* THEIR PAPERS YOU KEPT: a press chooses one (the card asks what any paper asks, the company filled in from it);
        "Or drop a new file from them" lets it go for the drop below */
     root.addEventListener('click',e=>{

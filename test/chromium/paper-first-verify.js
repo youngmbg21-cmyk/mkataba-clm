@@ -64,7 +64,8 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the head's verbs
        are "Draft from it" (the ONE New agreement form) beside the template's
        own — Make it ours on HaTi's paper, Open in the builder on ours */
-    check('3 the paper\'s doors are the template\'s own verbs', acts.includes('Draft from it') && acts.includes('Make it ours'), JSON.stringify(acts));
+    check('3 the paper\'s doors are the template\'s own verbs', acts.includes('Draft from it') && acts.includes('Make our own version in New agreement ›'), JSON.stringify(acts));
+    /* RE-POINTED 17 Nov 2026 (owner: "delete make it ours from here ... add a door to New Agreements"): the door takes its place */
     if (OUT) await page.screenshot({ path: path.join(OUT, 'paper-first-1440x780.png') });
 
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
