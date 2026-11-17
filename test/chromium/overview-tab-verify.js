@@ -137,7 +137,8 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       const viaName = w => !!(RENAMED[key] && RENAMED[key][w]) && now.includes(norm(RENAMED[key][w]));
       /* GONE WITH THE OLD LOOK (16 Nov 2026, #762): Settings has no left menu in the new look — its pages are linked at
          the foot of its one list (owner's pick, 14 Nov 2026, f1045) — so the panel's "Open the Menu" has nothing to open */
-      const RETIRED = { 'settings-you': ['Open the Menu'], 'settings-company': ['Open the Menu'] };
+      /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): the Parties panel has no all-parties list — "all parties" is gone on purpose */
+      const RETIRED = { 'settings-you': ['Open the Menu'], 'settings-company': ['Open the Menu'], customers: ['all parties'] };
       const viaRetired = w => (RETIRED[key] || []).includes(w);
       const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w) && !viaName(w) && !viaRetired(w));
       check(`4 ${key}: nothing the panel offered before is lost (${was.length} kept)`, !!inv && !lost.length, lost.length ? 'lost: ' + JSON.stringify(lost) : '');

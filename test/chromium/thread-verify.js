@@ -200,7 +200,12 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       s1.rows.length + ' rows');
     check('1b no switch, no Checks card, no Activity & comments card, no strand in the margin',
       s1.switchGone && s1.checksGone && s1.feedGone && s1.strandGone, JSON.stringify({ sw: s1.switchGone, checks: s1.checksGone, feed: s1.feedGone, strand: s1.strandGone }));
-    check('1c the first row is open on arrival, and it is the one at the line', s1.openIdx === 0 && s1.atLine === 0, JSON.stringify({ open: s1.openIdx, line: s1.atLine }));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): opening Clauses is the press that runs Jambo's read
+       (stkAutoRun), and the walk on the paper runs with it, quick (pd2WalkWithRead, f1018: "an arrival plays it"), carrying
+       the paper through his notes — so on arrival the paper is where the read left it, not at its top (round 5: the
+       Clauses tab may glide the paper to line up). What stands: exactly the row at the line is the open one. */
+    check('1c on arrival one row is open, and it is the one at the line', s1.openIdx >= 0 && s1.atLine === s1.openIdx
+      && s1.rows.filter(r => r.open).length === 1, JSON.stringify({ open: s1.openIdx, line: s1.atLine, scroll: s1.scroll }));
     check('1d the marked rows wear their tone — ruby on XI, amber on XIV, steel on IX',
       s1.rows.some(r => /INDEMNIF/.test(r.name) && r.tone === 'ruby') && s1.rows.some(r => /TERM, TERM/.test(r.name) && r.tone === 'amber')
         && s1.rows.some(r => /INSURANCE/.test(r.name) && r.tone === 'steel'),
