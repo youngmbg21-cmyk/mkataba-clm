@@ -46,7 +46,13 @@ describe('f1092 (1) three piles, in the order they matter', () => {
     assert.match(a, /ldDecideOpen\(key\)/);
     assert.match(a, /ldDepRun\(m\[1\], \+m\[2\], kind\)/);
     const L = strip(R('js/views/ladder.js'));
-    assert.match(fnBody(L, 'ldDepAct'), /return ldDepRun\(/, 'the Standards page presses the same function');
+    /* ONE DOOR FOR A DEPARTURE (17 Nov 2026): the Standards page decides nothing; it sends you to the row */
+    const card = fnBody(L, 'ldDepHtml');
+    assert.ok(!/data-ld-allow|data-ld-refuse/.test(card), 'no Allow once or Refuse on the Standards page');
+    assert.match(card, /data-ld-goap=/);
+    assert.match(card, /firm === 'nice' \? ''/, 'a Nice to have carries no decision at all');
+    assert.match(fnBody(L, 'ldGoApprovals'), /apnLandRow\(key\)/);
+    assert.match(fnBody(L, 'ldDepOpen'), /'open'\)/, 'Open the paper stays');
     assert.match(fnBody(L, 'ldDepRun'), /signCheckAccept\(c, i, ldAfterDecide\)/, 'Allow once is the sign check\'s own writer');
   });
   test('the head counts the piles too', () => {
@@ -168,5 +174,21 @@ describe('f1092 (5) who decides: an admin, or somebody an admin named', () => {
       assert.equal(d.change.state, 'refused');
       assert.equal(d.change.decidedWhy, 'Keep the arbitration seat named.', 'the note rides with the decision');
     } finally { await h.stop(); }
+  });
+});
+
+describe('f1092 (6) one door for a departure', () => {
+  test('the counts say what really waits: never a Nice to have', () => {
+    const L = strip(R('js/views/ladder.js'));
+    assert.match(fnBody(L, 'ldStandards'), /decide: \(place\.firm \|\| 'nice'\) === 'nice' \? 0 : open\.length/);
+    assert.match(fnBody(L, 'ldHeadFacts'), /ld_n_decide/);
+    assert.match(fnBody(L, 'ldPanelFive'), /n: r\.decide, l: i18t\('ld_p_decide'\)/);
+  });
+  test('the landing: Mine, the words cleared, that row chosen and brought into view', () => {
+    const a = fnBody(strip(R('js/views/approvalsview.js')), 'apnLandRow');
+    assert.match(a, /_apnTab='mine'; _apnQ='';/);
+    assert.match(a, /insSelect\('approvals', k\)/);
+    assert.match(a, /landOn\(tr,/);
+    assert.match(a, /apn_land_gone/, 'a row the reader does not have is said');
   });
 });
