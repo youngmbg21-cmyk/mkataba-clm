@@ -883,7 +883,9 @@ const SEED = async () => {
       const rest8 = ready ? await page.evaluate(HOLD) : null;
       const moved8 = [];
       if (ready) {
-        await page.evaluate(() => { const t = document.querySelector('#content table'); const host = t ? t.parentElement : document.querySelector('#content .cun-head').parentElement;
+        /* RE-POINTED 17 Nov 2026 (#762): a page with no list yet whose head has its own wrapper (Import's .mig-own-head) gets
+           the filler under that wrapper, where its content goes — never inside the head */
+        await page.evaluate(() => { const t = document.querySelector('#content table'); const hd = document.querySelector('#content .cun-head'); const own = hd.closest('.mig-own-head'); const host = t ? t.parentElement : own ? own.parentElement : hd.parentElement;
           const d = document.createElement('div'); d.id = 'pra-filler'; d.style.cssText = 'height:1600px;flex:none'; host.appendChild(d); });
         for (const y of [6, 20, 500]) {
           await page.evaluate(y => { [document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')]

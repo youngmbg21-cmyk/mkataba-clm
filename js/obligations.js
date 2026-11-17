@@ -4959,7 +4959,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     const pg = t.closest('[data-obn-page]');
     if(pg){ e.preventDefault(); const n = Number(pg.getAttribute('data-obn-page')) || 1;
       if(_obnTab === 'prop') _obnPropPage = Math.max(1, n); else _obnPage = Math.max(1, n);
-      obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; return; }
+      obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; const sl = document.getElementById('obn-list'); if(sl) sl.scrollTop = 0; return; }
     const op = t.closest('[data-obn-open]');
     if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id; obnRepaint(); return; }
     const wh = t.closest('[data-obn-whose]');

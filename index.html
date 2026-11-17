@@ -19914,6 +19914,11 @@
   html.lg-new .ctf-head{display:flex;align-items:center;gap:16px;margin-bottom:12px}
   /* a narrow place (a window of 800, Swedish words) lets the head's buttons go to a second line, never past the edge (#762) */
   html.lg-new .ctf-head{flex-wrap:wrap;row-gap:8px}
+  /* OBLIGATIONS' LIST SCROLLS UNDER ITS HEAD (A FRAME THAT CLIPS NEEDS A SCROLLER INSIDE IT; #762: the whole card scrolled, head and tabs with it) */
+  html.lg-new .obn-page .ap-card.apn-card{overflow:hidden}
+  html.lg-new .obn-page .obn-list{flex:1 1 auto;min-height:0;overflow-y:auto}
+  /* THE COLUMN HEADER HOLDS while a new-look list's rows scroll under it (#762: Negotiations' header left with its rows) */
+  html.lg-new .cu-scroll > .apn-table > thead th{position:sticky;top:0;z-index:1;background:var(--color-surface)}
   html.lg-new .ctf-h{font-family:var(--font-title);font-size:26px;font-weight:400;margin:0;color:var(--color-text)}
   html.lg-new .ctf-hf{font-size:14px;font-weight:var(--w-label)}
   html.lg-new .ctf-sp{flex:1}
@@ -20789,7 +20794,7 @@
   html.lg-new .gdn-r.is-multi .gdn-say{order:3;flex:0 0 100%;padding-left:42px;white-space:nowrap}
   /* SETTINGS & RULES, THE NEW LOOK (round 7): a menu down the left, one list of sentences, a Change at each row's end */
   html.lg-new .stn-page .ap-card.apn-card{padding-left:40px;padding-right:40px;display:flex;flex-direction:column;min-height:0}
-  html.lg-new .stn-title{margin:0 0 20px}
+  html.lg-new .stn-title{margin:4px 0 20px} /* the title at the height every list head puts its own (.cun-head margin-top 4px; #762) */
   /* THE LEGORA WAY, WITH COLOUR (owner's pick by name, 13 Nov 2026; replaces the left menu and the grey label column):
      nothing boxed, one list. An area's tone rides three properties (--tb wash, --tf ink, --td dot) set by its class,
      HaTi's own five tones; a round mark leads each row, the name ink, its sentence grey, the state a dot and a word. */
