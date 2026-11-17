@@ -303,9 +303,11 @@ function dirTabCount(book, tab, o){ return (book || []).filter(p => dirOnTab(p, 
 function dirPeopleOfParty(key){ return dirBook().filter(p => p.partyKey === key); }
 
 /* ---- THE PLACE A REFRESH PUTS BACK ---- */
-function dirPlace(){ return { tab: _dir.tab, q: _dir.q, party: _dir.party, hati: _dir.hati, stream: _dir.stream }; }
+/* the new look's own tab (_dirn) rides the place too, so a refresh lands on it (#762) */
+function dirPlace(){ return { tab: _dir.tab, q: _dir.q, party: _dir.party, hati: _dir.hati, stream: _dir.stream, nl: _dirn }; }
 function dirPlacePut(p){
   if (!p || typeof p !== 'object') return;
+  if (typeof p.nl === 'string' && p.nl) _dirn = p.nl;
   _dir.tab = DIR_TABS.includes(p.tab) ? p.tab : 'all';
   _dir.q = p.q ? String(p.q) : '';
   _dir.party = p.party ? String(p.party) : 'all';
@@ -858,6 +860,8 @@ function dirnPanelFive(p, sub, w, away){
   const reach = [];
   if (p.email) reach.push({ mark:'msg', t:i18t('dirn_p_email'), s:i18t('dirn_p_mail_cost'), attr:`data-dirn-mail="${_dE(p.key)}"` });
   if (n) reach.push({ mark:'users', t:i18t('jov5_dir_show'), v:String(n), attr:`data-dirn-contracts="${_dE(p.key)}"` });
+  /* an outside person's party is a door onto that party (MAP: Party → cuSelectParty; #762 — the new panel said it as words) */
+  if (p.partyKey && p.partyName && typeof cuCustomerOf === 'function' && cuCustomerOf(p.partyKey)) reach.push({ mark:'users', t:p.partyName, s:i18t('cun_open'), attr:`data-dir-party="${_dE(p.partyKey)}"` });
   if (reach.length) groups.push({ label:i18t('jov5_dir_reach'), rows:reach });
   return { avatar:initials, title:p.name || p.email || '', sub,
     glance:[{ n, l:i18tn('jov5_dir_agreements', n, { n }), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
@@ -968,6 +972,7 @@ if (typeof document !== 'undefined' && !document._dirnWired){ document._dirnWire
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const tab = t.closest('[data-dirn-tab]'); if (tab){ e.preventDefault(); _dirn = tab.getAttribute('data-dirn-tab'); renderDirectory({ rows: true }); return; }
+    const pty = t.closest('.dirn-page [data-dir-party], #ins-panel [data-dir-party]'); if (pty && document.querySelector('.dirn-page')){ e.preventDefault(); if (typeof cuSelectParty === 'function') cuSelectParty(pty.getAttribute('data-dir-party')); return; }
     const m = t.closest('[data-dirn-mail]'); if (m){ e.preventDefault(); e.stopPropagation(); const p = dirBook().find(x => x.key === m.getAttribute('data-dirn-mail')); if (p && p.email){ try { window.location.href = 'mailto:' + p.email; } catch (_){} } }
   }, true);
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */

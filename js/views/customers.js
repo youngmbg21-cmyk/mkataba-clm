@@ -405,9 +405,11 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
 
 /* ---- THE PLACE A REFRESH PUTS BACK ---- the list's own find and filters; a
    customer kept by an older refresh ("cust") is ignored and lands on the list. */
-function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, nda: _cu.nda, status: _cu.status, q: _cu.q }; }
+/* the new look's own tab (_cun) rides the place too, so a refresh lands on it (#762) */
+function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, nda: _cu.nda, status: _cu.status, q: _cu.q, nl: _cun }; }
 function cuPlacePut(p){
   if (!p || typeof p !== 'object') return;
+  if (typeof p.nl === 'string' && p.nl) _cun = p.nl;
   _cu.stream = p.stream ? String(p.stream) : 'all';
   _cu.owner = p.owner ? String(p.owner) : 'all';
   _cu.nda = ['inforce', 'unconfirmed', 'none'].includes(p.nda) ? p.nda : 'all';

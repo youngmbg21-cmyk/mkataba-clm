@@ -3250,7 +3250,11 @@ function tplnPanelFive(card, st, cs, signed, blanks){
   if (top && top.n >= 2) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('tpln_p_jambo', { n:top.n, of:st.used, what:String(top.category).toLowerCase() }), wrap:true }] });
   /* ONE DOOR TO A STANDARD (MAP: #tpl-new → openNewStandard; 16 Nov 2026, #762 — the new look drew none): a manager's
      row, the same press the old panel's [data-tpln-new] made */
-  if (tplCanManage()){ const w = String(i18t('lib_pf_c_new')); groups.push({ label:i18t('pd2_ch_doors'), rows:[{ mark:'plus', t:w.charAt(0).toUpperCase() + w.slice(1), attr:'data-tpln-new=""' }] }); }
+  /* without the new-paper grant the door is greyed with its reason, never a live door that refuses (newPaperBlocked) */
+  if (tplCanManage()){ const w = String(i18t('lib_pf_c_new')), off = typeof newPaperBlocked === 'function' && newPaperBlocked();
+    groups.push({ label:i18t('pd2_ch_doors'), rows:[off ? { mark:'plus', t:w.charAt(0).toUpperCase() + w.slice(1), s:i18t('np_refused') + ' ' + i18t('np_refused_ask'), wrap:true,
+        attr:`data-tpln-new="" disabled aria-disabled="true" title="${_tplEsc(i18t('np_refused') + ' ' + i18t('np_refused_ask'))}"` }
+      : { mark:'plus', t:w.charAt(0).toUpperCase() + w.slice(1), attr:'data-tpln-new=""' }] }); }
   const changedRun = st.changed ? () => { const b = document.createElement('button'); b.setAttribute('data-tpln-changed', tplPfKey(card)); b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } : null;
   return { eyebrow:[i18t('nav_tpl_std'), kind, stream].filter(Boolean).join(' \u00b7 '), title:card.name,
     sub:cs.length ? i18tn('jov5_tp_sub', cs.length, { n:cs.length, c:st.changed }) : i18t('jov5_tp_unused'),
