@@ -70,7 +70,10 @@ const check = (name, pass, detail) => {
     check('1. the door says "Review N proposed", N the desk\'s own', door && /Review 4 proposed/.test(door), door);
     if (!door) throw new Error('no door into the held duties on the Dossier\'s Obligations panel');
     await page.click('[data-rd-door]');
+    /* RE-POINTED 17 Nov 2026 (#762): the page is measured once its arrival has finished (a pop-up's arrival slides it a few
+       pixels; read mid-slide its foot sat 5px below the window) */
     const desk = await until(() => { const d = document.getElementById('obd'); if (!d) return null;
+      const dl = d.closest('[role="dialog"]') || d; if (typeof dl.getAnimations === 'function' && dl.getAnimations().some(a => a.playState === 'running')) return null;
       const r = d.closest('[role="dialog"]') ? d.closest('[role="dialog"]').getBoundingClientRect() : d.getBoundingClientRect();
       /* RE-POINTED 10 Oct 2026 (owner picked "Table", the SAP way): a kind
          is a band row of the table, an item already on the contract a row
