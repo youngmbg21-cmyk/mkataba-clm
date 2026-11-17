@@ -1807,7 +1807,7 @@ function iknStateOf(r){
   if (r._adv) return { mk: 'them', tone: 'steel' };
   return r.assignee ? { mk: 'them', tone: 'steel' } : { mk: 'you', tone: 'amber' };
 }
-function iknRowHtml(r, may){
+function iknRowHtml(r, may, keys){
   const st = iknStands(r), S = iknStateOf(r);
   const sel = String(r.id) === String(_iknSel);
   const streamName = r.folder && window.FOLDERS && FOLDERS[r.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[r.folder]) || FOLDERS[r.folder].name) : '';
@@ -1821,10 +1821,29 @@ function iknRowHtml(r, may){
     : may ? `<button type="button" class="ui-btn ${sel ? 'ui-btn-primary ' : ''}ui-btn-sm ikn-go" data-ikn-draft="${esc(r.id)}">${esc(i18t('ikn_start'))}</button>` : '';
   const name = `<div class="cun-name">${esc(r.title || '')}</div>${r._adv ? `<div class="cun-sub">${esc(i18t('ikn_advice_w'))}</div>` : ''}${r.need ? `<div class="ikn-q">“${esc(String(r.need).slice(0, 120))}${String(r.need).length > 120 ? '…' : ''}”</div>` : ''}`;
   const by = ikFirstLast(r.by && r.by.name), age = typeof ikAgeWords === 'function' ? ikAgeWords(r) : '';
+  /* the columns drawn (listCols, #762): a column that stepped aside draws no cell */
+  const cell = {
+    stream: () => `<td class="cun-wait ikn-stream">${stream}</td>`,
+    stands: () => `<td class="cun-wait">${stands}</td>`,
+    by: () => `<td class="cun-wait ikn-age${iknAgeTone(r)}">${esc(by || '—')}${age ? `<div class="cun-sub">${esc(age)}</div>` : ''}</td>`,
+    act: () => `<td class="cun-go">${act}</td>`,
+  };
   return `<tr data-ikn-row="${esc(r.id)}" class="${sel ? 'is-sel' : ''}${r.contractId ? ' is-done' : ''}" tabindex="-1"><td>${typeof listSapCellHtml === 'function' ? listSapCellHtml(S.mk, name) : name}</td>
-    <td class="cun-wait ikn-stream">${stream}</td>
-    <td class="cun-wait">${stands}</td>
-    <td class="cun-wait ikn-age${iknAgeTone(r)}">${esc(by || '—')}${age ? `<div class="cun-sub">${esc(age)}</div>` : ''}</td><td class="cun-go">${act}</td></tr>`;
+    ${(keys || IKN_KEYS).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
+   dragged widths carry over; the Request, How it stands and its button always stand, where the room is short the
+   Stream steps aside first, then Asked by */
+const IKN_KEYS = ['stream', 'stands', 'by', 'act'];
+function iknCols(){
+  const W = { stream: 130, stands: 190, by: 120, act: 120 }, R = { stream: 1, by: 2 };
+  const T = { name: 'ikn_c_req', stream: 'ikn_c_stream', stands: 'ikn_c_stands', by: 'ikn_c_by' };
+  const DEFS = [{ k: 'name' }, ...IKN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols(IK_SEAT, DEFS, () => ikRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { keys: cols.slice(1).map(c => c.k), n: cols.length,
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => T[c.k] ? `<th>${esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(IK_SEAT, c.k) : ''}</th>` : '<th></th>').join('')}</tr></thead>` };
 }
 let _iknSel = null;
 /* a door choosing Requests' tab before the page is drawn (the Advice board's old doors land on the Advice tab, #762) */
@@ -1842,15 +1861,16 @@ function iknRender(host, o){
   if (!_iknSel || !R.list.some(r => String(r.id) === String(_iknSel))) _iknSel = R.list[0] ? R.list[0].id : null;
   const tabs = [['open', i18t('ik_v_open'), open], ['mine', i18t('ik_v_mine'), R.n('mine')], ['drafted', i18t('ikn_tab_drafted'), R.n('drafted')], ['advice', i18t('rq_kind_advice'), R.n('advice')]];
   const facts = [i18tn('ik_hf_open', open, { n: open }), noEd ? i18tn('ikn_noed', noEd, { n: noEd }) : ''].filter(Boolean).join(' \u00b7 ');
+  const C = iknCols();
   const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ikn-page" data-ins-page="intake" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:36%"><col style="width:15%" data-spread><col style="width:22%"><col style="width:13%"><col data-floor="120"></colgroup>
-        <thead><tr><th>${esc(i18t('ikn_c_req'))}</th><th>${esc(i18t('ikn_c_stream'))}</th><th>${esc(i18t('ikn_c_stands'))}</th><th>${esc(i18t('ikn_c_by'))}</th><th></th></tr></thead>
-        <tbody>${R.list.map(r => iknRowHtml(r, may)).join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
+      <div class="cu-scroll"><table class="apn-table cun-table ikn-table" data-list-seat="${esc(IK_SEAT)}">${C.colg}
+        ${C.th}
+        <tbody>${R.list.map(r => iknRowHtml(r, may, C.keys)).join('') || `<tr><td colspan="${C.n}" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const rowsOnly = !!(o && o.rows) && typeof listRowsSwapHtml === 'function'

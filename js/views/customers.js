@@ -1416,7 +1416,7 @@ function cunPanelHtml(r){
      data-cun-web, data-cu-pr-edit) and Jambo's remark. Read from the record, no AI. The new look only. */
   if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
     const end = c => { try { const d = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); return d ? cuDay(d) : ''; } catch (_){ return ''; } };
-    const ags = r.items.filter(c => !c.archived).slice(0, 3).map(c => ({ mark: 'file', t: c.name || c.id, s: end(c) ? i18t('jov5_pt_ends', { day: end(c) }) : String(c.status || ''), stg: (() => { try { const m = typeof contractStatusMeta === 'function' ? contractStatusMeta(c) : null; return m ? { label: m.label, dot: m.dot } : null; } catch (_){ return null; } })(), v: (typeof jov5Money === 'function') ? jov5Money(c) : '', run: () => jov5Open(c.id) }));
+    const ags = r.items.filter(c => !c.archived).slice(0, 3).map(c => ({ mark: 'file', t: c.name || c.id, s: end(c) ? i18t('jov5_pt_ends', { day: end(c) }) : '', stg: (() => { try { const m = typeof contractStatusMeta === 'function' ? contractStatusMeta(c) : null; return m ? { label: m.label, dot: m.dot } : null; } catch (_){ return null; } })(), v: (typeof jov5Money === 'function') ? jov5Money(c) : '', run: () => jov5Open(c.id) }));
     const may = typeof partyRecordMay === 'function' && partyRecordMay();
     const own = [{ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none'), btn: !rec.orgNo && may ? '' : '', attr: '' }];
     if (rec.city) own.unshift({ k: i18t('cun_p_city'), t: rec.city });
@@ -1437,7 +1437,7 @@ function cunPanelHtml(r){
 if (typeof document !== 'undefined' && !document._cunPanelWired){ document._cunPanelWired = true;
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-cun-web]') : null; if (!b) return; e.preventDefault(); if (typeof partyWebOpen === 'function') partyWebOpen(b.getAttribute('data-cun-web')); });
 }
-function cunRowHtml(v, nda){
+function cunRowHtml(v, nda, keys){
   const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
   /* SAY IT ONCE (the harmony review, owner's yes 9 Nov 2026): a row names its org. no. only where one is filed; the foot says when none is */
   const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : '';
@@ -1467,10 +1467,31 @@ function cunRowHtml(v, nda){
       : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : ''); };
   /* two said in the column; more are named on its hover, as the old column did (#762) */
   const words = needs.slice(0, 2).map(x => { const w = verb(x); return w ? (x.it.urgent ? `${esc(w)} · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : esc(w)) : ''; }).filter(Boolean).join(' · ');
+  /* the columns drawn (listCols, #762): a column that stepped aside draws no cell */
+  const cell = {
+    agreements: () => `<td class="cun-num">${v.items.length}</td>`,
+    paper: () => `<td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>`,
+    standing: () => `<td>${stand}</td>`,
+    nda: () => `<td>${ndaH}</td>`,
+    waiting: () => `<td class="cun-wait${words ? ' is-owed' : ''}"${needs.length > 2 ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${words || '—'}</td>`,
+  };
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
     <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${facts ? `${esc(facts)} ` : ''}${chips}</div></div></div></td>
-    <td class="cun-num">${v.items.length}</td><td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>
-    <td>${stand}</td><td>${ndaH}</td><td class="cun-wait${words ? ' is-owed' : ''}"${needs.length > 2 ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${words || '—'}</td></tr>`;
+    ${(keys || CUN_KEYS).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat and keys, so a
+   reader's dragged widths carry over; Party and Waiting always stand, where the room is short NDA steps aside first,
+   then Agreements, On paper, Standing */
+const CUN_KEYS = ['agreements', 'paper', 'standing', 'nda', 'waiting'];
+function cunCols(){
+  const W = { agreements: 70, paper: 110, standing: 130, nda: 130, waiting: 160 }, R = { nda: 1, agreements: 2, paper: 4, standing: 5 };
+  const DEFS = [{ k: 'name' }, ...CUN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols('customers', DEFS, cuRepaint) : { cols: DEFS };
+  const T = { name: 'cun_c_party', agreements: 'cun_c_deals', paper: 'cun_c_paper', standing: 'cun_c_standing', nda: 'cun_c_nda', waiting: 'cun_c_wait' };
+  const cols = FIT.cols, keys = cols.slice(1).map(c => c.k);
+  const colg = `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`;
+  const th = `<thead><tr>${cols.map(c => `<th>${esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml('customers', c.k) : ''}</th>`).join('')}</tr></thead>`;
+  return { keys, colg, th, n: cols.length };
 }
 let _cunParty = null;
 /* PARTIES' TABS DO NOT ALL DRAW THE SAME SHAPE (read 10 Nov 2026): Folders draws a grid of cards and HIDES the table;
@@ -1489,6 +1510,7 @@ function cunRender(host, INS, o){
     .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
   const tabs = [['folders', i18t('ctf_tab_folders'), null], ['all', i18t('cun_tab_list'), all.length], ['wait', i18t('cun_tab_wait'), waiting.length], ['nda', i18t('cun_tab_nda'), missing.length]].filter(t => t[2] || t[0] === 'all' || t[0] === 'folders' || t[0] === _cun);
   const agreements = all.reduce((s, v) => s + v.items.length, 0);
+  const C = cunCols();
   const PAGE = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
@@ -1496,9 +1518,9 @@ function cunRender(host, INS, o){
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
         ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])}${t[2] == null ? '' : ` <span>${t[2]}</span>`}</button>`).join('')}</div>
       ${_cun === 'folders' ? `<div class="cu-scroll">${typeof regTileKeyHtml === 'function' ? regTileKeyHtml() : ''}<div class="ctf-grid cunf-grid is-tiles">${list.map(v => cunFolderCardHtml(v, nda.get(v.key))).join('')}</div></div>` : ''}
-      <div class="cu-scroll"${_cun === 'folders' ? ' hidden' : ''}><table class="apn-table cun-table"><colgroup><col style="width:26%"><col style="width:70px"><col style="width:110px"><col style="width:130px"><col style="width:130px"><col></colgroup>
-        <thead><tr><th>${esc(i18t('cun_c_party'))}</th><th>${esc(i18t('cun_c_deals'))}</th><th>${esc(i18t('cun_c_paper'))}</th><th>${esc(i18t('cun_c_standing'))}</th><th>${esc(i18t('cun_c_nda'))}</th><th>${esc(i18t('cun_c_wait'))}</th></tr></thead>
-        <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key))).join('') || `<tr><td colspan="6" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
+      <div class="cu-scroll"${_cun === 'folders' ? ' hidden' : ''}><table class="apn-table cun-table" data-list-seat="customers">${C.colg}
+        ${C.th}
+        <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, nda.get(v.key), C.keys)).join('') || `<tr><td colspan="${C.n}" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot">${esc(i18t(all.some(v => ((typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {}).orgNo) ? 'cun_foot' : 'cun_foot_noorg', { n: all.length, m: agreements }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   if (o && o.rows && INS && _cun !== 'folders' && typeof listRowsSwapHtml === 'function'

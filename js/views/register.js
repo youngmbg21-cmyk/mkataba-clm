@@ -5389,7 +5389,7 @@ function ngnCols(){
   const FIT = typeof listCols === 'function' ? listCols(REG_NEGO_SEAT, DEFS, () => ngnRepaint()) : { cols: DEFS };
   const cols = FIT.cols;
   return { keys: cols.slice(1).map(c => c.k),
-    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
     th: `<thead><tr>${cols.map(c => `<th>${esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
 /* the page in Jambo's words, counted from the list: whose answers wait, who holds our paper */

@@ -1035,7 +1035,9 @@ function listColsCheck(){
 }
 /* the drawing: a <col> per column (its key, its width; data-floor on the name, data-spread on one that
    steps aside), and the grip at a head's right edge */
-const listColTag = c => `<col data-k="${esc(String(c.k || ''))}"${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}${c.name ? ` data-floor="${SPREAD_NAME_MIN}"` : (c.spread || Number.isFinite(c.rank)) ? ' data-spread' : ''}>`;
+/* `floor` (the new look's lists, #762): a column that always stands counts its own width in the list's floor, never
+   the share of the spare room it was given, or the floor would grow with the room and the panel slide over the list */
+const listColTag = (c, floor) => `<col data-k="${esc(String(c.k || ''))}"${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}${c.name ? ` data-floor="${SPREAD_NAME_MIN}"` : (c.spread || Number.isFinite(c.rank)) ? ' data-spread' : (floor && Number(c.w0) > 0) ? ` data-floor="${Math.round(Number(c.mine ? c.w : c.w0))}"` : ''}>`;
 const listGripHtml = (seat, k) => `<span class="lc-grip" data-lc-grip="${esc(String(seat))}" data-lc-k="${esc(String(k || ''))}" role="separator" aria-orientation="vertical" title="${esc(typeof i18t === 'function' ? i18t('list_col_grip') : 'Drag to widen; double-press to reset')}"></span>`;
 /* THE GRIP: one listener on the document, bound at load; the column under the press is read at press time */
 const LIST_GRIP_CSS = '.lc-grip{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:2;touch-action:none}'

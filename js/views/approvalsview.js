@@ -1096,7 +1096,9 @@ function renderApprovalsPage(o){
     ...(same.turn?[]:[{k:'turn',t:i18t('ap_wl_turn'),w:188,rank:5}]),{k:'std',t:i18t('reg_col_standards'),w:124,rank:1},
     {k:'wait',t:i18t('ap_pg_waiting'),w:120},...(money?[{k:'value',t:i18t('reg_col_value'),right:true,w:112,rank:4}]:[]),
     ...(INS?[{k:'ok',t:'',w:92,rank:1.5}]:[{k:'acts',t:'',w:220}])];
-  const FIT=(typeof listCols==='function')?listCols('approvals',DEFS,()=>apPaintList()):{ cols:DEFS.filter(d=>!d.spread), has:k=>DEFS.some(d=>d.k===k&&!d.spread), spread:false };
+  /* the new look draws its own columns under the same seat (apnRender): this list's fit is not asked then, or two
+     shapes would share one seat's measures */
+  const FIT=(typeof listCols==='function'&&!(INS&&typeof newLookOn==='function'&&newLookOn()))?listCols('approvals',DEFS,()=>apPaintList()):{ cols:DEFS.filter(d=>!d.spread), has:k=>DEFS.some(d=>d.k===k&&!d.spread), spread:false };
   SP=FIT.spread;
   const head=FIT.cols;
   const acts=r=>{
@@ -1263,12 +1265,18 @@ function apnRender(W, o){
   const sameWords=same?String(rs[0]).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim():'';
   if(same){ const cut=h=>h.replace(/<td class="apn-rests">[\s\S]*?<\/td><td class="apn-rule">/,'<td class="apn-rule">'); rowsA=rowsA.map(cut); rowsS=rowsS.map(cut); }
   const cols=same?4:5;
-  const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}</th>${same?'':`<th>${esc(i18t('apn_col_rests'))}</th>`}<th>${esc(i18t('apn_col_rule'))}</th><th>${esc(i18t('apn_col_waited'))}</th><th></th></tr></thead>`;
+  /* THE LIST'S COLUMNS, ONE RULE (listCols; #762, 17 Nov 2026): the new look's table takes the old one's seat, so a
+     reader's dragged widths carry over; the name under its ceiling, each head but the acts' a grip */
+  const NDEFS=[{k:'name'},...(same?[]:[{k:'rests',w:300}]),{k:'rule',w:140},{k:'wait',w:96},{k:'acts',w:170}];
+  const NFIT=typeof listCols==='function'?listCols('approvals',NDEFS,()=>apPaintList()):{ cols:NDEFS };
+  const nw=k=>(NFIT.cols.find(c=>c.k===k)||NDEFS.find(c=>c.k===k));
+  const grip=k=>typeof listGripHtml==='function'?listGripHtml('approvals',k):'';
+  const th=`<thead><tr><th>${esc(i18t('apn_col_agreement'))}${grip('name')}</th>${same?'':`<th>${esc(i18t('apn_col_rests'))}${grip('rests')}</th>`}<th>${esc(i18t('apn_col_rule'))}${grip('rule')}</th><th>${esc(i18t('apn_col_waited'))}${grip('wait')}</th><th></th></tr></thead>`;
   const group=sg.length&&ap.length&&_apnTab!=='done'?`<tr class="apn-group"><td colspan="${cols}">${esc(i18t('apn_group_sign'))}</td></tr>`:'';
   const bodyInner=all.length?`${rowsA.join('')}${group}${rowsS.join('')}`:`<tr><td colspan="${cols}" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr>`;
   const body=`<tbody>${bodyInner}</tbody>`;
   const shown=ap.concat(sg);
-  const colg=`<colgroup><col>${same?'':'<col style="width:36%">'}<col style="width:140px"><col style="width:96px"><col style="width:170px"></colgroup>`;
+  const colg=`<colgroup>${NDEFS.map(d=>{ const c=nw(d.k); return typeof listColTag==='function'?listColTag(Object.assign({ name:d.k==='name' },c),true):`<col${c.w?` style="width:${c.w}px"`:''}>`; }).join('')}</colgroup>`;
   const table=`<table class="ap-table ap-ins apn-table" data-list-seat="approvals">${colg}${th}${body}</table>`;
   const nYours=W.all.yours.filter(r=>!r.done).length;
   const foot=`<div class="apn-foot">${esc([i18tn('apn_for_you',nYours,{ n:nYours }), sameWords?i18t('apn_foot_same',{ w:sameWords.charAt(0).toLowerCase()+sameWords.slice(1) }):''].filter(Boolean).join(' · '))}</div>`;

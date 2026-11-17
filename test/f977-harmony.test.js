@@ -50,7 +50,8 @@ test('f977 (3) one voice', () => {
 test('f977 (4) say it once', () => {
   const ap = strip(fnBody(read('js/views/approvalsview.js'), 'apnRender'));
   assert.match(ap, /const same=rs\.length>1&&rs\.every\(x=>x!=null&&x===rs\[0\]\);/);
-  assert.match(ap, /\$\{same\?'':`<th>\$\{esc\(i18t\('apn_col_rests'\)\)\}<\/th>`\}/);
+  /* RE-POINTED 17 Nov 2026 (#762): the head now carries its column's grip (listCols, the one column rule); the column still steps out when it says the same */
+  assert.match(ap, /\$\{same\?'':`<th>\$\{esc\(i18t\('apn_col_rests'\)\)\}\$\{grip\('rests'\)\}<\/th>`\}/);
   assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnRender')), /const reachAny = list\.some/);
   assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
 });
