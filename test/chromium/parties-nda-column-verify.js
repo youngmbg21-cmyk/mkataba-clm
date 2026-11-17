@@ -64,7 +64,6 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   /* a press on a part that may not exist reports instead of waiting out the clock */
-  const press = async (sel, what) => { const n = await page.locator(sel).count(); if (!n) { ok(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
@@ -149,21 +148,15 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
         return { text: (v ? v.textContent : '').replace(/\s+/g, ' ').trim(), color: col, door: !!(f.querySelector('[data-cu-nda]') || document.querySelector('#ins-panel [data-cu-nda]')) }; });
     };
     const gv = await panelOf('givaudan east africa');
-    ok('3a Givaudan\'s panel says it is in force ("Signed <day>") and opens the NDA', !!gv && /^(Signed .+|Confirmed)$/.test(gv.text) && gv.door, JSON.stringify(gv));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): "and opens the NDA" — a party's NDA door stays gone on its panel; what the panel SAYS is still asked */
+    ok('3a Givaudan\'s panel says it is in force ("Signed <day>")', !!gv && /^(Signed .+|Confirmed)$/.test(gv.text), JSON.stringify(gv));
     const sa = await panelOf('sap east africa');
-    ok('3b SAP\'s panel says nobody has confirmed it ("Not confirmed") — and still opens it', !!sa && /^Not confirmed$/.test(sa.text) && sa.door, JSON.stringify(sa));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): "and still opens it" — the NDA door stays gone (see 3a) */
+    ok('3b SAP\'s panel says nobody has confirmed it ("Not confirmed")', !!sa && /^Not confirmed$/.test(sa.text), JSON.stringify(sa));
     const ks = await panelOf('kabras sugar');
     ok('3c Kabras\'s panel says None, with no door', !!ks && /^None$/.test(ks.text) && !ks.door, JSON.stringify(ks));
-    await panelOf('givaudan east africa');
-    if (await press('#ins-panel [data-cu-nda]', '3d the door to the NDA')) {
-      /* RE-POINTED 9 Nov 2026 (the Board's contract card and its life line are gone): the NDA's facts open beside its
-         paper (ndaEditOpen → Fill in's owed row, else Key terms in the middle) */
-      await page.waitForFunction(() => state.view === 'dashboard' && typeof pdContract === 'function' && !!pdContract() && pdContract().id === 'ND-GV'
-        && !!document.querySelector('[data-pd-mid-kt], #pd-fillface, [data-pd-tab="form"].on, #pd-form'), null, { timeout: 8000 }).catch(() => {});
-      const st = await page.evaluate(() => ({ view: state.view, paper: !!(typeof pdContract === 'function' && pdContract() && pdContract().id === 'ND-GV'),
-        facts: !!document.querySelector('[data-pd-mid-kt], #pd-fillface, #pd-form') }));
-      ok('3d Open the NDA opens its facts beside its paper', st.view === 'dashboard' && st.paper && st.facts, JSON.stringify(st));
-    }
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 3d Open the NDA from the party's panel — a party's NDA door stays gone
+       (3c still asks that no door is drawn where there is no NDA) */
 
     console.log('\n4 · the column costs the list nothing, at the owner\'s three screens');
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {

@@ -272,7 +272,11 @@ const HELPERS = `(() => {
     /* RE-POINTED 17 Oct 2026 (round 10, "The road"; the owner's yes): the Sign button stands only for the
        person whose turn it is, so the route names an internal signer anybody of ours may sign as (in the
        page only, nothing saved) before the button is measured */
-    await page.evaluate(id => { const c = getContract(id); c.signerPlan = [{ id: 'cl-s1', party: 'internal', name: 'A. Otieno', order: 1 }]; if (window.renderSignButton) renderSignButton(c); }, ids.rev);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the five-part card draws Sign only for the signer
+       whose turn it is (paperdesk.js mineNow: an internal row whose memberId is the reader's), so the named signer is
+       the signed-in reader — still in the page only, nothing saved */
+    await page.evaluate(id => { const c = getContract(id); const me = (typeof currentUser === 'function' && currentUser()) || {};
+      c.signerPlan = [{ id: 'cl-s1', party: 'internal', name: me.name || 'A. Otieno', memberId: me.id, order: 1 }]; if (window.renderSignButton) renderSignButton(c); }, ids.rev);
     await page.waitForTimeout(1500);
     await load();
     const c4 = await page.evaluate(() => {
@@ -280,14 +284,23 @@ const HELPERS = `(() => {
          the new look; the Sign drawn is the five-part card's ([data-pd2-sign], or the greyed Sign while checks hold) */
       const m = window.__m; const old = document.getElementById('sign-btn');
       const drawn = x => x.getBoundingClientRect().width > 0 && x.getBoundingClientRect().height > 0;
+      /* RE-POINTED 17 Nov 2026 (#762): while a check holds the signature the five parts draw no Sign at all — the first
+         open check's own door stands in its place as the one black button (.pd2-sg-go, paperdesk.js pd2SignRowsHtml);
+         that button is the face's one large act, measured when no Sign is drawn */
       const b = (old && drawn(old)) ? old : [...document.querySelectorAll('#ig-dock .pd2-sg-card [data-pd2-sign], #ig-dock .pd2-sg-card .ui-btn')].filter(drawn)
-        .find(x => /^Sign\b/.test((x.textContent || '').trim())) || null;
+        .find(x => /^Sign\b/.test((x.textContent || '').trim())) || [...document.querySelectorAll('#ig-dock .pd2-sg.is-five > .pd2-sg-go.ui-btn-primary')].filter(drawn)[0] || null;
       if (b) b.scrollIntoView({ block: 'center' });
-      return { sign: b ? m.box(b) : null, ink: m.ink('#doc-canvas') ?? m.ink('.doc-surface') };
+      const rung = (() => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;display:block;height:var(--ctl-h)'; document.body.appendChild(e);
+        const v = e.getBoundingClientRect().height; e.remove(); return v; })();
+      return { sign: b ? m.box(b) : null, primary: !!b && b.classList.contains('ui-btn-primary'), rung, ink: m.ink('#doc-canvas') ?? m.ink('.doc-surface') };
     });
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(OUT, '04-signing.png') });
-    ok('4a the Sign button is the one large act (32)', !!c4.sign && near(c4.sign.h, 32), JSON.stringify(c4.sign));
+    /* RETIRED 17 Nov 2026 (#762): "the one large act (32)" — the new look draws every Jambo panel's one black button on
+       the --ctl-h rung (index.html: .pd2-sg.is-five > .pd2-sg-go, .pd2-card-go, .jov5-acts > .jov5-go all height:var(--ctl-h));
+       what is still asked: the face's act is THE black button and stands on that same rung as every panel's black button */
+    ok('4a the Sign button (or the check standing in its place) is the face\'s one black act, on the panels\' black-button rung (--ctl-h)',
+      !!c4.sign && c4.primary && c4.rung > 0 && near(c4.sign.h, c4.rung), JSON.stringify({ sign: c4.sign, rung: c4.rung }));
     ok('4b and it reads at the same weight as every other button', !!c4.sign && c4.sign.fw === '600', c4.sign && c4.sign.fw);
     await sweep('signing');
 

@@ -273,28 +273,19 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
        piles' order — read off each row's own pile. */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Requests is ONE table (.ikn-table, tr[data-ikn-row])
        beside Jambo's panel, the Ask button in its own head (#ik-new); whose a request is stands in its row ("With Amina") */
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): "the longest wait first" — Requests' oldest-first order stays gone;
+       the list-and-panel and the Ask button in its head are still asked */
     const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ikn-page') && !!document.getElementById('ins-panel'),
-      groups: (() => { const at = [...document.querySelectorAll('.ikn-table tbody [data-ikn-row]')].map(r => ((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ikn-row')) || {}).createdAt || '');
-        return at.length > 1 && at.every((v, i) => !i || at[i - 1] <= v) ? ['oldest-first'] : at; })(),
+      rows: document.querySelectorAll('.ikn-table tbody [data-ikn-row]').length,
       ask: !!document.querySelector('.ikn-page .cun-head #ik-new') }));
-    ok('4a the queue is a list and a panel, the longest wait first',
-      ik.ins && ik.groups.join(',') === 'oldest-first' && ik.ask, ik);
+    ok('4a the queue is a list and a panel',
+      ik.ins && ik.rows > 1 && ik.ask, ik);
     await page.click('[data-ikn-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
     const heldSays = await page.evaluate(() => ({ row: ((document.querySelector('[data-ikn-row="REQ-HELD01"]') || {}).textContent || '').replace(/\s+/g, ' '),
       panel: ((document.getElementById('ins-panel') || {}).innerText || '').replace(/\s+/g, ' ') }));
-    ok('4b a request a colleague holds names its holder, and its promise', /With Amina/.test(heldSays.row) && /promised by \S+ \d/.test(heldSays.row + ' ' + heldSays.panel), heldSays);
-    /* taking a colleague's request over: asked of the panel's take-over door (the old ⋯ "pick"), wherever the new look
-       draws it — it must ask first, and a cancel leaves the request with its holder */
-    const pickSel = '#ins-panel [data-act="pick"], #ins-panel [data-ikn-pick], #ins-panel [data-ik-pick]';
-    let takeAsk = '';
-    if (await page.$(pickSel)) {
-      await page.click(pickSel); await page.waitForTimeout(500);
-      takeAsk = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
-        return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 200) : ''; });
-      await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-    }
-    const still = await page.evaluate(() => { const r = (_intakeState.list || []).find(x => x.id === 'REQ-HELD01'); return r && r.assignee ? r.assignee.name : null; });
-    ok('4c taking it over asks first, and a cancel leaves it with its holder', /Amina/.test(takeAsk) && still === 'Amina Otieno', { takeAsk: takeAsk || '(no take-over door in the panel)', still });
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): "and its promise" — the promised-by date stays gone; the holder is still asked */
+    ok('4b a request a colleague holds names its holder', /With Amina/.test(heldSays.row), heldSays);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 4c taking over a colleague's request — that door stays gone */
     const trk = await (await fetch(h.base + '/track/' + tok['REQ-HELD01'])).text();
     ok('4d the tracker link says the same thing to the person who asked', /Being worked on/.test(trk));
 
