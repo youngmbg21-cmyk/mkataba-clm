@@ -131,7 +131,8 @@ describe('f456 (3) — the walk goes through the door a press already uses', () 
 
   test('and the leader leaving the room stands the follow down', () => {
     const fn = MOD.slice(MOD.indexOf('function presenceWalk'), MOD.indexOf('/* ---- THE ROW ----'));
-    assert.match(fn, /if \(!lead\)\{ _pzFollow = null; _pzWent = null; return false; \}/,
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME): the card they had open goes too */
+    assert.match(fn, /if \(!lead\)\{ _pzFollow = null; _pzWent = null; _pzWentCard = null; return false; \}/,
       'rather than left pointing at a name that is gone');
   });
 
@@ -149,7 +150,9 @@ describe('f456 (4) — one at a time, per sitting, and the way out is the way in
   test('following two people is not possible', () => {
     const fn = MOD.slice(MOD.indexOf('function presenceFollow(id)'), MOD.indexOf('/* ---- AND THE WALK ----'));
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): a new ask stands down any follow before it; the follow starts only on their Allow */
-    assert.match(fn, /_pzFollow = null; _pzWent = null;\s*_pzAsk = \{ id: to, at: Date\.now\(\) \};/,
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME): I follow one leader at a time - an Allow drops the one before */
+    const allow = MOD.slice(MOD.indexOf('function presenceAllow('), MOD.indexOf('function presenceDeny('));
+    assert.match(allow, /if \(_pzFollow && _pzFollow !== to\) _pzAllow\.delete\(String\(_pzFollow\)\);\s*_pzFollow = to;/,
       'two pages fighting over one scroll');
   });
 
@@ -162,7 +165,8 @@ describe('f456 (4) — one at a time, per sitting, and the way out is the way in
   });
 
   test('it is per sitting and never on the record', () => {
-    assert.match(MOD, /let _pzFollow = null, _pzWent = null;/);
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME) */
+    assert.match(MOD, /let _pzFollow = null, _pzWent = null, _pzWentCard = null;/);
     assert.ok(!/localStorage|sessionStorage|persist\(|api\([^)]*follow/.test(MOD),
       'there is nothing to clean up when a call ends, and a reload is out');
   });
@@ -170,7 +174,8 @@ describe('f456 (4) — one at a time, per sitting, and the way out is the way in
   test('and a different contract is a different room', () => {
     const fn = MOD.slice(MOD.indexOf('function presenceStart'), MOD.indexOf('function presenceStop'));
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): the ask and the allows go with it */
-    assert.match(fn, /String\(_pzWas \|\| ''\) !== id\)\{ _pzFollow = null; _pzWent = null; _pzAsk = null; _pzAllow\.clear\(\); _pzDeny\.clear\(\);/,
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME): the followers and the card go with it */
+    assert.match(fn, /String\(_pzWas \|\| ''\) !== id\)\{ _pzFollow = null; _pzWent = null; _pzAsk = null; _pzLead\.clear\(\); _pzAllow\.clear\(\); _pzDeny\.clear\(\); _pzStopped\.clear\(\); _pzWentCard = null;/,
       'the names, the clauses and the colleagues are all different — while the '
       + 'SAME contract keeps the follow across the room and the negotiate page, '
       + 'which setView stops the beat between');
@@ -241,10 +246,8 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     /* RE-POINTED 18 Oct 2026 (pass 2): Home's paper only while it carries clause marks to walk to */
     assert.match(can, /const sc = presenceHomePaper\(\);\s*return !!sc && typeof window\.igPaperGoClause === 'function' && /, '…or Home\'s paper and its own door');
     /* RE-POINTED 16 Nov 2026 (the owner: asked before followed - the press asks, the one followed allows, then it starts; and they can stop it): a follower's face on the followed one's screen is a button anywhere - stopping needs no paper */
-    assert.match(fn, /if \(!canWalk && !followsMe\) return `<span class="pz-face pz-t-/,
-      'on the Document tab a button would quietly do nothing — the dead-button '
-      + 'fault this codebase names in four other places. Presence is drawn '
-      + 'everywhere; Follow me is offered where it works');
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards" - the press asks THEM to follow ME): asking someone to follow ME needs no paper here, so every face is a button - never a dead one */
+    assert.ok(!/return `<span class="pz-face/.test(fn), 'no face drawn as a dead span');
   });
 
   test('the press is delegated at module load, and resolves the live element', () => {

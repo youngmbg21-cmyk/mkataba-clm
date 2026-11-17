@@ -3,6 +3,8 @@
    other colleague's label, they then have to approve on the other side, then the process begins. Build this
    plus the fix you suggested"; picks: the small pop-up, and the one followed can stop it).
 
+   RE-POINTED 17 Nov 2026 (the owner: "they follow me ... also on the redline cards"): the press asks THEM to follow
+   ME, and the card I open opens on their screen.
    (1) THE SERVER carries the ask on the beat that was already going: whom a reader asks to follow (`want`),
        whom they allowed or said Not now to (`allow`, `deny`), and the clause's heading as their paper shows it
        (`spotName`) — each clamped, so none becomes a notice board — and hands them back on the others' rows.
@@ -26,33 +28,38 @@ describe('f1089 (1) the server carries the ask, clamped', () => {
   before(async () => { h = await startHati(); w = await seedWorkspace(h, { approvalRules: [] }); });
   after(async () => { if (h) await h.stop(); });
 
-  test('want, allow, deny and the heading come back on the others\' rows', async () => {
+  test('want (a list), allow, deny, the heading, the card and the face come back on the others\' rows', async () => {
     const me = w.users.unrestricted.id;
     await w.unrestricted.json(`/api/contracts/${CID}/here`, { method: 'POST',
-      body: { spot: 'cl_ab12', spotName: '12. Entire <b>Agreement</b>', want: 'u_lead', allow: ['u_x', 'bad id!'], deny: ['u_y'] } });
+      body: { spot: 'cl_ab12', spotName: '12. Entire <b>Agreement</b>', want: ['u_lead', 'bad id!'], allow: ['u_x', 'bad id!'], deny: ['u_y'], card: 'CHG-007', face: 'red', askAt: 1234.7 } });
     const r = await w.admin.json(`/api/contracts/${CID}/here`, { method: 'POST', body: {} });
     const row = r.here.find(x => String(x.id) === String(me));
-    assert.ok(row, 'the asker is in the room');
-    assert.equal(row.want, 'u_lead');
-    assert.deepEqual(row.allow, ['u_x'], 'only id-shaped entries');
+    assert.ok(row, 'in the room');
+    assert.deepEqual(row.want, ['u_lead'], 'only id-shaped entries');
+    assert.deepEqual(row.allow, ['u_x']);
     assert.deepEqual(row.deny, ['u_y']);
+    assert.equal(row.card, 'CHG-007');
+    assert.equal(row.face, 'red');
+    assert.equal(row.askAt, 1234, 'the ask\'s own stamp, a whole number');
     assert.equal(row.spotName, '12. Entire  b Agreement /b'.replace(/\s+/g, ' '), 'no markup, one line');
     assert.ok(!('email' in row) && !('role' in row), 'still no address and no role');
   });
-  test('nothing sent, nothing kept; a heading without a spot is dropped; asking to follow yourself is dropped', async () => {
+  test('nothing sent, nothing kept; a heading without a spot is dropped; asking yourself is dropped; any other face is none', async () => {
     const me = w.users.unrestricted.id;
-    await w.unrestricted.json(`/api/contracts/${CID}/here`, { method: 'POST', body: { spotName: 'Lonely heading', want: me } });
+    await w.unrestricted.json(`/api/contracts/${CID}/here`, { method: 'POST', body: { spotName: 'Lonely heading', want: me, face: 'everything' } });
     const r = await w.admin.json(`/api/contracts/${CID}/here`, { method: 'POST', body: {} });
     const row = r.here.find(x => String(x.id) === String(me));
     assert.equal(row.spotName, null);
     assert.equal(row.want, null);
+    assert.equal(row.card, null);
+    assert.equal(row.face, null);
     assert.deepEqual(row.allow, []);
     assert.deepEqual(row.deny, []);
   });
 });
 
-describe('f1089 (2)-(4) the browser: ask, allow, stop, and the same clause on two papers', () => {
-  let W, dom, toasts, calls;
+describe('f1089 (2)-(4) the browser: I ask them to follow me, they allow, my cards and clauses lead', () => {
+  let W, dom, toasts, calls, linked;
   const ME = { id: 'u_me', name: 'Amina Otieno' };
   const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(r => setImmediate(r)); };
   before(() => {
@@ -60,85 +67,110 @@ describe('f1089 (2)-(4) the browser: ask, allow, stop, and the same clause on tw
       <div data-clause="cl_mine11"><div class="rl-clause-h">11. Assignment</div><p>x</p></div>
       <div data-clause="cl_mine12"><div class="rl-clause-h">12. Entire Agreement</div><p>y</p></div>
       <div data-clause="cl_mine13"><div class="rl-clause-h">13. Governing Law</div><p>z</p></div>
-    </div><span data-pz-slot="redlines"></span></body>`);
+    </div><span data-pz-slot="redlines"></span>
+    <div id="pd-redface"><div data-nego-card="CHG-001"></div><div data-nego-card="CHG-002" class="is-linked"></div></div></body>`);
     global.window = W = dom.window; global.document = dom.window.document;
-    toasts = []; calls = [];
+    toasts = []; calls = []; linked = [];
     W.API_MODE = () => true;
     W.currentUser = () => ME;
-    W.getContract = id => ({ id, _v: 1 });
+    W.getContract = global.getContract = id => ({ id, _v: 1 });
     W.i18t = global.i18t = (k, v) => k + (v && v.who ? ':' + v.who : '');
     W.toast = (m, k) => toasts.push([m, k]);
     W.rlJumpToClause = id => { calls.push(id); return { id }; };
+    W.rlLinkFocus = (c, id, src) => { linked.push([id, src]); return true; };
     W.api = () => Promise.resolve({ here: [] });
     delete require.cache[require.resolve('../js/presence.js')];
     require('../js/presence.js');
   });
   after(() => { try { W.presenceStop(); } catch (_) {} delete global.window; delete global.document; delete global.i18t; });
 
-  test('(2) a press asks and moves nothing; their Allow starts it; the start is said once', () => {
+  test('(2) my press ASKS them to follow me and moves nothing; their Allow makes them my follower, said once', () => {
     toasts.length = 0;
-    W.presenceFollow('u_lead');
-    assert.equal(W.presenceAsking(), 'u_lead');
-    assert.equal(W.presenceFollowing(), null, 'nothing follows before they allow it');
-    assert.equal(W.presenceBeatBody(null).want, 'u_lead', 'the ask rides the beat');
-    W.presenceAnswers([{ id: 'u_lead', name: 'Brian Kamau', spot: 'cl_x' }]);
-    assert.equal(W.presenceFollowing(), null, 'no answer yet');
-    W.presenceAnswers([{ id: 'u_lead', name: 'Brian Kamau', spot: 'cl_x', allow: ['u_me'] }]);
-    assert.equal(W.presenceFollowing(), 'u_lead');
+    W.presenceFollow('u_b');
+    assert.equal(W.presenceAsking(), 'u_b');
+    assert.equal(W.presenceFollowing(), null, 'I follow nobody');
+    assert.deepEqual(W.presenceBeatBody(null).want, ['u_b'], 'the ask rides my beat');
+    W.presenceAnswers([{ id: 'u_b', name: 'Brian Kamau' }]);
+    assert.deepEqual(W.presenceLeading(), [], 'no answer yet');
+    W.presenceAnswers([{ id: 'u_b', name: 'Brian Kamau', allow: ['u_me'] }]);
+    assert.deepEqual(W.presenceLeading(), ['u_b'], 'they follow me');
     assert.equal(W.presenceAsking(), null);
-    assert.ok(toasts.some(([m]) => /^pz_follow_said/.test(m)), 'said once when it starts');
+    assert.deepEqual(W.presenceBeatBody(null).want, ['u_b'], 'still asked while they follow');
+    assert.ok(toasts.some(([m]) => /^pz_allowed_said:Brian Kamau/.test(m)), 'said once');
   });
-  test('(2) their taking the Allow back stops it, said once; the same press stops it from this side', () => {
+  test('(2) leading, my beat carries the redline card I have open and whether Redlines is up', () => {
+    assert.equal(W.presenceBeatBody(null).card, 'CHG-002');
+  });
+  test('(2) their stopping is said once; my Stop takes them off', () => {
     toasts.length = 0;
-    W.presenceAnswers([{ id: 'u_lead', name: 'Brian Kamau', spot: 'cl_x', deny: ['u_me'] }]);
-    assert.equal(W.presenceFollowing(), null);
-    assert.deepEqual(toasts.map(t => t[0]), ['pz_follow_ended:Brian Kamau']);
+    W.presenceAnswers([{ id: 'u_b', name: 'Brian Kamau' }]);
+    assert.deepEqual(W.presenceLeading(), []);
+    assert.deepEqual(toasts.map(t => t[0]), ['pz_they_stopped:Brian Kamau']);
+    W.presenceFollow('u_b'); W.presenceAnswers([{ id: 'u_b', name: 'Brian Kamau', allow: ['u_me'] }]);
+    W.presenceStopFollower('u_b');
+    assert.deepEqual(W.presenceLeading(), []);
+    assert.equal(W.presenceBeatBody(null).want, undefined, 'no longer asked: their screen stops');
   });
   test('(2) Not now, their leaving, and silence each end the ask, said once', () => {
     toasts.length = 0;
-    W.presenceFollow('u_lead');
-    W.presenceAnswers([{ id: 'u_lead', name: 'Brian Kamau', deny: ['u_me'] }]);
+    W.presenceFollow('u_b'); W.presenceAnswers([{ id: 'u_b', name: 'Brian Kamau', deny: ['u_me'] }]);
     assert.equal(W.presenceAsking(), null);
-    W.presenceFollow('u_lead');
-    W.presenceAnswers([]);
+    W.presenceFollow('u_b'); W.presenceAnswers([]);
     assert.equal(W.presenceAsking(), null);
-    W.presenceFollow('u_lead');
+    W.presenceFollow('u_b');
     const real = Date.now; Date.now = () => real() + W.PRESENCE_ASK_WAIT_MS + 1000;
-    try { W.presenceAnswers([{ id: 'u_lead', name: 'Brian Kamau' }]); } finally { Date.now = real; }
+    try { W.presenceAnswers([{ id: 'u_b', name: 'Brian Kamau' }]); } finally { Date.now = real; }
     assert.equal(W.presenceAsking(), null);
     assert.equal(toasts.filter(t => /^pz_ask_(no|gone|lapsed)/.test(t[0])).length, 3);
   });
   test('(2) pressed again while waiting, the ask is taken back', () => {
-    W.presenceFollow('u_lead');
-    W.presenceFollow('u_lead');
+    W.presenceFollow('u_b'); W.presenceFollow('u_b');
     assert.equal(W.presenceAsking(), null);
     assert.equal(W.presenceBeatBody(null).want, undefined);
   });
-  test('(3) the one asked: the pop-up opens; Allow rides the beat; Stop takes it back', () => {
-    const asker = { id: 'u_f', name: 'Grace Wanjiru', want: 'u_me' };
-    W.presenceAnswers([asker]);
+  test('(3) asked by a colleague: the pop-up; Allow makes ME follow THEM; Not now on Esc; their stopping stops me', () => {
+    const lead = { id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'] };
+    W.presenceAnswers([lead]);
     const pop = document.getElementById('pz-ask');
-    assert.ok(pop, 'the small pop-up');
-    assert.ok(pop.querySelector('[data-pz-allow="u_f"]') && pop.querySelector('[data-pz-deny="u_f"]'), 'Allow · Not now');
+    assert.ok(pop && pop.querySelector('[data-pz-allow="u_l"]') && pop.querySelector('[data-pz-deny="u_l"]'), 'Allow · Not now');
     assert.equal(pop.querySelectorAll('.ui-btn-primary').length, 1, 'one black button');
-    pop.querySelector('[data-pz-allow="u_f"]').click();
+    pop.querySelector('[data-pz-allow="u_l"]').click();
     assert.equal(document.getElementById('pz-ask'), null, 'answered, it closes');
-    assert.deepEqual(W.presenceAllowed(), ['u_f']);
-    assert.deepEqual(W.presenceBeatBody(null).allow, ['u_f'], 'the Allow rides the beat');
-    W.presenceAnswers([asker]);
-    assert.equal(document.getElementById('pz-ask'), null, 'an ask already answered asks nothing again');
-    W.presenceStopFollower('u_f');
-    assert.deepEqual(W.presenceAllowed(), []);
-    assert.deepEqual(W.presenceBeatBody(null).deny, ['u_f'], 'taken back: their screen stops');
-    W.presenceAnswers([{ id: 'u_f', name: 'Grace Wanjiru' }]);
-    assert.equal(W.presenceBeatBody(null).deny, undefined, 'once they stop asking, the Not now is dropped');
-  });
-  test('(3) Esc answers Not now', () => {
-    W.presenceAnswers([{ id: 'u_g', name: 'Peter Mwangi', want: 'u_me' }]);
-    assert.ok(document.getElementById('pz-ask'));
+    assert.equal(W.presenceFollowing(), 'u_l', 'I follow the one who asked');
+    assert.deepEqual(W.presenceBeatBody(null).allow, ['u_l'], 'my Allow rides the beat');
+    W.presenceAnswers([{ id: 'u_l', name: 'Grace Wanjiru' }]);
+    assert.equal(W.presenceFollowing(), null, 'they stopped asking: I stop following');
+    W.presenceAnswers([{ id: 'u_p', name: 'Peter Mwangi', want: ['u_me'] }]);
     document.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape' }));
     assert.equal(document.getElementById('pz-ask'), null);
-    assert.deepEqual(W.presenceBeatBody(null).deny, ['u_g']);
+    assert.deepEqual(W.presenceBeatBody(null).deny, ['u_p']);
+  });
+  test('(4) following, the card they open opens here (rlLinkFocus), and their clause found by its heading', async () => {
+    const lead = { id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'], at: new Date().toISOString() };
+    W.api = () => Promise.resolve({ here: [lead] });
+    W.presenceStart('MK-T'); await flush();
+    calls.length = 0; linked.length = 0;
+    W.presenceAllow('u_l'); await flush();
+    linked.length = 0; calls.length = 0;
+    W.presenceWalk([{ id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'], spot: 'cl_their12', spotName: '12. Entire Agreement', card: 'CHG-009', face: 'red' }]);
+    await flush();
+    assert.deepEqual(linked, [['CHG-009', 'follow']], 'the card, through the press\'s own door');
+    W.presenceWalk([{ id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'], spot: 'cl_their12', spotName: '12. Entire Agreement' }]);
+    assert.deepEqual(calls, [], 'the card already took the paper to its clause');
+    W.presenceWalk([{ id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'], spot: 'cl_their13', spotName: '13. Governing Law' }]);
+    assert.deepEqual(calls, ['cl_mine13'], 'a new clause: found by its heading on this paper');
+  });
+  test('(3) I stop following: that ask is not put to me again, a NEW ask (its own askAt) is', () => {
+    W.presenceAnswers([{ id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'], askAt: 111 }]);
+    W.presenceAllow('u_l');
+    W.presenceFollow('u_l');
+    assert.equal(W.presenceFollowing(), null, 'stopped');
+    assert.equal(W.presenceBeatBody(null).deny, undefined, 'never sent as a Not now');
+    W.presenceAnswers([{ id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'], askAt: 111 }]);
+    assert.equal(document.getElementById('pz-ask'), null, 'the old ask, still on their record, is not asked again');
+    W.presenceAnswers([{ id: 'u_l', name: 'Grace Wanjiru', want: ['u_me'], askAt: 222 }]);
+    assert.ok(document.querySelector('#pz-ask [data-pz-allow="u_l"]'), 'a new ask is');
+    W.presenceDeny('u_l');
   });
   test('(4) a label not on this paper: found by the same heading, else the same number', () => {
     assert.equal(W.presenceLocalSpot('cl_mine12', '12. Entire Agreement'), 'cl_mine12', 'on this paper: kept');
@@ -146,14 +178,6 @@ describe('f1089 (2)-(4) the browser: ask, allow, stop, and the same clause on tw
     assert.equal(W.presenceLocalSpot('cl_theirs', '13. Governing law (as amended)'), 'cl_mine13', 'by the number');
     assert.equal(W.presenceLocalSpot('cl_theirs', ''), 'cl_theirs', 'nothing to go by: as sent');
     assert.equal(W.presenceSpotHeading('cl_mine11'), '11. Assignment', 'and this paper says its own heading');
-  });
-  test('(4) the walk goes to this paper\'s own clause', async () => {
-    calls.length = 0;
-    W.presenceFollow('u_lead');
-    W.presenceAnswers([{ id: 'u_lead', name: 'Brian Kamau', allow: ['u_me'] }]);
-    W.presenceWalk([{ id: 'u_lead', name: 'Brian Kamau', spot: 'cl_their12', spotName: '12. Entire Agreement', allow: ['u_me'] }]);
-    await flush();
-    assert.deepEqual(calls, ['cl_mine12']);
   });
 });
 

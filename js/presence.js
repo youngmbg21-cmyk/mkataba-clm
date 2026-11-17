@@ -93,7 +93,7 @@ const PRESENCE_ASK_BEAT_MS = 40000;
    seconds instead of every twenty-five, so an answer and a walk arrive while
    the two are still talking. An ask nobody answers lapses after a minute and
    a half, and the asker is told. */
-const PRESENCE_FAST_BEAT_MS = 5000;
+const PRESENCE_FAST_BEAT_MS = 2500;
 const PRESENCE_TICK_MS = 2500;
 const PRESENCE_ASK_WAIT_MS = 90000;
 const PRESENCE_LEAVE_MS = 10000;
@@ -107,6 +107,8 @@ const _pzSeen = Object.create(null);
 let _pzTimer = null, _pzCid = null, _pzBusy = false, _pzAfter = null, _pzWas = null;
 /* the beat's own clock, and a beat owed because a press came while one was out */
 let _pzLastBeat = 0, _pzAgain = false;
+/* what the last beat said of my place and my card, so a leader's move is sent at once (17 Nov 2026) */
+let _pzSentSpot = null, _pzSentCard = '';
 /* The hidden tab's ask beat, and the leaves waiting out their grace, per
    contract. Per sitting and in memory, like everything else in this file. */
 let _pzAskTimer = null, _pzAskBusy = false;
@@ -191,10 +193,18 @@ async function presenceSay(cid){
 function presenceBeatBody(spot){
   const b = {};
   if (spot){ b.spot = spot; const n = presenceSpotHeading(spot); if (n) b.spotName = n; }
-  const want = _pzFollow || (_pzAsk && _pzAsk.id) || '';
-  if (want) b.want = want;
+  /* WHOM I ASK TO FOLLOW ME, and who does (owner, 17 Nov 2026: "they follow me"): the open ask and every
+     follower ride as `want`; my answers to others' asks as `allow` / `deny` */
+  const want = [...(_pzAsk ? [_pzAsk.id] : []), ..._pzLead].filter((v, i, a) => v && a.indexOf(v) === i);
+  if (want.length) b.want = want;
+  if (_pzAsk) b.askAt = _pzAsk.at;
   if (_pzAllow.size) b.allow = [..._pzAllow];
   if (_pzDeny.size) b.deny = [..._pzDeny];
+  /* …AND THE REDLINE CARD I HAVE OPEN, while anyone follows me: the follower's screen opens the same one */
+  const card = presenceCardNow();
+  if (card) b.card = card;
+  _pzSentSpot = spot || null; _pzSentCard = card;
+  if (presenceOnRedlines()) b.face = 'red';
   return b;
 }
 /* a beat now: at once, or straight after the one already out */
@@ -204,7 +214,16 @@ function presenceBeatNow(){
   presenceSay(_pzCid);
 }
 /* while an ask, a follow or a follower is live, the beat runs fast */
-function presenceBusyNow(){ return !!(_pzAsk || _pzFollow || _pzAllow.size || _pzAskShown); }
+function presenceBusyNow(){ return !!(_pzAsk || _pzFollow || _pzLead.size || _pzAllow.size || _pzAskShown); }
+/* the redline card this reader has pressed (lit by rlLinkFocus), and whether the Redlines face is up — READS ONLY */
+function presenceCardNow(){
+  if (typeof document === 'undefined') return '';
+  const el = document.querySelector('#pd-redface [data-nego-card].is-linked, .redline-page.rl-face [data-nego-card].is-linked, #view-redline #rl-changes [data-nego-card].is-linked');
+  return el ? String(el.getAttribute('data-nego-card') || '') : '';
+}
+function presenceOnRedlines(){
+  try { return !!((typeof window.pdRedShows === 'function' && window.pdRedShows()) || (typeof document !== 'undefined' && document.getElementById('view-redline'))); } catch (_){ return false; }
+}
 /* ---- THE BEAT ----
    Started when a contract is opened and stopped when it is left. It says
    nothing about being here while the window is hidden, which is both the
@@ -222,7 +241,7 @@ function presenceStart(cid, after){
   /* A DIFFERENT CONTRACT IS A DIFFERENT ROOM, so whoever was being followed in
      the last one is not being followed here — the names, the clauses and the
      colleagues are all different. Same contract, the follow stands. */
-  if (String(_pzWas || '') !== id){ _pzFollow = null; _pzWent = null; _pzAsk = null; _pzAllow.clear(); _pzDeny.clear(); presenceAskClose(); }
+  if (String(_pzWas || '') !== id){ _pzFollow = null; _pzWent = null; _pzAsk = null; _pzLead.clear(); _pzAllow.clear(); _pzDeny.clear(); _pzStopped.clear(); _pzWentCard = null; presenceAskClose(); }
   _pzCid = id;
   _pzWas = id;
   _pzAfter = after || null;
@@ -232,7 +251,9 @@ function presenceStart(cid, after){
     if (_pzCid !== id){ presenceStop(); return; }
     if (typeof document !== 'undefined' && document.hidden) return;
     const every = presenceBusyNow() ? PRESENCE_FAST_BEAT_MS : PRESENCE_BEAT_MS;
-    if (Date.now() - _pzLastBeat < every - 50) return;
+    /* LEADING, A MOVE GOES AT ONCE: a new clause at the centre or another card pressed is sent on this tick */
+    const moved = _pzLead.size > 0 && (presenceCardNow() !== _pzSentCard || presenceSpotNow() !== _pzSentSpot);
+    if (!moved && Date.now() - _pzLastBeat < every - 50) return;
     presenceSay(id);
   }, PRESENCE_TICK_MS);
   /* AND THE HIDDEN TAB'S OWN BEAT, which keeps this reader's asks and nothing
@@ -437,35 +458,44 @@ function presenceSpotNow(){
 }
 /* Per sitting, in memory, and one at a time: following two people would be two
    pages fighting over one scroll. */
-let _pzFollow = null, _pzWent = null;
-/* ---- ASKED BEFORE FOLLOWED (owner, 16 Nov 2026: "I press on the other
-   colleague's label, they then have to approve on the other side, then the
-   process begins"; the small pop-up, and the one followed can stop it) ----
-   REVERSES "there is no invitation and nothing to accept" (4 Oct 2026).
-   _pzAsk: whom this reader asked, and when — the press that waits for an
-   answer. _pzAllow / _pzDeny: whom this reader let follow them, or said Not now
-   to. All per sitting and in this browser only, like the follow itself; each
-   rides the beat that was already going, and the server keeps them only while
-   the reader is in the room. */
-let _pzAsk = null;
-const _pzAllow = new Set(), _pzDeny = new Set();
+let _pzFollow = null, _pzWent = null, _pzWentCard = null;
+/* ---- THEY FOLLOW ME, ONCE THEY ALLOW IT (owner, 16 and 17 Nov 2026: "I press on the other colleague's label,
+   they then have to approve on the other side, then the process begins" — "they follow me … also on the redline
+   cards, not just the paper"). REVERSES "there is no invitation and nothing to accept" (4 Oct 2026) and the
+   16 Nov reading in which the presser followed.
+   Pressing a colleague's face ASKS THEM TO FOLLOW ME (_pzAsk). Their screen shows the small pop-up, Allow · Not
+   now; Allow makes THEM follow ME (their _pzFollow = me): their paper goes where I read and opens the redline card
+   I open. I see a ring round their face (_pzLead) and may stop it; they may stop it with a press on my face.
+   Everything per sitting, in this browser, riding the beat that was already going. */
+let _pzAsk = null;                                  // { id, at } — the colleague I asked to follow me
+const _pzLead = new Set();                          // colleagues following me now
+const _pzAllow = new Set(), _pzDeny = new Set();    // my answers to colleagues who asked me to follow them
+/* leaders I just stopped following: their ask still stands on the record until their next beat, so THAT ask is
+   not put to me again — kept in this browser only, never sent (a Not now would read as a refusal). Each ask carries
+   its own stamp (`askAt`, the asker's own clock, compared only with itself): a NEW ask from them is asked. */
+const _pzStopped = new Map();   // id → the askAt their row carried when I stopped
+const _pzAskSeen = Object.create(null);   // id → the askAt their row last carried
 function presenceFollowing(){ return _pzFollow; }
 function presenceAsking(){ return _pzAsk ? _pzAsk.id : null; }
 function presenceAllowed(){ return [..._pzAllow]; }
-/* the colleague's own row says they want to follow me */
-const _pzWantsMe = r => { const me = _pzMe() || {}; return !!(r && r.want && String(r.want) === String(me.id || '')); };
-const _pzLists = (r, k) => { const me = _pzMe() || {}; return !!(r && Array.isArray(r[k]) && r[k].some(x => String(x) === String(me.id || ''))); };
+function presenceLeading(){ return [..._pzLead]; }
+const _pzMeId = () => String((_pzMe() || {}).id || '');
+/* the colleague's row asks ME to follow them (their `want` names me) */
+const _pzWantsMe = r => { const me = _pzMeId(); const w = r && r.want; return !!(me && (Array.isArray(w) ? w.map(String).includes(me) : String(w || '') === me)); };
+const _pzLists = (r, k) => { const me = _pzMeId(); return !!(r && Array.isArray(r[k]) && r[k].some(x => String(x) === me)); };
 /* ---- THE PRESS ON A FACE ----
-   Not following them: ASK (they get Allow · Not now; nothing moves yet).
-   Asked and waiting: the same press takes the ask back.
-   Following them: the same press stops (as before).
-   They follow ME (I allowed it): the press asks whether to stop it. */
+   They follow me: the press asks whether to stop it.
+   I follow them: the same press stops it.
+   I asked them and wait: the same press takes the ask back.
+   Otherwise: ask them to follow me. */
 function presenceFollow(id){
   const to = String(id || '');
   if (!to) return null;
   const r = presenceRowOf(to);
+  if (_pzLead.has(to)){ presenceStopAsk(to); return null; }
   if (_pzFollow === to){
-    _pzFollow = null; _pzWent = null;
+    _pzFollow = null; _pzWent = null; _pzWentCard = null;
+    _pzAllow.delete(to); _pzStopped.set(to, _pzAskSeen[to] || (r && r.askAt) || null);
     if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
     presenceFollowSay(to, false);
     return null;
@@ -476,9 +506,6 @@ function presenceFollow(id){
     presenceSayOnce('pz_ask_cancelled', r, 'ok');
     return null;
   }
-  if (r && _pzAllow.has(to) && _pzWantsMe(r)){ presenceStopAsk(to); return null; }
-  /* ONE AT A TIME: a new ask stands down any follow or ask before it */
-  _pzFollow = null; _pzWent = null;
   _pzAsk = { id: to, at: Date.now() };
   if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
   presenceSayOnce('pz_ask_sent', r, 'ok');
@@ -489,45 +516,46 @@ function presenceSayOnce(key, r, kind, said){
   try { window.toast((said && said()) || i18t(key, { who: (r && r.name) || '', first: presenceFirstName(r && r.name) }), kind || 'ok'); } catch (_){}
 }
 /* ---- THE ANSWERS, READ OFF EACH BEAT ----
-   As the one asking: their Allow starts the follow; their Not now, their
-   silence past PRESENCE_ASK_WAIT_MS or their leaving ends the ask, said once.
-   Following: their taking the Allow back stops it, said once.
-   As the one asked: an Allow or Not now whose asker has stopped asking is
-   dropped, and the pop-up shows the next ask still waiting. */
+   As the one who asked: their Allow makes them a follower (a ring on their face); their Not now, their silence
+   past PRESENCE_ASK_WAIT_MS or their leaving ends the ask, said once each; a follower who stops is said once.
+   As the one asked: the pop-up shows the ask still unanswered; following, the leader taking it back (or leaving)
+   stops it, said once; an answer to an ask no longer standing is dropped. */
 function presenceAnswers(rows){
   const list = rows || [];
   const rowOf = id => list.find(x => x && String(x.id) === String(id));
+  list.forEach(r => { if (r && r.id != null) _pzAskSeen[String(r.id)] = r.askAt || null; });
   if (_pzAsk){
-    const lead = rowOf(_pzAsk.id);
-    if (!lead){ const was = presenceRowOf(_pzAsk.id) || { name: '' }; _pzAsk = null; presenceSayOnce('pz_ask_gone', was, 'warn'); }
-    else if (_pzLists(lead, 'allow')){
-      _pzFollow = String(lead.id); _pzWent = null; _pzAsk = null;
-      /* the start says where the paper goes ("clause 7"), the press's own sentence-maker */
-      presenceSayOnce('pz_follow_said', lead, 'ok', () => presenceFollowWords(lead, 'pz_follow_said'));
-    }
-    else if (_pzLists(lead, 'deny')){ _pzAsk = null; presenceSayOnce('pz_ask_no', lead, 'warn'); }
-    else if (Date.now() - _pzAsk.at > PRESENCE_ASK_WAIT_MS){ _pzAsk = null; presenceSayOnce('pz_ask_lapsed', lead, 'warn'); }
+    const them = rowOf(_pzAsk.id);
+    if (!them){ const was = presenceRowOf(_pzAsk.id) || { name: '' }; _pzAsk = null; presenceSayOnce('pz_ask_gone', was, 'warn'); }
+    else if (_pzLists(them, 'allow')){ _pzLead.add(String(them.id)); _pzAsk = null; presenceSayOnce('pz_allowed_said', them, 'ok'); }
+    else if (_pzLists(them, 'deny')){ _pzAsk = null; presenceSayOnce('pz_ask_no', them, 'warn'); }
+    else if (Date.now() - _pzAsk.at > PRESENCE_ASK_WAIT_MS){ _pzAsk = null; presenceSayOnce('pz_ask_lapsed', them, 'warn'); }
   }
+  [..._pzLead].forEach(id => {
+    const r = rowOf(id);
+    if (!r || !_pzLists(r, 'allow')){ _pzLead.delete(id); presenceSayOnce('pz_they_stopped', r || presenceRowOf(id) || { name: '' }, 'ok'); }
+  });
   if (_pzFollow){
     const lead = rowOf(_pzFollow);
-    if (lead && !_pzLists(lead, 'allow')){ _pzFollow = null; _pzWent = null; presenceSayOnce('pz_follow_ended', lead, 'warn'); }
+    if (!lead || !_pzWantsMe(lead)){
+      const was = lead || presenceRowOf(_pzFollow) || { name: '' };
+      _pzAllow.delete(String(_pzFollow)); _pzFollow = null; _pzWent = null; _pzWentCard = null;
+      presenceSayOnce('pz_follow_ended', was, 'warn');
+    }
   }
-  [..._pzAllow].forEach(id => {
-    const r = rowOf(id);
-    if (!r || !_pzWantsMe(r)){ _pzAllow.delete(id); presenceSayOnce('pz_they_stopped', r || presenceRowOf(id) || { name: '' }, 'ok'); }
-  });
+  [..._pzAllow].forEach(id => { const r = rowOf(id); if (!r || !_pzWantsMe(r)) _pzAllow.delete(id); });
   [..._pzDeny].forEach(id => { const r = rowOf(id); if (!r || !_pzWantsMe(r)) _pzDeny.delete(id); });
+  [..._pzStopped.keys()].forEach(id => { const r = rowOf(id); if (!r || !_pzWantsMe(r) || (r.askAt || null) !== _pzStopped.get(id)) _pzStopped.delete(id); });
   presenceAskSync(list);
 }
 /* ---- THE SMALL POP-UP, UNDER THE ONE ASKED'S OWN "HERE NOW" ----
-   "Amina wants to follow you · Allow · Not now". It does not block the page
-   and a press elsewhere leaves it standing — an ask waits for its answer —
-   but Esc says Not now. The stop question is the same pop-up, and Esc or a
-   press outside closes that one. Placed by measuring the slot in view. */
+   "Amina asks you to follow along · Allow · Not now". It does not block the page and a press elsewhere leaves it
+   standing — an ask waits for its answer — but Esc says Not now. The stop question is the same pop-up, and Esc or
+   a press outside closes that one. Placed by measuring the slot in view. */
 let _pzAskShown = null;   // { kind: 'ask'|'stop', id }
 function presenceAskSync(rows){
   if (_pzAskShown && _pzAskShown.kind === 'stop') return;
-  const ask = (rows || []).find(r => r && _pzWantsMe(r) && !_pzAllow.has(String(r.id)) && !_pzDeny.has(String(r.id)));
+  const ask = (rows || []).find(r => r && _pzWantsMe(r) && !_pzAllow.has(String(r.id)) && !_pzDeny.has(String(r.id)) && !_pzStopped.has(String(r.id)) && String(r.id) !== String(_pzFollow || ''));
   if (!ask){ if (_pzAskShown) presenceAskClose(); return; }
   if (_pzAskShown && _pzAskShown.id === String(ask.id) && document.getElementById('pz-ask')) return;
   presenceAskOpen('ask', ask);
@@ -570,14 +598,19 @@ function presenceAskPlace(){
   if (slot){ const q = slot.getBoundingClientRect(); top = q.bottom + 8; left = Math.min(Math.max(pad, q.right - w), window.innerWidth - w - pad); }
   el.style.top = Math.round(top) + 'px'; el.style.left = Math.round(left) + 'px';
 }
+/* ALLOW: I follow the one who asked — my paper goes to where they read now, and the card they have open */
 function presenceAllow(id){
   const to = String(id || ''); if (!to) return;
-  _pzDeny.delete(to); _pzAllow.add(to);
+  _pzDeny.delete(to); _pzStopped.delete(to); _pzAllow.add(to);
+  if (_pzFollow && _pzFollow !== to) _pzAllow.delete(String(_pzFollow));
+  _pzFollow = to; _pzWent = null; _pzWentCard = null;
   const r = presenceRowOf(to);
   presenceAskClose();
-  if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
-  presenceSayOnce('pz_allowed_said', r, 'ok');
+  if (_pzCid){ presencePaint(_pzCid); }
+  presenceFollowSay(to, true);
+  if (_pzCid){ const rows = presenceHere(_pzCid); if (rows.some(x => String(x.id) === to)) presenceWalk(rows); presenceBeatNow(); }
   presenceAskSync(_pzCid ? (_pzSeen[_pzCid] || []) : []);
+  return r;
 }
 function presenceDeny(id){
   const to = String(id || ''); if (!to) return;
@@ -586,10 +619,11 @@ function presenceDeny(id){
   if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
   presenceAskSync(_pzCid ? (_pzSeen[_pzCid] || []) : []);
 }
+/* STOP IT, from the one followed: they are no longer asked, so their screen stops */
 function presenceStopFollower(id){
   const to = String(id || ''); if (!to) return;
   const r = presenceRowOf(to);
-  _pzAllow.delete(to); _pzDeny.add(to);
+  _pzLead.delete(to); if (_pzAsk && _pzAsk.id === to) _pzAsk = null;
   presenceAskClose();
   if (_pzCid){ presencePaint(_pzCid); presenceBeatNow(); }
   presenceSayOnce('pz_you_stopped', r, 'ok');
@@ -653,7 +687,12 @@ function presenceWalk(rows){
   const lead = (rows || []).find(r => r && String(r.id) === String(_pzFollow));
   /* THE LEADER LEFT THE ROOM, so there is nobody to follow. Stood down rather
      than left pointing at a name that is gone. */
-  if (!lead){ _pzFollow = null; _pzWent = null; return false; }
+  if (!lead){ _pzFollow = null; _pzWent = null; _pzWentCard = null; return false; }
+  /* THE REDLINE CARD THEY OPENED (owner, 17 Nov 2026: "also on the redline cards"): the same card opens here,
+     its clause brought into view — through the press's own door (rlLinkFocus), the Redlines face first */
+  const card = lead.card ? String(lead.card) : '';
+  if (card && card !== _pzWentCard){ _pzWentCard = card; _pzWent = lead.spot ? String(lead.spot) : _pzWent; return !!presenceCardGo(card, lead.face === 'red'); }
+  if (!card) _pzWentCard = null;
   const spot = lead.spot ? String(lead.spot) : '';
   if (!spot || spot === _pzWent) return false;
   _pzWent = spot;
@@ -695,6 +734,22 @@ function presenceLocalSpot(spot, name){
   const n = _pzNum(want);
   const byNum = n ? all.find(el => _pzNum(presenceHeadOf(el)) === n) : null;
   return byNum ? (idOf(byNum) || id) : id;
+}
+/* THE CARD'S ONE DOOR: the Redlines face on this contract (pdRedOpen, its walls first) if it is not up, then the
+   card lit and its clause in view by rlLinkFocus — the very call a press on the card makes. */
+let _pzCardTry = null;
+function presenceCardGo(card, red){
+  const cid = _pzCid; if (!cid || !card) return false;
+  const c = (typeof window.getContract === 'function') ? window.getContract(cid) : null;
+  const light = () => { try { return (typeof window.rlLinkFocus === 'function') ? window.rlLinkFocus(c, card, 'follow') : false; } catch (_){ return false; } };
+  if (light()) return true;
+  if (!red || typeof window.pdRedOpen !== 'function') return false;
+  try { window.pdRedOpen(cid); } catch (_){ return false; }
+  /* the face draws after its walls: asked a few times, bounded, for the card to be there */
+  if (_pzCardTry) clearTimeout(_pzCardTry);
+  let n = 0; const again = () => { _pzCardTry = null; if (_pzWentCard !== card || light() || ++n >= 8) return; _pzCardTry = setTimeout(again, 250); };
+  _pzCardTry = setTimeout(again, 250);
+  return true;
 }
 /* THE WALK'S ONE DOOR: Home's paper where it is up (igPaperGoClause — round 6
    as drawn, Follow me on Home), else the Negotiate page's own
@@ -775,8 +830,10 @@ function presenceRowHtml(c){
   const faceHtml = r => {
     /* THEY FOLLOW ME (I allowed it): a ring, and the press asks whether to
        stop it — a button wherever the face is drawn, since stopping needs no paper */
-    const me = String(r.id), followsMe = _pzAllow.has(me) && _pzWantsMe(r);
-    if (!canWalk && !followsMe) return `<span class="pz-face pz-t-${tone(r)}" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
+    const me = String(r.id), followsMe = _pzLead.has(me);
+    /* ASKING SOMEONE TO FOLLOW ME needs no paper here, so every face is a button (17 Nov 2026); canWalk stays the
+       reading of whether THIS paper can be walked */
+    void canWalk;
     const on = String(presenceFollowing() || '') === me, asking = String(presenceAsking() || '') === me;
     /* the hover names where they are (round 6 as drawn): "Lina Ek is reading
        clause 11 now. Press to ask to follow…" */
@@ -864,7 +921,7 @@ Object.assign(window, {
   presenceHomePaper, presenceGo, presenceCanWalk,
   presenceRowOf, presenceClauseWord, presenceFirstName, presenceFollowWords, presenceFollowSay, presenceReWalk,
   PRESENCE_FAST_BEAT_MS, PRESENCE_TICK_MS, PRESENCE_ASK_WAIT_MS,
-  presenceAsking, presenceAllowed, presenceAnswers, presenceAllow, presenceDeny, presenceStopFollower,
+  presenceAsking, presenceAllowed, presenceLeading, presenceCardNow, presenceOnRedlines, presenceCardGo, presenceAnswers, presenceAllow, presenceDeny, presenceStopFollower,
   presenceAskOpen, presenceAskClose, presenceAskSync, presenceBeatBody, presenceBusyNow,
   presenceSpotHeading, presenceLocalSpot,
 });
