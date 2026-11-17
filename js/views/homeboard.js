@@ -10719,6 +10719,8 @@ function hbPlace(){
   /* and with a paper open, the place's Wall | List under it (20 Oct 2026: the
      place lands on the List, so a reader's Wall is kept across a refresh) */
   if (s.face === 'paper' && p.paper && window.state && state.reg && state.reg.show) p.show = state.reg.show;
+  /* and whether the place stood on its Folders (#762) */
+  if (s.face === 'paper' && typeof window.regFoldersNow === 'function') p.folders = regFoldersNow();
   return p;
 }
 const HB_RESUME_HAND = ['pointerdown', 'keydown', 'wheel', 'touchstart'], HB_RESUME_HAND_MS = 20000;
@@ -10734,6 +10736,7 @@ function hbPlacePut(p){
   if (p.nd && typeof window.ndPlacePut === 'function'){ try { ndPlacePut(p.nd); } catch (_){} }
   if (p.wall && typeof window.igWallPlacePut === 'function'){ try { igWallPlacePut(p.wall); } catch (_){} }
   if (!p.wall && (p.show === 'wall' || p.show === 'list') && typeof window.regPlaceSet === 'function'){ try { regPlaceSet({ show: p.show }); } catch (_){} }
+  if (typeof p.folders === 'boolean' && typeof window.regFoldersSet === 'function') regFoldersSet(p.folders);
   /* a contract's view saved before 15 Oct 2026 (p.cv) is dropped: the views are gone */
   /* the contract goes back on the Document face once the list holds it,
      through the one door (igWalk), bounded; a contract chosen meanwhile wins */

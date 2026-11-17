@@ -1150,6 +1150,10 @@ const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sig
    to paper" — the place lands on the List until the reader picks Wall). */
 /* the Contracts place's Folders-or-list choice rides the place too, so a refresh lands where the reader stood (#762) */
 function regPlace(){ return { scope:regScope(), st:{ ...regState() }, folders:(typeof _ctFolders==='boolean')?_ctFolders:true }; }
+/* Wall | List | Folders: whether the Contracts place stands on its folders, kept by Home's place too (#762: a refresh
+   with a paper open came back on Folders, not the Wall the reader chose) */
+function regFoldersNow(){ return (typeof _ctFolders==='boolean')?_ctFolders:true; }
+function regFoldersSet(b){ if(typeof b==='boolean') _ctFolders=b; }
 function regPlacePut(p){
   if(!p) return;
   regSetScope(p.scope);
@@ -5283,7 +5287,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that
