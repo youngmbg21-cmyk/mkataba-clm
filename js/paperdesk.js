@@ -2474,7 +2474,10 @@ function pdRoadPaint(c){
   const host = (typeof document !== 'undefined') ? document.getElementById('pd-signface') : null; if (!host || !c) return;
   const w = host.querySelector('[data-pd-road]'); if (!w) return;
   const R = pdRoadStops(c);
-  _pdRdId = false;
+  /* THE ONE #sa-card IS THE ONE PAINTED (17 Nov 2026, #762): in the new look the five parts' card carries the approval
+     asked of you (pd2SignRowsHtml), and this column is folded away — so it gives no id, and the email's link lands on the
+     card a person sees */
+  _pdRdId = !!(typeof window.newLookOn === 'function' && newLookOn() && pd2On());
   const h = R.stops.map((x, i) => {
     const framed = !!x.framed;
     const show = (x.k === 'ready' && R.fold) ? ` · <button type="button" class="pd-rd-lk" data-pd-rd-show aria-expanded="${_pdRdShow}">${_pdE(_pdT(_pdRdShow ? 'pd_rd_hide' : 'pd_rd_show'))}</button>` : '';
@@ -2604,11 +2607,13 @@ function pd2SignRowsHtml(c){
      Refuse — the road's own yes stop, pdRoadYesHtml, pressed through pdRoadPress) stands in the card, where the approval
      email's link lands (#762: it sat in the folded old column) */
   let saCard = '';
+  const nlIds = !!(typeof window.newLookOn === 'function' && newLookOn());
   try { if (!closed && typeof pdRoadStops === 'function'){
-    for (const x of (pdRoadStops(c) || [])){ if (!x || !x.yes) continue; const h = pdRoadYesHtml(c, x.yes); if (/data-pd-rd-approve=/.test(h)){ saCard = `<div class="pd2-sg-card is-yes" data-pd-road-stop="yes">${h}</div>`; break; } } } }
+    if (nlIds) _pdRdId = false;
+    for (const x of (((pdRoadStops(c) || {}).stops) || [])){ if (!x || !x.yes) continue; const h = pdRoadYesHtml(c, x.yes); if (/data-pd-rd-approve=/.test(h)){ saCard = `<div class="pd2-sg-card is-yes" data-pd-road-stop="yes">${h}</div>`; break; } } } }
   catch (_){ saCard = ''; }
   const card = closed ? '' : saCard ? saCard : myRule
-    ? `<div class="pd2-sg-card"><b>${E(T('pd2_sg_appr_wait'))}</b><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd-rd-rule="approved">${E(T((DEC.step && (DEC.step.status === 'rejected' || DEC.step.status === 'stale')) ? 'pd_rd_approve_again' : 'pd_rd_approve'))}</button><button type="button" class="ui-btn" data-pd-rd-rule="refused">${E(T('pd_rd_refuse'))}</button></div></div>`
+    ? `<div class="pd2-sg-card"${nlIds ? ' id="sa-card"' : ''}><b>${E(T('pd2_sg_appr_wait'))}</b><div class="pd2-sg-acts"><button type="button" class="ui-btn ui-btn-primary" data-pd-rd-rule="approved">${E(T((DEC.step && (DEC.step.status === 'rejected' || DEC.step.status === 'stale')) ? 'pd_rd_approve_again' : 'pd_rd_approve'))}</button><button type="button" class="ui-btn" data-pd-rd-rule="refused">${E(T('pd_rd_refuse'))}</button></div></div>`
     : HO
     ? `<div class="pd2-sg-card${HO.primary ? '' : ' is-held'}"><div class="pd2-sg-acts"><button type="button" id="${HO.id}" class="ui-btn${HO.primary ? ' ui-btn-primary' : ''}" data-pd2-ho="${E(c.id)}">${E(HO.label)}</button><span>${E(HO.line)}</span></div>${
       /* the way back to signing in HaTi (owner, 17 Nov 2026: "2 yes"), the route card's own press, while the route may change */
