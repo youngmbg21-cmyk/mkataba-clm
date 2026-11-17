@@ -207,7 +207,9 @@ const DEAL = {
         title: f ? (f.getAttribute('title') || '') : '' };
     });
     ok('5a the same press stops it', off.on === false && off.following === null
-      && /Press to ask to follow: once Amina allows it, your paper goes where Amina reads\.$/.test(off.title), JSON.stringify(off.following));
+      /* RE-POINTED 17 Nov 2026: the button's words turned with "they follow me" (9a3e143, pz_follow) and this one
+         sentence was left behind — red on main too */
+      && /Press to ask Amina to follow you: once they allow it, their page goes where you read and opens the redline cards you open\.$/.test(off.title), JSON.stringify(off));
     /* ---- AND THE PAGE STOPS MOVING, DRIVEN RATHER THAN WAITED OUT ----
        Sitting out two beats would add a minute to this stage for one claim,
        and a test whose answer depends on a sleep is one nobody runs. So the
