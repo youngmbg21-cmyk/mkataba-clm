@@ -1290,7 +1290,7 @@ function jlAskHtml(o){
     <form class="jl-ask" data-jl-ask autocomplete="off" title="${esc(cost)}">
       <div class="ca-pop jl-pop" data-jl-pop hidden></div>
       ${''/* the door back, and the bin, right above the box while the conversation shows (Door above the box) */}${typeof jamboDoorHtml === 'function' ? jamboDoorHtml({ on: false, back: 'list', to: i18t('pd_tab_overview'), bin: typeof jamboBinHtml === 'function' ? jamboBinHtml(false) : '' }) : ''}${typeof jamboFwdHtml === 'function' ? jamboFwdHtml({ on: false, host: 'list' }) : ''}
-      ${_jlJbCard({ field: `<textarea id="jl-q" rows="1" maxlength="400" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send: _jlJbSend('data-jl-send', i18t('int_ask'), { submit: true, cls: 'jl-send', title: cost }) })}
+      ${_jlJbCard({ field: `<textarea id="jl-q" rows="1" maxlength="400" spellcheck="false" data-jb-enter data-ca-slash placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send: _jlJbSend('data-jl-send', i18t('int_ask'), { submit: true, cls: 'jl-send', title: cost }) })}
     </form>
   </div>`;
 }

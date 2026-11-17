@@ -1200,7 +1200,8 @@ function apnRowHtml(r){
     sub=[esc(c.counterparty||''), ref, theirs?esc(i18t('apn_they_signed',{ who:String(c.counterparty||'').split(/\s+/)[0], when })):''].filter(Boolean).join(' · ');
     let capOk=true; try{ capOk=!(typeof signCapBlocker==='function'&&signCapBlocker(c)); }catch(_){ capOk=true; }
     rests=`<span class="apn-plain">${esc([r._mine?i18t('apn_your_turn',{ me:me.name||'', org:(window.FIRST_PARTY||'') }):apTurnText(r), r._mine&&capOk?i18t('apn_cap_ok'):''].filter(Boolean).join(' · '))}</span>`;
-    waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
+    /* red only past a week (the SAP rule, AP_LATE_DAYS; #762: the list had lost it) */
+    waited=r.idle!=null?(apLate(r)?`<span class="late">${esc(apWaitingText(r.idle))}</span>`:esc(apWaitingText(r.idle))):'—';
     acts=r._mine?`<button type="button" class="ui-btn ui-btn-sm" data-ap-open="${esc(c.id)}">${esc(i18t('apn_sign'))}</button>`:'';
   } else {
     /* ROOM FOR THE NAME (the harmony review, owner's yes 9 Nov 2026): "asked by" is said when somebody else asked; when
@@ -1211,7 +1212,8 @@ function apnRowHtml(r){
     const std=typeof stdRowWordsHtml==='function'?stdRowWordsHtml(c):'';
     rests=`${q?`<i class="apn-q">“${esc(q.quote)}”</i> <span class="apn-sec">${esc(q.sec)}</span>`:''}<div class="apn-read">${q&&q.why?esc(q.why):std}</div>`;
     rule=esc(apWhyLines(r)[0]||'—');
-    waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
+    /* red only past a week (the SAP rule, AP_LATE_DAYS; #762: the list had lost it) */
+    waited=r.idle!=null?(apLate(r)?`<span class="late">${esc(apWaitingText(r.idle))}</span>`:esc(apWaitingText(r.idle))):'—';
     acts=apMayDecide(r)?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-ap-approve="${esc(c.id)}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-ap-refuse="${esc(c.id)}">${esc(i18t('apn_decline'))}</button>`:'';
   }
   return `<tr data-ap-row="${esc(c.id)}" data-ap-kind="${r.type}" class="${r.type==='receipt'?'is-done':''}" tabindex="-1">
