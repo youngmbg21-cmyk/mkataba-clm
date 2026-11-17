@@ -15182,6 +15182,9 @@ function docThreadLineRow(){
    sheet), in which case the pressed row stays open and the reader's next
    scroll decides. */
 function docThreadGoTo(c,i){
+  /* THE READER'S PRESS WINS: a read still walking the paper (the Dossier's "Watch the read", played on arrival) is put
+     away, or it would carry the paper past the clause just pressed (#762, stakes 3f) */
+  if(typeof window.pd2WalkClose==='function') try{ window.pd2WalkClose(); }catch(_){ }
   const n=_docThreadRows.length; if(!n) return;
   docThreadShutClear();   /* a press that moves the paper is the reader's: the close is let go */
   i=Math.max(0,Math.min(n-1,Number(i)||0));
@@ -15199,8 +15202,6 @@ function docThreadGoTo(c,i){
   clearTimeout(_docThreadGlideT);
   _docThreadGlideT=setTimeout(()=>docThreadSettle(c),DOC_THREAD_GLIDE_MS);
 }
-let _docThreadQuietTo=0;
-const DOC_THREAD_SETTLE_QUIET_MS=700;
 function docThreadSettle(c){
   clearTimeout(_docThreadGlideT); _docThreadGlideT=null;
   const held=_docThreadHold, pressed=_docThreadGlide;
@@ -15209,10 +15210,7 @@ function docThreadSettle(c){
      glide a press began settles on the pressed row; only a glide nobody pressed reads the line */
   /* and the paper is put right under it if the glide fell short (the page moved under the glide while it ran) */
   if(held<0&&pressed>=0){ try{ const sc=thEl('scroll'), el=_docThreadRows[pressed];
-    if(sc&&el){ const d=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-DOC_THREAD_LINE+1; if(Math.abs(d)>4) sc.scrollTop+=d;
-      /* the scroll this correction (or a glide still easing out) fires is the press's own, not the reader's: the follow
-         stands aside for a moment so it cannot open the row after the pressed one (#762, stakes 3f) */
-      _docThreadQuietTo=Date.now()+DOC_THREAD_SETTLE_QUIET_MS; } }catch(_){ } }
+    if(sc&&el){ const d=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-DOC_THREAD_LINE+1; if(Math.abs(d)>4) sc.scrollTop+=d; } }catch(_){ } }
   docThreadOpen(docThreadCur(c), held>=0?held:pressed>=0?pressed:docThreadLineRow());
 }
 /* The paper's scroller is rebuilt with the room, so the listener rides the
@@ -15234,7 +15232,6 @@ function docThreadFollowArm(){
     /* A CLOSE HOLDS ONLY WHILE ITS CLAUSE IS AT THE LINE (owner, 16 Nov 2026: "if you close one of the clauses in
        the panel, the feature switches off"): the next clause the paper brings up opens, and the close is let go
        (docThreadShutHolds). */
-    if(Date.now()<_docThreadQuietTo) return;
     raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(!c||!docThreadLive()) return; const row=docThreadLineRow();
       if(docThreadShutOn(c)){ if(docThreadShutHolds(row)) return; docThreadShutClear(); }
       docThreadOpen(c,row,{follow:true}); });
