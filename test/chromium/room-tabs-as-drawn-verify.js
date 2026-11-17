@@ -139,7 +139,7 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
       /* RE-POINTED 16 Nov 2026 (#762): a contract's obligations are the Dossier's own Obligations panel (pdObOpen) — the
          unassigned duty's "Nobody" is looked for there as well as in the old room's table */
       nobody: [...document.querySelectorAll('#obt-scroll .ob-nobody, #ig-dock .ob-nobody')].map(x => x.textContent.trim())
-        .concat([...document.querySelectorAll('#ig-dock .pd-ob, #ig-dock [data-pd-ob]')].filter(e => /\bNobody\b/.test(e.textContent)).map(() => 'Nobody')) }));
+        .concat([...document.querySelectorAll('#ig-dock .pd-ob, #ig-dock [data-pd-ob]')].filter(e => /\bNobody\b/.test((e.querySelector('.pd-ob-v') || e).textContent)).map(() => 'Nobody')) })); /* the row's who-and-when part read on its own (its title runs into it in textContent) */
     /* RETIRED 16 Nov 2026 (#762): 5a "Overdue is a tab on the list's card" and 5b "Amount is a column" — the old room's
        Obligations tab; in the new look a contract's obligations open as the Dossier's own panel beside the paper (owner,
        23 Oct 2026: "it gets its own side panel and its own jambo"), which draws no tabs or table columns */

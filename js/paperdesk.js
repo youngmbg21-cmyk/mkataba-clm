@@ -379,7 +379,9 @@ function pdObligHtml(c){
       : (!x.theirs && (x.w === 'overdue' || x.w === 'week' || x.w === 'month')) ? acts.find(a => a.k === 'done' && !a.disabled) : null;
     const isOpen = open && open === key;
     const ring = x.w === 'overdue' ? 'is-late' : (x.w === 'week' || x.w === 'month') ? 'is-soon' : x.w === 'done' ? 'is-done' : 'is-none';
-    const who = x.theirs ? party : _pdT('pd_ob_us');
+    /* a duty of ours nobody is named for says so (obligationReminderTo, the Obligations page's own reading; #762: it said "Us") */
+    let named = true; try { named = x.theirs || x.w === 'done' || typeof window.obligationReminderTo !== 'function' || !!window.obligationReminderTo(o); } catch (_){ named = true; }
+    const who = x.theirs ? party : named ? _pdT('pd_ob_us') : (typeof i18t === 'function' ? i18t('ob_nobody') : 'Nobody');
     const when = x.w === 'done' ? d.day : (o.due ? d.day : '');
     const toggle = pdAct(() => { _pdObOpen = isOpen ? null : { id: String(c.id), key }; try { pdPaint(pdContract()); } catch (_){} });
     const word = lead ? `<button type="button" class="pd-go pd-ob-word" data-pd-act="${pdAct(lead.run)}"${lead.title ? ` title="${E(lead.title)}"` : ''}>${E(lead.k === 'done' ? _pdT('pd_ob_w_done') : lead.label)}</button>` : '';
@@ -6513,7 +6515,10 @@ function dossierNextOf(c, D, focus){
   if (focus === 'fill' && s.n){
     let readN = 0; try { readN = pdOgReadN(c); } catch (_){ readN = 0; }
     let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
-    head = _pdTn(c.status === 'Draft' ? 'dos_nx_fill_send' : 'dos_nx_fill', s.n, { n: s.n });
+    /* THE NUMBER ON THE DOOR IS THE LIST BEHIND IT (#762): "Fill in N details" counts the details owed (detailsOf, the one
+       reading the form's "N needed" uses), not the stage's rows, which count the signer too */
+    const nFill = (d && d.live && d.left) ? d.left : s.n;
+    head = _pdTn(c.status === 'Draft' ? 'dos_nx_fill_send' : 'dos_nx_fill', nFill, { n: nFill });
     sub = readN ? _pdTn('dos_nx_fill_found', readN, { n: readN }) : _pdT('dos_nx_fill_none');
     if (d && d.all) bar = Math.max(0, Math.min(1, (d.all - d.left) / d.all));
     /* FILL IN THE CONTRACT (owner, 28 Oct 2026): ONE button, the one Fill in door (pdFillOpen → the form); it
