@@ -7680,6 +7680,11 @@ function pd2Facts(c, D){
   out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'),
     /* A VIEWER CANNOT SAVE A SIGNER (BUGLOG 22086): no Change drawn for them, the fact stands alone */
     go: ((typeof canEdit !== 'function') || canEdit()) ? `data-pd-og-route="${E(c.id)}"` : '' });
+  /* WHO ELSE IS ON THIS AGREEMENT, right after the signer line (owner, 21–22 Oct 2026: "in Key terms AND the dossier";
+     #762: the new Dossier had lost it) — its press the one pop-up (pdPeopleOpen) */
+  if (typeof participantsDirHtml === 'function'){ const n = pdPeopleItems(c).length;
+    out.push({ k: 'people', l: _pdT('ppl_title'), v: n ? E(pdPeopleSay(c)) : `<span class="pd2-q">${E(_pdT('ppl_none'))}</span>`, s: '',
+      go: `data-pd-people="${E(c.id)}" data-pd-people-from="dossier"` }); }
   if (R.stream) out.push({ k: 'stream', l: _pdT('pd2_f_stream'), v: R.stream, s: _pdT('pd2_src_filed') });
   /* A PRIVATE CONTRACT SAYS WHO MAY OPEN IT, beside the paper too (MAP: private streams; #762: the new Dossier had lost it) */
   let P = null; try { P = (typeof window.bsPrivateOf === 'function') ? window.bsPrivateOf(c) : null; } catch (_){ P = null; }
@@ -7724,7 +7729,7 @@ function pd2Html(c){
   /* PAPER LINE HOLDS ALL (the harmony review, owner's yes 9 Nov 2026): a fact that can be changed ends in a green
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
-  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
+  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v">${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
   return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the

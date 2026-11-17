@@ -56,16 +56,18 @@ const ID = 'MK-WE1';
     await page.evaluate(id => pdOpenOnHome(id, 'copilot'), ID);
     /* RE-POINTED 22 Oct 2026 (owner: "who else is in this agreement should be right after the signer line"):
        a Checklist line in Needs you, its press the pop-up's door */
-    const PPL = '#ig-dock #pd-og tr[data-pd-og-row="people"]';
+    /* RE-POINTED 17 Nov 2026 (#762): the new Dossier says it among its facts, right after the signer's
+       ([data-pd2-fact="people"], its Change the pop-up's door) */
+    const PPL = '#ig-dock #pd-og tr[data-pd-og-row="people"], #ig-dock .pd2-facts [data-pd2-fact="people"]';
     const fold = await waitFor(page, s => !!document.querySelector(s), 12000, PPL);
 
     console.log('\n1 · the Dossier line');
     const line = await page.evaluate(s => { const r = document.querySelector(s); if (!r) return null;
       const prev = r.previousElementSibling;
-      return { head: r.textContent.replace(/\s+/g, ' ').trim(), after: prev ? prev.getAttribute('data-pd-og-kind') : null, btn: !!r.querySelector('button[data-pd-people]') }; }, PPL);
+      return { head: r.textContent.replace(/\s+/g, ' ').trim(), after: prev ? (prev.getAttribute('data-pd-og-kind') || (prev.getAttribute('data-pd2-fact') === 'signer' ? 'signer' : null)) : null, btn: !!r.querySelector('button[data-pd-people]') }; }, PPL);
     check('1a the Dossier has a "Who else is on this agreement" line, right after the signer line', !!fold && !!line && /^Who else is on this agreement/.test(line.head) && line.btn
       && (line.after === 'signer' || line.after === 'signers-named'), JSON.stringify(line));
-    const opened = (await click(PPL + ' [data-pd-people]')) && await waitFor(page, () => !!document.querySelector('[role="dialog"] #pd-ppl [data-pt-add]'), 5000);
+    const opened = (await click('#ig-dock :is(#pd-og tr[data-pd-og-row="people"], .pd2-facts [data-pd2-fact="people"]) [data-pd-people]')) && await waitFor(page, () => !!document.querySelector('[role="dialog"] #pd-ppl [data-pt-add]'), 5000);
     check('1b its button opens the list in a pop-up over the page', !!opened);
     await page.screenshot({ path: path.join(OUT, 'from-dossier-1440x780.png') });
 
