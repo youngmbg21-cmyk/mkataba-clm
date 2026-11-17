@@ -1084,6 +1084,7 @@ function riskGoClause(c, key){
   /* ONE CARD LIT AT A TIME (owner, 23 Oct 2026): beside Home's paper the column is not inside the paper,
      so a redline row pressed before lets go here too */
   document.querySelectorAll('.redline-page :is(.rl-card, .rk-row).is-linked').forEach(n => n.classList.remove('is-linked'));
+  if (typeof window.rlLinkForget === 'function') window.rlLinkForget();
   const row = document.querySelector('#rl-risks [data-rk-key="' + q(key) + '"]');
   if (row) row.classList.add('is-linked');
   let found = false;

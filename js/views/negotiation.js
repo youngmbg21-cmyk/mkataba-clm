@@ -11925,6 +11925,11 @@ function rlLandOnRow(changeId, opts = {}){
   return window.landOn(() => document.querySelector(`#pd-redface [data-nego-card="${q}"]`) || document.querySelector(`#rl-changes [data-nego-card="${q}"]`),
     { block: 'center', focus: false, ...opts });
 }
+/* ONE SHADE, ONE CARD, AND IT STAYS (#762, one-shade 1): the card a press lit is remembered, so a redraw of the column
+   (a risk read landing, a decision elsewhere) draws it lit again; a risk row lit, or another card, takes its place */
+let _rlLinked = null;
+function rlLinkedIs(c, id){ return !!(_rlLinked && c && String(_rlLinked.cid) === String(c.id) && _rlLinked.id === String(id)); }
+function rlLinkForget(){ _rlLinked = null; }
 function rlLinkFocus(c, changeId, source){
   const page = document.getElementById('view-redline')
     || document.querySelector('.redline-page.rl-embed')
@@ -11946,6 +11951,7 @@ function rlLinkFocus(c, changeId, source){
   const clause = homePaper ? homePaper.querySelector('[data-nego-card-anchor~="' + q(id) + '"]')
     : page.querySelector('#rl-doc [data-nego-card-anchor~="' + q(id) + '"]');
   const card = page.querySelector('#rl-changes [data-nego-card="' + q(id) + '"]');
+  _rlLinked = card && c ? { cid: String(c.id), id } : null;
   /* The change's THREAD is the same thing again in the discussion panel, so
      it lights with the pair — and whichever sidebar face is showing is the
      one that gets scrolled: scrolling a display:none panel moves nothing,
@@ -20632,7 +20638,8 @@ function redlineChangeCardsHtml(c, opts = {}){
         .filter(Boolean).join('');
       return `<article class="rl-card rl-card-d${
         RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}${
-        RL_QUIET_BANDS.includes(band) ? ' rl-card-quiet' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+        RL_QUIET_BANDS.includes(band) ? ' rl-card-quiet' : ''}${
+        rlLinkedIs(c, ch.id) ? ' is-linked' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
         (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
         heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
         rvOut ? ' data-rv-waiting="1"' : ''}${
@@ -23233,7 +23240,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
+if (typeof window !== 'undefined') Object.assign(window, { rlLinkedIs, rlLinkForget, rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
 if (typeof window !== 'undefined') Object.assign(window, { RL_PLAIN_FIG, rlPlainFigs, rlPlainFigureOf, rlPlainReasonOf, rlAskColleague });
 if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
