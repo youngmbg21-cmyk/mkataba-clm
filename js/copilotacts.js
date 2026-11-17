@@ -1865,10 +1865,11 @@ function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && st
    wall of paper is opened to choose from — never a guess. */
 /* the words that mean Our paper's standards tab, not its templates */
 const CA_STD_WORD = /(?<!\p{L})(?:standards?|playbook|standarder(?:na)?)(?!\p{L})/iu;
-function caOpenStandards(){
-  /* THE LADDER (17 Nov 2026): Standards is one page; a book named in the words lands on the page (the books are its
-     "Applies to", not a tab any more) */
+function caOpenStandards(book){
+  /* THE LADDER (17 Nov 2026): Standards is one page; a contract type named in the words narrows its list to the
+     standards that apply to that type (ldBookSet); none named shows them all */
   setView('playbook');
+  if (typeof window.ldBookSet === 'function') window.ldBookSet(book || null);
 }
 /* ONE READING FOR EVERY PLACE READER (caReadPlace, caReadGoPlace,
    caReadPlaceAnd): Our paper asked as standards is the standards tab, on the
@@ -2179,7 +2180,7 @@ const CA_GO = {
   /* our standards (a.std) open the standards tab, on the book named (owner, 22 Oct 2026) */
   ourpaper: (c, a) => { if (!(a && a.std)){ setView('templates'); return; } caOpenStandards(a.book); },
   /* Standards, its own page (the Ladder, 17 Nov 2026) */
-  standards: () => caOpenStandards(),
+  standards: (c, a) => caOpenStandards(a && a.book),
   import: () => !caMayAdd() ? false : setView('migration'),
   mynotes: () => setView('mynotes'),
   /* Reads, on a question where one was named (The thread, 28 Oct 2026) */

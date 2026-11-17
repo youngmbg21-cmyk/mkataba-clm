@@ -4,7 +4,7 @@
    WHAT THIS PINS, driven in a real browser on the seeded workspace
      1 the owner's own sentence, typed into Jambo's panel beside a paper —
        "show me where i can edit our standards for the procurement stream" —
-       opens Our standards on the Supply book (the book Procurement's
+       opens Our standards (its own page since 17 Nov 2026), naming the Supply book (the book Procurement's
        contracts are judged by), never the open contract's Filing row
      2 "take me to our standards" opens Our standards; "take me to the
        templates" still opens the templates
@@ -78,8 +78,8 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
       return until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('igd-input') && !intel.busy, id, 10000); };
     const panelAsk = async q => { /* RE-PINNED 28 Oct 2026 ("Door above the box": typed words are the brain's but a page's one name): asked as a chip asks */ await page.evaluate(w => intelAsk(w), q); };
     const stdState = () => page.evaluate(() => ({ view: state.view,
-      booksTab: !!document.querySelector('[data-pb-tab="playbook"].on, [data-pb-tab="playbook"][aria-selected="true"]'),
-      book: (document.querySelector('[data-sd-book].is-sel') || {}).getAttribute ? document.querySelector('[data-sd-book].is-sel').getAttribute('data-sd-book') : null,
+      /* RE-POINTED 17 Nov 2026 (the Ladder): Standards is one page with no book tabs; the book is named in Jambo's sentence */
+      ladder: !!document.querySelector('.ld-page .ld-list'),
       said: (intel.history.filter(m => m.role === 'assistant').slice(-1)[0] || {}).text || '' }));
 
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -93,10 +93,9 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
     console.log('\n1 · the owner\'s sentence, beside a paper');
     check('1 · MK-B2 is on the paper', !!(await onPaper('MK-B2')));
     await panelAsk('show me where i can edit our standards for the procurement stream');
-    const s1 = await until(() => state.view === 'playbook' && !!document.querySelector('[data-pb-tab]') ? true : null, null, 8000) && await stdState();
+    const s1 = await until(() => state.view === 'playbook' && !!document.querySelector('.ld-page') ? true : null, null, 8000) && await stdState();
     check('1a it opens Our standards', !!s1 && s1.view === 'playbook', JSON.stringify(s1));
-    check('1b on the Negotiation playbook tab', !!s1 && s1.booksTab, JSON.stringify(s1));
-    check('1c with the Supply book chosen (Procurement\'s contracts are judged by it)', !!s1 && s1.book === 'supply', s1 && s1.book);
+    check('1b drawn as the Ladder, its own page', !!s1 && s1.ladder, JSON.stringify(s1));
     check('1d Jambo says where he went, naming the book', !!s1 && /standards/i.test(s1.said) && /supply/i.test(s1.said), s1 && s1.said);
     const filing = await page.evaluate(() => !!document.querySelector('#ws-filing:focus, .ov-filing.is-lit'));
     check('1e the open contract\'s Filing row was not pressed', !filing);
@@ -108,7 +107,8 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
     await onPaper('MK-B2');
     await panelAsk('take me to our standards for the procurement stream');
     const s2 = await until(() => state.view === 'playbook' ? true : null);
-    check('2a "take me to our standards for the procurement stream" opens Our standards, on the Supply book', !!s2 && (await stdState()).book === 'supply', JSON.stringify(await stdState()));
+    { const st = await stdState();
+      check('2a "take me to our standards for the procurement stream" opens Our standards, naming the Supply book', !!s2 && st.ladder && /supply/i.test(st.said), JSON.stringify(st)); }
     await onPaper('MK-B2');
     await panelAsk('take me to our standards');
     const s2b = await until(() => state.view === 'playbook' ? true : null);

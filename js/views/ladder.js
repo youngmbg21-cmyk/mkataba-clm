@@ -30,7 +30,7 @@
    insPaintPanel, jamboOverviewHtml, openModal, closeModal, signCheckGate, signCheckAccept, signCheckOpenClause, ensureFull, getContract,
    logAudit, persist, renderAIFeed, ai, landOn, diffHtml, todayISO, jlTalkOpen, regDotDate, langLocale, copilotAvailable */
 
-const _ld = { pick: null, mode: 'ladder', edit: null, jbBusy: false, moreOpen: null };
+const _ld = { pick: null, mode: 'ladder', edit: null, jbBusy: false, moreOpen: null, book: null };
 const LD_FIRM_ORDER = ['must', 'push', 'nice', 'never'];
 const LD_DEPS_SHOWN = 3;
 const LD_REVIEW_SOON_DAYS = 30;
@@ -67,9 +67,25 @@ function ldVerdictsOf(cl){
   }
   return out;
 }
+/* A RULE A BOOK HOLDS WITH NO WORDING OF ITS OWN (a position or a limit naming only a topic, e.g. "Quality & rejection"
+   on Supply) is a standard too: drawn with its words "not written yet", edited into one like any other */
+function ldBookOnly(lib, pb){
+  const have = new Set((lib || []).map(c => String(c.category || '').toLowerCase()));
+  const out = new Map();
+  for (const b of Object.values(pb || {})){
+    if (!b || typeof b !== 'object') continue;
+    for (const p of [...(Array.isArray(b.positions) ? b.positions : []), ...(Array.isArray(b.ranges) ? b.ranges : [])]){
+      const cat = String((p && (p.category || p.label)) || '').trim();
+      if (!cat || p.clause || have.has(cat.toLowerCase()) || out.has(cat.toLowerCase())) continue;
+      out.set(cat.toLowerCase(), { id: 'pb:' + cat.toLowerCase(), category: cat, name: cat, preferred: '', guidance: String(p.note || ''), _bookOnly: true });
+    }
+  }
+  return [...out.values()];
+}
 function ldStandards(){
   const pb = playbook() || {};
-  return (clauseLibrary() || []).map(cl => {
+  const lib = clauseLibrary() || [];
+  return [...lib, ...ldBookOnly(lib, pb)].map(cl => {
     const place = stdPlaceOf(cl, pb);
     const vs = ldVerdictsOf(cl);
     const holds = vs.filter(x => ['aligned', 'ok'].includes(x.v.status)).length;
@@ -77,13 +93,14 @@ function ldStandards(){
     const open = vs.filter(x => (x.v.status === 'deviation' || x.v.status === 'missing') && !x.v.accepted && !x.v.refused && !LD_SIGNED.includes(x.c.status));
     const gov = stdGovOf(cl);
     const soon = gov.reviewNext && gov.reviewNext <= ldAddDays(ldToday(), LD_REVIEW_SOON_DAYS);
-    return { cl, id: String(cl.id), name: cl.name || cl.category || '', topic: cl.category || cl.name || '', ladder: stdLadderOf(cl), gov, place,
+    return { cl, id: String(cl.id), bookOnly: !!cl._bookOnly, name: cl.name || cl.category || '', topic: cl.category || cl.name || '', ladder: stdLadderOf(cl), gov, place,
       firm: place.firm || 'nice', checked: vs.length, holds, allowed, open, legalWaits: open.filter(x => x.v.escalate).length, reviewSoon: !!soon, wait: ldWaitingFor(cl.id) };
   });
 }
 function ldAddDays(iso, n){ const d = new Date(String(iso).slice(0, 10) + 'T00:00:00Z'); if (isNaN(d)) return ''; d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
 function ldPicked(rows){
   rows = rows || ldStandards();
+  rows = rows.filter(ldInBook);
   let r = rows.find(x => x.id === _ld.pick);
   if (!r){ r = LD_FIRM_ORDER.map(f => rows.find(x => x.firm === f && x.open.length)).find(Boolean) || rows[0] || null; _ld.pick = r ? r.id : null; }
   return r;
@@ -107,8 +124,19 @@ function ldPaintHead(){
 }
 
 /* ---- THE LIST BY HOW FIRM ---- */
+/* A CONTRACT TYPE NAMED ("our NDA standards", Jambo's words or a typed sentence) narrows the list to the standards that
+   apply to it: its own book and the baseline every contract starts from; one × lets it go */
+function ldBookNow(){ return _ld.book; }
+function ldBookSet(book){
+  const pb = playbook() || {};
+  _ld.book = book && book !== '_default' && pb[book] ? String(book) : null;
+  if (state && state.view === 'playbook') renderStandardsPage();
+}
+function ldInBook(r){ return !_ld.book || r.place.books.includes(_ld.book) || r.place.books.includes('_default'); }
 function ldListHtml(rows, picked){
-  return `<nav class="ld-list" aria-label="${LD_E(i18t('ld_list_aria'))}">${LD_FIRM_ORDER.map(f => {
+  const bookLine = _ld.book ? `<p class="ld-bookline">${LD_E(i18t('ld_book_for', { book: ldBookLabel(_ld.book) }))}<button type="button" class="ui-btn ui-btn-plain ui-btn-icon ui-btn-sm" data-ld-book-clear title="${LD_E(i18t('ld_book_clear'))}" aria-label="${LD_E(i18t('ld_book_clear'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : ''}</button></p>` : '';
+  rows = rows.filter(ldInBook);
+  return `<nav class="ld-list" aria-label="${LD_E(i18t('ld_list_aria'))}">${bookLine}${LD_FIRM_ORDER.map(f => {
     const g = rows.filter(r => r.firm === f); if (!g.length) return '';
     return `<p class="ld-g">${LD_E(ldFirmWord(f))}</p>` + g.map(r => {
       const note = r.open.length ? `<small class="is-warn">${LD_E(i18tn('ld_n_waits', r.open.length, { n: r.open.length }))}</small>`
@@ -125,11 +153,13 @@ function ldRungHtml(tone, lab, words, who, sub, count){
     + `<div class="ld-who">${LD_E(who)}<small>${LD_E(sub || '')}</small></div><div class="ld-cnt">${count || ''}</div></div>`;
 }
 function ldDepHtml(x){
-  const party = x.c.counterparty || x.c.name || x.c.id;
+  /* EVERY OUTSIDE PARTY, one line each (the every-party rule): never our own side */
+  const theirs = (typeof window.contractParties === 'function' ? window.contractParties(x.c) : []).filter(p => p && p.side !== 'ours' && p.name).map(p => p.name);
+  const names = theirs.length ? theirs : [x.c.counterparty || x.c.name || x.c.id];
   const q = String(x.v.quote || '').trim();
   const what = x.v.status === 'missing' ? i18t('ld_dep_missing') : q ? i18t('ld_dep_says', { q: q.length > 160 ? q.slice(0, 157) + '…' : q }) : i18t('ld_dep_off');
   const mayAccept = typeof window.signCheckMayAccept !== 'function' || window.signCheckMayAccept(x.c, x.v);
-  return `<div class="ld-dep" data-ld-dep="${LD_E(x.c.id)}" data-ld-dep-i="${x.i}"><span class="ld-dep-t"><b>${LD_E(party)}</b> · ${LD_E(typeof window.contractRef === 'function' ? window.contractRef(x.c) : x.c.id)} ${LD_E(what)}${x.v.escalate ? ` <span class="ld-tag">${LD_E(i18t('ld_dep_legal'))}</span>` : ''}</span>`
+  return `<div class="ld-dep" data-ld-dep="${LD_E(x.c.id)}" data-ld-dep-i="${x.i}"><span class="ld-dep-t">${names.map(n => `<b class="ld-dep-p">${LD_E(n)}</b>`).join('')}${LD_E(typeof window.contractRef === 'function' ? window.contractRef(x.c) : x.c.id)} ${LD_E(what)}${x.v.escalate ? ` <span class="ld-tag">${LD_E(i18t('ld_dep_legal'))}</span>` : ''}</span>`
     + `<span class="ld-dep-a">${mayAccept ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ld-allow>${LD_E(i18t('ld_allow'))}</button>` : `<span class="ld-quiet" title="${LD_E(i18t('ld_allow_not_you'))}">${LD_E(i18t('ld_allow_not_you_short'))}</span>`}`
     + `<button type="button" class="ui-btn ui-btn-sm" data-ld-refuse>${LD_E(i18t('ld_refuse'))}</button><button type="button" class="ui-link" data-ld-open>${LD_E(i18t('ld_open_paper'))}</button></span></div>`;
 }
@@ -278,7 +308,7 @@ function ldLandDep(id){
 /* ---- THE ACTS ---- */
 function ldStartEdit(r){
   if (!ldMayEdit()) return;
-  _ld.edit = { clauseId: r ? r.id : null, ver: r ? (r.gov.ver || 1) : 0, draft: ldDraftOf(r), base: r ? ldDraftOf(r) : null, jb: null };
+  _ld.edit = { clauseId: r && !r.bookOnly ? r.id : null, ver: r && !r.bookOnly ? (r.gov.ver || 1) : 0, draft: ldDraftOf(r), base: r ? ldDraftOf(r) : null, jb: null };
   renderStandardsPage();
   const f = document.querySelector('.ld-edit [data-ld-f="' + (r ? 'ask' : 'name') + '"]');
   if (f && typeof window.fieldFocus === 'function') window.fieldFocus(f); else if (f) f.focus();
@@ -474,8 +504,9 @@ if (typeof document !== 'undefined' && !document._ldWired){
       return;
     }
     if (!state || state.view !== 'playbook') return;
-    const b = t.closest('[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-allow],[data-ld-refuse],[data-ld-open]');
+    const b = t.closest('[data-ld-book-clear],[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-allow],[data-ld-refuse],[data-ld-open]');
     if (!b) return;
+    if (b.hasAttribute('data-ld-book-clear')){ ldBookSet(null); return; }
     if (b.hasAttribute('data-ld-pick')){ _ld.pick = b.getAttribute('data-ld-pick'); _ld.mode = 'ladder'; renderStandardsPage(); return; }
     if (b.hasAttribute('data-ld-mode')){ const m = b.getAttribute('data-ld-mode'); _ld.mode = _ld.mode === m && m !== 'ladder' ? 'ladder' : m; _ld.edit = null; renderStandardsPage(); return; }
     if (b.hasAttribute('data-ld-new')){ ldStartEdit(null); return; }
@@ -514,4 +545,4 @@ if (typeof document !== 'undefined' && !document._ldNeedWired){
   document.addEventListener('click', ev => { const b = ev.target && ev.target.closest && ev.target.closest('[data-ld-need]'); if (!b) return; ev.preventDefault(); ldGoDecide(b.getAttribute('data-ld-need')); });
 }
 
-Object.assign(window, { renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldNeedRows, ldGoDecide, ldPanelFive });
+Object.assign(window, { ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldNeedRows, ldGoDecide, ldPanelFive });

@@ -80,7 +80,8 @@ function navWhereSrc(){
   if (W.page === 'requests'){ const k = insSelected('intake:team'); const r = k && document.querySelector(`tr[data-ik-row="${k}"]`); W.item = r ? r.innerText.replace(/\s+/g, ' ').trim() : k || null; }
   if (W.page === 'people'){ const k = insSelected('directory'); const r = k && document.querySelector(`#dir-tbody [data-dir-row="${k}"]`); W.item = r ? r.innerText.replace(/\s+/g, ' ').trim() : k || null; }
   if (W.page === 'standards'){
-    W.item = insSelected('std:books') || null;
+    /* THE LADDER (17 Nov 2026): the contract type the list is narrowed to, else every standard (the baseline) */
+    W.item = typeof ldBookNow === 'function' ? (ldBookNow() || '_default') : (insSelected('std:books') || null);
     const L = document.querySelector('.is-landed'); W.row = L ? L.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : null;
   }
   if (W.page === 'templates'){
