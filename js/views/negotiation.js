@@ -20453,7 +20453,11 @@ function redlineChangeCardsHtml(c, opts = {}){
        rather than parked in a hidden body only the pop-out could show — the
        pop-out is retired, and a fact behind a control that no longer exists is
        a fact lost. */
-    const info = [dkBy, behalfBlock, revisedBlock, whyBlock, rvNoteBlock].filter(Boolean).join('');
+    /* A REFUSAL SAYS WHY ON ITS OWN CARD (17 Nov 2026, #762): the reason travels (ch.reply) and the clause panel that
+       said it is gone in the new look, so the refused ask's row carries it, in the refuser's words, on both seats */
+    const replyBlock = (contested && String(ch.reply || '').trim())
+      ? `<div class="rl-card-behalf rl-card-reply">\u201c${_ne(String(ch.reply).trim())}\u201d</div>` : '';
+    const info = [dkBy, behalfBlock, revisedBlock, whyBlock, replyBlock, rvNoteBlock].filter(Boolean).join('');
     /* The preview's verbs are pixels, not presses — deadened WHOLESALE after
        classification, so the receipt/full-card decision and the needs-you
        reading stay exactly the counterparty page's own. See previewSeat. */
