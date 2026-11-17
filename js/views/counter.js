@@ -324,8 +324,8 @@ function deskBarPaint(){
   const back = document.getElementById('dk-back'), w = document.getElementById('dk-pg-w'), btn = document.getElementById('dk-page');
   if (back){
     back.hidden = !on;
-    const can = deskSheetUp() || deskBuilderUp() || deskStepBack(false) || !!deskBackTarget();
-    back.disabled = !can;
+    const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
+    back.disabled = !(can || deskBuilderUp());
     /* ‹ SAYS WHERE IT GOES (the glitch audit, 24 Oct 2026: it said only "Back", and a press that
        stepped the panel looked like one that did nothing) */
     let where = '';
