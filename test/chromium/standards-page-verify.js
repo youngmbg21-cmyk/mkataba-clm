@@ -76,10 +76,16 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       /* 2 DEPARTURES */
       const D = await until(() => { const d = [...document.querySelectorAll('.ld-dep')]; return d.length ? d.map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(),
         acts: [...x.querySelectorAll('button')].map(b => b.textContent.trim()) })) : null; });
-      check(`${tag} 2a each open departure on the ladder: Allow once · Refuse · Open the paper`, !!D && D.length === 2 && D.every(x => /Refuse/.test(x.acts.join()) && /Open the paper/.test(x.acts.join())) && D.some(x => /Kilele/.test(x.t) && /Legal says yes/.test(x.t)), D);
-      await page.evaluate(() => document.querySelector('.ld-dep [data-ld-allow]')?.click());
-      const ask = await until(() => { const d = document.querySelector('#prompt-overlay, [role="dialog"]'); return d && /reason|why/i.test(d.textContent) ? true : null; });
-      check(`${tag} 2b Allow once asks a reason before anything is written`, !!ask, ask);
+      /* RE-POINTED 17 Nov 2026 (one door for departures): the card sends the decision to Approvals & signing */
+      check(`${tag} 2a each open departure on the ladder: Decide in Approvals · Open the paper, and no decision here`, !!D && D.length === 2
+        && D.every(x => /Decide in Approvals/.test(x.acts.join()) && /Open the paper/.test(x.acts.join()) && !/Allow once|Refuse/.test(x.acts.join()))
+        && D.some(x => /Kilele/.test(x.t) && /Legal says yes/.test(x.t)), D);
+      const key = await page.evaluate(() => { const b = document.querySelector('.ld-dep [data-ld-goap]'); const k = b && b.getAttribute('data-ld-goap'); if (b) b.click(); return k; });
+      const landed = await until(k => { const tr = document.querySelector('#content tr.is-sel[data-ap-row]');
+        return state.view === 'approvals' && tr && tr.getAttribute('data-ap-row') === k ? k : null; }, key);
+      check(`${tag} 2b it lands on that departure's row in Approvals & signing, chosen`, !!key && landed === key, JSON.stringify({ key, landed }));
+      await page.evaluate(() => { setView('playbook'); });
+      await until(() => !!document.querySelector('.ld-main .ld-rung'));
       await page.keyboard.press('Escape').catch(() => {});
       await page.waitForTimeout(300);
 

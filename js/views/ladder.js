@@ -94,7 +94,7 @@ function ldStandards(){
     const gov = stdGovOf(cl);
     const soon = gov.reviewNext && gov.reviewNext <= ldAddDays(ldToday(), LD_REVIEW_SOON_DAYS);
     return { cl, id: String(cl.id), bookOnly: !!cl._bookOnly, name: cl.name || cl.category || '', topic: cl.category || cl.name || '', ladder: stdLadderOf(cl), gov, place,
-      firm: place.firm || 'nice', checked: vs.length, holds, allowed, open, legalWaits: open.filter(x => x.v.escalate).length, reviewSoon: !!soon, wait: ldWaitingFor(cl.id) };
+      firm: place.firm || 'nice', checked: vs.length, holds, allowed, open, decide: (place.firm || 'nice') === 'nice' ? 0 : open.length, legalWaits: open.filter(x => x.v.escalate).length, reviewSoon: !!soon, wait: ldWaitingFor(cl.id) };
   });
 }
 function ldAddDays(iso, n){ const d = new Date(String(iso).slice(0, 10) + 'T00:00:00Z'); if (isNaN(d)) return ''; d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
@@ -108,9 +108,9 @@ function ldPicked(rows){
 
 /* ---- THE HEAD: name, facts, Departures · History · + New standard ---- */
 function ldHeadFacts(rows){
-  const must = rows.filter(r => r.firm === 'must').length, due = rows.filter(r => r.reviewSoon).length, legal = rows.reduce((n, r) => n + r.legalWaits, 0);
+  const must = rows.filter(r => r.firm === 'must').length, due = rows.filter(r => r.reviewSoon).length, legal = rows.reduce((n, r) => n + r.decide, 0);
   return `<span class="ld-facts"><b>${LD_E(i18tn('ld_n_standards', rows.length, { n: rows.length }))}</b>${[
-    must ? i18tn('ld_n_must', must, { n: must }) : '', due ? i18tn('ld_n_due', due, { n: due }) : '', legal ? i18tn('ld_n_legal', legal, { n: legal }) : ''].filter(Boolean).map(t => ' · ' + LD_E(t)).join('')}</span>`;
+    must ? i18tn('ld_n_must', must, { n: must }) : '', due ? i18tn('ld_n_due', due, { n: due }) : '', legal ? i18tn('ld_n_decide', legal, { n: legal }) : ''].filter(Boolean).map(t => ' · ' + LD_E(t)).join('')}</span>`;
 }
 function ldPaintHead(){
   if (typeof document === 'undefined' || !state || state.view !== 'playbook') return;
@@ -141,7 +141,8 @@ function ldListHtml(rows, picked){
   return `<nav class="ld-list" aria-label="${LD_E(i18t('ld_list_aria'))}">${bookLine}${LD_FIRM_ORDER.map(f => {
     const g = rows.filter(r => r.firm === f); if (!g.length) return '';
     return `<p class="ld-g">${LD_E(ldFirmWord(f))}</p>` + g.map(r => {
-      const note = r.open.length ? `<small class="is-warn">${LD_E(i18tn('ld_n_waits', r.open.length, { n: r.open.length }))}</small>`
+      const note = r.decide ? `<small class="is-warn">${LD_E(i18tn('ld_n_waits', r.decide, { n: r.decide }))}</small>`
+        : r.open.length ? `<small>${LD_E(i18tn('ld_n_off', r.open.length, { n: r.open.length }))}</small>`
         : r.wait ? `<small class="is-warn">${LD_E(i18t('ld_change_waits_short'))}</small>` : r.reviewSoon ? `<small class="is-warn">${LD_E(i18t('ld_review_short'))}</small>` : '';
       const on = picked && picked.id === r.id && _ld.mode === 'ladder';
       return `<button type="button" class="ld-it${on ? ' is-on' : ''}" data-ld-pick="${LD_E(r.id)}"${on ? ' aria-current="true"' : ''}><i class="ld-dot is-${LD_E(r.firm)}" aria-hidden="true"></i><span class="ld-it-n" title="${LD_E(r.name)}">${LD_E(r.topic)}</span>${note}</button>`;
@@ -154,16 +155,31 @@ function ldRungHtml(tone, lab, words, who, sub, count){
   return `<div class="ld-rung"><i class="ld-mark is-${LD_E(tone)}" aria-hidden="true"></i><div class="ld-rw"><p class="ld-lab">${LD_E(lab)}</p><p class="ld-w${words ? '' : ' is-none'}">${LD_E(words || i18t('ld_rung_none'))}</p></div>`
     + `<div class="ld-who">${LD_E(who)}<small>${LD_E(sub || '')}</small></div><div class="ld-cnt">${count || ''}</div></div>`;
 }
-function ldDepHtml(x){
+/* ONE DOOR FOR A DEPARTURE (owner, 17 Nov 2026: "build it", drawn on the real page): the card says who departs and the
+   words; deciding happens on Approvals & signing only. A firm standard's card carries "Decide in Approvals ›", which
+   lands on that exact row (apnLandRow), for whoever has that row; a Nice to have never holds a signature, so its cards
+   are for information with no decision at all. "Open the paper" stays. */
+function ldDepHtml(x, firm){
   /* EVERY OUTSIDE PARTY, one line each (the every-party rule): never our own side */
   const theirs = (typeof window.contractParties === 'function' ? window.contractParties(x.c) : []).filter(p => p && p.side !== 'ours' && p.name).map(p => p.name);
   const names = theirs.length ? theirs : [x.c.counterparty || x.c.name || x.c.id];
   const q = String(x.v.quote || '').trim();
   const what = x.v.status === 'missing' ? i18t('ld_dep_missing') : q ? i18t('ld_dep_says', { q: q.length > 160 ? q.slice(0, 157) + '…' : q }) : i18t('ld_dep_off');
-  const mayAccept = typeof window.signCheckMayAccept !== 'function' || window.signCheckMayAccept(x.c, x.v);
-  return `<div class="ld-dep" data-ld-dep="${LD_E(x.c.id)}" data-ld-dep-i="${x.i}"><span class="ld-dep-t">${names.map(n => `<b class="ld-dep-p">${LD_E(n)}</b>`).join('')}${LD_E(typeof window.contractRef === 'function' ? window.contractRef(x.c) : x.c.id)} ${LD_E(what)}${x.v.escalate ? ` <span class="ld-tag">${LD_E(i18t('ld_dep_legal'))}</span>` : ''}</span>`
-    + `<span class="ld-dep-a">${mayAccept ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ld-allow>${LD_E(i18t('ld_allow'))}</button>` : `<span class="ld-quiet" title="${LD_E(i18t('ld_allow_not_you'))}">${LD_E(i18t('ld_allow_not_you_short'))}</span>`}`
-    + `<button type="button" class="ui-btn ui-btn-sm" data-ld-refuse>${LD_E(i18t('ld_refuse'))}</button><button type="button" class="ui-link" data-ld-open>${LD_E(i18t('ld_open_paper'))}</button></span></div>`;
+  const key = 'dep:' + x.c.id + ':' + x.i;
+  const mine = firm !== 'nice' && ldDepKeysMine().has(key);
+  const go = firm === 'nice' ? '' : mine ? `<button type="button" class="ui-link" data-ld-goap="${LD_E(key)}">${LD_E(i18t('ld_go_ap'))}</button>`
+    : `<span class="ld-quiet" title="${LD_E(i18t('ld_allow_not_you'))}">${LD_E(i18t('ld_dep_waits'))}</span>`;
+  return `<div class="ld-dep" data-ld-dep="${LD_E(x.c.id)}" data-ld-dep-i="${x.i}"><span class="ld-dep-t">${names.map(n => `<b class="ld-dep-p">${LD_E(n)}</b>`).join('')}${LD_E(typeof window.contractRef === 'function' ? window.contractRef(x.c) : x.c.id)} ${LD_E(what)}${x.v.escalate && firm !== 'nice' ? ` <span class="ld-tag">${LD_E(i18t('ld_dep_legal'))}</span>` : ''}</span>`
+    + `<span class="ld-dep-a">${go}<button type="button" class="ui-link" data-ld-open>${LD_E(i18t('ld_open_paper'))}</button></span></div>`;
+}
+/* the departure rows the reader has on Approvals (apnDepRows, the one reading), asked once per paint */
+let _ldDepMine = null;
+function ldDepKeysMine(){
+  if (_ldDepMine) return _ldDepMine;
+  let rows = []; try { rows = typeof window.apnDepRows === 'function' ? window.apnDepRows() : []; } catch (_){ rows = []; }
+  _ldDepMine = new Set(rows.map(r => r.key));
+  setTimeout(() => { _ldDepMine = null; }, 0);
+  return _ldDepMine;
 }
 function ldGateWord(){ const g = typeof signCheckGate === 'function' ? signCheckGate() : 'advise'; return i18t('ld_gate_' + (['off', 'advise', 'require'].includes(g) ? g : 'advise')); }
 function ldLadderHtml(r){
@@ -174,7 +190,8 @@ function ldLadderHtml(r){
   const rungs = ldRungHtml('green', i18t('ld_rung_ask'), L.ask, ldWho('anyone'), ldWhoSub('anyone'), holdN)
     + L.fallbacks.map((f, k) => ldRungHtml('amber', i18t('ld_rung_fb', { n: k + 1 }), f.text, ldWho(f.who), ldWhoSub(f.who), '')).join('')
     + (L.never || r.firm === 'never' ? ldRungHtml('dark', i18t('ld_rung_never'), L.never, ldWho('admin'), i18t('ld_who_sub_never'), '') : '');
-  const deps = r.open.slice(0, LD_DEPS_SHOWN).map(ldDepHtml).join('');
+  const deps = (r.firm === 'nice' && r.open.length ? `<p class="ld-g ld-g-info">${LD_E(i18t('ld_dep_info'))}</p>` : '')
+    + r.open.slice(0, LD_DEPS_SHOWN).map(x => ldDepHtml(x, r.firm)).join('');
   const more = r.open.length > LD_DEPS_SHOWN ? `<button type="button" class="ui-link" data-ld-mode="departures">${LD_E(i18tn('ld_dep_more', r.open.length - LD_DEPS_SHOWN, { n: r.open.length - LD_DEPS_SHOWN }))}</button>` : '';
   const ch = r.wait;
   const change = ch ? `<div class="ld-soft" data-ld-change="${LD_E(ch.id)}"><span>${LD_E(i18t('ld_change_waits', { who: ch.by || '', day: ldDay(ch.at) }))}${ch.why ? ` <i>“${LD_E(ch.why)}”</i>` : ''}</span>`
@@ -197,7 +214,7 @@ function ldLadderHtml(r){
 function ldDeparturesHtml(rows){
   const all = rows.flatMap(r => r.open.map(x => ({ r, x })));
   return `<section class="ld-main ld-wide"><div class="ld-top"><h2 class="ld-title">${LD_E(i18t('ld_departures'))}</h2><button type="button" class="ui-link ld-back" data-ld-mode="ladder">${typeof icon === 'function' ? icon('chevL', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_back'))}</button></div>`
-    + (all.length ? all.map(({ r, x }) => `<p class="ld-g">${LD_E(r.topic)} · ${ldFirmHtml(r.firm)}</p>${ldDepHtml(x)}`).join('') : `<p class="ld-empty">${LD_E(i18t('ld_dep_none'))}</p>`) + '</section>';
+    + (all.length ? all.map(({ r, x }) => `<p class="ld-g">${LD_E(r.topic)} · ${ldFirmHtml(r.firm)}</p>${ldDepHtml(x, r.firm)}`).join('') : `<p class="ld-empty">${LD_E(i18t('ld_dep_none'))}</p>`) + '</section>';
 }
 /* ---- HISTORY: every change, waiting first ---- */
 function ldHistoryHtml(){
@@ -284,10 +301,13 @@ function ldPanelFive(r){
     { mark: 'clock', t: r.gov.ver ? i18t('ld_p_ver', { v: r.gov.ver, day: ldDay(r.gov.approvedAt) }) : i18t('ld_ver_start'), s: r.gov.reviewNext ? i18t('ld_p_next', { day: ldDay(r.gov.reviewNext) }) : i18t('ld_review_never'), tone: r.reviewSoon ? 'amber' : '' }] }];
   const ch = r.wait;
   const act = ch && ldMayDecide(ch) ? { say: i18t('ld_p_change', { who: ch.by || '' }), label: i18t('ld_decide'), run: () => ldDecideOpen(ch.id) }
-    : first ? { say: i18t('ld_p_dep', { who: first.c.counterparty || first.c.name || first.c.id }), label: i18t('ld_p_dep_go'), run: () => ldLandDep(first.c.id) }
+    : first && r.firm !== 'nice' && ldDepKeysMine().has('dep:' + first.c.id + ':' + first.i)
+      ? { say: i18t('ld_p_dep', { who: first.c.counterparty || first.c.name || first.c.id }), label: i18t('ld_p_go_ap'), run: () => ldGoApprovals('dep:' + first.c.id + ':' + first.i) }
+      /* a Nice to have: the card says it, with no button (as drawn) */
+      : first && r.firm === 'nice' ? { say: i18t('ld_p_dep', { who: first.c.counterparty || first.c.name || first.c.id }), q: i18t('ld_p_nice_info') }
       : null;
   return { eyebrow: [i18t('ld_page'), r.topic].join(' · '), title: r.name, sub,
-    glance: [{ n: r.holds, l: i18t('ld_p_held') }, { n: r.allowed, l: i18t('ld_p_allowed') }, { n: r.legalWaits, l: i18t('ld_p_legal'), warn: r.legalWaits > 0 }],
+    glance: [{ n: r.holds, l: i18t('ld_p_held') }, { n: r.allowed, l: i18t('ld_p_allowed') }, { n: r.decide, l: i18t('ld_p_decide'), warn: r.decide > 0 }],
     groups, act, src: i18t('ld_p_src') };
 }
 function ldPaintPanel(rows, picked){
@@ -301,11 +321,8 @@ function ldPageSay(rows){
   const deps = rows.reduce((n, r) => n + r.open.length, 0);
   return deps ? i18tn('ld_say_deps', deps, { n: deps, of: rows.length }) : i18t('ld_say_clear', { n: rows.length });
 }
-function ldLandDep(id){
-  _ld.mode = 'ladder'; renderStandardsPage();
-  const el = document.querySelector(`[data-ld-dep="${CSS.escape(String(id))}"]`);
-  if (el && typeof landOn === 'function') landOn(el, { focus: el.querySelector('button') });
-}
+/* the one door to a departure's decision: its row on Approvals & signing */
+function ldGoApprovals(key){ if (typeof window.apnLandRow === 'function') window.apnLandRow(key); else if (typeof setView === 'function') setView('approvals'); }
 
 /* ---- THE ACTS ---- */
 function ldStartEdit(r){
@@ -384,10 +401,10 @@ async function ldWithdraw(id){
   try { const out = await api('standards/changes/' + encodeURIComponent(id) + '/withdraw', 'POST', {}); ldTakeSettings(out); renderStandardsPage(); toast(i18t('ld_withdrawn'), 'ok'); }
   catch (err){ toast((err && err.message) || i18t('ld_send_failed'), 'err'); }
 }
-/* a departure's acts: the sign check's own doors, on the full record */
-async function ldDepAct(btn, kind){
+/* a departure's one act here: open its paper at the clause (deciding is Approvals' own) */
+async function ldDepOpen(btn){
   const card = btn.closest('[data-ld-dep]'); if (!card) return;
-  return ldDepRun(card.getAttribute('data-ld-dep'), +card.getAttribute('data-ld-dep-i'), kind);
+  return ldDepRun(card.getAttribute('data-ld-dep'), +card.getAttribute('data-ld-dep-i'), 'open');
 }
 /* AFTER A DECISION, the page the reader stands on is drawn again: Approvals' piles, else the Standards page */
 function ldAfterDecide(){
@@ -527,7 +544,7 @@ if (typeof document !== 'undefined' && !document._ldWired){
       return;
     }
     if (!state || state.view !== 'playbook') return;
-    const b = t.closest('[data-ld-book-clear],[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-allow],[data-ld-refuse],[data-ld-open]');
+    const b = t.closest('[data-ld-book-clear],[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-goap],[data-ld-open]');
     if (!b) return;
     if (b.hasAttribute('data-ld-book-clear')){ ldBookSet(null); return; }
     if (b.hasAttribute('data-ld-pick')){ _ld.pick = b.getAttribute('data-ld-pick'); _ld.mode = 'ladder'; renderStandardsPage(); return; }
@@ -544,9 +561,8 @@ if (typeof document !== 'undefined' && !document._ldWired){
     if (b.hasAttribute('data-ld-books')){ ldBooksOpen(b); return; }
     if (b.hasAttribute('data-ld-decide')){ ldDecideOpen(b.getAttribute('data-ld-decide')); return; }
     if (b.hasAttribute('data-ld-withdraw')){ ldWithdraw(b.getAttribute('data-ld-withdraw')); return; }
-    if (b.hasAttribute('data-ld-allow')){ ldDepAct(b, 'allow'); return; }
-    if (b.hasAttribute('data-ld-refuse')){ ldDepAct(b, 'refuse'); return; }
-    if (b.hasAttribute('data-ld-open')){ ldDepAct(b, 'open'); return; }
+    if (b.hasAttribute('data-ld-goap')){ ldGoApprovals(b.getAttribute('data-ld-goap')); return; }
+    if (b.hasAttribute('data-ld-open')){ ldDepOpen(b); return; }
   });
 }
 /* THE FORM KEEPS ITS WORDS AS THEY ARE TYPED (a redraw keeps your words): every box read into the draft on input */
@@ -555,4 +571,4 @@ if (typeof document !== 'undefined' && !document._ldInputWired){
   const keep = ev => { const t = ev.target; if (t && t.closest && t.closest('.ld-edit') && t.hasAttribute && t.hasAttribute('data-ld-f')) ldEditRead(); };
   document.addEventListener('input', keep); document.addEventListener('change', keep);
 }
-Object.assign(window, { ldFirmWord, ldWho, ldBookLabel, ldPickSet, ldDepRun, ldAfterDecide, ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldPanelFive });
+Object.assign(window, { ldGoApprovals, ldDepKeysMine, ldFirmWord, ldWho, ldBookLabel, ldPickSet, ldDepRun, ldAfterDecide, ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldPanelFive });
