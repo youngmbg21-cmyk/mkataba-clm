@@ -2393,6 +2393,14 @@ const ALERT_KINDS = [
      somebody picks it up, drafts it or declines it. Ranked under approvals:
      a colleague is waiting, but no live deal is held by it. Amber: work owed. */
   { k:'request',     tone:'amber', ic:'&#128233;' },
+  /* ---- A DECISION ON A STANDARD COMES BACK (owner, 17 Nov 2026: "bell only") ----
+     A departure allowed or refused goes to the contract's owner; a change to a standard approved or refused goes to
+     whoever proposed it. Each carries the decider's name and note; a no is light red, a yes light green (ndTintOf).
+     A refused departure is work (change the wording); the rest is news. Nothing is mailed. */
+  { k:'dep-refused', tone:'amber', ic:'&#8617;'  },
+  { k:'dep-allowed', tone:'green', ic:'&#9989;'  },
+  { k:'std-approved',tone:'green', ic:'&#9989;'  },
+  { k:'std-refused', tone:'amber', ic:'&#8617;'  },
   /* ---- DETAILS STILL TO FILL IN (owner, 12 Oct 2026) ----
      A contract this reader owns with boxes still empty on its Details tab
      (detailsOf, the tab's own count); the press opens that tab. Amber: work
@@ -2505,6 +2513,34 @@ function streamNewsSeen(fid){
 }
 /* Every alert is a DOOR — it goes to the thing that needs doing, not to a list.
    `go` is what the row's press runs. */
+/* THE ANSWERS ON OUR STANDARDS THAT COME BACK TO ME (owner, 17 Nov 2026: "bell only"): a departure on a contract I
+   own that somebody else allowed or refused, and a change to a standard I proposed that somebody else decided. Read
+   off what the browser holds; news for ALERT_STD_DAYS, a refused departure for as long as it stands. */
+const ALERT_STD_DAYS=14;
+function alStandardsAnswers(me, cs){
+  const out=[], since=Date.now()-ALERT_STD_DAYS*864e5, mine=id=>me&&String(id||'')===String(me.id);
+  const q=t=>t?{ sub:'“'+String(t).slice(0,140)+'”' }:{};
+  (cs||[]).forEach(c=>{
+    if(!c||c.archived||c.status==='Signed'||c.status==='Executed'||c.status==='Declined') return;
+    if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))) return;
+    const vs=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+    vs.forEach((v,i)=>{ if(!v) return;
+      const go=()=>{ if(typeof roomHomeLand==='function') roomHomeLand(c.id); else if(typeof openWorkspace==='function') openWorkspace(c.id); };
+      const a=v.accepted, r=v.refused, cat=v.category||'';
+      if(r&&r.at&&!(a&&a.at)&&!mine(r.byId)) out.push({ kind:'dep-refused', c, go, text:i18t('al_dep_refused',{ cat, who:r.by||'' }), extra:Object.assign({ tint:'no' }, q(r.why)) });
+      else if(a&&a.at&&Date.parse(a.at)>=since&&!mine(a.byId)) out.push({ kind:'dep-allowed', c, go, text:i18t('al_dep_allowed',{ cat, who:a.by||'' }), extra:Object.assign({ tint:'yes' }, q(a.why)) });
+      void i; });
+  });
+  const chs=(state.settings&&Array.isArray(state.settings.standardChanges))?state.settings.standardChanges:[];
+  chs.forEach(ch=>{
+    if(!ch||!mine(ch.byId)||!['approved','refused'].includes(ch.state)||Date.parse(ch.decidedAt||'')<since||mine(ch.decidedById)) return;
+    const name=(ch.draft&&ch.draft.name)||'', yes=ch.state==='approved';
+    const go=()=>{ if(typeof caOpenStandards==='function') caOpenStandards(); else if(typeof setView==='function') setView('playbook'); };
+    out.push({ kind:yes?'std-approved':'std-refused', c:null, go, text:i18t(yes?'al_std_approved':'al_std_refused',{ name, who:ch.decidedBy||'' }),
+      extra:Object.assign({ tint:yes?'yes':'no', name }, q(ch.decidedWhy)) });
+  });
+  return out;
+}
 function buildAlerts(){
   const out=[];
   // archived contracts alert nobody (WO-5) — the shelf is quiet
@@ -2776,7 +2812,7 @@ function buildAlerts(){
       if(!bad) return;
       push('ap-refused',c,i18t('al_ap_refused',{ step:bad.name||'', who:bad.by||'' }),
         ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
-        bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:undefined);
+        Object.assign({ tint:'no' }, bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:{}));
     });
     /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
        Read off approvalRulesCleared (js/approvals.js); only rule chains (a named
@@ -2789,9 +2825,14 @@ function buildAlerts(){
       if(!ok) return;
       /* A named person's yes still owed is not "cleared" — that row says so. */
       try{ if(typeof signApprovalStateOf==='function'&&signApprovalStateOf(c).rows.some(r=>r.status!=='approved')) return; }catch(_){}
-      push('ap-cleared',c,i18t('al_ap_cleared'),
-        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } });
+      /* WHO SAID THE LAST YES, AND THEIR NOTE (owner, 17 Nov 2026) */
+      const yes=(Array.isArray(c.approvalChain)?c.approvalChain:[]).filter(s=>s&&s.status==='approved').sort((a,b)=>String(a.at||'').localeCompare(String(b.at||''))).pop();
+      push('ap-cleared',c,yes&&yes.by?i18t('al_ap_cleared_by',{ who:yes.by }):i18t('al_ap_cleared'),
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
+        Object.assign({ tint:'yes' }, yes&&yes.comment?{ sub:'“'+String(yes.comment).slice(0,140)+'”' }:{}));
     });
+    /* ---- A DECISION ON A STANDARD (owner, 17 Nov 2026) ---- */
+    if(meNow) alStandardsAnswers(meNow, cs).forEach(x=>push(x.kind, x.c, x.text, x.go, x.extra));
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
        myStaleDesks and myJoinAsks, which were "Needs your decision"'s own two
@@ -4854,6 +4895,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

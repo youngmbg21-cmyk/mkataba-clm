@@ -318,7 +318,8 @@ async function approveContract(c, comment){
       askAnswer(x, ask.id, { state:'yes', by:u, why:comment||null, stamp, for:fw });
       logAudit(x,'Approved',`Step "${step.name}" approved by ${u.name}${fw?` for ${fw.name}`:''} (${ROLE_LABEL[u.role]})`
         +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
-        +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
+        +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':'')
+        +(comment?` — “${String(comment).slice(0,AP_YES_NOTE_MAX)}”`:''));
     };
     if(!(await approvalDecisionLands(c, ruleId, write))) return false;
     const done=approvalState(c).ok;
@@ -427,6 +428,17 @@ function approvalDecidableNow(c, u){
 /* THE ONE ASKER for a rule step's refusal — the room's gate and the page
    both press it. Required: an empty answer is said in words and refuses
    nothing. Null = nothing refused. */
+/* A YES MAY CARRY A NOTE (owner, 17 Nov 2026: "optional note"): offered, never required — leave it empty and the yes
+   still goes; cancel and nothing is decided. The note rides with the decision to the person who asked (the bell's
+   light-green row) and onto the contract's history; it never travels to the other side. */
+const AP_YES_NOTE_MAX=400;
+async function approvalYesNote(){
+  if(typeof window.promptDialog!=='function') return '';
+  const v=await window.promptDialog({ title:i18t('ap_yes_note_t'), message:i18t('ap_yes_note_msg'), label:i18t('ap_yes_note_l'),
+    placeholder:i18t('ap_yes_note_ph'), confirmLabel:i18t('ap_pg_approve'), multiline:true, required:false });
+  if(v==null) return null;
+  return String(v).trim().slice(0,AP_YES_NOTE_MAX);
+}
 async function approvalRefuseWhy(){
   if(typeof window.promptDialog!=='function') return null;
   const why=await window.promptDialog({ title:i18t('ap_reject_step_q'), message:i18t('ap_refuse_msg'),
@@ -458,7 +470,7 @@ async function approvalDecideAsk(c, verdict){
   const d=approvalDecidableNow(c);
   if(!d){ toast(i18t('sa_gone'),'warn'); return false; }
   if(d.kind==='rule'){
-    if(verdict==='approved') return !!(await approveContract(c));
+    if(verdict==='approved'){ const note=await approvalYesNote(); if(note==null) return false; return !!(await approveContract(c, note||undefined)); }
     const why=await approvalRefuseWhy(); if(why==null) return false;
     return !!(await rejectApprovalStep(c, why));
   }
@@ -473,6 +485,7 @@ async function signApprovalDecideAsk(c, row, verdict){
   if(!c||!row||!row.req) return false;
   if(verdict!=='approved') return openSignApprovalRefuse(c, row.req.id);
   let note='';
+  if(row.as!=='admin'){ const n=await approvalYesNote(); if(n==null) return false; note=n; }
   if(row.as==='admin'){
     if(typeof window.promptDialog!=='function') return false;
     const v=await window.promptDialog({ title:i18t('sa_card_approve'), label:i18t('sa_card_note_admin'), multiline:true,
@@ -2416,7 +2429,8 @@ function signerRouteHtml(c, opts){
   return html;
 }
 function wireApprovalPanel(c){
-  document.getElementById('ap-approve')?.addEventListener('click',()=>approveContract(c));
+  /* every Approve offers the same optional note (approvalYesNote) */
+  document.getElementById('ap-approve')?.addEventListener('click',async()=>{ const n=await approvalYesNote(); if(n!=null) approveContract(c, n||undefined); });
   /* A refusal with no reason on it is the thing that pushes the argument into
      email — the same reasoning js/versioning.js gives for the reply that
      travels with a rejected round. Asked here, once, and shown to the owner on
@@ -2508,7 +2522,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{AP_YES_NOTE_MAX,approvalYesNote,AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,

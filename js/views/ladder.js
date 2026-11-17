@@ -126,6 +126,8 @@ function ldPaintHead(){
 /* ---- THE LIST BY HOW FIRM ---- */
 /* A CONTRACT TYPE NAMED ("our NDA standards", Jambo's words or a typed sentence) narrows the list to the standards that
    apply to it: its own book and the baseline every contract starts from; one × lets it go */
+/* a door that names one standard (Approvals' change row) picks it before the page is drawn */
+function ldPickSet(id){ _ld.pick = String(id || '') || null; _ld.mode = 'ladder'; _ld.edit = null; }
 function ldBookNow(){ return _ld.book; }
 function ldBookSet(book){
   const pb = playbook() || {};
@@ -362,13 +364,17 @@ function ldDecideOpen(id){
     <p class="ld-dlg-p">${LD_E(i18t('ld_decide_by', { who: ch.by || '', day: ldDay(ch.at) }))}${ch.why ? ` “${LD_E(ch.why)}”` : ''}</p>
     <p class="ld-dlg-l">${LD_E(i18t('ld_dlg_what'))}</p>${what}
     <p class="ld-dlg-p">${ldFirmHtml(d.firm)} · ${LD_E((d.books || []).map(ldBookLabel).join(', '))}</p>${fb ? `<ul class="ld-dlg-ul">${fb}</ul>` : ''}${d.never ? `<p class="ld-dlg-p">${LD_E(i18t('ld_rung_never'))}: ${LD_E(d.never)}</p>` : ''}
+    <label class="ld-dlg-l" for="ld-note">${LD_E(i18t('ld_note_l'))}</label><textarea id="ld-note" class="ld-box" rows="2" maxlength="400" placeholder="${LD_E(i18t('ld_note_ph'))}"></textarea>
     <div class="ld-dlg-f" data-dlg-foot><button type="button" class="ui-btn ui-btn-primary" data-ld-yes>${LD_E(i18t('ld_approve'))}</button><button type="button" class="ui-btn" data-ld-no>${LD_E(i18t('ld_refuse_change'))}</button><button type="button" class="ui-btn" data-dlg-cancel onclick="closeModal()">${LD_E(i18t('act_cancel'))}</button></div></div>`);
   const go = async yes => {
+    /* A NOTE GOES WITH THE DECISION (owner, 17 Nov 2026): optional on a yes, required on a no — the proposer reads it on the bell */
+    const why = String((document.getElementById('ld-note') || {}).value || '').trim();
+    if (!yes && !why){ toast(i18t('ld_note_needed'), 'warn'); document.getElementById('ld-note')?.focus(); return; }
     try {
-      const out = await api('standards/changes/' + encodeURIComponent(id) + '/decide', 'POST', { yes });
+      const out = await api('standards/changes/' + encodeURIComponent(id) + '/decide', 'POST', { yes, why });
       ldTakeSettings(out); closeModal();
       if (yes && out && out.change && out.change.clauseId) _ld.pick = String(out.change.clauseId);
-      renderStandardsPage(); toast(i18t(yes ? 'ld_approved' : 'ld_refused'), 'ok');
+      ldAfterDecide(); toast(i18t(yes ? 'ld_approved' : 'ld_refused'), 'ok');
     } catch (err){ toast((err && err.message) || i18t('ld_send_failed'), 'err'); }
   };
   document.querySelector('[data-ld-yes]')?.addEventListener('click', () => go(true));
@@ -381,7 +387,16 @@ async function ldWithdraw(id){
 /* a departure's acts: the sign check's own doors, on the full record */
 async function ldDepAct(btn, kind){
   const card = btn.closest('[data-ld-dep]'); if (!card) return;
-  const id = card.getAttribute('data-ld-dep'), i0 = +card.getAttribute('data-ld-dep-i');
+  return ldDepRun(card.getAttribute('data-ld-dep'), +card.getAttribute('data-ld-dep-i'), kind);
+}
+/* AFTER A DECISION, the page the reader stands on is drawn again: Approvals' piles, else the Standards page */
+function ldAfterDecide(){
+  if (state.view === 'approvals' && typeof renderApprovalsPage === 'function'){ try { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); } catch (_){} renderApprovalsPage(); }
+  else renderStandardsPage();
+}
+/* ONE WAY TO DECIDE A DEPARTURE, from every page that shows one (the Standards page and Approvals' first pile):
+   Allow once is the sign check's own writer (a reason required); Refuse asks its reason too, then opens the paper */
+async function ldDepRun(id, i0, kind){
   let c = typeof getContract === 'function' ? getContract(id) : null; if (!c) return;
   const was = c.playbook && c.playbook.verdicts && c.playbook.verdicts[i0];
   try { if (typeof ensureFull === 'function') await ensureFull(c); } catch (err){ toast((err && err.message) || i18t('ld_send_failed'), 'err'); return; }
@@ -390,14 +405,22 @@ async function ldDepAct(btn, kind){
   const i = vs[i0] && was && vs[i0].category === was.category ? i0 : vs.findIndex(v => v && was && v.category === was.category);
   if (i < 0){ toast(i18t('sc_gone'), 'err'); return; }
   if (kind === 'open'){ signCheckOpenClause(c, i); return; }
-  if (kind === 'allow'){ await signCheckAccept(c, i, () => renderStandardsPage()); return; }
-  /* REFUSE: a record that the departure was refused, then the paper to change it (every step starts the next) */
-  const me = ldMe(); const v = vs[i];
-  v.refused = { by: (me && me.name) || '', byId: me ? String(me.id) : '', at: new Date().toISOString() };
-  if (typeof logAudit === 'function') logAudit(c, 'Playbook', `Departure refused on "${v.category || 'a standard'}" — the wording must change`);
+  if (kind === 'allow'){ await signCheckAccept(c, i, ldAfterDecide); return; }
+  /* REFUSE: a record that the departure was refused, WITH ITS REASON (owner, 17 Nov 2026: the owner reads it on the
+     bell), then the paper to change it (every step starts the next) */
+  const v = vs[i];
+  if (typeof window.signCheckMayAccept === 'function' && !window.signCheckMayAccept(c, v)){ toast(i18t('sc_accept_not_you'), 'warn'); return; }
+  const said = typeof window.promptDialog === 'function' ? await window.promptDialog({ title: i18t('ld_refuse_t', { what: v.category || '' }), message: i18t('ld_refuse_msg'),
+    label: i18t('ld_refuse_l'), placeholder: i18t('ld_refuse_ph'), confirmLabel: i18t('ld_refuse'), multiline: true, danger: true }) : null;
+  if (said == null) return;
+  const why = String(said).trim().slice(0, 400);
+  if (!why){ toast(i18t('ld_note_needed'), 'warn'); return; }
+  const me = ldMe();
+  v.refused = { by: (me && me.name) || '', byId: me ? String(me.id) : '', role: (me && me.role) || '', at: new Date().toISOString(), why };
+  if (typeof logAudit === 'function') logAudit(c, 'Playbook', `Departure refused on "${v.category || 'a standard'}" — the wording must change — “${why}”`);
   if (typeof persist === 'function') persist(c);
   toast(i18t('ld_refused_dep'), 'ok');
-  signCheckOpenClause(c, i);
+  if (state.view === 'approvals') ldAfterDecide(); else signCheckOpenClause(c, i);
 }
 /* Applies to: a short checklist under the field */
 function ldBooksOpen(btn){
@@ -532,17 +555,4 @@ if (typeof document !== 'undefined' && !document._ldInputWired){
   const keep = ev => { const t = ev.target; if (t && t.closest && t.closest('.ld-edit') && t.hasAttribute && t.hasAttribute('data-ld-f')) ldEditRead(); };
   document.addEventListener('input', keep); document.addEventListener('change', keep);
 }
-/* a company job: a change waits on an admin's yes (Settings' list and Needs you, stNeedsAll) */
-function ldNeedRows(){
-  if (!ldIsAdmin()) return [];
-  return ldChanges().filter(ldMayDecide).map(ch => ({ key: 'std:' + ch.id, dot: 'warn',
-    text: i18t('ld_need', { who: ch.by || '', name: (ch.draft && ch.draft.name) || '' }), sub: ldDay(ch.at),
-    btn: `data-ld-need="${LD_E(ch.id)}"`, verb: i18t('ld_decide') }));
-}
-function ldGoDecide(id){ _ld.mode = 'history'; _ld.edit = null; if (typeof setView === 'function') setView('playbook'); setTimeout(() => ldDecideOpen(id), 0); }
-if (typeof document !== 'undefined' && !document._ldNeedWired){
-  document._ldNeedWired = true;
-  document.addEventListener('click', ev => { const b = ev.target && ev.target.closest && ev.target.closest('[data-ld-need]'); if (!b) return; ev.preventDefault(); ldGoDecide(b.getAttribute('data-ld-need')); });
-}
-
-Object.assign(window, { ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldNeedRows, ldGoDecide, ldPanelFive });
+Object.assign(window, { ldFirmWord, ldWho, ldBookLabel, ldPickSet, ldDepRun, ldAfterDecide, ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldPanelFive });
