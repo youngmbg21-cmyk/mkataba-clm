@@ -156,3 +156,32 @@ describe('f1089 (2)-(4) the browser: ask, allow, stop, and the same clause on tw
     assert.deepEqual(calls, ['cl_mine12']);
   });
 });
+
+/* f1089 (5) — A PAPER NOBODY HAS NEGOTIATED IS WALKED TOO (owner, 17 Nov 2026: "this part here still does not work").
+   On a contract's ordinary page, with no negotiation on the record, igPaperClauseMarks marked nothing, so a
+   colleague's place could not be said or walked to and the faces were not buttons. Now the paper's own headings,
+   read by the one splitter off the paper as drawn, carry a mark of their own — the same on every screen.
+   AT THE PARENT: igPaperClauseMarks returns 0 here and igPaperHeadMark does not exist. */
+describe('f1089 (5) the paper of a contract never negotiated: its own headings marked, alike on two screens', () => {
+  const { buildWorld } = require('./world');
+  const PAPER = '<div id="ig-paper"><div id="ig-paper-scroll"><article id="ig-canvas"><div class="hati-doc"><h1>Facilities Agreement</h1>'
+    + '<h2>1. Supply</h2><p>The Supplier shall supply.</p><h2>2. Price</h2><p>The price is fixed.</p><h2>11. Entire Agreement</h2><p>This is all of it.</p></div></article></div></div>';
+  const screen = () => { const w = buildWorld({ intelView: true }).win; w.document.body.insertAdjacentHTML('beforeend', PAPER); return w; };
+  test('marked without a negotiation, nothing written to the record', () => {
+    const w = screen(); const c = { id: 'MK-2' }; const before = JSON.stringify(c);
+    assert.ok(typeof w.igPaperHeadMark === 'function', 'a heading has a mark of its own');
+    const n = w.igPaperClauseMarks(c);
+    const marks = [...w.document.querySelectorAll('[data-pz-clause]')].map(e => e.textContent.trim());
+    assert.ok(n >= 3 && ['1. Supply', '2. Price', '11. Entire Agreement'].every(t => marks.includes(t)), JSON.stringify(marks));
+    assert.equal(JSON.stringify(c), before);
+  });
+  test('two screens give each heading the same mark, and the walk finds it', () => {
+    const a = screen(), b = screen(); a.igPaperClauseMarks({ id: 'MK-2' }); b.igPaperClauseMarks({ id: 'MK-2' });
+    const ids = w => [...w.document.querySelectorAll('[data-pz-clause]')].map(e => e.getAttribute('data-pz-clause'));
+    assert.deepEqual(ids(a), ids(b));
+    assert.ok(ids(a).every(id => /^[A-Za-z0-9_-]{1,64}$/.test(id)), 'a clause id\'s shape, so the server keeps it');
+    const last = ids(a)[ids(a).length - 1];
+    const el = b.igPaperGoClause(last);
+    assert.ok(el && el.textContent.trim() === '11. Entire Agreement');
+  });
+});

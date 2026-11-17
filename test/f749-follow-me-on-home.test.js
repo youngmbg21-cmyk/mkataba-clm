@@ -201,7 +201,9 @@ describe('f749 (6) a paper drawn without clause sections: its headings marked, w
     const { w, c } = signing(); w.igPaperClauseMarks(c);
     const el = w.igPaperGoClause('cl_11');
     assert.ok(el && el.getAttribute('data-pz-clause') === 'cl_11');
-    const none = signing(); assert.equal(none.w.igPaperClauseMarks({ id: 'MK-2' }), 0, 'no baseline, nothing to match');
+    /* RE-POINTED 17 Nov 2026 (the owner: "this part still does not work"): a contract never negotiated has its
+       paper's OWN headings marked now (f1089); here the stand-in splitter reads no clause off this paper, so none */
+    const none = signing(); assert.equal(none.w.igPaperClauseMarks({ id: 'MK-2' }), 0, 'no baseline and no heading the splitter reads: nothing to mark');
     const red = signing(); red.d.getElementById('ig-canvas').insertAdjacentHTML('beforeend', '<section data-clause="cl_1"></section>');
     assert.equal(red.w.igPaperClauseMarks(red.c), 0, 'the redline paper carries its own sections');
   });
