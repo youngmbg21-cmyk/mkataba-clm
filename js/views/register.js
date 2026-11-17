@@ -345,7 +345,7 @@ function renderFolderListOnly(){
   wireFolderRows(); renderFolderSelBar();
 }
 
-Object.assign(window,{FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
+Object.assign(window,{ngnPlace,ngnPlacePut,FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
 /* ============================================================
    VIEW: REGISTER (global filterable / sortable table + bulk select)
    Client-side over the loaded working set, consistent with the folder
@@ -5295,6 +5295,10 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
    panel reads the chosen row: their asks, what is unsent, the desk, the doors (each an existing one) and one line
    from Jambo. Every reading is the list's own (negoLiveList, negWhoseMove, regNegoCols, regNegoLeadOf), RAW. */
 let _ngn = 'live', _ngnSel = null, _ngnQ = '', _ngnNone = false;
+/* A REFRESH LANDS AT THE SAME SPOT (#762): the Negotiations list keeps its tab, its chosen round and the box's words
+   (carried inside the Negotiate page's own place, rlPlace) */
+function ngnPlace(){ return { tab: _ngn, sel: _ngnSel, q: _ngnQ }; }
+function ngnPlacePut(p){ if (!p) return; if (typeof p.tab === 'string') _ngn = p.tab; if (p.sel != null) _ngnSel = p.sel; if (typeof p.q === 'string') _ngnQ = p.q; }
 function ngnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
 function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; } return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
 function ngnBook(){
@@ -5356,7 +5360,7 @@ function ngnRead(x){
   let lead = { name: '', short: '—' }; try { lead = regNegoLeadOf(c); } catch (_){ /* nobody named */ }
   return { c, b, round, move, open, sub, last: ngnWhen(lastAt), lastSub, lead, asks, prep, unsent, ap };
 }
-function ngnRowHtml(r, sel){
+function ngnRowHtml(r, sel, keys){
   const c = r.c, E = esc, ref = window.contractRef ? contractRef(c) : c.id;
   let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
   const line = [E(c.counterparty || ''), `<b class="ngn-ref">${E(ref)}</b>`, money && money !== '—' ? E(money) : '', r.b === 'settled' ? E(i18t('ngn_settled_w')) : ''].filter(Boolean).join(' · ');
@@ -5368,11 +5372,25 @@ function ngnRowHtml(r, sel){
   const nm = r.lead.name ? (r.lead.mine ? i18t('ng_you') : ngnShortName(r.lead.name)) : '—';
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
     + `<td>${listSapCellHtml(r.b === 'you' ? 'you' : r.b === 'them' ? 'them' : 'done', `<div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>`, r.move)}</td>`
-    + `<td class="ngn-rd">${E(r.round)}</td>`
-    + `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
-    + `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
-    + `<td>${r.lead.name ? `<span class="ngn-lead" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
-    + `<td><div class="ngn-last">${E(r.last || '—')}</div>${r.lastSub ? `<div class="cun-sub">${E(r.lastSub)}</div>` : ''}</td></tr>`;
+    + (keys || NGN_KEYS).map(k => k === 'round' ? `<td class="ngn-rd">${E(r.round)}</td>`
+      : k === 'move' ? `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
+      : k === 'asks' ? `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
+      : k === 'lead' ? `<td>${r.lead.name ? `<span class="ngn-lead" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
+      : k === 'last' ? `<td><div class="ngn-last">${E(r.last || '—')}</div>${r.lastSub ? `<div class="cun-sub">${E(r.lastSub)}</div>` : ''}</td>` : '<td></td>').join('') + '</tr>';
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
+   dragged widths carry over; the agreement, Whose move and What is open always stand, where the room is short Last
+   steps aside first, then Round and Lead */
+const NGN_KEYS = ['round', 'move', 'asks', 'lead', 'last'];
+function ngnCols(){
+  const W = { round: 72, move: 120, asks: 240, lead: 120, last: 110 }, R = { last: 2, round: 4, lead: 4 };
+  const T = { name: 'ngn_c_agreement', round: 'ngn_c_round', move: 'ngn_c_move', asks: 'ngn_c_asks', lead: 'ngn_c_lead', last: 'ngn_c_last' };
+  const DEFS = [{ k: 'name' }, ...NGN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols(REG_NEGO_SEAT, DEFS, () => ngnRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { keys: cols.slice(1).map(c => c.k),
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => `<th>${esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
 /* the page in Jambo's words, counted from the list: whose answers wait, who holds our paper */
 function ngnPageSay(rows){
@@ -5455,14 +5473,15 @@ function ngnRender(host){
   const live = B.n('live'), you = B.n('you');
   const facts = [i18tn('ngn_hf_live', live, { n: live }), you ? i18tn('ngn_hf_you', you, { n: you }) : ''].filter(Boolean).join(' · ');
   const tabs = [['live', i18t('ngn_tab_live'), live], ['you', i18t('ngn_tab_you'), you], ['them', i18t('ngn_tab_them'), B.n('them')], ['settled', i18t('ngn_tab_settled'), B.n('settled')]];
+  const C = ngnCols();
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ngn-page" data-ins-page="negotiations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span></div>
       <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:26%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:24%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
-        <thead><tr><th>${esc(i18t('ngn_c_agreement'))}</th><th>${esc(i18t('ngn_c_round'))}</th><th>${esc(i18t('ngn_c_move'))}</th><th>${esc(i18t('ngn_c_asks'))}</th><th>${esc(i18t('ngn_c_lead'))}</th><th>${esc(i18t('ngn_c_last'))}</th></tr></thead>
-        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel))).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
+      <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
+        ${C.th}
+        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel), C.keys)).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ngn_foot', all.length, { n: all.length, live }))}</span><span></span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const r = rows.find(x => String(x.c.id) === String(_ngnSel)) || null;

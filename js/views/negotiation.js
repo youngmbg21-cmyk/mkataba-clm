@@ -8958,10 +8958,10 @@ let _rlShowingList = false;
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): the list, with its
    search and filters, or the contract on the bench — read by placeSave and put
    back by placeResume (js/app.js) before the first paint, as a bare repaint. */
-function rlPlace(){ return { list: _rlShowingList, held: _redlineHeldId || null, st: (_rlShowingList && state.regNego) ? { ...state.regNego } : null }; }
+function rlPlace(){ return { list: _rlShowingList, held: _redlineHeldId || null, st: (_rlShowingList && state.regNego) ? { ...state.regNego } : null, ngn: (_rlShowingList && typeof window.ngnPlace === 'function') ? window.ngnPlace() : null }; }
 function rlPlacePut(p){
   if (!p) return;
-  if (p.list){ _rlShowingList = true; _redlineHeldId = null; if (p.st) state.regNego = { ...p.st }; }
+  if (p.list){ _rlShowingList = true; _redlineHeldId = null; if (p.st) state.regNego = { ...p.st }; if (p.ngn && typeof window.ngnPlacePut === 'function') window.ngnPlacePut(p.ngn); }
   else if (p.held){ _rlShowingList = false; _redlineHeldId = p.held; }
 }
 
