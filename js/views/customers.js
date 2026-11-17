@@ -1114,10 +1114,10 @@ function cuNextSay(v){
    without an NDA; each chip is one of the list head's own choices ("no NDA"
    stands as the NDA chip, "all parties" lights the All tab). Counted, no
    Jambo call. */
-function cuSay(){
+/* THE NEW LOOK COUNTS THE LISTS ITS OWN TABS DRAW (#762): see cuSay */
+function cuSayNl(){
   /* THE NEW LOOK COUNTS THE LISTS ITS OWN TABS DRAW (#762: it counted the old page's Live list, 15 where List said 16):
      every party, the ones waiting, the ones with no NDA in force — cunRender's own three sets; the chip opens its tab */
-  if (typeof window.newLookOn === 'function' && newLookOn()){
     const vs = cuCustomers().map(r => cuView(r)).filter(Boolean);
     if (!vs.length) return { lines: [_cuE(i18t('cu_none_yet'))] };
     const nm = cuNdaMap();
@@ -1128,7 +1128,9 @@ function cuSay(){
     if (noNda) lines.push(_cuE(i18tn('cu_say_no_nda', noNda, { n: noNda }) + '.'));
     const chips = (noNda && _cun !== 'nda') ? [{ label: i18t('cu_say_chip_no_nda'), run: () => { _cun = 'nda'; renderCustomers({ rows: true }); if (typeof placeSave === 'function') placeSave(); } }] : [];
     return { lines, chips };
-  }
+}
+function cuSay(){
+  if (typeof window.newLookOn === 'function' && newLookOn()) return cuSayNl();
   const all = cuCustomers(), ndas = cuNdaMap();
   const rows = cuRowsOf(all, ndas);
   if (!all.length) return { lines: [_cuE(i18t('cu_none_yet'))] };

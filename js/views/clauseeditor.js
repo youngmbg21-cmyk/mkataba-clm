@@ -948,13 +948,16 @@ function clauseEditorCss(){
      PANEL VOICE (Young, 6 Oct 2026, reversing "the expanded view the paper's"):
      the expanded view is set in the panel's own face at the panel's body size,
      and the paper's A-/A+ never reach it — nothing is measured off the sheet. */
-  .ce-rail .ce-card .pv,#ce-lane .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
-  /* the new look's card stands in #ce-lane (#762: it kept the old teal and bold) */
-  .ce-rail .ce-card .pv ins.rl-us,#ce-lane .ce-card .pv ins.rl-us{background:var(--st-green-bg); color:var(--accent-ink);
+  .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
+  .ce-rail .ce-card .pv ins.rl-us{background:var(--st-green-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
   /* the new look's paper draws our added words in --st-green-fg: the card says the same (#762) */
+  /* the new look's card stands in #ce-lane (#762: it kept the old teal and bold): the rail's rules again, there */
+  #ce-lane .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
+  #ce-lane .ce-card .pv ins.rl-us{background:var(--st-green-bg); color:var(--accent-ink); font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
+  #ce-lane .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink); font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
   html.lg-new #ce-lane .ce-card .pv ins.rl-us{color:var(--st-green-fg)}
-  .ce-rail .ce-card .pv del.rl-us,#ce-lane .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink);
+  .ce-rail .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink);
     font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
   .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
   .ce-card .av button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);

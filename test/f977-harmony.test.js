@@ -114,7 +114,8 @@ test('f977 (16) the paper: the sheet not a band lower on a wide desk, the openin
   const b = block();
   assert.match(b, /@media \(min-width:1300px\)\{ html\.lg-new #ig-paper-scroll > \.paper-zc-row\{--zc-room:0px\} \}/);
   assert.match(b, /html\.lg-new #ig-paper \.pg-sheet \.doc-surface#ig-canvas p\.px-2\.-mx-2\{margin-left:-8px;margin-right:-8px\}/);
-  assert.match(read('js/paperdesk.js'), /\(f\.k === 'signer' \|\| f\.k === 'stream'\) \? _pdT\('pd2_go_change'\)/);
+  /* RE-POINTED 17 Nov 2026 (#762): Who else on this agreement is a Dossier fact again, its Change a link like the signer's */
+  assert.match(read('js/paperdesk.js'), /\(f\.k === 'signer' \|\| f\.k === 'stream' \|\| f\.k === 'people'\) \? _pdT\('pd2_go_change'\)/);
 });
 test('f977 (17) same card twice: Accept · Reject · Counter on every ask, the rest behind More', () => {
   const ng = read('js/views/negotiation.js');
