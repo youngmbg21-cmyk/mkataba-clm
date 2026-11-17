@@ -145,6 +145,10 @@ const ok = (name, good, detail) => {
     });
     ok('4-stage a contract with marked clauses', staged >= 3, staged + ' marked');
     await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 17 Nov 2026 (#762): the list is measured once the card has settled (on GitHub a line still drawing under it
+       was read mid-paint, 45px) — asked for, bounded */
+    await page.waitForFunction(() => { const th = document.getElementById('pd-thread'), box = th && th.querySelector('.doc-th-rows'); if (!box) return false;
+      return Math.abs(th.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(box).marginBottom) || 0)) <= 2; }, null, { timeout: 5000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '04-thread.png') });
     const strand = await page.evaluate(() => {
       const th = document.getElementById('pd-thread');
