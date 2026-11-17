@@ -11764,11 +11764,12 @@ function igWallCardHtml(c,need){
   /* the paper chosen with one press wears the accent's edge (round 13): its panel says it */
   const chosen=igWallChosenId()===String(c.id);
   /* THE WALL AS DRAWN (the new look, round 6): each paper a sheet, its stage's mark at its corner, the party and the
-     value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel) */
+     value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel). A private stream's
+     paper says so in its top corner, the lock with the stream's name, as the old card did (#762) */
   if(window.newLookOn&&newLookOn()){
     const mark=typeof window.regSapMarkHtml==='function'?regSapMarkHtml(c):(typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'');
     return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
-    ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>
+    ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>${priv?`<span class="igw-lock igw2-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:''}
     <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span><i style="background:${dot}"></i>${igEsc(word)}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></span></button>`;
   }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>

@@ -20380,6 +20380,10 @@
   html.lg-new .igw-card.is-nl.is-chosen{border-color:var(--color-text);box-shadow:0 0 0 1px var(--color-text)}
   html.lg-new .igw-card.is-nl .igw-sheet{border:0;box-shadow:none;background:transparent}
   html.lg-new .igw-card.is-nl .igw-sheet{padding-top:26px}
+  /* a deal kept to its list stays a HATCHED paper in the new look (#762: the sheet's transparent ground had wiped it) */
+  html.lg-new .igw-card.is-nl .igw-sheet.is-coded{background:repeating-linear-gradient(135deg,var(--color-surface) 0 6px,var(--surface-2) 6px 12px)}
+  html.lg-new .igw-card.is-nl .igw2-lock{position:absolute;top:6px;right:8px;max-width:calc(100% - 56px);background:var(--color-surface)}
+  html.lg-new .igw-card.is-nl .igw2-lock{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new .igw2-foot > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .igw2-mark{position:absolute;top:6px;left:8px;line-height:0}
   html.lg-new .igw2-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:auto;padding:0 12px;font-size:12px;font-weight:var(--w-label);color:var(--color-text)}
