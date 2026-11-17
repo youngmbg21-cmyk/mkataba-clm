@@ -6518,6 +6518,19 @@ function dossierNextOf(c, D, focus){
   const owed = D.owed.filter(r => (DOSSIER_STAGE_OF[r.kind] || D.now) === focus);
   let head = '', sub = '', bar = null; const btns = [];
   const go = (attr, word, title) => btns.push({ attr, word, title: title || '' });
+  /* A COLLEAGUE'S "PLEASE LOOK" LEADS (#762: the new Dossier's one card had no row for it, so the ask could not be
+     answered beside its paper): the checklist's own words (insNeedWords) and its own door (data-pd-nd → needsYouGo →
+     lookDone), the stage's step after it */
+  let look = null; try { look = (pdNeedsRows(c) || []).find(r => r && r.it && r.it.kind === 'look' && String((r.it.c && r.it.c.id) || r.it.cid || c.id) === String(c.id)) || null; } catch (_){ look = null; }
+  if (look){
+    let w = null; try { w = (typeof insNeedWords === 'function') ? insNeedWords(c, look.it) : null; } catch (_){ w = null; }
+    head = String((w && w.title) || '').trim();
+    if (head){
+      sub = look.it.note ? '\u201c' + String(look.it.note) + '\u201d' : '';
+      go(`data-pd-nd="look" data-pd-nd-id="${_pdE(c.id)}"`, (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB.look) ? _pdT(INS_NEED_VERB.look) : _pdT('cn_open'));
+      return { head, sub, bar, btns };
+    }
+  }
   if (focus === 'fill' && s.n){
     let readN = 0; try { readN = pdOgReadN(c); } catch (_){ readN = 0; }
     let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
