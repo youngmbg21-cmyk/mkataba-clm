@@ -1037,7 +1037,8 @@ function ikFilters(){ if(!_ikF) _ikF={ ...IK_DEF }; return _ikF; }
    list falls back to insPick's first row, as a filter would. */
 function ikPlace(){
   const sel=k=>(typeof insSelected==='function')?insSelected(k):null;
-  return { ...ikFilters(), sel:{ team:sel('intake:team'), asker:sel('intake:asker') } };
+  /* the new look's tab and chosen request (_ikn, _iknSel) are the place too (#762: a refresh lost both) */
+  return { ...ikFilters(), sel:{ team:sel('intake:team'), asker:sel('intake:asker') }, nl:_ikn, nlSel:_iknSel!=null?String(_iknSel):null };
 }
 function ikPlacePut(p){
   if(!p||typeof p!=='object') return;
@@ -1046,7 +1047,10 @@ function ikPlacePut(p){
   /* the chosen row waits for the list (it is fetched once per sitting) */
   const s=p.sel||{};
   _ikBack={ 'intake:team':s.team?String(s.team):null, 'intake:asker':s.asker?String(s.asker):null };
+  if(['open','mine','drafted','advice','all'].includes(p.nl)) _ikn=p.nl;
+  _iknBack=p.nlSel?String(p.nlSel):null;
 }
+let _iknBack=null;   // the new look's chosen request, waiting for the list (as _ikBack does)
 let _ikBack=null;
 let _ikHead = { facts:'', acts:'' };
 function ikPaintHead(){
@@ -1822,6 +1826,8 @@ function iknRender(host, o){
   const may = (typeof canEdit === 'function' && canEdit());
   const R = iknRows();
   const open = R.n('open'), noEd = (R.all.filter(r => !r._adv && IK_LIVE.includes(r.status) && !r.contractId && !r.assignee)).length;
+  /* a refresh's chosen request comes back once the list has come (ikPlacePut) */
+  if (_iknBack && _intake.loaded){ if (R.list.some(r => String(r.id) === _iknBack)) _iknSel = _iknBack; _iknBack = null; }
   if (!_iknSel || !R.list.some(r => String(r.id) === String(_iknSel))) _iknSel = R.list[0] ? R.list[0].id : null;
   const tabs = [['open', i18t('ik_v_open'), open], ['mine', i18t('ik_v_mine'), R.n('mine')], ['drafted', i18t('ikn_tab_drafted'), R.n('drafted')], ['advice', i18t('rq_kind_advice'), R.n('advice')]];
   const facts = [i18tn('ik_hf_open', open, { n: open }), noEd ? i18tn('ikn_noed', noEd, { n: noEd }) : ''].filter(Boolean).join(' \u00b7 ');
