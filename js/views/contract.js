@@ -4640,7 +4640,9 @@ function focusKeyTerms(c, field){
   if(window.pdFillOpen&&!(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)){
     /* a fact this table does not name (governing law, disputes, payment terms …) is its own Key terms row, never the other party's */
     if(field&&!KT_FIELD_HOME[String(field)]&&state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,String(field||''))!==false) return;
-    let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt)); }catch(_){ asks=false; }
+    /* the form takes only a fact still OWED; one already on record is changed on its Key terms row (#762: "Fill it in"
+       for a recorded fact opened a form with nothing to fill, and landed nowhere) */
+    let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt&&x.open)); }catch(_){ asks=false; }
     if(asks){ pdFillOpen(c.id,{ key:home.kt }); return; }
     /* THE DETAILS PAGE IS RETIRED (owner, 22 Oct 2026): every other box is Key terms in the middle, ready on it */
     if(state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,home.kt)!==false) return;
