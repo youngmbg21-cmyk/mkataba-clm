@@ -55,8 +55,9 @@ test('f1070 (2) each panel says the five parts in the new look, by the page\'s o
   const cu = region(read('js/views/customers.js'), 'function cunPanelFiveHtml(r){', "if (typeof document !== 'undefined' && !document._cunPanel5Wired)");
   assert.match(cu, /data-cu-pr-edit=/); assert.match(cu, /data-cun-ppl=/); assert.match(cu, /data-cun-cts=/); assert.match(cu, /data-cun-add-ct=/);
   assert.doesNotMatch(cu, /ring:|data-cun-web|data-cun-open/);
-  const st = region(read('js/views/settings.js'), 'function stnPanelHtml(admin){', 'function stnPanelPaint(');
-  assert.match(st, /attr:r\.btn\|\|''/); assert.match(st, /attr:'data-st-ask-head=""'/);
+  /* RE-POINTED (P-11, 17 Nov 2026): Settings' panel is the Dossier card (sddCardHtml); its need rows keep their own press */
+  const st = region(read('js/views/settings.js'), 'function sddCardHtml(admin, ctx){', '/* ---- presses:');
+  assert.match(st, /attr:x\.btn\|\|''/); assert.match(st, /attr:'data-st-ask-head=""'/);
   const hk = region(read('js/views/handbook.js'), 'function hbknPanelHtml(){', 'function hbknRender(');
   assert.match(hk, /attr: `data-hbkn-ch="\$\{E\(c\.k\)\}"`/);
 });

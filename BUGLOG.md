@@ -22611,3 +22611,5 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 
 ## Noticed, not fixed (19 Nov 2026)
 - CLAUDE.md is about 91 KB, over its own "keep it under about 80 KB" line; a trim needs the owner's yes (MAP-HISTORY "CLAUDE.MD TRIM").
+- Noticed, not fixed (17 Nov 2026): test/f520-see-it-while-you-type.test.js runs out of memory ("JavaScript heap out of memory") in this cloud container, on unchanged main too; it may pass on GitHub's machine. Seen while building P-11 (Settings, door to door).
+- 17 Nov 2026 — Removed with P-11 (Settings, door to door, round 1): the twelve-row Settings list (the Legora way of 13 Nov, its area chips and the four page links at its foot) and its styles; its rows and pages now live in the six areas. Its tests went with it (f1045 settings-the-legora-way, settings-menu-verify), replaced by f1091 and settings-door-to-door-verify.

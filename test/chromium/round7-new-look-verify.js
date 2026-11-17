@@ -78,24 +78,27 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 2 · Settings & rules */
   try {
+    /* RE-POINTED (P-11, 17 Nov 2026: "build it with the Dossier card"): Settings opens on six areas; Review before
+       sending is a row in Rules, its sentence saying what it is set to and what it gates */
     await page.evaluate(() => setView('team'));
-    const up = await until(page, () => !!document.querySelector('.stn-page #stn-review'), null, 15000);
-    const S = up ? await page.evaluate(() => ({
-      title: (document.querySelector('.stn-title') || {}).textContent || '',
-      rows: [...document.querySelectorAll('[data-stn-row]')].map(r => r.getAttribute('data-stn-row')),
-      menu: [...document.querySelectorAll('#stn-main .stn-chip, #stn-pages .stn-pg')].map(b => (b.childNodes[0].textContent || '').trim()),
-      review: (document.getElementById('stn-review') || {}).innerText || '',
+    const up0 = await until(page, () => document.querySelectorAll('#stn-main [data-sdd-home]').length === 6, null, 15000);
+    const L = up0 ? await page.evaluate(() => ({ title: (document.querySelector('.stn-title') || {}).textContent || '',
+      areas: [...document.querySelectorAll('[data-sdd-home]')].map(r => r.getAttribute('data-sdd-home')),
       head: !!document.querySelector('#page-head .ph-card:not([hidden])') })) : null;
-    check('2a Settings & rules, the Legora way (13 Nov 2026): the rows by area, the area chips, the pages at the foot, no second head', !!S && /Settings & rules/.test(S.title)
-      && ['name', 'lang', 'approvals', 'review', 'signcap', 'linkcode', 'rates', 'mail'].every(k => S.rows.includes(k))
-      && ['All', 'You', 'Security', 'Rules', 'Money', 'Messages', 'People & roles', 'Trail'].every(w => S.menu.includes(w)) && !S.head, S);
-    check('2b a setting says its state and what it gates', !!S && /Off/.test(S.review) && /gates sending, never signing/.test(S.review), S && S.review);
+    check('2a Settings, door to door: the six areas, the find box, no second head', !!L && /^Settings/.test(L.title)
+      && JSON.stringify(L.areas) === JSON.stringify(['you', 'company', 'rules', 'jambo', 'mail', 'setup']) && !!(await page.$('#sdd-q')) && !L.head, L);
+    await page.evaluate(() => sddGo('rules'));
+    const up = await until(page, () => !!document.querySelector('.stn-page #sdd-review'), null, 8000);
+    const S = up ? await page.evaluate(() => ({ review: (document.getElementById('sdd-review') || {}).innerText || '' })) : null;
+    check('2b a setting says its state and what it gates', !!S && /Off/.test(S.review) && /holds sending only/.test(S.review), S && S.review);
+    await page.evaluate(() => sddGo(null));
 /* RE-POINTED 15 Nov 2026 (owner: Jambo's panels "Build as drawn", the five parts): the panel is the five-part builder's now */ 
     await until(page, () => /Jambo's lessons/i.test((document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || ''), null, 8000);
     const P = await page.evaluate(() => (document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || '');
     await shot('2-settings');
     check('2c the panel: Needs an admin, Ask an admin, Jambo\'s lessons with the three phrases', /Needs an admin/i.test(P) && /Ask an admin/.test(P) && /money page/.test(P) && /who signs/.test(P) && /Teach me the door/.test(P) /* the lessons row is the door now */, P.slice(0, 400));
-    await page.click('#stn-review [data-st-panel="review"]');
+    await page.evaluate(() => sddGo('rules'));
+    await page.click('#sdd-review [data-st-panel="review"]');
     const dr = await until(page, () => { const d = document.getElementById('st-drawer'); return !!d && !d.hidden; }, null, 5000);
     check('2d a Change opens today\'s drawer', dr);
     const still = await page.evaluate(() => { const m = document.getElementById('stn-main'); return m ? m.scrollLeft : -1; });

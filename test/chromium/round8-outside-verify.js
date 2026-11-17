@@ -42,8 +42,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await adm.fill('#li-email', 'admin@example.co.ke'); await adm.fill('#li-pass', 'adminpassword1'); await adm.click('#li-go');
     await until(adm, () => typeof currentUser === 'function' && !!currentUser() && typeof setView === 'function', null, 40000);
     await adm.evaluate(() => setView('team'));
-    const up = await until(adm, () => document.querySelectorAll('#stn-main .stn-row').length >= 5, null, 15000);
-    const none = await adm.evaluate(() => !document.querySelector('#stn-outsidelook, [data-st-sw="outsidelook"]'));
+    /* RE-POINTED (P-11): Settings opens on the six areas; Set-up and records draws no switch for the outside look */
+    const up = await until(adm, () => typeof sddGo === 'function' && document.querySelectorAll('#stn-main [data-sdd-home]').length === 6, null, 15000);
+    if (up) await adm.evaluate(() => sddGo('setup'));
+    const none = await adm.evaluate(() => !document.querySelector('#sdd-outsidelook, [data-st-sw="outsidelook"]'));
     const st = (await status()).outsideLook === true;
     check('2 the outside look is on with no setting; Settings & rules draws no switch for it; the server says on', up && none && st, { up, none, st });
   } catch (e) { check('2 the setting', false, String(e).slice(0, 200)); }
