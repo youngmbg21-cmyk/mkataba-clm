@@ -38700,3 +38700,10 @@ MEASURED (photos, two admins, labels NOT saved, the two papers' labels different
 5. The other side's page keeps the new look: underlined tabs, deal buttons behind More.
 Browser checks pinning those parts are RETIRED ("RETIRED 17 Nov 2026 (#762, owner's ruling)"), listed in MAP-TESTS under f967.
 17 Nov 2026, the owner's second answers ("1 yes, 2 yes, 3 keep, 4 none, 5 none, 6 no"): (1) Before you sign brings back, on each standard that holds the signature, Ask a colleague and Accept with a reason (the sign check's own acts); (2) a file they sign keeps "We sign in HaTi instead" on the card; (3) Jambo's panels keep the drawn 8–12px inside their soft groups (the tidy sweep reads .jov5-group as a list); (4) Requests does not bring back oldest-first, the promised-by date or taking over; (5) People and Parties do not bring back the roster door, "People at this party" or the NDA door; (6) the Contracts column colour key stays gone.
+
+## THE NEW LOOK IS THE ONLY LOOK — THE OWNER'S PICKS ON THE DRAWINGS (17 Nov 2026, #762)
+Shown on photos of today's pages, one choice each; the owner's words: "1 Bring it back · 2 Bring it back · 3 Bring it back · 4 Bring it back · 5 Keep it gone · 6 The tab alone · 7 No outline · 8 Make them match".
+- Brought back on Requests' panel (iknPanelHtml): Hand back ([data-ikn-back] → intakeSetStatus declined); the party's name a door to their contracts ([data-ikn-cp] → cuOpenCustomer, landing on the party page's agreements); the NDA line (ikCpNdaWords); each file by name with who added it ([data-ikn-file]); "Sent in by the <lane> lane" under the headline. My notes' panel: Snooze a week (jamboOverviewFiveHtml act.links).
+- Stay gone: the Dossier's "On the web" line (the look-up stays on the Parties panel); the Send screen's Name/Email boxes keep no outline.
+- The Advice board is gone on a computer: setView('advice') lands on Requests' Advice tab (iknTabSet); its panel has no board door; a new advice request moves the tab's count (refreshAdviceBoard → renderIntake).
+- Their page matches ours: --pol-side-w 493 (our .rl-grid's 460 + padding + hairline).
