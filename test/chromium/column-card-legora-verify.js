@@ -110,13 +110,14 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
       const askId = Object.keys(AC.ans).find(k => (AC.asks[k] || {}).name === 'Governing country');
       const cell = land => { const m = AC.ans[askId] || {}; const tds = [...document.querySelectorAll(`td.ac-cell[data-ac="${askId}"]`)]; const td = tds.find(t => (m[t.getAttribute('data-ac-cid')] || {}).answer === land); const a = td && td.querySelector('.ac-ans'); return a ? a.className : ''; };
       return { grey: document.querySelectorAll('.tone-gray, .ac-lg-gray').length, v1: bg('#ig-dock .ac-tl .ac-ans.tone-v1 > i'), none: getComputedStyle(document.querySelector('#ig-dock .ac-tl .ac-ans.tone-none > i') || document.body).boxShadow,
-        kenyaCell: cell('Kenya'), swedenCell: cell('Sweden'), legend: [...document.querySelectorAll('.ac-legend .ac-lg i')].map(i => i.className) };
+        kenyaCell: cell('Kenya'), swedenCell: cell('Sweden') };
     });
     check('2e nothing is grey', colours.grey === 0, colours.grey);
     check('2f a plain fact wears its answer\'s colour (violet for the biggest)', colours.v1 === 'rgb(122, 68, 184)', colours.v1);
     check('2g nothing found is an empty ring', /inset/.test(colours.none), colours.none);
     check('2h the list\'s cells wear the same colours as the panel', /tone-v1/.test(colours.kenyaCell) && /tone-v2/.test(colours.swedenCell), [colours.kenyaCell, colours.swedenCell]);
-    check('2i the legend: yes · no · a plain fact · watch · risk · not found', JSON.stringify(colours.legend) === JSON.stringify(['ac-lg-green', 'ac-lg-steel', 'ac-lg-v1', 'ac-lg-amber', 'ac-lg-ruby', 'ac-lg-none']), colours.legend);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3: the Contracts column colour key stays gone): 2i the legend under
+       the list (yes · no · a plain fact · watch · risk · not found) was drawn only in the old list's foot */
     await page.screenshot({ path: path.join(OUT, '2-answers.png') });
 
     /* ---- 3 the quote, ‹ ›, a group pressed, Show ---- */

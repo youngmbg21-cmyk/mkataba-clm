@@ -294,9 +294,18 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         await peer.evaluate(() => presenceSay('MK-0382'));
         await page.evaluate(() => presenceSay('MK-0382'));
         if (await page.evaluate(() => !!document.querySelector('#pz-ask [data-pz-allow]'))) await page.click('#pz-ask [data-pz-allow]');
-        if (await page.evaluate(() => !!presenceFollowing())) return true;
+        if (await page.evaluate(() => !!presenceFollowing())) return seen();
         await until(() => !!presenceFollowing() || null, null, 1200);
       }
+      return page.evaluate(() => !!presenceFollowing());
+    };
+    /* the colleague's own screen learns of the Allow on its next beat (the ring round the reader's face); a person
+       follows for longer than a beat, so the beats are said until it has, bounded — a stop said before that leaves the
+       colleague's ask standing as "waiting for an answer" (noted for the lead, notes-R6c) and the next press would
+       take that ask back instead of asking */
+    const seen = async () => {
+      for (let i = 0; i < 6 && !(await peer.evaluate(() => presenceLeading().length > 0)); i++){
+        await page.evaluate(() => presenceSay('MK-0382')); await peer.evaluate(() => presenceSay('MK-0382')); }
       return page.evaluate(() => !!presenceFollowing());
     };
     check('6a the colleague\'s face on the paper\'s line is a button on Home', !!face, String(face));

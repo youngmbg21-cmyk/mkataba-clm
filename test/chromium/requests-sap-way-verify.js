@@ -82,7 +82,11 @@ const check = (name, pass, detail) => {
       new RegExp('^With ' + me).test(a.with) && /^With Erik/.test(c.with) && /^Needs an editor/.test(b.with) && b.amber, JSON.stringify({ a, b, c, me }));
     await page.click('.ikn-table [data-ikn-row="REQ-1042"]');
     const P = await until(() => { const p = document.getElementById('ins-panel'); return p && /Kettle/.test(p.textContent) ? p.innerText.replace(/\s+/g, ' ').trim() : null; });
-    check('2b Files counts the clip, none a dash; Asked says the day', a.asked === 'today' && /\b1 file attached\b/.test(P || ''), JSON.stringify({ asked: a.asked, panel: (P || '').slice(0, 200) }));
+    /* RE-POINTED 17 Nov 2026 (#762; the owner's picks on the drawings, 17 Nov 2026, "2 Bring it back"): the panel says
+       each file as its own row — Files · its name (a door to it) · its size and who added it — instead of "1 file attached" */
+    const fileSaid = /\bFiles pilot-brief\.pdf [^·]+· added by Sara Nyström\b/.test(P || '');
+    check('2b Files counts the clip, none a dash; Asked says the day (the panel names the file and who added it)', a.asked === 'today' && fileSaid,
+      JSON.stringify({ asked: a.asked, panel: (P || '').replace(/^.*?(Files)/, '$1').slice(0, 200) }));
     /* RE-POINTED 17 Nov 2026 (#762): the panel is Jambo's chosen-row panel; the lane that sent it is looked for in it */
     check('3 the panel\'s With says who and which lane sent it', !!P && /NDA lane/.test(P), String(P).slice(0, 300));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'requests-sap-way-1440x780.png') });

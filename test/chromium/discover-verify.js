@@ -125,8 +125,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11 && !document.querySelector('[data-ac-stop]') && !!document.querySelector('#ig-dock [data-ac-col]'), null, 25000);
       const col = await page.evaluate(() => ({
         heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
-        cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }])),
-        foot: (document.querySelector('#reg-showing') || {}).innerText || '' }));
+        cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }]))
+      }));
       check('2b′ the column is named from the question', read && col.heads.some(x => /Liability cap/.test(x)), JSON.stringify(col.heads));
       const oneLine = ['DV-01', 'DV-03', 'DV-07'].every(id => col.cells[id] && !/“/.test(col.cells[id].t) && !/\n/.test(col.cells[id].t) && col.cells[id].t.length < 40);
       /* RE-POINTED (owner picked "Lights", 26 Oct 2026): one line per cell —
@@ -136,7 +136,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('2d the dot reads the rule first: the two outside it are red, the rest green',
         col.cells['DV-04'].red && col.cells['DV-05'].red && col.cells['DV-01'].green && Object.values(col.cells).filter(c => c.red).length === 2,
         JSON.stringify(Object.fromEntries(Object.entries(col.cells).map(([i, c]) => [i, c.red ? 'red' : c.green ? 'green' : '-']))));
-      check('2e the foot says what each dot means', /usual, or inside our rule/.test(col.foot) && /a risk, or outside our rule/.test(col.foot) && /not found/.test(col.foot), col.foot);
+      /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3: the Contracts column colour key stays gone): 2e the list's foot
+         saying what each dot means (usual · a risk · not found) was drawn only in the old list's foot */
       await page.screenshot({ path: path.join(OUT, '2-column.png') });
       /* 2f show the ones at risk */
       /* RE-POINTED 16 Nov 2026 (#762): a finished read lands on the column's short drawn card; its "‹ Overview" is the step
