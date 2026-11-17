@@ -37,7 +37,9 @@ function listMarkHtml(tone, kind, title){
    black into grey, a thin grey ring rippling out of it (owner picked "The SAP Way", 12 Nov 2026, in black and grey).
    Each of his marks takes its own beat (--mk-d) so a list of them never pulses in step. */
 const LIST_SAP_MARK = { done: ['green', 'mkTick'], you: ['amber', 'mkBang'], them: ['steel', 'mkInfo'],
-  risk: ['ruby', 'mkCross'], none: ['gray', 'mkDash'], jambo: ['jambo', 'mkSpark'] };
+  risk: ['ruby', 'mkCross'], none: ['gray', 'mkDash'], jambo: ['jambo', 'mkSpark'],
+  /* a change to one of our standards (Approvals' second pile, 17 Nov 2026) */
+  edit: ['steel', 'pencil'] };
 let _lsMkBeat = 0;
 function listSapMarkHtml(key, title){
   const k = LIST_SAP_MARK[key] ? key : 'none', m = LIST_SAP_MARK[k];

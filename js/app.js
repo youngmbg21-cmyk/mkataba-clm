@@ -13,6 +13,7 @@ import './migread.js';      // Archive import: what an imported contract's readi
 import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
 import './asks.js';         // one ask record: who was asked, the answer, when and for what — both hosts (4 Oct 2026)
 import './sharemail.js';    // the letter: the share email's words, the send screen and the server alike (round 11, 17 Oct 2026)
+import './stdladder.js';     // the Ladder: a standard's rules, read and applied one way, the page and the server alike (17 Nov 2026)
 import './nda.js';          // an NDA's two facts: who keeps it secret, and until when — both hosts (17 Oct 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
@@ -141,6 +142,7 @@ import './intakelanes.js';      // a request's lane and answers: one reading, bo
 import './views/intake.js';     // the intake front door: anybody may ASK for a contract (W2-2)
 import './templatefields.js';
 import './views/library.js';
+import './views/ladder.js';  // Standards, a page of its own: the Ladder (owner's pick, 17 Nov 2026)
 import './fieldlib.js';            // the template-library field catalogue (shared with the server)
 import './branding.js';            // document designs AND structures (shared with the server — one catalogue)
 import './pages.js';               // a contract drawn as pages: the working copy and the signing copy (25 Sep 2026)
@@ -314,7 +316,7 @@ function commandMeta(view){
     case 'templates': return [i18t('nav_tpl_std'), i18t('pg_templates_sub')];
     /* ONE PAGE (4 Oct 2026): Our standards is a tab of Templates & standards,
        so its head carries the page's name, not the tab's. */
-    case 'playbook':  return [i18t('nav_tpl_std'), i18t('pg_standards_sub')];
+    case 'playbook':  return [i18t('ld_page'), ''];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
     /* ONE PAGE (gap F, 4 Oct 2026): the Advice desk is the Advice tab of
        Requests, so its head carries the page's name, not the tab's. */
@@ -424,7 +426,7 @@ const PAGE_ACTIONS = {
    Filter and + Add an obligation at the right (obwPaintHead). */
 /* Import (round 22 as drawn, 18 Oct 2026): what the batch is beside the name
    ("Old contracts from … · started … by you · 24 files") and Choose files… */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'ldPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -1145,7 +1147,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Standards',
   team:'Team & settings', directory:'Directory', workspace:'the contract workspace',
   redline:'Negotiations', counter:'the counter' };
 
@@ -1497,7 +1499,7 @@ function setView(view){
     else if(view==='jambo') renderJamboHouse();
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
-    else if(view==='playbook') renderPlaybookPage();
+    else if(view==='playbook') renderStandardsPage();
     /* ON THE PHONE THE SETTINGS PAGE IS NOT BUILT BEHIND THE SCENES (the
        owner's list, 27 Sep 2026): the phone draws its own screens, and the
        desktop's four tabs and every drawer were being built underneath where
@@ -2391,6 +2393,14 @@ const ALERT_KINDS = [
      somebody picks it up, drafts it or declines it. Ranked under approvals:
      a colleague is waiting, but no live deal is held by it. Amber: work owed. */
   { k:'request',     tone:'amber', ic:'&#128233;' },
+  /* ---- A DECISION ON A STANDARD COMES BACK (owner, 17 Nov 2026: "bell only") ----
+     A departure allowed or refused goes to the contract's owner; a change to a standard approved or refused goes to
+     whoever proposed it. Each carries the decider's name and note; a no is light red, a yes light green (ndTintOf).
+     A refused departure is work (change the wording); the rest is news. Nothing is mailed. */
+  { k:'dep-refused', tone:'amber', ic:'&#8617;'  },
+  { k:'dep-allowed', tone:'green', ic:'&#9989;'  },
+  { k:'std-approved',tone:'green', ic:'&#9989;'  },
+  { k:'std-refused', tone:'amber', ic:'&#8617;'  },
   /* ---- DETAILS STILL TO FILL IN (owner, 12 Oct 2026) ----
      A contract this reader owns with boxes still empty on its Details tab
      (detailsOf, the tab's own count); the press opens that tab. Amber: work
@@ -2503,6 +2513,34 @@ function streamNewsSeen(fid){
 }
 /* Every alert is a DOOR — it goes to the thing that needs doing, not to a list.
    `go` is what the row's press runs. */
+/* THE ANSWERS ON OUR STANDARDS THAT COME BACK TO ME (owner, 17 Nov 2026: "bell only"): a departure on a contract I
+   own that somebody else allowed or refused, and a change to a standard I proposed that somebody else decided. Read
+   off what the browser holds; news for ALERT_STD_DAYS, a refused departure for as long as it stands. */
+const ALERT_STD_DAYS=14;
+function alStandardsAnswers(me, cs){
+  const out=[], since=Date.now()-ALERT_STD_DAYS*864e5, mine=id=>me&&String(id||'')===String(me.id);
+  const q=t=>t?{ sub:'“'+String(t).slice(0,140)+'”' }:{};
+  (cs||[]).forEach(c=>{
+    if(!c||c.archived||c.status==='Signed'||c.status==='Executed'||c.status==='Declined') return;
+    if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))) return;
+    const vs=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+    vs.forEach((v,i)=>{ if(!v) return;
+      const go=()=>{ if(typeof roomHomeLand==='function') roomHomeLand(c.id); else if(typeof openWorkspace==='function') openWorkspace(c.id); };
+      const a=v.accepted, r=v.refused, cat=v.category||'';
+      if(r&&r.at&&!(a&&a.at)&&!mine(r.byId)) out.push({ kind:'dep-refused', c, go, text:i18t('al_dep_refused',{ cat, who:r.by||'' }), extra:Object.assign({ tint:'no' }, q(r.why)) });
+      else if(a&&a.at&&Date.parse(a.at)>=since&&!mine(a.byId)) out.push({ kind:'dep-allowed', c, go, text:i18t('al_dep_allowed',{ cat, who:a.by||'' }), extra:Object.assign({ tint:'yes' }, q(a.why)) });
+      void i; });
+  });
+  const chs=(state.settings&&Array.isArray(state.settings.standardChanges))?state.settings.standardChanges:[];
+  chs.forEach(ch=>{
+    if(!ch||!mine(ch.byId)||!['approved','refused'].includes(ch.state)||Date.parse(ch.decidedAt||'')<since||mine(ch.decidedById)) return;
+    const name=(ch.draft&&ch.draft.name)||'', yes=ch.state==='approved';
+    const go=()=>{ if(typeof caOpenStandards==='function') caOpenStandards(); else if(typeof setView==='function') setView('playbook'); };
+    out.push({ kind:yes?'std-approved':'std-refused', c:null, go, text:i18t(yes?'al_std_approved':'al_std_refused',{ name, who:ch.decidedBy||'' }),
+      extra:Object.assign({ tint:yes?'yes':'no', name }, q(ch.decidedWhy)) });
+  });
+  return out;
+}
 function buildAlerts(){
   const out=[];
   // archived contracts alert nobody (WO-5) — the shelf is quiet
@@ -2774,7 +2812,7 @@ function buildAlerts(){
       if(!bad) return;
       push('ap-refused',c,i18t('al_ap_refused',{ step:bad.name||'', who:bad.by||'' }),
         ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
-        bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:undefined);
+        Object.assign({ tint:'no' }, bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:{}));
     });
     /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
        Read off approvalRulesCleared (js/approvals.js); only rule chains (a named
@@ -2787,9 +2825,14 @@ function buildAlerts(){
       if(!ok) return;
       /* A named person's yes still owed is not "cleared" — that row says so. */
       try{ if(typeof signApprovalStateOf==='function'&&signApprovalStateOf(c).rows.some(r=>r.status!=='approved')) return; }catch(_){}
-      push('ap-cleared',c,i18t('al_ap_cleared'),
-        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } });
+      /* WHO SAID THE LAST YES, AND THEIR NOTE (owner, 17 Nov 2026) */
+      const yes=(Array.isArray(c.approvalChain)?c.approvalChain:[]).filter(s=>s&&s.status==='approved').sort((a,b)=>String(a.at||'').localeCompare(String(b.at||''))).pop();
+      push('ap-cleared',c,yes&&yes.by?i18t('al_ap_cleared_by',{ who:yes.by }):i18t('al_ap_cleared'),
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
+        Object.assign({ tint:'yes' }, yes&&yes.comment?{ sub:'“'+String(yes.comment).slice(0,140)+'”' }:{}));
     });
+    /* ---- A DECISION ON A STANDARD (owner, 17 Nov 2026) ---- */
+    if(meNow&&typeof alStandardsAnswers==='function') alStandardsAnswers(meNow, cs).forEach(x=>push(x.kind, x.c, x.text, x.go, x.extra));
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
        myStaleDesks and myJoinAsks, which were "Needs your decision"'s own two
@@ -3965,7 +4008,7 @@ function renderContextPanel(){
    writes beyond the reader's own "seen" mark for the tab's "new". */
 const GUIDE_STAGES = [
   { k: 'ask', rows: ['requests', 'import'] },
-  { k: 'draft', rows: ['ourpaper', 'draft'] },
+  { k: 'draft', rows: ['ourpaper', 'standards', 'draft'] },
   { k: 'agree', rows: ['document', 'negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
   { k: 'keep', rows: ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'] },
@@ -3982,7 +4025,9 @@ function guideCountOf(k){
     approvals:()=>typeof approvalsDoorCount==='function'?approvalsDoorCount():0,
     oblig:()=>typeof obligationsDoorCount==='function'?obligationsDoorCount():0,
     mynotes:()=>typeof mineNotesDue==='function'?mineNotesDue().length:0,
-    house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0 };
+    house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0,
+    /* open departures from the standards (the Ladder, 17 Nov 2026), the number its head prints */
+    standards:()=>typeof window.ldStandards==='function'?window.ldStandards().reduce((t,r)=>t+r.open.length,0):0 };
   if(!W[k]) return null;
   const v=n(W[k]); return v>0?{ n:v, w:i18t('gd_n_'+k,{ n:v }) }:null;
 }
@@ -3993,7 +4038,7 @@ function guideHereKey(){
     if(v==='dashboard'){ const f=(typeof hbFace==='function')?hbFace():'board';
       if(f==='paper'){ const c=(typeof pdOnPaper==='function'&&pdOnPaper()&&typeof pdContract==='function')?pdContract():null; return c?'document':'contracts'; }
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
-    return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'ourpaper', redline:'negotiations', customers:'parties',
+    return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'standards', redline:'negotiations', customers:'parties',
       directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:'reads', pulse:'pulse', jambo:'house',
       team:'settings', workspace:'document', doc:'document', handbook:'handbook', flowmap:'flowmap' })[v]||null;
   }catch(_){ return null; }
@@ -4021,7 +4066,7 @@ function guideRowHtml(k, here, cls){
    it and its count — amber where something needs you, plain where it is a size. Every page the Guide had stays on it
    (rule 9c): the drawing's rows, and the pages it did not draw in the stage they belong to. */
 const GUIDE_NL=[
-  { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['draft']] },
+  { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['standards'],['draft']] },
   { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals'],['document']] },
   { k:'live', tone:'steel', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
   { k:'book', tone:'violet', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
@@ -4041,7 +4086,7 @@ function guideNlCount(k){
 /* EACH PAGE WEARS ITS SYMBOL (owner, 14 Nov 2026: "Give it symbols in color as well"): a drawn mark per row, the
    stage's tone behind it (HaTi's own tones, as Settings wears them); the row you stand on is ink. A row naming several
    pages wears its first page's symbol. */
-const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', draft:'filenew',
+const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', standards:'shield', draft:'filenew',
   negotiations:'refresh', approvals:'check2', document:'readpaper', oblig:'list', calendar:'calendar', parties:'users', people:'users',
   mynotes:'pencil', explorer:'network', reads:'search', pulse:'trend', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
 function guideNlMarkHtml(k, tone){
@@ -4850,6 +4895,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

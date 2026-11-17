@@ -253,6 +253,8 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
 
     /* 5 the yes, given for Jonas */
     await page.click('#pd-signface [data-pd-rd-approve]');
+    /* a yes offers an optional note (17 Nov 2026): the pop-up's own Approve sends it */
+    { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); }
     const gone = await untilOn(page, () => { const s = document.querySelector('#pd-signface [data-pd-road-stop="yes"]'); return s && /is-done/.test(s.className) ? (s.querySelector('small') || {}).textContent : null; }, null, 10000);
     const rec = await W.admin.json('/api/contracts/MK-0391');
     const q = (rec.signApprovals || []).slice(-1)[0] || {};
@@ -301,11 +303,15 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
     await page.click('#pd-signface [data-pd-rd-approve]');
+    /* a yes offers an optional note (17 Nov 2026): the pop-up's own Approve sends it */
+    { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); }
     await untilOn(page, () => { const s = document.querySelector('#pd-signface [data-pd-road-stop="yes"]'); return s && /is-done/.test(s.className); }, null, 10000);
     const R12e = await page.evaluate(() => { const f = document.getElementById('pd-signface'), st = k => f.querySelector(`[data-pd-road-stop="${k}"]`);
       return { rule: st('rule').className, step1: ((st('step1').querySelector('small') || {}).textContent || '').trim(), pill: ((f.querySelector('[data-pd-sf-pill]') || {}).textContent || '').trim() }; });
     check('12e Jonas\'s yes given for him: the rule\'s yes is the open stop, Helio\'s link still after it', /is-now/.test(R12e.rule) && R12e.step1 === 'Henrik Dahl · their link opens after the yes' && R12e.pill === '', JSON.stringify(R12e));
     await page.click('#pd-signface [data-pd-rd-rule="approved"]');
+    /* a yes offers an optional note (17 Nov 2026): the pop-up's own Approve sends it */
+    { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); }
     const R12f = await untilOn(page, () => { const f = document.getElementById('pd-signface'), r = f.querySelector('[data-pd-road-stop="rule"]');
       const b = f.querySelector('[data-pd-road-stop="step1"] [data-pd-rd-press]');
       return r && /is-done/.test(r.className) && b ? { sub: ((r.querySelector('small') || {}).textContent || '').trim(), live: !b.disabled, why: b.title || '', pill: ((f.querySelector('[data-pd-sf-pill]') || {}).textContent || '').trim() } : null; }, null, 10000);

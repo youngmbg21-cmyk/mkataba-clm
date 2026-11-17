@@ -348,7 +348,8 @@ describe('f390 (5) — the shared frame', () => {
   test('5a the header\'s two slots are painted by each page\'s own painter', () => {
     const m = /const PAGE_HEAD_PAINT = \{([^}]*)\}/.exec(APP);
     assert.ok(m, 'one table');
-    for (const [v, fn] of [['intake', 'ikPaintHead'], ['playbook', 'pbPaintHead']])
+    /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder: Standards is a page of its own, its head painted by ldPaintHead) */
+    for (const [v, fn] of [['intake', 'ikPaintHead'], ['playbook', 'ldPaintHead']])
       assert.match(m[1], new RegExp(v + "\\s*:\\s*'" + fn + "'"), v);
     /* RE-POINTED 9 Oct 2026 (owner: the Obligations head is as tall as
        Approvals & signing's, no "we owe" line) — it painted no head slot.

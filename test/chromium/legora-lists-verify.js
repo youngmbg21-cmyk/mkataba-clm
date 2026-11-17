@@ -7,7 +7,7 @@
    WHAT THIS CHECKS, in a real browser, signed in as the admin, on a seeded
    book where every page has rows in at least two of its views. The ten pages:
    Contracts, Negotiations, Approvals, Obligations, Requests, My notes,
-   Parties, People, Our paper (the book, the Templates list, Our standards)
+   Parties, People, Our paper (the book, the Templates list)
    and Import. On each page:
      1  ONE HEAD: one [data-lh-seat]; its box input[data-lh-q] sits under the
         title and above the tab row; the box's words carry a number and never
@@ -197,8 +197,8 @@ const DEFS = [
     rows: '[data-tpl-pf]', panel: '#ins-panel', tabs: false, filters: false, columns: false, foot: 'maybe' },
   { key: 'paper', sub: 'templates', title: 'Our paper · Templates', go: () => { setView('templates'); if (window.tplPageSetTab) tplPageSetTab('list'); },
     rows: '.tpl-lt tbody [data-tpl-row]', panel: '#ins-panel', filters: true, columns: 'maybe' },
-  { key: 'paper', sub: 'standards', title: 'Our paper · Our standards', go: () => setView('playbook'),
-    rows: '[id^="sd-scroll-"] tr[data-ins-row]', panel: '#ins-panel', filters: 'maybe', columns: 'maybe' },
+  /* Our standards left this list 17 Nov 2026: the owner picked The Ladder, its own page drawn as a ladder with no list
+     head (no box, tabs or chips); it is checked by f1091 and its photos, not as a list here */
   { key: 'import', title: 'Import', go: () => setView('migration'),
     rows: '.mig-table tbody tr[data-row]', panel: '#mig-side', filters: false, columns: 'maybe' },
 ];
