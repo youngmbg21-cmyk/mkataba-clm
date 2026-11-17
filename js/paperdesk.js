@@ -9271,8 +9271,18 @@ function pd2FillStop(){
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
   try { pdGlanceRepaint(); } catch (_){}
 }
+/* A TERM ON THE PAPER WITH NO END DATE ON RECORD is work to save, even where the box holds the drafted default (3 years):
+   the record's end date is what every reminder runs off (docTermFill; #762) */
+function pd2FillTermOwed(c){
+  if (!_pd2Fill || !c || c.expiry || c.templateForm) return '';
+  if (!pd2FillBlanks(c).some(b => b.key === 'termYears')) return '';
+  const v = String(_pd2Fill.vals.termYears == null ? '' : _pd2Fill.vals.termYears).trim();
+  const start = String((c.fields || {}).effDate || (c.metadata || {}).effectiveDate || '').trim();
+  return (Number(v) > 0 && start) ? v : '';
+}
 function pd2FillChanged(c){
   if (!_pd2Fill) return false;
+  if (pd2FillTermOwed(c)) return true;
   const blanks = pd2FillBlanks(c).some(b => String(_pd2Fill.vals[b.key] || '') !== String(_pd2Fill.was[b.key] || ''));
   return blanks || Object.values(_pd2Fill.sig).some(L => (L || []).some(x => String(x.name || '').trim()));
 }
@@ -9477,6 +9487,15 @@ function pd2FillSave(){
       tplFormCommit(c, i, x.v); n++; _pd2Fill.was[x.b.key] = x.v; });
     if (n) tplFormApply(c);
   } else moved.forEach((x, i) => { if (contractBlankSet(c, x.b.key, x.v, i === moved.length - 1 ? {} : { hold: true })) { n++; _pd2Fill.was[x.b.key] = x.v; } });
+  /* THE TERM AND THE NOTICE FILL THE RECORD THEY STATE (the paper's own blanks' rule, docTermFill / docNoticeFill): the end
+     date from the start and the years, the notice in days — only where the record has none (#762: typed here, never stored) */
+  const termV = pd2FillTermOwed(c);
+  if (termV && !moved.some(x => x.b.key === 'termYears') && contractBlankSet(c, 'termYears', termV, {})) n++;
+  if (termV && typeof window.docTermFill === 'function') try { window.docTermFill(c, termV); } catch (_){}
+  if (!tplf) moved.forEach(x => { try {
+    if (x.b.key === 'termYears'){ /* said above (termV), once */ }
+    else if (x.b.key === 'noticeDays' && typeof window.docNoticeFill === 'function') window.docNoticeFill(c, x.v);
+  } catch (_){} });
   /* the signers: the route as it stands, with the ones named on the paper after their side's last */
   const add = pd2FillSigTyped(c);
   let why = null, signers = 0;
