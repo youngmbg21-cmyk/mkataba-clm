@@ -2985,12 +2985,36 @@ function tplnShelvesHtml(rows){
     + fig(f.ready, i18t('tpln5_f_ready'), 'data-tpln-ready')
     + fig(f.used.length, i18t('tpln5_f_drafted'), 'data-tpln-ids="used"')
     + fig(f.changed.length, i18t('tpln5_f_changed'), 'data-tpln-ids="changed"');
-  const shelf = sh => { const tone = typeof listStreamTone === 'function' && sh.fid ? listStreamTone(sh.fid) : 'gray';
-    return `<button type="button" class="tpln5-shelf" data-tpln-shelf="${_tplEsc(sh.fid)}" style="--sb:var(--st-${tone}-bg);--sd:var(--st-${tone}-dot)">
-      <span class="tpln5-stack" aria-hidden="true">${sh.rows.slice(0, 3).map((x, i) => `<i style="--k:${i}"><b></b><em></em><em></em><em></em></i>`).join('')}</span>
-      <span class="tpln5-shn">${_tplEsc(sh.name)}</span><span class="tpln5-shm">${_tplEsc(i18tn('tpln5_papers', sh.rows.length, { n:sh.rows.length }))} · ${_tplEsc(i18tn('tpln_uses', sh.uses, { n:sh.uses }))}</span></button>`; };
-  return `<div class="tpln5 is-shelves">${tplnFilterLineHtml(rows, shelves)}<div class="tpln5-figs">${figs}</div><div class="tpln5-shelves">${shelves.map(shelf).join('')}</div></div>`;
+  /* COVER FLOW (owner's pick, 17 Nov 2026: "build cover flow"): a row per folder — its mark, name, papers and uses —
+     then its papers as a carousel: the front one faces you with its folder's colour as a thin top edge, the others turn
+     away (tplnCfSet); pointed at, the row rolls through them (tplnCfRoll). The row opens the folder's list; a paper
+     opens its own paper. Colour is only the mark and the front paper's edge. */
+  const row = sh => { const tone = typeof listStreamTone === 'function' && sh.fid ? listStreamTone(sh.fid) : 'gray';
+    const papers = sh.rows.map((x, k) => { const q = typeof tplnQuote === 'function' ? tplnQuote(x.c) : '';
+      return `<button type="button" class="tpln5-cfp${k ? '' : ' is-on'}" data-tpln-open="${_tplEsc(tplPfKey(x.c))}" style="--o:${k};--a:${k}" tabindex="-1"><b>${_tplEsc(x.c.name)}</b>${q ? `<q>“${_tplEsc(q)}…”</q>` : ''}</button>`; }).join('');
+    return `<div class="tpln5-cfr" role="button" tabindex="0" data-tpln-shelf="${_tplEsc(sh.fid)}" style="--sd:var(--st-${tone}-dot)">
+      <span class="tpln5-cfw"><i aria-hidden="true"></i><span><b>${_tplEsc(sh.name)}</b><small>${_tplEsc(i18tn('tpln5_papers', sh.rows.length, { n:sh.rows.length }))} · ${_tplEsc(i18tn('tpln_uses', sh.uses, { n:sh.uses }))}</small></span></span>
+      <span class="tpln5-cff" data-tpln-cf>${papers}</span><span class="tpln5-cfgo">${_tplEsc(i18t('tpln5_open'))} ›</span></div>`; };
+  return `<div class="tpln5 is-shelves">${tplnFilterLineHtml(rows, shelves)}<div class="tpln5-figs">${figs}</div><div class="tpln5-cf">${shelves.map(row).join('')}</div></div>`;
 }
+/* THE CAROUSEL TURNS: each paper's place from the front one (0 = facing you); pointed at, the row rolls on every
+   TPLN_CF_MS and goes back to its first paper when left; a key on the row turns it one; less motion asked = still */
+const TPLN_CF_MS = 1300;
+let _tplnCf = { row:null, t:null };
+function tplnCfSet(row, a){
+  const ps = [...row.querySelectorAll('.tpln5-cfp')]; if (!ps.length) return;
+  const at = ((a % ps.length) + ps.length) % ps.length; row._cfAt = at;
+  ps.forEach((p, k) => { const o = k - at; p.style.setProperty('--o', o); p.style.setProperty('--a', Math.abs(o)); p.classList.toggle('is-on', o === 0); });
+}
+function tplnCfStill(){ return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; }
+function tplnCfRoll(row){
+  if (_tplnCf.row === row) return;
+  tplnCfStop();
+  if (!row || row.querySelectorAll('.tpln5-cfp').length < 2 || tplnCfStill()) return;
+  _tplnCf.row = row; tplnCfSet(row, (row._cfAt || 0) + 1);
+  _tplnCf.t = setInterval(() => { if (!row.isConnected){ tplnCfStop(); return; } tplnCfSet(row, (row._cfAt || 0) + 1); }, TPLN_CF_MS);
+}
+function tplnCfStop(){ const r = _tplnCf.row; clearInterval(_tplnCf.t); _tplnCf = { row:null, t:null }; if (r && r.isConnected) tplnCfSet(r, 0); }
 /* one sentence, counted from the rows the list shows: how many, what came from them, the lead paper a door */
 function tplnSayHtml(rows, shelves){
   const lk = (x, w) => `<button type="button" class="tpln5-lk" data-tpl-pf="${_tplEsc(tplPfKey(x.c))}">${_tplEsc(w)}</button>`;
@@ -3407,6 +3431,11 @@ function tplnShowIds(which){
   regShowOnly(ids, i18t(which === 'changed' ? 'tpln_changed_label' : 'tpln5_drafted_label'));
 }
 if (typeof document !== 'undefined' && !document._tplnWired){ document._tplnWired = true;
+  document.addEventListener('mouseover', e => { const r = e.target && e.target.closest ? e.target.closest('.tpln5-cfr') : null; if (r) tplnCfRoll(r); else if (_tplnCf.row) tplnCfStop(); });
+  document.addEventListener('mouseout', e => { const r = _tplnCf.row; if (r && !(e.relatedTarget && r.contains(e.relatedTarget))) tplnCfStop(); });
+  document.addEventListener('keydown', e => { const r = e.target && e.target.matches && e.target.matches('.tpln5-cfr') ? e.target : null; if (!r) return;
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); r.click(); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){ e.preventDefault(); tplnCfSet(r, (r._cfAt || 0) + (e.key === 'ArrowRight' ? 1 : -1)); } });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || e.defaultPrevented || !tplnOn() || tplnView() === 'shelves' || typeof state === 'undefined' || state.view !== 'templates') return;
     if (document.querySelector('.modal-backdrop:not([hidden]), [role="dialog"]:not([hidden])')) return;
@@ -3419,7 +3448,7 @@ if (typeof document !== 'undefined' && !document._tplnWired){ document._tplnWire
       const go = (fn) => { e.preventDefault(); fn(); };
       const v = t.closest('[data-tpln-view]');
       if (v) return go(() => { const k = v.getAttribute('data-tpln-view'); _tplPf.view = k === 'list' ? 'list' : 'shelves'; _tplPf.ls = ''; _tplPf.lf = ''; _tplPf.pick = null; if (k !== 'list') _tplPf.lq = ''; tplBookRepaint(); });
-      const sh = t.closest('[data-tpln-shelf]');
+      const sh = t.closest('[data-tpln-open]') ? null : t.closest('[data-tpln-shelf]');
       if (sh) return go(() => { _tplPf.view = 'list'; _tplPf.ls = sh.getAttribute('data-tpln-shelf') || ''; _tplPf.lf = ''; _tplPf.lq = ''; _tplPf.pick = null; tplBookRepaint(); });
       if (t.closest('[data-tpln-back]')) return go(tplnBack);
       if (t.closest('[data-tpln-ready]')) return go(() => { _tplPf.view = 'list'; _tplPf.ls = ''; _tplPf.lf = 'ready'; _tplPf.pick = null; tplBookRepaint(); });

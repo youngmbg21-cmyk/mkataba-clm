@@ -497,6 +497,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
 - 17 Nov 2026: Our paper, Shelves then the Legora way — f1091; f1049 (8), f977 (20, 22, 23) and f1069 (2) re-pointed.
+- 17 Nov 2026: Our paper's folders as Cover flow — f1091 (2), (6) re-pointed, (7) added.
 - f481 (view `playbook` = the standards tab)
 - f244, f907, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
 - f1071 (renumbered from f1057, which main also took; the Builder arrives in one step: no Our paper or page underneath on the way).

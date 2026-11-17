@@ -13817,6 +13817,7 @@ const STRINGS = {
     tpln_uses_other: '{n} uses',
     /* Our paper: Shelves, then the Legora way (17 Nov 2026) */
     tpln5_shelves: 'Shelves',
+    tpln5_open: 'Open',
     tpln5_all: 'All',
     tpln5_std: 'Our standards ›',
     tpln5_every: 'Every template',
@@ -38223,6 +38224,7 @@ const STRINGS = {
     tpln_uses_other: '{n} användningar',
     /* Vårt papper: Hyllor, sedan Legora-sättet (17 nov 2026) */
     tpln5_shelves: 'Hyllor',
+    tpln5_open: 'Öppna',
     tpln5_all: 'Alla',
     tpln5_std: 'Våra standarder ›',
     tpln5_every: 'Alla mallar',

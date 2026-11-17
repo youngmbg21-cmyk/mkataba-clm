@@ -21076,15 +21076,25 @@
   html.lg-new .tpln5-fig:disabled{cursor:default}
   html.lg-new .tpln5-fig b{font-size:24px;font-weight:var(--w-strong);line-height:1.15}
   html.lg-new .tpln5-fig span{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .tpln5-shelves{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-  html.lg-new .tpln5-shelf{border:0;border-radius:var(--radius);background:var(--sb);padding:16px;display:flex;flex-direction:column;gap:2px;text-align:left;font:inherit;color:inherit;cursor:pointer;min-width:0}
-  html.lg-new .tpln5-shelf:hover,html.lg-new .tpln5-fig:not(:disabled):hover{filter:brightness(.97)}
-  html.lg-new .tpln5-stack{position:relative;display:block;flex:none;height:96px;margin-bottom:10px}
-  html.lg-new .tpln5-stack i{position:absolute;left:calc(var(--k) * 22px);top:calc((2 - var(--k)) * 6px);width:60px;height:80px;box-sizing:border-box;background:var(--color-surface);border-radius:2px;box-shadow:var(--shadow-sm);padding:8px 7px;display:flex;flex-direction:column;gap:5px}
-  html.lg-new .tpln5-stack b{height:4px;width:70%;background:var(--sd);border-radius:2px}
-  html.lg-new .tpln5-stack em{height:3px;background:var(--color-divider);border-radius:2px}
-  html.lg-new .tpln5-shn{font-size:15px;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .tpln5-shm{font-size:13px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* COVER FLOW (owner's pick, 17 Nov 2026): a row per folder, its papers a carousel; colour only the folder's mark and the
+     front paper's top edge */
+  html.lg-new .tpln5-cf{display:flex;flex-direction:column;border-top:1px solid var(--color-divider)}
+  html.lg-new .tpln5-cfr{display:flex;align-items:center;gap:22px;min-height:78px;padding:0 8px;border-bottom:1px solid var(--color-divider);cursor:pointer;outline:none;border-radius:0}
+  html.lg-new .tpln5-cfr:hover,html.lg-new .tpln5-cfr:focus-visible{background:var(--surface-2)}
+  html.lg-new .tpln5-cfw{flex:none;width:250px;display:flex;align-items:center;gap:10px;min-width:0}
+  html.lg-new .tpln5-cfw i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--sd)}
+  html.lg-new .tpln5-cfw > span{min-width:0;display:flex;flex-direction:column}
+  html.lg-new .tpln5-cfw b{font-size:14.5px;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text)}
+  html.lg-new .tpln5-cfw small{font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-cff{flex:1;min-width:0;position:relative;height:78px;perspective:900px;overflow:hidden}
+  html.lg-new .tpln5-cfp{position:absolute;left:16px;top:10px;width:160px;height:58px;box-sizing:border-box;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:4px;box-shadow:0 10px 16px -12px rgba(0,0,0,.45);padding:8px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;font:inherit;color:inherit;cursor:pointer;
+    transform:translateX(calc(var(--o) * 140px)) rotateY(calc(var(--o) * -42deg)) translateZ(calc(var(--a) * -60px));opacity:calc(1 - var(--a) * .25);z-index:calc(10 - var(--a));transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .6s}
+  html.lg-new .tpln5-cfp b{font:600 11px/1.25 var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text)}
+  html.lg-new .tpln5-cfp q{font:italic 10px/1.3 var(--font-doc);color:var(--color-neutral-400);quotes:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln5-cfp.is-on{box-shadow:0 14px 22px -12px rgba(0,0,0,.45),inset 0 3px 0 var(--sd)}
+  html.lg-new .tpln5-cfgo{flex:none;font-size:13px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-cfr:hover .tpln5-cfgo{color:var(--accent-ink)}
+  @media (prefers-reduced-motion: reduce){ html.lg-new .tpln5-cfp{transition:none} }
   html.lg-new .tpln5-say{font-family:var(--font-title);font-size:17px;line-height:1.55;margin:0 0 14px;max-width:760px}
   html.lg-new .tpln5-chiprow{display:flex;gap:6px;align-items:center;min-width:0}
   html.lg-new .tpln5-chiprow .tpln-chips{flex:1}
