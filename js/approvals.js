@@ -1693,6 +1693,18 @@ function openSignerPlanEditor(c, opts){
    The window's own queries are asked of its own element (#sr-win), never the
    document, so no data-sp-* control elsewhere can be read as one of its own.
    ========================================================================== */
+/* CLOSED, THE READER IS BACK ON THE LINE THEY PRESSED (#762): the page drew that line again while the route window stood,
+   so the hand goes to the same door as it stands now (the same contract's route door) */
+function srReturnWhenClosed(win, opener, cid){
+  if(!win || typeof MutationObserver!=='function') return;
+  const mo=new MutationObserver(()=>{ if(win.isConnected) return; mo.disconnect();
+    setTimeout(()=>{ try{
+      if(opener && opener.isConnected){ opener.focus({ preventScroll:true }); return; }
+      const b=[...document.querySelectorAll(`[data-pd-og-route="${CSS.escape(String(cid))}"]`)].find(x => x.getClientRects().length);
+      if(b && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('[role="dialog"]'))) b.focus({ preventScroll:true });
+    }catch(_){ } }, 0); });
+  mo.observe(document.body, { childList:true, subtree:true });
+}
 function signerRouteWindow(c, plan, back){
   const _srOpener=(typeof document!=='undefined'&&document.activeElement&&document.activeElement!==document.body)?document.activeElement:null;
   const esc1=v=>String(v==null?'':v).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
@@ -1820,16 +1832,9 @@ function signerRouteWindow(c, plan, back){
     <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>
       <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
-  </div>`, { maxWidth: DLG_W.xl, label: i18t('ap_signing_route'),
-    /* CLOSED, THE READER IS BACK ON THE LINE THEY PRESSED (#762): the page drew that line again while the window stood,
-       so the hand goes to the same door as it stands now (the same contract's route door) */
-    onClose: () => setTimeout(() => { try{
-      if(_srOpener && _srOpener.isConnected){ _srOpener.focus({ preventScroll:true }); return; }
-      const sel=`[data-pd-og-route="${CSS.escape(String(c.id))}"]`;
-      const b=[...document.querySelectorAll(sel)].find(x => x.getClientRects().length);
-      if(b && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('[role="dialog"]'))) b.focus({ preventScroll:true });
-    }catch(_){ } }, 0) });
+  </div>`, { maxWidth: DLG_W.xl, label: i18t('ap_signing_route') });
   const win=document.getElementById('sr-win'); if(!win) return;
+  srReturnWhenClosed(win, _srOpener, c && c.id);
   const panel=win.closest('[role="dialog"]');
   const q=sel=>win.querySelector(sel);
 

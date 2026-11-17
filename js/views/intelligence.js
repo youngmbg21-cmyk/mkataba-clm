@@ -7501,8 +7501,8 @@ function igSugRepaint(){
   /* Fill in and Before you sign draw no chips (the gaps, rounds 8 and 10): the row stays his perch */
   if(window.pdChipsQuiet&&pdChipsQuiet()) return;
   /* where the view's questions are the Overview's own rows ("Try on the map"), the panel is drawn again so they follow the view (#762) */
-  if(igSugInRows()){ box.innerHTML=''; try{ if(typeof renderIntelDock==='function') renderIntelDock(); }catch(_){ } return; }
-  box.innerHTML=igViewSuggestions().map(igSugChipHtml).join('');
+  box.innerHTML=igSugInRows()?'':igViewSuggestions().map(igSugChipHtml).join('');
+  if(igSugInRows()){ try{ if(typeof renderIntelDock==='function') renderIntelDock(); }catch(_){ } return; }
   box.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
 }
 /* A FILTER ON THIS PAGE KEEPS THE READER'S PLACE; A TAB DOES NOT, and that is

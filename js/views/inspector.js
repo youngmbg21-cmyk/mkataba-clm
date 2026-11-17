@@ -1757,7 +1757,7 @@ function jlAsk(text, opts){
     if (nav && !(nav.kind === 'go' && ((nav.nav && !['stfind', 'you'].includes(nav.nav.k)) || (!nav.nav && nav.place)))) nav = null;
     /* WORK ASKED FOR IS NOT A SETTING (#762: "upload a contract", "new contract" got Settings cards): Jambo's map of the
        everyday tasks (jmRead) answers first where it names somewhere other than Settings */
-    let work = false; try { const jm = (typeof jmRead === 'function') ? jmRead(t) : null; work = !!(jm && jm.place !== 'settings'); } catch (_){ work = false; }
+    let work = false; try { const jm = (typeof jmRead === 'function') ? jmRead(String(t).trim()) : null; work = !!(jm && jm.place !== 'settings'); } catch (_){ work = false; }
     let A = null; try { A = (nav || work) ? null : stJbAnswer(t); } catch (_){ A = null; }
     const cards = A && Array.isArray(A.cards) ? A.cards.filter(c => c && c.k !== 'why').map(c => { try { return stJbCardHtml(c, {}); } catch (_){ return ''; } }).filter(Boolean) : [];
     if (cards.length){
