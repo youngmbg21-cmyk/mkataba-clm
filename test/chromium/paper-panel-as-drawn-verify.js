@@ -351,7 +351,9 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         const there = await until(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll'); if (!el || !sc) return null;
           const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect(); const spot = presenceSpotNow();
           /* the walk scrolls smoothly: asked until it has come to rest there */
-          return (r.top >= b.top - 1 && r.bottom <= b.bottom + 1 && spot === id) ? { top: Math.round(sc.scrollTop), spot } : null; }, k11.id, 8000);
+          /* ARRIVED = its heading in view (17 Nov 2026): at 1536×730 the clause is taller than the paper's window, so
+             "the whole clause inside" could never be true there; a landing puts the clause's top in sight */
+          return (r.top >= b.top - 1 && r.top <= b.bottom - 40 && spot === id) ? { top: Math.round(sc.scrollTop), spot } : null; }, k11.id, 8000);
         check(`6g ${w}×${ht}: pressed, the signing copy goes to the clause the colleague reads, and the reader's own place is that clause`, !!there && there.top > 0 && there.spot === k11.id, JSON.stringify(there));
         await shot(page, `6-follow-me-signing-copy-${w}x${ht}`);
         await page.evaluate(() => { if (presenceFollowing()) presenceFollow(presenceFollowing()); });
