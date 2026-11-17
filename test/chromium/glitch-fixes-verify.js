@@ -236,7 +236,9 @@ const COUNT_WRITES = () => {
       /* ---- 8  THE DOSSIER'S FOOT IS A SCROLLING LIST'S END ---- */
       await home(); await ask('MK-A1'); await waitFor(page, () => hbS().face === 'paper'); await pause(1200);
       const r = await page.evaluate(() => { const f = document.getElementById('igd-feed'); if (!f) return null;
-        const last = [...f.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && e.getClientRects().length).pop();
+        /* RE-POINTED 17 Nov 2026 (#762): only what is painted counts — the closed Amendments fold's buttons keep a box in
+           Chrome (content-visibility) though nothing of them shows, so a line is asked with checkVisibility */
+        const last = [...f.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && e.getClientRects().length && (typeof e.checkVisibility !== 'function' || e.checkVisibility({ contentVisibilityAuto: true }))).pop();
         const before = { sh: f.scrollHeight, ch: f.clientHeight };
         f.scrollTop = f.scrollHeight;
         const fr = f.getBoundingClientRect(), lr = last.getBoundingClientRect();
