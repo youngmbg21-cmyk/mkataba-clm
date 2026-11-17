@@ -212,9 +212,10 @@ describe('f669 — what the tabs and filters leave', () => {
      Party, Role in HaTi, Stream — and the find box */
   test('the place a refresh puts back: the side, the find box and the three filters, and nothing else', () => {
     sb.dirPlacePut({ tab: 'theirs', q: 'na', party: 'naivas ltd', hati: 'legal', stream: 'proc', cust: 'ignored', role: 'cpsign' });
-    eq(sb.dirPlace(), { tab: 'theirs', q: 'na', party: 'naivas ltd', hati: 'legal', stream: 'proc' });
+    /* RE-POINTED 17 Nov 2026 (#762): the new look's own tab (nl) is part of the place a refresh puts back */
+    eq(sb.dirPlace(), { tab: 'theirs', q: 'na', party: 'naivas ltd', hati: 'legal', stream: 'proc', nl: 'all' });
     sb.dirPlacePut({ tab: 'nonsense', hati: 'nonsense' });
-    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'all', hati: 'all', stream: 'all' });
+    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'all', hati: 'all', stream: 'all', nl: 'all' });
   });
 });
 
@@ -312,7 +313,7 @@ describe('f669 — the doors go somewhere', () => {
     const { sb, calls } = stage();
     sb.dirOpenParty('naivas ltd');
     eq(calls.setView, ['directory']);
-    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'naivas ltd', hati: 'all', stream: 'all' });
+    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'naivas ltd', hati: 'all', stream: 'all', nl: 'all' }); /* #762: nl, the new look's tab */
   });
 
   test('a colleague\'s contracts open the Contracts page narrowed to them, by the page\'s own door', () => {
