@@ -19213,7 +19213,8 @@
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot::before{content:"!";color:var(--st-amber-fg)}
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-kv{grid-template-columns:96px minmax(0,1fr);padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
   html.lg-new #ig-dock #pd-sendface #sh-lt-checks{display:flex;flex-direction:column;gap:12px}
-  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check{border-left:3px solid var(--st-amber-dot)}
+  /* the amber edge is taken out of the card's own inside, so its words stand with every other card's (#762: 3px in) */
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check{border-left:3px solid var(--st-amber-dot);padding-left:9px}
   html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-noemail{padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px}
   /* REDLINES WITH NOTHING ON THE TABLE, THE FIVE PARTS (round 3b): the headline, what Draft from our standards does in a
      soft card with its long black button (grey when Send to mark up is the one filled button), then "Or yourself" — Edit
