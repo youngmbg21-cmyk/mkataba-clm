@@ -78,7 +78,7 @@ test('f1091 (6) the panel speaks for the step; the drawn parts; both books', () 
   assert.match(L, /const P = tplnPanelBody\(\); insPaintPanel/);
   for (const r of [/html\.lg-new \.tpl-page\.is-tpln5 \.ph-top\{border-bottom:0/, /html\.lg-new \.tpln5-box\{flex:1;[^}]*border-bottom:1px solid var\(--color-divider\)/,
     /html\.lg-new \.tpln5-figs\{display:grid;grid-template-columns:repeat\(4,/, /html\.lg-new \.tpln5-cff\{[^}]*perspective:900px;overflow:hidden\}/,
-    /html\.lg-new \.tpln5-cfp\{[^}]*transform:translateX\(calc\(var\(--o\) \* 140px\)\) rotateY\(calc\(var\(--o\) \* -42deg\)\)/, /html\.lg-new \.tpln5-cfp\.is-on\{[^}]*inset 0 3px 0 var\(--sd\)\}/, /html\.lg-new \.tpln5\.is-paper\{display:grid;grid-template-columns:max-content/]) assert.match(H, r);
+    /html\.lg-new \.tpln5-cfp\{[^}]*transform:translateX\(calc\(var\(--o\) \* 140px\)\) rotateY\(calc\(var\(--o\) \* -42deg\)\)/, /html\.lg-new \.tpln5-cfp\.is-on\{[^}]*inset 0 3px 0 var\(--sd\)\}/, /html\.lg-new \.tpln5\.is-paper\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(260px,320px\)/]) assert.match(H, r);
   const I = read('js/i18n.js'), sv = I.search(/\n {2}sv\s*:\s*\{/), EN = I.slice(0, sv), SV = I.slice(sv);
   const keys = new Set([...read('js/views/library.js').matchAll(/['"](tpln5_[a-z0-9_]+)['"]/g)].map(m => m[1]));
   assert.ok(keys.size >= 30, 'found ' + keys.size);
@@ -91,4 +91,24 @@ test('f1091 (7) Cover flow turns while pointed at, a key turns it one, less moti
   assert.match(body('tplnCfSet'), /p\.style\.setProperty\('--o', o\); p\.style\.setProperty\('--a', Math\.abs\(o\)\); p\.classList\.toggle\('is-on', o === 0\)/);
   assert.match(L, /e\.key === 'ArrowRight' \|\| e\.key === 'ArrowLeft'/);
   assert.match(L, /const sh = t\.closest\('\[data-tpln-open\]'\) \? null : t\.closest\('\[data-tpln-shelf\]'\);/, 'a paper in a row opens the paper, not the folder');
+});
+
+/* f1091 (8) · THREE ASKS, 17 Nov 2026 (owner: "increase the size of the paper to make better use of the empty space";
+   "the landing page left as it is; "delete make it ours from here ... and simply add a door to New Agreements ...
+   landing you to the exact contract in question"). AT THE PARENT every assertion here fails. */
+test('f1091 (8) the paper fills its room; Make it ours is a door to New agreement, landing on the paper', () => {
+  assert.match(H, /html\.lg-new \.tpln5\.is-paper \.tpln-zoom\{zoom:1\}/, 'the paper read at its own size');
+  assert.match(H, /html\.lg-new \.tpln5\.is-paper \.tpln-sheet\{max-width:var\(--doc-sheet-max, 720px\);width:100%/, 'up to the agreement\'s measure');
+  const v = body('tplPfVerbs');
+  assert.match(v, /\['more', 'use', 'edit', 'ours'\]\.includes\(a\.k\)/, 'Make it ours is not pressed here');
+  assert.match(v, /k:'ours', kind:'link', label:i18t\('tpln5_ours_door'\), run:\(\) => tplnOursGo\(card\.id\)/, 'its door in its place');
+  assert.match(body('tplnOursGo'), /openNewAgreement\(\{ newPaper:true, start:'template', pick:bid \}\)/);
+  assert.match(body('tplnOursGo'), /naNewPaperOk\(\)[\s\S]*newPaperBlock\(\)/, 'without the grant, the grant\'s refusal');
+  assert.match(L, /a\.kind === 'link' \? 'tpln5-door'/, 'drawn as a green link, a way somewhere');
+  const W = strip(read('js/wizard.js'));
+  assert.match(W, /if\(o&&o\.newPaper\)\{ naNewPaperShow\(root,true\); if\(o\.start\) naNewPaperGo\(o\.start,\{ pick:o\.pick \}\); \}/, 'From scratch, then the start');
+  assert.match(W, /openNewStandard\(\{ start:k\|\|'scratch', back, host, pick:\(x&&x\.pick\)\|\|null \}\)/);
+  const N = strip(read('js/views/newstandard.js'));
+  assert.match(N, /function nsLgTemplate\(o = \{\}\) \{\s*nsStyle\(\);\s*const st = \{ q: '', ls: '', more: false, pick: \(typeof TEMPLATES === 'object' && o\.pick && TEMPLATES\[o\.pick\]\) \? o\.pick : null,/, 'the paper arrives chosen');
+  assert.match(N, /if \(st\.pick\) \{ const r = host\.querySelector[\s\S]{0,160}landOn\(r, \{ block: 'nearest' \}\)/, 'and in view, nothing pressed');
 });

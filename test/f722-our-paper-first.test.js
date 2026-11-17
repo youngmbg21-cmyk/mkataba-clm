@@ -65,7 +65,7 @@ describe('f722 (3) the template\'s own doors', () => {
     /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the head's verbs
        are "Open in the builder" · "Draft from it" beside the template's own
        (tplPfVerbs); a greyed one presses nothing */
-    assert.match(fnBody(LIB, 'tplPfVerbs'), /own = \(tplPanelActs\(row\)\.acts \|\| \[\]\)\.filter\(a => !\['more', 'use', 'edit'\]\.includes\(a\.k\)\)/);
+    assert.match(fnBody(LIB, 'tplPfVerbs'), /own = \(tplPanelActs\(row\)\.acts \|\| \[\]\)\.filter\(a => !\['more', 'use', 'edit'(?:, 'ours')?\]\.includes\(a\.k\)\)/ /* RE-POINTED 17 Nov 2026 (f1091 (8)): Make it ours leaves for New agreement's door */);
     assert.match(fnBody(LIB, 'tplPfHtml'), /const acts = tplPfVerbs\(card\);/);
     assert.match(fnBody(LIB, 'tplBookWire'), /const a=\(_tplPf\.acts\|\|\[\]\)\[Number\(b\.getAttribute\('data-tpl-pf-act'\)\)\]; if\(a&&a\.run&&!a\.off\) a\.run\(\);/);
   });

@@ -1286,6 +1286,20 @@ function apnPileRowHtml(r){
     <td>${listSapCellHtml(mark, `<div class="apn-name">${esc(name)}</div><div class="apn-sub">${sub}</div>`, i18t(r.type==='departure'?'apn_group_dep':'apn_group_std'))}</td>
     <td class="apn-rests"></td><td class="apn-rule">${rule}</td><td class="apn-wait">${waited}</td><td class="apn-acts">${acts}</td></tr>`;
 }
+/* LAND ON A PILE ROW (the one door, 17 Nov 2026): the Standards page's "Decide in Approvals ›" and Jambo's "Open in
+   Approvals" arrive here — Mine, the words cleared, that row chosen with its panel, brought into view (landOn); a row
+   the reader does not have is said, never guessed */
+function apnLandRow(key){
+  const k=String(key||''); if(!k) return false;
+  _apnTab='mine'; _apnQ='';
+  if(typeof insSelect==='function') insSelect('approvals', k);
+  if(typeof setView==='function') setView('approvals');
+  let n=0; const t=setInterval(()=>{ n++;
+    const tr=[...document.querySelectorAll('#content tr[data-ap-row]')].find(x=>x.getAttribute('data-ap-row')===k);
+    if(tr){ clearInterval(t); if(typeof landOn==='function') landOn(tr,{ block:'center', focus:tr.querySelector('.apn-acts button') }); return; }
+    if(n>30){ clearInterval(t); if(typeof toast==='function') toast(i18t('apn_land_gone'),'warn'); } },100);
+  return true;
+}
 /* a pile row's press: the Standards page's own doors */
 function apnPileAct(kind, key){
   if(kind==='std'){ if(typeof ldDecideOpen==='function') ldDecideOpen(key); return; }
@@ -1513,7 +1527,7 @@ if(typeof document!=='undefined'&&document.addEventListener&&typeof window!=='un
     if(typeof placeSave==='function') placeSave();
   });
 }
-Object.assign(window,{apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
+Object.assign(window,{apnLandRow,apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apnLeadHtml,apnRender,apnRowHtml,apnDoneRows,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,
