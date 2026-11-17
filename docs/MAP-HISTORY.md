@@ -38690,3 +38690,12 @@ The owner then asked: "this is what should happen then, i press on the other col
 REVERSES the 4 Oct 2026 rulings "there is no invitation and nothing to accept" and "the leader never learns they are being followed".
 BUILT: the beat carries `want` (whom I ask to follow / follow), `allow` and `deny` (my answers) and `spotName` (the clause's heading as my paper shows it), each clamped by the /here route; presenceAnswers reads them off every beat; the pop-up `#pz-ask` (Allow the one black, Not now; Esc = Not now; a press outside leaves an ask standing, closes the stop question); an unanswered ask lapses after 90 s (PRESENCE_ASK_WAIT_MS) and is said; while an ask or follow is live the beat runs every 5 s (PRESENCE_FAST_BEAT_MS, a 2.5 s tick), else every 25 s as before. The follower finds its own clause by the heading (same words, else same number: presenceLocalSpot).
 MEASURED (photos, two admins, labels NOT saved, the two papers' labels different): the pop-up under Here now at 1440x780, 1536x730 and 1366x950, inside the window, nothing scrolls sideways; Allow → following; the leader moved to clause 12 and the follower's page arrived at its own clause 12 in about 3 s; the leader's Stop it ended it.
+
+## THE NEW LOOK IS THE ONLY LOOK
+17 Nov 2026, the owner's answers after side-by-side photos (old look on main, new look on #762), in their words "1, no. 2, no. 3, new. 4, no. 5, keep new look":
+1. Contracts list: + Filter, Sort, row height and the row's ⋯ menu stay GONE in the new look.
+2. Before you sign: the "places to sign" card and the "waiting for their signed copy" card stay GONE (who signs on each side stays, as the five parts' rows).
+3. Requests: Open holds contract requests only; advice under its own Advice tab (the round-6 drawing).
+4. Parties / Approvals / Negotiations panels: no all-parties list, no Open on Explorer, no Before the call brief.
+5. The other side's page keeps the new look: underlined tabs, deal buttons behind More.
+Browser checks pinning those parts are RETIRED ("RETIRED 17 Nov 2026 (#762, owner's ruling)"), listed in MAP-TESTS under f967.
