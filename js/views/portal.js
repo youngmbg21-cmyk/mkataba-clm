@@ -6640,7 +6640,7 @@ function portalGoneNlHtml(opts){
   const askRow = exp && tok ? `<div class="pnl-row"><span>${esc(i18t('pnl_ask_new'))}</span><b id="pnl-ask-said">${esc(asked ? i18t('pnl_asked', { who: sender }) : i18t('pnl_ask_who', { who: sender }))}</b>${asked ? '<i></i>' : `<button type="button" class="ui-link" id="pnl-ask" data-tok="${esc(tok)}">${esc(i18t('pnl_ask'))}</button>`}</div>` : '';
   return `<div class="pnl-wrap"><header class="pnl-bar"><b>HaTi</b><span>${esc(w.contractName ? i18t('pnl_bar_from', { org }) : i18t('pnl_bar_from', { org }))}</span><span class="pnl-sp"></span><span>${esc(i18t('pnl_not_signed'))}</span></header>
     <main class="pnl-gone"><span class="pnl-ic" aria-hidden="true">${typeof icon==='function'?icon(exp?'clock':'ban','w-5 h-5'):''}</span>
-      <h1>${esc(i18t(exp ? 'pnl_exp_h' : 'pnl_rev_h'))}</h1>${(w.contractName || w.sender) ? `<p id="pt-gone-who" class="pnl-who">${w.contractName ? `<b>${esc(w.contractName)}</b>` : ''}${w.contractName && w.sender ? ' \u00b7 ' : ''}${w.sender ? esc(i18t('po_gone_from', { who: w.sender + (w.org ? ', ' + w.org : '') })) : ''}</p>` : ''}<p class="pnl-say">${esc(head)} ${esc(i18t('pnl_nothing'))}</p>
+      <h1>${esc(i18t(exp ? 'pnl_exp_h' : 'pnl_rev_h'))}</h1>${!exp && (w.contractName || w.sender) ? `<p id="pt-gone-who" class="pnl-who">${w.contractName ? `<b>${esc(w.contractName)}</b>` : ''}${w.contractName && w.sender ? ' \u00b7 ' : ''}${w.sender ? esc(i18t('po_gone_from', { who: w.sender + (w.org ? ', ' + w.org : '') })) : ''}</p>` : ''}<p class="pnl-say">${esc(head)} ${esc(i18t('pnl_nothing'))}</p>
       <div class="pnl-cap">${esc(i18t('pnl_can_do'))}</div>
       ${askRow}
       <p class="pnl-foot">${esc(i18t('pnl_no_assistant', { org }))}</p></main></div>`;
