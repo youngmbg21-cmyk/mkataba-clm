@@ -1401,7 +1401,7 @@ function apnRender(W, o){
   let cols=same?4:5;
   /* THE LIST'S COLUMNS, ONE RULE (listCols; #762, 17 Nov 2026): the new look's table takes the old one's seat, so a
      reader's dragged widths carry over; the name under its ceiling, each head but the acts' a grip */
-  const NDEFS=[{k:'name'},...(same?[]:[{k:'rests',w:300,rank:1}]),{k:'rule',w:140},{k:'wait',w:96},{k:'acts',w:170}];
+  const NDEFS=[{k:'name'},...(same?[]:[{k:'rests',w:220,rank:1}]),{k:'rule',w:140},{k:'wait',w:96},{k:'acts',w:170}];
   const NFIT=typeof listCols==='function'?listCols('approvals',NDEFS,()=>apPaintList()):{ cols:NDEFS };
   const nw=k=>(NFIT.cols.find(c=>c.k===k)||NDEFS.find(c=>c.k===k));
   /* where the room is short "What it rests on" steps aside first (rank 1), as every list's widest says-more column does, so
