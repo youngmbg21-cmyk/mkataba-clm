@@ -9819,6 +9819,8 @@ function pd2WalkOpen(id){
 const PD2_WALK_ARRIVE_TRIES = 40;   // × 150ms: the paper is drawn after the arrival's own read of the contract
 const _pd2WalkShut = new Set();     // contracts whose read the reader put away with × this sitting: nothing reopens it
 function pd2WalkArrive(id){ if (!pd2On()) return false;
+  /* A REFRESH LANDS AT THE SAME SPOT: while the reader's place is being put back, the read does not walk the paper away */
+  if (typeof window.placeBackOn === 'function' && window.placeBackOn()) return false;
   let n = 0;
   /* asked again until the arrived paper is the one in front (it may still be loading), bounded */
   const go = () => { if (pd2WalkOn(id)) return; const c = pdContract();
@@ -9828,6 +9830,7 @@ function pd2WalkArrive(id){ if (!pd2On()) return false;
 /* JAMBO STARTS THE CLAUSES READ (stkRun): the walk on the paper runs with it, quick — opened if it is not, quickened if
    it is walking at a chosen speed; never one the reader paused or put away, never another contract's paper */
 function pd2WalkWithRead(id){
+  if (typeof window.placeBackOn === 'function' && window.placeBackOn()) return false;   /* a refresh's place wins (#762) */
   if (!pd2On() || _pd2WalkShut.has(String(id))) return false;
   const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper()) return false;
   /* only beside the Clauses tab, where that read is seen (never over the Redlines face and its switch) */
@@ -9900,6 +9903,8 @@ function pd2WalkPaint(){
 function pd2WalkStep(){
   const W = _pd2Walk; if (!W || !W.run) return;
   const X = pd2WalkCtx(); if (!X) return pd2WalkClose();
+  /* a refresh is putting the reader's place back: a quick run puts itself away rather than walk the paper off it (#762) */
+  if (W.quick && typeof window.placeBackOn === 'function' && window.placeBackOn()){ pd2WalkClose(); return; }
   /* a quick run belongs to the clean paper: switched to the redline, their view or the signing copy, it puts itself away */
   if (W.quick && X.cv.closest('.ig-redpaper:not(.is-clean), .ig-signpaper')){ pd2WalkClose(); return; }
   /* one that ran with the Clauses read goes when the Clauses tab does */

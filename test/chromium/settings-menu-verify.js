@@ -70,7 +70,10 @@ const AREAS = { you: ['name', 'email', 'lang', 'away', 'mydata', 'agents'], sec:
       const byArea = k => S.rows.filter(r => r.a === k).map(r => r.k);
       check('0 no menu; a chip per area with the count of its rows, All first', !S.menu && S.chips[0] === 'all:' + S.rows.length && Object.keys(AREAS).every(k => S.chips.includes(k + ':' + byArea(k).length)), JSON.stringify(S.chips));
       check('0 the rows stand under their area, in order, each with its coloured mark', S.heads.join() === Object.keys(AREAS).join() && Object.keys(AREAS).every(k => byArea(k).join() === AREAS[k].join()) && S.rows.every(r => r.mark) && S.headTones === 5, JSON.stringify({ heads: S.heads, rows: S.rows.map(r => r.a + '.' + r.k), tones: S.headTones }));
-      check('2 every switch is drawn at its size', S.sw.length >= 1 && S.sw.every(x => x === '34x20'), JSON.stringify(S.sw));
+      /* RE-POINTED 17 Nov 2026 (#762): the one switch is Push's, drawn only where the browser can take phone alerts (AN UNUSABLE
+         SWITCH IS NOT DRAWN); where it cannot (GitHub's browser), no switch is the truth — every switch drawn is at its size */
+      const pushOk = await page.evaluate(async () => { try { const s = typeof pushState === 'function' ? await pushState() : null; return s === 'on' || s === 'off'; } catch (_){ return false; } });
+      check('2 every switch is drawn at its size', (pushOk ? S.sw.length >= 1 : S.sw.length === 0) && S.sw.every(x => x === '34x20'), JSON.stringify({ sw: S.sw, pushOk }));
       check('0 the four pages are links at the foot', S.foot.length === Object.keys(FOOT).length && S.foot.every(a => FOOT[a]), JSON.stringify(S.foot));
       await page.screenshot({ path: path.join(OUT, 'legora-1440x780.png') });
 

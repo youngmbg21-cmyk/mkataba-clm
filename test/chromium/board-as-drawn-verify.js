@@ -205,6 +205,10 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       await page.setViewportSize({ width: w, height: ht });
       await toBoard(); await page.waitForTimeout(500);
       await page.evaluate(() => { const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; });
+      /* RE-POINTED 17 Nov 2026 (#762): a landing from the step before (5f's glide to Needs you) may still be moving; the head is
+         asked for once the Board stands at its top, bounded */
+      await until(() => { const b = document.getElementById('hb-board'), h = document.getElementById('hb-bhead'); if (b && b.scrollTop) b.scrollTop = 0;
+        const r = h && h.getBoundingClientRect(); return !!r && r.top >= 0 && r.bottom <= innerHeight; }, null, 4000);
       const fit = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
         const head = r('#hb-bhead'), tbl = r('#hb-book .hb-tn'), dock = r('#ig-dock'), board = r('#hb-board');
         const over = [...document.querySelectorAll('#hb-bhead *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > board.right + 1; }).length;
