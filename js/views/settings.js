@@ -10191,8 +10191,8 @@ function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && 
    last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
    the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
 const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', awayfor:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg' };
-const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', awayfor:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send' };
+const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', awayfor:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', paydays:'money', push:'msg', mail:'msg' };
+const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', awayfor:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', paydays:'calendar', push:'megaphone', mail:'send' };
 let _stnArea='all';
 function stnAreaOf(id){ return STN_AREA_OF[id]||STN_AREA_OF[String(id).replace(/\d+$/,'')]||'you'; }
 function stnRow(id, label, value, sub, act){
@@ -10276,6 +10276,8 @@ function stnCompanyHtml(){
     stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change'))),
     stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change'))),
     stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update'))),
+    /* PAYMENT TARGETS keep their row (#762: the Control Room's card that held the door is the old look's) — its own drawer */
+    stnRow('paydays', SET_PANELS.paydays.title(), stnStateText('paydays'), SET_PANELS.paydays.sub(), stnDoor('data-st-panel="paydays"', i18t('st_you_change'))),
     stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health')))
     /* the outside look's switch is gone: on for everyone (owner, 16 Nov 2026) */
   ];
