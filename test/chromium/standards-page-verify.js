@@ -89,7 +89,7 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       check(`${tag} 3a Edit the standard opens its page with its words in the box`, !!ed && /liability/i.test(ed), ed && ed.slice(0, 60));
       await page.evaluate(() => document.querySelector('.ld-edit [data-ld-write]')?.click());
       const J = await until(() => { const d = document.querySelector('#ins-panel .ld-jdraft'); if (!d) return null;
-        return { draft: d.textContent.slice(0, 60), chips: [...document.querySelectorAll('#ins-panel [data-ld-jb-chip]')].map(b => b.textContent.trim()),
+        return { draft: d.textContent.replace(/\s+/g, ' ').slice(0, 400), chips: [...document.querySelectorAll('#ins-panel [data-ld-jb-chip]')].map(b => b.textContent.trim()),
           put: !!document.querySelector('#ins-panel [data-ld-jb-put]'), again: !!document.querySelector('#ins-panel [data-ld-jb-again]'),
           box: document.querySelector('.ld-edit [data-ld-f="ask"]').value }; }, null, 12000);
       check(`${tag} 3b Jambo's draft waits in his panel with Stricter · Softer · Shorter · Add a fallback, Put in, Try again`,
@@ -124,6 +124,9 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
         await page.evaluate(() => document.querySelector('[data-ld-mode="ladder"]')?.click());
         const still = await until(() => { const w0 = document.querySelector('.ld-rung .ld-w'); return w0 ? w0.textContent : null; });
         check(`${tag} 4b the ladder still shows the words that stand`, !!still && !/fees paid in the twelve \(12\) months before the claim\.$/.test(still), still && still.slice(0, 60));
+        /* while a change waits the standard is not edited again; the next screens edit it, so the change is withdrawn here */
+        await page.evaluate(() => document.querySelector('.ld-main [data-ld-withdraw]')?.click());
+        await until(() => !document.querySelector('.ld-main [data-ld-withdraw]') && !!document.querySelector('[data-ld-edit]'));
       } else await page.evaluate(() => document.querySelector('[data-ld-cancel]')?.click());
 
       await page.evaluate(() => { const b = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => /Liability/.test(x.textContent)); if (b) b.click(); });

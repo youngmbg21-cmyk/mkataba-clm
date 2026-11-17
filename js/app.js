@@ -2832,7 +2832,7 @@ function buildAlerts(){
         Object.assign({ tint:'yes' }, yes&&yes.comment?{ sub:'“'+String(yes.comment).slice(0,140)+'”' }:{}));
     });
     /* ---- A DECISION ON A STANDARD (owner, 17 Nov 2026) ---- */
-    if(meNow) alStandardsAnswers(meNow, cs).forEach(x=>push(x.kind, x.c, x.text, x.go, x.extra));
+    if(meNow&&typeof alStandardsAnswers==='function') alStandardsAnswers(meNow, cs).forEach(x=>push(x.kind, x.c, x.text, x.go, x.extra));
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
        myStaleDesks and myJoinAsks, which were "Needs your decision"'s own two

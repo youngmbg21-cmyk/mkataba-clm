@@ -138,6 +138,7 @@ const wait = async (page, fn, arg, ms = 5000) => {
     check('2d no line repeats "Your approval is asked for", and no second Decide door', !!head && !/approval is asked for/i.test(head.line) && head.decide === 0 && head.approve, JSON.stringify(head));
     if (head && head.approve) {
       await page.click('#ins-panel [data-ins-act="approve"]');
+      { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); } /* a yes offers an optional note (17 Nov 2026) */
       const done = await wait(page, id => {
         const tr = document.querySelector(`[data-ap-row="${id}"]`);
         return !!(tr && tr.querySelector('.done')) && !!document.querySelector('#ins-panel [data-ins-act="undo"]');

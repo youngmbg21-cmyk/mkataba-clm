@@ -16928,6 +16928,8 @@
   .gds-r:hover .gds-mk:not(.t-ink){box-shadow:0 0 0 2px var(--color-surface),0 0 0 3.5px var(--color-neutral-300)}
   .gds-n{position:absolute;top:0;left:27px;min-width:16px;padding:0 4px;border-radius:999px;background:var(--color-surface);border:1px solid var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-figure);font-weight:var(--w-strong);line-height:14px;text-align:center;font-variant-numeric:tabular-nums}
   .gds-div{width:22px;height:1px;flex:none;background:var(--color-divider);margin:3px 0}
+  /* A SHORT WINDOW (1536×730, the owner's shortest) holds every symbol without scrolling: the rows close up a little */
+  @media (max-height:760px){ .gds-r{height:26px} .gds-mk{width:24px;height:24px} .gds-div{margin:2px 0} }
   .gds-tt{position:fixed;z-index:var(--z-menu);transform:translateY(-50%);display:flex;align-items:center;gap:var(--s-2);background:var(--color-text);color:var(--color-surface);border-radius:var(--radius-sm);padding:6px 10px;white-space:nowrap;font-size:var(--t-body);pointer-events:none;box-shadow:var(--shadow-md)}
   .gds-tt[hidden]{display:none}
   .gds-tt b{font-weight:var(--w-strong)}
