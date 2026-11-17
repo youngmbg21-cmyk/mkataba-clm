@@ -44,6 +44,7 @@ const MODULES = [
   'js/outside.js',
   'js/nda.js',
   'js/sharemail.js',
+  'js/stdladder.js',   // the Ladder: a standard's rules (17 Nov 2026)
   'js/graphwhere.js',   // the graph's `where` predicate, one for both hosts (Copilot audit phase 4)
   'js/hatisearch.js',   // the one search's words, both hosts (Jambo works like Copilot, stage 1)
   'js/section.js',      // the section grammar: a pure builder, read by five views

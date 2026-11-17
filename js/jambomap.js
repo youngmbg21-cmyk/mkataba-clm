@@ -135,7 +135,7 @@ const JM_TASKS = [
      can edit our standards for the procurement stream" landed on the open
      contract's Filing row): Our paper's standards tab, and where a stream or
      a contract type is named, the book that judges it (jmStdBook) */
-  { k: 'standards', to: { place: 'ourpaper', std: true }, w: {
+  { k: 'standards', to: { place: 'standards', std: true }, w: {
     en: ['our standards', 'edit our standards', 'change our standards', 'negotiation playbook', 'playbook', 'our positions', 'negotiation positions', 'fallback positions',
       'standard positions', 'what we accept in a negotiation', 'our red lines', 'clause standards', 'standards for a contract type', 'where our standard is set', 'our standard for a clause', 'tweak our playbook'],
     sv: ['våra standarder', 'ändra våra standarder', 'förhandlingsplaybook', 'förhandlingsguide', 'playbook', 'våra positioner', 'reservpositioner', 'vad vi accepterar i en förhandling', 'standarder för en avtalstyp'] } },

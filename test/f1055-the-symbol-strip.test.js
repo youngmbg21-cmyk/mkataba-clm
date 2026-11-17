@@ -32,7 +32,7 @@ function constSrc(name){
   const at = APP.search(new RegExp('const\\s+' + name + '\\s*=')); assert.ok(at >= 0, name + ' exists');
   const end = APP.indexOf(';\n', at); return APP.slice(at, end + 1);
 }
-const PAGE_NAMES = { board:'Board', contracts:'Contracts', requests:'Requests', import:'Import', ourpaper:'Our paper', draft:'Draft agreement',
+const PAGE_NAMES = { board:'Board', contracts:'Contracts', requests:'Requests', import:'Import', ourpaper:'Our paper', standards:'Standards', draft:'Draft agreement',
   negotiations:'Negotiations', approvals:'Approvals & signing', document:'Workspace', oblig:'Obligations', calendar:'Calendar', parties:'Parties',
   people:'People', mynotes:'My notes', explorer:'Explorer', reads:'Discover', pulse:'Pulse board', house:'Jambo’s agents', flowmap:'Flow map',
   handbook:'Handbook', settings:'Settings & rules' };

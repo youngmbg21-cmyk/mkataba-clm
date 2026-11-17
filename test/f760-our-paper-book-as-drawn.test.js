@@ -125,9 +125,10 @@ describe('f760 (5) the page\'s frame', () => {
     assert.match(page, /<span class="tpl-hd-sub" data-tpl-hd-sub>\$\{esc\(i18tn\('lib_pf_h_sub',hf\.used,\{n:hf\.used,c:hf\.changed\}\)\)\}<\/span>/);
     assert.ok(!/tplBookGlanceHtml\(ov\)/.test(page));
   });
-  test('5b a count on each of the three tabs, on this page and on Our standards\' row', () => {
+  /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder; Our standards is a page of its own, its tab removed) */
+  test('5b a count on each of the two tabs', () => {
     assert.match(page, /data-tpl-tab="book"[^\n]*<span class="st-tab-n">\$\{hf\.n\}<\/span>/);
-    assert.match(page, /data-paper-tab="standards"[^\n]*stdN!=null\?`<span class="st-tab-n">\$\{stdN\}<\/span>`/);
+    assert.ok(!/data-paper-tab="standards"/.test(page), 'no Our standards tab');
     assert.match(fnBody(LIB, 'paperTabsHtml'), /n\[k\]!=null\?`<span class="st-tab-n">\$\{n\[k\]\}<\/span>`/);
   });
   test('5c ONE Jambo\'s panel for the page, outside both tabs; each tab paints it', () => {

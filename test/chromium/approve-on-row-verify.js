@@ -55,6 +55,8 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
       const target = B[2] && B[2].id;
       const v0 = await P.evaluate(() => state.view);
       await P.click(`.ap-table.ap-ins tr[data-ap-row="${target}"] .ap-ok`);
+      /* A YES OFFERS A NOTE (17 Nov 2026): optional, so the pop-up's own Approve sends it empty */
+      { const ok = await P.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); }
       const done = await until(P, id => { const tr = document.querySelector(`tr[data-ap-row="${id}"] td.ap-wait`); return !!(tr && /Approved/.test(tr.innerText)); }, target, 10000);
       const rowSays = await P.evaluate(id => { const tr = document.querySelector(`tr[data-ap-row="${id}"]`); return tr ? tr.innerText.replace(/\s+/g, ' ') : '(row left the list)'; }, target);
       check(done, '3a Approve on a row that is not chosen approves that contract', { target, rowSays });

@@ -32,6 +32,7 @@ const { dpPage } = require('../js/dealstands.js');
 const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
 /* The graph's `where` predicate, one for both hosts (Copilot audit phase 4). */
 const { graphWhereHit } = require('../js/graphwhere.js');
+const { stdDraftClean, stdChangeApply, stdBookKeys, stdGoverned, STD_CHANGES_KEEP, STD_CHANGE_WHY_MAX } = require('../js/stdladder.js');
 const { HS_KINDS, HS_MAX, hsTerms, hsRoot, hsNearest, hsPassages } = require('../js/hatisearch.js');
 /* THE HANDBOOK, READ BY JAMBO (owner, 26 Oct 2026: "the goal is to have jambo be the cure to all question related
    to the platform … across HaTi, not just the handbook"): the browser's own book (js/handbook.js), one copy,
@@ -393,6 +394,8 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
   newPaper: !!u.new_paper,
   reFile: !!u.re_file,
   holdContracts: !!u.hold_contracts,
+  /* WHO DECIDES ON OUR STANDARDS besides the admins (owner, 17 Nov 2026: "admins plus named people") */
+  decideStandards: !!u.decide_standards,
   overseerId: u.overseer_id || null,
   /* The stored answers, never the resolved rule — saRuleOf reads them on both
      hosts, and a server that pre-resolved them would be a second place the
@@ -408,7 +411,7 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'pwAt', 'roleBy', 'holdContracts'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'pwAt', 'roleBy', 'holdContracts', 'decideStandards'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -1149,6 +1152,7 @@ addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
 addColumnIfMissing('users', 'new_paper', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 're_file', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 'hold_contracts', 'INTEGER NOT NULL DEFAULT 0');
+addColumnIfMissing('users', 'decide_standards', 'INTEGER NOT NULL DEFAULT 0');
 /* A member's JOB TITLE — "COO", "Finance Director" — which is a different
    thing from their `role` ("admin"/"legal"/"viewer"). `role` is a permission
    level: what they may do in the software. `title` is the capacity they sign
@@ -1700,9 +1704,12 @@ function scGate(){
    is what it was at the time. The question itself is js/signgate.js's
    (sgAcceptedProperly), which the card asks too; this is only its roster. */
 function scIsAdminId(id){
-  const u = id ? db.prepare('SELECT role FROM users WHERE id=?').get(String(id)) : null;
-  return !!(u && u.role === 'admin');
+  const u = id ? db.prepare('SELECT role, decide_standards FROM users WHERE id=?').get(String(id)) : null;
+  /* AN ADMIN, OR SOMEBODY AN ADMIN NAMED to decide on our standards (owner, 17 Nov 2026) — never a viewer */
+  return !!(u && (u.role === 'admin' || (u.role !== 'viewer' && Number(u.decide_standards || 0) !== 0)));
 }
+/* the same question of a signed-in person (the standards' decide route) */
+function stdDecides(user){ return !!user && (user.role === 'admin' || (user.role !== 'viewer' && Number(user.decide_standards || 0) !== 0)); }
 /* The brief as the wall reads it: its own table, never the record (WO-2).
    Only `at` and `truncated` are asked — the brief-read stamp is keyed on when
    it was written. */
@@ -6889,10 +6896,85 @@ app.put('/api/settings', auth, admin, (req, res) => {
      Switching the link code ON while email is not set up is refused — as a
      DIFFERENCE against the stored rule, so a rule already on (or a save that
      leaves it alone) never blocks an unrelated setting. */
+  /* THE LADDER (owner, 17 Nov 2026): a change to a standard waits for a second admin's yes. Once one standard
+     carries an approved version, the library and the books change ONLY through /api/standards/changes — a blob
+     saved from any browser keeps the stored ones. Changes waiting are that route's own record, always. */
+  if (stdGoverned(stored.clauseLibrary)){
+    incoming.clauseLibrary = stored.clauseLibrary;
+    if ('playbook' in stored) incoming.playbook = stored.playbook; else delete incoming.playbook;
+  }
+  if ('standardChanges' in stored) incoming.standardChanges = stored.standardChanges; else delete incoming.standardChanges;
   if (((incoming.linkCode || {}).on) && !((stored.linkCode || {}).on) && !EMAIL_ON())
     return res.status(409).json({ error: 'Email is not set up, so a guest could never receive the code. Set up email first, then switch this on.', linkCodeNeedsEmail: true });
   setSetting('appSettings', incoming);
   res.json({ ok: true, ...(Array.isArray(incoming.intakeLanes) ? { intakeLanes: incoming.intakeLanes } : {}) });
+});
+/* ---- THE LADDER: A CHANGE TO A STANDARD WAITS FOR A SECOND YES (owner, 17 Nov 2026) ----
+   Admins and Legal propose; ANY ADMIN BUT THE ONE WHO PROPOSED says yes or no; the yes is applied HERE, through
+   the one applier both hosts share (js/stdladder.js), so the page and the stored standards cannot disagree.
+   While the workspace has never stored its own standards (HaTi's starting wording lives in the browser), a
+   proposal carries the starting book it was made on (`base`), used only if nothing is stored yet. One change
+   waits per standard: your own is replaced, a colleague's is said. */
+function stdChangesOf(st){ return Array.isArray(st && st.standardChanges) ? st.standardChanges : []; }
+app.post('/api/standards/changes', auth, (req, res) => {
+  if (!['admin', 'legal'].includes(req.user.role)) return res.status(403).json({ error: 'Only an admin or Legal may change a standard.' });
+  const b = req.body || {};
+  const stored = getSetting('appSettings') || {};
+  const base = (!Array.isArray(stored.clauseLibrary) && Array.isArray(b.baseLibrary)) ? b.baseLibrary.slice(0, 200) : null;
+  const basePb = (!(stored.playbook && typeof stored.playbook === 'object') && b.basePlaybook && typeof b.basePlaybook === 'object') ? b.basePlaybook : null;
+  const pb = stored.playbook || basePb || {};
+  const lib = Array.isArray(stored.clauseLibrary) ? stored.clauseLibrary : (base || []);
+  const draft = stdDraftClean(b.draft, stdBookKeys(pb));
+  if (!draft) return res.status(400).json({ error: 'A standard needs a name and the words we ask for.' });
+  const clauseId = b.clauseId ? String(b.clauseId) : null;
+  if (clauseId && !lib.some(c => c && String(c.id) === clauseId)) return res.status(404).json({ error: 'That standard is no longer there.' });
+  if (!clauseId && lib.some(c => c && String(c.category || '').toLowerCase() === draft.category.toLowerCase()))
+    return res.status(409).json({ error: 'A standard for this topic is already here. Change that one instead.', already: true });
+  const all = stdChangesOf(stored);
+  const other = all.find(c => c.state === 'waiting' && clauseId && c.clauseId === clauseId && String(c.byId) !== String(req.user.id));
+  if (other) return res.status(409).json({ error: `A change by ${other.by || 'a colleague'} is already waiting on this standard. It must be decided first.`, waitingBy: other.by || '' });
+  const kept = all.filter(c => !(c.state === 'waiting' && String(c.byId) === String(req.user.id) && (clauseId ? c.clauseId === clauseId : (!c.clauseId && c.draft && c.draft.category.toLowerCase() === draft.category.toLowerCase()))));
+  const ch = { id: 'sc-' + crypto.randomBytes(6).toString('hex'), clauseId, draft, why: String(b.why || '').replace(/\s+/g, ' ').trim().slice(0, STD_CHANGE_WHY_MAX),
+    byId: String(req.user.id), by: req.user.name || req.user.email || '', at: new Date().toISOString(), state: 'waiting',
+    ...(base ? { baseLibrary: base } : {}), ...(basePb ? { basePlaybook: basePb } : {}) };
+  const next = [...kept, ch].slice(-STD_CHANGES_KEEP);
+  setSetting('appSettings', { ...stored, standardChanges: next });
+  const admins = db.prepare("SELECT id FROM users WHERE role='admin' OR (role<>'viewer' AND decide_standards<>0)").all().map(u => String(u.id)).filter(id => id !== String(req.user.id));
+  res.json({ ok: true, change: ch, standardChanges: next, approvers: admins.length });
+});
+app.post('/api/standards/changes/:id/decide', auth, (req, res) => {
+  if (!stdDecides(req.user)) return res.status(403).json({ error: 'Only an admin, or somebody an admin named, may decide a change to a standard.' });
+  const stored = getSetting('appSettings') || {};
+  const all = stdChangesOf(stored);
+  const ch = all.find(c => c.id === req.params.id);
+  if (!ch || ch.state !== 'waiting') return res.status(404).json({ error: 'This change has already been decided or withdrawn.' });
+  if (String(ch.byId) === String(req.user.id)) return res.status(409).json({ error: 'You proposed this change, so somebody else must decide it.', own: true });
+  const yes = !!(req.body || {}).yes;
+  const at = new Date().toISOString();
+  const done = { ...ch, state: yes ? 'approved' : 'refused', decidedById: String(req.user.id), decidedBy: req.user.name || req.user.email || '', decidedAt: at,
+    decidedWhy: String((req.body || {}).why || '').replace(/\s+/g, ' ').trim().slice(0, STD_CHANGE_WHY_MAX) };
+  delete done.baseLibrary; delete done.basePlaybook;
+  let out = { ...stored, standardChanges: all.map(c => c.id === ch.id ? done : c) };
+  if (yes){
+    const lib = Array.isArray(stored.clauseLibrary) ? stored.clauseLibrary : (ch.baseLibrary || []);
+    const pb = (stored.playbook && typeof stored.playbook === 'object') ? stored.playbook : (ch.basePlaybook || {});
+    const r = stdChangeApply(lib, pb, ch, done.decidedBy, at);
+    out = { ...out, clauseLibrary: r.lib, playbook: r.pb };
+    done.clauseId = r.id;
+    out.standardChanges = out.standardChanges.map(c => c.id === ch.id ? done : c);
+  }
+  setSetting('appSettings', out);
+  res.json({ ok: true, change: done, clauseLibrary: out.clauseLibrary, playbook: out.playbook, standardChanges: out.standardChanges });
+});
+app.post('/api/standards/changes/:id/withdraw', auth, (req, res) => {
+  const stored = getSetting('appSettings') || {};
+  const all = stdChangesOf(stored);
+  const ch = all.find(c => c.id === req.params.id);
+  if (!ch || ch.state !== 'waiting') return res.status(404).json({ error: 'This change has already been decided or withdrawn.' });
+  if (String(ch.byId) !== String(req.user.id)) return res.status(403).json({ error: 'Only the person who proposed a change may withdraw it.' });
+  const next = all.filter(c => c.id !== ch.id);
+  setSetting('appSettings', { ...stored, standardChanges: next });
+  res.json({ ok: true, standardChanges: next });
 });
 /* ---- A LANE KNOWS WHO SAVED IT AND WHOSE ITS DRAFTS ARE (4 Oct 2026, the
    process review's last gaps) ----
@@ -9259,6 +9341,54 @@ app.post('/api/ai/section', auth, editor, rlAiLight, aiFeature('draft'), aiBudge
     /* a cut-short answer is not empty, and is said; an empty one is refused, never filed as a section */
     if (!text) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before writing this section. Try again.' : 'Jambo wrote nothing for this section' });
     res.json({ text, note: typeof out.note === 'string' ? out.note.slice(0, 300) : '', ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
+/* ---------- Jambo writes a standard (the Ladder, owner, 17 Nov 2026) ----------
+   ONE PRESS, ONE CALL: "Write it for me" on a standard, or a steer under his draft (Stricter, Softer, Shorter,
+   Add a fallback, Try again). He returns the whole ladder — the words we ask for, the fallbacks best first, what we
+   never accept and why it matters — and NOTHING is stored: the draft waits in his panel until a person presses
+   Put in the standard, and even then it is only in the form until it is sent for approval. Quotes from the
+   company's own signed contracts may ride in (what they actually settled), never a fact he was not given. */
+const STD_AI_FIELD_MAX = 2000, STD_AI_QUOTES_MAX = 8;
+app.post('/api/ai/standard', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const b = req.body || {};
+  const name = clean(b.name).slice(0, 120), topic = clean(b.category).slice(0, 80) || name;
+  if (!name && !topic) return res.status(400).json({ error: 'A standard needs a name or a topic' });
+  const firm = ['must', 'push', 'nice', 'never'].includes(b.firm) ? b.firm : 'push';
+  const cur = b.current && typeof b.current === 'object' ? b.current : {};
+  const curAsk = clean(cur.ask).slice(0, STD_AI_FIELD_MAX);
+  const curFb = (Array.isArray(cur.fallbacks) ? cur.fallbacks : []).map(x => clean(x).slice(0, 600)).filter(Boolean).slice(0, 4);
+  const curNever = clean(cur.never).slice(0, 600), curWhy = clean(cur.why).slice(0, 600);
+  const steer = clean(b.steer).slice(0, 300);
+  const quotes = (Array.isArray(b.quotes) ? b.quotes : []).map(x => clean(x).slice(0, 500)).filter(Boolean).slice(0, STD_AI_QUOTES_MAX);
+  const J = orgJx();
+  const FIRM_SAYS = { must: 'Must have: we never sign without it', push: 'Push for it: the team may give the fallbacks, past them Legal decides', nice: 'Nice to have: ask for it, give it up freely', never: 'Never accept: words we walk away from' };
+  const tool = { name: 'write_standard', description: 'Write one contract standard as a ladder of positions.',
+    input_schema: { type: 'object', properties: {
+      ask: { type: 'string', description: 'The words we ask for: one short clause in contract language, third person, no heading.' },
+      fallbacks: { type: 'array', items: { type: 'string' }, description: 'Up to three fallback positions, best first, each one short clause or phrase. Empty for a standard that has none.' },
+      never: { type: 'string', description: 'What we never accept, one short phrase. Empty if nothing.' },
+      why: { type: 'string', description: 'Why it matters, one or two plain sentences a junior colleague understands.' },
+      said: { type: 'string', description: 'One plain sentence to the person about this draft (what it rests on). No praise.' } },
+      required: ['ask', 'why'] } };
+  const prompt = `${AI_GOVERNANCE_RULE}\n\nA company governed by ${J.adjective} law is writing its own contract standard: "${name || topic}" (topic: ${topic}). How firm: ${FIRM_SAYS[firm]}.\n`
+    + (curAsk || curFb.length || curNever || curWhy ? `\nWhat the standard says now:\n- We ask for: ${curAsk || '(nothing yet)'}\n${curFb.map((f, i) => `- Fallback ${i + 1}: ${f}\n`).join('')}${curNever ? `- Never accept: ${curNever}\n` : ''}${curWhy ? `- Why it matters: ${curWhy}\n` : ''}` : '')
+    + (quotes.length ? `\nWhat the company actually signed on this topic (quotes from its own contracts):\n${quotes.map(q => `- "${q}"`).join('\n')}\n` : '')
+    + (steer ? `\nThe person asks: ${steer}\n` : '')
+    + `\nRules:\n- Contract wording only in "ask" and the fallbacks: third person, no heading, no number, no commentary.\n- A figure (days, months, an amount) comes from what you were given above; where nothing gives it, use a common market position and say so in "said".\n- Fallbacks go from best for us to least good, each a real step down. A "Must have" standard usually has none; a "Never accept" standard puts the forbidden words in "never".\n- Keep each part short.\n\nReturn via the write_standard tool.`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1400, tools: [tool], tool_choice: { type: 'tool', name: 'write_standard' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const out = (block && block.input) || {};
+    const ask = String(out.ask || '').trim().slice(0, STD_AI_FIELD_MAX);
+    if (!ask) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before writing this standard. Try again.' : 'Jambo wrote nothing for this standard. Try again.' });
+    const fallbacks = (Array.isArray(out.fallbacks) ? out.fallbacks : []).map(x => String(x || '').trim().slice(0, 600)).filter(Boolean).slice(0, 3);
+    res.json({ ask, fallbacks, never: String(out.never || '').trim().slice(0, 600), why: String(out.why || '').trim().slice(0, 600),
+      said: String(out.said || '').trim().slice(0, 300), quotes: quotes.length, ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
@@ -19296,11 +19426,11 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* RE-FILE AND HOLD ARE GRANTS OF THEIR OWN (9 Oct 2026). They were written
      only inside the new-paper block and this check never counted them, so a
      tick on either alone was refused "Nothing to change". */
-  const hasReFile = b.reFile !== undefined, hasHold = b.holdContracts !== undefined;
+  const hasReFile = b.reFile !== undefined, hasHold = b.holdContracts !== undefined, hasStd = b.decideStandards !== undefined;
   /* A NAME IS AN ADMIN'S TO CHANGE (9 Oct 2026): the browser said "Saved" and
      kept it in its own memory only, so a refresh brought the old name back. */
   const hasName = b.name !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName)
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasStd && !hasName)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   /* Only a title — and, since the gaps of 18 Oct 2026 (round 24 "One sheet":
@@ -19439,6 +19569,14 @@ app.patch('/api/users/:id', auth, (req, res) => {
       if (role === 'admin' && !b.canViewValues)
         return no(400, { error: 'Admins always see contract values. Change the role first if this member should not.' });
       db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
+    }
+    if (hasStd) {
+      const role = hasRole ? b.role : target.role;
+      if (role === 'admin' && !b.decideStandards)
+        return no(400, { error: 'An admin always decides on our standards — the tick cannot be removed from them.' });
+      if (role === 'viewer' && b.decideStandards)
+        return no(400, { error: 'A viewer cannot decide on our standards.' });
+      db.prepare('UPDATE users SET decide_standards=? WHERE id=?').run(b.decideStandards ? 1 : 0, req.params.id);
     }
     if (hasHold || hasReFile) {
       const role = hasRole ? b.role : target.role;

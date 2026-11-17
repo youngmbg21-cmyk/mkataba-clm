@@ -131,7 +131,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     const may = await page.evaluate(async () => { const c = getContract('MK-W1'); if (typeof ensureFull === 'function') await ensureFull(c);
       const d = approvalDecidableNow(c); return d ? d.kind : null; });
     check('4b the step that names Unrestricted Legal is theirs to decide', may === 'rule', may);
-    const done = await page.evaluate(async () => { try { return await approvalDecideAsk(getContract('MK-W1'), 'approved'); } catch (e) { return 'threw ' + e.message; } });
+    /* a yes offers an optional note (17 Nov 2026): answered here with none, as the pop-up's own Approve would */
+    const done = await page.evaluate(async () => { const was = window.promptDialog; window.promptDialog = async () => '';
+      try { return await approvalDecideAsk(getContract('MK-W1'), 'approved'); } catch (e) { return 'threw ' + e.message; } finally { window.promptDialog = was; } });
     const rec = await page.evaluate(async () => { const r = await fetch('api/contracts/MK-W1', { credentials: 'same-origin' }); const c = await r.json();
       const s = (c.approvalChain || []).find(x => x.ruleId === 'r-sales') || {};
       const a = (c.audit || []).filter(x => x.action === 'Approved').pop() || {};

@@ -108,6 +108,7 @@ const RULES = [{ id: 'r-fin', name: 'Finance director', order: 1,
       await page.click('[data-ap-row="MK-AFL-2"]');
       await until(page, () => !!document.querySelector('#ins-panel [data-ins-act="approve"]'));
       await page.click('#ins-panel [data-ins-act="approve"]');
+      { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); } /* a yes offers an optional note (17 Nov 2026) */
       await until(page, () => !document.querySelector('[data-ap-row="MK-AFL-2"]'));
       for (let i = 0; i < 30; i++) { s = await stored('MK-AFL-2'); if ((s.approvalChain || []).length) break; await page.waitForTimeout(150); }
       check('1h. Approve stores the approval in the approver\'s name',

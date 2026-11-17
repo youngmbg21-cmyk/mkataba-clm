@@ -3464,7 +3464,7 @@ if (typeof document !== 'undefined' && !document._tplnWired){ document._tplnWire
     }
     const tb = t.closest('[data-tpln-tab]');
     if (tb){ e.preventDefault(); const k = tb.getAttribute('data-tpln-tab');
-      if (k === 'list') tplPageSetTab('list'); else { const b = [...document.querySelectorAll('[data-paper-tab="standards"]')].find(x => !x.closest('.tpln')); if (b) b.click(); } return; }
+      if (k === 'list') tplPageSetTab('list'); return; }
     const pa = t.closest('#ins-panel [data-tpl-pf-act]');
     if (pa){ e.preventDefault(); const a = (_tplPf.acts || [])[Number(pa.getAttribute('data-tpl-pf-act'))]; if (a && a.run && !a.off) a.run(); return; }
     if (t.closest('[data-tpln-new]')){ e.preventDefault(); const b = document.getElementById('tpl-new'); if (b && !b.disabled) b.click(); else if (typeof openNewStandard === 'function') openNewStandard(); return; }
@@ -3902,12 +3902,7 @@ function renderTemplatesPage(){
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}<span class="st-tab-n">${hf.n}</span></button>
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${rows.length}</span></button>
-      ${''/* OUR STANDARDS IS THIS PAGE'S THIRD TAB (the process review,
-             4 Oct 2026): one door for the paper and its rulebook. The tab is
-             the standards page itself, drawn under this page's name — see
-             paperTabsHtml — so every one of its own tabs, its inspector and
-             its links are exactly what they were. */}
-      <button class="st-tab" data-paper-tab="standards" role="tab" aria-selected="false">${i18t('nav_our_standards')}${stdN!=null?`<span class="st-tab-n">${stdN}</span>`:''}</button>
+      ${''/* Our standards was this page's third tab until 17 Nov 2026: it is a page of its own now (the Ladder; the owner answered "Remove it") */}
     </div>`}
     </div>
 
@@ -4029,7 +4024,7 @@ function renderTemplatesPage(){
    (clause library · playbook · deviations) sits under this one as its
    sub-tabs. PAPER_TABS is the one list; the Templates page draws the first
    two itself, and the standards page draws all three with its own lit. */
-const PAPER_TABS=['book','list','standards'];
+const PAPER_TABS=['book','list'];
 /* EACH TAB CARRIES ITS COUNT (round 21 as drawn: "The book 24 · Templates 24
    · Our standards 6"), the number of what the tab's own list opens on: every
    template in the book, the list's first pile (Ready to use), and Our
@@ -4077,8 +4072,9 @@ function paperLhHtml(seat, o, seg){
 function paperTabsWire(){
   document.querySelectorAll('[data-paper-tab]').forEach(b=>{ if(b.dataset.paperBound) return; b.dataset.paperBound='1'; b.addEventListener('click',()=>{
     const k=b.getAttribute('data-paper-tab');
-    if(!PAPER_TABS.includes(k)) return;
+    /* Our standards is its own page now (the Ladder, 17 Nov 2026): the Shelves' "Our standards" door goes there */
     if(k==='standards'){ if(state.view!=='playbook') setView('playbook'); return; }
+    if(!PAPER_TABS.includes(k)) return;
     _tplPageTab=k;
     setView('templates');
   }); });
@@ -4135,6 +4131,8 @@ function pbTabGo(k){
   if(typeof stLandTop==='function') stLandTop();
 }
 function renderPlaybookPage(){
+  /* THE LADDER (17 Nov 2026): Standards is a page of its own (js/views/ladder.js); every caller of the old page lands on it */
+  if(typeof window.renderStandardsPage==='function') return window.renderStandardsPage();
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg)';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
   /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (Young ruled 26 Sep 2026: all three

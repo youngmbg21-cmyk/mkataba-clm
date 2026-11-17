@@ -135,7 +135,8 @@ async function SEED(){
       tabs: [...document.querySelectorAll('.tpl-band .paper-seg button')].map(b => b.textContent.trim()) }));
     check('1a the head says the page\'s name with its count', /^Our paper\s*\d+ templates$/.test(A.h1.trim()), A.h1);
     check('1b one facts line: contracts drafted in 12 months · came back changed', /^\d+ contracts? drafted from them in 12 months · \d+ came back changed$/.test(A.sub.trim()) && /^5 |^[5-9]|^\d{2}/.test(A.sub.trim()), A.sub);
-    check('1c a count on each of the three tabs', A.tabs.length === 3 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
+    /* RE-POINTED 17 Nov 2026 (the Ladder): Our standards left Our paper; two parts remain, the book and Templates */
+    check('1c a count on each of the two tabs', A.tabs.length === 2 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
 
     /* 2 THE INDEX */
     const B = await page.evaluate(() => ({ shelves: [...document.querySelectorAll('[data-tpl-pf-shelf]')].map(b => [b.textContent.trim(), b.getAttribute('aria-expanded')]),
