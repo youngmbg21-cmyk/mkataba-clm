@@ -15201,9 +15201,14 @@ function docThreadGoTo(c,i){
 }
 function docThreadSettle(c){
   clearTimeout(_docThreadGlideT); _docThreadGlideT=null;
-  const held=_docThreadHold;
+  const held=_docThreadHold, pressed=_docThreadGlide;
   _docThreadGlide=-1; _docThreadHold=-1;
-  docThreadOpen(docThreadCur(c), held>=0?held:docThreadLineRow());
+  /* THE ROW PRESSED STAYS THE ONE OPEN (#762: the glide ended with another row at the line and that one opened): a
+     glide a press began settles on the pressed row; only a glide nobody pressed reads the line */
+  /* and the paper is put right under it if the glide fell short (the page moved under the glide while it ran) */
+  if(held<0&&pressed>=0){ try{ const sc=thEl('scroll'), el=_docThreadRows[pressed];
+    if(sc&&el){ const d=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-DOC_THREAD_LINE+1; if(Math.abs(d)>4) sc.scrollTop+=d; } }catch(_){ } }
+  docThreadOpen(docThreadCur(c), held>=0?held:pressed>=0?pressed:docThreadLineRow());
 }
 /* The paper's scroller is rebuilt with the room, so the listener rides the
    element and is armed once per element. The contract is looked up LIVE at
