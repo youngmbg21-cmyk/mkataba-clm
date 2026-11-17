@@ -5175,7 +5175,10 @@ function pd2FormRegroup(c){
     sep.innerHTML = `<td colspan="3">${E(_pdT('pd2_fm_rec_head'))}</td>`; tb.insertBefore(sep, list[nOwed]); }
   list.forEach(tr => { try { pd2FormGapSync(tr); } catch (_){} });
   const under = document.getElementById('pd2-fm-under');
-  if (under) under.innerHTML = [E(c.name || ''), nOwed ? `<span class="pd2-amb">${E(_pdT('og_g_needed', { n: nOwed }))}</span>` : '', (list.length - nOwed) ? E(_pdT('pd2_fm_onrec', { n: list.length - nOwed })) : ''].filter(Boolean).join(' · ');
+  /* THE NUMBER ON THE DOOR IS THE LIST BEHIND IT (#762): the Dossier's "Fill in N details" counts the details (detailsOf);
+     the other side's signer stands amber in its own row and is counted under Sign, never in "N needed" */
+  const nDet = list.filter(tr => tr.hasAttribute('data-pd2-owed') && tr.getAttribute('data-pd-og-kind') !== 'signer').length;
+  if (under) under.innerHTML = [E(c.name || ''), nDet ? `<span class="pd2-amb">${E(_pdT('og_g_needed', { n: nDet }))}</span>` : '', (list.length - nOwed) ? E(_pdT('pd2_fm_onrec', { n: list.length - nOwed })) : ''].filter(Boolean).join(' · ');
   if (!host.previousElementSibling || !host.previousElementSibling.matches('.pd2-fm-chips')){
     const ch = document.createElement('div'); ch.className = 'pd2-fm-chips'; ch.setAttribute('role', 'group'); ch.setAttribute('aria-label', _pdT('pd2_fm_chips'));
     host.parentNode.insertBefore(ch, host); }

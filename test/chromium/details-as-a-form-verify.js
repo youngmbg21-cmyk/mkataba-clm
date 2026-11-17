@@ -151,10 +151,15 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 22 Oct 2026 (the Checklist): the count stands beside "Needs you"; the row is opened first */
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the count is the form's head while it is up, the Details line's after
        the one Save brings the Dossier back — its number of owed facts */
-    const headOf = () => { const t = ((document.querySelector('#ig-dock .pd-fm [data-pd-fm-count], [data-pd-mid^="form:"] [data-pd-fm-count]') || document.querySelector('#ig-dock #pd-og [data-pd-og-row="details"] .pd-ck-v') || {}).textContent || '');
+    /* RE-POINTED 17 Nov 2026 (#762): the count a reader SEES — a form page left behind in the middle, not painted (0 wide),
+       is not read (it held the count it opened with) */
+    const headOf = () => { const seen = e => !!e && e.getBoundingClientRect().width > 0;
+      const t = (([...document.querySelectorAll('#ig-dock .pd-fm [data-pd-fm-count], [data-pd-mid^="form:"] [data-pd-fm-count]')].find(seen)) || [...document.querySelectorAll('#ig-dock #pd-og [data-pd-og-row="details"] .pd-ck-v')].find(seen) || {}).textContent || '';
       /* RE-POINTED 16 Nov 2026 (#762): back on the Dossier the new look's card says it in its headline, "Fill in N details" */
       const card = !t ? ((document.querySelector('#ig-dock') || {}).innerText || '') : '';
-      const m = /(\d+) needed/.exec(t) || /Fill in (\d+) details?/.exec(card); return m ? m[1] : t; };
+      /* the new look's form says it on the line under its title ("… · 13 needed · 2 on record", #pd2-fm-under) */
+      const under = !t ? ((document.querySelector('[data-pd-mid^="form:"] #pd2-fm-under, #pd2-fm-under') || {}).textContent || '') : '';
+      const m = /(\d+) needed/.exec(t) || /(\d+) needed/.exec(under) || /Fill in (\d+) details?/.exec(card); return m ? m[1] : t; };
     const before = await page.evaluate(headOf);
     if (await page.evaluate(() => !!document.querySelector('#pd-og [data-kt="counterparty"]'))){
       await page.evaluate(() => { const b = document.querySelector('#pd-og [data-pd-ck-row="counterparty"]'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); });
