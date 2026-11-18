@@ -9846,9 +9846,10 @@ function pd2WalkWithRead(id){
 }
 function pd2WalkClose(){
   if (!_pd2Walk) return;
-  /* a quick walk that ran with the Clauses read hands the paper back where the reader stood (pd2WalkWithRead); one the
-     reader paused (Pause ends quick) is theirs, and stays where they took it */
-  const back = (_pd2Walk.quick && _pd2Walk.withRead && _pd2Walk.back != null) ? _pd2Walk.back : null;
+  /* a quick walk that ran with the Clauses read hands the paper back where the reader stood (pd2WalkWithRead) — only when
+     it ends by itself or the reader puts it away with × (`backOk`); one the reader paused (Pause ends quick) is theirs, and
+     one put away because they turned to another face moves nothing: that face draws its own paper and place */
+  const back = (_pd2Walk.quick && _pd2Walk.withRead && _pd2Walk.backOk && _pd2Walk.back != null) ? _pd2Walk.back : null;
   clearTimeout(_pd2Walk.timer); _pd2Walk = null;
   if (back != null){ const sc = document.getElementById('ig-paper-scroll'); if (sc) sc.scrollTop = back; }
   document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove());
@@ -9918,7 +9919,7 @@ function pd2WalkStep(){
   /* one that ran with the Clauses read goes when the Clauses tab does */
   if (W.quick && W.withRead && !document.querySelector('#ig-dock #pd-thread')){ pd2WalkClose(); return; }
   /* a QUICK run that reads to the end puts itself away: every note stays out and the paper's own line comes back */
-  if (W.i >= X.S.length && W.quick){ pd2WalkClose(); return; }
+  if (W.i >= X.S.length && W.quick){ W.backOk = true; pd2WalkClose(); return; }
   if (W.i >= X.S.length){ W.run = false; W.done = true; pd2WalkPaint(); try { pdGlanceRepaint(); pd2WalkPanelDown(); } catch (_){} return; }
   const sec = X.S[W.i], quick = pd2WalkReduced();
   const len = sec.els.reduce((n, e) => n + String(e.textContent || '').length, 0);
@@ -9977,7 +9978,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   if (!_pd2Walk) return;
   if (t.closest('[data-pd2-wk-play]')){ e.preventDefault(); pd2WalkPlay(); return; }
   if (t.closest('[data-pd2-wk-reset]')){ e.preventDefault(); pd2WalkReset(); return; }
-  if (t.closest('[data-pd2-wk-close]')){ e.preventDefault(); if (_pd2Walk) _pd2WalkShut.add(String(_pd2Walk.id)); pd2WalkClose(); return; }
+  if (t.closest('[data-pd2-wk-close]')){ e.preventDefault(); if (_pd2Walk){ _pd2WalkShut.add(String(_pd2Walk.id)); _pd2Walk.backOk = true; } pd2WalkClose(); return; }
   const sp = t.closest('[data-pd2-wk-speed]'); if (sp){ e.preventDefault(); _pd2Walk.speed = sp.getAttribute('data-pd2-wk-speed'); pd2WalkPaint(); return; }
   const go = t.closest('#ig-dock [data-pd2-wk-go]');
   if (go){ e.preventDefault(); const id = _pd2Walk.id, k = go.getAttribute('data-pd2-wk-go'), key = go.getAttribute('data-pd2-wk-key') || '';
