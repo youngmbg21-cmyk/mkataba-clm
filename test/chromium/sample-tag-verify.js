@@ -39,6 +39,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.';
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
     await until(P, () => !!(window.state && Array.isArray(state.contracts) && state.contracts.length === 3), null, 20000);
     await P.evaluate(() => setView('register'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+    await until(P, () => !!document.querySelector('[data-ctf-show="list"]'), null, 10000);
+    await P.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
     await until(P, () => [...document.querySelectorAll('tr')].some(tr => /MK-S1/.test(tr.innerText)), null, 10000);
     const R = await read();
     const s1 = R.find(r => r.id === 'MK-S1'), s2 = R.find(r => r.id === 'MK-S2'), o1 = R.find(r => r.id === 'MK-O1');

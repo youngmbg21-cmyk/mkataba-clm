@@ -1325,6 +1325,12 @@ function tplBuiltinDraftBody(bid){
    copy every start makes: filed in the template's own value stream, with the
    category its stream states, and opened in the builder with Copilot's list of
    likely blanks. The creation itself lives in the start (nsOpenTemplate). */
+/* THE DOOR TO NEW AGREEMENT (owner, 17 Nov 2026): From scratch › From one of our templates, this paper chosen and in view;
+   without the new-paper grant, the grant's own refusal (Requests) */
+function tplnOursGo(bid){
+  if (typeof naNewPaperOk === 'function' && !naNewPaperOk()){ if (typeof window.newPaperBlock === 'function' && window.newPaperBlock()) return; toast(i18t('lb_viewers_no_add'), 'err'); return; }
+  return openNewAgreement({ newPaper:true, start:'template', pick:bid });
+}
 function tplMakeItOurs(bid){
   if(typeof window.newPaperBlock==='function' && window.newPaperBlock()) return;
   if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
@@ -2693,7 +2699,7 @@ const TPL_SHELF_SUB = { company:'lib_shelf_sub_company', builtin:'lib_shelf_sub_
    never wording. Jambo's panel beside the page says the same from the record,
    nothing spent. The choice, the open shelves and the find box are per
    sitting (and kept through a refresh, tplPlace); nothing is written. */
-const _tplPf = { pick:null, q:'', open:{}, docs:{}, read:null, chips:[], lq:'', ls:'', quotes:{} };
+const _tplPf = { pick:null, q:'', open:{}, docs:{}, read:null, chips:[], lq:'', ls:'', quotes:{}, view:'shelves', lf:'' };
 /* true while the page draws the Legora head (Part 8), whose box narrows the
    index: the index then draws no find box of its own (one box, one query) */
 let _tplHeadBox = false;
@@ -2741,7 +2747,7 @@ function tplPfTally(cs, o){
     if (hit.size) ids.push(c.id);
     for (const k of hit){ const e = byCat.get(k) || { category:k, n:0, ids:[] }; e.n++; e.ids.push(c.id); byCat.set(k, e); }
   }
-  return { used:recent.length, checked, changed:ids.length, ids,
+  return { used:recent.length, usedIds:recent.map(c => c.id), checked, changed:ids.length, ids,
     byCat:[...byCat.values()].sort((a, b) => b.n - a.n || String(a.category).localeCompare(String(b.category))) };
 }
 function tplPfStats(card){
@@ -2833,7 +2839,7 @@ function tplPfDocLoad(id){
   if (typeof api !== 'function' || typeof templateFormDocHtml !== 'function'){ _tplPf.docs[id] = { failed:true }; return; }
   const stamp = tplPfDocStamp(id);
   _tplPf.docs[id] = { busy:true, stamp };
-  Promise.resolve().then(async () => {
+  return Promise.resolve().then(async () => {
     const d = await api('templates/' + id, 'GET', null, { quiet:true });
     const vs = (d && d.versions) || [];
     const v = vs.find(x => x.status === 'published') || vs.find(x => x.status === 'draft') || null;
@@ -2905,9 +2911,12 @@ function tplDraftFrom(id){
 }
 function tplPfVerbs(card){
   const row = { kind:card.kind, id:card.id, i:card.i, name:card.name, draft:card.draft, imported:card.imported };
-  let own = []; try { own = (tplPanelActs(row).acts || []).filter(a => !['more', 'use', 'edit'].includes(a.k)); } catch (_){ own = []; }
+  /* "Make it ours" is not pressed here (owner, 17 Nov 2026): a door to New agreement's From scratch takes its place,
+     landing on this very paper there (tplnOursGo) */
+  let own = []; try { own = (tplPanelActs(row).acts || []).filter(a => !['more', 'use', 'edit', 'ours'].includes(a.k)); } catch (_){ own = []; }
   const out = own.map(a => Object.assign({}, a, { kind:a.k === 'import' ? 'accent' : '' }));
   const mayMake = tplCanManage();
+  if (card.kind === 'builtin' && mayMake && typeof openNewAgreement === 'function') out.push({ k:'ours', kind:'link', label:i18t('tpln5_ours_door'), run:() => tplnOursGo(card.id) });
   if (card.kind === 'company' && mayMake) out.push({ k:'builder', label:i18t('lib_pf_open_builder'), run:() => tplLibEdit(card.id) });
   const mayDraft = (typeof canEdit !== 'function') || canEdit();
   const pick = card.kind === 'company' ? 'lib' : card.kind === 'cp' ? 'mine' : card.kind === 'builtin' ? 'tid' : null;
@@ -2944,40 +2953,186 @@ function tplnLastOf(card){
   const who = String(last.c.counterparty || '').trim().split(/\s+/)[0] || '';
   return { cs, word: [who, mon].filter(Boolean).join(' \u00b7 '), who, mon };
 }
+/* ---- OUR PAPER: SHELVES, THEN THE LEGORA WAY (owner's pick by prototype, 17 Nov 2026: "I LIKE the shelves landing
+   page but the rest is legora"; "there should be a search bar between the papers and the kpi cards"; "make the search
+   filter to be above the kpi cards and similar to this" (Contracts); "both pages should have a similar looking filter").
+   THREE STEPS ON ONE PAGE, the new look only (tplnOn):
+     1 SHELVES (tplnShelvesHtml): the filter line (tplnFilterLineHtml: the box, then Shelves · All on the right, as
+       Contracts), four figures — each the list it counts (tplnFigs) — and a coloured shelf per folder (tplnShelfData);
+     2 A FOLDER, THE LEGORA WAY (tplnListHtml): the same filter line, one sentence counted from the rows
+       (tplnSayHtml), the stream chips, the quoted rows (tplnRowHtml) — grouped by folder under All; a row press
+       CHOOSES (Jambo's panel shows it), a second press OPENS its paper;
+     3 THE PAPER (tplnPaperHtml): the sheet as before, beside it the facts and the paper's own verbs.
+   The head says where you are and carries the way back one step (tplnHeadHtml; Esc too); Our standards is a link to
+   its own page. Nothing is read with AI; every door is one that already exists (tplPfVerbs, regShowOnly). ---- */
+function tplnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && tplListIns(); }
+function tplnView(){ return _tplPf.view === 'list' || _tplPf.view === 'paper' ? _tplPf.view : 'shelves'; }
+function tplnPicked(rows){ return (rows || []).find(x => tplPfKey(x.c) === _tplPf.pick) || null; }
+function tplnFolderName(fid){ return fid && typeof FOLDERS === 'object' && FOLDERS[fid] ? FOLDERS[fid].name : i18t('tpln5_no_folder'); }
+function tplnShelfData(rows){
+  const m = new Map();
+  for (const x of rows){ const f = tplnFid(x.c); const e = m.get(f) || { fid:f, name:tplnFolderName(f), rows:[], uses:0 }; e.rows.push(x); e.uses += x.last.cs.length; m.set(f, e); }
+  return [...m.values()].sort((a, b) => b.uses - a.uses || b.rows.length - a.rows.length || String(a.name).localeCompare(String(b.name)));
+}
+/* the four figures, each counted off the rows it opens: templates and ready ones on the list, what was drafted and
+   what came back changed on Contracts (the tally's own ids) */
+function tplnFigs(rows){
+  const usedIds = [], chIds = [];
+  rows.forEach(x => { (x.st.usedIds || []).forEach(id => usedIds.push(id)); (x.st.ids || []).forEach(id => chIds.push(id)); });
+  return { n:rows.length, ready:rows.filter(x => !x.c.draft).length, used:[...new Set(usedIds)], changed:[...new Set(chIds)] };
+}
+function tplnFilterLineHtml(rows, shelves){
+  const v = tplnView(), allOn = v === 'list' && !_tplPf.ls && !_tplPf.lf;
+  const tab = (attr, on, w, n) => `<button type="button" class="tpln5-tab${on ? ' is-on' : ''}" ${attr} aria-pressed="${on ? 'true' : 'false'}">${_tplEsc(w)} <span>${n}</span></button>`;
+  return `<div class="tpln5-fl"><label class="tpln5-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" data-tpln-q value="${_tplEsc(_tplPf.lq)}" placeholder="${_tplEsc(i18t('lh_filter_ph'))}" aria-label="${_tplEsc(i18t('lh_filter_ph'))}" autocomplete="off"></label>
+    <div class="tpln5-tabs">${tab('data-tpln-view="shelves"', v === 'shelves', i18t('tpln5_shelves'), shelves.length)}${tab('data-tpln-view="list"', allOn, i18t('tpln5_all'), rows.length)}</div></div>`;
+}
+function tplnShelvesHtml(rows){
+  const shelves = tplnShelfData(rows), f = tplnFigs(rows);
+  const fig = (n, w, attr) => `<button type="button" class="tpln5-fig"${attr && n ? ' ' + attr : ' disabled'}><b>${n}</b><span>${_tplEsc(w)}</span></button>`;
+  const figs = fig(f.n, i18tn('tpln5_f_tpl', f.n, { n:f.n }), 'data-tpln-view="list"')
+    + fig(f.ready, i18t('tpln5_f_ready'), 'data-tpln-ready')
+    + fig(f.used.length, i18t('tpln5_f_drafted'), 'data-tpln-ids="used"')
+    + fig(f.changed.length, i18t('tpln5_f_changed'), 'data-tpln-ids="changed"');
+  /* FOLDER CARDS (owner's pick, 18 Nov 2026: "Folder cards makes more sense", "only see three max", "the cards should
+     all be the same size"; replaces Cover flow): four cards a line, every card the same size — the folder's mark and
+     name, its papers and uses, at most TPLN_FC_SHOWN papers (the ones used most) each with a bar for its uses and
+     a press to open it, "+ N more papers ›" where it holds more, and what came back changed. The card opens the
+     folder's list. Colour is only the mark and the bars. */
+  const card = sh => { const tone = typeof listStreamTone === 'function' && sh.fid ? listStreamTone(sh.fid) : 'gray';
+    const top = sh.rows.slice().sort((a, b) => b.last.cs.length - a.last.cs.length).slice(0, TPLN_FC_SHOWN);
+    const max = Math.max(1, ...top.map(x => x.last.cs.length)), more = sh.rows.length - top.length;
+    const changed = sh.rows.reduce((n, x) => n + ((x.st && x.st.changed) || 0), 0);
+    const paper = x => { const u = x.last.cs.length;
+      return `<button type="button" class="tpln5-fcp" data-tpln-open="${_tplEsc(tplPfKey(x.c))}" title="${_tplEsc(x.c.name)}"><span>${_tplEsc(x.c.name)}</span><i style="--p:${Math.round(u / max * 100)}%" aria-hidden="true"></i><em>${u}</em></button>`; };
+    return `<div class="tpln5-fc" role="button" tabindex="0" data-tpln-shelf="${_tplEsc(sh.fid)}" style="--sd:var(--st-${tone}-dot)">
+      <span class="tpln5-fch"><i aria-hidden="true"></i><b>${_tplEsc(sh.name)}</b></span>
+      <small class="tpln5-fcs">${_tplEsc(i18tn('tpln5_papers', sh.rows.length, { n:sh.rows.length }))} · ${_tplEsc(i18tn('tpln_uses', sh.uses, { n:sh.uses }))}</small>
+      <span class="tpln5-fcl">${top.map(paper).join('')}${'<span class="tpln5-fcp is-gap" aria-hidden="true"></span>'.repeat(TPLN_FC_SHOWN - top.length)}<span class="tpln5-fcm">${more > 0 ? _tplEsc(i18tn('tpln5_more_papers', more, { n:more })) + ' ›' : ''}</span></span>
+      <span class="tpln5-fcf">${changed ? `<span class="is-amber">${_tplEsc(i18tn('tpln5_fc_changed', changed, { n:changed }))}</span>` : `<span>${_tplEsc(i18t('tpln5_fc_changed0'))}</span>`}<span class="tpln5-fcgo">${_tplEsc(i18t('tpln5_open'))} ›</span></span></div>`; };
+  return `<div class="tpln5 is-shelves">${tplnFilterLineHtml(rows, shelves)}<div class="tpln5-figs">${figs}</div><div class="tpln5-fcg">${shelves.map(card).join('')}</div></div>`;
+}
+const TPLN_FC_SHOWN = 3;
+/* one sentence, counted from the rows the list shows: how many, what came from them, the lead paper a door */
+function tplnSayHtml(rows, shelves){
+  const lk = (x, w) => `<button type="button" class="tpln5-lk" data-tpl-pf="${_tplEsc(tplPfKey(x.c))}">${_tplEsc(w)}</button>`;
+  if (_tplPf.ls){
+    const sh = shelves.find(y => y.fid === _tplPf.ls); if (!sh) return '';
+    const lead = sh.rows.slice().sort((a, b) => b.last.cs.length - a.last.cs.length)[0];
+    return i18tn('tpln5_say_f', sh.rows.length, { name:_tplEsc(sh.name), n:sh.rows.length }) + ' '
+      + (sh.uses ? i18tn('tpln5_say_f_used', sh.uses, { n:sh.uses, lead:lk(lead, lead.c.name) }) : _tplEsc(i18t('tpln5_say_f_none')));
+  }
+  const f = tplnFigs(rows), top = rows.slice().sort((a, b) => (b.st.used || 0) - (a.st.used || 0))[0];
+  return i18tn('tpln5_say_all', f.n, { n:f.n, f:shelves.length }) + ' '
+    + (f.used.length && top && top.st.used ? i18tn('tpln5_say_used', f.used.length, { n:f.used.length, lead:lk(top, top.c.name) }) : _tplEsc(i18t('tpln5_say_used0'))) + ' '
+    + _tplEsc(f.changed.length ? i18tn('tpln5_say_ch', f.changed.length, { n:f.changed.length }) : i18t('tpln5_say_ch0'));
+}
+function tplnListHtml(rows){
+  const shelves = tplnShelfData(rows), pick = _tplPf.pick;
+  const shown = rows.filter(x => !_tplPf.lf || !x.c.draft);
+  const groups = (_tplPf.ls ? shelves.filter(y => y.fid === _tplPf.ls) : shelves).map(sh => {
+    const rs = sh.rows.filter(x => shown.includes(x)); if (!rs.length) return '';
+    return (_tplPf.ls ? '' : `<div class="tpln5-glab" data-tpln-glab>${_tplEsc(sh.name)} <span>${_tplEsc(i18tn('tpln5_papers', sh.rows.length, { n:sh.rows.length }))} · ${_tplEsc(i18tn('tpln_uses', sh.uses, { n:sh.uses }))}</span></div>`)
+      + rs.map(x => tplnRowHtml(x.c, x.last.cs.length, tplPfKey(x.c) === pick)).join('');
+  }).join('');
+  const ready = _tplPf.lf ? `<button type="button" class="tpln-chip is-on" data-tpln-ready-off>${_tplEsc(i18t('tpln5_f_ready'))} ×</button>` : '';
+  return `<div class="tpln5 is-list">${tplnFilterLineHtml(rows, shelves)}<p class="tpln5-say">${tplnSayHtml(shown, shelves)}</p>
+    <div class="tpln5-chiprow">${ready}${tplnChipsHtml(rows.map(x => x.c))}</div>
+    <div class="tpln-list tpln-lrs">${groups}<p class="tpln-none"${groups ? ' hidden' : ''}>${_tplEsc(i18t('lib_nothing_matches'))}</p></div></div>`;
+}
+function tplnPaperHtml(x){
+  const card = x.c, st = x.st, cs = x.last.cs;
+  let blanks = 0; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).length : 0; } catch (_){ blanks = 0; }
+  const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
+  /* the black button first, as drawn; each keeps its own index (the one handler reads it) */
+  const acts = verbs.map((a, i) => ({ a, i })).sort((x, y) => (y.a.kind === 'accent') - (x.a.kind === 'accent')).map(({ a, i }) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : a.kind === 'link' ? 'tpln5-door' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
+  const meta = [tplOvBucketLabel({ key: card.kind, sec: 'library' }), tplnFolderName(tplnFid(card)), cs.length ? i18tn('tpln_uses', cs.length, { n: cs.length }) : i18t('tpln_unused')].filter(Boolean).join(' · ');
+  const fact = (w, n) => `<div><span>${_tplEsc(w)}</span><b>${n}</b></div>`;
+  return `<div class="tpln5 is-paper tpln"><aside class="tpln-sheet"><div class="tpln-zoom">${tplPfPaperHtml(card)}</div></aside>
+    <section class="tpln5-side"><p class="tpln5-meta">${_tplEsc(meta)}</p><div class="tpln-acts">${acts}</div>
+      <div class="tpln5-facts">${fact(i18t('tpln5_fa_made'), cs.length)}${fact(i18t('tpln5_fa_signed'), cs.filter(c => c.status === 'Signed' || c.status === 'Executed').length)}${fact(i18t('tpln5_fa_changed'), st.changed)}${blanks ? fact(i18t('tpln5_fa_blanks'), blanks) : ''}</div></section></div>`;
+}
+/* THE HEAD SAYS WHERE YOU ARE, the way back one step above it, Our standards a link to its own page */
+function tplnHeadHtml(rows){
+  const v = tplnView(), hf = tplPfHeadFacts(tplOverviewData()), pick = tplnPicked(rows);
+  const std = `<button type="button" class="tpln5-std" data-paper-tab="standards">${_tplEsc(i18t('tpln5_std'))}</button>`;
+  const h1 = (w, sub) => `<h1 class="tpln5-h1">${_tplEsc(w)}</h1>${sub || ''}`;
+  if (v === 'paper' && pick)
+    return `<button type="button" class="tpln5-back" data-tpln-back>‹ ${_tplEsc(_tplPf.ls ? tplnFolderName(_tplPf.ls) : i18t('tpln5_every'))}</button><div class="tpln5-hrow">${h1(pick.c.name)}<span class="tpln5-sp"></span>${std}</div>`;
+  if (v === 'list')
+    return `<button type="button" class="tpln5-back" data-tpln-back>‹ ${_tplEsc(i18t('nav_tpl_std'))}</button><div class="tpln5-hrow">${h1(_tplPf.ls ? tplnFolderName(_tplPf.ls) : i18t('tpln5_every'))}<span class="tpln5-sp"></span>${std}</div>`;
+  return `<div class="tpln5-hrow">${h1(i18t('nav_tpl_std'), `<span class="tpl-hd-n">${_tplEsc(i18tn('tpln5_n_tpl', rows.length, { n:rows.length }))}</span><span class="tpl-hd-sub" data-tpl-hd-sub>${_tplEsc(i18tn('lib_pf_h_sub', hf.used, { n:hf.used, c:hf.changed }))}</span>`)}<span class="tpln5-sp"></span>${std}</div>`;
+}
+function tplnBack(){
+  if (tplnView() === 'paper') _tplPf.view = 'list';
+  else if (tplnView() === 'list'){ _tplPf.view = 'shelves'; _tplPf.pick = null; _tplPf.lq = ''; _tplPf.ls = ''; _tplPf.lf = ''; }
+  tplBookRepaint();
+}
+/* ---- JAMBO'S PANEL SPEAKS FOR THE STEP (the five parts): the whole book on Shelves and under All, the shelf in a
+   folder, the chosen paper once one is pressed ---- */
+function tplnBookFive(rows){
+  const shelves = tplnShelfData(rows), f = tplnFigs(rows), most = rows.slice().sort((a, b) => b.last.cs.length - a.last.cs.length).slice(0, 3);
+  const top = most[0] && most[0].last.cs.length ? most[0] : null, writing = rows.filter(x => x.c.draft).length;
+  return { eyebrow:i18t('nav_tpl_std'), title:i18tn('tpln5_p_title', f.n, { n:f.n, f:shelves.length }),
+    sub:top ? i18tn('tpln5_p_sub', top.last.cs.length, { where:tplnFolderName(tplnFid(top.c)), name:top.c.name, n:top.last.cs.length }) : i18t('tpln5_p_sub0'),
+    glance:[{ n:f.used.length, l:i18t('tpln5_f_drafted'), attr:f.used.length ? 'data-tpln-ids="used"' : '' }, { n:f.ready, l:i18t('tpln5_f_ready'), attr:f.ready ? 'data-tpln-ready' : '' },
+      { n:f.changed.length, l:i18t('tpln5_f_changed'), warn:f.changed.length > 0, attr:f.changed.length ? 'data-tpln-ids="changed"' : '' }],
+    groups:[{ label:i18t('tpln5_p_most'), rows:most.map(x => ({ mark:'file', t:x.c.name, s:tplnFolderName(tplnFid(x.c)), v:String(x.last.cs.length), attr:`data-tpln-open="${_tplEsc(tplPfKey(x.c))}"` })) }]
+      .concat(writing ? [{ label:i18t('tpln5_p_notdone'), rows:[{ mark:'pencil', t:i18t('tpln5_p_writing'), v:String(writing) }] }] : []),
+    act:top ? { say:i18t('tpln5_p_say', { name:top.c.name }), label:i18t('tpln5_draft'), attr:`data-tpln-draft="${_tplEsc(tplPfKey(top.c))}"`, link:{ label:i18t('tpln5_open_paper'), attr:`data-tpln-open="${_tplEsc(tplPfKey(top.c))}"` } } : null,
+    src:i18t('lib_pf_j_src') };
+}
+function tplnShelfFive(sh){
+  const signed = sh.rows.reduce((a, x) => a + x.last.cs.filter(c => c.status === 'Signed' || c.status === 'Executed').length, 0), changed = sh.rows.reduce((a, x) => a + x.st.changed, 0);
+  return { eyebrow:sh.name, title:i18tn('tpln5_s_title', sh.rows.length, { n:sh.rows.length }), sub:i18t('tpln5_s_sub'),
+    glance:[{ n:sh.uses, l:i18t('tpln5_s_made') }, { n:signed, l:i18t('jov5_signed') }, { n:changed, l:i18t('tpln5_f_changed'), warn:changed > 0 }],
+    groups:[{ label:i18t('tpln5_s_on'), rows:sh.rows.map(x => ({ mark:'file', t:x.c.name, s:i18tn('tpln_uses', x.last.cs.length, { n:x.last.cs.length }), attr:`data-tpl-pf="${_tplEsc(tplPfKey(x.c))}"` })) }],
+    src:i18t('lib_pf_j_src') };
+}
+function tplnRowsNow(){
+  const d = tplOverviewData();
+  return tplPfGroups(d).flatMap(g => g.cards).filter(c => c.kind !== 'sample').map(c => ({ c, st:tplPfStats(c), last:tplnLastOf(c) }))
+    .sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name)));
+}
+function tplnPanelBody(){
+  const rows = tplnRowsNow(), v = tplnView(), pick = tplnPicked(rows);
+  if (pick && v !== 'shelves'){ _tplPf.acts = tplPfVerbs(pick.c); return { id:'tpln:' + v + ':' + tplPfKey(pick.c), word:pick.c.name, body:tplnPanelHtml(pick.c, { open:v === 'list' }) }; }
+  const sh = v === 'list' && _tplPf.ls ? tplnShelfData(rows).find(y => y.fid === _tplPf.ls) : null;
+  const o = sh ? tplnShelfFive(sh) : tplnBookFive(rows);
+  return { id:'tpln:' + v + ':' + (sh ? sh.fid : 'book'), word:sh ? sh.name : i18t('nav_tpl_std'), body:`<div class="jl-words is-ov">${jamboOverviewHtml(o, 'tpln')}</div>` };
+}
 function tplnHtml(d, groups, card){
   const all = groups.flatMap(g => g.cards).filter(c => c.kind !== 'sample');
   const statOf = c => tplPfStats(c);
   const rows = all.map(c => ({ c, st: statOf(c), last: tplnLastOf(c) })).sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name)));
-  const on = c => card && tplPfKey(c) === tplPfKey(card);
-  /* the use bars (9 Nov 2026) gave way to the uses said on the right (the Legora way, 14 Nov 2026) */
-  /* OUR PAPER, THE LEGORA WAY (owner's pick, 14 Nov 2026): each row a round mark in its stream's colour, the name and
-     its stream, the paper's first line quoted under it, and its uses in small type on the right; filtered in place by the
-     ask box and the stream chips (tplnFilter), so typing never loses the box */
-  const stdRows = rows.map(x => tplnRowHtml(x.c, x.last.cs.length, on(x.c))).join('') + `<p class="tpln-none" hidden>${_tplEsc(i18t('lib_nothing_matches'))}</p>`;
-  const stdN = (typeof paperStandardsCount === 'function') ? paperStandardsCount() : null;
-  const shelves = `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_list', all.length, { n: all.length }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="list">${_tplEsc(i18t('tpln_open'))}</button></div>`
-    + (stdN != null ? `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_std', stdN, { n: stdN }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="standards">${_tplEsc(i18t('tpln_open'))}</button></div>` : '');
-  let line = '', paper = `<p class="tpl-empty">${_tplEsc(i18t('lib_nothing_matches'))}</p>`, acts = '';
-  if (card){
-    const st = statOf(card), last = tplnLastOf(card);
-    let blanks = 0; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).length : 0; } catch (_){ blanks = 0; }
-    /* READABLE PREVIEW (the harmony review, owner's yes 9 Nov 2026): the name and its buttons share one line; the facts
-       stand under the name, never wrapping beside the buttons */
-    line = [tplOvBucketLabel({ key: card.kind, sec: 'library' }), last.cs.length ? i18tn('tpln_used', last.cs.length, { n: last.cs.length, who: last.who || '', mon: last.mon || '' }) : i18t('tpln_unused'),
-      st.changed ? i18tn('lib_pf_came_back', st.changed, { n: st.changed }) : '', blanks ? i18tn('tpln_blanks', blanks, { n: blanks }) : ''].filter(Boolean).join(' \u00b7 ');
-    paper = tplPfPaperHtml(card);
-    const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
-    acts = verbs.map((a, i) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
-  }
-  /* no New standard here any more: From scratch starts on the New agreement page, the one door (owner, 14 Nov 2026) */
-  return `<div class="tpl-book tpl-pf tpln">
-    <aside class="tpln-sheet"><div class="tpln-zoom">${paper}</div></aside>
-    <section class="tpln-side">${tplnAskHtml()}${tplnChipsHtml(rows.map(x => x.c))}<div class="tpln-top"><div class="tpln-line">${card ? `<b class="tpln-name">${_tplEsc(card.name)}</b>` : ''}<span class="tpln-facts">${_tplEsc(line)}</span></div><div class="tpln-acts">${acts}</div></div>
-      <div class="tpln-list tpln-lrs">${stdRows}</div>
-      <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_shelves_h'))}</div><div class="tpln-list">${shelves}</div></section></div>`;
+  /* SHELVES, THEN THE LEGORA WAY (17 Nov 2026): the step decides what is drawn; the paper only once one is chosen */
+  if (tplnView() === 'paper'){ const x = tplnPicked(rows); if (x) return tplnPaperHtml(x); _tplPf.view = 'list'; }
+  if (tplnView() === 'list') return tplnListHtml(rows);
+  return tplnShelvesHtml(rows);
 }
 /* the stream a paper is filed in (its id), read as the page's own stream reader reads it */
 function tplnFid(c){ return String((c && c.stream) || ((tplPfLib(c) || {}).folder) || ''); }
+/* THE QUOTED ROWS ARE READ, NEVER GUESSED (Shelves, then the Legora way, 17 Nov 2026): a company paper's first line is
+   known only once its words are read, and with no paper beside the list nothing read them. The shelves and the list
+   read the company papers they show in the background (TPLN_QUOTE_READS a paint, each once per stamp) and put each
+   quote in where its row stands — no repaint, so a box being typed in keeps its words and the carousel keeps turning */
+const TPLN_QUOTE_READS = 24;
+function tplnQuotesFill(){
+  if (typeof document === 'undefined' || !tplnOn() || tplnView() === 'paper') return;
+  tplnRowsNow().filter(x => x.c.kind === 'company' && !tplnQuote(x.c)).slice(0, TPLN_QUOTE_READS).forEach(x => {
+    const p = tplPfDocLoad(x.c.id); if (p && typeof p.then === 'function') p.then(() => tplnQuotePut(x.c), () => {});
+  });
+}
+function tplnQuotePut(c){
+  const q = tplnQuote(c); if (!q || typeof document === 'undefined') return;
+  const k = tplPfKey(c), at = typeof CSS === 'object' && CSS.escape ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
+  document.querySelectorAll(`.tpln-lrs [data-tpl-pf="${at}"]`).forEach(r => {
+    const lt = r.querySelector('.tpln-lt'); if (!lt || lt.querySelector('.tpln-q')) return;
+    lt.insertAdjacentHTML('beforeend', `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>`);
+    r.setAttribute('data-tpln-text', (String(r.getAttribute('data-tpln-text') || '') + ' ' + q.toLowerCase()).trim());
+  });
+  document.querySelectorAll(`.tpln5-cfp[data-tpln-open="${at}"]`).forEach(b => { if (!b.querySelector('q')) b.insertAdjacentHTML('beforeend', `<q>“${_tplEsc(q)}…”</q>`); });
+}
 /* THE PAPER'S FIRST LINE, QUOTED (the Legora way: each fact shows where on the paper it was read): HaTi's own paper is read
    at once; a company paper once its words have been read for the paper beside the list; never guessed */
 function tplnQuote(c){
@@ -3000,11 +3155,12 @@ function tplnQuote(c){
 }
 function tplnRowHtml(c, uses, lit){
   const fid = tplnFid(c), stream = tplPfStream(c), q = tplnQuote(c);
+  /* the stream's mark wears its tone's own soft pair (bg/fg), never white on the dot, which failed AA (#762) */
   const tone = typeof listStreamTone === 'function' && fid ? listStreamTone(fid) : 'gray';
   const text = [c.name, stream, q].join(' ').toLowerCase();
   const shown = tplnMatches(text, fid);
   return `<button type="button" class="tpln-r tpln-lr${lit ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(c))}" aria-pressed="${lit ? 'true' : 'false'}" data-tpln-text="${_tplEsc(text)}" data-tpln-stream="${_tplEsc(fid)}"${shown ? '' : ' hidden'}>
-    <i class="tpln-mk" style="background:var(--st-${tone}-dot)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
+    <i class="tpln-mk" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
     <span class="tpln-lt"><span class="tpln-l1"><b class="tpln-n">${_tplEsc(c.name)}</b>${stream ? `<span class="tpln-st">${_tplEsc(stream)}</span>` : ''}</span>${q ? `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>` : ''}</span>
     <span class="tpln-u">${_tplEsc(i18tn('tpln_uses', uses, { n: uses }))}</span></button>`;
 }
@@ -3040,12 +3196,15 @@ function tplnFilter(){
   const rows = [...document.querySelectorAll('.tpln-lrs .tpln-lr')]; let n = 0;
   rows.forEach(r => { const ok = tplnMatches(r.getAttribute('data-tpln-text') || '', r.getAttribute('data-tpln-stream') || ''); r.hidden = !ok; if (ok) n++; });
   const none = document.querySelector('.tpln-lrs .tpln-none'); if (none) none.hidden = n > 0;
+  document.querySelectorAll('.tpln-lrs [data-tpln-glab]').forEach(g => { let x = g.nextElementSibling, any = false; while (x && !x.hasAttribute('data-tpln-glab')){ if (x.matches('.tpln-lr') && !x.hidden) any = true; x = x.nextElementSibling; } g.hidden = !any; });
   document.querySelectorAll('[data-tpln-chip]').forEach(b => b.classList.toggle('is-on', b.getAttribute('data-tpln-chip') === (_tplPf.ls || '')));
   return n;
 }
 if (typeof document !== 'undefined' && !window._tplnWired){
   window._tplnWired = true;
-  document.addEventListener('input', e => { const t = e.target; if (!t || !t.matches || !t.matches('[data-tpln-q]')) return; _tplPf.lq = String(t.value || ''); tplnFilter(); });
+  document.addEventListener('input', e => { const t = e.target; if (!t || !t.matches || !t.matches('[data-tpln-q]')) return; _tplPf.lq = String(t.value || '');
+    if (tplnOn() && tplnView() === 'shelves' && _tplPf.lq.trim()){ _tplPf.view = 'list'; _tplPf.ls = ''; _tplPf.lf = ''; _tplPf.pick = null; tplBookRepaint(); tplnBoxBack(); return; }
+    tplnFilter(); });
   document.addEventListener('submit', e => { const f = e.target; if (!f || !f.matches || !f.matches('[data-tpln-ask]')) return; e.preventDefault();
     const shown = [...document.querySelectorAll('.tpln-lrs .tpln-lr:not([hidden])')]; if (shown.length === 1) shown[0].click(); });
   document.addEventListener('click', e => {
@@ -3053,6 +3212,7 @@ if (typeof document !== 'undefined' && !window._tplnWired){
     const more = t.closest('[data-tpln-more]');
     if (more){ const m = more.parentElement.querySelector('.tpln-menu'); if (m){ m.hidden = !m.hidden; more.setAttribute('aria-expanded', String(!m.hidden)); } return; }
     const ch = t.closest('[data-tpln-chip]');
+    if (ch && tplnOn()){ _tplPf.ls = ch.getAttribute('data-tpln-chip') || ''; _tplPf.pick = null; _tplPf.view = 'list'; const m = ch.closest('.tpln-menu'); if (m) m.hidden = true; tplBookRepaint(); return; }
     if (ch){ _tplPf.ls = ch.getAttribute('data-tpln-chip') || ''; const m = ch.closest('.tpln-menu'); if (m){ m.hidden = true; if (typeof tplBookRepaint === 'function') tplBookRepaint(); return; } tplnFilter(); return; }
     if (!t.closest('.tpln-more')) document.querySelectorAll('.tpln-menu:not([hidden])').forEach(m => { m.hidden = true; });
   });
@@ -3236,7 +3396,7 @@ function tplPfPageSay(d){
    came back changed as tiles (changed opens them on Contracts, the page's own data-tpln-changed reading); the blanks a
    draft asks for as rows; Jambo's remark where one standard keeps coming back changed; Draft from it the one black
    button (the paper's own verb), its other verb beside it. Counted, no call. The new look only. */
-function tplnPanelFive(card, st, cs, signed, blanks){
+function tplnPanelFive(card, st, cs, signed, blanks, opts){
   const verbs = _tplPf.acts || [];
   const di = verbs.findIndex(a => a.k === 'draft'), dv = di >= 0 ? verbs[di] : null;
   const other = verbs.find(a => a.k !== 'draft' && !a.off);
@@ -3248,19 +3408,27 @@ function tplnPanelFive(card, st, cs, signed, blanks){
   if (st.byCat.length) groups.push({ label:i18t('tpln_p_dep'), rows:st.byCat.slice(0, 3).map(x => ({ mark:'shield', tone:'amber', t:String(x.category), v:i18tn('jov5_tp_times', x.n, { n:x.n }) })) });
   const top = st.byCat[0];
   if (top && top.n >= 2) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('tpln_p_jambo', { n:top.n, of:st.used, what:String(top.category).toLowerCase() }), wrap:true }] });
+  /* ONE DOOR TO A STANDARD (MAP: #tpl-new → openNewStandard; 16 Nov 2026, #762 — the new look drew none): a manager's
+     row, the same press the old panel's [data-tpln-new] made */
+  /* without the new-paper grant the door is greyed with its reason, never a live door that refuses (newPaperBlocked) */
+  if (tplCanManage()){ const w = String(i18t('lib_pf_c_new')), off = typeof newPaperBlocked === 'function' && newPaperBlocked();
+    groups.push({ label:i18t('pd2_ch_doors'), rows:[off ? { mark:'plus', t:w.charAt(0).toUpperCase() + w.slice(1), s:i18t('np_refused') + ' ' + i18t('np_refused_ask'), wrap:true,
+        attr:`data-tpln-new="" disabled aria-disabled="true" title="${_tplEsc(i18t('np_refused') + ' ' + i18t('np_refused_ask'))}"` }
+      : { mark:'plus', t:w.charAt(0).toUpperCase() + w.slice(1), attr:'data-tpln-new=""' }] }); }
   const changedRun = st.changed ? () => { const b = document.createElement('button'); b.setAttribute('data-tpln-changed', tplPfKey(card)); b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } : null;
   return { eyebrow:[i18t('nav_tpl_std'), kind, stream].filter(Boolean).join(' \u00b7 '), title:card.name,
     sub:cs.length ? i18tn('jov5_tp_sub', cs.length, { n:cs.length, c:st.changed }) : i18t('jov5_tp_unused'),
     glance:[{ n:cs.length, l:i18t('jov5_tp_made') }, { n:signed, l:i18t('jov5_signed') }, { n:st.changed, l:i18t('jov5_tp_changed'), warn:st.changed > 0, run:changedRun }],
-    groups, act:dv ? { say:i18t('jov5_tp_say'), label:dv.label, run:dv.off ? null : () => dv.run(), link:other ? { label:other.label, run:() => other.run() } : null } : null,
+    groups, act:dv ? { say:i18t('jov5_tp_say'), label:dv.label, run:dv.off ? null : () => dv.run(),
+      link:opts && opts.open ? { label:i18t('tpln5_open_paper'), attr:`data-tpln-open="${_tplEsc(tplPfKey(card))}"` } : other ? { label:other.label, run:() => other.run() } : null } : null,
     src:i18t('lib_pf_j_src') };
 }
-function tplnPanelHtml(card){
+function tplnPanelHtml(card, opts){
   const E = _tplEsc, st = tplPfStats(card), last = tplnLastOf(card), cs = last.cs;
   const signed = cs.filter(c => c.status === 'Signed').length, declined = cs.filter(c => c.status === 'Declined').length, live = cs.length - signed - declined;
   let blanks = []; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).map(f => f.label || f.key).filter(Boolean) : []; } catch (_){ blanks = []; }
   if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function')
-    return `<div class="jl-words is-ov">${jamboOverviewHtml(tplnPanelFive(card, st, cs, signed, blanks), 'tpln')}</div>`;
+    return `<div class="jl-words is-ov">${jamboOverviewHtml(tplnPanelFive(card, st, cs, signed, blanks, opts), 'tpln')}</div>`;
   const head = cs.length ? i18tn('tpln_p_head', cs.length, { name: card.name, n: cs.length, c: st.changed }) : i18t('tpln_p_unused', { name: card.name });
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
   const rows = (cs.length ? row(i18tn('tpln_p_ags', cs.length, { n: cs.length }), [signed ? i18t('tpln_p_signed', { n: signed }) : '', live ? i18t('tpln_p_live', { n: live }) : '', declined ? i18t('tpln_p_declined', { n: declined }) : ''].filter(Boolean).join(' \u00b7 '), '') : '')
@@ -3275,12 +3443,52 @@ function tplnPanelHtml(card){
     + (st.changed ? door(`data-tpln-changed="${E(tplPfKey(card))}"`, i18tn('tpln_p_see_changed', st.changed, { n: st.changed }), i18t('pd2_ch_free')) : '');
   return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${rows ? `<div class="pd2-ch-cap">${E(i18t('tpln_p_used_h'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${turn}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
 }
+/* a press on a paper's row: the first CHOOSES it (Jambo's panel shows it), the second OPENS its paper */
+function tplnChoose(k){
+  if (_tplPf.pick === k && tplnView() === 'list'){ _tplPf.view = 'paper'; }
+  else { _tplPf.pick = k; if (tplnView() !== 'list'){ const x = tplnRowsNow().find(y => tplPfKey(y.c) === k); _tplPf.view = 'list'; if (x && !_tplPf.ls) _tplPf.ls = tplnFid(x.c) || ''; } }
+  if (typeof insSelect === 'function') insSelect('tpl-book', k);
+  tplBookRepaint();
+}
+function tplnBoxBack(){ const n = document.querySelector('[data-tpl-sec="book"] [data-tpln-q]'); if (n){ try { n.focus({ preventScroll:true }); const L = n.value.length; n.setSelectionRange(L, L); } catch (_){ } } }
+function tplnShowIds(which){
+  const f = tplnFigs(tplnRowsNow()), ids = which === 'changed' ? f.changed : f.used;
+  if (!ids.length || typeof regShowOnly !== 'function') return;
+  if (typeof setView === 'function') setView('register');
+  regShowOnly(ids, i18t(which === 'changed' ? 'tpln_changed_label' : 'tpln5_drafted_label'));
+}
 if (typeof document !== 'undefined' && !document._tplnWired){ document._tplnWired = true;
+  document.addEventListener('keydown', e => { const r = e.target && e.target.matches && e.target.matches('.tpln5-fc') ? e.target : null; if (!r) return;
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); r.click(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !tplnOn() || tplnView() === 'shelves' || typeof state === 'undefined' || state.view !== 'templates') return;
+    if (document.querySelector('.modal-backdrop:not([hidden]), [role="dialog"]:not([hidden])')) return;
+    const a = document.activeElement; if (a && a.matches && a.matches('input, textarea') && String(a.value || '')) return;
+    e.preventDefault(); tplnBack();
+  });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (tplnOn()){
+      const go = (fn) => { e.preventDefault(); fn(); };
+      const v = t.closest('[data-tpln-view]');
+      if (v) return go(() => { const k = v.getAttribute('data-tpln-view'); _tplPf.view = k === 'list' ? 'list' : 'shelves'; _tplPf.ls = ''; _tplPf.lf = ''; _tplPf.pick = null; if (k !== 'list') _tplPf.lq = ''; tplBookRepaint(); });
+      const sh = t.closest('[data-tpln-open]') ? null : t.closest('[data-tpln-shelf]');
+      if (sh) return go(() => { _tplPf.view = 'list'; _tplPf.ls = sh.getAttribute('data-tpln-shelf') || ''; _tplPf.lf = ''; _tplPf.lq = ''; _tplPf.pick = null; tplBookRepaint(); });
+      if (t.closest('[data-tpln-back]')) return go(tplnBack);
+      if (t.closest('[data-tpln-ready]')) return go(() => { _tplPf.view = 'list'; _tplPf.ls = ''; _tplPf.lf = 'ready'; _tplPf.pick = null; tplBookRepaint(); });
+      if (t.closest('[data-tpln-ready-off]')) return go(() => { _tplPf.lf = ''; tplBookRepaint(); });
+      const ids = t.closest('[data-tpln-ids]');
+      if (ids) return go(() => tplnShowIds(ids.getAttribute('data-tpln-ids')));
+      const op = t.closest('[data-tpln-open]');
+      if (op) return go(() => { const k = op.getAttribute('data-tpln-open'); const x = tplnRowsNow().find(y => tplPfKey(y.c) === k); if (!x) return; _tplPf.pick = k; if (tplnView() === 'shelves') _tplPf.ls = tplnFid(x.c) || ''; _tplPf.view = 'paper'; if (typeof insSelect === 'function') insSelect('tpl-book', k); tplBookRepaint(); });
+      const dr = t.closest('[data-tpln-draft]');
+      if (dr) return go(() => { const x = tplnRowsNow().find(y => tplPfKey(y.c) === dr.getAttribute('data-tpln-draft')); if (!x) return; const a = tplPfVerbs(x.c).find(y => y.k === 'draft'); if (a && a.run && !a.off) a.run(); });
+      const pr = t.closest('#ins-panel [data-tpl-pf]');
+      if (pr) return go(() => tplnChoose(pr.getAttribute('data-tpl-pf')));
+    }
     const tb = t.closest('[data-tpln-tab]');
     if (tb){ e.preventDefault(); const k = tb.getAttribute('data-tpln-tab');
-      if (k === 'list') tplPageSetTab('list'); else { const b = [...document.querySelectorAll('[data-paper-tab="standards"]')].find(x => !x.closest('.tpln')); if (b) b.click(); } return; }
+      if (k === 'list') tplPageSetTab('list'); return; }
     const pa = t.closest('#ins-panel [data-tpl-pf-act]');
     if (pa){ e.preventDefault(); const a = (_tplPf.acts || [])[Number(pa.getAttribute('data-tpl-pf-act'))]; if (a && a.run && !a.off) a.run(); return; }
     if (t.closest('[data-tpln-new]')){ e.preventDefault(); const b = document.getElementById('tpl-new'); if (b && !b.disabled) b.click(); else if (typeof openNewStandard === 'function') openNewStandard(); return; }
@@ -3294,9 +3502,9 @@ function tplPfPanelPaint(){
   const host = document.getElementById('ins-panel'); if (!host) return;
   const d = tplOverviewData(); const card = tplPfChosen(d);
   const base = { seat:'tpl-book', jlPh:i18t('jl_ph_any'), jlHome:i18t('nav_tpl_std'), jlSay:() => tplPfPageSay(d) };
-  if (!card || insLetGone('tpl-book')){ insPaintPanel(Object.assign(base, { c:null, item:null })); return; }
+  if ((!card || insLetGone('tpl-book')) && !tplnOn()){ insPaintPanel(Object.assign(base, { c:null, item:null })); return; }
   const read = _tplPf.read && _tplPf.read.key === tplPfKey(card) ? _tplPf.read : null;
-  if (typeof window.newLookOn === 'function' && newLookOn()){ insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, solo:true, jlWord:card.name, body:tplnPanelHtml(card), acts:[] })); return; }
+  if (typeof window.newLookOn === 'function' && newLookOn()){ const P = tplnPanelBody(); insPaintPanel(Object.assign(base, { item:{ id:P.id }, head:false, solo:true, jlWord:P.word, body:P.body, acts:[] })); return; }
   insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, solo:true, jlWord:card.name, body:tplPfJamboHtml(card, read), acts:[] }));
 }
 /* the head's facts: "24 templates · 41 contracts drafted from them in 12
@@ -3363,7 +3571,8 @@ function tplBookRepaint(){
      line above never found; every scroller in the book keeps its place but the paper beside it, which shows the
      paper just picked and starts at its top (keepScrollIn, js/components.js) */
   const li=document.getElementById('tpl-pf-list'); const top=li?li.scrollTop:0;
-  const draw=()=>{ host.innerHTML=tplBookHtml(tplOverviewData()); };
+  const draw=()=>{ host.innerHTML=tplBookHtml(tplOverviewData());
+    const hd=document.querySelector('[data-tpln-head]'); if(hd&&tplnOn()){ hd.innerHTML=tplnHeadHtml(tplnRowsNow()); if(typeof paperTabsWire==='function') paperTabsWire(); } };
   if(typeof keepScrollIn==='function') keepScrollIn(host, draw, '.tpl-pf-paper, .tpl-pf-paper *'); else draw();
   const li2=document.getElementById('tpl-pf-list'); if(li2&&top) li2.scrollTop=top;
   tplBookWire(host);
@@ -3376,6 +3585,7 @@ function tplPfAfterPaint(){
   const card=tplPfChosen(tplOverviewData());
   try{ tplPfMarksPaint(card); }catch(e){ if(typeof console!=='undefined') console.warn('book: marks failed', e); }
   try{ tplPfPanelPaint(); }catch(e){ if(typeof console!=='undefined') console.warn('book: panel failed', e); }
+  try{ tplnQuotesFill(); }catch(e){ if(typeof console!=='undefined') console.warn('book: quotes failed', e); }
 }
 /* The book's own doors, bound on its host each paint (the rows are rebuilt):
    a shelf row lands on the Templates list narrowed to it; the switch flips
@@ -3388,7 +3598,9 @@ function tplBookWire(host){
      own verbs */
   /* the list's place is held from the press's very start: choosing the row (insSelect) moves the panel beside it
      before the book is drawn again (the flash survey, 14 Nov 2026) */
-  host.querySelectorAll('[data-tpl-pf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf'); _tplPf.pick=k;
+  host.querySelectorAll('[data-tpl-pf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf');
+    if(tplnOn()){ tplnChoose(k); return; }
+    _tplPf.pick=k;
     const go=()=>{ if(typeof insSelect==='function') insSelect('tpl-book',k); tplBookRepaint(); };
     if(typeof keepScrollIn==='function') keepScrollIn(host, go, '.tpl-pf-paper, .tpl-pf-paper *'); else go(); }));
   host.querySelectorAll('[data-tpl-pf-shelf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf-shelf');
@@ -3506,7 +3718,7 @@ let _tplPageTab=null;
 /* …and, since the Legora head (Part 8), the words in each tab's box and the
    list's pile and chips (a question being typed is not kept: it narrows
    nothing, so the page's own query is empty while it stands) */
-function tplPlace(){ return { tab:tplPageTab(), pick:_tplPf.pick||null, open:Object.assign({}, _tplPf.open||{}),
+function tplPlace(){ return { tab:tplPageTab(), pick:_tplPf.pick||null, open:Object.assign({}, _tplPf.open||{}), view:tplnView(), ls:String(_tplPf.ls||''), lq:String(_tplPf.lq||''), lf:_tplPf.lf==='ready'?'ready':'',
   bq:String(_tplPf.q||''), list:{ group:_tplPage.group, kind:_tplPage.kind||'all', stream:_tplPage.stream||null, q:String(_tplPage.q||'') } }; }
 /* A REFRESH LANDS AT THE SAME SPOT: the tab, and on the book the template
    that was up and the shelves the reader opened or folded */
@@ -3514,6 +3726,10 @@ function tplPlacePut(p){ if(p&&TPL_PAGE_TABS.includes(p.tab)) _tplPageTab=p.tab;
   if(p&&typeof p.pick==='string') _tplPf.pick=p.pick;
   if(p&&p.open&&typeof p.open==='object') _tplPf.open=Object.fromEntries(Object.entries(p.open).filter(([k])=>TPL_PF_SHELVES.includes(k)).map(([k,v])=>[k,!!v]));
   if(p&&typeof p.bq==='string') _tplPf.q=p.bq;
+  if(p&&['shelves','list','paper'].includes(p.view)) _tplPf.view=p.view;
+  if(p&&typeof p.ls==='string') _tplPf.ls=p.ls;
+  if(p&&typeof p.lq==='string') _tplPf.lq=p.lq;
+  if(p) _tplPf.lf=p.lf==='ready'?'ready':'';
   const L=p&&p.list;
   if(L&&typeof L==='object'){
     if(['all','company','cp','builtin','sample',...TPL_PILES].includes(L.group)) _tplPage.group=L.group;
@@ -3527,6 +3743,8 @@ function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:TP
    "see all") set that box before switching. */
 function tplPageSetTab(k){
   if(!TPL_PAGE_TABS.includes(k)) return;
+  /* THE TABLE HAS NO DOOR IN THE NEW LOOK (Shelves, then the Legora way, 17 Nov 2026): its doors open the list */
+  if(k==='list'&&tplnOn()){ _tplPf.view='list'; _tplPf.ls=''; _tplPf.lf=''; _tplPf.pick=null; k='book'; _tplPageTab='book'; tplBookRepaint(); }
   _tplPageTab=k;
   /* a tab of the classic row says it is selected; a press of the page's
      switch (the Legora head) says it is pressed, as List | Wall does */
@@ -3553,6 +3771,7 @@ function tplPageSetTab(k){
    table's own search box, filled with the name in plain sight, and emptying
    it is the way back. */
 function tplGoList(name){
+  if(tplnOn()){ _tplPf.view='list'; _tplPf.ls=''; _tplPf.lf=''; _tplPf.pick=null; _tplPf.lq=String(name||''); _tplPageTab='book'; tplBookRepaint(); tplnBoxBack(); return; }
   _tplPage.q=String(name||''); _tplPage.group='all'; _tplPage.stream=null; _tplPage.showAll=false;
   tplPageSetTab('list');
   const box=document.getElementById('tpl-search');
@@ -3582,6 +3801,7 @@ function tplGoList(name){
    on nothing looks exactly like a broken one. */
 function tplGoBucket(key){
   const k=String(key||'');
+  if(tplnOn()){ _tplPf.view='list'; _tplPf.ls=k.startsWith('stream:')?k.slice(7):''; _tplPf.lf=''; _tplPf.lq=''; _tplPf.pick=null; _tplPageTab='book'; tplBookRepaint(); return; }
   const stream=k.startsWith('stream:')?k.slice(7):null;
   _tplPage.q='';
   _tplPage.stream=stream;
@@ -3611,6 +3831,10 @@ function renderTemplatesPage(){
   const total=rows.length;
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false,loaded:true};
   const canManage=tplCanManage();
+  /* SHELVES, THEN THE LEGORA WAY (17 Nov 2026): in the new look the book carries the whole page — the head says the
+     step, the filter line is the book's own, and the table has no door */
+  const T5=tplnOn();
+  if(T5&&_tplPageTab==='list') _tplPageTab='book';
   const tab=tplPageTab();
   const ov=tplOverviewData();
   const hf=tplPfHeadFacts(ov);
@@ -3651,7 +3875,7 @@ function renderTemplatesPage(){
      emptied the shell's subtitle never reached it; a tab row with a .st-tabsub
      under it would put the same sentence back one line lower. */
   document.getElementById('content').innerHTML=`
-  <div class="view-enter sap-page tpl-page" data-ins-page="templates" data-ins="${INS?'1':'0'}" style="padding:var(--page-pad);padding-bottom:var(--tpl-pb,var(--page-pad))">
+  <div class="view-enter sap-page tpl-page${T5?' is-tpln5':''}" data-ins-page="templates" data-ins="${INS?'1':'0'}" style="padding:var(--page-pad);padding-bottom:var(--tpl-pb,var(--page-pad))">
     <div class="sap-band tpl-band ph-card">
     ${''/* the card's title row (.ph-top, 19 Oct 2026): the 12px and the hairline
            under it are the one rule every head card wears, so the tabs stand
@@ -3663,7 +3887,7 @@ function renderTemplatesPage(){
             MEASURED, and it is exactly the spread the owner reported on
             25 Aug. Home answers this the same way, by taking one element out
             of the row's alignment rather than by moving the row. */}
-      <div class="tpl-hd-row" style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-title);font-size:var(--ph-title-size,20px);font-weight:var(--ph-title-w,var(--w-title-serif));letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}<span class="tpl-hd-n">${esc(i18tn('lib_pf_h_n',hf.n,{n:hf.n}))}</span></h1>
+      ${T5?`<div class="tpln5-head" data-tpln-head>${tplnHeadHtml(tplnRowsNow())}</div>`:`<div class="tpl-hd-row" style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-title);font-size:var(--ph-title-size,20px);font-weight:var(--ph-title-w,var(--w-title-serif));letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}<span class="tpl-hd-n">${esc(i18tn('lib_pf_h_n',hf.n,{n:hf.n}))}</span></h1>
       ${''/* ROUND 21 AS DRAWN (the owner's "build all the gaps", 18 Oct 2026):
              the page's facts are ONE LINE beside its name — "41 contracts
              drafted from them in 12 months · 9 came back changed" — where the
@@ -3676,7 +3900,7 @@ function renderTemplatesPage(){
       ${''/* NO LINE UNDER THE TITLE (SAP benchmark, batch 2): the drawing puts
              the book's three figures there instead — they are the page's
              facts. lib_templates_sub is inert. */}</div>
-      <span style="flex:1"></span>
+      <span style="flex:1"></span>`}
       ${''/* ONE BUTTON (Young's go on "One Door to Standards", 24 Sep 2026).
              "Convert a document" is gone from beside it again — reversing the
              second pass of 21 Sep, which put it back as a proxy because the
@@ -3694,7 +3918,7 @@ function renderTemplatesPage(){
     ${''/* THE LIST HEAD UNDER THE TITLE ROW, one per tab and flipped with it
            (tplPageSetTab flips [data-tpl-head]): the book's box; the list's
            box, piles and chips; the page's switch at the box's right */}
-    ${_tplHeadBox?(()=>{ const seg=paperSegHtml(tab,'templates',{ book:hf.n, list:rows.length, standards:stdN });
+    ${T5?'':_tplHeadBox?(()=>{ const seg=paperSegHtml(tab,'templates',{ book:hf.n, list:rows.length, standards:stdN });
       /* ONE switch on the page, in the head on show (tplPageSetTab moves it) */
       return `<div data-tpl-head="book"${tab==='book'?'':' hidden'}>${paperLhHtml(TPL_LH_BOOK,{ frame:'rows' },tab==='book'?seg:'')}</div>
     <div data-tpl-head="list"${tab==='list'?'':' hidden'}>${paperLhHtml(TPL_LH_LIST,{ frame:'rows' },tab==='list'?seg:'')}</div>`; })():`
@@ -3703,12 +3927,7 @@ function renderTemplatesPage(){
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}<span class="st-tab-n">${hf.n}</span></button>
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${rows.length}</span></button>
-      ${''/* OUR STANDARDS IS THIS PAGE'S THIRD TAB (the process review,
-             4 Oct 2026): one door for the paper and its rulebook. The tab is
-             the standards page itself, drawn under this page's name — see
-             paperTabsHtml — so every one of its own tabs, its inspector and
-             its links are exactly what they were. */}
-      <button class="st-tab" data-paper-tab="standards" role="tab" aria-selected="false">${i18t('nav_our_standards')}${stdN!=null?`<span class="st-tab-n">${stdN}</span>`:''}</button>
+      ${''/* Our standards was this page's third tab until 17 Nov 2026: it is a page of its own now (the Ladder; the owner answered "Remove it") */}
     </div>`}
     </div>
 
@@ -3830,7 +4049,7 @@ function renderTemplatesPage(){
    (clause library · playbook · deviations) sits under this one as its
    sub-tabs. PAPER_TABS is the one list; the Templates page draws the first
    two itself, and the standards page draws all three with its own lit. */
-const PAPER_TABS=['book','list','standards'];
+const PAPER_TABS=['book','list'];
 /* EACH TAB CARRIES ITS COUNT (round 21 as drawn: "The book 24 · Templates 24
    · Our standards 6"), the number of what the tab's own list opens on: every
    template in the book, the list's first pile (Ready to use), and Our
@@ -3878,8 +4097,9 @@ function paperLhHtml(seat, o, seg){
 function paperTabsWire(){
   document.querySelectorAll('[data-paper-tab]').forEach(b=>{ if(b.dataset.paperBound) return; b.dataset.paperBound='1'; b.addEventListener('click',()=>{
     const k=b.getAttribute('data-paper-tab');
-    if(!PAPER_TABS.includes(k)) return;
+    /* Our standards is its own page now (the Ladder, 17 Nov 2026): the Shelves' "Our standards" door goes there */
     if(k==='standards'){ if(state.view!=='playbook') setView('playbook'); return; }
+    if(!PAPER_TABS.includes(k)) return;
     _tplPageTab=k;
     setView('templates');
   }); });
@@ -3936,6 +4156,8 @@ function pbTabGo(k){
   if(typeof stLandTop==='function') stLandTop();
 }
 function renderPlaybookPage(){
+  /* THE LADDER (17 Nov 2026): Standards is a page of its own (js/views/ladder.js); every caller of the old page lands on it */
+  if(typeof window.renderStandardsPage==='function') return window.renderStandardsPage();
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg)';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
   /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (Young ruled 26 Sep 2026: all three
@@ -4908,7 +5130,7 @@ function sdWire(d, mayEdit){
   PB_PAGE_TABS.forEach(sdWireList);
 }
 
-Object.assign(window,{tplnPanelFive,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+Object.assign(window,{tplnBack,tplnPanelFive,tplnOursGo,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfReadOf,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

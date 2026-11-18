@@ -64,14 +64,16 @@ const CONTRACTS = [
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'TR-A'), null, { timeout: 20000 });
 
     console.log('\n1 · the door, and the two tabs');
-    const door = await until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
-      /* the door, not the card's fact that opens it too (round 25 as drawn) */
-      const d = document.querySelector('[data-st-card="house"] .st-door[data-st-panel="trail"]');
-      return d && d.getBoundingClientRect().width > 0 ? d.textContent.replace(/\s+/g, ' ').trim() : null; }, null, 15000);
-    check('1a Housekeeping carries a door, The trail', /^The trail ›$/.test(door || ''), door);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Housekeeping card is the old look's; the trail is a
+       link at the one list's foot ("Trail") */
+    const TRAIL = '#stn-pages .stn-pg[data-st-panel="trail"]';
+    const door = await until(sel => {
+      if (!document.querySelector('.stn-page')) { setView('team'); return null; }
+      const d = document.querySelector(sel);
+      return d && d.getBoundingClientRect().width > 0 ? d.textContent.replace(/\s+/g, ' ').trim() : null; }, TRAIL, 15000);
+    check('1a the one list\'s foot carries a link, Trail', /^Trail\b/.test(door || ''), door);
     await shot(page, 'trail-company');
-    if (door) await press('[data-st-card="house"] .st-door[data-st-panel="trail"]', '1b the door');
+    if (door) await press(TRAIL, '1b the door');
     /* since round 26 ("The SAP way") Data & backup is a PAGE: The trail · Backup are its tabs */
     const tabs = await until(() => { const pg = document.querySelector('[data-st-pg="data"]');
       if (!pg) return null;

@@ -386,7 +386,8 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     /* RETIRED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): its reference was
        Home's resting face in the sliding pill, which is not drawn on a computer; the
        Settings tabs' look is Round 24's to decide. What still stands: they are drawn. */
-    check('5c the Settings tabs are drawn (their reference, Home\'s pill, retired with Round 2)', !!stFace, { home: HOME_FACE, settings: stFace });
+    /* RETIRED 16 Nov 2026 (#762): 5c "the Settings tabs are drawn" — the new look's Settings is one list, no tabs (f1045) */
+    void stFace; void HOME_FACE;
 
     /* 5d — THE CLAIM THAT NOTHING MOVED, REVERSED ON ONE PROPERTY 24 Aug 2026
        (WO-16, owner-asked: "reduce the font by a size in the contracts and
@@ -419,6 +420,8 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       && parseFloat(got.fontSize) >= parseFloat(ref.fontSize) - 2;
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await pause(2400);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the List pill shows the list */
+    if (await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); return !!b && b.getClientRects().length > 0 && !document.querySelector('#reg-tbody tr[data-row]'); })) { await page.click('[data-ctf-show="list"]'); await pause(1200); }
     const regTitles = await page.evaluate(READ_TYPE, { sel: '.reg-table tbody .reg-title', props: TYPE });
     check('5d the CONTRACTS list titles share the reference\'s family and tracking',
       regTitles.length > 0 && regTitles.slice(0, 3).every(t => sameButSize(t).ok),
@@ -444,7 +447,8 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await page.evaluate(() => openNegotiations({ list: true }));
     await pause(2400);
     await page.screenshot({ path: path.join(OUT, '06-negolist.png') });
-    const nglTitles = await page.evaluate(READ_TYPE, { sel: '.reg-table tbody .reg-title', props: TYPE });
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Negotiations list is its own table (.ngn-table), each row led by its name */
+    const nglTitles = await page.evaluate(READ_TYPE, { sel: '.ngn-table tbody .cun-name', props: TYPE });
     check('5e and so are the NEGOTIATIONS list titles — one table, one answer',
       nglTitles.length > 0 && nglTitles.slice(0, 3).every(t => sameButSize(t).ok),
       nglTitles.slice(0, 3).map(t => `${t._txt}: ${sameButSize(t).why || 'match'}`));
@@ -485,167 +489,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        exactly what "cramped" looked like. f236 catches the CAUSE in the file;
        this asks the live page whether the rule survived to the screen, which
        is the only place that question can be answered. */
-    await page.setViewportSize({ width: 1500, height: 1000 });
-    await pause(600);
-    await page.evaluate(() => setView('team'));
-    await pause(2400);
-    await page.screenshot({ path: path.join(OUT, '08-settings-tabs.png') });
-
-    const roomBox = await page.evaluate(() => {
-      /* Read the reference off the room's own row — the page it was asked to
-         resemble — rather than off a number typed here. */
-      const t = document.createElement('button'); t.className = 'room-tab';
-      const row = document.createElement('div'); row.className = 'room-tabs';
-      row.appendChild(t); document.body.appendChild(row);
-      const s = getComputedStyle(t), rs = getComputedStyle(row);
-      const out = { padding: s.padding, gap: rs.gap };
-      row.remove(); return out;
-    });
-    /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): Settings' row is
-       Home's sliding pill now (the owner's words), and the room's underline
-       row is still the TEMPLATES page's and Our standards'. 6a keeps its point
-       — the rule reached the screen — asked of the pill; 6b and 6c ask the
-       pill's own shape: two faces of one width, the white pill under the live
-       one. The room's row is read above and stays the reference for the rows
-       that still wear it. */
-    void roomBox;
-    const stBox = await page.evaluate(() => {
-      const t = document.querySelector('#set-page .st-face'); if (!t) return null;
-      const faces = [...document.querySelectorAll('#set-page .st-face')];
-      const thumb = document.querySelector('#set-page .st-thumb');
-      const live = document.querySelector('#set-page .st-face[aria-selected="true"]');
-      const s = getComputedStyle(t);
-      return { padding: s.padding, widths: faces.map(f => Math.round(f.getBoundingClientRect().width)),
-        thumbUnder: !!(thumb && live) && Math.abs(thumb.getBoundingClientRect().left - live.getBoundingClientRect().left) <= 1,
-        thumbShown: !!thumb && getComputedStyle(thumb).display !== 'none',
-        /* a line is painted only when its style draws one AND its ink shows */
-        lines: faces.map(f => { const cs = getComputedStyle(f), ink = !/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(cs.borderBottomColor) && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0;
-          return (f.getAttribute('aria-selected') === 'true' ? 'live:' : 'other:') + (ink ? cs.borderBottomStyle + ' ' + cs.borderBottomWidth : 'none'); }),
-        fills: faces.map(f => (f.getAttribute('aria-selected') === 'true' ? 'live:' : 'other:') + getComputedStyle(f).backgroundColor),
-        inParsedSheet: (() => {
-          for (const sheet of document.styleSheets){
-            let rules; try { rules = sheet.cssRules; } catch (_) { continue; }
-            for (const r of rules) if (r.selectorText === '.st-cr .st-face') return true;
-          }
-          return false;
-        })() };
-    });
-
-    check('6a THE RULE IS IN THE PARSED STYLESHEET — no comment swallowed it',
-      stBox && stBox.inParsedSheet && stBox.padding !== '0px',
-      stBox && { inSheet: stBox.inParsedSheet, padding: stBox.padding });
-    /* RE-POINTED 18 Oct 2026 (round 25 "Control room" as drawn, the owner's
-       yes reversing the 16 Oct pill): You · Company are UNDERLINED TABS, each
-       as wide as its word — a painted line under the live one, no sliding
-       pill */
-    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a chosen tab is a filled grey
-       pill — the live one filled, the other bare, and no line under either */
-    check('6b the two tabs, the live one a filled pill, the other bare, no line under either',
-      stBox && stBox.widths.length === 2 && stBox.fills.some(l => l === 'live:rgb(240, 240, 243)') && stBox.fills.filter(l => /^other:/.test(l)).every(l => /rgba\(0, 0, 0, 0\)|transparent/.test(l)) && stBox.lines.every(l => /:none$/.test(l)),
-      stBox && { lines: stBox.lines, fills: stBox.fills });
-    check('6c and no sliding pill',
-      stBox && !stBox.thumbShown, stBox && stBox.thumbShown);
-
-    /* ---- 6d-6g THE ROW STAYS WHILE THE PAGE SCROLLS (Young ruled it 18 Sep
-       2026: "for the team & settings page, make that when you scroll, you do
-       not lose the tabs. The body scrolls up behind the tabs line") ----
-       MEASURED at the parent, 1440x620 on Platform settings: the row rests at
-       y=84 and 600px down it is at y=-516, off the scroller entirely.
-
-       IT IS A BROWSER FILE FOR THE USUAL REASON. position:sticky dies in
-       silence inside an overflow:hidden ancestor and the declaration goes on
-       looking perfectly correct, so the source cannot answer whether the row
-       stayed. And a rect is not a painted pixel — 6e asks elementFromPoint
-       over the live tab's own word, which is the instrument the ladder's hover
-       card was clipped away behind. */
-    const SHORT = { width: 1440, height: 620 };
-    await page.setViewportSize(SHORT);
-    await pause(500);
-    await page.evaluate(() => window.settingsGoTab('company'));
-    await pause(900);
-
-    /* RE-POINTED 19 Oct 2026 (lane F's third pass, rounds 24 and 25 as
-       drawn): the tabs live in the HEAD CARD in the left column, beside
-       Jambo's whole-height panel, and it is the card that stays while the
-       page scrolls — the owner's 18 Sep ruling, kept in the drawn frame */
-    const readRow = () => page.evaluate(() => {
-      const row = document.getElementById('st-headcard') || document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
-      if (!row || !sc) return null;
-      const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
-      /* the first painted thing on the row is the pill's track (16 Oct 2026) */
-      const first = document.querySelector('#set-page .st-faces') || document.querySelector('.st-tab');
-      const live = document.querySelector('#set-page .st-face[aria-selected="true"]') || first;
-      const lr = live.getBoundingClientRect();
-      const hit = document.elementFromPoint(Math.round(lr.left + lr.width / 2), Math.round(lr.top + lr.height / 2));
-      return { glyph: Math.round(first.getBoundingClientRect().top - s.top),
-        rowTop: Math.round(r.top - s.top), leftGap: Math.round(r.left - s.left),
-        bg: getComputedStyle(row).backgroundColor,
-        painted: !!(hit && hit.closest && hit.closest('.st-face, .st-tab')),
-        /* the air above the pinned card: the page's ground, never the body */
-        above: (() => { const a = document.elementFromPoint(Math.round(r.left + 30), Math.round(s.top + 2)); return !!(a && a.closest && a.closest('#st-headcard')); })(),
-        padT: parseFloat(getComputedStyle(row).top) || 0,
-        scrollTop: sc.scrollTop, canScroll: sc.scrollHeight - sc.clientHeight };
-    });
-
-    const pinRest = await readRow();
-    await page.evaluate(() => { document.getElementById('content-scroll').scrollTop = 900; });
-    await pause(350);
-    const stScrolled = await readRow();
-    await page.screenshot({ path: path.join(OUT, '08b-settings-tabs-pinned.png') });
-
-    check('6d there is more settings than one screen, so the question is real',
-      pinRest && pinRest.canScroll > 300, pinRest && { overflow: pinRest.canScroll });
-    check('6e the tab row is still on screen after scrolling, and really painted',
-      stScrolled && stScrolled.rowTop === Math.round(stScrolled.padT) && stScrolled.painted && stScrolled.scrollTop > 0,
-      stScrolled && { rowTop: stScrolled.rowTop, scrolledBy: stScrolled.scrollTop,
-        wordUnderThePointer: stScrolled.painted });
-    /* THE FIRST PAINTED GLYPH DOES NOT MOVE — "ONE HEADER TOP", and the row
-       pays for its own pinned air by cancelling the page's top padding and
-       putting it back inside itself. A RELATION against the token, never a
-       number typed here. */
-    const padT = await page.evaluate(() =>
-      parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t')) || 0);
-    /* RE-POINTED 18 Oct 2026 (round 25 as drawn): the head "Settings ·
-       <the company>" sits above the tabs and carries the page's first glyph
-       (ONE HEADER TOP is the head's now); the tab row's own glyph still does
-       not move, pinned or not */
-    void padT;
-    check('6f and the first glyph sits where it always sat, pinned or not',
-      pinRest && stScrolled && pinRest.glyph === stScrolled.glyph,
-      { rest: pinRest && pinRest.glyph, scrolled: stScrolled && stScrolled.glyph });
-    /* A PINNED ROW HAS TO BE OPAQUE ACROSS THE WHOLE WIDTH or the body shows
-       through the gutters beside it. */
-    /* re-pointed 19 Oct 2026: a card inset by the page's gutter, as drawn —
-       opaque, and the air above it covered, so nothing scrolls through */
-    check('6f2 it is opaque and nothing of the body shows above it',
-      stScrolled && stScrolled.above && !/rgba\(0, 0, 0, 0\)|transparent/.test(stScrolled.bg),
-      stScrolled && { above: stScrolled.above, background: stScrolled.bg });
-
-    /* AND A TAB PRESSED FROM THE BOTTOM LANDS AT THE TOP. Until the row was
-       pinned this came for free: reaching a tab meant being at the top already.
-       A press that NAVIGATES may land at the top, and this one is four
-       different pages of settings. */
-    /* DISPATCHED IN THE PAGE, NOT CLICKED. Playwright scrolls an element into
-       view before clicking it, which would put the scroller back near the top
-       by itself and make this check pass against a build that does nothing —
-       measured, it did. The press has to land while the reader is still at the
-       bottom, which is the whole case. */
-    const pressed = await page.evaluate(() => {
-      const sc = document.getElementById('content-scroll');
-      sc.scrollTop = 900;
-      const was = sc.scrollTop;
-      const tab = document.querySelector('[data-st-tab="you"]');
-      const onScreen = tab.getBoundingClientRect().top >= sc.getBoundingClientRect().top - 1;
-      tab.click();
-      return { was, onScreen };
-    });
-    await pause(800);
-    const landed = await readRow();
-    check('6g a tab pressed from the bottom of the list lands at the top',
-      pressed && pressed.was > 0 && pressed.onScreen && landed && landed.scrollTop === 0,
-      { pressedFrom: pressed && pressed.was, tabWasReachable: pressed && pressed.onScreen,
-        landedAt: landed && landed.scrollTop });
-
+    /* RETIRED 16 Nov 2026 (#762): 6a–6g pinned Settings' TAB ROW (the You · Company faces, their pill, the row pinned while
+       the settings scroll, a tab pressed from the bottom landing at the top). The new look draws Settings as ONE LIST by
+       area with chips and no tabs or left menu (CLAUDE.md SETTINGS: "THE LEGORA WAY, WITH COLOUR … NO LEFT MENU", f1045);
+       there is no tab row to measure. The page's own scrolling is covered by its new-look checks. */
     await page.setViewportSize({ width: 1500, height: 1000 });
     await pause(500);
 

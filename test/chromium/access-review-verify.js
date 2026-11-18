@@ -71,18 +71,20 @@ const CONTRACTS = [
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'AR-1'), null, { timeout: 20000 });
 
     console.log('\n1 · the ask, and the sheet in review mode');
-    const ask = await until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
-      const more = document.querySelector('#st-att [data-st-needs-all]'); if (more && more.getAttribute('aria-expanded') !== 'true') { more.click(); return null; }
-      const r = document.querySelector('#st-att [data-st-need="review"]');
-      return r ? { text: r.textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; what needs an admin is a row
+       in Jambo's panel beside it ("Needs an admin"), the row itself the door (the need's own press: the sheet, reviewing) */
+    const NEED = '#ins-panel .jov5-row[data-st-page="sheet"][data-st-land="ar"]';
+    const ask = await until(sel => {
+      if (!document.querySelector('.stn-page')) { setView('team'); return null; }
+      const r = document.querySelector(sel);
+      return r ? { text: [...r.querySelectorAll('.jov5-rt > *')].map(x => x.textContent).join(' ').replace(/\s+/g, ' ').trim() } : null; }, NEED, 15000);
     /* re-pointed 18 Oct 2026 (round 25 as drawn): the second line says it is
        asked until the quarter is stamped */
-    check('1a Needs your attention asks for the quarter\'s review', !!ask && ask.text === `Quarterly access review · ${qWord()} 0 of 3 reviewed · asked until the quarter is stamped Review` /* two lines a row since round 25 */, ask && ask.text);
+    check('1a Needs your attention asks for the quarter\'s review', !!ask && ask.text === `Quarterly access review · ${qWord()} 0 of 3 reviewed · asked until the quarter is stamped`, ask && ask.text);
     const bell = await page.evaluate(() => (typeof buildAlerts === 'function' ? buildAlerts() : []).filter(a => a.kind === 'access-review').map(a => a.text).join(' | '));
     check('1b …and so does the bell', bell === `The quarterly access review is due · ${qWord()}`, bell);
     await shot(page, 'ar-needs');
-    if (ask) await press('#st-att [data-st-need="review"] .st-need-go', '1c Review');
+    if (ask) await press(NEED, '1c Review');
     const head = await until(() => { const p = document.querySelector('[data-st-pg="sheet"]'); return p ? (p.querySelector('.st-pg-t') || {}).textContent.replace(/\s+/g, ' ').trim() : null; });
     check('1c Review opens Who holds what, reviewing', head === `Who holds what Reviewing · ${qWord()} · 0 of 3 reviewed`, head);
 

@@ -48,7 +48,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       const vis = el => !!el && !el.closest('[hidden]') && el.getBoundingClientRect().height > 0;
       const box = id => vis(document.getElementById(id));
       const notes = [...document.querySelectorAll('#st-dbody [data-tm-for="admin"]')].filter(vis).length;
-      return { values: box('tm-values'), paper: box('tm-paper'), refile: box('tm-refile'), hold: box('tm-hold'), notes };
+      return { values: box('tm-values'), paper: box('tm-paper'), refile: box('tm-refile'), hold: box('tm-hold'), std: box('tm-stddec'), notes };
     });
     const pickRole = r => page.evaluate(k => { const el = document.querySelector(`[name="tm-role-r"][value="${k}"]`);
       if (el) { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); } return !!el; }, r);
@@ -58,26 +58,30 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2, null, { timeout: 20000 });
 
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the People card is the old look's; Add member is on
+       the People & roles page, linked at the one list's foot */
     const door = await until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
-      const d = document.querySelector('[data-st-card="people"] [data-st-panel="person:new"]');
+      if (!document.getElementById('set-page')) { setView('team'); return null; }
+      if (!document.querySelector('[data-st-pg="team"]')) { const f = document.querySelector('#stn-pages [data-st-page="team"]'); if (f) f.click(); return null; }
+      const d = document.querySelector('[data-st-pg="team"] [data-st-panel="person:new"]');
       return d && d.getBoundingClientRect().width > 0;
     }, null, 15000);
-    check('0 Company › People & access carries Add member', !!door);
+    check('0 Settings › People & roles carries Add member', !!door);
     if (!door) throw new Error('no Add member door');
-    await page.locator('[data-st-card="people"] [data-st-panel="person:new"]').first().click();
+    await page.locator('[data-st-pg="team"] [data-st-panel="person:new"]').first().click();
     await drawerOpen();
 
     console.log('\n1 · a Viewer');
     const v = await until(() => document.getElementById('tm-values') ? true : null);
     check('1a the new-person form draws the values tick', !!v);
     const s1 = await shown();
-    check('1b a Viewer is asked about values only', s1.values && !s1.paper && !s1.refile && !s1.hold && s1.notes === 0, JSON.stringify(s1));
+    check('1b a Viewer is asked about values only', s1.values && !s1.paper && !s1.refile && !s1.hold && !s1.std && s1.notes === 0, JSON.stringify(s1));
 
     console.log('\n2 · an Editor');
     await pickRole('legal');
     const s2 = await shown();
-    check('2a an Editor is asked all four', s2.values && s2.paper && s2.refile && s2.hold && s2.notes === 0, JSON.stringify(s2));
+    /* RE-POINTED 17 Nov 2026: a fifth, who decides on our standards */
+    check('2a an Editor is asked all five', s2.values && s2.paper && s2.refile && s2.hold && s2.std && s2.notes === 0, JSON.stringify(s2));
     const words = await page.evaluate(() => {
       const nm = id => (document.getElementById(id).closest('label').querySelector('.st-role-name') || {}).textContent;
       const before = nm('tm-paper');
@@ -90,7 +94,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     console.log('\n3 · an Admin');
     await pickRole('admin');
     const s3 = await shown();
-    check('3a an Admin reads three sentences, no ticks', !s3.values && !s3.paper && !s3.refile && !s3.hold && s3.notes === 3, JSON.stringify(s3));
+    check('3a an Admin reads four sentences, no ticks', !s3.values && !s3.paper && !s3.refile && !s3.hold && !s3.std && s3.notes === 4, JSON.stringify(s3));
 
     console.log('\n4 · saved as an Editor');
     await pickRole('legal');
@@ -98,7 +102,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('4a switching role and back keeps the tick', kept === true);
     await page.evaluate(() => {
       const set = (id, on) => { const el = document.getElementById(id); if (el.checked !== on) el.click(); };
-      set('tm-values', false); set('tm-hold', true); set('tm-refile', false);
+      set('tm-values', false); set('tm-hold', true); set('tm-refile', false); set('tm-stddec', true);
     });
     await page.fill('#tm-name', 'Grace Wanjiru');
     await page.fill('#tm-email', 'grace@example.co.ke');
@@ -110,11 +114,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const stored = await until(async () => {
       const j = await api('bootstrap').catch(() => null);
       const u = j && (j.users || []).find(x => x.email === 'grace@example.co.ke');
-      return u ? { role: u.role, values: u.canViewValues, paper: !!u.newPaper, refile: !!u.reFile, hold: !!u.holdContracts } : null;
+      return u ? { role: u.role, values: u.canViewValues, paper: !!u.newPaper, refile: !!u.reFile, hold: !!u.holdContracts, std: !!u.decideStandards } : null;
     }, null, 10000);
     const got = stored;
-    check('4b the new account holds what was ticked (Editor, values hidden, new paper, hold, no re-filing)',
-      !!got && got.role === 'legal' && got.values === false && got.paper && got.hold && !got.refile, JSON.stringify(stored));
+    check('4b the new account holds what was ticked (Editor, values hidden, new paper, hold, no re-filing, decides on our standards)',
+      !!got && got.role === 'legal' && got.values === false && got.paper && got.hold && !got.refile && got.std, JSON.stringify(stored));
 
     console.log('\n5 · the owner\'s three screens');
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {

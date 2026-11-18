@@ -97,7 +97,7 @@ const MANIFEST = [
     await page.waitForTimeout(2400);
     const openImport = async () => {
       await page.evaluate(() => { state.aiConfigured = false; setView('migration'); });
-      await page.waitForSelector('#mig-drop', { timeout: 8000 }).catch(() => {});
+      await page.waitForSelector('#mig-drop, .mign-page', { timeout: 8000 }).catch(() => {});
     };
 
     /* ===== 1. THE PAGE OPENS ===== */
@@ -139,7 +139,12 @@ const MANIFEST = [
       const M = migState();
       return M.queue.map(q => ({ name: q.name, status: q.status, note: q.note || '', id: q.id || '' }));
     });
-    const qtext = await page.evaluate(() => (document.getElementById('mig-list') || {}).innerText || '');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): with files in, Import is ONE table
+       (.mign-table, migNlRender) — each file's row says what was read or why it waits in its own words (a
+       left-out copy "the same file as MK-… · left out", a refused .doc its reason); the tabs are
+       Need you · Read · All ([data-mign-tab]); a person confirms through the file's Fill in (the check view),
+       whose "All the details…" opens the same review window (#mr-save); a filed row is .is-done */
+    const qtext = await page.evaluate(() => (document.querySelector('.mign-table') || {}).innerText || '');
     await page.screenshot({ path: path.join(OUT, '3-batch.png'), fullPage: true });
     const row = n => rows.find(r => r.name === n) || {};
     const acmeId = row('acme_supply_2024.txt').id;
@@ -148,11 +153,11 @@ const MANIFEST = [
         && new Set(rows.filter(r => r.id).map(r => r.id)).size === 3, JSON.stringify(rows.map(r => r.name + ':' + r.status)));
     check('3b an identical copy is skipped and names the contract it matched — never silently',
       row('acme_supply_COPY.txt').status === 'duplicate' && /identical to/.test(row('acme_supply_COPY.txt').note)
-        && /acme_supply_COPY\.txt[\s\S]{0,200}Left out[\s\S]{0,40}the same file as MK-/.test(qtext), row('acme_supply_COPY.txt').note);
+        && /acme_supply_COPY\.txt[\s\S]{0,200}the same file as MK-\d+ · left out/.test(qtext), row('acme_supply_COPY.txt').note);
     check('3c an empty file fails, saying why', row('empty.txt').status === 'error' && /empty file/.test(row('empty.txt').note), row('empty.txt').note);
     check('3d an old .doc Word file is refused before anything is filed', row('old_contract.doc').status === 'word' && !row('old_contract.doc').id
-      && /old_contract\.doc[\s\S]{0,200}Not imported[\s\S]{0,40}an old Word \.doc file/.test(qtext), row('old_contract.doc').note);
-    const files6 = await page.evaluate(() => (document.querySelector('[data-lh-seat="migration"] [role="tab"][data-mig-show="all"]') || {}).innerText || '');
+      && /old_contract\.doc[\s\S]{0,200}an old Word \.doc file: save it as \.docx or PDF/.test(qtext), row('old_contract.doc').note);
+    const files6 = await page.evaluate(() => (document.querySelector('.mign-page [data-mign-tab="all"]') || {}).innerText || '');
     check('3e the list accounts for every file of the batch: All 6, each named with its state', /All\s*6/.test(files6)
       && ['acme_supply_2024.txt', 'office_lease.txt', 'board_consultancy.txt', 'acme_supply_COPY.txt', 'empty.txt', 'old_contract.doc'].every(n => qtext.includes(n)),
       files6.replace(/\s+/g, ' ') + ' | ' + qtext.split('\n').slice(0, 2).join(' | '));
@@ -170,11 +175,13 @@ const MANIFEST = [
     check('4b the record says it was imported against the list, executed outside HaTi, and the trail says Migrated',
       rec.manifest && rec.outside && rec.migrated, JSON.stringify(rec));
     const leaseId = row('office_lease.txt').id;
-    const leaseRow = await page.evaluate(id => { const tr = document.querySelector(`.mig-table tr[data-row="${id}"]`);
-      return tr ? { text: tr.innerText.replace(/\s+/g, ' '), missing: [...tr.querySelectorAll('span[title$="— missing"]')].map(s => s.getAttribute('title')) } : null; }, leaseId);
+    /* RE-POINTED (#762): the new row has no gate dots; it says the missing end date in words under what was read */
+    const leaseRow = await page.evaluate(async id => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`);
+      let expiry = null; try { const c = await api('contracts/' + encodeURIComponent(id)); expiry = c.expiry || ''; } catch (_) { expiry = null; }
+      return tr ? { text: tr.innerText.replace(/\s+/g, ' '), expiry } : null; }, leaseId);
     check('4c the date it could not read stays empty on the record, and its row shows the end-date gate as missing',
-      leaseRow && leaseRow.missing.some(t => /expiry|evergreen|end/i.test(t)), JSON.stringify(leaseRow).slice(0, 220));
-    const tableRows = await page.evaluate(() => document.querySelectorAll('.mig-table tbody tr[data-row]:not([data-row^="q:"])').length);
+      leaseRow && leaseRow.expiry === '' && /no end date found/.test(leaseRow.text), JSON.stringify(leaseRow).slice(0, 220));
+    const tableRows = await page.evaluate(() => document.querySelectorAll('.mign-table tbody tr[data-row]:not([data-row^="q:"])').length);
     check('4d the imported list on the page carries exactly the three imported contracts', tableRows === 3, String(tableRows));
 
     /* ===== 5. RECONCILIATION ===== */
@@ -188,17 +195,19 @@ const MANIFEST = [
     const toReview = await page.evaluate(() => { const r = migRows().find(x => x.c && x.st.k === 'check' && x.c.migration.needsReview); return r ? r.key : ''; });
     check('6 · stage: at least one imported contract is waiting for a person to confirm it', !!toReview);
     if (toReview) {
-      await page.evaluate(id => migPickSet(id), toReview);
-      await page.waitForSelector('#mig-side [data-mig-review-full]', { timeout: 6000 }).catch(() => {});
-      await page.click('#mig-side [data-mig-review-full]');
+      await page.click(`.mign-table tr[data-row="${toReview}"] [data-mign-go]`, { timeout: 6000 }).catch(() => {});
+      await page.waitForSelector('#content [data-mig-review-full]', { timeout: 6000 }).catch(() => {});
+      await page.click('#content [data-mig-review-full]', { timeout: 6000 }).catch(() => {});
       const opened = await page.waitForSelector('#mr-save', { timeout: 8000 }).then(() => true).catch(() => false);
       check('6a Review opens the details for a person to check', opened);
       if (opened) { await page.click('#mr-save'); await page.waitForTimeout(1500); }
       const after = await page.evaluate(async id => {
         try { await flushSaves(); } catch (_) {}
         const c = await api('contracts/' + encodeURIComponent(id));
-        const tr = [...document.querySelectorAll('.mig-table tr[data-row]')].find(r => r.getAttribute('data-row') === id);
-        return { needs: !!(c.migration && c.migration.needsReview), filed: !!(tr && tr.classList.contains('is-filed')) };
+        try { if (typeof migCheckId === 'function' && migCheckId()) migCheckClose(); } catch (_) {}
+        await new Promise(z => setTimeout(z, 400));
+        const tr = [...document.querySelectorAll('.mign-table tr[data-row]')].find(r => r.getAttribute('data-row') === id);
+        return { needs: !!(c.migration && c.migration.needsReview), filed: !!(tr && tr.classList.contains('is-done') && /\bOpen\b/.test(tr.innerText)) };
       }, toReview);
       check('6b Confirm & save clears it — on the server, and its row says Filed', !after.needs && after.filed, JSON.stringify(after));
     }
@@ -208,10 +217,13 @@ const MANIFEST = [
     await page.waitForTimeout(2000);
     await openImport();
     await page.waitForTimeout(800);
-    const kept = await page.evaluate(() => document.querySelectorAll('.mig-table tbody tr[data-row]:not([data-row^="q:"])').length);
+    await page.waitForSelector('.mign-table', { timeout: 8000 }).catch(() => {});
+    const kept = await page.evaluate(() => document.querySelectorAll('.mign-table tbody tr[data-row]:not([data-row^="q:"])').length);
     await page.screenshot({ path: path.join(OUT, '7-after-refresh.png'), fullPage: true });
     check('7a after a refresh the three imported contracts are still listed', kept === 3, String(kept));
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Contracts place opens on its Folders; its List pill shows the list */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
     await page.waitForTimeout(1200);
     const onList = await page.evaluate(id => { const c = getContract(id);
       const ref = c ? (window.contractRef ? contractRef(c) : c.id) : id;

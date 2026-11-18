@@ -296,6 +296,8 @@ function lhHeadSync(seat){
   if (_lhSoon[seat] != null){ if (typeof clearTimeout === 'function') clearTimeout(_lhSoon[seat]); delete _lhSoon[seat]; }
   if (typeof document === 'undefined' || !document.querySelectorAll) return 0;
   const pg = _lhPage(seat);
+  /* a bar the page draws itself (LH_DRAWN_HEADS) is never redrawn here */
+  if (pg && pg.drawn) return 0;
   let n = 0;
   document.querySelectorAll(`[data-lh-seat="${_lhSel(seat)}"]`).forEach(head => {
     const kids = Array.from(head.children), row = (list, cls) => list.find(el => el.classList.contains(cls)) || null;
@@ -669,6 +671,48 @@ function lhControlsNow(){
   });
   return seats.length ? { seats } : null;
 }
+/* THE NEW LOOK'S OWN TAB ROWS ARE HIS TOO (17 Nov 2026): a new-look list page draws its own bar (the apn-bar: its
+   box and its pills, never this file's head), so it registers a seat of its own here and carries
+   data-lh-seat="<seat>" on that bar; lhControlsNow then offers him exactly what the bar shows. Everything is READ OFF
+   THE BAR AS DRAWN (its pills in order, their words and counts, the lit one) and every press goes through the page's
+   own door: a tab is the pill's own click, the words are the box's own input event — so his press and a person's are
+   one press. `drawn: true` keeps lhHeadSync off the bar (it is the page's, never redrawn here). Rows:
+   [seat, noun (the old seat's), the pills' attribute, the box's id]. */
+const LH_DRAWN_HEADS = [
+  ['obligations-nl', 'obligations', 'data-obn-tab', 'obn-q'],
+  ['approvals-nl', 'approvals', 'data-apn-tab', 'apn-q'],
+  ['intake-nl', 'requests', 'data-ikn-tab', 'ikn-q'],
+  ['customers-nl', 'parties', 'data-cun-tab', 'cun-q'],
+  ['directory-nl', 'people', 'data-dirn-tab', 'dirn-q'],
+  ['negotiations-nl', 'negotiations', 'data-ngn-tab', 'ngn-q'],
+  ['migration-nl', 'files', 'data-mign-tab', 'mign-q'],
+  ['mynotes-nl', 'notes', 'data-mnn-tab', 'mnn-q'],
+];
+function lhDrawnHead(seat, noun, attr, boxId){
+  const bar = () => (typeof document !== 'undefined' && document.querySelector) ? document.querySelector(`[data-lh-seat="${_lhSel(seat)}"]`) : null;
+  const pills = () => { const b = bar(); return b ? Array.from(b.querySelectorAll(`[${attr}]`)) : []; };
+  const box = () => (typeof document !== 'undefined' && document.getElementById) ? document.getElementById(boxId) : null;
+  const shown = el => { try { return !!el && el.getClientRects().length > 0; } catch (_){ return false; } };
+  return lhRegister(seat, {
+    noun, drawn: true,
+    tabs: () => pills().map(b => {
+      const sp = b.querySelector('span'), n = sp ? Number(String(sp.textContent).replace(/[^\d]/g, '')) : null;
+      const label = String(b.textContent || '').replace(sp ? sp.textContent : '', '').replace(/\s+/g, ' ').trim();
+      return { k: b.getAttribute(attr), label: label || b.getAttribute(attr), n: sp && String(sp.textContent).trim() !== '' ? n : null };
+    }),
+    tabNow: () => { const on = pills().find(b => b.classList.contains('is-on')); return on ? on.getAttribute(attr) : null; },
+    tab: k => { const b = pills().find(x => x.getAttribute(attr) === String(k)); if (b) b.click(); },
+    q: () => { const i = box(); return i ? String(i.value || '') : ''; },
+    setQuery: w => {
+      const i = box(); if (!i || !shown(i)) return;
+      const v = String(w == null ? '' : w); if (i.value === v) return;
+      i.value = v;
+      const dv = i.ownerDocument && i.ownerDocument.defaultView, E = (dv && dv.Event) || (typeof Event === 'function' ? Event : null);
+      if (E) i.dispatchEvent(new E('input', { bubbles: true }));
+    },
+  });
+}
+LH_DRAWN_HEADS.forEach(r => lhDrawnHead(r[0], r[1], r[2], r[3]));
 function lhControlsRun(actions){
   const lines = [];
   (Array.isArray(actions) ? actions : []).forEach(a => {
@@ -724,6 +768,6 @@ function lhControlsRun(actions){
      lcSeat    Columns' seat when it is not the page's own
      more()    Show N more
      ask(text) the page's own Jambo door (answers false when it could not take it) */
-Object.assign(window, { LH_CTRL_MAX, lhControlsNow, lhControlsRun, LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
+Object.assign(window, { LH_CTRL_MAX, LH_DRAWN_HEADS, lhDrawnHead, lhControlsNow, lhControlsRun, LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
   lhRowsHtml, lhHtml, lhHeadSync, lhHeadSyncSoon, LH_SYNC_QUIET_MS, lhBoxSet, lhFootHtml, lhFootPut, lhMore, lhAsk, lhBoxFocus,
   LC_PAGES, LC_CSS, lcKey, lcState, lcSave, lcShown, lcBtnHtml, lcPopHtml, lcPlace, lcRepaint, lcScrollWire });

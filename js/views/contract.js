@@ -4640,7 +4640,9 @@ function focusKeyTerms(c, field){
   if(window.pdFillOpen&&!(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)){
     /* a fact this table does not name (governing law, disputes, payment terms …) is its own Key terms row, never the other party's */
     if(field&&!KT_FIELD_HOME[String(field)]&&state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,String(field||''))!==false) return;
-    let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt)); }catch(_){ asks=false; }
+    /* the form takes only a fact still OWED; one already on record is changed on its Key terms row (#762: "Fill it in"
+       for a recorded fact opened a form with nothing to fill, and landed nowhere) */
+    let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt&&x.open)); }catch(_){ asks=false; }
     if(asks){ pdFillOpen(c.id,{ key:home.kt }); return; }
     /* THE DETAILS PAGE IS RETIRED (owner, 22 Oct 2026): every other box is Key terms in the middle, ready on it */
     if(state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,home.kt)!==false) return;
@@ -15180,6 +15182,9 @@ function docThreadLineRow(){
    sheet), in which case the pressed row stays open and the reader's next
    scroll decides. */
 function docThreadGoTo(c,i){
+  /* THE READER'S PRESS WINS: a read still walking the paper (the Dossier's "Watch the read", played on arrival) is put
+     away, or it would carry the paper past the clause just pressed (#762, stakes 3f) */
+  if(typeof window.pd2WalkClose==='function') try{ window.pd2WalkClose(); }catch(_){ }
   const n=_docThreadRows.length; if(!n) return;
   docThreadShutClear();   /* a press that moves the paper is the reader's: the close is let go */
   i=Math.max(0,Math.min(n-1,Number(i)||0));
@@ -15199,9 +15204,14 @@ function docThreadGoTo(c,i){
 }
 function docThreadSettle(c){
   clearTimeout(_docThreadGlideT); _docThreadGlideT=null;
-  const held=_docThreadHold;
+  const held=_docThreadHold, pressed=_docThreadGlide;
   _docThreadGlide=-1; _docThreadHold=-1;
-  docThreadOpen(docThreadCur(c), held>=0?held:docThreadLineRow());
+  /* THE ROW PRESSED STAYS THE ONE OPEN (#762: the glide ended with another row at the line and that one opened): a
+     glide a press began settles on the pressed row; only a glide nobody pressed reads the line */
+  /* and the paper is put right under it if the glide fell short (the page moved under the glide while it ran) */
+  if(held<0&&pressed>=0){ try{ const sc=thEl('scroll'), el=_docThreadRows[pressed];
+    if(sc&&el){ const d=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-DOC_THREAD_LINE+1; if(Math.abs(d)>4) sc.scrollTop+=d; } }catch(_){ } }
+  docThreadOpen(docThreadCur(c), held>=0?held:pressed>=0?pressed:docThreadLineRow());
 }
 /* The paper's scroller is rebuilt with the room, so the listener rides the
    element and is armed once per element. The contract is looked up LIVE at

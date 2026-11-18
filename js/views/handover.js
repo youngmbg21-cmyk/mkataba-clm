@@ -191,6 +191,8 @@ async function outsideSetRoute(c, route, after){
   if (typeof persist === 'function') persist(c);
   if (typeof flushSaves === 'function'){ try { await flushSaves(); } catch (_) {} }
   if (typeof toast === 'function') toast(i18t(to === 'outside' ? 'ho_route_now_out' : 'ho_route_now_in', { no: contractRef(c) }), 'ok');
+  /* a Fill in form standing in the middle reads whose blanks they are: drawn again in place (#762) */
+  if (typeof window.pd2FormMidRedraw === 'function') { try { window.pd2FormMidRedraw(c); } catch (_) {} }
   if (typeof after === 'function') after(); else _hoRepaint(c);
   return true;
 }
@@ -273,6 +275,33 @@ function renderOutsideSign(c){
   try { if (typeof renderSignSide === 'function') renderSignSide(c); } catch (_) {}
   try { if (typeof wireApprovalPanel === 'function') wireApprovalPanel(c); } catch (_) {}
   _hoWireRoute(c, document.getElementById('sign-block'));
+}
+/* THE HANDOVER'S ONE ACT, AS A READING (16 Nov 2026, #762): the new look's Before you sign face draws its own card
+   (pd2SignRowsHtml) and hides the foot this file paints, so the face asks here what the act is and draws it in its
+   card; the press goes through hoActPress, the same three outcomes as #ho-hand / #ho-file above. */
+function hoActOf(c){
+  if (!c || typeof signRouteOf !== 'function' || signRouteOf(c) !== 'outside') return null;
+  if (typeof canEdit === 'function' && !canEdit()) return null;
+  if (handoverOf(c)) return { id: 'ho-file', label: i18t('ho_file_btn'), line: i18t('ho_file_line'), primary: true };
+  const rd = typeof signReadiness === 'function' ? signReadiness(c) : { holds: [], noted: [] };
+  const holdsN = rd.holds.length;
+  const saOnly = holdsN > 0 && rd.holds.every(r => r.kind === 'signapproval');
+  const saAsk = saOnly && rd.holds.some(r => r.sa && r.sa.askable);
+  const saWait = saOnly && !saAsk && rd.holds.every(r => r.sa && r.sa.status === 'pending');
+  const saWho = saWait ? rd.holds.map(r => (r.sa.need && r.sa.need.approverName) || i18t('sa_admins')).join(i18t('sa_and')) : '';
+  const ready = !holdsN;
+  return { id: 'ho-hand', holds: holdsN, primary: ready || saAsk,
+    label: saAsk ? i18t('sa_ask_btn') : saWait ? i18t('sa_btn_waiting', { who: saWho }) : holdsN ? i18tn('ho_btn_to_settle', holdsN, { n: holdsN }) : i18t('ho_hand_btn'),
+    line: i18t(ready ? 'ho_hand_line' : saAsk ? 'sa_btn_ask_line' : saWait ? 'sa_btn_wait_line' : 'sc_btn_held_line'),
+    go: ready ? 'hand' : saAsk ? 'ask' : 'list' };
+}
+function hoActPress(c){
+  const a = hoActOf(c); if (!a) return false;
+  if (a.id === 'ho-file'){ openOutsideFiling(c); return true; }
+  if (a.go === 'hand') openHandoverWindow(c);
+  else if (a.go === 'ask' && typeof openSignApprovalDialog === 'function') openSignApprovalDialog(c);
+  else if (typeof signLandOnList === 'function') signLandOnList(c);
+  return true;
 }
 function _hoWireRoute(c, root){
   if (!root) return;
@@ -1244,7 +1273,7 @@ if (typeof document !== 'undefined' && !document._hoOpenWired){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, {
+if (typeof window !== 'undefined') Object.assign(window, { hoActOf, hoActPress,
   outsideAgreedHtml, outsideAgreedParas, outsideAgreedPlain, outsideAgreedStamp, outsideBlanksOf,
   wordAgreedFile, outsideMayChangeRoute, outsideSetRoute, outsideRouteCardHtml, renderOutsideSign,
   openHandoverWindow, outsideHandOver, outsideAdopt, outsideAct, outsideWaitCardHtml, wireOutsideWait,

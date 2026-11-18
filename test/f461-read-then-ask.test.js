@@ -325,7 +325,7 @@ describe('F461 (D) — every enlarged card reads', () => {
     assert.equal(T('fric', fric), '“Liability” is argued over most: open in 3 negotiations. | Nordkraft AB takes the most rounds: 4.3 on average, in 1 negotiation. | 75% of the live ones are waiting on us.');
     assert.match(H('fric', fric), /data-hb-dig="cl:Liability"/);
     const pay = { sides: [{ key: 'supplier', n: 5, avg: 50, std: 45, over: 2, overIds: [], buckets: [{ i: 0, label: '0–30', ids: ['K0'] }, { i: 2, label: '46–60', ids: ['K1', 'K2', 'K3'] }] }], noSide: 0 };
-    assert.equal(T('pay', pay), 'We pay suppliers: the largest group is 46–60 days (3 contracts). | We pay suppliers: 2 of 5 are over our standard (40%).');
+    assert.equal(T('pay', pay), 'We pay suppliers: the largest group is 46–60 days (3 contracts). | We pay suppliers: 2 of 5 are over our position (40%).');
     assert.match(H('pay', pay), /data-hb-dig="po:supplier"/);
     const exp = { rows: [{ k: 'uncapped', title: 'Uncapped liability', n: 3, ids: ['K0', 'K1', 'K2'] }, { k: 'auto', title: 'Auto-renewal', n: 1, ids: ['K0'] }, { k: 'law', title: 'Foreign law', n: 0, ids: [] }] };
     assert.equal(T('exp', exp), '“Uncapped liability” is found most: in 3 contracts. | 2 kinds of risk are found, across 3 contracts. | 1 kind is not found anywhere.');

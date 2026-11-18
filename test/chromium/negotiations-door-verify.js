@@ -700,6 +700,10 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       renderRedline();
     });
     await page.waitForTimeout(600);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a pile of sent changes ("with them") is folded under
+       its band in the new look (.rl-pile-nlfold); it is opened as a reader opens it, by its band, so the sent card is drawn */
+    await page.evaluate(() => { const b = document.querySelector('#rl-changes .rl-pile-nlfold:not(.is-open) [data-rl-nlfold]'); if (b) b.click(); });
+    await page.waitForTimeout(400);
     const narrow = await page.evaluate(() => {
       const cards = [...document.querySelectorAll('#rl-changes .rl-card')];
       const sent = cards.filter(el => !el.querySelector('[data-rl-send]')
@@ -817,7 +821,9 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        page. Both halves are re-pointed rather than deleted, because both are
        still worth pinning: NEITHER seat draws a box of its own, and the row of
        filter controls still reads as one convention. */
-    await page.evaluate(() => { regSetScope(null); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders;
+       regFoldersShut() is the List pill's own step, so the list's head is the one measured */
+    await page.evaluate(() => { regSetScope(null); if (typeof regFoldersShut === 'function') regFoldersShut(); setView('register'); });
     await page.waitForTimeout(1400);
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way", and
        answered Q1 "B — keep both boxes"): the Contracts place draws the list

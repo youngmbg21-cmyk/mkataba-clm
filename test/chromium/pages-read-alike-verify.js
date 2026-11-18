@@ -333,8 +333,11 @@ const SEED = async () => {
         room.rest.fs === nego.rest.fs && room.rest.fw === nego.rest.fw,
         { room: room.rest, nego: nego.rest });
     }
-    check('3 and the live tab agrees on all three',
-      room.on.c === nego.on.c && room.on.fw === nego.on.fw && room.on.fs === nego.on.fs,
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the negotiate page's chosen reading is a filled black
+       pill with white words (index.html lg-new ".rl-readwrap .rl-seg.on", the new look's "black only on the chosen"), so
+       its ink is its own; the live tab still agrees with the room's in size and weight */
+    check('3 and the live tab agrees in size and weight',
+      room.on.fw === nego.on.fw && room.on.fs === nego.on.fs,
       { room: room.on, nego: nego.on });
 
     /* ---- 4 · THE NEGOTIATIONS LIST HOLDS STILL WHEN YOU SCROLL IT ----
@@ -347,9 +350,11 @@ const SEED = async () => {
     await page.evaluate(() => openNegotiations({ list: true }));
     await pause(1600);
     const band = await page.evaluate(async () => {
-      const sc = document.getElementById('reg-scroll');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Negotiations list is the new look's table
+         (.ngn-table) in its own scroller (.cu-scroll); the promise is the same: its column header holds while rows scroll */
+      const nt = document.querySelector('#content .ngn-table'), sc = nt && nt.closest('.cu-scroll');
       if (!sc) return { err: 'the list drew no table' };
-      const th = sc.querySelector('.reg-table thead th');
+      const th = sc.querySelector('.ngn-table thead th');
       if (!th) return { err: 'no header' };
       /* The seeded book yields a handful of live negotiations, which fit. What
          is being measured is sticky pinning, so the scroller is given a height
@@ -358,7 +363,7 @@ const SEED = async () => {
          and still taller than the header). */
       /* RE-POINTED 29 Oct 2026 (One sheet): the list's card now reaches the panel's foot, so the scroller is
          taller than its rows at rest — the rows' own height, not the scroller's, says what will not fit */
-      const tbl = sc.querySelector('.reg-table');
+      const tbl = sc.querySelector('.ngn-table');
       const rowsH = tbl ? Math.round(tbl.getBoundingClientRect().height) : sc.scrollHeight;
       const want = Math.max(Math.round(th.getBoundingClientRect().height) + 24, Math.min(150, rowsH - 30));
       sc.style.height = want + 'px'; sc.style.flex = 'none';
@@ -602,7 +607,9 @@ const SEED = async () => {
        page carry a 15/600 title by an owner ruling of 22 Aug and are
        deliberately not in that comparison. */
     const HEAD8 = () => {
-      const sels = ['#page-head h1', '.hm-greet h1', '.cal-head .ttl',
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): THE HARMONY REVIEW's ONE HEAD (.ctf-h) is read
+         first, then the rest as before */
+      const sels = ['#content .ctf-h', '#page-head h1', '.hm-greet h1', '.cal-head .ttl',
         '.ngl-head h2', '.room-head h1', '#content h1', '#content h2'];
       let h = null;
       for (const s of sels){ const e = document.querySelector(s);
@@ -616,7 +623,7 @@ const SEED = async () => {
          contract room that is the breadcrumb, not the title. A Range's own
          rect is the only honest way to ask: an element's box top is its line
          box, and half-leading puts the ink somewhere else inside it. */
-      const blk = h.closest('#page-head, .hm-page, .cal-head, .ngl-head, #ws-head') || h;
+      const blk = h.closest('#page-head, .hm-page, .cal-head, .ngl-head, #ws-head, .cun-head, .ctf-head') || h;
       const w = document.createTreeWalker(blk, NodeFilter.SHOW_TEXT);
       let ink = null, txt = '';
       let n; while ((n = w.nextNode())){
@@ -653,7 +660,20 @@ const SEED = async () => {
          weight, and whether its number wears a box — beside the theme's own
          ink (--accent-ink, resolved) */
       let tab = null;
-      if (card){
+      /* RE-POINTED 17 Nov 2026 (#762): the new look's heads carry their tabs on the bar under the ONE HEAD (.apn-bar
+         .apn-tab, underlined; Obligations' pills are another control, not tabs); the live tab is told by its underline in
+         the theme's ink, a resting one has none, both one weight, and no number wears a box */
+      const nlTabs = [...document.querySelectorAll('#content .apn-bar .apn-tab')].filter(vis);
+      if (nlTabs.length){
+        const on = nlTabs.find(t => t.classList.contains('is-on')), off = nlTabs.find(t => t !== on);
+        const probe = document.createElement('span'); probe.style.color = 'var(--accent-ink)'; document.body.appendChild(probe);
+        const accent = getComputedStyle(probe).color; probe.remove();
+        const boxed = nlTabs.map(t => t.querySelector('span')).filter(vis)
+          .filter(n => { const ns = getComputedStyle(n); return ns.backgroundColor !== 'rgba(0, 0, 0, 0)' || parseFloat(ns.paddingRight) > 0; }).length;
+        if (on) tab = { nl: true, word: on.textContent.trim().slice(0, 16), line: getComputedStyle(on).borderBottomColor, w: getComputedStyle(on).fontWeight,
+          restLine: off ? getComputedStyle(off).borderBottomColor : null, restW: off ? getComputedStyle(off).fontWeight : null, accent, boxed };
+      }
+      if (card && !tab){
         const hosts = [card, ...(card.closest('#page-head') ? [...document.querySelectorAll('#content .ph-foot')] : [])];
         const tabs = hosts.flatMap(x => [...x.querySelectorAll('[role="tab"], [data-ig-tab]')]).filter(vis);
         const on = tabs.find(t => t.getAttribute('aria-selected') === 'true' || t.classList.contains('on'));
@@ -754,10 +774,16 @@ const SEED = async () => {
     check('8 the sweep actually reached the pages', pageHeads8.length >= 8 && Object.keys(tabs8[1000] || {}).length >= 8,
       `${Object.keys(heads8).length} heads8 read · ${Object.keys(tabs8[1000] || {}).length} names in the bar`);
     const offSize = pageHeads8.filter(([, h]) => h.size !== size8);
+    /* RE-POINTED 17 Nov 2026 (#762): the size every head agrees on is THE HARMONY REVIEW's ONE HEAD (.ctf-h), read off a
+       page that draws it rather than typed (it was the 20px Home set, then the old look's) */
+    const oneHead = await page.evaluate(async () => { setView('directory'); await new Promise(r => setTimeout(r, 900));
+      const e = document.querySelector('#content .ctf-h'); return e ? getComputedStyle(e).fontSize : null; });
     check('8 every page head is one size (the 20px Home set)',
-      offSize.length === 0 && size8 === '20px',
-      offSize.map(([k, h]) => `${k} ${h.size} vs ${size8}`).join(' · ') || size8);
-    const offWeight = pageHeads8.filter(([, h]) => h.weight !== weight8);
+      offSize.length === 0 && !!oneHead && size8 === oneHead,
+      offSize.map(([k, h]) => `${k} ${h.size} vs ${size8}`).join(' · ') || `${size8} (the ONE HEAD ${oneHead})`);
+    /* RE-POINTED 17 Nov 2026 (#762): the Board's head is its greeting (cn2Greet), not a page head (ONE SHEET: "Not the
+       Board"), so the weight is asked of the page heads beside it */
+    const offWeight = pageHeads8.filter(([k, h]) => k !== 'Home' && h.weight !== mode(pageHeads8.filter(([k2]) => k2 !== 'Home').map(([, x]) => x.weight)));
     check('8 and one weight',
       offWeight.length === 0,
       offWeight.map(([k, h]) => `${k} ${h.weight}`).join(' · ') || weight8);
@@ -777,18 +803,9 @@ const SEED = async () => {
       check(`8 at ${H}px tall, the first glyph of every shared page head sits at one height under the bar`,
         shared.length >= 8 && soff.length === 0,
         soff.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs ${sref}px`).join(' · ') || `all at ${sref}px, ${shared.length} pages`);
-      /* 19 Oct 2026 (the head card's first check): every shared head with a
-         second row draws the ONE line under its title row, 16px in from each
-         card edge (the card's 1px edge + its 16px padding), at ONE height on
-         every page — and a head with no second row draws none */
-      const withRow = shared.filter(([, h]) => h.card && h.row2);
-      const lref = Number(mode(withRow.filter(([, h]) => h.line).map(([, h]) => h.line.y)));
-      const loff = withRow.filter(([, h]) => !h.line || Math.abs(h.line.y - lref) > 1 || h.line.inL !== 17 || h.line.inR !== 17);
-      const lstray = shared.filter(([, h]) => h.card && !h.row2 && h.line);
-      check(`8 at ${H}px tall, every head with a second row draws the one line under its title row, at one height, 16px in`,
-        withRow.length >= 5 && loff.length === 0 && lstray.length === 0,
-        [...loff.map(([k, h]) => `${k} ${h.line ? `line at ${h.line.y}px, in ${h.line.inL}/${h.line.inR}` : 'no line'} vs ${lref}px`),
-         ...lstray.map(([k]) => `${k} draws a line over nothing`)].join(' · ') || `${withRow.length} heads, the line at ${lref}px`);
+      /* RETIRED 17 Nov 2026 (#762): "every head with a second row draws the one line under its title row, 16px in" — it
+         measured the old head card's two halves (.ph-card: .ph-top's bottom rule over .ph-foot); THE HARMONY REVIEW's ONE
+         HEAD draws no rule under its title row, the one hairline is the tab bar's own (.apn-bar) */
       const rooms = hh.filter(([k]) => ROOMS.includes(k));
       check(`8 at ${H}px tall, the two paper heads sit at one height`,
         rooms.length === 2 && Math.abs(rooms[0][1].ink - rooms[1][1].ink) <= 1,
@@ -804,10 +821,14 @@ const SEED = async () => {
     {
       const withTabs = Object.entries(heads8).filter(([, h]) => h.tab);
       const tw = mode(withTabs.map(([, h]) => h.tab.w));
-      const toff = withTabs.filter(([, h]) => h.tab.c !== h.tab.accent || h.tab.w !== tw || !(Number(h.tab.w) > Number(h.tab.restW)) || h.tab.boxed > 0);
+      /* RE-POINTED 17 Nov 2026 (#762): an underlined tab (h.tab.nl) is live by its underline in the theme's ink, a resting
+         one has none; one weight on every head; no number boxed */
+      const toff = withTabs.filter(([, h]) => h.tab.nl
+        ? (h.tab.line !== h.tab.accent || (h.tab.restLine != null && h.tab.restLine === h.tab.accent) || h.tab.w !== tw || h.tab.boxed > 0)
+        : (h.tab.c !== h.tab.accent || h.tab.w !== tw || !(Number(h.tab.w) > Number(h.tab.restW)) || h.tab.boxed > 0));
       check('8 every head\'s live tab is the theme\'s ink at one weight, heavier than a resting one, and no tab number wears a box',
         withTabs.length >= 3 && toff.length === 0,
-        toff.map(([k, h]) => `${k} «${h.tab.word}» ${h.tab.c}/${h.tab.w} (rest ${h.tab.restW}, theme ${h.tab.accent}, ${h.tab.boxed} boxed)`).join(' · ')
+        toff.map(([k, h]) => `${k} «${h.tab.word}» ${h.tab.c || h.tab.line}/${h.tab.w} (rest ${h.tab.restW}, theme ${h.tab.accent}, ${h.tab.boxed} boxed)`).join(' · ')
           || `${withTabs.length} heads: ${withTabs.map(([k]) => k).join(', ')} at ${tw}`);
     }
     /* ---- NO PAGE HEADER EXPLAINS ITSELF (owner-asked 25 Aug 2026) ----
@@ -842,32 +863,40 @@ const SEED = async () => {
        still in view, and the head is the same height either way. Then
        Obligations the same way (its list scrolls inside its own card; the
        filler makes the page itself move, the case the checker drove). */
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the head is THE HARMONY REVIEW's ONE HEAD (.cun-head)
+       with its bar under it (.apn-bar, where a page has one); the rows are given enough to scroll by a filler laid after
+       the page's list (or under the head where there is no list yet), and whatever then scrolls is scrolled to 6, 20
+       and 500px: the head stays where it was, its bar under it, every tab, box or button in it still painted where it
+       stands, and something really scrolled */
     for (const [pg, go] of [['Import', () => setView('migration')], ['Obligations', () => setView('obligations')]]) {
       await page.evaluate(go);
-      const ready = await page.waitForFunction(() => !!document.querySelector('#content .ph-foot') && !!document.querySelector('#page-head .ph-card'), null, { timeout: 8000 }).then(() => true).catch(() => false);
-      const HOLD = () => { const c = document.querySelector('#page-head .ph-card'), f = document.querySelector('#content .ph-foot'); if (!c || !f) return null;
-        const cr = c.getBoundingClientRect(), fr = f.getBoundingClientRect(), sc = document.getElementById('content-scroll');
-        /* every figure or tab in the half, painted where it stands (not under the scroller's edge) */
-        /* RE-POINTED 24 Oct 2026 (Round 2 / owner's yes: one tab says nothing): an empty Import draws no tab row,
-           so the half's own controls (its box, its buttons) are what must stay in view */
-        const parts = [...f.querySelectorAll('.mig-kpi, .mig-kpi-card, [role="tab"], input, button')].filter(e => e.getBoundingClientRect().width > 0);
+      const ready = await page.waitForFunction(() => !!document.querySelector('#content .cun-head .ctf-h'), null, { timeout: 8000 }).then(() => true).catch(() => false);
+      const HOLD = () => { const c = document.querySelector('#content .cun-head'); if (!c) return null;
+        const bar = c.nextElementSibling && c.nextElementSibling.classList.contains('apn-bar') ? c.nextElementSibling : null;
+        const cr = c.getBoundingClientRect(), fr = bar ? bar.getBoundingClientRect() : cr;
+        const parts = [...c.querySelectorAll('button, input'), ...(bar ? bar.querySelectorAll('button, input') : [])].filter(e => e.getBoundingClientRect().width > 0);
         const shown = parts.filter(e => { const r = e.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(8, r.height / 2)); return !!hit && (hit === e || e.contains(hit)); }).length;
-        return { y: sc ? Math.round(sc.scrollTop) : null, card: [Math.round(cr.top), Math.round(cr.bottom)], foot: [Math.round(fr.top), Math.round(fr.bottom)], parts: parts.length, shown }; };
+        const title = c.querySelector('.ctf-h'), tr = title.getBoundingClientRect(), th = document.elementFromPoint(tr.left + 4, tr.top + tr.height / 2);
+        const scs = [document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')].filter(e => e && /(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 2);
+        return { y: scs.length ? Math.max(...scs.map(e => Math.round(e.scrollTop))) : null, card: [Math.round(cr.top), Math.round(cr.bottom)], foot: [Math.round(fr.top), Math.round(fr.bottom)],
+          parts: parts.length, shown: shown + (th && (th === title || title.contains(th)) ? 1 : 0) - 1 }; };
       const rest8 = ready ? await page.evaluate(HOLD) : null;
       const moved8 = [];
       if (ready) {
-        await page.evaluate(() => { const p = document.querySelector('#content .view-enter'); const d = document.createElement('div');
-          d.id = 'pra-filler'; d.style.cssText = 'height:1600px;flex:none'; p.appendChild(d); });
+        /* RE-POINTED 17 Nov 2026 (#762): a page with no list yet whose head has its own wrapper (Import's .mig-own-head) gets
+           the filler under that wrapper, where its content goes — never inside the head */
+        await page.evaluate(() => { const t = document.querySelector('#content table'); const hd = document.querySelector('#content .cun-head'); const own = hd.closest('.mig-own-head'); const host = t ? t.parentElement : own ? own.parentElement : hd.parentElement;
+          const d = document.createElement('div'); d.id = 'pra-filler'; d.style.cssText = 'height:1600px;flex:none'; host.appendChild(d); });
         for (const y of [6, 20, 500]) {
-          await page.evaluate(y => { document.getElementById('content-scroll').scrollTop = y; }, y);
-          await page.waitForFunction(y => Math.abs(document.getElementById('content-scroll').scrollTop - y) <= 1, y, { timeout: 3000 }).catch(() => {});
+          await page.evaluate(y => { [document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')]
+            .filter(e => e && /(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 2).forEach(e => { e.scrollTop = y; }); }, y);
           await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
           moved8.push(await page.evaluate(HOLD));
         }
         await page.screenshot({ path: path.join(OUT, `08-${pg.toLowerCase()}-scrolled.png`), clip: { x: 0, y: 0, width: 1200, height: 260 } });
       }
-      await page.evaluate(() => { const d = document.getElementById('pra-filler'); if (d) d.remove(); const s = document.getElementById('content-scroll'); if (s) s.scrollTop = 0; });
-      const bad8 = moved8.filter(m => !m || !rest8 || m.y < 1 || Math.abs(m.foot[0] - m.card[1]) > 1 || m.card[0] !== rest8.card[0] || m.card[1] !== rest8.card[1] || m.foot[1] !== rest8.foot[1] || m.shown !== m.parts || m.parts < 1);
+      await page.evaluate(() => { const d = document.getElementById('pra-filler'); if (d) d.remove(); [document.getElementById('content-scroll'), ...document.querySelectorAll('#content *')].forEach(e => { if (e && e.scrollTop) e.scrollTop = 0; }); });
+      const bad8 = moved8.filter(m => !m || !rest8 || !(m.y >= 1) || m.card[0] !== rest8.card[0] || m.card[1] !== rest8.card[1] || m.foot[0] !== rest8.foot[0] || m.foot[1] !== rest8.foot[1] || m.shown !== m.parts);
       check(`8 ${pg}: the head card stays whole while the page scrolls — its lower half under the title row, every figure or tab in view, the same height`,
         !!rest8 && moved8.length === 3 && bad8.length === 0,
         { rest: rest8, scrolled: moved8 });

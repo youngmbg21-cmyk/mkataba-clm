@@ -101,11 +101,14 @@ const K = (id, name, end, over = {}) => ({ ...H.fixtureContract(id, name, 'Rift 
 
     console.log('\n3 · Needs your attention');
     await page.evaluate(() => stDrawerClose());
-    const need = await until(() => { if (typeof renderTeam === 'function' && !document.querySelector('#st-att [data-st-need="keep:sales"]')) renderTeam();
-      const r = document.querySelector('#st-att [data-st-need="keep:sales"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; what needs an admin is a row
+       in Jambo's panel beside it ("Needs an admin"), the row itself the door (the need's own press: the stream on Keeping) */
+    const NEED = '#ins-panel .jov5-row[data-st-panel="stream:sales@keeping"]';
+    const need = await until(sel => { if (typeof renderTeam === 'function' && !document.querySelector(sel)) renderTeam();
+      const r = document.querySelector(sel); return r ? [...r.querySelectorAll('.jov5-rt > *')].map(x => x.textContent).join(' ').replace(/\s+/g, ' ').trim() : null; }, NEED);
     check('3a "Ready to delete · Sales & Route-to-Market — 2 contracts past their keeping period, waiting for an admin\'s yes"', !!need
-      && /Ready to delete · Sales & Route-to-Market 2 contracts past their keeping period, waiting for an admin's yes Review$/ /* two lines a row since round 25 */.test(need), need);
-    if (await press('#st-att [data-st-need="keep:sales"] .st-need-go', '3b Review')) {
+      && /^Ready to delete · Sales & Route-to-Market 2 contracts past their keeping period, waiting for an admin's yes$/.test(need), need);
+    if (await press(NEED, '3b Review')) {
       const on = await until(() => { const d = document.getElementById('st-drawer'); const t = document.querySelector('#st-ps .st-ps-tab.is-on');
         return d && d.classList.contains('open') && t ? t.getAttribute('data-st-ps-tab') : null; });
       check('3b Review opens the stream on Keeping', on === 'keeping', on);
@@ -136,7 +139,7 @@ const K = (id, name, end, over = {}) => ({ ...H.fixtureContract(id, name, 'Rift 
           return /2 contracts deleted — each is in the trail\./.test(t) && d && /Nothing is due now/.test(d.textContent) ? { book: state.contracts.map(c => c.id).filter(id => /^KP-/.test(id)).sort() } : null; });
         check('4c an \'ok\', nothing more due, and they leave this book', !!gone && gone.book.join(',') === 'KP-2,KP-3', JSON.stringify(gone));
         await page.evaluate(() => stDrawerClose());
-        const left = await until(() => { renderTeam(); return document.querySelector('#st-att [data-st-need="keep:sales"]') ? null : 'gone'; });
+        const left = await until(sel => { renderTeam(); return document.querySelector('#ins-panel .jov5-row') && !document.querySelector(sel) ? 'gone' : null; }, NEED);
         check('4d the Needs row goes', left === 'gone', left);
       }
     }

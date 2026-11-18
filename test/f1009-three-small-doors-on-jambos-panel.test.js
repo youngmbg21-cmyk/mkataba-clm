@@ -55,14 +55,14 @@ describe('f1009 (2) Show less', () => {
   });
   test('the two presses undo each other, and each lays the notes out again', () => {
     const src = noComments(PD);
-    const fold = src.slice(src.indexOf("closest('#pd2-notes [data-pd2-fold]')")); const foldEnd = fold.slice(0, fold.indexOf('});'));
+    const fold = src.slice(src.indexOf("closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-fold]')") /* RE-POINTED 18 Nov 2026: the Approvals pop-up's notes fold too */); const foldEnd = fold.slice(0, fold.indexOf('});'));
     assert.match(foldEnd, /removeAttribute\('data-pd2-open'\)/); assert.match(foldEnd, /_pd2Unfolded\.delete\(key\); _pd2Shut\.add\(key\)/); assert.match(foldEnd, /pd2NotesPaint\(/);
-    const un = src.slice(src.indexOf("closest('#pd2-notes [data-pd2-unfold]')")); const unEnd = un.slice(0, un.indexOf('});'));
+    const un = src.slice(src.indexOf("closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-unfold]')")); const unEnd = un.slice(0, un.indexOf('});'));
     assert.match(unEnd, /removeAttribute\('data-pd2-shut'\)/); assert.match(unEnd, /_pd2Unfolded\.add\(key\); _pd2Shut\.delete\(key\)/);
   });
   test('shown on an open group, gone on a folded one; the label in both books', () => {
-    assert.match(HTML, /#pd2-notes \.pd2-mg \.pd2-mg-less\{display:inline/);
-    assert.match(HTML, /#pd2-notes \.pd2-mg\.is-folded \.pd2-mg-less\{display:none\}/);
+    assert.match(HTML, /:is\(#pd2-notes, \.pd2-notes\.is-peek\) \.pd2-mg \.pd2-mg-less\{display:inline/);
+    assert.match(HTML, /:is\(#pd2-notes, \.pd2-notes\.is-peek\) \.pd2-mg\.is-folded \.pd2-mg-less\{display:none\}/);
     assert.equal((I18.match(/\n {4}pd2_g_less: /g) || []).length, 2);
   });
 });

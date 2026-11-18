@@ -1,508 +1,198 @@
-/* Chromium verification: THE STANDARDS PAGE — the row opens, the playbook learns.
+/* Chromium verification: STANDARDS — THE LADDER (owner picked "The Ladder" by name, 17 Nov 2026).
    ============================================================
-   Owner-asked 9 Sep 2026 off a screenshot of "Our standards", and then ruled
-   on four decisions: the closed row states the position, keeps ONE LINE of
-   wording clipped by WIDTH, the learned proposals read the last QUARTER, and
-   the two tabs stay apart.
-
-   WHY A BROWSER FILE. f272 pins the readings and the words; every claim here
-   is a MEASUREMENT or a PRESS, and three of them cannot be asked anywhere
-   else:
-
-     · "one line, clipped by width" is a GEOMETRY. A source check sees
-       `text-overflow:ellipsis` and cannot see whether the rule reached the
-       element — this codebase's most repeated visual defect is a rule that
-       looks perfectly correct and lost a cascade fight, and these classes are
-       written in a <style> block inside the page rather than in index.html,
-       which is exactly the arrangement that can fail silently;
-     · "the row opens" is a PRESS. A handler that is attached is not a handler
-       that lands, and a body rendered into markup is not a body on screen;
-     · and the page must SURVIVE being drawn at all — renderStandardsDraft and
-       the rewritten renderPrecedentPanel are called from renderClauseLibrary,
-       so a throw in either takes the whole tab down and no node test can see
-       it.
-
+   RE-WRITTEN 17 Nov 2026. This file measured the old Our standards tab (rows that opened, the playbook learning from
+   settled rounds); that page is gone, and the same name now measures the page that replaced it. f1091 pins the
+   readings, the routes and the words; every claim here is a PRESS or a MEASUREMENT:
+     1  the page draws: the list by how firm, the chosen standard as a ladder, Jambo's panel beside it, the head's
+        facts and its three buttons; a press in the list chooses another standard
+     2  an open departure stands on the ladder with Decide in Approvals (no Open the paper since 18 Nov 2026); on its
+        Approvals row "See it in the paper ›" sits under the two buttons and opens THE PAPER IN A POP-UP: big, the
+        paper and its notes beside it, landed on the departure's words, no buttons in the notes; Esc closes it; Open the
+        Dossier › closes it and opens the contract
+     3  Edit the standard → Write it for me: Jambo's draft waits in HIS panel (never in a box), with its chips,
+        Put in the standard and Try again; Put in fills the boxes, and nothing is saved
+     4  Send for approval asks why; the change waits in History; the ladder is unchanged
+     5  at the owner's three screens nothing spills sideways and the title's buttons stay on its line
    Run: node test/chromium/standards-page-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
 
 const OUT = path.join(__dirname, 'shots', 'standards-page');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
-
+const SIZES = [[1440, 780], [1536, 730], [1366, 950]];
 const results = [];
 const check = (name, pass, detail) => {
   results.push({ name, pass: !!pass });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + JSON.stringify(detail) : ''}`);
 };
-const pause = ms => new Promise(r => setTimeout(r, ms));
-
-/* THE FIXTURE IS THE CLAIM, and it is the same one f272 makes: payment
-   settled at 45 three times inside the quarter and at 90 twice over a year
-   ago. Payment is higher-is-worse, so all-time the held figure is 90 and this
-   quarter it is 45 — the window CHANGES the answer rather than trimming it.
-   The seeded book carries no settled rounds of its own, so without this the
-   learned card would never draw and every claim below would be vacuous. */
-const SEED = () => {
-  const ago = d => new Date(Date.now() - d * 86400000).toISOString();
-  const ch = (id, at, txt) => ({ id, clauseId: 'c1', clauseLabel: 'Payment terms',
-    oldText: 'within thirty (30) days', newText: txt, status: 'accepted',
-    withdrawn: false, authorSide: 'counterparty', author: 'Them',
-    createdAt: at, updatedAt: at });
-  const mk = (id, changes) => ({ id, name: 'Staged ' + id, counterparty: 'Naivas',
-    status: 'Signed', folder: 'proc', value: 1000000, valueType: 'estimated',
-    fields: {}, metadata: {}, obligations: [], audit: [], rounds: [], versions: [],
-    signatures: [], comments: [], changes, negotiation: { round: 2 } });
-  state.contracts.unshift(
-    mk('SP-1', [ch('CX1', ago(10), 'within forty-five (45) days')]),
-    mk('SP-2', [ch('CX2', ago(20), 'within forty-five (45) days'),
-                ch('CX3', ago(30), 'within forty-five (45) days')]),
-    mk('SP-3', [ch('CX4', ago(400), 'within ninety (90) days'),
-                ch('CX5', ago(420), 'within ninety (90) days')]),
-  );
-  setView('playbook');
-};
+const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the twelve (12) months before the claim.', fallbacks: ['Capped at the total contract value.', 'Capped at six (6) months’ fees.'],
+  never: 'Unlimited or uncapped liability.', why: 'Below six months, one failed delivery can cost more than the deal earns.', said: '' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
-  await seedWorkspace(h);
-  const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
-  const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
-  const page = await ctx.newPage();
-  const errors = [];
-  page.on('pageerror', e => errors.push(e.message));
-
-  try {
-    await page.goto(h.base + '/', { waitUntil: 'networkidle' });
-    await pause(600);
-    await page.fill('#li-email', 'admin@example.co.ke');
-    await page.fill('#li-pass', 'adminpassword1');
-    await page.click('#li-go');
-    await pause(2400);
-    /* THE CLASSIC SHAPE, STAGED (26 Sep 2026). This file measures the page as
-       it draws below INS_MIN_W — the rows it was written for. At this window
-       the page draws the Inspector since the owner chose it for all three
-       tabs; that shape is measured in four-inspectors-verify. insForce is the
-       page's own stage door, never stored. */
-    await page.evaluate(() => { if (typeof insForce === 'function') insForce(false); });
-    await page.evaluate(SEED);
-    await pause(1400);
-    await page.screenshot({ path: path.join(OUT, '01-standards.png'), fullPage: true });
-
-    /* ================= 0 · THE CONTROL — the page drew at all ================ */
-    const rows = await page.evaluate(() => {
-      const r = [...document.querySelectorAll('[data-std-row]')];
-      return { n: r.length, ids: r.map(e => e.getAttribute('data-std-row')) };
-    });
-    check('0a · the page drew and every clause is a row',
-      rows.n >= 6, rows);
-    check('0b · and nothing on it threw',
-      errors.length === 0, errors.slice(0, 3));
-
-    /* ================= 1 · RULING 1 — the position, on the closed row ======= */
-    /* READ THE POSITION CHIP BY ITS OWN CLASS. A bare .std-chip resolves to
-       whichever chip comes first, and on a row with no position that is the
-       FALLBACK — so the probe would report a chip on a row that draws none. */
-    const chips = await page.evaluate(() => [...document.querySelectorAll('[data-std-row]')].map(e => {
-      const c = e.querySelector('.std-chip-pos');
-      const s = c ? getComputedStyle(c) : null;
-      return { id: e.getAttribute('data-std-row'), txt: c ? c.textContent.trim() : null,
-        title: c ? c.getAttribute('title') : null,
-        bg: s ? s.backgroundColor : null, border: s ? s.borderTopWidth : null,
-        chips: e.querySelectorAll('.std-chip').length };
-    }));
-    const pay = chips.find(c => c.id === 'cl-pay');
-    const conf = chips.find(c => c.id === 'cl-conf');
-    check('1a · the closed row states the position, in words',
-      pay && /preferred|önskvärt/i.test(pay.txt || ''), pay);
-    check('1b · a required position says so',
-      conf && /required|krav/i.test(conf.txt || ''), conf);
-    /* PARTIAL IS DRAWN QUIETER — measured as PAINT, because a filled chip and
-       an outlined one are the same markup with a different style attribute. */
-    check('1c · a position true of only some contract types is an outline, not a fill',
-      conf && parseFloat(conf.border) >= 1
-        && (conf.bg === 'rgba(0, 0, 0, 0)' || conf.bg === 'transparent'),
-      { border: conf && conf.border, bg: conf && conf.bg });
-    check('1d · and the chip says WHICH types on its own hover',
-      conf && /,|and|professional|nda/i.test(conf.title || ''), conf && conf.title);
-    const term = chips.find(c => c.id === 'cl-term');
-    check('1e · a clause the playbook says nothing about draws no position at all',
-      term && term.txt === null && term.chips === 1,
-      'silence is the honest answer; the one chip left is its fallback: ' + JSON.stringify(term));
-
-    /* ================= 2 · RULING 2 — one line, clipped by WIDTH ============ */
-    const clip = await page.evaluate(() => {
-      const e = document.querySelector('[data-std-row="cl-law"] .std-clip');
-      if (!e) return null;
-      const s = getComputedStyle(e), r = e.getBoundingClientRect();
-      const line = parseFloat(s.lineHeight) || parseFloat(s.fontSize) * 1.5;
-      return { h: Math.round(r.height), line: Math.round(line), w: Math.round(r.width),
-        overflow: s.textOverflow, wrap: s.whiteSpace,
-        clipped: e.scrollWidth > e.clientWidth + 1,
-        textLen: e.textContent.trim().length,
-        titleLen: (e.getAttribute('title') || '').length };
-    });
-    check('2a · the wording is exactly one line tall',
-      clip && clip.h <= clip.line + 3, clip);
-    check('2b · it never wraps, and the ellipsis rule really reached the element',
-      clip && clip.overflow === 'ellipsis' && clip.wrap === 'nowrap', clip);
-    /* THE CUT IS A WIDTH, AND THIS IS THE ONLY WAY TO SAY SO. At 1500px that
-       sentence fits, so a check that merely found it clipped would be reading
-       the window rather than the rule — narrow the page and the SAME row must
-       clip, and stay one line while it does. A character count would cut at
-       exactly the same place on both. */
-    await page.setViewportSize({ width: 900, height: 1000 });
-    await pause(400);
-    const narrow = await page.evaluate(() => {
-      const e = document.querySelector('[data-std-row="cl-law"] .std-clip');
-      if (!e) return null;
-      const s = getComputedStyle(e), r = e.getBoundingClientRect();
-      return { h: Math.round(r.height), line: Math.round(parseFloat(s.lineHeight)),
-        clipped: e.scrollWidth > e.clientWidth + 1, w: Math.round(r.width) };
-    });
-    /* WIDE ENOUGH ON ANY MACHINE (7 Oct 2026): at 1500px the sentence fitted
-       here but not on CI's runner, whose glyphs come out a little wider
-       ({"wide":{"w":1158,"clipped":true}}). The claim is the RELATION — the
-       same row clips when narrow and not when it has the room — so the room
-       is measured where it surely fits. */
-    await page.setViewportSize({ width: 2400, height: 1000 });
-    await pause(400);
-    const roomy = await page.evaluate(() => {
-      const e = document.querySelector('[data-std-row="cl-law"] .std-clip');
-      return e ? { w: Math.round(e.getBoundingClientRect().width), clipped: e.scrollWidth > e.clientWidth + 1 } : null;
-    });
-    await page.setViewportSize({ width: 1500, height: 1000 });
-    await pause(400);
-    check('2b2 · narrow the page and the same row clips — the cut follows the width',
-      narrow && roomy && narrow.clipped && narrow.h <= narrow.line + 3 && !roomy.clipped,
-      { roomy, narrow });
-    check('2c · nothing was cut in the MARKUP — the whole sentence is there to hover',
-      clip && clip.titleLen === clip.textLen && clip.textLen > 140,
-      { text: clip && clip.textLen, title: clip && clip.titleLen });
-    const fbchip = await page.evaluate(() => {
-      const c = document.querySelector('[data-std-row="cl-pay"] .std-chip-fb');
-      return c ? c.textContent.trim() : null;
-    });
-    check('2d · and the fallback is on the closed row, as a figure',
-      /45/.test(fbchip || ''), fbchip);
-
-    /* ================= 3 · THE ROW OPENS — a real press =================== */
-    /* EVERY DRIVEN HALF IS GUARDED so a build without the feature reports its
-       failures rather than timing out on a control that is not there. */
-    const canOpen = await page.evaluate(() => !!document.querySelector('[data-std-open="cl-pay"]'));
-    const before = await page.evaluate(() =>
-      !!document.querySelector('[data-std-row="cl-pay"] .std-body'));
-    if (canOpen) { await page.click('[data-std-open="cl-pay"]'); await pause(400); }
-    await page.screenshot({ path: path.join(OUT, '02-open.png'), fullPage: true });
-    const opened = await page.evaluate(() => {
-      const e = document.querySelector('[data-std-row="cl-pay"]');
-      const b = e && e.querySelector('.std-body');
-      if (!b) return { open: false };
-      const r = b.getBoundingClientRect();
-      const q = [...b.querySelectorAll('.std-quote')].map(x => x.textContent.trim().length);
-      return { open: true, h: Math.round(r.height), w: Math.round(r.width),
-        quotes: q, labs: [...b.querySelectorAll('.std-lab')].map(x => x.textContent.trim()),
-        acts: [...b.querySelectorAll('.std-acts button')].map(x => x.textContent.trim()),
-        others: document.querySelectorAll('.std-body').length };
-    });
-    check('3a · it was shut, and the press opened it as visible pixels',
-      !before && opened.open && opened.h > 40 && opened.w > 200, { before, opened });
-    check('3b · both halves are on it, each named',
-      opened.quotes && opened.quotes.length === 2 && opened.quotes.every(n => n > 10)
-      && opened.labs.length === 2, opened.labs);
-    check('3c · one row open at a time',
-      opened.others === 1, { open: opened.others });
-    if (canOpen) { await page.click('[data-std-open="cl-law"]'); await pause(400); }
-    const swapped = await page.evaluate(() => ({
-      law: !!document.querySelector('[data-std-row="cl-law"] .std-body'),
-      pay: !!document.querySelector('[data-std-row="cl-pay"] .std-body'),
-    }));
-    check('3d · and opening another closes the first',
-      swapped.law && !swapped.pay, swapped);
-
-    /* ================= 4 · RULING 3 — the last quarter ==================== */
-    const learned = await page.evaluate(() => {
-      const h = document.getElementById('precedent-panel');
-      if (!h) return null;
-      const r = h.getBoundingClientRect();
-      return { h: Math.round(r.height), txt: h.textContent.replace(/\s+/g, ' ').trim(),
-        pref: [...h.querySelectorAll('[data-std-pref]')].map(b => b.textContent.trim()),
-        fb: [...h.querySelectorAll('[data-std-fb]')].map(b => b.textContent.trim()) };
-    });
-    check('4a · the learned card drew, and it says which window it read',
-      learned && learned.h > 40 && /–|-/.test(learned.txt), learned && learned.txt.slice(0, 120));
-    check('4b · the figure is this QUARTER\'s 45, not the 90 held over a year ago',
-      learned && /\b45\b/.test(learned.txt) && !/\b90\b/.test(learned.txt),
-      learned && learned.txt.slice(0, 200));
-    check('4c · and it proposes moving the preferred, which the old panel never did',
-      learned && learned.pref.length === 1 && /45/.test(learned.pref[0]),
-      { pref: learned && learned.pref, fb: learned && learned.fb });
-
-    /* MOVING A PREFERRED OPENS THE EDITOR AND WRITES NOTHING — driven, because
-       "it opens the editor" is a journey and a source check cannot see whether
-       the confirm was answered or the modal ever appeared. */
-    const libBefore = await page.evaluate(() => JSON.stringify(clauseLibrary()));
-    const canPref = await page.evaluate(() => !!document.querySelector('[data-std-pref]'));
-    if (canPref) { await page.click('[data-std-pref]'); await pause(500); }
-    const dlg = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('#modal-root button, [data-top-overlay] button')];
-      return { n: b.length, labels: b.map(x => x.textContent.trim()) };
-    });
-    check('4d · it asks before it does anything',
-      dlg.n >= 2, dlg.labels);
-    await page.evaluate(() => {
-      const b = [...document.querySelectorAll('#modal-root button, [data-top-overlay] button')];
-      const go = b.find(x => /edit|ändra/i.test(x.textContent)) || b[b.length - 1];
-      if (go) go.click();
-    });
-    await pause(600);
-    await page.screenshot({ path: path.join(OUT, '03-editor.png'), fullPage: true });
-    const after = await page.evaluate(() => ({
-      lib: JSON.stringify(clauseLibrary()),
-      editor: !!document.getElementById('ce-preferred'),
-    }));
-    check('4e · the clause editor is open with the wording in it',
-      after.editor, { editor: after.editor });
-    check('4f · and NOTHING was written — a person still has to press Save',
-      after.lib === libBefore, { moved: after.lib !== libBefore });
-
-    /* THE EDITOR SECTION 4 OPENED IS STILL UP, and its scrim swallows every
-       press after it — a probe that leaves a modal standing reports the next
-       section as broken product. Close it before staging anything else. */
-    await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
-    await pause(400);
-
-    /* ================= 6 · IDEA 21 — read off what was signed ============= */
-    /* THE OFFER IS ONLY MADE TO A WORKSPACE THAT HAS SAVED NEITHER a clause
-       library nor a playbook, so it is staged rather than assumed: the seeded
-       book may carry either. Four signed contracts, three of them paying at
-       60 against a standard that says 30 — a pattern that DIFFERS, which is
-       the only case that proposes anything. */
-    await page.evaluate(() => {
-      state.settings = Object.assign({}, state.settings);
-      delete state.settings.clauseLibrary; delete state.settings.playbook;
-      const mk = (id, days, law) => ({ id, name: 'Signed ' + id, counterparty: 'Naivas',
-        status: 'Signed', folder: 'proc', fields: {}, obligations: [], audit: [],
-        rounds: [], versions: [], signatures: [], comments: [], changes: [],
-        metadata: { paymentTerms: days + ' days from invoice', governingLaw: law } });
-      /* AND THE GOVERNING LAWS DEPART, which is the owner's own case (9 Sep
-         2026): four recorded, all different, one naming home. Seeded all-Kenya
-         the row would only ever say "Already matches" and the finding this
-         section exists for could not be measured at all. */
-      state.contracts.unshift(mk('SG-1', 60, 'California'), mk('SG-2', 60, 'Delaware'),
-        mk('SG-3', 60, 'England and Wales'), mk('SG-4', 30, 'Kenya'));
-      setView('playbook');
-    });
-    await pause(1000);
-    await page.screenshot({ path: path.join(OUT, '04-offer.png'), fullPage: true });
-    const offer = await page.evaluate(() => {
-      const h = document.getElementById('standards-draft');
-      if (!h) return null;
-      const r = h.getBoundingClientRect();
-      return { h: Math.round(r.height), txt: h.textContent.replace(/\s+/g, ' ').trim(),
-        go: !!h.querySelector('[data-std-draft-go]'),
-        rows: h.querySelectorAll('[data-std-draft-row]').length };
-    });
-    check('6a · the offer draws, and it does not claim "no standards yet"',
-      offer && offer.h > 40 && offer.go && !/no standards/i.test(offer.txt)
-      && /still on/i.test(offer.txt), offer && offer.txt.slice(0, 110));
-    check('6b · and it is an OFFER — the comparison is behind a press',
-      offer && offer.rows === 0, offer && offer.rows);
-    const canGo = await page.evaluate(() => !!document.querySelector('[data-std-draft-go]'));
-    if (canGo) { await page.click('[data-std-draft-go]'); await pause(500); }
-    await page.screenshot({ path: path.join(OUT, '05-comparison.png'), fullPage: true });
-    const table = await page.evaluate(() => {
-      const h = document.getElementById('standards-draft');
-      if (!h) return { pay: null, law: null, txt: '', n: 0 };
-      const row = k => {
-        const e = h.querySelector(`[data-std-draft-row="${k}"]`);
-        if (!e) return null;
-        return { cells: [...e.querySelectorAll('td')].map(c => c.textContent.trim()),
-          adopt: !!e.querySelector('[data-std-adopt]') };
-      };
-      return { pay: row('payment'), law: row('law'),
-        txt: h.textContent.replace(/\s+/g, ' ').trim(),
-        n: h.querySelectorAll('[data-std-draft-row]').length };
-    });
-    check('6c · the comparison arrived, a row per subject',
-      table.n >= 3, { n: table.n });
-    check('6d · a standard that disagrees with the book is proposed, with both figures shown',
-      table.pay && table.pay.adopt && table.pay.cells.some(c => /60/.test(c))
-      && table.pay.cells.some(c => /30/.test(c)), table.pay);
-    check('6d2 · and the verb names the MOVE, not "Adopt" — it opens an editor',
-      !!(table.pay && /move|flytta/i.test(table.pay.cells[table.pay.cells.length - 1])),
-      table.pay && table.pay.cells[table.pay.cells.length - 1]);
-    check('6e · and what HaTi cannot read off the record is NAMED',
-      /confidentiality/i.test(table.txt) && /data protection/i.test(table.txt),
-      table.txt.slice(-150));
-
-    /* ---- THE GOVERNING LAW ROW, owner-reported 9 Sep 2026 ----
-       It printed "Nothing to compare — your standard is wording, not a
-       figure" over a standard sitting visible below it saying Sweden, and
-       with the comparison missing it was dropping the strongest finding the
-       card can make. MEASURED AS PAINT, because the whole complaint was about
-       what the row SAID: the reading can be right while the cells still read
-       wrong. */
-    const home = await page.evaluate(() =>
-      (typeof jxName === 'function' ? jxName() : ''));
-    check('6i · the standard column NAMES the market, not "nothing to compare"',
-      !!(table.law && home && table.law.cells.some(c => c.includes(home))
-         && !table.law.cells.some(c => /nothing to compare|inget att jämföra/i.test(c))),
-      { home, cells: table.law && table.law.cells });
-    /* "1 of 4" ALONE IS NOT THE CLAIM — the old row printed that too, meaning
-       how many shared a spelling. What is new is what the count is OF. */
-    check('6j · and the row COUNTS how many of the signed book name it',
-      !!(table.law && /1 of 4 name it|1 av 4 anger den/.test(table.law.cells.join(' | '))),
-      table.law && table.law.cells);
-    check('6k · the finding is stated — three name a different law',
-      !!(table.law && /\b3\b/.test(table.law.cells[table.law.cells.length - 1])
-         && /different law|annan lag/i.test(table.law.cells[table.law.cells.length - 1])),
-      table.law && table.law.cells[table.law.cells.length - 1]);
-    check('6l · "what you usually sign" claims nothing where one in four is not a habit',
-      !!(table.law && /no usual value|inget vanligt värde/i.test(table.law.cells[1])
-         && !/california/i.test(table.law.cells[1])),
-      table.law && table.law.cells[1]);
-    /* A CONTROL: true before this fix and after it. Its job is to fail the day
-       somebody gives this row a button, which would be a second door onto a
-       settings act that already has one. */
-    check('6m · and it presses nothing — a governing law moves with the market setting',
-      !!(table.law && table.law.adopt === false),
-      table.law && { adopt: table.law.adopt });
-    /* IT OPENS THE EDITOR AND WRITES NOTHING — driven, and this is the check
-       that caught the defect it now pins. Written as a straight write, the
-       press replaced "The Buyer shall pay each undisputed invoice within
-       thirty (30) days…" with "Payment terms at 60 days.": the company's
-       drafted clause thrown away to move a number inside it. */
-    const payBefore = await page.evaluate(() =>
-      (clauseLibrary().find(c => c.id === 'cl-pay') || {}).preferred || '');
-    const canAdopt = await page.evaluate(() =>
-      !!document.querySelector('[data-std-draft-row="payment"] [data-std-adopt]'));
-    if (canAdopt) { await page.click('[data-std-draft-row="payment"] [data-std-adopt]'); await pause(500); }
-    const asked = await page.evaluate(() => ({
-      labels: [...document.querySelectorAll('#modal-root button, [data-top-overlay] button')]
-        .map(b => b.textContent.trim()),
-      msg: (document.querySelector('#modal-root p, [data-top-overlay] p') || {}).textContent || '',
-    }));
-    check('6f · it asks first, and the question names the figure it read',
-      asked.labels.length >= 2 && /60/.test(asked.msg), asked);
-    await page.evaluate(() => {
-      const b = [...document.querySelectorAll('#modal-root button, [data-top-overlay] button')];
-      const go = b.find(x => /edit|ändra/i.test(x.textContent)) || b[b.length - 1];
-      if (go) go.click();
-    });
-    await pause(700);
-    const payAfter = await page.evaluate(() => ({
-      pref: (clauseLibrary().find(c => c.id === 'cl-pay') || {}).preferred || '',
-      editor: !!document.getElementById('ce-preferred'),
-    }));
-    check('6g · the clause editor opened on that clause',
-      payAfter.editor, { editor: payAfter.editor });
-    check('6h · and the drafted wording is UNTOUCHED — a person still writes it',
-      payAfter.pref === payBefore && payBefore.length > 40,
-      { before: payBefore.slice(0, 60), after: payAfter.pref.slice(0, 60) });
-
-    /* ================= 5 · RULING 4 — two tabs, not one =================== */
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('[data-pb-tab]')]
-      .map(e => e.getAttribute('data-pb-tab')));
-    check('5a · the clause library and the negotiation playbook are still two tabs',
-      tabs.includes('clauses') && tabs.includes('playbook'), tabs);
-
-    /* ================= 7 · THE TAB ROW STAYS WHILE THE PAGE SCROLLS =========
-       Young ruled it 18 Sep 2026, off a screenshot of this page: "Similar to
-       the team and settings page, the page should scroll behind the tab line."
-
-       IT IS A BROWSER CHECK FOR THE USUAL REASON. position:sticky dies in
-       silence inside an overflow:hidden ancestor while the declaration goes on
-       reading correctly, so only a rendered page can say whether the row
-       stayed — and a rect is not a painted pixel, which is why 6b asks
-       elementFromPoint over the live tab's own word.
-
-       THE WINDOW IS SHORTENED ON PURPOSE: at 1000px tall this page's own clause
-       list fits, and a pin nothing can scroll past proves nothing. */
-    /* SECTION 5 LEFT A DIALOG OPEN (the clause editor its "Move the preferred"
-       press raises), and #modal-scrim covers the whole page — measured, the hit
-       test answered the scrim rather than a tab. This section is about the
-       page, so it starts by putting the dialog away. */
-    await page.evaluate(() => { if (window.closeModal) closeModal(); });
-    await pause(400);
-    await page.setViewportSize({ width: 1440, height: 460 });
-    await pause(600);
-    const readRow = () => page.evaluate(() => {
-      /* THE PINNED BLOCK (4 Oct 2026, f481): Our standards is a tab of Our
-         paper, so the pinned block holds the page's row over this page's own
-         sub-tabs; its first glyph is the page's first tab. */
-      const row = document.querySelector('.st-tabs-pin'), sc = document.getElementById('content-scroll');
-      if (!row || !sc) return null;
-      const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
-      const first = row.querySelector('.st-tab');
-      const live = row.querySelector('.st-tab.on') || first;
-      const lr = live.getBoundingClientRect();
-      const hit = document.elementFromPoint(Math.round(lr.left + lr.width / 2), Math.round(lr.top + lr.height / 2));
-      return { rowTop: Math.round(r.top - s.top), glyph: Math.round(first.getBoundingClientRect().top - s.top),
-        left: Math.round(r.left - s.left), bg: getComputedStyle(row).backgroundColor,
-        painted: !!(hit && hit.closest && hit.closest('.st-tab')),
-        hitWas: hit ? (hit.tagName + '#' + (hit.id || '-') + '.' + String(hit.className || '').slice(0, 30)) : 'nothing',
-        scrollTop: sc.scrollTop, canScroll: sc.scrollHeight - sc.clientHeight };
-    });
-    const pinRest = await readRow();
-    await page.evaluate(() => { document.getElementById('content-scroll').scrollTop = 900; });
-    await pause(350);
-    const pinScrolled = await readRow();
-
-    check('7a · there is more page than one screen, so the question is real',
-      pinRest && pinRest.canScroll > 100, pinRest && { overflow: pinRest.canScroll });
-    check('7b · the tab row is still on screen after scrolling, and really painted',
-      pinScrolled && pinScrolled.rowTop === 0 && pinScrolled.painted && pinScrolled.scrollTop > 0,
-      pinScrolled && { rowTop: pinScrolled.rowTop, scrolledBy: pinScrolled.scrollTop,
-        wordUnderThePointer: pinScrolled.painted, hit: pinScrolled.hitWas });
-    /* THE FIRST PAINTED GLYPH DOES NOT MOVE — "ONE HEADER TOP". The row pays
-       for its own pinned air by cancelling the page's top padding and putting
-       it back inside itself, so this is a RELATION against the token. */
-    const padT = await page.evaluate(() =>
-      parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t')) || 0);
-    check('7c · and the first glyph sits where it always sat, pinned or not',
-      pinRest && pinScrolled && pinRest.glyph === pinScrolled.glyph && Math.abs(pinRest.glyph - padT) <= 1,
-      { rest: pinRest && pinRest.glyph, scrolled: pinScrolled && pinScrolled.glyph, pageTopToken: padT });
-    check('7d · it is opaque and reaches the page\'s own left edge',
-      pinScrolled && pinScrolled.left === 0 && !/rgba\(0, 0, 0, 0\)|transparent/.test(pinScrolled.bg),
-      pinScrolled && { leftGap: pinScrolled.left, background: pinScrolled.bg });
-
-    /* AND A TAB PRESSED FROM THE BOTTOM LANDS AT THE TOP. Dispatched IN THE
-       PAGE: Playwright scrolls an element into view before clicking it, which
-       would put the scroller back near the top by itself and let this pass
-       against a build that does nothing. */
-    const pressed = await page.evaluate(() => {
-      const sc = document.getElementById('content-scroll');
-      sc.scrollTop = 900;
-      const was = sc.scrollTop;
-      const t = document.querySelector('[data-pb-tab="deviations"]')
-        || document.querySelectorAll('[data-pb-tab]')[1];
-      const onScreen = t.getBoundingClientRect().top >= sc.getBoundingClientRect().top - 1;
-      t.click();
-      return { was, onScreen };
-    });
-    await pause(700);
-    const landed = await readRow();
-    check('7e · a tab pressed from the bottom of the page lands at the top',
-      pressed && pressed.was > 0 && pressed.onScreen && landed && landed.scrollTop === 0,
-      { pressedFrom: pressed && pressed.was, tabWasReachable: pressed && pressed.onScreen,
-        landedAt: landed && landed.scrollTop });
-    await page.setViewportSize({ width: 1500, height: 1000 });
-    await pause(400);
-
-    check('9 · and the whole journey raised no page error',
-      errors.length === 0, errors.slice(0, 3));
-
-  } catch (e) {
-    check('RUN', false, e.message);
-  } finally {
-    await browser.close();
-    await h.stop();
+  h.ai.answerWith(tool => tool === 'write_standard' ? DRAFT : null);
+  const W = await seedWorkspace(h, { approvalRules: [] });
+  /* two live contracts that depart from the liability standard, one that holds it */
+  const V = (status, quote, escalate) => ({ verdicts: [{ category: 'Liability cap', status, quote, escalate: !!escalate }] });
+  const staged = [
+    ['LD-1', 'Courier Services', 'Kilele Logistics', V('deviation', 'liability is limited to the fees paid in the preceding three (3) months', true)],
+    ['LD-2', 'Cleaning Services', 'Safi Ltd', V('deviation', 'capped at fifty per cent of the fees')],
+    ['LD-3', 'Packaging Supply', 'Kabras Sugar Ltd', V('aligned', 'twelve (12) months of fees')]];
+  for (const [id, name, cp, pb] of staged){
+    /* the paper carries the words its check quoted, so the pop-up has somewhere to land (18 Nov 2026) */
+    const body = 'AGREEMENT\n\n' + Array.from({ length: 14 }, (_, k) => `${k + 1}. Clause ${k + 1}\n\nThe parties agree to the terms of clause ${k + 1}, as written here.`).join('\n\n')
+      + `\n\n15. Liability\n\nThe ${pb.verdicts[0].quote}.`;
+    const c = Object.assign(fixtureContract(id, name, cp, 'proc', 900000, 'Under Review', body), { playbook: pb });
+    await W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
   }
-  const pass = results.filter(r => r.pass).length;
-  console.log(`\n${pass}/${results.length} checks passed`);
-  process.exit(pass === results.length ? 0 : 1);
+  const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
+  const errors = [];
+  try {
+    for (const [w, ht] of SIZES){
+      const tag = `${w}x${ht}`;
+      const page = await (await browser.newContext({ viewport: { width: w, height: ht } })).newPage();
+      page.on('pageerror', e => errors.push(e.message));
+      await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+      await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
+      await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.some(c => c.id === 'LD-1'), null, { timeout: 20000 });
+      await page.evaluate(async () => { if (typeof stPrefSet === 'function') await stPrefSet('newLook', true); if (typeof newLookApply === 'function') newLookApply(); });
+      const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
+        while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); } return v; };
+
+      /* 1 THE PAGE */
+      await page.evaluate(() => setView('playbook'));
+      const P = await until(() => {
+        const list = document.querySelector('.ld-list'), main = document.querySelector('.ld-main'), panel = document.getElementById('ins-panel');
+        if (!list || !main || !panel) return null;
+        return { groups: [...list.querySelectorAll('.ld-g')].map(g => g.textContent.trim()), items: list.querySelectorAll('[data-ld-pick]').length,
+          title: (main.querySelector('.ld-title') || {}).textContent || '', rungs: main.querySelectorAll('.ld-rung').length,
+          acts: [...document.querySelectorAll('#page-head-acts button')].map(b => b.textContent.trim()),
+          facts: (document.getElementById('page-head-facts') || {}).textContent || '', panel: panel.getBoundingClientRect().width > 300 };
+      });
+      check(`${tag} 1a the list by how firm, a standard as a ladder, Jambo's panel beside it`, !!P && P.groups.length >= 2 && P.items >= 5 && P.rungs >= 1 && P.panel, P);
+      check(`${tag} 1b the head: its facts, Departures · History · New position`, !!P && /positions/.test(P.facts) && P.acts.length === 3 && /Departures/.test(P.acts[0]) && /History/.test(P.acts[1]) && /New position/.test(P.acts[2]), P && { facts: P.facts, acts: P.acts });
+      const chose = await page.evaluate(() => { const b = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => /Liability/.test(x.textContent)); if (!b) return false; b.click(); return true; })
+        && await until(() => { const t = document.querySelector('.ld-main .ld-title'); return t && /Liability/.test(t.textContent) ? t.textContent : null; });
+      check(`${tag} 1c a press in the list chooses that standard`, !!chose, chose);
+
+      /* 2 DEPARTURES */
+      const D = await until(() => { const d = [...document.querySelectorAll('.ld-dep')]; return d.length ? d.map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(),
+        acts: [...x.querySelectorAll('button')].map(b => b.textContent.trim()) })) : null; });
+      /* RE-POINTED 17 Nov 2026 (one door for departures): the card sends the decision to Approvals & signing */
+      check(`${tag} 2a each open departure on the ladder: Decide in Approvals, no Open the paper (18 Nov 2026), and no decision here`, !!D && D.length === 2
+        && D.every(x => /Decide in Approvals/.test(x.acts.join()) && !/Open the paper/.test(x.acts.join()) && !/Allow once|Refuse/.test(x.acts.join()))
+        && D.some(x => /Kilele/.test(x.t) && /Legal says yes/.test(x.t)), D);
+      const key = await page.evaluate(() => { const b = document.querySelector('.ld-dep [data-ld-goap]'); const k = b && b.getAttribute('data-ld-goap'); if (b) b.click(); return k; });
+      const landed = await until(k => { const tr = document.querySelector('#content tr.is-sel[data-ap-row]');
+        return state.view === 'approvals' && tr && tr.getAttribute('data-ap-row') === k ? k : null; }, key);
+      check(`${tag} 2b it lands on that departure's row in Approvals & signing, chosen`, !!key && landed === key, JSON.stringify({ key, landed }));
+      /* 2c SEE IT IN THE PAPER (owner, 18 Nov 2026): under the row's two buttons, departures only; a large pop-up, the
+         paper and its notes, landed on the departure's words; nothing to press in the notes; Esc closes it */
+      /* the row's own landing (apnLandRow → landOn) finishes first, so it never lands after the pop-up's */
+      await until(k => { const tr = document.querySelector('#content tr.is-landed[data-ap-row]'); return tr && tr.getAttribute('data-ap-row') === k; }, key);
+      const pk = await page.evaluate(k => {
+        const b = [...document.querySelectorAll('#content [data-apn-peek]')].find(x => x.getAttribute('data-apn-peek') === k); if (!b) return null;
+        const td = b.closest('td.apn-acts'), btns = td ? [...td.querySelectorAll('button')] : [];
+        const r = { under: btns.length === 3 && btns[2] === b && b.getBoundingClientRect().top >= btns[0].getBoundingClientRect().bottom - 1,
+          onStd: document.querySelectorAll('#content tr[data-ap-kind="stdchange"] [data-apn-peek]').length };
+        b.click(); return r; }, key);
+      check(`${tag} 2c "See it in the paper ›" sits under Allow once and Refuse, on departures only`, !!pk && pk.under && pk.onStd === 0, pk);
+      /* the words THIS departure's check quoted, read off the record (LD-1 and LD-2 quote different words) */
+      const quoteOf = await page.evaluate(k => { const m = /^dep:(.+):(\d+)$/.exec(k || ''); const c = m && getContract(m[1]); const v = c && c.playbook && c.playbook.verdicts[+m[2]]; return v ? String(v.quote || '') : ''; }, key);
+      const pop = await until(q => {
+        const p = document.querySelector('.apn-pk'), sc = document.getElementById('apn-pk-scroll'), l = sc && sc.querySelector('.is-landed');
+        if (!p || !l) return window._pkWhy = { open: !!p, landed: !!l, top: sc ? sc.scrollTop : null, any: (document.querySelector('.is-landed') || {}).tagName || null }, null;
+        const d = p.closest('[role="dialog"]').getBoundingClientRect(), a = l.getBoundingClientRect(), v = sc.getBoundingClientRect();
+        /* the Dossier's own notes, drawn at the pop-up's seat (one window, two places, 18 Nov 2026) */
+        const notes = sc.querySelector('.pd2-notes.is-peek') || document.createElement('div'), sheet = sc.querySelector('#apn-pk-doc');
+        return { w: +(d.width / innerWidth).toFixed(2), h: +(d.height / innerHeight).toFixed(2), paper: !!sc.querySelector('#apn-pk-cv #apn-pk-doc, #apn-pk-cv .rl-paper'),
+          notes: notes.querySelectorAll('.pd2-mn').length, beside: !!sheet && notes.getBoundingClientRect().left >= sheet.getBoundingClientRect().right - 1,
+          pressable: notes.querySelectorAll('button:not(.pd2-mg-more):not(.pd2-mg-less), a').length,
+          landed: !!q && l.textContent.includes(q), inView: a.top >= v.top && a.bottom <= v.bottom + 1, moved: sc.scrollTop > 0,
+          scrolls: sc.scrollHeight > sc.clientHeight, go: !!p.querySelector('[data-apn-pk-go]') };
+      }, quoteOf);
+      check(`${tag} 2d the pop-up is big: the paper with its notes beside it, landed on the departure's words, free to scroll`,
+        !!pop && pop.w >= 0.85 && pop.h >= 0.8 && pop.paper && pop.notes >= 1 && pop.beside && pop.landed && pop.inView && pop.moved && pop.scrolls && pop.go, pop || await page.evaluate(() => window._pkWhy || null));
+      check(`${tag} 2e the notes carry nothing to press: a look, never a decision`, !!pop && pop.pressable === 0, pop && pop.pressable);
+      if (w === 1440) await page.screenshot({ path: path.join(OUT, `${tag}-paper-pop-up.png`) });
+      await page.keyboard.press('Escape');
+      const shut = await until(() => !document.querySelector('.apn-pk') && state.view === 'approvals');
+      check(`${tag} 2f Esc closes it, back on Approvals`, !!shut);
+      await page.evaluate(k => [...document.querySelectorAll('#content [data-apn-peek]')].find(x => x.getAttribute('data-apn-peek') === k)?.click(), key);
+      await until(() => !!document.querySelector('.apn-pk [data-apn-pk-go]'));
+      await page.evaluate(() => document.querySelector('.apn-pk [data-apn-pk-go]').click());
+      const dos = await until(k => !document.querySelector('.apn-pk') && typeof pdContract === 'function' && pdContract() && ('dep:' + pdContract().id) === k.split(':').slice(0, 2).join(':')
+        && document.querySelector('[data-cv-go]') ? pdContract().id : null, key);
+      check(`${tag} 2g Open the Dossier › closes it and opens that contract on its Cover (18 Nov 2026)`, !!dos, dos);
+      await page.evaluate(() => { setView('playbook'); });
+      await until(() => !!document.querySelector('.ld-main .ld-rung'));
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(300);
+
+      /* 3 JAMBO WRITES IT */
+      await page.evaluate(() => document.querySelector('[data-ld-edit]')?.click());
+      const ed = await until(() => document.querySelector('.ld-edit [data-ld-f="ask"]') ? (document.querySelector('.ld-edit [data-ld-f="ask"]').value) : null);
+      check(`${tag} 3a Edit the standard opens its page with its words in the box`, !!ed && /liability/i.test(ed), ed && ed.slice(0, 60));
+      await page.evaluate(() => document.querySelector('.ld-edit [data-ld-write]')?.click());
+      const J = await until(() => { const d = document.querySelector('#ins-panel .ld-jdraft'); if (!d) return null;
+        return { draft: d.textContent.replace(/\s+/g, ' ').slice(0, 400), chips: [...document.querySelectorAll('#ins-panel [data-ld-jb-chip]')].map(b => b.textContent.trim()),
+          put: !!document.querySelector('#ins-panel [data-ld-jb-put]'), again: !!document.querySelector('#ins-panel [data-ld-jb-again]'),
+          box: document.querySelector('.ld-edit [data-ld-f="ask"]').value }; }, null, 12000);
+      check(`${tag} 3b Jambo's draft waits in his panel with Stricter · Softer · Shorter · Add a fallback, Put in, Try again`,
+        !!J && J.chips.length === 4 && J.put && J.again && /fees paid in the twelve/.test(J.draft), J);
+      check(`${tag} 3c nothing went into the boxes by itself`, !!J && J.box === ed, J && J.box.slice(0, 60));
+      await page.evaluate(() => document.querySelector('#ins-panel [data-ld-jb-put]')?.click());
+      const put = await until(() => { const b = document.querySelector('.ld-edit [data-ld-f="ask"]'); const f = document.querySelectorAll('.ld-edit [data-ld-f^="fb:"]');
+        return b && /fees paid in the twelve/.test(b.value) ? { fallbacks: f.length } : null; });
+      check(`${tag} 3d Put in the standard fills the ask and the fallbacks`, !!put && put.fallbacks === 2, put);
+      const unsaved = await page.evaluate(() => { const cl = clauseLibrary().find(c => /liab/i.test(c.category)); return cl ? !/fees paid in the twelve \(12\) months before the claim\.$/.test(cl.preferred) : false; });
+      check(`${tag} 3e and nothing is saved yet`, unsaved, unsaved);
+
+      /* 5 FIT, on the edit page and the ladder */
+      const fit = async () => page.evaluate(() => {
+        const over = el => el ? Math.round(el.scrollWidth - el.clientWidth) : 0;
+        const top = document.querySelector('.ld-main .ld-top'); const t = top && top.querySelector('.ld-title'), a = top && top.querySelector('.ld-top-a');
+        return { page: document.documentElement.scrollWidth - innerWidth, sheet: over(document.querySelector('.ld-sheet')), panel: over(document.getElementById('ins-panel')),
+          oneLine: !t || !a || Math.abs(t.getBoundingClientRect().top - a.getBoundingClientRect().top) < 24 };
+      });
+      let F = await fit();
+      check(`${tag} 5a the edit page: nothing sideways`, F.page <= 0 && F.sheet <= 1 && F.panel <= 1, F);
+      await page.screenshot({ path: path.join(OUT, `${tag}-edit.png`) });
+
+      /* 4 SEND FOR APPROVAL (the first screen only: one change waits per standard) */
+      if (w === SIZES[0][0]){
+        await page.evaluate(() => document.querySelector('[data-ld-send]')?.click());
+        const dlg = await until(() => !!document.getElementById('ld-why'));
+        if (dlg){ await page.fill('#ld-why', 'Name the carve-outs.'); await page.evaluate(() => document.getElementById('ld-send-go')?.click()); }
+        const H = await until(() => { if (document.querySelector('.ld-edit')) return null; document.querySelector('[data-ld-mode="history"]')?.click();
+          const r = [...document.querySelectorAll('.ld-hrow')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return r.length ? r : null; });
+        check(`${tag} 4a Send for approval asks why; the change waits in History`, !!dlg && !!H && /Waiting/.test(H[0]) && /Name the carve-outs/.test(H[0]), H);
+        await page.evaluate(() => document.querySelector('[data-ld-mode="ladder"]')?.click());
+        const still = await until(() => { const w0 = document.querySelector('.ld-rung .ld-w'); return w0 ? w0.textContent : null; });
+        check(`${tag} 4b the ladder still shows the words that stand`, !!still && !/fees paid in the twelve \(12\) months before the claim\.$/.test(still), still && still.slice(0, 60));
+        /* while a change waits the standard is not edited again; the next screens edit it, so the change is withdrawn here */
+        await page.evaluate(() => document.querySelector('.ld-main [data-ld-withdraw]')?.click());
+        await until(() => !document.querySelector('.ld-main [data-ld-withdraw]') && !!document.querySelector('[data-ld-edit]'));
+      } else await page.evaluate(() => document.querySelector('[data-ld-cancel]')?.click());
+
+      await page.evaluate(() => { const b = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => /Liability/.test(x.textContent)); if (b) b.click(); });
+      await page.waitForTimeout(300);
+      F = await fit();
+      check(`${tag} 5b the ladder: nothing sideways, the buttons on the title's line`, F.page <= 0 && F.sheet <= 1 && F.panel <= 1 && F.oneLine, F);
+      await page.screenshot({ path: path.join(OUT, `${tag}-ladder.png`) });
+      await page.context().close();
+    }
+    check('no page errors', errors.length === 0, errors.slice(0, 3));
+  } catch (e) {
+    check('the run finished', false, String(e && e.message || e));
+  } finally {
+    await browser.close(); await h.stop();
+    const bad = results.filter(r => !r.pass).length;
+    console.log(bad ? `\n${bad} FAILED` : `\n${results.length}/${results.length} checks passed`);
+    process.exit(bad ? 1 : 0);
+  }
 })();

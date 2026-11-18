@@ -52,10 +52,16 @@ const ID = 'MK-E1';
       return { heads: document.querySelectorAll('[data-pd-mid^="form:"] .pd-fm-gh').length, n: rows.length, owed: owed.filter(Boolean).length,
         owedFirst: firstKnown > 0 && owed.slice(firstKnown).every(x => !x), dot: rows[0] ? dot(rows[0]) : '',
         cp: ((document.querySelector('[data-pd-mid^="form:"] tr[data-pd2-known="counterparty"] td.pd-og-a') || {}).textContent || '').trim(),
-        under: ((document.getElementById('pd2-fm-under') || {}).textContent || '').trim() };
+        under: ((document.getElementById('pd2-fm-under') || {}).textContent || '').trim(),
+        /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762: THE NUMBER ON THE DOOR IS THE LIST BEHIND IT): the
+           other side's signer stands amber in its own row but is counted under Sign, so "N needed" counts the owed rows that
+           are details, and "N on record" the rows that stand (the quiet separator line is not a row) */
+        det: rows.filter(r => r.hasAttribute('data-pd2-owed') && r.getAttribute('data-pd-og-kind') !== 'signer').length,
+        rec: rows.filter(r => !r.hasAttribute('data-pd2-owed') && !r.hasAttribute('data-pd2-fm-sep')).length };
     });
     check('1 one quiet list: owed first with an amber dot, no group heads, "§ · quote" where read, needed and on record said',
-      up && L.heads === 0 && L.owed === 3 && L.owedFirst && /rgb\(201, 138, 20\)/.test(L.dot) && /^§ \d+ · /.test(L.cp) && /3 needed · \d+ on record$/.test(L.under), L);
+      up && L.heads === 0 && L.owed === 3 && L.owedFirst && /rgb\(201, 138, 20\)/.test(L.dot) && /^§ \d+ · /.test(L.cp)
+        && L.det >= 1 && L.rec >= 1 && new RegExp(`· ${L.det} needed · ${L.rec} on record$`).test(L.under), L);
     /* 1b — THE ROW AS DRAWN (owner, 13 Nov 2026): every answer on one width and one height, the sentence under the name,
        one quiet line over what already stands, a tick only where there is an answer */
     const R = await page.evaluate(() => {

@@ -78,6 +78,8 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
     check('3a  the tab really is stale: it still shows the refusal', stale.status === 'rejected' && /Approve again/.test(stale.btn), JSON.stringify(stale));
     appr.__toasts.length = 0;
     await appr.click(RULE_OK);
+    /* a yes offers an optional note (17 Nov 2026): the pop-up's own Approve sends it */
+    { const ok = await appr.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); }
     const s3 = await until(async () => { const x = await stored(); return stepOf(x).status === 'approved' ? x : null; });
     await appr.waitForTimeout(600);
     const dlg = await appr.evaluate(() => /Keep mine|Load theirs/.test(document.body.innerText));

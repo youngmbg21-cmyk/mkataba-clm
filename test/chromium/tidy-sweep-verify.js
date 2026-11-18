@@ -168,7 +168,13 @@ const MEASURE = `(() => {
        with the last column's one grey pill (29 Oct 2026) a value like "Warehousing & Distribution" reads whole on two lines */
     /* …and a folder tile (the new look's Contracts › Folders, 9 Nov 2026): a button-card of four lines, name · count · bar · money */
     /* …and a folder row (the folders, the Legora way, owner's pick 9 Nov 2026, f983): the name over its grey line */
-    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row')) continue;
+    /* …and, RE-POINTED 17 Nov 2026 (the new look is the only look, #762), Jambo's five parts (owner, 15 Nov 2026, "Build as
+       drawn"; js/components.js jamboOverviewFiveHtml): a tile's number over its word (.jov5-g: <b> over <span>, a column),
+       a row's name over its grey line (.jov5-row: .jov5-rt a column; a long name two lines, then "…"), and Contracts'
+       view tiles (.ctf-view: the number · the view's name · its grey line, each held to one line with "…") */
+    /* …and, RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way), Our paper's four figures on Shelves
+       (.tpln5-fig: the number over its word, a column, the word held to one line with "…" — the same tile as .jov5-g) */
+    if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row, .jov5-g, .jov5-row, .ctf-view, .tpln5-fig')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
     /* THE LINES THE WORDS TOOK, not the box's height: a tag with a fixed height folds its words inside it and the box never grows */
@@ -251,6 +257,11 @@ const MEASURE = `(() => {
   for (const el of all) {
     if (el.matches(CTRL)) continue;
     if (el.closest('svg, canvas, .tb-paper, .hati-doc, .doc-surface, .doc-sheet, [contenteditable="true"], .hb-dark, [data-toast], .toast')) continue;
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling, round 3 "KEEP AS DRAWN"): Jambo's soft
+       groups (.jov5-group, js/components.js jamboOverviewFiveHtml) are a LIST of rows with 8–12px inside, not a card — the
+       16px rule is not asked of the group; what is still asked of it is that nothing runs PAST its edges (the ruling: "the
+       8px overflow past a group's foot is still a fault") */
+    const listGroup = el.matches('.jov5-group');
     const cs = getComputedStyle(el);
     if (parseFloat(cs.borderTopLeftRadius) < 8 || !paintOf(el)) continue;
     const edged = cs.boxShadow !== 'none' || parseFloat(cs.borderTopWidth) > 0;
@@ -277,7 +288,11 @@ const MEASURE = `(() => {
       const ctl = ctl0 && el.contains(ctl0) && ctl0 !== el && paintOf(ctl0) ? ctl0 : null;
       /* words cut with "…" paint only inside their box: their range runs on past it */
       const clipTo = (() => { for (let q = pe; q && q !== el; q = q.parentElement) { if (/(hidden|clip)/.test(getComputedStyle(q).overflowX)) return R(q); } return null; })();
-      const clip = q => clipTo ? { top: q.top, bottom: q.bottom, left: Math.max(q.left, clipTo.left), right: Math.min(q.right, clipTo.right), width: Math.min(q.right, clipTo.right) - Math.max(q.left, clipTo.left), height: q.height } : q;
+      /* RE-POINTED 17 Nov 2026 (#762): words held to two lines ("…", -webkit-line-clamp) paint only inside their box downward
+         too — the hidden lines' range is not what the eye sees */
+      const clipY = (() => { for (let q = pe; q && q !== el; q = q.parentElement) { const qc = getComputedStyle(q); if (/(hidden|clip)/.test(qc.overflowY) && qc.webkitLineClamp && qc.webkitLineClamp !== 'none') return R(q); } return null; })();
+      const clip0 = q => clipTo ? { top: q.top, bottom: q.bottom, left: Math.max(q.left, clipTo.left), right: Math.min(q.right, clipTo.right), width: Math.min(q.right, clipTo.right) - Math.max(q.left, clipTo.left), height: q.height } : q;
+      const clip = q => { const a = clip0(q); if (!clipY) return a; const top = Math.max(a.top, clipY.top), bottom = Math.min(a.bottom, clipY.bottom); return { top, bottom, left: a.left, right: a.right, width: a.width, height: bottom - top }; };
       const rects = ctl && el.contains(ctl) && ctl !== el ? [R(ctl)] : (() => { const rg = document.createRange(); rg.selectNodeContents(n); return [...rg.getClientRects()].map(clip); })();
       for (const q of rects) { if (q.width < 1 || q.height < 1) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
       /* a wrapped line ends where its block ends: the nearest block's content edge stands for the right */
@@ -289,6 +304,10 @@ const MEASURE = `(() => {
       txt = txt || n.textContent.trim();
     }
     for (const c of el.querySelectorAll('button, input, select, textarea, svg, img')) { if (hidden(c) || getComputedStyle(c).position === 'absolute' || (c.matches('button') && !paintOf(c)) || (c.matches('svg, img') && c.closest('button, a') && el.contains(c.closest('button, a')))) continue; const q = R(c); if (!q.width) continue; t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
+    /* RE-POINTED 17 Nov 2026 (#762): a small painted mark with no words — an icon's disc, a face — is content the eye sees at
+       the card's edge, as an svg is (Import's drop disc, Jambo's crew of faces) */
+    for (const c of el.querySelectorAll('span, i, div')) { if (hidden(c) || c.textContent.trim() || !paintOf(c)) continue; const q = R(c); if (!q.width || q.width > 64 || q.height > 64 || q.width < 8) continue;
+      t = Math.min(t, q.top); b = Math.max(b, q.bottom); l = Math.min(l, q.left); rt = Math.max(rt, q.right); }
     if (!isFinite(t) || !txt) continue;
     if (!isFinite(rt)) rt = r.right - (l - r.left);
     const room = { top: Math.round(t - r.top), bottom: Math.round(r.bottom - b), left: Math.round(l - r.left), right: Math.round(r.right - rt) };
@@ -302,7 +321,7 @@ const MEASURE = `(() => {
     const stretched = room.bottom > 2 * room.top + 8 || !!pcs && /flex|grid/.test(pcs.display) && (parseFloat(cs.flexGrow) > 0 || /stretch|normal/.test(cs.alignSelf + pcs.alignItems) && (pcs.display.includes('grid') || !/column/.test(pcs.flexDirection)) && [...par.children].some(k => k !== el && !hidden(k) && Math.abs(R(k).top - r.top) < 2));
     /* centred words far from both edges read as centred: the slack grows with the room (5%) */
     const near = (a, b2) => Math.abs(a - b2) <= Math.max(CARD_ROOM_SLACK, Math.min(a, b2) * 0.05);
-    const bad = ['top', 'bottom', 'left', 'right'].some(k => room[k] < CARD_ROOM - CARD_ROOM_SLACK) || (!stretched && !near(room.top, room.bottom)) || !near(room.left, room.right);
+    const bad = listGroup ? ['top', 'bottom', 'left', 'right'].some(k => room[k] < 0) : ['top', 'bottom', 'left', 'right'].some(k => room[k] < CARD_ROOM - CARD_ROOM_SLACK) || (!stretched && !near(room.top, room.bottom)) || !near(room.left, room.right);
     if (bad) out.room.push({ who: who(el), in: inside(el), text: txt.slice(0, 40), room });
   }
   { const seenRoom = new Set(); out.room = out.room.filter(x => { if (seenRoom.has(x.who)) return false; seenRoom.add(x.who); return true; }); }
@@ -327,6 +346,11 @@ const LEVEL = `(() => {
      the page is one surface beside it, so there is no card to level; the Board's head is the white strip level with it.
      The frame's own measures are new-look-frame-verify's */
   if (document.documentElement.classList.contains('lg-new') && getComputedStyle(panel).borderTopLeftRadius === '0px'){
+    /* RE-POINTED 17 Nov 2026 (#762): the old frame's own rule, now asked here too — a page a door (or an earlier measure)
+       scrolled down is measured where it starts, not here; and a Board head under a page laid over it (a form, the side
+       panel's own page) is not the page in front */
+    if ([document.getElementById('hb-board'), document.getElementById('content-scroll')].some(el => el && el.scrollTop > 0)) return null;
+    if (state.view !== 'dashboard' || document.querySelector('#modal-root .modal-in, [data-pd-mid]')) return null;
     const hd = document.getElementById('hb-bhead');
     return vis(hd) && panel.id === 'ig-dock' ? { dTop: Math.round(hd.getBoundingClientRect().top - pr.top), dBot: 0 } : null;
   }
@@ -373,11 +397,12 @@ const PLACES = [
   { k: 'approvals', name: 'Approvals', go: `setView('approvals')`, wait: `document.querySelector('.ap-page, #ap-root, .sap-page')` },
   { k: 'requests', name: 'Requests', go: `setView('intake')`, wait: `document.querySelector('.ik-page, #ik-root, .sap-page')` },
   { k: 'import', name: 'Import', go: `setView('migration')`, wait: `document.querySelector('#mig-drop, #mig-side')` },
-  { k: 'paper-book', name: 'Our paper', go: `setView('templates')`, wait: `document.querySelector('.tpl-pf, #tpl-new, .tpl-shelf')` },
+  { k: 'paper-book', name: 'Our paper', go: `setView('templates')`, wait: `document.querySelector('.tpln5, .tpl-pf, #tpl-new, .tpl-shelf')` },
   /* the template's own page and the builder (25 Oct 2026): a template made for the sweep, nothing else saved */
   { k: 'template', name: "Our paper · a template's page", go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', description: 'Warehousing and logistics services, our standard', category: 'procurement' })); openTemplateLibDetail(t.template.id); })()`, wait: `document.querySelector('#tpl-dt .tpl-dt-line')` },
   { k: 'builder', name: 'Our paper · the builder', go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', category: 'procurement' })); const d = await api('templates/' + t.template.id); openTemplateBuilder(t.template.id, d.versions[0].id); })()`, wait: `document.querySelector('#tb-page #tb-rail, #tb-page .tb-strip')` },
-  { k: 'standards', name: 'Our standards', go: `setView('playbook')`, wait: `document.querySelector('.sd-page, #sd-root, .sap-page')` },
+  /* the Ladder (17 Nov 2026): Standards is its own page */
+  { k: 'standards', name: 'Standards', go: `setView('playbook')`, wait: `document.querySelector('.ld-page .ld-rung')` },
   { k: 'people', name: 'People', go: `setView('directory')`, wait: `document.querySelector('.dir-td-wrap, .dir-table, .sap-page')` },
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },

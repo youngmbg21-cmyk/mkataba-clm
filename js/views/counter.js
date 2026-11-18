@@ -118,7 +118,7 @@ function deskKeyNow(){
 }
 /* A page's name, read when it is drawn, so it follows the reader's language. */
 const DK_VIEW_WORD = { redline: 'nav_negotiations', customers: 'nav_customers', approvals: 'nav_approvals', obligations: 'nav_obligations',
-  mynotes: 'nav_mynotes', reads: 'nav_reads', pulse: 'nav_pulse', intel: 'nav_insights', jambo: 'nav_jambo', templates: 'nav_tpl_std', playbook: 'nav_tpl_std', migration: 'nav_import',
+  mynotes: 'nav_mynotes', reads: 'nav_reads', pulse: 'nav_pulse', intel: 'nav_insights', jambo: 'nav_jambo', templates: 'nav_tpl_std', playbook: 'ld_page', migration: 'nav_import',
   intake: 'nav_intake', directory: 'nav_directory', team: 'nav_settings_rules', brain: 'nav_brain', register: 'nav_contracts', handbook: 'nav_handbook' };
 function deskTabLabel(k){
   k = String(k || '');
@@ -209,6 +209,9 @@ function deskGoBack(){
      beside it — the sentence that drafted it stands in Jambo's conversation
      there (19 Oct 2026, one-sheet-as-drawn 7a) */
   if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
+  /* THE TEMPLATE BUILDER'S WAY OUT IS ‹ (#762: its own back button is the old look's): it leaves through the builder's
+     own leave (tbLeave — asks first if anything is unsaved) and lands on the template's page */
+  if (deskBuilderUp()){ window.tbLeave(); return true; }
   /* a page standing in the middle beside the Dossier: ‹ brings the paper back (the middle, 21 Oct 2026) */
   if (typeof window.pdMidClose === 'function' && window.pdMidClose()) return true;
   if (deskStepBack(true)){ deskBarPaint(); return true; }
@@ -219,6 +222,7 @@ function deskGoBack(){
 }
 /* THE ONE SHEET AND THE TRAIL: the page settled on when the sheet opened is
    where its ‹ returns (a page the reader is already on is not opened twice) */
+function deskBuilderUp(){ return typeof document !== 'undefined' && !!document.getElementById('tb-page') && typeof window.tbLeave === 'function'; }
 function deskSheetUp(){ return typeof window !== 'undefined' && typeof window.naSheetUp === 'function' && !!window.naSheetUp(); }
 function deskSheetFrom(){
   return _dkTrail[_dkTrail.length - 1] || (dkHomeHere() ? 'home' : null);
@@ -321,7 +325,7 @@ function deskBarPaint(){
   if (back){
     back.hidden = !on;
     const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
-    back.disabled = !can;
+    back.disabled = !(can || deskBuilderUp());
     /* ‹ SAYS WHERE IT GOES (the glitch audit, 24 Oct 2026: it said only "Back", and a press that
        stepped the panel looked like one that did nothing) */
     let where = '';
@@ -608,13 +612,13 @@ function ndPieces(){
    or the piece Jambo prepared for it, ND_AL_PIECES), and the rest joins the
    one desk as a row of its own ('al'), so nothing the bell rang about is lost
    now that it counts what Home counts. */
-const ND_NEWS = ['review-out', 'ap-cleared', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self'];
+const ND_NEWS = ['review-out', 'ap-cleared', 'dep-allowed', 'std-approved', 'std-refused', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self'];
 const ND_AL_ROWS = { 'review-mine': ['review'], suggest: ['suggest'], look: ['look'], details: ['details'], 'note-mine': ['note'], approval: ['approval', 'refused'], 'ap-refused': ['refused'], 'desk-quiet': ['quiet'], 'desk-join': ['join'], negotiation: ['quiet'], renewal: ['renewal'], signature: ['sign'] };
 const ND_AL_PIECES = { negotiation: ['answer'], 'desk-quiet': ['answer'], renewal: ['renewal', 'notice'], details: ['read'] };
 /* the admin's own list (stNeedsAll) already holds these: the setup or company row stands for them, last of
    Your move. The mail warning (the owner moved it off the page onto the bell) leads that row's line */
 const ND_AL_ADMIN = ['settings-ask', 'access-review', 'email-off'];
-const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
+const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'dep-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
 const ND_AL_BTN = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'desk-quiet': 'review', 'review-mine': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', signature: 'sign', approval: 'decide', 'ap-refused': 'decide', renewal: 'decide', mailroom: 'look', details: 'fill', 'finding-ask': 'answer', 'settings-ask': 'answer', 'desk-join': 'answer' };
 function ndIsNews(a){ return !!a && (ND_NEWS.includes(a.kind) || (a.kind === 'watch' && !a.fired)); }
 function ndAlerts(){
@@ -919,14 +923,24 @@ function ndPanelHtml(D){
 /* ---- THE BELL, THE NEW LOOK (round 7, as drawn) ----
    The same eight things Home lists (ndRead, in Home's own order, cn2Rows), each a dot in its kind's tone, what it
    is and where, and ONE Open that presses the row's own door; News under it, never counted (ndIsNews). */
+/* a decision's colour on the bell: `tint` 'no' (declined, refused) light red, 'yes' (approved, allowed) light green */
+function ndTintOf(a){ return a && a.tint === 'no' ? ' is-tint-no' : a && a.tint === 'yes' ? ' is-tint-yes' : ''; }
 function ndBellNlHtml(D){
   const L = cn2Rows(D), news = D.news || [];
   const row = x => { const r = x.r, P = ndParts(r);
     const title = P.title || P.name || '';
-    const sub = r.g === 'jambo' ? _ndText(P.deal || P.line || '') : [P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
-    return `<div class="ndb-r" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}</div>`
+    /* its own line first (what came back, who asked, the note: P.note) — the new bell had dropped it (#762) */
+    /* the company row says what it holds (the email warning among them) in its own line, as the old bell did (#762) */
+    const sub = (r.g === 'jambo' || r.company) ? _ndText(P.deal || P.line || '') : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : (!P.name && P.deal && !String(title).includes(_ndText(P.deal)) ? _ndText(P.deal) : ''), P.ref && !String(title).includes(_ndText(P.ref)) ? _ndText(P.ref) : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
+    /* A NO IS LIGHT RED, A YES LIGHT GREEN (owner, 17 Nov 2026), and the decider's note is quoted under it */
+    const why = r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' && r.y.x.it.why ? '“' + String(r.y.x.it.why).slice(0, 140) + '”'
+      : r.al && r.al.tint && r.al.sub ? String(r.al.sub) : '';
+    const tint = ndTintOf(r.al || (r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' ? { tint: 'no' } : null));
+    /* every row names its agreement and its reference, as the old bell's rows did (#762: an answer stuck said neither) */
+    /* good news (they agreed, ready to sign) wears the green dot, as the old bell's row did (P.good; #762) */
+    return `<div class="ndb-r${tint || (P.good ? ' nd-good' : '')}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${P.good ? 'good' : x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
       + `<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('act_open'))}</button></div>`; };
-  const newsRow = (a, i) => `<button type="button" class="ndb-r is-news" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
+  const newsRow = (a, i) => `<button type="button" class="ndb-r is-news${ndTintOf(a)}" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
   return `<div class="ndb">${L.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_need', { n: ndThings(D.jambo) + ndThings(D.you) }))}</div>${L.map(row).join('')}` : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`
     + (news.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_news'))}</div>${news.map(newsRow).join('')}` : '') + `</div>`;
 }
@@ -1214,5 +1228,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { dkLeavePageThen, deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter, dkHomeHere, DK_HOME_KEY,
-  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndTintOf, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, counterNeedsCount });

@@ -27,8 +27,10 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const P = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
   const errors = []; P.on('pageerror', e => errors.push(String(e && e.message || e)));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the list is the new look's table (.apn-table), its
+     row's Approve is .apn-ok, the row's last column says how it stands (td.apn-wait / td.apn-acts) */
   const btns = () => P.evaluate(() => [...document.querySelectorAll('.ap-table.ap-ins tr[data-ap-row]')].map(tr => {
-    const b = tr.querySelector('.ap-ok'); const cs = b && getComputedStyle(b);
+    const b = tr.querySelector('.apn-ok'); const cs = b && getComputedStyle(b);
     return { id: tr.getAttribute('data-ap-row'), sel: tr.classList.contains('is-sel'), has: !!b, bg: cs ? cs.backgroundColor : null, ink: cs ? cs.color : null };
   }));
   try {
@@ -52,10 +54,15 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
       check(B[1].sel && B[1].ink === 'rgb(255, 255, 255)' && B[0].ink !== 'rgb(255, 255, 255)', '2 choosing another row moves the fill there', B.slice(0, 2));
 
       /* 3 · Approve on a row not chosen: the third */
-      const target = B[2] && B[2].id;
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's Mine tab lists only what waits on the reader (two rows on this
+         world), so the row not chosen is the first that is not chosen; decided, it leaves Mine for Done, and the
+         contract's own chain says Approved */
+      const target = (B.find(b => !b.sel) || {}).id;
       const v0 = await P.evaluate(() => state.view);
-      await P.click(`.ap-table.ap-ins tr[data-ap-row="${target}"] .ap-ok`);
-      const done = await until(P, id => { const tr = document.querySelector(`tr[data-ap-row="${id}"] td.ap-wait`); return !!(tr && /Approved/.test(tr.innerText)); }, target, 10000);
+      await P.click(`.ap-table.ap-ins tr[data-ap-row="${target}"] .apn-ok`);
+      { const ok = await P.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); } /* a yes offers an optional note (17 Nov 2026) */
+      const done = await until(P, id => { const c = getContract(id); const ch = (c && c.approvalChain) || [];
+        return !document.querySelector(`.apn-table tr[data-ap-row="${id}"]`) && ch.some(x => x && x.status === 'approved'); }, target, 10000);
       const rowSays = await P.evaluate(id => { const tr = document.querySelector(`tr[data-ap-row="${id}"]`); return tr ? tr.innerText.replace(/\s+/g, ' ') : '(row left the list)'; }, target);
       check(done, '3a Approve on a row that is not chosen approves that contract', { target, rowSays });
       check(await P.evaluate(() => state.view) === v0, '3b and the press did not open the contract', { view: await P.evaluate(() => state.view) });
@@ -63,7 +70,7 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
     }
     for (const [w, hh] of [[1536, 730], [1366, 950]]){
       await P.setViewportSize({ width: w, height: hh }); await P.waitForTimeout(400); await still(P);
-      const fit = await P.evaluate(() => { const b = document.querySelector('.ap-table.ap-ins .ap-ok'); const td = b && b.closest('td'), tr = b && b.closest('tr');
+      const fit = await P.evaluate(() => { const b = document.querySelector('.ap-table.ap-ins .apn-ok'); const td = b && b.closest('td'), tr = b && b.closest('tr');
         const r = b && b.getBoundingClientRect(), rr = tr && tr.getBoundingClientRect();
         return { side: document.documentElement.scrollWidth > innerWidth, has: !!b, inside: !!(r && rr && r.right <= rr.right - 8 && r.left >= rr.left), oneLine: !!(r && r.height < 40), td: td ? td.offsetWidth : 0 }; });
       check(fit.has && fit.inside && fit.oneLine && !fit.side, `4 ${w}×${hh}: Approve on one line inside its row, nothing sideways`, fit);

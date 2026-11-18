@@ -2600,6 +2600,12 @@ function obligationsDoorCount(){
    stale to inherit. */
 function obwGoFiltered(patch){
   _obwF = { whose:'all', state:'open', side:'all', folder:'all', due:'all', ...(patch || {}) };
+  /* THE NEW LOOK'S PAGE (obnRender) READS ITS OWN PILLS (16 Nov 2026, #762): a door asking for the late ones
+     lands on Late, one asking for their side or ours on that choice, and a fresh landing starts unsearched */
+  const p = patch || {};
+  _obnTab = p.state === 'overdue' ? 'late' : 'open';
+  _obnWho = (p.side === 'ours' || p.side === 'theirs') ? p.side : 'all';
+  _obnQ = '';
   if(typeof setView === 'function') setView('obligations');
   else renderObligationsList();
 }
@@ -3372,6 +3378,9 @@ function obPanelActs(o, c, i, ctx){
   if(ctx === 'tab'){
     if(may && w === 'done') acts.push({ k:'reopen', label: i18t('ob_reopen_cap'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) toggleObligation(h.c, h.i, { from:'obligations tab' }); } });
     if(may) acts.push({ k:'edit', label: i18t('ob_edit_cap'), icon:'pencil', run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) openObligationForm(h.c, { ...h.o, _i: h.i }); } });
+    /* REMOVE, last, at once with Undo (obligationRemove): the old tab's ⋯ menu carried it, the new look's face draws
+       these acts only, so it stands here — otherwise no way to take an obligation off is left (#762) */
+    if(may && typeof newLookOn === 'function' && newLookOn()) acts.push({ k:'remove', label: i18t('ob_remove_cap'), icon:'trash', title: i18t('ob_remove_says'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } });
   } else {
     /* the doors every list draws: Negotiation · Workspace (the Document door
        went, owner 15 Oct 2026; the row itself opens the Board's Obligations) */
@@ -3502,6 +3511,74 @@ function obPanelOpts(o, c, i, ctx){
     onMenu: act => { if(act === 'remove'){ const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } },
   };
 }
+/* THE NEXT REMINDER'S DAY, as the Reminders line reads it (obligationReminderLine): empty where none goes — done, held
+   behind an earlier step, no date, theirs, nobody to write to, or every reminder already gone */
+function obligationReminderDay(o, c){
+  if(!o || obState(o) === 'done') return '';
+  const due = obligationDue(o); if(!due) return '';
+  if(c && obligationBlocked(o, c)) return '';
+  if(obligationIsTheirs(o)) return '';
+  if(!(obligationReachable(obligationReminderTo(o), c) || obligationOwnerTo(c))) return '';
+  const d = daysUntil(due);
+  const hit = [[-7], [0], [1]].find(([k]) => d + k >= 0);
+  return hit ? _obPlusDays(due, hit[0]) : '';
+}
+/* THE FIVE PARTS ON A CHOSEN DUTY (owner picked "Five Parts" by name, 18 Nov 2026): the duty and when as the headline,
+   who owes whom under which contract under it, three numbers (days left or late, the next reminder, how often), the
+   facts as rows (the contract a door, obOpenContract), the clause it came from quoted with its own Show it in the
+   contract — or said plainly that none was recorded — and the duty's one act as the black button (Mark done; Chase on
+   theirs), the same runs obPanelActs draws. The page's panel, the new look only; the contract's own tab is unchanged. */
+function obPanelFive(o, c, i){
+  const theirs = obligationIsTheirs(o), w = obligationWindow(o, c), due = obligationDue(o);
+  const d = due ? daysUntil(due) : null;
+  const cp = o.counterparty || c.counterparty || i18t('ob_side_theirs');
+  const ref = window.contractRef ? contractRef(c) : c.id;
+  const what = o.desc || '';
+  const title = w === 'done' ? i18t('jov5_obp_t_done', { what }) : w === 'waiting' ? i18t('jov5_obp_t_wait', { what })
+    : w === 'nodate' || d == null ? i18t('jov5_obp_t_nodate', { what })
+    : w === 'overdue' ? i18tn('jov5_obp_t_late', -d, { what, n: -d }) : i18t('jov5_obp_t_due', { what, when: obligationRelWords(d) });
+  const rem = obligationReminderDay(o, c);
+  const glance = [
+    w === 'done' ? { n: o.completedAt ? obDay(o.completedAt) : '—', l: i18t('jov5_obp_g_done') }
+      : d == null ? { n: '—', l: i18t('jov5_obp_g_nodate') }
+      : d < 0 ? { n: -d, l: i18t('jov5_obp_g_late'), warn: true } : { n: d, l: i18t('jov5_obp_g_left') },
+    { n: rem ? obDay(rem) : i18t('jov5_obp_g_none'), l: i18t('jov5_obp_g_rem') },
+    { n: obRepeatsWord(o), l: i18t('jov5_obp_g_repeats') }];
+  const facts = [];
+  if(due) facts.push({ mark: 'calendar', t: obDay(due, true), s: i18t('ob_fact_due') });
+  if(obligationMoneyVisible() && typeof obligationHasAmount === 'function' && obligationHasAmount(o))
+    facts.push({ mark: 'coins', t: obligationMoneyText(obligationAmount(o), c), s: i18t('ob_amount') });
+  /* the contract a door (data-obp-contract, wired where the panel is painted): its paper with the Obligations face, this row open */
+  facts.push({ mark: 'file', t: c.name || ref, s: [ref, i18t('jov5_obp_contract')].join(' · '), attr: 'data-obp-contract=""' });
+  const from = String(o.quote || '').trim()
+    ? { mark: 'file', t: '“' + String(o.quote).trim() + '”', quote: true, link: { label: i18t('ob_show_in_contract'), attr: 'data-ob-show=""' } }
+    : { mark: 'alert', tone: 'amber', t: i18t('jov5_obp_noword'), s: i18t('jov5_obp_noword_s'), attr: 'data-obp-contract=""' };
+  const acts = obPanelActs(o, c, i, 'page').filter(a => a && !a.disabled && (a.k === 'done' || a.k === 'chase'));
+  const first = acts[0], second = acts[1];
+  const act = first ? { say: theirs ? i18t('jov5_obp_act_theirs', { cp }) : i18t(obRepeatsWord(o, true) ? 'jov5_obp_act_repeat' : 'jov5_obp_act_once'),
+    label: first.label, run: first.run, link: second ? { label: second.label, run: second.run } : null } : null;
+  return { eyebrow: [i18t('jov5_obp_eb'), cp, ref].filter(Boolean).join(' · '), title,
+    sub: theirs ? i18t('jov5_obp_s_theirs', { cp, name: c.name || ref }) : i18t('jov5_obp_s_ours', { cp, name: c.name || ref }),
+    glance, groups: [{ label: i18t('jov5_obp_facts'), rows: facts }, { label: i18t('jov5_obp_from'), rows: [from] }], act,
+    /* REMINDERS STAY ONE LINE, THE RULES BEHIND A LINK (the SAP benchmark's ruling; sap-lists-verify 3b/3d): the old
+       panel's own section, as it was — who is reminded and when, or that nobody on our side is, never in amber */
+    after: `<div class="jov5-sec ins-rem ob-rem-five"><p class="jov5-label">${_obEsc(i18t('ob_sec_reminders'))}</p><p class="ins-p">${obligationReminderLine(o, c)} <button type="button" class="ui-link" data-ob-rem-more aria-expanded="false">${_obEsc(i18t('ob_rem_how'))}</button></p><p class="ins-p ob-rem-full" data-ob-rem-full hidden>${obligationReminderSay(o, c)}</p></div>`,
+    src: i18t('jov5_obp_src') };
+}
+/* A RENEWAL DECISION CHOSEN, in the five parts: the decision and its day as the headline, the contract's end under it,
+   and Decide — the renewal's own door (needsYouGo 'renewal', as the row's Decide) — the black button */
+function obDecisionFive(r){
+  const c = r._c, d = r.days, ref = window.contractRef ? contractRef(c) : c.id;
+  let end = ''; try{ end = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); }catch(_){ end = ''; }
+  const open = () => obOpenContract(c.id, r._key);
+  return { eyebrow: [i18t('jov5_obp_eb_dec'), c.counterparty, ref].filter(Boolean).join(' · '),
+    title: i18t('jov5_obp_t_dec', { name: c.name || ref, when: obligationRelWords(d) }),
+    sub: end ? i18t('jov5_obp_s_dec', { name: c.name || ref, cp: c.counterparty || '', day: obDay(end, true) }) : '',
+    glance: [{ n: d, l: i18t('jov5_obp_g_left') }, { n: r.due ? obDay(r.due) : '—', l: i18t('ob_fact_due') }, { n: obRepeatsWord(r), l: i18t('jov5_obp_g_repeats') }],
+    groups: [{ label: i18t('jov5_obp_facts'), rows: [{ mark: 'file', t: c.name || ref, s: [ref, i18t('jov5_obp_contract')].join(' · '), run: open }] }],
+    act: { say: i18t('jov5_obp_act_dec'), label: i18t('ob_wk_decide'), run: () => { if(typeof window.needsYouGo === 'function') needsYouGo('renewal', c.id); } },
+    src: i18t('jov5_obp_src') };
+}
 /* Paint the panel for one obligation, and wire the two presses inside its
    body that are not verbs in its head (Show it in the contract). The trail
    is read once where it is not on the record, and only the History section
@@ -3517,6 +3594,19 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
      with nothing chosen, "Obligation" with a row chosen */
   const jl = ctx === 'page' ? Object.assign({ jlWord: i18t('jl_w_obligation') }, obPanelJl()) : {};
   if(!o || !c){ insPaintPanel(Object.assign({ host: hostId, empty: emptyMsg }, jl)); if(ctx === 'page') obwPlaceKeep(); return; }
+  /* the page's panel in the new look: the five parts (obPanelFive); the contract's own tab keeps its panel */
+  if(ctx === 'page' && typeof window.newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    insPaintPanel(Object.assign({ host: hostId }, jl, { item: { id: obKeyOf(c.id, o, i) }, head: false,
+      body: `<div class="jl-words is-ov ob-five">${jamboOverviewHtml(obPanelFive(o, c, i), 'obp')}</div>` }));
+    obwPlaceKeep();
+    /* the panel's two doors by name, as the old panel's were (Show it in the contract keeps data-ob-show) */
+    const h5 = document.getElementById(hostId);
+    h5?.querySelector('[data-ob-show]')?.addEventListener('click', () => obligationShowInContract(c.id, o.quote || ''));
+    h5?.querySelectorAll('[data-obp-contract]').forEach(b => b.addEventListener('click', () => obOpenContract(c.id, obKeyOf(c.id, o, i))));
+    h5?.querySelector('[data-ob-rem-more]')?.addEventListener('click', e => { const full = h5.querySelector('[data-ob-rem-full]'); if(!full) return;
+      full.hidden = !full.hidden; e.currentTarget.setAttribute('aria-expanded', full.hidden ? 'false' : 'true'); });
+    return;
+  }
   const opts = obPanelOpts(o, c, i, ctx);
   insPaintPanel(Object.assign({ host: hostId }, jl, opts));
   if(ctx === 'page') obwPlaceKeep();   // the chosen row survives a refresh
@@ -4381,6 +4471,11 @@ function renderObligationsInspector(host, o){
    Jambo read). */
 function obPaintDecision(r){
   if(typeof insPaintPanel !== 'function' || !r || !r._c) return;
+  if(typeof window.newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    insPaintPanel(Object.assign({}, obPanelJl(), { host: 'ins-panel', jlWord: i18t('jl_w_decision'), item: { id: r._key }, head: false,
+      body: `<div class="jl-words is-ov ob-five">${jamboOverviewHtml(obDecisionFive(r), 'obd')}</div>` }));
+    return;
+  }
   insPaintPanel(Object.assign({ host: 'ins-panel', c: r._c, jlWord: i18t('jl_w_decision') }, obPanelJl()));
 }
 
@@ -4656,7 +4751,7 @@ function obnWhenChip(r){
 function obnWhoWord(r){
   return _obCap((!r._dec && obligationIsTheirs(r)) ? i18t('cal_nl_theirs') : i18t('cal_nl_ours'));
 }
-function obnRowHtml(r){
+function obnRowHtml(r, keys){
   const c = r._c || (window.getContract ? getContract(r.cid) : null);
   const theirs = obligationIsTheirs(r);
   const ref = window.refHtml ? refHtml(c || r.cid) : _obEsc(r.cid);
@@ -4676,9 +4771,24 @@ function obnRowHtml(r){
   const open = `<button type="button" class="cal-nl-go obn-open" data-obn-go="open" data-cid="${_obEsc(r.cid)}" data-key="${_obEsc(r._key)}">${_obEsc(i18t('cal_ag_open'))}</button>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1" class="obn-r">
     <td class="obn-c1" style="border-left:3px solid var(--st-${obnStreamTone(c)}-dot)">${typeof listSapCellHtml === 'function' ? listSapCellHtml(mk, `<div class="obn-what">${_obEsc(r.desc || '')}</div><div class="obn-sub">${sub}</div>${quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}</div>` : ''}`, ch.word) : ''}</td>
-    <td class="obn-who">${_obEsc(obnWhoWord(r))}</td>
-    <td class="obn-when"><span class="obn-ch is-${ch.tone}">${_obEsc(ch.word)}</span></td>
-    <td class="obn-act">${act}${open}</td></tr>`;
+    ${(keys || OBN_KEYS).map(k => k === 'who' ? `<td class="obn-who">${_obEsc(obnWhoWord(r))}</td>`
+      : k === 'when' ? `<td class="obn-when"><span class="obn-ch is-${ch.tone}">${_obEsc(ch.word)}</span></td>`
+      : k === 'acts' ? `<td class="obn-act">${act}${open}</td>` : '<td></td>').join('')}</tr>`;
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the tracked list takes the old
+   whole list's seat and keys, so a reader's dragged widths carry over; the duty, When and its buttons always stand,
+   where the room is short Whose steps aside. The proposals' table keeps every column (its duty rows span them). */
+const OBN_KEYS = ['who', 'when', 'acts'];
+function obnCols(prop){
+  const DEFS = prop
+    ? [{ k: 'name', t: 'obn_col_ag' }, { k: 'side', t: 'obn_col_side', w: 150 }, { k: 'prog', t: 'obn_col_prog', w: 190 }, { k: 'found', t: 'obn_col_found', w: 110 }, { k: 'status', t: 'obn_col_status', w: 120 }, { k: 'acts', w: 190 }]
+    : [{ k: 'name', t: 'ob_col_what' }, { k: 'who', t: 'obd_whose', w: 110, rank: 2 }, { k: 'when', t: 'obd_col_when', w: 170 }, { k: 'acts', w: 190 }];
+  const seat = prop ? 'obligations-prop' : 'obligations-all';
+  const FIT = typeof listCols === 'function' ? listCols(seat, DEFS, () => obnRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { seat, keys: cols.slice(1).map(c => c.k), n: cols.length,
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => c.t ? `<th>${_obEsc(i18t(c.t))}${typeof listGripHtml === 'function' ? listGripHtml(seat, c.k) : ''}</th>` : '<th></th>').join('')}</tr></thead>` };
 }
 /* ---- THE FOOT THAT SAYS WHERE YOU ARE (as drawn) ---- a page's own rows are the only ones built */
 function obnPageCount(total, per){ return Math.max(1, Math.ceil(total / Math.max(1, per))); }
@@ -4823,7 +4933,7 @@ function obnRender(host, o){
   const projShown = projects.slice((_obnPropPage - 1) * _obnPer, _obnPropPage * _obnPer);
   /* THREE PILLS (as drawn): what is late, what is tracked, what Jambo proposes — each its own count, said once */
   const pill = (k, w, extra) => `<button type="button" class="obn-tab${_obnTab === k ? ' is-on' : ''}${extra || ''}" data-obn-tab="${k}">${_obEsc(w)}</button>`;
-  const bar = `<div class="apn-bar obn-bar">
+  const bar = `<div class="apn-bar obn-bar" data-lh-seat="obligations-nl">
     ${lateN || _obnTab === 'late' ? pill('late', i18t('obn_p_late', { n: lateN }), ' is-late') : ''}
     ${pill('open', i18t('obn_p_tracked', { n: open }))}
     ${projects.length ? pill('prop', i18tn('obn_p_prop', projects.length, { n: proposedN, m: projects.length })) : ''}</div>
@@ -4833,14 +4943,15 @@ function obnRender(host, o){
     <select id="obn-state" class="obn-sel" aria-label="${_obEsc(i18t('obn_state_label'))}">${[['open', 'obn_s_due'], ['done', 'obn_tab_done']].map(([k, w]) => `<option value="${k}"${_obnState === k ? ' selected' : ''}>${_obEsc(i18t(w))}</option>`).join('')}</select>`}
     <span class="apn-sp"></span>
     <span class="obn-said">${_obEsc(_obnTab === 'prop' ? i18t('obn_said_prop', { n: proposedN, m: projects.length }) : i18t('obn_said_track', { n: open, l: lateN }))}</span></div>`;
+  const C = obnCols(_obnTab === 'prop');
   const body = _obnTab === 'prop'
-    ? (projShown.map(obnProjRowHtml).join('') || `<tr><td colspan="6" class="obn-none">${_obEsc(i18t('obd_none_here'))}</td></tr>`)
-    : (shown.map(obnRowHtml).join('') || `<tr><td colspan="4" class="obn-none">${_obEsc(i18t(q ? 'ob_none_match_short' : 'ob_none_here'))}</td></tr>`);
+    ? (projShown.map(obnProjRowHtml).join('') || `<tr><td colspan="${C.n}" class="obn-none">${_obEsc(i18t('obd_none_here'))}</td></tr>`)
+    : (shown.map(r => obnRowHtml(r, C.keys)).join('') || `<tr><td colspan="${C.n}" class="obn-none">${_obEsc(i18t(q ? 'ob_none_match_short' : 'ob_none_here'))}</td></tr>`);
   const table = _obnTab === 'prop'
-    ? `<table class="apn-table obn-table is-proj"><colgroup><col><col style="width:150px"><col style="width:190px"><col style="width:110px"><col style="width:120px"><col style="width:190px"></colgroup>
-       <thead><tr><th>${_obEsc(i18t('obn_col_ag'))}</th><th>${_obEsc(i18t('obn_col_side'))}</th><th>${_obEsc(i18t('obn_col_prog'))}</th><th>${_obEsc(i18t('obn_col_found'))}</th><th>${_obEsc(i18t('obn_col_status'))}</th><th></th></tr></thead><tbody id="obn-body">${body}</tbody></table>`
-    : `<table class="apn-table obn-table is-two-line"><colgroup><col><col style="width:110px"><col style="width:170px"><col style="width:190px"></colgroup>
-       <thead><tr><th>${_obEsc(i18t('ob_col_what'))}</th><th>${_obEsc(i18t('obd_whose'))}</th><th>${_obEsc(i18t('obd_col_when'))}</th><th></th></tr></thead><tbody id="obn-body">${body}</tbody></table>`;
+    ? `<table class="apn-table obn-table is-proj" data-list-seat="${C.seat}">${C.colg}
+       ${C.th}<tbody id="obn-body">${body}</tbody></table>`
+    : `<table class="apn-table obn-table is-two-line" data-list-seat="${C.seat}">${C.colg}
+       ${C.th}<tbody id="obn-body">${body}</tbody></table>`;
   /* ONE COUNT (the harmony review, owner's yes 9 Nov 2026): the title's facts lead with what is late */
   const late = lateN;
   _obwHeadFacts = `<span class="obw-hf">${late ? `<span class="obw-hf-late">${_obEsc(i18t('obn_head_late_lead', { n: late }))}</span> ` : ''}${_obEsc(i18t('obn_head_open', { n: open }))}${proposedN ? ` · ${_obEsc(i18t('obn_head_prop', { n: proposedN }))}` : ''}</span>`;
@@ -4863,6 +4974,9 @@ function obnRender(host, o){
     pills.forEach((b, i) => { const f = fresh[i]; if(!f) return; b.className = f.className; b.textContent = f.textContent; });
     const said = host.querySelector('.obn-said'), said2 = tmp.querySelector('.obn-said'); if(said && said2) said.textContent = said2.textContent;
     const pg0 = host.querySelector('.obn-page .obn-pager'), pg1 = tmp.querySelector('.obn-pager'); if(pg0 && pg1) pg0.replaceWith(pg1);
+    /* the columns may have stepped aside or come back (listCols): the heads and widths follow the rows */
+    const tbl = host.querySelector('table.obn-table.is-two-line'), t2 = document.createElement('table'); t2.innerHTML = C.colg + C.th;
+    ['colgroup', 'thead'].forEach(tag => { const a = tbl && tbl.querySelector(':scope > ' + tag), b = t2.querySelector(':scope > ' + tag); if(a && b) a.replaceWith(b); });
     host.querySelector('#obn-body').innerHTML = body;
   } else {
     host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page cun-page" data-ins-page="obligations" data-ins="1">
@@ -4931,7 +5045,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     const pg = t.closest('[data-obn-page]');
     if(pg){ e.preventDefault(); const n = Number(pg.getAttribute('data-obn-page')) || 1;
       if(_obnTab === 'prop') _obnPropPage = Math.max(1, n); else _obnPage = Math.max(1, n);
-      obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; return; }
+      obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; const sl = document.getElementById('obn-list'); if(sl) sl.scrollTop = 0; return; }
     const op = t.closest('[data-obn-open]');
     if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id; obnRepaint(); return; }
     const wh = t.closest('[data-obn-whose]');
@@ -4964,7 +5078,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,

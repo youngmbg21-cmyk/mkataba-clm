@@ -158,6 +158,8 @@ const AGREED = [
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the Contracts place prints the reference under the party ("kind · ref", .reg-sub .hati-ref) — its Ref column (.reg-mk) went */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
+    /* RE-POINTED 16 Nov 2026 (#762): asked of the All tab, the one table, not the Folders the place opens on */
+    if (await page.$('[data-ctf-tab="all"]')) { await page.click('[data-ctf-tab="all"]').catch(() => {}); await page.waitForTimeout(700); }
     const onContracts = await page.evaluate(id => !!document.querySelector(`.reg-table tr[data-row="${id}"], .reg-table [data-sel="${id}"], .reg-table [data-row-id="${id}"]`)
       || [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
     check('2a the Contracts list does not carry a working file', !onContracts);
@@ -169,7 +171,10 @@ const AGREED = [
     await page.evaluate(() => { const R = regState(); R.query = ''; regRepaint(); });
     await page.evaluate(() => { if (window.openNegotiations) openNegotiations({ list: true }); else setView('redline'); });
     await page.waitForTimeout(1200);
-    const onNego = await page.evaluate(id => [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Negotiations page is the new list, a row a
+       tr[data-ngn-row] */
+    const onNego = await page.evaluate(id => !!document.querySelector(`tr[data-ngn-row="${id}"]`)
+      || [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
     await page.screenshot({ path: path.join(OUT, '2-negotiations.png') });
     check('2c the Negotiations page lists it from the day it is opened, before a change is filed', onNego);
 
@@ -316,6 +321,9 @@ const AGREED = [
       `${filed.crumb} · want ${filed.barWord}`);
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the one
+       table is its All tab */
+    if (await page.$('[data-ctf-tab="all"]')) { await page.click('[data-ctf-tab="all"]').catch(() => {}); await page.waitForTimeout(700); }
     const row = await page.evaluate(no => [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === no), filed.no);
     check('6f it is on the Contracts list now, under its number', row);
     await page.evaluate(() => { if (window.openNegotiations) openNegotiations({ list: true }); });
@@ -406,18 +414,10 @@ const AGREED = [
       para('Signed for Kijani Foods Ltd: Wanjiru Kamau, 29 September 2026'),
       para('Signed for Highland Corporate Ltd: Amina Otieno, 30 September 2026'),
     ].join(''))));
-    /* The check our signatory runs before signing draws the same list, off the
-       same builder, in its own window — pressed through the waiting card. */
-    await press('[data-ho-act="check"]').catch(() => {});
-    await page.waitForSelector('#ho-fd-file', { timeout: 5000 }).catch(() => {});
-    await page.setInputFiles('#ho-fd-file', signedB).catch(() => {});
-    await page.click('#ho-fd-go', { timeout: 5000 }).catch(() => {});
-    await page.waitForSelector('#ho-fd-out .ho-res', { timeout: 15000 }).catch(() => {});
-    const chk = await page.evaluate(() => { const r = document.querySelector('#ho-fd-out .ho-res');
-      return r ? { same: r.classList.contains('is-same'), text: r.innerText.replace(/\s+/g, ' '),
-        rows: [...r.querySelectorAll('.ho-fills[open] .ho-fill')].length } : null; });
-    check('8a0 the check before we sign reads the filled blanks as the same wording and lists them',
-      chk && chk.same && chk.rows === 3 && /3 blanks they filled in/.test(chk.text), JSON.stringify(chk).slice(0, 220));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 8a0 "the check before we sign reads the filled blanks as the same
+       wording" was pressed through the waiting card ([data-ho-act="check"]), which the new look keeps gone (the owner's
+       answer 2, 17 Nov 2026: the handed-over waiting card with Chase / Send again / Reopen stays gone); the same list,
+       off the same builder, is still read on the filing screen (8a, 8b) */
     await page.click('#ho-fd-cancel').catch(() => {});
     await page.waitForTimeout(400);
     await page.evaluate(() => { state.aiConfigured = false; openUploadModal(); });

@@ -176,7 +176,8 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
        drop in the workspace window with dossier"; this reverses the 22 Oct
        landing on his words): Create lands on the Dossier, and his first words
        wait in his tab, said there once — the reader flips to it */
-    const onDossier = await until(P, () => !!document.querySelector('#ig-dock .ds-sp-st') && !document.querySelector('#ig-dock .jb-turn') && pdTab() === 'copilot', null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml), its stages the .pd2-spine */
+    const onDossier = await until(P, () => !!document.querySelector('#ig-dock .ds-sp-st, #ig-dock .pd2-card .pd2-spine') && !document.querySelector('#ig-dock .jb-turn') && pdTab() === 'copilot', null, 15000);
     check(!!onDossier, '4a0 Create lands on the Dossier, not on his words');
     await drive(P, () => { if (typeof pdTalkReopen === 'function') pdTalkReopen(); });
     const spoke = await until(P, () => [...document.querySelectorAll('#ig-dock .jb-turn')].some(t => /A few things are still open/.test(t.innerText)), null, 15000);
@@ -240,7 +241,9 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     check(!!(pay && pay.read === 'escalate'), '5c where a rule is written, its verdict still stands (the workspace\'s payment range)', pay && pay.read);
     /* RE-POINTED 27 Oct 2026 (THE PICKED CARD): Counter leads filled, Accept
        beside, the rest — Ask a colleague among them — behind More ▾. */
-    check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 3).join(' · ') === 'Counter · Accept · More' && r.verbs.includes('Reject') && r.verbs.includes('Ask a colleague'))), '5d the picked head leads each of their asks, Ask a colleague behind More', rows.map(r => r && r.verbs));
+    /* RE-POINTED 16 Nov 2026 (#762): THE ROW IS ALL OF IT (rlRowFaceVerbs) — theirs Accept · Reject · Counter on the face, then
+       More, with Ask a colleague behind it */
+    check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 4).join(' · ') === 'Accept · Reject · Counter · More' && r.verbs.indexOf('Ask a colleague') > r.verbs.indexOf('More'))), '5d the picked head leads each of their asks, Ask a colleague behind More', rows.map(r => r && r.verbs));
     for (const [w, hgt] of SCREENS){
       await P.setViewportSize({ width: w, height: hgt });
       /* THE PICKED CARD: the door waits behind More ▾; a repaint folds it, so

@@ -190,7 +190,11 @@ const PAGES = sel => `(() => {
     await page.waitForFunction(sel => { const s = document.querySelector(sel); return !!(s && s._pgInfo); }, SIGN, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(600);
     const sign = await page.evaluate(PAGES(SIGN));
-    check('3a the Signing tab draws the SIGNING copy on fixed A4 pages', !!(sign && sign.W === 794
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Home's paper draws the signing copy at the drawing's
+       width, 620 (BEFORE YOU SIGN AS DRAWN: "the type keeps its size, so the pages are more"), each page still the
+       fixed A4 page height; the width is the new look's one rule (index.html `.ig-signpaper .pg-sheet.pg-sign{width:620px}`) */
+    const SIGN_W = await page.evaluate(() => (document.documentElement.classList.contains('lg-new') ? 620 : 794));
+    check('3a the Signing tab draws the SIGNING copy on fixed A4 pages', !!(sign && sign.W === SIGN_W
       && Math.abs(sign.pageH - 794 * 297 / 210) < 1), sign ? `${sign.W} x ${sign.pageH} · ${sign.n} page(s)` : 'no signing copy');
     const head = await page.evaluate(() => {
       const sh = document.querySelector('#ig-signwrap .pg-sheet.pg-sign');
@@ -264,7 +268,7 @@ const PAGES = sel => `(() => {
     const p0 = z0 && pushes(z0), p1 = z1 && pushes(z1);
     const sameBreaks = !!(p0 && p1 && p0.length === p1.length && p0.every((v, i) => (v > 0) === (p1[i] > 0) && Math.abs(v - p1[i]) < 1));
     check('4b …and the pages break exactly where they broke — nothing re-flows',
-      !!(z0 && z1 && zBtn && z0.n === z1.n && sameBreaks && z1.W === 794),
+      !!(z0 && z1 && zBtn && z0.n === z1.n && sameBreaks && z1.W === SIGN_W),
       z0 && z1 ? `${z0.n} → ${z1.n} pages, breaks ${z0.push === z1.push ? 'identical' : sameBreaks ? 'on the same blocks, within a pixel' : 'moved ' + z0.push + ' → ' + z1.push}` : '—');
     const zb = await page.$('#ig-paper .paper-zc [data-sc-zoom="-1"]') || await page.$('#doc-zc-slot [data-sc-zoom="-1"]');
     if (zb) { await zb.click(); await page.waitForTimeout(400); }

@@ -153,6 +153,10 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
 
     /* ============ N-2 and N-9 on the Contracts list ============ */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
+    await waitFor(page, () => !!document.querySelector('[data-ctf-show="list"]'), null, 10000);
+    await page.click('[data-ctf-show="list"]').catch(() => {});
     await waitFor(page, () => document.querySelectorAll('#reg-tbody tr').length > 2, null, 10000);
     await page.waitForTimeout(800);
     /* The seed has no live negotiation, so every row is given one whose move

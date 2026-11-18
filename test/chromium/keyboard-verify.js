@@ -154,7 +154,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   console.log('\n7 · arrows walk the contract list');
   /* MEASURED before this shipped: zero ArrowDown handling in register.js, and
      on Negotiations the row press was the SOLE route in. */
-  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders;
+     regFoldersShut() is the List pill's own step, so the rows are the list a person walks. */
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), regFoldersShut(), setView('register')));
   await page.waitForTimeout(900);
   const rowInfo = () => page.evaluate(() => {
     const rows = [...document.querySelectorAll('#reg-tbody [data-row]')];

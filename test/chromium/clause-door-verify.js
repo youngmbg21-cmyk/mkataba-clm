@@ -965,14 +965,26 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      14b's pencil read "unreachable" because the dialog's scrim was the thing
      under the pointer, and 16's presses and focus landed on it. A person
      answers it; so does this (30 Sep 2026). */
-  const asked = await p.evaluate(() => {
-    const ov = document.getElementById('prompt-overlay');
-    const words = ov ? ov.innerText.replace(/\s+/g, ' ') : '';
-    const skip = ov && ov.querySelector('#pd-cancel'); if (skip) skip.click();
-    return words;
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): on their page
+     the question is no longer the "Why this change?" pop-up — THE OUTSIDE LOOK
+     ASKS AS WE DO (rlNoteAskAfterFile, owner 8 Nov 2026): the save opens their
+     Notes drawer with the change PINNED, the box ready for the why. Same promise:
+     the save asks them why; answered here by shutting the drawer (Not now). */
+  const asked = await p.evaluate(async () => {
+    for (let i = 0; i < 20; i++){
+      const d = document.getElementById('pt-notes');
+      if (d && d.classList.contains('open') && d.querySelector('.rl-np-pin')) break;
+      await new Promise(r => setTimeout(r, 150));
+    }
+    const d = document.getElementById('pt-notes');
+    const pinned = !!(d && d.classList.contains('open') && d.querySelector('.rl-np-pin'));
+    const box = !!(d && d.querySelector('.rl-np-in'));
+    const words = pinned ? d.querySelector('.rl-np-pin').innerText.replace(/\s+/g, ' ') : '';
+    try { if (window.portalNotesClose) portalNotesClose(); } catch (_){}
+    return { pinned, box, words };
   });
-  ck('8g …and the save asks them why, as their page does since 29 Sep — answered here with "Not now"',
-     /Why this change/i.test(asked), asked.slice(0, 80) || 'no question');
+  ck('8g …and the save asks them why, as their page does since 29 Sep — their Notes drawer opens with the change pinned (answered here with "Not now")',
+     asked.pinned && asked.box, JSON.stringify(asked).slice(0, 160));
   await p.waitForFunction(() => !document.getElementById('prompt-overlay'), null, { timeout: 3000 }).catch(() => {});
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 

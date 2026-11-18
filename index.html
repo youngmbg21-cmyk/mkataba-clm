@@ -15028,13 +15028,25 @@
   .jov5-mk{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);color:var(--color-text);font-size:11px;font-weight:var(--w-strong);}
   .jov5-mk.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   .jov5-mk.is-green{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .jov5-mk.is-red{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   .jov5-mk.is-dark{background:var(--accent-solid);color:var(--surface-3);}
   .jov5-ic{width:14px;height:14px;}
   .jov5-k{flex:none;width:84px;font-size:13px;color:var(--color-neutral-400);}
   .jov5-rt{flex:1;min-width:0;display:flex;flex-direction:column;}
-  .jov5-rt b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* A LONG NAME TWO LINES, THEN "…" (the standing rule; #762: a row's name was cut at one line) */
+  .jov5-rt b{font-weight:var(--w-label);white-space:normal;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere;}
+  .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{display:block;-webkit-line-clamp:unset}
+  .jov5-row.is-wrap .jov5-rt > span{display:block;-webkit-line-clamp:unset;overflow:visible} /* a row that wraps says its line whole too (#762) */
   .jov5-rt span{font-size:12px;line-height:1.4;color:var(--color-neutral-400);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+  .jov5-rt .reg-stg{display:inline-flex;-webkit-line-clamp:unset;overflow:visible;}
   .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{white-space:normal;}
+  /* a row that QUOTES (the ask in their words, a duty's own clause): the paper's serif, at reading weight */
+  .jov5-row.is-quote .jov5-rt b{font-family:var(--font-doc);font-weight:400;}
+  /* the flow map's pressed place: its step drawn as a road, the place itself dark */
+  .fm-road{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;}
+  .fm-road span{background:var(--jb-card-fill);border-radius:999px;padding:4px 10px;}
+  .fm-road span.is-on{background:var(--accent-solid);color:var(--surface-3);}
+  .fm-road i{font-style:normal;color:var(--color-neutral-400);}
   .jov5-v{flex:none;font-size:12.5px;color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums;}
   .jov5-v.is-need{color:var(--st-amber-fg);}
   .jov5-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:118px;padding:14px;border-radius:12px;border:1.5px dashed var(--color-accent-300);background:var(--jb-card-fill);text-align:center;font-size:12px;color:var(--color-quiet);cursor:pointer;}
@@ -15052,7 +15064,7 @@
   .jov5-day.is-today i{background:var(--surface-3);}
   .jov5-who{display:flex;align-items:center;gap:14px;min-width:0;}
   .jov5-ava{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--accent-solid);color:var(--surface-3);font-size:18px;font-weight:var(--w-strong);}
-  .jov5-crew{display:flex;justify-content:space-between;gap:4px;padding:12px 14px;border-radius:var(--radius);background:var(--jb-card-fill);}
+  .jov5-crew{display:flex;justify-content:space-between;gap:4px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill);}
   .jov5-cm{display:flex;flex-direction:column;align-items:center;gap:5px;flex:0 1 auto;min-width:0;font-size:10px;line-height:1.2;color:var(--color-neutral-400);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .jov5-cm i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);box-shadow:0 0 0 1px var(--color-divider);}
   .jov5-cm i span{width:10px;height:10px;border-radius:50%;}
@@ -16928,6 +16940,8 @@
   .gds-r:hover .gds-mk:not(.t-ink){box-shadow:0 0 0 2px var(--color-surface),0 0 0 3.5px var(--color-neutral-300)}
   .gds-n{position:absolute;top:0;left:27px;min-width:16px;padding:0 4px;border-radius:999px;background:var(--color-surface);border:1px solid var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-figure);font-weight:var(--w-strong);line-height:14px;text-align:center;font-variant-numeric:tabular-nums}
   .gds-div{width:22px;height:1px;flex:none;background:var(--color-divider);margin:3px 0}
+  /* A SHORT WINDOW (1536×730, the owner's shortest) holds every symbol without scrolling: the rows close up a little */
+  @media (max-height:760px){ .gds-r{height:26px} .gds-mk{width:24px;height:24px} .gds-div{margin:2px 0} }
   .gds-tt{position:fixed;z-index:var(--z-menu);transform:translateY(-50%);display:flex;align-items:center;gap:var(--s-2);background:var(--color-text);color:var(--color-surface);border-radius:var(--radius-sm);padding:6px 10px;white-space:nowrap;font-size:var(--t-body);pointer-events:none;box-shadow:var(--shadow-md)}
   .gds-tt[hidden]{display:none}
   .gds-tt b{font-weight:var(--w-strong)}
@@ -17031,7 +17045,7 @@
   /* GOOD NEWS STAYS GREEN on the one desk's rows (the bell's al-good, owner 23 Aug 2026), and flashes once */
   .nd-r.nd-good,.nd-br.nd-good{box-shadow:inset 3px 0 0 var(--st-green-dot)}
   .nd-r.nd-good .nd-t,.nd-br.nd-good .nd-c-what b{color:var(--st-green-fg)}
-  .nd-r.nd-news,.nd-br.nd-news{animation:al-row-news 1s ease-in-out 0s 3}
+  .nd-r.nd-news,.nd-br.nd-news,.ndb-r.nd-news{animation:al-row-news 1s ease-in-out 0s 3}
   @media (prefers-reduced-motion:reduce){ .nd-r.nd-news,.nd-br.nd-news{animation:none;background:var(--st-green-bg)} }
   .nd-read{font-style:normal;font-weight:var(--w-strong);color:var(--accent-ink)}
   .nd-step,.nd-tag{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 5px;border:1px solid currentColor;border-radius:var(--radius);font-size:var(--t-micro);font-weight:var(--w-strong);line-height:1;white-space:nowrap}
@@ -18608,7 +18622,9 @@
   @media (hover:hover){ html.lg-new .hb-gr-a:hover{text-decoration-color:currentColor} }
   /* -- the slider IS the seam: its strip straddles the hairline, the line drawn by the panel's own edge; hovered, pressed or
      reached by keyboard, a green line two pixels wide lies over it (Home's grip is placed on the panel's edge by igFitSplit) -- */
-  html.lg-new #ig-resizer{transform:translateX(-7px)}
+  /* …and stands BESIDE the paper's scrollbar, never over it (#762, clean-sans 3a/6a): the strip starts at the seam, its line
+     drawn at its own left edge on the hairline */
+  html.lg-new #ig-resizer{transform:translateX(-1px);justify-content:flex-start}
   html.lg-new :is(#content .ins-panel.is-jambo, .st-cr .st-side) > .ig-resizer{left:-8px;width:14px}
   html.lg-new :is(#content .ins-panel.is-jambo, .st-cr .st-side){overflow:clip;overflow-clip-margin:8px}
   html.lg-new .ig-resizer span{opacity:1;width:2px;height:auto;align-self:stretch;border-radius:0;background:transparent}
@@ -18677,6 +18693,8 @@
   html.lg-new #ig-dock .pd2-fact{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--color-divider)}
   html.lg-new #ig-dock .pd2-l{color:var(--color-text)}
   html.lg-new #ig-dock .pd2-v{min-width:0;overflow-wrap:anywhere}
+  /* who else: names and addresses are never broken inside a word — one line, then "…" (the whole on its hover) (#762) */
+  html.lg-new #ig-dock .pd2-fact[data-pd2-fact="people"] .pd2-v{overflow-wrap:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new #ig-dock .pd2-s{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;text-align:right}
   html.lg-new #ig-dock .pd2-sgo{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--color-quiet);cursor:pointer}
   @media (hover:hover){ html.lg-new #ig-dock .pd2-sgo:hover{color:var(--accent-ink);text-decoration:underline} }
@@ -18686,59 +18704,59 @@
   html.lg-new #ig-dock .pd2-turn p,html.lg-new #ins-panel .pd2-turn p{margin:2px 0 0}
   html.lg-new #ig-dock .pd2-jface,html.lg-new #ins-panel .pd2-jface{width:12px;height:12px;border-radius:50%;background:var(--st-violet-dot);flex:none;margin-top:4px}
   /* the notes beside the paper: the sheet stands left, the notes in the margin, each by the line it was read from */
-  html.lg-new #ig-paper .ig-zoom.has-pd2{position:relative}
-  html.lg-new #pd2-notes{position:absolute;top:0;font-size:13px;line-height:1.4;color:var(--color-text)}
-  html.lg-new #pd2-notes .pd2-mn{position:absolute;left:0;right:0;padding:0 0 0 46px}
-  html.lg-new #pd2-notes .pd2-mn::before{content:"";position:absolute;left:34px;top:2px;bottom:2px;width:1px;background:var(--color-divider)}
-  html.lg-new #pd2-notes .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
-  html.lg-new #pd2-notes .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
-  html.lg-new #pd2-notes .pd2-mn-k{font-weight:400}
-  html.lg-new #pd2-notes .pd2-mn-n{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:5px;border:1px solid var(--color-text);border-radius:50%;font-size:10px;line-height:1;vertical-align:1px}
-  html.lg-new #pd2-notes .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
-  html.lg-new #pd2-notes .pd2-mn-a{margin-top:1px;font-size:12px}
-  html.lg-new #pd2-notes .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
-  html.lg-new #pd2-notes .pd2-mn.is-owe .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-owe::after,html.lg-new #pd2-notes .pd2-mn.is-owe::before{background:var(--st-amber-dot)}
-  html.lg-new #pd2-notes .pd2-mn.is-risk .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-risk::after,html.lg-new #pd2-notes .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
-  html.lg-new #pd2-notes .pd2-mn.is-ask .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-ask::after,html.lg-new #pd2-notes .pd2-mn.is-ask::before{background:var(--color-text)}
+  html.lg-new :is(#ig-paper, .apn-pk) .ig-zoom.has-pd2{position:relative}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek){position:absolute;top:0;font-size:13px;line-height:1.4;color:var(--color-text)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn{position:absolute;left:0;right:0;padding:0 0 0 46px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn::before{content:"";position:absolute;left:34px;top:2px;bottom:2px;width:1px;background:var(--color-divider)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-k{font-weight:400}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-n{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:5px;border:1px solid var(--color-text);border-radius:50%;font-size:10px;line-height:1;vertical-align:1px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-a{margin-top:1px;font-size:12px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-owe .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-owe::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-owe::before{background:var(--st-amber-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-risk .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-risk::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-ask .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-ask::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-ask::before{background:var(--color-text)}
   html.lg-new ::highlight(pd2-fact){background-color:var(--surface-2)}
   /* ONE GROUP PER CLAUSE (owner picked "The Legora Way", 6 Nov 2026): the clause's name, a line per point with its dot and word,
      the words it rests on quoted once, one Open in Clauses; a group that drifted folds to its first line and "+ N more here" */
-  html.lg-new #pd2-notes .pd2-mg-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 3px}
-  html.lg-new #pd2-notes .pd2-mg > .pd2-mn-dot{display:none}
-  html.lg-new #pd2-notes .pd2-mg-i{margin:0 0 4px}
-  html.lg-new #pd2-notes .pd2-mg-i .pd2-mn-dot{position:static;display:inline-block;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot)}
-  html.lg-new #pd2-notes .pd2-mg-i.is-owe .pd2-mn-dot{background:var(--st-amber-dot)}
-  html.lg-new #pd2-notes .pd2-mg-i.is-risk .pd2-mn-dot{background:var(--st-brown-dot,var(--st-amber-fg))}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 3px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg > .pd2-mn-dot{display:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i{margin:0 0 4px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i .pd2-mn-dot{position:static;display:inline-block;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-owe .pd2-mn-dot{background:var(--st-amber-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-risk .pd2-mn-dot{background:var(--st-brown-dot,var(--st-amber-fg))}
   /* a standard the paper does not have at all: red, as drawn ("Beside the paper", 6 Nov 2026) */
-  html.lg-new #pd2-notes .pd2-mn.is-miss .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-miss::after,html.lg-new #pd2-notes .pd2-mn.is-miss::before,html.lg-new #pd2-notes .pd2-mg-i.is-miss .pd2-mn-dot{background:var(--st-ruby-dot)}
-  html.lg-new #pd2-notes .pd2-mg-i.is-ask .pd2-mn-dot{background:var(--color-text)}
-  html.lg-new #pd2-notes .pd2-mg-l b{font-weight:var(--w-label);color:var(--st-amber-fg)}
-  html.lg-new #pd2-notes .pd2-mg-q{margin:1px 0 2px 13px;font-family:var(--font-doc);font-style:italic;font-size:12px;line-height:1.4;color:var(--color-quiet)}
-  html.lg-new #pd2-notes .pd2-mg .pd2-mg-more{display:none;font-size:12px}
-  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
-  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-more{display:inline}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-miss .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-miss::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-miss::before,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-miss .pd2-mn-dot{background:var(--st-ruby-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-ask .pd2-mn-dot{background:var(--color-text)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-l b{font-weight:var(--w-label);color:var(--st-amber-fg)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-q{margin:1px 0 2px 13px;font-family:var(--font-doc);font-style:italic;font-size:12px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg .pd2-mg-more{display:none;font-size:12px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg.is-folded .pd2-mg-more{display:inline}
   /* SHOW LESS: on an open group of two or more; gone once folded */
-  html.lg-new #pd2-notes .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
-  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-less{display:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg.is-folded .pd2-mg-less{display:none}
   /* NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026): an answered note a green
      tick, grey words and "Answered by your redline" in green; an open one amber with its act; the group's line its colour;
      All · Still open · Answered over them, the chosen one a filled pill */
-  html.lg-new #pd2-notes .pd2-rn-chips{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;padding-left:0}
-  html.lg-new #pd2-notes .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  html.lg-new #pd2-notes .pd2-rn-chip[aria-pressed="true"]:not([data-pd2-notes-tg]){background:var(--color-text);color:var(--color-surface);box-shadow:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chips{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;padding-left:0}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chip[aria-pressed="true"]:not([data-pd2-notes-tg]){background:var(--color-text);color:var(--color-surface);box-shadow:none}
   /* the chips and the Hide notes pill read as buttons on the desk's grey: white with a hairline (the zoom's own dress) */
-  html.lg-new #pd2-notes .pd2-rn-chip > span{margin-left:3px;font-variant-numeric:tabular-nums}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chip > span{margin-left:3px;font-variant-numeric:tabular-nums}
   /* HIDE NOTES / SHOW NOTES: the same grey pill; put away, it stands alone under the zoom at the paper's right */
   html.lg-new #pd2-notes-tg{position:absolute;z-index:3;font-family:var(--font-body);font-size:13px;line-height:1.4}
   html.lg-new #pd2-notes-tg .pd2-rn-chips{display:flex}
   html.lg-new #pd2-notes-tg .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::after,html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::before{background:var(--st-green-dot)}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i{margin:0 0 8px}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i.is-owe .pd2-mg-l{font-weight:var(--w-label)}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i.is-done .pd2-mg-l{color:var(--color-neutral-400)}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mn-w,html.lg-new #pd2-notes .pd2-rn .pd2-mn-a{margin-left:13px}
-  html.lg-new #pd2-notes .pd2-rn-tick{display:inline-grid;place-items:center;width:13px;height:13px;margin-right:4px;border-radius:50%;background:var(--st-green-dot);color:var(--color-surface);vertical-align:-2px}
-  html.lg-new #pd2-notes .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.pd2-rn.is-done::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.pd2-rn.is-done::before{background:var(--st-green-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mg-i{margin:0 0 8px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mg-i.is-owe .pd2-mg-l{font-weight:var(--w-label)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mg-i.is-done .pd2-mg-l{color:var(--color-neutral-400)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mn-w,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mn-a{margin-left:13px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-tick{display:inline-grid;place-items:center;width:13px;height:13px;margin-right:4px;border-radius:50%;background:var(--st-green-dot);color:var(--color-surface);vertical-align:-2px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
   /* THE FIVE PARTS ON A CONTRACT (Jambo's panels, round 3b; owner, 15 Nov 2026: "Build as drawn"). The Dossier's ONE card
@@ -18766,7 +18784,10 @@
   html.lg-new #ig-dock .pd2-card.is-five .pd2-card-act{margin:16px 0 0;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
   html.lg-new #ig-dock .pd2-card.is-five .pd2-card-act > .pd2-card-foot:first-child{margin-top:0;padding-top:0;border-top:0}
   html.lg-new #ig-dock .pd2-dossier > .pd2-eye{margin:0 0 6px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-quiet)}
-  html.lg-new #ig-dock .pd2-dossier > .pd2-eye + .pd2-facts{padding:0 12px;border-top:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-eye + .pd2-facts{padding:7px 16px 3px;border-top:0;border-radius:var(--radius);background:var(--jb-card-fill)}
+  /* Fill the document, owed to the wording: one line under the facts, its press at its end (#762) */
+  html.lg-new #ig-dock .pd2-dossier > [data-pd-gl="docfill"]{justify-content:space-between;margin-top:12px;padding:12px 16px;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px}
+  html.lg-new #ig-dock .pd2-dossier > [data-pd-gl="docfill"] button{flex:none;white-space:nowrap}
   html.lg-new #ig-dock .pd2-dossier > .pd2-eye + .pd2-facts .pd2-fact:last-child{border-bottom:0}
   /* on a contract the one black button is the LONG one, as on the Dossier's card (owner, 15 Nov 2026: "the long black
      buttons should stay the same design"): full width, its link under it */
@@ -19001,9 +19022,9 @@
   html.lg-new #ig-canvas .pd2-wk-on{background:var(--st-violet-bg);transition:background .3s}
   /* WHILE JAMBO READS, A NOTE WAITS FOR ITS CLAUSE (owner, 8 Nov 2026: "the notes should pop on the right of the paper as
      it reads on until the end"): held unseen until the read reaches it, then it fades in and stays (pd2WalkNotesHold) */
-  html.lg-new #pd2-notes .pd2-mn{transition:opacity .35s ease, transform .35s ease}
-  html.lg-new #pd2-notes .pd2-mn.is-wk-hold{opacity:0;visibility:hidden;transform:translateY(6px)}
-  @media (prefers-reduced-motion: reduce){ html.lg-new #pd2-notes .pd2-mn{transition:none} }
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn{transition:opacity .35s ease, transform .35s ease}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-wk-hold{opacity:0;visibility:hidden;transform:translateY(6px)}
+  @media (prefers-reduced-motion: reduce){ html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn{transition:none} }
   html.lg-new #ig-canvas .pd2-wk-done{opacity:.72}
   html.lg-new ::highlight(pd2-walk){background-color:var(--st-amber-bg)}
   html.lg-new #ig-canvas .pd2-wk-lit{box-shadow:inset 0 -2px 0 0 var(--st-amber-dot)}
@@ -19098,7 +19119,7 @@
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-ct{display:none}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-st{margin:0 0 6px;font-size:12.5px;line-height:1.45;color:var(--color-text)}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-cacts{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-left:0}
-  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-a{height:auto;padding:0;border:0;background:none;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-a:not(.stk-mk){height:auto;padding:0;border:0;background:none;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mk .stk-ring{display:none}
   html.lg-new #ig-dock .pd-th .doc-th-row .stk-card.is-mq .stk-mks{margin-left:0}
   html.lg-new #ig-dock .pd-th .stk-cost-n{font-size:11.5px;color:var(--color-quiet)}
@@ -19207,7 +19228,8 @@
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict.is-warn .sh-v-dot::before{content:"!";color:var(--st-amber-fg)}
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict .sh-kv{grid-template-columns:96px minmax(0,1fr);padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
   html.lg-new #ig-dock #pd-sendface #sh-lt-checks{display:flex;flex-direction:column;gap:12px}
-  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check{border-left:3px solid var(--st-amber-dot)}
+  /* the amber edge is taken out of the card's own inside, so its words stand with every other card's (#762: 3px in) */
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check{border-left:3px solid var(--st-amber-dot);padding-left:9px}
   html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-noemail{padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px}
   /* REDLINES WITH NOTHING ON THE TABLE, THE FIVE PARTS (round 3b): the headline, what Draft from our standards does in a
      soft card with its long black button (grey when Send to mark up is the one filled button), then "Or yourself" — Edit
@@ -19219,7 +19241,7 @@
   html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius);background:var(--jb-card-fill)}
   html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card .rl-empty-lead{display:block;margin:0;font-size:13.5px;line-height:1.5;color:var(--color-text)}
   html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;height:var(--ctl-h);margin:0;padding:0 14px;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
-  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button[data-rl-prepare] > span[aria-hidden]{display:none}
+  html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button[data-rl-prepare] > span[aria-hidden]:not(.ob-spin){display:none}
   html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card.has-send > button[data-rl-prepare]{background:transparent;color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-divider)}
   html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-card > button:disabled{opacity:.45;cursor:default}
   html.lg-new #ig-dock .rl-empty-acts.is-five .rl-ea-l{margin:0 0 -10px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
@@ -19394,6 +19416,9 @@
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st-new-why:empty{display:none}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st #sh-more{display:none}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps .sh-st.has-primary .sh-lt-who{display:none}
+  /* TO A COLLEAGUE the other side's rows stand down in the four steps too (#762: the steps' own display won over
+     data-sh-col's rule above) — won by scope, nothing forced */
+  html.lg-new[data-sh-col] :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-sap.is-steps :is(.sh-lt-who, #sh-lt-what-row, #sh-lt-can-row, #sh-lt-by-row){display:none}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap] #sh-letter.sh-lt.is-steps #sh-lt-subject{padding-left:0;padding-right:0}
   html.lg-new [data-share-sap] #sh-letter.sh-lt.is-steps #sh-st-to.hidden{display:none}
   /* STEP 1, AS PICKED WITH PLAIN LETTER (owner, 14 Nov 2026: "the words are overlapping the grey area"): the open step's
@@ -19589,8 +19614,25 @@
   html.lg-new .apn-acts{text-align:right;white-space:nowrap}
   html.lg-new .apn-acts .ui-btn+.ui-btn{margin-left:8px}
   html.lg-new .apn-acts .apn-ok{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
+  /* THE PAPER, IN A POP-UP, ON APPROVALS (owner, 18 Nov 2026; apnPeekOpen): the Dossier's Redlines paper and its notes,
+     big enough to read both; the notes are the Dossier's own, dressed by a copy of its rules */
+  html.lg-new .apn-peek-l{margin-top:6px;text-align:right}
+  html.lg-new .apn-peek{font-size:12px;color:var(--accent-ink)}
+  html.lg-new .apn-pk{display:flex;flex-direction:column;height:100%;min-height:0}
+  html.lg-new .apn-pk-h{display:flex;align-items:flex-start;gap:16px;padding:16px 16px 12px 24px;border-bottom:1px solid var(--color-divider);flex:none}
+  html.lg-new .apn-pk-ht{flex:1 1 auto;min-width:0}
+  html.lg-new .apn-pk-t{margin:0;font-size:18px;line-height:1.3;font-weight:var(--w-title);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .apn-pk-s{margin-top:4px;font-size:13px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new .apn-pk-go{flex:none;white-space:nowrap;margin-top:4px;font-size:13px;color:var(--accent-ink)}
+  html.lg-new .apn-pk-x{flex:none}
+  html.lg-new .apn-pk-b{flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--desk-ground);padding:24px 24px 48px;outline:none}
+  html.lg-new .apn-pk-b:focus,html.lg-new .apn-pk-b:focus-visible{outline:none;box-shadow:none}
+  html.lg-new .apn-pk-empty{margin:0;padding:16px;font-size:13px;color:var(--color-quiet)}
   html.lg-new .apn-link{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   html.lg-new .apn-table tr.apn-group td{padding:16px 0 8px;font-size:13px;font-weight:var(--w-label);border-bottom:1px solid var(--color-divider)}
+  /* THE THREE PILES (17 Nov 2026): each group's title strong, its count quiet */
+  html.lg-new .apn-table tr.apn-pile td{font-weight:var(--w-strong)}
+  html.lg-new .apn-table tr.apn-pile .apn-pile-n{font-weight:400;color:var(--color-quiet)}
   html.lg-new .apn-table tr.is-done td{color:var(--color-quiet)}
   html.lg-new .apn-table tr.is-sel{background:var(--surface-2)}
   /* THE HEAD STAYS AT THE TOP, AND THE CHOSEN ROW KEEPS ITS ROOM (owner's screenshots, 10 Nov 2026). The sheet is the
@@ -19614,6 +19656,7 @@
   html.lg-new #app-shell .cal-page.is-nl .cal-head:not(.is-nl),html.lg-new #app-shell .cal-page .cal-bar1[hidden]{display:none}
   html.lg-new #app-shell .cal-page.is-home .cal-head.is-nl{margin:0}
   html.lg-new #app-shell .cal-page .cal-head.is-nl{display:flex;align-items:center;gap:28px;padding:24px 40px 10px;background:transparent;border:0;box-shadow:none}
+  html.lg-new #app-shell .cal-page .cal-head.is-nl{flex-wrap:wrap;row-gap:8px}
   html.lg-new .cal-page .cal-head.is-nl .ttl{font-family:var(--font-title);font-size:26px;font-weight:400;letter-spacing:0;color:var(--color-text)}
   html.lg-new .cal-nl-tabs{display:flex;gap:16px;align-self:flex-end;padding-bottom:4px}
   html.lg-new .cal-nl-tabs a{font-size:14px;font-weight:var(--w-label);color:var(--color-text);padding:4px 0;border-bottom:2px solid transparent;cursor:pointer;text-decoration:none}
@@ -19624,7 +19667,9 @@
   html.lg-new .cal-page .cal-head.is-nl .cal-seg-scope span{padding:4px 11px;border-radius:999px;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;border:0;background:transparent}
   html.lg-new .cal-page .cal-head.is-nl .cal-seg-scope span.on{background:var(--bar-black);color:var(--color-surface)}
   html.lg-new .cal-page .cal-head.is-nl .cal-new-btn,html.lg-new .cal-page .cal-head.is-nl .cal-print{height:var(--ctl-h-lg);padding:0 16px;border-radius:999px;border:0;background:var(--surface-2);font-size:13.5px;font-weight:var(--w-label);color:var(--color-text);box-shadow:none}
-  html.lg-new .cal-page .cal-head.is-nl .cal-acts{display:none}
+  html.lg-new .cal-page .cal-head.is-nl .cal-acts{display:flex}
+  html.lg-new .cal-page .cal-head.is-nl .cal-more-ic{height:var(--ctl-h-lg);width:var(--ctl-h-lg);padding:0;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);box-shadow:none}
+  html.lg-new .cal-page.is-nl .cal-bar1 .cal-acts{display:none}
   html.lg-new #app-shell .cal-page.is-home .cal-body{padding:0 24px 16px}
   html.lg-new #app-shell .cal-page .cal-stage{background:transparent;border:0;box-shadow:none;border-radius:0}
   html.lg-new #app-shell .cal-page .cal-card{background:transparent;border:0;box-shadow:none;border-radius:0;padding:0}
@@ -19802,6 +19847,10 @@
   /* BEFORE YOU SIGN, AS DRAWN (round 5): one list, a filled tick for what is done, an amber ring for your turn, a grey ring for what follows; one card */
   html.lg-new #ig-dock .pd-trail[data-pd-trail="signing"],html.lg-new #ig-dock .pd-trail[data-pd-trail="amend"]{display:none}
   html.lg-new #ig-dock .pd-sf.is-road.is-pd2 > :not(.pd2-sg-w){display:none}
+  /* SIGNED, THE RECEIPT STANDS UNDER THE FIVE PARTS' HEAD (16 Nov 2026, #762): the sealed copy's acts and the copies
+     panel with its Send again (#dist-send, the needs-you row's landing) are the face's work once it is closed */
+  html.lg-new #ig-dock .pd-sf.is-road.is-pd2.is-closed > .pd-sf-body{display:block}
+  html.lg-new #ig-dock .pd-sf.is-road.is-pd2.is-closed > .pd2-sg-w{flex:none;overflow:visible}
   html.lg-new .ig-line-sg{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:var(--w-label);color:var(--st-amber-fg);white-space:nowrap}
   html.lg-new .ig-line-sg i{width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
   /* the signing copy at the drawing's width (620; the type keeps its size, so the pages are more) with its line over it */
@@ -19854,6 +19903,9 @@
   html.lg-new .ig-line-sg.is-sealed{color:var(--st-green-fg)}
   html.lg-new .ig-line-sg.is-sealed i{background:var(--st-green-dot)}
   html.lg-new .pd2-sg-w{padding:12px 16px;overflow:auto;flex:1;min-height:0}
+  /* a press that reads as words is UNDERLINED, so it is clear it can be pressed (owner, 17 Nov 2026) */
+  html.lg-new .pd2-sg .pd2-sg-link{color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;background:none;border:0;padding:0;font:inherit;font-size:13px;cursor:pointer}
+  html.lg-new .pd2-sg .pd2-sg-std .pd2-sg-acts{display:flex;flex-wrap:wrap;gap:14px;margin-top:4px}
   html.lg-new .pd2-sg-r{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:1.4}
   html.lg-new .pd2-sg-r b{display:block;font-size:14px;font-weight:var(--w-strong)}
   html.lg-new .pd2-sg-r small{display:block;font-size:12px;font-weight:var(--w-label);margin-top:2px}
@@ -19889,6 +19941,13 @@
   /* CONTRACTS BY FOLDER, AS DRAWN (round 6): one white page; a card per folder with its tab, the facts, what needs you in amber */
   html.lg-new #ig-page #ct-place .sap-page.ct-page.ctf-page,html.lg-new .ctf-page{background:var(--color-surface);padding:24px 40px 16px;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column}
   html.lg-new .ctf-head{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+  /* a narrow place (a window of 800, Swedish words) lets the head's buttons go to a second line, never past the edge (#762) */
+  html.lg-new .ctf-head{flex-wrap:wrap;row-gap:8px}
+  /* OBLIGATIONS' LIST SCROLLS UNDER ITS HEAD (A FRAME THAT CLIPS NEEDS A SCROLLER INSIDE IT; #762: the whole card scrolled, head and tabs with it) */
+  html.lg-new .obn-page .ap-card.apn-card{overflow:hidden}
+  html.lg-new .obn-page .obn-list{flex:1 1 auto;min-height:0;overflow-y:auto}
+  /* THE COLUMN HEADER HOLDS while a new-look list's rows scroll under it (#762: Negotiations' header left with its rows) */
+  html.lg-new .cu-scroll > .apn-table > thead th{position:sticky;top:0;z-index:1;background:var(--color-surface)}
   html.lg-new .ctf-h{font-family:var(--font-title);font-size:26px;font-weight:400;margin:0;color:var(--color-text)}
   html.lg-new .ctf-hf{font-size:14px;font-weight:var(--w-label)}
   html.lg-new .ctf-sp{flex:1}
@@ -19933,7 +19992,9 @@
   html.lg-new #ct-place .ct-page .ct-head .lh-ask{flex:1 1 320px;min-width:0;max-width:none;height:38px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:transparent;box-shadow:none}
   html.lg-new #ct-place .ct-page .ct-head .reg-views{order:2;margin:0;border:0}
   html.lg-new #ct-place .ct-page .ct-head .lh-chips{display:contents}
-  html.lg-new #ct-place .ct-page .ct-head :is(.lh-chip,.lh-add,.lh-sp,.reg-filterbar,.ct-cohort,.lh-save){display:none}
+  /* an APPLIED filter's chip stays (lhChipHtml draws only applied ones): a filter narrowing the list is never quietly on,
+     and its × is the way out (16 Nov 2026, #762); the drawn head has no + Filter */
+  html.lg-new #ct-place .ct-page .ct-head :is(.lh-add,.lh-sp,.reg-filterbar,.ct-cohort,.lh-save){display:none}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn{order:3;margin-left:auto;border:0;border-radius:999px;background:var(--surface-2);box-shadow:none;padding:0 14px;color:var(--color-text);font-size:13px;font-weight:var(--w-label);white-space:nowrap}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn.is-open{background:var(--color-text);color:var(--color-surface)}
   html.lg-new #ct-place .ct-page .ct-head .ac-btn svg{display:none}
@@ -19965,6 +20026,10 @@
   html.lg-new .pd2-ch-r span{font-size:13.5px;font-weight:var(--w-label)}
   html.lg-new .pd2-ch-r b{font-size:13.5px;font-weight:var(--w-label)}
   html.lg-new .pd2-ch-r i{font-style:normal;font-size:12px;white-space:nowrap}
+  /* Requests' panel (owner's picks, 17 Nov 2026): an NDA still to do in amber; the lane that sent it in, one quiet line */
+  html.lg-new .pd2-ch-r i.is-amb{color:var(--st-amber-fg)}
+  html.lg-new .pd2-chosen .ikn-lane{margin:4px 0 0;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .pd2-ch-r b .rfp-a{font:inherit;text-align:left;white-space:normal}
   html.lg-new .pd2-ch-door{display:flex;align-items:baseline;gap:8px;margin:0 0 12px}
   html.lg-new .pd2-ch-door .rfp-a{font-size:13.5px;font-weight:var(--w-label)}
   html.lg-new .pd2-ch-door span{font-size:12px;font-weight:var(--w-label);white-space:nowrap}
@@ -20362,10 +20427,15 @@
   html.lg-new #ct-place .ct-page .reg-table thead th{background:var(--color-surface);text-transform:uppercase;font-size:11px;letter-spacing:.06em;font-weight:var(--w-label);vertical-align:bottom}
   /* THE WALL AS DRAWN: papers on the page itself (no box around them), each a sheet with its mark at the corner and the party and value at its foot */
   html.lg-new #ct-place .ct-wall{border:0;box-shadow:none;background:transparent;padding:0}
+  html.lg-new #ct-place .ct-wall .igw-foot{margin-left:0;margin-right:0} /* its foot stretched over the old look's 16px padding, now gone (#762, tidy SIDEWAYS) */
   html.lg-new .igw-card.is-nl{position:relative;display:flex;flex-direction:column;gap:0;padding:0 0 12px;border:1px solid var(--color-divider);border-radius:2px;background:var(--color-surface);box-shadow:var(--shadow-paper);min-height:198px;text-align:left}
   html.lg-new .igw-card.is-nl.is-chosen{border-color:var(--color-text);box-shadow:0 0 0 1px var(--color-text)}
   html.lg-new .igw-card.is-nl .igw-sheet{border:0;box-shadow:none;background:transparent}
   html.lg-new .igw-card.is-nl .igw-sheet{padding-top:26px}
+  /* a deal kept to its list stays a HATCHED paper in the new look (#762: the sheet's transparent ground had wiped it) */
+  html.lg-new .igw-card.is-nl .igw-sheet.is-coded{background:repeating-linear-gradient(135deg,var(--color-surface) 0 6px,var(--surface-2) 6px 12px)}
+  html.lg-new .igw-card.is-nl .igw2-lock{position:absolute;top:6px;right:8px;max-width:calc(100% - 56px);background:var(--color-surface)}
+  html.lg-new .igw-card.is-nl .igw2-lock{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new .igw2-foot > span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .igw2-mark{position:absolute;top:6px;left:8px;line-height:0}
   html.lg-new .igw2-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:auto;padding:0 12px;font-size:12px;font-weight:var(--w-label);color:var(--color-text)}
@@ -20429,6 +20499,7 @@
   html.lg-out .pnl-ic{display:inline-flex;width:44px;height:44px;border-radius:var(--radius);background:var(--surface-2);align-items:center;justify-content:center}
   html.lg-out .pnl-gone h1{font-family:var(--font-title);font-weight:400;font-size:24px;margin:14px 0 8px}
   html.lg-out .pnl-say{margin:0 0 20px;font-size:14px;font-weight:var(--w-label);line-height:1.5}
+  html.lg-out .pnl-who{margin:0 0 8px;font-size:14px;line-height:1.5;color:var(--color-text)}
   html.lg-out .pnl-cap{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);padding:0 0 8px;border-bottom:1px solid var(--color-divider)}
   html.lg-out .pnl-row{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-divider);align-items:baseline}
   html.lg-out .pnl-row span,html.lg-out .pnl-row b{font-size:13.5px;font-weight:var(--w-label)}
@@ -20461,7 +20532,10 @@
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > #pt-nego{grid-column:1;grid-row:1;min-height:0}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--color-divider);background:var(--color-surface)}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-foot{grid-column:1;grid-row:2;display:flex;align-items:center;gap:8px;min-height:60px;padding:0 24px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
-  @media (max-width:1499px){ html.lg-out #pw-page{--pol-side-w:340px} }
+  /* THEIR PAGE AND OURS MATCH (owner's pick on the drawings, 17 Nov 2026: "8 Make them match"): the changes column is our
+     Negotiate page's 460 (.rl-grid) plus the side's own 16px padding each side and its hairline, so the paper and the list
+     take the same widths on both seats */
+  html.lg-out #pw-page{--pol-side-w:493px}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-id{padding-right:calc(var(--pol-side-w,384px) + 24px)}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{position:relative;z-index:2;margin-top:-57px}
   html.lg-out #pw-page #pt-nego #rl-cp,html.lg-out #pw-page #pt-nego #rl-resizer{display:none}
@@ -20506,7 +20580,7 @@
   html.lg-out #pt-hist-pane .ht-filters{justify-content:flex-end;margin:0 0 -40px;padding:0;border:0}
   html.lg-out #pt-hist-pane .ht-filters .ui-btn{border:0;border-radius:999px;background:var(--surface-2);height:var(--ctl-h-sm);font-size:13px}
   html.lg-out .pt-code-out .pt-code-wrap{min-height:0;display:block;background:transparent;padding:0}
-  html.lg-out .pt-code-out .pt-code{max-width:520px;margin:0 auto;padding:150px 0 40px;border:0;border-radius:0;box-shadow:none;background:transparent}
+  html.lg-out .pt-code-out .pt-code{max-width:520px;width:calc(100% - 32px);margin:0 auto;padding:150px 0 40px;border:0;border-radius:0;box-shadow:none;background:transparent}
   html.lg-out .pt-code-out .pt-code-brand{display:none}
   html.lg-out .pt-code-out .pt-code h1{font-family:var(--font-title);font-weight:400;font-size:24px;margin:0 0 8px}
   html.lg-out .pt-code-out #pt-code-in{background:var(--color-surface);border-color:var(--color-text);font-family:var(--font-ref)}
@@ -20550,7 +20624,7 @@
   html.lg-out .pol-hd-n{margin-left:4px}
   html.lg-out #pw-page #pt-nego #rl-grid{display:flex;padding:0;margin:0;gap:0;height:100%}
   html.lg-out #pw-page #pt-nego #rl-doc{flex:1;min-width:0;margin:0;padding:0;border:0;border-radius:0;box-shadow:none}
-  html.lg-out #pw-page #pt-nego #nego-scroll-work{margin:0;inset:0;border-radius:0}
+  html.lg-out #pw-page #pt-nego #nego-scroll-work{margin:0;inset:0;border-radius:0;padding-top:29px} /* their paper starts where ours does, 40 under its top (owner, "make them match") */
   html.lg-out #pw-page #pt-nego .redline-page,html.lg-out #pw-page #pt-nego #nego-root{padding:0;gap:0;row-gap:0}
   html.lg-out #pw-page #pt-nego .rl-zoom{position:relative}
   html.lg-out #pw-page #pt-nego .rl-zoom > .rl-paper{margin-left:32px;margin-right:auto}
@@ -20626,7 +20700,8 @@
      own black bar with the sheet below the paper. Labels keep the phone's 14px floor. */
   html.lg-new #m-root .m-nl-bar{background:var(--bar-black);border-bottom:0;padding-left:16px;padding-right:8px}
   html.lg-new #m-root .m-nl-mark{font-family:var(--font-title);font-weight:600;font-size:19px;color:var(--color-surface)}
-  html.lg-new #m-root .m-nl-me{width:36px;height:36px;border-radius:50%;background:var(--color-surface);color:var(--color-text);font-size:14px;font-weight:var(--w-label)}
+  /* the thumb's floor is 44 (the phone's touch rule; #762) */
+  html.lg-new #m-root .m-nl-me{width:44px;height:44px;border-radius:50%;background:var(--color-surface);color:var(--color-text);font-size:14px;font-weight:var(--w-label)}
   html.lg-new #m-root .m-nl-home{background:var(--color-surface);padding:20px 16px 24px}
   html.lg-new #m-root .m-nl-hello{margin:0;font-family:var(--font-title);font-weight:400;font-size:26px;line-height:1.2;color:var(--color-text)}
   html.lg-new #m-root .m-nl-say{margin:8px 0 12px;font-size:15px;font-weight:var(--w-label);line-height:1.4;color:var(--color-text)}
@@ -20640,6 +20715,7 @@
   html.lg-new #m-root .m-nl-none{margin:16px 0;font-size:15px}
   html.lg-new #m-root .m-nl-ask{margin:16px 0 0}
   html.lg-new #m-root .m-nl-more{margin:16px 0 0}
+  html.lg-new #m-root .m-nl-more .m-row > span{font-size:14px}
   html.lg-new #m-root .m-tab.on{color:var(--color-text)}
   html.lg-new #m-root .m-nl-cbar{flex:none;display:flex;align-items:center;gap:4px;padding:calc(env(safe-area-inset-top,0px) + 6px) 4px 6px;background:var(--bar-black);color:var(--color-surface)}
   html.lg-new #m-root .m-nl-cbar .m-head-btn{color:var(--color-surface)}
@@ -20700,7 +20776,7 @@
   html.lg-new .hbkn-pics figcaption{font-size:12px;font-weight:var(--w-label);margin-top:6px}
   html.lg-new .hbkn-tip{font-size:14px;font-weight:var(--w-label);line-height:1.5;margin:0 0 16px}
   html.lg-new .hbkn-more h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:16px 0 6px}
-  html.lg-new .hbkn-more ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.5}
+  html.lg-new .hbkn-more ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.5;list-style:disc}
   /* THE SIDE PANEL, THE NEW LOOK (round 7): the tabs are its head (no title line), the × at their end; the bell is
      one list with one Open each, News under it; the Guide is the pages by stage with the word that opens each */
   html.lg-new #panel-title{display:none}
@@ -20717,12 +20793,19 @@
   html.lg-new .ndb-dot.is-late{background:var(--st-ruby-dot)}
   html.lg-new .ndb-dot.is-jambo{width:12px;height:12px;margin:4px 0 0;background:var(--st-violet-dot)}
   html.lg-new .ndb-dot.is-week{background:var(--st-green-dot)}
+  html.lg-new .ndb-dot.is-good{background:var(--st-green-dot)}
   html.lg-new .ndb-dot.is-news{background:var(--color-divider)}
   html.lg-new .ndb-w{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
   html.lg-new .ndb-w b{font-size:13.5px;font-weight:var(--w-label);line-height:1.35}
   html.lg-new .ndb-w span{font-size:12px;font-weight:var(--w-label);line-height:1.35}
   html.lg-new .ndb-open{flex:none;border-radius:999px;align-self:center}
   html.lg-new .ndb-none{margin:16px 0;font-size:13.5px}
+  /* A DECISION'S COLOUR (owner, 17 Nov 2026): a no light red, a yes light green, the note quoted under it */
+  html.lg-new .ndb-r.is-tint-no,html.lg-new .ndb-r.is-tint-yes{padding:10px 10px 10px 12px;margin:6px 0;border:0;border-left:3px solid var(--st-ruby-dot);border-radius:var(--radius);background:var(--st-ruby-bg)}
+  html.lg-new .ndb-r.is-tint-yes{border-left-color:var(--st-green-dot);background:var(--st-green-bg)}
+  html.lg-new .ndb-r.is-tint-no .ndb-dot{background:var(--st-ruby-dot)}
+  html.lg-new .ndb-r.is-tint-yes .ndb-dot{background:var(--st-green-dot)}
+  html.lg-new .ndb-w .ndb-note{font-style:italic}
   html.lg-new .gdn{padding:16px}
   html.lg-new .gdn-say-top{margin:0 0 8px;font-size:14px;font-weight:var(--w-label);line-height:1.45}
   html.lg-new .gdn-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);padding:14px 0 4px}
@@ -20742,9 +20825,12 @@
   html.lg-new .gdn-say{font-size:11.5px;color:var(--color-quiet);flex:1;min-width:0}
   html.lg-new .gdn-n{margin-left:auto;font-size:13.5px;font-weight:var(--w-strong);flex:none}
   html.lg-new .gdn-n.is-owed{color:var(--st-amber-fg)}
+  html.lg-new .gdn-r.is-multi{flex-wrap:wrap;row-gap:0}
+  html.lg-new .gdn-r.is-multi .gdn-nm{flex:1;min-width:0}
+  html.lg-new .gdn-r.is-multi .gdn-say{order:3;flex:0 0 100%;padding-left:42px;white-space:nowrap}
   /* SETTINGS & RULES, THE NEW LOOK (round 7): a menu down the left, one list of sentences, a Change at each row's end */
   html.lg-new .stn-page .ap-card.apn-card{padding-left:40px;padding-right:40px;display:flex;flex-direction:column;min-height:0}
-  html.lg-new .stn-title{margin:0 0 20px}
+  html.lg-new .stn-title{margin:4px 0 20px} /* the title at the height every list head puts its own (.cun-head margin-top 4px; #762) */
   /* THE LEGORA WAY, WITH COLOUR (owner's pick by name, 13 Nov 2026; replaces the left menu and the grey label column):
      nothing boxed, one list. An area's tone rides three properties (--tb wash, --tf ink, --td dot) set by its class,
      HaTi's own five tones; a round mark leads each row, the name ink, its sentence grey, the state a dot and a word. */
@@ -20794,7 +20880,9 @@
   html.lg-new .ngn-table tr.is-sel td{background:var(--surface-2)}
   html.lg-new .ngn-table td:first-child{padding-left:12px}
   html.lg-new .ngn-table th:first-child{padding-left:12px}
-  html.lg-new .ngn-ref{font-family:var(--font-mono);font-weight:var(--w-strong)}
+  /* one size on a row, nothing heavier than its name (the list title rung, as Contracts' .reg-title; #762) */
+  html.lg-new .ngn-ref{font-family:var(--font-mono);font-weight:var(--w-label)}
+  html.lg-new .ngn-table tr[data-ngn-row] .cun-name{font-size:13px}
   html.lg-new .ngn-rd,html.lg-new .ngn-mv,html.lg-new .ngn-open,html.lg-new .ngn-last{font-weight:var(--w-label)}
   html.lg-new .ngn-mv.is-you{color:var(--st-amber-fg)}
   html.lg-new .ngn-q{font-family:var(--font-doc);font-style:italic;font-weight:400;quotes:'\201C' '\201D'}
@@ -20808,6 +20896,9 @@
   html.lg-new .mig-page .mign-table{margin-top:4px}
   /* THE FIGURES AND HOW SURE (owner, 16 Nov 2026): five figures over the list, each a press that shows its files; a file's row says how sure Jambo was, three bars and a word */
   html.lg-new .mign-figs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:12px 0 4px}
+  html.lg-new .mign-recon{padding:16px 0 4px;display:flex;flex-direction:column;gap:8px}
+  html.lg-new .mign-recon .mig-list-box{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-neutral-600)}
+  html.lg-new .mign-recon .mig-list-name{font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new .mign-fig{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;padding:9px 12px;border:0;border-radius:var(--radius);background:var(--surface-2);font:inherit;text-align:left;color:var(--color-text)}
   html.lg-new button.mign-fig{cursor:pointer}
   html.lg-new .mign-fig b{font-size:19px;line-height:1.2;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
@@ -20913,6 +21004,7 @@
   html.lg-new .cun-st{display:inline-flex;align-items:center;gap:7px;font-weight:var(--w-label)}
   html.lg-new .cun-st i{width:8px;height:8px;border-radius:50%;background:var(--accent-ink)}
   html.lg-new .cun-st.is-none i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--color-quiet)}
+  html.lg-new .cun-st.is-amber i{background:var(--st-amber-dot)}
   html.lg-new .cun-wait{font-weight:var(--w-label)}
   html.lg-new .cun-late{color:var(--st-ruby-fg)}
   html.lg-new .cun-go{text-align:right}
@@ -20939,7 +21031,7 @@
   html.lg-new .rl-1p:disabled{opacity:.55;cursor:default}
   /* the Redlines face as drawn: no trail over the head (the tabs say where you are), Reject red on the face */
   html.lg-new #ig-dock #pd-redface .pd-trail,html.lg-new #ig-dock .pd-trail[data-pd-trail="red"]{display:none}
-  html.lg-new #ig-dock .rl-card-verbs .rl-rej{color:var(--color-text)}
+  html.lg-new #ig-dock .rl-card-verbs .rl-rej{color:var(--st-ruby-fg)}
   html.lg-new #ig-dock .rl-card-verbs .rl-rej svg,html.lg-new #ig-dock :is(.rl-head-deal,.rl-head-notes,.rl-head-review) svg{display:none}
   /* the dial: the figure in their ask carries a grip; pressed, a scale under the clause, your figure to theirs */
   html.lg-new #ig-canvas [data-pd2-dial]{cursor:ew-resize;position:relative;outline:none}
@@ -20968,6 +21060,7 @@
   html.lg-new #ct-place .reg-sub,html.lg-new #ct-place .reg-sub .hati-ref,html.lg-new #ct-place .ls-quiet{color:var(--color-neutral-400)}
   html.lg-new tr[data-ngn-row] :is(.cun-sub,.cun-sub .ngn-ref,.ngn-nm,.ngn-s,.ngn-lead,.ngn-last),html.lg-new tr[data-ngn-row] :is(.ngn-rd,.ngn-mv:not(.is-you)){color:var(--color-neutral-400)}
   html.lg-new tr[data-ap-row] :is(.apn-sub,.apn-sub .hati-ref,.apn-rule,.apn-wait),html.lg-new #ap-scroll .apn-foot{color:var(--color-neutral-400)}
+  html.lg-new tr[data-ap-row] .apn-wait .late{color:var(--st-ruby-fg)}
   html.lg-new #obn-body :is(.obn-sub,.obn-sub .hati-ref,.obn-when small,.obn-g td>span,.obn-g-r){color:var(--color-neutral-400)}
   html.lg-new #nd-rows :is(.nd-c-deal,.nd-c-deal .hati-ref,.nd-dot,.nd-deal-t,.nd-c-when:not(.cn-late)){color:var(--color-neutral-400)}
   html.lg-new .nd-r :is(.cn-w>span,.cn-w>span .hati-ref,.nd-when:not(.cn-late)){color:var(--color-neutral-400)}
@@ -21030,6 +21123,7 @@
   html.lg-new .tpln-ask input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:var(--t-body);outline:none}
   html.lg-new .tpln-chips{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin:0 0 var(--s-3);min-width:0}
   html.lg-new .tpln-chip{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;height:26px;padding:0 10px;border-radius:999px;border:0;background:var(--tn,var(--surface-2));color:var(--tf,var(--color-text));font:inherit;font-size:var(--t-label);white-space:nowrap;cursor:pointer}
+  html.lg-new .tpln-chip.is-more{display:inline-flex;align-items:center;gap:4px} /* More's words and its mark inside its own 26px (#762, laptops) */
   html.lg-new .tpln-chip.is-on{background:var(--accent-fill);color:var(--color-surface);flex:none}
   html.lg-new .tpln-chip.is-more{--tn:var(--surface-2);--tf:var(--color-text);flex:none}
   html.lg-new .tpln-more{position:relative;margin-left:auto;flex:none}
@@ -21049,6 +21143,84 @@
   html.lg-new .tpln-none{margin:var(--s-3) var(--s-2);font-size:var(--t-label);color:var(--color-neutral-600)}
   html.lg-new .tpln-none[hidden]{display:none}
   html.lg-new .tpln-u{white-space:nowrap}
+  /* OUR PAPER: SHELVES, THEN THE LEGORA WAY (owner's pick by prototype, 17 Nov 2026): the head says the step with the
+     way back above it; ONE filter line on both pages as Contracts draws its own (the box on a hairline, Shelves · All at
+     its right); four figures; a coloured shelf per folder, its papers stacked; the folder's list the Legora way; the
+     paper with its facts and verbs beside it */
+  html.lg-new .tpl-page.is-tpln5 .ph-top{border-bottom:0;padding-bottom:0}
+  /* the head's first glyph at the ONE HEAD's height under the bar, as every list page draws it (.apn-card's 20px and
+     .cun-head's 4px = 24): the band's 1px top edge and the title's own 36px line (it keeps its line, so no glyph is
+     clipped by its "…") put it 3px lower on the shared 26px band (pages-read-alike 8) */
+  html.lg-new #content .tpl-page.is-tpln5 .tpl-band.ph-card{padding-top:23px}
+  html.lg-new .tpln5-head{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+  html.lg-new .tpln5-hrow{display:flex;align-items:baseline;gap:12px;min-width:0}
+  html.lg-new .tpln5-h1{margin:0;font-family:var(--font-title);font-size:26px;font-weight:400;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+  html.lg-new .tpln5-hrow .tpl-hd-n,html.lg-new .tpln5-hrow .tpl-hd-sub{white-space:nowrap}
+  html.lg-new .tpln5-sp{flex:1}
+  html.lg-new .tpln5-std,html.lg-new .tpln5-back,html.lg-new .tpln5-lk{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer}
+  html.lg-new .tpln5-std{font-size:14px;text-decoration:underline;text-underline-offset:3px;white-space:nowrap;flex:none}
+  html.lg-new .tpln5-back{font-size:13px;align-self:flex-start}
+  html.lg-new .tpln5-lk{text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent-ink) 35%,transparent);text-underline-offset:3px}
+  html.lg-new .tpln5{display:flex;flex-direction:column;min-width:0;padding:8px 40px 16px;box-sizing:border-box}
+  html.lg-new .tpln5-fl{display:flex;align-items:flex-end;gap:28px;margin:0 0 18px}
+  html.lg-new .tpln5-box{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--color-divider);padding:8px 0 10px;color:var(--color-quiet)}
+  html.lg-new .tpln5-box input{flex:1;min-width:0;border:0;outline:none;box-shadow:none;background:none;font:inherit;font-size:15px;color:var(--color-text)}
+  html.lg-new .tpln5-tabs{display:flex;gap:22px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .tpln5-tab{border:0;background:none;font:inherit;font-size:15px;color:var(--color-text);padding:8px 0 10px;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
+  html.lg-new .tpln5-tab span{color:var(--color-neutral-400)}
+  html.lg-new .tpln5-tab.is-on{border-bottom:2px solid var(--accent-ink)}
+  html.lg-new .tpln5-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
+  html.lg-new .tpln5-fig{background:var(--surface-2);border:0;border-radius:var(--radius);padding:14px 16px;text-align:left;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-new .tpln5-fig:disabled{cursor:default}
+  html.lg-new .tpln5-fig b{font-size:24px;font-weight:var(--w-strong);line-height:1.15}
+  html.lg-new .tpln5-fig span{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* COVER FLOW (owner's pick, 17 Nov 2026): a row per folder, its papers a carousel; colour only the folder's mark and the
+     front paper's top edge */
+  /* FOLDER CARDS (owner's pick, 18 Nov 2026): four a line, every card the same size (grid-auto-rows:1fr, three paper
+     lines and a "more" line always kept); colour only the mark and the bars */
+  html.lg-new .tpln5-fcg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:1fr;gap:12px}
+  html.lg-new .tpln5-fc{background:var(--surface-2);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;cursor:pointer;outline:none;transition:background .15s}
+  html.lg-new .tpln5-fc:hover,html.lg-new .tpln5-fc:focus-visible{background:var(--color-neutral-200)}
+  html.lg-new .tpln5-fch{display:flex;align-items:center;gap:9px;min-width:0}
+  html.lg-new .tpln5-fch i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--sd)}
+  html.lg-new .tpln5-fch b{font-size:14.5px;font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln5-fcs{margin-top:-6px;font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-fcl{display:grid;grid-template-rows:repeat(3,20px) 18px;row-gap:6px}
+  html.lg-new .tpln5-fcp{display:grid;grid-template-columns:minmax(0,1fr) 56px 22px;align-items:center;gap:8px;min-width:0;padding:0;border:0;background:none;font:inherit;font-size:12.5px;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new .tpln5-fcp span{font-family:var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln5-fcp:hover span{text-decoration:underline}
+  html.lg-new .tpln5-fcp i{position:relative;display:block;height:5px;border-radius:var(--radius-sm);background:var(--color-neutral-300);overflow:hidden}
+  html.lg-new .tpln5-fcp i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--p);background:var(--sd);border-radius:inherit}
+  html.lg-new .tpln5-fcp em{font-style:normal;text-align:right;color:var(--color-neutral-400);font-variant-numeric:tabular-nums}
+  html.lg-new .tpln5-fcp.is-gap{visibility:hidden}
+  html.lg-new .tpln5-fcm{font-size:12.5px;color:var(--accent-ink);white-space:nowrap}
+  html.lg-new .tpln5-fcf{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-fcf .is-amber{color:var(--st-amber-fg)}
+  /* On a narrow card (an iPad) the small lines and the foot's sentence shorten with "…" and "Open ›" stays whole,
+     so nothing pushes past the card's 16px (tidy sweep, 18 Nov 2026) */
+  html.lg-new .tpln5-fcs,html.lg-new .tpln5-fcm,html.lg-new .tpln5-fcf > span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln5-fcf > .tpln5-fcgo{flex:none}
+  html.lg-new .tpln5-fc:hover .tpln5-fcgo{color:var(--accent-ink)}
+  @media (prefers-reduced-motion: reduce){ html.lg-new .tpln5-fc{transition:none} }
+  html.lg-new .tpln5-say{font-family:var(--font-title);font-size:17px;line-height:1.55;margin:0 0 14px;max-width:760px}
+  html.lg-new .tpln5-chiprow{display:flex;gap:6px;align-items:center;min-width:0}
+  html.lg-new .tpln5-chiprow .tpln-chips{flex:1}
+  html.lg-new .tpln5-glab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-400);margin:14px 0 2px;display:flex;gap:10px}
+  html.lg-new .tpln5-glab[hidden]{display:none}
+  html.lg-new .tpln5-glab span{text-transform:none;letter-spacing:0}
+  html.lg-new .tpln5.is-paper{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:32px;align-items:start}
+  /* THE PAPER FILLS ITS ROOM (owner, 17 Nov 2026: "increase the size of the paper to make better use of the empty space"): read at its own size, up to the agreement's measure */
+  html.lg-new .tpln5.is-paper .tpln-zoom{zoom:1}
+  html.lg-new .tpln5.is-paper .tpln-sheet{max-width:var(--doc-sheet-max, 720px);width:100%;max-height:calc(100vh - 210px)}
+  html.lg-new .tpln5.is-paper .tpln-zoom .tpl-pf-sheet{width:auto;max-width:none}
+  html.lg-new .tpln5-door{align-self:flex-start;background:none;border:0;padding:0;font:inherit;font-size:14px;color:var(--accent-ink);cursor:pointer;text-align:left}
+  html.lg-new .tpln5-door:hover{text-decoration:underline}
+  html.lg-new .tpln5-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+  html.lg-new .tpln5-meta{margin:0;color:var(--color-neutral-400);font-size:14px}
+  html.lg-new .tpln5-side .tpln-acts{flex-wrap:wrap}
+  html.lg-new .tpln5-facts{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;max-width:420px}
+  html.lg-new .tpln5-facts span{display:block;font-size:13px;color:var(--color-neutral-400)}
+  html.lg-new .tpln5-facts b{font-size:15px;font-weight:var(--w-strong)}
   html.lg-new .tpln-bar{display:inline-block;height:6px;border-radius:3px;margin-left:8px;vertical-align:middle;background:var(--st-green-dot)}
   html.lg-new .cal-kind{display:inline-block;border-radius:6px;padding:1px 7px;margin-right:8px;font-size:11.5px;font-weight:var(--w-strong);vertical-align:1px}
   html.lg-new .stn-pill.stn-dot{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:var(--w-label);color:var(--color-text)}
@@ -21187,8 +21359,9 @@
      kept for the legend opened; it wraps to a second row only where the stage is narrow. The labels are left as they are. */
   html.lg-new .ig-brain .ig-viewbar{left:276px;flex-wrap:wrap;justify-content:flex-end;gap:6px 4px}
   html.lg-new .ig-brain .ig-viewbar .ig-lensrow{position:static;display:flex}
-  html.lg-new .ig-brain .ig-viewbar .ig-seg button{padding:0 5px;font-size:11.5px}
-  html.lg-new .ig-brain .ig-viewbar .ig-seg .ig-seg-k{padding:0 6px;font-size:11.5px}
+  /* one type size along the bar: the views and the lens at the legend's 12px (#762: 11.5 beside 12) */
+  html.lg-new .ig-brain .ig-viewbar .ig-seg button{padding:0 5px;font-size:12px}
+  html.lg-new .ig-brain .ig-viewbar .ig-seg .ig-seg-k{padding:0 6px;font-size:12px}
   /* READABLE PREVIEW (Our paper): the chosen paper's first page at a size that reads, fading out at the foot; the name and
      its buttons on one line, the facts under the name */
   html.lg-new .tpln-zoom{zoom:.72}
@@ -21254,7 +21427,7 @@
   html.lg-new .ctf-list.is-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:32px;align-content:start;border-top:0}
   html.lg-new .ctf-row.is-compact{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 4px}
   html.lg-new .ctf-row.is-compact .ctf-name{flex:1 1 auto;min-width:0;padding-right:0}
-  html.lg-new .ctf-row.is-compact .ctf-rl{flex:none}
+  html.lg-new .ctf-row.is-compact .ctf-rl{flex:0 1 auto;min-width:0}
   html.lg-new .ctf-row.is-compact .ctf-rn{font-size:inherit}
   @media (max-width:1100px){ html.lg-new .ctf-list.is-two{grid-template-columns:minmax(0,1fr)} }
   /* A SEARCH BOX WEARS NO RING (owner, 10 Nov 2026: "the search areas should never have outlines. They should be like
@@ -21632,9 +21805,9 @@
   html.lg-new .cv-st.is-owe i{box-shadow:inset 0 0 0 2px var(--st-amber-dot)}
   html.lg-new .cv-st b{font-weight:var(--w-label)} html.lg-new .cv-st small{font-size:12px;color:var(--st-amber-fg)}
   html.lg-new .cv-page[data-cv-stage="live"] .cv-st:last-child i{background:var(--st-green-dot)}
-  html.lg-new .cv-count{display:flex;align-items:center;gap:14px;padding:clamp(10px,1.8vh,14px) 18px;border-radius:12px;background:var(--surface-2)}
+  html.lg-new .cv-count{display:flex;align-items:center;gap:14px;padding:clamp(14px,2.2vh,16px) 18px;border-radius:12px;background:var(--surface-2)}
   html.lg-new .cv-count.is-a{background:var(--st-amber-bg)} html.lg-new .cv-count.is-g{background:var(--st-green-bg)}
-  html.lg-new .cv-n{font-family:var(--font-title);font-size:clamp(32px,5vh,40px);font-weight:var(--w-strong);line-height:1;color:var(--color-quiet)}
+  html.lg-new .cv-n{font-family:var(--font-title);font-size:clamp(32px,5vh,40px);font-weight:var(--w-strong);line-height:1.3;color:var(--color-quiet)}
   html.lg-new .cv-count.is-a .cv-n, html.lg-new .cv-count.is-a .cv-ct span{color:var(--st-amber-fg)}
   html.lg-new .cv-count.is-g .cv-n, html.lg-new .cv-count.is-g .cv-ct span{color:var(--st-green-fg)}
   html.lg-new .cv-ct{display:grid;font-size:15px;line-height:1.35;min-width:0} html.lg-new .cv-ct b{font-weight:var(--w-strong)} html.lg-new .cv-ct span{font-size:13px;color:var(--color-neutral-400)}
@@ -21652,6 +21825,116 @@
   /* REDLINES' NOTES ARE THE BAR'S NOTES (owner, 16 Nov 2026): the face paints the bar's own builder (rlFaceNotesWire);
      the contract's name line is left out here, the page already names it */
   html.lg-new #ig-dock .rl-fn-same .rl-chat > .rl-np-which{display:none}
+</style>
+<style>
+  /* ==== STANDARDS — THE LADDER (owner's pick, 17 Nov 2026; js/views/ladder.js) ====
+     One white sheet: the list by how firm on the left, the chosen standard as a ladder in the middle, Jambo's panel
+     beside it (the list pages' own #ins-panel). Tokens only. */
+  .ld-page{flex-direction:row;gap:0;padding:0}
+  .ld-sheet{flex:1 1 auto;min-width:0;display:flex;background:var(--color-surface);border-top:1px solid var(--color-divider);min-height:0;overflow:hidden}
+  .ld-page > #ins-panel{flex:none}
+  .ld-list{width:280px;flex:none;border-right:1px solid var(--color-divider);padding:var(--s-3) 0;overflow-y:auto;display:flex;flex-direction:column}
+  .ld-bookline{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin:0 var(--s-3) var(--s-2);padding:6px var(--s-3);border-radius:var(--radius);background:var(--surface-2);font-size:var(--t-body);font-weight:var(--w-label)}
+  .ld-g{font-size:var(--t-meta);color:var(--color-neutral-400);padding:var(--s-3) var(--s-6) var(--s-1);margin:0;display:flex;align-items:center;gap:var(--s-2)}
+  .ld-it{display:flex;align-items:center;gap:10px;margin:0 var(--s-3);padding:7px var(--s-3);border:0;border-radius:var(--radius);background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);text-align:left;cursor:pointer;min-width:0}
+  .ld-it:hover{background:var(--surface-2)}
+  .ld-it.is-on{background:var(--surface-2);font-weight:var(--w-label)}
+  .ld-it-n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ld-it small{flex:none;font-size:var(--t-meta);color:var(--color-neutral-400)}
+  .ld-it small.is-warn,.ld-n.is-warn{color:var(--st-amber-fg)}
+  .ld-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block;background:var(--st-gray-dot)}
+  .ld-dot.is-must{background:var(--st-ruby-dot)} .ld-dot.is-push{background:var(--st-amber-dot)} .ld-dot.is-nice{background:var(--st-green-dot)} .ld-dot.is-never{background:var(--color-text)}
+  .ld-firm{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:var(--t-body)}
+  .ld-main{flex:1;min-width:0;padding:var(--s-6) var(--s-8);overflow-y:auto;display:flex;flex-direction:column;gap:var(--s-3)}
+  .ld-top{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:nowrap}
+  .ld-title{font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:22px;margin:0;line-height:1.25;flex:0 1 auto;min-width:0}
+  .ld-top-a{margin-left:auto;display:flex;gap:var(--s-2);align-self:center;flex:none}
+  /* a long standard's name wraps on its own line's left; how firm and the two buttons keep the title's line (1366) */
+  .ld-top .ld-firm{flex:none}
+  .ld-back{margin-left:auto}
+  .ld-why{margin:0;color:var(--color-quiet);font-size:var(--t-body);max-width:72ch}
+  .ld-quiet{color:var(--color-neutral-400);font-size:var(--t-meta)}
+  .ld-empty{color:var(--color-neutral-400);font-size:var(--t-body);margin:var(--s-4) var(--s-6)}
+  .ld-cols,.ld-rung{display:grid;grid-template-columns:minmax(0,1fr) 180px 160px;gap:var(--s-4)}
+  .ld-cols{padding-left:30px;font-size:var(--t-meta);color:var(--color-neutral-400)}
+  .ld-rungs{position:relative;padding-left:30px}
+  .ld-rungs::before{content:"";position:absolute;left:9px;top:18px;bottom:18px;width:2px;background:var(--color-divider)}
+  .ld-rung{position:relative;padding:11px 0;border-bottom:1px solid var(--color-divider);align-items:start}
+  .ld-mark{position:absolute;left:-30px;top:11px;width:20px;height:20px;border-radius:50%;background:var(--st-gray-dot);box-shadow:0 0 0 3px var(--color-surface)}
+  .ld-mark.is-green{background:var(--st-green-dot)} .ld-mark.is-amber{background:var(--st-amber-dot)} .ld-mark.is-dark{background:var(--color-text)}
+  .ld-lab{margin:0;font-size:var(--t-meta);color:var(--color-neutral-400)}
+  .ld-w{margin:2px 0 0;font-family:var(--font-title);font-size:14px;line-height:1.5}
+  .ld-w.is-none{color:var(--color-neutral-400);font-style:italic}
+  .ld-who,.ld-cnt{font-size:var(--t-body);min-width:0}
+  .ld-who small{display:block;color:var(--color-neutral-400);font-size:var(--t-meta)}
+  .ld-bar{display:block;height:6px;border-radius:3px;background:var(--surface-2);margin-top:6px;overflow:hidden}
+  .ld-bar i{display:block;height:100%;background:var(--st-green-dot)}
+  .ld-deps{display:flex;flex-direction:column;gap:var(--s-2)}
+  .ld-dep,.ld-soft{display:flex;align-items:center;gap:var(--s-3);background:var(--surface-2);border-radius:var(--radius);padding:var(--s-3) var(--s-4)}
+  .ld-dep-t{flex:1;min-width:0;font-size:var(--t-body)}
+  .ld-dep-p{display:block;font-weight:var(--w-strong)}
+  .ld-dep-a{display:flex;align-items:center;gap:var(--s-2);flex:none}
+  .ld-dep-a .ui-btn:not(.ui-btn-primary){background:var(--color-surface)}
+  .ld-soft > span{flex:1;min-width:0;font-size:var(--t-body)}
+  .ld-tag{font-size:var(--t-micro);color:var(--st-amber-fg);background:var(--st-amber-bg);border-radius:999px;padding:1px 7px;white-space:nowrap}
+  .ld-gov{display:flex;gap:var(--s-6);flex-wrap:wrap;margin:0;font-size:var(--t-meta);color:var(--color-quiet)}
+  .ld-gov b{color:var(--color-text);font-weight:var(--w-label)}
+  .ld-n{color:var(--color-neutral-400);font-weight:var(--w-body)}
+  .ld-hrow{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 0;border-bottom:1px solid var(--color-divider)}
+  .ld-hs{flex:none;width:84px;font-size:var(--t-meta);color:var(--color-quiet)}
+  .ld-hs.is-waiting{color:var(--st-amber-fg)} .ld-hs.is-approved{color:var(--st-green-fg)} .ld-hs.is-refused{color:var(--st-ruby-fg)}
+  .ld-ht{flex:1;min-width:0}
+  .ld-ht small{display:block;color:var(--color-neutral-400);font-size:var(--t-meta)}
+  .ld-edit{gap:var(--s-4)}
+  .ld-ehead{display:flex;align-items:baseline;gap:var(--s-3)}
+  .ld-erow{display:flex;gap:var(--s-4);align-items:flex-end}
+  .ld-fld{display:flex;flex-direction:column;gap:6px;min-width:0;position:relative}
+  .ld-fld > span{font-size:var(--t-body);font-weight:var(--w-strong)}
+  .ld-fld.is-grow{flex:1}
+  .ld-in{height:34px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 10px;font:inherit;font-size:var(--t-body);background:var(--color-surface);color:var(--color-text);min-width:160px}
+  .ld-pick{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);text-align:left;cursor:pointer;width:100%}
+  .ld-segs{display:flex;gap:6px}
+  .ld-seg{height:34px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 10px;display:inline-flex;align-items:center;gap:7px;background:var(--color-surface);font:inherit;font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;color:var(--color-text)}
+  .ld-seg.is-on.is-must{background:var(--st-ruby-bg);border-color:var(--st-ruby-line);color:var(--st-ruby-fg)}
+  .ld-seg.is-on.is-push{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  .ld-seg.is-on.is-nice{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg)}
+  .ld-seg.is-on.is-never{background:var(--surface-2);border-color:var(--color-text)}
+  .ld-firm-says{margin:-6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-400)}
+  .ld-ladhead{display:flex;align-items:center;gap:var(--s-2)}
+  .ld-ladhead b{font-size:var(--t-body);font-weight:var(--w-strong)}
+  .ld-ladhead small{font-size:var(--t-meta);color:var(--color-neutral-400);margin-right:var(--s-2)}
+  .ld-ladwho{margin-left:auto;width:228px;font-size:var(--t-meta);color:var(--color-neutral-400)}
+  .ld-erungs{position:relative;display:flex;flex-direction:column;gap:var(--s-2)}
+  .ld-erungs::before{content:"";position:absolute;left:9px;top:16px;bottom:16px;width:2px;background:var(--color-divider)}
+  .ld-erung{display:flex;gap:var(--s-3);align-items:flex-start;position:relative;padding-left:32px}
+  .ld-erung .ld-mark{left:0;top:9px}
+  .ld-ebox{flex:1;min-width:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 12px 4px;background:var(--color-surface);display:flex;flex-direction:column}
+  .ld-box{width:100%;border:0;resize:vertical;font-family:var(--font-title);font-size:14px;line-height:1.5;background:transparent;color:var(--color-text);padding:0;min-height:44px}
+  .ld-fld > .ld-box{border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 12px}
+  .ld-box::placeholder{font-style:italic;color:var(--color-neutral-400)}
+  .ld-who-sel{width:190px;height:34px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 10px;font:inherit;font-size:var(--t-body);background:var(--color-surface);margin-top:2px}
+  .ld-who-fix{width:228px;flex:none;font-size:var(--t-body);color:var(--color-quiet);padding-top:10px}
+  .ld-x{margin-top:6px}
+  .ld-add{margin:0 0 0 32px;font-size:var(--t-body)}
+  .ld-books-pop{position:absolute;top:100%;left:0;z-index:20;margin-top:4px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:var(--s-2);display:flex;flex-direction:column;min-width:240px}
+  .ld-bk{display:flex;gap:var(--s-2);align-items:center;padding:6px var(--s-2);font-size:var(--t-body);border-radius:var(--radius-sm);cursor:pointer}
+  .ld-bk:hover{background:var(--surface-2)}
+  .ld-dlg{display:flex;flex-direction:column;gap:var(--s-2);max-width:520px}
+  .ld-dlg h3{margin:0}
+  .ld-dlg-p{margin:0;font-size:var(--t-body)}
+  .ld-dlg-l{margin:var(--s-2) 0 0;font-size:var(--t-meta);color:var(--color-quiet)}
+  .ld-dlg .ld-box{border:1px solid var(--color-divider);border-radius:var(--radius);padding:8px 10px;font-family:inherit;font-size:var(--t-body)}
+  .ld-dw,.ld-diff{margin:0;font-family:var(--font-title);font-size:14px;line-height:1.5}
+  .ld-dlg-ul{margin:0;padding-left:18px;font-size:var(--t-body)}
+  .ld-dlg-f{display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-3)}
+  .ld-jdraft{border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px 14px;background:var(--color-surface);display:flex;flex-direction:column;gap:2px;font-family:var(--font-title);font-size:14px;line-height:1.5}
+  .ld-jl{font-family:var(--font-body);font-size:var(--t-micro);color:var(--color-neutral-400);margin-top:4px}
+  .ld-jl:first-child{margin-top:0}
+  .ld-jchips{display:flex;flex-wrap:wrap;gap:6px}
+  .ld-jrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .ld-jmore{position:relative;display:inline-flex;align-items:center;gap:var(--s-2)}
+  .ld-jdots{width:24px;height:24px;border-radius:50%;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-quiet);font:inherit;line-height:1;cursor:pointer}
+  .ld-jmenu{display:inline-flex;gap:var(--s-3);font-size:var(--t-body)}
 </style>
 <style>
   /* RETIRED COST SPOTS (owner, 8 Nov 2026: no Jambo calls are said): a spot whose label is retired draws nothing, in either look */

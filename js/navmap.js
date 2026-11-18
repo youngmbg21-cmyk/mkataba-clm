@@ -714,11 +714,13 @@ function navGoClause(n){
   setTimeout(look, 0);
   return true;
 }
+const NAV_CLAUSE_MARKS = '[data-clause], [data-pz-clause]:not([data-pz-clause^="pzh"])';
 /* the clause on the paper: its number at the head, else its heading's words, else the first clause whose words say it */
 function navClauseEl(n){
   if (typeof document === 'undefined') return null;
   const host = document.getElementById('ig-paper'); if (!host || host.hidden) return null;
-  const els = [...host.querySelectorAll('[data-clause], [data-pz-clause]')]; if (!els.length) return null;
+  /* a heading marked only for Follow me (igPaperHeadMark, "pzh…") carries no wording, so the paper stays unmarked here */
+  const els = [...host.querySelectorAll(NAV_CLAUSE_MARKS)]; if (!els.length) return null;
   const head = el => String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120).toLowerCase();
   if (n.num){
     const re = new RegExp('^(?:clause\\s+|§\\s*)?' + n.num + '(?:[.)\\s]|$)');
@@ -797,7 +799,11 @@ function navGoAct(n){
       if (!(state.panelOpen && typeof panelFace === 'function' && panelFace() === 'notes')) openPanel('notes');
       return true; },
     /* "Risks to look at" in what Jambo read, its own Read or See */
-    risks: () => { if (pdOpenOnHome(id, 'copilot') === false) return false; return navLandWhen(() => document.querySelector('#ig-dock [data-pd-ds="risks"]')); },
+    /* in the new look the risk list stands in the Redlines face (#rl-risks; MAP: Dossier Risks › Open lands ON #rl-risks) —
+       the old Dossier's line where it is drawn (#762: the door landed nowhere) */
+    risks: () => { if (pdOpenOnHome(id, 'copilot') === false) return false;
+      if (!document.querySelector('#ig-dock [data-pd-ds="risks"]') && typeof pdRedOpen === 'function' && pdRedOpen(id)) return navLandWhen(() => document.querySelector('#ig-dock #rl-risks'));
+      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-ds="risks"]')); },
     ladder: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
     /* who opened it is on its History (the trail keeps the opens) */
     opened: () => (typeof hbOpenView === 'function') ? hbOpenView(id, 'hist') : pdOpenOnHome(id, 'copilot'),
@@ -812,7 +818,7 @@ function navGoAct(n){
 /* does the paper in front mark its clauses at all? */
 function navPaperMarked(){
   const host = (typeof document !== 'undefined') ? document.getElementById('ig-paper') : null;
-  return !!(host && host.querySelector('[data-clause], [data-pz-clause]'));
+  return !!(host && host.querySelector(NAV_CLAUSE_MARKS));
 }
 /* the clause's row on the Clauses tab beside the paper ("7. Liability") */
 function navClauseRow(n){
@@ -1020,6 +1026,10 @@ function navGoStage2(n){
     /* a standard named in Jambo's own words: the row that says them */
     const re = NAV_STD_ROW_RE[n.row] || new RegExp(String(n.row).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).slice(0, 3).join('.*'), 'i');
     return navLandWhen(() => {
+      /* THE LADDER (17 Nov 2026): the standard's own row in the list is pressed (its own press chooses it), and the
+         ladder it draws is landed on */
+      const it = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => re.test(x.textContent || '') || re.test(x.querySelector('[title]')?.getAttribute('title') || ''));
+      if (it){ if (!it.classList.contains('is-on')) it.click(); return document.querySelector('.ld-main .ld-title'); }
       const host = document.querySelector('#ins-panel') || document.querySelector('.sd-ins'); if (!host) return null;
       const all = [...host.querySelectorAll('li, tr, dt, dd, p, [class*="row"]')].filter(x => re.test(x.textContent || ''));
       return all.find(x => !all.some(y => y !== x && x.contains(y))) || null;   // the innermost row that says it

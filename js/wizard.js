@@ -850,7 +850,7 @@ function naNewPaperShow(root,on){
   if(on) root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected','false'));
   else { const cur=root.getAttribute('data-paper'); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===cur))); }
 }
-function naNewPaperGo(k){
+function naNewPaperGo(k,x){
   if(!naNewPaperOk()) return;
   /* each start opens INSIDE this tab (owner, 14 Nov 2026), and Back brings the four starts back to the same place */
   const host=document.getElementById('na-np');
@@ -860,7 +860,8 @@ function naNewPaperGo(k){
     /* the new look draws it the Legora way (owner's pick, 14 Nov 2026); elsewhere the door that has always filed it */
     if(typeof nsLgOn==='function'&&nsLgOn()&&typeof nsOpenTheirs==='function') return nsOpenTheirs();
     if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
-  openNewStandard({ start:k||'scratch', back, host });
+  /* a door that names a paper (Our paper's "Make our own", tplnOursGo) lands on that paper in its start */
+  openNewStandard({ start:k||'scratch', back, host, pick:(x&&x.pick)||null });
 }
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
@@ -1263,7 +1264,11 @@ function openNewAgreement(o){
     /* THEIR PAPER: Create needs their file and a stream (the drop's own two) */
     if(one&&paper==='theirs'){ on=!!theirFile&&!!streamPicked; why=!theirFile?i18t('na_theirs_need'):i18t('na_stream_first'); }
     if(one){ root.setAttribute('data-paper',paper); const tp=paper==='kept'?'theirs':paper; root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===tp)));
-      const th=document.getElementById('na-theirs'); if(th) th.hidden=tp!=='theirs'; }
+      const th=document.getElementById('na-theirs'); if(th) th.hidden=tp!=='theirs';
+      /* Their paper's panel says the file and the stream as they stand: a change to either draws it again (the dock
+         writes nothing where nothing moved, igDockSame) */
+      const tk=tp==='theirs'?[paper,theirFile?theirFile.name:'',streamPicked].join('|'):'';
+      if(tk!==root._naTheirKey){ const was=root._naTheirKey; root._naTheirKey=tk; if(tk&&was!==undefined&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } } }
     ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
       b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):why; });
     /* their paper is created as theirs, not drafted (as drawn: "Create") — never while the press turns */
@@ -1528,7 +1533,9 @@ function openNewAgreement(o){
         if(document.getElementById('na-root')) return;
         ob.disconnect();
         /* left without a draft (Cancel, the crumb's ‹, ✕, Esc): back to the page it was started on */
-        if(!_naClaimed && naFrom) try{ naBackFrom(naFrom); }catch(_){ }
+        /* …unless a door inside it already took the reader on (From scratch's start opening the builder moves the view
+           off Home before the sheet closes): going "back" then would draw the old page over where they were sent */
+        if(!_naClaimed && naFrom && !(typeof state==='object'&&state&&state.view&&state.view!=='dashboard')) try{ naBackFrom(naFrom); }catch(_){ }
         dropHeld();
       });
       ob.observe(mr,{childList:true,subtree:true});
@@ -1585,7 +1592,7 @@ function openNewAgreement(o){
     if(typeof renderIntelDock==='function') setTimeout(()=>{ try{ renderIntelDock(); }catch(_){ } },0);
     const mroot=document.getElementById('modal-root');
     if(mroot&&typeof MutationObserver==='function'){
-      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect(); _naBack=null; _naOurs=null;
+      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect(); _naBack=null; _naOurs=null; _naTheirs=null;
         if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
         /* the bar names the page in front again */
         if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ } });
@@ -1622,7 +1629,7 @@ function openNewAgreement(o){
     /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
     /* delegated: Back from a start puts the four starts back, a fresh Continue with them */
     root.addEventListener('click',e=>{ if(!e.target.closest||!e.target.closest('#na-np-go')) return; const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
-    if(o&&o.newPaper) naNewPaperShow(root,true);
+    if(o&&o.newPaper){ naNewPaperShow(root,true); if(o.start) naNewPaperGo(o.start,{ pick:o.pick }); }
     /* THEIR PAPERS YOU KEPT: a press chooses one (the card asks what any paper asks, the company filled in from it);
        "Or drop a new file from them" lets it go for the drop below */
     root.addEventListener('click',e=>{
@@ -1633,6 +1640,12 @@ function openNewAgreement(o){
     /* Our paper's own words for the panel (the new look): the closest papers, the one chosen, the lines filled from the words */
     _naOurs={ up:()=>paper==='ours'&&naSheetUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
       read:()=>naReadRows().length, asked:()=>!!asked };
+    /* Their paper's own words for the panel (the five parts, 18 Nov 2026): the file added and the stream picked, the two
+       Create needs (light's own test), read as they stand — the panel says them, the sheet is where they are given */
+    _naTheirs={ up:()=>(paper==='theirs'||paper==='kept')&&naSheetUp(), file:()=>theirFile?String(theirFile.name||''):'',
+      kept:()=>{ if(paper!=='kept'||!sel) return ''; const r=rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)); return r?String(r.name||''):''; },
+      stream:()=>{ const f=streamPicked&&window.FOLDERS&&FOLDERS[streamPicked]; return f?String(f.name||''):''; },
+      pick:()=>{ const b=document.getElementById('na-theirs-pick'); if(b) b.click(); } };
     /* THEIR FILE: chosen or dropped, one at a time, read only at Create */
     const tIn=document.getElementById('na-theirs-input');
     const tSet=f=>{ theirFile=f||null; const el=document.getElementById('na-theirs-file');
@@ -1729,6 +1742,8 @@ function openNewAgreement(o){
 /* Our paper's hand to the panel beside it (paperdesk) */
 let _naOurs=null;
 function naOursNow(){ try { return _naOurs && _naOurs.up() ? _naOurs : null; } catch (_){ return null; } }
+let _naTheirs=null;
+function naTheirsNow(){ try { return _naTheirs && _naTheirs.up() ? _naTheirs : null; } catch (_){ return null; } }
 function naHomeFirst(){
   if(typeof document==='undefined'||typeof setView!=='function') return null;
   if(typeof mPhone==='function'&&mPhone()) return null;
@@ -1811,4 +1826,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{naNewPaperOk,naNewPaperDoorHtml,naNewPaperGo,naOursNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,naPasteJoined,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{naNewPaperOk,naNewPaperDoorHtml,naNewPaperGo,naOursNow,naTheirsNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,naPasteJoined,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

@@ -128,35 +128,39 @@ const DEAL = {
 
     /* ===== 2-5. THE SHEET ===== */
     await page.click('#ws-tabs [data-ws-tab="stands"]').catch(() => {});
-    const drew = await until(page, () => !!document.querySelector('[data-ws-pane="stands"] .ds-sheet'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): our tab draws the page AS DRAWN
+       (standsDrawnHtml, [data-ds2]) — the title and its line naming both parties, six stages, Still open as a table
+       with each party's column and Whose move, Agreed, the foot. The promises are the same: parties by name, the
+       live stage, the record's counts and round, the party holding the open point, no seat word, no person, no
+       review, no change id, and it says every party sees it. */
+    const drew = await until(page, () => !!document.querySelector('[data-ws-pane="stands"] [data-ds2]'));
     ok('2a the tab draws the sheet', drew);
     const S = await page.evaluate(() => {
-      const el = document.querySelector('[data-ws-pane="stands"] .ds-sheet');
+      const el = document.querySelector('[data-ws-pane="stands"] [data-ds2]');
       if (!el) return null;
       const txt = s => [...el.querySelectorAll(s)].map(e => e.textContent.replace(/\s+/g, ' ').trim());
       return { all: el.textContent.replace(/\s+/g, ' ').trim(),
-        parties: txt('.ds-pch'), steps: txt('.ds-j li'),
-        now: (el.querySelector('.ds-j li.is-now b') || {}).textContent || '',
-        done: el.querySelectorAll('.ds-j li.is-done').length,
-        /* RE-POINTED 9 Oct 2026 (SAP batch 3): the open points are table rows. */
-        facts: txt('.ds-facts > div'), points: txt('.ds-pt'), lately: txt('.ds-late'),
+        sub: txt('.ds2-sub').join(' '), heads: txt('.ds2-t thead th'), steps: txt('.ds2-spine .ds2-st'),
+        now: (el.querySelector('.ds2-st.is-now') || {}).textContent || '',
+        open: [...el.querySelectorAll('.ds2-t tbody tr')].filter(r => r.querySelector('.ds2-cl'))
+          .map(r => [...r.children].map(td => td.textContent.replace(/\s+/g, ' ').trim())),
         data: typeof dealStands === 'function' ? dealStands(getContract('MK-D1')) : null };
     });
-    ok('2b it names every party, with what each one does',
-      !!S && S.parties.length >= 2 && S.parties.some(p => /Nordbygg/.test(p)) && S.parties.some(p => /negotiat/i.test(p)),
-      JSON.stringify(S && S.parties));
-    ok('2c the journey is four steps and the live one is Negotiating',
-      !!S && S.steps.length === 4 && /Negotiating/i.test(S.now), JSON.stringify([S && S.steps.length, S && S.now]));
+    ok('2b it names every party, each heading its own column',
+      !!S && /Nordbygg/.test(S.sub) && /Highland/.test(S.sub) && S.heads.some(h => /Nordbygg/.test(h)) && S.heads.some(h => /Highland/.test(h)),
+      JSON.stringify(S && { sub: S.sub, heads: S.heads }));
+    ok('2c the journey is the six stages and the live one is Negotiate',
+      !!S && S.steps.length === 6 && /^Negotiate/i.test(S.now), JSON.stringify([S && S.steps.length, S && S.now]));
     ok('2d it counts the points the record holds — two settled, one open',
       !!S && S.data && S.data.settled === 2 && S.data.open === 1 && S.data.total === 3,
       JSON.stringify(S && S.data && { s: S.data.settled, o: S.data.open, t: S.data.total }));
-    ok('2e and the round is the record\'s own', !!S && S.data && S.data.round === 2, S && S.data && S.data.round);
+    ok('2e and the round is the record\'s own', !!S && S.data && S.data.round === 2 && /round 2\b/i.test(S.now), S && S.data && S.data.round);
 
     /* 3. WHAT WAITS ON EACH PARTY IS SAID BY ITS NAME, NOT A SEAT (the shared
        sheet's one row of facts, 4 Oct 2026, in place of "Whose move") */
-    const move = (S && S.facts.find(f => /waiting on nordbygg/i.test(f))) || '';
+    const move = (S && S.open.length === 1 && S.open[0][S.open[0].length - 1]) || '';
     ok('3a the facts row names the party that holds the open point, with its count',
-      /Nordbygg/.test(move) && /1/.test(move), JSON.stringify(S && S.facts));
+      /Nordbygg/.test(move) && S.heads.some(h => /Still open · 1\b/.test(h)), JSON.stringify(S && { open: S.open, heads: S.heads }));
     ok('3b and it uses no seat word anywhere on the page',
       !!S && !/\byou\b|\byour\b|\bthem\b|\btheir\b|\bus\b|\bour\b/i.test(S.all),
       JSON.stringify((S && S.all || '').match(/\b(you|your|them|their|us|our)\b/i) || null));
@@ -165,8 +169,10 @@ const DEAL = {
     /* RE-POINTED 9 Oct 2026 (SAP batch 3): the row names the PARTY that
        proposed it ("Proposed by", as drawn) — still a party, never a person. */
     const liab = S && S.data && S.data.points.find(p => /Liability/i.test(p.clause));
+    /* RE-POINTED 16 Nov 2026 (#762): the drawn table puts a proposal in its party's column and names the party whose
+       move it is — the other side from the one that proposed it */
     ok('4a the open point is named by its clause, and by the party that proposed it',
-      !!S && !!liab && !!liab.by && S.points.some(p => /Liability/i.test(p) && p.includes(liab.by)), JSON.stringify(S && S.points));
+      !!S && !!liab && !!liab.by && !!liab.with && S.open.some(r => /Liability/i.test(r[0]) && liab.with.startsWith(r[r.length - 1])), JSON.stringify(S && S.open));
     ok('4b and no change id is printed — CHG-3 means nothing to anyone outside',
       !!S && !/CHG-/.test(S.all));
 
@@ -178,8 +184,9 @@ const DEAL = {
     ok('5b and nothing from the internal review or the notes is on it',
       !!S && !/review/i.test(S.all) && !S.all.includes('Zanzibarium'));
     /* RE-POINTED 9 Oct 2026: the drawing says it as a tag beside the title. */
+    /* RE-POINTED 16 Nov 2026 (#762): the drawn page says it on its title line and its foot */
     ok('5c it says every party sees it (the disclaimer went, 4 Oct 2026)',
-      !!S && /Seen by every party/i.test(S.all) && !/never shows/i.test(S.all));
+      !!S && /what both parties see/i.test(S.sub) && /Only what every party may see/i.test(S.all) && !/never shows/i.test(S.all));
 
     /* 6. IT SPENDS NOTHING */
     ok('6a drawing it called no generative route', ai.length === 0, ai.join(', ') || 'none');

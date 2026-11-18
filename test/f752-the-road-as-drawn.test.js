@@ -4,7 +4,7 @@
    18 Oct 2026 to build every gap between the picked drawing and HaTi; round
    10, option 2 "The road")
    (1) Ready to sign names its checks: "5 checks clear: wording, standards,
-       promises, details, the brief", or "3 to settle: standards, …".
+       promises, details, the brief", or "3 to settle: playbook, …".
    (2) A named person's yes is its own stop, "<approver>'s yes", framed where
        it is the reader's work: where the approval stands (asked › waiting ›
        approved · or refused, lapsed), Jambo's line where the reader stands in
@@ -69,13 +69,13 @@ const PLAN = [{ id: 'a', party: 'counterparty', name: 'Henrik Dahl', order: 1 },
 const AWAY = [{ userId: 'u-jonas', userName: 'Jonas Berg', from: '2026-10-19', to: '2026-10-23' }];
 
 describe('f752 (1) Ready to sign names its checks', () => {
-  test('1a clear: "5 checks clear: wording, standards, promises, details, the brief"', () => {
+  test('1a clear: "5 checks clear: wording, playbook, promises, details, the brief"', () => {
     const { ctx, c } = stage({ plan: PLAN });
-    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '5 checks clear: wording, standards, promises, details, the brief');
+    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '5 checks clear: wording, playbook, promises, details, the brief');
   });
   test('1b open: the count, then which checks, in the checks\' order', () => {
     const { ctx, c } = stage({ holds: [{ kind: 'obligations' }, { kind: 'standards-read' }, { kind: 'brief' }, { kind: 'turn' }] });
-    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '3 to settle: standards, promises, the brief');
+    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '3 to settle: playbook, promises, the brief');
     assert.equal(ctx.pdRoadCheckOf('blanks'), 'wording'); assert.equal(ctx.pdRoadCheckOf('fields'), 'details'); assert.equal(ctx.pdRoadCheckOf('nothing-known'), 'wording');
   });
 });

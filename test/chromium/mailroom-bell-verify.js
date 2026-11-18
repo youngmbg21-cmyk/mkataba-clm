@@ -67,13 +67,17 @@ const KEY = 'k'.repeat(32);
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk's rows; the
        Mailroom's line is a row of its own, its button the bell's own door */
     await page.evaluate(() => openPanel('alerts'));
-    const row = await waitFor(page, id => !!document.querySelector(`.nd-pan [data-nd-al^="al:mailroom:${id}:"]`), 5000, ID);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's list is drawn as .ndb (ndBellNlHtml),
+       each row ONE Open that presses the row's own door */
+    const ROW_OPEN = id => `.nd-pan [data-nd-al^="al:mailroom:${id}:"], .ndb .ndb-r[data-nd-row^="al:mailroom:${id}:"] .ndb-open`;
+    const row = await waitFor(page, sel => !!document.querySelector(sel), 5000, ROW_OPEN(ID));
     await page.screenshot({ path: path.join(OUT, 'bell-1440x780.png') });
-    if (row) await page.click(`.nd-pan [data-nd-al^="al:mailroom:${ID}:"]`);
-    const landed = await waitFor(page, id => { const tr = document.querySelector(`.mig-table tbody tr[data-row="${id}"]`);
+    if (row) await page.click(ROW_OPEN(ID));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Import table is .mign-table (the same rows, data-row, .is-picked) */
+    const landed = await waitFor(page, id => { const tr = document.querySelector(`:is(.mig-table, .mign-table) tbody tr[data-row="${id}"]`);
       return state.view === 'migration' && tr && tr.classList.contains('is-picked') ? true : null; }, 8000, ID);
     check('2 the press opens the Import page with that document chosen', !!row && !!landed,
-      await page.evaluate(() => ({ view: state.view, picked: (document.querySelector('.mig-table tr.is-picked') || {}).getAttribute?.('data-row') || null })));
+      await page.evaluate(() => ({ view: state.view, picked: (document.querySelector(':is(.mig-table, .mign-table) tr.is-picked') || {}).getAttribute?.('data-row') || null })));
     await page.screenshot({ path: path.join(OUT, 'import-1440x780.png') });
 
     console.log('\n3 · not on the admin\'s bell');
@@ -95,8 +99,9 @@ const KEY = 'k'.repeat(32);
          it, and measure once it has come to rest in the window */
       await page.keyboard.press('Escape').catch(() => {}); await pause(300);
       await page.evaluate(() => openPanel('alerts'));
-      const m = await waitFor(page, id => { const r = document.querySelector(`.nd-pan .nd-r[data-nd-row^="al:mailroom:${id}:"]`); if (!r) return null;
-        const b = r.getBoundingClientRect(), t = r.querySelector('.nd-t');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's bell row is .ndb-r, its line .ndb-w */
+      const m = await waitFor(page, id => { const r = document.querySelector(`.nd-pan .nd-r[data-nd-row^="al:mailroom:${id}:"], .ndb .ndb-r[data-nd-row^="al:mailroom:${id}:"]`); if (!r) return null;
+        const b = r.getBoundingClientRect(), t = r.querySelector('.nd-t, .ndb-w');
         if (b.right > innerWidth + 1) return null;
         return { whole: b.left >= 0 && b.right <= innerWidth + 1 && b.height > 0, oneLine: !!t, side: document.documentElement.scrollWidth > innerWidth + 1, l: Math.round(b.left), r: Math.round(b.right), w: innerWidth }; }, 5000, ID);
       check(`5 ${w}x${hh}: the line stands whole, nothing sideways`, !!m && m.whole && !m.side, m);

@@ -102,7 +102,9 @@ const check = (name, pass, detail) => {
       const D0 = await page.evaluate(DOCK);
       /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): beside a contract the first tab is its Dossier; the lists keep Overview */
       check('1a beside a contract the first tab says "Dossier"', !!D0 && D0.tab === 'Dossier', JSON.stringify(D0 && D0.tab));
-      check('1b the Redlines face\'s back says "‹ Dossier"', !!D0 && D0.back === 'Dossier' && /Dossier \/ Redlines/.test(D0.path || ''), JSON.stringify(D0 && { back: D0.back, path: D0.path }));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's trail names the face alone
+         ("Redlines"); the way back still says "‹ Dossier" */
+      check('1b the Redlines face\'s back says "‹ Dossier"', !!D0 && D0.back === 'Dossier' && /Redlines/.test(D0.path || ''), JSON.stringify(D0 && { back: D0.back, path: D0.path }));
       check('1c the page lands as it is: the cards, no conversation', !!D0 && !D0.talk && D0.cards >= 2, JSON.stringify(D0 && { talk: D0.talk, cards: D0.cards }));
       keptTop = await page.evaluate(() => { const sc = document.querySelector('#pd-redface #nego-cards'); if (!sc) return -1;
         sc.scrollTop = Math.min(120, Math.max(0, sc.scrollHeight - sc.clientHeight)); return sc.scrollTop; });
@@ -186,12 +188,19 @@ const check = (name, pass, detail) => {
     /* ---- 4 a list page ---- */
     await part('4', async () => {
       await page.evaluate(() => openNegotiations({ list: true }));
-      await until(() => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 1 && document.querySelector('#ins-panel.is-jambo .jl-body'), null, 10000);
-      await page.click('#reg-tbody tr[data-row]');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Negotiations is drawn by ngnRender, its rows
+         [data-ngn-row] (a press chooses) */
+      await until(() => document.querySelectorAll('#reg-tbody tr[data-row], [data-ngn-row]').length >= 1 && document.querySelector('#ins-panel.is-jambo .jl-body'), null, 10000);
+      /* the new look already holds the first row chosen (a press on the CHOSEN row opens it, ngnRender's one rule), so
+         the press chooses a row not yet chosen, as a reader choosing another would; with one row, it stands chosen */
+      if (await page.$('#reg-tbody tr[data-row]')) await page.click('#reg-tbody tr[data-row]');
+      else if (await page.$('[data-ngn-row]:not(.is-sel)')) await page.click('[data-ngn-row]:not(.is-sel)');
       await until(() => document.getElementById('ins-panel').getAttribute('data-ins-id'), null, 5000);
       const L0 = await page.evaluate(() => { const p = document.getElementById('ins-panel'); return { id: p.getAttribute('data-ins-id'), tab: (p.querySelector('[data-jl-home] .pd-tab-w') || {}).textContent,
         talk: !p.querySelector('.jl-talk').hidden }; });
-      check('4a the list panel lands on the row\'s panel, its tab "Overview"', !!L0 && !L0.talk && L0.tab === 'Overview', JSON.stringify(L0));
+      /* RE-POINTED 16 Nov 2026 (#762): on the new look's Negotiations the chosen round's tab reads "‹ Overview" — its way
+         back to the page's Overview (MAP: THE CHOSEN ROW'S PANELS, _jlBack) */
+      check('4a the list panel lands on the row\'s panel, its tab "Overview"', !!L0 && !L0.talk && /^(‹\s*)?Overview$/.test(String(L0.tab || '').trim()), JSON.stringify(L0));
       await ask('#jl-q', 'why has this not moved?');
       await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.jl-talk').hidden; }, null, 8000);
       const L1 = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const d = p.querySelector('.jl-foot [data-jb-door]');
@@ -221,12 +230,15 @@ const check = (name, pass, detail) => {
        trail names the way back. What decides is what the landing HOLDS. ---- */
     await part('5', async () => {
       await page.evaluate(() => setView('team'));
-      await until(() => document.getElementById('st-jb-q') && document.querySelector('#st-jb-feed > *'), null, 8000);
-      const S0 = await page.evaluate(() => ({ door: !document.querySelector('#st-jb-form [data-jb-door]').hidden, tabs: [...document.querySelectorAll('#st-side-head .st-side-tab')].filter(x => !x.hidden).length }));
+      /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo is the list pages' panel (#ins-panel: landing .jl-body, talk
+         [data-jt-talk], box #jl-q, the door above it [data-jb-door]); the head's Jambo label is hidden on the landing */
+      await until(() => document.querySelector('#ins-panel #jl-q') && document.querySelector('#ins-panel .jl-body > *'), null, 8000);
+      const S0 = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const d = p.querySelector('.jl-foot [data-jb-door]'), lab = p.querySelector('.jl-head [data-jl-talk]');
+        return { door: !!(d && !d.hidden && d.getClientRects().length), tabs: 1 + (lab && !lab.hidden ? 1 : 0) }; });
       check('5a Settings shows Overview alone, no door until the talk is up', !S0.door && S0.tabs === 1, JSON.stringify(S0));
-      await ask('#st-jb-q', 'what is a sealed PDF?');
-      const S1 = await until(() => { const T = document.querySelector('#st-jb-feed [data-st-jb-talk]'), L = document.querySelector('#st-jb-feed [data-st-jb-land]');
-        return T && !T.hidden && /sealed PDF/.test(T.textContent) ? { land: !!L && !L.hidden, door: !document.querySelector('#st-jb-form [data-jb-door]').hidden } : null; }, null, 6000);
+      await ask('#jl-q', 'what is a sealed PDF?');
+      const S1 = await until(() => { const p = document.getElementById('ins-panel'); const T = p && p.querySelector('[data-jt-talk]'), L = p && p.querySelector('.jl-body'), d = p && p.querySelector('.jl-foot [data-jb-door]');
+        return T && !T.hidden && /sealed PDF/.test(T.textContent) ? { land: !!L && !L.hidden, door: !!(d && !d.hidden && d.getClientRects().length) } : null; }, null, 6000);
       check('5b a question goes to his view, the page\'s stands aside, the door above the box names the way back', !!S1 && !S1.land && S1.door, JSON.stringify(S1));
     });
 

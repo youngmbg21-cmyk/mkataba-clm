@@ -107,9 +107,16 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     check('1a "upload" in Jambo\'s box lands on the drop area, lit; Choose a file opens the picker, no pop-up', !!lit1 && !!fc && await page.evaluate(() => state.view === 'dashboard' && !document.getElementById('up-file')));
     if (fc) await fc.setFiles(file);
     const landed = await waitFor(page, () => state.contracts.length === 1 && !!intel.paper && intel.paper.id === state.contracts[0].id
-      && !!document.querySelector('#pd-og[data-pd-og-for="' + state.contracts[0].id + '"]'), 15000);
+      && (!!document.querySelector('#pd-og[data-pd-og-for="' + state.contracts[0].id + '"], #pd-glance[data-pd-glance-for="' + state.contracts[0].id + '"] [data-pd2-card] [data-pd-ds-fill]')
+        /* RE-POINTED 18 Nov 2026 (#762): with the new look on for everyone AN ARRIVAL PLAYS THE READ (pd2WalkArrive) — on a
+           slow runner the panel showed "Watch the read" walking this very paper before the card was seen; that is the
+           Dossier's own arrival for this paper, so it counts as landing beside it */
+        || (typeof pd2WalkOn === 'function' && pd2WalkOn(state.contracts[0].id))), 15000);
     id = await page.evaluate(() => (state.contracts[0] || {}).id || null);
+    console.log('DBG1b', landed, await page.evaluate(() => ({ n: state.contracts.length, paper: intel.paper && intel.paper.id, face: hbFace(), view: state.view, gl: (document.querySelector('#pd-glance') || {}).outerHTML ? document.querySelector('#pd-glance').getAttribute('data-pd-glance-for') : null, card: !!document.querySelector('[data-pd2-card] [data-pd-ds-fill]'), cover: !!document.querySelector('.cv-r'), tab: typeof pdTab === 'function' ? pdTab() : null, dock: ((document.getElementById('ig-dock') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160) })));
     /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the Dossier, Still owed's grid asking what is owed */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml) whose one
+       black button asks what is owed (Fill in the contract, data-pd-ds-fill) — the grid's place */
     check('1b the file is filed and lands on Home\'s paper, Still owed\'s grid beside it', landed && await page.evaluate(() => state.view === 'dashboard' && hbFace() === 'paper'), id);
     await shot('1-uploaded');
     /* RE-POINTED 22 Oct 2026 (Jambo's journey, round 1: he speaks first on an upload, in his panel): once the
@@ -124,7 +131,12 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     const left0 = id ? await page.evaluate(i => detailsOf(getContract(i)).left, id) : 0;
     /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the Next card's one button opens the form beside
        the paper; every owed box stands there */
-    if (id){ await page.click('#ig-dock .ds-nx [data-pd-ds-fill]').catch(() => {});
+    /* RE-POINTED 16 Nov 2026 (#762): the card's Fill in the contract starts on the paper's own blanks (pd2FillStart); what
+       has no place on the paper (the other party, the value, the start day) is under its "Fill in the rest ›", which opens
+       the same form beside the paper (#pd-og.is-form), every owed box there */
+    if (id){ await page.click('#ig-dock .ds-nx [data-pd-ds-fill], #ig-dock [data-pd2-card] [data-pd-ds-fill]').catch(() => {});
+      await waitFor(page, () => !!document.querySelector('#ig-dock [data-pd2-fp-form], #pd-og.is-form'), 6000);
+      await page.click('#ig-dock [data-pd2-fp-form]', { timeout: 3000 }).catch(() => {});
       await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og.is-form')), 6000); }
     for (let i = 0; i < 16 && id; i++) {
       const next = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved) [data-blankf], #pd-og tr.pd-og-row:not(.is-saved) [data-kt]:not([type="checkbox"])')]
@@ -132,7 +144,7 @@ const WATCH = () => { window._walk = {}; const tick = () => {
         .find(x => (x.offsetParent || x.type === 'date') && !x.disabled && !String(x.value || '').trim() && x.tagName !== 'SELECT');
         return b ? (b.getAttribute('data-kt') ? '[data-kt="' + b.getAttribute('data-kt') + '"]' : '[data-blankf="' + b.getAttribute('data-blankf') + '"]') : null; });
       if (!next || !(await page.evaluate(x => detailsOf(getContract(x)).left, id))) break;
-      const sel = '#pd-og ' + next;
+      const sel = '#pd-og ' + next; console.log('DBGSEL', sel, await page.$eval(sel, el => [el.tagName, el.type, !!el.offsetParent]).catch(e => String(e).slice(0, 80)));
       const type = await page.$eval(sel, el => el.type).catch(() => '');
       if (type === 'date') await page.$eval(sel, el => { el.value = '2026-11-02'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
       else { await page.click(sel); await page.keyboard.type(/value/.test(next) ? '240000' : /counterparty/.test(next) ? 'Parcelway ApS' : 'Nairobi', { delay: 5 }); }
@@ -142,8 +154,19 @@ const WATCH = () => { window._walk = {}; const tick = () => {
       await pause(300);
     }
     /* then the one Save, back to the Dossier */
-    if (id) await page.click('#ig-dock [data-pd-fm-save]').catch(() => {});
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the form stands in THE MIDDLE where the paper was
+       (pd2FormMidOpen), its one Save at its own foot ([data-pd-mid] [data-pd-fm-save]) */
+    if (id) await page.click('[data-pd-mid] [data-pd-fm-save], #ig-dock [data-pd-fm-save]', { timeout: 4000 }).catch(() => {});
     const filled = id ? await waitFor(page, i => !detailsOf(getContract(i)).left, 5000, id) : false;
+    /* RE-POINTED 17 Nov 2026 (#762): the Save hands back to the paper still filling in its own spaces (the signature
+       lines, pd2FillStart); the signers are named at signing (stage 5), so the reader stops filling in (Stop,
+       data-pd2-fill-discard) and the paper's line, with its Share, is back */
+    if (id && await page.$('[data-pd2-fill-discard]')) {
+      await page.waitForTimeout(400);
+      await page.click('[data-pd2-fill-discard]', { timeout: 4000 }).catch(() => {});
+      await page.evaluate(() => { const ok = document.querySelector('#confirm-overlay #cf-ok'); if (ok) ok.click(); });
+      await waitFor(page, () => !document.querySelector('[data-pd2-fill-discard]') && !!document.querySelector('#ig-strip #ws-share'), 5000);
+    }
     check('2 every owed box is filled in beside the paper, nothing owed after', left0 > 0 && filled && await page.evaluate(() => state.view === 'dashboard'),
       JSON.stringify({ before: left0, open: id && await page.evaluate(i => detailsOf(getContract(i)).items.filter(x => x.open).map(x => x.key), id),
         boxes: await page.evaluate(() => [...document.querySelectorAll('#pd-og [data-kt], #pd-og [data-blankf]')].map(b => (b.getAttribute('data-kt') || b.getAttribute('data-blankf')) + ':' + b.tagName + ':' + (b.type || '') + ':' + String(b.value || '').slice(0, 12) + (b.offsetParent ? '' : ':hidden'))) }));
@@ -214,10 +237,13 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     }
     /* pressable, and nothing on the one list before a signature holds it */
     const ready = face ? await waitFor(page, i => { const b = document.getElementById('sign-btn');
-      return !!b && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && signBlockers(getContract(i)).length === 0; }, 8000, id) : false;
+      return !!b && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && signBlockers(getContract(i)).length === 0
+        /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the foot's #sign-btn is folded away under the five
+           parts; the face's own Sign (the clear card's [data-pd2-sign], which presses the same #sign-btn) is the door */
+        && !!document.querySelector('#pd-signface [data-pd2-sign]') && !!document.querySelector('#pd-signface [data-pd2-sign]').offsetParent; }, 8000, id) : false;
     let stored = 0;
     if (ready) {
-      await page.click('#sign-btn');
+      await page.click('#pd-signface [data-pd2-sign]');
       const pad = await waitFor(page, () => !!document.getElementById('sig-intent'), 6000);
       if (pad) {
         await page.click('[data-sig-tab="type"]').catch(() => {}); await page.fill('#sig-typed', 'Amina Otieno').catch(() => {});
@@ -293,7 +319,7 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     check('7c the Negotiate page\'s own paper was never drawn', !frames.some(k => /\+negpage/.test(k)), JSON.stringify(frames));
     check('7d no page errors on the way', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
-    check('the walk completed', false, e.message);
+    check('the walk completed', false, e.message + ' DBGSTACK ' + String(e.stack).split('\n').slice(0, 6).join(' | '));
   } finally {
     await browser.close();
     await h.stop();

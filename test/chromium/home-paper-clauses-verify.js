@@ -118,6 +118,11 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     ok('3b the symbols are the artifact\'s marks, the Dossier ▦ (his face is the Jambo tab\'s)', tabs.map(t => t.g).join('') === '▦▢⇄', tabs.map(t => t.g).join(' '));
 
     /* ===== 4. WHITE, UNDER THE GREETING ROW ===== */
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Clauses tab plays THE READ quickly over the paper
+       (pd2WalkWithRead), and while it walks the paper's strip steps aside (#ig-page.is-pd2-walk); a quick read closes itself
+       at its end — the line is measured once the read has ended (bounded; a read that never ends leaves the strip at 0) */
+    await page.waitForFunction(() => !document.querySelector('#ig-page.is-pd2-walk'), null, { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(300);
     const lay = await page.evaluate(() => { const R = e => e.getBoundingClientRect();
       const d = document.getElementById('ig-dock'), s = document.getElementById('ig-strip'), hd = document.querySelector('#ig-dock > .igd-head');
       return { bg: getComputedStyle(d).backgroundColor, before: getComputedStyle(d, '::before').content, top: Math.round(R(d).top), strip: Math.round(R(s).top),

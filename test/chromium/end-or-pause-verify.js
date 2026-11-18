@@ -61,12 +61,21 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
         await page.evaluate(x => { pdOpenOnHome(x, 'menu'); }, id);
         if (await until(page, x => (pdContract() || {}).id === x && !!document.querySelector('.pd-menu #ws-filing'), id, 3000)) break;
       }
-      /* the row's group is folded until its heading is pressed, as a reader would */
-      await page.evaluate(() => { const d = (document.querySelector('.pd-menu #ws-end') || document.querySelector('.pd-menu #ws-advice') || { closest: () => null }).closest('details');
-        if (d && !d.open) d.querySelector('summary').click(); });
-      return page.evaluate(() => ({ end: !!document.querySelector('.pd-menu #ws-end'),
-        archive: !!document.querySelector('.pd-menu #ws-archive'), hold: !!document.querySelector('.pd-menu #ws-hold') }));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the room's menu rows stay folded and unseen; a
+         reader reaches them through More on the paper's line (#ig-actions → #pd-acts-pop), whose last row "All acts"
+         shows every row. Asked of that pop-up, as a reader presses it. */
+      await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); });
+      await until(page, () => !!document.querySelector('#ig-actions'), null, 4000);
+      await page.click('#ig-actions').catch(() => {});
+      await until(page, () => !!document.querySelector('#pd-acts-pop'), null, 3000);
+      if (await page.$('#pd-acts-pop [data-pd-acts-every]')) {
+        await page.click('#pd-acts-pop [data-pd-acts-every]').catch(() => {});
+        await until(page, () => !document.querySelector('#pd-acts-pop [data-pd-acts-every]'), null, 3000);
+      }
+      return page.evaluate(() => ({ end: !!document.querySelector('#pd-acts-pop [data-pd-acts-go="#ws-end"]'),
+        archive: !!document.querySelector('#pd-acts-pop [data-pd-acts-go="#ws-archive"]'), hold: !!document.querySelector('#pd-acts-pop [data-pd-acts-go="#ws-hold"]') }));
     };
+    const END_ROW = '#pd-acts-pop [data-pd-acts-go="#ws-end"]';
     const dlg = () => page.evaluate(() => {
       const o = document.getElementById('end-overlay'); if (!o) return null;
       const go = o.querySelector('#end-go');
@@ -79,7 +88,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     ok('1 the paper\'s menu carries End or pause, and no Archive or Hold rows', m1.end && !m1.archive && !m1.hold, JSON.stringify(m1));
 
     /* ===== 2. THE QUESTION ===== */
-    if (m1.end) await page.click('.pd-menu #ws-end');
+    if (m1.end) await page.click(END_ROW);
     const opened = await until(page, () => !!document.getElementById('end-overlay'));
     const d2 = opened ? await dlg() : null;
     ok('2a it asks what is happening with the deal, three answers', !!d2 && d2.q === 'What is happening with this deal?' && d2.answers.map(a => a.k).join() === 'decline,archive,hold', JSON.stringify(d2));
@@ -108,7 +117,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     /* ===== 4. HOLD: A REASON FIRST; HELD, RELEASE IS ITS OWN ROW ===== */
     await page.evaluate(() => { const c = getContract('MK-B2'); return contractSetArchived(c, false); });
     await menuOf('MK-B2');
-    await page.click('.pd-menu #ws-end').catch(() => {});
+    await page.click(END_ROW).catch(() => {});
     await until(page, () => !!document.getElementById('end-overlay'));
     await page.click('#end-overlay [data-end="hold"]').catch(() => {});
     const d4 = await dlg();
@@ -121,7 +130,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     ok('4c it is on hold, with its reason', held, await page.evaluate(() => JSON.stringify((getContract('MK-B2') || {}).hold || null)));
     const m4 = await menuOf('MK-B2');
     ok('4d held, the menu offers Release as its own row', m4.hold, JSON.stringify(m4));
-    await page.click('.pd-menu #ws-end').catch(() => {});
+    await page.click(END_ROW).catch(() => {});
     await until(page, () => !!document.getElementById('end-overlay'));
     const d4e = await dlg();
     const holdA = d4e && d4e.answers.find(a => a.k === 'hold');
@@ -130,7 +139,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
 
     /* ===== 5. SIGNED PAPER: DECLINE IS GREY WITH THE ACT'S OWN REASON ===== */
     await menuOf('MK-A1');
-    await page.click('.pd-menu #ws-end').catch(() => {});
+    await page.click(END_ROW).catch(() => {});
     await until(page, () => !!document.getElementById('end-overlay'));
     const d5 = await dlg();
     const dec = d5 && d5.answers.find(a => a.k === 'decline');

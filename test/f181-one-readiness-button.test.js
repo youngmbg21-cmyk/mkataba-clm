@@ -177,8 +177,11 @@ describe('F181 — the header carries Ready to sign, beside Compare wording', ()
       'and it did not come back wearing the class the old loose button had');
     const menu = v.$('#pt-more-menu');
     assert.ok(!menu || !menu.contains(btn), 'it is no longer hidden in an overflow menu (the page has none since 29 Sep 2026)');
-    const row2 = v.$('.pw-id-row2');
-    assert.ok(row2 && row2.contains(btn), 'it sits on the control row, beside the text size');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): their page (round 8, as drawn) keeps the reading tools,
+       Focus with them, in More's pop-up on the control row; More is the control row's own button */
+    const tools = v.$('#pol-pop .pol-pop-tools');
+    assert.ok(tools && tools.contains(btn), 'it sits with the reading tools, behind More');
+    assert.ok(v.$('.pw-id-row2 #pol-more'), 'and More is on the control row');
     const row = v.$('.pw-id');
     assert.ok(!(row && [...row.children].some(el => el.id === 'pt-focus')),
       'nothing loose in the identity row, which is what 12 Aug was actually about');

@@ -138,6 +138,11 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
 
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1600);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; its
+       one table (#reg-tbody) is the All tab */
+    /* the new look's Contracts place opens on its Folders: the List pill shows the one table (#762) */
+    if (await page.$('[data-ctf-show="list"]')) { await page.click('[data-ctf-show="list"]').catch(() => {}); await page.waitForTimeout(600); }
+    if (await page.$('[data-ctf-tab="all"]')) { await page.click('[data-ctf-tab="all"]').catch(() => {}); await page.waitForTimeout(800); }
     const row = await page.evaluate(id => {
       const tr = [...document.querySelectorAll('#reg-tbody tr')].find(r => r.textContent.includes(id));
       if (!tr) return null;
@@ -145,7 +150,8 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
          and a word (.reg-stg) rather than a filled chip. The claim is
          unchanged: the CELL says the short form, the hover says the sentence. */
       /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the stage word rides the grey line (.reg-stg-w), its sentence on its hover */
-      const chip = tr.querySelector('.reg-stg-w[title]') || tr.querySelector('.reg-stg[title]') || tr.querySelector('.badge[title]');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's list says the stage in its own Standing column (.reg-standing) */
+      const chip = tr.querySelector('.reg-standing[title]') || tr.querySelector('.reg-standing [title]') || tr.querySelector('.reg-stg-w[title]') || tr.querySelector('.reg-stg[title]') || tr.querySelector('.badge[title]');
       return { text: tr.textContent, title: chip && chip.getAttribute('title') };
     }, cid);
     check('the register row says the SHORT form — a column has no room for a sentence',
@@ -236,12 +242,14 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
 
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's rows are the one desk's
        (.nd-pan .nd-r); the ready-to-sign row is still green (nd-good) and flashes once (nd-news) */
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's bell (ndBellNlHtml) draws the one desk's rows as .ndb-r with no
+       .nd-pan around them; a row is read by its data-nd-row, its green and flash by the same classes */
     await page.evaluate(() => { document.getElementById('hdr-notify').click(); { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); } });
     await page.waitForTimeout(900);
     const opened = await page.evaluate(() => {
       const panel = document.getElementById('context-panel');
       const open = !!(panel && panel.classList.contains('open'));
-      const rows = panel ? [...panel.querySelectorAll('.nd-pan .nd-r')] : [];
+      const rows = panel ? [...panel.querySelectorAll('[data-nd-row]')] : [];
       const mine = rows.find(r => /ready to sign/i.test(r.innerText || ''));
       return { open, title: (document.getElementById('panel-title') || {}).textContent || '',
         hit: !!mine, good: !!(mine && mine.classList.contains('nd-good')),
@@ -275,7 +283,7 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
     await page.evaluate(() => { document.getElementById('hdr-notify').click(); { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); } });
     await page.waitForTimeout(800);
     const again = await page.evaluate(() => {
-      const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')]
+      const r = [...document.querySelectorAll('#context-panel [data-nd-row]')]
         .find(x => /ready to sign/i.test(x.innerText || ''));
       return r ? { good: r.classList.contains('nd-good'), news: r.classList.contains('nd-news'),
         anim: getComputedStyle(r).animationName } : null;
@@ -301,7 +309,7 @@ let REST_BG = null;    /* the resting count: --st-ruby-dot (RE-POINTED 9 Nov 202
     await page.waitForTimeout(900);
     const inPanel = await page.evaluate(() => {
       const panel = document.getElementById('context-panel');
-      const rows = panel ? [...panel.querySelectorAll('.nd-pan .nd-r')] : [];
+      const rows = panel ? [...panel.querySelectorAll('[data-nd-row]')] : [];
       const mine = rows.find(r => /ready to sign/i.test(r.innerText || ''));
       return { title: (document.getElementById('panel-title') || {}).textContent || '',
         hit: !!mine, doors: rows.length,

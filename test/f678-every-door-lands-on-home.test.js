@@ -332,7 +332,11 @@ describe('f678 (5) the census is the measure, and CI runs it', () => {
     assert.equal(pend, 0, 'no door waits on a later step');
     for (const name of ['Workspace door', 'Obligations row, double-click', 'Parties panel, Open party', 'approval row present'])
       assert.ok(src.includes(name), name);
-    const block = src.slice(src.indexOf("await door(A, 'Parties panel, Open party"), src.indexOf("await door(A, 'Parties panel, Open on Explorer"));
+    /* RE-POINTED 16 Nov 2026 (#762): the Explorer door after it was retired with the old panel — the block is this door's own
+       call, to the next door */
+    const at = src.indexOf("await door(A, 'Parties panel, Open party");
+    const next = src.indexOf('await door(', at + 10);
+    const block = src.slice(at, next > at ? next : undefined);
     assert.doesNotMatch(block, /pending:/);
   });
 });

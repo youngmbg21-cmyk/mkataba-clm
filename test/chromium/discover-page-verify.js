@@ -61,6 +61,9 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       /* 2 · the list of reads */
       if (list) await page.click(WAY);
       const up = list && await until(page, () => !!document.querySelector('#rd-page.dsn-page tr[data-dsn-run]') && !!document.getElementById('dsn-new'), null, 15000);
+      /* RE-POINTED 17 Nov 2026 (#762): what each read found is drawn once its answers have loaded — asked for, bounded (on GitHub
+         the first screen was read before the chips came) */
+      if (up) await until(page, () => !!document.querySelector('#rd-page tr[data-dsn-run] td:nth-child(5) .ls-chip'), null, 6000);
       const P = up ? await page.evaluate(() => ({ view: state.view, head: (document.querySelector('.rdn-head .ctf-h') || {}).innerText, rows: document.querySelectorAll('#rd-page tr[data-dsn-run]').length,
         filters: [...document.querySelectorAll('#rd-page select[data-dsn-f]')].map(x => x.getAttribute('data-dsn-f')), cols: [...document.querySelectorAll('#rd-page .dsn-table thead th')].map(t => t.textContent.trim()),
         found: [...document.querySelectorAll('#rd-page tr[data-dsn-run] td:nth-child(5) .ls-chip')].length, cost: /Jambo call/i.test(document.getElementById('rd-page').innerText) })) : {};

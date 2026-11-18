@@ -62,47 +62,59 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     await until(() => { const M = window.migState && migState(); return M && M.queue.length === 3 && !M.running; }, null, 60000);
     /* one of the three is reviewed, so Need review counts two of three */
     await page.evaluate(() => { const c = migContracts()[0]; c.migration.needsReview = false; renderMigration(); });
-    const rows = () => [...document.querySelectorAll('.mig-table tbody [data-row]')].map(r => r.getAttribute('data-row'));
-    const R0 = await page.evaluate(rows);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): with files in, Import is drawn as one
+       table (migNlRender): its tabs Need you · Read · All ([data-mign-tab]), five figures over the list, each a
+       press that shows its own files ([data-mign-fig], migNlFigsHtml), the table .mign-table, and Choose files
+       the head's black button (#mign-choose) — the drop strip stands only on the empty page. The promises stand:
+       a figure is a door whose number is the rows it shows; a tab is a tab (pressed again it stays), All brings
+       the whole list back with the foot counting it; Choose files still opens the chooser; the three screens. */
+    const ROWS = '.mign-table tbody tr[data-row]';
+    const rows = sel => [...document.querySelectorAll(sel)].map(r => r.getAttribute('data-row'));
+    await until(sel => document.querySelector(sel), ROWS, 8000);
+    const R0 = await page.evaluate(rows, ROWS);
 
     /* ---- 1 a figure is a door ---- */
     /* the run's own last paint lands after migState().running goes false (it
-       waits on the server first), so the figure is pressed BY NAME: a handle
-       taken now can be a button that paint has already replaced */
-    const TAB = k => `[data-lh-seat="migration"] [role="tab"][data-mig-show="${k}"]`;
-    const FOOT = '[data-lh-foot="migration"]';
-    const door = await page.$(TAB('check'));
-    if (door) await page.click(TAB('check'));
-    const R1 = await until(([sel, foot]) => { const b = document.querySelector(sel); if (!b || b.getAttribute('aria-selected') !== 'true') return null;
-      return { ids: [...document.querySelectorAll('.mig-table tbody [data-row]')].map(r => r.getAttribute('data-row')), note: (document.querySelector(foot) || {}).textContent || '' }; }, [TAB('check'), FOOT]);
+       waits on the server first), so the figure is pressed BY NAME */
+    const FIG = '[data-mign-fig="k:check"]';
+    const TAB = k => `.mign-page [data-mign-tab="${k}"]`;
+    const FOOT = '.mign-page .apn-foot';
+    const door = await page.$(FIG);
+    if (door) await page.click(FIG);
+    const R1 = await until(([sel, rs]) => { const b = document.querySelector(sel); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
+      return { ids: [...document.querySelectorAll(rs)].map(r => r.getAttribute('data-row')), n: Number((b.querySelector('b') || {}).textContent) }; }, [FIG, ROWS]);
     const want = await page.evaluate(() => migContracts().filter(c => c.migration.needsReview).map(c => c.id).sort());
-    check('1 To check narrows the list to the ones it counts, and the foot says how many of how many', !!R1 && JSON.stringify(R1.ids.slice().sort()) === JSON.stringify(want) && /^1–2 of 2$/.test(R1.note.trim()),
+    check('1 To check narrows the list to the ones it counts, and the figure\'s number is the rows it shows', !!R1 && JSON.stringify(R1.ids.slice().sort()) === JSON.stringify(want) && R1.n === want.length,
       JSON.stringify({ R0, R1, want }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'import-sap-way-1440x780.png') });
 
-    /* ---- 2 the lit tab pressed again stays; All brings the whole list back ---- */
-    if (door) await page.click(TAB('check'));
-    const stay = await page.evaluate(sel => { const b = document.querySelector(sel); return !!b && b.getAttribute('aria-selected') === 'true' && document.querySelectorAll('.mig-table tbody [data-row]').length; }, TAB('check'));
-    check('2a the lit tab pressed again stays where it is (a tab, not a toggle)', stay === want.length, String(stay));
+    /* ---- 2 a tab pressed again stays; All brings the whole list back ---- */
+    if (await page.$(TAB('need'))) await page.click(TAB('need'));
+    await until(sel => { const b = document.querySelector(sel); return b && b.classList.contains('is-on'); }, TAB('need'));
+    const needN = await page.evaluate(rs => document.querySelectorAll(rs).length, ROWS);
+    if (await page.$(TAB('need'))) await page.click(TAB('need'));
+    await page.waitForTimeout(300);
+    const stay = await page.evaluate(([sel, rs]) => { const b = document.querySelector(sel); return !!b && b.classList.contains('is-on') && document.querySelectorAll(rs).length; }, [TAB('need'), ROWS]);
+    check('2a the lit tab pressed again stays where it is (a tab, not a toggle)', stay === want.length && stay === needN, String(stay));
     if (await page.$(TAB('all'))) await page.click(TAB('all'));
-    const R2 = await until(([n, foot]) => { const ids = [...document.querySelectorAll('.mig-table tbody [data-row]')].map(r => r.getAttribute('data-row'));
-      return ids.length === n && ((document.querySelector(foot) || {}).textContent || '').trim() === `1–${n} of ${n}` ? ids : null; }, [R0.length, FOOT]);
+    const R2 = await until(([n, foot, rs]) => { const ids = [...document.querySelectorAll(rs)].map(r => r.getAttribute('data-row'));
+      return ids.length === n && ((document.querySelector(foot + ' span') || {}).textContent || '').trim() === `${n} files` ? ids : null; }, [R0.length, FOOT, ROWS]);
     check('2b All brings the whole list back', !!R2, JSON.stringify(R2));
 
-    /* ---- 3 the strip ---- */
-    const D = await page.evaluate(() => { const d = document.getElementById('mig-drop'); const r = d && d.getBoundingClientRect(); const b = d && d.querySelector('.ui-btn');
-      return d ? { h: Math.round(r.height), btn: b ? b.textContent.trim() : '', btnAtEnd: !!b && r.right - b.getBoundingClientRect().right < 40 } : null; });
-    const chooser = await Promise.race([page.waitForEvent('filechooser', { timeout: 4000 }).then(() => true).catch(() => false), page.click('#mig-drop').then(() => new Promise(r => setTimeout(() => r(null), 4500)))]);
-    check('3 the drop area is one strip, Choose files at its end, and a press still opens the chooser', !!D && D.h <= 90 && D.btn === 'Choose files' && D.btnAtEnd && chooser === true, JSON.stringify({ D, chooser }));
+    /* ---- 3 Choose files ---- */
+    const D = await page.evaluate(() => { const b = document.getElementById('mign-choose'), hd = b && b.closest('.cun-head');
+      return b ? { btn: b.textContent.trim(), btnAtEnd: !!hd && hd.getBoundingClientRect().right - b.getBoundingClientRect().right < 40 } : null; });
+    const chooser = await Promise.race([page.waitForEvent('filechooser', { timeout: 4000 }).then(() => true).catch(() => false), page.click('#mign-choose').then(() => new Promise(r => setTimeout(() => r(null), 4500)))]);
+    check('3 Choose files stands at the head\'s end, and a press still opens the chooser', !!D && D.btn === 'Choose files' && D.btnAtEnd && chooser === true, JSON.stringify({ D, chooser }));
 
     /* ---- 4 the owner's three screens ---- */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       await page.evaluate(() => { const c = document.getElementById('content-scroll') || document.scrollingElement; c.scrollTop = 0; });
       const F = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-        const k = r('[data-lh-seat="migration"] [role="tablist"]'), d = r('#mig-drop');
-        return { tabs: !!k && k.top >= 0 && k.bottom <= innerHeight, strip: !!d && d.bottom <= innerHeight, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
-      check(`4 ${w}×${ht}: the tab row and the strip in view, nothing sideways`, F.tabs && F.strip && F.side, JSON.stringify(F));
+        const k = r('.mign-page .apn-bar'), d = r('#mign-choose');
+        return { tabs: !!k && k.top >= 0 && k.bottom <= innerHeight, strip: !!d && d.top >= 0 && d.bottom <= innerHeight, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
+      check(`4 ${w}×${ht}: the tab row and Choose files in view, nothing sideways`, F.tabs && F.strip && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `import-sap-way-${w}x${ht}.png`) });
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

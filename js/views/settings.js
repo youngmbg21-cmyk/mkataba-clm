@@ -489,6 +489,10 @@ function stWireDrawerOnce(){
       if(id && typeof landOn==='function') landOn(`[data-ap-row="${String(id).replace(/["\\]/g,'')}"][data-ap-kind="approval"]`,{ block:'nearest' });
       return; }
     const row=t.closest('[data-st-panel]');
+    /* A SETTINGS ANSWER PRESSED AWAY FROM SETTINGS (the one conversation follows you; #762): the finder's card goes to
+       Settings first, then opens there, as a Settings-born turn always did */
+    if(row && row.closest('.st-jb-cards') && !document.querySelector('.stn-page, #set-page') && typeof setView==='function'){
+      const k0=row.getAttribute('data-st-panel'); setView('team'); setTimeout(()=>{ try{ stDrawerOpen(k0); }catch(_){ /* the page is there */ } },0); return; }
     if(row){ const k=row.getAttribute('data-st-panel');
       /* a card's door (and its facts, and the ladder's) opens the panel as
          its page; Needs your attention and the sheet keep the drawer */
@@ -946,6 +950,9 @@ function stRepaintRow(key){
    out again on the next paint of the page. */
 function stSyncAttention(){
   stCrSync();
+  /* THE NEW LOOK'S ONE LIST AND ITS PANEL say the same as the record after a save (16 Nov 2026, #762: a saved name, a
+     stream that now names an admin, a mail key — each row and need went on saying what was) */
+  if(document.querySelector('.stn-page')) stnRepaintKept();
   const host=document.getElementById('st-att'); if(!host) return;
   const rows=stNeedsAll(), keep=new Set(rows.map(r=>r.key));
   [...host.querySelectorAll('.st-need[data-st-need]')].forEach(el=>{
@@ -1225,6 +1232,7 @@ function stNeedsAll(){
     out.push((r.sub||r.subHtml)?r:{ ...r, sub:seen?i18t('st_need_kind_clash_since',{ day:seen }):i18t('st_need_kind_clash') }); });
   /* the quarter's access review, until it is done (piece 8) */
   const arRow=stArNeedRow(); if(arRow) out.push(arRow);
+  /* (a change to a standard waiting for a yes is on Approvals & signing's second pile, owner 17 Nov 2026 — not here) */
   /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
   stKpNeedRows().forEach(r=>out.push(r));
   const unset=stCapUnset();
@@ -1814,6 +1822,15 @@ function stHeldOpen(id){
   /* the Dossier's All acts fold (the Menu tab folded into it, 20 Oct 2026), in Jambo's panel */
   const sel=`#ig-dock .pd-nx[data-pd-menu="${String(id).replace(/["\\]/g,'')}"] .pd-mn-rows #ws-hold`;
   if(typeof pdOpenOnHome==='function' && pdOpenOnHome(id,'copilot')!==false){
+    /* THE NEW LOOK: the paper's acts live in its More pop-up (pdActsToggle) — it opens there, on Release hold, lit,
+       pressing nothing (#762: the folded rows the old landing found are drawn hidden) */
+    if(typeof newLookOn==='function'&&newLookOn()&&typeof pdActsToggle==='function'){
+      const pop='#pd-acts-pop [data-pd-acts-go="#ws-hold"]';
+      if(typeof landOn==='function') landOn(()=>{ let r=document.querySelector(pop); if(r) return r;
+        /* the pop-up opens once the paper's line (its anchor) is drawn */
+        if(!document.getElementById('pd-acts-pop')&&document.getElementById('ig-actions')) try{ pdActsToggle(id); }catch(_){ /* not yet */ }
+        r=document.querySelector(pop); return r; },{ focus:false, block:'nearest', missing:i18t('st_swp_hold_missing') });
+      return; }
     if(typeof landOn==='function') landOn(()=>{ const r=document.querySelector(sel); if(r){ const d=r.closest('details'); if(d&&!d.open) d.open=true; } return r; },
       { focus:false, block:'center', missing:i18t('st_swp_hold_missing') });
     return; }
@@ -2198,7 +2215,9 @@ function stPushHtml(){
   const sw=(st==='on'||st==='off')?stSwHtml('push',st==='on',i18t('st_you_push_row')):'';
   return `<span data-st-push class="st-push">${sw}<span class="st-you-sub">${esc(typeof pushStateSaid==='function'?pushStateSaid(st):st)}</span></span>`;
 }
-function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); }); }
+function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); });
+  /* the new look's one list draws the row itself (stnYouHtml): repaint it when the answer lands */
+  if(document.querySelector('.stn-page')) stnRepaintKept(); }
 function stPushRefresh(){
   if(typeof pushState!=='function') return;
   pushState().then(st=>{ if(st!==_stPush){ _stPush=st; stPushPaint(); } }).catch(()=>{});
@@ -2290,7 +2309,8 @@ function stYouCardHtml(it){
     rows=stSrHtml(esc(i18t('st_you_chips')), `${stSwHtml('chips',chips,i18t('st_you_chips'))}${sub(esc(i18t('st_you_chips_box')))}`, '', 'is-sw')
       +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '')
       /* THE NEW LOOK (owner, 31 Oct 2026): an admin's own preview of the Legora way while it is built page by page */
-      +((typeof isAdmin==='function'&&isAdmin())?stSrHtml(esc(i18t('st_you_newlook')), `${stSwHtml('newlook',(typeof newLookOn==='function')&&newLookOn(),i18t('st_you_newlook'))}${sub(esc(i18t('st_you_newlook_sub')))}`, '', 'is-sw'):'');
+      /* the new look's switch is gone: it is on for everyone (owner, 16 Nov 2026) */
+      +'';
   } else if(it.key==='data'){
     rows=stSrHtml(esc(i18t('st_you_data_line')), sub(esc(i18t(apiOn?'st_you_data_kept':'st_you_data_sub'))), `<button type="button" class="ui-btn ui-btn-sm" data-st-mycopy>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_you_download'))}</button>`);
   } else if(it.key==='design'){
@@ -2432,10 +2452,6 @@ if(typeof document!=='undefined' && !window._stSheetWired){
     if((el=t.closest('[data-st-sw]'))){ const k=el.getAttribute('data-st-sw'), on=el.getAttribute('aria-checked')!=='true';
       el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
       if(k==='chips') stChipsSet(on);
-      if(k==='newlook') stNewLookSet(on);
-      /* the new look for people outside the company (round 8): the company's setting, an admin's, saved with the rest */
-      if(k==='outsidelook'){ state.settings=state.settings||{}; state.settings.outsideLook={ on };
-        Promise.resolve(typeof saveSettings==='function'?saveSettings():null).then(()=>{ window._outsideLook=on; if(typeof toast==='function') toast(i18t(on?'stn_out_on_t':'stn_out_off_t'),'ok'); }); }
       if(k==='push' && typeof pushToggle==='function'){ el.disabled=true;
         pushToggle(on).then(r=>{ _stPush=r.state; stPushPaint(); }); }
       return; }
@@ -2453,7 +2469,10 @@ if(typeof document!=='undefined' && !window._stSheetWired){
 function stYouGo(key, focusSel){
   const it=stYouItem(key); if(!it) return;
   if(settingsTab()!=='you' || _stPage){ _stTab='you'; _stPage=null; renderTeam(); }
-  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`);
+  /* the new look's one list has a ROW where the old look had a You card (16 Nov 2026, #762): land on it */
+  /* Jambo's points are kept with his agents in the new look (the house's Change points): their door lands on that row (#762) */
+  const STN_OF={ lang:'lang', who:'name', away:'away', safety:'twostep', told:'push', data:'mydata', work:'agents', points:'agents' };
+  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`)||(STN_OF[it.key]?document.querySelector(`#stn-main [data-stn-row="${STN_OF[it.key]}"]`):null);
   /* LAND ON IT (owner, 18 Oct 2026): a form that opens in its row lands on
      its box; otherwise on the card, its control readied (the one lander) */
   if(it.door){
@@ -2466,10 +2485,28 @@ function stYouGo(key, focusSel){
   const ctl=f&&f.matches&&f.matches('button,input,a')?null:'button:not([aria-pressed="true"]),button,input';
   if(card && typeof landOn==='function') landOn(card,{ block:'nearest', focus:ctl||false });
   if(f && !ctl) try{ f.focus({preventScroll:true}); }catch(_){}
+  /* THE NEW LOOK'S LIST IS DRAWN AGAIN A MOMENT AFTER IT OPENS (#762: the light went with the old row): the row is asked
+     for again, bounded, and the landing put on the one that stands */
+  const stn=STN_OF[it.key]; if(!stn||typeof landOn!=='function') return;
+  let n=0, pressed=false; const off=()=>{ pressed=true; };
+  document.addEventListener('pointerdown',off,{ once:true, capture:true });
+  let held=0;
+  const stop=()=>document.removeEventListener('pointerdown',off,{ capture:true });
+  const again=()=>{
+    /* never past the reader: a press, another page, or another landing ends it */
+    if(pressed||state.view!=='team'||settingsTab()!=='you'){ stop(); return; }
+    const other=document.querySelector('.is-landed:not([data-stn-row])'); if(other){ stop(); return; }
+    const row=document.querySelector(`#stn-main [data-stn-row="${stn}"]`);
+    if(row&&row.classList.contains('is-landed')){ if(++held>=4){ stop(); return; } }
+    else if(row){ held=0; landOn(row,{ block:'nearest', focus:ctl||false }); }
+    if(++n<24) setTimeout(again,60); else stop(); };
+  setTimeout(again,30);
 }
 /* a You card redrawn where it stands after its form wrote (THE SETTINGS PAGE
    HOLDS STILL); a form open in one of its rows is drawn open again */
 function stYouCardRepaint(key){
+  /* the new look draws no You cards: its one list says the saved value (16 Nov 2026, #762) */
+  if(document.querySelector('.stn-page')){ stnRepaintKept(); return; }
   const card=document.querySelector(`#set-page [data-st-you-card="${key}"]`); if(!card) return;
   /* the open form is carried across, as it stands — what the hand typed and
      what its wiring listens to stay where they were */
@@ -3189,9 +3226,25 @@ const stAdminsSaid=()=>stNamesSaid(stUsers().filter(u=>u.role==='admin'));
 /* FROM WHERE A RULE STOPPED SOMEBODY (piece 20): Settings opens with Jambo's
    ask card ready — the same card, the same tracked ask — its words naming
    what stopped them. Nothing is sent until they press Ask an admin. */
+/* THE NEW LOOK: Settings' Jambo is the list panel; an ask card is put in his one conversation there (the same card and
+   the same Send, stAskSend) — the old side feed is not drawn (16 Nov 2026, #762). True when it was put there. */
+function stAskCardNl(t){
+  if(typeof window!=='undefined'&&typeof window.newLookOn==='function'&&!window.newLookOn()) return false;
+  if(typeof jlTalkOpen!=='function'||typeof aiPush!=='function'||typeof renderAIFeed!=='function') return false;
+  if(!document.querySelector('.stn-page')){ if(typeof setView!=='function') return false; setView('team'); }
+  if(!document.querySelector('.stn-page')) return false;
+  jlTalkOpen();
+  aiPush('assistant',{ text:'', cards:`<div class="st-jb-turn" data-st-jb-turn="${t.id}">${stAskCardHtml(t.force.cards[0], t)}</div>`, free:true });
+  try{ const H=(typeof ai!=='undefined'&&ai&&Array.isArray(ai.history))?ai.history:[]; t._aiMsg=H[H.length-1]||null; }catch(_){ t._aiMsg=null; }
+  renderAIFeed();
+  const box=document.getElementById('st-ask-why-'+t.id)||document.getElementById('st-ask-what-'+t.id);
+  if(box) try{ box.focus({preventScroll:true}); }catch(_){ /* the card is there */ }
+  return true;
+}
 function stAskFrom(panel, words){
   const t={ id:++_stJbSeq, q:String(words||'').slice(0,200), force:{ say:'', cards:[{ k:'askadmin', panel }] } };
   stJbPush(t);
+  if(stAskCardNl(t)) return;
   _stSide='jambo';
   const feed=document.getElementById('st-jb-feed');
   if(feed && typeof state!=='undefined' && state.view==='team'){ stSideSet('jambo'); stJbTurnAdd(t); }
@@ -3231,7 +3284,9 @@ async function stAskSend(turnId, panel){
   const t=stJbLog().find(x=>String(x.id)===String(turnId)); if(!t) return;
   const why=String((document.getElementById('st-ask-why-'+turnId)||{}).value||'').trim();
   /* a question the reader wrote themselves (an ask begun from a door) */
-  const wbox=document.getElementById('st-ask-what-'+turnId);
+  /* the one conversation may stand in two places at once (the side panel and the list panel's talk): the box read is
+     the one the reader wrote in */
+  const wbox=[...document.querySelectorAll(`[id="st-ask-what-${turnId}"]`)].sort((a,b)=>String(b.value||'').trim().length-String(a.value||'').trim().length)[0]||null;
   if(wbox){ const w=String(wbox.value||'').trim();
     if(!w){ t.ask={ state:'err', error:i18t('st_ask_free_need') }; stJbTurnRepaint(t); return; }
     t.q=w; }
@@ -3241,6 +3296,12 @@ async function stAskSend(turnId, panel){
     toast(i18t('st_ask_toast',{who:stAdminsSaid()}),'ok');
     stAsksLoad();
   }catch(e){ t.ask={ state:'err', error:(e&&e.message)||'' }; }
+  /* the new look's card stands in the list panel's talk: written again in place */
+  if(t.force&&t.force.cards&&t.force.cards[0]){
+    const html=stAskCardHtml(t.force.cards[0], t);
+    /* the conversation keeps the card as it now stands, so a redraw does not bring the unsent one back */
+    if(t._aiMsg) t._aiMsg.cards=`<div class="st-jb-turn" data-st-jb-turn="${t.id}">${html}</div>`;
+    document.querySelectorAll(`.st-jb-turn[data-st-jb-turn="${t.id}"]`).forEach(here=>{ here.innerHTML=html; }); }
   stJbTurnRepaint(t);
 }
 /* ONE ASK, SENT FROM THE PLACE THE RULE STOOD IN THE WAY — the SAME record
@@ -3932,8 +3993,10 @@ function stAskGeneral(about){
   if(stIsAdmin()) return;
   const t={ id:++_stJbSeq, q:about==='role'?i18t('st_ask_role_words'):'', force:{ say:'', cards:[{ k:'askadmin', panel:about==='role'?'me:role':'', free:true }] } };
   stJbPush(t);
-  stSideSet('jambo');
-  stJbTurnAdd(t);
+  /* THE NEW LOOK: Settings' Jambo is the list panel; the ask is put in front of them there, the same card and the same
+     Send (stAskSend), drawn in his one conversation (16 Nov 2026, #762: the old side feed is not drawn, so the press
+     did nothing) */
+  if(!stAskCardNl(t)){ stSideSet('jambo'); stJbTurnAdd(t); }
   const box=document.getElementById('st-ask-what-'+t.id);
   if(box) try{ box.focus({preventScroll:true}); box.setSelectionRange(box.value.length,box.value.length); }catch(_){}
 }
@@ -4014,6 +4077,9 @@ const stReFileOn=u=>(typeof mayReFile==='function')
 /* THE EIGHTH GRANT'S READING, asked through the one predicate exactly as its
    two neighbours are, with the same literal fallback for a stage that has not
    loaded js/core.js. */
+/* WHO DECIDES ON OUR STANDARDS (17 Nov 2026), read through the one predicate (js/core.js) */
+const stStdDecOn=u=>(typeof window.mayDecideStandards==='function')
+  ? window.mayDecideStandards(u) : (u.role==='admin'||u.decideStandards===true);
 const stHoldOn=u=>(typeof mayHoldContract==='function')
   ? mayHoldContract(u) : (u.role==='admin'||u.holdContracts===true);
 /* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
@@ -4092,6 +4158,7 @@ function stPersonSays(u){
   if(u.newPaper === true) grants.push(say('st_sum_g_paper'));
   if(u.reFile === true) grants.push(say('st_sum_g_refile'));
   if(u.holdContracts === true) grants.push(say('st_sum_g_hold'));
+  if(u.decideStandards === true) grants.push(say('st_sum_g_std'));
   out.push(grants.length ? say('st_sum_grants', { list: grants.join(', ') }) : say('st_sum_no_grants'));
   return out;
 }
@@ -4656,7 +4723,9 @@ function stNewGrantRowsHtml(u){
     +row('legal',tick('tm-refile',stReFileOn(u),'st_refile_on','st_refile_off','st_refile_note'))
     +row('admin',note('st_refile_admin'))
     +row('legal',tick('tm-hold',stHoldOn(u),'st_hold_on','st_hold_off','st_hold_note'))
-    +row('admin',note('st_hold_admin'));
+    +row('admin',note('st_hold_admin'))
+    +row('legal',tick('tm-stddec',stStdDecOn(u),'st_stddec_on','st_stddec_off','st_stddec_note'))
+    +row('admin',note('st_stddec_admin'));
 }
 function stGrantRowsSync(role){
   document.querySelectorAll('#st-dbody [data-tm-for]').forEach(el=>{
@@ -4670,7 +4739,7 @@ function stGrantBox(id){
 /* A TICK SAYS WHICH WAY IT IS SET, AS IT IS PRESSED: the row's words were
    painted once, so "May not create new paper" stayed beside a ticked box */
 const ST_GRANT_WORDS={ 'tm-values':['st_values_on','st_values_off'], 'tm-paper':['st_paper_on','st_paper_off'],
-  'tm-refile':['st_refile_on','st_refile_off'], 'tm-hold':['st_hold_on','st_hold_off'] };
+  'tm-refile':['st_refile_on','st_refile_off'], 'tm-hold':['st_hold_on','st_hold_off'], 'tm-stddec':['st_stddec_on','st_stddec_off'] };
 function stGrantWordsWire(){
   Object.keys(ST_GRANT_WORDS).forEach(id=>{
     const b=document.getElementById(id); if(!b) return;
@@ -4945,6 +5014,15 @@ function settingsPersonDrawer(idOrNew){
         <span><span class="st-role-name">${esc(stHoldOn(u)?i18t('st_hold_on'):i18t('st_hold_off'))}</span>
         <span class="st-note">${esc(i18t('st_hold_note'))}</span></span>
       </label>`):''}
+      ${/* WHO DECIDES ON OUR STANDARDS (owner, 17 Nov 2026: "admins plus named people") — the hold's twin */''}
+      ${(!isNew && isAdmin() && !isMe && API_MODE() && u.role!=='viewer')?(
+        u.role==='admin'
+        ? `<p class="st-note" style="margin-top:10px">${esc(i18t('st_stddec_admin'))}</p>`
+        : `<label class="st-toggle" style="margin-top:10px">
+        <input id="tm-stddec" type="checkbox" ${stStdDecOn(u)?'checked':''}/>
+        <span><span class="st-role-name">${esc(stStdDecOn(u)?i18t('st_stddec_on'):i18t('st_stddec_off'))}</span>
+        <span class="st-note">${esc(i18t('st_stddec_note'))}</span></span>
+      </label>`):''}
       ${(isNew && isAdmin() && API_MODE())?stNewGrantRowsHtml(u):''}`)}
 
     ${sec(3,i18t('st_sec_folders'),
@@ -5119,12 +5197,13 @@ async function settingsSavePerson(existing){
     Object.assign(after, ovPatch.patch||{});
     if(API_MODE()) Object.assign(after, stBzNewGrants());
     /* the grants ticked on the form win over the role's; only rows shown */
-    const gv=stGrantBox('tm-values'), gp=stGrantBox('tm-paper'), gr=stGrantBox('tm-refile'), gh=stGrantBox('tm-hold');
+    const gv=stGrantBox('tm-values'), gp=stGrantBox('tm-paper'), gr=stGrantBox('tm-refile'), gh=stGrantBox('tm-hold'), gs=stGrantBox('tm-stddec');
     if(gv&&role!=='admin') after.canViewValues=!!gv.checked;
     if(role==='legal'){
       if(gp) after.newPaper=!!gp.checked;
       if(gr) after.reFile=!!gr.checked;
       if(gh) after.holdContracts=!!gh.checked;
+      if(gs) after.decideStandards=!!gs.checked;
     }
     if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
       try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
@@ -5184,6 +5263,9 @@ async function settingsSavePerson(existing){
   const holdBox=document.getElementById('tm-hold');
   const holdTo = holdBox ? !!holdBox.checked : null;
   const holdChanged = holdTo!==null && holdTo!==stHoldOn(target);
+  const stdBox=document.getElementById('tm-stddec');
+  const stdTo = stdBox ? !!stdBox.checked : null;
+  const stdChanged = stdTo!==null && stdTo!==stStdDecOn(target);
   if(valuesChanged && valuesTo===false){
     const ok=await confirmDialog({ title:i18t('st_hide_values_q',{who:target.name}),
       message:i18t('st_hide_values_msg'),
@@ -5198,6 +5280,7 @@ async function settingsSavePerson(existing){
     if(paperChanged) patch.newPaper=paperTo;
     if(reFileChanged) patch.reFile=reFileTo;
     if(holdChanged) patch.holdContracts=holdTo;
+    if(stdChanged) patch.decideStandards=stdTo;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
@@ -5215,6 +5298,7 @@ async function settingsSavePerson(existing){
     if(patch.newPaper!==undefined) body.newPaper=patch.newPaper;
     if(patch.reFile!==undefined) body.reFile=patch.reFile;
     if(patch.holdContracts!==undefined) body.holdContracts=patch.holdContracts;
+    if(patch.decideStandards!==undefined) body.decideStandards=patch.decideStandards;
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
@@ -5231,6 +5315,7 @@ async function settingsSavePerson(existing){
     if(paperChanged) target.newPaper=paperTo;
     if(reFileChanged) target.reFile=reFileTo;
     if(holdChanged) target.holdContracts=holdTo;
+    if(stdChanged) target.decideStandards=stdTo;
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;
@@ -8985,7 +9070,8 @@ function stPagePaint(admin){
      by scope), and "‹ Settings" on the page is the way back */
   const sub=(admin&&face==='company'&&_stPage)?_stPage:'';
   /* THE NEW LOOK (round 7, as drawn): one list of sentences; the pages inside Settings (People & roles, Streams…) stay as they are */
-  if(!_stPage && typeof stnOn==='function' && stnOn()){ stnPaint(admin); return; }
+  /* the new look's list takes a door's panel too (a person, a role…), consumed once as below (#762: it was never opened) */
+  if(!_stPage && typeof stnOn==='function' && stnOn()){ stnPaint(admin); if(admin && _stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); } return; }
   /* a docked drawer lives in the page: it is lifted out before the page is
      drawn again, and put back after (stDockPaint) — nothing typed is lost */
   { const dr=document.getElementById('st-drawer');
@@ -10112,7 +10198,7 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnListHtml,stnListPaint,stnRowsAll,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnListHtml,stnListPaint,stnRowsAll,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
@@ -10128,12 +10214,12 @@ function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && 
    last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
    the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
 const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg', outsidelook:'msg' };
-const STN_ICON={ name:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send', outsidelook:'building' };
+const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', awayfor:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', paydays:'money', push:'msg', mail:'msg' };
+const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', awayfor:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', paydays:'calendar', push:'megaphone', mail:'send' };
 let _stnArea='all';
-function stnAreaOf(id){ return STN_AREA_OF[id]||'you'; }
+function stnAreaOf(id){ return STN_AREA_OF[id]||STN_AREA_OF[String(id).replace(/\d+$/,'')]||'you'; }
 function stnRow(id, label, value, sub, act){
-  const ar=stnAreaOf(id), ic=(typeof icon==='function')?icon(STN_ICON[id]||'cog','w-4 h-4'):'';
+  const ar=stnAreaOf(id), ic=(typeof icon==='function')?icon(STN_ICON[id]||STN_ICON[String(id).replace(/\d+$/,'')]||'cog','w-4 h-4'):'';
   return { id, area:ar, html:`<div class="stn-row a-${ar}" id="stn-${id}" data-stn-row="${id}"><span class="stn-mark" aria-hidden="true">${ic}</span><div class="stn-t"><div class="stn-l">${esc(label)}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-v"><div class="stn-val">${value}</div></div><div class="stn-a">${act||''}</div></div>` };
 }
 const stnDoor=(attr,w)=>`<button type="button" class="ui-link stn-go" ${attr}>${esc(w)}</button>`;
@@ -10177,9 +10263,28 @@ function stnYouHtml(){
   const seg=`<span class="st-yseg stn-seg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===now?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>`;
   const ps=_stPush;
   const push=ps?esc(ps==='on'?i18t('stn_push_on'):(typeof pushStateSaid==='function'?pushStateSaid(ps):ps)):'';
-  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ if(st!==_stPush){ _stPush=st; if(document.querySelector('.stn-page')) stnPaint(stIsAdmin()); } }).catch(()=>{}); },0);
+  /* compared with what THIS row drew (nothing), not with _stPush: stPushRefresh may have stored the answer first and painted only the old row (16 Nov 2026, #762) */
+  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ _stPush=st; if(st&&document.querySelector('.stn-page')) stnRepaintKept(); }).catch(()=>{}); },0);
   const out=[stnRow('name', i18t('st_you_name_row'), esc(name), i18t('stn_name_sub'), stnDoor('data-st-panel="me:name"', i18t('st_you_change'))),
     stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg)];
+  /* YOUR EMAIL AND A COPY OF YOUR DATA keep their doors in the one list (16 Nov 2026, #762: the You cards that held
+     them are the old look's; nothing of yours is left without a way in) */
+  /* WHEN YOU'RE AWAY: who answers your approvals and reviews while you are out (never signing) — its drawer, me:away */
+  if(api){
+    /* the old away card's words, said on its row (#762): the stand-in named whole, the days with their weekday, that it
+       ends on its own and never covers signing; Change and End it now; and whom THIS person answers for */
+    const aw=state.away||{}, m=aw.mine, meF=stFirstOf(u.name)||u.email||'';
+    if(m) out.push(stnRow('away', i18t('st_you_away'), esc(stAwayState()),
+      i18t('st_aw_line',{ who:m.deputyName||'', from:stAwayWeekDay(m.from), to:stAwayWeekDay(m.to) })+' '+i18t('st_aw_sub',{ who:stFirstOf(m.deputyName)||m.deputyName||'', me:meF }),
+      stnDoor('data-st-panel="me:away"', i18t('st_aw_change'))+stnDoor('data-st-away-end=""', i18t('st_aw_end'))));
+    else out.push(stnRow('away', i18t('st_you_away'), esc(stAwayState()), i18t('st_aw_none_sub'), stnDoor('data-st-panel="me:away"', i18t('st_aw_set'))));
+    (Array.isArray(aw.covering)?aw.covering:[]).forEach((r,i)=>{ const on=r.from<=(aw.today||todayISO()); const w=on?stAwayWaiting(r):[]; const first=w[0]&&w[0].c;
+      const waits=w.length?' '+i18tn('st_aw_waits',w.length,{ n:w.length, what:i18t('st_aw_waits_what',{ party:(first&&(first.counterparty||first.name))||'' }) }):'';
+      out.push(stnRow('awayfor'+i, i18t(on?'st_aw_covering':'st_aw_covering_later',{ who:r.userName, from:stAwayWeekDay(r.from), to:stAwayWeekDay(r.to) }), '', i18t('st_aw_cover_what')+waits,
+        on?stnDoor(`data-st-away-open="${PB_ATTR((first&&first.id)||'')}"`, i18t('st_aw_open_it')):'')); });
+  }
+  if(api) out.splice(1, 0, stnRow('email', i18t('st_you_email_row'), esc(u.email||''), '', stnDoor('data-st-panel="me:email"', i18t('st_you_change'))));
+  out.push(stnRow('mydata', i18t('st_you_data_line'), '', i18t(api?'st_you_data_kept':'st_you_data_sub'), `<button type="button" class="ui-link stn-go" data-st-mycopy>${esc(i18t('st_you_download'))}</button>`));
   if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));
   if(api) out.push(stnRow('push', i18t('stn_push'), push?stnPushSaid(ps, push):esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):''));
   const ag=stnAgentsSaid();
@@ -10194,8 +10299,11 @@ function stnCompanyHtml(){
     stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change'))),
     stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change'))),
     stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update'))),
-    stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health'))),
-    stnRow('outsidelook', i18t('stn_out'), stnPill(esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), (state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'on':'off'), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')))];
+    /* PAYMENT TARGETS keep their row (#762: the Control Room's card that held the door is the old look's) — its own drawer */
+    stnRow('paydays', SET_PANELS.paydays.title(), stnStateText('paydays'), SET_PANELS.paydays.sub(), stnDoor('data-st-panel="paydays"', i18t('st_you_change'))),
+    stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health')))
+    /* the outside look's switch is gone: on for everyone (owner, 16 Nov 2026) */
+  ];
 }
 /* THE LIST: the rows grouped by area in STN_AREAS' order, each area under its own coloured head; a chosen chip shows
    one area. An area with no rows for this reader is not listed (a viewer has no Rules, no Money). */
@@ -10220,6 +10328,13 @@ function stnListHtml(admin){
 }
 /* a chip's press redraws the list alone: the title, the panel and the page stand */
 function stnListPaint(){ const m=document.getElementById('stn-main'); if(m) m.innerHTML=stnListHtml(stIsAdmin()); }
+/* the list and the panel written again, the list's place kept (a redraw keeps your place) */
+function stnRepaintKept(){
+  const m=document.getElementById('stn-main'); const top=m?m.scrollTop:0;
+  try{ stnListPaint(); }catch(_){ /* the list stays as drawn */ }
+  if(m) m.scrollTop=top;
+  try{ if(typeof stnPanelPaint==='function') stnPanelPaint(); }catch(_){ /* the panel stays as drawn */ }
+}
 const STN_NEED_KIND={ ask:'stn_nk_ask', backup:'stn_nk_rule', limits:'stn_nk_caps', invite:'stn_nk_people', access:'stn_nk_access' };
 function stnPanelHtml(admin){
   const E=esc;
@@ -10229,14 +10344,19 @@ function stnPanelHtml(admin){
      door (the need's own press attributes), Ask an admin a row (data-st-ask-head), what Jambo was taught a row
      (data-st-panel="lessons"). The same readings (stNeedsAll, _stLessons). The new look only. */
   if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
-    const needRows=needs.slice(0,5).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
+    /* EVERY NEED IS SAID, and each row's sentence whole (16 Nov 2026, #762: five of eight were drawn and the rest went
+       unsaid; a clash's sentence was cut to an ellipsis) — a cap is a fact, never a silent trim */
+    const needRows=needs.map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
       const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):''); const what=k==='panel'?(sub?stShortState(sub):r.text):r.text;
       /* a need with no kind of its own is named by what it is ("Quarterly access review · Q4 2026"), never the bare word "Setting" */
-      if(!(k==='panel'&&SET_PANELS[String(r.key).slice(6)])&&!STN_NEED_KIND[k]) return { mark:'alert', tone:'amber', t:what||lab, s:sub, attr:r.btn||'' };
-      return { mark:'alert', tone:'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'' }; });
+      if(!(k==='panel'&&SET_PANELS[String(r.key).slice(6)])&&!STN_NEED_KIND[k]) return { mark:'alert', tone:r.dot==='red'?'red':'amber', t:what||lab, s:sub, attr:r.btn||'', wrap:true };
+      return { mark:'alert', tone:r.dot==='red'?'red':'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'', wrap:true }; });
     const groups=[];
     if(needRows.length) groups.push({ label:i18t('jov5_st_needs'), rows:needRows });
-    groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""' }] });
+    /* while you are away, Jambo says who answers for you, never your signing (the old side feed's words; #762) */
+    const awM=(state.away||{}).mine;
+    if(awM&&awM.deputyName) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
+    groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
     const L=_stLessons; const les=(L&&L.rows)||[];
     if(admin&&L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
     if(admin&&les.length) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(r=>'\u201c'+String(r.text||'')+'\u201d').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });

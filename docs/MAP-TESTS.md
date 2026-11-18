@@ -59,7 +59,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f455, take-it-in-turns-verify.
 
 ## FOLLOW ME — WALKING THROUGH IT TOGETHER
-- f456, f749, f1089 (asked before followed; the same clause by its heading — new, red at the parent), follow-me, paper-panel-as-drawn verify.
+- f456, f749, f1089 (asked before followed; the same clause by its heading; (5) a paper never negotiated walked by its own headings — new, red at the parent), follow-me, paper-panel-as-drawn verify.
 
 ## WHO IS IN THE ROOM — "ON THIS CONTRACT"
 - f454, who-is-in-the-room-verify 2f.
@@ -240,6 +240,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Answered beside the list (22 Oct 2026, Part 8 question 3 = A): f804 8b–8b4 (red at e10e3af6); jambos-list-panel-verify 10g re-pointed (answered in the panel, the draft form still a door).
 
 ## JAMBO'S PANELS — THE FIVE PARTS
+- FIVE MORE (18 Nov 2026): f1094-five-parts-on-five-more-panels (renumbered from f1091, which main also took) (new; 8 of 8 red at the parent) — the quoted row, Read down, a chosen request, a chosen duty and a renewal decision, a pressed flow-map place, Their paper, new look vs old, both books. f148's SAME_IN_BOTH gained jov5_fmp_t.
 - f1068-jambos-panels-five-parts (renumbered from f1062, which main also took; builder, shared readings, the ten round-1 panels new look vs old, Explorer's rows not chips, Import's drop door, both books). f1069-jambos-panels-round-two (renumbered from f1063) (week, avatar, crew; Calendar, Our paper, People, agents behind newLookOn; their own presses and colours; both books). f792 (4c) re-pointed for Calendar's new-look branch. f1070-jambos-panels-round-three-a (renumbered from f1064, which main also took; tag, ring, mid; the Board's tiles and doors, Contracts, Your day, Guide, Parties, Settings, Handbook, side Guide; no Ask me on the list; both books). f1067-jambos-panels-arrive-rarely (due: never/another day/5 hours; first paint plays and marks, a redraw does not; a still panel first marks its page, a tab change after does not play; Back, reload and less motion quiet; the rule written; transform and opacity only). f1066-jambos-panels-remaining-eight (the Redlines switch inside .rl-idx-top, Send all's card, the Ladder face, Their view's way back, Where we are / Deal / Clauses by their own presses, both notes rooms, words in both books). f1065-jambos-panels-contract-faces (the labelled stage line keeps the spine; each contract face's five parts by its own presses; the long black button; Before you send in the panel only; the clause list as drawn, name's text whole; words in both books, no key collision). Browser: dossier-one-card-verify, fill-on-the-paper-verify, obligations-renewal-legora-way-verify, prepare-redlines-verify, first-timer-rounds-verify (4j), jambo-behind-the-wall-verify, home-paper-clauses-verify read these faces. Also run: f728, f773 (Import), f791, f792 (Obligations' week), f804 (list panel), f806 (Negotiations), f807 (Approvals), f874, f880, f951 (Overview sizes), f745 (Board), f232, f48, f561, f937, f964, f965.
 
 ## THE LIST HEAD (js/views/listhead.js)
@@ -496,6 +497,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A colleague: f921, f562, send-to-a-colleague verify, a-pass-is-a-hand-off verify.
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
+- 17 Nov 2026: Our paper, Shelves then the Legora way — f1091; f1049 (8), f977 (20, 22, 23) and f1069 (2) re-pointed.
+- 17 Nov 2026: Our paper's folders as Cover flow — f1091 (2), (6) re-pointed, (7) added.
+- 17 Nov 2026: the paper at full size, Make it ours a door to New agreement — f1091 (8) added (red at the parent), (6) re-pointed; f1049 (2) and browser `paper-first-verify` 3 re-pointed. Run with f376, f334, f368, f937.
+- 18 Nov 2026: Folder Cards replace Cover flow — f1091 (2), (6), (7) re-pointed (red at the parent); browser round6-new-look-verify 7; Handbook recipe `.tpln5-fc`. Run with f937, f965.
 - f481 (view `playbook` = the standards tab)
 - f244, f907, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
 - f1071 (renumbered from f1057, which main also took; the Builder arrives in one step: no Our paper or page underneath on the way).
@@ -519,6 +524,16 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js)
 - f558.
+
+## STANDARDS — THE LADDER
+- f1091 (new; red at the parent: js/stdladder.js and the routes did not exist) — (1) firmness and the strictest book, the ladder off the clause, a draft cleaned, an approved change applied into copies (version, review, books in and out, the old readers' fields), a new standard; (2) propose / the proposer may not decide / Legal proposes, not decides / a colleague's waiting change said / another admin's yes applies / only the proposer withdraws; (3) once governed a settings save keeps the stored standards; (4) Jambo's route writes the ladder with AI_GOVERNANCE_RULE and the signed quotes; (5) page wiring and both books.
+- RE-POINTED 17 Nov 2026 (Our standards left Our paper): f390 5a, f481 (2), f760 5b, f705 1a, f841 2a, f920 (4), f1055 (1).
+- Platform: f561, f564, f842, f937 (chapter 2.5), f964, f965.
+- THREE PILES (17 Nov 2026): f1092 (new; red at the parent: no piles, no yes-note, no bell answers) — (1) the three groups in order under Mine, Nice never listed, a change only for who may decide it, one door each, head and tab count the piles, Settings' job row gone; (2) a yes's note optional, a no's required; (3) the bell's red/green, who hears what, nothing mailed; (4) THE WALL: a decision's note is in no share copy, history copy or status page. RE-POINTED: f387 5b, f466 (1)(3), f977 (4); f913 3b holds (the new kinds sit after 'request'). (5) who decides: `mayDecideStandards` both ways, the sign check and the lists ask it, the server tick an admin's (never self-service) and it opens the decide route. RE-POINTED f335 (8) (the admin-only list grew). Browser: photos only (Approvals at three screens, both note pop-ups, the bell, the tick on a person). ONE DOOR FOR A DEPARTURE (17 Nov 2026): f1092 (6) and the re-pointed (1) pin (red at the parent: Allow once and Refuse on the Standards page, no `apnLandRow`); standards-page-verify 2a/2b re-pointed (the card's link lands on that row, chosen).
+- SHOW LESS AND + N MORE IN THE POP-UP (18 Nov 2026): f1093 (3) (new; red at the parent: the fold was redrawn before it was remembered) — both presses reach either host and remember before drawing again.
+- ONE WINDOW, TWO PLACES (18 Nov 2026): f1093 (3) re-pointed (red at the parent: the pop-up placed its own notes) — `apnPeekNotes` asks `pd2NotesPaint(c,{zoom,cv})` and has no notes code of its own; the Dossier and the seat share `pd2NotesOnPaper` and `pd2SheetLay`; a seat strips every press and never touches the Dossier's tab, Fill in, read, highlight or dials; the note styles reach `.pd2-notes.is-peek`. RE-POINTED: f1037 (6) (the reading moved into `pd2NotesOnPaper`), f1009 (2) (the fold presses' selectors and styles name both hosts); standards-page-verify 2d finds the shared notes beside the sheet.
+- THE PAPER POP-UP, SECOND ROUND (18 Nov 2026): f1093 (2)(3) re-pointed and grown (red at the parent: no link on contract rows, the door went to the Redlines face, the paper drawn bare) — every contract row's link, `apnPeekRowOf`, the Dossier's wrapper cut into pages on `--desk-ground`, the door through the Cover; standards-page-verify 2g asks for the Cover.
+- CALLED THE PLAYBOOK, AND THE PAPER IN A POP-UP (18 Nov 2026): f1093 (new; red at the parent: the page said Standards, the card opened the paper, no `apnPeekOpen`) — (1) Playbook / positions in both books, the template meaning kept, the Handbook chapter, Jambo's words; (2) "See it in the paper ›" on departure rows only, writing nothing, the card's link gone; (3) the Dossier's paper and notes, buttons stripped, landed through `landOn`, Open the Dossier ›; (4) the server's sentences and SRV_MSG moved together. standards-page-verify 2c–2g (new: under the two buttons, departures only; big, paper with notes beside, landed and scrolled; nothing to press in the notes; Esc; Open the Dossier ›) and 1b/2a re-pointed. RE-POINTED for the new words: f244 (3), f245 (12), f291, f399 (6), f461, f523 (3)(4), f527, f687 (2), f761 (3)(4), f762 (2)(3), f800 (8), f863 (4), f967 (the pop-up's rules under html.lg-new), f1092 (1); browser: agents-do-the-work 3b, agents-page 10b, clause-editor, clauses-legora-way, copilot-panel-tidy 3a, counter-as-drawn, form-nextup 2c, inspector 1b, legora-lists C4, one-door-for-edits 2b, one-sheet-as-drawn 10b, our-paper-as-drawn 4a/8a, owed-first 2a/2b, playbook-opens-read, prepare-redlines 1c/2b, risks-in-the-redlines-card 1d, standards-beside-paper, templates-tabs.
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
 - f996 (3) (the other clause's ask: the review window's box, Prepare redlines files it as that clause's own draft).
@@ -707,7 +722,89 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 30 Oct 2026 (the nav panel's door): test/chromium/nav-panel-door-verify.js (new; red at unmodified main 1): #hdr-nav just left of the bell at the three screens, the same size; a press opens the Guide face, again closes; from Alerts it swaps to the Guide and the bell swaps back; aria-expanded follows the Guide.
 
 ## THE NEW LOOK — THE FRAME (round 1 of the Legora way, rebuilt page by page behind one switch)
-- `node --test test/f967-the-new-look-switch.test.js` — the switch: an admin's own, off by default, the server's wall; every new-look rule waits on `html.lg-new`.
+- `node --test test/f967-the-new-look-switch.test.js` — THE NEW LOOK IS THE ONLY LOOK (16 Nov 2026): on for anyone signed in, the outside look always on (both hosts), no switch drawn or handled; every new-look rule waits on `html.lg-new`. Re-pointed with it: f974 (5) (outsiders always see it), f1045 (1) (eleven settings rows).
+- WHOLE FILES RETIRED (17 Nov 2026, #762; every check in each pinned an old-look page the new look replaced on purpose, or the owner's 17 Nov rulings): test/chromium/checklist-as-drawn-verify.js (the old Dossier checklist), company-control-room-verify.js (the old Company board), customers-verify.js (the old Parties list; the new Parties page is driven by parties-nda-column and people-directory), discover-photos.js (photos of the old Discover beside the list), dossier-rows-verify.js (the old Still owed grid), fill-in-beside-the-paper-verify.js and fill-in-the-contract-verify.js (the old form beside the paper; filling in on the paper replaced it 11 Nov), inspector-checklist-verify.js (the old list panel's Needs you checklist), legora-lists-verify.js (the old shared list head), read-table-verify.js, reads-verify.js and reads-next-lands-on-read-verify.js (the old Reads table and its landing on Contracts; the new Discover replaced them, and a finished read now stays on Discover).
+- ALSO RETIRED WHOLE (17 Nov 2026, #762, owner's ruling 2): test/chromium/the-road-as-drawn-verify.js (the old road column under Before you sign; the five parts replaced it — the-road-verify now reads the five parts) and still-owed-sap-way-verify.js (the old Still owed grid).
+- THE NEW LOOK IS THE ONLY LOOK — BROWSER CHECKS RE-POINTED AND RETIRED (16 Nov 2026, #762): each re-pointed check carries a "RE-POINTED 16 Nov 2026 (#762)" comment; each retired one a "RETIRED 16 Nov 2026 (#762)" comment where it stood. Retired (old look only):
+  - adapt-filters-verify.js: section 2 and "+ Filter no longer offers it" (the new look's Contracts head draws no + Filter, lead's ruling) 
+  - auto-triage-verify.js: 11e (two old boxes agreeing; the new look has one brief page) 
+  - board-views-verify.js: 2b (the narrowed page's chip ×, old look only)
+  - brief-one-page-new-look-verify.js: 4 (the new look switched off opens the old side panel 
+  - buglog-fixes-nov6-verify.js: 3, 4 (both measured with the new look switched off)
+  - button-consistency-verify.js: 1c (the Contracts list's 
+  - calendar-agenda-verify.js: 2c the Agenda's foot count (the new look's Agenda draws no foot)
+  - clause-list-fixed-verify.js: 6b (the Needs you tab; the new look's Clauses draw no tabs) 
+  - clauses-legora-way-verify.js: 1 (head counts + tabs) and 1b (Worth a look tab) 
+  - compact-ladder-verify.js: 1b (filter bar chips), 1c/1d (a row's 
+  - contract-new-look-verify.js: 6 (with the switch off: the old Dossier 
+  - contracts-page-verify.js: 3c, 5a, 5b (+ Filter not drawn on the new look's head, lead's ruling); 14a
+  - control-room-in-full-verify.js: 2 (card facts), 2b (ladder card), 3c (Menu "logo"), 4b (old side chips) 
+  - counter-as-drawn-verify.js: 10d, 10g (the folded "Jambo" strip on Jambo's agents 
+  - counterparty-leads-verify.js: 3b, 3c2 (the lifted sheet and accent-tinted chosen row were the old New agreement sheet's; the new look's one sheet lies flat, rows wear their stream's tone) 
+  - counterparty-reading-and-more-verify.js: 1b (two geometry checks: deal verbs on the title's line, readings left of them 
+  - detail-round-verify.js: 1b and 2a (the Calendar's / Send screen's head "floats as a card": lift + 8px inset 
+  - discover-verify.js: stage 3's "Discover beside the list" (#ac-disc, 3a
+  - every-door-lands-on-home-verify.js: List row 
+  - four-decisions-verify.js: Q3 Dossier "Who else" row and the 44px door row (old Dossier list) 
+  - four-inspectors-verify.js: 1b weeks as groups, 1c0 "Outstanding does not list a held-back step" (round-16 arithmetic; the project list's Tracked is every open duty) 
+  - guide-panel-verify.js: 1b/2f (the "new" mark on the Guide tab, not drawn in the new look)
+  - handbook-verify.js: 2b's "Which one do I need?" table and chips (old part page) 
+  - import-as-drawn-verify.js: 5c (six facts in the panel: now the check view's), 5f (
+  - import-contracts-verify.js: none 
+  - import-jambo-panel-verify.js: 3b, 3c (row let go 
+  - import-sap-way-verify.js: none 
+  - jambo-chat-window-verify.js: 4a, 4c (the edge "Jambo" tab 
+  - jambo-slides-in-verify.js: "1 (setup) Jambo's agents carries the edge tab" and 1e "the edge tab steps away" (no edge tab in the new look); 1f now asks only that the minimise puts the panel away
+  - jambos-list-panel-verify.js: 2d's "What Jambo read" list, the "start a negotiation" chip in 1b, 5e "Since last look · Nothing changed" (said only on a change, 5i kept), 10a pill beside the party's name, 10i "· K live", 10j dots/
+  - jambos-panel-verify.js: 1e (old Still owed head's "all N"), 2a (old glance's owed-details grid #pd-og)
+  - keeps-your-place-verify.js: none 
+  - legora-look-verify.js: 11c (panel beside a list floats with a lift), 12f (panel beside a paper floats: 8px margin, 10px corners), 12g (the paper's half a white card at 10px) 
+  - letter-second-pass-verify.js: 1b ('the box runs the letter's width' 
+  - negotiate-new-look-verify.js: 10 (with the new-look switch off no notes beside the paper 
+  - new-look-frame-verify.js: 7 (switch off, nothing moved) 
+  - next-step-chips-verify.js: 1d (the edit chip's press 
+  - nine-off-five-images-verify.js: 4b "the bar shares its centre line with the expiry tick" 
+  - notes-match-clauses-verify.js: 8 (the switch off: no notes 
+  - obligation-opens-on-the-paper-verify.js: check 3 (the old look's narrowed page; no old look any more)
+  - one-sheet-verify.js: 1a
+  - our-paper-as-drawn-verify.js: the version pill and "updated <day> by <name>" in the head (not drawn); "It meets N of Our standards" sentence in Jambo's words (not on the Five panel) 
+  - overview-and-obligations-polish-verify.js: 4a "All first" on the Obligations page (new look has three pills Late · Tracked · Proposals, no All tab to order); 4b "All first" on the contract's Obligations tab (the old room tab .ob
+  - overview-tab-verify.js: 5 (Contracts: Discover above the list's facts 
+  - panel-alerts-and-head-verify.js: 'the head's word is the primary ink (B1)' 
+  - parties-sap-way-verify.js: 'Ended narrows to ended parties' (no Status tabs; standing is a column), 2b panel's Waiting begins with the column's item and 3b a waiting row's door (the drawn Five panel has no Waiting section)
+  - piles-as-drawn-verify.js: 2a ('Redlines N' head counts the rows 
+  - playbook-opens-read-verify.js: section 1's nine checks on the old side panel #playbook-section (arrives read, folds, fold per contract) 
+  - point-buttons-and-brief-verify.js: 6b ('no "The brief" label is left' 
+  - portal-header-verbs-verify.js: 'focus mode a button on the control row, not hidden in More' (outside look puts Focus under More by design) 
+  - private-streams-verify.js: 7d
+  - reading-desk-verify.js: 1
+  - register-category-verify.js: the six '+ Filter' Category-group checks (offered, lists the book's categories, 'No category yet' listed, on the one bar, Renewal not beside it, its label) 
+  - room-tabs-as-drawn-verify.js: 4a
+  - round5-new-look-verify.js: 8 (the switch off: Approvals/Obligations as before; no switch any more)
+  - round6-new-look-verify.js: 12 (the switch off: Contracts/Parties/Reads as before)
+  - round7-new-look-verify.js: 6 (the switch off: Negotiations/Settings/Guide as before)
+  - round7b-new-look-verify.js: 5 (the switch off: the house and the Handbook as before)
+  - round8-outside-verify.js: 1 (off: old sign-in / expired page) 
+  - round8-phone-verify.js: 1 (off: the phone as before)
+  - round8-their-page-verify.js: 1 (off: their page as before)
+  - round9-new-look-verify.js: 1 (off: no Read down, refused email's old box)
+  - see-it-while-you-type-verify.js: 1 ('the line's room is there before a word is typed' 
+  - settings-as-drawn-2-verify.js: 3a (Company board cards' doors), 5a/5b (member's sheet with contents list) 
+  - settings-as-drawn-3-verify.js: 1a (head card with tabs), 1f (member head card), 2a
+  - settings-as-drawn-4-verify.js: 1a
+  - settings-as-drawn-verify.js: 1a
+  - settings-groups-verify.js: 1a
+  - settings-tabs-verify.js: the You·Company tab checks (3), "the row behind it says the new name" (Company card fact)
+  - signer-row-as-drawn-verify.js: 4 ('Who else is on this agreement' right after the Signer line 
+  - stakes-verify.js: 3b,3c,3d,3k,3l (the Found by / Severity / Section filters and their dropdown 
+  - standards-beside-paper-verify.js: 6 (the new look switched off shows the old side panel 
+  - stop-and-reads-verify.js: 2a 'the spinning cells say not read yet' (no column cells on Contracts in the new look)
+  - the-brief-and-sap-history-verify.js: 3b (the facts' "Facts" label 
+  - the-middle-verify.js: 1f (the row marked while in the middle) and 4c (the line says "Showing in the middle") 
+  - their-page-legora-way-verify.js: 1 (grey tab track/white pill, row height), 2 (two floating cards, first line at 258), 5 (the foot box inside the change card) 
+  - their-side-verify.js: 2b (the colour key on their control row is not drawn on the outside look; Q6)
+  - week-by-week-verify.js: sections 1
+  - white-band-and-tabs-verify.js: 5c "the Settings tabs are drawn" and 6a
 - `node test/chromium/new-look-frame-verify.js` — the Page frame at the three screens: the panel square at the bar, side and foot behind one hairline; one-sheet pages edge to edge; card pages on the well 12 · 16; the box 44 and its 16; the line above the doors; the bar's order and "?"; one line to Jambo, green on hover; the Board joined; off = nothing moved; a non-admin refused.
 - `HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js` — the tidy sweep with the switch on (and without it, today's look).
 
@@ -810,5 +907,6 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - f1077 (renumbered from f1075, which main also took; panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
 - f1078 (renumbered from f1076, which main also took; every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.
 - f1079 (Company needs you lands on the exact job: `cnCompanyGo`, `stNeedGo`). Also run: f869, f1077.
+- THE NEW LOOK IS THE ONLY LOOK, re-pointed (16 Nov 2026): f180 (a verb in their More pop-up counts as reachable while More is on the page), f181 (4) and f439 (Focus with the reading tools behind More), f422 (7) (More on their control row, no key), f439 "a reason after every save" (their seat pins the change in their Notes drawer), f189 3 ("Dear Guliz,"), f307 (5)(6) ("Send"; "Send to Nordfrakt …"), f590 (1) 3 ("Not sent — see beside"), f713 (2) and f757 (1)(2)(3)(4) (the send screen's new-look words).
 - THE COVER FITS ANY SCREEN (16 Nov 2026): f1090 (test/f1090-the-cover-fits-any-screen.test.js; 3 of 3 red at the parent) — the paper A4-shaped and sized off the window, its words in container units, never a fixed 560px; the right column a set width with clamp() type and a scroller inside, never cut; the Contracts door (top right, → setView('register')) said in both books. Re-pointed: f1085 (4) (the Cover's grid rule now opens on --cv-pad). Photographed at 1280×640 (a ThinkPad at 150%), 1440×780, 1536×730, 1366×950 and 1920×1000: nothing spills, nothing scrolls sideways, the right column scrolls 0px.
-- NO PAGE FLASHES ROUND THE COVER (16 Nov 2026): f1091 (test/f1091-no-page-flashes-round-the-cover.test.js; red at the parent) — a Cover press has no timer between closing and its destination, the brief opens over it; pdCoverLand asks at once, veils the paper meanwhile, bounded. Measured frame by frame (every painted frame's middle element): Cover → Contracts was COVER → PAPER+dossier (~85ms) → CONTRACTS, now COVER → CONTRACTS; Contracts → a contract was CONTRACTS → PAPER (25–45ms) → COVER, now CONTRACTS → veil → COVER (or straight to COVER when the contract is already loaded).
+- NO PAGE FLASHES ROUND THE COVER (16 Nov 2026): f1095 (test/f1095-no-page-flashes-round-the-cover.test.js; red at the parent) — a Cover press has no timer between closing and its destination, the brief opens over it; pdCoverLand asks at once, veils the paper meanwhile, bounded. Measured frame by frame (every painted frame's middle element): Cover → Contracts was COVER → PAPER+dossier (~85ms) → CONTRACTS, now COVER → CONTRACTS; Contracts → a contract was CONTRACTS → PAPER (25–45ms) → COVER, now CONTRACTS → veil → COVER (or straight to COVER when the contract is already loaded).

@@ -345,7 +345,7 @@ function renderFolderListOnly(){
   wireFolderRows(); renderFolderSelBar();
 }
 
-Object.assign(window,{FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
+Object.assign(window,{ngnPlace,ngnPlacePut,FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
 /* ============================================================
    VIEW: REGISTER (global filterable / sortable table + bulk select)
    Client-side over the loaded working set, consistent with the folder
@@ -1148,10 +1148,16 @@ const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sig
    back as it was, or not at all; an unknown way of looking is the List
    (owner, 20 Oct 2026: "make the contracts landing page be on list as opposed
    to paper" — the place lands on the List until the reader picks Wall). */
-function regPlace(){ return { scope:regScope(), st:{ ...regState() } }; }
+/* the Contracts place's Folders-or-list choice rides the place too, so a refresh lands where the reader stood (#762) */
+function regPlace(){ return { scope:regScope(), st:{ ...regState() }, folders:(typeof _ctFolders==='boolean')?_ctFolders:true }; }
+/* Wall | List | Folders: whether the Contracts place stands on its folders, kept by Home's place too (#762: a refresh
+   with a paper open came back on Folders, not the Wall the reader chose) */
+function regFoldersNow(){ return (typeof _ctFolders==='boolean')?_ctFolders:true; }
+function regFoldersSet(b){ if(typeof b==='boolean') _ctFolders=b; }
 function regPlacePut(p){
   if(!p) return;
   regSetScope(p.scope);
+  if(typeof p.folders==='boolean') _ctFolders=p.folders;
   const s={ ...REG_STATE_DEF(), ...(p.st||{}) };
   const o=s.only;
   s.only=(o&&Array.isArray(o.ids)&&o.ids.length&&o.ids.every(x=>typeof x==='string'))
@@ -2237,7 +2243,11 @@ function regNlFootHtml(cs){
   const more=inF&&all>n?` · <button type="button" class="reg-nl-all" data-ctf-tab="all">${esc(i18t('reg_nl_show_all',{ n:all }))}</button>`:'';
   /* THE FOOT SAYS ONLY THE COUNT (owner, 9 Nov 2026: "Why do you need 2 columns?"): the sentence about the question
      column and Our standards is gone; how far a column is read is said in its ⋯ menu */
-  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span>`;
+  /* A CAP IS A FACT, NEVER A SILENT TRIM (16 Nov 2026, #762): the rows stop at a page (REG_PAGE), so the foot offers
+     the next ones, as the old foot did (lhFootHtml's Show N more, the same seat and press) */
+  const list=cs||[], shown=regMode()==='board'?n:Math.min(n, regCurPage(list)*REG_PAGE), k=Math.min(REG_PAGE, n-shown);
+  const next=k>0?` · <button type="button" class="ui-link lh-more" data-lh-more="${REG_CT_SEAT}">${esc(i18t('lh_more',{ n:k.toLocaleString(jxLocale()) }))}</button>`:'';
+  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}${next}</span>`;
 }
 /* the new look's foot is the count in its own row: as the list narrows, the row is written again whole */
 function regNlFootPut(cs){ const f=regNl()&&document.getElementById('reg-nl-showing'); if(f&&f.parentElement) f.parentElement.innerHTML=regNlFootHtml(cs); }
@@ -3155,7 +3165,9 @@ function regRowsHtml(cs){
       return listChipHtml(listStreamTone(c.folder),short).replace(/ title="[^"]*"/,` title="${esc(n)}"`); })()}</td>`;
     /* the Scorecard (10 Nov 2026) names what is missing on its hover, so the cell is one line (regStdMissHtml no longer drawn here) */
     CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}</td>`;
-    if(regNl()){ const st=regStageTone(c); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)">${esc((st.m&&st.m.label)||'')}</td>`; }
+    /* the SHORT word in the cell (a column has no room for a sentence), the whole sentence on its hover — the same
+       reading the old grey line used (regStageShortOf; #762) */
+    if(regNl()){ const st=regStageTone(c), sh=regStageShortOf(st.m); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)"${st.m&&sh&&sh.label!==st.m.label?` title="${esc(st.m.label)}"`:''}>${esc((sh&&sh.label)||'')}</td>`; }
     /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
        7: in Home's narrower column "· in 25 days" was cut on every screen) —
        the row is two lines already, so it costs no height; the hover says
@@ -3283,6 +3295,13 @@ function regNegoClauseChips(c){
   const chips=names.slice(0,3).map(n=>window.listChipHtml?listChipHtml('gray',n):esc(n)).join(' ');
   return chips+(names.length>3?` <span class="reg-cl-more">+${names.length-3}</span>`:'');
 }
+/* a stage's SHORT word, where it has one (ready to sign, handed over, signed there) — else the stage itself */
+function regStageShortOf(m){
+  if(!m) return m;
+  const W=window;
+  return (W.READY_META&&m===W.READY_META&&W.READY_META_SHORT)||(W.HANDOVER_META&&m===W.HANDOVER_META&&W.HANDOVER_META_SHORT)
+    ||(W.HANDOVER_SIGNED_META&&m===W.HANDOVER_SIGNED_META&&W.HANDOVER_SIGNED_META_SHORT)||m;
+}
 function regStageLineHtml(c){
   /* the new look's list says the stage in its own Standing column (round 6), not on the grey line */
   if(regNl()) return '';
@@ -3290,8 +3309,7 @@ function regStageLineHtml(c){
   const at=c&&(c._lastAuditAt||c.updatedAt||c.lastAction);
   const ago=at&&typeof window.rlAgoWords==='function'?rlAgoWords(at):'';
   /* the SHORT word, as the stage column's dot printed it (contractStatusDotHtml) */
-  const W=window, short=(W.READY_META&&m===W.READY_META&&W.READY_META_SHORT)||(W.HANDOVER_META&&m===W.HANDOVER_META&&W.HANDOVER_META_SHORT)
-    ||(W.HANDOVER_SIGNED_META&&m===W.HANDOVER_SIGNED_META&&W.HANDOVER_SIGNED_META_SHORT)||m;
+  const short=regStageShortOf(m);
   return ` · <span class="reg-stg-w" style="color:${m.tx}" title="${esc(m.label)}">${esc(short.label)}</span>${ago?` · ${esc(ago)}`:''}`;
 }
 
@@ -3798,7 +3816,8 @@ let _ctFolders = true;
 /* Jambo's panel follows the page's face (the folders' reading, or the list's) */
 function ctfDockAgain(){ if (typeof window.renderIntelDock === 'function') setTimeout(() => { try { renderIntelDock(); } catch (_){} }, 0); }
 const CTF_WORDS = { sign:'ctf_n_sign', approval:'ctf_n_approval', details:'ctf_n_details', review:'ctf_n_review', note:'ctf_n_note', suggest:'ctf_n_suggest', look:'ctf_n_look', refused:'ctf_n_refused', quiet:'ctf_n_quiet', join:'ctf_n_join' };
-function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }
+/* a door asking for a stage (regGoFiltered({stage})) shows that list, never the Folders with the stage out of sight (#762) */
+function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && !(R.stage && R.stage !== 'all') && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }
 function regFolderRead(cs){
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = cs.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
@@ -5268,7 +5287,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that
@@ -5276,6 +5295,10 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
    panel reads the chosen row: their asks, what is unsent, the desk, the doors (each an existing one) and one line
    from Jambo. Every reading is the list's own (negoLiveList, negWhoseMove, regNegoCols, regNegoLeadOf), RAW. */
 let _ngn = 'live', _ngnSel = null, _ngnQ = '', _ngnNone = false;
+/* A REFRESH LANDS AT THE SAME SPOT (#762): the Negotiations list keeps its tab, its chosen round and the box's words
+   (carried inside the Negotiate page's own place, rlPlace) */
+function ngnPlace(){ return { tab: _ngn, sel: _ngnSel, q: _ngnQ }; }
+function ngnPlacePut(p){ if (!p) return; if (typeof p.tab === 'string') _ngn = p.tab; if (p.sel != null) _ngnSel = p.sel; if (typeof p.q === 'string') _ngnQ = p.q; }
 function ngnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
 function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; } return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
 function ngnBook(){
@@ -5337,21 +5360,37 @@ function ngnRead(x){
   let lead = { name: '', short: '—' }; try { lead = regNegoLeadOf(c); } catch (_){ /* nobody named */ }
   return { c, b, round, move, open, sub, last: ngnWhen(lastAt), lastSub, lead, asks, prep, unsent, ap };
 }
-function ngnRowHtml(r, sel){
+function ngnRowHtml(r, sel, keys){
   const c = r.c, E = esc, ref = window.contractRef ? contractRef(c) : c.id;
   let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
   const line = [E(c.counterparty || ''), `<b class="ngn-ref">${E(ref)}</b>`, money && money !== '—' ? E(money) : '', r.b === 'settled' ? E(i18t('ngn_settled_w')) : ''].filter(Boolean).join(' · ');
   /* NAME THE CLAUSE (the harmony review, owner's yes 9 Nov 2026): an ask with no words of its own to quote says its
      clause's number and name in the row's own font, never an empty pair of quote marks */
   const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => q.q ? `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}` : `<span class="ngn-nm">${E([q.s, q.nm].filter(Boolean).join(' '))}</span>`).join(' · ')}` : `0 · ${E(r.open.say)}`;
-  const nm = r.lead.name ? (r.lead.mine ? ngnShortName(r.lead.name) : ngnShortName(r.lead.name)) : '—';
+  /* "You" on the reader's own deal, a colleague's short name on theirs; the whole name on its hover (#762: both branches
+     of this choice had become the short name) */
+  const nm = r.lead.name ? (r.lead.mine ? i18t('ng_you') : ngnShortName(r.lead.name)) : '—';
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
     + `<td>${listSapCellHtml(r.b === 'you' ? 'you' : r.b === 'them' ? 'them' : 'done', `<div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>`, r.move)}</td>`
-    + `<td class="ngn-rd">${E(r.round)}</td>`
-    + `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
-    + `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
-    + `<td>${r.lead.name ? `<span class="ngn-lead"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
-    + `<td><div class="ngn-last">${E(r.last || '—')}</div>${r.lastSub ? `<div class="cun-sub">${E(r.lastSub)}</div>` : ''}</td></tr>`;
+    + (keys || NGN_KEYS).map(k => k === 'round' ? `<td class="ngn-rd">${E(r.round)}</td>`
+      : k === 'move' ? `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
+      : k === 'asks' ? `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
+      : k === 'lead' ? `<td>${r.lead.name ? `<span class="ngn-lead" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
+      : k === 'last' ? `<td><div class="ngn-last">${E(r.last || '—')}</div>${r.lastSub ? `<div class="cun-sub">${E(r.lastSub)}</div>` : ''}</td>` : '<td></td>').join('') + '</tr>';
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
+   dragged widths carry over; the agreement, Whose move and What is open always stand, where the room is short Last
+   steps aside first, then Round and Lead */
+const NGN_KEYS = ['round', 'move', 'asks', 'lead', 'last'];
+function ngnCols(){
+  const W = { round: 72, move: 120, asks: 240, lead: 120, last: 110 }, R = { last: 2, round: 4, lead: 4 };
+  const T = { name: 'ngn_c_agreement', round: 'ngn_c_round', move: 'ngn_c_move', asks: 'ngn_c_asks', lead: 'ngn_c_lead', last: 'ngn_c_last' };
+  const DEFS = [{ k: 'name' }, ...NGN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols(REG_NEGO_SEAT, DEFS, () => ngnRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { keys: cols.slice(1).map(c => c.k),
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => `<th>${esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
 /* the page in Jambo's words, counted from the list: whose answers wait, who holds our paper */
 function ngnPageSay(rows){
@@ -5434,14 +5473,15 @@ function ngnRender(host){
   const live = B.n('live'), you = B.n('you');
   const facts = [i18tn('ngn_hf_live', live, { n: live }), you ? i18tn('ngn_hf_you', you, { n: you }) : ''].filter(Boolean).join(' · ');
   const tabs = [['live', i18t('ngn_tab_live'), live], ['you', i18t('ngn_tab_you'), you], ['them', i18t('ngn_tab_them'), B.n('them')], ['settled', i18t('ngn_tab_settled'), B.n('settled')]];
+  const C = ngnCols();
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ngn-page" data-ins-page="negotiations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="negotiations-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:26%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:24%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
-        <thead><tr><th>${esc(i18t('ngn_c_agreement'))}</th><th>${esc(i18t('ngn_c_round'))}</th><th>${esc(i18t('ngn_c_move'))}</th><th>${esc(i18t('ngn_c_asks'))}</th><th>${esc(i18t('ngn_c_lead'))}</th><th>${esc(i18t('ngn_c_last'))}</th></tr></thead>
-        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel))).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
+      <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
+        ${C.th}
+        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel), C.keys)).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
       <div class="apn-foot rdn-foot"><span>${esc(i18tn('ngn_foot', all.length, { n: all.length, live }))}</span><span></span></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const r = rows.find(x => String(x.c.id) === String(_ngnSel)) || null;

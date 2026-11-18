@@ -128,177 +128,86 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3000);
     await page.keyboard.press('Escape').catch(() => {});
 
-    const panelTitle = sel => page.evaluate(s => { const h2 = document.querySelector(s + ' h2'); return h2 ? h2.textContent.trim() : null; }, sel);
+    /* RE-POINTED 16 Nov 2026 (#762): a panel's title is its h2, or the five parts' headline (.jov5-title) */
+    const panelTitle = sel => page.evaluate(s => { const h2 = document.querySelector(s + ' h2, ' + s + ' .jov5-title'); return h2 ? h2.textContent.trim() : null; }, sel);
 
     /* ================= 1 · THE OBLIGATIONS PAGE ================= */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Obligations page is the PROJECT LIST (obnRender,
+       CLAUDE.md OBLIGATIONS): pills Late · Tracked · Proposals ([data-obn-tab]), ONE table (.obn-table), twenty a page,
+       a row press chooses and the panel follows, a double-click or Enter opens the duty on its contract's paper, the
+       Obligations face, that row open (obOpenContract → pd2ObGo). Each claim asked of its new place. */
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '1-obligations.png') });
-    const ob = await page.evaluate(() => ({
-      ins: !!document.querySelector('.obw-ins'),
-      rows: document.querySelectorAll('.ob-lt tbody [data-ins-row]').length,
-      groups: [...document.querySelectorAll('.ob-lt tr.ins-grp')].map(g => g.getAttribute('data-ob-week')),
-      order: ['overdue', 'w0', 'w1', 'w2', 'w3', 'w4', 'w5', 'later', 'nodate', 'waiting', 'done'],
-      head: (document.getElementById('page-head-facts') || {}).textContent || '',
-      title: (document.querySelector('#ins-panel h2') || {}).textContent || '',
-      word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '' }));
-    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): nothing is chosen on
-       arrival — Jambo's panel says "Your week" until a row is pressed */
-    /* RE-POINTED 19 Oct 2026 (lane A4, round 16 as drawn: All = Outstanding +
-       Waiting on a step + Completed): the held-back step is no longer an
-       Outstanding row, so the list holds one row fewer */
-    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
+    const ROWS = '.obn-table tbody tr[data-ins-row]';
+    const ob = await page.evaluate(R => ({
+      ins: !!document.querySelector('.obn-page #ins-panel, .obn-page ~ #ins-panel') || (!!document.querySelector('.obn-table') && !!document.getElementById('ins-panel')),
+      rows: document.querySelectorAll(R).length,
+      head: ((document.getElementById('page-head-facts') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      pills: Object.fromEntries([...document.querySelectorAll('[data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), (b.textContent.match(/\d+/) || [''])[0]])),
+      word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '' }), ROWS);
     ok('1a the page is a list and a panel, no word beside the tabs', ob.ins && ob.rows >= 7 && !ob.word, { rows: ob.rows, word: ob.word });
-    /* RE-POINTED 18 Oct 2026 (round 16, owner picked "Week by week"): the
-       page's groups are weeks now — Late, this week, next week, the later
-       weeks of six, Later, then No date, Waiting and Completed. */
-    ok('1b its groups are the weeks, in order',
-      ob.groups.length >= 5 && ob.groups.every((g, i) => i === 0 || ob.order.indexOf(g) > ob.order.indexOf(ob.groups[i - 1])), ob.groups);
-    /* RE-POINTED 19 Oct 2026 (lane A4): the held-back step is read on All,
-       since Outstanding no longer lists it (round 16's arithmetic) */
-    const outHasWait = await page.evaluate(() => /Pay on delivery to site/.test((document.querySelector('.obw-ins .ob-lt') || {}).textContent || ''));
-    ok('1c0 Outstanding does not list a step still waiting on an earlier one', !outHasWait);
-    await page.click('[data-obw-view="all"]').catch(() => {}); await page.waitForTimeout(500);
-    ok('1c a held-back step sits under Waiting on an earlier step, never under Overdue',
-      await page.evaluate(() => { const r = [...document.querySelectorAll('.ob-lt tbody tr')]; let w = '';
-        for (const t of r) { if (t.classList.contains('ins-grp')) w = t.getAttribute('data-ob-win'); else if (/Pay on delivery to site/.test(t.textContent)) return w === 'waiting'; }
-        return false; }));
-    await page.click('[data-obw-view="open"]').catch(() => {}); await page.waitForTimeout(500);
-    /* RE-POINTED 9 Oct 2026 (owner: "remove the we owe xxx place" so the head
-       is as tall as Approvals & signing's) — the money reads on the groups.
-       RE-POINTED AGAIN 18 Oct 2026 (lane A4, round 16 as drawn, the owner's
-       "build all the gaps"): the head says "N outstanding · N overdue", the
-       tabs' own counts; the money still reads on the weeks. */
-    ok('1d the head says what is outstanding and what is late, the tabs\' own counts', /^\d+ outstanding · \d+ overdue$/.test(ob.head.trim()), ob.head);
-    const rows = await page.$$('.ob-lt tbody [data-ins-row]');
+    /* RETIRED 16 Nov 2026 (#762): 1b "its groups are the weeks, in order" — old look only: the owner's project list
+       (Late · Tracked · Proposals, twenty a page) replaced the week-by-week groups */
+    /* RETIRED 16 Nov 2026 (#762): 1c0 "Outstanding does not list a step still waiting on an earlier one" — old look only
+       (round 16's arithmetic, All = Outstanding + Waiting + Completed): Tracked is every duty still open, the held-back
+       one too; that it is never called late is kept (1c) */
+    const tracked = await page.evaluate(R => [...document.querySelectorAll(R)].some(r => /Pay on delivery to site/.test(r.textContent)), ROWS);
+    await page.click('[data-obn-tab="late"]').catch(() => {}); await page.waitForTimeout(500);
+    const lateRows = await page.evaluate(R => [...document.querySelectorAll(R)].map(r => r.textContent.replace(/\s+/g, ' ')), ROWS);
+    ok('1c a held-back step is tracked, and never listed as Late', tracked && lateRows.length >= 1 && !lateRows.some(t => /Pay on delivery to site/.test(t)), { tracked, late: lateRows.length });
+    const door = await page.evaluate(() => (typeof obligationsDoorCount === 'function') ? obligationsDoorCount() : -1);
+    ok('1g the Late pill lists what the sidebar door counts', door >= 1 && lateRows.length === door, { door, late: lateRows.length });
+    await page.click('[data-obn-tab="open"]').catch(() => {}); await page.waitForTimeout(500);
+    /* the head says what is late and what is open, the pills' own counts */
+    const hm = ob.head.match(/^(\d+) late · (\d+) open/);
+    ok('1d the head says what is late and what is open, the pills\' own counts', !!hm && hm[1] === ob.pills.late && hm[2] === ob.pills.open, { head: ob.head, pills: ob.pills });
+    const rows = await page.$$(ROWS);
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);
       const t = await panelTitle('#ins-panel');
-      /* The row's own words carry the obligation's name (its second column),
-         so the claim is that the panel's title is one of them. */
       const want = await rows[2].evaluate(r => r.textContent.replace(/\s+/g, ' '));
       const on = await rows[2].evaluate(r => r.classList.contains('is-sel'));
       ok('1e a press selects the row and the panel follows', !!t && on && want.includes(t.slice(0, 20)), { panel: t, row: want.slice(0, 80) });
       await page.keyboard.press('ArrowDown'); await page.waitForTimeout(300);
       ok('1f the arrow moves the selection', (await panelTitle('#ins-panel')) !== t);
     } else { ok('1e a press selects the row and the panel follows', false, 'no rows'); ok('1f the arrow moves the selection', false); }
-    const door = await page.evaluate(() => (typeof obligationsDoorCount === 'function') ? obligationsDoorCount() : -1);
-    await page.click('[data-obw-view="overdue"]').catch(() => {}); await page.waitForTimeout(400);
-    const overdueN = await page.evaluate(() => document.querySelectorAll('.ob-lt tbody [data-ins-row]').length);
-    ok('1g the Overdue view lists what the sidebar door counts', door >= 1 && overdueN === door, { door, overdueN });
-    await page.click('[data-obw-view="open"]').catch(() => {}); await page.waitForTimeout(400);
-    /* RE-POINTED 18 Oct 2026 (lane A4): a view that hides the chosen row lets
-       it go (Jambo's "Your week"), so the row is chosen again before Enter */
-    if (!(await page.$('.ob-lt tbody tr.is-sel'))) { await page.click('.ob-lt tbody [data-ins-row] td:nth-child(2)').catch(() => {}); await page.waitForTimeout(300); }
-    const sel = await page.$('#ins-panel');
-    const selCid = await page.evaluate(() => { const r = document.querySelector('.ob-lt tbody tr.is-sel'); const k = r && r.getAttribute('data-ob-key'); return k ? k.split('::')[0] : null; });
-    await page.focus('.ob-lt tbody tr.is-sel').catch(() => {});
+    if (!(await page.$('.obn-table tbody tr.is-sel'))) { await page.click(ROWS + ' td:nth-child(2)').catch(() => {}); await page.waitForTimeout(300); }
+    const sel = await page.evaluate(() => { const r = document.querySelector('.obn-table tbody tr.is-sel'); return r ? r.getAttribute('data-ob-key') : null; });
+    const selCid = sel ? sel.split('::')[0] : null;
+    await page.focus('.obn-table tbody tr.is-sel').catch(() => {});
     await page.keyboard.press('Enter');
-    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was Home's
-       Document on the panel's Obligations tab, 11 Oct): Enter opens the
-       Board's Obligations view for that row's contract. Asked of the state, bounded. */
-    /* RE-POINTED 15 Oct 2026 (the Board's views went; "Obligations page,
-       filtered"): Enter opens the page narrowed to the row's contract, its own
-       table, that row chosen */
-    await page.waitForFunction(() => state.view === 'obligations' && !!document.querySelector('#obw-one-host .is-sel[data-ob-key]'), null, { timeout: 8000 }).catch(() => {});
-    const onHome = await page.evaluate(() => { const h = document.querySelector('#obw-one-host'); const r = h && h.querySelector('.is-sel[data-ob-key]');
-      return { view: state.view, id: h ? h.getAttribute('data-ins-cid') : null, row: r ? r.getAttribute('data-ob-key') : null }; });
-    ok('1h Enter opens the Obligations page narrowed to the row\'s contract, the row chosen', !!sel && onHome.view === 'obligations'
-      && !!selCid && onHome.id === selCid && !!onHome.row, { ...onHome, selCid });
+    await page.waitForFunction(k => !!k && !!document.querySelector(`#ig-dock .pd-ob.is-open[data-pd-ob-key="${k}"]`), sel, { timeout: 8000 }).catch(() => {});
+    const onHome = await page.evaluate(() => { const r = document.querySelector('#ig-dock .pd-ob.is-open[data-pd-ob-key]');
+      return { view: state.view, id: (window.intel && intel.paper) ? String(intel.paper.id) : null, row: r ? r.getAttribute('data-pd-ob-key') : null }; });
+    ok('1h Enter opens the duty on its contract\'s paper, the Obligations face, that row open', !!sel && onHome.view === 'dashboard'
+      && onHome.id === selCid && onHome.row === sel, { ...onHome, sel });
 
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
-    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
-       Obligations tab went home — the same door (roomGoTab 'oblig') opens the
-       Board's Obligations view for this contract, drawn by the tab's own
-       painter (roomPaintObligations) into #obw-one-host
-       (the old #ws-obligations-pane). Waited for by this contract's id. */
-/* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "Obligations
-   page, filtered"): the same door now opens the Obligations page narrowed to
-   the contract, which draws the contract's own table (roomPaintObligations)
-   into #obw-one-host — the host this file reads. */
-    const OBV = `#obw-one-host[data-ins-cid="${staged.c1}"]`;
-    await page.evaluate(id => { openWorkspace(id, { room: true }); }, staged.c1); await page.waitForTimeout(1200);
+    /* RE-POINTED 16 Nov 2026 (#762): the contract's Obligations tab is its paper's Obligations face (pdObligHtml, THE
+       FIVE PARTS): every duty a row (.pd-ob) in groups by when, Completed among them; a press on a row opens its acts */
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1);
-    await page.waitForFunction(sel => !!document.querySelector(sel + ' [data-ins-row]') && !!document.querySelector(sel + ' #obt-panel h2'), OBV, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(id => window.intel && intel.paper && String(intel.paper.id) === id && !!document.querySelector('#ig-dock .pd-obm-tab .pd-ob[data-pd-ob-key]'), staged.c1, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '2-tab.png') });
-    const tab = await page.evaluate(sel => ({ ins: !!document.querySelector(sel + '.is-ins'),
-      rows: document.querySelectorAll(sel + ' [data-ins-row]').length,
-      line: (document.querySelector(sel + ' .obt-line') || {}).textContent || '', title: (document.querySelector(sel + ' #obt-panel h2') || {}).textContent || '' }), OBV);
-    ok('2a the tab is a list and a panel on the same builder', tab.ins && tab.rows >= 3 && !!tab.title, tab);
-    await page.click(OBV + ' [data-obt-view="all"]').catch(() => {}); await page.waitForTimeout(400);
-    const allN = await page.evaluate(sel => document.querySelectorAll(sel + ' [data-ins-row]').length, OBV);
-    ok('2b the switch shows what is completed too', allN === tab.rows + 1, { outstanding: tab.rows, all: allN });
+    const tab = await page.evaluate(() => ({ rows: document.querySelectorAll('#ig-dock .pd-obm-tab .pd-ob[data-pd-ob-key]').length,
+      title: ((document.querySelector('#ig-dock .pd-obm-tab .jov5-title, #ig-dock .pd-obm-tab .pd-obm-t') || {}).textContent || '').trim(),
+      done: document.querySelectorAll('#ig-dock .pd-obm-tab [data-pd-obg="done"] .pd-ob').length }));
+    ok('2a the tab lists every duty as a row under its headline', tab.rows >= 3 && !!tab.title, tab);
+    ok('2b what is completed is shown too, in its own group', tab.done === 1 && tab.rows === 4, tab);
     const before = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
-    await page.click('#obt-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
-    await page.click('#obt-panel [data-act="remove"]').catch(() => {}); await page.waitForTimeout(500);
-    /* REVERSED 10 Oct 2026 (SAP pop-ups, owner's go): a removal that can be
-       undone does not ask — it goes, and the toast's Undo puts it back. */
+    await page.click('#ig-dock .pd-obm-tab .pd-ob[data-pd-ob-key] .pd-ob-hd').catch(() => {}); await page.waitForTimeout(400);
+    const rm = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .pd-ob.is-open .pd-ob-acts button')].find(x => /^Remove$/.test(x.textContent.trim())); if (b) { b.click(); return true; } return false; });
+    await page.waitForTimeout(500);
     const gone = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
     const undone = await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) { b.click(); return true; } return false; });
     await page.waitForTimeout(400);
     const after = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
-    ok('2c Remove goes at once, and its Undo puts it back', gone === before - 1 && undone && after === before, { before, gone, undone, after });
+    ok('2c Remove goes at once, and its Undo puts it back', rm && gone === before - 1 && undone && after === before, { rm, before, gone, undone, after });
 
-    /* ================= 3 · OUR STANDARDS, THREE TABS ================= */
-    await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);
-    await page.screenshot({ path: path.join(OUT, '3-standards.png') });
-    const sd = await page.evaluate(() => ({ ins: !!document.querySelector('.sd-ins'),
-      /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): the three tabs are each
-         card's own top row (one copy per card, the visible card's read) and the
-         count is the row's `.n`. RE-POINTED AGAIN 21 Oct 2026 (Part 8, the
-         owner's pick of "the Legora way"): ONE tab row, the list head's under
-         the shared head ([data-lh-seat]), every press on it there */
-      tabs: [...document.querySelectorAll('.sd-ins [data-lh-seat] [data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.n, .st-tab-n') || {}).textContent || null })),
-      rows: document.querySelectorAll('[data-pb-sec="clauses"] tbody [data-ins-row]').length, lib: clauseLibrary().length,
-      title: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
-    ok('3a three tabs, each carrying its count, and every standard is a row', sd.ins && sd.tabs.length === 3
-      && sd.tabs.every(t => t.n != null) && sd.rows === sd.lib && !!sd.title, sd);
-    /* JAMBO'S PANEL ON OUR STANDARDS (owner, 19 Oct 2026): the three lists share the one list panel, dressed as his */
-    ok('3a2 Our standards carries Jambo\'s panel, his box at its foot', await page.evaluate(() => { const q = document.querySelector('.sd-ins #ins-panel.is-jambo #jl-q'); return !!q && q.getClientRects().length > 0; }));
-    await page.evaluate(() => { const r = document.querySelector('.sd-ins'); if (r) r._probe = 1; });
-    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="playbook"]'); await page.waitForTimeout(400);
-    ok('3b a tab press flips the tab — the page is not rebuilt under the reader',
-      await page.evaluate(() => { const r = document.querySelector('.sd-ins'); return !!(r && r._probe === 1)
-        && !document.querySelector('[data-pb-sec="playbook"]').hidden && document.querySelector('[data-pb-sec="clauses"]').hidden; }));
-    await page.click('[data-sd-book="supply"]').catch(() => {}); await page.waitForTimeout(300);
-    const caps = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-stdl li b')].filter(b => /^Liability cap/.test(b.textContent)).length);
-    ok('3c a book lists each standard once — Liability cap is one line on the supply book', caps === 1, caps);
-    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
-    await page.click('[data-sd-row="cl-pay"]').catch(() => {}); await page.waitForTimeout(300);
-    await page.click('#ins-panel [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
-    /* RE-POINTED 23 Oct 2026 (owner: "open straight onto the rule you clicked, ready to change"): the
-       button — now "Set how firm we are" — opens the book's editor ON the standard's row (set-how-firm verify) */
-    const pos = await page.evaluate(() => { const el = document.querySelector('#pb-rng-list .is-landed, #pb-rng-list .is-landed-held, #pb-pos-list .is-landed, #pb-pos-list .is-landed-held');
-      const inp = el && el.querySelector('[data-pb-cat],[data-pb-rlabel]'); return { editor: !!document.getElementById('pb-save'), row: inp ? inp.value : '' }; });
-    ok('3d "Set how firm we are" opens the book\'s editor on its standard\'s row', pos.editor && /payment/i.test(pos.row), pos);
-    await page.evaluate(() => { const c = document.getElementById('pb-cancel'); if (c) c.click(); }); await page.waitForTimeout(300);
-    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
-    const godev = await page.$('#ins-panel [data-sd-godev]');
-    let gd = null;
-    if (godev) {
-      const cid = await godev.getAttribute('data-sd-godev');
-      await godev.click(); await page.waitForTimeout(500);
-      gd = await page.evaluate(id => ({ tab: document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab'),
-        sel: (document.querySelector('[data-pb-sec="deviations"] tr.is-sel') || {}).getAttribute ? document.querySelector('[data-pb-sec="deviations"] tr.is-sel').getAttribute('data-sd-dev') : null, want: id }), cid);
-    }
-    ok('3e a departure in a standard\'s panel lands on that contract under Portfolio deviations', !!gd && gd.tab === 'deviations' && gd.sel === gd.want, gd);
-    await page.screenshot({ path: path.join(OUT, '3e-deviations.png') });
-    const see = await page.$('#ins-panel [data-sd-gostd]');
-    let sw = null;
-    if (see) {
-      const clid = await see.getAttribute('data-sd-gostd');
-      await see.click(); await page.waitForTimeout(500);
-      sw = await page.evaluate(id => ({ tab: document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab'),
-        sel: (document.querySelector('[data-pb-sec="clauses"] tr.is-sel') || {}).getAttribute ? document.querySelector('[data-pb-sec="clauses"] tr.is-sel').getAttribute('data-sd-row') : null, want: id }), clid);
-    }
-    ok('3f "See the standard" lands on the standard it misses', !!sw && sw.tab === 'clauses' && sw.sel === sw.want, sw);
-    const libBefore = await page.evaluate(() => clauseLibrary().length);
-    await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
-    await page.click('#ins-panel [data-act="remove"]').catch(() => {}); await page.waitForTimeout(500);
-    const askedStd = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
-      return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 160) : ''; });
-    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
-    ok('3g removing a standard asks first, and a cancel removes nothing',
-      !!askedStd && (await page.evaluate(() => clauseLibrary().length)) === libBefore, askedStd);
+    /* ================= 3 · OUR STANDARDS ================= */
+    /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder): Our standards is no longer three lists in an Inspector but a
+       page of its own, drawn as a ladder; it is measured by standards-page-verify. Asked here only: it draws. */
+    await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1000);
+    ok('3 Our standards draws as its own page, the Ladder', await page.evaluate(() => !!document.querySelector('.ld-page .ld-list') && !!document.querySelector('.ld-page #ins-panel')));
 
     /* ================= 4 · REQUESTS ================= */
     await page.evaluate(() => setView('intake')); await page.waitForTimeout(2200);
@@ -306,35 +215,21 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
        the target): one flat list, no heading row per pile, still in the
        piles' order — read off each row's own pile. */
-    const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ik-ins'),
-      /* RE-POINTED AGAIN 9 Oct 2026 (the owner: build it the SAP way): one
-         flat list — read off each row's own date. RE-POINTED 19 Oct 2026
-         (round 20 as drawn, the owner's yes to build every gap): the Open list
-         is OLDEST WAITING FIRST, as its head says */
-      groups: (() => { const at = [...document.querySelectorAll('.ik-lt tbody [data-ik-row]')].map(r => ((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ik-row')) || {}).createdAt || '');
-        return at.length > 1 && at.every((v, i) => !i || at[i - 1] <= v) ? ['oldest-first'] : at; })(),
-      head: (document.getElementById('page-head-facts') || {}).textContent || '',
-      ask: !!document.querySelector('#page-head-acts #ik-new') }));
-    ok('4a the queue is a list and a panel, the longest wait first',
-      ik.ins && ik.groups.join(',') === 'oldest-first' && ik.ask, ik);
-    await page.click('[data-ik-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
-    /* re-pointed 9 Oct 2026: the drawing's panel names the holder as a fact
-       and the promise as the head's pill; take-over lives under ⋯.
-       RE-POINTED 19 Oct 2026 (round 20 as drawn): the head's pills say how it
-       is handled and whose it is ("With Amina Otieno"); the promise is said in
-       the Asked row ("Sun 18 Oct · promised by Tue 21 Oct") */
-    const heldSays = await page.evaluate(() => ({ holder: (document.querySelector('#ins-panel [data-ins-fact="with"] dd') || {}).textContent || '',
-      pill: (document.querySelector('#ins-panel .ik-with-chip') || {}).textContent || '',
-      asked: (document.querySelector('#ins-panel [data-ins-fact="asked"] dd') || {}).textContent || '' }));
-    ok('4b a request a colleague holds names its holder, and its promise', /Amina Otieno/.test(heldSays.holder) && /With Amina Otieno/.test(heldSays.pill)
-      && /promised by \S+ \d/.test(heldSays.asked), heldSays);
-    await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
-    await page.click('#ins-panel [data-ins-menu] [data-act="pick"]').catch(() => {}); await page.waitForTimeout(500);
-    const takeAsk = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
-      return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 200) : ''; });
-    await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-    const still = await page.evaluate(() => { const r = (_intakeState.list || []).find(x => x.id === 'REQ-HELD01'); return r && r.assignee ? r.assignee.name : null; });
-    ok('4c taking it over asks first, and a cancel leaves it with its holder', /Amina/.test(takeAsk) && still === 'Amina Otieno', { takeAsk, still });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Requests is ONE table (.ikn-table, tr[data-ikn-row])
+       beside Jambo's panel, the Ask button in its own head (#ik-new); whose a request is stands in its row ("With Amina") */
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): "the longest wait first" — Requests' oldest-first order stays gone;
+       the list-and-panel and the Ask button in its head are still asked */
+    const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ikn-page') && !!document.getElementById('ins-panel'),
+      rows: document.querySelectorAll('.ikn-table tbody [data-ikn-row]').length,
+      ask: !!document.querySelector('.ikn-page .cun-head #ik-new') }));
+    ok('4a the queue is a list and a panel',
+      ik.ins && ik.rows > 1 && ik.ask, ik);
+    await page.click('[data-ikn-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
+    const heldSays = await page.evaluate(() => ({ row: ((document.querySelector('[data-ikn-row="REQ-HELD01"]') || {}).textContent || '').replace(/\s+/g, ' '),
+      panel: ((document.getElementById('ins-panel') || {}).innerText || '').replace(/\s+/g, ' ') }));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): "and its promise" — the promised-by date stays gone; the holder is still asked */
+    ok('4b a request a colleague holds names its holder', /With Amina/.test(heldSays.row), heldSays);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 4c taking over a colleague's request — that door stays gone */
     const trk = await (await fetch(h.base + '/track/' + tok['REQ-HELD01'])).text();
     ok('4d the tracker link says the same thing to the person who asked', /Being worked on/.test(trk));
 
@@ -362,14 +257,16 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* ================= 5 · BELOW THE WIDTH LINE, NOTHING CHANGED ================= */
     await page.setViewportSize({ width: 1000, height: 900 }); await page.waitForTimeout(900);
     for (const [k, view, sel, classic] of [['5a', 'obligations', '.obw-ins', '.obw-page'], ['5b', 'intake', '.ik-ins', '#ik-new'],
-      ['5c', 'playbook', '.sd-ins', '#clause-lib']]) {
+      /* Our standards left this list 17 Nov 2026: the Ladder has one shape at every width */]) {
       await page.evaluate(v => setView(v), view); await page.waitForTimeout(1000);
       const r = await page.evaluate(([s, c]) => ({ ins: !!document.querySelector(s), classic: !!document.querySelector(c) }), [sel, classic]);
       ok(`${k} [control] ${view} below the line draws its classic page`, !r.ins && r.classic, r);
     }
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
     ok('5d and widening the window puts the Inspector back without a navigation',
-      await page.evaluate(() => !!document.querySelector('.sd-ins')));
+      /* RE-POINTED 17 Nov 2026 (#762): the last page is now Requests (main took Standards out of this list); the new look draws
+         it as its own page with Jambo's panel beside the list (.ikn-page #ins-panel), not the old .ik-ins */
+      await page.evaluate(() => !!document.querySelector('.ikn-page #ins-panel, .ik-ins')));
 
     ok('6 [control] the whole journey raised no page error', errs.length === 0, errs.join(' | ') || 'clean');
   } catch (e) {

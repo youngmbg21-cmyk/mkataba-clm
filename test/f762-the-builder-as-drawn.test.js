@@ -124,7 +124,7 @@ describe('f762 (2) the Outline', () => {
   test('2b what the blanks ask, and how many of Our standards it meets', async () => {
     const s = await stage(RESELLER, FIELDS);
     assert.match(s.rail, /<p class="tb-ol-sh">Blanks <span class="tb-ol-cnt">2<\/span><\/p><p class="tb-ol-p">Reseller name · Territory: asked of whoever drafts from it\.<\/p>/);
-    assert.match(s.rail, /<p class="tb-ol-sh">Our standards<\/p><p class="tb-ol-p">\d+ of \d+ met\. .+ (is|are) proposed on the paper\.<\/p>/);
+    assert.match(s.rail, /<p class="tb-ol-sh">Our playbook<\/p><p class="tb-ol-p">\d+ of \d+ met\. .+ (is|are) proposed on the paper\.<\/p>/);
   });
   test('2c a row lands on its section (landOn) and keeps the Outline open', () => {
     assert.match(TB, /hit\('\[data-tb-ol\]'\)\)\) \{ const k = Number\(b\.getAttribute\('data-tb-ol'\)\); tbFocus\(k, \{ keepTab: true \}\);\s*if \(typeof landOn === 'function'\) landOn\(`\[data-tb-sec="\$\{k\}"\]`/);
@@ -140,7 +140,7 @@ describe('f762 (3) Jambo proposes on the paper', () => {
     /* RE-POINTED (check #1, 19 Oct 2026): and before Governing law, as drawn */
     const law = s.paper.indexOf('>Governing law<'), liab = s.paper.indexOf('>Liability<');
     assert.ok(liab > 0 && liab < at && at < law, JSON.stringify({ liab, at, law }));
-    assert.match(s.paper, /<div class="tb-prop" data-tb-prop="([^"]+)" contenteditable="false" data-not-wording>[\s\S]*?<b>Jambo proposes · \1<\/b>[\s\S]*?data-tb-prop-add="\1"[^>]*>Add<\/button>[\s\S]*?data-tb-prop-skip="\1"[^>]*>Skip<\/button><\/div>\s*<p>Our standard: [^<]+\.<\/p>/);
+    assert.match(s.paper, /<div class="tb-prop" data-tb-prop="([^"]+)" contenteditable="false" data-not-wording>[\s\S]*?<b>Jambo proposes · \1<\/b>[\s\S]*?data-tb-prop-add="\1"[^>]*>Add<\/button>[\s\S]*?data-tb-prop-skip="\1"[^>]*>Skip<\/button><\/div>\s*<p>Our position: [^<]+\.<\/p>/);
   });
   test('3b Add is our standard\'s own wording through the one push; Skip is kept for this template', async () => {
     assert.match(TB, /if \(\(b = hit\('\[data-tb-prop-add\]'\)\)\) \{ tbAddStandard\(b\.getAttribute\('data-tb-prop-add'\)\); return; \}/);

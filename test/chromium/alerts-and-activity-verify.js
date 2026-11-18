@@ -123,7 +123,8 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       body: (document.getElementById('panel-body') || {}).textContent,
       /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the Needs you tab draws the one desk's
          own rows, one per row of the reading (a bundle is one row counting its contracts) */
-      face: panelFace(), rows: document.querySelectorAll('#panel-body .nd-pan .nd-r').length,
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's bell draws them as .ndb .ndb-r[data-nd-row] (ndBellNlHtml) */
+      face: panelFace(), rows: document.querySelectorAll('#panel-body .ndb .ndb-r[data-nd-row]').length,
       want: (() => { const D = ndRead(); return D.jambo.length + D.you.length; })(),
       panels: document.querySelectorAll('#context-panel').length,
     }), BOX);

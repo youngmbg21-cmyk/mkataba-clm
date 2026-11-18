@@ -58,7 +58,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       await page.waitForTimeout(500);
       const S = await page.evaluate(() => ({ chips: (document.getElementById('sh-col-chips') || {}).textContent, chip: (document.querySelector('[data-sh-as-w="purpose"]') || {}).textContent,
         note: (document.getElementById('sh-summary') || {}).value, btn: (document.querySelector('#sh-lt-after .sh-lt-btn') || {}).textContent,
-        who: !!(document.querySelector('.sh-lt-who') || { getClientRects: () => [] }).getClientRects().length, ch: !!document.querySelector('[data-sh-as="ch"]').getClientRects().length,
+        who: !!(document.querySelector('.sh-lt-who') || { getClientRects: () => [] }).getClientRects().length, ch: !!(document.querySelector('[data-sh-st="by"]') || document.querySelector('[data-sh-as="ch"]')).getClientRects().length,
         talk: document.getElementById('ig-dock').classList.contains('is-talk'),
         said: [...document.querySelectorAll('#igd-feed [data-ca-card]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(-1)[0] || '' }));
       /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): a colleague is a person, asked for
@@ -110,7 +110,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       check('2b @ in To picks a colleague, and the list goes away', /No Values Legal/.test(A.chips) && !A.popUp, JSON.stringify(A));
       await page.click('[data-sh-to-kind="outside"]');
       await page.waitForTimeout(250);
-      const B = await page.evaluate(() => ({ attr: document.documentElement.hasAttribute('data-sh-col'), ch: !!document.querySelector('[data-sh-as="ch"]').getClientRects().length }));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): in FOUR STEPS the channel ("How it goes") is
+         step 4's row ([data-sh-st="by"]), folded to its one line; the other side's rows are that step and the To boxes */
+      const B = await page.evaluate(() => ({ attr: document.documentElement.hasAttribute('data-sh-col'), ch: !!(document.querySelector('[data-sh-st="by"]') || document.querySelector('[data-sh-as="ch"]')).getClientRects().length }));
       check('2c back to someone outside brings the other side\'s rows back', !B.attr && B.ch, JSON.stringify(B));
       await page.click('[data-sh-to-kind="colleague"]');
       await page.waitForTimeout(200);
@@ -155,7 +157,10 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
          "why does it say send to diamonds?") */
       const lbl = await page.evaluate(() => { const n = document.getElementById('sh-name'); if (n){ n.value = 'diamonds'; n.dispatchEvent(new Event('input', { bubbles: true })); }
         return new Promise(r => setTimeout(() => r((document.getElementById('sh-send-lbl') || {}).textContent || ''), 300)); });
-      check('3i the Send button names the colleague, not the other side', /^Send to Unrestricted$/.test(lbl.trim()), JSON.stringify(lbl));
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's Send says one word, "Send" (sh_nl_send), on every letter; the
+         promise kept is the owner's — it never names the other side's hidden Name box */
+      const sendWord = await page.evaluate(() => i18t('sh_nl_send'));
+      check('3i the Send button names the colleague, not the other side', !/diamonds/i.test(lbl) && (/^Send to Unrestricted$/.test(lbl.trim()) || lbl.trim() === sendWord), JSON.stringify(lbl));
       /* 3j a tab pressed beside the letter shows that tab, and "Before you send" brings the letter's face back
          (owner: "why is dossier empty and all the other panels") */
       const tabs = [];

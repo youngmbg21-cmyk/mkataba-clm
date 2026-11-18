@@ -182,14 +182,30 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const rows = docXrayRows(getContract('MK-314'), document.getElementById('ig-canvas')).filter(x => !(x.row && x.row.kind === 'section'));
       const el = rows[1] && rows[1].el; if (el) sc.scrollTop = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 20; });
     await page.waitForTimeout(500);
+    /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the paper's late paint could put it back at its top after the move,
+       so the second clause is put at the line until it stays there, bounded */
+    for (let i = 0; i < 16; i++){
+      const held = await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const rows = docXrayRows(getContract('MK-314'), document.getElementById('ig-canvas')).filter(x => !(x.row && x.row.kind === 'section'));
+        const el = rows[1] && rows[1].el; if (!el || !sc) return true; const off = el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 20;
+        if (Math.abs(off) <= 4) return true; sc.scrollTop += off; return false; });
+      if (held && i > 0) break; await page.waitForTimeout(250);
+    }
     const ink1 = await ink();
     const opened = await pressDoor();
+    /* RE-POINTED 17 Nov 2026 (#762, owner's pick on the drawings: "Paper glides to line up"): the paper may glide so the open
+       clause stands at the line — read once it has settled (bounded), the open row and the line's clause the same */
+    /* THE READER KEEPS THEIR PLACE (owner, 18 Nov 2026: "fix Clauses tab issue"): opening Clauses starts Jambo's read and
+       its quick walk on the paper (pd2WalkWithRead); when the walk puts itself away the paper is back where the reader
+       stood — so the walk is let finish (bounded) before the drawer is read. Before the fix GitHub saw "open 0 · line 0" */
+    const walked = await page.waitForFunction(() => pd2WalkOn('MK-314'), null, { timeout: 3000, polling: 50 }).then(() => true, () => false);
+    await page.waitForFunction(() => !pd2WalkOn('MK-314'), null, { timeout: 8000 }).catch(() => {});
+    for (let i = 0; i < 20; i++){ const q = await read(); if (q && q.openIdx === q.atLine) break; await page.waitForTimeout(150); }
     const s2 = await read();
     const ink2 = await ink();
     const second = s2.rows[1];
     check('2a the Clauses tab brings the clause list into the panel', opened && s2.threadShown,
       JSON.stringify({ opened, thread: s2.threadShown }));
-    check('2b it opens on the clause at the paper\'s line', opened && !!(second && second.open) && s2.openIdx === s2.atLine, (second ? second.name : '-') + ' · open ' + s2.openIdx + ' · line ' + s2.atLine);
+    check('2b it opens on the clause at the paper\'s line — where the reader stood, after Jambo\'s read walked the paper', opened && !!(second && second.open) && s2.openIdx === s2.atLine, (second ? second.name : '-') + ' · open ' + s2.openIdx + ' · line ' + s2.atLine + ' · walked ' + walked);
     /* on Home the list IS the panel: no × (home-paper-clauses 1d) */
     /* 2c re-pointed 13 Oct 2026 (owner, Stakes as drawn): Home's list has no × and no colour filter */
     check('2c no ×, and no colour filter on Home', !s2.close && s2.chips.length === 0, s2.chips.map(c => c.text).join(' | '));
@@ -197,8 +213,10 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       JSON.stringify(s2.secs));
     check('2e ONE scroller: the open row grows, the list scrolls', !!(s2.bodyScroll && s2.bodyScroll.y !== 'auto' && s2.bodyScroll.max === 'none' && s2.listScroll === 'auto'),
       JSON.stringify({ body: s2.bodyScroll, list: s2.listScroll }));
-    check('2f [control] THE CONTRACT DOES NOT MOVE when the Clauses tab opens (refusal 3)', !!(ink1 && ink2 && ink1.top === ink2.top && ink1.left === ink2.left && ink1.w === ink2.w && ink0 && ink0.w === ink2.w),
-      JSON.stringify({ before: ink1, after: ink2 }));
+    /* RETIRED 17 Nov 2026 (#762, owner's pick on the drawings: "Paper glides to line up"): 2f — "the contract does not move
+       when the Clauses tab opens"; the paper glides to line the open clause up, and stands in the middle of its room
+       once the notes beside it stand down (THE PAPER STANDS IN THE MIDDLE, 16 Nov 2026). Its width stays (2f′). */
+    check('2f\u2032 the paper keeps its width when the Clauses tab opens', !!(ink1 && ink2 && ink1.w === ink2.w), JSON.stringify({ before: ink1, after: ink2 }));
     await page.screenshot({ path: path.join(OUT, '02-drawer.png') });
 
     /* ===== 3. THE COLOUR FILTER — RETIRED 13 Oct 2026 =====

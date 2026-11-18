@@ -66,18 +66,25 @@ const CONTRACTS = [
     await page.keyboard.press('Escape').catch(() => {});
 
     /* ===== 1 · WHAT AM I LOOKING AT, ON JAMBO'S AGENTS ===== */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's agents carries its own Jambo panel (#ins-panel,
+       round 7 as drawn) and no edge tab; "What am I looking at?" is answered in that panel's talk, its last turn read */
     await page.evaluate(() => setView('jambo'));
-    await until(() => document.querySelector('[data-jh-jambo]') ? true : null, null, 10000);
+    await until(() => document.querySelector('#ins-panel') ? true : null, null, 10000);
     const aiBefore = ai.length;
     const here = (await has('aiHereExplain')) ? await page.evaluate(() => {
       aiHereExplain();
-      const last = [...document.querySelectorAll('#ai-feed .ai-bub')].pop();
+      const last = [...document.querySelectorAll('#ins-panel .jb-turn')].pop();
       return { said: last ? last.textContent.replace(/\s+/g, ' ').trim() : '', page: (typeof deskPageName === 'function') ? deskPageName() : '' };
     }) : null;
     check('1 "What am I looking at?" on Jambo\'s agents names it, never the Brain, and spends nothing',
       !!here && /Jambo.s agents/i.test(here.said) && !/\bBrain\b/.test(here.said) && ai.length === aiBefore, JSON.stringify(here));
 
     /* ===== 2 · SHOW ME › AND THE ONE PREPARED PRESS ===== */
+    /* RE-POINTED 16 Nov 2026 (#762): the side panel (#ai-panel, #ai-feed) is the one a page WITHOUT a panel of its own
+       slides in — the Brain — so parts 2–4 are driven there, the panel opened through openAI() */
+    await page.evaluate(() => setView('brain'));
+    await until(() => state.view === 'brain' ? true : null, null, 10000);
+    await page.evaluate(() => { if (!document.getElementById('ai-panel').classList.contains('open')) openAI(); });
     const okP = await has('jpPressOf') && await has('jpHtml');
     const turn = okP ? await page.evaluate(() => {
       const p = jpPressOf({ ids: ['MK-S1'], q: 'how is the Nandi Dairy supply deal going?', text: 'MK-S1 is under review.' });
@@ -114,10 +121,11 @@ const CONTRACTS = [
     } else check('2c the prepared press opens its act and sends nothing by itself', false, 'no press');
 
     /* ===== 3 · A WATCH FROM A SENTENCE ===== */
-    await page.evaluate(() => setView('jambo'));
-    await until(() => document.querySelector('[data-jh-jambo]') ? true : null, null, 10000);
+    /* RE-POINTED 16 Nov 2026 (#762): on the Brain, the side panel opened through openAI() (no edge tab is drawn) */
+    await page.evaluate(() => setView('brain'));
+    await until(() => state.view === 'brain' ? true : null, null, 10000);
     const said = (await has('watchAskHere')) ? await page.evaluate(() => {
-      if (typeof aiSideToggle === 'function' && !document.getElementById('ai-panel').classList.contains('open')) aiSideToggle();
+      if (!document.getElementById('ai-panel').classList.contains('open')) openAI();
       return watchAskHere('tell me when Nandi Dairy replies');
     }) : false;
     const card = said ? await until(() => { const b = [...document.querySelectorAll('#ai-feed [data-jp-wstart]')].pop();

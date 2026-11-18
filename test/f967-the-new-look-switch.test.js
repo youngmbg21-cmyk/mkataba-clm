@@ -23,11 +23,13 @@ const topLevel = sel => { const out = []; let depth = 0, cur = '';
 const CORE = read('js/core.js'), SRV = read('server/server.js'), HTML = read('index.html'), ST = read('js/views/settings.js'), I18N = read('js/i18n.js');
 
 test('f967 (1) one reading, one mark, before the first paint', () => {
-  assert.match(CORE, /const newLookOn = \(\) => \{[^\n]*u\.role === 'admin' && u\.prefs && u\.prefs\.newLook === true/);
+  /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): on for everyone who signs in, no pref read, no role asked */
+  assert.match(CORE, /const newLookOn = \(\) => \{ const u = [^\n]*return !!u; \};/);
+  assert.match(CORE, /function outsideLookOn\(\)\{ return true; \}/, 'the sign-in page and the other side\'s pages too');
+  assert.match(SRV, /const outsideLookOn = \(\) => true;/, 'the server\'s letters and pages too');
   assert.match(CORE, /const newLookApply = \(\) => \{ try \{ document\.documentElement\.classList\.toggle\('lg-new', newLookOn\(\)\); \}/);
   const start = CORE.slice(CORE.indexOf('function startApp(){'), CORE.indexOf('function startApp(){') + 1500);
   assert.match(start, /applyLanguage\(\{repaint:false\}\);\n\s*newLookApply\(\);/, 'applied before the shell is shown');
-  assert.match(ST, /async function stNewLookSet\(on\)\{\n\s*if\(await stPrefSet\('newLook', on\)\)\{ if\(typeof newLookApply==='function'\) newLookApply\(\);/);
   assert.equal((CORE.match(/classList\.toggle\('lg-new'/g) || []).length, 1, 'one writer of the mark');
 });
 
@@ -61,8 +63,9 @@ test('f967 (3) with it off nothing moves: every new-look rule waits on html.lg-n
   }
 });
 
-test('f967 (4) the switch is drawn for an admin only, in both books', () => {
-  assert.match(ST, /\(\(typeof isAdmin==='function'&&isAdmin\(\)\)\?stSrHtml\(esc\(i18t\('st_you_newlook'\)\), `\$\{stSwHtml\('newlook'/);
-  for (const k of ['st_you_newlook', 'st_you_newlook_sub', 'st_you_newlook_on', 'st_you_newlook_off'])
-    assert.equal((I18N.match(new RegExp('\\n    ' + k + ':', 'g')) || []).length, 2, k + ' in both books');
+test('f967 (4) no switch is drawn: neither the person\'s nor the company\'s', () => {
+  const code = ST.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(code, /stSwHtml\('newlook'/, 'no new-look switch under You');
+  assert.doesNotMatch(code, /stSwHtml\('outsidelook'/, 'no outside-look switch under Company');
+  assert.doesNotMatch(code, /k==='newlook'|k==='outsidelook'/, 'no press handled for either');
 });

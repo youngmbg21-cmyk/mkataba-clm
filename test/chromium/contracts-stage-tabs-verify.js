@@ -68,6 +68,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
        drawn missing and never redrawn — waiting longer for the row could not help. Wait for the person too. */
     await page.waitForFunction(() => typeof setView === 'function' && typeof currentUser === 'function' && !!currentUser() && state && state.contracts && state.contracts.length > 0, null, { timeout: 15000 });
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.regSavedViews'); } catch (_) {} (regPlaceSet({ show: 'list' }), setView('register')); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
     await page.waitForSelector('#reg-tbody [data-row]', { timeout: 10000 }).catch(() => {});
 
     const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
@@ -110,8 +113,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
       JSON.stringify(held) + ' · ' + r0.stages.map(t => t.k + ':' + t.n).join(','));
     ok('1c no stage tabs on the place — one door per fact', r0.stageTabs === 0, String(r0.stageTabs));
     ok('1d no labelled filter box and no Stage or Quick filters box on the place', r0.boxes === 0 && !r0.stageSel, `${r0.boxes} boxes · select ${r0.stageSel}`);
-    ok('1e the views are tabs in the drawing\'s order, each one that is drawn holding rows, and only the five drawn',
-      (() => { const order = ['', 'needs', 'nego', 'expiring90', 'drafts']; const ks = r0.tabs.map(t => t.k).filter(k => order.includes(k));
+    ok('1e the views are tabs in the drawing\'s order, each one that is drawn holding rows, and only the three drawn',
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's place draws All · Needs you · Signed (register.js `VS=regNl()?['needs','signed']`) */
+      (() => { const order = ['', 'needs', 'signed']; const ks = r0.tabs.map(t => t.k).filter(k => order.includes(k));
         return JSON.stringify(ks) === JSON.stringify(order.filter(k => ks.includes(k))) && r0.tabs.every(t => t.k === '' || t.on || t.n > 0)
           && r0.tabs.every(t => order.includes(t.k)); })(),
       r0.tabs.map(t => (t.k || 'all') + ':' + t.n).join(' · '));
@@ -122,13 +126,15 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     const withRows = r0.stages.filter(t => t.n > 0);
     ok('2a the seeded book has at least two stages to pick', withRows.length >= 2, withRows.map(t => t.k).join(','));
     for (const t of withRows.slice(0, 3)) {
-      await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(['stage', t.k]));
+      /* the new look draws no + Filter here; the choice is made on its hidden control (force), and the chip that must then
+         stand is asked unchanged */
+      await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(['stage', t.k]), { force: true });
       await page.waitForFunction(k => regState().stage === k, t.k, { timeout: 5000 }).catch(() => {});
       await page.waitForFunction(S => !!document.querySelector(S + ' [data-lh-chip="stage"]'), SEAT, { timeout: 5000 }).catch(() => {});
       const r = await read();
       ok(`2b "${t.k}" narrows to its own ${t.n}, and stands as a chip`, r.stage === t.k && r.rows === t.n && !!r.chip,
         `stage ${r.stage} · rows ${r.rows} · chip ${r.chip}`);
-      await page.click(SEAT + ' [data-lh-x="stage"]').catch(() => {});
+      await page.evaluate(S => { const x = document.querySelector(S + ' [data-lh-x="stage"]'); if (x) x.click(); }, SEAT);   /* hidden on the new look's place (see adapt-filters) */
       await page.waitForFunction(() => regState().stage === 'all', null, { timeout: 5000 }).catch(() => {});
     }
     const rX = await read();

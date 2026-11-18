@@ -124,7 +124,10 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
       await waitFor(page, () => !!document.querySelector('#pd-redface [data-nego-card]'), 10000);
     };
     const openLetter = async id => {
-      await page.evaluate(id => { const s = document.getElementById('ws-share'); if (s) s.click(); else openShareModal(getContract(id)); }, id);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the paper's Send greys while nothing is left to
+         send (after the round went, clause 7 still with Sara); the letter is then opened through the one send door
+         itself, as the other doors do, so the three screens can still be measured */
+      await page.evaluate(id => { const s = document.getElementById('ws-share'); if (s && !s.disabled) s.click(); else openShareModal(getContract(id)); }, id);
       const up = await waitFor(page, () => { const s = document.getElementById('share-send'); return !!document.querySelector('#modal-root .modal-in[data-sh-page]') && !!document.querySelector('#pd-sendface .sh-lt-side') && s && !s.disabled; }, 12000);
       await waitFor(page, () => /Anna/.test((document.getElementById('sh-send-lbl') || {}).textContent || ''), 6000);
       return up;
@@ -142,21 +145,25 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
       const grey = c => { const m = /rgba?\((\d+), (\d+), (\d+)/.exec(c); return m ? m.slice(1).map(Number) : null; };
       return { resize: cs.resize, labelPx: parseFloat(ls.fontSize), bodyPx: parseFloat(text.fontSize), labelW: ls.fontWeight, labelInk: grey(ls.color), textInk: grey(text.color),
         frameW: Math.round(frame.getBoundingClientRect().width), bodyW: Math.round(body.clientWidth),
+        labelBox: (r => [Math.round(r.width), Math.round(r.height)])(lab.getBoundingClientRect()),
         taH: ta.clientHeight, taSH: ta.scrollHeight, label: lab.textContent.trim() };
     });
     const B0 = await box();
     await page.fill('#sh-summary', NOTE); await pause(150);
-    const B1 = await box();
     await page.fill('#sh-summary', LONG); await pause(150);
     const B2 = await box();
     /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the note is the one white box with a
        green edge, named for who reads it in small green type, running the letter's width; only its height
        follows what is typed */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): PLAIN LETTER (owner's pick by name, 14 Nov 2026)
+       made the note a line of the letter — "no label on show (it stays for a screen reader)". The promise "a small
+       line, never a heading" is kept as: the label still names who reads it, for a screen reader, and draws nothing
+       on the letter (a 1px clipped box), so nothing heading-like stands over the note. */
     check('1a the note\'s label is a small line ("Your note to Anna"), not a heading',
-      !!B0 && B0.label === 'Your note to Anna' && B0.labelPx < B0.bodyPx && JSON.stringify(B0.labelInk) === JSON.stringify([8, 115, 99]), JSON.stringify(B0));
-    check('1b the box runs the letter\'s width whatever is typed',
-      !!B0 && !!B1 && !!B2 && B0.frameW === B1.frameW && B1.frameW === B2.frameW && B2.frameW > B2.bodyW * 0.7,
-      JSON.stringify({ empty: B0 && B0.frameW, short: B1 && B1.frameW, long: B2 && B2.frameW, letter: B2 && B2.bodyW }));
+      !!B0 && B0.label === 'Your note to Anna' && B0.labelBox[0] <= 1 && B0.labelBox[1] <= 1, JSON.stringify(B0));
+    /* RETIRED 16 Nov 2026 (#762): "the box runs the letter's width whatever is typed" was the SAP Way's green-edged
+       box; PLAIN LETTER makes the box hug its words with Write it for me after them (shareLetterNoteFit), by design.
+       That the note stays inside the letter at every screen is check 6. */
     check('1c it grows downward to hold what is typed, and has no grip in its corner',
       !!B2 && B2.resize === 'none' && B2.taSH <= B2.taH + 1, JSON.stringify({ resize: B2 && B2.resize, h: B2 && B2.taH, sh: B2 && B2.taSH }));
     await page.fill('#sh-summary', NOTE);
@@ -252,7 +259,8 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
       await openLetter('MK-0382'); await pause(300);
       await page.fill('#sh-summary', LONG); await pause(150);
       const Z1 = await page.evaluate(() => { const pn = document.querySelector('#modal-root .modal-in[data-sh-page]').getBoundingClientRect(), dock = document.getElementById('ig-dock').getBoundingClientRect();
-        const frame = document.querySelector('#sh-letter .sh-lt-note label').getBoundingClientRect(), L = document.getElementById('sh-letter').getBoundingClientRect();
+        /* RE-POINTED 16 Nov 2026 (#762): in the plain letter the label draws no box (display:contents), the note is its field */
+        const frame = document.getElementById('sh-summary').getBoundingClientRect(), L = document.getElementById('sh-letter').getBoundingClientRect();
         const slot = document.querySelector('#pd-sendface #sh-lt-checks');
         return { beside: pn.right <= dock.left + 1, note: frame.right <= L.right, checks: !!slot && slot.getBoundingClientRect().left >= dock.left - 1,
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });

@@ -419,7 +419,7 @@ function mnnRender(host, list, n, o){
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="ctf-hf">${_mnE(facts)}</span><span class="ctf-sp"></span>
         <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('lh_filter_ph'))}" value="${_mnE(_mn.q || '')}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="mynotes-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('lh_filter_ph'))}" value="${_mnE(_mn.q || '')}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab${tab === t[0] ? ' is-on' : ''}" data-mnn-tab="${t[0]}">${_mnE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
       <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col style="width:42%"><col style="width:30%"><col style="width:12%"><col></colgroup>
         <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('mnn_c_due'))}</th><th></th></tr></thead>
@@ -463,7 +463,9 @@ function mnnPanelFiveHtml(n){
     sub: [written ? i18t('mnn5_written', { d: written }) : '', c ? '' : i18t('mnn5_no_contract'), i18t('mnn5_only_you')].filter(Boolean).join(' '),
     mid: n.quote ? `<q class="mnn5-q">${E(n.quote)}</q>` : '',
     groups: [{ label: i18t('mnn5_this'), rows }],
-    act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`, link: { label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' } },
+    act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`, link: { label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' },
+      /* SNOOZE A WEEK (owner's pick on the drawings, 17 Nov 2026: "4 Bring it back"): the note out of the way for seven days */
+      links: n.reviewedAt ? [] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }] },
     src: i18t('mnn5_src') };
   return `<div class="jl-words is-ov mnn5">${jamboOverviewHtml(o, 'mnn')}</div>`;
 }

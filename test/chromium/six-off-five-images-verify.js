@@ -56,7 +56,8 @@ const ok = (name, good, detail) => {
 
     /* ════════ 1. NO VALUE STREAM COLUMN, THE FILTER STAYS ════════ */
     const heads = () => page.evaluate(() => ({
-      heads: [...document.querySelectorAll('.reg-table thead th')]
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Negotiations list is its own table (.ngn-table) */
+      heads: [...document.querySelectorAll('.reg-table thead th, .ngn-table thead th')]
         .map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
       stream: i18t('reg_value_stream'),
       filter: (() => { const s = document.getElementById('reg-type-sel');
@@ -70,6 +71,10 @@ const ok = (name, good, detail) => {
     }));
     /* the List of Home's Contracts place (step 7 of the overnight work order) */
     await page.evaluate(() => { regSetMode('table'); regPlaceSet({ show: 'list' }); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the table */
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    await page.waitForTimeout(800);
     await page.waitForTimeout(1200);
     const c1 = await heads();
     ok('1a the Contracts table draws no value stream column',
@@ -77,8 +82,10 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): on
        the Contracts place too the Stream filter is one of "+ Filter"'s
        groups, offering the streams that hold a row */
-    ok('1b CONTROL the Stream filter is still on the Contracts head, with streams to pick', c1.filter > 1 || c1.addStream > 0,
-      `${c1.filter} box options · ${c1.addStream} under + Filter`);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 1b "the Stream filter is still on the Contracts head, under + Filter" —
+       the Contracts list's + Filter stays gone in the new look (owner, 17 Nov 2026, answer 1); it passed only on the
+       hidden markup. The streams are Contracts' folders now (regFolderViewsData) */
+    void c1.filter;
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     /* The Negotiations list only draws over a LIVE negotiation — one change
        filed through the funnel makes one. */
@@ -101,7 +108,7 @@ const ok = (name, good, detail) => {
        Negotiations the Stream filter is one of "+ Filter"'s groups, offering
        the streams that hold a row (never "All streams", never an empty one);
        and the group headings between the rows went (Q2 "A — tabs only"). */
-    ok('1d CONTROL and its Stream filter is still there, under + Filter', n1.addStream >= 1, n1.addStream + ' streams offered');
+    /* RETIRED 17 Nov 2026 (#762, round 6 default 5): 1d "the Stream filter under Negotiations' + Filter" — Negotiations has no "+ Filter" (as Contracts, owner's ruling 1) */
     ok('1e no group heading between the rows: every row of the table is a contract',
       n1.band == null && n1.plain, `colspan ${n1.band} · plain ${n1.plain}`);
     await page.screenshot({ path: path.join(OUT, '02-negotiations.png') });
@@ -138,6 +145,10 @@ const ok = (name, good, detail) => {
     });
     ok('4-stage a contract with marked clauses', staged >= 3, staged + ' marked');
     await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 17 Nov 2026 (#762): the list is measured once the card has settled (on GitHub a line still drawing under it
+       was read mid-paint, 45px) — asked for, bounded */
+    await page.waitForFunction(() => { const th = document.getElementById('pd-thread'), box = th && th.querySelector('.doc-th-rows'); if (!box) return false;
+      return Math.abs(th.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(box).marginBottom) || 0)) <= 2; }, null, { timeout: 5000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '04-thread.png') });
     const strand = await page.evaluate(() => {
       const th = document.getElementById('pd-thread');
@@ -148,10 +159,14 @@ const ok = (name, good, detail) => {
       return { n: rows.length, toEnd: Math.round(r.bottom - bx.bottom), pastScreen: Math.round(r.bottom - innerHeight),
         inside: box.scrollHeight >= box.clientHeight, toned: rows.filter(x => /\bis-(ruby|amber|steel)\b/.test(x.className)).length,
         min: Math.round(Math.min(...rows.map(s => s.querySelector('.doc-th-head').getBoundingClientRect().height))),
+        foot: parseFloat(getComputedStyle(box).marginBottom) || 0,
         strandGone: !document.getElementById('doc-xr-spine') };
     });
-    ok('4a the row list runs to the bottom of its card, and the strand is gone from this tab', !!strand && strand.toEnd <= 2 && strand.toEnd >= 0 && strand.strandGone,
-      strand ? `${strand.toEnd}px after the list · strand ${strand.strandGone ? 'gone' : 'still drawn'}` : 'no thread');
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the list runs to the bottom of its card less the card's
+       own 16px inside (MAP LOOKS: 16px inside every Jambo panel) — the gap after it is exactly the list's own foot margin,
+       16px, and nothing else */
+    ok('4a the row list runs to the bottom of its card, and the strand is gone from this tab', !!strand && strand.foot === 16 && Math.abs(strand.toEnd - strand.foot) <= 2 && strand.strandGone,
+      strand ? `${strand.toEnd}px after the list (its foot ${strand.foot}px) · strand ${strand.strandGone ? 'gone' : 'still drawn'}` : 'no thread');
     ok('4b and it does not run past the screen', !!strand && strand.pastScreen <= 0 && strand.inside,
       strand ? `${strand.pastScreen}px past · scrolls inside ${strand.inside}` : 'no thread');
     ok('4c CONTROL every row head is big enough to press, and the marked rows wear a tone', !!strand && strand.min >= 24 && strand.toned >= 3,
@@ -186,8 +201,7 @@ const ok = (name, good, detail) => {
        not drawn there. Asserted as absent on an open row. */
     ok('5a Home\'s open row draws no "Why it matters:" (Stakes as drawn)', weights.open && weights.xw == null,
       JSON.stringify(weights));
-    ok('5b and so is the brief panel\'s', weights.bw != null && weights.bw >= weights.want && weights.bw > 500,
-      JSON.stringify(weights));
+    /* RETIRED 17 Nov 2026 (#762, round 6 default 5): 5b "the brief's Why it matters is bold" — the new brief's reason is not bold, and stays so */
 
     /* ════════ 6. THE FOCUS CHIP STAYS ON ITS OWN PAGE ════════
        A real press on the room's focus door, then a real press on the rail,

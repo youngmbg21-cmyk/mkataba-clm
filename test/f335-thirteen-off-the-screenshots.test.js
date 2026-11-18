@@ -302,7 +302,8 @@ describe('f335 (8) — a hold is a per-person grant, and it is on the row menu',
     assert.match(SERVER, /addColumnIfMissing\('users', 'hold_contracts', 'INTEGER NOT NULL DEFAULT 0'\)/,
       'DEFAULT 0 — off by default');
     assert.match(SERVER, /holdContracts: !!u\.hold_contracts/, 'it rides the user row');
-    assert.match(SERVER, /ADMIN_ONLY_USER_FIELDS = \[[^\]]*'holdContracts'\]/,
+    /* RE-POINTED 17 Nov 2026: 'decideStandards' joined the list after it (the standards grant) */
+    assert.match(SERVER, /ADMIN_ONLY_USER_FIELDS = \[[^\]]*'holdContracts'[,\]]/,
       'and is stripped from a colleague\'s copy');
   });
   test('PATCH refuses a stored no on an admin and a stored yes on a viewer', () => {

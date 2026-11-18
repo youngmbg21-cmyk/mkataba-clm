@@ -45,6 +45,9 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
        a list read then counts for nobody ("7 groups for 0"). Wait for the person too. */
     await page.waitForFunction(() => typeof setView === 'function' && typeof currentUser === 'function' && !!currentUser() && window.state && state.contracts && state.contracts.length > 0, null, { timeout: 20000 });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the
+       head's List pill is the person's way to the list this file reads */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
     await page.waitForFunction(S => !!document.querySelector(S) && !!document.querySelector('#reg-tbody [data-row]'), SEAT, { timeout: 10000 }).catch(() => {});
   };
 
@@ -68,11 +71,15 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
     };
   }, SEAT);
   /* a chip, whole, inside the chip row, and the page not wider than the window */
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the chip row has no box of its own in the new look
+     (.lh-chips is display:contents), so "inside" is inside the place's head (.ct-head), the chip on ONE line */
   const chipFits = k => page.evaluate(([S, k]) => {
-    const row = document.querySelector(S + ' .lh-chips'), el = document.querySelector(`${S} [data-lh-chip="${k}"]`);
+    const row = document.querySelector('[data-reg-home] .ct-head'), el = document.querySelector(`${S} [data-lh-chip="${k}"]`);
     if (!row || !el) return null;
     const b = row.getBoundingClientRect(), r = el.getBoundingClientRect();
-    return { drawn: r.width > 0 && r.height > 0, inside: r.right <= b.right + 1 && r.bottom <= b.bottom + 1 && r.left >= b.left - 1,
+    const lh = parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.4;
+    return { drawn: r.width > 0 && r.height > 0, inside: r.right <= b.right + 1 && r.bottom <= b.bottom + 1 && r.left >= b.left - 1 && r.top >= b.top - 1,
+      oneLine: el.getClientRects().length === 1 && r.height < Math.max(lh * 1.6, 40),
       wide: document.documentElement.scrollWidth <= window.innerWidth + 1 };
   }, [SEAT, k]);
 
@@ -80,19 +87,10 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
   const d = await onHead();
   ok('the list head stands, with no chip and no labelled box', d.head && d.chips.length === 0 && d.boxes === 0, JSON.stringify(d));
   ok('Renewal is NOT drawn at rest — the owner asked for that twice', !d.chips.includes('renewal'));
-  ok('the old chooser (Adapt filters) is not drawn: + Filter is the one door to every filter', !d.adapt);
+  ok('the old chooser (Adapt filters) is not drawn', !d.adapt);
 
-  console.log('\n2 · + Filter is the catalogue');
-  const catalogue = await page.evaluate(() => REG_CT_FILTERS.slice());
-  ok('every group it offers is a filter of the catalogue', d.groups.length > 0 && d.groups.every(k => catalogue.includes(k)), d.groups.join(', ') + ' of ' + catalogue.join(', '));
-  ok('and Stage and Stream, the two the register is always asked, are offered', d.groups.includes('stage') && d.groups.includes('type'), d.groups.join(', '));
-  /* the filters' own counts, read when the list is standing — AND its filters can count (22 Oct 2026:
-     on CI they were read once in the beat the book was swapped, "7 groups for 0"); bounded */
-  await page.waitForFunction(() => regFiltered().length > 0
-    && regCtFilters().some(f => (f.opts || []).some(o => o[2] == null || o[2] > 0)), null, { timeout: 8000 }).catch(() => {});
-  const withRows = await page.evaluate(() => regCtFilters().filter(f => (f.opts || []).some(o => o[2] == null || o[2] > 0)).map(f => f.k));
-  ok('it offers every filter that has a choice with rows, and no more', JSON.stringify(withRows.slice().sort()) === JSON.stringify(d.groups.slice().sort()),
-    `${d.groups.length} groups for ${withRows.length}: ${withRows.join(', ')}`);
+  /* RETIRED 16 Nov 2026 (#762): section 2, "+ Filter offers every filter of the catalogue (Stage and Stream among them), and
+     only those with rows" — the new look's Contracts head draws no + Filter (the drawn head has none; the lead's ruling) */
 
   console.log('\n3 · a filter the reader picks is a chip');
   /* Renewal first (the filter the owner asked off the bar), else the first
@@ -104,17 +102,19 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
     return null; });
   ok('the book has a filter beyond Stage and Stream with a choice to pick', !!pick, JSON.stringify(pick));
   if (pick) {
-    await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(pick));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look draws no + Filter on the Contracts place, so the choice is made on the
+       hidden control itself (force); what this file pins — the chosen filter DRAWS — is asked unchanged below */
+    await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(pick), { force: true });
     await page.waitForFunction(([S, k]) => !!document.querySelector(`${S} [data-lh-chip="${k}"]`), [SEAT, pick[0]], { timeout: 5000 }).catch(() => {});
     const six = await chipFits(pick[0]);
-    ok('it is drawn, whole, inside the chip row', !!six && six.drawn && six.inside, JSON.stringify(six));
+    ok('it is drawn, whole, inside the head, on one line', !!six && six.drawn && six.inside && six.oneLine, JSON.stringify(six));
     ok('and choosing it never makes the page scroll sideways', !!six && six.wide);
     for (const w of [1760, 1366]) {
       await page.setViewportSize({ width: w, height: 900 });
       await page.waitForFunction(w => window.innerWidth === w, w, { timeout: 5000 }).catch(() => {});
       await page.waitForFunction(([S, k]) => !!document.querySelector(`${S} [data-lh-chip="${k}"]`), [SEAT, pick[0]], { timeout: 5000 }).catch(() => {});
       const st = await chipFits(pick[0]);
-      ok('and it still holds at ' + w, !!st && st.drawn && st.inside && st.wide, JSON.stringify(st));
+      ok('and it still holds at ' + w, !!st && st.drawn && st.inside && st.oneLine && st.wide, JSON.stringify(st));
     }
     await page.setViewportSize({ width: 1440, height: 900 });
 
@@ -127,11 +127,12 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
     console.log('\n5 · a filter that is narrowing the list can never hide');
     ok('the reading agrees it is active while its chip stands',
       await page.evaluate(k => regFilterActive(k), pick[0]));
-    ok('and + Filter no longer offers it (one door per fact)', !(await onHead()).groups.includes(pick[0]));
+    /* RETIRED 16 Nov 2026 (#762): "and + Filter no longer offers it" — no + Filter is drawn on the new look's head */
     await page.click(`${SEAT} [data-lh-x="${pick[0]}"]`).catch(() => {});
     await page.waitForFunction(k => !regFilterActive(k), pick[0], { timeout: 5000 }).catch(() => {});
     const back = await onHead();
-    ok('once it stops narrowing (its x), it goes away again, back under + Filter', !back.chips.includes(pick[0]) && back.groups.includes(pick[0]), JSON.stringify(back));
+    /* RE-POINTED 16 Nov 2026 (#762): no + Filter to go back under on the new look's head; the chip goes */
+    ok('once it stops narrowing (its x), it goes away again', !back.chips.includes(pick[0]), JSON.stringify(back));
   }
 
   console.log('\n6 · nothing else moved');

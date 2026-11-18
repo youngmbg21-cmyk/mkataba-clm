@@ -29,15 +29,18 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
     await until(P, () => !!document.getElementById('igd-input'), null, 20000);
     await P.evaluate(() => { state.aiConfigured = true; });
     await P.fill('#igd-input', '?'); await P.press('#igd-input', 'Enter');
-    const open = await until(P, () => typeof panelFace === 'function' && panelFace() === 'guide' && !!document.querySelector('.gd-row'), null, 8000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Guide is drawn by stage (.gdn, GUIDE_NL); a row
+       (.gdn-r) holds its page doors (.gdn-go[data-gd-go]) and says their words ("Say “…”", .gdn-say) */
+    const open = await until(P, () => typeof panelFace === 'function' && panelFace() === 'guide' && !!document.querySelector('.gdn-r'), null, 8000);
     check(open && brain === 0, '1 "?" opens the Guide, free', { open, calls: brain });
-    const rows = await P.evaluate(() => [...document.querySelectorAll('.gd-row')].map(r => ({ k: r.getAttribute('data-gd-go'), w: ((r.querySelector('.gd-word') || {}).textContent || '').trim() })));
+    const rows = await P.evaluate(() => [...document.querySelectorAll('.gdn-r')].map(r => ({ ks: [...r.querySelectorAll('.gdn-go[data-gd-go]')].map(b => b.getAttribute('data-gd-go')), k: (r.querySelector('.gdn-go[data-gd-go]') || { getAttribute: () => '' }).getAttribute('data-gd-go'), w: ((r.querySelector('.gdn-say') || {}).textContent || '').trim() })));
     const said = rows.filter(r => r.w);
-    const bad = await P.evaluate(R => R.filter(r => { const m = /“(.+)”/.exec(r.w); const a = m && jamboPageWordOf(m[1]); return !(a && a.place === r.k); }).map(r => r.k + ':' + r.w), said);
+    /* every quoted word on a row reads back to one of that row's pages */
+    const bad = await P.evaluate(R => R.filter(r => { const ws = [...r.w.matchAll(/“([^”]+)”/g)].map(m => m[1]); return !ws.length || ws.some(w => { const a = jamboPageWordOf(w); return !(a && r.ks.includes(a.place)); }); }).map(r => r.ks.join('+') + ':' + r.w), said);
     check(said.length >= rows.length - 1 && bad.length === 0, '2a every row with a one-word door says it, and the word reads back to that row', { n: rows.length, said: said.length, bad, none: rows.filter(r => !r.w).map(r => r.k) });
     await P.screenshot({ path: path.join(OUT, '1440x780.png') });
     /* the word typed: "negotiations" opens Negotiations */
-    const neg = rows.find(r => r.k === 'negotiations');
+    const neg = rows.find(r => r.ks.length === 1 && r.k === 'negotiations');
     if (neg){
       await P.evaluate(() => { if (typeof closeContextPanel === 'function') closeContextPanel(); setView('counter'); });
       await until(P, () => !!document.getElementById('igd-input'), null, 8000);
@@ -47,11 +50,14 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
     }
     for (const [ww, hh] of [[1536, 730], [1366, 950]]){
       await P.setViewportSize({ width: ww, height: hh });
-      await P.evaluate(() => { if (typeof openPanel === 'function') openPanel('guide'); });
-      await until(P, () => !!document.querySelector('.gd-row .gd-word'), null, 6000);
+      /* the Guide is opened unless it already stands on screen (a second open would shut it: press it again and it closes) */
+      await P.evaluate(() => { const g = document.querySelector('#context-panel .gdn-r'); const on = !!g && g.getBoundingClientRect().left < innerWidth && g.getBoundingClientRect().width > 0;
+        if (typeof openPanel === 'function' && !(typeof panelFace === 'function' && panelFace() === 'guide' && on)) openPanel('guide'); });
+      await until(P, () => { const g = document.querySelector('#context-panel .gdn'); if (!g) return false; const r = g.getBoundingClientRect(); return r.width > 0 && r.right <= innerWidth + 1 && !document.getAnimations().some(a => a.playState === 'running'); }, null, 4000);
+      await until(P, () => !!document.querySelector('.gdn-r .gdn-say'), null, 6000);
       const fit = await P.evaluate(() => { const pn = document.getElementById('context-panel'); const R = pn && pn.getBoundingClientRect();
-        const out = [...document.querySelectorAll('.gd-word')].filter(e => { const r = e.getBoundingClientRect(); return r.right > R.right + 1 || r.height > 22; }).length;
-        return { out, side: document.documentElement.scrollWidth > innerWidth }; });
+        const out = [...document.querySelectorAll('.gdn-say')].filter(e => { const r = e.getBoundingClientRect(); return r.right > R.right + 1 || r.height > 22; }).length;
+        return { out, side: document.documentElement.scrollWidth > innerWidth, which: [...document.querySelectorAll(".gdn-say")].map(e => { const r = e.getBoundingClientRect(); return [e.textContent, Math.round(r.right), Math.round(R.right), Math.round(r.height)]; }).filter(x => x[1] > x[2] + 1 || x[3] > 22) }; });
       check(fit.out === 0 && !fit.side, `3 ${ww}×${hh}: every word line inside the panel, on one line, nothing sideways`, fit);
       await P.screenshot({ path: path.join(OUT, `${ww}x${hh}.png`) });
     }

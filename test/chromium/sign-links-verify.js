@@ -334,8 +334,17 @@ const ROUTE = [
       if (!b) return { there: false };
       const r = b.getBoundingClientRect();
       const card = document.getElementById('sign-check');
-      return { there: true, disabled: b.disabled, label: b.textContent.replace(/\s+/g, ' ').trim(),
-        w: Math.round(r.width), h: Math.round(r.height), holds: b.getAttribute('data-sign-holds'),
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Before you sign is drawn as its five parts; what a
+         reader sees and presses while something holds is the face's one act at its foot (the first open check's own
+         door, or the held Sign with how many are left), under a headline counting what holds. The old Sign button's
+         holds count is still the one list's (signReadiness) and is read off it. */
+      const g = document.querySelector('#pd-signface .pd2-sg');
+      const last = g && g.lastElementChild; const act = last && (last.matches('button') ? last : last.querySelector('button'));
+      const ar = act ? act.getBoundingClientRect() : r;
+      const head = g && g.querySelector('.jov5-title');
+      return { there: true, disabled: act ? act.disabled : b.disabled, label: act ? (head ? head.textContent.trim() + ' | ' : '') + act.textContent.replace(/\s+/g, ' ').trim() : b.textContent.replace(/\s+/g, ' ').trim(),
+        nl: !!g, title: head ? head.textContent.trim() : '',
+        w: Math.round(ar.width), h: Math.round(ar.height), holds: b.getAttribute('data-sign-holds'),
         rows: card ? card.querySelectorAll('.sc-find.is-hold').length : 0,
         card: card ? card.textContent.replace(/\s+/g, ' ') : '' };
     });
@@ -347,8 +356,9 @@ const ROUTE = [
     check('the Sign button is on the screen and says what holds before the press',
       blocked.there && blocked.disabled === false && blocked.w > 100 && Number(blocked.holds) > 0,
       `${blocked.label} · ${blocked.w}x${blocked.h} holds=${blocked.holds}`);
+    /* RE-POINTED 16 Nov 2026 (#762): the obstacle is worn by the face's headline ("N things before anyone can sign") */
     check('and it wears the obstacle rather than the promise',
-      /^Sign — \d+ to settle/.test(blocked.label || ''), blocked.label);
+      blocked.nl ? /\d+ things? before anyone can sign/i.test(blocked.title) : /^Sign — \d+ to settle/.test(blocked.label || ''), blocked.label);
     check('with the whole list above it, a row per thing to settle',
       Number(blocked.rows) === Number(blocked.holds) && Number(blocked.rows) > 0,
       `${blocked.rows} holding rows on the card · ${(blocked.card || '').slice(0, 100)}`);
@@ -431,7 +441,7 @@ const ROUTE = [
        every one ticked, each naming its signer and that they signed — it says
        the contract is executed, in VISIBLE words, and nothing in it presses. */
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), execId);
-    await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf.is-closed[data-pd-sf="${id}"] [data-pd-road-stop]`), execId, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf.is-closed[data-pd-sf="${id}"] .pd2-sg-r, #pd-signface .pd-sf.is-closed[data-pd-sf="${id}"] [data-pd-road-stop]`), execId, { timeout: 8000 }).catch(() => {});
     const closed = await page.evaluate(id => {
       const face = document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`);
       const road = face && face.querySelector('[data-pd-road]');
@@ -439,8 +449,11 @@ const ROUTE = [
       const c = state.contracts.find(x => x.id === id);
       const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
-      const stops = road ? [...road.querySelectorAll('[data-pd-road-stop]')] : [];
-      const said = stops.filter(x => /^step/.test(x.getAttribute('data-pd-road-stop')))
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the record of how it was signed is the five-part
+         face's rows (.pd2-sg-r): every one ticked, a row per side naming its signers and that they signed */
+      const rows5 = face ? [...face.querySelectorAll('.pd2-sg .pd2-sg-r')] : [];
+      const stops = rows5.length ? rows5 : road ? [...road.querySelectorAll('[data-pd-road-stop]')] : [];
+      const said = (rows5.length ? rows5 : stops.filter(x => /^step/.test(x.getAttribute('data-pd-road-stop'))))
         .map(x => (x.innerText || '').replace(/\s+/g, ' ').trim());
       const names = (c.signerPlan || []).map(x => x.name);
       /* whatever of the record a reader can SEE: the road, and the column if drawn */

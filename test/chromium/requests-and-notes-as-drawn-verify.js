@@ -100,70 +100,90 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await note({ title: 'The NDA must cover shelf data', body: 'Shelf data too.', reviewBy: day(1) });
     await note({ title: "Check Nandi Dairy's insurance broker", body: 'Check the broker before we accept a higher cap in clause 7.', contractId: 'MK-A2', reviewBy: day(0) });
 
-    /* ---- 1 · REQUESTS: the list head, the page head, the list ---- */
+    /* ---- 1 · REQUESTS: the page head, the box and the tabs, the list ----
+       RE-POINTED 17 Nov 2026 (the new look is the only look, #762; the owner's ruling 3, 17 Nov 2026: Requests is
+       drawn as round 6 drew it, approved "Approve round 6"): ONE card (.ikn-page .apn-card) — its head "Requests ·
+       4 open · 2 need an editor" with + New request, the bar under it (the box #ikn-q and the tabs Open · Mine · …),
+       one table (.ikn-table, rows tr[data-ikn-row]) and the foot "4 requests" under the rows; Jambo's panel
+       (#ins-panel) beside it to the same foot.
+       RETIRED 17 Nov 2026 (#762, owner's ruling 3): + Filter under the tabs (round 6 draws none), "· advice too" in the
+       head (advice lives under its own Advice tab), and 1c "oldest waiting first" (the owner: the oldest-first order
+       stays gone) */
     await page.evaluate(() => setView('intake'));
-    const listed = await until(() => document.querySelectorAll('.ik-lt [data-ik-row]').length === 4 ? true : null, null, 10000);
+    const listed = await until(() => document.querySelectorAll('.ikn-table [data-ikn-row]').length === 4 ? true : null, null, 10000);
     check('1 the four requests are listed', !!listed);
-    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
-       every list page): round 20's band — the tabs with Request · Stream ·
-       With beside them — is the list head now: the box under the page's
-       head, the tabs under it, + Filter in the chip row under them; the list
-       card's own head is gone, its words the tabs' hovers; the foot "1–4 of 4" */
     const B = await page.evaluate(() => {
-      const lh = document.querySelector('[data-lh-seat="intake"]');
-      const q = lh && lh.querySelector('input[data-lh-q]'), tabs = lh && lh.querySelector('[role="tablist"]'), add = lh && lh.querySelector('.lh-add');
+      const pg = document.querySelector('.ikn-page');
+      const head = pg && pg.querySelector('.cun-head'), bar = pg && pg.querySelector('.apn-bar'), q = document.getElementById('ikn-q');
+      const tabs = pg ? [...pg.querySelectorAll('.apn-bar [data-ikn-tab]')] : [];
       const box = el => el && el.getBoundingClientRect();
-      const open = lh && lh.querySelector('[data-ik-view="open"]');
-      const facts = document.getElementById('page-head-facts');
-      const card = document.querySelector('.ik-ins .ins-card'), foot = document.querySelector('[data-ik-foot]');
-      const rows = [...document.querySelectorAll('.ik-lt [data-ik-row]')];
-      return { stacked: !!(q && tabs && add) && box(q).bottom <= box(tabs).top + 1 && box(tabs).bottom <= box(add).top + 1,
-        gone: [...document.querySelectorAll('.ik-tabbar, .ik-fb, .ins-cardhead')].length,
-        head: facts ? [...facts.children].map(e => e.textContent.trim()) : null,
-        order: rows.map(r => r.querySelector('.ins-c2 b').textContent),
-        cardNote: open ? open.getAttribute('title') : '',
-        foot: foot ? foot.textContent.trim() : '', footUnder: !!(foot && rows.length && box(foot).top - box(rows[rows.length - 1]).bottom < 4),
-        cardEnds: !!card && box(card).bottom < innerHeight - 60,
-        /* ONE SHEET (owner, 29 Oct 2026): the foot sits inside the card, under the rows, and the card reaches the foot of Jambo's panel */
-        footIn: !!(foot && card && rows.length && box(foot).top >= box(rows[rows.length - 1]).bottom - 1 && box(foot).bottom <= box(card).bottom + 1),
-        panelFoot: (() => { const p = document.getElementById('ins-panel'); return p && card && p.getClientRects().length ? Math.round(box(p).bottom - box(card).bottom) : null; })(),
-        sheetGap: lh && card ? Math.round(box(card).top - box(lh).bottom) : null };
+      const card = pg && pg.querySelector('.apn-card'), foot = pg && pg.querySelector('.apn-foot');
+      const rows = [...document.querySelectorAll('.ikn-table [data-ikn-row]')];
+      const hb = box(head), bb = box(bar), qb = box(q);
+      return { stacked: !!(hb && bb && qb && tabs.length) && hb.bottom <= bb.top + 1 && bar.contains(q)
+          && tabs.every(t => { const r = box(t); return r.top < qb.bottom && r.bottom > qb.top && r.left >= qb.right; }),
+        gone: [...document.querySelectorAll('.ik-tabbar, .ik-fb, .ins-cardhead, [data-lh-seat="intake"]')].length,
+        title: head ? (head.querySelector('.ctf-h') || {}).textContent : null,
+        head: head ? (head.querySelector('.ctf-hf') || {}).textContent : null,
+        foot: foot ? foot.textContent.trim() : '',
+        footIn: !!(foot && card && rows.length && card.contains(foot) && box(foot).top >= box(rows[rows.length - 1]).bottom - 1 && box(foot).bottom <= box(card).bottom + 1),
+        panelFoot: (() => { const p = document.getElementById('ins-panel'); return p && card && p.getClientRects().length ? Math.round(box(p).bottom - box(card).bottom) : null; })() };
     });
-    check('1a the list head: the box, the tabs under it, + Filter under them; no labelled band, no card head', B.stacked && B.gone === 0, JSON.stringify({ stacked: B.stacked, gone: B.gone }));
-    check('1b the head: "4 open · what colleagues ask Legal for · advice too"', JSON.stringify(B.head) === '["4 open","what colleagues ask Legal for · advice too"]', JSON.stringify(B.head));
-    check('1c oldest waiting first, as the Open tab says on hover', B.order[0] === 'Event venue booking, March kick-off' && B.order[3] === 'Mutual NDA with Naivas Supermarkets'
-      && /oldest waiting first/.test(B.cardNote), JSON.stringify({ order: B.order, note: B.cardNote }));
-    /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — the list card reaches the foot of Jambo's panel; REVERSES "the card ends after its rows") */
-    check('1d one sheet: the card meets the head and reaches the foot of Jambo\'s panel, "1–4 of 4" inside it under the rows',
-      B.foot === '1–4 of 4' && B.footIn && B.panelFoot != null && Math.abs(B.panelFoot) <= 2 && B.sheetGap != null && Math.abs(B.sheetGap) <= 1,
-      JSON.stringify({ foot: B.foot, footIn: B.footIn, panelFoot: B.panelFoot, sheetGap: B.sheetGap }));
+    check('1a the page head, then ONE bar: the box with the tabs beside it on its row; no old band, no list head', B.stacked && B.gone === 0, JSON.stringify({ stacked: B.stacked, gone: B.gone }));
+    check('1b the head: "Requests · 4 open · 2 need an editor"', B.title === 'Requests' && B.head === '4 open · 2 need an editor', JSON.stringify({ title: B.title, head: B.head }));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3): 1c "oldest waiting first" — the oldest-first order stays gone */
+    /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — the list card reaches the foot of Jambo's panel; REVERSES "the card ends after its rows")
+       RE-POINTED 17 Nov 2026 (#762): the head is inside the card now, so the card meets no separate head; the foot says "4 requests" */
+    check('1d one sheet: "4 requests" inside the card under the rows, the card reaching the foot of Jambo\'s panel',
+      B.foot === '4 requests' && B.footIn && B.panelFoot != null && Math.abs(B.panelFoot) <= 2,
+      JSON.stringify({ foot: B.foot, footIn: B.footIn, panelFoot: B.panelFoot }));
 
-    /* ---- 2 · the request in Jambo's panel ---- */
-    await press(`.ik-lt [data-ik-row="${r1.id}"]`);
+    /* ---- 2 · the request in Jambo's panel ----
+       RE-POINTED 17 Nov 2026 (#762; ruling 3, round 6 as drawn): the chosen row's panel is .pd2-chosen — one sentence
+       naming the request and the paper that fits, "In their words" (her words whole), "Read from the ask" (Party ·
+       Stream · Paper · Files, each with where it was read), and its doors. Who holds it is the row's Where it stands
+       ("With <first name>").
+       RETIRED 17 Nov 2026 (#762, owner's ruling 3; round 3: "promised-by date" stays gone): the pills Routine and the
+       ⋯ at their end (round 6 draws none) and "Promise a day" */
+    await press(`.ikn-table [data-ikn-row="${r1.id}"]`);
     const P = await until(id => { const p = document.querySelector('#ins-panel.is-jambo'); if (!p || p.getAttribute('data-ins-id') !== id) return null;
-      const verbs = [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')];
-      const tops = new Set(verbs.map(b => Math.round(b.getBoundingClientRect().top)));
       const pr = p.getBoundingClientRect();
-      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, eb: (p.querySelector('.ins-eb') || {}).textContent,
-        pills: [...p.querySelectorAll('.jl-pills .ik-road, .jl-pills .ik-with-chip')].map(e => e.textContent.trim()), more: !!p.querySelector('.jl-pills [data-ins-more]'),
-        verbs: verbs.map(b => b.textContent.trim()), oneLine: tops.size === 1, inside: verbs.every(b => b.getBoundingClientRect().right <= pr.right + 1),
-        quote: (p.querySelector('.ik-ask-q') || {}).textContent, rows: [...p.querySelectorAll('.ik-rows dt')].map(e => e.textContent.trim()),
-        cp: (p.querySelector('[data-ins-fact="cp"] dd') || {}).textContent, files: (p.querySelector('.ik-files h3') || {}).textContent,
-        file: (p.querySelector('.ik-file-b span') || {}).textContent, fit: (p.querySelector('.ik-fit .jl-bub b') || {}).textContent };
+      /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): the chosen request's panel is the five parts —
+         the request's title as the serif headline (.jov5-title), the ask quoted (.jov5-row.is-quote), each fact a row
+         labelled under its value ("Party", "NDA · to do", "Files · … added by …"), Start the draft the black button
+         with Hand back beside it (.jov5-acts). Every word main brought back on 17 Nov stands. */
+      const doors = [...p.querySelectorAll('.jov5-acts button')];
+      const row = document.querySelector(`.ikn-table [data-ikn-row="${id}"]`), cells = row ? [...row.children] : [];
+      const ths = [...document.querySelectorAll('.ikn-table thead th')].map(t => t.textContent.trim());
+      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, head: (p.querySelector('.jov5-title') || {}).textContent,
+        stands: cells[ths.indexOf('Where it stands')] ? cells[ths.indexOf('Where it stands')].textContent.replace(/\s+/g, ' ').trim() : '',
+        text: p.innerText.replace(/\s+/g, ' '),
+        doors: doors.map(b => b.textContent.trim()), inside: doors.every(b => b.getBoundingClientRect().right <= pr.right + 1 && b.scrollWidth <= b.clientWidth + 1),
+        quote: (p.querySelector('.jov5-row.is-quote .jov5-rt b') || {}).textContent,
+        rows: Object.fromEntries([...p.querySelectorAll('.jov5-row')].filter(r => r.querySelector('.jov5-rt > span') && !r.classList.contains('is-quote'))
+          .map(r => [String(r.querySelector('.jov5-rt > span').textContent).split(' \u00b7 ')[0], (r.querySelector('.jov5-rt b') || {}).textContent])) };
     }, r1.id);
-    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
-    check('2a no word in his head; the reference line, Routine and "With you · by the NDA lane"; the ⋯ at the pills\' end', !!P && !P.word
-      && /from Wanjiru Kamau · Sales/.test(P.eb) && JSON.stringify(P.pills) === '["Routine","With you · by the NDA lane"]' && P.more, P && JSON.stringify({ eb: P.eb, pills: P.pills, more: P.more }));
-    check('2b Start the draft · Promise a day · Hand back on one line, whole', !!P && JSON.stringify(P.verbs) === '["Start the draft","Promise a day","Hand back"]' && P.oneLine && P.inside, P && JSON.stringify(P.verbs));
-    check('2c her words quoted, the rows, "no NDA with them today", Attachments 1 of 3 with who added it', !!P && /^“Naivas want/.test(P.quote)
-      && JSON.stringify(P.rows) === '["Counterparty","Stream","How it is handled","With","Asked"]' && /no NDA with them today/.test(P.cp)
-      && /1 of 3/.test(P.files) && /added by Wanjiru/.test(P.file), P && JSON.stringify({ rows: P.rows, cp: P.cp, files: P.files, file: P.file }));
-    /* re-pointed 19 Oct 2026 (second pass): the name the New agreement form lists it under */
-    check('2d Jambo names the paper that fits, read without a call', !!P && /^NDA$/.test(P.fit || '') && aiCalls.length === 0, JSON.stringify({ fit: P && P.fit, ai: aiCalls }));
+    const meFirst = String(me.name || '').split(/\s+/)[0];
+    check('2a no word in his head; the panel names the request; the row says who holds it ("With <first name>")', !!P && !P.word
+      && /^Mutual NDA with Naivas Supermarkets/.test(P.head || '') && P.stands.startsWith('With ' + meFirst), P && JSON.stringify({ head: P.head, stands: P.stands }));
+    /* KEPT AS IT WAS PROMISED (question for the owner, R2-Q4): the lane that sent the request to the reader */
+    check('2a+ the panel says the lane that sent it ("by the NDA lane")', !!P && /NDA lane/.test(P.text), P && P.text.slice(0, 240));
+    /* KEPT: Hand back (the decline with its reason) is an act the old panel carried and the new one does not draw — a question for the owner */
+    check('2b Start the draft and Hand back, each whole, inside the panel', !!P && JSON.stringify(P.doors) === '["Start the draft","Hand back"]' && P.inside, P && JSON.stringify(P.doors));
+    /* RE-POINTED 17 Nov 2026 (the owner's picks on the drawings, "2 Bring it back"): the NDA line stands under the party,
+       and each file is its own row by name, who added it beside it */
+    check('2c her words whole; Party · NDA · Stream · Paper · Files read from the ask, the one file by name', !!P && /^Naivas want/.test(P.quote || '') && /standard one\?$/.test(P.quote || '')
+      && JSON.stringify(Object.keys(P.rows)) === '["Party","NDA","Stream","Paper","Files"]' && P.rows.Party === 'Naivas Supermarkets' && /pilot-brief\.pdf/.test(P.rows.Files || ''), P && JSON.stringify({ quote: (P.quote || '').slice(0, 40), rows: P.rows }));
+    /* KEPT AS IT WAS PROMISED (question for the owner): "no NDA with them today" beside the party, and who added each attachment */
+    check('2c+ "no NDA with them today" and who added the file', !!P && /no NDA with them today/.test(P.text) && /added by Wanjiru/.test(P.text), P && P.text.slice(0, 300));
+    /* re-pointed 19 Oct 2026 (second pass): the name the New agreement form lists it under
+       RE-POINTED 17 Nov 2026 (#762): the panel's Paper row and its sentence */
+    check('2d Jambo names the paper that fits, read without a call', !!P && P.rows.Paper === 'NDA' && aiCalls.length === 0, JSON.stringify({ fit: P && P.rows.Paper, ai: aiCalls }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-requests-1440x780.png') });
 
     /* ---- 3 · Start the draft ---- */
-    await press('#ins-panel [data-ins-act="draft"]');
+    /* RE-POINTED 17 Nov 2026 (#762): the panel's door is [data-ikn-draft] */
+    await press('#ins-panel [data-ikn-draft]');
     /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the chosen paper is
        the sheet's card — its name in the head, the list put away — not a lit
        row; the sheet carries no crumb (the bar names New agreement) and its
@@ -179,133 +199,145 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     check('3b the sheet stands in front: its chosen paper and Create are painted, not under Jambo\'s panel', O.pick && O.create !== false, JSON.stringify(O));
     const BK = await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); const n = document.getElementById('na-card-name');
       return { back: b ? b.textContent.trim() : null, name: n ? n.textContent.trim() : null }; });
-    check('3c the sheet names the paper as Jambo said, with Cancel to go back', !!P && BK.name === P.fit && BK.back === 'Cancel', JSON.stringify(BK));
+    check('3c the sheet names the paper as Jambo said, with Cancel to go back', !!P && BK.name === P.rows.Paper && BK.back === 'Cancel', JSON.stringify(BK));
     if (BK.back) { await press('#wz-pick-cancel'); await until(() => !document.getElementById('na-root') && state.view === 'intake' ? true : null, null, 4000); }
-    check('3d Cancel goes back to Requests', await page.evaluate(() => !document.getElementById('na-root') && state.view === 'intake'));
+    check('3d Cancel goes back to Requests', !!S && await page.evaluate(() => !document.getElementById('na-root') && state.view === 'intake'));
     await page.keyboard.press('Escape').catch(() => {});
     await until(() => !document.getElementById('na-root'), null, 4000);
     await page.evaluate(() => { if (document.getElementById('na-root')) { const b = document.querySelector('#modal-root [data-dlg-cancel], #na-cancel'); if (b) b.click(); } });
     await until(() => !document.getElementById('na-root'), null, 4000);
 
-    /* ---- 4 · the counterparty's door ---- */
+    /* ---- 4 · the counterparty's door ----
+       KEPT AS IT WAS PROMISED (question for the owner): the party's name in the request's panel is a door to their
+       contracts (data-ik-cp → cuOpenCustomer); the new panel prints it as plain words */
     await page.evaluate(() => setView('intake'));
+    await press(`.ikn-table [data-ikn-row="${r1.id}"]`);
     await until(id => document.querySelector('#ins-panel.is-jambo') && document.querySelector('#ins-panel').getAttribute('data-ins-id') === id ? true : null, r1.id);
-    await press('#ins-panel [data-ik-cp]');
+    await press('#ins-panel [data-ik-cp], #ins-panel [data-ikn-cp]');
     const C = await until(() => { const el = document.querySelector('.is-landed, .is-landed-held'); return el && /Naivas/.test(document.body.innerText) && (state.view !== 'intake') ? { view: state.view, lit: el.className } : null; });
     check('4 the counterparty\'s name lands on their contracts', !!C, JSON.stringify(C));
 
-    /* ---- 5 · a finger on + Filter (re-pointed 21 Oct 2026, Part 8: Stream
-       is offered under + Filter, the list head's one list of filters) ---- */
-    await page.evaluate(() => setView('intake'));
-    await until(() => document.querySelector('[data-lh-seat="intake"] select[data-lh-add]') ? true : null);
-    const T = await page.evaluate(async () => {
-      const sel = document.querySelector('[data-lh-seat="intake"] select[data-lh-add]');
-      if (!sel) return { menus: 0, missing: true };
-      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-      const r = sel.getBoundingClientRect();
-      sel.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch', clientX: r.x + 5, clientY: r.y + 5 }));
-      await new Promise(z => setTimeout(z, 200));
-      const menus = document.querySelectorAll('.hati-selmenu').length;
-      const a = document.activeElement;
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      return { menus, focusedSelect: !!(a && a.tagName === 'SELECT') };
-    });
-    check('5 a finger on + Filter opens HaTi\'s one list, the box not focused', T.menus === 1 && !T.focusedSelect, JSON.stringify(T));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 3: Requests as round 6 drew it): 5 "a finger on + Filter opens HaTi's
+       one list" — the new Requests page draws no + Filter and no dropdown at all (the one-dropdown rule is guarded
+       on the pages that still have one) */
 
-    /* ---- 6 · MY NOTES ---- */
+    /* ---- 6 · MY NOTES ----
+       RE-POINTED 17 Nov 2026 (#762; My notes as round 6 drew it, approved "Approve round 6"): ONE card (#mn-page) —
+       "My notes · Private · 5 notes · 1 due", the box #mnn-q and the tabs All · Due · Reviewed, one table
+       (.mnn-table: Note · Contract · Due · its one word); the chosen note is Jambo's five parts in #ins-panel.
+       RETIRED 17 Nov 2026 (#762, round 6 as drawn): the Later tab and Contract under + Filter (round 6 draws the box
+       and three tabs only) */
     await page.evaluate(() => mineLoad(true).then(() => setView('mynotes')));
-    const N = await until(() => { const p = document.querySelector('#ins-panel.is-jambo'); const rows = document.querySelectorAll('.mn-t [data-mn-row]');
-      if (!p || rows.length !== 5) return null;
-      const verbs = [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')]; const tops = new Set(verbs.map(b => Math.round(b.getBoundingClientRect().top)));
-      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, title: (document.querySelector('.mn-t1') || {}).textContent, n: (document.querySelector('.mn-hn') || {}).textContent,
-        tabs: [...document.querySelectorAll('[data-mn-tab]')].map(b => b.firstChild.textContent + (b.querySelector('.n') && !b.querySelector('.n').hidden ? ' ' + b.querySelector('.n').textContent : '')),
-        /* RE-POINTED (Part 8, the owner's pick of "The Legora way", 21 Oct
-           2026): the labelled boxes Note · Contract became the list head's
-           one box and Contract under its "+ Filter" */
-        boxes: [document.querySelector('.mn-band[data-lh-seat="mynotes"] input[data-lh-q]') ? 'box' : '', ...[...document.querySelectorAll('.mn-band [data-lh-add] optgroup')].map(g => g.label)],
-        pills: [...document.querySelectorAll('.mn-t [data-mn-row] .mn-pill')].map(e => e.textContent.trim()),
-        verbs: verbs.map(b => b.textContent.trim()), oneLine: tops.size === 1, del: !!p.querySelector('[data-mn-act="delete"]'),
-        review: (p.querySelector('[data-ins-fact="review"] dd') || {}).textContent };
+    const N = await until(() => { const p = document.querySelector('#ins-panel.is-jambo'); const rows = [...document.querySelectorAll('.mnn-table [data-mn-row]')];
+      if (!p || rows.length !== 5 || !p.querySelector('.mnn5')) return null;
+      const pr = p.getBoundingClientRect();
+      const ths = [...document.querySelectorAll('.mnn-table thead th')].map(t => t.textContent.trim());
+      const due = rows.map(r => { const td = r.children[ths.indexOf('Due')]; return td ? td.textContent.trim() : ''; });
+      const verbs = [...p.querySelectorAll('[data-mn-act]')];
+      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, title: (document.querySelector('#mn-page .ctf-h') || {}).textContent, facts: (document.querySelector('#mn-page .ctf-hf') || {}).textContent,
+        tabs: [...document.querySelectorAll('[data-mnn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+        box: !!document.querySelector('#mn-page .apn-bar #mnn-q'), due, todayAmber: !!(rows[0] && rows[0].querySelector('.mnn-due')),
+        last: rows[4] ? rows[4].textContent.replace(/\s+/g, ' ').trim() : '',
+        verbs: verbs.map(b => [b.getAttribute('data-mn-act'), b.textContent.replace(/\s+/g, ' ').trim()]),
+        whole: verbs.every(b => b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().right <= pr.right + 1),
+        text: p.innerText.replace(/\s+/g, ' ') };
     }, null, 10000);
-    check('6a My notes: the head, the tabs, the box and Contract under + Filter, the review pills as drawn', !!N && N.title === 'My notes' && N.n === '5'
-      && JSON.stringify(N.tabs) === '["All 5","Due today 1","Later 2","Reviewed 1"]' && JSON.stringify(N.boxes) === '["box","Contract"]'
-      && N.pills[0] === 'Review today' && /^Review \S+ \d/.test(N.pills[1]) && N.pills[3] === 'No review day' && /^Reviewed/.test(N.pills[4]), N && JSON.stringify({ tabs: N.tabs, boxes: N.boxes, pills: N.pills }));
-    check('6b the note in Jambo\'s panel (no word beside the tabs): three verbs on one line, Review "Today, … · in your bell", Delete note', !!N && !N.word
-      && /^Mark reviewed,Snooze a week,Open MK-A2$/.test(N.verbs.join(',')) && N.oneLine && /^Today, .* · in your Alerts$/.test(N.review) && N.del, N && JSON.stringify({ verbs: N.verbs, review: N.review }));
+    check('6a My notes: the head, the box and the tabs, the due column as drawn', !!N && N.title === 'My notes' && N.facts === 'Private · 5 notes · 1 due'
+      && JSON.stringify(N.tabs) === '["All 5","Due 1","Reviewed 1"]' && N.box
+      && N.due[0] === 'Today' && N.todayAmber && /^\d+ \S+$/.test(N.due[1]) && N.due[3] === '—' && /reviewed \d+ \S+/.test(N.last) && /Review again$/.test(N.last),
+      N && JSON.stringify({ facts: N.facts, tabs: N.tabs, due: N.due, last: N.last }));
+    /* RE-POINTED 17 Nov 2026 (#762): the note's verbs are the five parts' — the review row ("Review today · It rings
+       your bell…"), the contract's row (its door), ONE black Mark reviewed, Delete note a quiet link; each whole */
+    check('6b the note in Jambo\'s panel (no word beside the tabs): Review today ringing the bell, Open its contract, Mark reviewed, Delete note, each whole', !!N && !N.word
+      && /Review today It rings your bell until you mark it reviewed/.test(N.text)
+      && N.verbs.some(v => v[0] === 'open' && /MK-A2/.test(v[1])) && N.verbs.some(v => v[0] === 'reviewed' && v[1] === 'Mark reviewed') && N.verbs.some(v => v[0] === 'delete' && v[1] === 'Delete note') && N.whole,
+      N && JSON.stringify({ verbs: N.verbs, text: N.text.slice(0, 200) }));
+    /* KEPT AS IT WAS PROMISED (question for the owner): Snooze a week, which the old panel carried */
+    check('6b+ the note offers Snooze a week', !!N && N.verbs.some(v => v[0] === 'snooze'), N && JSON.stringify(N.verbs));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-mynotes-1440x780.png') });
     await press('#ins-panel [data-jl-home]');
-    const J = await until(() => { const b = document.querySelector('#ins-panel :is(.jl-bub, .jov-head, .jov-v)'); return b ? { say: b.textContent.trim(), chips: [...document.querySelectorAll('#ins-panel :is(.jl-chip, .jov-lnk.is-ask)')].map(c => c.textContent.trim()) } : null; });
-    check('6c ‹ Jambo: the ledger in his words, counted, with its two doors', !!J && /^You have 5 notes, private to you\. 1 is due today\. 2 come up later\./.test(J.say)
-      && JSON.stringify(J.chips.map(c => c.toLowerCase())) === '["the ones due today","new note"]', JSON.stringify(J)); /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "Yes, every page"): his words are the Overview's head, his offers verb first with a capital */
-    await press('#ins-panel :is(.jl-chip, .jov-lnk.is-ask)');
-    const L = await until(() => { const el = document.querySelector('.mn-t [data-mn-row].is-landed, .mn-t [data-mn-row].is-landed-held'); const on = document.querySelector('[data-mn-tab].on');
-      return el && on ? { lit: el.getAttribute('data-mn-row'), tab: on.getAttribute('data-mn-tab'), rows: document.querySelectorAll('.mn-t [data-mn-row]').length } : null; });
+    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "Yes, every page"): his words are the Overview's head
+       RE-POINTED 17 Nov 2026 (#762; THE FIVE PARTS): the headline and line (.jov5-title, .jov5-sub), the three tiles
+       (5 notes · 1 back today · 2 later), and its two doors: New note (the black button) and the ones due today */
+    const J = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title'); if (!t || p.querySelector('.mnn5')) return null;
+      return { say: [t.textContent.trim(), ((p.querySelector('.jov5-sub') || {}).textContent || '').trim()].join(' '),
+        tiles: [...p.querySelectorAll('.jov5-g')].map(g => g.innerText.replace(/\s+/g, ' ').trim()),
+        chips: [...p.querySelectorAll('.jov5-go, .jov-lnk')].map(c => c.textContent.trim()) }; });
+    check('6c ‹ Overview: the ledger in his words, counted, with its two doors', !!J && /^You have 5 notes, private to you\. 1 is due today\./.test(J.say)
+      && JSON.stringify(J.tiles) === '["5 notes","1 back today","2 later"]'
+      && JSON.stringify(J.chips.map(c => c.toLowerCase())) === '["new note","the ones due today"]', JSON.stringify(J));
+    await press('#ins-panel .jov-lnk');
+    const L = await until(() => { const el = document.querySelector('.mnn-table [data-mn-row].is-landed, .mnn-table [data-mn-row].is-landed-held, .mnn-table [data-mn-row].is-sel'); const on = document.querySelector('[data-mnn-tab].is-on');
+      return el && on && on.getAttribute('data-mnn-tab') === 'today' ? { lit: el.getAttribute('data-mn-row'), tab: on.getAttribute('data-mnn-tab'), rows: document.querySelectorAll('.mnn-table [data-mn-row]').length } : null; });
     check('6d "the ones due today" turns the tab and lands on its row', !!L && L.tab === 'today' && L.rows === 1, JSON.stringify(L));
-    await page.evaluate(() => { const t = document.querySelector('[data-mn-tab="all"]'); if (t) t.click(); });
+    await page.evaluate(() => { const t = document.querySelector('[data-mnn-tab="all"]'); if (t) t.click(); });
 
     /* ---- 7 · the owner's three screens ---- */
     /* SECOND PASS (19 Oct 2026): the band's row is measured by overlap, not
        by a top within 24px (that passed a band broken onto two rows), its
-       labels must read whole, and the round runs again in Svenska */
+       labels must read whole, and the round runs again in Svenska
+       RE-POINTED 17 Nov 2026 (#762): both pages are one card — the head, then ONE bar where the box and the tabs
+       share a row (measured by overlap), no tab cut, no column head cut, and the chosen row's doors in Jambo's
+       panel whole and inside it (the five parts stack them, so no "one line") */
     for (const lang of ['en', 'sv']) {
     if (lang === 'sv') await page.evaluate(() => { if (typeof langSet === 'function') langSet('sv'); });
-    for (const [view, sel] of [['intake', '.ik-lt'], ['mynotes', '.mn-t']]) {
+    for (const [view, sel] of [['intake', '.ikn-table'], ['mynotes', '.mnn-table']]) {
       await page.evaluate(v => setView(v), view);
       await until(s => document.querySelector(s) ? true : null, sel);
-      if (view === 'intake') await press(`.ik-lt [data-ik-row="${r1.id}"]`);
-      else await press('.mn-t [data-mn-row]');
+      if (view === 'intake') await press(`.ikn-table [data-ikn-row="${r1.id}"]`);
+      else await press('.mnn-table [data-mn-row]');
       for (const [w, ht] of SCREENS) {
         await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(450);
         const F = await page.evaluate(s => {
-          /* RE-POINTED 21 Oct 2026 (Part 8): Requests' band is the list head —
-             its rows stacked (the box, the tabs, the chips), none cut sideways */
-          const lh = s === '.ik-lt' ? document.querySelector('[data-lh-seat="intake"]') : null;
-          const tabs = lh ? lh.querySelector('[role="tablist"]') : document.querySelector('.reg-tabbar .reg-views'), fb = lh ? lh.querySelector('.lh-chips') : document.querySelector('.reg-tabbar .ik-fb');
-          const tr = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
-          /* both list-head pages (Requests and My notes): box, tabs and chips stand as
-             three rows in that order, nothing cut sideways (Part 8, 21 Oct 2026) */
-          const lhAny = document.querySelector('[data-lh-seat]');
-          const labelsCut = [...document.querySelectorAll('.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab, .ik-tabbar .reg-f-v, [data-lh-seat] .reg-vtab, [data-lh-seat] .lh-chip > label, [data-lh-seat] .lh-add')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
-          const lhRows = lhAny && (() => { const b = lhAny.querySelector('.lh-ask'), t = lhAny.querySelector('.reg-views'), c = lhAny.querySelector('.lh-chips');
-            const br = b && b.getBoundingClientRect(), tr2 = t && t.getBoundingClientRect(), cr = c && c.getBoundingClientRect();
-            return !!(br && tr2) && br.bottom <= tr2.top + 1 && (!cr || tr2.bottom <= cr.top + 1) && t.scrollWidth <= t.clientWidth + 1 && (!c || c.scrollWidth <= c.clientWidth + 1); })();
-          const oneRow = lhAny ? lhRows : !!(tr && fr) && fr.top < tr.bottom && fr.bottom > tr.top && fr.left >= tr.right;
+          const pg = document.querySelector(s).closest('.apn-page');
+          const head = pg && pg.querySelector('.cun-head'), bar = pg && pg.querySelector('.apn-bar');
+          const q = bar && bar.querySelector('input[type="search"]'), tabs = bar ? [...bar.querySelectorAll('.apn-tab')] : [];
+          const qb = q && q.getBoundingClientRect();
+          const oneRow = !!(head && bar && qb && tabs.length) && head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().top + 1
+            && tabs.every(t => { const r = t.getBoundingClientRect(); return r.top < qb.bottom && r.bottom > qb.top; }) && bar.scrollWidth <= bar.clientWidth + 1;
+          const labelsCut = tabs.concat(head ? [...head.children] : []).filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
           const heads = [...document.querySelectorAll(s + ' thead th')].filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());
           const p = document.querySelector('#ins-panel.is-jambo'); const pr = p && p.getBoundingClientRect();
-          const verbs = p ? [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')] : [];
+          const verbs = p ? [...p.querySelectorAll('[data-ikn-draft], [data-mn-act]')] : [];
           const cutVerb = verbs.filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > pr.right + 1).map(b => b.textContent.trim());
-          const tops = new Set(verbs.map(b => Math.round(b.getBoundingClientRect().top)));
           return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneRow, labelsCut,
-            heads, cutVerb, verbsOneLine: tops.size <= 1, panel: !!p && pr.right <= innerWidth + 1 && pr.bottom <= innerHeight + 1 };
+            heads, verbs: verbs.length, cutVerb, panel: !!p && pr.right <= innerWidth + 1 && pr.bottom <= innerHeight + 1 };
         }, sel);
-        check(`7 ${lang} ${view} ${w}×${ht}: nothing sideways, the band one row (on the list head: its rows in order), its labels whole, no head cut, the panel's verbs whole on one line`, F.side && F.oneRow && !F.labelsCut.length && !F.heads.length && !F.cutVerb.length && F.verbsOneLine && F.panel, JSON.stringify(F));
+        check(`7 ${lang} ${view} ${w}×${ht}: nothing sideways, the head then the box and tabs on one row, nothing cut, the panel's doors whole and inside it`, F.side && F.oneRow && !F.labelsCut.length && !F.heads.length && F.verbs > 0 && !F.cutVerb.length && F.panel, JSON.stringify(F));
         if (OUT) await page.screenshot({ path: path.join(OUT, `20-${view === 'intake' ? 'requests' : 'mynotes'}-${lang}-${w}x${ht}.png`) });
       }
       await page.setViewportSize({ width: 1440, height: 780 });
     }
     }
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); });
-    /* ---- 8 · SECOND PASS: a refresh lands at the same spot ---- */
+    /* ---- 8 · SECOND PASS: a refresh lands at the same spot ----
+       RE-POINTED 17 Nov 2026 (#762): the new look's tabs ([data-ikn-tab] Open · Mine, [data-mnn-tab]) and its chosen
+       row (the panel's data-ins-id); a tab and a row that are NOT the first, so a refresh that forgets is seen */
     await page.evaluate(() => setView('intake'));
-    await until(() => document.querySelector('.ik-lt [data-ik-row]') ? true : null);
-    /* re-pointed 21 Oct 2026 (Part 8): the tabs stand in the list head */
-    await press('[data-lh-seat="intake"] [data-ik-view="all"]');
-    await until(() => document.querySelector('[data-lh-seat="intake"] [data-ik-view="all"].on') ? true : null);
-    await press(`.ik-lt [data-ik-row="${r2.id}"]`);
-    await until(id => { const p = document.querySelector('#ins-panel'); return p && p.getAttribute('data-ins-id') === id ? true : null; }, r2.id);
+    await until(() => document.querySelector('.ikn-table [data-ikn-row]') ? true : null);
+    await press(`.ikn-table [data-ikn-row="${r3.id}"]`);
+    await until(id => { const p = document.querySelector('#ins-panel'); return p && p.getAttribute('data-ins-id') === id ? true : null; }, r3.id);
+    await page.waitForTimeout(600);
     await page.reload({ waitUntil: 'networkidle' });
-    const K = await until(id => { const on = document.querySelector('[data-lh-seat="intake"] [data-ik-view].on'); const p = document.querySelector('#ins-panel');
-      return on && p && p.getAttribute('data-ins-id') ? { tab: on.getAttribute('data-ik-view'), row: p.getAttribute('data-ins-id') } : null; }, null, 15000);
-    check('8a Requests after a refresh: the same tab and the same request', !!K && K.tab === 'all' && K.row === r2.id, JSON.stringify(K));
+    const K = await until(() => { const on = document.querySelector('[data-ikn-tab].is-on'); const p = document.querySelector('#ins-panel');
+      return on && p && p.getAttribute('data-ins-id') ? { tab: on.getAttribute('data-ikn-tab'), row: p.getAttribute('data-ins-id') } : null; }, null, 15000);
+    check('8a Requests after a refresh: the same request', !!K && K.tab === 'open' && K.row === r3.id, JSON.stringify(K));
+    await press('[data-ikn-tab="mine"]');
+    await until(() => document.querySelector('[data-ikn-tab="mine"].is-on') ? true : null);
+    await page.waitForTimeout(600);
+    await page.reload({ waitUntil: 'networkidle' });
+    const K2 = await until(() => { const on = document.querySelector('[data-ikn-tab].is-on'); return on && document.querySelector('.ikn-table') ? on.getAttribute('data-ikn-tab') : null; }, null, 15000);
+    check('8a+ Requests after a refresh: the same tab', K2 === 'mine', JSON.stringify(K2));
     await page.evaluate(() => setView('mynotes'));
-    await until(() => document.querySelector('.mn-t [data-mn-row]') ? true : null);
-    await press('[data-mn-tab="later"]');
-    const want = await until(() => { const r = document.querySelector('.mn-t [data-mn-row]'); return r ? r.getAttribute('data-mn-row') : null; });
-    await press(`.mn-t [data-mn-row="${want}"]`);
+    await until(() => document.querySelector('.mnn-table [data-mn-row]') ? true : null);
+    await press('[data-mnn-tab="done"]');
+    const want = await until(() => { const on = document.querySelector('[data-mnn-tab="done"].is-on'); const r = document.querySelector('.mnn-table [data-mn-row]'); return on && r ? r.getAttribute('data-mn-row') : null; });
+    await press(`.mnn-table [data-mn-row="${want}"]`);
+    await page.waitForTimeout(600);
     await page.reload({ waitUntil: 'networkidle' });
-    const KN = await until(() => { const on = document.querySelector('[data-mn-tab].on'); const sel = document.querySelector('.mn-t [data-mn-row].is-sel');
-      return on && sel ? { tab: on.getAttribute('data-mn-tab'), row: sel.getAttribute('data-mn-row') } : null; }, null, 15000);
-    check('8b My notes after a refresh: the same tab and the same note', !!KN && KN.tab === 'later' && KN.row === want, JSON.stringify(KN));
+    const KN = await until(() => { const on = document.querySelector('[data-mnn-tab].is-on'); const sel = document.querySelector('.mnn-table [data-mn-row].is-sel');
+      return on && sel ? { tab: on.getAttribute('data-mnn-tab'), row: sel.getAttribute('data-mn-row') } : null; }, null, 15000);
+    check('8b My notes after a refresh: the same tab and the same note', !!KN && KN.tab === 'done' && KN.row === want, JSON.stringify(KN));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

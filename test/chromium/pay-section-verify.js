@@ -107,6 +107,10 @@ const untilServer = async (page, ok, ms = 8000) => {
     const dealPay = await P.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} return payEditOpen('MK-A2'); });
     check(dealPay === false && !(await P.$('.pd2-pay[data-bs-cid="MK-A2"]')), '2b a deal has no pay: Edit pay does not open for it', String(dealPay));
     await P.evaluate(() => { setView('register'); regPlaceSet({ show: 'list' }); regRepaint(); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; every contract's row
+       is its All tab */
+    await until(P, () => !!document.querySelector('[data-ctf-tab="all"]'), null, 8000);
+    await P.evaluate(() => { const b = document.querySelector('[data-ctf-tab="all"]:not(.is-on)'); if (b) b.click(); });
     const listed = await until(P, () => [...document.querySelectorAll('tr')].some(r => /MK-E1/.test(r.innerText)), null, 10000);
     const row = await P.evaluate(() => { const r = [...document.querySelectorAll('tr')].find(x => /MK-E1/.test(x.innerText)); return r ? r.innerText : ''; });
     check(listed && !/420/.test(row) && /—/.test(row), '2c the Contracts list\'s value cell is a dash', row.replace(/\s+/g, ' ').slice(0, 160));

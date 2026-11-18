@@ -14,8 +14,8 @@
          the first card 12 under it
      6 · nothing sideways
    And the switch itself:
-     7 · off, nothing moved: the panel 8 under the bar as before
-     8 · it is an admin's own: a colleague who is not an admin is refused (403), and the switch is not drawn for them
+     7 · (RETIRED 16 Nov 2026, #762: there is no off)
+     8 · (RE-POINTED 16 Nov 2026, #762) a colleague who is not an admin wears it too, and no switch is drawn for them
    At the parent (before this change) 1–5 and 8 fail: there is no switch and no frame.
    Run: node test/chromium/new-look-frame-verify.js   (pictures: FRAME_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -67,11 +67,7 @@ const FRAME = () => {
       const page = await browser.newPage({ viewport: { width: W, height: H } });
       page.on('pageerror', e => { console.log('PAGE ERROR', String(e)); fails++; });
       if (!await signIn(page, 'admin@example.co.ke', 'adminpassword1')){ check(`${nm} signed in`, false); await page.close(); continue; }
-      if (nm === 'laptop-a'){
-        await page.evaluate(() => caGo({ kind: 'go', place: 'people' })); await page.waitForTimeout(1500);
-        const off = await page.evaluate(FRAME), offCls = await page.evaluate(() => document.documentElement.classList.contains('lg-new'));
-        check('7 the switch off: nothing moved (the panel 8 under the bar, as before)', !!off && off.top === 8 && !offCls, off);
-      }
+      /* RETIRED 16 Nov 2026 (#762): 7 "the switch off: nothing moved" — there is no off; the new look is the only look */
       const on = await page.evaluate(async () => { const ok = await stNewLookSet(true); return ok && document.documentElement.classList.contains('lg-new'); });
       check(`${nm} the new look turns on, for this admin`, on);
       const PAGES = [['people', () => caGo({ kind: 'go', place: 'people' })], ['import', () => caGo({ kind: 'go', place: 'import' })],
@@ -130,13 +126,14 @@ const FRAME = () => {
       await page.evaluate(async () => { await stNewLookSet(false); });
       await page.close();
     }
-    /* 8 · a colleague who is not an admin */
+    /* 8 · a colleague who is not an admin — RE-POINTED 16 Nov 2026 (the new look is the only look, #762): there is no
+       switch to refuse them; they wear the new look without asking, and no switch is drawn for them */
     const page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
     if (await signIn(page, 'everything@example.co.ke', 'their-own-pass-9')){
-      const R = await page.evaluate(async () => { let st = 0; try { await api('me/prefs', 'PUT', { newLook: true }); st = 200; } catch (e) { st = (e && e.status) || String(e && e.message); }
+      const R = await page.evaluate(async () => {
         caGo({ kind: 'go', place: 'settings' }); await new Promise(r => setTimeout(r, 1500));
-        return { st, on: typeof newLookOn === 'function' && newLookOn(), drawn: !!document.querySelector('[data-st-sw="newlook"]'), cls: document.documentElement.classList.contains('lg-new') }; });
-      check('8 a colleague who is not an admin cannot turn it on (refused), and the switch is not drawn for them', R.st !== 200 && !R.on && !R.drawn && !R.cls, R);
+        return { on: typeof newLookOn === 'function' && newLookOn(), drawn: !!document.querySelector('[data-st-sw="newlook"]'), cls: document.documentElement.classList.contains('lg-new') }; });
+      check('8 a colleague who is not an admin wears the new look without a switch, and no switch is drawn for them', R.on && !R.drawn && R.cls, R);
     } else check('8 the colleague signed in', false);
     await page.close();
   } finally { await browser.close(); await h.stop(); }

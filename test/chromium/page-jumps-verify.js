@@ -103,9 +103,11 @@ try { new PerformanceObserver(l => { for (const e of l.getEntries()) { if (e.had
       let worst = 0, extra = 0;
       for (const t of [...tabs.slice(1), tabs[0]]){
         const r = await page.evaluate(k => window.__pjWatch(() => document.querySelector(`#ig-dock [data-pd-tab="${k}"]`).click(), 450), t);
-        worst = Math.max(worst, r.moved || 0); extra += r.frames || 0;
+        /* RE-POINTED 17 Nov 2026 (#762, owner's pick on the drawings: "Paper glides to line up"): turning to Clauses ('doc')
+           may glide the paper so the open clause stands at the line; every other tab still moves nothing */
+        if (t !== 'doc'){ worst = Math.max(worst, r.moved || 0); extra += r.frames || 0; }
       }
-      check(`${W}: C turning the panel's tabs (${tabs.join(' → ')}) never moves the contract`, tabs.length > 1 && worst === 0, JSON.stringify({ moved: worst, frames: extra }));
+      check(`${W}: C turning the panel's tabs (${tabs.join(' → ')}) never moves the contract, Clauses aside`, tabs.length > 1 && worst === 0, JSON.stringify({ moved: worst, frames: extra }));
 
       /* D — the panel folds and unfolds */
       const fold = await page.evaluate(() => window.__pjWatch(() => { intel.dockOpen = false; renderIntelDock(); igSyncDockWidth(); }, 600));
