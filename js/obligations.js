@@ -4847,7 +4847,7 @@ function obnRender(host, o){
   const projShown = projects.slice((_obnPropPage - 1) * _obnPer, _obnPropPage * _obnPer);
   /* THREE PILLS (as drawn): what is late, what is tracked, what Jambo proposes — each its own count, said once */
   const pill = (k, w, extra) => `<button type="button" class="obn-tab${_obnTab === k ? ' is-on' : ''}${extra || ''}" data-obn-tab="${k}">${_obEsc(w)}</button>`;
-  const bar = `<div class="apn-bar obn-bar">
+  const bar = `<div class="apn-bar obn-bar" data-lh-seat="obligations-nl">
     ${lateN || _obnTab === 'late' ? pill('late', i18t('obn_p_late', { n: lateN }), ' is-late') : ''}
     ${pill('open', i18t('obn_p_tracked', { n: open }))}
     ${projects.length ? pill('prop', i18tn('obn_p_prop', projects.length, { n: proposedN, m: projects.length })) : ''}</div>

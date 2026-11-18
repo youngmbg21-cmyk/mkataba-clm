@@ -1866,7 +1866,7 @@ function iknRender(host, o){
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="intake-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
       <div class="cu-scroll"><table class="apn-table cun-table ikn-table" data-list-seat="${esc(IK_SEAT)}">${C.colg}
         ${C.th}

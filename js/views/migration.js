@@ -1543,7 +1543,7 @@ function migNlPageHtml(rows){
         <button type="button" class="ctf-pill" id="mig-sheet" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>${may ? '<input id="mig-sheet-file" type="file" accept=".csv" hidden>' : ''}
         ${may && need ? `<button type="button" class="ctf-pill" id="mig-check-all">${esc(i18t('mign_check_all', { n: need }))}</button>` : ''}
         ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" id="mign-choose">${esc(i18t('mign_choose_files'))}</button><input type="file" id="mign-files" multiple hidden>` : ''}</div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_migQ || '')}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="migration-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_migQ || '')}"></label><span class="apn-sp"></span>
         ${tab('need', i18t('mign_tab_need'), need)}${tab('read', i18t('mign_tab_read'), read)}${tab('all', i18t('ctf_tab_all'), rows.length)}</div>
       ${migNlFigsHtml()}
       <div class="cu-scroll">${migNlListHtml(rows)}${migNlListBoxHtml()}</div>

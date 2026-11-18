@@ -1400,7 +1400,7 @@ function apnRender(W, o){
   const tabs=[['mine',i18t('apn_tab_mine'),W.all.yours.filter(r=>!r.done).length+nPiles],['others',i18t('apn_tab_others'),W.all.others.filter(r=>!r.done).length],['done',i18t('apn_tab_done'),apnDoneRows(W.all).length]]
     .filter(t=>t[2]||t[0]===_apnTab||t[0]==='mine');
   void nDecide; void nSign;
-  const head=`<div class="apn-bar"><label class="apn-box">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_apnQ)}"></label><span class="apn-sp"></span>
+  const head=`<div class="apn-bar" data-lh-seat="approvals-nl"><label class="apn-box">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_apnQ)}"></label><span class="apn-sp"></span>
     ${tabs.map(t=>`<button type="button" class="apn-tab${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>`;
   /* SAY IT ONCE (the harmony review): a "What it rests on" that reads the same on every row steps out of the table, and
      the foot says it once */

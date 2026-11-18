@@ -5477,7 +5477,7 @@ function ngnRender(host){
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ngn-page" data-ins-page="negotiations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="negotiations-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
         ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
       <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
         ${C.th}

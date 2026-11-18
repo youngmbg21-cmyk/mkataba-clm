@@ -1517,7 +1517,7 @@ function cunRender(host, INS, o){
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2><span class="ctf-hf">${esc(i18tn('cun_n', all.length, { n: all.length }))}</span></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="customers-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
         ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])}${t[2] == null ? '' : ` <span>${t[2]}</span>`}</button>`).join('')}</div>
       ${_cun === 'folders' ? `<div class="cu-scroll">${typeof regTileKeyHtml === 'function' ? regTileKeyHtml() : ''}<div class="ctf-grid cunf-grid is-tiles">${list.map(v => cunFolderCardHtml(v, nda.get(v.key))).join('')}</div></div>` : ''}
       <div class="cu-scroll"${_cun === 'folders' ? ' hidden' : ''}><table class="apn-table cun-table" data-list-seat="customers">${C.colg}
