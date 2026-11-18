@@ -1318,11 +1318,10 @@ function apnPileOpen(key){
    big enough to see the paper and the notes on the side … brought to where the issue is but you can scroll up and down
    … press to go to the dossier page itself") ═══
    A LOOK, NEVER A DECISION: the same paper the Dossier's Redlines face draws (redlineDocHtml where a negotiation stands,
-   else the working copy, docSheetHtml), read-only, with the same notes beside it (pd2RedAnswers → pd2RedBlocks →
-   pd2RedGroupHtml) stripped of their buttons. It opens at the clause the departure quotes (landOn); a departure the
+   else the working copy, docSheetHtml), read-only, with the Dossier's own notes beside it (pd2NotesPaint at a seat, since
+   the second round) with nothing to press. It opens at the clause the departure quotes (landOn); a departure the
    paper leaves out opens at the top and says so. "Open the Dossier ›" is the row's own open (apnPileAct 'open' →
    ldDepRun → signCheckOpenClause), so there is still one way onto the paper. Nothing is written; Esc and × close. */
-const APN_PK_GAP=12;        // the space between two notes beside the paper
 const APN_PK_LAND_TOP=96;   // how far below the pop-up's head the departure's words stand on arrival
 function apnPeekOf(key){
   const r=apnDepRows().find(x=>x.key===String(key||''));
@@ -1354,7 +1353,7 @@ function apnPeekPaperHtml(c){
     if(red){
       if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
       if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
-      h=`<div class="ig-redpaper nego-onpaper"><article class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${redlineDocHtml(c,{ side:'owner', readonly:true })}</article></div>`;
+      h=`<div class="ig-redpaper nego-onpaper" style="padding:20px 0 40px"><article id="apn-pk-doc" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${redlineDocHtml(c,{ side:'owner', readonly:true })}</article></div>`;
     } else if(typeof docSheetHtml==='function') h=docSheetHtml(c,{ copy:'work', canvasId:'apn-pk-doc', readOnly:true });
   }catch(_){ h=''; }
   return h||`<p class="apn-pk-empty">${esc(i18t('sc_no_clause'))}</p>`;
@@ -1380,35 +1379,21 @@ async function apnPeekOpen(key){
   try{ if(typeof ensureFull==='function') await ensureFull(r.c); }catch(err){ if(typeof toast==='function') toast((err&&err.message)||i18t('sc_no_clause'),'err'); return false; }
   const c=(typeof getContract==='function'&&getContract(id))||r.c; r=Object.assign({}, r, { c });
   openModal(`<div class="apn-pk" data-apn-pk="${esc(r.key)}">${apnPeekHead(r)}
-    <div class="apn-pk-b scroll-thin" id="apn-pk-scroll" tabindex="-1"><div class="apn-pk-row"><div class="apn-pk-paper" id="apn-pk-cv">${apnPeekPaperHtml(c)}</div><aside class="apn-pk-notes" id="apn-pk-notes" aria-label="${esc(i18t('pd2_notes'))}"></aside></div></div></div>`,
+    <div class="apn-pk-b ig-paper-scroll scroll-thin" id="apn-pk-scroll" tabindex="-1"><div class="ig-zoom" id="apn-pk-cv" style="zoom:1">${apnPeekPaperHtml(c)}</div></div></div>`,
     { maxWidth:'min(1320px, 94vw)', height:'calc(100vh - 112px)', label:i18t('apn_pk_aria'), ownFrame:true /* its own head and scroller: the drawn frame leaves it alone */ });
   requestAnimationFrame(()=>{ apnPeekPages(c); apnPeekNotes(c, r); });
   return true;
 }
-/* the notes, beside the clause they belong to, pushed down where two would meet; the departure's words brought into view */
+/* THE NOTES ARE THE DOSSIER'S OWN (owner, 18 Nov 2026: "Why dont you simply pull up the same window that is in the dossier
+   page"): the Dossier's painter draws them at this seat (pd2NotesPaint(c, { zoom, cv }) → pd2SeatPaint), the same notes, the
+   same groups and the same placing beside each clause; then the words this row is about are brought into view */
 function apnPeekNotes(c, r){
-  const cv=document.getElementById('apn-pk-cv'), aside=document.getElementById('apn-pk-notes'), sc=document.getElementById('apn-pk-scroll');
-  if(!cv||!aside||!sc) return;
-  let notes=[]; try{ notes=typeof pd2RedAnswers==='function'?pd2RedAnswers(c, cv):[]; }catch(_){ notes=[]; }
-  notes.forEach(n=>{ n.acts=''; });
-  let blocks=[]; try{ blocks=notes.length&&typeof pd2RedBlocks==='function'?pd2RedBlocks(c, cv, notes):[]; }catch(_){ blocks=[]; }
-  const own=notes.filter(n=>!blocks.some(b=>b.items.includes(n)));
-  aside.innerHTML=(blocks.length||own.length)
-    ? blocks.map((g,i)=>typeof pd2RedGroupHtml==='function'?pd2RedGroupHtml(g,i):'').join('')
-      +(own.length?`<div class="apn-pk-own">${own.map(n=>`<div class="pd2-mn is-${esc(n.tone)}"><div class="pd2-mn-k">${esc(n.k)}</div><div class="pd2-mn-w">${esc(n.state||'')}</div></div>`).join('')}</div>`:'')
-    : `<p class="apn-pk-none">${esc(i18t('apn_pk_none'))}</p>`;
-  /* where each note stands: level with its clause, never on top of the one above it (measured, then laid) */
-  const row=aside.parentElement, R=row.getBoundingClientRect(), f=row.offsetHeight?R.height/row.offsetHeight:1;
-  let floor=0;
-  [...aside.querySelectorAll(':scope > .pd2-mn')].forEach((el,i)=>{
-    const g=blocks[i]; const a=g&&g.hit&&(g.hit.el||g.hit.range);
-    const want=a?Math.max(0,(a.getBoundingClientRect().top-R.top)/f):floor;
-    const top=Math.max(want, floor); el.style.top=top+'px'; floor=top+el.offsetHeight+APN_PK_GAP;
-  });
-  const tail=aside.querySelector(':scope > .apn-pk-own'); if(tail){ tail.style.top=floor+'px'; floor+=tail.offsetHeight; }
-  aside.style.minHeight=floor+'px';
-  /* LAND ON IT: the words the departure quotes, else its clause; a departure the paper leaves out stays at the top */
-  const q=String(r.v.quote||'').replace(/\s+/g,' ').trim();
+  const zoom=document.getElementById('apn-pk-cv'), cv=document.getElementById('apn-pk-doc')||(zoom&&zoom.querySelector('.doc-surface')), sc=document.getElementById('apn-pk-scroll');
+  if(!zoom||!cv||!sc) return;
+  try{ if(typeof pd2NotesPaint==='function') pd2NotesPaint(c,{ zoom, cv }); }catch(_){ }
+  const f=zoom.offsetHeight?zoom.getBoundingClientRect().height/zoom.offsetHeight:1;
+  /* LAND ON IT: the words the row quotes, else the top */
+  const q=String(r.v&&r.v.quote||'').replace(/\s+/g,' ').trim();
   let hit=null; try{ hit=q.length>=12&&typeof pd2Find==='function'?pd2Find(cv,{ text:[q.slice(0,60), (q.split(/\d/)[0]||'').trim()].filter(t=>t.length>=12) }):null; }catch(_){ hit=null; }
   const node=hit&&(hit.el||(hit.range&&hit.range.startContainer));
   const el=node?(node.nodeType===1?node:node.parentElement).closest('section, p, li, div'):null;
@@ -1643,7 +1628,7 @@ if(typeof document!=='undefined'&&document.addEventListener&&typeof window!=='un
     if(typeof placeSave==='function') placeSave();
   });
 }
-Object.assign(window,{apnLandRow,apnPeekOpen,apnPeekRowOf,apnPeekPages,apnPeekLinkHtml,apnPeekOf,apnPeekNotes,apnPeekDossier,APN_PK_GAP,APN_PK_LAND_TOP,apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
+Object.assign(window,{apnLandRow,apnPeekOpen,apnPeekRowOf,apnPeekPages,apnPeekLinkHtml,apnPeekOf,apnPeekNotes,apnPeekDossier,APN_PK_LAND_TOP,apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apnLeadHtml,apnRender,apnRowHtml,apnDoneRows,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,

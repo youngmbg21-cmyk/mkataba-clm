@@ -8271,9 +8271,15 @@ function pd2NotesOff(){
   document.querySelectorAll('#pd2-notes').forEach(n => n.remove());
   try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete('pd2-fact'); } catch (_){}
 }
-function pd2NotesPaint(c){
+/* ONE WINDOW, TWO PLACES (owner, 18 Nov 2026: "Why dont you simply pull up the same window that is in the dossier page but
+   fit for the pop screen instead of building a new one?"): a SEAT { zoom, cv } draws these same notes, laid out by this
+   same code, beside a paper somewhere else (Approvals' pop-up, apnPeekOpen). A seat is a LOOK: the Dossier's own state
+   (its tab, Fill in, the read, its toggle, its highlight, its dials) is neither asked nor touched, and nothing on it
+   can be pressed but folding a group open or shut. */
+function pd2NotesPaint(c, seat){
   if (typeof document === 'undefined') return;
-  const zoom = document.querySelector('#ig-paper .ig-zoom'), cv = document.getElementById('ig-canvas');
+  const zoom = seat ? seat.zoom : document.querySelector('#ig-paper .ig-zoom'), cv = seat ? seat.cv : document.getElementById('ig-canvas');
+  if (seat) return pd2SeatPaint(c, seat, zoom, cv);
   if (_pd2Fill && (!c || String(_pd2Fill.id) !== String(c.id) || !pd2On())){ _pd2Fill = null; document.querySelectorAll('#pd2-fill-head, #pd2-fill-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-fill'); }
   if (_pd2Walk && (!c || String(_pd2Walk.id) !== String(c.id) || !pd2On())){ clearTimeout(_pd2Walk.timer); _pd2Walk = null; document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove()); const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk'); }
   /* WHILE JAMBO READS, THE NOTES STAND BESIDE THE PAPER TOO (owner, 8 Nov 2026): painted as ever, each held until the
@@ -8292,12 +8298,7 @@ function pd2NotesPaint(c){
   if (!c || !pd2On() || !zoom || !cv || zoom.querySelector('.ig-signpaper') || (typeof insFits === 'function' && !insFits())){ pd2NotesOff(); return; }
   /* in the paper's own order, top to bottom, whatever order they were read in */
   if (red) try { pd2DialsPaint(c, cv); } catch (_){}
-  const notes = (red ? pd2RedNotes(c, cv).concat(pd2RedAnswers(c, cv).map(n => Object.assign(n, { at: {} }))) : pd2Notes(c)).map(n => { const hit = n.hit || (n.own ? null : pd2Find(cv, n.at));
-      if (hit) return Object.assign(n, { hit });
-      /* a standard with no words on the paper: the paper's end, in its own group */
-      if (n.own || n.orOwn) return Object.assign(n, { own: n.own || n.orOwn, hit: pd2EndHit(cv) });
-      return n; }).filter(n => n.hit)
-    .map(n => Object.assign(n, { y: (n.hit.el || n.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
+  const notes = pd2NotesOnPaper(c, cv, red);
   const groups = red ? [] : pd2Groups(c, cv, notes);
   /* on the redlined paper: their asks and the answers' groups, in the paper's order, and the chips' choice (asks count as open) */
   const isOpen = n => n.tone !== 'done';
@@ -8311,21 +8312,7 @@ function pd2NotesPaint(c){
   if (!red && !walking && pd2NotesHiddenGet()){ pd2NotesOff(); pd2NotesTgSolo(zoom); return; }
   document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   /* THE PAPER MOVES TO THE LEFT AND NARROWS ONLY AS FAR AS THE NOTES NEED (the drawing's iPad note: "the paper narrows") */
-  const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
-  /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
-  const sc = zoom.parentElement, inset = sc ? Math.max(0, (zoom.getBoundingClientRect().left - sc.getBoundingClientRect().left) / f) : 0;
-  const left0 = Math.round(PD2_SHEET_LEFT - inset);
-  const room = W - left0 - PD2_NOTES_GUTTER - 16;
-  const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
-  const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));
-  /* THE PAPER STANDS IN THE MIDDLE OF THE ROOM IT HAS (owner's pick, the Legora way, 16 Nov 2026: "the page is always at the
-     centre of the space available, even when you close Jambo"): the sheet's own centre at the scroller's centre, its notes
-     hanging in the margin to its right; where the notes would not fit, it moves only as far right as they leave it, never
-     nearer the edge than 40 (a laptop keeps today's place). Jambo opening or closing moves the width, so the watcher below
-     lays it out again at the new centre. */
-  const scW = sc ? sc.clientWidth / f : W;
-  const mid = Math.round(scW / 2 - inset - sheetW / 2);
-  const left = Math.max(left0, Math.min(mid, Math.floor(W - 16 - notesW - PD2_NOTES_GUTTER - sheetW)));
+  const { f, left, sheetW, notesW } = pd2SheetLay(zoom);
   /* written only where it moved: a paper born at this width (pd2SheetPre) is not laid out a second time */
   if (!zoom.classList.contains('has-pd2')) zoom.classList.add('has-pd2');
   if (zoom.style.getPropertyValue('--doc-sheet-max') !== sheetW + 'px') zoom.style.setProperty('--doc-sheet-max', sheetW + 'px');
@@ -8363,6 +8350,67 @@ function pd2NotesPaint(c){
          paper's watcher heard itself leave as "width 0" and laid every note out a second time on each press) */
       if (!zoom.isConnected){ try { zoom._pd2RO.disconnect(); } catch (_){} zoom._pd2RO = null; return; }
       if (zoom.clientWidth === w0) return; w0 = zoom.clientWidth; const cc = pdContract(); if (cc) pd2NotesPaint(getContract(cc.id) || cc); }); zoom._pd2RO.observe(zoom); }
+}
+/* THE NOTES ON A PAPER, in the paper's order (ONE reading for the Dossier and a seat): the Dossier's notes, or on a
+   redlined paper their asks and our answers; a standard with no words on the paper stands at the paper's end */
+function pd2NotesOnPaper(c, cv, red){
+  return (red ? pd2RedNotes(c, cv).concat(pd2RedAnswers(c, cv).map(n => Object.assign(n, { at: {} }))) : pd2Notes(c)).map(n => { const hit = n.hit || (n.own ? null : pd2Find(cv, n.at));
+      if (hit) return Object.assign(n, { hit });
+      if (n.own || n.orOwn) return Object.assign(n, { own: n.own || n.orOwn, hit: pd2EndHit(cv) });
+      return n; }).filter(n => n.hit)
+    .map(n => Object.assign(n, { y: (n.hit.el || n.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
+}
+/* THE SHEET AND ITS MARGIN (ONE layout for the Dossier and a seat) */
+function pd2SheetLay(zoom){
+  const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
+  /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
+  const sc = zoom.parentElement, inset = sc ? Math.max(0, (zoom.getBoundingClientRect().left - sc.getBoundingClientRect().left) / f) : 0;
+  const left0 = Math.round(PD2_SHEET_LEFT - inset);
+  const room = W - left0 - PD2_NOTES_GUTTER - 16;
+  const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
+  const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));
+  /* THE PAPER STANDS IN THE MIDDLE OF THE ROOM IT HAS (owner's pick, the Legora way, 16 Nov 2026: "the page is always at the
+     centre of the space available, even when you close Jambo"): the sheet's own centre at the scroller's centre, its notes
+     hanging in the margin to its right; where the notes would not fit, it moves only as far right as they leave it, never
+     nearer the edge than 40 (a laptop keeps today's place). Jambo opening or closing moves the width, so the watcher below
+     lays it out again at the new centre. */
+  const scW = sc ? sc.clientWidth / f : W;
+  const mid = Math.round(scW / 2 - inset - sheetW / 2);
+  const left = Math.max(left0, Math.min(mid, Math.floor(W - 16 - notesW - PD2_NOTES_GUTTER - sheetW)));
+  return { f, left, sheetW, notesW };
+}
+/* THE SEAT'S PAINT: the same notes (pd2Notes, or on a redlined paper pd2RedNotes + pd2RedAnswers), the same groups
+   (pd2Groups / pd2RedBlocks), the same builders (pd2GroupHtml, pd2RedAskHtml, pd2RedGroupHtml), the same sheet-and-margin
+   layout and the same placing (pd2GroupsPlace / pd2NotesPlace) as pd2NotesPaint draws on the Dossier */
+function pd2SeatPaint(c, seat, zoom, cv){
+  let host = zoom && zoom.querySelector(':scope > .pd2-notes.is-peek');
+  const off = () => { if (host) host.remove(); if (zoom){ zoom.classList.remove('has-pd2'); zoom.style.removeProperty('--doc-sheet-max'); } };
+  if (!c || !zoom || !cv || zoom.querySelector('.ig-signpaper')){ off(); return; }
+  const red = !!zoom.querySelector('.ig-redpaper') && !zoom.querySelector('.ig-redpaper.is-clean');
+  const notes = pd2NotesOnPaper(c, cv, red).map(n => Object.assign(n, { acts: '' }));
+  const groups = red ? [] : pd2Groups(c, cv, notes);
+  const blocks = red ? pd2RedBlocks(c, cv, notes) : [];
+  if (red ? !blocks.length : !groups.length){ off(); return false; }
+  /* the sheet and its margin, worked out as the Dossier works them out */
+  const { f, left, sheetW, notesW } = pd2SheetLay(zoom);
+  zoom.classList.add('has-pd2');
+  if (zoom.style.getPropertyValue('--doc-sheet-max') !== sheetW + 'px') zoom.style.setProperty('--doc-sheet-max', sheetW + 'px');
+  const sh = zoom.querySelector(PD2_SHEET_SEL); if (sh && sh.style.marginLeft !== left + 'px') sh.style.marginLeft = left + 'px';
+  if (!host){ host = document.createElement('div'); host.className = 'pd2-notes is-peek'; host.setAttribute('aria-label', _pdT('pd2_notes')); zoom.appendChild(host); }
+  host.setAttribute('data-pd2-for', String(c.id));
+  host.style.left = (left + sheetW + PD2_NOTES_GUTTER) + 'px'; host.style.width = notesW + 'px';
+  host._pd2Repaint = () => pd2NotesPaint(getContract(c.id) || c, seat);
+  host.innerHTML = red ? blocks.map((b, i) => b.ask ? pd2RedAskHtml(b.n, i) : pd2RedGroupHtml(b, i)).join('') : groups.map((g, i) => pd2GroupHtml(g, i)).join('');
+  /* a look: nothing on it acts (the Dossier's doors, its chips); folding a group open or shut stays */
+  host.querySelectorAll('.pd2-mn-a, .pd2-rn-chips').forEach(n => n.remove());
+  const lone = red && blocks.every(b => b.ask);
+  const place = () => { if (!red) pd2GroupsPlace(groups, zoom, host, f, 0); else if (lone) pd2NotesPlace(blocks, zoom, host, f, 0); else pd2GroupsPlace(blocks, zoom, host, f, 0); };
+  place();
+  if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { if (host.isConnected) place(); });
+  if (!zoom._pd2RO && typeof ResizeObserver === 'function'){ let w0 = zoom.clientWidth; zoom._pd2RO = new ResizeObserver(() => {
+      if (!zoom.isConnected){ try { zoom._pd2RO.disconnect(); } catch (_){} zoom._pd2RO = null; return; }
+      if (zoom.clientWidth === w0) return; w0 = zoom.clientWidth; pd2NotesPaint(getContract(c.id) || c, seat); }); zoom._pd2RO.observe(zoom); }
+  return true;
 }
 /* "Show their reason": their own words, opened in the note (a reading; nothing pressed) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
@@ -8417,15 +8465,17 @@ function pd2GroupsPlace(groups, zoom, host, f, floor0){
   });
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
-  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-unfold]') : null; if (!b) return;
+  const b = e.target && e.target.closest ? e.target.closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-unfold]') : null; if (!b) return;
   e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.removeAttribute('data-pd2-shut'); g.classList.remove('is-folded');
+  const hp = b.closest('.pd2-notes.is-peek'); if (hp){ if (hp._pd2Repaint) hp._pd2Repaint(); return; }
   if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.add(key); _pd2Shut.delete(key); }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
 /* SHOW LESS: the group folds back to its first line and "+ N more here"; the notes are laid out again */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
-  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-fold]') : null; if (!b) return;
+  const b = e.target && e.target.closest ? e.target.closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-fold]') : null; if (!b) return;
   e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.removeAttribute('data-pd2-open'); g.setAttribute('data-pd2-shut', '1'); g.classList.add('is-folded');
+  const hp = b.closest('.pd2-notes.is-peek'); if (hp){ if (hp._pd2Repaint) hp._pd2Repaint(); return; }
   if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.delete(key); _pd2Shut.add(key); }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
@@ -9793,7 +9843,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
-Object.assign(window, { pdActKnown, pd2Find });
+Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* ---- THE COVER (owner picked "Margin Notes" by name, 16 Nov 2026; drawn at five stages and agreed: "build it") ----
