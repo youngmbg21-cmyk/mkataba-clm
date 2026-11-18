@@ -60,8 +60,10 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(600);
     await page.evaluate(() => setView('calendar'));
-    const views = await until(() => { const v = [...document.querySelectorAll('[data-cal-view]')].map(e => e.getAttribute('data-cal-view')); return v.length ? v : null; });
+    const views = await until(() => { const v = [...document.querySelectorAll('[data-cal-view]')].filter(e => e.getClientRects().length > 0).map(e => e.getAttribute('data-cal-view')); return v.length ? v : null; });
     /* RE-POINTED 29 Oct 2026 (round 12): the Agenda tab leads Month · Week · Horizon */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new head draws its own tabs (.cal-nl-tabs);
+       the views counted are the ones a person sees (painted), once */
     check('1. the views are Agenda · Month · Week · Horizon', !!views && views.join(' ') === 'agenda month week horizon', views && views.join(' '));
 
     /* 2. a new event, from the button, on the Week */

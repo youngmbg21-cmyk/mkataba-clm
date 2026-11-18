@@ -73,7 +73,9 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
         drop: vis(document.getElementById('na-drop')), menu: !!document.getElementById('nd-menu'),
         chatCard: !!document.querySelector('#ig-dock [data-ca-act="draftform"]'),
         /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way": nothing boxed): his words beside the page are the Overview's head and lines (.jov-head, .jov-v), and his chips its offers (.jov-lnk.is-ask) */
-        jambo: [...document.querySelectorAll('#ig-dock .pd-sheet-hello .ai-bub, #ig-dock .pd-sheet-hello .jov-head, #ig-dock .ai-msg .ai-bub')].filter(vis).map(t) }; };
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): beside the sheet his words are the five parts'
+           eyebrow, headline and line (.jov5-eb, .jov5-title, .jov5-sub) */
+        jambo: [...document.querySelectorAll('#ig-dock .pd-sheet-hello .ai-bub, #ig-dock .pd-sheet-hello .jov-head, #ig-dock .pd-sheet-hello .jov5-intro, #ig-dock .ai-msg .ai-bub')].filter(vis).map(t) }; };
     /* a photograph waits for the glide and crossfade to finish (bounded) */
     const still = () => page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'), null, { timeout: 3000 }).catch(() => {});
     const cancel = async () => { if (await page.evaluate(() => !!document.getElementById('na-root'))) { await page.click('#wz-pick-cancel'); await until(() => !document.getElementById('na-root'), null, 4000); } };
@@ -84,7 +86,7 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
     const s1 = await until(SHEET, null, 8000);
     check('1a "new agreement" opens the one sheet beside Jambo, no card in the chat', !!s1 && s1.one && s1.beside && !s1.chatCard, JSON.stringify(s1 && { one: s1.one, beside: s1.beside, chatCard: s1.chatCard }));
     check('1b with no words yet: "Most used on our paper", three rows, nothing picked', !!s1 && s1.head === 'Most used on our paper' && s1.rows.length === 3 && s1.checked === 0 && !s1.picked, JSON.stringify(s1 && { head: s1.head, rows: s1.rows.length, checked: s1.checked }));
-    check('1c Jambo says what the sheet is for beside it', !!s1 && s1.jambo.some(x => /opened New agreement beside me/.test(x)), JSON.stringify(s1 && s1.jambo));
+    check('1c Jambo says what the sheet is for beside it', !!s1 && s1.jambo.some(x => /^New agreement Say what you need in one sentence\. I pick the paper that fits\./.test(x)), JSON.stringify(s1 && s1.jambo));
     await still(); await page.screenshot({ path: path.join(OUT, '01-word.png') });
     await cancel();
 
@@ -131,8 +133,10 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
     await page.evaluate(() => { const m = [...document.querySelectorAll('#na-form input')].find(i => /supplied|material/i.test((i.closest('label') || {}).textContent || '')); if (m) { m.value = 'Raw milk'; m.dispatchEvent(new Event('input', { bubbles: true })); } });
     await until(() => !document.getElementById('na-create').disabled, null, 4000);
     await page.click('#na-create');
-    const land = await until(() => !document.getElementById('na-root') && window.intel && intel.paper && document.querySelector('#ig-dock .ds-sp-st')
-      ? { view: state.view, face: window.hbS && hbS().face, tab: window.pdTab && pdTab(), talk: !!document.querySelector('#ig-dock [data-jb-turns]'), fill: !!document.querySelector('#ig-dock .ds-sp-st.is-on, #ig-dock .ds-sp-st') } : null, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card ([data-pd2-card]) with
+       its line of steps (.pd2-spine), not the old spine's rows (.ds-sp-st) */
+    const land = await until(() => !document.getElementById('na-root') && window.intel && intel.paper && document.querySelector('#ig-dock [data-pd2-card] [data-pd2-spine]')
+      ? { view: state.view, face: window.hbS && hbS().face, tab: window.pdTab && pdTab(), talk: !!document.querySelector('#ig-dock [data-jb-turns]'), fill: !!document.querySelector('#ig-dock [data-pd2-card] [data-pd2-spine]') } : null, null, 15000);
     check('5 Create lands in the Workspace with the Dossier beside the paper, not on the conversation',
       !!land && land.face === 'paper' && land.tab === 'copilot' && !land.talk, JSON.stringify(land));
     await still(); await page.screenshot({ path: path.join(OUT, '05-landed.png') });

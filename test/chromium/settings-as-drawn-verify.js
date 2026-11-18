@@ -66,45 +66,18 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
-    await until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } if (settingsTab() !== 'company') { settingsGoTab('company'); return null; } return document.querySelector('#st-board .st-cards') ? true : null; }, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list, Jambo's panel beside it */
+    await until(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; } return document.querySelector('#ins-panel #jl-q') ? true : null; }, null, 15000);
 
-    console.log('\n1 · the head, the tabs, Jambo\'s word');
-    /* re-pointed 19 Oct 2026 (the gaps' third pass): the head is a card in
-       the page's left column beside Jambo (stHeadCardHtml), as drawn */
-    const head = await until(() => { const f = document.querySelector('#st-headcard [data-st-head-sub]'); const sel = document.querySelector('#set-page .st-face[aria-selected="true"]');
-      if (!f || !sel || !f.textContent.trim()) return null;
-      const cs = getComputedStyle(sel), n = document.querySelector('#set-page .st-face[data-st-tab="company"] .st-face-n');
-      return { facts: f.textContent.trim(), line: cs.borderBottomStyle + ' ' + cs.borderBottomWidth, fill: cs.backgroundColor, r: cs.borderTopLeftRadius, thumb: (() => { const t = document.querySelector('#set-page .st-thumb'); return t ? getComputedStyle(t).display : 'none'; })(),
-        n: n ? n.textContent.trim() : '', needs: stNeedsAll().length, word: (document.getElementById('st-side-word') || {}).textContent || '',
-        tabs: [...document.querySelectorAll('#st-side-head .st-side-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()) }; });
-    check('1a the head says the company', !!head && head.facts === 'Highland Corporate Ltd', JSON.stringify(head && head.facts));
-    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a chosen tab is a filled grey pill, never an underline */
-    check('1b the chosen tab is a filled grey pill (no underline), no sliding thumb', !!head && head.fill === 'rgb(240, 240, 243)' && parseFloat(head.r) >= 100 && !/solid [1-9]/.test(head.line) && head.thumb === 'none', head && (head.line + ' · ' + head.fill + ' · ' + head.r + ' · ' + head.thumb));
-    check('1c Company counts Needs your attention', !!head && head.n === String(head.needs) && head.needs > 0, head && (head.n + ' / ' + head.needs));
-    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW: "settings has no information either"): no word beside tabs, no tabs */
-    /* REVERSED (owner, 26 Oct 2026): Settings' landing carries "N things need
-       you here" with a link per row, so the panel keeps its own tab beside his
-       and names the page between them, rather than being his one window. */
-    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
-    check('1d the panel\'s head: its own tab beside his, no page name beside them',
-      !!head && !head.word && /Overview/.test((head.tabs || []).join(' ')) && /Jambo/.test((head.tabs || []).join(' ')),
-      head && JSON.stringify({ word: head.word, tabs: head.tabs }));
-    await shot(page, 'settings-as-drawn-company-1440x780');
-
-    console.log('\n2 · the fold, and "/"');
-    if (await press('#st-side-head [data-st-side-fold]', '2a the fold')) {
-      const folded = await until(() => { const s = document.getElementById('st-side'); return s && s.classList.contains('is-folded') ? Math.round(s.getBoundingClientRect().width) : null; });
-      check('2a folded to the right edge: a narrow strip', !!folded && folded <= 64, String(folded));
-      await press('#st-side .st-side-unfold', '2b his face');
-      const back = await until(() => { const s = document.getElementById('st-side'); return s && !s.classList.contains('is-folded') && s.getBoundingClientRect().width > 200 ? true : null; });
-      check('2b his face brings him back', !!back);
-    }
-    /* RE-POINTED 19 Oct 2026 (lane F's third pass; JAMBO, THE SAME ON EVERY
-       PAGE — main's rule): "/" in his box is every box's "/", the places
-       listed (data-ca-slash, caSlRead); his panel stays on Jambo */
-    await page.locator('#st-jb-q').click(); await page.keyboard.type('/');
+    /* RETIRED 16 Nov 2026 (#762): 1a–1d (the head card naming the company, You · Company tabs as pills counting Needs your
+       attention, the side panel's own tab beside Jambo's) and 2a–2b (the side panel folds to the right edge) — the old
+       look's Settings frame; the one list has no head card, no tabs and no fold. The count the Company tab carried is
+       Jambo's headline beside the list (settings-as-drawn-2 1a). */
+    console.log('\n2 · "/" in his box');
+    /* RE-POINTED 16 Nov 2026 (#762): his box is the panel's own box at its foot (#jl-q) */
+    await page.locator('#ins-panel #jl-q').click(); await page.keyboard.type('/');
     const slash = await until(() => { const l = document.getElementById('ca-slash'); return l && l.querySelectorAll('.ca-opt').length ? l.querySelectorAll('.ca-opt').length : null; }, null, 3000);
-    check('2c "/" lists the places, as in every box', !!slash && !!(await page.evaluate(() => !document.getElementById('st-side-jambo').hidden)), String(slash));
+    check('2c "/" lists the places, as in every box', !!slash && !!(await page.evaluate(() => !!document.querySelector('.stn-page #ins-panel #jl-q'))), String(slash));
     await page.keyboard.press('Backspace');
     check('2d and goes when the "/" does', !!(await until(() => !document.getElementById('ca-slash') ? true : null, null, 3000)));
 
@@ -148,30 +121,33 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const mu = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await m.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await m.waitForTimeout(120); }
       return v; };
-    await mu(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } return document.querySelector('[data-st-you-card="who"]') ? true : null; }, null, 15000);
-    /* re-pointed 19 Oct 2026: the head card in the page, not the window head */
-    const mh = await mu(() => { const c = document.getElementById('st-headcard'), f = c && c.querySelector('[data-st-head-sub]'); if (!f || !f.textContent.trim()) return null;
-      return { h1: (c.querySelector('.st-hc-t') || {}).textContent || '', facts: f.textContent.trim(), ask: !!c.querySelector('[data-st-ask-head]') }; });
-    check('5a "Your settings · yours alone — nobody else sees them", and Ask an admin', !!mh && mh.h1.trim() === 'Your settings' && mh.facts === 'yours alone — nobody else sees them' && mh.ask, JSON.stringify(mh));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a member reads the one list too — their own rows,
+       Ask an admin in Jambo's panel beside it; a row's Change opens its drawer (the round-24 in-row form is the old look's) */
+    await mu(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; } return document.querySelector('#stn-name') ? true : null; }, null, 15000);
+    const mh = await mu(() => { const p = document.getElementById('ins-panel'); if (!p || !document.querySelector('.stn-page')) return null;
+      return { ask: !!p.querySelector('[data-st-ask-head]'), company: !!document.querySelector('#stn-main [data-stn-row="approvals"], #stn-main [data-stn-row="rates"]') }; });
+    check('5a a member\'s own settings, no company rows, and Ask an admin', !!mh && mh.ask && !mh.company, JSON.stringify(mh));
     const pressM = async (sel, what) => { if (!(await m.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await m.locator(sel).first().click(); return true; };
-    if (await pressM('[data-st-rform="me:name"]', '5b Name · Change')) {
-      const inRow = await mu(() => { const f = document.getElementById('st-rform');
-        return f && document.getElementById('st-me-name') && !document.getElementById('st-drawer') ? { after: !!(f.previousElementSibling && f.previousElementSibling.matches('.st-sr')) } : null; }, null, 4000);
-      check('5b the form opens in its row, no drawer', !!inRow && inRow.after, JSON.stringify(inRow));
+    if (await pressM('#stn-name [data-st-panel="me:name"]', '5b Name · Change')) {
+      const inRow = await mu(() => { const d = document.getElementById('st-drawer');
+        return d && d.classList.contains('open') && document.getElementById('st-me-name') ? { drawer: true } : null; }, null, 4000);
+      check('5b its Change opens the name\'s form', !!inRow, JSON.stringify(inRow));
       await m.fill('#st-me-name', 'Wanjiru Kamau');
-      await pressM('#st-rform-save', '5c Save');
-      const saved = await mu(() => !document.getElementById('st-rform') && /Wanjiru Kamau/.test((document.querySelector('[data-st-you-card="who"]') || {}).textContent || '') ? true : null, null, 6000);
+      await pressM('#st-dsave', '5c Save');
+      const saved = await mu(() => /Wanjiru Kamau/.test((document.querySelector('#stn-name') || {}).textContent || '') ? true : null, null, 6000);
       const nb = await w.unrestricted.json('/api/bootstrap');
       check('5c saved on the server, said in the row', !!saved && nb.me.name === 'Wanjiru Kamau', nb.me.name);
     }
-    if (await pressM('[data-st-rform="me:email"]', '5d Email · Change')) {
+    /* RE-POINTED 16 Nov 2026 (#762): Your email is a row on the one list; its Change opens the email drawer */
+    if (await pressM('#stn-email [data-st-panel="me:email"]', '5d Email · Change')) {
+      await mu(() => document.getElementById('st-me-email') ? true : null, null, 4000);
       await m.fill('#st-me-email', 'wanjiru@example.co.ke'); await m.fill('#st-me-email-pw', 'not-my-password');
-      await pressM('#st-rform-save', '5d Save');
-      const refused = await mu(() => { const r = document.getElementById('st-rform-refusal'); return r && !r.hidden && r.textContent.trim() ? r.textContent.trim() : null; }, null, 6000);
-      check('5d a wrong password is refused in the row', !!refused, refused);
+      await pressM('#st-dsave', '5d Save');
+      const refused = await mu(() => { const r = document.getElementById('st-drawer-refusal'); return r && !r.hidden && r.textContent.trim() ? r.textContent.trim() : null; }, null, 6000);
+      check('5d a wrong password is refused in its form', !!refused, refused);
       await m.fill('#st-me-email-pw', 'their-own-pass-9');
-      await pressM('#st-rform-save', '5e Save');
-      const ok = await mu(() => !document.getElementById('st-rform') ? true : null, null, 6000);
+      await pressM('#st-dsave', '5e Save');
+      const ok = await mu(() => { const d = document.getElementById('st-drawer'); return !(d && d.classList.contains('open')) ? true : null; }, null, 6000);
       const eb = await w.unrestricted.json('/api/bootstrap');
       check('5e with the password: saved on the server', !!ok && eb.me.email === 'wanjiru@example.co.ke', eb.me.email);
     }
@@ -186,12 +162,14 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     console.log('\n6 · the owner\'s three screens');
     for (const [W, HH] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await m.setViewportSize({ width: W, height: HH });
-      await m.evaluate(() => { if (typeof stRowFormClose === 'function') stRowFormClose(); });
-      await m.locator('[data-st-rform="me:name"]').first().click().catch(() => null);
-      const fit = await mu(() => { const f = document.getElementById('st-rform'), col = document.getElementById('st-tabbody'), sc = document.getElementById('content-scroll');
-        if (!f || !col) return null; const a = f.getBoundingClientRect(), b = col.getBoundingClientRect();
-        return { inside: a.left >= b.left - 1 && a.right <= b.right + 1, sideways: document.documentElement.scrollWidth > innerWidth + 1 || !!(sc && sc.scrollWidth > sc.clientWidth + 1) }; }, null, 4000);
-      check(`6 ${W}×${HH}: the form inside the page's column, no sideways scroll`, !!fit && fit.inside && !fit.sideways, JSON.stringify(fit));
+      /* RE-POINTED 16 Nov 2026 (#762): the name's form is its drawer; it stands inside the window, the list never sideways */
+      await m.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
+      await m.locator('#stn-name [data-st-panel="me:name"]').first().click().catch(() => null);
+      const fit = await mu(() => { const f = document.getElementById('st-me-name'), d = document.getElementById('st-drawer'), sc = document.getElementById('content-scroll');
+        if (!f || !d || !d.classList.contains('open') || d.getAnimations({ subtree: true }).some(x => x.playState === 'running')) return null; const a = f.getBoundingClientRect(), b = d.getBoundingClientRect();
+        return { a: [a.left, a.right].map(Math.round), b: [b.left, b.right].map(Math.round), w: innerWidth, inside: a.left >= b.left - 1 && a.right <= b.right + 1 && b.right <= innerWidth + 1, sideways: document.documentElement.scrollWidth > innerWidth + 1 || !!(sc && sc.scrollWidth > sc.clientWidth + 1) }; }, null, 4000);
+      check(`6 ${W}×${HH}: the form inside its drawer in the window, no sideways scroll`, !!fit && fit.inside && !fit.sideways, JSON.stringify(fit));
+      await m.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
       await page.setViewportSize({ width: W, height: HH });
       const pfit = await until(() => { const sc = document.getElementById('content-scroll'); return { sideways: document.documentElement.scrollWidth > innerWidth + 1 || !!(sc && sc.scrollWidth > sc.clientWidth + 1) }; });
       check(`6 ${W}×${HH}: Data & backup, no sideways scroll`, !!pfit && !pfit.sideways, JSON.stringify(pfit));

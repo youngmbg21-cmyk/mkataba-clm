@@ -467,9 +467,9 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     assert.match(body, /data-ag-brief-count><b>1 worth watching<\/b> — read them in the brief\./, 'the panel counts it');
     assert.equal((body.match(/class="ag-dep"/g) || []).length, 2, 'the two open standards, each drawn — the met one is not');
     assert.match(body, /Their words[\s\S]*Neither party(&#39;|')s liability is limited\./, 'their words, quoted');
-    assert.match(body, /Your standard[\s\S]*12 months/, 'beside your standard');
+    assert.match(body, /Your position[\s\S]*12 months/, 'beside your standard');
     assert.match(body, /Needs Legal/, 'escalated where the review said so');
-    assert.match(body, /1 other standard is met\./, 'a met standard is counted, never listed');
+    assert.match(body, /1 other position is met\./, 'a met standard is counted, never listed');
     assert.match(body, /Deliver the audit plan[\s\S]*Theirs/, 'the obligations found, whose each is');
     const acts = win.agPanelActs(it);
     assert.match(acts, /data-ag-act="obs"[^>]*>Review 2 obligations</, 'with the one door onto adding them');

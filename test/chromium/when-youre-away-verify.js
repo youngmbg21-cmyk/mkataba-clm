@@ -62,27 +62,24 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
-    /* since round 24 (One sheet) the card is a section of rows: its doors sit at the row's end (.st-sa) */
-    const readCard = () => until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'you') { setView('team'); settingsGoTab('you'); return null; }
-      const c = document.querySelector('[data-st-you-card="away"]'); if (!c) return null;
-      const b = document.querySelector('.st-you-board').getBoundingClientRect(), r = c.getBoundingClientRect();
-      return { text: c.textContent.replace(/\s+/g, ' ').trim(), wide: Math.abs(r.width - b.width) < 2,
-        doors: [...c.querySelectorAll('.st-card-doors button, .st-card-doors a, .st-sa button')].map(x => x.textContent.replace(/[›\s]+$/, '').trim()) };
-    }, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; When you're away is its row in
+       You (#stn-away: what it is set to, and Change, which opens the away form as a drawer). Every promise the round-24
+       card made is asked where the new look draws it: the row, its drawer, Jambo's panel beside the list. */
+    const page0 = () => until(() => { if (!document.querySelector('.stn-page')) { if (typeof stDrawerClose === 'function') try { stDrawerClose(); } catch (_) {} setView('team'); return null; } return !!document.getElementById('stn-away'); }, null, 15000);
+    const rowText = () => until(() => { const r = document.getElementById('stn-away'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
+    const seen = () => page.evaluate(() => ((document.getElementById('set-page') || {}).textContent || '').replace(/\s+/g, ' ') + ' ' + ((document.getElementById('st-drawer') || {}).textContent || '').replace(/\s+/g, ' '));
 
-    console.log('\n1 · the card');
-    let card = await readCard();
-    check('1a When you\'re away, across the board: nobody yet, Set it up', !!card && card.wide && /^When you're away (Who answers for you ?)?Nobody answers for you while you are away\./.test(card.text)
-      && card.doors.join('|') === 'Set it up', JSON.stringify(card));
+    console.log('\n1 · the row');
+    await page0();
+    let row = await rowText();
+    const door1 = await page.evaluate(() => !!document.querySelector('#stn-away [data-st-panel="me:away"]'));
+    check('1a When you\'re away, in You: nobody yet, and its door', !!row && /When you’re away|When you're away/.test(row) && /Not set/.test(row) && door1, row);
 
-    /* RE-POINTED 18 Oct 2026 (the gaps, round 24 as drawn: "When you're away
-       opens inside its row"): the same form, Save and Cancel, in its row */
-    console.log('\n2 · the form, in its row');
-    if (await press('[data-st-you-card="away"] [data-st-rform="me:away"]', '2 Set it up')) {
-      const d = await until(() => { const dr = document.getElementById('st-rform'); if (!dr || !dr.closest('[data-st-you-card="away"]')) return null;
+    console.log('\n2 · the form');
+    if (await press('#stn-away [data-st-panel="me:away"]', '2 Change')) {
+      const d = await until(() => { const dr = document.getElementById('st-drawer'); if (!dr || !dr.classList.contains('open')) return null;
         const who = document.getElementById('st-aw-who');
-        return who ? { title: dr.getAttribute('aria-label'), from: (document.getElementById('st-aw-from') || {}).value,
+        return who ? { title: ((document.querySelector('#st-dhead .rvd-title') || {}).textContent || '').trim(), from: (document.getElementById('st-aw-from') || {}).value,
           to: (document.getElementById('st-aw-to') || {}).value, people: [...who.options].map(o => o.textContent.trim()),
           body: dr.textContent.replace(/\s+/g, ' ') } : null; });
       check('2a it asks From, Until (a week from today) and who — colleagues only, never you', !!d && d.title === 'When you\'re away' && d.from === day(0) && d.to === day(6)
@@ -91,7 +88,6 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
         && /Never your signing — that stays yours\./.test(d.body), d && d.body.slice(0, 300));
       await page.selectOption('#st-aw-who', W.users.restricted.id);
       const narrow = await until(() => { const t = (document.getElementById('st-aw-reach') || {}).textContent || ''; return /cannot open/.test(t) ? t.trim() : null; });
-      /* Restricted Legal opens Procurement only: every other stream Unrestricted can open is named */
       check('2c before Save: "Restricted Legal cannot open … Sales & Route-to-Market … — what waits for you there stays with you."',
         !!narrow && /^Restricted Legal cannot open .*Sales & Route-to-Market.* — what waits for you there stays with you\.$/.test(narrow)
         && !/Procurement/.test(narrow), narrow);
@@ -100,38 +96,38 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       check('2d "No Values Legal can open every stream you can."', wide === 'No Values Legal can open every stream you can.', wide);
       await page.evaluate(v => { const el = document.getElementById('st-aw-to'); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, day(4));
       await shot(page, 'away-drawer-1440x780');
-      await press('#st-rform-save', '3 Save');
+      await press('#st-dsave', '3 Save');
     }
 
     console.log('\n3 · saved');
     const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /answers for you from/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
     check('3a an \'ok\': "No Values Legal answers for you from …"', !!told && /No Values Legal answers for you from /.test(told), told);
-    card = await until(() => { const c = document.querySelector('[data-st-you-card="away"]'); const t = c && c.textContent.replace(/\s+/g, ' ').trim();
-      return t && /answers your approvals/.test(t) ? { text: t, doors: [...c.querySelectorAll('.st-card-doors button, .st-sa button')].map(x => x.textContent.replace(/[›\s]+$/, '').trim()) } : null; });
-    /* re-pointed 19 Oct 2026 (lane F's third pass, round 24 as drawn): the
-       stand-in named whole once, then by first name — "Each thing Maria
-       answers says 'for Jonas'" */
-    check('3b the card: "On until …", who answers from when to when, ends on its own, each answer "for Unrestricted"; Change · End it now', !!card
-      && /^When you're away On until .+?\s?No Values Legal answers your approvals and internal reviews from .+ to .+\.\s?It ends on its own\. It never covers signing — that stays yours\. Each thing No answers says “for Unrestricted”\./.test(card.text)
-      && card.doors.join('|') === 'Change|End it now', JSON.stringify(card));
+    row = await until(() => { const r = document.getElementById('stn-away'); const t = r && r.textContent.replace(/\s+/g, ' ').trim(); return t && /On until/.test(t) ? t : null; });
+    check('3b the row: "On until …"', !!row, row);
+    /* what the card said beside it — who answers, from when to when, that it ends on its own, never signing, each answer
+       "for <you>" — and its End it now: asked of the page where the new look draws it (the row, its drawer, the panel) */
+    await page0();
+    const said = await seen();
+    check('3b2 the page says who answers and when, that it ends on its own and never covers signing, each answer "for Unrestricted"',
+      /No Values Legal answers your approvals and internal reviews from .+ to .+\./.test(said) && /It ends on its own\./.test(said) && /It never covers signing/.test(said) && /“for Unrestricted”/.test(said), said.slice(0, 300));
     await shot(page, 'away-card-1440x780');
     await page.evaluate(() => renderTeam());
-    const jb = await until(() => { const m = String((document.getElementById('st-jb-feed') || {}).textContent || '').replace(/\s+/g, ' ').match(/While you are away[^.]*\./); return m ? m[0] : null; });
+    const jb = await until(() => { const m = String((document.getElementById('ins-panel') || {}).textContent || '').replace(/\s+/g, ' ').match(/While you are away[^.]*\./); return m ? m[0] : null; });
     check('3c Jambo: "While you are away, No Values Legal answers your approvals and reviews — never your signing."',
       jb === 'While you are away, No Values Legal answers your approvals and reviews — never your signing.', jb);
 
     console.log('\n4 · the stand-in');
     const own = page;
     page = await open('novalues@example.co.ke', 'their-own-pass-9');
-    /* the cover row is asked for, bounded (CI under load read the card before it stood); the card as it is otherwise */
-    let mine = await until(() => { if (!document.getElementById('set-page') || settingsTab() !== 'you'){ setView('team'); settingsGoTab('you'); return null; }
-      const c = document.querySelector('[data-st-you-card="away"]'); const t = c && c.textContent.replace(/\s+/g, ' ').trim(); return t && /You answer for/.test(t) ? { text: t } : null; });
-    if (!mine) mine = await readCard();
+    let mine = await until(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; }
+      const t = (((document.getElementById('set-page') || {}).textContent) || '').replace(/\s+/g, ' '); return /You answer for/.test(t) ? { text: t.slice(t.indexOf('You answer for'), t.indexOf('You answer for') + 80) } : null; });
     check('4a their own You says "You answer for Unrestricted Legal until …"', !!mine && /You answer for Unrestricted Legal until /.test(mine.text), mine && mine.text);
     const may = await page.evaluate(async () => { const c = getContract('MK-W1'); if (typeof ensureFull === 'function') await ensureFull(c);
       const d = approvalDecidableNow(c); return d ? d.kind : null; });
     check('4b the step that names Unrestricted Legal is theirs to decide', may === 'rule', may);
-    const done = await page.evaluate(async () => { try { return await approvalDecideAsk(getContract('MK-W1'), 'approved'); } catch (e) { return 'threw ' + e.message; } });
+    /* a yes offers an optional note (17 Nov 2026): answered here with none, as the pop-up's own Approve would */
+    const done = await page.evaluate(async () => { const was = window.promptDialog; window.promptDialog = async () => '';
+      try { return await approvalDecideAsk(getContract('MK-W1'), 'approved'); } catch (e) { return 'threw ' + e.message; } finally { window.promptDialog = was; } });
     const rec = await page.evaluate(async () => { const r = await fetch('api/contracts/MK-W1', { credentials: 'same-origin' }); const c = await r.json();
       const s = (c.approvalChain || []).find(x => x.ruleId === 'r-sales') || {};
       const a = (c.audit || []).filter(x => x.action === 'Approved').pop() || {};
@@ -144,11 +140,13 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     page = own;
 
     console.log('\n5 · End it now');
-    await page.evaluate(() => { setView('team'); settingsGoTab('you'); });
-    if (await press('[data-st-you-card="away"] [data-st-away-end]', '5 End it now')) {
+    await page0();
+    const endSel = '#set-page [data-st-away-end], #st-drawer [data-st-away-end]';
+    if (!(await page.locator(endSel).count())) await page.locator('#stn-away [data-st-panel="me:away"]').first().click().catch(() => {});
+    if (await press(endSel, '5 End it now')) {
       const t = await until(() => { const x = (document.getElementById('toast-root') || {}).textContent || ''; return /yours again/.test(x) ? x.replace(/\s+/g, ' ').trim() : null; });
-      card = await until(() => { const c = document.querySelector('[data-st-you-card="away"]'); const x = c && c.textContent.replace(/\s+/g, ' ').trim(); return x && /Nobody answers/.test(x) ? x : null; });
-      check('5 an \'ok\', and the card is back to nobody', !!t && /Ended — your approvals and reviews are yours again\./.test(t) && !!card, `${t} / ${card}`);
+      const back = await until(() => { if (typeof stDrawerClose === 'function' && document.querySelector('#st-drawer.open')) try { stDrawerClose(); } catch (_) {} const r = document.getElementById('stn-away'); const x = r && r.textContent.replace(/\s+/g, ' ').trim(); return x && /Not set/.test(x) ? x : null; });
+      check('5 an \'ok\', and the row is back to nobody', !!t && /Ended — your approvals and reviews are yours again\./.test(t) && !!back, `${t} / ${back}`);
     }
 
     console.log('\n6 · the owner\'s three screens');
@@ -157,26 +155,24 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {
       await page.setViewportSize(vp);
       await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); renderTeam(); });
-      await until(() => !!document.querySelector('[data-st-you-card="away"] .st-aw-chip'));
+      await until(() => /On until/.test(((document.getElementById('stn-away') || {}).textContent) || ''));
       const fit = await page.evaluate(() => {
-        const c = document.querySelector('[data-st-you-card="away"]'); const r = c.getBoundingClientRect();
-        const cut = [...c.querySelectorAll('.st-you-line, .st-card-doors button, .st-aw-chip')].filter(e => e.scrollWidth > e.clientWidth + 1).length;
+        const c = document.getElementById('stn-away'); const r = c.getBoundingClientRect();
+        const cut = [...c.querySelectorAll('.stn-l, .stn-v, .stn-sub, button')].filter(e => e.scrollWidth > e.clientWidth + 1).length;
         return { right: r.right <= innerWidth + 1, cut, page: document.documentElement.scrollWidth - innerWidth };
       });
       await shot(page, `away-card-${vp.width}x${vp.height}`);
-      /* the form in its row (round 24 as drawn): its fields and Save on screen */
-      await page.evaluate(() => { stRowFormOpen('me:away'); const f = document.getElementById('st-rform'); if (f) f.scrollIntoView({ block: 'center' }); });
-      const dr = await until(() => { const d = document.getElementById('st-rform'); if (!d || !document.getElementById('st-aw-who')) return null;
+      await page.locator('#stn-away [data-st-panel="me:away"]').first().click().catch(() => {});
+      const dr = await until(() => { const d = document.getElementById('st-drawer'); if (!d || !d.classList.contains('open') || !document.getElementById('st-aw-who') || document.getAnimations().some(a => a.playState === 'running')) return null;
         const r = d.getBoundingClientRect();
-        const save = document.getElementById('st-rform-save'); const s = save && save.getBoundingClientRect();
-        /* a date is drawn as HaTi's own face beside its hidden box (datePickDress) */
+        const save = document.getElementById('st-dsave'); const s = save && save.getBoundingClientRect();
         const shown = el => (el.style.display === 'none' && el.nextElementSibling) ? el.nextElementSibling : el;
         const fields = ['st-aw-from', 'st-aw-to', 'st-aw-who'].map(id => shown(document.getElementById(id)).getBoundingClientRect());
         return { inside: r.right <= innerWidth + 1 && r.left >= -1, save: !!s && s.bottom <= innerHeight + 1 && s.width > 0,
           fields: fields.every(f => f.width > 60 && f.right <= r.right + 1) }; });
       await shot(page, `away-drawer-${vp.width}x${vp.height}`);
-      await page.evaluate(() => stRowFormClose());
-      check(`6 ${vp.width}×${vp.height}: the card fits uncut; the form, its fields and Save are on screen`, fit.right && fit.cut === 0 && fit.page <= 0
+      await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
+      check(`6 ${vp.width}×${vp.height}: the row fits uncut; the form, its fields and Save are on screen`, fit.right && fit.cut === 0 && fit.page <= 0
         && !!dr && dr.inside && dr.save && dr.fields, JSON.stringify({ fit, dr }));
     }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

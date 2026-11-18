@@ -1,5 +1,5 @@
 /* THE NEW LOOK, ROUND 8 SECOND HALF: THE PHONE (2 Nov 2026; the review room's drawing, behind the admin's own switch).
-     1 · Off: the phone is today's — the company's mark in the bar, "What do you need" and its list
+     1 · (RETIRED 16 Nov 2026, #762: there is no off)
      2 · On, Home as drawn: the black bar with HaTi and your initials; the greeting and one sentence that counts the
          rows drawn under it (the computer's one desk); each row the agreement, a line, one underlined act word;
          Jambo's box under the list
@@ -27,12 +27,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await p.fill('#li-email', 'admin@example.co.ke'); await p.fill('#li-pass', 'adminpassword1'); await p.click('#li-go');
   await until(p, () => typeof currentUser === 'function' && !!currentUser() && !!document.querySelector('#m-root .m-screen'), null, 40000);
 
-  /* 1 · off */
-  try {
-    await until(p, () => !!document.querySelector('#m-root .m-head-mark'), null, 10000);
-    const S = await p.evaluate(() => ({ mark: !!document.querySelector('#m-root .m-head-mark'), nl: !!document.querySelector('#m-root .m-nl-home'), rows: document.querySelectorAll('#m-root .m-needs .m-row').length }));
-    check('1 off: the phone as today', S.mark && !S.nl && S.rows > 0, S);
-  } catch (e) { check('1 off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 1 "off: the phone as today" — there is no off; the new look is the only look */
 
   /* 2 · on, Home */
   try {

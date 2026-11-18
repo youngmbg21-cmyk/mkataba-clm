@@ -72,11 +72,12 @@ describe('f974 ask for a new link', () => {
     await share('erik@parcelway.example', 'Erik Lindqvist');
     assert.equal(((await stored()).linkAsks || []).length, 0);
   });
+  /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): outsiders always see it */
   test('5 the share route and /api/status say whether outsiders see the new look', async () => {
     const st = await fetch(h.base + '/api/status').then(x => x.json());
-    assert.equal(st.outsideLook, false);
+    assert.equal(st.outsideLook, true);
     const live = await share('look@parcelway.example', 'Look One');
     const got = await fetch(h.base + '/api/shares/' + live.token).then(x => x.json());
-    assert.equal(got.outsideLook, false);
+    assert.equal(got.outsideLook, true);
   });
 });

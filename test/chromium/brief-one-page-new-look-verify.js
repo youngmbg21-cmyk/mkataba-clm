@@ -6,7 +6,7 @@
          saying it is not written and offering Write the brief — never the old side panel
      2 · Write the brief (Jambo's call stood in for) draws the brief on the same page, with what it rests on
      3 · A brief door pressed again while the page is up keeps it up (it is a door that opens, not a switch)
-     4 · The new look off: the same door opens the old side panel, as before
+     4 · (retired 16 Nov 2026, #762: there is no new-look switch to turn off)
    At the parent 1–3 fail: the old side panel opens.
    Run: node test/chromium/brief-one-page-new-look-verify.js */
 const fs = require('node:fs');
@@ -67,11 +67,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   const s3 = await S();
   check('3 · a brief door pressed while the page is up keeps it up', s3.mid && !s3.old, s3);
 
-  /* 4 · the new look off: the old side panel, as before */
-  await page.evaluate(async () => { pdMidClose(); await stPrefSet('newLook', false); newLookApply(); openCheckPanel(getContract('MK-IT'), 'brief'); });
-  await until(page, () => !!document.querySelector('#side-panel #brief-section'), null, 8000);
-  const s4 = await S();
-  check('4 · the new look off: the old side panel, as before', s4.old && !s4.mid, s4);
+  /* RETIRED 16 Nov 2026 (#762): 4 "the new look off: the old side panel, as before" — there is no switch any more;
+     the new look is the only look, so the old side panel is never reached */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

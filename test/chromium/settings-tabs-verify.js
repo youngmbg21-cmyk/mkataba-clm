@@ -76,29 +76,9 @@ const signIn = async (page, base, email, pass) => {
     await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1200);
 
-    /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room, the owner's pick):
-       four tabs became Home's two — You first, where the page opens, and
-       Company, the admin's board. */
-    const tabs = await page.evaluate(() =>
-      [...document.querySelectorAll('#set-page .st-face')].map(b => b.textContent.trim()));
-    check('the page opens as two tabs, You and Company', tabs.length === 2, tabs.join(' · '));
-    check('and it opens on You',
-      (await page.evaluate(() => settingsTab())) === 'you'
-      && (await page.evaluate(() => !!document.querySelector('[data-st-you-card="who"]'))),
-      'You, with their own settings on it');
-
-    /* Switching by pressing the tab, not by calling the function. */
-    for (const t of ['company', 'you', 'company']) {
-      await page.click(`.st-face[data-st-tab="${t}"]`);
-      await page.waitForTimeout(400);
-      const on = await page.evaluate(() => ({
-        tab: settingsTab(),
-        marked: document.querySelector('.st-face[aria-selected="true"]')?.getAttribute('data-st-tab'),
-        body: document.getElementById('st-tabbody').children.length,
-      }));
-      check(`pressing "${t}" goes there and says so`,
-        on.tab === t && on.marked === t && on.body > 0, JSON.stringify(on));
-    }
+    /* RETIRED 16 Nov 2026 (#762): "the page opens as two tabs, You and Company", "and it opens on You" and "pressing <tab>
+       goes there and says so" — the You · Company tabs are the old look's; Settings is one list (.stn-page) */
+    await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main .stn-row'), null, { timeout: 10000 }).catch(() => {});
 
     /* ---- every row on every tab opens a drawer, and it is visible ---- */
     /* a panel whose door is a page (Data & backup since round 26) is walked below */
@@ -106,16 +86,14 @@ const signIn = async (page, base, email, pass) => {
       Object.keys(SET_PANELS).filter(k => (!SET_PANELS[k].show || SET_PANELS[k].show()) && !SET_PANELS[k].page));
     const bad = [];
     for (const k of panelKeys) {
-      await page.evaluate(x => { settingsGoTab(SET_PANELS[x].tab); }, k);
-      await page.waitForTimeout(250);
       /* PRESSED, not called: the row's own delegated handler is what a person
          uses, and a row that is drawn but not wired passes a function call.
-         RE-POINTED 18 Oct 2026 (round 25 as drawn): a panel with no door on
-         its card is pressed where it is drawn — the Menu beside the board */
-      if (!(await page.locator(`#st-board [data-st-panel="${k}"]:visible`).count())) {
-        await page.evaluate(() => stSideSet('menu')); await page.waitForTimeout(150);
-      }
-      await page.locator(`[data-st-panel="${k}"]:visible`).first().click();
+         RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a panel with a door on the one list (or its foot)
+         is pressed there; a panel with none is opened by its name — the navigation map's own call (js/navmap.js) */
+      await page.evaluate(() => { if (!document.querySelector('.stn-page')) { try { settingsGoPage(''); } catch (_) {} setView('team'); } });
+      await page.waitForTimeout(250);
+      if (await page.locator(`#stn-main [data-st-panel="${k}"]:visible`).count()) await page.locator(`#stn-main [data-st-panel="${k}"]:visible`).first().click();
+      else await page.evaluate(x => openSettingsAt('company', x), k);
       await page.waitForTimeout(500);
       const v = await page.evaluate(VISIBLE, '#st-drawer');
       const title = await page.evaluate(() => (document.querySelector('#st-dhead .rvd-title') || {}).textContent || '');
@@ -123,20 +101,21 @@ const signIn = async (page, base, email, pass) => {
       if (!v.ok || !title.trim() || bodyLen < 10) bad.push(`${k}: ${v.why}${title ? '' : ' · no title'}${bodyLen < 10 ? ' · empty' : ''}`);
       await page.keyboard.press('Escape');
       await page.waitForTimeout(250);
-      await page.evaluate(() => stSideSet('jambo'));
     }
     check(`all ${panelKeys.length} rows open a drawer with a name and something in it`,
       bad.length === 0, bad.slice(0, 4).join(' | ') || panelKeys.join(', '));
-    await page.evaluate(() => { settingsGoTab(SET_PANELS.backup.tab); });
-    await page.waitForTimeout(250);
-    await page.evaluate(() => stSideSet('menu')); await page.waitForTimeout(150);
-    await page.locator('[data-st-panel="backup"]:visible').first().click();
+    /* RE-POINTED 16 Nov 2026 (#762): Data & backup has no door on the one list; opened by its name, it is its page */
+    await page.evaluate(() => { openSettingsAt('company'); settingsGoPage('data'); });
     const dataPage = await page.waitForFunction(() => !!document.querySelector('[data-st-pg="data"] .st-pg-t'), null, { timeout: 5000 }).then(() => true, () => false);
-    check('Data & backup\'s row opens its page (round 26)', dataPage);
+    check('Data & backup, by its name, opens its page (round 26)', dataPage);
     await page.evaluate(() => settingsGoPage(''));
 
     /* ---- the three ways out ---- */
     const isOpen = () => page.evaluate(() => document.getElementById('st-drawer').classList.contains('open'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a panel's door is pressed where the one list draws it;
+       a panel with no door there is opened by its name (the navigation map's own call, js/navmap.js) */
+    const door = async k => { const sel = `.stn-page #stn-main [data-st-panel="${k}"]:visible`; if (await page.locator(sel).count()) return page.locator(sel).first().click();
+      return page.evaluate(x => openSettingsAt('company', x), k); };
     await page.evaluate(() => { settingsGoTab('platform'); });
     await page.click('[data-st-panel="company"]'); await page.waitForTimeout(450);
     check('the drawer is open before we try to close it', await isOpen());
@@ -190,14 +169,8 @@ const signIn = async (page, base, email, pass) => {
     check('pressing Save writes the record',
       savedLegal.companyName === 'Highland Corporate Limited' && savedLegal.registrationNumber === 'PVT-2019-4471',
       `${savedLegal.companyName} · ${savedLegal.registrationNumber}`);
-    /* The row behind the drawer states the legal name without being opened, so
-       it has to have caught up — and the page must not have rebuilt to do it. */
-    /* since the full build (16 Oct 2026) the panel is a FACT on its card: its
-       short state on the line, the whole of it in the title */
-    const legalRowSays = await page.evaluate(() => {
-      const f = document.querySelector('.st-fact[data-st-panel="company"], .st-door[data-st-panel="company"]');
-      return f ? (f.getAttribute('title') || f.textContent || '') : ''; });
-    check("and the row behind it says the new name", /Highland Corporate Limited/.test(legalRowSays), legalRowSays);
+    /* RETIRED 16 Nov 2026 (#762): "and the row behind it says the new name" — the Company & market card's fact; the one
+       list has no row naming the company (its door here is the exchange rates row) */
     const stillOpen = await page.evaluate(() => document.getElementById('st-drawer').classList.contains('open'));
     check('the drawer is still open — the page held still', stillOpen);
 
@@ -297,7 +270,7 @@ const signIn = async (page, base, email, pass) => {
     /* ---- the go-live checklist is a door ---- */
     await page.evaluate(() => { settingsGoTab('build'); });
     await page.waitForTimeout(300);
-    await page.click('[data-st-panel="golive"]'); await page.waitForTimeout(500);
+    await door('golive'); await page.waitForTimeout(500);
     const goRows = await page.evaluate(() => [...document.querySelectorAll('#st-golive .st-row')].length);
     await page.click('#st-golive [data-st-go]'); await page.waitForTimeout(600);
     const landed = await page.evaluate(() => ({
@@ -385,7 +358,7 @@ const signIn = async (page, base, email, pass) => {
     await page.waitForTimeout(300);
     /* The master switch's panel says the rest is per person, and names anybody
        who has been taken off rather than counting them. */
-    await page.click('[data-st-panel="review"]'); await page.waitForTimeout(600);
+    await door('review'); await page.waitForTimeout(600);
     await page.evaluate(() => { document.getElementById('rv-gate-on').checked = true;
       document.getElementById('rv-gate-on').dispatchEvent(new Event('change', { bubbles: true })); });
     await page.waitForTimeout(600);
@@ -404,7 +377,7 @@ const signIn = async (page, base, email, pass) => {
     /* RE-POINTED 4 Oct 2026 (the process review, approved): the limit and the
        folder rule each have a row of their own now, under "Before anyone
        signs", instead of two switches folded into the approval rules. */
-    await page.click('[data-st-panel="signcap"]'); await page.waitForTimeout(600);
+    await door('signcap'); await page.waitForTimeout(600);
     const ladder = await page.evaluate(VISIBLE, '#sc-ladder');
     const sw = await page.evaluate(() => ({
       on: document.getElementById('sc-rule-on').checked,
@@ -416,7 +389,7 @@ const signIn = async (page, base, email, pass) => {
     check('and it says out loud that the limits are recorded, not enforced',
       /not enforced/i.test(sw.note), sw.note.replace(/\s+/g, ' ').trim().slice(-70));
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-    await page.click('[data-st-panel="signfolder"]'); await page.waitForTimeout(600);
+    await door('signfolder'); await page.waitForTimeout(600);
     const sfSwitch = await page.evaluate(() => {
       const b = document.getElementById('sf-rule-on');
       return b ? { there: true, on: b.checked } : { there: false };
@@ -758,22 +731,27 @@ const signIn = async (page, base, email, pass) => {
       /* since round 24 (One sheet) how you work changes in its row */
       /* re-pointed 18 Oct 2026 (round 24 as drawn): the forms open in their
          row, and Your data's Download is their own copy, recorded */
-      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-rform="me:name"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-sw="chips"]'),
-      sessions: !!document.querySelector('[data-st-you-card="safety"] [data-st-rform="me:sessions"]'),
-      backup: !!document.querySelector('[data-st-you-card="data"] [data-st-mycopy]'),
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their own settings are the one list's rows — Name
+         with its Change, Language, Two-step (the round-24 You sheet with its cards is the old look's) */
+      mine: !!document.querySelector('.stn-page #stn-name [data-st-panel="me:name"]') && !!document.querySelector('#stn-lang [data-st-lang]'),
+      sessions: !!document.querySelector('.stn-page #stn-twostep [data-st-panel="me:twostep"]'),
+      backup: !!document.querySelector('.stn-page #stn-main .stn-row'),
       /* re-pointed 18 Oct 2026 (round 24 as drawn: eight headings): Company
          design is off the sheet and found by its name — the Menu names it */
       design: !document.querySelector('[data-st-you-card="design"]') && !!document.querySelector('#st-list [data-st-you="design"]'),
     }));
-    await p2.click('[data-st-you-card="who"] [data-st-rform="me:name"]'); await p2.waitForTimeout(500);
+    await p2.click('#stn-name [data-st-panel="me:name"]'); await p2.waitForTimeout(500);
     const whoV = await p2.evaluate(VISIBLE, '#st-me-title');
     check('a card\'s door opens their drawer with the control in it, as pixels', whoV.ok, whoV.why);
     await p2.keyboard.press('Escape'); await p2.waitForTimeout(300);
     check('reaching the page anyway lands on their own account, not a blank',
       theirs.mine && theirs.sessions && theirs.backup, JSON.stringify({ mine: theirs.mine, sessions: theirs.sessions, backup: theirs.backup }));
+    /* RE-POINTED 16 Nov 2026 (#762): no tab row, no company rows, Jambo's panel and box beside their list (the old side
+       Menu is gone with the old look) */
     const noTabs = await p2.evaluate(() => !document.querySelector('#set-page .st-faces, [data-st-tab="company"]')
-      && !!document.getElementById('st-jb-q') && !!document.getElementById('st-side-menu'));   /* the Menu: "/" in Jambo's box (round 24 as drawn) */
-    check('with no tab row at all, and Jambo and the Menu beside their settings', noTabs);
+      && !document.querySelector('#stn-main [data-stn-row="approvals"], #stn-main [data-stn-row="rates"], #stn-pages')
+      && !!document.querySelector('#ins-panel #jl-q'));
+    check('with no tab row at all, and Jambo beside their settings', noTabs);
     check('the roster, the rules and the gates are not on it',
       theirs.roster === 0 && !theirs.rules && !theirs.gates,
       `${theirs.roster} people · rules ${theirs.rules} · gates ${theirs.gates}`);

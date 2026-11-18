@@ -2600,6 +2600,12 @@ function obligationsDoorCount(){
    stale to inherit. */
 function obwGoFiltered(patch){
   _obwF = { whose:'all', state:'open', side:'all', folder:'all', due:'all', ...(patch || {}) };
+  /* THE NEW LOOK'S PAGE (obnRender) READS ITS OWN PILLS (16 Nov 2026, #762): a door asking for the late ones
+     lands on Late, one asking for their side or ours on that choice, and a fresh landing starts unsearched */
+  const p = patch || {};
+  _obnTab = p.state === 'overdue' ? 'late' : 'open';
+  _obnWho = (p.side === 'ours' || p.side === 'theirs') ? p.side : 'all';
+  _obnQ = '';
   if(typeof setView === 'function') setView('obligations');
   else renderObligationsList();
 }
@@ -3372,6 +3378,9 @@ function obPanelActs(o, c, i, ctx){
   if(ctx === 'tab'){
     if(may && w === 'done') acts.push({ k:'reopen', label: i18t('ob_reopen_cap'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) toggleObligation(h.c, h.i, { from:'obligations tab' }); } });
     if(may) acts.push({ k:'edit', label: i18t('ob_edit_cap'), icon:'pencil', run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) openObligationForm(h.c, { ...h.o, _i: h.i }); } });
+    /* REMOVE, last, at once with Undo (obligationRemove): the old tab's ⋯ menu carried it, the new look's face draws
+       these acts only, so it stands here — otherwise no way to take an obligation off is left (#762) */
+    if(may && typeof newLookOn === 'function' && newLookOn()) acts.push({ k:'remove', label: i18t('ob_remove_cap'), icon:'trash', title: i18t('ob_remove_says'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } });
   } else {
     /* the doors every list draws: Negotiation · Workspace (the Document door
        went, owner 15 Oct 2026; the row itself opens the Board's Obligations) */
@@ -4734,7 +4743,7 @@ function obnWhenChip(r){
 function obnWhoWord(r){
   return _obCap((!r._dec && obligationIsTheirs(r)) ? i18t('cal_nl_theirs') : i18t('cal_nl_ours'));
 }
-function obnRowHtml(r){
+function obnRowHtml(r, keys){
   const c = r._c || (window.getContract ? getContract(r.cid) : null);
   const theirs = obligationIsTheirs(r);
   const ref = window.refHtml ? refHtml(c || r.cid) : _obEsc(r.cid);
@@ -4754,9 +4763,24 @@ function obnRowHtml(r){
   const open = `<button type="button" class="cal-nl-go obn-open" data-obn-go="open" data-cid="${_obEsc(r.cid)}" data-key="${_obEsc(r._key)}">${_obEsc(i18t('cal_ag_open'))}</button>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1" class="obn-r">
     <td class="obn-c1" style="border-left:3px solid var(--st-${obnStreamTone(c)}-dot)">${typeof listSapCellHtml === 'function' ? listSapCellHtml(mk, `<div class="obn-what">${_obEsc(r.desc || '')}</div><div class="obn-sub">${sub}</div>${quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}</div>` : ''}`, ch.word) : ''}</td>
-    <td class="obn-who">${_obEsc(obnWhoWord(r))}</td>
-    <td class="obn-when"><span class="obn-ch is-${ch.tone}">${_obEsc(ch.word)}</span></td>
-    <td class="obn-act">${act}${open}</td></tr>`;
+    ${(keys || OBN_KEYS).map(k => k === 'who' ? `<td class="obn-who">${_obEsc(obnWhoWord(r))}</td>`
+      : k === 'when' ? `<td class="obn-when"><span class="obn-ch is-${ch.tone}">${_obEsc(ch.word)}</span></td>`
+      : k === 'acts' ? `<td class="obn-act">${act}${open}</td>` : '<td></td>').join('')}</tr>`;
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the tracked list takes the old
+   whole list's seat and keys, so a reader's dragged widths carry over; the duty, When and its buttons always stand,
+   where the room is short Whose steps aside. The proposals' table keeps every column (its duty rows span them). */
+const OBN_KEYS = ['who', 'when', 'acts'];
+function obnCols(prop){
+  const DEFS = prop
+    ? [{ k: 'name', t: 'obn_col_ag' }, { k: 'side', t: 'obn_col_side', w: 150 }, { k: 'prog', t: 'obn_col_prog', w: 190 }, { k: 'found', t: 'obn_col_found', w: 110 }, { k: 'status', t: 'obn_col_status', w: 120 }, { k: 'acts', w: 190 }]
+    : [{ k: 'name', t: 'ob_col_what' }, { k: 'who', t: 'obd_whose', w: 110, rank: 2 }, { k: 'when', t: 'obd_col_when', w: 170 }, { k: 'acts', w: 190 }];
+  const seat = prop ? 'obligations-prop' : 'obligations-all';
+  const FIT = typeof listCols === 'function' ? listCols(seat, DEFS, () => obnRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { seat, keys: cols.slice(1).map(c => c.k), n: cols.length,
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => c.t ? `<th>${_obEsc(i18t(c.t))}${typeof listGripHtml === 'function' ? listGripHtml(seat, c.k) : ''}</th>` : '<th></th>').join('')}</tr></thead>` };
 }
 /* ---- THE FOOT THAT SAYS WHERE YOU ARE (as drawn) ---- a page's own rows are the only ones built */
 function obnPageCount(total, per){ return Math.max(1, Math.ceil(total / Math.max(1, per))); }
@@ -4901,7 +4925,7 @@ function obnRender(host, o){
   const projShown = projects.slice((_obnPropPage - 1) * _obnPer, _obnPropPage * _obnPer);
   /* THREE PILLS (as drawn): what is late, what is tracked, what Jambo proposes — each its own count, said once */
   const pill = (k, w, extra) => `<button type="button" class="obn-tab${_obnTab === k ? ' is-on' : ''}${extra || ''}" data-obn-tab="${k}">${_obEsc(w)}</button>`;
-  const bar = `<div class="apn-bar obn-bar">
+  const bar = `<div class="apn-bar obn-bar" data-lh-seat="obligations-nl">
     ${lateN || _obnTab === 'late' ? pill('late', i18t('obn_p_late', { n: lateN }), ' is-late') : ''}
     ${pill('open', i18t('obn_p_tracked', { n: open }))}
     ${projects.length ? pill('prop', i18tn('obn_p_prop', projects.length, { n: proposedN, m: projects.length })) : ''}</div>
@@ -4911,14 +4935,15 @@ function obnRender(host, o){
     <select id="obn-state" class="obn-sel" aria-label="${_obEsc(i18t('obn_state_label'))}">${[['open', 'obn_s_due'], ['done', 'obn_tab_done']].map(([k, w]) => `<option value="${k}"${_obnState === k ? ' selected' : ''}>${_obEsc(i18t(w))}</option>`).join('')}</select>`}
     <span class="apn-sp"></span>
     <span class="obn-said">${_obEsc(_obnTab === 'prop' ? i18t('obn_said_prop', { n: proposedN, m: projects.length }) : i18t('obn_said_track', { n: open, l: lateN }))}</span></div>`;
+  const C = obnCols(_obnTab === 'prop');
   const body = _obnTab === 'prop'
-    ? (projShown.map(obnProjRowHtml).join('') || `<tr><td colspan="6" class="obn-none">${_obEsc(i18t('obd_none_here'))}</td></tr>`)
-    : (shown.map(obnRowHtml).join('') || `<tr><td colspan="4" class="obn-none">${_obEsc(i18t(q ? 'ob_none_match_short' : 'ob_none_here'))}</td></tr>`);
+    ? (projShown.map(obnProjRowHtml).join('') || `<tr><td colspan="${C.n}" class="obn-none">${_obEsc(i18t('obd_none_here'))}</td></tr>`)
+    : (shown.map(r => obnRowHtml(r, C.keys)).join('') || `<tr><td colspan="${C.n}" class="obn-none">${_obEsc(i18t(q ? 'ob_none_match_short' : 'ob_none_here'))}</td></tr>`);
   const table = _obnTab === 'prop'
-    ? `<table class="apn-table obn-table is-proj"><colgroup><col><col style="width:150px"><col style="width:190px"><col style="width:110px"><col style="width:120px"><col style="width:190px"></colgroup>
-       <thead><tr><th>${_obEsc(i18t('obn_col_ag'))}</th><th>${_obEsc(i18t('obn_col_side'))}</th><th>${_obEsc(i18t('obn_col_prog'))}</th><th>${_obEsc(i18t('obn_col_found'))}</th><th>${_obEsc(i18t('obn_col_status'))}</th><th></th></tr></thead><tbody id="obn-body">${body}</tbody></table>`
-    : `<table class="apn-table obn-table is-two-line"><colgroup><col><col style="width:110px"><col style="width:170px"><col style="width:190px"></colgroup>
-       <thead><tr><th>${_obEsc(i18t('ob_col_what'))}</th><th>${_obEsc(i18t('obd_whose'))}</th><th>${_obEsc(i18t('obd_col_when'))}</th><th></th></tr></thead><tbody id="obn-body">${body}</tbody></table>`;
+    ? `<table class="apn-table obn-table is-proj" data-list-seat="${C.seat}">${C.colg}
+       ${C.th}<tbody id="obn-body">${body}</tbody></table>`
+    : `<table class="apn-table obn-table is-two-line" data-list-seat="${C.seat}">${C.colg}
+       ${C.th}<tbody id="obn-body">${body}</tbody></table>`;
   /* ONE COUNT (the harmony review, owner's yes 9 Nov 2026): the title's facts lead with what is late */
   const late = lateN;
   _obwHeadFacts = `<span class="obw-hf">${late ? `<span class="obw-hf-late">${_obEsc(i18t('obn_head_late_lead', { n: late }))}</span> ` : ''}${_obEsc(i18t('obn_head_open', { n: open }))}${proposedN ? ` · ${_obEsc(i18t('obn_head_prop', { n: proposedN }))}` : ''}</span>`;
@@ -4941,6 +4966,9 @@ function obnRender(host, o){
     pills.forEach((b, i) => { const f = fresh[i]; if(!f) return; b.className = f.className; b.textContent = f.textContent; });
     const said = host.querySelector('.obn-said'), said2 = tmp.querySelector('.obn-said'); if(said && said2) said.textContent = said2.textContent;
     const pg0 = host.querySelector('.obn-page .obn-pager'), pg1 = tmp.querySelector('.obn-pager'); if(pg0 && pg1) pg0.replaceWith(pg1);
+    /* the columns may have stepped aside or come back (listCols): the heads and widths follow the rows */
+    const tbl = host.querySelector('table.obn-table.is-two-line'), t2 = document.createElement('table'); t2.innerHTML = C.colg + C.th;
+    ['colgroup', 'thead'].forEach(tag => { const a = tbl && tbl.querySelector(':scope > ' + tag), b = t2.querySelector(':scope > ' + tag); if(a && b) a.replaceWith(b); });
     host.querySelector('#obn-body').innerHTML = body;
   } else {
     host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page cun-page" data-ins-page="obligations" data-ins="1">
@@ -5009,7 +5037,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     const pg = t.closest('[data-obn-page]');
     if(pg){ e.preventDefault(); const n = Number(pg.getAttribute('data-obn-page')) || 1;
       if(_obnTab === 'prop') _obnPropPage = Math.max(1, n); else _obnPage = Math.max(1, n);
-      obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; return; }
+      obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; const sl = document.getElementById('obn-list'); if(sl) sl.scrollTop = 0; return; }
     const op = t.closest('[data-obn-open]');
     if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id; obnRepaint(); return; }
     const wh = t.closest('[data-obn-whose]');

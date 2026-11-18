@@ -360,8 +360,9 @@ const SEED = async () => {
       const b = document.querySelector('[data-kt-tri-go="brief"]');
       if (!b) return { pressed: false };
       b.click();
-      await new Promise(r => setTimeout(r, 900));
-      const panel = document.getElementById('brief-section');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every brief door lands on the one brief PAGE in
+         the middle (pd2BriefGo, owner 6 Nov 2026: "two types of brief"), [data-pd2-brief]; asked for, bounded */
+      let panel = null; for (let i = 0; i < 40 && !panel; i++){ await new Promise(r => setTimeout(r, 100)); panel = document.querySelector('[data-pd2-brief]'); }
       const host = panel && panel.closest('[class*="panel"],aside,[role="dialog"]');
       const r = (host || panel) ? (host || panel).getBoundingClientRect() : null;
       return { pressed: true, there: !!panel,

@@ -169,7 +169,10 @@ describe('f1037 (5) a viewer', () => {
 describe('f1037 (6) the painter and the doors', () => {
   test('the red paper asks for the answers beside their asks; no See the change door is left', () => {
     const paint = fnSrc(PD, 'pd2NotesPaint');
-    assert.match(paint, /pd2RedNotes\(c, cv\)\.concat\(pd2RedAnswers\(c, cv\)/);
+    /* RE-POINTED 18 Nov 2026 (one window, two places): the reading moved into pd2NotesOnPaper, which the Dossier and the
+       Approvals pop-up both ask */
+    assert.match(paint, /pd2NotesOnPaper\(c, cv, red\)/);
+    assert.match(fnSrc(PD, 'pd2NotesOnPaper'), /pd2RedNotes\(c, cv\)\.concat\(pd2RedAnswers\(c, cv\)/);
     assert.match(paint, /pd2RedBlocks\(/);
     assert.doesNotMatch(PD, /data-pd2-go="see"|go === 'see'/);
     assert.match(PD, /go === 'redline' && typeof riskEditStart === 'function'/);

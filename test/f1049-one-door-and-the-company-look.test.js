@@ -36,9 +36,9 @@ test('f1049 (2) New agreement: From scratch is the third tab, only with the righ
   assert.match(body(W, 'naNewPaperDoorHtml'), /if\(!naNewPaperOk\(\)\) return '';/);
   assert.match(W, /\$\{naNewPaperDoorHtml\(\)\}<\/div>/, 'the third tab beside Our paper and Their paper');
   assert.match(body(W, 'naNewPaperPaneHtml'), /window\.NS_STARTS\.map/, 'the same four starts the new-standard question offers');
-  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host \}\)/);
+  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host(?:, pick:\(x&&x\.pick\)\|\|null)? \}\)/); /* RE-POINTED 17 Nov 2026 (f1091 (8)): a door may name the paper */
   assert.match(body(W, 'naNewPaperGo'), /openNewAgreement\(\{ newPaper:true \}\)/, 'Back comes to this tab');
-  assert.match(W, /if\(o&&o\.newPaper\) naNewPaperShow\(root,true\);/);
+  assert.match(W, /if\(o&&o\.newPaper\)(?:\{ )?naNewPaperShow\(root,true\);/);
   const NS = read('js/views/newstandard.js');
   assert.match(NS, /_nsFrom = typeof opts\.back === 'function' \? opts\.back : null;/);
   assert.match(NS, /const nsBack = \(\) => \{[^}]*if \(typeof _nsFrom === 'function'\) return _nsFrom\(\);/);
@@ -149,8 +149,9 @@ test('f1049 (7) the send screen, Four steps', () => {
 
 test('f1049 (8) Our paper, the Legora way: one ask box, the streams on one line with More, a quoted first line, uses on the right; no New standard here', () => {
   const L = read('js/views/library.js');
-  const H = body(L, 'tplnHtml');
-  assert.match(H, /\$\{tplnAskHtml\(\)\}\$\{tplnChipsHtml\(rows\.map\(x => x\.c\)\)\}/, 'the box and the chips lead the list');
+  /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the folder's list leads with the one filter line, then the chips */
+  const H = body(L, 'tplnListHtml');
+  assert.match(H, /\$\{tplnFilterLineHtml\(rows, shelves\)\}[\s\S]*\$\{tplnChipsHtml\(rows\.map\(x => x\.c\)\)\}/, 'the filter and the chips lead the list');
   assert.doesNotMatch(H, /data-tpln-new/, 'no New standard on Our paper: From scratch starts on the New agreement page');
   assert.match(L, /\$\{canManage&&!\(typeof newLookOn==='function'&&newLookOn\(\)\)\?`<button id="tpl-new"/, 'the head\'s New standard contract steps aside in the new look');
   const R = body(L, 'tplnRowHtml');

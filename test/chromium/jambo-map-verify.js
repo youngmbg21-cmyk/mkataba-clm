@@ -85,11 +85,13 @@ const check = (name, pass, detail) => {
     await toCounter();
     await counterAsk('where do I change my language?');
     /* Language has no drawer: Settings lights its card on You, where the switch is (stYouGo) */
-    const lang = await until(() => { const k = document.querySelector('[data-st-you-card="lang"]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): You is one list (stnPaint); the Language row is
+       [data-stn-row="lang"], lit by the one lander, as the old card was */
+    const lang = await until(() => { const k = document.querySelector('[data-stn-row="lang"], [data-st-you-card="lang"]');
       /* re-pointed 19 Oct 2026 (lane F's third pass, LAND ON IT): the card is lit by the one lander */
       return state.view === 'team' && settingsTab() === 'you' && k && k.classList.contains('is-landed') && k.getBoundingClientRect().height > 0; });
     check('1b "where do I change my language?" opens You with the Language card lit', !!lang,
-      await page.evaluate(() => JSON.stringify({ view: state.view, tab: window.settingsTab ? settingsTab() : null, card: !!document.querySelector('[data-st-you-card="lang"].is-landed') })));
+      await page.evaluate(() => JSON.stringify({ view: state.view, tab: window.settingsTab ? settingsTab() : null, card: !!document.querySelector(':is([data-stn-row="lang"], [data-st-you-card="lang"]).is-landed') })));
     await page.screenshot({ path: path.join(OUT, '1b-language-1440x780.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(200);
     await toCounter();

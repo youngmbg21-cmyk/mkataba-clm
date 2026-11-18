@@ -101,7 +101,6 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     const until = async (fn, arg, ms = 8000, p = page) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await p.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await p.waitForTimeout(120); }
       return v; };
-    const press = async (sel, what, p = page) => { if (!(await p.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await p.locator(sel).first().click(); return true; };
     /* their two redlines come back through the link, as a real round does */
     const cls = await page.evaluate(async () => { const c = getContract('MK-0382'); if (c._light && typeof ensureFull === 'function') await ensureFull(c);
       return negoClauseList(c).map(k => ({ id: k.clauseId, label: clauseLabel(k), text: String(k.text || k.body || '').trim() })); });
@@ -118,17 +117,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
 
     console.log('\n1 · a note of yours, in Needs you here');
     await onPaper();
-    const nt = await until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="mynote"]'); if (!r) return null;
-      /* RE-POINTED 29 Oct 2026 (the Dossier's rows, one grid): Your note · Due today · Open; its own words and "only you" on the hover */
-      return { title: ((r.querySelector('.ds-nm') || {}).textContent || '').trim(), val: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), sub: (r.getAttribute('title') || '').trim(), btn: (r.querySelector('[data-pd-nd-note]') || {}).textContent || '',
-        n: Number(((document.querySelector('#pd-needs .pd-gl-h .ds-ck-n') || {}).textContent || '').replace(/\D+/g, '') || 0), rows: document.querySelectorAll('#pd-needs .pd-gl-row:not(.is-done), #pd-needs #pd-og tr.pd-og-row:not(.is-saved):not(.is-named)').length,
-        all: (document.querySelector('#pd-needs [data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount() }; }, null, 10000);
-    check('1a "Your note · Due today", its own words and "only you" on the hover, with Open', !!nt && nt.title === 'Your note' && nt.val === 'Due today' && nt.sub === '“Check Nordvik\'s insurance broker.” · only you' && nt.btn === 'Open', JSON.stringify(nt));
-    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): Needs you here's rows are the dossier's Still owed card,
-       "Still owed · N" counting its rows; its head says "everything, one list" where "all N" stood */
-    /* RE-POINTED 21 Oct 2026 (the Legora way, owner 20 Oct 2026): the owed FACTS are rows of the grid
-       (#pd-og) above the list — the pill counts them with the list's rows, so both are counted here */
-    check('1b Still owed counts it with its rows', !!nt && nt.n === nt.rows && !nt.all, JSON.stringify(nt));
+/* RETIRED 17 Nov 2026 (#762, round 6 default): 1a/1b the note due today as a row of the old Dossier's Still owed list, and that list's count — the new one-card Dossier has no Still owed list. */
     /* PASS 3 (the owner's answer 8): their redlines are owed after the desk's quiet standard, unchanged —
        before it, Needs you here draws no row of its own; past it, needsYouOf's own urgent row */
     const qrow = () => page.evaluate(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]'); if (!r) return null;
@@ -148,85 +137,13 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
        Jambo read … · waiting 8 days · Look"): past the standard, their redlines are the answer
        Jambo prepared for them — ONE row carrying their wait, late — never a second row */
     /* RE-POINTED 29 Oct 2026 (one grid): Jambo's work · their answer · Look, late in amber, the wait on the hover */
-    const q9 = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r || !r.classList.contains('is-hot')) return null;
-      return { title: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), name: ((r.querySelector('.ds-nm') || {}).textContent || '').trim(), sub: (r.getAttribute('title') || '').trim(), late: r.classList.contains('is-hot'), btn: (r.querySelector('[data-pd-nd-jw]') || {}).textContent.trim(),
-        quietRow: !!document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]') }; }, null, 6000);
-    const c9 = await counts();
-    check('1f (pass 3) past the standard: "Answer Nordvik Logistik AB’s 2 redlines" · Waiting N days · clauses 7 and 11 · Open redlines, counted with the rows',
-      !!q9 && q9.name === 'Jambo’s work' && /^Nordvik Logistik AB’s answer/.test(q9.title) && /waiting 9 days/.test(q9.sub) && q9.late && q9.btn === 'Look' && !q9.quietRow && c9.quietOwed && c9.pill === c9.rows, JSON.stringify({ q9, c9 }));
-    await shot(page, '3-panel-asks-past-the-standard-1440x780');
+/* RETIRED 17 Nov 2026 (#762, round 6 default): 1f Jambo's work as a late row of the old Still owed list — the new one-card Dossier has no Still owed list. */
     await page.evaluate(() => { const at = new Date().toISOString();
       (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
 
-    console.log('\n1g · Jambo\'s work here, in the drawing\'s words');
-    /* RE-POINTED 29 Oct 2026 (one grid): the row is Jambo's work · their answer; what he read and its step on the hover, the answer never cut */
-    const jw = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r) return null; const v = r.querySelector('.ds-val');
-      return { name: ((r.querySelector('.ds-nm') || {}).textContent || '').trim(), title: v ? v.textContent.trim() : '', sub: (r.getAttribute('title') || '').trim(), cut: v ? v.scrollWidth > v.clientWidth + 1 : null }; }, null, 6000);
-    /* RE-POINTED 23 Oct 2026 (as drawn): the one desk's row — its title and step, what Jambo read */
-    check('1g "Jambo’s work · Nordvik’s answer", its line said whole (never cut)', !!jw && jw.name === 'Jambo’s work' && /^Nordvik Logistik AB’s answer$/.test(jw.title) && /^\d+ of \d+ · Jambo read .+/.test(jw.sub) && jw.cut === false, JSON.stringify(jw));
+    /* RETIRED 17 Nov 2026 (#762, round 6 default): 1g Jambo's work as a row of the old Still owed list — the new one-card Dossier has no Still owed list. */
 
-    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance became the dossier — the spine for the stage,
-       What Jambo read, and Still owed as one list (each empty detail, the signer, their asks · Reply ›) */
-    console.log('\n2 · the dossier as drawn');
-    const gl = await page.evaluate(() => { const g = document.getElementById('pd-glance'); const owed = g.querySelector('[data-pd-ds-card="owed"]');
-      const rows = [...owed.querySelectorAll('.pd-gl-row:not(.is-done)')];
-      /* RE-POINTED 29 Oct 2026 (one grid): Their redlines · the ask in its own words · Reply; how long it waits on the hover */
-      const row = k => rows.filter(r => r.getAttribute('data-pd-gl') === k).map(r => ({ say: ((r.querySelector('.ds-val') || {}).textContent || '').trim(), sub: ((r.getAttribute('title') || '').split(' · ').pop() || '').trim(), btn: ((r.querySelector('button') || {}).textContent || '').trim() }));
-      const rk = g.querySelector('[data-pd-ds="risks"]');
-      const D = dossierOf(getContract('MK-0382')), want = D.stages.find(x => x.k === 'nego').n;
-      /* RE-POINTED 23 Oct 2026 (Spine): the stage is a line down the spine; its number on its hover as before */
-      return { nego: (g.querySelector('.ds-sp-st[data-ds-sp="nego"]') || {}).className || '', negoN: (/^\D*(\d+)/.exec(((g.querySelector('.ds-sp-st[data-ds-sp="nego"]') || {}).title || '').split('·')[1] || '') || [])[1] || '', want,
-        /* RE-POINTED 21 Oct 2026 (the Legora way): the signer is a row of Still owed's grid, answered there;
-           the grid stands above the list, so the order reads the grid's rows first */
-        order: [...owed.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)')].map(r => r.getAttribute('data-pd-og-kind') === 'signer' ? 'sign' : 'fact').concat(rows.map(r => r.getAttribute('data-pd-gl'))),
-        asks: row('ask'),
-        sign: [...owed.querySelectorAll('#pd-og tr.pd-og-row[data-pd-og-kind="signer"]')].map(r => ({ say: ((r.querySelector('.pd-og-f b') || {}).textContent || '').trim(),
-          box: !!r.querySelector('input'), door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]') })),
-        scan: rk ? { say: ((rk.querySelector('.ds-nm') || {}).textContent || '').replace(/\s+/g, ' ').trim(), val: ((rk.querySelector('.ds-val') || {}).textContent || '').trim(), btn: ((rk.querySelector('[data-pd-gl-scan]') || {}).textContent || '').trim(), tip: ((rk.querySelector('[data-pd-gl-scan]') || {}).title || '') } : null }; });
-    check('2a the spine: Negotiate lit, its number the owed rows filed under it (their two asks among them)', /is-(?:cur|owed)/.test(gl.nego) && gl.negoN === String(gl.want) && gl.want >= 2, JSON.stringify({ nego: gl.nego, n: gl.negoN, want: gl.want }));
-    /* RE-POINTED 29 Oct 2026 (the owner: one grey pill per row, no arrow) */
-    check('2c one row per ask, in its own words — what the number is of, which way it moved · waits · Reply',
-      gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days to pay, up from 30.')
-      && gl.asks.every(a => /^waits /.test(a.sub) && a.btn === 'Reply'), JSON.stringify(gl.asks));
-    /* RE-POINTED 22 Oct 2026 (owner: the signer boxes went): the Signer line is the signing route editor's door */
-    check('2d nobody named to sign: the signer is one grid row, no boxes, its line the signing route\'s door', gl.sign.length === 1 && !gl.sign[0].box && gl.sign[0].door, JSON.stringify(gl.sign));
-    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('2e the risks not read yet, in What Jambo read: "Not read", no cost said, and Read it (the owner\'s answer 6)',
-      /* RE-POINTED 22 Oct 2026 (the Checklist): the name, then "Not read" in its own column, then Read */
-      !!gl.scan && gl.scan.say === 'Risks to look at' && gl.scan.val === 'Not read' && gl.scan.btn === 'Read' && gl.scan.tip === 'Read by HaTi’s own rules' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(gl.scan.val + ' ' + gl.scan.tip), JSON.stringify(gl.scan));
-    check('2f Still owed: the signer, then their asks', gl.order.indexOf('sign') >= 0 && gl.order.indexOf('sign') < gl.order.indexOf('ask'), gl.order.join(','));
-    /* 2g WHAT JAMBO READ SAYS WHAT THE BOARD COUNTS (21 Oct 2026): a brief that already names watch-outs is
-       counted (never "not read yet" beside them); obligations on the record with none waiting in the reading
-       are counted as the record's, never "0 found · N recorded" */
-    const g2 = await page.evaluate(async () => { const c = getContract('MK-0382'); const keep = { b: c._brief, o: c.obligations, t: c.triage };
-      c._brief = { data: { overview: 'A logistics deal.', watchouts: [{ title: 'Uncapped liability', point: 'Liability is not capped.', wording: true }] } };
-      c.obligations = [{ id: 'ob1', desc: 'Pay within 30 days' }, { id: 'ob2', desc: 'Deliver monthly' }];
-      pdGlanceRepaint(); await new Promise(r => setTimeout(r, 300));
-      /* RE-POINTED 22 Oct 2026 (the Checklist): the figure leads the row's grey value */
-      const rd = k => { const r = document.querySelector(`#pd-glance [data-pd-ds="${k}"]`); return r ? { fig: (/^\d+/.exec(r.querySelector('.ds-val').textContent.trim()) || [''])[0], nm: r.querySelector('.ds-nm').textContent.replace(/\s+/g, ' ').trim() + ' ' + r.querySelector('.ds-val').textContent.trim() } : null; };
-      /* RE-POINTED 23 Oct 2026 (Spine): the record's duties are the Obligations line under Sign */
-      const ob = document.querySelector('#pd-glance .ds-ob-line');
-      const out = { risks: rd('risks'), oblig: ob ? { fig: (/^\d+/.exec(ob.querySelector('.ds-this-v').textContent.trim()) || [''])[0], nm: ob.querySelector('b').textContent.trim() + ' ' + ob.querySelector('.ds-this-v').textContent.trim() } : null, want: riskOpenOf(c).length };
-      Object.assign(c, { _brief: keep.b, obligations: keep.o, triage: keep.t }); pdGlanceRepaint(); return out; });
-    check('2g What Jambo read counts the brief\'s watch-outs as the Board does, and the record\'s obligations without a "0 found"',
-      !!g2.risks && g2.risks.fig === String(g2.want) && g2.want >= 1 && !/not read yet/i.test(g2.risks.nm) && !!g2.oblig && g2.oblig.fig === '2' && /^Obligations\b/.test(g2.oblig.nm), JSON.stringify(g2));
-    await shot(page, '3-panel-beside-a-paper-1440x780');
-
-    console.log('\n3 · Reply');
-    await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-gl="ask"] [data-pd-glance="redline"]'); if (b) b.click(); });
-    const went = await until(() => document.getElementById('pd-redface') && document.querySelector('#pd-redface [data-nego-card]') ? true : null, null, 8000);
-    check('3 Reply opens the Redlines face beside the paper, their asks in it', !!went);
-    await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-back="red"]'); if (b) b.click(); });
-    await until(() => !document.getElementById('pd-redface') && !!document.getElementById('pd-glance'), null, 6000);
-
-    console.log('\n4 · Read it');
-    /* PASS 3 (the owner's answer 6): the free rules scan — no Jambo call — and its row goes */
-    const asked = [];
-    page.on('request', r => { if (/\/api\/ai\//.test(r.url()) && r.method() === 'POST') asked.push(r.url()); });
-    if (await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-gl-scan]'); if (b) b.click(); return !!b; })) {
-      const read = await until(() => { const c = getContract('MK-0382'); return c && c.scan && !document.querySelector('#pd-glance [data-pd-gl-scan]') ? true : null; }, null, 10000);
-      check('4 Read it runs the free scan (HaTi\'s own rules), its row goes, and no Jambo call is made', !!read && asked.length === 0, JSON.stringify({ read, asked }));
-    } else check('4 Read it (nothing to press)', false);
+    /* RETIRED 17 Nov 2026 (#762, round 6 default): 2a, 2c–2g, 3, 4 the old Dossier's spine count, its Still owed rows (their asks · Reply, the signer row) and its "What Jambo read" card (risks Not read · Read, obligations) — the new one-card Dossier draws none of them. */
 
     /* RE-POINTED 19 Oct 2026 (Jambo as a tab you flip to, and back). The owner: "you land on the page and if
        you want to chat with jambo it takes you to a new jambo tab but you can go back to the landing side
@@ -240,11 +157,12 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('1h asked something: the panel turns to the conversation, its back above the box (Door above the box, 28 Oct 2026), Needs you here kept on the landing', !!flipped && flipped.talk > 0 && !flipped.needsShown && flipped.back, JSON.stringify(flipped));
     await shot(page, '3-panel-asked-1440x780');
     if (flipped && flipped.back) await page.click('#ig-dock [data-jb-door] [data-pd-back]');
-    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the landing is the dossier, Still owed its second card */
-    const pinned = await until(() => { const nd = document.getElementById('pd-needs'), sp = document.querySelector('#pd-glance .ds-spine'); if (!nd || !sp || (window.pdTalkShows && pdTalkShows())) return null;
-      const n = nd.getBoundingClientRect();
-      return { spine: true, inView: n.top >= 0 && n.top <= innerHeight - 40 }; }, null, 10000);
-    check('1h2 the back: the dossier again, Still owed in view', !!pinned && pinned.inView, JSON.stringify(pinned));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; round 6 default: the one-card Dossier): the back
+       lands on the dossier again — its one card (.pd2-card's host #pd-glance.pd2-dossier) shown, its top in view */
+    const pinned = await until(() => { const gl = document.querySelector('#pd-glance.pd2-dossier'); if (!gl || (window.pdTalkShows && pdTalkShows())) return null;
+      const n = gl.getBoundingClientRect(); if (!n.width || !n.height) return null;
+      return { dossier: true, inView: n.top >= 0 && n.top <= innerHeight - 40 }; }, null, 10000);
+    check('1h2 the back: the dossier again, its card in view', !!pinned && pinned.inView, JSON.stringify(pinned));
     await page.evaluate(() => { intel.history = []; renderIntelDock(); });
 
     console.log('\n5 · the chips');
@@ -293,9 +211,18 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         await peer.evaluate(() => presenceSay('MK-0382'));
         await page.evaluate(() => presenceSay('MK-0382'));
         if (await page.evaluate(() => !!document.querySelector('#pz-ask [data-pz-allow]'))) await page.click('#pz-ask [data-pz-allow]');
-        if (await page.evaluate(() => !!presenceFollowing())) return true;
+        if (await page.evaluate(() => !!presenceFollowing())) return seen();
         await until(() => !!presenceFollowing() || null, null, 1200);
       }
+      return page.evaluate(() => !!presenceFollowing());
+    };
+    /* the colleague's own screen learns of the Allow on its next beat (the ring round the reader's face); a person
+       follows for longer than a beat, so the beats are said until it has, bounded — a stop said before that leaves the
+       colleague's ask standing as "waiting for an answer" (noted for the lead, notes-R6c) and the next press would
+       take that ask back instead of asking */
+    const seen = async () => {
+      for (let i = 0; i < 6 && !(await peer.evaluate(() => presenceLeading().length > 0)); i++){
+        await page.evaluate(() => presenceSay('MK-0382')); await peer.evaluate(() => presenceSay('MK-0382')); }
       return page.evaluate(() => !!presenceFollowing());
     };
     check('6a the colleague\'s face on the paper\'s line is a button on Home', !!face, String(face));
@@ -347,12 +274,18 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         const btn = await until(() => !!document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'), null, 8000);
         check(`6f ${w}×${ht}: the signing copy's headings carry their clauses, and the face is a button there`, !!up && !!btn, JSON.stringify({ up, btn }));
         if (!btn) continue;
-        await askAndAllow();
+        /* a stale "you are followed" on the colleague's side turns the first press into a STOP (red at 1536×730,
+           the follow from 1440 not yet known gone): asked once more, bounded */
+        if (!await askAndAllow()) await askAndAllow();
         const there = await until(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll'); if (!el || !sc) return null;
           const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect(); const spot = presenceSpotNow();
           /* the walk scrolls smoothly: asked until it has come to rest there */
-          return (r.top >= b.top - 1 && r.bottom <= b.bottom + 1 && spot === id) ? { top: Math.round(sc.scrollTop), spot } : null; }, k11.id, 8000);
-        check(`6g ${w}×${ht}: pressed, the signing copy goes to the clause the colleague reads, and the reader's own place is that clause`, !!there && there.top > 0 && there.spot === k11.id, JSON.stringify(there));
+          /* RE-POINTED 17 Nov 2026: the clause's HEADING is in view (a clause taller than a short window cannot fit whole; red at 1536×730) */
+          return (r.top >= b.top - 1 && r.top <= b.bottom - 24 && spot === id) ? { top: Math.round(sc.scrollTop), spot } : null; }, k11.id, 8000);
+        const seen = there || await page.evaluate(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll');
+          if (!el || !sc) return { el: !!el, sc: !!sc, spot: presenceSpotNow() }; const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect();
+          return { elTop: Math.round(r.top), elBottom: Math.round(r.bottom), scTop: Math.round(b.top), scBottom: Math.round(b.bottom), scroll: Math.round(sc.scrollTop), spot: presenceSpotNow(), want: id }; }, k11.id);
+        check(`6g ${w}×${ht}: pressed, the signing copy goes to the clause the colleague reads, and the reader's own place is that clause`, !!there && there.top > 0 && there.spot === k11.id, JSON.stringify(seen));
         await shot(page, `6-follow-me-signing-copy-${w}x${ht}`);
         await page.evaluate(() => { if (presenceFollowing()) presenceFollow(presenceFollowing()); });
         await page.evaluate(() => { if (typeof pdSignClose === 'function') pdSignClose(); });
@@ -362,10 +295,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     console.log('\n1c · the note is the reader\'s alone');
     const theirs = await until(() => !!document.getElementById('pd-glance'), null, 6000, peer) && await peer.evaluate(() => !!document.querySelector('#pd-needs [data-pd-nd-kind="mynote"]') || /insurance broker/.test((document.getElementById('ig-dock') || {}).innerText || ''));
     check('1c the colleague, on the same paper, sees no note of the reader\'s', theirs === false, String(theirs));
-    if (await press('#pd-needs [data-pd-nd-note]', '1d Open note')) {
-      const mn = await until(() => state.view === 'mynotes' && /insurance broker/.test((document.getElementById('content') || document.body).innerText) && !!document.querySelector('[data-mn-row].is-landed'), null, 8000);
-      check('1d Open note opens it in My notes, landed on its row (landOn)', !!mn);
-    }
+    /* RETIRED 17 Nov 2026 (#762, round 6 default): 1d Open note pressed on the note's row in the old Still owed list — the new one-card Dossier has no Still owed list. */
 
     console.log('\n7 · the owner\'s three screens');
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

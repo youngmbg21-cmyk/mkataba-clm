@@ -98,9 +98,11 @@ const NOTE = 'We can meet you at 45 days on payment.';
     check('3a the note is the email\'s own paragraph: a box under "Hello", no "Message from" heading', R2a && !R2a.mh && lbl === 'Your note to Anna', JSON.stringify({ mh: R2a && R2a.mh, lbl }));
     await page.fill('#sh-summary', NOTE);
     const R2 = await page.evaluate(READ);
-    check('3b the name is in the first line, as the email writes it', R2 && R2.before[0] === 'Hello Anna,', JSON.stringify(R2 && R2.before));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): THE LETTER AS DRAWN opens "Dear Anna," (sharemail's
+       drawn letter, both hosts), and the new look's Send says one word, "Send" (sh_nl_send) — never another person */
+    check('3b the name is in the first line, as the email writes it', R2 && (R2.before[0] === 'Hello Anna,' || R2.before[0] === 'Dear Anna,'), JSON.stringify(R2 && R2.before));
     check('3c with a note there is still no heading over it, and Send names her', R2 && !R2.mh
-      && await page.evaluate(() => (document.getElementById('share-send') || {}).textContent.trim() === 'Send to Anna'), JSON.stringify(R2 && R2.mh));
+      && await page.evaluate(() => { const t = (document.getElementById('share-send') || {}).textContent.trim(); return t === 'Send to Anna' || t === i18t('sh_nl_send'); }), JSON.stringify(R2 && R2.mh));
     /* RE-POINTED, the SAP Way (28 Oct 2026): the "word for word" line is gone; Jambo's panel lists what goes */
     check('3d Jambo lists what goes to Anna, the note last once typed', R2 && R2.jsay === null && R2.goes.length && R2.goes[R2.goes.length - 1] === 'Your note', JSON.stringify(R2 && { jsay: R2.jsay, goes: R2.goes }));
 
@@ -108,11 +110,15 @@ const NOTE = 'We can meet you at 45 days on payment.';
     await press('[data-share-purpose="negotiate"]');
     const RN = await page.evaluate(READ);
     check('2a Negotiate: the subject and the button say the round, the promise says negotiate', RN && /^Round 1 of the Master services agreement, from /.test(RN.subject || '')
-      && RN.after.some(p => p && p.btn === 'Open round 1') && RN.after.some(p => /^You can propose changes on your own page\. Nothing can be signed on this link\./.test(p)), JSON.stringify(RN && { s: RN.subject, a: RN.after }));
+      /* RE-POINTED 16 Nov 2026 (#762): in the drawn letter the promise is the "what" sentence (SHARE_MAIL_WHAT; the round
+         line shortened by the owner, 15 Nov 2026): "Round 1 is ready for you to read. You can reply with your own changes." */
+      && RN.after.some(p => p && p.btn === 'Open round 1') && RN.after.some(p => /^You can propose changes on your own page\. Nothing can be signed on this link\./.test(p)
+        || /^Round 1 is ready for you to read\. You can reply with your own changes\./.test(p)), JSON.stringify(RN && { s: RN.subject, a: RN.after }));
     await press('[data-share-purpose="view"]');
     const RV = await page.evaluate(READ);
     check('2b View: the subject and the promise say read', RV && /^The Master services agreement, from /.test(RV.subject || '')
-      && RV.after.some(p => /^You can read it on your own page, and nothing else can be done on this link\./.test(p)), JSON.stringify(RV && { s: RV.subject, a: RV.after }));
+      && RV.after.some(p => /^You can read it on your own page, and nothing else can be done on this link\./.test(p)
+        || (/is ready for you to read\.$/.test(p) && !/reply with your own changes/.test(p))), JSON.stringify(RV && { s: RV.subject, a: RV.after }));
     const hasWord = await press('[data-share-ch="word"]');
     if (hasWord) {
       const RW = await page.evaluate(READ);
@@ -129,13 +135,16 @@ const NOTE = 'We can meet you at 45 days on payment.';
     /* 5 before you send */
     const S = await page.evaluate(() => { const side = document.getElementById('share-step-1'), L = document.getElementById('sh-letter');
       const cards = [...side.querySelectorAll('.sh-lt-card h4')].map(x => x.textContent.trim());
+      /* RE-POINTED 16 Nov 2026 (#762): the new look titles the never-sees card "Names" (sh_kv_names); its words are the same */
+      const nv = document.getElementById('sh-lt-never-h'); const nvP = nv && nv.parentElement.querySelector('p');
+      const never = !!nv && nv.textContent.trim() === i18t('sh_kv_names') && !!nvP && nvP.textContent.trim() === i18t('sh_lt_never', { org: FIRST_PARTY });
       const hist = document.getElementById('share-other'), st = document.querySelector('[data-sh-lt-else="status"]');
       const a = L.getBoundingClientRect(), b = side.getBoundingClientRect();
-      return { head: (side.querySelector('.sh-lt-jb') || {}).textContent, cards, histOff: !!(hist && hist.disabled && hist.title), status: !!(st && !st.disabled),
+      return { head: (side.querySelector('.sh-lt-jb') || {}).textContent, cards, never, histOff: !!(hist && hist.disabled && hist.title), status: !!(st && !st.disabled),
         beside: b.left >= a.right - 1 && b.top < a.bottom }; });
     check('5a "Before you send" stands beside the letter', S && /Before you send/.test(S.head || '') && S.beside, JSON.stringify(S));
     /* RE-POINTED 18 Oct 2026: "What Anna never sees", by the name typed (round 11 as drawn) */
-    check('5b what they never see, and something else to send', S && S.cards.includes('What Anna never sees') && S.cards.includes('Something else to send?'), JSON.stringify(S && S.cards));
+    check('5b what they never see, and something else to send', S && (S.cards.includes('What Anna never sees') || S.never) && S.cards.includes('Something else to send?'), JSON.stringify(S && S.cards));
     check('5c nothing proposed yet: the history greys with its reason; the Where we are page is offered', S && S.histOff && S.status, JSON.stringify(S));
 
     /* 4 sent, the same email */
@@ -150,12 +159,18 @@ const NOTE = 'We can meet you at 45 days on payment.';
       const after = []; for (const p of shown.after) after.push(p && p.btn ? `${p.btn}:\n${link}` : p);
       return [shown.before.join('\n\n'), NOTE, ...after].join('\n\n'); })();
     check('4a the provider received the subject the letter showed', got && shown && got.subject === shown.subject, JSON.stringify({ got: got && got.subject, shown: shown && shown.subject }));
-    check('4b and its words, word for word, their real link where the mark stood', got && !!link && got.text === expect, JSON.stringify({ got: got && got.text, expect }));
+    /* RE-POINTED 16 Nov 2026 (#762): the drawn letter signs off on separate lines ("Kind regards," / name / company)
+       where the screen draws the name and company as one block, so the words are compared in order with the line
+       breaks set aside — every word, its order and the real link still exactly the screen's */
+    const flat = t => String(t || '').replace(/\s+/g, '');
+    check('4b and its words, word for word, their real link where the mark stood', got && !!link && (got.text === expect || flat(got.text) === flat(expect)), JSON.stringify({ got: got && got.text, expect }));
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
 
     /* 6 the owner's three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
-      await page.setViewportSize({ width: w, height: ht }); await open();
+      /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the window was asked for while the last one was still closing and
+         never stood (GitHub: none of its four parts drawn after 10s) — asked for once more if it did not come, bounded */
+      await page.setViewportSize({ width: w, height: ht }); if (!(await open())) await open();
       await until(() => { const p = document.querySelector('#modal-root .modal-in'); return !!p && !(p.getAnimations && p.getAnimations().some(a => a.playState === 'running')); });
       /* STEADIED 13 Nov 2026 (pull request 711, run 43487563102: "Cannot read properties of null (reading
          'getBoundingClientRect')" here, once, on a change that does not touch the send screen): the four parts were

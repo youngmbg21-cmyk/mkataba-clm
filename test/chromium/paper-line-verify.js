@@ -101,8 +101,12 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('3a Clean · Redline · Their view where there are redlines; Send, and no Notes on the line', acts.views.length === (acts.red ? 3 : 0) && !acts.notesIn && acts.share, JSON.stringify(acts));
     check('3b no ⋯ on the line (its rows are the dossier\'s All acts) and no "‹ Contracts" (the frame\'s tabs are the way back)', !acts.more && !acts.back, JSON.stringify(acts));
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the ⋯ rows are the dossier's All acts fold */
-    const menu = await page.evaluate(() => !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]') && !document.querySelector('#ig-dock [data-pd-tab="menu"]'));
-    check('3c the ⋯ rows are the dossier\'s All acts fold', menu);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the rows are the paper line's More card (#ig-actions →
+       pdActsToggle → #pd-acts-pop, each the Dossier's own row by key); still no Menu tab */
+    const menu = await page.evaluate(async () => { const a = document.getElementById('ig-actions'); if (!a || document.querySelector('#ig-dock [data-pd-tab="menu"]')) return false;
+      a.click(); await new Promise(r => setTimeout(r, 300)); const pop = document.getElementById('pd-acts-pop');
+      const ok = !!pop && pop.querySelectorAll('[data-pd-acts-go]').length > 0; if (window.pdActsPopClose) pdActsPopClose(); return ok; });
+    check('3c the ⋯ rows are the paper line\'s More card (the Dossier\'s acts by key)', menu);
 
     /* 4 the three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

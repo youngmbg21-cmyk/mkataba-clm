@@ -150,7 +150,7 @@ const MARK = cid => {
     });
     await page.screenshot({ path: path.join(OUT, '02-strip.png') });
     const fill = strip.tiles.find(t => /field/i.test(t.head));
-    const std = strip.tiles.find(t => /standard/i.test(t.head));
+    const std = strip.tiles.find(t => /standard|playbook/i.test(t.head));
     check('2-stage the strip is drawn with all five tiles', strip.n === 5, `${strip.n} tiles`);
     check('2a the open-fields tile carries a NUMBER, not a dash',
       !!fill && /^\d+$/.test(fill.mark) && Number(fill.mark) > 0, JSON.stringify(fill));
@@ -162,12 +162,19 @@ const MARK = cid => {
        handler that lands — this file's neighbours have paid for that twice. */
     const opened = await page.evaluate(async () => {
       const t = [...document.querySelectorAll('#kt-triage .kt-tri-tile')]
-        .find(x => /standard/i.test((x.querySelector('.kt-tri-hw') || {}).textContent || ''));
+        .find(x => /standard|playbook/i.test((x.querySelector('.kt-tri-hw') || {}).textContent || ''));
       if (!t) return { pressed: false };
       t.click(); await new Promise(r => setTimeout(r, 700));
-      return { pressed: true, panel: !!document.getElementById('playbook-section') };
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the standards check is Jambo's read of the whole
+         agreement, so the tile's press opens its one door, the question "Check <ref> against your standards?" with
+         Check · Cancel (nothing spent until Check) — Cancel puts it away, so nothing is spent and nothing covers the page.
+         RE-POINTED 18 Nov 2026 (#762): main renamed the standards the Playbook (owner, 18 Nov 2026), so the question
+         now says "…against your playbook?" — either word is the same one door */
+      const ov = document.getElementById('confirm-overlay'), ask = ov && /against your (standards|playbook)/i.test(ov.innerText) && !!ov.querySelector('#cf-ok');
+      if (ask) ov.querySelector('#cf-cancel').click();
+      return { pressed: true, panel: !!document.getElementById('playbook-section') || !!ask };
     });
-    check('2d and pressing it really opens the playbook review panel',
+    check('2d and pressing it really opens the standards check (its question, nothing spent)',
       opened.pressed && opened.panel, JSON.stringify(opened));
 
     /* ═══ 3 · THE DROPDOWN ═══ */
@@ -178,6 +185,8 @@ const MARK = cid => {
     const CHIP = '[data-lh-seat="contracts"] [data-lh-chip="stage"] > label';
     await page.evaluate(() => { const b = document.querySelector('#context-panel [data-panel-close],.side-panel-x');
       if (b) b.click(); setView('register'); }); await pause(1200);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the list head */
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); }); await pause(800);
     await page.evaluate(() => { const n = {}; regFiltered().forEach(c => { n[c.status] = (n[c.status] || 0) + 1; });
       const k = Object.keys(n).sort((a, b) => n[b] - n[a])[0]; if (k) LH_PAGES.contracts.apply({ stage: k }); }); await pause(600);
     const chip = await page.evaluate(S => { const c = document.querySelector(S);
@@ -275,9 +284,9 @@ const MARK = cid => {
     check('4a the bar is the artifact\'s eight pixels', !!bar && bar.h === 8, bar && `${bar.h}px`);
     /* [RELATION] the tick marks the exact expiry day and sits on the bar's
        own centre line — the reason the top moved with the height. */
-    check('4b and it still shares its centre line with the expiry tick',
-      !!bar && bar.endMid != null && Math.abs(bar.mid - bar.endMid) <= 1,
-      bar && `${bar.mid} vs ${bar.endMid}`);
+    /* RETIRED 16 Nov 2026 (#762): 4b "it shares its centre line with the expiry tick" — the new look's Horizon (the SAP
+       way, owner's pick 10 Nov 2026) draws no expiry tick (.cal-hz-end): the bar itself ends on the expiry day and its
+       date and days-left are a note beside it (.cal-hz-note), so there is no tick to line up */
 
     check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
   } finally {

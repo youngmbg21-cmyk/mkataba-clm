@@ -1,5 +1,5 @@
 'use strict';
-/* f1091 — JAMBO'S PANELS, FIVE PARTS ON FIVE MORE PAGES (owner picked "Five Parts" by name, 18 Nov 2026, over the
+/* f1094 — JAMBO'S PANELS, FIVE PARTS ON FIVE MORE PAGES (owner picked "Five Parts" by name, 18 Nov 2026, over the
    drawing "Ten Jambo panels, drawn three ways"; six of the ten set aside for now). The five panels that still had the
    old look: Read down on the Board, a chosen request, a chosen duty (and a renewal decision), a pressed place on the
    flow map, and New agreement → Their paper.
@@ -25,13 +25,13 @@ const PAGES = { 'js/flowmap.js': 'flowMapRow', 'js/views/flowmap.js': 'fmPanelFi
 function world(){
   const w = buildWorld({ intakeView: true, obligations: true });
   const W = w.win;
-  const me = { id: 'u_f1091', name: 'Amina Otieno', email: 'amina@example.co.ke', role: 'admin', prefs: {}, canViewValues: true };
+  const me = { id: 'u_f1094', name: 'Amina Otieno', email: 'amina@example.co.ke', role: 'admin', prefs: {}, canViewValues: true };
   W.currentUser = () => me; W.isAdmin = () => true; W.canEdit = () => true; W.canViewValues = () => true;
   /* core.js's day count, which the app loads before obligations.js (the world does not load core.js) */
   if (typeof W.daysUntil !== 'function') W.eval(`window.daysUntil = iso => { const t = new Date(); t.setHours(12, 0, 0, 0); return Math.round((new Date(String(iso).slice(0, 10) + 'T12:00:00') - t) / 864e5); };`);
   W.state = W.state || { contracts: [], settings: {} }; if (!Array.isArray(W.state.contracts)) W.state.contracts = [];
   for (const [f, name] of Object.entries(PAGES)){ if (typeof W[name] === 'function') continue;
-    try { W.eval(read(f)); } catch (e){ W['_f1091_' + name] = String(e && e.message || e); } }
+    try { W.eval(read(f)); } catch (e){ W['_f1094_' + name] = String(e && e.message || e); } }
   return W;
 }
 const draw = (W, o, slot) => { const d = W.document.createElement('div'); d.innerHTML = W.jamboOverviewHtml(o, slot); return d; };
@@ -40,22 +40,22 @@ const txt = el => (el ? el.textContent : '').replace(/\s+/g, ' ').trim();
 /* a day so many days from the world's today, built from its own clock (never a date typed in) */
 const dayFrom = (W, n) => { const d = new W.Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
-test('f1091 (1) the builder quotes a row in the paper\'s serif', () => {
+test('f1094 (1) the builder quotes a row in the paper\'s serif', () => {
   const W = world();
-  const d = draw(W, { title: 'A request.', groups: [{ label: 'In their words', rows: [{ mark: 'msg', t: 'We need an NDA first.', quote: true }] }] }, 'f1091a');
+  const d = draw(W, { title: 'A request.', groups: [{ label: 'In their words', rows: [{ mark: 'msg', t: 'We need an NDA first.', quote: true }] }] }, 'f1094a');
   const row = d.querySelector('.jov5-row');
   assert.ok(row.classList.contains('is-quote') && row.classList.contains('is-wrap'), 'a quoted row wraps and says it quotes');
   assert.match(read('index.html'), /\.jov5-row\.is-quote \.jov5-rt b\{font-family:var\(--font-doc\)/, 'in the paper\'s own serif token');
 });
 
-test('f1091 (2a) Read down: the book in three numbers, three things to look at, the first renewal the black button', () => {
+test('f1094 (2a) Read down: the book in three numbers, three things to look at, the first renewal the black button', () => {
   const W = world();
   const R = { L: [{ id: 'a' }, { id: 'b' }], money: v => v ? 'KES 1.08B' : '', total: 1, sig: [], ending: [{ id: 'WS', name: 'Warehousing Services' }],
     exp: () => '2026-12-31', top: { p: 'Safaricom', cs: [{ id: 'S1' }] }, share: 22, nego: [{}, {}], ours: [{}], late: 1 };
   const f = W.hbRdnPanelFive(R);
   assert.equal(f.glance.length, 3, 'three numbers');
   assert.equal(f.glance[2].n, 1, 'your move counted from the reading');
-  const d = draw(W, f, 'f1091rd');
+  const d = draw(W, f, 'f1094rd');
   assert.ok(d.querySelector('.jov5-title'), 'a serif headline');
   assert.equal(d.querySelectorAll('.jov5-row').length, 4, 'first to end, the largest party, negotiations, late duties');
   assert.ok(d.querySelector('[data-rd-show="S1"]'), 'the party opens its agreements by the page\'s own press');
@@ -68,14 +68,14 @@ test('f1091 (2a) Read down: the book in three numbers, three things to look at, 
   assert.match(src, /needsYouGo\('renewal', f\.id\)/, 'Decide is the renewal\'s own door');
 });
 
-test('f1091 (2b) a chosen request: its title, the ask quoted, Start the draft by the row\'s own press', () => {
+test('f1094 (2b) a chosen request: its title, the ask quoted, Start the draft by the row\'s own press', () => {
   const W = world();
   const r = { id: 'RQ1', title: 'NDA for a new distributor', need: 'We are meeting a distributor next week and need an NDA first.',
     counterparty: 'Coastline Distributors', by: { name: 'Grace Wanjiru' }, createdAt: new W.Date().toISOString(), status: 'new' };
   const f = W.iknPanelFive(r, true);
   assert.equal(f.title, 'NDA for a new distributor.');
   assert.equal(f.glance.length, 3);
-  const d = draw(W, f, 'f1091rq');
+  const d = draw(W, f, 'f1094rq');
   assert.ok(d.querySelector('.jov5-row.is-quote'), 'the ask in their words, quoted');
   assert.match(txt(d), /Coastline Distributors/, 'what was read from the ask');
   assert.ok(d.querySelector('.jov5-go[data-ikn-draft="RQ1"]'), 'Start the draft is the row\'s own press');
@@ -84,7 +84,7 @@ test('f1091 (2b) a chosen request: its title, the ask quoted, Start the draft by
   assert.equal(viewer.act, null, 'no Start the draft for one who may not edit');
 });
 
-test('f1091 (2c) a chosen duty: when as the headline, the clause said or its absence, Mark done the black button', () => {
+test('f1094 (2c) a chosen duty: when as the headline, the clause said or its absence, Mark done the black button', () => {
   const W = world();
   const o = { id: 'o1', desc: 'Quarterly stock count', due: dayFrom(W, 12), party: 'us', status: 'open', recurring: 'none' };
   const c = { id: 'C1', name: 'Warehousing Services', counterparty: 'Juno Logistics', folder: 'sales', obligations: [o] };
@@ -92,7 +92,7 @@ test('f1091 (2c) a chosen duty: when as the headline, the clause said or its abs
   assert.match(f.title, /^Quarterly stock count is due in 12 days\.$/);
   assert.match(f.sub, /We owe it to Juno Logistics under Warehousing Services/);
   assert.equal(f.glance.length, 3);
-  const d = draw(W, f, 'f1091ob');
+  const d = draw(W, f, 'f1094ob');
   assert.match(txt(d), /No wording recorded/, 'no clause recorded: said plainly, never left out');
   assert.equal(f.act && f.act.label, 'Mark done', 'Mark done is the black button');
   assert.ok(d.querySelector('.jov5-go'), 'drawn as the one black button');
@@ -107,19 +107,19 @@ test('f1091 (2c) a chosen duty: when as the headline, the clause said or its abs
   assert.match(dec, /needsYouGo\('renewal', c\.id\)/, 'a renewal decision\'s Decide is the renewal\'s own door');
 });
 
-test('f1091 (2d) a pressed place on the flow map: its line, its road, its doors, Open by the page\'s own press', () => {
+test('f1094 (2d) a pressed place on the flow map: its line, its road, its doors, Open by the page\'s own press', () => {
   const W = world();
   const f = W.fmPanelFive('upload');
   assert.ok(f && /^Upload: /.test(f.title), 'the place and its one line');
   const row = W.eval('flowMapRow("upload")');
   assert.deepEqual(J(f.glance.map(g => g.n)), [row.a.length, row.d.length, row.p.length], 'counted off the map itself');
-  const d = draw(W, f, 'f1091fm');
+  const d = draw(W, f, 'f1094fm');
   assert.equal(d.querySelectorAll('.jov5-row').length, row.d.length + row.p.length, 'a row per door and per likely next');
   assert.ok(d.querySelector('.jov5-go[data-fm-go="upload"]'), 'Open is the page\'s own press');
   assert.equal(W.fmPanelFive('nowhere'), null, 'a place not on the map draws nothing');
 });
 
-test('f1091 (2e) Their paper: the steps, what Create needs as it stands, Choose a file the sheet\'s own picker', () => {
+test('f1094 (2e) Their paper: the steps, what Create needs as it stands, Choose a file the sheet\'s own picker', () => {
   const W = world();
   let picked = 0;
   const T = (file, stream) => ({ file: () => file, kept: () => '', stream: () => stream, pick: () => { picked++; } });
@@ -135,7 +135,7 @@ test('f1091 (2e) Their paper: the steps, what Create needs as it stands, Choose 
   assert.match(src, /getElementById\('na-theirs-pick'\)/, 'the picker is the sheet\'s own button');
 });
 
-test('f1091 (3) each panel is the five parts in the new look, as before in the old', () => {
+test('f1094 (3) each panel is the five parts in the new look, as before in the old', () => {
   assert.match(region(read('js/views/homeboard.js'), 'function hbRdnPanelHtml(){', 'function hbRdnBtnHtml'), /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\s*return `<div class="jl-words is-ov rd-five">\$\{jamboOverviewHtml\(hbRdnPanelFive\(hbRdnRead\(\)\)/);
   assert.match(region(read('js/views/intake.js'), 'function iknPanelHtml(r, may){', 'if (typeof document'), /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\s*return `<div class="jl-words is-ov ikn-five">\$\{jamboOverviewHtml\(iknPanelFive\(r, may\)/);
   const ob = region(read('js/obligations.js'), 'function obPaintPanel(', 'host.querySelector');
@@ -145,7 +145,7 @@ test('f1091 (3) each panel is the five parts in the new look, as before in the o
   assert.match(region(read('js/paperdesk.js'), 'function pdWallHelloHtml(){', 'function naTheirsFive'), /pd2On\(\) && typeof naTheirsNow === 'function'[\s\S]*naTheirsFive\(T\)/);
 });
 
-test('f1091 (4) every word of the round is in both books', () => {
+test('f1094 (4) every word of the round is in both books', () => {
   const W = world();
   const S = W.eval('typeof STRINGS !== "undefined" ? STRINGS : null'); assert.ok(S && S.en && S.sv);
   const keys = new Set();

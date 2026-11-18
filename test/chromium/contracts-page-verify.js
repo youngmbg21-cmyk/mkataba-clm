@@ -71,6 +71,10 @@ const check = (name, ok, detail) => {
        memory for this sitting. The page loads once, so it holds for the file. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the
+       head's List pill is the way to the list */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('tr[data-row]', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -118,10 +122,12 @@ const check = (name, ok, detail) => {
        stage is its word in its own tone in the grey line under the agreement, and the row's MARK in the same
        tone leads it — the mark is the dot's job now, its colour the meta's brighter shade */
     const stage = await page.evaluate(() => {
-      const s = document.querySelector('tr[data-row] .reg-stg-w');
-      if (!s) return { err: 'no .reg-stg-w' };
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the stage word stands in its own Standing column
+         (td.reg-standing, in its tone's ink) and THE SAP WAY MARK leads the row (.reg-id .ls-mk, listSapMarkHtml) */
+      const s = document.querySelector('tr[data-row] td.reg-standing');
+      if (!s) return { err: 'no td.reg-standing' };
       const cs = getComputedStyle(s);
-      const mark = s.closest('tr').querySelector('.reg-id .ls-mark');
+      const mark = s.closest('tr').querySelector('.reg-id .ls-mk');
       const dcs = mark ? getComputedStyle(mark) : null;
       return {
         word: s.textContent.trim(),
@@ -142,7 +148,8 @@ const check = (name, ok, detail) => {
       };
     });
     check('2a the stage is a word, and a mark leads the row',
-      !stage.err && stage.svg && stage.dotW === '22px',
+      /* RE-POINTED 16 Nov 2026 (#762): THE SAP WAY MARK is 20px (listSapMarkHtml) */
+      !stage.err && stage.svg && stage.dotW === '20px',
       `${stage.err || ''} ${stage.dotW} ${stage.svg}`);
     check('2b the word carries the meaning ink, so colour is not the only carrier',
       !!stage.word && stage.ink !== 'rgb(0, 0, 0)', `"${stage.word}" ${stage.ink}`);
@@ -178,8 +185,7 @@ const check = (name, ok, detail) => {
     check('3a the stream is a column again, a soft chip in every row that has one',
       cols.heads.some(x => /^stream$|^värdeflöde$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
     check('3b and no row draws its stream tick', !cols.tick);
-    check('3c CONTROL the Stream filter is still offered (under + Filter), with its streams to pick',
-      !!cols.streamChip && cols.streamChip.w > 0 && cols.streamChip.opts >= 1, JSON.stringify(cols.streamChip));
+    /* RETIRED 16 Nov 2026 (#762): 3c "the Stream filter is still offered under + Filter" — the new look's Contracts head draws no + Filter (lead's ruling) */
     check('3d the LINK column is gone from this table',
       !cols.heads.some(x => /^link$|^länk$/i.test(x)), cols.heads.join(' · '));
 
@@ -189,15 +195,36 @@ const check = (name, ok, detail) => {
       dots: document.querySelectorAll('tr[data-row] [data-menu]').length,
     }));
     check('4a no row draws a text verb', verbs.actlink === 0, `${verbs.actlink} found`);
-    check('4b every row keeps its ⋯', verbs.dots === rows.n, `${verbs.dots} of ${rows.n}`);
-    /* IT MUST STILL OPEN — a menu that is drawn and dead is worse than none. */
-    await page.evaluate(() => document.querySelector('tr[data-row] [data-menu]').click());
-    await page.waitForTimeout(400);
-    const menuOpen = await page.evaluate(() => {
-      const p = document.querySelector('[data-menu-pop]');
-      return p ? getComputedStyle(p).display !== 'none' : false;
-    });
-    check('4c and pressing it really opens the menu', menuOpen);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's list draws no ⋯ column (regColKeys has no
+       'acts' when regNl()); a row's ONE press opens its contract, and the contract's ⋯ (#ig-actions) carries the row's acts.
+       4b/4c and 14 ask that way: the press opens it, and its ⋯ opens painted with End or pause and Delete */
+    const firstId = await page.evaluate(() => (document.querySelector('#reg-tbody tr[data-row]') || {}).getAttribute?.('data-row') || null);
+    await page.click('#reg-tbody tr[data-row] td:nth-child(2)', { timeout: 5000 }).catch(() => {});
+    const opened = await page.waitForFunction(id => !!(window.pdContract && pdContract() && pdContract().id === id), firstId, { timeout: 8000 }).then(() => true, () => false);
+    check('4b a row\'s one press opens its contract, where its acts are', !!firstId && opened, String(firstId));
+    /* a contract opened on purpose lands on its Cover (f1085); its Open the dossier is the step onto the paper */
+    /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the Cover was not drawn yet when it was looked for, so the ⋯ was
+       pressed behind it — the Cover is asked for (bounded), pressed through, and asked to be gone (bounded) */
+    if (await page.waitForSelector('[data-cv-open]', { timeout: 6000 }).then(() => true, () => false)) {
+      await page.click('[data-cv-open]', { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction(() => !document.querySelector('[data-cv-open]'), null, { timeout: 6000 }).catch(() => {});
+      await page.waitForSelector('#ig-actions', { state: 'visible', timeout: 6000 }).catch(() => {});
+    }
+    const menuUp = await page.click('#ig-actions', { timeout: 5000 }).then(() => true, () => false);
+    await page.waitForTimeout(500);
+    const actsSeen = () => page.evaluate(() => [...document.querySelectorAll('button, a, [role="menuitem"]')].filter(b => { const r = b.getBoundingClientRect();
+      if (!r.width || !r.height) return false; const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && (el === b || b.contains(el)); })
+      .map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+    const seen = await actsSeen();
+    check('4c and its ⋯ really opens, End or pause among its painted acts', menuUp && seen.some(t => /^End or pause$/i.test(t)), seen.filter(t => t.length < 40).slice(-8).join(' · '));
+    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /^All acts/.test(x.textContent.trim()) && x.getBoundingClientRect().width > 0); if (b) b.click(); });
+    await page.waitForTimeout(600);
+    const all = await actsSeen();
+    check('4d and every act, Delete among them, one press further (All acts), painted', all.some(t => /delete/i.test(t)), all.filter(t => t.length < 40).slice(-12).join(' · '));
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 8000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('#reg-tbody [data-row]', { timeout: 8000 }).catch(() => {});
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
 
@@ -229,14 +256,8 @@ const check = (name, ok, detail) => {
       await new Promise(r => setTimeout(r, 400));
       return out;
     });
-    check('5a every filter "+ Filter" offers carries its label',
-      filters.n >= 4 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}: ${filters.groups.join(' | ')}`);
-    /* The fault this guards: the quick-filter dropdown's own sentence — 57
-       characters — used as a LABEL, which ran to 460px and pushed the bar off
-       its row. The claim is about LENGTH, so it costs nothing when a label is
-       renamed. */
-    check('5b no label is a sentence — the long one stays a tooltip',
-      filters.widest <= 24, `longest label ${filters.widest} chars`);
+    /* RETIRED 16 Nov 2026 (#762): 5a/5b, the labels "+ Filter" offers — the new look's Contracts head draws no + Filter
+       (lead's ruling); the chips a chosen filter stands as are still asked (5c) */
     check('5c and the chosen filters stand as chips on one row at 1440', filters.chips.length === 2 && filters.oneRow === 1,
       `${filters.oneRow} rows: ${filters.chips.join(' | ')}`);
 
@@ -290,11 +311,14 @@ const check = (name, ok, detail) => {
        one edge, level with each other. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1500);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): ONE SHEET — the head draws no card of its own, it lies
+       on the page's white sheet; the white it sits on is the first painted ground under it */
     const band = await page.evaluate(() => {
+      const under = e => { for (let n = e; n; n = n.parentElement){ const b = getComputedStyle(n).backgroundColor; if (!/rgba\([^)]*,\s*0\s*\)|transparent/.test(b)) return b; } return ''; };
       const box = s => { const e = document.querySelector(s); if (!e) return null;
-        const r = e.getBoundingClientRect(), c = getComputedStyle(e);
+        const r = e.getBoundingClientRect();
         return { top: Math.round(r.top), bottom: Math.round(r.bottom),
-          left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), bg: c.backgroundColor }; };
+          left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), bg: under(e) }; };
       const paint = v => { const d = document.createElement('div'); d.style.background = 'var(' + v + ')';
         document.body.appendChild(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; };
       const gap = (() => { const d = document.createElement('div'); d.style.height = 'var(--s-3)'; document.body.appendChild(d);
@@ -662,48 +686,8 @@ const check = (name, ok, detail) => {
        still reports its full rectangle, so a geometry check passes on the
        broken page. document.elementFromPoint at each row's own centre is the
        only honest question, and it is one a browser alone can answer. */
-    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-    await page.waitForTimeout(1600);
-    await page.click('#reg-tbody [data-menu]');
-    await page.waitForTimeout(600);
-    const menu = await page.evaluate(() => {
-      const pop = document.querySelector('#reg-tbody [data-menu-pop]');
-      if (!pop) return { absent: true };
-      const items = [...pop.querySelectorAll('button,a')];
-      const hit = items.map(b => {
-        const r = b.getBoundingClientRect();
-        const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return { label: b.textContent.trim(),
-          reachable: !!el && (el === b || b.contains(el) || pop.contains(el)) };
-      });
-      const cell = pop.closest('td');
-      /* EVERY ROW has a menu cell, so "the others" means every cell that is not
-         one — comparing against all cells counts the other 39 menu cells and
-         reports the exemption as a leak. */
-      const other = [...document.querySelectorAll('#reg-tbody tr[data-row] td:not(.reg-cell-menu)')];
-      return { shown: pop.style.display === 'flex',
-        items: items.length,
-        reachable: hit.filter(h => h.reachable).length,
-        unreachable: hit.filter(h => !h.reachable).map(h => h.label),
-        labels: hit.map(h => h.label),
-        cellOverflow: getComputedStyle(cell).overflow,
-        othersClipped: other.every(td => getComputedStyle(td).overflow === 'hidden'),
-        otherCount: other.length };
-    });
-    check('14a the menu opens', !menu.absent && menu.shown && menu.items > 0,
-      menu.absent ? 'no menu in the row' : menu.items + ' rows');
-    check('14b every row in it is actually painted, not clipped away',
-      menu.reachable === menu.items,
-      `${menu.reachable}/${menu.items} reachable · missing ${JSON.stringify(menu.unreachable)}`);
-    check('14c and it still carries the acts the row menu is for',
-      /* archive is an answer in End or pause since 15 Oct 2026 (owner picked "One question") */
-      /end or pause/i.test(menu.labels.join(' ')) && /delete/i.test(menu.labels.join(' ')),
-      menu.labels.join(' · '));
-    /* THE EXEMPTION IS NARROW, which is the other half: WO-9's clip must still
-       be doing its job on every cell that holds text. */
-    check('14d the exemption is the menu cell alone — every text cell still clips',
-      menu.cellOverflow === 'visible' && menu.othersClipped && menu.otherCount > 0,
-      `menu cell ${menu.cellOverflow} · ${menu.otherCount} others clipped ${menu.othersClipped}`);
+    /* RETIRED 16 Nov 2026 (#762): 14a–14d, the row ⋯ menu's pop-up painted over the clipping cells — the new look's list draws
+       no ⋯ cell (the acts are the contract's ⋯, asked painted in 4b–4d above) */
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
 
@@ -887,7 +871,10 @@ const check = (name, ok, detail) => {
        <style>, so the next view gets the shell's reserved gutter back — which
        is what stops content jolting sideways between a scrolling page and a
        fixed one. A rule that leaked would take that with it. */
-    await page.evaluate(() => setView('dashboard'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Home holds no gutter by design in the new look
+       (`html.lg-new #content-scroll:has(#ig-page){scrollbar-gutter:auto}`), so the next page asked is one that reserves
+       it, Settings */
+    await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1500);
     const elsewhere = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
@@ -897,6 +884,8 @@ const check = (name, ok, detail) => {
     check('15 and the next page gets its reserved gutter back',
       elsewhere.gutter > 0 || /stable/.test(elsewhere.rule || ''),
       `${elsewhere.gutter}px · ${elsewhere.rule}`);
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));   /* back to the list for 16 */
+    await page.waitForTimeout(1500);
 
     /* ============================================================
        16. ONE SEARCH BOX, AND IT IS THE SHELL'S (N-3, 31 Aug 2026)
@@ -1060,9 +1049,8 @@ const check = (name, ok, detail) => {
       heads.some(h => h.sort === 'party') && heads.some(h => h.sort === 'stream')
         && (await page.evaluate(() => !!document.querySelector('#reg-sort option[value="ref"]'))),
       JSON.stringify(heads.map(h => h.sort)));
-    check('18b and the last column, which has no heading, still does not',
-      heads.length > 0 && heads[heads.length - 1].sort === null,
-      JSON.stringify(heads[heads.length - 1] || null));
+    /* RETIRED 16 Nov 2026 (#762): 18b "the last column, which has no heading, does not sort" — that column was the row's ⋯,
+       which the new look's list does not draw (regColKeys: counterparty, standing, …, no 'acts'); its last column is Value, which sorts */
 
     /* THE TABLE PAGES AT 40, so ascending and descending show two different
        slices of the book rather than one list reversed — the claim is that

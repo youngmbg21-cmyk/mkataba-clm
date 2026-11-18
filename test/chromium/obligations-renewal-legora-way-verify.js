@@ -76,6 +76,9 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
       const rn = b.querySelector('[data-pd-rn]');
       return { rows: rn ? [...rn.querySelectorAll('.pd-rn-row')].map(r => r.innerText.replace(/\s+/g, ' ').trim()) : [],
         quote: rn && rn.querySelector('.pd-rn-q') ? rn.querySelector('.pd-rn-q').innerText.replace(/\s+/g, ' ').trim() : '',
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the face is Jambo's Five panel (owner, 15 Nov 2026,
+           "Build as drawn"): the renewal's dates are its tiles (.jov5-glance: the end day, the notice day, the duties) */
+        glance: [...b.querySelectorAll('.pd-obm-tab.is-five .jov5-glance .jov5-g')].map(g => g.innerText.replace(/\s+/g, ' ').trim()),
         tabs: [...b.querySelectorAll('.pd-obs-tab')].map(t => t.textContent.replace(/\s+/g, '') + (t.getAttribute('aria-selected') === 'true' ? '*' : '')),
         sides: [...b.querySelectorAll('.pd-ob')].map(r => r.classList.contains('is-theirs') ? 'theirs' : 'ours'),
         map: !!b.querySelector('.ov-map-stage, svg.ov-map'), side: document.documentElement.scrollWidth <= innerWidth + 1 };
@@ -89,8 +92,10 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
         const T = await until(TAB);
         /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): three small columns, a label in small capitals over its
            value; how far off the notice day is moves to the date's hover */
-        check(`1a ${at} the renewal is three columns at the top of the tab: Ends · Notice by · Renewal`,
-          !!T && T.rows.length === 3 && /^Ends\s/i.test(T.rows[0]) && /^Notice by\s+\d/i.test(T.rows[1]) && /^Renewal\s/i.test(T.rows[2]), JSON.stringify(T && T.rows));
+        /* RE-POINTED 16 Nov 2026 (#762): as drawn in the Five panel the top of the tab is three tiles — the day it ends,
+           the notice day, the duties — so the renewal's kind ("Renewal · manual") is no longer a column of its own */
+        check(`1a ${at} the renewal's dates are the tiles at the top of the tab: the day it ends, the notice day`,
+          !!T && T.glance.length === 3 && /^\d{1,2} \w+ ends \d{4}$/i.test(T.glance[0]) && /^\d{1,2} \w+ notice \d{4}$/i.test(T.glance[1]), JSON.stringify(T && T.glance));
         check(`1b ${at} the words it was read from, quoted with the clause they stand under`,
           !!T && /^§4 .Any extension must be agreed/.test(T.quote), T && T.quote);
         check(`1c ${at} the picture is not drawn on the tab; nothing sideways`, !!T && !T.map && T.side);

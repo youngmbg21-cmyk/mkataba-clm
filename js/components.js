@@ -791,7 +791,10 @@ function splitWire(rez, h){
     settle(); };
   rez.addEventListener('pointerdown', e => { e.preventDefault(); rez.dataset.drag = '1';
     /* the strip's LEFT edge is the seam (it lies on the panel's side) */
-    const hb = rez.getBoundingClientRect(); grabDx = hb.left - e.clientX;
+    /* measured from the SEAM itself (the edge less the width in force), never the strip's drawn box: a strip shifted by
+       a transform (#ig-resizer's -7px) made the panel jump by the shift at the first move (#762) */
+    let seam = null; try { seam = h.edge() - splitWidth(h); } catch (_){ seam = null; }
+    const hb = rez.getBoundingClientRect(); grabDx = (Number.isFinite(seam) ? seam : hb.left) - e.clientX;
     /* a width transition would make the handle trail the pointer */
     if (typeof h.dragging === 'function') h.dragging(true);
     document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
@@ -976,6 +979,12 @@ function listColsLearn(seat, raw){
     const cs = getComputedStyle(host);
     const real = host.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
     if (!(real > 0)) return;
+    /* DRAWN WIDER THAN ITS ROOM (#762: measured before the panel beside it had taken its place, the columns were shared
+       out over room it never had): it draws once more on the room its own host really has, once per window width */
+    { const v0 = _listFit.get(seat), iw0 = typeof innerWidth === 'number' ? innerWidth : 0;
+      if (v0 && t.getBoundingClientRect().width > real + 2 && v0.overIw !== iw0 && typeof v0.repaint === 'function'){
+        v0.overIw = iw0; v0.settled = Math.max(0, Math.round(real - (_listOff.get(seat) || 0))); v0.settledPanel = true; v0.iw = iw0;
+        try { v0.repaint(); } catch (_){} return; } }
     /* drawn before its page was in sight (no room measured): measured now, drawn once more */
     if (!(raw > 0)){
       if (!(listSpreadMeasure().room > 0) || _listZeroOnce.has(seat)) return;
@@ -999,13 +1008,16 @@ function listColsLearn(seat, raw){
   });
 }
 let _listFitObs = null;
+let _listFitObsOn = null;
 function listColsWatch(){
-  if (_listFitObs || typeof ResizeObserver !== 'function' || typeof document === 'undefined') return;
+  if (typeof ResizeObserver !== 'function' || typeof document === 'undefined') return;
   const cs = document.getElementById('content-scroll'); if (!cs) return;
+  /* the page's scroller can be built again: the watch follows the one on screen, or a panel taking its room is never seen (#762) */
+  if (_listFitObs){ if (_listFitObsOn !== cs){ _listFitObs.disconnect(); _listFitObs.observe(cs); _listFitObsOn = cs; } return; }
   let queued = false;
   _listFitObs = new ResizeObserver(() => { if (queued) return; queued = true;
     (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f => setTimeout(f, 16)))(() => { queued = false; listColsCheck(); }); });
-  _listFitObs.observe(cs);
+  _listFitObs.observe(cs); _listFitObsOn = cs;
 }
 /* a list still on screen whose columns would change draws again (a window resized, the panel dragged);
    the same breath's net as the spread's: asked again after it, never dropped */
@@ -1032,7 +1044,9 @@ function listColsCheck(){
 }
 /* the drawing: a <col> per column (its key, its width; data-floor on the name, data-spread on one that
    steps aside), and the grip at a head's right edge */
-const listColTag = c => `<col data-k="${esc(String(c.k || ''))}"${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}${c.name ? ` data-floor="${SPREAD_NAME_MIN}"` : (c.spread || Number.isFinite(c.rank)) ? ' data-spread' : ''}>`;
+/* `floor` (the new look's lists, #762): a column that always stands counts its own width in the list's floor, never
+   the share of the spare room it was given, or the floor would grow with the room and the panel slide over the list */
+const listColTag = (c, floor) => `<col data-k="${esc(String(c.k || ''))}"${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}${c.name ? ` data-floor="${SPREAD_NAME_MIN}"` : (c.spread || Number.isFinite(c.rank)) ? ' data-spread' : (floor && Number(c.w0) > 0) ? ` data-floor="${Math.round(Number(c.mine ? c.w : c.w0))}"` : ''}>`;
 const listGripHtml = (seat, k) => `<span class="lc-grip" data-lc-grip="${esc(String(seat))}" data-lc-k="${esc(String(k || ''))}" role="separator" aria-orientation="vertical" title="${esc(typeof i18t === 'function' ? i18t('list_col_grip') : 'Drag to widen; double-press to reset')}"></span>`;
 /* THE GRIP: one listener on the document, bound at load; the column under the press is read at press time */
 const LIST_GRIP_CSS = '.lc-grip{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:2;touch-action:none}'
@@ -1558,7 +1572,7 @@ function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){
@@ -1593,7 +1607,7 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
       : r.link ? lnk(r.link.attr ? -1 : reg(r.link.run), E(r.link.label), r.link.title, '', r.link.attr) : '';
     const chev = (t === 'button') ? `<span class="jov5-chev" aria-hidden="true">${ic('chevR')}</span>` : '';
     return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap || r.quote ? ' is-wrap' : ''}${r.quote ? ' is-quote' : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
-      + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}</span>`
+      + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}${r.stg ? `<span class="jov5-stg"><span class="reg-stg"><i style="background:${E(r.stg.dot || 'currentColor')}"></i>${E(r.stg.label)}</span></span>` : ''}</span>`
       + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
   };
   const groups = (o.groups || []).filter(g => g && (g.rows || []).length).map(g =>
@@ -1603,7 +1617,9 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const a = o.act;
   const act = a && (a.say || a.label) ? `<div class="jov5-act">${a.say ? `<p class="jov5-say">${E(a.say)}</p>` : ''}${a.q ? `<p class="jov5-q">${E(a.q)}</p>` : ''}`
     + `<div class="jov5-acts">${a.label ? `<button type="button" class="jov5-go"${door(a.run, a.attr)}>${E(a.label)}</button>` : ''}`
-    + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}</div></div>` : '';
+    + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}`
+    /* more quiet links after the first, in order (My notes' Snooze a week, owner's pick 17 Nov 2026) */
+    + `${(a.links || []).map(l => lnk(l.attr ? -1 : reg(l.run), E(l.label), l.title, '', l.attr)).join('')}</div></div>` : '';
   const askHtml = asks.length ? `<div class="jov5-sec"><p class="jov5-label">${E(_jovT('jov_ask_me'))}</p><div class="jov5-chips">${asks.map(x =>
     x.attr ? `<button type="button" class="jov5-chip" ${x.attr}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`
       : `<button type="button" class="jov5-chip" data-jov="${E(slot)}:${reg(x.run)}"${x.title ? ` title="${E(x.title)}"` : ''}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`).join('')}</div></div>` : '';

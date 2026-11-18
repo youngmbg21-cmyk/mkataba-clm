@@ -54,7 +54,8 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
-    const toImport = () => until(() => { if (!document.getElementById('mig-drop')) { setView('migration'); return null; } return true; }, null, 8000);
+    /* RE-POINTED 16 Nov 2026 (#762): with files in, the new look's Import is its one table (.mign-page); before, the empty page with its drop strip */
+    const toImport = () => until(() => { if (!document.getElementById('mig-drop') && !document.querySelector('.mign-page')) { setView('migration'); return null; } return true; }, null, 8000);
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2'), null, 20000);
@@ -68,83 +69,88 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     /* one of the three is reviewed, so two of three are to check */
     await page.evaluate(() => { const c = migContracts()[0]; c.migration.needsReview = false; renderMigration(); });
 
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Import's panel is Jambo's FIVE PARTS for the
+       chosen file (migNlPanelFiveHtml in #ins-panel; CLAUDE.md "THE CHOSEN ROW'S PANELS"): the batch is said by its
+       three numbers (filed of N · need you · parked), and "need you" — with the link "Check all N" — opens the check
+       view on the files that wait; a file is always chosen (the first that needs you), its headline says what to
+       do, what Jambo read stands as rows (an end date not read in amber), and its one black button is the file's
+       own door (Fill in → the check view; Open the contract). The row's own word opens it (no double-click). */
+    const SIDE = '#ins-panel';
     console.log('\n1 · Jambo says the batch');
-    const batch = await until(() => { const s = document.getElementById('mig-side'); if (!s) return null;
-      const t = s.textContent.replace(/\s+/g, ' ').trim();
-      return /3 files are in this batch/.test(t) ? { t } : null; }, null, 6000);
-    check('1a beside the list, Jambo says the batch in words', !!batch && /These need you: 2 to check/.test(batch.t), batch && batch.t.slice(0, 160));
-    /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): his chips are the Overview's offers under "Ask me", verb first with a capital */
-    const chip = await page.evaluate(() => [...document.querySelectorAll('#mig-side .jov-lnk.is-ask')].findIndex(b => /^check the 2 files$/i.test(b.textContent.trim())));
-    if (chip >= 0){
-      await page.locator('#mig-side .jov-lnk.is-ask').nth(chip).click();
+    const batch = await until(sel => { const s = document.querySelector(sel); if (!s || !s.querySelector('.jov5-glance')) return null;
+      return [...s.querySelectorAll('.jov5-glance .jov5-g')].map(g => g.textContent.replace(/\s+/g, ' ').trim()); }, SIDE, 6000);
+    check('1a beside the list, Jambo says the batch in its numbers: 1 of 3 filed · 2 need you', !!batch && batch[0] === '1of 3 filed' && batch[1] === '2need you', JSON.stringify(batch));
+    if (await page.locator(SIDE + ' [data-mign-checkall]').count()) {
+      await page.locator(SIDE + ' [data-mign-checkall]').first().click();
       const ck = await until(() => document.getElementById('mig-ck-facts') ? migCheckIds().length : null, null, 4000);
-      check('1b his chip "check the 2 files" opens the check view on the two', ck === 2, String(ck));
-      await page.evaluate(() => migCheckClose()); await page.evaluate(() => migPickSet(null));
-    } else check('1b his chip "check the 2 files"', false, 'not drawn');
+      check('1b his "need you" door opens the check view on the two', ck === 2, String(ck));
+      await page.evaluate(() => migCheckClose()); await toImport();
+    } else check('1b his "need you" door ("Check all 2")', false, 'not drawn');
     await shot(page, 'import-jambo-batch-1440x780');
 
     console.log('\n2 · a press chooses a file');
-    const pick = await page.evaluate(() => { const c = migContracts().find(x => x.migration.needsReview); return c ? c.id : null; });
-    if (pick && await press(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`, '2 the row')) {
-      const f = await until(id => { const s = document.getElementById('mig-side'); const tr = document.querySelector(`.mig-table tr[data-row="${id}"]`);
-        if (!s || !tr || !tr.classList.contains('is-picked')) return null;
-        return { lit: tr.getAttribute('aria-selected'), name: (s.querySelector('.mig-cf-t') || {}).textContent || '', facts: s.querySelectorAll('.mig-ff').length,
-          need: s.querySelectorAll('.mig-ff.is-need').length,
-          doors: [...s.querySelectorAll('.mig-cf-acts button')].map(b => b.textContent.trim()), view: state.view }; }, pick, 4000);
-      check('2a the row is lit and the page stays on Import', !!f && f.lit === 'true' && f.view === 'migration', JSON.stringify(f && { lit: f.lit, view: f.view }));
-      check('2b the panel says that file: "Check this file" and the facts it is filed with', !!f && f.name === 'Check this file' && f.facts >= 6, JSON.stringify(f && { name: f.name, facts: f.facts }));
+    const pick = await page.evaluate(() => { const ids = migContracts().filter(x => x.migration.needsReview).map(c => c.id); const on = document.querySelector('.mign-table tr.is-picked');
+      return ids.find(id => !on || on.getAttribute('data-row') !== id) || null; });
+    if (pick && await press(`.mign-table tbody tr[data-row="${pick}"] td:nth-child(1)`, '2 the row')) {
+      const f = await until(([id, sel]) => { const s = document.querySelector(sel); const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`);
+        if (!s || !tr || !tr.classList.contains('is-picked') || !s.querySelector('.jov5-title')) return null;
+        const c = getContract(id);
+        return { lit: document.querySelectorAll('.mign-table tr.is-picked').length, eb: (s.querySelector('.jov5-eb') || {}).textContent || '', file: c && c.migration ? (c.migration.file || c.upload && c.upload.name || '') : '',
+          name: (s.querySelector('.jov5-title') || {}).textContent || '', facts: s.querySelectorAll('.jov5-group .jov5-row').length,
+          need: s.querySelectorAll('.jov5-group .jov5-row .jov5-mk.is-amber').length,
+          go: ((s.querySelector('.jov5-go') || {}).textContent || '').trim(), view: state.view }; }, [pick, SIDE], 4000);
+      check('2a the row is lit (one row) and the page stays on Import', !!f && f.lit === 1 && f.view === 'migration', JSON.stringify(f && { lit: f.lit, view: f.view }));
+      check('2b the panel says that file: "Check what I was unsure of." and what was read, as rows', !!f && f.name === 'Check what I was unsure of.' && f.facts >= 3 && /^Import · \S/.test(f.eb), JSON.stringify(f && { name: f.name, facts: f.facts, eb: f.eb }));
       check('2c a fact not found is amber', !!f && f.need >= 1, String(f && f.need));
-      check('2e the drawn doors: File it and Open the file', !!f && f.doors.includes('File it') && f.doors.includes('Open the file'), JSON.stringify(f && f.doors));
+      check('2e the file\'s own door: Fill in', !!f && f.go === 'Fill in', JSON.stringify(f && f.go));
       const filed = await page.evaluate(() => (migContracts().find(c => !c.migration.needsReview) || {}).id);
-      await page.evaluate(id => migPickSet(id), filed);
-      const marks = await until(() => { const li = [...document.querySelectorAll('#mig-side .mig-sms li')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return li.length >= 5 ? li : null; }, null, 4000);
-      check('2d the marks are said in words (a filed file)', !!marks && marks.some(m => /missing|done/.test(m)), JSON.stringify(marks));
-      await page.evaluate(id => migPickSet(id), pick);
+      await page.locator(`.mign-table tbody tr[data-row="${filed}"] td:nth-child(1)`).click();
+      const marks = await until(([id, sel]) => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); if (!tr || !tr.classList.contains('is-picked')) return null;
+        const li = [...document.querySelectorAll(sel + ' .jov5-group .jov5-row')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return li.length >= 3 ? { li, title: (document.querySelector(sel + ' .jov5-title') || {}).textContent } : null; }, [filed, SIDE], 4000);
+      check('2d a filed file: what was read said in words, and that it was filed', !!marks && /^Filed/.test(marks.title || '') && marks.li.some(m => /Read whole/i.test(m)), JSON.stringify(marks));
+      await page.locator(`.mign-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
+      await until(id => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') ? true : null; }, pick, 3000);
       await shot(page, 'import-jambo-file-1440x780');
 
-      console.log('\n3 · Review, and letting it go');
-      if (await press('#mig-side [data-mig-review-full]', '3a All the details…')) {
-        const dlg = await until(() => { const m = document.querySelector('#modal-root .modal, .modal-backdrop, [role="dialog"]'); return m && m.textContent.length > 20 ? true : null; }, null, 6000);
-        check('3a "All the details…" in the panel opens the whole review window', !!dlg);
-        await page.keyboard.press('Escape').catch(() => {}); await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
+      console.log('\n3 · the file\'s door');
+      if (await press(SIDE + ' .jov5-go', '3a Fill in')) {
+        const ck = await until(() => document.getElementById('mig-ck-facts') ? migCheckId() : null, null, 6000);
+        check('3a Fill in in the panel opens the check view on that file', ck === pick, String(ck));
+        await page.evaluate(() => migCheckClose()); await toImport();
       }
-      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
-      const let1 = await until(id => { const tr = document.querySelector(`.mig-table tr[data-row="${id}"]`); const s = document.getElementById('mig-side');
-        return tr && !tr.classList.contains('is-picked') && s && /in this batch/.test(s.textContent) ? true : null; }, pick, 4000);
-      check('3b pressed again, the row is let go and Jambo says the batch', !!let1);
-      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
-      await until(() => document.querySelector('.mig-table tr.is-picked') ? true : null, null, 3000);
-      if (await press('#mig-side [data-jl-home]', '3c ‹ Jambo')) {
-        const back = await until(() => !document.querySelector('.mig-table tr.is-picked') && /in this batch/.test(document.getElementById('mig-side').textContent) ? true : null, null, 3000);
-        check('3c "‹ Jambo" goes back to the batch', !!back);
-      }
+      /* RETIRED 16 Nov 2026 (#762): 3b "pressed again, the row is let go and Jambo says the batch" and 3c "‹ Jambo goes
+         back to the batch" — old look only: the new look's Import panel always reads the chosen file (a file is chosen on
+         arrival, migNlRender) and says the batch in its three numbers, so there is no batch-only face to go back to */
 
       console.log('\n4 · open');
-      await page.evaluate(() => { const c = migContracts().find(x => !x.migration.needsReview); if (c) migPickSet(c.id); });
-      if (await press('#mig-side .mig-cf-acts [data-open]', '4a Open')) {
+      const filedId = await page.evaluate(() => (migContracts().find(x => !x.migration.needsReview) || {}).id);
+      await page.locator(`.mign-table tbody tr[data-row="${filedId}"] td:nth-child(1)`).click();
+      await until(id => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') ? true : null; }, filedId, 3000);
+      if (await press(SIDE + ' .jov5-go', '4a Open the contract')) {
         const opened = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
-        check('4a the panel\'s Open opens the contract', !!opened, String(opened));
+        check('4a the panel\'s Open the contract opens the contract', !!opened, String(opened));
       }
       await toImport();
-      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`).dblclick();
-      const opened2 = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
-      check('4b a double-click on a row opens it', !!opened2, String(opened2));
+      /* RE-POINTED (#762): the row's own word — Open on a filed file — opens it; a row press only chooses */
+      await until(sel => document.querySelector(sel), `.mign-table tbody tr[data-row="${filedId}"] [data-mign-go]`, 4000);
+      if (await press(`.mign-table tbody tr[data-row="${filedId}"] [data-mign-go]`, '4b the row\'s Open')) {
+        const opened2 = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
+        check('4b the row\'s own Open opens it', !!opened2, String(opened2));
+      }
       await toImport();
     } else check('2 a file to choose', false, 'none to check');
 
     console.log('\n5 · the owner\'s three screens');
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: hh });
-      await toImport(); await page.waitForTimeout(250);
-      await page.evaluate(id => { if (id) migPickSet(id); }, pick);
-      await page.waitForTimeout(150);
-      const fit = await page.evaluate(() => { const s = document.getElementById('mig-side'), m = document.querySelector('.mig-list');
-        const R = s.getBoundingClientRect(), M = m.getBoundingClientRect(), P = document.getElementById('page-head').getBoundingClientRect();
-        return { beside: R.left >= M.right - 1 && Math.abs(R.top - P.top) < 12 /* the floating panel stands 8px in (THE LEGORA LOOK, 23 Oct 2026) */, inWin: R.right <= innerWidth && R.bottom <= innerHeight + 1 && R.top >= 0,
-          sx: document.scrollingElement.scrollWidth > innerWidth, w: Math.round(R.width) }; });
+      await toImport(); await page.waitForTimeout(400);
+      const fit = await page.evaluate(sel => { const s = document.querySelector(sel), m = document.querySelector('.mign-page .apn-card');
+        if (!s || !m) return { none: true };
+        const R = s.getBoundingClientRect(), M = m.getBoundingClientRect();
+        return { beside: R.left >= M.right - 1 && Math.abs(R.top - M.top) < 12, inWin: R.right <= innerWidth + 1 && R.bottom <= innerHeight + 1 && R.top >= 0,
+          sx: document.scrollingElement.scrollWidth > innerWidth, w: Math.round(R.width) }; }, SIDE);
       check(`5 at ${w}×${hh}: the panel beside the list, in the window, nothing sideways`, fit.beside && fit.inWin && !fit.sx, JSON.stringify(fit));
       await shot(page, `import-jambo-${w}x${hh}`);
-      await page.evaluate(() => migPickSet(null));
     }
     check('no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

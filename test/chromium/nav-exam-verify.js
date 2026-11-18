@@ -85,7 +85,8 @@ const ONLY = process.env.NAV_EXAM_ONLY || '';   // a section's name, or its firs
       return chipAsk('#ai-input', 'aiSubmit');
     }
     if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(P); return chipAsk('#jl-q', 'jlAsk'); }
-    if (box === 'settings'){ await P.evaluate(() => { setView('team'); }); await settle(P); return chipAsk('#st-jb-q', 'stJbBoxAsk'); }
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' box is the list panel's (#jl-q, reader jlAsk) */
+    if (box === 'settings'){ await P.evaluate(() => { setView('team'); }); await settle(P); return chipAsk('#jl-q', 'jlAsk'); }
     if (box === 'calendar'){ await P.evaluate(() => hbOpenCalendar()); await settle(P); return chipAsk('#cal-plan-in', 'calBoxAsk'); }
     if (box === 'editor'){
       await P.evaluate(() => { const c = getContract('MK-A2'); const cl = negoClauseList(c); rlOpenClauseEditor(c, cl[0].clauseId, {}); });

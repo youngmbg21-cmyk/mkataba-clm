@@ -216,10 +216,12 @@ const wayBack = (page, sel) => page.evaluate(a => {
             const b = [...near.querySelectorAll(a.t)].find(x => key(x.textContent || '') === key(a.word));
             if (!b) return false; b.click(); return true;
           }, { s: sel, t: TABS, word: w.word, k: KEYJS });
-          await page.waitForTimeout(600);
+          /* A WAIT ASKS FOR THE STATE, BOUNDED (17 Nov 2026): a fixed 600ms pause read the Dossier's panel before its
+             redraw had landed on a slow run; asked again until the links are back or 5s pass */
           if (!pressed) how = '', still.pressFailed = 'the way back could not be pressed';
           else {
-            const again = await painted(page, sel, still.offLinks);
+            let again = await painted(page, sel, still.offLinks);
+            for (let t0 = Date.now(); again.off.length && Date.now() - t0 < 5000; ){ await page.waitForTimeout(150); again = await painted(page, sel, still.offLinks); }
             if (!again.off.length) how = `one press on "${w.word}" brings them back`;
             else how = '', still.stillOff = again.off.slice(0, 5);
           }

@@ -44,7 +44,9 @@ const PAGES = [
   ['directory', "setView('directory')", '#ins-panel', '#jl-q', 'Overview', 'approvals', 'approvals'],
   ['templates', "setView('templates')", '#ins-panel', '#jl-q', 'Overview', 'approvals', 'approvals'],
   ['migration', "setView('migration')", '#mig-side', '#jl-q', 'Overview', 'approvals', 'approvals'],
-  ['settings', "setView('team')", '#st-side', '#st-jb-q', 'Overview', 'approvals', 'approvals'],
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel,
+     box #jl-q), no longer its own #st-side */
+  ['settings', "setView('team')", '#ins-panel', '#jl-q', 'Overview', 'approvals', 'approvals'],
 ];
 const TALK_TAB = '.pd-tab-talk, [data-jl-talk], [data-st-talk-label], [data-cal-talk], .st-side-talk';
 const HEAD = '.jl-head, .igd-head, .st-side-head, .cal-plan-head';
@@ -121,7 +123,10 @@ const deliver = answer => ({ content: [{ type: 'tool_use', id: 'tu_d', name: 'de
         const F = await P.evaluate(([h0]) => { const root = document.querySelector(h0);
           const f = root && [...root.querySelectorAll('[data-jb-fwd-door]')].find(e => e.getBoundingClientRect().height > 0);
           const card = f && f.parentElement && [...f.parentElement.querySelectorAll('.jb-card')].find(e => e.getBoundingClientRect().height > 0);
-          return f ? { word: f.textContent.trim(), gap: card ? Math.round(card.getBoundingClientRect().top - f.getBoundingClientRect().bottom) : null } : null; }, [host]);
+          /* RE-POINTED 16 Nov 2026 (#762): the row above the box also carries the page's ways on (jamboWaysHere, the
+             FLOW_MAP's doors, rule 9e) — "Jambo ›" is that row's own press, [data-jb-fwd] */
+          const fw = f && (f.querySelector('[data-jb-fwd]') || f);
+          return f ? { word: fw.textContent.trim(), gap: card ? Math.round(card.getBoundingClientRect().top - f.getBoundingClientRect().bottom) : null } : null; }, [host]);
         check(`5b ${key}: "Jambo ›" stands right above the box on the landing`, !!F && F.word === 'Jambo' && F.gap != null && F.gap >= 0 && F.gap <= 12, JSON.stringify(F));
         ai.reset();
         if (F) await P.click(`${host} [data-jb-fwd-door] [data-jb-fwd]`);

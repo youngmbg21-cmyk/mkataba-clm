@@ -170,7 +170,9 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
        LANGUAGE IS CHANGED IN SETTINGS › YOU — pressed there, as a person would */
     await page.evaluate(() => setView('team'));
     const sv = await page.waitForSelector('[data-st-lang="sv"]', { timeout: 8000 }).catch(() => null);
-    if (sv) await sv.click();
+    /* the Settings list repaints as it lands (the new look's one list, #762): the press asks for the choice as it stands then,
+       not a handle taken before the repaint */
+    if (sv) await page.click('[data-st-lang="sv"]', { timeout: 6000 }).catch(() => {});
     const svOn = await page.waitForFunction(() => langId() === 'sv', null, { timeout: 6000 }).then(() => true, () => false);
     ok('7 the Svenska switch is there, in Settings › You', !!sv && svOn);
     await page.evaluate(() => setView('dashboard'));

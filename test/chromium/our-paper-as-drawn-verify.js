@@ -123,40 +123,78 @@ async function SEED(){
     }, ids.msa.tid);
     check('0 five contracts drawn from the master services agreement are on the book', n === 5, n);
     await page.evaluate(() => { setView('templates'); if (typeof tplPageSetTab === 'function') tplPageSetTab('book'); });
-    const ready = await until(() => document.querySelector('[data-tpl-sec="book"] .tpl-pf-sheet .tpl-mks') && !!document.querySelector('#ins-panel .tpl-pf-jl'), null, 12000);
-    check('0b the book paints its paper, its marks and Jambo\'s panel', !!ready);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's panel for the chosen template is the
+       Five panel (tplnPanelHtml → jamboOverviewHtml, .jov5), no longer the old .tpl-pf-jl words */
+    const JL = '#ins-panel .jl-words.is-ov .jov5';
+    /* RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way, owner's pick by prototype): the book is three
+       steps — Shelves › a folder's list (or All) › the paper. Every promise below is asked on the step that now carries
+       it: the head and its counts on Shelves (1), the index on All with the chosen row lit (2), the chosen paper as its
+       own step — its name the head, its facts and verbs beside it (3), its blanks and marks (4), Jambo's panel (5).
+       0b moved to where the paper is first drawn. */
+    await until(() => document.querySelector('[data-tpl-sec="book"] .tpln5.is-shelves'), null, 12000);
+    const MSA = 'company:' + ids.msa.tid, RES = 'company:' + ids.res.tid;
+    /* a row: one press chooses, a second opens its paper (a row already chosen opens at once) */
+    const openPaper = async key => {
+      if (await page.evaluate(() => tplPlace().view) === 'paper') { await press('[data-tpln-back]'); await until(() => tplPlace().view === 'list'); }
+      if (await page.evaluate(() => tplPlace().view) === 'shelves') { await press('[data-tpl-sec="book"] [data-tpln-view="list"]'); await until(() => tplPlace().view === 'list'); }
+      await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${key}"]`);
+      if (await until(k => tplPlace().pick === k ? tplPlace().view : null, key) === 'list') await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${key}"]`);
+      return until(k => tplPlace().view === 'paper' && tplPlace().pick === k && !!document.querySelector('[data-tpl-sec="book"] .tpln5.is-paper .tpl-pf-sheet'), key);
+    };
 
     /* 1 THE HEAD */
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "the Legora way"):
        the page's three parts are the switch at the head's right, drawn like
        Contracts' List | Wall (.paper-seg), no longer a tab row; each still
        carries its count */
-    const A = await page.evaluate(() => ({ h1: (document.querySelector('.tpl-hd-row h1') || {}).textContent || '', sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '',
-      tabs: [...document.querySelectorAll('.tpl-band .paper-seg button')].map(b => b.textContent.trim()) }));
+    /* RE-POINTED 17 Nov 2026 (#762): the head's name is .tpln5-h1 with its count beside it (.tpl-hd-n); the switch is
+       the filter line's Shelves · All, each with its count */
+    const A = await page.evaluate(() => ({ h1: ((document.querySelector('.tpln5-h1') || {}).textContent || '') + ' ' + ((document.querySelector('.tpln5-hrow .tpl-hd-n') || {}).textContent || ''), sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '',
+      tabs: [...document.querySelectorAll('[data-tpl-sec="book"] .tpln5-tab')].map(b => b.textContent.trim()) }));
     check('1a the head says the page\'s name with its count', /^Our paper\s*\d+ templates$/.test(A.h1.trim()), A.h1);
     check('1b one facts line: contracts drafted in 12 months · came back changed', /^\d+ contracts? drafted from them in 12 months · \d+ came back changed$/.test(A.sub.trim()) && /^5 |^[5-9]|^\d{2}/.test(A.sub.trim()), A.sub);
-    check('1c a count on each of the three tabs', A.tabs.length === 3 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
+    /* RE-POINTED 17 Nov 2026 (the Ladder): Our standards left Our paper; two parts remain, the book and Templates */
+    check('1c a count on each of the two switches (Shelves · All)', A.tabs.length === 2 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
 
     /* 2 THE INDEX */
-    const B = await page.evaluate(() => ({ shelves: [...document.querySelectorAll('[data-tpl-pf-shelf]')].map(b => [b.textContent.trim(), b.getAttribute('aria-expanded')]),
-      rows: [...document.querySelectorAll('[data-tpl-pf]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()) }));
-    check('2a the chosen template\'s shelf is open, the others one line each', B.shelves.length >= 2 && B.shelves[0][1] === 'true' && B.shelves.slice(1).every(s => s[1] === 'false')
-      && B.rows.length === 2, JSON.stringify(B.shelves));
-    check('2b a row says its version, how often used in 12 months and its stream; "2 changed" and "draft" ride beside',
-      B.rows.some(r => /Master services agreement\s*v1 · used 5 · Sales\s*2 changed/.test(r)) && B.rows.some(r => /Reseller agreement\s*v1 draft · used 0 · Sales\s*draft/.test(r)), JSON.stringify(B.rows));
-    await press('[data-tpl-pf-shelf="builtin"]');
-    const B2 = await until(() => { const s = document.querySelector('[data-tpl-pf-shelf="builtin"]'); return s && s.getAttribute('aria-expanded') === 'true' ? document.querySelectorAll('[data-tpl-pf]').length : 0; });
-    await press('[data-tpl-pf-shelf="builtin"]');
-    const B3 = await until(() => { const s = document.querySelector('[data-tpl-pf-shelf="builtin"]'); return s && s.getAttribute('aria-expanded') === 'false' ? document.querySelectorAll('[data-tpl-pf]').length : 0; });
-    check('2c a shelf\'s line opens it, pressed again it folds', B2 >= 12 && B3 === 2, `${B2} → ${B3}`);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; OUR PAPER, THE LEGORA WAY, owner's pick 14 Nov 2026):
+       no shelves — every template is ONE row in one list (.tpln-lrs), the chosen one lit; a row says its name, its
+       stream, its first line quoted and its uses; the streams are chips that narrow the list in place (tplnFilter).
+       "2 changed" moved to the chosen paper's facts line (3b) and Jambo's "came back changed" tile (5b) */
+    /* RE-POINTED 17 Nov 2026 (#762): the one list is the All step; a press there chooses (lit) */
+    await press('[data-tpl-sec="book"] [data-tpln-view="list"]');
+    await until(() => tplPlace().view === 'list' && !!document.querySelector('.tpln-lrs [data-tpl-pf]'));
+    await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${MSA}"]`);
+    await until(k => tplPlace().pick === k && document.querySelector('.tpln-lrs .tpln-lr.is-on'), MSA);
+    /* a company paper's first line is read in the background (tplnQuotesFill), bounded */
+    await until(k => !!document.querySelector(`.tpln-lrs [data-tpl-pf="${k}"] .tpln-q`), MSA, 6000);
+    const B = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].map(b => [b.textContent.replace(/\s+/g, ' ').trim(), b.classList.contains('is-on') && b.getAttribute('aria-pressed') === 'true', !b.hidden]) }));
+    const lit = B.rows.filter(r => r[1]);
+    check('2a every template one row in one list, the chosen one lit, the rest one line each', B.rows.length >= 14 && lit.length === 1 && /^M Master services agreement/.test(lit[0][0]) && B.rows.every(r => r[2]), JSON.stringify(B.rows.map(r => r[0].slice(0, 40) + (r[1] ? ' *' : ''))));
+    check('2b a row says its name, its stream, its first line quoted and its uses',
+      B.rows.some(r => /Master services agreement\s*Sales\s*§ 1 · “This agreement is made between Highland Corporate Ltd.*” 5 uses$/.test(r[0])) && B.rows.some(r => /Reseller agreement\s*Sales.* 0 uses$/.test(r[0])), JSON.stringify(B.rows.map(r => r[0])));
+    const shown = () => page.evaluate(() => [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden).length);
+    const salesChip = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tpln-chip]')].find(x => /^Sales\b/.test(x.textContent.trim())); if (!b) return null; b.click(); return b.textContent.trim(); });
+    const B2 = salesChip ? await until(n => { const k = [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden); return k.length && k.length < n && k.every(b => /Sales/.test(b.textContent)) ? k.length : null; }, B.rows.length) : 0;
+    await press('[data-tpln-chip=""]');
+    const B3 = await until(n => [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden).length === n ? n : null, B.rows.length);
+    check('2c a stream\'s chip narrows the list, All brings every row back', !!salesChip && B2 >= 2 && B3 === B.rows.length, `${salesChip} ${B2} → ${B3 || await shown()}`);
+
+    const ready = await openPaper(MSA) && await until(q => document.querySelector('[data-tpl-sec="book"] .tpln5.is-paper .tpl-pf-sheet .tpl-mks') && !!document.querySelector(q), JL, 12000);
+    check('0b the book paints its paper, its marks and Jambo\'s panel', !!ready);
 
     /* 3 THE TEMPLATE'S HEAD */
-    const C = await page.evaluate(() => ({ h2: (document.querySelector('.tpl-pf-hl h2') || {}).textContent || '', facts: (document.querySelector('.tpl-pf-hl p') || {}).textContent || '',
-      acts: [...document.querySelectorAll('[data-tpl-pf-act]')].map(b => [b.textContent.trim(), b.disabled, b.classList.contains('ui-btn-primary')]) }));
-    check('3a name and version pill', /^Master services agreement\s*v1$/.test(C.h2.trim()), C.h2);
-    check('3b "Company standard · Sales · used 5 times in 12 months · 2 came back changed · updated <day> by <name>"',
-      /^Company standard · Sales · used 5 times in 12 months · 2 came back changed · updated \d{1,2} \w+ by \w+$/.test(C.facts.trim()), C.facts);
-    check('3c the verbs: Open in the builder · Draft from it (the primary)', JSON.stringify(C.acts.map(a => a[0])) === JSON.stringify(['Open in the builder', 'Draft from it']) && C.acts[1][2] === true && !C.acts[1][1], JSON.stringify(C.acts));
+    /* RE-POINTED 17 Nov 2026 (#762): the chosen paper is a step of its own — its name the step's head (.tpln5-h1); beside
+       the paper its facts line (kind · folder · N uses; .tpln5-meta), its figures (made · signed · came back changed;
+       .tpln5-facts) and its own verbs, the black one first (tplnPaperHtml, as drawn). The 16 Nov "used 5 times, last
+       with <party>" line is not drawn on this step (MAP-HISTORY: "the paper step says 'N uses'") */
+    const C = await page.evaluate(() => ({ h2: (document.querySelector('.tpln5-h1') || {}).textContent || '', facts: (document.querySelector('.tpln5.is-paper .tpln5-meta') || {}).textContent || '',
+      figs: [...document.querySelectorAll('.tpln5.is-paper .tpln5-facts > div')].map(d => d.textContent.replace(/\s+/g, ' ').trim()),
+      acts: [...document.querySelectorAll('.tpln5.is-paper [data-tpl-pf-act]')].map(b => [b.textContent.trim(), b.disabled, b.classList.contains('ui-btn-primary')]) }));
+    check('3a the chosen paper\'s name heads the step', /^Master services agreement$/.test(C.h2.trim()), C.h2);
+    check('3b "<kind> · Sales · 5 uses", and its figures: made 5 · 2 came back changed',
+      /^[^·]+ · Sales[^·]* · 5 uses$/.test(C.facts.trim()) && C.figs.some(f => /5$/.test(f) && /made/i.test(f)) && C.figs.some(f => /came back changed\s*2$/i.test(f)), JSON.stringify({ facts: C.facts, figs: C.figs }));
+    check('3c the verbs: Draft from it (the primary, first) · Open in the builder', JSON.stringify(C.acts.map(a => a[0])) === JSON.stringify(['Draft from it', 'Open in the builder']) && C.acts[0][2] === true && !C.acts[0][1], JSON.stringify(C.acts));
 
     /* 4 THE PAPER */
     const D = await page.evaluate(() => { const sh = document.querySelector('[data-tpl-sec="book"] .tpl-pf-sheet');
@@ -172,8 +210,12 @@ async function SEED(){
     /* 5 JAMBO'S PANEL */
     const E = await page.evaluate(() => { const p = document.getElementById('ins-panel');
       return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', back: !!(p.querySelector('[data-jl-back]') && !p.querySelector('[data-jl-back]').hidden),
-        said: (p.querySelector('.tpl-pf-jl .jl-bub') || {}).textContent || '', chips: [...p.querySelectorAll('[data-tpl-pf-chip]')].map(b => b.textContent.trim()),
-        next: (p.querySelector('.jl-next-h') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
+        /* RE-POINTED 16 Nov 2026 (#762): his words are the Five panel's parts — title, sub, tiles, groups, the act */
+        title: (p.querySelector('.jov5 .jov5-title') || {}).textContent || '', sub: (p.querySelector('.jov5 .jov5-sub') || {}).textContent || '',
+        tiles: [...p.querySelectorAll('.jov5 .jov5-g')].map(g => [g.textContent.replace(/\s+/g, ' ').trim(), g.tagName === 'BUTTON']),
+        groups: [...p.querySelectorAll('.jov5 .jov5-sec')].map(g => g.textContent.replace(/\s+/g, ' ').trim()),
+        say: (p.querySelector('.jov5 .jov5-act .jov5-say') || {}).textContent || '', go: (p.querySelector('.jov5 .jov5-act .jov5-go') || {}).textContent || '',
+        link: (p.querySelector('.jov5 .jov5-act .jov5-acts > :not(.jov5-go)') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
         fixed: getComputedStyle(p).position, right: (d => d >= 0 && d <= 9)(innerWidth - Math.round(p.getBoundingClientRect().right)) }; });
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
     /* RE-POINTED 25 Oct 2026 (owner: "this page does not need an overview page"): ONE Jambo window —
@@ -185,24 +227,39 @@ async function SEED(){
        named under the Overview tab, his greeting the Jambo tab's; still no name tab and no back button */
     check('5a two tabs: the template under Overview, no greeting there, no name tab, no back button', !E0.solo && !E0.word && E0.home && !E.back
       && !E0.landHello, JSON.stringify({ ...E0, b: E.back }));
-    check('5b his words, from the record, with where it came back changed and what it meets',
-      /Master services agreement v1, from the record\./.test(E.said) /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
-    check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
-      && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; JAMBO'S PANELS — THE FIVE PARTS): his words from the
+       record are the panel's title, sub and tiles (made 5 · signed · 2 came back changed, the last a door) and the
+       group of what came back changed by clause kind (Liability cap 2 times, Payment terms 1 time). "It meets N of Our
+       standards" is no longer said on this panel (the Standards shelf counts them) — RETIRED that clause only */
+    check('5b his words, from the record: made 5, 2 came back changed — Liability cap twice, Payment terms once',
+      E.title.trim() === 'Master services agreement' && /^Made 5 agreements; 2 came back changed\.$/.test(E.sub.trim())
+      && E.tiles.length === 3 && /^5\s*made$/.test(E.tiles[0][0]) && /^2\s*came back changed$/.test(E.tiles[2][0]) && E.tiles[2][1]
+      && E.groups.some(g => /Liability cap\s*2 times/i.test(g) && /Payment terms\s*1 time\b/i.test(g)), JSON.stringify({ t: E.title, s: E.sub, tiles: E.tiles, g: E.groups }));
+    check('5c the next step: Draft from it (his one black button), Open in the builder beside it', /^Start a new agreement from this paper/.test(E.say.trim())
+      && E.go.trim() === 'Draft from it' && E.link.trim() === 'Open in the builder', JSON.stringify({ say: E.say, go: E.go, link: E.link }));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
     check('5d the ask box at the panel\'s foot, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo, or type / for a place' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
     await press('#ins-panel [data-jl-home]');
-    const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.tpl-pf-jl') && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
+    const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && ![...p.querySelectorAll('.jov5-title')].some(t => /Master services agreement/.test(t.textContent)) && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);
-    await press('[data-tpl-pf="company:' + ids.msa.tid + '"]');
-    const E3 = await until(() => !!document.querySelector('#ins-panel .tpl-pf-jl'));
+    /* RE-POINTED 17 Nov 2026 (#762): the template is pressed where its row stands now — the list, one step back */
+    await press('[data-tpln-back]');
+    await until(() => tplPlace().view === 'list' && !!document.querySelector('.tpln-lrs [data-tpl-pf]'));
+    await press('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="' + MSA + '"]');
+    const E3 = await until(q => [...document.querySelectorAll(q + ' .jov5-title')].some(t => t.textContent.trim() === 'Master services agreement'), JL);
     check('5f a press on the template holds it again', !!E3);
 
     /* 6 DOORS LAND */
-    await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tpl-pf-chip]')].find(x => /came back changed/.test(x.textContent)); if (b) b.click(); });
-    const F1 = await until(() => { const m = document.querySelector('.tpl-mk.is-changed.is-landed'); return m ? m.textContent.trim() : null; });
-    check('6a "where it came back changed" lands on the mark, lit', F1 === 'Came back changed 2 times', F1);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the old panel's chip "where it came back changed"
+       (which lit the mark on the paper) is gone; its door is Jambo's "came back changed" tile, which opens the Contracts
+       list narrowed to the contracts it counts (the same door as the mark, 6b) */
+    await page.evaluate(q => { const b = [...document.querySelectorAll(q + ' button.jov5-g')].find(x => /came back changed/.test(x.textContent)); if (b) b.click(); }, JL);
+    const F1 = await until(() => { if (state.view !== 'register' && state.view !== 'dashboard' && state.view !== 'counter') return null;
+      const only = state.reg && state.reg.only; return only && Array.isArray(only.ids) ? only.ids.slice().sort().join(',') : null; }, null, 8000);
+    check('6a Jambo\'s "came back changed" tile opens the Contracts list narrowed to the two contracts it counts', !!F1 && F1.split(',').length === 2, F1);
+    await page.evaluate(() => { if (state.reg) state.reg.only = null; setView('templates'); tplPageSetTab('book'); });
+    await until(() => !!document.querySelector('.tpl-mk.is-changed'));
     await press('.tpl-mk.is-changed');
     const F2 = await until(() => { if (state.view !== 'register' && state.view !== 'dashboard' && state.view !== 'counter') return null;
       const only = state.reg && state.reg.only; return only && Array.isArray(only.ids) ? only.ids.slice().sort().join(',') : null; }, null, 8000);
@@ -215,8 +272,9 @@ async function SEED(){
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await page.evaluate(() => { setView('templates'); tplPageSetTab('book'); });
-    await press('[data-tpl-pf="company:' + ids.res.tid + '"]');
-    const F4 = await until(() => { const b = [...document.querySelectorAll('[data-tpl-pf-act]')].find(x => x.textContent.trim() === 'Draft from it'); return b ? { off: b.disabled, why: b.title } : null; });
+    /* RE-POINTED 17 Nov 2026 (#762): the draft's verbs are read on its own paper's step */
+    await openPaper(RES);
+    const F4 = await until(() => { const b = [...document.querySelectorAll('.tpln5.is-paper [data-tpl-pf-act]')].find(x => x.textContent.trim() === 'Draft from it'); return b ? { off: b.disabled, why: b.title } : null; });
     check('6d on a draft, Draft from it is greyed with its reason', !!F4 && F4.off && /publish it first/i.test(F4.why), JSON.stringify(F4));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'our-paper-book-1440x780.png') });
 
@@ -226,15 +284,19 @@ async function SEED(){
     await until(() => document.querySelector('#tb-rail .tb-ol'));
     const G = await page.evaluate(() => { const r = e => { const b = e.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height), r: Math.round(b.right) }; };
       const strip = document.querySelector('.tb-strip'); const rail = document.getElementById('tb-rail');
-      return { strip: r(strip), stripBg: getComputedStyle(strip).backgroundColor, head: strip.textContent.replace(/\s+/g, ' ').trim(),
+      return { strip: r(strip), stripMin: parseFloat(getComputedStyle(strip).minHeight) || 0, stripBg: getComputedStyle(strip).backgroundColor, head: strip.textContent.replace(/\s+/g, ' ').trim(),
         rail: r(rail), tabs: [...rail.querySelectorAll('[data-tb-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), on: (rail.querySelector('[data-tb-tab].is-on') || {}).textContent || '',
         word: (rail.querySelector('.jl-word') || {}).textContent || '', ol: [...rail.querySelectorAll('.tb-ol-r')].map(b => [...b.children].map(x => x.textContent.trim()).filter(Boolean).join(' ')),
         sh: [...rail.querySelectorAll('.tb-ol-sh')].map(x => x.textContent.trim()), p: [...rail.querySelectorAll('.tb-ol-p')].map(x => x.textContent.trim()),
         ph: (document.getElementById('tb-ask') || {}).placeholder || '', hints: rail.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, send: (() => { const b = rail.querySelector('[data-tb-send]'); return b ? b.getAttribute('aria-label') || '' : ''; })() }; });  /* RE-POINTED 20 Oct 2026 (Two-row card): the round send says Ask to a screen reader and on its hover */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the head is the page's white band, as tall as Jambo's
+       panel head (min-height var(--rail-head-h), 58px) — one line means it never grows past that */
     check('7a the head card is one line: name · v1 draft · Category · Stream · Save draft · Publish v1',
-      G.strip.h <= 46 && /Reseller agreement\s*v1 draft\s*Category\s*\S+.*Stream.*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, head: G.head }));
+      G.stripMin > 0 && G.strip.h <= G.stripMin + 1 && /Reseller agreement\s*v1 draft\s*Category\s*\S+.*Stream.*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, min: G.stripMin, head: G.head }));
     /* RE-POINTED 25 Oct 2026 (the builder works like the clause editor; item 12, the panel floats 8px in as every panel does): the head is his tab and the four tabs, no page word */
-    check('7b Jambo\'s panel at the window\'s edge, his tab and the four tabs in its head, no page word', G.rail.r === 1432 && G.word === '', JSON.stringify({ ...G.rail, word: G.word }));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the panel stands edge to edge — flush with the
+       window's right edge, no longer floating 8px in */
+    check('7b Jambo\'s panel at the window\'s edge, his tab and the four tabs in its head, no page word', G.rail.r === 1440 && G.word === '', JSON.stringify({ ...G.rail, word: G.word }));
     check('7c tabs Build · Outline · Playbook n/m · Blanks 3, opening on the Outline',
       G.tabs.length === 4 && G.tabs[0] === 'Build' && G.tabs[1] === 'Outline' && /^Playbook ?\d+\/\d+$/.test(G.tabs[2]) && /^Blanks ?3$/.test(G.tabs[3]) && G.on === 'Outline', JSON.stringify(G.tabs));
     check('7d the Outline: "· Parties 1 blank", numbered sections, ✓ where a standard is met, "+ … proposed"',
@@ -249,7 +311,7 @@ async function SEED(){
     const P = await page.evaluate(() => ({ props: [...document.querySelectorAll('#tb-paper .tb-prop')].map(p => [p.getAttribute('data-tb-prop'), p.textContent.replace(/\s+/g, ' ').trim(), p.hasAttribute('data-not-wording'), p.getAttribute('contenteditable')]),
       marks: [...document.querySelectorAll('#tb-paper .tpl-mks')].map(m => m.textContent.replace(/\s+/g, ' ').trim()) }));
     check('8a Jambo proposes on the paper: "Jambo proposes · <standard>", Add · Skip, "Our standard: …"; never wording',
-      P.props.length >= 1 && P.props.every(p => /^Jambo proposes · .+ Add Skip Our standard: .+\.$/.test(p[1]) && p[2] && p[3] === 'false'), JSON.stringify(P.props));
+      P.props.length >= 1 && P.props.every(p => /^Jambo proposes · .+ Add Skip Our position: .+\.$/.test(p[1]) && p[2] && p[3] === 'false'), JSON.stringify(P.props));
     check('8b marks under the sections that meet a standard', P.marks.some(m => /Payment within 30 days/.test(m)) && P.marks.some(m => /Liability cap at 12 months fees/.test(m)), JSON.stringify(P.marks));
     const cat = P.props[0] && P.props[0][0];
     const before = await page.evaluate(() => document.querySelectorAll('#tb-paper [data-tb-row]').length);
@@ -288,18 +350,27 @@ async function SEED(){
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
       const T = await page.evaluate(() => { const strip = document.querySelector('.tb-strip'), rail = document.getElementById('tb-rail'), paper = document.getElementById('tb-paper');
         const a = strip.getBoundingClientRect(), r = rail.getBoundingClientRect(), p = paper.getBoundingClientRect();
-        return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneLine: a.height <= 46, beside: p.right <= r.left + 1 && a.right <= r.left + 1, edge: Math.round(r.right) === innerWidth - 8, bottom: Math.round(r.bottom) === innerHeight - 8 }; });
-      check(`10 ${w}×${ht} the builder: head on one line, paper and panel side by side, the panel 8px in from the edge and the foot (floats, 25 Oct 2026), nothing sideways`, T.side && T.oneLine && T.beside && T.edge && T.bottom, JSON.stringify(T));
+        /* RE-POINTED 16 Nov 2026 (#762): one line = no taller than its own one-line height; the panel edge to edge */
+        return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneLine: a.height <= (parseFloat(getComputedStyle(strip).minHeight) || 46) + 1, beside: p.right <= r.left + 1 && a.right <= r.left + 1, edge: Math.round(r.right) === innerWidth, bottom: Math.round(r.bottom) === innerHeight }; });
+      check(`10 ${w}×${ht} the builder: head on one line, paper and panel side by side, the panel at the window's edge and foot, nothing sideways`, T.side && T.oneLine && T.beside && T.edge && T.bottom, JSON.stringify(T));
       if (OUT) await page.screenshot({ path: path.join(OUT, `our-paper-builder-${w}x${ht}.png`) });
     }
     await page.evaluate(() => { tbLeave(() => { setView('templates'); tplPageSetTab('book'); }); });
-    await until(() => !!document.querySelector('#ins-panel .tpl-pf-jl'));
+    await until(q => !!document.querySelector(q), JL);
+    await openPaper(MSA);
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
-      const T = await page.evaluate(() => { const i = document.querySelector('.tpl-pf-idx'), p = document.querySelector('.tpl-pf-paper'), j = document.getElementById('ins-panel');
-        const a = i.getBoundingClientRect(), b = p.getBoundingClientRect(), c = j.getBoundingClientRect(), acts = document.querySelector('.tpl-pf-acts').getBoundingClientRect();
-        return { side: document.documentElement.scrollWidth <= innerWidth + 1, beside: a.right <= b.left && b.right <= c.left + 1, acts: acts.right <= b.right + 1, inView: b.bottom <= innerHeight + 1 }; });
-      check(`10 ${w}×${ht} the book: index, paper and Jambo's panel side by side, the verbs inside the head, nothing sideways`, T.side && T.beside && T.acts && T.inView, JSON.stringify(T));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; the Legora way): the paper (.tpln-sheet), the list
+         with the chosen paper's head and verbs (.tpln-side) and Jambo's panel stand side by side */
+      /* RE-POINTED 17 Nov 2026 (#762): on the paper's own step — the paper, its facts and verbs (.tpln5-side) and
+         Jambo's panel side by side */
+      const T = await page.evaluate(() => { const q = s => document.querySelector(s), R = e => e ? e.getBoundingClientRect() : null;
+        const parts = [R(q('.tpln5.is-paper .tpln-sheet')), R(q('.tpln5.is-paper .tpln5-side')), R(document.getElementById('ins-panel'))], acts = R(q('.tpln5.is-paper .tpln-acts')), side = parts[1];
+        if (parts.some(x => !x) || !acts) return { missing: parts.map(x => !!x).concat(!!acts) };
+        const lr = parts.slice().sort((a, b) => a.left - b.left);
+        return { side: document.documentElement.scrollWidth <= innerWidth + 1, beside: lr.every((x, i) => i === 0 || lr[i - 1].right <= x.left + 1),
+          acts: acts.right <= side.right + 1 && acts.left >= side.left - 1, inView: parts[0].bottom <= innerHeight + 1 && parts[0].top < innerHeight }; });
+      check(`10 ${w}×${ht} the book: paper, its facts and verbs, and Jambo's panel side by side, nothing sideways`, T.side && T.beside && T.acts && T.inView, JSON.stringify(T));
       if (OUT) await page.screenshot({ path: path.join(OUT, `our-paper-book-${w}x${ht}.png`) });
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

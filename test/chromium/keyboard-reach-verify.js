@@ -183,26 +183,42 @@ async function tabAround(page, sel, n = 25) {
   /* ---------- 7 · THE NAV SAYS WHICH DOOR YOU ARE IN ---------- */
   await page.evaluate(() => setView('register')); await pause(600);
   {
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): NO LEFT RAIL but THE SYMBOL STRIP — the bar's top-left
+       symbol (#dk-nav) opens it, a symbol per page (guideStripHtml); the nav doors are the strip's, the page in front the one
+       that says aria-current="page" */
+    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (!g || g.hidden) document.getElementById('dk-nav').click(); });
+    await page.waitForFunction(() => { const g = document.getElementById('gd-strip'); return !!g && !g.hidden && g.querySelector('[data-gds-go]'); }, null, { timeout: 4000 }).catch(() => {});
     const cur = await page.evaluate(() => {
-      const on = [...document.querySelectorAll('.nav-item[aria-current="page"]')];
-      /* the Contracts door is the fold's opener since its item went (step 7) */
-      return { n: on.length, view: on[0] ? (on[0].getAttribute('data-view') || on[0].getAttribute('data-nav-fold-open')) : null };
+      const on = [...document.querySelectorAll('#gd-strip [data-gds-go][aria-current="page"], .nav-item[aria-current="page"]')].filter(e => e.getClientRects().length);
+      return { n: on.length, view: on[0] ? on[0].getAttribute('data-gds-go') : null };
     });
+    await page.keyboard.press('Escape'); await pause(200);
+    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (g && !g.hidden) document.getElementById('dk-nav').click(); });
     check('exactly one nav door says aria-current="page"', cur.n === 1, JSON.stringify(cur));
-    check('and it is the door the reader is standing in', cur.view === 'register', String(cur.view));
+    check('and it is the door the reader is standing in', cur.view === 'contracts', String(cur.view));
     /* RE-POINTED 15 Oct 2026 (step 7): the place is Home's Document face, so
        the reader moves to Home by its rail door, which lands on the Board */
-    await page.evaluate(() => document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click()); await pause(500);
+    /* RE-POINTED 17 Nov 2026 (#762): the move is the strip's own Board symbol, and the strip opened again says Board */
+    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (!g || g.hidden) document.getElementById('dk-nav').click(); });
+    await page.waitForSelector('#gd-strip [data-gds-go="board"]', { timeout: 4000 }).catch(() => {});
+    await page.evaluate(() => { const b = document.querySelector('#gd-strip [data-gds-go="board"]'); if (b) b.click(); }); await pause(700);
+    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (!g || g.hidden) document.getElementById('dk-nav').click(); });
+    await page.waitForFunction(() => { const g = document.getElementById('gd-strip'); return !!g && !g.hidden && g.querySelector('[data-gds-go]'); }, null, { timeout: 4000 }).catch(() => {});
     const moved = await page.evaluate(() => {
-      const on = document.querySelector('.nav-item[aria-current="page"]');
-      return on ? on.getAttribute('data-view') : null;
+      const on = [...document.querySelectorAll('#gd-strip [data-gds-go][aria-current="page"]')].filter(e => e.getClientRects().length);
+      return on.length === 1 ? on[0].getAttribute('data-gds-go') + (state.view === 'dashboard' ? '' : ' (view ' + state.view + ')') : on.length + ' doors';
     });
-    check('and it MOVES with the reader', moved === 'dashboard', String(moved));
+    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (g && !g.hidden) document.getElementById('dk-nav').click(); });
+    check('and it MOVES with the reader', moved === 'board', String(moved));
   }
 
   /* ---------- 8 · THE REGISTER'S COLUMN HEADS AND ITS COUNT ---------- */
   /* the List of Home's Contracts place (step 7) */
   await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await pause(700);
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's List
+     pill is the way to the list */
+  await page.click('[data-ctf-show="list"]', { timeout: 8000 }).catch(() => {});
+  await page.waitForSelector('#reg-tbody tr[data-row]', { timeout: 8000 }).catch(() => {});
   {
     const th = await page.evaluate(() => {
       const t = document.querySelector('[data-reg-sort]');
@@ -223,7 +239,8 @@ async function tabAround(page, sel, n = 25) {
     });
     check('and pressing Enter on it actually sorts', sorted.before !== sorted.after, JSON.stringify(sorted));
     const live = await page.evaluate(() => {
-      const el = document.getElementById('reg-showing');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's foot is its own count, #reg-nl-showing (regNlFootHtml) */
+      const el = document.getElementById('reg-showing') || document.getElementById('reg-nl-showing');
       return el ? { live: el.getAttribute('aria-live'), role: el.getAttribute('role') } : null;
     });
     check('the result count is announced when it changes',

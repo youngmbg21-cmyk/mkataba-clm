@@ -58,13 +58,16 @@ const waitFor = (page, fn, ms = 8000, arg) => page.waitForFunction(fn, arg, { ti
         { id: 'bv2', desc: 'Deliver insurance certificate', due: '2099-01-05', status: 'open', party: 'theirs' }]; persist(c); }, ID);
     await page.waitForTimeout(800);
     await page.evaluate(id => hbOpenView(id, 'oblig'), ID);
-    const ob = await waitFor(page, id => state.view === 'obligations' && !!document.querySelector(`#obw-one-host[data-ins-cid="${id}"]`) && !!document.querySelector('#obw-only'), 8000, ID);
-    const obd = await page.evaluate(() => ({ view: state.view, rows: document.querySelectorAll('#obw-one-host [data-ins-row], #obw-one-host .obt-row').length, chip: (document.querySelector('#obw-only') || {}).textContent || '' }));
-    check('2 the old Obligations door opens the Obligations page narrowed to the contract, its own table and a chip back', ob && obd.rows === 2, JSON.stringify(obd));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look has no narrowed Obligations page — one
+       contract asked for lands on its paper's Obligations face (renderObligationsList → pd2ObGo), its own rows there */
+    const ob = await waitFor(page, id => { const pc = typeof pdContract === 'function' ? pdContract() : null;
+      return !!pc && pc.id === id && pdTab() === 'oblig' && document.querySelectorAll('#ig-dock .pd-ob[data-pd-ob-key]').length > 0; }, 8000, ID);
+    const obd = await page.evaluate(() => ({ view: state.view, tab: pdTab(), rows: document.querySelectorAll('#ig-dock .pd-ob[data-pd-ob-key]').length,
+      words: [...document.querySelectorAll('#ig-dock .pd-ob[data-pd-ob-key] .pd-ob-t')].map(e => e.textContent.trim()) }));
+    check('2 the old Obligations door opens the contract\'s own obligations, on its paper\'s Obligations face', ob && obd.rows === 2
+      && obd.words.includes('Monthly volume report') && obd.words.includes('Deliver insurance certificate'), JSON.stringify(obd));
     await page.screenshot({ path: path.join(OUT, '2-obligations-page.png') });
-    await page.click('#obw-only [data-obw-only-clear]').catch(() => {});
-    const cleared = await waitFor(page, () => state.view === 'obligations' && !document.querySelector('#obw-one-host'), 6000);
-    check('2b the chip\'s × goes back to every contract\'s obligations', cleared);
+    /* RETIRED 16 Nov 2026 (#762): 2b, "the chip's × goes back to every contract's obligations" — the narrowed page and its chip are the old look's only */
 
     /* 3 History → the card's History page */
     await page.evaluate(id => hbOpenView(id, 'hist'), ID);

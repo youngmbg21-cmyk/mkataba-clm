@@ -138,8 +138,10 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         title: (document.querySelector('.cal-head .ttl') || {}).textContent || '',
         stat: (document.querySelector('.cal-stat') || {}).textContent || '',
         pageHead: (document.getElementById('page-head') || {}).innerHTML || '',
-        tabs: [...document.querySelectorAll('[data-cal-view]')].map(a => a.textContent.replace(/\s+/g, ' ').trim()),
-        scope: [...document.querySelectorAll('[data-cal-scope]')].map(a => a.textContent.trim()),
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new head draws its own tabs and scope; the
+           old segmented controls are still in the markup, hidden — what a reader sees is what is counted */
+        tabs: [...document.querySelectorAll('[data-cal-view]')].filter(a => a.getBoundingClientRect().height > 0).map(a => a.textContent.replace(/\s+/g, ' ').trim()),
+        scope: [...document.querySelectorAll('[data-cal-scope]')].filter(a => a.getBoundingClientRect().height > 0).map(a => a.textContent.trim()),
         acts: [...document.querySelectorAll('.cal-acts > button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
         legend: [...document.querySelectorAll('.cal-legend span')].map(s => s.textContent.trim()),
         kindsOnMonth: new Set(calVisible(calendarEvents()).filter(e => calInPeriod(e, calPeriod())).map(e => e.type)).size,
@@ -260,18 +262,23 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        What replaces them each answers something nothing in HaTi did — when the
        book runs out, and what is owed. The claims below are the same SHAPE as
        the ones they replace: the view draws its own thing, and it fits. */
-    await page.click('[data-cal-view="horizon"]');
+    await page.click('.cal-nl-tabs [data-cal-view="horizon"]');
     await pause(900);
     await page.screenshot({ path: path.join(OUT, '02-horizon.png') });
     const hz = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
       const bars = [...document.querySelectorAll('.cal-hz-bar')];
-      return { rows: document.querySelectorAll('.cal-hz-row').length,
-        months: document.querySelectorAll('.cal-hz-months span').length,
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's Horizon draws the twelve months over EACH row's own bar
+         (.cal-hz-rm) and ends the bar with its date (.cal-hz-note at the bar's end) — no ruler of months, no tick */
+      const rowEls = [...document.querySelectorAll('.cal-hz-row')];
+      const perRow = rowEls.map(r => (r.querySelector('.cal-hz-rm') || { children: [] }).children.length);
+      return { rows: rowEls.length,
+        months: perRow.length && perRow.every(n => n === perRow[0]) ? perRow[0] : -1,
         bands: document.querySelectorAll('.cal-lad').length,
         /* a bar is time remaining, so a nearer expiry must be a SHORTER bar */
         widths: bars.map(b => Math.round(b.getBoundingClientRect().width)),
-        ends: document.querySelectorAll('.cal-hz-end').length,
+        ends: rowEls.filter(r => { const b = r.querySelector('.cal-hz-bar'), t = r.querySelector('.cal-hz-note');
+          return b && t && Math.abs(parseFloat(t.style.left) - parseFloat(b.style.width)) < 0.05; }).length,
         scroll: sc ? sc.scrollHeight - sc.clientHeight : null };
     });
     check('4 Horizon draws twelve months and a row per contract',
@@ -328,7 +335,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
       lr: document.querySelectorAll('.cal-list-row').length,
       ot: document.querySelectorAll('.cal-obt,.cal-obwrap,.cal-obfoot').length,
       /* and the tab row is exactly the two that are left */
-      tabs: [...document.querySelectorAll('[data-cal-view]')].map(e => e.getAttribute('data-cal-view')) }));
+      tabs: [...document.querySelectorAll('[data-cal-view]')].filter(e => e.getBoundingClientRect().height > 0).map(e => e.getAttribute('data-cal-view')) }));
     check('4 Quarter, List and Obligations are retired, control and markup alike',
       !retired.q && !retired.l && !retired.o && !retired.qm && !retired.lr && !retired.ot,
       JSON.stringify(retired));
@@ -336,7 +343,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
       String(retired.tabs) === String(['agenda', 'month', 'week', 'horizon']), retired.tabs);
 
     /* ---- 5. ALL DATES / MINE ---- */
-    await page.click('[data-cal-view="month"]');
+    await page.click('.cal-nl-tabs [data-cal-view="month"]');
     await pause(700);
     /* RE-POINTED IN PLACE 28 Sep 2026: the seeded contracts now record who
        owns them, and the sign-in that seeds them owns them all, so "Mine"
@@ -369,9 +376,11 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     /* ---- 7. EXPORT REALLY PRODUCES A CALENDAR FILE ---- */
     /* Export and Share live in the ⋯ menu now (SAP benchmark, batch 2), so
        the reader opens it first, as a reader would. */
-    const dl = page.waitForEvent('download', { timeout: 9000 });
-    await page.click('#cal-more');
-    await page.click('#cal-export');
+    /* a door that is not drawn REPORTS, never times out (the catch is fastened at once) */
+    const dl = page.waitForEvent('download', { timeout: 9000 }).catch(() => null);
+    const moreUp = await page.click('#cal-more', { timeout: 5000 }).then(() => true, () => false);
+    check('7 the ⋯ (Export, Share) is drawn and pressable', moreUp);
+    if (moreUp) await page.click('#cal-export', { timeout: 5000 }).catch(() => {});
     const file = await dl.catch(() => null);
     check('7 Export downloads a file', !!file, file && file.suggestedFilename());
     if (file) {
@@ -390,8 +399,8 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     }
 
     /* ---- 8. SHARE REALLY REACHES A COLLEAGUE ---- */
-    await page.click('#cal-more');
-    await page.click('#cal-share');
+    await page.click('#cal-more', { timeout: 5000 }).catch(() => {});
+    await page.click('#cal-share', { timeout: 5000 }).catch(() => {});
     await pause(700);
     await page.screenshot({ path: path.join(OUT, '04-share.png') });
     const who = await page.evaluate(() => {
@@ -403,8 +412,8 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
       who && who.opts.length >= 1 && /@/.test(who.opts[0]), who && who.opts);
     check('8 and never offers the sender themselves',
       who && !who.opts.some(o => o.includes(who.me)), who && who.me);
-    await page.fill('#cal-share-note', 'Here is what is coming up.');
-    await page.click('#cal-share-go');
+    await page.fill('#cal-share-note', 'Here is what is coming up.', { timeout: 5000 }).catch(() => {});
+    await page.click('#cal-share-go', { timeout: 5000 }).catch(() => {});
     await pause(2200);
     const outcome = await page.evaluate(async () => {
       const stillOpen = !!document.querySelector('#modal-root #cal-share-go');

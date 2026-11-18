@@ -57,21 +57,26 @@ const check = (name, pass, detail) => {
        place lands on the List now; this check is about the Wall, so it picks Wall as a reader would */
     await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
     await page.evaluate(() => setView('register'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; Wall is pressed */
+    await until(() => !!document.querySelector('[data-ctf-show="wall"]') || !!document.getElementById('ig-wall'), null, 10000);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="wall"]'); if (b) b.click(); });
     await until(() => document.querySelectorAll('#ig-wall .igw-card').length > 8, null, 10000);
     const CARD = id => { const b = document.querySelector(`#ig-wall .igw-card[data-ig-pick="${id}"]`); if (!b) return null;
       const s = b.querySelector('.igw-sheet').getBoundingClientRect(), t = b.querySelector('.igw-sheet .igw-t');
       return { w: Math.round(s.width), h: Math.round(s.height), t: t ? t.textContent : '', stamp: !!b.querySelector('.igw-stamp'),
         coded: b.querySelector('.igw-sheet').classList.contains('is-coded'), bg: getComputedStyle(b.querySelector('.igw-sheet')).backgroundImage,
-        m: (b.querySelector('.igw-m') || {}).textContent || '', ref: ((b.querySelector('.igw-rl') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-        nm: (b.querySelector('.igw-nm') || {}).textContent || '', lock: ((b.querySelector('.igw-lock') || {}).textContent || '').trim(),
-        under: b.querySelector('.igw-ref').getBoundingClientRect().top >= s.bottom }; };
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; THE WALL AS DRAWN, round 6): under the sheet one
+           foot (.igw2-foot) — the party, the stage in words and the value; the number is no longer printed */
+        m: ((b.querySelector('.igw2-st > span') || {}).textContent || '').trim(), ref: ((b.querySelector('.igw2-st b') || {}).textContent || '').trim(),
+        nm: ((b.querySelector('.igw2-who') || {}).textContent || '').trim(), lock: ((b.querySelector('.igw-lock') || {}).textContent || '').trim(),
+        under: !!b.querySelector('.igw2-foot') && b.querySelector('.igw2-foot').getBoundingClientRect().top >= s.bottom - 1 }; };
 
     /* 1 the paper and its facts */
     const D = await page.evaluate(CARD, 'MK-W2');
     check('1a a small paper, the top of its first page (wider than tall), its title on it and nothing stamped over it',
-      !!D && D.w >= 110 && D.w <= 170 && D.w / D.h > 1.4 && D.w / D.h < 1.7 && /Supply agreement 2/.test(D.t) && !D.stamp, JSON.stringify(D));
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's EVEN TILES draw a larger paper; its shape stands */ !!D && D.w >= 110 && D.w <= 300 && D.w / D.h > 1.4 && D.w / D.h < 1.7 && /Supply agreement 2/.test(D.t) && !D.stamp, JSON.stringify(D));
     const val = await page.evaluate(() => fmtMoneyShortOf(getContract('MK-W2')));
-    check('1b under it: the stage in words, the number with its value, the party', !!D && D.under && /Draft/.test(D.m) && D.ref === `MK-W2 · ${val}` && D.nm === 'Party 2 AB', JSON.stringify({ m: D && D.m, ref: D && D.ref, nm: D && D.nm, val }));
+    check('1b under it: the stage in words, the value, the party', !!D && D.under && /Draft/.test(D.m) && D.ref === val && D.nm === 'Party 2 AB', JSON.stringify({ m: D && D.m, ref: D && D.ref, nm: D && D.nm, val }));
 
     /* 2 private and kept to its list */
     const P = await page.evaluate(CARD, 'MK-W1');
@@ -90,26 +95,28 @@ const check = (name, pass, detail) => {
     }
     const C = await page.evaluate(CARD, 'MK-0412');
     check('2b a deal kept to its list: a hatched paper with its code name, its stream for a value, "Kept to its list"',
-      !!C && C.coded && /repeating-linear-gradient/.test(C.bg) && /Project Falcon/.test(C.t) && C.ref === `MK-0412 · ${folder}` && C.nm === 'Kept to its list' && !C.lock, JSON.stringify(C));
+      !!C && C.coded && /repeating-linear-gradient/.test(C.bg) && /Project Falcon/.test(C.t) && C.ref === folder && C.nm === 'Kept to its list' && !C.lock, JSON.stringify(C));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'wall-of-papers-1440x780.png') });
 
-    /* 3 the archive's own button */
-    const A0 = await page.evaluate(() => { const b = document.querySelector('[data-reg-home] [data-ct-archive]'), seg = document.querySelector('[data-reg-home] .ct-seg');
-      const opts = [...document.querySelectorAll('#reg-view-sel option')].map(o => o.value);
-      return b ? { word: (b.querySelector('span') || {}).textContent, n: (b.querySelector('.ct-arch-n') || {}).textContent || '', pressed: b.getAttribute('aria-pressed'),
-        beside: !!seg && b.getBoundingClientRect().right <= seg.getBoundingClientRect().left + 1 && Math.abs(b.getBoundingClientRect().top - seg.getBoundingClientRect().top) < 6,
-        inBox: opts.includes('archived'), live: document.querySelectorAll('#ig-wall .igw-card').length } : null; });
-    check('3a the archive is its own button beside Wall | List, with the shelf\'s count; the Quick filters box no longer offers it',
-      !!A0 && A0.word === 'Archive' && A0.n === '1' && A0.pressed === 'false' && A0.beside && !A0.inBox, JSON.stringify(A0));
-    await page.click('[data-reg-home] [data-ct-archive]');
-    const A1 = await until(() => { const b = document.querySelector('[data-reg-home] [data-ct-archive]'); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
-      return { ids: [...document.querySelectorAll('#ig-wall .igw-card')].map(x => x.getAttribute('data-ig-pick')) }; });
+    /* 3 the archive's own door */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Archive button beside Wall | List is not drawn in
+       the new look (.ct-arch, 0px); the shelf's own door is the Folders page's "Ended & archived" ([data-ctf-ended],
+       round 6), which shows the archived and only them; the Folders' way back (‹, .ctf-back) brings the live book */
+    await page.evaluate(() => { const b = document.querySelector('.ctf-back'); if (b) b.click(); else { const R = regState(); R.view = 'all'; } });
+    const A0 = await until(() => { const b = document.querySelector('[data-ctf-ended]'); return b && b.getBoundingClientRect().width > 0 ? { word: b.innerText.replace(/\s+/g, ' ').trim(),
+      inBox: [...document.querySelectorAll('#reg-view-sel option')].map(o => o.value).includes('archived') } : null; }, null, 10000);
+    check('3a the archive is its own door (Folders\' "Ended & archived"); the Quick filters box no longer offers it', !!A0 && /Ended/i.test(A0.word) && !A0.inBox, JSON.stringify(A0));
+    if (A0) await page.evaluate(() => document.querySelector('[data-ctf-ended]').click());
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="wall"]'); if (b && !document.getElementById('ig-wall')) b.click(); });
+    const A1 = await until(() => regState().view === 'archived' && document.querySelectorAll('#ig-wall .igw-card').length ? { ids: [...document.querySelectorAll('#ig-wall .igw-card')].map(x => x.getAttribute('data-ig-pick')) } : null);
     check('3b one press shows the shelf — the archived, and only them', !!A1 && JSON.stringify(A1.ids) === JSON.stringify(['MK-AR1']), JSON.stringify(A1));
-    await page.click('[data-reg-home] [data-ct-archive]');
-    const A2 = await until(() => { const b = document.querySelector('[data-reg-home] [data-ct-archive]'); if (!b || b.getAttribute('aria-pressed') !== 'false') return null;
-      return { n: document.querySelectorAll('#ig-wall .igw-card').length, want: Math.min(12, regFiltered().length), arch: !!document.querySelector('#ig-wall .igw-card[data-ig-pick="MK-AR1"]') }; });
+    await page.evaluate(() => { const b = document.querySelector('.ctf-back'); if (b) b.click(); });
+    await until(() => !!document.querySelector('[data-ctf-show="wall"]'), null, 8000);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="wall"]'); if (b) b.click(); });
+    const A2 = await until(() => { if (regState().view === 'archived') return null; const n = document.querySelectorAll('#ig-wall .igw-card').length; if (!n) return null;
+      return { n, want: Math.min(12, regFiltered().length), arch: !!document.querySelector('#ig-wall .igw-card[data-ig-pick="MK-AR1"]') }; });
     /* the live book's first twelve again: a new narrowing starts at twelve (round 13 as drawn) */
-    check('3c pressed again, the live book is back', !!A2 && A2.n === A2.want && A2.n >= Math.min(12, A0.live) && !A2.arch, JSON.stringify(A2));
+    check('3c the way back brings the live book', !!A2 && A2.n === A2.want && !A2.arch, JSON.stringify(A2));
 
     /* 4 the owner's three screens. RE-POINTED 22 Oct 2026 (Part 8, the list
        head the Legora way): on the 1536×730 laptop the taller head pushes the
@@ -119,7 +126,8 @@ const check = (name, pass, detail) => {
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       const F = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-        const a = r('[data-reg-home] [data-ct-archive]'), seg = r('[data-reg-home] .ct-seg');
+        /* RE-POINTED 16 Nov 2026 (#762): the head's Wall | List switch (no Archive button beside it in the new look) */
+        const seg = r('[data-reg-home] .ct-seg'), a = seg;
         const cards = [...document.querySelectorAll('#ig-wall .igw-card')].map(x => x.getBoundingClientRect());
         const tops = [...new Set(cards.map(c => Math.round(c.top)))].sort((x, y) => x - y);
         const second = cards.filter(c => Math.round(c.top) === tops[1]);
@@ -128,7 +136,7 @@ const check = (name, pass, detail) => {
           rows2: tops.length >= 2 && second.length > 0 && (scrollOk ? second.every(c => c.top < innerHeight) : second.every(c => c.bottom <= innerHeight)),
           short: second.length ? Math.round(Math.max(...second.map(c => c.bottom)) - innerHeight) : null,
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
-      check(`4 ${w}×${ht}: Archive · Wall · List in view, two rows of papers on the screen${w === 1536 ? ' (the second starts on it: owner, scroll a little)' : ''}, nothing sideways`, F.head && F.rows2 && F.side, JSON.stringify(F));
+      check(`4 ${w}×${ht}: Wall · List in view, two rows of papers on the screen${w === 1536 ? ' (the second starts on it: owner, scroll a little)' : ''}, nothing sideways`, F.head && F.rows2 && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `wall-of-papers-${w}x${ht}.png`) });
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

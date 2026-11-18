@@ -145,7 +145,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   check(!!pile && pile.rows[0] === 'Assignment not restricted' && pile.rows[2] === 'No injunctive-relief clause',
     '1c worst first: high, then medium, then low', pile && pile.rows.join(' | '));
   const std = await page.evaluate(() => [...document.querySelectorAll('[data-rl-prepare]')].map(b => b.textContent.trim()));
-  check(std.length > 0 && std.every(t => /Draft from our standards/.test(t)), '1d the standards button says "Draft from our standards" at every door', JSON.stringify(std));
+  check(std.length > 0 && std.every(t => /Draft from our playbook/.test(t)), '1d the standards button says "Draft from our standards" at every door', JSON.stringify(std));
   await page.screenshot({ path: path.join(OUT, '01-the-list.png') });
 
   /* ============ 2. FROM THE THREAD, READ IN PLACE ============ */

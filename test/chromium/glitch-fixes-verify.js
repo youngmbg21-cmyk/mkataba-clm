@@ -80,6 +80,15 @@ const COUNT_WRITES = () => {
     await waitFor(page, () => !!document.getElementById('igd-input') && !!document.getElementById('igd-input').offsetParent); await pause(200); };
   /* re-pinned 27 Oct 2026: words TYPED on Home go to the brain first; this tests the free readers, asked as a chip asks (counterAsk) */
   const ask = async w => { await page.evaluate(x => ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(x), w); };
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a contract asked for by its number lands on its Cover
+     (owner, 16 Nov 2026); "Open the dossier" is the press that puts the paper and its tabs in front; with Before you sign
+     up the panel's tabs are that face, the Dossier and Clauses (pd2, round 5) */
+  const pastCover = async () => { await waitFor(page, () => !!document.querySelector('[data-cv-open]') || !!document.querySelector('[data-pd-tab="red"]')).catch(() => {});
+    if (await page.locator('[data-cv-open]:visible').count()) { await page.locator('[data-cv-open]:visible').first().click(); await waitFor(page, () => !document.querySelector('[data-cv-open]')).catch(() => {}); }
+    /* a face left up on the contract (Before you sign) heads the panel with its own tab and the Dossier beside it: the
+       Dossier's tab is the way to its Redlines tab */
+    if (!(await page.locator('[data-pd-tab="red"]:visible').count()) && await page.locator('#ig-dock [data-pd-back]:visible').count()) {
+      await page.locator('#ig-dock [data-pd-back]:visible').first().click(); await waitFor(page, () => !!document.querySelector('[data-pd-tab="red"]')).catch(() => {}); } };
   const writes = () => page.evaluate(() => { const w = window.__gfW; window.__gfW = {}; return w; });
   const settle = async () => { await pause(900); };
   try {
@@ -121,7 +130,7 @@ const COUNT_WRITES = () => {
       check('2a one ‹ goes back to Approvals', w1.view === 'approvals', JSON.stringify(w1));
       /* a face the reader opens on the page is still one step up */
       await home(); await ask('MK-B2'); await waitFor(page, () => hbS().face === 'paper'); await pause(900);
-      await page.click('[data-pd-tab="red"]'); await waitFor(page, () => typeof pdTrail === 'function' && !!pdTrail()); await pause(400);
+      await pastCover(); await page.click('[data-pd-tab="red"]'); await waitFor(page, () => typeof pdTrail === 'function' && !!pdTrail()); await pause(400);
       await page.click('#dk-back'); await settle();
       const w2 = await where();
       check('2b a face opened on the page: ‹ steps the panel back first, the paper stays', w2.view === 'dashboard' && w2.face === 'paper' && !w2.trail, JSON.stringify(w2));
@@ -148,7 +157,7 @@ const COUNT_WRITES = () => {
       /* RETIRED (owner, 10 Nov 2026: Home deleted): 'a contract opened from Home's box'. Opened from the Board instead, the
          panel is drawn twice the second time too — measured the same on the code before Home went; a BUGLOG line, not fixed here */
       await once('the Dossier\'s Clauses tab', async () => { await home(); await ask('MK-A1'); await waitFor(page, () => hbS().face === 'paper'); }, () => page.click('[data-pd-tab="doc"]'));
-      await once('Redlines on a contract under review', async () => { await home(); await ask('MK-B2'); await waitFor(page, () => hbS().face === 'paper'); }, () => page.click('[data-pd-tab="red"]'));
+      await once('Redlines on a contract under review', async () => { await home(); await ask('MK-B2'); await waitFor(page, () => hbS().face === 'paper'); await pastCover(); }, () => page.click('[data-pd-tab="red"]'));
     }
     if (part(4)){
       /* ---- 4  WHAT IS HIDDEN IS NOT DRAWN ---- */
@@ -227,7 +236,9 @@ const COUNT_WRITES = () => {
       /* ---- 8  THE DOSSIER'S FOOT IS A SCROLLING LIST'S END ---- */
       await home(); await ask('MK-A1'); await waitFor(page, () => hbS().face === 'paper'); await pause(1200);
       const r = await page.evaluate(() => { const f = document.getElementById('igd-feed'); if (!f) return null;
-        const last = [...f.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && e.getClientRects().length).pop();
+        /* RE-POINTED 17 Nov 2026 (#762): only what is painted counts — the closed Amendments fold's buttons keep a box in
+           Chrome (content-visibility) though nothing of them shows, so a line is asked with checkVisibility */
+        const last = [...f.querySelectorAll('*')].filter(e => e.children.length === 0 && e.textContent.trim() && e.getClientRects().length && (typeof e.checkVisibility !== 'function' || e.checkVisibility({ contentVisibilityAuto: true }))).pop();
         const before = { sh: f.scrollHeight, ch: f.clientHeight };
         f.scrollTop = f.scrollHeight;
         const fr = f.getBoundingClientRect(), lr = last.getBoundingClientRect();
@@ -243,7 +254,7 @@ const COUNT_WRITES = () => {
       if (!id) check('9a (stage) a contract not yet opened in Redlines', false, 'none in the book');
       else {
         await home(); await ask(id); await waitFor(page, () => hbS().face === 'paper' && !!document.querySelector('[data-pd-tab="red"]')); await pause(1500); await writes();
-        await page.click('[data-pd-tab="red"]'); await waitFor(page, () => !!document.getElementById('pd-redface')); await pause(2000);
+        await pastCover(); await page.click('[data-pd-tab="red"]'); await waitFor(page, () => !!document.getElementById('pd-redface')); await pause(2000);
         const w = await writes();
         check(`9a Redlines on ${id}, its first time this sitting: the paper and Jambo's panel each drawn once`, (w['ig-paper'] || 0) <= 1 && (w['ig-dock'] || 0) <= 1, JSON.stringify({ paper: w['ig-paper'] || 0, dock: w['ig-dock'] || 0 }));
       }
@@ -269,15 +280,17 @@ const COUNT_WRITES = () => {
       /* the seeded book is shorter than one step of twelve: copies of a contract, in this page only, never saved */
       await page.evaluate(() => { const c0 = state.contracts.find(x => x && x.id === 'MK-A1');
         for (let i = 0; i < 30; i++) state.contracts.push(Object.assign({}, c0, { id: 'MK-GF' + String(i).padStart(2, '0'), name: (c0.name || 'Contract') + ' ' + i })); });
-      await home(); await ask('contracts'); await waitFor(page, () => !!document.querySelector('[data-ct-show="wall"]'));
-      await page.locator('[data-ct-show="wall"] >> visible=true').first().click(); await waitFor(page, () => !!document.querySelector('#ig-wall .igw-card')); await pause(600);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders, whose head carries
+         List | Wall (data-ctf-show); the list's own data-ct-show is drawn inside a folder */
+      await home(); await ask('contracts'); await waitFor(page, () => !!document.querySelector('[data-ctf-show="wall"], [data-ct-show="wall"]'));
+      await page.locator('[data-ctf-show="wall"]:visible, [data-ct-show="wall"]:visible').first().click(); await waitFor(page, () => !!document.querySelector('#ig-wall .igw-card')); await pause(600);
       const n0 = await page.evaluate(() => document.querySelectorAll('#ig-wall .igw-card').length); await writes();
       for (let i = 0; i < 6; i++){ await page.evaluate(() => { const b = document.querySelector('#ig-wall [data-lh-more="wall"]'); if (b) b.click(); }); await pause(250); }
       const r9c = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-wall .igw-card').length, foot: (document.querySelector('[data-lh-foot="wall"]') || {}).textContent || '' }));
       const w9c = await writes();
       check('9c "Show more" on the Wall adds papers and the Contracts place is not drawn again', r9c.n > n0 && !(w9c['ct-place'] || 0) && !(w9c['ig-wall'] || 0),
         JSON.stringify({ before: n0, after: r9c.n, foot: r9c.foot.trim(), place: w9c['ct-place'] || 0 }));
-      await page.evaluate(() => { const b = document.querySelector('[data-ct-show="list"]'); if (b) b.click(); }); await pause(400);
+      await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"], [data-ct-show="list"]'); if (b) b.click(); }); await pause(400);
       /* ---- 9d  THE BRAIN MARKS ITS STEP, THE LIST IS NOT BUILT AGAIN ---- */
       await page.evaluate(() => setView('brain'));
       const steps = await waitFor(page, () => !!document.querySelector('#br-steps .br-st'), 10000);

@@ -90,7 +90,9 @@ describe('f189 — the server stops handing the note to the counterparty', () =>
        drawn): the note is the letter's own words, straight under "Hello
        Guliz," — no "Message from" heading — and the sender signs at the foot. */
     const body = String(mail.body);
-    assert.match(body, /^Hello Guliz,/, 'the letter opens on the greeting');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the letter to the other side is the drawn one (outsideLookOn
+       always), which greets "Dear Guliz," */
+    assert.match(body, /^Dear Guliz,/, 'the letter opens on the greeting');
     assert.ok(body.includes(NOTE), 'with the sender\'s words in it');
     assert.ok(body.indexOf(NOTE) < body.search(/https?:\/\//), 'the note comes before the link, where the drawing writes it');
   });

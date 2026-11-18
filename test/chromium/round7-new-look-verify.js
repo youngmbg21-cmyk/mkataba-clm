@@ -11,8 +11,7 @@
      4 · The Guide: you are here, then the pages by stage, each with the word that opens it; Contracts counts the
          book; every page the Guide had is still on it
      5 · Your week ahead opened under its row: Jambo's panel says what each press does
-   And the switch off:
-     6 · Negotiations, Settings and the Guide are drawn as before
+   (6, the switch off, RETIRED 16 Nov 2026, #762: the new look is the only look)
    At the parent (before this round) 1–5 fail: none of it is drawn.
    Run: node test/chromium/round7-new-look-verify.js   (pictures: ROUND7_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -139,20 +138,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   /* 5 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): "Your week ahead" opened from Home's list into
      Home's panel; with Home gone it is a piece on the Board's card, opened in its row (counter-as-drawn-verify 11d) */
 
-  /* 6 · the switch off */
-  try {
-    await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); caGo({ kind: 'go', place: 'negotiations' }); });
-    await until(page, () => state.view === 'redline', null, 8000);
-    await page.waitForFunction(() => !document.querySelector('.ngn-page') && !!document.querySelector('#content [data-reg-nego], #content .ngl-wrap, #content .reg-table, #content table'), null, { timeout: 8000 }).catch(() => {});
-    const n = await page.evaluate(() => !document.querySelector('.ngn-page'));
-    await page.evaluate(() => setView('team'));
-    await until(page, () => !!document.getElementById('set-page'), null, 8000);
-    const s = await page.evaluate(() => !document.querySelector('.stn-page'));
-    await page.evaluate(() => openPanel('guide'));
-    await until(page, () => !!document.querySelector('#context-panel .gd, #context-panel .gdn'), null, 8000);
-    const g = await page.evaluate(() => !!document.querySelector('#context-panel .gd') && !document.querySelector('#context-panel .gdn'));
-    check('6 the switch off: Negotiations, Settings and the Guide as before', n && s && g, { n, s, g });
-  } catch (e) { check('6 the switch off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 6 "the switch off: as before" — there is no switch; the new look is the only look */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nall passed');

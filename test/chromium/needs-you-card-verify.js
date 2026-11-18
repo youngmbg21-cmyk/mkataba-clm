@@ -115,8 +115,10 @@ const CONTRACTS = [
     });
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
     /* RE-POINTED 13 Nov 2026 (owner picked "Brain welcome"): the Needs you fact is his line and the count under it (.hbw-say, .hbw-sub) */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the welcome is Jambo's five parts — his line is the
+       headline (.jov5-title), the count under it its sub line (.jov5-sub) */
     const two = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const t = s => ((o && o.querySelector(s)) || {}).textContent || '';
-      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: (t('.hbw-say') + ' ' + t('.hbw-sub')).replace(/\s+/g, ' ').trim(), chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
+      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: (t('.jov5-title') + ' ' + t('.jov5-sub')).replace(/\s+/g, ' ').trim(), chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
     const saysN = new RegExp(`(^|\\s)${one.n} (things? needs? you today|needs? you in all)\\.`);
     ok('2a his Overview tab carries no number of its own (the number is in his welcome)', said && !two.tab && saysN.test(two.where), JSON.stringify(two));
     ok('2b the welcome says how many things need you', saysN.test(two.where), two.where);
@@ -148,8 +150,10 @@ const CONTRACTS = [
     if (looked){
       /* beside its paper the look's own button is Done (needsYouGo → lookDone) */
       await page.evaluate(() => pdOpenOnHome('MK-W1', 'copilot'));
-      await until(page, () => !!document.querySelector('#pd-needs [data-pd-nd="look"]'), null, 10000);
-      if (await page.$('#pd-needs [data-pd-nd="look"]')) await page.click('#pd-needs [data-pd-nd="look"]');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): no "Needs you here" card; the look is a row of the
+         Dossier's owed work beside the paper, with the same door (data-pd-nd → needsYouGo → lookDone) */
+      await until(page, () => !!document.querySelector('#ig-dock [data-pd-nd="look"]'), null, 10000);
+      if (await page.$('#ig-dock [data-pd-nd="look"]')) await page.click('#ig-dock [data-pd-nd="look"]');
       await until(page, n => counterNeedsCount() === n - 1, four.n);
     }
     const after = await page.evaluate(() => ({ n: counterNeedsCount(),
@@ -157,12 +161,17 @@ const CONTRACTS = [
     ok('4d Done answers it, and the Counter counts one less', after.n === four.n - 1 && after.answered === 1, JSON.stringify(after));
 
     /* ===== 5. A BUTTON IS THE CHECKLIST'S OWN DOOR ===== */
-    await page.evaluate(() => setView('counter'));
-    await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
-    const det = await page.$('#hm-agents [data-cn-need="details"]');
-    if (det) await det.click();
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Counter's rows are no longer painted where a
+       person can press them (0 × 0); the row a person presses is the Board's own Needs you row (ndBoardHtml), the same
+       data-cn-need door */
+    await page.evaluate(() => { hbS().face = 'board'; hbSave(); setView('dashboard'); });
+    const seen = '[data-cn-need="details"]';
+    await until(page, s => [...document.querySelectorAll(s)].some(b => b.getBoundingClientRect().width > 0), seen);
+    const det = await page.evaluateHandle(s => [...document.querySelectorAll(s)].find(b => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; }) || null, seen).then(hd => hd.asElement());
+    if (det){ await det.scrollIntoViewIfNeeded(); await det.click(); }
     /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the paper's Still owed grid, a row in the hand */
-    const filled = det && await until(page, () => { const a = document.activeElement; return !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#pd-og')); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the details form stands in THE MIDDLE ([data-pd-mid]), not in the panel */
+    const filled = det && await until(page, () => { const a = document.activeElement; return !!document.querySelector(':is(#ig-dock, [data-pd-mid]) #pd-og') && !!(a && a.closest && a.closest('#pd-og')); });
     ok('5a "details to fill" lands on Still owed\'s grid beside the paper', !!filled);
     await page.screenshot({ path: path.join(OUT, '5-fill.png') });
 
@@ -176,7 +185,7 @@ const CONTRACTS = [
       hbS().face = 'board'; hbSave(); setView('dashboard'); });
     const quiet = await until(page, () => !document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') && !!document.querySelector('#ig-dock .hb-jb-hello'));
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
-    const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && o.querySelector('.hbw-say'); /* RE-POINTED 13 Nov 2026: his line */
+    const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && o.querySelector('.jov5-title'); /* RE-POINTED 13 Nov 2026: his line; RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the five parts' headline */
       return { where: f ? f.textContent.trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')), n: counterNeedsCount() }; });
     ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you right now.' && !seven.chip, JSON.stringify(seven));
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });

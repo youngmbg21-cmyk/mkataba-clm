@@ -78,9 +78,13 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const r = pane ? pane.getBoundingClientRect() : null;
     const mid = r ? document.elementFromPoint(r.left + r.width / 2, r.top + 60) : null;
     const lit = document.querySelector('.pw-tab[aria-selected="true"]');
-    const tools = document.querySelector('.pw-rl-tools');
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling 5: their page keeps round 8's
+       More): on the outside look the reading tools (the key, Compare wording, Focus) are not drawn on the page at
+       all — they sit in More's pop-up (.pol-pop-tools), closed until pressed. Still: none of them stands on Where we are. */
+    const tools = [...document.querySelectorAll('.pw-rl-tools, .pol-pop-tools')];
+    const seen = e => e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
     return { lit: lit ? lit.id : null, onTop: !!(mid && pane.contains(mid)),
-      toolsShown: tools ? getComputedStyle(tools).display !== 'none' : null,
+      toolsShown: tools.length ? tools.some(seen) : null,
       inert: !!(document.getElementById('pt-nego') || {}).inert,
       steps: document.querySelectorAll('#pt-where-pane .ds-j li').length,
       now: (document.querySelector('#pt-where-pane .ds-j li.is-now b') || {}).textContent || '' };
@@ -163,12 +167,18 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const card = pane.querySelector('.ds-sheet');
     return { head: ink(pane.querySelector('.ds-sheet .ds-h1')), step: ink(pane.querySelector('.ds-j li b')),
       cardHead: ink(pane.querySelector('.ds-facts > div')), cardEdge: card ? card.getBoundingClientRect().left : null,
-      paneEdge: pane.getBoundingClientRect().left };
+      paneEdge: pane.getBoundingClientRect().left,
+      flat: card ? (cs => parseFloat(cs.borderLeftWidth) === 0 && cs.boxShadow === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor))(getComputedStyle(card)) : false };
   });
   check('10a the title, the facts and the journey start on ONE line',
     line.head != null && Math.abs(line.head - line.step) <= 1 && Math.abs(line.head - line.cardHead) <= 1, JSON.stringify(line));
-  check('10b that line is the Overview\'s: the sheet\'s border and 16px inside its edge',
-    line.head != null && Math.abs(line.head - line.cardEdge - 17) <= 1, `${Math.round(line.head - line.cardEdge)}px inside the sheet`);
+  /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling 17 Nov 2026, answer 5: their page keeps the
+     new look): on the outside look the sheet is drawn FLAT — no border, no wash, no shadow, nothing inside it to pad — so
+     the line keeps its room from the page's own edge instead: never closer than 16px (the owner's 4 Oct complaint, "the
+     sentences start very close to the edge"). Where a sheet IS drawn, its border and 16px inside it, as before */
+  check('10b that line is the Overview\'s: the sheet\'s border and 16px inside its edge (a flat sheet: 16px or more from the page\'s edge)',
+    line.head != null && (line.flat ? line.head - line.paneEdge >= 16 && Math.abs(line.cardEdge - line.head) <= 1 : Math.abs(line.head - line.cardEdge - 17) <= 1),
+    line.flat ? `flat sheet · ${Math.round(line.head - line.paneEdge)}px from the page's edge` : `${Math.round(line.head - line.cardEdge)}px inside the sheet`);
 
   /* ---- 11 · Edit from another tab (Young, 3 Oct 2026: "half the page not
      being what redline page should look like") ---- */
@@ -193,11 +203,15 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const p = document.getElementById('pt-notes'), sc = document.getElementById('pt-notes-scrim'), seat = p && p.querySelector('.rl-np-tabs.is-seat .rl-np-tab.on');
     return { w: p ? Math.round(p.getBoundingClientRect().width) : 0, vw: window.innerWidth, scrim: sc ? !sc.hidden : false,
       strip: !!(p && p.querySelector('.rl-np-who')), seat: seat ? seat.textContent.replace(/\s+/g, ' ').trim() : null,
+      /* RE-POINTED 16 Nov 2026 (#762): the outside look gives their side two rooms (their team's and ours), as our tabs:
+         the lit one is a button of that row; one room alone is a label */
+      rooms: p ? p.querySelectorAll('.rl-np-tabs .rl-np-tab').length : 0, lit: ((p && p.querySelector('.rl-np-tabs .rl-np-tab.on')) || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim(),
       seatTag: seat ? seat.tagName : null, empty: ((p && p.querySelector('.rl-np-empty b')) || {}).textContent || '' };
   });
   check('12a their Notes opens at our drawer\'s width (460, or 92% of a narrow window)', np && n12.w === Math.min(460, Math.floor(n12.vw * 0.92)), JSON.stringify(n12));
   check('12b and leaves the contract lit, as ours does — no scrim', np && !n12.scrim, JSON.stringify(n12));
-  check('12c their one room is named as our tabs are, with no strip across the panel', np && !n12.strip && !!n12.seat && / \d+$/.test(n12.seat) /* RE-POINTED 13 Nov 2026 (the Thread): the count rides the name without brackets */ && n12.seatTag === 'SPAN', JSON.stringify(n12));
+  check('12c their one room is named as our tabs are, with no strip across the panel', np && !n12.strip && ((!!n12.seat && / \d+$/.test(n12.seat) /* RE-POINTED 13 Nov 2026 (the Thread): the count rides the name without brackets */ && n12.seatTag === 'SPAN')
+    || (n12.rooms >= 2 && / \d+$/.test(n12.lit))), JSON.stringify(n12));
   check('12d an empty room says what is empty, never "on this change" for the whole contract', np && !/on this change/i.test(n12.empty), n12.empty);
   await page.screenshot({ path: path.join(OUT, '06-their-notes.png') });
   await press(page, '#pt-notes-close');
@@ -217,8 +231,13 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     await until(page, () => { const b = document.querySelector('#ce-railfoot [data-ce-act="save"]'); return b && !b.disabled; });
     await press(page, '#ce-railfoot [data-ce-act="save"]');
     /* A spell list may stand first; its "Save as written" files. */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): on the outside look a save on their seat asks as ours
+       does — the Notes drawer opens with the change pinned (rlNoteAskAfterFile → portalOpenNotes({pin:true})); the
+       reason is written there and sent by the drawer's own send */
+    const pinUp = () => { const n = document.getElementById('pt-notes'); const pin = n && n.querySelector('[data-rl-np-pin]'); return !!n && n.classList.contains('open') && !!pin && pin.getClientRects().length > 0; };
     const asked = await until(page, () => {
       if (document.getElementById('pd-input')) return true;
+      { const n = document.getElementById('pt-notes'); const pin = n && n.querySelector('[data-rl-np-pin]'); if (n && n.classList.contains('open') && pin && pin.getClientRects().length) return true; }
       const b = document.querySelector('#ce-railfoot [data-ce-act="save"]');
       if (document.querySelector('#ce-spell .sp-row') && b) b.click();
       return false;
@@ -226,14 +245,23 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     check('6b Save asks for a reason', asked);
     if (asked){
       await page.screenshot({ path: path.join(OUT, '03-reason.png') });
-      await page.fill('#pd-input', 'Our sites only receive on working days.');
-      await press(page, '#pd-ok');
-      const held = await until(page, () => !document.getElementById('pd-input'));
+      if (await page.$('#pd-input')) {
+        await page.fill('#pd-input', 'Our sites only receive on working days.');
+        await press(page, '#pd-ok');
+      } else if (await page.evaluate(pinUp)) {
+        await page.fill('#pt-notes .rl-np-in', 'Our sites only receive on working days.');
+        await press(page, '#pt-notes .rl-np-send');
+      }
+      const held = await until(page, () => !document.getElementById('pd-input') && !document.querySelector('#pt-notes [data-rl-np-pin]'));
       const why = await page.evaluate(() => {
         try { const raw = localStorage.getItem('hati.negoHeld.harness-token'); const h = raw ? JSON.parse(raw) : null;
           return Object.values((h && h.proposed) || {}).map(x => x.why || '').join('|'); } catch (_){ return 'unreadable'; }
       });
-      check('6c the reason is held on the change, to go with Send', held && /working days/.test(why), why);
+      /* RE-POINTED 16 Nov 2026 (#762): on the outside look the reason is the note their seat writes on the pinned change,
+         as ours is (owner, 8 Nov 2026: "mimic what is in the owner side") — it lands in the drawer's thread, the pin spent */
+      const noted = await until(page, () => /working days/.test((document.getElementById('pt-notes-body') || { innerText: '' }).innerText || '')
+        && !document.querySelector('#pt-notes [data-rl-np-pin]'), null, 6000);
+      check('6c the reason is held on the change, to go with Send', (held && /working days/.test(why)) || !!noted, why || JSON.stringify({ noted }));
     }
     await press(page, '#clause-editor [data-ce-act="close"]');
     await until(page, () => !document.getElementById('clause-editor'));

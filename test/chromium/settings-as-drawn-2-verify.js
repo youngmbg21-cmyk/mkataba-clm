@@ -76,9 +76,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
-    const company = () => until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } if (window._stPageNow !== undefined) return null;
-      if (settingsTab() !== 'company' || document.querySelector('#set-page[data-st-sub]')) { settingsGoTab('company'); try { settingsGoPage(''); } catch (_) {} return null; }
-      return document.querySelector('#st-board .st-cards') ? true : null; }, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list (.stn-page), what needs an admin
+       is in Jambo's panel beside it (#ins-panel) */
+    const company = () => until(() => { if (!document.getElementById('set-page') || document.querySelector('#set-page[data-st-sub]')) { try { settingsGoPage(''); } catch (_) {} setView('team'); return null; }
+      return document.querySelector('.stn-page #ins-panel .jov5-title') ? true : null; }, null, 15000);
     return { until, press, company };
   };
   try {
@@ -87,21 +88,24 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await company();
 
     console.log('\n1 · Jambo counts what the list holds');
-    const said = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello]'), tag = document.querySelector('#st-att .st-needs-n');
-      const tab = document.querySelector('#set-page .st-face[data-st-tab="company"] .st-face-n'); if (!b || !tag) return null;
-      const words = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
-      const n = Number(tag.textContent), drawn = document.querySelectorAll('#st-att .st-need[data-st-need]').length, more = document.querySelector('#st-att .st-need-more');
-      return { n, tab: tab && tab.textContent.trim(), hello: b.textContent, first: (b.textContent.split(' ')[0]), want: words[n] || String(n), drawn, more: more ? more.textContent.trim() : '' }; });
-    check('1a his first word is the list\'s count', !!said && said.first === said.want && said.tab === String(said.n), said && `${said.first} / tag ${said.n} / tab ${said.tab}`);
-    check('1b "N more" is the rows the list holds and does not draw', !!said && (said.n <= said.drawn ? !said.more : said.more === `${said.n - said.drawn} more`), said && `${said.more} (${said.n} − ${said.drawn})`);
+    /* RE-POINTED 16 Nov 2026 (#762): Jambo's panel beside the one list heads with the count ("N need an admin"); the
+       number is the list behind it, every row drawn or the rest said */
+    const said = await until(() => { const t = document.querySelector('#ins-panel .jov5-title'); if (!t) return null;
+      const n = stNeedsAll().length, drawn = [...document.querySelectorAll('#ins-panel .jov5-sec')].filter(sec => /Needs an admin/i.test((sec.querySelector('.jov5-label') || {}).textContent || '')).reduce((k, sec) => k + sec.querySelectorAll('.jov5-row').length, 0);
+      const more = /\d+ more/.exec(document.getElementById('ins-panel').textContent || '');
+      return { n, title: t.textContent.trim(), drawn, more: more ? more[0] : '' }; });
+    check('1a his headline is the list\'s count', !!said && said.n > 0 && new RegExp('^' + said.n + '\\b').test(said.title), said && `${said.title} / ${said.n}`);
+    check('1b every need he counts is a row, or "N more" says the rest', !!said && (said.n <= said.drawn ? said.drawn === said.n : said.more === `${said.n - said.drawn} more`), said && `${said.more} (${said.n} − ${said.drawn})`);
 
     console.log('\n2 · a clash: since when, whose drawer, the limit lit, back to the role');
-    const clash = await until(() => { const r = document.querySelector('#st-att .st-need[data-st-need^="clash:cap:"]'); if (!r) return null;
-      const s = r.querySelector('.st-need-s'); if (!s || !/since/.test(s.textContent)) return null;
-      return { sub: s.textContent.trim(), go: r.querySelector('.st-need-go').textContent.trim(), chip: (document.querySelector('#st-jb-feed .st-jb-chip') || {}).textContent }; }, null, 10000);
+    /* RE-POINTED 16 Nov 2026 (#762): the clash is a row in Jambo's panel, the row itself the door to her drawer */
+    const CLASH = '#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus]';
+    const clash = await until(sel => { const r = document.querySelector(sel); if (!r) return null;
+      const s = r.querySelector('.jov5-rt > span'); if (!s || !/since/.test(s.textContent)) return null;
+      return { sub: s.textContent.trim(), t: (r.querySelector('.jov5-rt > b') || {}).textContent || '' }; }, CLASH, 10000);
     check('2a "a clash in who may do what · since <day>"', !!clash && /^a clash in who may do what · since \d{1,2} \w+/.test(clash.sub), clash && clash.sub);
-    check('2b "Open <the whole name>", and his first chip says it', !!clash && clash.go === 'Open Restricted Legal' && clash.chip === 'open Restricted Legal', clash && `${clash.go} · ${clash.chip}`);
-    if (await press('#st-att .st-need[data-st-need^="clash:cap:"] .st-need-go', '2c the clash\'s button')) {
+    check('2b the row names her whole name and the approver\'s', !!clash && /Restricted Legal/.test(clash.t) && /Unrestricted Legal/.test(clash.t), clash && clash.t);
+    if (await press(CLASH, '2c the clash\'s row')) {
       const dr = await until(() => { const say = document.querySelector('#st-dbody .st-clash-say'), cap = document.getElementById('tm-cap'), back = document.getElementById('tm-bz-back');
         if (!say || !cap || !back) return null;
         /* 19 Oct 2026: the lander lights it a beat after the drawer paints; on GitHub's
@@ -124,12 +128,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     }
 
     console.log('\n3 · the cards\' doors; Data & backup on The trail; Jambo counts on Backup');
-    const doors = await until(() => { const c = document.querySelector('[data-st-card="copilot"] .st-door'), h2 = [...document.querySelectorAll('[data-st-card="house"] .st-door')];
-      return c && h2.length ? { agents: c.getAttribute('data-st-panel') + (c.hasAttribute('data-st-dock') ? ' dock ' : ' ') + c.textContent.trim(), house: h2.map(d => d.textContent.trim().replace(/ ›$/, '')).join(' | ') } : null; });
-    /* re-pointed 19 Oct 2026 (the gaps' third pass): every card door opens
-       its page with ‹ Settings — Jambo's agents is the agents' own page */
-    check('3a Jambo\'s agents is their page; Housekeeping: The trail · Data & backup · Monthly report', !!doors && doors.agents === 'agents dock Jambo’s agents ›' && doors.house === 'The trail | Data & backup | Monthly report', doors && JSON.stringify(doors));
-    if (await press('[data-st-card="house"] .st-door[data-st-page="data"]', '3b Data & backup ›')) {
+    /* RETIRED 16 Nov 2026 (#762): 3a "the cards' doors (Jambo's agents · Housekeeping)" — the Company board's cards are
+       the old look's; the one list has no cards */
+    /* RE-POINTED 16 Nov 2026 (#762): Data & backup has no card door on the one list; it is reached by its name (the
+       navigation map's own call for a Settings page, js/navmap.js) */
+    if (await page.evaluate(() => { openSettingsAt('company'); settingsGoPage('data'); return true; })) {
       const dp = await until(() => { const on = document.querySelector('[data-st-pg="data"] [data-st-bk-tab].is-on'); if (!on) return null;
         return { tab: on.getAttribute('data-st-bk-tab'), head: getComputedStyle(document.getElementById('page-head')).display, tabs: !!document.querySelector('#set-page .st-facebar'),
           streams: ((document.querySelector('#st-tr-stream option[value="all"]') || {}).textContent || '').trim() }; });
@@ -177,23 +180,15 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
          contract's Menu beside its paper, ON Release hold — where its hold
          is placed (End or pause) and released */
       /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
-      const held = await until(() => { const r = document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the paper's acts are its More pop-up; Open lands
+         there, on Release hold ([data-pd-acts-go="#ws-hold"]), lit, painted */
+      const held = await until(() => { const r = document.querySelector('#pd-acts-pop[data-pd-acts-pop="MK-S3"] [data-pd-acts-go="#ws-hold"]') || document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
         return state.view === 'dashboard' && r && r.classList.contains('is-landed') ? r.textContent.trim() : null; }, null, 10000);
       check('4f a held contract\'s Open lands on Release hold, in its Menu', !!held, String(held));
     }
 
-    console.log('\n5 · a member\'s sheet');
-    const mem = await open('everything@example.co.ke', 'their-own-pass-9');
-    const mk = kit(mem);
-    const toc = await mk.until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; }
-      const t = [...document.querySelectorAll('#set-page [data-st-toc]')]; return t.length ? t.map(b => b.textContent.trim()) : null; }, null, 15000);
-    check('5a eight headings, as drawn', !!toc && toc.length === 8 && !toc.includes('Company design'), toc && toc.join(' | '));
-    const lit = await mk.until(async () => { const sc = document.getElementById('content-scroll'); sc.scrollTop = Math.round(sc.scrollHeight / 2);
-      await new Promise(r => setTimeout(r, 250)); const a = document.querySelector('#set-page [data-st-toc][aria-current="true"]');
-      /* the lit heading is asked for once the scroll has registered (CI under load read the first heading still lit) */
-      const first = document.querySelector('#set-page [data-st-toc]'); return a && a !== first ? a.textContent.trim() : null; });
-    check('5b the contents list follows the scrolling', !!lit && lit !== (toc || [])[0], lit);
-
+    /* RETIRED 16 Nov 2026 (#762): 5a/5b "a member's sheet: eight headings, the contents list follows the scrolling" —
+       the member's sheet with its contents list is the old look's; a member now reads the one list */
     console.log('\n6 · the owner\'s three screens');
     for (const [W, HH] of [[1440, 780], [1536, 730], [1366, 950]]) {
       const p = await open('admin@example.co.ke', 'adminpassword1', W, HH); const k = kit(p);

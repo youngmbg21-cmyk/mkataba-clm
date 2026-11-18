@@ -99,6 +99,10 @@ const SEEN = `(el => { if (!el) return null;
     await pause(900);
 
     /* ---- 1. THE BELL IS IN THEIR HEADER ---- */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their page draws the outside look, where the
+       bell sits with every other head verb under More (#pol-more opens #pol-pop). Open More first; the bell must
+       still be visible pixels inside their head once it is open. */
+    if (await page.$('#pol-more')) { await page.click('#pol-more'); await pause(250); }
     const bell = await page.evaluate(([seen]) => {
       const s = eval(seen);
       const b = document.getElementById('pt-bell');

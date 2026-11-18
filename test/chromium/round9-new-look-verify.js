@@ -1,6 +1,6 @@
 /* THE NEW LOOK, ROUND 9 (3 Nov 2026; the owner's answers: read down as a SECOND view of the Board, and a failed send
    keeping today's way, drawn in the new look; the phone's bar unchanged).
-     1 · Off: the Board has no Read down; a refused email says today's amber box under the form
+     1 · (RETIRED 16 Nov 2026, #762: the switch off — the new look is the only look)
      2 · On: Read down beside DNA in the Board's head; pressed, the page as drawn — the eyebrow (no call), the title,
          five sentences each with where it was read and a door, the quarters, the doors at the foot; Jambo's panel
          reads what was read. The first sentence counts the book the page reads
@@ -37,18 +37,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await until(page, () => /Not delivered|Not sent/.test(((document.getElementById('sh-result') || {}).innerText || '') + ((document.getElementById('sh-lt-verdict') || {}).innerText || '')), null, 20000);
     await page.waitForTimeout(400);
   };
-  const shut = () => page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
 
-  /* 1 · off */
-  try {
-    await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
-    await until(page, () => !!document.querySelector('#hb-bhead'), null, 20000);
-    const rd = await page.evaluate(() => !!document.querySelector('[data-hb-rdn]'));
-    await send();
-    const S = await page.evaluate(() => ({ box: /Not delivered/.test((document.getElementById('sh-result') || {}).innerText || ''), ns: !!document.querySelector('#sh-lt-verdict.is-notsent') }));
-    check('1 off: no Read down on the Board; a refused email says today\'s box under the form', !rd && S.box && !S.ns, { rd, ...S });
-    await shut();
-  } catch (e) { check('1 off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 1 "off: no Read down; a refused email says today's box" — there is no switch; the new look is the only look */
 
   await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
 

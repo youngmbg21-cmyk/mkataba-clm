@@ -45,7 +45,8 @@ test('Requests: today green, a week or more amber', () => {
 test('Our paper: each row\'s uses said on the right, the stream\'s colour on its mark', () => {
   const f = fnBody(read('js/views/library.js'), 'tplnRowHtml');
   assert.match(f, /<span class="tpln-u">\$\{_tplEsc\(i18tn\('tpln_uses', uses, \{ n: uses \}\)\)\}<\/span>/);
-  assert.match(f, /background:var\(--st-\$\{tone\}-dot\)/);
+  /* RE-POINTED 17 Nov 2026 (#762): the stream's colour is its tone's soft pair, readable (contrast-verify: white on the dot failed AA) */
+  assert.match(f, /background:var\(--st-\$\{tone\}-bg\);color:var\(--st-\$\{tone\}-fg\)/);
 });
 test('Calendar: kind labels read off the record, both books', () => {
   const S = read('js/views/calendar.js');

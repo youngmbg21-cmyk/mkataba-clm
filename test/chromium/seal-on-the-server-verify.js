@@ -80,7 +80,9 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
     check('0   staged: nothing holds the Sign button', !ready.blockers.length, JSON.stringify(ready));
 
     /* ---- 1 · WE SIGN FIRST ---- */
-    await page.click('#sign-btn');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Before you sign is drawn as its five parts; the
+       Sign a reader presses is the clear card's ([data-pd2-sign]), which presses the Signing tab's own #sign-btn */
+    await page.click((await page.$('#pd-signface [data-pd2-sign]')) ? '#pd-signface [data-pd2-sign]' : '#sign-btn');
     await page.waitForSelector('#sig-pad', { timeout: 5000 });
     await page.click('[data-sig-tab="type"]');
     await page.fill('#sig-typed', 'Amina Otieno');
@@ -106,8 +108,14 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
       return !!b || !!(body && body.style.display !== 'none');
     }), 6000);
     if (await page.$('#pd-signface [data-pd-rd-show][aria-expanded="false"]')) await page.click('#pd-signface [data-pd-rd-show]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the five-part face says their link's state in the
+       small line of their signing row, in the order's own sentence (sp_link_outbox: "their signing link is issued — the
+       email with it is waiting in the outbox…"); the old uppercase badges are not drawn. Still: issued and in the
+       outbox, and nowhere "not sent yet". */
     const row = await until(async () => page.evaluate(() => { const t = document.body.innerText;
-      return /IN OUTBOX/.test(t) ? { outbox: true, notSent: /NOT SENT YET/.test(t) } : null; }), 6000);
+      const face = (document.getElementById('pd-signface') || { innerText: '' }).innerText;
+      return (/IN OUTBOX/.test(t) || /signing link is issued[^.]*waiting in the outbox/i.test(face))
+        ? { outbox: true, notSent: /NOT SENT YET/.test(t) || /not sent yet/i.test(face) } : null; }), 6000);
     check('1d  the signing order says their link is issued and its email in the outbox — not "NOT SENT YET" (B8)',
       row && row.outbox && !row.notSent, JSON.stringify(row));
     const t1 = await until(async () => page.__toasts.find(t => /Internal signing complete|signing links|Recorded/.test(t.m)));

@@ -59,8 +59,10 @@ const check = (name, ok, detail) => {
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's Needs you tab draws the one
        desk's own rows (.nd-pan .nd-r); the hand-off's row still names who and carries the note */
     await page.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await page.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); });
-    const shown = await until(() => [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].some(b => /asked you to review/.test(b.textContent)));
-    const row = await page.evaluate(() => { const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].find(b => /asked you to review/.test(b.textContent));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's Needs you rows are
+       the new look's own (.ndb .ndb-r[data-nd-row], ndBellNlHtml), one per row of the reading */
+    const shown = await until(() => [...document.querySelectorAll('#context-panel .ndb .ndb-r[data-nd-row]')].some(b => /asked you to review/.test(b.textContent)));
+    const row = await page.evaluate(() => { const r = [...document.querySelectorAll('#context-panel .ndb .ndb-r[data-nd-row]')].find(b => /asked you to review/.test(b.textContent));
       if (!r) return null; const rc = r.getBoundingClientRect(); return { text: r.textContent.replace(/\s+/g, ' ').trim(), h: Math.round(rc.height) }; });
     check('1 the bell\'s row names who sent it for review', shown && row && /Amina Otieno asked you to review/.test(row.text), row && row.text);
     check('1b and carries the note', !!row && /Please check the term/.test(row.text));

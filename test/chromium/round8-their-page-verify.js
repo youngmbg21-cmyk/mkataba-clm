@@ -1,6 +1,6 @@
 /* THE NEW LOOK, ROUND 8 SECOND HALF (2 Nov 2026; the review room's drawing of the other side's negotiation page,
    behind the company's own setting "the new look for people outside", off by default).
-     1 · Off: their page is today's — the change column beside the paper, no black bar
+     1 · (RETIRED 16 Nov 2026, #762: there is no off)
      2 · On, as drawn: the black bar (their party · your view of … with us), the tabs underlined with "Redlines · 2
          answers for you", Download Word and More; "Where we are" on the right (what waits, the six-stop road with
          your move, Still open); the paper with a numbered dot after each of our asks and a note beside it with
@@ -52,14 +52,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     return p;
   };
 
-  /* 1 · off */
-  try {
-    const p = await theirs();
-    const S = await p.evaluate(() => ({ bar: !!document.querySelector('.pol-bar'), side: !!document.querySelector('.pol-side'),
-      col: !!document.querySelector('#rl-side') && getComputedStyle(document.querySelector('#rl-side')).display !== 'none' }));
-    check('1 off: their page as today, the change column beside the paper, no black bar', !!tok && !S.bar && !S.side && S.col, S);
-    await p.context().close();
-  } catch (e) { check('1 off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 1 "off: their page as today" — there is no off; the outside look is always on */
 
   await us.evaluate(async () => { state.settings = state.settings || {}; state.settings.outsideLook = { on: true }; await saveSettings(); });
 

@@ -67,11 +67,27 @@ const LINK = 'https://hati.example/#s=t:tok_child_for_counsel';
   await page.evaluate(() => window.SHOW_COUNTERPARTY());
   await pause(500);
 
+  /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; the owner's ruling 5: their deal buttons live behind
+     More, round 8): the strip (#pt-nego-foot, its Share a read-only view among them) sits inside the More pop-up
+     (#pol-pop), so the reader opens More (#pol-more) first, as a person does; the strip is then measured open. A page
+     with no More (the old look) has the strip on the page itself. */
+  const more = await page.evaluate(() => !!document.getElementById('pol-more'));
+  if (more){
+    await page.click('#pol-more');
+    await page.waitForFunction(() => { const p = document.getElementById('pol-pop'); return !!p && !p.hidden; }, null, { timeout: 5000 }).catch(() => {});
+  }
+  check('the More pop-up that holds the deal buttons opens (or there is none, the strip on the page)',
+    !more || await page.evaluate(() => { const p = document.getElementById('pol-pop'); return !!p && !p.hidden; }));
+
   /* ---- 1. the strip has no panel hanging off it ---- */
   const strip = await page.evaluate(() => {
     const foot = document.getElementById('pt-nego-foot');
     const r = foot ? foot.getBoundingClientRect() : null;
-    return { h: r ? Math.round(r.height) : null,
+    /* the strip's buttons: in the More pop-up they stand one under another, as a menu does */
+    const btns = foot ? [...foot.querySelectorAll('button')].filter(b => b.getBoundingClientRect().height > 0) : [];
+    const below = btns.length ? Math.round(r.bottom - Math.max(...btns.map(b => b.getBoundingClientRect().bottom))) : null;
+    const inPop = !!(foot && foot.closest('#pol-pop'));
+    return { h: r ? Math.round(r.height) : null, below, inPop, n: btns.length,
       panel: !!document.getElementById('pt-derive-out'),
       rows: document.querySelectorAll('[data-pt-derived]').length,
       deriveBtn: !!document.getElementById('pt-derive') };
@@ -79,8 +95,12 @@ const LINK = 'https://hati.example/#s=t:tok_child_for_counsel';
   check('the strip carries no read-only panel', !strip.panel && strip.rows === 0,
     `panel=${strip.panel} rows=${strip.rows}`);
   check('and the button that mints one is still on it', strip.deriveBtn);
-  check('the strip is a single band, not a stack', strip.h != null && strip.h < 90,
-    `${strip.h}px tall`);
+  /* RE-POINTED 17 Nov 2026 (#762, ruling 5): inside the More pop-up the deal buttons are a menu, one under another
+     (index.html html.lg-out .pol-pop .pw-foot, flex-direction:column), so "a single band" there means the strip is
+     its buttons and nothing more: nothing stacked under its last button. On the page itself it is still one band. */
+  check('the strip is a single band, not a stack (in the More pop-up: its buttons and nothing under them)',
+    strip.h != null && (strip.inPop ? strip.n > 0 && strip.below != null && strip.below <= 2 : strip.h < 90),
+    `${strip.h}px tall · ${strip.n} buttons · ${strip.below}px under the last · in More ${strip.inPop}`);
   await page.screenshot({ path: path.join(OUT, '01-strip-no-panel.png') });
 
   /* ---- 2. mint one, with the route and the name prompt stood in for ---- */

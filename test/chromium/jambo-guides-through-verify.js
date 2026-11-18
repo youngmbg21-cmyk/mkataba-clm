@@ -111,7 +111,7 @@ let BASE;
     await M.page.click('#ai-feed [data-ai-rule-door]');
     const landed = await until(M.page, () => window.state.view === 'team' && !!document.querySelector('[id^="st-ask-why-"]'));
     check(landed, '1f a press opens Settings on the tracked Ask an admin');
-    const card = await M.page.evaluate(() => { const c = [...document.querySelectorAll('#st-jb-feed .st-jb-card')].pop(); return c ? c.textContent.replace(/\s+/g, ' ').trim() : ''; });
+    const card = await M.page.evaluate(() => { /* RE-POINTED 16 Nov 2026 (#762): the new look puts the ask card in the list panel's talk ([data-st-jb-turn]) */ const c = [...document.querySelectorAll('#st-jb-feed .st-jb-card, [data-st-jb-turn] .st-jb-card')].pop(); return c ? c.textContent.replace(/\s+/g, ' ').trim() : ''; });
     check(card.includes(words.rule), '1g for the rule the answer turned on', card.slice(0, 160));
     const asksAfter = (await W.unrestricted.json('/api/settings-asks')).asks.length;
     check(asksAfter === asksBefore, '1h and nothing was sent: the person writes the reason and presses Send', `${asksBefore} → ${asksAfter}`);

@@ -58,7 +58,8 @@ function navWhereSrc(){
     const one = !ca && document.getElementById('cmp-close') && /compare versions|jämför versioner/i.test(((document.getElementById('cmp-close').closest('[role="dialog"], .modal, #modal-root') || document.body).textContent) || '');
     if (one) W.pane = 'compare-one';   // the screen's own "only one version so far"
     else if (ca && cb) W.pane = (ca.value === '0' && /current|aktuell/i.test((cb.options[cb.selectedIndex] || {}).textContent || '')) ? 'compare' : 'compare-other';
-    else if (document.querySelector('#brief-section')) W.pane = 'brief';
+    /* the new look's brief is ONE page in the middle ([data-pd2-brief]; #762) */
+    else if (document.querySelector('#brief-section, [data-pd2-brief]')) W.pane = 'brief';
     /* HISTORY IN THE MIDDLE (the strip is gone, owner, 9 Nov 2026): pd2HistOpen stands it where the paper was */
     else if (document.getElementById('pd2-hist')) W.pane = 'hist';
     else if (typeof pdSendShows === 'function' && pdSendShows() && String(pdSendFor()) === String(pc.id)) W.pane = 'send';
@@ -77,10 +78,12 @@ function navWhereSrc(){
     W.window = p.due === 7 || p.due === '7' ? 'week' : null;
     const k = insSelected('obligations'); W.item = k ? String(k).split('::').pop() : null;
   }
-  if (W.page === 'requests'){ const k = insSelected('intake:team'); const r = k && document.querySelector(`tr[data-ik-row="${k}"]`); W.item = r ? r.innerText.replace(/\s+/g, ' ').trim() : k || null; }
+  /* the new look's Requests rows are [data-ikn-row], the chosen one .is-sel (#762) */
+  if (W.page === 'requests'){ const k = insSelected('intake:team'); const r = (k && document.querySelector(`tr[data-ik-row="${k}"], [data-ikn-row="${k}"]`)) || document.querySelector('[data-ikn-row].is-sel'); W.item = r ? r.innerText.replace(/\s+/g, ' ').trim() : k || null; }
   if (W.page === 'people'){ const k = insSelected('directory'); const r = k && document.querySelector(`#dir-tbody [data-dir-row="${k}"]`); W.item = r ? r.innerText.replace(/\s+/g, ' ').trim() : k || null; }
   if (W.page === 'standards'){
-    W.item = insSelected('std:books') || null;
+    /* THE LADDER (17 Nov 2026): the contract type the list is narrowed to, else every standard (the baseline) */
+    W.item = typeof ldBookNow === 'function' ? (ldBookNow() || '_default') : (insSelected('std:books') || null);
     const L = document.querySelector('.is-landed'); W.row = L ? L.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : null;
   }
   if (W.page === 'templates'){
@@ -101,10 +104,14 @@ function navWhereSrc(){
     const L = document.querySelector('.is-landed');
     if (L){
       const card = L.closest('[data-st-you-card]'); if (card) S.row = card.getAttribute('data-st-you-card');
+      /* the new look's one list: a ROW where the You card was (#762), named by the You key it stands for */
+      const STN_YOU = { lang: 'lang', name: 'who', away: 'away', twostep: 'safety', push: 'told', mydata: 'data', agents: 'work' };
+      const sr = !card && L.closest('[data-stn-row]'); if (sr){ const id = sr.getAttribute('data-stn-row'); S.row = STN_YOU[id] || id; }
       if (L.id === 'tm-cap' || L.closest('#tm-cap') || L.id === 'tm-cap-none' || L.id === 'tm-cap-says') S.row = 'signcap';
     }
-    const youCard = document.querySelector('[data-st-you-card].is-landed, [data-st-you-card] .is-landed');
-    if (!S.row && youCard) S.row = (youCard.closest('[data-st-you-card]') || youCard).getAttribute('data-st-you-card');
+    const youCard = document.querySelector('[data-st-you-card].is-landed, [data-st-you-card] .is-landed, [data-stn-row].is-landed');
+    if (!S.row && youCard){ const yc = youCard.closest('[data-st-you-card]'); if (yc) S.row = yc.getAttribute('data-st-you-card');
+      else { const STN_YOU2 = { lang: 'lang', name: 'who', away: 'away', twostep: 'safety', push: 'told', mydata: 'data', agents: 'work' }; const id = (youCard.closest('[data-stn-row]') || youCard).getAttribute('data-stn-row'); S.row = STN_YOU2[id] || id; } }
     W.settings = S;
   }
   /* WHAT ELSE STANDS ON THE SCREEN (the door exam, 23 Oct 2026): a dialog a door opened, the slide-out panel's
@@ -114,7 +121,9 @@ function navWhereSrc(){
   W.panel = (state.panelOpen && typeof panelFace === 'function') ? panelFace() : null;
   W.kt = !!document.querySelector('[data-pd-kt-file]');
   W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold')).join(',') || null;
-  { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null; }
+  { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null;
+    /* RE-POINTED 17 Nov 2026 (#762): in the new look the risk list is the Redlines face's (#rl-risks), landed on there */
+    if (!W.landedDs && document.querySelector('#ig-dock #rl-risks.is-landed')) W.landedDs = 'risks'; }
   /* what stands in the middle beside the paper (the strip is gone, owner, 9 Nov 2026): History or Where we are */
   /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): 'where' is the Cover over the paper */
   W.mid = document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.cv-page') ? 'where' : null;

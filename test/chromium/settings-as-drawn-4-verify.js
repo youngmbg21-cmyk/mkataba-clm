@@ -73,73 +73,39 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; }
       try { await page.locator(sel).first().click({ timeout: 4000 }); } catch (e) { check(what + ' (could not be pressed: ' + sel + ')', false, e.message.split('\n')[0]); return false; } return true; };
-    const company = () => until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; }
-      if (settingsTab() !== 'company' || document.querySelector('#set-page[data-st-sub]')) { settingsGoTab('company'); try { settingsGoPage(''); } catch (_) {} return null; }
-      return document.querySelector('#st-board .st-cards') && document.querySelector('#st-att') ? true : null; }, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list, Jambo's panel beside it */
+    const company = () => until(() => { if (!document.getElementById('set-page') || document.querySelector('#set-page[data-st-sub]')) { try { settingsGoPage(''); } catch (_) {} setView('team'); return null; }
+      return document.querySelector('.stn-page #stn-main .stn-row') && document.querySelector('#ins-panel #jl-q') ? true : null; }, null, 15000);
     return { until, press, company };
   };
-  /* the docked page, read: the drawer in the page's column, no dimmed page,
-     ‹ Settings, nothing sideways, its foot in the window */
-  const dockRead = page => page.evaluate(() => {
-    const dr = document.querySelector('#st-dock > #st-drawer'), sc = document.getElementById('content-scroll');
-    const scrim = document.getElementById('st-scrim');
-    const foot = document.getElementById('st-dfoot');
-    const fr = foot && foot.getBoundingClientRect();
-    return { docked: !!(dr && dr.classList.contains('is-docked') && dr.classList.contains('open') && !dr.hidden),
-      sub: (document.getElementById('set-page') || {}).getAttribute ? document.getElementById('set-page').getAttribute('data-st-sub') : null,
-      key: dr ? (document.querySelector('[data-st-pg="panel"]') || {}).getAttribute && document.querySelector('[data-st-pg="panel"]').getAttribute('data-st-dock-key') : null,
-      dim: !!(scrim && !scrim.hidden && scrim.classList.contains('open')),
-      back: ((document.querySelector('#set-page .st-pg-back') || {}).textContent || '').trim(),
-      title: ((document.querySelector('#st-dock .rvd-title') || {}).textContent || '').trim(),
-      sideways: document.documentElement.scrollWidth > innerWidth + 1 || !!(sc && sc.scrollWidth > sc.clientWidth + 1),
-      footIn: !!fr && fr.width > 0 };
-  });
   try {
     console.log('\n1 · every door to a company panel is its page');
     for (const [W, HH] of [[1440, 780], [1536, 730], [1366, 950]]) {
       const page = await open(W, HH); const { until, press, company } = kit(page);
       await company();
-      /* a panel no card has a door to, from the Menu beside the board */
-      const k = await until(() => { stSideSet('menu');
-        const onCards = new Set([...document.querySelectorAll('#set-page [data-st-card] [data-st-panel]')].map(d => d.getAttribute('data-st-panel')));
-        const r = [...document.querySelectorAll('#set-page .st-mrow[data-st-panel]')].find(x => { const k = x.getAttribute('data-st-panel'); return !onCards.has(k) && SET_PANELS[k] && !['trail', 'backup'].includes(k) && x.getBoundingClientRect().height > 0; });
-        return r ? r.getAttribute('data-st-panel') : null; });
-      if (!k) { check(`1a ${W}×${HH}: a Menu row for a panel with no card door`, false, 'none drawn'); await page.context().close(); continue; }
-      await page.locator(`#set-page .st-mrow[data-st-panel="${k}"]`).first().scrollIntoViewIfNeeded().catch(() => {});
-      if (await press(`#set-page .st-mrow[data-st-panel="${k}"]`, `1a ${W}×${HH} the Menu row`)) {
-        const d = await until(() => { const dr = document.querySelector('#st-dock > #st-drawer.is-docked.open'); return dr ? true : (document.querySelector('body > #st-drawer.open') ? 'drawer' : null); });
-        const r = await dockRead(page);
-        check(`1a ${W}×${HH}: the Menu's "${k}" opens its page, not the drawer over a dimmed page`, d === true && r.docked && r.sub === 'panel' && !r.dim && /^‹ /.test(r.back) && !!r.title,
-          JSON.stringify({ d, ...r }));
-        check(`1b ${W}×${HH}: nothing sideways, its foot drawn`, !r.sideways && r.footIn, JSON.stringify({ sideways: r.sideways, foot: r.footIn }));
-        await shot(page, `main-25-menu-panel-page-${W}x${HH}`);
-        if (W === 1440) {
-          await press('#set-page .st-pg-back', '1c ‹ Settings');
-          const back = await until(sel => { const l = document.querySelector('.is-landed'); return !document.querySelector('#set-page[data-st-sub]') && l ? { k: l.getAttribute('data-st-panel'), row: l.classList.contains('st-mrow') } : null; }, null, 6000);
-          check('1c ‹ Settings goes back and lands on the Menu row that was pressed', !!back && back.k === k && back.row, JSON.stringify(back));
-        }
-      }
+      /* RETIRED 16 Nov 2026 (#762): 1a–1c (a Menu row for a panel with no card door opens its page; ‹ Settings lands on
+         that Menu row) — the Menu beside the Company board is the old look's; the one list has no Menu */
       if (W === 1440) {
         /* 1d RETIRED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box, which finds a
            setting itself (the half below); the old jump list's settings row went with ⌘K */
         await company();
         await page.keyboard.press('Control+k');
-        const kb = await until(() => { const a = document.activeElement; return a && a.closest && a.closest('.jb-card') ? true : null; });
+        /* RE-POINTED 16 Nov 2026 (#762): his box is the panel's own (#jl-q) */
+        const kb = await until(() => { const a = document.activeElement; return a && a.id === 'jl-q' ? true : null; });
         check('1d ⌘K on Settings puts the hand in Jambo\'s box', !!kb);
         /* Jambo's Open on a setting he found (a drawer left over the page by a
            build without this pass is shut first, so each half reports alone) */
         const shut = () => page.evaluate(() => { try { if (document.querySelector('body > #st-drawer.open')) stDrawerClose(); } catch (_) {} });
         await shut(); await company();
-        await page.evaluate(() => stSideSet('jambo'));
-        /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#st-jb-q', 'events out'); await H.chipEnter(page, '#st-jb-q');
-        const found = await until(() => !!document.querySelector('#st-jb-feed [data-st-jb-turn] .st-jb-card [data-st-panel="webhooks"]'));
-        if (found && await press('#st-jb-feed [data-st-jb-turn] .st-jb-card [data-st-panel="webhooks"]', '1e Jambo\'s Open')) {
-          const r = await until(() => document.querySelector('#st-dock > #st-drawer.is-docked.open') ? document.querySelector('[data-st-pg="panel"]').getAttribute('data-st-dock-key') : (document.querySelector('body > #st-drawer.open') ? 'drawer' : null));
-          check('1e Jambo\'s Open on "Events out" opens its page', r === 'webhooks', String(r));
-        } else if (!found) check('1e Jambo found "Events out"', false, await page.evaluate(() => (document.getElementById('st-jb-feed') || {}).textContent.slice(-160)));
+        /* RE-POINTED 16 Nov 2026 (#762): asked in the panel's box, a setting's name opens its page (the side feed's Open
+           card is the old look's) */
+        await page.fill('#jl-q', 'events out'); await H.chipEnter(page, '#jl-q');
+        const r = await until(() => document.querySelector('#st-dock > #st-drawer.is-docked.open') ? document.querySelector('[data-st-pg="panel"]').getAttribute('data-st-dock-key') : (document.querySelector('body > #st-drawer.open') ? 'drawer' : null), null, 10000);
+        check('1e "Events out" asked in his box opens its page', r === 'webhooks', String(r));
         /* Needs your attention's own button keeps the drawer, as drawn */
         await shut(); await company();
-        if (await press('#st-att .st-need[data-st-need^="clash:cap:"] .st-need-go', '1f the clash row\'s Open')) {
+        /* RE-POINTED 16 Nov 2026 (#762): the clash is a row in Jambo's panel, the row itself the door */
+        if (await press('#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus]', '1f the clash row')) {
           const r = await until(() => { const dr = document.getElementById('st-drawer'); return dr && dr.classList.contains('open') ? { docked: dr.classList.contains('is-docked'), onBody: dr.parentElement === document.body } : null; });
           check('1f Needs your attention\'s "Open …" still opens the person\'s drawer (as drawn)', !!r && !r.docked && r.onBody, JSON.stringify(r));
           await page.keyboard.press('Escape');
@@ -152,10 +118,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     {
       const page = await open(); const { until, press } = kit(page);
       const card = await until(() => { if (!document.getElementById('set-page') || settingsTab() !== 'you') { setView('team'); settingsGoTab('you'); return null; }
-        const b = document.querySelector('[data-st-you-card="away"] [data-st-away-open]'); return b ? { id: b.getAttribute('data-st-away-open'), line: b.closest('.st-aw-cover').textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
+        /* RE-POINTED 16 Nov 2026 (#762): whom you answer for is a row of the one list, its Open it the row's door */ const b = document.querySelector('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]') || document.querySelector('#stn-main [data-st-away-open]'); return b ? { id: b.getAttribute('data-st-away-open'), line: (b.closest('.st-aw-cover') || b.closest('.stn-row')).textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
       check('2a the away card says whom you answer for, what waits, and Open it', !!card && /^MK-[WB]\d$/.test(card.id) && /You answer for Unrestricted Legal/.test(card.line) && /\b\d+ waits? now\b/.test(card.line), JSON.stringify(card));
       await shot(page, 'main-24-away-open-it-1440x780');
-      if (card && await press('[data-st-you-card="away"] [data-st-away-open]', '2b Open it')) {
+      if (card && await press('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]', '2b Open it')) {
         const lit = await until(id => { const r = document.querySelector(`[data-ap-row="${id}"][data-ap-kind="approval"]`);
           return state.view === 'approvals' && r && r.classList.contains('is-landed') ? { lit: true, inView: (() => { const q = r.getBoundingClientRect(); return q.top >= 0 && q.bottom <= innerHeight; })(),
             decided: !!(getContract(id).approvalChain || []).some(s => s.status === 'approved') } : null; }, card.id, 10000);
@@ -168,7 +134,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     console.log('\n3 · the four pages at the owner\'s three screens');
     for (const [W, HH] of [[1440, 780], [1536, 730], [1366, 950]]) {
       const page = await open(W, HH); const { until, company } = kit(page);
-      const you = await until(() => { if (!document.getElementById('set-page') || settingsTab() !== 'you') { setView('team'); settingsGoTab('you'); return null; } return !!document.querySelector('[data-st-you-card="away"]'); }, null, 15000);
+      /* RE-POINTED 16 Nov 2026 (#762): You and Company are one list; 3a and 3b both read it */
+      const you = await company();
       const side = () => page.evaluate(() => { const sc = document.getElementById('content-scroll'); return document.documentElement.scrollWidth > innerWidth + 1 || !!(sc && sc.scrollWidth > sc.clientWidth + 1); });
       check(`3a ${W}×${HH}: You, nothing sideways`, !!you && !(await side()));
       await shot(page, `main-24-you-${W}x${HH}`);

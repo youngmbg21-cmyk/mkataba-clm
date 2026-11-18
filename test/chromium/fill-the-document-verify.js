@@ -70,16 +70,18 @@ const paperText = page => page.evaluate(() => (document.getElementById('ig-canva
 /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): on Home's
    Fill in the press is in the document's own card, as drawn — the form's own
    button pressed (the one act), its state the form's own */
+/* RE-POINTED 17 Nov 2026 (#762): the new Dossier carries Fill the document as its own line under The facts
+   ([data-pd-gl="docfill"] in .pd2-dossier, pdDocFillRowHtml) where the old one drew it in Still owed (#pd-needs) */
 const fillBtn = page => page.evaluate(() => {
-  const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
+  const b = document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]');
   if (!b) return null;
-  const host = document.querySelector('#pd-needs');
+  const host = document.querySelector('#ig-dock #pd-needs') || document.querySelector('#ig-dock [data-pd-gl="docfill"]');
   const probe = document.createElement('span');
   probe.style.background = 'var(--color-accent-50)'; document.body.appendChild(probe);
   const want = getComputedStyle(probe).backgroundColor; probe.remove();
   const br = b.getBoundingClientRect(), hr = host.getBoundingClientRect();
   return { text: b.textContent.trim(), disabled: b.disabled, bg: getComputedStyle(b).backgroundColor, want,
-    atFoot: br.top > hr.top + hr.height / 2, inCard: !!b.closest('#pd-needs [data-pd-gl="docfill"]'), title: b.title };
+    atFoot: br.top > hr.top + hr.height / 2, inCard: !!b.closest('[data-pd-gl="docfill"]'), title: b.title };
 });
 const owed = (page, id) => page.evaluate(x => {
   const c = state.contracts.find(k => k.id === x);
@@ -146,8 +148,9 @@ const owed = (page, id) => page.evaluate(x => {
     check('2b the wording waits for the press', !!w2 && !w2.includes('Wanjiru Catering Ltd'), w2 ? '' : 'no wording');
     /* the hand leaves the grid: Still owed is drawn again with what it now owes */
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form's one Save, and the Dossier says what the wording still owes */
-    await page.click('#ig-dock [data-pd-fm-save]');
-    await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 4000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the form opens as a page over Home (#modal-root), its Save there */
+    await page.click('#modal-root [data-pd-fm-save], #ig-dock [data-pd-fm-save]');
+    await waitFor(page, () => !!document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]'), undefined, 4000);
     const fb = await fillBtn(page);
     check('2c "Fill the document" is a line of Still owed while the answers are owed', !!fb && fb.inCard && /Fill the document/.test(fb.text), fb && fb.text);
     check('2d and it is lit while answers are owed', !!fb && !fb.disabled);
@@ -164,7 +167,7 @@ const owed = (page, id) => page.evaluate(x => {
     await waitFor(page, () => !!window.state && Array.isArray(state.contracts) && state.contracts.length > 0);
     await openDocs(page, 'MK-FD1');
     await page.evaluate(() => { if (pdFormShows()) pdFormClose(); });   /* RE-POINTED 28 Oct 2026: the line is the Dossier's */
-    await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 4000);
+    await waitFor(page, () => !!document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]'), undefined, 4000);
     const fbR = await fillBtn(page);
     /* answered, the company is a Key terms line now; the provider is still the grid's */
     check('2f after a refresh the answer is still there and still owed', !!fbR && !fbR.disabled
@@ -186,8 +189,8 @@ const owed = (page, id) => page.evaluate(x => {
     if (await page.evaluate(s => !!document.querySelector(s), '#pd-og [data-tplf="1"]')) {
       await ckOpenRowOf(page, '#pd-og [data-tplf="1"]'); await page.click('#pd-og [data-tplf="1"]');
       await page.keyboard.type('Juno Limited');
-      await page.click('#ig-dock [data-pd-fm-save]');
-      await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 6000);
+      await page.click('#modal-root [data-pd-fm-save], #ig-dock [data-pd-fm-save]');
+      await waitFor(page, () => !!document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]'), undefined, 6000);
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is
          taken where the runner is, not guessed at. */
@@ -196,9 +199,9 @@ const owed = (page, id) => page.evaluate(x => {
          the "Fill the document" line can sit UNDER the panel's own chips strip. A reader
          scrolls to a line before pressing it; so does the press. (The strip covering the
          foot of a long card is the panel's, not this line's: a BUGLOG line, not a fix here.) */
-      await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]'); if (b) b.scrollIntoView({ block: 'center' }); });
+      await page.evaluate(() => { const b = document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]'); if (b) b.scrollIntoView({ block: 'center' }); });
       await page.waitForTimeout(150);
-      press.before = await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
+      press.before = await page.evaluate(() => { const b = document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]');
         if (!b) return 'no button'; const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         return { disabled: b.disabled, onTop: at === b || b.contains(at) ? 'button' : (at ? (at.id || at.className || at.tagName) : 'nothing'),
           y: Math.round(r.top), vh: innerHeight, focused: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-tplf') : null }; });
@@ -206,7 +209,7 @@ const owed = (page, id) => page.evaluate(x => {
          the button's centre on its icon, and the commit that leaving the box
          makes repainted the button's insides between mouse-down and mouse-up,
          so the click was dropped. Pressing there stages it here. */
-      const spot = await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
+      const spot = await page.evaluate(() => { const b = document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]');
         const i = b && (b.querySelector('svg') || b.firstElementChild); const r = (i || b).getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       try { await page.mouse.move(spot.x, spot.y); await page.mouse.down(); await page.mouse.up(); }
@@ -214,7 +217,7 @@ const owed = (page, id) => page.evaluate(x => {
       /* A WAIT ASKS FOR THE STATE, BOUNDED (7 Oct 2026): a fixed 500ms was
          too short on a loaded CI runner, where the press had not finished
          repainting the paper when the reading was taken. */
-      await waitFor(page, () => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
+      await waitFor(page, () => { const b = document.querySelector('#ig-dock :is(#pd-needs, .pd2-dossier) [data-pd-og-docfill]');
         const t = (document.getElementById('ig-canvas') || {}).textContent || '';
         return !b && t.includes('Juno Limited'); }, undefined, 10000);
     }
