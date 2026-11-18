@@ -1912,22 +1912,38 @@ function iknPanelFive(r, may){
   const ref = c ? (typeof contractRef === 'function' ? contractRef(c) : c.id) : '';
   const asked = age ? (byMe ? i18t('jov5_rq_by_me', { age }) : i18t('jov5_rq_by', { who: ikFirstLast(r.by && r.by.name) || '—', age })) : '';
   const sub = r.contractId || r._adv ? [st.t, asked].filter(Boolean).join(' ') : [asked, holder ? i18t('jov5_rq_holds', { who: holder }) : i18t('jov5_rq_nobody')].filter(Boolean).join(' ');
+  /* WHICH ROUTE SENT IT IN (owner's pick, 17 Nov 2026: "Bring it back"): said with who asked */
+  const laneSay = r.lane ? i18t('ikn_p_lane', { lane: r.lane }) + '.' : '';
   const glance = [days == null ? null : days === 0 ? { n: i18t('jov5_rq_today'), l: i18t('jov5_rq_g_asked') } : { n: days, l: i18t('jov5_rq_g_days'), warn: !r.contractId && !r._adv && days >= IKN_OLD_DAYS },
     { n: holder || i18t('jov5_rq_g_nobody'), l: i18t('jov5_rq_g_holds'), warn: !holder && !r.contractId && !r._adv },
     c ? { n: ref, l: i18t('jov5_rq_g_contract'), attr: `data-ikn-open="${esc(c.id)}"` }
       : r._adv ? { n: (r.files || []).length, l: i18t('jov5_rq_g_files') } : { n: fit ? 1 : 0, l: i18t('jov5_rq_g_fits') }].filter(Boolean);
   const groups = [];
   if (r.need) groups.push({ label: i18t('ikn_p_words'), rows: [{ mark: 'msg', t: String(r.need), quote: true }] });
-  const read = [];
-  if (r.counterparty) read.push({ mark: 'users', t: r.counterparty, s: i18t('cun_c_party') });
-  if (fit) read.push({ mark: 'file', t: fit.name, s: i18t('jov5_rq_fits') });
-  if ((r.files || []).length) read.push({ mark: 'clip', t: i18tn('ikn_files_n', r.files.length, { n: r.files.length }), s: i18t('ikn_files') });
-  if (read.length) groups.push({ label: i18t('ikn_p_read'), rows: read });
+  /* WHAT MAIN BROUGHT BACK STANDS (owner's picks, 17 Nov 2026: "Bring it back"): the party's name the door to their
+     contracts (data-ikn-cp), whether an NDA with them stands today (ikCpNdaWords; amber while owed), the stream, the
+     paper that fits, and each file by name with who added it (data-ikn-file) — each row labelled under its value */
+  const read = [], cp = String(r.counterparty || '').trim();
+  let cpKey = '', cpDoor = false;
+  try { cpKey = cp && typeof window.cuKeyOf === 'function' ? cuKeyOf(cp) : ''; const v = cpKey && typeof window.cuCustomerOf === 'function' ? cuCustomerOf(cpKey) : null; cpDoor = !!(v && v.items && v.items.length); } catch (_){ cpDoor = false; }
+  const nda = cp && !r._adv ? ikCpNdaWords(cp) : '', ndaOwed = !!nda && nda === i18t('ik_cp_nda_none');
+  const who = ikIsMine(r) ? '' : String((r.by && r.by.name) || '').trim();
+  if (cp) read.push(Object.assign({ mark: 'users', t: cp, s: i18t('cun_c_party') }, cpDoor ? { attr: `data-ikn-cp="${esc(cpKey)}"`, title: i18t('ik_cp_go', { cp }) } : {}));
+  if (nda) read.push({ mark: ndaOwed ? 'alert' : 'check2', tone: ndaOwed ? 'amber' : '', t: nda, s: [i18t('cu_col_nda'), ndaOwed ? i18t('ikn_p_nda_todo') : ''].filter(Boolean).join(' \u00b7 ') });
+  if (stream) read.push({ mark: 'folder', t: stream, s: i18t('reg_chip_stream') });
+  if (fit) read.push({ mark: 'file', t: fit.name, s: i18t('ikn_paper') + ' \u00b7 ' + i18t('jov5_rq_fits') });
+  (r.files || []).forEach(fl => read.push({ mark: 'clip', t: String(fl.name || ''), attr: `data-ikn-file="${esc(fl.id)}" data-ikn-fname="${esc(fl.name)}"`,
+    s: i18t('ikn_files') + ' \u00b7 ' + (who ? i18t('ik_file_by', { size: ikFileSize(fl.size), who }) : i18t('ik_file_by_you', { size: ikFileSize(fl.size) })) }));
+  if (read.length) groups.push({ key: 'read', label: i18t('ikn_p_read'), rows: read });
   if (c) groups.push({ label: i18t('jov5_rq_became'), rows: [{ mark: 'file', tone: 'green', t: c.name || ref, s: [ref, c.counterparty].filter(Boolean).join(' · '), attr: `data-ikn-open="${esc(c.id)}"` }] });
-  const act = r._adv ? null : c ? { say: i18t('jov5_rq_act_open'), label: i18t('ikn_open_go'), attr: `data-ikn-open="${esc(c.id)}"` }
-    : may ? { say: i18t('jov5_rq_act'), label: i18t('ikn_start'), attr: `data-ikn-draft="${esc(r.id)}"` } : null;
+  /* the request's own doors: an advice request's (data-ikn-adv), a drafted one's Open, else Start the draft with Hand back
+     (the decline with its reason, data-ikn-back) beside it while it is open */
+  const back = r.status === 'open' ? { label: i18t('ik_act_hand_back'), attr: `data-ikn-back="${esc(r.id)}"`, title: i18t('ikn_back_cost', { who: ikFirst((r.by && r.by.name) || '') || i18t('ikn_back_them') }) } : null;
+  const act = r._adv ? { label: i18t('ik_act_open_advice'), attr: `data-ikn-adv="${esc(r.id)}"` }
+    : c ? { say: i18t('jov5_rq_act_open'), label: i18t('ikn_open_go'), attr: `data-ikn-open="${esc(c.id)}"` }
+    : may ? { say: i18t('jov5_rq_act'), label: i18t('ikn_start'), attr: `data-ikn-draft="${esc(r.id)}"`, link: back } : null;
   return { eyebrow: [i18t(r._adv ? 'jov5_rq_eb_adv' : 'jov5_rq_eb'), stream].filter(Boolean).join(' · '),
-    title: String(r.title || '').trim().replace(/([^.!?])$/, '$1.'), sub, glance, groups, act, src: i18t('jov5_rq_src') };
+    title: String(r.title || '').trim().replace(/([^.!?])$/, '$1.'), sub: [sub, laneSay].filter(Boolean).join(' '), glance, groups, act, src: i18t('jov5_rq_src') };
 }
 function iknPanelHtml(r, may){
   if (typeof window.newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function')

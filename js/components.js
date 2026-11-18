@@ -1611,7 +1611,7 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
       + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
   };
   const groups = (o.groups || []).filter(g => g && (g.rows || []).length).map(g =>
-    `<div class="jov5-sec">${g.label ? `<p class="jov5-label">${E(g.label)}</p>` : ''}<div class="jov5-group">${g.rows.map(rowHtml).join('')}</div></div>`).join('');
+    `<div class="jov5-sec"${g.key ? ` data-jov5-sec="${E(g.key)}"` : ''}>${g.label ? `<p class="jov5-label">${E(g.label)}</p>` : ''}<div class="jov5-group">${g.rows.map(rowHtml).join('')}</div></div>`).join('');
   const steps = o.steps && (o.steps.items || []).length ? `<div class="jov5-sec">${o.steps.label ? `<p class="jov5-label">${E(o.steps.label)}</p>` : ''}<ol class="jov5-steps">`
     + o.steps.items.map(s => `<li><b>${E(s.b)}</b>${s.s ? ' ' + E(s.s) : ''}</li>`).join('') + '</ol></div>' : '';
   const a = o.act;

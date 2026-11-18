@@ -80,6 +80,14 @@ test('f1094 (2b) a chosen request: its title, the ask quoted, Start the draft by
   assert.match(txt(d), /Coastline Distributors/, 'what was read from the ask');
   assert.ok(d.querySelector('.jov5-go[data-ikn-draft="RQ1"]'), 'Start the draft is the row\'s own press');
   assert.match(f.sub, /Nobody holds it yet/, 'who holds it, said');
+  /* what main brought back on 17 Nov (owner's picks) stands in the five parts: the lane, each file by name with who added
+     it (data-ikn-file), and Hand back beside Start the draft while the request is open (data-ikn-back) */
+  const r2 = Object.assign({}, r, { status: 'open', lane: 'NDA', files: [{ id: 'f1', name: 'pilot-brief.pdf', size: 2048 }] });
+  const f2 = W.iknPanelFive(r2, true), d2 = draw(W, f2, 'f1094rq2');
+  assert.match(f2.sub, /NDA lane/, 'the lane that sent it');
+  assert.ok(d2.querySelector('[data-ikn-file="f1"]'), 'the file by name, a door');
+  assert.match(txt(d2), /added by Grace/, 'who added it');
+  assert.ok(d2.querySelector('.jov5-acts [data-ikn-back="RQ1"]'), 'Hand back beside Start the draft');
   const viewer = W.iknPanelFive(r, false);
   assert.equal(viewer.act, null, 'no Start the draft for one who may not edit');
 });
@@ -102,7 +110,9 @@ test('f1094 (2c) a chosen duty: when as the headline, the clause said or its abs
   assert.match(late.title, /is 3 days late\.$/); assert.ok(late.glance[0].warn, 'late reads amber');
   const src = region(read('js/obligations.js'), 'function obPanelFive(o, c, i){', 'function obDecisionFive');
   assert.match(src, /obPanelActs\(o, c, i, 'page'\)/, 'the acts are the panel\'s own runs');
-  assert.match(src, /obligationShowInContract\(c\.id, o\.quote/, 'Show it in the contract, the duty\'s own door');
+  assert.match(src, /attr: 'data-ob-show=""'/, 'Show it in the contract keeps the duty\'s own door by name');
+  assert.match(region(read('js/obligations.js'), 'function obPaintPanel(', 'const opts = obPanelOpts'), /\[data-ob-show\][\s\S]*obligationShowInContract\(c\.id, o\.quote/, 'and is wired where the panel is painted');
+  assert.match(src, /class="jov5-sec ins-rem ob-rem-five"/, 'Reminders stays one line, the rules behind a link');
   const dec = region(read('js/obligations.js'), 'function obDecisionFive(r){', 'function obPaintPanel');
   assert.match(dec, /needsYouGo\('renewal', c\.id\)/, 'a renewal decision\'s Decide is the renewal\'s own door');
 });

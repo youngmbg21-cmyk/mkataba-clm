@@ -215,7 +215,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['request', 'ask legal', 'raise a request', 'advice', 'intake'], sv: ['förfrågan', 'be juristerna', 'råd'] },
     shots: [
       { go: [{ place: 'requests' }, { waitFor: '#ins-panel [data-ikn-draft]' }], boxes: [{ sel: '[data-ikn-tab="open"]', step: 3 }, { sel: '#ins-panel [data-ikn-draft]', step: 4 }], cap: { en: 'Each tab\'s number is the list behind it (3); Start the draft (4).', sv: 'Varje fliks siffra är listan bakom den (3); Påbörja utkastet (4).' } },
-      { go: [{ place: 'requests' }, { waitFor: '#ins-panel .pd2-ch-tbl' }], boxes: [{ sel: '#ins-panel .pd2-ch-tbl', step: 4 }], cap: { en: 'Read from the ask: the paper that fits, found without Jambo\'s brain (4).', sv: 'Läst ur förfrågan: papperet som passar, hittat utan Jambos hjärna (4).' } }] },
+      { go: [{ place: 'requests' }, { waitFor: '#ins-panel .ikn-five [data-jov5-sec="read"] .jov5-group' }], boxes: [{ sel: '#ins-panel .ikn-five [data-jov5-sec="read"] .jov5-group', step: 4 }], cap: { en: 'Read from the ask: the paper that fits, found without Jambo\'s brain (4).', sv: 'Läst ur förfrågan: papperet som passar, hittat utan Jambos hjärna (4).' } }] },
 
   { k: '1.2', part: 'ask', round: 2,
     title: { en: 'Import: bring in the contracts you already have', sv: 'Import: ta in avtalen du redan har' },
