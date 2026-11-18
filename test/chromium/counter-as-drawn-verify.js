@@ -196,7 +196,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       JSON.stringify(rows.map(p => [p.key, p.title, p.who, p.look, p.h])).slice(0, 900));
     const ans = rows.find(p => p.key === 'answer:MK-0382');
     check('11b their answer reads as drawn on the Board: "Nordvik Logistik\'s answer" · the agreement and its reference, no who column (24 Oct 2026), what Jambo found on the hover',
-      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^MK-0382·Master services agreement · Nordvik Logistik$/.test(ans.deal) && ans.who === '' && /^Answers to their 2 redlines, read against our standards: /.test(ans.hover), JSON.stringify(ans));
+      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^MK-0382·Master services agreement · Nordvik Logistik$/.test(ans.deal) && ans.who === '' && /^Answers to their 2 redlines, read against our playbook: /.test(ans.hover), JSON.stringify(ans));
     const heads = await page.evaluate(() => ({ board: (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '', n: ndRead().n }));
     check('11c the card\'s head says Home\'s count: "N things · …"', new RegExp('^' + heads.n + ' things?( · |$)').test(heads.board), JSON.stringify(heads));
     if (await openAgent('late')) {

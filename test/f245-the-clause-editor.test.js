@@ -936,7 +936,7 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
   test('the prepared questions act on THIS clause\'s finding, never a missing one', async () => {
     const p = await scanBench();
     assert.equal(p.win.ceStdItem().v.category, 'Payment terms', 'the finding on this clause');
-    assert.ok(p.chip(/^Use our standard$/), 'it offers our standard');
+    assert.ok(p.chip(/^Use our position$/), 'it offers our position');
     assert.equal(p.doc.querySelectorAll('[data-ce-scan], .ce-rule').length, 0, 'no scan cards are drawn');
     assert.ok(!/Add our standard|Missing from the contract/.test(p.doc.querySelector('#clause-editor').innerHTML),
       'and nothing offers to add a missing standard from here');
@@ -946,7 +946,7 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
     const p = await scanBench();
     const before = p.win.negoChanges(p.c).length;
     const box0 = String((p.doc.querySelector('#ce-clausebody') || {}).innerHTML || '');
-    p.chip(/^Use our standard$/).click();
+    p.chip(/^Use our position$/).click();
     await new Promise(r => setTimeout(r, 20));
     assert.equal(p.win.negoChanges(p.c).length, before, 'nothing filed');
     assert.equal(String((p.doc.querySelector('#ce-clausebody') || {}).innerHTML || ''), box0, 'the box is untouched');
@@ -957,7 +957,7 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
 
   test('a located rule still draws a real redline on its card', async () => {
     const p = await scanBench();
-    p.chip(/^Use our standard$/).click();
+    p.chip(/^Use our position$/).click();
     await new Promise(r => setTimeout(r, 20));
     const card = [...p.doc.querySelectorAll('#ce-lane .ce-card')].pop();
     assert.ok(card.querySelector('.pv del') || card.querySelector('.pv ins'), 'its marks are drawn against the clause');
@@ -985,7 +985,7 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
 
   test('the reason line is plain text — the separator is not printed as an entity', async () => {
     const p = await scanBench();
-    p.chip(/^Use our standard$/).click();
+    p.chip(/^Use our position$/).click();
     await new Promise(r => setTimeout(r, 20));
     const card = [...p.doc.querySelectorAll('#ce-lane .ce-card')].pop();
     const line = (card.querySelector('.r') || {}).textContent || '';

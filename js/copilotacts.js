@@ -1800,7 +1800,7 @@ const CA_PLACES = [
   { k: 'people', w: ['people', 'directory', 'colleagues', 'contacts', 'personer', 'katalog', 'katalogen', 'kollegor', 'kontakter'] },
   { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'vårt papper', 'mallar', 'mall'] },
   /* STANDARDS, A PAGE OF ITS OWN (the Ladder, 17 Nov 2026): its words left Our paper with it */
-  { k: 'standards', w: ['standards', 'our standards', 'standard', 'playbook', 'the ladder', 'standarder', 'våra standarder', 'stegen'] },
+  { k: 'standards', w: ['standards', 'our standards', 'standard', 'playbook', 'our playbook', 'positions', 'the ladder', 'standarder', 'våra standarder', 'spelbok', 'vår spelbok', 'stegen'] },
   { k: 'import', w: ['import', 'imports', 'import contracts', 'importera', 'importera avtal'] },
   { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
   /* READS (The thread, 28 Oct 2026): every read of the wording, and the next batch */

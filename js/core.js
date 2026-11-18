@@ -3960,7 +3960,7 @@ function openModal(html, opts={}){
            frame changes — every dialog still builds its own head, body and
            foot, and DLG_W is still the width ladder. */}
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent);"></div>
-    <div class="modal-in scroll-thin"${kept?' data-dlg-kept':''} role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
+    <div class="modal-in scroll-thin"${kept?' data-dlg-kept':''}${opts.ownFrame?' data-dlg-own-frame':''} role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own

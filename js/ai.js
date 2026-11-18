@@ -2336,7 +2336,7 @@ const AI_PAGE_NAMES = {
   dashboard: 'the Board', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract',
   obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Parties', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Discover', pulse: 'the Pulse board', handbook: 'Handbook', flowmap: 'the Flow map', templates: 'Templates',
-  playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
+  playbook: 'Our playbook', pipeline: 'Approvals', intake: 'Requests',
   directory: 'People', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',
 };

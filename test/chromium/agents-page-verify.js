@@ -427,7 +427,7 @@ const ok = (name, good, detail) => {
          brief, "Why it matters" and all, is 10d's side panel. */
       ok('10a the card shows THE BRIEF itself once the whole record lands, and counts what is worth watching (RED at faa8f95)', /FY2026 external audit/.test(opened.brief) && /1 worth watching/.test(opened.brief), opened.brief.slice(0, 140));
       ok('10b and the departures, their words beside your standard (RED at faa8f95)',
-        /Liability cap/.test(opened.std) && /Their words/.test(opened.std) && /Your standard/.test(opened.std) && /1 other standard is met/.test(opened.std), opened.std.slice(0, 160));
+        /Liability cap/.test(opened.std) && /Their words/.test(opened.std) && /Your position/.test(opened.std) && /1 other position is met/.test(opened.std), opened.std.slice(0, 160));
       ok('10c and the obligations found, whose each is, with one door onto adding them (RED at faa8f95)',
         /Deliver the audit plan/.test(opened.obs) && /Theirs/.test(opened.obs) && /Review 2 obligations/.test(opened.obsBtn), opened.obs.slice(0, 120) + ' · ' + opened.obsBtn);
       await page.screenshot({ path: path.join(OUT, '10-new-paper-panel.png') });

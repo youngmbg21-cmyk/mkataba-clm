@@ -52,7 +52,9 @@ describe('f1092 (1) three piles, in the order they matter', () => {
     assert.match(card, /data-ld-goap=/);
     assert.match(card, /firm === 'nice' \? ''/, 'a Nice to have carries no decision at all');
     assert.match(fnBody(L, 'ldGoApprovals'), /apnLandRow\(key\)/);
-    assert.match(fnBody(L, 'ldDepOpen'), /'open'\)/, 'Open the paper stays');
+    /* OPEN THE PAPER IS GONE from the Playbook page (owner, 18 Nov 2026): the paper is looked at from the Approvals row */
+    assert.ok(!/data-ld-open|ld_open_paper/.test(card), 'no Open the paper on the Playbook page');
+    assert.ok(!/function ldDepOpen/.test(L), 'its handler went with it');
     assert.match(fnBody(L, 'ldDepRun'), /signCheckAccept\(c, i, ldAfterDecide\)/, 'Allow once is the sign check\'s own writer');
   });
   test('the head counts the piles too', () => {

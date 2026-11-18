@@ -165,7 +165,7 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
     /* RE-POINTED (pass 2, 18 Oct 2026): a check is clear only where it came back clear — with the gate
        off and nothing read, the readings are "not clear yet", and the brief is never called clear unread */
     check('1b Ready to sign is ticked, names what came back clear and what is not clear yet, its body folded behind Show',
-      /is-done/.test(R1.stops[0].cls) && /^\d checks? clear: [a-z, ]+ · not clear yet: [a-z, ]*standards[a-z, ]*the brief · Show$/.test(R1.stops[0].sub) && !/clear: [^·]*the brief/.test(R1.stops[0].sub) && !R1.body.vis,
+      /is-done/.test(R1.stops[0].cls) && /^\d checks? clear: [a-z, ]+ · not clear yet: [a-z, ]*playbook[a-z, ]*the brief · Show$/.test(R1.stops[0].sub) && !/clear: [^·]*the brief/.test(R1.stops[0].sub) && !R1.body.vis,
       JSON.stringify({ s: R1.stops[0], body: R1.body }));
     check('1c the yes is its own stop, "Jonas Berg’s yes", the open one, framed', R1.stops[1].t === 'Jonas Berg’s yes' && /is-now/.test(R1.stops[1].cls) && /is-framed/.test(R1.stops[1].cls) && !!R1.card && R1.card.inStop, JSON.stringify(R1.stops[1]));
     check('1d where the approval stands: Asked today › Waiting (lit) › Approved · or Refused, Lapsed', !!R1.card && R1.card.states.join('|') === 'is-past:Asked today|is-cur:Waiting|:Approved|:Refused|:Lapsed', JSON.stringify(R1.card && R1.card.states));

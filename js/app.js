@@ -1147,7 +1147,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Playbook',
   team:'Team & settings', directory:'Directory', workspace:'the contract workspace',
   redline:'Negotiations', counter:'the counter' };
 

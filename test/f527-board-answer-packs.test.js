@@ -109,7 +109,7 @@ describe('f527 (3) money ending, standards, the next 12 months', () => {
     const P = w.hbPackData('standards', 'all');
     const txt = P.lines.join(' ').replace(/<[^>]+>/g, '');
     assert.match(txt, /5 of the 9 contracts have been checked/);
-    assert.match(txt, /3 contracts are off standard/);
+    assert.match(txt, /3 contracts are off the playbook/);
     assert.match(txt, /Payment terms/);
     assert.match(txt, /4 contracts have never been checked/);
     assert.ok(P.lists.off && P.lists.unchecked, 'each number a door');

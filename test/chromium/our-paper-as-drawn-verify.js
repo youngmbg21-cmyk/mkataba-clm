@@ -187,7 +187,7 @@ async function SEED(){
     check('5a two tabs: the template under Overview, no greeting there, no name tab, no back button', !E0.solo && !E0.word && E0.home && !E.back
       && !E0.landHello, JSON.stringify({ ...E0, b: E.back }));
     check('5b his words, from the record, with where it came back changed and what it meets',
-      /Master services agreement v1, from the record\./.test(E.said) /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
+      /Master services agreement v1, from the record\./.test(E.said) /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */  && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of the positions in Our playbook| positions every contract is read against| positions Our playbook sets for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
       && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
@@ -250,7 +250,7 @@ async function SEED(){
     const P = await page.evaluate(() => ({ props: [...document.querySelectorAll('#tb-paper .tb-prop')].map(p => [p.getAttribute('data-tb-prop'), p.textContent.replace(/\s+/g, ' ').trim(), p.hasAttribute('data-not-wording'), p.getAttribute('contenteditable')]),
       marks: [...document.querySelectorAll('#tb-paper .tpl-mks')].map(m => m.textContent.replace(/\s+/g, ' ').trim()) }));
     check('8a Jambo proposes on the paper: "Jambo proposes · <standard>", Add · Skip, "Our standard: …"; never wording',
-      P.props.length >= 1 && P.props.every(p => /^Jambo proposes · .+ Add Skip Our standard: .+\.$/.test(p[1]) && p[2] && p[3] === 'false'), JSON.stringify(P.props));
+      P.props.length >= 1 && P.props.every(p => /^Jambo proposes · .+ Add Skip Our position: .+\.$/.test(p[1]) && p[2] && p[3] === 'false'), JSON.stringify(P.props));
     check('8b marks under the sections that meet a standard', P.marks.some(m => /Payment within 30 days/.test(m)) && P.marks.some(m => /Liability cap at 12 months fees/.test(m)), JSON.stringify(P.marks));
     const cat = P.props[0] && P.props[0][0];
     const before = await page.evaluate(() => document.querySelectorAll('#tb-paper [data-tb-row]').length);

@@ -77,7 +77,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const paperEnd = await page.evaluate(() => document.querySelectorAll('#ig-canvas .sig2 .sig2-col').length);
     await shot('2-sign');
     check('2 Before you sign: six lines, Nothing blocks you with Sign and Read it first, the line says Ready to sign, the paper ends in two ruled lines',
-      rows.length === 6 && /details/i.test(rows[0][1]) && /standards/i.test(rows[1][1]) && /approval/i.test(rows[2][1]) && /signed/i.test(rows[3][1]) && /your turn/i.test(rows[4][1]) && /then|sealed/i.test(rows[5][1]) /* re-pointed 15 Nov 2026: under its "Then" label the row says what happens */
+      rows.length === 6 && /details/i.test(rows[0][1]) && /standards|playbook|position/i.test(rows[1][1]) && /approval/i.test(rows[2][1]) && /signed/i.test(rows[3][1]) && /your turn/i.test(rows[4][1]) && /then|sealed/i.test(rows[5][1]) /* re-pointed 15 Nov 2026: under its "Then" label the row says what happens */
       && /nothing blocks you/i.test(card) && btns.sign && btns.read && /ready to sign/i.test(line) && /before you sign/i.test(tabs[0] || '') && paperEnd === 2,
       { rows, card: card.slice(0, 60), btns, line, tabs, paperEnd });
   } catch (e) { check('2 Before you sign', false, String(e).slice(0, 200)); }

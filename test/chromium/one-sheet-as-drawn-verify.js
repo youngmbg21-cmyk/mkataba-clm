@@ -186,7 +186,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — and no lone "·" is left where it stood */
     check('10a Let Jambo fill the form says no cost beside it, and no separator is left hanging', C10.f.trim() === '', JSON.stringify(C10));
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('10b creating says what Jambo reads, no cost: "When it is created, Jambo reads it: the brief, our standards, risks and obligations."', C10.r === 'When it is created, Jambo reads it: the brief, our standards, risks and obligations.', JSON.stringify(C10));
+    check('10b creating says what Jambo reads, no cost: "When it is created, Jambo reads it: the brief, our standards, risks and obligations."', C10.r === 'When it is created, Jambo reads it: the brief, our playbook, risks and obligations.', JSON.stringify(C10));
     /* 4 Start from */
     /* RE-POINTED 24 Oct 2026 (the Legora way): one quiet list headed "Closest on our paper"; the picked one checked */
     check('4a "Closest on our paper"; the search and Legal on its line',

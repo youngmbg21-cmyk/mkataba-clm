@@ -676,7 +676,7 @@ function pageKit(){
     check('contracts C3 the first column: a mark, the agreement, and "party · ref · stage" under it',
       !!(f && f.mark && !f.av && f.title && f.text.indexOf(f.title) >= 0 && new RegExp(' · ' + f.ref.replace(/[-.]/g, '\\$&') + ' · \\S').test(f.text) && f.hover), JSON.stringify(f));
     check('contracts C4 the columns at rest: Agreement · Stream · Our standards · Ends · Value, Owner under Columns, no Ref or Stage column of its own',
-      ['Agreement', 'Stream', 'Our standards', 'Ends', 'Value'].every(k => C.heads.includes(k)) && !C.heads.includes('Owner') && !C.heads.includes('Ref') && !C.heads.includes('Stage'), JSON.stringify(C.heads));
+      ['Agreement', 'Stream', 'Our playbook', 'Ends', 'Value'].every(k => C.heads.includes(k)) && !C.heads.includes('Owner') && !C.heads.includes('Ref') && !C.heads.includes('Stage'), JSON.stringify(C.heads));
     const pct = C.cols.map(x => /%$/.test(x) ? parseFloat(x) : NaN);
     const sum = pct.reduce((a, b) => a + b, 0);
     check('contracts C5 the <col> widths add up to 100%', C.cols.length > 0 && pct.every(Number.isFinite) && Math.abs(sum - 100) <= 0.6, JSON.stringify({ cols: C.cols, sum: Math.round(sum * 10) / 10 }));
