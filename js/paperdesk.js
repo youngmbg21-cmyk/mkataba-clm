@@ -5168,7 +5168,7 @@ function pd2FormRegroup(c){
   if (c.counterparty) G.arrive.unshift(known('counterparty', _pdT('pd2_fm_cp'), c.counterparty, src(pd2QuoteOf(c, [c.counterparty]))));
   if (R.stream) G.arrive.push(known('stream', _pdT('pd2_f_stream'), txt(R.stream), E(_pdT('pd2_src_filed'))));
   if (R.money) G.fill.push(known('value', _pdT('pd2_f_value'), txt(R.money), src(pd2QuoteOf(c, pd2Needles(c, 'value')))));
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     G.fill.push(known('ends', _pdT('pd2_f_ends'), txt(R.expiry) + (renews ? ' · ' + _pdT('pd2_renews') : ''), src(pd2QuoteOf(c, pd2Needles(c, 'expiry'))))); }
   /* the signers: ours as the route has it; theirs the existing signer box while one is owed */
   const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(x => x && x.name);
@@ -7342,7 +7342,7 @@ function pd2ChosenHtml(c){
   const head = _pdT(owes.length ? 'pd2_ch_head' : 'pd2_ch_head_quiet', { name: c.name || '', stage: stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase(), owes: owes.join(', ') });
   const rows = [];
   if (R.money) rows.push([_pdT('pd2_f_value'), R.money, pd2SectionOf(c, 'value', cls)]);
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     rows.push([_pdT('pd2_f_ends'), R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), pd2SectionOf(c, 'expiry', cls)]); }
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
   if (L[0]) rows.push([_pdT('pd2_ch_risk'), E((typeof riskTitleOf === 'function') ? riskTitleOf(L[0]) : String(L[0].title || '')), '']);
@@ -7717,7 +7717,7 @@ function pd2SpineHtml(D){
 function pd2Facts(c, D){
   const E = _pdE, R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {}, cls = pd2Clauses(c), out = [];
   if (R.money) out.push({ k: 'value', l: _pdT('pd2_f_value'), v: R.money, s: pd2SectionOf(c, 'value', cls) });
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), s: pd2SectionOf(c, 'expiry', cls) }); }
   let signer = ''; try { signer = pdCkSignerSay(c); } catch (_){ signer = ''; }
   out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'),
@@ -8037,7 +8037,7 @@ function pd2Notes(c){
         (rule && (typeof canEdit !== 'function' || canEdit())) ? `<button type="button" class="ui-link" data-pd2-go="ask" data-pd2-key="${E(rule)}">${E(_pdT('pd2_n_ask'))}</button>` : ''].filter(Boolean).join(' · '),
       at: { text: pd2Needles(c, 'value') }, mark: true });
   }
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     out.push({ tone: 'fact', k: _pdT('pd2_n_ends', { d: R.expiry.replace(/<[^>]*>/g, '') }) + (renews ? ' · ' + _pdT('pd2_renews') : ''), w: _pdT('pd2_n_ends_w'), acts: '',
       at: { text: pd2Needles(c, 'expiry') }, mark: true }); }
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
@@ -10119,7 +10119,7 @@ function pdCoverOf(c){
   const notice = Number(((c.metadata || {}).noticePeriodDays)) || 0;
   if (end && /^\d{4}-\d{2}-\d{2}/.test(end)){
     if (notice > 0){ const t = new Date(end.slice(0, 10) + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - notice); coming.push({ d: _cvIso(t), t: _pdT('cv_cu_notice'), s: _pdTn('cv_cu_notice_s', notice, { n: notice }) }); }
-    coming.push({ d: end.slice(0, 10), t: _pdT((c.metadata || {}).autoRenew ? 'cv_cu_renews' : 'cv_cu_ends'), s: '' });
+    coming.push({ d: end.slice(0, 10), t: _pdT(typeof contractRenewsItself === 'function' && contractRenewsItself(c) ? 'cv_cu_renews' : 'cv_cu_ends'), s: '' });
   }
   /* the notes in the margin: facts only, the stage's own first, at most three */
   const notes = [];

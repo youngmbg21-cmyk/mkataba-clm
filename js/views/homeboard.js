@@ -6217,7 +6217,7 @@ function hbPulseBtnHtml(){
    is signed; what ends within a year, the first and how many renew by themselves; how the streams and the parties
    carry the book; the negotiations open and whose move; the duties late and due. Each says where it was read and
    opens that page. Under them what ends, quarter by quarter, by value on paper. EVERY FIGURE IS AN EXISTING READING:
-   fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, c.autoRenew, FOLDERS, negoIsLive and
+   fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, contractRenewsItself, FOLDERS, negoIsLive and
    dealStands' move, obState / obligationDue / obligationIsTheirs; values only where canViewValues allows. */
 let _hbRdn = false;
 function hbRdnUp(){ return !!_hbRdn && typeof window.newLookOn === 'function' && newLookOn() && hbS().face === 'board'; }
@@ -6235,7 +6235,8 @@ function hbRdnRead(){
   const exp = c => { let e = ''; try { e = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ e = ''; } return e; };
   const total = L.reduce((s, c) => s + val(c), 0), sig = L.filter(signed), sigV = sig.reduce((s, c) => s + val(c), 0);
   const ending = L.filter(c => { const e = exp(c); return e && e >= today && e <= inYear; }).sort((a, b) => exp(a).localeCompare(exp(b)));
-  const autoEnd = ending.filter(c => !!c.autoRenew);
+  /* renewing by itself, by the ONE reading (contractRenewsItself); c.autoRenew was a field nothing writes — it always said 0 */
+  const autoEnd = ending.filter(c => typeof contractRenewsItself === 'function' && contractRenewsItself(c));
   /* streams by value, then the party holding the most of the signed value */
   const byStream = new Map(); L.forEach(c => { const n = (window.FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || ''; if (!n) return; const e = byStream.get(n) || { n, v: 0, cs: [] }; e.v += val(c); e.cs.push(c); byStream.set(n, e); });
   const streams = [...byStream.values()].sort((a, b) => b.v - a.v || b.cs.length - a.cs.length);

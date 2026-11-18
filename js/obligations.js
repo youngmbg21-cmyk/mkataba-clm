@@ -440,7 +440,7 @@ function renewalWindow(c){
   const days = daysUntil(decideBy||expiry);
   if(days==null || isNaN(days)) return null;
   const notice = Number(c.metadata&&c.metadata.noticePeriodDays)||0;
-  const auto = (c.metadata&&c.metadata.renewalType)==='auto-renew';
+  const auto = contractRenewsItself(c);
   /* ---- A DEADLINE OLDER THAN THE RECORD IS NOT ONE ANYBODY HERE MISSED ----
      The notice period is read out of the wording, and subtracting six months
      from an expiry can easily land before the day the contract was filed. Told
@@ -3511,6 +3511,13 @@ function obPanelOpts(o, c, i, ctx){
     onMenu: act => { if(act === 'remove'){ const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } },
   };
 }
+/* DOES IT RENEW BY ITSELF — THE ONE READING (18 Nov 2026, the read-down bug): the contract's renewal type as its wording
+   was read ('auto-renew', what the overnight run renews on, server runAutoRenewals); an older record's metadata flag
+   counts too. Read down and a contract's own panels read it here; a field nothing writes (c.autoRenew) is never read. */
+function contractRenewsItself(c){
+  const m = (c && c.metadata) || {};
+  return m.renewalType === 'auto-renew' || m.autoRenew === true || m.autoRenewal === true;
+}
 /* THE NEXT REMINDER'S DAY, as the Reminders line reads it (obligationReminderLine): empty where none goes — done, held
    behind an earlier step, no date, theirs, nobody to write to, or every reminder already gone */
 function obligationReminderDay(o, c){
@@ -5078,7 +5085,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
