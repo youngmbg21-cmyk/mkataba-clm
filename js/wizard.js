@@ -1529,7 +1529,9 @@ function openNewAgreement(o){
         if(document.getElementById('na-root')) return;
         ob.disconnect();
         /* left without a draft (Cancel, the crumb's ‹, ✕, Esc): back to the page it was started on */
-        if(!_naClaimed && naFrom) try{ naBackFrom(naFrom); }catch(_){ }
+        /* …unless a door inside it already took the reader on (From scratch's start opening the builder moves the view
+           off Home before the sheet closes): going "back" then would draw the old page over where they were sent */
+        if(!_naClaimed && naFrom && !(typeof state==='object'&&state&&state.view&&state.view!=='dashboard')) try{ naBackFrom(naFrom); }catch(_){ }
         dropHeld();
       });
       ob.observe(mr,{childList:true,subtree:true});

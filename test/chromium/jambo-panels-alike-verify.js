@@ -56,13 +56,15 @@ const PAGES = [
   ['pulse', "setView('pulse')", '#ins-panel'],   /* THE PULSE BOARD (29 Oct 2026) */
   ['handbook', "setView('handbook')", '#ins-panel'],
   ['migration', "setView('migration')", '#mig-side'],
-  ['settings-you', "setView('team')", '#st-side'],
-  ['settings-company', "setView('team'); openSettingsAt('platform')", '#st-side'],
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel, box #jl-q), no longer its own #st-side */
+  ['settings-you', "setView('team')", '#ins-panel'],
+  ['settings-company', "setView('team'); openSettingsAt('platform')", '#ins-panel'],
 ];
 /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): no Jambo tab to press — the conversation is opened the
    way an answer opens it (each host's own reopen), and its way back and the bin stand in the door above the box */
 const OPEN_TALK = key => { const CAL = 'cal:week';
-  if (/^settings/.test(key)) return stTalkReopen();
+  /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo is the list panel (#ins-panel.is-jambo): its talk opens as the list's */
+  if (/^settings/.test(key) && !document.querySelector('#ins-panel.is-jambo')) return stTalkReopen();
   if (key === 'calendar'){ jamboTalkOpen(CAL, document.getElementById('cal-plan-body')); calPlanRepaint(); return calTurnsAfter(); }
   if (document.querySelector('#ins-panel.is-jambo, #mig-side .jl-head')) return jlTalkPress();
   return pdTalkReopen(); };

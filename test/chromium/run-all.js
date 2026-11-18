@@ -228,7 +228,10 @@ function run(file) {
       console.log(f.out.trimEnd());
     }
     console.log(`\n${failed.length} of ${results.length} failed: ${failed.map(f => f.file).join(', ')}`);
-    process.exit(1);
+    /* NEVER process.exit HERE (16 Nov 2026): it ended the run before a piped stdout had drained, and the log on
+       GitHub stopped partway through the failures. Setting the exit code lets the output finish first. */
+    process.exitCode = 1;
+    return;
   }
   console.log(`${results.length}/${results.length} browser checks passed.`);
 })();

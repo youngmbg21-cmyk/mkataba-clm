@@ -78,76 +78,12 @@ const REVIEW = {
     }, REVIEW);
     await page.evaluate(() => openWorkspace(state.activeId, { room: true }));
     await page.waitForTimeout(1600);
-    await page.evaluate(id => openCheckPanel(getContract(id), 'playbook'), cid);
-    await page.waitForTimeout(700);
-
-    const READ = () => {
-      const host = document.getElementById('playbook-section');
-      const rows = Array.from(host.querySelectorAll('[data-pb-row]'));
-      const txt = host.textContent.replace(/\s+/g, ' ');
-      return {
-        rows: rows.length,
-        keys: rows.map(r => r.getAttribute('data-pb-row')),
-        quotes: (txt.match(/“/g) || []).length,
-        standards: (txt.match(/Our position:/g) || []).length,
-        applies: host.querySelectorAll('[data-pb-apply]').length,
-        swedish: /governed by Swedish law/.test(txt),
-        fortyfive: /forty-five \(45\) days/.test(txt),
-        cmr: /CMR Convention/.test(txt),
-      };
-    };
-
-    /* ---- 1: it arrives open ---- */
-    let m = await page.evaluate(READ);
-    check('the panel opens with every finding already read out', m.rows === 4 && m.quotes >= 3,
-      `${m.rows} rows, ${m.quotes} quoted passages`);
-    check('the wording it objects to is on screen without a second press',
-      m.swedish && m.fortyfive && m.cmr);
-    check('so is the standard each one misses', m.standards === 4, String(m.standards));
-    /* REVERSED IN PLACE (Young, 10 Sep 2026, "ONE DOOR ONTO ADDING A CLAUSE").
-       This asserted the opposite — that the panel drew the button that turns a
-       finding into a redline, and that the reported fixture drew at least two
-       of them. THE HALF THAT STANDS is everything above it: the panel arrives
-       READ, with the wording and the standard on screen without a second press,
-       which is what the report of 11 Aug was about. What is reversed is the
-       ACT: adding a clause has one door and it is not here.
-
-       THIS FIXTURE IS THE WEARER — three of its four findings carry a
-       `redline`, so it is exactly the shape that used to draw three buttons,
-       which is what makes the absence worth measuring here as well as on the
-       real contract in the room below. */
-    check('and it offers no way to act on it — the panel is a reading',
-      m.applies === 0, `${m.applies} redline button(s) still drawn`);
-
-    /* ---- and a row can still be shut, and stays shut ---- */
-    await page.evaluate(() => document.querySelector('[data-pb-row]').click());
-    await page.waitForTimeout(300);
-    let shut = await page.evaluate(READ);
-    check('pressing a finding folds it away', shut.quotes === m.quotes - 1 && !shut.swedish,
-      `${shut.quotes} quoted passages left`);
-    check('and the other three are untouched', shut.fortyfive && shut.cmr);
-    await page.evaluate(() => document.querySelector('[data-pb-row]').click());
-    await page.waitForTimeout(300);
-    check('pressing it again brings it back', (await page.evaluate(READ)).swedish);
-
-    /* ---- the fold is the reader's exception, and it does not travel ----
-       The old key was the row's INDEX, which is not a fact about anything, so
-       a row folded on one contract came back folded on the next contract's
-       unrelated row of the same number. */
-    check('a fold is remembered against its own contract and category',
-      shut.keys.every(k => k.includes(cid)) && shut.keys.some(k => /Governing law/.test(k)),
-      shut.keys[0]);
-    const other = await page.evaluate(rev => {
-      const c = state.contracts.find(x => x.id !== state.activeId);
-      if (!c) return null;
-      c.playbook = JSON.parse(JSON.stringify(rev));
-      state.activeId = c.id; state.selId = c.id;
-      renderPlaybookSection(c);
-      const host = document.getElementById('playbook-section');
-      return { open: /governed by Swedish law/.test(host.textContent.replace(/\s+/g, ' ')) };
-    }, REVIEW);
-    check('and a different contract opens on its own findings, unfolded',
-      other && other.open, other ? String(other.open) : 'only one contract to try');
+    /* RETIRED 16 Nov 2026 (#762): section 1 — "the panel opens with every finding already read out", "the wording … on
+       screen", "the standard each one misses", "it offers no way to act on it", "pressing a finding folds it away", "the
+       other three are untouched", "pressing it again brings it back", "a fold is remembered against its own contract",
+       "a different contract opens on its own findings, unfolded" — all measured the old side panel (#playbook-section).
+       In the new look Our standards stand BESIDE THE PAPER as notes (owner picked "Beside the paper", 6 Nov 2026;
+       openCheckPanel → pd2StdGo); the new look's own coverage is standards-beside-paper-verify.js. */
 
     /* ---- 2: Key terms no longer reprints the quotes ----
        Read off the Key terms PAGE, not out of the builder: the views are ES
@@ -156,10 +92,15 @@ const REVIEW = {
     await page.evaluate(id => { if (window.closeSidePanel) closeSidePanel();
       state.activeId = id; state.selId = id; openWorkspace(state.activeId, { room: true }); }, cid);
     await page.waitForTimeout(1600);
-    await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]'); if (b) b.click(); });
-    await page.waitForTimeout(1000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Key terms is a page in THE MIDDLE beside Home's paper
+       (pdKtMid, [data-pd-mid-kt]); its doors ("key terms", the Overview's) all end there */
+    await page.evaluate(id => { if (window.pdOpenOnHome) pdOpenOnHome(id, 'copilot'); }, cid);
+    await page.waitForFunction(id => window.intel && intel.paper && intel.paper.id === id && !!document.getElementById('ig-canvas'), cid, { timeout: 12000 }).catch(() => {});
+    await page.evaluate(id => { if (window.pdKtMid) pdKtMid(id); }, cid);
+    await page.waitForFunction(() => !!document.querySelector('[data-pd-mid-kt]'), null, { timeout: 6000 }).catch(() => {});
+    await page.waitForTimeout(500);
     const kt = await page.evaluate(() => {
-      const el = document.getElementById('content-scroll') || document.body;
+      const el = document.querySelector('[data-pd-mid-kt]') || document.createElement('div');
       return { text: el.textContent.replace(/\s+/g, ' '),
         html: el.innerHTML,
         rows: el.querySelectorAll('.kt-read-row').length };
@@ -206,12 +147,15 @@ const REVIEW = {
     await page.evaluate(id => openCheckPanel(getContract(id), 'playbook'), cid);
     await page.waitForTimeout(800);
 
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Our standards stand beside the paper as notes
+       (openCheckPanel → pd2StdGo, #pd2-notes .pd2-mg-i.is-std), not in a side panel; the same two claims are read there */
+    await page.waitForFunction(() => !!document.querySelector('#side-panel, #pd2-notes .pd2-mg-i.is-std'), null, { timeout: 8000 }).catch(() => {});
     const panel = await page.evaluate(() => {
-      const sp = document.getElementById('side-panel') || document;
+      const sp = document.getElementById('side-panel') || document.getElementById('pd2-notes') || document.body;
       const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && el.offsetParent !== null; };
       return { applies: [...sp.querySelectorAll('[data-pb-apply]')].filter(vis).length,
-        rows: sp.querySelectorAll('[data-pb-row]').length,
+        rows: sp.querySelectorAll('[data-pb-row], .pd2-mg-i.is-std').length,
         text: sp.textContent.replace(/\s+/g, ' ').trim().slice(0, 400) };
     });
     check('THE SIDE PANEL IS A READING — it offers no way to add a clause',

@@ -52,20 +52,23 @@ const K = (id, name, end) => ({ ...H.fixtureContract(id, name, 'Board Counsel LL
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts), null, { timeout: 20000 });
     const toCompany = () => until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
-      return document.querySelector('#st-board .st-cards') ? true : null; }, null, 15000);
+      if (!document.querySelector('.stn-page')) { setView('team'); return null; }
+      return document.querySelector('#ins-panel .jov5-row') ? true : null; }, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; what needs an admin is a row
+       in Jambo's panel beside it ("Needs an admin"), the row itself the door (the need's own press: the stream's page) */
+    const NEED = '#ins-panel .jov5-row[data-st-panel="stream:sales"]', READY = '#ins-panel .jov5-row[data-st-panel="stream:sales@keeping"]';
     await toCompany();
 
     console.log('\n1 · Needs your attention');
     const key = 'keep-unseen:' + 'sales';
-    const row = await until(k => { const r = document.querySelector(`#st-att [data-st-need="${k}"]`);
-      return r ? { text: r.textContent.replace(/\s+/g, ' ').trim(), att: (document.getElementById('st-att') || {}).textContent || '' } : null; }, key, 6000);
+    const row = await until(sel => { const r = document.querySelector(sel);
+      return r ? { text: [...r.querySelectorAll('.jov5-rt > *')].map(x => x.textContent).join(' ').replace(/\s+/g, ' ').trim(), att: (document.getElementById('ins-panel') || {}).textContent || '' } : null; }, NEED, 6000);
     check('1a "No admin can see it · <stream>", saying it names no admin', !!row && /^No admin can see it · Sales/.test(row.text) && /names no admin/.test(row.text), row && row.text);
     check('1b nothing of its contracts is said', !!row && !/Board minutes|BD-1|Board Counsel/.test(row.att), row ? 'clean' : 'no row');
     await shot(page, 'keeping-no-admin-needs');
 
     console.log('\n2 · its door');
-    if (await press(`#st-att [data-st-need="${key}"] [data-st-panel]`, '2 the row\'s button')) {
+    if (await press(NEED, '2 the row\'s button')) {
       const pg = await until(() => { const p = document.getElementById('st-ps'); return p && p.querySelector('[data-st-ps-add]') ? true : null; }, null, 6000);
       check('2 it opens the stream\'s page, where people are named', !!pg);
 
@@ -74,10 +77,10 @@ const K = (id, name, end) => ({ ...H.fixtureContract(id, name, 'Board Counsel LL
       if (await press(`#st-ps [data-st-ps-add="${me}"]`, '3 Add me') && await press('#st-dsave', '3 Save')) {
         /* the row goes at once (stSyncAttention takes rows out, never adds one
            under the reader's hand); the page's next paint adds Ready to delete */
-        const gone = await until(k => !document.querySelector(`#st-att [data-st-need="${k}"]`) && state.keeping && !(state.keeping.unseen || []).length ? true : null, key, 10000);
+        const gone = await until(sel => { return !document.querySelector(sel) && state.keeping && !(state.keeping.unseen || []).length ? true : null; }, NEED, 10000);
         check('3a the row goes as soon as the stream names an admin', !!gone);
         await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); settingsGoPage(''); });
-        const after = await until(() => { const r = document.querySelector('#st-att [data-st-need="keep:sales"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; }, null, 8000);
+        const after = await until(sel => { const r = document.querySelector(sel); return r ? [...r.querySelectorAll('.jov5-rt > *')].map(x => x.textContent).join(' ').replace(/\s+/g, ' ').trim() : null; }, READY, 8000);
         check('3b and the stream\'s contracts come into this admin\'s own Ready to delete', !!after && /Ready to delete · Sales/.test(after), String(after));
       }
     }

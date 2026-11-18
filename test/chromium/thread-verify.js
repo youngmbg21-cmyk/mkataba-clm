@@ -200,7 +200,12 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       s1.rows.length + ' rows');
     check('1b no switch, no Checks card, no Activity & comments card, no strand in the margin',
       s1.switchGone && s1.checksGone && s1.feedGone && s1.strandGone, JSON.stringify({ sw: s1.switchGone, checks: s1.checksGone, feed: s1.feedGone, strand: s1.strandGone }));
-    check('1c the first row is open on arrival, and it is the one at the line', s1.openIdx === 0 && s1.atLine === 0, JSON.stringify({ open: s1.openIdx, line: s1.atLine }));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): opening Clauses is the press that runs Jambo's read
+       (stkAutoRun), and the walk on the paper runs with it, quick (pd2WalkWithRead, f1018: "an arrival plays it"), carrying
+       the paper through his notes — so on arrival the paper is where the read left it, not at its top (round 5: the
+       Clauses tab may glide the paper to line up). What stands: exactly the row at the line is the open one. */
+    check('1c on arrival one row is open, and it is the one at the line', s1.openIdx >= 0 && s1.atLine === s1.openIdx
+      && s1.rows.filter(r => r.open).length === 1, JSON.stringify({ open: s1.openIdx, line: s1.atLine, scroll: s1.scroll }));
     check('1d the marked rows wear their tone — ruby on XI, amber on XIV, steel on IX',
       s1.rows.some(r => /INDEMNIF/.test(r.name) && r.tone === 'ruby') && s1.rows.some(r => /TERM, TERM/.test(r.name) && r.tone === 'amber')
         && s1.rows.some(r => /INSURANCE/.test(r.name) && r.tone === 'steel'),
@@ -259,7 +264,9 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
        (--font-doc); the Plain reading is the panel's voice (--font-body, the
        6 Oct ruling "the font should follow the fonts in the panel"), so it
        is no longer the paper's face */
-    check('4c set in the panel\'s own face (--font-body), not the paper\'s serif', !!s5.plainFace && s5.plainFace === s5.bodyFace && s5.plainFace !== s5.paperFace,
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; owner, 16 Nov 2026, "Clauses the Legora way", f1073/f1081):
+       the open clause's plain English is set in the paper's own face (--font-doc), quoted as the paper is */
+    check('4c set in the paper\'s own face (--font-doc), as the new look\'s Clauses draws it', !!s5.plainFace && s5.plainFace === s5.paperFace,
       s5.plainFace.slice(0, 40) + ' vs body ' + s5.bodyFace.slice(0, 40) + ' · paper ' + s5.paperFace.slice(0, 40));
     check('4d that row says Read, and no other does', s5.rows.filter(r => /Read\b/.test(r.state) && !/Reading/.test(r.state)).length === 1 && /Read/.test(s5.rows[2].state),
       s5.rows.map(r => r.state || '-').join(' | '));

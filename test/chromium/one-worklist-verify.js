@@ -58,45 +58,53 @@ const RULES = [
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => setView('approvals'));
     await until(() => document.querySelectorAll('[data-ap-row]').length >= 3, null, 10000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; the harmony review, owner's yes 9 Nov 2026, and
+       Jambo's panels, 16 Nov): Approvals is ONE table (.apn-table) under the page's own head, its tabs Mine · Waiting on
+       others · Done ([data-apn-tab]); approvals and signatures together, the signatures under a "Signing" group line
+       (that line says the kind — the Kind column's place), each row's kind on the row (data-ap-kind) and whose turn on its
+       mark (the mark's title, apTurnText); the head's facts count what is yours in "to decide · to sign"; Approve and
+       Decline stand on the row (the panel has no button: apnLeadFiveHtml). WHAT IS PINNED IS UNCHANGED: one list, the
+       kinds said, yours first, whose turn said, the counts the same as the tab, a decision one press away. */
     const READ = () => {
       const rows = [], groups = [];
-      document.querySelectorAll('.ap-table tbody tr').forEach(tr => {
-        if (tr.classList.contains('ap-grp')) { const b = tr.querySelector('b'); groups.push({ k: (b || {}).textContent, n: (tr.querySelector('.n') || {}).textContent, whole: tr.firstElementChild.getBoundingClientRect().width >= tr.closest('table').getBoundingClientRect().width - 2, rows: [] }); return; }
-        const r = { id: tr.getAttribute('data-ap-row'), kind: (tr.querySelector('.ap-kind') || {}).textContent, turn: (tr.querySelector('.ap-turn') || {}).textContent };
-        rows.push(r); if (groups.length) groups[groups.length - 1].rows.push(r.id); });
-      return { tabs: document.querySelectorAll('[data-ap-tab]').length, heads: [...document.querySelectorAll('.ap-table thead th')].map(t => t.textContent.trim()),
+      document.querySelectorAll('.apn-table tbody tr').forEach(tr => {
+        if (tr.classList.contains('apn-group')) { groups.push({ k: tr.textContent.trim(), at: rows.length }); return; }
+        if (!tr.hasAttribute('data-ap-row')) return;
+        const mk = tr.querySelector('.ls-mk');
+        rows.push({ id: tr.getAttribute('data-ap-row'), kind: tr.getAttribute('data-ap-kind'), turn: mk ? mk.getAttribute('title') : null,
+          approve: !!tr.querySelector('[data-ap-approve]'), refuse: !!tr.querySelector('[data-ap-refuse]'), sign: !!tr.querySelector('[data-ap-open]') }); });
+      return { tabs: [...document.querySelectorAll('[data-apn-tab]')].map(b => ({ k: b.getAttribute('data-apn-tab'), label: (b.firstChild || {}).textContent.trim(),
+        n: Number(((b.querySelector('span') || {}).textContent || '0').replace(/\D/g, '')) || 0, on: b.classList.contains('is-on') })),
+        heads: [...document.querySelectorAll('.apn-table thead th')].map(t => t.textContent.trim()),
         rows, groups, facts: (document.querySelector('[data-ap-facts]') || {}).textContent || '', rules: !!document.querySelector('[data-ap-rules]') };
     };
+    await until(() => document.querySelectorAll('.apn-table tbody tr[data-ap-row]').length >= 2, null, 8000);
     const A = await page.evaluate(READ);
     const row = id => A.rows.find(r => r.id === id) || {};
-    check('1 one list, no tabs, a Kind column', A.tabs === 0 && A.heads.includes('Kind') && A.heads.includes('Rule') && A.heads.includes('Whose turn') /* RE-POINTED 28 Oct 2026: the rule's column is headed Rule, as drawn */, JSON.stringify({ tabs: A.tabs, heads: A.heads }));
-    /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way; the
-       owner's "tabs only"): ONE plain table, no group rows — the head's tabs
-       ([data-ap-view]) are the two groups, each showing its own rows, and
-       under All the rows that wait on the reader come first */
-    const VIEWS = () => [...document.querySelectorAll('[data-lh-seat="approvals"] [data-ap-view]')].map(b => ({ k: b.getAttribute('data-ap-view'),
-      label: (b.firstChild || {}).textContent, n: Number(((b.querySelector('.n') || {}).textContent || '0').replace(/\D/g, '')) || 0 }));
-    const viewRows = async k => { await page.evaluate(v => { const b = document.querySelector(`[data-lh-seat="approvals"] [data-ap-view="${v}"]`); if (b) b.click(); }, k);
-      return until(v => { const b = document.querySelector(`[data-lh-seat="approvals"] [data-ap-view="${v}"]`); return b && b.getAttribute('aria-selected') === 'true'
-        ? [...document.querySelectorAll('.ap-table tbody tr[data-ap-row]')].map(tr => tr.getAttribute('data-ap-row')) : null; }, k, 4000); };
-    const V = await page.evaluate(VIEWS);
-    const yoursIds = await viewRows('yours') || [], othersIds = await viewRows('others') || [], allIds = await viewRows('all') || [];
-    const lastYours = Math.max(...yoursIds.map(id => allIds.indexOf(id))), firstOthers = Math.min(...othersIds.map(id => allIds.indexOf(id)));
-    check('2 the tabs are the groups: "Yours to answer" (the approval asked of you, your signature), "Waiting on others" (the one you raised); under All yours come first; no group rows',
-      A.groups.length === 0 && V.map(v => v.label).join(' · ') === 'All · Yours to answer · Waiting on others'
-      && ['MK-WL-1', 'MK-WL-3'].every(id => yoursIds.includes(id)) && JSON.stringify(othersIds) === JSON.stringify(['MK-WL-2'])
-      && allIds.length === yoursIds.length + othersIds.length && lastYours < firstOthers,
-      JSON.stringify({ groupRows: A.groups.length, views: V, yoursIds, othersIds, allIds }));
-    check('3a Kind and Whose turn say it: Approval · You, Signature · You sign, Approval · its approver',
-      row('MK-WL-1').kind === 'Approval' && row('MK-WL-1').turn === 'You' && row('MK-WL-3').kind === 'Signature' && row('MK-WL-3').turn === 'You sign'
-      && row('MK-WL-2').kind === 'Approval' && row('MK-WL-2').turn && !/^You/.test(row('MK-WL-2').turn), JSON.stringify(A.rows));
-    /* RE-POINTED (lane A1 pass 4, 18 Oct 2026): round 15 draws Approval rules
-       for an Editor too — an admin goes to the rules, anyone else hears them
-       from Jambo with Ask an admin (f807 (9), jambos-list-panel-verify) */
-    /* RE-POINTED 21 Oct 2026 (Part 8): the counts on the title's line are the
-       two tabs' numbers, in the same words */
-    const nOf = k => (V.find(v => v.k === k) || {}).n;
-    check('3b the band counts both groups in the same words as the tabs; Approval rules is everyone\'s door', V.length === 3 && A.facts === `${nOf('yours')} yours to answer · ${nOf('others')} waiting on others` && A.rules, JSON.stringify({ facts: A.facts, views: V, rules: A.rules }));
+    const ids = A.rows.map(r => r.id);
+    const sgAt = A.groups.length ? A.groups[0].at : -1;
+    check('1 one list (approvals and signatures together), the signatures under one "Signing" line, a Rule column',
+      ids.includes('MK-WL-1') && ids.includes('MK-WL-3') && A.groups.length === 1 && A.groups[0].k === 'Signing'
+      && ids.indexOf('MK-WL-3') >= sgAt && ids.indexOf('MK-WL-1') < sgAt && A.heads.includes('Rule'), JSON.stringify({ heads: A.heads, groups: A.groups, ids }));
+    const tabRows = async k => { await page.evaluate(v => { const b = document.querySelector(`[data-apn-tab="${v}"]`); if (b) b.click(); }, k);
+      return until(v => { const b = document.querySelector(`[data-apn-tab="${v}"]`); return b && b.classList.contains('is-on')
+        ? [...document.querySelectorAll('.apn-table tbody tr[data-ap-row]')].map(tr => tr.getAttribute('data-ap-row')) : null; }, k, 4000); };
+    const othersIds = await tabRows('others') || [], mineIds = await tabRows('mine') || [];
+    check('2 the tabs are the groups: "Mine" (the approval asked of you, your signature), "Waiting on others" (the one you raised)',
+      A.tabs.map(t => t.label).slice(0, 2).join(' · ') === 'Mine · Waiting on others'
+      && ['MK-WL-1', 'MK-WL-3'].every(id => mineIds.includes(id)) && JSON.stringify(othersIds) === JSON.stringify(['MK-WL-2']),
+      JSON.stringify({ tabs: A.tabs, mineIds, othersIds }));
+    const O = await page.evaluate(() => { const b = document.querySelector('[data-apn-tab="others"]'); if (b) b.click(); return null; })
+      .then(() => until(() => { const tr = document.querySelector('.apn-table tbody tr[data-ap-row="MK-WL-2"]'); if (!tr) return null; const mk = tr.querySelector('.ls-mk');
+        return { kind: tr.getAttribute('data-ap-kind'), turn: mk ? mk.getAttribute('title') : null, approve: !!tr.querySelector('[data-ap-approve]') }; }, null, 4000));
+    await tabRows('mine');
+    check('3a the kind and whose turn are said: Approval · You, Signature · You sign, Approval · its approver (not you, no Approve)',
+      row('MK-WL-1').kind === 'approval' && row('MK-WL-1').turn === 'You' && row('MK-WL-3').kind === 'signature' && row('MK-WL-3').turn === 'You sign'
+      && !!O && O.kind === 'approval' && !!O.turn && !/^You/.test(O.turn) && !O.approve, JSON.stringify({ rows: A.rows, others: O }));
+    const mineN = (A.tabs.find(t => t.k === 'mine') || {}).n;
+    const fm = /^(\d+) to decide · (\d+) to sign$/.exec(A.facts.trim());
+    check('3b the head counts what is yours (to decide · to sign) as the Mine tab does; Approval rules is everyone\'s door',
+      !!fm && Number(fm[1]) + Number(fm[2]) === mineN && A.rules, JSON.stringify({ facts: A.facts, tabs: A.tabs, rules: A.rules }));
     await page.click('[data-ap-rules]');
     const RS = await until(() => { const f = document.getElementById('jl-feed') || document.getElementById('ai-feed'); const t = f ? f.textContent.replace(/\s+/g, ' ') : '';
       return /ask for a yes before anyone signs/.test(t) ? { said: true, door: !!(f.querySelector('[data-ai-rule-door="ask_admin"][data-ai-rule="approvals"]')), view: state.view } : null; }, null, 6000);
@@ -105,15 +113,18 @@ const RULES = [
     await page.click('[data-ap-row="MK-WL-3"]');
     const P3 = await until(() => { const p = document.getElementById('ins-panel'); return p && /MK-WL-3|Stratos/.test(p.textContent) ? { text: p.textContent.replace(/\s+/g, ' '), approve: !!p.querySelector('[data-ins-act="approve"]') } : null; });
     check('4a a signature\'s row opens its own panel: what stands before signing, no Approve', !!P3 && /before signing|ready to sign|to settle/i.test(P3.text) && !P3.approve, JSON.stringify(P3 && { approve: P3.approve }));
-    await page.click('[data-ap-row="MK-WL-1"]');
-    const P1 = await until(() => { const p = document.getElementById('ins-panel'); return p && /Helio/.test(p.textContent) && p.querySelector('[data-ins-act="approve"]') ? { approve: true, refuse: !!p.querySelector('[data-ins-act="refuse"]') } : null; });
-    check('4b an approval\'s panel carries Approve and Refuse', !!P1 && P1.refuse, JSON.stringify(P1));
+    await page.click('[data-ap-row="MK-WL-1"] .apn-name');
+    /* RE-POINTED 16 Nov 2026 (#762): the chosen approval's panel is Jambo's Five panel with no button (apnLeadFiveHtml);
+       Approve and Decline stand on the chosen row itself, one press away */
+    const P1 = await until(() => { const p = document.getElementById('ins-panel'); const tr = document.querySelector('.apn-table tr[data-ap-row="MK-WL-1"]');
+      return p && /Helio/.test(p.textContent) && tr && tr.querySelector('[data-ap-approve]') ? { approve: true, refuse: !!tr.querySelector('[data-ap-refuse]') } : null; });
+    check('4b an approval carries Approve and Decline (on its row, beside its panel)', !!P1 && P1.refuse, JSON.stringify(P1));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'one-worklist-1440x780.png') });
 
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       const F = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-        const t = r('.ap-table'), p = r('#ins-panel'), last = [...document.querySelectorAll('[data-ap-row]')].pop();
+        const t = r('.ap-table'), p = r('#ins-panel'), last = [...document.querySelectorAll('tr[data-ap-row]')].pop();
         /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the reference rides the party's grey line, so the party is the first column */
         const party = document.querySelector('.ap-table thead th:nth-child(1)');
         return { list: !!t && t.top < innerHeight, panel: !!p && p.right <= innerWidth + 1, rows: !!last && last.getBoundingClientRect().bottom <= innerHeight,

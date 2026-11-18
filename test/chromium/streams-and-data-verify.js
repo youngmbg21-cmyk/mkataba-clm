@@ -46,17 +46,19 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; Contract streams is a link at its
+       foot; Data & backup has no door there and is opened by its name (the navigation map's own call, js/navmap.js) */
     const toCompany = () => until(() => {
-      if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
+      if (!document.getElementById('set-page')) { setView('team'); return null; }
       if (document.querySelector('[data-st-pg]')) { settingsGoPage(''); return null; }
-      return document.querySelector('#st-board .st-cards') ? true : null; }, null, 30000);
+      return document.querySelector('.stn-page #stn-main .stn-row') ? true : null; }, null, 30000);
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts), null, { timeout: 20000 });
     await toCompany();
 
     console.log('\n1 · Contract streams');
-    if (await press('[data-st-card="standards"] [data-st-page="streams"]', '1 the door')) {
+    if (await press('#stn-pages [data-st-page="streams"]', '1 the door')) {
       const pg = await until(() => { const p = document.querySelector('[data-st-pg="streams"]'); if (!p) return null;
         return { filters: [...p.querySelectorAll('.st-sw-band .st-sw-f > span')].map(x => x.textContent.trim()),
           cols: [...p.querySelectorAll('.st-sw-tb thead th')].map(x => x.textContent.trim()),
@@ -98,11 +100,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
 
     console.log('\n5 · Data & backup');
     await toCompany();
-    if (await press('[data-st-card="house"] [data-st-page="data"]', '5 the door')) {
+    if (await page.evaluate(() => { openSettingsAt('company'); settingsGoPage('data'); return true; })) {
       const dp = await until(() => { const p = document.querySelector('[data-st-pg="data"]'); const dw = document.getElementById('st-drawer');
         return p ? { title: (p.querySelector('.st-pg-t') || {}).textContent, tabs: [...p.querySelectorAll('[data-st-bk-tab]')].map(b => b.textContent.trim() + (b.classList.contains('is-on') ? '*' : '')).join(' | '),
           drawer: !!(dw && dw.classList.contains('open')), backup: !!document.getElementById('bk-export') } : null; }, null, 6000);
-      check('5a the door lands on the page, The trail in front, no drawer', !!dp && /Data/.test(dp.title) && dp.tabs === 'The trail* | Backup' && !dp.drawer, JSON.stringify(dp));
+      check('5a by its name it lands on the page, The trail in front, no drawer', !!dp && /Data/.test(dp.title) && dp.tabs === 'The trail* | Backup' && !dp.drawer, JSON.stringify(dp));
       await press('[data-st-pg="data"] [data-st-bk-tab="backup"]', '5a Backup');
       const bk = await until(() => !!document.getElementById('bk-export'), null, 4000);
       check('5a the Backup tab holds the backup', !!bk);
@@ -114,8 +116,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       check('5b the trail\'s asks are labelled boxes in one row, with its count', !!band && band.labels === 'From|To|Streams|As' && band.oneRow && /act/.test(band.fig), JSON.stringify(band));
       await shot(page, 'data-trail-1440x780');
       if (await press('[data-st-pg="data"] .st-pg-back', '5c ‹ Settings')) {
-        const back = await until(() => !document.querySelector('[data-st-pg]') && document.querySelector('#st-board .st-cards') ? true : null, null, 4000);
-        check('5c ‹ Settings goes back to the board', !!back);
+        const back = await until(() => !document.querySelector('[data-st-pg]') && document.querySelector('.stn-page #stn-main .stn-row') ? true : null, null, 4000);
+        check('5c ‹ Settings goes back to the one list', !!back);
       }
     }
 

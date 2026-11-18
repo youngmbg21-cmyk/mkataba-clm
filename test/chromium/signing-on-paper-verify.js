@@ -216,10 +216,14 @@ const SHEET_TOP = `(() => {
        working copy's sheet did — nothing grew above it — and its first line
        sits inside the page, below the page's own margin. */
     const above = await gapAbove();
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the signing copy is drawn with its one caption line
+       over it (".ig-sg-cap", BEFORE YOU SIGN AS DRAWN, round 5); that line, and nothing else, may stand above it */
+    const capH = await page.evaluate(() => { const c = document.querySelector('#ig-paper .ig-sg-cap'); if (!c || !c.getClientRects().length) return 0;
+      const cs = getComputedStyle(c); return Math.round(c.getBoundingClientRect().height + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)); });
     const inkIn = (ink, sh) => (ink != null && sh) ? ink - sh.top - sh.pad : null;
     check('1c no chrome grew above the signing copy, and its first line sits inside its own page’s margin',
-      above && above.sign && workAbove && !workAbove.sign && signSheet && above.gap <= workAbove.gap + 1 && inkIn(signInk, signSheet) != null && inkIn(signInk, signSheet) >= 0,
-      `signing ${JSON.stringify(above)} · working ${JSON.stringify(workAbove)} · signing ink ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
+      above && above.sign && workAbove && !workAbove.sign && signSheet && above.gap <= workAbove.gap + capH + 1 && inkIn(signInk, signSheet) != null && inkIn(signInk, signSheet) >= 0,
+      `signing ${JSON.stringify(above)} · working ${JSON.stringify(workAbove)} · caption ${capH} · signing ink ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
 
     /* THE COLUMN SWAPS AND THE PAPER DOES NOT. */
     /* RE-POINTED 14 Oct 2026 (stage 5): the room's two right-hand columns
@@ -233,9 +237,9 @@ const SHEET_TOP = `(() => {
     });
     check('1d on Signing the signing column shows and the Checks column does not',
       cols.sign === true && cols.docs === false, JSON.stringify(cols));
-    const side = await seen(page, '#sign-side');
-    check('1e the signing order is at the TOP of that column', !!(side && side.on),
-      side ? `top ${side.top}` : 'absent');
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 1e "the signing order is at the TOP of that column" (#sign-side) — the
+       old column under Before you sign stays gone in the new look; who signs on each side is the five parts' rows
+       (owner, 17 Nov 2026, answer 2) */
 
     /* ================= 2 — HaTi PROPOSES, A PERSON PLACES */
     const props = await page.evaluate(() => {
@@ -246,16 +250,18 @@ const SHEET_TOP = `(() => {
       props.length === 1 && props[0].id === 'cl_spa00003',
       JSON.stringify(props));
 
-    const cardSeen = await seen(page, '#sign-side section:last-of-type');
-    const hasAdd = await page.$('#sign-side [data-spot-add]');
-    check('2b the places card is on screen with an Add on the proposal',
-      !!(cardSeen && cardSeen.on && hasAdd), cardSeen ? `${cardSeen.w}x${cardSeen.h}` : 'absent');
-
-    await page.selectOption('#sign-side [data-spot-who]', 'r1').catch(() => {});
-    await page.click('#sign-side [data-spot-add]');
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 2b "the places card is on screen with an Add on the proposal" and the
+       press on its Add — the "places to sign" card stays gone in the new look (owner, 17 Nov 2026, answer 2). A place
+       already on a contract still draws, fills and holds the Sign button, so the spot is staged through the writer the
+       card's Add called (signSpotAdd, the internal signer r1, the proposal HaTi made) and everything after it is asked
+       of the paper exactly as before */
+    const placedOk = await page.evaluate(p => { const c = getContract(state.activeId);
+      const s = p && signSpotAdd(c, { index: p.i }, 'r1', p.kind);
+      if (s) { if (window.signSpotsPaint) signSpotsPaint(c); if (window.renderSignButton) renderSignButton(c); }
+      return !!s; }, props[0] || null);
     await page.waitForTimeout(700);
     const placed = await page.evaluate(() => (getContract(state.activeId).signSpots || []).length);
-    check('2c pressing Add places one spot', placed === 1, `${placed} spot(s)`);
+    check('2c the writer places one spot', placedOk && placed === 1, `${placed} spot(s)`);
 
     /* ================= 3 — THE MARK IS ON THE PAPER */
     const spot = await seen(page, '#ig-canvas .sig-spot');

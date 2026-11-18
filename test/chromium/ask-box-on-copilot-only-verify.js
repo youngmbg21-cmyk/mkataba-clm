@@ -57,7 +57,11 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
         /* RE-POINTED 23 Oct 2026 (Spine): Obligations is no tab — its panel opens from the Dossier's line under Sign */
         if (t === 'oblig'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); if (b) b.click(); });
           await page.waitForSelector('#ig-dock .ds-ob-line', { timeout: 4000 }).catch(() => {}); }
-        await page.evaluate(tab => { const b = document.querySelector(tab === 'oblig' ? '#ig-dock .ds-ob-line' : `#ig-dock [data-pd-tab="${tab}"]`); if (b) b.click(); }, t);
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier card draws no
+           .ds-ob-line; its Obligations door is a row carrying data-pd-glance-tab="oblig" where the stage offers one,
+           else the panel's one opener pdObOpen (what every Obligations door presses). This check is about the box. */
+        await page.evaluate(tab => { const b = document.querySelector(tab === 'oblig' ? '#ig-dock .ds-ob-line, #ig-dock [data-pd-glance-tab="oblig"]' : `#ig-dock [data-pd-tab="${tab}"]`);
+          if (b) b.click(); else if (tab === 'oblig' && window.pdObOpen) pdObOpen(); }, t);
         const on = await page.waitForFunction(tab => { if (tab === 'oblig') return window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock [data-pd-tab="doc"]');
           const b = document.querySelector('#ig-dock .pd-tab.on');
           return !!b && b.getAttribute('data-pd-tab') === tab && !!document.querySelector('#ig-dock [data-pd-tab="doc"]'); }, t, { timeout: 4000 }).then(() => true, () => false);

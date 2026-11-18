@@ -12,8 +12,7 @@
      5 · Calendar Agenda: the late duty first, today's approval, an empty week one line; Horizon: each row its own months
      6 · History with the wording: the nudge, the duty done, the approval with its note under it, both changes as one row
      7 · Amend: the sealed paper and the amendment side by side, the line's Discard and Create the amendment (grey)
-   And the switch off:
-     8 · Approvals, Obligations and the Calendar are drawn as before
+   (8, the switch off, RETIRED 16 Nov 2026, #762: the new look is the only look)
    At the parent (before this round) 1–7 fail: none of it is drawn.
    Run: node test/chromium/round5-new-look-verify.js   (pictures: ROUND5_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -169,17 +168,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       up && !!side && side.beside && acts.discard && acts.create && acts.grey && /as amended/i.test(face) && /say the change/i.test(ph), { side, acts, ph });
   } catch (e) { check('7 Amend', false, String(e).slice(0, 200)); }
 
-  /* 8 · the switch off: as before */
-  try {
-    await page.evaluate(async () => { const x = document.querySelector('[data-pd2-am-discard]'); if (x) x.click(); await stPrefSet('newLook', false); newLookApply(); });
-    await page.evaluate(() => caGo({ kind: 'go', place: 'approvals' }));
-    await until(page, () => !!document.querySelector('.ap-table'), null, 15000);
-    const ap = await page.evaluate(() => ({ nl: !!document.querySelector('.apn-table') }));
-    await page.evaluate(() => setView('obligations'));
-    await until(page, () => !!document.querySelector('.obw-ins, .obw-weeks'), null, 15000);
-    const ob = await page.evaluate(() => ({ nl: !!document.querySelector('.obn-page') }));
-    check('8 the switch off: Approvals and Obligations as before', !ap.nl && !ob.nl, { ap, ob });
-  } catch (e) { check('8 switch off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 8 "the switch off: as before" — there is no switch; the new look is the only look */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nall passed');

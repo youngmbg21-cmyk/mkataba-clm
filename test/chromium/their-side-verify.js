@@ -95,7 +95,9 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
       docTop: doc ? Math.round(box(doc).top) : null, headBottom: id ? Math.round(id.bottom) : null };
   });
   check('2a the state word sits beside the title', head.stat.trim().length > 0, head.stat);
-  check('2b the key on the control row paints its swatches', head.swatchW >= 8, `${head.swatchW}px`);
+  /* RETIRED 16 Nov 2026 (#762): the colour key on their control row (rlCtlLegendHtml) is not drawn on the outside look —
+     its head is the tabs and Download Word · More (portalOutTopHtml); see question Q6. */
+  void head.swatchW;
   check('2c the contract starts within 80px of the head (no band pushed it down)',
     head.docTop != null && head.headBottom != null && head.docTop - head.headBottom <= 80,
     `head ends ${head.headBottom}, paper starts ${head.docTop}`);
@@ -150,10 +152,16 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
       await until(page, () => !document.querySelector('#ce-spell .sp-row'));
       /* A SAVE ASKS WHY (Young, 29 Sep 2026) — see where-we-are-verify. Here
          the reason is skipped; the question must have come up. */
-      const why = await until(page, () => !!document.getElementById('pd-input'), null, 4000);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): on the outside look a save on their seat asks as
+         ours does (owner, 8 Nov 2026: "mimic what is in the owner side") — the Notes drawer opens with the change pinned,
+         its way out "Skip" (rlNoteAskAfterFile → portalOpenNotes({pin:true})); the old "Why this change?" pop-up is the
+         old look's */
+      const why = await until(page, () => !!document.getElementById('pd-input') || (() => { const n = document.getElementById('pt-notes');
+        const pin = n && n.querySelector('[data-rl-np-pin]'); return !!n && n.classList.contains('open') && !!pin && pin.getClientRects().length > 0; })(), null, 4000);
       check('4h the save asks for a reason', why);
-      await press(page, '#pd-cancel');
-      await until(page, () => !document.getElementById('pd-input'), null, 2000);
+      if (await page.$('#pd-cancel')) await press(page, '#pd-cancel');
+      else if (await page.$('#pt-notes [data-rl-np-unpin]')) await press(page, '#pt-notes [data-rl-np-unpin]');
+      await until(page, () => !document.getElementById('pd-input') && !document.querySelector('#pt-notes [data-rl-np-pin]'), null, 2000);
       await press(page, '#clause-editor [data-ce-act="close"]');
       await until(page, () => !document.getElementById('clause-editor'));
       const held = await until(page, () => !!document.querySelector('.rl-unsent-go'));

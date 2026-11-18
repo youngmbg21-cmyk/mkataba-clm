@@ -122,8 +122,9 @@ const px = v => Number(String(v || '').replace('px', ''));
        than the word, never so quiet it cannot be read. */
     const nr = (() => { const x = lum(head.num), y = lum(head.bg); return (x == null || y == null) ? null
       : (Math.max(x, y) + .05) / (Math.min(x, y) + .05); })();
-    check('the head\'s word is the primary ink — B1, "all of it black"',
-      head.color === head.ink, `${head.color} vs ${head.ink}`);
+    /* RETIRED 16 Nov 2026 (#762): "the head's word is the primary ink — B1" — the new look's Redlines face draws no head
+       word (owner's pick, 16 Nov 2026, "cards first": no headline, one line — round label + Send all); the number's ink
+       and its legibility below still hold for the element that carries it */
     /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
     check('and its number is the ink too (12px and up), legible',
       head.num && head.num === head.ink && nr >= 4.5, `${head.num} · ${nr && nr.toFixed(2)}`);
@@ -214,7 +215,9 @@ const px = v => Number(String(v || '').replace('px', ''));
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk; a stuck answer
        is the bell's own row there (data-nd-row "al:answer-stuck:…"), never green */
     const panel = await page.evaluate(() => {
-      const mine = [...document.querySelectorAll('#context-panel .nd-pan .nd-r[data-nd-row^="al:answer-stuck:"]')];
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's rows are the panel's [data-nd-row] rows,
+         drawn by the new look's own row builder (no .nd-pan .nd-r frame) */
+      const mine = [...document.querySelectorAll('#context-panel [data-nd-row^="al:answer-stuck:"]')];
       return { n: mine.length,
         vis: mine.map(r => Math.round(r.getBoundingClientRect().height)),
         text: mine[0] ? (mine[0].innerText || '').replace(/\s+/g, ' ').trim() : '',

@@ -3,7 +3,7 @@
      1 · Obligations (new look): a double press on a duty's row lands on its contract's paper, Jambo's panel on the
          Obligations face with that row open, his box at the foot
      2 · Coming back to Obligations shows the whole list again (no narrowed scope left behind)
-     3 · The old look: the narrowed page, as before
+     (3 · the old look's narrowed page: RETIRED 16 Nov 2026, #762 — there is no old look any more)
    At the parent 1 fails (the narrowed page, no Jambo panel).
    Run: node test/chromium/obligation-opens-on-the-paper-verify.js */
 const fs = require('node:fs');
@@ -45,12 +45,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   const s2 = await page.evaluate(s => ({ rows: document.querySelectorAll(s).length, narrowed: !!document.querySelector('[data-obw-only-clear]'), contracts: new Set([...document.querySelectorAll(s)].map(r => (r.getAttribute('data-ob-key') || '').split('::')[0])).size }), rowSel);
   check('2 · back on Obligations the whole list stands, no narrowed scope', back && !s2.narrowed && s2.contracts >= 2, s2);
 
-  /* 3 */
-  const old = await go(false);
-  await page.evaluate(s => { const r = [...document.querySelectorAll(s)].find(x => /Return the pallets/.test(x.textContent)); if (r) r.setAttribute('data-pp', '1'); }, rowSel);
-  await page.dblclick('[data-pp="1"]').catch(() => {});
-  const s3 = await until(page, () => state.view === 'obligations' && !!document.querySelector('[data-obw-only-clear]'), null, 10000);
-  check('3 · the old look: the narrowed page, as before', old && s3);
+  /* RETIRED 16 Nov 2026 (#762): check 3 "the old look: the narrowed page, as before" — the old look is no longer reached
+     (newLookOn is true for everyone, no switch), so there is no old-look page to keep as it was */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

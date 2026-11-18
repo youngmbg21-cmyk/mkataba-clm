@@ -68,8 +68,10 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 19 Oct 2026 (round 20 as drawn, scene "My notes"): where the
        width holds it the note opens in Jambo's panel beside the list
        (#ins-panel, its verbs in the panel's head); narrower, the card's side */
-    const saved = await until(() => { const r = document.querySelector('.mn-t tbody tr'); const side = document.querySelector('#ins-panel.is-jambo') || document.getElementById('mn-side');
-      return r && /liability cap/.test(r.textContent) && r.classList.contains('is-sel') && side && /Mark reviewed/.test(side.textContent) ? { row: r.textContent.replace(/\s+/g, ' ').trim(), priv: /only you can see/.test(side.textContent) } : null; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the ledger is .mnn-table and the chosen note is
+       Jambo's Five panel in #ins-panel (mnnPanelFiveHtml), which says "Only you see it." */
+    const saved = await until(() => { const r = document.querySelector('.mn-t tbody tr, .mnn-table tbody tr'); const side = document.querySelector('#ins-panel.is-jambo') || document.getElementById('mn-side') || document.getElementById('ins-panel');
+      return r && /liability cap/.test(r.textContent) && r.classList.contains('is-sel') && side && /Mark reviewed/.test(side.textContent) ? { row: r.textContent.replace(/\s+/g, ' ').trim(), priv: /only you (can )?see/i.test(side.textContent) } : null; });
     const onServer = await W.admin.json('/api/me/items?kind=note');
     const stored = onServer.items.find(n => /liability cap/.test(n.body));
     check('4. Next week says the day; Save puts the note at the top, selected and private', !!says && !!saved && saved.priv, JSON.stringify({ says, saved }));
@@ -85,8 +87,9 @@ const check = (name, pass, detail) => {
       const bell = (typeof buildAlerts === 'function' ? buildAlerts() : []).filter(a => a.kind === 'note-due').map(a => a.text);
       return c === '1' && bell.length === 1 ? { c, bell } : null; });
     check('5. a note due today is in the bell and counts 1 on the door', !!due, JSON.stringify(due));
-    await page.evaluate(() => { const r = [...document.querySelectorAll('.mn-t tbody tr')].find(x => /Chase the signed copy/.test(x.textContent)); r.click(); });
-    await until(() => /Chase the signed copy/.test((document.getElementById('mn-side') || {}).textContent || ''));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's ledger rows and its panel (#ins-panel) */
+    await page.evaluate(() => { const r = [...document.querySelectorAll('.mn-t tbody tr, .mnn-table tbody tr')].find(x => /Chase the signed copy/.test(x.textContent)); r.click(); });
+    await until(() => /Chase the signed copy/.test((document.getElementById('mn-side') || document.getElementById('ins-panel') || {}).textContent || ''));
     await page.click('[data-mn-act="reviewed"]');
     const cleared = await until(() => { const c = (document.querySelector('[data-count="mynotes"]') || {}).textContent || '';
       return c === '' && !buildAlerts().some(a => a.kind === 'note-due') && document.querySelector('[data-mn-act="unreview"]') ? true : null; });

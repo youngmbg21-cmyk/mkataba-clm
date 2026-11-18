@@ -1984,7 +1984,12 @@ const jamboChipsOn = () => !((currentUser()||{}).prefs && currentUser().prefs.ja
 /* THE NEW LOOK (owner, 31 Oct 2026): the Legora way is built page by page behind one switch, an admin's own preview
    until each page is approved. One reading (an admin who turned it on), one writer of the page's mark (html.lg-new);
    every rule of the new look is scoped under that mark, so with it off the platform is exactly as it was. */
-const newLookOn = () => { const u = (typeof currentUser === 'function') ? currentUser() : null; return !!(u && u.role === 'admin' && u.prefs && u.prefs.newLook === true); };
+/* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): on for everyone who signs
+   in, every role, today's people and anyone who joins later, with no switch.
+   The sign-in page and the other side's pages wear it too (outsideLookOn).
+   The old look's code stays until its removal is asked for by name;
+   prefs.newLook is no longer read. */
+const newLookOn = () => { const u = (typeof currentUser === 'function') ? currentUser() : null; return !!u; };
 const newLookApply = () => { try { document.documentElement.classList.toggle('lg-new', newLookOn()); } catch (_) {} };
 const contractOpensOn = () => { const v = String(((currentUser()||{}).prefs||{}).opensOn || ''); return OPENS_ON.includes(v) ? v : 'jambo'; };
 /* ---- WHO MAY MAKE NEW PAPER (Young ruled 18 Sep 2026) ----
@@ -2466,7 +2471,8 @@ let _loginBusy=false;
 let _liTicket=null;
 /* THE NEW LOOK FOR PEOPLE OUTSIDE THE COMPANY (round 8): the company's own setting, said by the server to pages that
    open before anyone signs in (GET /api/status) and to the other side's links (GET /api/shares/:token) */
-function outsideLookOn(){ return !!window._outsideLook; }
+/* on for everyone, no switch (owner, 16 Nov 2026): the sign-in page and every page the other side opens */
+function outsideLookOn(){ return true; }
 function outsideLookApply(){ try{ document.documentElement.classList.toggle('lg-out', outsideLookOn()); }catch(_){ /* no page yet */ } }
 async function doLogin(){
   if(_loginBusy) return;

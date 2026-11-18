@@ -256,6 +256,8 @@ window.READY = (async () => {
      opens the Redlines tab unless a stage asks for the landing as it is
      ({ tab:'landing' }) or for another tab by name. */
   window.SHOW_COUNTERPARTY = function(o = {}){
+    /* the other side's page wears the outside look, as the real portal's boot sets it (outsideLookOn, #762) */
+    if (window.outsideLookApply) outsideLookApply();
     document.getElementById('content').innerHTML = '';
     const payload = buildSharePayload(c, { purpose: 'negotiate' });
     renderSharePortal(payload, { token: 'harness-token', share: {

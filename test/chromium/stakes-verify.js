@@ -106,13 +106,16 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         tally: !!document.querySelector('#pd-thread .stk-tally, #pd-thread [data-stk-sev]'),
         boxes: [...document.querySelectorAll('#pd-thread .stk-flt')].map(l => (l.querySelector('span') || {}).innerText),
         gone: !document.querySelector('#pd-thread .stk-ribbon, #pd-thread .stk-legend, #pd-thread .stk-sum') }));
-      const o2 = await page.evaluate(() => Object.fromEntries(['reg', 'sev', 'by'].map(k => [k, [...document.querySelectorAll(`#pd-thread [data-stk-f="${k}"] option`)].map(o => o.value).join(',')])));
       /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a serif headline counting the clauses that need you, one
          sentence, and the clauses as tabs with counts in place of the three filter boxes; still no ribbon or key */
       const e2m = await page.evaluate(() => ({ t: ((document.querySelector('#pd-thread .stk-mq-t') || {}).textContent || '').trim(),
         tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.getAttribute('data-stk-tab')), boxes: document.querySelectorAll('#pd-thread .stk-flt').length }));
-      ok('2 the head is a headline, a sentence and tabs, no filter boxes, summary, ribbon or key',
-        /^Clauses ?\d+( ?· \d+ need you)?( · \d+ worth a look)?$/.test(e2m.t) && /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes): the SAP head */ e2m.tabs[0] === '' && e2m.boxes === 0 && e2.tally === false && e2.gone, JSON.stringify({ e2m, e2 }));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; owner's picks 31 Oct and 16 Nov 2026, "the Legora
+         way", f1073/f1081): the head is ONE line — "Clause review · the contract · where to start" — no headline, no
+         counts, no tabs, no filter boxes; still no summary, ribbon or key */
+      const lg = await page.evaluate(() => { const t = [...document.querySelectorAll('#pd-thread .stk-lg-top')].filter(e => e.getClientRects().length); return { n: t.length, t: t[0] ? t[0].textContent.trim() : '' }; });
+      ok('2 the head is one line, no headline, tabs, filter boxes, summary, ribbon or key',
+        lg.n === 1 && /^Clause review\b/.test(lg.t) && !e2m.t && !e2m.tabs.length && e2m.boxes === 0 && e2.tally === false && e2.gone, JSON.stringify({ lg, e2m, e2 }));
 
       const e3 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')];
@@ -125,47 +128,14 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       });
       /* RE-POINTED 21 Oct 2026 ("the Legora way"): a missing point stands IN PLACE, after the clause it would follow */
       /* RE-POINTED 22 Oct 2026 (owner: "build the first one"): it stands INSIDE that clause, opening and closing with it */
-      ok('3 a point stands under its clause; a missing one in place after the clause it would follow', /^2\b/.test(e3.underName || '') && e3.lines === 2 && /After §2 — not in the contract/.test(e3.missH || '') && /^2\b/.test(e3.after || '') && e3.doors === 3, JSON.stringify(e3));
-      /* 3b A FILTER NARROWS THE LIST: Found by → Our standards leaves the one
-         standards point, on the Payment row; rows with nothing step aside; the
-         box keeps the keyboard */
-      /* a point's box shows only under its open clause: open the row that holds Deep dive i */
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's row names the clause by its heading, the number left off (stkClauseName) —
+         clause 2 is "Price & Contract Value" */
+      ok('3 a point stands under its clause; a missing one in place after the clause it would follow', /^(2\b|Price & Contract Value)/.test(e3.underName || '') && e3.lines === 2 && /After §2 — not in the contract/.test(e3.missH || '') && /^(2\b|Price & Contract Value)/.test(e3.after || '') && e3.doors === 3, JSON.stringify(e3));
+      /* RETIRED 16 Nov 2026 (#762): 3b, 3c, 3d (Found by · Severity · Section filters narrow the list) — the new look's
+         Clauses has no filters, tabs or counts: ONE line "Clause review · the contract · where to start", then the list
+         (owner's picks 31 Oct and 16 Nov 2026, "the Legora way", f1073/f1081; breakdown.js stkMarqueeHtml) */
       const openRowOf = i => page.evaluate(async i => { const b = document.querySelector(`#pd-thread .doc-th-row [data-stk-dive="${i}"]`);
         const r = b && b.closest('.doc-th-row'); if (r && !r.classList.contains('is-open')){ r.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); } }, i);
-      const pick = (k, v) => page.evaluate(([k, v]) => { const el = document.querySelector(`#pd-thread [data-stk-f="${k}"]`); el.focus(); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]);
-      /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): Section and Found by stand behind the tabs' "Filter" */
-      await page.evaluate(() => { const m = document.querySelector('#pd-thread [data-stk-more]'); if (m && m.getAttribute('aria-expanded') !== 'true') m.click(); });
-      await page.waitForTimeout(300);
-      await pick('by', 'std');
-      const f1 = await page.evaluate(() => {
-        const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')].filter(r => r.offsetParent !== null);
-        return { count: (document.querySelector('#pd-thread .stk-mq-t') || {}).innerText || '', lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.textContent),
-          shown: rows.length, onlyKept: rows.every(r => r.classList.contains('is-open') || !!r.querySelector('.stk-line')), focus: document.activeElement && document.activeElement.getAttribute('data-stk-f') };
-      });
-      /* RE-POINTED 21 Oct 2026: the head's counts are the whole contract's (they are the Severity doors); the filter narrows the list */
-      ok('3b Found by: Our standards keeps the one standards point and hides rows with none', /need you/i.test(f1.count) /* RE-POINTED 24 Oct 2026 (Round 3): the SAP head */ && f1.lines.length === 1 && /Payment terms/.test(f1.lines[0])
-        && f1.onlyKept && f1.shown <= 2 && f1.focus === 'by', JSON.stringify(f1));
-      await pick('by', '');
-      /* RE-POINTED 23 Oct 2026 (Marquee): Severity is the tabs */
-      await page.evaluate(() => { const t = document.querySelector('#pd-thread [data-stk-tab="need"]'); if (t) t.click(); });
-      await page.waitForTimeout(300);
-      const f2 = await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-stk-tab][aria-selected="true"]');
-        return { box: b ? b.getAttribute('data-stk-tab') : null, lines: document.querySelectorAll('#pd-thread .stk-line').length }; });
-      /* RE-POINTED 21 Oct 2026 (the count line removed on the owner's word):
-         the filter's choice shows on the Severity box itself, which is now the
-         one door onto the three. */
-      ok('3c Severity: Needs you keeps only what needs us', f2.box === 'need' && f2.lines === 1, JSON.stringify(f2));
-      await page.evaluate(() => { const t = document.querySelector('#pd-thread [data-stk-tab=""]'); if (t) t.click(); });
-      await page.waitForTimeout(300);
-      /* 3d A POINT'S SECTION IS READ OFF ITS CLAUSE when Jambo named none (owner,
-         13 Oct 2026: "the Region which we should call Section"): the standards
-         point names no section, yet stands on clause 2, which the reading puts
-         in Money — so Section: Money keeps it */
-      await pick('reg', '1');
-      const f3 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '',
-        lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.textContent) }));
-      ok('3d Section: Money keeps the points whose clause sits in Money, the standards one too', f3.lines.length === 2 && f3.lines.some(t => /Payment terms/.test(t)) && f3.lines.some(t => /price rise|warning/i.test(t)), JSON.stringify(f3));
-      await pick('reg', '');
       /* 3e RE-POINTED 21 Oct 2026 ("the Legora way", dressed as The Brief: nothing
          boxed inside the body): a point is a card with NO wash and NO box — a
          2px edge in its verdict's colour, the verdict a dot and a word, its words dark */
@@ -195,11 +165,16 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         const r2 = document.querySelector(`#pd-thread [data-th-row="${row.getAttribute('data-th-row')}"]`);
         const bead = getComputedStyle(r2.querySelector('.doc-th-bead')).backgroundColor;
         const tok = n => { const p = document.createElement('span'); p.style.color = `var(${n})`; document.body.appendChild(p); const v = getComputedStyle(p).color; p.remove(); return v; };
-        return { row: true, before, after: { open: r2.classList.contains('is-open'), box: vis(r2.querySelector('.stk-line')) }, bead, ruby: tok('--st-ruby-dot') };
+        return { row: true, before, after: { open: r2.classList.contains('is-open'), box: vis(r2.querySelector('.stk-line')) }, bead, need: tok('--st-amber-dot') };
       });
       /* RE-POINTED 21 Oct 2026: the row says the verdict's word and the count */
-      ok('3f a closed clause hides its cards and says "Needs you · 1"; pressed, its card shows', f5.row && !f5.before.open && !f5.before.box && /^Needs you · 1$/.test(f5.before.say) && f5.after.open && f5.after.box, JSON.stringify(f5));
-      ok('3g the dot wears its clause\'s worst point: red where a point needs you', f5.row && f5.bead === f5.ruby, JSON.stringify({ bead: f5.bead, ruby: f5.ruby }));
+      /* RETIRED 17 Nov 2026 (#762): 3f's "says Needs you · 1" half — the new-look Clauses (the Legora way, f1073, f1081)
+         puts no verdict word or count on a row; the closed row hiding its card and the press showing it are asked as before */
+      ok('3f a closed clause hides its cards; pressed, its card shows', f5.row && !f5.before.open && !f5.before.box && f5.after.open && f5.after.box, JSON.stringify(f5));
+      /* RE-POINTED 17 Nov 2026 (#762): the new look's sheet gives a clause whose worst point needs you the amber dot
+         (index.html, THE NEW LOOK: .stk-b-need .doc-th-bead → --st-amber-dot; there is no red on that list) — the dot still
+         wears its clause's worst point: the need tone, never the grey of nothing or the green of done */
+      ok('3g the dot wears its clause\'s worst point: the need tone where a point needs you', f5.row && f5.bead === f5.need, JSON.stringify({ bead: f5.bead, need: f5.need }));
       /* 3h RE-POINTED 21 Oct 2026 ("the Legora way"): a point not in the
          contract is no longer a fold at the bottom — its dashed row stands in
          place with its card open, and its Deep dive is there to press */
@@ -218,44 +193,8 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const f7 = await page.evaluate(() => ({ sq: document.querySelectorAll('#pd-thread .stk-rsq').length,
         named: document.querySelectorAll('#pd-thread .doc-th-row .doc-th-name').length }));
       ok('3i no coloured section square after any clause name', f7.named > 0 && f7.sq === 0, JSON.stringify(f7));
-      /* 3k AN OPEN CLAUSE WITH NOTHING THE FILTER KEEPS LEAVES THE LIST (owner,
-         13 Oct 2026): open the Term row (no points), then Severity: Needs you */
-      const f9 = await page.evaluate(async () => {
-        const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^1\b/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
-        if (!row) return { row: false };
-        const at = row.getAttribute('data-th-row');
-        if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); }
-        /* RE-POINTED 23 Oct 2026 (Marquee): Severity is the tabs */
-        document.querySelector('#pd-thread [data-stk-tab="need"]').click();
-        const r2 = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${at}"]`);
-        const out = { row: true, open: r2.classList.contains('is-open'), shown: r2.getClientRects().length > 0 };
-        document.querySelector('#pd-thread [data-stk-tab=""]').click();
-        return out;
-      });
-      ok('3k an open clause with nothing the filter keeps leaves the filtered list', f9.row && f9.open && !f9.shown, JSON.stringify(f9));
-      /* 3l ONE DROPDOWN PER PRESS, ON AN iPAD TOO (owner, 3 Oct and again 13 Oct
-         2026): a finger opens HaTi's list, picks from it, and the box is NOT
-         focused afterwards — on iPadOS a focused select IS the system picker */
-      /* RE-POINTED 23 Oct 2026 (Marquee): Severity is the tabs; the rule is held on Found by, behind "Filter" */
-      const f10 = await page.evaluate(async () => {
-        const more = document.querySelector('#pd-thread [data-stk-more]'); if (more && more.getAttribute('aria-expanded') !== 'true') more.click();
-        await new Promise(z => setTimeout(z, 300));
-        const sel = document.querySelector('#pd-thread [data-stk-f="by"]');
-        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-        const tap = el => { const r = el.getBoundingClientRect();
-          el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch', clientX: r.x + 5, clientY: r.y + 5 })); };
-        tap(sel);
-        const menu = document.querySelector('.hati-selmenu');
-        const row = menu && [...menu.querySelectorAll('[data-sm]')].find(b => /standards|playbook/i.test(b.textContent));
-        if (row){ tap(row); row.click(); }
-        await new Promise(z => setTimeout(z, 300));
-        const a = document.activeElement;
-        const out = { menu: !!menu, picked: (document.querySelector('#pd-thread [data-stk-f="by"]') || {}).value, focusedSelect: !!(a && a.tagName === 'SELECT') };
-        const s2 = document.querySelector('#pd-thread [data-stk-f="by"]'); if (s2){ s2.value = ''; s2.dispatchEvent(new Event('change', { bubbles: true })); }
-        const m2 = document.querySelector('#pd-thread [data-stk-more]'); if (m2 && m2.getAttribute('aria-expanded') === 'true') m2.click();
-        return out;
-      });
-      ok('3l a finger picks from HaTi\'s list and the box is not focused (no iPad picker over it)', f10.menu && f10.picked === 'std' && !f10.focusedSelect, JSON.stringify(f10));
+      /* RETIRED 16 Nov 2026 (#762): 3k (an open clause the filter keeps nothing of leaves the filtered list) and 3l (the
+         filter's dropdown on a finger) — the new look's Clauses has no filter boxes (as 3b–3d above) */
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-list.png' });
       /* RE-POINTED 21 Oct 2026 ("the Legora way"): the list and the dive walk
          the PAPER's order now (the standards point on clause 2 comes first), so
@@ -318,8 +257,12 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const j1 = await page.evaluate(async () => {
         const c = getContract('MK-S1'); const before = (c.changes || []).length;
         await new Promise(r => { const t = setInterval(() => { if (document.querySelector('#pd-thread .doc-th-row')){ clearInterval(t); r(); } }, 100); setTimeout(r, 4000); });
-        document.querySelector('#pd-thread [data-stk-tab="need"]').click();   /* RE-POINTED 23 Oct 2026: Severity is the tabs */
-        stkDiveOpen(c, 0); await new Promise(r => setTimeout(r, 300));
+        { const tb = document.querySelector('#pd-thread [data-stk-tab="need"]'); if (tb) tb.click(); }   /* RE-POINTED 23 Oct 2026: Severity is the tabs; 16 Nov 2026 (#762): the new look has none — guarded */
+        /* RE-POINTED 17 Nov 2026 (#762): with no Severity tab to narrow the list, the first point shown is no longer the
+           point that needs you, so the dive is opened on THAT point (the capped liability) by walking the shown points */
+        for (let i = 0; i < 12; i++) { stkDiveOpen(c, i); await new Promise(r => setTimeout(r, 150));
+          if (/liability is capped/i.test((document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '')) break; }
+        await new Promise(r => setTimeout(r, 300));
         const title = (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '';
         document.querySelector('#pd-thread .stk-dv [data-stk-redline]').click();   /* the dive's own (a card carries one too, 21 Oct 2026) */
         await new Promise(r => setTimeout(r, 2500));
@@ -365,7 +308,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
           sev: ((document.querySelector('#pd-thread [data-stk-tab][aria-selected="true"]') || { getAttribute: () => null }).getAttribute('data-stk-tab')), crumbGone: !document.querySelector('[data-rl-back-clauses]'),
           via: link ? 'the bar\'s link' : 'rlBackToClauses (no link in the bar)' };
       });
-      ok('5e the way back lands on the Clauses tab, the same point open, the same filter', j2.view === 'dashboard' && j2.title === j1.title && j2.sev === 'need' && j2.crumbGone, JSON.stringify(j2));
+      /* RETIRED 17 Nov 2026 (#762): 5e's "the same filter" half (the Severity tab kept) — the new-look Clauses has no
+         filters (3b–3d retired above); the way back, the Clauses tab and the same point open are asked as before */
+      ok('5e the way back lands on the Clauses tab, the same point open', j2.view === 'dashboard' && !!j2.title && j2.title === j1.title && j2.crumbGone, JSON.stringify(j2));
       await page.evaluate(() => { const c = getContract('MK-S1'); stkDiveClose(c); const t = document.querySelector('#pd-thread [data-stk-tab=""]'); if (t) t.click(); });
       /* 5f ANOTHER DOOR ONTO NEGOTIATE FORGETS THE TRIP: no way back offered */
       /* RE-POINTED 14 Oct 2026 (stage 5): another door lands on the face,
@@ -433,7 +378,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       /* RE-POINTED 23 Oct 2026 (Marquee): Found by stands behind the tabs' "Filter" */
       const more = document.querySelector('#pd-thread [data-stk-more]'); if (more && more.getAttribute('aria-expanded') !== 'true'){ more.click(); await new Promise(r => setTimeout(r, 300)); }
       const by = [...document.querySelectorAll('#pd-thread [data-stk-f="by"] option')].map(o => o.value);
-      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^4\b/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      /* RE-POINTED 17 Nov 2026 (#762): the new look shows the clause's heading without its number (the number stays in the
+         row's markup, .doc-th-num, unpainted), so clause 4's row is found by that number's text */
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^4\b/.test(((r.querySelector('.doc-th-num') || r.querySelector('.doc-th-name') || {}).textContent || '').trim()));
       if (!row) return { row: false, by };
       const red = row.classList.contains('stk-b-need'), say = (row.querySelector('.stk-n') || {}).textContent || '';
       if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(r => setTimeout(r, 900)); }
@@ -441,8 +388,11 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const line = r2 && r2.querySelector('.stk-line'), vis = !!line && line.getClientRects().length > 0;
       return { row: true, by, red, say, vis, text: line ? line.innerText : '' };
     });
-    ok('9 a risk-scan finding is a point under its clause: red, counted, its reason shown when opened, "Found by: Risk scan"',
-      sc.row && sc.by.includes('scan') && sc.red && /^Needs you · 1$/.test(sc.say) && sc.vis && /ninety days/.test(sc.text), JSON.stringify(sc));
+    /* RETIRED 17 Nov 2026 (#762): 9's "counted" ("Needs you · 1" on the row) and "Found by: Risk scan" (the Found by
+       filter's option) halves — the new-look Clauses has no filters and no word or count on a row (f1073, f1081); the
+       finding as a point under its clause, wearing the need, its reason shown when opened, is asked as before */
+    ok('9 a risk-scan finding is a point under its clause: it needs you, its reason shown when opened',
+      sc.row && sc.red && sc.vis && /ninety days/.test(sc.text), JSON.stringify(sc));
     /* 8 THE OVERVIEW TAB IS GONE from Home's panel (owner, 13 Oct 2026); an old
        door onto it lands on Jambo */
     const tabs = await page.evaluate(() => { pdOpenOnHome('MK-S1', 'facts');

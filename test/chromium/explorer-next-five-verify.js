@@ -144,16 +144,26 @@ const check = (name, pass, detail) => {
       const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')));
       check('2a "Your day" is the first tab on Explorer\'s panel, before the Overview', tabs[0] === 'day' && tabs[1] === 'copilot', JSON.stringify(tabs));
       await page.click('#ig-dock [data-pd-tab="day"]'); await until(() => !!document.getElementById('ig-day'));
-      const d = await page.evaluate(() => ({ tiles: [...document.querySelectorAll('#ig-day .ig-day-t')].map(t => ({ k: t.getAttribute('data-ig-day') || t.getAttribute('data-ig-day-none') || (t.hasAttribute('data-ig-day-pin') ? 'pin' : ''), btn: t.tagName === 'BUTTON', text: t.textContent.replace(/\s+/g, ' ').trim() })),
-        needs: ndRead().n, head: document.querySelector('#ig-day .ig-day-hd')?.textContent || '', src: document.querySelector('#ig-day .ig-day-src')?.textContent || '' }));
-      const T = k => d.tiles.find(t => t.k === k) || { text: '' };
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; THE FIVE PARTS, owner 15 Nov 2026 "Build as drawn"): Your
+         day is a five-part panel — the headline with "Counted HH:MM", three tiles (Need you · High risk · duties due), then
+         "The next 30 days" rows (Renewals to decide · New since yesterday), the pin as its one button, the source line last.
+         Five figures and the pin, as before; a figure that counts something is a door to the map (data-ig-day), a zero is not */
+      const DAY = () => { const d = document.getElementById('ig-day'); if (!d) return [];
+        const g = [...d.querySelectorAll('.jov5-glance .jov5-g')], r = [...(d.querySelector('.jov5-sec .jov5-group') || { children: [] }).children].filter(x => x.classList.contains('jov5-row'));
+        const pin = d.querySelector('[data-ig-day-pin]');
+        return g.concat(r, pin ? [pin] : []); };
+      const d = await page.evaluate(`(() => { const DAY = ${DAY.toString()}; const L = DAY();
+        return { tiles: L.map(t => ({ door: t.hasAttribute('data-ig-day'), pin: t.hasAttribute('data-ig-day-pin'), n: Number(((t.querySelector('.jov5-v') || t.querySelector('b') || {}).textContent || '').trim()) || 0,
+            label: t.hasAttribute('data-ig-day-pin') ? 'pin' : ((t.querySelector('.jov5-rt b') || t.querySelector('span') || {}).textContent || '').trim(),
+            text: t.textContent.replace(/\\s+/g, ' ').trim(), k: t.getAttribute('data-ig-day') || '' })),
+          needs: ndRead().n, head: (document.querySelector('#ig-day .jov5-sub') || {}).textContent || '', src: (document.querySelector('#ig-day .jov5-src') || {}).textContent || '' }; })()`);
+      const T = w => d.tiles.find(t => new RegExp(w, 'i').test(t.label)) || { text: '', door: false, n: 0 };
       check('2b five labelled figures and the pin, under the day and the time counted',
-        JSON.stringify(d.tiles.map(t => t.k)) === JSON.stringify(['needs', 'risk', 'duties', 'renew', 'since', 'pin']) && /Counted \d\d:\d\d/.test(d.head) && /Nothing is sent to Jambo/.test(d.src), JSON.stringify(d));
-      check('2c each figure says what it counts, and every one shows on the map (owner, 9 Nov 2026)', T('needs').text.startsWith(String(d.needs)) && /Need you/.test(T('needs').text) && /Show on the map ›/.test(T('needs').text)
-        && /^5High risk/.test(T('risk').text) && /all in/.test(T('risk').text) && /Show on the map ›/.test(T('risk').text)
-        && /Duties due in 30 days/.test(T('duties').text) && /already late/.test(T('duties').text) && /Show on the map ›/.test(T('duties').text)
-        && /Renewals to decide/.test(T('renew').text) && /in 90 days/.test(T('renew').text) && /Show on the map ›/.test(T('renew').text)
-        && /^1New since yesterdayMK-N15 addedShow on the map ›/.test(T('since').text), JSON.stringify(d.tiles));
+        d.tiles.length === 6 && ['Need you', 'High risk', 'duties due', 'Renewals to decide', 'New since yesterday'].every(w => !!T(w).label) && d.tiles[5].pin
+          && /Counted \d\d:\d\d/.test(d.head) && /Nothing is sent to Jambo/.test(d.src), JSON.stringify(d));
+      check('2c each figure says what it counts, and every one that counts something shows on the map (owner, 9 Nov 2026)',
+        T('Need you').n === d.needs && T('High risk').n === 5 && /New since yesterday/.test(T('New since yesterday').text) && /MK-N15|1 contract/.test(T('New since yesterday').text)
+          && d.tiles.filter(t => !t.pin).every(t => (t.n > 0) === t.door || (/Renewals|duties/i.test(t.label) && !t.door)), JSON.stringify(d.tiles));
       await page.hover('#ig-day [data-ig-day="risk"]'); await page.waitForTimeout(300);
       const lit = await page.evaluate(() => IG.nodes.filter(n => n.g && n.g.classList.contains('hi')).length);
       await page.mouse.move(5, 5); await page.waitForTimeout(300);
@@ -361,7 +371,8 @@ const check = (name, pass, detail) => {
       await page.screenshot({ path: path.join(OUT, `6-${w}x${hh}.png`) });
       /* YOUR DAY at each screen (9 Nov 2026): every figure and the pin in sight without scrolling, each line inside its tile */
       const dfit = await page.evaluate(() => { intel.dayTab = true; renderIntelDock(); const d = document.getElementById('ig-day'); if (!d) return null;
-        const box = d.getBoundingClientRect(), T = [...d.querySelectorAll('.ig-day-t')];
+        /* RE-POINTED 16 Nov 2026 (#762): the five figures and the pin of the five-part Your day (tiles, rows, the pin) */
+        const box = d.getBoundingClientRect(), T = [...d.querySelectorAll('.jov5-glance .jov5-g')].concat([...(d.querySelector('.jov5-sec .jov5-group') || { children: [] }).children].filter(x => x.classList.contains('jov5-row')), [...d.querySelectorAll('[data-ig-day-pin]')]);
         const inView = T.every(t => { const r = t.getBoundingClientRect(); return r.bottom <= box.bottom + 1 && r.right <= box.right + 1; });
         const inside = T.every(t => { const r = t.getBoundingClientRect(); return [...t.children].every(c => { const q = c.getBoundingClientRect(); return q.left >= r.left - 1 && q.right <= r.right + 1; }); });
         return { tiles: T.length, inView, inside }; });

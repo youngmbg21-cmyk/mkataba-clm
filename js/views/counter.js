@@ -209,6 +209,9 @@ function deskGoBack(){
      beside it — the sentence that drafted it stands in Jambo's conversation
      there (19 Oct 2026, one-sheet-as-drawn 7a) */
   if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
+  /* THE TEMPLATE BUILDER'S WAY OUT IS ‹ (#762: its own back button is the old look's): it leaves through the builder's
+     own leave (tbLeave — asks first if anything is unsaved) and lands on the template's page */
+  if (deskBuilderUp()){ window.tbLeave(); return true; }
   /* a page standing in the middle beside the Dossier: ‹ brings the paper back (the middle, 21 Oct 2026) */
   if (typeof window.pdMidClose === 'function' && window.pdMidClose()) return true;
   if (deskStepBack(true)){ deskBarPaint(); return true; }
@@ -219,6 +222,7 @@ function deskGoBack(){
 }
 /* THE ONE SHEET AND THE TRAIL: the page settled on when the sheet opened is
    where its ‹ returns (a page the reader is already on is not opened twice) */
+function deskBuilderUp(){ return typeof document !== 'undefined' && !!document.getElementById('tb-page') && typeof window.tbLeave === 'function'; }
 function deskSheetUp(){ return typeof window !== 'undefined' && typeof window.naSheetUp === 'function' && !!window.naSheetUp(); }
 function deskSheetFrom(){
   return _dkTrail[_dkTrail.length - 1] || (dkHomeHere() ? 'home' : null);
@@ -321,7 +325,7 @@ function deskBarPaint(){
   if (back){
     back.hidden = !on;
     const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
-    back.disabled = !can;
+    back.disabled = !(can || deskBuilderUp());
     /* ‹ SAYS WHERE IT GOES (the glitch audit, 24 Oct 2026: it said only "Back", and a press that
        stepped the panel looked like one that did nothing) */
     let where = '';
@@ -925,12 +929,16 @@ function ndBellNlHtml(D){
   const L = cn2Rows(D), news = D.news || [];
   const row = x => { const r = x.r, P = ndParts(r);
     const title = P.title || P.name || '';
-    const sub = r.g === 'jambo' ? _ndText(P.deal || P.line || '') : [P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
+    /* its own line first (what came back, who asked, the note: P.note) — the new bell had dropped it (#762) */
+    /* the company row says what it holds (the email warning among them) in its own line, as the old bell did (#762) */
+    const sub = (r.g === 'jambo' || r.company) ? _ndText(P.deal || P.line || '') : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : (!P.name && P.deal && !String(title).includes(_ndText(P.deal)) ? _ndText(P.deal) : ''), P.ref && !String(title).includes(_ndText(P.ref)) ? _ndText(P.ref) : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
     /* A NO IS LIGHT RED, A YES LIGHT GREEN (owner, 17 Nov 2026), and the decider's note is quoted under it */
     const why = r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' && r.y.x.it.why ? '“' + String(r.y.x.it.why).slice(0, 140) + '”'
       : r.al && r.al.tint && r.al.sub ? String(r.al.sub) : '';
     const tint = ndTintOf(r.al || (r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' ? { tint: 'no' } : null));
-    return `<div class="ndb-r${tint}" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
+    /* every row names its agreement and its reference, as the old bell's rows did (#762: an answer stuck said neither) */
+    /* good news (they agreed, ready to sign) wears the green dot, as the old bell's row did (P.good; #762) */
+    return `<div class="ndb-r${tint || (P.good ? ' nd-good' : '')}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${P.good ? 'good' : x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
       + `<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('act_open'))}</button></div>`; };
   const newsRow = (a, i) => `<button type="button" class="ndb-r is-news${ndTintOf(a)}" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
   return `<div class="ndb">${L.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_need', { n: ndThings(D.jambo) + ndThings(D.you) }))}</div>${L.map(row).join('')}` : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`

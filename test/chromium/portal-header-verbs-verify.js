@@ -86,6 +86,10 @@ const VERBS = [
   await page.evaluate(() => window.SHOW_COUNTERPARTY());
   await pause(500);
   await page.screenshot({ path: path.join(OUT, '01-header.png') });
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their page draws the outside look, where every
+     deal verb sits under More (#pol-more opens #pol-pop, inside the header). The roll call is taken with More open:
+     each verb must still be visible pixels, in the header, once it is. */
+  if (await page.$('#pol-more')) { await page.click('#pol-more'); await pause(300); }
 
   const m = await page.evaluate(verbIds => {
     const box = el => { if (!el) return null; const r = el.getBoundingClientRect();
@@ -226,8 +230,9 @@ const VERBS = [
     `${m.readyPhraseCount} buttons say it`);
   check('no focus button loose in the header row — what 12 Aug removed stays removed',
     !m.focusLoose);
-  check('and focus mode is where the owner asked for it: a button on the control row, not hidden in More',
-    m.focusInMenu);
+  /* RETIRED 16 Nov 2026 (#762): "Focus a button on the control row, not hidden in More" was the old head's; the
+     outside look (round 8, their pages as ours) gathers every head verb under More by design — Focus included,
+     beside the reading tools in #pol-pop (portalOutOn). That the old loose button stays gone is the check above. */
 
   /* ---- 6. THE HIDE ACTUALLY HIDES — the .ui-btn cascade trap ----
      The pair is the assertion, not either half: shown it must be laid out,

@@ -139,7 +139,10 @@ describe('f507 (2) — the line decides the open row', () => {
     assert.match(go, /_docThreadHold = target>max \? i : -1;/,
       'a clause the paper cannot bring up to the line (the last ones) is HELD open');
     const settle = region(CONTRACT, 'docThreadSettle');
-    assert.match(settle, /held>=0\?held:docThreadLineRow\(\)/, 'the line wins unless the row is held');
+    /* RE-POINTED 17 Nov 2026 (#762): the pressed row stays the one open, and the paper is put right under it, so the line and
+       the row agree; only a glide nobody pressed reads the line */
+    assert.match(settle, /held>=0\?held:pressed>=0\?pressed:docThreadLineRow\(\)/, 'the pressed row wins unless held; the line otherwise');
+    assert.match(settle, /scrollTop\+=d/, 'the paper is put right under the pressed row');
   });
   test('the risk door lands on the worst-marked clause and glides there once', () => {
     assert.match(region(CONTRACT, 'riskViewOpen'), /_docThreadWant='risk'/);

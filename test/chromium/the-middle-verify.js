@@ -87,12 +87,21 @@ const MID = () => {
   page.on('pageerror', e => errors.push(e.message));
   /* A PRESS ON A CONTROL THAT IS NOT THERE REPORTS, IT DOES NOT TIME OUT (a build without the feature says which claims fail) */
   const click = sel => page.click(sel, { timeout: 3000 }).then(() => true, () => false);
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new-look Dossier is ONE card + The facts — it draws
+     neither the old "Arrival check · Look" row ([data-pd-nd-jw]) nor the Key terms line ([data-pd-kt-mid]) (QUESTIONS Q4/Q5
+     in the helpers' notes). The middle itself is unchanged, so each is opened through its ONE opener — Jambo's work
+     through pdMidWork(k, key) for the piece the Dossier reads (dossierOf(c).owed, the read piece), Key terms through
+     pdKtMid(id) — and everything the middle promises is measured as before. */
   const open = async () => {
     await page.evaluate(id => { if (typeof closeModal === 'function') closeModal(); pdOpenOnHome(id, 'copilot'); }, ID);
-    return waitFor(page, () => !!document.querySelector('#ig-dock .pd-dossier [data-pd-nd-jw]') && !!document.querySelector('#ig-dock [data-pd-kt-mid]'), 12000);
+    return waitFor(page, id => !!document.querySelector('#ig-dock [data-pd2-card]') && window.pdContract && pdContract() && pdContract().id === id
+      && ((dossierOf(getContract(id)) || {}).owed || []).some(r => r && r.need && r.need.jw && r.need.pk === 'read'), 12000, ID);
   };
+  const jwOpen = () => page.evaluate(id => { const r = ((dossierOf(getContract(id)) || {}).owed || []).find(x => x && x.need && x.need.jw && x.need.pk === 'read');
+    return r ? pdMidWork(r.need.k, r.need.key || null) : false; }, ID);
+  const ktOpen = () => page.evaluate(id => pdKtMid(id), ID);
   const gone = () => waitFor(page, () => !document.querySelector('#modal-root [data-pd-mid]') && !document.querySelector('#ig-dock [data-pd-mid-back]') && !!document.getElementById('ig-canvas'), 5000);
-  const seeIt = async () => { if (!(await click('#ig-dock .pd-dossier [data-pd-nd-jw]'))) return null; return waitFor(page, () => { const p = document.querySelector('#modal-root [data-pd-mid] .ag-panel'); return p && !!p.querySelector('.ag-p-acts [data-ag-act]'); }, 8000); };
+  const seeIt = async () => { if (!(await jwOpen())) return null; return waitFor(page, () => { const p = document.querySelector('#modal-root [data-pd-mid] .ag-panel'); return p && !!p.querySelector('.ag-p-acts [data-ag-act]'); }, 8000); };
   try {
     check('0 the contract is staged', !!(put && put.ok), JSON.stringify(put).slice(0, 160));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -101,7 +110,7 @@ const MID = () => {
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en' && typeof langSet === 'function') langSet('en'); });
     const up = await open();
-    check('0a the Dossier beside the paper carries Jambo\'s work and Key terms\' one line', !!up);
+    check('0a the Dossier beside the paper is drawn and Jambo\'s arrival read waits on it', !!up);
 
     /* ===== 1. See it brings the piece to the middle ===== */
     console.log('\n1 · See it: the piece comes to the middle');
@@ -113,10 +122,10 @@ const MID = () => {
     check('1c the Dossier stays in sight and pressable beside it; the page ends at its edge', m1.dockShown && m1.right <= m1.dockLeft + 1 && m1.w >= 480, JSON.stringify(m1));
     check('1d "‹ Paper" leads the chips under the Dossier, and is pressable', !!(m1.back && m1.back.first && m1.back.text === '‹ Paper' && m1.back.hit), JSON.stringify(m1.back));
     check('1e the crumb is the row\'s own words: Paper › Jambo\'s work · New paper', /* RE-POINTED 24 Oct 2026 (Round 3): "‹ Back to the paper" stands before the crumb */ /(^|paper)Paper › Jambo['’]s work · New paper$/.test(m1.crumb), m1.crumb);
-    const row1 = await page.evaluate(() => { const r = document.querySelector('#ig-dock .pd-dossier .is-jw[data-pd-ds="jw-read"]'); return r ? { mid: r.classList.contains('is-mid'), say: (r.querySelector('small') || {}).textContent || '', pressed: r.querySelector('[data-pd-nd-jw]').getAttribute('aria-pressed') } : null; });
+    /* RETIRED 16 Nov 2026 (#762): 1f "the row is marked and its Look pressed while it shows in the middle" — the new-look
+       Dossier draws no Arrival check row (Q5) */
     /* RE-POINTED 29 Oct 2026 (the owner: the Arrival check stands under the Brief, no small grey line under a row):
        the row is marked and its Look pressed while the piece stands in the middle */
-    check('1f the row is marked and its Look pressed while it shows in the middle', !!(row1 && row1.mid && row1.pressed === 'true'), JSON.stringify(row1));
     const body1 = await page.evaluate(() => { const p = document.querySelector('#modal-root [data-pd-mid] .ag-panel'); if (!p) return null;
       return { acts: [...p.querySelectorAll('[data-ag-act]')].map(b => b.getAttribute('data-ag-act')), deps: [...p.querySelectorAll('.ag-dep b')].map(b => b.textContent.trim()) }; });
     check('1g it carries the two standards to look at', !!body1 && body1.deps.includes('Payment terms') && body1.deps.includes('Liability cap'), JSON.stringify(body1));
@@ -126,8 +135,8 @@ const MID = () => {
     /* ===== 2. the ways back ===== */
     console.log('\n2 · the ways back to the paper');
     /* each way back is asked only of a middle that stood (a build without it reports, never passes by doing nothing) */
-    const was2a = !!p1; await click('#ig-dock .pd-dossier [data-pd-nd-jw]');
-    check('2a See it pressed again brings the paper back', was2a && !!(await gone()));
+    const was2a = !!p1; await jwOpen();
+    check('2a its opener pressed again brings the paper back', was2a && !!(await gone()));
     const was2b = !!(await seeIt()); await click('#ig-dock [data-pd-mid-back]');
     check('2b "‹ Paper" brings the paper back', was2b && !!(await gone()));
     const was2c = !!(await seeIt()); await page.keyboard.press('Escape');
@@ -154,15 +163,14 @@ const MID = () => {
 
     /* ===== 4. Key terms ===== */
     console.log('\n4 · Key terms: one line in the Dossier, the table in the middle');
-    const line = await page.evaluate(() => ({ line: !!document.querySelector('#ig-dock [data-pd-kt-mid]'), table: !!document.querySelector('#ig-dock #pd-kt, #ig-dock .pd-kt-t'),
-      when: ((document.querySelector('#ig-dock [data-pd-kt-when]') || {}).textContent || '').trim() }));
-    check('4a the Dossier keeps Key terms as one line, no table under it', line.line && !line.table && /^\d+ terms?$/.test(line.when), JSON.stringify(line));
-    await click('#ig-dock [data-pd-kt-mid] > summary');
+    /* RETIRED 16 Nov 2026 (#762): 4a "the Dossier keeps Key terms as one line" and 4c "the line says Showing in the middle" —
+       the new-look Dossier has no Key terms line (Q4); the half that still holds — no Key terms table in the Dossier — is kept */
+    const line = await page.evaluate(() => ({ table: !!document.querySelector('#ig-dock #pd-kt, #ig-dock .pd-kt-t') }));
+    check('4a the Dossier carries no Key terms table', !line.table, JSON.stringify(line));
+    await ktOpen();
     const k4 = await waitFor(page, () => { const p = document.querySelector('#modal-root [data-pd-mid] [data-pd-mid-kt] #pd-kt'); return p && p.querySelectorAll('tr[data-pd-og-row]').length ? true : null; }, 8000);
     const m4 = await page.evaluate(MID);
     check('4b the table stands in the middle beside the Dossier', !!k4 && /^kt:/.test(m4.key || '') && m4.dockShown && m4.right <= m4.dockLeft + 1, JSON.stringify(m4));
-    const when4 = await page.evaluate(() => ((document.querySelector('#ig-dock [data-pd-kt-when]') || {}).textContent || '').trim());
-    check('4c the line says "Showing in the middle"', when4 === 'Showing in the middle', when4);
     const rowKey = await page.evaluate(() => { const r = document.querySelector('[data-pd-mid-kt] tr[data-pd-og-kind="kt"] [data-pd-kt-change]'); return r ? r.getAttribute('data-pd-kt-change') : null; });
     await page.screenshot({ path: path.join(OUT, 'key-terms-1440x780.png') });
     if (rowKey) {
@@ -176,12 +184,12 @@ const MID = () => {
         check('4e Done stores it and the table in the middle shows it', !!saved, rowKey);
       }
     } else check('4d a record line to change', false, 'no kt row with Change');
-    await click('#ig-dock [data-pd-kt-mid] > summary');
-    check('4f the line pressed again brings the paper back', !!k4 && !!(await gone()));
+    await ktOpen();
+    check('4f its opener pressed again brings the paper back', !!k4 && !!(await gone()));
 
     /* ===== 5. ask Jambo for the paper ===== */
     console.log('\n5 · "paper" asked of Jambo');
-    await click('#ig-dock [data-pd-kt-mid] > summary');
+    await ktOpen();
     const was5 = !!(await waitFor(page, () => !!document.querySelector('#modal-root [data-pd-mid]'), 5000));
     await page.evaluate(() => { if (typeof intelAsk === 'function') intelAsk('paper'); });
     check('5a "paper" brings the paper back', was5 && !!(await gone()));
@@ -201,7 +209,7 @@ const MID = () => {
       check(`6 ${w}x${hh} the obligations review in the middle, nothing sideways`, o.up && /^obs:/.test(o.key || '') && o.dockShown && !o.sideways, JSON.stringify(o));
       await page.screenshot({ path: path.join(OUT, `obligations-${w}x${hh}.png`) });
       await click('#ig-dock [data-pd-mid-back]'); await gone();
-      await click('#ig-dock [data-pd-kt-mid] > summary');
+      await ktOpen();
       await waitFor(page, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt tr'), 5000); await pause(200);
       const b = await page.evaluate(MID);
       check(`6 ${w}x${hh} Key terms in the middle, nothing sideways`, b.up && b.dockShown && !b.sideways, JSON.stringify(b));

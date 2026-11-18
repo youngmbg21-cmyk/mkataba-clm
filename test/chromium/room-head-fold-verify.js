@@ -52,6 +52,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.waitForTimeout(1600);
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the rows are its All tab */
+  await page.evaluate(() => { const t = document.querySelector('[data-ctf-tab="all"]:not(.is-on)'); if (t) t.click(); });
+  await page.waitForFunction(() => !!document.querySelector('#reg-tbody [data-row]'), null, { timeout: 8000 }).catch(() => {});
   /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector): on a window this
      wide the Contracts list SELECTS on a press and OPENS on the second one —
      a double-click, Enter, or the panel's own button. The claims below are

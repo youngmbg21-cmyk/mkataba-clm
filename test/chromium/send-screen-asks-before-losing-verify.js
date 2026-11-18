@@ -45,7 +45,21 @@ const NOTE = 'Please look at clause 2 before Friday.';
     await page.evaluate(id => { pdOpenOnHome(id, 'copilot'); }, ID);
     await waitFor(page, id => window.intel && intel.paper && intel.paper.id === id && !!document.getElementById('ig-canvas'), 10000, ID);
     await page.evaluate(id => openShareModal(getContract(id)), ID);
-    return waitFor(page, () => !!document.querySelector('#sh-letter') && !!document.getElementById('sh-summary') && !!document.getElementById('share-close'), 10000);
+    const up = await waitFor(page, () => !!document.querySelector('#sh-letter') && !!document.getElementById('sh-summary') && !!document.getElementById('share-close'), 10000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the note box folds to one line when the way it
+       goes carries no message (a copied link; "BOX FITS THE WAY", owner's yes 9 Nov 2026). A note is typed where it
+       can be: the way is set to email, through its own step, as a reader would */
+    if (up && await page.$('#sh-letter .sh-lt-note.is-nowhere')) {
+      /* step 4, How it goes, opens in place (FOUR STEPS, owner's pick 14 Nov 2026) */
+      if (await page.$('[data-sh-st="by"]:not(.is-open) [data-sh-st-go="by"]')) await click('[data-sh-st-go="by"]');
+      if (!await page.$('[data-sh-as="ch"].is-open') && await page.$('[data-sh-as="ch"] [data-sh-as-go]')) {
+        const vis = await page.evaluate(() => !!document.querySelector('[data-share-ch="email"]').getClientRects().length);
+        if (!vis) await click('[data-sh-as="ch"] [data-sh-as-go]');
+      }
+      await click('[data-share-ch="email"]');
+      await waitFor(page, () => { const t = document.getElementById('sh-summary'); return !!t && t.getClientRects().length > 0; }, 3000);
+    }
+    return up;
   };
   const asked = () => waitFor(page, () => { const d = [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].find(x => /Leave without sending\?/.test(x.textContent));
     return d ? d.textContent.replace(/\s+/g, ' ').trim().slice(0, 160) : null; }, 3000);

@@ -151,7 +151,9 @@ describe('f307 (2) — Word is a channel, and the screen follows the choice', ()
     m.$('[data-share-ch="word"]').click();
     assert.match(m.$('#sh-send-lbl').textContent, /file/i);
     m.$('[data-share-ch="email"]').click();
-    assert.match(m.$('#sh-send-lbl').textContent, /email/i);
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): on email the letter's own button is "Send" (sh_nl_send);
+       the channel is named by the four steps' "How it goes" */
+    assert.equal(m.$('#sh-send-lbl').textContent, win.i18t('sh_nl_send'));
   });
 
   /* ONE BUILDER, TWO CONSUMERS. The download and the attachment are the same
@@ -531,7 +533,10 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
        round 2 to Nordvik Logistik AB · MK-0382"): the head names the contract's
        reference after whom it goes to */
     const ref = 'MK-307';
-    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB · ' + ref, 'the contract: the round');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): the contract's head is the new look's "Send to Nordfrakt",
+       the contract quieter beside it; the record keeps its own words */
+    const CONTRACT = 'Send to Nordfrakt Warehousing and Logistics Services Agreement';
+    assert.equal(title(), CONTRACT, 'the contract: to whom, and which');
     m.$('#share-other').click();
     m.$('[data-share-kind="history"]').click();
     m.$('#share-kind-next').click();
@@ -539,7 +544,7 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
     m.$('#share-other').click();
     m.$('[data-share-kind="contract"]').click();
     m.$('#share-kind-next').click();
-    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB · ' + ref, 'and back');
+    assert.equal(title(), CONTRACT, 'and back');
     assert.equal((I18N.match(/co_send_history_to:/g) || []).length, 2, 'both books');
     assert.match(CORE, /function shareLeadTitle\(c, s, purposeSel\)/, 'one reading for the builder and the switch');
   });

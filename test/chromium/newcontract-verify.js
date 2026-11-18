@@ -153,7 +153,10 @@ const pastFirstWords = async page => {
      the reader is actually looking at, not off the module's variable. */
   await pastFirstWords(page);
   const landed = await page.evaluate(() => ({ view: window.state.view, paper: window.intel && intel.paper && intel.paper.id,
-    face: !!document.getElementById('pd-fillface'), grid: !!document.querySelector('#ig-dock #pd-glance #pd-og') }));
+    face: !!document.getElementById('pd-fillface'), grid: !!document.querySelector('#ig-dock #pd-glance #pd-og')
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml) whose
+         headline says what is owed and whose ONE black button asks it (.pd2-card-go) — the Still owed grid's place */
+      || !!document.querySelector('#ig-dock #pd-glance [data-pd2-card] .pd2-card-go') }));
   /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked
      "Form"): a new draft lands on Home's paper with Jambo's panel on Fill in
      (12 Oct 2026: the room's Details tab) */

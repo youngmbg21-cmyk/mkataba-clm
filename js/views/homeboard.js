@@ -1403,7 +1403,8 @@ function hbFigDoor(key){
      narrowing of the Contracts list — lit, pressing nothing (focus:false: the
      narrowing's × is never the readied button) */
   if (k === 'overdue'){ if (typeof obwGoFiltered !== 'function') return false; obwGoFiltered({ state: 'overdue' });
-    if (typeof landOn === 'function') landOn('[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
+    /* the new look's page names its Late pill (obnRender, #762); the old page its Overdue view */
+    if (typeof landOn === 'function') landOn((typeof newLookOn === 'function' && newLookOn()) ? '[data-obn-tab="late"]' : '[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
   if (!HB_FIG_TO_CONTRACTS.includes(k) || typeof regShowOnly !== 'function') return false;
   let F = null; try { F = hbBookData(hbS().lens || 'all').figs[k]; } catch (_){ F = null; }
   const ids = (F && Array.isArray(F.ids)) ? F.ids : []; if (!ids.length) return false;
@@ -10707,6 +10708,8 @@ function hbPlace(){
        back on are these faces now) */
     const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face;
     /* and History standing in the middle (the strip that kept it is gone, 9 Nov 2026): a refresh lands back on it */
+    /* and Fill in the contract, on the paper or as the form in the middle: a refresh lands back in it (#762) */
+    if (!face && ((typeof window.pd2FillOn === 'function' && pd2FillOn(c.id)) || (typeof window.pdFormMidUp === 'function' && pdFormMidUp() && document.querySelector(`[data-pd-mid="form:${CSS.escape(String(c.id))}"]`)))) p.paper.fill = true;
     if (typeof window.pd2HistUp === 'function' && pd2HistUp(c.id)) p.paper.mid = 'hist';
     else if (typeof window.pd2StandsUp === 'function' && pd2StandsUp(c.id)) p.paper.mid = 'where'; } } catch (_){} }
   /* the Board keeps Needs you's tab, kind and find words (Round A) */
@@ -10718,6 +10721,8 @@ function hbPlace(){
   /* and with a paper open, the place's Wall | List under it (20 Oct 2026: the
      place lands on the List, so a reader's Wall is kept across a refresh) */
   if (s.face === 'paper' && p.paper && window.state && state.reg && state.reg.show) p.show = state.reg.show;
+  /* and whether the place stood on its Folders (#762) */
+  if (s.face === 'paper' && typeof window.regFoldersNow === 'function') p.folders = regFoldersNow();
   return p;
 }
 const HB_RESUME_HAND = ['pointerdown', 'keydown', 'wheel', 'touchstart'], HB_RESUME_HAND_MS = 20000;
@@ -10733,6 +10738,7 @@ function hbPlacePut(p){
   if (p.nd && typeof window.ndPlacePut === 'function'){ try { ndPlacePut(p.nd); } catch (_){} }
   if (p.wall && typeof window.igWallPlacePut === 'function'){ try { igWallPlacePut(p.wall); } catch (_){} }
   if (!p.wall && (p.show === 'wall' || p.show === 'list') && typeof window.regPlaceSet === 'function'){ try { regPlaceSet({ show: p.show }); } catch (_){} }
+  if (typeof p.folders === 'boolean' && typeof window.regFoldersSet === 'function') regFoldersSet(p.folders);
   /* a contract's view saved before 15 Oct 2026 (p.cv) is dropped: the views are gone */
   /* the contract goes back on the Document face once the list holds it,
      through the one door (igWalk), bounded; a contract chosen meanwhile wins */
@@ -10768,7 +10774,11 @@ function hbPlacePut(p){
            contract on the paper the same way */
         /* the middle page comes back only while this contract is still the one in front: a reader who opened another in
            the meantime is never pulled back to this one (since the Cover, f1085, every contract opened on purpose keeps 'where') */
-        const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try {
+        /* filling in comes back through its one door, once the paper stands (#762) */
+        const fillBack = () => { if (want.fill && typeof window.pdFillGo === 'function') setTimeout(() => { try {
+          const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
+          if (!pc || String(pc.id) !== String(want.id)) return; pdFillGo(want.id); } catch (_){} }, 400); };
+        const midBack = () => { fillBack(); if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try {
           const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
           /* …and only while its paper is still what stands: a reader who left for a page with no paper (Contracts) is never pulled back */
           if (!pc || String(pc.id) !== String(want.id) || (typeof window.pdOnPaper === 'function' && !pdOnPaper())) return;

@@ -67,7 +67,10 @@ const PROBE = () => {
   const out = { cut: [], starved: [] };
   const lab = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
     + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/)[0] : '');
-  const EXEMPT = /hm-hero|rl-turnwrap|nego-turn|live-dot/;
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Our paper's .tpln-sheet is the chosen paper's PEEK,
+     drawn at a fraction of its size and faded out at its foot on purpose (a mask), the way the hero's glow is clipped:
+     the paper itself is read on the template's own page. */
+  const EXEMPT = /hm-hero|rl-turnwrap|nego-turn|live-dot|tpln-sheet/;
   /* cal-body JOINED 9 Oct 2026: the owner gave the month fixed day boxes
      ("the page may scroll on a short laptop"), so the calendar's body is now
      a page scroller, meant to scroll. */
@@ -98,7 +101,15 @@ const PROBE = () => {
          every panel's Overview (.is-ov, and the builder's own .jov inside it) is one block, the panel's page, not a row of a
          list: its row is its own first part. */
       let kid = el.firstElementChild;
-      while (kid && kid.classList && (kid.classList.contains('pd-wall') || kid.classList.contains('is-ov') || kid.classList.contains('jov')) && kid.firstElementChild) kid = kid.firstElementChild;
+      /* RE-POINTED 16 Nov 2026 (#762): in the new look a list page's panel is drawn by the page's own Five builder inside
+         .ctfp (Contracts' folders) and Our paper's body is ONE page (.tpln: the peek, then the shelves) — each one block,
+         its row its own first part, as above. The Redlines face with nothing on the table is ONE Five card too
+         (.rl-cards-empty: headline, the Draft card, Or yourself), not a list of change cards. */
+      /* RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way): Our paper's body is ONE page per step
+         (.tpln5: the filter line, the figures, the shelves — or the list, or the paper), one block as .tpln was; its row
+         is its own first part. */
+      if (kid && kid.firstElementChild && kid.firstElementChild.classList && kid.firstElementChild.classList.contains('rl-cards-empty')) kid = kid.firstElementChild;
+      while (kid && kid.classList && (kid.classList.contains('pd-wall') || kid.classList.contains('is-ov') || kid.classList.contains('jov') || kid.classList.contains('ctfp') || kid.classList.contains('tpln') || kid.classList.contains('tpln5') || kid.classList.contains('rl-cards-empty')) && kid.firstElementChild) kid = kid.firstElementChild;
       const first = kid && kid.tagName === 'TABLE' ? (kid.querySelector('tbody tr') || kid) : kid;
       const rowH = first ? first.getBoundingClientRect().height : 0;
       if (rowH > 8 && el.clientHeight < rowH) {

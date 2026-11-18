@@ -39,7 +39,10 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length >= 16 && typeof window.askColOpen === 'function', null, 40000);
     await page.waitForTimeout(1000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
     const toList = async () => { await page.evaluate(() => { regState().ask = []; regPlaceSet({ show: 'list', only: null }); if (typeof regShowOnly === 'function' && regState().only) regState().only = null; setView('register'); });
+      if (await until(page, () => !!document.querySelector('[data-ctf-show="list"]'), null, 4000) && !(await page.$('#reg-tbody tr[data-row]'))) await page.click('[data-ctf-show="list"]').catch(() => {});
       await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 16); };
     const rows = () => page.evaluate(() => document.querySelectorAll('#reg-tbody tr[data-row]').length);
     const card = () => page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ac-count]');
@@ -96,12 +99,16 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     c0 = h.ai.calls.length;
     await page.click('#ig-dock [data-ac-count-go]');
     /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the count stands in the question's own card */
-    const r4 = await until(page, () => !AC.busy && !!document.querySelector('#ig-dock .ac-col.is-open .ac-dk-count'), null, 40000);
-    const line = await page.evaluate(() => { const l = document.querySelector('#ig-dock .ac-col.is-open .ac-dk-count'); return l ? l.innerText.replace(/\s+/g, ' ').trim() : ''; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the read lands on the column's card AS DRAWN
+       (askColDoneDrawnHtml, .rfp-panel[data-ac-col]), not the old open card (.ac-col.is-open); the count is asked of
+       whichever card holds the column (the new look's card draws none today: fault F-D3-5) */
+    const r4 = await until(page, () => !AC.busy && !!document.querySelector('#ig-dock [data-ac-col] .ac-dk-count'), null, 40000);
+    const line = await page.evaluate(() => { const l = document.querySelector('#ig-dock [data-ac-col] .ac-dk-count'); return l ? l.innerText.replace(/\s+/g, ' ').trim() : ''; });
     check('4 after the read the card counts the yeses: "5 of 16 mention a rebate · Show those 5"', r4 && /^5 of 16 mention a rebate\s*Show those 5$/.test(line) && h.ai.calls.length === c0 + 16, { line, calls: h.ai.calls.length - c0 });
     for (const [w, ht] of SCREENS){ await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(250); await page.screenshot({ path: path.join(OUT, `counted-${w}x${ht}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
-    await page.click('#ig-dock [data-ac-count-yes]');
+    /* a missing part reports instead of waiting out the clock */
+    if (await page.$('#ig-dock [data-ac-count-yes]')) await page.click('#ig-dock [data-ac-count-yes]');
     const five = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 5, null, 8000);
     const fiveRefs = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(r => r.innerText).join(' '));
     check('4b Show those 5 narrows the list to the five with a rebate', five && ['HC-2002', 'HC-2005', 'HC-2008', 'HC-2011', 'HC-2014'].every(r => fiveRefs.includes(r)), { rows: await rows() });

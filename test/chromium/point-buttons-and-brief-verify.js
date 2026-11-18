@@ -133,11 +133,14 @@ const BREAKDOWN = { head: 'Fix the cap first', sub: 'Their cover stops at three 
     /* RE-POINTED 21 Oct 2026 (owner, "WHAT JAMBO READ, FOUR EVEN ROWS"): the brief is a row of What
        Jambo read — figure · name · door — its door "Read ›" */
     /* RE-POINTED 29 Oct 2026 (the owner: every last-column press one grey pill, no arrow): "Read" */
-    check('6a What Jambo read carries the brief\'s door, "Read"', !!btn && btn.tag === 'BUTTON' && btn.words === 'Read', JSON.stringify(btn));
-    check('6b no "The brief" label is left', await page.evaluate(() => !/The brief/.test((document.getElementById('pd-glance') || {}).textContent || '')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card whose read line ends in
+       its links "Read it | Watch the read | The brief" (MAP, THE HOME PAPER) — the brief's door is a button named "The brief" */
+    check('6a the Dossier carries the brief\'s door, a button: "The brief"', !!btn && btn.tag === 'BUTTON' && btn.words === 'The brief', JSON.stringify(btn));
+    /* RETIRED 16 Nov 2026 (#762): 6b 'no "The brief" label is left' — the new look's card names its door "The brief" as drawn */
     await shot(page, '6-brief-button');
     if (btn) await page.click('#pd-glance [data-pd-gl-brief]');
-    check('6c pressing it opens the brief', !!(await until(page, () => !!document.getElementById('brief-section'), null, 6000)));
+    /* RE-POINTED 16 Nov 2026 (#762): every brief door lands on the one brief page in the middle ([data-pd2-brief], pd2BriefGo) */
+    check('6c pressing it opens the brief', !!(await until(page, () => !!document.querySelector('#brief-section, [data-pd2-brief]'), null, 6000)));
     await shot(page, '6-brief-open');
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

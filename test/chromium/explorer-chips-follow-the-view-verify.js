@@ -59,7 +59,14 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
   const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
     while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
     return v; };
-  const chips = () => page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-igsug]')].map(b => b.getAttribute('data-igsug')));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the view's questions are no longer chips over the box;
+     they are the five-part Overview's "Try on the map" rows ([data-jov="ig:N"], the question in bold), each press the
+     same act. QS reads them, in order, from wherever they stand (a chip row, if one is drawn, still counts) */
+  const QS = `(() => { const rows = [...document.querySelectorAll('#ig-dock [data-jov^="ig:"]')].filter(b => !/save/i.test(b.getAttribute('data-jov')) && b.querySelector('.jov5-rt b'));
+    const out = rows.map(b => ({ t: b.querySelector('.jov5-rt b').textContent.trim(), el: b }));
+    [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-igsug]')].forEach(b => out.push({ t: b.getAttribute('data-igsug'), el: b }));
+    return out; })()`;
+  const chips = () => page.evaluate(`${QS}.map(x => x.t)`);
   const pressView = v => page.evaluate(k => { const b = [...document.querySelectorAll(`[data-ig-view="${k}"]`)].find(x => x.getClientRects().length); if (b) b.click(); return !!b; }, v);
   /* a fresh panel on the recipe the page opened with, on view v */
   const fresh = v => page.evaluate(([k, R]) => { intel.history = []; intel.tour = null; intel.busy = false; igRecipeSet(R); intel.lenses = [];
@@ -104,7 +111,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
         for (const q of list) {
           await fresh(v);
           const n = await page.evaluate(() => intel.history.length);
-          const hit = await page.evaluate(t => { const b = [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-igsug]')].find(x => x.getAttribute('data-igsug') === t); if (b) b.click(); return !!b; }, q);
+          const hit = await page.evaluate(`(t => { const x = ${QS}.find(y => y.t === t); if (x) x.el.click(); return !!x; })(${JSON.stringify(q)})`);
           await until(k => !intel.busy && (intel.history.length >= k + 1 || !!intel.tour), n);
           await page.waitForTimeout(250);
           const s = await page.evaluate(() => ({ view: igbCam().view, lobeShade: intel.lobeShade, lobeSize: intel.lobeSize, shadeBy: intel.shadeBy,
@@ -138,16 +145,17 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.evaluate(() => { intel.lobeShade = null; rebuildIntelGraph(); renderIntelDock(); });
     /* the single-party question waits for a role to judge: with none filled in it is not offered;
        give every live agreement a role (one party alone in its stream as a supplier) and it is */
-    const c3c0 = await page.evaluate(() => { intel.history = []; igSetView(1); renderIntelDock(); return [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-igsug]')].map(b => b.getAttribute('data-igsug')); });
+    await page.evaluate(() => { intel.history = []; igSetView(1); renderIntelDock(); });
+    const c3c0 = await chips();
     const judged0 = await page.evaluate(() => igSoleData(null).judged);
     check('3c with no role filled in, Wiring does not offer the single-party question (nothing could be judged)',
       judged0 > 0 || !c3c0.some(q => /single-sourced/i.test(q)), JSON.stringify({ judged0, c3c0 }));
     for (const lang of ['en', 'sv']) {
-      const r = await page.evaluate(L => { langSet(L); (state.contracts || []).forEach(c => { if (c && !c.archived) c.metadata = Object.assign({}, c.metadata || {}, { category: 'supplier' }); });
-        intel.history = []; intel.lenses = []; rebuildIntelGraph(); igSetView(1); renderIntelDock();
-        const sole = i18t('int_sug_sole'), list = [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-igsug]')].map(b => b.getAttribute('data-igsug'));
-        const b = [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-igsug]')].find(x => x.getAttribute('data-igsug') === sole); if (b) b.click();
-        return { sole, list, pressed: !!b, ids: igSoleData(null).ids.length }; }, lang);
+      await page.evaluate(L => { langSet(L); (state.contracts || []).forEach(c => { if (c && !c.archived) c.metadata = Object.assign({}, c.metadata || {}, { category: 'supplier' }); });
+        intel.history = []; intel.lenses = []; rebuildIntelGraph(); igSetView(1); renderIntelDock(); return 1; }, lang);
+      const r = await page.evaluate(`(() => { const Q = ${QS}; const sole = i18t('int_sug_sole'), list = Q.map(x => x.t);
+        const b = Q.find(x => x.t === sole); if (b) b.el.click();
+        return { sole, list, pressed: !!b, ids: igSoleData(null).ids.length }; })()`);
       await until(() => !intel.busy && intel.history.length >= 2);
       const lens = await page.evaluate(() => intel.lenses.map(l => l.label));
       check(`3d-${lang} once roles are filled in, Wiring offers "${r.sole}" and it lights the single-party contracts`,
@@ -161,11 +169,11 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       await page.setViewportSize({ width: w, height: hh });
       for (const v of [0, 1]) {
         await fresh(v); await page.waitForTimeout(400);
-        const fit = await page.evaluate(() => { const box = document.querySelector('#ig-dock [data-ig-chips]'), dock = document.getElementById('ig-dock'), inp = document.getElementById('igd-input');
-          if (!box || !dock || !inp) return null; const b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), i = inp.getBoundingClientRect();
-          const bs = [...box.querySelectorAll('[data-igsug]')].map(x => x.getBoundingClientRect());
-          return { inside: bs.every(r => r.left >= d.left - 0.5 && r.right <= d.right + 0.5), aboveBox: b.bottom <= i.top + 0.5, n: bs.length }; });
-        check(`4 ${w}×${hh} ${VIEW[v]}: the chips sit inside Jambo's panel, above the box`, !!fit && fit.inside && fit.aboveBox && fit.n >= 2, JSON.stringify(fit));
+        const fit = await page.evaluate(`(() => { const Q = ${QS}, dock = document.getElementById('ig-dock'), inp = document.getElementById('igd-input');
+          if (!Q.length || !dock || !inp) return null; const d = dock.getBoundingClientRect(), i = inp.getBoundingClientRect();
+          const bs = Q.map(x => x.el.getBoundingClientRect()), b = { bottom: Math.max(...bs.map(r => r.bottom)) };
+          return { inside: bs.every(r => r.left >= d.left - 0.5 && r.right <= d.right + 0.5), aboveBox: b.bottom <= i.top + 0.5, n: bs.length }; })()`);
+        check(`4 ${w}×${hh} ${VIEW[v]}: the view's questions sit inside Jambo's panel, above the box`, !!fit && fit.inside && fit.aboveBox && fit.n >= 2, JSON.stringify(fit));
         await page.screenshot({ path: path.join(OUT, `${w}x${hh}-${VIEW[v].toLowerCase()}.png`) });
       }
     }

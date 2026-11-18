@@ -66,7 +66,9 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
       /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
       if (box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); return chipAsk('#igd-input', 'intelAsk', q); }
       if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(); return chipAsk('#jl-q', 'jlAsk', q); }
-      if (box === 'settings'){ await P.evaluate(() => setView('team')); await settle(); return chipAsk('#st-jb-q', 'stJbBoxAsk', q); }
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' box is the list panel's (#jl-q, its reader
+         jlAsk, which on Settings asks the one finder stFind first), no longer #st-jb-q */
+      if (box === 'settings'){ await P.evaluate(() => setView('team')); await settle(); return chipAsk('#jl-q', 'jlAsk', q); }
       throw new Error('no such box ' + box);
     }
     /* EVERY SENTENCE STARTS FROM THE SAME PLACE: nothing open over the page, nothing landed, Present and

@@ -54,7 +54,11 @@ const PROBE = () => {
   const out = { cut: [], spill: [] };
   const lab = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
     + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/)[0] : '');
-  const EXEMPT = /hm-hero|rl-turnwrap|nego-turn|live-dot/;
+  /* tpln5-cff JOINED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way — the owner's "build cover flow"): a
+     folder's carousel is a WINDOW onto its papers by design; the papers turned away lie edge-on past its side and come to
+     the front as it turns (pointed at, or the arrow keys). Its overflow is that turn, never a label: each paper's name
+     and quote hold to one line with "…" on their own, and those are still measured. */
+  const EXEMPT = /hm-hero|rl-turnwrap|nego-turn|live-dot|tpln5-cff/;
   const seen = new Set();
   document.querySelectorAll('#app-shell *, #m-root *').forEach(el => {
     const r = el.getBoundingClientRect();

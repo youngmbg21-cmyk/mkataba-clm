@@ -65,36 +65,10 @@ const check = (name, pass, detail) => {
         fri0: at(0, 4), wk2: at(2, 0), mon1: at(1, 0) };
     });
 
-    /* ---- 1 Obligations, week by week ---- */
-    await page.evaluate(() => setView('obligations'));
-    await until(() => document.querySelectorAll('.ob-lt tr.ins-grp').length >= 4, null, 10000);
-    const READ = () => [...document.querySelectorAll('.ob-lt tr.ins-grp')].map(g => ({ k: g.getAttribute('data-ob-week'),
-      word: ((g.querySelector('.ob-wk-fold') || g.querySelector('.ins-g') || {}).textContent || '').replace(/\d+$/, '').trim(),
-      rng: (g.querySelector('.ob-wk-rng') || {}).textContent || '', shut: g.classList.contains('is-shut'),
-      said: (g.querySelector('.ob-wk-said') || {}).textContent || '',
-      rows: (() => { const out = []; let n = g.nextElementSibling; while (n && !n.classList.contains('ins-grp')) { out.push({ hidden: n.hidden, day: ((n.querySelector('.obw-late-when b') || n.querySelector('td:nth-child(3) .ins-c2 b') || n.querySelector('td b') || {}).textContent || '') }); /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the duty leads, the day is the Due column's */ n = n.nextElementSibling; } return out; })() }));
-    const G = await page.evaluate(READ);
-    const by = k => G.find(g => g.k === k) || {};
-    check('1a the groups are weeks, in order: Late, This week, Next week, the later weeks, Later',
-      JSON.stringify(G.map(g => g.k)) === JSON.stringify(['overdue', 'w0', 'w1', 'w2', 'w4', 'later']), JSON.stringify(G.map(g => g.k)));
-    check('1b This week and Next week say their Monday-to-Friday dates; Late says "Late"',
-      /^Late/.test(by('overdue').word) && /^This week/.test(by('w0').word) && /\d+–\d+|–/.test(by('w0').rng) && /^Next week/.test(by('w1').word) && !!by('w1').rng, JSON.stringify(G.map(g => [g.word, g.rng])));
-    check('1c a later week is folded to one line saying what it holds; its rows hidden; this week open',
-      by('w2').shut && /Pay the storage fee · Annual price review · \+1 more/.test(by('w2').said) && by('w2').rows.every(r => r.hidden) && !by('w0').shut && by('w0').rows.every(r => !r.hidden), JSON.stringify(by('w2')));
-    check('1d a row says its weekday ("Mon 19"); a Saturday promise stays in its own week with its own day',
-      by('w0').rows.some(r => r.day === D.satWord) && by('w0').rows.every(r => /^\S+ \d+$/.test(r.day)), JSON.stringify(by('w0').rows));
-    if (OUT) await page.screenshot({ path: path.join(OUT, 'week-by-week-obligations-1440x780.png') });
-
-    /* ---- 2 the folds ---- */
-    await page.click('[data-obw-week="w2"]');
-    const W2 = await until(() => { const g = document.querySelector('.ob-lt tr.ins-grp[data-ob-week="w2"]'); if (!g || g.classList.contains('is-shut')) return null;
-      let n = g.nextElementSibling, open = 0; while (n && !n.classList.contains('ins-grp')) { if (!n.hidden) open++; n = n.nextElementSibling; } return { open }; });
-    check('2a a press on a folded week opens it', !!W2 && W2.open === 3, JSON.stringify(W2));
-    await page.click('[data-obw-weeks]');
-    const ALL = await until(() => { const b = document.querySelector('[data-obw-weeks]'); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
-      return { hidden: document.querySelectorAll('.ob-lt tbody tr[hidden]').length, word: b.textContent.trim() }; });
-    check('2b "Open every week" opens them all, and turns to fold them again', !!ALL && ALL.hidden === 0 && /Fold/.test(ALL.word), JSON.stringify(ALL));
-    await page.click('[data-obw-weeks]');
+    /* RETIRED 16 Nov 2026 (#762): sections 1 and 2 (Obligations grouped by week — Late, This week, Next week, the later
+       weeks folded to one line, "Open every week") — the new look's Obligations page is the project list (obnRender:
+       pills Late · Tracked · Proposals, twenty a page), which draws no week groups; obligations-project-list-verify and
+       round5-new-look-verify pin it */
 
     /* ---- 3 the Calendar's Week holds this week and five more ----
        RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is its own tab */
@@ -147,14 +121,7 @@ const check = (name, pass, detail) => {
       check(`5 ${w}×${ht}: the calendar's six weeks whole, the hours room to read, nothing sideways`, F.weeks && F.hours && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `week-by-week-calendar-${w}x${ht}.png`) });
     }
-    await page.evaluate(() => setView('obligations'));
-    for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
-      await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
-      const F = await page.evaluate(() => { const g = document.querySelector('.ob-lt tr.ins-grp[data-ob-week="w0"]'), p = document.getElementById('ins-panel');
-        return { week: !!g && g.getBoundingClientRect().bottom <= innerHeight, panel: !!p && p.getBoundingClientRect().right <= innerWidth + 1, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
-      check(`5 ${w}×${ht}: Obligations' this week and its panel in view, nothing sideways`, F.week && F.panel && F.side, JSON.stringify(F));
-      if (OUT) await page.screenshot({ path: path.join(OUT, `week-by-week-obligations-${w}x${ht}.png`) });
-    }
+    /* RETIRED 16 Nov 2026 (#762): the three screens on Obligations' "this week" group — no week groups in the new look */
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

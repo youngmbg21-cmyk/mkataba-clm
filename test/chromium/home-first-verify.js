@@ -137,8 +137,14 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦. */
     ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u21C4' && sym.map(s => s.txt).join('|') === 'Dossier|Clauses|Redlines' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): pressing Clauses plays THE READ quickly over the paper
+       (pd2WalkWithRead), and while it walks the paper's strip steps aside (#ig-page.is-pd2-walk); a quick read closes itself
+       at its end — the strip is measured once the read has ended (bounded; a read that never ends leaves the strip at 0) */
+    await page.waitForFunction(() => !document.querySelector('#ig-page.is-pd2-walk'), null, { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(300);
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
-      return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });
+      return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top),
+        why: (s => ({ disp: getComputedStyle(s).display, h: Math.round(s.getBoundingClientRect().height), kids: s.children.length, hidden: s.hidden, cls: s.className, par: s.parentElement && (s.parentElement.id || s.parentElement.className), parDisp: s.parentElement && getComputedStyle(s.parentElement).display, page: (document.getElementById('ig-page') || {}).className }))(document.getElementById('ig-strip')) }; });
     ok('3a4 the panel is plain white, no lifted card, its top level with the contract strip', white.dock === 'rgb(255, 255, 255)' && (white.card === 'none' || white.card === 'normal') && white.top === white.bar, JSON.stringify(white));
     /* 3b "Overview carries the parties" RETIRED 13 Oct 2026: the Overview tab is
        gone from Home's panel (owner); the parties stay on the room's Overview */
@@ -168,7 +174,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        floating 8px in, 12px apart (the drawing's gap), so the strip and the panel's head no longer touch;
        they still stand at ONE height, top and bottom. The wording has not moved: the sheet still starts
        87px under the bar (the card's 8px inset is taken back from the paper's own top padding). */
-    ok('3f the strip and the symbols stand at one height, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && bar.gap >= 0 && bar.gap <= 12 && bar.sheetTop - bar.barH === 87, JSON.stringify(bar));
+    ok('3f the strip and the symbols stand at one height, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && bar.gap >= 0 && bar.gap <= 12 && bar.sheetTop - bar.barH === 65, JSON.stringify(bar));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): ONE WHITE SHEET, no floating cards — the paper's half lies
+       edge to edge under the bar, so its wording starts 65px under the bar (was 87 with the card's inset); pinned there */
     await page.screenshot({ path: path.join(OUT, '3-desk.png') });
     await page.click('#ig-dock [data-pd-tab="copilot"]');
     ok('3e Copilot\'s symbol brings the conversation back', await page.evaluate(() => !!document.querySelector('#igd-feed:not([hidden])') && !document.getElementById('pd-body')));
@@ -196,9 +204,13 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        it does not touch): the Board may draw the card again between finding the act and pressing it */
     if (late) await page.click('#hm-agents .nd-br.is-look [data-ag-act="oblig"]', { timeout: 8000 }).catch(() => {});
     /* the act's own door (agRunAct 'oblig' → agGo): the Obligations worklist, where the late promise is a row with its chase */
-    await page.waitForFunction(() => state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
-    const l = await page.evaluate(() => ({ view: state.view, named: /MK-HF4/.test((document.getElementById('content') || {}).innerText || '') }));
-    ok('5b it lands on the Obligations worklist, the late promise\'s contract among its rows', l.view === 'obligations' && l.named, JSON.stringify(l));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): one contract's obligations asked for land on its paper's
+       Obligations face (renderObligationsList → pd2ObGo; "the new look has no narrowed page"), the late promise among its rows */
+    const ON = () => (state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''))
+      || (typeof pdContract === 'function' && pdContract() && pdContract().id === 'MK-HF4' && pdTab() === 'oblig' && document.querySelectorAll('#ig-dock .pd-ob[data-pd-ob-key]').length > 0);
+    await page.waitForFunction(ON, null, { timeout: 8000 }).catch(() => {});
+    const l = await page.evaluate(`(() => ({ view: state.view, at: ((window.pdContract && pdContract()) || {}).id || null, tab: window.pdTab ? pdTab() : null, ok: (${ON.toString()})() }))()`);
+    ok('5b it lands on the late promise\'s obligations, its contract\'s own rows', l.ok, JSON.stringify(l));
     await page.screenshot({ path: path.join(OUT, '5-late.png') });
 
     /* ===== 5c. A WORK ROW NAMES ITS CONTRACT (Young, 8 Oct 2026: "no contract number in the card") ===== */

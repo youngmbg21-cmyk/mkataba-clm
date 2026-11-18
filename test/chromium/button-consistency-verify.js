@@ -151,7 +151,8 @@ const HELPERS = `(() => {
          was): the stepper is the paper's instrument, not an act, and reads
          the hairline (--chip-edge); Open Negotiate keeps the accent edge. */
       return { want, hair: b.tok('--chip-edge'), rule: b.tok('--rule-strong'), field: b.tok('--field-line'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
-        nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), thFill: thStep ? getComputedStyle(thStep).backgroundColor : null,
+        nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), thFill: thStep ? getComputedStyle(thStep).backgroundColor : null, thEdgeW: thStep ? getComputedStyle(thStep).borderTopWidth : null,
+        black: (() => { const p = document.createElement('i'); p.style.background = 'var(--bar-black)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
         grey: (() => { const p = document.createElement('i'); p.style.background = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
         switchGone: !document.querySelector('[data-doc-read]') };
     }, negoEdge);
@@ -176,7 +177,10 @@ const HELPERS = `(() => {
     ok('3b and it is the light grey RULE, the strong hairline — not a text box\'s edge, not the ink',
       !!row.rule && row.want === row.rule && row.want !== row.accent && row.want !== row.field,
       `${row.want} vs --rule-strong ${row.rule} · --field-line ${row.field} · ink ${row.accent}`);
-    ok('3c the open row\'s Plain English takes the same face (the grey pill, no edge)', !!row.thStep && NONE.test(row.thStep) && row.thFill === row.grey, `step ${row.thStep} / ${row.thFill}`);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the open clause's Plain English is that
+       row's ONE filled press (index.html "the open clause: … its Plain English press filled", the black pill,
+       border 0) — one black per area, never an outlined control. Still no edge drawn; the fill is the black. */
+    ok('3c the open row\'s Plain English is the open clause\'s one filled press (the black pill, no edge drawn)', !!row.thStep && (NONE.test(row.thStep) || row.thEdgeW === '0px') && row.thFill === row.black, `step ${row.thStep} ${row.thEdgeW} / ${row.thFill} (want the black ${row.black})`);
 
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
        onto Negotiate lands on Jambo's Redlines face on Home, which has no
@@ -250,16 +254,8 @@ const HELPERS = `(() => {
       night.switches.length === 0 && !night.dark && !!night.btn && NONE.test(night.btn) && night.btnFill === night.grey && night.want === night.rule,
       `switches ${night.switches.join(',') || 'none'} · dark ${night.dark} · button ${night.btn} / ${night.btnFill} · edge token ${night.want}`);
 
-    const wall = await page.evaluate(i => { try { openShareModal(getContract(i)); } catch (e) {} return i; }, id);
-    await page.waitForTimeout(1500); await load();
-    const field = await page.evaluate(() => { const b = window.__b;
-      const inp = [...document.querySelectorAll('#modal-root input[type=email], #modal-root input[type=text], #sh-email')].find(b.vis);
-      const out = { field: b.edge(inp), line: b.tok('--field-line'), btn: b.tok('--btn-edge') };
-      try { closeModal(); } catch (e) {}
-      return out; });
-    ok('3h [wall] a text box keeps its own stronger edge — it tells a reader where to type',
-      !!field.field && field.field === field.line && field.field !== field.btn, `box ${field.field} · --field-line ${field.line}`);
-    void wall;
+    /* RETIRED 17 Nov 2026 (#762, owner's pick on the drawings: "7 No outline"): 3h — a text box's stronger edge, measured
+       on the Send screen's step 1, whose Name and Email boxes are drawn with no outline on purpose (the plain letter) */
 
     /* ════════ 1. NO LABEL WRAPS ════════ */
     /* THE OWNER'S OWN SQUEEZE: three contract titles lengthened, so the
@@ -283,7 +279,9 @@ const HELPERS = `(() => {
       const r = await page.evaluate(() => { const b = window.__b;
         const rung = (() => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;left:-9999px;display:block;height:var(--ctl-h)';
           document.body.appendChild(e); const h = e.getBoundingClientRect().height; e.remove(); return h; })();
-        const rows = [...document.querySelectorAll('.ap-go')].filter(b.vis).map(x => ({ x, max: 26 }));
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): beside the panel the new look's list carries each
+           row's own act (Approve · Open signing), the same rung — asked of them as of "Open the gate" */
+        const rows = [...document.querySelectorAll('.ap-go, .apn-table [data-ap-approve], .apn-table [data-ap-open]')].filter(b.vis).map(x => ({ x, max: 26 }));
         const lead = [...document.querySelectorAll('#ins-panel [data-ins-act="gate"]')].filter(b.vis).map(x => ({ x, max: rung + 1 }));
         const go = rows.concat(lead);
         return { n: go.length, where: lead.length ? 'panel' : 'rows',
@@ -312,11 +310,9 @@ const HELPERS = `(() => {
     ok('1b at a 1024 window no labelled button on the working pages takes two lines', wrapped.length === 0,
       wrapped.length ? wrapped.slice(0, 6).join(' | ') : 'none');
 
-    await page.evaluate(() => { try { regSetScope(null); } catch (e) {} (regPlaceSet({ show: 'list' }), setView('register')); });
-    await page.waitForTimeout(1300); await load();
-    const menu = await page.evaluate(() => { const cells = [...document.querySelectorAll('td.reg-cell-menu')].filter(window.__b.vis);
-      return { n: cells.length, cut: cells.filter(td => td.scrollWidth > td.clientWidth + 0.5).length, w: cells[0] ? Math.round(cells[0].clientWidth) : 0 }; });
-    ok('1c at 1024 the Contracts row menu\'s square fits its cell', menu.n > 0 && menu.cut === 0, `${menu.cut} of ${menu.n} cut · cell ${menu.w}px`);
+    /* RETIRED 16 Nov 2026 (#762): 1c "at 1024 the Contracts row menu's square fits its cell" — the new look's Contracts
+       list draws no ⋯ column (register.js columnsFor: regNl() returns counterparty · standing · the shape's columns, no
+       'acts'); a same-on-every-row column steps out */
     await page.setViewportSize({ width: 1440, height: 900 });
 
     /* ════════ 2. HOME'S WORK CARD, ONE BUTTON SIZE ════════ */

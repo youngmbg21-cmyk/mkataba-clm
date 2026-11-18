@@ -147,16 +147,20 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     await own.click('#hdr-notify'); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await own.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); }); await pause(700);
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk's rows; the
        bell's own signal is a row of its own (data-nd-row "al:<kind>:<contract>:…"), still green */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's panel is the new look's (ndBellNlHtml,
+       rows .ndb-r with no .nd-pan around them); the row is read by its data-nd-row wherever it is drawn, and its
+       green is the class the one desk's good-news row wears (nd-good). Its whole text must still name who agreed and
+       that nothing is signed yet. */
     const row = await own.evaluate(() => {
-      const r = document.querySelector('#context-panel .nd-pan .nd-r[data-nd-row^="al:cp-accepted:MK-A2:"]');
-      return r ? { text: r.innerText.replace(/\s+/g, ' ').trim(), good: r.classList.contains('nd-good'),
-        kinds: [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].map(b => b.getAttribute('data-nd-row')) } : null;
+      const r = document.querySelector('#context-panel [data-nd-row^="al:cp-accepted:MK-A2:"]');
+      return r ? { text: r.innerText.replace(/\s+/g, ' ').trim(), good: r.classList.contains('nd-good') || !!r.querySelector('.is-good'),
+        kinds: [...document.querySelectorAll('#context-panel [data-nd-row]')].map(b => b.getAttribute('data-nd-row')) } : null;
     });
     ok('1c our alerts bell says so, in green, naming who agreed and that nothing is signed yet',
       !!got && !!row && /agreed to the wording/i.test(row.text) && /Grace Njeri/.test(row.text) && /not signed yet/i.test(row.text) && row.good,
       JSON.stringify(row));
     await own.screenshot({ path: path.join(OUT, '1-bell-agreed.png') });
-    const pressed = await own.$('#context-panel .nd-pan [data-nd-al^="al:cp-accepted:MK-A2:"]');
+    const pressed = await own.$('#context-panel [data-nd-al^="al:cp-accepted:MK-A2:"]');
     if (pressed) { await pressed.click({ timeout: 5000 }).catch(() => {}); await pause(1600); }
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab went home — its door opens Jambo's Before you sign face
@@ -192,6 +196,8 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     if (tok2) {
       await cp2.goto(h.base + '/#share=t:' + tok2, { waitUntil: 'networkidle' });
       await pause(2600);
+      /* RE-POINTED 16 Nov 2026 (#762): their bell sits under More (#pol-more opens #pol-pop) on the outside look */
+      if (await cp2.$('#pol-more')) { await cp2.click('#pol-more').catch(() => {}); await pause(300); }
       const b = await cp2.$('#pt-bell');
       if (b) { await b.click(); await pause(600); }
       bell2 = await cp2.evaluate(() => {
@@ -217,14 +223,17 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
        it still is on a computer: the bell's renewal row, which presses the
        same one door (needsYouGo 'renewal') and says the same on its hover. */
     await own.evaluate(() => { regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); }); await pause(1200);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the
+       list (one table, #reg-tbody) is its All tab */
+    if (await own.$('[data-ctf-tab="all"]')) { await own.click('[data-ctf-tab="all"]').catch(() => {}); await pause(800); }
     const r1 = await own.$('#reg-tbody tr[data-row="MK-R9"]');
     await own.click('#hdr-notify').catch(() => {}); /* the panel button opens on the Guide (owner, 14 Nov 2026): the Alerts tab is pressed to read the alerts */ await own.evaluate(() => { const t = document.querySelector('#context-panel [data-pt-face="alerts"]'); if (t && window.state && state.panelOpen) t.click(); }); await pause(700);
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the bell's renewal is the one desk's row — the
        checklist's own Decide, or Jambo's renewal piece, whose Look opens it on the Board's card and whose
        "Decide the renewal" presses the same one door (needsYouGo 'renewal') with the same hover */
-    let decide = await own.$('#context-panel .nd-pan [data-cn-need="renewal"][data-cn-id="MK-R9"], #context-panel .nd-pan [data-nd-al^="al:renewal:MK-R9:"]');
+    let decide = await own.$('#context-panel [data-cn-need="renewal"][data-cn-id="MK-R9"], #context-panel [data-nd-al^="al:renewal:MK-R9:"]');
     if (!decide){
-      const look = await own.$('#context-panel .nd-pan [data-nd-look*="MK-R9"]');
+      const look = await own.$('#context-panel [data-nd-look*="MK-R9"]');
       /* RE-POINTED 16 Nov 2026 (owner: a Needs-you row "should take me to the contract and not point me to the board"):
          the piece's Open in the bell IS its Decide (ndRowGo → needsYouGo 'renewal'), with Decide's hover */
       if (look) decide = look;
@@ -279,8 +288,11 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     const face = await own.evaluate(() => ({ facts: ((document.getElementById('pd-glance') || { innerText: '' }).innerText || '').replace(/\s+/g, ' ') }));
     /* the Dossier's own sign of Jambo's read is its stage line, "Read <time>" ("Brief · Not read yet" is the PERSON's
        reading of the brief, a different fact) */
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Dossier card says Jambo's read in one line ("Jambo read the paper
+       once on arrival", pd2_read_once; before any read "Jambo has not read the paper yet", pd2_read_not); the stage
+       line under it, with its time, went with LESS SAID TWICE (owner, 16 Nov 2026) */
     ok('3g3 and the Dossier follows the reading — its stage line says when Jambo read it, never that he has not',
-      !!face.facts && /\bRead \d/.test(face.facts) && !/Jambo has not read/i.test(face.facts), face.facts.slice(0, 120));
+      !!face.facts && /Jambo read the paper/.test(face.facts) && !/Jambo has not read/i.test(face.facts), face.facts.slice(0, 120));
     await own.screenshot({ path: path.join(OUT, '3-overview-after-decide.png') });
 
     /* [control] THE ORDINARY DOOR READS NOTHING. The same Overview, opened from

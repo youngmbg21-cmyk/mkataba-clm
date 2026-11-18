@@ -216,7 +216,9 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
          beside it on the same row. */
       /* ⋯ stands alone in the page head since 11 Oct 2026; its neighbours are
          the calendar card's own buttons, and what must match is the OUTLINE */
-      const peers = [...document.querySelectorAll('#cal-today, #cal-new')].map(p => {
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the old head's buttons are still in the markup,
+         hidden; the neighbours a reader sees are the drawn ones */
+      const peers = [...document.querySelectorAll('#cal-today, #cal-new')].filter(p => p.getBoundingClientRect().height > 0).map(p => {
         const c = getComputedStyle(p);
         return { id: p.id || p.className, edge: c.borderTopColor, w: c.borderTopWidth, st: c.borderTopStyle, bg: c.backgroundColor,
           h: Math.round(p.getBoundingClientRect().height) };
@@ -235,8 +237,10 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       !!row && !/rgba\([^)]*,\s*0\s*\)|transparent/.test(row.more.bg),
       row && JSON.stringify(row.more));
     ok('4b the same face its neighbours wear',
-      !!row && row.peers.length > 0 && row.peers.every(p =>
-        p.edge === row.more.edge && p.w === row.more.w && p.st === row.more.st && p.bg === row.more.bg),
+      /* the edge compared as PAINTED (THE LEGORA LOOK: no edge on a button): a line is drawn only with a width, a style
+         and a colour that is not clear — a 0px line and a clear 1px line are the same nothing */
+      !!row && row.peers.length > 0 && row.peers.every(p => { const line = x => (parseFloat(x.w) > 0 && x.st !== 'none' && !/rgba\([^)]*,\s*0\s*\)|transparent/.test(x.edge)) ? x.w + ' ' + x.st + ' ' + x.edge : 'none';
+        return line(p) === line(row.more) && p.bg === row.more.bg; }),
       row && JSON.stringify(row));
 
     await page.screenshot({ path: path.join(OUT, '1-month.png') });

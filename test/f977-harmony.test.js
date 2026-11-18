@@ -51,7 +51,8 @@ test('f977 (4) say it once', () => {
   const ap = strip(fnBody(read('js/views/approvalsview.js'), 'apnRender'));
   /* RE-POINTED 17 Nov 2026 (the three piles): a pile row has no rests of its own, so the contract rows decide */
   assert.match(ap, /const same=\(pDep\.length\+pStd\.length>0&&!rs\.length\)\|\|\(rs\.length>1&&rs\.every\(x=>x===rs\[0\]\)\);/);
-  assert.match(ap, /\$\{same\?'':`<th>\$\{esc\(i18t\('apn_col_rests'\)\)\}<\/th>`\}/);
+  /* RE-POINTED 17 Nov 2026 (#762): the head now carries its column's grip (listCols, the one column rule); the column still steps out when it says the same */
+  assert.match(ap, /\$\{same\|\|restsOut\?'':`<th>\$\{esc\(i18t\('apn_col_rests'\)\)\}\$\{grip\('rests'\)\}<\/th>`\}/);
   assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnRender')), /const reachAny = list\.some/);
   assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
 });
@@ -115,7 +116,8 @@ test('f977 (16) the paper: the sheet not a band lower on a wide desk, the openin
   const b = block();
   assert.match(b, /@media \(min-width:1300px\)\{ html\.lg-new #ig-paper-scroll > \.paper-zc-row\{--zc-room:0px\} \}/);
   assert.match(b, /html\.lg-new #ig-paper \.pg-sheet \.doc-surface#ig-canvas p\.px-2\.-mx-2\{margin-left:-8px;margin-right:-8px\}/);
-  assert.match(read('js/paperdesk.js'), /\(f\.k === 'signer' \|\| f\.k === 'stream'\) \? _pdT\('pd2_go_change'\)/);
+  /* RE-POINTED 17 Nov 2026 (#762): Who else on this agreement is a Dossier fact again, its Change a link like the signer's */
+  assert.match(read('js/paperdesk.js'), /\(f\.k === 'signer' \|\| f\.k === 'stream' \|\| f\.k === 'people'\) \? _pdT\('pd2_go_change'\)/);
 });
 test('f977 (17) same card twice: Accept · Reject · Counter on every ask, the rest behind More', () => {
   const ng = read('js/views/negotiation.js');

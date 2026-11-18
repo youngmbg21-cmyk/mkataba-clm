@@ -154,7 +154,9 @@ const CONTRACTS = [
 
     /* ===== 1 + 2 · IN SETTINGS ===== */
     await page.evaluate(() => setView('team'));
-    const onSet = await until(() => state.view === 'team' && document.getElementById('st-side') && document.getElementById('st-side').getClientRects().length ? true : null, null, 8000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' own Jambo is the list pages' panel
+       (#ins-panel, its talk [data-jt-talk]), no longer #st-side / #st-jb-feed */
+    const onSet = await until(() => state.view === 'team' && document.getElementById('ins-panel') && document.getElementById('ins-panel').getClientRects().length && document.querySelector('#ins-panel #jl-q') ? true : null, null, 8000);
     check('0 (setup) Settings with its own Jambo side', !!onSet);
     await press('#cmd-ai');
     await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
@@ -165,27 +167,24 @@ const CONTRACTS = [
     await quiet();
     const A3 = await until(n => { const f = document.getElementById('ai-feed'); const t = f ? f.textContent : '';
       return /highest value/.test(t) && ai.history.length >= n + 2 ? { open: document.getElementById('ai-panel').classList.contains('open'),
-        st: /highest value/.test((document.getElementById('st-jb-feed') || {}).textContent || ''), view: state.view } : null; }, n2, 8000);
+        st: /highest value/.test((document.querySelector('#ins-panel [data-jt-talk]') || {}).textContent || ''), view: state.view } : null; }, n2, 8000);
     check('2c in Settings it is answered in the window, not in Settings\' side', !!A3 && A3.open && !A3.st && A3.view === 'team', JSON.stringify(A3));
     await shot('settings-window-1440x780');
 
     /* ===== 4 · THE EDGE TAB STILL SLIDES IN THE SIDE PANEL ===== */
     await closeWin();
-    await page.evaluate(() => setView('jambo'));
-    await until(() => document.querySelector('[data-jh-jambo]') ? true : null, null, 10000);
-    await press('[data-jh-jambo]');
+    /* RETIRED 16 Nov 2026 (#762): 4a "the edge Jambo tab slides in the side panel" and 4c "the edge tab from the chat
+       window slides the side panel in" — the edge tab was the folded strip on Jambo's agents ([data-jh-jambo], its one
+       caller of aiSideToggle); the new look draws Jambo's panel open beside that page and no edge tab anywhere.
+       4b is kept: the side panel opened by its one opener, the ✦ over it opens the chat window. */
+    await page.evaluate(() => setView('brain'));
+    await until(() => state.view === 'brain' ? true : null, null, 8000);
+    await page.evaluate(() => aiSideToggle());
     await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
-    await page.waitForTimeout(450);   // the slide-in's transition, so the rect is where it rests
-    const S1 = await page.evaluate(() => { const p = document.getElementById('ai-panel'), r = p.getBoundingClientRect();
-      return { side: p.classList.contains('is-side'), floating: p.classList.contains('floating'), right: Math.round(r.right), w: Math.round(r.width), top: Math.round(r.top),
-        barH: Math.round(document.getElementById('top-header').getBoundingClientRect().height), vw: innerWidth }; });
-    check('4a the edge "Jambo" tab slides in the side panel: the right edge, 384 wide, under the bar', S1.side && !S1.floating && S1.right === S1.vw && S1.w === 384 && S1.top === S1.barH, JSON.stringify(S1));
+    await page.waitForTimeout(450);
     await press('#cmd-ai');
     const S2 = await until(() => { const p = document.getElementById('ai-panel'); return p.classList.contains('open') && p.classList.contains('floating') ? { side: p.classList.contains('is-side') } : null; }, null, 3000);
     check('4b the ✦ over the open side panel opens the chat window', !!S2 && !S2.side, JSON.stringify(S2));
-    await press('[data-jh-jambo]');
-    const S3 = await until(() => { const p = document.getElementById('ai-panel'); return p.classList.contains('open') && p.classList.contains('is-side') && !p.classList.contains('floating') ? true : null; }, null, 3000);
-    check('4c the edge tab from the chat window slides the side panel in', !!S3);
     await closeWin();
     await page.evaluate(() => setView('approvals'));
     await until(() => state.view === 'approvals' && window.jlOnScreen && jlOnScreen() ? true : null, null, 8000);

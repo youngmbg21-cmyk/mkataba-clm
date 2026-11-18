@@ -64,12 +64,19 @@ const until = async (page, fn, arg, ms = 8000) => {
        nobody holds is your row (Answer) or, where Jambo found its paper, his piece (Look), whose
        "Open the request" is the same door onto Requests */
     await page.evaluate(() => openPanel('alerts')); await page.waitForTimeout(500);
-    let row = await page.$(`.nd-pan [data-cn-req="${rid}"]`);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's list is drawn as .ndb (ndBellNlHtml), each
+       row ONE Open that presses the row's own door (ndRowGo) */
+    await until(page, id => !!document.querySelector(`.nd-pan [data-cn-req="${id}"], .ndb .ndb-r[data-nd-row*="${id}"] .ndb-open`), rid);
+    let row = await page.$(`.nd-pan [data-cn-req="${rid}"], .ndb .ndb-r[data-nd-row*="${rid}"] .ndb-open`);
     const look = row ? null : await page.$(`.nd-pan [data-nd-look="request:${rid}"]`);
     ok('1c it is drawn in the panel', !!(row || look));
     await page.screenshot({ path: path.join(OUT, '1-bell.png') });
     if (look){ await look.click(); await page.waitForTimeout(1200); row = await page.$('#hm-agents .nd-br.is-look [data-ag-act="ikopen"]'); }
     if (row) { await row.click(); }
+    /* RE-POINTED 16 Nov 2026 (#762): a Jambo piece about a request (no contract) opens the Board's list on its row
+       (ndRowGo → ndOpenBoard('jambo', key)); its "Open the request" is the same door onto Requests, pressed there */
+    if (row && await until(page, () => state.view !== 'intake' && !!document.querySelector('[data-ag-act="ikopen"], [data-ag-act^="ikopen|"]'), null, 6000))
+      await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ag-act="ikopen"], [data-ag-act^="ikopen|"]')].find(x => x.getBoundingClientRect().width > 0); if (b) b.click(); });
     const landed = await until(page, id => state.view === 'intake' && /Cold-chain storage/.test((document.getElementById('ins-panel') || {}).textContent || ''), rid);
     ok('1d the press lands on Requests with that request lit', landed,
       await page.evaluate(() => ({ view: state.view, panel: ((document.getElementById('ins-panel') || {}).textContent || '').slice(0, 80) })));

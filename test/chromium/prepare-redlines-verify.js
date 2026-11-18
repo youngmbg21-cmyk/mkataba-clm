@@ -53,7 +53,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
    beside the memo and the playbook pass. MENU is that row; pressRow opens the
    tab first, as a reader would. */
 /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows are the dossier's All acts fold */
-const MENU = '#ig-dock .ds-fold .pd-mn-rows [data-rl-prepare]';
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every act is pressed from the paper line's More
+   (#ig-actions → pdActsToggle → #pd-acts-pop), each row the Dossier's own by key; the All acts fold is not drawn */
+const MENU = '#pd-acts-pop [data-pd-acts-go="[data-rl-prepare]"]';
 const COLUMN = '#pd-redface .rl-cards-empty [data-rl-prepare]';
 const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.closest('details') && (b.closest('details').open = true); b.click(); return true; }, sel);
 /* RE-POINTED 19 Oct 2026 (round 9 as drawn, "Piles"): while the Redlines face
@@ -63,7 +65,8 @@ const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySele
    and the row is there as before. Asked for, bounded. */
 const menuOpen = async page => {
   await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-back="red"]'); if (b) b.click(); });
-  await page.waitForFunction(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; return !!f; }, null, { timeout: 6000 }).catch(() => {});
+  await page.waitForFunction(() => !document.getElementById('pd-redface') && !!document.getElementById('ig-actions'), null, { timeout: 6000 }).catch(() => {});
+  await page.evaluate(() => { const c = typeof pdContract === 'function' && pdContract(); if (window.pdActsPopClose) pdActsPopClose(); if (c) pdActsToggle(c.id, document.getElementById('ig-actions')); });
   await page.waitForFunction(m => !!document.querySelector(m), MENU, { timeout: 6000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 300));
 };
@@ -194,7 +197,7 @@ const VERDICTS = [
   const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
   check(/draft from our playbook/i.test(row.text) && !row.dead, '1c the Menu tab\'s row says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);
-  check(hasRow && await page.evaluate(() => !!document.querySelector('#ig-dock .ds-fold [data-ig-memo]') && !!document.querySelector('#ig-dock .ds-fold [data-ig-pbreview]')), '1e beside the memo and the playbook pass (the same All acts fold)');
+  check(hasRow && await page.evaluate(() => !!document.querySelector('#pd-acts-pop [data-pd-acts-go="[data-ig-memo]"]') && !!document.querySelector('#pd-acts-pop [data-pd-acts-go="[data-ig-pbreview]"]')), '1e beside the memo and the playbook pass (the same More card)');
   await page.keyboard.press('Escape').catch(() => {}); await pause(300);
   await page.screenshot({ path: path.join(OUT, '01-menu.png') });
 

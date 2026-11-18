@@ -206,6 +206,8 @@ const DEAL = {
         following: window.presenceFollowing ? presenceFollowing() : 'no-fn',
         title: f ? (f.getAttribute('title') || '') : '' };
     });
+    /* RE-POINTED 17 Nov 2026 (the owner: "they follow me", f1089): stopped, the face says again what a press does now —
+       ask Amina to follow YOU (the same words as 1b), not the retired "ask to follow Amina" */
     ok('5a the same press stops it', off.on === false && off.following === null
       /* RE-POINTED 17 Nov 2026 (the owner: "they follow me, once they allow it"): the face asks THEM to follow you */
       && /Press to ask Amina to follow you: once they allow it, their page goes where you read and opens the redline cards you open\.$/.test(off.title), JSON.stringify(off));

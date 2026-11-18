@@ -105,7 +105,9 @@ const ENGLISH = () => {
     await shot('2-ready');
 
     /* ===== 3. THE PAD ===== */
-    await page.click('#sign-btn').catch(() => {});
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Sign a reader presses is the five-part face's
+       clear card ([data-pd2-sign], which presses #sign-btn) */
+    await page.click((await page.$('#pd-signface [data-pd2-sign]')) ? '#pd-signface [data-pd2-sign]' : '#sign-btn').catch(() => {});
     const pad = await waitFor(page, () => !!document.getElementById('sig-intent'), 6000);
     const e3 = pad ? await page.evaluate(ENGLISH) : ['(the pad did not open)'];
     check('3 the pad: Swedish, the market\'s law line aside', pad && e3.length === 0, e3.slice(0, 4).join(' | ') || 'none');
@@ -122,7 +124,12 @@ const ENGLISH = () => {
     const e4 = await page.evaluate(ENGLISH);
     const block = await page.evaluate(() => ((document.querySelector('#ig-paper [data-anchor="sig"]') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 480));
     check('4a after our signature: the panel, the toast and the signatures so far are Swedish', partly && e4.length === 0, e4.slice(0, 4).join(' | ') || block);
-    check('4b the signatures so far say "delvis signerat" and the form as a word', /delvis signerat/.test(block) && /skriven underskrift/.test(block), block);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the paper's signature block is drawn as the new
+       look's two lines (.sig2): each party's line, "Signerat <day>" under a given signature, "Din signatur här" on the
+       one still to come; the old block's "partially signed" and the form as a word are not drawn there (Q5). Its words
+       are asked to be Swedish, none English. */
+    check('4b the signatures so far say "delvis signerat" and the form as a word', /delvis signerat/.test(block) && /skriven underskrift/.test(block)
+      || (/Signerat \d/.test(block) && !/\bSigned\b|Your signature/.test(block)), block);
     await page.evaluate(() => { const b = document.querySelector('#ig-paper [data-anchor="sig"]'); if (b) b.scrollIntoView({ block: 'center' }); });
     await shot('4-their-turn');
 
@@ -158,7 +165,8 @@ const ENGLISH = () => {
     const en = await page.evaluate(() => ({ rows: [...document.querySelectorAll('#pd-signface .font-mono')].map(e => e.textContent.trim()).filter(t => /·/.test(t)),
       block: ((document.querySelector('#ig-paper [data-anchor="sig"]') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 480) }));
     check('7 in English the same lines read as they always did ("1st", "partially signed", "type signature")',
-      en.rows.some(t => /^1st · /.test(t)) && /partially signed/.test(en.block) && /type signature/.test(en.block), JSON.stringify(en));
+      en.rows.some(t => /^1st · /.test(t)) && ((/partially signed/.test(en.block) && /type signature/.test(en.block))
+        || (/Signed \d/.test(en.block) && /Your signature goes here/.test(en.block) && en.rows.some(t => /type signature/.test(t)))), JSON.stringify(en));
     check('8 no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('the run completed', false, e.message);

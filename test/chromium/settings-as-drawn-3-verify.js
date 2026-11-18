@@ -86,20 +86,21 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; }
       try { await page.locator(sel).first().click({ timeout: 4000 }); } catch (e) { check(what + ' (could not be pressed: ' + sel + ')', false, e.message.split('\n')[0]); return false; } return true; };
-    const company = () => until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; }
-      if (settingsTab() !== 'company' || document.querySelector('#set-page[data-st-sub]')) { settingsGoTab('company'); try { settingsGoPage(''); } catch (_) {} return null; }
-      return document.querySelector('#st-board .st-cards') && document.querySelector('#st-att') ? true : null; }, null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list, Jambo's panel beside it */
+    const company = () => until(() => { if (!document.getElementById('set-page') || document.querySelector('#set-page[data-st-sub]')) { try { settingsGoPage(''); } catch (_) {} setView('team'); return null; }
+      return document.querySelector('.stn-page #stn-main .stn-row') && document.querySelector('#ins-panel #jl-q') ? true : null; }, null, 15000);
     return { until, press, company };
   };
   /* the frame, read: head card, panel, ask box (whole, not covered), panel head (not covered) */
   const frame = page => page.evaluate(() => {
     const r = s => { const e = document.querySelector(s); if (!e) return null; const q = e.getBoundingClientRect(); return { l: q.left, t: q.top, r: q.right, b: q.bottom }; };
     const bar = document.querySelector('#dk-back') ? Math.round(document.querySelector('#content-scroll').getBoundingClientRect().top) : null;
-    const ask = document.getElementById('st-jb-form'), hd = document.getElementById('st-side-head');
+    /* RE-POINTED 16 Nov 2026 (#762): the list (.stn-card), Jambo's panel beside it (#ins-panel), his box (.jl-ask), his headline */
+    const ask = document.querySelector('#ins-panel .jl-ask'), hd = document.querySelector('#ins-panel .jov5-title');
     const hit = (el, sel) => { if (!el) return false; const q = el.getBoundingClientRect(); const x = q.left + 30, y = q.top + q.height / 2; const e = document.elementFromPoint(x, y); return !!(e && e.closest(sel)); };
     const sc = document.getElementById('content-scroll');
-    return { head: r('#st-headcard'), side: r('#st-side'), ask: r('#st-jb-form'), scTop: bar, H: innerHeight, W: innerWidth,
-      askSeen: hit(ask, '#st-jb-form'), headSeen: hit(hd, '#st-side'), winHead: getComputedStyle(document.getElementById('page-head')).display,
+    return { head: r('.stn-card'), side: r('#ins-panel'), ask: r('#ins-panel .jl-ask'), scTop: bar, H: innerHeight, W: innerWidth,
+      askSeen: hit(ask, '.jl-ask'), headSeen: hit(hd, '#ins-panel'), winHead: getComputedStyle(document.getElementById('page-head')).display,
       sideways: document.documentElement.scrollWidth > innerWidth + 1 || (sc && sc.scrollWidth > sc.clientWidth + 1) };
   });
   try {
@@ -108,76 +109,36 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const p = await open('admin@example.co.ke', 'adminpassword1', W, HH); const k = kit(p);
       await k.company(); await p.waitForTimeout(500);
       const f0 = await frame(p);
-      const tabs = await p.evaluate(() => [...document.querySelectorAll('#st-headcard .st-faces [data-st-tab]')].map(t => t.getAttribute('data-st-tab')).join(','));
-      check(`1a ${W}×${HH}: the head is a card in the left column, its tabs inside`, !!f0.head && !!f0.side && f0.head.r <= f0.side.l && tabs === 'you,company' && f0.winHead === 'none',
-        JSON.stringify({ head: f0.head, side: f0.side && f0.side.l, tabs, win: f0.winHead }));
-      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
-      check(`1b ${W}×${HH}: Jambo's panel is the whole right column, 8px under the bar to 8px above the foot`, !!f0.side && !!f0.head && Math.abs(f0.side.t - (f0.scTop + 8)) <= 1 && Math.abs(f0.side.b - (f0.H - 8)) <= 1 && f0.side.t <= f0.head.t,
-        f0.side && `${Math.round(f0.side.t)}→${Math.round(f0.side.b)} (bar ${f0.scTop}, window ${f0.H}, head ${f0.head ? Math.round(f0.head.t) : 'none'})`);
+      /* RETIRED 16 Nov 2026 (#762): 1a "the head is a card in the left column, You · Company inside" — the one list has no
+         head card and no tabs */
+      /* RE-POINTED 16 Nov 2026 (#762): 1b the list on the left, Jambo's panel the whole right column beside it, from the
+         list's top to the window's foot (as the list pages draw it) */
+      check(`1b ${W}×${HH}: Jambo's panel is the whole right column beside the list, its top with the list's, down to the foot`, !!f0.side && !!f0.head && f0.head.r <= f0.side.l + 1 && Math.abs(f0.side.t - f0.head.t) <= 1 && f0.side.b <= f0.H + 0.5 && f0.side.b >= f0.H - 17,
+        f0.side && `${Math.round(f0.side.t)}→${Math.round(f0.side.b)} (bar ${f0.scTop}, window ${f0.H}, list ${f0.head ? Math.round(f0.head.t) + '…' + Math.round(f0.head.r) : 'none'})`);
       check(`1c ${W}×${HH}: his ask box whole and seen at the top`, !!f0.ask && f0.ask.b <= f0.H + 0.5 && f0.askSeen && f0.headSeen, f0.ask && `ask ${Math.round(f0.ask.t)}→${Math.round(f0.ask.b)} seen ${f0.askSeen} head ${f0.headSeen}`);
       await shot(p, `25-company-frame-${W}x${HH}`);
-      await p.evaluate(() => { document.getElementById('content-scroll').scrollTop = 1e6; }); await p.waitForTimeout(400);
+      await p.evaluate(() => { document.getElementById('content-scroll').scrollTop = 1e6; const m = document.getElementById('stn-main'); if (m) m.scrollTop = 1e6; }); await p.waitForTimeout(400);
       const f1 = await frame(p);
-      check(`1d ${W}×${HH}: scrolled to the end, the panel stays whole and uncovered`, !!f1.side && !!f1.ask && Math.abs(f1.side.t - (f1.scTop + 8)) <= 1 && f1.ask.b <= f1.H + 0.5 && f1.askSeen && f1.headSeen,
+      check(`1d ${W}×${HH}: scrolled to the end, the panel stays whole and uncovered`, !!f1.side && !!f1.ask && Math.abs(f1.side.t - f0.side.t) <= 1 && f1.ask.b <= f1.H + 0.5 && f1.askSeen && f1.headSeen,
         f1.side && `side ${Math.round(f1.side.t)}→${Math.round(f1.side.b)} ask ${f1.askSeen} head ${f1.headSeen}`);
       check(`1e ${W}×${HH}: no sideways scroll`, !f0.sideways && !f1.sideways);
       await p.context().close();
     }
-    const mem0 = await open('everything@example.co.ke', 'their-own-pass-9');
-    const m0 = kit(mem0);
-    const mh = await m0.until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; }
-      const c = document.getElementById('st-headcard'), s = document.getElementById('st-side'); if (!c || !s) return null;
-      return { t: (c.querySelector('.st-hc-t') || {}).textContent, sub: (c.querySelector('[data-st-head-sub]') || {}).textContent, ask: !!c.querySelector('[data-st-ask-head]'), right: c.getBoundingClientRect().right <= s.getBoundingClientRect().left }; }, null, 15000);
-    check('1f a member\'s head card: "Your settings · yours alone — nobody else sees them" with Ask an admin, beside Jambo', !!mh && mh.t === 'Your settings' && /yours alone/.test(mh.sub || '') && mh.ask && mh.right, JSON.stringify(mh));
-    await mem0.context().close();
+    /* RETIRED 16 Nov 2026 (#762): 1f "a member's head card: Your settings · yours alone" — the old look's head card */
 
     const page = await open('admin@example.co.ke', 'adminpassword1');
     const { until, press, company } = kit(page);
     await company();
 
-    console.log('\n2 · every card door opens its page with ‹ Settings');
-    /* every door on a card (and the ladder's) — a page door, a panel's door */
-    const doors = await page.evaluate(() => [...document.querySelectorAll('#set-page [data-st-card] .st-door')].map(d => ({ attr: d.hasAttribute('data-st-page') ? 'data-st-page' : 'data-st-panel',
-      k: d.getAttribute('data-st-page') != null ? d.getAttribute('data-st-page') : d.getAttribute('data-st-panel'), card: d.closest('[data-st-card]').getAttribute('data-st-card'), t: d.textContent.trim() })));
-    const bad = [];
-    for (const d of doors) {
-      /* a build that opens a drawer over the board is put back each time, so
-         one door's answer never blocks the next press */
-      await page.evaluate(() => { try { if (document.querySelector('body > #st-drawer.open') && typeof stDrawerClose === 'function') stDrawerClose(); } catch (_) {} });
-      await company();
-      await page.evaluate(sel => { const b = document.querySelector(sel); if (b) b.click(); }, `#set-page [data-st-card="${d.card}"] .st-door[${d.attr}="${d.k}"]`);
-      /* a page at its own name with ‹ Settings: a page of its own, or the
-         panel's drawer docked in the page — never a drawer over the board */
-      const ok = await until(() => { const pg = document.querySelector('#set-page[data-st-sub]'), sub = pg && pg.getAttribute('data-st-sub');
-        const dr = document.querySelector('#st-dock > #st-drawer.is-docked.open'), over = document.querySelector('body > #st-drawer.open');
-        const back = document.querySelector('#set-page .st-pg-back');
-        return pg && back && /Settings/.test(back.textContent) && !over && (sub !== 'panel' || dr) ? true : null; }, null, 4000);
-      if (!ok) bad.push(d.t);
-    }
-    check(`2a ${doors.length} card doors each open their page with ‹ Settings, no drawer over the board`, doors.length >= 20 && !bad.length, bad.join(' | ') || doors.map(d => d.t).join(' | '));
-    check('2b Jambo\'s agents is among them', doors.some(d => d.k === 'agents'), doors.map(d => d.k).join(','));
-    await company();
-    if (await press('#set-page [data-st-card="signing"] .st-door[data-st-panel="limits"]', '2c Everyone\'s signing limits ›')) {
-      await until(() => document.querySelector('#st-dock #st-drawer.is-docked'));
-      await shot(page, '25-door-page-1440x780');
-      await press('#set-page .st-pg-back', '‹ Settings');
-      const back = await until(() => { const l = document.querySelector('.is-landed'); return !document.querySelector('#set-page[data-st-sub]') && l ? { k: l.getAttribute('data-st-panel'), door: l.classList.contains('st-door'), hidden: document.getElementById('st-drawer').hidden } : null; });
-      check('2c ‹ Settings goes back and lands on the door that was pressed; the drawer is put away', !!back && back.k === 'limits' && back.door && back.hidden, JSON.stringify(back));
-    }
-
-    console.log('\n3 · the cards\' facts');
-    await company();
-    const facts = await until(() => { const s = [...document.querySelectorAll('[data-st-card="signing"] .st-fact')].map(f => f.textContent.replace(/\s+/g, ' ').trim()), j = [...document.querySelectorAll('[data-st-card="copilot"] .st-fact')].map(f => f.textContent.replace(/\s+/g, ' ').trim());
-      return s.length && j.length ? { s, j } : null; });
-    check('3a "Signing limits · On, N people capped"', !!facts && facts.s.some(f => /^Signing limits ?On, \d+ (people|person) capped$/.test(f)), facts && JSON.stringify(facts.s));
-    check('3b Jambo\'s day limit in calls, never money', !!facts && facts.j.some(f => /calls a day at most$/.test(f)) && !facts.j.some(f => /\$|KES|SEK/.test(f)), facts && JSON.stringify(facts.j));
-
-    console.log('\n4 · his first words');
-    const hello = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello]'); return b && /need/.test(b.textContent) ? b.textContent.trim() : null; });
-    check('4a they end with "Each row’s button opens what settles it." — nothing after', !!hello && /Each row’s button opens what settles it\.$/.test(hello) && !/warns|nothing is blocked/.test(hello), hello);
+    /* RETIRED 16 Nov 2026 (#762): 2a–2c (every card door opens its page with ‹ Settings; Jambo's agents among them; back
+       lands on the card door), 3b (the Jambo card's day limit) and 4a (his first words in the old side feed) — the
+       Company board's cards and its side feed are the old look's; the one list has neither */
+    /* RETIRED 16 Nov 2026 (#762): 3a "Signing limits · On, N people capped" — a fact of the Signing card; the one list's
+       row wears a short pill ("On", owner's pick of the on/off pills, 9 Nov 2026), the count is the drawer's */
 
     console.log('\n5 · Ready to delete → Review');
-    if (await press('#st-att .st-need[data-st-need^="keep:"] .st-need-go', '5a Review')) {
+    /* RE-POINTED 16 Nov 2026 (#762): Ready to delete is a row in Jambo's panel beside the list, the row itself the door */
+    if (await press('#ins-panel .jov5-row[data-st-panel^="stream:"][data-st-panel$="@keeping"]', '5a Review')) {
       /* THE WAIT ASKS FOR THE WHOLE STATE (19 Oct 2026): the lander tries again
          every LAND_WAIT, so the list can be painted a beat before its light is
          on (measured: rows at 79 ms, lit at 163 ms); a read inside that beat
@@ -203,7 +164,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     }
     if (await press('#st-jb-feed [data-st-swp-open]', '6b the held contract\'s Open')) {
       /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
-      const held = await until(() => { const r = document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
+      /* RE-POINTED 16 Nov 2026 (#762): the paper's acts are its More pop-up; Open lands there, on Release hold */
+      const held = await until(() => { const r = document.querySelector('#pd-acts-pop[data-pd-acts-pop="MK-S3"] [data-pd-acts-go="#ws-hold"]') || document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
         return state.view === 'dashboard' && r && r.classList.contains('is-landed') && r.getBoundingClientRect().height > 0 ? r.textContent.trim() : null; }, null, 10000);
       check('6b it lands ON Release hold, in the contract\'s Menu beside its paper', !!held, String(held));
       await shot(page, '26-held-open-1440x780');
@@ -225,25 +187,19 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     console.log('\n8 · a clash made by a write, stamped by the server');
     check('8a the server stamped it with no page open', !!stamped, String(stamped));
     await company();
-    const since = await until(() => { const s = document.querySelector('#st-att .st-need[data-st-need^="clash:cap:"] .st-need-s'); return s && /since/.test(s.textContent) ? s.textContent.trim() : null; });
+    /* RE-POINTED 16 Nov 2026 (#762): the clash is a row in Jambo's panel beside the list; its second line says since when */
+    const since = await until(() => { const s = document.querySelector('#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus] .jov5-rt > span'); return s && /since/.test(s.textContent) ? s.textContent.trim() : null; });
     check('8b its row says since when', !!since, since);
 
     console.log('\n9 · a member\'s sheet');
     const mem = await open('everything@example.co.ke', 'their-own-pass-9');
     const mk = kit(mem);
-    await mk.until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } return document.querySelector('#set-page [data-st-toc]'); }, null, 15000);
-    await mem.evaluate(() => { const sc = document.getElementById('content-scroll'); sc.scrollTop = 600; }); await mem.waitForTimeout(400);
-    await mem.evaluate(() => { document.getElementById('content-scroll').scrollTop = 0; }); await mem.waitForTimeout(400);
-    const top = await mem.evaluate(() => { const a = document.querySelector('#set-page [data-st-toc][aria-current="true"]'), f = document.querySelector('#set-page [data-st-toc]'); return { lit: a && a.textContent.trim(), first: f && f.textContent.trim() }; });
-    check('9a back at the very top, the first heading is lit', top.lit && top.lit === top.first, JSON.stringify(top));
-    const dev = await mem.evaluate(() => { const r = [...document.querySelectorAll('.st-sr')].find(x => /signed in/.test(x.textContent)); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
-    check('9b devices said once with their count', !!dev && /signed in — this computer/.test(dev) && !/a computer[\s\S]*a computer/.test(dev), dev);
-    const away = await mem.evaluate(() => { const c = document.querySelector('[data-st-you-card="away"] .st-srows'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
+    await mk.until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } return document.querySelector('#set-page .stn-row'); }, null, 15000);
+    /* RETIRED 16 Nov 2026 (#762): 9a (the contents list's first heading lit at the top), 9b (devices said once on the You
+       sheet) and 9d (the You sheet's quiet closed dropdown) — the member's sheet with its contents list is the old look's;
+       a member reads the one list. 9c (the away card) stays as written: the one list has no away row (a question) */
+    const away = await mem.evaluate(() => { /* RE-POINTED 16 Nov 2026 (#762): the one list's away row (#stn-away) says what the card said */ const c = document.querySelector('[data-st-you-card="away"] .st-srows') || document.querySelector('#stn-main #stn-away'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
     check('9c the away card: the stand-in named whole once, then by first name, its days with their weekday', !!away && /from \w{3} \d{1,2} \w{3} to \w{3} \d{1,2} \w{3}\./.test(away) && /Each thing Amina answers says “for Unrestricted”/.test(away), away);
-    const sel = await mem.evaluate(() => { const s = document.querySelector('#set-page select[data-st-brief]'); if (!s) return null; const c = getComputedStyle(s);
-      const probe = document.createElement('div'); probe.style.color = 'var(--btn-edge)'; document.body.appendChild(probe); const edge = getComputedStyle(probe).color; probe.remove();
-      return { h: Math.round(s.getBoundingClientRect().height), border: c.borderTopColor, edge, thin: /calc\(50% - 0\.8px\)/.test(c.backgroundImage) }; });
-    check('9d a quiet closed dropdown: 28px, the hairline edge, a thin chevron', !!sel && Math.abs(sel.h - 28) <= 1 && sel.border === sel.edge && sel.thin, JSON.stringify(sel));
     await shot(mem, '24-you-member-1440x780');
   } catch (e) { check('the run itself', false, e.stack); }
   finally {

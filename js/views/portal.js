@@ -4715,10 +4715,16 @@ function portalOutSideHtml(c, p){
   const last = agreed.map(x => x.at).filter(Boolean).sort().pop();
   const agreedRow = agreed.length ? `<li><span class="pol-o-k">${esc(agreed.map(x => portalOutClause({ clauseLabel: x.clause }).replace(/^§ (\S+).*$/, '§ $1')).join(' · '))}</span>
     <span class="pol-o-v">${esc(last ? i18t('pol_agreed_on', { when: portalDayWords(last) }) : i18t('pol_agreed'))}</span></li>` : '';
+  /* WHAT WE TURNED DOWN, WITH OUR REASON (16 Nov 2026, #762): the reply travels to them by rule (the clause panel drew
+     it, hidden in this look) — said here, on the clause, in our words */
+  let NC = c; try { NC = (p && typeof portalNegoContract === 'function') ? (portalNegoContract(p) || c) : c; } catch (_){ NC = c; }
+  const refused = ((NC && NC.changes) || c.changes || []).filter(x => x && x.authorSide === 'counterparty' && x.status === 'rejected' && !x.withdrawn && String(x.reply || '').trim())
+    .map(ch => `<li><span class="pol-o-k">${esc(portalOutClause(ch) || i18t('ds_a_clause'))}</span><span class="pol-o-v">\u201c${esc(String(ch.reply).trim())}\u201d</span></li>`).join('');
   return `<div class="pol-side-in">${portalOutHeadHtml(c)}
     <div class="pol-side-body"><p class="pol-say">${esc(say)}</p>${portalOutRoadHtml(D, mineMove)}
       ${openRows ? `<h3 class="pol-h">${esc(i18t('pol_still_open'))}</h3><ul class="pol-open">${openRows}</ul>` : ''}
       ${agreedRow ? `<h3 class="pol-h">${esc(i18t('pol_agreed_h'))}</h3><ul class="pol-open">${agreedRow}</ul>` : ''}
+      ${refused ? `<h3 class="pol-h">${esc(i18t('pol_refused_h'))}</h3><ul class="pol-open">${refused}</ul>` : ''}
       <p class="pol-small">${esc(i18t('pol_both_see'))}</p></div>
     <div class="pol-side-ft">${PORTAL_OPTS && PORTAL_OPTS.token
       ? `${esc(i18t('pol_questions', { org }))} <button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('pol_reply_box'))}</button>.`
@@ -6634,7 +6640,7 @@ function portalGoneNlHtml(opts){
   const askRow = exp && tok ? `<div class="pnl-row"><span>${esc(i18t('pnl_ask_new'))}</span><b id="pnl-ask-said">${esc(asked ? i18t('pnl_asked', { who: sender }) : i18t('pnl_ask_who', { who: sender }))}</b>${asked ? '<i></i>' : `<button type="button" class="ui-link" id="pnl-ask" data-tok="${esc(tok)}">${esc(i18t('pnl_ask'))}</button>`}</div>` : '';
   return `<div class="pnl-wrap"><header class="pnl-bar"><b>HaTi</b><span>${esc(w.contractName ? i18t('pnl_bar_from', { org }) : i18t('pnl_bar_from', { org }))}</span><span class="pnl-sp"></span><span>${esc(i18t('pnl_not_signed'))}</span></header>
     <main class="pnl-gone"><span class="pnl-ic" aria-hidden="true">${typeof icon==='function'?icon(exp?'clock':'ban','w-5 h-5'):''}</span>
-      <h1>${esc(i18t(exp ? 'pnl_exp_h' : 'pnl_rev_h'))}</h1><p class="pnl-say">${esc(head)} ${esc(i18t('pnl_nothing'))}</p>
+      <h1>${esc(i18t(exp ? 'pnl_exp_h' : 'pnl_rev_h'))}</h1>${!exp && (w.contractName || w.sender) ? `<p id="pt-gone-who" class="pnl-who">${w.contractName ? `<b>${esc(w.contractName)}</b>` : ''}${w.contractName && w.sender ? ' \u00b7 ' : ''}${w.sender ? esc(i18t('po_gone_from', { who: w.sender + (w.org ? ', ' + w.org : '') })) : ''}</p>` : ''}<p class="pnl-say">${esc(head)} ${esc(i18t('pnl_nothing'))}</p>
       <div class="pnl-cap">${esc(i18t('pnl_can_do'))}</div>
       ${askRow}
       <p class="pnl-foot">${esc(i18t('pnl_no_assistant', { org }))}</p></main></div>`;

@@ -255,13 +255,23 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       return out;
     });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-    await page.waitForTimeout(1200);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders (the List pill is
+       the way to the list); there the STAGE's tone is its Standing word (td.reg-standing, in its tone's --st-X-fg) — the row's
+       mark now says whose move it is. The list's stage tone is read back as the tone's DOT (--st-X-dot), the shade the
+       Board's bar and square paint, so "the colour the list gives it" is the same tone, compared on one shade */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 8000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('#reg-tbody tr[data-row]', { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(600);
     const listTones = await page.evaluate(() => {
       const out = {};
+      const res = (prop, v) => { const i = document.createElement('i'); i.style[prop] = 'var(' + v + ')'; document.body.appendChild(i); const c = getComputedStyle(i)[prop]; i.remove(); return c; };
+      const TONES = ['gray', 'amber', 'green', 'steel', 'ruby', 'violet', 'blue', 'teal'];
       document.querySelectorAll('tr[data-row]').forEach(tr => {
         const c = state.contracts.find(x => x.id === tr.getAttribute('data-row'));
-        /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the row's mark carries the stage's dot tone now */
-        const dot = tr.querySelector('.reg-id .ls-mark') || tr.querySelector('.reg-stg i');
+        const w = tr.querySelector('td.reg-standing');
+        if (c && w && !out[c.status]){ const ink = getComputedStyle(w).color; const t = TONES.find(x => res('color', '--st-' + x + '-fg') === ink);
+          out[c.status] = t ? res('color', '--st-' + t + '-dot') : 'ink ' + ink; }
+        const dot = !w && (tr.querySelector('.reg-id .ls-mark') || tr.querySelector('.reg-stg i'));
         if (c && dot && !out[c.status]) out[c.status] = dot.matches('.ls-mark') ? getComputedStyle(dot).color : getComputedStyle(dot).backgroundColor;
       });
       return out;
@@ -408,7 +418,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       /* It ranks LAST: every row above it is work with somebody's name on it,
          and this is a setting nobody is blocked on this minute. */
       /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's rows are the one desk's; the mail warning stays its own row, last */
-      const rows = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].map(r => r.innerText);
+      /* RE-POINTED 16 Nov 2026 (#762): the bell is one list in the new look (.ndb, its rows .ndb-r) */
+      const rows = [...document.querySelectorAll('#context-panel .nd-pan .nd-r, #context-panel .ndb .ndb-r')].map(r => r.innerText);
       return { has: /email/i.test(txt), last: rows.length ? /email/i.test(rows[rows.length - 1]) : false,
         n: rows.length };
     });
