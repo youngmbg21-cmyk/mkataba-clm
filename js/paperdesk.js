@@ -9836,13 +9836,21 @@ function pd2WalkWithRead(id){
   /* only beside the Clauses tab, where that read is seen (never over the Redlines face and its switch) */
   if (!document.querySelector('#ig-dock #pd-thread')) return false;
   const W = _pd2Walk;
-  if (W && String(W.id) === String(id)){ if (W.run && !W.quick){ W.quick = true; W.withRead = true; } else if (!W.run && !W.i && !W.done){ pd2WalkPlay({ quick: true }); W.withRead = true; } return true; }
-  if (pd2WalkOpen(id)){ pd2WalkPlay({ quick: true }); _pd2Walk.withRead = true; return true; }
+  /* THE READER KEEPS THEIR PLACE (owner, 18 Nov 2026: "fix Clauses tab issue"): the quick walk still runs with the read,
+     but it remembers where the reader stood on the paper, and when it puts itself away the paper goes back there
+     (pd2WalkClose) — opening Clauses on clause 7 no longer leaves you somewhere else */
+  const here = () => { const sc = document.getElementById('ig-paper-scroll'); return sc ? sc.scrollTop : null; };
+  if (W && String(W.id) === String(id)){ if (W.run && !W.quick){ W.quick = true; W.withRead = true; } else if (!W.run && !W.i && !W.done){ const at = here(); pd2WalkPlay({ quick: true }); W.withRead = true; W.back = at; } return true; }
+  if (pd2WalkOpen(id)){ const at = here(); pd2WalkPlay({ quick: true }); _pd2Walk.withRead = true; _pd2Walk.back = at; return true; }
   return false;
 }
 function pd2WalkClose(){
   if (!_pd2Walk) return;
+  /* a quick walk that ran with the Clauses read hands the paper back where the reader stood (pd2WalkWithRead); one the
+     reader paused (Pause ends quick) is theirs, and stays where they took it */
+  const back = (_pd2Walk.quick && _pd2Walk.withRead && _pd2Walk.back != null) ? _pd2Walk.back : null;
   clearTimeout(_pd2Walk.timer); _pd2Walk = null;
+  if (back != null){ const sc = document.getElementById('ig-paper-scroll'); if (sc) sc.scrollTop = back; }
   document.querySelectorAll('#pd2-walk-head, #pd2-walk-foot').forEach(n => n.remove());
   const pg = document.getElementById('ig-page'); if (pg) pg.classList.remove('is-pd2-walk');
   try { if (typeof CSS !== 'undefined' && CSS.highlights) CSS.highlights.delete('pd2-walk'); } catch (_){}

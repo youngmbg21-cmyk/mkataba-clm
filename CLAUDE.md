@@ -288,7 +288,7 @@ GEIST (f377). NAME AND FIGURE INK; THE DETAIL LINE GREY (`--color-neutral-400`; 
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER
 LESS SAID TWICE (owner, 16 Nov 2026): the card opens on its headline — no eyebrow (stage, party, number), no sentence under it; Jambo's panel headlines are 20. A typed contract number alone opens its Cover (`jamboRefGo`). f1088.
-THE DOSSIER'S TOP IS ONE CARD (`pd2CardHtml`): stage, next step, ONE black button, Jambo's read, "Read it | Watch the read | The brief". THE READ: notes wait for their clause (`pd2WalkNotesHold`); AN ARRIVAL PLAYS IT, quick (`pd2WalkArrive`); × keeps it away. f1018.
+THE DOSSIER'S TOP IS ONE CARD (`pd2CardHtml`): stage, next step, ONE black button, Jambo's read, "Read it | Watch the read | The brief". THE READ: notes wait for their clause (`pd2WalkNotesHold`); AN ARRIVAL PLAYS IT, quick (`pd2WalkArrive`); × keeps it away. f1018. WITH THE CLAUSES READ THE READER KEEPS THEIR PLACE: the quick walk remembers where they stood (`W.back`) and `pd2WalkClose` puts the paper back (owner, 18 Nov 2026).
 Every paper draws ONE look (720px sheet, Source Serif 4 `--font-doc`; a designed paper keeps its type). ONE ZOOM (`rlSetDocZoom`, 60–200).
 THE PAPER STANDS IN THE MIDDLE OF ITS ROOM (owner's pick, the Legora way, 16 Nov 2026): with notes beside it the sheet's centre is the scroller's centre, held left only as far as the notes need, never nearer the edge than 40 (`pd2NotesPaint`). contract-new-look-verify 4, 4c.
 HOME'S PAPER HANGS ITS LIMBS AS THE EDITOR DOES (`rl-hang`, `rl-marker`, `hati-lv-N`, `.ig-redpaper`). f1027 (1).

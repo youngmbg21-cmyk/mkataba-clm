@@ -182,14 +182,8 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const rows = docXrayRows(getContract('MK-314'), document.getElementById('ig-canvas')).filter(x => !(x.row && x.row.kind === 'section'));
       const el = rows[1] && rows[1].el; if (el) sc.scrollTop = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 20; });
     await page.waitForTimeout(500);
-    /* RE-POINTED 18 Nov 2026 (#762): with the new look on for everyone, opening Clauses starts Jambo's read, which walks
-       the paper from the first clause with it ("Watch the read", pd2WalkWithRead) — GitHub saw "open 0 · line 0": the drawer
-       followed the paper, the walk had carried it off. This check is about where the drawer opens, so the read is opened
-       and put away with its × first, as a person would (then nothing reopens it this sitting), and the second clause is
-       put at the line until it stays there */
-    { await page.evaluate(() => { if (!pd2WalkOn('MK-314')) try { pd2WalkOpen('MK-314'); } catch (_){} });
-      let shut = false; const t0 = Date.now(); while (Date.now() - t0 < 4000){ const x = await page.$('[data-pd2-wk-close]'); if (x){ await x.click().catch(() => {}); shut = true; break; } await page.waitForTimeout(150); }
-      check('2- the read is put away with its × first (the case being checked: the drawer, not the walk)', shut && await page.evaluate(() => !pd2WalkOn('MK-314'))); }
+    /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the paper's late paint could put it back at its top after the move,
+       so the second clause is put at the line until it stays there, bounded */
     for (let i = 0; i < 16; i++){
       const held = await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const rows = docXrayRows(getContract('MK-314'), document.getElementById('ig-canvas')).filter(x => !(x.row && x.row.kind === 'section'));
         const el = rows[1] && rows[1].el; if (!el || !sc) return true; const off = el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 20;
@@ -200,13 +194,18 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     const opened = await pressDoor();
     /* RE-POINTED 17 Nov 2026 (#762, owner's pick on the drawings: "Paper glides to line up"): the paper may glide so the open
        clause stands at the line — read once it has settled (bounded), the open row and the line's clause the same */
+    /* THE READER KEEPS THEIR PLACE (owner, 18 Nov 2026: "fix Clauses tab issue"): opening Clauses starts Jambo's read and
+       its quick walk on the paper (pd2WalkWithRead); when the walk puts itself away the paper is back where the reader
+       stood — so the walk is let finish (bounded) before the drawer is read. Before the fix GitHub saw "open 0 · line 0" */
+    const walked = await page.waitForFunction(() => pd2WalkOn('MK-314'), null, { timeout: 3000, polling: 50 }).then(() => true, () => false);
+    await page.waitForFunction(() => !pd2WalkOn('MK-314'), null, { timeout: 8000 }).catch(() => {});
     for (let i = 0; i < 20; i++){ const q = await read(); if (q && q.openIdx === q.atLine) break; await page.waitForTimeout(150); }
     const s2 = await read();
     const ink2 = await ink();
     const second = s2.rows[1];
     check('2a the Clauses tab brings the clause list into the panel', opened && s2.threadShown,
       JSON.stringify({ opened, thread: s2.threadShown }));
-    check('2b it opens on the clause at the paper\'s line', opened && !!(second && second.open) && s2.openIdx === s2.atLine, (second ? second.name : '-') + ' · open ' + s2.openIdx + ' · line ' + s2.atLine);
+    check('2b it opens on the clause at the paper\'s line — where the reader stood, after Jambo\'s read walked the paper', opened && !!(second && second.open) && s2.openIdx === s2.atLine, (second ? second.name : '-') + ' · open ' + s2.openIdx + ' · line ' + s2.atLine + ' · walked ' + walked);
     /* on Home the list IS the panel: no × (home-paper-clauses 1d) */
     /* 2c re-pointed 13 Oct 2026 (owner, Stakes as drawn): Home's list has no × and no colour filter */
     check('2c no ×, and no colour filter on Home', !s2.close && s2.chips.length === 0, s2.chips.map(c => c.text).join(' | '));
