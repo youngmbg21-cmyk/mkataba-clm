@@ -83,7 +83,7 @@ describe('f763 (2) one number for Our standards on the page', () => {
       'lib_pf_j_meets_all_base_one', 'lib_pf_j_meets_all_base_other', 'lib_pf_j_meets_some_base']){
       assert.ok(BOOKS.en[k] && BOOKS.sv[k] && BOOKS.en[k] !== BOOKS.sv[k], k);
     }
-    assert.equal(BOOKS.en.lib_pf_j_meets_some_base, 'It meets {met} of the {n} standards every contract is read against; still to meet: {list}.');
+    assert.equal(BOOKS.en.lib_pf_j_meets_some_base, 'It meets {met} of the {n} positions every contract is read against; still to meet: {list}.');
   });
 });
 
