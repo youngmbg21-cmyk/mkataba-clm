@@ -181,7 +181,7 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     assert.equal(win.regColWidths().reduce((a, b) => a + b, 0), 100, 'and the drawn ones too, Owner\'s share paid to the agreement');
     assert.deepEqual(J(win.LC_PAGES.contracts.hide), ['owner'], 'Owner is one press away, under Columns');
     const heads = [...doc.querySelectorAll('[data-reg-home] .reg-table thead th')].map(th => th.textContent.trim().replace(/[▲▼]/g, '').trim());
-    assert.deepEqual(heads, ['Agreement', 'Stream', 'Our standards', 'Ends', 'Value', ''], 'the drawing\'s five, the ⋯ unheaded');
+    assert.deepEqual(heads, ['Agreement', 'Stream', 'Our playbook', 'Ends', 'Value', ''], 'the drawing\'s five, the ⋯ unheaded');
     assert.equal(doc.querySelectorAll('#reg-tbody [data-row] [data-menu]').length, 3, 'every row keeps its ⋯');
     assert.ok(!doc.getElementById('ig-wall'), 'no wall on the List');
     /* the same builder: its Display cog is the page's, Table · Board, density and the amendment fold (f387 4g) */

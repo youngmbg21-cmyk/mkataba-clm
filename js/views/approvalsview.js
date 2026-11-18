@@ -1263,7 +1263,9 @@ function apnPileRowHtml(r){
     name=c.name||''; sub=[esc((theirs.length?theirs:[c.counterparty||'']).filter(Boolean).join(' · ')), ref, esc(says)].filter(Boolean).join(' · ');
     rule=esc(r.s.name+' · '+(typeof ldFirmWord==='function'?ldFirmWord(r.s.firm):r.s.firm));
     const may=typeof window.signCheckMayAccept!=='function'||window.signCheckMayAccept(c, r.v);
-    acts=may?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-apn-allow="${esc(r.key)}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-apn-refuse-dep="${esc(r.key)}">${esc(i18t('ld_refuse'))}</button>`:'';
+    acts=(may?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-apn-allow="${esc(r.key)}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-apn-refuse-dep="${esc(r.key)}">${esc(i18t('ld_refuse'))}</button>`:'')
+      /* SEE IT IN THE PAPER (owner, 18 Nov 2026): under the two buttons, departures only — a look, never a decision */
+      +`<div class="apn-peek-l"><button type="button" class="ui-link apn-peek" data-apn-peek="${esc(r.key)}" title="${esc(i18t('apn_peek_t'))}">${esc(i18t('apn_peek'))}</button></div>`;
     mark='you';
   } else {
     const d=r.ch.draft||{}, st=apnStdOf(r.ch), was=st?st.ladder.ask:'';
@@ -1306,13 +1308,110 @@ function apnPileOpen(key){
     if(ch&&ch.clauseId&&typeof ldPickSet==='function') ldPickSet(String(ch.clauseId));
     if(typeof caOpenStandards==='function') caOpenStandards(); }
 }
+/* ═══ THE PAPER, IN A POP-UP (owner, 18 Nov 2026: "a pop up of the paper you usually see in the dossier redline page …
+   big enough to see the paper and the notes on the side … brought to where the issue is but you can scroll up and down
+   … press to go to the dossier page itself") ═══
+   A LOOK, NEVER A DECISION: the same paper the Dossier's Redlines face draws (redlineDocHtml where a negotiation stands,
+   else the working copy, docSheetHtml), read-only, with the same notes beside it (pd2RedAnswers → pd2RedBlocks →
+   pd2RedGroupHtml) stripped of their buttons. It opens at the clause the departure quotes (landOn); a departure the
+   paper leaves out opens at the top and says so. "Open the Dossier ›" is the row's own open (apnPileAct 'open' →
+   ldDepRun → signCheckOpenClause), so there is still one way onto the paper. Nothing is written; Esc and × close. */
+const APN_PK_GAP=12;        // the space between two notes beside the paper
+const APN_PK_LAND_TOP=96;   // how far below the pop-up's head the departure's words stand on arrival
+function apnPeekOf(key){
+  const r=apnDepRows().find(x=>x.key===String(key||''));
+  if(r) return r;
+  /* a row someone else decides is still worth a look: read it off the Ladder, the one reading */
+  const m=/^dep:(.+):(\d+)$/.exec(String(key||'')); if(!m||typeof ldStandards!=='function') return null;
+  for(const s of ldStandards()) for(const x of s.open) if(String(x.c.id)===m[1]&&x.i===+m[2]) return { type:'departure', key:String(key), c:x.c, v:x.v, i:x.i, s };
+  return null;
+}
+function apnPeekPaperHtml(c){
+  const red=typeof window.pdRedOk==='function'&&pdRedOk(c)&&typeof window.redlineDocHtml==='function';
+  let h='';
+  try{ h=red?redlineDocHtml(c,{ side:'owner', readonly:true }):(typeof docSheetHtml==='function'?docSheetHtml(c,{ copy:'work', canvasId:'apn-pk-doc', readOnly:true }):''); }catch(_){ h=''; }
+  return h||`<p class="apn-pk-empty">${esc(i18t('sc_no_clause'))}</p>`;
+}
+function apnPeekHead(r){
+  const c=r.c, theirs=(typeof window.contractParties==='function'?window.contractParties(c):[]).filter(p=>p&&p.side!=='ours'&&p.name).map(p=>p.name);
+  const ref=typeof window.refHtml==='function'?refHtml(c):esc(c.id);
+  const say=i18t(r.v.status==='missing'?'apn_pk_missing':'apn_pk_where',{ std:r.s.name });
+  return `<div class="apn-pk-h"><div class="apn-pk-ht"><h2 class="apn-pk-t">${esc(c.name||'')}</h2>`
+    +`<div class="apn-pk-s">${[esc((theirs.length?theirs:[c.counterparty||'']).filter(Boolean).join(' · ')), ref, esc(say)].filter(Boolean).join(' · ')}</div></div>`
+    +`<button type="button" class="ui-link apn-pk-go" data-apn-pk-go="${esc(r.key)}">${esc(i18t('apn_pk_dossier'))}</button>`
+    +`<button type="button" class="icon-btn apn-pk-x" data-apn-pk-x aria-label="${esc(i18t('apn_pk_close'))}" title="${esc(i18t('apn_pk_close'))}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>`;
+}
+async function apnPeekOpen(key){
+  let r=apnPeekOf(key); if(!r){ if(typeof toast==='function') toast(i18t('apn_land_gone'),'warn'); return false; }
+  const id=r.c.id;
+  try{ if(typeof ensureFull==='function') await ensureFull(r.c); }catch(err){ if(typeof toast==='function') toast((err&&err.message)||i18t('sc_no_clause'),'err'); return false; }
+  const c=(typeof getContract==='function'&&getContract(id))||r.c; r=Object.assign({}, r, { c });
+  openModal(`<div class="apn-pk" data-apn-pk="${esc(r.key)}">${apnPeekHead(r)}
+    <div class="apn-pk-b scroll-thin" id="apn-pk-scroll" tabindex="-1"><div class="apn-pk-row"><div class="apn-pk-paper" id="apn-pk-cv">${apnPeekPaperHtml(c)}</div><aside class="apn-pk-notes" id="apn-pk-notes" aria-label="${esc(i18t('pd2_notes'))}"></aside></div></div></div>`,
+    { maxWidth:'min(1320px, 94vw)', height:'calc(100vh - 112px)', label:i18t('apn_pk_aria'), ownFrame:true /* its own head and scroller: the drawn frame leaves it alone */ });
+  requestAnimationFrame(()=>apnPeekNotes(c, r));
+  return true;
+}
+/* the notes, beside the clause they belong to, pushed down where two would meet; the departure's words brought into view */
+function apnPeekNotes(c, r){
+  const cv=document.getElementById('apn-pk-cv'), aside=document.getElementById('apn-pk-notes'), sc=document.getElementById('apn-pk-scroll');
+  if(!cv||!aside||!sc) return;
+  let notes=[]; try{ notes=typeof pd2RedAnswers==='function'?pd2RedAnswers(c, cv):[]; }catch(_){ notes=[]; }
+  notes.forEach(n=>{ n.acts=''; });
+  let blocks=[]; try{ blocks=notes.length&&typeof pd2RedBlocks==='function'?pd2RedBlocks(c, cv, notes):[]; }catch(_){ blocks=[]; }
+  const own=notes.filter(n=>!blocks.some(b=>b.items.includes(n)));
+  aside.innerHTML=(blocks.length||own.length)
+    ? blocks.map((g,i)=>typeof pd2RedGroupHtml==='function'?pd2RedGroupHtml(g,i):'').join('')
+      +(own.length?`<div class="apn-pk-own">${own.map(n=>`<div class="pd2-mn is-${esc(n.tone)}"><div class="pd2-mn-k">${esc(n.k)}</div><div class="pd2-mn-w">${esc(n.state||'')}</div></div>`).join('')}</div>`:'')
+    : `<p class="apn-pk-none">${esc(i18t('apn_pk_none'))}</p>`;
+  /* where each note stands: level with its clause, never on top of the one above it (measured, then laid) */
+  const row=aside.parentElement, R=row.getBoundingClientRect(), f=row.offsetHeight?R.height/row.offsetHeight:1;
+  let floor=0;
+  [...aside.querySelectorAll(':scope > .pd2-mn')].forEach((el,i)=>{
+    const g=blocks[i]; const a=g&&g.hit&&(g.hit.el||g.hit.range);
+    const want=a?Math.max(0,(a.getBoundingClientRect().top-R.top)/f):floor;
+    const top=Math.max(want, floor); el.style.top=top+'px'; floor=top+el.offsetHeight+APN_PK_GAP;
+  });
+  const tail=aside.querySelector(':scope > .apn-pk-own'); if(tail){ tail.style.top=floor+'px'; floor+=tail.offsetHeight; }
+  aside.style.minHeight=floor+'px';
+  /* LAND ON IT: the words the departure quotes, else its clause; a departure the paper leaves out stays at the top */
+  const q=String(r.v.quote||'').replace(/\s+/g,' ').trim();
+  let hit=null; try{ hit=q.length>=12&&typeof pd2Find==='function'?pd2Find(cv,{ text:[q.slice(0,60), (q.split(/\d/)[0]||'').trim()].filter(t=>t.length>=12) }):null; }catch(_){ hit=null; }
+  const node=hit&&(hit.el||(hit.range&&hit.range.startContainer));
+  const el=node?(node.nodeType===1?node:node.parentElement).closest('section, p, li, div'):null;
+  /* the paper takes the keyboard (arrows and Page Down scroll it), never the head's link: no ring on arrival */
+  try{ sc.focus({ preventScroll:true }); }catch(_){}
+  if(el){ const y=(el.getBoundingClientRect().top-sc.getBoundingClientRect().top)/f+sc.scrollTop-APN_PK_LAND_TOP; sc.scrollTop=Math.max(0,y);
+    if(typeof landOn==='function') landOn(el,{ block:'nearest', focus:false }); }
+}
+/* the pop-up's two presses: × closes back to the row; Open the Dossier › closes and opens the contract on its paper,
+   the Redlines face where a negotiation stands, else its Dossier (the row's own door when the editor takes the clause) */
+function apnPeekDossier(key){
+  const m=/^dep:(.+):(\d+)$/.exec(String(key||'')); if(!m) return;
+  if(typeof closeModal==='function') closeModal();
+  const c=typeof getContract==='function'?getContract(m[1]):null; if(!c) return;
+  if(typeof window.pdRedOk==='function'&&pdRedOk(c)&&typeof openRedlineWorkbench==='function'){ openRedlineWorkbench(c.id); return; }
+  if(typeof roomHomeLand==='function'&&roomHomeLand(c.id,{ cover:false })) return;
+  apnPileAct('open', key);
+}
+if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPeekWired){
+  document._apnPeekWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+    const b=t.closest('.apn-pk [data-apn-pk-go], .apn-pk [data-apn-pk-x]'); if(!b) return;
+    e.preventDefault();
+    if(b.hasAttribute('data-apn-pk-x')){ if(typeof closeModal==='function') closeModal(); return; }
+    apnPeekDossier(b.getAttribute('data-apn-pk-go'));
+  });
+}
 if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPileWired){
   document._apnPileWired=true;
   document.addEventListener('click',e=>{
     const t=e.target&&e.target.closest?e.target:null; if(!t) return;
-    const b=t.closest('.apn-table [data-apn-allow], .apn-table [data-apn-refuse-dep], .apn-table [data-apn-std]'); if(!b) return;
+    const b=t.closest('.apn-table [data-apn-allow], .apn-table [data-apn-refuse-dep], .apn-table [data-apn-std], .apn-table [data-apn-peek]'); if(!b) return;
     e.preventDefault(); e.stopPropagation();
-    if(b.hasAttribute('data-apn-allow')) apnPileAct('allow', b.getAttribute('data-apn-allow'));
+    if(b.hasAttribute('data-apn-peek')) apnPeekOpen(b.getAttribute('data-apn-peek'));
+    else if(b.hasAttribute('data-apn-allow')) apnPileAct('allow', b.getAttribute('data-apn-allow'));
     else if(b.hasAttribute('data-apn-refuse-dep')) apnPileAct('refuse', b.getAttribute('data-apn-refuse-dep'));
     else apnPileAct('std', b.getAttribute('data-apn-std'));
   });
@@ -1510,7 +1609,7 @@ if(typeof document!=='undefined'&&document.addEventListener&&typeof window!=='un
     if(typeof placeSave==='function') placeSave();
   });
 }
-Object.assign(window,{apnLandRow,apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
+Object.assign(window,{apnLandRow,apnPeekOpen,apnPeekOf,apnPeekNotes,apnPeekDossier,APN_PK_GAP,APN_PK_LAND_TOP,apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apnLeadHtml,apnRender,apnRowHtml,apnDoneRows,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,

@@ -115,7 +115,7 @@ const ok = (name, good, detail) => {
        reference rides under the party ("kind · ref") and Owner waits under
        Columns — and the row's ⋯ unheaded */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): Stream and Our standards stand where Stage stood */
-    ok('1b the List is the drawing\'s five columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Agreement|Stream|Our standards|Ends|Value|', shape.heads.join(' | '));
+    ok('1b the List is the drawing\'s five columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Agreement|Stream|Our playbook|Ends|Value|', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');

@@ -89,7 +89,7 @@ const REVIEW = {
         rows: rows.length,
         keys: rows.map(r => r.getAttribute('data-pb-row')),
         quotes: (txt.match(/“/g) || []).length,
-        standards: (txt.match(/Our standard:/g) || []).length,
+        standards: (txt.match(/Our position:/g) || []).length,
         applies: host.querySelectorAll('[data-pb-apply]').length,
         swedish: /governed by Swedish law/.test(txt),
         fortyfive: /forty-five \(45\) days/.test(txt),

@@ -310,7 +310,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
      "not checked" something to be. */
   test('the card says what the rate was worked out from, in words', () => {
     const html = wall(stage());
-    assert.match(html, /2 of the 3 contracts checked did not follow Our standards\./);
+    assert.match(html, /2 of the 3 contracts checked did not follow Our playbook\./);
     assert.match(html, /1 more has not been checked\./);
     assert.ok(!/off-standard/.test(html), 'and it stops speaking in jargon');
   });
@@ -335,7 +335,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.equal(card(d, 'ct1').rate, null);
     const html = wall(s);
     assert.match(html, /Nothing has been drafted from these yet\./);
-    assert.match(html, /Nothing drafted from these has been checked against Our standards yet\./);
+    assert.match(html, /Nothing drafted from these has been checked against Our playbook yet\./);
     assert.ok(!/from this template have been checked/.test(html),
       'a card standing for a library may not say "this template"');
   });
@@ -349,7 +349,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     ], settings: { customTemplates: [] }, view: 'templates' } });
     assert.equal(card(s.tplOverviewData(), 'tpl_1').off, 0);
     const html = wall(s);
-    assert.match(html, /All 2 contracts checked follow Our standards\./);
+    assert.match(html, /All 2 contracts checked follow Our playbook\./);
     assert.ok(!/0 of the 2 contracts checked did not follow/.test(html));
   });
 
@@ -359,7 +359,7 @@ describe('f244 (3) — a deviation rate counts only paper a playbook has read', 
     assert.equal(d.checked, 3);
     assert.equal(d.unchecked, 2, 'MK-4 and MK-5');
     assert.match(wall(s),
-      /A deviation rate counts only contracts that have been checked against Our standards — 3 checked so far, 2 not\./);
+      /A deviation rate counts only contracts that have been checked against Our playbook — 3 checked so far, 2 not\./);
   });
 });
 

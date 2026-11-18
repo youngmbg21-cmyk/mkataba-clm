@@ -156,7 +156,7 @@ describe('f291 — the card rows are one builder for the dock and the hover', ()
     assert.ok(/data-ig-fact="whose"/.test(h3) && /Theirs/.test(h3) && /With Naivas/.test(h3));
     assert.ok(!/data-ig-fact="decide"/.test(h3) && !/data-ig-fact="standard"/.test(h3));
     const h4 = w.win.igFactRowsHtml(w.win.getContract('MK-4'));
-    assert.ok(/2 off standard/.test(h4) && /data-ig-fact="read"/.test(h4) && /Read</.test(h4));
+    assert.ok(/2 off the playbook/.test(h4) && /data-ig-fact="read"/.test(h4) && /Read</.test(h4));
     assert.ok(/Not read yet/.test(w.win.igFactRowsHtml(w.win.getContract('MK-5'))));
   });
   test('the explain card asks the same builder, and the hover is that builder beside the node', () => {

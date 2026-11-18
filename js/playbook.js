@@ -1128,7 +1128,7 @@ window.pbUI = window.pbUI || { shut:new Set() };
 const pbFoldKey = (c,v,i) => `${(c&&c.id)||'?'}::${String((v&&v.category)||i)}`;
 
 const PB_MARK = {
-  aligned:   { bg:'var(--st-green-bg)', fg:'var(--st-green-fg)', glyph:'&#10003;', word:'matches Our standards' },
+  aligned:   { bg:'var(--st-green-bg)', fg:'var(--st-green-fg)', glyph:'&#10003;', word:'matches Our playbook' },
   deviation: { bg:'var(--st-amber-bg)', fg:'var(--st-amber-fg)', glyph:'!',        word:'off Our standard' },
   missing:   { bg:'var(--st-ruby-bg)',  fg:'var(--st-ruby-fg)',  glyph:'!',        word:'not in this document' },
   /* a standard with no occasion in this kind of contract (fix 3) — quiet grey,
@@ -1159,7 +1159,7 @@ const _pbEsc = s => String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<'
 function pbVerdictWords(v){
   const pos=String((v&&v.position)||'').trim();
   const st=(v&&v.status)||'';
-  if(st==='aligned') return pos ? `Matches Our standards · ${pos}` : 'Matches Our standards';
+  if(st==='aligned') return pos ? `Matches Our playbook · ${pos}` : 'Matches Our playbook';
   if(st==='na') return i18t(v.inParent ? 'pb_na_in_parent' : 'pb_na_line');
   if(st==='deviation') return pos ? `Our standard is ${pos}` : 'Off Our standard';
   return pos ? `Not in this document · Our standard is ${pos}` : 'Not in this document';
@@ -1252,7 +1252,7 @@ function renderPlaybookSection(c){
      Scan card carries the same rule and the same reason: a panel headed
      "Copilot review" over checks a regular expression made is a lie the reader
      has no way to catch. */
-  const head = (r && r.source==='ai') ? 'Jambo review &middot; vs Our standards' : 'Playbook review &middot; vs Our standards';
+  const head = (r && r.source==='ai') ? 'Jambo review &middot; vs Our playbook' : 'Playbook review &middot; vs Our playbook';
   const HEAD='font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin:0';
   const rowsHtml = r ? r.verdicts.map((v,i)=>{
     const m=PB_MARK[v.status]||PB_MARK.missing;

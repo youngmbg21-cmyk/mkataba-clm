@@ -192,7 +192,7 @@ const VERDICTS = [
   await menuOpen(page);
   const hasRow = await page.evaluate(m => document.querySelectorAll(m).length === 1, MENU);
   const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
-  check(/draft from our standards/i.test(row.text) && !row.dead, '1c the Menu tab\'s row says what it is and is live on a readable draft', JSON.stringify(row));
+  check(/draft from our playbook/i.test(row.text) && !row.dead, '1c the Menu tab\'s row says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);
   check(hasRow && await page.evaluate(() => !!document.querySelector('#ig-dock .ds-fold [data-ig-memo]') && !!document.querySelector('#ig-dock .ds-fold [data-ig-pbreview]')), '1e beside the memo and the playbook pass (the same All acts fold)');
   await page.keyboard.press('Escape').catch(() => {}); await pause(300);
@@ -207,7 +207,7 @@ const VERDICTS = [
     const text = ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : ''; return { there: !!ok, text }; });
   check(ask.there, '2a a real press raises the confirm dialog');
   /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-  check(/against Our standards/i.test(ask.text) && /nothing is sent/i.test(ask.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(ask.text), '2b and the sentence names what it does, no cost, and says nothing is sent', ask.text.slice(0, 160));
+  check(/against Our playbook/i.test(ask.text) && /nothing is sent/i.test(ask.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(ask.text), '2b and the sentence names what it does, no cost, and says nothing is sent', ask.text.slice(0, 160));
   await page.screenshot({ path: path.join(OUT, '02-ask.png') });
   /* REFUSING WRITES NOTHING. */
   if (ask.there){ await page.click('#cf-cancel'); await pause(500); }
@@ -321,7 +321,7 @@ const VERDICTS = [
     '6a the empty column draws three buttons — the two asked for, and Add a clause', JSON.stringify({ n: emptyDoors.n, labels: emptyDoors.labels }));
   check(emptyDoors.onScreen.every(Boolean) && !emptyDoors.dead.some(Boolean),
     '6b all are VISIBLE PIXELS and none is dead on a readable draft', JSON.stringify(emptyDoors));
-  check(/draft from our standards/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
+  check(/draft from our playbook/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
     '6c and they are the two acts the owner asked for', emptyDoors.labels.join(' · '));
   check(!emptyDoors.blurb && /nothing is sent until you press Send/i.test(emptyDoors.lead),
     '6d the how-to paragraph is gone and one line says what the press spends', emptyDoors.lead.slice(0, 120));
