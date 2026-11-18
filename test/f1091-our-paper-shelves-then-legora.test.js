@@ -28,12 +28,12 @@ test('f1091 (1) the step decides what the book draws, in the new look only', () 
 
 test('f1091 (2) Shelves: the filter line, four figures that open what they count, a shelf per folder', () => {
   const s = body('tplnShelvesHtml');
-  /* RE-POINTED 17 Nov 2026 (the owner's pick, "build cover flow"): a row per folder, its papers a carousel */
-  assert.match(s, /\$\{tplnFilterLineHtml\(rows, shelves\)\}<div class="tpln5-figs">\$\{figs\}<\/div><div class="tpln5-cf">/, 'the filter above the figures, a row per folder under them');
+  /* RE-POINTED 18 Nov 2026 (the owner's pick, "Folder cards"; replaces Cover flow): a card per folder */
+  assert.match(s, /\$\{tplnFilterLineHtml\(rows, shelves\)\}<div class="tpln5-figs">\$\{figs\}<\/div><div class="tpln5-fcg">/, 'the filter above the figures, a card per folder under them');
   for (const a of ['data-tpln-view="list"', 'data-tpln-ready', 'data-tpln-ids="used"', 'data-tpln-ids="changed"']) assert.ok(s.includes(a), a);
   assert.match(s, /' disabled'/, 'a 0 is no door');
-  assert.match(s, /class="tpln5-cfr" role="button" tabindex="0" data-tpln-shelf="\$\{_tplEsc\(sh\.fid\)\}" style="--sd:var\(--st-\$\{tone\}-dot\)"/, 'a row per folder; its colour only a mark');
-  assert.match(s, /class="tpln5-cfp\$\{k \? '' : ' is-on'\}" data-tpln-open="\$\{_tplEsc\(tplPfKey\(x\.c\)\)\}" style="--o:\$\{k\};--a:\$\{k\}"/, 'each paper a page in the carousel, opening its paper');
+  assert.match(s, /class="tpln5-fc" role="button" tabindex="0" data-tpln-shelf="\$\{_tplEsc\(sh\.fid\)\}" style="--sd:var\(--st-\$\{tone\}-dot\)"/, 'a card per folder; its colour only the mark and bars');
+  assert.match(s, /class="tpln5-fcp" data-tpln-open="\$\{_tplEsc\(tplPfKey\(x\.c\)\)\}"/, 'each named paper opens its paper');
   const f = body('tplnFilterLineHtml');
   assert.match(f, /<input type="search" data-tpln-q[^>]*placeholder="\$\{_tplEsc\(i18t\('lh_filter_ph'\)\)\}"/, 'Filter this list, as Contracts');
   assert.match(f, /data-tpln-view="shelves"[\s\S]*data-tpln-view="list"/, 'Shelves · All at its right');
@@ -77,8 +77,8 @@ test('f1091 (6) the panel speaks for the step; the drawn parts; both books', () 
   assert.match(p, /sh \? tplnShelfFive\(sh\) : tplnBookFive\(rows\)/);
   assert.match(L, /const P = tplnPanelBody\(\); insPaintPanel/);
   for (const r of [/html\.lg-new \.tpl-page\.is-tpln5 \.ph-top\{border-bottom:0/, /html\.lg-new \.tpln5-box\{flex:1;[^}]*border-bottom:1px solid var\(--color-divider\)/,
-    /html\.lg-new \.tpln5-figs\{display:grid;grid-template-columns:repeat\(4,/, /html\.lg-new \.tpln5-cff\{[^}]*perspective:900px;overflow:hidden\}/,
-    /html\.lg-new \.tpln5-cfp\{[^}]*transform:translateX\(calc\(var\(--o\) \* 140px\)\) rotateY\(calc\(var\(--o\) \* -42deg\)\)/, /html\.lg-new \.tpln5-cfp\.is-on\{[^}]*inset 0 3px 0 var\(--sd\)\}/, /html\.lg-new \.tpln5\.is-paper\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(260px,320px\)/]) assert.match(H, r);
+    /html\.lg-new \.tpln5-figs\{display:grid;grid-template-columns:repeat\(4,/, /html\.lg-new \.tpln5-fcg\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);grid-auto-rows:1fr;/,
+    /html\.lg-new \.tpln5-fcl\{display:grid;grid-template-rows:repeat\(3,20px\) 18px;/, /html\.lg-new \.tpln5-fcp\.is-gap\{visibility:hidden\}/, /html\.lg-new \.tpln5\.is-paper\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(260px,320px\)/]) assert.match(H, r);
   const I = read('js/i18n.js'), sv = I.search(/\n {2}sv\s*:\s*\{/), EN = I.slice(0, sv), SV = I.slice(sv);
   const keys = new Set([...read('js/views/library.js').matchAll(/['"](tpln5_[a-z0-9_]+)['"]/g)].map(m => m[1]));
   assert.ok(keys.size >= 30, 'found ' + keys.size);
@@ -86,11 +86,16 @@ test('f1091 (6) the panel speaks for the step; the drawn parts; both books', () 
   assert.deepEqual([...keys].filter(k => !has(EN, k) || !has(SV, k)), []);
 });
 
-test('f1091 (7) Cover flow turns while pointed at, a key turns it one, less motion asked keeps it still; a paper opens itself', () => {
-  assert.match(body('tplnCfRoll'), /tplnCfStill\(\)\) return;[\s\S]*setInterval\(\(\) => \{[\s\S]*?tplnCfSet\(row, \(row\._cfAt \|\| 0\) \+ 1\)/);
-  assert.match(body('tplnCfSet'), /p\.style\.setProperty\('--o', o\); p\.style\.setProperty\('--a', Math\.abs\(o\)\); p\.classList\.toggle\('is-on', o === 0\)/);
-  assert.match(L, /e\.key === 'ArrowRight' \|\| e\.key === 'ArrowLeft'/);
-  assert.match(L, /const sh = t\.closest\('\[data-tpln-open\]'\) \? null : t\.closest\('\[data-tpln-shelf\]'\);/, 'a paper in a row opens the paper, not the folder');
+test('f1091 (7) FOLDER CARDS (owner, 18 Nov 2026): at most three papers, the ones used most, "+ N more" beyond; every card the same size; a paper opens itself', () => {
+  assert.match(L, /const TPLN_FC_SHOWN = 3;/);
+  const s = body('tplnShelvesHtml');
+  assert.match(s, /sh\.rows\.slice\(\)\.sort\(\(a, b\) => b\.last\.cs\.length - a\.last\.cs\.length\)\.slice\(0, TPLN_FC_SHOWN\)/, 'the three used most');
+  assert.match(s, /'<span class="tpln5-fcp is-gap" aria-hidden="true"><\/span>'\.repeat\(TPLN_FC_SHOWN - top\.length\)/, 'a folder with fewer keeps the same space');
+  assert.match(s, /more > 0 \? _tplEsc\(i18tn\('tpln5_more_papers', more, \{ n:more \}\)\) \+ ' ›' : ''/, '"+ N more papers" only where there are more');
+  assert.match(s, /sh\.rows\.reduce\(\(n, x\) => n \+ \(\(x\.st && x\.st\.changed\) \|\| 0\), 0\)/, 'came back changed counted from the papers');
+  assert.match(L, /e\.target\.matches\('\.tpln5-fc'\)[\s\S]{0,120}e\.key === 'Enter' \|\| e\.key === ' '/, 'Enter opens a card');
+  assert.match(L, /const sh = t\.closest\('\[data-tpln-open\]'\) \? null : t\.closest\('\[data-tpln-shelf\]'\);/, 'a paper on a card opens the paper, not the folder');
+  assert.doesNotMatch(L, /tplnCfRoll|tplnCfSet|TPLN_CF_MS/, 'Cover flow is gone');
 });
 
 /* f1091 (8) · THREE ASKS, 17 Nov 2026 (owner: "increase the size of the paper to make better use of the empty space";

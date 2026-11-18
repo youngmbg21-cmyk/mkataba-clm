@@ -14087,6 +14087,11 @@ const STRINGS = {
     /* Our paper: Shelves, then the Legora way (17 Nov 2026) */
     tpln5_shelves: 'Shelves',
     tpln5_open: 'Open',
+    tpln5_more_papers_one: '+ {n} more paper',
+    tpln5_more_papers_other: '+ {n} more papers',
+    tpln5_fc_changed_one: '{n} came back changed',
+    tpln5_fc_changed_other: '{n} came back changed',
+    tpln5_fc_changed0: 'None came back changed',
     tpln5_ours_door: 'Make our own version in New agreement ›',
     tpln5_all: 'All',
     tpln5_std: 'Our playbook ›',
@@ -38764,6 +38769,11 @@ const STRINGS = {
     /* Vårt papper: Hyllor, sedan Legora-sättet (17 nov 2026) */
     tpln5_shelves: 'Hyllor',
     tpln5_open: 'Öppna',
+    tpln5_more_papers_one: '+ {n} papper till',
+    tpln5_more_papers_other: '+ {n} papper till',
+    tpln5_fc_changed_one: '{n} kom tillbaka ändrat',
+    tpln5_fc_changed_other: '{n} kom tillbaka ändrade',
+    tpln5_fc_changed0: 'Inget kom tillbaka ändrat',
     tpln5_ours_door: 'Gör en egen version i Nytt avtal ›',
     tpln5_all: 'Alla',
     tpln5_std: 'Vår spelbok ›',
