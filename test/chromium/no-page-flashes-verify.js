@@ -55,7 +55,17 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
       board: async () => { await clear(); await page.evaluate(() => setView('dashboard')); return until(page, () => !!document.querySelector('#hb-board, .hb-board'), null, 15000); },
       contracts: async () => { await clear(); await page.evaluate(() => setView('register')); return until(page, () => !!document.querySelector('#ct-place'), null, 15000); },
       cover: async () => { if (!await S.contracts()) return false; await page.waitForTimeout(800); await page.evaluate(id => regOpenContract(id), ids[0]); return until(page, () => !!document.querySelector('.cv-page'), null, 20000); },
-      paper: async () => { if (!await S.cover()) return false; await page.waitForTimeout(600); await page.click('.cv-open'); return until(page, () => !document.querySelector('.cv-page') && !!document.querySelector('#ig-dock'), null, 15000); },
+      /* the paper with its Dossier on its first tab: by its Cover when one stands, else already on the paper (a contract
+         left on another face reopens there); the Dossier tab pressed so every move starts from the same face */
+      paper: async () => {
+        if (!await S.contracts()) return false; await page.waitForTimeout(800);
+        await page.evaluate(id => regOpenContract(id), ids[0]);
+        if (!await until(page, () => !!document.querySelector('.cv-page') || (!!document.querySelector('#ig-dock') && typeof pdContract === 'function' && !!pdContract()), null, 20000)) return false;
+        if (await page.$('.cv-open')){ await page.waitForTimeout(400); await page.click('.cv-open'); }
+        if (!await until(page, () => !document.querySelector('.cv-page') && !!document.querySelector('#ig-dock'), null, 15000)) return false;
+        if (await page.$('[data-pd-tab="copilot"]')){ await page.click('[data-pd-tab="copilot"]'); await page.waitForTimeout(600); }
+        return until(page, () => !!document.querySelector('[data-pd-tab="copilot"][aria-selected="true"], [data-pd-tab="copilot"].is-on, [data-pd-tab="copilot"].on') || !!document.querySelector('#ig-dock .pd2-card'), null, 8000);
+      },
     };
     const moves = [
       ['Board → Contracts (symbol strip)', S.board, { strip: 'contracts' }],
