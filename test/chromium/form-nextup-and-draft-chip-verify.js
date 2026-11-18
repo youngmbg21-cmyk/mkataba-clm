@@ -110,11 +110,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* the short card first, then its "All acts (N)" — every act, where it stands */
     await until(page, () => { const e = document.querySelector('#pd-acts-pop [data-pd-acts-every]'); if (!e) return null; e.click(); return true; }, null, 4000);
     const menu = await until(page, () => { const m = document.getElementById('pd-acts-pop'); return m && !m.querySelector('[data-pd-acts-every]') ? { rows: m.querySelectorAll('[data-pd-acts-go]').length,
-      std: [...m.querySelectorAll('[data-pd-acts-go]')].some(r => /Draft from our standards/.test(r.textContent)),
+      std: [...m.querySelectorAll('[data-pd-acts-go]')].some(r => /Draft from our (standards|playbook)/.test(r.textContent)) /* RE-POINTED 18 Nov 2026 (main renamed Standards to Playbook) */,
       card: !!document.querySelector('#ig-dock .pd2-card .pd2-card-act button') && !m.querySelector('.pd2-card-act'),
       tab: !!document.querySelector('#ig-dock [data-pd-tab="menu"]') } : null; }, null, 8000);
     check('2e All acts folds the rows (no Menu tab, the act buttons stand above it)', !!menu && menu.card && menu.rows > 0 && menu.std && !menu.tab, JSON.stringify(menu));
-    const ask = await (async () => { await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-acts-pop [data-pd-acts-go]')].find(x => /Draft from our standards/.test(x.textContent)); if (r) r.click(); });
+    const ask = await (async () => { await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-acts-pop [data-pd-acts-go]')].find(x => /Draft from our (standards|playbook)/.test(x.textContent)); if (r) r.click(); });
       return until(page, () => !!document.getElementById('cf-ok'), null, 6000); })();
     check('2f its row does the act (the confirm before drafting)', !!ask);
     if (ask) await page.click('#cf-cancel');

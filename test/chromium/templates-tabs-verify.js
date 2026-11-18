@@ -292,10 +292,11 @@ const BOX = sel => {
     await page.screenshot({ path: path.join(OUT, '02-list.png'), fullPage: true });
     await page.click('[data-tpln-back]');
     await pause(400);
-    const target = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-tpl-sec="book"] [data-tpln-shelf]')].find(x => x.querySelectorAll('.tpln5-cfp').length < tplnRowsCount());
-      return r ? { fid: r.getAttribute('data-tpln-shelf'), name: (r.querySelector('.tpln5-cfw b') || {}).textContent, n: r.querySelectorAll('.tpln5-cfp').length } : null;
-      function tplnRowsCount(){ return document.querySelectorAll('[data-tpl-sec="book"] .tpln5-cfp').length; } });
-    if (target) await page.click(`[data-tpl-sec="book"] [data-tpln-shelf="${target.fid}"] .tpln5-cfw`);
+    /* RE-POINTED 18 Nov 2026 (main: Folder Cards replace Cover flow): a folder is a card (.tpln5-fc), its count of papers
+       said on it ("N papers · …"); pressing the card opens the folder's list */
+    const target = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-tpl-sec="book"] .tpln5-fc[data-tpln-shelf]')].find(x => (parseInt((x.querySelector('.tpln5-fcs') || {}).textContent, 10) || 0) > 0);
+      return r ? { fid: r.getAttribute('data-tpln-shelf'), name: (r.querySelector('.tpln5-fch b') || {}).textContent, n: parseInt((r.querySelector('.tpln5-fcs') || {}).textContent, 10) } : null; });
+    if (target) await page.click(`[data-tpl-sec="book"] .tpln5-fc[data-tpln-shelf="${target.fid}"] .tpln5-fch`);
     await pause(600);
     const landed = await page.evaluate(() => ({ view: tplPlace().view, ls: tplPlace().ls,
       head: ((document.querySelector('.tpln5-h1') || {}).textContent || '').trim(),
@@ -574,9 +575,9 @@ const BOX = sel => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       if (!sec) return null;
       const shelves = [...sec.querySelectorAll('.tpln5.is-shelves [data-tpln-shelf]')];
-      return { h: Math.round(sec.scrollHeight), hidden: sec.hidden, n: sec.querySelectorAll('.tpln5-cfp[data-tpln-open]').length, shelves: shelves.length,
+      return { h: Math.round(sec.scrollHeight), hidden: sec.hidden, n: sec.querySelectorAll('.tpln5-fcp[data-tpln-open]').length, shelves: shelves.length,
         rowH: shelves.length ? Math.round(shelves[0].getBoundingClientRect().height) : 0,
-        papered: shelves.length > 0 && shelves.every(r => r.querySelectorAll('.tpln5-cfp').length > 0) };
+        papered: shelves.length > 0 && shelves.every(r => r.querySelectorAll('.tpln5-fcp').length > 0) };
     });
     check('9a · the book draws: a row per folder, each with its papers', !!bk && !bk.hidden && bk.h > 250 && bk.rowH > 30 && bk.shelves >= 2 && bk.papered,
       bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH, shelves: bk.shelves, papered: bk.papered });
@@ -597,7 +598,7 @@ const BOX = sel => {
     const cut = !hasBook ? null : await page.evaluate(async () => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       const list = document.querySelector('[data-tpl-sec="list"]');
-      const btn = sec.querySelectorAll('.tpln5-cfp[data-tpln-open]')[1];
+      const btn = sec.querySelectorAll('.tpln5-fcp[data-tpln-open]')[1];
       if (!btn) return null;
       const want = btn.getAttribute('data-tpln-open');
       btn.click();
