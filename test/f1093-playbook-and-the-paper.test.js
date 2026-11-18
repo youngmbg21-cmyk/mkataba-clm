@@ -60,16 +60,23 @@ describe('f1093 (1) the page is the Playbook, its entries positions', () => {
 
 describe('f1093 (2) "See it in the paper ›" on departure rows only', () => {
   const V = strip(R('js/views/approvalsview.js'));
+  test('EVERY CONTRACT ROW carries it too, a signature and a receipt included (18 Nov 2026, second round)', () => {
+    const row = fnBody(V, 'apnRowHtml');
+    assert.match(row, /acts\+=apnPeekLinkHtml\('c:'\+c\.id\);\s*return `<tr data-ap-row/);
+    const of = fnBody(V, 'apnPeekRowOf');
+    assert.match(of, /k\.startsWith\('c:'\)/);
+    assert.match(of, /apnQuote\(c\)/);
+  });
   test('under the two buttons of a departure, never on a change to the playbook', () => {
     const row = fnBody(V, 'apnPileRowHtml');
     const dep = row.slice(row.indexOf("r.type==='departure'"), row.indexOf('} else {'));
     const std = row.slice(row.indexOf('} else {'));
-    assert.match(dep, /data-apn-peek=/);
+    assert.match(dep, /apnPeekLinkHtml\(r\.key\)/);
     assert.ok(!/data-apn-peek/.test(std), 'no paper link on a change to a position');
   });
   test('the press opens the pop-up and decides nothing', () => {
     assert.match(V, /if\(b\.hasAttribute\('data-apn-peek'\)\) apnPeekOpen\(/);
-    const o = fnBody(V, 'apnPeekOpen') + fnBody(V, 'apnPeekNotes');
+    const o = fnBody(V, 'apnPeekOpen') + fnBody(V, 'apnPeekNotes') + fnBody(V, 'apnPeekPages');
     assert.ok(!/persist\(|signCheckAccept|logAudit|api\(/.test(o), 'a look writes nothing');
   });
   test('the Playbook page no longer opens the paper', () => {
@@ -99,11 +106,18 @@ describe('f1093 (3) the pop-up is the Dossier\'s paper and notes', () => {
     assert.match(n, /landOn\(el,/);
     assert.match(fnBody(V, 'apnPeekOpen'), /height:'calc\(100vh - 112px\)'/);
   });
-  test('Open the Dossier › closes and opens the contract on its paper', () => {
+  test('Open the Dossier › closes and opens the contract THROUGH ITS COVER (18 Nov 2026, second round)', () => {
     const d = fnBody(V, 'apnPeekDossier');
     assert.match(d, /closeModal\(\)/);
-    assert.match(d, /openRedlineWorkbench\(c\.id\)/);
-    assert.match(d, /roomHomeLand\(c\.id,\{ cover:false \}\)/);
+    assert.match(d, /roomHomeLand\(c\.id,\{ cover:true \}\)/);
+    assert.ok(!/cover:false|openRedlineWorkbench/.test(d), 'never past the Cover');
+  });
+  test('the paper is the Dossier\'s: its wrapper, cut into pages on the desk', () => {
+    const p = fnBody(V, 'apnPeekPaperHtml');
+    assert.match(p, /class="ig-redpaper nego-onpaper"/);
+    assert.match(fnBody(V, 'apnPeekPages'), /pagesWatch\(sheet,\{ mode:'work'/);
+    assert.match(fnBody(V, 'apnPeekOpen'), /apnPeekPages\(c\); apnPeekNotes\(c, r\)/);
+    assert.match(R('index.html'), /html\.lg-new \.apn-pk-b\{[^}]*background:var\(--desk-ground\)/);
   });
   test('published, and dressed', () => {
     assert.match(R('js/views/approvalsview.js'), /Object\.assign\(window,\{apnLandRow,apnPeekOpen,/);
