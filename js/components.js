@@ -1592,7 +1592,7 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
     const act = r.btn ? `<button type="button" class="jov5-pill${r.btn.black ? ' is-black' : ''}"${door(r.btn.run, r.btn.attr)}>${E(r.btn.label)}</button>`
       : r.link ? lnk(r.link.attr ? -1 : reg(r.link.run), E(r.link.label), r.link.title, '', r.link.attr) : '';
     const chev = (t === 'button') ? `<span class="jov5-chev" aria-hidden="true">${ic('chevR')}</span>` : '';
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap ? ' is-wrap' : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap || r.quote ? ' is-wrap' : ''}${r.quote ? ' is-quote' : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
       + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}</span>`
       + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
   };

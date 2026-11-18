@@ -1859,7 +1859,42 @@ function iknRender(host, o){
   if (typeof setActiveNav === 'function') setActiveNav('intake');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
+/* THE FIVE PARTS ON A CHOSEN REQUEST (owner picked "Five Parts" by name, 18 Nov 2026): the request's own title as the
+   headline, who asked and who holds it under it, three numbers (how long it has waited, who holds it, the paper that
+   fits), the ask in their words quoted, what was read from it, and the request's one act as the black button (Start
+   the draft, data-ikn-draft; Open, data-ikn-open — the row's own presses). The same reading (iknStands, ikFitOf); no AI. */
+function iknPanelFive(r, may){
+  const st = iknStands(r), fit = st.fit && st.fit.strong ? st.fit : null;
+  const me = typeof currentUser === 'function' ? currentUser() : null;
+  const byMe = !!(me && r.by && (String(r.by.id) === String(me.id) || (r.by.email && me.email && String(r.by.email).toLowerCase() === String(me.email).toLowerCase())));
+  const age = typeof ikAgeWords === 'function' ? ikAgeWords(r) : '';
+  const t0 = Date.parse(String(r.createdAt || '')), days = isFinite(t0) ? Math.max(0, Math.floor((Date.now() - t0) / 86400000)) : null;
+  const holder = r.assignee && r.assignee.name ? String(r.assignee.name).split(/\s+/)[0] : '';
+  const stream = r.folder && window.FOLDERS && FOLDERS[r.folder] ? FOLDERS[r.folder].name : '';
+  const c = r.contractId && typeof getContract === 'function' ? getContract(r.contractId) : null;
+  const ref = c ? (typeof contractRef === 'function' ? contractRef(c) : c.id) : '';
+  const asked = age ? (byMe ? i18t('jov5_rq_by_me', { age }) : i18t('jov5_rq_by', { who: ikFirstLast(r.by && r.by.name) || '—', age })) : '';
+  const sub = r.contractId || r._adv ? [st.t, asked].filter(Boolean).join(' ') : [asked, holder ? i18t('jov5_rq_holds', { who: holder }) : i18t('jov5_rq_nobody')].filter(Boolean).join(' ');
+  const glance = [days == null ? null : days === 0 ? { n: i18t('jov5_rq_today'), l: i18t('jov5_rq_g_asked') } : { n: days, l: i18t('jov5_rq_g_days'), warn: !r.contractId && !r._adv && days >= IKN_OLD_DAYS },
+    { n: holder || i18t('jov5_rq_g_nobody'), l: i18t('jov5_rq_g_holds'), warn: !holder && !r.contractId && !r._adv },
+    c ? { n: ref, l: i18t('jov5_rq_g_contract'), attr: `data-ikn-open="${esc(c.id)}"` }
+      : r._adv ? { n: (r.files || []).length, l: i18t('jov5_rq_g_files') } : { n: fit ? 1 : 0, l: i18t('jov5_rq_g_fits') }].filter(Boolean);
+  const groups = [];
+  if (r.need) groups.push({ label: i18t('ikn_p_words'), rows: [{ mark: 'msg', t: String(r.need), quote: true }] });
+  const read = [];
+  if (r.counterparty) read.push({ mark: 'users', t: r.counterparty, s: i18t('cun_c_party') });
+  if (fit) read.push({ mark: 'file', t: fit.name, s: i18t('jov5_rq_fits') });
+  if ((r.files || []).length) read.push({ mark: 'clip', t: i18tn('ikn_files_n', r.files.length, { n: r.files.length }), s: i18t('ikn_files') });
+  if (read.length) groups.push({ label: i18t('ikn_p_read'), rows: read });
+  if (c) groups.push({ label: i18t('jov5_rq_became'), rows: [{ mark: 'file', tone: 'green', t: c.name || ref, s: [ref, c.counterparty].filter(Boolean).join(' · '), attr: `data-ikn-open="${esc(c.id)}"` }] });
+  const act = r._adv ? null : c ? { say: i18t('jov5_rq_act_open'), label: i18t('ikn_open_go'), attr: `data-ikn-open="${esc(c.id)}"` }
+    : may ? { say: i18t('jov5_rq_act'), label: i18t('ikn_start'), attr: `data-ikn-draft="${esc(r.id)}"` } : null;
+  return { eyebrow: [i18t(r._adv ? 'jov5_rq_eb_adv' : 'jov5_rq_eb'), stream].filter(Boolean).join(' · '),
+    title: String(r.title || '').trim().replace(/([^.!?])$/, '$1.'), sub, glance, groups, act, src: i18t('jov5_rq_src') };
+}
 function iknPanelHtml(r, may){
+  if (typeof window.newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function')
+    return `<div class="jl-words is-ov ikn-five">${jamboOverviewHtml(iknPanelFive(r, may), 'ikn')}</div>`;
   const E = esc, st = iknStands(r);
   const fit = st.fit && st.fit.strong ? st.fit : null;
   const head = r.contractId ? st.t + '.' : fit ? i18t('ikn_p_fits', { title: r.title || '', name: fit.name }) : i18t('ikn_p_open', { title: r.title || '' });
@@ -2174,7 +2209,7 @@ async function intakeTrackCopy(id){
   catch(_){ try{ window.open(url,'_blank'); }catch(__){ toast(url,'warn'); } }
 }
 
-Object.assign(window,{ikPlace,ikPlacePut,ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
+Object.assign(window,{ikPlace,iknPanelFive,ikPlacePut,ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
   ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
   intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,intakeLaneDraftRows,intakeLaneArrivals,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,

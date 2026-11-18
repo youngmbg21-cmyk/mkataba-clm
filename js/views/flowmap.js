@@ -124,7 +124,31 @@ function fmSelect(k, opts = {}){
   if (!opts.quiet) _fmKeep();
 }
 /* Jambo's panel: the map in his words; a place chosen, how a person gets there and leaves it, and Open */
+/* THE FIVE PARTS ON A PRESSED PLACE (owner picked "Five Parts" by name, 18 Nov 2026): the place and its one line as the
+   headline, where its step takes you under it, three numbers (steps on, doors, likely next), the step drawn as a road,
+   the doors above Jambo's box and his likely next as rows — each row shows THAT place on the map (fmSelect), the
+   reader stays on the map — and Open <place> (data-fm-go, the page's own press) the black button. Read off FLOW_MAP. */
+function fmPanelFive(k){
+  const r = flowMapRow(k); if (!r) return null;
+  const st = (typeof FLOW_STAGES !== 'undefined' && Array.isArray(FLOW_STAGES)) ? FLOW_STAGES.find(x => x.k === r.st) : null;
+  const stName = st ? (_fmLang() === 'sv' ? st.sv : st.en) : '';
+  const line = _fmW(r.s), next = r.a[0];
+  const sel = x => ({ mark: 'arrowRight', t: fmName(x[0]), s: x[1] ? _fmW(x[1]) : '', run: () => fmSelect(x[0]) });
+  const groups = [];
+  if (r.d.length) groups.push({ label: _fmT('jov5_fmp_doors'), rows: r.d.map(d => sel([d])) });
+  if (r.p.length) groups.push({ label: _fmT('jov5_fmp_pred'), rows: r.p.map(sel) });
+  const go = (k === 'back' || k === 'help') ? null : { say: _fmT('jov5_fmp_act'), label: _fmT('fm_open', { p: fmName(k) }), attr: `data-fm-go="${_fmE(k)}"` };
+  return { eyebrow: _fmT('jov5_fmp_eb', { stage: stName }), title: _fmT('jov5_fmp_t', { name: fmName(k), line }).replace(/\.\.$/, '.'),
+    sub: next ? _fmT('jov5_fmp_then', { name: fmName(next[0]), line: next[1] ? _fmW(next[1]) : '' }).replace(/: \.$/, '.') : _fmT('jov5_fmp_end'),
+    glance: [{ n: r.a.length, l: _fmT('jov5_fmp_g_step') }, { n: r.d.length, l: _fmT('jov5_fmp_g_doors') }, { n: r.p.length, l: _fmT('jov5_fmp_g_pred') }],
+    mid: next ? `<div class="fm-road"><span class="is-on">${_fmE(fmName(k))}</span><i aria-hidden="true">→</i><span>${_fmE(fmName(next[0]))}</span></div>` : '',
+    groups, act: go, src: _fmT('jov5_fmp_src') };
+}
 function fmPanelHtml(k){
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    const f = fmPanelFive(k); if (!f) return '';
+    return `<div class="jl-words is-ov fm-five">${jamboOverviewHtml(f, 'fmp')}</div>`;
+  }
   const r = flowMapRow(k); if (!r) return '';
   const row = (cls, l, v) => `<div class="fm-pr"><div class="fm-pl ${cls}">${_fmE(l)}</div><div class="fm-pv">${v}</div></div>`;
   const tgt = x => `<span class="fm-pi">${_fmE(fmName(x[0]))}${x[1] ? ` <span class="fm-pq">· ${_fmE(_fmW(x[1]))}</span>` : ''}</span>`;
@@ -171,4 +195,4 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
   const k = b.getAttribute('data-fm-go'); if (typeof caGo === 'function') caGo({ kind: 'go', place: k, cid: null });
 });
 
-Object.assign(window, { renderFlowMap, fmOpen, fmPlace, fmPlacePut, fmSelect, fmPanelHtml, fmLinesOf });
+Object.assign(window, { renderFlowMap, fmPanelFive, fmOpen, fmPlace, fmPlacePut, fmSelect, fmPanelHtml, fmLinesOf });

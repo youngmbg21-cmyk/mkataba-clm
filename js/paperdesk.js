@@ -3761,6 +3761,9 @@ function pdWallHelloHtml(){
      Create (From scratch left this sheet for Our paper, 14 Nov 2026) */
   /* FROM NOTHING'S CONTENTS PAGE IS UP: the panel says what the proposal is made of (nsShelfPanelHtml, 14 Nov 2026) */
   if (typeof nsShelfPanelHtml === 'function'){ const sh = nsShelfPanelHtml(); if (sh) return `<div class="pd2-chosen cun-panel nsj-panel">${sh}</div>`; }
+  /* THEIR PAPER UP (owner picked "Five Parts" by name, 18 Nov 2026): the five parts (naTheirsFive) */
+  if (typeof naSheetUp === 'function' && naSheetUp() && pd2On() && typeof naTheirsNow === 'function' && typeof jamboOverviewHtml === 'function'){
+    const T = naTheirsNow(); if (T) return `<div class="jl-words is-ov pd-sheet-hello nat-five">${jamboOverviewHtml(naTheirsFive(T), 'nat')}</div>`; }
   if (typeof naSheetUp === 'function' && naSheetUp() && pd2On()){
     const E = _pdE;
     const O = (typeof naOursNow === 'function') ? naOursNow() : null;
@@ -3785,6 +3788,22 @@ function pdWallHelloHtml(){
     return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
       facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');
   return ov(pdWallOverview());
+}
+/* THEIR PAPER, IN THE FIVE PARTS: what it is for as the headline, the three steps, the two things Create needs (their
+   file — or a paper of theirs kept from before — and the stream) said as they stand, amber while missing, and Choose a
+   file the black button: the sheet's own picker (#na-theirs-pick). Read off the sheet (naTheirsNow); no AI. */
+function naTheirsFive(T){
+  const file = T.file(), kept = T.kept ? T.kept() : '', stream = T.stream(), paper = kept || file;
+  const ready = !!(paper && stream);
+  const need = [paper ? { mark: 'check2', tone: 'green', t: paper, s: kept ? _pdT('jov5_nat_kept') : _pdT('jov5_nat_file') }
+      : { mark: 'upload', tone: 'amber', t: _pdT('jov5_nat_file'), s: _pdT('jov5_nat_file_no') },
+    stream ? { mark: 'check2', tone: 'green', t: stream, s: _pdT('jov5_nat_stream') }
+      : { mark: 'folder', tone: 'amber', t: _pdT('jov5_nat_stream'), s: _pdT('jov5_nat_stream_no') }];
+  return { eyebrow: _pdT('jov5_nat_eb'), title: ready ? _pdT('jov5_nat_t_ready', { name: paper }) : _pdT('jov5_nat_t'), sub: _pdT('jov5_nat_s'),
+    steps: { label: _pdT('jov5_nat_how'), items: [{ b: _pdT('jov5_nat_s1'), s: _pdT('jov5_nat_s1s') }, { b: _pdT('jov5_nat_s2'), s: _pdT('jov5_nat_s2s') }, { b: _pdT('jov5_nat_s3'), s: _pdT('jov5_nat_s3s') }] },
+    groups: [{ label: _pdT('jov5_nat_need'), rows: need }],
+    act: ready ? { say: _pdT('jov5_nat_act_ready') } : paper ? { say: _pdT('jov5_nat_act') } : { say: _pdT('jov5_nat_act'), label: _pdT('jov5_nat_act_b'), run: () => T.pick() },
+    src: _pdT('jov5_nat_src') };
 }
 /* THE CONTRACTS PLACE, NOTHING CHOSEN: its facts, each a reading the book already makes, no AI — how many and how
    many signed, what ends inside 90 days (effectiveExpiry), what still owes a detail (detailsOf), the value in the
@@ -9793,7 +9812,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
-Object.assign(window, { pdActKnown });
+Object.assign(window, { pdActKnown, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* ---- THE COVER (owner picked "Margin Notes" by name, 16 Nov 2026; drawn at five stages and agreed: "build it") ----
