@@ -1,5 +1,5 @@
 'use strict';
-/* f1095 — NO PAGE FLASHES ROUND THE COVER (owner, 16 Nov 2026: "When i am on the cover page and i press to go back to
+/* f1096 — NO PAGE FLASHES ROUND THE COVER (owner, 16 Nov 2026: "When i am on the cover page and i press to go back to
    contracts, a page of the paper and dossier flash before i land on contracts … i also see it when i am in the
    contracts page and i pick on a contract to view").
    Measured frame by frame before: Cover → Contracts painted the paper and Dossier for ~85ms (the handler closed the
@@ -17,7 +17,7 @@ const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const PD = strip(read('js/paperdesk.js'));
 
-test('f1095 (1) a press on the Cover goes in one turn, never after a wait', () => {
+test('f1096 (1) a press on the Cover goes in one turn, never after a wait', () => {
   const i = PD.indexOf("closest('[data-cv-go]')"); assert.ok(i > 0);
   const h = PD.slice(i, PD.indexOf('});', i));
   assert.doesNotMatch(h, /setTimeout/, 'no timer between closing the Cover and the destination');
@@ -26,7 +26,7 @@ test('f1095 (1) a press on the Cover goes in one turn, never after a wait', () =
   assert.match(h, /k === 'contracts' && typeof setView === 'function'\) setView\('register'\)/);
 });
 
-test('f1095 (2) the Cover is asked for at once, behind a bounded veil', () => {
+test('f1096 (2) the Cover is asked for at once, behind a bounded veil', () => {
   const land = PD.slice(PD.indexOf('function pdCoverLand('), PD.indexOf("document.addEventListener('click'", PD.indexOf('function pdCoverLand(')));
   assert.match(land, /if \(ready\(\) && pdCoverOpen\(id\)\) return true;\s*pdCoverVeil\(true\);/, 'at once, else the veil');
   assert.match(land, /if \(ready\(\)\)\{ pdCoverOpen\(id\); pdCoverVeil\(false\); return; \}/, 'the veil goes when the Cover stands');

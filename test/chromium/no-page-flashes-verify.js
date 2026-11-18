@@ -1,5 +1,5 @@
 /* NO PAGE FLASHES ON THE WAY (owner, 16-18 Nov 2026: "again, the issue of a flashing page before my destination …
-   I have tried to address this issue many many times … not only in this particular case but overall"; f1095).
+   I have tried to address this issue many many times … not only in this particular case but overall"; f1096).
    Nothing ever watched for it: every check asked where a press LANDED, none what was painted on the way, so each fix
    held one door and the next change could bring a flash back unseen. This check presses the common doors for real
    and records EVERY painted frame (requestAnimationFrame) until it settles, on a slowed computer (CPU ×4, 150 ms on
@@ -7,7 +7,7 @@
      A FLASH is a frame, between the press and the end, in which a NAMED page stands at the screen's middle that is
      neither the page pressed from nor the page arrived at: the paper, the Board, Contracts, the Cover. A loading
      state (the Cover's veil, a page's own loading line, nothing yet) is not a flash.
-   Before f1095 it fails: Cover → Contracts and Contracts → a contract painted the paper on the way.
+   Before f1096 it fails: Cover → Contracts and Contracts → a contract painted the paper on the way.
    Run: node test/chromium/no-page-flashes-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
