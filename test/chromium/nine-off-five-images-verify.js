@@ -150,7 +150,7 @@ const MARK = cid => {
     });
     await page.screenshot({ path: path.join(OUT, '02-strip.png') });
     const fill = strip.tiles.find(t => /field/i.test(t.head));
-    const std = strip.tiles.find(t => /standard/i.test(t.head));
+    const std = strip.tiles.find(t => /standard|playbook/i.test(t.head));
     check('2-stage the strip is drawn with all five tiles', strip.n === 5, `${strip.n} tiles`);
     check('2a the open-fields tile carries a NUMBER, not a dash',
       !!fill && /^\d+$/.test(fill.mark) && Number(fill.mark) > 0, JSON.stringify(fill));
@@ -162,7 +162,7 @@ const MARK = cid => {
        handler that lands — this file's neighbours have paid for that twice. */
     const opened = await page.evaluate(async () => {
       const t = [...document.querySelectorAll('#kt-triage .kt-tri-tile')]
-        .find(x => /standard/i.test((x.querySelector('.kt-tri-hw') || {}).textContent || ''));
+        .find(x => /standard|playbook/i.test((x.querySelector('.kt-tri-hw') || {}).textContent || ''));
       if (!t) return { pressed: false };
       t.click(); await new Promise(r => setTimeout(r, 700));
       return { pressed: true, panel: !!document.getElementById('playbook-section') };
