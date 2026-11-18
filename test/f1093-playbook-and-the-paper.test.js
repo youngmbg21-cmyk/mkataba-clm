@@ -128,6 +128,16 @@ describe('f1093 (3) the pop-up is the Dossier\'s paper and notes', () => {
     assert.match(fnBody(V, 'apnPeekOpen'), /apnPeekPages\(c\); apnPeekNotes\(c, r\)/);
     assert.match(R('index.html'), /html\.lg-new \.apn-pk-b\{[^}]*background:var\(--desk-ground\)/);
   });
+  test('Show less and + N more work in the pop-up: the fold is remembered BEFORE its notes are drawn again (owner, 18 Nov 2026)', () => {
+    const P = strip(R('js/paperdesk.js'));
+    for (const sel of ['[data-pd2-unfold]', '[data-pd2-fold]']){
+      const i = P.indexOf("closest(':is(#pd2-notes, .pd2-notes.is-peek) " + sel + "')"); assert.ok(i > 0, sel + ' press reaches the pop-up');
+      const body = P.slice(i, P.indexOf('});', i));
+      const keep = body.search(/_pd2(Unfolded|Shut)\.(add|delete)\(key\)/), redraw = body.indexOf('_pd2Repaint()');
+      assert.ok(keep > 0 && redraw > keep, sel + ': remembered, then drawn again');
+      assert.match(body, /closest\('#pd2-notes, \.pd2-notes\.is-peek'\)/);
+    }
+  });
   test('published, and dressed by the Dossier\'s own rules', () => {
     assert.match(R('js/views/approvalsview.js'), /Object\.assign\(window,\{apnLandRow,apnPeekOpen,/);
     const H = R('index.html');

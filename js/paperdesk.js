@@ -8647,17 +8647,18 @@ function pd2GroupsPlace(groups, zoom, host, f, floor0){
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-unfold]') : null; if (!b) return;
-  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.removeAttribute('data-pd2-shut'); g.classList.remove('is-folded');
-  const hp = b.closest('.pd2-notes.is-peek'); if (hp){ if (hp._pd2Repaint) hp._pd2Repaint(); return; }
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes, .pd2-notes.is-peek'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.removeAttribute('data-pd2-shut'); g.classList.remove('is-folded');
+  /* remembered BEFORE the notes are drawn again, at either host (the pop-up's redraw reads the same memory) */
   if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.add(key); _pd2Shut.delete(key); }
+  if (h && h.classList.contains('is-peek')){ if (h._pd2Repaint) h._pd2Repaint(); return; }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
 /* SHOW LESS: the group folds back to its first line and "+ N more here"; the notes are laid out again */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-fold]') : null; if (!b) return;
-  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.removeAttribute('data-pd2-open'); g.setAttribute('data-pd2-shut', '1'); g.classList.add('is-folded');
-  const hp = b.closest('.pd2-notes.is-peek'); if (hp){ if (hp._pd2Repaint) hp._pd2Repaint(); return; }
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes, .pd2-notes.is-peek'); if (!g) return; g.removeAttribute('data-pd2-open'); g.setAttribute('data-pd2-shut', '1'); g.classList.add('is-folded');
   if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.delete(key); _pd2Shut.add(key); }
+  if (h && h.classList.contains('is-peek')){ if (h._pd2Repaint) h._pd2Repaint(); return; }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
 /* OPEN IN CLAUSES: the clause's own row on the Clauses tab, opened, and the paper glides there (the paper track's door:
