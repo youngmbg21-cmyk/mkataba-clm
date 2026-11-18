@@ -107,9 +107,10 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
         const p = document.querySelector('.apn-pk'), sc = document.getElementById('apn-pk-scroll'), l = sc && sc.querySelector('.is-landed');
         if (!p || !l) return window._pkWhy = { open: !!p, landed: !!l, top: sc ? sc.scrollTop : null, any: (document.querySelector('.is-landed') || {}).tagName || null }, null;
         const d = p.closest('[role="dialog"]').getBoundingClientRect(), a = l.getBoundingClientRect(), v = sc.getBoundingClientRect();
-        const notes = document.getElementById('apn-pk-notes');
+        /* the Dossier's own notes, drawn at the pop-up's seat (one window, two places, 18 Nov 2026) */
+        const notes = sc.querySelector('.pd2-notes.is-peek') || document.createElement('div'), sheet = sc.querySelector('#apn-pk-doc');
         return { w: +(d.width / innerWidth).toFixed(2), h: +(d.height / innerHeight).toFixed(2), paper: !!sc.querySelector('#apn-pk-cv #apn-pk-doc, #apn-pk-cv .rl-paper'),
-          notes: notes.querySelectorAll('.pd2-mn').length, beside: notes.getBoundingClientRect().left >= sc.querySelector('#apn-pk-cv').getBoundingClientRect().right - 1,
+          notes: notes.querySelectorAll('.pd2-mn').length, beside: !!sheet && notes.getBoundingClientRect().left >= sheet.getBoundingClientRect().right - 1,
           pressable: notes.querySelectorAll('button:not(.pd2-mg-more):not(.pd2-mg-less), a').length,
           landed: !!q && l.textContent.includes(q), inView: a.top >= v.top && a.bottom <= v.bottom + 1, moved: sc.scrollTop > 0,
           scrolls: sc.scrollHeight > sc.clientHeight, go: !!p.querySelector('[data-apn-pk-go]') };

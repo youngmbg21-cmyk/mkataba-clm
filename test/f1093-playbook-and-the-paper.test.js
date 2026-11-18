@@ -94,12 +94,21 @@ describe('f1093 (3) the pop-up is the Dossier\'s paper and notes', () => {
     assert.match(p, /redlineDocHtml\(c,\{ side:'owner', readonly:true \}\)/);
     assert.match(p, /docSheetHtml\(c,\{ copy:'work', canvasId:'apn-pk-doc', readOnly:true \}\)/);
   });
-  test('the same notes, without their buttons', () => {
+  test('ONE WINDOW, TWO PLACES: the Dossier\'s own notes painter draws the pop-up\'s notes (second round, 18 Nov 2026)', () => {
     const n = fnBody(V, 'apnPeekNotes');
-    assert.match(n, /pd2RedAnswers\(c, cv\)/);
-    assert.match(n, /pd2RedBlocks\(c, cv, notes\)/);
-    assert.match(n, /pd2RedGroupHtml\(g,i\)/);
-    assert.match(n, /notes\.forEach\(n=>\{ n\.acts=''; \}\)/);
+    assert.match(n, /pd2NotesPaint\(c,\{ zoom, cv \}\)/);
+    assert.ok(!/pd2RedAnswers|pd2RedBlocks|pd2RedGroupHtml|style\.top/.test(n), 'no notes code of its own');
+    const P = strip(R('js/paperdesk.js'));
+    assert.match(fnBody(P, 'pd2NotesPaint'), /if \(seat\) return pd2SeatPaint\(c, seat, zoom, cv\);/);
+    /* the notes list and the sheet layout exist once, read by both */
+    assert.match(fnBody(P, 'pd2NotesPaint'), /pd2NotesOnPaper\(c, cv, red\)/);
+    assert.match(fnBody(P, 'pd2NotesPaint'), /pd2SheetLay\(zoom\)/);
+    const seat = fnBody(P, 'pd2SeatPaint');
+    assert.match(seat, /pd2NotesOnPaper\(c, cv, red\)/);
+    assert.match(seat, /pd2SheetLay\(zoom\)/);
+    assert.match(seat, /pd2GroupsPlace\(/);
+    assert.match(seat, /querySelectorAll\('\.pd2-mn-a, \.pd2-rn-chips'\)\.forEach\(n => n\.remove\(\)\)/, 'a look: nothing to press');
+    assert.ok(!/_pdTab|pd2WalkOn|pd2FillOn|CSS\.highlights|pd2DialsPaint/.test(seat), 'the Dossier\'s own state is neither asked nor touched');
   });
   test('it lands on the departure\'s words through the one lander, and is big', () => {
     const n = fnBody(V, 'apnPeekNotes');
@@ -119,9 +128,11 @@ describe('f1093 (3) the pop-up is the Dossier\'s paper and notes', () => {
     assert.match(fnBody(V, 'apnPeekOpen'), /apnPeekPages\(c\); apnPeekNotes\(c, r\)/);
     assert.match(R('index.html'), /html\.lg-new \.apn-pk-b\{[^}]*background:var\(--desk-ground\)/);
   });
-  test('published, and dressed', () => {
+  test('published, and dressed by the Dossier\'s own rules', () => {
     assert.match(R('js/views/approvalsview.js'), /Object\.assign\(window,\{apnLandRow,apnPeekOpen,/);
-    assert.match(R('index.html'), /#apn-pk-notes \.pd2-mn\{position:absolute/);
+    const H = R('index.html');
+    assert.match(H, /html\.lg-new :is\(#pd2-notes, \.pd2-notes\.is-peek\) \.pd2-mn\{position:absolute/);
+    assert.ok(!/#apn-pk-notes/.test(H), 'no copied note styles');
   });
 });
 
