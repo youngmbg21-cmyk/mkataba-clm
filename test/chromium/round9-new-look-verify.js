@@ -52,7 +52,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     /* RE-POINTED 10 Nov 2026: DNA was deleted, so Read down stands alone in the head */
     const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
     if (btn) await page.click('#hb-bhead [data-hb-rdn]');
-    const up = await until(page, () => !!document.querySelector('#rd-page') && /Read from the records/i.test((document.querySelector('#ig-dock') || document.body).innerText), null, 15000);
+    /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): Jambo's panel beside Read down is the five parts
+       (.rd-five: "Your book, in five sentences."), no longer the "Read from the records" table */
+    const up = await until(page, () => !!document.querySelector('#rd-page') && !!document.querySelector('#ig-dock .rd-five .jov5-title'), null, 15000);
     const S = up ? await page.evaluate(() => ({ eyebrow: document.querySelector('.rd-eyebrow').textContent, h: document.querySelector('.rd-h').textContent,
       rows: [...document.querySelectorAll('.rd-row')].map(r => ({ t: r.querySelector('.rd-t').textContent, src: r.querySelector('.rd-src b').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
       qs: document.querySelectorAll('.rd-q').length, foot: [...document.querySelectorAll('.rd-foot [data-rd-go]')].map(b => b.dataset.rdGo), n: hbRdnBook().length })) : null;

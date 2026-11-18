@@ -15040,6 +15040,13 @@
   .jov5-rt span{font-size:12px;line-height:1.4;color:var(--color-neutral-400);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
   .jov5-rt .reg-stg{display:inline-flex;-webkit-line-clamp:unset;overflow:visible;}
   .jov5-rt b.is-wrap,.jov5-row.is-wrap .jov5-rt b{white-space:normal;}
+  /* a row that QUOTES (the ask in their words, a duty's own clause): the paper's serif, at reading weight */
+  .jov5-row.is-quote .jov5-rt b{font-family:var(--font-doc);font-weight:400;}
+  /* the flow map's pressed place: its step drawn as a road, the place itself dark */
+  .fm-road{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;}
+  .fm-road span{background:var(--jb-card-fill);border-radius:999px;padding:4px 10px;}
+  .fm-road span.is-on{background:var(--accent-solid);color:var(--surface-3);}
+  .fm-road i{font-style:normal;color:var(--color-neutral-400);}
   .jov5-v{flex:none;font-size:12.5px;color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums;}
   .jov5-v.is-need{color:var(--st-amber-fg);}
   .jov5-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:118px;padding:14px;border-radius:12px;border:1.5px dashed var(--color-accent-300);background:var(--jb-card-fill);text-align:center;font-size:12px;color:var(--color-quiet);cursor:pointer;}

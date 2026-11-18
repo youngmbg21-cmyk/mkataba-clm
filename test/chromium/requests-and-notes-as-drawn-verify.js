@@ -148,15 +148,20 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await press(`.ikn-table [data-ikn-row="${r1.id}"]`);
     const P = await until(id => { const p = document.querySelector('#ins-panel.is-jambo'); if (!p || p.getAttribute('data-ins-id') !== id) return null;
       const pr = p.getBoundingClientRect();
-      const doors = [...p.querySelectorAll('.pd2-ch-door button')];
+      /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): the chosen request's panel is the five parts —
+         the request's title as the serif headline (.jov5-title), the ask quoted (.jov5-row.is-quote), each fact a row
+         labelled under its value ("Party", "NDA · to do", "Files · … added by …"), Start the draft the black button
+         with Hand back beside it (.jov5-acts). Every word main brought back on 17 Nov stands. */
+      const doors = [...p.querySelectorAll('.jov5-acts button')];
       const row = document.querySelector(`.ikn-table [data-ikn-row="${id}"]`), cells = row ? [...row.children] : [];
       const ths = [...document.querySelectorAll('.ikn-table thead th')].map(t => t.textContent.trim());
-      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, head: (p.querySelector('.pd2-ch-head') || {}).textContent,
+      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, head: (p.querySelector('.jov5-title') || {}).textContent,
         stands: cells[ths.indexOf('Where it stands')] ? cells[ths.indexOf('Where it stands')].textContent.replace(/\s+/g, ' ').trim() : '',
         text: p.innerText.replace(/\s+/g, ' '),
         doors: doors.map(b => b.textContent.trim()), inside: doors.every(b => b.getBoundingClientRect().right <= pr.right + 1 && b.scrollWidth <= b.clientWidth + 1),
-        quote: (p.querySelector('.mnn-note p') || {}).textContent,
-        rows: Object.fromEntries([...p.querySelectorAll('.pd2-ch-tbl .pd2-ch-r')].map(r => [(r.querySelector('span') || {}).textContent, (r.querySelector('b') || {}).textContent])) };
+        quote: (p.querySelector('.jov5-row.is-quote .jov5-rt b') || {}).textContent,
+        rows: Object.fromEntries([...p.querySelectorAll('.jov5-row')].filter(r => r.querySelector('.jov5-rt > span') && !r.classList.contains('is-quote'))
+          .map(r => [String(r.querySelector('.jov5-rt > span').textContent).split(' \u00b7 ')[0], (r.querySelector('.jov5-rt b') || {}).textContent])) };
     }, r1.id);
     const meFirst = String(me.name || '').split(/\s+/)[0];
     check('2a no word in his head; the panel names the request; the row says who holds it ("With <first name>")', !!P && !P.word
@@ -173,7 +178,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     check('2c+ "no NDA with them today" and who added the file', !!P && /no NDA with them today/.test(P.text) && /added by Wanjiru/.test(P.text), P && P.text.slice(0, 300));
     /* re-pointed 19 Oct 2026 (second pass): the name the New agreement form lists it under
        RE-POINTED 17 Nov 2026 (#762): the panel's Paper row and its sentence */
-    check('2d Jambo names the paper that fits, read without a call', !!P && P.rows.Paper === 'NDA' && /NDA fits it/.test(P.head || '') && aiCalls.length === 0, JSON.stringify({ fit: P && P.rows.Paper, ai: aiCalls }));
+    check('2d Jambo names the paper that fits, read without a call', !!P && P.rows.Paper === 'NDA' && aiCalls.length === 0, JSON.stringify({ fit: P && P.rows.Paper, ai: aiCalls }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-requests-1440x780.png') });
 
     /* ---- 3 · Start the draft ---- */

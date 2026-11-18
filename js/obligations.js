@@ -3511,6 +3511,74 @@ function obPanelOpts(o, c, i, ctx){
     onMenu: act => { if(act === 'remove'){ const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } },
   };
 }
+/* THE NEXT REMINDER'S DAY, as the Reminders line reads it (obligationReminderLine): empty where none goes — done, held
+   behind an earlier step, no date, theirs, nobody to write to, or every reminder already gone */
+function obligationReminderDay(o, c){
+  if(!o || obState(o) === 'done') return '';
+  const due = obligationDue(o); if(!due) return '';
+  if(c && obligationBlocked(o, c)) return '';
+  if(obligationIsTheirs(o)) return '';
+  if(!(obligationReachable(obligationReminderTo(o), c) || obligationOwnerTo(c))) return '';
+  const d = daysUntil(due);
+  const hit = [[-7], [0], [1]].find(([k]) => d + k >= 0);
+  return hit ? _obPlusDays(due, hit[0]) : '';
+}
+/* THE FIVE PARTS ON A CHOSEN DUTY (owner picked "Five Parts" by name, 18 Nov 2026): the duty and when as the headline,
+   who owes whom under which contract under it, three numbers (days left or late, the next reminder, how often), the
+   facts as rows (the contract a door, obOpenContract), the clause it came from quoted with its own Show it in the
+   contract — or said plainly that none was recorded — and the duty's one act as the black button (Mark done; Chase on
+   theirs), the same runs obPanelActs draws. The page's panel, the new look only; the contract's own tab is unchanged. */
+function obPanelFive(o, c, i){
+  const theirs = obligationIsTheirs(o), w = obligationWindow(o, c), due = obligationDue(o);
+  const d = due ? daysUntil(due) : null;
+  const cp = o.counterparty || c.counterparty || i18t('ob_side_theirs');
+  const ref = window.contractRef ? contractRef(c) : c.id;
+  const what = o.desc || '';
+  const title = w === 'done' ? i18t('jov5_obp_t_done', { what }) : w === 'waiting' ? i18t('jov5_obp_t_wait', { what })
+    : w === 'nodate' || d == null ? i18t('jov5_obp_t_nodate', { what })
+    : w === 'overdue' ? i18tn('jov5_obp_t_late', -d, { what, n: -d }) : i18t('jov5_obp_t_due', { what, when: obligationRelWords(d) });
+  const rem = obligationReminderDay(o, c);
+  const glance = [
+    w === 'done' ? { n: o.completedAt ? obDay(o.completedAt) : '—', l: i18t('jov5_obp_g_done') }
+      : d == null ? { n: '—', l: i18t('jov5_obp_g_nodate') }
+      : d < 0 ? { n: -d, l: i18t('jov5_obp_g_late'), warn: true } : { n: d, l: i18t('jov5_obp_g_left') },
+    { n: rem ? obDay(rem) : i18t('jov5_obp_g_none'), l: i18t('jov5_obp_g_rem') },
+    { n: obRepeatsWord(o), l: i18t('jov5_obp_g_repeats') }];
+  const facts = [];
+  if(due) facts.push({ mark: 'calendar', t: obDay(due, true), s: i18t('ob_fact_due') });
+  if(obligationMoneyVisible() && typeof obligationHasAmount === 'function' && obligationHasAmount(o))
+    facts.push({ mark: 'coins', t: obligationMoneyText(obligationAmount(o), c), s: i18t('ob_amount') });
+  /* the contract a door (data-obp-contract, wired where the panel is painted): its paper with the Obligations face, this row open */
+  facts.push({ mark: 'file', t: c.name || ref, s: [ref, i18t('jov5_obp_contract')].join(' · '), attr: 'data-obp-contract=""' });
+  const from = String(o.quote || '').trim()
+    ? { mark: 'file', t: '“' + String(o.quote).trim() + '”', quote: true, link: { label: i18t('ob_show_in_contract'), attr: 'data-ob-show=""' } }
+    : { mark: 'alert', tone: 'amber', t: i18t('jov5_obp_noword'), s: i18t('jov5_obp_noword_s'), attr: 'data-obp-contract=""' };
+  const acts = obPanelActs(o, c, i, 'page').filter(a => a && !a.disabled && (a.k === 'done' || a.k === 'chase'));
+  const first = acts[0], second = acts[1];
+  const act = first ? { say: theirs ? i18t('jov5_obp_act_theirs', { cp }) : i18t(obRepeatsWord(o, true) ? 'jov5_obp_act_repeat' : 'jov5_obp_act_once'),
+    label: first.label, run: first.run, link: second ? { label: second.label, run: second.run } : null } : null;
+  return { eyebrow: [i18t('jov5_obp_eb'), cp, ref].filter(Boolean).join(' · '), title,
+    sub: theirs ? i18t('jov5_obp_s_theirs', { cp, name: c.name || ref }) : i18t('jov5_obp_s_ours', { cp, name: c.name || ref }),
+    glance, groups: [{ label: i18t('jov5_obp_facts'), rows: facts }, { label: i18t('jov5_obp_from'), rows: [from] }], act,
+    /* REMINDERS STAY ONE LINE, THE RULES BEHIND A LINK (the SAP benchmark's ruling; sap-lists-verify 3b/3d): the old
+       panel's own section, as it was — who is reminded and when, or that nobody on our side is, never in amber */
+    after: `<div class="jov5-sec ins-rem ob-rem-five"><p class="jov5-label">${_obEsc(i18t('ob_sec_reminders'))}</p><p class="ins-p">${obligationReminderLine(o, c)} <button type="button" class="ui-link" data-ob-rem-more aria-expanded="false">${_obEsc(i18t('ob_rem_how'))}</button></p><p class="ins-p ob-rem-full" data-ob-rem-full hidden>${obligationReminderSay(o, c)}</p></div>`,
+    src: i18t('jov5_obp_src') };
+}
+/* A RENEWAL DECISION CHOSEN, in the five parts: the decision and its day as the headline, the contract's end under it,
+   and Decide — the renewal's own door (needsYouGo 'renewal', as the row's Decide) — the black button */
+function obDecisionFive(r){
+  const c = r._c, d = r.days, ref = window.contractRef ? contractRef(c) : c.id;
+  let end = ''; try{ end = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); }catch(_){ end = ''; }
+  const open = () => obOpenContract(c.id, r._key);
+  return { eyebrow: [i18t('jov5_obp_eb_dec'), c.counterparty, ref].filter(Boolean).join(' · '),
+    title: i18t('jov5_obp_t_dec', { name: c.name || ref, when: obligationRelWords(d) }),
+    sub: end ? i18t('jov5_obp_s_dec', { name: c.name || ref, cp: c.counterparty || '', day: obDay(end, true) }) : '',
+    glance: [{ n: d, l: i18t('jov5_obp_g_left') }, { n: r.due ? obDay(r.due) : '—', l: i18t('ob_fact_due') }, { n: obRepeatsWord(r), l: i18t('jov5_obp_g_repeats') }],
+    groups: [{ label: i18t('jov5_obp_facts'), rows: [{ mark: 'file', t: c.name || ref, s: [ref, i18t('jov5_obp_contract')].join(' · '), run: open }] }],
+    act: { say: i18t('jov5_obp_act_dec'), label: i18t('ob_wk_decide'), run: () => { if(typeof window.needsYouGo === 'function') needsYouGo('renewal', c.id); } },
+    src: i18t('jov5_obp_src') };
+}
 /* Paint the panel for one obligation, and wire the two presses inside its
    body that are not verbs in its head (Show it in the contract). The trail
    is read once where it is not on the record, and only the History section
@@ -3526,6 +3594,19 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
      with nothing chosen, "Obligation" with a row chosen */
   const jl = ctx === 'page' ? Object.assign({ jlWord: i18t('jl_w_obligation') }, obPanelJl()) : {};
   if(!o || !c){ insPaintPanel(Object.assign({ host: hostId, empty: emptyMsg }, jl)); if(ctx === 'page') obwPlaceKeep(); return; }
+  /* the page's panel in the new look: the five parts (obPanelFive); the contract's own tab keeps its panel */
+  if(ctx === 'page' && typeof window.newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    insPaintPanel(Object.assign({ host: hostId }, jl, { item: { id: obKeyOf(c.id, o, i) }, head: false,
+      body: `<div class="jl-words is-ov ob-five">${jamboOverviewHtml(obPanelFive(o, c, i), 'obp')}</div>` }));
+    obwPlaceKeep();
+    /* the panel's two doors by name, as the old panel's were (Show it in the contract keeps data-ob-show) */
+    const h5 = document.getElementById(hostId);
+    h5?.querySelector('[data-ob-show]')?.addEventListener('click', () => obligationShowInContract(c.id, o.quote || ''));
+    h5?.querySelectorAll('[data-obp-contract]').forEach(b => b.addEventListener('click', () => obOpenContract(c.id, obKeyOf(c.id, o, i))));
+    h5?.querySelector('[data-ob-rem-more]')?.addEventListener('click', e => { const full = h5.querySelector('[data-ob-rem-full]'); if(!full) return;
+      full.hidden = !full.hidden; e.currentTarget.setAttribute('aria-expanded', full.hidden ? 'false' : 'true'); });
+    return;
+  }
   const opts = obPanelOpts(o, c, i, ctx);
   insPaintPanel(Object.assign({ host: hostId }, jl, opts));
   if(ctx === 'page') obwPlaceKeep();   // the chosen row survives a refresh
@@ -4390,6 +4471,11 @@ function renderObligationsInspector(host, o){
    Jambo read). */
 function obPaintDecision(r){
   if(typeof insPaintPanel !== 'function' || !r || !r._c) return;
+  if(typeof window.newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
+    insPaintPanel(Object.assign({}, obPanelJl(), { host: 'ins-panel', jlWord: i18t('jl_w_decision'), item: { id: r._key }, head: false,
+      body: `<div class="jl-words is-ov ob-five">${jamboOverviewHtml(obDecisionFive(r), 'obd')}</div>` }));
+    return;
+  }
   insPaintPanel(Object.assign({ host: 'ins-panel', c: r._c, jlWord: i18t('jl_w_decision') }, obPanelJl()));
 }
 
@@ -4992,7 +5078,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,

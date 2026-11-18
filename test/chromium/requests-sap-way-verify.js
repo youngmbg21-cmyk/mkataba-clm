@@ -84,7 +84,9 @@ const check = (name, pass, detail) => {
     const P = await until(() => { const p = document.getElementById('ins-panel'); return p && /Kettle/.test(p.textContent) ? p.innerText.replace(/\s+/g, ' ').trim() : null; });
     /* RE-POINTED 17 Nov 2026 (#762; the owner's picks on the drawings, 17 Nov 2026, "2 Bring it back"): the panel says
        each file as its own row — Files · its name (a door to it) · its size and who added it — instead of "1 file attached" */
-    const fileSaid = /\bFiles pilot-brief\.pdf [^·]+· added by Sara Nyström\b/.test(P || '');
+    /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): a file is a row of the five parts — its name,
+       then under it "Files · its size · added by …" */
+    const fileSaid = /\bpilot-brief\.pdf Files · [^·]+· added by Sara Nyström\b/.test(P || '');
     check('2b Files counts the clip, none a dash; Asked says the day (the panel names the file and who added it)', a.asked === 'today' && fileSaid,
       JSON.stringify({ asked: a.asked, panel: (P || '').replace(/^.*?(Files)/, '$1').slice(0, 200) }));
     /* RE-POINTED 17 Nov 2026 (#762): the panel is Jambo's chosen-row panel; the lane that sent it is looked for in it */
