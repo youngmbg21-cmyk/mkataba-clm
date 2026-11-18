@@ -849,6 +849,8 @@ function naNewPaperShow(root,on){
   const t=root.querySelector('[data-na-newpaper]'); if(t) t.setAttribute('aria-selected',String(!!on));
   if(on) root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected','false'));
   else { const cur=root.getAttribute('data-paper'); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===cur))); }
+  /* the panel follows the tab at once (it read the tab left behind until something else redrew it) */
+  if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
 }
 function naNewPaperGo(k,x){
   if(!naNewPaperOk()) return;
@@ -1638,11 +1640,14 @@ function openNewAgreement(o){
       if(e.target.closest&&e.target.closest('[data-na-kept-new]')){ paper='theirs'; sel=null; api=null; root.classList.remove('is-picked'); naKeptPaint(); light();
         const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
     /* Our paper's own words for the panel (the new look): the closest papers, the one chosen, the lines filled from the words */
-    _naOurs={ up:()=>paper==='ours'&&naSheetUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
+    /* FROM SCRATCH IS UP, NO PAPER IS (18 Nov 2026, the panel-from-visit-to-visit bug): while the third tab shows,
+       neither paper's hand answers, so Jambo's panel says the sheet's own words every time, never the tab left behind */
+    const npUp=()=>root.classList.contains('is-newpaper');
+    _naOurs={ up:()=>paper==='ours'&&naSheetUp()&&!npUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
       read:()=>naReadRows().length, asked:()=>!!asked };
     /* Their paper's own words for the panel (the five parts, 18 Nov 2026): the file added and the stream picked, the two
        Create needs (light's own test), read as they stand — the panel says them, the sheet is where they are given */
-    _naTheirs={ up:()=>(paper==='theirs'||paper==='kept')&&naSheetUp(), file:()=>theirFile?String(theirFile.name||''):'',
+    _naTheirs={ up:()=>(paper==='theirs'||paper==='kept')&&naSheetUp()&&!npUp(), file:()=>theirFile?String(theirFile.name||''):'',
       kept:()=>{ if(paper!=='kept'||!sel) return ''; const r=rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)); return r?String(r.name||''):''; },
       stream:()=>{ const f=streamPicked&&window.FOLDERS&&FOLDERS[streamPicked]; return f?String(f.name||''):''; },
       pick:()=>{ const b=document.getElementById('na-theirs-pick'); if(b) b.click(); } };
