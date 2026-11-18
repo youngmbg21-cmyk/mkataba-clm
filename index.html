@@ -19618,10 +19618,12 @@
   html.lg-new .apn-pk-s{margin-top:4px;font-size:13px;line-height:1.4;color:var(--color-quiet)}
   html.lg-new .apn-pk-go{flex:none;white-space:nowrap;margin-top:4px;font-size:13px;color:var(--accent-ink)}
   html.lg-new .apn-pk-x{flex:none}
-  html.lg-new .apn-pk-b{flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--color-bg);padding:24px;outline:none}
+  html.lg-new .apn-pk-b{flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--desk-ground);padding:24px 24px 48px;outline:none}
   html.lg-new .apn-pk-b:focus,html.lg-new .apn-pk-b:focus-visible{outline:none;box-shadow:none}
   html.lg-new .apn-pk-row{position:relative;display:flex;gap:24px;align-items:flex-start;justify-content:center}
-  html.lg-new .apn-pk-paper{flex:0 1 var(--doc-sheet-max,720px);min-width:0;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider)}
+  html.lg-new .apn-pk-paper{flex:0 1 var(--doc-sheet-max,720px);min-width:0}
+  /* the pages are the Dossier's own (pagesWatch): white sheets on the desk, nothing boxed round them */
+  html.lg-new .apn-pk-paper .ig-redpaper{background:transparent}
   html.lg-new #apn-pk-notes{position:relative;flex:0 0 300px;font-size:13px;line-height:1.4;color:var(--color-text)}
   html.lg-new .apn-pk-none,html.lg-new .apn-pk-empty{margin:0;padding:16px;font-size:13px;color:var(--color-quiet)}
   html.lg-new #apn-pk-notes .apn-pk-own{position:absolute;left:0;right:0}

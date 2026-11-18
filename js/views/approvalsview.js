@@ -1190,6 +1190,9 @@ function apnQuote(c){
   const fig=Number(c&&c.value)||0; if(!fig) return null;
   try{ return pd2QuoteOf(c, [fig.toLocaleString('en-US'), String(fig)]); }catch(_){ return null; }
 }
+function apnPeekLinkHtml(key){
+  return `<div class="apn-peek-l"><button type="button" class="ui-link apn-peek" data-apn-peek="${esc(key)}" title="${esc(i18t('apn_peek_t'))}">${esc(i18t('apn_peek'))}</button></div>`;
+}
 function apnRowHtml(r){
   const c=r.c, me=(typeof currentUser==='function'&&currentUser())||{};
   const money=!(typeof canViewValues==='function'&&!canViewValues());
@@ -1222,6 +1225,8 @@ function apnRowHtml(r){
     waited=r.idle!=null?(apLate(r)?`<span class="late">${esc(apWaitingText(r.idle))}</span>`:esc(apWaitingText(r.idle))):'—';
     acts=apMayDecide(r)?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-ap-approve="${esc(c.id)}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-ap-refuse="${esc(c.id)}">${esc(i18t('apn_decline'))}</button>`:'';
   }
+  /* SEE IT IN THE PAPER ON EVERY ROW (owner, 18 Nov 2026), under its buttons, a signature and a receipt too */
+  acts+=apnPeekLinkHtml('c:'+c.id);
   return `<tr data-ap-row="${esc(c.id)}" data-ap-kind="${r.type}" class="${r.type==='receipt'?'is-done':''}" tabindex="-1">
     <td>${listSapCellHtml(r.done||r.type==='receipt'?'done':(r._mine||r.mine)?'you':'them', `<div class="apn-name">${esc(c.name||'')}</div><div class="apn-sub">${sub}</div>`, r.type==='receipt'?'':apTurnText(r))}</td>
     <td class="apn-rests">${rests}</td><td class="apn-rule">${rule}</td><td class="apn-wait">${waited}</td><td class="apn-acts">${acts}</td></tr>`;
@@ -1272,7 +1277,7 @@ function apnPileRowHtml(r){
     const may=typeof window.signCheckMayAccept!=='function'||window.signCheckMayAccept(c, r.v);
     acts=(may?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-apn-allow="${esc(r.key)}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-apn-refuse-dep="${esc(r.key)}">${esc(i18t('ld_refuse'))}</button>`:'')
       /* SEE IT IN THE PAPER (owner, 18 Nov 2026): under the two buttons, departures only — a look, never a decision */
-      +`<div class="apn-peek-l"><button type="button" class="ui-link apn-peek" data-apn-peek="${esc(r.key)}" title="${esc(i18t('apn_peek_t'))}">${esc(i18t('apn_peek'))}</button></div>`;
+      +apnPeekLinkHtml(r.key);
     mark='you';
   } else {
     const d=r.ch.draft||{}, st=apnStdOf(r.ch), was=st?st.ladder.ask:'';
@@ -1281,6 +1286,7 @@ function apnPileRowHtml(r){
     const v=st?(st.gov.ver||1):0;
     rule=esc([(typeof ldFirmWord==='function'?ldFirmWord(d.firm):d.firm), v?i18t('apn_std_ver',{ a:v, b:v+1 }):i18t('apn_std_new')].join(' · '));
     acts=`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-apn-std="${esc(r.ch.id)}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-apn-std="${esc(r.ch.id)}">${esc(i18t('ld_refuse'))}</button>`;
+    /* a change to a position is not on any one contract's paper: its row says where it is read, no paper link */
     mark='edit';
   }
   const waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
@@ -1333,30 +1339,57 @@ function apnPeekOf(key){
   for(const s of ldStandards()) for(const x of s.open) if(String(x.c.id)===m[1]&&x.i===+m[2]) return { type:'departure', key:String(key), c:x.c, v:x.v, i:x.i, s };
   return null;
 }
+/* EVERY ROW HAS ITS PAPER (owner, 18 Nov 2026: "every single line that appears in approvals and signings should have the
+   see it in paper link even if it is just sign"): a contract row's key is 'c:<id>'; it opens on the words the row quotes
+   (apnQuote: a departure's words, else the value), else at the top */
+function apnPeekRowOf(key){
+  const k=String(key||'');
+  if(k.startsWith('dep:')) return apnPeekOf(k);
+  const id=k.startsWith('c:')?k.slice(2):''; const c=id&&typeof getContract==='function'?getContract(id):null;
+  if(!c) return null;
+  let q=null; try{ q=apnQuote(c); }catch(_){ q=null; }
+  return { type:'contract', key:k, c, v:{ quote:q?String(q.quote||''):'' }, s:null };
+}
+/* THE PAPER AS THE DOSSIER DRAWS IT (owner, 18 Nov 2026: "the pop up of the paper looks broken … the backdrop should be
+   similar to what is on the paper in the dossier page"): the same wrapper Home's paper wears (igPaperHtml: .ig-redpaper
+   round the redlined wording, else the working copy), then cut into white pages on the grey desk by the one cutter
+   (pagesWatch, as igPaperPaginate does) */
 function apnPeekPaperHtml(c){
   const red=typeof window.pdRedOk==='function'&&pdRedOk(c)&&typeof window.redlineDocHtml==='function';
   let h='';
-  try{ h=red?redlineDocHtml(c,{ side:'owner', readonly:true }):(typeof docSheetHtml==='function'?docSheetHtml(c,{ copy:'work', canvasId:'apn-pk-doc', readOnly:true }):''); }catch(_){ h=''; }
+  try{
+    if(red){
+      if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
+      if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
+      h=`<div class="ig-redpaper nego-onpaper"><article class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${redlineDocHtml(c,{ side:'owner', readonly:true })}</article></div>`;
+    } else if(typeof docSheetHtml==='function') h=docSheetHtml(c,{ copy:'work', canvasId:'apn-pk-doc', readOnly:true });
+  }catch(_){ h=''; }
   return h||`<p class="apn-pk-empty">${esc(i18t('sc_no_clause'))}</p>`;
+}
+function apnPeekPages(c){
+  const cv=document.getElementById('apn-pk-cv'); if(!cv||!window.pagesWatch) return;
+  const sheet=cv.querySelector('.pg-sheet:not(.pg-sign)')||cv.querySelector('.ig-redpaper .rl-zoom > .rl-paper')||cv.querySelector('.ig-redpaper > article.rl-paper');
+  if(!sheet) return;
+  try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true, name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }
 }
 function apnPeekHead(r){
   const c=r.c, theirs=(typeof window.contractParties==='function'?window.contractParties(c):[]).filter(p=>p&&p.side!=='ours'&&p.name).map(p=>p.name);
   const ref=typeof window.refHtml==='function'?refHtml(c):esc(c.id);
-  const say=i18t(r.v.status==='missing'?'apn_pk_missing':'apn_pk_where',{ std:r.s.name });
+  const say=r.s?i18t(r.v.status==='missing'?'apn_pk_missing':'apn_pk_where',{ std:r.s.name }):i18t(r.v.quote?'apn_pk_at_quote':'apn_pk_as_is');
   return `<div class="apn-pk-h"><div class="apn-pk-ht"><h2 class="apn-pk-t">${esc(c.name||'')}</h2>`
     +`<div class="apn-pk-s">${[esc((theirs.length?theirs:[c.counterparty||'']).filter(Boolean).join(' · ')), ref, esc(say)].filter(Boolean).join(' · ')}</div></div>`
     +`<button type="button" class="ui-link apn-pk-go" data-apn-pk-go="${esc(r.key)}">${esc(i18t('apn_pk_dossier'))}</button>`
     +`<button type="button" class="icon-btn apn-pk-x" data-apn-pk-x aria-label="${esc(i18t('apn_pk_close'))}" title="${esc(i18t('apn_pk_close'))}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>`;
 }
 async function apnPeekOpen(key){
-  let r=apnPeekOf(key); if(!r){ if(typeof toast==='function') toast(i18t('apn_land_gone'),'warn'); return false; }
+  let r=apnPeekRowOf(key); if(!r){ if(typeof toast==='function') toast(i18t('apn_land_gone'),'warn'); return false; }
   const id=r.c.id;
   try{ if(typeof ensureFull==='function') await ensureFull(r.c); }catch(err){ if(typeof toast==='function') toast((err&&err.message)||i18t('sc_no_clause'),'err'); return false; }
   const c=(typeof getContract==='function'&&getContract(id))||r.c; r=Object.assign({}, r, { c });
   openModal(`<div class="apn-pk" data-apn-pk="${esc(r.key)}">${apnPeekHead(r)}
     <div class="apn-pk-b scroll-thin" id="apn-pk-scroll" tabindex="-1"><div class="apn-pk-row"><div class="apn-pk-paper" id="apn-pk-cv">${apnPeekPaperHtml(c)}</div><aside class="apn-pk-notes" id="apn-pk-notes" aria-label="${esc(i18t('pd2_notes'))}"></aside></div></div></div>`,
     { maxWidth:'min(1320px, 94vw)', height:'calc(100vh - 112px)', label:i18t('apn_pk_aria'), ownFrame:true /* its own head and scroller: the drawn frame leaves it alone */ });
-  requestAnimationFrame(()=>apnPeekNotes(c, r));
+  requestAnimationFrame(()=>{ apnPeekPages(c); apnPeekNotes(c, r); });
   return true;
 }
 /* the notes, beside the clause they belong to, pushed down where two would meet; the departure's words brought into view */
@@ -1391,15 +1424,16 @@ function apnPeekNotes(c, r){
   if(el){ const y=(el.getBoundingClientRect().top-sc.getBoundingClientRect().top)/f+sc.scrollTop-APN_PK_LAND_TOP; sc.scrollTop=Math.max(0,y);
     if(typeof landOn==='function') landOn(el,{ block:'nearest', focus:false }); }
 }
-/* the pop-up's two presses: × closes back to the row; Open the Dossier › closes and opens the contract on its paper,
-   the Redlines face where a negotiation stands, else its Dossier (the row's own door when the editor takes the clause) */
+/* the pop-up's two presses: × closes back to the row; Open the Dossier › closes and opens the contract THROUGH ITS COVER
+   (owner, 18 Nov 2026: "Open in paper should also go through the image attached flow" — the Cover, "Your move", with
+   Open the dossier › on it), the one door a person presses to open a contract on purpose (pdOpenOnHome 'open') */
 function apnPeekDossier(key){
-  const m=/^dep:(.+):(\d+)$/.exec(String(key||'')); if(!m) return;
+  const k=String(key||''), m=/^dep:(.+):(\d+)$/.exec(k), id=m?m[1]:(k.startsWith('c:')?k.slice(2):'');
+  if(!id) return;
   if(typeof closeModal==='function') closeModal();
-  const c=typeof getContract==='function'?getContract(m[1]):null; if(!c) return;
-  if(typeof window.pdRedOk==='function'&&pdRedOk(c)&&typeof openRedlineWorkbench==='function'){ openRedlineWorkbench(c.id); return; }
-  if(typeof roomHomeLand==='function'&&roomHomeLand(c.id,{ cover:false })) return;
-  apnPileAct('open', key);
+  const c=typeof getContract==='function'?getContract(id):null; if(!c) return;
+  if(typeof roomHomeLand==='function'&&roomHomeLand(c.id,{ cover:true })) return;
+  if(typeof pdOpenOnHome==='function') pdOpenOnHome(c.id,'open');
 }
 if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPeekWired){
   document._apnPeekWired=true;
@@ -1626,7 +1660,7 @@ if(typeof document!=='undefined'&&document.addEventListener&&typeof window!=='un
     if(typeof placeSave==='function') placeSave();
   });
 }
-Object.assign(window,{apnLandRow,apnPeekOpen,apnPeekOf,apnPeekNotes,apnPeekDossier,APN_PK_GAP,APN_PK_LAND_TOP,apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
+Object.assign(window,{apnLandRow,apnPeekOpen,apnPeekRowOf,apnPeekPages,apnPeekLinkHtml,apnPeekOf,apnPeekNotes,apnPeekDossier,APN_PK_GAP,APN_PK_LAND_TOP,apnKeyOf,apnDepRows,apnStdRows,apnPiles,apnPileRowHtml,apnPileAct,apnPileOpen,apnDepPanelHtml,apnStdPanelHtml,apnPilePanel,AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apnLeadHtml,apnRender,apnRowHtml,apnDoneRows,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,
