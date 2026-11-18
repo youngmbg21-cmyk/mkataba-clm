@@ -92,6 +92,8 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       check(`${tag} 2b it lands on that departure's row in Approvals & signing, chosen`, !!key && landed === key, JSON.stringify({ key, landed }));
       /* 2c SEE IT IN THE PAPER (owner, 18 Nov 2026): under the row's two buttons, departures only; a large pop-up, the
          paper and its notes, landed on the departure's words; nothing to press in the notes; Esc closes it */
+      /* the row's own landing (apnLandRow → landOn) finishes first, so it never lands after the pop-up's */
+      await until(k => { const tr = document.querySelector('#content tr.is-landed[data-ap-row]'); return tr && tr.getAttribute('data-ap-row') === k; }, key);
       const pk = await page.evaluate(k => {
         const b = [...document.querySelectorAll('#content [data-apn-peek]')].find(x => x.getAttribute('data-apn-peek') === k); if (!b) return null;
         const td = b.closest('td.apn-acts'), btns = td ? [...td.querySelectorAll('button')] : [];
@@ -101,7 +103,7 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       check(`${tag} 2c "See it in the paper ›" sits under Allow once and Refuse, on departures only`, !!pk && pk.under && pk.onStd === 0, pk);
       const pop = await until(() => {
         const p = document.querySelector('.apn-pk'), sc = document.getElementById('apn-pk-scroll'), l = sc && sc.querySelector('.is-landed');
-        if (!p || !l) return null;
+        if (!p || !l) return window._pkWhy = { open: !!p, landed: !!l, top: sc ? sc.scrollTop : null, any: (document.querySelector('.is-landed') || {}).tagName || null }, null;
         const d = p.closest('[role="dialog"]').getBoundingClientRect(), a = l.getBoundingClientRect(), v = sc.getBoundingClientRect();
         const notes = document.getElementById('apn-pk-notes');
         return { w: +(d.width / innerWidth).toFixed(2), h: +(d.height / innerHeight).toFixed(2), paper: !!sc.querySelector('#apn-pk-cv #apn-pk-doc, #apn-pk-cv .rl-paper'),
@@ -111,7 +113,7 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
           scrolls: sc.scrollHeight > sc.clientHeight, go: !!p.querySelector('[data-apn-pk-go]') };
       });
       check(`${tag} 2d the pop-up is big: the paper with its notes beside it, landed on the departure's words, free to scroll`,
-        !!pop && pop.w >= 0.85 && pop.h >= 0.8 && pop.paper && pop.notes >= 1 && pop.beside && pop.landed && pop.inView && pop.moved && pop.scrolls && pop.go, pop);
+        !!pop && pop.w >= 0.85 && pop.h >= 0.8 && pop.paper && pop.notes >= 1 && pop.beside && pop.landed && pop.inView && pop.moved && pop.scrolls && pop.go, pop || await page.evaluate(() => window._pkWhy || null));
       check(`${tag} 2e the notes carry nothing to press: a look, never a decision`, !!pop && pop.pressable === 0, pop && pop.pressable);
       if (w === 1440) await page.screenshot({ path: path.join(OUT, `${tag}-paper-pop-up.png`) });
       await page.keyboard.press('Escape');
