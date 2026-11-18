@@ -1222,7 +1222,7 @@ const dismissNote = async pg => {
     const chips = [...page.querySelectorAll('#ce-chips button')].filter(seen)
       .map(b => ({ t: b.textContent.replace(/\s+/g, ' ').trim(), std: b.getAttribute('data-ce-std') }));
     return { chips, scanTab: !!page.querySelector('[data-ce-tab="scan"]'), cards: page.querySelectorAll('.ce-rule, [data-ce-scan]').length,
-      add: /Add our standard|Missing from the contract/.test(page.innerHTML) };
+      add: /Add our position|Add our standard|Missing from the contract/.test(page.innerHTML) };
   });
   ck('12a no Playbook scan tab and no scan cards are drawn',
      !rail.scanTab && rail.cards === 0, JSON.stringify({ tab: rail.scanTab, cards: rail.cards }));

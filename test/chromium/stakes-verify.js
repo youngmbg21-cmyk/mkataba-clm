@@ -246,7 +246,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
           el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch', clientX: r.x + 5, clientY: r.y + 5 })); };
         tap(sel);
         const menu = document.querySelector('.hati-selmenu');
-        const row = menu && [...menu.querySelectorAll('[data-sm]')].find(b => /standards/i.test(b.textContent));
+        const row = menu && [...menu.querySelectorAll('[data-sm]')].find(b => /standards|playbook/i.test(b.textContent));
         if (row){ tap(row); row.click(); }
         await new Promise(z => setTimeout(z, 300));
         const a = document.activeElement;
