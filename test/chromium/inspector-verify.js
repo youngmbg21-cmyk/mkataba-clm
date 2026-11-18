@@ -332,13 +332,15 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
     const obRow = await page.$('[data-ins-page="obligations"] tbody tr:not(.ins-grp)'); if (obRow) { await obRow.click(); await page.waitForTimeout(500); }
     const obPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
-    const obBtn = await page.$('#ins-panel [data-ins-act="door-ws"]');
+    /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): a chosen duty's panel draws no Workspace door
+       now; its contract row is the door (data-obp-contract → obOpenContract), landing on Home's paper, that contract */
+    const obBtn = await page.$('#ins-panel [data-obp-contract]');
     if (obBtn) {
       await obBtn.click(); await page.waitForTimeout(1200);
       const r = await page.evaluate(HOMED);
       /* (the Obligations-tab landing went with the Document door, 15 Oct 2026) */
-      ok('3e Obligations: the Workspace door lands on Home, on that contract', r.view === 'dashboard' && !!r.id && r.id === obCid, JSON.stringify({ ...r, obCid, obPid }));
-    } else ok('3e Obligations: the Workspace door lands on Home', false, 'no Workspace door in the panel');
+      ok('3e Obligations: the contract row lands on Home, on that contract', r.view === 'dashboard' && !!r.id && r.id === obCid, JSON.stringify({ ...r, obCid, obPid }));
+    } else ok('3e Obligations: the contract row lands on Home', false, 'no contract row in the panel');
 
     /* ================= 4 · BELOW THE LINE, AND A WIDTH THAT CROSSES IT ================= */
     /* RE-POINTED AT STEP 7: the Contracts List draws no inspector, so the
