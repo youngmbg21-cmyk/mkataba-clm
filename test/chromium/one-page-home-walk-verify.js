@@ -107,9 +107,13 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     check('1a "upload" in Jambo\'s box lands on the drop area, lit; Choose a file opens the picker, no pop-up', !!lit1 && !!fc && await page.evaluate(() => state.view === 'dashboard' && !document.getElementById('up-file')));
     if (fc) await fc.setFiles(file);
     const landed = await waitFor(page, () => state.contracts.length === 1 && !!intel.paper && intel.paper.id === state.contracts[0].id
-      && !!document.querySelector('#pd-og[data-pd-og-for="' + state.contracts[0].id + '"], #pd-glance[data-pd-glance-for="' + state.contracts[0].id + '"] [data-pd2-card] [data-pd-ds-fill]'), 15000);
+      && (!!document.querySelector('#pd-og[data-pd-og-for="' + state.contracts[0].id + '"], #pd-glance[data-pd-glance-for="' + state.contracts[0].id + '"] [data-pd2-card] [data-pd-ds-fill]')
+        /* RE-POINTED 18 Nov 2026 (#762): with the new look on for everyone AN ARRIVAL PLAYS THE READ (pd2WalkArrive) — on a
+           slow runner the panel showed "Watch the read" walking this very paper before the card was seen; that is the
+           Dossier's own arrival for this paper, so it counts as landing beside it */
+        || (typeof pd2WalkOn === 'function' && pd2WalkOn(state.contracts[0].id))), 15000);
     id = await page.evaluate(() => (state.contracts[0] || {}).id || null);
-    console.log('DBG1b', landed, await page.evaluate(() => ({ n: state.contracts.length, paper: intel.paper && intel.paper.id, face: hbFace(), view: state.view, gl: (document.querySelector('#pd-glance') || {}).outerHTML ? document.querySelector('#pd-glance').getAttribute('data-pd-glance-for') : null, card: !!document.querySelector('[data-pd2-card] [data-pd-ds-fill]'), cover: !!document.querySelector('.cv-r') })));
+    console.log('DBG1b', landed, await page.evaluate(() => ({ n: state.contracts.length, paper: intel.paper && intel.paper.id, face: hbFace(), view: state.view, gl: (document.querySelector('#pd-glance') || {}).outerHTML ? document.querySelector('#pd-glance').getAttribute('data-pd-glance-for') : null, card: !!document.querySelector('[data-pd2-card] [data-pd-ds-fill]'), cover: !!document.querySelector('.cv-r'), tab: typeof pdTab === 'function' ? pdTab() : null, dock: ((document.getElementById('ig-dock') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160) })));
     /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the Dossier, Still owed's grid asking what is owed */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml) whose one
        black button asks what is owed (Fill in the contract, data-pd-ds-fill) — the grid's place */

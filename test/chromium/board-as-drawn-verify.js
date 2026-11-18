@@ -209,15 +209,17 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
          asked for once the Board stands at its top, bounded.
          RE-POINTED 18 Nov 2026 (#762): in view for one poll was not enough — the glide could carry it off again before the
          measure — so it is asked to be in view AND standing still (the same top on two polls in a row) */
-      await page.evaluate(() => { window.__h7 = null; });
+      /* …and the landing itself is let go first (5f's Needs you holds its target in view while it lands), so nothing
+         carries the Board off its top once it is put there */
+      await page.evaluate(() => { window.__h7 = null; try { landOff(); } catch (_){} });
       await until(() => { const h = document.getElementById('hb-bhead'); for (let q = h && h.parentElement; q; q = q.parentElement) if (q.scrollTop) q.scrollTop = 0;
         const r = h && h.getBoundingClientRect(); const inView = !!r && r.top >= 0 && r.bottom <= innerHeight;
-        const still = inView && window.__h7 === r.top; window.__h7 = inView ? r.top : null; return still; }, null, 6000);
+        const still = inView && window.__h7 === r.top; window.__h7 = inView ? r.top : null; return still; }, null, 8000);
       const fit = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
         const head = r('#hb-bhead'), tbl = r('#hb-book .hb-tn'), dock = r('#ig-dock'), board = r('#hb-board');
         const over = [...document.querySelectorAll('#hb-bhead *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > board.right + 1; }).length;
         const wide = [...document.querySelectorAll('#ig-dock #igd-feed *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > dock.right + 1; }).length;
-        return { head: !!head && head.top >= 0 && head.bottom <= innerHeight, table: !!tbl && tbl.top < innerHeight, over, wide, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
+        return { head: !!head && head.top >= 0 && head.bottom <= innerHeight, at: head && [Math.round(head.top), Math.round(head.bottom), innerHeight], table: !!tbl && tbl.top < innerHeight, over, wide, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`7 ${w}×${ht}: the head and the book in view, nothing past an edge, nothing sideways`, fit.head && fit.table && !fit.over && !fit.wide && fit.side, JSON.stringify(fit));
       await shot(page, `17-board-as-drawn-${w}x${ht}`);
     }

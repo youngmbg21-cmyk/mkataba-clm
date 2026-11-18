@@ -113,8 +113,16 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
       return { ftTop: ft ? Math.round(ft.getBoundingClientRect().top) : null, tabTop: tab ? Math.round(tab.getBoundingClientRect().top) : null, h: innerHeight }; });
     const box = await P.evaluate(() => { const r = document.querySelector('#cal-ag').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(Math.min(r.top + 200, innerHeight - 100)) }; });
     await P.mouse.move(box.x, box.y);
-    for (let i = 0; i < 12; i++){ await P.mouse.wheel(0, 400); await P.waitForTimeout(60); }
-    await P.waitForTimeout(400);
+    /* RE-POINTED 18 Nov 2026 (#762): on a slow runner a late repaint could swallow the first wheels (GitHub saw the foot not
+       move at all), so the wheel turns again while the foot is not yet in sight, bounded — still only the wheel moves it */
+    const footSeen = () => P.evaluate(() => { const R = document.querySelectorAll('#cal-ag .cal-nl-r'), ft = R[R.length - 1]; const r = ft && ft.getBoundingClientRect();
+      const hit = r ? document.elementFromPoint(Math.round(r.left + 8), Math.round(r.top + r.height / 2)) : null; return !!(r && r.bottom <= innerHeight && hit && ft.contains(hit)); });
+    for (let round = 0; round < 4; round++){
+      await P.mouse.move(box.x, box.y);
+      for (let i = 0; i < 12; i++){ await P.mouse.wheel(0, 400); await P.waitForTimeout(60); }
+      await P.waitForTimeout(400);
+      if (await footSeen()) break;
+    }
     const after = await P.evaluate(() => { const R = document.querySelectorAll('#cal-ag .cal-nl-r'), ft = R[R.length - 1], tab = document.querySelector('[data-cal-view="agenda"]');
       const r = ft && ft.getBoundingClientRect(); const hit = r ? document.elementFromPoint(Math.round(r.left + 8), Math.round(r.top + r.height / 2)) : null;
       return { ftTop: r ? Math.round(r.top) : null, ftSeen: !!(r && r.bottom <= innerHeight && hit && ft.contains(hit)), tabTop: tab ? Math.round(tab.getBoundingClientRect().top) : null }; });

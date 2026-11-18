@@ -182,6 +182,20 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const rows = docXrayRows(getContract('MK-314'), document.getElementById('ig-canvas')).filter(x => !(x.row && x.row.kind === 'section'));
       const el = rows[1] && rows[1].el; if (el) sc.scrollTop = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 20; });
     await page.waitForTimeout(500);
+    /* RE-POINTED 18 Nov 2026 (#762): with the new look on for everyone, opening Clauses starts Jambo's read, which walks
+       the paper from the first clause with it ("Watch the read", pd2WalkWithRead) — GitHub saw "open 0 · line 0": the drawer
+       followed the paper, the walk had carried it off. This check is about where the drawer opens, so the read is opened
+       and put away with its × first, as a person would (then nothing reopens it this sitting), and the second clause is
+       put at the line until it stays there */
+    { await page.evaluate(() => { if (!pd2WalkOn('MK-314')) try { pd2WalkOpen('MK-314'); } catch (_){} });
+      let shut = false; const t0 = Date.now(); while (Date.now() - t0 < 4000){ const x = await page.$('[data-pd2-wk-close]'); if (x){ await x.click().catch(() => {}); shut = true; break; } await page.waitForTimeout(150); }
+      check('2- the read is put away with its × first (the case being checked: the drawer, not the walk)', shut && await page.evaluate(() => !pd2WalkOn('MK-314'))); }
+    for (let i = 0; i < 16; i++){
+      const held = await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const rows = docXrayRows(getContract('MK-314'), document.getElementById('ig-canvas')).filter(x => !(x.row && x.row.kind === 'section'));
+        const el = rows[1] && rows[1].el; if (!el || !sc) return true; const off = el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 20;
+        if (Math.abs(off) <= 4) return true; sc.scrollTop += off; return false; });
+      if (held && i > 0) break; await page.waitForTimeout(250);
+    }
     const ink1 = await ink();
     const opened = await pressDoor();
     /* RE-POINTED 17 Nov 2026 (#762, owner's pick on the drawings: "Paper glides to line up"): the paper may glide so the open
