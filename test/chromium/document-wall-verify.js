@@ -98,7 +98,7 @@ const check = (name, pass, detail) => {
        read needs — the count says 24 AND every card drawn carries its number and its sheet — bounded, in place of
        a fixed pause; and the read below no longer crashes on a card without a number, it reports it. */
     await page.waitForFunction(() => { const n = document.querySelector('#ig-paper .igw-count'); const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
-      return !!n && /\b24\b/.test(n.textContent) && cards.length > 0 && cards.every(b => b.querySelector('.igw-ref') && b.querySelector('.igw-sheet')); }, null, { timeout: 8000 }).catch(() => {});
+      return !!n && /\b24\b/.test(n.textContent) && cards.length > 0 && cards.every(b => b.querySelector('.igw-ref') && b.querySelector('.igw-sheet')); }, null, { timeout: 20000 /* 8s ran out on a slow runner (PR 775, 18 Nov 2026): the wall was not drawn yet */ }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '1-wall.png') });
 
     /* ================= 1. EVERY CONTRACT, AS A PAPER, NUMBER BELOW ========= */
@@ -108,7 +108,7 @@ const check = (name, pass, detail) => {
       const got = cards.map(b => { const r = b.querySelector('.igw-ref'); return r ? r.textContent.trim() : '(no number on ' + (b.getAttribute('data-ig-pick') || '?') + ', ' + b.className + ')'; });
       const below = cards.every(b => { const r = b.querySelector('.igw-ref'), sh = b.querySelector('.igw-sheet'); return !!r && !!sh && r.getBoundingClientRect().top >= sh.getBoundingClientRect().bottom; });
       return { want: want.length, got: got.length, same: JSON.stringify(want) === JSON.stringify(got), below,
-        count: document.querySelector('.igw-count').textContent.trim(), list: !!document.querySelector('#ig-paper .ig-pick-list') };
+        count: (document.querySelector('.igw-count') || { textContent: '(no count line drawn)' }).textContent.trim(), list: !!document.querySelector('#ig-paper .ig-pick-list') };
     });
     /* RE-POINTED 18 Oct 2026 (round 13 as drawn, the owner's "build all the
        gaps"): the wall draws twelve papers at a time, in the List's own order,
