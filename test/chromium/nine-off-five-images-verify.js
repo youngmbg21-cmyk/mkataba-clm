@@ -167,8 +167,10 @@ const MARK = cid => {
       t.click(); await new Promise(r => setTimeout(r, 700));
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the standards check is Jambo's read of the whole
          agreement, so the tile's press opens its one door, the question "Check <ref> against your standards?" with
-         Check · Cancel (nothing spent until Check) — Cancel puts it away, so nothing is spent and nothing covers the page */
-      const ov = document.getElementById('confirm-overlay'), ask = ov && /against your standards/i.test(ov.innerText) && !!ov.querySelector('#cf-ok');
+         Check · Cancel (nothing spent until Check) — Cancel puts it away, so nothing is spent and nothing covers the page.
+         RE-POINTED 18 Nov 2026 (#762): main renamed the standards the Playbook (owner, 18 Nov 2026), so the question
+         now says "…against your playbook?" — either word is the same one door */
+      const ov = document.getElementById('confirm-overlay'), ask = ov && /against your (standards|playbook)/i.test(ov.innerText) && !!ov.querySelector('#cf-ok');
       if (ask) ov.querySelector('#cf-cancel').click();
       return { pressed: true, panel: !!document.getElementById('playbook-section') || !!ask };
     });
