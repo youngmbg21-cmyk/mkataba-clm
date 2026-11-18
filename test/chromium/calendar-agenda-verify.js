@@ -82,6 +82,11 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
       await P.click(`#cal-ag .cal-nl-go[data-cal-ct="${first}"]:not([data-cal-act])`);
       const landed = await until(P, id => (window.pdContract && pdContract() && pdContract().id === id) || (state.activeId === id && state.view !== 'calendar'), first, 10000);
       check(landed, '3 a row\'s Open lands on that contract', { first, view: await P.evaluate(() => state.view) });
+      /* RE-POINTED 18 Nov 2026 (#762): the landing is let finish (on the paper, bounded) before the Calendar is asked for
+         again — a quicker return was overtaken by the landing, which put the contract's Cover over the Calendar and 6b
+         wheeled the Cover (traced: "under": "cv-notes") */
+      await until(P, id => window.pdContract && pdContract() && pdContract().id === id && typeof hbFace === 'function' && hbFace() === 'paper', first, 10000);
+      await until(P, () => !!document.querySelector('.cv-page'), null, 5000);
       await P.evaluate(() => { setView('calendar'); });
       await until(P, () => !!document.querySelector('#cal-ag'), null, 8000);
     } else check(false, '3 a row with Open to press');
@@ -111,7 +116,14 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     await until(P, () => document.querySelectorAll('#cal-ag .cal-nl-r').length >= 18, null, 8000); await settled(P); await still(P);
     const before = await P.evaluate(() => { const R = document.querySelectorAll('#cal-ag .cal-nl-r'), ft = R[R.length - 1], tab = document.querySelector('[data-cal-view="agenda"]');
       return { ftTop: ft ? Math.round(ft.getBoundingClientRect().top) : null, tabTop: tab ? Math.round(tab.getBoundingClientRect().top) : null, h: innerHeight }; });
-    const box = await P.evaluate(() => { const r = document.querySelector('#cal-ag').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(Math.min(r.top + 200, innerHeight - 100)) }; });
+    /* RE-POINTED 18 Nov 2026 (#762): the pointer is put on a row of the list that is painted where it is (GitHub's run once
+       wheeled over something else and nothing moved); what stands under it is reported with the result */
+    const box = await P.evaluate(() => { const ag = document.querySelector('#cal-ag'), r = ag.getBoundingClientRect();
+      const row = [...ag.querySelectorAll('.cal-nl-r')].find(x => { const q = x.getBoundingClientRect(); if (q.top < 0 || q.bottom > innerHeight - 40) return false;
+        const hit = document.elementFromPoint(Math.round(q.left + q.width / 2), Math.round(q.top + q.height / 2)); return !!hit && x.contains(hit); });
+      const q = row ? row.getBoundingClientRect() : r;
+      const x = Math.round(q.left + q.width / 2), y = Math.round(row ? q.top + q.height / 2 : Math.min(r.top + 200, innerHeight - 100));
+      const hit = document.elementFromPoint(x, y); return { x, y, onRow: !!row, under: hit ? (hit.id || hit.className || hit.tagName).toString().slice(0, 60) : null }; });
     await P.mouse.move(box.x, box.y);
     /* RE-POINTED 18 Nov 2026 (#762): on a slow runner a late repaint could swallow the first wheels (GitHub saw the foot not
        move at all), so the wheel turns again while the foot is not yet in sight, bounded — still only the wheel moves it */
@@ -127,7 +139,7 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
       const r = ft && ft.getBoundingClientRect(); const hit = r ? document.elementFromPoint(Math.round(r.left + 8), Math.round(r.top + r.height / 2)) : null;
       return { ftTop: r ? Math.round(r.top) : null, ftSeen: !!(r && r.bottom <= innerHeight && hit && ft.contains(hit)), tabTop: tab ? Math.round(tab.getBoundingClientRect().top) : null }; });
     check(before.ftTop != null && before.ftTop > before.h, '6a the long agenda runs past the window (the case being checked)', before);
-    check(after.ftSeen && after.tabTop === before.tabTop, '6b a wheel over the list scrolls it to its foot; the tabs stay put', { before, after });
+    check(after.ftSeen && after.tabTop === before.tabTop, '6b a wheel over the list scrolls it to its foot; the tabs stay put', { before, after, box });
     await P.screenshot({ path: path.join(OUT, 'scrolled-1536x730.png') });
     check(errors.length === 0, 'no page errors', errors.join(' | '));
   } finally { await browser.close(); await h.stop(); }

@@ -203,7 +203,13 @@ const check = (name, ok, detail) => {
     const opened = await page.waitForFunction(id => !!(window.pdContract && pdContract() && pdContract().id === id), firstId, { timeout: 8000 }).then(() => true, () => false);
     check('4b a row\'s one press opens its contract, where its acts are', !!firstId && opened, String(firstId));
     /* a contract opened on purpose lands on its Cover (f1085); its Open the dossier is the step onto the paper */
-    if (await page.$('[data-cv-open]')) { await page.click('[data-cv-open]', { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(800); }
+    /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the Cover was not drawn yet when it was looked for, so the ⋯ was
+       pressed behind it — the Cover is asked for (bounded), pressed through, and asked to be gone (bounded) */
+    if (await page.waitForSelector('[data-cv-open]', { timeout: 6000 }).then(() => true, () => false)) {
+      await page.click('[data-cv-open]', { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction(() => !document.querySelector('[data-cv-open]'), null, { timeout: 6000 }).catch(() => {});
+      await page.waitForSelector('#ig-actions', { state: 'visible', timeout: 6000 }).catch(() => {});
+    }
     const menuUp = await page.click('#ig-actions', { timeout: 5000 }).then(() => true, () => false);
     await page.waitForTimeout(500);
     const actsSeen = () => page.evaluate(() => [...document.querySelectorAll('button, a, [role="menuitem"]')].filter(b => { const r = b.getBoundingClientRect();

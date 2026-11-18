@@ -168,7 +168,9 @@ const NOTE = 'We can meet you at 45 days on payment.';
 
     /* 6 the owner's three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
-      await page.setViewportSize({ width: w, height: ht }); await open();
+      /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the window was asked for while the last one was still closing and
+         never stood (GitHub: none of its four parts drawn after 10s) — asked for once more if it did not come, bounded */
+      await page.setViewportSize({ width: w, height: ht }); if (!(await open())) await open();
       await until(() => { const p = document.querySelector('#modal-root .modal-in'); return !!p && !(p.getAnimations && p.getAnimations().some(a => a.playState === 'running')); });
       /* STEADIED 13 Nov 2026 (pull request 711, run 43487563102: "Cannot read properties of null (reading
          'getBoundingClientRect')" here, once, on a change that does not touch the send screen): the four parts were
