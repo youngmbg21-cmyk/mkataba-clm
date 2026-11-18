@@ -14,7 +14,7 @@
      4 · Parties: Folders (a card per party) and a party's own page (its facts, what waits on you, its agreements)
      5 · People: the person's panel (Right now · Doors)
      6 · Reads: kept questions and packs in one table, Read N more on the row
-     7 · Our paper: Shelves with Cover flow, then the list, then the paper small
+     7 · Our paper: Shelves with a card per folder, then the list, then the paper small
      8 · My notes: the ledger (Note · Contract · Due) and the note's panel
      9 · Requests: Request · Where it stands · Asked by · Lane, Start the draft on the row
     10 · Import: What Jambo read · Looks · Stream · Value, the ones that need you first
@@ -171,7 +171,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
        Shelves first (the filter line, the figures, a Cover flow row per folder), All opens the list (chips, rows quoting
        their first line), a row pressed twice opens the paper small beside its facts; the panel speaks for the step */
     await page.evaluate(() => setView('templates'));
-    const up = await until(page, () => !!document.querySelector('.tpln5 .tpln5-cf .tpln5-cfr'), null, 12000);
+    const up = await until(page, () => !!document.querySelector('.tpln5 .tpln5-fcg .tpln5-fc'), null, 12000); /* RE-POINTED 18 Nov 2026: Folder Cards replace Cover flow */
     const shelf = await page.evaluate(() => ({ ask: !!document.querySelector('.tpln5 [data-tpln-q]'), figs: !!document.querySelector('.tpln5 .tpln5-figs') }));
     const used = await until(page, () => /came back changed/i.test((document.querySelector('#ins-panel') || {}).innerText || ''), null, 8000);
     await shot('7-our-paper');
@@ -182,7 +182,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await until(page, () => !!document.querySelector('.tpln5.is-list .tpln-r.is-on'), null, 6000);
     await page.evaluate(() => { const r = document.querySelector('.tpln5.is-list .tpln-r.is-on'); if (r) r.click(); });
     const sheet = await until(page, () => !!document.querySelector('.tpln5.is-paper .tpln-sheet .tpl-pf-sheet, .tpln5.is-paper .tpln-sheet .tpl-pf-none'), null, 8000);
-    check('7 Our paper: Shelves (the filter, the figures, a Cover flow row per folder), then the list (chips, each row quoting its first line), then the paper small; its use in the panel', up && shelf.ask && shelf.figs && used && listed && lg.chips && lg.quote && sheet, { shelf, lg, listed, sheet });
+    check('7 Our paper: Shelves (the filter, the figures, a card per folder), then the list (chips, each row quoting its first line), then the paper small; its use in the panel', up && shelf.ask && shelf.figs && used && listed && lg.chips && lg.quote && sheet, { shelf, lg, listed, sheet });
   } catch (e) { check('7 Our paper', false, String(e).slice(0, 200)); }
 
   /* 8 · My notes */

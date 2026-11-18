@@ -21089,23 +21089,28 @@
   html.lg-new .tpln5-fig span{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* COVER FLOW (owner's pick, 17 Nov 2026): a row per folder, its papers a carousel; colour only the folder's mark and the
      front paper's top edge */
-  html.lg-new .tpln5-cf{display:flex;flex-direction:column;border-top:1px solid var(--color-divider)}
-  html.lg-new .tpln5-cfr{display:flex;align-items:center;gap:22px;min-height:78px;padding:0 8px;border-bottom:1px solid var(--color-divider);cursor:pointer;outline:none;border-radius:0}
-  html.lg-new .tpln5-cfr:hover,html.lg-new .tpln5-cfr:focus-visible{background:var(--surface-2)}
-  html.lg-new .tpln5-cfw{flex:none;width:250px;display:flex;align-items:center;gap:10px;min-width:0}
-  html.lg-new .tpln5-cfw i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--sd)}
-  html.lg-new .tpln5-cfw > span{min-width:0;display:flex;flex-direction:column}
-  html.lg-new .tpln5-cfw b{font-size:14.5px;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text)}
-  html.lg-new .tpln5-cfw small{font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
-  html.lg-new .tpln5-cff{flex:1;min-width:0;position:relative;height:78px;perspective:900px;overflow:hidden}
-  html.lg-new .tpln5-cfp{position:absolute;left:16px;top:10px;width:160px;height:58px;box-sizing:border-box;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:4px;box-shadow:0 10px 16px -12px rgba(0,0,0,.45);padding:8px 10px;display:flex;flex-direction:column;gap:4px;text-align:left;font:inherit;color:inherit;cursor:pointer;
-    transform:translateX(calc(var(--o) * 140px)) rotateY(calc(var(--o) * -42deg)) translateZ(calc(var(--a) * -60px));opacity:calc(1 - var(--a) * .25);z-index:calc(10 - var(--a));transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .6s}
-  html.lg-new .tpln5-cfp b{font:600 11px/1.25 var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-text)}
-  html.lg-new .tpln5-cfp q{font:italic 10px/1.3 var(--font-doc);color:var(--color-neutral-400);quotes:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .tpln5-cfp.is-on{box-shadow:0 14px 22px -12px rgba(0,0,0,.45),inset 0 3px 0 var(--sd)}
-  html.lg-new .tpln5-cfgo{flex:none;font-size:13px;color:var(--color-neutral-400);white-space:nowrap}
-  html.lg-new .tpln5-cfr:hover .tpln5-cfgo{color:var(--accent-ink)}
-  @media (prefers-reduced-motion: reduce){ html.lg-new .tpln5-cfp{transition:none} }
+  /* FOLDER CARDS (owner's pick, 18 Nov 2026): four a line, every card the same size (grid-auto-rows:1fr, three paper
+     lines and a "more" line always kept); colour only the mark and the bars */
+  html.lg-new .tpln5-fcg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:1fr;gap:12px}
+  html.lg-new .tpln5-fc{background:var(--surface-2);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;cursor:pointer;outline:none;transition:background .15s}
+  html.lg-new .tpln5-fc:hover,html.lg-new .tpln5-fc:focus-visible{background:var(--color-neutral-200)}
+  html.lg-new .tpln5-fch{display:flex;align-items:center;gap:9px;min-width:0}
+  html.lg-new .tpln5-fch i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--sd)}
+  html.lg-new .tpln5-fch b{font-size:14.5px;font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln5-fcs{margin-top:-6px;font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-fcl{display:grid;grid-template-rows:repeat(3,20px) 18px;row-gap:6px}
+  html.lg-new .tpln5-fcp{display:grid;grid-template-columns:minmax(0,1fr) 56px 22px;align-items:center;gap:8px;min-width:0;padding:0;border:0;background:none;font:inherit;font-size:12.5px;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new .tpln5-fcp span{font-family:var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .tpln5-fcp:hover span{text-decoration:underline}
+  html.lg-new .tpln5-fcp i{position:relative;display:block;height:5px;border-radius:var(--radius-sm);background:var(--color-neutral-300);overflow:hidden}
+  html.lg-new .tpln5-fcp i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--p);background:var(--sd);border-radius:inherit}
+  html.lg-new .tpln5-fcp em{font-style:normal;text-align:right;color:var(--color-neutral-400);font-variant-numeric:tabular-nums}
+  html.lg-new .tpln5-fcp.is-gap{visibility:hidden}
+  html.lg-new .tpln5-fcm{font-size:12.5px;color:var(--accent-ink);white-space:nowrap}
+  html.lg-new .tpln5-fcf{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .tpln5-fcf .is-amber{color:var(--st-amber-fg)}
+  html.lg-new .tpln5-fc:hover .tpln5-fcgo{color:var(--accent-ink)}
+  @media (prefers-reduced-motion: reduce){ html.lg-new .tpln5-fc{transition:none} }
   html.lg-new .tpln5-say{font-family:var(--font-title);font-size:17px;line-height:1.55;margin:0 0 14px;max-width:760px}
   html.lg-new .tpln5-chiprow{display:flex;gap:6px;align-items:center;min-width:0}
   html.lg-new .tpln5-chiprow .tpln-chips{flex:1}
