@@ -99,12 +99,25 @@ const check = (name, pass, detail) => {
     await until(() => { const e = document.getElementById('ig-paper-scroll'); return e && e.scrollHeight > e.clientHeight + 1000 && document.querySelectorAll('#pd-thread .doc-th-row').length > 0; }, null, 15000);
     /* RE-POINTED 16 Nov 2026 (#762): the new look's paper is in pages and shorter than 900px of scroll; the reader
        stands half way down it (well clear of its foot, where a refresh's last pixels can settle) */
+    /* RE-POINTED 18 Nov 2026 (#762): the read that plays on arrival walks the paper; the reader's spot is taken once it has
+       finished (a refresh does not play it again), so the paper is measured in the same shape before and after */
+    await until(() => !(typeof pd2WalkOn === 'function' && pd2WalkOn('MK-R3')), null, 20000);
     const dMax = await page.evaluate(() => { const e = document.getElementById('ig-paper-scroll'); return e ? e.scrollHeight - e.clientHeight : 0; });
     const d0 = await scrollTo('ig-paper-scroll', Math.round(dMax / 2));
+    /* RE-POINTED 18 Nov 2026 (#762): "the same line" is asked of the LINE — the clause heading last above the paper's top edge and how far
+       past it the reader stands — as well as the pixel: the browser keeps the reader's line in view (scroll anchoring) while
+       the paper above it finishes painting after a refresh, which moves the pixel count and not the line */
+    const lineAt = () => page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); if (!sc) return null; const top = sc.getBoundingClientRect().top + 8;
+      const hs = [...sc.querySelectorAll('#ig-canvas [data-pz-clause], #ig-canvas [data-clause]')].filter(e => e.getBoundingClientRect().top <= top); const el = hs[hs.length - 1];
+      return el ? { id: el.getAttribute('data-pz-clause') || el.getAttribute('data-clause'), into: Math.round(top - el.getBoundingClientRect().top) } : null; });
+    const line0 = await lineAt();
     await reload();
     const d1 = await cameBack('ig-paper-scroll', d0);
+    const line1 = await until(want => { const sc = document.getElementById('ig-paper-scroll'); if (!sc || !want) return null; const top = sc.getBoundingClientRect().top + 8;
+      const hs = [...sc.querySelectorAll('#ig-canvas [data-pz-clause], #ig-canvas [data-clause]')].filter(e => e.getBoundingClientRect().top <= top); const el = hs[hs.length - 1];
+      return el && (el.getAttribute('data-pz-clause') || el.getAttribute('data-clause')) === want.id && Math.abs((top - el.getBoundingClientRect().top) - want.into) <= 24 ? { id: want.id } : null; }, line0, 8000);
     const onDoc = await page.evaluate(() => ({ view: state.view, face: window.hbS ? hbS().face : null, id: window.pdContract && pdContract() ? pdContract().id : null, tab: window.pdTab ? pdTab() : null }));
-    check('2a Home\'s Document comes back on the same contract and the Clauses tab, scrolled to the same line', d0 >= 300 && d1 === d0 && onDoc.id === 'MK-R3' && onDoc.tab === 'doc', JSON.stringify({ d0, d1, onDoc }));
+    check('2a Home\'s Document comes back on the same contract and the Clauses tab, scrolled to the same line', d0 >= 300 && (d1 === d0 || (!!line0 && !!line1)) && onDoc.id === 'MK-R3' && onDoc.tab === 'doc', JSON.stringify({ d0, d1, line0, line1, onDoc }));
     await page.screenshot({ path: path.join(OUT, '2a-document-kept.png') });
     /* RE-POINTED 5 Oct 2026 (the Thread): there is no reading mode to keep any
        more; what comes back is the thread's open row, which follows the line
