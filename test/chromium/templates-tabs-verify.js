@@ -230,7 +230,7 @@ const BOX = sel => {
        the reader can go and look at, and give "not checked" an object. */
     check('2b · a card carries both figures and the sentence that qualifies them',
       cards.cards.some(c => /Used/.test(c.txt) && /Deviation/.test(c.txt)) /* the label is 'Deviation' since 21 Sep 2026 — the artifact's own word */
-      && cards.cards.some(c => /(\d+ of the \d+ contracts checked did not follow Our standards|Nothing drafted from these has been checked)/.test(c.txt))
+      && cards.cards.some(c => /(\d+ of the \d+ contracts checked did not follow Our playbook|Nothing drafted from these has been checked)/.test(c.txt))
       && !cards.cards.some(c => /off-standard/.test(c.txt)),
       cards.cards[0]);
     check('2c · a category nothing has come off says that, in its own words',
@@ -272,7 +272,7 @@ const BOX = sel => {
     check('3b · Most used names its own window and draws bars',
       /Most used, 90 days/.test(panels.txt), (panels.txt.match(/Most used.{0,80}/) || [''])[0]);
     check('3c · the page states its coverage once',
-      /counts only contracts that have been checked against Our standards/.test(panels.txt));
+      /counts only contracts that have been checked against Our playbook/.test(panels.txt));
 
     /* ================= 4 · THE TWO TABS WORK TOGETHER ======================= */
     /* The probe STAYS up through 4a–4d, because the category journey below

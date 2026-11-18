@@ -5,7 +5,10 @@
    readings, the routes and the words; every claim here is a PRESS or a MEASUREMENT:
      1  the page draws: the list by how firm, the chosen standard as a ladder, Jambo's panel beside it, the head's
         facts and its three buttons; a press in the list chooses another standard
-     2  an open departure stands on the ladder with Allow once · Refuse · Open the paper; Allow once asks a reason
+     2  an open departure stands on the ladder with Decide in Approvals (no Open the paper since 18 Nov 2026); on its
+        Approvals row "See it in the paper ›" sits under the two buttons and opens THE PAPER IN A POP-UP: big, the
+        paper and its notes beside it, landed on the departure's words, no buttons in the notes; Esc closes it; Open the
+        Dossier › closes it and opens the contract
      3  Edit the standard → Write it for me: Jambo's draft waits in HIS panel (never in a box), with its chips,
         Put in the standard and Try again; Put in fills the boxes, and nothing is saved
      4  Send for approval asks why; the change waits in History; the ladder is unchanged
@@ -40,7 +43,10 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
     ['LD-2', 'Cleaning Services', 'Safi Ltd', V('deviation', 'capped at fifty per cent of the fees')],
     ['LD-3', 'Packaging Supply', 'Kabras Sugar Ltd', V('aligned', 'twelve (12) months of fees')]];
   for (const [id, name, cp, pb] of staged){
-    const c = Object.assign(fixtureContract(id, name, cp, 'proc', 900000, 'Under Review', 'AGREEMENT\n\n1. Liability\n\nThe liability is limited.'), { playbook: pb });
+    /* the paper carries the words its check quoted, so the pop-up has somewhere to land (18 Nov 2026) */
+    const body = 'AGREEMENT\n\n' + Array.from({ length: 14 }, (_, k) => `${k + 1}. Clause ${k + 1}\n\nThe parties agree to the terms of clause ${k + 1}, as written here.`).join('\n\n')
+      + `\n\n15. Liability\n\nThe ${pb.verdicts[0].quote}.`;
+    const c = Object.assign(fixtureContract(id, name, cp, 'proc', 900000, 'Under Review', body), { playbook: pb });
     await W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
   }
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
@@ -68,7 +74,7 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
           facts: (document.getElementById('page-head-facts') || {}).textContent || '', panel: panel.getBoundingClientRect().width > 300 };
       });
       check(`${tag} 1a the list by how firm, a standard as a ladder, Jambo's panel beside it`, !!P && P.groups.length >= 2 && P.items >= 5 && P.rungs >= 1 && P.panel, P);
-      check(`${tag} 1b the head: its facts, Departures · History · New standard`, !!P && /standards/.test(P.facts) && P.acts.length === 3 && /Departures/.test(P.acts[0]) && /History/.test(P.acts[1]) && /New standard/.test(P.acts[2]), P && { facts: P.facts, acts: P.acts });
+      check(`${tag} 1b the head: its facts, Departures · History · New position`, !!P && /positions/.test(P.facts) && P.acts.length === 3 && /Departures/.test(P.acts[0]) && /History/.test(P.acts[1]) && /New position/.test(P.acts[2]), P && { facts: P.facts, acts: P.acts });
       const chose = await page.evaluate(() => { const b = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => /Liability/.test(x.textContent)); if (!b) return false; b.click(); return true; })
         && await until(() => { const t = document.querySelector('.ld-main .ld-title'); return t && /Liability/.test(t.textContent) ? t.textContent : null; });
       check(`${tag} 1c a press in the list chooses that standard`, !!chose, chose);
@@ -77,13 +83,49 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       const D = await until(() => { const d = [...document.querySelectorAll('.ld-dep')]; return d.length ? d.map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(),
         acts: [...x.querySelectorAll('button')].map(b => b.textContent.trim()) })) : null; });
       /* RE-POINTED 17 Nov 2026 (one door for departures): the card sends the decision to Approvals & signing */
-      check(`${tag} 2a each open departure on the ladder: Decide in Approvals · Open the paper, and no decision here`, !!D && D.length === 2
-        && D.every(x => /Decide in Approvals/.test(x.acts.join()) && /Open the paper/.test(x.acts.join()) && !/Allow once|Refuse/.test(x.acts.join()))
+      check(`${tag} 2a each open departure on the ladder: Decide in Approvals, no Open the paper (18 Nov 2026), and no decision here`, !!D && D.length === 2
+        && D.every(x => /Decide in Approvals/.test(x.acts.join()) && !/Open the paper/.test(x.acts.join()) && !/Allow once|Refuse/.test(x.acts.join()))
         && D.some(x => /Kilele/.test(x.t) && /Legal says yes/.test(x.t)), D);
       const key = await page.evaluate(() => { const b = document.querySelector('.ld-dep [data-ld-goap]'); const k = b && b.getAttribute('data-ld-goap'); if (b) b.click(); return k; });
       const landed = await until(k => { const tr = document.querySelector('#content tr.is-sel[data-ap-row]');
         return state.view === 'approvals' && tr && tr.getAttribute('data-ap-row') === k ? k : null; }, key);
       check(`${tag} 2b it lands on that departure's row in Approvals & signing, chosen`, !!key && landed === key, JSON.stringify({ key, landed }));
+      /* 2c SEE IT IN THE PAPER (owner, 18 Nov 2026): under the row's two buttons, departures only; a large pop-up, the
+         paper and its notes, landed on the departure's words; nothing to press in the notes; Esc closes it */
+      /* the row's own landing (apnLandRow → landOn) finishes first, so it never lands after the pop-up's */
+      await until(k => { const tr = document.querySelector('#content tr.is-landed[data-ap-row]'); return tr && tr.getAttribute('data-ap-row') === k; }, key);
+      const pk = await page.evaluate(k => {
+        const b = [...document.querySelectorAll('#content [data-apn-peek]')].find(x => x.getAttribute('data-apn-peek') === k); if (!b) return null;
+        const td = b.closest('td.apn-acts'), btns = td ? [...td.querySelectorAll('button')] : [];
+        const r = { under: btns.length === 3 && btns[2] === b && b.getBoundingClientRect().top >= btns[0].getBoundingClientRect().bottom - 1,
+          onStd: document.querySelectorAll('#content tr[data-ap-kind="stdchange"] [data-apn-peek]').length };
+        b.click(); return r; }, key);
+      check(`${tag} 2c "See it in the paper ›" sits under Allow once and Refuse, on departures only`, !!pk && pk.under && pk.onStd === 0, pk);
+      /* the words THIS departure's check quoted, read off the record (LD-1 and LD-2 quote different words) */
+      const quoteOf = await page.evaluate(k => { const m = /^dep:(.+):(\d+)$/.exec(k || ''); const c = m && getContract(m[1]); const v = c && c.playbook && c.playbook.verdicts[+m[2]]; return v ? String(v.quote || '') : ''; }, key);
+      const pop = await until(q => {
+        const p = document.querySelector('.apn-pk'), sc = document.getElementById('apn-pk-scroll'), l = sc && sc.querySelector('.is-landed');
+        if (!p || !l) return window._pkWhy = { open: !!p, landed: !!l, top: sc ? sc.scrollTop : null, any: (document.querySelector('.is-landed') || {}).tagName || null }, null;
+        const d = p.closest('[role="dialog"]').getBoundingClientRect(), a = l.getBoundingClientRect(), v = sc.getBoundingClientRect();
+        const notes = document.getElementById('apn-pk-notes');
+        return { w: +(d.width / innerWidth).toFixed(2), h: +(d.height / innerHeight).toFixed(2), paper: !!sc.querySelector('#apn-pk-cv #apn-pk-doc, #apn-pk-cv .rl-paper'),
+          notes: notes.querySelectorAll('.pd2-mn').length, beside: notes.getBoundingClientRect().left >= sc.querySelector('#apn-pk-cv').getBoundingClientRect().right - 1,
+          pressable: notes.querySelectorAll('button:not(.pd2-mg-more):not(.pd2-mg-less), a').length,
+          landed: !!q && l.textContent.includes(q), inView: a.top >= v.top && a.bottom <= v.bottom + 1, moved: sc.scrollTop > 0,
+          scrolls: sc.scrollHeight > sc.clientHeight, go: !!p.querySelector('[data-apn-pk-go]') };
+      }, quoteOf);
+      check(`${tag} 2d the pop-up is big: the paper with its notes beside it, landed on the departure's words, free to scroll`,
+        !!pop && pop.w >= 0.85 && pop.h >= 0.8 && pop.paper && pop.notes >= 1 && pop.beside && pop.landed && pop.inView && pop.moved && pop.scrolls && pop.go, pop || await page.evaluate(() => window._pkWhy || null));
+      check(`${tag} 2e the notes carry nothing to press: a look, never a decision`, !!pop && pop.pressable === 0, pop && pop.pressable);
+      if (w === 1440) await page.screenshot({ path: path.join(OUT, `${tag}-paper-pop-up.png`) });
+      await page.keyboard.press('Escape');
+      const shut = await until(() => !document.querySelector('.apn-pk') && state.view === 'approvals');
+      check(`${tag} 2f Esc closes it, back on Approvals`, !!shut);
+      await page.evaluate(k => [...document.querySelectorAll('#content [data-apn-peek]')].find(x => x.getAttribute('data-apn-peek') === k)?.click(), key);
+      await until(() => !!document.querySelector('.apn-pk [data-apn-pk-go]'));
+      await page.evaluate(() => document.querySelector('.apn-pk [data-apn-pk-go]').click());
+      const dos = await until(k => !document.querySelector('.apn-pk') && typeof pdContract === 'function' && pdContract() && ('dep:' + pdContract().id) === k.split(':').slice(0, 2).join(':') ? pdContract().id : null, key);
+      check(`${tag} 2g Open the Dossier › closes it and opens that contract`, !!dos, dos);
       await page.evaluate(() => { setView('playbook'); });
       await until(() => !!document.querySelector('.ld-main .ld-rung'));
       await page.keyboard.press('Escape').catch(() => {});

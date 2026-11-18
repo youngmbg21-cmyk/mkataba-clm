@@ -6917,7 +6917,7 @@ app.put('/api/settings', auth, admin, (req, res) => {
    waits per standard: your own is replaced, a colleague's is said. */
 function stdChangesOf(st){ return Array.isArray(st && st.standardChanges) ? st.standardChanges : []; }
 app.post('/api/standards/changes', auth, (req, res) => {
-  if (!['admin', 'legal'].includes(req.user.role)) return res.status(403).json({ error: 'Only an admin or Legal may change a standard.' });
+  if (!['admin', 'legal'].includes(req.user.role)) return res.status(403).json({ error: 'Only an admin or Legal may change a position.' });
   const b = req.body || {};
   const stored = getSetting('appSettings') || {};
   const base = (!Array.isArray(stored.clauseLibrary) && Array.isArray(b.baseLibrary)) ? b.baseLibrary.slice(0, 200) : null;
@@ -6925,11 +6925,11 @@ app.post('/api/standards/changes', auth, (req, res) => {
   const pb = stored.playbook || basePb || {};
   const lib = Array.isArray(stored.clauseLibrary) ? stored.clauseLibrary : (base || []);
   const draft = stdDraftClean(b.draft, stdBookKeys(pb));
-  if (!draft) return res.status(400).json({ error: 'A standard needs a name and the words we ask for.' });
+  if (!draft) return res.status(400).json({ error: 'A position needs a name and the words we ask for.' });
   const clauseId = b.clauseId ? String(b.clauseId) : null;
-  if (clauseId && !lib.some(c => c && String(c.id) === clauseId)) return res.status(404).json({ error: 'That standard is no longer there.' });
+  if (clauseId && !lib.some(c => c && String(c.id) === clauseId)) return res.status(404).json({ error: 'That position is no longer there.' });
   if (!clauseId && lib.some(c => c && String(c.category || '').toLowerCase() === draft.category.toLowerCase()))
-    return res.status(409).json({ error: 'A standard for this topic is already here. Change that one instead.', already: true });
+    return res.status(409).json({ error: 'A position for this topic is already here. Change that one instead.', already: true });
   const all = stdChangesOf(stored);
   const other = all.find(c => c.state === 'waiting' && clauseId && c.clauseId === clauseId && String(c.byId) !== String(req.user.id));
   if (other) return res.status(409).json({ error: `A change by ${other.by || 'a colleague'} is already waiting on this standard. It must be decided first.`, waitingBy: other.by || '' });
@@ -6943,7 +6943,7 @@ app.post('/api/standards/changes', auth, (req, res) => {
   res.json({ ok: true, change: ch, standardChanges: next, approvers: admins.length });
 });
 app.post('/api/standards/changes/:id/decide', auth, (req, res) => {
-  if (!stdDecides(req.user)) return res.status(403).json({ error: 'Only an admin, or somebody an admin named, may decide a change to a standard.' });
+  if (!stdDecides(req.user)) return res.status(403).json({ error: 'Only an admin, or somebody an admin named, may decide a change to a position.' });
   const stored = getSetting('appSettings') || {};
   const all = stdChangesOf(stored);
   const ch = all.find(c => c.id === req.params.id);
@@ -19573,9 +19573,9 @@ app.patch('/api/users/:id', auth, (req, res) => {
     if (hasStd) {
       const role = hasRole ? b.role : target.role;
       if (role === 'admin' && !b.decideStandards)
-        return no(400, { error: 'An admin always decides on our standards — the tick cannot be removed from them.' });
+        return no(400, { error: 'An admin always decides on our playbook — the tick cannot be removed from them.' });
       if (role === 'viewer' && b.decideStandards)
-        return no(400, { error: 'A viewer cannot decide on our standards.' });
+        return no(400, { error: 'A viewer cannot decide on our playbook.' });
       db.prepare('UPDATE users SET decide_standards=? WHERE id=?').run(b.decideStandards ? 1 : 0, req.params.id);
     }
     if (hasHold || hasReFile) {

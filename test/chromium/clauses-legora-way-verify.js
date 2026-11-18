@@ -156,7 +156,7 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     /* RE-POINTED 22 Oct 2026: the clause's word counts its missing point too ("Needs you · 2": the twin and the price-rise notice) */
     ok('2 the twin is ONE card: worst verdict, both finders, our standard beside it', /^2\b/.test(e2.name || '') && e2.n === 1 && e2.verd[0] === 'Needs you'
       /* RE-POINTED 16 Nov 2026 (#762): no word on a clause's row in the new look ("no amber sentence on a row", f1081) */
-      && e2.by[0] === 'Found by Jambo · Our standards' && /Our standard: Paid within 14 days/.test(e2.std[0]) && e2.state.trim() === '', JSON.stringify(e2));
+      && e2.by[0] === 'Found by Jambo · Our playbook' && /Our position: Paid within 14 days/.test(e2.std[0]) && e2.state.trim() === '', JSON.stringify(e2));
     await openRow(3);
     const e3 = await page.evaluate(() => {
       const row = document.querySelector('#pd-thread .doc-th-row.is-open');

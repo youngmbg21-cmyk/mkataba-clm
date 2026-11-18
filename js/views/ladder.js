@@ -158,7 +158,8 @@ function ldRungHtml(tone, lab, words, who, sub, count){
 /* ONE DOOR FOR A DEPARTURE (owner, 17 Nov 2026: "build it", drawn on the real page): the card says who departs and the
    words; deciding happens on Approvals & signing only. A firm standard's card carries "Decide in Approvals ›", which
    lands on that exact row (apnLandRow), for whoever has that row; a Nice to have never holds a signature, so its cards
-   are for information with no decision at all. "Open the paper" stays. */
+   are for information with no decision at all. "Open the paper" is GONE from this card (owner, 18 Nov 2026: "remove 'open
+   the paper' from the standards"): the paper is looked at from the Approvals row, "See it in the paper ›" (apnPeekOpen). */
 function ldDepHtml(x, firm){
   /* EVERY OUTSIDE PARTY, one line each (the every-party rule): never our own side */
   const theirs = (typeof window.contractParties === 'function' ? window.contractParties(x.c) : []).filter(p => p && p.side !== 'ours' && p.name).map(p => p.name);
@@ -170,7 +171,7 @@ function ldDepHtml(x, firm){
   const go = firm === 'nice' ? '' : mine ? `<button type="button" class="ui-link" data-ld-goap="${LD_E(key)}">${LD_E(i18t('ld_go_ap'))}</button>`
     : `<span class="ld-quiet" title="${LD_E(i18t('ld_allow_not_you'))}">${LD_E(i18t('ld_dep_waits'))}</span>`;
   return `<div class="ld-dep" data-ld-dep="${LD_E(x.c.id)}" data-ld-dep-i="${x.i}"><span class="ld-dep-t">${names.map(n => `<b class="ld-dep-p">${LD_E(n)}</b>`).join('')}${LD_E(typeof window.contractRef === 'function' ? window.contractRef(x.c) : x.c.id)} ${LD_E(what)}${x.v.escalate && firm !== 'nice' ? ` <span class="ld-tag">${LD_E(i18t('ld_dep_legal'))}</span>` : ''}</span>`
-    + `<span class="ld-dep-a">${go}<button type="button" class="ui-link" data-ld-open>${LD_E(i18t('ld_open_paper'))}</button></span></div>`;
+    + `<span class="ld-dep-a">${go}</span></div>`;
 }
 /* the departure rows the reader has on Approvals (apnDepRows, the one reading), asked once per paint */
 let _ldDepMine = null;
@@ -401,11 +402,6 @@ async function ldWithdraw(id){
   try { const out = await api('standards/changes/' + encodeURIComponent(id) + '/withdraw', 'POST', {}); ldTakeSettings(out); renderStandardsPage(); toast(i18t('ld_withdrawn'), 'ok'); }
   catch (err){ toast((err && err.message) || i18t('ld_send_failed'), 'err'); }
 }
-/* a departure's one act here: open its paper at the clause (deciding is Approvals' own) */
-async function ldDepOpen(btn){
-  const card = btn.closest('[data-ld-dep]'); if (!card) return;
-  return ldDepRun(card.getAttribute('data-ld-dep'), +card.getAttribute('data-ld-dep-i'), 'open');
-}
 /* AFTER A DECISION, the page the reader stands on is drawn again: Approvals' piles, else the Standards page */
 function ldAfterDecide(){
   if (state.view === 'approvals' && typeof renderApprovalsPage === 'function'){ try { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); } catch (_){} renderApprovalsPage(); }
@@ -544,7 +540,7 @@ if (typeof document !== 'undefined' && !document._ldWired){
       return;
     }
     if (!state || state.view !== 'playbook') return;
-    const b = t.closest('[data-ld-book-clear],[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-goap],[data-ld-open]');
+    const b = t.closest('[data-ld-book-clear],[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-goap]');
     if (!b) return;
     if (b.hasAttribute('data-ld-book-clear')){ ldBookSet(null); return; }
     if (b.hasAttribute('data-ld-pick')){ _ld.pick = b.getAttribute('data-ld-pick'); _ld.mode = 'ladder'; renderStandardsPage(); return; }
@@ -562,7 +558,6 @@ if (typeof document !== 'undefined' && !document._ldWired){
     if (b.hasAttribute('data-ld-decide')){ ldDecideOpen(b.getAttribute('data-ld-decide')); return; }
     if (b.hasAttribute('data-ld-withdraw')){ ldWithdraw(b.getAttribute('data-ld-withdraw')); return; }
     if (b.hasAttribute('data-ld-goap')){ ldGoApprovals(b.getAttribute('data-ld-goap')); return; }
-    if (b.hasAttribute('data-ld-open')){ ldDepOpen(b); return; }
   });
 }
 /* THE FORM KEEPS ITS WORDS AS THEY ARE TYPED (a redraw keeps your words): every box read into the draft on input */

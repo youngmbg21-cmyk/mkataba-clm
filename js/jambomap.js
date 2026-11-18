@@ -136,9 +136,9 @@ const JM_TASKS = [
      contract's Filing row): Our paper's standards tab, and where a stream or
      a contract type is named, the book that judges it (jmStdBook) */
   { k: 'standards', to: { place: 'standards', std: true }, w: {
-    en: ['our standards', 'edit our standards', 'change our standards', 'negotiation playbook', 'playbook', 'our positions', 'negotiation positions', 'fallback positions',
+    en: ['our playbook', 'edit our playbook', 'change our playbook', 'our standards', 'edit our standards', 'change our standards', 'negotiation playbook', 'playbook', 'our positions', 'negotiation positions', 'fallback positions',
       'standard positions', 'what we accept in a negotiation', 'our red lines', 'clause standards', 'standards for a contract type', 'where our standard is set', 'our standard for a clause', 'tweak our playbook'],
-    sv: ['våra standarder', 'ändra våra standarder', 'förhandlingsplaybook', 'förhandlingsguide', 'playbook', 'våra positioner', 'reservpositioner', 'vad vi accepterar i en förhandling', 'standarder för en avtalstyp'] } },
+    sv: ['vår spelbok', 'spelbok', 'ändra vår spelbok', 'våra standarder', 'ändra våra standarder', 'förhandlingsplaybook', 'förhandlingsguide', 'playbook', 'våra positioner', 'reservpositioner', 'vad vi accepterar i en förhandling', 'standarder för en avtalstyp'] } },
   { k: 'import', to: { place: 'import' }, w: {
     en: ['import old contracts', 'bulk upload', 'migrate our contracts', 'upload many contracts at once', 'bring in our archive', 'load all our old agreements', 'from excel', 'from a spreadsheet'],
     sv: ['importera gamla avtal', 'ladda upp många avtal', 'flytta in våra avtal', 'massuppladdning', 'ta in vårt arkiv'] } },

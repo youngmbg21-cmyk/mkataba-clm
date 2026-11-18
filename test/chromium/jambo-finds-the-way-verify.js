@@ -96,7 +96,7 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
     const s1 = await until(() => state.view === 'playbook' && !!document.querySelector('.ld-page') ? true : null, null, 8000) && await stdState();
     check('1a it opens Our standards', !!s1 && s1.view === 'playbook', JSON.stringify(s1));
     check('1b drawn as the Ladder, its own page', !!s1 && s1.ladder, JSON.stringify(s1));
-    check('1d Jambo says where he went, naming the book', !!s1 && /standards/i.test(s1.said) && /supply/i.test(s1.said), s1 && s1.said);
+    check('1d Jambo says where he went, naming the book', !!s1 && /standards|playbook/i.test(s1.said) && /supply/i.test(s1.said), s1 && s1.said);
     const filing = await page.evaluate(() => !!document.querySelector('#ws-filing:focus, .ov-filing.is-lit'));
     check('1e the open contract\'s Filing row was not pressed', !filing);
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(250);
@@ -127,7 +127,7 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
     check('3a the question went to the AI with goto in its answer tool', hasGoto(sent), sent ? (sent.tools || []).map(t => t.name).join(',') : 'no call');
     check('3b the answer\'s place opened: Our standards', !!s4, await page.evaluate(() => state.view));
     const said3 = await page.evaluate(() => intel.history.filter(m => m.role === 'assistant').slice(-2).map(m => m.text || '').join(' | '));
-    check('3c Jambo says it in his conversation', /standards/i.test(said3), said3.slice(0, 160));
+    check('3c Jambo says it in his conversation', /standards|playbook/i.test(said3), said3.slice(0, 160));
     await page.screenshot({ path: path.join(OUT, '3-ai-takes-you-there-1440x780.png') });
 
     console.log('\n4 · the switch');

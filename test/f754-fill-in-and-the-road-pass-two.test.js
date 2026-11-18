@@ -209,9 +209,9 @@ describe('f754 (4) the pill and Ready to sign say only what is so', () => {
   });
   test('4b clear only where the check came back clear; one the gate let through is "not clear yet"', () => {
     const { ctx, c } = stage({ plan: PLAN, noted: [{ kind: 'standards-read' }, { kind: 'brief' }] });
-    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '3 checks clear: wording, promises, details · not clear yet: standards, the brief');
+    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '3 checks clear: wording, promises, details · not clear yet: playbook, the brief');
     const all = stage({ plan: PLAN });
-    assert.equal(all.ctx.pdRoadStops(all.c).stops[0].sub, '5 checks clear: wording, standards, promises, details, the brief');
+    assert.equal(all.ctx.pdRoadStops(all.c).stops[0].sub, '5 checks clear: wording, playbook, promises, details, the brief');
   });
 });
 
@@ -400,7 +400,7 @@ describe('f754 (9) the road, the third pass', () => {
   });
   test('9d the number on Ready to sign matches what it names', () => {
     const { ctx, c } = stage({ plan: PLAN, holds: [{ kind: 'standards-read' }, { kind: 'obligations' }, { kind: 'oblig-gaps' }, { kind: 'brief' }] });
-    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '4 to settle: standards, promises (2), the brief');
+    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '4 to settle: playbook, promises (2), the brief');
   });
   test('9e once signing has begun a rule\'s step nobody approved is off the road; one approved stays, with who and when', () => {
     const off = ruleStage({ holds: [], signed: true });

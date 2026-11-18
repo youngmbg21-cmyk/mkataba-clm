@@ -42,7 +42,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       side: !!document.querySelector('#side-panel #playbook-section') };
   });
   const r1 = await R();
-  const pay = r1.groups.find(g => g.std.some(t => /Differs from your standard · Payment/.test(t)));
+  const pay = r1.groups.find(g => g.std.some(t => /Differs from your position · Payment/.test(t)));
   check('1 · Payment stands in § 2\'s group, amber, with Start redlining', !!pay && /Price/i.test(pay.h) && pay.std.some(t => /Start redlining/.test(t)), r1);
   const miss = r1.groups.find(g => /Not in the contract/.test(g.h));
   const last = r1.groups[r1.groups.length - 1];
@@ -61,7 +61,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   /* 4 Add our clauses: the one door (Draft from our standards), which asks first */
   const add = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd2-notes [data-pd2-go="std-draft"]')].find(x => /Add our clauses/.test(x.textContent)); if (b){ b.setAttribute('data-pp', '1'); return true; } return false; });
   if (add) await page.click('[data-pp="1"]');
-  const asked = await until(page, () => /Draft from our standards/.test((document.getElementById('confirm-overlay') || {}).innerText || ''), null, 6000);
+  const asked = await until(page, () => /Draft from our playbook/.test((document.getElementById('confirm-overlay') || {}).innerText || ''), null, 6000);
   check('4 · Add our clauses opens Draft from our standards, which asks first', add && asked);
   await page.evaluate(() => { const o = document.getElementById('confirm-overlay'); const b = o && [...o.querySelectorAll('button')].find(x => /Cancel/.test(x.textContent)); if (b) b.click(); });
   await page.waitForTimeout(300);

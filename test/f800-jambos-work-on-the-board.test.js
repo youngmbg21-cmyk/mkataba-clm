@@ -213,7 +213,7 @@ describe('f800 (8) each piece folded to one line (the owner\'s answer (18), 19 O
     const row = (k, agent) => work({ key: 'ag:' + agent, items: [{ key: of(k).key }] });
     const ans = row('answer', 'round');
     assert.match(ans, /<span class="hb-pc-tag" style="--hb-pc-c:#6d28d9"><i aria-hidden="true"><\/i>Their round came back<\/span><span class="hb-pc-name">Nordvik Logistik’s answer<\/span><span class="hb-pc-ref"><span class="hati-ref">MK-PR-2<\/span><\/span>/);
-    assert.match(ans, /<span class="hb-pc-line" title="Answers to their 2 redlines, read against our standards: [^"]+">/);
+    assert.match(ans, /<span class="hb-pc-line" title="Answers to their 2 redlines, read against our playbook: [^"]+">/);
     assert.match(ans, /data-hb-ag-look="answer:MK-PR-2"[^>]*>Look<\/button><button type="button" class="ui-btn ui-btn-sm" data-ag-act="nego">Answer on Redlines<\/button><button type="button" class="ui-link hb-pc-away" data-ag-act="away">Put away<\/button>/);
     assert.doesNotMatch(ans, /hb-pc-body|ag-p-body|ag-p-head/, 'folded: one line, no body');
     const chase = row('chase', 'late');
@@ -230,7 +230,7 @@ describe('f800 (8) each piece folded to one line (the owner\'s answer (18), 19 O
     win.detailsOf = () => ({ left: 3, all: 5, live: true });
     const html = boardWork(win)({ key: 'ag:paper', items: [{ key: of('read').key }] });
     assert.match(html, /<span class="hb-pc-name">Arrival check: Baltic Freight<\/span>/);
-    assert.match(html, />Read on arrival: a brief, 2 obligations found, 3 details to fill and 1 departure from our standards \(notice period\)\.</);
+    assert.match(html, />Read on arrival: a brief, 2 obligations found, 3 details to fill and 1 departure from our playbook \(notice period\)\.</);
     assert.match(html, /data-ag-act="fill">Fill in 3 details</);
   });
   test('8c the dress: one list, a hairline between rows, the line cut at its end until it is opened', () => {

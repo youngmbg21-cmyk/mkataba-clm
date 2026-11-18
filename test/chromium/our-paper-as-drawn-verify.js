@@ -311,7 +311,7 @@ async function SEED(){
     const P = await page.evaluate(() => ({ props: [...document.querySelectorAll('#tb-paper .tb-prop')].map(p => [p.getAttribute('data-tb-prop'), p.textContent.replace(/\s+/g, ' ').trim(), p.hasAttribute('data-not-wording'), p.getAttribute('contenteditable')]),
       marks: [...document.querySelectorAll('#tb-paper .tpl-mks')].map(m => m.textContent.replace(/\s+/g, ' ').trim()) }));
     check('8a Jambo proposes on the paper: "Jambo proposes · <standard>", Add · Skip, "Our standard: …"; never wording',
-      P.props.length >= 1 && P.props.every(p => /^Jambo proposes · .+ Add Skip Our standard: .+\.$/.test(p[1]) && p[2] && p[3] === 'false'), JSON.stringify(P.props));
+      P.props.length >= 1 && P.props.every(p => /^Jambo proposes · .+ Add Skip Our position: .+\.$/.test(p[1]) && p[2] && p[3] === 'false'), JSON.stringify(P.props));
     check('8b marks under the sections that meet a standard', P.marks.some(m => /Payment within 30 days/.test(m)) && P.marks.some(m => /Liability cap at 12 months fees/.test(m)), JSON.stringify(P.marks));
     const cat = P.props[0] && P.props[0][0];
     const before = await page.evaluate(() => document.querySelectorAll('#tb-paper [data-tb-row]').length);

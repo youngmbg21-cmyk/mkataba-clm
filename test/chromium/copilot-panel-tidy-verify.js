@@ -133,7 +133,7 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
     const card = await until(page, () => { const c = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop();
       return c ? { chip: (c.querySelector('.chip') || {}).textContent, name: (c.querySelector('.n span') || {}).textContent, line: (c.querySelector('.cost') || {}).textContent || '',
         rests: (c.querySelector('.r') || {}).textContent || '', marks: c.querySelectorAll('.pv ins, .pv del').length, apply: !!c.querySelector('[data-ce-apply]') } : null; });
-    check(!!card && /Our standard/i.test(card.chip) && /Suggested wording/.test(card.name), '3a a Suggested wording card badged Our standard', JSON.stringify(card));
+    check(!!card && /Our position/i.test(card.chip) && /Suggested wording/.test(card.name), '3a a Suggested wording card badged Our standard', JSON.stringify(card));
     check(!!card && card.rests.length > 0 && /(Changes|Replaces|Adds)/.test(card.line) && card.marks > 0, '3b with its reason, what it changes, and its marks');
     const mid = await page.evaluate(id => ({ box: ceBoxWords(), n: (getContract(id).changes || []).length, asked: window._asked.length }), ID);
     check(mid.box === box0 && mid.n === n0 && mid.asked === 0, '3c the box is untouched, nothing is filed, no model is asked', JSON.stringify({ same: mid.box === box0, n: mid.n, asked: mid.asked }));

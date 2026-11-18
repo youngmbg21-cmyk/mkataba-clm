@@ -135,8 +135,8 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     /* 2 our standard, the reading in the box */
     const N = await page.evaluate(() => ({ std: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"] [data-pd-ff-std]') || {}).innerText || '',
       box: (document.querySelector('#pd-og [data-blankf="up_notice_period"]') || {}).value, kind: pdFillStdKind(getContract('MK-0405')), cls: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"]') || {}).className }));
-    check('2a the owed notice period: "Our standard for <the kind of contract>: 90 days", in the box as the reading', !!N.kind && N.kind !== 'termination' && N.std.trim() === `Our standard for ${N.kind}: 90 days` && N.box === '90 days' && /is-read/.test(N.cls), JSON.stringify(N));
-    check('2b a box no standard names is offered nothing', !/Our standard/.test(row('up_start_date').src) && !row('up_start_date').box);
+    check('2a the owed notice period: "Our standard for <the kind of contract>: 90 days", in the box as the reading', !!N.kind && N.kind !== 'termination' && N.std.trim() === `Our position for ${N.kind}: 90 days` && N.box === '90 days' && /is-read/.test(N.cls), JSON.stringify(N));
+    check('2b a box no standard names is offered nothing', !/Our position/.test(row('up_start_date').src) && !row('up_start_date').box);
     await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_notice_period"]'); await ckConfirm(page, 'up_notice_period');
     const used = await until(() => { const c = getContract('MK-0405');
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): the one Save stores it and the panel goes back to the Dossier */

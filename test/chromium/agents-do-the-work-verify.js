@@ -169,7 +169,7 @@ const answer = body => {
       await page.click('[data-ag-open="answer:MK-DW1"]');
       await page.waitForTimeout(700);
       const prep = await page.evaluate(() => { const p = document.querySelector('[data-ag-panel] .ag-prep'); return p ? p.textContent.replace(/\s+/g, ' ').trim() : null; });
-      ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', !!prep && /^Counter\b/.test(prep) && /Based on your standard: Payment terms/.test(prep)
+      ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', !!prep && /^Counter\b/.test(prep) && /Based on your position: Payment terms/.test(prep)
         && /sixty \(60\)/.test(await page.evaluate(() => (document.querySelector('[data-ag-panel] .ag-prep .ag-words-b') || {}).textContent || '')), prep);
       const opened = await page.evaluate(() => { const b = document.querySelector('[data-ag-panel] [data-ag-sb-open]'); if (!b) return false; b.click();
         const box = document.querySelector('[data-ag-panel] .ag-sb-box'); return !!box && !box.hidden; });
