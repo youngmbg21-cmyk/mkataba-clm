@@ -346,10 +346,14 @@ const PROBE = `(() => {
        other four fold behind Filter */
     const side = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-side [data-ht-side]')].filter(b => b.getBoundingClientRect().width > 0).map(b => b.textContent.trim()), HP);
     /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand in the open, in the drawing's order, no Filter button */
-    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-filter')), HP);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's filters are QUICK LINKS in the open
+       (owner, 31 Oct 2026, "Quick links as drawn"; histQuickHtml): theirs · sent · decisions · Jambo, a link that would
+       give nothing not drawn — read in place of the four boxes, same promise: in the open, in the drawn order */
+    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-quick [data-ht-quick]')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-quick')), HP);
+    const QORDER = ['theirs', 'sent', 'decisions', 'jambo'];
     const fbtn = await page.evaluate(sel => !!document.querySelector(sel + ' #hist-filter-btn'), HP);
-    ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', m.filters >= 4 && !fbtn && side.length === 0, m.filters + ' filters showing · button ' + fbtn + ' · ' + side.join(' · '));
-    ok('7a2 in the drawing\'s order (person, clause, outcome, round)', JSON.stringify(f5) === JSON.stringify(['actor', 'clauseId', 'outcome', 'round']), f5.join(' · '));
+    ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', f5.length >= 2 && !fbtn && side.length === 0, f5.length + ' quick links showing · button ' + fbtn + ' · ' + side.join(' · '));
+    ok('7a2 in the drawing\'s order (theirs, sent, decisions, Jambo)', f5.every((k, i) => QORDER.includes(k) && (i === 0 || QORDER.indexOf(k) > QORDER.indexOf(f5[i - 1]))), f5.join(' · '));
     await page.click('#hist-detail');
     await page.waitForTimeout(500);
     const wording = await page.evaluate(sel => document.querySelectorAll(sel + ' .hist-redline').length, HP);

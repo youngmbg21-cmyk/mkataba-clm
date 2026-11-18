@@ -131,8 +131,10 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's Needs you tab is the one desk —
        its headings are its two groups — and the News tab keeps the grouped list; each heading said once */
     await page.evaluate(() => { if (typeof openPanel === 'function') openPanel('alerts'); });
-    await waitFor(page, () => document.querySelectorAll('#panel-body .nd-pan .nd-r').length > 0, 6000);
-    const texts = await page.evaluate(() => [...document.querySelectorAll('#panel-body .nd-pan .nd-g .nd-g-t, #panel-body [data-al-grp] > div:first-child .al-t')].map(e => e.textContent.trim()));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's panel is one list (.ndb), its headings
+       .ndb-h (Needs you, News), its rows .ndb-r */
+    await waitFor(page, () => document.querySelectorAll('#panel-body .ndb .ndb-r').length > 0, 6000);
+    const texts = await page.evaluate(() => [...document.querySelectorAll('#panel-body .ndb .ndb-h')].map(e => e.textContent.trim()));
     check('5 the bell says each heading once', texts.length > 0 && new Set(texts).size === texts.length, JSON.stringify(texts));
     await page.keyboard.press('Escape');
 

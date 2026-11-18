@@ -170,7 +170,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       }, null, { timeout: 12000 }).then(() => true).catch(() => false);
       const said = up ? await page.evaluate(() => (document.getElementById('sh-letter') || {}).innerText || '') : '';
       check('1c2 Send all opens the letter, naming what travels, and is answered',
-        up && /change/i.test(said) && /Clause 1\b/.test(said), up ? said.slice(0, 400) : 'no letter');
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's send screen names what travels in its
+           "What goes" step; a first send of our own paper folds our fix into the baseline (OUR PAPER GOES OUT CLEAN THE FIRST
+           TIME, negoFoldOwnFirstSend), so what travels is named as the round's clean copy and the fix kept in our history */
+        up && ((/change/i.test(said) && /Clause 1\b/.test(said)) || (/round 1 · clean copy/.test(said) && /fix stays in your history/.test(said))), up ? said.slice(0, 400) : 'no letter');
       if (up) await page.evaluate(() => {
         const ack = document.getElementById('sh-ack'); if (ack && !ack.checked) ack.click();
         document.getElementById('share-send').click();
@@ -223,6 +226,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
     /* IT REACHES THE LIST TOO — the register is where this was most wrong. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('#reg-tbody [data-row]', { timeout: 10000 }).catch(() => {});
     await pause(1800);
     /* RE-POINTED 24 Aug 2026 — the register's row states its stage as a dot and
        a word (.reg-stg) rather than a filled chip, so .badge finds nothing
@@ -232,7 +239,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const tr = document.querySelector(`#reg-tbody tr[data-row="${id}"]`);
       if (!tr) return { absent: true };
       /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE): the stage word rides the grey line (.reg-stg-w) */
-      const st = tr.querySelector('.reg-stg-w') || tr.querySelector('.reg-stg') || tr.querySelector('.badge');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's stage word stands in its Standing column (td.reg-standing) */
+      const st = tr.querySelector('td.reg-standing') || tr.querySelector('.reg-stg-w') || tr.querySelector('.reg-stg') || tr.querySelector('.badge');
       return { chip: st ? st.textContent.trim() : '' };
     }, staged.id);
     check('1h and the contracts list agrees',

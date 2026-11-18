@@ -64,11 +64,14 @@ const CONTRACTS = [
   const homeTalk = async () => { await quiet();
     await until(() => { if (window.pdTalkReopen && !(window.pdTalkShows && pdTalkShows())) pdTalkReopen(); return window.pdTalkShows && pdTalkShows() ? true : null; }, null, 6000);
     await quiet(); };
+  const ST_FEED = '#ins-panel [data-jt-talk]';
   const toSettings = async () => {
     await page.evaluate(() => setView('team'));
-    await until(() => !!document.getElementById('st-jb-feed'), null, 8000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel,
+       box #jl-q, its conversation the panel's talk [data-jt-talk]), no longer its own #st-side / #st-jb-feed */
+    await until(() => state.view === 'team' && !!document.querySelector('#ins-panel #jl-q'), null, 8000);
     /* the page may draw again as it settles (a docked panel): reopen until the conversation is up */
-    await until(() => { if (window.stTalkReopen) stTalkReopen(); const T = document.querySelector('#st-jb-feed [data-st-jb-talk]'); return T && !T.hidden && window.stTalkShows && stTalkShows() ? true : null; }, null, 6000);
+    await until(() => { if (window.jlTalkPress && !(window.jlTalkShows && jlTalkShows())) jlTalkPress(); const T = document.querySelector('#ins-panel [data-jt-talk]'); return T && !T.hidden && window.jlTalkShows && jlTalkShows() ? true : null; }, null, 6000);
   };
   const toSide = async () => {
     await page.evaluate(() => { setView('brain'); });
@@ -91,7 +94,7 @@ const CONTRACTS = [
     const home1 = await until(() => /QHOME/.test((document.getElementById('ig-dock') || {}).textContent || '') ? true : null, null, 8000);
     check('1a the question is in Home\'s panel', !!home1);
     await toSettings();
-    const st1 = await until(() => { const f = document.getElementById('st-jb-feed'); return f && /QHOME/.test(f.textContent) ? f.textContent.replace(/\s+/g, ' ').slice(0, 200) : null; }, null, 6000);
+    const st1 = await until(() => { const f = document.querySelector('#ins-panel [data-jt-talk]'); return f && /QHOME/.test(f.textContent) ? f.textContent.replace(/\s+/g, ' ').slice(0, 200) : null; }, null, 6000);
     check('1b the same question is in Settings\' panel', !!st1, st1);
     await shot('settings-1440x780');
     await toSide();
@@ -109,11 +112,13 @@ const CONTRACTS = [
     await toSettings();
     /* RE-POINTED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): the
        settings finder's free answer (its press, part 5) is Overview's; typed on Jambo's tab it would go to the chat */
-    await page.evaluate(() => { try { stTalkBack(); } catch (_) {} });
-    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#st-jb-q', 'QSET signing limit');
-    await H.chipEnter(page, '#st-jb-q');
-    const st2 = await until(() => { const f = document.getElementById('st-jb-feed'); return f && /QSET/.test(f.textContent) && /QSIDE/.test(f.textContent) ? true : null; }, null, 6000);
-    check('2a in Settings: its own question and the side panel\'s, one conversation', !!st2, (await txt('#st-jb-feed')).slice(0, 300));
+    await page.evaluate(() => { try { jlTalkBack(); } catch (_) {} });
+    /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#jl-q', 'QSET signing limit');
+    /* RE-POINTED 16 Nov 2026 (#762): Settings' box is the list panel's (#jl-q); asked as a chip asks it, its reader
+       (jlAsk) asks Settings' one finder (stFind) first */
+    await H.chipEnter(page, '#jl-q');
+    const st2 = await until(() => { const f = document.querySelector('#ins-panel [data-jt-talk]'); return f && /QSET/.test(f.textContent) && /QSIDE/.test(f.textContent) ? true : null; }, null, 6000);
+    check('2a in Settings: its own question and the side panel\'s, one conversation', !!st2, (await txt(ST_FEED)).slice(0, 300));
     await toHome(); await homeTalk();
     const home2 = await until(() => { const t = (document.getElementById('ig-dock') || {}).textContent || ''; return /QSET/.test(t) && /QSIDE/.test(t) && /QHOME/.test(t) ? true : null; }, null, 6000);
     check('2b on Home: Settings\' and the side panel\'s questions with its own', !!home2, (await txt('#ig-dock')).slice(0, 300));
@@ -133,9 +138,14 @@ const CONTRACTS = [
     check('4 another contract on Home\'s paper keeps the one conversation', !!paper, (await txt('#ig-dock')).slice(0, 200));
 
     /* ===== 5 · A PRESS AWAY FROM ITS HOST ===== */
-    const stBtn = await page.evaluate(() => { const b = document.querySelector('#ig-dock .jb-turn[data-jb-born="st"] button'); return b ? (b.textContent || '').trim() : null; });
+    /* RE-POINTED 16 Nov 2026 (#762): Settings' answers are born in the list panel there (born "jl" on Settings, the
+       finder's cards) as well as the old side ("st") */
+    /* the finder's answer asked in Settings' new-look box is pushed into the one conversation (aiPush) carrying the
+       settings cards (.st-jb-cards), each its own door — that card's press is the one asked of here */
+    const ST_TURN = '#ig-dock .jb-turn:is([data-jb-born="st"], [data-jb-born="jl"]) button, #ig-dock .jb-turn .st-jb-cards button';
+    const stBtn = await page.evaluate(sel => { const b = document.querySelector(sel); return b ? (b.textContent || '').trim() : null; }, ST_TURN);
     if (stBtn) {
-      await page.click('#ig-dock .jb-turn[data-jb-born="st"] button');
+      await page.click(ST_TURN);
       const went = await until(() => state.view === 'team' ? true : null, null, 6000);
       check('5a a Settings answer\'s press shown on Home takes you to Settings and presses there', !!went, stBtn);
     } else check('5a (no Settings answer carried a press to try)', false, (await txt('#ig-dock')).slice(0, 200));
@@ -161,12 +171,17 @@ const CONTRACTS = [
 
     /* ===== 6 · CLEAR, EVERYWHERE ===== */
     await toSide();
-    await page.click('#ai-clear');
+    /* the side panel's own Delete conversation (#ai-clear, its head), pressed as a reader does once the panel has
+       settled; where a slide still covers it the press is made on the element so the claim below is still measured */
+    await until(() => { const b = document.getElementById('ai-clear'); const r = b && b.getBoundingClientRect(); return r && r.width > 0 && r.right <= innerWidth ? true : null; }, null, 4000);
+    try { await page.click('#ai-clear', { timeout: 4000 }); } catch (_){ await page.evaluate(() => document.getElementById('ai-clear').click()); }
     await page.evaluate(() => closeAI());
     await toHome(); await homeTalk();
     const gone = await page.evaluate(() => !/QHOME|QSET|QSIDE/.test((document.getElementById('ig-dock') || {}).textContent || '') && intel.history.length === 0);
     await toSettings();
-    const gone2 = await page.evaluate(() => !/QHOME|QSET|QSIDE/.test((document.getElementById('st-jb-feed') || {}).textContent || ''));
+    /* RE-POINTED 16 Nov 2026 (#762): Settings' conversation is the list panel's talk — opened, as a reader opens it */
+    await page.evaluate(() => { try { if (window.jlTalkPress) jlTalkPress(); } catch (_){} }); await page.waitForTimeout(400);
+    const gone2 = await page.evaluate(() => !/QHOME|QSET|QSIDE/.test((document.querySelector('#ins-panel [data-jt-talk]') || {}).textContent || ''));
     check('6 Clear in the side panel clears the one conversation on Home and in Settings', gone && gone2, JSON.stringify({ gone, gone2 }));
   } catch (e) {
     check('the stage ran', false, String(e && e.stack || e).slice(0, 400));

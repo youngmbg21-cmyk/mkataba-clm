@@ -1502,7 +1502,8 @@ function migNlRowHtml(r){
     read = [f.contractType && f.contractType.text, c.counterparty ? i18t('mign_between', { a: ours, b: c.counterparty }) : '', term].filter(Boolean).join(' \u00b7 ');
     looks = st.k === 'none' ? '\u2014' : c.status === 'Signed' ? i18t('mign_signed') : i18t('mign_unsigned');
     stream = c.folder && window.FOLDERS && FOLDERS[c.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[c.folder]) || FOLDERS[c.folder].name) : '';
-    value = f.value && f.value.text ? f.value.text : '\u2014';
+    /* the amount with the period the file writes ("KES 480K a year"), the old list's own reading (#762) */
+    value = f.value && f.value.text ? ((r.c && Number(r.c.value) > 0 && typeof migAmountWithPeriod === 'function') ? migAmountWithPeriod(r.c) : f.value.text) : '\u2014';
   } else read = st.why || '';
   if (!read) read = i18t('mign_nothing');
   const need = MIG_NEEDS.includes(st.k);
@@ -1520,7 +1521,9 @@ function migNlListHtml(rows){
   const hit = r => !q || [r.file, r.c && r.c.counterparty, r.c && r.c.name].some(x => String(x || '').toLowerCase().includes(q));
   /* a figure pressed shows its own files, whole */
   const kind = String(_mign).indexOf('k:') === 0 ? String(_mign).slice(2) : '';
-  const A = kind ? rows.filter(r => r.st.k === kind && hit(r)) : _mign === 'read' ? [] : need.filter(hit), B = kind ? [] : _mign === 'need' ? [] : rest.filter(hit);
+  /* the check view's Decide lands on the files that want a decision, and only those (MIG_DECIDE; #762) */
+  const decide = _mign === 'decide';
+  const A = decide ? rows.filter(r => MIG_DECIDE.includes(r.st.k) && hit(r)) : kind ? rows.filter(r => r.st.k === kind && hit(r)) : _mign === 'read' ? [] : need.filter(hit), B = (kind || decide) ? [] : _mign === 'need' ? [] : rest.filter(hit);
   return `
     <table class="apn-table cun-table mign-table"><colgroup><col style="width:21%" data-floor="160"><col style="width:27%" data-floor="200"><col style="width:13%" data-floor="120"><col style="width:10%" data-floor="80"><col style="width:11%" data-floor="96"><col style="width:9%" data-floor="84"><col data-floor="84"></colgroup>
     <thead><tr><th>${esc(i18t('mign_c_file'))}</th><th>${esc(i18t('mign_c_read'))}</th><th>${esc(i18t('mign_c_sure'))}</th><th>${esc(i18t('mign_c_looks'))}</th><th>${esc(i18t('mig_col_stream'))}</th><th>${esc(i18t('reg_col_value'))}</th><th></th></tr></thead>
@@ -1537,13 +1540,21 @@ function migNlPageHtml(rows){
   return `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mign-page" data-ins-page="migration" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('mign_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
+        <button type="button" class="ctf-pill" id="mig-sheet" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>${may ? '<input id="mig-sheet-file" type="file" accept=".csv" hidden>' : ''}
         ${may && need ? `<button type="button" class="ctf-pill" id="mig-check-all">${esc(i18t('mign_check_all', { n: need }))}</button>` : ''}
         ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" id="mign-choose">${esc(i18t('mign_choose_files'))}</button><input type="file" id="mign-files" multiple hidden>` : ''}</div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_migQ || '')}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="migration-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_migQ || '')}"></label><span class="apn-sp"></span>
         ${tab('need', i18t('mign_tab_need'), need)}${tab('read', i18t('mign_tab_read'), read)}${tab('all', i18t('ctf_tab_all'), rows.length)}</div>
       ${migNlFigsHtml()}
-      <div class="cu-scroll">${migNlListHtml(rows)}</div>
+      <div class="cu-scroll">${migNlListHtml(rows)}${migNlListBoxHtml()}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('mig_side_label'))}"></aside></div></div>`;
+}
+/* THE CONTRACT LIST AGAINST WHAT ARRIVED keeps its place under the files (#762: the drawn page had dropped it): the
+   list's name and how much of it was matched, then what is missing either way (migReconHtml, the old page's own) */
+function migNlListBoxHtml(){
+  const M = migState(); if (!M.manifest) return '';
+  const n = M.manifest.filter(r => r.matchedId).length;
+  return `<div class="mign-recon"><div class="mig-list-box"><span class="mig-list-name" title="${esc(M.manifestName || '')}">${esc(M.manifestName || '')}</span> \u00b7 <span class="mig-list-n">${esc(i18t('mig_list_matched', { n, of: M.manifest.length }))}</span></div>${typeof migReconHtml === 'function' ? migReconHtml() : ''}</div>`;
 }
 function migNlPanelFiveHtml(r, rows, need){
   const E = esc, f = Object.fromEntries(migSideFacts(r.c).map(x => [x.k, x]));
@@ -1551,10 +1562,13 @@ function migNlPanelFiveHtml(r, rows, need){
   const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' \u2013 ');
   const isNeed = MIG_NEEDS.includes(r.st.k), none = r.st.k === 'none', signed = r.c.status === 'Signed';
   const parked = rows.filter(x => x.q && x.q.status === 'unsigned').length;
-  const filed = rows.length - need.length;
+  /* the panel's "N filed" is the files filed — the page's own figure (migKpis().filed), never "not waiting on you" (#762) */
+  const filed = rows.filter(x => x && x.st && x.st.k === 'filed').length;
   const lines = [{ mark: none ? 'alert' : 'mkTick', tone: none ? 'amber' : 'green', t: none ? i18t('mign_p_nothing') : (scan ? i18t('mign_scan') : i18t('mign_p_whole')), s: pages ? i18tn('mign_pages', pages, { n: pages }) : '' }];
   if (!none){
-    lines.push({ mark: 'calendar', tone: term ? '' : 'amber', t: term || i18t('mign_p_no_end'), s: term ? i18t('mign_p_term') : i18t('mign5_end_add'), attr: term ? '' : `data-mign-go="${E(r.key)}" data-mign-need="1"` });
+    /* THE END NOT READ IS SAID IN AMBER even where a start was read (#762: a start alone read as the whole term) */
+    const hasEnd = !!(f.expiryDate && f.expiryDate.text), start = f.effectiveDate && f.effectiveDate.text;
+    lines.push({ mark: 'calendar', tone: hasEnd ? '' : 'amber', t: hasEnd ? term : i18t('mign_p_no_end'), s: hasEnd ? i18t('mign_p_term') : [start, i18t('mign5_end_add')].filter(Boolean).join(' \u00b7 '), attr: hasEnd ? '' : `data-mign-go="${E(r.key)}" data-mign-need="1"` });
     lines.push({ mark: signed ? 'mkTick' : 'alert', tone: signed ? 'green' : 'amber', t: signed ? i18t('mign_signed') : i18t('mign_p_none_found'), s: signed ? i18t('mign5_filed_not_parked') : '' });
     if (r.c.counterparty) lines.push({ mark: 'users', t: `${String(window.FIRST_PARTY || '').split(/\s+/)[0]} \u00b7 ${r.c.counterparty}`, s: i18t('mign_p_parties') });
   }
@@ -1603,7 +1617,10 @@ function migNlPanelPaint(rows){
      data-mign-checkall); the counts are the list's, no call */
   const five = r && r.c && typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn();
   insPaintPanel({ seat: 'migration', item: { id: (r && r.key) || '__import' }, head: false, jlWord: i18t('mig_side_word'), jlPh: i18t('jl_ph_any'),
-    body: five ? migNlPanelFiveHtml(r, rows, need) : `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${file}</div>` });
+    /* A FILE NOT YET A CONTRACT (a likely copy, one that could not be read, one still reading, one left out) says what
+       happened and keeps its own choices — "Is this a copy?" with Skip · Import anyway · Link (#762: the new panel had
+       only the batch's line for it, the copy's decision was lost); the old side's one builder, migSideRowHtml */
+    body: five ? migNlPanelFiveHtml(r, rows, need) : (r && !r.c && typeof migSideRowHtml === 'function') ? migSideRowHtml(r) : `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${file}</div>` });
 }
 /* IMPORT'S THREE TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Need you · Read · All only pick which files), so a
    tab press and a typed letter redraw only the rows (listRowsSwapHtml); anything it will not swap draws the whole
@@ -1634,6 +1651,7 @@ let _mign = 'all';
 if (typeof document !== 'undefined' && !document._mignWired){ document._mignWired = true;
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mign-q') return; _migQ = e.target.value; renderMigration({ rows: true }); });
+  document.addEventListener('change', e => { const sf = e.target; if (!sf || sf.id !== 'mig-sheet-file' || !sf.closest('.mign-page')) return; if (sf.files && sf.files[0]) migImportSheet(sf.files[0]); sf.value = ''; });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('.mig-page, .mign-page')) return; let el;
     if ((el = t.closest('.mign-page #mig-check-all, [data-mign-checkall]'))){ e.preventDefault(); migCheckOpen(); return; }
@@ -1641,6 +1659,8 @@ if (typeof document !== 'undefined' && !document._mignWired){ document._mignWire
     /* a figure shows its files; pressed again it lets go (press it again and it closes) */
     if ((el = t.closest('[data-mign-fig]'))){ e.preventDefault(); const k = el.getAttribute('data-mign-fig'); _mign = (_mign === k && k !== 'all') ? 'all' : k; renderMigration({ rows: true }); return; }
     if ((el = t.closest('#mign-choose'))){ e.preventDefault(); const fi = document.getElementById('mign-files'); if (fi) fi.click(); return; }
+    /* REVIEW SPREADSHEET keeps its door on the drawn page (#762): the sheet out, the corrected one in — its one menu */
+    if ((el = t.closest('.mign-page #mig-sheet'))){ e.preventDefault(); migSheetMenu(el); return; }
     if ((el = t.closest('.mign-page tr[data-row]')) && !t.closest('[data-mign-go]')){ const k = el.getAttribute('data-row'); if (k !== _migPick){ _migPick = k; renderMigration(); } return; }
     if ((el = t.closest('[data-mign-go]'))){ e.preventDefault(); e.stopPropagation(); const key = el.getAttribute('data-mign-go');
       if (el.getAttribute('data-mign-need') === '1') migCheckOpen(key); else { const r = migRowByKey(key); if (r && r.c && typeof regOpenContract === 'function') regOpenContract(r.c.id); } }
@@ -2329,6 +2349,8 @@ function migCheckIds(){ return migRows().filter(r => r.st.k === 'check' && (r.c 
 const migCheckWaits = key => { const r = migRowByKey(key); return !!(r && r.st.k === 'check'); };
 function migCheckId(){ return _migCheck ? (_migCheck.ids[_migCheck.i] || null) : null; }
 function migCheckOpen(startId){
+  /* the walk's own tabs choose what the list shows when it closes; opening it again starts from the whole list */
+  if (typeof _mign !== 'undefined' && (_mign === 'decide' || String(_mign).indexOf('k:') === 0)) _mign = 'all';
   const ids = migCheckIds();
   if (startId && migRowByKey(startId) && !ids.includes(startId)) ids.unshift(startId);
   if (!ids.length){ toast(i18t('mig_nothing_waiting'), 'warn'); return false; }
@@ -2690,7 +2712,7 @@ function renderMigration(o){
       .mig-page{padding:0 var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
       /* the shell's title strip, drawn in the page: the same 26px top, 40px edge, white ground and hairline under it */
       /* and what stands under it where it stood under the strip: the page's two gaps and the band are taken back */
-      .mig-own-head{flex:none;position:relative;z-index:1;padding:23px 40px 0;margin:0 10px -21px 0;background:var(--color-surface)}
+      .mig-own-head{flex:none;position:sticky;top:0;z-index:1;padding:23px 40px 0;margin:0 0 -21px 0;background:var(--color-surface)}
       .mig-own-head .ctf-h{line-height:1.2}
       .mig-own-head .cun-head{margin:0;min-height:44px;box-sizing:border-box;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
       .mig-own-head .apn-acts:empty{display:none}
@@ -2922,7 +2944,7 @@ function migReconHtml(){
    so every press below reads the live element at press time ---- */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._migWired)){
   if (typeof window !== 'undefined') window._migWired = true;
-  const inPage = t => t.closest('.mig-page') || t.closest('#page-head') || t.closest('[data-mig-paneldrop]');
+  const inPage = t => t.closest('.mig-page') || t.closest('#page-head') || t.closest('[data-mig-paneldrop]') || (t.closest('#ins-panel') && t.closest('[data-dup-skip],[data-dup-import],[data-dup-link]'));
   /* a file dropped on the panel's drop area goes the page strip's way (migDropTake) */
   document.addEventListener('dragover', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (d){ e.preventDefault(); d.classList.add('is-over'); } });
   document.addEventListener('dragleave', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (d) d.classList.remove('is-over'); });
@@ -2934,6 +2956,14 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if ((el = t.closest('#mig-choose'))){ document.getElementById('mig-files')?.click(); return; }
     /* the panel's drop area is the page's own door (THE FIVE PARTS, 15 Nov 2026) */
     if ((el = t.closest('[data-mig-paneldrop]'))){ document.getElementById('mig-files')?.click(); return; }
+    /* a likely copy's three choices answer from Jambo's panel too, which stands outside the page (#762) */
+    if ((el = t.closest('[data-dup-skip]'))){ migResolveDuplicate(Number(el.getAttribute('data-dup-skip')), 'skip'); return; }
+    if ((el = t.closest('[data-dup-import]'))){ migResolveDuplicate(Number(el.getAttribute('data-dup-import')), 'import'); return; }
+    if ((el = t.closest('[data-dup-link]'))){
+      const i = Number(el.getAttribute('data-dup-link')), box = el.closest('.mig-cf') || document;
+      migResolveDuplicate(i, 'link', box.querySelector(`[data-dup-parent="${i}"]`)?.value, box.querySelector(`[data-dup-rel="${i}"]`)?.value);
+      return;
+    }
     if (!t.closest('.mig-page')) return;
     if ((el = t.closest('[data-open]'))){ e.stopPropagation(); openWorkspace(el.getAttribute('data-open')); return; }
     if ((el = t.closest('#mig-drop'))){ document.getElementById('mig-files')?.click(); return; }
@@ -2952,7 +2982,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       const tk = el.getAttribute('data-mig-ck-tab');
       if (tk === 'check'){ _migShow = 'all'; migCheckOpen(); return; }
       /* the bar counts the whole batch: it lands on every file it named */
-      _migCheck = null; _migPick = null; migShowSet(tk, true); migLandFirst(); return; }
+      _migCheck = null; _migPick = null; _mign = tk === 'decide' ? 'decide' : 'k:' + tk; migShowSet(tk, true); migLandFirst(); return; }
     /* A FILE THAT LOOKS UNSIGNED: the person's call — a draft, signed, or left out */
     if ((el = t.closest('[data-mig-unsigned]'))){
       const i = Number(el.getAttribute('data-i')), act = el.getAttribute('data-mig-unsigned'), key = 'q:' + i;
@@ -3004,13 +3034,6 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       return;
     }
     if ((el = t.closest('[data-mig-side-link]'))){ const c = getContract(el.getAttribute('data-mig-side-link')); if (c) openLinkModal(c, () => renderMigration()); return; }
-    if ((el = t.closest('[data-dup-skip]'))){ migResolveDuplicate(Number(el.getAttribute('data-dup-skip')), 'skip'); return; }
-    if ((el = t.closest('[data-dup-import]'))){ migResolveDuplicate(Number(el.getAttribute('data-dup-import')), 'import'); return; }
-    if ((el = t.closest('[data-dup-link]'))){
-      const i = Number(el.getAttribute('data-dup-link')), box = el.closest('.mig-cf') || document;
-      migResolveDuplicate(i, 'link', box.querySelector(`[data-dup-parent="${i}"]`)?.value, box.querySelector(`[data-dup-rel="${i}"]`)?.value);
-      return;
-    }
     /* A PRESS CHOOSES, A SECOND PRESS LETS IT GO (round 22, Jambo's panel) */
     if ((el = t.closest('.mig-table tbody tr[data-row]'))){ migPickSet(el.getAttribute('data-row')); return; }
   });

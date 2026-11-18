@@ -720,7 +720,89 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 30 Oct 2026 (the nav panel's door): test/chromium/nav-panel-door-verify.js (new; red at unmodified main 1): #hdr-nav just left of the bell at the three screens, the same size; a press opens the Guide face, again closes; from Alerts it swaps to the Guide and the bell swaps back; aria-expanded follows the Guide.
 
 ## THE NEW LOOK — THE FRAME (round 1 of the Legora way, rebuilt page by page behind one switch)
-- `node --test test/f967-the-new-look-switch.test.js` — the switch: an admin's own, off by default, the server's wall; every new-look rule waits on `html.lg-new`.
+- `node --test test/f967-the-new-look-switch.test.js` — THE NEW LOOK IS THE ONLY LOOK (16 Nov 2026): on for anyone signed in, the outside look always on (both hosts), no switch drawn or handled; every new-look rule waits on `html.lg-new`. Re-pointed with it: f974 (5) (outsiders always see it), f1045 (1) (eleven settings rows).
+- WHOLE FILES RETIRED (17 Nov 2026, #762; every check in each pinned an old-look page the new look replaced on purpose, or the owner's 17 Nov rulings): test/chromium/checklist-as-drawn-verify.js (the old Dossier checklist), company-control-room-verify.js (the old Company board), customers-verify.js (the old Parties list; the new Parties page is driven by parties-nda-column and people-directory), discover-photos.js (photos of the old Discover beside the list), dossier-rows-verify.js (the old Still owed grid), fill-in-beside-the-paper-verify.js and fill-in-the-contract-verify.js (the old form beside the paper; filling in on the paper replaced it 11 Nov), inspector-checklist-verify.js (the old list panel's Needs you checklist), legora-lists-verify.js (the old shared list head), read-table-verify.js, reads-verify.js and reads-next-lands-on-read-verify.js (the old Reads table and its landing on Contracts; the new Discover replaced them, and a finished read now stays on Discover).
+- ALSO RETIRED WHOLE (17 Nov 2026, #762, owner's ruling 2): test/chromium/the-road-as-drawn-verify.js (the old road column under Before you sign; the five parts replaced it — the-road-verify now reads the five parts) and still-owed-sap-way-verify.js (the old Still owed grid).
+- THE NEW LOOK IS THE ONLY LOOK — BROWSER CHECKS RE-POINTED AND RETIRED (16 Nov 2026, #762): each re-pointed check carries a "RE-POINTED 16 Nov 2026 (#762)" comment; each retired one a "RETIRED 16 Nov 2026 (#762)" comment where it stood. Retired (old look only):
+  - adapt-filters-verify.js: section 2 and "+ Filter no longer offers it" (the new look's Contracts head draws no + Filter, lead's ruling) 
+  - auto-triage-verify.js: 11e (two old boxes agreeing; the new look has one brief page) 
+  - board-views-verify.js: 2b (the narrowed page's chip ×, old look only)
+  - brief-one-page-new-look-verify.js: 4 (the new look switched off opens the old side panel 
+  - buglog-fixes-nov6-verify.js: 3, 4 (both measured with the new look switched off)
+  - button-consistency-verify.js: 1c (the Contracts list's 
+  - calendar-agenda-verify.js: 2c the Agenda's foot count (the new look's Agenda draws no foot)
+  - clause-list-fixed-verify.js: 6b (the Needs you tab; the new look's Clauses draw no tabs) 
+  - clauses-legora-way-verify.js: 1 (head counts + tabs) and 1b (Worth a look tab) 
+  - compact-ladder-verify.js: 1b (filter bar chips), 1c/1d (a row's 
+  - contract-new-look-verify.js: 6 (with the switch off: the old Dossier 
+  - contracts-page-verify.js: 3c, 5a, 5b (+ Filter not drawn on the new look's head, lead's ruling); 14a
+  - control-room-in-full-verify.js: 2 (card facts), 2b (ladder card), 3c (Menu "logo"), 4b (old side chips) 
+  - counter-as-drawn-verify.js: 10d, 10g (the folded "Jambo" strip on Jambo's agents 
+  - counterparty-leads-verify.js: 3b, 3c2 (the lifted sheet and accent-tinted chosen row were the old New agreement sheet's; the new look's one sheet lies flat, rows wear their stream's tone) 
+  - counterparty-reading-and-more-verify.js: 1b (two geometry checks: deal verbs on the title's line, readings left of them 
+  - detail-round-verify.js: 1b and 2a (the Calendar's / Send screen's head "floats as a card": lift + 8px inset 
+  - discover-verify.js: stage 3's "Discover beside the list" (#ac-disc, 3a
+  - every-door-lands-on-home-verify.js: List row 
+  - four-decisions-verify.js: Q3 Dossier "Who else" row and the 44px door row (old Dossier list) 
+  - four-inspectors-verify.js: 1b weeks as groups, 1c0 "Outstanding does not list a held-back step" (round-16 arithmetic; the project list's Tracked is every open duty) 
+  - guide-panel-verify.js: 1b/2f (the "new" mark on the Guide tab, not drawn in the new look)
+  - handbook-verify.js: 2b's "Which one do I need?" table and chips (old part page) 
+  - import-as-drawn-verify.js: 5c (six facts in the panel: now the check view's), 5f (
+  - import-contracts-verify.js: none 
+  - import-jambo-panel-verify.js: 3b, 3c (row let go 
+  - import-sap-way-verify.js: none 
+  - jambo-chat-window-verify.js: 4a, 4c (the edge "Jambo" tab 
+  - jambo-slides-in-verify.js: "1 (setup) Jambo's agents carries the edge tab" and 1e "the edge tab steps away" (no edge tab in the new look); 1f now asks only that the minimise puts the panel away
+  - jambos-list-panel-verify.js: 2d's "What Jambo read" list, the "start a negotiation" chip in 1b, 5e "Since last look · Nothing changed" (said only on a change, 5i kept), 10a pill beside the party's name, 10i "· K live", 10j dots/
+  - jambos-panel-verify.js: 1e (old Still owed head's "all N"), 2a (old glance's owed-details grid #pd-og)
+  - keeps-your-place-verify.js: none 
+  - legora-look-verify.js: 11c (panel beside a list floats with a lift), 12f (panel beside a paper floats: 8px margin, 10px corners), 12g (the paper's half a white card at 10px) 
+  - letter-second-pass-verify.js: 1b ('the box runs the letter's width' 
+  - negotiate-new-look-verify.js: 10 (with the new-look switch off no notes beside the paper 
+  - new-look-frame-verify.js: 7 (switch off, nothing moved) 
+  - next-step-chips-verify.js: 1d (the edit chip's press 
+  - nine-off-five-images-verify.js: 4b "the bar shares its centre line with the expiry tick" 
+  - notes-match-clauses-verify.js: 8 (the switch off: no notes 
+  - obligation-opens-on-the-paper-verify.js: check 3 (the old look's narrowed page; no old look any more)
+  - one-sheet-verify.js: 1a
+  - our-paper-as-drawn-verify.js: the version pill and "updated <day> by <name>" in the head (not drawn); "It meets N of Our standards" sentence in Jambo's words (not on the Five panel) 
+  - overview-and-obligations-polish-verify.js: 4a "All first" on the Obligations page (new look has three pills Late · Tracked · Proposals, no All tab to order); 4b "All first" on the contract's Obligations tab (the old room tab .ob
+  - overview-tab-verify.js: 5 (Contracts: Discover above the list's facts 
+  - panel-alerts-and-head-verify.js: 'the head's word is the primary ink (B1)' 
+  - parties-sap-way-verify.js: 'Ended narrows to ended parties' (no Status tabs; standing is a column), 2b panel's Waiting begins with the column's item and 3b a waiting row's door (the drawn Five panel has no Waiting section)
+  - piles-as-drawn-verify.js: 2a ('Redlines N' head counts the rows 
+  - playbook-opens-read-verify.js: section 1's nine checks on the old side panel #playbook-section (arrives read, folds, fold per contract) 
+  - point-buttons-and-brief-verify.js: 6b ('no "The brief" label is left' 
+  - portal-header-verbs-verify.js: 'focus mode a button on the control row, not hidden in More' (outside look puts Focus under More by design) 
+  - private-streams-verify.js: 7d
+  - reading-desk-verify.js: 1
+  - register-category-verify.js: the six '+ Filter' Category-group checks (offered, lists the book's categories, 'No category yet' listed, on the one bar, Renewal not beside it, its label) 
+  - room-tabs-as-drawn-verify.js: 4a
+  - round5-new-look-verify.js: 8 (the switch off: Approvals/Obligations as before; no switch any more)
+  - round6-new-look-verify.js: 12 (the switch off: Contracts/Parties/Reads as before)
+  - round7-new-look-verify.js: 6 (the switch off: Negotiations/Settings/Guide as before)
+  - round7b-new-look-verify.js: 5 (the switch off: the house and the Handbook as before)
+  - round8-outside-verify.js: 1 (off: old sign-in / expired page) 
+  - round8-phone-verify.js: 1 (off: the phone as before)
+  - round8-their-page-verify.js: 1 (off: their page as before)
+  - round9-new-look-verify.js: 1 (off: no Read down, refused email's old box)
+  - see-it-while-you-type-verify.js: 1 ('the line's room is there before a word is typed' 
+  - settings-as-drawn-2-verify.js: 3a (Company board cards' doors), 5a/5b (member's sheet with contents list) 
+  - settings-as-drawn-3-verify.js: 1a (head card with tabs), 1f (member head card), 2a
+  - settings-as-drawn-4-verify.js: 1a
+  - settings-as-drawn-verify.js: 1a
+  - settings-groups-verify.js: 1a
+  - settings-tabs-verify.js: the You·Company tab checks (3), "the row behind it says the new name" (Company card fact)
+  - signer-row-as-drawn-verify.js: 4 ('Who else is on this agreement' right after the Signer line 
+  - stakes-verify.js: 3b,3c,3d,3k,3l (the Found by / Severity / Section filters and their dropdown 
+  - standards-beside-paper-verify.js: 6 (the new look switched off shows the old side panel 
+  - stop-and-reads-verify.js: 2a 'the spinning cells say not read yet' (no column cells on Contracts in the new look)
+  - the-brief-and-sap-history-verify.js: 3b (the facts' "Facts" label 
+  - the-middle-verify.js: 1f (the row marked while in the middle) and 4c (the line says "Showing in the middle") 
+  - their-page-legora-way-verify.js: 1 (grey tab track/white pill, row height), 2 (two floating cards, first line at 258), 5 (the foot box inside the change card) 
+  - their-side-verify.js: 2b (the colour key on their control row is not drawn on the outside look; Q6)
+  - week-by-week-verify.js: sections 1
+  - white-band-and-tabs-verify.js: 5c "the Settings tabs are drawn" and 6a
 - `node test/chromium/new-look-frame-verify.js` — the Page frame at the three screens: the panel square at the bar, side and foot behind one hairline; one-sheet pages edge to edge; card pages on the well 12 · 16; the box 44 and its 16; the line above the doors; the bar's order and "?"; one line to Jambo, green on hover; the Board joined; off = nothing moved; a non-admin refused.
 - `HATI_TIDY_NEW_LOOK=1 node test/chromium/tidy-sweep-verify.js` — the tidy sweep with the switch on (and without it, today's look).
 
@@ -823,4 +905,5 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - f1077 (renumbered from f1075, which main also took; panel rows open where their work is, `ndRowGo`; every conversation bubble rounded). Also run: f745, f804, f1042, f1070.
 - f1078 (renumbered from f1076, which main also took; every contract one page to the arrival; a Board chart fades in once; the Handbook panel's questions open their chapter). Also run: f1067, f937, f938, f1070.
 - f1079 (Company needs you lands on the exact job: `cnCompanyGo`, `stNeedGo`). Also run: f869, f1077.
+- THE NEW LOOK IS THE ONLY LOOK, re-pointed (16 Nov 2026): f180 (a verb in their More pop-up counts as reachable while More is on the page), f181 (4) and f439 (Focus with the reading tools behind More), f422 (7) (More on their control row, no key), f439 "a reason after every save" (their seat pins the change in their Notes drawer), f189 3 ("Dear Guliz,"), f307 (5)(6) ("Send"; "Send to Nordfrakt …"), f590 (1) 3 ("Not sent — see beside"), f713 (2) and f757 (1)(2)(3)(4) (the send screen's new-look words).
 - THE COVER FITS ANY SCREEN (16 Nov 2026): f1090 (test/f1090-the-cover-fits-any-screen.test.js; 3 of 3 red at the parent) — the paper A4-shaped and sized off the window, its words in container units, never a fixed 560px; the right column a set width with clamp() type and a scroller inside, never cut; the Contracts door (top right, → setView('register')) said in both books. Re-pointed: f1085 (4) (the Cover's grid rule now opens on --cv-pad). Photographed at 1280×640 (a ThinkPad at 150%), 1440×780, 1536×730, 1366×950 and 1920×1000: nothing spills, nothing scrolls sideways, the right column scrolls 0px.

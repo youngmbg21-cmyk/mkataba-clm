@@ -90,6 +90,16 @@ function assertVisible(el, what){
   assert.ok(el, `${what} must be on the page at all`);
   for (let n = el; n && n.nodeType === 1; n = n.parentElement){
     const where = `<${n.tagName.toLowerCase()}${n.id ? ` id="${n.id}"` : ''}>`;
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): their page keeps its deal verbs in More's pop-up
+       (round 8, as drawn). A verb there is reachable only while its opener is on the page and itself visible. */
+    if (n.id === 'pol-pop'){
+      const more = n.ownerDocument.getElementById('pol-more');
+      assert.ok(more, `${what} sits in More's pop-up, so More must be on the page`);
+      assert.equal(more.getAttribute('aria-controls'), 'pol-pop', 'More opens this pop-up');
+      for (let m = more; m && m.nodeType === 1; m = m.parentElement)
+        assert.ok(!m.hasAttribute('hidden') && !m.classList.contains('hidden'), `More itself is visible (${what})`);
+      continue;
+    }
     assert.ok(!n.hasAttribute('hidden'),
       `${what} is unreachable pixels: ${where} carries [hidden]`);
     assert.ok(!n.classList.contains('hidden'),

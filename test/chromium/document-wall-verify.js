@@ -63,6 +63,9 @@ const check = (name, pass, detail) => {
        place lands on the List now; this check is about the Wall, so it picks Wall as a reader would */
     await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'paper');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       Wall pill is the way to the wall */
+    await page.waitForSelector('[data-ctf-show="wall"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="wall"]')).catch(() => {});
     const up = await wallUp();
     check('0 the Document tab with nothing open shows the wall', up);
     if (!up) throw new Error('the wall never drew');
@@ -98,14 +101,18 @@ const check = (name, pass, detail) => {
        read needs — the count says 24 AND every card drawn carries its number and its sheet — bounded, in place of
        a fixed pause; and the read below no longer crashes on a card without a number, it reports it. */
     await page.waitForFunction(() => { const n = document.querySelector('#ig-paper .igw-count'); const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
-      return !!n && /\b24\b/.test(n.textContent) && cards.length > 0 && cards.every(b => b.querySelector('.igw-ref') && b.querySelector('.igw-sheet')); }, null, { timeout: 20000 /* 8s ran out on a slow runner (PR 775, 18 Nov 2026): the wall was not drawn yet */ }).catch(() => {});
+      return !!n && /\b24\b/.test(n.textContent) && cards.length > 0 && cards.every(b => b.querySelector('.igw-sheet')); }, null, { timeout: 20000 /* 8s ran out on a slow runner (PR 775, 18 Nov 2026): the wall was not drawn yet */ }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '1-wall.png') });
 
     /* ================= 1. EVERY CONTRACT, AS A PAPER, NUMBER BELOW ========= */
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the wall's papers as drawn (igw2, .igw-card.is-nl)
+       carry no printed number — each card is read as the contract it opens (data-ig-pick → contractRef), so the order
+       is still the List's own, paper for paper */
     const all = await page.evaluate(() => {
+      const refOf = b => { const r = b.querySelector('.igw-ref'); if (r) return r.textContent.trim(); const c = getContract(b.getAttribute('data-ig-pick')); return c ? contractRef(c) : '(no contract on ' + (b.getAttribute('data-ig-pick') || '?') + ')'; };
       const want = regFiltered().map(c => contractRef(c));
       const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
-      const got = cards.map(b => { const r = b.querySelector('.igw-ref'); return r ? r.textContent.trim() : '(no number on ' + (b.getAttribute('data-ig-pick') || '?') + ', ' + b.className + ')'; });
+      const got = cards.map(refOf);
       const below = cards.every(b => { const r = b.querySelector('.igw-ref'), sh = b.querySelector('.igw-sheet'); return !!r && !!sh && r.getBoundingClientRect().top >= sh.getBoundingClientRect().bottom; });
       return { want: want.length, got: got.length, same: JSON.stringify(want) === JSON.stringify(got), below,
         count: (document.querySelector('.igw-count') || { textContent: '(no count line drawn)' }).textContent.trim(), list: !!document.querySelector('#ig-paper .ig-pick-list') };
@@ -115,8 +122,9 @@ const check = (name, pass, detail) => {
        its foot saying "Showing 12 of N" with Show more for the rest; at rest
        the count line says the book ("24 contracts · newest first") */
     const first = await page.evaluate(() => {
+      const refOf = b => { const r = b.querySelector('.igw-ref'); if (r) return r.textContent.trim(); const c = getContract(b.getAttribute('data-ig-pick')); return c ? contractRef(c) : '(no contract on ' + (b.getAttribute('data-ig-pick') || '?') + ')'; };
       const want = regFiltered().map(c => contractRef(c)).slice(0, 12);
-      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => { const r = b.querySelector('.igw-ref'); return r ? r.textContent.trim() : '(no number)'; });
+      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(refOf);
       return { got: got.length, same: JSON.stringify(want) === JSON.stringify(got), foot: ((document.querySelector('#ig-wall [data-lh-foot="wall"] .lh-range') || {}).textContent || '').trim() };
     });
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
@@ -127,39 +135,46 @@ const check = (name, pass, detail) => {
       all.want > 12 && first.got === 12 && first.same && first.foot === `1–12 of ${all.want}` && !all.list, JSON.stringify({ all, first }));
     while (await page.$('#ig-wall [data-lh-more="wall"]')) { await page.click('#ig-wall [data-lh-more="wall"]'); await page.waitForTimeout(250); }
     const every = await page.evaluate(() => {
+      const refOf = b => { const r = b.querySelector('.igw-ref'); if (r) return r.textContent.trim(); const c = getContract(b.getAttribute('data-ig-pick')); return c ? contractRef(c) : '(no contract on ' + (b.getAttribute('data-ig-pick') || '?') + ')'; };
       const want = regFiltered().map(c => contractRef(c));
-      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => { const r = b.querySelector('.igw-ref'); return r ? r.textContent.trim() : '(no number)'; });
+      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(refOf);
       return { n: got.length, same: JSON.stringify(want) === JSON.stringify(got) };
     });
     check('1a2 Show more brings the rest, in the same order, until every contract stands', every.n === all.want && every.same, JSON.stringify(every));
-    check('1b each contract\'s number sits below its paper', all.below);
-    check('1c at rest the count says the book', new RegExp(`^${all.want} contracts$`).test(all.count), all.count);
+    /* RETIRED 17 Nov 2026 (#762): 1b (each contract's number printed below its paper) and 1c (the count line over the
+       papers says the book) — the new look's wall is drawn without a printed number and without the count-and-sort
+       line ("the Wall's lines as drawn", index.html `#ct-place .ct-wall .igw-line{display:none}`); the foot's
+       "1–12 of N" (1a) still says how many of all */
+    void all.below; void all.count;
 
     /* ================= 2. SIX A LINE ON A THINKPAD, SMALL, PAINTED ========= */
     const fit = await page.evaluate(() => {
       const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
+      /* RE-POINTED 17 Nov 2026 (#762): Show more (1a2) leaves the new wall scrolled down, its first paper under the
+         place's head; it is brought into view before it is asked whether it is painted */
+      cards[0].scrollIntoView({ block: 'center' });
       const top0 = cards[0].getBoundingClientRect().top;
       const perLine = cards.filter(b => Math.abs(b.getBoundingClientRect().top - top0) < 2).length;
       const s = cards[0].querySelector('.igw-sheet').getBoundingClientRect();
       const hit = document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2);
       const dock = document.getElementById('ig-dock');
       return { perLine, w: Math.round(s.width), h: Math.round(s.height), painted: !!(hit && hit.closest('.igw-card') === cards[0]),
+        hit: hit ? hit.tagName + '.' + String(hit.className).slice(0, 40) + ' in ' + ((hit.closest('[id]') || {}).id || '?') : null, at: [Math.round(s.left), Math.round(s.top)],
         dock: dock ? Math.round(dock.getBoundingClientRect().width) : 0, total: cards.length };
     });
-    check('2a six papers a line at 1280 wide with Jambo\'s panel open',
-      fit.perLine === 6 && fit.dock > 0, JSON.stringify(fit));
+    /* RETIRED 17 Nov 2026 (#762): 2a (six papers a line at 1280) and 2b (small 120–160px papers) — the old wall's
+       sizes; the new look's wall as drawn (igw2) stands four larger papers a line */
     /* RE-POINTED 17 Oct 2026 (round 13, the owner picked "Wall of papers"):
        each paper is the top of its first page — wider than tall — so two rows
        stand on a laptop's screen; the facts sit under it */
-    check('2b the papers are small (about 120–160 px wide), the top of a page',
-      fit.w >= 110 && fit.w <= 160 && Math.abs(fit.w / fit.h - 1.55) < 0.08, JSON.stringify(fit));
-    check('2c the first paper is painted where it stands', fit.painted);
+    check('2c the first paper is painted where it stands', fit.painted, JSON.stringify({ hit: fit.hit, at: fit.at }));
 
     /* ================= 3. SEARCH NARROWS (the place's own box; RE-POINTED 29 Oct 2026, round 1: the bar's search left) ================= */
     const one = await page.evaluate(() => contractRef(regFiltered()[0]));
     await page.fill('[data-reg-home] input[data-lh-q]', one);
     await page.waitForTimeout(400);
-    const found = await page.evaluate(() => ({ refs: [...document.querySelectorAll('#ig-paper .igw-ref')].map(e => e.textContent.trim()),
+    /* RE-POINTED 17 Nov 2026 (#762): the papers are read as the contracts they open (no printed number) */
+    const found = await page.evaluate(() => ({ refs: [...document.querySelectorAll('#ig-paper .igw-card')].map(b => { const c = getContract(b.getAttribute('data-ig-pick')); return c ? contractRef(c) : '?'; }),
       place: !!document.querySelector('#ig-paper [data-reg-home][data-ct-show="wall"]'),
       focus: !!(document.activeElement && document.activeElement.matches && document.activeElement.matches('[data-reg-home] input[data-lh-q]')) }));
     check('3a typing a contract number narrows the wall to it, where it stands, and the box keeps the caret',
@@ -167,66 +182,23 @@ const check = (name, pass, detail) => {
     await page.fill('[data-reg-home] input[data-lh-q]', '');
     await page.waitForTimeout(400);
 
-    /* ================= 4. SORT (the List's Sort, on the wall's count line) ================= */
-    await page.selectOption('#ig-paper #ig-wall #reg-sort', 'ref');
-    await page.waitForTimeout(400);
-    const sorted = await page.evaluate(() => {
-      const got = [...document.querySelectorAll('#ig-paper .igw-ref')].map(e => e.textContent.trim());
-      const want = got.slice().sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-      return { ok: JSON.stringify(got) === JSON.stringify(want), first: got.slice(0, 3), list: state.reg.sort };
-    });
-    check('4a sorting by contract number runs lowest first, as the List does', sorted.ok && sorted.list === 'ref', JSON.stringify(sorted));
-    await page.selectOption('#ig-paper #ig-wall #reg-sort', 'party');
-    await page.waitForTimeout(400);
-    const byCp = await page.evaluate(() => {
-      const ids = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.getAttribute('data-ig-pick'));
-      const cps = ids.map(id => String(getContract(id).counterparty || ''));
-      return cps.every((v, i) => i === 0 || cps[i - 1].localeCompare(v, undefined, { sensitivity: 'base' }) <= 0);
-    });
-    check('4b sorting by counterparty runs A to Z', byCp);
-
-    /* ================= 5. THE STAGE FILTER (the place's, over the Wall and the List) ================= */
-    /* RE-POINTED 16 Oct 2026 (owner: "take the status choices and put them in
-       a dropdown as well"): the stages are the Stage box's choices; a stage
-       with nothing in it is not offered at all (a filter's choice that cannot
-       give results is not listed), every other carries its number.
-       RE-POINTED AGAIN 21 Oct 2026 (Part 8, the owner picked "the Legora way"):
-       the stages are a group under "+ Filter" and a chosen one is a chip; the
-       rule a choice obeys is unchanged. */
-    const ADD = '#ig-paper [data-reg-home] [data-lh-seat="contracts"] select[data-lh-add]';
-    const chips = await page.evaluate(A => { const s = document.querySelector(A);
-      const g = s ? [...s.querySelectorAll('optgroup')].find(x => x.label === i18t('reg_chip_stage')) : null;
-      return g ? [...g.querySelectorAll('option')].map(o => ({ k: JSON.parse(o.value)[1], v: o.value, n: Number((/\((\d+)\)\s*$/.exec(o.textContent) || [0, 0])[1]) })) : []; }, ADD);
-    check('5a + Filter offers each stage that holds a paper, with its number, and no empty one', chips.length >= 2 && chips.every(c => c.n > 0), JSON.stringify(chips));
-    const stage = chips.find(c => c.k !== 'awaiting' && c.n > 0);
-    if (stage){
-      await page.selectOption(ADD, stage.v);
-      await page.waitForFunction(k => window.state && state.reg && state.reg.stage === k && !!document.querySelector('#ig-paper [data-lh-chip="stage"]'), stage.k, { timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(300);
-      const on = await page.evaluate(k => {
-        const ids = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.getAttribute('data-ig-pick'));
-        return { n: ids.length, all: ids.every(id => getContract(id).status === k),
-          pressed: (document.querySelector('#ig-paper [data-lh-chip="stage"] select[data-lh-f="stage"]') || {}).value };
-      }, stage.k);
-      check('5b a stage chosen shows only that stage, its number matches the papers behind it, and its chip says it',
-        on.all && on.n === Math.min(12, stage.n) && on.pressed === stage.k, JSON.stringify({ stage, on }));
-      await page.click('#ig-paper [data-lh-x="stage"]').catch(() => {});
-      await page.waitForFunction(() => state.reg.stage === 'all', null, { timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(300);
-      const back = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-paper .igw-card').length, stage: state.reg.stage }));
-      /* a new narrowing starts again at twelve (round 13 as drawn) */
-      check('5c its x lets it go — the first twelve papers again', back.stage === 'all' && back.n === Math.min(12, all.want), JSON.stringify(back));
-    } else check('5b a stage to choose', false, JSON.stringify(chips));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 1): section 4 (4a, 4b: Sort on the wall's count line, #reg-sort) and
+       section 5 (5a–5c: the stage filter under + Filter) — Sort and + Filter stay gone from Contracts in the new look */
 
     /* ================= 6. A REFRESH KEEPS THE SORT ======================== */
     await page.evaluate(() => { if (window.placeSave) placeSave(); });
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length > 0, null, { timeout: 20000 });
-    const kept = await wallUp() && await page.evaluate(() => ({ sort: state.reg.sort, sel: (document.querySelector('#ig-paper #ig-wall #reg-sort') || {}).value }));
-    check('6a a refresh lands on the wall with the same sort', kept && kept.sort === 'party' && kept.sel === 'party', JSON.stringify(kept));
+    /* RE-POINTED 17 Nov 2026 (#762, owner's ruling 1): the sort is gone; the place is what a refresh keeps — it lands
+       back on the wall, its papers drawn */
+    const kept = await wallUp() && await page.evaluate(() => ({ papers: [...document.querySelectorAll('#ig-paper .igw-card')].filter(b => b.getBoundingClientRect().width > 0).length }));
+    check('6a a refresh lands on the wall', !!kept && kept.papers > 0, JSON.stringify(kept));
 
     /* ================= 7. A PRESS OPENS THE PAPER ========================= */
-    const pick = await page.evaluate(() => document.querySelector('#ig-paper .igw-card').getAttribute('data-ig-pick'));
+    /* a refresh that did not land on the wall (6a reports it) must not stop the press below: the wall is asked for again */
+    if (!(await page.$('#ig-paper .igw-card'))) await page.click('[data-ctf-show="wall"]', { timeout: 8000 }).catch(() => {});
+    await page.waitForSelector('#ig-paper .igw-card', { timeout: 8000 }).catch(() => {});
+    const pick = await page.evaluate(() => { const b = document.querySelector('#ig-paper .igw-card'); return b ? b.getAttribute('data-ig-pick') : null; });
     /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press CHOOSES the paper,
        a second press opens it */
     await page.click(`#ig-paper .igw-card[data-ig-pick="${pick}"]`);

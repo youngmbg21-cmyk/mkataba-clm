@@ -80,6 +80,10 @@ const check = (name, pass, detail) => {
     };
     /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the door lands on the form of every owed fact, all of
        them open (no groups to open); asked for, bounded */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the details door lands on the Dossier card; the form
+       is opened by its own door (pdFillOpen, the Dossier's Details line) and stands in THE MIDDLE ([data-pd-mid^="form:"]) */
+    if (!(await until(() => !!document.querySelector('#pd-og.is-form[data-pd-og-for="MK-DF1"]'), null, 3000)))
+      await page.evaluate(() => { if (window.pdFillOpen) pdFillOpen('MK-DF1', {}); });
     const up = await until(() => !!document.querySelector('#pd-og.is-form[data-pd-og-for="MK-DF1"]')) && await openGroupWith('#pd-og[data-pd-og-for="MK-DF1"] [data-tplf]');
     if (!up) { check('0 the Details tab draws its form', false); throw new Error('not drawn'); }
     await page.waitForTimeout(300);
@@ -89,6 +93,10 @@ const check = (name, pass, detail) => {
       el.scrollIntoView({ block: 'nearest' }); const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; });
     await openGroupWith('#pd-og[data-pd-og-for="MK-DF1"] [data-kt="counterparty"]');
     await page.waitForTimeout(300);
+    /* measured at rest (16 Nov 2026, #762): the box the form put in the hand on arrival is let go, and its edge given
+       time to settle (a box in use darkens to the ink) */
+    await page.evaluate(() => { const b = document.querySelector('#pd-og [data-kt="counterparty"]'); if (b) b.scrollIntoView({ block: 'nearest' }); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); });
+    await page.waitForTimeout(600);
 
     const m = await page.evaluate(() => {
       const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; };
@@ -104,9 +112,17 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): every box stands open in one form; the reader scrolls to the
          other party's, as to the first question */
       cp.scrollIntoView({ block: 'nearest' });
+      /* measured at rest: the box the form put in the hand on arrival is let go first (a box in use darkens to the ink) */
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       const cs = getComputedStyle(cp);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): in the new look's form (the middle) a box is an
+         UNDERLINE (no outlines where a paper's details are typed, f1028) and an empty owed one carries the amber
+         underline (index.html .pd2-fm-mid tr[data-pd2-owed]) — the promise: a visible edge, amber while owed */
+      const dotProbe = document.createElement('i'); dotProbe.style.color = 'var(--st-amber-dot)'; document.body.appendChild(dotProbe);
+      const amberDot = getComputedStyle(dotProbe).color; dotProbe.remove();
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): the column is the form */
-      const right = document.querySelector('#ig-dock .pd-fm') || document.getElementById('pd-glance');
+      /* RE-POINTED 16 Nov 2026 (#762): the form stands in the middle, no longer in Jambo's panel */
+      const right = document.querySelector('#ig-dock .pd-fm, [data-pd-mid^="form:"] .pd-fm') || document.querySelector('[data-pd-mid^="form:"]') || document.getElementById('pd-glance');
       const inner = [...right.querySelectorAll('*')].filter(e => { const s = getComputedStyle(e); return /(auto|scroll)/.test(s.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.tagName !== 'TEXTAREA'; });
       const probe = document.createElement('i'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
       const amber = getComputedStyle(probe).backgroundColor; probe.remove();
@@ -116,8 +132,9 @@ const check = (name, pass, detail) => {
       const cpLine = cp.closest('tr') && cp.closest('tr').querySelector('.pd-ck-hd');
       const qRow = q0 && q0.closest('tr'), cpRow = cp.closest('tr');
       return { qOn: vis(firstQ) || (!!qRow && !qRow.classList.contains('is-open') && vis(qRow.querySelector('.pd-ck-hd'))),
-        cpOn: cpRow && (cpRow.classList.contains('is-open') || cpRow.classList.contains('pd-fm-row')) ? vis(cp) : vis(cpLine), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
-        cpAmber: cs.backgroundColor === amber, amber, cpBg: cs.backgroundColor, inner: inner.map(e => e.id || e.className).slice(0, 4),
+        cpOn: cpRow && (cpRow.classList.contains('is-open') || cpRow.classList.contains('pd-fm-row')) ? vis(cp) : vis(cpLine),
+        edge: (cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0) || (cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0),
+        cpAmber: cs.backgroundColor === amber || cs.borderBottomColor === amberDot, amber: amber + ' / ' + amberDot, cpBg: cs.backgroundColor + ' / ' + cs.borderBottomColor, inner: inner.map(e => e.id || e.className).slice(0, 4),
         /* a closed group draws none of its rows: one box at most per fact */
         twice: ['counterparty', 'value', 'effDate'].filter(k => count(k) > 1).concat(count('expiry') ? ['expiry'] : []) };
     });
@@ -134,13 +151,22 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 22 Oct 2026 (the Checklist): the count stands beside "Needs you"; the row is opened first */
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the count is the form's head while it is up, the Details line's after
        the one Save brings the Dossier back — its number of owed facts */
-    const headOf = () => { const t = ((document.querySelector('#ig-dock .pd-fm [data-pd-fm-count]') || document.querySelector('#ig-dock #pd-og [data-pd-og-row="details"] .pd-ck-v') || {}).textContent || '');
-      const m = /(\d+) needed/.exec(t); return m ? m[1] : t; };
+    /* RE-POINTED 17 Nov 2026 (#762): the count a reader SEES — a form page left behind in the middle, not painted (0 wide),
+       is not read (it held the count it opened with) */
+    const headOf = () => { const seen = e => !!e && e.getBoundingClientRect().width > 0;
+      const t = (([...document.querySelectorAll('#ig-dock .pd-fm [data-pd-fm-count], [data-pd-mid^="form:"] [data-pd-fm-count]')].find(seen)) || [...document.querySelectorAll('#ig-dock #pd-og [data-pd-og-row="details"] .pd-ck-v')].find(seen) || {}).textContent || '';
+      /* RE-POINTED 16 Nov 2026 (#762): back on the Dossier the new look's card says it in its headline, "Fill in N details" */
+      const card = !t ? ((document.querySelector('#ig-dock') || {}).innerText || '') : '';
+      /* the new look's form says it on the line under its title ("… · 13 needed · 2 on record", #pd2-fm-under) */
+      const under = !t ? ((document.querySelector('[data-pd-mid^="form:"] #pd2-fm-under, #pd2-fm-under') || {}).textContent || '') : '';
+      const m = /(\d+) needed/.exec(t) || /(\d+) needed/.exec(under) || /Fill in (\d+) details?/.exec(card); return m ? m[1] : t; };
     const before = await page.evaluate(headOf);
     if (await page.evaluate(() => !!document.querySelector('#pd-og [data-kt="counterparty"]'))){
       await page.evaluate(() => { const b = document.querySelector('#pd-og [data-pd-ck-row="counterparty"]'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); });
       await page.fill('#pd-og [data-kt="counterparty"]', 'Juno Foods Ltd');
-      await ckConfirm(page, 'counterparty'); }
+      /* RE-POINTED 16 Nov 2026 (#762): the form's ONE Save stands in the middle with the form (ckConfirm looks in the panel) */
+      const saveMid = '[data-pd-mid^="form:"] [data-pd-fm-save]';
+      if (await page.isVisible(saveMid).catch(() => false)) await page.click(saveMid); else await ckConfirm(page, 'counterparty'); }
     await page.waitForTimeout(500);
     const after = await page.evaluate(h => ({ tab: (new Function('return (' + h + ')()'))(),
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): after the one Save the Dossier is back; the fact is owed no more */

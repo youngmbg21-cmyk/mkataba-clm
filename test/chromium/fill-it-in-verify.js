@@ -87,8 +87,11 @@ const BREAKDOWN = { head: 'Two things', sub: 'A small cap and an empty address.'
     const calls0 = await page.evaluate(() => window.__calls);
     const blanks = await page.evaluate(() => contractBlanks(getContract('MK-F1')).map(b => ({ key: b.key, label: b.label, section: b.section, value: b.value })));
     await page.evaluate(() => document.querySelector('#pd-thread [data-stk-fill]').click());
-    const box = await until(page, () => { const a = document.activeElement; return a && /INPUT|TEXTAREA/.test(a.tagName) && a.closest('#ig-dock, #pd-og, [data-pd-og], .pd-og') ? (a.getAttribute('data-og-key') || a.getAttribute('data-key') || a.id || a.name || 'box') : null; }, null, 10000);
-    check('4 Fill it in opens the contract\'s own fill-in box for that field, free', !!box && (await page.evaluate(() => window.__calls)) === calls0, { box, blanks });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Fill it in is Fill in the contract's own door
+       (stkFillGo → pdFillGo), which fills ON THE PAPER (owner's 11 Nov pick) — the box in the hand is that blank's own
+       line on the paper (#ig-canvas input[data-pd2-bl="<its key>"]), not a box in the panel */
+    const box = await until(page, () => { const a = document.activeElement; return a && a.tagName === 'INPUT' && a.closest('#ig-canvas') ? a.getAttribute('data-pd2-bl') : null; }, null, 10000);
+    check('4 Fill it in opens the contract\'s own fill-in box for that field, free', !!box && blanks.some(b => b.key === box && !b.value) && (await page.evaluate(() => window.__calls)) === calls0, { box, blanks });
     await page.screenshot({ path: path.join(OUT, 'fill-1440x780.png') });
 
     /* 5 filled, the point is gone from the list and the tab's number */

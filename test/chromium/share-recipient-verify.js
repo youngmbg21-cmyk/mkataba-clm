@@ -98,10 +98,20 @@ const ROUTE = [
        named step so every caller below still reads as a journey, and still
        presses the button where the two-screen shape survives behind the quiet
        door. */
-    const pickCh = async k => {
-      if (!await page.$(`[data-sh-as="ch"].is-open`)) await page.click('[data-sh-as="ch"] [data-sh-as-go]');
-      await page.click(`[data-share-ch="${k}"]`);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): FOUR STEPS (owner's pick, 14 Nov 2026) — a choice
+       lives in its step (1 To · 2 What goes · 3 What they can do · 4 How it goes), which opens in place; the step is
+       opened first, then its list if it is still folded, and the choice pressed as a reader would */
+    const openStep = async (st, as) => {
+      if (await page.$(`[data-sh-st="${st}"]:not(.is-open) [data-sh-st-go="${st}"]`)) await page.click(`[data-sh-st-go="${st}"]`);
+      const shown = sel => page.evaluate(q => { const b = document.querySelector(q); return !!b && b.getClientRects().length > 0; }, sel);
+      return shown;
     };
+    const pickIn = async (st, as, sel) => {
+      const shown = await openStep(st, as);
+      if (!await shown(sel) && await shown(`[data-sh-as-go="${as}"]`)) await page.click(`[data-sh-as-go="${as}"]`);
+      await page.click(sel);
+    };
+    const pickCh = async k => pickIn('by', 'ch', `[data-share-ch="${k}"]`);
     const toSendForm = async () => {
       await page.evaluate(() => { const b = document.getElementById('share-next'); if (b) b.click(); });
       await page.waitForTimeout(700);
@@ -121,10 +131,16 @@ const ROUTE = [
          dialog prints ABOVE the box — nothing, by the owner's word. */
       const note = document.getElementById('sh-prefill-note');
       const box = e ? e.getBoundingClientRect() : null;
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): in FOUR STEPS a recipient HaTi knows is a person
+         row in step 1 — name and address, with × — and the two boxes stand down behind it (has-primary); the address a
+         reader sees is that row's, and it must be the box's value */
+      const p = document.querySelector('[data-sh-st="to"].has-primary .sh-st-p');
+      const pr = p ? p.getBoundingClientRect() : null, pe = p && p.querySelector('em');
+      const rowShows = !!pr && pr.width > 0 && pr.height > 0 && !!e && !!pe && pe.textContent.trim() === e.value.trim();
       return { email: e ? e.value : null, name: n ? n.value : null,
         src: e ? e.getAttribute('data-prefill-src') : null,
         said: note ? note.textContent.replace(/\s+/g, ' ').trim() : '',
-        visible: !!box && box.width > 0 && box.height > 0 };
+        visible: (!!box && box.width > 0 && box.height > 0) || rowShows };
     });
 
     /* ================= 1. THE REPORTED SCREEN ============================== */
@@ -269,7 +285,8 @@ const ROUTE = [
       const vis = sel => { const el = root.querySelector(sel); if (!el) return null;
         const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
       const read = () => ({ kind: vis('#share-step-kind'), send: vis('#share-step-1'), form: vis('#share-step-2'),
-        email: vis('#sh-email'), other: vis('[data-sh-as-go="what"]'), signers: vis('#share-signers'),
+        /* RE-POINTED 16 Nov 2026 (#762): in FOUR STEPS the quiet door is step 2's own Change (What goes) */
+        email: vis('#sh-email'), other: vis('[data-sh-st-go="what"]') || vis('[data-sh-as-go="what"]'), signers: vis('#share-signers'),
         sendDisabled: !!(root.querySelector('#share-send') || {}).disabled,
         width: Math.round((root.querySelector('.modal-in') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width) });
       const p = openShareModal(getContract(id));          // the plain Share button: no options
@@ -289,7 +306,7 @@ const ROUTE = [
     /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the quiet door is the form's
        "What goes" field, whose list holds the history */
     check('4b. the address box and the quiet door are on it from the first frame',
-      frames.first.email === true && frames.first.other === true);
+      frames.first.email === true && frames.first.other === true, JSON.stringify(frames.first));
     check('4b. Send is greyed until the dialog is wired, then live',
       frames.first.sendDisabled === true && frames.settled.sendDisabled === false);
     check('4b. the frame does not change width when the fetch lands',
@@ -308,7 +325,7 @@ const ROUTE = [
       if (shown){ await page.click('[data-share-kind="history"]'); await page.click('#share-kind-next'); }
       await page.waitForTimeout(300);
     };
-    await page.click('[data-sh-as-go="what"]'); await page.click('[data-sh-as-what="history"]');
+    await pickIn('what', 'what', '[data-sh-as-what="history"]');
     await page.waitForTimeout(200);
     const cardLive = await page.evaluate(() => { const b = document.querySelector('[data-share-kind="history"]'); return !!b && !b.disabled; });
     check('4b. the history card is a live choice on a contract with a record', cardLive);
@@ -396,7 +413,7 @@ const ROUTE = [
     await page.waitForTimeout(300);
     await page.evaluate(id => openShareModal(getContract(id)), cid);
     await page.waitForTimeout(1500);
-    await page.click('[data-sh-as-go="what"]'); await page.click('[data-sh-as-what="history"]');
+    await pickIn('what', 'what', '[data-sh-as-what="history"]');
     await page.waitForTimeout(200);
     await kindStepThrough();
     await pickCh('word');
@@ -506,22 +523,36 @@ const ROUTE = [
     await page.waitForTimeout(1200);
     /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): the people stand in To, behind
        "+ Add a person" — pressed first, then read */
-    const addGo = await page.evaluate(() => { const b = document.querySelector('[data-sh-more-go]'); if (!b || !b.getClientRects().length) return false; b.click(); return true; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): FOUR STEPS — step 1's "+ Add someone"
+       ([data-sh-st-add]) opens a list of the people named on this contract ([data-sh-st-pick]) and Someone new; a row
+       is pressed to add that person. The same four promises are read off that list; "their own link" is read where
+       the screen says it once somebody is added. */
+    if (await page.$('[data-sh-st="to"]:not(.is-open) [data-sh-st-go="to"]')) { await page.click('[data-sh-st-go="to"]'); await page.waitForTimeout(200); }
+    const stepsAdd = !!(await page.$('[data-sh-st-add]'));
+    const addGo = await page.evaluate(sel => { const b = document.querySelector(sel); if (!b || !b.getClientRects().length) return false; b.click(); return true; },
+      stepsAdd ? '[data-sh-st-add]' : '[data-sh-more-go]');
     check('"+ Add a person" is in To where somebody is named', addGo);
-    const more = await page.evaluate(() => {
-      const box = document.querySelector('.sh-more-box');
+    await page.waitForTimeout(200);
+    const more = await page.evaluate(steps => {
+      const box = document.querySelector(steps ? '#sh-st-menu' : '.sh-more-box');
       if (!box) return { drawn: false };
       const r = box.getBoundingClientRect();
-      const ticks = [...box.querySelectorAll('[data-sh-more]')];
+      const ticks = [...box.querySelectorAll(steps ? '[data-sh-st-pick]' : '[data-sh-more]')];
       const first = ticks[0] ? ticks[0].getBoundingClientRect() : null;
+      const hit = first ? document.elementFromPoint(first.left + first.width / 2, first.top + first.height / 2) : null;
       return { drawn: r.width > 40 && r.height > 10, n: ticks.length,
-        tickable: !!first && first.width > 6 && first.height > 6,
-        who: ticks.map(t => t.getAttribute('data-sh-more')),
+        tickable: !!first && first.width > 6 && first.height > 6 && (!steps || (!!hit && (hit === ticks[0] || ticks[0].contains(hit)))),
+        who: ticks.map(t => t.getAttribute(steps ? 'data-sh-st-pick' : 'data-sh-more')),
         primary: (document.getElementById('sh-email') || {}).value || '',
         /* The note is the LAST line of the box; slicing the whole box to 90
            characters cut it off and the claim read the row list instead. */
         note: ((box.lastElementChild || {}).textContent || '').replace(/\s+/g, ' ').trim() };
-    });
+    }, stepsAdd);
+    if (stepsAdd && more.n) {
+      await page.click('#sh-st-menu [data-sh-st-pick]');
+      await page.waitForTimeout(300);
+      more.note = await page.evaluate(() => (document.getElementById('sh-letter') || { innerText: '' }).innerText.replace(/\s+/g, ' ').match(/[^.]*own link[^.]*\./i)?.[0] || '');
+    }
     check('the send screen offers the contract\'s own people', more.drawn,
       more.drawn ? more.n + ' offered: ' + (more.who || []).join(', ') : 'not drawn');
     check('and each one is a real tick, painted', !!more.tickable,
@@ -529,8 +560,8 @@ const ROUTE = [
     check('the person already in the box is not offered to themselves',
       !!more.who && !more.who.some(e => e.toLowerCase() === String(more.primary).toLowerCase()),
       'box: ' + more.primary + ' \u00b7 offered: ' + (more.who || []).join(', '));
-    check('it says each of them gets their own link',
-      /own link/i.test(more.note || ''), more.note || 'no note');
+    /* RETIRED 17 Nov 2026 (#762, round 6 default 6): "it says each of them gets their own link" — the four-step Send screen
+       says nothing about each person's own link, and stays so */
 
     check('no page errors on the desktop journey', errors.length === 0,
       errors.join(' | ') || 'clean');

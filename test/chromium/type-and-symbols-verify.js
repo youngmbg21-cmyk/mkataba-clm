@@ -437,7 +437,7 @@ const SHELL_ICONS = [
         let bb = null;
         try { const g = u.getBBox(); bb = { w: g.width, h: g.height }; } catch (_) {}
         const r = i ? i.getBoundingClientRect() : null;
-        return { word: (b.textContent || '').trim(),
+        return { word: (b.textContent || '').trim(), rej: b.classList.contains('rl-rej'),
           href: u ? (u.getAttribute('href') || '') : null,
           box: r ? { w: Math.round(r.width), h: Math.round(r.height) } : null,
           bb, ink: getComputedStyle(b).color,
@@ -448,7 +448,14 @@ const SHELL_ICONS = [
     });
     check('the redline row is on screen with verbs on it', rowMarks.length >= 4,
       `${rowMarks.length} verbs`);
-    const hollow = rowMarks.filter(m => !m.bb || m.bb.w < 2 || m.bb.h < 2);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Redlines face as drawn (index.html, THE NEW LOOK:
+       "the Redlines face as drawn … ", html.lg-new #ig-dock .rl-card-verbs .rl-rej svg{display:none}) draws the refusing
+       verbs — Reject and Discard last, the .rl-rej buttons — as words with no mark; every OTHER verb still carries its mark,
+       and those are the marks measured here. The word-only verbs are pinned to be exactly the refusing ones. */
+    const wordOnly = rowMarks.filter(m => m.rej);
+    check('the verbs drawn as words alone are exactly the refusing ones (Reject, Discard last)',
+      wordOnly.length >= 1 && wordOnly.every(m => /^(Reject|Discard)/.test(m.word)), wordOnly.map(m => m.word).join(' · '));
+    const hollow = rowMarks.filter(m => !m.rej).filter(m => !m.bb || m.bb.w < 2 || m.bb.h < 2);
     check('every mark on the row resolves to a real symbol — not an empty box',
       rowMarks.length > 0 && hollow.length === 0,
       hollow.length ? hollow.map(d => `${d.word} -> ${d.href}`).join(', ')
@@ -457,8 +464,8 @@ const SHELL_ICONS = [
     check('and each one is painted at the size the sheet asks for',
       /* the button-icon token (--btn-ic) is the size the sheet asks for since
          the button work (f385); read, never typed (11 Oct 2026) */
-      rowMarks.every(m => m.box && m.box.w === btnIc && m.box.h === btnIc),
-      rowMarks.map(m => m.box && m.box.w + 'x' + m.box.h).join(' · '));
+      rowMarks.filter(m => !m.rej).every(m => m.box && m.box.w === btnIc && m.box.h === btnIc),
+      rowMarks.filter(m => !m.rej).map(m => m.box && m.box.w + 'x' + m.box.h).join(' · '));
     check('the mark takes its verb\'s own ink, so no colour was moved to add it',
       rowMarks.every(m => m.markInk === m.ink),
       rowMarks.map(m => `${m.word} ${m.ink}`).join(' · '));

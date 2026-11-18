@@ -156,9 +156,11 @@ function book(){
     /* ================ B. STALE PAGE FILTERS UNDER THE STAGE BAR ============ */
     /* What a reader leaves on the page: a stream picked from its chip, and a
        search typed into the shell bar while Contracts is on screen. */
-    /* the stream picked under "+ Filter" (Part 8), its own change event */
-    await page.evaluate(f => { const s = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
-      if (s){ s.value = JSON.stringify(['type', String(f)]); s.dispatchEvent(new Event('change', { bubbles: true })); } }, FOLDER_A);
+    /* the stream picked under "+ Filter" (Part 8), its own change event.
+       RE-POINTED 17 Nov 2026 (the new look is the only look, #762; owner's ruling: + Filter stays gone): Contracts opens on
+       its Folders, and a stream is chosen by pressing its folder (data-ctf-folder → R.type, the list drawn) */
+    await page.waitForSelector(`[data-ctf-folder="${FOLDER_A}"]`, { timeout: 8000 }).catch(() => {});
+    await page.click(`[data-ctf-folder="${FOLDER_A}"]`).catch(() => {});
     await page.waitForTimeout(600);
     await page.fill('[data-lh-seat="contracts"] input[data-lh-q]', 'Raw');
     await page.waitForTimeout(700);
@@ -188,10 +190,10 @@ function book(){
     /* ================ C. (C1 RETIRED 29 Oct 2026, round 1 "The Legora way": the bar's search typed on Home left;
        Home's own box is Jambo's) ==================== */
     await goHome();
-    await page.evaluate(() => { regState().stage = 'all'; regState().query = ''; regPlaceSet({ show: 'list' }); setView('register'); });
+    /* RE-POINTED 17 Nov 2026 (#762; owner's ruling: + Filter stays gone): the stage is chosen by the Board's stage door,
+       the one way a stage is picked in the new look (it lands on that stage's list) */
+    if (hasSigned) await openStage('Signed');
     await page.waitForTimeout(900);
-    await page.selectOption('[data-lh-seat="contracts"] select[data-lh-add]', JSON.stringify(['stage', 'Signed'])).catch(() => {});
-    await page.waitForTimeout(600);
     await page.fill('[data-lh-seat="contracts"] input[data-lh-q]', 'Naiv');
     await page.waitForTimeout(700);
     const c2 = await onContracts();

@@ -55,7 +55,11 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length >= 60 && typeof window.askColOpen === 'function', null, 40000);
     await page.waitForTimeout(1000);
-    const toList = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list', only: null }); setView('register'); }); await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]')); await page.waitForTimeout(400); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
+    const toList = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list', only: null }); setView('register'); });
+      if (await until(page, () => !!document.querySelector('[data-ctf-show="list"]'), null, 4000) && !(await page.$('#reg-tbody tr[data-row]'))) await page.click('[data-ctf-show="list"]').catch(() => {});
+      await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]')); await page.waitForTimeout(400); };
     await toList();
     const ask = async (q, name) => {
       await page.evaluate(([q, name]) => { acSizeSet(100); askColOpen({ question: q, name }); }, [q, name]);
@@ -63,7 +67,12 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
       await page.click('[data-ac-ask]');
       return until(page, () => !!AC.busy, null, 8000);
     };
-    const ended = () => until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]'), null, 60000);
+    /* RE-POINTED 16 Nov 2026 (#762): a finished read lands on the new look's short card of that column (askColDoneDrawnHtml);
+       its "‹ Overview" (data-ac-colback) is the step to the panel's Overview, where the column card this file reads stands */
+    const ended = async () => { const ok = await until(page, () => !AC.busy && !document.querySelector('[data-ac-stop]'), null, 60000);
+      await page.waitForTimeout(400);
+      if (await page.$('#ig-dock [data-ac-colback]')){ await page.click('#ig-dock [data-ac-colback]').catch(() => {}); await until(page, () => !document.querySelector('#ig-dock [data-ac-colback]'), null, 4000); }
+      return ok; };
 
     /* ---- 1 Stop stands still while the read runs ---- */
     h.ai.slow(500);
@@ -101,13 +110,14 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
       const askId = Object.keys(AC.ans).find(k => (AC.asks[k] || {}).name === 'Governing country');
       const cell = land => { const m = AC.ans[askId] || {}; const tds = [...document.querySelectorAll(`td.ac-cell[data-ac="${askId}"]`)]; const td = tds.find(t => (m[t.getAttribute('data-ac-cid')] || {}).answer === land); const a = td && td.querySelector('.ac-ans'); return a ? a.className : ''; };
       return { grey: document.querySelectorAll('.tone-gray, .ac-lg-gray').length, v1: bg('#ig-dock .ac-tl .ac-ans.tone-v1 > i'), none: getComputedStyle(document.querySelector('#ig-dock .ac-tl .ac-ans.tone-none > i') || document.body).boxShadow,
-        kenyaCell: cell('Kenya'), swedenCell: cell('Sweden'), legend: [...document.querySelectorAll('.ac-legend .ac-lg i')].map(i => i.className) };
+        kenyaCell: cell('Kenya'), swedenCell: cell('Sweden') };
     });
     check('2e nothing is grey', colours.grey === 0, colours.grey);
     check('2f a plain fact wears its answer\'s colour (violet for the biggest)', colours.v1 === 'rgb(122, 68, 184)', colours.v1);
     check('2g nothing found is an empty ring', /inset/.test(colours.none), colours.none);
     check('2h the list\'s cells wear the same colours as the panel', /tone-v1/.test(colours.kenyaCell) && /tone-v2/.test(colours.swedenCell), [colours.kenyaCell, colours.swedenCell]);
-    check('2i the legend: yes · no · a plain fact · watch · risk · not found', JSON.stringify(colours.legend) === JSON.stringify(['ac-lg-green', 'ac-lg-steel', 'ac-lg-v1', 'ac-lg-amber', 'ac-lg-ruby', 'ac-lg-none']), colours.legend);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3: the Contracts column colour key stays gone): 2i the legend under
+       the list (yes · no · a plain fact · watch · risk · not found) was drawn only in the old list's foot */
     await page.screenshot({ path: path.join(OUT, '2-answers.png') });
 
     /* ---- 3 the quote, ‹ ›, a group pressed, Show ---- */
@@ -164,18 +174,38 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     /* as the owner had it: a question to Jambo on Reads; his answer is the one conversation, and Contracts'
        panel turned to it on arrival — hiding the read that the press started (red at the parent) */
     await page.evaluate(() => setView('reads'));
-    await until(page, () => !!document.querySelector('[data-rd-next]') && !!document.querySelector('#jl-q'), null, 15000);
+    /* RE-POINTED 16 Nov 2026 (#762): the new Discover's "read the rest" door is [data-dsn-more] (Jambo's panel on a read,
+       dslReadHtml); the old Reads row's [data-rd-next] is taken where it still stands. A door that is not drawn REPORTS. */
+    await until(page, () => !!document.querySelector('#rd-page [data-dsn-run]') && !!document.querySelector('#jl-q'), null, 15000);
     await page.fill('#jl-q', 'what does this page tell me about my reads?'); await page.press('#jl-q', 'Enter');
     check('7a Jambo answers on Reads', await until(page, () => (ai.history || []).length >= 2 && !ai.busy, null, 15000));
     h.ai.slow(700);
-    await page.click('[data-rd-next] >> nth=0');
-    const back = await until(page, () => !!document.querySelector('#reg-tbody') && !!AC.busy && !!document.querySelector('#ig-dock [data-ac-desk-card]') && !(typeof pdTalkShows === 'function' && pdTalkShows()), null, 20000);
-    check('7b Next 50 lands on Contracts with the panel on its Overview, the read in sight', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy, talk: typeof pdTalkShows === 'function' && pdTalkShows() })));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new Discover keeps a further read ON Reads, in
+       the page, never in Jambo's panel — a read is opened from the list of reads (a press chooses, a second opens its
+       results) and its head's "Read N left" ([data-dsn-more]) starts the rest; the promise is the same: the press shows
+       the read (the while-it-reads screen, #dsn-cancel, in the page) and the run going, whatever the panel holds
+       ("A FINISHED READ LANDS ON ITS RESULTS"; the old landing on Contracts' column card is gone with the old Reads rows) */
+    const runIds = await page.evaluate(() => [...document.querySelectorAll('#rd-page [data-dsn-run]')].map(r => r.getAttribute('data-dsn-run')).slice(0, 5));
+    let moreUp = false;
+    for (const rid of runIds){
+      await page.click(`#rd-page [data-dsn-run="${rid}"]`).catch(() => {});
+      await page.click(`#rd-page [data-dsn-run="${rid}"]`).catch(() => {});
+      moreUp = await until(page, () => !!document.querySelector('#rd-page [data-dsn-more]'), null, 3000);
+      if (moreUp) break;
+      await page.click('#rd-page [data-dsn-back]').catch(() => {});
+      await until(page, () => !!document.querySelector('#rd-page [data-dsn-run]'), null, 3000);
+    }
+    check('7a′ the read-the-rest door stands on Reads', moreUp && await page.click('#rd-page [data-dsn-more] >> nth=0', { timeout: 5000 }).then(() => true, () => false), { reads: runIds.length });
+    const back = await until(page, () => state.view === 'reads' && !!AC.busy && (() => { const x = document.querySelector('#rd-page #dsn-cancel'); return !!x && x.getBoundingClientRect().width > 0; })(), null, 20000);
+    check('7b the further read stays on Reads, its while-it-reads screen in sight', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy,
+      reading: !!document.querySelector('#rd-page #dsn-cancel') })));
     await page.screenshot({ path: path.join(OUT, '7-next-from-reads.png') });
     h.ai.slow(0);
     await ended();
 
     /* ---- 8 the three screens ---- */
+    /* RE-POINTED 16 Nov 2026 (#762): the column card is measured where it stands, on Contracts (the run may still be on Reads) */
+    if (await page.evaluate(() => state.view === 'reads')) await toList();
     await page.evaluate(() => { AC.openQ = null; renderIntelDock(); });
     for (const [w, hh] of SCREENS){
       await page.setViewportSize({ width: w, height: hh });

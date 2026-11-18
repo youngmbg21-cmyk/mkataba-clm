@@ -397,7 +397,11 @@ const VISIBLE = `(el) => {
         const vis = ${VISIBLE};
         /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the link says "Find more in the wording" */
         const want = i18t('pd_ob_find_mq');
-        const b = [...document.querySelectorAll('#ig-dock button')].find(x => x.textContent.trim() === want);
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's Obligations panel is drawn in THE FIVE
+           PARTS — while nothing is recorded the sweep is its one black button, "Find them in the wording"
+           (jov5_cob_find → runFindObligations); with duties recorded the foot's link stays. Same door either way. */
+        const want5 = i18t('jov5_cob_find');
+        const b = [...document.querySelectorAll('#ig-dock button')].find(x => x.textContent.trim() === want || x.textContent.trim() === want5);
         const tab = document.querySelector('#ig-dock .pd-trail');
         return { find: vis(b), live: !!(b && !b.disabled), tab: tab ? tab.textContent.replace(/\\s+/g, ' ').trim() : '' };
       })()`);

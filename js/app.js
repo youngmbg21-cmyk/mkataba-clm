@@ -1344,6 +1344,10 @@ function setView(view){
   if(typeof window!=='undefined' && typeof window.hbSheetLetGo==='function') try{ window.hbSheetLetGo(); }catch(_){ }
   /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */
   if(typeof window!=='undefined' && window._cnSignedIn && view!=='counter') window._cnSignedIn=false;
+  /* THE ADVICE BOARD IS GONE (owner's pick on the drawings, 17 Nov 2026: "6 The tab alone"): on a computer every door
+     still asking for it lands on Requests' own Advice tab (iknTabSet); the phone keeps its own pages */
+  if(view==='advice' && typeof window!=='undefined' && typeof window.newLookOn==='function' && window.newLookOn() && !(window.innerWidth && window.innerWidth<768) && typeof window.iknTabSet==='function'){
+    window.iknTabSet('advice'); view='intake'; }
   /* THE HOME PAGE IS GONE (owner, 10 Nov 2026: "Home page should be removed / deleted"; it was the Counter, 17 Oct
      2026): an old link, a kept place or a door still asking for it lands on the Board, the page you sign in to */
   if(view==='counter'){ view='dashboard'; if(typeof window!=='undefined' && typeof window.hbS==='function'){ try{ window.hbS().face='board'; if(typeof window.hbSave==='function') window.hbSave(); }catch(_){ } } }
@@ -1765,6 +1769,8 @@ function placeResume(){
   return p;
 }
 let _placeBack=null;
+/* a refresh is putting the reader's place back (the read on the paper waits for it; #762) */
+function placeBackOn(){ return !!_placeBack; }
 function placeScrollBack(p){
   const want=Object.entries((p&&p.scroll)||{}); if(!want.length) return;
   const t0=Date.now(); let stop=false;
@@ -4097,7 +4103,8 @@ function guideNlRowHtml(keys, here, tone){
   const shown=keys.filter(guideRowShown); if(!shown.length) return '';
   const words=shown.map(guideWordOf).filter(Boolean).map(w=>'\u201c'+w+'\u201d');
   const cnt=shown.length===1?guideNlCount(shown[0]):null;
-  return `<div class="gdn-r${shown.includes(here)?' is-here':''}">${guideNlMarkHtml(shown[0], tone)}<span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
+  /* a row of several pages says its words on their own line under the names (#762: beside them they ran past the panel) */
+  return `<div class="gdn-r${shown.includes(here)?' is-here':''}${shown.length>1?' is-multi':''}">${guideNlMarkHtml(shown[0], tone)}<span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
     +`${words.length?`<span class="gdn-say">${esc(i18t('gdn_say',{ words:words.join(' \u00b7 ') }))}</span>`:''}<span class="gdn-n${cnt&&cnt.owed?' is-owed':''}">${cnt?cnt.n:''}</span></div>`;
 }
 function guidePanelNlHtml(){
@@ -4895,6 +4902,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

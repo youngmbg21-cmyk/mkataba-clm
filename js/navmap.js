@@ -799,7 +799,11 @@ function navGoAct(n){
       if (!(state.panelOpen && typeof panelFace === 'function' && panelFace() === 'notes')) openPanel('notes');
       return true; },
     /* "Risks to look at" in what Jambo read, its own Read or See */
-    risks: () => { if (pdOpenOnHome(id, 'copilot') === false) return false; return navLandWhen(() => document.querySelector('#ig-dock [data-pd-ds="risks"]')); },
+    /* in the new look the risk list stands in the Redlines face (#rl-risks; MAP: Dossier Risks › Open lands ON #rl-risks) —
+       the old Dossier's line where it is drawn (#762: the door landed nowhere) */
+    risks: () => { if (pdOpenOnHome(id, 'copilot') === false) return false;
+      if (!document.querySelector('#ig-dock [data-pd-ds="risks"]') && typeof pdRedOpen === 'function' && pdRedOpen(id)) return navLandWhen(() => document.querySelector('#ig-dock #rl-risks'));
+      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-ds="risks"]')); },
     ladder: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
     /* who opened it is on its History (the trail keeps the opens) */
     opened: () => (typeof hbOpenView === 'function') ? hbOpenView(id, 'hist') : pdOpenOnHome(id, 'copilot'),

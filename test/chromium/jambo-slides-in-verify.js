@@ -92,7 +92,12 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
         footH: foot ? Math.round(foot.getBoundingClientRect().height) : 0, scrim: !!(scrim && scrim.classList.contains('open') && getComputedStyle(scrim).opacity === '1'),
         scrimTop: sr ? Math.round(sr.top) : -1, barH: Math.round((document.getElementById('top-header') || document.body).getBoundingClientRect().height),
         vw: innerWidth, vh: innerHeight }; };
-    const toJambo = async () => { await page.evaluate(() => setView('jambo')); return until(() => document.querySelector('[data-jh-jambo]') ? true : null, null, 10000); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's agents now carries its own Jambo panel
+       beside the page (round 7 as drawn, "in place of the folded strip") and no edge "Jambo" tab; the side panel
+       (#ai-panel, THE BRIEF, AI_SIDE_SPLIT) is the one a page WITHOUT a panel of its own slides in — the Brain — opened
+       through openAI(), as part 5 already does. Every check of the panel itself stands as it was. */
+    const toJambo = async () => { await page.evaluate(() => setView('brain')); return until(() => state.view === 'brain' && !document.getElementById('ins-panel') ? true : null, null, 10000); };
+    const openSide = () => page.evaluate(() => { if (!document.getElementById('ai-panel').classList.contains('open')) openAI(); });
 
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     /* a reader who once chose Legal: the stored choice is forgotten on the next load */
@@ -103,8 +108,9 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     await page.keyboard.press('Escape').catch(() => {});
 
     /* ===== 1 · THE EDGE TAB SLIDES IN A SIDE PANEL ===== */
-    check('1 (setup) Jambo\'s agents carries the edge "Jambo" tab', !!(await toJambo()));
-    await press('[data-jh-jambo]');
+    /* RETIRED 16 Nov 2026 (#762): '1 (setup) Jambo's agents carries the edge "Jambo" tab' — old look only (see toJambo) */
+    check('1 (setup) the Brain is up, a page with no Jambo panel of its own', !!(await toJambo()));
+    await openSide();
     const P1 = await until(() => { const p = document.getElementById('ai-panel'); return p && p.classList.contains('open') ? true : null; }, null, 4000)
       && await (async () => { await page.waitForTimeout(450); return page.evaluate(PANEL); })();
     check('1a the edge tab opens Jambo as a side panel, not a floating window', !!P1 && P1.open && P1.side && !P1.floating, JSON.stringify(P1));
@@ -118,7 +124,7 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
         tabShown: !!(tr && tr.width && hit && hit.closest('[data-jh-jambo]')), side: document.documentElement.scrollWidth <= innerWidth + 1 }; };
     const R1 = await page.evaluate(ROOM);
     check('1d nothing is dimmed: the page and its head card make room beside the panel, their right edge where the panel starts', !!P1 && !P1.scrim && Math.abs(R1.pageRight - R1.panelLeft) <= 1 && R1.headRight <= R1.panelLeft + 1, JSON.stringify({ scrim: P1 && P1.scrim, ...R1 }));
-    check('1e the edge "Jambo" tab steps away while the panel is in (as Home\'s folded strip does)', !R1.tabShown, JSON.stringify(R1));
+    /* RETIRED 16 Nov 2026 (#762): 1e "the edge Jambo tab steps away while the panel is in" — the new look draws no edge tab */
     await shot('1-side-panel-1440x780');
     /* THE SLIDER: the one every Jambo panel has, on the panel's left edge */
     const G = await page.evaluate(() => { const g = document.getElementById('ai-side-rez'); if (!g) return null; const r = g.getBoundingClientRect(), p = document.getElementById('ai-panel').getBoundingClientRect();
@@ -134,10 +140,11 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
         && (R2.panelLeft >= R2.mark ? Math.abs(R2.pageRight - R2.panelLeft) <= 1 && !R2.over : Math.abs(R2.pageRight - R2.mark) <= 1 && R2.over), JSON.stringify(R2));
       await shot('1-side-panel-wider-1440x780');
       await page.click('#ai-min');
-      const back = await until(() => { const p = document.getElementById('ai-panel'), t = document.querySelector('[data-jh-jambo]');
-        return !p.classList.contains('open') && t && t.getBoundingClientRect().width > 0 ? true : null; }, null, 3000);
-      check('1f its own minimise puts it away and the edge tab is back', !!back);
-      await press('[data-jh-jambo]');
+      /* RE-POINTED 16 Nov 2026 (#762): no edge tab comes back (none is drawn); the minimise puts the panel away */
+      const back = await until(() => { const p = document.getElementById('ai-panel');
+        return !p.classList.contains('open') ? true : null; }, null, 3000);
+      check('1f its own minimise puts it away', !!back);
+      await openSide();
       const kept = await until(() => { const p = document.getElementById('ai-panel'); return p.classList.contains('open') ? Math.round(p.getBoundingClientRect().width) : null; }, null, 3000);
       await page.waitForTimeout(450);
       const keptW = await page.evaluate(() => Math.round(document.getElementById('ai-panel').getBoundingClientRect().width));
@@ -153,15 +160,15 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
       }
       await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
       await page.click('#ai-min');
-    } else check('1f its own minimise puts it away and the edge tab is back', false, 'no slider to drive the rest');
+    } else check('1f its own minimise puts it away', false, 'no slider to drive the rest');
     const shut = await until(() => !document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
-    await press('[data-jh-jambo]');
+    await openSide();
     await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
     await page.keyboard.press('Escape');
     check('1g Esc takes it out', !!(await until(() => !document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000)));
 
     /* ===== 2 · NO PLAIN | LEGAL ===== */
-    await press('[data-jh-jambo]');
+    await openSide();
     await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
     const P2 = await page.evaluate(() => { const p = document.getElementById('ai-panel');
       const words = [...p.querySelectorAll('button')].map(b => b.textContent.trim()).filter(Boolean);
@@ -260,7 +267,7 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     /* the API stubbed (defined over the browser's own, so the press is counted) */
     await page.evaluate(() => { window.__pipAsked = 0; Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true,
       value: { requestWindow: async () => { window.__pipAsked++; return window.open('', 'pip-stub', 'width=420,height=640'); } } }); });
-    await press('[data-jh-jambo]');
+    await openSide();
     await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
     const pb = await page.evaluate(() => { const b = document.getElementById('ai-popout'); return b ? { hidden: b.hidden, shown: b.getClientRects().length > 0 } : null; });
     check('9a Pop out is in the panel\'s head on a computer', !!pb && !pb.hidden && pb.shown, JSON.stringify(pb));
@@ -282,7 +289,7 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     } else check('9c (setup) the other window opened', false);
     /* and absent, as in Safari and Firefox */
     await page.evaluate(() => { Object.defineProperty(window, 'documentPictureInPicture', { configurable: true, writable: true, value: undefined }); if (typeof closeAI === 'function') closeAI(); });
-    await press('[data-jh-jambo]');
+    await openSide();
     await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
     const popQ = ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null);
     await press('#ai-popout');
@@ -332,7 +339,7 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     for (const [w, hh] of SCREENS) {
       await page.setViewportSize({ width: w, height: hh });
       await toJambo();
-      await press('[data-jh-jambo]');
+      await openSide();
       await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
       await page.waitForTimeout(400);
       const S = await page.evaluate(PANEL);

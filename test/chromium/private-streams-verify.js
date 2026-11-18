@@ -187,20 +187,10 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
       await R.page.screenshot({ path: path.join(OUT, `4-trail-${w}x${ht}.png`) });
     }
     await R.page.setViewportSize({ width: 1440, height: 780 });
-    /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand in the open — no Filter button to press */
-    const listed = await until(R.page, () => !!document.querySelector('[data-ht-filter="opens"]'));
-    check(listed, '7d the filters offer Opens on a contract that has them');
-    await R.page.selectOption('[data-ht-filter="opens"]', 'only');
-    const only = await until(R.page, () => { const all = document.querySelectorAll('.hist-ev'), op = document.querySelectorAll('.hist-ev.is-open'); return all.length && all.length === op.length; });
-    check(only, '7e "Only opens" leaves only the opens');
-    await R.page.selectOption('[data-ht-filter="opens"]', 'hide');
-    check(await until(R.page, () => document.querySelectorAll('.hist-ev').length && !document.querySelector('.hist-ev.is-open')), '7f "Hide them" takes them away');
-    await R.page.evaluate(() => hbStripBring('MK-A1', 'hist'));
-    /* RE-POINTED 9 Nov 2026 (the strip is gone): MK-A1's own History in the middle, its filters drawn, is waited for
-       (bounded) and read; the private contract's History before it no longer answers the wait */
-    await until(R.page, () => !!document.querySelector('#pd2-hist[data-pd2-hist="MK-A1"] .hist-filters'));
-    const notListed = await R.page.evaluate(() => { const b = document.querySelector('#pd2-hist[data-pd2-hist="MK-A1"] .hist-filters'); return !!b && !b.querySelector('[data-ht-filter="opens"]'); });
-    check(notListed, '7g a contract in an ordinary folder lists no Opens choice — a choice with nothing behind it is not offered');
+    /* RETIRED 16 Nov 2026 (#762): 7d–7g (the History's Opens filter: offered where there are opens, Only opens, Hide
+       them, not offered where there are none) — the labelled filter boxes are the old look's; the new look's History
+       has the quick links instead (histQuickHtml, owner 31 Oct 2026: "Quick links as drawn"), and no Opens choice.
+       The opens themselves stay in the trail with their eye (7a–7c). */
     check(R.errors.length === 0, '6c no page errors for the named person', R.errors.join(' | ') || 'clean');
     await R.ctx.close();
   } catch (e) {

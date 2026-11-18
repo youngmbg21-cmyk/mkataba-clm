@@ -2839,7 +2839,7 @@ function tplPfDocLoad(id){
   if (typeof api !== 'function' || typeof templateFormDocHtml !== 'function'){ _tplPf.docs[id] = { failed:true }; return; }
   const stamp = tplPfDocStamp(id);
   _tplPf.docs[id] = { busy:true, stamp };
-  Promise.resolve().then(async () => {
+  return Promise.resolve().then(async () => {
     const d = await api('templates/' + id, 'GET', null, { quiet:true });
     const vs = (d && d.versions) || [];
     const v = vs.find(x => x.status === 'published') || vs.find(x => x.status === 'draft') || null;
@@ -3112,6 +3112,27 @@ function tplnHtml(d, groups, card){
 }
 /* the stream a paper is filed in (its id), read as the page's own stream reader reads it */
 function tplnFid(c){ return String((c && c.stream) || ((tplPfLib(c) || {}).folder) || ''); }
+/* THE QUOTED ROWS ARE READ, NEVER GUESSED (Shelves, then the Legora way, 17 Nov 2026): a company paper's first line is
+   known only once its words are read, and with no paper beside the list nothing read them. The shelves and the list
+   read the company papers they show in the background (TPLN_QUOTE_READS a paint, each once per stamp) and put each
+   quote in where its row stands — no repaint, so a box being typed in keeps its words and the carousel keeps turning */
+const TPLN_QUOTE_READS = 24;
+function tplnQuotesFill(){
+  if (typeof document === 'undefined' || !tplnOn() || tplnView() === 'paper') return;
+  tplnRowsNow().filter(x => x.c.kind === 'company' && !tplnQuote(x.c)).slice(0, TPLN_QUOTE_READS).forEach(x => {
+    const p = tplPfDocLoad(x.c.id); if (p && typeof p.then === 'function') p.then(() => tplnQuotePut(x.c), () => {});
+  });
+}
+function tplnQuotePut(c){
+  const q = tplnQuote(c); if (!q || typeof document === 'undefined') return;
+  const k = tplPfKey(c), at = typeof CSS === 'object' && CSS.escape ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
+  document.querySelectorAll(`.tpln-lrs [data-tpl-pf="${at}"]`).forEach(r => {
+    const lt = r.querySelector('.tpln-lt'); if (!lt || lt.querySelector('.tpln-q')) return;
+    lt.insertAdjacentHTML('beforeend', `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>`);
+    r.setAttribute('data-tpln-text', (String(r.getAttribute('data-tpln-text') || '') + ' ' + q.toLowerCase()).trim());
+  });
+  document.querySelectorAll(`.tpln5-cfp[data-tpln-open="${at}"]`).forEach(b => { if (!b.querySelector('q')) b.insertAdjacentHTML('beforeend', `<q>“${_tplEsc(q)}…”</q>`); });
+}
 /* THE PAPER'S FIRST LINE, QUOTED (the Legora way: each fact shows where on the paper it was read): HaTi's own paper is read
    at once; a company paper once its words have been read for the paper beside the list; never guessed */
 function tplnQuote(c){
@@ -3134,11 +3155,12 @@ function tplnQuote(c){
 }
 function tplnRowHtml(c, uses, lit){
   const fid = tplnFid(c), stream = tplPfStream(c), q = tplnQuote(c);
+  /* the stream's mark wears its tone's own soft pair (bg/fg), never white on the dot, which failed AA (#762) */
   const tone = typeof listStreamTone === 'function' && fid ? listStreamTone(fid) : 'gray';
   const text = [c.name, stream, q].join(' ').toLowerCase();
   const shown = tplnMatches(text, fid);
   return `<button type="button" class="tpln-r tpln-lr${lit ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(c))}" aria-pressed="${lit ? 'true' : 'false'}" data-tpln-text="${_tplEsc(text)}" data-tpln-stream="${_tplEsc(fid)}"${shown ? '' : ' hidden'}>
-    <i class="tpln-mk" style="background:var(--st-${tone}-dot)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
+    <i class="tpln-mk" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
     <span class="tpln-lt"><span class="tpln-l1"><b class="tpln-n">${_tplEsc(c.name)}</b>${stream ? `<span class="tpln-st">${_tplEsc(stream)}</span>` : ''}</span>${q ? `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>` : ''}</span>
     <span class="tpln-u">${_tplEsc(i18tn('tpln_uses', uses, { n: uses }))}</span></button>`;
 }
@@ -3386,6 +3408,13 @@ function tplnPanelFive(card, st, cs, signed, blanks, opts){
   if (st.byCat.length) groups.push({ label:i18t('tpln_p_dep'), rows:st.byCat.slice(0, 3).map(x => ({ mark:'shield', tone:'amber', t:String(x.category), v:i18tn('jov5_tp_times', x.n, { n:x.n }) })) });
   const top = st.byCat[0];
   if (top && top.n >= 2) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('tpln_p_jambo', { n:top.n, of:st.used, what:String(top.category).toLowerCase() }), wrap:true }] });
+  /* ONE DOOR TO A STANDARD (MAP: #tpl-new → openNewStandard; 16 Nov 2026, #762 — the new look drew none): a manager's
+     row, the same press the old panel's [data-tpln-new] made */
+  /* without the new-paper grant the door is greyed with its reason, never a live door that refuses (newPaperBlocked) */
+  if (tplCanManage()){ const w = String(i18t('lib_pf_c_new')), off = typeof newPaperBlocked === 'function' && newPaperBlocked();
+    groups.push({ label:i18t('pd2_ch_doors'), rows:[off ? { mark:'plus', t:w.charAt(0).toUpperCase() + w.slice(1), s:i18t('np_refused') + ' ' + i18t('np_refused_ask'), wrap:true,
+        attr:`data-tpln-new="" disabled aria-disabled="true" title="${_tplEsc(i18t('np_refused') + ' ' + i18t('np_refused_ask'))}"` }
+      : { mark:'plus', t:w.charAt(0).toUpperCase() + w.slice(1), attr:'data-tpln-new=""' }] }); }
   const changedRun = st.changed ? () => { const b = document.createElement('button'); b.setAttribute('data-tpln-changed', tplPfKey(card)); b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } : null;
   return { eyebrow:[i18t('nav_tpl_std'), kind, stream].filter(Boolean).join(' \u00b7 '), title:card.name,
     sub:cs.length ? i18tn('jov5_tp_sub', cs.length, { n:cs.length, c:st.changed }) : i18t('jov5_tp_unused'),
@@ -3556,6 +3585,7 @@ function tplPfAfterPaint(){
   const card=tplPfChosen(tplOverviewData());
   try{ tplPfMarksPaint(card); }catch(e){ if(typeof console!=='undefined') console.warn('book: marks failed', e); }
   try{ tplPfPanelPaint(); }catch(e){ if(typeof console!=='undefined') console.warn('book: panel failed', e); }
+  try{ tplnQuotesFill(); }catch(e){ if(typeof console!=='undefined') console.warn('book: quotes failed', e); }
 }
 /* The book's own doors, bound on its host each paint (the rows are rebuilt):
    a shelf row lands on the Templates list narrowed to it; the switch flips
@@ -5100,7 +5130,7 @@ function sdWire(d, mayEdit){
   PB_PAGE_TABS.forEach(sdWireList);
 }
 
-Object.assign(window,{tplnPanelFive,tplnOursGo,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+Object.assign(window,{tplnBack,tplnPanelFive,tplnOursGo,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfReadOf,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

@@ -25,7 +25,12 @@ const waitFor = async (page, fn, arg, ms = 8000) => { try { await page.waitForFu
 /* what a press on a row's door, or on a link at the foot, should do */
 const ROWS = { name: 'drawer', twostep: 'drawer', agents: 'view:jambo', approvals: 'drawer', review: 'drawer', signcap: 'drawer', linkcode: 'drawer', rates: 'drawer', mail: 'drawer' };
 const FOOT = { 'data-st-page=team': 'page', 'data-st-page=streams': 'page', 'data-st-panel=lessons': 'drawer', 'data-st-panel=trail': 'page' };
-const AREAS = { you: ['name', 'lang', 'agents'], sec: ['twostep', 'signcap', 'linkcode'], rule: ['approvals', 'review'], money: ['rates'], msg: ['push', 'mail', 'outsidelook'] };
+/* RE-POINTED 17 Nov 2026 (#762): the You area holds again the doors the old Settings had — Change your email, When you're
+   away, Download your data (put back in the new look's list, settings.js stnYouHtml) — in the order the list draws them */
+const AREAS = { you: ['name', 'email', 'lang', 'away', 'mydata', 'agents'], sec: ['twostep', 'signcap', 'linkcode'], rule: ['approvals', 'review'], money: ['rates', 'paydays'], msg: ['push', 'mail'] };
+/* RE-POINTED 17 Nov 2026 (#762): Money holds the payment targets' row too (their door had been lost with the old card) */
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the outside look's row and switch are gone (on for everyone),
+   so Messages holds Push and Mail; the one switch left is Push's, drawn once its state is read, so it is waited for */
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -33,7 +38,10 @@ const AREAS = { you: ['name', 'lang', 'agents'], sec: ['twostep', 'signcap', 'li
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new list's one switch is Push's, drawn only once
+       the browser can say on/off — GitHub's Chromium denies notifications by default ('blocked', no switch, so check 2
+       measured nothing). The reader here has allowed notifications, so the switch is drawn and measured. */
+    const page = await (await browser.newContext({ viewport: { width: 1440, height: 780 }, permissions: ['notifications'] })).newPage();
     page.on('pageerror', e => errors.push(String(e).slice(0, 180)));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.waitForSelector('#su-org', { timeout: 15000 });
@@ -46,7 +54,8 @@ const AREAS = { you: ['name', 'lang', 'agents'], sec: ['twostep', 'signcap', 'li
     await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
     const open = async () => { await page.reload({ waitUntil: 'networkidle' }); await waitFor(page, () => typeof openSettingsAt === 'function' && !!(window.state && Array.isArray(state.contracts) && state.contracts.length) && typeof currentUser === 'function' && !!currentUser(), null, 20000); await page.keyboard.press('Escape').catch(() => {});
       if (!(await page.evaluate(() => document.documentElement.classList.contains('lg-new')))) await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
-      await page.evaluate(() => openSettingsAt('you')); return waitFor(page, () => document.querySelectorAll('#stn-main .stn-row').length >= 10, null, 10000); };
+      await page.evaluate(() => openSettingsAt('you')); const ok = await waitFor(page, () => document.querySelectorAll('#stn-main .stn-row').length >= 10, null, 10000);
+      if (ok) await waitFor(page, () => !!document.querySelector('#stn-main .st-swt'), null, 8000); return ok; };
     const scrim = () => page.evaluate(() => { const sc = document.getElementById('st-scrim'); return !!sc && getComputedStyle(sc).display !== 'none' && sc.getBoundingClientRect().width > 0; });
     const first = await open();
     check('0 Settings draws its list, the new look on', first);
@@ -61,7 +70,10 @@ const AREAS = { you: ['name', 'lang', 'agents'], sec: ['twostep', 'signcap', 'li
       const byArea = k => S.rows.filter(r => r.a === k).map(r => r.k);
       check('0 no menu; a chip per area with the count of its rows, All first', !S.menu && S.chips[0] === 'all:' + S.rows.length && Object.keys(AREAS).every(k => S.chips.includes(k + ':' + byArea(k).length)), JSON.stringify(S.chips));
       check('0 the rows stand under their area, in order, each with its coloured mark', S.heads.join() === Object.keys(AREAS).join() && Object.keys(AREAS).every(k => byArea(k).join() === AREAS[k].join()) && S.rows.every(r => r.mark) && S.headTones === 5, JSON.stringify({ heads: S.heads, rows: S.rows.map(r => r.a + '.' + r.k), tones: S.headTones }));
-      check('2 every switch is drawn at its size', S.sw.length >= 1 && S.sw.every(x => x === '34x20'), JSON.stringify(S.sw));
+      /* RE-POINTED 17 Nov 2026 (#762): the one switch is Push's, drawn only where the browser can take phone alerts (AN UNUSABLE
+         SWITCH IS NOT DRAWN); where it cannot (GitHub's browser), no switch is the truth — every switch drawn is at its size */
+      const pushOk = await page.evaluate(async () => { try { const s = typeof pushState === 'function' ? await pushState() : null; return s === 'on' || s === 'off'; } catch (_){ return false; } });
+      check('2 every switch is drawn at its size', (pushOk ? S.sw.length >= 1 : S.sw.length === 0) && S.sw.every(x => x === '34x20'), JSON.stringify({ sw: S.sw, pushOk }));
       check('0 the four pages are links at the foot', S.foot.length === Object.keys(FOOT).length && S.foot.every(a => FOOT[a]), JSON.stringify(S.foot));
       await page.screenshot({ path: path.join(OUT, 'legora-1440x780.png') });
 

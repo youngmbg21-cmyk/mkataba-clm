@@ -299,11 +299,7 @@ const READ = () => {
         /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
         await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);
           for (let i = 0; i < 40; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); if (!(((j.contract || j).fields || {}).up_goods)) return; await new Promise(z => setTimeout(z, 250)); } });
-        await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); roomHomeLand('MK-A2'); });
-        /* the crossfade's ghost of the face before (no ids) is gone a moment later */
-        await until(page, () => !!document.querySelector('#ig-dock .pd-dossier') && !document.querySelector('.pd2-dossier'), null, 20000);
-        const O = await page.evaluate(() => ({ notes: !!document.getElementById('pd2-notes'), pd2: !!document.querySelector('.pd2-dossier'), moved: !!document.querySelector('[data-pd2-left]') }));
-        check('6 off: the old Dossier, no notes, the paper where it was', !O.notes && !O.pd2 && !O.moved, O);
+        /* RETIRED 16 Nov 2026 (#762): 6 'off: the old Dossier, no notes' — there is no new-look switch any more; the new look is the only look */
       }
       await page.close();
     }

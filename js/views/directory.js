@@ -303,9 +303,11 @@ function dirTabCount(book, tab, o){ return (book || []).filter(p => dirOnTab(p, 
 function dirPeopleOfParty(key){ return dirBook().filter(p => p.partyKey === key); }
 
 /* ---- THE PLACE A REFRESH PUTS BACK ---- */
-function dirPlace(){ return { tab: _dir.tab, q: _dir.q, party: _dir.party, hati: _dir.hati, stream: _dir.stream }; }
+/* the new look's own tab (_dirn) rides the place too, so a refresh lands on it (#762) */
+function dirPlace(){ return { tab: _dir.tab, q: _dir.q, party: _dir.party, hati: _dir.hati, stream: _dir.stream, nl: _dirn }; }
 function dirPlacePut(p){
   if (!p || typeof p !== 'object') return;
+  if (typeof p.nl === 'string' && p.nl) _dirn = p.nl;
   _dir.tab = DIR_TABS.includes(p.tab) ? p.tab : 'all';
   _dir.q = p.q ? String(p.q) : '';
   _dir.party = p.party ? String(p.party) : 'all';
@@ -858,9 +860,11 @@ function dirnPanelFive(p, sub, w, away){
   const reach = [];
   if (p.email) reach.push({ mark:'msg', t:i18t('dirn_p_email'), s:i18t('dirn_p_mail_cost'), attr:`data-dirn-mail="${_dE(p.key)}"` });
   if (n) reach.push({ mark:'users', t:i18t('jov5_dir_show'), v:String(n), attr:`data-dirn-contracts="${_dE(p.key)}"` });
+  /* an outside person's party is a door onto that party (MAP: Party → cuSelectParty; #762 — the new panel said it as words) */
+  if (p.partyKey && p.partyName && typeof cuCustomerOf === 'function' && cuCustomerOf(p.partyKey)) reach.push({ mark:'users', t:p.partyName, s:i18t('cun_open'), attr:`data-dir-party="${_dE(p.partyKey)}"` });
   if (reach.length) groups.push({ label:i18t('jov5_dir_reach'), rows:reach });
   return { avatar:initials, title:p.name || p.email || '', sub,
-    glance:[{ n, l:i18t('jov5_dir_agreements'), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
+    glance:[{ n, l:i18tn('jov5_dir_agreements', n, { n }), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
       { n:away && away !== i18t('dirn_p_not_away') ? i18t('jov5_dir_away') : i18t('jov5_dir_in'), l:away ? (away === i18t('dirn_p_not_away') ? i18t('jov5_dir_not_away') : away) : i18t('jov5_dir_side') }],
     groups, src:i18t('jov5_dir_src') };
 }
@@ -902,7 +906,7 @@ if (typeof document !== 'undefined' && !document._dirnPanelWired){ document._dir
 let _dirnMost = 0;
 const DIRN_BAR_W = 90;
 function dirnLoadBarHtml(n){ return n && _dirnMost ? `<span class="dirn-load" aria-hidden="true" style="width:${Math.max(4, Math.round(n / _dirnMost * DIRN_BAR_W))}px"></span>` : ''; }
-function dirnRowHtml(p){
+function dirnRowHtml(p, keys){
   const ours = p.side === 'ours';
   const hati = p.hati ? String(p.hati).charAt(0).toUpperCase() + String(p.hati).slice(1) : '';
   const roles = [...(p.roles || [])];
@@ -920,8 +924,24 @@ function dirnRowHtml(p){
   let ph = null; try { ph = dirPhoneOf(p); } catch (_){ ph = null; }
   /* PILL TO ACT, LINK TO GO (the harmony review): Email is the panel's door, not every row's; the row keeps a phone */
   const reach = ph ? _dE(String(ph.phone || ph)) : '—';
+  /* the columns drawn (listCols, #762): a column that stepped aside draws no cell */
+  const cell = { role: () => _dE(role || '—'), does: () => _dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '') + dirnLoadBarHtml(ids.length), wait: () => _dE(wait), reach: () => reach };
   return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who">${typeof regAvatarHtml === 'function' ? regAvatarHtml(p.name || p.email || '?') : ''}<div><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
-    <td class="cun-wait">${_dE(role || '—')}</td><td class="cun-wait">${_dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '')}${dirnLoadBarHtml(ids.length)}</td><td class="cun-wait">${_dE(wait)}</td><td class="cun-wait">${reach}</td></tr>`;
+    ${(keys || DIRN_KEYS).map(k => `<td class="cun-wait">${cell[k] ? cell[k]() : ''}</td>`).join('')}</tr>`;
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
+   dragged widths carry over; Name and Does for you always stand, where the room is short Reach steps aside first,
+   then Waiting, then Role; Reach is not drawn while no row has a phone */
+const DIRN_KEYS = ['role', 'does', 'wait', 'reach'];
+function dirnCols(reachAny){
+  const W = { role: 140, does: 200, wait: 150, reach: 150 }, R = { reach: 1, wait: 2, role: 3 };
+  const T = { name: 'dirn_c_name', role: 'dirn_c_role', does: 'dirn_c_does', wait: 'dirn_c_wait', reach: 'dirn_c_reach' };
+  const DEFS = [{ k: 'name' }, ...DIRN_KEYS.filter(k => reachAny || k !== 'reach').map(k => ({ k, w: W[k], rank: R[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols(DIR_SEAT, DEFS, () => dirRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { keys: cols.slice(1).map(c => c.k), n: cols.length,
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => `<th>${_dE(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(DIR_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
 /* PEOPLE'S TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: All · Yours · Outside · Waiting only pick WHICH people,
    `pick` below), so a tab press and a typed letter redraw only the rows (listRowsSwapHtml); a tab that comes or
@@ -938,18 +958,18 @@ function dirnRender(host, INS, book, o){
   const tabs = [['all', i18t('ctf_tab_all'), all.length], ['yours', i18t('dirn_tab_yours'), yours.length], ['outside', i18t('dirn_tab_outside'), outside.length], ['wait', i18t('dirn_tab_wait'), waiting.length]].filter(t => t[2] || t[0] === 'all' || t[0] === _dirn);
   /* SAY IT ONCE (the harmony review): a Reach column with no phone on any row steps out */
   const reachAny = list.some(p => { try { return !!dirPhoneOf(p); } catch (_){ return false; } });
-  const cutReach = h => reachAny ? h : h.replace(/<td class="cun-wait">[^<]*<\/td><\/tr>$/, '</tr>');
+  const C = dirnCols(reachAny);
   _dirnMost = Math.max(0, ...ours.concat(theirs).map(p => (p.on ? p.on.size : 0)));
-  const body = ours.map(p => cutReach(dirnRowHtml(p))).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="${reachAny ? 5 : 4}">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(p => cutReach(dirnRowHtml(p))).join('');
+  const body = ours.map(p => dirnRowHtml(p, C.keys)).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="${C.n}">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(p => dirnRowHtml(p, C.keys)).join('');
   const PAGE = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     <div class="ap-body is-ins dir-body"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2><span class="ctf-hf">${_dE(i18t('dirn_head', { n: all.length, y: yours.length, o: outside.length }))}</span></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(i18t('lh_filter_ph'))}" value="${_dE(_dir.q || '')}"></label><span class="apn-sp"></span>
+      <div class="apn-bar" data-lh-seat="directory-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(i18t('lh_filter_ph'))}" value="${_dE(_dir.q || '')}"></label><span class="apn-sp"></span>
         ${tabs.map(t => `<button type="button" class="apn-tab${_dirn === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${_dE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table"><colgroup><col style="width:28%"><col style="width:15%"><col><col style="width:17%">${reachAny ? '<col style="width:17%">' : ''}</colgroup>
-        <thead><tr><th>${_dE(i18t('dirn_c_name'))}</th><th>${_dE(i18t('dirn_c_role'))}</th><th>${_dE(i18t('dirn_c_does'))}</th><th>${_dE(i18t('dirn_c_wait'))}</th>${reachAny ? `<th>${_dE(i18t('dirn_c_reach'))}</th>` : ''}</tr></thead>
-        <tbody id="dir-tbody">${body || `<tr><td colspan="5" class="apn-none">${_dE(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
+      <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table" data-list-seat="${_dE(DIR_SEAT)}">${C.colg}
+        ${C.th}
+        <tbody id="dir-tbody">${body || `<tr><td colspan="${C.n}" class="apn-none">${_dE(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot">${_dE(i18tn('dirn_foot', all.length, { n: all.length }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div></div>`;
   if (o && o.rows && typeof listRowsSwapHtml === 'function'
@@ -968,6 +988,7 @@ if (typeof document !== 'undefined' && !document._dirnWired){ document._dirnWire
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const tab = t.closest('[data-dirn-tab]'); if (tab){ e.preventDefault(); _dirn = tab.getAttribute('data-dirn-tab'); renderDirectory({ rows: true }); return; }
+    const pty = t.closest('.dirn-page [data-dir-party], #ins-panel [data-dir-party]'); if (pty && document.querySelector('.dirn-page')){ e.preventDefault(); if (typeof cuSelectParty === 'function') cuSelectParty(pty.getAttribute('data-dir-party')); return; }
     const m = t.closest('[data-dirn-mail]'); if (m){ e.preventDefault(); e.stopPropagation(); const p = dirBook().find(x => x.key === m.getAttribute('data-dirn-mail')); if (p && p.email){ try { window.location.href = 'mailto:' + p.email; } catch (_){} } }
   }, true);
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */

@@ -96,7 +96,7 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     await until(page, n0 => !intel.busy && intel.history.length > n0, n0, 15000);
     /* A PICTURE THAT MUST LAND IS WAITED FOR, BOUNDED (9 Nov 2026: on GitHub's headless shell the first question's
        card landed after the answer was said, and was read before it did) */
-    if (opts && opts.moves) await until(page, p0 => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length !== p0, p0, 12000); /* 4s → 12s, 11 Nov 2026: a busy runner drew the card later still */
+    if (opts && opts.moves) await until(page, p0 => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length !== p0, p0, 20000); /* 4s → 12s, 11 Nov 2026: a busy runner drew the card later still; 12s → 20s, 17 Nov 2026 (#762, the new look the only look): on GitHub the FIRST phrase's card landed after 12s once (its "can you draw" twin, asked next, found it drawn) — still bounded, still a state */
     await page.waitForTimeout(150);
     return page.evaluate(([p0, n0]) => {
       const s = hbS(); const path = s.path || []; const key = path.slice(-1)[0];

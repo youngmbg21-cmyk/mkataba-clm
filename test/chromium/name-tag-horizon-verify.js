@@ -72,24 +72,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* 1c RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's own row went with Home */
     await page.evaluate(() => setView('dashboard'));
 
-    /* ════ 2. THE DROPDOWN'S CHOICES ════ */
-    await page.evaluate(() => setView('register'));
-    await page.waitForTimeout(1400);
-    const opts = await page.evaluate(() => {
-      const s = document.querySelector('.reg-filterbar .reg-chip-sel');
-      if (!s || !s.options.length) return null;
-      const cs = getComputedStyle(s), os = getComputedStyle(s.options[1] || s.options[0]);
-      return { hidden: cs.opacity === '0', selColor: cs.color,
-        optColor: os.color, optBg: os.backgroundColor, radius: cs.borderTopLeftRadius,
-        chipRadius: getComputedStyle(s.closest('.reg-chip')).borderTopLeftRadius };
-    });
-    ok('2 the choices carry an ink of their own',
-      !!opts && opts.hidden && opts.optColor !== opts.optBg
-        && opts.optColor !== 'rgba(0, 0, 0, 0)', JSON.stringify(opts));
-    /* RE-POINTED 7 Oct 2026 (the bright brand): the chips are soft boxes now,
-       not pills, so the control matches the chip's own corner, whatever it is */
-    ok('2b and the control itself takes the chip\'s corner',
-      !!opts && opts.radius === opts.chipRadius && parseFloat(opts.radius) > 0, opts && (opts.radius + ' vs chip ' + opts.chipRadius));
+    /* ════ 2. THE DROPDOWN'S CHOICES ════
+       RETIRED 17 Nov 2026 (#762, owner's ruling): 2 "the choices carry an ink of their own" and 2b "the control takes the
+       chip's corner" measured the Contracts list's filter chips (.reg-filterbar .reg-chip-sel: + Filter, Sort) — those stay
+       gone in the new look, so there is no dropdown chip to measure. */
 
     /* ════ 3. THE HORIZON ════
        MORE ROWS THAN THE CARD, or a sticky header proves nothing. */
@@ -115,7 +101,9 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       const lad = document.querySelector('.cal-ladder'), sc = document.querySelector('.cal-hz');
       const ruler = document.querySelector('.cal-hz-ruler');
       if (!lad || !sc || !ruler) return null;
-      const m = document.querySelector('.cal-hz-months span');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): as drawn (round 5) the months stand over
+         each row's own bar (.cal-hz-rm), not in the ruler; they are still read as a ruler, not column heads */
+      const m = document.querySelector('.cal-hz-row .cal-hz-rm span');
       return { ladFirst: lad.compareDocumentPosition(sc) === 4,
         caption: !!document.querySelector('.cal-hz-t'),
         scrollable: sc.scrollHeight > sc.clientHeight + 4,
@@ -126,7 +114,9 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
         /* The figures face is a token (--font-mono), which the type ruling made
            Geist with tabular digits; the ruler follows the token, not a name. */
         monoFace: getComputedStyle(document.documentElement).getPropertyValue('--font-mono').split(',')[0].trim(),
-        ladEdge: getComputedStyle(document.querySelector('.cal-lad')).borderTopWidth };
+        ladEdge: getComputedStyle(document.querySelector('.cal-lad')).borderTopWidth,
+        /* the five boxes, each soft-filled in its band's tone (THE SAP WAY, f987) */
+        lads: [...document.querySelectorAll('.cal-lad')].map(el => ({ k: (el.className.match(/cal-lad-(d\d+)/) || [])[1], bg: getComputedStyle(el).backgroundColor, edge: getComputedStyle(el).borderTopWidth })) };
     });
     ok('3 the five bands lead the table', !!hz && hz.ladFirst, hz && String(hz.ladFirst));
     ok('3b the caption bar is gone', !!hz && !hz.caption);
@@ -135,8 +125,14 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       hz && hz.monthCase + ' / ' + hz.monthFace + ' vs ' + hz.monoFace);
     ok('3d the agreement line is the artifact\'s order — who, then the reference',
       !!hz && /^[^·]+ · \w+-/.test(hz.sub || ''), hz && hz.sub);
-    ok('3e each band is a card with its tone on the top edge',
-      !!hz && parseFloat(hz.ladEdge) === 3, hz && hz.ladEdge);
+    /* RE-POINTED 16 Nov 2026 (#762): THE SAP WAY (owner's pick, 10 Nov 2026, f987) — the five boxes are soft-filled
+       by band, their top rule gone; still each band a card wearing its own tone (red ≤30, amber ≤90, green beyond) */
+    const ladBg = k => ((hz && hz.lads || []).find(l => l.k === k) || {}).bg;
+    const clear = v => !v || v === 'rgba(0, 0, 0, 0)' || v === 'transparent';
+    ok('3e each band is a card filled in its tone (red, amber, green), no top rule',
+      !!hz && hz.lads.length === 5 && hz.lads.every(l => !clear(l.bg) && parseFloat(l.edge) === 0)
+        && ladBg('d30') !== ladBg('d60') && ladBg('d60') === ladBg('d90') && ladBg('d90') !== ladBg('d180') && ladBg('d180') === ladBg('d365'),
+      hz && JSON.stringify(hz.lads));
 
     /* THE OWNER'S OWN WORDS: the contracts and dates scroll UNDER the first
        line. Measured by really scrolling the table. */
@@ -190,21 +186,28 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       };
       const beyond = all.find(b => b.classList.contains('is-beyond'));
       const plain = all.find(b => !b.classList.contains('is-beyond') && b.getBoundingClientRect().width > 30);
-      return { n: all.length, plain: read(plain), beyond: read(beyond) };
+      /* the row beyond the year, as drawn (round 5): a quiet row with no bar, its note saying so */
+      const far = document.querySelector('.cal-hz-row[data-sel="HZ-FAR"]');
+      return { n: all.length, plain: read(plain), beyond: read(beyond),
+        far: far ? { isFar: far.classList.contains('is-far'), bars: far.querySelectorAll('.cal-hz-bar').length,
+          note: ((far.querySelector('.cal-hz-note') || {}).textContent || '').trim(), beyondWord: i18t('cal_hz_beyond') } : null };
     });
     /* A PAINTED radius is a pill when it is at least half the box's height:
        the browser resolves 999px down to what the box can take. */
     const pill = (v, h) => v != null && parseFloat(v) >= h / 2 - 0.5;
-    ok('4-stage both shapes of bar are on the page',
-      !!bars && !!bars.plain && !!bars.beyond, bars && JSON.stringify({ n: bars.n }));
+    /* RE-POINTED 16 Nov 2026 (#762): as drawn (round 5) a row beyond the year draws NO bar — so the stage asks for
+       the plain bar and the far row, not a cut bar */
+    ok('4-stage a plain bar and the row beyond the year are on the page',
+      !!bars && !!bars.plain && !!bars.far, bars && JSON.stringify({ n: bars.n, far: bars.far }));
     ok('4 a bar that ends on the ruler is a pill at BOTH ends',
       !!bars && !!bars.plain && pill(bars.plain.tl, bars.plain.h) && pill(bars.plain.bl, bars.plain.h)
         && pill(bars.plain.tr, bars.plain.h) && pill(bars.plain.br, bars.plain.h),
       bars && JSON.stringify(bars.plain));
-    ok('4b a bar running past the ruler is round at the left and CUT at the right',
-      !!bars && !!bars.beyond && pill(bars.beyond.tl, bars.beyond.h) && pill(bars.beyond.bl, bars.beyond.h)
-        && parseFloat(bars.beyond.tr) === 0 && parseFloat(bars.beyond.br) === 0,
-      bars && JSON.stringify(bars.beyond));
+    /* RE-POINTED 16 Nov 2026 (#762): the cut bar was the old look's; the new look's far row is a quiet row,
+       no bar at all (none half-drawn), its note saying it runs beyond the horizon */
+    ok('4b a row running past the ruler is a quiet row with no bar, its note saying it runs beyond',
+      !!bars && !!bars.far && bars.far.isFar && bars.far.bars === 0 && !bars.beyond && bars.far.note.includes(bars.far.beyondWord),
+      bars && JSON.stringify(bars.far));
     await page.screenshot({ path: path.join(OUT, '04-horizon-bars.png'), fullPage: true });
 
     ok('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));

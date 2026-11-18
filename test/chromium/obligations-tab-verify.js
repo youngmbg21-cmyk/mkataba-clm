@@ -543,10 +543,13 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
        about. Asked of the state, bounded. */
     /* RE-POINTED 15 Oct 2026: a row opens the Obligations page narrowed to
        its contract (its own table) */
-    await page.waitForFunction(() => state.view === 'obligations' && !!document.querySelector('#obw-one-host'), null, { timeout: 8000 }).catch(() => {});
-    const back = await page.evaluate(() => { const h = document.querySelector('#obw-one-host'); return { view: state.view, id: h ? h.getAttribute('data-ins-cid') : null }; });
-    check('pressing a row opens that contract\'s own table on the Obligations page',
-      back.view === 'obligations' && back.id === want, JSON.stringify(back));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; the platform review, 6 Nov 2026): a duty's row opens
+       on its contract's PAPER, Jambo's panel on that contract's Obligations face — the place the row is about, never the
+       old narrowed page (obligation-opens-on-the-paper-verify pins the double press) */
+    await page.waitForFunction(w => state.view === 'dashboard' && typeof pdContract === 'function' && pdContract() && pdContract().id === w && typeof pdTab === 'function' && pdTab() === 'oblig', want, { timeout: 8000 }).catch(() => {});
+    const back = await page.evaluate(() => ({ view: state.view, id: (typeof pdContract === 'function' && pdContract()) ? pdContract().id : null, tab: typeof pdTab === 'function' ? pdTab() : null }));
+    check('pressing a row opens that contract\'s Obligations, on its paper',
+      back.view === 'dashboard' && back.id === want && back.tab === 'oblig', JSON.stringify(back));
 
     /* ---- THE CHASE RECORDS THE FACT WHATEVER THE MAIL DOES ---- */
     await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'obligations');

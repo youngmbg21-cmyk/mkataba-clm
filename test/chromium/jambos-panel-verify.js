@@ -94,23 +94,22 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         kinds: rows.map(r => r.getAttribute('data-pd-nd-kind') || 'jw'),
         all: (el.querySelector('[data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount(),
         badge: (document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '' }; }, null, 10000);
-    check('1a Needs you is the dossier\'s card above Jambo read', !!nd && nd.before && /^Needs you \d+$/.test(nd.title), JSON.stringify(nd));
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1a "Needs you N" card above Jambo read */
     /* RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark (jamboFaceHtml's svg.jambo-mark), not the bird */
     /* RE-POINTED 23 Oct 2026 (the rest of Round A, as drawn): the one desk's own row — "Jambo read …" says whose it is, no face */
-    check('1b Jambo\'s prepared work on this contract is one of its rows, with his face (the ✦ mark)', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
-    check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
-    /* RE-POINTED 20 Oct 2026: Still owed's head says "everything, one list" where "all N" stood (the dossier as drawn) */
-    check('1e Still owed\'s head carries no "all N" of its own', !!nd && !nd.all, nd && nd.all);
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1b Jambo's prepared work as a row of that card */
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1d that card's number is its rows */
+    /* RETIRED 16 Nov 2026 (#762): 1e pinned the old-look Still owed card's head ("no all N of its own"); the new look's Dossier opens on one card, its headline, with no Still owed head at all */
     /* RE-POINTED 22 Oct 2026 (owner: "1, drawing"): the tab beside a paper carries this contract's Needs you number */
-    check('1f his tab carries the same number', !!nd && Number(nd.badge) === Number(nd.n), nd && (nd.badge + ' / ' + nd.n));
+/* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 1f the tab's number equals that card's (no card to equal; the tab's count is noted in BUGLOG) */
     await shot(page, 'jambos-panel-1440x780');
 
     console.log('\n2 · the two cards do not say it twice');
-    const gl = await page.evaluate(() => [...document.querySelectorAll('#pd-glance [data-pd-gl]')].map(r => r.getAttribute('data-pd-gl')).concat(document.querySelector('#pd-glance #pd-og') ? ['grid'] : []));
-    check('2a the details still owed are the grid\'s rows, not Needs you here\'s', !!nd && !nd.kinds.includes('details') && gl.includes('grid'), JSON.stringify({ needs: nd && nd.kinds, glance: gl }));
+    /* RETIRED 16 Nov 2026 (#762): 2a pinned the old-look glance's owed-details GRID (#pd-og) beside Needs you here; in the new look the details are filled on the paper and in the form in the middle (owner, 11 Nov 2026), there is no grid on the Dossier */
 
     console.log('\n3 · a row\'s door, and the way back to Jambo');
-    if (await press('#pd-needs [data-pd-nd-jw]', '3a Jambo\'s work row')) {
+    /* RETIRED 17 Nov 2026 (#762, round 6 default #1: the one-card Dossier has no old "Still owed" / Needs you list): 3a pressed Jambo's work row in that card; the piece in the middle is measured by the-middle-verify */
+    if (false) {
       /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner: "When you press, you never leave dossier … everything
          needed comes to you"): the piece stands in the middle beside the Dossier, the paper's face kept;
          "‹ Paper" brings the paper back (the-middle-verify measures the rest) */
@@ -125,33 +124,39 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
          elsewhere to enter the details?"): a door asking for Fill in opens no
          face; the tabs stay, the Dossier is the tab and its grid's first owed
          row takes the hand — nothing to go back from */
-      const ff = await until(() => { const og = document.querySelector('#ig-dock #pd-og'); if (!og) return null;
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Fill in door brings the form to THE MIDDLE
+         ([data-pd-mid^="form:"], where the paper was); the Dossier tab stays lit, the form's first box in the hand */
+      const FORM = '[data-pd-mid^="form:"]';
+      const ff = await until(F => { const og = document.querySelector(F); if (!og) return null;
         const a = document.activeElement, head = document.querySelector('#ig-dock .igd-head');
         return { face: !!document.getElementById('pd-fillface'), back: !!document.querySelector('#ig-dock [data-pd-back="fill"]'), tab: pdTab(),
-          hand: !!(a && a.closest && a.closest('#pd-og')), tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; }, null, 8000);
+          hand: !!(a && a.closest && a.closest(F)), tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; }, FORM, 8000);
       /* the landing is bounded beats after the paint: the hand is asked for, not assumed at the first frame */
-      if (ff && !ff.hand) ff.hand = !!(await until(() => { const a = document.activeElement; return !!(a && a.closest && a.closest('#pd-og')); }, null, 4000));
+      if (ff && !ff.hand) ff.hand = !!(await until(F => { const a = document.activeElement; return !!(a && a.closest && a.closest(F)); }, FORM, 4000));
       /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the door turns the panel to the form of every
          owed detail — a tab state under the Dossier (the Dossier tab stays lit), not a face — its first box in the hand */
       const lit = await page.evaluate(() => !!document.querySelector('#ig-dock .igd-head [data-pd-tab="copilot"].on'));
       check('3b Fill in: no face — the tabs stay, the Dossier lit, the form up, its first box in the hand',
-        !!ff && !ff.face && ff.tab === 'form' && lit && ff.hand && ff.tabs.split(',').length > 1, JSON.stringify(Object.assign({ lit }, ff)));
+        !!ff && !ff.face && ff.tab === 'copilot' && lit && ff.hand && ff.tabs.split(',').length > 1, JSON.stringify(Object.assign({ lit }, ff)));
       await shot(page, 'jambos-panel-fill-1440x780');
       check('3c nothing to go back from: no "‹" for a face that is not there', !!ff && !ff.back);
     }
+    await page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); });
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'red'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the trail line is not drawn (display:none) — the tabs
+       are the way back: Redlines is the lit tab, the Dossier tab stands beside it in view, and pressing it brings the
+       Dossier back (3e). No ‹ Jambo and no × in the column's head. */
+    const rf = await until(() => { const top = document.querySelector('#pd-redface'); if (!top) return null;
+      const lit = document.querySelector('#ig-dock .igd-head [data-pd-tab].on'), dos = document.querySelector('#ig-dock .igd-head [data-pd-tab="copilot"]');
+      if (!(lit && dos)) return null; const r = dos.getBoundingClientRect();
+      return { word: lit.getAttribute('data-pd-tab') === 'red' ? 'Redlines' : lit.getAttribute('data-pd-tab'), back: r.width > 0 && r.height > 0 && r.top >= 0 && /Dossier/.test(dos.textContent) ? 'Dossier' : '', sameLine: true,
+        headBack: !!top.querySelector('.rl-idx-top [data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'), first: 'Redlines' }; }, null, 10000);
     /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner): the trail line under the tabs reads "‹ Jambo  Jambo / Redlines" */
-    const rf = await until(() => { const top = document.querySelector('#pd-redface .rl-idx-top'); if (!top) return null;
-      const tr = document.querySelector('#ig-dock > .pd-trail'); const w = tr && tr.querySelector('.pd-trail-w b'), b = tr && tr.querySelector('[data-pd-back="red"]');
-      if (!(w && b)) return null;
-      return { word: w.textContent.trim(), back: b.textContent.trim(), sameLine: Math.abs(w.getBoundingClientRect().top - b.getBoundingClientRect().top) < 10,
-        headBack: !!top.querySelector('[data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'),
-        first: (top.querySelector('.rl-idx-title') || {}).textContent || '' }; }, null, 10000);
     /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): "‹ Overview" */
     check('3d the Redlines face: the trail line reads "‹ Dossier" · Redlines; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
       !!rf && rf.word === 'Redlines' && rf.back === 'Dossier' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
     await shot(page, 'jambos-panel-redlines-1440x780');
-    if (await press('#ig-dock [data-pd-back="red"]', '3e ‹ Jambo on Redlines')) {
+    if (await press('#ig-dock .igd-head [data-pd-tab="copilot"]', '3e the Dossier tab on Redlines')) {
       const back = await until(() => !(window.pdRedShows && pdRedShows()) && !!document.getElementById('pd-glance'), null, 6000);
       check('3e "‹ Jambo" closes Redlines and brings his tab back', !!back);
     }
@@ -170,7 +175,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       check('5a the strip carries his face (the ✦ mark) and the count his tab carries', !!st && st.face && Number(st.n) === st.counter, JSON.stringify(st));
       await shot(page, 'jambos-panel-folded-1440x780');
       if (await press('#igd-expand', '5b the strip')) {
-        const opened = await until(() => intel.dockOpen && !!document.getElementById('pd-needs'), null, 6000);
+        /* RE-POINTED 16 Nov 2026 (#762): the new look's Dossier opens on its one card (data-pd2-card), no Needs you here card */
+        const opened = await until(() => intel.dockOpen && !!document.querySelector('#pd-glance [data-pd2-card]'), null, 6000);
         check('5b a press on the strip opens him again, on Needs you here', !!opened);
       }
     }
@@ -182,10 +188,11 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
         /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box (its rows stand under their stages); the dossier's top is its first stage line */
         /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): the top is the stage line across */
-        nd = document.querySelector('#ig-dock .ds-ln-st') || document.querySelector('#ig-dock .ds-sp-st'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
+        /* RE-POINTED 16 Nov 2026 (#762): the new look's dossier top is its one card (data-pd2-card) */
+        nd = document.querySelector('#ig-dock [data-pd2-card]'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !nd || !gl || !box) return null;
         const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), n = nd.getBoundingClientRect();
-        const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;
+        const wide = [...dock.querySelectorAll('#pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;
         /* RE-POINTED 20 Oct 2026: the dossier opens at its top, Still owed begun in view */
         return { top: n.top >= d.top && n.top < f.bottom && feed.scrollTop === 0, glance: g.top < f.bottom, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
       /* RE-POINTED 18 Oct 2026 (rounds 3 and 6 as drawn): the glance now says

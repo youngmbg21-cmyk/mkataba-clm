@@ -107,7 +107,9 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     const GRID = () => { const og = document.getElementById('pd-og'); if (!og) return null; const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
       /* RE-POINTED 23 Oct 2026 (Spine): no Needs you head; the Fill in stage's line carries the count */
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): the count heads the form ("N needed · K of M ready") */
-      return { head: t(document.querySelector('#ig-dock .pd-fm-h [data-pd-fm-count]')), cols: [...og.querySelectorAll('thead th')].map(t),
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the form stands in THE MIDDLE (pd2FormMidOpen), its
+         head there; the columns are named for a screen reader only (the quiet list), so their words are read as written */
+      return { head: t(document.querySelector(':is(#ig-dock, .pd2-fm-mid) .pd-fm-h [data-pd-fm-count]')), cols: [...og.querySelectorAll('thead th')].map(t),
         rows: [...og.querySelectorAll('tr.pd-og-row')].map(r => ({ k: r.getAttribute('data-pd-og-row'), cls: r.className, src: t(r.querySelector('.pd-og-src')),
           chip: t(r.querySelector('.pd-og-cl')), ok: !!r.querySelector('[data-pd-og-ok]'), box: (r.querySelector('.pd-og-v input, .pd-og-v select') || {}).value })) }; };
 
@@ -117,11 +119,17 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     const row = k => G.rows.find(r => r.k === k) || {};
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the head is "Needs you N" */
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the head is in small capitals, so its read words are capitals */
-    check('1a the form says "N needed"; the columns "Fact · where Jambo read it" · "Jambo read" · where it came from', /^\d+ needed/i.test(G.head) && G.cols[0] === 'FACT · WHERE JAMBO READ IT' && G.cols[1] === 'JAMBO READ', JSON.stringify({ head: G.head, cols: G.cols }));
-    check('1c each blank says where it lands on the paper', row('up_start_date').chip === '§3' && /on the paper/.test(row('up_start_date').src) && row('up_expected_yearly_value').chip === '§4', JSON.stringify(G.rows));
+    check('1a the form says "N needed"; the columns "Fact · where Jambo read it" · "Jambo read" · where it came from', /^\d+ needed/i.test(G.head) && /^FACT · WHERE JAMBO READ IT$/i.test(G.cols[0] || '') && /^JAMBO READ$/i.test(G.cols[1] || ''), JSON.stringify({ head: G.head, cols: G.cols }));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a blank's row says "§ · quote" — its section and the
+       paper's own sentence round the blank (pd2FormRegroup, pd2BlankQuote) — where the old row said "§3 on the paper" */
+    const sec = r => String(r.chip || '').replace(/\s+/g, '');
+    check('1c each blank says where it lands on the paper', sec(row('up_start_date')) === '§3' && /This Agreement starts on/.test(row('up_start_date').src) && sec(row('up_expected_yearly_value')) === '§4' && /expected yearly spend is/.test(row('up_expected_yearly_value').src), JSON.stringify(G.rows));
     await ckOpenRowOf(page, '#pd-og [data-pd-og-spot="up_start_date"]'); await page.click('#pd-og [data-pd-og-spot="up_start_date"]');
     const atPress = await until(() => !!document.querySelector('#ig-canvas .is-landed[data-upblank="up_start_date"]'), null, 4000);
     check('1e pressed, "§3" lands on its spot on the paper through the one lander', !!atPress);
+    /* RE-POINTED 17 Nov 2026 (#762): the form stands IN THE MIDDLE over the paper, so "§3" puts it away to show the spot;
+       the form is opened again for what follows */
+    await openFill('MK-0405');
     await shot(page, '8-owed-first-1440x780');
 
     /* 2 our standard, the reading in the box */
@@ -132,7 +140,8 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_notice_period"]'); await ckConfirm(page, 'up_notice_period');
     const used = await until(() => { const c = getContract('MK-0405');
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): the one Save stores it and the panel goes back to the Dossier */
-      return c.fields && c.fields.up_notice_period === '90 days' ? { paper: /90 days/.test(document.getElementById('ig-canvas').textContent), saved: !document.querySelector('#pd-og.is-form') && !!document.querySelector('#pd-og.is-dossier') } : null; }, null, 6000);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier is its one card ([data-pd2-card]) */
+      return c.fields && c.fields.up_notice_period === '90 days' ? { paper: /90 days/.test(document.getElementById('ig-canvas').textContent), saved: !document.querySelector('#pd-og.is-form') && !!document.querySelector('#pd-og.is-dossier, #ig-dock [data-pd2-card]') } : null; }, null, 6000);
     check('2c Save: the box\'s own writer stored it, the paper shows it, the panel is back on the Dossier', !!used && used.paper && used.saved, JSON.stringify(used));
     await page.evaluate(() => window.flushSaves && flushSaves()).catch(() => {});
     const rec = await W.admin.json('/api/contracts/MK-0405');
@@ -140,7 +149,10 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
 
     /* 3 the answered ones are Key terms' lines, folded */
     /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms is one line under the grid; its table (the rows it draws) stands in the middle when pressed */
-    const fold = await page.evaluate(() => { const k = document.querySelector('#ig-dock [data-pd-kt-mid]'); const c = pdContract(); return k && c ? { open: !!document.querySelector('[data-pd-mid-kt]'), carrier: pdKtFacts(c).some(f => f.key === 'up_carrier_address') } : null; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier draws no Key terms line; the
+       answered ones are still Key terms' lines (pdKtFacts), its table not opened in the middle by the save (its opener,
+       pdKtMid, is pressed by the "key terms" door and Key terms' own doors) */
+    const fold = await page.evaluate(() => { const c = pdContract(); return c && document.querySelector('#ig-dock [data-pd2-card]') ? { open: !!document.querySelector('[data-pd-mid-kt]'), carrier: pdKtFacts(c).some(f => f.key === 'up_carrier_address') } : null; });
     check('3a the answered ones are Key terms\' lines, one line under the grid', !!fold && !fold.open && fold.carrier, JSON.stringify(fold));
 
     /* 6 the three screens */
@@ -159,8 +171,10 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     await openFill('MK-0410');
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): "Fill the document" stays the Dossier's line; the form put away */
     await page.evaluate(() => { if (pdFormShows()) pdFormClose(); });
-    await until(() => !!document.querySelector('#pd-needs [data-pd-gl="docfill"]'), null, 4000);
-    const D = await page.evaluate(() => (document.querySelector('#pd-needs [data-pd-gl="docfill"]') || {}).innerText || '');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): no "Still owed" card (#pd-needs); the line is looked
+       for anywhere in the Dossier panel, and its press is guarded so a missing door reports */
+    await until(() => !!document.querySelector('#ig-dock [data-pd-gl="docfill"]'), null, 4000);
+    const D = await page.evaluate(() => (document.querySelector('#ig-dock [data-pd-gl="docfill"]') || {}).innerText || '');
     check('4a Still owed: "3 answers are on the paper as you typed them, not yet in the wording." · Fill the document',
       /^3 answers are on the paper as you typed them, not yet in the wording\.\s+Fill the document$/.test(D.trim()), D);
     const P4 = await page.evaluate(() => { const cv = document.getElementById('ig-canvas'); const amber = getComputedStyle(document.documentElement).getPropertyValue('--st-amber-bg').trim();
@@ -169,8 +183,9 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       return { blank: blank ? getComputedStyle(blank).backgroundColor === want : null,
         pend: done.map(x => x.getAttribute('data-field-key') + ':' + getComputedStyle(x).textDecorationStyle + ':' + getComputedStyle(x).textDecorationLine).sort() }; });
     check('4d the paper: an owed blank amber; the three typed answers underlined, dotted', P4.blank === true && P4.pend.join('|') === 'carrier:dotted:underline|lane:dotted:underline|route:dotted:underline', JSON.stringify(P4));
-    await page.click('#pd-needs [data-pd-og-docfill]');
-    const filled = await until(() => { const c = getContract('MK-0410'); return !tplFormPending(c) && /Road/.test(c.redlineText || '') && !document.querySelector('#pd-needs [data-pd-og-docfill]'); }, null, 20000);
+    const docDoor = await page.$('#ig-dock [data-pd-og-docfill]');
+    if (docDoor) await docDoor.click();
+    const filled = !!docDoor && await until(() => { const c = getContract('MK-0410'); return !tplFormPending(c) && /Road/.test(c.redlineText || '') && !document.querySelector('#ig-dock [data-pd-og-docfill]'); }, null, 20000);
     check('4c pressed: the wording carries them, and the line goes from Still owed', !!filled);
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
@@ -196,7 +211,8 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       /* RE-POINTED 24 Oct 2026 (Round 4, owner's "mix"): "Confirm N read" is the Next card's one act; a read fact carries
          its § inside its field ("read §5"), a fact still asked keeps its § and the passage under it */
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): "Confirm N read" went; the form's one Save stores the readings */
-      const allB = document.querySelector('#ig-dock .pd-fm [data-pd-fm-save]');
+      /* RE-POINTED 16 Nov 2026 (#762): the form stands in THE MIDDLE (.pd2-fm-mid) */
+      const allB = document.querySelector(':is(#ig-dock, .pd2-fm-mid) .pd-fm [data-pd-fm-save]');
       return { head: t(allB), all: !!allB,
         rows: ['ndaDir', 'ndaEnds'].map(k => ({ k, chip: t(r(k) && r(k).querySelector('.pd-og-cl')), at: t(r(k) && r(k).querySelector('.pd-og-at')), q: t(r(k) && r(k).querySelector('q')), cls: r(k) && r(k).className,
           box: k === 'ndaDir' ? (r(k).querySelector('[data-pd-og-nda="dir"]') || {}).value : (r(k).querySelector('[data-pd-og-nda="ends"]') || {}).value })) }; });
@@ -208,7 +224,7 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     check('8b each fact "§5" under its box, the asked one\'s passage quoted; who keeps it secret read into its box, the day asked where the end is not on the record', N8.rows[0].chip === '§5' && N8.rows[1].chip === '§5' && N8.rows[1].q.length > 10
       && /is-read/.test(N8.rows[0].cls) && N8.rows[0].box === 'mutual' && /is-amb/.test(N8.rows[1].cls) && !N8.rows[1].box, JSON.stringify(N8.rows));
     await shot(pa, '8-owed-first-nda-1440x780');
-    await pa.click('#ig-dock .pd-fm [data-pd-fm-save]');
+    await pa.click(':is(#ig-dock, .pd2-fm-mid) .pd-fm [data-pd-fm-save]');
     const conf = await untilA(() => { const c = getContract('MK-0406'); return c.nda && c.nda.dir === 'mutual' && !document.querySelector('#pd-og.is-form') ? c.nda : null; }, null, 6000);
     check('8c Save stores the reading through the facts\' own writer, and the panel is back on the Dossier', !!conf && conf.dir === 'mutual', JSON.stringify(conf));
     await openA('MK-0407');
@@ -219,14 +235,16 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     await untilA(() => !!document.getElementById('pd-glance'), null, 6000);
     const P9raw = await pa.evaluate(() => { const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
       const v = document.querySelector('#pd-og tr[data-pd-og-row="value"]');
-      return { priv: t(document.querySelector('#pd-glance [data-pd-ds-card="private"]')), pay: !!(v && v.querySelector('[data-pd-og-pay]')), payWord: t(v && v.querySelector('.pd-og-f b')),
+      /* RE-POINTED 17 Nov 2026 (#762): the new Dossier says it among its facts ("Who may open", data-pd2-fact="private") */
+      return { priv: t(document.querySelector('#pd-glance [data-pd-ds-card="private"], #pd-glance [data-pd2-fact="private"]')), pay: !!(v && v.querySelector('[data-pd-og-pay]')), payWord: t(v && v.querySelector('.pd-og-f b')),
         wait: t(document.querySelector('#pd-glance [data-pd-ds-card="read"] .pd-gl-h')), cost: (document.querySelector('#pd-glance [data-pd-ds-read]') || {}).title || '', door: ((document.querySelector('#pd-glance [data-pd-ds-read]') || {}).textContent || '').trim() }; });
     const P9 = Object.assign(P9raw, pay9);
     check('9a a private stream: the Dossier says who may open it', P9.priv.length > 0 && /Private|private/.test(P9.priv), P9.priv);
     check('9b base pay owed: its row reads as pay, its door Edit pay', P9.pay && /pay/i.test(P9.payWord), JSON.stringify(P9));
     /* RE-POINTED 22 Oct 2026 (the Checklist): the brief's own row carries the press, "Read" */
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('9c What Jambo read waits for the press, no cost said', /^Read$/.test(P9.door) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(P9.cost + ' ' + P9.wait), JSON.stringify(P9));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the press is the Dossier card's "Read it" link */
+    check('9c What Jambo read waits for the press, no cost said', /^Read( it)?$/.test(P9.door) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(P9.cost + ' ' + P9.wait), JSON.stringify(P9));
     /* 10 nothing of Jambo sits over the grid.
        RE-POINTED 21 Oct 2026 (Chambers, the owner picked it by name; it
        reverses "JAMBO, ALIVE", 16 Oct): the perch is gone (jamboPerchMount,

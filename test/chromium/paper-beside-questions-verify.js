@@ -14,8 +14,9 @@
         the paper redraws as you type, and a cursor in a box lights its word
      2  the questions themselves did not move — every box, every act
      3  the paper a template draws is a contract, not four clauses
-     4  "+ New template" is greyed, not hidden, for somebody without the grant,
-        and the reason is on it
+     4  the one door to new paper (New agreement › From scratch) is there for an
+        admin and not drawn for somebody without the grant (RE-POINTED 17 Nov 2026,
+        #762: the owner's 14 Nov ruling, "3 choices, or two")
      5  under 1000px the dialog is one column again
      6  the SERVER refuses the request, driven as a real Editor — a rule
         enforced only in pixels holds until somebody sends the request
@@ -195,34 +196,37 @@ const check = (name, pass, detail) => {
      ============================================================ */
   await page.evaluate(() => window.setView('templates'));
   await page.waitForTimeout(900);
-  const asAdmin = await page.evaluate(() => {
-    const b = document.getElementById('tpllib-new') || document.getElementById('tpl-new');
-    return b ? { id: b.id, off: b.disabled } : null;
+  /* RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way): Our paper carries no New standard any
+     more — "From scratch starts on the New agreement page, the one door" (MAP). The door is that sheet's third tab,
+     From scratch ([data-na-newpaper], naNewPaperDoorHtml), drawn by the one reading of the grant (naNewPaperOk →
+     mayMakeNewPaper). 4a asks an admin has it. */
+  const tabsNow = () => page.evaluate(async () => {
+    window.openNewAgreement({});
+    for (let i = 0; i < 30 && !document.querySelector('#na-root'); i++) await new Promise(r => setTimeout(r, 100));
+    const b = document.querySelector('[data-na-newpaper]');
+    const out = { door: b ? { off: !!b.disabled, title: b.getAttribute('title') || '', words: b.textContent.trim() } : null,
+      tabs: [...document.querySelectorAll('.na-ptab')].map(x => x.textContent.trim()) };
+    window.closeModal && window.closeModal();
+    await new Promise(r => setTimeout(r, 300));
+    return out;
   });
-  check('4a an admin still has the door', asAdmin && asAdmin.off === false,
-    asAdmin ? `${asAdmin.id} disabled=${asAdmin.off}` : 'no button');
+  const asAdmin = await tabsNow();
+  check('4a an admin still has the door', !!asAdmin.door && asAdmin.door.off === false && asAdmin.door.words === 'From scratch',
+    JSON.stringify(asAdmin));
 
   /* An Editor WITHOUT the grant. The reading is the product's own, so this
      flips the answer the same way the product does rather than faking a
      button state. */
-  const asEditor = await page.evaluate(() => {
-    const me = window.REMOTE && window.REMOTE.me;
-    if (!me) return { err: 'no session' };
-    const wasRole = me.role, wasPaper = me.newPaper;
-    me.role = 'legal'; me.newPaper = false;
-    window.setView('templates');
-    const out = (() => {
-      const b = document.getElementById('tpllib-new') || document.getElementById('tpl-new');
-      return b ? { off: !!b.disabled, title: b.getAttribute('title') || '' } : null;
-    })();
-    me.role = wasRole; me.newPaper = wasPaper;
-    window.setView('templates');
-    return out;
-  });
-  check('4b without the grant it is GREYED, not hidden',
-    asEditor && asEditor.off === true, asEditor ? 'disabled=' + asEditor.off : 'button gone');
-  check('4c and the reason is on it',
-    asEditor && /not write new paper/i.test(asEditor.title), asEditor && asEditor.title.slice(0, 70));
+  /* RE-POINTED 17 Nov 2026 (#762): the owner ruled this door's shape on 14 Nov 2026 — "the only door is the new
+     agreement page. From there you have 3 choices, or two if you do not have access to build from scratch" — so
+     without the grant the tab is NOT DRAWN (an unusable switch is not drawn), and the sheet offers its two papers.
+     RETIRED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way): 4b's "GREYED, not hidden" and 4c "the reason
+     is on it" — reversed for this door by the owner's ruling above; the server's refusal stays measured in 6. */
+  await page.evaluate(() => { const me = window.REMOTE && window.REMOTE.me; window._pbqWas = me ? { role: me.role, paper: me.newPaper } : null; if (me) { me.role = 'legal'; me.newPaper = false; } });
+  const asEditor = await tabsNow();
+  await page.evaluate(() => { const me = window.REMOTE && window.REMOTE.me, w = window._pbqWas; if (me && w) { me.role = w.role; me.newPaper = w.paper; } window.setView('templates'); });
+  check('4b without the grant the sheet offers two choices — the From scratch tab is not drawn',
+    !asEditor.door && asEditor.tabs.length === 2 && !asEditor.tabs.includes('From scratch'), JSON.stringify(asEditor));
 
   /* ============================================================
      5  UNDER 1000px IT IS ONE COLUMN AGAIN

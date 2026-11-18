@@ -157,7 +157,10 @@ test('f422 (7) their head is the room head: the plain state word, "from" the sen
   const head = win.document.querySelector('.pw-id');
   assert.ok(head.querySelector('.pw-id-titlerow .pw-id-stat'), 'the state word beside the title');
   assert.match(head.querySelector('.pw-id-sub').textContent, /from Wanjiru Catering Ltd/);
-  assert.ok(head.querySelector('.pw-id-row2 .rl-ctl-legend'), 'the key on the control row');
+  /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): their control row is the tabs and More (round 8, as
+     drawn); the cards carry whose colour is whose, so no key is drawn there */
+  assert.ok(head.querySelector('.pw-id-row2 #pol-more'), 'More on the control row');
+  assert.equal(head.querySelector('.pw-id-row2 .rl-ctl-legend'), null, 'no key drawn on the control row');
   assert.equal(win.document.querySelector('#rl-changes-col .rl-legend'), null, 'and not in the column head');
   const PT = R('js/views/portal.js');
   const fn = /function portalStatusWordHtml\(c\)\{[\s\S]*?\n\}/.exec(PT)[0];

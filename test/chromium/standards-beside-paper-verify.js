@@ -79,10 +79,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   const r5 = await R();
   check('5 · no check kept: Check runs it and the notes appear (no side panel)', none && chk && back && !r5.side, { none, chk, asked5, back, side: r5.side });
 
-  /* 6 the new look off */
-  await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); openCheckPanel(getContract('MK-CR'), 'playbook'); });
-  const old = await until(page, () => !!document.querySelector('#side-panel #playbook-section'), null, 8000);
-  check('6 · the new look off: the old side panel, as before', old);
+  /* RETIRED 16 Nov 2026 (#762): 6 "the new look off: the old side panel, as before" — there is no switch; the new look is the only look */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

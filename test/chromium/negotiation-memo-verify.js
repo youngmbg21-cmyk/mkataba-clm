@@ -117,9 +117,12 @@ const visible = (page, sel) => page.evaluate(s => {
   await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-back="red"]'); if (b) b.click(); });
   /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is
      retired; the memo row stands in the dossier's All acts fold */
-  await page.waitForFunction(() => !document.getElementById('pd-redface') && !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'), null, { timeout: 6000 }).catch(() => {});
-  const MEMO = '#ig-dock .ds-fold [data-ig-memo]', MORE = '#ig-dock [data-pd-tab="copilot"]';
-  const openAll = () => page.evaluate(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; });
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every act is pressed from the paper line's More
+     (#ig-actions → pdActsToggle → #pd-acts-pop, "More, halved"); the memo is its "Work" row (PD_ACTS_SHORT,
+     data-pd-acts-go="[data-ig-memo]"), the press the same openNegoMemo. The Dossier's All acts fold is not drawn. */
+  await page.waitForFunction(() => !document.getElementById('pd-redface') && !!document.getElementById('ig-actions'), null, { timeout: 6000 }).catch(() => {});
+  const MEMO = '#pd-acts-pop [data-pd-acts-go="[data-ig-memo]"]', MORE = '#ig-actions';
+  const openAll = () => page.waitForFunction(() => !!document.getElementById('pd-acts-pop'), null, { timeout: 3000 }).catch(() => {});
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
   /* EVERY DRIVEN HALF BELOW IS GUARDED. A build without the feature must

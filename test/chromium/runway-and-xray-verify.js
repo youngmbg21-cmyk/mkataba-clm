@@ -393,8 +393,11 @@ const check = (name, pass, detail) => {
        owner's Panel Voice (6 Oct 2026) says the reading wears the PANEL's face
        (--font-body), never the paper's — the two only matched while the paper
        was Clean Sans. The claim now names the ruling, RESOLVED. */
-    check('7a the open row shows the reading that is ON the record, in the panel\'s own face',
-      !!panel && /^XRPLAIN/.test(panel.plain) && !!panel.face && panel.face === panel.panelFace,
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; owner, 16 Nov 2026, "Clauses the Legora way", f1073/f1081):
+       the open clause's plain English is set in the paper's own face (--font-doc, index.html "the open clause … doc-th-plain"),
+       the reading quoted as the paper is */
+    check('7a the open row shows the reading that is ON the record, in the paper\'s own face (the new look\'s Clauses)',
+      !!panel && /^XRPLAIN/.test(panel.plain) && !!panel.face && panel.face === panel.paper,
       panel ? JSON.stringify({ plain: panel.plain, face: panel.face.slice(0, 30), panel: panel.panelFace.slice(0, 30), paper: panel.paper.slice(0, 30) }) : 'nothing staged');
     check('7b the rows are GRADED — ruby and steel where the record says so, and a tone on exactly the marked ones',
       !!fa && fa.segs.indexOf('ruby') >= 0 && fa.segs.indexOf('steel') >= 0

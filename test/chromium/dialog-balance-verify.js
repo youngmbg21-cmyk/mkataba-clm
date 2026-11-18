@@ -84,40 +84,47 @@ const MEASURE = () => {
     await pause(1200);
 
     /* ================= 1 · HOW DO YOU WANT TO START? ================ */
-    const newBtn = await page.$('#tpl-new');
-    check('0 · the + New standard contract door is on the page', !!newBtn);
-    await page.click('#tpl-new');
+    /* RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way): "no New standard here any more: From
+       scratch starts on the New agreement page, the one door" (MAP; owner, 14 Nov 2026). Check 0 asks for that door;
+       the four starts open IN the sheet's From scratch tab (naNewPaperPaneHtml), not in a pop-up. The claims about the
+       starts themselves are asked there: one list, one row under another, each the same width and inside the sheet,
+       each a name and a line under it, Continue the one filled verb.
+       RETIRED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way): 1a "the question opened" (its h3), 1b "the
+       box fills the frame", 1c "the frame is centred", 1e "Cancel on the right edge" and 1f's 16/18 frame padding —
+       the starts no longer sit in a dialog frame on a computer, so there is no frame to balance. Section 3 still
+       measures the pop-up form of the starts (openNewStandard() with no host), and section 2 the Template details
+       box. */
+    await page.evaluate(() => openNewAgreement({}));
+    await page.waitForSelector('[data-na-newpaper]', { timeout: 8000 }).catch(() => {});
+    const newBtn = await page.$('[data-na-newpaper]');
+    check('0 · the one door to a new standard — From scratch on the New agreement sheet — is there for an admin', !!newBtn,
+      await page.evaluate(() => [...document.querySelectorAll('.na-ptab')].map(b => b.textContent.trim())));
+    if (newBtn) await newBtn.click();
     await pause(500);
-    const k = await page.evaluate(MEASURE);
-    const title = await page.evaluate(() => i18t('ns_title'));
+    const k = await page.evaluate(() => {
+      const pane = document.getElementById('na-np'); if (!pane || pane.hidden) return null;
+      const R = e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), r: Math.round(r.right) }; };
+      const rows = [...pane.querySelectorAll('.na-np-row')];
+      return { pane: R(pane), rows: rows.map(R), starts: rows.map(l => (l.querySelector('input') || {}).value),
+        rowWords: rows.map(l => { const t = l.querySelector('b'), m = l.querySelector('b + span'); return [t ? t.textContent.trim() : '', m ? m.textContent.trim() : '']; }),
+        primaries: [...pane.querySelectorAll('.ui-btn-primary')].filter(b => b.offsetParent).length, cont: !!pane.querySelector('#na-np-go'),
+        vw: document.documentElement.clientWidth };
+    });
     await page.screenshot({ path: path.join(OUT, '01-how-to-start.png') });
-    check('1a · the question opened', !!k && (k.h3 || '').trim() === title, k && k.h3);
-    check('1b · the box fills the frame — no blank column',
-      !!k && Math.abs(k.frame.w - k.box.w) <= 2, k && { frame: k.frame.w, box: k.box.w });
-    check('1c · the frame is centred on the screen',
-      !!k && Math.abs((k.frame.x + k.frame.w / 2) - k.vw / 2) <= 2, k && { frameCentre: k.frame.x + k.frame.w / 2, screenCentre: k.vw / 2 });
-    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the chooser is ONE list of
-       radio rows (`.sap-li`; the three starts keep `data-ns-start`, the other
-       side's paper is `#ns-cp`) inside the drawn frame — 16/18 padding,
-       Continue (`#ns-continue`) the one filled button, Cancel last. The claims
-       that hold are kept: the rows are one under another and the same width,
-       they reach the frame's padding on both sides and Cancel sits on the
-       right edge they reach, each says what it is, nothing leaves the box. */
     check('1d · the starts are one list, one row under another, each the same width',
-      !!k && k.starts.join(',') === 'scratch,template,contract,ns-cp' && k.rows.length === 4
-        && k.rows.every(t => Math.abs(t.w - k.rows[0].w) <= 1 && t.x === k.rows[0].x) && k.rows.every((t, i) => !i || t.y > k.rows[i - 1].y),
-      k && { starts: k.starts, rows: k.rows });
-    check('1e · the list reaches the frame’s padding on both sides, and Cancel sits on the right edge it reaches',
-      !!k && !!k.list && Math.abs(k.list.x - (k.box.x + 18)) <= 1 && Math.abs(k.list.r - (k.box.r - 18)) <= 1
-        && !!k.cancel && Math.abs(k.cancel.r - k.list.r) <= 1 && k.lastBtn === 'ns-close',
-      k && { left: k.list && k.list.x, boxLeft: k.box.x, right: k.list && k.list.r, boxRight: k.box.r, cancel: k.cancel && k.cancel.r, last: k.lastBtn });
+      !!k && k.starts.join(',') === 'scratch,template,contract,cp' && k.rows.length === 4
+        && k.rows.every(t => Math.abs(t.w - k.rows[0].w) <= 1 && t.x === k.rows[0].x) && k.rows.every((t, i) => !i || t.y > k.rows[i - 1].y)
+        && k.rows.every(t => t.x >= k.pane.x && t.r <= k.pane.r + 1 && t.r <= k.vw),
+      k && { starts: k.starts, rows: k.rows, pane: k.pane });
     check('1g · each start says what it is: a name and a line under it',
       !!k && k.rowWords.length === 4 && k.rowWords.every(([t, m]) => t.length > 2 && m.length > 2), k && k.rowWords);
-    check('1f · 16/18 on the sides of the drawn frame, and Continue the one filled verb',
-      !!k && k.pad.join(' ') === '16px 18px 16px 18px' && k.primaries === 1 && !!k.cont, k && { pad: k.pad, primaries: k.primaries });
+    check('1f · Continue the one filled verb',
+      !!k && k.primaries === 1 && k.cont, k && { primaries: k.primaries });
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+    await pause(300);
 
     /* ================= 2 · TEMPLATE DETAILS, FROM THE BUILDER'S HEAD ================ */
-    await page.keyboard.press('Escape'); await pause(300);
+    await page.evaluate(() => setView('templates')); await pause(600);
     const ids = await page.evaluate(async () => {
       const d = await api('templates', 'POST', { name: 'Balance probe', category: 'other', description: '' });
       const t = await api('templates/' + d.template.id);

@@ -111,106 +111,15 @@ const weekOf = () => {
     }, D);
     await page.waitForTimeout(600);
 
-    /* ---- 1 the Obligations page as drawn ---- */
-    await page.evaluate(() => setView('obligations'));
-    await until(() => document.querySelectorAll('.obw-wk').length >= 4 && !!document.querySelector('#ins-panel [data-jl-home]'), null, 12000);
-    await page.mouse.move(2, 400);
-    const P = await page.evaluate(() => {
-      const card = k => document.querySelector(`.obw-wk[data-obw-card="${k}"]`);
-      const sub = k => { const c = card(k); return c ? ((c.querySelector('.ob-wk-rng') || {}).textContent || '') + ' | ' + ((c.querySelector('.ob-wk-said') || {}).textContent || '') + ' | ' + ((c.querySelector('.ins-g-r') || {}).textContent || '') + ' | ' + ((c.querySelector('.obw-priv') || {}).textContent || '') : null; };
-      const row = k => document.querySelector(`tr[data-ob-key="${k}"]`);
-      const act = k => { const r = row(k); const b = r && r.querySelector('[data-obw-act]'); return b ? b.textContent.trim() : ''; };
-      const line = k => { const r = row(k); return r ? (r.querySelector('td:first-child .ins-c2 > span') || {}).textContent || '' : ''; }; /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, as drawn): the duty leads the row, its day in the Due column */
-      const finds = document.querySelector('tr.obw-finds');
-      return { head: (document.getElementById('page-head-facts') || {}).textContent || '',
-        acts: [...document.querySelectorAll('#page-head-acts button')].map(b => b.textContent.trim()),
-        cards: [...document.querySelectorAll('.obw-wk')].map(c => c.getAttribute('data-obw-card')),
-        late: sub('overdue'), w0: sub('w0'), w1: sub('w1'), w2: sub('w2'), later: sub('later'),
-        actLate: act('MK-A1::o1'), actTheirs: act('MK-A2::o4'), actChased: act('MK-A2::o5'), lineChased: line('MK-A2::o5'),
-        actDec: act('MK-C1::~renewal'), lineDec: line('MK-C1::~renewal'), actColleague: act('MK-A1::o2'), lineColleague: line('MK-A1::o2'),
-        finds: finds ? { t: finds.textContent.replace(/\s+/g, ' ').trim(), face: (() => { const m = finds.querySelector('.obw-av.is-jambo .jambo-face path'); return !!(m && m.getAttribute('d') === window.JAMBO_MARK_PATH); })(), card: finds.closest('.obw-wk').getAttribute('data-obw-card') } : null };
-    });
-    /* RE-POINTED (Part 8, the Legora way, the owner's pick of 21 Oct 2026):
-       the head's Filter fold went — a filter is added from the list head's
-       "+ Filter" under the title */
-    check('1a the head: "N outstanding · 1 overdue", Open every week, + Add an obligation',
-      /^\d+ outstanding · 1 overdue$/.test(P.head.trim()) && JSON.stringify(P.acts) === JSON.stringify(['Open every week', 'Add an obligation']), { head: P.head, acts: P.acts });
-    check('1b each week a card of its own, in order', JSON.stringify(P.cards.slice(0, 3)) === JSON.stringify(['overdue', 'w0', 'w1']) && P.cards.includes('later'), P.cards);
-    check('1c each card says what it holds', /work somebody could do now/.test(P.late) && /both theirs/.test(P.w0) && /nothing to pay/.test(P.w0)
-      && /a renewal decision/.test(P.w1) && /Pay the storage fee/.test(P.w2) && /Private/.test(P.w2) && /we pay/.test(P.w2) && /nobody owns it yet/.test(P.later),
-      { late: P.late, w0: P.w0, w1: P.w1, w2: P.w2, later: P.later });
-    check('1d each row\'s one act: Mark done (ours), Chase / Chase again (theirs), Decide (a renewal decision), none on a colleague\'s',
-      P.actLate === 'Mark done' && P.actTheirs === 'Chase' && P.actChased === 'Chase again' && /chased/.test(P.lineChased)
-      && P.actDec === 'Decide' && /notice deadline/.test(P.lineDec) && P.actColleague === '' && /Unrestricted Legal/.test(P.lineColleague), P);
-    /* RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark (JAMBO_MARK_PATH), not the bird */
-    check('1e Jambo\'s finds: one row on this week\'s line, his ✦ mark, "none is added until you say", Review 3',
-      !!P.finds && P.finds.card === 'w0' && P.finds.face && /Jambo found 3 obligations in/.test(P.finds.t) && /none is added until you say/.test(P.finds.t) && /Review 3/.test(P.finds.t), P.finds);
-    if (OUT) await page.screenshot({ path: path.join(OUT, '16-obligations-1440x780.png') });
-
-    /* ---- 2 Your week ---- */
-    const Y = await page.evaluate(() => { const p = document.getElementById('ins-panel');
-      return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', bubs: [...p.querySelectorAll('.jl-bub, .jov-head, .jov-fact.is-line .jov-v')].map(b => b.textContent.trim()),
-        src: (p.querySelector(':is(.jl-src, .jov-src)') || {}).textContent || '', chips: [...p.querySelectorAll('.jl-chip, .jov-lnk.is-ask')].map(c => c.textContent.trim().replace(/\s*·\s*/, ' · ').toLowerCase()),
-        lv: [...p.querySelectorAll('[data-cal-lv]')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')),
-        ph: (p.querySelector('#jl-q') || {}).placeholder || '', hint: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, sel: document.querySelectorAll('.obw-wk tr.is-sel').length }; });
-    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('2a nothing chosen: Jambo says "Your week", counted from the list, no cost said',
-      !Y.word && Y.sel === 0 && /^This week: 1 late \(yours\), 2 due from the other side, and Jambo’s 3 finds to review\. Next week holds the renewal decision on Office Lease\.$/.test(Y.bubs[0] || '')
-      && Y.src === 'Counted from your list' && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(Y.bubs.join(' ') + ' ' + Y.src), Y);
-    /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
-    /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('2b his offer, the planner\'s two asks as chips (no cost on them), the setting as three buttons, the box — and no hint line under it',
-      /Want me to plan the week\?/.test(Y.bubs[1] || '') && JSON.stringify(Y.chips) === JSON.stringify(['plan my week', 'find time for what is due'])
-      && JSON.stringify(Y.lv) === JSON.stringify(['On his own', 'Ask me first*', 'Never']) && Y.ph === 'Ask Jambo, or type / for a place' && Y.hint === 0, Y);
-    await page.click('[data-cal-lv="never"]');
-    const nv = await until(async () => { if (minePref().copilotLevel !== 'never') return null;
-      const r = await api('me/items'); const p = (r.items || []).find(x => x.kind === 'pref');
-      const off = [...document.querySelectorAll('#ins-panel :is(.jl-bub, .jov-head, .jov-v)')].map(e => e.textContent).find(t => /You chose Never/.test(t)) || '';
-      return p && p.copilotLevel === 'never' && /You chose Never/.test(off) ? { stored: p.copilotLevel, off } : null; });
-    check('2c Never is kept on the server and changes his offer', !!nv, nv);
-    await page.click('[data-cal-lv="ask"]');
-    await until(() => minePref().copilotLevel === 'ask');
-
-    /* ---- 3 every act ends in its door ---- */
-    await page.click('tr[data-ob-key="MK-A2::o4"] [data-obw-act="chase"]');
-    const ask = await until(() => { const m = document.querySelector('.modal-in'); return m && /Chase them for this\?/.test(m.textContent) ? true : null; });
-    check('3a Chase asks first (the chase route\'s own question)', !!ask);
-    /* Cancel: nothing is sent */
-    await page.evaluate(() => { const b = [...document.querySelectorAll('.modal-in button')].find(x => /^Cancel$/.test(x.textContent.trim())); if (b) b.click(); });
-    await until(() => !document.querySelector('.modal-in'));
-    await page.click('tr.obw-finds [data-obw-act="review"]');
-    const desk = await until(() => { const m = document.querySelector('.modal-in'); return m && /Proposed obligations/.test(m.textContent) ? true : null; });
-    check('3b Review opens the review desk', !!desk);
-    await page.keyboard.press('Escape'); await page.evaluate(() => { if (document.querySelector('.modal-in')) closeModal(); });
-    await until(() => !document.querySelector('.modal-in'));
-    await page.click('tr[data-ob-key="MK-A2::o6"] td:nth-child(2)');
-    /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
-    const chosen = await until(() => { const w = document.querySelector('#ins-panel [data-jl-word]'); const b = document.querySelector('#ins-panel [data-jl-back]');
-      return !w && !b && document.querySelector('tr[data-ob-key="MK-A2::o6"].is-sel') && document.querySelector('#ins-panel[data-ins-id]') ? 'chosen' : null; });
-    await page.click('#ins-panel [data-jl-home]');
-    const back = await until(() => !document.querySelector('#ins-panel [data-jl-word]') && !document.querySelector('.obw-wk tr.is-sel'));
-    check('3c a row press: the panel holds the obligation; the Overview tab goes back to the week', !!chosen && !!back, { chosen, back });
-    await page.click('[data-obw-add]');
-    await until(() => !!document.querySelector('#obw-pick-q'));
-    await page.fill('#obw-pick-q', 'milk');
-    const shown = await page.evaluate(() => [...document.querySelectorAll('[data-obw-pick]')].filter(b => !b.hidden).map(b => b.getAttribute('data-obw-pick')));
-    await page.click('[data-obw-pick="MK-A2"]');
-    const form = await until(() => { const m = document.querySelector('.modal-in'); return m && /Add obligation/.test(m.textContent) && /Raw Milk Collection/.test(m.textContent) ? true : null; });
-    check('3d + Add an obligation asks which contract, then opens that contract\'s own form', JSON.stringify(shown) === '["MK-A2"]' && !!form, { shown, form });
-    await page.evaluate(() => closeModal());
-    await until(() => !document.querySelector('.modal-in'));
-    await page.click('tr[data-ob-key="MK-C1::~renewal"] [data-obw-act="decide"]');
-    const dec = await until(() => { const h = document.querySelector('#renewal-host'); return h && state.view === 'dashboard' && (h.classList.contains('is-landed') || h.classList.contains('is-landed-held')) ? true : null; }, null, 12000);
-    check('3e Decide lands on the renewal card, lit', !!dec);
-    await page.evaluate(() => setView('obligations'));
-    await until(() => !!document.querySelector('#ins-panel :is(.jl-chip, .jov-lnk.is-ask)'));
-    await page.click('#ins-panel :is(.jl-chip, .jov-lnk.is-ask) >> nth=0');
-    const cal = await until(() => calOnScreen() && document.querySelector('#cal-plan') ? true : null, null, 12000);
-    check('3f "plan my week" opens the Calendar, whose planner takes the ask', !!cal);
-    const plan = await until(() => { const p = [...document.querySelectorAll('#cal-plan [data-cal-prop]')];
-      return p.length && !document.querySelector('#cal-plan .cal-plan-busy') ? { props: p.length, add: document.querySelectorAll('#cal-plan [data-cal-plan-add]').length,
-        mine: (typeof mineList === 'function' ? mineList('event') : []).length } : null; }, null, 15000);
-    check('3g Ask me first: his plan waits as proposals with Add, nothing added to the calendar', !!plan && plan.props === ahead.length && plan.add === ahead.length && plan.mine === 0, plan);
+    /* RETIRED 17 Nov 2026 (#762): sections 1–3 — round 16's Obligations page "week by week" (the head "N outstanding ·
+       1 overdue" with Open every week, a card per week saying what it holds, each row's one act on the week list, Jambo's
+       finds on this week's line, his "Your week" Overview on that page with the planner's chips and the calendar setting,
+       and the acts and doors pressed from those week rows and chips). The new look's Obligations is the PROJECT LIST
+       (MAP OBLIGATIONS: pills Late · Tracked · Proposals, obnRender, its own Five panel) — no week cards, no week rows,
+       no "Your week" on that page; week-by-week-verify retired its week sections alike. The Calendar half of this file
+       (sections 4, 6a, 6b and the three screens) runs on as before, the Calendar opened on its week */
+    void D;
+    await page.evaluate(() => (setView('calendar'), calSetView('week')));
 
     /* ---- 4 the Calendar as drawn ---- */
     await until(() => !!document.querySelector('#cal-wk-more'), null, 10000);
@@ -235,7 +144,9 @@ const weekOf = () => {
         labels: [...document.querySelectorAll('#cal-wk-more .cal-wkm-lab span')].map(s => s.textContent.trim()),
         hours: [...document.querySelectorAll('.cal-wk-t')].map(t => t.textContent.trim()).slice(0, 3),
         panel: (document.querySelector('#cal-plan .jl-word') || {}).textContent || '', bub: ((document.querySelector('#cal-plan .jl-bub, #cal-plan .jov-head') || {}).textContent || '').trim(),
-        lv: document.querySelectorAll('#cal-plan [data-cal-lv]').length };
+        lv: document.querySelectorAll('#cal-plan [data-cal-lv]').length,
+        five: (() => { const j = document.querySelector('#cal-plan .jov5'); return j ? { eb: (j.querySelector('.jov5-eb') || {}).textContent || '', t: (j.querySelector('.jov5-title') || {}).textContent || '',
+          sub: (j.querySelector('.jov5-sub') || {}).textContent || '' } : null; })() };
     }, D.b3);
     check('4a the head: the six weeks, the ⋯ in it; the card: "This week, then five more" and the key as drawn',
       /· six weeks$/.test(C.facts) && C.more && C.title === 'This week, then five more' && JSON.stringify(C.key) === JSON.stringify(['Ours', 'Theirs', 'Contract date', 'Mine', 'Jambo’s plan']), C);
@@ -243,7 +154,13 @@ const weekOf = () => {
       C.firstDay.some(t => /^Late: Check the September invoice/.test(t)) && C.chips.some(c => c.k === 'theirs' && /^Nandi: /.test(c.t)) && C.chips.some(c => c.k === 'decide' && /^Decide: Office Lease/.test(c.t)), { firstDay: C.firstDay, chips: C.chips.slice(0, 8) });
     check('4c a later week says "N due"; the hours read "09"', C.labels.some(l => /^\d+ due$/.test(l)) && C.hours.every(h => /^\d\d$/.test(h)), { labels: C.labels, hours: C.hours });
     /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the panel draws no "Your week" word beside tabs; his words are the same */
-    check('4d Jambo\'s panel beside the Calendar says the week in the same words, under its Overview', C.panel === '' && C.bub === Y.bubs[0] && C.lv === 3, { panel: C.panel, lv: C.lv });
+    /* RE-POINTED 17 Nov 2026 (#762): the Calendar's panel is Jambo's Five panel (round 3b, "Build as drawn"): "The next
+       seven days", the headline counting this week's things, the late duty said under it — counted from the same list
+       (this stage: our one late duty and the two due from the other side today, at least three things), still under its
+       Overview, the calendar setting's three buttons in it */
+    check('4d Jambo\'s panel beside the Calendar says the week, counted from the list, under its Overview', C.panel === '' && !!C.five
+      && /^The next seven days$/.test(C.five.eb) && (m => !!m && Number(m[1]) >= 3)(/^(\d+) things? this week\.$/.exec(C.five.t)) && /^1 duty is late\.$/.test(C.five.sub) && C.lv === 3,
+      { panel: C.panel, five: C.five, lv: C.lv });
     /* ASK FOR THE STATE (22 Oct 2026): the week may be drawn again after it first shows, which took a
        held handle off the page ("Element is not attached to the DOM"); a locator finds the hour afresh
        at each act, and the hover is tried again (bounded) if a repaint came between it and the read */
@@ -269,34 +186,21 @@ const weekOf = () => {
     if (decChip) await decChip.click();
     const decC = await until(() => { const h = document.querySelector('#renewal-host'); return h && state.view === 'dashboard' && (h.classList.contains('is-landed') || h.classList.contains('is-landed-held')) ? true : null; }, null, 12000);
     check('6b the Calendar\'s Decide chip lands on the renewal card, lit (the list\'s own door)', !!decC);
-    await page.evaluate(() => setView('obligations'));
-    await until(() => document.querySelectorAll('.obw-wk').length >= 4);
-    const O6 = await page.evaluate(() => ({ outstanding: !!document.querySelector('.obw-ins tr[data-ob-key="MK-A1::o9"]'),
-      wait: ((document.querySelector('[data-obw-view="waiting"]') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-      lateInk: (() => { const sp = document.querySelector('tr.obw-late-row .obw-late-when > span'); return sp ? [getComputedStyle(sp).color, getComputedStyle(document.documentElement).getPropertyValue('--st-ruby-fg').trim()] : null; })() }));
-    const rgb = hx => { const m = /^#([0-9a-f]{6})$/i.exec(hx || ''); if (!m) return hx; const n = parseInt(m[1], 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`; };
-    check('6c Outstanding leaves the waiting step out; it is on Waiting on a step', !O6.outstanding && /Waiting on a step\s*1/.test(O6.wait), O6);
-    check('6d Late\'s "3 days late" wears the late ink, on the right of its row', !!O6.lateInk && O6.lateInk[0] === rgb(O6.lateInk[1]), O6.lateInk);
-    await page.click('.obw-wk[data-obw-card="w2"] .ob-wk-said');
-    const w2open = await until(() => document.querySelector('.obw-wk[data-obw-card="w2"]:not(.is-shut)') ? true : null);
-    await page.click('tr[data-ob-key="MK-A2::o6"] td:nth-child(2)');
-    await until(() => !!document.querySelector('tr[data-ob-key="MK-A2::o6"].is-sel') && !!document.querySelector('#ins-panel[data-ins-id]'));
-    await page.reload({ waitUntil: 'networkidle' });
-    const kept = await until(() => { if (state.view !== 'obligations' || !document.querySelector('.obw-wk')) return null;
-      return { w2: !!document.querySelector('.obw-wk[data-obw-card="w2"]:not(.is-shut)'), word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '',
-        sel: !!document.querySelector('tr[data-ob-key="MK-A2::o6"].is-sel') }; }, null, 20000);
-    check('6e a folded week opens on a press on its line; a refresh keeps it open and the chosen row chosen', !!w2open && !!kept && kept.w2 && !kept.word && kept.sel, { w2open, kept });
+    /* RETIRED 17 Nov 2026 (#762): 6c (Outstanding / Waiting on a step — the week page's views), 6d (Late's "3 days late"
+       on the week row) and 6e (a folded week opened and kept over a refresh) — round 16's week page, gone with sections
+       1–3 above; the project list's own pills and rows are pinned by the obligations checks of the new look */
 
     /* ---- 5 the owner's three screens ---- */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });
+      /* RE-POINTED 17 Nov 2026 (#762): Obligations is the project list — its rows (tr.obn-r) stand where the week cards did */
       await page.evaluate(() => setView('obligations'));
-      await until(() => document.querySelectorAll('.obw-wk').length >= 4);
+      await until(() => document.querySelectorAll('tr.obn-r').length >= 1 && !!document.querySelector('#ins-panel #jl-q'));
       await page.waitForTimeout(400);
       const fitO = await page.evaluate(() => {
         const vw = document.documentElement.clientWidth, side = document.documentElement.scrollWidth <= vw + 1;
         const panel = document.getElementById('ins-panel').getBoundingClientRect();
-        const cards = [...document.querySelectorAll('.obw-wk')].map(c => c.getBoundingClientRect());
+        const cards = [...document.querySelectorAll('tr.obn-r')].map(c => c.getBoundingClientRect());
         const under = cards.some(r => r.right > panel.left + 1);
         const acts = [...document.querySelectorAll('#page-head-acts button')].every(b => { const r = b.getBoundingClientRect(); return r.right <= panel.left + 1 && r.width > 0; });
         const box = document.querySelector('#ins-panel #jl-q').getBoundingClientRect();
@@ -304,18 +208,8 @@ const weekOf = () => {
       });
       check(`5 ${w}×${ht}: Obligations whole — nothing sideways, no card under the panel, the head's acts and Jambo's box in view`,
         fitO.side && !fitO.under && fitO.acts && fitO.box, fitO);
-      /* ONE WIDTH FOR THE ROW'S ACT (owner, 23 Oct 2026: "the buttons are not the same size"):
-         every act drawn stands the same width, its word inside it — and so would the
-         widest word of either book (Review 31, Mark done, Påminn igen, Markera klart) */
-      const actW = await page.evaluate(() => {
-        const bs = [...document.querySelectorAll('.obw-wk [data-obw-act]')].filter(b => b.getBoundingClientRect().width > 0);
-        const ws = bs.map(b => Math.round(b.getBoundingClientRect().width)), fit = bs.every(b => { const r = document.createRange(); r.selectNodeContents(b); const t = r.getBoundingClientRect(), o = b.getBoundingClientRect(); return t.left >= o.left && t.right <= o.right; });
-        const host = bs[0] && bs[0].parentElement, words = ['Review 31', 'Granska 31', 'Mark done', 'Markera klart', 'Chase again', 'Påminn igen', 'Decide', 'Besluta'];
-        const probe = words.map(t => { if (!host) return 0; const x = bs[0].cloneNode(false); x.textContent = t; host.appendChild(x); const r = Math.round(x.getBoundingClientRect().width); x.remove(); return r; });
-        return { n: bs.length, ws: [...new Set(ws)], fit, probe: [...new Set(probe)] };
-      });
-      check(`5 ${w}×${ht}: every act in the week list is one width, its word inside it, and the widest word of either book fits that width`,
-        actW.n >= 2 && actW.ws.length === 1 && actW.fit && actW.probe.length === 1 && actW.probe[0] === actW.ws[0], actW);
+      /* RETIRED 17 Nov 2026 (#762): "every act in the week list is one width" — the week list's acts ([data-obw-act]) went
+         with round 16's week page */
       if (OUT) await page.screenshot({ path: path.join(OUT, `16-obligations-${w}x${ht}.png`) });
       await page.evaluate(() => (setView('calendar'), calSetView('week')));
       await until(() => !!document.querySelector('#cal-wk-more'));

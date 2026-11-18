@@ -122,8 +122,13 @@ const until = async (page, fn, arg, ms = 8000) => {
        made for him is Jambo's lane piece (Look), whose "Open the draft" opens it; or, where no piece
        stands for it, the bell's own row */
     let el = await p2.$('.nd-pan .nd-r[data-nd-row^="al:request:"] [data-nd-al]');
-    const look = el ? null : await p2.$('.nd-pan [data-nd-look^="lane:"]');
-    ok('3e the row is drawn in the panel', !!(el || look));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's list is drawn as .ndb
+       (ndBellNlHtml); the lane piece's row carries ONE Open, and in the panel it opens where its work is
+       (ndRowGo: the draft's contract) — the press goes straight there, no Board step between */
+    const nlOpen = el ? null : await p2.$('#panel-body .ndb [data-nd-row^="p:lane:"] [data-nd-look^="lane:"]');
+    const look = (el || nlOpen) ? null : await p2.$('.nd-pan [data-nd-look^="lane:"]');
+    ok('3e the row is drawn in the panel', !!(el || look || nlOpen));
+    if (nlOpen) el = nlOpen;
     if (look){ await look.click(); await p2.waitForTimeout(1200); el = await p2.$('#hm-agents .nd-br.is-look [data-ag-act="overview"]'); }
     if (el) await el.click();
     /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the room
@@ -135,10 +140,16 @@ const until = async (page, fn, arg, ms = 8000) => {
     const landed = await until(p2, id => state.view === 'dashboard' && window.intel && intel.paper && intel.paper.id === id && !!document.querySelector('#pd-glance'), cid, 8000);
     ok('3f the press opens the draft', landed, await p2.evaluate(() => ({ view: state.view, id: state.activeId, strip: (document.querySelector('#bs-strips > .bs-strip') || {}).id })));
     await p2.waitForTimeout(800);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a contract opened on purpose lands on its Cover
+       (pdOpenOnHome(id,'open'), owner's "Margin Notes" pick); its largest button, Open the dossier, is the way on */
+    { const cv = await p2.$('[data-cv-open]'); if (cv){ await cv.click(); await p2.waitForTimeout(900); } }
     /* PAINTED, not merely present: the band's own pixels answer to it. */
     const strip = await p2.evaluate(id => {
       /* the Read stage on the Dossier's line: its name and the day it was read */
-      const el = document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="read"]') || document.querySelector('#bs-strip-' + id + ' .bs-jb');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml) whose
+         foot says what Jambo read (.pd2-read, "Jambo read the paper once on arrival"); the day is no longer said there
+         (LESS SAID TWICE, owner 16 Nov 2026) — the read itself is what this pins */
+      const el = document.querySelector('#ig-dock .pd2-read') || document.querySelector('#ig-dock .ds-ln-st[data-ds-focus="read"]') || document.querySelector('#bs-strip-' + id + ' .bs-jb');
       if (el) el.scrollIntoView({ block: 'center' });
       const r = el ? el.getBoundingClientRect() : null;
       const hit = r && r.height > 0 ? document.elementFromPoint(r.left + Math.min(40, r.width / 2), r.top + Math.min(12, r.height / 2)) : null;
@@ -146,7 +157,7 @@ const until = async (page, fn, arg, ms = 8000) => {
       return { painted: !!(hit && el.contains(hit)), text: ((el || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
         tab: tab ? tab.textContent.trim() : null };
     }, cid);
-    ok('3g it lands on the Dossier, where What Jambo read says he read it, and when', strip.painted && /Read\s*\d/.test(strip.text), strip);
+    ok('3g it lands on the Dossier, where What Jambo read says he read it', strip.painted && (/Jambo read the paper/.test(strip.text) || /Read\s*\d/.test(strip.text)), strip);
     await p2.screenshot({ path: path.join(OUT, '3-opened.png') });
 
     /* ---- 4 · NOBODY READS IT TWICE ---- */
@@ -154,6 +165,9 @@ const until = async (page, fn, arg, ms = 8000) => {
     const after = await peterApi.json('/api/contracts/' + cid);
     ok('4a another editor\'s browser does not read it again', after.triage && after.triage.at === readAt, { was: readAt, now: after.triage && after.triage.at });
     await page.evaluate(() => setView('intake')); await page.waitForTimeout(800);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Requests opens on its Open tab; a drafted
+       request is under Drafted, pressed as a person does */
+    { const dt = await page.$('[data-ikn-tab="drafted"]'); if (dt){ await dt.click(); await page.waitForTimeout(600); } }
     const withCell = await page.evaluate(() => ((document.getElementById('content') || {}).textContent || '').includes('Peter Editor'));
     ok('4b the Requests page says Peter holds it', withCell);
     await page.screenshot({ path: path.join(OUT, '4-requests.png') });

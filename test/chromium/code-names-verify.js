@@ -107,6 +107,9 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
     check('3a the book holds a stand-in: "Project Falcon", no party, the real name and party nowhere in it', !!book.stub && book.stub.name === 'Project Falcon'
       && book.stub.codeNamed && book.stub.party === '' && book.leak.length === 0, JSON.stringify(book));
     await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List (data-ctf-show)
+       draws the contracts themselves */
+    await until(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') { b.click(); return null; } return !!document.querySelector('#ct-place'); }, null, 15000);
     const listed = await until(([real, party]) => { const t = document.body.innerText; return /Project Falcon/.test(t) ? { leak: [real, party].filter(x => t.includes(x)) } : null; }, [REAL, PARTY], 15000);
     check('3b on the Contracts list it is "Project Falcon"; the real name and party are not on the page', !!listed && listed.leak.length === 0, JSON.stringify(listed));
     await shot(page, 'code-name-outsider-list-1440x780');

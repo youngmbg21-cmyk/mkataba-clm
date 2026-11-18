@@ -2,8 +2,8 @@
    "Noticed, not fixed" line, reproduced first, fixed in the same change:
      1 · (31 Oct) the bell's obligation words: an obligation named by title read "Overdue:" with nothing after it
      2 · (1 Nov) New agreement: with words typed in the sheet, Board on Home asks "Leave?" first (it put the sheet away unasked)
-     3 · (28 Oct, old look) Parties' panel: "Draft an agreement with <long party>" stays inside the panel (it ran 137px past it)
-     4 · (31 Oct, old look) the Handbook's "Which one do I need?" table scrolls in its own box; the page never sideways
+     3 · (RETIRED 16 Nov 2026, #762, old look only) (28 Oct, old look) Parties' panel: "Draft an agreement with <long party>" stays inside the panel (it ran 137px past it)
+     4 · (RETIRED 16 Nov 2026, #762, old look only) (31 Oct, old look) the Handbook's "Which one do I need?" table scrolls in its own box; the page never sideways
      5 · (28 Oct) a history or status send hides the "Clause N stays here" cards (no wording travels); a negotiation send shows them
      6 · (29 Oct) the AI involvement record counts changes noted "Jambo — …" as well as "Copilot — …"
    At the parent 1–6 fail.
@@ -79,18 +79,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   const a6 = await page.evaluate(() => ({ jambo: aiTraceFromCopilot({ note: 'Jambo — counter at 45 days' }), copilot: aiTraceFromCopilot({ note: 'Copilot — hold' }), person: aiTraceFromCopilot({ note: 'Amina: keep 30' }) }));
   check('6 · the AI involvement record counts "Jambo — …" changes as Jambo\'s, a person\'s note not', a6.jambo && a6.copilot && !a6.person, a6);
 
-  /* 3 and 4: the old look */
-  await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); caGo({ kind: 'go', place: 'parties', cid: null }); }); await page.waitForTimeout(1200);
-  await page.evaluate(() => { const r = [...document.querySelectorAll('#content tbody tr')].find(t => /East African/.test(t.textContent)); if (r) r.click(); }); await page.waitForTimeout(900);
-  const a3 = await page.evaluate(() => { const bt = document.querySelector('[data-cu-draft-with]'); if (!bt) return { found: false }; const pn = bt.closest('#ins-panel') || bt.parentElement; const r = bt.getBoundingClientRect(), pr = pn.getBoundingClientRect();
-    return { found: true, spill: Math.round(r.right - pr.right), oneLine: r.height < 44, text: bt.textContent.trim().slice(0, 40) }; });
-  check('3 · (old look) the Parties panel\'s long draft button stays inside the panel, one line', a3.found && a3.spill <= 0 && a3.oneLine, a3);
-  await page.evaluate(() => caGo({ kind: 'go', place: 'handbook', cid: null })); await page.waitForTimeout(1200);
-  const a4 = await page.evaluate(() => { const hb = document.querySelector('#hbk-page .hbk-body'), tbl = document.querySelector('#hbk-page .hbk-tbl'); if (!hb || !tbl) return { found: false };
-    hb.scrollLeft = 200; const pageSideways = hb.scrollLeft; hb.scrollLeft = 0;
-    const t = tbl.querySelector('table'); const panel = document.getElementById('ins-panel'); const pl = panel ? panel.getBoundingClientRect().left : innerWidth;
-    return { found: true, pageSideways, boxRight: Math.round(tbl.getBoundingClientRect().right), panelLeft: Math.round(pl), tableScrollsInBox: t.scrollWidth > tbl.clientWidth ? tbl.scrollWidth > tbl.clientWidth : true }; });
-  check('4 · (old look) the Handbook\'s table scrolls in its own box, clear of Jambo\'s panel; the page never sideways', a4.found && a4.pageSideways === 0 && a4.boxRight <= a4.panelLeft && a4.tableScrollsInBox, a4);
+  /* RETIRED 16 Nov 2026 (#762): 3 and 4 were measured with the new look switched off (the old Parties panel's draft
+     button, the old Handbook's table) — there is no off; the new look's Parties and Handbook are pinned by their own rounds */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');
