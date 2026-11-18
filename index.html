@@ -18697,59 +18697,59 @@
   html.lg-new #ig-dock .pd2-turn p,html.lg-new #ins-panel .pd2-turn p{margin:2px 0 0}
   html.lg-new #ig-dock .pd2-jface,html.lg-new #ins-panel .pd2-jface{width:12px;height:12px;border-radius:50%;background:var(--st-violet-dot);flex:none;margin-top:4px}
   /* the notes beside the paper: the sheet stands left, the notes in the margin, each by the line it was read from */
-  html.lg-new #ig-paper .ig-zoom.has-pd2{position:relative}
-  html.lg-new #pd2-notes{position:absolute;top:0;font-size:13px;line-height:1.4;color:var(--color-text)}
-  html.lg-new #pd2-notes .pd2-mn{position:absolute;left:0;right:0;padding:0 0 0 46px}
-  html.lg-new #pd2-notes .pd2-mn::before{content:"";position:absolute;left:34px;top:2px;bottom:2px;width:1px;background:var(--color-divider)}
-  html.lg-new #pd2-notes .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
-  html.lg-new #pd2-notes .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
-  html.lg-new #pd2-notes .pd2-mn-k{font-weight:400}
-  html.lg-new #pd2-notes .pd2-mn-n{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:5px;border:1px solid var(--color-text);border-radius:50%;font-size:10px;line-height:1;vertical-align:1px}
-  html.lg-new #pd2-notes .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
-  html.lg-new #pd2-notes .pd2-mn-a{margin-top:1px;font-size:12px}
-  html.lg-new #pd2-notes .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
-  html.lg-new #pd2-notes .pd2-mn.is-owe .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-owe::after,html.lg-new #pd2-notes .pd2-mn.is-owe::before{background:var(--st-amber-dot)}
-  html.lg-new #pd2-notes .pd2-mn.is-risk .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-risk::after,html.lg-new #pd2-notes .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
-  html.lg-new #pd2-notes .pd2-mn.is-ask .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-ask::after,html.lg-new #pd2-notes .pd2-mn.is-ask::before{background:var(--color-text)}
+  html.lg-new :is(#ig-paper, .apn-pk) .ig-zoom.has-pd2{position:relative}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek){position:absolute;top:0;font-size:13px;line-height:1.4;color:var(--color-text)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn{position:absolute;left:0;right:0;padding:0 0 0 46px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn::before{content:"";position:absolute;left:34px;top:2px;bottom:2px;width:1px;background:var(--color-divider)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-k{font-weight:400}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-n{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:5px;border:1px solid var(--color-text);border-radius:50%;font-size:10px;line-height:1;vertical-align:1px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn-a{margin-top:1px;font-size:12px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-owe .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-owe::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-owe::before{background:var(--st-amber-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-risk .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-risk::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-ask .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-ask::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-ask::before{background:var(--color-text)}
   html.lg-new ::highlight(pd2-fact){background-color:var(--surface-2)}
   /* ONE GROUP PER CLAUSE (owner picked "The Legora Way", 6 Nov 2026): the clause's name, a line per point with its dot and word,
      the words it rests on quoted once, one Open in Clauses; a group that drifted folds to its first line and "+ N more here" */
-  html.lg-new #pd2-notes .pd2-mg-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 3px}
-  html.lg-new #pd2-notes .pd2-mg > .pd2-mn-dot{display:none}
-  html.lg-new #pd2-notes .pd2-mg-i{margin:0 0 4px}
-  html.lg-new #pd2-notes .pd2-mg-i .pd2-mn-dot{position:static;display:inline-block;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot)}
-  html.lg-new #pd2-notes .pd2-mg-i.is-owe .pd2-mn-dot{background:var(--st-amber-dot)}
-  html.lg-new #pd2-notes .pd2-mg-i.is-risk .pd2-mn-dot{background:var(--st-brown-dot,var(--st-amber-fg))}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 3px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg > .pd2-mn-dot{display:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i{margin:0 0 4px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i .pd2-mn-dot{position:static;display:inline-block;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-owe .pd2-mn-dot{background:var(--st-amber-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-risk .pd2-mn-dot{background:var(--st-brown-dot,var(--st-amber-fg))}
   /* a standard the paper does not have at all: red, as drawn ("Beside the paper", 6 Nov 2026) */
-  html.lg-new #pd2-notes .pd2-mn.is-miss .pd2-mn-dot,html.lg-new #pd2-notes .pd2-mn.is-miss::after,html.lg-new #pd2-notes .pd2-mn.is-miss::before,html.lg-new #pd2-notes .pd2-mg-i.is-miss .pd2-mn-dot{background:var(--st-ruby-dot)}
-  html.lg-new #pd2-notes .pd2-mg-i.is-ask .pd2-mn-dot{background:var(--color-text)}
-  html.lg-new #pd2-notes .pd2-mg-l b{font-weight:var(--w-label);color:var(--st-amber-fg)}
-  html.lg-new #pd2-notes .pd2-mg-q{margin:1px 0 2px 13px;font-family:var(--font-doc);font-style:italic;font-size:12px;line-height:1.4;color:var(--color-quiet)}
-  html.lg-new #pd2-notes .pd2-mg .pd2-mg-more{display:none;font-size:12px}
-  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
-  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-more{display:inline}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-miss .pd2-mn-dot,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-miss::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-miss::before,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-miss .pd2-mn-dot{background:var(--st-ruby-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-i.is-ask .pd2-mn-dot{background:var(--color-text)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-l b{font-weight:var(--w-label);color:var(--st-amber-fg)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg-q{margin:1px 0 2px 13px;font-family:var(--font-doc);font-style:italic;font-size:12px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg .pd2-mg-more{display:none;font-size:12px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg.is-folded .pd2-mg-more{display:inline}
   /* SHOW LESS: on an open group of two or more; gone once folded */
-  html.lg-new #pd2-notes .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
-  html.lg-new #pd2-notes .pd2-mg.is-folded .pd2-mg-less{display:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mg.is-folded .pd2-mg-less{display:none}
   /* NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026): an answered note a green
      tick, grey words and "Answered by your redline" in green; an open one amber with its act; the group's line its colour;
      All · Still open · Answered over them, the chosen one a filled pill */
-  html.lg-new #pd2-notes .pd2-rn-chips{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;padding-left:0}
-  html.lg-new #pd2-notes .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  html.lg-new #pd2-notes .pd2-rn-chip[aria-pressed="true"]:not([data-pd2-notes-tg]){background:var(--color-text);color:var(--color-surface);box-shadow:none}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chips{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:6px;padding-left:0}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chip[aria-pressed="true"]:not([data-pd2-notes-tg]){background:var(--color-text);color:var(--color-surface);box-shadow:none}
   /* the chips and the Hide notes pill read as buttons on the desk's grey: white with a hairline (the zoom's own dress) */
-  html.lg-new #pd2-notes .pd2-rn-chip > span{margin-left:3px;font-variant-numeric:tabular-nums}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-chip > span{margin-left:3px;font-variant-numeric:tabular-nums}
   /* HIDE NOTES / SHOW NOTES: the same grey pill; put away, it stands alone under the zoom at the paper's right */
   html.lg-new #pd2-notes-tg{position:absolute;z-index:3;font-family:var(--font-body);font-size:13px;line-height:1.4}
   html.lg-new #pd2-notes-tg .pd2-rn-chips{display:flex}
   html.lg-new #pd2-notes-tg .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 10px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::after,html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done::before{background:var(--st-green-dot)}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i{margin:0 0 8px}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i.is-owe .pd2-mg-l{font-weight:var(--w-label)}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i.is-done .pd2-mg-l{color:var(--color-neutral-400)}
-  html.lg-new #pd2-notes .pd2-rn .pd2-mn-w,html.lg-new #pd2-notes .pd2-rn .pd2-mn-a{margin-left:13px}
-  html.lg-new #pd2-notes .pd2-rn-tick{display:inline-grid;place-items:center;width:13px;height:13px;margin-right:4px;border-radius:50%;background:var(--st-green-dot);color:var(--color-surface);vertical-align:-2px}
-  html.lg-new #pd2-notes .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.pd2-rn.is-done::after,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.pd2-rn.is-done::before{background:var(--st-green-dot)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mg-i{margin:0 0 8px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mg-i.is-owe .pd2-mg-l{font-weight:var(--w-label)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mg-i.is-done .pd2-mg-l{color:var(--color-neutral-400)}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mn-w,html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn .pd2-mn-a{margin-left:13px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-tick{display:inline-grid;place-items:center;width:13px;height:13px;margin-right:4px;border-radius:50%;background:var(--st-green-dot);color:var(--color-surface);vertical-align:-2px}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
   /* the brief in the middle: its head line, the sheet with every line's clause and quote, the page's foot */
   html.lg-new #ig-dock .pd2-eye{margin:14px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-quiet)}
   /* THE FIVE PARTS ON A CONTRACT (Jambo's panels, round 3b; owner, 15 Nov 2026: "Build as drawn"). The Dossier's ONE card
@@ -19015,9 +19015,9 @@
   html.lg-new #ig-canvas .pd2-wk-on{background:var(--st-violet-bg);transition:background .3s}
   /* WHILE JAMBO READS, A NOTE WAITS FOR ITS CLAUSE (owner, 8 Nov 2026: "the notes should pop on the right of the paper as
      it reads on until the end"): held unseen until the read reaches it, then it fades in and stays (pd2WalkNotesHold) */
-  html.lg-new #pd2-notes .pd2-mn{transition:opacity .35s ease, transform .35s ease}
-  html.lg-new #pd2-notes .pd2-mn.is-wk-hold{opacity:0;visibility:hidden;transform:translateY(6px)}
-  @media (prefers-reduced-motion: reduce){ html.lg-new #pd2-notes .pd2-mn{transition:none} }
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn{transition:opacity .35s ease, transform .35s ease}
+  html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn.is-wk-hold{opacity:0;visibility:hidden;transform:translateY(6px)}
+  @media (prefers-reduced-motion: reduce){ html.lg-new :is(#pd2-notes, .pd2-notes.is-peek) .pd2-mn{transition:none} }
   html.lg-new #ig-canvas .pd2-wk-done{opacity:.72}
   html.lg-new ::highlight(pd2-walk){background-color:var(--st-amber-bg)}
   html.lg-new #ig-canvas .pd2-wk-lit{box-shadow:inset 0 -2px 0 0 var(--st-amber-dot)}
@@ -19620,48 +19620,7 @@
   html.lg-new .apn-pk-x{flex:none}
   html.lg-new .apn-pk-b{flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--desk-ground);padding:24px 24px 48px;outline:none}
   html.lg-new .apn-pk-b:focus,html.lg-new .apn-pk-b:focus-visible{outline:none;box-shadow:none}
-  html.lg-new .apn-pk-row{position:relative;display:flex;gap:24px;align-items:flex-start;justify-content:center}
-  html.lg-new .apn-pk-paper{flex:0 1 var(--doc-sheet-max,720px);min-width:0}
-  /* the pages are the Dossier's own (pagesWatch): white sheets on the desk, nothing boxed round them */
-  html.lg-new .apn-pk-paper .ig-redpaper{background:transparent}
-  html.lg-new #apn-pk-notes{position:relative;flex:0 0 300px;font-size:13px;line-height:1.4;color:var(--color-text)}
-  html.lg-new .apn-pk-none,html.lg-new .apn-pk-empty{margin:0;padding:16px;font-size:13px;color:var(--color-quiet)}
-  html.lg-new #apn-pk-notes .apn-pk-own{position:absolute;left:0;right:0}
-  html.lg-new #apn-pk-notes .apn-pk-own .pd2-mn{position:relative;margin-bottom:12px}
-  html.lg-new #apn-pk-notes .pd2-mn{position:absolute;left:0;right:0;padding:0 0 0 46px}
-  html.lg-new #apn-pk-notes .pd2-mn::before{content:"";position:absolute;left:34px;top:2px;bottom:2px;width:1px;background:var(--color-divider)}
-  html.lg-new #apn-pk-notes .pd2-mn::after{content:"";position:absolute;left:4px;top:8px;width:30px;height:1px;background:var(--color-divider)}
-  html.lg-new #apn-pk-notes .pd2-mn-dot{position:absolute;left:0;top:5px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
-  html.lg-new #apn-pk-notes .pd2-mn-k{font-weight:400}
-  html.lg-new #apn-pk-notes .pd2-mn-n{display:inline-grid;place-items:center;width:15px;height:15px;margin-right:5px;border:1px solid var(--color-text);border-radius:50%;font-size:10px;line-height:1;vertical-align:1px}
-  html.lg-new #apn-pk-notes .pd2-mn-w{font-size:11.5px;line-height:1.4;color:var(--color-quiet);margin-top:1px}
-  html.lg-new #apn-pk-notes .pd2-mn-a{margin-top:1px;font-size:12px}
-  html.lg-new #apn-pk-notes .ui-link{margin:0;padding:0;border:0;background:none;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer}
-  html.lg-new #apn-pk-notes .pd2-mn.is-owe .pd2-mn-dot,html.lg-new #apn-pk-notes .pd2-mn.is-owe::after,html.lg-new #apn-pk-notes .pd2-mn.is-owe::before{background:var(--st-amber-dot)}
-  html.lg-new #apn-pk-notes .pd2-mn.is-risk .pd2-mn-dot,html.lg-new #apn-pk-notes .pd2-mn.is-risk::after,html.lg-new #apn-pk-notes .pd2-mn.is-risk::before{background:var(--st-brown-dot,var(--st-amber-fg))}
-  html.lg-new #apn-pk-notes .pd2-mn.is-ask .pd2-mn-dot,html.lg-new #apn-pk-notes .pd2-mn.is-ask::after,html.lg-new #apn-pk-notes .pd2-mn.is-ask::before{background:var(--color-text)}
-  html.lg-new #apn-pk-notes .pd2-mg-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);margin:0 0 3px}
-  html.lg-new #apn-pk-notes .pd2-mg > .pd2-mn-dot{display:none}
-  html.lg-new #apn-pk-notes .pd2-mg-i{margin:0 0 4px}
-  html.lg-new #apn-pk-notes .pd2-mg-i .pd2-mn-dot{position:static;display:inline-block;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot)}
-  html.lg-new #apn-pk-notes .pd2-mg-i.is-owe .pd2-mn-dot{background:var(--st-amber-dot)}
-  html.lg-new #apn-pk-notes .pd2-mg-i.is-risk .pd2-mn-dot{background:var(--st-brown-dot,var(--st-amber-fg))}
-  html.lg-new #apn-pk-notes .pd2-mn.is-miss .pd2-mn-dot,html.lg-new #apn-pk-notes .pd2-mn.is-miss::after,html.lg-new #apn-pk-notes .pd2-mn.is-miss::before,html.lg-new #apn-pk-notes .pd2-mg-i.is-miss .pd2-mn-dot{background:var(--st-ruby-dot)}
-  html.lg-new #apn-pk-notes .pd2-mg-i.is-ask .pd2-mn-dot{background:var(--color-text)}
-  html.lg-new #apn-pk-notes .pd2-mg-l b{font-weight:var(--w-label);color:var(--st-amber-fg)}
-  html.lg-new #apn-pk-notes .pd2-mg-q{margin:1px 0 2px 13px;font-family:var(--font-doc);font-style:italic;font-size:12px;line-height:1.4;color:var(--color-quiet)}
-  html.lg-new #apn-pk-notes .pd2-mg .pd2-mg-more{display:none;font-size:12px}
-  html.lg-new #apn-pk-notes .pd2-mg.is-folded .pd2-mg-i.is-more{display:none}
-  html.lg-new #apn-pk-notes .pd2-mg.is-folded .pd2-mg-more{display:inline}
-  html.lg-new #apn-pk-notes .pd2-mg .pd2-mg-less{display:inline;font-size:12px}
-  html.lg-new #apn-pk-notes .pd2-mg.is-folded .pd2-mg-less{display:none}
-  html.lg-new #apn-pk-notes .pd2-mn.pd2-rn.is-done::after,html.lg-new #apn-pk-notes .pd2-mn.pd2-rn.is-done::before{background:var(--st-green-dot)}
-  html.lg-new #apn-pk-notes .pd2-rn .pd2-mg-i{margin:0 0 8px}
-  html.lg-new #apn-pk-notes .pd2-rn .pd2-mg-i.is-owe .pd2-mg-l{font-weight:var(--w-label)}
-  html.lg-new #apn-pk-notes .pd2-rn .pd2-mg-i.is-done .pd2-mg-l{color:var(--color-neutral-400)}
-  html.lg-new #apn-pk-notes .pd2-rn .pd2-mn-w,html.lg-new #apn-pk-notes .pd2-rn .pd2-mn-a{margin-left:13px}
-  html.lg-new #apn-pk-notes .pd2-rn-tick{display:inline-grid;place-items:center;width:13px;height:13px;margin-right:4px;border-radius:50%;background:var(--st-green-dot);color:var(--color-surface);vertical-align:-2px}
-  html.lg-new #apn-pk-notes .pd2-rn-ans{font-weight:var(--w-label);color:var(--st-green-fg)}
+  html.lg-new .apn-pk-empty{margin:0;padding:16px;font-size:13px;color:var(--color-quiet)}
   html.lg-new .apn-link{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   html.lg-new .apn-table tr.apn-group td{padding:16px 0 8px;font-size:13px;font-weight:var(--w-label);border-bottom:1px solid var(--color-divider)}
   /* THE THREE PILES (17 Nov 2026): each group's title strong, its count quiet */
