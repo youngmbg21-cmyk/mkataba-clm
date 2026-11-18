@@ -212,7 +212,7 @@ A BLANK IS FILLED IN, NOT ARGUED: a `blank` point carries Fill it in (`stkFillGo
 ## OBLIGATIONS
 - A PROJECT LIST: pills Late · Tracked · Proposals (`obnRender`), TWENTY A PAGE (`obnPagerHtml`); PROPOSALS BY AGREEMENT (`obnProjects`) via ONE writer `obAddFound`; saved only on Add all.
 - ONE builder (`obListHtml`); `obligationMarkDone` the one completion writer; `obligationNextInstance`; `obligationBlocked` (server twin); Chase `POST …/chase`; `TEMPLATE_OBLIGATIONS` never guessed; review desk `openObligationsReview`, nothing pre-ticked.
-- ITS OWN PANEL: `dossierObLineHtml` → `pdObOpen`/`pdObClose`; renewal `pdObRenewHtml`; `obligationWindow`. WEEK BY WEEK (`obWeekKeyOf`): one act per row (`obwRowAct`); `obYourWeek`.
+- ITS OWN PANEL: `dossierObLineHtml` → `pdObOpen`/`pdObClose`; renewal `pdObRenewHtml`; `obligationWindow`. RENEWS BY ITSELF: ONE reading `contractRenewsItself(c)` (renewalType 'auto-renew'), read by Read down and every contract panel (f1095). WEEK BY WEEK (`obWeekKeyOf`): one act per row (`obwRowAct`); `obYourWeek`.
 ## THE LIST INSPECTOR
 - js/views/inspector.js (all lists but Contracts, Import): a press SELECTS, a second OPENS; `insFits()` vs `INS_MIN_W` 1040, else the full table; nothing writes. Checklist `insNeedsHtml` draws `needsYouOf(c)`; one door `needsYouGo(kind, id)`. Each list panel: Negotiation · Workspace (`insDoorActs`; Workspace → `roomHomeLand`).
 - `#ins-panel` is the PAGE's (`jlFrame`, folded `JL_FOLDED`); talk its flip (`jlTalk*`); nothing chosen = the page's Overview, no AI (`jlWordsHtml` → `jamboOverviewHtml`); THE ASK `jlAsk` → `caAskAnywhere` → `jmRead` → `aiAskWords`, answered HERE (`jlSayFound`; Board-only a door, `jlSayBoard`); an approval's panel has no doors (`apInsActs`).
