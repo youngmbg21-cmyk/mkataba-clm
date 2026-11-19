@@ -1,4 +1,4 @@
-/* EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY (owner, 19 Nov 2026: "all of hati at once"; f1108).
+/* EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY (owner, 19 Nov 2026: "all of hati at once"; f1110).
      1 · at the owner's three screens, in eight places (New agreement, Ask for a contract, New event, Add approval
          rule, Discover's filters, Your account, Company and market, the Send screen), no visible entry field wears
          a box: no edge on its top, left or right, and no fill. The boxes that HOLD a field (Jambo's, search boxes)

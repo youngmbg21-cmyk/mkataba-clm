@@ -1,5 +1,5 @@
 'use strict';
-/* f1108 — EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY (owner, 19 Nov 2026: "The design token for hati should be like
+/* f1110 — EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY (owner, 19 Nov 2026: "The design token for hati should be like
    image 2" — the Send screen's To step — then "all of hati at once").
 
    (1) ONE HOME: :root carries the --fld-* tokens — no edge, one divider line under, no fill, square.
@@ -25,7 +25,7 @@ const CSS = HTML.replace(/\/\*[\s\S]*?\*\//g, '');
 const JS_FILES = [...fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).map(f => 'js/' + f),
   ...fs.readdirSync(path.join(ROOT, 'js/views')).filter(f => f.endsWith('.js')).map(f => 'js/views/' + f)];
 
-test('f1108 (1) one home: the --fld-* tokens on :root', () => {
+test('f1110 (1) one home: the --fld-* tokens on :root', () => {
   assert.match(CSS, /--fld-edge:0 solid transparent;/);
   assert.match(CSS, /--fld-under:1px solid var\(--color-divider\);/);
   assert.match(CSS, /--fld-under-none:0 solid transparent;/);
@@ -33,7 +33,7 @@ test('f1108 (1) one home: the --fld-* tokens on :root', () => {
   assert.match(CSS, /--fld-r:0;/);
 });
 
-test('f1108 (2) one closing rule dresses every styled field from the tokens, its boxes left out', () => {
+test('f1110 (2) one closing rule dresses every styled field from the tokens, its boxes left out', () => {
   const at = CSS.indexOf('{border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background-color:var(--fld-bg);box-shadow:none}');
   assert.ok(at > 0, 'the closing rule exists');
   const sel = CSS.slice(CSS.lastIndexOf('\n', at), at);
@@ -46,7 +46,7 @@ test('f1108 (2) one closing rule dresses every styled field from the tokens, its
   assert.ok(head > at, 'it stands before the panel-head line rule, which stays last (f1107)');
 });
 
-test('f1108 (3) no field builder writes a box', () => {
+test('f1110 (3) no field builder writes a box', () => {
   const tag = /<(input|select|textarea)\b[^>]*?>/g;
   const lit = /(['"`])((?:(?!\1)[^\n\\]|\\.)*?(?:var\(--field-h|var\(--field-pad-x)(?:(?!\1)[^\n\\]|\\.)*?)\1/g;
   const boxed = [];
@@ -65,7 +65,7 @@ test('f1108 (3) no field builder writes a box', () => {
   assert.match(read('js/wizard.js'), /const WZ_ST='[^']*border:var\(--fld-edge\);border-bottom:var\(--fld-under\);background:var\(--fld-bg\)/);
 });
 
-test('f1108 (4) rows put the label beside the words, the line under the row', () => {
+test('f1110 (4) rows put the label beside the words, the line under the row', () => {
   assert.match(CSS, /html:not\(#_\) \.modal-in \.sap-f\{--fld-under:var\(--fld-under-none\);display:grid;grid-template-columns:minmax\(96px, 150px\) minmax\(0, 1fr\);[^}]*border-bottom:1px solid var\(--color-divider\)\}/);
   assert.match(CSS, /html:not\(#_\) \.modal-in \.sap-body > :is\(\.sap-row, \.sap-row3\)\{display:block\}/);
   assert.match(CSS, /\.st-sec label:has\(> :is\(input:not\(\[type="checkbox"\], \[type="radio"\]\), select, textarea\)\)\{--fld-under:var\(--fld-under-none\);display:grid;grid-template-columns:150px minmax\(0, 1fr\)/);
@@ -73,14 +73,14 @@ test('f1108 (4) rows put the label beside the words, the line under the row', ()
   assert.match(CSS, /:is\(\.lgp-row, \.sh-lt-who > label, \.na-kt-r\)\{--fld-under:var\(--fld-under-none\)\}/, 'rows that draw their own line draw no second');
 });
 
-test('f1108 (5) a choice of a few is pills; the request form uses the one builder', () => {
+test('f1110 (5) a choice of a few is pills; the request form uses the one builder', () => {
   assert.match(CSS, /\.pw \.pw-seg \.na-seg-b\{[^}]*background:var\(--color-neutral-100\);border-radius:999px/);
   assert.match(CSS, /\.pw \.pw-seg \.na-seg-b\[aria-checked="true"\]\{background:var\(--color-text\);color:var\(--color-surface\)\}/);
   const ik = read('js/views/intake.js');
   assert.equal((ik.match(/f\.key==='side' && typeof window\.payWhoHtml==='function'/g) || []).length, 2, 'both request builders');
 });
 
-test('f1108 (6) an owed hint is amber; the rule is no longer "not yet built"', () => {
+test('f1110 (6) an owed hint is amber; the rule is no longer "not yet built"', () => {
   assert.match(CSS, /:is\(input, textarea\)\.need-empty::placeholder\{color:var\(--st-amber-fg\)\}/);
   const rules = read('CLAUDE.md');
   assert.match(rules, /EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY/);
