@@ -10251,6 +10251,18 @@ const SDD_AREAS=['you','company','rules','jambo','mail','setup'];
 /* the area a page inside Settings belongs to (its "‹" goes back there) */
 const SDD_PAGE_AREA={ team:'company', sheet:'company', roles:'company', streams:'company', look:'company', data:'setup', panel:null };
 const SDD_TONE={ you:'you', company:'money', rules:'rule', jambo:'jambo', mail:'msg', setup:'sec' };
+/* each area and row wears an emoji for what it is, HaTi's own where one already says the same (owner, 19 Nov 2026);
+   a mark, never a button's words (f385). A row id ending in a number (awayfor0) reads its stem. */
+const SDD_EMOJI={ area:{ you:'👤', company:'🏢', rules:'⚖️', jambo:'✨', mail:'✉️', setup:'🛠️' },
+  row:{ who:'👤', email:'✉️', lang:'🗣️', told:'📬', push:'🔔', work:'🧭', 'agents-mine':'✨', points:'⭐', away:'🏖️', awayfor:'🤝',
+    twostep:'🔒', sessions:'💻', password:'🔑', mydata:'📥',
+    company:'🏢', streams:'🗂️', workshape:'📊', people:'👥', sheet:'📋', roles:'🏷️', directory:'📇', look:'🎨', rates:'💱', paydays:'💳',
+    rules:'⚖️', approvals:'✅', signcheck:'🔍', signcap:'✍️', signfolder:'🖊️', signroute:'📝', hold:'⏹️', review:'👀', desk:'✏️', linkcode:'🔐',
+    budget:'💵', questions:'💬', person:'⏱️', bigjobs:'⚠️', imports:'📦', agents:'✨', overnight:'🌙', navigate:'🧭', boardwords:'📖', lessons:'🎓', facts:'📌', boardaccuracy:'🎯', copilot:'🤖', engine:'⚙️',
+    mail:'✉️', outbox:'📤', renewals:'🔁', report:'📰', webhooks:'🔌', mailroom:'📥', lanes:'🛤️',
+    golive:'🚀', samples:'🧪', pilot:'👣', trail:'🧾', integrity:'🔏', env:'🖥️' } };
+function sddEmojiOf(id, area){ const R=SDD_EMOJI.row; return R[id]||R[String(id||'').replace(/\d+$/,'')]||SDD_EMOJI.area[area]||'•'; }
+function sddMkHtml(emo, area, need){ return `<span class="sdd-mk is-emo a-${SDD_TONE[area]||'you'}${need?' is-need':''}" aria-hidden="true">${emo}</span>`; }
 let _sddArea=null, _sddPick=null, _sddHome=null, _sddQ='';
 const sddTxt=h=>{ const s=String(h==null?'':h); if(!/[<&]/.test(s)) return s.trim();
   if(typeof document==='undefined') return s.replace(/<[^>]*>/g,'').trim();
@@ -10460,7 +10472,7 @@ function sddNeedList(admin, area, rows){
   return out;
 }
 /* ---- the middle ---- */
-function sddMarkHtml(r){ return r.dot==='need'?`<span class="sdd-mk is-need" aria-hidden="true">!</span>`:`<span class="sdd-mk a-${SDD_TONE[r.area]}" aria-hidden="true"></span>`; }
+function sddMarkHtml(r){ return sddMkHtml(sddEmojiOf(r.id, r.area), r.area, r.dot==='need'); }
 function sddVal(r){ return r.now?`<span class="sdd-v${r.dot?' is-'+r.dot:''}">${esc(r.now)}</span>`:''; }
 function sddRowHtml(r, opts){
   const o=opts||{}, chosen=r.id===_sddPick;
@@ -10485,7 +10497,7 @@ function sddHomeHtml(admin){
   if(_sddQ.trim()) return sddFoundHtml(rows);
   return `<div class="sdd-colh"><span>${esc(i18t('sdd_col_area'))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`
     +areas.map(a=>{ const mine=rows.filter(r=>r.area===a), st=sddAreaState(a,rows), chosen=a===_sddHome;
-      const mk=st.dot==='need'?`<span class="sdd-mk is-need" aria-hidden="true">!</span>`:`<span class="sdd-mk a-${SDD_TONE[a]}" aria-hidden="true"></span>`;
+      const mk=sddMkHtml(SDD_EMOJI.area[a], a, st.dot==='need');
       return `<div class="sdd-row is-area${chosen?' is-chosen':''}" id="sdd-area-${a}" data-sdd-home="${a}" role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
         ${mk}<div class="sdd-t"><div class="sdd-n">${esc(i18t('sdd_a_'+a))} <em>${mine.length}</em></div><div class="sdd-s is-list">${esc(mine.map(r=>r.name).join(' · '))}</div></div>
         <div class="sdd-now"><span class="sdd-v${st.dot?' is-'+st.dot:''}">${esc(st.t)}</span></div><div class="sdd-a"><button type="button" class="sdd-go${chosen?' is-black':''}" data-sdd-door="${a}">${esc(i18t('sdd_open'))}</button></div></div>`; }).join('')
