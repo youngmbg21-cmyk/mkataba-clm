@@ -1,5 +1,5 @@
 'use strict';
-/* f1101 — THE PLAYBOOK FACT IS A SCORE RING (owner picked "Score Ring" by name, 19 Nov 2026, from three drawings on the
+/* f1103 — THE PLAYBOOK FACT IS A SCORE RING (owner picked "Score Ring" by name, 19 Nov 2026, from three drawings on the
    real Dossier: "actually more like KPIs indicator that has color").
 
    (1) THE ROW: the Dossier's Playbook fact (pd2Facts) draws a small ring of the share of positions met, coloured by the
@@ -15,7 +15,7 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const region = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = src.indexOf('\nfunction ', i + 10); return strip(src.slice(i, j < 0 ? undefined : j)); };
 
-describe('f1101 (1) the Playbook fact is a score ring', () => {
+describe('f1103 (1) the Playbook fact is a score ring', () => {
   const F = region(R('js/paperdesk.js'), 'pd2Facts');
   test('the ring is drawn, coloured by the worst found', () => {
     assert.match(F, /pd2-ring/);
@@ -30,7 +30,7 @@ describe('f1101 (1) the Playbook fact is a score ring', () => {
   });
 });
 
-describe('f1101 (2) the words, both books', () => {
+describe('f1103 (2) the words, both books', () => {
   const I = R('js/i18n.js');
   test('the ring\'s words stand in English and Swedish, the old line is gone', () => {
     for (const k of ['pd2_std_met', 'pd2_std_miss_one', 'pd2_std_miss_other', 'pd2_std_dev_one', 'pd2_std_dev_other'])
@@ -40,7 +40,7 @@ describe('f1101 (2) the words, both books', () => {
   });
 });
 
-describe('f1101 (3) the ring wears HaTi\'s tokens', () => {
+describe('f1103 (3) the ring wears HaTi\'s tokens', () => {
   const H = R('index.html');
   test('each tone is a token', () => {
     assert.match(H, /\.pd2-ring\.is-miss \.pd2-ring-fg\{stroke:var\(--danger\)\}/);

@@ -62,8 +62,9 @@ const MARK = ([pg, bx]) => {
 const PAGES = [
   { k: 'approvals', view: 'approvals', rowSel: '.apn-table [data-ap-row]', tabSel: '[data-apn-tab]', tabKey: 'data-apn-tab',
     box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th', pageSel: '.apn-page' },
-  { k: 'obligations', view: 'obligations', rowSel: '#obn-body [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
-    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obn-table.is-two-line thead th', pageSel: '.obn-page' },
+  /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the lines stand in two columns; their heads are the marks */
+  { k: 'obligations', view: 'obligations', rowSel: '#obn-list [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
+    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obt-colh', pageSel: '.obn-page' },
   /* the overnight run, job 6 (10 Nov 2026): People. Every tab draws the one table (they only pick which people) */
   { k: 'people', view: 'directory', rowSel: '#dir-tbody [data-dir-row]', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
     box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .ctf-hf' },

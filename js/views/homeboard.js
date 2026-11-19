@@ -1404,7 +1404,7 @@ function hbFigDoor(key){
      narrowing's × is never the readied button) */
   if (k === 'overdue'){ if (typeof obwGoFiltered !== 'function') return false; obwGoFiltered({ state: 'overdue' });
     /* the new look's page names its Late pill (obnRender, #762); the old page its Overdue view */
-    if (typeof landOn === 'function') landOn((typeof newLookOn === 'function' && newLookOn()) ? '[data-obn-tab="late"]' : '[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
+    if (typeof landOn === 'function') landOn((typeof newLookOn === 'function' && newLookOn()) ? '[data-obn-tab="open"]' : '[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
   if (!HB_FIG_TO_CONTRACTS.includes(k) || typeof regShowOnly !== 'function') return false;
   let F = null; try { F = hbBookData(hbS().lens || 'all').figs[k]; } catch (_){ F = null; }
   const ids = (F && Array.isArray(F.ids)) ? F.ids : []; if (!ids.length) return false;

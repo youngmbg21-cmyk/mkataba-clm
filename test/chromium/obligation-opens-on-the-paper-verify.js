@@ -26,7 +26,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
   await until(page, () => typeof caGo === 'function' && typeof currentUser === 'function' && !!currentUser() && !!getContract('MK-A1'), null, 40000);
   await page.evaluate(W.R7_IN_PAGE);
-  const rowSel = '#content tbody tr[data-ob-key]';
+  /* RE-POINTED 19 Nov 2026 (owner's pick "We owe · They owe", f1099): the duties are lines in two columns, not table rows */
+  const rowSel = '#content .obt-cols [data-ob-key]';
   const go = async look => { await page.evaluate(async on => { try { closeModal(); } catch (_){} await stPrefSet('newLook', on); newLookApply(); caGo({ kind: 'go', place: 'oblig', cid: null }); }, look);
     return until(page, s => state.view === 'obligations' && !!document.querySelector(s), rowSel, 15000); };
 
@@ -42,7 +43,15 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 2 */
   const back = await go(true);
-  const s2 = await page.evaluate(s => ({ rows: document.querySelectorAll(s).length, narrowed: !!document.querySelector('[data-obw-only-clear]'), contracts: new Set([...document.querySelectorAll(s)].map(r => (r.getAttribute('data-ob-key') || '').split('::')[0])).size }), rowSel);
+  /* RE-POINTED 19 Nov 2026 (We owe · They owe, f1099): the page lands on Next 30 days, which may hold one contract's duties
+     only; the whole list is Next 30 days and Later together, so both tabs are read */
+  const keysOf = s => [...document.querySelectorAll(s)].map(r => r.getAttribute('data-ob-key') || '');
+  const k1 = await page.evaluate(keysOf, rowSel);
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); });
+  await page.waitForTimeout(400);
+  const k2 = await page.evaluate(keysOf, rowSel);
+  const s2 = await page.evaluate(n => ({ narrowed: !!document.querySelector('[data-obw-only-clear]') }), 0);
+  Object.assign(s2, { rows: k1.length + k2.length, contracts: new Set(k1.concat(k2).map(k => k.split('::')[0])).size });
   check('2 · back on Obligations the whole list stands, no narrowed scope', back && !s2.narrowed && s2.contracts >= 2, s2);
 
   /* RETIRED 16 Nov 2026 (#762): check 3 "the old look: the narrowed page, as before" — the old look is no longer reached

@@ -327,8 +327,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Obligations page's tabs are its pills Late ·
          Tracked · Proposals (obnRender, data-obn-tab); the overdue figure's list is the Late pill */
-      const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obn-tab="late"].is-on') ? true : null, null, 8000);
-      const obl = await until(() => !!document.querySelector('[data-obn-tab="late"].is-landed'), null, 6000);
+      /* RE-POINTED 19 Nov 2026 (We owe · They owe): Late is no longer a tab; Next 30 days leads with what is late */
+      const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obn-tab="open"].is-on') ? true : null, null, 8000);
+      const obl = await until(() => !!document.querySelector('[data-obn-tab="open"].is-landed'), null, 6000);
       check('12 Obligations overdue: the Obligations page, on its Overdue tab, landed on it (landOn)', !!ob && !!obl, JSON.stringify({ ob, obl }));
       await shot(page, '17-board-figure-overdue-1440x780');
     } else check('12 the stage carries a late obligation of ours, so the overdue door can be pressed', false, 'no overdue figure');

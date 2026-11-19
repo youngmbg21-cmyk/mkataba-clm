@@ -7199,18 +7199,28 @@ function igSavedViewsHtml(){
   let v=[]; try{ v=igViewsRead().slice().reverse(); }catch(_){ v=[]; }
   const links=v.map(x=>{ let n=null; try{ n=igRecipeShown(x.recipe); }catch(_){ n=null; }
     return `<button type="button" class="ig-sv-a" data-ig-sv="${igEsc(x.name)}" title="${igEsc(i18t('hb_views_tip'))}"><span class="ig-sv-n">${igEsc(x.name)}</span>${n!=null?`<b>${n}</b>`:''}</button>`; }).join('');
-  let nm=''; try{ nm=igViewName(); }catch(_){ nm=''; }
-  const form=_igSvForm?`<form class="ig-sv-form" data-ig-sv-form><input type="text" id="ig-sv-name" class="ig-sv-in" maxlength="${IG_SV_NAME_MAX}" autocomplete="off" value="${igEsc(nm)}" aria-label="${igEsc(i18t('int_sv_name'))}"><button type="submit" class="ig-sv-ok">${igEsc(i18t('int_sv_save'))}</button><button type="button" class="ig-sv-no" data-ig-sv-cancel>${igEsc(i18t('int_sv_cancel'))}</button></form>`:'';
-  return `<div class="ig-sv" id="ig-sv"><div class="ig-sv-hd"><span class="ig-sv-l">${igEsc(i18t('int_saved_views'))}</span>${_igSvForm?'':`<button type="button" class="ig-sv-new" data-ig-sv-new>${igEsc(i18t('int_sv_new'))}</button>`}</div>${form}`
+  return `<div class="ig-sv" id="ig-sv"><div class="ig-sv-hd"><span class="ig-sv-l">${igEsc(i18t('int_saved_views'))}</span><button type="button" class="ig-sv-new" data-ig-sv-new>${igEsc(i18t('int_sv_new'))}</button></div>`
     +(links?`<div class="ig-sv-list">${links}</div>`:`<span class="ig-day-src">${igEsc(i18t('int_sv_none'))}</span>`)+`</div>`;
 }
 const IG_SV_NAME_MAX=60;
-function igSavedViewForm(on){ _igSvForm=!!on; igDayRepaint();
-  if(_igSvForm){ const i=document.getElementById('ig-sv-name'); if(i){ try{ i.focus({ preventScroll:true }); i.select(); }catch(_){} } } return true; }
+/* NAMING IT IS THE ONE EDIT POP-UP (owner, 19 Nov 2026: "Build 1"): one line holding the view's own name, what the
+   view holds said under the headline, Save; the map and the panel stay as they were (lgpOpen) */
+function igSavedViewForm(on){
+  _igSvForm=!!on;
+  if(!_igSvForm){ if(document.getElementById('ig-sv-form')&&typeof closeModal==='function') closeModal(); return true; }
+  let nm=''; try{ nm=igViewName(); }catch(_){ nm=''; }
+  let n=null; try{ n=igRecipeShown(igRecipeNow()); }catch(_){ n=null; }
+  lgpOpen({ id:'ig-sv-form', title:i18t('int_sv_head'), sub:n!=null?i18t('int_sv_sub',{ n }):'',
+    rows:[{ k:i18t('int_sv_name'), id:'ig-sv-name', value:nm, max:IG_SV_NAME_MAX }],
+    html:`<p class="lgp-small">${igEsc(i18t('int_sv_mine'))}</p>`,
+    primary:{ label:i18t('int_sv_save') }, onClose:()=>{ _igSvForm=false; } });
+  const i=document.getElementById('ig-sv-name'); if(i){ try{ i.select(); }catch(_){} }
+  return true;
+}
 /* the name typed is the name kept; an empty box keeps the view's own name; a namesake is replaced (igViewSave) */
 function igSavedViewKeep(){
   const i=document.getElementById('ig-sv-name'); const typed=String((i&&i.value)||'').replace(/\s+/g,' ').trim().slice(0,IG_SV_NAME_MAX);
-  const n=igViewSave(typed); _igSvForm=false; igDayRepaint();
+  const n=igViewSave(typed); _igSvForm=false; if(typeof closeModal==='function'&&document.getElementById('ig-sv-form')) closeModal(); igDayRepaint();
   if(typeof toast==='function') toast(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed'),n?'ok':'err');
   return !!n;
 }
@@ -7226,10 +7236,9 @@ function igSavedViewOpen(name){
    has no Your day tab, it saves under the view's own name as it always did) */
 function igSaveViewDoor(){
   if(!igDayTabOn()){ igRecipeRun({ acts:[{ save:'' }] }); renderIntelDock(); return true; }
-  intel.tour=null; intel.walk=null; intel.fdTab=false; intel.gdTab=false; intel.dayTab=true; _igSvForm=true;
+  intel.tour=null; intel.walk=null; intel.fdTab=false; intel.gdTab=false; intel.dayTab=true;
   renderIntelDock(); updateIntelNote();
-  const i=document.getElementById('ig-sv-name'); if(i){ try{ i.focus({ preventScroll:true }); i.select(); }catch(_){} }
-  return true;
+  return igSavedViewForm(true);
 }
 function igDayRepaint(){ const host=document.getElementById('ig-day'); if(!host||!igDayShows()) return; host.innerHTML=igDayHtml(); }
 /* a figure's own door: each the page that does the work, the map's own for risk */
@@ -7267,11 +7276,9 @@ function igBriefAutoStart(){
 document.addEventListener('click',e=>{ const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('#ig-day')) return;
   if(t.closest('[data-ig-day-pin]')){ igBriefPinSet(!igBriefPinned()); igDayRepaint(); return; }
   if(t.closest('[data-ig-sv-new]')){ igSavedViewForm(true); return; }
-  if(t.closest('[data-ig-sv-cancel]')){ igSavedViewForm(false); return; }
   const sv=t.closest('[data-ig-sv]'); if(sv){ igSavedViewOpen(sv.getAttribute('data-ig-sv')); return; }
   const f=t.closest('[data-ig-day]'); if(f){ if(IG) igPaintIds(null); igDayGo(f.getAttribute('data-ig-day')); } });
-document.addEventListener('submit',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-day [data-ig-sv-form]'):null; if(!f) return; e.preventDefault(); igSavedViewKeep(); });
-document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!_igSvForm) return; const i=e.target&&e.target.closest?e.target.closest('#ig-sv-name'):null; if(!i) return; e.stopPropagation(); igSavedViewForm(false); },true);
+document.addEventListener('submit',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-sv-form'):null; if(!f) return; e.preventDefault(); igSavedViewKeep(); });
 /* pointing at a figure lights its contracts on the map; letting go puts the map back */
 document.addEventListener('mouseover',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-day [data-ig-day]'):null; if(!f||!IG) return;
   if(f._igLit) return; f._igLit=true; const t=igDayData().find(x=>x.k===f.getAttribute('data-ig-day')); if(t) igPaintIds(t.ids); });

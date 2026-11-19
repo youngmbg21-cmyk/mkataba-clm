@@ -15020,6 +15020,8 @@
   .jov5-g.is-door:hover{background:var(--color-divider);}
   .jov5-g b{font-size:21px;line-height:1.2;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;white-space:nowrap;}
   .jov5-g.is-warn b{color:var(--st-amber-fg);}
+  .jov5-g b{max-width:100%;}
+  .jov5-g.is-word b{font-size:15px;line-height:1.25;white-space:normal;overflow-wrap:anywhere;padding-top:3px;}
   .jov5-g span{max-width:100%;font-size:11.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .jov5-sec{display:flex;flex-direction:column;min-width:0;}
   .jov5-label{margin:0 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400);}
@@ -19868,8 +19870,8 @@
   html.lg-new .obn-pgb{flex:1;min-width:0}
   html.lg-new .obn-ring{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--obc) var(--obr),var(--color-neutral-100) 0)}
   html.lg-new .obn-ring>span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--color-surface);font-size:10.5px;color:var(--color-text)}
-  html.lg-new .obn-bar2{display:block;height:6px;border-radius:999px;background:var(--color-neutral-100);overflow:hidden}
-  html.lg-new .obn-bar2 i{display:block;height:100%}
+  html.lg-new .obn-bar2{display:flex;height:6px;border-radius:999px;background:var(--color-neutral-100);overflow:hidden}
+  html.lg-new .obn-bar2 i{display:block;flex:none;height:100%}
   html.lg-new .obn-pgb small{display:block;font-size:11.5px;color:var(--color-quiet);margin-top:4px;white-space:nowrap}
   html.lg-new .obn-table.is-proj td{vertical-align:middle}
   html.lg-new .obn-table.is-proj td.obn-pt{font-size:12.5px}
@@ -19881,6 +19883,45 @@
   html.lg-new .obn-table.is-proj td.obn-pt{overflow-wrap:anywhere}
   /* PROPOSALS' PANEL, A ROW PRESSED, THE LEGORA WAY (owner, 19 Nov 2026): nothing boxed, one quiet list, the duty's own
      words quoted with its time limit marked, each answered in its row, the tabs and chips the drawing carries */
+  /* WE OWE · THEY OWE (owner's pick, 19 Nov 2026): two quiet columns, the Legora way; each line its day, party, clause,
+     who is reminded and one act; nothing boxed */
+  html.lg-new .obt-say{margin:4px 0 10px;font-family:var(--font-doc);font-size:16px;color:var(--color-text)}
+  html.lg-new .obt-cols{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-content:start;padding-bottom:16px}
+  html.lg-new .obt-col{display:flex;flex-direction:column;min-width:0}
+  html.lg-new .obt-colh{display:flex;align-items:baseline;gap:10px;padding:6px 0 8px;border-bottom:2px solid var(--color-text);position:sticky;top:0;background:var(--color-surface);z-index:1}
+  html.lg-new .obt-colh b{font-size:16px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .obt-colh span{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .obt-li{display:grid;gap:2px;padding:9px 8px;border-bottom:1px solid var(--color-divider);cursor:pointer;border-radius:8px}
+  html.lg-new .obt-li.is-sel{background:var(--surface-2)}
+  html.lg-new .obt-l1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  html.lg-new .obt-l1 b{font-weight:var(--w-label);font-size:13.5px;color:var(--color-text);min-width:0}
+  html.lg-new .obt-w{flex:none;font-size:12px;white-space:nowrap;color:var(--color-quiet)}
+  html.lg-new .obt-w.is-late{color:var(--st-ruby-fg)} html.lg-new .obt-w.is-soon{color:var(--st-amber-fg)}
+  html.lg-new .obt-sub{margin:0;font-size:12px;color:var(--color-quiet);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .obt-l3{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  html.lg-new .obt-rem{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-quiet);min-width:0}
+  html.lg-new .obt-act{flex:none;border:0;background:none;padding:0 2px;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .obt-more{align-self:flex-start;margin:8px 6px 0;border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .obt-none{margin:12px 6px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .obt-hf-ours{color:var(--st-amber-fg)}
+  html.lg-new .obt-page #obn-scroll{display:flex;flex-direction:column;min-height:0}
+  /* the month as a line in Jambo's panel: ours above, theirs below, late to the left of today */
+  html.lg-new .obt-tl{background:var(--jb-card-fill);border-radius:var(--radius);padding:16px;display:grid;gap:4px}
+  html.lg-new .obt-tl-lab{font-size:12px;font-weight:var(--w-strong)} html.lg-new .obt-tl-lab.is-ours{color:var(--st-amber-fg)} html.lg-new .obt-tl-lab.is-theirs{color:var(--st-steel-fg)}
+  html.lg-new .obt-tl-row{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
+  html.lg-new .obt-tl-row b{font-size:20px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .obt-tl-row b.is-late{color:var(--st-ruby-fg)} html.lg-new .obt-tl-row b.is-soon{color:var(--st-amber-fg)}
+  html.lg-new .obt-tl-row.is-h{font-size:11px;color:var(--color-quiet)}
+  html.lg-new .obt-tl-axis{position:relative;height:2px;background:var(--color-text);margin:2px 0}
+  html.lg-new .obt-tl-late{position:absolute;left:0;top:-6px;width:25%;height:14px;background:var(--st-ruby-bg);border-radius:4px}
+  html.lg-new .obt-tl-today{position:absolute;left:25%;top:-7px;width:2px;height:16px;background:var(--color-text)}
+  /* one obligation pressed: which side, its words, its act, who is reminded */
+  html.lg-new .obt-side{display:inline-block;width:max-content;font-size:11.5px;padding:1px 8px;border-radius:999px;margin-bottom:4px}
+  html.lg-new .obt-side.is-ours{background:var(--st-amber-bg);color:var(--st-amber-fg)} html.lg-new .obt-side.is-theirs{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .obt-one .obn-lg-top em{font-style:normal}
+  html.lg-new .obt-q{cursor:pointer}
+  html.lg-new .obt-rl{display:flex;align-items:center;gap:8px;margin:2px 0;font-size:13px;color:var(--color-text)}
+  html.lg-new .obt-rl svg{flex:none;color:var(--color-quiet)}
   html.lg-new .obn-lg{display:flex;flex-direction:column;gap:0;padding:16px}
   html.lg-new .obn-lg-top{display:grid;gap:2px;padding-bottom:10px}
   html.lg-new .obn-lg-top b{font-size:16px;font-weight:var(--w-label);color:var(--color-text);line-height:1.3}
@@ -19892,6 +19933,7 @@
   html.lg-new .obn-lg-l{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
   html.lg-new .obn-lg-l b{font-size:14px;font-weight:var(--w-label);color:var(--color-text);min-width:0}
   html.lg-new .obn-lg-now{flex:none;font-size:13px;color:var(--accent-ink);white-space:nowrap}
+  html.lg-new .obn-lg-now.is-us{color:var(--st-amber-fg)} html.lg-new .obn-lg-now.is-them{color:var(--st-steel-fg)} html.lg-new .obn-lg-now.is-both{color:var(--st-violet-fg)}
   html.lg-new .obn-lg-q{margin:0;font-family:var(--font-doc);font-size:13.5px;line-height:1.45;color:var(--color-text)}
   html.lg-new .obn-lg-q mark{padding:0 2px;border-radius:3px;background:var(--hl-yes);color:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}
   html.lg-new .obn-lg-src{margin:0;font-size:12px;color:var(--color-quiet)}
@@ -19908,14 +19950,6 @@
   html.lg-new .obn-lg-chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:12px}
   html.lg-new .obn-lg-chip{height:28px;padding:0 12px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12.5px;color:var(--color-text);white-space:nowrap;cursor:pointer}
   /* A DUTY UNDERNEATH ITS AGREEMENT: answered on its own line, nothing saved until Add all */
-  html.lg-new .obn-table .obn-dr td{background:var(--color-chat-bg);padding-top:11px;padding-bottom:11px}
-  html.lg-new .obn-table .obn-dr .obn-dn{font-size:12.6px;font-weight:var(--w-label)}
-  html.lg-new .obn-table .obn-dr td.obn-dc{padding-left:26px}
-  html.lg-new .obn-table .obn-dr.is-done .obn-dn{color:var(--color-quiet)}
-  html.lg-new .obn-dw{text-align:right;white-space:nowrap}
-  html.lg-new .obn-wh{height:28px;padding:0 11px;margin-left:6px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12px;color:var(--color-text);cursor:pointer}
-  html.lg-new .obn-wh.is-on{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
-  html.lg-new .obn-wh:disabled{opacity:.55;cursor:default}
   html.lg-new .obn-dec{font-size:12px;color:var(--color-quiet)}
   html.lg-new .obn-dec.is-ok{color:var(--st-green-fg)}
   html.lg-new .obn-pjl{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:5px 0}
@@ -22149,6 +22183,29 @@
   .lgp-pg{width:26px;height:26px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);cursor:pointer}
   .lgp-pg[disabled]{opacity:.4;cursor:default}
   .lgp-none{margin:12px 0;color:var(--color-neutral-400);font-size:13px}
+  .lgp-small{margin:10px 0 0;font-size:12.5px;color:var(--color-neutral-400)}
+  /* THE SIGNING ROUTE ON THE ONE EDIT POP-UP (owner, 19 Nov 2026: "Build 1", as drawn): the route as quiet lines —
+     a step a small grey label, its people lines with a hairline under each, nothing boxed; a party nobody signs for yet
+     an amber line with its Add; the signer's own three lines on the next screen (js/approvals.js signerRouteWindow) */
+  .lgp.sr-win .sr-line{margin:0;padding:0 24px 6px}
+  .lgp.sr-win .sr-step,.lgp.sr-win .sr-misses:not(:empty){border:0;border-radius:0;background:transparent;margin:0 0 10px;padding:0}
+  .lgp.sr-win .sr-sh{background:transparent;border:0;padding:10px 0 2px;min-height:0}
+  .lgp.sr-win .sr-sn{font-size:12.5px;font-weight:400;color:var(--color-neutral-400)}
+  .lgp.sr-win .sr-card,.lgp.sr-win .sr-miss{border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:transparent;padding:8px 0;min-height:48px}
+  .lgp.sr-win .sr-card.is-open{border:0;padding:0;min-height:0}
+  .lgp.sr-win .sr-miss .sr-mt b{color:var(--st-amber-fg)}
+  .lgp.sr-win .sr-miss .ui-btn{border-color:transparent;background:transparent;color:var(--accent-ink)}
+  .lgp.sr-win .sr-step .sr-addwrap{border:0;padding:6px 0 0}
+  .lgp.sr-win .sr-end{padding:4px 0 0}
+  .lgp.sr-win .sr-end .ui-btn{padding-left:0}
+  .lgp.sr-win .sr-ch{padding:0 0 4px}
+  .lgp.sr-win .sr-grid{display:block;margin:0}
+  .lgp.sr-win .sr-hint{margin:2px 0 4px}
+  /* the duty's amount on the one sheet: a line like the others, the currency quiet before the figure */
+  .lgp .of-amt{border:0;background:transparent;height:auto;align-items:center;gap:8px}
+  .lgp .of-amt i{padding:0;border:0;background:transparent;color:var(--color-neutral-400)}
+  .lgp .of-amt input.lgp-in{height:auto}
+  .lgp button.lgp-tick.is-pick{grid-template-columns:minmax(0,1fr) auto;width:100%;background:none;border:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
   .lgp-err{margin:10px 0 0;font-size:13px;color:var(--danger)}
   .lgp-ft{display:flex;align-items:center;gap:8px;padding:14px 24px 18px;flex-wrap:wrap}
   .lgp-sp{flex:1}

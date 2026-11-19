@@ -403,9 +403,16 @@ const contract = () => ({
         return b ? b.value : ((el.querySelector('.sr-who b') || {}).textContent || ''); };
       const emailOf = el => { const b = el.querySelector('[data-sp-f="email"]');
         return b ? b.value : ((el.querySelector('.sr-who span') || {}).textContent || ''); };
-      const out = { win: !!w, rows: cards.length, parties: cards.map(sideOf),
-        names: cards.map(nameOf), emails: cards.map(emailOf) };
-      const their = cards.find(el => sideOf(el) === 'counterparty');
+      /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1", as drawn): the route opens resting, each person
+         one line; their side's line is pressed to read its three lines on the signer's own screen */
+      const parties = cards.map(sideOf);
+      const theirAt = parties.indexOf('counterparty');
+      const names = cards.map(nameOf), emails = cards.map(emailOf);
+      const press = theirAt >= 0 && cards[theirAt].querySelector('[data-sp-edit]');
+      if (press) { press.click(); await new Promise(r => setTimeout(r, 150)); }
+      const their = w && w.querySelector('.sr-card.is-open');
+      if (their && theirAt >= 0) { names[theirAt] = nameOf(their); emails[theirAt] = emailOf(their); }
+      const out = { win: !!w, rows: cards.length, parties, names, emails };
       const hintOf = () => { const h = their && their.querySelector('[data-sp-hint$=":name"]');
         return h && !h.hidden ? h.textContent : ''; };
       out.hint = hintOf();

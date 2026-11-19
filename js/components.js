@@ -1599,7 +1599,10 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
+    /* A TILE THAT HOLDS WORDS, NOT A NUMBER ("Every month"), takes the smaller size and may wrap — never past its card
+       (owner, 19 Nov 2026: the duty panel's "Every month" ran out of its tile and the panel) */
+    const word = /[^\d\s.,%:\u2014\u2013-]/.test(String(g.n == null ? '' : g.n)) && String(g.n).length > 7;
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}${word ? ' is-word' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
       + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
   const rowHtml = r => {
     const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);
@@ -2043,7 +2046,7 @@ function lgpHtml(o){
   const sub = o.subHtml || (o.sub ? E(o.sub) : '');
   const jb = o.jambo ? `<span class="lgp-jb"><i class="lgp-spark" aria-hidden="true"></i>${E(o.jambo)}</span>` : '';
   const head = `<div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(o.title || '')}</h3>${steps ? `<p class="lgp-sub lgp-steps">${steps}</p>` : ''}${sub ? `<p class="lgp-sub">${sub}</p>` : ''}${jb ? `<p class="lgp-sub">${jb}</p>` : ''}</div>`
-    + `<button type="button" class="lgp-x" data-lgp-close aria-label="${E(_lgpT('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>`;
+    + `<button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${E(_lgpT('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>`;
   const body = `<div class="lgp-bd">${(o.rows || []).map(lgpRowHtml).join('')}${o.html || ''}${o.err ? `<p class="lgp-err" role="alert">${E(o.err)}</p>` : ''}</div>`;
   const left = o.back ? `<button type="button" class="ui-btn lgp-back" ${o.back.attr || ''}>‹ ${E(o.back.label || _lgpT('lgp_back'))}</button>`
     : o.left ? `<button type="button" class="lgp-left${o.left.danger ? ' is-danger' : ''}" ${o.left.attr || ''}>${E(o.left.label)}</button>` : '';

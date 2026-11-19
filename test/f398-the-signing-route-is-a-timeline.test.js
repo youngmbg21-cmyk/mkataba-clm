@@ -229,8 +229,11 @@ describe('f398 (2) the window is a timeline', () => {
     assert.ok(/i18t\('ap_sr_any'\)/.test(win), 'and a shared step says it signs in any order');
   });
 
-  test('(2c) a person who is complete rests; one with something missing opens', () => {
-    assert.ok(/const open=new Set\(rows\.filter\(r=>Object\.keys\(needs\(r\)\)\.length\)/.test(win));
+  /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1", as drawn): the window opens on the route, every
+     person resting (one with something missing says it in amber on the line); a press opens ONE signer, the next screen */
+  test('(2c) the route rests; one signer opens at a time, on its own screen', () => {
+    assert.ok(/const open=new Set\(\);/.test(win) && /const openOnly=id=>\{ open\.clear\(\); if\(id\) open\.add\(id\); \};/.test(win));
+    assert.ok(/const one=rows\.find\(r=>open\.has\(r\.id\)\);\s*if\(one\) return card\(one\);/.test(win), 'the signer\'s screen replaces the route');
     assert.ok(/sr-card is-rest/.test(win) && /sr-card is-open/.test(win));
   });
 
@@ -245,7 +248,7 @@ describe('f398 (2) the window is a timeline', () => {
 
   test('(2e) one filled button, in a named foot', () => {
     assert.equal((win.match(/ui-btn-primary/g) || []).length, 1, 'Save route is the one filled button');
-    assert.ok(/class="dlg-foot sr-foot"/.test(win), 'the foot is named, so it is pinned');
+    assert.ok(/class="dlg-foot sr-foot( lgp-ft)?"/.test(win), 'the foot is named, so it is pinned');
     assert.ok(/id="sp-cancel"/.test(win) && /id="sp-save"/.test(win), 'Cancel then Save, same ids as ever');
   });
 
