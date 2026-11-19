@@ -1226,6 +1226,9 @@ let _leavingCe = false;
 function pageScreenStays(view){
   if(typeof document==='undefined') return false;
   if(view!=='dashboard' && document.querySelector('#modal-root .modal-in[data-sh-page], #modal-root .modal-in[data-dlg-home]')) return true;
+  /* A COVER WAITING FOR ITS OWN PAPER STAYS (f1099, 19 Nov 2026): its contract is being drawn under it (pdCoverHeld),
+     so the move to Home is its own, not a move away */
+  if(typeof window.pdCoverHeld==='function' && window.pdCoverHeld()) return false;
   return !!document.querySelector('#modal-root .modal-in[data-dlg-page]:not([data-dlg-home]):not([data-sh-page])');
 }
 function viewLayersClosed(view){

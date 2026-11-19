@@ -84,6 +84,9 @@ const BOXES = sel => {
 
     /* ================= 1. THE DOSSIER BESIDE A PAPER ================= */
     await page.evaluate(() => regOpenContract('MK-B2'));
+    /* RE-POINTED 19 Nov 2026 (f1099): a row opens the contract's Cover, a page of its own; Open the dossier is the step onto
+       the paper and its Dossier (bounded, so a Cover that never came reports below, not a hang) */
+    if (await page.waitForSelector('[data-cv-open]', { timeout: 8000 }).then(() => true, () => false)) await page.click('[data-cv-open]', { timeout: 5000 }).catch(() => {});
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier is ONE card ([data-pd2-card]) */
     const up = await until(() => !!document.querySelector('#ig-dock .pd-glance .pd-gl-h, #ig-dock [data-pd2-card]') && !!document.querySelector('#ig-dock .igd-head .pd-tab'), null, 15000);
     if (!up) check('1 the Dossier beside the paper is drawn', false, 'no #ig-dock .pd-glance');

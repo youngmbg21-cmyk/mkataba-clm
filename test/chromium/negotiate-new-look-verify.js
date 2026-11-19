@@ -164,7 +164,8 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         head: ((document.querySelector('#modal-root .cv-page .cv-h') || {}).textContent || '').trim(),
         counts: document.querySelectorAll('#modal-root .cv-page .cv-count').length,
         old: document.querySelectorAll('.pd2-stands').length,
-        back: !!document.querySelector('#modal-root .cv-page .cv-open[data-pd-mid-back]') }));
+        /* RE-POINTED 19 Nov 2026 (f1099): Open the dossier goes INTO the contract through pdCoverLeave (data-cv-open) */
+        back: !!document.querySelector('#modal-root .cv-page .cv-open[data-cv-open]') }));
       check(`${nm} 6 Where we are is the Cover: its headline, the six stages, one count, Open the dossier the way back`,
         w6.stages === 'Arrive · Read · Fill · Negotiate · Sign · Live' && !!w6.head && w6.counts === 1 && w6.old === 0 && w6.back, w6);
       await page.screenshot({ path: path.join(OUT, `where-${nm}.png`) });
