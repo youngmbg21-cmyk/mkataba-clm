@@ -8918,6 +8918,13 @@ function pd2StdGo(c){
     const live = (typeof getContract === 'function' && getContract(c.id)) || c;
     if (pdMidUp()) pdMidClose();
     if (_pdTab !== 'copilot'){ pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
+    /* OPEN SAYS WHAT THE CHECK FOUND, NOT WHAT IS DRAWN (owner-reported 19 Nov 2026: "1 of 6 met" and Open said "Every
+       position is met"): the notes had been put away (Show notes), so none stood beside the paper. Open is a person
+       asking to see them, so they are brought back; and the green line is said only where the check itself met every
+       position (deviationSummary), never because no note was found */
+    const sm = (typeof deviationSummary === 'function') ? deviationSummary(live) : null;
+    const off = sm ? (sm.dev || 0) + (sm.miss || 0) : 0;
+    if (off && pd2NotesHiddenGet()) pd2NotesHiddenSet(false);
     try { pd2NotesPaint(live); } catch (_){}
     const it = document.querySelector('#pd2-notes .pd2-mg-i.is-std');
     if (it){ const g = it.closest('.pd2-mg');
@@ -8925,7 +8932,9 @@ function pd2StdGo(c){
       const at = document.querySelector('#pd2-notes .pd2-mg-i.is-std') || it;
       if (typeof landOn === 'function') landOn(at.closest('.pd2-mg') || at, { block: 'center' }); else (at.closest('.pd2-mg') || at).scrollIntoView({ block: 'center' });
       return; }
-    if (has(live) && typeof toast === 'function') toast(_pdT('pd2_std_all_met'), 'ok');
+    if (typeof toast !== 'function' || !has(live)) return;
+    if (!off) toast(_pdT('pd2_std_all_met'), 'ok');
+    else toast(_pdTn('pd2_std_not_shown', off, { n: off }), 'warn');
   };
   /* the run and its keeping are the standards page's own Check again (sdCheckAgain: asks first where it costs a call,
      reads the whole record, saves, says so); the desk itself writes nothing (f563) */

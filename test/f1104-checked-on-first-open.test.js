@@ -111,3 +111,22 @@ describe('f1104 (4) the three doors', () => {
     assert.match(PB, /Object\.assign\(window,\{pbOpenCheckMay,pbOpenCheckState,pbCheckOnOpen,/);
   });
 });
+
+/* (5) OPEN SAYS WHAT THE CHECK FOUND, NOT WHAT IS DRAWN (owner-reported 19 Nov 2026, a screenshot: the ring said "1 of 6
+   met · 2 missing · 3 differ" and Open said "Every position is met on this wording"). The notes beside the paper had been
+   put away (Show notes), Open found no note and fell back to the green line. */
+describe('f1104 (5) Open never says every position is met when the check says otherwise', () => {
+  const P = R('js/paperdesk.js'); const i = P.indexOf('function pd2StdGo('); const F = P.slice(i, P.indexOf('\nfunction ', i + 10)).replace(/\/\*[\s\S]*?\*\//g, '');
+  test('the put-away notes are brought back when something is off', () => {
+    assert.match(F, /deviationSummary\(live\)/);
+    assert.match(F, /if \(off && pd2NotesHiddenGet\(\)\) pd2NotesHiddenSet\(false\);\s*try \{ pd2NotesPaint\(live\)/);
+  });
+  test('the green line only when nothing is off; otherwise a warning that counts them', () => {
+    assert.match(F, /if \(!off\) toast\(_pdT\('pd2_std_all_met'\), 'ok'\);/);
+    assert.match(F, /else toast\(_pdTn\('pd2_std_not_shown', off, \{ n: off \}\), 'warn'\);/);
+    assert.doesNotMatch(F, /if \(has\(live\) && typeof toast === 'function'\) toast\(_pdT\('pd2_std_all_met'\)/);
+    const I = R('js/i18n.js');
+    for (const k of ['pd2_std_not_shown_one', 'pd2_std_not_shown_other'])
+      assert.equal((I.match(new RegExp('^    ' + k + ': ', 'gm')) || []).length, 2, k + ' in both books');
+  });
+});
