@@ -1721,9 +1721,6 @@ function srReturnWhenClosed(win, opener, cid){
 function signerRouteWindow(c, plan, back){
   const _srOpener=(typeof document!=='undefined'&&document.activeElement&&document.activeElement!==document.body)?document.activeElement:null;
   const esc1=v=>String(v==null?'':v).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-  const FLD=(typeof HATI_FLD==='string')?HATI_FLD:'';
-  const LBL=(typeof HATI_LBL==='string')?HATI_LBL:'';
-  const WARN='border-color:var(--st-amber-line);';
   const ic=(n,cls)=>icon(n,cls||'w-3.5 h-3.5');
   const ini=n=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'·';
   const newId=()=>'sg_'+Math.random().toString(36).slice(2,7);
@@ -1775,7 +1772,11 @@ function signerRouteWindow(c, plan, back){
       else if(!signerHasEmail(r)) o.email=i18t('ap_sr_email_ours');
     }
     return o; };
-  const open=new Set(rows.filter(r=>Object.keys(needs(r)).length).map(r=>r.id));
+  /* THE ROUTE FIRST, ONE SIGNER AT A TIME (owner, 19 Nov 2026: "Build 1", as drawn): the window opens on the route as
+     quiet lines — a person with something missing says so in amber on their line — and pressing a person (or adding
+     one) turns the window to that person's three lines, the route's next screen, with ‹ Route back. One open at most. */
+  const open=new Set();
+  const openOnly=id=>{ open.clear(); if(id) open.add(id); };
   const rowsOut=()=>{ norm(); return rows.map(r=>({ id:r.id, party:r.party, name:r.name.trim(), role:r.role.trim(),
     email:r.email.trim(), memberId:r.party==='internal'?r.memberId:'', step:r.step,
     ...(r.party==='counterparty' && r.partyId ? { partyId:r.partyId } : {}) })); };
@@ -1788,10 +1789,10 @@ function signerRouteWindow(c, plan, back){
     const id=`sp-${key}-${r.id}`;
     const v=esc1(r[key]);
     const box=(f==='name' && r.party!=='counterparty')
-      ? `<div class="sr-cb"><input id="${id}" data-sp-f="name" data-sp-id="${r.id}" data-sp-combo value="${v}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sp-cbl-${r.id}" placeholder="${esc1(i18t('ap_sr_name_ph'))}" style="${FLD}${n?WARN:''}"></div>`
-      : `<input id="${id}" data-sp-f="${key}" data-sp-id="${r.id}" value="${v}" autocomplete="off"${f==='name'?' list="sp-dir-names"':''}${f==='email'?' type="email" inputmode="email"':''} style="${FLD}${n&&f==='name'?WARN:''}">`;
-    return `<div class="sr-f${wide?' sr-wide':''}"><label for="${id}" style="${LBL}">${esc1(label)}</label>${box}${
-      f==='title'?'':`<div class="sr-hint" data-sp-hint="${r.id}:${key}"${n?'':' hidden'}>${esc1(n)}</div>`}</div>`;
+      ? `<div class="sr-cb"><input id="${id}" data-sp-f="name" data-sp-id="${r.id}" data-sp-combo value="${v}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sp-cbl-${r.id}" placeholder="${esc1(i18t('ap_sr_name_ph'))}" class="lgp-in"></div>`
+      : `<input id="${id}" data-sp-f="${key}" data-sp-id="${r.id}" value="${v}" autocomplete="off"${f==='name'?' list="sp-dir-names"':''}${f==='email'?' type="email" inputmode="email"':''} class="lgp-in">`;
+    return `<div class="sr-f lgp-row${wide?' sr-wide':''}"><label for="${id}" class="lgp-k">${esc1(label)}</label><span class="lgp-v">${box}</span></div>${
+      f==='title'?'':`<div class="sr-hint" data-sp-hint="${r.id}:${key}"${n?'':' hidden'}>${esc1(n)}</div>`}`;
   };
   const moreBtn=r=>{ const who=r.name.trim()||i18t('ap_sr_this_signer'); const lab=esc1(i18t('ap_sr_more_for',{ name:who }));
     return `<span class="sr-mwrap"><button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" data-sp-menu="${r.id}" aria-haspopup="menu" aria-expanded="false" aria-label="${lab}" title="${lab}">${ic('more')}</button></span>`; };
@@ -1809,8 +1810,7 @@ function signerRouteWindow(c, plan, back){
     }
     return `<div class="sr-card is-open" data-sp-row="${r.id}">
       <div class="sr-ch"><span class="sr-for${us?' us':''}">${forTx}</span>${moreBtn(r)}</div>
-      <div class="sr-grid">${fld(r,'name',i18t('ap_name'))}${fld(r,'title',i18t('ap_sr_title'))}${fld(r,'email',i18t('ap_email'),true)}</div>
-      <div class="sr-cf"><button type="button" class="ui-btn ui-btn-sm" data-sp-done="${r.id}">${esc1(i18t('act_done'))}</button></div></div>`;
+      <div class="sr-grid">${fld(r,'name',i18t('ap_name'))}${fld(r,'title',i18t('ap_sr_title'))}${fld(r,'email',i18t('ap_email'),true)}</div></div>`;
   };
   /* A party with no row at all is an empty place carrying the act that fills
      it. A row somebody started is its own card, asking its own question. */
@@ -1828,6 +1828,8 @@ function signerRouteWindow(c, plan, back){
   };
   const bodyHtml=()=>{
     norm();
+    const one=rows.find(r=>open.has(r.id));
+    if(one) return card(one);
     return stepsOf().map(g=>`<section class="sr-step" data-sr-step="${g.n}">
         <span class="sr-node" aria-hidden="true">${g.n}</span>
         <div class="sr-sh"><span class="sr-sn">${esc1(i18t('py_step_n',{ n:g.n }))}</span>${g.rows.length>1?`<span class="sr-any">· ${esc1(i18t('ap_sr_any'))}</span>`:''}</div>
@@ -1837,15 +1839,19 @@ function signerRouteWindow(c, plan, back){
       <div class="sr-end"><span class="sr-node" aria-hidden="true">${ic('plus','w-3 h-3')}</span><span class="sr-mwrap sr-addwrap"><button type="button" class="ui-btn ui-btn-sm" data-sp-add="new" aria-haspopup="menu" aria-expanded="false">${esc1(i18t('ap_sr_add_step'))}</button></span></div>`;
   };
 
-  openModal(`<div class="p-6 sr-win" id="sr-win">
-    <h3>${i18t('ap_signing_route')}</h3>
-    <p>${i18t('ap_route_line')}</p>
+  const ref=(typeof contractRef==='function'?contractRef(c):c.id);
+  openModal(`<div class="lgp sr-win" id="sr-win">
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h" id="sr-h">${esc1(i18t('ap_signing_route'))}</h3>
+      <p class="lgp-sub lgp-steps" id="sr-steps-say"></p>
+      <p class="lgp-sub">${esc1([c.name||'', ref].filter(Boolean).join(' · '))}</p></div>
+      <button type="button" class="lgp-x" id="sr-x" aria-label="${esc1(i18t('lgp_close'))}">${ic('x','w-4 h-4')}</button></div>
+    <p class="lgp-small sr-line" id="sr-line">${esc1(i18t('ap_route_line'))}</p>
     ${dirList}
-    <div class="sr-steps" id="sr-steps">${bodyHtml()}</div>
-    <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>
-      <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
-  </div>`, { maxWidth: DLG_W.xl, label: i18t('ap_signing_route') });
+    <div class="sr-steps lgp-bd" id="sr-steps">${bodyHtml()}</div>
+    <div class="dlg-foot sr-foot lgp-ft"><button type="button" class="ui-btn lgp-back" id="sp-back" hidden>‹ ${esc1(i18t('ap_sr_route'))}</button><span class="sr-say" id="sr-say" role="alert"></span>
+      <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button>
+      <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button></div>
+  </div>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('ap_signing_route') });
   const win=document.getElementById('sr-win'); if(!win) return;
   srReturnWhenClosed(win, _srOpener, c && c.id);
   const panel=win.closest('[role="dialog"]');
@@ -1858,11 +1864,22 @@ function signerRouteWindow(c, plan, back){
   const paintSay=()=>{ const s=q('#sr-say'); if(!s) return;
     const html=say?`${icon('alert','w-3.5 h-3.5')}<span>${esc1(say)}</span>`:'';
     if(s.innerHTML!==html) s.innerHTML=html; };
+  /* the screen says where it is: the route, or one signer (Route · Signer), ‹ Route back, Save route on both */
+  const screenSync=()=>{
+    const one=rows.find(r=>open.has(r.id));
+    const st=q('#sr-steps-say'), h=q('#sr-h'), back=q('#sp-back'), line=q('#sr-line');
+    const w1=esc1(i18t('ap_sr_route')), w2=esc1(i18t('ap_sr_signer'));
+    if(st) st.innerHTML=one?`${w1} · <b>${w2}</b>`:`<b>${w1}</b> · ${w2}`;
+    if(h) h.textContent=one?(one.name.trim()||i18t('ap_sr_who_for',{ party:nameOfKey(keyOf(one)) })):i18t('ap_signing_route');
+    if(back) back.hidden=!one;
+    if(line) line.hidden=!!one;
+  };
   const repaint=focusSel=>{
     closeMenu(); comboHide();
     const top=panel?panel.scrollTop:0;
     const host=q('#sr-steps'); if(!host) return;
     host.innerHTML=bodyHtml();
+    screenSync();
     paintSay();
     if(panel) panel.scrollTop=top;
     if(focusSel){ const el=q(focusSel); if(el){ try{ el.focus({ preventScroll:false }); }catch(_){ el.focus(); } } }
@@ -1875,8 +1892,6 @@ function signerRouteWindow(c, plan, back){
       const r=rows.find(x=>x.id===id); if(!r) return;
       const n=needs(r)[f]||'';
       h.hidden=!n; if(h.textContent!==n) h.textContent=n;
-      if(f==='name'){ const box=q(`[data-sp-f="name"][data-sp-id="${id}"]`);
-        if(box) box.style.borderColor=n?'var(--st-amber-line)':'var(--field-line)'; }
     });
     const m=q('#sr-misses'); if(m){ const h=missHtml(); if(m.innerHTML!==h) m.innerHTML=h; }
     if(say){ say=signerPlanWhy(c, rowsOut())||''; paintSay(); }
@@ -1924,7 +1939,7 @@ function signerRouteWindow(c, plan, back){
     const n=stepArg==='new' ? stepsOf().length+1 : Number(stepArg);
     const r={ id:newId(), party:key==='us'?'internal':'counterparty', name:'', role:'', email:'', memberId:'',
       partyId:(key!=='us' && multi)?key:'', step:n, ord:rows.length+.5, from:'' };
-    rows.push(r); open.add(r.id); norm();
+    rows.push(r); openOnly(r.id); norm();
     repaint(`[data-sp-f="name"][data-sp-id="${r.id}"]`);
   };
   /* MOVING. Up: a person sharing a step leaves it for a step of their own just
@@ -1941,12 +1956,12 @@ function signerRouteWindow(c, plan, back){
   const doMenu=(act, id, arg)=>{
     if(act==='add'){ closeMenu(); addRow(arg, id); return; }
     const r=rows.find(x=>x.id===id); if(!r){ closeMenu(); return; }
-    if(act==='edit'){ open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
+    if(act==='edit'){ openOnly(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
     if(act==='remove'){ rows.splice(rows.indexOf(r),1); open.delete(id); norm(); if(say) say=signerPlanWhy(c, rowsOut())||''; repaint('[data-sp-add="new"]'); return; }
     if(act==='side'){
       if(arg==='us'){ r.party='internal'; r.partyId=''; }
       else { r.party='counterparty'; r.memberId=''; r.from=''; r.partyId=multi?arg:''; }
-      open.add(r.id);
+      openOnly(r.id);
       if(say) say=signerPlanWhy(c, rowsOut())||'';
       repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return;
     }
@@ -1993,13 +2008,13 @@ function signerRouteWindow(c, plan, back){
     if(!b){
       /* The whole resting card is the way in, not only its name. */
       const rest=t.closest('.sr-card.is-rest');
-      if(rest && !t.closest('button')){ const id=rest.getAttribute('data-sp-row'); open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); }
+      if(rest && !t.closest('button')){ const id=rest.getAttribute('data-sp-row'); openOnly(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); }
       return;
     }
     if(b.hasAttribute('data-sp-menu')){ openMenu(b, rowMenu(b.getAttribute('data-sp-menu'))); return; }
     if(b.hasAttribute('data-sp-add')){ openMenu(b, addMenu(b.getAttribute('data-sp-add')), true); return; }
     if(b.hasAttribute('data-sp-addfor')){ addRow(b.getAttribute('data-sp-addfor'), 'new'); return; }
-    if(b.hasAttribute('data-sp-edit')){ const id=b.getAttribute('data-sp-edit'); open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
+    if(b.hasAttribute('data-sp-edit')){ const id=b.getAttribute('data-sp-edit'); openOnly(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
     if(b.hasAttribute('data-sp-done')){ const id=b.getAttribute('data-sp-done'); open.delete(id); repaint(`[data-sp-edit="${id}"]`); return; }
   });
   win.addEventListener('input', e=>{
@@ -2064,7 +2079,10 @@ function signerRouteWindow(c, plan, back){
     }
   });
 
+  screenSync();
   document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
+  q('#sr-x')?.addEventListener('click',()=>q('#sp-cancel')?.click());
+  q('#sp-back')?.addEventListener('click',()=>{ const id=[...open][0]; openOnly(null); repaint(id?`[data-sp-edit="${id}"]`:'[data-sp-add="new"]'); });
   document.getElementById('sp-save').addEventListener('click',()=>{
     /* The rule lives in saveSignerPlan and is shared with the phone's picker.
        This decides only HOW a refusal is said: in the window, beside Save,
@@ -2074,14 +2092,14 @@ function signerRouteWindow(c, plan, back){
     if(why){
       say=why;
       const hit=signerPlanRefusal(c, plan.filter(s=>s.name));
-      if(hit && hit.rowId){ open.add(hit.rowId); repaint(`[data-sp-f="${hit.field||'name'}"][data-sp-id="${hit.rowId}"]`); return; }
+      if(hit && hit.rowId){ openOnly(hit.rowId); repaint(`[data-sp-f="${hit.field||'name'}"][data-sp-id="${hit.rowId}"]`); return; }
       /* A side or a party with nobody named: the empty place that fills it,
          or the unnamed card somebody already started for it. */
       repaint();
       const place=(hit && hit.partyId && q(`[data-sp-miss="${hit.partyId}"] [data-sp-addfor]`)) || q('.sr-miss [data-sp-addfor]');
       if(place){ place.focus(); return; }
       const blank=rows.find(r=>!r.name.trim());
-      if(blank){ open.add(blank.id); repaint(`[data-sp-f="name"][data-sp-id="${blank.id}"]`); }
+      if(blank){ openOnly(blank.id); repaint(`[data-sp-f="name"][data-sp-id="${blank.id}"]`); }
       return;
     }
     closeModal();
