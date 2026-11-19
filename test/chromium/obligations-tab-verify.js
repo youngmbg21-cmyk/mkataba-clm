@@ -562,8 +562,11 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       await new Promise(r => setTimeout(r, 400));
       /* confirmDialog mounts its own overlay — #confirm-overlay — rather than
          going through openModal, so the press is found there. */
-      const go = [...document.querySelectorAll('#confirm-overlay button')]
-        .find(x => /Send the reminder/i.test(x.textContent || ''));
+      /* RE-POINTED 19 Nov 2026 (owner's pick, Chase now is the Send screen as a reminder; f1105): on a computer the
+         press opens the reminder page (#obr-pg) and its Send the reminder asks no more; the phone keeps the question */
+      await new Promise(r => setTimeout(r, 400));
+      const go = [...document.querySelectorAll('#confirm-overlay button, #obr-pg [data-obr-send]')]
+        .find(x => /Send the reminder|Send it again/i.test(x.textContent || '') && !x.disabled);
       const asked = !!go;
       if (go) go.click();
       await new Promise(r => setTimeout(r, 1500));

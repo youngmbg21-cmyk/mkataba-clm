@@ -938,3 +938,6 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 
 ## THE SEND SCREEN — the steps the Legora way (19 Nov 2026)
 - test/f1104-send-steps-the-legora-way.test.js; browser: send-note-on-the-paper-verify (step 1 open, re-pointed).
+
+## OBLIGATIONS — Chase now through the Send screen; their automatic reminders (19 Nov 2026)
+- test/f1105-chase-through-the-send-screen.test.js (runs the server); f588 (2) and f802 5f re-pointed; browser: obligations-tab-verify (the chase, re-pointed).

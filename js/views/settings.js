@@ -1311,7 +1311,7 @@ const ST_CARDS=[
   /* the streams' own page, a door of its own (round 26) */
   { key:'standards', groups:['standards'], facts:['company','folders'],
     doors:()=>[{ page:'streams', label:i18t('st_sw_title') }, { panel:'paydays' }, { panel:'design' }] },
-  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'webhooks' }] },
+  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'remindtheirs' }, { panel:'webhooks' }] },
   /* "Jambo's agents ›" opens their page with ‹ Settings (round 25 as drawn,
      the gaps' third pass: every card door is a page on the desk) — the
      agents' own panel, how far each may go; his house stays its own place */
@@ -6897,6 +6897,21 @@ const SET_PANELS={
     wire(){},
   },
 
+  /* ---- THE OTHER SIDE IS REMINDED OF THEIR OBLIGATIONS BY ITSELF (owner's yes, 19 Nov 2026) ----
+     Off for the company until an admin switches it on; then each obligation of theirs carries its own switch (its panel
+     and the reminder's Send screen), and the overnight run sends the chase letter 7 days before and on the day. The
+     SERVER reads the stored rule (srvRemindTheirsOn); this is the switch, not what decides. No email, no switch on. */
+  remindtheirs:{
+    tab:'platform', group:'intake', mandatory:false,
+    title:()=>i18t('set_remind_theirs'),
+    sub:()=>i18t('set_remind_theirs_sub'),
+    state(){ const c=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+      return { dot:c.on?'ok':'off', text:`${i18t('set_remind_theirs')} — ${c.on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_remind_theirs_sub')}</p><div id="rt-rule-panel"></div>`; },
+    find:()=>[i18t('set_remind_theirs'), i18t('set_remind_theirs_sub')],
+    wire(){ renderRemindTheirsPanel(); },
+  },
+
   /* ---- TWO PAYMENT TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ----
      "What if we want to pay under one payment term while we get paid under a
      different payment term?" The playbook's paymentDays is per contract TYPE
@@ -10123,6 +10138,25 @@ function renderLinkCodePanel(){
     if(window.toast) toast(i18t(e.target.checked?'set_link_code_on':'set_link_code_off'),'ok');
   });
 }
+function renderRemindTheirsPanel(){
+  const host=document.getElementById('rt-rule-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+  const noMail=!!(window.emailOff&&emailOff());
+  const blocked=noMail&&!cfg.on;
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin&&!blocked?'pointer':'not-allowed'}">
+      <input id="rt-rule-on" type="checkbox"${cfg.on?' checked':''}${admin&&!blocked?'':' disabled'} style="margin-top:2px"/>
+      <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_remind_theirs')}</span>
+    </label>${noMail?`<p class="st-note" style="margin:6px 0 0 24px">${esc(i18t('set_remind_theirs_no_mail'))}</p>`:''}`;
+  if(!admin) return;
+  host.querySelector('#rt-rule-on')?.addEventListener('change',e=>{
+    if(e.target.checked && window.emailOff && emailOff()){ e.target.checked=false; toast(i18t('set_remind_theirs_no_mail'),'err'); return; }
+    if(window.saveRemindTheirsCfg) saveRemindTheirsCfg({ on:!!e.target.checked });
+    stRepaintRow('remindtheirs');
+    if(window.toast) toast(i18t(e.target.checked?'set_remind_theirs_on':'set_remind_theirs_off'),'ok');
+  });
+}
 function renderDeskRulePanel(){
   const host=document.getElementById('dk-rule-panel'); if(!host) return;
   const admin=isAdmin();
@@ -10214,8 +10248,8 @@ function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && 
    last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
    the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
 const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', awayfor:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', paydays:'money', push:'msg', mail:'msg' };
-const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', awayfor:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', paydays:'calendar', push:'megaphone', mail:'send' };
+const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', awayfor:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', paydays:'money', push:'msg', mail:'msg', remindtheirs:'msg' };
+const STN_ICON={ remindtheirs:'send', name:'user', email:'user', mydata:'download', away:'calendar', awayfor:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', paydays:'calendar', push:'megaphone', mail:'send' };
 let _stnArea='all';
 function stnAreaOf(id){ return STN_AREA_OF[id]||STN_AREA_OF[String(id).replace(/\d+$/,'')]||'you'; }
 function stnRow(id, label, value, sub, act){
@@ -10301,6 +10335,7 @@ function stnCompanyHtml(){
     stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update'))),
     /* PAYMENT TARGETS keep their row (#762: the Control Room's card that held the door is the old look's) — its own drawer */
     stnRow('paydays', SET_PANELS.paydays.title(), stnStateText('paydays'), SET_PANELS.paydays.sub(), stnDoor('data-st-panel="paydays"', i18t('st_you_change'))),
+    stnRow('remindtheirs', i18t('set_remind_theirs'), stnStateText('remindtheirs'), i18t('stn_remind_theirs_sub'), stnDoor('data-st-panel="remindtheirs"', i18t('st_you_change'))),
     stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health')))
     /* the outside look's switch is gone: on for everyone (owner, 16 Nov 2026) */
   ];

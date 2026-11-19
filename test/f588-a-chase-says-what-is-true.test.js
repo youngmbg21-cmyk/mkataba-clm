@@ -53,5 +53,6 @@ test('f588 (2) the tab\'s Chase on an obligation already chased sends the firmer
   const OB = fs.readFileSync(path.join(__dirname, '..', 'js', 'obligations.js'), 'utf8');
   const body = OB.slice(OB.indexOf('async function obligationChase('), OB.indexOf('\n}\n', OB.indexOf('async function obligationChase(')));
   assert.match(body, /const firm = !!o\.chasedAt;/);
-  assert.match(body, /firm \? \{ obligationId: obId, firm: true \}/);
+  /* RE-POINTED 19 Nov 2026 (f1105): the body also carries the person chosen and the note; firm rides it the same */
+  assert.match(body, /Object\.assign\(\{ obligationId: obId \}, firm \? \{ firm: true \} : \{\}/);
 });
