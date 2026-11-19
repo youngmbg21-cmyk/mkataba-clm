@@ -622,6 +622,50 @@ function partyCitySuggest(key){
   }
   return null;
 }
+/* TELL JAMBO, HE FILLS IT IN (owner, 19 Nov 2026: "I am simply able to instruct jambo to add so and so as the contact
+   for this company and then it does it for me and I just have to press add or save"). One sentence typed in any Jambo
+   box — "Add Grace Wambui, Head of Buying, grace@naivas.co.ke, +254 722 418 305, she signs for them" — is READ HERE,
+   by rule, no AI: the party (named in the words, else the one chosen on Parties), the name, job title, email, phone and
+   role. It opens the ONE contact sheet filled in, each line marked "from your words"; NOTHING is saved until Add.
+   Null when the words are not asking to add a contact (the other readers go on). */
+const CU_CONTACT_ASK = /^\s*(?:please\s+|can you\s+|could you\s+)?(?:add|save|put|register|lägg till|spara)\b/i;
+const CU_CONTACT_WORD = /\b(contacts?|kontakt(?:en|person)?)\b/i;
+function cuContactRead(text){
+  const t = String(text || '').trim(); if (!t || !CU_CONTACT_ASK.test(t)) return null;
+  const email = (t.match(/[^\s@,;:<>()]+@[^\s@,;:<>()]+\.[a-z]{2,}/i) || [])[0] || '';
+  if (!CU_CONTACT_WORD.test(t) && !email) return null;
+  const phone = ((t.replace(email, ' ').match(/\+?\d[\d\s().-]{6,}\d/) || [])[0] || '').replace(/\s+/g, ' ').trim();
+  const role = /\b(signs?|signer|signatory|undertecknar|skriver under)\b/i.test(t) ? 'cpsign'
+    : /\b(negotiat\w*|lead|förhandl\w*)\b/i.test(t) ? 'negotiate'
+    : /\b(advis\w*|lawyer|counsel|rådgiv\w*|jurist)\b/i.test(t) ? 'advise' : '';
+  /* the party: the longest party name the words carry, else the one chosen on Parties */
+  const low = ' ' + t.toLowerCase().replace(/\s+/g, ' ') + ' ';
+  let party = null;
+  for (const r of cuCustomers()){ const n = String(r.name || '').toLowerCase().trim(); if (!n) continue;
+    const short = String(cuShortName(r.name) || '').toLowerCase().trim();
+    const hit = low.includes(' ' + n) ? n.length : (short.length > 2 && low.includes(' ' + short)) ? short.length : 0;
+    if (hit && (!party || hit > party.hit)) party = { key: cuKeyOf(r.name), name: r.name, hit }; }
+  if (!party && typeof state !== 'undefined' && state && state.view === 'customers' && typeof insSelected === 'function'){
+    const k = insSelected('customers'); const r = k && cuCustomerOf(k); if (r) party = { key: cuKeyOf(r.name), name: r.name }; }
+  /* the name and title: the sentence's own parts, comma by comma, once the address, phone, role and party are set aside */
+  let rest = t.replace(CU_CONTACT_ASK, '').replace(email, '').replace(phone, '');
+  if (party){ rest = rest.replace(new RegExp('\\b(?:for|at|from|of|hos|för|på)\\s+' + party.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i'), '').replace(new RegExp(party.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ''); }
+  rest = rest.replace(/\b(?:as\s+)?(?:a|an|the|their|our)?\s*(?:new\s+)?(?:contacts?|kontakt\w*)\b(?:\s+(?:for|at|hos|för))?/ig, ' ')
+    .replace(/\b(?:s?he|they|who|han|hon)\s+(?:signs?|negotiates?|advises?|leads?|undertecknar|förhandlar)\b[^,]*/ig, ' ')
+    .replace(/\b(?:phone|tel|telephone|mobile|email|e-mail|mail)\b\s*:?/ig, ' ');
+  const parts = rest.split(/[,;]|\band\b/i).map(x => x.replace(/\s+/g, ' ').replace(/^[\s.:-]+|[\s.:-]+$/g, '').trim()).filter(x => x && /[a-zà-ÿ]/i.test(x));
+  const name = parts[0] || '', title = parts[1] || '';
+  if (!name && !email) return null;
+  return { party, prefill: { name, title, email, phone, role } };
+}
+/* the reading carried out: the sheet opens filled in, or Jambo asks which party */
+function cuContactAsk(text, say){
+  const r = cuContactRead(text); if (!r) return false;
+  if (!r.party){ if (typeof say === 'function') say(i18t('pc_jb_which')); else if (typeof toast === 'function') toast(i18t('pc_jb_which'), 'warn'); return 'said'; }
+  if (typeof partyContactsOpen !== 'function' || !partyContactsOpen(r.party.key, { add: true, from: true, prefill: r.prefill })){
+    if (typeof say === 'function') say(i18t('pc_jb_cannot')); return 'said'; }
+  return true;
+}
 /* THE ONE DOOR (owner's pick "the Legora way", 19 Nov 2026): every edit started in a panel opens the ONE edit pop-up
    (lgpOpen, js/components.js). The party's facts are two lines, City and Org. no.; what the parties clause says is
    quoted under City, short, with Use it — only where a city was read from it (never the raw clause). */
@@ -1737,6 +1781,7 @@ Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFac
      foot and the head's box, tabs and chips are js/views/listhead.js's since
      Part 8) */
   cuNeedShort, cuRequestsOf, cuStanding, cuSay, cuMoveRedlines, cuOpenAgreement, cuSelectParty, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
+  cuContactRead, cuContactAsk, CU_CONTACT_ASK,
   cuSinceOf, cuShortName, cuOwnerSay, cuAgreementSub, cuPanelPeopleHtml, cuCardHtml,
   /* the list head the Legora way (Part 8): the one reading behind every tab's number and every choice's count */
   cuRowsWith,

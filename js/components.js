@@ -2057,8 +2057,10 @@ function lgpOpen(o){
   if (typeof openModal !== 'function') return null;
   openModal(lgpHtml(o), { maxWidth: LGP_W, ownFrame: true, label: o.title || '', onClose: o.onClose, onBeforeClose: o.onBeforeClose });
   const root = document.getElementById('modal-root');
-  const f = root && root.querySelector(o.focus || '.lgp .lgp-in:not([disabled])');
-  if (f && o.focus !== false) { try { (typeof fieldFocus === 'function' && f.tagName === 'SELECT') ? fieldFocus(f) : f.focus({ preventScroll: true }); } catch (_){} }
+  /* the cursor lands on the first line, after the dialog's own focus trap has run, with no ring (NO RING AFTER A PRESS) */
+  const land = () => { const f = root && root.querySelector(o.focus || '.lgp .lgp-in:not([disabled])'); if (!f || o.focus === false) return;
+    try { (typeof fieldFocus === 'function') ? fieldFocus(f, { focusVisible: false }) : f.focus({ preventScroll: true, focusVisible: false }); } catch (_){} };
+  land(); if (typeof requestAnimationFrame === 'function') requestAnimationFrame(land);
   return root && root.querySelector('.lgp');
 }
 /* redraw the open sheet's body in place (a step, a page of the list) without the dialog arriving again */
