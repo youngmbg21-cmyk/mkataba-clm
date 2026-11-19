@@ -77,7 +77,7 @@ test('f1097 (1) every Guide page once, Board first, Settings last; under All gro
   const rows = [...host.querySelectorAll('.lp-p[data-cp-i]')];
   assert.deepEqual(rows.map(b => b.querySelector('.lp-nm').textContent).sort(), guide.map(k => NAMES[k]).sort(), 'every page drawn once under All');
   assert.equal(host.querySelectorAll('.lp-st').length, A.GUIDE_NL.length, 'one group per stage');
-  for (const b of host.querySelectorAll('[data-cp-i]')) { assert.equal(b.getAttribute('role'), 'option'); assert.equal(b.id, 'cp-opt-' + b.getAttribute('data-cp-i')); }
+  for (const b of host.querySelectorAll('[data-cp-i]')) { assert.equal(b.getAttribute('role'), 'option'); assert.equal(b.id, 'cp-opt-' + b.getAttribute('data-cp-i')); assert.ok(b.getAttribute('data-lp-go'), 'each row names its page'); }
   const here = host.querySelectorAll('[aria-current="page"]');
   assert.equal(here.length, 1, 'exactly one row says where you are'); assert.match(here[0].textContent, /Board/); assert.match(here[0].textContent, /You are here/);
 });

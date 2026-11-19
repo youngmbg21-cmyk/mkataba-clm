@@ -4196,7 +4196,7 @@ function lpMark(k,cls){ return `<span class="${cls} t-${lpToneOf(k)}" aria-hidde
 function lpBodyHtml(items,active){
   const here=guideHereKey()||'board';
   const opt=(it,cls,inner)=>{ const n=items.indexOf(it), on=it.id===here&&!it.wait;
-    return `<button type="button" class="${cls}${n===active?' is-sel':''}${on?' is-here':''}" data-cp-i="${n}" id="cp-opt-${n}" role="option" aria-selected="${n===active}"${on?' aria-current="page"':''}>${inner}</button>`; };
+    return `<button type="button" class="${cls}${n===active?' is-sel':''}${on?' is-here':''}" data-cp-i="${n}" data-lp-go="${it.id}" id="cp-opt-${n}" role="option" aria-selected="${n===active}"${on?' aria-current="page"':''}>${inner}</button>`; };
   const W=items.filter(x=>x.wait), P=items.filter(x=>!x.wait);
   let h='';
   if(W.length){
