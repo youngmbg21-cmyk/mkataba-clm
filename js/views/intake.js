@@ -376,6 +376,9 @@ function ikFieldHtml(f, streams, FLD, LBL){
   if(f.type==='stream') return `<label style="display:block"><span style="${LBL}">${esc(i18t('ik_f_stream'))}</span>
     <select id="${id}" style="${FLD}"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
       ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>`;
+  /* WHO PAYS WHOM IS THREE BUTTONS (owner, 19 Nov 2026: "Who pays whom should be buttons"): the one builder, its
+     answer in the hidden box of the same id, so the request reads it as it read the dropdown */
+  if(f.key==='side' && typeof window.payWhoHtml==='function') return `<div style="display:block">${lab}${window.payWhoHtml(id, v)}</div>`;
   if(f.type==='select') return `<label style="display:block">${lab}
     <select id="${id}" style="${FLD}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
       .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></label>`;
@@ -393,6 +396,7 @@ function ikSapField(f, streams, FLD){
   const lab=`<label for="${id}">${esc(String(f.type==='stream'?i18t('ik_f_stream'):(f.label||f.key)))}</label>`;
   if(f.type==='stream') return `<div class="sap-f">${lab}<select id="${id}" style="${FLD}"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
       ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></div>`;
+  if(f.key==='side' && typeof window.payWhoHtml==='function') return `<div class="sap-f"><span class="sap-lbl">${esc(String(f.label||f.key))}</span>${window.payWhoHtml(id, v)}</div>`;
   if(f.type==='select') return `<div class="sap-f">${lab}<select id="${id}" style="${FLD}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
       .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></div>`;
   const it=f.type==='date'?'date':(f.type==='num'?'number':(f.type==='email'?'email':'text'));

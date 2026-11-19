@@ -2126,13 +2126,13 @@ function openCalendarShare(evs){
     <div class="rvd-body">
       <label class="rvd-opt" style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_who'))}</span>
-        <select id="cal-share-who" style="width:100%;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;background:var(--color-surface);color:var(--color-text);height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <select id="cal-share-who" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);font:inherit;background:var(--fld-bg);color:var(--color-text);height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
           ${people.map(u=>`<option value="${_esc(u.id)}">${_esc(u.name)} — ${_esc(u.email)}</option>`).join('')}
         </select>
       </label>
       <label style="display:block;margin-top:var(--s-3)">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_note'))}</span>
-        <textarea id="cal-share-note" rows="3" style="width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;font-size:var(--t-body);resize:vertical;background:var(--color-surface);color:var(--color-text)"></textarea>
+        <textarea id="cal-share-note" rows="3" style="width:100%;padding:var(--s-2) 10px;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);font:inherit;font-size:var(--t-body);resize:vertical;background:var(--fld-bg);color:var(--color-text)"></textarea>
       </label>
       <div class="rvd-note" style="margin-top:10px">${_esc(i18t('cal_share_privacy'))}</div>
       <div id="cal-share-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>

@@ -870,7 +870,7 @@ function mAccountSheetHtml(){
     <div class="m-card" style="padding:var(--s-3)">
       <input id="m-acct-title" type="text" value="${mEsc((u&&u.title)||'')}"
         placeholder="${mEsc(i18t('st_f_title'))}"
-        style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:10px var(--s-3);font:inherit;font-size:var(--t-card);color:inherit;outline:none"/>
+        style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:10px var(--s-3);font:inherit;font-size:var(--t-card);color:inherit;outline:none"/>
       <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="acct-title">${i18t('act_save')}</button>
       <div class="m-note" style="margin-top:6px">${i18t('st_acct_job_sub')}</div>
     </div>

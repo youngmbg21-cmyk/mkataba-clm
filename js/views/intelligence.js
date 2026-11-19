@@ -7614,7 +7614,7 @@ function renderIntel(){
   /* THE GROUP-BY SELECT, one builder for both heads that carry it — the map's
      wiring asks for #ig-group by id wherever the map is drawn. */
   const groupSel=`<span style="position:relative;display:inline-flex;align-items:center">
-          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--radius);cursor:pointer;outline:none">
+          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--fld-r);cursor:pointer;outline:none">
             ${''/* Copilot's own grouping gets its row here too — see igPaintGroupSelect. */}
             ${igGroupOptsHtml()}
           </select>

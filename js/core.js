@@ -2302,7 +2302,7 @@ function renderAuth(mode){
   const input=(id,label,type='text',ph='')=>`
     <label style="display:block;margin-bottom:14px;">
       <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
-      <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
+      <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
   /* 20 Sep 2026: the heading face — --font-mono is JetBrains Mono now and is
      for DATA (ids, dates, counts, money), never a title or a caption. */
   const H1='font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:22px;letter-spacing:-0.005em;color:var(--color-text);margin:0;';
@@ -2329,7 +2329,7 @@ function renderAuth(mode){
            afterwards and re-read everything it had just been shown. */''}
       <label style="display:block;margin-bottom:14px;">
         <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${i18t('co_where_you_operate')}</span>
-        <select id="su-market" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <select id="su-market" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
           ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${p.name}</option>`).join('')}
         </select>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:var(--s-1);line-height:1.45">${i18t('co_market_sets')}</span></label>
@@ -3107,7 +3107,7 @@ function emptyStateHtml(o){
    template literal reads `${FLD}` in forty places, and a rename there is forty
    chances to typo something no test would catch. One line each, reading the
    one truth. */
-const HATI_FLD='width:100%;height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+const HATI_FLD='width:100%;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
 const HATI_LBL='display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
 
 /* ============================================================
@@ -4450,9 +4450,9 @@ function promptDialog(opts={}){
                  reference with no spaces in it wraps instead of scrolling the
                  field sideways. */
               `<textarea id="pd-input" rows="3" wrap="soft" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
+                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
             : `<input id="pd-input" type="${opts.date?'date':'text'}"${opts.date&&opts.min?` min="${esc(opts.min)}"`:''} value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="box-sizing:border-box;width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:32px;padding:0 10px;font-size:var(--field-size)"/>`}
+                 style="box-sizing:border-box;width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:32px;padding:0 10px;font-size:var(--field-size)"/>`}
           ${opts.help?`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.45">${esc(opts.help)}</p>`:''}
         </div>
         <div class="dlg-f" style="display:flex;justify-content:flex-end;gap:var(--s-2)">
@@ -9370,7 +9370,7 @@ async function openShareModal(c, opts={}){
   const copyBox=(link,note)=>`
     <div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:var(--s-3);">
       ${note?`<div style="font-size:var(--t-meta);color:var(--accent-ink);font-weight:var(--w-strong);margin-bottom:6px;display:flex;align-items:center;gap:6px">${icon('check2','w-3.5 h-3.5')} ${note}</div>`:''}
-      <textarea id="share-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
+      <textarea id="share-link" readonly rows="3" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
       <button id="share-copy" class="ui-btn" style="margin-top:6px">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
     </div>`;
   const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
@@ -9979,7 +9979,7 @@ function reshareNotSentModal(c, out, who){
       <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">
         ${esc(who)} is now looking at the current wording <b>${i18t('co_if_they_open')}</b> — but they have not been told.
         ${reason} Send them this link yourself:</p>
-      <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
+      <textarea id="rs-link" readonly rows="3" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
       <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
         <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
         <button id="rs-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
@@ -10315,7 +10315,7 @@ function openImportModal(c){
       <div class="imp-tabs" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>
       <div data-imp-pane="code" class="sap-f">
         <label for="imp-code">${i18t('imp_tab_code')}</label>
-        <textarea id="imp-code" rows="3" placeholder="${i18t('imp_code_ph')}" style="width:100%;min-height:64px;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);resize:vertical;"></textarea>
+        <textarea id="imp-code" rows="3" placeholder="${i18t('imp_code_ph')}" style="width:100%;min-height:64px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:8px 10px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);resize:vertical;"></textarea>
       </div>
       <div data-imp-pane="word" class="sap-f" hidden>
         <span class="sap-lbl">${i18t('imp_tab_word')}</span>
@@ -11457,7 +11457,7 @@ function endOrPauseOpen(c, opts = {}){
               <span class="end-tag">${e(i18t('end_tag_' + a.k))}</span></label>`).join('')}
           </div>
           <div class="sap-f"><label for="end-note" id="end-note-l"></label>
-            <textarea id="end-note" rows="3" maxlength="${HOLD_WHY_MAX}" wrap="soft" style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere"></textarea></div>
+            <textarea id="end-note" rows="3" maxlength="${HOLD_WHY_MAX}" wrap="soft" style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere"></textarea></div>
         </div></div>
         <div class="dlg-f" style="display:flex;justify-content:flex-end;gap:var(--s-2)">
           <button id="end-go" class="ui-btn ui-btn-primary"></button>

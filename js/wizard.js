@@ -266,7 +266,7 @@ function openWizard(preTid, prefill){
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
           ${admin?`<label style="display:flex;align-items:center;gap:var(--s-2);margin:0 0 var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
-            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+            <select id="wz-industry" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
               <option value="">${i18t('wz_not_set')}</option>
               ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
             </select></label>`:''}
@@ -275,7 +275,7 @@ function openWizard(preTid, prefill){
                  for when you do. Making the search obey the open folder would
                  make the faster of the two routes the narrower one. */}
           <input id="wz-search" type="search" placeholder="${i18t('wz_search_all')}" autocomplete="off"
-            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;color:inherit;outline:none;margin-bottom:10px;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
+            style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;color:inherit;outline:none;margin-bottom:10px;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <span style="${EYE}">${i18t('wz_streams_head')}</span>
           <div style="${GRID}">${order.map(streamCard).join('')}</div>`}
@@ -520,7 +520,7 @@ function wzMapNote(v){
   if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
   return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`;
 }
-const WZ_ST='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
+const WZ_ST='width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
 function wzFieldHtml(v){
   const id='wz-'+String(v.key).replace(/[:]/g,'_');
   const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${wzMapNote(v)}</span>`;
@@ -1438,7 +1438,7 @@ function openNewAgreement(o){
       const box=el.querySelector('input[id],select[id],textarea[id]');
       if(box&&!box.hasAttribute('data-na-drawn')) box.setAttribute('data-na-drawn', String(box.value||''));
       if(el.style.display==='block') el.style.removeProperty('display');
-      const term=el.querySelector(':scope > span:first-child'); if(term) term.style.marginBottom='0';
+      const term=el.querySelector(':scope > span:first-child'); if(term){ term.style.marginBottom='0'; ['color','font-weight','font-size'].forEach(k=>term.style.removeProperty(k)); }
       if(!el.querySelector(':scope > .na-src')) el.insertAdjacentHTML('beforeend','<span class="na-src" data-na-src></span>'); });
     naTermFill(host); naSrcPaint(host); };
   const naSrcPaint=host=>{

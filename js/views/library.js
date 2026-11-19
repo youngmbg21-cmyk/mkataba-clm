@@ -168,7 +168,7 @@ function openTemplateFillModal(t, prefill, ho){
     const _mapNote='';
     const _mapTitle=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${_tplEsc(_map).replace(/"/g,'&quot;')}"` : '';
     const lbl=`<span${_mapTitle} style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
-    const st='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
+    const st='width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
     /* AN OPTION MAY BE A {v,l} PAIR (the side question is), so it is read
        through fieldOpt, the one reading — printed whole it said "[object
        Object]" three times (seen 9 Oct 2026, the SAP pop-up photographs). */
@@ -208,7 +208,7 @@ function openTemplateFillModal(t, prefill, ho){
              made from a saved template goes on naming the workspace. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tf_our_party')}</span>
-        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${fs.map(inp).join('')}
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
              same act. Saved templates create contracts through their own fill
@@ -217,7 +217,7 @@ function openTemplateFillModal(t, prefill, ho){
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
-        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${sideHtml}
       ${''/* WHERE IT IS FILED (Young ruled 18 Sep 2026). Hand-written beside
              the other two record facts for the same reason they are: a saved
@@ -226,7 +226,7 @@ function openTemplateFillModal(t, prefill, ho){
              template's own filing is the answer already in the box. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tl_stream')}</span>
-        <select id="tf-folder" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
+        <select id="tf-folder" style="width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
           (typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false, { reach:true }) : ''}</select></label>
     </div>`;
   const errHtml=`<div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>`;
@@ -323,9 +323,9 @@ function saveContractAsTemplate(c){
         <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_save_as_template')}</h3></div>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
-        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
+        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-        <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${opts}</select></label>
+        <select id="tpl-folder" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${opts}</select></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button data-dlg-cancel id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
@@ -381,7 +381,7 @@ function openCreateTemplateModal(mode){
         <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
           <input id="ct-name" placeholder="e.g. Standard Distribution Agreement" style="${FLD}"/></label>
         <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-          <select id="ct-folder" style="${FLD};background:var(--color-surface)">${opts}</select></label>
+          <select id="ct-folder" style="${FLD};background:var(--fld-bg)">${opts}</select></label>
       </div>
 
       <!-- Both panes share one grid cell, so the modal is as tall as the
@@ -726,7 +726,7 @@ function openBlanksEditor(tid){
     <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('lib_formatted_template')}</span>`:''}</span>
       ${rich
         ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 13px"></div>`
-        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
+        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:15px;margin-bottom:var(--s-2)"></div>
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
       <button data-dlg-cancel id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
@@ -924,7 +924,7 @@ function openTemplateEditor(tid){
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
         <input id="te-name" value="${String(name).replace(/"/g,'&quot;')}" style="${FLD}"/></label>
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-        <select id="te-folder" style="${FLD};background:var(--color-surface)">${folderOptionsHtml(folder,false)}</select></label>
+        <select id="te-folder" style="${FLD};background:var(--fld-bg)">${folderOptionsHtml(folder,false)}</select></label>
     </div>
 
     <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)">

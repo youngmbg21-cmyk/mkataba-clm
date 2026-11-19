@@ -2441,7 +2441,7 @@ function openEditDocModal(c){
           <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
           <span>${i18t('ct_plain_text_warn')}</span></div>`:''}
       </div>
-      <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:22px 26px;font:inherit;font-size:var(--t-card);line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
+      <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:22px 26px;font:inherit;font-size:var(--t-card);line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
       <div style="${COL};padding:0 26px;margin-top:var(--s-3)">
         <label style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font-size:var(--t-meta);cursor:pointer">
           <input type="checkbox" id="ed-from-cp" style="margin-top:2px;flex:none"/>
@@ -6066,7 +6066,7 @@ function ktTermsRowsHtml(c,opts={}){
      of them to emit, in the order the caller asks for; absent means all of them,
      in this file's own order, which is what every older caller means. */
   const want=Array.isArray(opts.only)?opts.only:null;
-  const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
+  const KIN='min-width:0;width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
   /* A DATE ROW SAYS SO IN WORDS AS WELL AS IN ITS ICON. "Not set" is a state;
      "Pick a date" is an instruction, and the two date rows are the ones a
@@ -9771,10 +9771,10 @@ function openNegoProposeModal(c){
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 26px;background:var(--color-bg)">
         <div style="${COL}">
-          <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px var(--s-4);font:inherit;font-family:var(--font-mono);font-size:var(--t-body);line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
+          <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:14px var(--s-4);font:inherit;font-family:var(--font-mono);font-size:var(--t-body);line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:var(--s-3)">
             <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
-            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
+            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           </label>
         </div>
       </div>
@@ -10440,7 +10440,7 @@ function blankFormSectionsOf(c){
 }
 
 function blankFormInputHtml(b){
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const type = b.type === 'date' ? 'date' : (b.type === 'number' ? 'number' : 'text');
   return `<input type="${type}" data-blankf="${esc(b.key)}" value="${esc(b.value)}"
     placeholder="${esc(b.ph||'')}" style="${INP}">`;
@@ -12782,7 +12782,7 @@ function renderWorkspace(){
   const KROW='display:flex;justify-content:space-between;gap:var(--s-2);padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:var(--t-meta)';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:var(--w-body);text-align:right;min-width:0">${v}</span></div>`;
-  const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:3px 7px;font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
+  const KIN='min-width:0;max-width:62%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:3px 7px;font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
   // Key terms stay editable until the seal binds them (sealString folds
   // counterparty/value/valueType in), and only for roles that can edit.
   // Back goes to the Contracts page — or the stream drawer the room was opened
@@ -19070,9 +19070,9 @@ function openPaperSignatureModal(c){
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('ct_signed_on_paper')}</h2></div>
       <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">${i18t('ct_paper_sig_line')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_date_signed')}</span>
-        <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
+        <input id="ps-date" type="date" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_note_optional')}</span>
-        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
+        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:var(--t-body)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
