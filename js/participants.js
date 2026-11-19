@@ -934,60 +934,70 @@ function _pcDraftOf(key, pkey){
     email: _ptStr(p.email), phone: _ptStr(p.phone || (row && row.phone)), role: PC_THEIR_ROLES.find(k => roles.includes(k)) || 'cpread',
     access: _ptStr(row && row.access) || PARTY_ACCESS_DEFAULT, ids: new Set(cs.filter(c => contactsOf(c).some(r => _pcSame(r, p))).map(c => c.id)) };
 }
+/* THE LEGORA WAY (owner's pick by name, 19 Nov 2026): the ONE edit pop-up (lgpHtml, js/components.js), in two steps —
+   1 Person (name, job title, email, phone, role, access), 2 Agreements (the party's agreements, live ones ticked, an
+   ended one never; listed by Live · Ended, six at a time). Jambo may fill step 1 from a person's sentence
+   (opts.prefill, opts.from): each line he filled says "from your words"; NOTHING is saved before the black button. */
 function partyContactsOpen(key, opts){
   const o = opts || {};
-  const v = _pcView(key); if (!v || typeof openModal !== 'function') return false;
-  _pc = { key: v.key, name: v.name, d: null, err: '', busy: false };
-  if (o.add && partyContactsMay()) _pc.d = _pcDraftOf(v.key, '');
-  else if (o.edit) _pc.d = _pcDraftOf(v.key, o.edit);
-  openModal(`<div class="pc-dlg" id="pc-dlg"></div>`, { label: i18t('ppl_title'), maxWidth: (typeof DLG_W !== 'undefined' && DLG_W.xl) || '760px', onClose: () => { _pc = null; } });
-  _pcPaint(true);
+  const v = _pcView(key); if (!v || typeof lgpOpen !== 'function') return false;
+  if (!o.edit && !partyContactsMay()) return false;
+  const d = o.edit ? _pcDraftOf(v.key, o.edit) : _pcDraftOf(v.key, '');
+  if (!d) return false;
+  const from = new Set();
+  if (o.prefill && !o.edit){
+    ['name', 'title', 'email', 'phone'].forEach(k => { const w = _ptStr(o.prefill[k]); if (w){ d[k] = w; from.add(k); } });
+    if (PC_THEIR_ROLES.includes(o.prefill.role)){ d.role = o.prefill.role; from.add('role'); }
+  }
+  _pc = { key: v.key, name: v.name, d, err: '', busy: false, step: 1, page: 1, show: 'live', from, jambo: !!o.from };
+  lgpOpen(Object.assign(_pcSheet(v), { onClose: () => { _pc = null; } }));
   return true;
 }
-function _pcCardHtml(v){
-  const E = _ptEsc, d = _pc.d, newOne = !d.pkey;
+function _pcStage(c){ const m = _ptCall('contractStatusMeta', c); return { t: (m && m.label) || _ptStr(c.status), dot: (m && m.dot) || '' }; }
+function _pcSheet(v){
+  const d = _pc.d, newOne = !d.pkey, short = _ptStr(_ptCall('cuShortName', v.name) || v.name);
+  const steps = { at: _pc.step, names: [i18t('pc_step_person'), i18t('pc_step_ags')] };
+  const head = newOne ? i18t('pc_head_new', { party: short }) : (d.name || d.email);
+  if (_pc.step === 1){
+    const f = k => _pc.from.has(k);
+    return { id: 'pc-form', attr: 'data-pc-step="1"', title: head, steps, jambo: _pc.jambo ? i18t('pc_jambo_filled') : '',
+      sub: newOne ? '' : i18t('pc_edit_sub', { party: short }),
+      rows: [
+        { k: i18t('ppl_name'), id: 'pc-name', value: d.name, max: 120, from: f('name') },
+        { k: i18t('ppl_title_job'), id: 'pc-title', value: d.title, max: 80, from: f('title') },
+        { k: i18t('ppl_email'), id: 'pc-email', type: 'email', value: d.email, max: 160, from: f('email') },
+        { k: i18t('ppl_phone'), id: 'pc-phone', type: 'tel', value: d.phone, max: 40, ph: i18t('pc_phone_ph'), from: f('phone') },
+        { k: i18t('ppl_role'), id: 'pc-role', type: 'select', value: d.role, opts: PC_THEIR_ROLES.map(k => ({ v: k, t: participantRoleLabel(k) })), from: f('role') },
+        { k: i18t('ppl_access'), id: 'pc-access', type: 'select', value: d.access, opts: PARTY_ACCESS.map(a => ({ v: a.k, t: a.label })) }],
+      err: _pc.err, note: i18t('pc_not_sent_short'),
+      left: newOne ? null : { label: i18t('pc_remove_all'), attr: 'data-pc-remove', danger: true },
+      primary: { label: i18t('lgp_next_step'), attr: 'data-pc-next' } };
+  }
   const cs = v.items || [];
-  const stage = c => { const m = _ptCall('contractStatusMeta', c); return (m && m.label) || _ptStr(c.status); };
-  const roleOpts = PC_THEIR_ROLES.map(k => `<option value="${E(k)}"${d.role === k ? ' selected' : ''}>${E(participantRoleLabel(k))}</option>`).join('');
-  const box = (id, lab, val, type, isNew) => `<label class="pc-f"><span>${E(lab)}${isNew ? '' : ''}</span><input id="${id}" type="${type || 'text'}" autocomplete="off" value="${E(val)}"></label>`;
-  return `<form class="pc-card" id="pc-form" novalidate>
-    <div class="pc-g2">${box('pc-name', i18t('ppl_name'), d.name)}${box('pc-title', i18t('ppl_title_job'), d.title)}</div>
-    <div class="pc-g2">${box('pc-email', i18t('ppl_email'), d.email, 'email')}${box('pc-phone', i18t('ppl_phone'), d.phone, 'tel')}</div>
-    <div class="pc-g2"><label class="pc-f"><span>${E(i18t('ppl_role'))}</span><select id="pc-role">${roleOpts}</select></label>
-      <label class="pc-f"><span>${E(i18t('ppl_access'))}</span><select id="pc-access">${participantAccessOptions(d.access)}</select></label></div>
-    <div class="pc-f"><span>${E(i18t(newOne ? 'pc_on_new' : 'pc_on_edit'))}</span>
-      <div class="pc-tk">${cs.map(c => `<label><input type="checkbox" data-pc-ag="${E(c.id)}"${d.ids.has(c.id) ? ' checked' : ''}><span>${E(c.name || c.id)}</span><em>${E(stage(c))}</em></label>`).join('')}</div>
-      <p class="pc-hint">${E(i18t(newOne ? 'pc_hint_new' : 'pc_hint_edit'))}</p></div>
-    ${_pc.err ? `<p class="pc-err" role="alert">${E(_pc.err)}</p>` : ''}
-    <div class="pc-cf"><span class="pc-ns">${E(i18t('pc_not_sent'))}</span>${newOne ? '' : `<button type="button" class="pc-rm" data-pc-remove>${E(i18t('pc_remove_all'))}</button>`}
-      <button type="button" class="ui-btn ui-btn-sm" data-pc-cancel>${E(i18t('cu_pr_cancel'))}</button><button type="submit" class="ui-btn ui-btn-sm ui-btn-primary" data-pc-save${_pc.busy ? ' disabled' : ''}>${E(i18t(newOne ? 'pc_add_btn' : 'cu_pr_save'))}</button></div>
-  </form>`;
+  const live = cs.filter(_pcLive), ended = cs.filter(c => !_pcLive(c));
+  const shown = _pc.show === 'ended' ? ended : live;
+  const items = shown.map(c => { const st = _pcStage(c); return { id: c.id, on: d.ids.has(c.id), off: !_pcLive(c), label: c.name || c.id, stage: st.t, dot: st.dot }; });
+  const chips = [{ label: i18t('pc_chip_live', { n: live.length }), attr: 'data-pc-show="live"', on: _pc.show !== 'ended' }];
+  if (ended.length) chips.push({ label: i18t('pc_chip_ended', { n: ended.length }), attr: 'data-pc-show="ended"', on: _pc.show === 'ended' });
+  const said = i18t('pc_ticked', { n: d.ids.size, all: cs.length });
+  return { id: 'pc-form', attr: 'data-pc-step="2"', title: i18t('pc_head_ags', { name: _ptStr(d.name).split(/\s+/)[0] || d.email || short }), steps,
+    html: lgpListHtml({ items, chips, page: _pc.page, said, tickAttr: 'data-pc-ag', pageAttr: 'data-pc-page', none: i18t('pc_none_here') })
+      + (live.length ? `<p class="lgp-sub"><button type="button" class="lgp-use" data-pc-all-live>${_ptEsc(i18t('pc_tick_live'))}</button></p>` : ''),
+    err: _pc.err, back: { label: i18t('lgp_back'), attr: 'data-pc-back' },
+    primary: { label: i18t(newOne ? 'pc_add_btn' : 'cu_pr_save'), attr: 'data-pc-save' + (_pc.busy ? ' disabled' : '') } };
 }
 function _pcPaint(focus){
-  const host = document.getElementById('pc-dlg'); if (!host || !_pc) return;
-  const v = _pcView(_pc.key); if (!v){ host.innerHTML = ''; return; }
-  const E = _ptEsc, d = _pc.d, may = partyContactsMay();
-  const ini = p => _ptStr(p.name || p.email).split(/[\s@]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
-  const people = _pcPeople(_pc.key);
-  const card = d ? _pcCardHtml(v) : '';
-  const rows = people.map(p => {
-    if (d && d.pkey && d.pkey === p.key) return card;
-    const roles = [...(p.roles || [])], role = PC_THEIR_ROLES.find(k => roles.includes(k)) || 'cpread';
-    const n = (p.contracts || []).length;
-    const sub = [p.title, participantRoleLabel(role), i18tn('pc_n_ags', n, { n })].filter(Boolean).join(' · ');
-    return `<button type="button" class="pc-p" data-pc-pick="${E(p.key)}"${may ? '' : ' disabled'}><span class="pc-av" aria-hidden="true">${E(ini(p))}</span><span class="pc-pt"><b>${E(p.name || p.email)}</b><span>${E(sub)}</span></span><span class="pc-ch" aria-hidden="true">›</span></button>`;
-  }).join('');
-  host.innerHTML = `<div class="pc-h"><h3>${E(i18t('ppl_title'))}</h3><p>${E(i18t('pc_party_sub', { name: _pc.name }))}</p></div>
-    <div class="pc-b"><p class="pc-side">${E(i18t('ppl_side_theirs'))}</p>${rows || (d ? '' : `<p class="pc-none">${E(i18t('pc_none'))}</p>`)}
-      ${d && !d.pkey ? card : ''}${!d && may ? `<button type="button" class="ui-btn ui-btn-sm pc-new" data-pc-new>${E(i18t('ppl_add'))}</button>` : ''}</div>
-    <div class="pc-ft"><button type="button" class="ui-btn ui-btn-primary" data-pc-close>${E(i18t('og_done'))}</button></div>`;
-  if (focus && d){ const f = document.getElementById('pc-name'); if (f) try { f.focus({ preventScroll: true }); } catch (_){} }
+  if (!_pc) return; const v = _pcView(_pc.key); if (!v) return;
+  if (typeof lgpRepaint === 'function') lgpRepaint(_pcSheet(v));
+  if (focus){ const f = document.getElementById('pc-name'); if (f) try { f.focus({ preventScroll: true }); } catch (_){} }
 }
 function _pcRead(){
-  const d = _pc && _pc.d; if (!d) return;
+  const d = _pc && _pc.d; if (!d || _pc.step !== 1) return;
+  const has = id => !!document.getElementById(id);
   const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-  d.name = val('pc-name'); d.title = val('pc-title'); d.email = val('pc-email'); d.phone = val('pc-phone');
-  d.role = PC_THEIR_ROLES.includes(val('pc-role')) ? val('pc-role') : d.role;
+  if (!has('pc-name')) return;
+  ['name', 'title', 'email', 'phone'].forEach(k => { const w = val('pc-' + k); if (_ptStr(w) !== _ptStr(d[k])) _pc.from.delete(k); d[k] = w; });
+  const role = val('pc-role'); if (PC_THEIR_ROLES.includes(role)){ if (role !== d.role) _pc.from.delete('role'); d.role = role; }
   d.access = PARTY_ACCESS_OF[val('pc-access')] ? val('pc-access') : d.access;
 }
 function _pcSnap(c){
@@ -1007,7 +1017,7 @@ function _pcRestore(snaps, moved){
     if (moved && moved.from && moved.to && _ptFold(moved.from) !== _ptFold(moved.to)) contactFollow(c, moved.to, moved.from);
     participantsKeep(c); });
 }
-function _pcAfter(){ ['cuRepaint', 'dirRepaint'].forEach(f => { try { _ptCall(f); } catch (_){} }); _pcPaint(); }
+function _pcAfter(){ ['cuRepaint', 'dirRepaint'].forEach(f => { try { _ptCall(f); } catch (_){} }); }
 /* THE ONE SAVE: each of the party's agreements, ticked or not, through the address book's own writer */
 async function _pcApply(ids, removing){
   const d = _pc.d, key = _pc.key, v = _pcView(key); if (!v || !d) return null;
@@ -1037,8 +1047,7 @@ async function _pcSave(removing){
   _pcRead();
   const d = _pc.d, newOne = !d.pkey;
   if (!removing){
-    if (!_ptStr(d.name) && !_ptStr(d.email)){ _pc.err = i18t('pc_need'); _pcPaint(); return; }
-    if (_ptStr(d.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_ptStr(d.email))){ _pc.err = i18t('pc_bad_mail'); _pcPaint(); return; }
+    const bad = _pcStepOneBad(); if (bad){ _pc.err = bad; _pc.step = 1; _pcPaint(); return; }
     if (!d.ids.size && newOne){ _pc.err = i18t('pc_need_ag'); _pcPaint(); return; }
   }
   _pc.busy = true; _pc.err = '';
@@ -1047,6 +1056,7 @@ async function _pcSave(removing){
   catch (e){ if (_pc){ _pc.busy = false; _pc.err = i18t('pc_err', { msg: (e && e.message) || '' }); _pcPaint(); } return; }
   if (!_pc) return;
   _pc.busy = false; _pc.d = null;
+  if (typeof closeModal === 'function') closeModal();
   _pcAfter();
   if (r && r.snaps.length && typeof toast === 'function'){
     const name = r.who.name || r.who.email;
@@ -1054,24 +1064,34 @@ async function _pcSave(removing){
     toast(msg, 'ok', { action: { label: i18t('pc_undo'), onClick: () => { _pcRestore(r.snaps, r.moved); _pcAfter(); toast(i18t('pc_undone'), 'ok'); } } });
   }
 }
+function _pcStepOneBad(){
+  const d = _pc && _pc.d; if (!d) return '';
+  if (!_ptStr(d.name) && !_ptStr(d.email)) return i18t('pc_need');
+  if (_ptStr(d.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_ptStr(d.email))) return i18t('pc_bad_mail');
+  return '';
+}
 if (typeof document !== 'undefined' && document.addEventListener && !document._pcWired){ document._pcWired = true;
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#pc-dlg') || !_pc) return;
-    if (t.closest('[data-pc-close]')){ e.preventDefault(); if (_pc.d && (_ptStr(document.getElementById('pc-name') && document.getElementById('pc-name').value) || _ptStr(document.getElementById('pc-email') && document.getElementById('pc-email').value))){ _pcSave().then(() => { if (_pc && !_pc.d && !_pc.err && typeof closeModal === 'function') closeModal(); }); return; } if (typeof closeModal === 'function') closeModal(); return; }
-    if (t.closest('[data-pc-new]')){ e.preventDefault(); _pc.d = _pcDraftOf(_pc.key, ''); _pc.err = ''; _pcPaint(true); return; }
-    const pk = t.closest('[data-pc-pick]'); if (pk){ e.preventDefault(); _pc.d = _pcDraftOf(_pc.key, pk.getAttribute('data-pc-pick')); _pc.err = ''; _pcPaint(true); return; }
-    if (t.closest('[data-pc-cancel]')){ e.preventDefault(); _pc.d = null; _pc.err = ''; _pcPaint(); return; }
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#pc-form') || !_pc) return;
+    if (t.closest('[data-pc-back]')){ e.preventDefault(); _pc.step = 1; _pc.err = ''; _pcPaint(true); return; }
+    const sh = t.closest('[data-pc-show]'); if (sh){ e.preventDefault(); _pc.show = sh.getAttribute('data-pc-show'); _pc.page = 1; _pcPaint(); return; }
+    const pg = t.closest('[data-pc-page]'); if (pg){ e.preventDefault(); _pc.page = Math.max(1, Number(pg.getAttribute('data-pc-page')) || 1); _pcPaint(); return; }
+    if (t.closest('[data-pc-all-live]')){ e.preventDefault(); const v = _pcView(_pc.key); (v ? v.items || [] : []).filter(_pcLive).forEach(c => _pc.d.ids.add(c.id)); _pcPaint(); return; }
     if (t.closest('[data-pc-remove]')){ e.preventDefault(); _pcRead();
       const ask = typeof confirmDialog === 'function' ? confirmDialog({ title: i18t('pc_remove_q', { name: _pc.d.name || _pc.d.email, party: _pc.name }), message: i18t('pc_remove_msg'), confirmLabel: i18t('pc_remove_all'), danger: true }) : Promise.resolve(true);
       Promise.resolve(ask).then(ok => { if (ok) _pcSave(true); }); return; }
   });
   document.addEventListener('change', e => {
-    const t = e.target; if (!t || !t.closest || !t.closest('#pc-dlg') || !_pc || !_pc.d) return;
-    const ag = t.getAttribute('data-pc-ag'); if (ag){ if (t.checked) _pc.d.ids.add(ag); else _pc.d.ids.delete(ag); return; }
+    const t = e.target; if (!t || !t.closest || !t.closest('#pc-form') || !_pc || !_pc.d) return;
+    const ag = t.getAttribute('data-pc-ag'); if (ag){ if (t.checked) _pc.d.ids.add(ag); else _pc.d.ids.delete(ag);
+      const said = t.closest('.lgp') && t.closest('.lgp').querySelector('.lgp-lfoot > span:first-child'); const v = _pcView(_pc.key);
+      if (said && v) said.textContent = i18t('pc_ticked', { n: _pc.d.ids.size, all: (v.items || []).length }); return; }
     _pcRead();
   });
   document.addEventListener('input', e => { const t = e.target; if (t && t.closest && t.closest('#pc-form') && _pc) _pcRead(); });
-  document.addEventListener('submit', e => { const f = e.target && e.target.closest ? e.target.closest('#pc-form') : null; if (!f) return; e.preventDefault(); _pcSave(); });
+  document.addEventListener('submit', e => { const f = e.target && e.target.closest ? e.target.closest('#pc-form') : null; if (!f || !_pc) return; e.preventDefault();
+    if (_pc.step === 1){ _pcRead(); const bad = _pcStepOneBad(); _pc.err = bad; if (!bad){ _pc.step = 2; _pc.page = 1; _pc.show = 'live'; } _pcPaint(); return; }
+    _pcSave(); });
 }
 if (typeof window !== 'undefined') Object.assign(window, {
   shareMoreRowsHtml, shareMoreChosen,

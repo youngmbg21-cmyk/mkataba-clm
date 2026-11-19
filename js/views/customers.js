@@ -622,27 +622,22 @@ function partyCitySuggest(key){
   }
   return null;
 }
-/* THE ONE DOOR: the panel's top becomes the two boxes */
+/* THE ONE DOOR (owner's pick "the Legora way", 19 Nov 2026): every edit started in a panel opens the ONE edit pop-up
+   (lgpOpen, js/components.js). The party's facts are two lines, City and Org. no.; what the parties clause says is
+   quoted under City, short, with Use it — only where a city was read from it (never the raw clause). */
 function partyRecordOpen(key){
   if (!key || !partyRecordMay()) return;
-  _cu.edit = String(key);
-  if (typeof insSelect === 'function') insSelect('customers', _cu.edit);
-  if (typeof state !== 'undefined' && state.view !== 'customers' && typeof setView === 'function') setView('customers');
-  else cuRepaint();
-  const f = document.getElementById('cu-pr-city');
-  if (f){ try { f.focus({ preventScroll: true }); } catch (_){} if (typeof landOn === 'function') landOn('#cu-pr-form', { focus: false }); }
-}
-function cuPrFormHtml(v){
+  const v = cuView(cuCustomerOf(String(key))); if (!v) return;
   const rec = partyRecordOf(v.key) || {};
   const sug = partyCitySuggest(v.key);
-  const said = sug ? `<p class="cu-pr-sug" data-cu-pr-sug>${_cuE(i18t('cu_pr_from', { ref: sug.ref, addr: sug.addr }))}${
-    sug.city ? ` <button type="button" class="ui-link" data-cu-pr-use="${_cuE(sug.city)}">${_cuE(i18t('cu_pr_use', { city: sug.city }))}</button>` : ''}</p>` : '';
-  return `<form class="cu-pr-form" id="cu-pr-form" data-cu-pr-key="${_cuE(v.key)}" novalidate>
-    <label class="cu-pr-f"><span>${_cuE(i18t('cu_col_city'))}</span><input id="cu-pr-city" type="text" autocomplete="off" maxlength="80" value="${_cuE(rec.city || '')}"></label>
-    ${said}
-    <label class="cu-pr-f"><span>${_cuE(i18t('cu_f_org'))}</span><input id="cu-pr-org" type="text" autocomplete="off" maxlength="40" value="${_cuE(rec.orgNo || '')}"></label>
-    <div class="cu-pr-acts"><button type="submit" class="ui-btn ui-btn-sm ui-btn-primary" data-cu-pr-save>${_cuE(i18t('cu_pr_save'))}</button><button type="button" class="ui-btn ui-btn-sm" data-cu-pr-cancel>${_cuE(i18t('cu_pr_cancel'))}</button></div>
-  </form>`;
+  const short = t => { const w = String(t || '').replace(/\s+/g, ' ').trim(); return w.length > 70 ? '…' + w.slice(0, 68).trim() + '…' : w; };
+  if (typeof lgpOpen !== 'function') return;
+  lgpOpen({ id: 'cu-pr-form', attr: `data-cu-pr-key="${_cuE(v.key)}"`, title: v.name, sub: i18t('cun_p_facts'),
+    rows: [
+      { k: i18t('cun_p_city'), id: 'cu-pr-city', value: rec.city || '', max: 80,
+        quote: sug && sug.city ? { cite: sug.ref, words: short(sug.addr), use: { label: i18t('cu_pr_use', { city: sug.city }), attr: `data-cu-pr-use="${_cuE(sug.city)}"` } } : null },
+      { k: i18t('cun_p_org'), id: 'cu-pr-org', value: rec.orgNo || '', max: 40 }],
+    primary: { label: i18t('cu_pr_save'), attr: 'data-cu-pr-save' } });
 }
 async function cuPrSave(form){
   const key = form.getAttribute('data-cu-pr-key');
@@ -652,6 +647,7 @@ async function cuPrSave(form){
   try {
     await partyRecordSet(v.name, { city: (form.querySelector('#cu-pr-city') || {}).value, orgNo: (form.querySelector('#cu-pr-org') || {}).value });
     _cu.edit = null;
+    if (typeof closeModal === 'function' && form.closest('#modal-root')) closeModal();
     if (typeof toast === 'function') toast(i18t('cu_pr_saved', { party: v.name }), 'ok');
     cuRepaint();
     if (typeof dirRepaint === 'function') dirRepaint();
@@ -1248,7 +1244,7 @@ function cuPaintCustomerPanel(tb, o){
         title: r.name, sub: cuPanelSubHtml(r),
         acts: [{ k: 'open', kind: 'accent', label: i18t('cu_open_customer'), run: x => cuOpenCustomer(x.id) },
           { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) }] },
-      body: (_cu.edit === r.key ? cuPrFormHtml(r) : '') + rows
+      body: rows
         + (r.needs.length ? sec(i18t('cu_col_waiting'), r.needs.length, cuPanelNeedsHtml(r.needs), 'cu-needs') : '')
         /* BEFORE THE CALL (Discover stage 9): how they negotiate, the company facts side by side, the two minutes */
         + cuBriefSecHtml(r)
@@ -1411,19 +1407,9 @@ function cunPanelFiveHtml(r){
   const roleOf = p => [...(p.roles || [])];
   const signer = people.find(p => p && roleOf(p).includes('cpsign')) || null;
   const nda = cunNdaFact(r.key);
-  const editing = may && _cu.edit === r.key;
   const groups = [];
-  /* 1 · THE PARTY'S OWN FACTS (while typed in place only the two typed here show: the signer and the NDA are read from
-     the agreements and come back on Save) */
-  if (editing){
-    groups.push({ key: 'facts', label: i18t('cun_p_facts'), html: `<form class="cu-pr-form is-five" id="cu-pr-form" data-cu-pr-key="${E(r.key)}" novalidate>`
-      + `<label class="jov5-row is-plain"><span class="jov5-k">${E(i18t('cun_p_city'))}</span><input id="cu-pr-city" type="text" autocomplete="off" maxlength="80" value="${E(rec.city || '')}"></label>`
-      /* the parties clause's address is still offered while the city is typed (the old form's suggestion, kept) */
-      + (() => { const sug = partyCitySuggest(r.key); return sug ? `<p class="cu-pr-sug jov5-sug" data-cu-pr-sug>${E(i18t('cu_pr_from', { ref: sug.ref, addr: sug.addr }))}${
-        sug.city ? ` <button type="button" class="ui-link" data-cu-pr-use="${E(sug.city)}">${E(i18t('cu_pr_use', { city: sug.city }))}</button>` : ''}</p>` : ''; })()
-      + `<label class="jov5-row is-plain"><span class="jov5-k">${E(i18t('cun_p_org'))}</span><input id="cu-pr-org" type="text" autocomplete="off" maxlength="40" value="${E(rec.orgNo || '')}"></label>`
-      + `<div class="jov5-ff"><button type="submit" class="ui-btn ui-btn-sm ui-btn-primary" data-cu-pr-save>${E(i18t('cu_pr_save'))}</button><button type="button" class="ui-btn ui-btn-sm" data-cu-pr-cancel>${E(i18t('cu_pr_cancel'))}</button></div></form>` });
-  } else {
+  /* 1 · THE PARTY'S OWN FACTS; Edit opens the one edit pop-up (partyRecordOpen → lgpOpen, the Legora way, 19 Nov 2026) */
+  {
     const facts = [];
     if (rec.city) facts.push({ k: i18t('cun_p_city'), t: rec.city });
     facts.push({ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none') });
