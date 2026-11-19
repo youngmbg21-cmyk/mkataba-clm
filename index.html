@@ -16135,13 +16135,14 @@
   .sap-page .lh-ask input::-webkit-search-cancel-button{cursor:pointer;}
   .sap-page .lh > .reg-views{margin:0;}
   .sap-page .lh-chips{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-height:var(--ctl-h);}
+  /* AN APPLIED FILTER IS SHADED (owner, 19 Nov 2026: "the selected stream in the search should be shaded so it is easier to know there is a filter"): every list head's chip is a filled grey, its x darker on hover */
   .sap-page .lh-chips > .lh-sp{flex:1 1 auto;}
-  .sap-page .lh-chip{position:relative;display:inline-flex;align-items:center;height:var(--ctl-h);border:1px solid var(--chip-edge);border-radius:var(--radius);background:var(--color-surface);font-size:var(--t-body);white-space:nowrap;}
+  .sap-page .lh-chip{position:relative;display:inline-flex;align-items:center;height:var(--ctl-h);border:1px solid var(--surface-2);border-radius:var(--radius);background:var(--surface-2);font-size:var(--t-body);white-space:nowrap;}
   .sap-page .lh-chip > label{position:relative;display:inline-flex;align-items:center;gap:6px;height:100%;padding:0 4px 0 var(--pad-ctl-x);color:var(--color-neutral-500);font-weight:var(--w-label);cursor:pointer;}
   .sap-page .lh-chip > label b{color:var(--color-neutral-900);font-weight:var(--w-strong);}
   .sap-page :is(.lh-chip,.lh-add) .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
   .sap-page .lh-chip .lh-x{display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);margin-right:3px;padding:0;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-500);cursor:pointer;}
-  .sap-page .lh-chip .lh-x:hover,.sap-page .lh-chip .lh-x:focus-visible{background:var(--color-neutral-100);color:var(--color-neutral-900);}
+  .sap-page .lh-chip .lh-x:hover,.sap-page .lh-chip .lh-x:focus-visible{background:var(--color-neutral-200);color:var(--color-neutral-900);}
   .sap-page .lh-add{position:relative;display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px dashed var(--rule-strong);border-radius:var(--radius);background:none;color:var(--accent-ink);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   .sap-page .lh-add:hover,.sap-page .lh-add:focus-within{border-color:var(--accent-ink);}
   .sap-page .lh-chips .lc-wrap{flex:none;}

@@ -227,6 +227,7 @@ FIVE MORE: `hbRdnPanelFive`, `iknPanelFive`, `obPanelFive` (page only), `obDecis
 CHOSEN ROW: `apnLeadFiveHtml` (no button; Approve/Decline on row), `mnnPanelFiveHtml`, `migNlPanelFiveHtml`, `ngnPanelFiveHtml` (one round; back `_jlBack`/`_ngnNone`; `data-ngn-pick`; f1081). CLAUSES: one line `stk-lg-top`, open clause amber (f1073, f1081). Arrival: HOW THINGS MOVE. f1065–f1070.
 ## THE LIST HEAD (js/views/listhead.js)
 - ONE head, ten lists (`lhRegister`, `lhHtml`, `lhHeadSync`), Columns `LC_*`; 0 tab hidden unless lit; Filter only values with rows. Box a quiet FILTER (`LH_BOX_ASKS` false).
+- AN APPLIED FILTER IS SHADED (owner, 19 Nov 2026): `.lh-chip` filled `--surface-2`, its x darker on hover. f1109.
 - LIST LANGUAGE (js/listlang.js): `listMarkHtml`, `listWordHtml`, `listChipHtml`; standards a SCORECARD (`stdRowWordsHtml`; f989).
 - COLUMN RULE `listCols(seat, cols, repaint)`: step aside by `rank`; name 300…480 (`SPREAD_NAME_MIN`, `LIST_NAME_MAX`); drag per list (`LIST_COLW_KEY`); Contracts own (`regHomeWide`). list-columns-verify.
 ## ONE SHEET AND THREE BUTTONS (index.html "ONE SHEET" block)
