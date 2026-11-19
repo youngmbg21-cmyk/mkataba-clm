@@ -10212,7 +10212,7 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddNeedList,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
@@ -10288,7 +10288,7 @@ function sddYouRows(){
   const title=u.title||u.jobTitle||'', role=(typeof roleName==='function')?roleName(u.role):'';
   rows.push(sddRow({ id:'who', area:'you', g:'about', who:'you', name:i18t('sdd_you_who'),
     say:title?i18t('sdd_you_who_say',{ name:u.name||u.email||'', role, title }):i18t('sdd_you_who_say_nt',{ name:u.name||u.email||'', role }),
-    sub:i18t('sdd_you_who_sub'), now:title||i18t('sdd_you_who_nt'), dot:title?'':'need', verb:i18t('st_you_change'), door:title?'data-st-panel="me:name"':'data-st-panel="me:who"' }));
+    sub:i18t('sdd_you_who_sub'), now:title||i18t('sdd_you_who_nt'), dot:title?'':'need', verb:i18t('st_you_change'), door:'data-st-panel="me:name"' }));
   if(api) rows.push(sddRow({ id:'email', area:'you', g:'about', who:'you', name:i18t('st_you_email_row'), say:i18t('sdd_you_email_say',{ email:u.email||'' }),
     sub:i18t('sdd_you_email_sub'), now:u.email||'', verb:i18t('st_you_change'), door:'data-st-panel="me:email"' }));
   const L=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]), lid=(typeof langId==='function')?langId():'';
@@ -10464,11 +10464,12 @@ const sddAreaOfRow=(rows,id)=>{ const r=rows.find(x=>x.id===id); return r?r.area
    all read it, so the number on a door is the list behind it. */
 function sddNeedList(admin, area, rows){
   rows=rows||sddRows(admin); const out=[];
-  rows.filter(r=>r.dot==='need'&&(!area||r.area===area)).forEach(r=>{ const n=(r.needs||[])[0];
-    out.push({ row:r.id, area:r.area, dot:n&&n.dot, text:n?sddTxt(n.text):r.name, sub:n?sddTxt(n.sub||n.subHtml||''):r.say,
-      btn:n&&n.btn?n.btn:(r.door||`data-sdd-pick="${r.area}:${PB_ATTR(r.id)}"`), verb:n&&n.verb?n.verb:(r.door?r.verb:i18t('sdd_open')) }); });
+  /* every need a row carries is its own line (four clashes on People & roles are four lines, as stNeedsAll says them) */
+  rows.filter(r=>r.dot==='need'&&(!area||r.area===area)).forEach(r=>{ (r.needs&&r.needs.length?r.needs:[null]).forEach(n=>{
+    out.push({ row:r.id, area:r.area, key:n?n.key:null, dot:n&&n.dot, text:n?sddTxt(n.text):r.name, sub:n?sddTxt(n.sub||n.subHtml||''):r.say,
+      btn:n&&n.btn?n.btn:(r.door||`data-sdd-pick="${r.area}:${PB_ATTR(r.id)}"`), verb:n&&n.verb?n.verb:(r.door?r.verb:i18t('sdd_open')) }); }); });
   if(!area||area==='company') sddNeedsOf(admin).filter(n=>!n.row||!rows.some(r=>r.id===n.row))
-    .forEach(n=>out.push({ row:null, area:'company', dot:n.dot, text:sddTxt(n.text), sub:sddTxt(n.sub||n.subHtml||''), btn:n.btn||'', verb:n.verb||i18t('st_need_open') }));
+    .forEach(n=>out.push({ row:null, area:'company', key:n.key, dot:n.dot, text:sddTxt(n.text), sub:sddTxt(n.sub||n.subHtml||''), btn:n.btn||'', verb:n.verb||i18t('st_need_open') }));
   return out;
 }
 /* ---- the middle ---- */
@@ -10557,7 +10558,9 @@ function sddCardHtml(admin, ctx){
     return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:place+' · '+r.name, title:r.say, sub:r.sub, actFirst:true,
       act:{ say:first?(sddTxt(first.text)+(first.sub?' · '+sddTxt(first.sub):'')):after, label:first&&first.verb?first.verb:(r.door?r.verb:''), attr:first&&first.btn?first.btn:(r.door||'') },
       groups:[{ label:'', rows:[{ k:i18t('sdd_f_now'), t:r.now||'—' }, { k:i18t('sdd_f_affects'), t:i18t(r.who==='you'?'sdd_affects_you':'sdd_affects_all') }, { k:i18t('sdd_f_who'), t:who },
-        { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(admin&&typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:null }].map(x=>x.link?x:Object.assign(x,{ link:undefined })) }],
+        { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(admin&&typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:null }].map(x=>x.link?x:Object.assign(x,{ link:undefined })) }]
+        /* while you are away, Jambo says who answers for you on every You row's card too (when-youre-away 3c) */
+        .concat(r.area==='you'&&((state.away||{}).mine||{}).deputyName?[{ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:state.away.mine.deputyName }), wrap:true }] }]:[]),
       src:i18t('jov5_st_src') },'stn')}</div>`;
   }
   const needs=sddNeedList(admin, area, rows), n0=needs[0];
@@ -10565,15 +10568,22 @@ function sddCardHtml(admin, ctx){
   if(needs.length>1) groups.push({ label:i18t('jov5_st_needs'), rows:needs.slice(1).map(x=>({ mark:'alert', tone:x.dot==='red'?'red':'amber', t:x.text, s:x.sub, attr:x.btn||'', wrap:true })) });
   const awM=(state.away||{}).mine;
   if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
-  if(!area||area==='company') groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""' }] });
+  if(!area||area==='company'||!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
   const les=(_stLessons&&_stLessons.rows)||[];
   if(admin&&_stLessons===null&&typeof stLessonsLoad==='function'&&!sddCardHtml._asked){ sddCardHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) sddRepaint(); }).catch(()=>{}); }
   if(admin&&les.length&&(!area||area==='jambo')) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(x=>'“'+String(x.text||'')+'”').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
-  return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:place+(needs.length?' · '+i18tn('sdd_to_do',needs.length,{ n:needs.length }):''),
-    title:needs.length?i18tn('sdd_card_t',needs.length,{ n:needs.length }):i18t('sdd_card_clear'),
+  /* Trail & backup: Jambo heads with the trail's own count, and offers its PDF and what sealed means (as he did before
+     the Dossier card; stJbDataRepaint fills the count when it lands) */
+  const onData=typeof _stPage!=='undefined'&&_stPage==='data';
+  if(onData){ const df=stTrailDefault();
+    groups.unshift({ label:'', rows:[{ mark:'download', t:i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||df.from,_stTr.to||df.to,true) }), attr:'data-st-tr-pdf=""' },
+      { mark:'sparkle', tone:'dark', t:i18t('st_jb_c_sealed'), attr:'data-st-jb-say="sealed"' }] }); }
+  const card=jamboOverviewHtml({ eyebrow:place+(needs.length?' · '+i18tn('sdd_to_do',needs.length,{ n:needs.length }):''),
+    title:onData?stJbDataWords(false):needs.length?i18tn('sdd_card_t',needs.length,{ n:needs.length }):i18t('sdd_card_clear'),
     sub:needs.length?'':i18t('sdd_card_clear_s'), actFirst:true,
     act:n0?{ say:n0.text+(n0.sub?' · '+n0.sub:''), label:n0.verb||i18t('st_need_open'), attr:n0.btn||'' }:null,
-    groups, src:i18t('jov5_st_src') },'stn')}</div>`;
+    groups, src:i18t('jov5_st_src') },'stn');
+  return `<div class="jl-words is-ov">${onData?card.replace('<h3 class="jov5-title">','<h3 class="jov5-title" data-st-jb-hello>'):card}</div>`;
 }
 /* ---- presses: a row chooses, a second press opens through its own door; Open on an area goes in; the find box ---- */
 if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=true;

@@ -187,7 +187,8 @@ const PROBE = () => {
     /* Settings › You, opened through its own door, the language row brought
        into view the way a reader scrolls to it */
     const openYou = async lang => {
-      await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); });
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the language row is in the You area */
+      await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); if (typeof window.sddGo === 'function') window.sddGo('you'); });
       await page.waitForFunction(l => !!document.querySelector(`[data-st-lang="${l}"]`), lang || 'sv', { timeout: 8000 }).catch(() => {});
       await page.evaluate(l => { const b = document.querySelector(`[data-st-lang="${l}"]`); if (b) b.scrollIntoView({ block: 'center' }); }, lang || 'sv');
       await page.waitForTimeout(450);

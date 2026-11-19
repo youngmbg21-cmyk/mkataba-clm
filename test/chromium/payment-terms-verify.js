@@ -185,9 +185,9 @@ const EXTRA = [
     await seedBook();
     await page.evaluate(() => { setView('team'); });
     await page.waitForTimeout(1200);
-    await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); });
+    await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); if (window.sddGo) sddGo('company'); });
     await page.waitForTimeout(700);
-    /* Since the Control Room was built in full (owner, 16 Oct 2026) a setting
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Payment targets is a row in the Company area. Since the Control Room was built in full (owner, 16 Oct 2026) a setting
        is a door on its group's card, not a row. */
     const rowThere = await page.evaluate(() => !!document.querySelector('[data-st-panel="paydays"]'));
     check('11a the targets have a row on Settings', rowThere, rowThere ? 'drawn' : 'missing');

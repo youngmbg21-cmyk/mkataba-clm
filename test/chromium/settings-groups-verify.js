@@ -91,6 +91,9 @@ const PAINTED = (sel) => {
 
     /* ============ 5. THE DRAWER SAYS WHERE YOU ARE ============ */
     /* RE-POINTED 16 Nov 2026 (#762): the approvals door is its row on the one list */
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Approval rules is a row in the Rules area */
+    await page.evaluate(() => { if (typeof sddGo === 'function') sddGo('rules'); });
+    await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main [data-st-panel="approvals"]'), null, { timeout: 5000 }).catch(() => {});
     await page.click('.stn-page #stn-main [data-st-panel="approvals"]');
     await page.waitForTimeout(600);
     await shot(page, 'settings-drawer');

@@ -1058,7 +1058,7 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['settings', 'people', 'roles', 'access', 'profile'], acts: [],
     words: { en: ['people', 'roles', 'grants', 'signing cap', 'add a person', 'permissions', 'access review', 'who holds what'], sv: ['personer', 'roller', 'behörigheter', 'signeringstak', 'lägg till en person', 'till en person', 'behörighetsgranskning'] },
     shots: [
-      { go: [{ view: 'team' }, { fn: 'settingsGoTab', args: ['company'] }, { waitFor: '[data-st-page="team"]' }], boxes: [{ sel: '[data-st-page="team"]', step: 1 }], cap: { en: 'People & roles, linked at the foot of Settings (1).', sv: 'Personer och roller, länkat längst ned i Inställningar (1).' } },
+      { go: [{ view: 'team' }, { fn: 'sddGo', args: ['company'] }, { waitFor: '#sdd-people [data-st-page="team"]' }], boxes: [{ sel: '#sdd-people [data-st-page="team"]', step: 1 }], cap: { en: 'People & roles, a row in the Company area (1).', sv: 'Personer och roller, en rad under Företaget (1).' } },
       { go: [{ view: 'team' }, { fn: 'settingsGoPage', args: ['team'] }], boxes: [{ sel: '#st-add-person', step: 1 }, { sel: '#st-people-q', step: 2 }], cap: { en: 'The team: Add member (1), and find a person to open (2).', sv: 'Laget: Lägg till medlem (1), och hitta en person att öppna (2).' } }] },
 
   { k: '7.2', part: 'settings', round: 2,
@@ -1115,12 +1115,12 @@ const HANDBOOK_CHAPTERS = [
 
   { k: '7.5', part: 'settings', round: 2,
     title: { en: 'Jambo\'s settings: spend, company facts, navigation, agent levels', sv: 'Jambos inställningar: kostnad, företagsfakta, navigering, agentnivåer' },
-    eyebrow: { en: 'Settings › Company › Jambo · admins', sv: 'Inställningar › Företag › Jambo · admins' },
+    eyebrow: { en: 'Settings › Jambo · admins', sv: 'Inställningar › Jambo · admins' },
     what: { en: 'What Jambo may spend and has spent (dollars to admins only), the company facts he checks every new contract against, whether he may take people to a page when they ask ("the AI takes you there"), and how far each agent may go for each person.',
       sv: 'Vad Jambo får spendera och har spenderat (dollar bara för admins), företagsfakta han kontrollerar varje nytt avtal mot, om han får ta folk till en sida när de ber ("AI:n tar dig dit"), och hur långt varje agent får gå för varje person.' },
     when: [{ en: 'The month\'s spend is climbing: a budget.', sv: 'Månadens kostnad stiger: en budget.' },
       { en: 'A standing question for every new contract: a company fact.', sv: 'En stående fråga för varje nytt avtal: ett företagsfaktum.' }],
-    path: ['door:settings', { en: 'Company', sv: 'Företag' }, 'door:budget'],
+    path: ['door:settings', { en: 'Jambo', sv: 'Jambo' }, 'door:budget'],
     how: [{ en: '"{door:budget}" shows spend today and the limit; judgement questions run on the stronger model from the first step, and the answer says so.', sv: '"{door:budget}" visar dagens kostnad och gränsen; bedömningsfrågor körs på den starkare modellen från första steget, och svaret säger det.' },
       { en: '{ui:fa_title}: add a kept question with its rule; a changed rule drops its old answers so they are judged again.', sv: '{ui:fa_title}: lägg till en behållen fråga med sin regel; en ändrad regel släpper sina gamla svar så de bedöms igen.' },
       { en: '{ui:st_p_lessons}: sentences typed in a Jambo box that he could not place, after which the person went elsewhere themselves. No name is kept and each goes after 90 days. {ui:st_lessons_teach} says which page the words mean, and from then on they move straight there; {ui:st_lessons_fine} lets one go.', sv: '{ui:st_p_lessons}: meningar skrivna i en Jambo-ruta som han inte kunde placera, varefter personen själv gick någon annanstans. Inget namn sparas och var och en försvinner efter 90 dagar. {ui:st_lessons_teach} säger vilken sida orden betyder, och därefter flyttar de direkt dit; {ui:st_lessons_fine} släpper en.' },
@@ -1129,7 +1129,7 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['budget', 'webhooks'], acts: [],
     words: { en: ['jambo settings', 'spend', 'budget', 'ai cost', 'company facts', 'navigation', 'agent levels', 'webhooks', 'teach jambo'], sv: ['jambos inställningar', 'kostnad', 'budget', 'företagsfakta', 'navigering', 'agentnivåer', 'lär jambo'] },
     shots: [
-      { go: [{ view: 'team' }, { fn: 'settingsGoTab', args: ['company'] }, { waitFor: '#ins-panel [data-st-panel="engine"]' }], boxes: [{ sel: '#ins-panel [data-st-panel="engine"]', step: 1 }, { sel: '[data-st-panel="lessons"]', step: 3 }, { sel: '[data-st-view="jambo"]', step: 4 }], cap: { en: 'Jambo\'s engine, in the panel (1); his lessons, linked at the foot (3); Jambo\'s agents, under You (4).', sv: 'Jambos motor, i panelen (1); hans lärdomar, länkade längst ned (3); Jambos agenter, under Du (4).' } },
+      { go: [{ view: 'team' }, { fn: 'sddGo', args: ['jambo'] }, { waitFor: '#sdd-engine [data-sdd-go]' }], boxes: [{ sel: '#sdd-engine [data-sdd-go]', step: 1 }, { sel: '#sdd-lessons [data-sdd-go]', step: 3 }, { sel: '#sdd-agents [data-sdd-go]', step: 4 }], cap: { en: 'In the Jambo area: his engine (1), his lessons (3) and his agents (4), each a row with its own door.', sv: 'Under Jambo: hans motor (1), hans lärdomar (3) och hans agenter (4), var och en en rad med sin egen dörr.' } },
       { go: [{ view: 'team' }, { fn: 'openSettingsAt', args: ['platform', 'facts'] }, { waitFor: '#fa-panel .fa-q' }], boxes: [{ sel: '#fa-panel .fa-q', step: 2 }, { sel: '[data-fa-go]', step: 2 }], cap: { en: 'Company facts: each kept question and its rule; read the ones already here (2).', sv: 'Företagsfakta: varje sparad fråga och dess regel; läs de som redan finns (2).' } }] },
   { k: '7.6', part: 'settings', round: 2,
     title: { en: 'The company look', sv: 'Företagets utseende' },

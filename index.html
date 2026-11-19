@@ -21012,6 +21012,7 @@
   html.lg-new .sdd-head{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:0}
   html.lg-new .sdd-back{appearance:none;border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
   html.lg-new .stn-title.sdd-title{margin:0;display:flex;align-items:baseline;gap:12px}
+  html.lg-new .sdd-head > .sdd-title:first-child{margin-top:4px} /* on the landing, the title at the height every list head puts its own (pages-read-alike 8) */
   html.lg-new .sdd-cnt{font-family:var(--font-body);font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new .sdd-sub{margin:4px 0 0;font-size:13px;color:var(--color-neutral-400)}
   html.lg-new .sdd-find{align-self:stretch;display:flex;align-items:center;gap:8px;margin:14px 0 0;height:40px;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-400)}
@@ -21033,7 +21034,7 @@
   html.lg-new .sdd-n{font-size:15px;font-weight:var(--w-strong);color:var(--color-text)}
   html.lg-new .sdd-n :is(em,small){font-style:normal;font-size:12.5px;font-weight:400;color:var(--color-neutral-400);margin-left:4px}
   html.lg-new .sdd-s{font-size:14.5px;font-weight:var(--w-label);color:var(--color-text);overflow-wrap:anywhere}
-  html.lg-new .sdd-s.is-list{font-size:12.5px;font-weight:400;color:var(--color-neutral-400);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  html.lg-new .sdd-s.is-list{font-size:12.5px;font-weight:400;color:var(--color-neutral-400)} /* every setting an area holds is named, none hidden behind an edge (laptops-verify) */
   html.lg-new .sdd-u{font-size:12.5px;color:var(--color-neutral-400);margin-top:1px}
   html.lg-new .sdd-now{min-width:0}
   html.lg-new .sdd-v{display:inline-flex;align-items:center;gap:7px;max-width:100%;font-size:13.5px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

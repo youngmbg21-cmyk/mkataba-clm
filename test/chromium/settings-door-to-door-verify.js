@@ -115,7 +115,9 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       check('4b its press lands in Jambo with that row chosen', await waitFor(page, () => !!document.querySelector('.sdd-page[data-sdd-area="jambo"] #sdd-budget.is-chosen'), null, 4000)); }
 
     /* 5 · People & roles */
-    await page.evaluate(() => sddGo('company'));
+    await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); sddGo('company'); });
+    await waitFor(page, () => !document.querySelector('#st-drawer.open') && !!document.querySelector('#sdd-people [data-sdd-go]'), null, 5000);
+    await page.locator('#sdd-people [data-sdd-go]').scrollIntoViewIfNeeded().catch(() => {});
     await page.click('#sdd-people [data-sdd-go]');
     const P = await waitFor(page, () => !!document.querySelector('.sdd-ptabs') && !!document.querySelector('.sdd-pgback'), null, 5000);
     const PT = P ? await page.evaluate(() => ({ back: document.querySelector('.sdd-pgback').textContent.trim(), tabs: [...document.querySelectorAll('.sdd-ptab')].map(b => b.textContent.trim()), panel: !!document.querySelector('#st-side .jov5'), menu: !!document.querySelector('#st-side [data-st-jb-menu-door]') })) : null;

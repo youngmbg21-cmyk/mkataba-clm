@@ -145,6 +145,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       check('5c saved on the server, said in the row', !!saved && nb.me.name === 'Wanjiru Kamau', nb.me.name);
     }
     /* RE-POINTED 16 Nov 2026 (#762): Your email is a row on the one list; its Change opens the email drawer */
+    await m.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
+    await mu(() => !document.querySelector('#st-drawer.open') ? true : null, null, 4000);
     if (await pressM('#sdd-email [data-st-panel="me:email"]', '5d Email · Change')) {
       await mu(() => document.getElementById('st-me-email') ? true : null, null, 4000);
       await m.fill('#st-me-email', 'wanjiru@example.co.ke'); await m.fill('#st-me-email-pw', 'not-my-password');
