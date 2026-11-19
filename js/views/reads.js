@@ -548,7 +548,9 @@ function dscPlain(c){
   } catch (_){ return ''; }
 }
 /* THE QUOTE IN ITS PLACE: its own paragraph (the words before and after it there), and the paragraph on each side */
-function dscSlice(text, quote){
+/* ONE FINDER for a quote in the wording (dscSlice's one paper and dscPaperAllHtml's many places agree): the
+   paragraphs, where the quote starts and ends in their run-together text, and its first and last paragraph */
+function dscLocate(text, quote){
   const lines = String(text || '').split(/\n+/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
   const q = String(quote || '').replace(/\s+/g, ' ').trim();
   if (!lines.length || q.length < 6) return null;
@@ -560,6 +562,11 @@ function dscSlice(text, quote){
   let pos = 0, la = -1, lb = -1; const starts = [];
   lines.forEach((ln, k) => { starts.push(pos); if (la < 0 && i < pos + ln.length + 1) la = k; if (lb < 0 && end <= pos + ln.length + 1) lb = k; pos += ln.length + 1; });
   if (la < 0) la = 0; if (lb < la) lb = lines.length - 1;
+  return { lines, starts, flat, i, end, la, lb };
+}
+function dscSlice(text, quote){
+  const L = dscLocate(text, quote); if (!L) return null;
+  const { lines, starts, flat, i, end, la, lb } = L;
   let pre = flat.slice(starts[la], i), post = flat.slice(end, starts[lb] + lines[lb].length);
   /* a paper with no paragraphs is one long line: keep the sentence, not the page */
   if (pre.length > DSC_SLICE * 2){ const cut = pre.lastIndexOf('. ', pre.length - 2); pre = '\u2026 ' + (cut >= 0 && pre.length - cut < DSC_SLICE * 2 ? pre.slice(cut + 2) : pre.slice(-DSC_SLICE).replace(/^\S*\s/, '')); }
@@ -585,6 +592,61 @@ function dscPaperHtml(askId, cid){
     const sec = num && !(lead.startsWith(num + ' ') || lead.startsWith(num + '.')) ? `<b class="dsc-sec">${_rdE(num)}</b> ` : '';
     body = sl ? `${sl.before ? `<p class="dsc-dim">${_rdE(sl.before)}</p>` : ''}<p>${sec}${_rdE(sl.pre)}<mark>${_rdE(sl.hit)}</mark>${_rdE(sl.post)}</p>${sl.after ? `<p class="dsc-dim">${_rdE(sl.after)}</p>` : ''}`
       : `<p>${sec}<mark>${_rdE(quote)}</mark></p>`;
+  }
+  const kind = (typeof cKind === 'function') ? cKind(c) : '';
+  return `<div class="dsc-paper" data-dsc-paper="${_rdE(cid)}"><div class="dsc-sheet"><h4>${_rdE(String(c.name || kind || _rdRef(c)))}</h4><div class="dsc-pt">${_rdE([c.counterparty, _rdRef(c)].filter(Boolean).join(' · '))}</div>${body}</div></div>`;
+}
+/* EVERY PLACE THE ANSWERS WERE READ (owner, 19 Nov 2026: "All 4 should be there"): a read of several questions shows
+   every found answer's words on ONE paper, in the paper's own order. Quotes in one paragraph, or in paragraphs that
+   touch, share one place; each place opens with the paragraph before it (its heading) in ink and names the questions
+   it answers above it; places far apart are parted by a gap. A quote the wording no longer holds word for word is
+   still shown, as quoted. `focus` (an answer pressed) marks the place to land on. Reads only, like dscPaperHtml. */
+function dscPaperAllHtml(askIds, cid, focus){
+  const ids = (askIds || []).filter(Boolean);
+  if (ids.length < 2) return dscPaperHtml(ids[0], cid);
+  const A = _dscAC(), c = (typeof getContract === 'function') ? getContract(cid) : null;
+  if (!c) return `<div class="dsc-paper"><div class="dsc-sheet"><p class="dsc-none">${_rdE(_rdT('dsc_paper_gone'))}</p></div></div>`;
+  const nameOf = k => ((typeof AC !== 'undefined' && AC.asks && AC.asks[k]) || {}).name || '';
+  const got = ids.map(k => ({ k, a: A ? ((A.ans[k] || {})[cid] || null) : null }));
+  const found = got.map(x => ({ k: x.k, a: x.a, q: x.a && x.a.found ? String(x.a.quote || '').trim() : '' })).filter(x => x.q);
+  const text = found.length ? dscTextOf(cid) : '';
+  let body;
+  if (!found.length) body = `<p class="dsc-none">${_rdE(_rdT(got.some(x => x.a) ? 'dsc_paper_nowords' : 'dsc_paper_wait'))}</p>`;
+  else if (text === null) body = `<p class="dsc-none">${_rdE(_rdT('dsc_paper_wait'))}</p>`;
+  else {
+    const placed = [], loose = [];
+    found.forEach(h => { const L = text ? dscLocate(text, h.q) : null; if (L) placed.push(Object.assign(h, L)); else loose.push(h); });
+    placed.sort((x, y) => x.i - y.i);
+    const groups = [];
+    placed.forEach(h => { const from = Math.max(0, h.la - 1), g = groups[groups.length - 1];
+      if (g && from <= g.to + 1){ g.to = Math.max(g.to, h.lb); g.hits.push(h); } else groups.push({ from, to: h.lb, hits: [h] }); });
+    const cut = (t, keepEnd) => t.length <= DSC_SLICE * 2 ? _rdE(t)
+      : keepEnd ? '… ' + _rdE(t.slice(-DSC_SLICE).replace(/^\S*\s/, '')) : _rdE(t.slice(0, DSC_SLICE).replace(/\s\S*$/, '')) + ' …';
+    const lineHtml = (L, k, hits) => {
+      const s0 = L.starts[k], line = L.lines[k], e0 = s0 + line.length;
+      const ms = hits.filter(h => h.i < e0 && h.end > s0).map(h => ({ a: Math.max(h.i, s0) - s0, b: Math.min(h.end, e0) - s0, k: h.k })).sort((x, y) => x.a - y.a);
+      if (!ms.length) return null;
+      const runs = []; ms.forEach(m => { const r = runs[runs.length - 1]; if (r && m.a <= r.b){ r.b = Math.max(r.b, m.b); r.ks.push(m.k); } else runs.push({ a: m.a, b: m.b, ks: [m.k] }); });
+      let out = '', at = 0;
+      runs.forEach((r, n) => { out += n === 0 ? cut(line.slice(at, r.a), true) : _rdE(line.slice(at, r.a));
+        out += `<mark data-dsc-mark="${_rdE(r.ks.join(' '))}">${_rdE(line.slice(r.a, r.b))}</mark>`; at = r.b; });
+      return out + cut(line.slice(at), false);
+    };
+    const parts = groups.map(g => {
+      const L = g.hits[0], ks = g.hits.map(h => h.k), first = Math.min(...g.hits.map(h => h.la)), on = focus && ks.includes(focus);
+      const names = [...new Set(ks.map(nameOf).filter(Boolean))].join(' · ');
+      let rows = '';
+      for (let k = g.from; k <= g.to; k++){
+        const marked = lineHtml(L, k, g.hits);
+        if (marked != null) rows += `<p>${marked}</p>`;
+        else if (k < first) rows += `<p class="dsc-head">${cut(L.lines[k], false)}</p>`;
+        else rows += `<p>${cut(L.lines[k], false)}</p>`;
+      }
+      return `<div class="dsc-place${on ? ' is-focus' : ''}" data-dsc-place="${_rdE(ks.join(' '))}"${on ? ' data-dsc-focus' : ''}>${names ? `<div class="dsc-q">${_rdE(names)}</div>` : ''}${rows}</div>`;
+    });
+    loose.forEach(h => { const num = typeof askColClauseNo === 'function' ? askColClauseNo(h.a) : '', on = focus === h.k;
+      parts.push(`<div class="dsc-place${on ? ' is-focus' : ''}" data-dsc-place="${_rdE(h.k)}"${on ? ' data-dsc-focus' : ''}>${nameOf(h.k) ? `<div class="dsc-q">${_rdE(nameOf(h.k))}</div>` : ''}<p>${num ? `<b class="dsc-sec">${_rdE(num)}</b> ` : ''}<mark data-dsc-mark="${_rdE(h.k)}">${_rdE(h.q)}</mark></p></div>`); });
+    body = parts.join('<div class="dsc-gap" aria-hidden="true">⋯</div>');
   }
   const kind = (typeof cKind === 'function') ? cKind(c) : '';
   return `<div class="dsc-paper" data-dsc-paper="${_rdE(cid)}"><div class="dsc-sheet"><h4>${_rdE(String(c.name || kind || _rdRef(c)))}</h4><div class="dsc-pt">${_rdE([c.counterparty, _rdRef(c)].filter(Boolean).join(' · '))}</div>${body}</div></div>`;
@@ -1242,7 +1304,7 @@ function dsnResultsHtml(r){
   const tr = x => { const a = x.a[0], tone = a ? _rdTone(a, r.askIds[0]) : 'none', num = a && typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a && a.found ? String(a.quote || '').trim() : '';
     const act = !a || a.noWording ? '' : (!a.checked && tone === 'ruby' && quote) ? `<button type="button" class="rfp-a" data-dsn-clause="${_rdE(x.id)}">${_rdE(_rdT('dsc_open_clause'))}</button>`
       : `<button type="button" class="rfp-a${a.checked ? ' is-ck' : ''}" data-dsn-ck="${_rdE(x.id)}"${may ? '' : ' disabled'}>${_rdE(_rdT(a.checked ? 'dsc_checked' : 'dsc_mark'))}</button>`;
-    const cells = pack ? x.a.map(y => `<td class="rdn-c">${y ? _dsnChip(dsnChipTone(y, null), _rdWord(y)) : '—'}</td>`).join('')
+    const cells = pack ? x.a.map((y, i) => `<td class="rdn-c"${y && y.found ? ` data-dsn-q="${_rdE(r.askIds[i])}"` : ''}>${y ? _dsnChip(dsnChipTone(y, null), _rdWord(y)) : '—'}</td>`).join('')
       : `<td class="rdn-c">${a ? _dsnChip(dsnChipTone(a, S.G), _rdWord(a)) : ''}</td><td class="rdn-c dsn-quote">${quote ? _rdE((num ? '§ ' + num + ' ' : '') + '“' + quote + '”') : `<span class="rdn-q">${_rdE(_rdT('dsn_no_words'))}</span>`}</td><td class="rdn-c">${act}</td>`;
     return `<tr class="dsn-row${x.id === _dsn.cid ? ' is-sel' : ''}" data-dsn-row="${_rdE(x.id)}" tabindex="0">${L.map(l => l.td(x.c, x.id)).join('')}${cells}</tr>`; };
   return head + `<div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table">${dsnColgroup(W)}<thead><tr>${W.map(x => x.k === 'act' ? '<th></th>' : dsnSortTh(x.k, x.th)).join('')}</tr></thead>
@@ -1298,8 +1360,10 @@ function dsnPanelPaint(body, r){
     return;
   }
   if (r && _dsn.cid){
-    const k = r.askIds[0];
-    insPaintPanel(Object.assign(base, { item: { id: 'paper:' + _dsn.cid }, body: dscPaperHtml(k, _dsn.cid), jlTabWord: _rdT('dsc_tab_paper'), jlPh: _rdT('dsc_ph_clause'), jlLinks: dscPaperLinksHtml(k, _dsn.cid) }));
+    /* EVERY PLACE ITS ANSWERS WERE READ (dscPaperAllHtml); an answer pressed (_dsn.focusAsk) is landed on */
+    const focus = r.askIds.includes(_dsn.focusAsk) ? _dsn.focusAsk : null, k = focus || r.askIds[0];
+    insPaintPanel(Object.assign(base, { item: { id: 'paper:' + _dsn.cid + (focus ? ':' + focus : '') }, body: dscPaperAllHtml(r.askIds, _dsn.cid, focus), jlTabWord: _rdT('dsc_tab_paper'), jlPh: _rdT('dsc_ph_clause'), jlLinks: dscPaperLinksHtml(k, _dsn.cid) }));
+    if (focus && typeof landOn === 'function') landOn('[data-dsc-paper] [data-dsc-focus]', { focus: false, block: 'center', tries: 4 });
     return;
   }
   const pk = _dsn.screen === 'new' && _dsn.pk;
@@ -1491,7 +1555,10 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
     if ((el = t.closest('[data-dsn-clause]'))){ stop(e); const r = dsnRun(_dsn.run); if (r) dscLand(r.askIds[0], el.getAttribute('data-dsn-clause'), false); return; }
     if ((el = t.closest('[data-dsn-ck]'))){ stop(e); const r = dsnRun(_dsn.run);
       if (r && !el.disabled && typeof askColCheck === 'function') Promise.resolve(askColCheck(r.askIds[0], el.getAttribute('data-dsn-ck'))).catch(() => {}).then(() => renderReads()); return; }
-    if ((el = t.closest('[data-dsn-row]'))){ stop(e); const id = el.getAttribute('data-dsn-row'); if (_dsn.cid !== id){ _dsn.cid = id; renderReads(); } return; }
+    if ((el = t.closest('[data-dsn-row]'))){ stop(e); const id = el.getAttribute('data-dsn-row');
+      /* an answer pressed lands on its own place on the paper; the row elsewhere shows them all from the top */
+      const q = t.closest('[data-dsn-q]'), f = q ? q.getAttribute('data-dsn-q') : null;
+      if (_dsn.cid !== id || (_dsn.focusAsk || null) !== f){ _dsn.cid = id; _dsn.focusAsk = f; renderReads(); } return; }
     if (t.closest('[data-dsn-copy]')){ stop(e); const r = dsnRun(_dsn.run), S = r && dsnResultsShown(r); if (S && typeof askColCopyMany === 'function') askColCopyMany(r.askIds, S.list.map(x => x.id)); return; }
     /* Delete question asks first (askColDelete's own confirm) and cannot be undone; the list of reads is read again after */
     if ((el = t.closest('[data-dsn-del]'))){ stop(e); const r = dsnRun(el.getAttribute('data-dsn-del'));
@@ -1756,4 +1823,4 @@ function readsCss(){ return `
   #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+Object.assign(window, { dscLocate, dscPaperAllHtml, dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
