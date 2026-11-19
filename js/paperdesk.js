@@ -3373,10 +3373,13 @@ function pdPeopleOpen(id, from){
     host.innerHTML = (pdPeopleItems(live()).length ? '' : `<p class="pt-none">${_pdE(_pdT('ppl_none'))}</p>`)
       + participantsDirHtml(live(), { editable: may, reached: true, auto: true, book: true, sel: _pdPplSel }); };
   const ref = (typeof contractRef === 'function') ? contractRef(c0) : c0.id;
-  openModal(`<div class="p-6 pd-ppl-dlg"><h3 class="font-serif font-600 text-lg text-ink">${_pdE(_pdT('ppl_title'))}</h3>
-      <p>${_pdE(ref + ' · ' + (c0.name || ''))}</p><div id="pd-ppl" class="ov-dir"></div>
-      <div class="flex justify-end gap-2 mt-4"><button type="button" class="ui-btn ui-btn-primary" data-pd-ppl-done>${_pdE(_pdT('og_done'))}</button></div></div>`,
-    { label: _pdT('ppl_title'), onClose: () => {
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): the people on this agreement inside the sheet's
+     frame (serif head, the list as quiet lines, Done the black button); a person's own lines open in place */
+  const sheet = (typeof lgpHtml === 'function') ? lgpHtml({ id: 'pd-ppl-form', title: _pdT('ppl_title'), sub: ref + ' · ' + (c0.name || ''),
+      html: `<div id="pd-ppl" class="ov-dir lgp-dir"></div>`, note: _pdT('pc_not_sent_short'), primary: { label: _pdT('og_done'), attr: 'data-pd-ppl-done' }, noCancel: true })
+    : `<div class="p-6 pd-ppl-dlg"><h3>${_pdE(_pdT('ppl_title'))}</h3><div id="pd-ppl" class="ov-dir"></div><button type="button" class="ui-btn ui-btn-primary" data-pd-ppl-done>${_pdE(_pdT('og_done'))}</button></div>`;
+  openModal(sheet,
+    { label: _pdT('ppl_title'), maxWidth: (typeof LGP_W !== 'undefined' ? LGP_W : '480px'), ownFrame: true, onClose: () => {
       _pdPplSel = '';
       /* the close lands back where it was pressed: Key terms in the middle, else the Dossier as it stands */
       setTimeout(() => { if (from === 'kt' && typeof pdKtMid === 'function') pdKtMid(String(id));

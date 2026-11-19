@@ -22137,6 +22137,9 @@
   .lgp-note{font-size:12.5px;color:var(--color-neutral-400);min-width:0}
   .lgp-left{border:0;background:none;padding:0 2px;font:inherit;font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   .lgp-left.is-danger{color:var(--danger)}
+  /* a list drawn by another builder inside the sheet (the people on an agreement) takes the sheet's quiet lines: no boxes */
+  .lgp .lgp-dir :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea){border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:transparent;box-shadow:none}
+  .lgp .lgp-dir{display:flex;flex-direction:column;gap:6px;padding-bottom:4px}
   /* NO GREEN RING ON A FIELD, ANYWHERE (owner, 16 Nov 2026, over the Notes box: "i have continuously stated that i do
      not want any green outlines in the entry fields across Hati. Fix this once and for all"). ONE RULE, LAST, every
      place a person types: no outline and no glow, pressed or keyed to — the caret says where you are. The house ring
