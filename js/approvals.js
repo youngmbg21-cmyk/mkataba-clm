@@ -1844,7 +1844,7 @@ function signerRouteWindow(c, plan, back){
     <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h" id="sr-h">${esc1(i18t('ap_signing_route'))}</h3>
       <p class="lgp-sub lgp-steps" id="sr-steps-say"></p>
       <p class="lgp-sub">${esc1([c.name||'', ref].filter(Boolean).join(' · '))}</p></div>
-      <button type="button" class="lgp-x" id="sr-x" aria-label="${esc1(i18t('lgp_close'))}">${ic('x','w-4 h-4')}</button></div>
+      <button type="button" class="lgp-x" id="sr-x" tabindex="-1" aria-label="${esc1(i18t('lgp_close'))}">${ic('x','w-4 h-4')}</button></div>
     <p class="lgp-small sr-line" id="sr-line">${esc1(i18t('ap_route_line'))}</p>
     ${dirList}
     <div class="sr-steps lgp-bd" id="sr-steps">${bodyHtml()}</div>
@@ -2080,6 +2080,10 @@ function signerRouteWindow(c, plan, back){
   });
 
   screenSync();
+  /* the keyboard lands on the route's first line, with no ring (NO RING AFTER A PRESS); never on the close cross */
+  const landFirst=()=>{ const f=q('[data-sp-edit], [data-sp-addfor], [data-sp-add]'); if(!f) return;
+    try{ (typeof fieldFocus==='function')?fieldFocus(f,{ focusVisible:false }):f.focus({ preventScroll:true, focusVisible:false }); }catch(_){} };
+  landFirst(); if(typeof requestAnimationFrame==='function') requestAnimationFrame(landFirst);
   document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
   q('#sr-x')?.addEventListener('click',()=>q('#sp-cancel')?.click());
   q('#sp-back')?.addEventListener('click',()=>{ const id=[...open][0]; openOnly(null); repaint(id?`[data-sp-edit="${id}"]`:'[data-sp-add="new"]'); });

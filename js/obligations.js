@@ -831,7 +831,7 @@ function openObligationForm(c, seed, opts){
     <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(seed._i!=null?(seed.desc||i18t('ob_edit_cap')):i18t('ob_add_go'))}</h3>
       <p class="lgp-sub lgp-steps" id="of-steps"><b>${E(i18t('of_step_duty'))}</b> · ${E(i18t('of_step_money'))}</p>
       <p class="lgp-sub">${E((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</p></div>
-      <button type="button" class="lgp-x" id="of-x" aria-label="${E(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
+      <button type="button" class="lgp-x" id="of-x" tabindex="-1" aria-label="${E(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
     <div class="lgp-bd">
     <div id="of-step-1">
       ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE: the field that decides it comes first, and the one it governs is
