@@ -97,43 +97,47 @@ function world(){
     proj);
   await page.screenshot({ path: path.join(OUT, '2-proposals.png') });
 
-  /* 6 · the row opens where it stands and each duty is answered on its own line */
-  await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
-  await until(page, () => !!document.querySelector('.obn-dr'));
-  const open = await page.evaluate(() => ({ duties: document.querySelectorAll('.obn-dr').length,
-    whose: document.querySelectorAll('.obn-dr [data-obn-whose]').length,
-    chosen: [...document.querySelectorAll('.obn-dr')].every(r => !!r.querySelector('.obn-wh.is-on')),
-    quote: !!document.querySelector('.obn-dr .obn-q i'), skip: !!document.querySelector('.obn-dr [data-obn-skip]'),
-    modal: !!document.querySelector('#modal-root #obd'), lg: !!document.querySelector('#ins-panel .obn-lg .obn-lg-it') }));
-  check('6 · the duties open under their agreement — three answers each, the words they rest on, no pop-up, and Jambo\'s panel turns to it the Legora way',
-    open.duties === 3 && open.whose === 12 && open.chosen   /* RE-POINTED 19 Nov 2026 (f1100): Undecided · Us · Theirs · Both sides, Undecided lit */ && open.quote && open.skip && !open.modal && open.lg, open);
+  /* 6–9 RE-POINTED 19 Nov 2026 (owner, with a picture: "the obligations are redundant as they are already in the side
+     panel. Delete them"; f1100): the duties no longer open under the row; a press chooses the agreement and its duties are
+     answered in Jambo's panel — Undecided · Us · Theirs · Both sides, Undecided lit */
+  await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
+  await until(page, () => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
+  const open = await page.evaluate(() => { const its = [...document.querySelectorAll('#ins-panel .obn-lg .obn-lg-it:not(.is-next)')];
+    return { duties: its.length, whose: its.reduce((n, i) => n + i.querySelectorAll('[data-obn-whose]').length, 0),
+      undecided: its.every(i => ((i.querySelector('.obn-lg-w.is-on') || {}).textContent || '') === 'Undecided'),
+      quote: its.every(i => !!i.querySelector('.obn-lg-q')), skip: its.every(i => !!i.querySelector('[data-obn-skip]')),
+      under: document.querySelectorAll('.obn-table [data-obn-whose], [data-obn-open]').length, modal: !!document.querySelector('#modal-root #obd') }; });
+  check('6 · a row pressed: its duties stand in Jambo\'s panel, four answers each with Undecided lit, the words they rest on, nothing under the row, no pop-up',
+    open.duties === 3 && open.whose === 12 && open.undecided && open.quote && open.skip && open.under === 0 && !open.modal, open);
   await page.screenshot({ path: path.join(OUT, '3-open.png') });
 
-  /* 7 · the chips decide whose job it is, and Add all adds them that way */
-  const cid = await page.evaluate(() => { const b = [...document.querySelectorAll('.obn-dr [data-obn-whose="them"]')][0]; const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
+  /* 7 · an answer paints the row's ring in its side's colour, and Add takes only what was decided */
+  const cid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
   await page.waitForTimeout(300);
-  await page.evaluate(id => { const b = document.querySelector(`[data-obn-addall="${id}"]`); if (b) b.click(); }, cid);
+  const ring = await page.evaluate(id => (((document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-ring`) || {}).getAttribute || (() => ''))
+    .call(document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-ring`), 'style') || ''), cid);
+  await page.evaluate(id => { const b = document.querySelector(`#ins-panel [data-obn-addall="${id}"]`); if (b) b.click(); }, cid);
   await page.waitForTimeout(900);
   const added = await page.evaluate(id => { const c = getContract(id); return { n: (c.obligations || []).length, parties: (c.obligations || []).map(o => o.party),
     left: obReviewWaiting(c).length, rows: document.querySelectorAll('.obn-pr').length }; }, cid);
-  /* RE-POINTED 19 Nov 2026 (owner: "There should be a first button that says undecided"; f1100): nothing starts decided, so
-     Add adds only the one duty the reader gave a side; the other two stay Undecided and the agreement stays on the list */
-  check('7 · Add adds only what the reader decided, the way the chips say; the undecided stay',
-    added.n === 1 && added.parties.join() === 'theirs' && added.left === 2 && added.rows === 3, added);
+  check('7 · "Theirs" paints the ring steel; Add adds only what the reader decided; the undecided stay',
+    /--st-steel-dot/.test(ring) && !/--st-amber-dot/.test(ring) && added.n === 1 && added.parties.join() === 'theirs' && added.left === 2 && added.rows === 3, { ring, added });
 
   /* 8 · a Skip is kept as the desk keeps it, and can be undone */
-  await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
-  await until(page, () => !!document.querySelector('.obn-dr'));
-  const sid = await page.evaluate(() => { const b = document.querySelector('[data-obn-skip]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
+  const sid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-skip]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
   await page.waitForTimeout(700);
-  const skipped = await page.evaluate(id => ({ skipped: ((getContract(id) || {}).obReview || {}).skipped || [], undo: !!document.querySelector('[data-obn-unskip]') }), sid);
+  await page.evaluate(() => { const t = document.querySelector('#ins-panel [data-obn-lgtab="done"]'); if (t) t.click(); });
+  await page.waitForTimeout(300);
+  const skipped = await page.evaluate(id => ({ skipped: ((getContract(id) || {}).obReview || {}).skipped || [], undo: !!document.querySelector('#ins-panel [data-obn-unskip]') }), sid);
   check('8 · a Skip is kept on the record and offers its undo', skipped.skipped.length === 1 && skipped.undo, skipped);
+  await page.evaluate(() => { const t = document.querySelector('#ins-panel [data-obn-lgtab="todo"]'); if (t) t.click(); });
+  await page.waitForTimeout(300);
 
-  /* 9 · nothing is saved until Add all: the chips alone write no obligation */
+  /* 9 · nothing is saved until Add: the answers alone write no obligation */
   const quiet = await page.evaluate(id => { const c = getContract(id); const before = (c.obligations || []).length;
-    const b = [...document.querySelectorAll(`.obn-dr [data-obn-whose="them"]`)][0]; if (b) b.click();
+    const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="us"]'); if (b) b.click();
     return { before, after: ((getContract(id) || {}).obligations || []).length }; }, sid);
-  check('9 · pressing an answer saves nothing until Add all is pressed', quiet.before === quiet.after, quiet);
+  check('9 · pressing an answer saves nothing until Add is pressed', quiet.before === quiet.after, quiet);
 
   /* 10 · the three screens: the head, the first row and the foot all stand inside the window */
   for (const [w, hgt] of [[1440, 780], [1536, 730], [1366, 950]]){
@@ -157,7 +161,6 @@ function world(){
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
   await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), 8000);
   /* the row step 8 opened is shut again, so 14 sees a second press open it */
-  await page.evaluate(() => { const b = document.querySelector('.obn-pill.is-on[data-obn-open]'); if (b) b.click(); });
   /* Open also chose that agreement (19 Nov 2026), so "‹ Overview" lets it go and the page is as landed */
   await page.evaluate(() => { if (document.querySelector('#ins-panel .obn-lg')){ const b = document.querySelector('#ins-panel [data-jl-home]'); if (b) b.click(); } });
   await page.waitForTimeout(400);
@@ -180,15 +183,14 @@ function world(){
     !!lg && lg.for === cid2 && lg.sel && lg.items >= 1 && lg.quoted && lg.answers && lg.mark && !lg.boxed && /^\u2039/.test(lg.tab) && !lg.open, lg);
   await page.screenshot({ path: path.join(OUT, '6-chosen.png') });
 
-  /* 14 · an answer in the panel is the list's own answer: the row pressed again opens its duties, lit the same way */
+  /* 14 RE-POINTED 19 Nov 2026 (f1100): an answer in the panel is the list's own answer — the row's ring takes its side's
+     colour (the duties no longer open under the row) */
   if (lg) await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); if (b) b.click(); });
   await page.waitForTimeout(300);
-  if (lg) await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] td.obn-c1`); if (r) r.click(); }, cid2);
-  const same = lg ? await until(page, () => !!document.querySelector('.obn-dr'), 5000) && await page.evaluate(() => {
-    const li = document.querySelector('.obn-dr .obn-wh.is-on'), pa = document.querySelector('#ins-panel .obn-lg .obn-lg-w.is-on');
-    return { list: li && li.getAttribute('data-obn-whose'), panel: pa && pa.getAttribute('data-obn-whose') }; }) : null;
-  check('14 · answered in the panel, the list says the same; the chosen row pressed again opens its duties',
-    !!same && same.list === 'them' && same.panel === 'them', same);
+  const same = lg ? await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-ring`), pa = document.querySelector('#ins-panel .obn-lg .obn-lg-w.is-on');
+    return { ring: /--st-steel-dot/.test((r && r.getAttribute('style')) || ''), panel: pa && pa.getAttribute('data-obn-whose'), under: !!document.querySelector('.obn-table [data-obn-whose]') }; }, cid2) : null;
+  check('14 · answered in the panel, the list says the same: the row\'s ring turns steel for Theirs, nothing unfolds under it',
+    !!same && same.ring && same.panel === 'them' && !same.under, same);
 
   /* 15 · "‹ Overview" lets the row go and the five parts come back */
   await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jl-home]'); if (b) b.click(); });

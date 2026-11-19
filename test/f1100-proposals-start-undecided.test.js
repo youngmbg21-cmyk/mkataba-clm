@@ -37,8 +37,6 @@ test('f1100 (1) every duty starts Undecided, whatever Jambo guessed; Undecided i
     assert.deepEqual(b.filter(x => x.classList.contains('is-on')).map(x => x.textContent), ['Undecided']);
     assert.equal(it.querySelector('.obn-lg-now'), null, 'no side named beside the duty until the reader picks one');
   }
-  const t = W.document.createElement('table'); t.innerHTML = W.obnDutyHtml(rows[0], FOUND[0], 0);
-  assert.equal(t.querySelector('.obn-wh.is-on').textContent, 'Undecided', 'the list says the same');
 });
 
 test('f1100 (2) nothing decided, nothing to add; Add takes only what the reader gave a side', () => {
@@ -56,4 +54,29 @@ test('f1100 (3) both books carry the words', () => {
   const i18 = read('js/i18n.js');
   for (const k of ['obd_undecided', 'obn_add_ready_one', 'obn_add_ready_other'])
     assert.equal((i18.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+});
+
+/* (4)–(5) the owner, 19 Nov 2026, with two pictures: "for these rings, differentiate the colors between us and theirs" and
+   "the obligations are redundant as they are already in the side panel. Delete them" */
+test('f1100 (4) the ring and the bar paint each decided duty in its side\'s colour: ours amber, theirs steel', () => {
+  const { W, c } = world();
+  c.obligations.push({ id: 'x', desc: FOUND[0].desc, party: 'theirs', status: 'open' });
+  W.obReviewMark(c, FOUND[0], 'added');
+  const all = FOUND.concat([{ desc: 'Return the pallets', quote: 'q' }]);
+  assert.deepEqual(Object.assign({}, W.obnSidesOf(c, all)), { us: 0, them: 1, both: 0, skip: 0 });
+  const sides = { us: 2, them: 1, both: 0, skip: 1 };
+  const d = W.document.createElement('div'); d.innerHTML = W.obnRingHtml(sides, 8) + W.obnBarHtml(sides, 8);
+  const bg = d.querySelector('.obn-ring').getAttribute('style');
+  assert.match(bg, /--st-amber-dot\) 0\.00% 25\.00%.*--st-steel-dot\) 25\.00% 37\.50%.*--st-gray-dot\) 37\.50% 50\.00%.*--color-neutral-100\) 50\.00% 100/);
+  assert.deepEqual([...d.querySelectorAll('.obn-bar2 i')].map(i => i.className), ['is-us', 'is-them', 'is-skip']);
+  assert.equal(d.querySelector('.obn-ring span').textContent, '4/8');
+});
+
+test('f1100 (5) the duties are answered in the panel only: no Open pill, no duty lines under the row', () => {
+  const { W } = world();
+  const rows = W.obnProjects();
+  const t = W.document.createElement('tbody'); t.innerHTML = W.obnProjRowHtml(rows[0]);
+  assert.equal(t.querySelectorAll('tr').length, 1);
+  assert.equal(t.querySelector('[data-obn-open]'), null);
+  assert.equal(typeof W.obnDutyHtml, 'undefined');
 });

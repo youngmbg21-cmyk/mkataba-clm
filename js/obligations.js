@@ -4722,7 +4722,7 @@ async function obligationChase(cid, obId, opts){
    built, so 300 duties and 30,000 paint the same. Behind the new-look switch; reads only but for the
    decisions, which go through the one writer (obAddFound). */
 let _obnTab = 'open', _obnQ = '', _obnWho = 'all', _obnState = 'open';
-let _obnPage = 1, _obnPropPage = 1, _obnPer = 20, _obnOpenAg = null;
+let _obnPage = 1, _obnPropPage = 1, _obnPer = 20;
 const OBN_PERS = [20, 50, 100];
 const _obnWhose = Object.create(null);   /* the reader's answer before it is added: cid::desc -> us|them|both */
 function obnRows(){
@@ -4843,8 +4843,8 @@ function obnProjects(){
     /* HOW FAR IT IS DECIDED: a duty counts once the reader has said whose job it is or skipped it.
        A skip is kept on the record; an answer stands for this sitting until Add all is pressed. */
     const rv = obReviewOf(c);
-    const answered = held.filter(o => obReviewDecision(c, o, rv) || _obnWhose[obnWhoseKey(c, o)]).length;
-    out.push({ c, found: held, tally: t, decided: answered, addable: t.left, ready: obnReadyOf(c, held, rv), late: late.get(c.id) || 0, at,
+    const answered = held.filter(o => obReviewDecision(c, o, rv) || obnWhoseNow(c, o) !== 'unsure').length;
+    out.push({ c, found: held, tally: t, decided: answered, addable: t.left, ready: obnReadyOf(c, held, rv), sides: obnSidesOf(c, held, rv), late: late.get(c.id) || 0, at,
       days: at ? Math.max(0, -(daysUntil(String(at).slice(0, 10)) || 0)) : null });
   });
   out.sort((a, b) => (b.days == null ? -1 : b.days) - (a.days == null ? -1 : a.days) || b.tally.left - a.tally.left);
@@ -4860,10 +4860,42 @@ function obnStatus(x){
   if(x.decided) return { tone: 'steel', word: i18tn('obn_st_left', x.tally.total - x.decided, { n: x.tally.total - x.decided }) };
   return { tone: 'gray', word: i18t('obn_st_new') };
 }
-/* the ring the drawing carries: a conic sweep of the stream's own tone, the count inside it */
-function obnRingHtml(done, total, tone){
-  const deg = total ? Math.round(360 * done / total) : 0;
-  return `<span class="obn-ring" style="--obr:${deg}deg;--obc:var(--st-${tone}-dot)" aria-hidden="true"><span>${done}/${total}</span></span>`;
+/* THE RING AND THE BAR SAY WHOSE (owner, 19 Nov 2026: "for these rings, differentiate the colors between us and theirs"):
+   each decided duty paints its side's colour, the colours of the We owe · They owe tags (ours amber, theirs steel, both
+   sides violet, skipped grey); what is still undecided stays the empty track */
+const OBN_SIDE_TONE = { us: 'amber', them: 'steel', both: 'violet', skip: 'gray' };
+function obnSidesOf(c, held, rv){
+  rv = rv || obReviewOf(c);
+  const out = { us: 0, them: 0, both: 0, skip: 0 };
+  const recs = (c && c.obligations) || [];
+  (held || []).forEach(o => {
+    const d = obReviewDecision(c, o, rv);
+    if(d === 'skipped'){ out.skip++; return; }
+    if(d){ const k = _obKey(o && o.desc), rec = recs.find(r => _obKey(r && r.desc) === k);
+      out[rec && rec.party === 'theirs' ? 'them' : 'us']++; return; }
+    const w = obnWhoseNow(c, o);
+    if(w !== 'unsure') out[w === 'them' ? 'them' : w === 'both' ? 'both' : 'us']++;
+  });
+  return out;
+}
+function obnSideParts(sides, total){
+  const parts = []; let at = 0;
+  ['us', 'them', 'both', 'skip'].forEach(k => { const n = (sides && sides[k]) || 0; if(!n || !total) return;
+    const from = at; at += n; parts.push({ k, n, from: 100 * from / total, to: 100 * at / total, tone: OBN_SIDE_TONE[k] }); });
+  return parts;
+}
+function obnSideSay(sides){
+  const w = { us: i18t('obd_us'), them: i18t('obd_theirs_btn'), both: i18t('obd_both'), skip: i18t('obd_skipped') };
+  return ['us', 'them', 'both', 'skip'].filter(k => sides && sides[k]).map(k => sides[k] + ' ' + w[k]).join(' \u00b7 ');
+}
+function obnRingHtml(sides, total){
+  const parts = obnSideParts(sides, total), done = parts.reduce((s, p) => s + p.n, 0);
+  const stops = parts.map(p => `var(--st-${p.tone}-dot) ${p.from.toFixed(2)}% ${p.to.toFixed(2)}%`)
+    .concat([`var(--color-neutral-100) ${(total ? 100 * done / total : 0).toFixed(2)}% 100%`]).join(',');
+  return `<span class="obn-ring" style="background:conic-gradient(${stops})" aria-hidden="true"><span>${done}/${total}</span></span>`;
+}
+function obnBarHtml(sides, total){
+  return `<span class="obn-bar2">${obnSideParts(sides, total).map(p => `<i class="is-${p.k}" style="width:${(p.to - p.from).toFixed(2)}%;background:var(--st-${p.tone}-dot)"></i>`).join('')}</span>`;
 }
 function obnWhoseKey(c, o){ return c.id + '::' + String((o && o.desc) || ''); }
 function obnWhoseNow(c, o){
@@ -4878,40 +4910,24 @@ function obnReadyOf(c, held, rv){
   rv = rv || obReviewOf(c);
   return (held || []).filter(o => !obReviewDecision(c, o, rv) && obnWhoseNow(c, o) !== 'unsure').length;
 }
-function obnDutyHtml(x, o, i){
-  const c = x.c, d = obReviewDecision(c, o), w = obnWhoseNow(c, o);
-  const sec = o.clause ? '§ ' + String(o.clause) : '';
-  const when = obWhenChip(o);
-  const may = (typeof canEdit !== 'function') || canEdit();
-  const chip = k => `<button type="button" class="obn-wh${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${_obEsc(c.id)}" data-i="${i}"${d || !may ? ' disabled' : ''}>${_obEsc(obWhoseBtn(k))}</button>`;
-  const said = d === 'added' ? `<span class="obn-dec is-ok">${_obEsc(i18t('obd_added'))}</span>`
-    : d === 'skipped' ? `<span class="obn-dec">${_obEsc(i18t('obd_skipped'))}</span> <button type="button" class="cal-nl-go" data-obn-unskip data-cid="${_obEsc(c.id)}" data-i="${i}">${_obEsc(i18t('obd_undo'))}</button>`
-    : d === 'already' ? `<span class="obn-dec">${_obEsc(i18t('ob_already_on'))}</span>` : '';
-  return `<tr class="obn-dr${d ? ' is-done' : ''}">
-    <td class="obn-c1 obn-dc" colspan="2"><div class="obn-dn">${_obEsc(String(i + 1) + '. ' + (o.desc || ''))}</div>
-      ${o.quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(o.quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}${when ? ` · <span>${_obEsc(when)}</span>` : ''}</div>` : `<div class="obn-sub">${_obEsc([sec, when].filter(Boolean).join(' · '))}</div>`}</td>
-    <td class="obn-dw" colspan="2">${said || (may ? chip('unsure') + chip('us') + chip('them') + chip('both') : '')}</td>
-    <td class="obn-act">${!d && may ? `<button type="button" class="cal-nl-go" data-obn-skip data-cid="${_obEsc(c.id)}" data-i="${i}">${_obEsc(i18t('obd_skip'))}</button>` : ''}</td></tr>`;
-}
 function obnProjRowHtml(x){
-  const c = x.c, open = _obnOpenAg === c.id, st = obnStatus(x), tone = obnStreamTone(c);
+  const c = x.c, st = obnStatus(x), tone = obnStreamTone(c);
   const may = (typeof canEdit !== 'function') || canEdit();
   const ref = window.refHtml ? refHtml(c) : _obEsc(c.id);
   const lateb = x.late ? `<span class="obn-ch is-ruby obn-lt">${_obEsc(i18tn('obn_n_late', x.late, { n: x.late }))}</span>` : '';
-  const acts = `<button type="button" class="obn-pill${open ? ' is-on' : ''}" data-obn-open="${_obEsc(c.id)}">${_obEsc(open ? i18t('obn_close_n') : i18tn('obn_open_n', x.tally.total, { n: x.tally.total }))}</button>`
-    + (may && x.ready ? `<button type="button" class="cal-nl-go obn-open" data-obn-addall="${_obEsc(c.id)}">${_obEsc(i18tn('obn_add_ready', x.ready, { n: x.ready }))}</button>` : '');
-  /* A PRESS CHOOSES, A SECOND OPENS (19 Nov 2026): the row is Jambo's panel's subject (obnLgHtml); pressed again its
-     duties open under it, as its Open pill does */
+  const acts = (may && x.ready ? `<button type="button" class="cal-nl-go obn-open" data-obn-addall="${_obEsc(c.id)}">${_obEsc(i18tn('obn_add_ready', x.ready, { n: x.ready }))}</button>` : '');
+  /* A PRESS CHOOSES (19 Nov 2026): the row is Jambo's panel's subject (obnLgHtml), where its duties are answered. THE
+     DUTIES NO LONGER OPEN UNDER THE ROW (owner, 19 Nov 2026: "the obligations are redundant as they are already in the side
+     panel. Delete them"): no Open pill, no duty lines in the list */
   const sel = _obnPick === c.id;
-  const head = `<tr class="obn-pr${open ? ' is-open' : ''}${sel ? ' is-sel' : ''}" data-obn-ag="${_obEsc(c.id)}" data-obn-pick="${_obEsc(c.id)}"${sel ? ' aria-current="true"' : ''}>
+  const head = `<tr class="obn-pr${sel ? ' is-sel' : ''}" data-obn-ag="${_obEsc(c.id)}" data-obn-pick="${_obEsc(c.id)}"${sel ? ' aria-current="true"' : ''}>
     <td class="obn-c1" style="box-shadow:inset 3px 0 0 var(--st-${tone}-dot)"><div class="obn-what">${_obEsc(c.name || c.id)}</div>
       <div class="obn-sub">${[ref, obnStreamHtml(c), lateb].filter(Boolean).join(' · ')}</div></td>
     <td class="obn-pt">${_obEsc(c.counterparty || '—')}</td>
-    <td class="obn-pg2"><span class="obn-pgw">${obnRingHtml(x.decided, x.tally.total, tone)}<span class="obn-pgb"><span class="obn-bar2"><i style="width:${x.tally.total ? Math.round(100 * x.decided / x.tally.total) : 0}%;background:var(--st-${tone}-dot)"></i></span><small>${_obEsc(i18t('obn_decided_of', { n: x.decided, m: x.tally.total }))}</small></span></span></td>
+    <td class="obn-pg2"><span class="obn-pgw" title="${_obEsc(obnSideSay(x.sides))}">${obnRingHtml(x.sides, x.tally.total)}<span class="obn-pgb">${obnBarHtml(x.sides, x.tally.total)}<small>${_obEsc(i18t('obn_decided_of', { n: x.decided, m: x.tally.total }))}</small></span></span></td>
     <td class="obn-stt"><span class="obn-ch is-${st.tone}">${_obEsc(st.word)}</span></td>
     <td class="obn-act">${acts}</td></tr>`;
-  if(!open) return head;
-  return head + x.found.map((o, i) => obnDutyHtml(x, o, i)).join('');
+  return head;
 }
 /* ---- JAMBO'S PANEL ON PROPOSALS (owner, 19 Nov 2026: "when you land on the page it should be five parts. When you press
    a row it should be legora way") ----
@@ -4965,7 +4981,7 @@ function obnLgHtml(x, rows){
       : y.d === 'skipped' ? `<span class="obn-lg-said">${E(i18t('obd_skipped'))}</span><button type="button" class="obn-lg-link" data-obn-unskip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_undo'))}</button>`
       : y.d === 'already' ? `<span class="obn-lg-said">${E(i18t('ob_already_on'))}</span>` : '';
     const line = said || (may ? `${whose('unsure')}${whose('us')}${whose('them')}${whose('both')}<button type="button" class="obn-lg-link is-skip" data-obn-skip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_skip'))}</button>` : '');
-    return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${!y.d && w !== 'unsure' ? `<span class="obn-lg-now">${E(obWhoseBtn(w))}</span>` : ''}</div>`
+    return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${!y.d && w !== 'unsure' ? `<span class="obn-lg-now is-${E(w)}">${E(obWhoseBtn(w))}</span>` : ''}</div>`
       + `${o.quote ? `<p class="obn-lg-q">\u201c${obnQuoteHtml(o.quote)}\u201d</p>` : ''}`
       + `${sec || when ? `<p class="obn-lg-src">${E([sec, when].filter(Boolean).join(' \u00b7 '))}</p>` : ''}`
       + `${line ? `<div class="obn-lg-ans">${line}</div>` : ''}</div>`;
@@ -5373,12 +5389,6 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     if(pg){ e.preventDefault(); const n = Number(pg.getAttribute('data-obn-page')) || 1;
       if(_obnTab === 'prop') _obnPropPage = Math.max(1, n); else _obnPage = Math.max(1, n);
       obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; const sl = document.getElementById('obn-list'); if(sl) sl.scrollTop = 0; return; }
-    const op = t.closest('[data-obn-open]');
-    /* OPEN CHOOSES TOO (owner, 19 Nov 2026: "you have not added the row press the legora way" — the row's Open unfolded
-       the duties and left the panel on the overview): opening an agreement makes it the panel's subject, the Legora way */
-    if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id;
-      if(_obnOpenAg === id && _obnPick !== id){ _obnPick = id; _obnLgTab = 'todo'; }
-      obnRepaint(); return; }
     const wh = t.closest('[data-obn-whose]');
     if(wh){ e.preventDefault(); const hit = obnFindOf(wh.getAttribute('data-cid'), wh.getAttribute('data-i'));
       if(hit) _obnWhose[obnWhoseKey(hit.c, hit.o)] = wh.getAttribute('data-obn-whose');
@@ -5413,7 +5423,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     const lt = t.closest('[data-obn-lgtab]');
     if(lt){ e.preventDefault(); _obnLgTab = lt.getAttribute('data-obn-lgtab'); obnRepaint(); return; }
     const po = t.closest('[data-obn-pickopen]');
-    if(po){ e.preventDefault(); const id = po.getAttribute('data-obn-pickopen'); _obnPick = id; _obnOpenAg = id; _obnLgTab = 'todo'; obnRepaint();
+    if(po){ e.preventDefault(); const id = po.getAttribute('data-obn-pickopen'); _obnPick = id; _obnLgTab = 'todo'; obnRepaint();
       const r = document.querySelector(`.obn-page [data-obn-ag="${(window.CSS && CSS.escape) ? CSS.escape(id) : id}"]`); if(r && r.scrollIntoView) r.scrollIntoView({ block: 'nearest' }); return; }
     if(t.closest('[data-obn-look]')){ e.preventDefault(); obwAddOpen('find'); return; }
     const ask = t.closest('[data-obn-ask]');
@@ -5423,9 +5433,8 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
       return; }
     const pk = t.closest('[data-obn-pick]');
     if(pk && !t.closest('button:not([data-obn-pick])')){ e.preventDefault(); const id = pk.getAttribute('data-obn-pick');
-      if(pk.tagName === 'TR' && _obnPick === id){ _obnOpenAg = _obnOpenAg === id ? null : id; }
-      else { _obnPick = id; _obnLgTab = 'todo'; }
-      obnRepaint(); return; }
+      if(_obnPick !== id){ _obnPick = id; _obnLgTab = 'todo'; obnRepaint(); }
+      return; }
     const pp = t.closest('[data-obn-paper]'); if(pp){ e.preventDefault(); if(typeof roomHomeLand === 'function') roomHomeLand(pp.getAttribute('data-obn-paper')); return; }
     const go = t.closest('[data-obn-go]'); if(!go) return;
     e.preventDefault(); e.stopPropagation();
@@ -5443,7 +5452,7 @@ Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obD
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   obwWeekShut,obWeekFolds,OBW_DEC_KEY,obwDecisions,obwFinds,obwFindRows,obPossessive,obwFindsRowHtml,obwRowPrivate,obWeekSub,obWeekOneWho,obWeekMoneyHtml,obwRowAvHtml,obwLine2,obwRowActHtml,obwWeekRowHtml,obwRowAct,
-  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnReadyOf,obnRowHtml,obnTabOf,obnRows,
+  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnBarHtml,obnSidesOf,obnSideParts,obnSideSay,OBN_SIDE_TONE,obnWhoseNow,obnReadyOf,obnRowHtml,obnTabOf,obnRows,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,

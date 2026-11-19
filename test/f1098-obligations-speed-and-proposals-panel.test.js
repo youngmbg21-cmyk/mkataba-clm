@@ -61,8 +61,7 @@ test('f1098 (2) Proposals has no Found column, and a duty row spans the columns 
   const cols = src.slice(i, src.indexOf('const seat', i));
   assert.doesNotMatch(cols, /'found'|obn_col_found/, 'Found is gone');
   assert.match(cols, /k: 'side'.*k: 'prog'.*k: 'status'.*k: 'acts'/s);
-  const duty = src.slice(src.indexOf('function obnDutyHtml('), src.indexOf('function obnProjRowHtml('));
-  assert.match(duty, /colspan="2"[\s\S]*colspan="2"/, 'two and two and one: the five columns, never six');
+  /* RE-POINTED 19 Nov 2026 (f1100): the duty rows under an agreement are gone (owner: "redundant … Delete them") */
   assert.doesNotMatch(src.slice(src.indexOf('function obnProjRowHtml('), src.indexOf('let _obnPick')), /obn-age/, 'no age cell');
 });
 
@@ -93,7 +92,7 @@ test('f1098 (4) a row pressed: the Legora way, answered in the row, Us · Theirs
   assert.equal(d.querySelector('[data-obn-addall]'), null, 'nothing decided yet, nothing to add (f1100)');
   /* every whose-job button reads the one word-giver */
   const src = strip(read('js/obligations.js'));
-  assert.equal((src.match(/obWhoseBtn\(/g) || []).length >= 5, true, 'the desk, the list, the panel and its word');
+  assert.equal((src.match(/obWhoseBtn\(/g) || []).length >= 4, true, 'the desk, the panel and its word (the list\'s duty rows went, f1100)');
   assert.doesNotMatch(src, />\$\{_obEsc\(obWhoseWord\(c, k\)\)\}<\/button>/, 'no button reads the name-giver');
 });
 
@@ -103,12 +102,8 @@ test('f1098 (5) both books carry the words', () => {
     assert.equal((src.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books');
 });
 
-test('f1098 (6) Open chooses too: opening an agreement makes it the panel\'s subject, the Legora way', () => {
-  const src = strip(read('js/obligations.js'));
-  const i = src.indexOf("const op = t.closest('[data-obn-open]');"); assert.ok(i >= 0);
-  const h = src.slice(i, src.indexOf('return; }', i) + 9);
-  assert.match(h, /_obnOpenAg === id && _obnPick !== id\)\{ _obnPick = id;/);
-});
+/* RETIRED 19 Nov 2026 (f1100): f1098 (6) "Open chooses too" — the Open pill and the duty rows it unfolded are gone
+   (owner: "the obligations are redundant as they are already in the side panel. Delete them"); a row press chooses */
 
 test('f1098 (7) a tile that holds words takes the smaller size and wraps inside its card (owner: "Every month" ran out of its tile)', () => {
   const { W } = world();

@@ -108,16 +108,17 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: !!r.querySelector('.obn-ring'), bar: !!r.querySelector('.obn-bar2 i'),
       said: (r.querySelector('.obn-pgb small') || {}).textContent, status: (r.querySelector('.obn-stt .obn-ch') || {}).textContent,
       open: (r.querySelector('[data-obn-open]') || {}).innerText, add: (r.querySelector('[data-obn-addall]') || {}).innerText } : null; }) : null;
-    await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
-    await until(page, () => !!document.querySelector('.obn-dr'), null, 5000);
-    const duty = await page.evaluate(() => { const r = document.querySelector('.obn-dr'); return r ? { whose: r.querySelectorAll('[data-obn-whose]').length,
-      on: !!r.querySelector('.obn-wh.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-q i') } : null; });
+    /* RE-POINTED 19 Nov 2026 (f1100): the duties no longer open under the row; a press chooses it and they stand in the panel */
+    await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
+    await until(page, () => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'), null, 5000);
+    const duty = await page.evaluate(() => { const r = document.querySelector('#ins-panel .obn-lg .obn-lg-it'); return r ? { whose: r.querySelectorAll('[data-obn-whose]').length,
+      on: !!r.querySelector('.obn-lg-w.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-lg-q') } : null; });
     /* RE-POINTED 19 Nov 2026: Open makes the agreement the panel's subject, the Legora way (owner: "the row press the legora way") */
     const side = await page.evaluate(() => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
     await shot('4-proposals');
     check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel turns to that agreement the Legora way',
       /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column") */
-      up && heads.length === 4 && !heads.includes('Found') && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && /^open/i.test(pr.open || '')
+      up && heads.length === 4 && !heads.includes('Found') && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && !pr.open
       && !pr.add && !!duty && duty.whose === 4 && duty.on   /* RE-POINTED 19 Nov 2026 (f1100): Undecided lit first, nothing decided, nothing to add */ && duty.skip && side, { heads, pr, duty, side });
   } catch (e) { check('4 Proposals', false, String(e).slice(0, 200)); }
 
