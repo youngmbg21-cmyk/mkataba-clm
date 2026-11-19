@@ -169,7 +169,7 @@ function dsPaint(opts) {
      control and step the one stored preference. */
   if (window.redlineLayoutCss) redlineLayoutCss();
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const b = _ds.b;
   const design = docDesignById(b.designId) || DOC_DESIGNS[0];
   const structure = docStructureById(b.structureId) || DOC_STRUCTURES[0];
@@ -329,7 +329,7 @@ function dsPaint(opts) {
         <input type="color" id="ds-accent" value="${accentNow}" aria-label="${i18t('ds_choose_colour')}"
           style="width:30px;height:28px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px;background:var(--color-surface);cursor:pointer">
         <input id="ds-accent-hex" value="${esc((rawPick || accentNow).toUpperCase())}" maxlength="7" spellcheck="false" aria-label="${i18t('ds_brand_hex')}"
-          style="width:92px;font-family:var(--font-code);border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-text);border-radius:var(--radius);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+          style="width:92px;font-family:var(--font-code);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);color:var(--color-text);border-radius:var(--fld-r);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
       </div>
       ${!design.usesAccent ? `<div style="font-size:var(--t-label);line-height:1.5;margin-top:var(--s-2);padding:6px var(--s-2);border-radius:var(--radius);
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">

@@ -933,6 +933,7 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - Node: f1070, f977, f997, f354, f148, f937, f938, f964, f965, f232, f48.
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS (19 Nov 2026)
+- EVERY ENTRY FIELD IS OPEN (19 Nov 2026): test/f1110-every-entry-field-is-open.test.js (new; renumbered: main took f1108; red at unmodified main 1–6): the --fld-* tokens on :root; ONE closing rule from them, its boxes left out, before the panel-head rule (f1107 last); no <input>/<select>/<textarea> or field-sized style in js/ writes "border:1px solid"; .sap-f, Settings labels and the event put the label beside the words; Who pays whom pills, the request form through payWhoHtml; owed hint amber; CLAUDE.md says built. Browser: test/chromium/every-field-open-verify.js (new; red at the parent 1, 2, 3): eight places at the three screens — no visible field with an edge or fill, Who pays whom pills, label beside the words, ONE line under a Send row, nothing sideways. Re-pointed: f156 (the reviewer field wears the house field look, read from --fld-*), f386 [wall] (HATI_FLD reads --fld-edge/--fld-under; --field-line stays the boxes' edge).
 - f1086 (2) re-pointed: a pressed field keeps a thin light grey edge (--color-neutral-300), never the ink; red at the parent.
 
 ## THE POP-UPS, THE SAP WAY (19 Nov 2026, the one edit pop-up)

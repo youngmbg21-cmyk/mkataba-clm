@@ -151,7 +151,7 @@ function renderAllowancePanel(a){
 function renderRateTable(rates, meta){
   const host=document.getElementById('ai-rates-table'); if(!host) return;
   const models=Object.keys(rates||{}).sort((a,b)=>a==='default'?1:b==='default'?-1:a.localeCompare(b));
-  const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:var(--t-label);text-align:right;outline:none';
+  const inp='width:74px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:var(--t-label);text-align:right;outline:none';
   host.innerHTML=models.map(m=>`
     <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:var(--s-2);padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="flex:1;min-width:0;font-size:var(--t-label);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
@@ -256,7 +256,7 @@ function settingsPaintShapeBoxes(){
 /* Shared inline tokens. They were declared inside renderTeam(), which meant
    every drawer body that wanted a field had to restate them; one copy is one
    place a control's clothes are decided. */
-const ST_INPUT='width:100%;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
+const ST_INPUT='width:100%;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
 const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px var(--s-2);font-family:var(--font-mono);font-size:var(--t-label);color:inherit;outline:none';
 const ST_BTN='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-body);padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer;white-space:nowrap';
 const ST_BTN_SM='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px var(--s-3);background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer';
@@ -9721,7 +9721,7 @@ function openPlaybookEditor(key, opts={}){
   const e=pb[key]; e.positions=e.positions||[]; e.ranges=e.ranges||[]; e.match=e.match||[];
   const inherited=(!isBase)?resolvePlaybook('_default'):null;
   const POS=[['required',i18t('set_pos_required')],['preferred',i18t('set_pos_preferred')],['forbidden',i18t('set_pos_forbidden')]];
-  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px var(--s-2);font:inherit;font-size:var(--t-body);color:inherit;outline:none';
+  const inp='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:6px var(--s-2);font:inherit;font-size:var(--t-body);color:inherit;outline:none';
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;margin:0 0 var(--s-3)">${isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:PB_ESC(e.label||key)})}</h3>
     <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:3px">${isBase?i18t('set_name'):i18t('set_type_name')}</span>
@@ -9748,7 +9748,7 @@ function openPlaybookEditor(key, opts={}){
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         <span style="display:inline-flex;gap:3px">${seg(i)}</span>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
         <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
@@ -9756,9 +9756,9 @@ function openPlaybookEditor(key, opts={}){
     const rl=document.getElementById('pb-rng-list');
     rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;cursor:pointer;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
-        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <select data-pb-rop="${i}" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;cursor:pointer;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
+        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
         <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
       </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;

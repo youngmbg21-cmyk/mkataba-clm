@@ -70,7 +70,7 @@ const advicePortalShell = inner => `
 /* ---------- intake ---------- */
 function renderAdviceIntake(){
   const root=document.getElementById('share-root');
-  const inputStyle='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none';
+  const inputStyle='width:100%;min-height:36px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:7px 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none';
   const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
   const svcCard=s=>{
     const r=adviceRateFor(s.id);
@@ -156,7 +156,7 @@ function renderAdviceIntake(){
       <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:14px">
         <div style="display:flex;align-items:center;gap:6px;color:var(--st-green-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${icon('check2','w-4 h-4')} Request ${pesc(req.id)} submitted</div>
         <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(req.eta)}</strong>${i18t('apo_follow_stage')}</p>
-        <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
+        <textarea id="ap-link" readonly rows="2" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-2);margin-top:var(--s-2)">
           <button id="ap-copy" class="ui-btn">${icon('copy','w-3 h-3')} ${i18t('po_copy_link')}</button>
           <button id="ap-open" class="ui-btn ui-btn-primary">${i18t('apo_open_tracking')}</button>

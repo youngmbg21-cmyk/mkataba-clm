@@ -620,7 +620,7 @@ function participantsClaim(c){
    cannot reach the contract is said on THEIR row, where the act is. */
 const _ptEsc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const PT_IN = 'min-width:0;width:100%;box-sizing:border-box;border:1px solid var(--color-neutral-300,#CBD3D0);background:var(--color-surface,#fff);border-radius:var(--radius);padding:4px 7px;font:inherit;font-size:var(--t-meta);outline:none';
+const PT_IN = 'min-width:0;width:100%;box-sizing:border-box;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:4px 7px;font:inherit;font-size:var(--t-meta);outline:none';
 function participantRoleOptions(sel){
   let out = '', side = '';
   PARTY_ROLES.forEach(r => {

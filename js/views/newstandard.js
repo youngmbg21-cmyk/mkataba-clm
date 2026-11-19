@@ -46,7 +46,7 @@ const NS_GATED = ['scratch', 'template'];
 
 const NS_TITLE = 'font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1)';
 const NS_LEAD = 'margin:0 0 16px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.55';
-const NS_FLD = 'width:100%;box-sizing:border-box;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+const NS_FLD = 'width:100%;box-sizing:border-box;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
 
 /* The dialog's own few rules, emitted once. Every value is a token. */
 function nsStyle() {

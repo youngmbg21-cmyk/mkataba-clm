@@ -181,7 +181,7 @@ function wireAdviceBoard(){
   document.getElementById('adv-link')?.addEventListener('click',async()=>{
     const link=adviceIntakeLink();
     try{ await navigator.clipboard.writeText(link); toast(i18t('adv_intake_copied'),'ok'); }
-    catch(e){ openModal(`<div style="padding:22px var(--s-6)"><h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-2)">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:var(--s-3);text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
+    catch(e){ openModal(`<div style="padding:22px var(--s-6)"><h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-2)">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:var(--s-3);text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
   });
 }
 
@@ -203,7 +203,7 @@ function openAdviceModal(id){
       <div style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
     </div>`).join('')||`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
   const members=getUsers().filter(u=>u.role!=='viewer');
-  const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
+  const selStyle='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
   openModal(`
     <div style="padding:22px var(--s-6)">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
@@ -273,7 +273,7 @@ function openAdviceModal(id){
 /* ---------- rate card (published fees; admin edits, everyone reads) ---------- */
 function openRateCardModal(){
   const editable=isAdmin();
-  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:1px solid var(--color-divider);background:${editable?'var(--color-surface)':'var(--color-bg)'};border-radius:var(--radius);font-family:var(--font-mono);color:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`;
+  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-mono);color:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`;
   const rows=Object.values(ADVICE_SERVICES).map(s=>{
     const r=adviceRateFor(s.id);
     return `<tr style="border-bottom:1px solid var(--color-divider)">
@@ -319,7 +319,7 @@ function openRateCardModal(){
 
 /* ---------- internal intake (log a request on a customer's behalf) ---------- */
 function openAdviceIntakeModal(){
-  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);color:inherit;outline:none';
+  const inputStyle='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:7px 10px;font:inherit;font-size:var(--t-body);color:inherit;outline:none';
   const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
   openModal(`
     <div style="padding:22px var(--s-6)">

@@ -232,7 +232,7 @@ function cohortAmendAsk(list){
       <p style="margin:0 0 var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55">${_coEsc(i18tn('co_h_amend_sub',n,{n}))}</p>
       <label class="block mb-3"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${_coEsc(i18t('co_h_amend_says'))}</span>
         <textarea id="co-h-says" rows="4" placeholder="${_coEsc(i18t('co_h_amend_ph'))}"
-          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;font-size:var(--t-body);border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:inherit;padding:9px 11px;resize:vertical"></textarea></label>
+          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;font-size:var(--t-body);border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background:var(--fld-bg);color:inherit;padding:9px 11px;resize:vertical"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button data-dlg-cancel id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
         <button id="co-h-go" class="ui-btn ui-btn-primary">${_coEsc(i18tn('co_h_amend_go',n,{n}))}</button>
@@ -275,10 +275,10 @@ function cohortAskDocAsk(list){
       <p style="margin:0 0 var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55">${_coEsc(i18tn('co_h_askdoc_sub',n,{n}))}</p>
       <label class="block mb-3"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${_coEsc(i18t('co_h_askdoc_what'))}</span>
         <input id="co-h-doc" type="text" placeholder="${_coEsc(i18t('co_h_askdoc_ph'))}"
-          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
+          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background:var(--fld-bg);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label class="block mb-3"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${_coEsc(i18t('co_h_askdoc_by'))}</span>
         <input id="co-h-due" type="date"
-          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
+          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background:var(--fld-bg);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button data-dlg-cancel id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
         <button id="co-h-go" class="ui-btn ui-btn-primary">${_coEsc(i18tn('co_h_askdoc_go',n,{n}))}</button>

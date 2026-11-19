@@ -82,7 +82,7 @@ function openSignaturePad(opts={}){
           </div>
           <!-- TYPE -->
           <div data-sig-pane="type" style="display:none">
-            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('si_type_full_name')}" style="width:100%;min-height:38px;border:1px solid ${C};background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) var(--s-3);font-size:var(--t-card);color:${TXT};outline:none;margin-bottom:10px"/>
+            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('si_type_full_name')}" style="width:100%;min-height:38px;border:var(--fld-edge);border-bottom:1px solid ${C};background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--s-2) var(--s-3);font-size:var(--t-card);color:${TXT};outline:none;margin-bottom:10px"/>
             <div id="sig-type-preview" style="height:${SIG_H*0.55}px;border:1.5px dashed ${C};border-radius:var(--radius);background:var(--color-bg);display:grid;place-items:center;overflow:hidden"></div>
             <div id="sig-style-pick" style="display:flex;gap:var(--s-2);margin-top:10px;flex-wrap:wrap"></div>
           </div>

@@ -69,7 +69,7 @@ function renderFolder(){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:var(--radius);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:var(--fld-edge);border-bottom:var(--fld-under);background-color:var(--fld-bg);border-radius:var(--fld-r);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
@@ -92,7 +92,7 @@ function renderFolder(){
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x) 0 30px;font-size:var(--field-size)">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x) 0 30px;font-size:var(--field-size)">
         </div>
       </div>
 
@@ -4173,7 +4173,7 @@ function renderRegister(opts){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:var(--radius);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:var(--fld-edge);border-bottom:var(--fld-under);background-color:var(--fld-bg);border-radius:var(--fld-r);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and quick filters used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
