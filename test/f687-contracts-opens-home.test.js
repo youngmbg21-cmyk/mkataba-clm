@@ -138,13 +138,16 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
      the title row as before, and under its line the list head's rows — the
      box to search or ask in, the views as tabs, "+ Filter" — in the list
      head's own card. No labelled box, no Adapt filters, no stage tabs. */
-  test('2a the head: the name, the facts line and List | Wall; under its line the box, the views as tabs and + Filter', () => {
+  test('2a the head: the name and List | Wall (no facts line); under its line the box, the views as tabs and + Filter', () => {
     const { win, doc } = world();
     const head = doc.querySelector('[data-reg-home] .ct-head');
     assert.ok(head, 'the one head');
     assert.equal(head.getAttribute('data-lh-seat'), 'contracts', 'the list head\'s own card');
     assert.equal(head.querySelector('.ct-h').textContent, 'Contracts');
-    assert.ok(head.querySelector('#reg-head-facts'), 'the facts line\'s slot');
+    /* RE-POINTED 19 Nov 2026 (owner: "delete the words beside the header name because they are pushing the buttons to the
+       right"): no facts line beside the name; List | Wall and New agreement are one group */
+    assert.equal(head.querySelector('#reg-head-facts'), null, 'no facts line beside the name');
+    assert.ok(head.querySelector('.ct-top .ct-acts .ct-seg'), 'List | Wall inside the one group');
     const top = head.querySelector('.ct-top');
     assert.equal(top.querySelectorAll('select').length, 0, 'no filter box on the first row');
     /* RE-POINTED 21 Oct 2026 (owner: "the list needs to come before the wall") */
