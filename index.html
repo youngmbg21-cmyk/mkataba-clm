@@ -12878,6 +12878,10 @@
   /* one pop-up taking another's place does not arrive again: the frame was already standing (core.js openModal,
      the flash survey, 13 Nov 2026). Stated after the rule above at equal weight plus the attribute. */
   .modal-in[data-dlg-kept]{animation:none;}
+  /* A PAGE ARRIVES WHOLE (owner, 19 Nov 2026: "it flashed the contracts first then goes to cover"): a pop-up that IS a
+     page (the Cover, the brief, a page in the middle, the Send screen) covers the page under it from its first frame.
+     Faded up from nothing over .2s, the page under it showed through, and read as that page flashing first. */
+  .modal-in[data-dlg-page]{animation:none;}
   /* The right-docked panel arrives FROM the right, so the movement says where
      it came from and that the page underneath was never replaced. */
   .side-panel-in{animation:sidePanelIn .22s cubic-bezier(.22,.61,.36,1);}
@@ -19851,8 +19855,41 @@
   html.lg-new .obn-bar2 i{display:block;height:100%}
   html.lg-new .obn-pgb small{display:block;font-size:11.5px;color:var(--color-quiet);margin-top:4px;white-space:nowrap}
   html.lg-new .obn-table.is-proj td{vertical-align:middle}
-  html.lg-new .obn-table.is-proj td.obn-pt,html.lg-new .obn-table.is-proj td.obn-age{font-size:12.5px}
+  html.lg-new .obn-table.is-proj td.obn-pt{font-size:12.5px}
   html.lg-new .obn-table .obn-pr.is-open td{background:var(--color-chat-bg)}
+  /* A ROW PRESSED IS CHOSEN (19 Nov 2026): one band, as every list's chosen row; the hand says a press does something */
+  html.lg-new .obn-table .obn-pr{cursor:pointer}
+  html.lg-new .obn-table .obn-pr.is-sel td{background:var(--surface-2)}
+  html.lg-new .obn-table .obn-pr.is-sel .obn-ch,html.lg-new .obn-table .obn-pr.is-sel .obn-open{background:var(--color-surface)}
+  html.lg-new .obn-table.is-proj td.obn-pt{overflow-wrap:anywhere}
+  /* PROPOSALS' PANEL, A ROW PRESSED, THE LEGORA WAY (owner, 19 Nov 2026): nothing boxed, one quiet list, the duty's own
+     words quoted with its time limit marked, each answered in its row, the tabs and chips the drawing carries */
+  html.lg-new .obn-lg{display:flex;flex-direction:column;gap:0;padding:16px}
+  html.lg-new .obn-lg-top{display:grid;gap:2px;padding-bottom:10px}
+  html.lg-new .obn-lg-top b{font-size:16px;font-weight:var(--w-label);color:var(--color-text);line-height:1.3}
+  html.lg-new .obn-lg-top span{font-size:13px;color:var(--color-quiet)}
+  html.lg-new .obn-lg-tabs{display:flex;gap:16px;border-bottom:1px solid var(--color-divider);margin-bottom:2px}
+  html.lg-new .obn-lg-tab{border:0;background:none;padding:6px 0;margin-bottom:-1px;font:inherit;font-size:13px;color:var(--color-quiet);border-bottom:2px solid transparent;cursor:pointer}
+  html.lg-new .obn-lg-tab.is-on{color:var(--color-text);border-bottom-color:var(--color-text)}
+  html.lg-new .obn-lg-it{display:grid;gap:4px;padding:11px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .obn-lg-l{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  html.lg-new .obn-lg-l b{font-size:14px;font-weight:var(--w-label);color:var(--color-text);min-width:0}
+  html.lg-new .obn-lg-now{flex:none;font-size:13px;color:var(--accent-ink);white-space:nowrap}
+  html.lg-new .obn-lg-q{margin:0;font-family:var(--font-doc);font-size:13.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .obn-lg-q mark{padding:0 2px;border-radius:3px;background:var(--hl-yes);color:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  html.lg-new .obn-lg-src{margin:0;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .obn-lg-ans{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
+  html.lg-new .obn-lg-w{height:26px;padding:0 10px;border:0;border-radius:999px;background:var(--color-neutral-100);font:inherit;font-size:12.5px;color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new .obn-lg-w.is-on{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .obn-lg-link{border:0;background:none;padding:0 4px;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .obn-lg-link.is-skip{margin-left:auto}
+  html.lg-new .obn-lg-said{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .obn-lg-said.is-ok{color:var(--color-text)}
+  html.lg-new .obn-lg-it.is-next{border-bottom:0}
+  html.lg-new .obn-lg-next{flex:none;height:26px;padding:0 12px;border:0;border-radius:999px;background:var(--bar-black);color:var(--color-surface);font:inherit;font-size:12.5px;cursor:pointer}
+  html.lg-new .obn-lg-none{margin:12px 0;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .obn-lg-chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:12px}
+  html.lg-new .obn-lg-chip{height:28px;padding:0 12px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12.5px;color:var(--color-text);white-space:nowrap;cursor:pointer}
   /* A DUTY UNDERNEATH ITS AGREEMENT: answered on its own line, nothing saved until Add all */
   html.lg-new .obn-table .obn-dr td{background:var(--color-chat-bg);padding-top:11px;padding-bottom:11px}
   html.lg-new .obn-table .obn-dr .obn-dn{font-size:12.6px;font-weight:var(--w-label)}

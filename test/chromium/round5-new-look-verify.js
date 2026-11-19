@@ -114,7 +114,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const side = /start with|nothing is waiting/i.test(await txt(page, '#ins-panel'));
     await shot('4-proposals');
     check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel says where to start',
-      up && heads.length === 5 && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && /^open/i.test(pr.open || '')
+      /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column") */
+      up && heads.length === 4 && !heads.includes('Found') && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && /^open/i.test(pr.open || '')
       && /^add all/i.test(pr.add || '') && !!duty && duty.whose === 3 && duty.on && duty.skip && side, { heads, pr, duty, side });
   } catch (e) { check('4 Proposals', false, String(e).slice(0, 200)); }
 
