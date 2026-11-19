@@ -146,7 +146,8 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       head: ((document.getElementById('page-head-facts') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
       pills: Object.fromEntries([...document.querySelectorAll('[data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), (b.textContent.match(/\d+/) || [''])[0]])),
       word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '' }), ROWS);
-    ok('1a the page is a list and a panel, no word beside the tabs', ob.ins && ob.rows >= 7 && !ob.word, { rows: ob.rows, word: ob.word });
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe): Next 30 days holds what falls in a month; later ones stand on Later */
+    ok('1a the page is a list and a panel, no word beside the tabs', ob.ins && ob.rows >= 1 && !ob.word, { rows: ob.rows, word: ob.word });
     /* RETIRED 16 Nov 2026 (#762): 1b "its groups are the weeks, in order" — old look only: the owner's project list
        (Late · Tracked · Proposals, twenty a page) replaced the week-by-week groups */
     /* RETIRED 16 Nov 2026 (#762): 1c0 "Outstanding does not list a step still waiting on an earlier one" — old look only

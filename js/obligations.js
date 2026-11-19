@@ -5038,6 +5038,10 @@ function obnProjPanel(list){
 const OBN_COL_SHOWN = 6;
 let _obnColAll = { ours: false, theirs: false }, _obnTwoPick = null;
 function obnDue(r){ const d = obligationDue(r); return d ? daysUntil(d) : null; }
+/* LATE IS THE WINDOW'S WORD, NEVER A DATE SUBTRACTION: a step held back by an earlier one is waiting, not late — the
+   reading the sidebar door, the reminders and the old Late pill share (obligationWindow) */
+function obnIsLate(r){ return !!r && r.st !== 'done' && (r.win ? r.win === 'overdue' : (obnDue(r) ?? 1) < 0); }
+function obnIsHeld(r){ return !!r && r.st !== 'done' && r.win === 'waiting'; }
 function obnTwoTabOf(r){
   if(r.st === 'done') return 'done';
   const d = obnDue(r);
@@ -5075,8 +5079,9 @@ function obnNobody(r, c){
 function obnWhenWord(r){
   const d = obnDue(r);
   if(r.st === 'done') return { t: r.completedAt ? obDay(r.completedAt) : i18t('obn_done'), tone: 'ok' };
+  if(obnIsHeld(r)) return { t: i18t('obt_held'), tone: 'ok' };
   if(d == null) return { t: i18t('ob_no_date'), tone: 'ok' };
-  if(d < 0) return { t: i18tn('obt_late', -d, { n: -d }), tone: 'late' };
+  if(obnIsLate(r)) return { t: i18tn('obt_late', Math.max(1, -d), { n: Math.max(1, -d) }), tone: 'late' };
   if(d === 0) return { t: i18t('obn_ch_today'), tone: 'soon' };
   return { t: i18tn('obt_in', d, { n: d }), tone: d <= 7 ? 'soon' : 'ok' };
 }
@@ -5098,7 +5103,7 @@ function obnLineHtml(r){
 }
 function obnColHtml(rows, side){
   const all = _obnColAll[side], shown = all ? rows : rows.slice(0, OBN_COL_SHOWN), more = rows.length - shown.length;
-  const late = rows.filter(r => r.st !== 'done' && (obnDue(r) ?? 1) < 0).length;
+  const late = rows.filter(obnIsLate).length;
   const head = [i18tn('obt_n', rows.length, { n: rows.length }), late ? i18tn('obt_n_late', late, { n: late }) : ''].filter(Boolean).join(' · ');
   return `<div class="obt-col" data-obt-side="${side}"><div class="obt-colh"><b>${_obEsc(i18t(side === 'ours' ? 'obt_we_owe' : 'obt_they_owe'))}</b><span>${_obEsc(head)}</span></div>
     ${shown.map(obnLineHtml).join('') || `<p class="obt-none">${_obEsc(i18t(side === 'ours' ? 'obt_none_ours' : 'obt_none_theirs'))}</p>`}
@@ -5106,14 +5111,14 @@ function obnColHtml(rows, side){
 }
 /* the sentence over the columns, read from the record, no AI */
 function obnTwoSay(ours, theirs){
-  const lo = ours.filter(r => (obnDue(r) ?? 1) < 0).length, lt = theirs.filter(r => (obnDue(r) ?? 1) < 0).length;
+  const lo = ours.filter(obnIsLate).length, lt = theirs.filter(obnIsLate).length;
   if(!lo && !lt) return i18t('obt_say_clear', { a: ours.length, b: theirs.length });
   return [lo ? i18tn('obt_say_ours', lo, { n: lo }) : i18t('obt_say_ours_none'), lt ? i18tn('obt_say_theirs', lt, { n: lt }) : i18t('obt_say_theirs_none')].join(' ');
 }
 /* LANDED: the month as a line, ours above and theirs below, then who has nobody to remind */
 function obnTimelineFive(book){
   const open = book.filter(r => r.st !== 'done');
-  const bucket = r => { const d = obnDue(r); return d == null ? 3 : d < 0 ? 0 : d <= 7 ? 1 : d <= 14 ? 2 : 3; };
+  const bucket = r => { const d = obnDue(r); return obnIsLate(r) ? 0 : d == null ? 3 : d <= 7 ? 1 : d <= 14 ? 2 : 3; };
   const n = { ours: [0, 0, 0, 0], theirs: [0, 0, 0, 0] };
   open.forEach(r => { if(obnDue(r) == null || obnDue(r) > 30) return; n[(!r._dec && obligationIsTheirs(r)) ? 'theirs' : 'ours'][bucket(r)]++; });
   const sum = a => a.reduce((s, x) => s + x, 0);
@@ -5174,8 +5179,8 @@ function obnTwoRender(host, book, projects, proposedN){
   const counts = { open: inTab('open').length, later: inTab('later').length, done: inTab('done').length };
   const rows = inTab(_obnTab).filter(hit).sort(obnTwoSort);
   const ours = rows.filter(r => r._dec || !obligationIsTheirs(r)), theirs = rows.filter(r => !r._dec && obligationIsTheirs(r));
-  const lo = inTab('open').filter(r => (r._dec || !obligationIsTheirs(r)) && (obnDue(r) ?? 1) < 0).length;
-  const lt = inTab('open').filter(r => !r._dec && obligationIsTheirs(r) && (obnDue(r) ?? 1) < 0).length;
+  const lo = inTab('open').filter(r => (r._dec || !obligationIsTheirs(r)) && obnIsLate(r)).length;
+  const lt = inTab('open').filter(r => !r._dec && obligationIsTheirs(r) && obnIsLate(r)).length;
   const pill = (k, w) => `<button type="button" class="obn-tab${_obnTab === k ? ' is-on' : ''}" data-obn-tab="${k}">${_obEsc(w)}</button>`;
   const bar = `<div class="apn-bar obn-bar" data-lh-seat="obligations-nl">${pill('open', i18t('obt_tab_next', { n: counts.open }))}${pill('later', i18t('obt_tab_later', { n: counts.later }))}${pill('done', i18t('obt_tab_done', { n: counts.done }))}
     ${projects.length ? pill('prop', i18tn('obn_p_prop', projects.length, { n: proposedN, m: projects.length })) : ''}</div>
@@ -5437,7 +5442,7 @@ Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obD
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   obwWeekShut,obWeekFolds,OBW_DEC_KEY,obwDecisions,obwFinds,obwFindRows,obPossessive,obwFindsRowHtml,obwRowPrivate,obWeekSub,obWeekOneWho,obWeekMoneyHtml,obwRowAvHtml,obwLine2,obwRowActHtml,obwWeekRowHtml,obwRowAct,
-  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnRowHtml,obnTabOf,obnRows,
+  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnRowHtml,obnTabOf,obnRows,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,

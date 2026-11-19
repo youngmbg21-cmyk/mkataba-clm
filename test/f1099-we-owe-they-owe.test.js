@@ -82,3 +82,14 @@ test('f1099 (5) the page draws two columns, writes only the lines on a press, an
   for (const k of ['obt_we_owe', 'obt_they_owe', 'obt_tab_next', 'obt_tab_later', 'obt_tab_done', 'obt_who_rem', 'obt_chase_now', 'obt_they_did', 'obt_add_contact', 'obt_b_late'])
     assert.equal((i18.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books');
 });
+
+test('f1099 (6) a step held back by an earlier one is waiting, never late (the window decides, as the door and the reminders do)', () => {
+  const { W, c } = world();
+  const [ours] = rowsOf(W, c);
+  const held = Object.assign({}, ours, { win: 'waiting' }), late = Object.assign({}, ours, { win: 'overdue' });
+  assert.equal(W.obnIsLate(held), false);
+  assert.equal(W.obnWhenWord(held).tone, 'ok');
+  assert.match(W.obnWhenWord(held).t, /earlier step/);
+  assert.equal(W.obnIsLate(late), true);
+  assert.equal(W.obnTimelineFive([held]).title.includes('0 late'), true);
+});
