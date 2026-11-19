@@ -330,11 +330,13 @@ const ok = (name, good, detail) => {
     const obCid = await page.evaluate(() => { const c = state.contracts.find(x => !x.archived); if (!c) return null;
       c.obligations = (c.obligations || []).concat([{ id: 'ob-ins-3e', desc: 'Send the quarterly report', due: todayISO(), party: 'us', status: 'open' }]); return c.id; });
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
-    const obRow = await page.$('[data-ins-page="obligations"] tbody tr:not(.ins-grp)'); if (obRow) { await obRow.click(); await page.waitForTimeout(500); }
+    const obRow = (await page.$(`[data-ins-page="obligations"] .obt-cols [data-ob-key="${obCid}::ob-ins-3e"]`)) || (await page.$('[data-ins-page="obligations"] .obt-cols [data-ins-row]')); if (obRow) { await obRow.click(); await page.waitForTimeout(500); }
     const obPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
     /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): a chosen duty's panel draws no Workspace door
        now; its contract row is the door (data-obp-contract → obOpenContract), landing on Home's paper, that contract */
-    const obBtn = await page.$('#ins-panel [data-obp-contract]');
+    /* RE-POINTED 19 Nov 2026 ("We owe · They owe", f1099): the duty is a line in a column; its panel's door to the paper is
+       "Open the paper" (data-obt-paper → obOpenContract) */
+    const obBtn = await page.$('#ins-panel [data-obt-paper], #ins-panel [data-obp-contract]');
     if (obBtn) {
       await obBtn.click(); await page.waitForTimeout(1200);
       const r = await page.evaluate(HOMED);

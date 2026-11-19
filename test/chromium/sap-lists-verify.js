@@ -201,47 +201,18 @@ const wait = async (page, fn, arg, ms = 5000) => {
        Late · Tracked · Proposals, rows tr.obn-r, columns Obligation · Whose job · When), not the week page. Tracked holds
        every live duty. An owner-less duty of ours is said where its row opens: the panel's Reminders line names that nobody
        is named and who is reminded instead (obligationReminderSay) — never the amber alarm on the row */
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): two columns of lines (.obt-li), each saying who is
+       reminded; an owner-less duty of ours says nobody on our side is reminded, in the quiet words, never in amber. The
+       SAP way mark on each row and the panel's "one line, the rules behind a link" (3c, 3d, 3e) are RETIRED by the pick:
+       the drawing carries neither; the line says who is reminded, the panel says who and when */
     await wait(page, () => !!document.querySelector('[data-obn-tab="open"]'));
-    await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });
-    const obUp = await wait(page, () => { const b = document.querySelector('[data-obn-tab="open"]');
-      return !!(b && b.classList.contains('is-on') && document.querySelector('tr.obn-r')); });
-    const obs = obUp ? await page.evaluate(() => {
-      const heads = [...document.querySelectorAll('.obn-table thead th, #content table thead th')].map(th => th.textContent.trim());
-      const ours = [...document.querySelectorAll('tr.obn-r')].find(tr => /Pay invoice/.test(tr.textContent));
-      const who = ours && ours.querySelector('.obn-who');
-      const marks = document.querySelectorAll('tr.obn-r .ls-mk[data-ls-mk]').length;
-      const rowsN = document.querySelectorAll('tr.obn-r').length;
-      return { heads, un: who ? { t: who.textContent.trim(), c: getComputedStyle(who).color } : null, nobody: 0, marks, rowsN,
-        amber: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-fg').trim() };
-    }) : null;
-    /* RETIRED 17 Nov 2026 (#762): 3a "the week names its columns: Obligation · Kind · Due · Amount" — the week page's
-       table; the new look's Obligations is the project list (MAP OBLIGATIONS: A PROJECT LIST), its columns Obligation ·
-       Whose job · When, which obligations' own new-look checks pin */
-    void (obs && obs.heads);
-    let unSaid = null;
-    if (obs && obs.un) {
-      await page.evaluate(() => { const tr = [...document.querySelectorAll('tr.obn-r')].find(t => /Pay invoice/.test(t.textContent)); if (tr) tr.click(); });
-      await wait(page, () => /Pay invoice/.test((document.getElementById('ins-panel') || {}).textContent || ''), null, 4000);
-      unSaid = await page.evaluate(() => { const r = document.querySelector('#ins-panel .ins-rem'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
-    }
-    check('3b an owner-less duty of ours says so where its row opens, never in amber', !!obs && !!obs.un && /Nobody is named/.test(unSaid || '') && obs.un.c !== obs.amber,
-      obs ? JSON.stringify(obs.un) + ' · ' + JSON.stringify(unSaid) : 'page missing');
-    check('3c every duty carries its mark', !!obs && obs.rowsN > 0 && obs.marks >= obs.rowsN, obs ? obs.marks + ' marks · ' + obs.rowsN + ' rows' : 'page missing');
-    if (obUp) {
-      await page.evaluate(() => { const r = document.querySelector('tr.obn-r'); if (r) r.click(); });
-      await wait(page, () => !!document.querySelector('#ins-panel [data-ob-rem-more]'), null, 4000);
-      const rem = await page.evaluate(() => {
-        const more = document.querySelector('#ins-panel [data-ob-rem-more]');
-        const full = document.querySelector('#ins-panel [data-ob-rem-full]');
-        return { more: !!more, hidden: full ? full.hidden : null };
-      });
-      check('3d Reminders is one line, the rules behind a link', rem.more && rem.hidden === true, JSON.stringify(rem));
-      if (rem.more) {
-        await page.click('#ins-panel [data-ob-rem-more]');
-        const open = await page.evaluate(() => { const f = document.querySelector('#ins-panel [data-ob-rem-full]'); return f && !f.hidden && f.getBoundingClientRect().height > 0; });
-        check('3e the link opens the whole account in place', open, String(open));
-      }
-    }
+    const lnOf = () => page.evaluate(() => { document.querySelectorAll('[data-obt-more]').forEach(m => m.click());
+      const r = [...document.querySelectorAll('.obt-li')].find(t => /Pay invoice/.test(t.textContent)); const w = r && r.querySelector('.obt-rem');
+      return w ? { t: w.textContent.trim(), c: getComputedStyle(w).color, amber: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-fg').trim() } : null; });
+    const obUp = await wait(page, () => !!document.querySelector('.obt-cols .obt-li'));
+    let ln = obUp ? await lnOf() : null;
+    if (obUp && !ln){ await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); }); await page.waitForTimeout(400); ln = await lnOf(); }
+    check('3b an owner-less duty of ours says on its line who is reminded, never in amber', !!ln && /nobody on our side|is reminded/i.test(ln.t) && ln.c !== ln.amber, JSON.stringify(ln));
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

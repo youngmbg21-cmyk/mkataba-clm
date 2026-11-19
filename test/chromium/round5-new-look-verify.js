@@ -85,18 +85,19 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
      re-pointed from round 5's box-and-tabs-on-one-line and its pop-up desk) */
   try {
     await page.evaluate(() => setView('obligations'));
-    const up = await until(page, () => !!document.querySelector('.obn-page .obn-table'), null, 15000);
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the tabs over the filter line; two columns; a line
+       carries its day as a toned word, who is reminded and one act */
+    const up = await until(page, () => !!document.querySelector('.obn-page .obt-cols'), null, 15000);
     const pills = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => b.getAttribute('data-obn-tab'))) : [];
     const box = up ? await page.evaluate(() => !!document.querySelector('.obn-bar2r #obn-q') && !document.querySelector('.obn-bar #obn-q')) : false;
-    const row = up ? await page.evaluate(() => { const r = document.querySelector('.obn-table tr.obn-r'); if (!r) return null;
-      const c1 = r.querySelector('td.obn-c1'), ch = r.querySelector('.obn-ch');
-      return { band: c1 ? getComputedStyle(c1).borderLeftWidth : '', tone: ch ? ch.className : '', when: ch ? ch.textContent.trim() : '',
-        who: (r.querySelector('.obn-who') || {}).textContent, act: (r.querySelector('.obn-act .obn-pill') || {}).innerText || '' }; }) : null;
-    const foot = up ? await txt(page, '.obn-pager .obn-pg-say') : '';
+    const row = up ? await page.evaluate(() => { const r = document.querySelector('.obt-cols .obt-li'); if (!r) return null;
+      const w = r.querySelector('.obt-w');
+      return { tone: w ? w.className : '', when: w ? w.textContent.trim() : '', rem: (r.querySelector('.obt-rem') || {}).textContent || '',
+        act: (r.querySelector('.obt-act') || {}).innerText || '', cols: document.querySelectorAll('.obt-col').length }; }) : null;
     await shot('3-obligations');
-    check('3 Obligations: three pills over the filter line; a row carries its stream band, its day as a tone chip and one act; the foot says where in the book you are',
-      up && box && pills.includes('open') && pills.includes('prop') && !!row && row.band === '3px' && /obn-ch is-(ruby|amber|green|gray)/.test(row.tone)
-      && !!String(row.who || '').trim() && /mark done|chase|decide/i.test(row.act) && /showing 1/i.test(foot), { pills, box, row, foot });
+    check('3 Obligations: the tabs over the filter line; We owe and They owe; a line carries its day, who is reminded and one act',
+      up && box && pills.includes('open') && pills.includes('later') && pills.includes('done') && !!row && row.cols === 2 && /obt-w is-(late|soon|ok)/.test(row.tone)
+      && !!String(row.rem || '').trim() && /mark done|chase|decide/i.test(row.act), { pills, box, row });
   } catch (e) { check('3 Obligations', false, String(e).slice(0, 200)); }
 
   /* 4 · Proposals by agreement, answered where the row stands */
@@ -111,9 +112,10 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await until(page, () => !!document.querySelector('.obn-dr'), null, 5000);
     const duty = await page.evaluate(() => { const r = document.querySelector('.obn-dr'); return r ? { whose: r.querySelectorAll('[data-obn-whose]').length,
       on: !!r.querySelector('.obn-wh.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-q i') } : null; });
-    const side = /start with|nothing is waiting/i.test(await txt(page, '#ins-panel'));
+    /* RE-POINTED 19 Nov 2026: Open makes the agreement the panel's subject, the Legora way (owner: "the row press the legora way") */
+    const side = await page.evaluate(() => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
     await shot('4-proposals');
-    check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel says where to start',
+    check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel turns to that agreement the Legora way',
       /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column") */
       up && heads.length === 4 && !heads.includes('Found') && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && /^open/i.test(pr.open || '')
       && /^add all/i.test(pr.add || '') && !!duty && duty.whose === 3 && duty.on && duty.skip && side, { heads, pr, duty, side });

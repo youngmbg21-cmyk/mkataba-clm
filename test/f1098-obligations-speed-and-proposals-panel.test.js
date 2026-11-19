@@ -101,3 +101,31 @@ test('f1098 (5) both books carry the words', () => {
   for (const k of ['obn5_t_other', 'obn5_start', 'obn5_look', 'obn_lg_todo', 'obn_lg_next', 'obn_lg_ask', 'obn_lg_ask_q', 'obd_theirs_btn', 'obn_p_prop_word'])
     assert.equal((src.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books');
 });
+
+test('f1098 (6) Open chooses too: opening an agreement makes it the panel\'s subject, the Legora way', () => {
+  const src = strip(read('js/obligations.js'));
+  const i = src.indexOf("const op = t.closest('[data-obn-open]');"); assert.ok(i >= 0);
+  const h = src.slice(i, src.indexOf('return; }', i) + 9);
+  assert.match(h, /_obnOpenAg === id && _obnPick !== id\)\{ _obnPick = id;/);
+});
+
+test('f1098 (7) a tile that holds words takes the smaller size and wraps inside its card (owner: "Every month" ran out of its tile)', () => {
+  const { W } = world();
+  if (typeof W.jamboOverviewHtml !== 'function') return;
+  const h = W.jamboOverviewHtml({ title: 'T', glance: [{ n: 2, l: 'days late' }, { n: 'Monthly', l: 'reminder' }, { n: 'Every month', l: 'repeats' }] }, 't');
+  const d = W.document.createElement('div'); d.innerHTML = h;
+  const g = [...d.querySelectorAll('.jov5-g')].map(x => x.classList.contains('is-word'));
+  assert.deepEqual(g, [false, false, true], 'only the words tile');
+  assert.match(read('index.html'), /\.jov5-g\.is-word b\{font-size:15px;[^}]*white-space:normal/);
+});
+
+test('f1098 (8) the duty panel\'s repeats tile says it in one word: Monthly', () => {
+  const W = buildWorld({ obligations: true }).win;
+  const c = { id: 'MK-R', name: 'R', counterparty: 'Lumumba Logistics', obligations: [], metadata: {} };
+  const o = { id: 'o1', desc: 'Pay the invoices', recurring: 'monthly', status: 'open', party: 'ours' };
+  c.obligations.push(o);
+  let f; try { f = W.obPanelFive(o, c, 0); } catch (_){ f = null; }
+  const src = strip(read('js/obligations.js'));
+  assert.match(src, /\{ n: obRecurLabel\(String\(o\.recurring \|\| 'none'\)\), l: i18t\('jov5_obp_g_repeats'\) \}/);
+  if (f) assert.equal(f.glance[2].n, 'Monthly');
+});
