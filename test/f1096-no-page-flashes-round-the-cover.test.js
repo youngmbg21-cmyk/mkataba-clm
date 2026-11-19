@@ -18,15 +18,17 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const PD = strip(read('js/paperdesk.js'));
 
 test('f1096 (1) a press on the Cover goes in one turn, never after a wait', () => {
-  const i = PD.indexOf("closest('[data-cv-go]')"); assert.ok(i > 0);
-  const h = PD.slice(i, PD.indexOf('});', i));
-  assert.doesNotMatch(h, /setTimeout/, 'no timer between closing the Cover and the destination');
-  assert.match(h, /if \(k === 'brief' && typeof pd2BriefOpen === 'function'\)\{ pd2BriefOpen\(id\); return; \}\s*pdMidClose\(\);/, 'the brief opens over the Cover, before any close');
-  assert.match(h, /pdMidClose\(\);\s*if \(k === 'red'\) pdRedOpen\(id\);/, 'close and go, the same turn');
-  assert.match(h, /k === 'contracts' && typeof setView === 'function'\) setView\('register'\)/);
+  const i = PD.indexOf("closest('[data-cv-go], [data-cv-open]')"); assert.ok(i > 0);
+  const h = PD.slice(i, PD.indexOf('});', PD.indexOf('pdCoverLeave(id', i)));
+  assert.doesNotMatch(h, /setTimeout/, 'no timer between the press and the destination');
+  /* RE-POINTED 19 Nov 2026 (f1098, the Cover is a page of its own): the paper is drawn UNDER the Cover, which goes
+     only once the job pressed stands; the brief opens over it and keeps it */
+  assert.match(h, /pdCoverLeave\(id, \(\) => \{\s*if \(k === 'red'\) pdRedOpen\(id\);/, 'the job runs once the paper stands');
+  assert.match(h, /pd2BriefOpen\(id\); return 'keep'; \}/, 'the brief opens over the Cover, never after a close');
+  assert.match(h, /k === 'contracts'\)\{[^}]*setView\('register'\)/);
 });
 
-test('f1096 (2) the Cover is asked for at once, behind a bounded veil', () => {
+test('f1096 (2) a contract opened where the Cover cannot be its own page still gets it at once, behind a bounded veil', () => {
   const land = PD.slice(PD.indexOf('function pdCoverLand('), PD.indexOf("document.addEventListener('click'", PD.indexOf('function pdCoverLand(')));
   assert.match(land, /if \(ready\(\) && pdCoverOpen\(id\)\) return true;\s*pdCoverVeil\(true\);/, 'at once, else the veil');
   assert.match(land, /if \(ready\(\)\)\{ pdCoverOpen\(id\); pdCoverVeil\(false\); return; \}/, 'the veil goes when the Cover stands');
