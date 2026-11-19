@@ -7698,6 +7698,8 @@ function hbAskInPanel(q, id){
    then the turn goes on, as the bar already does (dkLeavePageThen). A Send screen waiting out of sight is kept. */
 function hbPageScreenUp(){
   if (typeof document === 'undefined') return false;
+  /* a Cover waiting for its own paper is not a screen in the way: the turn is its own (f1099) */
+  if (typeof window.pdCoverHeld === 'function' && window.pdCoverHeld()) return false;
   const waiting = typeof window.pdSendIsWaiting === 'function' && !!window.pdSendIsWaiting();
   return !!document.querySelector(waiting ? '#modal-root .modal-in[data-dlg-page]:not([data-sh-page])' : '#modal-root .modal-in[data-dlg-page], #modal-root .modal-in[data-sh-page]');
 }

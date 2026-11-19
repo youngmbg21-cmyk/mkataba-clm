@@ -18,7 +18,7 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const CSS = strip(read('index.html'));
 
 test('f1086 (1) one rule, last: no ring and no glow on any field', () => {
-  const m = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):is\(:focus, :focus-visible\)\{outline:none;box-shadow:none\}/.exec(CSS);
+  const m = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):is\(:focus, :focus-visible\)\{outline:none;box-shadow:none(?:;border-color:var\(--color-neutral-300\))?\}/.exec(CSS);
   assert.ok(m, 'the one rule');
   for (const who of ['textarea', 'select', '[contenteditable]:not([contenteditable="false"])']) assert.ok(m[1].includes(who), who + ' is named');
   assert.match(m[1], /^input:not\(\[type="checkbox"\]/, 'every typed input, not ticks or buttons');
@@ -27,14 +27,20 @@ test('f1086 (1) one rule, last: no ring and no glow on any field', () => {
   assert.ok(m.index > CSS.lastIndexOf('#ig-dock .ac-in:focus{'), 'after a box\'s own ring');
 });
 
-test('f1086 (2) a green edge darkens to the ink; the boxes that hold a field the same', () => {
-  const f = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):focus\{border-color:var\(--color-text\)\}/.exec(CSS);
+/* RE-POINTED 19 Nov 2026 (owner: "i never want to see thick outlines in entry fields apart from what is already on
+   jambo"): the 16 Nov "green edge darkens to the ink" drew a black edge that read as a thick outline. A pressed field, and
+   a box that holds one, keeps ONE thin light grey edge (--color-neutral-300); only Jambo's own box keeps its green. */
+test('f1086 (2) a pressed field keeps a thin light grey edge, never the ink; the boxes that hold a field the same', () => {
+  const one = /html:not\(#_\):not\(#_\) :is\(input:not\(\[type="checkbox"\][^{]*\):is\(:focus, :focus-visible\)\{outline:none;box-shadow:none;border-color:var\(--color-neutral-300\)\}/;
+  assert.match(CSS, one, 'every typed field, pressed: no ring, no glow, a light grey edge');
+  const f = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):focus\{border-color:var\(--color-neutral-300\)\}/.exec(CSS);
   assert.ok(f, 'the fields');
   for (const who of ['.na-inp', '.field', '.hati-editor', '.cd-fld :is(input, select, textarea)']) assert.ok(f[1].includes(who), who);
-  const b = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):focus-within\{outline:none;box-shadow:none;border-color:var\(--color-text\)\}/.exec(CSS);
+  const b = /html:not\(#_\):not\(#_\) :is\(([^{]*)\):focus-within\{outline:none;box-shadow:none;border-color:var\(--color-neutral-300\)\}/.exec(CSS);
   assert.ok(b, 'the boxes');
   for (const who of ['.rl-np-box', '.jl-box', '.hist-q', '.cmd-search', '.na-askbox', '.sh-col-in']) assert.ok(b[1].includes(who), who);
-  assert.match(CSS, /html:not\(#_\):not\(#_\) \.jb-card:focus-within\{outline:none;box-shadow:none\}/);
+  assert.doesNotMatch(CSS.slice(CSS.indexOf('html:not(#_):not(#_) :is(input:not')), /:focus[^{]*\{[^}]*border-color:var\(--color-text\)/, 'no field darkens to the ink');
+  assert.match(CSS, /html:not\(#_\):not\(#_\) \.jb-card:focus-within\{outline:none;box-shadow:none\}/, 'Jambo\'s box keeps its own green edge');
 });
 
 test('f1086 (3) the clause list: "1:" is a number; no number keeps its dot beside the name', () => {

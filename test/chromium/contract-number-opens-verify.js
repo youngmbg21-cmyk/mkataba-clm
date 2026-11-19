@@ -29,7 +29,9 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
   const errors = []; P.on('pageerror', e => errors.push(String(e && e.message || e)));
   /* every brain call the page makes is counted at the door */
   let brain = 0; P.on('request', r => { if (/\/api\/ai\/(chat|copilot|ask)/.test(r.url())) brain++; });
-  const onPaper = id => until(P, id => typeof deskKeyNow === 'function' && deskKeyNow() === 'c:' + id && !!(window.pdContract && pdContract() && pdContract().id === id), id, 10000);
+  /* RE-POINTED 19 Nov 2026 (f1099): a number typed alone opens its COVER (f1088), a page of its own over the page typed on
+     — the paper is not opened under it; the Cover's Open the dossier is the step onto the paper */
+  const onPaper = id => until(P, id => !!document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) || (typeof deskKeyNow === 'function' && deskKeyNow() === 'c:' + id && !!(window.pdContract && pdContract() && pdContract().id === id)), id, 10000);
   try {
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
@@ -39,7 +41,7 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
     /* ---- 1 · Home's box ---- */
     const b0 = brain;
     await P.fill('#igd-input', 'MK-HB4'); await P.press('#igd-input', 'Enter');
-    check(await onPaper('MK-HB4'), '1a "MK-HB4" typed on Home lands on its paper with the Dossier beside it');
+    check(await onPaper('MK-HB4'), '1a "MK-HB4" typed on Home lands on its Cover');
     await P.waitForTimeout(600);
     check(brain === b0, '1b and Jambo\'s brain was not asked', { calls: brain - b0 });
     await still(P); await P.screenshot({ path: path.join(OUT, '1-home-number.png') });
@@ -51,7 +53,7 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
     if (box){
       const b1 = brain;
       await P.fill('#jl-q', 'open mk-hb9'); await P.press('#jl-q', 'Enter');
-      check(await onPaper('MK-HB9'), '2b "open mk-hb9" typed beside a list lands on MK-HB9\'s paper');
+      check(await onPaper('MK-HB9'), '2b "open mk-hb9" typed beside a list lands on MK-HB9\'s Cover');
       await P.waitForTimeout(600);
       check(brain === b1, '2c free', { calls: brain - b1 });
     }

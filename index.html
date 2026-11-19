@@ -21973,6 +21973,7 @@
   html.lg-new .cv-r{display:flex;flex-direction:column;padding:var(--cv-pad) clamp(24px,4vw,56px);max-width:760px;min-width:0;height:100%;box-sizing:border-box;overflow-y:auto}
   html.lg-new .cv-top{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-neutral-400)}
   html.lg-new .cv-top .cv-door{margin-left:auto}
+  html.lg-new.is-opening, html.lg-new.is-opening body{cursor:progress}
   html.lg-new #cv-veil{position:fixed;left:0;right:0;bottom:0;z-index:69;background:var(--color-surface)}
   html.lg-new .cv-chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:var(--w-label);padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--color-quiet)}
   html.lg-new .cv-chip i{width:8px;height:8px;border-radius:50%;background:var(--st-gray-dot)}
@@ -22127,11 +22128,11 @@
      not want any green outlines in the entry fields across Hati. Fix this once and for all"). ONE RULE, LAST, every
      place a person types: no outline and no glow, pressed or keyed to — the caret says where you are. The house ring
      (button:focus-visible,…), the forms' green glow and every box's own ring lose to it by weight (:not(#_) twice) and
-     by order. Its own block, after the new look's (the HARMONY block holds only html.lg-new rules, f977). A field whose edge turned green now darkens to the ink instead; a box that holds a field the same. In
+     by order. Its own block, after the new look's (the HARMONY block holds only html.lg-new rules, f977). NO THICK OR DARK EDGE EITHER (owner, 19 Nov 2026: "i never want to see thick outlines in entry fields apart from what is already on jambo"; reverses 16 Nov's "darkens to the ink", which drew a black edge that read as a thick outline): a pressed field, and a box that holds one, keeps ONE thin light grey edge (--color-neutral-300), the same as at rest; only Jambo's own box (.jb-card) keeps its green edge. In
      every look and on their page too. Buttons, tabs and rows keep their ring (keyboard use needs it). */
-  html:not(#_):not(#_) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"], [type="image"]), textarea, select, [contenteditable]:not([contenteditable="false"])):is(:focus, :focus-visible){outline:none;box-shadow:none}
-  html:not(#_):not(#_) :is(.na-inp, .field, .hati-editor, #na-root .na-kt-grid input, [data-kt], [data-ktm], .cd-fld :is(input, select, textarea)):focus{border-color:var(--color-text)}
-  html:not(#_):not(#_) :is(.sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .rl-np-box):focus-within{outline:none;box-shadow:none;border-color:var(--color-text)}
+  html:not(#_):not(#_) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="file"], [type="color"], [type="image"]), textarea, select, [contenteditable]:not([contenteditable="false"])):is(:focus, :focus-visible){outline:none;box-shadow:none;border-color:var(--color-neutral-300)}
+  html:not(#_):not(#_) :is(.na-inp, .field, .hati-editor, #na-root .na-kt-grid input, [data-kt], [data-ktm], .cd-fld :is(input, select, textarea)):focus{border-color:var(--color-neutral-300)}
+  html:not(#_):not(#_) :is(.sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .rl-np-box):focus-within{outline:none;box-shadow:none;border-color:var(--color-neutral-300)}
   html:not(#_):not(#_) .jb-card:focus-within{outline:none;box-shadow:none}
 </style>
 

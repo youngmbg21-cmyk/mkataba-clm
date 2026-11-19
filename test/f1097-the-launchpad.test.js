@@ -131,6 +131,9 @@ test('f1097 (5) wired where the user looks; the strip is gone; both books and th
   assert.match(app, /\blpWire\(\);/, 'the shell wires the symbol');
   assert.match(fnSrc('openCommandPalette'), /if\(!input\.value\.trim\(\)\)\{ lpPaint\(\); return; \}/, 'nothing typed draws the launchpad');
   assert.match(fnSrc('openCommandPalette'), /if\(it\.kind==='page'\)\{ close\(\); guideGo\(it\.id\); return; \}/, 'a row goes through the Guide\'s own door');
+  /* the owner, 19 Nov 2026: "nav panel pop up should appear at the center of the page" */
+  assert.match(strip(fnSrc('openCommandPalette')), /display:flex;align-items:center;justify-content:center/, 'the window stands in the middle, up and down as well as across');
+  assert.match(strip(fnSrc('openCommandPalette')), /sheet\.style\.minHeight=h\+'px'/, 'centred, it keeps the height it opened at while you type');
   assert.match(HTML, /id="dk-nav"[^>]*aria-controls="cmd-palette"/, 'the bar\'s door names the window it opens');
   assert.doesNotMatch(APP + HTML, /guideStrip|gd-strip|\.gds-/, 'the symbol strip is gone');
   const en = I18N.split('lp_where:'); assert.equal(en.length, 3, 'both books carry the launchpad\'s words');
