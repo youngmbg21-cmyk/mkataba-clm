@@ -527,7 +527,7 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(900);
     const act = await page.evaluate(() => { const c = document.querySelector('[data-lh-seat="contracts"] .lh-chip'); if (!c) return null;
       const l = c.querySelector('label'), b = l && l.querySelector('b'), cs = getComputedStyle(c);
-      return { bc: cs.borderTopColor, lw: Number(getComputedStyle(l).fontWeight), bw: b ? Number(getComputedStyle(b).fontWeight) : null,
+      return { bc: cs.borderTopColor, bg: cs.backgroundColor, lw: Number(getComputedStyle(l).fontWeight), bw: b ? Number(getComputedStyle(b).fontWeight) : null,
         lfg: getComputedStyle(l).color, bfg: b ? getComputedStyle(b).color : null }; });
     const actAdd = await page.evaluate(ADD);
     const chipEdge = await page.evaluate(RESOLVE, '--chip-edge');
@@ -541,8 +541,13 @@ const check = (name, ok, detail) => {
     const textInk = await page.evaluate(INK, '--color-text');
     check('12f "+ Filter"\'s ink is the text ink, as every grey pill\'s (the accent is for links)',
       !!actAdd && actAdd.fg === textInk && textInk !== accentInk, `+ Filter ${actAdd && actAdd.fg} · text ${textInk}`);
-    check('12f and the chip wears the hairline, --chip-edge reading --rule-strong',
-      !!act && act.bc === chipEdge && chipEdge === ruleStrong, act && act.bc);
+    /* RE-POINTED 20 Nov 2026 (the owner, 19 Nov 2026, f1109: "The selected stream in the search
+       should be shaded so it is easier to know there is a filter"): the chip in force is no longer
+       white with the --chip-edge hairline; it is FILLED with the grey pill ground (--surface-2) and
+       its edge is the same grey, so it reads as shaded beside the resting "+ Filter". */
+    check('12f and the chip is shaded: filled with the grey pill ground, its edge the same grey (not the white box\'s hairline)',
+      !!act && act.bg === pillBg && act.bc === pillBg && act.bc !== chipEdge,
+      act && `bg ${act.bg} · edge ${act.bc} · pill ${pillBg} · old hairline ${chipEdge} (--rule-strong ${ruleStrong})`);
     const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
       fns: ['setTheme', 'setDark', 'toggleTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
     check('12g no night look is left to switch to', !night.dark && night.fns.length === 0, JSON.stringify(night));
