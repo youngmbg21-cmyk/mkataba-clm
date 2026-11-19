@@ -99,7 +99,8 @@ function world(){
     rows: [...document.querySelectorAll('.obn-pr')].map(r => ({ name: (r.querySelector('.obn-what') || {}).textContent, ring: !!r.querySelector('.obn-ring'),
       said: (r.querySelector('.obn-pgb small') || {}).textContent, age: (r.querySelector('.obn-age') || {}).textContent, st: (r.querySelector('.obn-stt .obn-ch') || {}).textContent })) }));
   check('5 · one row per agreement, oldest wait first, each with its ring, its progress and its status',
-    proj.heads.length === 5 && proj.rows.length === 3 && /Milk/.test(proj.rows[0].name || '') && proj.rows.every(r => r.ring && /decided/i.test(r.said || '') && String(r.st || '').trim()),
+    /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column"); age is said in Jambo's panel */
+    proj.heads.length === 4 && !proj.heads.includes('Found') && proj.rows.length === 3 && /Milk/.test(proj.rows[0].name || '') && proj.rows.every(r => r.ring && /decided/i.test(r.said || '') && String(r.st || '').trim()),
     proj);
   await page.screenshot({ path: path.join(OUT, '2-proposals.png') });
 
@@ -150,6 +151,65 @@ function world(){
       return { card: !!card, bar: bar ? Math.round(bar.getBoundingClientRect().bottom) : null, row: rb ? Math.round(rb.top) : null, inWin: rb ? rb.top < window.innerHeight : false, sideways }; });
     check(`10 · ${w}×${hgt}: the pills and the first row stand in the window, nothing spills sideways`, fit.card && fit.inWin && !fit.sideways, fit);
     await page.screenshot({ path: path.join(OUT, `4-${w}x${hgt}.png`) });
+  }
+  await page.setViewportSize({ width: 1440, height: 780 });
+
+  /* 12–16 · PROPOSALS' PANEL AND FIT (owner, 19 Nov 2026: "when you land on the page it should be five parts. When you
+     press a row it should be legora way … the page seems to extend behind the panel so delete the found column and
+     find ways to make the page fit without hiding"). At the parent: the panel was four counted lines and a sentence
+     about loading, a row press did nothing, and at 1366 the table ran 160px under the panel. Every driven half is
+     guarded, so a missing part reports FAIL rather than timing out. */
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
+  await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), 8000);
+  /* the row step 8 opened is shut again, so 14 sees a second press open it */
+  await page.evaluate(() => { const b = document.querySelector('.obn-pill.is-on[data-obn-open]'); if (b) b.click(); });
+  await page.waitForTimeout(400);
+  const land = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const f = p && p.querySelector('.obn-five .jov5');
+    return { five: !!f, title: f ? (f.querySelector('.jov5-title') || {}).textContent : '', tiles: f ? f.querySelectorAll('.jov5-g').length : 0,
+      rows: f ? f.querySelectorAll('[data-obn-pick]').length : 0, black: f ? !!f.querySelector('.jov5-go[data-obn-pickopen]') : false, lg: !!(p && p.querySelector('.obn-lg')) }; });
+  check('12 · landed on Proposals, Jambo\'s panel is the five parts: the headline counts the duties, three tiles, the oldest as rows, one black button',
+    land.five && /dut/i.test(land.title || '') && land.tiles === 3 && land.rows >= 1 && land.black && !land.lg, land);
+  await page.screenshot({ path: path.join(OUT, '5-landed.png') });
+
+  const cid2 = await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); const id = r && r.closest('tr').getAttribute('data-obn-pick'); if (r) r.click(); return id; });
+  const chose = cid2 ? await until(page, () => !!document.querySelector('#ins-panel .obn-lg'), 5000) : false;
+  const lg = chose ? await page.evaluate(id => { const p = document.getElementById('ins-panel'), L = p.querySelector('.obn-lg');
+    const its = [...L.querySelectorAll('.obn-lg-it:not(.is-next)')];
+    return { for: L.getAttribute('data-obn-lg'), sel: !!document.querySelector(`.obn-pr.is-sel[data-obn-pick="${id}"]`), items: its.length,
+      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: its.every(i => i.querySelectorAll('[data-obn-whose]').length === 3 && !!i.querySelector('[data-obn-skip]')),
+      mark: !!L.querySelector('.obn-lg-q mark'), boxed: !!L.querySelector('.jov5-group, .jov5-g'), tab: ((p.querySelector('[data-jl-home] .pd-tab-w') || {}).textContent || '').trim(),
+      open: !!document.querySelector('.obn-dr') }; }, cid2) : null;
+  check('13 · a row pressed is chosen, and the panel turns the Legora way: its duties in their own quoted words, each answered in its row, nothing boxed, "‹ Overview" the way back',
+    !!lg && lg.for === cid2 && lg.sel && lg.items >= 1 && lg.quoted && lg.answers && lg.mark && !lg.boxed && /^\u2039/.test(lg.tab) && !lg.open, lg);
+  await page.screenshot({ path: path.join(OUT, '6-chosen.png') });
+
+  /* 14 · an answer in the panel is the list's own answer: the row pressed again opens its duties, lit the same way */
+  if (lg) await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); if (b) b.click(); });
+  await page.waitForTimeout(300);
+  if (lg) await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] td.obn-c1`); if (r) r.click(); }, cid2);
+  const same = lg ? await until(page, () => !!document.querySelector('.obn-dr'), 5000) && await page.evaluate(() => {
+    const li = document.querySelector('.obn-dr .obn-wh.is-on'), pa = document.querySelector('#ins-panel .obn-lg .obn-lg-w.is-on');
+    return { list: li && li.getAttribute('data-obn-whose'), panel: pa && pa.getAttribute('data-obn-whose') }; }) : null;
+  check('14 · answered in the panel, the list says the same; the chosen row pressed again opens its duties',
+    !!same && same.list === 'them' && same.panel === 'them', same);
+
+  /* 15 · "‹ Overview" lets the row go and the five parts come back */
+  await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jl-home]'); if (b) b.click(); });
+  const back = await until(page, () => !!document.querySelector('#ins-panel .obn-five .jov5') && !document.querySelector('.obn-pr.is-sel'), 5000);
+  check('15 · "‹ Overview" lets the row go, and the five parts return', back);
+
+  /* 16 · the three screens: Proposals stands beside the panel, nothing under it, nothing sideways, no column hidden */
+  for (const [w, hgt] of [[1440, 780], [1536, 730], [1366, 950]]){
+    await page.setViewportSize({ width: w, height: hgt });
+    await page.waitForTimeout(600);
+    const fit = await page.evaluate(() => { const t = document.querySelector('.obn-table.is-proj'), list = document.getElementById('obn-list'), p = document.getElementById('ins-panel');
+      const acts = [...document.querySelectorAll('.obn-pr td.obn-act')].map(td => Math.round(td.getBoundingClientRect().right));
+      return { table: t ? Math.round(t.getBoundingClientRect().right) : null, panel: p ? Math.round(p.getBoundingClientRect().left) : null,
+        acts: acts.length ? Math.max(...acts) : null, sideways: list ? list.scrollWidth > list.clientWidth + 1 : true,
+        heads: t ? [...t.querySelectorAll('thead th')].map(x => x.textContent.trim()).filter(Boolean) : [] }; });
+    check(`16 · ${w}×${hgt}: Proposals ends before Jambo's panel begins, its buttons in sight, nothing sideways, four heads`,
+      fit.table != null && fit.panel != null && fit.table <= fit.panel && fit.acts <= fit.panel && !fit.sideways && fit.heads.length === 4, fit);
+    await page.screenshot({ path: path.join(OUT, `7-prop-${w}x${hgt}.png`) });
   }
   await page.setViewportSize({ width: 1440, height: 780 });
 
