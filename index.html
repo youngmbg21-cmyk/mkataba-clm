@@ -12878,6 +12878,10 @@
   /* one pop-up taking another's place does not arrive again: the frame was already standing (core.js openModal,
      the flash survey, 13 Nov 2026). Stated after the rule above at equal weight plus the attribute. */
   .modal-in[data-dlg-kept]{animation:none;}
+  /* A PAGE ARRIVES WHOLE (owner, 19 Nov 2026: "it flashed the contracts first then goes to cover"): a pop-up that IS a
+     page (the Cover, the brief, a page in the middle, the Send screen) covers the page under it from its first frame.
+     Faded up from nothing over .2s, the page under it showed through, and read as that page flashing first. */
+  .modal-in[data-dlg-page]{animation:none;}
   /* The right-docked panel arrives FROM the right, so the movement says where
      it came from and that the page underneath was never replaced. */
   .side-panel-in{animation:sidePanelIn .22s cubic-bezier(.22,.61,.36,1);}
