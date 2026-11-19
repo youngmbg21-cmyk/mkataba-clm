@@ -42,6 +42,8 @@ const isShut = () => !document.getElementById('cmd-palette');
     /* 1 the symbol opens it */
     await P.click('#dk-nav');
     const opened = await until(P, () => !!document.querySelector('#cmd-palette .lp-p'), null, 4000);
+    /* the sheet arrives with a short motion: measure where it STANDS, once its motion has ended (bounded) */
+    await until(P, () => { const s = document.querySelector('#cmd-palette .lp-sheet'); return !!s && s.getAnimations().every(a => a.playState !== 'running'); }, null, 3000);
     const one = await P.evaluate(() => ({ focus: document.activeElement && document.activeElement.id, exp: document.getElementById('dk-nav').getAttribute('aria-expanded'),
       sheet: (() => { const r = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(innerWidth - r.right), t: Math.round(r.top), b: Math.round(innerHeight - r.bottom), w: Math.round(r.width) }; })() }));
     check(opened && one.focus === 'cp-input' && one.exp === 'true', '1a a press on the symbol opens the launchpad, the typing box has the hand', one);
