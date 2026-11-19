@@ -19853,8 +19853,8 @@
   html.lg-new .obn-pgb{flex:1;min-width:0}
   html.lg-new .obn-ring{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--obc) var(--obr),var(--color-neutral-100) 0)}
   html.lg-new .obn-ring>span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--color-surface);font-size:10.5px;color:var(--color-text)}
-  html.lg-new .obn-bar2{display:block;height:6px;border-radius:999px;background:var(--color-neutral-100);overflow:hidden}
-  html.lg-new .obn-bar2 i{display:block;height:100%}
+  html.lg-new .obn-bar2{display:flex;height:6px;border-radius:999px;background:var(--color-neutral-100);overflow:hidden}
+  html.lg-new .obn-bar2 i{display:block;flex:none;height:100%}
   html.lg-new .obn-pgb small{display:block;font-size:11.5px;color:var(--color-quiet);margin-top:4px;white-space:nowrap}
   html.lg-new .obn-table.is-proj td{vertical-align:middle}
   html.lg-new .obn-table.is-proj td.obn-pt{font-size:12.5px}
@@ -19889,7 +19889,7 @@
   html.lg-new .obt-hf-ours{color:var(--st-amber-fg)}
   html.lg-new .obt-page #obn-scroll{display:flex;flex-direction:column;min-height:0}
   /* the month as a line in Jambo's panel: ours above, theirs below, late to the left of today */
-  html.lg-new .obt-tl{background:var(--jb-card-fill);border-radius:var(--radius);padding:10px 12px;display:grid;gap:4px}
+  html.lg-new .obt-tl{background:var(--jb-card-fill);border-radius:var(--radius);padding:16px;display:grid;gap:4px}
   html.lg-new .obt-tl-lab{font-size:12px;font-weight:var(--w-strong)} html.lg-new .obt-tl-lab.is-ours{color:var(--st-amber-fg)} html.lg-new .obt-tl-lab.is-theirs{color:var(--st-steel-fg)}
   html.lg-new .obt-tl-row{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
   html.lg-new .obt-tl-row b{font-size:20px;font-weight:var(--w-strong);color:var(--color-text)}
@@ -19916,6 +19916,7 @@
   html.lg-new .obn-lg-l{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
   html.lg-new .obn-lg-l b{font-size:14px;font-weight:var(--w-label);color:var(--color-text);min-width:0}
   html.lg-new .obn-lg-now{flex:none;font-size:13px;color:var(--accent-ink);white-space:nowrap}
+  html.lg-new .obn-lg-now.is-us{color:var(--st-amber-fg)} html.lg-new .obn-lg-now.is-them{color:var(--st-steel-fg)} html.lg-new .obn-lg-now.is-both{color:var(--st-violet-fg)}
   html.lg-new .obn-lg-q{margin:0;font-family:var(--font-doc);font-size:13.5px;line-height:1.45;color:var(--color-text)}
   html.lg-new .obn-lg-q mark{padding:0 2px;border-radius:3px;background:var(--hl-yes);color:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}
   html.lg-new .obn-lg-src{margin:0;font-size:12px;color:var(--color-quiet)}
@@ -19932,14 +19933,6 @@
   html.lg-new .obn-lg-chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:12px}
   html.lg-new .obn-lg-chip{height:28px;padding:0 12px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12.5px;color:var(--color-text);white-space:nowrap;cursor:pointer}
   /* A DUTY UNDERNEATH ITS AGREEMENT: answered on its own line, nothing saved until Add all */
-  html.lg-new .obn-table .obn-dr td{background:var(--color-chat-bg);padding-top:11px;padding-bottom:11px}
-  html.lg-new .obn-table .obn-dr .obn-dn{font-size:12.6px;font-weight:var(--w-label)}
-  html.lg-new .obn-table .obn-dr td.obn-dc{padding-left:26px}
-  html.lg-new .obn-table .obn-dr.is-done .obn-dn{color:var(--color-quiet)}
-  html.lg-new .obn-dw{text-align:right;white-space:nowrap}
-  html.lg-new .obn-wh{height:28px;padding:0 11px;margin-left:6px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12px;color:var(--color-text);cursor:pointer}
-  html.lg-new .obn-wh.is-on{background:var(--bar-black);color:var(--color-surface);border-color:var(--bar-black)}
-  html.lg-new .obn-wh:disabled{opacity:.55;cursor:default}
   html.lg-new .obn-dec{font-size:12px;color:var(--color-quiet)}
   html.lg-new .obn-dec.is-ok{color:var(--st-green-fg)}
   html.lg-new .obn-pjl{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:5px 0}

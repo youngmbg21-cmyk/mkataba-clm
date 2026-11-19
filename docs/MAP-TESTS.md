@@ -930,4 +930,7 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 ## THE POP-UPS, THE SAP WAY (19 Nov 2026, the one edit pop-up)
 - NEW: test/f1100-the-one-edit-popup.test.js (the builder; the panel edits on it; the sentence reader run for real; every box asks it first). Red at the parent.
 - RE-POINTED: f796 (the party's facts open in lgpOpen), f68 (Mark done's stand-in draws lgpOpen), code-names-verify 2a/2b (the people a tick list `.lgp-list`, foot `.lgp-ft`).
+
+## OBLIGATIONS — Proposals start Undecided (19 Nov 2026)
+- test/f1102-proposals-start-undecided.test.js; browser: obligations-project-list-verify 6, 7, 13; round5-new-look-verify 4.
 - THE LAST FOUR (19 Nov 2026): test/f1101-the-last-four-edits.test.js (red at the parent: all five). Re-pointed: f745 (2c) the saved view's name line; f259 (3)(4) the duty's two steps; f398 (2c)(2e) the route rests, one signer on its own screen; browser checks my-notes-verify (the reminder line `#mns-say`), amount-and-window-verify (Next before the amount), signing-route-timeline-verify (1f, 2a, 3e, 3i), signers-and-party-verify (their line pressed first).
