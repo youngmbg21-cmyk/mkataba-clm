@@ -132,7 +132,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const say = await txt(page, '.cun-page .cun-say');
     await shot('4a-parties');
     await page.evaluate(() => { const r = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')].find(x => /Naivas/.test(x.innerText)); if (r) r.click(); });
-    const panel = await until(page, () => !!document.querySelector('#ins-panel [data-jov5-sec="ags"] .jov5-flink[data-cun-cts]'), null, 10000);
+    const panel = await until(page, () => !!document.querySelector('#ins-panel [data-jov5-sec="ags"] [data-cun-cts]'), null, 10000);
     const said = await txt(page, '#ins-panel');
     await shot('4b-party');
     check('4 Parties: the list first, a sentence over it; a row\'s panel with its facts, contacts and agreements, all of them on Contracts',

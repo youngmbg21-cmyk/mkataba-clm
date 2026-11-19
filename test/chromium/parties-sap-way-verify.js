@@ -84,14 +84,15 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 19 Nov 2026: the party's facts come first now; the agreements are their own section (data-jov5-sec="ags") */
     const P = await until(() => { const p = document.getElementById('ins-panel'); const g = p && p.querySelector('.jov5 [data-jov5-sec="ags"]'); if (!g) return null;
       return { label: ((g.querySelector('.jov5-label') || {}).textContent || '').trim(), ags: g.querySelectorAll('.jov5-row.is-door').length }; });
-    check('3a the panel lists the party\'s agreements, each a door', !!P && P.ags > 0, JSON.stringify(P));
+    /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the agreements are links, each opening Contracts showing only those */
+    check('3a the panel links to the party\'s agreements', !!P && P.ags > 0, JSON.stringify(P));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'parties-sap-way-1440x780.png') });
 
     /* ---- 3 the doors ---- */
     const agName = await page.evaluate(() => { const r = document.querySelector('#ins-panel .jov5 [data-jov5-sec="ags"] .jov5-row.is-door'); return r ? ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim() : null; });
     if (agName) await page.click('#ins-panel .jov5 [data-jov5-sec="ags"] .jov5-row.is-door');
-    const opened = agName ? await until(n => state.view !== 'customers' && document.body.innerText.includes(n) ? state.view : null, agName, 12000) : null;
-    check('3c an agreement in the panel opens its paper', !!opened, String(opened));
+    const opened = agName ? await until(() => document.querySelectorAll('#ct-place #reg-tbody tr[data-row]').length || null, null, 12000) : null;
+    check('3c "All N agreements" in the panel opens Contracts showing that party\'s agreements', !!opened, String(opened));
 
     /* ---- 4 the code-named deal ---- */
     await page.evaluate(() => setView('customers'));

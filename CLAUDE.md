@@ -227,7 +227,7 @@ FIVE MORE: `hbRdnPanelFive`, `iknPanelFive`, `obPanelFive` (page only), `obDecis
 CHOSEN ROW: `apnLeadFiveHtml` (no button; Approve/Decline on row), `mnnPanelFiveHtml`, `migNlPanelFiveHtml`, `ngnPanelFiveHtml` (one round; back `_jlBack`/`_ngnNone`; `data-ngn-pick`; f1081). CLAUSES: one line `stk-lg-top`, open clause amber (f1073, f1081). Arrival: HOW THINGS MOVE. f1065–f1070.
 ## THE LIST HEAD (js/views/listhead.js)
 - ONE head, ten lists (`lhRegister`, `lhHtml`, `lhHeadSync`), Columns `LC_*`; 0 tab hidden unless lit; Filter only values with rows. Box a quiet FILTER (`LH_BOX_ASKS` false).
-- AN APPLIED FILTER IS SHADED (owner, 19 Nov 2026): `.lh-chip` filled `--surface-2`, its x darker on hover. f1108.
+- AN APPLIED FILTER IS SHADED (owner, 19 Nov 2026): `.lh-chip` filled `--surface-2`, its x darker on hover. f1109.
 - LIST LANGUAGE (js/listlang.js): `listMarkHtml`, `listWordHtml`, `listChipHtml`; standards a SCORECARD (`stdRowWordsHtml`; f989).
 - COLUMN RULE `listCols(seat, cols, repaint)`: step aside by `rank`; name 300…480 (`SPREAD_NAME_MIN`, `LIST_NAME_MAX`); drag per list (`LIST_COLW_KEY`); Contracts own (`regHomeWide`). list-columns-verify.
 ## ONE SHEET AND THREE BUTTONS (index.html "ONE SHEET" block)
@@ -245,7 +245,7 @@ CHOSEN ROW: `apnLeadFiveHtml` (no button; Approve/Decline on row), `mnnPanelFive
 - HISTORY: ONE TABLE (`.hist-trail.is-table`); side `histLaneOf`; `#hist-q` + filters with results (`histFilterChoices`); `histMoveOf`/`histSummaryOf`; send told once (`histSendOf`, both shells).
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)
 - A READING, NOTHING FILED: per counterparty (`cuCustomers`, `cuKeyOf`; code names out); Status = PARTY's standing (`cuStanding`); `cuOpenCustomer`, `cuSelectParty`.
-- ONE LIST, NO FOLDERS, NO NDA COLUMN, NO PARTY PAGE: `cunSayHtml`; row button = most urgent (`cunActOf`). Panel `cunPanelFiveHtml`: Edit → `partyRecordOpen`, NDA where held (`cunNdaFact`); `dirOpenParty`; 3 agreements (`cunAgsOrdered`) → `regShowOnly`. No web search.
+- ONE LIST, NO FOLDERS, NO NDA COLUMN, NO PARTY PAGE: `cunSayHtml`. SAP WAY, REVISED (reverses Standing and the row button): Party · Streams (first +N) · Agreements (`cunSplitOf`) · On paper · Ends next (`cunEndsNextOf`) · Waiting on you LAST, a count (`cunWaitSay`); no row buttons. Panel `cunPanelFiveHtml`: facts (+ streams), Edit → `partyRecordOpen`, NDA (`cunNdaFact`); `dirOpenParty`; links All N (`data-cun-cts`) and need attention (`data-cun-attn`) → `regShowOnly`. f1108.
 - CONTACTS: `partyContactsOpen(key,{add,edit})` writes `c.participants` on ticked agreements (title, phone; never `signerPlan`), Undo (`_pcRestore`); People reads stored phone first (`dirPhoneOf`).
 - PARTY FACTS, ONE HOME: `party_records` (key `cuKeyOf`), writer PUT /api/party-records (wall `prVisibleKeys`, else 404), bootstrap (`partyRecordOf`); door `partyRecordOpen`; parties clause SUGGESTS.
 ## ASK A COLUMN (js/views/askcolumn.js)

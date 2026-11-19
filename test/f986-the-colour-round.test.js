@@ -15,9 +15,10 @@ const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '(');
 
 test('Parties: kind chips, initials in the stream\'s tone, what waits in amber', () => {
   const f = fnBody(read('js/views/customers.js'), 'cunRowHtml');
-  assert.match(f, /listChipHtml\(toneOf\(f\), shortOf\(f\)\)/);
+  /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the streams have their own column, the first one a chip in its tone */
+  assert.match(f, /listChipHtml\(toneOf\(v\.streams\[0\]\), streamNames\[0\]\)/);
   assert.match(f, /class="cun-av is-\$\{avTone\}"/);
-  assert.match(f, /cun-wait\$\{words \? ' is-owed' : ''\}/);
+  assert.match(f, /cun-wait\$\{ws \? ' is-owed' : ''\}/);
   assert.match(CSS, /html\.lg-new td\.cun-wait\.is-owed\{color:var\(--st-amber-fg\)\}/);
 });
 test('People: a workload bar to scale', () => {
