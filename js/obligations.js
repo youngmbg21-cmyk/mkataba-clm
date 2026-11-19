@@ -1349,7 +1349,7 @@ function obWhoseBtn(w){
   if (w === 'them') return i18t('obd_theirs_btn');
   if (w === 'both') return i18t('obd_both');
   if (w === 'us') return i18t('obd_us');
-  return i18t('obd_not_sure');
+  return i18t('obd_undecided');
 }
 function obWhoseWord(c, w){
   if (w === 'them') return (c && c.counterparty) || i18t('obd_them');
@@ -4844,7 +4844,7 @@ function obnProjects(){
        A skip is kept on the record; an answer stands for this sitting until Add all is pressed. */
     const rv = obReviewOf(c);
     const answered = held.filter(o => obReviewDecision(c, o, rv) || _obnWhose[obnWhoseKey(c, o)]).length;
-    out.push({ c, found: held, tally: t, decided: answered, addable: t.left, late: late.get(c.id) || 0, at,
+    out.push({ c, found: held, tally: t, decided: answered, addable: t.left, ready: obnReadyOf(c, held, rv), late: late.get(c.id) || 0, at,
       days: at ? Math.max(0, -(daysUntil(String(at).slice(0, 10)) || 0)) : null });
   });
   out.sort((a, b) => (b.days == null ? -1 : b.days) - (a.days == null ? -1 : a.days) || b.tally.left - a.tally.left);
@@ -4868,9 +4868,15 @@ function obnRingHtml(done, total, tone){
 function obnWhoseKey(c, o){ return c.id + '::' + String((o && o.desc) || ''); }
 function obnWhoseNow(c, o){
   const k = obnWhoseKey(c, o);
-  if(_obnWhose[k]) return _obnWhose[k];
-  const w = obWhoseOf(o);
-  return w === 'unsure' ? 'us' : w;
+  /* NOTHING STARTS DECIDED (owner, 19 Nov 2026: "you have everything starting under us. There should be a first button
+     that says undecided"): a duty is Undecided until the reader presses Us, Theirs or Both sides; Jambo's guess never lights
+     a button, and Add all takes only what the reader decided (obnReadyOf) */
+  return _obnWhose[k] || 'unsure';
+}
+/* how many of an agreement's waiting duties the reader has given a side: what Add all adds */
+function obnReadyOf(c, held, rv){
+  rv = rv || obReviewOf(c);
+  return (held || []).filter(o => !obReviewDecision(c, o, rv) && obnWhoseNow(c, o) !== 'unsure').length;
 }
 function obnDutyHtml(x, o, i){
   const c = x.c, d = obReviewDecision(c, o), w = obnWhoseNow(c, o);
@@ -4884,7 +4890,7 @@ function obnDutyHtml(x, o, i){
   return `<tr class="obn-dr${d ? ' is-done' : ''}">
     <td class="obn-c1 obn-dc" colspan="2"><div class="obn-dn">${_obEsc(String(i + 1) + '. ' + (o.desc || ''))}</div>
       ${o.quote ? `<div class="obn-q is-line"><i>&ldquo;${_obEsc(o.quote)}&rdquo;</i>${sec ? ` · <span>${_obEsc(sec)}</span>` : ''}${when ? ` · <span>${_obEsc(when)}</span>` : ''}</div>` : `<div class="obn-sub">${_obEsc([sec, when].filter(Boolean).join(' · '))}</div>`}</td>
-    <td class="obn-dw" colspan="2">${said || (may ? chip('us') + chip('them') + chip('both') : '')}</td>
+    <td class="obn-dw" colspan="2">${said || (may ? chip('unsure') + chip('us') + chip('them') + chip('both') : '')}</td>
     <td class="obn-act">${!d && may ? `<button type="button" class="cal-nl-go" data-obn-skip data-cid="${_obEsc(c.id)}" data-i="${i}">${_obEsc(i18t('obd_skip'))}</button>` : ''}</td></tr>`;
 }
 function obnProjRowHtml(x){
@@ -4893,7 +4899,7 @@ function obnProjRowHtml(x){
   const ref = window.refHtml ? refHtml(c) : _obEsc(c.id);
   const lateb = x.late ? `<span class="obn-ch is-ruby obn-lt">${_obEsc(i18tn('obn_n_late', x.late, { n: x.late }))}</span>` : '';
   const acts = `<button type="button" class="obn-pill${open ? ' is-on' : ''}" data-obn-open="${_obEsc(c.id)}">${_obEsc(open ? i18t('obn_close_n') : i18tn('obn_open_n', x.tally.total, { n: x.tally.total }))}</button>`
-    + (may && x.addable ? `<button type="button" class="cal-nl-go obn-open" data-obn-addall="${_obEsc(c.id)}">${_obEsc(i18tn('obn_add_all', x.addable, { n: x.addable }))}</button>` : '');
+    + (may && x.ready ? `<button type="button" class="cal-nl-go obn-open" data-obn-addall="${_obEsc(c.id)}">${_obEsc(i18tn('obn_add_ready', x.ready, { n: x.ready }))}</button>` : '');
   /* A PRESS CHOOSES, A SECOND OPENS (19 Nov 2026): the row is Jambo's panel's subject (obnLgHtml); pressed again its
      duties open under it, as its Open pill does */
   const sel = _obnPick === c.id;
@@ -4958,8 +4964,8 @@ function obnLgHtml(x, rows){
     const said = y.d === 'added' ? `<span class="obn-lg-said is-ok">${E(i18t('obd_added'))}</span>`
       : y.d === 'skipped' ? `<span class="obn-lg-said">${E(i18t('obd_skipped'))}</span><button type="button" class="obn-lg-link" data-obn-unskip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_undo'))}</button>`
       : y.d === 'already' ? `<span class="obn-lg-said">${E(i18t('ob_already_on'))}</span>` : '';
-    const line = said || (may ? `${whose('us')}${whose('them')}${whose('both')}<button type="button" class="obn-lg-link is-skip" data-obn-skip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_skip'))}</button>` : '');
-    return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${!y.d ? `<span class="obn-lg-now">${E(obWhoseBtn(w))}</span>` : ''}</div>`
+    const line = said || (may ? `${whose('unsure')}${whose('us')}${whose('them')}${whose('both')}<button type="button" class="obn-lg-link is-skip" data-obn-skip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_skip'))}</button>` : '');
+    return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${!y.d && w !== 'unsure' ? `<span class="obn-lg-now">${E(obWhoseBtn(w))}</span>` : ''}</div>`
       + `${o.quote ? `<p class="obn-lg-q">\u201c${obnQuoteHtml(o.quote)}\u201d</p>` : ''}`
       + `${sec || when ? `<p class="obn-lg-src">${E([sec, when].filter(Boolean).join(' \u00b7 '))}</p>` : ''}`
       + `${line ? `<div class="obn-lg-ans">${line}</div>` : ''}</div>`;
@@ -4968,7 +4974,7 @@ function obnLgHtml(x, rows){
   const nextHtml = next && left > 0 ? `<div class="obn-lg-it is-next"><div class="obn-lg-l"><b>${E(i18tn('obn_lg_more', left, { n: left }))}</b>`
     + `<button type="button" class="obn-lg-next" data-obn-pick="${E(next.c.id)}">${E(i18t('obn_lg_next'))}</button></div>`
     + `<p class="obn-lg-src">${E(i18tn('obn_lg_next_s', next.tally.left, { name: next.c.name || next.c.id, n: next.tally.left }))}</p></div>` : '';
-  const chips = [may && x.addable ? `<button type="button" class="obn-lg-chip" data-obn-addall="${E(c.id)}">${E(i18tn('obn_add_all', x.addable, { n: x.addable }))}</button>` : '',
+  const chips = [may && x.ready ? `<button type="button" class="obn-lg-chip" data-obn-addall="${E(c.id)}">${E(i18tn('obn_add_ready', x.ready, { n: x.ready }))}</button>` : '',
     `<button type="button" class="obn-lg-chip" data-obn-ask="${E(c.id)}">${E(i18t('obn_lg_ask'))}</button>`].filter(Boolean).join('');
   return `<div class="obn-lg jl-words" data-obn-lg="${E(c.id)}">
     <div class="obn-lg-top"><b>${E(c.name || c.id)}</b><span>${E([c.counterparty || '', x.days == null ? '' : i18t('obn5_found', { when: obnAgeWord(x) }), i18tn('obn5_duties', x.tally.total, { n: x.tally.total })].filter(Boolean).join(' \u00b7 '))}</span></div>
@@ -5386,7 +5392,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
       const c = window.getContract ? getContract(cid) : null; if(!c) return;
       const held = (typeof window.triageHeldObligations === 'function') ? window.triageHeldObligations(c) : [];
       let n = 0;
-      held.forEach(o => { if(obReviewDecision(c, o)) return; if(obAddFound(c, o, obnWhoseNow(c, o))) n++; });
+      held.forEach(o => { if(obReviewDecision(c, o)) return; const w = obnWhoseNow(c, o); if(w === 'unsure') return; if(obAddFound(c, o, w)) n++; });
       if(n){ if(typeof logAudit === 'function') logAudit(c, 'Obligation', `Added ${n} obligation${n === 1 ? '' : 's'} from Jambo scan`);
         persist(c); if(typeof renderObligationsSection === 'function') renderObligationsSection(c); obligationSurfacesChanged();
         if(window.roomPaintObligations) roomPaintObligations(c);
@@ -5437,7 +5443,7 @@ Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obD
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   obwWeekShut,obWeekFolds,OBW_DEC_KEY,obwDecisions,obwFinds,obwFindRows,obPossessive,obwFindsRowHtml,obwRowPrivate,obWeekSub,obWeekOneWho,obWeekMoneyHtml,obwRowAvHtml,obwLine2,obwRowActHtml,obwWeekRowHtml,obwRowAct,
-  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnRowHtml,obnTabOf,obnRows,
+  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnReadyOf,obnRowHtml,obnTabOf,obnRows,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,

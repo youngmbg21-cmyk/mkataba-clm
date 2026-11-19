@@ -118,7 +118,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel turns to that agreement the Legora way',
       /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column") */
       up && heads.length === 4 && !heads.includes('Found') && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && /^open/i.test(pr.open || '')
-      && /^add all/i.test(pr.add || '') && !!duty && duty.whose === 3 && duty.on && duty.skip && side, { heads, pr, duty, side });
+      && !pr.add && !!duty && duty.whose === 4 && duty.on   /* RE-POINTED 19 Nov 2026 (f1100): Undecided lit first, nothing decided, nothing to add */ && duty.skip && side, { heads, pr, duty, side });
   } catch (e) { check('4 Proposals', false, String(e).slice(0, 200)); }
 
   /* 5 · Calendar */

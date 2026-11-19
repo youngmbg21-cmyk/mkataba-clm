@@ -106,7 +106,7 @@ function world(){
     quote: !!document.querySelector('.obn-dr .obn-q i'), skip: !!document.querySelector('.obn-dr [data-obn-skip]'),
     modal: !!document.querySelector('#modal-root #obd'), lg: !!document.querySelector('#ins-panel .obn-lg .obn-lg-it') }));
   check('6 · the duties open under their agreement — three answers each, the words they rest on, no pop-up, and Jambo\'s panel turns to it the Legora way',
-    open.duties === 3 && open.whose === 9 && open.chosen && open.quote && open.skip && !open.modal && open.lg, open);
+    open.duties === 3 && open.whose === 12 && open.chosen   /* RE-POINTED 19 Nov 2026 (f1100): Undecided · Us · Theirs · Both sides, Undecided lit */ && open.quote && open.skip && !open.modal && open.lg, open);
   await page.screenshot({ path: path.join(OUT, '3-open.png') });
 
   /* 7 · the chips decide whose job it is, and Add all adds them that way */
@@ -116,8 +116,10 @@ function world(){
   await page.waitForTimeout(900);
   const added = await page.evaluate(id => { const c = getContract(id); return { n: (c.obligations || []).length, parties: (c.obligations || []).map(o => o.party),
     left: obReviewWaiting(c).length, rows: document.querySelectorAll('.obn-pr').length }; }, cid);
-  check('7 · Add all adds every undecided duty the way the chips say, and the agreement leaves the list',
-    added.n === 3 && added.parties.filter(p => p === 'theirs').length === 1 && added.left === 0 && added.rows === 2, added);
+  /* RE-POINTED 19 Nov 2026 (owner: "There should be a first button that says undecided"; f1100): nothing starts decided, so
+     Add adds only the one duty the reader gave a side; the other two stay Undecided and the agreement stays on the list */
+  check('7 · Add adds only what the reader decided, the way the chips say; the undecided stay',
+    added.n === 1 && added.parties.join() === 'theirs' && added.left === 2 && added.rows === 3, added);
 
   /* 8 · a Skip is kept as the desk keeps it, and can be undone */
   await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
@@ -171,7 +173,7 @@ function world(){
   const lg = chose ? await page.evaluate(id => { const p = document.getElementById('ins-panel'), L = p.querySelector('.obn-lg');
     const its = [...L.querySelectorAll('.obn-lg-it:not(.is-next)')];
     return { for: L.getAttribute('data-obn-lg'), sel: !!document.querySelector(`.obn-pr.is-sel[data-obn-pick="${id}"]`), items: its.length,
-      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: its.every(i => i.querySelectorAll('[data-obn-whose]').length === 3 && !!i.querySelector('[data-obn-skip]')),
+      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: its.every(i => i.querySelectorAll('[data-obn-whose]').length === 4 && /* RE-POINTED 19 Nov 2026 (f1100): Undecided first */ !!i.querySelector('[data-obn-skip]')),
       mark: !!L.querySelector('.obn-lg-q mark'), boxed: !!L.querySelector('.jov5-group, .jov5-g'), tab: ((p.querySelector('[data-jl-home] .pd-tab-w') || {}).textContent || '').trim(),
       open: !!document.querySelector('.obn-dr') }; }, cid2) : null;
   check('13 · a row pressed is chosen, and the panel turns the Legora way: its duties in their own quoted words, each answered in its row, nothing boxed, "‹ Overview" the way back',
