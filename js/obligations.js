@@ -5160,7 +5160,11 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
       if(_obnTab === 'prop') _obnPropPage = Math.max(1, n); else _obnPage = Math.max(1, n);
       obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; const sl = document.getElementById('obn-list'); if(sl) sl.scrollTop = 0; return; }
     const op = t.closest('[data-obn-open]');
-    if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id; obnRepaint(); return; }
+    /* OPEN CHOOSES TOO (owner, 19 Nov 2026: "you have not added the row press the legora way" — the row's Open unfolded
+       the duties and left the panel on the overview): opening an agreement makes it the panel's subject, the Legora way */
+    if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id;
+      if(_obnOpenAg === id && _obnPick !== id){ _obnPick = id; _obnLgTab = 'todo'; }
+      obnRepaint(); return; }
     const wh = t.closest('[data-obn-whose]');
     if(wh){ e.preventDefault(); const hit = obnFindOf(wh.getAttribute('data-cid'), wh.getAttribute('data-i'));
       if(hit) _obnWhose[obnWhoseKey(hit.c, hit.o)] = wh.getAttribute('data-obn-whose');

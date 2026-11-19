@@ -111,9 +111,9 @@ function world(){
     whose: document.querySelectorAll('.obn-dr [data-obn-whose]').length,
     chosen: [...document.querySelectorAll('.obn-dr')].every(r => !!r.querySelector('.obn-wh.is-on')),
     quote: !!document.querySelector('.obn-dr .obn-q i'), skip: !!document.querySelector('.obn-dr [data-obn-skip]'),
-    modal: !!document.querySelector('#modal-root #obd') }));
-  check('6 · the duties open under their agreement — three answers each, the words they rest on, and no pop-up',
-    open.duties === 3 && open.whose === 9 && open.chosen && open.quote && open.skip && !open.modal, open);
+    modal: !!document.querySelector('#modal-root #obd'), lg: !!document.querySelector('#ins-panel .obn-lg .obn-lg-it') }));
+  check('6 · the duties open under their agreement — three answers each, the words they rest on, no pop-up, and Jambo\'s panel turns to it the Legora way',
+    open.duties === 3 && open.whose === 9 && open.chosen && open.quote && open.skip && !open.modal && open.lg, open);
   await page.screenshot({ path: path.join(OUT, '3-open.png') });
 
   /* 7 · the chips decide whose job it is, and Add all adds them that way */
@@ -163,6 +163,8 @@ function world(){
   await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), 8000);
   /* the row step 8 opened is shut again, so 14 sees a second press open it */
   await page.evaluate(() => { const b = document.querySelector('.obn-pill.is-on[data-obn-open]'); if (b) b.click(); });
+  /* Open also chose that agreement (19 Nov 2026), so "‹ Overview" lets it go and the page is as landed */
+  await page.evaluate(() => { if (document.querySelector('#ins-panel .obn-lg')){ const b = document.querySelector('#ins-panel [data-jl-home]'); if (b) b.click(); } });
   await page.waitForTimeout(400);
   const land = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const f = p && p.querySelector('.obn-five .jov5');
     return { five: !!f, title: f ? (f.querySelector('.jov5-title') || {}).textContent : '', tiles: f ? f.querySelectorAll('.jov5-g').length : 0,

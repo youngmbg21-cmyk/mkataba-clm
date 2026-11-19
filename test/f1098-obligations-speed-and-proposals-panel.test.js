@@ -101,3 +101,10 @@ test('f1098 (5) both books carry the words', () => {
   for (const k of ['obn5_t_other', 'obn5_start', 'obn5_look', 'obn_lg_todo', 'obn_lg_next', 'obn_lg_ask', 'obn_lg_ask_q', 'obd_theirs_btn', 'obn_p_prop_word'])
     assert.equal((src.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books');
 });
+
+test('f1098 (6) Open chooses too: opening an agreement makes it the panel\'s subject, the Legora way', () => {
+  const src = strip(read('js/obligations.js'));
+  const i = src.indexOf("const op = t.closest('[data-obn-open]');"); assert.ok(i >= 0);
+  const h = src.slice(i, src.indexOf('return; }', i) + 9);
+  assert.match(h, /_obnOpenAg === id && _obnPick !== id\)\{ _obnPick = id;/);
+});
