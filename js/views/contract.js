@@ -7219,6 +7219,9 @@ function ovFieldNoteHtml(mark,k){
   return `<span class="sec-f-n" title="${esc(say)}">${esc(i18t('ov_paper_differs'))}</span>`;
 }
 function ktFieldCell(c,k,edit,marks){
+  /* HIDDEN MONEY IS NOT DRAWN AT ALL (f259): no Value (or Pay) cell for a reader without money rights, never an
+     empty one or a box whose figure the server would put back */
+  if(k==='value'&&typeof canViewValues==='function'&&!canViewValues()) return null;
   /* A PRINTED TERM THAT HAS FROZEN IS NOT A BOX (27 Sep 2026) — see
      paperTermsFrozen. Its read-out says why on the hover. */
   const frozenTerm=PAPER_TERM_KEYS.includes(k) && paperTermsFrozen(c);
@@ -9998,7 +10001,10 @@ function detailsOf(c){
      contract owes its base pay here as a deal owes its value — the same box,
      read as pay (ktFieldCell), its one door Edit pay */
   const pay = !!(typeof fxIsPay === 'function' && fxIsPay(c));
-  if(money || pay) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
+  /* HIDDEN MONEY IS NOT ASKED FOR (f259): a reader without money rights is never shown, nor owed, a box they may not
+     see — the server would put the stored figure back over anything typed there */
+  const seeMoney = !(typeof canViewValues === 'function' && !canViewValues());
+  if(seeMoney && (money || pay)) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
   add(recSec, 'effDate', i18t('ov_f_effective'), !String((c.fields && c.fields.effDate) || '').trim(), 'kt');
   /* AN NDA'S TWO FACTS COUNT UNTIL A PERSON CONFIRMS THEM (round 8, owner's
      yes): who keeps it secret and until when — what the wording says is a
