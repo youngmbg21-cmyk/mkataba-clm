@@ -2601,6 +2601,9 @@ function maskContractValues(c, moneyKeys) {
   if (Array.isArray(x.asks)) x.asks = asksMasked(x.asks, keys);
   /* ...and the trail's own lines: every line stays, its amount goes (historyLineMoneyless, js/metaclean.js) */
   if (Array.isArray(x.audit)) x.audit = auditMasked(x.audit);
+  /* ...and a duty's own amount (a payment owed is money like any other; the screens already hide it,
+     obligationMoneyVisible — now the figure never reaches the browser either) */
+  if (Array.isArray(x.obligations)) x.obligations = x.obligations.map(o => (o && typeof o === 'object' && 'amount' in o) ? (({ amount, ...rest }) => rest)(o) : o);
   x._valuesHidden = true;
   return x;
 }
@@ -2610,6 +2613,24 @@ function auditMasked(trail) {
 /* The one call every read route makes before it responds. */
 function visibleContract(c, user, moneyKeys) {
   return canViewValues(user) ? c : maskContractValues(c, moneyKeys);
+}
+/* A SEARCH NEVER CONFIRMS A HIDDEN FIGURE (19 Nov 2026): the search indexes are shared, so they hold the money
+   blanks (an admin finds a contract by its amount). For a reader without can_view_values a contract's hit must
+   still stand on its text WITHOUT the money (moneyFreeContractText); a hit that only the figure made is dropped,
+   or typing "4500000" would tell them which contract is worth that. `alts` = one list per asked term, each a
+   list of spellings ("a b" a phrase: every word there, the last as a prefix, as the index reads it). */
+const srvFoldWords = t => String(t || '').normalize('NFD').replace(/\p{M}+/gu, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+function srvTextHits(text, alts) {
+  const toks = srvFoldWords(text), set = new Set(toks);
+  const one = spell => { const parts = srvFoldWords(spell); if (!parts.length) return false;
+    return parts.every((w, i) => i === parts.length - 1 ? toks.some(x => x.startsWith(w)) : set.has(w)); };
+  return (alts || []).some(list => (list || []).some(one));
+}
+function moneyFreeContractText(c, moneyKeys) {
+  const m = maskContractValues(c, moneyKeys);
+  return [m.name, m.counterparty, m.contractNo, m.id, m.kind, m.fields ? Object.values(m.fields).join(' ') : '',
+    contractSearchBody(m), (Array.isArray(m.audit) ? m.audit : []).map(a => [a && a.at, a && a.user, a && a.action, a && a.detail].filter(Boolean).join(' ')).join('\n')]
+    .filter(Boolean).join('  ');
 }
 
 const app = express();
@@ -4749,6 +4770,16 @@ app.get('/api/search', auth, (req, res) => {
     const rows = db.prepare(`SELECT f.id, c.contract_no, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
       FROM contracts_fts f JOIN contracts c ON c.id = f.id ${w} ORDER BY rank LIMIT ?`).all(match, ...fs.args, limit);
     const seen = new Set(refRows.map(r => r.id));
+    /* without money rights a hit must stand on the contract's text without its figures (srvTextHits) */
+    if (!snippets) {
+      const keys = moneyFieldKeys(), alts = q.replace(/["']/g, ' ').split(/\s+/).filter(t => t.replace(/[^\w]/g, '').length > 1).map(t => [t]);
+      const get = db.prepare('SELECT json FROM contracts WHERE id=?');
+      for (const r of rows) {
+        if (seen.has(r.id)) continue;
+        let c = null; try { c = JSON.parse((get.get(r.id) || {}).json || 'null'); } catch (_) { c = null; }
+        if (!c || !srvTextHits(moneyFreeContractText(c, keys), alts)) seen.add(r.id);
+      }
+    }
     const hits = refRows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: '' }))
       .concat(rows.filter(r => !seen.has(r.id)).map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })))
       .slice(0, limit);
@@ -5579,6 +5610,17 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
     if (Array.isArray(c.rounds) && Array.isArray(prev.rounds))
       c.rounds = c.rounds.map((r, i) => (r && prev.rounds[i] && r.proposedValue == null) ? { ...r, proposedValue: prev.rounds[i].proposedValue } : r);
+    /* a duty went out without its amount (maskContractValues): the stored amount stands on every duty already on
+       the record, matched by id, so a save from a masked page never wipes it nor sets it */
+    if (Array.isArray(c.obligations)) {
+      const was = new Map((Array.isArray(prev.obligations) ? prev.obligations : []).filter(o => o && o.id).map(o => [String(o.id), o]));
+      c.obligations = c.obligations.map(o => {
+        const w = o && o.id ? was.get(String(o.id)) : null;
+        if (!w) return o;
+        const { amount, ...rest } = o;
+        return ('amount' in w) ? { ...rest, amount: w.amount } : rest;
+      });
+    }
     /* a rule step's stamp went out masked (stampMasked): the stored one stands; a step decided in this save
        is stamped from the record as stored, money and all, never from what a masked page could compute */
     if (Array.isArray(c.approvalChain)) {
@@ -27859,12 +27901,26 @@ function hatiSearch(ctx, q, opts) {
       FROM hati_search JOIN hs_docs d ON d.rowid = hati_search.rowid WHERE hati_search MATCH ? ORDER BY rank LIMIT ?`).all(match, HS_SCAN + 1);
   } catch (e) { return { ...none, searched: terms, error: 'search parse' }; }
   const scanCapped = rows.length > HS_SCAN;
+  /* without money rights a contract's own hit, or its history's, must stand on its text without the figures
+     (srvTextHits): every spelling the match asked for, the root and any word it was read as */
+  let moneyHides = () => false;
+  if (!ctx.money && match) {
+    const alts = terms.map(t => [/\s/.test(t) ? t : hsRoot(t)].concat(((fixed.find(f => f.asked === t) || {}).read) || []));
+    const keys = moneyFieldKeys(), get = db.prepare('SELECT json FROM contracts WHERE id=?'), memo = new Map();
+    moneyHides = r => {
+      if (!r.cid || (r.kind !== 'contract' && r.kind !== 'history')) return false;
+      if (!memo.has(r.cid)) { let c = null; try { c = JSON.parse((get.get(r.cid) || {}).json || 'null'); } catch (_) { c = null; }
+        memo.set(r.cid, !c || !srvTextHits(moneyFreeContractText(c, keys), alts)); }
+      return memo.get(r.cid);
+    };
+  }
   const hits = [], seen = new Set();
   let total = 0;
   for (const r of rows.slice(0, HS_SCAN)) {
     const kind = asKind(r);
     if (kinds.length && !kinds.includes(kind)) continue;
     if (!sees(r)) continue;
+    if (moneyHides(r)) continue;
     /* one party, one hit, however many contracts name it */
     const key = kind === 'party' ? 'party:' + r.ref : r.kind + ':' + r.ref + ':' + (r.cid || '');
     if (seen.has(key)) continue;

@@ -1625,15 +1625,18 @@ function cunRowHtml(v, keys){
   };
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
     <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div>${facts ? `<div class="cun-sub"><span class="cun-facts">${esc(facts)}</span></div>` : ''}</div></div></td>
-    ${(keys || CUN_KEYS).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
+    ${(keys || cunKeys()).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
 }
 /* THE COLUMNS UNDER THE ONE COLUMN RULE (listCols), as drawn ("the SAP way, revised"): Party · Streams · Agreements ·
    On paper · Ends next · Waiting on you, which is always last and always stands; where the room is short Ends next steps
    aside first, then Streams, then On paper */
 const CUN_KEYS = ['streams', 'agreements', 'paper', 'ends', 'waiting'];
+/* HIDDEN MONEY IS NOT DRAWN AT ALL (f259): a reader without money rights gets no On paper column, never a column of
+   dashes (a dash would tell them a figure is kept from them) */
+function cunKeys(){ return CUN_KEYS.filter(k => k !== 'paper' || !(typeof canViewValues === 'function' && !canViewValues())); }
 function cunCols(){
   const W = { streams: 124, agreements: 132, paper: 88, ends: 118, waiting: 118 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
-  const DEFS = [{ k: 'name' }, ...CUN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
+  const DEFS = [{ k: 'name' }, ...cunKeys().map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols('customers', DEFS, cuRepaint) : { cols: DEFS };
   const T = { name: 'cun_c_party', streams: 'cun_c_streams', agreements: 'cun_c_ags', paper: 'cun_c_paper', ends: 'cun_c_ends', waiting: 'cun_c_wait' };
   const cols = FIT.cols, keys = cols.slice(1).map(c => c.k);
@@ -1801,7 +1804,7 @@ function partyHistorySay(h){
   if (h.pushed) out.push(String(h.pushed));
   return out.join(' ');
 }
-Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunSayHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunSayHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunKeys, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */
