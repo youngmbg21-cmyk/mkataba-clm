@@ -508,9 +508,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094; the side-by-side ticked "tabs removed, as
        drawn"): a chosen duty's panel no longer carries Negotiation · Workspace; its contract row is the door to the
        contract — the paper's Obligations face, that row open (obOpenContract, as the row's own double-click) */
-    await door(A, 'Obligations panel, the contract row (MK-A1)', { start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
-      press: () => domClick('#ins-panel [data-obp-contract]'), expect: E.obRow('MK-A1', OBK(1)), says: OBSAYS });
-    await door(A, 'Obligations panel, Show it in the contract (MK-A1)', { start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe, the Legora panel): the contract's door is "Open the paper" (data-obt-paper);
+       the quoted words, pressed, show that passage (data-ob-show, as before) */
+    await door(A, 'Obligations panel, Open the paper (MK-A1)', { start: async () => { await goPage('obligations'); await OBTAB(1); await selectRow(OBROW); },
+      press: () => domClick('#ins-panel [data-obt-paper]'), expect: E.obRow('MK-A1', OBK(1)), says: OBSAYS });
+    await door(A, 'Obligations panel, the quoted words (MK-A1)', { start: async () => { await goPage('obligations'); await OBTAB(1); await selectRow(OBROW); },
       press: () => domClick('#ins-panel [data-ob-show]'), expect: E.paper('MK-A1'), says: 'that passage on Home\'s paper' });
     /* Parties */
     const CU = 'tr[data-cu-cust="naivas supermarkets"]';

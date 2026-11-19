@@ -5146,7 +5146,8 @@ function obnOnePanel(r){
   const theirs = obligationIsTheirs(r), w = obnWhenWord(r);
   const ref = c && window.contractRef ? contractRef(c) : r.cid;
   const may = (typeof canEdit !== 'function') || canEdit();
-  const quote = r.quote ? `<p class="obn-lg-q">“${typeof obnQuoteHtml === 'function' ? obnQuoteHtml(r.quote) : E(r.quote)}”</p>` : '';
+  /* the quoted words, pressed, show that passage on the paper (obligationShowInContract, the panel's door before) */
+  const quote = r.quote ? `<p class="obn-lg-q obt-q" data-ob-show="" role="button" tabindex="0">“${typeof obnQuoteHtml === 'function' ? obnQuoteHtml(r.quote) : E(r.quote)}”</p>` : '';
   const money = obligationMoneyVisible() && typeof obligationHasAmount === 'function' && obligationHasAmount(r) ? obligationMoneyText(obligationAmount(r), c) : '';
   const meta = [r.clause ? '§ ' + r.clause : '', money, obRepeatsWord(r)].filter(Boolean).join(' · ');
   const acts = r.st === 'done' || !may ? '' : theirs
@@ -5405,6 +5406,10 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     if(om){ e.preventDefault(); const k = om.getAttribute('data-obt-more'); _obnColAll[k] = true; obnRepaint(); return; }
     const opk = t.closest('[data-obt-pick]');
     if(opk){ e.preventDefault(); _obnTwoPick = opk.getAttribute('data-obt-pick'); obnRepaint(); return; }
+    const osh = t.closest('.obt-one [data-ob-show]');
+    if(osh){ e.preventDefault(); const one = osh.closest('[data-obt-one]'); const k = one && one.getAttribute('data-obt-one');
+      const hit = k && typeof obLocate === 'function' ? obLocate(k) : null;
+      if(hit) obligationShowInContract(hit.c.id, hit.o.quote || ''); return; }
     const oct = t.closest('[data-obt-contact]');
     if(oct){ e.preventDefault(); const nm = oct.getAttribute('data-obt-contact'); if(typeof partyContactsOpen === 'function') partyContactsOpen(typeof cuKeyOf === 'function' ? cuKeyOf(nm) : nm, { add: true }); return; }
     const opp = t.closest('[data-obt-paper]');
