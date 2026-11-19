@@ -5,9 +5,10 @@
    are there. Go to the page not a sheet laid over").
    Before: a row's press opened the contract's paper and Dossier, then laid the Cover over them; ‹ took the Cover
    away and showed the paper, a second ‹ reached Contracts.
-   (1) A contract opened on purpose draws ONLY its Cover, over the page pressed from (pdCoverGo): no paper opened
-       under it, a heavy record read first with the wait said by the pointer.
-   (2) ‹ and Esc take the Cover away and the page pressed from is there: ONE press. The bar names the contract and
+   (1) A contract opened on purpose draws its Cover FIRST, over the page pressed from (pdCoverGo; a heavy record read
+       first, the wait said by the pointer); the paper is opened under it in the frame after, unseen (_cvHold), so every
+       reading of "this contract is open" stays true.
+   (2) ‹ and Esc go back to the page pressed from in ONE press (_pdMid.from), that page drawn first, the paper never shown. The bar names the contract and
        says where ‹ goes (deskCoverUp).
    (3) Going in (Open the dossier, a job): the paper is drawn UNDER the Cover, which goes only once it stands
        (pdCoverLeave, _cvHold keeps pdMidStale from taking it early), bounded by CV_LAND_MS.
@@ -21,16 +22,17 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const PD = strip(read('js/paperdesk.js'));
 const fn = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = src.indexOf('\nfunction ', i + 9); return src.slice(i, j < 0 ? undefined : j); };
 
-test('f1099 (1) a contract opened on purpose draws only its Cover', () => {
+test('f1099 (1) a contract opened on purpose shows its Cover first, the paper drawn under it unseen', () => {
   const go = fn(PD, 'pdCoverGo');
-  assert.doesNotMatch(go, /pdOpenOnHome\(id, 'open', \{ cover: false \}\)\.|igWalk|setView/, 'no paper opened first');
   assert.match(go, /ensureFull\(c\)/, 'a light row is read whole before the Cover is drawn');
   assert.match(go, /is-opening/, 'the wait is said by the pointer, nothing painted');
-  const show = fn(PD, 'pdCoverShow');
-  assert.match(show, /openModal\(pdCoverHtml\(c\)/);
-  assert.doesNotMatch(fn(PD, 'pdCoverShow'), /pdOnPaper\(\)/, 'it needs no paper under it');
-  const o = fn(PD, 'pdOpenOnHome');
-  assert.match(o, /if \(pdCoverGo\(id\)\) return true;/, 'the door asks for the page first');
+  const show = go.indexOf('pdCoverShow('), paper = go.indexOf("pdOpenOnHome(sid, 'open', { cover: false })");
+  assert.ok(show > 0 && paper > show, 'the Cover is drawn before the paper is opened');
+  assert.match(go, /requestAnimationFrame\(\(\) => setTimeout\(\(\) => \{/, 'the paper is drawn in a frame after the Cover is painted');
+  assert.match(go, /_cvHold = sid;/, 'held: the paper drawn under it does not take it away');
+  assert.match(go, /if \(from && from !== at\) _pdMid\.from = from;/, 'the page it was pressed from stays its way back');
+  assert.match(fn(PD, 'pdCoverShow'), /openModal\(pdCoverHtml\(c\)/);
+  assert.match(fn(PD, 'pdOpenOnHome'), /if \(pdCoverGo\(id\)\) return true;/, 'the door asks for the Cover first');
   const room = strip(read('js/views/contract.js'));
   assert.match(room, /if\s*\(opts\s*&&\s*opts\.cover\s*&&\s*typeof window\.pdCoverGo\s*===\s*'function'\s*&&\s*window\.pdCoverGo\(c\.id\)\)\s*return true;/, 'roomHomeLand({cover:true}) too');
 });

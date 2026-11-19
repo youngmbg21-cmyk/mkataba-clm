@@ -355,8 +355,8 @@ function deskBarPaint(){
     let where = '';
     /* from the Cover, ‹ goes back to the page under it, by its name */
     const midFrom = typeof window !== 'undefined' && typeof window.pdMidFrom === 'function' ? window.pdMidFrom() : '';
-    if (cover){ const k = deskKeyNow(); where = k ? deskTabLabel(k) : ''; }
-    else if (midFrom) where = deskTabLabel(midFrom);
+    if (midFrom) where = deskTabLabel(midFrom);
+    else if (cover){ const k = deskKeyNow(); where = k ? deskTabLabel(k) : ''; }
     else if (can && !deskSheetUp()){
       try {
         const w = typeof window !== 'undefined' ? window : {};

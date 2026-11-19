@@ -10290,7 +10290,36 @@ function pdCoverGo(id){
   if (typeof document === 'undefined' || !pd2On()) return false;
   if (typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768))) return false;
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c || c._codeNamed) return false;
-  const show = () => { pdCoverShow((typeof getContract === 'function' && getContract(id)) || c); };
+  /* THE PAPER COMES UNDER IT, UNSEEN (19 Nov 2026): once the Cover stands, the contract's paper and Dossier are opened
+     under it, held there (_cvHold) — every reading of "this contract is open" (a refresh, a door, the bar) stays true,
+     and nothing of it is seen. When the paper stands the Cover belongs to it, and keeps the page it was pressed from
+     as its way back (_pdMid.from): ‹ and Esc go there in one press, the paper never shown (deskGoBack). */
+  const show = () => {
+    let from = ''; try { from = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ from = ''; }
+    if (!pdCoverShow((typeof getContract === 'function' && getContract(id)) || c)) return;
+    const sid = String(id), mk = 'cover:' + sid;
+    const onIt = () => { const pc = pdContract(); return !!(pc && String(pc.id) === sid && pdOnPaper()); };
+    if (onIt()) return;
+    _cvHold = sid;
+    /* the Cover is painted first; the paper is drawn under it in the frame after, so the reader never waits for it */
+    const t0 = Date.now();
+    const tick = () => {
+      if (!pdMidUp(mk)){ if (_cvHold === sid) _cvHold = null; return; }
+      if (onIt()){
+        if (_cvHold === sid) _cvHold = null;
+        let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
+        if (_pdMid && _pdMid.key === mk){ _pdMid.at = at; if (from && from !== at) _pdMid.from = from; }
+        if (typeof _pdArrive !== 'undefined' && _pdArrive && _pdArrive.id === sid) pdArriveEnd();
+        pdMidSync(); return;
+      }
+      if (Date.now() - t0 < CV_LAND_MS) requestAnimationFrame(tick); else if (_cvHold === sid) _cvHold = null;
+    };
+    requestAnimationFrame(() => setTimeout(() => {
+      if (!pdMidUp(mk)){ if (_cvHold === sid) _cvHold = null; return; }
+      try { pdOpenOnHome(sid, 'open', { cover: false }); } catch (_){}
+      tick();
+    }, 0));
+  };
   if (c._loaded || typeof ensureFull !== 'function' || !(typeof API_MODE === 'function' && API_MODE())){ show(); return true; }
   const root = document.documentElement; root.classList.add('is-opening');
   Promise.resolve().then(() => ensureFull(c)).then(show, () => { pdOpenOnHome(id, 'open', { cover: false }); })
