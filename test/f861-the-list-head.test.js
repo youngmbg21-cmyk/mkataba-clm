@@ -458,10 +458,11 @@ describe('f861 (11) the box shows the page\'s query', () => {
     assert.equal(inp.value, 'which ones end soon');
   });
   /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search left; ⌘K puts the hand in Jambo's box */
-  test('the top bar has no search box; ⌘K focuses Jambo\'s box', () => {
+  /* RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the launchpad, the jump window in the middle (f1097) */
+  test('the top bar has no search box; ⌘K opens the launchpad', () => {
     assert.doesNotMatch(read('index.html'), /<input id="cmd-search"/);
     const app = read('js/app.js').replace(/\/\*[\s\S]*?\*\//g, ' ');
-    assert.match(app, /\(e\.key==='k'\|\|e\.key==='K'\)\)\{ e\.preventDefault\(\); jamboBoxFocus\(\); return; \}/);
+    assert.match(app, /\(e\.key==='k'\|\|e\.key==='K'\)\)\{ e\.preventDefault\(\); openCommandPalette\(\); return; \}/);
   });
   test('a page left and come back to starts from its own query', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);

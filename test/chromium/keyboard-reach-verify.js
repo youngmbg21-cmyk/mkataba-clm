@@ -117,11 +117,13 @@ async function tabAround(page, sel, n = 25) {
 
   /* ---------- 4 · THE COMMAND PALETTE ----------
      RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box; the jump list is
-     "/" pressed outside a box */
+     "/" pressed outside a box
+     RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the jump window in the middle, as "/" does */
   await page.keyboard.press('Control+k'); await pause(400);
   {
-    const k = await page.evaluate(() => { const a = document.activeElement; return { jb: !!(a && a.closest && a.closest('.jb-card')), tag: a && a.tagName }; });
-    check('⌘K puts the hand in Jambo\'s box', k.jb, JSON.stringify(k));
+    const k = await page.evaluate(() => ({ open: !!document.getElementById('cmd-palette'), id: document.activeElement && document.activeElement.id }));
+    check('⌘K opens the launchpad, the hand in its box', k.open && k.id === 'cp-input', JSON.stringify(k));
+    await page.keyboard.press('Escape'); await pause(300);
   }
   await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); setView('obligations'); }); await pause(600);
   await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
@@ -183,32 +185,29 @@ async function tabAround(page, sel, n = 25) {
   /* ---------- 7 · THE NAV SAYS WHICH DOOR YOU ARE IN ---------- */
   await page.evaluate(() => setView('register')); await pause(600);
   {
-    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): NO LEFT RAIL but THE SYMBOL STRIP — the bar's top-left
-       symbol (#dk-nav) opens it, a symbol per page (guideStripHtml); the nav doors are the strip's, the page in front the one
-       that says aria-current="page" */
-    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (!g || g.hidden) document.getElementById('dk-nav').click(); });
-    await page.waitForFunction(() => { const g = document.getElementById('gd-strip'); return !!g && !g.hidden && g.querySelector('[data-gds-go]'); }, null, { timeout: 4000 }).catch(() => {});
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): NO LEFT RAIL but THE SYMBOL STRIP.
+       RE-POINTED 19 Nov 2026 (the launchpad, owner's pick): the bar's top-left symbol (#dk-nav) opens the jump window in
+       the middle, every page a row (lpBodyHtml); the page in front is the one row that says aria-current="page" */
+    const openPad = async () => { await page.evaluate(() => { if (!document.getElementById('cmd-palette')) document.getElementById('dk-nav').click(); });
+      await page.waitForFunction(() => !!document.querySelector('#cmd-palette .lp-p'), null, { timeout: 4000 }).catch(() => {}); };
+    const shutPad = async () => { if (await page.evaluate(() => !!document.getElementById('cmd-palette'))){ await page.keyboard.press('Escape'); await pause(250); } };
+    await openPad();
     const cur = await page.evaluate(() => {
-      const on = [...document.querySelectorAll('#gd-strip [data-gds-go][aria-current="page"], .nav-item[aria-current="page"]')].filter(e => e.getClientRects().length);
-      return { n: on.length, view: on[0] ? on[0].getAttribute('data-gds-go') : null };
+      const on = [...document.querySelectorAll('#cmd-palette .lp-p[aria-current="page"], .nav-item[aria-current="page"]')].filter(e => e.getClientRects().length);
+      return { n: on.length, text: on[0] ? on[0].textContent.replace(/\s+/g, ' ').trim() : null, key: typeof guideHereKey === 'function' ? guideHereKey() : null };
     });
-    await page.keyboard.press('Escape'); await pause(200);
-    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (g && !g.hidden) document.getElementById('dk-nav').click(); });
+    await shutPad();
     check('exactly one nav door says aria-current="page"', cur.n === 1, JSON.stringify(cur));
-    check('and it is the door the reader is standing in', cur.view === 'contracts', String(cur.view));
-    /* RE-POINTED 15 Oct 2026 (step 7): the place is Home's Document face, so
-       the reader moves to Home by its rail door, which lands on the Board */
-    /* RE-POINTED 17 Nov 2026 (#762): the move is the strip's own Board symbol, and the strip opened again says Board */
-    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (!g || g.hidden) document.getElementById('dk-nav').click(); });
-    await page.waitForSelector('#gd-strip [data-gds-go="board"]', { timeout: 4000 }).catch(() => {});
-    await page.evaluate(() => { const b = document.querySelector('#gd-strip [data-gds-go="board"]'); if (b) b.click(); }); await pause(700);
-    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (!g || g.hidden) document.getElementById('dk-nav').click(); });
-    await page.waitForFunction(() => { const g = document.getElementById('gd-strip'); return !!g && !g.hidden && g.querySelector('[data-gds-go]'); }, null, { timeout: 4000 }).catch(() => {});
+    check('and it is the door the reader is standing in', cur.key === 'contracts' && /Contracts|Avtal/.test(String(cur.text)), JSON.stringify(cur));
+    /* RE-POINTED 19 Nov 2026: the move is the launchpad's own Board row, and the launchpad opened again says Board */
+    await openPad();
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#cmd-palette .lp-p')].find(x => /^(Board|Tavla)/.test(x.textContent.trim())); if (b) b.click(); }); await pause(700);
+    await openPad();
     const moved = await page.evaluate(() => {
-      const on = [...document.querySelectorAll('#gd-strip [data-gds-go][aria-current="page"]')].filter(e => e.getClientRects().length);
-      return on.length === 1 ? on[0].getAttribute('data-gds-go') + (state.view === 'dashboard' ? '' : ' (view ' + state.view + ')') : on.length + ' doors';
+      const on = [...document.querySelectorAll('#cmd-palette .lp-p[aria-current="page"]')].filter(e => e.getClientRects().length);
+      return on.length === 1 ? guideHereKey() + (state.view === 'dashboard' ? '' : ' (view ' + state.view + ')') : on.length + ' doors';
     });
-    await page.evaluate(() => { const g = document.getElementById('gd-strip'); if (g && !g.hidden) document.getElementById('dk-nav').click(); });
+    await shutPad();
     check('and it MOVES with the reader', moved === 'board', String(moved));
   }
 

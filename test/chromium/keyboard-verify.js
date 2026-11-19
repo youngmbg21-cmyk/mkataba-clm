@@ -81,9 +81,12 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   console.log('\n3 · the palette announces itself');
   /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box; the jump list is
      "/" pressed outside a box, off Home */
+  /* RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the jump window in the middle, as "/" does */
   await page.keyboard.press(MOD + '+k');
   await page.waitForTimeout(400);
-  ok('⌘K puts the hand in Jambo\'s box', await page.evaluate(() => { const a = document.activeElement; return !!(a && a.closest && a.closest('.jb-card')); }));
+  ok('⌘K opens the launchpad, the hand in its box', await page.evaluate(() => !!document.getElementById('cmd-palette') && document.activeElement && document.activeElement.id === 'cp-input'));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
   await page.evaluate(() => { setView('obligations'); });
   await page.waitForTimeout(700);
   await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
