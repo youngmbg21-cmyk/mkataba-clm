@@ -345,7 +345,7 @@ function renderFolderListOnly(){
   wireFolderRows(); renderFolderSelBar();
 }
 
-Object.assign(window,{ngnPlace,ngnPlacePut,FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
+Object.assign(window,{regCtSayHtml,ngnPlace,ngnPlacePut,FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
 /* ============================================================
    VIEW: REGISTER (global filterable / sortable table + bulk select)
    Client-side over the loaded working set, consistent with the folder
@@ -1224,16 +1224,53 @@ function regHomeHeadHtml(R){
   const nlF=typeof window.newLookOn==='function'&&newLookOn();
   const fName=nlF&&R.type&&R.type!=='all'&&FOLDERS[R.type]?FOLDERS[R.type].name:(nlF&&R.view==='archived'?i18t('ctf_ended'):'');
   const top=`<div class="reg-tabbar ct-top ph-top">
-        <div class="ct-name">${nlF?`<button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button>${fName?'<span class="ctf-crumb">/</span>':''}`:''}<h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>
+        ${nlF?`<div class="ct-name is-stack"><button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button><div class="ct-hrow"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div></div>`
+          :`<div class="ct-name"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>`}
         ${regArchiveBtnHtml(R)}
         <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
           `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
         ${nlF&&((typeof canEdit!=='function')||canEdit())?`<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${esc(i18t('ctf_new_agreement'))}</button>`:''}
       </div>`;
   if(typeof window.lhHtml!=='function'||!(window.LH_PAGES&&LH_PAGES[REG_CT_SEAT])) return `<div class="reg-band sap-band ph-card ct-head">${top}</div>`;
-  const head=lhHtml(REG_CT_SEAT, { frame:'card', top, cls:'reg-band ct-head' });
+  /* THE SENTENCE OVER THE LIST, as on Parties (owner's yes, 19 Nov 2026): the head card's last line, on the List only —
+     inside the head, so the head and the list stay ONE sheet with no gap (contracts-page 8c) */
+  const say=nlF&&show==='list'?`<div class="ct-say-host">${regCtSayHtml(R)}</div>`:'';
+  const card=lhHtml(REG_CT_SEAT, { frame:'card', top, cls:'reg-band ct-head' });
+  const head=say?card.replace(/<\/div>\s*$/,say+'</div>'):card;
   /* the Wall as drawn: "upload a document" closes the tabs' line (the one drop door, pdDropDoor) */
   return nlF&&show==='wall'&&typeof window.pdDropDoor==='function'?head.replace(/<\/div>\s*$/,`<button type="button" class="ctf-up" data-ctf-upload>${esc(i18t('ctf_upload'))}</button></div>`):head;
+}
+/* THE SENTENCE OVER THE CONTRACTS LIST (owner's yes, 19 Nov 2026: "Similar to parties add the legora wordings at the
+   top"): how many contracts the list holds at rest (a folder's own, a party's own where a door sent one) and how many
+   are signed, how many need you (a press opens the Needs you tab), and the next signed one to end (a press lands on its
+   row). Read from the record, no Jambo call; a part with nothing to say is left out. */
+function regCtSayHtml(R){
+  let base=[]; try{ base=regRestBase(); }catch(_){ base=[]; }
+  if(R&&R.type&&R.type!=='all') base=base.filter(c=>String(c.folder)===String(R.type));
+  if(!base.length) return '';
+  const E=esc, T=typeof todayISO==='function'?todayISO():'';
+  const signed=base.filter(c=>c.status==='Signed').length;
+  let needs=0; try{ const ids=regNeedsIds(); needs=base.filter(c=>ids.has(String(c.id))).length; }catch(_){ needs=0; }
+  const endOf=c=>{ try{ return String((typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||'').slice(0,10); }catch(_){ return ''; } };
+  const next=base.filter(c=>c.status==='Signed'&&endOf(c)&&(!T||endOf(c)>=T)).sort((a,b)=>endOf(a).localeCompare(endOf(b)))[0];
+  const hole=(key,vars,html,n)=>{ const k='\u0001'; const t=n==null?i18t(key,Object.assign({},vars,{ x:k })):i18tn(key,n,Object.assign({},vars,{ x:k })); return E(t).replace(k,html); };
+  const lead=E(i18tn('ct_say_lead',base.length,{ n:base.length, s:signed }));
+  const needH=needs?`<button type="button" class="cun-say-a" data-ct-say-view="needs">${E(i18tn('ct_say_needs',needs,{ n:needs }))}</button>`:'';
+  const day=next?(typeof regDotDate==='function'?regDotDate(endOf(next)):endOf(next)):'';
+  const nextH=next?hole('ct_say_next',{ d:day },`<button type="button" class="cun-say-a" data-ct-say-row="${E(String(next.id))}">${E(next.counterparty?i18t('ct_say_of',{ party:next.counterparty, name:next.name||next.id }):String(next.name||next.id))}</button>`):'';
+  const link=next?`<button type="button" class="cun-say-a" data-ct-say-row="${E(String(next.id))}">${E(next.counterparty?i18t('ct_say_of',{ party:next.counterparty, name:next.name||next.id }):String(next.name||next.id))}</button>`:'';
+  const rest=needH&&nextH?hole('ct_say_both',{ b:'\u0002' },needH).replace('\u0002',nextH):needH?needH+'.':link?hole('ct_say_next_only',{ d:day },link):'';
+  return `<p class="cun-say ct-say">${lead}${rest?' '+rest:''}</p>`;
+}
+if(typeof document!=='undefined'&&!document._ctSayWired){ document._ctSayWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+    const v=t.closest('[data-ct-say-view]'); if(v){ e.preventDefault(); regOnCt(R=>{ R.view=v.getAttribute('data-ct-say-view'); R.page=1; }); regCtRepaint(); return; }
+    /* the contract named: LAND ON IT — its row, in view, lit; nothing pressed */
+    const r=t.closest('[data-ct-say-row]'); if(r){ e.preventDefault(); const id=r.getAttribute('data-ct-say-row');
+      const q=(typeof CSS!=='undefined'&&CSS.escape)?CSS.escape(id):id;
+      if(typeof landOn==='function') landOn(`#reg-tbody tr[data-row="${q}"], #content tr[data-row="${q}"]`,{ focus:false }); }
+  });
 }
 /* THE WALL UNDER THE SAME HEAD: the papers igWallBodyHtml draws, of the very
    rows the list holds (regFiltered), its count line carrying the list's own

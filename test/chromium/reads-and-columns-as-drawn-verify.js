@@ -58,8 +58,10 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance): the panel counts the folder, then When they end, Where
          the money is; Discover is no longer in the panel (the list head keeps its pill until Discover moves to the Board) */
       /* RE-POINTED (owner, 15 Nov 2026): no Discover button in the list's head; the "discover" link above Jambo's box stays */
-      check(`${nm} 1 the top on one line, nothing above 15px, "/" between; no Discover button; the panel At a Glance (owner, 15 Nov 2026)`,
-        T.mids === 1 && !T.big.length && T.crumb === '/' && !T.pill && /^\s*60\s*contracts[\s\S]*WHEN THEY END[\s\S]*WHERE THE MONEY IS/i.test(T.panel) && !/Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
+      /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page"): the top
+         STACKS — "‹ Folders" small over the title, the title serif at 26px with the counts beside it; no "/" crumb */
+      check(`${nm} 1 the top: "‹ Folders" over the title, only the title above 15px, no "/" crumb; no Discover button; the panel At a Glance (owner, 15 Nov 2026)`,
+        T.mids === 2 && T.big.length === 1 && /\bct-h\b/.test(T.big[0]) && !T.crumb && !T.pill && /^\s*60\s*contracts[\s\S]*WHEN THEY END[\s\S]*WHERE THE MONEY IS/i.test(T.panel) && !/Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
       await shot('1-rest');
 
       /* 2 · the form */

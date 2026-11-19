@@ -62,7 +62,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      its own: a rung that is deleted must not come back as a dead button.
      RE-POINTED 21 Sep 2026 (the redesign's second pass): the title is two lines
      on compact, so the row stands ABOVE its 36px floor and under 44. */
-  ok('compact stands on its 36px floor', (await rowH()) >= 36 && (await rowH()) < 44, (await rowH()) + 'px');
+  /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page": the same
+     spacing as Parties): Contracts' rows stand about 66px — 13px above and below a two-line cell — not compact's 36–44 */
+  ok('the Contracts row stands about 66px, as Parties\' (19 Nov 2026)', (await rowH()) >= 58 && (await rowH()) <= 76, (await rowH()) + 'px');
   /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'comfortable 44px' and 'the ladder offers two rungs' pressed that control; the rows' own geometry is still pinned here */
   ok('padding travels with the height', (await page.evaluate(() =>
      getComputedStyle(document.querySelector('.reg-table tbody td')).paddingLeft)) === '12px');
@@ -85,7 +87,8 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
   await page.waitForTimeout(900);
   /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'survives a reload' read the control's pressed rung */
-  ok('and the rows really are compact', (await rowH()) >= 36 && (await rowH()) < 44, (await rowH()) + 'px');
+  /* RE-POINTED 19 Nov 2026: after a reload the rows keep the drawn spacing */
+  ok('and after a reload the rows keep the drawn spacing', (await rowH()) >= 58 && (await rowH()) <= 76, (await rowH()) + 'px');
   /* RETIRED 17 Nov 2026 (#762, owner's ruling): the row-height choice (the Display menu's compact · comfortable) is gone from the new look's Contracts list; 'a browser that remembers condensed simply reads compact' read the control's pressed rung */
 
   console.log('\n5 · one renderer, both pages');

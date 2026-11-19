@@ -62,8 +62,10 @@ const check = (name, pass, detail) => {
       S1 = await until(n => { const on = document.querySelector('.cun-page [data-cun-tab="wait"].is-on'); const rows = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')];
         return on && rows.length && rows.length < n && rows.every(r => { const w = (r.querySelector('td.cun-wait') || {}).textContent || ''; return w && w.trim() !== '—'; }) ? rows.map(r => r.getAttribute('data-cu-cust')) : null; }, S0.n);
     }
-    check('1 the tabs (Folders · List · Waiting on you · No NDA), opening on List; Waiting on you narrows to the parties something waits on',
-      S0.opts[0] === 'folders' && S0.opts[1] === 'all' && S0.opts.includes('wait') && S0.lit === 'all' && !!S1, JSON.stringify({ S0, S1 }));
+    /* RE-POINTED 19 Nov 2026 (owner's yes on the Parties drawings): the Folders tab and "NDA missing" are gone — the tabs
+       are All · Waiting on you, the page opening on All. RETIRED: Folders first, List second, No NDA */
+    check('1 the tabs (All · Waiting on you), opening on All; Waiting on you narrows to the parties something waits on',
+      S0.opts[0] === 'all' && S0.opts.includes('wait') && !S0.opts.includes('folders') && !S0.opts.includes('nda') && S0.lit === 'all' && !!S1, JSON.stringify({ S0, S1 }));
     if (S0.opts.length){
       await page.click(TAB + '[data-cun-tab="all"]');
       await until(n => document.querySelectorAll('#cu-tbody [data-cu-cust]').length === n, S0.n);
@@ -79,14 +81,15 @@ const check = (name, pass, detail) => {
        agreements as rows, each a door onto its paper. RETIRED: 2b "the panel's Waiting on you begins with the column's
        first item" and 3b "a waiting row's door lands on its work" — the drawn panel carries no Waiting section (what
        waits is said on the row) */
-    const P = await until(() => { const p = document.getElementById('ins-panel'); const g = p && p.querySelector('.jov5 .jov5-sec'); if (!g) return null;
+    /* RE-POINTED 19 Nov 2026: the party's facts come first now; the agreements are their own section (data-jov5-sec="ags") */
+    const P = await until(() => { const p = document.getElementById('ins-panel'); const g = p && p.querySelector('.jov5 [data-jov5-sec="ags"]'); if (!g) return null;
       return { label: ((g.querySelector('.jov5-label') || {}).textContent || '').trim(), ags: g.querySelectorAll('.jov5-row.is-door').length }; });
     check('3a the panel lists the party\'s agreements, each a door', !!P && P.ags > 0, JSON.stringify(P));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'parties-sap-way-1440x780.png') });
 
     /* ---- 3 the doors ---- */
-    const agName = await page.evaluate(() => { const r = document.querySelector('#ins-panel .jov5 .jov5-sec .jov5-row.is-door'); return r ? ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim() : null; });
-    if (agName) await page.click('#ins-panel .jov5 .jov5-sec .jov5-row.is-door');
+    const agName = await page.evaluate(() => { const r = document.querySelector('#ins-panel .jov5 [data-jov5-sec="ags"] .jov5-row.is-door'); return r ? ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim() : null; });
+    if (agName) await page.click('#ins-panel .jov5 [data-jov5-sec="ags"] .jov5-row.is-door');
     const opened = agName ? await until(n => state.view !== 'customers' && document.body.innerText.includes(n) ? state.view : null, agName, 12000) : null;
     check('3c an agreement in the panel opens its paper', !!opened, String(opened));
 

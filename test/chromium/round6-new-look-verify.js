@@ -123,22 +123,20 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       up && both && chosen && /Raw Milk Collection, chosen/.test(said) && /Read off its paper/i.test(said) && /Open it/i.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said) && !hint /* RE-POINTED (the harmony review, EVEN CARDS, owner's yes 9 Nov 2026): the how-to line under the papers is gone; the panel says what is chosen */, { said: said.slice(0, 160), hint });
   } catch (e) { check('3 the Wall', false, String(e).slice(0, 200)); }
 
-  /* 4 · Parties: folders and a party's page */
+  /* 4 · Parties: RE-POINTED 19 Nov 2026 (the Parties round, owner's "build all the designs in parties"): Folders and a
+     party's own page are gone — the list is the landing page, a sentence over it, a row's press opens its panel: the
+     party's own facts, its contacts, three agreements and all of them on Contracts */
   try {
     await page.evaluate(() => setView('customers'));
-    await until(page, () => !!document.querySelector('.cun-page [data-cun-tab="folders"]'), null, 12000);
-    await page.evaluate(() => document.querySelector('[data-cun-tab="folders"]').click());
-    const cards = await until(page, () => document.querySelectorAll('.cunf-card').length >= 3, null, 8000);
-    const card = await txt(page, '.cunf-card');
-    await shot('4a-party-folders');
-    await page.evaluate(() => { const b = [...document.querySelectorAll('.cunf-card')].find(x => /Naivas/.test(x.innerText)); if (b) b.click(); });
-    const pageUp = await until(page, () => !!document.querySelector('.cunp-page .cunp-table tbody tr'), null, 10000);
-    const facts = await txt(page, '.cunp-two');
-    const ags = await page.evaluate(() => document.querySelectorAll('.cunp-table tbody tr').length);
+    const up = await until(page, () => !!document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody [data-cu-cust]') && !document.querySelector('[data-cun-tab="folders"]'), null, 12000);
+    const say = await txt(page, '.cun-page .cun-say');
+    await shot('4a-parties');
+    await page.evaluate(() => { const r = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')].find(x => /Naivas/.test(x.innerText)); if (r) r.click(); });
+    const panel = await until(page, () => !!document.querySelector('#ins-panel [data-jov5-sec="ags"] .jov5-flink[data-cun-cts]'), null, 10000);
+    const said = await txt(page, '#ins-panel');
     await shot('4b-party');
-    check('4 Parties: a card per party; a party\'s own page with its facts, what waits on you and its agreements',
-      cards && /deal/.test(card) && pageUp && /Mombasa/.test(facts) && /Waiting on you/i.test(facts) && ags === 3, { card: card.slice(0, 120), facts: facts.slice(0, 160), ags });
-    await page.evaluate(() => { const b = document.querySelector('[data-cunp-back]'); if (b) b.click(); });
+    check('4 Parties: the list first, a sentence over it; a row\'s panel with its facts, contacts and agreements, all of them on Contracts',
+      up && /^You hold paper with \d+ part/.test(say) && panel && /own facts/i.test(said) && /Contacts/.test(said) && /on Contracts/.test(said), { say: say.slice(0, 160), said: said.slice(0, 200) });
   } catch (e) { check('4 Parties', false, String(e).slice(0, 200)); }
 
   /* 5 · People */

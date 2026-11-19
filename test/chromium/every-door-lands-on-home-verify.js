@@ -175,8 +175,10 @@ const LAND = () => {
     fillOn: !!(window.pd2FillOn && window.intel && intel.paper && pd2FillOn(intel.paper.id)),
     /* RE-POINTED 17 Nov 2026 (#762): the Fill in door brings the form to THE MIDDLE, where the paper was ([data-pd-mid^="form:"]) */
     midForm: !!document.querySelector('[data-pd-mid^="form:"]'),
-    cuParty: (() => { const p = document.querySelector('.cunp-page[data-cu-screen="party"]'); const h = p && p.querySelector('.cunp-head .ctf-h'); return h ? h.textContent.trim() : null; })(),
-    cuAgs: document.querySelectorAll('.cunp-page[data-cu-screen="party"] tr[data-cu-ag]').length,
+    /* RE-POINTED 19 Nov 2026 (owner's yes on the Parties drawings: a party's own page is gone): a party door lands on
+       the list with THAT party chosen and its panel open — the chosen row's key and the panel's title */
+    cuParty: (() => { const r = document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody tr.is-sel[data-cu-cust]'); return r ? r.getAttribute('data-cu-cust') : null; })(),
+    cuPanel: (() => { const h = document.querySelector('#ins-panel .jov5-title'); return h ? h.textContent.trim() : null; })(),
     pdOb: (() => { const r = document.querySelector('#ig-dock .pd-ob.is-open[data-pd-ob-key]'); return r ? r.getAttribute('data-pd-ob-key') : null; })(),
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
@@ -254,7 +256,7 @@ const E = {
   /* narrowed to a party: its set, and the count line reading the number the party's row showed */
   /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a party opens its own page (round 6, as drawn), its
      agreements its rows — the number pressed is the number of rows read there */
-  party: (n, said, name, rows) => L => L.view === 'customers' && L.cuParty === name && L.cuAgs === rows,
+  party: (key, name) => L => L.view === 'customers' && L.cuParty === key && L.cuPanel === name,
   face: f => L => L.view === 'dashboard' && L.face === f,
   /* the contract's Lifeline strip, newest on the Board, on its page (step 8) */
   /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): a door that opened the room lands on
@@ -515,18 +517,22 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
        or "· K closed" after it — the amendment rides on its agreement's paper) */
     const naivasSaid = `${naivasN} of ${naivasN} contracts`;
     const naivasName = await page.evaluate(() => (typeof cuView === 'function') ? cuView(cuCustomerOf('naivas supermarkets')).name : '');
-    const PARTY = E.party(naivas, naivasSaid, naivasName, naivasN), PSAYS = 'the party\'s own page, ' + naivasName + ', its ' + naivasN + ' agreements';
+    const PARTY = E.party('naivas supermarkets', naivasName), PSAYS = 'Parties, ' + naivasName + ' chosen, its panel open';
+    /* the panel's "All N agreements on Contracts": the Contracts place narrowed to the party, its N agreements */
+    const PCTS = L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.only === naivas, PCSAYS = 'Contracts narrowed to ' + naivasName + ', its ' + naivasN + ' agreements';
+    void naivasSaid;
     /* RE-POINTED 16 Nov 2026 (#762): an opened party stays on its own page (the party screen) until its ‹ Parties — the
        list is reached by that way back, as a person does */
-    const toParties = async () => { await goPage('customers'); await domClick('[data-cunp-back]'); await waitFor(page, s => !!document.querySelector(s), 6000, CU); };
-    await door(A, 'Parties row, double-click (Naivas)', { start: toParties, press: () => dbl(CU), expect: PARTY, says: PSAYS });
-    await door(A, 'Parties row, Enter (Naivas)', { start: toParties, press: () => enter(CU), expect: PARTY, says: PSAYS });
+    const toParties = async () => { await goPage('customers'); await waitFor(page, s => !!document.querySelector(s), 6000, CU); };
+    /* RETIRED 19 Nov 2026 (the Parties round, owner's drawings: "a second press on a row does nothing"): Parties row,
+       double-click and Enter — the list is the landing page and a row only chooses; its panel's doors go on */
     /* RE-POINTED 16 Nov 2026 (#762): the party's panel is THE FIVE PARTS — its "Open party · N agreements" row
        (data-cun-open) is the door. RETIRED: "Open on Explorer" — old look only (the five parts draw no Explorer door) */
     const cuChoose = async () => { await toParties();
       if (!(await page.evaluate(s => { const r = document.querySelector(s); return !!(r && r.classList.contains('is-sel')); }, CU))) await selectRow(CU); };
-    await door(A, 'Parties panel, Open party (Naivas)', { start: cuChoose,
-      press: () => domClick('#ins-panel [data-cun-open="naivas supermarkets"]'), expect: PARTY, says: PSAYS });
+    /* RE-POINTED 19 Nov 2026: Open party is gone; the panel's last line opens all the party's agreements on Contracts */
+    await door(A, 'Parties panel, All agreements on Contracts (Naivas)', { start: cuChoose,
+      press: () => domClick('#ins-panel [data-cun-cts="naivas supermarkets"]'), expect: PCTS, says: PCSAYS });
     /* Requests */
     /* RE-POINTED 16 Nov 2026 (#762): Requests is ONE table (.ikn-table, tr[data-ikn-row]); a drafted request sits under
        the tab "Drafted" ([data-ikn-tab="drafted"]) */
@@ -591,7 +597,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       press: () => click('.obw-table tr[data-obw-row="ob-a1-1"] .obw-when'), expect: E.obTab('MK-A1'), says: SAYS.obTab });
     await door(A, 'Obligations Open contract, narrow (MK-A1, a later one)', { start: () => goPage('obligations', () => !!document.querySelector('tr[data-obw-row="ob-a1-3"] [data-obw-open]')),
       press: () => click('tr[data-obw-row="ob-a1-3"] [data-obw-open]'), expect: E.obTab('MK-A1'), says: SAYS.obTab });
-    await door(A, 'Parties row, one press, narrow (Naivas)', { start: toParties, press: () => click(CU), expect: PARTY, says: PSAYS });
+    /* narrow, no panel: a press opens the party's agreements on Contracts (the old door, kept where there is no panel) */
+    await door(A, 'Parties row, one press, narrow (Naivas)', { start: toParties, press: () => click(CU), expect: PCTS, says: PCSAYS });
     await door(A, 'Requests Open, narrow (→ MK-A2)', { start: async () => { await goPage('intake'); await domClick('[data-ik-view="all"]'); await waitFor(page, () => !!document.querySelector('[data-ik-open="MK-A2"]'), 6000); },
       press: () => click('[data-ik-open="MK-A2"]'), expect: E.paper('MK-A2'), says: SAYS.paper });
     await page.evaluate(() => insForce(null));
@@ -957,7 +964,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       ['on Before you sign (MK-A2)', () => page.evaluate(() => pdSignOpen('MK-A2')), E.signing('MK-A2'), SAYS.signing, null],
       /* RE-POINTED 16 Nov 2026 (#762): a contract's obligations open on its paper's Obligations face */
       ['on a contract\'s Obligations (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.obTab('MK-A1'), SAYS.obTab, null],
-      ['on a party\'s own page', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],
+      ['on a party chosen on Parties', () => page.evaluate(() => cuSelectParty('naivas supermarkets')), PARTY, PSAYS, null],
       ['on the Negotiations list', () => go('redline'), E.ngList, 'the Negotiations list', null],
       /* the room by name (the checks' own door) and a refresh standing on it: the strip */
       ['on the room, opened by name (MK-A1)', () => page.evaluate(() => openWorkspace('MK-A1', { room: true })), E.dossier('MK-A1'), SAYS.dossier, null],

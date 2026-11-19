@@ -170,7 +170,9 @@ const check = (name, pass, detail) => {
     check('6a a stage is its word in its tone, in the grey line: no wash behind it, no pill padding; a mark leads the row', list.mark && /rgba\(0, 0, 0, 0\)|transparent/.test(list.stBg) && list.stPad === '0px', JSON.stringify(list));
     check('6b a party\'s initials wear their tone\'s wash, no outline', !/rgba\(0, 0, 0, 0\)|transparent/.test(list.avBg) && /rgba\(0, 0, 0, 0\)|transparent/.test(list.avEdge), JSON.stringify(list));
     /* RE-POINTED 16 Nov 2026 (#762): the new look's page titles are Geist (f377), the furniture's face; the serif is the paper's */
-    check('6c the page title is Geist, strong', /^"?Geist/.test(list.title || '') && Number(list.titleW) >= 500, JSON.stringify(list));
+    /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page", the same
+       spacing as Parties): Contracts' title is the SERIF at 26px, as Parties' own title — the other pages keep Geist */
+    check('6c Contracts\' page title is the serif, as Parties\' (19 Nov 2026)', /Source Serif/.test(list.title || ''), JSON.stringify(list));
 
     /* ================= 5. BESIDE A PAPER ==================================== */
     await page.evaluate(() => regOpenContract('MK-B2'));
@@ -257,7 +259,11 @@ const check = (name, pass, detail) => {
     /* a tab's number keeps its 2px from its word (the head card's one rule for a tab count); a bubble would pad both sides */
     check('11a a count beside a list\'s heading is a plain number: no bubble, no padding', !!ap.nBg && NONE.test(ap.nBg) && ap.nPadR === '0px' && parseFloat(ap.nPad) <= 2, JSON.stringify(ap));
     /* 11b is kept as written: QUESTION Q-D3-3 (the new look says a status as its word in its tone with THE SAP WAY MARK, no dot) */
-    check('11b a status in Jambo\'s panel carries its dot (8 × 8), not only its word', !!ap.dot && ap.dot[0] === 8 && ap.dot[1] === 8, JSON.stringify(ap.dot));
+    /* RE-POINTED 19 Nov 2026 (the Parties round, owner's drawings): Parties' panel lists a party's agreements as the five
+       parts' rows — a file mark, the agreement, its stage in words ("Executed · ends …") — so the status dot is read
+       where a stage is drawn as a cell, the Parties LIST's Standing column */
+    const stDot = await page.evaluate(() => { const d = document.querySelector('#cu-tbody .cun-st > i'), r = d && d.getBoundingClientRect(); return r ? [Math.round(r.width), Math.round(r.height)] : null; });
+    check('11b a status on Parties carries its dot (8 × 8), not only its word', !!stDot && stDot[0] === 8 && stDot[1] === 8, JSON.stringify(stDot));
     /* LEGORA: the panel beside a list floats, a white card with the faint lift; a tag has the soft corner */
     /* RETIRED 16 Nov 2026 (#762): 11c "Jambo's panel beside a list floats: a card with the faint lift" — the Legora look's floating panel;
        in the new look the panel stands edge to edge beside the white sheet (CLAUDE.md: a panel not edge to edge is the old look) */
@@ -350,7 +356,9 @@ const check = (name, pass, detail) => {
     const ls = await page.evaluate(() => { const t = document.querySelector('.reg-vtab.on'), ts = t && getComputedStyle(t);
       const sg = document.querySelector('.reg-seg.ct-seg'), ss = sg && getComputedStyle(sg), on = sg && sg.querySelector('button.on, button[aria-pressed="true"]'), os = on && getComputedStyle(on);
       return { tab: ts ? { bg: ts.backgroundColor, bb: ts.borderBottomWidth, r: ts.borderTopLeftRadius } : null, seg: ss ? { bg: ss.backgroundColor, r: ss.borderTopLeftRadius, b: ss.borderTopWidth } : null, on: os ? { bg: os.backgroundColor, r: os.borderTopLeftRadius } : null }; });
-    check('12d a list\'s chosen tab is a filled grey pill, never an underline', !!ls.tab && ls.tab.bg === GREY && ls.tab.bb === '0px' && pill(ls.tab.r), JSON.stringify(ls.tab));
+    /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page", the same
+       spacing as Parties): Contracts' chosen tab is UNDERLINED in the ink green, on no fill — the other lists keep their pills */
+    check('12d Contracts\' chosen tab is an underline on no fill (19 Nov 2026)', !!ls.tab && NONE.test(ls.tab.bg) && ls.tab.bb === '2px' && ls.tab.r === '0px', JSON.stringify(ls.tab));
     /* RE-POINTED 16 Nov 2026 (#762): the new look's head draws List · Wall as separate grey pills (no holding pill), the
        chosen one in the strong weight (index.html "the list's head as drawn") */
     const sw = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ct-head .ct-seg button')].map(b => { const c = getComputedStyle(b);

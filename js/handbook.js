@@ -26,7 +26,7 @@
    `noShot` says plainly why there is none.
    ========================================================================== */
 /* the day a person last read the whole book against the running app (the rule's foot line) */
-const HANDBOOK_CHECKED = '2026-11-13';
+const HANDBOOK_CHECKED = '2026-11-19';
 
 /* THE PARTS, in the Guide's order: a part with `gd` takes its name and its
    line from the Guide's own words (gd_s_<k>, gd_s_<k>_w: one fact, one home) */
@@ -659,22 +659,22 @@ const HANDBOOK_CHAPTERS = [
       { go: [{ open: 'MK-C1', face: 'copilot' }], boxes: [{ sel: '#ig-actions', step: 3 }], cap: { en: 'The paper\'s Actions: every act, End or pause among them (3).', sv: 'Papperets Åtgärder: varje handling, Avsluta eller pausa bland dem (3).' } }] },
 
   { k: '5.4', part: 'keep', round: 1,
-    title: { en: 'Parties: a party\'s shelf, its facts, and Before the call', sv: 'Parter: en parts hylla, dess fakta och Före samtalet' },
+    title: { en: 'Parties: one list, a party\'s facts, its contacts and agreements', sv: 'Parter: en lista, en parts fakta, dess kontakter och avtal' },
     eyebrow: { en: 'Parties page', sv: 'Parter' },
-    what: { en: 'A shelf per counterparty, a reading of your contracts: status is the party\'s standing, the NDA column says whether one covers them today, and what is waiting on you. A party\'s own facts (city, organisation number) have one home. "{ui:cu_br_h}" is the two-minute summary before you speak to them.',
-      sv: 'En hylla per motpart, en avläsning av era avtal: status är partens ställning, kolumnen NDA säger om ett täcker dem i dag, och vad som väntar på dig. En parts egna fakta (stad, organisationsnummer) har ett hem. "{ui:cu_br_h}" är tvåminuterssammanfattningen innan du talar med dem.' },
+    what: { en: 'One list of every party you hold paper with. A sentence over it counts them, names the party with the most money and counts the parties with work waiting on you; each row gives its agreements, money, standing and the waiting work, with one button for the most urgent job. Press a party and the panel shows its facts, its contacts and three of its agreements.',
+      sv: 'En lista över varje part ni har avtal med. En mening ovanför säger hur många, vem som står för mest pengar och hur många som har något som väntar på dig; varje rad säger avtal, pengar, läge och vad som väntar, med en knapp för det mest brådskande. Tryck på en part så visar panelen dess egna fakta, dess kontakter och tre av dess avtal.' },
     when: [{ en: 'Before a meeting, a call or a renewal talk with a customer or supplier.', sv: 'Före ett möte, ett samtal eller ett förnyelsesamtal med en kund eller leverantör.' },
-      { en: '"Everything we have with Naivas": the party\'s contracts.', sv: '"Allt vi har med Naivas": partens avtal.' }],
+      { en: '"Everything we have with Naivas": the party\'s agreements on Contracts.', sv: '"Allt vi har med Naivas": partens avtal i Avtal.' }],
     path: ['door:parties', { en: 'press a party', sv: 'tryck på en part' }],
-    how: [{ en: 'Read a row: the grey line says how many agreements and since when (on a wide screen, the columns Agreements and With us since); Stream is a soft chip, Standing says Live, In negotiation or Ended, and Next to end says how close it is in amber within 90 days.', sv: 'Läs en rad: den grå raden säger hur många avtal och sedan när (på en bred skärm, kolumnerna Avtal och Med oss sedan); Värdeflöde är en mjuk bricka, Ställning säger Aktiv, I förhandling eller Avslutad, och Nästa att löpa ut säger hur nära i gult inom 90 dagar.' },
-      { en: 'Press the party\'s row. The facts show straight away; {ui:cu_open_customer} lists its contracts.', sv: 'Tryck på partens rad. Fakta visas direkt; {ui:cu_open_customer} listar dess avtal.' },
-      { en: 'Web search on the other side is one door, with cited lines only and the fee booked.', sv: 'Webbsökning om motparten är en dörr, med bara citerade rader och avgiften bokförd.' }],
-    tip: { en: 'A code-named deal is left off the shelves.', sv: 'En kodnamnad affär lämnas utanför hyllorna.' },
-    cost: { en: 'Free + optional 1 call for the brief', sv: 'Gratis + valfritt 1 anrop för sammanfattningen' }, doors: ['parties'], acts: ['counterparty'],
-    words: { en: ['parties', 'party', 'customers', 'suppliers', 'before the call', 'counterparty', 'two-minute brief'], sv: ['parter', 'part', 'kunder', 'leverantörer', 'före samtalet', 'motpart'] },
+    how: [{ en: 'Read a row: agreements, the money on paper, the newest one\'s standing and the work waiting on you. The button at the row\'s end opens that work.', sv: 'Läs en rad: avtal, pengarna på papper, var det senaste står och vad som väntar på dig. Knappen i radens slut öppnar det arbetet.' },
+      { en: 'Press the party\'s row. The panel shows its facts: city, organisation number and the NDA if there is one. {ui:cun_p_edit_short} types the city and number in place.', sv: 'Tryck på partens rad. Panelen visar dess fakta: ort, organisationsnummer och sekretessavtalet om det finns. {ui:cun_p_edit_short} skriver in ort och nummer på plats.' },
+      { en: 'Under it, Contacts: their people, with + Add for a new one (job title, phone, the agreements to save them on; nothing is sent). Then three agreements; the last line opens all of them on Contracts.', sv: 'Under det, Kontakter: deras personer, med + Lägg till för en ny (titel, telefon, avtalen att spara dem på; inget skickas). Sedan tre avtal; sista raden öppnar alla i Avtal.' }],
+    tip: { en: 'A code-named deal is left off the list.', sv: 'En kodnamnad affär lämnas utanför listan.' },
+    cost: _hbkFree, doors: ['parties'], acts: ['counterparty'],
+    words: { en: ['parties', 'party', 'customers', 'suppliers', 'counterparty', 'contacts', 'add a contact', 'phone', 'job title'], sv: ['parter', 'part', 'kunder', 'leverantörer', 'motpart', 'kontakter', 'lägg till kontakt', 'telefon', 'titel'] },
     shots: [
-      { go: [{ place: 'parties' }, { fn: 'cuSelectParty', args: ['siginon group'] }, { waitFor: '#ins-panel [data-cun-open]' }], boxes: [{ sel: '#ins-panel [data-cun-open]', step: 2 }, { sel: '#ins-panel [data-jov="cun:0"]', step: 2 }], cap: { en: 'A party pressed: its agreements, and Open party (2).', sv: 'En part vald: dess avtal, och Öppna part (2).' } },
-      { go: [{ place: 'parties' }, { fn: 'cuSelectParty', args: ['siginon group'] }], boxes: [{ sel: '[data-cu-pr-edit="siginon group"]', step: 1 }], cap: { en: 'A party\'s own facts, kept once: Add the city (1).', sv: 'En parts egna fakta, sparade en gång: Lägg till staden (1).' } }] },
+      { go: [{ place: 'parties' }, { fn: 'cuSelectParty', args: ['siginon group'] }, { waitFor: '#ins-panel [data-cun-cts]' }], boxes: [{ sel: '#ins-panel [data-cu-pr-edit="siginon group"]', step: 2 }, { sel: '#ins-panel [data-cun-add-ct]', step: 3 }, { sel: '#ins-panel [data-cun-cts]', step: 3 }], cap: { en: 'A party pressed: its facts and Edit (2), its contacts with + Add, and all its agreements on Contracts (3).', sv: 'En part vald: dess fakta och Ändra (2), dess kontakter med + Lägg till, och alla dess avtal i Avtal (3).' } },
+      { go: [{ place: 'parties' }, { waitFor: '.cun-say' }], boxes: [{ sel: '.cun-page .cun-say', step: 1 }], cap: { en: 'The list and its sentence (1).', sv: 'Listan och dess mening (1).' } }] },
 
   { k: '5.5', part: 'keep', round: 1,
     title: { en: 'Discover: one question asked of many contracts', sv: 'Discover: en fråga ställd till många avtal' },

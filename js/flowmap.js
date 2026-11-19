@@ -101,10 +101,12 @@ const FLOW_MAP = [
     a: [['document', _w('a card pressed twice → its Dossier', 'ett kort två gånger → dess dossier')]], d: ['contracts', 'board'], p: [] },
   { k: 'list', st: 'book', s: _w('Contracts as a table', 'avtal som tabell'),
     a: [['document', _w('a row → its Dossier', 'en rad → dess dossier')]], d: ['contracts', 'wall'], p: [] },
-  { k: 'parties', st: 'book', s: _w('one shelf per counterparty', 'en hylla per motpart'),
-    a: [['contracts', _w('Open party → its deals', 'Öppna part → dess avtal')]], d: ['contracts', 'people', 'explorer'], p: [] },
-  { k: 'people', st: 'book', s: _w('the people, as a table', 'personerna, som tabell'),
-    a: [], d: ['settings', 'contracts'], p: [] },
+  /* PARTIES, AS DRAWN (owner's yes, 19 Nov 2026): one list, the party's panel says its facts, contacts and agreements */
+  { k: 'parties', st: 'book', s: _w('one list of the parties you hold paper with', 'en lista över parterna ni har avtal med'),
+    a: [['contracts', _w('All its agreements → Contracts, narrowed to them', 'Alla dess avtal → Avtal, avgränsat till dem')],
+      ['people', _w('Its contacts → People, narrowed to them', 'Dess kontakter → Personer, avgränsat till dem')]], d: ['contracts', 'people', 'explorer'], p: [] },
+  { k: 'people', st: 'book', s: _w('the people, as a table; a party\'s contacts kept here', 'personerna, som tabell; en parts kontakter hålls här'),
+    a: [['parties', _w('Party → its row on Parties', 'Part → dess rad under Parter')]], d: ['settings', 'contracts'], p: [] },
   { k: 'ourpaper', st: 'book', s: _w('templates and shelves', 'mallar och hyllor'),
     a: [['draft', _w('Use it → New agreement', 'Använd → nytt avtal')]], d: ['draft', 'standards', 'settings'], p: [] },
   /* STANDARDS, THE LADDER (owner's pick, 17 Nov 2026): its own page; a change waits for another admin's yes */

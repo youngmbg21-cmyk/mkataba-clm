@@ -49,8 +49,12 @@ test('f1070 (2) each panel says the five parts in the new look, by the page\'s o
   assert.match(day, /attr:may\(t\)\?`data-ig-day="\$\{t\.k\}"`/); assert.match(day, /attr:`data-ig-day-pin aria-pressed=/); assert.match(day, /after:igSavedViewsHtml\(\)/);
   const gd = region(read('js/views/intelligence.js'), 'function igGuideHtml(){', 'function igGuideRepaint(');
   assert.match(gd, /attr:`data-ig-gd="\$\{igEsc\(r\.q\)\}"/);
-  const cu = region(read('js/views/customers.js'), 'function cunPanelHtml(r){', "if (typeof document !== 'undefined' && !document._cunPanelWired)");
-  assert.match(cu, /data-cun-open=/); assert.match(cu, /data-cun-web=/); assert.match(cu, /data-cu-pr-edit=/); assert.match(cu, /ring: pct \|\| null/);
+  /* RE-POINTED 19 Nov 2026 (owner's yes on the Parties drawings): the party's panel is its own facts, its contacts, three
+     agreements and all of them on Contracts — no ring, no Open party, no web search. RETIRED: data-cun-open, data-cun-web,
+     ring: pct || null in cunPanelHtml */
+  const cu = region(read('js/views/customers.js'), 'function cunPanelFiveHtml(r){', "if (typeof document !== 'undefined' && !document._cunPanel5Wired)");
+  assert.match(cu, /data-cu-pr-edit=/); assert.match(cu, /data-cun-ppl=/); assert.match(cu, /data-cun-cts=/); assert.match(cu, /data-cun-add-ct=/);
+  assert.doesNotMatch(cu, /ring:|data-cun-web|data-cun-open/);
   const st = region(read('js/views/settings.js'), 'function stnPanelHtml(admin){', 'function stnPanelPaint(');
   assert.match(st, /attr:r\.btn\|\|''/); assert.match(st, /attr:'data-st-ask-head=""'/);
   const hk = region(read('js/views/handbook.js'), 'function hbknPanelHtml(){', 'function hbknRender(');

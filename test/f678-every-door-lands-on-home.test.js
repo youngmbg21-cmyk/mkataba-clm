@@ -330,11 +330,12 @@ describe('f678 (5) the census is the measure, and CI runs it', () => {
     /* RE-POINTED 15 Oct 2026: steps 7 and 8 took their rows off — nothing waits now */
     const pend = (src.match(/pending: \d/g) || []).length;
     assert.equal(pend, 0, 'no door waits on a later step');
-    for (const name of ['Workspace door', 'Obligations row, double-click', 'Parties panel, Open party', 'approval row present'])
+    /* RE-POINTED 19 Nov 2026 (the Parties round): Open party is gone; the panel's door is All agreements on Contracts */
+    for (const name of ['Workspace door', 'Obligations row, double-click', 'Parties panel, All agreements on Contracts', 'approval row present'])
       assert.ok(src.includes(name), name);
     /* RE-POINTED 16 Nov 2026 (#762): the Explorer door after it was retired with the old panel — the block is this door's own
        call, to the next door */
-    const at = src.indexOf("await door(A, 'Parties panel, Open party");
+    const at = src.indexOf("await door(A, 'Parties panel, All agreements on Contracts");
     const next = src.indexOf('await door(', at + 10);
     const block = src.slice(at, next > at ? next : undefined);
     assert.doesNotMatch(block, /pending:/);
