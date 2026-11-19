@@ -41,7 +41,7 @@ function pipeCard(c){
       <div style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:4px;margin-top:1px">
         <span style="display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="flex:none;width:3px;height:12px;background:${folderColor(c)}"></span>${stream}</span>
-        <span style="font-size:var(--t-label);font-weight:var(--w-body);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}">${val}</span>
+        ${(typeof canViewValues==='function'&&!canViewValues())?'':/* hidden money is not drawn at all (f259) */`<span style="font-size:var(--t-label);font-weight:var(--w-body);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}">${val}</span>`}
       </div>
     </div>`;
 }

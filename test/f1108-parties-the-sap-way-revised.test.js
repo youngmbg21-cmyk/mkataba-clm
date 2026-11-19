@@ -68,3 +68,15 @@ test('f1108 (4) the panel: streams in the facts; two links under facts and conta
   assert.doesNotMatch(p, /CUN_PANEL_AGS/, 'no list of three agreements');
   assert.match(CU, /closest\('\[data-cun-attn\]'\)[\s\S]{0,400}regShowOnly\(ws\.ids/, 'the attention link shows only the contracts waiting on you');
 });
+
+test('f1108 (5) hidden money is not drawn at all: no On paper column, never a column of dashes (f259)', () => {
+  const run = may => {
+    const sb = { canViewValues: () => may };
+    vm.createContext(sb);
+    vm.runInContext(CU.match(/const CUN_KEYS = [^\n]*\n/)[0] + fnBody(CU, 'cunKeys') + '\nthis.k = cunKeys();', sb);
+    return JSON.parse(JSON.stringify(sb.k));
+  };
+  assert.deepEqual(run(true), ['streams', 'agreements', 'paper', 'ends', 'waiting']);
+  assert.deepEqual(run(false), ['streams', 'agreements', 'ends', 'waiting'], 'no On paper column for a reader without money rights');
+  assert.match(strip(fnBody(CU, 'cunCols')), /\.\.\.cunKeys\(\)\.map/, 'the header is drawn from the same keys');
+});

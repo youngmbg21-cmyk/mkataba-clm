@@ -113,7 +113,7 @@ function renderFolder(){
                 <th style="width:26px;padding-left:var(--s-3)"><input id="fold-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
                 <th>${i18t('reg_col_contract')}</th>
                 <th>${i18t('reg_col_type')}</th>
-                <th style="text-align:right">${i18t('reg_col_value')}</th>
+                ${regSeeMoney()?`<th style="text-align:right">${i18t('reg_col_value')}</th>`:''}
                 <th>${i18t('reg_col_expires')}</th>
                 <th>${i18t('reg_col_updated')}</th>
                 <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
@@ -292,8 +292,8 @@ function folderRowsHtml(cs){
         </span>
       </div></td>
       <td style="font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(()=>{ /* AS AMENDED (O-16): a signed amendment's value, never the stored one rewritten */
-        const cv=window.effectiveValueView?effectiveValueView(c):c; return cv.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(cv):fmtMoneyShort(cv.value)):'—'; })()}</td>
+      ${!regSeeMoney()?'':`<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(()=>{ /* AS AMENDED (O-16): a signed amendment's value, never the stored one rewritten */
+        const cv=window.effectiveValueView?effectiveValueView(c):c; return cv.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(cv):fmtMoneyShort(cv.value)):'—'; })()}</td>`}
       <td style="font-size:var(--t-meta);font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       ${''/* Same split as the register: the link mark to its own column, the
@@ -808,7 +808,12 @@ function regNegoSpread(){ const f=regNegoFit(); return !!(f&&f.spread); }
 /* the seat's own columns for this paint's shape, before the reader's choice */
 /* the answer columns standing on the Contracts List (none on its narrow shape) */
 function regCtAskKeys(){ return (!regHomeNarrow()&&typeof window.askColKeys==='function')?askColKeys():[]; }
-function regColKeysSeat(){
+/* HIDDEN MONEY IS NOT DRAWN AT ALL (f259): a reader without money rights gets no Value column on any shape of the
+   list, never a column of dashes — every caller (head, rows, spans, Columns, widths) reads the keys through here */
+function regSeeMoney(){ return !(typeof canViewValues==='function'&&!canViewValues()); }
+function regMoneyCols(keys){ return regSeeMoney()?keys:keys.filter(k=>k!=='value'); }
+function regColKeysSeat(){ return regMoneyCols(regColKeysSeatAll()); }
+function regColKeysSeatAll(){
   const neg=regScope()==='negotiations', ins=regInspecting();
   if(!neg && regHome()){
     /* THE READER'S OWN COLUMNS (Columns, Part 8): the agreement first, then
@@ -854,15 +859,25 @@ function regNarrowTable(){
    table's live width at the moment of the drag. */
 const REG_COL_MIN_PX = 54;
 const REG_COL_KEY = 'hati.v1.regCols';
-const regColDefaults = () => (regScope()==='negotiations'
+const regColDefaults = () => regMoneyW((regScope()==='negotiations'
   ? (regNarrowTable() && !regInspecting() ? REG_COL_W_NEGO_NARROW : REG_COL_W_NEGO)
   : regHome() ? regHomeColW(regColKeys())
-  : (regNarrowTable() && !regInspecting() ? REG_COL_W_NARROW : REG_COL_W)).slice();
+  : (regNarrowTable() && !regInspecting() ? REG_COL_W_NARROW : REG_COL_W)).slice());
+/* a width array read by position over the seat's whole shape loses the Value column's share to the agreement when
+   the reader may not see money (regMoneyCols); the home shape is already keyed */
+function regMoneyW(w){
+  if(regSeeMoney()) return w;
+  const all=regColKeysSeatAll(), i=all.indexOf('value');
+  if(i<0||w.length!==all.length) return w;
+  const gone=w.splice(i,1)[0]||0, c=all.filter(k=>k!=='value').indexOf('counterparty');
+  if(c>=0) w[c]=Math.round((w[c]+gone)*100)/100;
+  return w;
+}
 /* ON THE PLACE A DRAG IS KEPT FOR THE COLUMNS IT WAS MADE ON, IN THEIR ORDER
    (Part 8, the critic's 4.10): a stored array is read by position, so the
    key names the columns drawn — a set the reader hid or moved under Columns
    reads its own widths, never another order's */
-const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home.' + regColKeys().map(k=>String(k).startsWith('ask:')?'ask':k).join(',') : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '');
+const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home.' + regColKeys().map(k=>String(k).startsWith('ask:')?'ask':k).join(',') : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '') + (regSeeMoney() ? '' : '.nm');
 /* THE STORED ARRAY IS READ, NEVER TRUSTED. A length that does not match the
    seat's own column count is IGNORED rather than applied — which is the whole
    migration story for the Signed column: a browser that stored eight widths
@@ -1988,7 +2003,7 @@ function regCtToolsHtml(R){
    agreement leads and the row's ⋯ ends every row, whatever is chosen. */
 const REG_CT_FIXED=['counterparty','acts'];
 const REG_CT_COL_WORD={ stage:'reg_col_stage', stream:'reg_col_stream', standards:'reg_col_standards', expiry:'reg_col_ends', value:'reg_col_value', owner:'reg_col_owner_word' };
-function regCtShapeKeys(){ return regOnCt(()=>regHomeNarrow()?REG_COL_KEYS_HOME_NARROW:REG_COL_KEYS_HOME); }
+function regCtShapeKeys(){ return regMoneyCols(regOnCt(()=>regHomeNarrow()?REG_COL_KEYS_HOME_NARROW:REG_COL_KEYS_HOME)); }
 function regCtColDefs(){
   return regCtShapeKeys().filter(k=>!REG_CT_FIXED.includes(k)).map(k=>({ k, label:i18t(REG_CT_COL_WORD[k]||k) }));
 }
@@ -5315,7 +5330,7 @@ function ftsSearch(q){
 Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFolderViewsData,regFolderViewsHtml,regFolderLive,CTF_VIEW_DAYS,CTF_VIEW_BIG,regFolderRowsHtml,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regScopeWords,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
-  REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
+  REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regColKeysSeatAll,regSeeMoney,regMoneyCols,regMoneyW,regInsSeat,regInsActs,regInsPaint,
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColWidthsOwn,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,

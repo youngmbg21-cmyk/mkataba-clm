@@ -769,7 +769,7 @@ function calHorizonHtml(){
     return `<div class="cal-lad cal-lad-${b.k}" style="border-top-color:${b.tone}">
       <div class="cal-lad-k">${_esc(b.label)}</div>
       <div class="cal-lad-n" style="color:${b.tone}">${inBand.length}</div>
-      <div class="cal-lad-v">${val?_esc(window.fmtMoneyShort?fmtMoneyShort(val):String(val)):'&mdash;'}</div>
+      ${(typeof canViewValues==='function'&&!canViewValues())?'':/* hidden money is not drawn at all (f259) */`<div class="cal-lad-v">${val?_esc(window.fmtMoneyShort?fmtMoneyShort(val):String(val)):'&mdash;'}</div>`}
     </div>`;
   }).join('');
   const body = rows.length ? rows.map(r=>{

@@ -67,7 +67,7 @@ test('f1016 (4) the panel: the paper just read, the chosen answer\'s paper, else
   const p = fnBody(RD, 'dsnPanelPaint');
   assert.match(p, /if \(_dsn\.screen === 'reading'\)\{[\s\S]*?dscPaperHtml\(askId, cid\)/, 'a read in flight: the paper of the contract just read');
   /* RE-POINTED 19 Nov 2026 (owner: "All 4 should be there"): a result chosen shows EVERY place its answers were read,
-     dscPaperAllHtml, which hands a one-question read to dscPaperHtml as before (f1111) */
+     dscPaperAllHtml, which hands a one-question read to dscPaperHtml as before (f1113) */
   assert.match(p, /if \(r && _dsn\.cid\)\{[\s\S]*?dscPaperAllHtml\(r\.askIds, _dsn\.cid, focus\)[\s\S]*?jlLinks: dscPaperLinksHtml/, 'a result chosen: its paper, the two links above Jambo\'s box');
   assert.match(fnBody(RD, 'dsnResultsShown'), /_dscRank\(_rdTone\(x\)\)/, 'the risky answers first');
   assert.match(fnBody(RD, 'dscLand'), /askColLandOn\(cid, quote\)/, 'Open clause is the one lander');
