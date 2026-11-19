@@ -26,7 +26,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
   await until(page, () => typeof caGo === 'function' && typeof currentUser === 'function' && !!currentUser() && !!getContract('MK-A1'), null, 40000);
   await page.evaluate(W.R7_IN_PAGE);
-  const rowSel = '#content tbody tr[data-ob-key]';
+  /* RE-POINTED 19 Nov 2026 (owner's pick "We owe · They owe", f1099): the duties are lines in two columns, not table rows */
+  const rowSel = '#content .obt-cols [data-ob-key]';
   const go = async look => { await page.evaluate(async on => { try { closeModal(); } catch (_){} await stPrefSet('newLook', on); newLookApply(); caGo({ kind: 'go', place: 'oblig', cid: null }); }, look);
     return until(page, s => state.view === 'obligations' && !!document.querySelector(s), rowSel, 15000); };
 

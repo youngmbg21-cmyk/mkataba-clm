@@ -58,13 +58,13 @@ function world(){
   await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
   await until(page, () => typeof caGo === 'function' && typeof currentUser === 'function' && !!currentUser() && !!getContract('MK-PG'), 40000);
   await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); setView('obligations'); });
-  await until(page, () => !!document.querySelector('.obn-page .obn-table'));
+  await until(page, () => !!document.querySelector('.obn-page .obn-table, .obt-page .obt-cols'));
   await page.waitForTimeout(400);
 
   /* 1–4 RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick "Build as drawn"; replaces Late · Tracked and twenty a
      page): the tabs Next 30 days · Later · Done; two columns; late first; each line's day a toned word */
   await until(page, () => !!document.querySelector('.obt-cols .obt-li'), 8000);
-  const one = await page.evaluate(() => { document.querySelectorAll('[data-obt-more]').forEach(m => m.click());
+  const one = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
     const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number((b.textContent.match(/\d+/) || [0])[0])]));
     return { tabs, cols: [...document.querySelectorAll('.obt-colh b')].map(b => b.textContent.trim()), lines: document.querySelectorAll('.obt-cols .obt-li').length }; });
   check('1 · We owe and They owe, under the tabs Next 30 days · Later · Done; the tab counts its lines', one.cols.join('|') === 'We owe|They owe' && 'open' in one.tabs && 'later' in one.tabs && 'done' in one.tabs && one.lines === one.tabs.open, one);
@@ -72,7 +72,7 @@ function world(){
 
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); });
   await page.waitForTimeout(400);
-  const two = await page.evaluate(() => { document.querySelectorAll('[data-obt-more]').forEach(m => m.click());
+  const two = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
     return { lines: document.querySelectorAll('.obt-cols .obt-li').length, n: Number(((document.querySelector('[data-obn-tab="later"]') || {}).textContent || '').replace(/\D/g, '')) || 0 }; });
   check('2 · Later holds the rest, as its tab counts', two.lines >= 1 && two.lines === two.n, two);
 
