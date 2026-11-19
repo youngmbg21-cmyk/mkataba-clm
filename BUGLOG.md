@@ -22596,3 +22596,11 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 18 Nov 2026 — Fixed (owner: "Fix the bugs"): Read down's "0 renew by themselves" — it read c.autoRenew, a field nothing writes; a contract's panels and its Cover read another unwritten flag (metadata.autoRenew). ONE reading now, contractRenewsItself(c) (renewalType 'auto-renew', as the overnight run renews). The test world's Warehousing Services carries no renewal type, so Read down still says 0 for it — the record, not a guess. f1095.
 - 18 Nov 2026 — Fixed (owner: "Fix the bugs"): New agreement → From scratch showed whichever paper's panel was left behind; neither paper answers now while the tab is up, and turning the tab redraws the panel. The tab's own five-part panel stays set aside (owner, 18 Nov 2026). f1095.
 - Noticed, not fixed (18 Nov 2026): Obligations → Proposals at 1440×780 (and on the owner's iPad): the list runs under Jambo's panel — each row's "Add all" pill, the head's "Add an obligation" and the "N duties on N agreements" line are cut at the panel's edge.
+
+## Noticed, not fixed (19 Nov 2026, the Parties round)
+- The web search pop-up (`partyWebOpen`) now has no door anywhere: the Parties panel's Web search was removed as drawn, and the Dossier's "On the web" line was retired 17 Nov. The code stays.
+- Removed with the Parties round (the owner's drawings): Folders cards, the party's own page and its "Before the call" brief, Open party, the NDA column and "NDA missing" tab, the panel's Web search door.
+- Below the inspector's width (`insFits()` false) Parties still draws the older list and opens a party on Contracts; the drawings covered only the computer width.
+- The contract's own "Who else is on this agreement" pop-up was not merged into the party-wide contacts pop-up; it only gained Job title and Phone. Two doors now add an outside person.
+- Approvals: the chosen row can look like a grey band laid over another grey band.
+- CLAUDE.md is about 89 KB, over its 80 KB line; trimming needs the owner's yes.

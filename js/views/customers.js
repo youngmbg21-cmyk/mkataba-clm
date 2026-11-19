@@ -1418,6 +1418,9 @@ function cunPanelFiveHtml(r){
   if (editing){
     groups.push({ key: 'facts', label: i18t('cun_p_facts'), html: `<form class="cu-pr-form is-five" id="cu-pr-form" data-cu-pr-key="${E(r.key)}" novalidate>`
       + `<label class="jov5-row is-plain"><span class="jov5-k">${E(i18t('cun_p_city'))}</span><input id="cu-pr-city" type="text" autocomplete="off" maxlength="80" value="${E(rec.city || '')}"></label>`
+      /* the parties clause's address is still offered while the city is typed (the old form's suggestion, kept) */
+      + (() => { const sug = partyCitySuggest(r.key); return sug ? `<p class="cu-pr-sug jov5-sug" data-cu-pr-sug>${E(i18t('cu_pr_from', { ref: sug.ref, addr: sug.addr }))}${
+        sug.city ? ` <button type="button" class="ui-link" data-cu-pr-use="${E(sug.city)}">${E(i18t('cu_pr_use', { city: sug.city }))}</button>` : ''}</p>` : ''; })()
       + `<label class="jov5-row is-plain"><span class="jov5-k">${E(i18t('cun_p_org'))}</span><input id="cu-pr-org" type="text" autocomplete="off" maxlength="40" value="${E(rec.orgNo || '')}"></label>`
       + `<div class="jov5-ff"><button type="submit" class="ui-btn ui-btn-sm ui-btn-primary" data-cu-pr-save>${E(i18t('cu_pr_save'))}</button><button type="button" class="ui-btn ui-btn-sm" data-cu-pr-cancel>${E(i18t('cu_pr_cancel'))}</button></div></form>` });
   } else {

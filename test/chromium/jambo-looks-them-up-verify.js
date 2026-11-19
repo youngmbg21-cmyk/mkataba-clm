@@ -119,9 +119,9 @@ const TEXT = [
        Parties panel's "Web search on <name>" ([data-cun-web], customers.js cunPanelHtml, MK-B2's party chosen through
        cuSelectParty) — the pop-up and its press are the same (partyWebOpen); 1a–1c and 2g still ask for the Dossier's
        own line (QUESTION Q-D3-2: the new-look Dossier draws none) */
-    await drive(() => cuSelectParty(cuKeyOf(getContract('MK-B2').counterparty)), null, null);
-    const WEB = '#ins-panel [data-cun-web="MK-B2"]';
-    if (await until(P, s => { const w = document.querySelector(s); const r = w && w.getBoundingClientRect(); return !!(r && r.width > 0 && r.height > 0); }, WEB, 8000)) await P.locator(WEB).click();
+    /* RE-POINTED 19 Nov 2026 (owner: "Remove web search" from the Parties panel): no page draws a door onto the look-up
+       now; the pop-up itself (partyWebOpen, its press and its words) is measured as it stands, opened by its own name */
+    await drive(() => partyWebOpen('MK-B2'), null, null);
     const dlg = await until(P, () => !!document.querySelector('.pw-dlg [data-pw-go]'), null, 5000);
     const say = await drive(() => { const g = document.querySelector('.pw-dlg [data-pw-go]'); const d = document.querySelector('.pw-dlg');
       return g && { go: g.innerText.trim(), title: g.title, hidden: g.hidden, text: d.innerText.replace(/\s+/g, ' ') }; }, null, null);

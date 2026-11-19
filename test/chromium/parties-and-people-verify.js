@@ -131,15 +131,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
             s: ((r.querySelector('.jov5-rt span') || {}).textContent || '').trim(),
             door: [...r.attributes].map(a => a.name).filter(n => /^data-(cun|cu-pr|dir|dirn)-/.test(n)).join(',') })) })) }; });
     const secOf = (P, re) => (P && P.secs.find(s => re.test(s.label))) || { label: '', rows: [] };
-    /* a party's own page (the panel's Open party, cuOpenCustomer) */
-    const partyPage = async key => { await page.evaluate(k => cuOpenCustomer(k), key);
-      return until(k => { const pg = document.querySelector('.cun-page[data-cu-screen="party"]'); if (!pg) return null; return {
-        name: ((pg.querySelector('.cunp-head .ctf-h') || {}).textContent || '').trim(), key: k,
-        waits: [...pg.querySelectorAll('.cunp-w')].map(w => ({ t: ((w.querySelector('b') || {}).textContent || '').trim(), cut: (() => { const b = w.querySelector('b'); return !!b && b.scrollWidth > b.clientWidth + 1; })(),
-          door: (w.querySelector('[data-cu-need]') || { getAttribute: () => '' }).getAttribute('data-cu-need'), btn: ((w.querySelector('[data-cu-need]') || {}).textContent || '').trim() })),
-        draft: [...pg.querySelectorAll('[data-cu-draft-with]')].map(b => b.getAttribute('data-cu-draft-with') + '|' + b.textContent.trim()) }; }, key, 10000); };
-    const backToList = async () => { await page.evaluate(() => { const b = document.querySelector('.cun-page [data-cunp-back]'); if (b) b.click(); else setView('customers'); });
+    /* RETIRED 19 Nov 2026 (the Parties round, owner's "build all the designs in parties"): a party's own page and its
+       way back (partyPage / backToList) — the list is the landing page, a row's press chooses it and the panel says the rest */
+    const backToList = async () => { await page.evaluate(() => { if (state.view !== 'customers') setView('customers'); });
       await until(() => document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody')); };
+    const choose = async key => { await page.evaluate(k => cuSelectParty(k), key);
+      return until(k => { const r = document.querySelector('#cu-tbody [data-cu-cust="' + k + '"]'); return r && r.classList.contains('is-sel') && document.querySelector('#ins-panel .jov5-title') ? true : null; }, key, 10000); };
 
     /* ---- 1 the head ---- */
     await part('1 the head', async () => {
@@ -157,9 +154,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       /* RE-POINTED 17 Nov 2026 (#762): the views are round 6's tabs — Folders · List · Waiting on you · No NDA (a tab
          with nothing in it stays out), the list opening on List. RETIRED 17 Nov 2026 (#762): Status as All · Live ·
          Ended and "+ Filter" — round 6's head has no Status tabs and no filters to add (old look only). */
-      check('1a2 the views are the tabs: Folders · List, then Waiting on you · No NDA where they hold a party; the list opens on List', !!B
-        && JSON.stringify(B.tabs.map(t => t.k).slice(0, 2)) === JSON.stringify(['folders', 'all']) && B.tabs.every(t => ['folders', 'all', 'wait', 'nda'].includes(t.k))
-        && B.tabs.some(t => t.k === 'wait') && B.tabs.some(t => t.k === 'nda') && (B.tabs.find(t => t.on) || {}).k === 'all', JSON.stringify(B && B.tabs));
+      /* RE-POINTED 19 Nov 2026 (the Parties round): Folders and NDA missing are gone — All · Waiting on you, opening on All */
+      check('1a2 the views are the tabs: All · Waiting on you; the list opens on All', !!B
+        && JSON.stringify(B.tabs.map(t => t.k)) === JSON.stringify(['all', 'wait']) && (B.tabs.find(t => t.on) || {}).k === 'all', JSON.stringify(B && B.tabs));
       /* RETIRED 17 Nov 2026 (#762): "a hairline under the title row" — the new look's head and list are ONE white sheet (old look only) */
       check('1b the box says "Filter this list"', !!B && B.ph === 'Filter this list', JSON.stringify(B && { ph: B.ph }));
       /* RETIRED 17 Nov 2026 (#762): "… on paper with live parties" and the head's "+ Draft new agreement" — round 6's head
@@ -188,7 +185,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('2a the list\'s count is the lit tab\'s (List N), the head\'s and the foot\'s N, every row drawn',
         /^all \d+$/.test(L.lit) && n === L.rows && L.head === n + ' counterparties' && L.foot.startsWith(n + ' parties'), JSON.stringify({ lit: L.lit, rows: L.rows, head: L.head, foot: L.foot }));
       /* RE-POINTED 17 Nov 2026 (#762): round 6's columns, in order */
-      check('2b the columns as drawn, in order: Party · Deals · On paper · Standing · NDA · Waiting on you', JSON.stringify(L.cols) === JSON.stringify(['Party', 'Deals', 'On paper', 'Standing', 'NDA', 'Waiting on you']), JSON.stringify(L.cols));
+      /* RE-POINTED 19 Nov 2026 (the Parties round): no NDA column; Deals says Agreements; the last column holds each row's one button */
+      check('2b the columns as drawn, in order: Party · Agreements · On paper · Standing · Waiting on you · (the button)', JSON.stringify(L.cols) === JSON.stringify(['Party', 'Agreements', 'On paper', 'Standing', 'Waiting on you', '']), JSON.stringify(L.cols));
       /* RE-POINTED 17 Nov 2026 (#762): a party's line is its name over its stream as a chip; its agreements are the Deals column */
       check('2c a party\'s row: its name over its stream, its deals counted (2)', L.name === 'Kenya Freight Ltd' && L.chips.length >= 1 && L.deals === '2', JSON.stringify({ n: L.name, c: L.chips, d: L.deals }));
       /* RETIRED 17 Nov 2026 (#762): 2d "ten at a time, 1–10 of N · Show N more; a party with nothing live is off Live"
@@ -216,7 +214,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('[data-cu-pr-save]');
       /* RE-POINTED 17 Nov 2026 (#762): no City column — the row's grey line says the city and the org. no., and
          the panel's own facts say both. RETIRED 17 Nov 2026 (#762): "with us since …" (round 6's panel has no such line). */
-      const S = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); if (!sub || !/Kisumu/.test(sub.textContent)) return null;
+      const S = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); if (!sub || !/Kisumu/.test(sub.textContent) || !/PVT-AB12CD/.test(sub.textContent)) return null;
         const p = document.getElementById('ins-panel');
         const facts = p ? [...p.querySelectorAll('.jov5-row')].map(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() + '=' + ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim()) : [];
         return { sub: sub.textContent.replace(/\s+/g, ' ').trim(), facts }; }, null, 10000);
@@ -232,55 +230,51 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelectorAll('#cu-tbody [data-cu-cust]').length > 1);
       await page.reload({ waitUntil: 'networkidle' });
       await until(() => window.state && state.view === 'customers' && document.querySelector('#cu-tbody'), null, 15000);
-      const R = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); return sub && /Kisumu/.test(sub.textContent) ? sub.textContent.replace(/\s+/g, ' ').trim() : null; });
-      check('3e a refresh keeps it (the bootstrap carries it)', !!R && /^Kisumu\b/.test(R), R);
+      const R = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); return sub && /Kisumu/.test(sub.textContent) && /PVT-AB12CD/.test(sub.textContent) ? sub.textContent.replace(/\s+/g, ' ').trim() : null; });
+      check('3e a refresh keeps it (the bootstrap carries it), no longer "read from" a contract', !!R && /^Kisumu\b/.test(R) && !/read from/.test(R), R);
     });
 
     /* ---- 4 the panel as drawn ---- */
+    /* RE-POINTED 19 Nov 2026 (the Parties round, owner's "build all the designs in parties"): the panel is the party's
+       facts (City · Org. no. · Signs for them · NDA, Edit beside them), Contacts (+ Add; the row opens People narrowed to
+       them), Agreements · N (three, then all of them on Contracts). RETIRED 19 Nov 2026: More's Open party · Web search
+       (the party's own page and the web search are gone), 4f the party page's New agreement, 4i/4g the party page's
+       waiting list — what waits is the row's one button and its Waiting column (4i, 4g re-pointed below). */
     await part('4 the panel', async () => {
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
       const P = await until(() => { const t = document.querySelector('#ins-panel .jov5-title'); return t && /Kenya Freight/.test(t.textContent); }).then(() => readPanel());
-      const more = secOf(P, /^More$/), facts = secOf(P, /own facts/), ags = secOf(P, /^Agreements$/);
-      /* RE-POINTED 17 Nov 2026 (#762): the panel's headline is the party, its doors the More group's rows.
-         RETIRED 17 Nov 2026 (#762, owner's ruling 4): Open on Explorer. */
-      check('4a the head: the party\'s name; its doors Open party · Web search · Edit the party record, no Explorer', !!P && P.title.trim() === 'Kenya Freight Ltd'
-        && JSON.stringify(more.rows.map(r => r.door)) === JSON.stringify(['data-cun-open', 'data-cun-web', 'data-cu-pr-edit']) && /^Open party/.test((more.rows[0] || {}).t || ''),
-        JSON.stringify(P && { t: P.title, more: more.rows }));
-      /* RE-POINTED 17 Nov 2026 (#762): round 6's own facts — (City once filed) · Org. no. · Signer · NDA */
-      check('4b the facts: (City) · Org. no. · Signer · NDA', JSON.stringify(facts.rows.map(r => r.k).filter(k => k !== 'City')) === JSON.stringify(['Org. no.', 'Signer', 'NDA']), JSON.stringify(facts.rows));
-      /* RE-POINTED 17 Nov 2026 (#762): the line under the name says the agreements; the signer is the person who signs
-         for them (their link's cpsign, as the party's own page names her), with job title; the confirmed mutual NDA
-         says Confirmed. RETIRED 17 Nov 2026 (#762): the Owner "(you)" and "Live agreements · on paper" facts (round 6 has neither). */
+      const facts = secOf(P, /own facts/), cts = secOf(P, /^Contacts/), ags = secOf(P, /^Agreements/);
+      const links = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .jov5-more, #ins-panel .jov5-flink')].map(a => [...a.attributes].map(x => x.name).filter(n => /^data-(cun|cu-pr)-/.test(n)).join(',') + '|' + a.textContent.trim()));
+      check('4a the head: the party\'s name; no Open party, no Web search', !!P && P.title.trim() === 'Kenya Freight Ltd' && !secOf(P, /^More$/).rows.length
+        && !(await page.evaluate(() => !!document.querySelector('#ins-panel [data-cun-open], #ins-panel [data-cun-web]'))), JSON.stringify(P && P.title));
       const fk = k => (facts.rows.find(r => r.k === k) || {}).t || '';
-      check('4c the line says "… in 2 agreements"; the Signer is Sofia Lunani, Legal counsel (who signs for them); the NDA Confirmed',
-        !!P && /2 agreements/.test(P.sub) && fk('Signer') === 'Sofia Lunani, Legal counsel' && /^Confirmed/.test(fk('NDA')), JSON.stringify(P && { sub: P.sub, signer: fk('Signer'), nda: fk('NDA') }));
-      /* RE-POINTED 17 Nov 2026 (#762): the Agreements group, each with the day it ends */
-      check('4d the agreements, each with "Ends …"', ags.rows.length === 2 && ags.rows.every(a => /^Ends /.test(a.s)) && ags.rows.some(a => a.t === 'Mutual NDA') && ags.rows.some(a => a.t === 'Transport agreement'), JSON.stringify(ags.rows));
-      /* RETIRED 17 Nov 2026 (#762, owner's ruling): 4e "People at Kenya Freight" rows — a party's People at rows stay gone. */
+      check('4b the facts: (City) · Org. no. · Signs for them · NDA; Edit beside them', JSON.stringify(facts.rows.map(r => r.k).filter(k => k !== 'City')) === JSON.stringify(['Org. no.', 'Signs for them', 'NDA'])
+        && links.some(l => /^data-cu-pr-edit\|Edit$/.test(l)), JSON.stringify({ rows: facts.rows, links }));
+      check('4c Sofia Lunani signs for them; the NDA is in force, its row a door to it', fk('Signs for them') === 'Sofia Lunani' && /^In force/.test(fk('NDA'))
+        && /data-cun-nda/.test((facts.rows.find(r => r.k === 'NDA') || {}).door || ''), JSON.stringify(facts.rows));
+      check('4c2 Contacts: "2 contacts at Kenya Freight", one row opening People, + Add beside', cts.rows.length === 1 && /^2 contacts at Kenya Freight/.test(cts.rows[0].t)
+        && /data-cun-ppl/.test(cts.rows[0].door) && links.some(l => /^data-cun-add-ct\|\+ Add$/.test(l)), JSON.stringify({ cts: cts.rows, links }));
+      check('4d the agreements, each with the day it ends, then "All 2 agreements on Contracts ›"', ags.rows.length === 2 && ags.rows.every(a => /ends /.test(a.s))
+        && ags.rows.some(a => a.t === 'Mutual NDA') && ags.rows.some(a => a.t === 'Transport agreement') && links.some(l => /^data-cun-cts\|All 2 agreements on Contracts/.test(l)), JSON.stringify({ ags: ags.rows, links }));
       await shot('19-party-panel-1440x780.png');
-      /* RE-POINTED 17 Nov 2026 (#762): "Draft an agreement with Kenya Freight" is the party's own page's New agreement, for that party */
-      const KF = await partyPage('kenya freight ltd');
-      check('4f the party\'s own page drafts with it: "New agreement" for Kenya Freight', !!KF && KF.name === 'Kenya Freight Ltd' && KF.draft.includes('kenya freight ltd|New agreement') && KF.draft.every(d => d.startsWith('kenya freight ltd|')), JSON.stringify(KF));
-      await backToList();
-      /* RE-POINTED 17 Nov 2026 (#762): what waits on you is said whole on the party's page ("Waiting on you") */
-      const HE = await partyPage('helio energy ltd');
-      const ap = HE && HE.waits.find(w => w.door === 'approval');
-      check('4i an approval the reader answers for an away colleague: "An approval, for Jonas", whole, with its door', !!ap && ap.t === 'An approval, for Jonas' && !ap.cut && ap.btn === 'Open approval', JSON.stringify(HE && HE.waits));
-      await backToList();
-      /* a colleague's request about a party waits on the reader: its row's Waiting column and its own page say it,
-         with Open request (RE-POINTED 17 Nov 2026, #762: the party's page holds the panel's old waiting list) */
-      const ND = await partyPage('nandi dairy');
-      const Qp = await until(() => { const b = document.querySelector('.cun-page[data-cu-screen="party"] [data-cu-need="request"]'); return b ? { row: b.closest('.cunp-w').textContent.replace(/\s+/g, ' ').trim(), btn: b.textContent.trim() } : null; }, null, 10000);
-      await backToList();
-      /* the Waiting column says two in words and names every one on its hover, as the old column did (17 Nov 2026, #762) */
-      const col = await page.evaluate(() => { const td = document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"] td.cun-wait'); return td ? (td.textContent + ' ' + (td.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : ''; });
-      check('4g a colleague\'s request about the party waits on you: the page says "Restricted asked for an NDA with Nandi Dairy" with "Open request", the row\'s Waiting column too',
-        !!Qp && /Restricted asked for an NDA with Nandi Dairy/.test(Qp.row) && Qp.btn === 'Open request' && /Restricted asked for an NDA/.test(col), JSON.stringify({ page: Qp || (ND && ND.waits), col }));
-      if (Qp){ await partyPage('nandi dairy'); await page.click('.cun-page[data-cu-screen="party"] [data-cu-need="request"]');
+      /* a second press on the chosen row keeps the list (no party page any more) */
+      await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
+      await page.waitForTimeout(400);
+      const still = await page.evaluate(() => ({ list: !!document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody'), view: state.view }));
+      check('4e a second press on the chosen row stays on the list', still.list && still.view === 'customers', JSON.stringify(still));
+      /* RE-POINTED 19 Nov 2026: what waits on you is the row's one button and its Waiting column */
+      const HE = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"]'); if (!r) return null;
+        const b = r.querySelector('.cun-act-b'); return { wait: ((r.querySelector('td.cun-wait') || {}).textContent || '').replace(/\s+/g, ' ').trim(), btn: b ? b.textContent.trim() : '', door: b ? b.getAttribute('data-cu-need') : '' }; });
+      check('4i an approval the reader answers for an away colleague: the row says "Approve Power purchase agreement", its button "Open approval"', !!HE && /Approve Power purchase agreement/.test(HE.wait) && HE.btn === 'Open approval' && HE.door === 'approval', JSON.stringify(HE));
+      const col = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"]'); if (!r) return null; const td = r.querySelector('td.cun-wait'), b = r.querySelector('.cun-act-b');
+        return { col: td ? (td.textContent + ' ' + (td.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : '', btn: b ? b.textContent.trim() : '', door: b ? b.getAttribute('data-cu-need') : '' }; });
+      check('4g a colleague\'s request about the party waits on you: the row says "Restricted asked for an NDA with Nandi Dairy", its button "Open request"',
+        !!col && /Restricted asked for an NDA/.test(col.col) && col.btn === 'Open request' && col.door === 'request', JSON.stringify(col));
+      if (col && col.door === 'request'){ await page.click('#cu-tbody [data-cu-cust="nandi dairy"] .cun-act-b');
         const land = await until(() => state.view === 'intake' ? (document.querySelector('[data-ik-row].is-landed, .is-landed') ? 'lit' : 'page') : null, null, 8000);
         check('4h Open request lands on the request, lit', land === 'lit', land);
         await page.evaluate(() => setView('customers'));
-        await backToList();
+        await until(() => document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody'));
       }
     });
 
@@ -372,20 +366,19 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const lit = () => until(() => { const e = document.querySelector('.is-landed, .is-landed-held'); return e ? (e.className + (e.hasAttribute('data-row') ? ' data-row' : '') + '|' + state.view + '|' + (e.getAttribute('data-ap-row') || '')) : null; }, null, 8000);
       /* RETIRED 17 Nov 2026 (#762): 9a "the panel's doors stand at their own width" — in Jambo's five parts the ROW is the door (owner, 15 Nov 2026). */
       await page.evaluate(() => setView('customers')); await backToList();
-      await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
-      await until(() => document.querySelector('#ins-panel [data-cun-open]'));
-      await page.click('#ins-panel [data-cun-open]');
-      /* RE-POINTED 17 Nov 2026 (#762): Open party opens the party's own page (round 6), not the Contracts place */
-      const O = await until(() => { const pg = document.querySelector('.cun-page[data-cu-screen="party"]'); return pg ? ((pg.querySelector('.cunp-head .ctf-h') || {}).textContent || '').trim() : null; }, null, 8000);
-      check('9b Open party lands on the party\'s own page', O === 'Kenya Freight Ltd', String(O));
+      /* RE-POINTED 19 Nov 2026 (the Parties round): Open party is gone — "All N agreements on Contracts ›" lands on Contracts narrowed to the party */
+      await choose('kenya freight ltd');
+      await page.click('#ins-panel [data-cun-cts]');
+      const O = await until(() => state.view === 'register' && document.querySelectorAll('#reg-tbody tr[data-row], #content tr[data-row]').length
+        ? [...document.querySelectorAll('#reg-tbody tr[data-row], #content tr[data-row]')].map(r => r.getAttribute('data-row')).sort().join(',') : null, null, 8000);
+      check('9b "All 2 agreements on Contracts" lands on Contracts with that party\'s two', O === 'MK-KF1,MK-KF2', String(O));
       await backToList();
-      /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): 9c Open on Explorer. */
-      /* RE-POINTED 17 Nov 2026 (#762): the approval's door is on the party's page */
-      const HE = await partyPage('helio energy ltd');
-      if (HE && HE.waits.some(w => w.door === 'approval')){ await page.click('.cun-page[data-cu-screen="party"] [data-cu-need="approval"]');
+      /* RE-POINTED 19 Nov 2026: the approval's door is the row's one button */
+      const apB = await until(() => document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] .cun-act-b[data-cu-need="approval"]') ? true : null);
+      if (apB){ await page.click('#cu-tbody [data-cu-cust="helio energy ltd"] .cun-act-b');
         const A = await lit();
-        check('9d an approval on the party\'s page lands on its row on Approvals, lit', !!A && /\|approvals\|MK-AP1$/.test(A), String(A)); }
-      else check('9d an approval on the party\'s page lands on its row on Approvals, lit', false, 'no approval row');
+        check('9d an approval row\'s button lands on its row on Approvals, lit', !!A && /\|approvals\|MK-AP1$/.test(A), String(A)); }
+      else check('9d an approval row\'s button lands on its row on Approvals, lit', false, 'no approval button');
       await page.evaluate(() => langSet('sv'));
       for (const v of ['customers', 'directory']){
         await page.evaluate(x => setView(x), v); await page.waitForTimeout(400);

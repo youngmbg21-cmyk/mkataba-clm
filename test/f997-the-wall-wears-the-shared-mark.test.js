@@ -19,9 +19,8 @@ test('f997 (1) the wall\'s new-look paper wears the list\'s own mark', () => {
   assert.match(mark[1], /^typeof window\.regSapMarkHtml==='function'\?regSapMarkHtml\(c\):/, 'the shared mark first');
 });
 
-test('f997 (2) a party\'s own agreements wear it too', () => {
-  assert.match(read('js/views/customers.js'), /class="cunp-mk">\$\{typeof regSapMarkHtml === 'function' \? regSapMarkHtml\(c\) :/);
-});
+/* RETIRED 19 Nov 2026 (the Parties round, owner's "build all the designs in parties"): (2) "a party's own agreements wear
+   it too" — the party's own page is gone; its agreements are the panel's rows, which wear the five parts' file mark. */
 
 test('f997 (3) the mark and its reading are published once, by the register', () => {
   const R = read('js/views/register.js');

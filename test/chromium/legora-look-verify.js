@@ -350,7 +350,9 @@ const check = (name, pass, detail) => {
     const ls = await page.evaluate(() => { const t = document.querySelector('.reg-vtab.on'), ts = t && getComputedStyle(t);
       const sg = document.querySelector('.reg-seg.ct-seg'), ss = sg && getComputedStyle(sg), on = sg && sg.querySelector('button.on, button[aria-pressed="true"]'), os = on && getComputedStyle(on);
       return { tab: ts ? { bg: ts.backgroundColor, bb: ts.borderBottomWidth, r: ts.borderTopLeftRadius } : null, seg: ss ? { bg: ss.backgroundColor, r: ss.borderTopLeftRadius, b: ss.borderTopWidth } : null, on: os ? { bg: os.backgroundColor, r: os.borderTopLeftRadius } : null }; });
-    check('12d a list\'s chosen tab is a filled grey pill, never an underline', !!ls.tab && ls.tab.bg === GREY && ls.tab.bb === '0px' && pill(ls.tab.r), JSON.stringify(ls.tab));
+    /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page", the same
+       spacing as Parties): Contracts' chosen tab is UNDERLINED in the ink green, on no fill — the other lists keep their pills */
+    check('12d Contracts\' chosen tab is an underline on no fill (19 Nov 2026)', !!ls.tab && NONE.test(ls.tab.bg) && ls.tab.bb === '2px' && ls.tab.r === '0px', JSON.stringify(ls.tab));
     /* RE-POINTED 16 Nov 2026 (#762): the new look's head draws List · Wall as separate grey pills (no holding pill), the
        chosen one in the strong weight (index.html "the list's head as drawn") */
     const sw = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ct-head .ct-seg button')].map(b => { const c = getComputedStyle(b);
