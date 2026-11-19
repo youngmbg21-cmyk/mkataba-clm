@@ -1,5 +1,5 @@
 'use strict';
-/* f1098 — THE COVER IS A PAGE OF ITS OWN, NOT A SHEET LAID OVER THE PAPER (owner, 19 Nov 2026: "When i press on the
+/* f1099 — THE COVER IS A PAGE OF ITS OWN, NOT A SHEET LAID OVER THE PAPER (owner, 19 Nov 2026: "When i press on the
    contract, it goes white for a second then goes to cover but when i press the back button, the page takes me to the
    contract itself before i go back to the contracts page … this should apply to all the other areas where flashes
    are there. Go to the page not a sheet laid over").
@@ -21,7 +21,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const PD = strip(read('js/paperdesk.js'));
 const fn = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = src.indexOf('\nfunction ', i + 9); return src.slice(i, j < 0 ? undefined : j); };
 
-test('f1098 (1) a contract opened on purpose draws only its Cover', () => {
+test('f1099 (1) a contract opened on purpose draws only its Cover', () => {
   const go = fn(PD, 'pdCoverGo');
   assert.doesNotMatch(go, /pdOpenOnHome\(id, 'open', \{ cover: false \}\)\.|igWalk|setView/, 'no paper opened first');
   assert.match(go, /ensureFull\(c\)/, 'a light row is read whole before the Cover is drawn');
@@ -35,7 +35,7 @@ test('f1098 (1) a contract opened on purpose draws only its Cover', () => {
   assert.match(room, /if\s*\(opts\s*&&\s*opts\.cover\s*&&\s*typeof window\.pdCoverGo\s*===\s*'function'\s*&&\s*window\.pdCoverGo\(c\.id\)\)\s*return true;/, 'roomHomeLand({cover:true}) too');
 });
 
-test('f1098 (2) one ‹ goes back to the page pressed from, and the bar says so', () => {
+test('f1099 (2) one ‹ goes back to the page pressed from, and the bar says so', () => {
   const C = strip(read('js/views/counter.js'));
   assert.match(fn(C, 'deskCoverUp'), /pdMidUp\('cover:' \+ id\)/);
   const bar = fn(C, 'deskBarPaint');
@@ -46,14 +46,14 @@ test('f1098 (2) one ‹ goes back to the page pressed from, and the bar says so'
   assert.match(fn(C, 'deskGoBack'), /pdMidClose\(\)\) return true;/, '‹ takes the Cover away, nothing else');
 });
 
-test('f1098 (3) going in, the Cover stays until the paper stands', () => {
+test('f1099 (3) going in, the Cover stays until the paper stands', () => {
   const leave = fn(PD, 'pdCoverLeave');
   assert.match(leave, /_cvHold = String\(id\)/);
   assert.match(leave, /CV_LAND_MS/, 'bounded');
   assert.match(fn(PD, 'pdMidStale'), /if \(_cvHold && _pdMid\.key === 'cover:' \+ _cvHold\) return false;/, 'the paper drawn under it does not take it early');
 });
 
-test('f1098 (4) every page in the middle opened from another page goes back there in one press, the paper never shown', () => {
+test('f1099 (4) every page in the middle opened from another page goes back there in one press, the paper never shown', () => {
   const on = fn(PD, 'pdMidOn');
   assert.match(on, /if \(a\.from && a\.from !== at && pc && String\(pc\.id\) === a\.id\) _pdMid\.from = a\.from;/, 'the page keeps where it was pressed from');
   assert.match(fn(PD, 'pdOpenOnHome'), /pdArriveNote\(id\);/, 'every door into a contract notes where it came from');

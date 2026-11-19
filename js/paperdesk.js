@@ -6786,7 +6786,7 @@ function pdMidPage(what){
   return { crumb: _pdT('pd_stage_paper') + ' › ' + String(what || ''), crumbHtml: pdMidCrumbHtml(what), beside: '#ig-dock' };
 }
 /* A PAGE IN THE MIDDLE OPENED FROM ANOTHER PAGE IS A PAGE, NOT A SHEET OVER THE PAPER (owner, 19 Nov 2026: "this should
-   apply to all the other areas where flashes are there. Go to the page not a sheet laid over"; f1098). A door off this
+   apply to all the other areas where flashes are there. Go to the page not a sheet laid over"; f1099). A door off this
    contract's paper (Contracts, the Board, the bell, a list) that opens History, pay, Key terms, the brief or a fill-in
    form beside the Dossier notes WHERE IT WAS PRESSED FROM (pdArriveNote, in pdOpenOnHome): the page in the middle
    keeps it (_pdMid.from), so ‹ and Esc go straight back there in ONE press, the paper never shown (pdMidFrom,

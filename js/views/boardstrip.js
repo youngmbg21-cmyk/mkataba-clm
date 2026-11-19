@@ -61,9 +61,9 @@ function hbStripBring(id, page){
   const isUp = () => { try { return !!(typeof upFn === 'function' && upFn(c.id)); } catch (_){ return false; } };
   if (mid && onIt() && isUp()) return true;
   if (mid && typeof window[mid] === 'function' && onIt() && window[mid](c.id)) return true;
-  /* WHERE WE ARE IS THE COVER, A PAGE OF ITS OWN (f1098): drawn over the page pressed from, no paper under it */
+  /* WHERE WE ARE IS THE COVER, A PAGE OF ITS OWN (f1099): drawn over the page pressed from, no paper under it */
   if (page === 'where' && typeof window.pdCoverGo === 'function' && window.pdCoverGo(c.id)) return true;
-  /* the page in the middle comes once the paper stands; the paper is never shown on the way (pdMidArriving, f1098) */
+  /* the page in the middle comes once the paper stands; the paper is never shown on the way (pdMidArriving, f1099) */
   if (mid && typeof window.pdMidArriving === 'function') window.pdMidArriving(c.id);
   if (roomHomeLand(c.id) === false){ if (typeof window.pdArriveEnd === 'function') window.pdArriveEnd(); return false; }
   /* the paper takes its own time to arrive from the Board, a list or Settings: the middle page opens once it stands,

@@ -215,7 +215,7 @@ function deskGoBack(){
   /* THE TEMPLATE BUILDER'S WAY OUT IS ‹ (#762: its own back button is the old look's): it leaves through the builder's
      own leave (tbLeave — asks first if anything is unsaved) and lands on the template's page */
   if (deskBuilderUp()){ window.tbLeave(); return true; }
-  /* A PAGE IN THE MIDDLE OPENED FROM ANOTHER PAGE (f1098, owner 19 Nov 2026): ‹ goes back to that page in ONE press —
+  /* A PAGE IN THE MIDDLE OPENED FROM ANOTHER PAGE (f1099, owner 19 Nov 2026): ‹ goes back to that page in ONE press —
      drawn first, the page in the middle taken away after it, so the paper is never shown on the way */
   const from = typeof window.pdMidFrom === 'function' ? window.pdMidFrom() : '';
   if (from){

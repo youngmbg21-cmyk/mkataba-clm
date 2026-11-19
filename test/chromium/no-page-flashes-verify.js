@@ -9,7 +9,7 @@
      neither the page pressed from nor the page arrived at: the paper, the Board, Contracts, the Cover. A loading
      state (the Cover's veil, a page's own loading line, nothing yet) is not a flash.
    Before f1096 it fails: Cover → Contracts and Contracts → a contract painted the paper on the way.
-   Before f1098 it fails: ‹ and Esc from the Cover showed the contract's paper, a second ‹ to reach Contracts.
+   Before f1099 it fails: ‹ and Esc from the Cover showed the contract's paper, a second ‹ to reach Contracts.
    Run: node test/chromium/no-page-flashes-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -86,7 +86,7 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
       ['Cover → Contracts ›', S.cover, { click: '.cv-door' }],
       ['Cover → The brief', S.cover, { click: '[data-cv-go="brief"]' }],
       ['Cover → Open the dossier', S.cover, { click: '.cv-open' }],
-      /* f1098 (owner, 19 Nov 2026): the Cover is a page of its own over the page pressed from — ONE ‹ (or Esc) and
+      /* f1099 (owner, 19 Nov 2026): the Cover is a page of its own over the page pressed from — ONE ‹ (or Esc) and
          Contracts is there, never the contract's paper on the way */
       ['Cover → the bar\'s ‹ back (one press to Contracts)', S.cover, { click: '#dk-back', lands: 'contracts' }],
       ['Cover → Esc (one press to Contracts)', S.cover, { key: 'Escape', lands: 'contracts' }],

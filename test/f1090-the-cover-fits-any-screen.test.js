@@ -39,7 +39,7 @@ test('f1090 (3) the Cover carries a door to Contracts, said in the Handbook', ()
   const PD = read('js/paperdesk.js');
   const right = PD.slice(PD.indexOf('function pdCoverRightHtml('), PD.indexOf('function pdCoverHtml('));
   assert.match(right, /class="cv-lnk cv-door" data-cv-go="contracts"/, 'a green link in the top row');
-  assert.match(PD, /if \(k === 'contracts'\)\{ if \(typeof deskKeyNow !== 'function' \|\| deskKeyNow\(\) !== 'home:contracts'\) \{ if \(typeof setView === 'function'\) setView\('register'\); \}\s*pdMidClose\(\); return; \}/, 'it opens the Contracts list (or uncovers it, f1098)');
+  assert.match(PD, /if \(k === 'contracts'\)\{ if \(typeof deskKeyNow !== 'function' \|\| deskKeyNow\(\) !== 'home:contracts'\) \{ if \(typeof setView === 'function'\) setView\('register'\); \}\s*pdMidClose\(\); return; \}/, 'it opens the Contracts list (or uncovers it, f1099)');
   assert.match(rule('html.lg-new .cv-top .cv-door'), /margin-left:auto/, 'at the top right');
   const HB = read('js/handbook.js');
   assert.match(HB, /\{ui:nav_contracts\} at its top right goes to the Contracts list/);

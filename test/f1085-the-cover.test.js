@@ -29,14 +29,14 @@ test('f1085 (1) one reading, one builder, the parts as drawn', () => {
   assert.match(sheet, /\]\.filter\(Boolean\)/, 'a fact not held is left out');
   const right = fn(PD, 'pdCoverRightHtml');
   assert.equal((right.match(/class="cv-count/g) || []).length, 1, 'ONE count');
-  assert.match(right, /data-cv-open data-cv-cid=/, 'Open the dossier goes into the contract (f1098: the Cover is a page of its own, not laid over the paper)');
+  assert.match(right, /data-cv-open data-cv-cid=/, 'Open the dossier goes into the contract (f1099: the Cover is a page of its own, not laid over the paper)');
   assert.match(right, /V\.D\.stages\.map/, 'the Dossier\'s six stages');
   assert.doesNotMatch(right, /asks\.map\(|asks\.forEach\(/, 'the clauses are counted, never listed');
 });
 
 test('f1085 (2) only a door that opens the contract on purpose shows it', () => {
   const o = fn(PD, 'pdOpenOnHome');
-  assert.match(o, /if \(tab === 'open' && !\(o && o\.cover === false\)\)\{ if \(pdCoverGo\(id\)\) return true; const ok = pdOpenOnHome\(id, 'open', \{ cover: false \}\); if \(ok\) pdCoverLand\(id\); return ok; \}/, 'the Cover as its own page first (f1098), else over the paper');
+  assert.match(o, /if \(tab === 'open' && !\(o && o\.cover === false\)\)\{ if \(pdCoverGo\(id\)\) return true; const ok = pdOpenOnHome\(id, 'open', \{ cover: false \}\); if \(ok\) pdCoverLand\(id\); return ok; \}/, 'the Cover as its own page first (f1099), else over the paper');
   const R = strip(read('js/views/contract.js'));
   assert.match(R, /const ok=!!pdOpenOnHome\(c\.id,mine==='jambo'\?'plain':'open',\{ cover:false \}\);\s*if\(ok&&opts&&opts\.cover&&typeof window\.pdCoverLand==='function'\) window\.pdCoverLand\(c\.id\);/);
   for (const [f, re] of [['js/views/register.js', /roomHomeLand\(id,\{ cover:true \}\)/], ['js/views/inspector.js', /roomHomeLand\(c\.id, \{ cover: true \}\)/],

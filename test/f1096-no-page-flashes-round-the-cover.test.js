@@ -21,7 +21,7 @@ test('f1096 (1) a press on the Cover goes in one turn, never after a wait', () =
   const i = PD.indexOf("closest('[data-cv-go], [data-cv-open]')"); assert.ok(i > 0);
   const h = PD.slice(i, PD.indexOf('});', PD.indexOf('pdCoverLeave(id', i)));
   assert.doesNotMatch(h, /setTimeout/, 'no timer between the press and the destination');
-  /* RE-POINTED 19 Nov 2026 (f1098, the Cover is a page of its own): the paper is drawn UNDER the Cover, which goes
+  /* RE-POINTED 19 Nov 2026 (f1099, the Cover is a page of its own): the paper is drawn UNDER the Cover, which goes
      only once the job pressed stands; the brief opens over it and keeps it */
   assert.match(h, /pdCoverLeave\(id, \(\) => \{\s*if \(k === 'red'\) pdRedOpen\(id\);/, 'the job runs once the paper stands');
   assert.match(h, /pd2BriefOpen\(id\); return 'keep'; \}/, 'the brief opens over the Cover, never after a close');
