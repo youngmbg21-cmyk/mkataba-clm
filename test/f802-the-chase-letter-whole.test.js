@@ -205,7 +205,7 @@ describe('f802 (5) the letter as it will leave, link and all — the preview rou
   test('5f one builder for both, and the page reads it through the agents\' one door', () => {
     const mk = SRV.slice(SRV.indexOf('function srvChaseMail('), SRV.indexOf('\napp.', SRV.indexOf('function srvChaseMail(')));
     assert.match(mk, /chaseMailOf\(\{ t: \(k, v\) => tFor\(L, k, v\), firm, dated: !!o\.due, soon, vars, link: link \|\| null,/);
-    assert.match(SRV.slice(SRV.indexOf('async function srvChaseSend('), SRV.indexOf('function srvChaseMail(')), /const m = srvChaseMail\(req, c, o, to, \{ firm \}\);\n  const r = await sendEmail\(to, m\.subject, m\.body/);
+    assert.match(SRV.slice(SRV.indexOf('async function srvChaseSend('), SRV.indexOf('function srvChaseMail(')), /const m0 = srvChaseMail\(req, c, o, to, \{ firm \}\);\n  const m = \{ \.\.\.m0, body: srvChaseNoteIn\(m0\.body, note\) \};\n  const r = await sendEmail\(to, m\.subject, m\.body/ /* RE-POINTED 19 Nov 2026 (f1105): a note written on the Send screen joins the same letter */);
     const route = SRV.slice(SRV.indexOf("app.get('/api/contracts/:id/chase-preview'"), SRV.indexOf("app.post('/api/contracts/:id/chase'"));
     assert.match(route, /srvChaseMail\(req, c, o, to, /);
     assert.doesNotMatch(route, /sendEmail|persist|UPDATE |INSERT /, 'a reading');
