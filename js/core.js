@@ -5923,6 +5923,8 @@ if(typeof document!=='undefined' && !document._shColWired){
    "A colleague instead" stays its own choice. Every control, id and listener is the one this screen always had: the
    steps only wrap the rows (the head line is added, the row's own controls are the step's body). New look only. */
 function shareStepsOn(){ return typeof newLookOn==='function' && !!newLookOn(); }
+const SH_LGX_K={ to:'sh_st_to', what:'sh_st_what', can:'sh_lgx_k_can', by:'sh_lgx_k_by' };
+const SH_LGX_HEAD={ to:'sh_lgx_h_to', what:'sh_st_what', can:'sh_st_can', by:'sh_st_by' };
 const SH_STEPS=[['to','.sh-lt-to','sh_st_to'],['what','#sh-lt-what-row','sh_st_what'],['can','#sh-lt-can-row','sh_st_can'],['by','#sh-lt-by-row','sh_st_by']];
 let _shStepOpen=null;
 function shareStepsArrange(host){
@@ -5936,10 +5938,26 @@ function shareStepsArrange(host){
   const subj=host.querySelector('#sh-lt-subject');
   if(subj && subj.style.padding!=='4px 0px'){ subj.style.padding='4px 0'; subj.style.border='0'; subj.style.background='none'; subj.style.borderRadius='0'; }
   const to=host.querySelector('.sh-lt-to'); if(to && to.parentElement!==col) col.insertBefore(to, col.firstChild);
+  /* THE STEPS THE LEGORA WAY, IN THE PAGE (owner's pick, 19 Nov 2026: "change it to look like the design here but not as pop
+     ups but embedded in the page"): the open step's name as a serif head, the four steps one line under it (the open one
+     bold, each a press), each field a label beside its words with no box, "Then" over the steps still to come, and each of
+     those a label beside what is chosen, with Change. Every control and id stays the screen's own. */
+  if(!col.querySelector(':scope > .sh-lgx-h')) col.insertAdjacentHTML('afterbegin', `<div class="sh-lgx-h"><p class="sh-lgx-t" id="sh-lgx-t"></p><p class="sh-lgx-s" id="sh-lgx-s">${SH_STEPS.map(([k,,lbl])=>`<button type="button" data-sh-st-go="${k}" data-sh-lgx-crumb="${k}">${esc(i18t(lbl))}</button>`).join('<span aria-hidden="true"> · </span>')}</p></div>`);
+  if(to && !col.querySelector('.sh-lgx-g')) to.insertAdjacentHTML('afterend', `<p class="sh-lgx-g">${esc(i18t('sh_lgx_then'))}</p>`);
+  const who=host.querySelector('.sh-lt-who');
+  if(who && !who.dataset.lgx){ who.dataset.lgx='1';
+    const nameL=host.querySelector('#sh-name')?.closest('label'), mailL=host.querySelector('#sh-email-wrap');
+    if(nameL && !host.querySelector('#sh-title')) nameL.insertAdjacentHTML('afterend', `<label id="sh-title-wrap"><span>${esc(i18t('sh_lgx_title'))}</span><input id="sh-title" type="text" autocomplete="off" maxlength="80" placeholder="${esc(i18t('sh_lgx_title_ph'))}"/></label>`);
+    nameL?.querySelector('span')?.replaceChildren(document.createTextNode(i18t('sh_lgx_person')));
+    mailL?.querySelector('span')?.replaceChildren(document.createTextNode(i18t('sh_lgx_email')));
+    /* the boxes are drawn with their own frame in their style attribute, which no sheet can undo: taken off here, so
+       each is a line of words (as the subject's is) */
+    who.querySelectorAll('label, label > span, input').forEach(el=>el.removeAttribute('style'));
+  }
   SH_STEPS.forEach(([k,sel,lbl],i)=>{
     const row=host.querySelector(sel); if(!row || row.querySelector(':scope > .sh-st-h')) return;
     row.classList.add('sh-st'); row.setAttribute('data-sh-st', k);
-    row.insertAdjacentHTML('afterbegin', `<div class="sh-st-h"><span class="sh-st-mk" aria-hidden="true">${i+1}</span><span class="sh-st-t"><b>${esc(i18t(lbl))}</b><span class="sh-st-v"></span><span class="sh-st-q"></span></span><button type="button" class="sh-st-go" data-sh-st-go="${k}">${esc(i18t('sh_st_change'))}</button></div>`);
+    row.insertAdjacentHTML('afterbegin', `<div class="sh-st-h"><span class="sh-st-mk" aria-hidden="true">${i+1}</span><span class="sh-st-t"><b>${esc(i18t(SH_LGX_K[k]||lbl))}</b><span class="sh-st-v"></span><span class="sh-st-q"></span></span><button type="button" class="sh-st-go" data-sh-st-go="${k}">${esc(i18t('sh_st_change'))}</button></div>`);
   });
   /* step 1's own parts: the people it goes to, + Add someone, Someone new… */
   const fields=host.querySelector('#share-fields');
@@ -6003,6 +6021,10 @@ function shareStepsWords(){
     if(q && q.textContent!==say[k][1]) q.textContent=say[k][1];
     if(g){ const w=i18t(open?'sh_st_done':'sh_st_change'); if(g.textContent!==w) g.textContent=w; }
   });
+  /* the head names the open step; the line under it lights it */
+  const ht=document.getElementById('sh-lgx-t'), hv=i18t(_shStepOpen ? (SH_LGX_HEAD[_shStepOpen]||'sh_st_head') : 'sh_st_head');
+  if(ht && ht.textContent!==hv) ht.textContent=hv;
+  host.querySelectorAll('[data-sh-lgx-crumb]').forEach(b=>{ const on=b.getAttribute('data-sh-lgx-crumb')===_shStepOpen; b.classList.toggle('is-on', on); b.setAttribute('aria-current', on?'step':'false'); });
   /* step 1's list of people, each with × */
   const list=document.getElementById('sh-st-ppl');
   if(list){ const html=ppl.map(p=>`<div class="sh-st-p"><i class="sh-st-av">${esc(_shInitials(p.name))}</i><span>${esc(p.name)}<em>${esc(p.email)}</em></span><button type="button" class="sh-st-x" data-sh-st-x="${esc(p.k)}" aria-label="${esc(i18t('sh_st_remove',{ name:p.name }))}" title="${esc(i18t('sh_st_remove',{ name:p.name }))}">${typeof icon==='function'?icon('x','w-3 h-3'):''}</button></div>`).join('');
@@ -6678,7 +6700,7 @@ function shareSignerPickHtml(c, sel){
   return `<div id="share-signers-box" data-need-signers="${need?'1':'0'}" style="margin:0 0 14px;${box};border-radius:var(--radius);padding:11px var(--s-3)">
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2)">
       ${need?`<span style="flex:none;display:inline-flex;color:var(--st-amber-fg)">${icon('alert','w-3.5 h-3.5')}</span>`:''}
-      <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);color:${need?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${i18t('co_who_signs')}</span>
+      <span class="sh-signers-h" style="flex:1;font-size:13px;font-weight:var(--w-strong);color:var(--color-text)">${i18t('co_who_signs')}</span>
       ${plan.length?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
     </div>
     <div id="share-signer-rows">${html}</div>
@@ -7711,8 +7733,10 @@ function shareRememberRecipient(c, info){
   const hasMain = book ? !!contactEmail(c, o.partyId) : !!String(c.counterpartyEmail || '').trim();
   const main = o.purpose !== 'sign' && !hasMain;
   if (book){
-    if (main) contactSet(c, { main: true, email, partyId: o.partyId, ...(name ? { name } : {}) });
-    else contactSet(c, { role: contactRoleOfPurpose(o.purpose), email, partyId: o.partyId, ...(name ? { name } : {}) });
+    /* THE JOB TITLE TYPED ON THE SEND SCREEN (owner's pick, 19 Nov 2026) is kept with the person, in the one address book */
+    const title = String(o.title || '').trim();
+    if (main) contactSet(c, { main: true, email, partyId: o.partyId, ...(name ? { name } : {}), ...(title ? { title } : {}) });
+    else contactSet(c, { role: contactRoleOfPurpose(o.purpose), email, partyId: o.partyId, ...(name ? { name } : {}), ...(title ? { title } : {}) });
     return main;
   }
   if (!main) return false;
@@ -8791,7 +8815,7 @@ async function openShareModal(c, opts={}){
              what else could not be delivered on this workspace, which is the
              mail panel's job, not this dialog's. */}
       ${''/* (Round 3) one plain line, not an amber strip: email is not set up, so this goes as a link */}
-      ${emailOff()?`<p id="sh-noemail" class="sh-noemail">${i18t('co_email_off_line')}</p>`:''}
+      ${emailOff()?`<p id="sh-noemail" class="sh-noemail" data-k="${attr(i18t('sh_kv_email'))}">${i18t('co_email_off_line')}</p>`:''}
       ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
         <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
         <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
@@ -9736,7 +9760,7 @@ async function openShareModal(c, opts={}){
       /* The address this dialog collected, kept — see shareRememberRecipient
          for why every later Send was re-asking for it. Kept on a queued send
          too: the address is right even when the mail could not go. */
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name, title:fval('sh-title'),
         partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       // H-7: record the EXACT destination address on the audit trail, not just a
       // display label — so "who was this sent to" is provable later, especially
@@ -9834,7 +9858,7 @@ async function openShareModal(c, opts={}){
         window.open(waShareLink(phone, shareMessageText(c,link,msg,null)),'_blank');
         resultBox(copyBox(link,'WhatsApp opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
       } else { resultBox(copyBox(link)); wireCopy(); }
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name, title:fval('sh-title'),
         partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
       if(typeof opts.onSent==='function')

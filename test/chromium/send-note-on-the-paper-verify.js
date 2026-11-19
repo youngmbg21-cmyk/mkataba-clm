@@ -83,11 +83,14 @@ const SIZES = SHOTS ? [[1440, 780], [1536, 730], [1366, 950]] : [[1440, 780]];
           offNote: b.bottom <= a.top + 2, notInMail: !/Write it for me/.test(words), ph: t.placeholder }; }, 3000);
       check(`${w}x${ht} top corner: "Write it for me" in the letter's top-right corner, off the note's line, never in the email`, !!pl && pl.corner && pl.offNote && pl.notInMail && /No note yet/.test(pl.ph), JSON.stringify(pl));
       await page.evaluate(() => { const s = document.querySelector('.sh-st[data-sh-st="to"]'); if (s && !s.classList.contains('is-open')) document.querySelector('[data-sh-st-go="to"]').click(); });
+      /* RE-POINTED 19 Nov 2026 (owner's pick, the steps the Legora way in the page; f1103): step 1 open is no grey box — the
+         serif head names it, its person stands in the lines (Person · Email), listed once, nothing else beside */
       const s1 = await waitFor(page, () => { const s = document.querySelector('.sh-st[data-sh-st="to"].is-open'); if (!s) return null;
-        const r = s.getBoundingClientRect(), mk = s.querySelector('.sh-st-mk').getBoundingClientRect(), go = s.querySelector('.sh-st-go').getBoundingClientRect();
-        const shown = [...s.querySelectorAll('#sh-st-ppl .sh-st-p, #sh-lt-tosay')].filter(e => e.getClientRects().length).length;
-        return { top: Math.round(mk.top - r.top), left: Math.round(mk.left - r.left), right: Math.round(r.right - go.right), shown }; }, 3000);
-      check(`${w}x${ht} step 1 open: 16px inside the grey, its person listed once`, !!s1 && s1.top >= 15 && s1.left >= 15 && s1.right >= 15 && s1.shown === 1, JSON.stringify(s1));
+        const bg = getComputedStyle(s).backgroundColor, head = (document.getElementById('sh-lgx-t') || {}).textContent || '';
+        const em = document.getElementById('sh-email'), shownEm = !!(em && em.getClientRects().length && em.value);
+        const chips = [...s.querySelectorAll('#sh-st-ppl .sh-st-p, #sh-lt-tosay')].filter(e => e.getClientRects().length).length;
+        return { grey: !/rgba\(0, 0, 0, 0\)|transparent/.test(bg), head, shown: (shownEm ? 1 : 0) + chips }; }, 3000);
+      check(`${w}x${ht} step 1 open: no grey box, named by the head, its person listed once`, !!s1 && !s1.grey && /Who it goes to/.test(s1.head) && s1.shown === 1, JSON.stringify(s1));
       /* THE NOTE'S LIMIT (f1054 (5)): typed past it, the box stops at the most the email carries; near it, a count */
       const cap = await page.evaluate(async () => { const t = document.getElementById('sh-summary'); t.value = ''; t.focus();
         return { max: t.maxLength }; });
