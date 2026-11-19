@@ -22625,3 +22625,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 ## Noticed, not fixed (19 Nov 2026, every place the answers were read)
 - Discover's "Where it was read" for a ONE-question read prints the clause number twice: the heading line "5. Termination" (dim) and then "5" in bold before the quoted paragraph (dscPaperHtml adds `dsc-sec` when the paragraph does not start with the number, without looking at the line before); the heading is also drawn pale (`dsc-dim`), so the reader cannot tell which clause the yellow words belong to.
 - The same paper's highlight is painted line by line with ragged ends, and its sheet is narrow inside the panel (thin margins; the title can leave "LLC" alone on a line).
+- (19 Nov 2026, later) The doubled clause number on a one-question read is now FIXED at the owner's word ("fix the doubled clause number too"; f1113 (5)). The pale heading, ragged highlight and narrow sheet above stay noticed, not fixed.
