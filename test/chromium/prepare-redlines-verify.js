@@ -126,7 +126,7 @@ const VERDICTS = [
      helper's own form for a route that must answer what it was asked — gives
      the four scripted findings their scripted verdicts and calls every other
      standard met, which is what a provider that obeyed the prompt returns. */
-  ai.script(body => {
+  const REVIEW = body => {
     const prompt = String(((body.messages || [])[0] || {}).content || '');
     let positions = [];
     try{ positions = (JSON.parse(prompt.slice(prompt.indexOf('PLAYBOOK:\n') + 10, prompt.indexOf('\n\nDOCUMENT:'))).positions) || []; }catch(_){}
@@ -134,7 +134,8 @@ const VERDICTS = [
     const verdicts = positions.map(p => byCat.get(p.category)
       || { category: p.category, status: 'aligned', quote: '', position: p.note || '', redline: '', escalate: false });
     return [{ type: 'tool_use', id: 'tu_pb', name: 'playbook_review', input: { verdicts } }];
-  });
+  };
+  ai.script(REVIEW);
   const ID = 'MK-A12';
   await W.admin.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: {
     id: ID, name: 'Nordkust supply agreement', counterparty: 'Nordkust Industri AB', counterpartyEmail: 'ola@nordkust.se',
@@ -186,6 +187,9 @@ const VERDICTS = [
     return !!c && !(run && run.run) && (!!c.playbook || !!(run && run.why)); }, ID, { timeout: 10000 }).catch(() => {});
   await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); if (c) delete c.playbook;
     if (typeof pdRedRepaint === 'function') try { pdRedRepaint(); } catch (_){} }, ID);
+  /* the stand-in answers ONE call per scripted turn, and the opening check above took it (a provider call was made):
+     the press gets its own, given only then so no spare turn is left for section 9's cut-short answer */
+  if (ai.calls.length) ai.script(REVIEW);
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
   /* RE-POINTED 12 Sep 2026. This asked for exactly ONE button on the page,
