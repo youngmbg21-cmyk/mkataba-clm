@@ -73,3 +73,22 @@ test('f1113 (4) the results page draws it for the chosen row; an answer pressed 
   const CSS = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   assert.match(CSS, /\.dsc-sheet \.dsc-head\{font-weight:var\(--w-strong\);color:var\(--color-text\)\}/, 'the heading in ink');
 });
+
+/* (5) THE NUMBER ONCE (owner, 19 Nov 2026: "fix the doubled clause number too"): the one-question paper printed the
+   heading "5. Termination" and then a bold "5" before the paragraph; the number is added only where nothing says it */
+function buildOne(answer, text){
+  const src = slice('function dscLocate(text, quote){', 'function dscPaperAllHtml(');
+  const AC = { ans: { q1: { C1: answer } } };
+  const deps = { DSC_SLICE: 280, _dscAC: () => AC, getContract: () => ({ id: 'C1', name: 'Supply Agreement' }), dscTextOf: () => text,
+    _rdE: x => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;'), _rdT: k => k, askColClauseNo: a => a.clause || '',
+    cKind: () => '', _rdRef: c => c.id };
+  return new Function(...Object.keys(deps), src + '\nreturn dscPaperHtml;')(...Object.values(deps));
+}
+test('f1113 (5) the one-question paper prints the clause number once', () => {
+  const a = { found: true, quote: 'Either party may terminate on ninety (90) days written notice', clause: '5' };
+  const withHead = buildOne(a, TEXT)('q1', 'C1');
+  assert.match(withHead, /5\. Termination/, 'the heading stands');
+  assert.doesNotMatch(withHead, /<b class="dsc-sec">5<\/b>/, 'no second "5" before the paragraph');
+  const bare = buildOne(a, 'Either party may terminate on ninety (90) days written notice and pay what is owed.')('q1', 'C1');
+  assert.match(bare, /<b class="dsc-sec">5<\/b> /, 'where nothing says the number, it is still given');
+});

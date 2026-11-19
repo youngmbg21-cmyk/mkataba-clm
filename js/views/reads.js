@@ -589,7 +589,11 @@ function dscPaperHtml(askId, cid){
   else {
     const text = dscTextOf(cid), sl = text ? dscSlice(text, quote) : null;
     const lead = sl ? sl.pre.replace(/^\u2026\s*/, '') : '';
-    const sec = num && !(lead.startsWith(num + ' ') || lead.startsWith(num + '.')) ? `<b class="dsc-sec">${_rdE(num)}</b> ` : '';
+    /* THE NUMBER ONCE (owner, 19 Nov 2026: "fix the doubled clause number"): not when the paragraph says it, nor when
+       the line above it (the clause's heading, "5. Termination") already does */
+    const says = t => !!t && (t.startsWith(num + ' ') || t.startsWith(num + '.'));
+    const head = sl ? String(sl.before || '').replace(/^…\s*/, '').replace(/^§\s*/, '') : '';
+    const sec = num && !says(lead) && !says(head) ? `<b class="dsc-sec">${_rdE(num)}</b> ` : '';
     body = sl ? `${sl.before ? `<p class="dsc-dim">${_rdE(sl.before)}</p>` : ''}<p>${sec}${_rdE(sl.pre)}<mark>${_rdE(sl.hit)}</mark>${_rdE(sl.post)}</p>${sl.after ? `<p class="dsc-dim">${_rdE(sl.after)}</p>` : ''}`
       : `<p>${sec}<mark>${_rdE(quote)}</mark></p>`;
   }
