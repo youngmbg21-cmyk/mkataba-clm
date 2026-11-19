@@ -83,9 +83,10 @@ const check = (name, pass, detail) => {
     await part('2 the panel', async () => {
       const P = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !p.querySelector('[data-jov5-sec="ags"]')) return null;
         return { secs: [...p.querySelectorAll('.jov5-sec .jov5-label')].map(x => x.textContent.trim()), edit: !!p.querySelector('.jov5-more[data-cu-pr-edit]'),
-          add: !!p.querySelector('.jov5-more[data-cun-add-ct]'), all: ((p.querySelector('.jov5-flink[data-cun-cts]') || {}).textContent || '').trim(), web: !!p.querySelector('[data-cun-web], [data-cun-open]') }; });
-      check('2a the facts (Edit beside), Contacts (+ Add), Agreements · 2 and all of them on Contracts; no web search, no Open party',
-        !!P && P.secs[0] === "The party's own facts" && P.secs.includes('Contacts') && P.secs.includes('Agreements · 2') && P.edit && P.add && /^All 2 agreements on Contracts/.test(P.all) && !P.web, JSON.stringify(P));
+          add: !!p.querySelector('.jov5-more[data-cun-add-ct]'), all: ((p.querySelector('[data-cun-cts] .jov5-rt b') || {}).textContent || '').trim(), web: !!p.querySelector('[data-cun-web], [data-cun-open]') }; });
+      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): under the facts and contacts, Agreements as links (all of them; those needing you) */
+      check('2a the facts (Edit beside), Contacts (+ Add), then Agreements: "All 2 agreements" opening Contracts; no web search, no Open party',
+        !!P && P.secs[0] === "The party's own facts" && P.secs.indexOf('Contacts') === 1 && P.secs[2] === 'Agreements' && P.edit && P.add && P.all === 'All 2 agreements' && !P.web, JSON.stringify(P));
       await shot('pc-2-panel-1440x780.png');
     });
 

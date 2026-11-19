@@ -176,7 +176,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           rows: document.querySelectorAll('#cu-tbody [data-cu-cust]').length,
           foot: ((pg.querySelector('.apn-foot') || {}).textContent || '').trim(),
           name: kf ? ((kf.querySelector('.cun-name') || {}).textContent || '').trim() : '', deals: kf ? ((kf.querySelector('td.cun-num') || {}).textContent || '').trim() : '',
-          chips: kf ? [...kf.querySelectorAll('.cun-sub > *')].map(x => x.textContent.trim()).filter(Boolean) : [] };
+          chips: kf ? [...kf.querySelectorAll('td.cun-streams > *')].map(x => x.textContent.trim()).filter(Boolean) : [] };
       });
       /* RE-POINTED 17 Nov 2026 (#762): the count on the lit tab is the rows drawn, the head's N and the foot's N.
          RETIRED 17 Nov 2026 (#762): "sorted by name" on the Party column and Columns in the chip row — round 6's
@@ -186,9 +186,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         /^all \d+$/.test(L.lit) && n === L.rows && L.head === n + ' counterparties' && L.foot.startsWith(n + ' parties'), JSON.stringify({ lit: L.lit, rows: L.rows, head: L.head, foot: L.foot }));
       /* RE-POINTED 17 Nov 2026 (#762): round 6's columns, in order */
       /* RE-POINTED 19 Nov 2026 (the Parties round): no NDA column; Deals says Agreements; the last column holds each row's one button */
-      check('2b the columns as drawn, in order: Party · Agreements · On paper · Standing · Waiting on you · (the button)', JSON.stringify(L.cols) === JSON.stringify(['Party', 'Agreements', 'On paper', 'Standing', 'Waiting on you', '']), JSON.stringify(L.cols));
+      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): Streams its own column; Standing and the buttons gone; Waiting on you last */
+      check('2b the columns as drawn, in order: Party · Streams · Agreements · On paper · Ends next · Waiting on you', JSON.stringify(L.cols) === JSON.stringify(['Party', 'Streams', 'Agreements', 'On paper', 'Ends next', 'Waiting on you']), JSON.stringify(L.cols));
       /* RE-POINTED 17 Nov 2026 (#762): a party's line is its name over its stream as a chip; its agreements are the Deals column */
-      check('2c a party\'s row: its name over its stream, its deals counted (2)', L.name === 'Kenya Freight Ltd' && L.chips.length >= 1 && L.deals === '2', JSON.stringify({ n: L.name, c: L.chips, d: L.deals }));
+      check('2c a party\'s row: its name, its stream in the Streams column, its deals counted (2)', L.name === 'Kenya Freight Ltd' && L.chips.length >= 1 && L.deals === '2', JSON.stringify({ n: L.name, c: L.chips, d: L.deals }));
       /* RETIRED 17 Nov 2026 (#762): 2d "ten at a time, 1–10 of N · Show N more; a party with nothing live is off Live"
          and 2e "Show more draws the rest" — round 6's List holds every party on one page, no Live tab (old look only). */
       await shot('19-parties-list-1440x780.png');
@@ -255,25 +256,29 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         && /data-cun-nda/.test((facts.rows.find(r => r.k === 'NDA') || {}).door || ''), JSON.stringify(facts.rows));
       check('4c2 Contacts: "2 contacts at Kenya Freight", one row opening People, + Add beside', cts.rows.length === 1 && /^2 contacts at Kenya Freight/.test(cts.rows[0].t)
         && /data-cun-ppl/.test(cts.rows[0].door) && links.some(l => /^data-cun-add-ct\|\+ Add$/.test(l)), JSON.stringify({ cts: cts.rows, links }));
-      check('4d the agreements, each with the day it ends, then "All 2 agreements on Contracts ›"', ags.rows.length === 2 && ags.rows.every(a => /ends /.test(a.s))
-        && ags.rows.some(a => a.t === 'Mutual NDA') && ags.rows.some(a => a.t === 'Transport agreement') && links.some(l => /^data-cun-cts\|All 2 agreements on Contracts/.test(l)), JSON.stringify({ ags: ags.rows, links }));
+      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): under the facts and contacts, two links — all the agreements, and
+         those that need your attention (only where something waits) */
+      check('4d Agreements: "All 2 agreements" opening Contracts; nothing waits, so no attention line', ags.rows.length === 1 && ags.rows[0].t === 'All 2 agreements'
+        && /data-cun-cts/.test(ags.rows[0].door) && /2 signed/.test(ags.rows[0].s || ''), JSON.stringify({ ags: ags.rows }));
       await shot('19-party-panel-1440x780.png');
       /* a second press on the chosen row keeps the list (no party page any more) */
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
       await page.waitForTimeout(400);
       const still = await page.evaluate(() => ({ list: !!document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody'), view: state.view }));
       check('4e a second press on the chosen row stays on the list', still.list && still.view === 'customers', JSON.stringify(still));
-      /* RE-POINTED 19 Nov 2026: what waits on you is the row's one button and its Waiting column */
-      const HE = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"]'); if (!r) return null;
-        const b = r.querySelector('.cun-act-b'); return { wait: ((r.querySelector('td.cun-wait') || {}).textContent || '').replace(/\s+/g, ' ').trim(), btn: b ? b.textContent.trim() : '', door: b ? b.getAttribute('data-cu-need') : '' }; });
-      check('4i an approval the reader answers for an away colleague: the row says "Approve Power purchase agreement", its button "Open approval"', !!HE && /Approve Power purchase agreement/.test(HE.wait) && HE.btn === 'Open approval' && HE.door === 'approval', JSON.stringify(HE));
-      const col = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"]'); if (!r) return null; const td = r.querySelector('td.cun-wait'), b = r.querySelector('.cun-act-b');
-        return { col: td ? (td.textContent + ' ' + (td.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : '', btn: b ? b.textContent.trim() : '', door: b ? b.getAttribute('data-cu-need') : '' }; });
+      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): Waiting on you is the LAST column, a count on how many contracts;
+         its hover names each thing; rows carry no button */
+      const HE = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"]'); if (!r) return null; const td = r.querySelector('td.cun-wait');
+        return { wait: ((td || {}).textContent || '').replace(/\s+/g, ' ').trim(), title: td ? td.getAttribute('title') || '' : '', last: !!td && td === r.lastElementChild, btn: !!r.querySelector('button') }; });
+      check('4i an approval the reader answers for an away colleague: the last column counts it ("1 thing", "on 1 contract"), its hover names "Approve Power purchase agreement", no button', !!HE && /^1 thing/.test(HE.wait) && /on 1 contract/.test(HE.wait)
+        && /Approve Power purchase agreement/.test(HE.title) && HE.last && !HE.btn, JSON.stringify(HE));
+      const col = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"]'); if (!r) return null; const td = r.querySelector('td.cun-wait');
+        return { col: td ? (td.textContent + ' ' + (td.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : '', btn: !!r.querySelector('button') }; });
       /* RE-POINTED 19 Nov 2026: the row's ONE button opens its most urgent work — for Nandi Dairy the approval comes
          first — and the Waiting column names the colleague's request (its hover lists every one). RETIRED 19 Nov 2026:
          4h "Open request lands on the request" from Parties — the request's door is the row's only when it comes first. */
       check('4g a colleague\'s request about the party waits on you: the Waiting column names "Restricted asked for an NDA with Nandi Dairy"; the row\'s one button opens its first waiting work',
-        !!col && /Restricted asked for an NDA/.test(col.col) && col.btn === 'Open approval' && col.door === 'approval', JSON.stringify(col));
+        !!col && /Restricted asked for an NDA/.test(col.col) && !col.btn, JSON.stringify(col));
     });
 
     /* ---- 5 columns ---- */
@@ -372,12 +377,13 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         return rs.length === 2 ? rs.map(r => r.getAttribute('data-row')).sort().join(',') : null; }, null, 8000);
       check('9b "All 2 agreements on Contracts" lands on Contracts with that party\'s two', O === 'MK-KF1,MK-KF2', String(O));
       await backToList();
-      /* RE-POINTED 19 Nov 2026: the approval's door is the row's one button */
-      const apB = await until(() => document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] .cun-act-b[data-cu-need="approval"]') ? true : null);
-      if (apB){ await page.click('#cu-tbody [data-cu-cust="helio energy ltd"] .cun-act-b');
-        const A = await lit();
-        check('9d an approval row\'s button lands on its row on Approvals, lit', !!A && /\|approvals\|MK-AP1$/.test(A), String(A)); }
-      else check('9d an approval row\'s button lands on its row on Approvals, lit', false, 'no approval button');
+      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the panel's "1 needs your attention" opens Contracts with only it */
+      await choose('helio energy ltd');
+      const at = await until(() => document.querySelector('#ins-panel [data-cun-attn="helio energy ltd"]') ? true : null);
+      if (at){ await page.click('#ins-panel [data-cun-attn="helio energy ltd"]');
+        const N = await until(() => { const rs = [...document.querySelectorAll('#ct-place #reg-tbody tr[data-row]')]; return rs.length ? rs.map(r => r.getAttribute('data-row')).sort().join(',') : null; }, null, 8000);
+        check('9d "needs your attention" lands on Contracts with only the contract waiting on you', N === 'MK-AP1', String(N)); }
+      else check('9d "needs your attention" lands on Contracts with only the contract waiting on you', false, 'no attention line');
       await page.evaluate(() => langSet('sv'));
       for (const v of ['customers', 'directory']){
         await page.evaluate(x => setView(x), v); await page.waitForTimeout(400);
