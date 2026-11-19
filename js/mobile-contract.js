@@ -137,7 +137,7 @@ function mDetCountHtml(c){
   return (d&&d.left)?`<span class="m-ctab-n">${d.left}</span>`:'';
 }
 function mDetBoxHtml(c, x, bmap){
-  const IN='width:100%;height:44px;padding:0 12px;font:inherit;font-size:16px;border:1px solid var(--color-divider);border-radius:var(--radius);background:'+(x.open?'var(--st-amber-bg)':'var(--color-surface)')+';color:var(--color-text)';
+  const IN='width:100%;height:44px;padding:0 12px;font:inherit;font-size:16px;border:var(--fld-edge);border-bottom:'+(x.open?'1px solid var(--st-amber-line)':'var(--fld-under)')+';border-radius:var(--fld-r);background:var(--fld-bg);color:var(--color-text)';
   if(x.kind==='kt'){
     if(x.key==='party') return `<input type="text" data-kt="party" value="${mEsc(c.party||'')}" placeholder="${mEsc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">`;
     if(x.key==='counterparty') return `<input type="text" data-kt="counterparty" value="${mEsc(c.counterparty||'')}" style="${IN}">`;

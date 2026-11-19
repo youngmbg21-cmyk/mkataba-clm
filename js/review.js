@@ -1569,7 +1569,7 @@ function reviewWhen(at){
    var(--field-*), so a change to the field's height or padding moves this
    dialog and every form beside it in the same edit. The string being written
    twice costs nothing the tokens do not already prevent. */
-const RV_FLD = 'width:100%;height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+const RV_FLD = 'width:100%;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
 const RV_LBL = 'display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
 
 /* ---- AND THE DIALOGS LOOK LIKE THE PRODUCT'S DIALOGS ----

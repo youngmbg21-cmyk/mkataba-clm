@@ -202,7 +202,10 @@ describe('f386 (3) one edge on every outlined control', () => {
     assert.ok(lum(field) < lum(edge), `the box's edge ${field} is not stronger than a button's ${edge}`);
     assert.ok(1.05 / (lum(field) + 0.05) >= 3,
       `the box's edge ${field} is ${(1.05 / (lum(field) + 0.05)).toFixed(2)}:1 on white, under 3:1`);
-    assert.match(CORE, /const HATI_FLD='width:100%;height:var\(--field-h\);[^']*var\(--field-line/);
+    /* RE-POINTED 19 Nov 2026 (owner: "The design token for hati should be like image 2", every entry field open,
+       the Legora way): the house field no longer wears a box; it reads the ONE home of a field's look, the --fld-*
+       tokens (no edge, one line under it). --field-line stays the boxes' own edge where a box still holds a field. */
+    assert.match(CORE, /const HATI_FLD='width:100%;height:var\(--field-h\);[^']*border:var\(--fld-edge\);border-bottom:var\(--fld-under\)/);
   });
   test('[wall] a filled button\'s edge is its fill', () => {
     const all = [...HTML.matchAll(/\n  \.ui-btn-primary\{[^}]*\}/g)].map(m => m[0]);

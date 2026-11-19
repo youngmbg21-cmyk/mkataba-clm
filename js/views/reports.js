@@ -346,7 +346,7 @@ function renderReports(){
                rather than inside the document: choosing it afterwards would mean
                reading the wrong one first. */}
         <label style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
-          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+          <select id="rep-weekly-tier" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;color:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
             ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
           </select></label>
         <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid transparent;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:999px;padding:7px var(--s-3);cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>

@@ -9486,7 +9486,7 @@ function openNegoMemoShare(c, m, o){
   if (!c || !m || (m.empty && !o.lines) || typeof window.openModal !== 'function') return null;
   const people = negoMemoRecipients();
   if (!people.length){ if (typeof toast === 'function') toast(i18t('ng_memo_send_nobody'), 'warn'); return null; }
-  const fld = 'width:100%;padding:var(--s-2) 10px;border:1px solid var(--color-divider);'
+  const fld = 'width:100%;padding:var(--s-2) 10px;border:var(--fld-edge);border-bottom:var(--fld-under);'
     + 'border-radius:var(--radius);font:inherit;font-size:var(--t-body);'
     + 'background:var(--color-surface);color:var(--color-text)';
   const lbl = 'display:block;font-size:var(--t-label);font-weight:var(--w-strong);'

@@ -4814,8 +4814,8 @@ function aiProposalCardHtml(p){
     </div>
     ${p.editing
       ? `<textarea data-ai-prop-edit="${e(p.id)}" class="ai-suggestion-editor" spellcheck="true" rows="6"
-          style="width:100%;font:inherit;font-size:var(--t-body);line-height:1.6;border:1px solid rgba(99,102,241,.35);border-radius:var(--radius);
-            padding:9px 11px;background:var(--color-surface);color:inherit;resize:vertical">${e(p.text)}</textarea>`
+          style="width:100%;font:inherit;font-size:var(--t-body);line-height:1.6;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);
+            padding:9px 11px;background:var(--fld-bg);color:inherit;resize:vertical">${e(p.text)}</textarea>`
       : `<div class="ai-proposal-text" style="font-size:var(--t-body);line-height:1.65;white-space:pre-wrap;
           border-left:2px solid rgba(99,102,241,.45);padding-left:10px;color:var(--color-neutral-800)">${e(p.text)}</div>`}
     ${aiProposalAnchorHtml(p)}
@@ -4835,7 +4835,7 @@ function aiProposalCardHtml(p){
         <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
           placeholder="${_aiEsc(i18t('ng_ph_reason_example'))}"
-          style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;font:inherit;font-size:var(--t-meta);line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
+          style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);padding:7px 9px;font:inherit;font-size:var(--t-meta);line-height:1.6;background:var(--fld-bg);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
       </label>`}
     ${done
       ? `<div style="font-size:var(--t-label);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`

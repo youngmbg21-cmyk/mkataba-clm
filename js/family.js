@@ -547,7 +547,7 @@ function openLinkModal(c, onDone, opts={}){
   // `mode` is 'child' (pick a parent for c) or 'parent' (pick a child to attach to c)
   const mode = opts.mode || (c.parentId ? 'child' : 'child');
   const suggested = (c.linkSuggestions||[]).map(s=>({ ...s, c:getContract(s.id) })).filter(x=>x.c);
-  const relSel = `<select id="lk-rel" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+  const relSel = `<select id="lk-rel" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
       ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${(c.relationGuess||c.relation||'amendment')===r.k?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select>`;
   const candidates = state.contracts.filter(x=>x.id!==c.id && (mode==='child' ? !x.parentId : (!x.parentId||x.parentId===c.id)));
   openModal(`

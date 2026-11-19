@@ -336,7 +336,7 @@ async function openHandoverWindow(c){
   const roundOpen = prog.total > 0;
   const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
   const vN = (Array.isArray(c.versions) ? c.versions.length : 0) + (roundOpen ? 2 : 1);
-  const FLD = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
+  const FLD = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
   const L = t => `<div class="ho-l">${_hoEsc(t)}</div>`;
   /* MORE THAN ONE PARTY NEGOTIATED (Phase 2): each one's agreement is said by
      name and day — one Ready to sign from one link cannot speak for the
@@ -608,7 +608,7 @@ async function outsideChase(c){
 }
 function openOutsideSendAgain(c){
   const ho = handoverOf(c); if (!ho) return;
-  const FLD = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
+  const FLD = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
   openModal(`<div style="padding:22px var(--s-6)">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-2)">${_hoEsc(i18t('ho_send_again_title'))}</h2>
     <p style="margin:0 0 var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700)">${_hoEsc(i18t('ho_send_again_msg'))}</p>
@@ -894,7 +894,7 @@ function _hoFilingScreen(c, read){
   /* Every expected signature found — each party's, and ours. */
   const theirsFound = said.signers.some(s => s.side === 'theirs') && said.signers.filter(s => s.side === 'theirs').every(s => s.found);
   const oursFound = said.signers.some(s => s.side === 'ours') ? said.signers.filter(s => s.side === 'ours').every(s => s.found) : false;
-  const FLD = 'border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
+  const FLD = 'border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
   const nextNo = (typeof contractIsWorkingFile === 'function' && contractIsWorkingFile(c)) ? i18t('ho_gets_number') : '';
   const approvals = Array.isArray(ho.approvals) ? ho.approvals : [];
   const preview = /pdf|image/.test(read.mime)
@@ -1034,7 +1034,7 @@ function _hoParentPicker(c){
     && String(x.counterparty || '').trim().toLowerCase() === cp && (x.status === 'Signed' || (x.execution && x.execution.at)));
   if (!cands.length) return '';
   return `<label class="ho-via"><span>${_hoEsc(i18t('ho_amends'))}</span>
-    <select id="ho-parent" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+    <select id="ho-parent" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
       <option value="">${_hoEsc(i18t('ho_amends_none'))}</option>
       ${cands.slice(0, 30).map(x => `<option value="${_hoEsc(x.id)}">${_hoEsc(contractRef(x))} · ${_hoEsc(x.name || '')}</option>`).join('')}
     </select></label>`;
@@ -1205,7 +1205,7 @@ function outsideUploadOfferHtml(m){
   }
   return `<div id="ho-up-pick" style="margin:0 0 12px">
     <label class="ho-via"><span>${_hoEsc(i18t('ho_up_pick_q'))}</span>
-      <select id="ho-up-which" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+      <select id="ho-up-which" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         <option value="">${_hoEsc(i18t('ho_up_pick_none'))}</option>
         ${m.outs.map(c => `<option value="${_hoEsc(c.id)}">${_hoEsc(contractRef(c))} · ${_hoEsc(c.name || '')}${c.counterparty ? ' · ' + _hoEsc(c.counterparty) : ''}</option>`).join('')}
       </select></label>

@@ -333,7 +333,7 @@ async function openTemplateConfirm(tid, vid) {
 function tplConfirmPaint() {
   const s = _tplConfirm;
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius)';
-  const INP = 'border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   // low confidence first — those are the rows a human most needs to look at
   const rank = { low: 0, medium: 1, high: 2, manual: 3 };
   const order = s.fields.map((f, i) => i).sort((a, b) => (rank[s.fields[a].detectionConfidence] ?? 3) - (rank[s.fields[b].detectionConfidence] ?? 3));
@@ -764,7 +764,7 @@ function tplLibStreamPick(id, fallback){
   return v || null;
 }
 function tplLibCatStreamRowHtml(idCat, idStream, category, folder) {
-  const FLD = 'width:100%;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const FLD = 'width:100%;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const LBL = 'display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)';
   return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:10px">
         <label style="display:block"><span style="${LBL}">${i18t('tl_category')}</span>
@@ -1012,10 +1012,10 @@ function tplLibMetaModal(t, opts = {}) {
     <div style="padding:24px">
       <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_template_details')}</h3>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_name')}</span>
-        <input id="tpllib-m-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)" maxlength="160" value="${esc(t.name)}"></label>
+        <input id="tpllib-m-name" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)" maxlength="160" value="${esc(t.name)}"></label>
       ${tplLibCatStreamRowHtml('tpllib-m-cat', 'tpllib-m-stream', t.category, t.folder)}
       <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_description')}</span>
-        <textarea id="tpllib-m-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000">${esc(t.description)}</textarea></label>
+        <textarea id="tpllib-m-desc" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000">${esc(t.description)}</textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-m-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
@@ -1061,7 +1061,7 @@ function tplLibMetaModal(t, opts = {}) {
    ============================================================ */
 function tplFormInputHtml(f, value, idx) {
   const lib = (window.FIELD_LIB || {})[f.fieldType] || { input: 'text', hint: '' };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const v = value == null ? '' : String(value);
   if (f.control === 'guided' || f.fieldType === 'select') {
     const opts = (f.options || []).map(o => `<option value="${esc(o)}"${v === o ? ' selected' : ''}>${esc(o)}</option>`).join('');

@@ -854,6 +854,12 @@
        after the line box and the two borders. */
     --field-pad-y:calc((var(--field-h) - var(--field-lh) - 2px) / 2);
     --field-pad-x:10px;
+    /* EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY (owner, 19 Nov 2026): ONE HOME for a field's look. No box, no
+       fill, square, one divider line under it; a row that draws its own line sets --fld-under to none. Every
+       field builder reads these (inline styles too), and the closing block "EVERY ENTRY FIELD IS OPEN" applies
+       them to every field the sheet styles. */
+    --fld-edge:0 solid transparent; --fld-under:1px solid var(--color-divider); --fld-under-none:0 solid transparent;
+    --fld-bg:transparent; --fld-r:0;
     --field-label-size:var(--t-label); --field-label-weight:var(--w-label);
     --field-label-gap:var(--s-1); --field-row-gap:var(--s-4);
     /* ---- THE MOTION LADDER ---- (25 Aug 2026)
@@ -22382,6 +22388,39 @@
   html:not(#_):not(#_) :is(.na-inp, .field, .hati-editor, #na-root .na-kt-grid input, [data-kt], [data-ktm], .cd-fld :is(input, select, textarea)):focus{border-color:var(--color-neutral-300)}
   html:not(#_):not(#_) :is(.sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .rl-np-box):focus-within{outline:none;box-shadow:none;border-color:var(--color-neutral-300)}
   html:not(#_):not(#_) .jb-card:focus-within{outline:none;box-shadow:none}
+  /* EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY (owner, 19 Nov 2026: "The design token for hati should be like image 2"
+     — the Send screen's To step; "all of hati at once"). Every field the sheet styles: no box, no fill, square, one
+     divider line under it (the --fld-* tokens in :root, which the inline field styles read too). Left out: boxes that
+     hold a field (Jambo's, the jump window, search and filter boxes, note composers, the sign-in), search inputs
+     (type=search, ids ending -q) and "Fill in the contract", whose own open look draws the owed field's amber line.
+     A row that draws its own line (the newer pop-ups, Send's To step, New agreement's terms) sets --fld-under to none.
+     Rows built as rows get the label BESIDE the words: the pop-ups' .sap-f, Settings' labels, the calendar's event.
+     A choice of a few is grey pill buttons, the chosen one ink (Who pays whom). Weighed like the ring rule above. */
+  html:not(#_):not(#_) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="image"], [type="hidden"], [type="button"], [type="submit"], [type="reset"], [type="search"], [id$="-q"], .na-q, .lp-in), select, textarea:not(.chat-field, .nego-compose), .dp-face):not(:is(.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .nd-bar, .lin-wrap, .pd2-fm-mid) *){border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background-color:var(--fld-bg);box-shadow:none}
+  html:not(#_):not(#_) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="image"], [type="hidden"], [type="button"], [type="submit"], [type="reset"], [type="search"], [id$="-q"], .na-q, .lp-in), select, textarea:not(.chat-field, .nego-compose), .dp-face):not(:is(.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .nd-bar, .lin-wrap, .pd2-fm-mid) *){--field-pad-x:0}
+  html:not(#_):not(#_) :is(input, textarea)::placeholder{color:var(--color-neutral-400)}
+  html:not(#_) #na-root .na-kt-r > span:first-child{font-size:13px;font-weight:400;color:var(--color-quiet)}
+  html:not(#_):not(#_) :is(input, textarea).need-empty::placeholder{color:var(--st-amber-fg)}
+  html:not(#_):not(#_) :is(.lgp-row, .sh-lt-who > label, .na-kt-r){--fld-under:var(--fld-under-none)}
+  /* the pop-ups' rows (.sap-f): label beside the words, the line under the row; side-by-side rows stack */
+  html:not(#_) .modal-in .sap-body > :is(.sap-row, .sap-row3){display:block}
+  html:not(#_) .modal-in .sap-f{--fld-under:var(--fld-under-none);display:grid;grid-template-columns:minmax(96px, 150px) minmax(0, 1fr);column-gap:var(--s-3);align-items:center;min-height:44px;margin:0;padding:6px 0;border-bottom:1px solid var(--color-divider)}
+  html:not(#_) .modal-in .sap-f > :is(label, .sap-lbl){margin:0;font-size:13px;font-weight:400;color:var(--color-quiet)}
+  html:not(#_) .modal-in .sap-f > :nth-child(n+3){grid-column:2}
+  html:not(#_) .modal-in .sap-f > .sap-row{display:flex;gap:var(--s-3)}
+  html:not(#_) .modal-in .sap-f textarea{height:auto;min-height:44px;resize:none}
+  /* Settings: a label holding its field is one row, label beside the words; its help sentence runs under the row */
+  html:not(#_) .st-sec label:has(> :is(input:not([type="checkbox"], [type="radio"]), select, textarea)){--fld-under:var(--fld-under-none);display:grid;grid-template-columns:150px minmax(0, 1fr);column-gap:var(--s-3);align-items:center;min-height:44px;margin:0;border-bottom:1px solid var(--color-divider)}
+  html:not(#_) .st-sec label:has(> :is(input:not([type="checkbox"], [type="radio"]), select, textarea)) > span:first-child{margin:0;font-size:13px;font-weight:400;color:var(--color-quiet)}
+  html:not(#_) .st-sec label > :is(input, select, textarea) ~ *{grid-column:1 / -1;margin:0 0 var(--s-2)}
+  /* the calendar's New event: label beside the words */
+  html:not(#_) .modal-in .cal-evd-row{display:block}
+  html:not(#_) .modal-in :is(.cal-evd > label, .cal-evd-row > label:not(.cal-evd-all)){--fld-under:var(--fld-under-none);display:grid;grid-template-columns:96px minmax(0, 1fr);column-gap:var(--s-3);align-items:center;min-height:44px;margin:0;border-bottom:1px solid var(--color-divider);font-size:13px;font-weight:400;color:var(--color-quiet)}
+  html:not(#_) .modal-in .cal-evd :is(input, select, .dp-face){color:var(--color-text);font-size:var(--t-body)}
+  /* Who pays whom: three grey pill buttons, the chosen one ink */
+  html:not(#_) .pw .pw-seg{border:0;background:none;gap:var(--s-2);justify-content:flex-start;overflow:visible;border-radius:0}
+  html:not(#_) .pw .pw-seg .na-seg-b{flex:none;border:0;background:var(--color-neutral-100);border-radius:999px;padding:0 14px;height:var(--ctl-h-sm);color:var(--color-text);font-weight:var(--w-label)}
+  html:not(#_) .pw .pw-seg .na-seg-b[aria-checked="true"]{background:var(--color-text);color:var(--color-surface)}
   /* SAP PAGE, LEGORA PANEL (owner's pick by name, 19 Nov 2026): the line under a side panel's head never touches the
      divider or the window's edge. It is pulled 16 in from both sides (where the panel's cards start and stop) and
      fades in and out at its ends, so a panel line and the page's line at another height never read as one broken

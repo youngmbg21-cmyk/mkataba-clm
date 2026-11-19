@@ -1870,7 +1870,7 @@ function tbPaperHtml() {
      it yet, one quiet line says what lands here (index.html gives the sheet a page's height) */
   if (!_tb.blocks.length) html += `<p class="tb-empty-line">${esc(i18t('tb_empty_paper'))}</p>`;
   html += `<div class="tb-add">
-      <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+      <select id="tb-addtype" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}" title="${esc(m.tip)}">${m.label}</option>`).join('')}
       </select>
       <button type="button" id="tb-addblock" class="ui-btn ui-btn-sm">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
@@ -3360,7 +3360,7 @@ function tbFieldModal(index, presetKey) {
     options: [], required: false, defaultValue: '', helpText: '',
     detectionConfidence: 'manual', humanReviewed: true,
   };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const types = Object.entries(window.FIELD_LIB || {}).map(([k, v]) =>
     `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${v.label}</option>`).join('');
   openModal(`
@@ -3439,7 +3439,7 @@ async function tbPaintBranding() {
   let b = null;
   try { b = (await api('org/branding')).branding; } catch (_) {}
   b = b || { logoUrl: null, companyName: '', registrationNumber: '', address: '', defaultFooterText: '' };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   /* ONE LINE UNDER THE PAPER (round 21 draws the paper ending with its
      wording; check #1, 19 Oct 2026): the company's letterhead is folded to
      its name until pressed — the same form inside, kept open across repaints */

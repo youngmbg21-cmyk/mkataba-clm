@@ -1211,10 +1211,10 @@ function wirePortalClauseEditor(c, p){
       const row=host.querySelector(`[data-cl="${i}"]`); if(!row) return;
       const cur=Object.prototype.hasOwnProperty.call(PORTAL_CLAUSE_EDITS,i)?PORTAL_CLAUSE_EDITS[i]:units[i].text;
       row.innerHTML=`
-        <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:1px solid var(--color-accent);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-body);line-height:1.7;color:var(--color-doc-text);background:var(--color-surface);outline:none;resize:vertical">${esc(cur)}</textarea>
+        <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);padding:9px 11px;font:inherit;font-size:var(--t-body);line-height:1.7;color:var(--color-doc-text);background:var(--fld-bg);outline:none;resize:vertical">${esc(cur)}</textarea>
         <label style="display:block;margin-top:7px">
           <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:3px">${i18t('po_why_optional')}</span>
-          <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-meta);background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
+          <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);padding:7px 10px;font:inherit;font-size:var(--t-meta);background:var(--fld-bg);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
           <button data-dlg-cancel data-cl-cancel="${i}" class="ui-btn ui-btn-sm">${i18t('act_cancel')}</button>
@@ -2151,7 +2151,7 @@ function openDerivedLinkDialog(d, org){
         who?`For <b>${esc(who)}</b>. `:''}${i18t('po_readonly_copy_now')}</p>
       <div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3)">
         <input readonly value="${esc(link)}" id="pt-derived-link"
-          style="flex:1;min-width:200px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font-family:var(--font-mono);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+          style="flex:1;min-width:200px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-mono);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         <button class="ui-btn" id="pt-derive-copy" style="flex:none">${i18t('po_copy')}</button>
       </div>
       ${''/* The panel's own sentence, kept whole. A reader who passes a link on
@@ -5173,7 +5173,7 @@ function renderSharePortal(p, opts={}){
     c.redlineText=templateFormDocHtml(c.templateForm);
   const input=(id,label,ph)=>`
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
-    <input id="${id}" type="text" placeholder="${ph}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
+    <input id="${id}" type="text" placeholder="${ph}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
   const TA='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
   /* ROUND 5 (owner's yes, 24 Oct 2026): the answers behind "Not ready to sign?" are one builder, so a page where
      nobody is named to sign yet keeps them (Decline, Agree to the wording, Tell them what you want changed) under
@@ -5905,7 +5905,7 @@ function portalOfferResponseCode(p, response, label){
       <div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:13px;">
         <div style="display:flex;align-items:center;gap:6px;color:var(--accent-ink);font-size:var(--t-meta);font-weight:var(--w-strong);margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${head}</div>
         <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.5;">${lead}</p>
-        <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
+        <textarea id="pt-code" readonly rows="4" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
         <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:var(--s-2);width:100%">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
       </div>`;
     document.getElementById('pt-copy').addEventListener('click',async()=>{
@@ -5924,7 +5924,7 @@ function portalOfferResponseCode(p, response, label){
       style="position:relative;width:100%;max-width:33rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:22px var(--s-6)">
       <h3 id="pt-code-t" style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1);line-height:1.3">${head}</h3>
       <p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-3)">${lead}</p>
-      <textarea id="pt-code" readonly rows="5" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
+      <textarea id="pt-code" readonly rows="5" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:10px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
       <p style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.55;margin:10px 0 var(--s-4)">${i18t('po_code_only_showing')}</p>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         <button id="pt-copy" class="ui-btn ui-btn-primary">${icon('copy','w-3 h-3')} ${i18t('po_copy_response_code')}</button>
@@ -5972,7 +5972,7 @@ function portalTemplateFormHtml(c,p){
   if(!fields.length) return '';
   const values=form.values||{};
   const editable=!portalExecuted()&&!portalReadOnly();
-  const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const required=fields.filter(f=>f.required);
   const filled=required.filter(f=>String(values[f.fieldKey]||'').trim()!=='');
   const inputFor=(f,idx)=>{
@@ -6100,7 +6100,7 @@ function wirePortalTemplateForm(p){
       const pop=document.createElement('div');
       pop.id='ptf-pop';
       pop.style.cssText=`position:fixed;z-index:80;top:${Math.round(r.bottom+6)}px;left:${Math.round(Math.min(Math.max(8,r.left),(window.innerWidth||1200)-296))}px;width:284px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:10px var(--s-3)`;
-      const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+      const INP='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
       const v=(form.values||{})[f.fieldKey]==null?'':String(form.values[f.fieldKey]);
       const inputHtml=(f.control==='guided'||f.fieldType==='select')
         ? `<select data-ptf-pop style="${INP}"><option value="">${i18t('po_choose')}</option>${(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`
@@ -6210,7 +6210,7 @@ async function portalStartOtp(p, info){
       <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 var(--s-2);line-height:1.5;">${i18t('po_sent_code_to',{email:esc(sentTo)})}</p>
       ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 var(--s-2);font-size:var(--t-label);border-radius:var(--radius);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to_full',{email:esc(sentTo)})}</p>`:''}
       ${emailSent?'':`<p style="margin:0 0 var(--s-2);font-size:var(--t-label);border-radius:var(--radius);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${esc(emailWhy||i18t('po_code_not_sent_generic'))} ${i18t('po_ask_sender_for_code',{who:esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||i18t('po_the_sender'))})}</p>`}
-      <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
+      <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--s-2) 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-lg ui-btn-primary" style="margin-top:var(--s-2);width:100%">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
       <button id="pt-otp-resend" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('po_resend_code')}</button>
     </div>`;
