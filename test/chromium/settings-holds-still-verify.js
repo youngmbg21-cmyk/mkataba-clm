@@ -265,7 +265,8 @@ async function watch(page, press) {
          since 16 Oct 2026, the Control Room; "You" is "Du" in Swedish). */
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the page's own furniture is the one list's area
          heads — "You" leads it ("Du" in Swedish) */
-      elsewhere: document.querySelector('#set-page #stn-sec-you') ? document.querySelector('#set-page #stn-sec-you').textContent : '',
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the six areas' first row, "You" */
+      elsewhere: ((document.querySelector('#set-page #sdd-area-you .sdd-n') || document.querySelector('#set-page .sdd-title') || {}).textContent) || '',
       facts: document.getElementById('set-market-facts').textContent,
     }));
     check('a market that would have changed the language keeps the reader\'s own (owner, 9 Oct 2026)',

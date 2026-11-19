@@ -78,7 +78,7 @@ const signIn = async (page, base, email, pass) => {
 
     /* RETIRED 16 Nov 2026 (#762): "the page opens as two tabs, You and Company", "and it opens on You" and "pressing <tab>
        goes there and says so" — the You · Company tabs are the old look's; Settings is one list (.stn-page) */
-    await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main .stn-row'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main .sdd-row'), null, { timeout: 10000 }).catch(() => {});
 
     /* ---- every row on every tab opens a drawer, and it is visible ---- */
     /* a panel whose door is a page (Data & backup since round 26) is walked below */
@@ -721,6 +721,9 @@ const signIn = async (page, base, email, pass) => {
        restored session, a console — must land somewhere real. */
     await p2.evaluate(() => setView('team'));
     await p2.waitForTimeout(1200);
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): their own settings are the You area's rows */
+    await p2.evaluate(() => { if (typeof sddGo === 'function') sddGo('you'); });
+    await p2.waitForFunction(() => !!document.querySelector('.stn-page[data-sdd-area="you"] #sdd-who'), null, { timeout: 8000 }).catch(() => {});
     const theirs = await p2.evaluate(() => ({
       words: document.getElementById('content').textContent,
       roster: document.querySelectorAll('.st-person').length,
@@ -733,14 +736,15 @@ const signIn = async (page, base, email, pass) => {
          row, and Your data's Download is their own copy, recorded */
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their own settings are the one list's rows — Name
          with its Change, Language, Two-step (the round-24 You sheet with its cards is the old look's) */
-      mine: !!document.querySelector('.stn-page #stn-name [data-st-panel="me:name"]') && !!document.querySelector('#stn-lang [data-st-lang]'),
-      sessions: !!document.querySelector('.stn-page #stn-twostep [data-st-panel="me:twostep"]'),
-      backup: !!document.querySelector('.stn-page #stn-main .stn-row'),
+      mine: !!document.querySelector('.stn-page #sdd-who [data-sdd-go]') && !!document.querySelector('#sdd-lang [data-st-lang]'),
+      sessions: !!document.querySelector('.stn-page #sdd-twostep [data-st-panel="me:twostep"]'),
+      backup: !!document.querySelector('.stn-page #stn-main .sdd-row'),
       /* re-pointed 18 Oct 2026 (round 24 as drawn: eight headings): Company
          design is off the sheet and found by its name — the Menu names it */
       design: !document.querySelector('[data-st-you-card="design"]') && !!document.querySelector('#st-list [data-st-you="design"]'),
     }));
-    await p2.click('#stn-name [data-st-panel="me:name"]'); await p2.waitForTimeout(500);
+    await p2.click('#sdd-who [data-sdd-go]'); await p2.waitForTimeout(500);
+    if (!(await p2.evaluate(() => !!document.getElementById('st-me-title')))) { await p2.locator('#st-drawer [data-st-panel="me:name"]').first().click().catch(() => null); await p2.waitForTimeout(500); }
     const whoV = await p2.evaluate(VISIBLE, '#st-me-title');
     check('a card\'s door opens their drawer with the control in it, as pixels', whoV.ok, whoV.why);
     await p2.keyboard.press('Escape'); await p2.waitForTimeout(300);
@@ -749,7 +753,7 @@ const signIn = async (page, base, email, pass) => {
     /* RE-POINTED 16 Nov 2026 (#762): no tab row, no company rows, Jambo's panel and box beside their list (the old side
        Menu is gone with the old look) */
     const noTabs = await p2.evaluate(() => !document.querySelector('#set-page .st-faces, [data-st-tab="company"]')
-      && !document.querySelector('#stn-main [data-stn-row="approvals"], #stn-main [data-stn-row="rates"], #stn-pages')
+      && !document.querySelector('#stn-main [data-sdd-row="approvals"], #stn-main [data-sdd-row="rates"], #sdd-area-company')
       && !!document.querySelector('#ins-panel #jl-q'));
     check('with no tab row at all, and Jambo beside their settings', noTabs);
     check('the roster, the rules and the gates are not on it',

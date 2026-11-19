@@ -88,7 +88,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       try { await page.locator(sel).first().click({ timeout: 4000 }); } catch (e) { check(what + ' (could not be pressed: ' + sel + ')', false, e.message.split('\n')[0]); return false; } return true; };
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list, Jambo's panel beside it */
     const company = () => until(() => { if (!document.getElementById('set-page') || document.querySelector('#set-page[data-st-sub]')) { try { settingsGoPage(''); } catch (_) {} setView('team'); return null; }
-      return document.querySelector('.stn-page #stn-main .stn-row') && document.querySelector('#ins-panel #jl-q') ? true : null; }, null, 15000);
+      return document.querySelector('.stn-page #stn-main .sdd-row') && document.querySelector('#ins-panel #jl-q') ? true : null; }, null, 15000);
     return { until, press, company };
   };
   /* the frame, read: head card, panel, ask box (whole, not covered), panel head (not covered) */
@@ -194,11 +194,11 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     console.log('\n9 · a member\'s sheet');
     const mem = await open('everything@example.co.ke', 'their-own-pass-9');
     const mk = kit(mem);
-    await mk.until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } return document.querySelector('#set-page .stn-row'); }, null, 15000);
+    await mk.until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } if (!document.querySelector('.stn-page[data-sdd-area="you"]')) { sddGo('you'); return null; } return document.querySelector('#set-page #sdd-away'); }, null, 15000);
     /* RETIRED 16 Nov 2026 (#762): 9a (the contents list's first heading lit at the top), 9b (devices said once on the You
        sheet) and 9d (the You sheet's quiet closed dropdown) — the member's sheet with its contents list is the old look's;
        a member reads the one list. 9c (the away card) stays as written: the one list has no away row (a question) */
-    const away = await mem.evaluate(() => { /* RE-POINTED 16 Nov 2026 (#762): the one list's away row (#stn-away) says what the card said */ const c = document.querySelector('[data-st-you-card="away"] .st-srows') || document.querySelector('#stn-main #stn-away'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
+    const away = await mem.evaluate(() => { /* RE-POINTED 16 Nov 2026 (#762); 19 Nov 2026 (f1091): the You area's away row (#sdd-away) says what the card said */ const c = document.querySelector('[data-st-you-card="away"] .st-srows') || document.querySelector('#stn-main #sdd-away'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
     check('9c the away card: the stand-in named whole once, then by first name, its days with their weekday', !!away && /from \w{3} \d{1,2} \w{3} to \w{3} \d{1,2} \w{3}\./.test(away) && /Each thing Amina answers says “for Unrestricted”/.test(away), away);
     await shot(mem, '24-you-member-1440x780');
   } catch (e) { check('the run itself', false, e.stack); }

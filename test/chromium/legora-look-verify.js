@@ -228,7 +228,8 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, 'brain-1440x780.png') });
 
     /* ================= 9. THE LANGUAGE, IN SETTINGS › YOU =================== */
-    await page.evaluate(() => setView('team'));
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the language row is in the You area */
+    await page.evaluate(() => { setView('team'); if (typeof window.sddGo === 'function') window.sddGo('you'); });
     const sv = await until(() => document.querySelector('[data-st-lang="sv"]'), null, 8000);
     if (sv) await page.click('[data-st-lang="sv"]');
     const lang = await until(() => typeof langId === 'function' && langId() === 'sv' ? langId() : null, null, 6000);

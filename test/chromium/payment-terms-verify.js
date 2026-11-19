@@ -185,9 +185,9 @@ const EXTRA = [
     await seedBook();
     await page.evaluate(() => { setView('team'); });
     await page.waitForTimeout(1200);
-    await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); });
+    await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); if (window.sddGo) sddGo('company'); });
     await page.waitForTimeout(700);
-    /* Since the Control Room was built in full (owner, 16 Oct 2026) a setting
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Payment targets is a row in the Company area. Since the Control Room was built in full (owner, 16 Oct 2026) a setting
        is a door on its group's card, not a row. */
     const rowThere = await page.evaluate(() => !!document.querySelector('[data-st-panel="paydays"]'));
     check('11a the targets have a row on Settings', rowThere, rowThere ? 'drawn' : 'missing');
@@ -227,11 +227,13 @@ const EXTRA = [
         if (q) { q.value = 'payment'; q.dispatchEvent(new Event('input', { bubbles: true })); }
       });
       await page.waitForTimeout(500);
+      await page.evaluate(() => { if (typeof sddGo === 'function') sddGo('company'); });
+      await page.waitForFunction(() => !!document.querySelector('#stn-main [data-sdd-row="paydays"]'), null, { timeout: 5000 }).catch(() => {});
       const saved = await page.evaluate(() => ({
         t: Object.assign({}, payTargets()),
-        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; the row whose door opens the
-           paydays drawer says its state in its value (.stn-val) */
-        row: (((document.querySelector('#stn-main [data-stn-row] [data-st-panel="paydays"]') || { closest: () => null }).closest('[data-stn-row]') || document.createElement('i')).querySelector('.stn-val') || {}).textContent || '',
+        /* RE-POINTED 16 Nov 2026 (#762); 19 Nov 2026 (Settings, door to door, f1091): the Company area's Payment targets
+           row says its state in its Now column (.sdd-v) */
+        row: ((document.querySelector('#stn-main [data-sdd-row="paydays"] .sdd-v') || {}).textContent) || '',
         reading: ((window.SET_PANELS && SET_PANELS.paydays) ? (SET_PANELS.paydays.state() || {}).text : '') || '',
       }));
       check('11d the pair is stored and each side reads its own',

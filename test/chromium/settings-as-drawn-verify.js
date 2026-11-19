@@ -123,23 +123,31 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       return v; };
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a member reads the one list too — their own rows,
        Ask an admin in Jambo's panel beside it; a row's Change opens its drawer (the round-24 in-row form is the old look's) */
-    await mu(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; } return document.querySelector('#stn-name') ? true : null; }, null, 15000);
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): a member's rows are the You area's; Who you are (#sdd-who)
+       opens its drawer, whose Name row (me:name) opens the name's form when the row's own door is the job title's */
+    await mu(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; } if (!document.querySelector('.stn-page[data-sdd-area="you"]')) { sddGo('you'); return null; } return document.querySelector('#sdd-who') ? true : null; }, null, 15000);
+    const nameForm = async () => { await m.locator('#sdd-who [data-sdd-go]').first().click().catch(() => null);
+      const got = await mu(() => document.getElementById('st-me-name') ? 'form' : document.querySelector('#st-drawer.open [data-st-panel="me:name"]') ? 'door' : null, null, 4000);
+      if (got === 'door') await m.locator('#st-drawer [data-st-panel="me:name"]').first().click().catch(() => null);
+      return !!got; };
     const mh = await mu(() => { const p = document.getElementById('ins-panel'); if (!p || !document.querySelector('.stn-page')) return null;
-      return { ask: !!p.querySelector('[data-st-ask-head]'), company: !!document.querySelector('#stn-main [data-stn-row="approvals"], #stn-main [data-stn-row="rates"]') }; });
+      return { ask: !!p.querySelector('[data-st-ask-head]'), company: !!document.querySelector('#stn-main [data-sdd-row="approvals"], #stn-main [data-sdd-row="rates"], #sdd-area-company') }; });
     check('5a a member\'s own settings, no company rows, and Ask an admin', !!mh && mh.ask && !mh.company, JSON.stringify(mh));
     const pressM = async (sel, what) => { if (!(await m.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await m.locator(sel).first().click(); return true; };
-    if (await pressM('#stn-name [data-st-panel="me:name"]', '5b Name · Change')) {
+    if (await nameForm() || (check('5b Name · Change (nothing to press: #sdd-who)', false), false)) {
       const inRow = await mu(() => { const d = document.getElementById('st-drawer');
         return d && d.classList.contains('open') && document.getElementById('st-me-name') ? { drawer: true } : null; }, null, 4000);
       check('5b its Change opens the name\'s form', !!inRow, JSON.stringify(inRow));
       await m.fill('#st-me-name', 'Wanjiru Kamau');
       await pressM('#st-dsave', '5c Save');
-      const saved = await mu(() => /Wanjiru Kamau/.test((document.querySelector('#stn-name') || {}).textContent || '') ? true : null, null, 6000);
+      const saved = await mu(() => /Wanjiru Kamau/.test((document.querySelector('#sdd-who') || {}).textContent || '') ? true : null, null, 6000);
       const nb = await w.unrestricted.json('/api/bootstrap');
       check('5c saved on the server, said in the row', !!saved && nb.me.name === 'Wanjiru Kamau', nb.me.name);
     }
     /* RE-POINTED 16 Nov 2026 (#762): Your email is a row on the one list; its Change opens the email drawer */
-    if (await pressM('#stn-email [data-st-panel="me:email"]', '5d Email · Change')) {
+    await m.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
+    await mu(() => !document.querySelector('#st-drawer.open') ? true : null, null, 4000);
+    if (await pressM('#sdd-email [data-st-panel="me:email"]', '5d Email · Change')) {
       await mu(() => document.getElementById('st-me-email') ? true : null, null, 4000);
       await m.fill('#st-me-email', 'wanjiru@example.co.ke'); await m.fill('#st-me-email-pw', 'not-my-password');
       await pressM('#st-dsave', '5d Save');
@@ -164,7 +172,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await m.setViewportSize({ width: W, height: HH });
       /* RE-POINTED 16 Nov 2026 (#762): the name's form is its drawer; it stands inside the window, the list never sideways */
       await m.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
-      await m.locator('#stn-name [data-st-panel="me:name"]').first().click().catch(() => null);
+      await nameForm();
       const fit = await mu(() => { const f = document.getElementById('st-me-name'), d = document.getElementById('st-drawer'), sc = document.getElementById('content-scroll');
         if (!f || !d || !d.classList.contains('open') || d.getAnimations({ subtree: true }).some(x => x.playState === 'running')) return null; const a = f.getBoundingClientRect(), b = d.getBoundingClientRect();
         return { a: [a.left, a.right].map(Math.round), b: [b.left, b.right].map(Math.round), w: innerWidth, inside: a.left >= b.left - 1 && a.right <= b.right + 1 && b.right <= innerWidth + 1, sideways: document.documentElement.scrollWidth > innerWidth + 1 || !!(sc && sc.scrollWidth > sc.clientWidth + 1) }; }, null, 4000);

@@ -1,5 +1,5 @@
 'use strict';
-/* f1104 — A CONTRACT NEVER CHECKED AGAINST THE PLAYBOOK IS CHECKED THE FIRST TIME SOMEONE OPENS IT (owner picked "B",
+/* f1106 — A CONTRACT NEVER CHECKED AGAINST THE PLAYBOOK IS CHECKED THE FIRST TIME SOMEONE OPENS IT (owner picked "B",
    19 Nov 2026, after the score ring: "why couldn't it just have an automatic check … then I do not have to press
    anything"). New contracts were already checked on arrival and when an agreed change moved the wording; this reaches
    the ones that road never did (older contracts, bulk imports, an unticked upload).
@@ -41,7 +41,7 @@ function world(over = {}){
   return { ctx, contracts, calls };
 }
 
-describe('f1104 (1) the walls', () => {
+describe('f1106 (1) the walls', () => {
   test('a contract already checked, a viewer, a private stream, their page, no key, a reading running: never', () => {
     const cases = [
       [{ playbook: { verdicts: [] } }, {}],
@@ -62,7 +62,7 @@ describe('f1104 (1) the walls', () => {
   });
 });
 
-describe('f1104 (2) once, stored as the Check press stores it', () => {
+describe('f1106 (2) once, stored as the Check press stores it', () => {
   test('the first open checks and keeps it; the second open in the sitting does nothing', async () => {
     const W = world(); W.contracts.A = { id: 'A' };
     await W.ctx.pbCheckOnOpen('A');
@@ -83,7 +83,7 @@ describe('f1104 (2) once, stored as the Check press stores it', () => {
   });
 });
 
-describe('f1104 (3) said where the reader looks', () => {
+describe('f1106 (3) said where the reader looks', () => {
   test('running, then a refusal with its reason', async () => {
     const W = world({ answer: { error: 'No readable clause text' } }); W.contracts.A = { id: 'A' };
     const p = W.ctx.pbCheckOnOpen('A');
@@ -103,7 +103,7 @@ describe('f1104 (3) said where the reader looks', () => {
   });
 });
 
-describe('f1104 (4) the three doors', () => {
+describe('f1106 (4) the three doors', () => {
   test('the computer, the room and the phone call it', () => {
     const P = R('js/paperdesk.js'); const i = P.indexOf('function pdOpenOnHome('); assert.match(P.slice(i, i + 900), /pbCheckOnOpen\(id\)/);
     assert.match(R('js/app.js'), /function openWorkspace\(id, opts\)\{[^\n]*pbCheckOnOpen\(id\)/);
@@ -115,7 +115,7 @@ describe('f1104 (4) the three doors', () => {
 /* (5) OPEN SAYS WHAT THE CHECK FOUND, NOT WHAT IS DRAWN (owner-reported 19 Nov 2026, a screenshot: the ring said "1 of 6
    met · 2 missing · 3 differ" and Open said "Every position is met on this wording"). The notes beside the paper had been
    put away (Show notes), Open found no note and fell back to the green line. */
-describe('f1104 (5) Open never says every position is met when the check says otherwise', () => {
+describe('f1106 (5) Open never says every position is met when the check says otherwise', () => {
   const P = R('js/paperdesk.js'); const i = P.indexOf('function pd2StdGo('); const F = P.slice(i, P.indexOf('\nfunction ', i + 10)).replace(/\/\*[\s\S]*?\*\//g, '');
   test('the put-away notes are brought back when something is off', () => {
     assert.match(F, /deviationSummary\(live\)/);

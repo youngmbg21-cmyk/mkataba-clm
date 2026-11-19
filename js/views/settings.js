@@ -326,9 +326,9 @@ function settingsTab(){
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
-function settingsPlace(){ return { area:(typeof _stnArea==='string'&&_stnArea!=='all')?_stnArea:null, tab:_stTab, side:_stSide, page:_stPage||null, stream:(_stPage==='streams'&&_stSwPick)||null, dock:(_stPage==='panel'&&_stDock)||null, fold:!!_stSideFold }; }
+function settingsPlace(){ return { sdd:_sddArea||null, pick:_sddPick||null, tab:_stTab, side:_stSide, page:_stPage||null, stream:(_stPage==='streams'&&_stSwPick)||null, dock:(_stPage==='panel'&&_stDock)||null, fold:!!_stSideFold }; }
 function settingsPlacePut(p){ const f=p&&stFaceOf(p.tab); if(f) _stTab=f;
-  _stnArea=(p&&STN_AREAS.includes(p.area))?p.area:'all';
+  _sddArea=(p&&SDD_AREAS.includes(p.sdd))?p.sdd:null; _sddPick=(p&&_sddArea&&p.pick)?String(p.pick):null; _sddHome=null; _sddQ='';
   if(p && (p.side==='jambo'||p.side==='menu')) _stSide=p.side;
   /* a page inside the board (Team, Who holds what) comes back too */
   _stPage=(p && ST_PAGES.includes(p.page))?p.page:null;
@@ -350,6 +350,7 @@ function settingsGoTab(k){
    admin-only and one place that knows how a tab and a panel are asked for. */
 function openSettingsAt(tab, panel){
   if(typeof isAdmin==='function' && !isAdmin()){ openMyAccount(); return; }
+  _sddArea=null; _sddPick=null; _sddHome=null; _sddQ='';
   /* a company panel's named door is its page, as a card's door is
      (stDockable, the gaps' fourth pass) */
   if(panel && stDockable(panel)){ stDockOpen(panel, null); return; }
@@ -949,10 +950,11 @@ function stRepaintRow(key){
    so nothing appears under the reader's hand; the full membership is worked
    out again on the next paint of the page. */
 function stSyncAttention(){
+  /* the six areas read the same needs: drawn again where they stand (P-11) */
+  if(document.querySelector('.sdd-page')&&typeof sddRepaint==='function'){ sddRepaint(); return; }
   stCrSync();
   /* THE NEW LOOK'S ONE LIST AND ITS PANEL say the same as the record after a save (16 Nov 2026, #762: a saved name, a
      stream that now names an admin, a mail key — each row and need went on saying what was) */
-  if(document.querySelector('.stn-page')) stnRepaintKept();
   const host=document.getElementById('st-att'); if(!host) return;
   const rows=stNeedsAll(), keep=new Set(rows.map(r=>r.key));
   [...host.querySelectorAll('.st-need[data-st-need]')].forEach(el=>{
@@ -1311,7 +1313,7 @@ const ST_CARDS=[
   /* the streams' own page, a door of its own (round 26) */
   { key:'standards', groups:['standards'], facts:['company','folders'],
     doors:()=>[{ page:'streams', label:i18t('st_sw_title') }, { panel:'paydays' }, { panel:'design' }] },
-  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'webhooks' }] },
+  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'remindtheirs' }, { panel:'webhooks' }] },
   /* "Jambo's agents ›" opens their page with ‹ Settings (round 25 as drawn,
      the gaps' third pass: every card door is a page on the desk) — the
      agents' own panel, how far each may go; his house stays its own place */
@@ -1620,12 +1622,22 @@ function stDockBack(){
       ||document.querySelector(`${card} [data-st-panel="${was.key}"]`)||document.querySelector(card),{ block:'center', delay:60 });
   }
 }
+/* THE WAY BACK GOES TO THE PAGE'S AREA (P-11): People & roles, Who holds what, Roles, Streams and How our contracts look
+   say "‹ Company", Trail & backup "‹ Set-up and records" (sddPageArea); the press lands on the row that opened it */
+const sddPageArea=()=>{ if(!(typeof newLookOn==='function'&&newLookOn())) return null; if(_stPage==='panel'&&_stDock){ try{ return sddAreaOfRow(sddRows(stIsAdmin()),_stDock); }catch(_){ return null; } } return SDD_PAGE_AREA[_stPage]||null; };
+const SDD_PAGE_ROW={ team:'people', sheet:'sheet', roles:'roles', streams:'streams', look:'look', data:'trail' };
+function sddPeopleTabsHtml(){
+  if(!(typeof newLookOn==='function'&&newLookOn())||!['team','sheet','roles'].includes(_stPage)) return '';
+  const t=[['team','sdd_tab_people'],['sheet','st_pg_sheet']].concat(typeof stBzOn==='function'&&stBzOn()?[['roles','st_pg_roles']]:[]);
+  return `<div class="sdd-ptabs" role="tablist">${t.map(([k,w])=>`<button type="button" role="tab" class="sdd-ptab${_stPage===k?' is-on':''}" aria-selected="${_stPage===k?'true':'false'}" data-st-page="${k}">${esc(i18t(w))}</button>`).join('')}</div>`;
+}
 function stPageHeadHtml(title, sub, acts){
-  return `<div class="st-pg-head">
-    <button type="button" class="st-pg-back" data-st-page="">‹ ${esc(i18t('pg_team'))}</button>
+  const ar=sddPageArea(), row=_stPage==='panel'?_stDock:SDD_PAGE_ROW[_stPage];
+  return `${ar?`<div class="sdd-pgback-line"><button type="button" class="st-pg-back sdd-pgback" data-st-page="" data-sdd-to="${ar}"${row?` data-sdd-to-row="${PB_ATTR(row)}"`:''}>‹ ${esc(i18t('sdd_a_'+ar))}</button></div>${sddPeopleTabsHtml()}`:''}${ar&&!title&&!acts?'':`<div class="st-pg-head">
+    ${ar?'':`<button type="button" class="st-pg-back" data-st-page="">‹ ${esc(i18t('pg_team'))}</button>`}
     ${title?`<h2 class="st-pg-t">${esc(title)}${sub?` <span class="st-pg-n">${esc(sub)}</span>`:''}</h2>`:''}
     <span class="st-pg-sp"></span>${acts||''}
-  </div>`;
+  </div>`}`;
 }
 function stTeamPageHtml(){
   return `<div class="st-pg" data-st-pg="team">
@@ -2217,7 +2229,7 @@ function stPushHtml(){
 }
 function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); });
   /* the new look's one list draws the row itself (stnYouHtml): repaint it when the answer lands */
-  if(document.querySelector('.stn-page')) stnRepaintKept(); }
+  if(document.querySelector('.sdd-page')&&typeof sddRepaint==='function') sddRepaint(); }
 function stPushRefresh(){
   if(typeof pushState!=='function') return;
   pushState().then(st=>{ if(st!==_stPush){ _stPush=st; stPushPaint(); } }).catch(()=>{});
@@ -2468,11 +2480,11 @@ if(typeof document!=='undefined' && !window._stSheetWired){
    Language lights the one switch at the top of the window instead. */
 function stYouGo(key, focusSel){
   const it=stYouItem(key); if(!it) return;
-  if(settingsTab()!=='you' || _stPage){ _stTab='you'; _stPage=null; renderTeam(); }
+  if(settingsTab()!=='you' || _stPage || (typeof _sddArea!=='undefined'&&_sddArea!=='you')){ _stTab='you'; _stPage=null; if(typeof _sddArea!=='undefined'){ _sddArea='you'; _sddHome=null; _sddQ=''; } renderTeam(); }
   /* the new look's one list has a ROW where the old look had a You card (16 Nov 2026, #762): land on it */
   /* Jambo's points are kept with his agents in the new look (the house's Change points): their door lands on that row (#762) */
-  const STN_OF={ lang:'lang', who:'name', away:'away', safety:'twostep', told:'push', data:'mydata', work:'agents', points:'agents' };
-  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`)||(STN_OF[it.key]?document.querySelector(`#stn-main [data-stn-row="${STN_OF[it.key]}"]`):null);
+  const STN_OF={ lang:'lang', who:'who', away:'away', safety:'twostep', told:'told', data:'mydata', work:'work', points:'points' };
+  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`)||(STN_OF[it.key]?document.querySelector(`#stn-main [data-sdd-row="${STN_OF[it.key]}"]`):null);
   /* LAND ON IT (owner, 18 Oct 2026): a form that opens in its row lands on
      its box; otherwise on the card, its control readied (the one lander) */
   if(it.door){
@@ -2495,8 +2507,8 @@ function stYouGo(key, focusSel){
   const again=()=>{
     /* never past the reader: a press, another page, or another landing ends it */
     if(pressed||state.view!=='team'||settingsTab()!=='you'){ stop(); return; }
-    const other=document.querySelector('.is-landed:not([data-stn-row])'); if(other){ stop(); return; }
-    const row=document.querySelector(`#stn-main [data-stn-row="${stn}"]`);
+    const other=document.querySelector('.is-landed:not([data-sdd-row])'); if(other){ stop(); return; }
+    const row=document.querySelector(`#stn-main [data-sdd-row="${stn}"]`);
     if(row&&row.classList.contains('is-landed')){ if(++held>=4){ stop(); return; } }
     else if(row){ held=0; landOn(row,{ block:'nearest', focus:ctl||false }); }
     if(++n<24) setTimeout(again,60); else stop(); };
@@ -2506,7 +2518,7 @@ function stYouGo(key, focusSel){
    HOLDS STILL); a form open in one of its rows is drawn open again */
 function stYouCardRepaint(key){
   /* the new look draws no You cards: its one list says the saved value (16 Nov 2026, #762) */
-  if(document.querySelector('.stn-page')){ stnRepaintKept(); return; }
+  if(document.querySelector('.sdd-page')&&typeof sddRepaint==='function'){ sddRepaint(); return; }
   const card=document.querySelector(`#set-page [data-st-you-card="${key}"]`); if(!card) return;
   /* the open form is carried across, as it stands — what the hand typed and
      what its wiring listens to stay where they were */
@@ -3890,6 +3902,8 @@ function stJbTalkWrap(feed){
    already offered — no face, no bubble. His greeting is the Jambo tab's (stJbTalkInnerHtml). */
 function stJbLandHtml(){
   const admin=stIsAdmin(), face=admin?settingsTab():'you';
+  /* THE DOSSIER CARD ON EVERY SETTINGS PAGE (P-11): the page's own area, what needs you there first */
+  if(admin&&typeof newLookOn==='function'&&newLookOn()&&typeof sddCardHtml==='function') return sddCardHtml(admin,{ area:sddPageArea(), pick:null });
   const chipsOn=(typeof jamboChipsOn!=='function')||jamboChipsOn();
   const ask=q=>`data-st-jb-ask="${esc(q)}"`;
   const chip=(label,attr)=>({ label:stChipWord(label), attr });
@@ -6895,6 +6909,21 @@ const SET_PANELS={
     body(){ return `<div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
       <p class="st-note" style="margin-top:var(--s-2)">${i18t('set_delivered_resend')}</p>`; },
     wire(){},
+  },
+
+  /* ---- THE OTHER SIDE IS REMINDED OF THEIR OBLIGATIONS BY ITSELF (owner's yes, 19 Nov 2026) ----
+     Off for the company until an admin switches it on; then each obligation of theirs carries its own switch (its panel
+     and the reminder's Send screen), and the overnight run sends the chase letter 7 days before and on the day. The
+     SERVER reads the stored rule (srvRemindTheirsOn); this is the switch, not what decides. No email, no switch on. */
+  remindtheirs:{
+    tab:'platform', group:'intake', mandatory:false,
+    title:()=>i18t('set_remind_theirs'),
+    sub:()=>i18t('set_remind_theirs_sub'),
+    state(){ const c=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+      return { dot:c.on?'ok':'off', text:`${i18t('set_remind_theirs')} — ${c.on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_remind_theirs_sub')}</p><div id="rt-rule-panel"></div>`; },
+    find:()=>[i18t('set_remind_theirs'), i18t('set_remind_theirs_sub')],
+    wire(){ renderRemindTheirsPanel(); },
   },
 
   /* ---- TWO PAYMENT TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ----
@@ -10123,6 +10152,25 @@ function renderLinkCodePanel(){
     if(window.toast) toast(i18t(e.target.checked?'set_link_code_on':'set_link_code_off'),'ok');
   });
 }
+function renderRemindTheirsPanel(){
+  const host=document.getElementById('rt-rule-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+  const noMail=!!(window.emailOff&&emailOff());
+  const blocked=noMail&&!cfg.on;
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin&&!blocked?'pointer':'not-allowed'}">
+      <input id="rt-rule-on" type="checkbox"${cfg.on?' checked':''}${admin&&!blocked?'':' disabled'} style="margin-top:2px"/>
+      <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_remind_theirs')}</span>
+    </label>${noMail?`<p class="st-note" style="margin:6px 0 0 24px">${esc(i18t('set_remind_theirs_no_mail'))}</p>`:''}`;
+  if(!admin) return;
+  host.querySelector('#rt-rule-on')?.addEventListener('change',e=>{
+    if(e.target.checked && window.emailOff && emailOff()){ e.target.checked=false; toast(i18t('set_remind_theirs_no_mail'),'err'); return; }
+    if(window.saveRemindTheirsCfg) saveRemindTheirsCfg({ on:!!e.target.checked });
+    stRepaintRow('remindtheirs');
+    if(window.toast) toast(i18t(e.target.checked?'set_remind_theirs_on':'set_remind_theirs_off'),'ok');
+  });
+}
 function renderDeskRulePanel(){
   const host=document.getElementById('dk-rule-panel'); if(!host) return;
   const admin=isAdmin();
@@ -10198,42 +10246,12 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnListHtml,stnListPaint,stnRowsAll,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddNeedList,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
-/* ═══ SETTINGS & RULES, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
-   One list of sentences: each setting says its state, who may change it and what it gates. You first; the company
-   for admins. A menu down the left lands on a row (or opens People & roles, Streams, the trail and Jambo's lessons
-   as today); every Change opens the drawer that changes it today. The panel: Needs an admin (stNeedsAll), Ask an
-   admin (a record), Jambo's lessons (the phrases nobody could place). Nothing here writes but the existing doors. */
+/* ═══ SETTINGS IN THE NEW LOOK: THE SIX AREAS (P-11, below) on the page the list stood on (#set-page.stn-page) ═══ */
 function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && typeof insFits==='function' && insFits() && typeof insPaintPanel==='function'; }
-/* THE LEGORA WAY, WITH COLOUR (owner's pick by name, 13 Nov 2026: "build the legora way", after "No color what so ever"):
-   nothing boxed, one quiet list. Every setting belongs to ONE area (STN_AREA_OF) and wears its tone: a round coloured
-   mark leads the row, the name in ink with its sentence under it, what it is set to as a dot and a word, its one door
-   last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
-   the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
-const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', email:'you', mydata:'you', away:'you', awayfor:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', paydays:'money', push:'msg', mail:'msg' };
-const STN_ICON={ name:'user', email:'user', mydata:'download', away:'calendar', awayfor:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', paydays:'calendar', push:'megaphone', mail:'send' };
-let _stnArea='all';
-function stnAreaOf(id){ return STN_AREA_OF[id]||STN_AREA_OF[String(id).replace(/\d+$/,'')]||'you'; }
-function stnRow(id, label, value, sub, act){
-  const ar=stnAreaOf(id), ic=(typeof icon==='function')?icon(STN_ICON[id]||STN_ICON[String(id).replace(/\d+$/,'')]||'cog','w-4 h-4'):'';
-  return { id, area:ar, html:`<div class="stn-row a-${ar}" id="stn-${id}" data-stn-row="${id}"><span class="stn-mark" aria-hidden="true">${ic}</span><div class="stn-t"><div class="stn-l">${esc(label)}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-v"><div class="stn-val">${value}</div></div><div class="stn-a">${act||''}</div></div>` };
-}
-const stnDoor=(attr,w)=>`<button type="button" class="ui-link stn-go" ${attr}>${esc(w)}</button>`;
-/* ON / OFF PILLS (owner's pick by name, 9 Nov 2026; the colour round): what a setting is set to reads as a soft pill in
-   its state's tone, read off the panel's own reading (st.dot): working green, off grey, wanting a decision amber. The
-   words stay the panel's own. */
-const STN_PILL_TONE = { ok:'on', on:'on', off:'off', warn:'need', need:'need' };
-function stnPill(html, dot){ const t=STN_PILL_TONE[dot]||''; return html&&t?`<span class="stn-pill stn-dot is-${t}">${html}</span>`:html; }
-/* the alerts row: a short word in the pill (On · Off · Blocked), the browser's own sentence under it */
-function stnPushSaid(ps, said){
-  const short=ps==='on'?i18t('stn_pill_on'):ps==='blocked'?i18t('stn_pill_blocked'):i18t('stn_pill_off');
-  return `${stnPill(esc(short), ps==='on'?'on':ps==='blocked'?'need':'off')}${ps==='on'?'':`<div class="stn-said">${said}</div>`}`;
-}
-function stnStateText(k){ const st=stStateOf(k); return st&&st.text?stnPill(esc(stShortState(st.text)), st.dot):''; }
 function stnAgentsSaid(){
   const keys=(typeof AG_KEYS!=='undefined'&&Array.isArray(AG_KEYS))?AG_KEYS:[];
   if(!keys.length||typeof agLevelOf!=='function') return '';
@@ -10254,153 +10272,396 @@ function stnApprovalsOpen(){
   let n=0; (state.contracts||[]).forEach(c=>{ try{ const s=window.approvalState?approvalState(c):null; if(s&&s.required&&!s.ok&&c.status!=='Signed') n++; }catch(_){ /* not counted */ } });
   return n;
 }
-function stnYouHtml(){
-  const u=(typeof currentUser==='function'&&currentUser())||{};
-  const api=(typeof API_MODE==='function')&&API_MODE();
-  const name=[u.name||u.email||'', u.title||u.jobTitle||''].filter(Boolean).join(' · ');
-  const L=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]), now=(typeof langId==='function')?langId():'';
-  const langName=(L.find(l=>l.id===now)||{}).name||now;
-  const seg=`<span class="st-yseg stn-seg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===now?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>`;
-  const ps=_stPush;
-  const push=ps?esc(ps==='on'?i18t('stn_push_on'):(typeof pushStateSaid==='function'?pushStateSaid(ps):ps)):'';
-  /* compared with what THIS row drew (nothing), not with _stPush: stPushRefresh may have stored the answer first and painted only the old row (16 Nov 2026, #762) */
-  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ _stPush=st; if(st&&document.querySelector('.stn-page')) stnRepaintKept(); }).catch(()=>{}); },0);
-  const out=[stnRow('name', i18t('st_you_name_row'), esc(name), i18t('stn_name_sub'), stnDoor('data-st-panel="me:name"', i18t('st_you_change'))),
-    stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg)];
-  /* YOUR EMAIL AND A COPY OF YOUR DATA keep their doors in the one list (16 Nov 2026, #762: the You cards that held
-     them are the old look's; nothing of yours is left without a way in) */
-  /* WHEN YOU'RE AWAY: who answers your approvals and reviews while you are out (never signing) — its drawer, me:away */
-  if(api){
-    /* the old away card's words, said on its row (#762): the stand-in named whole, the days with their weekday, that it
-       ends on its own and never covers signing; Change and End it now; and whom THIS person answers for */
-    const aw=state.away||{}, m=aw.mine, meF=stFirstOf(u.name)||u.email||'';
-    if(m) out.push(stnRow('away', i18t('st_you_away'), esc(stAwayState()),
-      i18t('st_aw_line',{ who:m.deputyName||'', from:stAwayWeekDay(m.from), to:stAwayWeekDay(m.to) })+' '+i18t('st_aw_sub',{ who:stFirstOf(m.deputyName)||m.deputyName||'', me:meF }),
-      stnDoor('data-st-panel="me:away"', i18t('st_aw_change'))+stnDoor('data-st-away-end=""', i18t('st_aw_end'))));
-    else out.push(stnRow('away', i18t('st_you_away'), esc(stAwayState()), i18t('st_aw_none_sub'), stnDoor('data-st-panel="me:away"', i18t('st_aw_set'))));
+/* ═══ SETTINGS, DOOR TO DOOR (P-11; the owner picked "Six doors", then "build it with the Dossier card", 17 Nov 2026) ═══
+   ROUND 1, as the Parking lot's plan says: the landing is six areas (You · Company · Rules · Jambo · Mail and intake ·
+   Set-up and records), each listing what it holds; every setting has ONE row in ONE area, saying in a plain sentence
+   what it is set to, read off the setting's own reading (stStateOf, the workspace's records), never guessed; one find
+   box searches every row. A press CHOOSES a row (Jambo's panel says what it does, who it touches, what is set), a
+   second press OPENS it through the door it has today (the same data-st-* attributes, the same drawer, page or
+   switch) — the small forms in their rows are the later rounds'. Today's four pages at the foot sit inside an area:
+   People & roles and Streams & categories in Company, Jambo's lessons in Jambo, Trail & backup in Set-up and records;
+   their "‹" goes back to that area. Nothing here writes: every act is the existing door's. The new look only. */
+const SDD_AREAS=['you','company','rules','jambo','mail','setup'];
+/* the area a page inside Settings belongs to (its "‹" goes back there) */
+const SDD_PAGE_AREA={ team:'company', sheet:'company', roles:'company', streams:'company', look:'company', data:'setup', panel:null };
+const SDD_TONE={ you:'you', company:'money', rules:'rule', jambo:'jambo', mail:'msg', setup:'sec' };
+/* each area and row wears an emoji for what it is, HaTi's own where one already says the same (owner, 19 Nov 2026);
+   a mark, never a button's words (f385). A row id ending in a number (awayfor0) reads its stem. */
+const SDD_EMOJI={ area:{ you:'👤', company:'🏢', rules:'⚖️', jambo:'✨', mail:'✉️', setup:'🛠️' },
+  row:{ who:'👤', email:'✉️', lang:'🗣️', told:'📬', push:'🔔', work:'🧭', 'agents-mine':'✨', points:'⭐', away:'🏖️', awayfor:'🤝',
+    twostep:'🔒', sessions:'💻', password:'🔑', mydata:'📥',
+    company:'🏢', streams:'🗂️', workshape:'📊', people:'👥', sheet:'📋', roles:'🏷️', directory:'📇', look:'🎨', rates:'💱', paydays:'💳',
+    rules:'⚖️', approvals:'✅', signcheck:'🔍', signcap:'✍️', signfolder:'🖊️', signroute:'📝', hold:'⏹️', review:'👀', desk:'✏️', linkcode:'🔐',
+    budget:'💵', questions:'💬', person:'⏱️', bigjobs:'⚠️', imports:'📦', agents:'✨', overnight:'🌙', navigate:'🧭', boardwords:'📖', lessons:'🎓', facts:'📌', boardaccuracy:'🎯', copilot:'🤖', engine:'⚙️',
+    mail:'✉️', outbox:'📤', renewals:'🔁', remindtheirs:'📨', report:'📰', webhooks:'🔌', mailroom:'📥', lanes:'🛤️',
+    golive:'🚀', samples:'🧪', pilot:'👣', trail:'🧾', integrity:'🔏', env:'🖥️' } };
+function sddEmojiOf(id, area){ const R=SDD_EMOJI.row; return R[id]||R[String(id||'').replace(/\d+$/,'')]||SDD_EMOJI.area[area]||'•'; }
+function sddMkHtml(emo, area, need){ return `<span class="sdd-mk is-emo a-${SDD_TONE[area]||'you'}${need?' is-need':''}" aria-hidden="true">${emo}</span>`; }
+let _sddArea=null, _sddPick=null, _sddHome=null, _sddQ='';
+const sddTxt=h=>{ const s=String(h==null?'':h); if(!/[<&]/.test(s)) return s.trim();
+  if(typeof document==='undefined') return s.replace(/<[^>]*>/g,'').trim();
+  const d=document.createElement('div'); d.innerHTML=s; return String(d.textContent||'').replace(/\s+/g,' ').trim(); };
+/* a setting's own reading, as words: the panel's state line, with its own "Name — " lead taken off */
+function sddState(k){ const st=stStateOf(k)||{}; let t=sddTxt(stShortState(String(st.text||'')));
+  const p=SET_PANELS[k]; const ttl=p&&p.title?sddTxt(p.title()):''; t=t.replace(/^●\s*/,'');
+  const dash=t.lastIndexOf(' — '); if(dash>0&&(!ttl||t.slice(0,dash).length>=Math.min(ttl.length,12))) t=t.slice(dash+3);
+  return { t, dot:st.dot==='ok'||st.dot==='on'?'on':st.dot==='warn'?'need':st.dot==='off'?'off':'' }; }
+const sddOn=k=>{ const st=stStateOf(k)||{}; return st.dot==='ok'||st.dot==='on'; };
+const sddMoney=n=>'$'+Number(n||0).toFixed(2);
+const sddUser=()=>(typeof currentUser==='function'&&currentUser())||{};
+const sddApi=()=>(typeof API_MODE==='function')&&API_MODE();
+/* ONE ROW: { id, area, g (group), name, say (the sentence), sub (small print), now, dot, verb + door (today's
+   data-st-* attributes), or ctl (today's own control drawn in the row), who ('you' | 'admins'), affects } */
+function sddRow(o){ return Object.assign({ who:'admins', dot:'', now:'' }, o); }
+function sddPanelRow(area, g, k, x){
+  const s=sddState(k), p=SET_PANELS[k]; if(!p) return null;
+  return sddRow(Object.assign({ id:k, area, g, name:sddTxt(p.title()), say:s.t, now:s.t, dot:s.dot, verb:i18t('sdd_open'), door:`data-st-panel="${k}"` }, x||{}));
+}
+function sddYouRows(){
+  const u=sddUser(), api=sddApi(), rows=[];
+  const title=u.title||u.jobTitle||'', role=(typeof roleName==='function')?roleName(u.role):'';
+  rows.push(sddRow({ id:'who', area:'you', g:'about', who:'you', name:i18t('sdd_you_who'),
+    say:title?i18t('sdd_you_who_say',{ name:u.name||u.email||'', role, title }):i18t('sdd_you_who_say_nt',{ name:u.name||u.email||'', role }),
+    sub:i18t('sdd_you_who_sub'), now:title||i18t('sdd_you_who_nt'), dot:title?'':'need', verb:i18t('st_you_change'), door:'data-st-panel="me:name"' }));
+  if(api) rows.push(sddRow({ id:'email', area:'you', g:'about', who:'you', name:i18t('st_you_email_row'), say:i18t('sdd_you_email_say',{ email:u.email||'' }),
+    sub:i18t('sdd_you_email_sub'), now:u.email||'', verb:i18t('st_you_change'), door:'data-st-panel="me:email"' }));
+  const L=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]), lid=(typeof langId==='function')?langId():'';
+  rows.push(sddRow({ id:'lang', area:'you', g:'about', who:'you', name:i18t('st_you_lang'), say:i18t('sdd_you_lang_say',{ lang:stLangName() }),
+    sub:i18t('stn_lang_sub'), now:stLangName(),
+    ctl:`<span class="st-yseg stn-seg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===lid?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>` }));
+  if(api){ const cad=(typeof briefCadenceOf==='function')?briefCadenceOf(u):'daily';
+    rows.push(sddRow({ id:'told', area:'you', g:'about', who:'you', name:i18t('st_you_told'), say:i18t('sdd_you_told_say_'+cad),
+      sub:i18t('sdd_you_told_sub'), now:i18t('st_you_brief_'+cad), verb:i18t('st_you_change'), door:'data-st-panel="me:told"' }));
+    const ps=_stPush;
+    if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ _stPush=st; if(st&&document.querySelector('.sdd-page')) sddRepaint(); }).catch(()=>{}); },0);
+    rows.push(sddRow({ id:'push', area:'you', g:'about', who:'you', name:i18t('stn_push'), say:i18t(ps==='on'?'sdd_you_push_on':ps==='blocked'?'sdd_you_push_blocked':'sdd_you_push_off'),
+      sub:i18t('stn_push_sub'), now:i18t(ps==='on'?'stn_pill_on':ps==='blocked'?'stn_pill_blocked':'stn_pill_off'), dot:ps==='on'?'on':ps==='blocked'?'need':'off',
+      ctl:(ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):'' })); }
+  rows.push(sddRow({ id:'work', area:'you', g:'about', who:'you', name:i18t('st_you_work'), say:i18t('sdd_you_work_say',{ opens:stOpensWord() }),
+    sub:i18t('sdd_you_work_sub'), now:stOpensWord(), verb:i18t('st_you_change'), door:'data-st-panel="me:work"' }));
+  const ag=stnAgentsSaid();
+  if(ag) rows.push(sddRow({ id:'agents-mine', area:'you', g:'about', who:'you', name:i18t('sdd_you_agents'), say:i18t('sdd_you_agents_say',{ said:ag }),
+    sub:i18t('stn_agents_sub'), now:ag, verb:i18t('stn_open'), door:'data-st-view="jambo"' }));
+  if(api&&typeof agPointsTableHtml==='function') rows.push(sddRow({ id:'points', area:'you', g:'about', who:'you', name:i18t('jh_pt_h_mine'), say:i18t('sdd_you_points_say'),
+    sub:i18t('sdd_you_points_sub'), verb:i18t('stn_open'), door:'data-st-panel="me:points"' }));
+  if(api){ const aw=state.away||{}, m=aw.mine, meF=stFirstOf(u.name)||u.email||'';
+    rows.push(sddRow({ id:'away', area:'you', g:'about', who:'you', name:i18t('st_you_away'), say:stAwayState(),
+      sub:m?i18t('st_aw_line',{ who:m.deputyName||'', from:stAwayWeekDay(m.from), to:stAwayWeekDay(m.to) })+' '+i18t('st_aw_sub',{ who:stFirstOf(m.deputyName)||m.deputyName||'', me:meF }):i18t('st_aw_none_sub'),
+      now:m?stAwayState():i18t('sdd_not_set'), dot:m?'on':'off',
+      ...(m?{ ctl:`<button type="button" class="sdd-go" data-sdd-go data-st-panel="me:away">${esc(i18t('st_aw_change'))}</button><button type="button" class="sdd-go" data-st-away-end="">${esc(i18t('st_aw_end'))}</button>` }
+        :{ verb:i18t('st_aw_set'), door:'data-st-panel="me:away"' }) }));
     (Array.isArray(aw.covering)?aw.covering:[]).forEach((r,i)=>{ const on=r.from<=(aw.today||todayISO()); const w=on?stAwayWaiting(r):[]; const first=w[0]&&w[0].c;
       const waits=w.length?' '+i18tn('st_aw_waits',w.length,{ n:w.length, what:i18t('st_aw_waits_what',{ party:(first&&(first.counterparty||first.name))||'' }) }):'';
-      out.push(stnRow('awayfor'+i, i18t(on?'st_aw_covering':'st_aw_covering_later',{ who:r.userName, from:stAwayWeekDay(r.from), to:stAwayWeekDay(r.to) }), '', i18t('st_aw_cover_what')+waits,
-        on?stnDoor(`data-st-away-open="${PB_ATTR((first&&first.id)||'')}"`, i18t('st_aw_open_it')):'')); });
+      rows.push(sddRow({ id:'awayfor'+i, area:'you', g:'about', who:'you', name:i18t('sdd_you_covering'),
+        say:i18t(on?'st_aw_covering':'st_aw_covering_later',{ who:r.userName, from:stAwayWeekDay(r.from), to:stAwayWeekDay(r.to) }), sub:i18t('st_aw_cover_what')+waits,
+        ...(on?{ verb:i18t('st_aw_open_it'), door:`data-st-away-open="${PB_ATTR((first&&first.id)||'')}"` }:{}) })); }); }
+  if(api){
+    rows.push(sddRow({ id:'twostep', area:'you', g:'signin', who:'you', name:i18t('ts_title'), say:i18t(u.twoStep?'sdd_you_ts_on':'sdd_you_ts_off'),
+      sub:i18t(u.twoStep?'stn_ts_on_sub':'stn_ts_off_sub'), now:i18t(u.twoStep?'stn_ts_on':'stn_ts_off'), dot:u.twoStep?'on':'off', verb:i18t('st_you_change'), door:'data-st-panel="me:twostep"' }));
+    rows.push(sddRow({ id:'sessions', area:'you', g:'signin', who:'you', name:i18t('st_acct_sessions'), say:i18t('sdd_you_sessions_say'),
+      sub:i18t('sdd_you_sessions_sub'), verb:i18t('stn_open'), door:'data-st-panel="me:sessions"' }));
+    rows.push(sddRow({ id:'password', area:'you', g:'signin', who:'you', name:i18t('sdd_you_password'), say:i18t('sdd_you_password_say'),
+      sub:i18t('st_you_password_sub'), verb:i18t('st_you_change'), door:'data-st-panel="me:password"' }));
   }
-  if(api) out.splice(1, 0, stnRow('email', i18t('st_you_email_row'), esc(u.email||''), '', stnDoor('data-st-panel="me:email"', i18t('st_you_change'))));
-  out.push(stnRow('mydata', i18t('st_you_data_line'), '', i18t(api?'st_you_data_kept':'st_you_data_sub'), `<button type="button" class="ui-link stn-go" data-st-mycopy>${esc(i18t('st_you_download'))}</button>`));
-  if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));
-  if(api) out.push(stnRow('push', i18t('stn_push'), push?stnPushSaid(ps, push):esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):''));
-  const ag=stnAgentsSaid();
-  if(ag) out.push(stnRow('agents', i18t('stn_agents'), esc(ag), i18t('stn_agents_sub'), stnDoor('data-st-view="jambo"', i18t('stn_open'))));
+  rows.push(sddRow({ id:'mydata', area:'you', g:'signin', who:'you', name:i18t('st_you_data'), say:i18t('sdd_you_data_say'),
+    sub:i18t(api?'st_you_data_kept':'st_you_data_sub'), verb:i18t('st_you_download'), door:'data-st-mycopy' }));
+  return rows;
+}
+function sddCompanyRows(){
+  const rows=[], users=(typeof stUsers==='function')?stUsers():[], inv=(typeof stInvited==='function')?stInvited():[];
+  const nF=Object.values(FOLDERS||{}).filter(f=>f&&f.id).length;
+  rows.push(sddPanelRow('company','who','company',{ say:i18t('sdd_co_company_say',{ what:sddState('company').t }), sub:i18t('sdd_co_company_sub'), verb:i18t('st_you_change') }));
+  rows.push(sddRow({ id:'streams', area:'company', g:'who', name:i18t('stn_m_streams'), say:i18tn('sdd_co_streams_say',nF,{ n:nF }),
+    sub:i18t('sdd_co_streams_sub'), now:i18tn('sdd_co_streams_now',nF,{ n:nF }), verb:i18t('stn_open'), door:'data-st-page="streams"', page:'streams' }));
+  rows.push(sddPanelRow('company','who','workshape',{ say:i18t('sdd_co_shape_say',{ what:sddState('workshape').t }), sub:i18t('sdd_co_shape_sub'), verb:i18t('st_you_change') }));
+  const nU=users.length;
+  rows.push(sddRow({ id:'people', area:'company', g:'people', name:i18t('stn_m_people'),
+    say:inv.length?i18t('sdd_co_people_say_inv',{ n:nU, k:inv.length }):i18tn('sdd_co_people_say',nU,{ n:nU }),
+    sub:i18t('sdd_co_people_sub'), now:i18tn('sdd_co_people_now',nU,{ n:nU }), verb:i18t('stn_open'), door:'data-st-page="team"', page:'team' }));
+  rows.push(sddRow({ id:'sheet', area:'company', g:'people', name:i18t('st_pg_sheet'), say:i18t('sdd_co_sheet_say'),
+    sub:i18t('sdd_co_sheet_sub'), verb:i18t('stn_open'), door:'data-st-page="sheet"', page:'sheet' }));
+  if(typeof stBzOn==='function'&&stBzOn()) rows.push(sddRow({ id:'roles', area:'company', g:'people', name:i18t('st_pg_roles'), say:i18t('sdd_co_roles_say'),
+    sub:i18t('sdd_co_roles_sub'), verb:i18t('stn_open'), door:'data-st-page="roles"', page:'roles' }));
+  rows.push(sddPanelRow('company','people','directory',{ name:i18t('sdd_co_contacts'), say:i18t('sdd_co_contacts_say',{ what:sddState('directory').t }), sub:i18t('sdd_co_contacts_sub') }));
+  rows.push(sddRow({ id:'look', area:'company', g:'paper', name:SET_PANELS.design?sddTxt(SET_PANELS.design.title()):i18t('sdd_co_look'), say:sddState('design').t,
+    sub:i18t('sdd_co_look_sub'), now:sddState('design').t, dot:sddState('design').dot, verb:i18t('stn_open'), door:'data-st-page="look"', page:'look' }));
+  const fx=stnRatesSaid();
+  rows.push(sddRow({ id:'rates', area:'company', g:'paper', name:i18t('stn_rates'), say:i18t('sdd_co_rates_say',{ what:sddTxt(fx.v) }), sub:i18t('stn_rates_sub'),
+    now:sddTxt(fx.v), verb:i18t('stn_update'), door:'data-st-panel="company" data-st-focus="#st-fx-row"' }));
+  rows.push(sddPanelRow('company','paper','paydays',{ say:i18t('sdd_co_paydays_say',{ what:sddState('paydays').t }), sub:i18t('sdd_co_paydays_sub'), verb:i18t('st_you_change') }));
+  return rows.filter(Boolean);
+}
+function sddRulesRows(){
+  const rows=[], ap=stnApprovalsOpen();
+  const onoff=(k,x)=>sddPanelRow('rules',x.g,k,{ say:i18t('sdd_ru_'+k+(sddOn(k)?'_on':'_off')), sub:i18t('sdd_ru_'+k+'_sub'), now:i18t(sddOn(k)?'stn_pill_on':'stn_pill_off'), verb:i18t(sddOn(k)?'st_you_change':'sdd_turn_on') });
+  rows.push(sddPanelRow('rules','sign','rules',{ say:i18t('sdd_ru_rules_say',{ what:sddState('rules').t }), sub:i18t('sdd_ru_rules_sub') }));
+  rows.push(sddPanelRow('rules','sign','approvals',{ say:i18t('sdd_ru_approvals_say',{ what:sddState('approvals').t }),
+    sub:ap?i18tn('stn_ap_open',ap,{ n:ap }):i18t('sdd_ru_approvals_sub'), verb:i18t('st_you_change') }));
+  rows.push(sddPanelRow('rules','sign','signcheck',{ say:i18t('sdd_ru_signcheck_say',{ what:sddState('signcheck').t }), sub:i18t('sdd_ru_signcheck_sub'), verb:i18t('st_you_change') }));
+  rows.push(onoff('signcap',{ g:'sign' }));
+  rows.push(onoff('signfolder',{ g:'sign' }));
+  rows.push(sddPanelRow('rules','sign','signroute',{ say:i18t('sdd_ru_signroute_say',{ what:sddState('signroute').t }), sub:i18t('sdd_ru_signroute_sub'), verb:i18t('st_you_change') }));
+  rows.push(sddRow({ id:'hold', area:'rules', g:'sign', name:i18t('sdd_ru_hold'), say:i18t('sdd_ru_hold_say'), sub:i18t('sdd_ru_hold_sub'),
+    now:i18t('sdd_always_on'), dot:'on', verb:i18t('stn_m_people'), door:'data-st-page="team"', page:'team' }));
+  rows.push(onoff('review',{ g:'send' }));
+  rows.push(onoff('desk',{ g:'send' }));
+  rows.push(onoff('linkcode',{ g:'links' }));
+  return rows.filter(Boolean);
+}
+function sddJamboRows(){
+  const C=state.aiCfg||{}, L=C.limits||null, S=C.spend||null, A=C.allowance||null, rows=[];
+  const eng=x=>sddRow(Object.assign({ area:'jambo', verb:i18t('st_you_change'), door:'data-st-panel="engine"' }, x));
+  const known=!!L;
+  const sp=known?Number(L.dailySpendLimit)||0:null;
+  rows.push(eng({ id:'budget', g:'spend', name:i18t('sdd_jb_budget'),
+    say:!known?i18t('sdd_reading'):sp>0?i18t('sdd_jb_budget_say',{ money:sddMoney(sp) }):i18t('sdd_jb_budget_none'),
+    sub:S&&S.cost!=null?i18t('sdd_jb_budget_sub_spent',{ money:sddMoney(S.cost) }):i18t('sdd_jb_budget_sub'),
+    now:!known?'':sp>0?i18t('sdd_jb_budget_now',{ money:sddMoney(sp) }):i18t('sdd_no_limit'), dot:!known?'':sp>0?'on':'off' }));
+  const dl=known?Number(L.dailyLimit)||0:null, req=S&&S.requests!=null?Number(S.requests):null;
+  rows.push(eng({ id:'questions', g:'spend', name:i18t('sdd_jb_questions'),
+    say:!known?i18t('sdd_reading'):dl>0?i18tn('sdd_jb_questions_say',dl,{ n:dl.toLocaleString() }):i18t('sdd_jb_questions_none'),
+    sub:i18t('sdd_jb_questions_sub'), now:req!=null?i18tn('sdd_jb_questions_now',req,{ n:req.toLocaleString() }):'' }));
+  const rl=known?Number(L.rateLight)||0:0, rd=known?Number(L.rateDeep)||0:0, ro=known?Number(L.rateOcr)||0:0;
+  rows.push(eng({ id:'person', g:'spend', name:i18t('sdd_jb_person'),
+    say:!known?i18t('sdd_reading'):(rl||rd||ro)?i18t('sdd_jb_person_say',{ light:rl||'—', deep:rd||'—', min:L.windowMinutes||15 }):i18t('sdd_jb_person_none'),
+    sub:i18t('sdd_jb_person_sub'), now:known?((rl||rd||ro)?i18t('sdd_limited'):i18t('sdd_no_limit')):'', dot:known?((rl||rd||ro)?'on':'off'):'' }));
+  const ec=known?Number(L.estimateConfirmAt)||0:null;
+  rows.push(eng({ id:'bigjobs', g:'spend', name:i18t('sdd_jb_bigjobs'),
+    say:!known?i18t('sdd_reading'):ec>0?i18t('sdd_jb_bigjobs_say',{ money:sddMoney(ec) }):i18t('sdd_jb_bigjobs_none'),
+    sub:i18t('sdd_jb_bigjobs_sub'), now:known?(ec>0?i18t('stn_pill_on'):i18t('stn_pill_off')):'', dot:known?(ec>0?'on':'off'):'' }));
+  rows.push(eng({ id:'imports', g:'spend', name:i18t('sdd_jb_imports'),
+    say:A&&A.open?i18t('sdd_jb_imports_open'):i18t('sdd_jb_imports_none'), sub:i18t('sdd_jb_imports_sub'),
+    now:A&&A.open?i18t('stn_pill_on'):i18t('sdd_none_open'), dot:A&&A.open?'on':'off' }));
+  rows.push(sddPanelRow('jambo','alone','agents',{ name:i18t('sdd_jb_agents'), say:i18t('sdd_jb_agents_say',{ what:sddState('agents').t }), sub:i18t('sdd_jb_agents_sub') }));
+  const rp=known?!!L.renewalPrep:null;
+  rows.push(eng({ id:'overnight', g:'alone', name:i18t('sdd_jb_overnight'),
+    say:rp==null?i18t('sdd_reading'):i18t(rp?'sdd_jb_overnight_on':'sdd_jb_overnight_off'),
+    sub:known&&rp?i18tn('sdd_jb_overnight_sub',Number(L.renewalPrepMax)||0,{ n:Number(L.renewalPrepMax)||0 }):i18t('sdd_jb_overnight_sub_off'),
+    now:rp==null?'':i18t(rp?'stn_pill_on':'stn_pill_off'), dot:rp==null?'':rp?'on':'off' }));
+  const nv=known?L.navigate!==false:null;
+  rows.push(eng({ id:'navigate', g:'alone', name:i18t('sdd_jb_navigate'),
+    say:nv==null?i18t('sdd_reading'):i18t(nv?'sdd_jb_navigate_on':'sdd_jb_navigate_off'), sub:i18t('sdd_jb_navigate_sub'),
+    now:nv==null?'':i18t(nv?'stn_pill_on':'stn_pill_off'), dot:nv==null?'':nv?'on':'off' }));
+  rows.push(sddPanelRow('jambo','knows','boardwords',{ say:i18t('sdd_jb_words_say',{ what:sddState('boardwords').t }), sub:i18t('sdd_jb_words_sub') }));
+  const les=(_stLessons&&_stLessons.rows)||[];
+  rows.push(sddPanelRow('jambo','knows','lessons',{ name:i18t('stn_m_lessons'), say:les.length?i18tn('sdd_jb_lessons_say',les.length,{ n:les.length }):i18t('sdd_jb_lessons_none'),
+    sub:i18t('sdd_jb_lessons_sub'), now:les.length?i18tn('sdd_jb_lessons_now',les.length,{ n:les.length }):sddState('lessons').t, dot:les.length?'need':'' }));
+  rows.push(sddPanelRow('jambo','knows','facts',{ say:i18t('sdd_jb_facts_say',{ what:sddState('facts').t }), sub:i18t('sdd_jb_facts_sub') }));
+  rows.push(sddPanelRow('jambo','knows','boardaccuracy',{ say:i18t('sdd_jb_accuracy_say'), sub:i18t('sdd_jb_accuracy_sub'), now:'' }));
+  rows.push(sddPanelRow('jambo','tech','copilot',{ say:i18t(sddOn('copilot')?'sdd_jb_on_say':'sdd_jb_off_say'), sub:i18t('sdd_jb_on_sub'), now:i18t(sddOn('copilot')?'stn_pill_on':'stn_pill_off') }));
+  rows.push(sddPanelRow('jambo','tech','engine',{ name:i18t('sdd_jb_tech'), say:i18t('sdd_jb_tech_say'), sub:i18t('sdd_jb_tech_sub') }));
+  return rows.filter(Boolean);
+}
+function sddMailRows(){
+  const ok=sddOn('mail');
+  return [sddPanelRow('mail','out','mail',{ name:i18t('sdd_ml_mail'), say:i18t(ok?'sdd_ml_mail_ok':'sdd_ml_mail_no'), sub:i18t(ok?'stn_mail_ok_sub':'sdd_ml_mail_sub'),
+      verb:i18t(ok?'stn_health':'sdd_set_up'), now:i18t(ok?'sdd_working':'sdd_not_set_up') }),
+    sddRow({ id:'outbox', area:'mail', g:'out', name:i18t('sdd_ml_outbox'), say:i18t('sdd_ml_outbox_say'), sub:i18t('sdd_ml_outbox_sub'), verb:i18t('stn_open'), door:'data-st-panel="mail"' }),
+    sddPanelRow('mail','out','remindtheirs'), sddPanelRow('mail','out','renewals',{ say:i18t('sdd_ml_renewals_say',{ what:sddState('renewals').t }), sub:i18t('sdd_ml_renewals_sub'), verb:i18t('st_you_change') }),
+    sddPanelRow('mail','out','report',{ say:i18t('sdd_ml_report_say'), sub:i18t('sdd_ml_report_sub'), now:'' }),
+    sddPanelRow('mail','out','webhooks',{ say:i18t('sdd_ml_webhooks_say',{ what:sddState('webhooks').t }), sub:i18t('sdd_ml_webhooks_sub') }),
+    sddPanelRow('mail','in','mailroom',{ say:sddState('mailroom').t, sub:i18t('sdd_ml_mailroom_sub') }),
+    sddPanelRow('mail','in','lanes',{ say:sddState('lanes').t, sub:i18t('sdd_ml_lanes_sub') })].filter(Boolean);
+}
+function sddSetupRows(){
+  return [sddPanelRow('setup','ready','golive',{ say:sddState('golive').t, sub:i18t('sdd_su_golive_sub') }),
+    sddPanelRow('setup','ready','samples',{ say:sddState('samples').t, sub:i18t('sdd_su_samples_sub') }),
+    sddPanelRow('setup','ready','pilot',{ name:i18t('sdd_su_pilot'), say:i18t('sdd_su_pilot_say'), sub:i18t('sdd_su_pilot_sub'), now:'' }),
+    sddRow({ id:'trail', area:'setup', g:'records', name:i18t('sdd_su_trail'), say:i18t('sdd_su_trail_say'), sub:i18t('sdd_su_trail_sub'),
+      verb:i18t('stn_open'), door:'data-st-page="data"', page:'data' }),
+    sddPanelRow('setup','records','integrity',{ say:sddState('integrity').t, sub:i18t('sdd_su_integrity_sub') }),
+    sddPanelRow('setup','records','env',{ say:sddState('env').t, sub:i18t('sdd_su_env_sub') })].filter(Boolean);
+}
+/* every row this reader may see, the needs placed on their rows (stNeedsAll is the ONE list) */
+function sddRows(admin){
+  const rows=sddYouRows().concat(admin?sddCompanyRows().concat(sddRulesRows(),sddJamboRows(),sddMailRows(),sddSetupRows()):[]);
+  sddNeedsOf(admin).forEach(n=>{ const r=rows.find(x=>x.id===n.row); if(r){ r.dot='need'; r.needs=(r.needs||[]).concat(n); } });
+  return rows;
+}
+/* a need's row: a panel's own row, the people for an invitation, the access review, a missing backup, the limits */
+function sddNeedRowOf(n){
+  const k=String(n.key||'');
+  if(k.indexOf('panel:')===0) return k.slice(6);
+  if(k==='invite'||k==='backup'||k.indexOf('clash')===0) return 'people';
+  if(k==='review') return 'sheet';
+  if(k==='limits') return 'signcap';
+  if(k.indexOf('keep')===0) return 'streams';
+  return null;
+}
+function sddNeedsOf(admin){
+  if(!admin||typeof stNeedsAll!=='function') return [];
+  return stNeedsAll().map(n=>Object.assign({}, n, { row:sddNeedRowOf(n) }));
+}
+const sddAreaOfRow=(rows,id)=>{ const r=rows.find(x=>x.id===id); return r?r.area:null; };
+/* THE ONE LIST OF WHAT NEEDS YOU: every row that needs you (with the need's own door where the need has one), then
+   any need no row carries (a colleague's ask) under Company. The landing's count, an area's count and Jambo's card
+   all read it, so the number on a door is the list behind it. */
+function sddNeedList(admin, area, rows){
+  rows=rows||sddRows(admin); const out=[];
+  /* every need a row carries is its own line (four clashes on People & roles are four lines, as stNeedsAll says them) */
+  rows.filter(r=>r.dot==='need'&&(!area||r.area===area)).forEach(r=>{ (r.needs&&r.needs.length?r.needs:[null]).forEach(n=>{
+    out.push({ row:r.id, area:r.area, key:n?n.key:null, dot:n&&n.dot, text:n?sddTxt(n.text):r.name, sub:n?sddTxt(n.sub||n.subHtml||''):r.say,
+      btn:n&&n.btn?n.btn:(r.door||`data-sdd-pick="${r.area}:${PB_ATTR(r.id)}"`), verb:n&&n.verb?n.verb:(r.door?r.verb:i18t('sdd_open')) }); }); });
+  if(!area||area==='company') sddNeedsOf(admin).filter(n=>!n.row||!rows.some(r=>r.id===n.row))
+    .forEach(n=>out.push({ row:null, area:'company', key:n.key, dot:n.dot, text:sddTxt(n.text), sub:sddTxt(n.sub||n.subHtml||''), btn:n.btn||'', verb:n.verb||i18t('st_need_open') }));
   return out;
 }
-function stnCompanyHtml(){
-  const ap=stnApprovalsOpen(), fx=stnRatesSaid();
-  const mailSt=stStateOf('mail');
-  return [stnRow('approvals', SET_PANELS.approvals.title(), stnStateText('approvals'), ap?i18tn('stn_ap_open',ap,{ n:ap }):'', stnDoor('data-st-panel="approvals"', i18t('stn_add_rule'))),
-    stnRow('review', i18t('stn_review'), stnStateText('review'), i18t('stn_review_sub'), stnDoor('data-st-panel="review"', i18t('st_you_change'))),
-    stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change'))),
-    stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change'))),
-    stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update'))),
-    /* PAYMENT TARGETS keep their row (#762: the Control Room's card that held the door is the old look's) — its own drawer */
-    stnRow('paydays', SET_PANELS.paydays.title(), stnStateText('paydays'), SET_PANELS.paydays.sub(), stnDoor('data-st-panel="paydays"', i18t('st_you_change'))),
-    stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health')))
-    /* the outside look's switch is gone: on for everyone (owner, 16 Nov 2026) */
-  ];
+/* ---- the middle ---- */
+function sddMarkHtml(r){ return sddMkHtml(sddEmojiOf(r.id, r.area), r.area, r.dot==='need'); }
+function sddVal(r){ return r.now?`<span class="sdd-v${r.dot?' is-'+r.dot:''}">${esc(r.now)}</span>`:''; }
+function sddRowHtml(r, opts){
+  const o=opts||{}, chosen=r.id===_sddPick;
+  const act=r.ctl?r.ctl:r.door?`<button type="button" class="sdd-go${chosen?' is-black':''}" data-sdd-go ${r.door}>${esc(r.verb||i18t('sdd_open'))}</button>`:'';
+  return `<div class="sdd-row${chosen?' is-chosen':''}" id="sdd-${esc(r.id)}" data-sdd-row="${esc(r.id)}"${o.found?` data-sdd-found="${esc(r.area)}"`:''} role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
+    ${sddMarkHtml(r)}<div class="sdd-t">${o.found?`<div class="sdd-n">${esc(r.name)} <small>${esc(i18t('sdd_in',{ area:i18t('sdd_a_'+r.area) }))}</small></div>`:`<div class="sdd-k">${esc(r.name)}</div>`}<div class="sdd-s">${esc(r.say)}</div>${r.sub?`<div class="sdd-u">${esc(r.sub)}</div>`:''}</div>
+    <div class="sdd-now">${sddVal(r)}</div><div class="sdd-a">${act}</div></div>`;
 }
-/* THE LIST: the rows grouped by area in STN_AREAS' order, each area under its own coloured head; a chosen chip shows
-   one area. An area with no rows for this reader is not listed (a viewer has no Rules, no Money). */
-function stnRowsAll(admin){ return stnYouHtml().concat(admin?stnCompanyHtml():[]); }
-function stnAreaNow(rows){ return (_stnArea!=='all'&&rows.some(r=>r.area===_stnArea))?_stnArea:'all'; }
-function stnChipsHtml(rows){
-  const now=stnAreaNow(rows), have=STN_AREAS.filter(k=>rows.some(r=>r.area===k));
-  if(have.length<2) return '';
-  const chip=(k,w,n)=>`<button type="button" class="stn-chip${k==='all'?' is-all':' a-'+k}" data-stn-area="${k}" aria-pressed="${now===k?'true':'false'}">${esc(w)}<em>${n}</em></button>`;
-  return `<div class="stn-chips" id="stn-chips" role="group" aria-label="${esc(i18t('stn_ar_label'))}">${chip('all',i18t('stn_ar_all'),rows.length)}${have.map(k=>chip(k,i18t('stn_ar_'+k),rows.filter(r=>r.area===k).length)).join('')}</div>`;
+function sddAreaState(a, rows){
+  const mine=rows.filter(r=>r.area===a), need=sddNeedList(stIsAdmin(), a, rows).length;
+  if(need) return { t:i18tn('sdd_need_n',need,{ n:need }), dot:'need' };
+  if(a==='you') return { t:i18t('sdd_st_you'), dot:'' };
+  const r=x=>mine.find(y=>y.id===x)||{};
+  if(a==='company') return { t:r('people').now||'', dot:'' };
+  if(a==='rules') return { t:r('approvals').now||'', dot:'on' };
+  if(a==='jambo') return { t:r('budget').now?i18t('sdd_st_jambo',{ what:r('budget').now }):'', dot:'on' };
+  if(a==='mail') return { t:r('mail').now||'', dot:r('mail').dot||'' };
+  return { t:r('golive').now||'', dot:'' };
 }
-function stnPagesHtml(admin){
-  if(!admin) return '';
-  const go=(attr,w)=>`<button type="button" class="ui-link stn-go stn-pg" ${attr}>${esc(w)} ${typeof icon==='function'?icon('chevR','w-3 h-3'):'›'}</button>`;
-  return `<div class="stn-pages" id="stn-pages"><div class="stn-h stn-pages-h">${esc(i18t('stn_pages'))}</div>${go('data-st-page="team"',i18t('stn_m_people'))}${go('data-st-page="streams"',i18t('stn_m_streams'))}${go('data-st-panel="lessons"',i18t('stn_m_lessons'))}${(typeof stTrailOn==='function'&&stTrailOn())?go('data-st-panel="trail"',i18t('stn_m_trail')):''}</div>`;
+function sddHomeHtml(admin){
+  const rows=sddRows(admin), areas=SDD_AREAS.filter(a=>rows.some(r=>r.area===a));
+  if(_sddQ.trim()) return sddFoundHtml(rows);
+  return `<div class="sdd-colh"><span>${esc(i18t('sdd_col_area'))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`
+    +areas.map(a=>{ const mine=rows.filter(r=>r.area===a), st=sddAreaState(a,rows), chosen=a===_sddHome;
+      const mk=sddMkHtml(SDD_EMOJI.area[a], a, st.dot==='need');
+      return `<div class="sdd-row is-area${chosen?' is-chosen':''}" id="sdd-area-${a}" data-sdd-home="${a}" role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
+        ${mk}<div class="sdd-t"><div class="sdd-n">${esc(i18t('sdd_a_'+a))} <em>${mine.length}</em></div><div class="sdd-s is-list">${esc(mine.map(r=>r.name).join(' · '))}</div></div>
+        <div class="sdd-now"><span class="sdd-v${st.dot?' is-'+st.dot:''}">${esc(st.t)}</span></div><div class="sdd-a"><button type="button" class="sdd-go${chosen?' is-black':''}" data-sdd-door="${a}">${esc(i18t('sdd_open'))}</button></div></div>`; }).join('')
+    +`<p class="sdd-foot">${esc(i18t('sdd_foot'))}</p>`;
 }
-function stnListHtml(admin){
-  const rows=stnRowsAll(admin), now=stnAreaNow(rows);
-  const secs=STN_AREAS.filter(k=>(now==='all'||now===k)&&rows.some(r=>r.area===k))
-    .map(k=>`<h3 class="stn-h a-${k}" id="stn-sec-${k}">${esc(i18t('stn_ar_'+k))}</h3>`+rows.filter(r=>r.area===k).map(r=>r.html).join('')).join('');
-  return stnChipsHtml(rows)+secs+stnPagesHtml(admin);
+function sddFoundHtml(rows){
+  const toks=String(_sddQ).toLowerCase().split(/\s+/).filter(Boolean);
+  const hay=r=>[i18t('sdd_a_'+r.area), r.name, r.say, r.sub, r.now, i18t('sdd_also_'+r.id)==='sdd_also_'+r.id?'':i18t('sdd_also_'+r.id)].join(' ').toLowerCase();
+  const hit=rows.filter(r=>{ const h=hay(r); return toks.every(t=>h.includes(t)); });
+  if(!hit.length) return `<p class="sdd-empty">${esc(i18t('sdd_found_none',{ q:_sddQ.trim() }))}</p>`;
+  return `<div class="sdd-colh"><span>${esc(i18tn('sdd_found_n',hit.length,{ n:hit.length }))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`+hit.map(r=>sddRowHtml(r,{ found:true })).join('');
 }
-/* a chip's press redraws the list alone: the title, the panel and the page stand */
-function stnListPaint(){ const m=document.getElementById('stn-main'); if(m) m.innerHTML=stnListHtml(stIsAdmin()); }
-/* the list and the panel written again, the list's place kept (a redraw keeps your place) */
-function stnRepaintKept(){
-  const m=document.getElementById('stn-main'); const top=m?m.scrollTop:0;
-  try{ stnListPaint(); }catch(_){ /* the list stays as drawn */ }
-  if(m) m.scrollTop=top;
-  try{ if(typeof stnPanelPaint==='function') stnPanelPaint(); }catch(_){ /* the panel stays as drawn */ }
+function sddAreaHtml(admin, a){
+  const rows=sddRows(admin).filter(r=>r.area===a), groups=[];
+  rows.forEach(r=>{ let g=groups.find(x=>x.k===r.g); if(!g) groups.push(g={ k:r.g, rows:[] }); g.rows.push(r); });
+  if(_sddQ.trim()) return sddFoundHtml(sddRows(admin));
+  return `<div class="sdd-colh"><span>${esc(i18t('sdd_col_setting'))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`
+    +groups.map(g=>`<h3 class="sdd-gh a-${SDD_TONE[a]}">${esc(i18t('sdd_g_'+a+'_'+g.k))}</h3>`+g.rows.map(r=>sddRowHtml(r)).join('')).join('');
 }
-const STN_NEED_KIND={ ask:'stn_nk_ask', backup:'stn_nk_rule', limits:'stn_nk_caps', invite:'stn_nk_people', access:'stn_nk_access' };
-function stnPanelHtml(admin){
-  const E=esc;
-  const row=(l,v,src,attr)=>`<div class="pd2-ch-r${attr?' stn-pr':''}"${attr?` ${attr} role="button" tabindex="0"`:''}><span>${E(l)}</span><b>${E(v)}</b><i>${E(src||'')}</i></div>`;
-  const needs=admin&&typeof stNeedsAll==='function'?stNeedsAll():[];
-  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): how many need an admin as the headline, each as a row by its own
-     door (the need's own press attributes), Ask an admin a row (data-st-ask-head), what Jambo was taught a row
-     (data-st-panel="lessons"). The same readings (stNeedsAll, _stLessons). The new look only. */
-  if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
-    /* EVERY NEED IS SAID, and each row's sentence whole (16 Nov 2026, #762: five of eight were drawn and the rest went
-       unsaid; a clash's sentence was cut to an ellipsis) — a cap is a fact, never a silent trim */
-    const needRows=needs.map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
-      const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):''); const what=k==='panel'?(sub?stShortState(sub):r.text):r.text;
-      /* a need with no kind of its own is named by what it is ("Quarterly access review · Q4 2026"), never the bare word "Setting" */
-      if(!(k==='panel'&&SET_PANELS[String(r.key).slice(6)])&&!STN_NEED_KIND[k]) return { mark:'alert', tone:r.dot==='red'?'red':'amber', t:what||lab, s:sub, attr:r.btn||'', wrap:true };
-      return { mark:'alert', tone:r.dot==='red'?'red':'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'', wrap:true }; });
-    const groups=[];
-    if(needRows.length) groups.push({ label:i18t('jov5_st_needs'), rows:needRows });
-    /* while you are away, Jambo says who answers for you, never your signing (the old side feed's words; #762) */
-    const awM=(state.away||{}).mine;
-    if(awM&&awM.deputyName) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
-    groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
-    const L=_stLessons; const les=(L&&L.rows)||[];
-    if(admin&&L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
-    if(admin&&les.length) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(r=>'\u201c'+String(r.text||'')+'\u201d').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
-    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:i18t(admin?'jov5_st_eb_co':'jov5_st_eb_you'), title:needs.length?i18tn('jov5_st_t',needs.length,{ n:needs.length }):i18t('jov5_st_clear'),
-      sub:i18t('stn_p_head'), groups, src:i18t('jov5_st_src') },'stn')}</div>`;
+function sddHeadHtml(admin){
+  const rows=sddRows(admin), a=_sddArea;
+  const need=sddNeedList(admin, a||null, rows).length;
+  const n=a?rows.filter(r=>r.area===a).length:0;
+  const cnt=need?i18tn('sdd_need_n',need,{ n:need }):a?i18tn('sdd_n_settings',n,{ n }):'';
+  return `${a?`<button type="button" class="sdd-back" data-sdd-back>‹ ${esc(i18t('stn_title_short'))}</button>`:''}
+    <h2 class="ctf-h stn-title sdd-title">${esc(a?i18t('sdd_a_'+a):i18t('stn_title_short'))}${cnt?` <span class="sdd-cnt">${esc(cnt)}</span>`:''}</h2>
+    ${a?`<p class="sdd-sub">${esc(i18t('sdd_sub_'+a))}</p>`:''}
+    <label class="sdd-find"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','w-4 h-4'):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(i18t('sdd_find_ph'))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>`;
+}
+function sddMainHtml(admin){ return _sddArea?sddAreaHtml(admin,_sddArea):sddHomeHtml(admin); }
+/* the list alone (a find, a choice): the head, the box and the panel stand; the box keeps its words and its caret */
+function sddListPaint(){ const m=document.getElementById('stn-main'); if(!m) return; m.innerHTML=sddMainHtml(stIsAdmin()); }
+/* a reading that lands late (the engine's limits, the lessons) redraws the head, the list and the panel; the box keeps its words and caret */
+function sddRepaint(){
+  const h=document.getElementById('sdd-head'); if(h){ const q=document.getElementById('sdd-q'), had=q&&document.activeElement===q, pos=had?q.selectionStart:0;
+    h.innerHTML=sddHeadHtml(stIsAdmin()); if(had){ const n=document.getElementById('sdd-q'); if(n){ n.focus({ preventScroll:true }); try{ n.setSelectionRange(pos,pos); }catch(_){} } } }
+  sddListPaint(); stnPanelPaint();
+}
+function sddGo(area, pick){
+  _sddArea=SDD_AREAS.includes(area)?area:null; _sddPick=pick||null; _sddHome=null; _sddQ='';
+  if(_stPage){ settingsGoPage(''); } else stnPaint(stIsAdmin());
+  if(typeof placeSave==='function') placeSave();
+  if(pick&&typeof landOn==='function') landOn(`#stn-main [data-sdd-row="${PB_ATTR(pick)}"]`,{ block:'nearest', focus:false });
+}
+function sddPickSet(id){ _sddPick=id||null; sddListPaint(); stnPanelPaint(); if(typeof placeSave==='function') placeSave(); }
+function sddHomeSet(a){ _sddHome=a||null; sddListPaint(); stnPanelPaint(); }
+/* ---- Jambo's panel: the Dossier card (the five parts' head + the one black button in its soft card, act first) ---- */
+function sddCardHtml(admin, ctx){
+  if(typeof jamboOverviewHtml!=='function') return '';
+  const c=ctx||{}, rows=sddRows(admin), area=c.area!==undefined?c.area:(_sddArea||_sddHome||null);
+  const pick=c.pick!==undefined?c.pick:(_sddArea?_sddPick:null), r=pick?rows.find(x=>x.id===pick):null;
+  const place=area?i18t('sdd_a_'+area):i18t('stn_title_short');
+  if(r){
+    const who=r.who==='you'?i18t('sdd_who_you'):i18t('sdd_who_admins');
+    const after=r.ctl?i18t('sdd_after_ctl'):r.page?i18t('sdd_after_page'):i18t('sdd_after_open');
+    const first=(r.needs||[])[0];
+    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:place+' · '+r.name, title:r.say, sub:r.sub, actFirst:true,
+      act:{ say:first?(sddTxt(first.text)+(first.sub?' · '+sddTxt(first.sub):'')):after, label:first&&first.verb?first.verb:(r.door?r.verb:''), attr:first&&first.btn?first.btn:(r.door||'') },
+      groups:[{ label:'', rows:[{ k:i18t('sdd_f_now'), t:r.now||'—' }, { k:i18t('sdd_f_affects'), t:i18t(r.who==='you'?'sdd_affects_you':'sdd_affects_all') }, { k:i18t('sdd_f_who'), t:who },
+        { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(admin&&typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:null }].map(x=>x.link?x:Object.assign(x,{ link:undefined })) }]
+        /* while you are away, Jambo says who answers for you on every You row's card too (when-youre-away 3c) */
+        .concat(r.area==='you'&&((state.away||{}).mine||{}).deputyName?[{ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:state.away.mine.deputyName }), wrap:true }] }]:[]),
+      src:i18t('jov5_st_src') },'stn')}</div>`;
   }
-  let h=`<div class="pd2-chosen cun-panel stn-panel"><p class="pd2-ch-head">${E(i18t('stn_p_head'))}</p>`;
-  if(needs.length){ h+=`<div class="pd2-ch-cap">${E(i18tn('stn_p_needs',needs.length,{ n:needs.length }))}</div><div class="pd2-ch-tbl">`
-    +needs.slice(0,4).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
-      const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):'');
-      const what=k==='panel'?(sub?stShortState(sub):r.text):r.text, more=k==='panel'?'':sub;
-      return `<div class="pd2-ch-r stn-nd stn-pr" ${r.btn||''} role="button" tabindex="0"><span>${E(lab)}</span><b>${E(what)}${more?`<small>${E(more)}</small>`:''}</b><i class="stn-go" aria-hidden="true">${typeof icon==='function'?icon('chevR','w-3.5 h-3.5'):'›'}</i></div>`; }).join('')+`</div>`; }
-  h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_ask'))}</div><p class="stn-pp">${E(i18t('stn_p_ask_s'))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-ask-head="">${E(i18t('st_ask_go'))}</button><span>${E(i18t('stn_p_ask_cost'))}</span></div>`;
-  if(admin){
-    const L=_stLessons; const rows=(L&&L.rows)||[];
-    if(L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
-    if(rows.length){ const shown=rows.slice(0,3).map(r=>'“'+String(r.text||'')+'”').join(', ');
-      h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_lessons'))}</div><p class="stn-pp">${E(i18tn('stn_p_lessons_s',rows.length,{ n:rows.length, list:shown }))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-panel="lessons">${E(i18tn('stn_p_teach',Math.min(rows.length,3),{ n:Math.min(rows.length,3) }))}</button><span>${E(i18t('pd2_ch_free'))}</span></div>`; }
-  }
-  return h+`</div>`;
+  const needs=sddNeedList(admin, area, rows), n0=needs[0];
+  const groups=[];
+  if(needs.length>1) groups.push({ label:i18t('jov5_st_needs'), rows:needs.slice(1).map(x=>({ mark:'alert', tone:x.dot==='red'?'red':'amber', t:x.text, s:x.sub, attr:x.btn||'', wrap:true })) });
+  const awM=(state.away||{}).mine;
+  if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
+  if(!area||area==='company'||!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
+  const les=(_stLessons&&_stLessons.rows)||[];
+  if(admin&&_stLessons===null&&typeof stLessonsLoad==='function'&&!sddCardHtml._asked){ sddCardHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) sddRepaint(); }).catch(()=>{}); }
+  if(admin&&les.length&&(!area||area==='jambo')) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(x=>'“'+String(x.text||'')+'”').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
+  /* Trail & backup: Jambo heads with the trail's own count, and offers its PDF and what sealed means (as he did before
+     the Dossier card; stJbDataRepaint fills the count when it lands) */
+  const onData=typeof _stPage!=='undefined'&&_stPage==='data';
+  if(onData){ const df=stTrailDefault();
+    groups.unshift({ label:'', rows:[{ mark:'download', t:i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||df.from,_stTr.to||df.to,true) }), attr:'data-st-tr-pdf=""' },
+      { mark:'sparkle', tone:'dark', t:i18t('st_jb_c_sealed'), attr:'data-st-jb-say="sealed"' }] }); }
+  const card=jamboOverviewHtml({ eyebrow:place+(needs.length?' · '+i18tn('sdd_to_do',needs.length,{ n:needs.length }):''),
+    title:onData?stJbDataWords(false):needs.length?i18tn('sdd_card_t',needs.length,{ n:needs.length }):i18t('sdd_card_clear'),
+    sub:needs.length?'':i18t('sdd_card_clear_s'), actFirst:true,
+    act:n0?{ say:n0.text+(n0.sub?' · '+n0.sub:''), label:n0.verb||i18t('st_need_open'), attr:n0.btn||'' }:null,
+    groups, src:i18t('jov5_st_src') },'stn');
+  return `<div class="jl-words is-ov">${onData?card.replace('<h3 class="jov5-title">','<h3 class="jov5-title" data-st-jb-hello>'):card}</div>`;
 }
+/* ---- presses: a row chooses, a second press opens through its own door; Open on an area goes in; the find box ---- */
+if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=true;
+  const press=el=>{ if(!el||!el.closest||!el.closest('#set-page')) return false;
+    const to=el.closest('[data-sdd-to]');
+    if(to){ _sddArea=to.getAttribute('data-sdd-to'); _sddPick=to.getAttribute('data-sdd-to-row')||null; _sddHome=null; _sddQ='';
+      if(_sddPick) setTimeout(()=>{ if(typeof landOn==='function') landOn(`#stn-main [data-sdd-row="${PB_ATTR(_sddPick)}"]`,{ block:'nearest', focus:false }); },60);
+      return false; }
+    if(el.closest('[data-sdd-back]')){ sddGo(null); return true; }
+    const dr=el.closest('[data-sdd-door]'); if(dr){ sddGo(dr.getAttribute('data-sdd-door')); return true; }
+    const pk=el.closest('[data-sdd-pick]'); if(pk){ const [a,id]=String(pk.getAttribute('data-sdd-pick')).split(':'); sddGo(a,id); return true; }
+    const hm=el.closest('[data-sdd-home]');
+    if(hm&&!el.closest('button,a,input,[role="switch"],.st-yseg')){ const a=hm.getAttribute('data-sdd-home'); if(_sddHome===a) sddGo(a); else sddHomeSet(a); return true; }
+    const row=el.closest('[data-sdd-row]'); if(!row) return false;
+    const id=row.getAttribute('data-sdd-row');
+    if(row.hasAttribute('data-sdd-found')&&!el.closest('[data-sdd-go]')){ sddGo(row.getAttribute('data-sdd-found'), id); return true; }
+    const go=el.closest('[data-sdd-go]');
+    if(go){ if(_sddPick!==id){ _sddPick=id; row.classList.add('is-chosen'); stnPanelPaint(); } return false; }
+    if(el.closest('button,a,input,select,[role="switch"],.st-yseg')) return false;
+    if(_sddPick===id){ const b=row.querySelector('[data-sdd-go]'); if(b){ b.click(); return true; } }
+    sddPickSet(id); return true; };
+  document.addEventListener('click',e=>{ press(e.target); });
+  document.addEventListener('keydown',e=>{ if(e.key!=='Enter'&&e.key!==' ') return; const t=e.target;
+    if(!t||!t.matches||!t.matches('[data-sdd-row],[data-sdd-home]')) return; e.preventDefault(); press(t); });
+  document.addEventListener('input',e=>{ const t=e.target; if(!t||t.id!=='sdd-q') return; _sddQ=t.value; if(!_sddQ.trim()) _sddHome=null; sddListPaint(); });
+}
+/* the panel beside the six areas: the Dossier card (sddCardHtml) */
+function stnPanelHtml(admin){ return sddCardHtml(admin); }
 function stnPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stnPanelHtml(stIsAdmin()) });
 }
 function stnPaint(admin){
   const host=document.getElementById('content'); if(!host) return;
-  host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page" data-st-face="you" data-ins-page="team" data-ins="1">
+  host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page sdd-page" data-st-face="you" data-ins-page="team" data-ins="1"${_sddArea?` data-sdd-area="${_sddArea}"`:''}>
     <div class="ap-body is-ins"><section class="ap-card apn-card stn-card">
-      <h2 class="ctf-h stn-title">${esc(i18t('stn_title'))}</h2>
-      <div class="stn-main scroll-thin" id="stn-main">${stnListHtml(admin)}</div>
+      <div class="sdd-head" id="sdd-head">${sddHeadHtml(admin)}</div>
+      <div class="stn-main scroll-thin" id="stn-main">${sddMainHtml(admin)}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   stWireDrawerOnce();
   stnPanelPaint();
   if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
+  /* the Jambo area reads the engine's own limits: asked once, the rows drawn again where they stand */
+  if(admin&&!state.aiCfg&&typeof stLoadAiCfgOnce==='function') Promise.resolve(stLoadAiCfgOnce()).then(()=>{ if(state.aiCfg&&document.querySelector('.stn-page')) sddRepaint(); }).catch(()=>{});
   if(typeof insWatchWidth==='function') insWatchWidth();
   if(typeof setActiveNav==='function') setActiveNav('team');
-}
-if(typeof document!=='undefined' && !document._stnWired){ document._stnWired=true;
-  document.addEventListener('click',e=>{
-    const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('.stn-page')) return;
-    const ch=t.closest('[data-stn-area]'); if(!ch) return;
-    _stnArea=ch.getAttribute('data-stn-area')||'all';
-    stnListPaint();
-    if(typeof placeSave==='function') placeSave();
-  });
 }

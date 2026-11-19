@@ -59,10 +59,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2, null, { timeout: 20000 });
 
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the People card is the old look's; Add member is on
-       the People & roles page, linked at the one list's foot */
+       the People & roles page, a row in Settings' Company area (re-pointed 19 Nov 2026, f1091) */
     const door = await until(() => {
       if (!document.getElementById('set-page')) { setView('team'); return null; }
-      if (!document.querySelector('[data-st-pg="team"]')) { const f = document.querySelector('#stn-pages [data-st-page="team"]'); if (f) f.click(); return null; }
+      if (!document.querySelector('[data-st-pg="team"]')) { const f = document.querySelector('#stn-main [data-sdd-row="people"] [data-st-page="team"]'); if (f) f.click(); else if (typeof sddGo === 'function') sddGo('company'); return null; }
       const d = document.querySelector('[data-st-pg="team"] [data-st-panel="person:new"]');
       return d && d.getBoundingClientRect().width > 0;
     }, null, 15000);

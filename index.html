@@ -15120,6 +15120,9 @@
   .jov5-acts .jov-lnk{font-size:12.5px;}
   .jov5-go{height:var(--ctl-h);padding:0 14px;border:0;border-radius:999px;background:var(--accent-solid);color:var(--surface-3);font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   .jov5-go:hover{background:var(--accent-solid-hover);}
+  html.lg-new .jov5-act .jov5-acts{flex-direction:column;align-items:stretch;gap:8px;}
+  html.lg-new .jov5-act .jov5-acts > .jov5-go{width:100%;justify-content:center;}
+  html.lg-new .jov5-act .jov5-acts > :not(.jov5-go){align-self:flex-start;}
   .jov5-chips{display:flex;flex-wrap:wrap;gap:6px;}
   .jov5-chip{height:var(--ctl-h-sm);padding:0 11px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   .jov5-chip:hover,.jov5-pill:hover{background:var(--color-divider);}
@@ -21040,29 +21043,6 @@
   html.lg-new .stn-page .a-money{--tb:var(--st-green-bg);--tf:var(--st-green-fg);--td:var(--st-green-dot)}
   html.lg-new .stn-page .a-msg{--tb:var(--st-ruby-bg);--tf:var(--st-ruby-fg);--td:var(--st-ruby-dot)}
   html.lg-new .stn-main{overflow:visible;flex:none;padding:0 0 24px 0}
-  html.lg-new .stn-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px}
-  html.lg-new .stn-chip{appearance:none;border:0;background:var(--surface-2);border-radius:999px;height:var(--ctl-h);padding:0 12px;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
-  html.lg-new .stn-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--td);flex:none}
-  html.lg-new .stn-chip.is-all::before{display:none}
-  html.lg-new .stn-chip em{font-style:normal;font-variant-numeric:tabular-nums;opacity:.7}
-  html.lg-new .stn-chip[aria-pressed="true"]{background:var(--tb);color:var(--tf)}
-  html.lg-new .stn-chip.is-all[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
-  html.lg-new .stn-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-strong);margin:0;padding:0 0 8px;border-bottom:1px solid var(--color-divider);color:var(--tf)}
-  html.lg-new .stn-h::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--td);flex:none}
-  html.lg-new .stn-h + .stn-row{border-top:0}
-  html.lg-new .stn-row ~ .stn-h{margin-top:24px}
-  html.lg-new .stn-row{display:grid;grid-template-columns:36px minmax(0,1fr) 200px 160px;gap:16px;padding:14px 0;border-bottom:1px solid var(--color-divider);align-items:center}
-  html.lg-new .stn-mark{width:36px;height:36px;border-radius:50%;background:var(--tb);color:var(--tf);display:grid;place-items:center}
-  html.lg-new .stn-l{font-size:15px;font-weight:var(--w-strong);color:var(--color-text)}
-  html.lg-new .stn-val{font-size:13.5px;font-weight:var(--w-label)}
-  html.lg-new .stn-sub{font-size:12.5px;margin-top:2px}
-  html.lg-new .stn-a{justify-self:end;white-space:nowrap}
-  html.lg-new .stn-go{font-size:13.5px;font-weight:var(--w-label)}
-  html.lg-new .stn-pages{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:24px}
-  html.lg-new .stn-pages-h{width:100%}
-  html.lg-new .stn-pages-h::before{display:none}
-  html.lg-new .stn-pg{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-  html.lg-new .stn-row .stn-seg{align-self:center}
   html.lg-new .stn-pp{margin:0 0 8px;font-size:13.5px;line-height:1.45}
   html.lg-new .stn-panel .stn-pr{cursor:pointer}
   /* a row that opens something says so: the › at its end (owner's Round 0, "nothing on it says so") */
@@ -21072,6 +21052,55 @@
   html.lg-new .stn-page .st-yseg > button{appearance:none;border:0;border-radius:999px;background:transparent;font:inherit;font-size:13px;font-weight:var(--w-label);padding:0 12px;height:var(--ctl-h-sm);color:var(--color-text);cursor:pointer}
   html.lg-new .stn-page .st-yseg > button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
   html.lg-new .stn-panel .stn-nd b small{display:block;font-size:11.5px;font-weight:400;color:var(--color-quiet);margin-top:2px}
+  /* SETTINGS, DOOR TO DOOR (P-11): the head (way back, title and count, the area's sentence), one find box, the six
+     areas and every setting as ONE row — mark, name over its sentence and small print, what it is set to, its one door;
+     white rows, the chosen one a grey band with room inside it, its door the one black pill */
+  html.lg-new .sdd-page .a-jambo{--tb:var(--surface-2);--tf:var(--color-text);--td:var(--color-text)}
+  html.lg-new .sdd-head{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:0}
+  html.lg-new .sdd-back{appearance:none;border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
+  html.lg-new .stn-title.sdd-title{margin:0;display:flex;align-items:baseline;gap:12px}
+  html.lg-new .sdd-head > .sdd-title:first-child{margin-top:4px} /* on the landing, the title at the height every list head puts its own (pages-read-alike 8) */
+  html.lg-new .sdd-cnt{font-family:var(--font-body);font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .sdd-sub{margin:4px 0 0;font-size:13px;color:var(--color-neutral-400)}
+  html.lg-new .sdd-find{align-self:stretch;display:flex;align-items:center;gap:8px;margin:14px 0 0;height:40px;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-400)}
+  html.lg-new .sdd-find-ic{display:inline-flex;flex:none}
+  html.lg-new .sdd-find input{flex:1;min-width:0;border:0;outline:0;box-shadow:none;background:none;font:inherit;font-size:14px;color:var(--color-text)}
+  html.lg-new .sdd-colh,html.lg-new .sdd-row{display:grid;grid-template-columns:40px minmax(0,1fr) 220px 150px;gap:14px;align-items:center;padding-left:12px;padding-right:12px}
+  html.lg-new .sdd-colh{padding-top:16px;padding-bottom:8px;border-bottom:1px solid var(--color-divider);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-neutral-400)}
+  html.lg-new .sdd-colh span:first-child{grid-column:1/3}
+  html.lg-new .sdd-gh{display:flex;align-items:center;gap:8px;margin:0;padding:18px 12px 6px;border-bottom:1px solid var(--color-divider);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--tf)}
+  html.lg-new .sdd-gh::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--td);flex:none}
+  html.lg-new .sdd-row{padding-top:12px;padding-bottom:12px;border-bottom:1px solid var(--color-divider);cursor:pointer}
+  html.lg-new .sdd-row:hover,html.lg-new .sdd-row.is-chosen{background:var(--surface-2)}
+  html.lg-new .sdd-mk{position:relative;width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;flex:none;background:var(--tb);font-size:18px;line-height:1;font-weight:400}
+  html.lg-new .sdd-mk.a-jambo{background:var(--st-gray-bg)}
+  html.lg-new .sdd-row:is(:hover,.is-chosen) .sdd-mk{background:var(--color-surface)}
+  html.lg-new .sdd-mk.is-need::after{content:"";position:absolute;top:0;right:0;width:10px;height:10px;border-radius:50%;background:var(--st-amber-dot);box-shadow:0 0 0 2px var(--color-surface)}
+  html.lg-new .sdd-t{min-width:0}
+  html.lg-new .sdd-k{font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:var(--w-strong);color:var(--color-neutral-400);margin:0 0 1px}
+  html.lg-new .sdd-n{font-size:15px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .sdd-n :is(em,small){font-style:normal;font-size:12.5px;font-weight:400;color:var(--color-neutral-400);margin-left:4px}
+  html.lg-new .sdd-s{font-size:14.5px;font-weight:var(--w-label);color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .sdd-s.is-list{font-size:12.5px;font-weight:400;color:var(--color-neutral-400)} /* every setting an area holds is named, none hidden behind an edge (laptops-verify) */
+  html.lg-new .sdd-u{font-size:12.5px;color:var(--color-neutral-400);margin-top:1px}
+  html.lg-new .sdd-now{min-width:0}
+  html.lg-new .sdd-v{display:inline-flex;align-items:center;gap:7px;max-width:100%;font-size:13.5px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .sdd-v:is(.is-on,.is-need,.is-off)::before{content:"";width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
+  html.lg-new .sdd-v.is-on{color:var(--st-green-fg)}
+  html.lg-new .sdd-v.is-on::before{background:var(--st-green-dot)}
+  html.lg-new .sdd-v.is-need{color:var(--st-amber-fg)}
+  html.lg-new .sdd-v.is-need::before{background:var(--st-amber-dot)}
+  html.lg-new .sdd-a{display:flex;justify-content:flex-end;align-items:center;gap:8px;min-width:0}
+  html.lg-new .sdd-go{appearance:none;border:0;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:13px;font-weight:var(--w-label);height:var(--ctl-h-sm);padding:0 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  html.lg-new .sdd-row:is(:hover,.is-chosen) .sdd-go{background:var(--color-surface)}
+  html.lg-new .sdd-row .sdd-go.is-black{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new :is(.sdd-foot,.sdd-empty){margin:14px 12px 0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .sdd-pgback-line{margin:0 0 6px}
+  html.lg-new .st-pg > .sdd-pgback-line{padding:0 16px}
+  html.lg-new .st-pg > .sdd-ptabs{margin:0 16px 10px}
+  html.lg-new .sdd-ptabs{display:flex;gap:22px;margin:0 0 10px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .sdd-ptab{appearance:none;border:0;border-bottom:2px solid transparent;background:none;padding:0 0 9px;margin:0 0 -1px;font:inherit;font-size:14px;font-weight:var(--w-label);color:var(--color-neutral-400);cursor:pointer}
+  html.lg-new .sdd-ptab.is-on{color:var(--color-text);border-bottom-color:var(--color-text)}
   /* NEGOTIATIONS, THE NEW LOOK (round 7): your move lifted, settled faded, their words in the paper's type */
   html.lg-new .ngn-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .ngn-table tbody tr{cursor:pointer}
@@ -21636,6 +21665,57 @@
      the jambo header"): the Send page's head is as tall as Jambo's (#ig-dock > .igd-head, 56 with its line), so the two lines
      under them are one */
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-hd{min-height:56px;box-sizing:border-box}
+  /* CHASE NOW, THE SEND SCREEN AS A REMINDER (owner's pick, 19 Nov 2026; js/obligations.js obRemindOpen): the Send screen's
+     own shape — a 56 head, the steps the Legora way on the left (400), the letter in the middle on the desk, Before you
+     send on the right (384) as the panel draws it; every card head bold and black */
+  html.lg-new #modal-root .modal-in.is-obr > .dlg-pg-head{display:none}
+  html.lg-new #modal-root .modal-in.is-obr > .dlg-pg-body{padding:0;overflow:hidden}
+  html.lg-new .obr-pg{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--color-surface);color:var(--color-text)}
+  html.lg-new .obr-h{flex:none;display:flex;align-items:center;gap:var(--s-3);min-height:56px;box-sizing:border-box;padding:0 20px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .obr-t{font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);white-space:nowrap}
+  html.lg-new .obr-st{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-title);font-size:14px;color:var(--color-quiet)}
+  html.lg-new .obr-sp{flex:1}
+  html.lg-new .obr-pill{flex:none;height:var(--ctl-h);padding:0 14px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new .obr-pill.is-go{background:var(--bar-black);color:var(--color-surface)}
+  html.lg-new .obr-pill:disabled{opacity:.45;cursor:not-allowed}
+  html.lg-new .obr-body{flex:1;display:flex;min-height:0}
+  html.lg-new .obr-l{flex:none;width:400px;box-sizing:border-box;padding:18px 24px;border-right:1px solid var(--color-divider);overflow-y:auto}
+  html.lg-new .obr-lh{margin:0;font-family:var(--font-title);font-size:20px;line-height:1.25;font-weight:var(--w-strong)}
+  html.lg-new .obr-ls{margin:var(--s-1) 0 var(--s-2);font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .obr-ls b{color:var(--color-text);font-weight:var(--w-strong)}
+  html.lg-new .obr-lr{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:var(--s-3);min-height:44px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .obr-k{font-size:13px;color:var(--color-quiet)}
+  html.lg-new .obr-v{min-width:0;display:flex;align-items:center;gap:var(--s-2);font-size:14px}
+  html.lg-new .obr-v input{flex:1;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font:inherit;font-size:14px;color:var(--color-text)}
+  html.lg-new .obr-v input::placeholder{color:var(--color-neutral-400)}
+  html.lg-new .obr-frm{flex:none;font-style:normal;font-size:11.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .obr-lr.is-tall{align-items:start;padding:var(--s-3) 0}
+  html.lg-new .obr-lr.is-tall .obr-v{display:block}
+  html.lg-new .obr-lr.is-tall .obr-v b{display:block;font-weight:var(--w-label)}
+  html.lg-new .obr-lr.is-tall .obr-v small{display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .obr-add{position:relative;padding:var(--s-3) 0 var(--s-1)}
+  html.lg-new .obr-lk{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .obr-menu{display:flex;flex-direction:column;margin-top:var(--s-2);border-radius:var(--radius);background:var(--surface-2);padding:var(--s-1)}
+  html.lg-new .obr-menu button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:0;background:none;border-radius:var(--radius);padding:6px 10px;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer}
+  html.lg-new .obr-menu button:hover{background:var(--color-surface)}
+  html.lg-new .obr-menu em{font-style:normal;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .obr-g{margin:var(--s-4) 0 0;font-size:var(--t-label);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-400)}
+  html.lg-new .obr-m{flex:1;min-width:0;overflow-y:auto;padding:18px 20px;background:var(--color-surface)}
+  html.lg-new .obr-paper{max-width:var(--doc-sheet-max, 720px);margin:0 auto;padding:18px 48px 26px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 8px 28px rgba(0,0,0,.08)}
+  html.lg-new .obr-fr{display:grid;grid-template-columns:80px minmax(0,1fr);gap:var(--s-3);padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px}
+  html.lg-new .obr-fr span{color:var(--color-quiet)}
+  html.lg-new .obr-fr b{font-weight:400}
+  html.lg-new .obr-letter{padding:18px 0 0;font-family:var(--font-doc);font-size:15px;line-height:1.55}
+  html.lg-new .obr-letter p{margin:0 0 10px}
+  html.lg-new .obr-letter textarea{display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;resize:vertical;font:inherit;font-style:italic;color:var(--color-text)}
+  html.lg-new .obr-r{flex:none;width:384px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;padding:16px;border-left:1px solid var(--color-divider);overflow-y:auto}
+  html.lg-new .obr-rh{margin:0;font-size:13px;font-weight:var(--w-strong)}
+  html.lg-new .obr-c{padding:12px;border-radius:var(--radius);background:var(--jb-card-fill);font-size:13px}
+  html.lg-new .obr-c h4{margin:0 0 2px;font-size:13px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .obr-c p{margin:0}
+  html.lg-new .obr-sw{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);cursor:pointer}
+  html.lg-new .obr-c .obr-g2{margin-top:4px;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .obt-sw{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);margin:6px 0 0;font-size:13px;cursor:pointer}
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid{margin:0;border:0;border-radius:0;box-shadow:none;clip-path:none}
   /* ONE GAP ABOVE EVERY JAMBO BOX (owner, 9 Nov 2026: "why is there a massive gap between the links and the jambo button?
      … Make sure there is always a consistent management of the gaps"): the line that says what typed words would do takes

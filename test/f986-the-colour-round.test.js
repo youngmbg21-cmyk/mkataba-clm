@@ -56,8 +56,9 @@ test('Calendar: kind labels read off the record, both books', () => {
 });
 test('Settings: on / off pills off the panel\'s own reading', () => {
   const S = read('js/views/settings.js');
-  assert.match(S, /function stnStateText\(k\)\{ const st=stStateOf\(k\); return st&&st\.text\?stnPill\(esc\(stShortState\(st\.text\)\), st\.dot\):''; \}/);
-  assert.match(fnBody(S, 'stnPushSaid'), /ps==='blocked'\?'need'/);
-  /* the Legora way (owner's pick, 13 Nov 2026): the state is a dot and a word, still in its tone */
-  assert.match(CSS, /html\.lg-new \.stn-dot\.is-on\{color:var\(--st-green-fg\)\}/);
+  /* RE-POINTED (P-11, 17 Nov 2026: the six areas): what a setting is set to is read off the panel's own state
+     (sddState: ok → on, warn → need, off → off), a blocked phone still amber, drawn as a dot and a word in its tone */
+  assert.match(fnBody(S, 'sddState'), /dot:st\.dot==='ok'\|\|st\.dot==='on'\?'on':st\.dot==='warn'\?'need':st\.dot==='off'\?'off':''/);
+  assert.match(fnBody(S, 'sddYouRows'), /ps==='blocked'\?'need'/);
+  assert.match(CSS, /html\.lg-new \.sdd-v\.is-on\{color:var\(--st-green-fg\)\}/);
 });

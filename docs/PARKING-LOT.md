@@ -87,10 +87,16 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Notes:** the grey is painted by the table cells, and the first cell starts flush with the mark, so a fix adds inner room to the first and last cells (16px inside, the house rule) for the chosen and hovered rows, on every list page at once. It touches the same rows as the drawn Approvals change (one clean band, no bar), so it is best built with it or straight after.
 
 ### P-11 · Settings, door to door, with the Dossier card
-- **Added:** 17 Nov 2026 · **Status:** Waiting
+- **Added:** 17 Nov 2026 · **Status:** Building — round 1 built 17 Nov 2026 (the six areas, the find box, every row's sentence, the Dossier card; Change still opens today's panel or page); the in-row boxes wait for later rounds; 19 Nov 2026: every row and area wears an emoji, and Jambo's black button lies across its grey card
 - **What:** a new Settings that is easy to move through. The landing page shows six areas (You, Company, Rules, Jambo, Mail and intake, Set-up and records), each listing what is inside, with one find box that searches every setting by everyday words. Each area opens its own page of plain sentences that say what each setting is set to. The four pages at today's foot keep their tabs inside an area: People & roles (People · Who holds what · Roles) and Streams & categories under Company, Jambo's lessons under Jambo, Trail & backup under Set-up and records. Jambo's panel uses the Dossier card on every Settings page: what needs you first with one black button, and for a chosen setting what it does, who it affects and what changes.
 - **Where it came from:** the owner found Settings "an absolute nightmare to follow" (15 Nov 2026), picked "Six doors" over the SAP and Legora ways, then said "build it with the Dossier card" (17 Nov 2026) and "lets hold off for now and we will build later". The drawing is at https://claude.ai/artifact/3conTot1WEXYchwJqpbNdZ, with its "where every part of today's Settings goes" table.
 - **Notes:** about 56 settings, plus today's hidden 44-item Menu in the side panel, which the six areas replace. Too big for one change; build it in rounds. First the landing, the six areas, the find box, every row reading its real value, and the Dossier card, with Change still opening today's panel or page. Then one round per area turns those into the small in-row boxes the drawing shows, starting with Jambo's spending limits. Jambo's daily budget, today buried in the Jambo engine panel under "More settings", becomes its own row.
+
+### P-12 · A reminder they can answer with the proof itself
+- **Added:** 19 Nov 2026 · **Status:** Waiting
+- **What:** the reminder email to the other side about one of their obligations carries an "Upload the certificate" button (or whatever proof the obligation asks for). It opens a small page for that one obligation where they upload the file or reply; the file is kept on the obligation and we are told it arrived.
+- **Where it came from:** the owner's reminder drawing (https://claude.ai/artifact/GtY6uPNQoUxroQCJtiywcF, the "Chase now: the reminder" moment). On 19 Nov 2026 the owner chose "Reply only, park upload" for round 3: the reminder asks them to reply by email for now.
+- **Notes:** HaTi has no place today for the other side to upload against an obligation; it needs a page of their own for one obligation (their link, no account), a server route that keeps the file on the obligation with who sent it and when, a line in the bell for us, and the obligation's panel showing the file.
 
 ## Done
 
