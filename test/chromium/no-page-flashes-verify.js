@@ -4,7 +4,8 @@
    held one door and the next change could bring a flash back unseen. This check presses the common doors for real
    and records EVERY painted frame (requestAnimationFrame) until it settles, on a slowed computer (CPU ×4, 150 ms on
    every answer from the server) at the ThinkPad's 1280 × 640, the screen the owner saw it on.
-     A FLASH is a frame, between the press and the end, in which a NAMED page stands at the screen's middle that is
+     A FLASH is a frame, between the press and the end, in which a NAMED page is SEEN at the screen's middle (the first
+     layer down drawn at least 90% solid, so a page fading in does not hide the one showing through it) that is
      neither the page pressed from nor the page arrived at: the paper, the Board, Contracts, the Cover. A loading
      state (the Cover's veil, a page's own loading line, nothing yet) is not a flash.
    Before f1096 it fails: Cover → Contracts and Contracts → a contract painted the paper on the way.
@@ -21,7 +22,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
 /* the page standing at a point, by name; anything else is 'other' (a page we do not name), 'veil' or 'blank' */
 const NAMER = `(() => {
-  const name = (x, y) => { const e = document.elementFromPoint(x, y); if (!e || e === document.body || e === document.documentElement) return 'blank';
+  const nameOf = e => { if (!e || e === document.body || e === document.documentElement) return 'blank';
     if (e.id === 'cv-veil') return 'veil';
     if (e.closest('.cv-page')) return 'cover';
     if (e.closest('#modal-root [data-dlg-page]')) return 'page-over';
@@ -29,6 +30,13 @@ const NAMER = `(() => {
     if (e.closest('#hb-board, .hb-board')) return 'board';
     if (e.closest('#ig-gwrap, .ig-gwrap, [data-ig-paper]')) return 'paper';
     return 'other'; };
+  /* how solid an element is drawn: its opacity times every ancestor's */
+  const solid = e => { let o = 1; for (let n = e; n && n.nodeType === 1; n = n.parentElement) o *= parseFloat(getComputedStyle(n).opacity) || 0; return o; };
+  /* SEEN, NOT ONLY ON TOP (19 Nov 2026): a page fading in from nothing lies on top while the page under it shows
+     through; the page SEEN is the first layer down the stack drawn at least 90% solid */
+  const name = (x, y) => { const stack = document.elementsFromPoint(x, y);
+    for (const e of stack){ if (e === document.body || e === document.documentElement) break; if (solid(e) >= 0.9) return nameOf(e); }
+    return nameOf(stack[0]); };
   return () => name(innerWidth * 0.3, innerHeight * 0.55) + '|' + name(innerWidth * 0.55, innerHeight * 0.5);
 })()`;
 const NAMED = ['cover', 'contracts', 'board', 'paper'];
