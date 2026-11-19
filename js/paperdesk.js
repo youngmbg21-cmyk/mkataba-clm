@@ -6838,6 +6838,9 @@ function pdMidStale(){
   if (_cvHold && _pdMid.key === 'cover:' + _cvHold) return false;
   let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
   if (at === _pdMid.at) return false;
+  /* the Cover over its OWN contract's paper stands, whatever the page settled to under it (19 Nov 2026) */
+  if (_pdMid.key.indexOf('cover:') === 0){ let pc = null; try { pc = pdContract(); } catch (_){ pc = null; }
+    if (pc && String(pc.id) === _pdMid.key.slice(6) && pdOnPaper()){ _pdMid.at = at; return false; } }
   if (typeof closeModal === 'function') closeModal();
   pdMidOff();
   return true;
@@ -10265,7 +10268,7 @@ function pdCoverHtml(c){
    sheet laid over"): a contract opened on purpose shows its Cover OVER THE PAGE IT WAS OPENED FROM — the contract's
    paper is not opened under it, so nothing white waits and Back (‹, Esc) returns where the reader was, in one press.
    The paper is opened only when the Cover is left for it (pdCoverLeave), and the Cover stays until it stands. */
-let _cvHold = null;
+let _cvHold = null, _cvGoing = null;
 function pdCoverShow(c){
   if (!c) return false;
   const id = String(c.id), mk = 'cover:' + id;
@@ -10286,15 +10289,29 @@ function pdCoverOpen(id){
 /* the one door a press that opens a contract on purpose goes through (a list row, a Board row, a typed number):
    its record read first if only the list's light row is here — the page pressed from stays meanwhile, the pointer
    says it is working — then the Cover. False on the phone or the old look: the caller opens the paper as before. */
+/* the Cover is holding the page while its own contract's paper is drawn under it (pageScreenStays asks) */
+function pdCoverHeld(){ return !!(_cvHold && pdMidUp('cover:' + _cvHold)); }
 function pdCoverGo(id){
   if (typeof document === 'undefined' || !pd2On()) return false;
   if (typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768))) return false;
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c || c._codeNamed) return false;
+  /* THE RETIRED ROOM IS NO PAGE TO STAND OVER (19 Nov 2026, every-door-lands-on-home G/F): an email link or a refresh
+     on the old room arrives through its view, which is only a way into Home — there the Cover comes over the paper
+     as before (pdCoverLand), never over the room */
+  if (typeof state === 'object' && state && (state.view === 'workspace' || state.view === 'doc')) return false;
+  /* a way into this very contract already under way (an email link's room door, then its tab) brings its own Cover:
+     a second one is never started over it */
+  if (typeof _pdArrive !== 'undefined' && _pdArrive && _pdArrive.id === String(id) && Date.now() - _pdArrive.t < _pdArriveMs()) return false;
   /* THE PAPER COMES UNDER IT, UNSEEN (19 Nov 2026): once the Cover stands, the contract's paper and Dossier are opened
      under it, held there (_cvHold) — every reading of "this contract is open" (a refresh, a door, the bar) stays true,
      and nothing of it is seen. When the paper stands the Cover belongs to it, and keeps the page it was pressed from
      as its way back (_pdMid.from): ‹ and Esc go there in one press, the paper never shown (deskGoBack). */
+  /* ONE COVER PER WAY IN (19 Nov 2026): an email link asks for it twice a moment apart (the room's door, then its
+     tab); the second ask while the first is on its way, or while its paper is being drawn under it, is the same one */
+  if (_cvGoing === String(id) || _cvHold === String(id)) return true;
+  _cvGoing = String(id);
   const show = () => {
+    if (_cvGoing === String(id)) _cvGoing = null;
     let from = ''; try { from = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ from = ''; }
     if (!pdCoverShow((typeof getContract === 'function' && getContract(id)) || c)) return;
     const sid = String(id), mk = 'cover:' + sid;
@@ -10322,7 +10339,7 @@ function pdCoverGo(id){
   };
   if (c._loaded || typeof ensureFull !== 'function' || !(typeof API_MODE === 'function' && API_MODE())){ show(); return true; }
   const root = document.documentElement; root.classList.add('is-opening');
-  Promise.resolve().then(() => ensureFull(c)).then(show, () => { pdOpenOnHome(id, 'open', { cover: false }); })
+  Promise.resolve().then(() => ensureFull(c)).then(show, () => { if (_cvGoing === String(id)) _cvGoing = null; pdOpenOnHome(id, 'open', { cover: false }); })
     .finally(() => root.classList.remove('is-opening'));
   return true;
 }
@@ -10385,7 +10402,7 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
     return '';
   });
 });
-Object.assign(window, { pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdCoverShow, pdCoverGo, pdCoverLeave, pdCoverVeil, CV_LAND_MS, pdCoverUp, pdCoverOf, pdCoverHtml, pdCoverSheetHtml, pdCoverRightHtml, pdCoverOpen, pdCoverLand, CV_NOTES_MAX, CV_ROWS_MAX, CV_PARTIES_SHOWN });
+Object.assign(window, { pdCoverHeld, pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdCoverShow, pdCoverGo, pdCoverLeave, pdCoverVeil, CV_LAND_MS, pdCoverUp, pdCoverOf, pdCoverHtml, pdCoverSheetHtml, pdCoverRightHtml, pdCoverOpen, pdCoverLand, CV_NOTES_MAX, CV_ROWS_MAX, CV_PARTIES_SHOWN });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,

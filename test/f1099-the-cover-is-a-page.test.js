@@ -69,3 +69,15 @@ test('f1099 (4) every page in the middle opened from another page goes back ther
   assert.match(back, /if \(from === 'home'\) deskGoCounter\(\); else deskTabOpen\(from\);\s*if \(typeof window\.pdMidClose === 'function'\) window\.pdMidClose\(\);/, 'the page under is drawn first, then the middle goes');
   assert.match(PD, /if \(e\.key !== 'Escape' \|\| e\.defaultPrevented \|\| !pdMidFrom\(\)/, 'Esc does the same');
 });
+
+test('f1099 (5) a Cover waiting for its own paper is never put away by that paper arriving, and comes once', () => {
+  /* GitHub's re-run (19 Nov 2026): an email link to Where we are opened the Cover, then the turn to Home put it away
+     (pageScreenStays, hbPageScreenUp), and a second ask drew it again — Cover → paper → Cover */
+  assert.match(fn(PD, 'pdCoverHeld'), /_cvHold && pdMidUp\('cover:' \+ _cvHold\)/);
+  assert.match(fn(strip(read('js/app.js')), 'pageScreenStays'), /window\.pdCoverHeld\(\)\) return false;/, 'a page move to its own paper keeps it');
+  assert.match(fn(strip(read('js/views/homeboard.js')), 'hbPageScreenUp'), /window\.pdCoverHeld\(\)\) return false;/, 'and Home\'s face turn');
+  const go = fn(PD, 'pdCoverGo');
+  assert.match(go, /if \(_cvGoing === String\(id\) \|\| _cvHold === String\(id\)\) return true;/, 'one Cover per way in');
+  assert.match(go, /state\.view === 'workspace' \|\| state\.view === 'doc'\)\) return false;/, 'never over the retired room');
+  assert.match(fn(PD, 'pdMidStale'), /if \(pc && String\(pc\.id\) === _pdMid\.key\.slice\(6\) && pdOnPaper\(\)\)\{ _pdMid\.at = at; return false; \}/, 'over its own paper it stands');
+});
