@@ -937,4 +937,4 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - THE LAST FOUR (19 Nov 2026): test/f1101-the-last-four-edits.test.js (red at the parent: all five). Re-pointed: f745 (2c) the saved view's name line; f259 (3)(4) the duty's two steps; f398 (2c)(2e) the route rests, one signer on its own screen; browser checks my-notes-verify (the reminder line `#mns-say`), amount-and-window-verify (Next before the amount), signing-route-timeline-verify (1f, 2a, 3e, 3i), signers-and-party-verify (their line pressed first).
 
 ## THE SEND SCREEN — the steps the Legora way (19 Nov 2026)
-- test/f1103-send-steps-the-legora-way.test.js; browser: send-note-on-the-paper-verify (step 1 open, re-pointed).
+- test/f1104-send-steps-the-legora-way.test.js; browser: send-note-on-the-paper-verify (step 1 open, re-pointed).

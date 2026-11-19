@@ -83,7 +83,7 @@ const SIZES = SHOTS ? [[1440, 780], [1536, 730], [1366, 950]] : [[1440, 780]];
           offNote: b.bottom <= a.top + 2, notInMail: !/Write it for me/.test(words), ph: t.placeholder }; }, 3000);
       check(`${w}x${ht} top corner: "Write it for me" in the letter's top-right corner, off the note's line, never in the email`, !!pl && pl.corner && pl.offNote && pl.notInMail && /No note yet/.test(pl.ph), JSON.stringify(pl));
       await page.evaluate(() => { const s = document.querySelector('.sh-st[data-sh-st="to"]'); if (s && !s.classList.contains('is-open')) document.querySelector('[data-sh-st-go="to"]').click(); });
-      /* RE-POINTED 19 Nov 2026 (owner's pick, the steps the Legora way in the page; f1103): step 1 open is no grey box — the
+      /* RE-POINTED 19 Nov 2026 (owner's pick, the steps the Legora way in the page; f1104): step 1 open is no grey box — the
          serif head names it, its person stands in the lines (Person · Email), listed once, nothing else beside */
       const s1 = await waitFor(page, () => { const s = document.querySelector('.sh-st[data-sh-st="to"].is-open'); if (!s) return null;
         const bg = getComputedStyle(s).backgroundColor, head = (document.getElementById('sh-lgx-t') || {}).textContent || '';
