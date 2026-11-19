@@ -21096,12 +21096,13 @@
   html.lg-new .sdd-row .sdd-go.is-black{background:var(--color-text);color:var(--color-surface)}
   /* A NARROW WINDOW KEEPS EVERY ROW'S DOOR IN SIGHT (swedish-verify, narrow desktop 800): the four columns need about
      460px, more than the list has beside Jambo's panel in a small window, and the row ran on under the panel with its
-     door (the language switch) out of reach. Where the list is narrower than that, what a row is set to and its door
+     door (the language switch) out of reach. At 800 the panel lies OVER a 608px list (measured on GitHub), so the
+     line is 720, not 600 — still far below the owner's three screens (about 900). Where the list is narrower than that, what a row is set to and its door
      stand under its sentence instead; the "Set to" column head stands down with its column. Wider lists are unchanged. */
   html.lg-new .sdd-page .stn-main{container-type:inline-size}
   /* the card keeps to its track (a grid item with overflow visible would otherwise grow to its widest line and run on under Jambo's panel) */
   html.lg-new #content .sdd-page .ap-body.is-ins > .ap-card.stn-card{min-width:0}
-  @container (max-width:599.98px){
+  @container (max-width:719.98px){
     html.lg-new .sdd-row{grid-template-columns:40px minmax(0,1fr);row-gap:6px}
     html.lg-new .sdd-row > .sdd-mk{grid-row:1 / span 3;align-self:start}
     html.lg-new .sdd-row > :is(.sdd-t,.sdd-now,.sdd-a){grid-column:2}
