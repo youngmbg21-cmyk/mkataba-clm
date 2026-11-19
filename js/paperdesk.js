@@ -473,6 +473,8 @@ function pdOpenOnHome(id, tab, o){
   /* one press, one panel (igDockBatch, js/views/intelligence.js) */
   if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !pdOpenOnHome._in){
     pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab, o)); } finally { pdOpenOnHome._in = false; } }
+  /* A CONTRACT NEVER CHECKED AGAINST THE PLAYBOOK IS CHECKED ON ITS FIRST OPEN (owner picked "B", 19 Nov 2026; pbCheckOnOpen) */
+  if (typeof window !== 'undefined' && typeof window.pbCheckOnOpen === 'function') try { window.pbCheckOnOpen(id); } catch (_){}
   /* THE COVER FIRST (owner, 16 Nov 2026): 'open' is the door a person presses to open the contract itself (a list row,
      a typed "open MK-…"); it lands on the paper and the Cover stands over it. o.cover false asks for the paper alone
      (roomHomeLand, whose callers say which they are) */
@@ -7799,7 +7801,14 @@ function pd2Facts(c, D){
     const ring = `<span class="pd2-ring ${tone}" aria-hidden="true"><svg viewBox="0 0 44 44" focusable="false"><circle class="pd2-ring-bg" cx="22" cy="22" r="${R}"/>${met ? `<circle class="pd2-ring-fg" cx="22" cy="22" r="${R}" stroke-dasharray="${(C * met / sd.total).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}</svg><b>${pct}%</b></span>`;
     const offs = [sd.miss ? _pdTn('pd2_std_miss', sd.miss, { n: sd.miss }) : '', sd.dev ? _pdTn('pd2_std_dev', sd.dev, { n: sd.dev }) : ''].filter(Boolean).join(' · ');
     out.push({ k: 'std', cls: 'is-ring', l: _pdT('pd2_f_std'), v: `<span class="pd2-score">${ring}<span class="pd2-score-w"><span class="pd2-score-n">${E(_pdT('pd2_std_met', { met, total: sd.total }))}</span>${offs ? `<span class="pd2-score-off ${tone}">${E(offs)}</span>` : ''}</span></span>`, s: '', go: 'data-pd-ds-std' }); }
-  else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · <button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button> <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
+  else {
+    /* CHECKED ON ITS FIRST OPEN (pbCheckOnOpen): while it runs the fact says so; a refusal is said here, Check its way forward */
+    let os = null; try { os = (typeof window.pbOpenCheckState === 'function') ? window.pbOpenCheckState(c) : null; } catch (_){ os = null; }
+    const chk = `<button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button>`;
+    if (os && os.run) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-q">${(typeof busyHtml === 'function') ? busyHtml(_pdT('pd2_std_checking')) : E(_pdT('pd2_std_checking'))}</span>`, s: '' });
+    else if (os && os.why) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-amb">${E(_pdT('pd2_std_failed', { why: os.why }))}</span> · ${chk}`, s: '' });
+    else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · ${chk} <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
+  }
   return out;
 }
 /* Jambo's one remark: the worst risk he read, with its why (nothing read, nothing said) */

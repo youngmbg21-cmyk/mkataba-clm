@@ -1078,6 +1078,55 @@ async function runPlaybookReview(c,opts={}){
   }
   return stamp(playbookReviewHeuristic(c, text));
 }
+/* ---- A CONTRACT NEVER CHECKED IS CHECKED THE FIRST TIME SOMEONE OPENS IT (owner picked "B", 19 Nov 2026) ----
+   Every new contract is checked on arrival (contractArrived → triageRun's playbook step) and again when an agreed change
+   moves the wording (triageWordingMoved). What still said "Not checked yet" were the ones that road never reached: older
+   contracts, bulk imports, an upload whose box was left unticked. Opening one is now the press: ONE quiet check, the same
+   reader and the same record as the Check press (runPlaybookReview → c.playbook, the same audit line), once a sitting.
+   The owner's walls stand: never a private stream (jamboOnPress), their page, a viewer, or with no AI key; never over a
+   check already kept; never beside the arrival reading still running. While it runs the Playbook fact says so; a refusal
+   is said there too, with the Check press as its way forward (pbOpenCheckState, read by pd2Facts). */
+const _pbOpenTried = new Set();
+const _pbOpenState = new Map();
+function pbOpenCheckMay(c){
+  if (!c || !c.id || c.playbook) return false;
+  if (typeof window !== 'undefined' && window.PORTAL_MODE === true) return false;
+  if (!(typeof API_MODE === 'function' && API_MODE() && typeof state === 'object' && state && state.aiConfigured)) return false;
+  if (typeof canEdit === 'function' && !canEdit()) return false;
+  if (typeof jamboOnPress === 'function' && jamboOnPress(c)) return false;
+  if (c._triaging) return false;
+  return true;
+}
+function pbOpenCheckState(c){ return (c && !c.playbook && _pbOpenState.get(String(c.id))) || null; }
+function pbOpenCheckRepaint(id){
+  try { const on = (typeof window.pdContract === 'function') ? window.pdContract() : null;
+    if (on && String(on.id) === id){ if (typeof window.pdGlanceRepaint === 'function') window.pdGlanceRepaint(); if (typeof window.igPaintPaper === 'function') window.igPaintPaper(); } } catch (_){}
+  try { const s = (typeof window.mS === 'function') ? window.mS() : null;
+    if (s && s.screen === 'contract' && String(state.activeId) === id && typeof window.mRender === 'function') window.mRender(); } catch (_){}
+}
+function pbCheckOnOpen(id){
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  if (!pbOpenCheckMay(c)) return null;
+  const k = String(c.id);
+  if (_pbOpenTried.has(k)) return null;
+  _pbOpenTried.add(k);
+  _pbOpenState.set(k, { run: true });
+  setTimeout(() => pbOpenCheckRepaint(k), 0);
+  return Promise.resolve().then(() => runPlaybookReview(c, { quiet: true })).catch(() => ({ error: i18t('pb_review_unavailable') })).then(r => {
+    const live = (typeof getContract === 'function' && getContract(k)) || c;
+    if (r && !r.error && Array.isArray(r.verdicts)){
+      _pbOpenState.delete(k);
+      if (!live.playbook){
+        live.playbook = r;
+        const sm = deviationSummary(live);
+        if (typeof logAudit === 'function') logAudit(live, 'Playbook', `Reviewed against ${r.label} — ${sm.dev} deviation(s), ${sm.miss} missing`);
+        if (typeof persist === 'function') persist(live);
+      }
+    } else _pbOpenState.set(k, { why: (r && r.error) || i18t('pb_review_unavailable') });
+    pbOpenCheckRepaint(k);
+    return r;
+  });
+}
 function deviationSummary(c){
   const r=c.playbook; if(!r) return null;
   const dev=r.verdicts.filter(v=>v.status==='deviation').length;
@@ -1696,4 +1745,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbFitAdd,pbDraftRead,PB_DRAFT_ASK_RE,pbOwnRefs,pbRefBlock,pbPlaceAt,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear,pbSpliceQuote});
+Object.assign(window,{pbOpenCheckMay,pbOpenCheckState,pbCheckOnOpen,pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbFitAdd,pbDraftRead,PB_DRAFT_ASK_RE,pbOwnRefs,pbRefBlock,pbPlaceAt,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear,pbSpliceQuote});

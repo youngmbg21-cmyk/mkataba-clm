@@ -710,6 +710,8 @@ function mWireScreen(root){
   root.querySelectorAll('[data-m-open]').forEach(b=>b.addEventListener('click',()=>{
     const id = b.getAttribute('data-m-open');
     state.activeId = id; state.selId = id;
+    /* never checked against the Playbook: its first open is the press (pbCheckOnOpen, the computer's too) */
+    if(window.pbCheckOnOpen) try{ window.pbCheckOnOpen(id); }catch(_){}
     /* An approval is decided on the phone's own Approvals card, opened on
        that contract — the place an approval email lands too. */
     if(b.getAttribute('data-m-need')==='approval' && mApprovalItems().some(x=>x.c && x.c.id===id)){
