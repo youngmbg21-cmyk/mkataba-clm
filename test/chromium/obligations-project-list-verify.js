@@ -65,7 +65,7 @@ function world(){
      page): the tabs Next 30 days · Later · Done; two columns; late first; each line's day a toned word */
   await until(page, () => !!document.querySelector('.obt-cols .obt-li'), 8000);
   const one = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
-    const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number((b.textContent.match(/\d+/) || [0])[0])]));
+    const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number((b.textContent.match(/(\d+)\D*$/) || [0, 0])[1])]   /* the LAST number: "Next 30 days 8" counts 8 */));
     return { tabs, cols: [...document.querySelectorAll('.obt-colh b')].map(b => b.textContent.trim()), lines: document.querySelectorAll('.obt-cols .obt-li').length }; });
   check('1 · We owe and They owe, under the tabs Next 30 days · Later · Done; the tab counts its lines', one.cols.join('|') === 'We owe|They owe' && 'open' in one.tabs && 'later' in one.tabs && 'done' in one.tabs && one.lines === one.tabs.open, one);
   await page.screenshot({ path: path.join(OUT, '1-tracked.png') });
