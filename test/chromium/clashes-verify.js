@@ -67,19 +67,29 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const readNeeds = () => until(() => {
       if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
       const needs = typeof stNeedsAll === 'function' ? stNeedsAll() : [];
-      const rows = [...document.querySelectorAll('#ins-panel .jov5-row')].map(r => {
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Jambo's panel is the Dossier card — the FIRST thing that
+         needs you stands in its black-button card (its words before " · ", its door the black button), the rest are its
+         rows. Its tone is read off the one list (sddNeedList: red · amber), the card itself has no mark. */
+      const L = typeof sddNeedList === 'function' ? sddNeedList(true, null, sddRows(true)) : [];
+      const toneOf = t => { const x = L.find(y => String(y.text || '').trim() === t); return x ? (x.dot === 'red' ? 'red' : 'amber') : ''; };
+      const act = document.querySelector('#ins-panel .jov5-act'), first = [];
+      if (act) { const say = ((act.querySelector('.jov5-say') || {}).textContent || '').trim(), t = say.split(' · ')[0].trim(), n = needs.find(x => String(x.text || '').trim() === t);
+        if (n) first.push({ key: n.key, text: t, sub: say.slice(t.length).replace(/^ · /, ''), dot: '', tone: toneOf(t), btn: t, door: !!act.querySelector('.jov5-go'), act: true }); }
+      const rows = first.concat([...document.querySelectorAll('#ins-panel .jov5-row')].map(r => {
         const t = ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim();
         const n = needs.find(x => String(x.text || '').trim() === t);
         if (!n) return null;
         const mk = r.querySelector('.jov5-mk');
         return { key: n.key, text: t, sub: ((r.querySelector('.jov5-rt span') || {}).textContent || '').trim(),
           dot: mk ? getComputedStyle(mk).color : '', tone: mk ? ((mk.className.match(/is-(red|amber)/) || [])[1] || '') : '', btn: t, door: r.tagName === 'BUTTON' };
-      }).filter(Boolean);
+      }).filter(Boolean));
       return rows.length ? rows : null;
     }, null, 15000);
     const pressNeed = async (key, what) => {
       const ok = await page.evaluate(k => { const n = (stNeedsAll() || []).find(x => x.key === k); if (!n) return false;
-        const r = [...document.querySelectorAll('#ins-panel .jov5-row.is-door')].find(x => ((x.querySelector('.jov5-rt b') || {}).textContent || '').trim() === String(n.text).trim());
+        const act = document.querySelector('#ins-panel .jov5-act');
+        const r = (act && ((act.querySelector('.jov5-say') || {}).textContent || '').trim().split(' · ')[0].trim() === String(n.text).trim() && act.querySelector('.jov5-go'))
+          || [...document.querySelectorAll('#ins-panel .jov5-row.is-door')].find(x => ((x.querySelector('.jov5-rt b') || {}).textContent || '').trim() === String(n.text).trim());
         if (!r) return false; r.click(); return true; }, key);
       if (!ok) check(what + ' (nothing to press: the row for ' + key + ')', false);
       return ok;
@@ -97,7 +107,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const [r0, g0] = rgb((clash[0] || {}).dot);
     /* RE-POINTED 16 Nov 2026 (#762): the new look's mark is a pale fill with coloured INK — the outright clash's mark is
        ruby (.jov5-mk.is-red, its ink red-dominant), the others amber, alike; the outright one differs from the rest */
-    check('1c its dot is red, the others amber', !!clash[3] && clash[0].tone === 'red' && r0 > g0 * 2 && clash.slice(1).every(r => r.tone === 'amber' && r.dot === clash[1].dot) && clash[1].dot !== clash[0].dot, clash.map(r => r.tone + ':' + r.dot).join(' / '));
+    /* the first stands in the black-button card (no mark): red by the one list, the drawn rows amber and alike */
+    check('1c its dot is red, the others amber', !!clash[3] && clash[0].tone === 'red' && (clash[0].act || r0 > g0 * 2) && clash.slice(1).every(r => r.tone === 'amber' && r.dot === clash[1].dot) && (clash[0].act || clash[1].dot !== clash[0].dot), clash.map(r => r.tone + ':' + r.dot).join(' / '));
     const each = clash.find(r => /^clash:each:/.test(r.key));
     check('1d two people who give each other the yes', !!each && /^(Unrestricted Legal and Restricted Legal|Restricted Legal and Unrestricted Legal) give each other the yes before signing$/.test(each.text), each && each.text);
     const self = clash.find(r => /^clash:self:/.test(r.key));
@@ -139,8 +150,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
        under its words); nothing on it says anything is blocked */
     const jb = await until(() => { const p = document.querySelector('#ins-panel'); if (!p) return null;
       const title = ((p.querySelector('.jov5-title, h2, h3') || {}).textContent || '').replace(/\s+/g, ' ').trim();
-      const subs = [...p.querySelectorAll('.jov5-row .jov5-rt span')].map(x => x.textContent.trim());
-      return title ? { title, clashSaid: subs.filter(t => /clash in who may do what/.test(t)).length, n: stNeedsAll().length, blocked: /nothing is blocked|blocks?\b/i.test(p.textContent) } : null; });
+      const subs = [...p.querySelectorAll('.jov5-row .jov5-rt span, .jov5-act .jov5-say')].map(x => x.textContent.trim());
+      return title ? { title, clashSaid: subs.filter(t => /clash in who may do what/.test(t)).length, n: sddNeedList(true, null, sddRows(true)).length, blocked: /nothing is blocked|blocks?\b/i.test(p.textContent) } : null; });
     check('3 Jambo names the clashes, and says nothing after the drawn sentence', !!jb && new RegExp('\\b' + jb.n + '\\b').test(jb.title) && jb.clashSaid === 4 && !jb.blocked, JSON.stringify(jb));
 
     console.log('\n4 · a clash goes when the rights change');

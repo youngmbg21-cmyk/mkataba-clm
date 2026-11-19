@@ -168,7 +168,8 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     /* ===== 7. SVENSKA ===== */
     /* RE-POINTED 21 Oct 2026 (Chambers): the bar's switch is gone; THE
        LANGUAGE IS CHANGED IN SETTINGS › YOU — pressed there, as a person would */
-    await page.evaluate(() => setView('team'));
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the language row is in the You area */
+    await page.evaluate(() => { setView('team'); if (typeof window.sddGo === 'function') window.sddGo('you'); });
     const sv = await page.waitForSelector('[data-st-lang="sv"]', { timeout: 8000 }).catch(() => null);
     /* the Settings list repaints as it lands (the new look's one list, #762): the press asks for the choice as it stands then,
        not a handle taken before the repaint */

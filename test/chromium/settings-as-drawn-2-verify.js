@@ -91,7 +91,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 16 Nov 2026 (#762): Jambo's panel beside the one list heads with the count ("N need an admin"); the
        number is the list behind it, every row drawn or the rest said */
     const said = await until(() => { const t = document.querySelector('#ins-panel .jov5-title'); if (!t) return null;
-      const n = stNeedsAll().length, drawn = [...document.querySelectorAll('#ins-panel .jov5-sec')].filter(sec => /Needs an admin/i.test((sec.querySelector('.jov5-label') || {}).textContent || '')).reduce((k, sec) => k + sec.querySelectorAll('.jov5-row').length, 0);
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the count is the ONE list of what needs you (sddNeedList);
+         its first stands in the black-button card, the rest are rows under "Needs an admin" */
+      const n = sddNeedList(true, null, sddRows(true)).length, drawn = (document.querySelector('#ins-panel .jov5-act .jov5-go') ? 1 : 0) + [...document.querySelectorAll('#ins-panel .jov5-sec')].filter(sec => /Needs an admin/i.test((sec.querySelector('.jov5-label') || {}).textContent || '')).reduce((k, sec) => k + sec.querySelectorAll('.jov5-row').length, 0);
       const more = /\d+ more/.exec(document.getElementById('ins-panel').textContent || '');
       return { n, title: t.textContent.trim(), drawn, more: more ? more[0] : '' }; });
     check('1a his headline is the list\'s count', !!said && said.n > 0 && new RegExp('^' + said.n + '\\b').test(said.title), said && `${said.title} / ${said.n}`);

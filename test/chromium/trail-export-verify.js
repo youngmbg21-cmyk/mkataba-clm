@@ -66,12 +66,14 @@ const CONTRACTS = [
     console.log('\n1 · the door, and the two tabs');
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Housekeeping card is the old look's; the trail is a
        link at the one list's foot ("Trail") */
-    const TRAIL = '#stn-pages .stn-pg[data-st-panel="trail"]';
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Trail & backup is a row in Set-up and records, its door the page */
+    const TRAIL = '#stn-main [data-sdd-row="trail"] [data-sdd-go]';
     const door = await until(sel => {
       if (!document.querySelector('.stn-page')) { setView('team'); return null; }
-      const d = document.querySelector(sel);
-      return d && d.getBoundingClientRect().width > 0 ? d.textContent.replace(/\s+/g, ' ').trim() : null; }, TRAIL, 15000);
-    check('1a the one list\'s foot carries a link, Trail', /^Trail\b/.test(door || ''), door);
+      if (!document.querySelector('.stn-page[data-sdd-area="setup"]')) { sddGo('setup'); return null; }
+      const d = document.querySelector(sel), k = document.querySelector('#sdd-trail .sdd-k');
+      return d && k && d.getBoundingClientRect().width > 0 ? k.textContent.replace(/\s+/g, ' ').trim() : null; }, TRAIL, 15000);
+    check('1a Set-up and records carries a row, Trail & backup', /^Trail\b/i.test(door || ''), door);
     await shot(page, 'trail-company');
     if (door) await press(TRAIL, '1b the door');
     /* since round 26 ("The SAP way") Data & backup is a PAGE: The trail · Backup are its tabs */

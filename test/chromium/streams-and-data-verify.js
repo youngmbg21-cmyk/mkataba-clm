@@ -51,14 +51,16 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const toCompany = () => until(() => {
       if (!document.getElementById('set-page')) { setView('team'); return null; }
       if (document.querySelector('[data-st-pg]')) { settingsGoPage(''); return null; }
-      return document.querySelector('.stn-page #stn-main .stn-row') ? true : null; }, null, 30000);
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Contract streams is a row in the Company area */
+      if (!document.querySelector('.stn-page[data-sdd-area="company"]')) { sddGo('company'); return null; }
+      return document.querySelector('.stn-page #stn-main .sdd-row') ? true : null; }, null, 30000);
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts), null, { timeout: 20000 });
     await toCompany();
 
     console.log('\n1 · Contract streams');
-    if (await press('#stn-pages [data-st-page="streams"]', '1 the door')) {
+    if (await press('#stn-main [data-sdd-row="streams"] [data-st-page="streams"]', '1 the door')) {
       const pg = await until(() => { const p = document.querySelector('[data-st-pg="streams"]'); if (!p) return null;
         return { filters: [...p.querySelectorAll('.st-sw-band .st-sw-f > span')].map(x => x.textContent.trim()),
           cols: [...p.querySelectorAll('.st-sw-tb thead th')].map(x => x.textContent.trim()),
@@ -115,9 +117,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
         return fig ? { labels: boxes.map(x => x.querySelector('span').textContent.trim()).join('|'), oneRow: tops.size === 1, fig } : null; }, null, 6000);
       check('5b the trail\'s asks are labelled boxes in one row, with its count', !!band && band.labels === 'From|To|Streams|As' && band.oneRow && /act/.test(band.fig), JSON.stringify(band));
       await shot(page, 'data-trail-1440x780');
-      if (await press('[data-st-pg="data"] .st-pg-back', '5c ‹ Settings')) {
-        const back = await until(() => !document.querySelector('[data-st-pg]') && document.querySelector('.stn-page #stn-main .stn-row') ? true : null, null, 4000);
-        check('5c ‹ Settings goes back to the one list', !!back);
+      if (await press('[data-st-pg="data"] .st-pg-back', '5c ‹ Set-up and records')) {
+        const back = await until(() => !document.querySelector('[data-st-pg]') && document.querySelector('.stn-page[data-sdd-area="setup"] #stn-main .sdd-row') ? true : null, null, 4000);
+        check('5c ‹ Set-up and records goes back to its area', !!back);
       }
     }
 

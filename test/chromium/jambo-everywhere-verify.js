@@ -120,7 +120,7 @@ const CONTRACTS = [
       await openSt();
       await typeIn(ST_Q, 'two-step sign-in');
       const kept = await until(() => { if (state.view !== 'team') return null; const t = document.querySelector('#ins-panel [data-jt-talk]');
-        return (t && !t.hidden && /two-step/i.test(t.textContent)) || document.querySelector('#set-page .is-landed, #set-page [data-stn-row].is-landed') ? true : null; }, null, 4000);
+        return (t && !t.hidden && /two-step/i.test(t.textContent)) || document.querySelector('#set-page .is-landed, #set-page [data-sdd-row].is-landed') ? true : null; }, null, 4000);
       check('3b a setting\'s words stay with the settings finder', !!kept, String(await page.evaluate(() => state.view)));
       check('3c and nothing was spent', !ai.length, ai.join(', '));
     }
