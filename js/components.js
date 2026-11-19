@@ -2008,7 +2008,7 @@ Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyO
            rows:[{ k, id, value, ph, type:'text'|'email'|'tel'|'date'|'area'|'select', opts:[{v,t}], from, max,
                    quote:{ cite, words, use:{ label, attr } } }],
            html (extra body: a list, a hint), note (small words in the foot),
-           primary:{ label, attr }, back:{ label, attr }, left:{ label, attr, danger }, cancelAttr }
+           primary:{ label, attr }, alt:{ label, attr } (a second, grey act), back:{ label, attr }, left:{ label, attr, danger }, cancelAttr }
    ====================================================================================================================== */
 const LGP_W = '480px';
 const LGP_PAGE = 6;
@@ -2049,8 +2049,9 @@ function lgpHtml(o){
     : o.left ? `<button type="button" class="lgp-left${o.left.danger ? ' is-danger' : ''}" ${o.left.attr || ''}>${E(o.left.label)}</button>` : '';
   const note = o.note ? `<span class="lgp-note">${E(o.note)}</span>` : '';
   const prim = o.primary ? `<button type="submit" class="ui-btn ui-btn-primary lgp-go" ${o.primary.attr || ''}>${E(o.primary.label)}</button>` : '';
+  const alt = o.alt ? `<button type="button" class="ui-btn" ${o.alt.attr || ''}>${E(o.alt.label)}</button>` : '';
   const cancel = o.noCancel ? '' : `<button type="button" class="ui-btn" ${o.cancelAttr || 'data-lgp-close'}>${E(o.cancelLabel || _lgpT('lgp_cancel'))}</button>`;
-  return `<form class="lgp" ${o.id ? `id="${E(o.id)}"` : ''} ${o.attr || ''} novalidate>${head}${body}<div class="lgp-ft">${left}${note}<span class="lgp-sp"></span>${prim}${cancel}</div></form>`;
+  return `<form class="lgp" ${o.id ? `id="${E(o.id)}"` : ''} ${o.attr || ''} novalidate>${head}${body}<div class="lgp-ft">${left}${note}<span class="lgp-sp"></span>${prim}${alt}${cancel}</div></form>`;
 }
 function lgpOpen(o){
   if (typeof openModal !== 'function') return null;

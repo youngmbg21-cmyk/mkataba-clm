@@ -378,12 +378,14 @@ function ldDecideOpen(id){
   const was = r ? r.ladder.ask : '';
   const what = r && typeof diffHtml === 'function' && was !== d.ask ? `<div class="ld-diff">${diffHtml(was, d.ask || '')}</div>` : `<p class="ld-dw">${LD_E(d.ask || '')}</p>`;
   const fb = (d.fallbacks || []).map((f, k) => `<li>${LD_E(i18t('ld_rung_fb', { n: k + 1 }))}: ${LD_E(f.text)} <small>(${LD_E(ldWho(f.who))})</small></li>`).join('');
-  openModal(`<div class="ld-dlg"><h3>${LD_E(i18t('ld_decide_title', { name: d.name || '' }))}</h3>
-    <p class="ld-dlg-p">${LD_E(i18t('ld_decide_by', { who: ch.by || '', day: ldDay(ch.at) }))}${ch.why ? ` “${LD_E(ch.why)}”` : ''}</p>
-    <p class="ld-dlg-l">${LD_E(i18t('ld_dlg_what'))}</p>${what}
-    <p class="ld-dlg-p">${ldFirmHtml(d.firm)} · ${LD_E((d.books || []).map(ldBookLabel).join(', '))}</p>${fb ? `<ul class="ld-dlg-ul">${fb}</ul>` : ''}${d.never ? `<p class="ld-dlg-p">${LD_E(i18t('ld_rung_never'))}: ${LD_E(d.never)}</p>` : ''}
-    <label class="ld-dlg-l" for="ld-note">${LD_E(i18t('ld_note_l'))}</label><textarea id="ld-note" class="ld-box" rows="2" maxlength="400" placeholder="${LD_E(i18t('ld_note_ph'))}"></textarea>
-    <div class="ld-dlg-f" data-dlg-foot><button type="button" class="ui-btn ui-btn-primary" data-ld-yes>${LD_E(i18t('ld_approve'))}</button><button type="button" class="ui-btn" data-ld-no>${LD_E(i18t('ld_refuse_change'))}</button><button type="button" class="ui-btn" data-dlg-cancel onclick="closeModal()">${LD_E(i18t('act_cancel'))}</button></div></div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): what is proposed, then ONE line for the note;
+     Approve the black button, Refuse beside it, Cancel last */
+  lgpOpen({ id: 'ld-decide', title: i18t('ld_decide_title', { name: d.name || '' }),
+    sub: i18t('ld_decide_by', { who: ch.by || '', day: ldDay(ch.at) }) + (ch.why ? ` “${ch.why}”` : ''),
+    html: `<p class="lgp-sub" style="margin-top:6px">${LD_E(i18t('ld_dlg_what'))}</p>${what}
+      <p class="lgp-sub">${ldFirmHtml(d.firm)} · ${LD_E((d.books || []).map(ldBookLabel).join(', '))}</p>${fb ? `<ul class="ld-dlg-ul">${fb}</ul>` : ''}${d.never ? `<p class="lgp-sub">${LD_E(i18t('ld_rung_never'))}: ${LD_E(d.never)}</p>` : ''}`,
+    rows: [{ k: i18t('ld_note_l'), id: 'ld-note', type: 'area', ph: i18t('ld_note_ph'), max: 400 }],
+    primary: { label: i18t('ld_approve'), attr: 'data-ld-yes' }, alt: { label: i18t('ld_refuse_change'), attr: 'data-ld-no' } });
   const go = async yes => {
     /* A NOTE GOES WITH THE DECISION (owner, 17 Nov 2026): optional on a yes, required on a no — the proposer reads it on the bell */
     const why = String((document.getElementById('ld-note') || {}).value || '').trim();
