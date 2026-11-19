@@ -473,6 +473,8 @@ function pdOpenOnHome(id, tab, o){
   /* one press, one panel (igDockBatch, js/views/intelligence.js) */
   if (typeof window !== 'undefined' && typeof window.igDockBatch === 'function' && !pdOpenOnHome._in){
     pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab, o)); } finally { pdOpenOnHome._in = false; } }
+  /* A CONTRACT NEVER CHECKED AGAINST THE PLAYBOOK IS CHECKED ON ITS FIRST OPEN (owner picked "B", 19 Nov 2026; pbCheckOnOpen) */
+  if (typeof window !== 'undefined' && typeof window.pbCheckOnOpen === 'function') try { window.pbCheckOnOpen(id); } catch (_){}
   /* THE COVER FIRST (owner, 16 Nov 2026): 'open' is the door a person presses to open the contract itself (a list row,
      a typed "open MK-…"); it lands on the paper and the Cover stands over it. o.cover false asks for the paper alone
      (roomHomeLand, whose callers say which they are) */
@@ -7798,8 +7800,17 @@ function pd2Facts(c, D){
     const tone = sd.miss ? 'is-miss' : sd.dev ? 'is-dev' : 'is-met', R = 18, C = 2 * Math.PI * R;
     const ring = `<span class="pd2-ring ${tone}" aria-hidden="true"><svg viewBox="0 0 44 44" focusable="false"><circle class="pd2-ring-bg" cx="22" cy="22" r="${R}"/>${met ? `<circle class="pd2-ring-fg" cx="22" cy="22" r="${R}" stroke-dasharray="${(C * met / sd.total).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}</svg><b>${pct}%</b></span>`;
     const offs = [sd.miss ? _pdTn('pd2_std_miss', sd.miss, { n: sd.miss }) : '', sd.dev ? _pdTn('pd2_std_dev', sd.dev, { n: sd.dev }) : ''].filter(Boolean).join(' · ');
-    out.push({ k: 'std', cls: 'is-ring', l: _pdT('pd2_f_std'), v: `<span class="pd2-score">${ring}<span class="pd2-score-w"><span class="pd2-score-n">${E(_pdT('pd2_std_met', { met, total: sd.total }))}</span>${offs ? `<span class="pd2-score-off ${tone}">${E(offs)}</span>` : ''}</span></span>`, s: '', go: 'data-pd-ds-std' }); }
-  else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · <button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button> <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
+    /* NO OPEN ON THE RING (owner, 19 Nov 2026: "simply delete the open option. the notes will be there anyway so it adds
+       no value"): what is off already stands beside the paper; the ring only reads, it opens nothing */
+    out.push({ k: 'std', cls: 'is-ring', l: _pdT('pd2_f_std'), v: `<span class="pd2-score">${ring}<span class="pd2-score-w"><span class="pd2-score-n">${E(_pdT('pd2_std_met', { met, total: sd.total }))}</span>${offs ? `<span class="pd2-score-off ${tone}">${E(offs)}</span>` : ''}</span></span>`, s: '' }); }
+  else {
+    /* CHECKED ON ITS FIRST OPEN (pbCheckOnOpen): while it runs the fact says so; a refusal is said here, Check its way forward */
+    let os = null; try { os = (typeof window.pbOpenCheckState === 'function') ? window.pbOpenCheckState(c) : null; } catch (_){ os = null; }
+    const chk = `<button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button>`;
+    if (os && os.run) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-q">${(typeof busyHtml === 'function') ? busyHtml(_pdT('pd2_std_checking')) : E(_pdT('pd2_std_checking'))}</span>`, s: '' });
+    else if (os && os.why) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-amb">${E(_pdT('pd2_std_failed', { why: os.why }))}</span> · ${chk}`, s: '' });
+    else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · ${chk} <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
+  }
   return out;
 }
 /* Jambo's one remark: the worst risk he read, with its why (nothing read, nothing said) */
@@ -8909,6 +8920,13 @@ function pd2StdGo(c){
     const live = (typeof getContract === 'function' && getContract(c.id)) || c;
     if (pdMidUp()) pdMidClose();
     if (_pdTab !== 'copilot'){ pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
+    /* OPEN SAYS WHAT THE CHECK FOUND, NOT WHAT IS DRAWN (owner-reported 19 Nov 2026: "1 of 6 met" and Open said "Every
+       position is met"): the notes had been put away (Show notes), so none stood beside the paper. Open is a person
+       asking to see them, so they are brought back; and the green line is said only where the check itself met every
+       position (deviationSummary), never because no note was found */
+    const sm = (typeof deviationSummary === 'function') ? deviationSummary(live) : null;
+    const off = sm ? (sm.dev || 0) + (sm.miss || 0) : 0;
+    if (off && pd2NotesHiddenGet()) pd2NotesHiddenSet(false);
     try { pd2NotesPaint(live); } catch (_){}
     const it = document.querySelector('#pd2-notes .pd2-mg-i.is-std');
     if (it){ const g = it.closest('.pd2-mg');
@@ -8916,7 +8934,9 @@ function pd2StdGo(c){
       const at = document.querySelector('#pd2-notes .pd2-mg-i.is-std') || it;
       if (typeof landOn === 'function') landOn(at.closest('.pd2-mg') || at, { block: 'center' }); else (at.closest('.pd2-mg') || at).scrollIntoView({ block: 'center' });
       return; }
-    if (has(live) && typeof toast === 'function') toast(_pdT('pd2_std_all_met'), 'ok');
+    if (typeof toast !== 'function' || !has(live)) return;
+    if (!off) toast(_pdT('pd2_std_all_met'), 'ok');
+    else toast(_pdTn('pd2_std_not_shown', off, { n: off }), 'warn');
   };
   /* the run and its keeping are the standards page's own Check again (sdCheckAgain: asks first where it costs a call,
      reads the whole record, saves, says so); the desk itself writes nothing (f563) */
