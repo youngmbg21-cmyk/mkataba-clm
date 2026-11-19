@@ -1632,7 +1632,7 @@ function cunRowHtml(v, keys){
    aside first, then Streams, then On paper */
 const CUN_KEYS = ['streams', 'agreements', 'paper', 'ends', 'waiting'];
 function cunCols(){
-  const W = { streams: 150, agreements: 150, paper: 96, ends: 140, waiting: 160 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
+  const W = { streams: 124, agreements: 132, paper: 88, ends: 118, waiting: 118 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
   const DEFS = [{ k: 'name' }, ...CUN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols('customers', DEFS, cuRepaint) : { cols: DEFS };
   const T = { name: 'cun_c_party', streams: 'cun_c_streams', agreements: 'cun_c_ags', paper: 'cun_c_paper', ends: 'cun_c_ends', waiting: 'cun_c_wait' };
