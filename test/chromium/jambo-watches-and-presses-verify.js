@@ -33,9 +33,14 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
   if (!pass) failures++;
 };
+/* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked against the Playbook is checked the first time
+   someone opens it — pbCheckOnOpen, f1106). Every contract made in HaTi is checked on arrival (contractArrived); these
+   fixtures are put straight on the server, so they arrive as one that was already checked — a kept check (`playbook`) —
+   and opening them is not a first open's check. What is counted below is still EVERY AI route: nothing else is spent. */
+const CHECKED = c => Object.assign(c, { playbook: { key: 'default', label: 'Our playbook', source: 'ai', verdicts: [] } });
 const CONTRACTS = [
-  H.fixtureContract('MK-S1', 'Raw Material Supply Agreement', 'Nandi Dairy', H.FOLDER_A, 800000, 'Under Review'),
-  H.fixtureContract('MK-S2', 'Office lease', 'Britam Properties', H.FOLDER_B, 4e6, 'Signed'),
+  CHECKED(H.fixtureContract('MK-S1', 'Raw Material Supply Agreement', 'Nandi Dairy', H.FOLDER_A, 800000, 'Under Review')),
+  CHECKED(H.fixtureContract('MK-S2', 'Office lease', 'Britam Properties', H.FOLDER_B, 4e6, 'Signed')),
 ];
 
 (async () => {

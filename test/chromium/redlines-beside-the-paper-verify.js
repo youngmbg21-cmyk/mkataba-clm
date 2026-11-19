@@ -230,7 +230,10 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
        travels; its own Send sends */
     await page.click('#pd-redface .rl-unsent-go');
     const asked = await waitFor(page, () => { const s = document.getElementById('share-send'); return !!document.getElementById('sh-letter') && s && !s.disabled; }, 10000);
-    const q6 = await page.evaluate(() => ((document.getElementById('sh-letter') || {}).innerText || '').replace(/\s+/g, ' '));
+    /* RE-POINTED 19 Nov 2026 (owner's pick, the send steps the Legora way, f1104): their address stands in the To step's
+       own lines (Person · Email), which are boxes a person can change — read with the letter's words */
+    const q6 = await page.evaluate(() => ((document.getElementById('sh-letter') || {}).innerText || '').replace(/\s+/g, ' ')
+      + ' ' + ((em => (em && em.getClientRects().length) ? em.value : '')(document.getElementById('sh-email')) || ''));
     check('6b Send all opens the letter, saying what goes, to their address', asked && /parcelway/i.test(q6) && /* RE-POINTED 24 Oct 2026 (Round 3): with no email set up the letter is the link to copy */ (/has answered|of its own/.test(q6) || /Nothing is sent from here/.test(q6)), q6.slice(0, 400));
     await page.evaluate(() => { const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true; });
     await page.click('#share-send');

@@ -79,6 +79,16 @@ function startProvider(){
             usage: { input_tokens: 1, output_tokens: 1 }, stop_reason: 'end_turn' }));
           return;
         }
+        /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked against the Playbook is checked
+           on its first open, pbCheckOnOpen): that check is not a Plain press either, so it is answered with
+           no verdicts and not counted here — f1106 owns it. */
+        if ((b.tools || []).some(t => t && t.name === 'playbook_review')) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'stub',
+            content: [{ type: 'tool_use', id: 'tu', name: 'playbook_review', input: { verdicts: [] } }],
+            usage: { input_tokens: 1, output_tokens: 1 }, stop_reason: 'end_turn' }));
+          return;
+        }
         calls.push(b);
         const reply = () => {
           res.writeHead(200, { 'Content-Type': 'application/json' });

@@ -204,7 +204,16 @@ describe('f354 (4) the walls', () => {
        word. The house rule, stated in the rulebook: strip comments before
        sweeping code. The claim is unchanged and still catches a real field. */
     const code = SERVER.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
-    assert.ok(!/participants/.test(code), 'it is an ordinary field on the contract json');
+    /* RE-POINTED 19 Nov 2026: Chase now goes through the Send screen (owner's pick), and the route finds the
+       chosen person of THEIRS on the STORED contract by id (srvChaseTo) — the open-relay rule: never an address
+       from the body. That one reader may name the field; it only reads, and nothing else on the server may. */
+    const at = code.indexOf('function srvChaseTo(');
+    assert.ok(at > 0, 'the chase reader is where it was');
+    const end = code.indexOf('\n}\n', at);
+    const reader = code.slice(at, end);
+    assert.ok(!/participants\s*=|participants\.(push|splice)|\.participants\s*=/.test(reader), 'the chase reader only reads');
+    const rest = code.slice(0, at) + code.slice(end);
+    assert.ok(!/participants/.test(rest), 'it is an ordinary field on the contract json');
   });
 
   test('and it never reaches the counterparty [WALL]', () => {

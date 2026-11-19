@@ -79,7 +79,7 @@ test('f1105 (4) on a computer every Chase door opens the page; the phone keeps i
   for (const k of ['sh_lgx_person', 'sh_lgx_title', 'sh_lgx_email', 'obr_phone', 'sh_lgx_then', 'obr_what', 'obr_can', 'obr_how', 'obr_note_ph', 'sh_kv_goes', 'obr_again_h', 'sh_nl_mail_k', 'obr_hist_h', 'sh_kv_names', 'obr_send'])
     assert.ok(h.includes(`'${k}'`), k + ' drawn');
   assert.match(O, /row = contactSet\(c, cur \?/, 'the person is kept in the one address book');
-  assert.match(strip(R('js/views/settings.js')), /remindtheirs:\{\s*tab:'platform', group:'intake'/);
+  assert.match(strip(R('js/views/settings.js')), /remindtheirs:\{\s*tab:'platform', group:'links'/);
 });
 
 test('f1105 (5) both books carry the words', () => {

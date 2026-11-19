@@ -1021,7 +1021,7 @@ const HANDBOOK_CHAPTERS = [
       { en: 'Their round: each change is one row, their words quoted with the §, Jambo\'s answer in grey and its own button ({ui:ag_rnd_counter}, {ui:ag_rnd_accept}), which presses the same button on Redlines. {ui:ag_sendback} asks him to redo it.', sv: 'Deras runda: varje ändring är en rad, deras ord citerade med §, Jambos svar i grått och en egen knapp ({ui:ag_rnd_counter}, {ui:ag_rnd_accept}), som trycker på samma knapp i Ändringar. {ui:ag_sendback} ber honom göra om det.' }],
     tip: { en: 'No agent ever sends to the other side. Every run is recorded.', sv: 'Ingen agent skickar någonsin till motparten. Varje körning registreras.' },
     cost: { en: 'Each run says its cost', sv: 'Varje körning säger sin kostnad' }, doors: ['house', 'work'], acts: [],
-    words: { en: ['agents', "jambo's agents", 'jambo house', 'what jambo did', 'ask me first', 'just do it', 'automation'], sv: ['agenter', 'jambos agenter', 'jambos hus', 'vad jambo gjorde', 'fråga mig först', 'gör det bara'] },
+    words: { en: ['agents', "jambo's agents", 'jambo house', 'what jambo did', 'what jambo has done', 'on his own', 'ask me first', 'just do it', 'automation'], sv: ['agenter', 'jambos agenter', 'jambos hus', 'vad jambo gjorde', 'på egen hand', 'fråga mig först', 'gör det bara'] },
     shots: [
       { go: [{ place: 'house' }], boxes: [{ sel: '#jh-log', step: 1 }, { sel: '[data-jh-tab="jobs"]', step: 1 }], cap: { en: 'The work log, and the jobs (1).', sv: 'Arbetsloggen, och jobben (1).' } }] },
 
@@ -1057,7 +1057,7 @@ const HANDBOOK_CHAPTERS = [
       { en: '"{door:roles}" lists the business roles; "{door:access}" is the access review, refused while anyone is undecided.', sv: '"{door:roles}" listar affärsrollerna; "{door:access}" är behörighetsgranskningen, vägrad medan någon är obestämd.' }],
     tip: { en: 'A member who is not an admin reads only their own settings. Ask an admin is a record, answered where admins look.', sv: 'En medlem som inte är admin läser bara sina egna inställningar. Fråga en admin är en post, besvarad där admins tittar.' },
     cost: _hbkFree, doors: ['settings', 'people', 'roles', 'access', 'profile'], acts: [],
-    words: { en: ['people', 'roles', 'grants', 'signing cap', 'add a person', 'permissions', 'access review', 'who holds what'], sv: ['personer', 'roller', 'behörigheter', 'signeringstak', 'lägg till en person', 'till en person', 'behörighetsgranskning'] },
+    words: { en: ['people', 'roles', 'grants', 'signing cap', 'signing limit', 'add a person', 'permissions', 'access review', 'who holds what'], sv: ['personer', 'roller', 'behörigheter', 'signeringstak', 'signeringsgräns', 'lägg till en person', 'till en person', 'behörighetsgranskning'] },
     shots: [
       { go: [{ view: 'team' }, { fn: 'sddGo', args: ['company'] }, { waitFor: '#sdd-people [data-st-page="team"]' }], boxes: [{ sel: '#sdd-people [data-st-page="team"]', step: 1 }], cap: { en: 'People & roles, a row in the Company area (1).', sv: 'Personer och roller, en rad under Företaget (1).' } },
       { go: [{ view: 'team' }, { fn: 'settingsGoPage', args: ['team'] }], boxes: [{ sel: '#st-add-person', step: 1 }, { sel: '#st-people-q', step: 2 }], cap: { en: 'The team: Add member (1), and find a person to open (2).', sv: 'Laget: Lägg till medlem (1), och hitta en person att öppna (2).' } }] },

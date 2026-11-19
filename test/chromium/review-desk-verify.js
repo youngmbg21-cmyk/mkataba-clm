@@ -69,7 +69,16 @@ const check = (name, pass, detail) => {
     const door = await until(DOOR);
     check('1. the door says "Review N proposed", N the desk\'s own', door && /Review 4 proposed/.test(door), door);
     if (!door) throw new Error('no door into the held duties on the Dossier\'s Obligations panel');
-    await page.click('[data-rd-door]');
+    /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked against the Playbook is checked on its
+       first open, pbCheckOnOpen): that check repaints the Dossier when it lands, drawing the door afresh without the
+       test's own tag — so wait for it to settle, and tag the door again should a repaint still come between */
+    await until(id => { const c = getContract(id); const s = (typeof pbOpenCheckState === 'function') ? pbOpenCheckState(c) : null; return !(s && s.run); }, cid, 15000);
+    let pressed = false;
+    for (let k = 0; k < 4 && !pressed; k++){
+      if (!(await until(DOOR))) break;
+      pressed = await page.click('[data-rd-door]', { timeout: 4000 }).then(() => true, () => false);
+    }
+    if (!pressed) throw new Error('the door into the held duties could not be pressed');
     /* RE-POINTED 17 Nov 2026 (#762): the page is measured once its arrival has finished (a pop-up's arrival slides it a few
        pixels; read mid-slide its foot sat 5px below the window) */
     const desk = await until(() => { const d = document.getElementById('obd'); if (!d) return null;

@@ -68,9 +68,12 @@ describe('f757 (2) To, as the email says it', () => {
   test('2a a known recipient is one line with Change; Change opens the same two boxes', async () => {
     const m = await openShare(contract());
     assert.equal(m.$('#sh-letter').getAttribute('data-sh-to'), 'folded');
-    assert.ok(!m.$('#sh-lt-tosay').classList.contains('hidden'), 'the line is shown');
     assert.equal(m.txt('#sh-lt-towho'), 'Anna Holm · anna.holm@nordvik.example');
-    assert.ok(m.$('.sh-lt-who').classList.contains('hidden'), 'the boxes wait behind Change');
+    /* RE-POINTED 19 Nov 2026 (owner's pick, the send steps the Legora way, f1104): in the four steps the known person
+       stands in the lines themselves (Person · Email), never folded away behind the chip (which stands down there) */
+    assert.ok(m.$('#sh-letter').classList.contains('is-steps'), 'the four steps are drawn');
+    assert.ok(m.$('#sh-lt-tosay').classList.contains('hidden'), 'no folded line in the steps');
+    assert.ok(!m.$('.sh-lt-who').classList.contains('hidden') && m.$('#sh-email').value === 'anna.holm@nordvik.example', 'the person stands in the lines, filled');
     m.click(m.$('#sh-lt-change'));
     assert.equal(m.$('#sh-letter').getAttribute('data-sh-to'), 'open');
     assert.ok(!m.$('.sh-lt-who').classList.contains('hidden') && m.$('#sh-email').value === 'anna.holm@nordvik.example', 'the same boxes, filled');

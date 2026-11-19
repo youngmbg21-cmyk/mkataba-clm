@@ -308,8 +308,10 @@ async function readWin(page){
     /* ---------- 5 · A NEW ROUTE ---------- */
     const f = await openOn(staged.fresh);
     const freshTheirs = f && f.steps.flatMap(x => x.people).find(p => /^For /.test(p.forTx) && p.forTx !== 'For Highland Corporate Ltd');
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1", as drawn; as 2a): the route opens resting, so their
+       person is a line, not an open box; the line still never carries the company's name as the person */
     ok('5a a new route never opens with the company\'s name in their box',
-      !!freshTheirs && freshTheirs.open && freshTheirs.name !== staged.freshCp, freshTheirs);
+      !!freshTheirs && !freshTheirs.open && !!freshTheirs.name && freshTheirs.name !== staged.freshCp, freshTheirs);
     ok('5b where the record knows nobody there, it asks the question instead',
       !!freshTheirs && (freshTheirs.name !== '' || f.hints.includes('Who signs for ' + staged.freshCp + '?')), f && { name: freshTheirs && freshTheirs.name, hints: f.hints });
     await page.evaluate(() => { if (document.getElementById('sr-win')) closeModal(); });

@@ -102,7 +102,10 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => openWorkspace('MK-A2', { room: true }));
     await until(() => !!document.getElementById('ws-mynote'));
     await page.evaluate(() => document.getElementById('ws-mynote').click());
-    const fromRoom = await until(() => state.view === 'mynotes' && document.querySelector('.mn-chosen') ? document.querySelector('.mn-chosen').textContent.replace(/\s+/g, ' ').trim() : null);
+    /* RE-POINTED 19 Nov 2026 (owner, "Build 1": a new note is the one edit pop-up beside Jambo's panel; f1101): the
+       contract stands in the sheet's About line (#mn-sheet .lgp-in.is-read); narrower, the page's own form (.mn-chosen) */
+    const fromRoom = await until(() => { const el = document.querySelector('#mn-sheet .lgp-in.is-read') || document.querySelector('.mn-chosen');
+      return state.view === 'mynotes' && el ? el.textContent.replace(/\s+/g, ' ').trim() : null; });
     check('6. a contract\'s ⋯ menu opens the form with the contract filled in', !!fromRoom && /MK-A2/.test(fromRoom), fromRoom);
     check('7. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

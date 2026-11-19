@@ -21094,6 +21094,20 @@
   html.lg-new .sdd-go{appearance:none;border:0;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:13px;font-weight:var(--w-label);height:var(--ctl-h-sm);padding:0 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
   html.lg-new .sdd-row:is(:hover,.is-chosen) .sdd-go{background:var(--color-surface)}
   html.lg-new .sdd-row .sdd-go.is-black{background:var(--color-text);color:var(--color-surface)}
+  /* A NARROW WINDOW KEEPS EVERY ROW'S DOOR IN SIGHT (swedish-verify, narrow desktop 800): the four columns need about
+     460px, more than the list has beside Jambo's panel in a small window, and the row ran on under the panel with its
+     door (the language switch) out of reach. Where the list is narrower than that, what a row is set to and its door
+     stand under its sentence instead; the "Set to" column head stands down with its column. Wider lists are unchanged. */
+  html.lg-new .sdd-page .stn-main{container-type:inline-size}
+  @container (max-width:599.98px){
+    html.lg-new .sdd-row{grid-template-columns:40px minmax(0,1fr);row-gap:6px}
+    html.lg-new .sdd-row > .sdd-mk{grid-row:1 / span 3;align-self:start}
+    html.lg-new .sdd-row > :is(.sdd-t,.sdd-now,.sdd-a){grid-column:2}
+    html.lg-new .sdd-row > .sdd-a{justify-content:flex-start;flex-wrap:wrap}
+    html.lg-new .sdd-colh{grid-template-columns:minmax(0,1fr)}
+    html.lg-new .sdd-colh span:first-child{grid-column:auto}
+    html.lg-new .sdd-colh span:nth-child(2){display:none}
+  }
   html.lg-new :is(.sdd-foot,.sdd-empty){margin:14px 12px 0;font-size:12.5px;color:var(--color-neutral-400)}
   html.lg-new .sdd-pgback-line{margin:0 0 6px}
   html.lg-new .st-pg > .sdd-pgback-line{padding:0 16px}

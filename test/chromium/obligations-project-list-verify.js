@@ -171,7 +171,10 @@ function world(){
     land.five && /dut/i.test(land.title || '') && land.tiles === 3 && land.rows >= 1 && land.black && !land.lg, land);
   await page.screenshot({ path: path.join(OUT, '5-landed.png') });
 
-  const cid2 = await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); const id = r && r.closest('tr').getAttribute('data-obn-pick'); if (r) r.click(); return id; });
+  /* RE-POINTED 19 Nov 2026 (f1102: Add takes only what was given a side, so the agreement 7–9 answered STAYS in the list
+     with one duty left, whose words carry no time limit to mark): the press goes to an agreement nobody has answered yet */
+  const cid2 = await page.evaluate(done => { const tr = [...document.querySelectorAll('.obn-pr[data-obn-pick]')].find(x => ![done.a, done.b].includes(x.getAttribute('data-obn-pick')));
+    const r = tr && tr.querySelector('td.obn-c1'); const id = r && tr.getAttribute('data-obn-pick'); if (r) r.click(); return id; }, { a: cid, b: sid });
   const chose = cid2 ? await until(page, () => !!document.querySelector('#ins-panel .obn-lg'), 5000) : false;
   const lg = chose ? await page.evaluate(id => { const p = document.getElementById('ins-panel'), L = p.querySelector('.obn-lg');
     const its = [...L.querySelectorAll('.obn-lg-it:not(.is-next)')];
