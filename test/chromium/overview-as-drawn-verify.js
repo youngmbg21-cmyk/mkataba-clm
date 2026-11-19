@@ -582,6 +582,13 @@ const SEC = (suffix) => {
     await page.waitForTimeout(1600);
     await page.evaluate(x => { state.activeId = x; state.selId = x; openWorkspace(state.activeId, { room: true }); }, c.id);
     await page.waitForTimeout(1400);
+    /* RE-POINTED 19 Nov 2026 (f1099): opened on purpose, the contract lands on its Cover, a page of its own drawn at once
+       over the page it was opened from; Open the dossier is the step onto the paper */
+    if (await page.waitForSelector('[data-cv-open]', { timeout: 4000 }).then(() => true, () => false)){
+      await page.click('[data-cv-open]', { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction(() => !document.querySelector('.cv-page'), null, { timeout: 6000 }).catch(() => {});
+      await page.waitForTimeout(800);
+    }
     await page.click('#ws-tabs [data-ws-tab="terms"]');
     await page.waitForTimeout(1200);
     /* RE-POINTED 8 Oct 2026 (the Constellation page): the parties are the

@@ -1,5 +1,5 @@
 'use strict';
-/* f1099 — THE ONE EDIT POP-UP, THE LEGORA WAY, AND "TELL JAMBO, HE FILLS IT IN" (owner, 19 Nov 2026: "use legora way";
+/* f1100 — THE ONE EDIT POP-UP, THE LEGORA WAY, AND "TELL JAMBO, HE FILLS IT IN" (owner, 19 Nov 2026: "use legora way";
    "I am simply able to instruct jambo to add so and so as the contact for this company and then it does it for me and
    I just have to press add or save")
    1 · ONE builder (lgpHtml, js/components.js): a serif head, label-beside-words lines with no boxes, a paged tick list
@@ -20,7 +20,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const fnBody = (src, name) => { const i = src.search(new RegExp('(?:async )?function ' + name + '\\(')); assert.ok(i >= 0, name); return src.slice(i, src.indexOf('\n}', i) + 2); };
 const COMP = read('js/components.js'), CU = read('js/views/customers.js'), PT = read('js/participants.js');
 
-test('f1099 (1) one builder: serif head, lines without boxes, a list paged by six, one black button, Cancel last', () => {
+test('f1100 (1) one builder: serif head, lines without boxes, a list paged by six, one black button, Cancel last', () => {
   const H = strip(fnBody(COMP, 'lgpHtml'));
   assert.match(H, /class="lgp-h"/); assert.match(H, /type="submit" class="ui-btn ui-btn-primary lgp-go"/);
   assert.ok(H.indexOf('${prim}${alt}${cancel}') > 0, 'the black button, the grey act, then Cancel');
@@ -31,7 +31,7 @@ test('f1099 (1) one builder: serif head, lines without boxes, a list paged by si
   assert.ok(css.indexOf('.lgp .lgp-in{') < css.indexOf('html:not(#_):not(#_) :is(input:not'), 'before the closing field rule, which keeps a pressed line to one light edge');
 });
 
-test('f1099 (2) the panel edits open it; nothing is typed inside the panel', () => {
+test('f1100 (2) the panel edits open it; nothing is typed inside the panel', () => {
   assert.match(strip(fnBody(CU, 'partyRecordOpen')), /lgpOpen\(\{ id: 'cu-pr-form'/);
   assert.doesNotMatch(strip(fnBody(CU, 'cunPanelFiveHtml')), /<form|html: `<form/, 'the panel draws no form');
   assert.match(strip(fnBody(PT, 'partyContactsOpen')), /lgpOpen\(/);
@@ -60,14 +60,14 @@ function reader(chosen){
   return sb.read;
 }
 
-test('f1099 (3) one sentence fills a contact: the party, name, title, email, phone, role', () => {
+test('f1100 (3) one sentence fills a contact: the party, name, title, email, phone, role', () => {
   const r = reader(null)('Add Grace Wambui, Head of Buying, grace@naivas.co.ke, +254 722 418 305, she signs for them, as the contact for Naivas Supermarkets');
   assert.ok(r && r.party, 'the party is read from the words');
   assert.equal(r.party.name, 'Naivas Supermarkets');
   assert.deepEqual(JSON.parse(JSON.stringify(r.prefill)), { name: 'Grace Wambui', title: 'Head of Buying', email: 'grace@naivas.co.ke', phone: '+254 722 418 305', role: 'cpsign' });
 });
 
-test('f1099 (3b) the chosen party is used when none is named; a sentence that is not an add is left to the others', () => {
+test('f1100 (3b) the chosen party is used when none is named; a sentence that is not an add is left to the others', () => {
   const r = reader('kabras sugar')('add Peter Otieno, procurement lead, peter@kabras.co.ke as a contact');
   assert.equal(r.party.name, 'Kabras Sugar');
   assert.equal(r.prefill.name, 'Peter Otieno'); assert.equal(r.prefill.title, 'procurement lead'); assert.equal(r.prefill.email, 'peter@kabras.co.ke');
@@ -78,7 +78,7 @@ test('f1099 (3b) the chosen party is used when none is named; a sentence that is
   assert.ok(none && !none.party, 'no party named or chosen: Jambo asks which');
 });
 
-test('f1099 (3c) every Jambo box asks it first; the sheet marks what Jambo filled and saves nothing before Add', () => {
+test('f1100 (3c) every Jambo box asks it first; the sheet marks what Jambo filled and saves nothing before Add', () => {
   const ask = fnBody(read('js/copilotacts.js'), 'caAskAnywhere');
   assert.ok(ask.indexOf('cuContactAsk(t, opts.say)') > 0 && ask.indexOf('cuContactAsk(t, opts.say)') < ask.indexOf('caUnderstand(t, { box })'));
   assert.match(strip(fnBody(PT, 'partyContactsOpen')), /o\.prefill && !o\.edit/);

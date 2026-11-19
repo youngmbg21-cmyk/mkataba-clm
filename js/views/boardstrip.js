@@ -61,7 +61,11 @@ function hbStripBring(id, page){
   const isUp = () => { try { return !!(typeof upFn === 'function' && upFn(c.id)); } catch (_){ return false; } };
   if (mid && onIt() && isUp()) return true;
   if (mid && typeof window[mid] === 'function' && onIt() && window[mid](c.id)) return true;
-  if (roomHomeLand(c.id) === false) return false;
+  /* WHERE WE ARE IS THE COVER, A PAGE OF ITS OWN (f1099): drawn over the page pressed from, no paper under it */
+  if (page === 'where' && typeof window.pdCoverGo === 'function' && window.pdCoverGo(c.id)) return true;
+  /* the page in the middle comes once the paper stands; the paper is never shown on the way (pdMidArriving, f1099) */
+  if (mid && typeof window.pdMidArriving === 'function') window.pdMidArriving(c.id);
+  if (roomHomeLand(c.id) === false){ if (typeof window.pdArriveEnd === 'function') window.pdArriveEnd(); return false; }
   /* the paper takes its own time to arrive from the Board, a list or Settings: the middle page opens once it stands,
      asked again every BS_MID_STEP_MS, bounded (BS_MID_TRIES); another contract's paper in front ends the wait */
   if (mid && typeof window[mid] === 'function'){
@@ -213,7 +217,8 @@ function payEditOpen(id){
     return !!(pc && String(pc.id) === String(c.id) && typeof pdOnPaper === 'function' && pdOnPaper()); } catch (_){ return false; } })();
   /* the box takes the focus a beat after the page opens: the pop-up's own focus lands first */
   if (onIt){ if (!window.pd2PayOpen(c.id)){ _bsPay = null; return false; } setTimeout(() => bsPayFocus(id), 80); return true; }
-  if (typeof roomHomeLand !== 'function' || roomHomeLand(c.id) === false){ _bsPay = null; return false; }
+  if (typeof window.pdMidArriving === 'function') window.pdMidArriving(c.id);
+  if (typeof roomHomeLand !== 'function' || roomHomeLand(c.id) === false){ _bsPay = null; if (typeof window.pdArriveEnd === 'function') window.pdArriveEnd(); return false; }
   setTimeout(() => { try { if (window.pd2PayOpen(c.id)) setTimeout(() => bsPayFocus(id), 80); } catch (_){} }, 400);
   return true;
 }

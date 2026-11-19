@@ -9,6 +9,7 @@
      neither the page pressed from nor the page arrived at: the paper, the Board, Contracts, the Cover. A loading
      state (the Cover's veil, a page's own loading line, nothing yet) is not a flash.
    Before f1096 it fails: Cover → Contracts and Contracts → a contract painted the paper on the way.
+   Before f1099 it fails: ‹ and Esc from the Cover showed the contract's paper, a second ‹ to reach Contracts.
    Run: node test/chromium/no-page-flashes-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -85,6 +86,10 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
       ['Cover → Contracts ›', S.cover, { click: '.cv-door' }],
       ['Cover → The brief', S.cover, { click: '[data-cv-go="brief"]' }],
       ['Cover → Open the dossier', S.cover, { click: '.cv-open' }],
+      /* f1099 (owner, 19 Nov 2026): the Cover is a page of its own over the page pressed from — ONE ‹ (or Esc) and
+         Contracts is there, never the contract's paper on the way */
+      ['Cover → the bar\'s ‹ back (one press to Contracts)', S.cover, { click: '#dk-back', lands: 'contracts' }],
+      ['Cover → Esc (one press to Contracts)', S.cover, { key: 'Escape', lands: 'contracts' }],
       ['Paper → Clauses tab', S.paper, { click: '[data-pd-tab="doc"]' }],
       ['Paper → Redlines tab', S.paper, { click: '[data-pd-tab="red"]' }],
       ['Paper → the bar\'s ‹ back', S.paper, { click: '#dk-back' }],
@@ -106,7 +111,8 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
           window.__nfGo = () => { t0 = performance.now(); last = what(); out.push([0, last]); requestAnimationFrame(tick); }; }), { NAMER, MS: WATCH_MS });
         await until(page, () => typeof window.__nfGo === 'function', null, 5000);
         await page.evaluate(() => { const g = window.__nfGo; delete window.__nfGo; g(); });
-        if (act.click) await page.click(act.click, { timeout: 8000 });
+        if (act.key) await page.keyboard.press(act.key);
+        else if (act.click) await page.click(act.click, { timeout: 8000 });
         else if (act.strip) await page.click(`#cmd-palette .lp-p[data-lp-go="${act.strip}"]`, { timeout: 8000 });
         else await page.evaluate(c => eval(c), act.js);
         frames = await rec;
@@ -122,6 +128,7 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
         for (const pg of s.split('|')) if (NAMED.includes(pg) && !ends.has(pg)) flashes.push(`${pg} at ${t}ms for ${dur}ms`);
       }
       check(`${name}: no other page painted on the way`, !flashes.length, flashes.length ? { flashes, frames } : undefined);
+      if (act.lands) check(`${name}: lands on ${act.lands}`, last.split('|').includes(act.lands), { last });
     }
     await page.close();
   } finally { await browser.close(); }

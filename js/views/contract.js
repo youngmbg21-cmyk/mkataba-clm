@@ -5049,6 +5049,9 @@ function roomHomeLand(id, opts){
   void owed; void may;
   /* THE COVER (owner, 16 Nov 2026): a door that opens the contract itself says so (opts.cover); a door on its way to a
      job inside it lands on the paper alone */
+  /* THE COVER IS A PAGE OF ITS OWN (owner, 19 Nov 2026): a door asking for it goes there alone, over the page it was
+     pressed on — the paper opens only when the Cover is left for it (pdCoverGo / pdCoverLeave) */
+  if(opts&&opts.cover&&typeof window.pdCoverGo==='function'&&window.pdCoverGo(c.id)) return true;
   const ok=!!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open',{ cover:false });
   if(ok&&opts&&opts.cover&&typeof window.pdCoverLand==='function') window.pdCoverLand(c.id);
   return ok;

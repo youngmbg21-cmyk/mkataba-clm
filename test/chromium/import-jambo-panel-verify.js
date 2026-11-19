@@ -55,7 +55,10 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
     /* RE-POINTED 16 Nov 2026 (#762): with files in, the new look's Import is its one table (.mign-page); before, the empty page with its drop strip */
-    const toImport = () => until(() => { if (!document.getElementById('mig-drop') && !document.querySelector('.mign-page')) { setView('migration'); return null; } return true; }, null, 8000);
+    /* RE-POINTED 19 Nov 2026 (f1099): a contract opened from Import lands on its Cover, a page over Import — back to Import
+       takes it away (the bar's ‹ does the same) */
+    const toImport = () => until(() => { if (document.querySelector('#modal-root .cv-page') && typeof pdMidClose === 'function') { pdMidClose(); return null; }
+      if (!document.getElementById('mig-drop') && !document.querySelector('.mign-page')) { setView('migration'); return null; } return true; }, null, 8000);
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2'), null, 20000);
@@ -127,14 +130,14 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       await page.locator(`.mign-table tbody tr[data-row="${filedId}"] td:nth-child(1)`).click();
       await until(id => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') ? true : null; }, filedId, 3000);
       if (await press(SIDE + ' .jov5-go', '4a Open the contract')) {
-        const opened = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
+        const opened = await until(id => document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) ? 'cover' : state.view !== 'migration' ? state.view : null, filedId, 6000);
         check('4a the panel\'s Open the contract opens the contract', !!opened, String(opened));
       }
       await toImport();
       /* RE-POINTED (#762): the row's own word — Open on a filed file — opens it; a row press only chooses */
       await until(sel => document.querySelector(sel), `.mign-table tbody tr[data-row="${filedId}"] [data-mign-go]`, 4000);
       if (await press(`.mign-table tbody tr[data-row="${filedId}"] [data-mign-go]`, '4b the row\'s Open')) {
-        const opened2 = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
+        const opened2 = await until(id => document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) ? 'cover' : state.view !== 'migration' ? state.view : null, filedId, 6000);
         check('4b the row\'s own Open opens it', !!opened2, String(opened2));
       }
       await toImport();

@@ -476,7 +476,8 @@ function pdOpenOnHome(id, tab, o){
   /* THE COVER FIRST (owner, 16 Nov 2026): 'open' is the door a person presses to open the contract itself (a list row,
      a typed "open MK-…"); it lands on the paper and the Cover stands over it. o.cover false asks for the paper alone
      (roomHomeLand, whose callers say which they are) */
-  if (tab === 'open' && !(o && o.cover === false)){ const ok = pdOpenOnHome(id, 'open', { cover: false }); if (ok) pdCoverLand(id); return ok; }
+  if (tab === 'open' && !(o && o.cover === false)){ if (pdCoverGo(id)) return true; const ok = pdOpenOnHome(id, 'open', { cover: false }); if (ok) pdCoverLand(id); return ok; }
+  if (typeof pdArriveNote === 'function') pdArriveNote(id);
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* FILL IN THE CONTRACT IS ITS OWN DOOR'S: any other door that opens a paper puts the form away (the Fill in door,
      pdFillOpen, asks for it again once the paper is up — what was answered there stays, _pdForm). A Fill in landing
@@ -5915,8 +5916,10 @@ function pdKtOpen(id, key){
   /* on a computer the table stands in the middle beside the Dossier (pdKtMid): the paper first, then the table */
   if (pdKtMidShell()){
     if (pdKtMid(id, key)) return true;
+    const arr = typeof pdMidArriving === 'function';
+    if (arr) pdMidArriving(id);
     const ok = pdOpenOnHome(id, 'plain');
-    if (ok === false) return false;
+    if (ok === false){ if (arr) pdArriveEnd(); return false; }
     let n = 0;
     const go = () => { if (pdKtMid(id, key)) return; if (++n < PD_FILL_TRIES) setTimeout(go, PD_FILL_BEAT_MS); };
     setTimeout(go, PD_FILL_BEAT_MS);
@@ -6785,11 +6788,48 @@ function pdMidCrumbHtml(what){
 function pdMidPage(what){
   return { crumb: _pdT('pd_stage_paper') + ' › ' + String(what || ''), crumbHtml: pdMidCrumbHtml(what), beside: '#ig-dock' };
 }
+/* A PAGE IN THE MIDDLE OPENED FROM ANOTHER PAGE IS A PAGE, NOT A SHEET OVER THE PAPER (owner, 19 Nov 2026: "this should
+   apply to all the other areas where flashes are there. Go to the page not a sheet laid over"; f1099). A door off this
+   contract's paper (Contracts, the Board, the bell, a list) that opens History, pay, Key terms, the brief or a fill-in
+   form beside the Dossier notes WHERE IT WAS PRESSED FROM (pdArriveNote, in pdOpenOnHome): the page in the middle
+   keeps it (_pdMid.from), so ‹ and Esc go straight back there in ONE press, the paper never shown (pdMidFrom,
+   deskGoBack). A door that opens its page only once the paper stands says so first (pdMidArriving): the page's own
+   ground stands over the paper meanwhile (pdCoverVeil), taken away when the page stands, bounded (CV_LAND_MS). A
+   person's own press in the meantime ends the note: what they open then is theirs, beside the paper. */
+let _pdArrive = null;
+const _pdArriveMs = () => (typeof CV_LAND_MS === 'number' ? CV_LAND_MS : 4000);
+const _pdVeil = on => { if (typeof pdCoverVeil === 'function') pdCoverVeil(on); };
+function pdArriveNote(id, veil){
+  const sid = String(id);
+  if (_pdArrive && _pdArrive.id === sid && Date.now() - _pdArrive.t < _pdArriveMs()){ if (veil && !_pdArrive.veil){ _pdArrive.veil = true; _pdVeil(true); } return; }
+  let here = false; try { const pc = pdContract(); here = !!(pc && String(pc.id) === sid && pdOnPaper()); } catch (_){ here = false; }
+  if (here) return;
+  let from = ''; try { from = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ from = ''; }
+  const t = Date.now(); _pdArrive = { id: sid, from, t, veil: !!veil };
+  if (veil) _pdVeil(true);
+  setTimeout(() => { if (_pdArrive && _pdArrive.t === t) pdArriveEnd(); }, _pdArriveMs());
+}
+function pdMidArriving(id){ pdArriveNote(id, true); }
+function pdArriveEnd(){ const a = _pdArrive; _pdArrive = null; if (a && a.veil) _pdVeil(false); }
+function pdMidFrom(){ return (_pdMid && _pdMid.from) || ''; }
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('pointerdown', () => { if (_pdArrive) pdArriveEnd(); }, true);
+/* Esc on a page opened from another page goes back there, as ‹ does (never to the paper) */
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.defaultPrevented || !pdMidFrom() || typeof deskGoBack !== 'function') return;
+  const ds = document.querySelectorAll('#modal-root [role="dialog"]'), top = ds[ds.length - 1];
+  if (!top || !(top.matches('[data-pd-mid]') || top.closest('[data-pd-mid]') || top.querySelector('[data-pd-mid]'))) return;
+  if (document.getElementById('cmd-palette')) return;
+  e.preventDefault(); e.stopImmediatePropagation(); deskGoBack();
+}, true);
 /* asked AFTER openModal: a page replacing another one in the middle keeps the middle */
 function pdMidOn(key){
   /* the page it belongs to (the desk's own key, deskKeyNow): another page or contract in front puts it away (pdMidStale) */
   let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
   _pdMid = { key: String(key), at };
+  /* opened on arrival from another page: that page is its way back (pdArriveNote) */
+  if (typeof _pdArrive !== 'undefined' && _pdArrive){ const a = _pdArrive; let pc = null; try { pc = pdContract(); } catch (_){ pc = null; }
+    if (a.from && a.from !== at && pc && String(pc.id) === a.id) _pdMid.from = a.from;
+    pdArriveEnd(); }
   const p = document.querySelector('#modal-root [data-dlg-page]'); if (p) p.setAttribute('data-pd-mid', String(key));
   pdMidSync();
 }
@@ -6797,8 +6837,13 @@ function pdMidOff(){ if (!_pdMid) return; _pdMid = null; pdMidSync(); }
 /* asked after every page is drawn (deskTabsSync): the middle stands only on the page that opened it */
 function pdMidStale(){
   if (!_pdMid) return false;
+  /* the Cover stays in place while the contract it leads to is drawn under it (pdCoverLeave) */
+  if (_cvHold && _pdMid.key === 'cover:' + _cvHold) return false;
   let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
   if (at === _pdMid.at) return false;
+  /* the Cover over its OWN contract's paper stands, whatever the page settled to under it (19 Nov 2026) */
+  if (_pdMid.key.indexOf('cover:') === 0){ let pc = null; try { pc = pdContract(); } catch (_){ pc = null; }
+    if (pc && String(pc.id) === _pdMid.key.slice(6) && pdOnPaper()){ _pdMid.at = at; return false; } }
   if (typeof closeModal === 'function') closeModal();
   pdMidOff();
   return true;
@@ -6811,6 +6856,8 @@ function pdMidClose(){
 /* "‹ Paper" first in the chips under the Dossier while the middle holds a page; the lines that opened it say so */
 function pdMidSync(){
   pdMidBackSync();
+  /* the bar's ‹ and page name follow a page in the middle (the Cover names its contract) */
+  try { if (typeof deskBarPaint === 'function') deskBarPaint(); } catch (_){}
   try { pdNeedsRepaint(); } catch (_){}
   try { pdKtLineSync(); } catch (_){}
 }
@@ -8835,7 +8882,9 @@ function pd2BriefGo(c){
   if (here()){ pd2BriefOpen(c.id, { stay: true }); return true; }
   if (typeof roomHomeLand !== 'function') return false;
   if (pdMidUp() && typeof closeModal === 'function') try { closeModal(); } catch (_){}
-  try { if (roomHomeLand(c.id) === false) return false; } catch (_){ return false; }
+  const arr = typeof pdMidArriving === 'function', end = () => { if (arr) pdArriveEnd(); };
+  if (arr) pdMidArriving(c.id);
+  try { if (roomHomeLand(c.id) === false){ end(); return false; } } catch (_){ end(); return false; }
   let n = 0; const tick = () => { if (here()){ pd2BriefOpen(c.id, { stay: true }); return; } if (++n < 40) setTimeout(tick, 100); };
   setTimeout(tick, 50);
   return true;
@@ -10209,7 +10258,7 @@ function pdCoverRightHtml(V){
   return `<div class="cv-r"><div class="cv-top"><span class="cv-chip is-${tone}"><i></i>${E(chip)}</span>${V.last ? `<span>${E(_pdT('cv_last', { day: V.last }))}</span>` : ''}<button type="button" class="cv-lnk cv-door" data-cv-go="contracts" data-cv-cid="${E(c.id)}">${E(_pdT('nav_contracts'))} ›</button></div>
     <div class="cv-h" role="heading" aria-level="1">${E(h)}</div><p class="cv-why">${E(why)}</p>${road}${count}
     <div class="cv-more"><div><div class="cv-lbl">${E(_pdT('cv_lately'))}</div>${lately}</div><div><div class="cv-lbl">${E(_pdT('cv_coming'))}</div>${coming}</div></div>
-    <div class="cv-go"><button type="button" class="ui-btn ui-btn-primary cv-open" data-cv-open data-pd-mid-back>${E(_pdT('cv_open'))} ›</button><button type="button" class="cv-lnk" data-cv-go="brief" data-cv-cid="${E(c.id)}">${E(briefW)}</button></div></div>`;
+    <div class="cv-go"><button type="button" class="ui-btn ui-btn-primary cv-open" data-cv-open data-cv-cid="${E(c.id)}">${E(_pdT('cv_open'))} ›</button><button type="button" class="cv-lnk" data-cv-go="brief" data-cv-cid="${E(c.id)}">${E(briefW)}</button></div></div>`;
 }
 function pdCoverHtml(c){
   const V = pdCoverOf(c); if (!V) return '';
@@ -10217,16 +10266,98 @@ function pdCoverHtml(c){
   const notes = V.notes.map(x => `<div class="cv-note${x.tone ? ' is-' + x.tone : ''}"><b>${E(x.b)}</b>${E(x.t)}</div>`).join('');
   return `<div class="cv-page" data-cv="${E(c.id)}" data-cv-stage="${E(V.stage)}"><div class="cv-desk">${pdCoverSheetHtml(V)}${notes ? `<div class="cv-notes">${notes}</div>` : ''}</div>${pdCoverRightHtml(V)}</div>`;
 }
-function pdCoverOpen(id){
-  const mk = 'cover:' + String(id);
+/* THE COVER IS A PAGE OF ITS OWN (owner, 19 Nov 2026: "When i press on the contract, it goes white for a second then
+   goes to cover but when i press the back button, the page takes me to the contract itself … Go to the page not a
+   sheet laid over"): a contract opened on purpose shows its Cover OVER THE PAGE IT WAS OPENED FROM — the contract's
+   paper is not opened under it, so nothing white waits and Back (‹, Esc) returns where the reader was, in one press.
+   The paper is opened only when the Cover is left for it (pdCoverLeave), and the Cover stays until it stands. */
+let _cvHold = null, _cvGoing = null;
+function pdCoverShow(c){
+  if (!c) return false;
+  const id = String(c.id), mk = 'cover:' + id;
   if (pdMidUp(mk)) return true;
-  const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper() || !pdMidMay()) return false;
   if (pdMidUp() && typeof closeModal === 'function') try { closeModal(); } catch (_){}
-  openModal(pdCoverHtml(c), { maxWidth: 'none', label: c.name || String(id), page: { bare: true },
+  openModal(pdCoverHtml(c), { maxWidth: 'none', label: c.name || id, page: { bare: true },
     onClose: () => { pdMidOff(); try { pdGlanceRepaint(); } catch (_){} try { if (typeof placeSave === 'function') placeSave(); } catch (_){} } });
   pdMidOn(mk);
   const pg = document.querySelector('#modal-root [data-dlg-page]'); if (pg) pg.classList.add('is-cover');
   try { if (typeof placeSave === 'function') placeSave(); } catch (_){}
+  return true;
+}
+/* from within the contract (our Where we are door, pd2StandsOpen): the Cover over its own paper */
+function pdCoverOpen(id){
+  const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper() || !pdMidMay()) return false;
+  return pdCoverShow(c);
+}
+/* the one door a press that opens a contract on purpose goes through (a list row, a Board row, a typed number):
+   its record read first if only the list's light row is here — the page pressed from stays meanwhile, the pointer
+   says it is working — then the Cover. False on the phone or the old look: the caller opens the paper as before. */
+/* the Cover is holding the page while its own contract's paper is drawn under it (pageScreenStays asks) */
+function pdCoverHeld(){ return !!(_cvHold && pdMidUp('cover:' + _cvHold)); }
+function pdCoverGo(id){
+  if (typeof document === 'undefined' || !pd2On()) return false;
+  if (typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768))) return false;
+  const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c || c._codeNamed) return false;
+  /* THE RETIRED ROOM IS NO PAGE TO STAND OVER (19 Nov 2026, every-door-lands-on-home G/F): an email link or a refresh
+     on the old room arrives through its view, which is only a way into Home — there the Cover comes over the paper
+     as before (pdCoverLand), never over the room */
+  if (typeof state === 'object' && state && (state.view === 'workspace' || state.view === 'doc')) return false;
+  /* a way into this very contract already under way (an email link's room door, then its tab) brings its own Cover:
+     a second one is never started over it */
+  if (typeof _pdArrive !== 'undefined' && _pdArrive && _pdArrive.id === String(id) && Date.now() - _pdArrive.t < _pdArriveMs()) return false;
+  /* THE PAPER COMES UNDER IT, UNSEEN (19 Nov 2026): once the Cover stands, the contract's paper and Dossier are opened
+     under it, held there (_cvHold) — every reading of "this contract is open" (a refresh, a door, the bar) stays true,
+     and nothing of it is seen. When the paper stands the Cover belongs to it, and keeps the page it was pressed from
+     as its way back (_pdMid.from): ‹ and Esc go there in one press, the paper never shown (deskGoBack). */
+  /* ONE COVER PER WAY IN (19 Nov 2026): an email link asks for it twice a moment apart (the room's door, then its
+     tab); the second ask while the first is on its way, or while its paper is being drawn under it, is the same one */
+  if (_cvGoing === String(id) || _cvHold === String(id)) return true;
+  _cvGoing = String(id);
+  const show = () => {
+    if (_cvGoing === String(id)) _cvGoing = null;
+    let from = ''; try { from = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ from = ''; }
+    if (!pdCoverShow((typeof getContract === 'function' && getContract(id)) || c)) return;
+    const sid = String(id), mk = 'cover:' + sid;
+    const onIt = () => { const pc = pdContract(); return !!(pc && String(pc.id) === sid && pdOnPaper()); };
+    if (onIt()) return;
+    _cvHold = sid;
+    /* the Cover is painted first; the paper is drawn under it in the frame after, so the reader never waits for it */
+    const t0 = Date.now();
+    const tick = () => {
+      if (!pdMidUp(mk)){ if (_cvHold === sid) _cvHold = null; return; }
+      if (onIt()){
+        if (_cvHold === sid) _cvHold = null;
+        let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
+        if (_pdMid && _pdMid.key === mk){ _pdMid.at = at; if (from && from !== at) _pdMid.from = from; }
+        if (typeof _pdArrive !== 'undefined' && _pdArrive && _pdArrive.id === sid) pdArriveEnd();
+        pdMidSync(); return;
+      }
+      if (Date.now() - t0 < CV_LAND_MS) requestAnimationFrame(tick); else if (_cvHold === sid) _cvHold = null;
+    };
+    requestAnimationFrame(() => setTimeout(() => {
+      if (!pdMidUp(mk)){ if (_cvHold === sid) _cvHold = null; return; }
+      try { pdOpenOnHome(sid, 'open', { cover: false }); } catch (_){}
+      tick();
+    }, 0));
+  };
+  if (c._loaded || typeof ensureFull !== 'function' || !(typeof API_MODE === 'function' && API_MODE())){ show(); return true; }
+  const root = document.documentElement; root.classList.add('is-opening');
+  Promise.resolve().then(() => ensureFull(c)).then(show, () => { if (_cvGoing === String(id)) _cvGoing = null; pdOpenOnHome(id, 'open', { cover: false }); })
+    .finally(() => root.classList.remove('is-opening'));
+  return true;
+}
+/* LEAVING THE COVER FOR THE CONTRACT: the paper is opened under the Cover, which stays fully in place until the
+   paper stands; then the job pressed is done and the Cover goes, in the same frame — no page between. `then` may
+   answer 'keep' when it draws a page over the Cover itself (the brief). Bounded by CV_LAND_MS. */
+function pdCoverLeave(id, then){
+  const onIt = () => { const pc = pdContract(); return !!(pc && String(pc.id) === String(id) && pdOnPaper()); };
+  _cvHold = String(id);
+  if (!onIt()) pdOpenOnHome(id, 'open', { cover: false });
+  const t0 = Date.now();
+  const done = () => { _cvHold = null; let kept = false; try { kept = !!(then && then() === 'keep'); } catch (_){}
+    if (!kept && pdMidUp('cover:' + String(id))) pdMidClose(); };
+  const tick = () => { if (onIt()) return done(); if (Date.now() - t0 < CV_LAND_MS) requestAnimationFrame(tick); else { _cvHold = null; pdMidClose(); } };
+  tick();
   return true;
 }
 /* a door that opened the contract on purpose asks for the Cover once the paper stands (bounded, as pd2DealGo did) */
@@ -10255,24 +10386,26 @@ function pdCoverLand(id){
   return true;
 }
 if (typeof document !== 'undefined') document.addEventListener('click', e => {
-  const t = e.target && e.target.closest ? e.target.closest('[data-cv-go]') : null; if (!t) return;
+  const t = e.target && e.target.closest ? e.target.closest('[data-cv-go], [data-cv-open]') : null; if (!t) return;
   e.preventDefault();
-  const id = t.getAttribute('data-cv-cid'), k = t.getAttribute('data-cv-go');
-  /* NO PAGE FLASHES ON THE WAY (owner, 16 Nov 2026: "a page of the paper and dossier flash before i land on
-     contracts"): the Cover is closed and the destination drawn in ONE turn, never a wait between them, so no
-     frame shows the paper it was lying on. A page that replaces the Cover (the brief) opens OVER it (f1046). */
-  if (k === 'brief' && typeof pd2BriefOpen === 'function'){ pd2BriefOpen(id); return; }
-  pdMidClose();
-  if (k === 'red') pdRedOpen(id);
-  else if (k === 'fill') pdFillGo(id);
-  else if (k === 'send') pdSendOpen(id);
-  else if (k === 'sign') pdSignOpen(id);
-  else if (k === 'ob') pdObOpen();
-  /* THE DOOR TO CONTRACTS (owner, 16 Nov 2026): Jambo's doors are not on the Cover, so it carries its own; the
-     Contracts place keeps the way back to this paper */
-  else if (k === 'contracts' && typeof setView === 'function') setView('register');
+  const id = t.getAttribute('data-cv-cid'), k = t.hasAttribute('data-cv-open') ? 'open' : t.getAttribute('data-cv-go');
+  /* THE DOOR TO CONTRACTS: the page the Cover was opened over is Contracts already, or Contracts is drawn under it;
+     then the Cover goes (owner, 16 Nov 2026: Jambo's doors are not on the Cover, so it carries its own) */
+  if (k === 'contracts'){ if (typeof deskKeyNow !== 'function' || deskKeyNow() !== 'home:contracts') { if (typeof setView === 'function') setView('register'); }
+    pdMidClose(); return; }
+  /* EVERY OTHER PRESS GOES INTO THE CONTRACT: the paper opens under the Cover, which goes only once the job pressed
+     stands (pdCoverLeave) — no page between (owner, 16-19 Nov 2026) */
+  pdCoverLeave(id, () => {
+    if (k === 'red') pdRedOpen(id);
+    else if (k === 'fill') pdFillGo(id);
+    else if (k === 'send') pdSendOpen(id);
+    else if (k === 'sign') pdSignOpen(id);
+    else if (k === 'ob') pdObOpen();
+    else if (k === 'brief' && typeof pd2BriefOpen === 'function'){ pd2BriefOpen(id); return 'keep'; }
+    return '';
+  });
 });
-Object.assign(window, { pdCoverVeil, CV_LAND_MS, pdCoverUp, pdCoverOf, pdCoverHtml, pdCoverSheetHtml, pdCoverRightHtml, pdCoverOpen, pdCoverLand, CV_NOTES_MAX, CV_ROWS_MAX, CV_PARTIES_SHOWN });
+Object.assign(window, { pdCoverHeld, pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdCoverShow, pdCoverGo, pdCoverLeave, pdCoverVeil, CV_LAND_MS, pdCoverUp, pdCoverOf, pdCoverHtml, pdCoverSheetHtml, pdCoverRightHtml, pdCoverOpen, pdCoverLand, CV_NOTES_MAX, CV_ROWS_MAX, CV_PARTIES_SHOWN });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
