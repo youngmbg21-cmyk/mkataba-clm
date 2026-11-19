@@ -19866,6 +19866,44 @@
   html.lg-new .obn-table.is-proj td.obn-pt{overflow-wrap:anywhere}
   /* PROPOSALS' PANEL, A ROW PRESSED, THE LEGORA WAY (owner, 19 Nov 2026): nothing boxed, one quiet list, the duty's own
      words quoted with its time limit marked, each answered in its row, the tabs and chips the drawing carries */
+  /* WE OWE · THEY OWE (owner's pick, 19 Nov 2026): two quiet columns, the Legora way; each line its day, party, clause,
+     who is reminded and one act; nothing boxed */
+  html.lg-new .obt-say{margin:4px 0 10px;font-family:var(--font-doc);font-size:16px;color:var(--color-text)}
+  html.lg-new .obt-cols{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-content:start;padding-bottom:16px}
+  html.lg-new .obt-col{display:flex;flex-direction:column;min-width:0}
+  html.lg-new .obt-colh{display:flex;align-items:baseline;gap:10px;padding:6px 0 8px;border-bottom:2px solid var(--color-text);position:sticky;top:0;background:var(--color-surface);z-index:1}
+  html.lg-new .obt-colh b{font-size:16px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .obt-colh span{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .obt-li{display:grid;gap:2px;padding:9px 8px;border-bottom:1px solid var(--color-divider);cursor:pointer;border-radius:8px}
+  html.lg-new .obt-li.is-sel{background:var(--surface-2)}
+  html.lg-new .obt-l1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  html.lg-new .obt-l1 b{font-weight:var(--w-label);font-size:13.5px;color:var(--color-text);min-width:0}
+  html.lg-new .obt-w{flex:none;font-size:12px;white-space:nowrap;color:var(--color-quiet)}
+  html.lg-new .obt-w.is-late{color:var(--st-ruby-fg)} html.lg-new .obt-w.is-soon{color:var(--st-amber-fg)}
+  html.lg-new .obt-sub{margin:0;font-size:12px;color:var(--color-quiet);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .obt-l3{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  html.lg-new .obt-rem{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-quiet);min-width:0}
+  html.lg-new .obt-act{flex:none;border:0;background:none;padding:0 2px;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .obt-more{align-self:flex-start;margin:8px 6px 0;border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .obt-none{margin:12px 6px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .obt-hf-ours{color:var(--st-amber-fg)}
+  html.lg-new .obt-page #obn-scroll{display:flex;flex-direction:column;min-height:0}
+  /* the month as a line in Jambo's panel: ours above, theirs below, late to the left of today */
+  html.lg-new .obt-tl{background:var(--jb-card-fill);border-radius:var(--radius);padding:10px 12px;display:grid;gap:4px}
+  html.lg-new .obt-tl-lab{font-size:12px;font-weight:var(--w-strong)} html.lg-new .obt-tl-lab.is-ours{color:var(--st-amber-fg)} html.lg-new .obt-tl-lab.is-theirs{color:var(--st-steel-fg)}
+  html.lg-new .obt-tl-row{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
+  html.lg-new .obt-tl-row b{font-size:20px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .obt-tl-row b.is-late{color:var(--st-ruby-fg)} html.lg-new .obt-tl-row b.is-soon{color:var(--st-amber-fg)}
+  html.lg-new .obt-tl-row.is-h{font-size:11px;color:var(--color-quiet)}
+  html.lg-new .obt-tl-axis{position:relative;height:2px;background:var(--color-text);margin:2px 0}
+  html.lg-new .obt-tl-late{position:absolute;left:0;top:-6px;width:25%;height:14px;background:var(--st-ruby-bg);border-radius:4px}
+  html.lg-new .obt-tl-today{position:absolute;left:25%;top:-7px;width:2px;height:16px;background:var(--color-text)}
+  /* one obligation pressed: which side, its words, its act, who is reminded */
+  html.lg-new .obt-side{display:inline-block;width:max-content;font-size:11.5px;padding:1px 8px;border-radius:999px;margin-bottom:4px}
+  html.lg-new .obt-side.is-ours{background:var(--st-amber-bg);color:var(--st-amber-fg)} html.lg-new .obt-side.is-theirs{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .obt-one .obn-lg-top em{font-style:normal}
+  html.lg-new .obt-rl{display:flex;align-items:center;gap:8px;margin:2px 0;font-size:13px;color:var(--color-text)}
+  html.lg-new .obt-rl svg{flex:none;color:var(--color-quiet)}
   html.lg-new .obn-lg{display:flex;flex-direction:column;gap:0;padding:16px}
   html.lg-new .obn-lg-top{display:grid;gap:2px;padding-bottom:10px}
   html.lg-new .obn-lg-top b{font-size:16px;font-weight:var(--w-label);color:var(--color-text);line-height:1.3}

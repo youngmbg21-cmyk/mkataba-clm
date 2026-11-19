@@ -22,7 +22,7 @@ let fails = 0;
 const check = (name, ok, more) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${more !== undefined ? ' — ' + (typeof more === 'string' ? more : JSON.stringify(more)) : ''}`); if (!ok) fails++; };
 const until = async (page, fn, ms = 15000) => { try { await page.waitForFunction(fn, null, { timeout: ms }); return true; } catch (_) { return false; } };
 const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-const txt = async (page, sel) => page.evaluate(s => { const n = document.querySelector(s); return n ? n.innerText.trim() : ''; }, sel);
+
 
 /* a book big enough to page: 30 duties on one contract, three agreements of Jambo's finds, one late */
 function world(){
@@ -61,35 +61,28 @@ function world(){
   await until(page, () => !!document.querySelector('.obn-page .obn-table'));
   await page.waitForTimeout(400);
 
-  /* 1 · twenty a page, and a foot that says where you are */
-  const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#obn-body tr.obn-r').length,
-    say: (document.querySelector('.obn-pager .obn-pg-say') || {}).textContent || '',
-    pages: [...document.querySelectorAll('.obn-pn[data-obn-page]')].map(b => b.textContent.trim()),
-    per: !!document.querySelector('#obn-per') }));
-  check('1 · twenty duties a page, the foot says 1–20 of 30 and offers the rest', one.rows === 20 && /1.20/.test(one.say) && /30/.test(one.say) && one.pages.includes('2') && one.per, one);
+  /* 1–4 RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick "Build as drawn"; replaces Late · Tracked and twenty a
+     page): the tabs Next 30 days · Later · Done; two columns; late first; each line's day a toned word */
+  await until(page, () => !!document.querySelector('.obt-cols .obt-li'), 8000);
+  const one = await page.evaluate(() => { document.querySelectorAll('[data-obt-more]').forEach(m => m.click());
+    const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number((b.textContent.match(/\d+/) || [0])[0])]));
+    return { tabs, cols: [...document.querySelectorAll('.obt-colh b')].map(b => b.textContent.trim()), lines: document.querySelectorAll('.obt-cols .obt-li').length }; });
+  check('1 · We owe and They owe, under the tabs Next 30 days · Later · Done; the tab counts its lines', one.cols.join('|') === 'We owe|They owe' && 'open' in one.tabs && 'later' in one.tabs && 'done' in one.tabs && one.lines === one.tabs.open, one);
   await page.screenshot({ path: path.join(OUT, '1-tracked.png') });
 
-  /* 2 · page two is the rest, and nothing more is built than the page asks for */
-  await page.evaluate(() => { const b = [...document.querySelectorAll('.obn-pn')].find(x => x.textContent.trim() === '2'); if (b) b.click(); });
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); });
   await page.waitForTimeout(400);
-  const two = await page.evaluate(() => ({ rows: document.querySelectorAll('#obn-body tr.obn-r').length, say: (document.querySelector('.obn-pg-say') || {}).textContent || '' }));
-  check('2 · page two holds the rest', two.rows === 10 && /21/.test(two.say), two);
+  const two = await page.evaluate(() => { document.querySelectorAll('[data-obt-more]').forEach(m => m.click());
+    return { lines: document.querySelectorAll('.obt-cols .obt-li').length, n: Number(((document.querySelector('[data-obn-tab="later"]') || {}).textContent || '').replace(/\D/g, '')) || 0 }; });
+  check('2 · Later holds the rest, as its tab counts', two.lines >= 1 && two.lines === two.n, two);
 
-  /* 3 · colour that carries a meaning: the stream's band, the day as a tone chip */
-  await page.evaluate(() => { const b = [...document.querySelectorAll('.obn-pn')].find(x => x.textContent.trim() === '1'); if (b) b.click(); });
-  await page.waitForTimeout(300);
-  const tone = await page.evaluate(() => { const rs = [...document.querySelectorAll('#obn-body tr.obn-r')];
-    const band = rs.map(r => { const c = r.querySelector('td.obn-c1'); const s = getComputedStyle(c); return s.borderLeftWidth + ' ' + s.borderLeftColor; });
-    const chips = rs.map(r => (r.querySelector('.obn-ch') || {}).className || '');
-    return { band: band[0], same: band.every(b => b === band[0]), ruby: chips.filter(c => /is-ruby/.test(c)).length, green: chips.filter(c => /is-green/.test(c)).length, amber: chips.filter(c => /is-amber/.test(c)).length }; });
-  check('3 · every row wears its stream’s band and its day as a tone chip, the late one in red', /^3px/.test(tone.band) && tone.ruby === 1 && (tone.green + tone.amber) > 0, tone);
-
-  /* 4 · the Late pill is the first thing said, and it narrows to the late ones */
-  const pills = await page.evaluate(() => [...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => ({ k: b.getAttribute('data-obn-tab'), w: b.textContent.trim() })));
-  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="late"]'); if (b) b.click(); });
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });
   await page.waitForTimeout(400);
-  const lateRows = await page.evaluate(() => [...document.querySelectorAll('#obn-body tr.obn-r .obn-ch')].map(c => c.className));
-  check('4 · Late leads the pills and narrows to what is late', pills[0] && pills[0].k === 'late' && /late/i.test(pills[0].w) && lateRows.length === 1 && /is-ruby/.test(lateRows[0]), { pills, lateRows });
+  const tone = await page.evaluate(() => { const ls = [...document.querySelectorAll('.obt-col[data-obt-side="ours"] .obt-li')];
+    return { first: ls[0] ? (ls[0].querySelector('.obt-w') || {}).className : '', late: document.querySelectorAll('.obt-cols .obt-w.is-late').length,
+      head: ((document.getElementById('page-head-facts') || {}).textContent || '').trim() }; });
+  check('3 · the late one leads its column in red, and every line says its day', /is-late/.test(tone.first) && tone.late === 1, tone);
+  check('4 · the head says what of ours is late', /1 of ours late/.test(tone.head), tone);
 
   /* 5 · proposals by agreement: a row each, oldest first, with its progress and status */
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
@@ -145,7 +138,7 @@ function world(){
     await page.setViewportSize({ width: w, height: hgt });
     await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });
     await page.waitForTimeout(400);
-    const fit = await page.evaluate(() => { const card = document.querySelector('.apn-card'), bar = document.querySelector('.obn-bar'), r = document.querySelector('tr.obn-r');
+    const fit = await page.evaluate(() => { const card = document.querySelector('.apn-card'), bar = document.querySelector('.obn-bar'), r = document.querySelector('.obt-li');
       const sideways = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
       const rb = r ? r.getBoundingClientRect() : null;
       return { card: !!card, bar: bar ? Math.round(bar.getBoundingClientRect().bottom) : null, row: rb ? Math.round(rb.top) : null, inWin: rb ? rb.top < window.innerHeight : false, sideways }; });

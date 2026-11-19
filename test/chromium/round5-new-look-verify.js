@@ -85,18 +85,19 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
      re-pointed from round 5's box-and-tabs-on-one-line and its pop-up desk) */
   try {
     await page.evaluate(() => setView('obligations'));
-    const up = await until(page, () => !!document.querySelector('.obn-page .obn-table'), null, 15000);
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the tabs over the filter line; two columns; a line
+       carries its day as a toned word, who is reminded and one act */
+    const up = await until(page, () => !!document.querySelector('.obn-page .obt-cols'), null, 15000);
     const pills = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => b.getAttribute('data-obn-tab'))) : [];
     const box = up ? await page.evaluate(() => !!document.querySelector('.obn-bar2r #obn-q') && !document.querySelector('.obn-bar #obn-q')) : false;
-    const row = up ? await page.evaluate(() => { const r = document.querySelector('.obn-table tr.obn-r'); if (!r) return null;
-      const c1 = r.querySelector('td.obn-c1'), ch = r.querySelector('.obn-ch');
-      return { band: c1 ? getComputedStyle(c1).borderLeftWidth : '', tone: ch ? ch.className : '', when: ch ? ch.textContent.trim() : '',
-        who: (r.querySelector('.obn-who') || {}).textContent, act: (r.querySelector('.obn-act .obn-pill') || {}).innerText || '' }; }) : null;
-    const foot = up ? await txt(page, '.obn-pager .obn-pg-say') : '';
+    const row = up ? await page.evaluate(() => { const r = document.querySelector('.obt-cols .obt-li'); if (!r) return null;
+      const w = r.querySelector('.obt-w');
+      return { tone: w ? w.className : '', when: w ? w.textContent.trim() : '', rem: (r.querySelector('.obt-rem') || {}).textContent || '',
+        act: (r.querySelector('.obt-act') || {}).innerText || '', cols: document.querySelectorAll('.obt-col').length }; }) : null;
     await shot('3-obligations');
-    check('3 Obligations: three pills over the filter line; a row carries its stream band, its day as a tone chip and one act; the foot says where in the book you are',
-      up && box && pills.includes('open') && pills.includes('prop') && !!row && row.band === '3px' && /obn-ch is-(ruby|amber|green|gray)/.test(row.tone)
-      && !!String(row.who || '').trim() && /mark done|chase|decide/i.test(row.act) && /showing 1/i.test(foot), { pills, box, row, foot });
+    check('3 Obligations: the tabs over the filter line; We owe and They owe; a line carries its day, who is reminded and one act',
+      up && box && pills.includes('open') && pills.includes('later') && pills.includes('done') && !!row && row.cols === 2 && /obt-w is-(late|soon|ok)/.test(row.tone)
+      && !!String(row.rem || '').trim() && /mark done|chase|decide/i.test(row.act), { pills, box, row });
   } catch (e) { check('3 Obligations', false, String(e).slice(0, 200)); }
 
   /* 4 · Proposals by agreement, answered where the row stands */

@@ -195,12 +195,13 @@ const weekOf = () => {
       await page.setViewportSize({ width: w, height: ht });
       /* RE-POINTED 17 Nov 2026 (#762): Obligations is the project list — its rows (tr.obn-r) stand where the week cards did */
       await page.evaluate(() => setView('obligations'));
-      await until(() => document.querySelectorAll('tr.obn-r').length >= 1 && !!document.querySelector('#ins-panel #jl-q'));
+      /* RE-POINTED 19 Nov 2026 (We owe · They owe): its lines (.obt-li) stand in two columns */
+      await until(() => document.querySelectorAll('.obt-li').length >= 1 && !!document.querySelector('#ins-panel #jl-q'));
       await page.waitForTimeout(400);
       const fitO = await page.evaluate(() => {
         const vw = document.documentElement.clientWidth, side = document.documentElement.scrollWidth <= vw + 1;
         const panel = document.getElementById('ins-panel').getBoundingClientRect();
-        const cards = [...document.querySelectorAll('tr.obn-r')].map(c => c.getBoundingClientRect());
+        const cards = [...document.querySelectorAll('.obt-li')].map(c => c.getBoundingClientRect());
         const under = cards.some(r => r.right > panel.left + 1);
         const acts = [...document.querySelectorAll('#page-head-acts button')].every(b => { const r = b.getBoundingClientRect(); return r.right <= panel.left + 1 && r.width > 0; });
         const box = document.querySelector('#ins-panel #jl-q').getBoundingClientRect();

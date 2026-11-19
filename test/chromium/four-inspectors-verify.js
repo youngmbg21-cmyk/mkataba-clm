@@ -129,7 +129,7 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     await page.keyboard.press('Escape').catch(() => {});
 
     /* RE-POINTED 16 Nov 2026 (#762): a panel's title is its h2, or the five parts' headline (.jov5-title) */
-    const panelTitle = sel => page.evaluate(s => { const h2 = document.querySelector(s + ' h2, ' + s + ' .jov5-title'); return h2 ? h2.textContent.trim() : null; }, sel);
+    const panelTitle = sel => page.evaluate(s => { const h2 = document.querySelector(s + ' h2, ' + s + ' .jov5-title, ' + s + ' .obn-lg-top b'); return h2 ? h2.textContent.trim() : null; }, sel);
 
     /* ================= 1 · THE OBLIGATIONS PAGE ================= */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Obligations page is the PROJECT LIST (obnRender,
@@ -138,7 +138,8 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
        Obligations face, that row open (obOpenContract → pd2ObGo). Each claim asked of its new place. */
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '1-obligations.png') });
-    const ROWS = '.obn-table tbody tr[data-ins-row]';
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): a duty is a line in its column */
+    const ROWS = '.obt-cols [data-ins-row]';
     const ob = await page.evaluate(R => ({
       ins: !!document.querySelector('.obn-page #ins-panel, .obn-page ~ #ins-panel') || (!!document.querySelector('.obn-table') && !!document.getElementById('ins-panel')),
       rows: document.querySelectorAll(R).length,
@@ -151,16 +152,20 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* RETIRED 16 Nov 2026 (#762): 1c0 "Outstanding does not list a step still waiting on an earlier one" — old look only
        (round 16's arithmetic, All = Outstanding + Waiting + Completed): Tracked is every duty still open, the held-back
        one too; that it is never called late is kept (1c) */
-    const tracked = await page.evaluate(R => [...document.querySelectorAll(R)].some(r => /Pay on delivery to site/.test(r.textContent)), ROWS);
-    await page.click('[data-obn-tab="late"]').catch(() => {}); await page.waitForTimeout(500);
-    const lateRows = await page.evaluate(R => [...document.querySelectorAll(R)].map(r => r.textContent.replace(/\s+/g, ' ')), ROWS);
+    /* every column shown in full; a held-back step stands on Next 30 days or Later, and a late line wears the late word */
+    const allOn = async () => { await page.evaluate(() => document.querySelectorAll('[data-obt-more]').forEach(m => m.click())).catch(() => {}); await page.waitForTimeout(300); };
+    await allOn();
+    let tracked = await page.evaluate(R => [...document.querySelectorAll(R)].some(r => /Pay on delivery to site/.test(r.textContent)), ROWS);
+    if (!tracked){ await page.click('[data-obn-tab="later"]').catch(() => {}); await page.waitForTimeout(400); await allOn();
+      tracked = await page.evaluate(R => [...document.querySelectorAll(R)].some(r => /Pay on delivery to site/.test(r.textContent)), ROWS);
+      await page.click('[data-obn-tab="open"]').catch(() => {}); await page.waitForTimeout(400); await allOn(); }
+    const lateRows = await page.evaluate(R => [...document.querySelectorAll(R)].filter(r => r.querySelector('.obt-w.is-late')).map(r => r.textContent.replace(/\s+/g, ' ')), ROWS);
     ok('1c a held-back step is tracked, and never listed as Late', tracked && lateRows.length >= 1 && !lateRows.some(t => /Pay on delivery to site/.test(t)), { tracked, late: lateRows.length });
     const door = await page.evaluate(() => (typeof obligationsDoorCount === 'function') ? obligationsDoorCount() : -1);
-    ok('1g the Late pill lists what the sidebar door counts', door >= 1 && lateRows.length === door, { door, late: lateRows.length });
-    await page.click('[data-obn-tab="open"]').catch(() => {}); await page.waitForTimeout(500);
-    /* the head says what is late and what is open, the pills' own counts */
-    const hm = ob.head.match(/^(\d+) late · (\d+) open/);
-    ok('1d the head says what is late and what is open, the pills\' own counts', !!hm && hm[1] === ob.pills.late && hm[2] === ob.pills.open, { head: ob.head, pills: ob.pills });
+    ok('1g the late lines are what the sidebar door counts', door >= 1 && lateRows.length === door, { door, late: lateRows.length });
+    /* the head says how many of ours and of theirs are late: together the late lines */
+    const hm = [...ob.head.matchAll(/(\d+) of (?:ours|theirs) late/g)].reduce((a, m) => a + Number(m[1]), 0);
+    ok('1d the head says how many of ours and of theirs are late, together the late lines', hm === lateRows.length, { head: ob.head, late: lateRows.length });
     const rows = await page.$$(ROWS);
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);
@@ -171,10 +176,10 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       await page.keyboard.press('ArrowDown'); await page.waitForTimeout(300);
       ok('1f the arrow moves the selection', (await panelTitle('#ins-panel')) !== t);
     } else { ok('1e a press selects the row and the panel follows', false, 'no rows'); ok('1f the arrow moves the selection', false); }
-    if (!(await page.$('.obn-table tbody tr.is-sel'))) { await page.click(ROWS + ' td:nth-child(2)').catch(() => {}); await page.waitForTimeout(300); }
-    const sel = await page.evaluate(() => { const r = document.querySelector('.obn-table tbody tr.is-sel'); return r ? r.getAttribute('data-ob-key') : null; });
+    if (!(await page.$('.obt-cols .obt-li.is-sel'))) { await page.click(ROWS).catch(() => {}); await page.waitForTimeout(300); }
+    const sel = await page.evaluate(() => { const r = document.querySelector('.obt-cols .obt-li.is-sel'); return r ? r.getAttribute('data-ob-key') : null; });
     const selCid = sel ? sel.split('::')[0] : null;
-    await page.focus('.obn-table tbody tr.is-sel').catch(() => {});
+    await page.focus('.obt-cols .obt-li.is-sel').catch(() => {});
     await page.keyboard.press('Enter');
     await page.waitForFunction(k => !!k && !!document.querySelector(`#ig-dock .pd-ob.is-open[data-pd-ob-key="${k}"]`), sel, { timeout: 8000 }).catch(() => {});
     const onHome = await page.evaluate(() => { const r = document.querySelector('#ig-dock .pd-ob.is-open[data-pd-ob-key]');
