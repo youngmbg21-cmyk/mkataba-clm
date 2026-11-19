@@ -608,6 +608,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - nda-carries-no-money-verify.
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
+- A NOTE TO JAMBO IS SENT AND SAID (20 Nov 2026): test/f1114-a-note-to-jambo-is-sent-and-said.test.js (new; red at unmodified main 1–4): the box's status line and Send key; agSendBackPress says the empty note (field made ready), Jambo at work, a refusal, done, and a work item no longer found; Enter presses the box's own Redo, delegated once; the words in both books. Tried on the Board with an arrival check: an empty Redo said in the box; a note sent with Enter reached POST /api/agents/paper/sendback and its answer was said in the box.
 - The house no wider than the page (22 Oct 2026): `tidy-sweep-verify.js` jambo place (the door's count badge; 3px sideways at e05849a).
 - jambos-work-open-verify (Home's Jambo's work · Open, and the house's door, land on the Board's Jambo's work card even when a contract's report was held there: bsCardLeave first; never "nothing prepared" over waiting work; three screens).
 - f667, f724, f790, f800–f803, jambo-agents, open-in-place, counter-as-drawn verify.

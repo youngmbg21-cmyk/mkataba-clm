@@ -402,6 +402,7 @@ LANGUAGE the person's (js/i18n.js); MARKET the company's (js/jurisdiction.js). M
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
 - `agent_pieces` (`agentPieceAdd`/`agentPieceDecide`); rebuild admin-only (`agentRebuild`, dry first). Each person only DOWN (`agentLevels` 'ask'·'mine', `agentLevelFor`); Just do it admin's. → `hbOpenAgent(k, key)`; piece ONE ROW, Put away LAST (`agPutAway`, Undo).
 - THEIR ROUND: ask per row, Redlines verb (`agRoundAct`).
+- A NOTE TO JAMBO IS SENT AND SAID (owner, 20 Nov 2026): Enter presses Redo; the box says what happened (`agSendBackSay`). f1114.
 ## THE SLIDER ON EVERY JAMBO PANEL
 `splitHtml`/`splitFit`/`splitWire`/`splitClamp` (js/components.js); Home (`IG_SPLIT`), list panel, Import (`JL_SPLIT`, `jlListMin`), Settings (`ST_SPLIT`, 780), side (`AI_SIDE_SPLIT`).
 SLIDES OVER PAST THE MARK: page narrows to `SPLIT_OVER_AT` 880, then panel over it (`splitOver`), ≤`SPLIT_PEEK` 420 visible; none at rest. panels-slide-over-alike-verify.

@@ -16642,6 +16642,12 @@
   .ag-sb-box{display:grid;gap:6px;width:100%;}
   .ag-sb-box[hidden]{display:none;}
   .ag-sb-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  /* what happened, said in the box (owner, 20 Nov 2026: "i cant send a note"; agSendBackSay) */
+  .ag-sb-say{margin:0;font-size:13px;color:var(--color-quiet);}
+  .ag-sb-say[hidden]{display:none;}
+  .ag-sb-say.is-warn{color:var(--st-amber-fg);}
+  .ag-sb-say.is-err{color:var(--st-ruby-fg);}
+  .ag-sb-say.is-ok{color:var(--st-green-fg);}
   /* THEIR ROUND, THE LEGORA WAY (owner picked it, 29 Oct 2026): nothing boxed but Jambo's answer;
      each ask a row under a hairline, its quote in the paper's type, its own buttons, Put away last */
   .ag-rnd-top{gap:8px;}
