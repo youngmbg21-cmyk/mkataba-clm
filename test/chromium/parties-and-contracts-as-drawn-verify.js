@@ -96,14 +96,15 @@ const check = (name, pass, detail) => {
       await page.fill('#pc-title', 'Head of procurement');
       await page.fill('#pc-email', 'ruth@orbit.co.ke');
       await page.fill('#pc-phone', '+254 700 123 456');
+      /* RE-POINTED 19 Nov 2026 (the one edit pop-up, two steps): Next › shows the agreements to tick */
+      await page.click('#pc-form [data-pc-next]');
+      await until(() => !!document.querySelector('#pc-form [data-pc-ag]'));
       const ticks = await page.evaluate(() => [...document.querySelectorAll('[data-pc-ag]')].map(t => t.getAttribute('data-pc-ag') + ':' + t.checked));
       check('3a the pop-up offers the party\'s live agreements, ticked', ticks.length === 2 && ticks.every(t => /:true$/.test(t)), JSON.stringify(ticks));
       await shot('pc-3-add-1440x780.png');
-      await page.click('#pc-dlg [data-pc-save]');
-      /* saved, the pop-up stays open on the party's list (Add someone · Done); Done closes it */
-      await until(() => !document.getElementById('pc-name') && !!document.querySelector('#pc-dlg [data-pc-close]'));
-      await page.evaluate(() => { const b = document.querySelector('#pc-dlg [data-pc-close]'); if (b) b.click(); });
-      await until(() => !document.getElementById('pc-dlg'));
+      await page.click('#pc-form [data-pc-save]');
+      /* RE-POINTED 19 Nov 2026: saved, the sheet closes */
+      await until(() => !document.getElementById('pc-form'));
       /* the page saves each agreement in its own time: ask the server, bounded, until both have arrived */
       let srv = [];
       for (const t0 = Date.now(); Date.now() - t0 < 12000; ) {

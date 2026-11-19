@@ -2010,8 +2010,8 @@ Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyO
            html (extra body: a list, a hint), note (small words in the foot),
            primary:{ label, attr }, alt:{ label, attr } (a second, grey act), back:{ label, attr }, left:{ label, attr, danger }, cancelAttr }
    ====================================================================================================================== */
-const LGP_W = '480px';
-const LGP_PAGE = 6;
+var LGP_W = '480px';
+var LGP_PAGE = 6;
 function _lgpT(k, v){ return (typeof i18t === 'function') ? i18t(k, v) : k; }
 function lgpRowHtml(r){
   const E = esc, id = r.id ? ` id="${E(r.id)}" name="${E(r.id)}"` : '', ph = r.ph ? ` placeholder="${E(r.ph)}"` : '';
@@ -2071,7 +2071,7 @@ function lgpRepaint(o){
   const next = box.firstElementChild; cur.replaceWith(next);
   return next;
 }
-if (typeof document !== 'undefined' && !document._lgpWired){ document._lgpWired = true;
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._lgpWired){ document._lgpWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target.closest('.lgp [data-lgp-close]') : null;
     if (!t) return; e.preventDefault(); if (typeof closeModalGuarded === 'function') closeModalGuarded(); else if (typeof closeModal === 'function') closeModal();

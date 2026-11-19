@@ -24,7 +24,7 @@ test('f1100 (1) one builder: serif head, lines without boxes, a list paged by si
   const H = strip(fnBody(COMP, 'lgpHtml'));
   assert.match(H, /class="lgp-h"/); assert.match(H, /type="submit" class="ui-btn ui-btn-primary lgp-go"/);
   assert.ok(H.indexOf('${prim}${alt}${cancel}') > 0, 'the black button, the grey act, then Cancel');
-  assert.match(COMP, /const LGP_PAGE = 6;/);
+  assert.match(COMP, /(?:const|var) LGP_PAGE = 6;/);
   assert.match(strip(fnBody(COMP, 'lgpOpen')), /maxWidth: LGP_W, ownFrame: true/);
   const css = read('index.html');
   assert.match(css, /\.lgp \.lgp-in\{[^}]*border:0;[^}]*background:transparent/, 'a line, never a box');
