@@ -9471,6 +9471,8 @@
   /* Wall | List wears the page's own switch (.reg-seg — the clothes follow
      the builder); only its place in the row and the icon's gap are its own. */
   .reg-seg.ct-seg{align-self:flex-start;margin-left:auto}
+  .ct-top .ct-acts{display:flex;align-items:center;gap:var(--s-3);margin-left:auto;flex:none}
+  .ct-top .ct-acts .reg-seg.ct-seg{margin-left:0}
   .ct-top .ct-arch{align-self:flex-start;margin-left:auto;flex:none}
   .ct-top .ct-arch + .reg-seg.ct-seg{margin-left:0}
   .reg-seg.ct-seg button{display:inline-flex;align-items:center;gap:6px}
@@ -20168,7 +20170,14 @@
      the box, the tabs, + Ask a column, Columns; the stream chip, + Filter, sort, display and the bulk acts are not drawn */
   html.lg-new #ig-page #ct-place .ct-page .ct-head.lh{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 16px}
   html.lg-new #ct-place .ct-page .ct-head.lh > .ct-top{flex:1 0 100%;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--color-divider);margin-bottom:4px;padding-bottom:12px}
-  html.lg-new #ct-place .ct-page .ct-head .ct-name{flex:1;min-width:0}
+  html.lg-new #ct-place .ct-page .ct-head .ct-name{flex:1 1 auto;min-width:0}
+  /* LIST · WALL · NEW AGREEMENT, ONE GROUP (owner, 19 Nov 2026): one height, one line, centred on the name's block; the
+     switch's own box no longer clips its pills (it was 28 tall over 32-tall buttons); where name and group do not fit
+     side by side the group drops under the name, whole */
+  html.lg-new #ct-place .ct-page .ct-head.lh > .ct-top{flex-wrap:wrap;row-gap:10px}
+  html.lg-new #ct-place .ct-page .ct-head .ct-acts{display:flex;align-items:center;gap:10px;margin-left:auto;flex:none}
+  html.lg-new #ct-place .ct-page .ct-head .ct-acts > *{margin:0;align-self:center}
+  html.lg-new #ct-place .ct-page .ct-head .ct-acts .ct-seg{height:auto;overflow:visible}
   html.lg-new #ct-place .ct-page .ct-head .ct-facts{font-size:13.5px;font-weight:var(--w-label);margin-left:10px;white-space:nowrap}
   html.lg-new #ct-place .ct-page .ct-head .ct-seg{display:flex;gap:10px;background:transparent;padding:0;border:0;box-shadow:none}
   html.lg-new #ct-place .ct-page .ct-head .ct-seg button{height:var(--ctl-h-lg);padding:0 16px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-size:13.5px;font-weight:var(--w-label);box-shadow:none}
