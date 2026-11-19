@@ -78,7 +78,7 @@ const isShut = () => !document.getElementById('cmd-palette');
 
     /* 4 typed, the jump list; emptied, the launchpad */
     await P.fill('#cp-input', 'cal');
-    const typed = await until(P, () => document.getElementById('lp-chips').hidden && !document.querySelector('#cmd-palette .lp-p') && /Calendar|Kalender/.test(document.getElementById('cp-list').textContent), null, 3000);
+    const typed = await until(P, () => document.getElementById('lp-chips').hidden && !document.querySelector('#cmd-palette .lp-p') && /calendar|kalender/i.test(document.getElementById('cp-list').textContent), null, 3000);
     check(typed, '4a typed, it is the jump list (chips away, Calendar found)');
     await P.fill('#cp-input', '');
     check(await until(P, () => !!document.querySelector('#cmd-palette .lp-p') && !document.getElementById('lp-chips').hidden, null, 3000), '4b emptied, the launchpad returns');
