@@ -34,3 +34,12 @@ test('f1096 (2) the Cover is asked for at once, behind a bounded veil', () => {
   assert.doesNotMatch(land, /setTimeout\(tick, 100\)/, 'never a tenth of a second between looks');
   assert.match(strip(read('index.html')), /html\.lg-new #cv-veil\{position:fixed;[^}]*z-index:69;[^}]*background:var\(--color-surface\)\}/, 'under the page layer, the page\'s own ground');
 });
+
+test('f1096 (3) a page arrives whole: a pop-up that IS a page never fades up over the page under it', () => {
+  /* owner, 19 Nov 2026: "it flashed the contracts first then goes to cover" — the Cover faded up from nothing over
+     .2s (.modal-in's viewIn), so the page under it showed through; measured opacity 0.00 → 1.00 over ~200 ms */
+  const CSS = strip(read('index.html'));
+  assert.match(CSS, /\.modal-in\[data-dlg-page\]\{animation:none;\}/, 'a page pop-up has no fade-in');
+  const at = CSS.indexOf('.modal-in{animation:viewIn'), page = CSS.indexOf('.modal-in[data-dlg-page]{animation:none;}');
+  assert.ok(at > 0 && page > at, 'stated after the fade, at equal weight plus the attribute, so it wins');
+});
