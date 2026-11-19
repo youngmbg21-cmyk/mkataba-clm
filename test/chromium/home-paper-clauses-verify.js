@@ -154,11 +154,18 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     const pb = await page.evaluate(() => { const r = document.getElementById('ig-paper-scroll').getBoundingClientRect();
       return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
     await page.mouse.move(pb.x, pb.y);
+    /* RE-POINTED 18 Nov 2026 (PR 779, red twice on GitHub, green here): twelve 40px steps were a fixed distance that had
+       to cross a clause boundary; on the runner's fonts the first boundary lies further down, every step read "idle" and
+       the check never saw the moment it tests. The wheel now turns until the list has followed (a WAIT ASKS FOR THE STATE,
+       BOUNDED: at most 40 steps) and four more steps are read after it — the same assertion, measured where it happens. */
     const still = [];
-    for (let k = 0; k < 12; k++) {
+    let after = -1;
+    for (let k = 0; k < 40 && (after < 0 || k - after < 4); k++) {
       await page.mouse.wheel(0, 40); await page.waitForTimeout(40);
-      still.push(await page.evaluate(() => { const c = document.getElementById('pd-thread'); const o = c.querySelector('.doc-th-row.is-open .doc-th-body');
-        return c.classList.contains('th-still') ? (o ? getComputedStyle(o).transitionDuration : 'none') : 'idle'; }));
+      const v = await page.evaluate(() => { const c = document.getElementById('pd-thread'); const o = c.querySelector('.doc-th-row.is-open .doc-th-body');
+        return c.classList.contains('th-still') ? (o ? getComputedStyle(o).transitionDuration : 'none') : 'idle'; });
+      still.push(v);
+      if (after < 0 && v !== 'idle') after = k;
     }
     ok('6c while the paper scrolls, a row opens in one step — no animation', still.some(v => v === '0s') && !still.some(v => v !== '0s' && v !== 'idle' && v !== 'none'), still.join(' '));
     await page.screenshot({ path: path.join(OUT, '6-home-still.png') });

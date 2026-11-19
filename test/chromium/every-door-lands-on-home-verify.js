@@ -386,24 +386,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
   const onPaperFn = id => page.evaluate(i => pdOpenOnHome(i, 'copilot'), id).then(() => waitFor(page, i => window.intel && intel.paper && intel.paper.id === i, 8000, id));
   const domClick = sel => page.evaluate(s => { const el = document.querySelector(s); if (!el) return false; el.click(); return true; }, sel);
   const selectRow = async (sel) => { const ok = await click(sel); if (ok) await settle(800); return ok; };
-  const panelDoor = async (k) => {
-    const st = await page.evaluate(k => { const b = document.querySelector(`#ins-panel [data-ins-act="${k}"]`);
-      return b ? { dead: !!b.disabled || b.getAttribute('aria-disabled') === 'true', title: b.getAttribute('title') || '' } : null; }, k);
-    if (!st) return false;
-    if (st.dead) return { dead: true, title: st.title };
-    await page.click(`#ins-panel [data-ins-act="${k}"]`); return true;
-  };
-  /* a list page's doors, on the row chosen — Negotiation · Workspace since the
-     owner took the Document door off (15 Oct 2026: "we have 2 buttons to the
-     same page so document will simply need to be deleted") */
-  const threeDoors = async (area, view, rowSel, id) => {
-    for (const [k, nm] of [['door-nego', 'Negotiation door'], ['door-ws', 'Workspace door']]) {
-      const want = k === 'door-nego' ? E.red(id) : await wsExpect(id);
-      const says = k === 'door-nego' ? SAYS.red : ((await owedFor(id)) ? SAYS.fill : SAYS.copilot);
-      await door(area, `${nm} (${id})`, { start: async () => { await goPage(view); await waitFor(page, s => !!document.querySelector(s), 6000, rowSel); await selectRow(rowSel); },
-        press: () => panelDoor(k), expect: want, says });
-    }
-  };
+  /* RETIRED 18 Nov 2026 (owner's pick, "Five Parts"; f1094): panelDoor and threeDoors — a list panel's Negotiation ·
+     Workspace doors (data-ins-act door-nego / door-ws) were pressed on Obligations only, and a chosen duty's panel no
+     longer draws them (the side-by-side ticked "tabs removed, as drawn") */
 
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -512,7 +497,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     await door(A, 'Obligations row, a later one (MK-A1)', {
       start: async () => { await goPage('obligations'); await page.selectOption('#obn-state', 'open').catch(() => {}); await waitFor(page, s => !!document.querySelector(s), 6000, OBR(3)); },
       press: () => dbl(OBR(3)), expect: E.obRow('MK-A1', OBK(3)), says: OBSAYS });
-    await threeDoors(A + ' · Obligations', 'obligations', OBROW, 'MK-A1');
+    /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094; the side-by-side ticked "tabs removed, as
+       drawn"): a chosen duty's panel no longer carries Negotiation · Workspace; its contract row is the door to the
+       contract — the paper's Obligations face, that row open (obOpenContract, as the row's own double-click) */
+    await door(A, 'Obligations panel, the contract row (MK-A1)', { start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
+      press: () => domClick('#ins-panel [data-obp-contract]'), expect: E.obRow('MK-A1', OBK(1)), says: OBSAYS });
     await door(A, 'Obligations panel, Show it in the contract (MK-A1)', { start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
       press: () => domClick('#ins-panel [data-ob-show]'), expect: E.paper('MK-A1'), says: 'that passage on Home\'s paper' });
     /* Parties */
@@ -555,10 +544,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
        nothing it lands on the paper with Jambo, whatever face an earlier press
        left up for that contract */
     /* (the Contracts panel's own row retired with the page's panel, step 7) */
-    await door(A, 'Obligations panel Workspace, Fill in left open (MK-A1)', {
-      start: async () => { await page.evaluate(() => pdFillOpen('MK-A1')); await waitFor(page, () => pdFaceNow() === 'fill', 6000);
-        await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
-      press: () => panelDoor('door-ws'), expect: E.copilot('MK-A1'), says: SAYS.copilot });
+    /* RETIRED 18 Nov 2026 (owner's pick, "Five Parts"; f1094): "Obligations panel Workspace, Fill in left open" — the
+       duty's panel has no Workspace door now (the panel's contract row lands on the paper's Obligations face instead,
+       pressed above) */
     /* ---- THE PANEL'S CHECKLIST: needsYouGo, the one door every list's panel
        presses (insNeedsHtml draws needsYouOf) ---- */
     const NEED = {

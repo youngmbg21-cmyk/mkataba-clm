@@ -6217,7 +6217,7 @@ function hbPulseBtnHtml(){
    is signed; what ends within a year, the first and how many renew by themselves; how the streams and the parties
    carry the book; the negotiations open and whose move; the duties late and due. Each says where it was read and
    opens that page. Under them what ends, quarter by quarter, by value on paper. EVERY FIGURE IS AN EXISTING READING:
-   fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, c.autoRenew, FOLDERS, negoIsLive and
+   fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, contractRenewsItself, FOLDERS, negoIsLive and
    dealStands' move, obState / obligationDue / obligationIsTheirs; values only where canViewValues allows. */
 let _hbRdn = false;
 function hbRdnUp(){ return !!_hbRdn && typeof window.newLookOn === 'function' && newLookOn() && hbS().face === 'board'; }
@@ -6235,7 +6235,8 @@ function hbRdnRead(){
   const exp = c => { let e = ''; try { e = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ e = ''; } return e; };
   const total = L.reduce((s, c) => s + val(c), 0), sig = L.filter(signed), sigV = sig.reduce((s, c) => s + val(c), 0);
   const ending = L.filter(c => { const e = exp(c); return e && e >= today && e <= inYear; }).sort((a, b) => exp(a).localeCompare(exp(b)));
-  const autoEnd = ending.filter(c => !!c.autoRenew);
+  /* renewing by itself, by the ONE reading (contractRenewsItself); c.autoRenew was a field nothing writes — it always said 0 */
+  const autoEnd = ending.filter(c => typeof contractRenewsItself === 'function' && contractRenewsItself(c));
   /* streams by value, then the party holding the most of the signed value */
   const byStream = new Map(); L.forEach(c => { const n = (window.FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || ''; if (!n) return; const e = byStream.get(n) || { n, v: 0, cs: [] }; e.v += val(c); e.cs.push(c); byStream.set(n, e); });
   const streams = [...byStream.values()].sort((a, b) => b.v - a.v || b.cs.length - a.cs.length);
@@ -6291,8 +6292,37 @@ function hbRdnHtml(){
     ${bars ? `<div class="rd-cap">${E(i18t(R.see ? 'rd_q_cap' : 'rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
     <div class="rd-foot"><span class="rd-foot-l">${foot}</span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div></div>`;
 }
+/* THE FIVE PARTS ON READ DOWN (owner picked "Five Parts" by name, 18 Nov 2026): the book in three numbers (on paper,
+   ending within a year, your move), the three things worth a closer look as rows, each by a door the page already
+   has (data-rd-show / data-rd-go, the renewal's own needsYouGo), and the first renewal decision as the one black
+   button. The same reading as the page (hbRdnRead); no AI. The new look only. */
+function hbRdnPanelFive(R){
+  const m = R.money, f = R.ending[0], code = typeof fxHomeCode === 'function' ? fxHomeCode() : '';
+  const day = f ? hbRdnDay(R.exp(f)) : '';
+  const paper = m(R.total);
+  const glance = [paper ? { n: code ? paper.replace(code, '').trim() : paper, l: i18t('jov5_rd_g_paper', { cur: code }).trim(), attr: 'data-rd-go="contracts"' }
+      : { n: R.L.length, l: i18t('jov5_rd_g_agreements'), attr: 'data-rd-go="contracts"' },
+    { n: R.ending.length, l: i18t('jov5_rd_g_ending'), attr: 'data-rd-go="calendar"' },
+    { n: R.ours.length, l: i18t('jov5_rd_g_move'), warn: R.ours.length > 0, attr: 'data-rd-go="negotiations"' }];
+  const rows = [];
+  if (f) rows.push({ mark: 'calendar', tone: 'amber', t: i18t('jov5_rd_first', { name: f.name || '' }), s: [day, m(hbRdnVal(f)), i18t('jov5_rd_renew_q')].filter(Boolean).join(' · '),
+    run: () => { _hbRdn = false; if (typeof needsYouGo === 'function') needsYouGo('renewal', f.id); } });
+  if (R.top) rows.push({ mark: 'users', t: i18t('rd_p_conc_v', { p: R.top.p, pc: R.share }), s: i18t('jov5_rd_party_s'),
+    attr: `data-rd-show="${_hbE(R.top.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(R.top.p)}"` });
+  rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }),
+    s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
+  if (R.late) rows.push({ mark: 'alert', tone: 'amber', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
+  const act = f ? { say: i18t('jov5_rd_act', { name: f.name || '', day }), label: i18t('jov5_rd_act_b', { name: f.name || '' }),
+      run: () => { _hbRdn = false; if (typeof needsYouGo === 'function') needsYouGo('renewal', f.id); } }
+    : { say: i18t('jov5_rd_act_none'), label: i18t('jov5_rd_act_cal'), attr: 'data-rd-go="calendar"' };
+  let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){ time = ''; }
+  return { eyebrow: i18t('jov5_rd_eb'), title: i18t('jov5_rd_t'), sub: i18t('jov5_rd_s'), glance,
+    groups: [{ label: i18t('jov5_rd_closer'), rows }], act, src: i18t('jov5_rd_src', { time }) };
+}
 /* the read down's panel: what was read, the next questions (the cost said), Jambo's line on the book */
 function hbRdnPanelHtml(){
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function')
+    return `<div class="jl-words is-ov rd-five">${jamboOverviewHtml(hbRdnPanelFive(hbRdnRead()), 'rdn')}</div>`;
   const R = hbRdnRead(), E = _hbE, m = R.money;
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
   const f = R.ending[0];
@@ -11560,7 +11590,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbDraftBtnHtml, hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml });
+Object.assign(window, { hbDraftBtnHtml, hbRdnPanelFive, hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml });
 Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBriefShut, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,

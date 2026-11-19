@@ -3833,6 +3833,9 @@ function pdWallHelloHtml(){
      Create (From scratch left this sheet for Our paper, 14 Nov 2026) */
   /* FROM NOTHING'S CONTENTS PAGE IS UP: the panel says what the proposal is made of (nsShelfPanelHtml, 14 Nov 2026) */
   if (typeof nsShelfPanelHtml === 'function'){ const sh = nsShelfPanelHtml(); if (sh) return `<div class="pd2-chosen cun-panel nsj-panel">${sh}</div>`; }
+  /* THEIR PAPER UP (owner picked "Five Parts" by name, 18 Nov 2026): the five parts (naTheirsFive) */
+  if (typeof naSheetUp === 'function' && naSheetUp() && pd2On() && typeof naTheirsNow === 'function' && typeof jamboOverviewHtml === 'function'){
+    const T = naTheirsNow(); if (T) return `<div class="jl-words is-ov pd-sheet-hello nat-five">${jamboOverviewHtml(naTheirsFive(T), 'nat')}</div>`; }
   if (typeof naSheetUp === 'function' && naSheetUp() && pd2On()){
     const E = _pdE;
     const O = (typeof naOursNow === 'function') ? naOursNow() : null;
@@ -3857,6 +3860,22 @@ function pdWallHelloHtml(){
     return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
       facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');
   return ov(pdWallOverview());
+}
+/* THEIR PAPER, IN THE FIVE PARTS: what it is for as the headline, the three steps, the two things Create needs (their
+   file — or a paper of theirs kept from before — and the stream) said as they stand, amber while missing, and Choose a
+   file the black button: the sheet's own picker (#na-theirs-pick). Read off the sheet (naTheirsNow); no AI. */
+function naTheirsFive(T){
+  const file = T.file(), kept = T.kept ? T.kept() : '', stream = T.stream(), paper = kept || file;
+  const ready = !!(paper && stream);
+  const need = [paper ? { mark: 'check2', tone: 'green', t: paper, s: kept ? _pdT('jov5_nat_kept') : _pdT('jov5_nat_file') }
+      : { mark: 'upload', tone: 'amber', t: _pdT('jov5_nat_file'), s: _pdT('jov5_nat_file_no') },
+    stream ? { mark: 'check2', tone: 'green', t: stream, s: _pdT('jov5_nat_stream') }
+      : { mark: 'folder', tone: 'amber', t: _pdT('jov5_nat_stream'), s: _pdT('jov5_nat_stream_no') }];
+  return { eyebrow: _pdT('jov5_nat_eb'), title: ready ? _pdT('jov5_nat_t_ready', { name: paper }) : _pdT('jov5_nat_t'), sub: _pdT('jov5_nat_s'),
+    steps: { label: _pdT('jov5_nat_how'), items: [{ b: _pdT('jov5_nat_s1'), s: _pdT('jov5_nat_s1s') }, { b: _pdT('jov5_nat_s2'), s: _pdT('jov5_nat_s2s') }, { b: _pdT('jov5_nat_s3'), s: _pdT('jov5_nat_s3s') }] },
+    groups: [{ label: _pdT('jov5_nat_need'), rows: need }],
+    act: ready ? { say: _pdT('jov5_nat_act_ready') } : paper ? { say: _pdT('jov5_nat_act') } : { say: _pdT('jov5_nat_act'), label: _pdT('jov5_nat_act_b'), run: () => T.pick() },
+    src: _pdT('jov5_nat_src') };
 }
 /* THE CONTRACTS PLACE, NOTHING CHOSEN: its facts, each a reading the book already makes, no AI — how many and how
    many signed, what ends inside 90 days (effectiveExpiry), what still owes a detail (detailsOf), the value in the
@@ -5149,7 +5168,7 @@ function pd2FormRegroup(c){
   if (c.counterparty) G.arrive.unshift(known('counterparty', _pdT('pd2_fm_cp'), c.counterparty, src(pd2QuoteOf(c, [c.counterparty]))));
   if (R.stream) G.arrive.push(known('stream', _pdT('pd2_f_stream'), txt(R.stream), E(_pdT('pd2_src_filed'))));
   if (R.money) G.fill.push(known('value', _pdT('pd2_f_value'), txt(R.money), src(pd2QuoteOf(c, pd2Needles(c, 'value')))));
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     G.fill.push(known('ends', _pdT('pd2_f_ends'), txt(R.expiry) + (renews ? ' · ' + _pdT('pd2_renews') : ''), src(pd2QuoteOf(c, pd2Needles(c, 'expiry'))))); }
   /* the signers: ours as the route has it; theirs the existing signer box while one is owed */
   const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(x => x && x.name);
@@ -7323,7 +7342,7 @@ function pd2ChosenHtml(c){
   const head = _pdT(owes.length ? 'pd2_ch_head' : 'pd2_ch_head_quiet', { name: c.name || '', stage: stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase(), owes: owes.join(', ') });
   const rows = [];
   if (R.money) rows.push([_pdT('pd2_f_value'), R.money, pd2SectionOf(c, 'value', cls)]);
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     rows.push([_pdT('pd2_f_ends'), R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), pd2SectionOf(c, 'expiry', cls)]); }
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
   if (L[0]) rows.push([_pdT('pd2_ch_risk'), E((typeof riskTitleOf === 'function') ? riskTitleOf(L[0]) : String(L[0].title || '')), '']);
@@ -7698,7 +7717,7 @@ function pd2SpineHtml(D){
 function pd2Facts(c, D){
   const E = _pdE, R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {}, cls = pd2Clauses(c), out = [];
   if (R.money) out.push({ k: 'value', l: _pdT('pd2_f_value'), v: R.money, s: pd2SectionOf(c, 'value', cls) });
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), s: pd2SectionOf(c, 'expiry', cls) }); }
   let signer = ''; try { signer = pdCkSignerSay(c); } catch (_){ signer = ''; }
   out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'),
@@ -8018,7 +8037,7 @@ function pd2Notes(c){
         (rule && (typeof canEdit !== 'function' || canEdit())) ? `<button type="button" class="ui-link" data-pd2-go="ask" data-pd2-key="${E(rule)}">${E(_pdT('pd2_n_ask'))}</button>` : ''].filter(Boolean).join(' · '),
       at: { text: pd2Needles(c, 'value') }, mark: true });
   }
-  if (R.expiry){ const renews = !!((c.metadata || {}).autoRenew || (c.metadata || {}).autoRenewal);
+  if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     out.push({ tone: 'fact', k: _pdT('pd2_n_ends', { d: R.expiry.replace(/<[^>]*>/g, '') }) + (renews ? ' · ' + _pdT('pd2_renews') : ''), w: _pdT('pd2_n_ends_w'), acts: '',
       at: { text: pd2Needles(c, 'expiry') }, mark: true }); }
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }
@@ -8628,17 +8647,18 @@ function pd2GroupsPlace(groups, zoom, host, f, floor0){
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-unfold]') : null; if (!b) return;
-  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.removeAttribute('data-pd2-shut'); g.classList.remove('is-folded');
-  const hp = b.closest('.pd2-notes.is-peek'); if (hp){ if (hp._pd2Repaint) hp._pd2Repaint(); return; }
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes, .pd2-notes.is-peek'); if (!g) return; g.setAttribute('data-pd2-open', '1'); g.removeAttribute('data-pd2-shut'); g.classList.remove('is-folded');
+  /* remembered BEFORE the notes are drawn again, at either host (the pop-up's redraw reads the same memory) */
   if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.add(key); _pd2Shut.delete(key); }
+  if (h && h.classList.contains('is-peek')){ if (h._pd2Repaint) h._pd2Repaint(); return; }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
 /* SHOW LESS: the group folds back to its first line and "+ N more here"; the notes are laid out again */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest(':is(#pd2-notes, .pd2-notes.is-peek) [data-pd2-fold]') : null; if (!b) return;
-  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes'); if (!g) return; g.removeAttribute('data-pd2-open'); g.setAttribute('data-pd2-shut', '1'); g.classList.add('is-folded');
-  const hp = b.closest('.pd2-notes.is-peek'); if (hp){ if (hp._pd2Repaint) hp._pd2Repaint(); return; }
+  e.preventDefault(); const g = b.closest('.pd2-mg'), h = b.closest('#pd2-notes, .pd2-notes.is-peek'); if (!g) return; g.removeAttribute('data-pd2-open'); g.setAttribute('data-pd2-shut', '1'); g.classList.add('is-folded');
   if (h){ const key = String(h.getAttribute('data-pd2-for')) + '|' + g.getAttribute('data-pd2-at'); _pd2Unfolded.delete(key); _pd2Shut.add(key); }
+  if (h && h.classList.contains('is-peek')){ if (h._pd2Repaint) h._pd2Repaint(); return; }
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
 /* OPEN IN CLAUSES: the clause's own row on the Clauses tab, opened, and the paper glides there (the paper track's door:
@@ -10043,7 +10063,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 Object.assign(window, { pd2ChosenHtml, pd2ClauseTint, pd2DiveOn, pd2DialsPaint, pd2DialOpen, pd2DialSet, pd2DialFile, pd2DialClose });
 Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClose, pd2WalkOn, pd2WalkPlay, pd2WalkReset, pd2WalkMarks, pd2WalkSections, PD2_WALK_SPEEDS });
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
-Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint });
+Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
 Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* ---- THE COVER (owner picked "Margin Notes" by name, 16 Nov 2026; drawn at five stages and agreed: "build it") ----
@@ -10099,7 +10119,7 @@ function pdCoverOf(c){
   const notice = Number(((c.metadata || {}).noticePeriodDays)) || 0;
   if (end && /^\d{4}-\d{2}-\d{2}/.test(end)){
     if (notice > 0){ const t = new Date(end.slice(0, 10) + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - notice); coming.push({ d: _cvIso(t), t: _pdT('cv_cu_notice'), s: _pdTn('cv_cu_notice_s', notice, { n: notice }) }); }
-    coming.push({ d: end.slice(0, 10), t: _pdT((c.metadata || {}).autoRenew ? 'cv_cu_renews' : 'cv_cu_ends'), s: '' });
+    coming.push({ d: end.slice(0, 10), t: _pdT(typeof contractRenewsItself === 'function' && contractRenewsItself(c) ? 'cv_cu_renews' : 'cv_cu_ends'), s: '' });
   }
   /* the notes in the margin: facts only, the stage's own first, at most three */
   const notes = [];
