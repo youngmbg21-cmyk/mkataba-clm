@@ -7791,7 +7791,14 @@ function pd2Facts(c, D){
     out.push({ k: 'approval', l: _pdT('pd2_f_approval'), v: st + (rule ? ' · ' + E(_pdT('pd2_ap_rule', { rule })) : ''), s: pd2SectionOf(c, 'value', cls) });
   }
   const sd = D.read && D.read.std;
-  if (sd){ const off = sd.dev + sd.miss; out.push({ k: 'std', l: _pdT('pd2_f_std'), v: E(off ? _pdTn('pd2_std_off', off, { n: off, total: sd.total }) : _pdT('pd2_std_all')), s: '', go: 'data-pd-ds-std' }); }
+  /* THE SCORE RING (owner picked "Score Ring" by name, 19 Nov 2026): the share of positions met as a small ring, coloured by
+     the worst it found (red: one missing, amber: some only differ, green: all met), "9 of 12 met" beside it and what is off
+     under that in the ring's colour; Open stays the one door to the notes beside the paper (pd2StdGo) */
+  if (sd){ const off = sd.dev + sd.miss, met = Math.max(0, sd.total - off), pct = sd.total ? Math.round(met / sd.total * 100) : 0;
+    const tone = sd.miss ? 'is-miss' : sd.dev ? 'is-dev' : 'is-met', R = 18, C = 2 * Math.PI * R;
+    const ring = `<span class="pd2-ring ${tone}" aria-hidden="true"><svg viewBox="0 0 44 44" focusable="false"><circle class="pd2-ring-bg" cx="22" cy="22" r="${R}"/>${met ? `<circle class="pd2-ring-fg" cx="22" cy="22" r="${R}" stroke-dasharray="${(C * met / sd.total).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}</svg><b>${pct}%</b></span>`;
+    const offs = [sd.miss ? _pdTn('pd2_std_miss', sd.miss, { n: sd.miss }) : '', sd.dev ? _pdTn('pd2_std_dev', sd.dev, { n: sd.dev }) : ''].filter(Boolean).join(' · ');
+    out.push({ k: 'std', cls: 'is-ring', l: _pdT('pd2_f_std'), v: `<span class="pd2-score">${ring}<span class="pd2-score-w"><span class="pd2-score-n">${E(_pdT('pd2_std_met', { met, total: sd.total }))}</span>${offs ? `<span class="pd2-score-off ${tone}">${E(offs)}</span>` : ''}</span></span>`, s: '', go: 'data-pd-ds-std' }); }
   else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · <button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button> <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
   return out;
 }
@@ -7828,7 +7835,7 @@ function pd2Html(c){
   /* PAPER LINE HOLDS ALL (the harmony review, owner's yes 9 Nov 2026): a fact that can be changed ends in a green
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
-  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
+  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact${f.cls ? ' ' + f.cls : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
   return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
