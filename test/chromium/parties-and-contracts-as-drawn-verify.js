@@ -104,8 +104,14 @@ const check = (name, pass, detail) => {
       await until(() => !document.getElementById('pc-name') && !!document.querySelector('#pc-dlg [data-pc-close]'));
       await page.evaluate(() => { const b = document.querySelector('#pc-dlg [data-pc-close]'); if (b) b.click(); });
       await until(() => !document.getElementById('pc-dlg'));
-      const srv = [];
-      for (const id of ['MK-OR1', 'MK-OR2']) { const c = await W.admin.json('/api/contracts/' + id); const p = (c.participants || []).find(x => x.email === 'ruth@orbit.co.ke'); srv.push(p ? id + ':' + p.title + '|' + p.phone : id + ':none'); }
+      /* the page saves each agreement in its own time: ask the server, bounded, until both have arrived */
+      let srv = [];
+      for (const t0 = Date.now(); Date.now() - t0 < 12000; ) {
+        srv = [];
+        for (const id of ['MK-OR1', 'MK-OR2']) { const c = await W.admin.json('/api/contracts/' + id); const p = (c.participants || []).find(x => x.email === 'ruth@orbit.co.ke'); srv.push(p ? id + ':' + p.title + '|' + p.phone : id + ':none'); }
+        if (srv.every(x => !/:none$/.test(x))) break;
+        await page.waitForTimeout(300);
+      }
       check('3b the server keeps her on both agreements, with her job title and phone', srv.every(x => /:Head of procurement\|\+254 700 123 456$/.test(x)), JSON.stringify(srv));
     });
 
