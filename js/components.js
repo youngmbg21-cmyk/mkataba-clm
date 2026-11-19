@@ -1599,7 +1599,10 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
+    /* A TILE THAT HOLDS WORDS, NOT A NUMBER ("Every month"), takes the smaller size and may wrap — never past its card
+       (owner, 19 Nov 2026: the duty panel's "Every month" ran out of its tile and the panel) */
+    const word = /[^\d\s.,%:\u2014\u2013-]/.test(String(g.n == null ? '' : g.n)) && String(g.n).length > 6;
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}${word ? ' is-word' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
       + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
   const rowHtml = r => {
     const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);

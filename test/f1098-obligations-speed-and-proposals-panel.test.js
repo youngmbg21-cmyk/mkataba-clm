@@ -108,3 +108,13 @@ test('f1098 (6) Open chooses too: opening an agreement makes it the panel\'s sub
   const h = src.slice(i, src.indexOf('return; }', i) + 9);
   assert.match(h, /_obnOpenAg === id && _obnPick !== id\)\{ _obnPick = id;/);
 });
+
+test('f1098 (7) a tile that holds words takes the smaller size and wraps inside its card (owner: "Every month" ran out of its tile)', () => {
+  const { W } = world();
+  if (typeof W.jamboOverviewHtml !== 'function') return;
+  const h = W.jamboOverviewHtml({ title: 'T', glance: [{ n: 2, l: 'days late' }, { n: 'None', l: 'reminder' }, { n: 'Every month', l: 'repeats' }] }, 't');
+  const d = W.document.createElement('div'); d.innerHTML = h;
+  const g = [...d.querySelectorAll('.jov5-g')].map(x => x.classList.contains('is-word'));
+  assert.deepEqual(g, [false, false, true], 'only the words tile');
+  assert.match(read('index.html'), /\.jov5-g\.is-word b\{font-size:15px;[^}]*white-space:normal/);
+});
