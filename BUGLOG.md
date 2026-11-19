@@ -22607,3 +22607,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Approvals: the chosen row can look like a grey band laid over another grey band.
 - CLAUDE.md is about 89 KB, over its 80 KB line; trimming needs the owner's yes.
 - 19 Nov 2026 · Noticed, not fixed: CLAUDE.md is about 89 KB on main, past its own "keep it under about 80 KB" line; a trim needs the owner's yes (the launchpad round added one MAP line).
+- jambo-words-verify 5/7a/7c and jambo-doors-verify (5 history, 14 my setting) each failed once on PR 782's runs and passed on identical app code the run before or after: the typed door lands after the check's bounded wait on a slow runner (19 Nov 2026).
