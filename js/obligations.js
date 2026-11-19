@@ -1399,7 +1399,7 @@ function openObligationsReview(c, found, back, place){
         <dt>${_obEsc(i18t('obd_whose'))}</dt><dd><span class="obd-switch" role="group">${(place ? ['us', 'them', 'unsure'] : ['us', 'them']).map(x => `<button type="button" data-obd-whose="${x}" aria-pressed="${w === x}"${d ? ' disabled' : ''}>${_obEsc(obWhoseBtn(x))}</button>`).join('')}</span>${w === 'unsure' && !place ? ` <span class="obd-ns">${_obEsc(i18t('obd_not_sure'))}</span>` : ''}</dd>
         <dt>${_obEsc(i18t('ob_due_date'))}</dt><dd>${_obEsc(o.due ? obDeskDay(o.due) : (k === 'event' ? i18t('obd_when_event') : k === 'standing' ? i18t('obd_when_always') : '—'))}</dd>
         <dt>${_obEsc(i18t('ob_recurring'))}</dt><dd>${_obEsc(o.recurring && o.recurring !== 'none' ? obRecurLabel(o.recurring) : '—')}</dd>
-        <dt>${_obEsc(i18t('obd_amount'))}</dt><dd>${_obEsc(amt)}</dd>
+        ${obligationMoneyVisible() ? /* hidden money is not drawn at all (f259) */`<dt>${_obEsc(i18t('obd_amount'))}</dt><dd>${_obEsc(amt)}</dd>` : ''}
         <dt>${_obEsc(i18t('obd_document'))}</dt><dd>${_obEsc(o.doc === true ? i18t('obd_doc_yes') : o.doc === false ? i18t('obd_doc_no') : '—')}</dd>
         ${place ? `<dt>${_obEsc(i18t('obn_reminder'))}</dt><dd>${_obEsc(i18t('obn_reminder_v'))}</dd>` : ''}
       </dl>

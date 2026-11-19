@@ -52,3 +52,7 @@ test('f1112 (3) Details neither asks for nor owes a Value; Key terms has no Valu
 test('f1112 (4) the phone\'s list draws no Value', () => {
   assert.match(read('js/mobile-screens.js'), /\(typeof canViewValues==='function'&&!canViewValues\(\)\) \? ''[^\n]*\n\s*: \(typeof fxIsPay==='function'&&fxIsPay\(c\)\)/);
 });
+
+test('f1112 (5) Jambo\'s duty review draws no Amount line for a reader without money rights', () => {
+  assert.match(read('js/obligations.js'), /\$\{obligationMoneyVisible\(\) \? [^`]*`<dt>\$\{_obEsc\(i18t\('obd_amount'\)\)\}<\/dt>/);
+});
