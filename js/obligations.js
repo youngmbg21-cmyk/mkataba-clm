@@ -2308,24 +2308,14 @@ function openObligationDone(c, i){
   if(typeof canEdit === 'function' && !canEdit()){ toast(i18t('ob_viewers_no_change'), 'err'); return; }
   const today = isoDay(new Date());
   const next = obligationNextInstance(o);
-  openModal(`
-    <div class="p-6">
-      <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ob_done_title')}</h3>
-      <p class="text-[12px] text-ink/60 mb-4">${_obEsc(o.desc || '')}</p>
-      <label class="block mb-3"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_done_when')}</span>
-        <input id="od-at" type="date" value="${today}" max="${today}"
-          class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/>
-        <span class="mt-1 block text-[11px] text-ink/55">${i18t('ob_done_when_why')}</span></label>
-      <label class="block mb-4"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_done_note')}</span>
-        <input id="od-note" maxlength="${OB_NOTE_MAX}" placeholder="${_obEsc(i18t('ob_done_note_ph'))}"
-          class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
-      ${next ? `<p id="od-next" class="mb-4 rounded-lg border border-line bg-slate-50 px-3 py-2 text-[12px] text-ink/70">${
-        _obEsc(i18t('ob_done_next', { date: next.due }))}</p>` : ''}
-      <div class="flex justify-end gap-2">
-        <button data-dlg-cancel id="od-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="od-go" class="ui-btn ui-btn-primary">${i18t('ob_done_go')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): the duty's name as the headline, two lines — the day
+     it was done and a note — and, where it repeats, when the next one falls due. Every id is kept. */
+  lgpOpen({ id: 'od-form', title: o.desc || i18t('ob_done_title'), sub: i18t('ob_done_title'),
+    rows: [{ k: i18t('ob_done_when'), id: 'od-at', type: 'date', value: today },
+      { k: i18t('ob_done_note'), id: 'od-note', type: 'area', ph: i18t('ob_done_note_ph'), max: OB_NOTE_MAX }],
+    html: `<p class="lgp-sub" style="margin-top:8px">${_obEsc(i18t('ob_done_when_why'))}</p>${next ? `<p id="od-next" class="lgp-sub">${_obEsc(i18t('ob_done_next', { date: next.due }))}</p>` : ''}`,
+    primary: { label: i18t('ob_done_go'), attr: 'id="od-go"' }, cancelAttr: 'data-lgp-close id="od-cancel"' });
+  { const at = document.getElementById('od-at'); if (at) at.max = today; }
   document.getElementById('od-cancel')?.addEventListener('click', closeModal);
   document.getElementById('od-go')?.addEventListener('click', () => {
     const at = (document.getElementById('od-at') || {}).value || '';

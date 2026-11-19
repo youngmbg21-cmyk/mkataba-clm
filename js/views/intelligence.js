@@ -3345,6 +3345,8 @@ async function intelAsk(qRaw, opts){
   if(!q) return;
   /* still answering: the question waits its turn (jamboAskLater), never dropped */
   if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelAsk(w, opts)); return; }
+  /* "add … as the contact" opens the one contact sheet filled in from the words (cuContactAsk, owner 19 Nov 2026) */
+  if(typeof cuContactAsk==='function'){ let pc=false; try{ pc=cuContactAsk(q); }catch(_){ pc=false; } if(pc) return; }
   intel.fdTab=false; intel.dayTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
   /* A QUESTION KEEPS THE FACE (owner, 19 Oct 2026: "you can go back to the

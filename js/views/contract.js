@@ -4877,25 +4877,21 @@ function cnEditOpen(c){
   const fixed=new Set([String(me.id),String((c.owner&&c.owner.id)||'')].filter(Boolean));
   const on=new Set(((cn&&cn.people)||[]).map(p=>String(p.id)).concat([...fixed]));
   const people=(getUsers()||[]).slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
-  openModal(`<div style="padding:16px 18px">
-    <h3>${esc(i18t('cn_dlg_title'))}</h3>
-    <p>${esc(i18t('cn_dlg_sub'))}</p>
-    <label class="sap-f" style="display:block;margin:0 0 12px"><span class="sap-lbl">${esc(i18t('cn_dlg_code'))}</span>
-      <input id="cn-code" type="text" maxlength="60" value="${esc((cn&&cn.code)||'')}" placeholder="${esc(i18t('cn_dlg_code_ph'))}" style="${window.HATI_FLD||''}"/></label>
-    <p class="sap-lbl">${esc(i18t('cn_dlg_who'))}</p>
-    <div class="sap-list cn-people" id="cn-people">${people.map(u=>{ const id=String(u.id), lock=fixed.has(id);
-      return `<label class="sap-li"><input type="checkbox" value="${esc(id)}"${on.has(id)?' checked':''}${lock?' disabled':''}/>
-        <span><b>${esc(u.name||u.email||id)}</b>${lock?` <span class="sap-m">${esc(i18t(id===String(me.id)?'cn_dlg_you':'cn_dlg_owner'))}</span>`:''}</span></label>`; }).join('')}</div>
-    <p class="st-note cn-real">${esc(i18t('cn_dlg_real',{name:c.name||''}))}</p>
-    <p class="cn-refusal" id="cn-refusal" role="alert" hidden></p>
-    <div data-dlg-foot style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px">
-      ${cn?`<button type="button" class="ui-btn" id="cn-off">${esc(i18t('cn_dlg_off'))}</button>`:''}
-      <button type="button" class="ui-btn ui-btn-primary" id="cn-save">${esc(i18t('act_save'))}</button>
-      <button type="button" class="ui-btn" data-dlg-cancel id="cn-cancel">${esc(i18t('act_cancel'))}</button>
-    </div></div>`,{ maxWidth:DLG_W.m, label:i18t('cn_dlg_title') });
-  const say=t=>{ const r=document.getElementById('cn-refusal'); if(r){ r.textContent=t; r.hidden=!t; } };
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): one line for the code name, then who may see the
+     real name as a tick list six at a time (you and the owner always, never unticked) */
+  const st={ page:1, err:'' };
+  const sheet=()=>({ id:'cn-form', title:i18t('cn_dlg_title'), sub:i18t('cn_dlg_sub'),
+    rows:[{ k:i18t('cn_dlg_code'), id:'cn-code', value:st.code!=null?st.code:((cn&&cn.code)||''), ph:i18t('cn_dlg_code_ph'), max:60 }],
+    html:`<p class="lgp-sub" style="margin-top:12px">${esc(i18t('cn_dlg_who'))}</p>`+lgpListHtml({ page:st.page, tickAttr:'data-cn-who', pageAttr:'data-cn-page',
+      items:people.map(u=>{ const id=String(u.id), lock=fixed.has(id); return { id, on:on.has(id), disabled:lock, label:u.name||u.email||id,
+        stage:lock?i18t(id===String(me.id)?'cn_dlg_you':'cn_dlg_owner'):'' }; }),
+      said:i18t('cn_dlg_real',{name:c.name||''}) }),
+    err:st.err, left:cn?{ label:i18t('cn_dlg_off'), attr:'id="cn-off"' }:null,
+    primary:{ label:i18t('act_save'), attr:'id="cn-save"' } });
+  const keep=()=>{ const f=document.getElementById('cn-code'); if(f) st.code=f.value; };
+  const say=t=>{ st.err=t||''; keep(); lgpRepaint(sheet()); };
   const send=async(code)=>{
-    const ids=[...document.querySelectorAll('#cn-people input:checked')].map(i=>i.value);
+    const ids=[...on];
     let r=null;
     try{ r=await api('contracts/'+encodeURIComponent(c.id)+'/code-name','PUT',{ code, ids }); }
     catch(e){ say((e&&e.message)||i18t('cn_failed')); return; }
@@ -4904,13 +4900,19 @@ function cnEditOpen(c){
     toast(r&&r.codeName?i18tn('cn_saved',r.codeName.people.length,{code:r.codeName.code,n:r.codeName.people.length}):i18t('cn_removed'),'ok');
     cnRowPaint(c);
   };
-  document.getElementById('cn-save')?.addEventListener('click',()=>{
+  const root=document.getElementById('modal-root');
+  const onChange=e=>{ const w=e.target&&e.target.getAttribute&&e.target.getAttribute('data-cn-who'); if(!w) return; if(e.target.checked) on.add(w); else on.delete(w); };
+  const onClick=e=>{
+    const pg=e.target.closest&&e.target.closest('[data-cn-page]'); if(pg){ e.preventDefault(); keep(); st.page=Math.max(1,Number(pg.getAttribute('data-cn-page'))||1); lgpRepaint(sheet()); return; }
+    if(e.target.closest&&e.target.closest('#cn-off')){ e.preventDefault(); send(''); }
+  };
+  const onSubmit=e=>{ if(!(e.target&&e.target.id==='cn-form')) return; e.preventDefault();
     const code=String((document.getElementById('cn-code')||{}).value||'').trim();
     if(!code){ say(i18t('cn_need_code')); return; }
-    send(code);
-  });
-  document.getElementById('cn-off')?.addEventListener('click',()=>send(''));
-  document.getElementById('cn-cancel')?.addEventListener('click',()=>closeModal());
+    send(code); };
+  /* the handlers live as long as this pop-up: added on open, taken off on close (modal-root outlives every dialog) */
+  root.addEventListener('change',onChange); root.addEventListener('click',onClick); root.addEventListener('submit',onSubmit);
+  lgpOpen(Object.assign(sheet(),{ onClose:()=>{ root.removeEventListener('change',onChange); root.removeEventListener('click',onClick); root.removeEventListener('submit',onSubmit); } }));
   return true;
 }
 function ovRecordOpen(c){ if(c) ovSetEditing(OV_KEY(c,'record'), true); }
@@ -7703,25 +7705,22 @@ function openPartyEditor(c, id){
       <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''} style="margin-top:3px;accent-color:var(--accent-fill)"/>
       <span><span style="display:block;font-weight:var(--w-label)">${esc(i18t('py_inv_'+k))}</span><span class="sap-m">${esc(i18t('py_inv_'+k+'_s'))}</span></span>
     </label>`).join('');
-  openModal(`
-    <div style="padding:16px 18px">
-      <h3>${esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
-      <p>${esc(((typeof contractRef==='function')?contractRef(c):c.id)+' \u00b7 '+(c.name||''))}</p>
-      <div class="sap-body">
-        <div class="sap-row">${fld('name',i18t('py_reg_name'),i18t('py_name_ph'),p.name,true)}${roleSel(p.role)}</div>
-        ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):p.email)}
-        <div class="sap-f"><span class="sap-lbl">${esc(i18t('py_inv_q'))}</span>
-          <div class="sap-list py-inv">${inv}</div></div>
-        <div id="py-say" class="py-say" hidden></div>
-      </div>
-      <div style="display:flex;gap:var(--s-2);align-items:center">
-        ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
-          esc(i18t('py_remove'))}</button>`:''}
-        <span style="flex:1"></span>
-        <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
-        <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t(adding?'py_add_go':'act_save'))}</button>
-      </div>
-    </div>`, { maxWidth: '540px' });
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): the name, the paper's word for them and the address
+     as lines; what they do as three quiet choices; Remove on the left (editing an outside party); Save, Cancel last.
+     Every id is kept (py-name, py-role, py-email, py-inv, py-say, py-del, py-ok). */
+  const roleOpts=[{ v:'', t:i18t('wz_not_set') }].concat(((typeof partyRoleOptions==='function')?partyRoleOptions(p.role):[]).map(o=>({ v:o.v, t:o.l })),
+    [{ v:PARTY_ROLE_OTHER, t:i18t('py_role_another') }]);
+  const curRole=String(p.role||'').trim(), roleVal=(roleOpts.find(o=>o.v&&o.v.toLowerCase()===curRole.toLowerCase())||{}).v||'';
+  lgpOpen({ id:'py-form', title:adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'),
+    sub:((typeof contractRef==='function')?contractRef(c):c.id)+' · '+(c.name||''),
+    rows:[{ k:i18t('py_reg_name'), id:'py-name', value:p.name||'', ph:i18t('py_name_ph') },
+      { k:i18t('py_role'), id:'py-role', type:'select', value:roleVal, opts:roleOpts },
+      { k:i18t('ov_f_email'), id:'py-email', type:'email', value:(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):(p.email||''), ph:i18t('py_email_ph') }],
+    html:`<p class="lgp-sub" style="margin-top:12px">${esc(i18t('py_inv_q'))}</p><div class="lgp-list py-inv">${PARTY_INVOLVEMENT.map(k=>`<label class="lgp-tick is-radio">
+        <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''}/><span class="lgp-tl">${esc(i18t('py_inv_'+k))}<span class="lgp-tsub">${esc(i18t('py_inv_'+k+'_s'))}</span></span></label>`).join('')}</div>
+      <p id="py-say" class="lgp-err" role="alert" hidden></p>`,
+    left:(!adding&&p.side!==PARTY_SIDE_OURS)?{ label:i18t('py_remove'), attr:'id="py-del"', danger:true }:null,
+    primary:{ label:i18t(adding?'py_add_go':'act_save'), attr:'id="py-ok"' }, cancelAttr:'data-lgp-close id="py-cancel"' });
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
     el.textContent=m||''; el.hidden=!m; };

@@ -200,8 +200,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelector('#ins-panel [data-cu-pr-edit]'));
       /* RE-POINTED 17 Nov 2026 (#762): Edit the party record is a row of the panel's More group */
       await page.click('#ins-panel [data-cu-pr-edit]');
-      const F = await until(() => { const f = document.getElementById('cu-pr-form'); return f ? { sug: (f.querySelector('[data-cu-pr-sug]') || {}).textContent || '', use: (f.querySelector('[data-cu-pr-use]') || {}).getAttribute ? f.querySelector('[data-cu-pr-use]').getAttribute('data-cu-pr-use') : '' } : null; });
-      check('3a two boxes in the panel; the parties clause\'s address is offered, its city to use', !!F && /P\.O\. Box 30, Kisumu, Kenya/.test(F.sug) && F.use === 'Kisumu', JSON.stringify(F));
+      const F = await until(() => { const f = document.getElementById('cu-pr-form'); return f ? { sug: (f.querySelector('[data-cu-pr-sug], .lgp-quote') || {}).textContent || '', use: (f.querySelector('[data-cu-pr-use]') || {}).getAttribute ? f.querySelector('[data-cu-pr-use]').getAttribute('data-cu-pr-use') : '' } : null; });
+      /* RE-POINTED 19 Nov 2026 (the one edit pop-up): the two lines open in the sheet; the address is its quote line */
+      check('3a two lines in the edit sheet; the parties clause\'s address is offered, its city to use', !!F && /P\.O\. Box 30, Kisumu, Kenya/.test(F.sug) && F.use === 'Kisumu', JSON.stringify(F));
       /* RE-POINTED 24 Oct 2026 (flaky on CI: the server kept city ""): fill, then confirm both boxes hold their words before Save */
       for (let i = 0; i < 6; i++) {
         await page.click('[data-cu-pr-use]');

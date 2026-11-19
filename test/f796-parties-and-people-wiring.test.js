@@ -104,11 +104,13 @@ describe('f796 (4) the panel as drawn', () => {
     assert.match(fnBody(CU, 'cuPanelSubHtml'), /data-cu-pr-edit/);
     assert.match(fnBody(CU, 'cuPanelSubHtml'), /cu_since/);
   });
-  test('the two boxes with Save · Cancel, the suggestion offered under the city', () => {
-    const F = fnBody(CU, 'cuPrFormHtml');
-    assert.match(F, /id="cu-pr-city"/); assert.match(F, /id="cu-pr-org"/);
-    assert.match(F, /data-cu-pr-save/); assert.match(F, /data-cu-pr-cancel/);
-    assert.match(F, /partyCitySuggest\(v\.key\)/); assert.match(F, /data-cu-pr-use/);
+  /* RE-POINTED 19 Nov 2026 (owner's pick "the Legora way"): the two lines open in the ONE edit pop-up (lgpOpen); Save,
+     then Cancel (the pop-up's own); the city read from the parties clause offered under City, only where one was read */
+  test('the two lines with Save · Cancel, the suggestion offered under the city', () => {
+    const F = fnBody(CU, 'partyRecordOpen');
+    assert.match(F, /lgpOpen\(\{ id: 'cu-pr-form'/); assert.match(F, /id: 'cu-pr-city'/); assert.match(F, /id: 'cu-pr-org'/);
+    assert.match(F, /attr: 'data-cu-pr-save'/);
+    assert.match(F, /partyCitySuggest\(v\.key\)/); assert.match(F, /data-cu-pr-use/); assert.match(F, /sug && sug\.city \?/);
   });
   test('the sections: waiting, agreements, the people at the party, then the draft door', () => {
     const at = s => P.indexOf(s);

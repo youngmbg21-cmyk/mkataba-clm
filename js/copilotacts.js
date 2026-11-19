@@ -3046,6 +3046,9 @@ function caAskAnywhere(text, opts = {}){
      itself: no question or card is handed to another Jambo; a place or a
      contract still opens, and a booking still goes to the Calendar (above) */
   const win = !!opts.win;
+  /* "ADD GRACE WAMBUI, HEAD OF BUYING, … AS THE CONTACT FOR NAIVAS" (owner, 19 Nov 2026): the one contact sheet opens
+     filled in from the words (cuContactAsk, js/views/customers.js); nothing is saved until the person presses Add */
+  if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t, opts.say); } catch (_){ pc = false; } if (pc) return pc; }
   /* the Calendar's own box keeps its booking and planning words (opts.cal) */
   if (opts.cal){ let b = false; try { b = typeof igBookAsk === 'function' && !!igBookAsk(t); } catch (_){ b = false; } if (b) return false; }
   /* THE ONE READER (owner, 19 Oct 2026: "do what the user asks in plain

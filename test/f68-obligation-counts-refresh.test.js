@@ -52,6 +52,10 @@ function stage(contract) {
        stand-in that cannot behave like the thing it replaces turns its test
        into a description. */
     openModal(html) { win.document.getElementById('modal-root').innerHTML = html; },
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, the Legora way): Mark done opens through lgpOpen; the stand-in draws
+       its lines and its black button with the ids the dialog has always had */
+    lgpOpen(o) { win.document.getElementById('modal-root').innerHTML = '<form>' + (o.rows || []).map(r => `<input id="${r.id}" value="${r.value || ''}">`).join('')
+      + `<button ${o.primary.attr}></button><button id="od-cancel"></button></form>`; },
     closeModal() { win.document.getElementById('modal-root').innerHTML = ''; },
     canEdit: () => true, API_MODE: () => true, getUsers: () => [], nowISO: () => new Date().toISOString(),
     isUpload: () => false, effectiveExpiry: c => c.expiry || null,

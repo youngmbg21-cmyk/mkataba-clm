@@ -1727,6 +1727,9 @@ function jlAsk(text, opts){
   /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): no Jambo tab to be on — a page's one name
      moves you free (jamboPageGo), every other word TYPED is the brain's, on the landing too */
   if (opts && opts.typed && typeof jamboPageGo === 'function' && jamboPageGo(t)) return 'go';
+  /* "ADD GRACE WAMBUI, … AS THE CONTACT" opens the one contact sheet filled in from the words, before the brain is
+     asked (cuContactAsk, owner 19 Nov 2026); nothing is saved until the person presses Add */
+  if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t); } catch (_){ pc = false; } if (pc) return pc === true ? 'go' : 'said'; }
   if (opts && opts.typed && typeof caAiFirst === 'function' && caAiFirst() && typeof aiAskWords === 'function'){
     if (_jlBusy()) return jlBusySay(t);
     jlTalkOpen(); aiAskWords(t, { controls: true }); return 'model';
