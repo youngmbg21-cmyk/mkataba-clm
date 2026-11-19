@@ -1000,7 +1000,10 @@ function _pcRestore(snaps, moved){
   snaps.forEach(sn => { const c = sn.c;
     c.participants = sn.participants;
     ['counterpartyEmail', 'counterpartyName'].forEach(k => { if (sn[k] === undefined) delete c[k]; else c[k] = sn[k]; });
-    if (sn.parties !== undefined) c.parties = sn.parties;
+    /* the address book only ever mirrors an email onto a party (contactMirror), so Undo puts back just those emails,
+       never the list itself (the parties module is its one writer; f359) */
+    if (Array.isArray(sn.parties) && Array.isArray(c.parties)) c.parties.forEach(py => {
+      const was = py && sn.parties.find(x => x && _ptStr(x.id) === _ptStr(py.id)); if (was) py.email = was.email || ''; });
     if (moved && moved.from && moved.to && _ptFold(moved.from) !== _ptFold(moved.to)) contactFollow(c, moved.to, moved.from);
     participantsKeep(c); });
 }

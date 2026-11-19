@@ -3011,7 +3011,7 @@ const STRINGS = {
     dirn_head_at: '{n} at {party}',
     dirn_party_clear: 'Show everyone',
     dirn_add_contact: 'Add contact',
-    dirn_p_call: 'Call them',
+    dirn_p_call: 'Phone them',
     dirn_p_edit: 'Edit contact',
     ppl_title_job: 'Job title',
     ppl_phone: 'Phone',
