@@ -919,3 +919,6 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - RE-POINTED: parties-and-people 1a2/2b/3b/3e/4a–4i/9b/9d, round6-new-look 4, rows-only-on-a-press (parties: no Folders), reads-and-columns-as-drawn 1, legora-look 12d, every-door-lands-on-home (party doors), jambo-looks-them-up (opens `partyWebOpen` directly), parties-sap-way; node f1070, f977; f997 (2) retired.
 - RETIRED WHOLE: test/chromium/parties-nda-column-verify.js (the NDA column and the party page are gone).
 - Node: f1070, f977, f997, f354, f148, f937, f938, f964, f965, f232, f48.
+
+## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS (19 Nov 2026)
+- f1086 (2) re-pointed: a pressed field keeps a thin light grey edge (--color-neutral-300), never the ink; red at the parent.
