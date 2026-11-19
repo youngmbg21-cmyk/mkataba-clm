@@ -49,9 +49,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): You is the one list's "You" area (Name, Language,
        Two-step, Alerts…); how you work (Jambo's suggestions, the brief, where a contract opens) and the password are in
        the avatar's account drawer. The round-24 sheet — its contents list, its sections, the forms in their rows — is
-       the old look's. */
-    const toYou = async () => { await page.evaluate(() => { if (typeof stDrawerClose === 'function') try { stDrawerClose(); } catch (_) {} setView('team'); });
-      return until(() => !!document.querySelector('.stn-page #stn-sec-you') && !!document.querySelector('#stn-name')); };
+       the old look's. RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): You is one of six areas, its own page. */
+    const toYou = async () => { await page.evaluate(() => { if (typeof stDrawerClose === 'function') try { stDrawerClose(); } catch (_) {} setView('team'); if (typeof sddGo === 'function') sddGo('you'); });
+      return until(() => !!document.querySelector('.stn-page[data-sdd-area="you"]') && !!document.querySelector('#sdd-who')); };
     const toAccount = async () => { await page.evaluate(() => { if (typeof openMyAccount === 'function') openMyAccount(); }); return until(() => !!document.getElementById('pref-jb-chips')); };
 
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -89,10 +89,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
 
     console.log('\n4 · the language buttons');
     await toYou();
-    if (await press('#stn-lang [data-st-lang="sv"]', '4 Svenska')) {
-      const sv = await until(() => langId() === 'sv' && /^Du$/.test(((document.querySelector('#set-page #stn-sec-you') || {}).textContent || '').trim()) ? document.querySelector('#set-page #stn-sec-you').textContent : null, null, 6000);
+    if (await press('#sdd-lang [data-st-lang="sv"]', '4 Svenska')) {
+      const sv = await until(() => { const t = document.querySelector('#set-page .sdd-title'); const w = t && t.firstChild ? String(t.firstChild.textContent).trim() : '';
+        return langId() === 'sv' && w === 'Du' ? w : null; }, null, 6000);
       check('4a the page turns Swedish, the list with it', !!sv, String(sv));
-      await page.evaluate(() => { const b = document.querySelector('#stn-lang [data-st-lang="en"]'); if (b) b.click(); });
+      await page.evaluate(() => { const b = document.querySelector('#sdd-lang [data-st-lang="en"]'); if (b) b.click(); });
       const en = await until(() => langId() === 'en' ? 'en' : null, null, 6000);
       check('4b and back', en === 'en', String(en));
     }
@@ -111,7 +112,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await toYou(); await page.waitForTimeout(300);
       const fit = await page.evaluate(() => {
         const card = document.querySelector('.stn-card'); const R = card.getBoundingClientRect();
-        const past = [...document.querySelectorAll('#stn-main .stn-row *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right > R.right + 1; }).length;
+        const past = [...document.querySelectorAll('#stn-main .sdd-row *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right > R.right + 1; }).length;
         const panel = document.getElementById('ins-panel'); const pr = panel ? panel.getBoundingClientRect() : null;
         return { sx: document.scrollingElement.scrollWidth > innerWidth, past, panel: !!pr && pr.width > 100 && pr.left >= R.right - 1 };
       });

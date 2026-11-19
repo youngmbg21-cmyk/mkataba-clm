@@ -227,11 +227,13 @@ const EXTRA = [
         if (q) { q.value = 'payment'; q.dispatchEvent(new Event('input', { bubbles: true })); }
       });
       await page.waitForTimeout(500);
+      await page.evaluate(() => { if (typeof sddGo === 'function') sddGo('company'); });
+      await page.waitForFunction(() => !!document.querySelector('#stn-main [data-sdd-row="paydays"]'), null, { timeout: 5000 }).catch(() => {});
       const saved = await page.evaluate(() => ({
         t: Object.assign({}, payTargets()),
-        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; the row whose door opens the
-           paydays drawer says its state in its value (.stn-val) */
-        row: (((document.querySelector('#stn-main [data-stn-row] [data-st-panel="paydays"]') || { closest: () => null }).closest('[data-stn-row]') || document.createElement('i')).querySelector('.stn-val') || {}).textContent || '',
+        /* RE-POINTED 16 Nov 2026 (#762); 19 Nov 2026 (Settings, door to door, f1091): the Company area's Payment targets
+           row says its state in its Now column (.sdd-v) */
+        row: ((document.querySelector('#stn-main [data-sdd-row="paydays"] .sdd-v') || {}).textContent) || '',
         reading: ((window.SET_PANELS && SET_PANELS.paydays) ? (SET_PANELS.paydays.state() || {}).text : '') || '',
       }));
       check('11d the pair is stored and each side reads its own',

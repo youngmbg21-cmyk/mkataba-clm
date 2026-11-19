@@ -108,14 +108,14 @@ function navWhereSrc(){
     const L = document.querySelector('.is-landed');
     if (L){
       const card = L.closest('[data-st-you-card]'); if (card) S.row = card.getAttribute('data-st-you-card');
-      /* the new look's one list: a ROW where the You card was (#762), named by the You key it stands for */
-      const STN_YOU = { lang: 'lang', name: 'who', away: 'away', twostep: 'safety', push: 'told', mydata: 'data', agents: 'work' };
-      const sr = !card && L.closest('[data-stn-row]'); if (sr){ const id = sr.getAttribute('data-stn-row'); S.row = STN_YOU[id] || id; }
+      /* the new look's You area: a ROW where the You card was (#762; door to door, f1091), named by the You key it stands for */
+      const STN_YOU = { lang: 'lang', who: 'who', away: 'away', twostep: 'safety', sessions: 'safety', told: 'told', push: 'told', mydata: 'data', work: 'work', 'agents-mine': 'work', points: 'points' };
+      const sr = !card && L.closest('[data-sdd-row]'); if (sr){ const id = sr.getAttribute('data-sdd-row'); S.row = STN_YOU[id] || id; }
       if (L.id === 'tm-cap' || L.closest('#tm-cap') || L.id === 'tm-cap-none' || L.id === 'tm-cap-says') S.row = 'signcap';
     }
-    const youCard = document.querySelector('[data-st-you-card].is-landed, [data-st-you-card] .is-landed, [data-stn-row].is-landed');
+    const youCard = document.querySelector('[data-st-you-card].is-landed, [data-st-you-card] .is-landed, [data-sdd-row].is-landed');
     if (!S.row && youCard){ const yc = youCard.closest('[data-st-you-card]'); if (yc) S.row = yc.getAttribute('data-st-you-card');
-      else { const STN_YOU2 = { lang: 'lang', name: 'who', away: 'away', twostep: 'safety', push: 'told', mydata: 'data', agents: 'work' }; const id = (youCard.closest('[data-stn-row]') || youCard).getAttribute('data-stn-row'); S.row = STN_YOU2[id] || id; } }
+      else { const STN_YOU2 = { lang: 'lang', who: 'who', away: 'away', twostep: 'safety', sessions: 'safety', told: 'told', push: 'told', mydata: 'data', work: 'work', 'agents-mine': 'work', points: 'points' }; const id = (youCard.closest('[data-sdd-row]') || youCard).getAttribute('data-sdd-row'); S.row = STN_YOU2[id] || id; } }
     W.settings = S;
   }
   /* WHAT ELSE STANDS ON THE SCREEN (the door exam, 23 Oct 2026): a dialog a door opened, the slide-out panel's

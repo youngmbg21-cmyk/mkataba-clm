@@ -150,7 +150,8 @@ const openSettings = async (page, tab) => {
       /* since the full build (16 Oct 2026) the panel is a fact on its card or a
          row in the Menu, each saying its state */
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the row behind the drawer is the one list's Mail row */
-      row: (document.querySelector('.stn-page #stn-mail') || {}).textContent || '' }));
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the Mail area's Email delivery row, read as drawn */
+      row: (() => { const r = (typeof sddRows === 'function' ? sddRows(true) : []).find(x => x.id === 'mail'); return r ? [r.say, r.now, r.sub].filter(Boolean).join(' · ') : ''; })() }));
     check('D8 saving a mail key turns email on, and the box empties', on && !d8.key && d8.emailOff === false, d8.status);
     check('D8 the key itself is never shown back (last four only)', /abcd/.test(d8.status) && !/re_screenKey/.test(d8.status));
     check('D8 the row behind the drawer says configured at once', /configured/i.test(d8.row) && !/not configured/i.test(d8.row), d8.row.replace(/\s+/g, ' ').trim().slice(0, 90));

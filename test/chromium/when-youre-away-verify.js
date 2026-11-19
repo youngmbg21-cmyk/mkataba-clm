@@ -63,20 +63,20 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; When you're away is its row in
-       You (#stn-away: what it is set to, and Change, which opens the away form as a drawer). Every promise the round-24
+       You (re-pointed 19 Nov 2026 to the You area, f1091: #sdd-away: what it is set to, and Change, which opens the away form as a drawer). Every promise the round-24
        card made is asked where the new look draws it: the row, its drawer, Jambo's panel beside the list. */
-    const page0 = () => until(() => { if (!document.querySelector('.stn-page')) { if (typeof stDrawerClose === 'function') try { stDrawerClose(); } catch (_) {} setView('team'); return null; } return !!document.getElementById('stn-away'); }, null, 15000);
-    const rowText = () => until(() => { const r = document.getElementById('stn-away'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
+    const page0 = () => until(() => { if (!document.querySelector('.stn-page')) { if (typeof stDrawerClose === 'function') try { stDrawerClose(); } catch (_) {} setView('team'); return null; } if (!document.querySelector('.stn-page[data-sdd-area="you"]')) { sddGo('you'); return null; } return !!document.getElementById('sdd-away'); }, null, 15000);
+    const rowText = () => until(() => { const r = document.getElementById('sdd-away'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
     const seen = () => page.evaluate(() => ((document.getElementById('set-page') || {}).textContent || '').replace(/\s+/g, ' ') + ' ' + ((document.getElementById('st-drawer') || {}).textContent || '').replace(/\s+/g, ' '));
 
     console.log('\n1 · the row');
     await page0();
     let row = await rowText();
-    const door1 = await page.evaluate(() => !!document.querySelector('#stn-away [data-st-panel="me:away"]'));
+    const door1 = await page.evaluate(() => !!document.querySelector('#sdd-away [data-st-panel="me:away"]'));
     check('1a When you\'re away, in You: nobody yet, and its door', !!row && /When you’re away|When you're away/.test(row) && /Not set/.test(row) && door1, row);
 
     console.log('\n2 · the form');
-    if (await press('#stn-away [data-st-panel="me:away"]', '2 Change')) {
+    if (await press('#sdd-away [data-st-panel="me:away"]', '2 Change')) {
       const d = await until(() => { const dr = document.getElementById('st-drawer'); if (!dr || !dr.classList.contains('open')) return null;
         const who = document.getElementById('st-aw-who');
         return who ? { title: ((document.querySelector('#st-dhead .rvd-title') || {}).textContent || '').trim(), from: (document.getElementById('st-aw-from') || {}).value,
@@ -102,7 +102,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     console.log('\n3 · saved');
     const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /answers for you from/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
     check('3a an \'ok\': "No Values Legal answers for you from …"', !!told && /No Values Legal answers for you from /.test(told), told);
-    row = await until(() => { const r = document.getElementById('stn-away'); const t = r && r.textContent.replace(/\s+/g, ' ').trim(); return t && /On until/.test(t) ? t : null; });
+    row = await until(() => { const r = document.getElementById('sdd-away'); const t = r && r.textContent.replace(/\s+/g, ' ').trim(); return t && /On until/.test(t) ? t : null; });
     check('3b the row: "On until …"', !!row, row);
     /* what the card said beside it — who answers, from when to when, that it ends on its own, never signing, each answer
        "for <you>" — and its End it now: asked of the page where the new look draws it (the row, its drawer, the panel) */
@@ -120,6 +120,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     const own = page;
     page = await open('novalues@example.co.ke', 'their-own-pass-9');
     let mine = await until(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; }
+      if (!document.querySelector('.stn-page[data-sdd-area="you"]')) { sddGo('you'); return null; }
       const t = (((document.getElementById('set-page') || {}).textContent) || '').replace(/\s+/g, ' '); return /You answer for/.test(t) ? { text: t.slice(t.indexOf('You answer for'), t.indexOf('You answer for') + 80) } : null; });
     check('4a their own You says "You answer for Unrestricted Legal until …"', !!mine && /You answer for Unrestricted Legal until /.test(mine.text), mine && mine.text);
     const may = await page.evaluate(async () => { const c = getContract('MK-W1'); if (typeof ensureFull === 'function') await ensureFull(c);
@@ -142,10 +143,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     console.log('\n5 · End it now');
     await page0();
     const endSel = '#set-page [data-st-away-end], #st-drawer [data-st-away-end]';
-    if (!(await page.locator(endSel).count())) await page.locator('#stn-away [data-st-panel="me:away"]').first().click().catch(() => {});
+    if (!(await page.locator(endSel).count())) await page.locator('#sdd-away [data-st-panel="me:away"]').first().click().catch(() => {});
     if (await press(endSel, '5 End it now')) {
       const t = await until(() => { const x = (document.getElementById('toast-root') || {}).textContent || ''; return /yours again/.test(x) ? x.replace(/\s+/g, ' ').trim() : null; });
-      const back = await until(() => { if (typeof stDrawerClose === 'function' && document.querySelector('#st-drawer.open')) try { stDrawerClose(); } catch (_) {} const r = document.getElementById('stn-away'); const x = r && r.textContent.replace(/\s+/g, ' ').trim(); return x && /Not set/.test(x) ? x : null; });
+      const back = await until(() => { if (typeof stDrawerClose === 'function' && document.querySelector('#st-drawer.open')) try { stDrawerClose(); } catch (_) {} const r = document.getElementById('sdd-away'); const x = r && r.textContent.replace(/\s+/g, ' ').trim(); return x && /Not set/.test(x) ? x : null; });
       check('5 an \'ok\', and the row is back to nobody', !!t && /Ended — your approvals and reviews are yours again\./.test(t) && !!back, `${t} / ${back}`);
     }
 
@@ -155,14 +156,14 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {
       await page.setViewportSize(vp);
       await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); renderTeam(); });
-      await until(() => /On until/.test(((document.getElementById('stn-away') || {}).textContent) || ''));
+      await until(() => /On until/.test(((document.getElementById('sdd-away') || {}).textContent) || ''));
       const fit = await page.evaluate(() => {
-        const c = document.getElementById('stn-away'); const r = c.getBoundingClientRect();
-        const cut = [...c.querySelectorAll('.stn-l, .stn-v, .stn-sub, button')].filter(e => e.scrollWidth > e.clientWidth + 1).length;
+        const c = document.getElementById('sdd-away'); const r = c.getBoundingClientRect();
+        const cut = [...c.querySelectorAll('.sdd-k, .sdd-s, .sdd-u, .sdd-v, button')].filter(e => e.scrollWidth > e.clientWidth + 1).length;
         return { right: r.right <= innerWidth + 1, cut, page: document.documentElement.scrollWidth - innerWidth };
       });
       await shot(page, `away-card-${vp.width}x${vp.height}`);
-      await page.locator('#stn-away [data-st-panel="me:away"]').first().click().catch(() => {});
+      await page.locator('#sdd-away [data-st-panel="me:away"]').first().click().catch(() => {});
       const dr = await until(() => { const d = document.getElementById('st-drawer'); if (!d || !d.classList.contains('open') || !document.getElementById('st-aw-who') || document.getAnimations().some(a => a.playState === 'running')) return null;
         const r = d.getBoundingClientRect();
         const save = document.getElementById('st-dsave'); const s = save && save.getBoundingClientRect();

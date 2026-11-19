@@ -80,7 +80,7 @@ const PAINTED = (sel) => {
     await signIn(page, h.base, 'admin@example.co.ke', 'adminpassword1');
     await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1000);
-    await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main .stn-row'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main .sdd-row'), null, { timeout: 10000 }).catch(() => {});
     await shot(page, 'settings-company');
 
     /* RETIRED 16 Nov 2026 (#762): 1a–1e (the Company board's cards: painted names, no card a wall, every panel once,

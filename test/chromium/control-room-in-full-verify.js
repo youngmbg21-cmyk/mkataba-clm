@@ -84,16 +84,17 @@ const signIn = async (page, base, email, pass) => {
     /* ---- 2. the two pages ---- */
     /* RETIRED 16 Nov 2026 (#762): 2 (an area card's facts and doors) and 2b ("What to turn on next" on the ladder card) —
        the Company board's cards are the old look's */
-    /* RE-POINTED 16 Nov 2026 (#762): People & roles is a link at the one list's foot */
-    await page.click('#stn-pages [data-st-page="team"]');
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): People & roles is a row in the Company area */
+    await page.evaluate(() => sddGo('company'));
+    await page.click('#stn-main [data-sdd-row="people"] [data-st-page="team"]');
     const team = await until(() => document.querySelectorAll('[data-st-pg="team"] tr.st-person').length || null);
     check('2c. Team is a page inside the board', team >= 4, team + ' people');
     await page.reload({ waitUntil: 'networkidle' });
     const back = await until(() => !!document.querySelector('[data-st-pg="team"]'), null, 15000);
     check('2d. a refresh comes back to the Team page', !!back);
     await page.click('.st-pg-back');
-    const board = await until(() => !!document.querySelector('.stn-page #stn-main .stn-row'));
-    check('2e. ‹ Settings goes back to the one list', !!board);
+    const board = await until(() => !!document.querySelector('.stn-page[data-sdd-area="company"] #stn-main [data-sdd-row="people"]'));
+    check('2e. ‹ Company goes back to the Company area', !!board);
 
     /* ---- 3. one search ---- */
     /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's box left; the jump list is "/" */
