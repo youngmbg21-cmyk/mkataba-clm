@@ -233,6 +233,7 @@ THE CHOSEN ROW'S PANELS (owner, 16 Nov 2026): Approvals `apnLeadFiveHtml` (no bu
 ## ONE SHEET AND THREE BUTTONS (index.html "ONE SHEET" block)
 - A page's head and what it heads are ONE white sheet: no gap, one hairline, 10px outer corners, to the foot of Jambo's panel; the head's shadow never falls downward, NEVER clipped. Not the Board; Settings and a template's page flat, the page their one scroller (`scrollShowHandle`). THE BUILDER'S PAPER LIES ON A DESK (`#tb-scroll`; f1044).
 - THREE BUTTON STYLES: one black per area, grey pills for the rest, green links to go somewhere.
+- SAP PAGE, LEGORA PANEL (owner's pick, 19 Nov 2026): a side panel's head line never touches the divider or the edge — 16 in, fading at both ends; ONE closing rule (`:is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head)`). The page's lines stay solid, ending where its words end. f1107.
 - FAULTS ARE COUNTED IN THE NEW LOOK: `white-sheet-verify` (`PINS`; `WHITE_KNOWN` only shrinks), `HATI_TIDY_NEW_LOOK=1`, `HATI_DETAIL_NEW_LOOK=1`; the tidy sweep measures AFTER MOTION too.
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS
 - `.sap-page`: every page head is ONE white card (`.ph-card`, `.ph-top`, `.ph-foot`); lists: THE LIST HEAD.

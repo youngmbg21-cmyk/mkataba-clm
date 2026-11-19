@@ -22373,6 +22373,14 @@
   html:not(#_):not(#_) :is(.na-inp, .field, .hati-editor, #na-root .na-kt-grid input, [data-kt], [data-ktm], .cd-fld :is(input, select, textarea)):focus{border-color:var(--color-neutral-300)}
   html:not(#_):not(#_) :is(.sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .rl-np-box):focus-within{outline:none;box-shadow:none;border-color:var(--color-neutral-300)}
   html:not(#_):not(#_) .jb-card:focus-within{outline:none;box-shadow:none}
+  /* SAP PAGE, LEGORA PANEL (owner's pick by name, 19 Nov 2026): the line under a side panel's head never touches the
+     divider or the window's edge. It is pulled 16 in from both sides (where the panel's cards start and stop) and
+     fades in and out at its ends, so a panel line and the page's line at another height never read as one broken
+     line. The page's own lines are not touched: they already stop where the page's words stop (the SAP way). ONE
+     RULE for every panel head: Jambo's dock, the list panel (Calendar's plan, the builder's), Settings' side panel
+     and the side drawer (docked, popped). The border keeps its 1px, made clear, so nothing moves; the line is painted
+     in that same pixel row (origin border-box). Its own block, last, so no head's own border rule wins. */
+  html:not(#_):not(#_) :is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head){border-bottom-color:transparent;background-image:linear-gradient(90deg, transparent, var(--color-divider) 18%, var(--color-divider) 82%, transparent);background-repeat:no-repeat;background-origin:border-box;background-size:calc(100% - 32px) 1px;background-position:16px 100%}
 </style>
 
 
@@ -22975,7 +22983,7 @@
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
 <section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="background:var(--color-surface);border-left:1px solid var(--color-divider);">
-  <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-surface);color:var(--color-text);border-bottom:1px solid var(--color-divider);">
+  <header class="px-5 py-4 flex items-center gap-3" style="background-color:var(--color-surface);color:var(--color-text);border-bottom:1px solid transparent;">
     <div class="h-9 w-9 grid place-items-center shrink-0 ai-head-tile" style="background:transparent;color:var(--accent-ink);border-radius:var(--radius);"><svg width="22" height="22" viewBox="-1 -1 18 18" fill="currentColor" aria-hidden="true"><path d="M8 1C8.5 5.2 10.8 7.5 15 8C10.8 8.5 8.5 10.8 8 15C7.5 10.8 5.2 8.5 1 8C5.2 7.5 7.5 5.2 8 1Z"/></svg></div>
     <div class="flex-1 leading-tight">
       <div class="ai-head-name">Jambo</div>
