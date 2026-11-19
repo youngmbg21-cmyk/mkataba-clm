@@ -268,14 +268,11 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('4i an approval the reader answers for an away colleague: the row says "Approve Power purchase agreement", its button "Open approval"', !!HE && /Approve Power purchase agreement/.test(HE.wait) && HE.btn === 'Open approval' && HE.door === 'approval', JSON.stringify(HE));
       const col = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"]'); if (!r) return null; const td = r.querySelector('td.cun-wait'), b = r.querySelector('.cun-act-b');
         return { col: td ? (td.textContent + ' ' + (td.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : '', btn: b ? b.textContent.trim() : '', door: b ? b.getAttribute('data-cu-need') : '' }; });
-      check('4g a colleague\'s request about the party waits on you: the row says "Restricted asked for an NDA with Nandi Dairy", its button "Open request"',
-        !!col && /Restricted asked for an NDA/.test(col.col) && col.btn === 'Open request' && col.door === 'request', JSON.stringify(col));
-      if (col && col.door === 'request'){ await page.click('#cu-tbody [data-cu-cust="nandi dairy"] .cun-act-b');
-        const land = await until(() => state.view === 'intake' ? (document.querySelector('[data-ik-row].is-landed, .is-landed') ? 'lit' : 'page') : null, null, 8000);
-        check('4h Open request lands on the request, lit', land === 'lit', land);
-        await page.evaluate(() => setView('customers'));
-        await until(() => document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody'));
-      }
+      /* RE-POINTED 19 Nov 2026: the row's ONE button opens its most urgent work — for Nandi Dairy the approval comes
+         first — and the Waiting column names the colleague's request (its hover lists every one). RETIRED 19 Nov 2026:
+         4h "Open request lands on the request" from Parties — the request's door is the row's only when it comes first. */
+      check('4g a colleague\'s request about the party waits on you: the Waiting column names "Restricted asked for an NDA with Nandi Dairy"; the row\'s one button opens its first waiting work',
+        !!col && /Restricted asked for an NDA/.test(col.col) && col.btn === 'Open approval' && col.door === 'approval', JSON.stringify(col));
     });
 
     /* ---- 5 columns ---- */
@@ -369,8 +366,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       /* RE-POINTED 19 Nov 2026 (the Parties round): Open party is gone — "All N agreements on Contracts ›" lands on Contracts narrowed to the party */
       await choose('kenya freight ltd');
       await page.click('#ins-panel [data-cun-cts]');
-      const O = await until(() => state.view === 'register' && document.querySelectorAll('#reg-tbody tr[data-row], #content tr[data-row]').length
-        ? [...document.querySelectorAll('#reg-tbody tr[data-row], #content tr[data-row]')].map(r => r.getAttribute('data-row')).sort().join(',') : null, null, 8000);
+      /* Contracts is a place beside the Board (state.view stays 'dashboard'): read its own rows */
+      const O = await until(() => { const rs = [...document.querySelectorAll('#ct-place #reg-tbody tr[data-row]')];
+        return rs.length === 2 ? rs.map(r => r.getAttribute('data-row')).sort().join(',') : null; }, null, 8000);
       check('9b "All 2 agreements on Contracts" lands on Contracts with that party\'s two', O === 'MK-KF1,MK-KF2', String(O));
       await backToList();
       /* RE-POINTED 19 Nov 2026: the approval's door is the row's one button */
