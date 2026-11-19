@@ -1343,6 +1343,14 @@ function obWhenChip(o){
   if (o.recurring && o.recurring !== 'none') parts.push(obRecurLabel(o.recurring));
   return parts.join(' · ') || (k === 'unsure' ? i18t('obd_not_sure') : i18t('obd_when_dated'));
 }
+/* A WHOSE-JOB BUTTON SAYS Us · Theirs · Both sides, NEVER THE OTHER SIDE'S NAME (owner, 19 Nov 2026: "Do not name the
+   other side to the button because names can be long") — every button that answers whose job a duty is */
+function obWhoseBtn(w){
+  if (w === 'them') return i18t('obd_theirs_btn');
+  if (w === 'both') return i18t('obd_both');
+  if (w === 'us') return i18t('obd_us');
+  return i18t('obd_not_sure');
+}
 function obWhoseWord(c, w){
   if (w === 'them') return (c && c.counterparty) || i18t('obd_them');
   if (w === 'both') return i18t('obd_both');
@@ -1429,7 +1437,7 @@ function openObligationsReview(c, found, back, place){
       <h4 class="obd-ih">${_obEsc(o.desc || '')}</h4>
       ${o.quote ? `<blockquote class="obd-quote">&ldquo;${_obEsc(o.quote)}&rdquo;</blockquote>` : ''}
       <dl class="obd-facts">
-        <dt>${_obEsc(i18t('obd_whose'))}</dt><dd><span class="obd-switch" role="group">${(place ? ['us', 'them', 'unsure'] : ['us', 'them']).map(x => `<button type="button" data-obd-whose="${x}" aria-pressed="${w === x}"${d ? ' disabled' : ''}>${_obEsc(x === 'unsure' ? i18t('obd_not_sure') : obWhoseWord(c, x))}</button>`).join('')}</span>${w === 'unsure' && !place ? ` <span class="obd-ns">${_obEsc(i18t('obd_not_sure'))}</span>` : ''}</dd>
+        <dt>${_obEsc(i18t('obd_whose'))}</dt><dd><span class="obd-switch" role="group">${(place ? ['us', 'them', 'unsure'] : ['us', 'them']).map(x => `<button type="button" data-obd-whose="${x}" aria-pressed="${w === x}"${d ? ' disabled' : ''}>${_obEsc(obWhoseBtn(x))}</button>`).join('')}</span>${w === 'unsure' && !place ? ` <span class="obd-ns">${_obEsc(i18t('obd_not_sure'))}</span>` : ''}</dd>
         <dt>${_obEsc(i18t('ob_due_date'))}</dt><dd>${_obEsc(o.due ? obDeskDay(o.due) : (k === 'event' ? i18t('obd_when_event') : k === 'standing' ? i18t('obd_when_always') : '—'))}</dd>
         <dt>${_obEsc(i18t('ob_recurring'))}</dt><dd>${_obEsc(o.recurring && o.recurring !== 'none' ? obRecurLabel(o.recurring) : '—')}</dd>
         <dt>${_obEsc(i18t('obd_amount'))}</dt><dd>${_obEsc(amt)}</dd>
@@ -4878,7 +4886,7 @@ function obnDutyHtml(x, o, i){
   const sec = o.clause ? '§ ' + String(o.clause) : '';
   const when = obWhenChip(o);
   const may = (typeof canEdit !== 'function') || canEdit();
-  const chip = k => `<button type="button" class="obn-wh${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${_obEsc(c.id)}" data-i="${i}"${d || !may ? ' disabled' : ''}>${_obEsc(obWhoseWord(c, k))}</button>`;
+  const chip = k => `<button type="button" class="obn-wh${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${_obEsc(c.id)}" data-i="${i}"${d || !may ? ' disabled' : ''}>${_obEsc(obWhoseBtn(k))}</button>`;
   const said = d === 'added' ? `<span class="obn-dec is-ok">${_obEsc(i18t('obd_added'))}</span>`
     : d === 'skipped' ? `<span class="obn-dec">${_obEsc(i18t('obd_skipped'))}</span> <button type="button" class="cal-nl-go" data-obn-unskip data-cid="${_obEsc(c.id)}" data-i="${i}">${_obEsc(i18t('obd_undo'))}</button>`
     : d === 'already' ? `<span class="obn-dec">${_obEsc(i18t('ob_already_on'))}</span>` : '';
@@ -4955,12 +4963,12 @@ function obnLgHtml(x, rows){
   const item = y => {
     const o = y.o, i = y.i, w = obnWhoseNow(c, o), sec = o.clause ? '\u00a7 ' + String(o.clause) : '';
     const when = obWhenChip(o);
-    const whose = k => `<button type="button" class="obn-lg-w${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${E(c.id)}" data-i="${i}"${w === k ? ' aria-pressed="true"' : ' aria-pressed="false"'}>${E(obWhoseWord(c, k))}</button>`;
+    const whose = k => `<button type="button" class="obn-lg-w${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${E(c.id)}" data-i="${i}"${w === k ? ' aria-pressed="true"' : ' aria-pressed="false"'}>${E(obWhoseBtn(k))}</button>`;
     const said = y.d === 'added' ? `<span class="obn-lg-said is-ok">${E(i18t('obd_added'))}</span>`
       : y.d === 'skipped' ? `<span class="obn-lg-said">${E(i18t('obd_skipped'))}</span><button type="button" class="obn-lg-link" data-obn-unskip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_undo'))}</button>`
       : y.d === 'already' ? `<span class="obn-lg-said">${E(i18t('ob_already_on'))}</span>` : '';
     const line = said || (may ? `${whose('us')}${whose('them')}${whose('both')}<button type="button" class="obn-lg-link is-skip" data-obn-skip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_skip'))}</button>` : '');
-    return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${!y.d ? `<span class="obn-lg-now">${E(obWhoseWord(c, w))}</span>` : ''}</div>`
+    return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${!y.d ? `<span class="obn-lg-now">${E(obWhoseBtn(w))}</span>` : ''}</div>`
       + `${o.quote ? `<p class="obn-lg-q">\u201c${obnQuoteHtml(o.quote)}\u201d</p>` : ''}`
       + `${sec || when ? `<p class="obn-lg-src">${E([sec, when].filter(Boolean).join(' \u00b7 '))}</p>` : ''}`
       + `${line ? `<div class="obn-lg-ans">${line}</div>` : ''}</div>`;
@@ -5205,7 +5213,7 @@ Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obD
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   obwWeekShut,obWeekFolds,OBW_DEC_KEY,obwDecisions,obwFinds,obwFindRows,obPossessive,obwFindsRowHtml,obwRowPrivate,obWeekSub,obWeekOneWho,obWeekMoneyHtml,obwRowAvHtml,obwLine2,obwRowActHtml,obwWeekRowHtml,obwRowAct,
-  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnRowHtml,obnTabOf,obnRows,
+  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnRowHtml,obnTabOf,obnRows,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
