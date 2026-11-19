@@ -205,6 +205,9 @@ function dirBook(){
       if (!p.name && name) p.name = name;
       if (!p.email && email) p.email = email;
       if (!p.partyName && pName){ p.partyName = pName; p.partyKey = pKey; }
+      /* A CONTACT'S JOB TITLE AND PHONE (owner, 19 Nov 2026): kept on the contact's row, the first one found speaks */
+      if (!p.title && _dStr(r.title)) p.title = _dStr(r.title);
+      if (!p.phone && _dStr(r.phone)) p.phone = _dStr(r.phone);
       named(p, c, _dStr(r.role) || 'cpread');
     });
     const rows = _dCall('participantsOf', c);
@@ -776,6 +779,8 @@ function dirDoesFor(roles, c, party){
    that carried a number — the send screen's own record (shares, one cache,
    cachedShares). Nothing is stored; null where no link carried one. */
 function dirPhoneOf(p){
+  /* the phone typed on the contact itself comes first (owner, 19 Nov 2026); else the newest link's */
+  if (p && _dStr(p.phone)) return _dStr(p.phone);
   if (!p || typeof cachedShares !== 'function') return null;
   const mail = _dFold(p.email), nm = _dFold(p.name);
   const all = [];
@@ -858,11 +863,15 @@ function dirnPanelFive(p, sub, w, away){
   if (cs.length) groups.push({ label:i18t('jov5_dir_named'), rows:cs.slice(0, 3).map(c => ({ mark:'file', t:c.name || c.id, s:c.counterparty || '', v:String(c.status || ''), run:() => window.jov5Open(c.id) })) });
   if (w.length) groups.push({ label:i18t('dirn_p_waiting'), rows:w.slice(0, 3).map(x => ({ mark:'clock', tone:'amber', t:x.c.name || x.c.id, s:i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr'), run:() => window.jov5Open(x.c.id) })) });
   const reach = [];
+  let ph = null; try { ph = dirPhoneOf(p); } catch (_){ ph = null; }
+  if (ph) reach.push({ mark:'phone', t:i18t('dirn_p_call'), s:String(ph), attr:`data-dirn-call="${_dE(String(ph))}"` });
   if (p.email) reach.push({ mark:'msg', t:i18t('dirn_p_email'), s:i18t('dirn_p_mail_cost'), attr:`data-dirn-mail="${_dE(p.key)}"` });
   if (n) reach.push({ mark:'users', t:i18t('jov5_dir_show'), v:String(n), attr:`data-dirn-contracts="${_dE(p.key)}"` });
   /* an outside person's party is a door onto that party (MAP: Party → cuSelectParty; #762 — the new panel said it as words) */
   if (p.partyKey && p.partyName && typeof cuCustomerOf === 'function' && cuCustomerOf(p.partyKey)) reach.push({ mark:'users', t:p.partyName, s:i18t('cun_open'), attr:`data-dir-party="${_dE(p.partyKey)}"` });
-  if (reach.length) groups.push({ label:i18t('jov5_dir_reach'), rows:reach });
+  /* EDIT CONTACT (owner, 19 Nov 2026): an outside person is changed in the party's one contacts pop-up, their row open */
+  const mayEdit = p.side === 'theirs' && p.partyKey && typeof partyContactsMay === 'function' && partyContactsMay() && typeof cuCustomerOf === 'function' && cuCustomerOf(p.partyKey);
+  if (reach.length) groups.push({ label:i18t('jov5_dir_reach'), rows:reach, more: mayEdit ? { label:i18t('dirn_p_edit'), attr:`data-dirn-edit="${_dE(p.key)}" data-dirn-edit-party="${_dE(p.partyKey)}"` } : null });
   return { avatar:initials, title:p.name || p.email || '', sub,
     glance:[{ n, l:i18tn('jov5_dir_agreements', n, { n }), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
       { n:away && away !== i18t('dirn_p_not_away') ? i18t('jov5_dir_away') : i18t('jov5_dir_in'), l:away ? (away === i18t('dirn_p_not_away') ? i18t('jov5_dir_not_away') : away) : i18t('jov5_dir_side') }],
@@ -951,11 +960,16 @@ function dirnRender(host, INS, book, o){
   const all = book.filter(p => p && (p.side === 'ours' || p.side === 'theirs'));
   const waitOf = p => { try { return (dirWaitingOn(p) || []).length; } catch (_){ return 0; } };
   const yours = all.filter(p => p.side === 'ours'), outside = all.filter(p => p.side === 'theirs'), waiting = all.filter(p => waitOf(p) > 0);
-  const pick = _dirn === 'yours' ? yours : _dirn === 'outside' ? outside : _dirn === 'wait' ? waiting : all;
+  /* PEOPLE AT ONE PARTY (owner, 19 Nov 2026: the Parties panel's contacts land here): only their people, the party a
+     chip with its × as on Contracts; the tabs step aside, + Add contact opens the party's one contacts pop-up */
+  const pty = _dir.party && _dir.party !== 'all' ? _dir.party : '';
+  const ptyName = pty ? ((typeof cuCustomerOf === 'function' && cuCustomerOf(pty)) || {}).name || (outside.find(p => p.partyKey === pty) || {}).partyName || '' : '';
+  const atParty = pty ? outside.filter(p => p.partyKey === pty) : null;
+  const pick = atParty ? atParty : _dirn === 'yours' ? yours : _dirn === 'outside' ? outside : _dirn === 'wait' ? waiting : all;
   const list = pick.filter(p => !q || [p.name, p.email, p.partyName, p.title].some(v => String(v || '').toLowerCase().includes(q)));
   const ours = list.filter(p => p.side === 'ours').sort((a, b) => (b.you ? 1 : 0) - (a.you ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
   const theirs = list.filter(p => p.side === 'theirs').sort((a, b) => String(a.name).localeCompare(String(b.name)));
-  const tabs = [['all', i18t('ctf_tab_all'), all.length], ['yours', i18t('dirn_tab_yours'), yours.length], ['outside', i18t('dirn_tab_outside'), outside.length], ['wait', i18t('dirn_tab_wait'), waiting.length]].filter(t => t[2] || t[0] === 'all' || t[0] === _dirn);
+  const tabs = atParty ? [['all', i18t('ctf_tab_all'), atParty.length]] : [['all', i18t('ctf_tab_all'), all.length], ['yours', i18t('dirn_tab_yours'), yours.length], ['outside', i18t('dirn_tab_outside'), outside.length], ['wait', i18t('dirn_tab_wait'), waiting.length]].filter(t => t[2] || t[0] === 'all' || t[0] === _dirn);
   /* SAY IT ONCE (the harmony review): a Reach column with no phone on any row steps out */
   const reachAny = list.some(p => { try { return !!dirPhoneOf(p); } catch (_){ return false; } });
   const C = dirnCols(reachAny);
@@ -964,13 +978,14 @@ function dirnRender(host, INS, book, o){
   const PAGE = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     <div class="ap-body is-ins dir-body"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2><span class="ctf-hf">${_dE(i18t('dirn_head', { n: all.length, y: yours.length, o: outside.length }))}</span></div>
+      <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2><span class="ctf-hf">${_dE(atParty ? i18t('dirn_head_at', { n: atParty.length, party: ptyName }) : i18t('dirn_head', { n: all.length, y: yours.length, o: outside.length }))}</span>${atParty && typeof partyContactsMay === 'function' && partyContactsMay() ? `<span class="ctf-sp"></span><button type="button" class="ui-btn ui-btn-primary ctf-new" data-dirn-add="${_dE(pty)}">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_dE(i18t('dirn_add_contact'))}</button>` : ''}</div>
       <div class="apn-bar" data-lh-seat="directory-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(i18t('lh_filter_ph'))}" value="${_dE(_dir.q || '')}"></label><span class="apn-sp"></span>
-        ${tabs.map(t => `<button type="button" class="apn-tab${_dirn === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${_dE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
+        ${atParty ? `<span class="dirn-pty">${_dE(ptyName)}<button type="button" data-dirn-party-clear aria-label="${_dE(i18t('dirn_party_clear'))}" title="${_dE(i18t('dirn_party_clear'))}">×</button></span>` : ''}
+        ${tabs.map(t => `<button type="button" class="apn-tab${(atParty ? 'all' : _dirn) === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${_dE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
       <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table" data-list-seat="${_dE(DIR_SEAT)}">${C.colg}
         ${C.th}
         <tbody id="dir-tbody">${body || `<tr><td colspan="${C.n}" class="apn-none">${_dE(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
-      <div class="apn-foot">${_dE(i18tn('dirn_foot', all.length, { n: all.length }))}</div>
+      <div class="apn-foot">${_dE(i18tn('dirn_foot', (atParty || all).length, { n: (atParty || all).length }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div></div>`;
   if (o && o.rows && typeof listRowsSwapHtml === 'function'
     && listRowsSwapHtml({ page: '#dir-page', html: PAGE, table: '.apn-table.cun-table', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab', footSel: '.apn-foot', also: '.cun-head .ctf-hf' })){
@@ -988,6 +1003,10 @@ if (typeof document !== 'undefined' && !document._dirnWired){ document._dirnWire
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const tab = t.closest('[data-dirn-tab]'); if (tab){ e.preventDefault(); _dirn = tab.getAttribute('data-dirn-tab'); renderDirectory({ rows: true }); return; }
+    if (t.closest('[data-dirn-party-clear]')){ e.preventDefault(); _dir.party = 'all'; renderDirectory(); _dCall('placeSave'); return; }
+    const ad = t.closest('[data-dirn-add]'); if (ad){ e.preventDefault(); if (typeof partyContactsOpen === 'function') partyContactsOpen(ad.getAttribute('data-dirn-add'), { add: true }); return; }
+    const ed = t.closest('[data-dirn-edit]'); if (ed){ e.preventDefault(); if (typeof partyContactsOpen === 'function') partyContactsOpen(ed.getAttribute('data-dirn-edit-party'), { edit: ed.getAttribute('data-dirn-edit') }); return; }
+    const call = t.closest('[data-dirn-call]'); if (call){ e.preventDefault(); try { window.location.href = 'tel:' + String(call.getAttribute('data-dirn-call')).replace(/[^\d+]/g, ''); } catch (_){} return; }
     const pty = t.closest('.dirn-page [data-dir-party], #ins-panel [data-dir-party]'); if (pty && document.querySelector('.dirn-page')){ e.preventDefault(); if (typeof cuSelectParty === 'function') cuSelectParty(pty.getAttribute('data-dir-party')); return; }
     const m = t.closest('[data-dirn-mail]'); if (m){ e.preventDefault(); e.stopPropagation(); const p = dirBook().find(x => x.key === m.getAttribute('data-dirn-mail')); if (p && p.email){ try { window.location.href = 'mailto:' + p.email; } catch (_){} } }
   }, true);

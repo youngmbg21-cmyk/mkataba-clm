@@ -83,7 +83,9 @@ test('f977 (8) even tiles: one builder for both folder views, no dots, a key abo
   assert.doesNotMatch(f, /ctf-dot|ctf-tab/, 'no unexplained dots, no faint folder tab');
   assert.match(f, /regTileBig\(r\.needN\)\}\$\{regTileBar\(r\.signed, r\.review, r\.n - r\.signed - r\.review\)\}/);
   assert.match(f, /\$\{regTileKeyHtml\(\)\}<div class="ctf-grid is-tiles">/);
-  assert.match(strip(fnBody(cu, 'cunFolderCardHtml')), /regTileBig\(waitN\)/, 'Parties draws the same tile');
+  /* RETIRED 19 Nov 2026 (owner's yes on the Parties drawings: "delete the folders"): Parties has no folder tiles now —
+     the tab and its card builder are gone. RETIRED: 'Parties draws the same tile' (cunFolderCardHtml) */
+  assert.ok(!/function cunFolderCardHtml\(/.test(cu), 'Parties draws no folder tiles');
   assert.match(reg, /Object\.assign\(window,\{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,/);
   assert.doesNotMatch(strip(fnBody(reg, 'regFoldersHeadHtml')), /ctf-hint/, 'the hint leaves the tab line');
   assert.match(block(), /html\.lg-new \.ctf-card\.is-tile\{[^}]*height:150px/);

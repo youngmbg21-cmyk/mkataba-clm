@@ -41,6 +41,7 @@ const ICONS = {
      is the sprite fault in this map's own costume. */
   chat:'<path d="M4 5h16v11h-9l-4.5 4v-4H4z"/>',
   msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
   send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   shield:'<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
@@ -1602,7 +1603,9 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
       + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
   const rowHtml = r => {
     const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);
-    const mark = r.mark != null ? `<span class="jov5-mk${JOV5_TONES[r.tone] ? ' is-' + r.tone : ''}">${r.markText != null ? E(r.markText) : ic(r.mark)}</span>` : '';
+    /* `faces`: up to four people's initials, overlapping, where a row is about people (Parties' contacts, 19 Nov 2026) */
+    const mark = Array.isArray(r.faces) && r.faces.length ? `<span class="jov5-faces" aria-hidden="true">${r.faces.slice(0, 4).map(f => `<i>${E(f)}</i>`).join('')}</span>`
+      : r.mark != null ? `<span class="jov5-mk${JOV5_TONES[r.tone] ? ' is-' + r.tone : ''}">${r.markText != null ? E(r.markText) : ic(r.mark)}</span>` : '';
     const act = r.btn ? `<button type="button" class="jov5-pill${r.btn.black ? ' is-black' : ''}"${door(r.btn.run, r.btn.attr)}>${E(r.btn.label)}</button>`
       : r.link ? lnk(r.link.attr ? -1 : reg(r.link.run), E(r.link.label), r.link.title, '', r.link.attr) : '';
     const chev = (t === 'button') ? `<span class="jov5-chev" aria-hidden="true">${ic('chevR')}</span>` : '';
@@ -1610,8 +1613,12 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
       + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}${r.stg ? `<span class="jov5-stg"><span class="reg-stg"><i style="background:${E(r.stg.dot || 'currentColor')}"></i>${E(r.stg.label)}</span></span>` : ''}</span>`
       + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
   };
-  const groups = (o.groups || []).filter(g => g && (g.rows || []).length).map(g =>
-    `<div class="jov5-sec"${g.key ? ` data-jov5-sec="${E(g.key)}"` : ''}>${g.label ? `<p class="jov5-label">${E(g.label)}</p>` : ''}<div class="jov5-group">${g.rows.map(rowHtml).join('')}</div></div>`).join('');
+  /* a group may carry a quiet link beside its label (`more`: Parties' Edit, + Add), a green link at its foot (`foot`:
+     All 4 agreements on Contracts) and its own body where it is a form (`html`: the party's facts typed in place) */
+  const gLink = (l, cls) => l && l.label ? `<button type="button" class="${cls}"${door(l.run, l.attr)}>${E(l.label)}</button>` : '';
+  const groups = (o.groups || []).filter(g => g && ((g.rows || []).length || g.html)).map(g =>
+    `<div class="jov5-sec"${g.key ? ` data-jov5-sec="${E(g.key)}"` : ''}>${g.label ? (g.more ? `<div class="jov5-lh"><p class="jov5-label">${E(g.label)}</p>${gLink(g.more, 'jov5-more')}</div>` : `<p class="jov5-label">${E(g.label)}</p>`) : ''}`
+    + `<div class="jov5-group${g.html ? ' is-form' : ''}">${g.html || (g.rows || []).map(rowHtml).join('')}${g.foot ? `<div class="jov5-foot">${gLink(g.foot, 'jov5-flink')}</div>` : ''}</div></div>`).join('');
   const steps = o.steps && (o.steps.items || []).length ? `<div class="jov5-sec">${o.steps.label ? `<p class="jov5-label">${E(o.steps.label)}</p>` : ''}<ol class="jov5-steps">`
     + o.steps.items.map(s => `<li><b>${E(s.b)}</b>${s.s ? ' ' + E(s.s) : ''}</li>`).join('') + '</ol></div>' : '';
   const a = o.act;
