@@ -277,9 +277,23 @@ const ok = (name, good, detail) => {
       const b = await page.$(CARD + ' [data-ag-act="chase"]');
       if (b) { await b.click(); await page.waitForTimeout(500); }
     }
-    const asked = await page.evaluate(() => !!document.getElementById('confirm-overlay'));
-    ok('5b "Send the chase" asks before it sends — obligationChase\'s own question', asked);
-    if (asked) { await page.click('#cf-ok'); await page.waitForTimeout(1500); }
+    /* RE-POINTED 19 Nov 2026 (owner's pick, Chase now is the Send screen as a reminder; f1105): on a computer the
+       press opens the reminder page (#obr-pg) — who it goes to, the letter — and its Send the reminder is the
+       ask; the confirm question stays where the page is not drawn (the phone). Nothing is sent before that press. */
+    const asked = await page.evaluate(() => {
+      if (document.getElementById('confirm-overlay')) return 'confirm';
+      const b = document.querySelector('#obr-pg [data-obr-send]');
+      return b && !b.disabled ? 'page' : '';
+    });
+    const before = await page.evaluate(() => ((getContract('MK-131').obligations || []).find(x => x.id === 'ob_late1') || {}).chasedAt || '');
+    ok('5b "Send the chase" asks before it sends — obligationChase\'s own question (the reminder page on a computer)', !!asked && !before, JSON.stringify({ asked, before }));
+    if (asked === 'confirm') { await page.click('#cf-ok'); await page.waitForTimeout(1500); }
+    else if (asked === 'page') {
+      await page.click('#obr-pg [data-obr-send]');
+      await page.waitForFunction(() => !document.getElementById('obr-pg')
+        && !!((getContract('MK-131').obligations || []).find(x => x.id === 'ob_late1') || {}).chasedAt, null, { timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(500);
+    }
     const chased = await page.evaluate(() => {
       const o = (getContract('MK-131').obligations || []).find(x => x.id === 'ob_late1') || {};
       return { at: o.chasedAt || '', ready: agentsData().agents.late.ready.length, done: agentsData().agents.late.done.map(x => x.ob && x.ob.id) };

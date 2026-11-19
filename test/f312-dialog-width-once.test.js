@@ -101,8 +101,11 @@ describe('f312 (2) — no dialog states a second width on its inner box', () => 
      beside it rather than pinning the old call byte for byte. */
   /* RE-POINTED 22 Oct 2026: the signing route moved up a rung, to XL (owner: "the add signers pop up
      should be wide enough that you do not have to scroll left or right") */
-  test('the one dialog wider than a short form names its rung on the frame', () => {
-    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: DLG_W\.xl(?:, label: i18t\('ap_signing_route'\))? \}\);/);
+  /* RE-POINTED 19 Nov 2026: the signing route is now drawn as THE ONE EDIT POP-UP, the Legora way (owner: "Build 1",
+     f1101) — lines with one signer on its own screen — so its width is that pop-up's own (LGP_W), still named once,
+     on the frame. */
+  test('the signing route names its width once, on the frame', () => {
+    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: window\.LGP_W \|\| '480px', ownFrame: true, label: i18t\('ap_signing_route'\) \}\);/);
   });
 });
 

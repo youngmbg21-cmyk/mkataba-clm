@@ -1313,7 +1313,7 @@ const ST_CARDS=[
   /* the streams' own page, a door of its own (round 26) */
   { key:'standards', groups:['standards'], facts:['company','folders'],
     doors:()=>[{ page:'streams', label:i18t('st_sw_title') }, { panel:'paydays' }, { panel:'design' }] },
-  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'remindtheirs' }, { panel:'webhooks' }] },
+  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'webhooks' }] },
   /* "Jambo's agents ›" opens their page with ‹ Settings (round 25 as drawn,
      the gaps' third pass: every card door is a page on the desk) — the
      agents' own panel, how far each may go; his house stays its own place */
@@ -6916,13 +6916,13 @@ const SET_PANELS={
      and the reminder's Send screen), and the overnight run sends the chase letter 7 days before and on the day. The
      SERVER reads the stored rule (srvRemindTheirsOn); this is the switch, not what decides. No email, no switch on. */
   remindtheirs:{
-    tab:'platform', group:'intake', mandatory:false,
+    tab:'platform', group:'links', mandatory:false,
     title:()=>i18t('set_remind_theirs'),
     sub:()=>i18t('set_remind_theirs_sub'),
     state(){ const c=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
       return { dot:c.on?'ok':'off', text:`${i18t('set_remind_theirs')} — ${c.on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_remind_theirs_sub')}</p><div id="rt-rule-panel"></div>`; },
-    find:()=>[i18t('set_remind_theirs'), i18t('set_remind_theirs_sub')],
+    body(){ return `<div id="rt-rule-panel"></div>`; },
+    find:()=>[i18t('set_remind_theirs')],
     wire(){ renderRemindTheirsPanel(); },
   },
 

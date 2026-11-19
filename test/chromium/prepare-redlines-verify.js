@@ -126,7 +126,7 @@ const VERDICTS = [
      helper's own form for a route that must answer what it was asked — gives
      the four scripted findings their scripted verdicts and calls every other
      standard met, which is what a provider that obeyed the prompt returns. */
-  ai.script(body => {
+  const REVIEW = body => {
     const prompt = String(((body.messages || [])[0] || {}).content || '');
     let positions = [];
     try{ positions = (JSON.parse(prompt.slice(prompt.indexOf('PLAYBOOK:\n') + 10, prompt.indexOf('\n\nDOCUMENT:'))).positions) || []; }catch(_){}
@@ -134,7 +134,8 @@ const VERDICTS = [
     const verdicts = positions.map(p => byCat.get(p.category)
       || { category: p.category, status: 'aligned', quote: '', position: p.note || '', redline: '', escalate: false });
     return [{ type: 'tool_use', id: 'tu_pb', name: 'playbook_review', input: { verdicts } }];
-  });
+  };
+  ai.script(REVIEW);
   const ID = 'MK-A12';
   await W.admin.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: {
     id: ID, name: 'Nordkust supply agreement', counterparty: 'Nordkust Industri AB', counterpartyEmail: 'ola@nordkust.se',
@@ -176,6 +177,19 @@ const VERDICTS = [
   await page.evaluate(id => openRedlineWorkbench(id), ID);
   await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface'), null, { timeout: 10000 }).catch(() => {});
   await pause(1800);
+  /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked against the Playbook is checked the first time
+     someone opens it — pbCheckOnOpen, f1106). Opening the paper above is now that first open: ONE quiet check ran and
+     was kept. Sections 2 and 3 are about the press on a contract with NO review on file, so that kept check is let
+     land (asked for, bounded) and then put away here, as section 9 puts it away; the press's spend is counted from
+     the moment of the press (callsAtPress), not from the start of the run. */
+  await page.waitForFunction(id => { const c = state.contracts.find(x => x.id === id);
+    const run = c && typeof pbOpenCheckState === 'function' && pbOpenCheckState(c);
+    return !!c && !(run && run.run) && (!!c.playbook || !!(run && run.why)); }, ID, { timeout: 10000 }).catch(() => {});
+  await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); if (c) delete c.playbook;
+    if (typeof pdRedRepaint === 'function') try { pdRedRepaint(); } catch (_){} }, ID);
+  /* the stand-in answers ONE call per scripted turn, and the opening check above took it (a provider call was made):
+     the press gets its own, given only then so no spare turn is left for section 9's cut-short answer */
+  if (ai.calls.length) ai.script(REVIEW);
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
   /* RE-POINTED 12 Sep 2026. This asked for exactly ONE button on the page,
@@ -219,6 +233,7 @@ const VERDICTS = [
 
   /* ============ 3. THE PRESS FILES THE DRAFTS ============ */
   /* RE-POINTED 14 Oct 2026 (stage 5): the door is the face's foot, no menu */
+  const callsAtPress = ai.calls.length;
   await pressRow(page); await pause(700);
   if (await page.locator('#cf-ok').count()){ await page.click('#cf-ok'); }
   await pause(2500);
@@ -248,7 +263,7 @@ const VERDICTS = [
   check(new RegExp(after.drafts + ' drafts filed under Your drafts — nothing sent').test(toast3 + after.toast), '3f one toast says what happened, with the count', after.toast.trim().slice(0, 120));
   check(after.audit.length === 1 && new RegExp(after.drafts + ' drafts filed unsent').test(after.audit[0]), '3g one English audit line names the count', after.audit[0]);
   const calls1 = ai.calls.length;
-  check(calls1 === 1, '3i and exactly ONE deep Jambo call was spent for it', String(calls1));
+  check(calls1 - callsAtPress === 1, '3i and exactly ONE deep Jambo call was spent for it', String(calls1 - callsAtPress));
   /* NO BAND, STRIP OR NOTICE anywhere: the column repainting is the confirmation. */
   const strips = await page.evaluate(() => document.querySelectorAll('.rl-notices > *:not(#rl-banner), .rl-plan, .rl-unsent').length);
   check(strips === 0, '3h and nothing was added to the page — no band, strip or notice', String(strips));

@@ -140,8 +140,11 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
       await page.click('#obw-one-host [data-obt-chase="o-theirs"]');
       await page.waitForTimeout(500);
     }
-    /* The chase asks first, as it does everywhere: confirmDialog's own layer. */
-    const asked = await page.evaluate(() => !!document.getElementById('confirm-overlay'));
+    /* The chase asks first, as it does everywhere: confirmDialog's own layer — or, RE-POINTED 19 Nov 2026
+       (owner's pick, Chase now is the Send screen as a reminder; f1105), on a computer the reminder page
+       (#obr-pg), whose own Send the reminder is the ask. Nothing is stamped before that press. */
+    const asked = await page.evaluate(() => (!!document.getElementById('confirm-overlay') || !!document.querySelector('#obr-pg [data-obr-send]'))
+      && !((getContract('MK-A1').obligations || []).find(o => o.id === 'o-theirs') || {}).chaseFirmAt);
     check('2d and pressing it asks first — the one chase act, not a silent send', asked, String(asked));
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);

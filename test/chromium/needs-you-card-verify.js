@@ -147,6 +147,9 @@ const CONTRACTS = [
     /* RE-POINTED 22 Oct 2026 (Round A): the urgent renewal is Jambo's memo, first of his group while late; the look leads your move */
     ok('4b the urgent renewal stays first: Jambo\'s memo for it leads his group, late', !!four.jambo0 && four.jambo0.kind === 'renewal' && four.jambo0.id === 'MK-W2' && four.jambo0.late === 1, JSON.stringify(four));
     ok('4c the look, having waited longest, leads your move', r0.kind === 'look' && r0.id === 'MK-W1', JSON.stringify(four.rows));
+    /* the Counter and his greeting are read by now; from here a contract is OPENED, and a contract never checked
+       against the Playbook is checked on its first open (owner picked "B", 19 Nov 2026; pbCheckOnOpen) */
+    const aiBeforeOpen = aiCalls.length;
     if (looked){
       /* beside its paper the look's own button is Done (needsYouGo → lookDone) */
       await page.evaluate(() => pdOpenOnHome('MK-W1', 'copilot'));
@@ -191,7 +194,10 @@ const CONTRACTS = [
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });
     await page.evaluate(() => { window.needsYouOf = window.__ny; window.hbAgentsData = window.__ag; window.counterNeedsCount = window.__cn; });
 
-    ok('8 the Counter and his greeting called no AI route', aiCalls.length === 0, aiCalls.slice(0, 3).join(' | ') || 'none');
+    /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked is checked on its first open, pbCheckOnOpen):
+       the Counter and his greeting still call no AI route; opening a contract may call only the Playbook check */
+    const aiAfterOpen = aiCalls.slice(aiBeforeOpen).filter(u => !/\/api\/ai\/playbook\b/.test(u));
+    ok('8 the Counter and his greeting called no AI route (opening a contract calls only its first Playbook check)', aiBeforeOpen === 0 && aiAfterOpen.length === 0, aiCalls.slice(0, 3).join(' | ') || 'none');
     ok('9 no page errors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     ok('the stage ran to the end', false, e && e.message);

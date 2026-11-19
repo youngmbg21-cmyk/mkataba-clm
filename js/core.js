@@ -5807,7 +5807,9 @@ function shareLetterToPaint(ch){
   const L=document.getElementById('sh-letter'); if(!L) return;
   const tw=document.getElementById('sh-lt-tosay'), who=L.querySelector('.sh-lt-who'), say=document.getElementById('sh-lt-towho');
   const n=String(fval('sh-name')||'').trim(), em=String(fval('sh-email')||'').trim();
-  const folded=L.getAttribute('data-sh-to')==='folded' && ch!=='whatsapp' && !!em && /@/.test(em);
+  /* THE STEPS THE LEGORA WAY (owner's pick, 19 Nov 2026): the person stands in the lines themselves (Person · Email), so
+     the four steps never fold them away — the folded chip stands down there (index.html), and folding hid the person whole */
+  const folded=!L.classList.contains('is-steps') && L.getAttribute('data-sh-to')==='folded' && ch!=='whatsapp' && !!em && /@/.test(em);
   if(tw) tw.classList.toggle('hidden', !folded);
   if(who) who.classList.toggle('hidden', folded);
   if(say){ const v=[n, em].filter(Boolean).join(' · '); if(say.textContent!==v) say.textContent=v; }

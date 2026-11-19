@@ -105,7 +105,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
     const up = await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), null, 10000);
     const heads = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-table.is-proj thead th')].map(t => t.textContent.trim()).filter(Boolean)) : [];
-    const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: !!r.querySelector('.obn-ring'), bar: !!r.querySelector('.obn-bar2 i'),
+    const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: !!r.querySelector('.obn-ring'), bar: !!r.querySelector('.obn-bar2') /* RE-POINTED 19 Nov 2026 (f1102, rings and bars say whose): nothing starts decided, so the bar is drawn with no part in it yet */,
       said: (r.querySelector('.obn-pgb small') || {}).textContent, status: (r.querySelector('.obn-stt .obn-ch') || {}).textContent,
       open: (r.querySelector('[data-obn-open]') || {}).innerText, add: (r.querySelector('[data-obn-addall]') || {}).innerText } : null; }) : null;
     /* RE-POINTED 19 Nov 2026 (f1102): the duties no longer open under the row; a press chooses it and they stand in the panel */

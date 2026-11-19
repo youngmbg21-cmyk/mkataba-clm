@@ -157,13 +157,15 @@ async function mkUser(h, admin, name, email){
       const ps = sel => [...document.querySelectorAll(sel + ' .sh-lt-p')].map(p => p.querySelector('[data-sh-lt-btn]') ? '{BTN:' + p.textContent.trim() + '}' : p.textContent.replace(/\s+/g, ' ').trim());
       const cs = getComputedStyle(document.querySelector('#sh-letter .sh-lt-note label'));
       return { from: t('sh-lt-from'), to: t('sh-lt-towho'), toShown: !document.getElementById('sh-lt-tosay').classList.contains('hidden'),
-        boxesHidden: document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), subject: document.getElementById('sh-lt-subject').value, chips,
+        boxesHidden: document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), email: (document.getElementById('sh-email') || {}).value || '', subject: document.getElementById('sh-lt-subject').value, chips,
         before: ps('#sh-lt-before'), after: ps('#sh-lt-after'), noteLbl: t('sh-summary-label'), dashed: cs.borderTopStyle,
         head: (document.getElementById('sh-lt-msghead') || {}).className || '' };
     });
     const n = (/^Round (\d+)/.exec(L.subject || '') || [])[1];
-    check('2a From, To as a line, Subject as drawn', L.from === 'Maria Lindgren, Lindqvist & Co AB · sent by HaTi' && L.toShown && L.boxesHidden
-      && L.to === 'Anna Holm · anna.holm@nordvik.example' && L.subject === `Round ${n} of the Master services agreement, from Lindqvist & Co AB`, JSON.stringify(L));
+    /* RE-POINTED 19 Nov 2026 (owner's pick, the send steps the Legora way, f1104): in the four steps the known person
+       stands in the To step's own lines (Person · Email), filled; the folded To line stands down there */
+    check('2a From, To in its lines, Subject as drawn', L.from === 'Maria Lindgren, Lindqvist & Co AB · sent by HaTi' && !L.toShown && !L.boxesHidden
+      && L.email === 'anna.holm@nordvik.example' && L.to === 'Anna Holm · anna.holm@nordvik.example' && L.subject === `Round ${n} of the Master services agreement, from Lindqvist & Co AB`, JSON.stringify(L));
     /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): a form of labelled fields, each the
        choice's own name, in the form's order; the note a white box with a solid green edge, named for Anna */
     /* RE-POINTED 16 Nov 2026 (#762): FOUR STEPS — What goes · What they can do · How it goes · how long, each in the

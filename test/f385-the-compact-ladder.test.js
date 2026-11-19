@@ -295,7 +295,10 @@ describe('f385 (8) text boxes are the everyday height', () => {
        the Timeline (Young picked it by name), and its boxes are the one shared
        field style rather than a class of their own — so they read --field-h
        through HATI_FLD, which is pinned on the first line of this test. */
-    assert.match(read('js/approvals.js'), /const FLD=\(typeof HATI_FLD==='string'\)\?HATI_FLD:'';/, 'the signing route\'s boxes');
+    /* RE-POINTED 19 Nov 2026: the Signing route is now drawn by THE ONE EDIT POP-UP, the Legora way (owner: "Build 1",
+       f1101) — label-beside-words LINES with no boxes — so its fields wear that pop-up's one line style (.lgp-in),
+       not a box's height. */
+    assert.match(read('js/approvals.js'), /type="email" inputmode="email"'?:''\} class="lgp-in">`;/, 'the signing route\'s lines');
     assert.match(rule('.of-amt'), /height:var\(--field-h\)/, 'and a box with a currency in front of it');
   });
 });

@@ -35,7 +35,12 @@ const CARD = () => { const k = document.querySelector('#ig-dock .pd2-card'); if 
     rows: [...k.querySelectorAll('[data-pd2-rd]')].map(r => r.getAttribute('data-pd2-rd')),
     black: [...k.querySelectorAll('.pd2-rd-go')].map(b => ({ t: b.textContent.trim(), road: b.getAttribute('data-pd2-road'), risks: b.hasAttribute('data-pd-gl-risks') })),
     chips: [...k.querySelectorAll('.pd2-rd-chip')].map(c => c.textContent.trim()), quotes: [...k.querySelectorAll('.pd2-rd-q')].map(q => q.textContent.trim()) }; };
-const purposeNow = () => { const m = (document.body.innerText || '').match(/WHAT THEY CAN DO\s*\n\s*([^\n]+)/i); return m ? m[1].trim() : ''; };
+/* RE-POINTED 19 Nov 2026 (owner's pick, the Send screen's steps the Legora way in the page; f1104): the step's label
+   is now "They can", beside what is chosen — so the choice is read off the step's own value (.sh-st-v), the old
+   "WHAT THEY CAN DO" line only where the steps are not drawn */
+const SEND_SCREEN = () => !!((document.querySelector('.sh-st[data-sh-st="can"] .sh-st-v') || {}).textContent || '').trim() || /WHAT THEY CAN DO/i.test(document.body.innerText || '');
+const purposeNow = () => { const v = document.querySelector('.sh-st[data-sh-st="can"] .sh-st-v'); const t = v ? String(v.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  if (t) return t; const m = (document.body.innerText || '').match(/WHAT THEY CAN DO\s*\n\s*([^\n]+)/i); return m ? m[1].trim() : ''; };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -65,7 +70,7 @@ const purposeNow = () => { const m = (document.body.innerText || '').match(/WHAT
       r1 && C1 && C1.head === 'Choose the road' && C1.rows.join() === 'markup,sign' && C1.black.length === 1 && C1.black[0].road === 'markup' && /Send to Juno Logistics/.test(C1.black[0].t), C1);
     await page.screenshot({ path: path.join(OUT, 'ours.png') });
     if (r1){ await page.click('#ig-dock .pd2-rd-go');
-      const s2 = await until(page, () => /WHAT THEY CAN DO/i.test(document.body.innerText || ''), null, 8000);
+      const s2 = await until(page, SEND_SCREEN, null, 8000);
       const p2 = await page.evaluate(purposeNow);
       check('2 its press opens the Send screen with "Reply with their own changes" chosen', s2 && /Reply with their own changes/i.test(p2), p2); }
     await page.close();
@@ -90,7 +95,7 @@ const purposeNow = () => { const m = (document.body.innerText || '').match(/WHAT
       r5 && C5 && C5.rows.join() === 'nego,sign' && C5.black.length === 1 && C5.black[0].risks && C5.black[0].t === 'Negotiate' && C5.chips.includes('1 risk') && C5.quotes.some(q => /requirements may be rejected/.test(q)), C5);
     await page.screenshot({ path: path.join(OUT, 'theirs.png') });
     if (r5){ await page.click('#ig-dock [data-pd2-rd="sign"] [data-pd2-road="sign"]');
-      const s6 = await until(page, () => /WHAT THEY CAN DO/i.test(document.body.innerText || ''), null, 8000);
+      const s6 = await until(page, SEND_SCREEN, null, 8000);
       const p6 = await page.evaluate(purposeNow);
       check('6 Send as it is opens the Send screen with "Sign" chosen', s6 && /^Sign\b/.test(p6), p6); }
     await page.close();

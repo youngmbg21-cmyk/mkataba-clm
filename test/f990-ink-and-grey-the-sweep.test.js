@@ -17,7 +17,9 @@ const has = (sel, what) => assert.match(CSS, new RegExp(esc(sel) + '[^{]*' + G),
 test('the sweep: each page\'s detail grey, scoped to win', () => {
   has('html.lg-new #pu-page :is(.pu-sub,.pu-facts,.pu-rk small,.pu-meta,.pu-meta .pu-pty,.pu-sc small,.pu-cap)', 'Pulse board');
   has('html.lg-new .hist-trail.is-table .hist-c-time .hist-time,html.lg-new .hist-sd:is(.is-ours,.is-theirs,.is-none)', 'History: time and side');
-  has('html.lg-new [data-share-sap] .sh-lt.is-sap .sh-lt-say2,html.lg-new :is([data-share-sap],#pd-sendface) .sh-lt-card>h4', 'Send: hints and labels');
+  has('html.lg-new [data-share-sap] .sh-lt.is-sap .sh-lt-say2', 'Send: hints');
+  /* Before you send's card heads are bold and black (owner's pick, 19 Nov 2026; f1104), no longer grey */
+  assert.match(CSS, /html\.lg-new #ig-dock #pd-sendface \.sh-lt-card > h4\{[^}]*font-weight:var\(--w-strong\);color:var\(--color-text\)\}/, 'Send: Before you send\'s heads ink');
   has('html.lg-new #na-root.na-one .na-lr-t .na-pick-m', 'New agreement: a paper\'s "Use when"');
   has('html.lg-new #hbk-page .hbk-fig figcaption', 'Handbook: captions');
   has('html.lg-new :is(#jh-total-l,.jh-note,.jh-none)', 'Jambo\'s agents');

@@ -161,8 +161,10 @@ const check = (name, pass, detail) => {
     /* ================= 4. SETTINGS, TEMPLATES, CALENDAR ====================== */
     /* the second of the page's tabs (Company since 16 Oct 2026, the Control Room) */
     /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the landing's six areas do not scroll; the reader goes into
-       an area (Company, long enough to scroll) and comes back in it, at the same place down it */
-    await page.evaluate(() => { setView('team'); settingsGoTab(ST_FACES[1]); if (typeof sddGo === 'function') sddGo('company'); });
+       an area and comes back in it, at the same place down it. RE-POINTED AGAIN 19 Nov 2026: Company holds about ten
+       rows and scrolls under 300 at this window (GitHub: s0 292), so the reader goes into Jambo, the area with the most
+       rows (fourteen, four groups), long enough to scroll past 400 */
+    await page.evaluate(() => { setView('team'); settingsGoTab(ST_FACES[1]); if (typeof sddGo === 'function') sddGo('jambo'); });
     await page.waitForTimeout(600);
     const s0 = await scrollTo('content-scroll', 500);
     await reload();
@@ -171,7 +173,7 @@ const check = (name, pass, detail) => {
     const st = await until(() => state.view === 'team' && typeof settingsTab === 'function' && document.getElementById('content-scroll') ? settingsTab() : null);
     const s1 = await cameBack('content-scroll', s0);
     const area = await page.evaluate(() => (document.querySelector('.stn-page') || { getAttribute: () => null }).getAttribute('data-sdd-area'));
-    check('4a Settings comes back in the area the reader was in, at the same place down it', area === 'company' && s0 >= 400 && s1 === s0, JSON.stringify({ st, area, s0, s1 }));
+    check('4a Settings comes back in the area the reader was in, at the same place down it', area === 'jambo' && s0 >= 400 && s1 === s0, JSON.stringify({ st, area, s0, s1 }));
     await page.evaluate(() => setView('templates'));
     await page.waitForTimeout(600);
     /* RE-POINTED 17 Nov 2026 (#762): Our paper has no second tab in the new look (Shelves, then the Legora way: the
