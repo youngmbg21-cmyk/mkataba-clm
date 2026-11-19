@@ -1218,18 +1218,22 @@ function regArchiveBtnHtml(R){
    Stream · Category · Quick filters, Clear, Adapt filters) and 9 Oct's one
    white band edge to edge on the place: the drawing's head is a card on the
    ground, like every list page's. */
+/* THE HEAD CARRIES THE NAME AND ITS THREE BUTTONS ONLY (owner, 19 Nov 2026: "delete the words beside the header name
+   because they are pushing the buttons to the right; list, wall and new agreement should be the same size and on the
+   same line"): no facts line beside the name (the sentence over the list and Jambo's panel say it); List · Wall ·
+   New agreement ONE group (`.ct-acts`), one height, one line, dropping under the name together where it does not fit */
 function regHomeHeadHtml(R){
   const show=R.show==='list'?'list':'wall';
   const ic=k=>typeof icon==='function'?icon(k==='wall'?'grid':'list','w-4 h-4'):'';
   const nlF=typeof window.newLookOn==='function'&&newLookOn();
   const fName=nlF&&R.type&&R.type!=='all'&&FOLDERS[R.type]?FOLDERS[R.type].name:(nlF&&R.view==='archived'?i18t('ctf_ended'):'');
   const top=`<div class="reg-tabbar ct-top ph-top">
-        ${nlF?`<div class="ct-name is-stack"><button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button><div class="ct-hrow"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div></div>`
-          :`<div class="ct-name"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>`}
-        ${regArchiveBtnHtml(R)}
+        ${nlF?`<div class="ct-name is-stack"><button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button><div class="ct-hrow"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2></div></div>`
+          :`<div class="ct-name"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2></div>`}
+        <div class="ct-acts">${regArchiveBtnHtml(R)}
         <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
           `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
-        ${nlF&&((typeof canEdit!=='function')||canEdit())?`<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${esc(i18t('ctf_new_agreement'))}</button>`:''}
+        ${nlF&&((typeof canEdit!=='function')||canEdit())?`<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${esc(i18t('ctf_new_agreement'))}</button>`:''}</div>
       </div>`;
   if(typeof window.lhHtml!=='function'||!(window.LH_PAGES&&LH_PAGES[REG_CT_SEAT])) return `<div class="reg-band sap-band ph-card ct-head">${top}</div>`;
   /* THE SENTENCE OVER THE LIST, as on Parties (owner's yes, 19 Nov 2026): the head card's last line, on the List only —

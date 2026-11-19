@@ -253,6 +253,7 @@ NEW DISCOVER (f1055) `dsnRender`: `dsnListHtml` · New read (`#dsc-q`, `dsnChose
 RESULTS (`dsnGroups`); sort (`dsnSortTh`; f1058); `dsnLeadCols`. PACKS (`dsnPackRowHtml`, `dsnPackPanel`, `/api/columns/packs`): built-ins kept, undo (f1061). Panel no AI (`dslReadHtml`, `dslEmptyHtml`, `dslNewHtml`; f1074). TURNED DOWN → HOW TO ASK (`dsnFixSet`, `askColReword` BY RULE; fills box only `dsnFixUse`; f1064).
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - CONTRACTS BESIDE THE BOARD: `setView('register')` → `hbOpenContracts` (not phone); `renderRegister({home:true,hostId:'ct-place'})`: `regHomeHeadHtml` (List | Wall). HEAD STACKS (reverses "one line"): ‹ Folders, serif title, tabs, sentence `regCtSayHtml`. Press chooses (`igWallChoose`), second opens (`igWallOpen`), Esc lets go (`igWallLetGo`).
+- HEAD = NAME + ONE GROUP (owner, 19 Nov 2026): no facts line beside the name; List · Wall · New agreement ONE `.ct-acts`, one height, one line, dropping under the name whole (`regHomeHeadHtml`). f687 2a.
 - FOLDER PANEL: sentences without AI (`regFolderSays`), each an existing door. f1053.
 - `regSetScope`/`regScope` first; `regRepaint()`; `regFiltered` + `regNarrowed()`; `regOpenContract`. Head `regCtHeadReg`. `clauseNameShown` AS ON THE PAPER; `clauseLabel` a RECORD. Answers → `regShowOnly`.
 ## CALENDAR
