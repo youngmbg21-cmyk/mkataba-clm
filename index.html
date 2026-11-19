@@ -19288,7 +19288,12 @@
   html.lg-new #ig-dock #pd-sendface .sh-lt-side{display:flex;flex-direction:column;gap:12px;padding:16px}
   html.lg-new #ig-dock #pd-sendface .sh-lt-side > .sh-lt-jb b{display:block;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
   html.lg-new #ig-dock #pd-sendface .sh-lt-card{display:block;padding:12px;border:0;border-radius:var(--radius);background:var(--jb-card-fill)}
-  html.lg-new #ig-dock #pd-sendface .sh-lt-card > h4{margin:0 0 2px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  /* EVERY CARD'S HEAD BOLD AND BLACK (owner, 19 Nov 2026: "these headers should be in bold and black in all the cards in
+     this side panel and for the email as well"): Goes, Mail, Names, the fix-first card and its Also worth knowing, Email */
+  html.lg-new #ig-dock #pd-sendface .sh-lt-card > h4{margin:0 0 2px;font-size:13px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-lt-check-also{margin:8px 0 2px;font-size:13px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface #sh-lt-checks .sh-noemail::before{content:attr(data-k);display:block;margin:0 0 2px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock #pd-sendface .sh-lt-side > .sh-lt-jb{display:none}
   html.lg-new #ig-dock #pd-sendface .sh-lt-card > :not(h4){margin:0;font-size:13px;color:var(--color-text)}
   html.lg-new #ig-dock #pd-sendface .sh-lt-card.sh-lt-verdict{padding:0;background:none}
   html.lg-new #ig-dock #pd-sendface .sh-lt-verdict > h4{display:flex;align-items:center;gap:12px;margin:0 0 12px;font-family:var(--font-title);font-size:20px;line-height:1.2;font-weight:500;color:var(--color-text)}
@@ -19497,6 +19502,48 @@
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open{padding:var(--s-4)}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st #sh-lt-tosay:not(.hidden){display:none}
   html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-st-add > button{display:inline-flex;align-items:center;gap:var(--s-1)}
+  /* THE STEPS, THE LEGORA WAY, IN THE PAGE (owner's pick, 19 Nov 2026: "change it to look like the design here but not as
+     pop ups but embedded in the page"): the open step named as a serif head with the four steps one line under it, no grey
+     box and no number; each field a label beside its words over a hairline, no box; "Then" over the steps to come, each a
+     label beside what is chosen and Change (core.js shareStepsArrange, SH_LGX_K, SH_LGX_HEAD) */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps > #sh-as-chips::before{content:none;display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lgx-h{padding:0 0 var(--s-2)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lgx-t{margin:0;font-family:var(--font-title);font-size:20px;line-height:1.25;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lgx-s{display:flex;flex-wrap:wrap;align-items:baseline;margin:var(--s-1) 0 0;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lgx-s > span{white-space:pre}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lgx-s > button{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lgx-s > button.is-on{color:var(--color-text);font-weight:var(--w-strong)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lgx-g{margin:var(--s-4) 0 0;font-size:var(--t-label);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-400)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open{padding:0;background:none;border-radius:0;border-bottom:0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open > .sh-st-h{display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open > .sh-lt-v{margin-top:0;padding-left:0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-st-mk{display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who{display:block}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who > label{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:var(--s-3);min-height:44px;margin:0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who > label.hidden{display:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who > label > span{font-size:13px;font-weight:400;color:var(--color-quiet)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who > label > input, html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who #sh-email{width:100%;min-width:0;height:auto;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font:inherit;font-size:14px;color:var(--color-text)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-who > label > input::placeholder{color:var(--color-neutral-400)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open){padding:var(--s-3) 0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) > .sh-st-h{display:grid;grid-template-columns:96px minmax(0,1fr) auto;column-gap:var(--s-3);align-items:baseline}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) .sh-st-t{display:contents}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) .sh-st-t > b{grid-column:1;grid-row:1;font-size:13px;font-weight:400;color:var(--color-quiet)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) .sh-st-v{grid-column:2;grid-row:1;font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) .sh-st-q{grid-column:2 / -1;grid-row:2;margin-top:2px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) .sh-st-go{grid-column:3;grid-row:1;text-decoration:underline;text-underline-offset:3px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps :is(.sh-st-add, .sh-to-kind) > button{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-st[data-sh-st="to"] .sh-st-add, html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-st[data-sh-st="to"] .sh-to-kind{display:inline-flex;align-items:center;margin:var(--s-3) var(--s-4) 0 0}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open){border-bottom:1px solid var(--color-divider)}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) > .sh-st-h{row-gap:2px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) :is(.sh-st-t > b, .sh-st-v, .sh-st-go){line-height:1.4}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) .sh-st-go{height:auto;min-height:0;padding:0;align-self:baseline}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st:not(.is-open) .sh-st-q{margin-top:0;line-height:1.4}
+  /* typed, the person stands in the lines themselves; the list under the head keeps only the others added */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-to.has-primary #sh-st-ppl > .sh-st-p:first-child{display:none}
+  /* an open later step's choice is a line too: no box round the picker, its sentence plain under it */
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open .sh-as > .sh-as-go{width:100%;height:44px;padding:0;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none;box-shadow:none;font-size:14px}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open .sh-lt-say2:not([data-tone="warn"]){margin:var(--s-2) 0 0;padding:0;border:0;border-radius:0;background:none}
+  html.lg-new :is(#modal-root,#ig-page,#content) [data-share-sap].sh-letter #sh-letter.sh-lt.is-sap.is-steps .sh-lt-row.sh-st.is-open .sh-lt-say2:not([data-tone="warn"])::before{content:none;display:none}
   /* PLAIN LETTER (owner's pick by name, 14 Nov 2026): one typeface, one size. The note is a line of the letter: no label
      on show (it stays for a screen reader), the empty box says so in grey, "Write it for me" right after its words
      (shareLetterNoteFit hugs them); "Kind regards," the letter's size; the round one sentence (sharemail smRoundSentence) */
@@ -21432,7 +21479,7 @@
      panel's label, a caption, a time, a side and a hint go grey. */
   html.lg-new #pu-page :is(.pu-sub,.pu-facts,.pu-rk small,.pu-meta,.pu-meta .pu-pty,.pu-sc small,.pu-cap){color:var(--color-neutral-400)}
   html.lg-new :is(.hist-cap,.hist-day-h small),html.lg-new .hist-trail.is-table .hist-c-time .hist-time,html.lg-new .hist-sd:is(.is-ours,.is-theirs,.is-none){color:var(--color-neutral-400)}
-  html.lg-new [data-share-sap] .sh-lt.is-sap .sh-lt-say2,html.lg-new :is([data-share-sap],#pd-sendface) .sh-lt-card>h4{color:var(--color-neutral-400)}
+  html.lg-new [data-share-sap] .sh-lt.is-sap .sh-lt-say2{color:var(--color-neutral-400)}
   html.lg-new :is(.na-not-yet,.na-file-cost),html.lg-new #na-root.na-one .na-lr-t .na-pick-m,html.lg-new #modal-root .na-why{color:var(--color-neutral-400)}
   html.lg-new :is(.hbkn-card .ctf-hf,.hbkn-eye),html.lg-new #hbk-page .hbk-fig figcaption{color:var(--color-neutral-400)}
   html.lg-new :is(#jh-total-l,.jh-note,.jh-none){color:var(--color-neutral-400)}
@@ -21585,6 +21632,10 @@
   /* THE SEND PAGE IS THE WHITE PAGE (fix, 9 Nov 2026: "The whole page should be white not a card on top of a shaded
      backdrop"): no inset, no corner, no lift on its head or its body; one hairline under the head */
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-hd{top:0;margin:0;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;box-shadow:none}
+  /* ONE LINE ACROSS (owner, 19 Nov 2026: "The line under the top header of the page should be on the same level as the line in
+     the jambo header"): the Send page's head is as tall as Jambo's (#ig-dock > .igd-head, 56 with its line), so the two lines
+     under them are one */
+  html.lg-new #modal-root .modal-in[data-sh-page] .sh-hd{min-height:56px;box-sizing:border-box}
   html.lg-new #modal-root .modal-in[data-sh-page] .sh-lt-grid{margin:0;border:0;border-radius:0;box-shadow:none;clip-path:none}
   /* ONE GAP ABOVE EVERY JAMBO BOX (owner, 9 Nov 2026: "why is there a massive gap between the links and the jambo button?
      … Make sure there is always a consistent management of the gaps"): the line that says what typed words would do takes
