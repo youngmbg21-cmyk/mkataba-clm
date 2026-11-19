@@ -947,3 +947,4 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 
 ## OBLIGATIONS — Chase now through the Send screen; their automatic reminders (19 Nov 2026)
 - test/f1105-chase-through-the-send-screen.test.js (runs the server); f588 (2) and f802 5f re-pointed; browser: obligations-tab-verify (the chase, re-pointed).
+- PARTIES, THE SAP WAY, REVISED (19 Nov 2026): test/f1108-parties-the-sap-way-revised.test.js (red at the parent: all four). Re-pointed: f986 (streams chip in its column, waiting `ws`); browser checks parties-and-people-verify (2b columns, 2c streams cell, 4d links, 4i/4g counts and hover, 9d attention link → Contracts), parties-and-contracts-as-drawn-verify (2a links), parties-sap-way-verify (3a/3c), round6-new-look-verify (4), legora-look-verify 11b retired (no Standing on Parties).

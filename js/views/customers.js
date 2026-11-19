@@ -1459,6 +1459,8 @@ function cunPanelFiveHtml(r){
     facts.push({ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none') });
     if (signer) facts.push({ k: i18t('cun_p_signs_for'), t: signer.name || signer.email || '' });
     if (nda) facts.push({ k: i18t('cu_col_nda'), t: nda.t, attr: `data-cun-nda="${E(nda.id)}"` });
+    const sts = (r.streams || []).map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f)).filter(Boolean);
+    if (sts.length) facts.push({ k: i18t('cun_c_streams'), t: sts.join(' · ') });
     groups.push({ key: 'facts', label: i18t('cun_p_facts'), more: may ? { label: i18t('cun_p_edit_short'), attr: `data-cu-pr-edit="${E(r.key)}"` } : null, rows: facts });
   }
   /* 2 · CONTACTS: their people, counted; a press opens People narrowed to them */
@@ -1471,17 +1473,12 @@ function cunPanelFiveHtml(r){
   groups.push({ key: 'contacts', label: i18t('cun_p_contacts'), more: mayAdd ? { label: i18t('cun_p_add'), attr: `data-cun-add-ct="${E(r.key)}"` } : null,
     rows: people.length ? [{ faces: people.slice(0, 4).map(ini), t: i18tn('cun_ct_n', people.length, { n: people.length, name: short }), s: says, attr: `data-cun-ppl="${E(r.key)}"` }]
       : [{ mark: 'users', t: i18t('cun_ct_none'), s: mayAdd ? i18t('cun_ct_none_s') : '', attr: mayAdd ? `data-cun-add-ct="${E(r.key)}"` : '' }] });
-  /* 3 · AGREEMENTS: three, then all of them on Contracts */
-  const waits = new Map((r.needs || []).filter(x => x && x.c).map(x => [x.c.id, x]));
-  const end = c => { try { const d = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); return d ? cuDay(d) : ''; } catch (_){ return ''; } };
-  const ags = cunAgsOrdered(r).slice(0, CUN_PANEL_AGS).map(c => {
-    let m = null; try { m = typeof contractStatusMeta === 'function' ? contractStatusMeta(c) : null; } catch (_){ m = null; }
-    const w = waits.get(c.id), d = end(c);
-    const s = w ? [m && m.label, cuNeedTitle(w)].filter(Boolean).join(' · ') : [m && m.label, d ? i18t('cun_ag_ends', { d }) : ''].filter(Boolean).join(' · ');
-    return { mark: 'file', t: c.name || c.id, s, v: (typeof jov5Money === 'function') ? jov5Money(c) : '', run: () => jov5Open(c.id) };
-  });
-  groups.push({ key: 'ags', label: i18tn('cun_p_ags', r.items.length, { n: r.items.length }), rows: ags,
-    foot: { label: i18tn('cun_p_ags_all', r.items.length, { n: r.items.length }), attr: `data-cun-cts="${E(r.key)}"` } });
+  /* 3 · AGREEMENTS, AS TWO LINKS under the facts and contacts (owner's pick "the SAP way, revised", 19 Nov 2026): all of
+     them, and those that need your attention — each opens Contracts showing only those (regShowOnly) */
+  const ws = cunWaitSay(r.needs), split = cunSplitOf(r);
+  const agRows = [{ mark: 'file', t: i18tn('cun_p_ags_all_n', r.items.length, { n: r.items.length }), s: split, v: i18t('cun_p_on_cts'), attr: `data-cun-cts="${E(r.key)}"` }];
+  if (ws && ws.ids.length) agRows.push({ mark: 'alert', tone: 'amber', t: i18tn('cun_p_attn', ws.ids.length, { n: ws.ids.length }), s: [ws.on, ws.late ? i18t('cun_late') : ''].filter(Boolean).join(' · '), v: i18t('cun_p_on_cts'), attr: `data-cun-attn="${E(r.key)}"` });
+  groups.push({ key: 'ags', label: i18t('cun_p_ags_label'), rows: agRows });
   return `<div class="jl-words is-ov">${jamboOverviewHtml({ title: r.name, groups: groups.filter(g => g.html || (g.rows || []).length) }, 'cun')}</div>`;
 }
 /* THE PANEL'S OWN PRESSES, delegated once: the NDA, the contacts, + Add, all the agreements on Contracts */
@@ -1491,6 +1488,8 @@ if (typeof document !== 'undefined' && !document._cunPanel5Wired){ document._cun
     const nd = t.closest('[data-cun-nda]'); if (nd){ e.preventDefault(); cuOpenNda(nd.getAttribute('data-cun-nda')); return; }
     const pp = t.closest('[data-cun-ppl]'); if (pp){ e.preventDefault(); if (typeof dirOpenParty === 'function') dirOpenParty(pp.getAttribute('data-cun-ppl')); return; }
     const ad = t.closest('[data-cun-add-ct]'); if (ad){ e.preventDefault(); if (typeof partyContactsOpen === 'function') partyContactsOpen(ad.getAttribute('data-cun-add-ct'), { add: true }); return; }
+    const at = t.closest('[data-cun-attn]'); if (at){ e.preventDefault(); const v = cuView(cuCustomerOf(at.getAttribute('data-cun-attn'))); const ws = v && cunWaitSay(v.needs);
+      if (ws && ws.ids.length && typeof regShowOnly === 'function'){ regShowOnly(ws.ids, i18t('cun_attn_only', { name: v.name }), { party: true }); if (typeof jlLand === 'function') jlLand('list'); } return; }
     const ct = t.closest('[data-cun-cts]'); if (ct){ e.preventDefault(); const v = cuView(cuCustomerOf(ct.getAttribute('data-cun-cts'))); if (v && typeof regShowOnly === 'function'){ regShowOnly(cuIdsOf(v), v.name, { party: true }); if (typeof jlLand === 'function') jlLand('list'); } }
   });
 }
@@ -1565,6 +1564,33 @@ function cunActOf(v){
   if (!x) return null;
   return { kind: x.it.kind, id: x.c ? x.c.id : x.r.id, label: i18t(CUN_ACT[x.it.kind] || CU_NEED_DOOR[x.it.kind] || 'cu_need_go_move') };
 }
+/* THE PARTY'S CONTRACTS, COUNTED (one reading for the row and the panel): signed, and still in progress (not signed,
+   declined or put away) */
+function cunCounts(v){
+  const live = (v.items || []).filter(c => c && !c.archived);
+  const signed = live.filter(c => c.status === 'Signed').length;
+  const open = live.filter(c => c.status !== 'Signed' && c.status !== 'Declined').length;
+  return { signed, open };
+}
+function cunSplitOf(v){
+  const n = cunCounts(v);
+  return [n.signed ? i18tn('cun_split_signed', n.signed, { n: n.signed }) : '', n.open ? i18tn('cun_split_open', n.open, { n: n.open }) : ''].filter(Boolean).join(' · ');
+}
+/* the signed contract that ends soonest, from today on (effectiveExpiry: an amendment's day wins); none: null */
+function cunEndsNextOf(v){
+  const today = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10);
+  const end = c => { try { return String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ return ''; } };
+  const c = (v.items || []).filter(x => x && !x.archived && x.status === 'Signed' && end(x) >= today).sort((a, b) => end(a).localeCompare(end(b)))[0];
+  return c ? { day: cuDay(end(c)), name: c.name || c.id, id: c.id } : null;
+}
+/* what waits, counted: "3 things", on how many contracts, whether any is late (the column and the panel's link) */
+function cunWaitSay(needs){
+  const list = (needs || []).filter(x => x && x.it);
+  if (!list.length) return null;
+  const ids = new Set(list.filter(x => x.c).map(x => x.c.id));
+  return { n: list.length, head: i18tn('cun_w_things', list.length, { n: list.length }), on: ids.size ? i18tn('cun_w_on', ids.size, { n: ids.size }) : '',
+    late: list.some(x => x.it.urgent), ids: [...ids] };
+}
 function cunRowHtml(v, keys){
   const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
   /* SAY IT ONCE (the harmony review, owner's yes 9 Nov 2026): a row names its org. no. only where one is filed */
@@ -1575,40 +1601,44 @@ function cunRowHtml(v, keys){
   const shortOf = f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f);
   const toneOf = f => (typeof listStreamTone === 'function') ? listStreamTone(f) : 'gray';
   const facts = [city, org].filter(Boolean).join(' · ');
-  const chips = v.streams.filter(f => shortOf(f)).map(f => (typeof listChipHtml === 'function') ? listChipHtml(toneOf(f), shortOf(f)) : esc(shortOf(f))).join(' ');
+  /* STREAMS HAVE THEIR OWN COLUMN (owner's pick "the SAP way, revised", 19 Nov 2026): the first stream, then "+N" (all of
+     them named on its hover and in the panel), so any number stays on one line */
+  const streamNames = v.streams.map(f => shortOf(f)).filter(Boolean);
+  const streamCell = streamNames.length ? ((typeof listChipHtml === 'function') ? listChipHtml(toneOf(v.streams[0]), streamNames[0]) : esc(streamNames[0]))
+    + (streamNames.length > 1 ? ` <span class="cun-more" title="${esc(streamNames.join(' · '))}">+${streamNames.length - 1}</span>` : '') : '—';
   const ini = String(v.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
   const avTone = v.streams.length ? toneOf(v.streams[0]) : 'gray';
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = v.items.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
-  const lead = v.items.filter(c => !c.archived).sort((a, b) => String(b.updatedAt || b.lastAction || '').localeCompare(String(a.updatedAt || a.lastAction || '')))[0] || v.items[0];
-  let sm = null; try { sm = lead && typeof contractStatusMeta === 'function' ? contractStatusMeta(lead) : null; } catch (_){ sm = null; }
-  const stand = sm ? `<span class="cun-st"><i style="background:${sm.dot}"></i>${esc(sm.label || '')}</span>` : '—';
+  /* NO ONE WORD FOR MANY CONTRACTS (Standing is gone): how many are signed and how many still in progress, and which
+     signed one ends next (cunSplitOf, cunEndsNextOf) */
+  const split = cunSplitOf(v), next = cunEndsNextOf(v);
   const needs = (v.needs || []).filter(x => x && x.it);
-  /* two said in the column; more are named on its hover */
-  const words = needs.slice(0, 2).map(x => { const w = cunWaitVerb(x); return w ? (x.it.urgent ? `${esc(w)} · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : esc(w)) : ''; }).filter(Boolean).join(' · ');
-  const act = cunActOf(v);
+  /* WAITING ON YOU IS THE LAST COLUMN, A COUNT (no row button: work on several contracts is never guessed to one) */
+  const ws = cunWaitSay(needs);
   const cell = {
-    agreements: () => `<td class="cun-num">${v.items.length}</td>`,
+    streams: () => `<td class="cun-streams">${streamCell}</td>`,
+    agreements: () => `<td class="cun-num">${v.items.length}${split ? `<div class="cun-sub">${esc(split)}</div>` : ''}</td>`,
     paper: () => `<td>${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '—'}</td>`,
-    standing: () => `<td>${stand}</td>`,
-    waiting: () => `<td class="cun-wait${words ? ' is-owed' : ''}"${needs.length > 2 ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${words || '—'}</td>`,
-    act: () => `<td class="cun-act">${act ? `<button type="button" class="ctf-pill cun-act-b" data-cu-need="${esc(act.kind)}" data-cu-id="${esc(act.id)}">${esc(act.label)}</button>` : ''}</td>`,
+    ends: () => `<td class="cun-ends">${next ? `${esc(next.day)}<div class="cun-sub">${esc(next.name)}</div>` : '—'}</td>`,
+    waiting: () => `<td class="cun-wait${ws ? ' is-owed' : ''}"${needs.length ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${ws ? `${esc(ws.head)}${ws.late ? ` · <span class="cun-late">${esc(i18t('cun_late'))}</span>` : ''}${ws.on ? `<div class="cun-sub">${esc(ws.on)}</div>` : ''}` : '—'}</td>`,
   };
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
-    <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div><div class="cun-sub">${facts ? `<span class="cun-facts">${esc(facts)}</span> ` : ''}${chips}</div></div></div></td>
+    <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div>${facts ? `<div class="cun-sub"><span class="cun-facts">${esc(facts)}</span></div>` : ''}</div></div></td>
     ${(keys || CUN_KEYS).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
 }
-/* THE COLUMNS UNDER THE ONE COLUMN RULE (listCols): Party, Waiting and the row's button always stand; where the room is
-   short Agreements steps aside first, then On paper, then Standing */
-const CUN_KEYS = ['agreements', 'paper', 'standing', 'waiting', 'act'];
+/* THE COLUMNS UNDER THE ONE COLUMN RULE (listCols), as drawn ("the SAP way, revised"): Party · Streams · Agreements ·
+   On paper · Ends next · Waiting on you, which is always last and always stands; where the room is short Ends next steps
+   aside first, then Streams, then On paper */
+const CUN_KEYS = ['streams', 'agreements', 'paper', 'ends', 'waiting'];
 function cunCols(){
-  const W = { agreements: 96, paper: 92, standing: 116, waiting: 180, act: 124 }, R = { agreements: 2, paper: 4, standing: 5 };
+  const W = { streams: 150, agreements: 150, paper: 96, ends: 140, waiting: 160 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
   const DEFS = [{ k: 'name' }, ...CUN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols('customers', DEFS, cuRepaint) : { cols: DEFS };
-  const T = { name: 'cun_c_party', agreements: 'cun_c_ags', paper: 'cun_c_paper', standing: 'cun_c_standing', waiting: 'cun_c_wait', act: '' };
+  const T = { name: 'cun_c_party', streams: 'cun_c_streams', agreements: 'cun_c_ags', paper: 'cun_c_paper', ends: 'cun_c_ends', waiting: 'cun_c_wait' };
   const cols = FIT.cols, keys = cols.slice(1).map(c => c.k);
   const colg = `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`;
-  const th = `<thead><tr>${cols.map(c => `<th${c.k === 'act' ? ' class="cun-act"' : ''}>${T[c.k] ? esc(i18t(T[c.k])) : ''}${T[c.k] && typeof listGripHtml === 'function' ? listGripHtml('customers', c.k) : ''}</th>`).join('')}</tr></thead>`;
+  const th = `<thead><tr>${cols.map(c => `<th>${T[c.k] ? esc(i18t(T[c.k])) : ''}${T[c.k] && typeof listGripHtml === 'function' ? listGripHtml('customers', c.k) : ''}</th>`).join('')}</tr></thead>`;
   return { keys, colg, th, n: cols.length };
 }
 /* THE SENTENCE OVER THE LIST (a touch of the Legora way): how many parties, who holds the most money (a press chooses
@@ -1771,7 +1801,7 @@ function partyHistorySay(h){
   if (h.pushed) out.push(String(h.pushed));
   return out.join(' ');
 }
-Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunSayHtml, cunActOf, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunSayHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */

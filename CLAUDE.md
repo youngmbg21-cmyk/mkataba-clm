@@ -244,7 +244,7 @@ CHOSEN ROW: `apnLeadFiveHtml` (no button; Approve/Decline on row), `mnnPanelFive
 - HISTORY: ONE TABLE (`.hist-trail.is-table`); side `histLaneOf`; `#hist-q` + filters with results (`histFilterChoices`); `histMoveOf`/`histSummaryOf`; send told once (`histSendOf`, both shells).
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)
 - A READING, NOTHING FILED: per counterparty (`cuCustomers`, `cuKeyOf`; code names out); Status = PARTY's standing (`cuStanding`); `cuOpenCustomer`, `cuSelectParty`.
-- ONE LIST, NO FOLDERS, NO NDA COLUMN, NO PARTY PAGE: `cunSayHtml`; row button = most urgent (`cunActOf`). Panel `cunPanelFiveHtml`: Edit → `partyRecordOpen`, NDA where held (`cunNdaFact`); `dirOpenParty`; 3 agreements (`cunAgsOrdered`) → `regShowOnly`. No web search.
+- ONE LIST, NO FOLDERS, NO NDA COLUMN, NO PARTY PAGE: `cunSayHtml`. SAP WAY, REVISED (reverses Standing and the row button): Party · Streams (first +N) · Agreements (`cunSplitOf`) · On paper · Ends next (`cunEndsNextOf`) · Waiting on you LAST, a count (`cunWaitSay`); no row buttons. Panel `cunPanelFiveHtml`: facts (+ streams), Edit → `partyRecordOpen`, NDA (`cunNdaFact`); `dirOpenParty`; links All N (`data-cun-cts`) and need attention (`data-cun-attn`) → `regShowOnly`. f1108.
 - CONTACTS: `partyContactsOpen(key,{add,edit})` writes `c.participants` on ticked agreements (title, phone; never `signerPlan`), Undo (`_pcRestore`); People reads stored phone first (`dirPhoneOf`).
 - PARTY FACTS, ONE HOME: `party_records` (key `cuKeyOf`), writer PUT /api/party-records (wall `prVisibleKeys`, else 404), bootstrap (`partyRecordOf`); door `partyRecordOpen`; parties clause SUGGESTS.
 ## ASK A COLUMN (js/views/askcolumn.js)

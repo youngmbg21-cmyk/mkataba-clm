@@ -263,8 +263,8 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 19 Nov 2026 (the Parties round, owner's drawings): Parties' panel lists a party's agreements as the five
        parts' rows — a file mark, the agreement, its stage in words ("Executed · ends …") — so the status dot is read
        where a stage is drawn as a cell, the Parties LIST's Standing column */
-    const stDot = await page.evaluate(() => { const d = document.querySelector('#cu-tbody .cun-st > i'), r = d && d.getBoundingClientRect(); return r ? [Math.round(r.width), Math.round(r.height)] : null; });
-    check('11b a status on Parties carries its dot (8 × 8), not only its word', !!stDot && stDot[0] === 8 && stDot[1] === 8, JSON.stringify(stDot));
+    /* RETIRED 19 Nov 2026 (owner's pick "the SAP way, revised"): 11b "a status on Parties carries its dot" — Parties has no
+       Standing column any more (one word cannot say many contracts' stages); a stage's dot is checked on Contracts' list */
     /* LEGORA: the panel beside a list floats, a white card with the faint lift; a tag has the soft corner */
     /* RETIRED 16 Nov 2026 (#762): 11c "Jambo's panel beside a list floats: a card with the faint lift" — the Legora look's floating panel;
        in the new look the panel stands edge to edge beside the white sheet (CLAUDE.md: a panel not edge to edge is the old look) */
