@@ -61,7 +61,7 @@ test('f1098 (2) Proposals has no Found column, and a duty row spans the columns 
   const cols = src.slice(i, src.indexOf('const seat', i));
   assert.doesNotMatch(cols, /'found'|obn_col_found/, 'Found is gone');
   assert.match(cols, /k: 'side'.*k: 'prog'.*k: 'status'.*k: 'acts'/s);
-  /* RE-POINTED 19 Nov 2026 (f1100): the duty rows under an agreement are gone (owner: "redundant … Delete them") */
+  /* RE-POINTED 19 Nov 2026 (f1102): the duty rows under an agreement are gone (owner: "redundant … Delete them") */
   assert.doesNotMatch(src.slice(src.indexOf('function obnProjRowHtml('), src.indexOf('let _obnPick')), /obn-age/, 'no age cell');
 });
 
@@ -86,13 +86,13 @@ test('f1098 (4) a row pressed: the Legora way, answered in the row, Us · Theirs
   assert.ok(its.every(i => i.querySelector('.obn-lg-q')), 'each duty in its own quoted words');
   assert.match(d.querySelector('.obn-lg-q mark') && d.innerHTML, /<mark>forty-eight \(48\) hours<\/mark>/, 'the time limit marked');
   const words = [...d.querySelectorAll('[data-obn-whose]')].map(b => b.textContent);
-  assert.deepEqual([...new Set(words)], ['Undecided', 'Us', 'Theirs', 'Both sides']);   /* RE-POINTED 19 Nov 2026 (f1100): Undecided first */
+  assert.deepEqual([...new Set(words)], ['Undecided', 'Us', 'Theirs', 'Both sides']);   /* RE-POINTED 19 Nov 2026 (f1102): Undecided first */
   assert.ok(![...d.querySelectorAll('button')].some(b => b.textContent.includes(c.counterparty)), 'no button carries the other side\'s name');
   assert.ok(d.querySelector('[data-obn-skip]') && d.querySelector('[data-obn-ask="MK-T1"]'));
-  assert.equal(d.querySelector('[data-obn-addall]'), null, 'nothing decided yet, nothing to add (f1100)');
+  assert.equal(d.querySelector('[data-obn-addall]'), null, 'nothing decided yet, nothing to add (f1102)');
   /* every whose-job button reads the one word-giver */
   const src = strip(read('js/obligations.js'));
-  assert.equal((src.match(/obWhoseBtn\(/g) || []).length >= 4, true, 'the desk, the panel and its word (the list\'s duty rows went, f1100)');
+  assert.equal((src.match(/obWhoseBtn\(/g) || []).length >= 4, true, 'the desk, the panel and its word (the list\'s duty rows went, f1102)');
   assert.doesNotMatch(src, />\$\{_obEsc\(obWhoseWord\(c, k\)\)\}<\/button>/, 'no button reads the name-giver');
 });
 
@@ -102,7 +102,7 @@ test('f1098 (5) both books carry the words', () => {
     assert.equal((src.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books');
 });
 
-/* RETIRED 19 Nov 2026 (f1100): f1098 (6) "Open chooses too" — the Open pill and the duty rows it unfolded are gone
+/* RETIRED 19 Nov 2026 (f1102): f1098 (6) "Open chooses too" — the Open pill and the duty rows it unfolded are gone
    (owner: "the obligations are redundant as they are already in the side panel. Delete them"); a row press chooses */
 
 test('f1098 (7) a tile that holds words takes the smaller size and wraps inside its card (owner: "Every month" ran out of its tile)', () => {

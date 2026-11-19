@@ -130,7 +130,9 @@ describe('f745 (2) saved views are links in Jambo\'s panel on Explorer, never on
   test('2c the name is yours when saving: a box filled with the view\'s own name; Save keeps what was typed', () => {
     const IG = code(read('js/views/intelligence.js'));
     const body = IG.slice(IG.indexOf('function igSavedViewsHtml('), IG.indexOf('function igSaveViewDoor('));
-    assert.match(body, /<input type="text" id="ig-sv-name" class="ig-sv-in"[^`]*value="\$\{igEsc\(nm\)\}"/, 'the box opens holding igViewName()');
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1"): the name line opens in lgpOpen, holding igViewName() */
+    assert.match(body, /lgpOpen\(\{ id:'ig-sv-form'[\s\S]*?\{ k:i18t\('int_sv_name'\), id:'ig-sv-name', value:nm/, 'the line opens holding igViewName()');
+    assert.doesNotMatch(body.slice(0, body.indexOf('function igSavedViewForm(')), /<form|<input/, 'nothing is typed inside the panel');
     assert.match(body, /let nm=''; try\{ nm=igViewName\(\); \}/);
     assert.match(body, /const n=igViewSave\(typed\);/, 'the one writer, with the typed name');
     assert.match(body, /igRecipePush\(\); igRecipeSet\(v\.recipe\);/, 'a link lays the view over the map, one step back on Undo');

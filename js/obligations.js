@@ -820,120 +820,79 @@ function openObligationForm(c, seed, opts){
      way back; every other caller passes nothing and gets the form it knew */
   opts=opts||{};
   const members=(getUsers()||[]).map(u=>u.name);
-  openModal(`
-    <div class="p-6">
-      <h3 class="font-serif font-600 text-lg text-ink">${seed._i!=null?'Edit':'Add'} obligation</h3>
-      ${''/* SAP's dialog (10 Oct 2026): the record it is about, under the title;
-              and WHOSE OBLIGATION first, because it decides what follows (the
-              Assign-to box below only means anything for one of ours). */}
-      <p>${_obEsc((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</p>
-      ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE. The two questions are not
-              independent — "assign to" only means anything for an obligation
-              that is ours — so the field that decides it comes first, and the
-              one it governs is hidden when it does not apply. */}
-      <div class="mb-2.5"><span class="sap-lbl" style="display:block">${i18t('ob_whose')}</span>
-        <div id="of-party" class="sap-seg" style="margin-top:5px">
+  /* ---- THE ONE EDIT POP-UP, IN TWO SHORT STEPS (owner, 19 Nov 2026: "Build 1", as drawn) ----
+     1 The duty: whose, what, due, repeats, what it comes after, who on our side. 2 Money and proof: the amount and
+     whether it is a document they must hold. Every field, id and rule below is the one this dialog always had; only
+     the look moved onto the one sheet (lgp: lines with the label beside the words, no boxes), and both steps stay in
+     the form — the second hidden — so Save reads every field wherever the reader stands. */
+  const E=_obEsc, line=(k,ctl,o)=>`<label class="lgp-row${o&&o.tall?' is-tall':''}"${o&&o.id?` id="${o.id}"`:''}${o&&o.hide?' hidden':''}><span class="lgp-k">${k}</span><span class="lgp-v">${ctl}</span></label>`;
+  const who=(c.counterparty||'').replace(/</g,'&lt;');
+  openModal(`<form class="lgp" id="of-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(seed._i!=null?(seed.desc||i18t('ob_edit_cap')):i18t('ob_add_go'))}</h3>
+      <p class="lgp-sub lgp-steps" id="of-steps"><b>${E(i18t('of_step_duty'))}</b> · ${E(i18t('of_step_money'))}</p>
+      <p class="lgp-sub">${E((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</p></div>
+      <button type="button" class="lgp-x" id="of-x" tabindex="-1" aria-label="${E(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
+    <div class="lgp-bd">
+    <div id="of-step-1">
+      ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE: the field that decides it comes first, and the one it governs is
+              hidden when it does not apply. */}
+      <div class="lgp-row"><span class="lgp-k">${i18t('ob_whose')}</span><span class="lgp-v"><span id="of-party" class="lgp-chips">
           ${OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
-            return `<button type="button" data-of-party="${k}" aria-pressed="${on?'true':'false'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
-        </div></div>
-
-      ${''/* ---- THE DESCRIPTION WRAPS ----
-              Reported (Young, 10 Aug 2026): an obligation read out of a clause
-              is a sentence, and a single-line <input> showed about a third of
-              it with the rest scrolled off to the right. You could not read
-              what you were editing, which on the one field that IS the
-              obligation is the whole control being useless.
-
-              A TEXTAREA, THREE ROWS, AND A HANDLE. Three rows holds the common
-              obligation whole — the ones the Copilot reads out of clauses run
-              to about 150 characters — and the dialog still comes out SHORTER
-              than the one being replaced, because the fields below it did not
-              move. Beyond that the reader drags the
-              corner — resize:vertical, so the width cannot be pulled out of
-              the grid — and it is capped at 140px, which with the panel's own
-              88vh ceiling keeps the dialog inside the size it is now, the
-              condition the report attached to the fix. Past the cap the
-              textarea scrolls, so a very long clause is still all reachable. */}
-      <label class="block mb-2.5"><span class="sap-lbl" style="display:block">${i18t('ob_what_done')} <span class="sap-req">*</span></span>
-        ${''/* Ampersand FIRST, then the angle bracket — the other order turns
-                the &lt; it just wrote into &amp;lt; and a clause about "Fees &
-                Charges" comes back reading its own source code. Escaped as
-                element content rather than as an attribute value, which is what
-                moving from <input value=""> to <textarea> changes. */}
-        <textarea id="of-desc" rows="3" class="of-desc mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(seed.desc||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></label>
-      <div class="grid grid-cols-2 gap-3 mb-2.5">
-        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_due_date')} <span class="sap-req">*</span></span>
-          <input id="of-due" type="date" value="${seed.due||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
-        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_recurring')}</span>
-          <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${_obEsc(obRecurLabel(k))}</option>`).join('')}</select></label>
-      </div>
-      ${''/* ---- COMES AFTER: THE ONE DOOR ONTO THE ORDER (L-5) ----
-              The render drew an "Edit the order" button on the chain head as
-              well. IT IS NOT BUILT: an obligation's facts are edited here, and
-              a second door onto one act is the drift this rulebook opens by
-              warning about. One picker, in the dialog that already owns every
-              other fact about a step.
-              IT OFFERS ITS SIBLINGS AND NEVER ITSELF, and a choice that would
-              close a loop is refused on save rather than hidden — the reader
-              is told which step they cannot point at and why.
-              DRAWN ONLY WHERE THERE IS A SIBLING TO POINT AT: on a contract
-              with one obligation the control's only outcome is "Nothing", and
-              a control whose one answer is its own default is furniture. */}
+            return `<button type="button" class="lgp-chip${on?' is-on':''}" data-of-party="${k}" aria-pressed="${on?'true':'false'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
+        </span></span></div>
+      ${''/* THE DESCRIPTION WRAPS (Young, 10 Aug 2026): an obligation read out of a clause is a sentence, so it is a
+              text area. Ampersand FIRST, then the angle bracket. */}
+      ${line(i18t('ob_what_done'),`<textarea id="of-desc" rows="3" class="lgp-in is-area of-desc">${(seed.desc||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>`,{ tall:true })}
+      ${line(i18t('ob_due_date'),`<input id="of-due" type="date" class="lgp-in" value="${seed.due||''}"/>`)}
+      ${line(i18t('ob_recurring'),`<select id="of-recur" class="lgp-in">${OBLIG_RECUR.map(([k])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${E(obRecurLabel(k))}</option>`).join('')}</select>`)}
+      ${''/* COMES AFTER: THE ONE DOOR ONTO THE ORDER (L-5). It offers its siblings and never itself; drawn only where
+              there is a sibling to point at. */}
       ${(() => {
         const sibs = ((c && c.obligations) || []).filter(o => o && o.id && (seed._i == null || o !== (c.obligations || [])[seed._i]));
         if(!sibs.length) return '';
-        return `<label class="block mb-2.5"><span class="sap-lbl" style="display:block">${i18t('ob_after')}</span>
-          <select id="of-after" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">
-            <option value="">${_obEsc(i18t('ob_after_none'))}</option>
-            ${sibs.map(o => `<option value="${_obEsc(o.id)}"${String(seed.after || '') === String(o.id) ? ' selected' : ''}>${_obEsc(o.desc || o.id)}</option>`).join('')}
-          </select>
-          <span class="block text-[11px] text-ink/55 mt-1">${_obEsc(i18t('ob_after_hint'))}</span></label>`;
+        return `<label class="lgp-row"><span class="lgp-k">${i18t('ob_after')}</span><span class="lgp-v"><select id="of-after" class="lgp-in">
+            <option value="">${E(i18t('ob_after_none'))}</option>
+            ${sibs.map(o => `<option value="${E(o.id)}"${String(seed.after || '') === String(o.id) ? ' selected' : ''}>${E(o.desc || o.id)}</option>`).join('')}
+          </select></span></label><p class="lgp-small">${E(i18t('ob_after_hint'))}</p>`;
       })()}
-      ${''/* ---- THE AMOUNT (J-5.2) ----
-              A ROW OF ITS OWN, directly under Due date / Recurring, with the
-              CONTRACT'S currency as a fixed prefix rather than a picker.
-              NOTHING ABOVE OR BELOW IT MOVED, was renamed or was taken away —
-              the first render of this dialog was redrawn from intent rather
-              than from the screen and got six things wrong, the worst being
-              that it dropped the "Whose obligation is this?" toggle outright.
-              The only new thing on this dialog is this row.
-              DRAWN ON BOTH SIDES OF THAT TOGGLE: money they owe us matters as
-              much as money we owe them, so it is not hidden with Assign to.
-              NOT DRAWN AT ALL for a reader without the money permission. */}
-      <div class="sap-row" style="margin-bottom:10px">
-        ${obligationMoneyVisible() ? `<label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_amount')}</span>
-        <span class="of-amt mt-1"><i>${_obEsc(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${_obEsc(i18t('ob_amount_ph'))}"/></span></label>` : ''}
-        <label id="of-assignee-wrap" class="block ${seed.party==='theirs'?'hidden':''}"><span class="sap-lbl" style="display:block">${i18t('ob_assign_to')}</span>
-        <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/>
-        <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
+      ${line(i18t('ob_assign_to'),`<input id="of-assignee" class="lgp-in" list="of-members" autocomplete="off" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="${E(i18t('of_assign_ph'))}"/><datalist id="of-members">${members.map(m=>`<option value="${E(m)}">`).join('')}</datalist>`,{ id:'of-assignee-wrap', hide:seed.party==='theirs' })}
+    </div>
+    <div id="of-step-2" hidden>
+      ${''/* THE AMOUNT (J-5.2): the CONTRACT'S currency beside it; drawn on both sides of the toggle (money they owe us
+              matters as much as money we owe them); not drawn at all for a reader without the money permission. */}
+      ${obligationMoneyVisible() ? line(i18t('ob_amount'),`<span class="of-amt"><i>${E(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" class="lgp-in" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${E(i18t('ob_amount_ph'))}"/></span>`) : ''}
+      ${''/* IS THIS A DOCUMENT THEY MUST HOLD? (S8): ONE DOOR, this one; its two lines only once the tick is on. */}
+      <label class="lgp-tick"><input id="of-isdoc" type="checkbox" ${obligationIsDoc(seed)?'checked':''}/><span class="lgp-tl">${E(i18t('ob_is_doc'))}</span></label>
+      <div id="of-doc-wrap" class="${obligationIsDoc(seed)?'':'hidden'}">
+        ${line(i18t('ob_doc_file'),`<input id="of-doc-file" type="text" class="lgp-in" value="${((seed.doc&&seed.doc.file)||'').replace(/"/g,'&quot;')}" placeholder="${E(i18t('ob_doc_file_ph'))}"/>`)}
+        ${line(i18t('ob_doc_until'),`<input id="of-doc-until" type="date" class="lgp-in" value="${(seed.doc&&seed.doc.until)||''}"/>`)}
       </div>
-      ${''/* ---- IS THIS A DOCUMENT THEY MUST HOLD? (S8) ----
-              ONE DOOR, and it is this one: the dialog that already owns every
-              other fact about an obligation. A second editor on the Overview
-              would be a second way of saying the same thing, and two doors
-              onto one act drift. The two fields are drawn only once the tick
-              is on, because "good until" over a task nobody calls a document
-              is a question with no answer. */}
-      <label class="block mb-2.5" style="display:flex;align-items:center;gap:8px">
-        <input id="of-isdoc" type="checkbox" ${obligationIsDoc(seed)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
-        <span class="sap-lbl" style="display:block">${_obEsc(i18t('ob_is_doc'))}</span></label>
-      <div id="of-doc-wrap" class="grid grid-cols-2 gap-3 mb-2.5 ${obligationIsDoc(seed)?'':'hidden'}">
-        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_doc_file')}</span>
-          <input id="of-doc-file" type="text" value="${((seed.doc&&seed.doc.file)||'').replace(/"/g,'&quot;')}" placeholder="${_obEsc(i18t('ob_doc_file_ph'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
-        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_doc_until')}</span>
-          <input id="of-doc-until" type="date" value="${(seed.doc&&seed.doc.until)||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
-      </div>
-      <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
-      <div class="flex justify-end gap-2">
-        <button data-dlg-cancel id="of-cancel" class="ui-btn">${_obEsc(opts.cancelLabel||i18t('act_cancel'))}</button>
-        <button id="of-save" class="ui-btn ui-btn-primary">${_obEsc(opts.saveLabel||i18t(seed._i!=null?'act_save':'ob_add_go'))}</button>
-      </div>
-    </div>`);
+    </div>
+    <p id="of-theirs-note" class="lgp-small ${seed.party==='theirs'?'':'hidden'}">${E(i18t('of_theirs_note',{ who:c.counterparty||i18t('of_the_other_side') }))}</p>
+    </div>
+    <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="of-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+      <button type="button" id="of-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('of_next'))}</button>
+      <button type="button" id="of-save" class="ui-btn ui-btn-primary lgp-go" hidden>${E(opts.saveLabel||i18t(seed._i!=null?'act_save':'ob_add_go'))}</button>
+      <button type="button" data-dlg-cancel id="of-cancel" class="ui-btn">${E(opts.cancelLabel||i18t('act_cancel'))}</button>
+    </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t(seed._i!=null?'ob_edit_cap':'ob_add_go') });
+  /* the two steps: Next checks the one field the first step must have, then shows Money and proof; Back returns */
+  const ofStep=n=>{ const one=n===1;
+    document.getElementById('of-step-1')?.toggleAttribute('hidden', !one); document.getElementById('of-step-2')?.toggleAttribute('hidden', one);
+    document.getElementById('of-back')?.toggleAttribute('hidden', one); document.getElementById('of-next')?.toggleAttribute('hidden', !one);
+    document.getElementById('of-save')?.toggleAttribute('hidden', one);
+    const st=document.getElementById('of-steps'); if(st) st.innerHTML=one?`<b>${E(i18t('of_step_duty'))}</b> · ${E(i18t('of_step_money'))}`:`${E(i18t('of_step_duty'))} · <b>${E(i18t('of_step_money'))}</b>`; };
+  document.getElementById('of-next')?.addEventListener('click',()=>{
+    if(!(document.getElementById('of-desc')?.value||'').trim()){ toast(i18t('of_need_desc'),'err'); return; } ofStep(2); });
+  document.getElementById('of-back')?.addEventListener('click',()=>ofStep(1));
+  document.getElementById('of-x')?.addEventListener('click',()=>document.getElementById('of-cancel')?.click());
+  document.getElementById('of-form')?.addEventListener('submit',e=>{ e.preventDefault();
+    if(!document.getElementById('of-step-2')?.hasAttribute('hidden')) document.getElementById('of-save')?.click(); else document.getElementById('of-next')?.click(); });
+  setTimeout(()=>{ const f=document.getElementById('of-desc'); if(f){ try{ (typeof fieldFocus==='function')?fieldFocus(f,{ focusVisible:false }):f.focus({ preventScroll:true }); }catch(_){} } },0);
   let party=(seed.party==='theirs')?'theirs':'ours';
   const paintParty=()=>{
     document.querySelectorAll('[data-of-party]').forEach(b=>{
       const on=b.getAttribute('data-of-party')===party;
-      b.setAttribute('aria-pressed', on?'true':'false');
+      b.setAttribute('aria-pressed', on?'true':'false'); b.classList.toggle('is-on', on);
     });
     document.getElementById('of-assignee-wrap')?.classList.toggle('hidden', party==='theirs');
     document.getElementById('of-theirs-note')?.classList.toggle('hidden', party!=='theirs');
@@ -3565,6 +3524,9 @@ function obPanelFive(o, c, i){
     facts.push({ mark: 'coins', t: obligationMoneyText(obligationAmount(o), c), s: i18t('ob_amount') });
   /* the contract a door (data-obp-contract, wired where the panel is painted): its paper with the Obligations face, this row open */
   facts.push({ mark: 'file', t: c.name || ref, s: [ref, i18t('jov5_obp_contract')].join(' · '), attr: 'data-obp-contract=""' });
+  /* EDIT IS BACK ON THE DUTY'S PANEL (owner, 19 Nov 2026: "Build 1", as drawn): the one door the contract's own tab has
+     (obPanelActs 'edit' → openObligationForm, the one edit pop-up), drawn only where that tab would draw it */
+  if(obPanelActs(o, c, i, 'tab').some(a => a && a.k === 'edit')) facts.push({ mark: 'pencil', t: i18t('ob_edit_line'), s: i18t('ob_edit_line_s'), attr: 'data-obp-edit=""' });
   const from = String(o.quote || '').trim()
     ? { mark: 'file', t: '“' + String(o.quote).trim() + '”', quote: true, link: { label: i18t('ob_show_in_contract'), attr: 'data-ob-show=""' } }
     : { mark: 'alert', tone: 'amber', t: i18t('jov5_obp_noword'), s: i18t('jov5_obp_noword_s'), attr: 'data-obp-contract=""' };
@@ -3618,6 +3580,7 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
     const h5 = document.getElementById(hostId);
     h5?.querySelector('[data-ob-show]')?.addEventListener('click', () => obligationShowInContract(c.id, o.quote || ''));
     h5?.querySelectorAll('[data-obp-contract]').forEach(b => b.addEventListener('click', () => obOpenContract(c.id, obKeyOf(c.id, o, i))));
+    h5?.querySelector('[data-obp-edit]')?.addEventListener('click', () => { const ed = obPanelActs(o, c, i, 'tab').find(a => a && a.k === 'edit'); if(ed) ed.run(); });
     h5?.querySelector('[data-ob-rem-more]')?.addEventListener('click', e => { const full = h5.querySelector('[data-ob-rem-full]'); if(!full) return;
       full.hidden = !full.hidden; e.currentTarget.setAttribute('aria-expanded', full.hidden ? 'false' : 'true'); });
     return;

@@ -98,7 +98,7 @@ function world(){
   await page.screenshot({ path: path.join(OUT, '2-proposals.png') });
 
   /* 6–9 RE-POINTED 19 Nov 2026 (owner, with a picture: "the obligations are redundant as they are already in the side
-     panel. Delete them"; f1100): the duties no longer open under the row; a press chooses the agreement and its duties are
+     panel. Delete them"; f1102): the duties no longer open under the row; a press chooses the agreement and its duties are
      answered in Jambo's panel — Undecided · Us · Theirs · Both sides, Undecided lit */
   await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
   await until(page, () => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
@@ -176,14 +176,14 @@ function world(){
   const lg = chose ? await page.evaluate(id => { const p = document.getElementById('ins-panel'), L = p.querySelector('.obn-lg');
     const its = [...L.querySelectorAll('.obn-lg-it:not(.is-next)')];
     return { for: L.getAttribute('data-obn-lg'), sel: !!document.querySelector(`.obn-pr.is-sel[data-obn-pick="${id}"]`), items: its.length,
-      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: its.every(i => i.querySelectorAll('[data-obn-whose]').length === 4 && /* RE-POINTED 19 Nov 2026 (f1100): Undecided first */ !!i.querySelector('[data-obn-skip]')),
+      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: its.every(i => i.querySelectorAll('[data-obn-whose]').length === 4 && /* RE-POINTED 19 Nov 2026 (f1102): Undecided first */ !!i.querySelector('[data-obn-skip]')),
       mark: !!L.querySelector('.obn-lg-q mark'), boxed: !!L.querySelector('.jov5-group, .jov5-g'), tab: ((p.querySelector('[data-jl-home] .pd-tab-w') || {}).textContent || '').trim(),
       open: !!document.querySelector('.obn-dr') }; }, cid2) : null;
   check('13 · a row pressed is chosen, and the panel turns the Legora way: its duties in their own quoted words, each answered in its row, nothing boxed, "‹ Overview" the way back',
     !!lg && lg.for === cid2 && lg.sel && lg.items >= 1 && lg.quoted && lg.answers && lg.mark && !lg.boxed && /^\u2039/.test(lg.tab) && !lg.open, lg);
   await page.screenshot({ path: path.join(OUT, '6-chosen.png') });
 
-  /* 14 RE-POINTED 19 Nov 2026 (f1100): an answer in the panel is the list's own answer — the row's ring takes its side's
+  /* 14 RE-POINTED 19 Nov 2026 (f1102): an answer in the panel is the list's own answer — the row's ring takes its side's
      colour (the duties no longer open under the row) */
   if (lg) await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); if (b) b.click(); });
   await page.waitForTimeout(300);

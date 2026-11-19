@@ -1,5 +1,5 @@
 'use strict';
-/* f1100 — PROPOSALS: NOTHING STARTS DECIDED (owner, 19 Nov 2026: "in the proposal, you have everything starting under us.
+/* f1102 — PROPOSALS: NOTHING STARTS DECIDED (owner, 19 Nov 2026: "in the proposal, you have everything starting under us.
    There should be a first button that says undecided. build this").
    Every duty Jambo found shows Undecided · Us · Theirs · Both sides, Undecided lit, in Jambo's panel and in the list;
    Jambo's guess lights nothing; the tag beside the duty's name shows only a side the reader chose; Add adds only what
@@ -26,7 +26,7 @@ function world(){
   return { W, c };
 }
 
-test('f1100 (1) every duty starts Undecided, whatever Jambo guessed; Undecided is the first button and the lit one', () => {
+test('f1102 (1) every duty starts Undecided, whatever Jambo guessed; Undecided is the first button and the lit one', () => {
   const { W, c } = world();
   assert.deepEqual(FOUND.map(o => W.obnWhoseNow(c, o)), ['unsure', 'unsure']);
   const rows = W.obnProjects();
@@ -39,7 +39,7 @@ test('f1100 (1) every duty starts Undecided, whatever Jambo guessed; Undecided i
   }
 });
 
-test('f1100 (2) nothing decided, nothing to add; Add takes only what the reader gave a side', () => {
+test('f1102 (2) nothing decided, nothing to add; Add takes only what the reader gave a side', () => {
   const { W, c } = world();
   const rows = W.obnProjects();
   assert.equal(rows[0].ready, 0);
@@ -50,7 +50,7 @@ test('f1100 (2) nothing decided, nothing to add; Add takes only what the reader 
   assert.match(src, /const w = obnWhoseNow\(c, o\); if\(w === 'unsure'\) return; if\(obAddFound\(c, o, w\)\) n\+\+;/, 'Add skips an undecided duty');
 });
 
-test('f1100 (3) both books carry the words', () => {
+test('f1102 (3) both books carry the words', () => {
   const i18 = read('js/i18n.js');
   for (const k of ['obd_undecided', 'obn_add_ready_one', 'obn_add_ready_other'])
     assert.equal((i18.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
@@ -58,7 +58,7 @@ test('f1100 (3) both books carry the words', () => {
 
 /* (4)–(5) the owner, 19 Nov 2026, with two pictures: "for these rings, differentiate the colors between us and theirs" and
    "the obligations are redundant as they are already in the side panel. Delete them" */
-test('f1100 (4) the ring and the bar paint each decided duty in its side\'s colour: ours amber, theirs steel', () => {
+test('f1102 (4) the ring and the bar paint each decided duty in its side\'s colour: ours amber, theirs steel', () => {
   const { W, c } = world();
   c.obligations.push({ id: 'x', desc: FOUND[0].desc, party: 'theirs', status: 'open' });
   W.obReviewMark(c, FOUND[0], 'added');
@@ -72,7 +72,7 @@ test('f1100 (4) the ring and the bar paint each decided duty in its side\'s colo
   assert.equal(d.querySelector('.obn-ring span').textContent, '4/8');
 });
 
-test('f1100 (5) the duties are answered in the panel only: no Open pill, no duty lines under the row', () => {
+test('f1102 (5) the duties are answered in the panel only: no Open pill, no duty lines under the row', () => {
   const { W } = world();
   const rows = W.obnProjects();
   const t = W.document.createElement('tbody'); t.innerHTML = W.obnProjRowHtml(rows[0]);

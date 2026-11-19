@@ -2046,7 +2046,7 @@ function lgpHtml(o){
   const sub = o.subHtml || (o.sub ? E(o.sub) : '');
   const jb = o.jambo ? `<span class="lgp-jb"><i class="lgp-spark" aria-hidden="true"></i>${E(o.jambo)}</span>` : '';
   const head = `<div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(o.title || '')}</h3>${steps ? `<p class="lgp-sub lgp-steps">${steps}</p>` : ''}${sub ? `<p class="lgp-sub">${sub}</p>` : ''}${jb ? `<p class="lgp-sub">${jb}</p>` : ''}</div>`
-    + `<button type="button" class="lgp-x" data-lgp-close aria-label="${E(_lgpT('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>`;
+    + `<button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${E(_lgpT('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>`;
   const body = `<div class="lgp-bd">${(o.rows || []).map(lgpRowHtml).join('')}${o.html || ''}${o.err ? `<p class="lgp-err" role="alert">${E(o.err)}</p>` : ''}</div>`;
   const left = o.back ? `<button type="button" class="ui-btn lgp-back" ${o.back.attr || ''}>‹ ${E(o.back.label || _lgpT('lgp_back'))}</button>`
     : o.left ? `<button type="button" class="lgp-left${o.left.danger ? ' is-danger' : ''}" ${o.left.attr || ''}>${E(o.left.label)}</button>` : '';
