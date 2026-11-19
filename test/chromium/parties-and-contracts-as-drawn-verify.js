@@ -91,7 +91,7 @@ const check = (name, pass, detail) => {
 
     await part('3 add a contact', async () => {
       await page.click('#ins-panel [data-cun-add-ct]');
-      await until(() => document.getElementById('pc-name'));
+      await until(() => !!document.getElementById('pc-name'));
       await page.fill('#pc-name', 'Ruth Kamau');
       await page.fill('#pc-title', 'Head of procurement');
       await page.fill('#pc-email', 'ruth@orbit.co.ke');
@@ -100,6 +100,9 @@ const check = (name, pass, detail) => {
       check('3a the pop-up offers the party\'s live agreements, ticked', ticks.length === 2 && ticks.every(t => /:true$/.test(t)), JSON.stringify(ticks));
       await shot('pc-3-add-1440x780.png');
       await page.click('#pc-dlg [data-pc-save]');
+      /* saved, the pop-up stays open on the party's list (Add someone · Done); Done closes it */
+      await until(() => !document.getElementById('pc-name') && !!document.querySelector('#pc-dlg [data-pc-close]'));
+      await page.evaluate(() => { const b = document.querySelector('#pc-dlg [data-pc-close]'); if (b) b.click(); });
       await until(() => !document.getElementById('pc-dlg'));
       const srv = [];
       for (const id of ['MK-OR1', 'MK-OR2']) { const c = await W.admin.json('/api/contracts/' + id); const p = (c.participants || []).find(x => x.email === 'ruth@orbit.co.ke'); srv.push(p ? id + ':' + p.title + '|' + p.phone : id + ':none'); }
@@ -107,7 +110,7 @@ const check = (name, pass, detail) => {
     });
 
     await part('4 People, narrowed', async () => {
-      await until(() => document.querySelector('#ins-panel [data-cun-ppl]'), null, 8000);
+      await until(() => !!document.querySelector('#ins-panel [data-cun-ppl]'), null, 8000);
       await page.click('#ins-panel [data-cun-ppl]');
       const D = await until(() => { if (state.view !== 'directory') return null; const chip = document.querySelector('.dirn-pty'); if (!chip) return null;
         const rows = [...document.querySelectorAll('#dir-tbody [data-dir-row]')].map(r => r.textContent.replace(/\s+/g, ' ').trim());

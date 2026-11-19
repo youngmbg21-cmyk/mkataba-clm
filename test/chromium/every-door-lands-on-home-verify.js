@@ -524,8 +524,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     /* RE-POINTED 16 Nov 2026 (#762): an opened party stays on its own page (the party screen) until its ‹ Parties — the
        list is reached by that way back, as a person does */
     const toParties = async () => { await goPage('customers'); await waitFor(page, s => !!document.querySelector(s), 6000, CU); };
-    await door(A, 'Parties row, double-click (Naivas)', { start: toParties, press: () => dbl(CU), expect: PARTY, says: PSAYS });
-    await door(A, 'Parties row, Enter (Naivas)', { start: toParties, press: () => enter(CU), expect: PARTY, says: PSAYS });
+    /* RETIRED 19 Nov 2026 (the Parties round, owner's drawings: "a second press on a row does nothing"): Parties row,
+       double-click and Enter — the list is the landing page and a row only chooses; its panel's doors go on */
     /* RE-POINTED 16 Nov 2026 (#762): the party's panel is THE FIVE PARTS — its "Open party · N agreements" row
        (data-cun-open) is the door. RETIRED: "Open on Explorer" — old look only (the five parts draw no Explorer door) */
     const cuChoose = async () => { await toParties();
