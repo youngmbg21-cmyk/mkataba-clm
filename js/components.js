@@ -2073,5 +2073,7 @@ if (typeof document !== 'undefined' && !document._lgpWired){ document._lgpWired 
     const t = e.target && e.target.closest ? e.target.closest('.lgp [data-lgp-close]') : null;
     if (!t) return; e.preventDefault(); if (typeof closeModalGuarded === 'function') closeModalGuarded(); else if (typeof closeModal === 'function') closeModal();
   });
+  /* a sheet's form never leaves the page: its own handlers act on the press (submit) or on its button (click) */
+  document.addEventListener('submit', e => { if (e.target && e.target.classList && e.target.classList.contains('lgp')) e.preventDefault(); }, true);
 }
 Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint });
