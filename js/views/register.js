@@ -1232,9 +1232,11 @@ function regHomeHeadHtml(R){
         ${nlF&&((typeof canEdit!=='function')||canEdit())?`<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${esc(i18t('ctf_new_agreement'))}</button>`:''}
       </div>`;
   if(typeof window.lhHtml!=='function'||!(window.LH_PAGES&&LH_PAGES[REG_CT_SEAT])) return `<div class="reg-band sap-band ph-card ct-head">${top}</div>`;
-  /* THE SENTENCE OVER THE LIST, as on Parties (owner's yes, 19 Nov 2026): under the head, on the List only */
+  /* THE SENTENCE OVER THE LIST, as on Parties (owner's yes, 19 Nov 2026): the head card's last line, on the List only —
+     inside the head, so the head and the list stay ONE sheet with no gap (contracts-page 8c) */
   const say=nlF&&show==='list'?`<div class="ct-say-host">${regCtSayHtml(R)}</div>`:'';
-  const head=lhHtml(REG_CT_SEAT, { frame:'card', top, cls:'reg-band ct-head' })+say;
+  const card=lhHtml(REG_CT_SEAT, { frame:'card', top, cls:'reg-band ct-head' });
+  const head=say?card.replace(/<\/div>\s*$/,say+'</div>'):card;
   /* the Wall as drawn: "upload a document" closes the tabs' line (the one drop door, pdDropDoor) */
   return nlF&&show==='wall'&&typeof window.pdDropDoor==='function'?head.replace(/<\/div>\s*$/,`<button type="button" class="ctf-up" data-ctf-upload>${esc(i18t('ctf_upload'))}</button></div>`):head;
 }
