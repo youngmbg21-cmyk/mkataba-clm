@@ -22606,3 +22606,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - The contract's own "Who else is on this agreement" pop-up was not merged into the party-wide contacts pop-up; it only gained Job title and Phone. Two doors now add an outside person.
 - Approvals: the chosen row can look like a grey band laid over another grey band.
 - CLAUDE.md is about 89 KB, over its 80 KB line; trimming needs the owner's yes.
+- 19 Nov 2026 · Noticed, not fixed: CLAUDE.md is about 89 KB on main, past its own "keep it under about 80 KB" line; a trim needs the owner's yes (the launchpad round added one MAP line).

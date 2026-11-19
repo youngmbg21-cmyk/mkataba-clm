@@ -88,7 +88,9 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
       try {
         if (!await setup()){ why = 'could not reach the starting page'; throw new Error(why); }
         await page.waitForTimeout(SETTLE_MS);
-        if (act.strip){ await page.click('#dk-nav'); if (!await until(page, k => !!document.querySelector(`#gd-strip [data-gds-go="${k}"]`), act.strip, 5000)){ why = 'no symbol for ' + act.strip; throw new Error(why); } }
+        /* RE-POINTED 19 Nov 2026 (the launchpad replaced the symbol strip, owner's pick): the bar's top-left symbol opens the
+           launchpad in the middle; the move is its page row */
+        if (act.strip){ await page.click('#dk-nav'); if (!await until(page, k => !!document.querySelector(`#cmd-palette .lp-p[data-lp-go="${k}"]`), act.strip, 5000)){ why = 'no launchpad row for ' + act.strip; throw new Error(why); } }
         if (act.click && !await page.$(act.click)){ why = 'nothing to press: ' + act.click; throw new Error(why); }
         const rec = page.evaluate(({ NAMER, MS }) => new Promise(res => { const what = eval(NAMER);
           const out = []; let t0 = 0, last = '';
@@ -97,10 +99,12 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
         await until(page, () => typeof window.__nfGo === 'function', null, 5000);
         await page.evaluate(() => { const g = window.__nfGo; delete window.__nfGo; g(); });
         if (act.click) await page.click(act.click, { timeout: 8000 });
-        else if (act.strip) await page.click(`#gd-strip [data-gds-go="${act.strip}"]`, { timeout: 8000 });
+        else if (act.strip) await page.click(`#cmd-palette .lp-p[data-lp-go="${act.strip}"]`, { timeout: 8000 });
         else await page.evaluate(c => eval(c), act.js);
         frames = await rec;
-      } catch (e){ why = why || String(e.message).split('\n')[0].slice(0, 160); }
+      } catch (e){ why = why || String(e.message).split('\n')[0].slice(0, 160);
+        /* a move that failed leaves no launchpad over the next one */
+        await page.evaluate(() => { const p = document.getElementById('cmd-palette'); if (p && typeof p._lpClose === 'function') p._lpClose(); }).catch(() => {}); }
       if (!frames){ check(`${name}: ran`, false, why); continue; }
       const [first, last] = [frames[0][1], frames[frames.length - 1][1]];
       const ends = new Set([...first.split('|'), ...last.split('|')]);

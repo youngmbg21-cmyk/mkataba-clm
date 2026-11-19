@@ -91,8 +91,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
         await company();
         await page.keyboard.press('Control+k');
         /* RE-POINTED 16 Nov 2026 (#762): his box is the panel's own (#jl-q) */
-        const kb = await until(() => { const a = document.activeElement; return a && a.id === 'jl-q' ? true : null; });
-        check('1d ⌘K on Settings puts the hand in Jambo\'s box', !!kb);
+        /* RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the jump window, which finds a setting by name too */
+        const kb = await until(() => { const a = document.activeElement; return document.getElementById('cmd-palette') && a && a.id === 'cp-input' ? true : null; });
+        check('1d ⌘K on Settings opens the launchpad, the hand in its box', !!kb);
+        await page.keyboard.press('Escape');
         /* Jambo's Open on a setting he found (a drawer left over the page by a
            build without this pass is shut first, so each half reports alone) */
         const shut = () => page.evaluate(() => { try { if (document.querySelector('body > #st-drawer.open')) stDrawerClose(); } catch (_) {} });
