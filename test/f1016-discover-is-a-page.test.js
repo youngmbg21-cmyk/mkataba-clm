@@ -66,7 +66,9 @@ test('f1016 (3) New read: one box, one black button saying how many, chips that 
 test('f1016 (4) the panel: the paper just read, the chosen answer\'s paper, else the summary', () => {
   const p = fnBody(RD, 'dsnPanelPaint');
   assert.match(p, /if \(_dsn\.screen === 'reading'\)\{[\s\S]*?dscPaperHtml\(askId, cid\)/, 'a read in flight: the paper of the contract just read');
-  assert.match(p, /if \(r && _dsn\.cid\)\{[\s\S]*?dscPaperHtml\(k, _dsn\.cid\)[\s\S]*?jlLinks: dscPaperLinksHtml/, 'a result chosen: its paper, the two links above Jambo\'s box');
+  /* RE-POINTED 19 Nov 2026 (owner: "All 4 should be there"): a result chosen shows EVERY place its answers were read,
+     dscPaperAllHtml, which hands a one-question read to dscPaperHtml as before (f1111) */
+  assert.match(p, /if \(r && _dsn\.cid\)\{[\s\S]*?dscPaperAllHtml\(r\.askIds, _dsn\.cid, focus\)[\s\S]*?jlLinks: dscPaperLinksHtml/, 'a result chosen: its paper, the two links above Jambo\'s box');
   assert.match(fnBody(RD, 'dsnResultsShown'), /_dscRank\(_rdTone\(x\)\)/, 'the risky answers first');
   assert.match(fnBody(RD, 'dscLand'), /askColLandOn\(cid, quote\)/, 'Open clause is the one lander');
   assert.match(fnBody(RD, 'dscLand'), /openRedlineWorkbench\(cid\)/, 'redlining goes through the one door');
@@ -78,7 +80,8 @@ test('f1016 (4) the panel: the paper just read, the chosen answer\'s paper, else
 
 test('f1016 (5) the quote in its place: its own paragraph, the neighbours, never the whole paper', () => {
   const src = read('js/views/reads.js');
-  const at = src.indexOf('function dscSlice(text, quote){'), end = src.indexOf('function dscPaperHtml(');
+  /* RE-POINTED 19 Nov 2026: the quote is found by ONE finder, dscLocate, which dscSlice and the many-places paper share */
+  const at = src.indexOf('function dscLocate(text, quote){'), end = src.indexOf('function dscPaperHtml(');
   assert.ok(at > 0 && end > at);
   const dscSlice = new Function('DSC_SLICE', src.slice(at, end) + '\nreturn dscSlice;')(280);
   const text = 'SUPPLY AGREEMENT\n8.3 The parties shall act in good faith.\n9.4 Nothing in this Agreement limits the liability of either party for loss arising under it.\n9.5 Any notice shall be in writing.';
