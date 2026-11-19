@@ -22173,6 +22173,29 @@
   .lgp-pg{width:26px;height:26px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);cursor:pointer}
   .lgp-pg[disabled]{opacity:.4;cursor:default}
   .lgp-none{margin:12px 0;color:var(--color-neutral-400);font-size:13px}
+  .lgp-small{margin:10px 0 0;font-size:12.5px;color:var(--color-neutral-400)}
+  /* THE SIGNING ROUTE ON THE ONE EDIT POP-UP (owner, 19 Nov 2026: "Build 1", as drawn): the route as quiet lines —
+     a step a small grey label, its people lines with a hairline under each, nothing boxed; a party nobody signs for yet
+     an amber line with its Add; the signer's own three lines on the next screen (js/approvals.js signerRouteWindow) */
+  .lgp.sr-win .sr-line{margin:0;padding:0 24px 6px}
+  .lgp.sr-win .sr-step,.lgp.sr-win .sr-misses:not(:empty){border:0;border-radius:0;background:transparent;margin:0 0 10px;padding:0}
+  .lgp.sr-win .sr-sh{background:transparent;border:0;padding:10px 0 2px;min-height:0}
+  .lgp.sr-win .sr-sn{font-size:12.5px;font-weight:400;color:var(--color-neutral-400)}
+  .lgp.sr-win .sr-card,.lgp.sr-win .sr-miss{border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:transparent;padding:8px 0;min-height:48px}
+  .lgp.sr-win .sr-card.is-open{border:0;padding:0;min-height:0}
+  .lgp.sr-win .sr-miss .sr-mt b{color:var(--st-amber-fg)}
+  .lgp.sr-win .sr-miss .ui-btn{border-color:transparent;background:transparent;color:var(--accent-ink)}
+  .lgp.sr-win .sr-step .sr-addwrap{border:0;padding:6px 0 0}
+  .lgp.sr-win .sr-end{padding:4px 0 0}
+  .lgp.sr-win .sr-end .ui-btn{padding-left:0}
+  .lgp.sr-win .sr-ch{padding:0 0 4px}
+  .lgp.sr-win .sr-grid{display:block;margin:0}
+  .lgp.sr-win .sr-hint{margin:2px 0 4px}
+  /* the duty's amount on the one sheet: a line like the others, the currency quiet before the figure */
+  .lgp .of-amt{border:0;background:transparent;height:auto;align-items:center;gap:8px}
+  .lgp .of-amt i{padding:0;border:0;background:transparent;color:var(--color-neutral-400)}
+  .lgp .of-amt input.lgp-in{height:auto}
+  .lgp button.lgp-tick.is-pick{grid-template-columns:minmax(0,1fr) auto;width:100%;background:none;border:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
   .lgp-err{margin:10px 0 0;font-size:13px;color:var(--danger)}
   .lgp-ft{display:flex;align-items:center;gap:8px;padding:14px 24px 18px;flex-wrap:wrap}
   .lgp-sp{flex:1}

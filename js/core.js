@@ -3144,7 +3144,9 @@ function trapFocus(panel, opts={}){
   /* VISIBLE ONES ONLY. A panel routinely carries controls behind a fold or in
      a section it has not drawn yet; cycling into one of those puts focus
      somewhere the reader cannot see, which is worse than no trap at all. */
-  const focusables = () => [...panel.querySelectorAll(FOCUSABLE)].filter(e=>e.getClientRects().length);
+  /* A CONTROL MARKED tabindex="-1" IS NEVER A STOP (19 Nov 2026): the one edit pop-up's close cross is pressed by
+     the pointer only (Esc and Cancel close it from the keyboard), so landing there lit a ring on arrival */
+  const focusables = () => [...panel.querySelectorAll(FOCUSABLE)].filter(e=>e.getClientRects().length && e.getAttribute('tabindex')!=='-1');
   const onKey = e => {
     if(e.key!=='Tab') return;
     const f=focusables(); if(!f.length) return;

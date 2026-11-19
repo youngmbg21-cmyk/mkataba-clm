@@ -510,13 +510,69 @@ if (typeof document !== 'undefined' && !document._mnnWired){ document._mnnWired 
    paper (the contract and the words already filled in). */
 function myNotesNew(seed){
   const s = seed || {};
-  _mn.mode = 'new';
-  _mn.form = { body:'', title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:true };
+  const sheet = mnSheetOn();
+  if (!sheet) _mn.mode = 'new';
+  _mn.form = { body:'', title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:!sheet };
   _mn.filter = 'all'; _mn.ct = ''; _mn.q = '';
   /* a door that writes the box's words says so to the box (a question left
      standing there goes) */
   if (typeof lhBoxSet === 'function') lhBoxSet(MN_SEAT, '');
   if (state.view !== 'mynotes' && typeof setView === 'function') setView('mynotes'); else renderMyNotes();
+  if (sheet) mnSheetPaint(true);
+}
+/* A NEW NOTE IS THE ONE EDIT POP-UP (owner, 19 Nov 2026: "Build 1", as drawn): in the new look beside Jambo's panel
+   the note is written in a sheet over My notes — the note, its title, what it is about, when to remind you — and the
+   panel stays as it was. Narrower, the page's own form as before. One writer still (myNoteSave → mineSave). */
+function mnSheetOn(){
+  return typeof window.newLookOn === 'function' && newLookOn() && typeof window.insFits === 'function' && insFits() && typeof window.lgpOpen === 'function';
+}
+function mnSheetHitsHtml(f){
+  const q = String(f.query || '').toLowerCase().trim();
+  if (!q) return '';
+  const hits = (state.contracts || []).filter(x => !x.archived && [x.contractNo, x.id, x.name, x.counterparty].join(' ').toLowerCase().includes(q)).slice(0, window.LGP_PAGE || 6);
+  return hits.length ? hits.map(x => `<button type="button" class="lgp-tick is-pick" data-mn-ct="${_mnE(x.id)}"><span class="lgp-tl">${_mnE(_mnRef(x))} · ${_mnE(x.name || '')}</span><span class="lgp-stg">${_mnE(_mnCtName(x))}</span></button>`).join('')
+    : `<p class="lgp-none">${_mnE(i18t('mn_ct_none'))}</p>`;
+}
+function mnSheetSay(f){
+  const dd = _mnWhenDate(f);
+  return dd ? i18t('mn_when_says', { d:_mnDay(dd) }) : f.when === 'pick' ? i18t('mn_when_pick_say') : i18t('mn_when_none_say');
+}
+function mnSheetOpts(){
+  const f = _mn.form || {}, c = _mnContract(f.contractId), ok = !!String(f.body || '').trim();
+  const about = c
+    ? `<div class="lgp-row"><span class="lgp-k">${_mnE(i18t('mn_f_contract'))}</span><span class="lgp-v"><span class="lgp-in is-read">${_mnE(_mnRef(c))} · ${_mnE(c.name || '')}</span><button type="button" class="lgp-use" data-mns-ct-clear>${_mnE(i18t('mn_ct_change'))}</button></span></div>`
+    : `<label class="lgp-row"><span class="lgp-k">${_mnE(i18t('mn_f_contract'))}</span><span class="lgp-v"><input class="lgp-in" type="text" autocomplete="off" id="mn-ct" value="${_mnE(f.query || '')}" placeholder="${_mnE(i18t('mn_f_contract_ph'))}"></span></label><div class="lgp-list" id="mns-hits">${mnSheetHitsHtml(f)}</div>`;
+  const chips = MN_WHEN.map(([k, n]) => `<button type="button" class="lgp-chip${f.when === k ? ' is-on' : ''}" data-mn-when="${k}" aria-pressed="${f.when === k}">${_mnE(i18t('mn_when_' + k))}${n ? ' · ' + _mnE(_mnShort(_mnAdd(_mnToday(), n))) : ''}</button>`).join('');
+  const when = `<div class="lgp-row is-tall"><span class="lgp-k">${_mnE(i18t('mn_f_remind'))}</span><span class="lgp-v"><span class="lgp-chips">${chips}</span></span></div>`
+    + (f.when === 'pick' ? `<label class="lgp-row"><span class="lgp-k">${_mnE(i18t('mn_when_pick'))}</span><span class="lgp-v"><input class="lgp-in" type="date" id="mn-date" min="${_mnAdd(_mnToday(), 1)}" value="${_mnE(f.date || '')}"></span></label>` : '')
+    + `<p class="lgp-small" id="mns-say">${_mnE(mnSheetSay(f))}</p>`;
+  return { id:'mn-sheet', title:i18t('mn_new_title'), sub:i18t('mn_private'), focus:'#mn-body',
+    rows:[{ k:i18t('mn_f_note'), id:'mn-body', type:'area', value:f.body || '', ph:i18t('mn_f_note_ph'), max:4000 },
+      { k:i18t('mn_f_title'), id:'mn-title', value:f.title || '', ph:i18t('mn_f_title_ph'), max:120 }],
+    html:about + (f.quote ? `<p class="lgp-quote"><q>${_mnE(f.quote)}</q></p>` : '') + when,
+    primary:{ label:i18t('mn_save'), attr:`id="mn-save"${ok ? '' : ' disabled'}` },
+    onClose:() => { if (_mn.mode !== 'new') _mn.form = null; } };
+}
+function mnSheetPaint(first){ const o = mnSheetOpts(); return first ? lgpOpen(o) : lgpRepaint(o); }
+if (typeof document !== 'undefined' && !document._mnSheetWired){ document._mnSheetWired = true;
+  const inSheet = e => e.target && e.target.closest ? e.target.closest('#mn-sheet') : null;
+  document.addEventListener('click', e => { if (!inSheet(e) || !_mn.form) return;
+    const hit = s => e.target.closest(s); let el;
+    if ((el = hit('[data-mn-when]'))){ _mn.form.when = el.getAttribute('data-mn-when'); mnSheetPaint(false);
+      if (_mn.form.when === 'pick'){ const d = document.getElementById('mn-date'); if (d && typeof fieldFocus === 'function') fieldFocus(d, { focusVisible:false }); } return; }
+    if ((el = hit('[data-mn-ct]'))){ _mn.form.contractId = el.getAttribute('data-mn-ct'); _mn.form.query = ''; mnSheetPaint(false); return; }
+    if (hit('[data-mns-ct-clear]')){ _mn.form.contractId = ''; _mn.form.query = ''; mnSheetPaint(false);
+      const i = document.getElementById('mn-ct'); if (i && typeof fieldFocus === 'function') fieldFocus(i, { focusVisible:false }); }
+  });
+  document.addEventListener('input', e => { if (!inSheet(e) || !_mn.form) return;
+    const id = e.target.id;
+    if (id === 'mn-body'){ _mn.form.body = e.target.value; const b = document.getElementById('mn-save'); if (b) b.disabled = !String(_mn.form.body).trim(); }
+    else if (id === 'mn-title') _mn.form.title = e.target.value;
+    else if (id === 'mn-ct'){ _mn.form.query = e.target.value; const h = document.getElementById('mns-hits'); if (h) h.innerHTML = mnSheetHitsHtml(_mn.form); }
+    else if (id === 'mn-date'){ _mn.form.date = e.target.value; const say = document.getElementById('mns-say'); if (say) say.textContent = mnSheetSay(_mn.form); }
+  });
+  document.addEventListener('submit', e => { if (!inSheet(e)) return; e.preventDefault();
+    if (_mn.form && String(_mn.form.body || '').trim()) myNoteSave(); });
 }
 function myNotesOpen(id){
   _mn.mode = 'view'; _mn.sel = id; _mn.filter = 'all'; _mn.ct = ''; _mn.q = ''; _mn.form = null;
@@ -530,6 +586,7 @@ async function myNoteSave(){
   try{
     const it = await mineSave('note', { body:f.body, title:f.title, contractId:f.contractId || '', quote:f.quote || '', clauseId:f.clauseId || '', reviewBy });
     _mn.mode = 'view'; _mn.sel = it.id; _mn.fresh = it.id; _mn.form = null;
+    if (document.getElementById('mn-sheet') && typeof closeModal === 'function') closeModal();
     if (typeof insSelect === 'function') insSelect('mynotes', it.id);
     renderMyNotes();
     if (typeof toast === 'function') toast(reviewBy ? i18t('mn_saved_on', { d:_mnDay(reviewBy) }) : i18t('mn_saved'), 'ok');
@@ -688,4 +745,4 @@ function myNotesCss(){ return `
   .mn-when button:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
 `; }
 
-Object.assign(window, { mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount });
+Object.assign(window, { mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount, mnSheetOn, mnSheetOpts, mnSheetPaint });
