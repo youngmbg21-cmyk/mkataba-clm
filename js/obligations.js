@@ -2569,7 +2569,7 @@ function obwGoFiltered(patch){
   /* THE NEW LOOK'S PAGE (obnRender) READS ITS OWN PILLS (16 Nov 2026, #762): a door asking for the late ones
      lands on Late, one asking for their side or ours on that choice, and a fresh landing starts unsearched */
   const p = patch || {};
-  _obnTab = p.state === 'overdue' ? 'late' : 'open';
+  _obnTab = 'open';   /* We owe · They owe (19 Nov 2026): Next 30 days leads with what is late, both sides */
   _obnWho = (p.side === 'ours' || p.side === 'theirs') ? p.side : 'all';
   _obnQ = '';
   if(typeof setView === 'function') setView('obligations');
@@ -3516,7 +3516,8 @@ function obPanelFive(o, c, i){
       : d == null ? { n: '—', l: i18t('jov5_obp_g_nodate') }
       : d < 0 ? { n: -d, l: i18t('jov5_obp_g_late'), warn: true } : { n: d, l: i18t('jov5_obp_g_left') },
     { n: rem ? obDay(rem) : i18t('jov5_obp_g_none'), l: i18t('jov5_obp_g_rem') },
-    { n: obRepeatsWord(o), l: i18t('jov5_obp_g_repeats') }];
+    /* the tile says it in one word — Monthly · Quarterly · Annual · One-off (owner, 19 Nov 2026: "why dont you just say monthly?") */
+    { n: obRecurLabel(String(o.recurring || 'none')), l: i18t('jov5_obp_g_repeats') }];
   const facts = [];
   if(due) facts.push({ mark: 'calendar', t: obDay(due, true), s: i18t('ob_fact_due') });
   if(obligationMoneyVisible() && typeof obligationHasAmount === 'function' && obligationHasAmount(o))
@@ -4891,7 +4892,7 @@ function obnFiveOf(rows){
     attr: `data-obn-pick="${_obEsc(x.c.id)}"` });
   return { eyebrow: i18t('obn5_eb'), title: i18tn('obn5_t', duties, { n: duties, m: rows.length }), sub: i18t('obn5_s'),
     glance: [{ n: duties, l: i18t('obn5_g_decide'), warn: duties > 0 }, { n: rows.length, l: i18tn('obn5_g_ag', rows.length, { n: rows.length }) },
-      { n: late, l: i18t('obn5_g_late'), warn: late > 0, attr: late ? 'data-obn-tab="late"' : '' }],
+      { n: late, l: i18t('obn5_g_late'), warn: late > 0, attr: late ? 'data-obn-tab="open"' : '' }],
     groups: [{ label: i18t(first.late ? 'obn5_start_late' : 'obn5_start'), rows: order.slice(0, 3).map(rowOf) }],
     act: { say: i18t('obn5_act'), label: i18t('obn5_open', { name: first.c.name || first.c.id }), attr: `data-obn-pickopen="${_obEsc(first.c.id)}"`,
       link: may ? { label: i18t('obn5_look'), attr: 'data-obn-look=""' } : null },
@@ -4978,6 +4979,222 @@ function obnProjPanel(list){
    duty table; Proposals draws the agreements table with its own head and panel, and hides
    the box. So a press that arrives at or leaves Proposals, or a pill that comes or goes,
    draws the whole page — checked below, never assumed — and that road puts the caret back. */
+/* ---- WHAT WE OWE, WHAT THEY OWE (owner's pick, 19 Nov 2026: "Build as drawn"; replaces the 10 Nov Late · Tracked table) ----
+   "No one will be coming into hati to track obligations. The goal should be to highlight obligations we have vs the
+   ones we have agreed will be theirs. The goal for obligations is to remind you of your and their obligations."
+   TWO COLUMNS, THE LEGORA WAY: We owe · They owe, each line its day, party, reference, clause, who is reminded and ONE
+   act (Mark done · Chase · Decide — the doors the old rows had). Tabs Next 30 days (late first) · Later · Done ·
+   Proposed. LANDED, Jambo's panel is the month as a line (obnTimelineFive): late · this week · next week · later, ours
+   above, theirs below, then who has NOBODY to remind and its door. A LINE PRESSED, the panel is that obligation the
+   Legora way (obnOnePanel): its words quoted with the limit marked, its act, and who is reminded and when.
+   Reads only; every act goes through the writer it always did. */
+const OBN_COL_SHOWN = 6;
+let _obnColAll = { ours: false, theirs: false }, _obnTwoPick = null;
+function obnDue(r){ const d = obligationDue(r); return d ? daysUntil(d) : null; }
+/* LATE IS THE WINDOW'S WORD, NEVER A DATE SUBTRACTION: a step held back by an earlier one is waiting, not late — the
+   reading the sidebar door, the reminders and the old Late pill share (obligationWindow) */
+function obnIsLate(r){ return !!r && r.st !== 'done' && (r.win ? r.win === 'overdue' : (obnDue(r) ?? 1) < 0); }
+function obnIsHeld(r){ return !!r && r.st !== 'done' && r.win === 'waiting'; }
+function obnTwoTabOf(r){
+  if(r.st === 'done') return 'done';
+  const d = obnDue(r);
+  return (d != null && d <= 30) ? 'open' : 'later';
+}
+function obnTwoSort(a, b){
+  const da = obnDue(a), db = obnDue(b);
+  if(a.st === 'done' && b.st === 'done') return String(b.completedAt || '').localeCompare(String(a.completedAt || ''));
+  return (da == null ? 1e9 : da) - (db == null ? 1e9 : db);
+}
+/* THEIR SIDE CAN BE WRITTEN TO: the address the chase route reads (c.counterpartyEmail), or the contact book's */
+function obnTheirAddress(c){
+  if(!c) return '';
+  let a = String(c.counterpartyEmail || '').trim();
+  if(!a && typeof contactEmail === 'function'){ try{ a = String(contactEmail(c) || '').trim(); }catch(_){ a = ''; } }
+  return /.+@.+\..+/.test(a) ? a : '';
+}
+/* WHO IS REMINDED, said in one short line (ours: the person the sweep writes to; theirs: whether their side is reachable) */
+function obnRemWord(r, c){
+  if(r._dec) return i18t('obt_rem_decide');
+  if(r.st === 'done') return r.completedAt ? i18t('obn_ch_done_on', { d: obDay(r.completedAt) }) : i18t('obn_done');
+  if(obligationIsTheirs(r)){
+    if(r.chasedAt) return i18t('obt_rem_chased', { d: obDay(r.chasedAt) });
+    return obnTheirAddress(c) ? i18t('obt_rem_theirs_can') : i18t('obt_rem_theirs_none');
+  }
+  const m = obligationReachable(obligationReminderTo(r), c) || obligationOwnerTo(c);
+  if(!m) return i18t('obt_rem_ours_none');
+  return i18t('obt_rem_ours', { who: String(m.name || '').trim().split(/\s+/)[0] || m.name || '' });
+}
+function obnNobody(r, c){
+  if(r._dec || r.st === 'done') return false;
+  if(obligationIsTheirs(r)) return !obnTheirAddress(c);
+  return !(obligationReachable(obligationReminderTo(r), c) || obligationOwnerTo(c));
+}
+function obnWhenWord(r){
+  const d = obnDue(r);
+  if(r.st === 'done') return { t: r.completedAt ? obDay(r.completedAt) : i18t('obn_done'), tone: 'ok' };
+  if(obnIsHeld(r)) return { t: i18t('obt_held'), tone: 'ok' };
+  if(d == null) return { t: i18t('ob_no_date'), tone: 'ok' };
+  if(obnIsLate(r)) return { t: i18tn('obt_late', Math.max(1, -d), { n: Math.max(1, -d) }), tone: 'late' };
+  if(d === 0) return { t: i18t('obn_ch_today'), tone: 'soon' };
+  return { t: i18tn('obt_in', d, { n: d }), tone: d <= 7 ? 'soon' : 'ok' };
+}
+function obnLineHtml(r){
+  const c = r._c || (window.getContract ? getContract(r.cid) : null);
+  const theirs = !r._dec && obligationIsTheirs(r), w = obnWhenWord(r), E = _obEsc;
+  const ref = c && window.contractRef ? contractRef(c) : r.cid;
+  const money = (!r._dec && obligationMoneyVisible() && typeof obligationHasAmount === 'function' && obligationHasAmount(r)) ? obligationMoneyText(obligationAmount(r), c) : '';
+  const sub = [(c && c.counterparty) || r.counterparty || '', ref, r.clause ? '§ ' + r.clause : '', money].filter(Boolean).join(' · ');
+  const may = (typeof canEdit !== 'function') || canEdit();
+  const act = r.st === 'done' || !may ? ''
+    : r._dec ? `<button type="button" class="obt-act" data-obn-go="decide" data-cid="${E(r.cid)}">${E(i18t('cal_ag_decide'))}</button>`
+    : theirs ? `<button type="button" class="obt-act" data-obn-go="chase" data-cid="${E(r.cid)}" data-ob="${E(r.id || '')}">${E(i18t('ob_chase'))}</button>`
+    : `<button type="button" class="obt-act" data-obn-go="done" data-cid="${E(r.cid)}" data-i="${r._i}">${E(i18t('cal_nl_done'))}</button>`;
+  return `<div class="obt-li" data-ins-row data-ob-key="${E(r._key)}" tabindex="-1">
+    <div class="obt-l1"><b>${E(r.desc || '')}</b><span class="obt-w is-${w.tone}">${E(w.t)}</span></div>
+    <p class="obt-sub">${E(sub)}</p>
+    <div class="obt-l3"><span class="obt-rem">${typeof icon === 'function' ? icon('clock', 'w-3.5 h-3.5') : ''}${E(obnRemWord(r, c))}</span>${act}</div></div>`;
+}
+function obnColHtml(rows, side){
+  const all = _obnColAll[side], shown = all ? rows : rows.slice(0, OBN_COL_SHOWN), more = rows.length - shown.length;
+  const late = rows.filter(obnIsLate).length;
+  const head = [i18tn('obt_n', rows.length, { n: rows.length }), late ? i18tn('obt_n_late', late, { n: late }) : ''].filter(Boolean).join(' · ');
+  return `<div class="obt-col" data-obt-side="${side}"><div class="obt-colh"><b>${_obEsc(i18t(side === 'ours' ? 'obt_we_owe' : 'obt_they_owe'))}</b><span>${_obEsc(head)}</span></div>
+    ${shown.map(obnLineHtml).join('') || `<p class="obt-none">${_obEsc(i18t(side === 'ours' ? 'obt_none_ours' : 'obt_none_theirs'))}</p>`}
+    ${more > 0 ? `<button type="button" class="obt-more" data-obt-more="${side}">${_obEsc(i18tn('obt_more', more, { n: more }))}</button>` : ''}</div>`;
+}
+/* the sentence over the columns, read from the record, no AI */
+function obnTwoSay(ours, theirs){
+  const lo = ours.filter(obnIsLate).length, lt = theirs.filter(obnIsLate).length;
+  if(!lo && !lt) return i18t('obt_say_clear', { a: ours.length, b: theirs.length });
+  return [lo ? i18tn('obt_say_ours', lo, { n: lo }) : i18t('obt_say_ours_none'), lt ? i18tn('obt_say_theirs', lt, { n: lt }) : i18t('obt_say_theirs_none')].join(' ');
+}
+/* LANDED: the month as a line, ours above and theirs below, then who has nobody to remind */
+function obnTimelineFive(book){
+  const open = book.filter(r => r.st !== 'done');
+  const bucket = r => { const d = obnDue(r); return obnIsLate(r) ? 0 : d == null ? 3 : d <= 7 ? 1 : d <= 14 ? 2 : 3; };
+  const n = { ours: [0, 0, 0, 0], theirs: [0, 0, 0, 0] };
+  open.forEach(r => { if(obnDue(r) == null || obnDue(r) > 30) return; n[(!r._dec && obligationIsTheirs(r)) ? 'theirs' : 'ours'][bucket(r)]++; });
+  const sum = a => a.reduce((s, x) => s + x, 0);
+  const tone = i => i === 0 ? 'late' : i === 1 ? 'soon' : 'ok';
+  const row = a => `<div class="obt-tl-row">${a.map((x, i) => `<div><b class="is-${tone(i)}">${x}</b></div>`).join('')}</div>`;
+  const heads = ['obt_b_late', 'obt_b_week', 'obt_b_next', 'obt_b_later'].map(k => `<div>${_obEsc(i18t(k))}</div>`).join('');
+  const mid = `<div class="obt-tl"><div class="obt-tl-lab is-ours">${_obEsc(i18t('obt_we_owe'))}</div>${row(n.ours)}
+    <div class="obt-tl-axis"><i class="obt-tl-late"></i><i class="obt-tl-today"></i></div><div class="obt-tl-row is-h">${heads}</div>${row(n.theirs)}
+    <div class="obt-tl-lab is-theirs">${_obEsc(i18t('obt_they_owe'))}</div></div>`;
+  const nobody = open.filter(r => { const d = obnDue(r); return d != null && d <= 30 && obnNobody(r, r._c || (window.getContract ? getContract(r.cid) : null)); }).sort(obnTwoSort);
+  const rows = nobody.slice(0, 3).map(r => { const c = r._c || getContract(r.cid); const theirs = obligationIsTheirs(r);
+    return { mark: 'user', tone: 'amber', t: i18t('obt_nb_t', { what: r.desc || '', who: (c && c.counterparty) || '' }), s: [obnWhenWord(r).t, i18t(theirs ? 'obt_nb_theirs' : 'obt_nb_ours')].join(' · '), attr: `data-obt-pick="${_obEsc(r._key)}"` }; });
+  const first = nobody[0];
+  const lo = n.ours[0], lt = n.theirs[0];
+  return { eyebrow: i18t('obt_eb'), title: i18t('obt_t', { a: sum(n.ours), la: lo, b: sum(n.theirs), lb: lt }),
+    sub: nobody.length ? i18tn('obt_s_nobody', nobody.length, { n: nobody.length }) : i18t('obt_s_all'),
+    mid, groups: rows.length ? [{ label: i18t('obt_nb_label'), rows }] : [],
+    act: first ? { say: i18t(obligationIsTheirs(first) ? 'obt_act_theirs' : 'obt_act_ours'), label: i18t('obt_act_open'), attr: `data-obt-pick="${_obEsc(first._key)}"` } : null,
+    src: i18t('obt_src') };
+}
+/* A LINE PRESSED: the obligation the Legora way — its words, its act, who is reminded and when */
+function obnOnePanel(r){
+  const c = r._c || (window.getContract ? getContract(r.cid) : null), E = _obEsc;
+  if(r._dec) return null;
+  const theirs = obligationIsTheirs(r), w = obnWhenWord(r);
+  const ref = c && window.contractRef ? contractRef(c) : r.cid;
+  const may = (typeof canEdit !== 'function') || canEdit();
+  /* the quoted words, pressed, show that passage on the paper (obligationShowInContract, the panel's door before) */
+  const quote = r.quote ? `<p class="obn-lg-q obt-q" data-ob-show="" role="button" tabindex="0">“${typeof obnQuoteHtml === 'function' ? obnQuoteHtml(r.quote) : E(r.quote)}”</p>` : '';
+  const money = obligationMoneyVisible() && typeof obligationHasAmount === 'function' && obligationHasAmount(r) ? obligationMoneyText(obligationAmount(r), c) : '';
+  const meta = [r.clause ? '§ ' + r.clause : '', money, obRepeatsWord(r)].filter(Boolean).join(' · ');
+  const acts = r.st === 'done' || !may ? '' : theirs
+    ? `<button type="button" class="obn-lg-next" data-obn-go="done" data-cid="${E(r.cid)}" data-i="${r._i}">${E(i18t('obt_they_did'))}</button><button type="button" class="obn-lg-chip" data-obn-go="chase" data-cid="${E(r.cid)}" data-ob="${E(r.id || '')}">${E(i18t('obt_chase_now'))}</button>`
+    : `<button type="button" class="obn-lg-next" data-obn-go="done" data-cid="${E(r.cid)}" data-i="${r._i}">${E(i18t('cal_nl_done'))}</button>`;
+  const paper = `<button type="button" class="obn-lg-link" data-obt-paper="${E(r.cid)}" data-key="${E(r._key)}">${E(i18t('obt_open_paper'))}</button>`;
+  let rem;
+  if(theirs){
+    const us = obligationReachable(obligationReminderTo(r), c) || obligationOwnerTo(c);
+    const addr = obnTheirAddress(c);
+    rem = `<p class="obt-rl">${typeof icon === 'function' ? icon('user', 'w-4 h-4') : ''}${E(us ? i18t('obt_rem_us_watch', { who: us.name || '' }) : i18t('obt_rem_us_admins'))}</p>
+      <p class="obt-rl">${typeof icon === 'function' ? icon('send', 'w-4 h-4') : ''}${E(addr ? i18t('obt_rem_them_addr', { a: addr }) : i18t('obt_rem_them_none'))}</p>
+      ${!addr && may && c && c.counterparty && typeof partyContactsOpen === 'function' ? `<div class="obn-lg-ans"><button type="button" class="obn-lg-chip" data-obt-contact="${E(c.counterparty)}">${E(i18t('obt_add_contact'))}</button></div>` : ''}
+      ${r.chasedAt ? `<p class="obn-lg-src">${E(r.chasedBy ? i18t('obt_rem_chased_on', { d: obDay(r.chasedAt), who: r.chasedBy }) : i18t('obt_rem_chased_day', { d: obDay(r.chasedAt) }))}</p>` : ''}`;
+  } else {
+    rem = `<p class="obt-rl">${typeof icon === 'function' ? icon('user', 'w-4 h-4') : ''}${obligationReminderLine(r, c)}</p>
+      <p class="obt-rl">${typeof icon === 'function' ? icon('send', 'w-4 h-4') : ''}${E(i18t('obt_rem_how'))}</p>`;
+  }
+  return `<div class="obn-lg jl-words obt-one" data-obt-one="${E(r._key)}">
+    <div class="obn-lg-top"><span class="obt-side is-${theirs ? 'theirs' : 'ours'}">${E(i18t(theirs ? 'obt_they_owe' : 'obt_we_owe'))}</span><b>${E(r.desc || '')}</b>
+      <span>${E([(c && c.counterparty) || '', ref].filter(Boolean).join(' · '))} · <em class="obt-w is-${w.tone}">${E(w.t)}</em></span></div>
+    <div class="obn-lg-it">${quote}${meta ? `<p class="obn-lg-src">${E(meta)}</p>` : ''}<div class="obn-lg-ans">${acts}${paper}</div></div>
+    <div class="obn-lg-it"><div class="obn-lg-l"><b>${E(i18t('obt_who_rem'))}</b></div>${rem}</div></div>`;
+}
+function obnTwoRender(host, book, projects, proposedN){
+  const q = _obnQ.trim().toLowerCase();
+  const hit = r => !q || [r.desc, r.cname, r.counterparty, r.cid, r.quote, r.clause].some(v => String(v || '').toLowerCase().includes(q));
+  if(!['open', 'later', 'done', 'prop'].includes(_obnTab)) _obnTab = 'open';
+  const inTab = k => book.filter(r => obnTwoTabOf(r) === k);
+  const counts = { open: inTab('open').length, later: inTab('later').length, done: inTab('done').length };
+  const rows = inTab(_obnTab).filter(hit).sort(obnTwoSort);
+  const ours = rows.filter(r => r._dec || !obligationIsTheirs(r)), theirs = rows.filter(r => !r._dec && obligationIsTheirs(r));
+  const lo = inTab('open').filter(r => (r._dec || !obligationIsTheirs(r)) && obnIsLate(r)).length;
+  const lt = inTab('open').filter(r => !r._dec && obligationIsTheirs(r) && obnIsLate(r)).length;
+  const pill = (k, w) => `<button type="button" class="obn-tab${_obnTab === k ? ' is-on' : ''}" data-obn-tab="${k}">${_obEsc(w)}</button>`;
+  const bar = `<div class="apn-bar obn-bar" data-lh-seat="obligations-nl">${pill('open', i18t('obt_tab_next', { n: counts.open }))}${pill('later', i18t('obt_tab_later', { n: counts.later }))}${pill('done', i18t('obt_tab_done', { n: counts.done }))}
+    ${projects.length ? pill('prop', i18tn('obn_p_prop', projects.length, { n: proposedN, m: projects.length })) : ''}</div>
+    <div class="apn-bar obn-bar2r"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="obn-q" type="search" autocomplete="off" placeholder="${_obEsc(i18t('obt_filter_ph'))}" value="${_obEsc(_obnQ)}"></label>
+    <span class="apn-sp"></span><span class="obn-said">${_obEsc(i18t(_obnTab === 'done' ? 'obt_order_done' : 'obt_order_late'))}</span></div>`;
+  _obwHeadFacts = `<span class="obw-hf">${lo ? `<span class="obt-hf-ours">${_obEsc(i18tn('obt_hf_ours', lo, { n: lo }))}</span>` : ''}${lo && lt ? ' · ' : ''}${lt ? `<span class="obw-hf-late">${_obEsc(i18tn('obt_hf_theirs', lt, { n: lt }))}</span>` : ''}${!lo && !lt ? _obEsc(i18t('obt_hf_none')) : ''}</span>`;
+  _obwHeadActs = ((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn obw-add-btn" data-obw-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_obEsc(i18t('ob_add_btn'))}</button>` : '';
+  const title = `<div class="cun-head"><h2 class="ctf-h">${_obEsc(i18t('nav_obligations'))}</h2><span class="ctf-hf" id="page-head-facts"></span><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div>`;
+  const say = `<p class="obt-say"${_obnTab === 'open' ? '' : ' hidden'}>${_obEsc(_obnTab === 'open' ? obnTwoSay(ours, theirs) : '')}</p>`;
+  const cols = obnColHtml(ours, 'ours') + obnColHtml(theirs, 'theirs');
+  /* A PRESS THAT ONLY CHANGES WHICH LINES SHOW REDRAWS ONLY THE LINES: the frame, the box and the panel stand; the tabs'
+     words and which is lit, the sentence and the columns are written in place. A tab that comes or goes draws whole. */
+  const old = host.querySelector('.obt-page'), oldList = old && old.querySelector('#obn-list');
+  const tmp = document.createElement('div'); tmp.innerHTML = bar;
+  const fresh = [...tmp.querySelectorAll('[data-obn-tab]')], pills = old ? [...old.querySelectorAll('.obn-bar [data-obn-tab]')] : [];
+  const rowsOnly = !!(old && oldList && pills.length === fresh.length && pills.every((b, i) => b.getAttribute('data-obn-tab') === fresh[i].getAttribute('data-obn-tab')));
+  let firstPaint = false;
+  if(rowsOnly){
+    pills.forEach((b, i) => { b.className = fresh[i].className; b.textContent = fresh[i].textContent; });
+    const sd = old.querySelector('.obn-said'), sd2 = tmp.querySelector('.obn-said'); if(sd && sd2) sd.textContent = sd2.textContent;
+    const sy = old.querySelector('.obt-say'); if(sy){ const t2 = document.createElement('div'); t2.innerHTML = say; sy.replaceWith(t2.firstChild); }
+    oldList.innerHTML = cols;
+  } else {
+    firstPaint = true;
+    const qEl = document.getElementById('obn-q'), qAt = (qEl && document.activeElement === qEl) ? qEl.selectionStart : null;
+    host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page obn-page obt-page cun-page" data-ins-page="obligations" data-ins="1">
+      <div class="ap-body is-ins"><section class="ap-card apn-card" id="obn-scroll">${title}${bar}${say}
+        <div class="obt-cols" id="obn-list">${cols}</div></section>
+        <aside id="ins-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside></div></div>`;
+    if(qAt != null){ const n = document.getElementById('obn-q'); if(n){ n.focus(); try{ n.setSelectionRange(qAt, qAt); }catch(_){} } }
+  }
+  obwPaintHead();
+  const byKey = new Map(book.map(r => [r._key, r]));
+  if(_obnTwoPick && !byKey.has(_obnTwoPick)) _obnTwoPick = null;
+  const list = host.querySelector('#obn-list');
+  const idOf = t => t.getAttribute('data-ob-key');
+  const paint = k => {
+    const r = k ? byKey.get(k) : null;
+    if(r && r._dec){ obPaintDecision(r); }
+    else if(r && typeof jamboOverviewHtml === 'function'){ const body = obnOnePanel(r);
+      insPaintPanel(Object.assign({}, obPanelJl(), { host: 'ins-panel', seat: 'obligations', jlWord: i18t('jl_w_obligation'), item: { id: k }, head: false, body })); }
+    else if(typeof jamboOverviewHtml === 'function'){
+      insPaintPanel(Object.assign({}, obPanelJl(), { host: 'ins-panel', seat: 'obligations', item: { id: '' }, solo: true, head: false,
+        body: `<div class="jl-words is-ov obt-five">${jamboOverviewHtml(obnTimelineFive(book), 'obt')}</div>` })); }
+    const ph = document.getElementById('ins-panel'), hw = ph && ph.querySelector('[data-jl-home] .pd-tab-w');
+    if(hw) hw.textContent = (r ? '‹ ' : '') + i18t('pd_tab_overview');
+    if(ph) ph._jlBack = () => { if(!document.querySelector('.obt-page')) return false; if(_obnTwoPick){ _obnTwoPick = null; obnRepaint(); } return true; };
+    if(list && typeof insMarkRow === 'function') insMarkRow(list, '[data-ins-row]', idOf, k);
+  };
+  paint(_obnTwoPick);
+  if(list && typeof insListWire === 'function') insListWire(list, { rowSel: '[data-ins-row]', idOf,
+    onSelect: k => { _obnTwoPick = k; paint(k); },
+    onOpen: k => { const r = byKey.get(k); if(r && r._dec){ if(typeof window.needsYouGo === 'function') needsYouGo('renewal', r.cid); return; } if(r) obOpenContract(r.cid, k); } });
+  if(!firstPaint) return;
+  const qi = host.querySelector('#obn-q');
+  /* THE BOX IS NOT REDRAWN UNDER THE READER'S CARET: every letter moves the lines and leaves the box alone */
+  if(qi) qi.addEventListener('input', () => { _obnQ = qi.value; const h = document.getElementById('content'); if(h && h.querySelector('.obt-page')) obnRender(h, { rows: true }); });
+  if(typeof insWatchWidth === 'function') insWatchWidth();
+  if(window.setActiveNav) setActiveNav('obligations');
+}
 function obnRender(host, o){
   const book = obnRows();
   const projects = obnProjects();
@@ -4985,6 +5202,8 @@ function obnRender(host, o){
   const lateN = book.filter(r => obnTabOf(r, 'late')).length;
   const open = book.filter(r => obnTabOf(r, 'open')).length;
   if(_obnTab === 'prop' && !projects.length) _obnTab = 'open';
+  /* the new look's two columns (owner's pick, 19 Nov 2026); Proposed keeps its project list below */
+  if(_obnTab !== 'prop') return obnTwoRender(host, book, projects, proposedN);
   const q = _obnQ.trim().toLowerCase();
   /* ONE PREDICATE for the pills and the list, so a pill's number and its list agree */
   const pass = r => obnTabOf(r, _obnTab === 'late' ? 'late' : _obnState)
@@ -5000,8 +5219,7 @@ function obnRender(host, o){
   /* THREE PILLS (as drawn): what is late, what is tracked, what Jambo proposes — each its own count, said once */
   const pill = (k, w, extra) => `<button type="button" class="obn-tab${_obnTab === k ? ' is-on' : ''}${extra || ''}" data-obn-tab="${k}">${_obEsc(w)}</button>`;
   const bar = `<div class="apn-bar obn-bar" data-lh-seat="obligations-nl">
-    ${lateN || _obnTab === 'late' ? pill('late', i18t('obn_p_late', { n: lateN }), ' is-late') : ''}
-    ${pill('open', i18t('obn_p_tracked', { n: open }))}
+    ${pill('open', i18t('obt_tab_next', { n: book.filter(r => obnTwoTabOf(r) === 'open').length }))}${pill('later', i18t('obt_tab_later', { n: book.filter(r => obnTwoTabOf(r) === 'later').length }))}${pill('done', i18t('obt_tab_done', { n: book.filter(r => obnTwoTabOf(r) === 'done').length }))}
     ${projects.length ? pill('prop', i18tn('obn_p_prop', projects.length, { n: proposedN, m: projects.length })) : ''}</div>
   <div class="apn-bar obn-bar2r">
     <label class="apn-box"${_obnTab === 'prop' ? ' hidden' : ''}>${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="obn-q" type="search" autocomplete="off" placeholder="${_obEsc(i18t('lh_filter_ph'))}" value="${_obEsc(_obnQ)}"></label>
@@ -5113,7 +5331,11 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
       if(_obnTab === 'prop') _obnPropPage = Math.max(1, n); else _obnPage = Math.max(1, n);
       obnRepaint(); const s = document.getElementById('obn-scroll'); if(s) s.scrollTop = 0; const sl = document.getElementById('obn-list'); if(sl) sl.scrollTop = 0; return; }
     const op = t.closest('[data-obn-open]');
-    if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id; obnRepaint(); return; }
+    /* OPEN CHOOSES TOO (owner, 19 Nov 2026: "you have not added the row press the legora way" — the row's Open unfolded
+       the duties and left the panel on the overview): opening an agreement makes it the panel's subject, the Legora way */
+    if(op){ e.preventDefault(); const id = op.getAttribute('data-obn-open'); _obnOpenAg = _obnOpenAg === id ? null : id;
+      if(_obnOpenAg === id && _obnPick !== id){ _obnPick = id; _obnLgTab = 'todo'; }
+      obnRepaint(); return; }
     const wh = t.closest('[data-obn-whose]');
     if(wh){ e.preventDefault(); const hit = obnFindOf(wh.getAttribute('data-cid'), wh.getAttribute('data-i'));
       if(hit) _obnWhose[obnWhoseKey(hit.c, hit.o)] = wh.getAttribute('data-obn-whose');
@@ -5133,6 +5355,18 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
         if(window.roomPaintObligations) roomPaintObligations(c);
         if(typeof toast === 'function') toast(i18tn('obn_added_n', n, { n }), 'ok'); }
       obnRepaint(); return; }
+    const om = t.closest('[data-obt-more]');
+    if(om){ e.preventDefault(); const k = om.getAttribute('data-obt-more'); _obnColAll[k] = true; obnRepaint(); return; }
+    const opk = t.closest('[data-obt-pick]');
+    if(opk){ e.preventDefault(); _obnTwoPick = opk.getAttribute('data-obt-pick'); obnRepaint(); return; }
+    const osh = t.closest('.obt-one [data-ob-show]');
+    if(osh){ e.preventDefault(); const one = osh.closest('[data-obt-one]'); const k = one && one.getAttribute('data-obt-one');
+      const hit = k && typeof obLocate === 'function' ? obLocate(k) : null;
+      if(hit) obligationShowInContract(hit.c.id, hit.o.quote || ''); return; }
+    const oct = t.closest('[data-obt-contact]');
+    if(oct){ e.preventDefault(); const nm = oct.getAttribute('data-obt-contact'); if(typeof partyContactsOpen === 'function') partyContactsOpen(typeof cuKeyOf === 'function' ? cuKeyOf(nm) : nm, { add: true }); return; }
+    const opp = t.closest('[data-obt-paper]');
+    if(opp){ e.preventDefault(); obOpenContract(opp.getAttribute('data-obt-paper'), opp.getAttribute('data-key')); return; }
     const lt = t.closest('[data-obn-lgtab]');
     if(lt){ e.preventDefault(); _obnLgTab = lt.getAttribute('data-obn-lgtab'); obnRepaint(); return; }
     const po = t.closest('[data-obn-pickopen]');
@@ -5166,7 +5400,7 @@ Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obD
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   obwWeekShut,obWeekFolds,OBW_DEC_KEY,obwDecisions,obwFinds,obwFindRows,obPossessive,obwFindsRowHtml,obwRowPrivate,obWeekSub,obWeekOneWho,obWeekMoneyHtml,obwRowAvHtml,obwLine2,obwRowActHtml,obwWeekRowHtml,obwRowAct,
-  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnRowHtml,obnTabOf,obnRows,
+  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnDutyHtml,obnWhoseNow,obnRowHtml,obnTabOf,obnRows,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
