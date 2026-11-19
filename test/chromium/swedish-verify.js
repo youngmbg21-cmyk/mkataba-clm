@@ -174,6 +174,16 @@ const PROBE = () => {
 
        So the question asked is the only one that matters: is the centre of
        the button inside the window, and is the button what is painted there? */
+    /* what stands where the button is, said when it cannot be pressed (a red run says WHY, not only that) */
+    const whereIs = lang => page.evaluate(l => {
+      const b = document.querySelector(`[data-st-lang="${l}"]`);
+      if (!b) return 'no button';
+      const r = b.getBoundingClientRect(), x = r.x + r.width / 2, y = r.y + r.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      const card = document.querySelector('.stn-card'), main = document.getElementById('stn-main'), pan = document.getElementById('ins-panel');
+      const w = el => el ? Math.round(el.getBoundingClientRect().left) + '..' + Math.round(el.getBoundingClientRect().right) : '-';
+      return `btn ${Math.round(x)},${Math.round(y)} win ${innerWidth}x${innerHeight} hit ${hit ? (hit.id || hit.className || hit.tagName) : 'none'} card ${w(card)} main ${w(main)} panel ${w(pan)}`;
+    }, lang || 'sv');
     const pressable = lang => page.evaluate(l => {
       const b = document.querySelector(`[data-st-lang="${l}"]`);
       if (!b) return false;
@@ -205,7 +215,7 @@ const PROBE = () => {
       where = await pressable('sv') ? 'desktop: Settings › You, the language row' : null;
     }
     check(`${S.name}: there is a language control a user can actually reach`,
-      !!where, where || 'nothing a person could press');
+      !!where, where || ('nothing a person could press — ' + (onPhone ? '' : await whereIs('sv'))));
     await pick('sv');
 
     const sv = await page.evaluate(() => ({

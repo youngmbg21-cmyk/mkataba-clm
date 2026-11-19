@@ -21099,6 +21099,8 @@
      door (the language switch) out of reach. Where the list is narrower than that, what a row is set to and its door
      stand under its sentence instead; the "Set to" column head stands down with its column. Wider lists are unchanged. */
   html.lg-new .sdd-page .stn-main{container-type:inline-size}
+  /* the card keeps to its track (a grid item with overflow visible would otherwise grow to its widest line and run on under Jambo's panel) */
+  html.lg-new #content .sdd-page .ap-body.is-ins > .ap-card.stn-card{min-width:0}
   @container (max-width:599.98px){
     html.lg-new .sdd-row{grid-template-columns:40px minmax(0,1fr);row-gap:6px}
     html.lg-new .sdd-row > .sdd-mk{grid-row:1 / span 3;align-self:start}
