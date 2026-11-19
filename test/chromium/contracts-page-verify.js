@@ -200,7 +200,9 @@ const check = (name, ok, detail) => {
        4b/4c and 14 ask that way: the press opens it, and its ⋯ opens painted with End or pause and Delete */
     const firstId = await page.evaluate(() => (document.querySelector('#reg-tbody tr[data-row]') || {}).getAttribute?.('data-row') || null);
     await page.click('#reg-tbody tr[data-row] td:nth-child(2)', { timeout: 5000 }).catch(() => {});
-    const opened = await page.waitForFunction(id => !!(window.pdContract && pdContract() && pdContract().id === id), firstId, { timeout: 8000 }).then(() => true, () => false);
+    /* RE-POINTED 19 Nov 2026 (f1099, the Cover is a page of its own): a row's press lands on the contract's Cover, the paper
+       under it only once Open the dossier is pressed — either is "opened" */
+    const opened = await page.waitForFunction(id => !!document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) || !!(window.pdContract && pdContract() && pdContract().id === id), firstId, { timeout: 8000 }).then(() => true, () => false);
     check('4b a row\'s one press opens its contract, where its acts are', !!firstId && opened, String(firstId));
     /* a contract opened on purpose lands on its Cover (f1085); its Open the dossier is the step onto the paper */
     /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the Cover was not drawn yet when it was looked for, so the ⋯ was

@@ -153,6 +153,9 @@ function deskPageName(){
      without a view of its own, so the bar asks it too — it said "Builder" */
   if (typeof document !== 'undefined' && document.getElementById('tpl-dt')) return _cnT('nav_tpl_std');
   if (typeof window !== 'undefined' && typeof window.tbOnScreen === 'function' && window.tbOnScreen()) return _cnT('tb_jl_word');
+  /* THE COVER IS A PAGE OF ITS OWN (owner, 19 Nov 2026: "go to the page, not a sheet laid over"): drawn over the
+     page it was opened from, the bar names its contract */
+  const cv = deskCoverUp(); if (cv) return cv.name;
   const k = deskKeyNow();
   if (!k) return '';
   return deskTabLabel(k);
@@ -212,6 +215,16 @@ function deskGoBack(){
   /* THE TEMPLATE BUILDER'S WAY OUT IS ‹ (#762: its own back button is the old look's): it leaves through the builder's
      own leave (tbLeave — asks first if anything is unsaved) and lands on the template's page */
   if (deskBuilderUp()){ window.tbLeave(); return true; }
+  /* A PAGE IN THE MIDDLE OPENED FROM ANOTHER PAGE (f1099, owner 19 Nov 2026): ‹ goes back to that page in ONE press —
+     drawn first, the page in the middle taken away after it, so the paper is never shown on the way */
+  const from = typeof window.pdMidFrom === 'function' ? window.pdMidFrom() : '';
+  if (from){
+    const i = _dkTrail.lastIndexOf(from); if (i >= 0) _dkTrail = _dkTrail.slice(0, i + 1);
+    _dkMenuOpen = false;
+    if (from === 'home') deskGoCounter(); else deskTabOpen(from);
+    if (typeof window.pdMidClose === 'function') window.pdMidClose();
+    deskBarPaint(); return true;
+  }
   /* a page standing in the middle beside the Dossier: ‹ brings the paper back (the middle, 21 Oct 2026) */
   if (typeof window.pdMidClose === 'function' && window.pdMidClose()) return true;
   if (deskStepBack(true)){ deskBarPaint(); return true; }
@@ -222,6 +235,16 @@ function deskGoBack(){
 }
 /* THE ONE SHEET AND THE TRAIL: the page settled on when the sheet opened is
    where its ‹ returns (a page the reader is already on is not opened twice) */
+/* the Cover standing over the page it was opened from (not over its own paper): { id, name } */
+function deskCoverUp(){
+  const w = typeof window !== 'undefined' ? window : {};
+  if (typeof w.pdMidUp !== 'function' || typeof document === 'undefined') return null;
+  const pg = document.querySelector('#modal-root .cv-page[data-cv]'); if (!pg) return null;
+  const id = pg.getAttribute('data-cv'); if (!w.pdMidUp('cover:' + id)) return null;
+  const c = typeof w.getContract === 'function' ? w.getContract(id) : null;
+  return { id, name: String((c && c.name) || id) };
+}
+function deskMidUp(){ return typeof window !== 'undefined' && typeof window.pdMidUp === 'function' && !!window.pdMidUp(); }
 function deskBuilderUp(){ return typeof document !== 'undefined' && !!document.getElementById('tb-page') && typeof window.tbLeave === 'function'; }
 function deskSheetUp(){ return typeof window !== 'undefined' && typeof window.naSheetUp === 'function' && !!window.naSheetUp(); }
 function deskSheetFrom(){
@@ -324,12 +347,17 @@ function deskBarPaint(){
   const back = document.getElementById('dk-back'), w = document.getElementById('dk-pg-w'), btn = document.getElementById('dk-page');
   if (back){
     back.hidden = !on;
-    const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
+    const cover = deskCoverUp();
+    const can = deskSheetUp() || deskMidUp() || deskStepBack(false) || !!deskBackTarget();
     back.disabled = !(can || deskBuilderUp());
     /* ‹ SAYS WHERE IT GOES (the glitch audit, 24 Oct 2026: it said only "Back", and a press that
        stepped the panel looked like one that did nothing) */
     let where = '';
-    if (can && !deskSheetUp()){
+    /* from the Cover, ‹ goes back to the page under it, by its name */
+    const midFrom = typeof window !== 'undefined' && typeof window.pdMidFrom === 'function' ? window.pdMidFrom() : '';
+    if (midFrom) where = deskTabLabel(midFrom);
+    else if (cover){ const k = deskKeyNow(); where = k ? deskTabLabel(k) : ''; }
+    else if (can && !deskSheetUp()){
       try {
         const w = typeof window !== 'undefined' ? window : {};
         const t = (deskStepBack(false) && typeof w.pdTrail === 'function') ? w.pdTrail() : null;

@@ -203,7 +203,8 @@ describe('f753 (8) the sheet\'s way back is the bar\'s', () => {
     assert.match(strip(CN.slice(CN.indexOf('function deskPageName('), CN.indexOf('const DK_TRAIL_MAX'))), /if \(deskSheetUp\(\)\) return _cnT\('na_title'\);/);
     assert.match(strip(CN.slice(CN.indexOf('function deskGoBack('), CN.indexOf('function deskGoBack(') + 700)), /if \(deskSheetUp\(\) && typeof window\.naSheetBack === 'function'\)\{ window\.naSheetBack\(\); return true; \}/);
     /* RE-POINTED 19 Oct 2026 (ONE TRAIL): a step of Jambo's panel or the editor from a row is live too */
-    assert.match(CN, /const can = deskSheetUp\(\) \|\| deskStepBack\(false\) \|\| !!deskBackTarget\(\);/, '‹ is live while the sheet is up');
+    /* RE-POINTED 19 Nov 2026 (f1098): a page standing in the middle keeps ‹ live too */
+    assert.match(CN, /const can = deskSheetUp\(\) \|\| deskMidUp\(\) \|\| deskStepBack\(false\) \|\| !!deskBackTarget\(\);/, '‹ is live while the sheet is up');
   });
   test('8c leaving asks first, as Cancel asks, then goes back to the page asked from — never opened twice', () => {
     assert.match(WZ, /_naBack=async\(\)=>\{ if\(!\(await naAskLeave\(\)\)\) return false; dropHeld\(\); closeModal\(\);\s*if\(typeof deskSheetBackTo==='function'\) deskSheetBackTo\(from\); return true; \};/);
