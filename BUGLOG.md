@@ -22618,3 +22618,6 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 19 Nov 2026 · Noticed, not fixed: test/f515-three-next-questions.test.js also runs out of memory in this cloud container, on this morning's main (e85c55d) too, which GitHub passed — the container's memory, not the code.
 - 19 Nov 2026 · Fixed in the evening's green-the-checks round: f312 (2) and f385 (8) re-pointed to the signing route drawn as the one edit pop-up (f1101).
 - 19 Nov 2026 · Noticed, not fixed: test/chromium/share-recipient-verify.js reads the known recipient from the person chip in step 1, which the Send screen's steps the Legora way (f1104) hide; watch it on the next run.
+
+## Noticed, not fixed (19 Nov 2026, SAP page, Legora panel)
+- CLAUDE.md is about 97 KB, over its own "keep it under about 80 KB" limit (it was already over before this change, which added one line); a trim needs the owner's yes.
