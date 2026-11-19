@@ -166,8 +166,10 @@ const check = (name, pass, detail) => {
     console.log('\n7 · ⌘K');
     await toCounter();
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
-    const k7 = await until(() => { const a = document.activeElement; return a && a.closest && a.closest('.jb-card') ? (a.id || a.tagName) : null; });
-    check('7a ⌘K on Home puts the hand in Jambo\'s box', !!k7, String(k7));
+    /* RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the jump window in the middle, its box has the hand */
+    const k7 = await until(() => { const a = document.activeElement; return document.getElementById('cmd-palette') && a && a.id === 'cp-input' ? a.id : null; });
+    check('7a ⌘K on Home opens the launchpad, the hand in its box', !!k7, String(k7));
+    await page.keyboard.press('Escape');
     /* the jump list itself still reads the map's sentences (its door is "/" outside a box, off Home): opened as its door does */
     const palette = async q => { await page.evaluate(() => { const p = document.getElementById('cmd-palette'); if (p) p.remove(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); openCommandPalette(); });
       if (!(await until(() => !!document.getElementById('cp-input')))) return null;

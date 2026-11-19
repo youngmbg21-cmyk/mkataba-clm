@@ -16917,37 +16917,67 @@
   .dk-back-b:disabled{opacity:.45;cursor:default}
   .dk-back-b[hidden]{display:none}
   .dk-back-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
-  /* THE SYMBOL STRIP (owner, 15 Nov 2026): the bar's top-left symbol, and the Guide's compact face it opens down the
-     left edge, OVER the page (it takes no room). One symbol per page in the Guide's order and stage colours, Board
-     first, Settings at the foot; the name in ONE tip beside the symbol pointed at; a press goes there. */
+  /* THE LAUNCHPAD — BENTO, THE LEGORA WAY (owner's pick, 19 Nov 2026; replaces the symbol strip): the bar's top-left
+     symbol, ⌘K and "/" open the jump window in the middle (openCommandPalette, js/app.js). With nothing typed it draws
+     the drawing: one ask box, chips, what waits on you in large numbers on a faint wash of its stage's tone, each
+     quoting the line it was read from, then every page as a quiet list by stage. Nothing boxed but the sheet. */
   .dk-nav-b{width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;margin-left:-8px}
   .dk-nav-b:hover,.dk-nav-b.is-on{background:var(--bar-hover)}
   .dk-nav-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
   .dk-nav-b + .dk-back-b{margin-left:0}
   @media (max-width:767px){ .dk-nav-b{display:none} }
-  .gds{position:fixed;left:0;bottom:0;width:56px;z-index:var(--z-menu);background:var(--color-surface);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-md);display:flex;flex-direction:column;align-items:center;padding:var(--s-2) 0 var(--s-3);overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
-  .gds[hidden]{display:none}
-  .gds-r{position:relative;width:44px;height:29px;flex:none;display:grid;place-items:center;border:0;background:none;padding:0;cursor:pointer;border-radius:var(--radius)}
-  .gds-r.is-foot{margin-top:auto}
-  .gds-r:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px}
-  .gds-mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-gray-bg);color:var(--st-gray-fg)}
-  .gds-mk .gds-ic{width:14px;height:14px}
-  .gds-mk.t-green{background:var(--st-green-bg);color:var(--st-green-fg)}
-  .gds-mk.t-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .gds-mk.t-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
-  .gds-mk.t-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
-  .gds-mk.t-ink{background:var(--color-text);color:var(--color-surface)}
-  .gds-r:hover .gds-mk:not(.t-ink){box-shadow:0 0 0 2px var(--color-surface),0 0 0 3.5px var(--color-neutral-300)}
-  .gds-n{position:absolute;top:0;left:27px;min-width:16px;padding:0 4px;border-radius:999px;background:var(--color-surface);border:1px solid var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-figure);font-weight:var(--w-strong);line-height:14px;text-align:center;font-variant-numeric:tabular-nums}
-  .gds-div{width:22px;height:1px;flex:none;background:var(--color-divider);margin:3px 0}
-  /* A SHORT WINDOW (1536×730, the owner's shortest) holds every symbol without scrolling: the rows close up a little */
-  @media (max-height:760px){ .gds-r{height:26px} .gds-mk{width:24px;height:24px} .gds-div{margin:2px 0} }
-  .gds-tt{position:fixed;z-index:var(--z-menu);transform:translateY(-50%);display:flex;align-items:center;gap:var(--s-2);background:var(--color-text);color:var(--color-surface);border-radius:var(--radius-sm);padding:6px 10px;white-space:nowrap;font-size:var(--t-body);pointer-events:none;box-shadow:var(--shadow-md)}
-  .gds-tt[hidden]{display:none}
-  .gds-tt b{font-weight:var(--w-strong)}
-  .gds-tt span{opacity:.72;font-size:var(--t-meta)}
-  .gds-tt i{font-style:normal;color:var(--st-amber-bg);font-weight:var(--w-strong)}
-  .gds-tt em{font-style:normal;font-size:var(--t-micro);font-weight:var(--w-strong);background:var(--color-surface);color:var(--color-text);border-radius:999px;padding:0 7px}
+  #cmd-palette .lp-top{padding:18px 22px 6px}
+  #cmd-palette .lp-in{width:100%;border:0;outline:0;background:transparent;font-family:var(--font-title);font-size:20px;line-height:1.2;color:var(--color-text)}
+  #cmd-palette .lp-in::placeholder{color:var(--color-neutral-400)}
+  #cmd-palette .lp-chips{display:flex;flex-wrap:wrap;gap:var(--s-1);padding:0 18px 10px}
+  #cmd-palette .lp-chips[hidden]{display:none}
+  #cmd-palette .lp-chip{height:28px;padding:0 11px;border:0;border-radius:999px;background:none;color:var(--color-neutral-400);font:var(--w-label) var(--t-label)/1 var(--font-body);cursor:pointer;white-space:nowrap}
+  #cmd-palette .lp-chip:hover{color:var(--color-text)}
+  #cmd-palette .lp-chip[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  #cmd-palette .lp-list{flex:1 1 auto;min-height:0;overflow-y:auto;padding:0 var(--s-2) var(--s-3)}
+  #cmd-palette .lp-h{font-size:var(--t-label);color:var(--color-neutral-400);padding:var(--s-2) 14px var(--s-1)}
+  #cmd-palette .lp-work{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-2);padding:0 6px}
+  #cmd-palette .lp-w{display:grid;gap:6px;align-content:start;min-width:0;text-align:left;border:0;border-radius:var(--radius);padding:12px 14px 14px;cursor:pointer;font:inherit;color:var(--color-text);background:color-mix(in srgb,var(--st-violet-bg) 45%,var(--color-surface))}
+  #cmd-palette .lp-w.t-green{background:color-mix(in srgb,var(--st-green-bg) 45%,var(--color-surface))}
+  #cmd-palette .lp-w.t-amber{background:color-mix(in srgb,var(--st-amber-bg) 45%,var(--color-surface))}
+  #cmd-palette .lp-w.t-steel{background:color-mix(in srgb,var(--st-steel-bg) 45%,var(--color-surface))}
+  #cmd-palette .lp-w.t-green.is-sel,#cmd-palette .lp-w.t-green:hover{background:color-mix(in srgb,var(--st-green-bg) 80%,var(--color-surface))}
+  #cmd-palette .lp-w.t-amber.is-sel,#cmd-palette .lp-w.t-amber:hover{background:color-mix(in srgb,var(--st-amber-bg) 80%,var(--color-surface))}
+  #cmd-palette .lp-w.t-steel.is-sel,#cmd-palette .lp-w.t-steel:hover{background:color-mix(in srgb,var(--st-steel-bg) 80%,var(--color-surface))}
+  #cmd-palette .lp-w.t-violet.is-sel,#cmd-palette .lp-w.t-violet:hover{background:color-mix(in srgb,var(--st-violet-bg) 80%,var(--color-surface))}
+  #cmd-palette .lp-n{display:flex;align-items:baseline;gap:var(--s-2)}
+  #cmd-palette .lp-n b{font-family:var(--font-title);font-size:46px;line-height:1;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  #cmd-palette .lp-n span{font-size:var(--t-body);font-weight:var(--w-label);color:var(--st-amber-fg)}
+  #cmd-palette .lp-pg{display:flex;align-items:center;gap:7px;font-size:var(--t-card);font-weight:var(--w-strong)}
+  #cmd-palette .lp-w q{display:block;font-size:var(--t-body);line-height:1.45;color:var(--color-quiet);overflow-wrap:anywhere}
+  #cmd-palette .lp-src{font-size:var(--t-micro);line-height:1.3;color:var(--color-neutral-400)}
+  #cmd-palette .lp-act{justify-self:start;margin-top:var(--s-1);display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;background:var(--color-neutral-100);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap}
+  #cmd-palette .lp-w.is-sel .lp-act,#cmd-palette .lp-w:hover .lp-act{background:var(--color-text);color:var(--color-surface)}
+  #cmd-palette .lp-none{margin:0;padding:var(--s-3) 14px;font-size:var(--t-body);color:var(--color-quiet)}
+  #cmd-palette .lp-rule{height:1px;background:var(--color-divider);margin:var(--s-2) 14px 6px}
+  #cmd-palette .lp-pages{display:grid;grid-template-columns:repeat(var(--lp-cols,4),minmax(0,1fr));column-gap:18px;padding:2px 6px 0}
+  #cmd-palette .lp-st{min-width:0}
+  #cmd-palette .lp-st h5{margin:0;display:flex;align-items:center;gap:7px;padding:var(--s-2) var(--s-2) var(--s-1);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400)}
+  #cmd-palette .lp-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-violet-fg)}
+  #cmd-palette .lp-dot.t-green{background:var(--st-green-fg)}
+  #cmd-palette .lp-dot.t-amber{background:var(--st-amber-fg)}
+  #cmd-palette .lp-dot.t-steel{background:var(--st-steel-fg)}
+  #cmd-palette .lp-p{display:flex;align-items:center;gap:9px;width:100%;height:30px;padding:0 var(--s-2);border:0;border-radius:var(--radius-sm);background:none;text-align:left;cursor:pointer;font:var(--w-body) var(--t-card)/1 var(--font-body);color:var(--color-text)}
+  #cmd-palette .lp-p:hover,#cmd-palette .lp-p.is-sel{background:var(--color-neutral-100)}
+  #cmd-palette .lp-p.is-here{font-weight:var(--w-strong)}
+  #cmd-palette .lp-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #cmd-palette .lp-ct{flex:none;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400);white-space:nowrap}
+  #cmd-palette .lp-ct.is-owed{color:var(--st-amber-fg)}
+  #cmd-palette .lp-ic{display:grid;place-items:center;flex:none;color:var(--st-violet-fg)}
+  #cmd-palette .lp-ic.t-green{color:var(--st-green-fg)}
+  #cmd-palette .lp-ic.t-amber{color:var(--st-amber-fg)}
+  #cmd-palette .lp-ic.t-steel{color:var(--st-steel-fg)}
+  #cmd-palette .lp-ic.is-ink{color:var(--color-text)}
+  #cmd-palette .lp-ic .lp-svg{width:15px;height:15px}
+  #cmd-palette .lp-foot{display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-4);align-items:center;justify-content:space-between;padding:9px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-400);background:var(--color-bg)}
+  #cmd-palette .lp-keys{display:flex;gap:var(--s-3);align-items:center}
+  #cmd-palette .lp-foot kbd{font:var(--w-label) var(--t-micro)/1 var(--font-body);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;padding:2px 5px;color:var(--color-quiet)}
+  @media (max-width:900px){ #cmd-palette .lp-work{grid-template-columns:1fr} #cmd-palette .lp-pages{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .dk-pg-w{position:relative;display:inline-flex;min-width:0;flex:0 1 auto}
   .dk-pg-w[hidden]{display:none}
   .dk-page{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:340px;min-width:0;padding:0 10px 0 12px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);font:inherit;font-size:var(--t-body);font-weight:var(--w-body);cursor:pointer}
@@ -21992,9 +22022,9 @@
          on a computer ‹ goes back one page, the HaTi mark is Home, and the page's name opens Recent.
          CHAMBERS (owner, 20 Oct 2026): the bar is white with one hairline; the language
          (Settings › You) and the Blue / Green / Dark switches left it. -->
-    <!-- THE SYMBOL STRIP'S DOOR (owner, 15 Nov 2026): the Guide's compact face, a symbol per page down the left edge;
-         a press or a short rest of the mouse opens it (guideStripWire, js/app.js) -->
-    <button id="dk-nav" class="dk-nav-b" type="button" data-dk-nav title="Pages" data-i18n-title="gds_label" aria-label="Pages" data-i18n-aria="gds_label" aria-haspopup="true" aria-controls="gd-strip" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="M5.5 8h1M5.5 12h1M5.5 16h1"/></svg></button>
+    <!-- THE LAUNCHPAD'S DOOR (owner's pick, 19 Nov 2026; replaced the symbol strip): a press opens the jump window in
+         the middle, drawn as Bento, the Legora way; a second press closes it (lpWire, js/app.js) -->
+    <button id="dk-nav" class="dk-nav-b" type="button" data-dk-nav title="Pages" data-i18n-title="gds_label" aria-label="Pages" data-i18n-aria="gds_label" aria-haspopup="dialog" aria-controls="cmd-palette" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="M5.5 8h1M5.5 12h1M5.5 16h1"/></svg></button>
     <button id="dk-back" class="dk-back-b" type="button" hidden disabled data-dk-back title="Back" aria-label="Back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
     <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="Board" data-i18n-title="hb_face_board" aria-label="Board" data-i18n-aria="hb_face_board">HaTi</button>
     <span id="dk-pg-w" class="dk-pg-w" hidden>

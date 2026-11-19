@@ -38798,3 +38798,24 @@ GITHUB'S FIRST RUN ON PR 778 (18 Nov 2026): node suite and lint green; six brows
 
 ## OBLIGATIONS — RENEWS BY ITSELF, ONE READING (owner, 18 Nov 2026: "Fix the bugs")
 The two faults logged while drawing the ten panels. (1) Read down counted `c.autoRenew` — a field nothing in HaTi writes — so it always said "0 of the N renew by themselves"; a contract's renewal lines (four places in paperdesk) and its Cover read `metadata.autoRenew`, written only by test worlds. The record HaTi keeps is `metadata.renewalType` ('auto-renew', read from the wording; what the server's overnight run renews on). ONE reading `contractRenewsItself(c)` (js/obligations.js; an older record's metadata flag still counts), read by Read down, the four lines, the Cover and renewalWindow. The places that already read renewalType directly (calendar, portfolio, register, overview2, intelligence, workshape) give the same answer and were left. The photographed world's Warehousing Services carries no renewal type at all, so Read down still says 0 for it: the record, not a guess. (2) New agreement → From scratch is a door, not a paper, so the paper left behind kept answering Jambo's panel (Our paper's five parts, or Their paper's) and nothing redrew it on the tab's turn; now neither hand answers while `is-newpaper` is up, and `naNewPaperShow` redraws the panel — the sheet's own greeting every time. The tab's own five-part panel stays set aside (owner, 18 Nov 2026). f1095 red at the parent (3 of 3), green after; 625 tests reading the changed areas green; photographed at the three screens reached from both tabs.
+
+## THE SHELL — RAIL, BAR, PANELS — THE LAUNCHPAD, BENTO THE LEGORA WAY (19 Nov 2026)
+The owner asked for the page list kept off the screen until needed ("people have the entire screen especially when on
+laptops"), was drawn two asks (a full panel from the button; a panel in the middle), then five Launchpads, three quieter
+Bentos and "Bento, the Legora way", and asked for "a tinge of color to legora". Picked: "bento the legora way it is for now".
+The owner's answers before the build: "1, yes" (⌘K opens it — it had put the hand in Jambo's box since 29 Oct), "2, A" (one
+list: the jump window is the launchpad, never a second list), "3, replace" (the symbol strip of 15 Nov goes). Then "BUILD IT
+… push and merge and fix … until you get to green and merge".
+BUILT: the jump window that "/" outside a box already opened (openCommandPalette, js/app.js) IS the launchpad. Nothing typed
+draws the drawing (lpItems, lpBodyHtml): one ask box in the serif, six chips (All · Waiting on you · Arrive · Deal · Live ·
+Book), what waits on you on top in large numbers on a faint wash of its stage's tone (color-mix over the --st-*-bg tokens),
+each quoting the line it was read from (lpQuoteOf: Approvals' own first row — name · party · money through jov5Money's walls;
+Settings' own first need; the agents' count in a sentence; a page with no reader shows its number alone, never a guess), at
+most LP_WAIT_MAX = 3 and the rest SAID in the foot; then every Guide page once by stage, its symbol in the stage's tone, the
+page you stand on said once. Typed, it is commandPaletteResults as before (places, settings, tasks, folders, contracts,
+wording, Ask Jambo). Doors: #dk-nav (lpWire; a press opens, a second closes), ⌘K, "/" outside a box.
+NOT BUILT, AND WHY: "/" typed INSIDE a Jambo box still opens that box's own small list (caSlRead, hbAskPopRows, jlPopRead):
+those lists also carry acts on the open contract (redline, sign, share, fill) and the Board's chart moves (compare, trend…),
+which the launchpad does not draw — folding them in is a decision put to the owner, not taken overnight. The strip's
+"rest the mouse on it" opening was not carried over: a window in the middle opening under a resting mouse would cover the page
+unasked.

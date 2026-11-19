@@ -2066,23 +2066,25 @@ function openCommandPalette(prefill){
   const opener = document.activeElement;
   const ov=document.createElement('div');
   ov.id='cmd-palette';
-  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:12vh var(--s-4) var(--s-4)';
+  ov.className='lp';
+  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:8vh var(--s-4) var(--s-4)';
+  /* THE LAUNCHPAD (owner's pick, 19 Nov 2026): every opening starts on All */
+  _lpChip='all';
   ov.innerHTML=`
     <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
-    <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden">
-      <div style="display:flex;align-items:center;gap:9px;padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
-        <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
-        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off"
+    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1010px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 8vh - var(--s-4))">
+      <div class="lp-top">
+        <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
-          aria-label="${esc(i18t('ap_search_placeholder'))}"
-          style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:var(--t-card);color:inherit"/>
-        <span style="font-size:var(--t-label);border:1px solid var(--color-divider);padding:2px 6px;border-radius:var(--radius);color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
+          aria-label="${esc(i18t('lp_where'))}"/>
       </div>
-      <div id="cp-list" class="scroll-thin" role="listbox" aria-label="${esc(i18t('ap_results'))}"
-        style="max-height:52vh;overflow-y:auto;padding:6px"></div>
+      <div id="lp-chips" class="lp-chips" role="group" aria-label="${esc(i18t('gds_label'))}"></div>
+      <div id="cp-list" class="scroll-thin lp-list" role="listbox" aria-label="${esc(i18t('ap_results'))}"></div>
+      <div id="lp-foot" class="lp-foot"></div>
     </div>`;
   document.body.appendChild(ov);
-  const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
+  const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list'), chips=ov.querySelector('#lp-chips'), foot=ov.querySelector('#lp-foot');
+  lpDoorSay(true);
   /* THE KEYBOARD STAYS IN THE PALETTE. focus:false because this overlay
      focuses its own box — Tab is what was walking out of it into the page,
      and the trap's own restore is the same one written by hand below, kept
@@ -2100,7 +2102,7 @@ function openCommandPalette(prefill){
   const close=()=>{
     clearTimeout(ftsT);
     if(trapRelease){ try{ trapRelease(); }catch(_){} }
-    ov.remove(); document.removeEventListener('keydown',onKey,true);
+    ov.remove(); document.removeEventListener('keydown',onKey,true); lpDoorSay(false);
     try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
   };
   const openItem=it=>{
@@ -2112,6 +2114,8 @@ function openCommandPalette(prefill){
       return;
     }
     if(it.kind==='place'){ close(); if(window.caPlaceRun) caPlaceRun(it.id); return; }
+    /* a launchpad row: the Guide's own door to that page */
+    if(it.kind==='page'){ close(); guideGo(it.id); return; }
     if(it.kind==='task'){ const asked=input.value; close(); if(window.jmRun) jmRun(it.id,asked); return; }
     if(it.kind==='setting'){ close(); if(window.stFindGo) stFindGo(it.id); return; }
     close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
@@ -2128,7 +2132,21 @@ function openCommandPalette(prefill){
       }catch(_){ /* the sync rows stand alone — search down is not palette down */ }
     },250);
   };
+  /* NOTHING TYPED: THE LAUNCHPAD, as drawn. A hover moves the selection without redrawing (no row jumps under the hand). */
+  const lpSel=i=>{ active=i; list.querySelectorAll('[data-cp-i]').forEach(b=>{ const on=+b.getAttribute('data-cp-i')===i; b.classList.toggle('is-sel',on); b.setAttribute('aria-selected',on?'true':'false'); });
+    const act=list.querySelector(`[data-cp-i="${i}"]`); if(act&&act.scrollIntoView) act.scrollIntoView({block:'nearest'}); input.setAttribute('aria-activedescendant',act?act.id:''); };
+  const lpPaint=()=>{
+    results=lpItems(); if(active>=results.length) active=Math.max(0,results.length-1);
+    chips.hidden=false; chips.innerHTML=lpChipsHtml();
+    list.innerHTML=lpBodyHtml(results,active); foot.innerHTML=lpFootHtml(false);
+    list.querySelectorAll('[data-cp-i]').forEach(b=>{ const i=+b.getAttribute('data-cp-i');
+      b.addEventListener('click',()=>openItem(results[i])); b.addEventListener('mousemove',()=>{ if(active!==i) lpSel(i); }); });
+    lpSel(active);
+  };
+  chips.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-lp-chip]'); if(!b) return; _lpChip=b.getAttribute('data-lp-chip'); active=0; paint(); input.focus(); });
   const paint=()=>{
+    if(!input.value.trim()){ lpPaint(); return; }
+    chips.hidden=true; foot.innerHTML=lpFootHtml(true);
     results=commandPaletteResults(input.value);
     const q=input.value.trim();
     if(q){
@@ -2180,6 +2198,8 @@ function openCommandPalette(prefill){
     input.setAttribute('aria-activedescendant', act ? act.id : '');
   };
   function onKey(e){
+    /* A WINDOW TAKEN AWAY WITHOUT ITS CLOSE (a test, a page swap) stops listening: its keys never act on rows no longer drawn */
+    if(!document.contains(ov)){ document.removeEventListener('keydown',onKey,true); lpDoorSay(false); return; }
     /* ESCAPE BELONGS TO THE TOP LAYER AND STOPS THERE. This handler is on
        document in the CAPTURE phase, so it runs before everything — and
        without stopPropagation the same press went on to reach the nav
@@ -2194,6 +2214,7 @@ function openCommandPalette(prefill){
   document.addEventListener('keydown',onKey,true);
   input.addEventListener('input',()=>{ active=0; paint(); ftsPlan(); });
   ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) close(); });
+  ov._lpClose=close;
   if(typeof prefill==='string' && prefill){ input.value=prefill; ftsPlan(); }
   paint(); input.focus();
 }
@@ -4117,84 +4138,104 @@ function guidePanelNlHtml(){
   return `<div class="gdn${five?' is-five':''}"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${g(guideNlRowHtml(hereRow,here,'ink'))}`
     +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here,st.tone)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${g(rows)}`:''; }).join('')+`</div>`;
 }
-/* THE SYMBOL STRIP — THE GUIDE'S COMPACT FACE (owner, 15 Nov 2026: "Build the symbol nav panel per your
-   recommendation"; lifts "no left rail" for this strip only, which lies OVER the page and takes no room). The symbol
-   at the top left of the bar (#dk-nav) opens it on a press, or after a short rest of the mouse; one symbol per page,
-   Board first and Settings at the foot, the order FIXED (the Rolodex was drawn and turned down: a page must stay
-   where the hand learnt it). Every row, word, count and door is the Guide's own (GUIDE_NL, guideNlCount,
-   guideWordOf, guideHereKey, guideGo): no second list of pages. The name shows beside the symbol pointed at or
-   focused, in ONE tip outside the strip so the strip may scroll on a short screen without clipping it. Reads only. */
-const GUIDE_STRIP_ICON={ parties:'building' };
-const GUIDE_STRIP_HOVER_MS=250, GUIDE_STRIP_LEAVE_MS=300;
-let _gdsHow=null, _gdsHoverT=0, _gdsLeaveT=0;
-function guideStripRows(){
+/* THE LAUNCHPAD — BENTO, THE LEGORA WAY (owner's pick by name, 19 Nov 2026: "bento the legora way it is", then "1, yes ·
+   A · 3, replace" and "BUILD IT"; drawn on photos of the app). It REPLACES the symbol strip (15 Nov 2026). The jump window
+   in the middle of the screen (openCommandPalette — "/" outside a box) IS the launchpad: ONE door, never a second list.
+   With nothing typed it draws the drawing: one ask box, chips (All · Waiting on you · Arrive · Deal · Live · Book), what
+   waits on you on top in large numbers, each quoting the line it was read from with its button in the row, then every
+   page as a quiet list by stage, its symbol in the stage's tone. Typed, it is the jump list it always was
+   (commandPaletteResults). Opened by the bar's top-left symbol (#dk-nav), ⌘K / Ctrl K, and "/" outside a box. Every page,
+   count, word and door is the Guide's own (GUIDE_NL, guideNlCount, guideHereKey, guideGo). Reads only. */
+const LP_WAIT_MAX=3;
+const LP_CHIPS=['all','need','arrive','negsign','live','book'];
+const LP_ICON={ parties:'building' };
+let _lpChip='all';
+/* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */
+function lpRows(){
   const out=[{ k:'board', tone:'violet' }];
   GUIDE_NL.forEach(st=>st.rows.flat().forEach(k=>{ if(k!=='board'&&k!=='settings'&&!out.some(o=>o.k===k)) out.push({ k, tone:st.tone }); }));
   out.push({ k:'settings', tone:'violet' });
   return out.filter(r=>guideRowShown(r.k));
 }
-function guideStripIcon(k){ return GUIDE_STRIP_ICON[k]||GUIDE_NL_ICON[k]||'file'; }
-function guideStripOwed(k){ const c=guideNlCount(k); return c&&c.owed?c.n:0; }
-function guideStripHtml(){
-  const here=guideHereKey()||'board'; let tone=null;
-  return guideStripRows().map(({ k, tone:t })=>{
-    const on=here===k, n=on?0:guideStripOwed(k), name=i18t('gd_p_'+k);
-    const div=(tone&&t!==tone&&k!=='settings')?'<span class="gds-div" aria-hidden="true"></span>':''; tone=t;
-    return div+`<button type="button" class="gds-r${k==='settings'?' is-foot':''}" data-gds-go="${k}" aria-label="${esc(name)}"${on?' aria-current="page"':''}>`
-      +`<span class="gds-mk ${on?'t-ink':'t-'+t}" aria-hidden="true">${typeof icon==='function'?icon(guideStripIcon(k),'gds-ic',1.8):''}</span>`
-      +(n?`<span class="gds-n" aria-hidden="true">${n>99?'99+':n}</span>`:'')+`</button>`;
-  }).join('');
+function lpIcon(k){ return LP_ICON[k]||GUIDE_NL_ICON[k]||'file'; }
+function lpStageOf(k){ return GUIDE_NL.find(st=>st.rows.flat().includes(k))||null; }
+function lpToneOf(k){ const st=lpStageOf(k); return st?st.tone:'violet'; }
+function lpOwed(k){ const c=guideNlCount(k); return c&&c.owed?c.n:0; }
+function lpSize(k){ const c=guideNlCount(k); return c&&!c.owed?c.n:0; }
+const lpPlain=h=>String(h==null?'':h).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+/* WHAT WAITS, QUOTED FROM WHERE IT WAS READ: the page's own first row, never a guess; a page with no reader shows its number alone */
+function lpQuoteOf(k){
+  const more=(list,say)=>list.length<2?'':list.length===2?i18t('lp_and',{ what:say(list[1]) }):i18tn('lp_and_n',list.length-1,{ n:list.length-1 });
+  try{
+    if(k==='approvals'&&typeof window.apWorkRows==='function'){
+      const ys=(window.apWorkRows().yours||[]).filter(r=>r&&r.c&&!r.done);
+      const say=r=>[r.c.name, r.c.counterparty, typeof window.jov5Money==='function'?window.jov5Money(r.c):''].filter(Boolean).join(' · ');
+      if(ys.length) return { q:say(ys[0]), more:more(ys,say) };
+    }
+    if(k==='settings'&&typeof window.stNeedsAll==='function'){
+      const ns=(window.stNeedsAll()||[]).filter(r=>r&&lpPlain(r.text));
+      const say=r=>lpPlain(r.text);
+      if(ns.length) return { q:say(ns[0]), more:more(ns,say) };
+    }
+    if(k==='house'){ const n=lpOwed('house'); if(n) return { q:i18tn('lp_house',n,{ n }), more:'' }; }
+  }catch(_){}
+  return null;
 }
-function guideStripTipHtml(k){
-  const on=(guideHereKey()||'board')===k, n=on?0:guideStripOwed(k), w=guideWordOf(k);
-  return `<b>${esc(i18t('gd_p_'+k))}</b>${w?`<span>${esc(i18t('gdn_say',{ words:'“'+w+'”' }))}</span>`:''}`
-    +(on?`<em>${esc(i18t('gd_here'))}</em>`:n?`<i>${n}</i>`:'');
+function lpWaits(){ const here=guideHereKey()||'board'; return lpRows().map(r=>r.k).filter(k=>k!==here&&lpOwed(k)); }
+/* the launchpad's rows, in the order they are drawn and walked by the arrows */
+function lpItems(){
+  const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', items=[];
+  if(ch==='all'||ch==='need') lpWaits().slice(0,LP_WAIT_MAX).forEach(k=>items.push({ kind:'page', id:k, wait:true }));
+  if(ch!=='need'){ const ks=lpRows().map(r=>r.k);
+    GUIDE_NL.filter(st=>ch==='all'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st).forEach(k=>items.push({ kind:'page', id:k, st:st.k }))); }
+  return items;
 }
-function guideStripTip(btn){
-  let tt=document.getElementById('gd-strip-tt');
-  if(!btn){ if(tt) tt.hidden=true; return; }
-  if(!tt){ tt=document.createElement('div'); tt.id='gd-strip-tt'; tt.className='gds-tt'; tt.setAttribute('role','tooltip'); document.body.appendChild(tt); }
-  const r=btn.getBoundingClientRect();
-  tt.innerHTML=guideStripTipHtml(btn.getAttribute('data-gds-go')); tt.hidden=false;
-  tt.style.left=Math.round(r.right+6)+'px'; tt.style.top=Math.round(r.top+r.height/2)+'px';
+function lpWaitWord(k){ return i18t(({ approvals:'lp_w_approvals', house:'lp_w_house', settings:'lp_w_settings' })[k]||'lp_w_any'); }
+function lpActWord(k){ return i18t(({ approvals:'lp_act_approvals', house:'lp_act_house', settings:'lp_act_settings' })[k]||'lp_act_open'); }
+function lpMark(k,cls){ return `<span class="${cls} t-${lpToneOf(k)}" aria-hidden="true">${typeof icon==='function'?icon(lpIcon(k),'lp-svg',1.8):''}</span>`; }
+function lpBodyHtml(items,active){
+  const here=guideHereKey()||'board';
+  const opt=(it,cls,inner)=>{ const n=items.indexOf(it), on=it.id===here&&!it.wait;
+    return `<button type="button" class="${cls}${n===active?' is-sel':''}${on?' is-here':''}" data-cp-i="${n}" id="cp-opt-${n}" role="option" aria-selected="${n===active}"${on?' aria-current="page"':''}>${inner}</button>`; };
+  const W=items.filter(x=>x.wait), P=items.filter(x=>!x.wait);
+  let h='';
+  if(W.length){
+    h+=`<div class="lp-h">${esc(i18t('lp_chip_need'))}</div><div class="lp-work" role="group" aria-label="${esc(i18t('lp_chip_need'))}">`+W.map(it=>{
+      const k=it.id, n=lpOwed(k), Q=lpQuoteOf(k);
+      return opt(it,'lp-w t-'+lpToneOf(k),`<span class="lp-n"><b>${n}</b><span>${esc(lpWaitWord(k))}</span></span>`
+        +`<span class="lp-pg">${lpMark(k,'lp-ic')}${esc(i18t('gd_p_'+k))}</span>`
+        +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')
+        +`<span class="lp-act">${esc(lpActWord(k))}</span>`); }).join('')+`</div>`;
+  } else if(_lpChip==='need') h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
+  if(P.length){
+    const groups=GUIDE_NL.map(st=>({ st, its:P.filter(x=>x.st===st.k) })).filter(g=>g.its.length);
+    h+=(W.length?'<div class="lp-rule" aria-hidden="true"></div>':'')+`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
+      `<div class="lp-st" role="group" aria-label="${esc(i18t('gdn_s_'+g.st.k))}"><h5><i class="lp-dot t-${g.st.tone}" aria-hidden="true"></i>${esc(i18t('gdn_s_'+g.st.k))}</h5>`+g.its.map(it=>{
+        const k=it.id, on=k===here, o=on?0:lpOwed(k), z=on?0:lpSize(k);
+        return opt(it,'lp-p',`${lpMark(k,'lp-ic'+(on?' is-ink':''))}<span class="lp-nm">${esc(i18t('gd_p_'+k))}</span>`
+          +(on?`<span class="lp-ct">${esc(i18t('gd_here'))}</span>`:o?`<span class="lp-ct is-owed">${o}</span>`:z?`<span class="lp-ct">${z}</span>`:''));
+      }).join('')+`</div>`).join('')+`</div>`;
+  }
+  return h;
 }
-function guideStripIsOpen(){ const el=document.getElementById('gd-strip'); return !!(el&&!el.hidden); }
-function guideStripOpen(how){
-  clearTimeout(_gdsHoverT); clearTimeout(_gdsLeaveT);
-  let el=document.getElementById('gd-strip');
-  if(!el){ el=document.createElement('nav'); el.id='gd-strip'; el.className='gds'; document.body.appendChild(el); }
-  el.setAttribute('aria-label',i18t('gds_label'));
-  el.innerHTML=guideStripHtml();
-  const hdr=document.getElementById('top-header'), top=hdr?Math.round(hdr.getBoundingClientRect().bottom):0;
-  el.style.top=top+'px'; el.hidden=false; _gdsHow=how==='hover'?'hover':'press';
-  const b=document.getElementById('dk-nav'); if(b){ b.setAttribute('aria-expanded','true'); b.classList.add('is-on'); }
-  return el;
+/* the foot: the keys, then what the panel holds — a cap is said, never a silent trim */
+function lpFootHtml(typed){
+  const keys=`<span class="lp-keys"><span><kbd>↑</kbd> <kbd>↓</kbd> ${esc(i18t('lp_k_move'))}</span><span><kbd>Enter</kbd> ${esc(i18t('lp_k_go'))}</span><span><kbd>Esc</kbd> ${esc(i18t('lp_k_close'))}</span></span>`;
+  if(typed) return keys;
+  const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', left=(ch==='all'||ch==='need')?lpWaits().length-LP_WAIT_MAX:0;
+  return keys+`<span>${esc(left>0?i18tn('lp_more',left,{ n:left }):i18t('lp_foot'))}</span>`;
 }
-function guideStripClose(){
-  clearTimeout(_gdsHoverT); clearTimeout(_gdsLeaveT); _gdsHow=null; guideStripTip(null);
-  const el=document.getElementById('gd-strip'); if(el) el.hidden=true;
-  const b=document.getElementById('dk-nav'); if(b){ b.setAttribute('aria-expanded','false'); b.classList.remove('is-on'); }
+function lpChipsHtml(){
+  const word=c=>c==='all'?i18t('lp_chip_all'):c==='need'?i18t('lp_chip_need'):c==='negsign'?i18t('lp_chip_deal'):i18t('gdn_s_'+c);
+  return LP_CHIPS.map(c=>`<button type="button" class="lp-chip" data-lp-chip="${c}" aria-pressed="${c===_lpChip}">${esc(word(c))}</button>`).join('');
 }
-/* a press opens it to stay; a press on a strip the mouse opened keeps it; a press on one it pressed open closes it */
-function guideStripPress(){ if(guideStripIsOpen()&&_gdsHow==='press') guideStripClose(); else guideStripOpen('press'); }
-function guideStripGo(k){ guideStripClose(); guideGo(k); }
-function guideStripWire(){
-  const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.gdsWired) return; b.dataset.gdsWired='1';
-  const leaveSoon=()=>{ if(_gdsHow!=='hover') return; clearTimeout(_gdsLeaveT); _gdsLeaveT=setTimeout(guideStripClose,GUIDE_STRIP_LEAVE_MS); };
-  b.addEventListener('click',guideStripPress);
-  b.addEventListener('pointerenter',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(_gdsLeaveT);
-    if(!guideStripIsOpen()){ clearTimeout(_gdsHoverT); _gdsHoverT=setTimeout(()=>guideStripOpen('hover'),GUIDE_STRIP_HOVER_MS); } });
-  b.addEventListener('pointerleave',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(_gdsHoverT); leaveSoon(); });
-  document.addEventListener('pointerover',e=>{ const s=e.target.closest&&e.target.closest('#gd-strip'); if(!s) return;
-    clearTimeout(_gdsLeaveT); const r=e.target.closest('[data-gds-go]'); guideStripTip(r||null); });
-  document.addEventListener('pointerout',e=>{ const s=e.target.closest&&e.target.closest('#gd-strip'); if(!s) return;
-    const to=e.relatedTarget; if(to&&to.closest&&to.closest('#gd-strip')) return; guideStripTip(null); if(!(to&&to.closest&&to.closest('#dk-nav'))) leaveSoon(); });
-  document.addEventListener('focusin',e=>{ const r=e.target.closest&&e.target.closest('#gd-strip [data-gds-go]'); if(r) guideStripTip(r); });
-  document.addEventListener('click',e=>{ const r=e.target.closest&&e.target.closest('#gd-strip [data-gds-go]'); if(r) guideStripGo(r.getAttribute('data-gds-go')); });
-  document.addEventListener('pointerdown',e=>{ if(!guideStripIsOpen()) return; const t=e.target;
-    if(t.closest&&(t.closest('#gd-strip')||t.closest('#dk-nav'))) return; guideStripClose(); },true);
-  document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!guideStripIsOpen()) return; guideStripClose(); try{ b.focus({ focusVisible:true }); }catch(_){ b.focus(); } });
-  addEventListener('resize',()=>{ if(guideStripIsOpen()) guideStripClose(); });
+/* the bar's top-left symbol: a press opens the launchpad, a second press (on the dimmed screen) closes it */
+function lpIsOpen(){ return !!document.getElementById('cmd-palette'); }
+function lpDoorSay(on){ const b=document.getElementById('dk-nav'); if(!b) return; b.setAttribute('aria-expanded',on?'true':'false'); b.classList.toggle('is-on',!!on); }
+function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette(); }
+function lpWire(){
+  const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.lpWired) return; b.dataset.lpWired='1';
+  b.addEventListener('click',lpToggle);
 }
 function guidePanelHtml(){
   if(typeof window.newLookOn==='function'&&newLookOn()) return guidePanelNlHtml();
@@ -4586,7 +4627,8 @@ function wireShell(){
   document.addEventListener('keydown',e=>{
     /* THE KEYS ARE THE SHELL'S, NOT THE BAR'S SEARCH'S (round 1, 29 Oct 2026): wired here, so the bar's box leaving
      takes none of them with it. Cmd/Ctrl+K → Jambo's box (works even while typing in a field) */
-    if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); jamboBoxFocus(); return; }
+    /* RE-POINTED 19 Nov 2026 (owner: "1, yes"): ⌘K / Ctrl K opens the launchpad, the jump window in the middle */
+    if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); openCommandPalette(); return; }
     /* ⌘B / Ctrl+B → collapse or open the sidebar. The settled binding —
        verified in shadcn's own source, which is the de-facto modern
        dashboard implementation, and the same key Vercel and Linear use.
@@ -4677,8 +4719,8 @@ function wireShell(){
 
   /* ONE DOOR TO THE SIDE PANEL (owner picked "The SAP Way", 9 Nov 2026): the clock and the Guide's door left the bar */
   document.getElementById('hdr-notify')?.addEventListener('click',panelDoorPress);
-  /* THE SYMBOL STRIP: the bar's top-left symbol opens the Guide's compact face down the left edge */
-  guideStripWire();
+  /* THE LAUNCHPAD (19 Nov 2026): the bar's top-left symbol opens the jump window in the middle, drawn as Bento, the Legora way */
+  lpWire();
   /* CHAT IS THE CONTRACT'S CONVERSATION, so it opens the notes face with no
      change named — openNotesPanel is the one door onto that face and this is
      the press arriving there, never a second way of putting the panel up.
@@ -4902,6 +4944,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});
