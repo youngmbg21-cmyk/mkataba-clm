@@ -7800,7 +7800,9 @@ function pd2Facts(c, D){
     const tone = sd.miss ? 'is-miss' : sd.dev ? 'is-dev' : 'is-met', R = 18, C = 2 * Math.PI * R;
     const ring = `<span class="pd2-ring ${tone}" aria-hidden="true"><svg viewBox="0 0 44 44" focusable="false"><circle class="pd2-ring-bg" cx="22" cy="22" r="${R}"/>${met ? `<circle class="pd2-ring-fg" cx="22" cy="22" r="${R}" stroke-dasharray="${(C * met / sd.total).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}</svg><b>${pct}%</b></span>`;
     const offs = [sd.miss ? _pdTn('pd2_std_miss', sd.miss, { n: sd.miss }) : '', sd.dev ? _pdTn('pd2_std_dev', sd.dev, { n: sd.dev }) : ''].filter(Boolean).join(' · ');
-    out.push({ k: 'std', cls: 'is-ring', l: _pdT('pd2_f_std'), v: `<span class="pd2-score">${ring}<span class="pd2-score-w"><span class="pd2-score-n">${E(_pdT('pd2_std_met', { met, total: sd.total }))}</span>${offs ? `<span class="pd2-score-off ${tone}">${E(offs)}</span>` : ''}</span></span>`, s: '', go: 'data-pd-ds-std' }); }
+    /* NO OPEN ON THE RING (owner, 19 Nov 2026: "simply delete the open option. the notes will be there anyway so it adds
+       no value"): what is off already stands beside the paper; the ring only reads, it opens nothing */
+    out.push({ k: 'std', cls: 'is-ring', l: _pdT('pd2_f_std'), v: `<span class="pd2-score">${ring}<span class="pd2-score-w"><span class="pd2-score-n">${E(_pdT('pd2_std_met', { met, total: sd.total }))}</span>${offs ? `<span class="pd2-score-off ${tone}">${E(offs)}</span>` : ''}</span></span>`, s: '' }); }
   else {
     /* CHECKED ON ITS FIRST OPEN (pbCheckOnOpen): while it runs the fact says so; a refusal is said here, Check its way forward */
     let os = null; try { os = (typeof window.pbOpenCheckState === 'function') ? window.pbOpenCheckState(c) : null; } catch (_){ os = null; }

@@ -24,9 +24,11 @@ describe('f1103 (1) the Playbook fact is a score ring', () => {
     assert.match(F, /pd2_std_miss/);
     assert.match(F, /pd2_std_dev/);
   });
-  test('the old sentence is not drawn, and Open stays the one door', () => {
+  test('the old sentence is not drawn, and the ring carries no Open (owner, 19 Nov 2026: the notes are there anyway)', () => {
     assert.doesNotMatch(F, /pd2_std_off/);
-    assert.match(F, /k: 'std', cls: 'is-ring'[^\n]*go: 'data-pd-ds-std'/);
+    const ring = (F.match(/out\.push\(\{ k: 'std', cls: 'is-ring'[^\n]*/) || [''])[0];
+    assert.ok(ring, 'the ring row is drawn');
+    assert.doesNotMatch(ring, /go:/, 'the ring row has no door');
   });
 });
 

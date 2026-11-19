@@ -542,7 +542,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES
 - f1104 (test/f1104-checked-on-first-open.test.js): a never-checked contract is checked once on its first open from the three doors; the walls; once a sitting; never over a kept check; Checking and the refusal said on the fact, both books; (5) Open brings hidden notes back and never says every position met when the check says otherwise.
-- f1103 (test/f1103-the-playbook-score-ring.test.js): the Dossier's Playbook fact is a score ring coloured by the worst found, the old sentence gone from both books, its colours tokens.
+- f1103 (test/f1103-the-playbook-score-ring.test.js): the Dossier's Playbook fact is a score ring coloured by the worst found, the old sentence gone from both books, its colours tokens. The ring carries no Open; standards-beside-paper-verify 3 asserts it.
 - f996 (3) (the other clause's ask: the review window's box, Prepare redlines files it as that clause's own draft).
 - f996 (Jambo's instruction is not wording: pbDraftRead, pbFitAdd, draftFit, the applied card marked against what stands); contract-new-look-verify 13 (the notes stay on Clauses).
 - OUR STANDARDS BESIDE THE PAPER (new look, owner picked "Beside the paper" 6 Nov 2026): standards-beside-paper-verify 1–5 (new, red at the parent: no standards in the margin, the Dossier's Standards line opened the old side panel), 6 (look off: the side panel as before).
