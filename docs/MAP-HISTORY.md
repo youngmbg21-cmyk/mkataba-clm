@@ -38827,3 +38827,9 @@ LEFT ALONE (said to the owner): the narrow window keeps the old Parties list; th
 
 ## THE MIDDLE — A PAGE ARRIVES WHOLE
 19 Nov 2026. After #780 merged, the owner: "why do i still see a flash going from contracts page to cover page? … it flashed the contracts first then goes to cover". Measured every frame (1280 × 640, CPU ×4): the Cover lay on top from its first frame but faded up from opacity 0.00 to 1.00 over ~200 ms (`.modal-in`'s `viewIn`), so the page under it showed through. The flash check and the sweep asked only which element was on TOP (elementFromPoint), which a fading page wins at opacity 0 — so they passed it. Fixed: a pop-up that is a page (`[data-dlg-page]`: the Cover, the brief, a middle page, the Send screen) arrives at once, no fade; measured after, the Cover is 1.00 from its first frame. The check now judges the page SEEN (first layer down the stack ≥ 90% solid). Left: a plain white moment while a contract not yet loaded arrives (the veil).
+
+## THE SHELL — RAIL, BAR, PANELS — THE LAUNCHPAD STANDS IN THE MIDDLE (19 Nov 2026)
+The owner, after the launchpad merged: "nav panel pop up should appear at the center of the page". It stood 8vh from the
+top; now it is centred up and down as well as across (align-items:center), and it keeps the height it opened at
+(minHeight set after the first paint) so fewer rows while typing never move the box under the reader's eyes. Measured on
+the three screens: equal room above and below.

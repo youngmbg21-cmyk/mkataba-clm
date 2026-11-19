@@ -2067,12 +2067,13 @@ function openCommandPalette(prefill){
   const ov=document.createElement('div');
   ov.id='cmd-palette';
   ov.className='lp';
-  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:8vh var(--s-4) var(--s-4)';
+  /* IN THE MIDDLE OF THE SCREEN, up and down as well as across (owner, 19 Nov 2026: "nav panel pop up should appear at the center of the page") */
+  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;padding:var(--s-4)';
   /* THE LAUNCHPAD (owner's pick, 19 Nov 2026): every opening starts on All */
   _lpChip='all';
   ov.innerHTML=`
     <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
-    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1010px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 8vh - var(--s-4))">
+    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1010px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 2 * var(--s-4))">
       <div class="lp-top">
         <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
@@ -2217,6 +2218,8 @@ function openCommandPalette(prefill){
   ov._lpClose=close;
   if(typeof prefill==='string' && prefill){ input.value=prefill; ftsPlan(); }
   paint(); input.focus();
+  /* centred, it keeps the height it opened at: fewer rows as you type never move the box under your eyes */
+  const sheet=ov.querySelector('.lp-sheet'); if(sheet){ const h=Math.round(sheet.getBoundingClientRect().height); if(h>0) sheet.style.minHeight=h+'px'; }
 }
 
 /* ============================================================ CONTEXT PANEL */

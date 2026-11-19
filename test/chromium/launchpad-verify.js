@@ -43,9 +43,10 @@ const isShut = () => !document.getElementById('cmd-palette');
     await P.click('#dk-nav');
     const opened = await until(P, () => !!document.querySelector('#cmd-palette .lp-p'), null, 4000);
     const one = await P.evaluate(() => ({ focus: document.activeElement && document.activeElement.id, exp: document.getElementById('dk-nav').getAttribute('aria-expanded'),
-      sheet: (() => { const r = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(innerWidth - r.right), w: Math.round(r.width) }; })() }));
+      sheet: (() => { const r = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(innerWidth - r.right), t: Math.round(r.top), b: Math.round(innerHeight - r.bottom), w: Math.round(r.width) }; })() }));
     check(opened && one.focus === 'cp-input' && one.exp === 'true', '1a a press on the symbol opens the launchpad, the typing box has the hand', one);
-    check(opened && Math.abs(one.sheet.l - one.sheet.r) <= 2 && one.sheet.w > 900, '1b in the middle of the screen, as wide as drawn', one.sheet);
+    /* RE-POINTED 19 Nov 2026 (owner: "nav panel pop up should appear at the center of the page"): up and down as well */
+    check(opened && Math.abs(one.sheet.l - one.sheet.r) <= 2 && Math.abs(one.sheet.t - one.sheet.b) <= 2 && one.sheet.w > 900, '1b in the middle of the screen, across and up and down, as wide as drawn', one.sheet);
 
     /* 2 as drawn */
     const drawn = await P.evaluate(() => {
@@ -78,8 +79,11 @@ const isShut = () => !document.getElementById('cmd-palette');
 
     /* 4 typed, the jump list; emptied, the launchpad */
     await P.fill('#cp-input', 'cal');
+    const h0 = await P.evaluate(() => Math.round(document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect().top));
     const typed = await until(P, () => document.getElementById('lp-chips').hidden && !document.querySelector('#cmd-palette .lp-p') && /calendar|kalender/i.test(document.getElementById('cp-list').textContent), null, 3000);
     check(typed, '4a typed, it is the jump list (chips away, Calendar found)');
+    const h1 = await P.evaluate(() => Math.round(document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect().top));
+    check(h0 === h1, '4c typing does not move the window (it keeps the height it opened at)', { before: h0, after: h1 });
     await P.fill('#cp-input', '');
     check(await until(P, () => !!document.querySelector('#cmd-palette .lp-p') && !document.getElementById('lp-chips').hidden, null, 3000), '4b emptied, the launchpad returns');
 
