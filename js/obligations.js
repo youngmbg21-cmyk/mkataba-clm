@@ -3567,7 +3567,8 @@ function obPanelFive(o, c, i){
       : d == null ? { n: '—', l: i18t('jov5_obp_g_nodate') }
       : d < 0 ? { n: -d, l: i18t('jov5_obp_g_late'), warn: true } : { n: d, l: i18t('jov5_obp_g_left') },
     { n: rem ? obDay(rem) : i18t('jov5_obp_g_none'), l: i18t('jov5_obp_g_rem') },
-    { n: obRepeatsWord(o), l: i18t('jov5_obp_g_repeats') }];
+    /* the tile says it in one word — Monthly · Quarterly · Annual · One-off (owner, 19 Nov 2026: "why dont you just say monthly?") */
+    { n: obRecurLabel(String(o.recurring || 'none')), l: i18t('jov5_obp_g_repeats') }];
   const facts = [];
   if(due) facts.push({ mark: 'calendar', t: obDay(due, true), s: i18t('ob_fact_due') });
   if(obligationMoneyVisible() && typeof obligationHasAmount === 'function' && obligationHasAmount(o))
