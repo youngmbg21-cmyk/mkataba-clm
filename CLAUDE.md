@@ -232,6 +232,7 @@ CHOSEN ROW: `apnLeadFiveHtml` (no button; Approve/Decline on row), `mnnPanelFive
 ## ONE SHEET AND THREE BUTTONS (index.html "ONE SHEET" block)
 - Head + body = ONE white sheet: one hairline, 10px corners, to panel foot; head shadow never down or clipped. Not Board; Settings, template flat, one scroller (`scrollShowHandle`). BUILDER PAPER ON A DESK (`#tb-scroll`; f1044).
 - THREE BUTTONS: one black per area, grey pills, green links.
+- SAP PAGE, LEGORA PANEL (owner's pick, 19 Nov 2026): a side panel's head line never touches the divider or the edge — 16 in, fading at both ends; ONE closing rule (`:is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head)`). The page's lines stay solid, ending where its words end. f1107.
 - FAULTS COUNTED IN NEW LOOK: `white-sheet-verify` (`PINS`; `WHITE_KNOWN` only shrinks), `HATI_TIDY_NEW_LOOK=1`, `HATI_DETAIL_NEW_LOOK=1`; tidy sweep AFTER MOTION.
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS
 - `.sap-page`: page head ONE white card (`.ph-card`, `.ph-top`, `.ph-foot`); lists: LIST HEAD. `hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`).
@@ -285,7 +286,7 @@ DEAL TAB AND DEAL BOARD REMOVED: deal → Redlines (`pdRedOpen`); memo own panel
 OVERLAP, NOT SUM: only what all may see — no review, asks, notes, unshared money, advice, PERSON'S NAME; moves are a PARTY's. `dealStands(c)` RAW (`DS_INSIDE_ID` = `SRV_DS_INSIDE_ID`); `standsHtml`. `GET /deal/:token` off STORED record (`srvDealStands`); `GET /api/shares/:token` refuses status token 403. Theirs `portalWhereHtml` → `standsHtml`.
 ## HOW THINGS MOVE
 - No motion library: transform, opacity, WAAPI; never animate width/height/left/top. Width SNAPS (`igSyncDockWidth`); lists glide (`listGlideAround`). FACE CHANGE AT ONCE, underline glides (`faceSwap`, `_pdBodyFresh`; f1024). Swipe right shuts panel (`PANEL_SWIPE_*`). Reduced motion = instant.
-- PANELS ARRIVE RARELY: first open a day, then 5 HOURS; contract = one page (`jovPageKeyOf` → 'c'); never on redraw/tab/Back/refresh. `jovArriveSweep` (`jovArriveDue`/`jovArriveMark`, `jovArriveQuiet`, `JOV_MOVE_SLOTS`). f1067, f1078. Chart fades once (`hbChartsStill`).
+- JAMBO'S PANELS ARRIVE RARELY: first open a day, then 5 HOURS; contract = one page (`jovPageKeyOf` → 'c'); never on redraw/tab/Back/refresh. `jovArriveSweep` (`jovArriveDue`/`jovArriveMark`, `jovArriveQuiet`, `JOV_MOVE_SLOTS`). f1067, f1078. Chart fades once (`hbChartsStill`).
 ## THE HARMONY REVIEW (owner's picks 9 Nov 2026; docs/PLAN-harmony.md)
 index.html block "THE NEW LOOK: HARMONY": ONE HEAD (`.ctf-h`); PILL TO ACT; same-every-row column out; EVEN TILES (`regTileBig`); SAME CARD TWICE. PAPER IN PAGES (`igPaperPaginate`); typing: THIN PAGE LINES (`pagesLines`, f980). f977, f955.
 ## THE NEW LOOK IS THE ONLY LOOK
