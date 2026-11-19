@@ -18015,9 +18015,35 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
    below and the preview route (GET …/chase-preview, which Look on a chase
    draws) take it from here, so the screen never shows less than the inbox
    gets. It reads; it sends and writes nothing. */
-async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
+/* WHO A CHASE GOES TO (owner's pick, 19 Nov 2026: the reminder goes through the Send screen, where a person is chosen):
+   one of THEIR people on the STORED contract, named by the row's id — never an address from the body (the open-relay
+   rule); no id, the contract's own address as before. A named row that is gone, ours, or has no address is null. */
+const CHASE_THEIR_ROLES = new Set(['cpsign', 'negotiate', 'advise', 'cpread']);
+function srvChaseTo(c, contactId) {
+  const id = String(contactId || '').trim();
+  if (id) {
+    const p = (Array.isArray(c && c.participants) ? c.participants : []).find(x => x && String(x.id) === id && CHASE_THEIR_ROLES.has(String(x.role || '')));
+    const em = p ? String(p.email || '').trim() : '';
+    return /.+@.+\..+/.test(em) ? { to: em, name: String(p.name || '').trim(), named: true } : null;
+  }
+  const em = String((c && c.counterpartyEmail) || '').trim();
+  return /.+@.+\..+/.test(em) ? { to: em, name: '', named: false } : null;
+}
+/* A NOTE WRITTEN ON THE SEND SCREEN rides the letter as its own paragraph, under the greeting (600 characters, the
+   share note's own ceiling, never a silent cut: the screen counts them) */
+const CHASE_NOTE_MAX = 600;
+const srvRemindTheirsOn = () => { try { return !!((getSetting('appSettings') || {}).remindTheirs || {}).on; } catch (_) { return false; } };
+function srvChaseNoteIn(body, note) {
+  const n = String(note || '').replace(/\r/g, '').trim();
+  if (!n) return body;
+  const parts = String(body || '').split('\n\n');
+  parts.splice(Math.min(1, parts.length), 0, n);
+  return parts.join('\n\n');
+}
+async function srvChaseSend(req, c, o, to, { firm = false, note = '' } = {}) {
   /* the Legora way where the outside look is on: the same words in the letter's shape (it is already signed) */
-  const m = srvChaseMail(req, c, o, to, { firm });
+  const m0 = srvChaseMail(req, c, o, to, { firm });
+  const m = { ...m0, body: srvChaseNoteIn(m0.body, note) };
   const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`, { replyTo: mailReplyFor(req, null, c), ...(outsideLookOn() ? { html: smTextLetterHtml(m.body) } : {}) });
   return r;
 }
@@ -18082,8 +18108,9 @@ app.get('/api/contracts/:id/chase-preview', auth, (req, res) => {
   if (!o) return res.status(404).json({ error: 'That obligation is no longer on the contract.' });
   if (String(o.party) !== 'theirs') return res.status(409).json({ error: 'That obligation is ours, not theirs — there is nobody to chase about it.', reason: 'ours' });
   if (o.status === 'done') return res.status(409).json({ error: 'That obligation is already complete.', reason: 'done' });
-  const to = String(c.counterpartyEmail || '').trim();
-  if (!/.+@.+\..+/.test(to)) return res.json({ ok: false, reason: 'no-address', to: null });
+  const who = srvChaseTo(c, q.contactId);
+  const to = who ? who.to : '';
+  if (!/.+@.+\..+/.test(to)) return res.json({ ok: false, reason: q.contactId ? 'contact' : 'no-address', to: null });
   const m = srvChaseMail(req, c, o, to, { firm: q.firm === '1' || q.firm === 'true' });
   res.json({ ok: true, to, subject: m.subject, body: m.body, parts: m.parts, link: m.link });
 });
@@ -18100,7 +18127,10 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
     return res.status(409).json({ error: 'That obligation is ours, not theirs — there is nobody to chase about it.', reason: 'ours' });
   if (o.status === 'done')
     return res.status(409).json({ error: 'That obligation is already complete.', reason: 'done' });
-  const to = String(c.counterpartyEmail || '').trim();
+  const who = srvChaseTo(c, b.contactId);
+  if (b.contactId && !who)
+    return res.status(409).json({ error: 'That person is no longer one of their contacts on this contract, or has no email address. Choose them again on the Send screen.', reason: 'contact' });
+  const to = who ? who.to : '';
   /* NOWHERE TO WRITE IS A FACT, NOT A FAILURE — the same answer the obligation
      nudge gives. The browser has already recorded the chase; this says plainly
      that no message went and where to put an address. */
@@ -18108,7 +18138,8 @@ app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
     return res.json({ ok: false, reason: 'no-address', to: null,
       emailSent: false, emailConfigured: EMAIL_ON(), outbox: false,
       emailError: 'There is no email address on file for the counterparty, so no message was sent. Add one on Key terms.' });
-  const r = await srvChaseSend(req, c, o, to, { firm: !!b.firm });
+  const note = typeof b.note === 'string' ? clean(b.note).slice(0, CHASE_NOTE_MAX) : '';
+  const r = await srvChaseSend(req, c, o, to, { firm: !!b.firm, note });
   res.json({ ok: true, to, ...mailReport(r) });
 });
 
@@ -24100,6 +24131,21 @@ function runReminders() {
             `obligation held: ${c.name}`)) queued++;
         }
         return;
+      }
+      /* ---- THE OTHER SIDE IS REMINDED BY ITSELF, WHERE ASKED (owner, 19 Nov 2026: "the goal for obligations is to
+         remind you of your and their obligations") ----
+         Off for the company until an admin switches it on (appSettings.remindTheirs.on), and then per obligation (its
+         own switch, o.remindTheirs, on the Send screen and its panel). 7 days before and on the day, the chase letter
+         (srvChaseSend, the one the Send screen's Chase now sends) to their person named on the obligation (o.remindTo,
+         a contact's id, looked up on the stored record), else the contract's address. Once per day mark (reminders). */
+      if (srvRemindTheirsOn() && o.remindTheirs === true && (od === 7 || od === 0)) {
+        const dest = srvChaseTo(full, o.remindTo);
+        const rk = `${c.id}:ob:${okey}:them${od}`;
+        if (dest && !db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rk)) {
+          db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rk, now());
+          Promise.resolve().then(() => srvChaseSend(null, full.id ? full : { ...full, id: c.id }, o, dest.to, {})).catch(e => console.warn('[hati] their reminder failed: ' + (e && e.message)));
+          queued++;
+        }
       }
       const who = obligationRecipient(o.assignee, c.folder || null);
       if (who) {

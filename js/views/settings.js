@@ -1313,7 +1313,7 @@ const ST_CARDS=[
   /* the streams' own page, a door of its own (round 26) */
   { key:'standards', groups:['standards'], facts:['company','folders'],
     doors:()=>[{ page:'streams', label:i18t('st_sw_title') }, { panel:'paydays' }, { panel:'design' }] },
-  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'webhooks' }] },
+  { key:'intake', groups:['intake'], facts:['mailroom','lanes'], doors:()=>[{ panel:'renewals' }, { panel:'remindtheirs' }, { panel:'webhooks' }] },
   /* "Jambo's agents ›" opens their page with ‹ Settings (round 25 as drawn,
      the gaps' third pass: every card door is a page on the desk) — the
      agents' own panel, how far each may go; his house stays its own place */
@@ -6911,6 +6911,21 @@ const SET_PANELS={
     wire(){},
   },
 
+  /* ---- THE OTHER SIDE IS REMINDED OF THEIR OBLIGATIONS BY ITSELF (owner's yes, 19 Nov 2026) ----
+     Off for the company until an admin switches it on; then each obligation of theirs carries its own switch (its panel
+     and the reminder's Send screen), and the overnight run sends the chase letter 7 days before and on the day. The
+     SERVER reads the stored rule (srvRemindTheirsOn); this is the switch, not what decides. No email, no switch on. */
+  remindtheirs:{
+    tab:'platform', group:'intake', mandatory:false,
+    title:()=>i18t('set_remind_theirs'),
+    sub:()=>i18t('set_remind_theirs_sub'),
+    state(){ const c=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+      return { dot:c.on?'ok':'off', text:`${i18t('set_remind_theirs')} — ${c.on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_remind_theirs_sub')}</p><div id="rt-rule-panel"></div>`; },
+    find:()=>[i18t('set_remind_theirs'), i18t('set_remind_theirs_sub')],
+    wire(){ renderRemindTheirsPanel(); },
+  },
+
   /* ---- TWO PAYMENT TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ----
      "What if we want to pay under one payment term while we get paid under a
      different payment term?" The playbook's paymentDays is per contract TYPE
@@ -10137,6 +10152,25 @@ function renderLinkCodePanel(){
     if(window.toast) toast(i18t(e.target.checked?'set_link_code_on':'set_link_code_off'),'ok');
   });
 }
+function renderRemindTheirsPanel(){
+  const host=document.getElementById('rt-rule-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+  const noMail=!!(window.emailOff&&emailOff());
+  const blocked=noMail&&!cfg.on;
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin&&!blocked?'pointer':'not-allowed'}">
+      <input id="rt-rule-on" type="checkbox"${cfg.on?' checked':''}${admin&&!blocked?'':' disabled'} style="margin-top:2px"/>
+      <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_remind_theirs')}</span>
+    </label>${noMail?`<p class="st-note" style="margin:6px 0 0 24px">${esc(i18t('set_remind_theirs_no_mail'))}</p>`:''}`;
+  if(!admin) return;
+  host.querySelector('#rt-rule-on')?.addEventListener('change',e=>{
+    if(e.target.checked && window.emailOff && emailOff()){ e.target.checked=false; toast(i18t('set_remind_theirs_no_mail'),'err'); return; }
+    if(window.saveRemindTheirsCfg) saveRemindTheirsCfg({ on:!!e.target.checked });
+    stRepaintRow('remindtheirs');
+    if(window.toast) toast(i18t(e.target.checked?'set_remind_theirs_on':'set_remind_theirs_off'),'ok');
+  });
+}
 function renderDeskRulePanel(){
   const host=document.getElementById('dk-rule-panel'); if(!host) return;
   const admin=isAdmin();
@@ -10259,7 +10293,7 @@ const SDD_EMOJI={ area:{ you:'👤', company:'🏢', rules:'⚖️', jambo:'✨'
     company:'🏢', streams:'🗂️', workshape:'📊', people:'👥', sheet:'📋', roles:'🏷️', directory:'📇', look:'🎨', rates:'💱', paydays:'💳',
     rules:'⚖️', approvals:'✅', signcheck:'🔍', signcap:'✍️', signfolder:'🖊️', signroute:'📝', hold:'⏹️', review:'👀', desk:'✏️', linkcode:'🔐',
     budget:'💵', questions:'💬', person:'⏱️', bigjobs:'⚠️', imports:'📦', agents:'✨', overnight:'🌙', navigate:'🧭', boardwords:'📖', lessons:'🎓', facts:'📌', boardaccuracy:'🎯', copilot:'🤖', engine:'⚙️',
-    mail:'✉️', outbox:'📤', renewals:'🔁', report:'📰', webhooks:'🔌', mailroom:'📥', lanes:'🛤️',
+    mail:'✉️', outbox:'📤', renewals:'🔁', remindtheirs:'📨', report:'📰', webhooks:'🔌', mailroom:'📥', lanes:'🛤️',
     golive:'🚀', samples:'🧪', pilot:'👣', trail:'🧾', integrity:'🔏', env:'🖥️' } };
 function sddEmojiOf(id, area){ const R=SDD_EMOJI.row; return R[id]||R[String(id||'').replace(/\d+$/,'')]||SDD_EMOJI.area[area]||'•'; }
 function sddMkHtml(emo, area, need){ return `<span class="sdd-mk is-emo a-${SDD_TONE[area]||'you'}${need?' is-need':''}" aria-hidden="true">${emo}</span>`; }
@@ -10423,7 +10457,7 @@ function sddMailRows(){
   return [sddPanelRow('mail','out','mail',{ name:i18t('sdd_ml_mail'), say:i18t(ok?'sdd_ml_mail_ok':'sdd_ml_mail_no'), sub:i18t(ok?'stn_mail_ok_sub':'sdd_ml_mail_sub'),
       verb:i18t(ok?'stn_health':'sdd_set_up'), now:i18t(ok?'sdd_working':'sdd_not_set_up') }),
     sddRow({ id:'outbox', area:'mail', g:'out', name:i18t('sdd_ml_outbox'), say:i18t('sdd_ml_outbox_say'), sub:i18t('sdd_ml_outbox_sub'), verb:i18t('stn_open'), door:'data-st-panel="mail"' }),
-    sddPanelRow('mail','out','renewals',{ say:i18t('sdd_ml_renewals_say',{ what:sddState('renewals').t }), sub:i18t('sdd_ml_renewals_sub'), verb:i18t('st_you_change') }),
+    sddPanelRow('mail','out','remindtheirs'), sddPanelRow('mail','out','renewals',{ say:i18t('sdd_ml_renewals_say',{ what:sddState('renewals').t }), sub:i18t('sdd_ml_renewals_sub'), verb:i18t('st_you_change') }),
     sddPanelRow('mail','out','report',{ say:i18t('sdd_ml_report_say'), sub:i18t('sdd_ml_report_sub'), now:'' }),
     sddPanelRow('mail','out','webhooks',{ say:i18t('sdd_ml_webhooks_say',{ what:sddState('webhooks').t }), sub:i18t('sdd_ml_webhooks_sub') }),
     sddPanelRow('mail','in','mailroom',{ say:sddState('mailroom').t, sub:i18t('sdd_ml_mailroom_sub') }),

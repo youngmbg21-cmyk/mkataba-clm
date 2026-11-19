@@ -92,6 +92,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the owner found Settings "an absolute nightmare to follow" (15 Nov 2026), picked "Six doors" over the SAP and Legora ways, then said "build it with the Dossier card" (17 Nov 2026) and "lets hold off for now and we will build later". The drawing is at https://claude.ai/artifact/3conTot1WEXYchwJqpbNdZ, with its "where every part of today's Settings goes" table.
 - **Notes:** about 56 settings, plus today's hidden 44-item Menu in the side panel, which the six areas replace. Too big for one change; build it in rounds. First the landing, the six areas, the find box, every row reading its real value, and the Dossier card, with Change still opening today's panel or page. Then one round per area turns those into the small in-row boxes the drawing shows, starting with Jambo's spending limits. Jambo's daily budget, today buried in the Jambo engine panel under "More settings", becomes its own row.
 
+### P-12 · A reminder they can answer with the proof itself
+- **Added:** 19 Nov 2026 · **Status:** Waiting
+- **What:** the reminder email to the other side about one of their obligations carries an "Upload the certificate" button (or whatever proof the obligation asks for). It opens a small page for that one obligation where they upload the file or reply; the file is kept on the obligation and we are told it arrived.
+- **Where it came from:** the owner's reminder drawing (https://claude.ai/artifact/GtY6uPNQoUxroQCJtiywcF, the "Chase now: the reminder" moment). On 19 Nov 2026 the owner chose "Reply only, park upload" for round 3: the reminder asks them to reply by email for now.
+- **Notes:** HaTi has no place today for the other side to upload against an obligation; it needs a page of their own for one obligation (their link, no account), a server route that keeps the file on the obligation with who sent it and when, a line in the bell for us, and the obligation's panel showing the file.
+
 ## Done
 
 _(nothing yet)_

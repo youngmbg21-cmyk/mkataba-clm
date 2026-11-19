@@ -4622,6 +4622,171 @@ function obligationRequireDoc(c, opts){
    quieter AND worse, and this one prints exactly the same three answers
    (it went, it is in the outbox, it was refused and why) in one place instead
    of N. A caller that passes nothing is byte-identical to before. */
+/* ============================================================
+   CHASE NOW IS THE SEND SCREEN, AS A REMINDER (owner's pick, 19 Nov 2026: "for the reminder email, use the feature we
+   already have for sending emails in the contracts. Same approach"; "Build as drawn"). On a computer every Chase door
+   (obligationChase, the one door) opens this page instead of a question: the Send screen's own shape — the steps the
+   Legora way on the left (Who it goes to: Person · Job title · Email · Phone, typed in place; then What goes · They can ·
+   How), the letter in the middle (the chase letter itself, read from the server when it lands, with a note of one's
+   own), and Before you send on the right (Goes · Remind again · Mail · History · Names). Send the reminder writes the
+   person to the one address book (contactSet), then the same chase route sends it to that person by their id.
+   THE UPLOAD IS PARKED (owner, 19 Nov 2026: "Reply only, park upload"; docs/PARKING-LOT.md P-12): they reply by email.
+   REMIND AGAIN (owner's yes, 19 Nov 2026): off for the company until an admin switches it on (remindTheirsCfg); then
+   the obligation's own switch (o.remindTheirs, to o.remindTo) — 7 days before and on the day, the same letter. */
+const REMIND_THEIRS_DEFAULT = { on: false };
+function remindTheirsCfg(){
+  const s = (typeof state !== 'undefined' && state && state.settings) || {};
+  const g = (s.remindTheirs && typeof s.remindTheirs === 'object') ? s.remindTheirs : REMIND_THEIRS_DEFAULT;
+  return { on: !!g.on };
+}
+function saveRemindTheirsCfg(g){
+  if(typeof state === 'undefined' || !state) return null;
+  state.settings = state.settings || {};
+  state.settings.remindTheirs = { on: !!(g && g.on) };
+  if(typeof window.saveSettings === 'function') window.saveSettings();
+  return state.settings.remindTheirs;
+}
+/* the page is the computer's; the phone keeps its question (obligationChase) */
+function obRemindPageOn(){
+  return typeof window !== 'undefined' && (window.innerWidth || 0) >= 768
+    && typeof newLookOn === 'function' && !!newLookOn() && typeof API_MODE === 'function' && !!API_MODE();
+}
+let _obr = null;
+function obRemindPeople(c){ return (typeof contactsOf === 'function' ? contactsOf(c) : []).filter(p => p && (p.email || p.name)); }
+function obRemindSeed(c, o){
+  const ppl = obRemindPeople(c);
+  const p = (o.remindTo && ppl.find(x => x.id === o.remindTo)) || ppl.find(x => x.main) || ppl[0] || null;
+  return { pid: (p && p.id) || '', name: (p && p.name) || '', title: (p && p.title) || '', email: (p && p.email) || '', phone: (p && p.phone) || '' };
+}
+function obRemindOpen(cid, obId){
+  const hit = findObligation(cid, obId); if(!hit) return false;
+  const { c, o } = hit;
+  _obr = Object.assign({ cid: String(cid), oid: String(obId), firm: !!o.chasedAt, note: '', remind: o.remindTheirs === true, menu: false, srv: null }, obRemindSeed(c, o));
+  if(typeof chasePreviewRead === 'function' && o.id){
+    const want = _obr;
+    chasePreviewRead(cid, o.id, want.firm).then(r => { if(_obr === want && r && r.ok && r.subject){ want.srv = { subject: String(r.subject), body: String(r.body || '') }; obRemindPaint(); } }, () => {});
+  }
+  openModal(`<div class="obr-pg" id="obr-pg" data-obr-cid="${_obEsc(cid)}">${obRemindHtml()}</div>`, { page: { bare: true }, label: i18t('obr_title', { who: c.counterparty || i18t('ob_side_theirs') }) });
+  /* the page draws its own head (as the Send screen does): the frame's empty one stands down */
+  const pg = document.getElementById('obr-pg'), mi = pg && pg.closest('.modal-in'); if(mi) mi.classList.add('is-obr');
+  return true;
+}
+function obRemindLetter(c, o){
+  if(_obr && _obr.srv) return _obr.srv;
+  const m = (typeof window.agChaseMail === 'function') ? window.agChaseMail(c, o, _obr && _obr.firm) : null;
+  return m ? { subject: m.subject, body: m.body } : { subject: '', body: '' };
+}
+function obRemindHtml(){
+  const S = _obr; const hit = S && findObligation(S.cid, S.oid); if(!hit) return '';
+  const { c, o } = hit, E = _obEsc;
+  const me = (typeof currentUser === 'function' && currentUser()) || {};
+  const ppl = obRemindPeople(c);
+  const L = (k, v, o2) => `<div class="obr-lr${o2 && o2.cls ? ' ' + o2.cls : ''}"><span class="obr-k">${E(k)}</span><span class="obr-v">${v}</span></div>`;
+  const inp = (id, val, ph, type) => `<input id="${id}" type="${type || 'text'}" autocomplete="off" value="${E(val)}" placeholder="${E(ph)}">`;
+  const fromBook = S.pid && ppl.some(p => p.id === S.pid) ? `<em class="obr-frm">${E(i18t('obr_from_book'))}</em>` : '';
+  const menu = S.menu ? `<div class="obr-menu" id="obr-menu">${ppl.map(p => `<button type="button" data-obr-person="${E(p.id || '')}">${E(p.name || p.email)}<em>${E([p.email, p.title].filter(Boolean).join(' · '))}</em></button>`).join('')}<button type="button" data-obr-person="">${E(i18t('sh_lg_new'))}</button></div>` : '';
+  const sec = o.clause ? '§ ' + String(o.clause) : '';
+  const due = o.due ? i18t('obr_due', { d: obDay(o.due) }) : '';
+  const okMail = /.+@.+\..+/.test(S.email);
+  const left = `<div class="obr-l"><p class="obr-lh">${E(i18t('sh_lgx_h_to'))}</p>
+    <p class="obr-ls"><b>${E(i18t('sh_st_to'))}</b> · ${E(i18t('sh_st_what'))} · ${E(i18t('sh_st_can'))} · ${E(i18t('sh_st_by'))}</p>
+    ${L(i18t('sh_lgx_person'), inp('obr-name', S.name, i18t('obr_name_ph')) + fromBook)}
+    ${L(i18t('sh_lgx_title'), inp('obr-title', S.title, i18t('sh_lgx_title_ph')))}
+    ${L(i18t('sh_lgx_email'), inp('obr-email', S.email, 'them@company.co.ke', 'email'))}
+    ${L(i18t('obr_phone'), inp('obr-phone', S.phone, i18t('obr_phone_ph'), 'tel'), { cls: 'is-opt' })}
+    ${ppl.length ? `<div class="obr-add"><button type="button" class="obr-lk" data-obr-menu>${E(i18t(S.menu ? 'obr_menu_shut' : 'obr_someone_else'))}</button>${menu}</div>` : ''}
+    <p class="obr-g">${E(i18t('sh_lgx_then'))}</p>
+    ${L(i18t('sh_st_what'), `<b>${E(i18t('obr_what', { desc: o.desc || '' }))}</b><small>${E([sec, due, i18t('obr_not_contract')].filter(Boolean).join(' · '))}</small>`, { cls: 'is-tall' })}
+    ${L(i18t('sh_lgx_k_can'), `<b>${E(i18t('obr_can'))}</b><small>${E(i18t('obr_can_s'))}</small>`, { cls: 'is-tall' })}
+    ${L(i18t('sh_lgx_k_by'), `<b>${E(i18t('obr_how', { me: me.name || '' }))}</b><small>${E(i18t('obr_how_s', { me: me.name || '' }))}</small>`, { cls: 'is-tall' })}</div>`;
+  const m = obRemindLetter(c, o);
+  const paras = String(m.body || '').split('\n\n').map(p => `<p>${E(p).replace(/\n/g, '<br>')}</p>`);
+  const noteBox = `<textarea id="obr-note" rows="2" maxlength="600" placeholder="${E(i18t('obr_note_ph'))}">${E(S.note)}</textarea>`;
+  paras.splice(Math.min(1, paras.length), 0, noteBox);
+  const mid = `<div class="obr-m"><div class="obr-paper">
+    <div class="obr-fr"><span>${E(i18t('sh_lt_subject'))}</span><b>${E(m.subject)}</b></div>
+    <div class="obr-fr"><span>${E(i18t('obr_to'))}</span><b>${E(okMail ? [S.name, S.email].filter(Boolean).join(' · ') : i18t('obr_to_none'))}</b></div>
+    <div class="obr-fr"><span>${E(i18t('obr_from'))}</span><b>${E(i18t('obr_from_v', { me: me.name || '', org: (typeof contractParty === 'function' ? contractParty(c) : '') || window.FIRST_PARTY || '' }))}</b></div>
+    <div class="obr-letter">${paras.join('')}</div></div></div>`;
+  const cfg = remindTheirsCfg();
+  const nextDay = (() => { const d = obnDue(o); if(d == null) return ''; if(d > 7) return obDay(new Date(Date.now() + (d - 7) * 864e5).toISOString().slice(0, 10)); if(d > 0) return obDay(o.due); return ''; })();
+  const remindCard = cfg.on
+    ? `<div class="obr-c"><h4>${E(i18t('obr_again_h'))}</h4><label class="obr-sw"><span>${E(i18t('obr_again'))}</span><input type="checkbox" data-obr-remind${S.remind ? ' checked' : ''}></label>${S.remind && nextDay ? `<p class="obr-g2">${E(i18t('obr_again_next', { d: nextDay }))}</p>` : ''}</div>`
+    : `<div class="obr-c"><h4>${E(i18t('obr_again_h'))}</h4><p>${E(i18t('obr_again_off'))}</p></div>`;
+  const hist = [o.chasedAt ? (o.chasedBy ? i18t('obr_hist_chased', { d: obDay(o.chasedAt), by: o.chasedBy }) : i18t('obr_hist_chased_d', { d: obDay(o.chasedAt) })) : '', o.chaseFirmAt ? i18t('obr_hist_firm', { d: obDay(o.chaseFirmAt) }) : ''].filter(Boolean).join(' ');
+  const right = `<aside class="obr-r"><p class="obr-rh">${E(i18t('sh_lt_before'))}</p>
+    <div class="obr-c"><h4>${E(i18t('sh_kv_goes'))}</h4><p>${E(i18t('obr_goes'))}</p></div>
+    ${remindCard}
+    <div class="obr-c"><h4>${E(i18t('sh_nl_mail_k'))}</h4><p>${E(i18t('sh_nl_mail'))}</p></div>
+    <div class="obr-c"><h4>${E(i18t('obr_hist_h'))}</h4><p>${E(hist || i18t('obr_hist_none'))}</p></div>
+    <div class="obr-c"><h4>${E(i18t('sh_kv_names'))}</h4><p>${E(i18t('sh_lt_never', { org: window.FIRST_PARTY || '' }))}</p></div></aside>`;
+  const head = `<div class="obr-h"><b class="obr-t">${E(i18t('obr_title', { who: c.counterparty || i18t('ob_side_theirs') }))}</b><span class="obr-st">${E([c.name || c.id, o.desc || ''].filter(Boolean).join(' · '))}</span><span class="obr-sp"></span>
+    <button type="button" class="obr-pill" data-obr-cancel>${E(i18t('act_cancel'))}</button>
+    <button type="button" class="obr-pill is-go" data-obr-send${okMail ? '' : ` disabled title="${E(i18t('obr_need_mail'))}"`}>${E(i18t(_obr.firm ? 'obr_send_firm' : 'obr_send'))}</button></div>`;
+  return `${head}<div class="obr-body">${left}${mid}${right}</div>`;
+}
+/* a press or a letter landing draws the page again, keeping where the caret was */
+function obRemindPaint(){
+  const pg = document.getElementById('obr-pg'); if(!pg || !_obr) return;
+  const a = document.activeElement, id = a && a.id && pg.contains(a) ? a.id : '', at = id && typeof a.selectionStart === 'number' ? a.selectionStart : null;
+  pg.innerHTML = obRemindHtml();
+  if(id){ const n = document.getElementById(id); if(n){ try{ n.focus({ preventScroll: true }); if(at != null) n.setSelectionRange(at, at); }catch(_){} } }
+}
+async function obRemindSend(){
+  const S = _obr; const hit = S && findObligation(S.cid, S.oid); if(!hit) return;
+  const { c, o } = hit;
+  if(!/.+@.+\..+/.test(S.email)){ toast(i18t('obr_need_mail'), 'warn'); return; }
+  const btn = document.querySelector('[data-obr-send]'); if(btn){ btn.disabled = true; }
+  /* THE PERSON IS KEPT IN THE ONE ADDRESS BOOK (contactSet), on this contract, then the route finds them by id */
+  const ppl = obRemindPeople(c), cur = S.pid ? ppl.find(p => p.id === S.pid) : null;
+  const same = cur && cur.name === S.name && cur.email === S.email && (cur.title || '') === S.title && (cur.phone || '') === S.phone;
+  let row = same ? cur : null;
+  if(!row && typeof contactSet === 'function'){
+    const hasMain = typeof contactEmail === 'function' ? !!contactEmail(c) : false;
+    row = contactSet(c, cur ? { id: cur.id, name: S.name, email: S.email, title: S.title, phone: S.phone }
+      : { main: !hasMain, name: S.name, email: S.email, title: S.title, phone: S.phone });
+  }
+  if(remindTheirsCfg().on){ o.remindTheirs = !!S.remind; if(S.remind && row && row.id) o.remindTo = row.id; }
+  try{ if(typeof saveContract === 'function') await saveContract((typeof getContract === 'function' && getContract(c.id)) || c); }catch(_){}
+  const r = await obligationChase(S.cid, S.oid, { confirm: false, contactId: (row && row.id) || '', note: S.note });
+  _obr = null;
+  if(typeof closeModal === 'function') closeModal();
+  return r;
+}
+if(typeof document !== 'undefined' && !document._obrWired){ document._obrWired = true;
+  /* the obligation's own switch in its panel: its reminder to them, 7 days before and on the day */
+  document.addEventListener('change', e => {
+    const t = e.target; if(!t || !t.matches || !t.matches('[data-obt-remind]')) return;
+    const hit = findObligation(t.getAttribute('data-obt-remind'), t.getAttribute('data-ob')); if(!hit) return;
+    hit.o.remindTheirs = !!t.checked;
+    if(typeof logAudit === 'function') logAudit(hit.c, 'Obligation', `${t.checked ? 'Automatic reminders on' : 'Automatic reminders off'}: ${hit.o.desc || ''}`);
+    persist(hit.c); obligationSurfacesChanged(); if(typeof obnRepaint === 'function') obnRepaint();
+  });
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if(!t || !_obr || !t.closest('#obr-pg')) return;
+    if(t.closest('[data-obr-cancel]')){ e.preventDefault(); _obr = null; if(typeof closeModal === 'function') closeModal(); return; }
+    if(t.closest('[data-obr-send]')){ e.preventDefault(); obRemindSend(); return; }
+    if(t.closest('[data-obr-menu]')){ e.preventDefault(); _obr.menu = !_obr.menu; obRemindPaint(); return; }
+    const pp = t.closest('[data-obr-person]');
+    if(pp){ e.preventDefault(); const hit = findObligation(_obr.cid, _obr.oid); const id = pp.getAttribute('data-obr-person');
+      const p = id && hit ? obRemindPeople(hit.c).find(x => x.id === id) : null;
+      Object.assign(_obr, { pid: (p && p.id) || '', name: (p && p.name) || '', title: (p && p.title) || '', email: (p && p.email) || '', phone: (p && p.phone) || '', menu: false });
+      obRemindPaint(); if(!p){ const n = document.getElementById('obr-name'); if(n && typeof fieldFocus === 'function') fieldFocus(n); } return; }
+  });
+  document.addEventListener('input', e => {
+    const t = e.target; if(!t || !_obr || !t.closest || !t.closest('#obr-pg')) return;
+    const k = { 'obr-name': 'name', 'obr-title': 'title', 'obr-email': 'email', 'obr-phone': 'phone', 'obr-note': 'note' }[t.id];
+    if(!k) return;
+    _obr[k] = String(t.value || '');
+    if(k === 'email' || k === 'name'){ const to = document.querySelector('#obr-pg .obr-fr:nth-child(2) b'), ok = /.+@.+\..+/.test(_obr.email);
+      if(to) to.textContent = ok ? [_obr.name, _obr.email].filter(Boolean).join(' · ') : i18t('obr_to_none');
+      const b = document.querySelector('[data-obr-send]'); if(b){ b.disabled = !ok; b.title = ok ? '' : i18t('obr_need_mail'); } }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target; if(!t || !_obr || !t.matches || !t.matches('#obr-pg [data-obr-remind]')) return;
+    _obr.remind = !!t.checked; obRemindPaint();
+  });
+}
 async function obligationChase(cid, obId, opts){
   const _o = opts || {};
   const _quiet = !!_o.quiet;
@@ -4637,6 +4802,9 @@ async function obligationChase(cid, obId, opts){
   /* …AND A SECOND CHASE IS THE FIRMER ONE wherever it is pressed (B11, 8 Oct
      2026): the tab's Chase on an obligation already chased sent the first
      message again, word for word. */
+  /* ON A COMPUTER, CHASE NOW OPENS THE SEND SCREEN AS A REMINDER (owner's pick, 19 Nov 2026): the page asks who and
+     shows the letter; its Send comes back here with confirm:false, the person's id and the note */
+  if(_o.confirm !== false && !_quiet && obRemindPageOn()){ obRemindOpen(cid, obId); return null; }
   const firm = !!o.chasedAt;
   const ok = (_o.confirm === false) ? true : await confirmDialog({
     title: i18t(firm ? 'ob_chase_firm_title' : 'ob_chase_title'),
@@ -4661,7 +4829,8 @@ async function obligationChase(cid, obId, opts){
   }
   let mail = { ok:true, o, sent:false, outbox:false, error:'', to:'' };
   try{
-    const r = await api(`contracts/${encodeURIComponent(cid)}/chase`, 'POST', firm ? { obligationId: obId, firm: true } : { obligationId: obId }, _quiet?{quiet:true}:undefined);
+    const body = Object.assign({ obligationId: obId }, firm ? { firm: true } : {}, _o.contactId ? { contactId: String(_o.contactId) } : {}, _o.note ? { note: String(_o.note).slice(0, 600) } : {});
+    const r = await api(`contracts/${encodeURIComponent(cid)}/chase`, 'POST', body, _quiet?{quiet:true}:undefined);
     if(r && r.emailSent){ mail.sent = true; mail.to = r.to || ''; if(!_quiet) toast(i18t('ob_chase_sent', { to: r.to || '' }), 'ok'); }
     else if(r && r.outbox){ mail.outbox = true; if(!_quiet) toast(i18t('ob_chase_outbox'), 'warn'); }
     else { mail.error = String((r && r.emailError) || i18t('ob_chase_failed')); if(!_quiet) toast(mail.error, 'warn'); }
@@ -5040,7 +5209,8 @@ function obnRemWord(r, c){
   if(r.st === 'done') return r.completedAt ? i18t('obn_ch_done_on', { d: obDay(r.completedAt) }) : i18t('obn_done');
   if(obligationIsTheirs(r)){
     if(r.chasedAt) return i18t('obt_rem_chased', { d: obDay(r.chasedAt) });
-    return obnTheirAddress(c) ? i18t('obt_rem_theirs_can') : i18t('obt_rem_theirs_none');
+    if(!obnTheirAddress(c)) return i18t('obt_rem_theirs_none');
+    return remindTheirsCfg().on && r.remindTheirs === true ? i18t('obt_rem_theirs_auto') : i18t('obt_rem_theirs_can');
   }
   const m = obligationReachable(obligationReminderTo(r), c) || obligationOwnerTo(c);
   if(!m) return i18t('obt_rem_ours_none');
@@ -5136,6 +5306,7 @@ function obnOnePanel(r){
     rem = `<p class="obt-rl">${typeof icon === 'function' ? icon('user', 'w-4 h-4') : ''}${E(us ? i18t('obt_rem_us_watch', { who: us.name || '' }) : i18t('obt_rem_us_admins'))}</p>
       <p class="obt-rl">${typeof icon === 'function' ? icon('send', 'w-4 h-4') : ''}${E(addr ? i18t('obt_rem_them_addr', { a: addr }) : i18t('obt_rem_them_none'))}</p>
       ${!addr && may && c && c.counterparty && typeof partyContactsOpen === 'function' ? `<div class="obn-lg-ans"><button type="button" class="obn-lg-chip" data-obt-contact="${E(c.counterparty)}">${E(i18t('obt_add_contact'))}</button></div>` : ''}
+      ${remindTheirsCfg().on && r.st !== 'done' && may ? `<label class="obt-sw"><span>${E(i18t('obr_again'))}</span><input type="checkbox" data-obt-remind="${E(r.cid)}" data-ob="${E(r.id || '')}"${r.remindTheirs === true ? ' checked' : ''}${addr ? '' : ` disabled title="${E(i18t('obt_rem_them_none'))}"`}></label>` : ''}
       ${r.chasedAt ? `<p class="obn-lg-src">${E(r.chasedBy ? i18t('obt_rem_chased_on', { d: obDay(r.chasedAt), who: r.chasedBy }) : i18t('obt_rem_chased_day', { d: obDay(r.chasedAt) }))}</p>` : ''}`;
   } else {
     rem = `<p class="obt-rl">${typeof icon === 'function' ? icon('user', 'w-4 h-4') : ''}${obligationReminderLine(r, c)}</p>
@@ -5415,7 +5586,7 @@ Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obD
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   obwWeekShut,obWeekFolds,OBW_DEC_KEY,obwDecisions,obwFinds,obwFindRows,obPossessive,obwFindsRowHtml,obwRowPrivate,obWeekSub,obWeekOneWho,obWeekMoneyHtml,obwRowAvHtml,obwLine2,obwRowActHtml,obwWeekRowHtml,obwRowAct,
-  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnBarHtml,obnSidesOf,obnSideParts,obnSideSay,OBN_SIDE_TONE,obnWhoseNow,obnReadyOf,obnRowHtml,obnTabOf,obnRows,
+  obYourWeek,obYourWeekSentence,obYourWeekOffer,obYourWeekSay,obYourWeekFacts,obwAddOpen,obPaintDecision,obPanelJl,obnRender,obAddFound,obnRepaint,obnProjects,obnProjRowHtml,obnProjPanel,obWhoseBtn,obnTwoRender,obnTimelineFive,obnOnePanel,obnLineHtml,obnColHtml,obnTwoTabOf,obnTwoSay,obnRemWord,obnNobody,obnTheirAddress,obnWhenWord,obnIsLate,obnIsHeld,OBN_COL_SHOWN,obnFiveOf,obnLgHtml,obnQuoteHtml,OBN_LIMIT_RE,obnPagerHtml,obnPageCount,obnWhenChip,obnStreamHtml,obnStreamTone,obnStatus,obnRingHtml,obnBarHtml,obnSidesOf,obnSideParts,obnSideSay,OBN_SIDE_TONE,obnWhoseNow,obnReadyOf,remindTheirsCfg,saveRemindTheirsCfg,REMIND_THEIRS_DEFAULT,obRemindPageOn,obRemindOpen,obRemindHtml,obRemindPaint,obRemindSend,obRemindSeed,obRemindPeople,obRemindLetter,obnRowHtml,obnTabOf,obnRows,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
