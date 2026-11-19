@@ -125,20 +125,24 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
       dlg.party === 2, JSON.stringify(dlg.partyWords));
     check('Assign to is still there, and still called that', !!dlg.assignee);
     check('Save is still Save', dlg.save);
-    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the drawn form asks
-       "Whose obligation is this?" FIRST, then what, due, recurring, and Amount
-       shares its row with Assign to (Amount left, Assign to right). The claim
-       that stands: Amount is drawn, after Recurring. */
-    check('AMOUNT is drawn in the drawn order: whose → what → due → recurring → amount | assign to',
-      dlg.amount && dlg.partyTop != null && dlg.partyTop < dlg.desc.top && dlg.desc.top < dlg.due.top && dlg.due.top <= dlg.recur.top
-        && dlg.amount.top > dlg.recur.top && Math.abs(dlg.amount.top - dlg.assignee.top) <= 4 && dlg.amountLeft < dlg.assigneeLeft,
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, two steps, owner: "Build 1"): step 1 asks whose → what → due →
+       recurring → assign to; Next shows step 2, Money and proof, where the amount stands. The claim that stands:
+       Amount is drawn, after the duty's own facts. */
+    await page.fill('#of-desc', 'Measuring the steps');
+    await page.evaluate(() => document.getElementById('of-next').click());
+    const two = await page.evaluate(() => { const e = document.getElementById('of-amount'); const r = e && e.getBoundingClientRect();
+      return { amountShown: !!(e && e.offsetParent), oneHidden: document.getElementById('of-step-1').hasAttribute('hidden'), saveShown: !!document.getElementById('of-save').offsetParent, h: r ? Math.round(r.height) : 0 }; });
+    check('AMOUNT is drawn in the drawn order: whose → what → due → recurring → assign to, then Next → amount',
+      dlg.partyTop != null && dlg.partyTop < dlg.desc.top && dlg.desc.top < dlg.due.top && dlg.due.top <= dlg.recur.top
+        && dlg.recur.top < dlg.assignee.top && two.amountShown && two.oneHidden && two.saveShown,
       JSON.stringify({ whose: dlg.partyTop, what: dlg.desc && dlg.desc.top, due: dlg.due && dlg.due.top, recur: dlg.recur && dlg.recur.top,
-        amount: dlg.amount && [dlg.amount.top, dlg.amountLeft], assign: dlg.assignee && [dlg.assignee.top, dlg.assigneeLeft] }));
+        assign: dlg.assignee && dlg.assignee.top, two }));
+    await page.evaluate(() => document.getElementById('of-back').click());
     check('with the contract’s own currency as a fixed prefix',
       /^[A-Z]{3}$/.test(String(dlg.prefix || '').trim()), String(dlg.prefix));
 
     /* THE AMOUNT DRAWS ON BOTH SIDES OF THE TOGGLE. */
-    await page.evaluate(() => document.querySelector('[data-of-party="theirs"]').click());
+    await page.evaluate(() => { document.querySelector('[data-of-party="theirs"]').click(); document.getElementById('of-next').click(); });
     await page.waitForTimeout(300);
     const theirs = await page.evaluate(() => ({
       amount: !!document.getElementById('of-amount'),
@@ -150,7 +154,9 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
       theirs.amount && theirs.amountShown);
 
     /* A figure typed on that side reaches the record. */
+    await page.evaluate(() => document.getElementById('of-back').click());
     await page.fill('#of-desc', 'Rebate reconciliation');
+    await page.evaluate(() => document.getElementById('of-next').click());
     await page.fill('#of-amount', '750000');
     await page.evaluate(() => document.getElementById('of-save').click());
     await page.waitForTimeout(900);

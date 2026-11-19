@@ -61,8 +61,7 @@ test('f1098 (2) Proposals has no Found column, and a duty row spans the columns 
   const cols = src.slice(i, src.indexOf('const seat', i));
   assert.doesNotMatch(cols, /'found'|obn_col_found/, 'Found is gone');
   assert.match(cols, /k: 'side'.*k: 'prog'.*k: 'status'.*k: 'acts'/s);
-  const duty = src.slice(src.indexOf('function obnDutyHtml('), src.indexOf('function obnProjRowHtml('));
-  assert.match(duty, /colspan="2"[\s\S]*colspan="2"/, 'two and two and one: the five columns, never six');
+  /* RE-POINTED 19 Nov 2026 (f1102): the duty rows under an agreement are gone (owner: "redundant … Delete them") */
   assert.doesNotMatch(src.slice(src.indexOf('function obnProjRowHtml('), src.indexOf('let _obnPick')), /obn-age/, 'no age cell');
 });
 
@@ -87,12 +86,13 @@ test('f1098 (4) a row pressed: the Legora way, answered in the row, Us · Theirs
   assert.ok(its.every(i => i.querySelector('.obn-lg-q')), 'each duty in its own quoted words');
   assert.match(d.querySelector('.obn-lg-q mark') && d.innerHTML, /<mark>forty-eight \(48\) hours<\/mark>/, 'the time limit marked');
   const words = [...d.querySelectorAll('[data-obn-whose]')].map(b => b.textContent);
-  assert.deepEqual([...new Set(words)], ['Us', 'Theirs', 'Both sides']);
+  assert.deepEqual([...new Set(words)], ['Undecided', 'Us', 'Theirs', 'Both sides']);   /* RE-POINTED 19 Nov 2026 (f1102): Undecided first */
   assert.ok(![...d.querySelectorAll('button')].some(b => b.textContent.includes(c.counterparty)), 'no button carries the other side\'s name');
-  assert.ok(d.querySelector('[data-obn-skip]') && d.querySelector('[data-obn-addall="MK-T1"]') && d.querySelector('[data-obn-ask="MK-T1"]'));
+  assert.ok(d.querySelector('[data-obn-skip]') && d.querySelector('[data-obn-ask="MK-T1"]'));
+  assert.equal(d.querySelector('[data-obn-addall]'), null, 'nothing decided yet, nothing to add (f1102)');
   /* every whose-job button reads the one word-giver */
   const src = strip(read('js/obligations.js'));
-  assert.equal((src.match(/obWhoseBtn\(/g) || []).length >= 5, true, 'the desk, the list, the panel and its word');
+  assert.equal((src.match(/obWhoseBtn\(/g) || []).length >= 4, true, 'the desk, the panel and its word (the list\'s duty rows went, f1102)');
   assert.doesNotMatch(src, />\$\{_obEsc\(obWhoseWord\(c, k\)\)\}<\/button>/, 'no button reads the name-giver');
 });
 
@@ -100,4 +100,28 @@ test('f1098 (5) both books carry the words', () => {
   const src = read('js/i18n.js');
   for (const k of ['obn5_t_other', 'obn5_start', 'obn5_look', 'obn_lg_todo', 'obn_lg_next', 'obn_lg_ask', 'obn_lg_ask_q', 'obd_theirs_btn', 'obn_p_prop_word'])
     assert.equal((src.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books');
+});
+
+/* RETIRED 19 Nov 2026 (f1102): f1098 (6) "Open chooses too" — the Open pill and the duty rows it unfolded are gone
+   (owner: "the obligations are redundant as they are already in the side panel. Delete them"); a row press chooses */
+
+test('f1098 (7) a tile that holds words takes the smaller size and wraps inside its card (owner: "Every month" ran out of its tile)', () => {
+  const { W } = world();
+  if (typeof W.jamboOverviewHtml !== 'function') return;
+  const h = W.jamboOverviewHtml({ title: 'T', glance: [{ n: 2, l: 'days late' }, { n: 'Monthly', l: 'reminder' }, { n: 'Every month', l: 'repeats' }] }, 't');
+  const d = W.document.createElement('div'); d.innerHTML = h;
+  const g = [...d.querySelectorAll('.jov5-g')].map(x => x.classList.contains('is-word'));
+  assert.deepEqual(g, [false, false, true], 'only the words tile');
+  assert.match(read('index.html'), /\.jov5-g\.is-word b\{font-size:15px;[^}]*white-space:normal/);
+});
+
+test('f1098 (8) the duty panel\'s repeats tile says it in one word: Monthly', () => {
+  const W = buildWorld({ obligations: true }).win;
+  const c = { id: 'MK-R', name: 'R', counterparty: 'Lumumba Logistics', obligations: [], metadata: {} };
+  const o = { id: 'o1', desc: 'Pay the invoices', recurring: 'monthly', status: 'open', party: 'ours' };
+  c.obligations.push(o);
+  let f; try { f = W.obPanelFive(o, c, 0); } catch (_){ f = null; }
+  const src = strip(read('js/obligations.js'));
+  assert.match(src, /\{ n: obRecurLabel\(String\(o\.recurring \|\| 'none'\)\), l: i18t\('jov5_obp_g_repeats'\) \}/);
+  if (f) assert.equal(f.glance[2].n, 'Monthly');
 });

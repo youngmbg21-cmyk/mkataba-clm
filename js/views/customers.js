@@ -622,27 +622,66 @@ function partyCitySuggest(key){
   }
   return null;
 }
-/* THE ONE DOOR: the panel's top becomes the two boxes */
+/* TELL JAMBO, HE FILLS IT IN (owner, 19 Nov 2026: "I am simply able to instruct jambo to add so and so as the contact
+   for this company and then it does it for me and I just have to press add or save"). One sentence typed in any Jambo
+   box — "Add Grace Wambui, Head of Buying, grace@naivas.co.ke, +254 722 418 305, she signs for them" — is READ HERE,
+   by rule, no AI: the party (named in the words, else the one chosen on Parties), the name, job title, email, phone and
+   role. It opens the ONE contact sheet filled in, each line marked "from your words"; NOTHING is saved until Add.
+   Null when the words are not asking to add a contact (the other readers go on). */
+const CU_CONTACT_ASK = /^\s*(?:please\s+|can you\s+|could you\s+)?(?:add|save|put|register|lägg till|spara)\b/i;
+const CU_CONTACT_WORD = /\b(contacts?|kontakt(?:en|person)?)\b/i;
+function cuContactRead(text){
+  const t = String(text || '').trim(); if (!t || !CU_CONTACT_ASK.test(t)) return null;
+  const email = (t.match(/[^\s@,;:<>()]+@[^\s@,;:<>()]+\.[a-z]{2,}/i) || [])[0] || '';
+  if (!CU_CONTACT_WORD.test(t) && !email) return null;
+  const phone = ((t.replace(email, ' ').match(/\+?\d[\d\s().-]{6,}\d/) || [])[0] || '').replace(/\s+/g, ' ').trim();
+  const role = /\b(signs?|signer|signatory|undertecknar|skriver under)\b/i.test(t) ? 'cpsign'
+    : /\b(negotiat\w*|lead|förhandl\w*)\b/i.test(t) ? 'negotiate'
+    : /\b(advis\w*|lawyer|counsel|rådgiv\w*|jurist)\b/i.test(t) ? 'advise' : '';
+  /* the party: the longest party name the words carry, else the one chosen on Parties */
+  const low = ' ' + t.toLowerCase().replace(/\s+/g, ' ') + ' ';
+  let party = null;
+  for (const r of cuCustomers()){ const n = String(r.name || '').toLowerCase().trim(); if (!n) continue;
+    const short = String(cuShortName(r.name) || '').toLowerCase().trim();
+    const hit = low.includes(' ' + n) ? n.length : (short.length > 2 && low.includes(' ' + short)) ? short.length : 0;
+    if (hit && (!party || hit > party.hit)) party = { key: cuKeyOf(r.name), name: r.name, hit }; }
+  if (!party && typeof state !== 'undefined' && state && state.view === 'customers' && typeof insSelected === 'function'){
+    const k = insSelected('customers'); const r = k && cuCustomerOf(k); if (r) party = { key: cuKeyOf(r.name), name: r.name }; }
+  /* the name and title: the sentence's own parts, comma by comma, once the address, phone, role and party are set aside */
+  let rest = t.replace(CU_CONTACT_ASK, '').replace(email, '').replace(phone, '');
+  if (party){ rest = rest.replace(new RegExp('\\b(?:for|at|from|of|hos|för|på)\\s+' + party.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i'), '').replace(new RegExp(party.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ''); }
+  rest = rest.replace(/\b(?:as\s+)?(?:a|an|the|their|our)?\s*(?:new\s+)?(?:contacts?|kontakt\w*)\b(?:\s+(?:for|at|hos|för))?/ig, ' ')
+    .replace(/\b(?:s?he|they|who|han|hon)\s+(?:signs?|negotiates?|advises?|leads?|undertecknar|förhandlar)\b[^,]*/ig, ' ')
+    .replace(/\b(?:phone|tel|telephone|mobile|email|e-mail|mail)\b\s*:?/ig, ' ');
+  const parts = rest.split(/[,;]|\band\b/i).map(x => x.replace(/\s+/g, ' ').replace(/^[\s.:-]+|[\s.:-]+$/g, '').trim()).filter(x => x && /[a-zà-ÿ]/i.test(x));
+  const name = parts[0] || '', title = parts[1] || '';
+  if (!name && !email) return null;
+  return { party, prefill: { name, title, email, phone, role } };
+}
+/* the reading carried out: the sheet opens filled in, or Jambo asks which party */
+function cuContactAsk(text, say){
+  const r = cuContactRead(text); if (!r) return false;
+  if (!r.party){ if (typeof say === 'function') say(i18t('pc_jb_which')); else if (typeof toast === 'function') toast(i18t('pc_jb_which'), 'warn'); return 'said'; }
+  if (typeof partyContactsOpen !== 'function' || !partyContactsOpen(r.party.key, { add: true, from: true, prefill: r.prefill })){
+    if (typeof say === 'function') say(i18t('pc_jb_cannot')); return 'said'; }
+  return true;
+}
+/* THE ONE DOOR (owner's pick "the Legora way", 19 Nov 2026): every edit started in a panel opens the ONE edit pop-up
+   (lgpOpen, js/components.js). The party's facts are two lines, City and Org. no.; what the parties clause says is
+   quoted under City, short, with Use it — only where a city was read from it (never the raw clause). */
 function partyRecordOpen(key){
   if (!key || !partyRecordMay()) return;
-  _cu.edit = String(key);
-  if (typeof insSelect === 'function') insSelect('customers', _cu.edit);
-  if (typeof state !== 'undefined' && state.view !== 'customers' && typeof setView === 'function') setView('customers');
-  else cuRepaint();
-  const f = document.getElementById('cu-pr-city');
-  if (f){ try { f.focus({ preventScroll: true }); } catch (_){} if (typeof landOn === 'function') landOn('#cu-pr-form', { focus: false }); }
-}
-function cuPrFormHtml(v){
+  const v = cuView(cuCustomerOf(String(key))); if (!v) return;
   const rec = partyRecordOf(v.key) || {};
   const sug = partyCitySuggest(v.key);
-  const said = sug ? `<p class="cu-pr-sug" data-cu-pr-sug>${_cuE(i18t('cu_pr_from', { ref: sug.ref, addr: sug.addr }))}${
-    sug.city ? ` <button type="button" class="ui-link" data-cu-pr-use="${_cuE(sug.city)}">${_cuE(i18t('cu_pr_use', { city: sug.city }))}</button>` : ''}</p>` : '';
-  return `<form class="cu-pr-form" id="cu-pr-form" data-cu-pr-key="${_cuE(v.key)}" novalidate>
-    <label class="cu-pr-f"><span>${_cuE(i18t('cu_col_city'))}</span><input id="cu-pr-city" type="text" autocomplete="off" maxlength="80" value="${_cuE(rec.city || '')}"></label>
-    ${said}
-    <label class="cu-pr-f"><span>${_cuE(i18t('cu_f_org'))}</span><input id="cu-pr-org" type="text" autocomplete="off" maxlength="40" value="${_cuE(rec.orgNo || '')}"></label>
-    <div class="cu-pr-acts"><button type="submit" class="ui-btn ui-btn-sm ui-btn-primary" data-cu-pr-save>${_cuE(i18t('cu_pr_save'))}</button><button type="button" class="ui-btn ui-btn-sm" data-cu-pr-cancel>${_cuE(i18t('cu_pr_cancel'))}</button></div>
-  </form>`;
+  const short = t => { const w = String(t || '').replace(/\s+/g, ' ').trim(); return w.length > 70 ? '…' + w.slice(0, 68).trim() + '…' : w; };
+  if (typeof lgpOpen !== 'function') return;
+  lgpOpen({ id: 'cu-pr-form', attr: `data-cu-pr-key="${_cuE(v.key)}"`, title: v.name, sub: i18t('cun_p_facts'),
+    rows: [
+      { k: i18t('cun_p_city'), id: 'cu-pr-city', value: rec.city || '', max: 80,
+        quote: sug && sug.city ? { cite: sug.ref, words: short(sug.addr), use: { label: i18t('cu_pr_use', { city: sug.city }), attr: `data-cu-pr-use="${_cuE(sug.city)}"` } } : null },
+      { k: i18t('cun_p_org'), id: 'cu-pr-org', value: rec.orgNo || '', max: 40 }],
+    primary: { label: i18t('cu_pr_save'), attr: 'data-cu-pr-save' } });
 }
 async function cuPrSave(form){
   const key = form.getAttribute('data-cu-pr-key');
@@ -652,6 +691,7 @@ async function cuPrSave(form){
   try {
     await partyRecordSet(v.name, { city: (form.querySelector('#cu-pr-city') || {}).value, orgNo: (form.querySelector('#cu-pr-org') || {}).value });
     _cu.edit = null;
+    if (typeof closeModal === 'function' && form.closest('#modal-root')) closeModal();
     if (typeof toast === 'function') toast(i18t('cu_pr_saved', { party: v.name }), 'ok');
     cuRepaint();
     if (typeof dirRepaint === 'function') dirRepaint();
@@ -1248,7 +1288,7 @@ function cuPaintCustomerPanel(tb, o){
         title: r.name, sub: cuPanelSubHtml(r),
         acts: [{ k: 'open', kind: 'accent', label: i18t('cu_open_customer'), run: x => cuOpenCustomer(x.id) },
           { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) }] },
-      body: (_cu.edit === r.key ? cuPrFormHtml(r) : '') + rows
+      body: rows
         + (r.needs.length ? sec(i18t('cu_col_waiting'), r.needs.length, cuPanelNeedsHtml(r.needs), 'cu-needs') : '')
         /* BEFORE THE CALL (Discover stage 9): how they negotiate, the company facts side by side, the two minutes */
         + cuBriefSecHtml(r)
@@ -1411,19 +1451,9 @@ function cunPanelFiveHtml(r){
   const roleOf = p => [...(p.roles || [])];
   const signer = people.find(p => p && roleOf(p).includes('cpsign')) || null;
   const nda = cunNdaFact(r.key);
-  const editing = may && _cu.edit === r.key;
   const groups = [];
-  /* 1 · THE PARTY'S OWN FACTS (while typed in place only the two typed here show: the signer and the NDA are read from
-     the agreements and come back on Save) */
-  if (editing){
-    groups.push({ key: 'facts', label: i18t('cun_p_facts'), html: `<form class="cu-pr-form is-five" id="cu-pr-form" data-cu-pr-key="${E(r.key)}" novalidate>`
-      + `<label class="jov5-row is-plain"><span class="jov5-k">${E(i18t('cun_p_city'))}</span><input id="cu-pr-city" type="text" autocomplete="off" maxlength="80" value="${E(rec.city || '')}"></label>`
-      /* the parties clause's address is still offered while the city is typed (the old form's suggestion, kept) */
-      + (() => { const sug = partyCitySuggest(r.key); return sug ? `<p class="cu-pr-sug jov5-sug" data-cu-pr-sug>${E(i18t('cu_pr_from', { ref: sug.ref, addr: sug.addr }))}${
-        sug.city ? ` <button type="button" class="ui-link" data-cu-pr-use="${E(sug.city)}">${E(i18t('cu_pr_use', { city: sug.city }))}</button>` : ''}</p>` : ''; })()
-      + `<label class="jov5-row is-plain"><span class="jov5-k">${E(i18t('cun_p_org'))}</span><input id="cu-pr-org" type="text" autocomplete="off" maxlength="40" value="${E(rec.orgNo || '')}"></label>`
-      + `<div class="jov5-ff"><button type="submit" class="ui-btn ui-btn-sm ui-btn-primary" data-cu-pr-save>${E(i18t('cu_pr_save'))}</button><button type="button" class="ui-btn ui-btn-sm" data-cu-pr-cancel>${E(i18t('cu_pr_cancel'))}</button></div></form>` });
-  } else {
+  /* 1 · THE PARTY'S OWN FACTS; Edit opens the one edit pop-up (partyRecordOpen → lgpOpen, the Legora way, 19 Nov 2026) */
+  {
     const facts = [];
     if (rec.city) facts.push({ k: i18t('cun_p_city'), t: rec.city });
     facts.push({ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none') });
@@ -1751,6 +1781,7 @@ Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFac
      foot and the head's box, tabs and chips are js/views/listhead.js's since
      Part 8) */
   cuNeedShort, cuRequestsOf, cuStanding, cuSay, cuMoveRedlines, cuOpenAgreement, cuSelectParty, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
+  cuContactRead, cuContactAsk, CU_CONTACT_ASK,
   cuSinceOf, cuShortName, cuOwnerSay, cuAgreementSub, cuPanelPeopleHtml, cuCardHtml,
   /* the list head the Legora way (Part 8): the one reading behind every tab's number and every choice's count */
   cuRowsWith,

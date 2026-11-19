@@ -79,8 +79,9 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
     console.log('\n2 · the dialog');
     if (await press(FILE + ' [data-pd-kt-cn]', '2a Set')) {
       const d = await until(() => { const i = document.getElementById('cn-code'); const dlg = i && i.closest('[role="dialog"]'); if (!dlg) return null;
-        const rows = [...dlg.querySelectorAll('#cn-people label')].map(l => ({ t: l.textContent.replace(/\s+/g, ' ').trim(), on: l.querySelector('input').checked, lock: l.querySelector('input').disabled }));
-        return { text: dlg.textContent.replace(/\s+/g, ' ').trim(), rows, foot: [...dlg.querySelectorAll('[data-dlg-foot] button')].map(b => b.textContent.trim()) }; });
+        const rows = [...dlg.querySelectorAll('.lgp-list label')].map(l => ({ t: l.textContent.replace(/\s+/g, ' ').trim(), on: l.querySelector('input').checked, lock: l.querySelector('input').disabled }));
+        return { text: dlg.textContent.replace(/\s+/g, ' ').trim(), rows, foot: [...dlg.querySelectorAll('.lgp-ft button')].map(b => b.textContent.trim()) }; });
+      /* RE-POINTED 19 Nov 2026 (the one edit pop-up, the Legora way): the people are its tick list (.lgp-list), its foot .lgp-ft */
       const me = d && d.rows.find(r => /^Unrestricted Legal/.test(r.t));
       check('2a it asks the code name and who knows, the owner always on it; it says the real name; Save, Cancel last', !!d
         && /^Code name\s?Everyone outside the list sees the code name — in lists, search, Alerts and Jambo — and cannot open the deal\./.test(d.text)
@@ -88,7 +89,7 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
         && d.foot.join('|') === 'Save|Cancel', JSON.stringify(d && { ...d, text: d.text.slice(0, 200) }));
       await shot(page, 'code-name-dialog-1440x780');
       await page.fill('#cn-code', 'Project Falcon');
-      await page.evaluate(id => { const i = document.querySelector(`#cn-people input[value="${id}"]`); if (i) i.checked = true; }, N.id);
+      await page.evaluate(id => { const i = document.querySelector(`.lgp-list input[data-cn-who="${id}"]`); if (i && !i.checked) i.click(); }, N.id);
       await press('#cn-save', '2b Save');
       const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /know the real name/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
       await until(f => { const r = document.querySelector(f); return r && /Project Falcon/.test(r.textContent) ? true : null; }, FILE);

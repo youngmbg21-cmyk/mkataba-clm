@@ -1599,7 +1599,10 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
+    /* A TILE THAT HOLDS WORDS, NOT A NUMBER ("Every month"), takes the smaller size and may wrap — never past its card
+       (owner, 19 Nov 2026: the duty panel's "Every month" ran out of its tile and the panel) */
+    const word = /[^\d\s.,%:\u2014\u2013-]/.test(String(g.n == null ? '' : g.n)) && String(g.n).length > 7;
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}${word ? ' is-word' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
       + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
   const rowHtml = r => {
     const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);
@@ -1995,3 +1998,88 @@ if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined' &
 }
 
 Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
+
+/* ======================================================================================================================
+   THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick by name, 19 Nov 2026: "use legora way"; drawn on today's pages)
+   Every edit started in a side panel opens THIS sheet: 480 wide in the middle, never taller than the window allows, a
+   serif headline, each line a label beside its words typed in place — NO boxes and NO edge that grows when pressed (the
+   closing field rule, f1086) — what HaTi read quoted under its line with Use it, a list of more than LGP_PAGE rows paged
+   (‹ 1–6 of 21 ›), more than fits a NEXT STEP (never a scroll), ONE black button then Cancel, Back on the left.
+   A line Jambo filled from a person's words says so ("from your words"); nothing is saved before the black button.
+   lgpHtml(o) builds it; lgpOpen(o) opens it in the one dialog (openModal, its own frame, no drawn head bar).
+     o = { id, title, sub, subHtml, steps:{at, names[]}, jambo (a line: Jambo filled this in),
+           rows:[{ k, id, value, ph, type:'text'|'email'|'tel'|'date'|'area'|'select', opts:[{v,t}], from, max,
+                   quote:{ cite, words, use:{ label, attr } } }],
+           html (extra body: a list, a hint), note (small words in the foot),
+           primary:{ label, attr }, alt:{ label, attr } (a second, grey act), back:{ label, attr }, left:{ label, attr, danger }, cancelAttr }
+   ====================================================================================================================== */
+var LGP_W = '480px';
+var LGP_PAGE = 6;
+function _lgpT(k, v){ return (typeof i18t === 'function') ? i18t(k, v) : k; }
+function lgpRowHtml(r){
+  const E = esc, id = r.id ? ` id="${E(r.id)}" name="${E(r.id)}"` : '', ph = r.ph ? ` placeholder="${E(r.ph)}"` : '';
+  const max = r.max ? ` maxlength="${Number(r.max)}"` : '';
+  let ctl;
+  if (r.type === 'select') ctl = `<select class="lgp-in"${id}>${(r.opts || []).map(o => `<option value="${E(o.v)}"${String(o.v) === String(r.value == null ? '' : r.value) ? ' selected' : ''}>${E(o.t)}</option>`).join('')}</select>`;
+  else if (r.type === 'area') ctl = `<textarea class="lgp-in is-area" rows="3"${id}${ph}${max}>${E(r.value || '')}</textarea>`;
+  else if (r.type === 'html') ctl = `<span class="lgp-in is-read">${r.valueHtml || ''}</span>`;
+  else ctl = `<input class="lgp-in" type="${E(r.type || 'text')}" autocomplete="off"${id}${ph}${max} value="${E(r.value == null ? '' : r.value)}">`;
+  const from = r.from ? `<span class="lgp-from">${E(_lgpT('lgp_from_words'))}</span>` : '';
+  const q = r.quote && r.quote.words ? `<p class="lgp-quote">${E(r.quote.cite || '')}${r.quote.cite ? ': ' : ''}<q>${E(r.quote.words)}</q>${
+    r.quote.use ? ` <button type="button" class="lgp-use" ${r.quote.use.attr || ''}>${E(r.quote.use.label)}</button>` : ''}</p>` : '';
+  return `<label class="lgp-row${r.type === 'area' ? ' is-tall' : ''}${r.from ? ' is-from' : ''}"><span class="lgp-k">${E(r.k)}</span><span class="lgp-v">${ctl}${from}</span></label>${q}`;
+}
+/* a paged tick list: items [{id, on, off, label, stage, dot}], chips [{label, attr, on}]; attrs name the presses */
+function lgpListHtml(o){
+  const E = esc, items = o.items || [], per = o.per || LGP_PAGE, n = items.length;
+  const pages = Math.max(1, Math.ceil(n / per)), at = Math.min(Math.max(1, o.page || 1), pages);
+  const shown = items.slice((at - 1) * per, at * per);
+  const chips = (o.chips || []).length ? `<div class="lgp-chips">${o.chips.map(c => `<button type="button" class="lgp-chip${c.on ? ' is-on' : ''}" ${c.attr || ''}>${E(c.label)}</button>`).join('')}</div>` : '';
+  const rows = shown.map(x => `<label class="lgp-tick${x.off ? ' is-off' : ''}"><input type="checkbox" ${o.tickAttr || 'data-lgp-tick'}="${E(x.id)}"${x.on ? ' checked' : ''}${x.disabled ? ' disabled' : ''}><span class="lgp-tl">${E(x.label)}</span>${
+    x.stage ? `<span class="lgp-stg"><i style="background:${E(x.dot || 'var(--color-neutral-400)')}"></i>${E(x.stage)}</span>` : ''}</label>`).join('');
+  const foot = (o.said || pages > 1) ? `<div class="lgp-lfoot"><span>${E(o.said || '')}</span>${pages > 1 ? `<span class="lgp-pager"><button type="button" class="lgp-pg" ${o.pageAttr || 'data-lgp-page'}="${at - 1}"${at <= 1 ? ' disabled' : ''} aria-label="${E(_lgpT('lgp_prev'))}">‹</button>${E(_lgpT('lgp_of', { a: (at - 1) * per + 1, b: Math.min(at * per, n), n }))}<button type="button" class="lgp-pg" ${o.pageAttr || 'data-lgp-page'}="${at + 1}"${at >= pages ? ' disabled' : ''} aria-label="${E(_lgpT('lgp_next'))}">›</button></span>` : ''}</div>` : '';
+  return `${chips}<div class="lgp-list">${rows || `<p class="lgp-none">${E(o.none || '')}</p>`}</div>${foot}`;
+}
+function lgpHtml(o){
+  const E = esc;
+  const steps = o.steps && (o.steps.names || []).length ? o.steps.names.map((s, i) => i + 1 === o.steps.at ? `<b>${E(s)}</b>` : E(s)).join(' · ') : '';
+  const sub = o.subHtml || (o.sub ? E(o.sub) : '');
+  const jb = o.jambo ? `<span class="lgp-jb"><i class="lgp-spark" aria-hidden="true"></i>${E(o.jambo)}</span>` : '';
+  const head = `<div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(o.title || '')}</h3>${steps ? `<p class="lgp-sub lgp-steps">${steps}</p>` : ''}${sub ? `<p class="lgp-sub">${sub}</p>` : ''}${jb ? `<p class="lgp-sub">${jb}</p>` : ''}</div>`
+    + `<button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${E(_lgpT('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>`;
+  const body = `<div class="lgp-bd">${(o.rows || []).map(lgpRowHtml).join('')}${o.html || ''}${o.err ? `<p class="lgp-err" role="alert">${E(o.err)}</p>` : ''}</div>`;
+  const left = o.back ? `<button type="button" class="ui-btn lgp-back" ${o.back.attr || ''}>‹ ${E(o.back.label || _lgpT('lgp_back'))}</button>`
+    : o.left ? `<button type="button" class="lgp-left${o.left.danger ? ' is-danger' : ''}" ${o.left.attr || ''}>${E(o.left.label)}</button>` : '';
+  const note = o.note ? `<span class="lgp-note">${E(o.note)}</span>` : '';
+  const prim = o.primary ? `<button type="submit" class="ui-btn ui-btn-primary lgp-go" ${o.primary.attr || ''}>${E(o.primary.label)}</button>` : '';
+  const alt = o.alt ? `<button type="button" class="ui-btn" ${o.alt.attr || ''}>${E(o.alt.label)}</button>` : '';
+  const cancel = o.noCancel ? '' : `<button type="button" class="ui-btn" ${o.cancelAttr || 'data-lgp-close'}>${E(o.cancelLabel || _lgpT('lgp_cancel'))}</button>`;
+  return `<form class="lgp" ${o.id ? `id="${E(o.id)}"` : ''} ${o.attr || ''} novalidate>${head}${body}<div class="lgp-ft">${left}${note}<span class="lgp-sp"></span>${prim}${alt}${cancel}</div></form>`;
+}
+function lgpOpen(o){
+  if (typeof openModal !== 'function') return null;
+  openModal(lgpHtml(o), { maxWidth: LGP_W, ownFrame: true, label: o.title || '', onClose: o.onClose, onBeforeClose: o.onBeforeClose });
+  const root = document.getElementById('modal-root');
+  /* the cursor lands on the first line, after the dialog's own focus trap has run, with no ring (NO RING AFTER A PRESS) */
+  const land = () => { const f = root && root.querySelector(o.focus || '.lgp .lgp-in:not([disabled])'); if (!f || o.focus === false) return;
+    try { (typeof fieldFocus === 'function') ? fieldFocus(f, { focusVisible: false }) : f.focus({ preventScroll: true, focusVisible: false }); } catch (_){} };
+  land(); if (typeof requestAnimationFrame === 'function') requestAnimationFrame(land);
+  return root && root.querySelector('.lgp');
+}
+/* redraw the open sheet's body in place (a step, a page of the list) without the dialog arriving again */
+function lgpRepaint(o){
+  const root = document.getElementById('modal-root'), cur = root && root.querySelector('[role="dialog"] .lgp');
+  if (!cur) return lgpOpen(o);
+  const box = document.createElement('div'); box.innerHTML = lgpHtml(o);
+  const next = box.firstElementChild; cur.replaceWith(next);
+  return next;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._lgpWired){ document._lgpWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target.closest('.lgp [data-lgp-close]') : null;
+    if (!t) return; e.preventDefault(); if (typeof closeModalGuarded === 'function') closeModalGuarded(); else if (typeof closeModal === 'function') closeModal();
+  });
+  /* a sheet's form never leaves the page: its own handlers act on the press (submit) or on its button (click) */
+  document.addEventListener('submit', e => { if (e.target && e.target.classList && e.target.classList.contains('lgp')) e.preventDefault(); }, true);
+}
+Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint });

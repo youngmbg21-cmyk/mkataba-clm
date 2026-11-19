@@ -3374,10 +3374,13 @@ function pdPeopleOpen(id, from){
     host.innerHTML = (pdPeopleItems(live()).length ? '' : `<p class="pt-none">${_pdE(_pdT('ppl_none'))}</p>`)
       + participantsDirHtml(live(), { editable: may, reached: true, auto: true, book: true, sel: _pdPplSel }); };
   const ref = (typeof contractRef === 'function') ? contractRef(c0) : c0.id;
-  openModal(`<div class="p-6 pd-ppl-dlg"><h3 class="font-serif font-600 text-lg text-ink">${_pdE(_pdT('ppl_title'))}</h3>
-      <p>${_pdE(ref + ' · ' + (c0.name || ''))}</p><div id="pd-ppl" class="ov-dir"></div>
-      <div class="flex justify-end gap-2 mt-4"><button type="button" class="ui-btn ui-btn-primary" data-pd-ppl-done>${_pdE(_pdT('og_done'))}</button></div></div>`,
-    { label: _pdT('ppl_title'), onClose: () => {
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): the people on this agreement inside the sheet's
+     frame (serif head, the list as quiet lines, Done the black button); a person's own lines open in place */
+  const sheet = (typeof lgpHtml === 'function') ? lgpHtml({ id: 'pd-ppl-form', title: _pdT('ppl_title'), sub: ref + ' · ' + (c0.name || ''),
+      html: `<div id="pd-ppl" class="ov-dir lgp-dir"></div>`, note: _pdT('pc_not_sent_short'), primary: { label: _pdT('og_done'), attr: 'data-pd-ppl-done' }, noCancel: true })
+    : `<div class="p-6 pd-ppl-dlg"><h3>${_pdE(_pdT('ppl_title'))}</h3><div id="pd-ppl" class="ov-dir"></div><button type="button" class="ui-btn ui-btn-primary" data-pd-ppl-done>${_pdE(_pdT('og_done'))}</button></div>`;
+  openModal(sheet,
+    { label: _pdT('ppl_title'), maxWidth: (typeof LGP_W !== 'undefined' ? LGP_W : '480px'), ownFrame: true, onClose: () => {
       _pdPplSel = '';
       /* the close lands back where it was pressed: Key terms in the middle, else the Dossier as it stands */
       setTimeout(() => { if (from === 'kt' && typeof pdKtMid === 'function') pdKtMid(String(id));
@@ -7788,7 +7791,14 @@ function pd2Facts(c, D){
     out.push({ k: 'approval', l: _pdT('pd2_f_approval'), v: st + (rule ? ' · ' + E(_pdT('pd2_ap_rule', { rule })) : ''), s: pd2SectionOf(c, 'value', cls) });
   }
   const sd = D.read && D.read.std;
-  if (sd){ const off = sd.dev + sd.miss; out.push({ k: 'std', l: _pdT('pd2_f_std'), v: E(off ? _pdTn('pd2_std_off', off, { n: off, total: sd.total }) : _pdT('pd2_std_all')), s: '', go: 'data-pd-ds-std' }); }
+  /* THE SCORE RING (owner picked "Score Ring" by name, 19 Nov 2026): the share of positions met as a small ring, coloured by
+     the worst it found (red: one missing, amber: some only differ, green: all met), "9 of 12 met" beside it and what is off
+     under that in the ring's colour; Open stays the one door to the notes beside the paper (pd2StdGo) */
+  if (sd){ const off = sd.dev + sd.miss, met = Math.max(0, sd.total - off), pct = sd.total ? Math.round(met / sd.total * 100) : 0;
+    const tone = sd.miss ? 'is-miss' : sd.dev ? 'is-dev' : 'is-met', R = 18, C = 2 * Math.PI * R;
+    const ring = `<span class="pd2-ring ${tone}" aria-hidden="true"><svg viewBox="0 0 44 44" focusable="false"><circle class="pd2-ring-bg" cx="22" cy="22" r="${R}"/>${met ? `<circle class="pd2-ring-fg" cx="22" cy="22" r="${R}" stroke-dasharray="${(C * met / sd.total).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}</svg><b>${pct}%</b></span>`;
+    const offs = [sd.miss ? _pdTn('pd2_std_miss', sd.miss, { n: sd.miss }) : '', sd.dev ? _pdTn('pd2_std_dev', sd.dev, { n: sd.dev }) : ''].filter(Boolean).join(' · ');
+    out.push({ k: 'std', cls: 'is-ring', l: _pdT('pd2_f_std'), v: `<span class="pd2-score">${ring}<span class="pd2-score-w"><span class="pd2-score-n">${E(_pdT('pd2_std_met', { met, total: sd.total }))}</span>${offs ? `<span class="pd2-score-off ${tone}">${E(offs)}</span>` : ''}</span></span>`, s: '', go: 'data-pd-ds-std' }); }
   else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · <button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button> <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
   return out;
 }
@@ -7825,7 +7835,7 @@ function pd2Html(c){
   /* PAPER LINE HOLDS ALL (the harmony review, owner's yes 9 Nov 2026): a fact that can be changed ends in a green
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
-  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
+  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact${f.cls ? ' ' + f.cls : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
   return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the

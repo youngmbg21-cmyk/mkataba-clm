@@ -44,7 +44,9 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       const fields = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 30 && r.height > 14 && r.bottom > 0 && r.top < innerHeight && !e.disabled; });
       for (const e of fields) {
         e.focus({ focusVisible: true });
-        const holder = e.parentElement && e.parentElement.closest('.jl-box, .lh-ask, .apn-box, .na-askbox, .rl-np-box, .cmd-search, .hist-q, .sh-col-in, .reg-chip, .pc-f, label');
+        const holder = e.parentElement && e.parentElement.closest('.jl-box, .lh-ask, .apn-box, .na-askbox, .rl-np-box, .cmd-search, .hist-q, .sh-col-in, .reg-chip, .pc-f, label:not(.lgp-row)');
+        /* the one edit pop-up's line (.lgp-row) is a row of a list, its 1px hairline the divider BETWEEN rows, the same at rest
+           and pressed: not a box round the field (the field itself is still judged) */
         const jambo = !!e.closest('.jb-card');
         const me = edge(e), hold = holder && !jambo ? edge(holder) : null;
         /* the rest-state edge of a field with no border is 0 wide and draws nothing: only what is visible is judged */

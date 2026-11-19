@@ -108,7 +108,8 @@ async function until(page, fn, arg, ms = 8000){
     await until(P, () => !!document.querySelector('#ins-panel [data-jl-home]'));
     w = await headWords(); const f3b = await fold(); check('3b a list\'s panel, nothing chosen: no word beside the tabs, the › fold kept', !w.length && !!f3b, JSON.stringify({ w, fold: !!f3b }));
     await until(P, () => !!document.querySelector('tr[data-ob-key] td:nth-child(2)'));
-    const row = await P.$('tr[data-ob-key] td:nth-child(2)');
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe): a duty is a line in its column */
+    const row = await P.$('.obt-cols [data-ob-key]');
     if (row){ await row.click(); await until(P, () => !!document.querySelector('#ins-panel[data-ins-id]')); }
     w = await headWords(); check('3c a list\'s panel, a row chosen: no word beside the tabs', !!row && !w.length, JSON.stringify({ w, row: !!row }));
     await P.evaluate(() => setView('team')); await until(P, () => !!document.getElementById('st-side-head'));

@@ -393,7 +393,7 @@ const PLACES = [
   { k: 'calendar-horizon', name: 'Calendar · Horizon', go: `setView('calendar'); setTimeout(() => { calState.view = 'horizon'; renderCalendar(); }, 400)`, wait: `document.querySelector('.cal-hz-row') && typeof calView === 'function' && calView() === 'horizon'` },
   /* Explorer's door (hbSetFace('explorer')) lands on the Insights view in this build; measured as it lands */
   { k: 'explorer', name: 'Explorer · where its door lands', go: `setView('dashboard'); setTimeout(() => { try { hbSetFace('explorer'); } catch (e) { hbOpenExplorer(); } }, 500)`, wait: `document.querySelector('#ig-page[data-hb-side="explorer"] svg, #ig-page[data-hb-side="explorer"] canvas, .igx-card, #ig-gwrap svg')` },
-  { k: 'obligations', name: 'Obligations', go: `setView('obligations')`, wait: `document.querySelector('.obw-wk, #obw-root, .ob-list, .obn-list, .obn-g, .obn-none')` },
+  { k: 'obligations', name: 'Obligations', go: `setView('obligations')`, wait: `document.querySelector('.obw-wk, #obw-root, .ob-list, .obn-list, .obn-g, .obn-none, .obt-cols')` },   /* RE-POINTED f1099: the page is now two columns (.obt-cols) */
   { k: 'approvals', name: 'Approvals', go: `setView('approvals')`, wait: `document.querySelector('.ap-page, #ap-root, .sap-page')` },
   { k: 'requests', name: 'Requests', go: `setView('intake')`, wait: `document.querySelector('.ik-page, #ik-root, .sap-page')` },
   { k: 'import', name: 'Import', go: `setView('migration')`, wait: `document.querySelector('#mig-drop, #mig-side')` },
