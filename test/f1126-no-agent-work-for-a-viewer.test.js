@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   f1125 — NO AGENT WORK FOR A VIEWER, AND NOBODY NAMES ONE TO DO IT (owner,
+   f1126 — NO AGENT WORK FOR A VIEWER, AND NOBODY NAMES ONE TO DO IT (owner,
    20 Nov 2026: "i am getting messages on rows on the board. and fix the
    recommended way")
 
@@ -41,7 +41,7 @@ const fnBody = (src, name) => { const i = src.search(new RegExp('(async )?functi
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const run = (src, ctx) => { ctx.window = ctx; vm.createContext(ctx); vm.runInContext(src, ctx); return ctx; };
 
-describe('f1125 (1) nothing on any contract is a Viewer\'s to do', () => {
+describe('f1126 (1) nothing on any contract is a Viewer\'s to do', () => {
   test('1a needsYouOf is empty for a Viewer, before any source is asked', () => {
     let asked = 0;
     const ctx = run(fnBody(HOME, 'needsYouOf'), { currentUser: () => ({ id: 'v', role: 'viewer' }),
@@ -51,7 +51,7 @@ describe('f1125 (1) nothing on any contract is a Viewer\'s to do', () => {
   });
 });
 
-describe('f1125 (2) Jambo prepares a Viewer nothing', () => {
+describe('f1126 (2) Jambo prepares a Viewer nothing', () => {
   test('2a every agent\'s ready list is emptied for a Viewer, before it is reported', () => {
     const b = strip(fnBody(AG, 'agentsData'));
     const i = b.indexOf("_agMe.role === 'viewer') AG_KEYS.forEach(k => { agents[k].ready = []; })"), j = b.indexOf('agReportPrepared(agents)');
@@ -59,7 +59,7 @@ describe('f1125 (2) Jambo prepares a Viewer nothing', () => {
   });
 });
 
-describe('f1125 (3) the bell tells a Viewer, and asks nothing', () => {
+describe('f1126 (3) the bell tells a Viewer, and asks nothing', () => {
   const src = 'const ND_NEWS = [\'review-out\'];\n' + CN.match(/^const ND_VIEWER_WORK = [^\n]*$/m)[0] + '\n' + CN.match(/^function ndIsNews\(a\)[^\n]*$/m)[0] + '\n' + fnBody(CN, 'ndAlerts');
   const L = [{ kind: 'cp-ready' }, { kind: 'renewal' }, { kind: 'cert-lapsed' }, { kind: 'note-due' }, { kind: 'watch', fired: true }, { kind: 'review-out' }];
   const read = role => run(src, { buildAlerts: () => L.slice(), currentUser: () => ({ id: 'x', role }) }).ndAlerts();
@@ -74,7 +74,7 @@ describe('f1125 (3) the bell tells a Viewer, and asks nothing', () => {
   });
 });
 
-describe('f1125 (4) no agent mail and no morning summary to a Viewer', () => {
+describe('f1126 (4) no agent mail and no morning summary to a Viewer', () => {
   test('4a a duty\'s person and an owner who is a Viewer are nobody to remind', () => {
     assert.match(strip(fnBody(SRV, 'obligationRecipient')), /if \(u && u\.role === 'viewer'\) return null;/);
     assert.match(strip(fnBody(SRV, 'contractOwnerRecipient')), /if \(fallback\.row\.role === 'viewer'\) return null;/);
@@ -86,7 +86,7 @@ describe('f1125 (4) no agent mail and no morning summary to a Viewer', () => {
   });
 });
 
-describe('f1125 (5) nobody names a Viewer to do the work', () => {
+describe('f1126 (5) nobody names a Viewer to do the work', () => {
   let h, W, vera;
   before(async () => {
     h = await startHati(); W = await seedWorkspace(h);

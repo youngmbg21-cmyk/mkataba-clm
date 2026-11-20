@@ -233,19 +233,21 @@ const FILES = {
           && V.nums.join() === '1,2,3,4', JSON.stringify(V && { marks: V.marks, nums: V.nums }));
         /* re-pointed (fix pass, 19 Oct 2026): option 1's tabs as drawn — Check 3 · Decide N · Filed N — and Jambo's drawn sentence with the yearly reminder */
         check('6b the bar: ‹ All files · Check 3 · Decide 1 · Filed 7 · File n of 3', !!V && /All files/.test(V.bar) && /Check 3/.test(V.bar) && /Decide 1/.test(V.bar) && /Filed 7/.test(V.bar) && /File \d of 3/.test(V.bar), V && V.bar.replace(/\s+/g, ' '));
-        check('6c Jambo says why he was not sure, in the file\'s own words, and offers renews by itself', !!V && /Why I was not sure of the end: § 3 has no end date\. It reads: “It renews by itself/.test(V.why)
+        /* RE-POINTED 20 Nov 2026 (the check made like the Send screen, owner: "build it as drawn"): the reason stands in the Ends card of Jambo's panel, the card naming the fact */
+        check('6c Jambo says why he was not sure, in the file\'s own words, and offers renews by itself', !!V && /Ends\s+§ 3 has no end date\. It reads: “It renews by itself/.test(V.why)
           && /3 months' notice\. If you choose that, HaTi will remind you each year before the notice day\./.test(V.why) && V.use, V && V.why.slice(0, 260));
         await shot(page, 'import-drawn-check-1440x780');
-        const waitedGrey = await page.evaluate(() => { const f = document.getElementById('mig-ck-facts'); const b = f && f.querySelector('[data-mig-file]');
-          return b ? { dis: b.disabled, why: [...f.querySelectorAll('[data-mig-wait]')].map(e => e.textContent).join(' ') + ' ' + (b.title || '') } : null; });
+        /* RE-POINTED 20 Nov 2026 (the check made like the Send screen): File it stands in the page's head, its reason on the button */
+        const waitedGrey = await page.evaluate(() => { const b = document.querySelector('#page-head-acts [data-mig-file]');
+          return b ? { dis: b.disabled, why: (b.title || '') } : null; });
         if (await press('#mig-side [data-mig-use="renews"]', '6d Use: renews by itself')) {
-          const F = await until(() => { const f = document.getElementById('mig-ck-facts'); const b = f && f.querySelector('[data-mig-file]'); const e = f && f.querySelector('[data-mig-f="expiryDate"]');
+          const F = await until(() => { const f = document.getElementById('mig-ck-facts'); const b = document.querySelector('#page-head-acts [data-mig-file]'); const e = f && f.querySelector('[data-mig-f="expiryDate"]');
             return b && e && e.value === 'Renews by itself' && !b.disabled ? true : null; }, null, 4000);
           check('6d a press fills the box; File it is ready — a second press', !!F);
           /* RE-POINTED (#762) from 5e: File it waited, grey with its reason, until the box was filled */
-          check('5e File it was grey, with its reason beside it, until then', !!waitedGrey && waitedGrey.dis && /File it waits for Ends: choose “renews by itself” or a date\./.test(waitedGrey.why), JSON.stringify(waitedGrey));
+          check('5e File it was grey, with its reason on it, until then', !!waitedGrey && waitedGrey.dis && /File it waits for Ends: choose “renews by itself” or a date\./.test(waitedGrey.why), JSON.stringify(waitedGrey));
           const before = await page.evaluate(() => migCheckId());
-          await page.click('#mig-ck-facts [data-mig-file]');
+          await page.click('#page-head-acts [data-mig-file]');
           const next = await until(was => { const id = migCheckId(); return id && id !== was ? id : null; }, before, 8000);
           const rec = await page.evaluate(async id => { try { await flushSaves(); } catch (_) {} try { const c = await api('contracts/' + encodeURIComponent(id));
             const ob = (c.obligations || []).find(o => o.origin === 'renew-notice');
@@ -290,7 +292,8 @@ const FILES = {
       const tabs = await page.evaluate(() => [...document.querySelectorAll('.mig-ck-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()));
       check('12g the bar\'s tabs: Check · Decide · Filed', tabs.length === 3 && /^Check \d+$/.test(tabs[0]) && /^Decide \d+$/.test(tabs[1]) && /^Filed \d+$/.test(tabs[2]), JSON.stringify(tabs));
       const head = await page.evaluate(() => (document.getElementById('mig-choose') || {}).textContent);
-      check('12h while checking, the head\'s button is "New batch"', head === 'New batch', String(head));
+      /* RE-POINTED 20 Nov 2026 (the check made like the Send screen): "New batch" is a link in the check's bar */
+      check('12h while checking, the bar carries "New batch"', head === 'New batch' && await page.evaluate(() => !!document.querySelector('.mig-ck-bar #mig-choose')), String(head));
 
       console.log('\n7 · a refresh lands on the same file');
       const was = await page.evaluate(() => migCheckId());
@@ -394,9 +397,10 @@ const FILES = {
       if (await page.evaluate(() => migCheckOpen())) {
         await until(() => !!document.getElementById('mig-ck-facts'), null, 4000); await page.waitForTimeout(250);
         const V = await page.evaluate(() => { const d = document.getElementById('mig-ck-doc').getBoundingClientRect(), f = document.getElementById('mig-ck-facts').getBoundingClientRect(), s = document.getElementById('mig-side').getBoundingClientRect();
-          return { beside: d.right <= f.left + 1 && Math.abs(d.top - f.top) < 4, inWin: f.bottom <= innerHeight + 1 && d.bottom <= innerHeight + 1, clear: f.right <= s.left + 1,
+          /* RE-POINTED 20 Nov 2026 (the check made like the Send screen): the entry stands LEFT of the file, the file's sheet a little lower on its own air */
+          return { beside: f.right <= d.left + 1 && Math.abs(d.top - f.top) <= 20, inWin: f.bottom <= innerHeight + 1 && d.bottom <= innerHeight + 1, clear: d.right <= s.left + 1,
             sx: document.scrollingElement.scrollWidth > innerWidth }; });
-        check(`11b ${w}×${hh}: the check view's two cards side by side, in the window, clear of the panel`, V.beside && V.inWin && V.clear && !V.sx, JSON.stringify(V));
+        check(`11b ${w}×${hh}: the check view's entry and file side by side, in the window, clear of the panel`, V.beside && V.inWin && V.clear && !V.sx, JSON.stringify(V));
         await shot(page, `import-drawn-check-${w}x${hh}`);
         await page.evaluate(() => migCheckClose());
       }
