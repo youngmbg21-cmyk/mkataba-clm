@@ -10317,7 +10317,39 @@ app.delete('/api/columns/:askId', auth, editor, (req, res) => {
 /* What is already known, spending nothing: the kept answers to one question
    for the contracts in front of the reader. An answer whose wording has moved
    since it was read is not served — it is listed as `stale`, to be read again. */
+/* MANY QUESTIONS IN ONE LOOK (owner, 20 Nov 2026: "fix Discover"): Discover fills its Found column for every read at
+   once, so it asks for many questions together (`askIds`, at most 50) instead of one request each. Each contract is
+   read and its wording hashed ONCE for all of them. Sent WITHOUT `texts`, the answers on a contract whose wording is
+   stored come back checked, and a contract that holds a kept answer but whose wording exists only where it is drawn
+   (a paper from its template) is named in `need`: the browser draws just those and asks again with their `texts`. So
+   the wording of every contract no longer travels once per question. */
+function colAnswersMany(req, res) {
+  const b = req.body || {};
+  const askIds = colIds(b.askIds).slice(0, 50), ids = colIds(b.ids).slice(0, 500);
+  const withTexts = Object.prototype.hasOwnProperty.call(b, 'texts'), texts = colTexts(b.texts);
+  const fulls = new Map(), hashes = new Map();
+  const fullOf = id => { if (!fulls.has(id)) fulls.set(id, colContract(req, id)); return fulls.get(id); };
+  const storedOf = full => !!(full.redlineText && String(full.redlineText).trim()) || !!(full.upload && full.upload.extractedText);
+  const hashOf = (id, full) => { if (!hashes.has(id)) hashes.set(id, sha(colWording(null, full, texts[id]).text)); return hashes.get(id); };
+  const byAsk = {}, missing = [], need = new Set();
+  const rowOf = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?');
+  for (const askId of askIds) {
+    const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(askId);
+    if (!ask) { missing.push(askId); continue; }
+    const answers = {}, stale = [];
+    for (const id of ids) {
+      const r = rowOf.get(ask.id, id); if (!r) continue;
+      const full = fullOf(id); if (!full) continue;
+      if (!withTexts && !storedOf(full)) { need.add(id); continue; }
+      if (r.input_hash !== hashOf(id, full)) { stale.push(id); continue; }
+      answers[id] = colAnswerOut(r);
+    }
+    byAsk[ask.id] = { ask: colAskOut(ask), answers, stale };
+  }
+  res.json({ byAsk, missing, need: [...need] });
+}
 app.post('/api/columns/answers', auth, (req, res) => {
+  if (Array.isArray((req.body || {}).askIds)) return colAnswersMany(req, res);
   const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String((req.body || {}).askId || ''));
   if (!ask) return res.status(404).json({ error: 'That question is not kept any more' });
   const answers = {}, stale = [], texts = colTexts((req.body || {}).texts);
