@@ -52,9 +52,12 @@ const WATCH_GONE = () => { if (window.__goneOn) { window.__gone = []; return; } 
   for (const k of ['closeModal', 'closeModalGuarded', 'setView']){ const f = window[k]; if (typeof f === 'function') window[k] = function (...a){ window.__gone.push(k + '(' + (typeof a[0] === 'string' ? a[0] : '') + ') ' + at()); return f.apply(this, a); }; }
 };
 const GONE_SAY = () => JSON.stringify({ view: (window.state || {}).view, modal: !!document.querySelector('#modal-root .modal-in'), letter: !!document.getElementById('sh-letter'), gone: (window.__gone || []).slice(0, 10) });
-const SEND_SCREEN = () => !!((document.querySelector('.sh-st[data-sh-st="can"] .sh-st-v') || {}).textContent || '').trim() || /WHAT THEY CAN DO/i.test(document.body.innerText || '');
+/* RE-POINTED 20 Nov 2026 (#834): the Send screen stands only once "what they can do" holds WORDS — a red run read
+   the "·" between the step names while the steps were still being laid out */
+const SEND_SCREEN = () => { const v = document.querySelector('.sh-st[data-sh-st="can"] .sh-st-v');
+  return /[A-Za-z]/.test(v ? String(v.textContent || '') : '') || /WHAT THEY CAN DO\s*\n\s*[^\n]*[A-Za-z]/i.test(document.body.innerText || ''); };
 const purposeNow = () => { const v = document.querySelector('.sh-st[data-sh-st="can"] .sh-st-v'); const t = v ? String(v.textContent || '').replace(/\s+/g, ' ').trim() : '';
-  if (t) return t; const m = (document.body.innerText || '').match(/WHAT THEY CAN DO\s*\n\s*([^\n]+)/i); return m ? m[1].trim() : ''; };
+  if (/[A-Za-z]/.test(t)) return t; const m = (document.body.innerText || '').match(/WHAT THEY CAN DO\s*\n\s*([^\n]*[A-Za-z][^\n]*)/i); return m ? m[1].trim() : t; };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
