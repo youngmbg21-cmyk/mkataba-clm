@@ -379,6 +379,21 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **THE MOTION:** the panel arrives — map, sentence, ring, list rise in one after another (about 70 ms apart, a short rise and fade); numbers count up; bars grow from the left; the ring sweeps; the six-month lines draw themselves; the Live dot breathes; the map twinkles. Transform and opacity only (HOW THINGS MOVE). The arrival plays RARELY, by the existing rule (`jovArriveSweep`: first open of a day, then at most every 5 hours; never on a redraw, tab, Back or refresh); still under reduced motion.
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — "13 waiting on you" said three times; "Value under contract" as a big figure; money and empty Waited cells in Needs you.
 
+### P-40 · Explorer: only the side panel changes, the Legora + Stripe way
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for Explorer: ONLY THE SIDE PANEL changes, the Legora + Stripe way; the map, its layouts, lenses, controls and legend STAY AS THEY ARE TODAY. Owner's words: "Only change the side panels and go for L+S".
+- **Where it came from:** the page clean-up. The drawings: https://claude.ai/artifact/CEBDW8hdDNR78UDqdszZYG (choose "The Legora + Stripe way"; "▶ Replay the arrival" plays the motion). Photographed from the running app in Brain, Grid and Timeline. The drawing also redraws the controls (two white segmented controls, a Group by chip, a folded legend, an ask box on the map) — NOT picked: those stay as today.
+- **Notes:** what the side panel holds (Overview face), to be built in full:
+  - **Tabs:** Your day · Overview · Findings (the panel's Guide tab goes with P-38's rule — the nav panel, P-37, does that job; build after P-37). No "Back to the Board", no three mixed tiles (13 · 2 · 11).
+  - **Head:** "Your book as a map" and one line ("Group it, colour it or ask it; Jambo explains what the map drew").
+  - **What is drawn:** a RING of the contracts drawn by group (e.g. Procurement 8 · Warehousing 5, each in its stream's colour) with its legend and one quiet line ("11 parties · 1 overdue promise") — read from what the map DREW (`igCountsDrawn`), never from the whole book.
+  - **What Jambo sees (the Legora reading):** one sentence about the most telling dot, quoting the paper behind it with § (e.g. Fuel Supply, "The Term ends on 20 December 2026 unless renewed" § 2) — only what is drawn (`igMapSentenceHonest`).
+  - **Try on the map:** the layout's own suggestions and "Explain this view", each a row with a › that nudges on hover (today's `igRecipe`s and `igTourSteps`).
+  - **Saved views:** "None yet · Save this view", or the person's views (`igViews`).
+  - **Motion (as the Board, P-39):** the panel's parts rise in one after another and the ring sweeps; rarely (`jovArriveSweep`), still under reduced motion. Jambo's box at the foot.
+  - **Rules it must keep:** no money in the panel; nothing past its edge.
+  - **Logged, not part of this pick:** the map's overlapping and smeared labels, the legend covering the drawing, money in the Grid's cell headings, the 13-button bar (BUGLOG, 20 Nov 2026) — each needs its own yes.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel

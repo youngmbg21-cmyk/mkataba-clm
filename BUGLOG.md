@@ -22722,3 +22722,9 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Board: "13 waiting on you" is said three times — the line under Needs you, a panel tile, and the panel's own Needs you list, which repeats the page's table.
 - Board › Your book: "Value under contract KES 91M" is a big row of the page's figures (money never a big part of a page; a reader without money rights is left a gap).
 - Board › Needs you: money in the rows ("Cleaning Services · Saw Sawa LLC · KES 900K", "KES 3.40M"); the Waited column is empty on most rows.
+
+## Noticed, not fixed — Explorer clean-up photos (20 Nov 2026)
+- Explorer: map labels overlap each other and carry smeared text behind them (e.g. "MK-244 Warehouse Services" over an unreadable second line); labels collide in Timeline where contracts end in the same month.
+- Explorer › Grid / Timeline: the open legend covers part of the drawing (the "In Review" row label in Grid sits under it).
+- Explorer › Grid: money in the cell headings ("8 · KES 79.20M", "1 KES 22M") — money as a big part of the page.
+- Explorer: the bottom bar holds 13 buttons in one row; the panel still shows "Back to the Board" and three mixed tiles (13 · 2 · 11).
