@@ -214,6 +214,7 @@ const amendmentExecuted = k => !!(k && (k.status==='Signed' || k.hash || (k.exec
    relation 'renewal', is not an amendment and does not ask this). */
 function amendmentShutWhy(c){
   if(!c) return '';
+  if(typeof window.mayActOn==='function' && !window.mayActOn(c)) return i18t('viewer_reads_only');   // Round C
   if(c.parentId) return i18t('fa_child_cannot_amend');
   if(!amendmentExecuted(c)) return i18t('fa_draft_no_amend');
   if(typeof contractExpired==='function' && contractExpired(c)) return i18t('fa_expired_no_amend');

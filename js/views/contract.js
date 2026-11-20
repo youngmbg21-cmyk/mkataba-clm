@@ -17427,6 +17427,9 @@ let _scSettledOpen=false;
    from the paper. The four tiles of the first build are gone: the rows say
    the same things one at a time, which is what a list is for. */
 function signCheckCardHtml(c){
+  /* every row of this card is an act toward signing (accept, fix, run, dismiss), and a Viewer signs nothing: the card is
+     not drawn for them; the Sign button already says why (ct_viewer_no_signing). Round C, owner 20 Nov 2026. */
+  if(typeof window.mayActOn==='function' && !window.mayActOn(c)) return '';
   if(!window.signReadiness) return '';
   const rd=signReadiness(c);
   const rc=window.signCheck?signCheck(c):null;

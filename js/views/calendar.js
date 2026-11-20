@@ -442,7 +442,7 @@ function calWkmFit(){
    id), Decide on a renewal decision, else the contract as before */
 function calChipAct(e,L){
   if(!e||!L) return '';
-  if(L.k==='decide') return 'decide';
+  if(L.k==='decide') return ((typeof window.mayActOn!=='function')||window.mayActOn(null)) ? 'decide' : '';
   if(e.type==='obligation'&&e.theirs&&e.obId&&!e.done&&!e.waiting&&((typeof canEdit!=='function')||canEdit())) return 'chase';
   return '';
 }
