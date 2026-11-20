@@ -518,7 +518,9 @@ function jmRead(q){
   if (!jmLibNow()){ jmLib(); return null; }
   if (jmBoardKeeps(t)) return null;
   const admin = jmIsAdmin(), narrows = jmOnlyNarrows(t);
-  const m = jmMatch(t, { skip: k => { const T = jmTask(k); return !!(T && T.admin && !admin) || (narrows && JM_STARTS_WORK.has(k)); } });
+  /* a Viewer is never sent to a task that starts work (Round A, owner 20 Nov 2026); places to read stay */
+  const reads = typeof window.mayActOn === 'function' && !window.mayActOn(null);
+  const m = jmMatch(t, { skip: k => { const T = jmTask(k); return !!(T && T.admin && !admin) || ((narrows || reads) && JM_STARTS_WORK.has(k)); } });
   const p = jmPick(m); if (!p) return null;
   if (p.sure) return jmActOf(p.sure, t);
   const c = jmContractOf(t);

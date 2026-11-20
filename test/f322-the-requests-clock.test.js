@@ -259,7 +259,7 @@ describe('f322 (6) absent stays absent, and an editor is the only one who may sa
   });
   test('6b the assignee is LOOKED UP, never taken from the body', () => {
     const p = SRV.slice(SRV.indexOf("app.patch('/api/intake/:id'"), SRV.indexOf("app.patch('/api/intake/:id'") + 4000);
-    assert.match(p, /SELECT id,name FROM users WHERE id=\?/);
+    assert.match(p, /SELECT id,name(,role)? FROM users WHERE id=\?/);
     assert.ok(!/assignee_name=\?[^;]*b\.assigneeName/.test(p), 'a name in a request body is a name anybody could type');
   });
   /* RE-POINTED 4 Oct 2026: the region is the route, to its answer — not 4000
