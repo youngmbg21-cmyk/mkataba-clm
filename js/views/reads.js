@@ -475,13 +475,24 @@ function renderReadsDraw(o){
    packs under their own line, each "Run on N · N calls"; the foot "A kept answer is never read again" and The
    read table. Every press is an existing door (readsNext, readsTableOpen, askColOpen on Contracts). */
 const _rdnLoading = new Set();
+/* EVERY QUESTION ASKED FOR IN ONE GO, AND ONE REDRAW WHEN THEY LAND (owner, 20 Nov 2026: "fix Discover"): a page drawn
+   asks rdnAnswers for each read's questions in turn; those asked while it is drawn are gathered and fetched together
+   (askColLoadMany), and the page is drawn again once, not once per question */
+let _rdnQueue = null;
 function rdnAnswers(askId){
   const A = (typeof AC !== 'undefined') ? AC : null; if (!A) return null;
   const got = A.ans && A.ans[askId];
-  if (!got && !_rdnLoading.has(askId) && typeof askColLoad === 'function'){
+  if (!got && !_rdnLoading.has(askId) && typeof window.askColLoadMany === 'function'){
     _rdnLoading.add(askId);
-    const ids = (state.contracts || []).filter(c => c && !c.archived && !c._codeNamed).map(c => String(c.id));
-    Promise.resolve(askColLoad(askId, ids)).catch(() => {}).then(() => { if (state.view === 'reads') renderReads(); });
+    if (!_rdnQueue){
+      _rdnQueue = [];
+      Promise.resolve().then(() => {
+        const ks = _rdnQueue; _rdnQueue = null;
+        const ids = (state.contracts || []).filter(c => c && !c.archived && !c._codeNamed).map(c => String(c.id));
+        return Promise.resolve(window.askColLoadMany(ks, ids)).catch(() => {}).then(() => { if (state.view === 'reads') renderReads(); });
+      });
+    }
+    _rdnQueue.push(String(askId));
   }
   return got || null;
 }
