@@ -1198,11 +1198,28 @@ function migHeadFacts(){
 function migPaintHead(){
   if (typeof document === 'undefined') return;
   const f = document.getElementById('page-head-facts'), a = document.getElementById('page-head-acts');
-  if (f) f.textContent = migHeadFacts();
+  if (f){ f.textContent = migHeadFacts(); f.title = _migCheck ? f.textContent : ''; }
   /* the same press, named for where you stand: "New batch" while checking one (option 1) */
   /* ONE CHOOSE FILES DOOR (Round 2, owner's yes 24 Oct 2026): the drop strip carries it; the head's own
      button stays only while a batch is being checked, as "New batch" */
-  if (a) a.innerHTML = canEdit() && _migCheck ? `<button type="button" class="ui-btn ui-btn-primary" id="mig-choose">${esc(i18t('mig_new_batch'))}</button>` : '';
+  /* THE CHECK, MADE LIKE THE SEND SCREEN (owner, 20 Nov 2026: "make the page almost like this", "build it as drawn"):
+     while a file is being checked the head carries its two acts, Skip for now and File it, where Send keeps Cancel
+     and Send; "New batch" stands in the check's bar as a link (migCheckBarHtml) */
+  if (a) a.innerHTML = _migCheck ? migCheckActsHtml() : '';
+}
+/* the check's acts, for the head: Skip for now (more than one file waits), then the ONE filled button — File it,
+   grey with its reason while a fact is owed, or Link it where the file is filed and only its family link waits.
+   A file that looks unsigned keeps its three answers under its facts (they are a choice, not one act). */
+function migCheckActsHtml(){
+  const id = _migCheck ? migCheckId() : null, row = id ? migRowByKey(id) : null;
+  if (!row) return '';
+  const n = _migCheck.ids.length, c = row.c, edit = canEdit();
+  const skip = n > 1 ? `<button type="button" class="ui-btn" data-mig-ck-skip>${esc(i18t('mig_ck_skip'))}</button>` : '';
+  if (!c) return skip;
+  const waits = migReviewOpen(c) ? migFormWaitsOf(c) : [], say = migWaitWords(waits);
+  return skip
+    + (edit && migReviewOpen(c) ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-file="${esc(c.id)}" data-mig-ck-file${waits.length ? ` disabled title="${esc(say)}"` : ''}>${esc(i18t('mig_file_it'))}</button>` : '')
+    + (edit && !migReviewOpen(c) && migLinkPending(c) ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-side-link="${esc(c.id)}">${esc(i18t('mig_link_it'))}</button>` : '');
 }
 
 /* ════ THE LIST HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
@@ -2018,7 +2035,7 @@ function migFormRowHtml(c, r, n, o){
   } else if (r.ro){
     ctl = `<span class="mig-ff-ro" id="${id}">${esc(r.val) || '—'}</span>`;
   } else {
-    ctl = `<input id="${id}" class="mig-ff-in" type="text" autocomplete="off" data-mig-f="${r.k}" value="${esc(r.val)}" data-was="${esc(r.val)}"${r.iso ? ` data-iso="${esc(r.iso)}"` : ''}${r.k === 'value' ? ` data-num="${r.num}"` : ''}${r.need ? ` placeholder="${esc(r.word)}"` : ''}>`;
+    ctl = `<input id="${id}" class="mig-ff-in${r.need && !r.val ? ' need-empty' : ''}" type="text" autocomplete="off" data-mig-f="${r.k}" value="${esc(r.val)}" data-was="${esc(r.val)}"${r.iso ? ` data-iso="${esc(r.iso)}"` : ''}${r.k === 'value' ? ` data-num="${r.num}"` : ''}${r.need ? ` placeholder="${esc(r.word)}"` : ''}>`;
   }
   const why = r.need
     ? `<div class="mig-ff-why">${r.val ? `<span>${esc(r.word)}</span>` : ''}${r.quote ? `<span>${r.where ? esc(r.where) + ': ' : ''}“${esc(r.quote.slice(0, 180))}”</span>` : ''}</div>`
@@ -2114,7 +2131,9 @@ function migFormWaitsOf(c){
 function migFormGatePaint(form){
   const c = getContract(form.getAttribute('data-mig-form')); if (!c) return;
   const waits = migFormWaits(c, form), say = migWaitWords(waits), short = form.id === 'mig-ck-facts';
-  form.querySelectorAll('[data-mig-file]').forEach(b => { b.disabled = !!waits.length; b.title = say || ''; });
+  /* the check's File it stands in the page's head (migCheckActsHtml): it is greyed and lit with the boxes too */
+  const files = [...form.querySelectorAll('[data-mig-file]')].concat(short ? [...document.querySelectorAll('#page-head-acts [data-mig-file]')] : []);
+  files.forEach(b => { b.disabled = !!waits.length; b.title = say || ''; });
   form.querySelectorAll('[data-mig-wait]').forEach(el => { el.textContent = short ? migWaitWords(waits, true) : say; el.hidden = !say; });
 }
 /* ---- FILE IT: the one writer of a review (applyReviewedMeta) — a person's
@@ -2474,106 +2493,130 @@ function migWhyHtml(c){
   const text = (c.upload && c.upload.extractedText) || '';
   const rows = migFormOf(c), by = Object.fromEntries(rows.map(r => [r.k, r]));
   const m = c.metadata || {}, mg = c.migration || {};
-  const lines = [], offers = [];
+  const lines = [], offers = [], items = [];
+  /* EACH LINE KNOWS ITS FACT (owner, 20 Nov 2026, the check made like the Send screen): the panel draws a card per
+     fact that is missing and one for what Jambo read but was not sure of, so every sentence said here is kept with
+     the fact it is about (items); lines stays the same list, in the same order */
+  let at = { k:'', kind:'note' };
+  const say = h => { lines.push(h); items.push({ k:at.k, kind:at.kind, html:h }); };
   /* a file parked because it looks unsigned: that is the only question until
      it is answered (its boxes open once it is a draft or signed) */
-  if (c._parked) return { lines:[esc(i18t('mig_cf_say_unsigned')), esc(i18t('mig_unsigned_after'))], offers:[] };
+  if (c._parked) return { lines:[esc(i18t('mig_cf_say_unsigned')), esc(i18t('mig_unsigned_after'))], offers:[],
+    items:[esc(i18t('mig_cf_say_unsigned')), esc(i18t('mig_unsigned_after'))].map(h => ({ k:'', kind:'note', html:h })) };
   const e = by.expiryDate;
   if (e && e.need){
+    at = { k:'expiryDate', kind:(e.missing || !e.val) ? 'missing' : 'unsure' };
     const rs = migRenewAt(text);
     if (rs && !e.iso){
       const where = migClauseAt(text, rs.s);
-      lines.push(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t(where ? 'mig_why_end_renews_at' : 'mig_why_end_renews', { where }))} “${esc(migQuoteOf(text, rs).slice(0, 240))}”`);
+      say(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t(where ? 'mig_why_end_renews_at' : 'mig_why_end_renews', { where }))} “${esc(migQuoteOf(text, rs).slice(0, 240))}”`);
       const days = Number(m.noticePeriodDays) || migNoticeDays(migQuoteOf(text, rs));
       const start = (c.fields && c.fields.effDate) || m.effectiveDate || '';
       /* the reminder is promised only where HaTi will make it (migFileIt):
          a notice period and a start day to count the years from */
-      lines.push(esc(days && start ? i18t('mig_why_end_so_remind', { notice:migNoticeWords(days) })
+      say(esc(days && start ? i18t('mig_why_end_so_remind', { notice:migNoticeWords(days) })
         : (days ? i18t('mig_why_end_so_notice', { n:days }) : i18t('mig_why_end_so'))));
       offers.push({ k:'renews', label:i18t('mig_use_renews_colon') });
     } else if (m.checks && m.checks.expiryDate && m.checks.expiryDate.expected){
       const d = migDay(m.checks.expiryDate.expected);
-      lines.push(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t('mig_why_end_term', { d }))}`);
+      say(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t('mig_why_end_term', { d }))}`);
       offers.push({ k:'date', iso:m.checks.expiryDate.expected, label:i18t('mig_use_date', { d }) });
-    } else if (e.missing) lines.push(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t('mig_why_end_none'))}`);
-    else lines.push(esc(i18t('mig_why_unsure_q', { what:i18t('mig_fw_ends'), q:e.quote || e.val })));
+    } else if (e.missing) say(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t('mig_why_end_none'))}`);
+    else say(esc(i18t('mig_why_unsure_q', { what:i18t('mig_fw_ends'), q:e.quote || e.val })));
   }
   for (const k of ['counterparty', 'effectiveDate', 'value', 'contractType']){
     const r = by[k]; if (!r || !r.need) continue;
+    at = { k, kind:r.missing ? 'missing' : 'unsure' };
     /* THE LIKELY ANSWER, read off the file's own words (a press fills the box) */
     const guess = k === 'counterparty' ? migPartyGuess(text, c) : (k === 'value' && !r.ro ? migAmountGuess(text) : null);
     if (guess && k === 'counterparty'){
-      lines.push(esc(i18t(r.missing ? 'mig_why_party_guess' : 'mig_why_party_guess_unsure', { q:guess.quote })));
+      say(esc(i18t(r.missing ? 'mig_why_party_guess' : 'mig_why_party_guess_unsure', { q:guess.quote })));
       offers.push({ k:'party', val:guess.name, label:i18t('mig_use_val', { v:guess.name }) });
     } else if (guess && k === 'value'){
-      lines.push(esc(i18t(r.missing ? 'mig_why_value_guess' : 'mig_why_value_guess_unsure', { q:guess.quote })));
+      say(esc(i18t(r.missing ? 'mig_why_value_guess' : 'mig_why_value_guess_unsure', { q:guess.quote })));
       offers.push({ k:'value', val:guess.quote, label:i18t('mig_use_val', { v:guess.quote }) });
     }
-    else if (r.missing) lines.push(esc(i18t('mig_why_missing_say', { what:i18t(MIG_FACT_WORD[k]) })));
-    else lines.push(esc(i18t('mig_why_unsure_q', { what:i18t(MIG_FACT_WORD[k]), q:r.quote || r.val })));
+    else if (r.missing) say(esc(i18t('mig_why_missing_say', { what:i18t(MIG_FACT_WORD[k]) })));
+    else say(esc(i18t('mig_why_unsure_q', { what:i18t(MIG_FACT_WORD[k]), q:r.quote || r.val })));
   }
-  if ((typeof isOcrText === 'function') && isOcrText(mg.textSource)) lines.push(esc(i18t('mig_why_scan_say')));
-  else if (mg.aiSource !== 'ai') lines.push(esc(i18t('mig_why_rules_say')));
-  if (migLinkPending(c)) lines.push(esc(i18t('mig_side_say_link')));
-  if (!lines.length) lines.push(esc(i18t('mig_why_all_there')));
-  return { lines, offers };
+  at = { k:'', kind:'note' };
+  if ((typeof isOcrText === 'function') && isOcrText(mg.textSource)) say(esc(i18t('mig_why_scan_say')));
+  else if (mg.aiSource !== 'ai') say(esc(i18t('mig_why_rules_say')));
+  if (migLinkPending(c)) say(esc(i18t('mig_side_say_link')));
+  if (!lines.length){ at = { k:'', kind:'clear' }; say(esc(i18t('mig_why_all_there'))); }
+  return { lines, offers, items };
 }
 function migCheckSideHtml(r){
   const c = r && (r.c || (migParked(r) ? migPendingAsContract(r) : null));
   if (!c) return '';
   const w = migWhyHtml(c);
-  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt') : '';
   const next = _migCheck ? _migCheck.ids.slice(_migCheck.i + 1).concat(_migCheck.ids.slice(0, _migCheck.i)).map(migRowByKey).filter(x => x && x.st.k === 'check') : [];
-  return `<div class="jl-words mig-ck-why">
-      <div class="jl-say">${face}<div class="jl-bub">${w.lines.map(l => `<p class="mig-why-p">${l}</p>`).join('')}</div></div>
-      <p class="jl-src">${esc(i18t('mig_src_file'))}</p>
+  /* THE PANEL, MADE LIKE THE SEND SCREEN'S "Before you send" (owner, 20 Nov 2026: "build it as drawn"): a round
+     mark and ONE headline that counts what is owed, then soft cards — a card per fact that is missing (its name
+     beside why), one card for what Jambo read but was not sure of, the offers as they were, what is next, and the
+     small print last. Every sentence is migWhyHtml's own; nothing here is a new reading. */
+  const groups = [];
+  w.items.filter(x => x.k).forEach(x => { let g = groups.find(y => y.k === x.k); if (!g){ g = { k:x.k, kind:x.kind, html:[] }; groups.push(g); } g.html.push(x.html); });
+  /* in the form's own order, so the cards read down as the boxes do */
+  const ord = ['contractType', 'counterparty', 'effectiveDate', 'expiryDate', 'value'];
+  groups.sort((x, y) => ord.indexOf(x.k) - ord.indexOf(y.k));
+  const miss = groups.filter(g => g.kind === 'missing'), unsure = groups.filter(g => g.kind === 'unsure'), plain = w.items.filter(x => !x.k);
+  /* a card names its fact, so the sentence does not say it again in bold */
+  const bare = h => String(h).replace(/^<b>[^<]*<\/b>\s*/, '');
+  /* a small count is said as a word ("Two facts missing."), as drawn */
+  const word = { 2:'mig_ckn_two', 3:'mig_ckn_three', 4:'mig_ckn_four', 5:'mig_ckn_five' };
+  const cnt = n => word[n] ? i18t(word[n]) : String(n);
+  const ps = hs => hs.map(h => `<p>${h}</p>`).join('');
+  const warn = !!(c._parked || miss.length || unsure.length);
+  const head = c._parked ? i18t('mig_ckn_h_unsigned') : (miss.length ? i18tn('mig_ckn_h_missing', miss.length, { n:cnt(miss.length) }) : (unsure.length ? i18tn('mig_ckn_h_unsure', unsure.length, { n:cnt(unsure.length) }) : i18t('mig_ckn_h_ready')));
+  return `<div class="jl-words mig-ck-why mig-ckn">
+      <div class="mig-ckn-head${warn ? ' is-warn' : ''}"><i class="mig-ckn-mark" aria-hidden="true"></i><h3 class="jov5-title">${esc(head)}</h3></div>
+      ${miss.map(g => `<div class="mig-ckn-card is-kv" data-mig-ckn="${esc(g.k)}"><b>${esc(i18t(MIG_FORM_LABEL[g.k]))}</b><div>${ps(g.html.map(bare))}</div></div>`).join('')}
+      ${unsure.length ? `<div class="mig-ckn-card" data-mig-ckn="unsure"><b>${esc(i18t('mig_ckn_unsure'))}</b>${ps(unsure.flatMap(g => g.html))}</div>` : ''}
+      ${plain.length ? `<div class="mig-ckn-card" data-mig-ckn="note">${ps(plain.map(x => x.html))}</div>` : ''}
       ${w.offers.length && canEdit() && !c._parked ? `<div class="jl-chips">${w.offers.map(o => `<button type="button" class="ui-btn ui-btn-sm" data-mig-use="${o.k}"${o.iso ? ` data-iso="${esc(o.iso)}"` : ''}${o.val ? ` data-val="${esc(o.val)}"` : ''}>${esc(o.label)}</button>`).join('')}</div>` : ''}
-    </div>
-    ${next.length ? `<div class="mig-ck-next"><div class="mig-side-h">${esc(i18t('mig_ck_next_h'))}</div>
-      <div class="mig-ck-nl">${next.map(x => `<button type="button" class="mig-ck-nr" data-mig-ck-to="${esc(x.key)}"><span class="mig-ck-nf">${esc(x.file)}</span><span class="mig-ck-nw">${esc(x.st.why)}</span></button>`).join('')}</div></div>` : ''}`;
+      ${next.length ? `<div class="mig-ckn-card mig-ck-next"><b>${esc(i18t('mig_ck_next_h'))}</b>
+        <div class="mig-ck-nl">${next.map(x => `<button type="button" class="mig-ck-nr" data-mig-ck-to="${esc(x.key)}"><span class="mig-ck-nf">${esc(x.file)}</span><span class="mig-ck-nw">${esc(x.st.why)}</span></button>`).join('')}</div></div>` : ''}
+      <p class="jl-src mig-ckn-small">${esc(i18t('mig_src_file'))}.${c._parked ? '' : ' ' + esc(i18t('mig_ckn_small'))}</p>
+    </div>`;
 }
 function migCheckHtml(){
   const id = migCheckId(), row = id ? migRowByKey(id) : null;
   const parked = !!(row && !row.c && migParked(row));
   const c = row ? (row.c || (parked ? migPendingAsContract(row) : null)) : null;
   if (!c) return '';
-  const n = _migCheck.ids.length;
   const rows = migFormOf(c);
   const file = (c.upload && c.upload.fileName) || c.name;
   const edit = canEdit();
-  const waits = (!parked && migReviewOpen(c)) ? migFormWaitsOf(c) : [];
-  const say = migWaitWords(waits);
-  /* A FILE THAT LOOKS UNSIGNED: its words beside what it would be filed as,
-     and its three answers in the foot (nothing is saved before one) */
-  if (parked) return `<div class="mig-ck">
-    <section class="mig-card mig-ck-doc" id="mig-ck-doc" aria-label="${esc(i18t('mig_ck_doc_sub'))}">
-      <div class="mig-ck-h">${icon('file', 'w-4 h-4')}<b title="${esc(file)}">${esc(file)}</b><span>${esc(i18t('mig_ck_doc_sub'))}</span></div>
+  /* MADE LIKE THE SEND SCREEN, ENTRY ON THE LEFT (owner, 20 Nov 2026: "make the page almost like this and flip the
+     pages so that the entry is on the left of the paper"; "build it as drawn"): what it will be filed as stands
+     first, an open form (label beside the words, one line under each row, an owed box in amber words); the file
+     stands to its right on one white sheet, its name and how it was read on top as a letter has Subject and From.
+     Skip for now and File it stand in the page's head (migCheckActsHtml). */
+  const sheet = `<section class="mig-card mig-ck-doc" id="mig-ck-doc" aria-label="${esc(i18t('mig_ck_doc_sub'))}">
+      <div class="mig-ck-meta"><span>${esc(i18t('mig_ckn_file'))}</span><b title="${esc(file)}">${esc(file)}</b></div>
+      <div class="mig-ck-meta"><span>${esc(i18t('mig_ckn_read'))}</span><span>${esc(i18t('mig_ckn_read_how'))}</span></div>
       <div class="mig-ck-page">${migDocHtml(c, rows)}</div>
-    </section>
+    </section>`;
+  /* A FILE THAT LOOKS UNSIGNED: its words beside what it would be filed as,
+     and its three answers under its facts (nothing is saved before one) */
+  if (parked) return `<div class="mig-ck">
     <section class="mig-card mig-ck-facts" id="mig-ck-facts">
       <div class="mig-ck-h"><b>${esc(i18t('mig_ck_facts_h'))}</b><span>${esc(i18t('mig_unsigned_after'))}</span></div>
       <div class="mig-ck-body">${migFormHtml(c, { marks:true, ro:true, noUse:true })}
         <div class="mig-ff" data-mig-ff="status"><span class="mig-ff-l">${esc(i18t('mig_f_as'))}</span><div class="mig-ff-c"><span class="mig-ff-ro is-need">${esc(i18t('mig_why_unsigned'))}</span></div></div></div>
-      <div class="mig-ck-foot">${migUnsignedActsHtml(row.i)}<span class="mig-sp"></span>${n > 1 ? `<button type="button" class="ui-btn" data-mig-ck-skip>${esc(i18t('mig_ck_skip'))}</button>` : ''}</div>
+      <div class="mig-ck-foot">${migUnsignedActsHtml(row.i)}</div>
     </section>
+    ${sheet}
   </div>`;
+  const more = edit && migReviewOpen(c) ? `<button type="button" class="mig-link" data-mig-review-full="${esc(c.id)}" data-mig-ck-file title="${esc(i18t('mig_all_details_t'))}">${esc(i18t('mig_all_details'))}</button>` : '';
   return `<div class="mig-ck">
-    <section class="mig-card mig-ck-doc" id="mig-ck-doc" aria-label="${esc(i18t('mig_ck_doc_sub'))}">
-      <div class="mig-ck-h">${icon('file', 'w-4 h-4')}<b title="${esc(file)}">${esc(file)}</b><span>${esc(i18t('mig_ck_doc_sub'))}</span></div>
-      <div class="mig-ck-page">${migDocHtml(c, rows)}</div>
-    </section>
     <section class="mig-card mig-ck-facts" id="mig-ck-facts" data-mig-form="${esc(c.id)}">
       <div class="mig-ck-h"><b>${esc(i18t('mig_ck_facts_h'))}</b><span>${esc(i18t('mig_ck_facts_sub'))}</span></div>
       <div class="mig-ck-body">${migFormHtml(c, { marks:true, asRow:true, noUse:migWhyHtml(c).offers.length > 0 })}</div>
-      <div class="mig-ck-foot">
-        ${edit && migReviewOpen(c) ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-file="${esc(c.id)}" data-mig-ck-file${waits.length ? ` disabled title="${esc(say)}"` : ''}>${esc(i18t('mig_file_it'))}</button>` : ''}
-        ${edit && !migReviewOpen(c) && migLinkPending(c) ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-side-link="${esc(c.id)}">${esc(i18t('mig_link_it'))}</button>` : ''}
-        <span class="mig-cf-wait" data-mig-wait${say ? '' : ' hidden'}>${esc(migWaitWords(waits, true))}</span>
-        <span class="mig-sp"></span>
-        ${edit && migReviewOpen(c) ? `<button type="button" class="mig-link" data-mig-review-full="${esc(c.id)}" data-mig-ck-file title="${esc(i18t('mig_all_details_t'))}">${esc(i18t('mig_all_details'))}</button>` : ''}
-        ${n > 1 ? `<button type="button" class="ui-btn" data-mig-ck-skip>${esc(i18t('mig_ck_skip'))}</button>` : ''}
-      </div>
+      ${more ? `<div class="mig-ck-foot">${more}</div>` : ''}
     </section>
+    ${sheet}
   </div>`;
 }
 /* OPTION 1'S TABS, as drawn: Check N · Decide N · Filed N — one builder for
@@ -2601,6 +2644,7 @@ function migCheckBarHtml(){
     <h2 class="sr-only">${esc(i18tn('mig_ck_title', n, { n }))}</h2>
     ${migTabsHtml('check', n)}
     <span class="mig-sp"></span>
+    ${canEdit() ? `<button type="button" class="mig-link mig-ck-new" id="mig-choose">${esc(i18t('mig_new_batch'))}</button>` : ''}
     <span class="mig-ck-pos">${esc(i18t('mig_ck_pos', { i:i + 1, n }))}</span>
     <button type="button" class="ui-btn ui-btn-sm ui-btn-icon" data-mig-ck-go="-1" aria-label="${esc(i18t('mig_ck_prev'))}" title="${esc(i18t('mig_ck_prev'))}"${i ? '' : ' disabled'}>‹</button>
     <button type="button" class="ui-btn ui-btn-sm ui-btn-icon" data-mig-ck-go="1" aria-label="${esc(i18t('mig_ck_next'))}" title="${esc(i18t('mig_ck_next'))}"${i < n - 1 ? '' : ' disabled'}>›</button>
@@ -2848,33 +2892,71 @@ function renderMigration(o){
       .mig-ck-tn{font-variant-numeric:tabular-nums}
       .mig-ff-ro.is-need{color:var(--st-amber-fg)}
       .mig-ck-pos{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
-      .mig-ck{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3);align-items:start}
-      .mig-ck .mig-card{display:flex;flex-direction:column;max-height:calc(var(--view-h,100vh) - 2 * var(--s-3) - 8px);overflow:hidden}
-      .mig-ck-h{flex:none;display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--color-divider);min-width:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
-      .mig-ck-h b{font-size:var(--t-body);color:var(--color-text);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-      .mig-ck-h span{white-space:nowrap}
-      .mig-ck-page{flex:1 1 auto;min-height:0;overflow:auto;padding:16px;background:var(--surface-2)}
-      .mig-ck-page > *{background:var(--color-surface);border:1px solid var(--color-divider)}
-      .mig-ck-title{font-family:var(--font-doc,inherit);font-weight:var(--w-strong);text-align:center;letter-spacing:.04em;padding:20px 24px 0;border-bottom:0}
-      .mig-ck-title + .mig-ck-text{border-top:0}
-      .mig-ck-text{font-family:var(--font-doc,inherit);font-size:var(--t-body);line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;padding:14px 24px 22px}
+      /* THE CHECK, MADE LIKE THE SEND SCREEN (owner, 20 Nov 2026: "make the page almost like this and flip the pages
+         so that the entry is on the left of the paper"; "build it as drawn"). The entry stands first: an open form,
+         the label beside the words, ONE line under each row (the row's own, so the field's is switched off), an owed
+         empty box in amber words with an amber label and no box round it. The file stands to its right on ONE white
+         sheet, its name and how it was read on top. Skip for now and File it stand in the page's head. No backtick
+         may be written in this block. */
+      .mig-ck{display:grid;grid-template-columns:minmax(340px,4fr) minmax(0,6fr);gap:0;align-items:start}
+      /* each side ends inside the window and scrolls within itself: 196 is where the check starts under the bar,
+         the head and the tabs, 32 the sheet's own air above and below */
+      .mig-ck .mig-card{display:flex;flex-direction:column;max-height:calc(100vh - 196px - 32px);overflow:hidden;border:0;border-radius:0;box-shadow:none;background:none}
+      .mig-ck .mig-ck-facts{padding:var(--s-4) var(--s-6) 0 40px}
+      .mig-ck-h{flex:none;display:flex;flex-direction:column;gap:4px;padding:0 0 var(--s-3);min-width:0;font-size:var(--t-body);color:var(--color-quiet)}
+      .mig-ck-h b{font-family:var(--font-title);font-size:22px;line-height:1.2;font-weight:var(--w-title-serif);letter-spacing:-.005em;color:var(--color-text);overflow-wrap:anywhere}
+      .mig-ck-body{flex:1 1 auto;min-height:0;overflow:auto;padding:0}
+      .mig-ck-body .mig-ffs{border-top:0}
+      .mig-ck-body .mig-ff{--fld-under:var(--fld-under-none);grid-template-columns:110px minmax(0,1fr);gap:12px;padding:12px 0}
+      .mig-ck-body .mig-ff-l{font-size:var(--t-body);color:var(--color-quiet);padding-top:2px}
+      .mig-ck-body .mig-ff:has(.mig-ff-in.need-empty:placeholder-shown) .mig-ff-l{color:var(--st-amber-fg);font-weight:var(--w-label)}
+      .mig-ck-body .mig-ff-in{height:auto;min-height:22px;padding:0;font-size:15px;line-height:22px}
+      .mig-ck-body .mig-ff.is-need .mig-ff-in{background:none}
+      .mig-ck-body .mig-ff-in.need-empty::placeholder{font-weight:var(--w-label)}
+      .mig-ck-body .mig-ff-ro{font-size:15px;line-height:22px;padding-top:0}
+      .mig-ck-body .mig-ff-use{border:0;background:none;padding:0;border-radius:0;font-size:var(--t-body);text-decoration:underline;text-underline-offset:3px;margin-top:4px}
+      .mig-ck-body .mig-ff-use:hover{background:none;color:var(--color-text)}
+      .mig-ck-foot{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:var(--s-3) 0}
+      .mig-ck .mig-ck-doc{margin:var(--s-4) var(--s-6) var(--s-4) 0;background:var(--color-surface);box-shadow:var(--shadow-paper)}
+      .mig-ck-meta{flex:none;display:grid;grid-template-columns:86px minmax(0,1fr);align-items:baseline;padding:14px 32px;border-bottom:1px solid var(--color-divider);font-size:var(--t-card)}
+      .mig-ck-meta > span:first-child{font-size:var(--t-body);color:var(--color-quiet)}
+      .mig-ck-meta > :last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+      .mig-ck-meta b{font-weight:var(--w-label)}
+      .mig-ck-page{flex:1 1 auto;min-height:0;overflow:auto;padding:0;background:var(--color-surface)}
+      .mig-ck-title{font-family:var(--font-doc,inherit);font-weight:var(--w-strong);text-align:center;letter-spacing:.04em;padding:22px 32px 0}
+      .mig-ck-text{font-family:var(--font-doc,inherit);font-size:var(--t-card);line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;padding:14px 32px 24px}
+      .mig-ck-new{margin-right:var(--s-3);text-decoration:underline;text-underline-offset:3px}
+      /* while a file is checked the head keeps ONE line on the page, the one under the tabs; its facts give way
+         to the two acts and say the rest on hover */
+      .mig-page.is-checking .mig-own-head .cun-head{border-bottom-color:transparent}
+      .mig-page.is-checking .mig-own-head .ctf-hf{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .mig-page.is-checking .mig-own-head .apn-acts{flex:none;display:flex;align-items:center;gap:8px}
       .mig-ck-wait{margin:0;padding:16px;font-size:var(--t-meta);color:var(--color-neutral-700)}
       .mig-ck-m{background:var(--st-green-bg);color:inherit;border-radius:3px;padding:0 2px}
       .mig-ck-m.is-need{background:var(--st-amber-bg)}
       .mig-ck-sup{font-size:10px;font-weight:var(--w-strong);color:var(--color-neutral-700);margin-left:1px}
-      .mig-ck-body{flex:1 1 auto;min-height:0;overflow:auto;padding:4px 16px 8px}
-      .mig-ck-body .mig-ffs{border-top:0}
-      .mig-ck-body .mig-ff{grid-template-columns:110px minmax(0,1fr)}
-      .mig-ck-foot{flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--color-divider)}
       .mig-why-p{margin:0 0 6px}
       .mig-why-p:last-child{margin-bottom:0}
-      .mig-ck-next{padding:4px 14px 14px}
-      .mig-ck-nl{display:flex;flex-direction:column;border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
-      .mig-ck-nr{appearance:none;border:0;background:var(--color-surface);text-align:left;padding:9px 12px;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
-      .mig-ck-nr + .mig-ck-nr{border-top:1px solid var(--color-divider)}
-      .mig-ck-nr:hover{background:var(--surface-2)}
-      .mig-ck-nf{font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .mig-ck-nw{font-size:var(--t-label);color:var(--color-neutral-600)}
+      /* JAMBO'S PANEL, as the Send screen's "Before you send": a round mark and one headline, then soft cards */
+      .mig-ckn{display:flex;flex-direction:column;gap:12px}
+      .mig-ckn-head{display:flex;align-items:center;gap:14px;margin:2px 0 4px;min-width:0}
+      .mig-ckn-head .jov5-title{min-width:0}
+      .mig-ckn-mark{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--st-green-bg);font-style:normal}
+      .mig-ckn-mark::before{content:"\\2713";font-size:16px;font-weight:var(--w-strong);color:var(--st-green-fg)}
+      .mig-ckn-head.is-warn .mig-ckn-mark{background:var(--st-amber-bg)}
+      .mig-ckn-head.is-warn .mig-ckn-mark::before{content:"!";color:var(--st-amber-fg)}
+      .mig-ckn-card{border-radius:var(--radius);background:var(--jb-card-fill);padding:12px 14px;font-size:13.5px;line-height:1.5;min-width:0;color:var(--color-text)}
+      .mig-ckn-card > b{display:block;font-weight:var(--w-strong);margin-bottom:2px}
+      .mig-ckn-card p{margin:0;overflow-wrap:anywhere}
+      .mig-ckn-card p + p{margin-top:6px}
+      .mig-ckn-card.is-kv{display:grid;grid-template-columns:84px minmax(0,1fr);gap:12px;align-items:baseline}
+      .mig-ckn-card.is-kv > b{margin:0}
+      .mig-ck-nl{display:flex;flex-direction:column}
+      .mig-ck-nr{appearance:none;border:0;background:none;text-align:left;padding:5px 0;font:inherit;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0}
+      .mig-ck-nr:hover .mig-ck-nf{text-decoration:underline}
+      .mig-ck-nf{font-size:13.5px;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+      .mig-ck-nw{flex:none;font-size:var(--t-label);color:var(--st-amber-fg);white-space:nowrap}
+      .mig-ckn-small{margin:0}
     </style>
     ${canEdit()?`<input id="mig-files" type="file" multiple accept="${MIG_ACCEPT}" style="display:none"><input id="mig-sheet-file" type="file" accept=".csv" style="display:none">`:''}
     ${_migCheck?migCheckHtml():`
@@ -3002,7 +3084,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     }
     if ((el = t.closest('[data-mig-ck-skip]'))){ migCheckGo(_migCheck && _migCheck.i >= _migCheck.ids.length - 1 ? -(_migCheck.ids.length - 1) : 1); return; }
     if ((el = t.closest('[data-mig-file]'))){
-      const form = el.closest('[data-mig-form]'); const inCheck = el.hasAttribute('data-mig-ck-file');
+      const inCheck = el.hasAttribute('data-mig-ck-file');
+      /* the check's File it is pressed in the page's head: its form is the check's own */
+      const form = el.closest('[data-mig-form]') || (inCheck ? document.getElementById('mig-ck-facts') : null);
       el.disabled = true;
       migFileIt(el.getAttribute('data-mig-file'), form).then(ok => {
         if (!ok){ el.disabled = false; return; }
