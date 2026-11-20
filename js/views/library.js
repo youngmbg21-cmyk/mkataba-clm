@@ -231,18 +231,20 @@ function openTemplateFillModal(t, prefill, ho){
     </div>`;
   const errHtml=`<div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>`;
   const tfFolder=()=>((document.getElementById('tf-folder')||{}).value||'');
+  let stepTo=null, tfWire=null;   /* the one sheet's steps (f1118, below); a host's form and the page have none */
   const readNow=()=>{ const values={};
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); if(el) values[f.key]=String(el.value||'').trim(); }
     return { t, values, party:((document.getElementById('tf-party')||{}).value||'') }; };
   const skip=()=>{ const fo=tfFolder(); closeModal(); buildFromCustomTemplate(t, {}, { folder:fo }); };
   const create=()=>{
-    const values={}, errs=[];
+    const values={}, errs=[]; let errAt='';
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';
-      const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+      const e=validateField(f, raw); if(e){ errs.push(e); errAt=errAt||('tf-'+f.key); } else values[f.key]=raw; }
     const cpEmail=(document.getElementById('tf-cpemail')||{}).value||'';
-    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
-      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
-    if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; return false; }
+    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim())){
+      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`); errAt=errAt||'tf-cpemail'; }
+    /* on the one sheet in steps, the refused answer's own step comes back into view (stepTo) */
+    if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; if(stepTo) stepTo(errAt); return false; }
     const party=((document.getElementById('tf-party')||{}).value||'').trim();
     const folder=tfFolder();
     const side=((document.getElementById('tf-side')||{}).value||'').trim();
@@ -259,7 +261,73 @@ function openTemplateFillModal(t, prefill, ho){
     }
     return { create, skip, count };
   }
-  openModal(`<div style="padding:20px 22px">
+  /* ---- THE ONE EDIT POP-UP, THE LEGORA WAY, WHERE THE PAPER DOES NOT FIT (f1118) ----
+     The short form is the one sheet: each question a line, its label beside the words, no boxes; the same ids, the
+     same three acts, the same check. More than seven lines is a NEXT STEP, never a scroll: the agreement's own facts
+     first, then the template's blanks six at a time — every step stays in the form, so Create reads every answer, and
+     a refused answer brings its own step back into view. The page (paper beside it) and a host's form keep their own
+     layout above. */
+  const tfLgpHtml=()=>{
+    const E=_tplEsc, q=s=>E(String(s==null?'':s)).replace(/"/g,'&quot;');
+    const key=(txt, title)=>`<span class="lgp-k"${title||''}>${txt}</span>`;
+    const line=(k, ctl)=>`<label class="lgp-row">${k}<span class="lgp-v">${ctl}</span></label>`;
+    /* a need-mark (needAttrs) may carry its own class: it joins the line's, never a second class attribute */
+    const need=(f, v)=>{ const a=(typeof needAttrs==='function')?needAttrs(f, v):''; return { attr:a.replace(' class="need-empty"',''), cls:/class="need-empty"/.test(a)?' need-empty':'' }; };
+    const blank=f=>{ const id='tf-'+f.key;
+      const _map=f.maps?String(tplMapLabel(f.maps)||''):'';
+      const tt=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${q(_map)}"` : '';
+      const k=key(`${E(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}`, tt);
+      if(f.type==='select'){
+        const dv=(f.def==null?'':f.def)||((f.opts||[])[0]!=null&&typeof window.fieldOpt==='function'?window.fieldOpt(f.opts[0]).v:'');
+        const n=need(f, dv);
+        return { id, html:line(k, `<select id="${id}" class="lgp-in${n.cls}"${n.attr}>${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{v:String(o),l:String(o)}).map(o=>`<option value="${q(o.v)}" ${String(f.def==null?'':f.def)===o.v?'selected':''}>${E(o.l)}</option>`).join('')}</select>`) };
+      }
+      const it=f.type==='date'?'date':(f.type==='num'?'number':'text'), n=need(f, f.def);
+      return { id, html:line(k, `<input id="${id}" class="lgp-in${n.cls}" type="${it}" autocomplete="off"${n.attr} value="${q(f.def||'')}" placeholder="${q(f.ph||'')}">`) }; };
+    const party={ id:'tf-party', html:line(key(E(i18t('tf_our_party'))), `<input id="tf-party" class="lgp-in" type="text" autocomplete="off" value="${q((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'')}" placeholder="${q(i18t('tf_our_party_ph'))}">`) };
+    const email={ id:'tf-cpemail', html:line(key(E(i18t('lib_their_email'))), `<input id="tf-cpemail" class="lgp-in" type="email" autocomplete="off" placeholder="${q((typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke')}">`) };
+    /* who pays whom is three presses, never a label round buttons (a label would press the first one) */
+    const side=sideF?{ id:'tf-side', html:`<div class="lgp-row is-tall">${key(E(sideF.label))}<span class="lgp-v">${(typeof payWhoHtml==='function')?payWhoHtml('tf-side', sideF.def||''):''}</span></div>` }:null;
+    const folder={ id:'tf-folder', html:line(key(E(i18t('tl_stream'))), `<select id="tf-folder" class="lgp-in">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false, { reach:true }) : ''}</select>`) };
+    const blanks=fs.map(blank);
+    const all=[party, ...blanks, email].concat(side?[side]:[], [folder]);
+    const groups=[];
+    if(all.length<=7) groups.push({ name:'', lines:all });
+    else {
+      groups.push({ name:i18t('tf_step_agreement'), lines:[party, folder, email].concat(side?[side]:[]) });
+      const per=(typeof LGP_PAGE==='number'&&LGP_PAGE)||6, n=Math.ceil(blanks.length/per);
+      for(let i=0;i<n;i++) groups.push({ name:n>1?i18t('tf_step_blanks_n',{ n:i+1 }):i18t('tf_step_blanks'), lines:blanks.slice(i*per,(i+1)*per) });
+    }
+    const multi=groups.length>1;
+    const stepsHtml=at=>groups.map((g,i)=>i+1===at?`<b>${E(g.name)}</b>`:E(g.name)).join(' · ');
+    const show=at=>{
+      document.querySelectorAll('#tf-form [data-tf-step]').forEach(d=>d.toggleAttribute('hidden', Number(d.getAttribute('data-tf-step'))!==at));
+      const last=at===groups.length;
+      document.getElementById('tf-back')?.toggleAttribute('hidden', at===1);
+      document.getElementById('tf-next')?.toggleAttribute('hidden', last);
+      document.getElementById('tf-create')?.toggleAttribute('hidden', !last);
+      const st=document.getElementById('tf-steps'); if(st) st.innerHTML=stepsHtml(at);
+      tfAt=at; };
+    let tfAt=1;
+    if(multi){
+      stepTo=id=>{ const i=groups.findIndex(g=>g.lines.some(l=>l.id===id)); if(i>=0) show(i+1); };
+      tfWire=()=>{
+        document.getElementById('tf-next')?.addEventListener('click',()=>show(Math.min(groups.length, tfAt+1)));
+        document.getElementById('tf-back')?.addEventListener('click',()=>show(Math.max(1, tfAt-1)));
+      };
+    }
+    return `<form class="lgp" id="tf-form" novalidate>
+      <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(t.name)}</h3>${multi?`<p class="lgp-sub lgp-steps" id="tf-steps">${stepsHtml(1)}</p>`:''}</div>
+        <button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${q(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
+      <div class="lgp-bd">${groups.map((g,i)=>`<div data-tf-step="${i+1}"${i?' hidden':''}>${g.lines.map(l=>l.html).join('')}</div>`).join('')}
+        <p class="lgp-err" id="tf-err" role="alert"></p></div>
+      <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="tf-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+        ${multi?`<button type="button" id="tf-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('lgp_next_step'))}</button>`:''}
+        <button type="button" id="tf-create" class="ui-btn ui-btn-primary lgp-go"${multi?' hidden':''}>${i18t('lib_create_draft')}</button>
+        <button type="button" id="tf-skip" class="ui-btn" title="${q(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
+        <button type="button" data-dlg-cancel id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button></div></form>`;
+  };
+  openModal(!_pv ? tfLgpHtml() : `<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
     <div id="tf-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
     ${fieldsHtml}
@@ -276,7 +344,9 @@ function openTemplateFillModal(t, prefill, ho){
          2026): the form and the paper fill the work area, Create draft,
          Skip and Cancel at the top. The short form stays a dialog. */
       ? { page:{ acts:['tf-create','tf-skip','tf-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` } }
-      : {maxWidth:'620px'});
+      /* the short form: the one sheet (f1118), its own frame, the sheet's width */
+      : { maxWidth: window.LGP_W||'480px', ownFrame:true, label:t.name });
+  if(tfWire) tfWire();
   if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
   /* THE ANSWERS AS THEY STAND, read exactly as the Create press reads them, so
      the preview cannot draw a contract the press would not make. */
@@ -317,20 +387,13 @@ function saveContractAsTemplate(c){
   const saveBody=rich?sanitizeRich(c.redlineText):text;
   const defName=c.name.replace(/\s*\(Draft\)\s*$/,'').replace(/\s*—.*$/,'').trim()||c.name;
   const opts=folderOptionsHtml(c.folder, false);
-  openModal(`
-    <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_save_as_template')}</h3></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
-        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
-      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-        <select id="tpl-folder" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${opts}</select></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button data-dlg-cancel id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): two lines, the name and the stream, label beside the words; the
+     same ids, the same check, the same save. Enter in the name presses Save, as the button does. */
+  lgpOpen({ id:'tpl-sat', title:i18t('lib_save_as_template'),
+    subHtml:`Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}`,
+    rows:[{ k:i18t('lib_template_name'), id:'tpl-name', value:defName }],
+    html:`<label class="lgp-row"><span class="lgp-k">${_tplEsc(i18t('lib_value_stream'))}</span><span class="lgp-v"><select id="tpl-folder" class="lgp-in">${opts}</select></span></label>`,
+    primary:{ label:i18t('lib_save_template'), attr:'id="tpl-save"' }, cancelAttr:'data-dlg-cancel id="tpl-cancel"' });
   document.getElementById('tpl-cancel').addEventListener('click',closeModal);
   bindFolderSelect(document.getElementById('tpl-folder'));
   document.getElementById('tpl-save').addEventListener('click',()=>{
@@ -656,7 +719,7 @@ function openBlanksEditor(tid){
   // work on a copy — nothing is written until Save
   let body=templateBody(rec);
   let fields=(rec.fields||[]).map(f=>({ ...f }));
-  let dirty=false;
+  let dirty=false, bePage=1;
   // A rich template is NOT edited as raw HTML in a textarea — that would show
   // the customer their own contract as markup and destroy it on the first
   // keystroke. It is shown as the document it is, and a blank is made from the
@@ -671,20 +734,23 @@ function openBlanksEditor(tid){
     const used=bodyPlaceholders(body);
     const orphanFields=fields.filter(f=>!used.includes(f.key));
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
-    const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
-    const rows=fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${st}"/>
-        <select data-f="type" style="${st}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
-        <select data-f="maps" style="${st}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+    /* THE ONE SHEET (f1118): each blank a line, no boxes; more than six a NEXT PAGE (‹ 1–6 of 9 ›), never a scroll */
+    const per=(typeof LGP_PAGE==='number'&&LGP_PAGE)||6, pages=Math.max(1,Math.ceil(fields.length/per));
+    bePage=Math.min(Math.max(1,bePage),pages);
+    const rows=fields.map((f,i)=>[f,i]).slice((bePage-1)*per, bePage*per).map(([f,i])=>`
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid var(--color-divider)">
+        <input data-f="label" class="lgp-in" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}"/>
+        <select data-f="type" class="lgp-in">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+        <select data-f="maps" class="lgp-in">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
-        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${st};grid-column:1 / -1"/>`:''}
+        <button type="button" data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
+        ${f.type==='select'?`<input data-f="opts" class="lgp-in" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
-      </div>`).join('');
+      </div>`).join('')+(pages>1?`<div class="lgp-lfoot"><span></span><span class="lgp-pager"><button type="button" class="lgp-pg" data-be-page="${bePage-1}"${bePage<=1?' disabled':''} aria-label="${_tplEsc(i18t('lgp_prev'))}">‹</button>${_tplEsc(i18t('lgp_of',{ a:(bePage-1)*per+1, b:Math.min(bePage*per, fields.length), n:fields.length }))}<button type="button" class="lgp-pg" data-be-page="${bePage+1}"${bePage>=pages?' disabled':''} aria-label="${_tplEsc(i18t('lgp_next'))}">›</button></span></div>`:'');
     const host=document.getElementById('be-fields');
     if(host){
-      host.innerHTML=rows||`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_yet')} <b>${i18t('lib_make_this_blank')}</b>.</div>`;
+      host.innerHTML=rows||`<p class="lgp-none">${i18t('lib_no_blanks_yet')} <b>${i18t('lib_make_this_blank')}</b>.</p>`;
+      host.querySelectorAll('[data-be-page]').forEach(b=>b.addEventListener('click',()=>{ bePage=Number(b.getAttribute('data-be-page'))||1; draw(); }));
       host.querySelectorAll('[data-fld]').forEach(row=>{
         const i=Number(row.getAttribute('data-fld'));
         row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -712,26 +778,38 @@ function openBlanksEditor(tid){
       : `<span style="color:var(--color-neutral-600)">${fields.length} blank${fields.length===1?'':'s'} · they become the contract's structured data when someone fills this template in.</span>`;
   };
 
-  openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Blanks in “${_tplEsc(rec.name)}”</h3></div>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">The blanks in a template are the database. Anything you mark here becomes a guided field when someone creates a contract, and its value is filed as contract data — so the register, filters, folder routing and reports get structured information with no separate data entry.</p>
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:10px">
-      <button id="be-make" class="ui-btn ui-btn-primary">${i18t('lib_make_selection_blank')}</button>
-      <button id="be-detect" class="ui-btn">${i18t('lib_detect_brackets')}</button>
-      ${(API_MODE()&&state.aiConfigured)?`<button id="be-suggest" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
-    </div>
-    <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)"></div>
-    <div id="be-warn" style="font-size:var(--t-label);margin-bottom:var(--s-2);min-height:14px"></div>
-    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('lib_formatted_template')}</span>`:''}</span>
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the sheet's head, lines and foot, in two steps — the paper (where a
+     blank is made from a selection) then the blanks (each a line) — both in the form, so Save reads every blank
+     wherever the reader stands. The paper keeps its room: a template's wording is not read at the sheet's 480. */
+  const E=_tplEsc;
+  openModal(`<form class="lgp" id="be-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">Blanks in “${E(rec.name)}”</h3>
+      <p class="lgp-sub lgp-steps" id="be-steps"><b>${E(i18t('lib_document'))}</b> · ${E(i18t('lib_blanks'))}</p>
+      <p class="lgp-sub">The blanks in a template are the database. Anything you mark here becomes a guided field when someone creates a contract, and its value is filed as contract data — so the register, filters, folder routing and reports get structured information with no separate data entry.</p></div>
+      <button type="button" class="lgp-x" id="be-x" tabindex="-1" aria-label="${E(i18t('lgp_close'))}">${icon('x','w-4 h-4')}</button></div>
+    <div class="lgp-bd">
+    <div id="be-step-1">
+      <div class="lgp-chips">
+        <button type="button" id="be-make" class="ui-btn">${i18t('lib_make_selection_blank')}</button>
+        <button type="button" id="be-detect" class="ui-btn">${i18t('lib_detect_brackets')}</button>
+        ${(API_MODE()&&state.aiConfigured)?`<button type="button" id="be-suggest" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
+      </div>
+      <p class="lgp-small">Template body — select text, then “Make selection a blank”${rich?` · ${i18t('lib_formatted_template')}`:''}</p>
       ${rich
-        ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 13px"></div>`
-        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
-    <div id="be-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:15px;margin-bottom:var(--s-2)"></div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button data-dlg-cancel id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
-    </div></div>`, {maxWidth:'760px',
+        ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 13px;margin-top:var(--s-2)"></div>`
+        : `<textarea id="be-body" class="lgp-in is-area scroll-thin" style="width:100%;height:210px;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono)"></textarea>`}
+    </div>
+    <div id="be-step-2" hidden>
+      <div id="be-fields"></div>
+      <p id="be-warn" class="lgp-small"></p>
+    </div>
+    <p id="be-status" class="lgp-small" role="status"></p>
+    </div>
+    <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="be-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+      <button type="button" id="be-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('lgp_next_step'))}</button>
+      <button type="button" id="be-save" class="ui-btn ui-btn-primary lgp-go" hidden>${i18t('lib_save_blanks')}</button>
+      <button type="button" data-dlg-cancel id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    </div></form>`, {maxWidth:'760px', ownFrame:true, label:`Blanks in “${rec.name}”`,
     /* Escape and the scrim ask the SAME question Cancel does. Without this they
        walked straight past the guard below and took every unsaved blank with
        them. */
@@ -739,6 +817,15 @@ function openBlanksEditor(tid){
       message:'The blanks you added, renamed or removed since opening this editor will be lost. The template itself is unchanged.',
       confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
   draw();
+  /* the two steps: Next shows the blanks, Back the paper; the cross asks what Cancel asks */
+  const beStep=n=>{ const one=n===1;
+    document.getElementById('be-step-1')?.toggleAttribute('hidden', !one); document.getElementById('be-step-2')?.toggleAttribute('hidden', one);
+    document.getElementById('be-back')?.toggleAttribute('hidden', one); document.getElementById('be-next')?.toggleAttribute('hidden', !one);
+    document.getElementById('be-save')?.toggleAttribute('hidden', one);
+    const sp=document.getElementById('be-steps'); if(sp) sp.innerHTML=one?`<b>${E(i18t('lib_document'))}</b> · ${E(i18t('lib_blanks'))}`:`${E(i18t('lib_document'))} · <b>${E(i18t('lib_blanks'))}</b>`; };
+  document.getElementById('be-next')?.addEventListener('click',()=>beStep(2));
+  document.getElementById('be-back')?.addEventListener('click',()=>beStep(1));
+  document.getElementById('be-x')?.addEventListener('click',()=>document.getElementById('be-cancel')?.click());
 
   const bodyEl=document.getElementById('be-body');
   if(!rich) bodyEl.addEventListener('input',()=>{ body=bodyEl.value; dirty=true; draw(); });
@@ -898,65 +985,56 @@ function openTemplateEditor(tid){
   let body=templateBody(rec);
   let format=templateFormat(rec);
   let fields=(rec.fields||[]).map(f=>({...f}));
-  let editor=null, dirty=false, previewing=false;
+  let editor=null, dirty=false, previewing=false, tePage=1;
   const usage=templateUsage(tid);
   const startedRich=isRich(format);
   const bodyText=()=> isRich(format) ? richToText(body) : body;
 
-  /* READS THE ONE PAIR (25 Aug 2026) — see HATI_FLD in core.js. */
-  const FLD=window.HATI_FLD;
-  openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:3px">
-      <span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_edit_template')}</h3>
-      <span style="font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 6px">v${templateVersionNo(rec)}</span>
-      <span style="flex:1"></span>
-      <button id="te-versions" class="ui-btn ui-btn-sm" style="white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the sheet's head, lines and foot, in three steps — the name, its
+     stream and what changed; the document; the blanks — all in the form, so Save reads everything wherever the reader
+     stands, and a refusal brings its own step back into view. The paper keeps its room: a template's wording is not
+     read at the sheet's 480. */
+  const E=_tplEsc, vNow=templateVersionNo(rec), vNext=vNow+1;
+  const TE_STEPS=[i18t('te_step_name'), i18t('lib_document'), i18t('lib_blanks')];
+  const teStepsHtml=at=>TE_STEPS.map((n,i)=>i+1===at?`<b>${E(n)}</b>`:E(n)).join(' · ');
+  const line=(k, ctl)=>`<label class="lgp-row"><span class="lgp-k">${E(k)}</span><span class="lgp-v">${ctl}</span></label>`;
+  openModal(`<form class="lgp" id="te-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${i18t('lib_edit_template')} · v${vNow}</h3>
+      <p class="lgp-sub lgp-steps" id="te-steps">${teStepsHtml(1)}</p>
+      <p class="lgp-sub">${E(templateUsageLabel(usage))} · saving creates <b>v${vNext}</b>. <button type="button" class="lgp-use" id="te-versions">Versions (${templateVersions(rec).length+1})</button></p></div>
+      <button type="button" class="lgp-x" id="te-x" tabindex="-1" aria-label="${E(i18t('lgp_close'))}">${icon('x','w-4 h-4')}</button></div>
+    <div class="lgp-bd">
+    <div data-te-step="1">
+      ${line(i18t('lib_template_name'), `<input id="te-name" class="lgp-in" autocomplete="off" value="${String(name).replace(/"/g,'&quot;')}"/>`)}
+      ${line(i18t('lib_value_stream'), `<select id="te-folder" class="lgp-in">${folderOptionsHtml(folder,false)}</select>`)}
+      ${line(i18t('lib_what_changed'), `<input id="te-note" class="lgp-in" autocomplete="off" placeholder="${esc(i18t('lib_ph_version_note'))}"/>`)}
+      <p class="lgp-small">(recorded against v${vNext})</p>
+      <p class="lgp-small"><b>${i18t('lib_existing_unaffected')}</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</p>
     </div>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-1);line-height:1.5">
-      ${_tplEsc(templateUsageLabel(usage))} · saving creates <b>v${templateVersionNo(rec)+1}</b>.</p>
-    <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;margin:0 0 var(--s-3);font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700)">
-      <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('shield','w-3.5 h-3.5')}</span>
-      <span><b>${i18t('lib_existing_unaffected')}</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</span>
+    <div data-te-step="2" hidden>
+      <div class="lgp-chips">
+        <button type="button" id="te-blank" class="ui-btn ui-btn-sm">${i18t('lib_make_selection_blank')}</button>
+        <button type="button" id="te-preview" class="ui-btn ui-btn-sm">${i18t('lib_preview')}</button>
+      </div>
+      <p class="lgp-small" style="margin-bottom:var(--s-2)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</p>
+      <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:var(--t-body)"
+           data-placeholder="${i18t('lb_paste_or_type')}"></div>
+      <div id="te-previewpane" class="scroll-thin doc-surface" style="display:none;height:230px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:0;padding:14px 18px"></div>
+      <p class="lgp-small">${RICH_EDITOR_NOTE}</p>
     </div>
-
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:var(--s-3)">
-      <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
-        <input id="te-name" value="${String(name).replace(/"/g,'&quot;')}" style="${FLD}"/></label>
-      <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-        <select id="te-folder" style="${FLD};background:var(--fld-bg)">${folderOptionsHtml(folder,false)}</select></label>
+    <div data-te-step="3" hidden>
+      <p class="lgp-small">${i18t('lib_blanks_become_fields')}</p>
+      <div id="te-fields"></div>
+      <div id="te-warn" class="lgp-small"></div>
     </div>
-
-    <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)">
-      <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_document')}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</span>
-      <span style="flex:1"></span>
-      <button id="te-blank" class="ui-btn ui-btn-sm">${i18t('lib_make_selection_blank')}</button>
-      <button id="te-preview" class="ui-btn ui-btn-sm">${i18t('lib_preview')}</button>
+    <p id="te-status" class="lgp-small" role="status"></p>
     </div>
-    <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:var(--t-body)"
-         data-placeholder="${i18t('lb_paste_or_type')}"></div>
-    <div id="te-previewpane" class="scroll-thin doc-surface" style="display:none;height:230px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:0;padding:14px 18px"></div>
-    <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
-
-    <div style="display:flex;align-items:baseline;gap:var(--s-2);margin:var(--s-3) 0 var(--s-1)">
-      <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_blanks')}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('lib_blanks_become_fields')}</span>
-    </div>
-    <div id="te-fields" class="scroll-thin" style="max-height:150px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px"></div>
-    <div id="te-warn" style="font-size:var(--t-label);margin:7px 0;min-height:15px;line-height:1.5"></div>
-
-    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_what_changed')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
-      <input id="te-note" placeholder="${esc(i18t('lib_ph_version_note'))}" style="${FLD}"/></label>
-
-    <div id="te-status" style="font-size:var(--t-label);min-height:16px;margin-bottom:var(--s-2)"></div>
-    <div style="display:flex;justify-content:space-between;gap:var(--s-2)">
-      <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('lib_delete_template')}</button>
-      <span style="display:flex;gap:var(--s-2)">
-        <button data-dlg-cancel id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
-      </span>
-    </div></div>`, {maxWidth:'880px',
+    <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="te-back" hidden>‹ ${E(i18t('lgp_back'))}</button>
+      <button type="button" id="te-delete" class="lgp-left is-danger">${i18t('lib_delete_template')}</button><span class="lgp-sp"></span>
+      <button type="button" id="te-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('lgp_next_step'))}</button>
+      <button type="button" id="te-save" class="ui-btn ui-btn-primary lgp-go" style="white-space:nowrap" hidden>${icon('check2','w-3.5 h-3.5')} Save as v${vNext}</button>
+      <button type="button" data-dlg-cancel id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    </div></form>`, {maxWidth:'880px', ownFrame:true, label:i18t('lib_edit_template'),
     /* Same as the blanks editor above: the quiet ways out ask the same question
        the Cancel button asks, or ten minutes of editing goes without a word. */
     onBeforeClose:async()=>!dirty || await confirmDialog({ title:'Discard these changes?',
@@ -964,6 +1042,16 @@ function openTemplateEditor(tid){
       confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
 
   const st=m=>{ const el=document.getElementById('te-status'); if(el) el.innerHTML=m||''; };
+  /* the three steps: Next on, Back back; Delete stands on the first only; a refusal shows its own step (teStep) */
+  let teAt=1;
+  const teStep=n=>{ teAt=n;
+    document.querySelectorAll('#te-form [data-te-step]').forEach(d=>d.toggleAttribute('hidden', Number(d.getAttribute('data-te-step'))!==n));
+    document.getElementById('te-back')?.toggleAttribute('hidden', n===1); document.getElementById('te-delete')?.toggleAttribute('hidden', n!==1);
+    document.getElementById('te-next')?.toggleAttribute('hidden', n===TE_STEPS.length); document.getElementById('te-save')?.toggleAttribute('hidden', n!==TE_STEPS.length);
+    const sp=document.getElementById('te-steps'); if(sp) sp.innerHTML=teStepsHtml(n); };
+  document.getElementById('te-next')?.addEventListener('click',()=>teStep(Math.min(TE_STEPS.length, teAt+1)));
+  document.getElementById('te-back')?.addEventListener('click',()=>teStep(Math.max(1, teAt-1)));
+  document.getElementById('te-x')?.addEventListener('click',()=>document.getElementById('te-cancel')?.click());
   bindFolderSelect(document.getElementById('te-folder'));
 
   /* ---- the document, in a real rich editor (reuses the paste conversion) ---- */
@@ -994,19 +1082,22 @@ function openTemplateEditor(tid){
     const used=usedIn();
     const orphanFields=fields.filter(f=>!used.includes(f.key));      // a field with no blank
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));   // a blank with no field
-    const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
     const host2=document.getElementById('te-fields'); if(!host2) return;
-    host2.innerHTML=fields.length?fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${stl}"/>
-        <select data-f="type" style="${stl}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
-        <select data-f="maps" style="${stl}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+    /* THE ONE SHEET (f1118): each blank a line, no boxes; more than six a NEXT PAGE, never a scroll */
+    const per=(typeof LGP_PAGE==='number'&&LGP_PAGE)||6, pages=Math.max(1,Math.ceil(fields.length/per));
+    tePage=Math.min(Math.max(1,tePage),pages);
+    host2.innerHTML=fields.length?fields.map((f,i)=>[f,i]).slice((tePage-1)*per, tePage*per).map(([f,i])=>`
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid var(--color-divider)">
+        <input data-f="label" class="lgp-in" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}"/>
+        <select data-f="type" class="lgp-in">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+        <select data-f="maps" class="lgp-in">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
-        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${stl};grid-column:1 / -1"/>`:''}
+        <button type="button" data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
+        ${f.type==='select'?`<input data-f="opts" class="lgp-in" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
-      </div>`).join('')
-      :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</div>`;
+      </div>`).join('')+(pages>1?`<div class="lgp-lfoot"><span></span><span class="lgp-pager"><button type="button" class="lgp-pg" data-te-page="${tePage-1}"${tePage<=1?' disabled':''} aria-label="${E(i18t('lgp_prev'))}">‹</button>${E(i18t('lgp_of',{ a:(tePage-1)*per+1, b:Math.min(tePage*per, fields.length), n:fields.length }))}<button type="button" class="lgp-pg" data-te-page="${tePage+1}"${tePage>=pages?' disabled':''} aria-label="${E(i18t('lgp_next'))}">›</button></span></div>`:'')
+      :`<p class="lgp-none">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</p>`;
+    host2.querySelectorAll('[data-te-page]').forEach(b=>b.addEventListener('click',()=>{ tePage=Number(b.getAttribute('data-te-page'))||1; drawFields(); }));
     host2.querySelectorAll('[data-fld]').forEach(row=>{
       const i=Number(row.getAttribute('data-fld'));
       row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -1117,11 +1208,11 @@ function openTemplateEditor(tid){
 
   document.getElementById('te-save').addEventListener('click',async()=>{
     const nm=document.getElementById('te-name').value.trim();
-    if(!nm){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_needs_name')}</span>`); return; }
+    if(!nm){ teStep(1); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_needs_name')}</span>`); return; }
     if(previewing) pvBtn.click();
     if(isRich(format)) body=unmarkPlaceholders(editor.get());
     const text=bodyText();
-    if(!text.trim()){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_doc_not_empty')}</span>`); return; }
+    if(!text.trim()){ teStep(2); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_doc_not_empty')}</span>`); return; }
 
     // the blank/body sync warnings are BLOCKING in one direction and advisory in
     // the other: a placeholder with no field would render as literal braces in
@@ -1129,7 +1220,7 @@ function openTemplateEditor(tid){
     // just asks a pointless question, which the user may well intend mid-edit.
     const used=usedIn();
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
-    if(orphanBlanks.length){ st(`<span style="color:var(--st-ruby-fg)">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
+    if(orphanBlanks.length){ teStep(3); st(`<span style="color:var(--st-ruby-fg)">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
     const orphanFields=fields.filter(f=>!used.includes(f.key));
     if(orphanFields.length && !await confirmDialog({
       title:`Save with ${orphanFields.length} unused blank${orphanFields.length===1?'':'s'}?`,
@@ -1137,9 +1228,9 @@ function openTemplateEditor(tid){
         `${orphanFields.length===1?'It':'They'} will still be asked for when someone uses this template, and the answer will not appear in the contract.`,
       confirmLabel:'Save anyway', cancelLabel:'Go back and fix it' })) return;
     const bad=fields.find(f=>!String(f.label||'').trim());
-    if(bad){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_every_blank_label')}</span>`); return; }
+    if(bad){ teStep(3); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_every_blank_label')}</span>`); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
-    if(badSel){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_choice_no_choices',{label:_tplEsc(badSel.label)})}</span>`); return; }
+    if(badSel){ teStep(3); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_choice_no_choices',{label:_tplEsc(badSel.label)})}</span>`); return; }
 
     const note=document.getElementById('te-note').value.trim();
     const next=saveTemplateVersion(tid, {
@@ -1347,20 +1438,17 @@ function openBulkCreateModal(t){
   if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('lib_viewers_no_create'),'err'); return; }
   const fs=templateFields(t);
   if(!fs.length){ toast(i18t('lb_no_blanks_add_first'),'err'); return; }
-  openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('lib_bulk_line', { n:TPL_BULK_MAX })}</p>
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3)">
-      <button id="bk-csv" class="ui-btn">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button>
-      <label class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px;cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
-        <input id="bk-file" type="file" accept=".csv" style="display:none"/></label>
-    </div>
-    <div id="bk-out" style="font-size:var(--t-meta);color:var(--color-neutral-700);min-height:20px"></div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
-      <button id="bk-cancel" class="ui-btn">${i18t('act_close')}</button>
-      <button id="bk-go" class="ui-btn ui-btn-primary" disabled style="opacity:.5">${i18t('lib_create_drafts')}</button>
-    </div></div>`, {maxWidth:'700px'});
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): two lines — the blank sheet to download, the filled one to bring
+     back — what was checked under them, Create drafts the one black button (asleep until every row is valid), Close
+     last. The same ids, the same check, nothing created before the press. */
+  const E=_tplEsc;
+  lgpOpen({ id:'bk-form', title:`Create in bulk — ${t.name||t.kind}`, sub:i18t('lib_bulk_line', { n:TPL_BULK_MAX }),
+    html:`<div class="lgp-row"><span class="lgp-k">${E(i18t('bk_row_sheet'))}</span><span class="lgp-v"><button type="button" id="bk-csv" class="ui-btn">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button></span></div>
+      <div class="lgp-row"><span class="lgp-k">${E(i18t('bk_row_filled'))}</span><span class="lgp-v"><label class="ui-btn" style="cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
+        <input id="bk-file" type="file" accept=".csv" style="display:none"/></label></span></div>
+      <div id="bk-out" class="lgp-small" role="status"></div>`,
+    primary:{ label:i18t('lib_create_drafts'), attr:'id="bk-go" disabled style="opacity:.5"' },
+    cancelAttr:'id="bk-cancel"', cancelLabel:i18t('act_close') });
 
   let ready=null;
   const out=document.getElementById('bk-out');
@@ -1379,9 +1467,9 @@ function openBulkCreateModal(t){
       if(r.errors.length){
         const byRow={};
         r.errors.forEach(er=>{ (byRow[er.row]=byRow[er.row]||[]).push(er); });
-        out.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:9px 11px">
+        out.innerHTML=`<div>
           <div style="font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>${i18t('lib_nothing_created')}</b>.</div>
-          <div class="scroll-thin" style="max-height:200px;overflow-y:auto">
+          <div class="scroll-thin" style="max-height:160px;overflow-y:auto">
           ${Object.keys(byRow).sort((a,b)=>a-b).map(rn=>`<div style="padding:2px 0;color:var(--st-ruby-fg)">
             ${rn==='0'?`<b>${i18t('lib_sheet')}</b>`:`<b>Row ${rn}</b>`} — ${byRow[rn].map(er=>`${er.cell?`<i>${_tplEsc(er.cell)}</i>: `:''}${_tplEsc(er.msg)}`).join('; ')}</div>`).join('')}
           </div>
@@ -1389,7 +1477,7 @@ function openBulkCreateModal(t){
         return;
       }
       ready=r.rows;
-      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:9px 11px;color:var(--st-steel-fg)">
+      out.innerHTML=`<div style="color:var(--color-text)">
         <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> ${i18t('lib_press')} <b>${i18t('lib_create_drafts')}</b> to file them all in one pass.
         <div style="margin-top:5px;color:var(--color-neutral-700);font-size:var(--t-label)">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';

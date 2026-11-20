@@ -351,12 +351,13 @@ async function ldSendOpen(){
   const others = (getUsers() || []).filter(u => u && (typeof window.mayDecideStandards === 'function' ? window.mayDecideStandards(u) : u.role === 'admin') && String(u.id) !== String((ldMe() || {}).id));
   const old = e.base ? e.base.ask : '';
   const what = e.clauseId && typeof diffHtml === 'function' && old !== clean.ask ? `<div class="ld-diff">${diffHtml(old, clean.ask)}</div>` : `<p class="ld-dw">${LD_E(clean.ask)}</p>`;
-  openModal(`<div class="ld-dlg"><h3>${LD_E(i18t('ld_dlg_title', { n: e.ver ? e.ver + 1 : 1 }))}</h3>
-    <p class="ld-dlg-p">${LD_E(i18t(e.clauseId ? 'ld_dlg_live' : 'ld_dlg_new', { v: e.ver || 1 }))}</p>
-    <p class="ld-dlg-l">${LD_E(i18t('ld_dlg_what'))}</p>${what}
-    <label class="ld-dlg-l" for="ld-why">${LD_E(i18t('ld_dlg_why'))}</label><textarea id="ld-why" class="ld-box" rows="2" maxlength="400" placeholder="${LD_E(i18t('ld_dlg_why_ph'))}"></textarea>
-    <p class="ld-dlg-l">${LD_E(i18t('ld_dlg_who'))}</p><p class="ld-dlg-p">${LD_E(others.length ? i18tn('ld_dlg_who_n', others.length, { names: others.map(u => u.name || u.email).join(', ') }) : i18t('ld_dlg_who_none'))}</p>
-    <div class="ld-dlg-f" data-dlg-foot><button type="button" class="ui-btn ui-btn-primary" id="ld-send-go">${LD_E(i18t('ld_send'))}</button><button type="button" class="ui-btn" data-dlg-cancel onclick="closeModal()">${LD_E(i18t('act_cancel'))}</button></div></div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): what is proposed, then ONE line for why, then who decides; Send for
+     approval the black button, Cancel last. The same ids, the same check (a why is needed), the same send. */
+  lgpOpen({ id: 'ld-send', title: i18t('ld_dlg_title', { n: e.ver ? e.ver + 1 : 1 }), sub: i18t(e.clauseId ? 'ld_dlg_live' : 'ld_dlg_new', { v: e.ver || 1 }),
+    html: `<p class="lgp-small">${LD_E(i18t('ld_dlg_what'))}</p>${what}
+      ${lgpRowHtml({ k: i18t('ld_dlg_why'), id: 'ld-why', type: 'area', ph: i18t('ld_dlg_why_ph'), max: 400 })}
+      <p class="lgp-small">${LD_E(i18t('ld_dlg_who'))}: ${LD_E(others.length ? i18tn('ld_dlg_who_n', others.length, { names: others.map(u => u.name || u.email).join(', ') }) : i18t('ld_dlg_who_none'))}</p>`,
+    primary: { label: i18t('ld_send'), attr: 'id="ld-send-go"' }, cancelAttr: 'data-lgp-close data-dlg-cancel' });
   document.getElementById('ld-send-go')?.addEventListener('click', async ev => {
     const why = String((document.getElementById('ld-why') || {}).value || '').trim();
     if (!why){ toast(i18t('ld_dlg_why_needed'), 'warn'); document.getElementById('ld-why')?.focus(); return; }

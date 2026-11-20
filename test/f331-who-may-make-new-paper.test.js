@@ -773,7 +773,9 @@ describe('f331 (13) — the link, and the room to draw it', () => {
       /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go): where the paper fits,
          the saved-template fill is a PAGE (dlgPageAdopt), not a 1040px card;
          under the width it is still the 620px dialog it was. */
-      assert.ok(/maxWidth:_pv\?'1040px':'620px'|_pv\?\{maxWidth:'1040px'\}:undefined|_pv\s*(\/\*[\s\S]*?\*\/\s*)?\?\s*\{\s*page:[\s\S]{0,200}:\s*\{maxWidth:'620px'\}/.test(src),
+      /* RE-POINTED 19 Nov 2026 (f1118): under the width the saved-template fill is the one edit sheet (LGP_W, its own
+         frame) — still a dialog, still narrower than the page it becomes where the paper fits. */
+      assert.ok(/maxWidth:_pv\?'1040px':'620px'|_pv\?\{maxWidth:'1040px'\}:undefined|_pv\s*(\/\*[\s\S]*?\*\/\s*)?\?\s*\{\s*page:[\s\S]{0,200}:\s*(\/\*[\s\S]*?\*\/\s*)?\{\s*maxWidth:\s*(?:'620px'|window\.LGP_W\|\|'480px', ownFrame:true)/.test(src),
         name + ' widens the frame only where it fits');
     }
   });
