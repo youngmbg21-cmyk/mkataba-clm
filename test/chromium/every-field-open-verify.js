@@ -23,20 +23,8 @@ const check = (ok, what, detail) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + w
 const until = async (P, fn, arg, ms = 10000) => { try { await P.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
 
 const PLACES = [
-  ['new agreement', () => openNewAgreement({}), () => !!document.querySelector('#na-root'),
-    () => { const b = document.querySelector('.na-ask textarea, .na-ask input'); if (!b) return; b.value = 'Two-year equipment lease of a filling line with Foretag AB'; b.dispatchEvent(new Event('input', { bubbles: true })); b.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); },
-    () => !!document.querySelector('.na-kt-grid .na-kt-r')],
-  /* RE-POINTED 19 Nov 2026 (f1119, the one edit pop-up in three steps): the first step measured alone; the named
-     place walks to step two, where Who pays whom stands */
-  ['ask for a contract, first step', () => openIntakeForm(), () => !!document.querySelector('#ik-title')],
-  ['ask for a contract', () => openIntakeForm(), () => !!document.querySelector('#ik-title'),
-    () => { document.getElementById('ik-title').value = 'x'; document.getElementById('ik-need').value = 'y'; document.getElementById('ik-next').click(); },
-    () => { const w = document.querySelector('[data-pw-for="ik-e-side"]'); return !!w && !w.closest('[hidden]'); }],
-  ['new event', () => calEventDialog(), () => !!document.querySelector('#cal-ev-title')],
-  ['add approval rule', () => { setView('team'); openApprovalRuleEditor(); }, () => !!document.querySelector('#ar-cond')],
-  ['discover filters', () => setView('reads'), () => !!document.querySelector('#rd-page select')],
-  ['your account', () => openMyAccount(), () => !!document.querySelector('#acct-title')],
-  ['company and market', () => openSettingsAt('company', 'company'), () => !!document.querySelector('#st-co-name')],
+  /* FIRST (20 Nov 2026): the Send screen is measured before any step opens Settings' drawer (Your account, Company and
+     market) — opened after one, it shut by itself (BUGLOG 20 Nov 2026), which is not this check's claim. */
   ['send screen', () => {
     /* a trail of what moves the page while the Send screen opens (a red run names WHO closed it) */
     window.__sendTrail = [];
@@ -51,6 +39,20 @@ const PLACES = [
     if (typeof roomHomeLand === 'function') roomHomeLand(c.id);
     return new Promise(res => { let n = 0; const go = () => { const dock = document.getElementById('ig-dock');
       if ((state.view === 'dashboard' && dock && dock.getClientRects().length) || ++n > 60){ openShareModal(c); res(); } else setTimeout(go, 100); }; go(); }); }, () => !!document.querySelector('.sh-lt-who input')],
+  ['new agreement', () => openNewAgreement({}), () => !!document.querySelector('#na-root'),
+    () => { const b = document.querySelector('.na-ask textarea, .na-ask input'); if (!b) return; b.value = 'Two-year equipment lease of a filling line with Foretag AB'; b.dispatchEvent(new Event('input', { bubbles: true })); b.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); },
+    () => !!document.querySelector('.na-kt-grid .na-kt-r')],
+  /* RE-POINTED 19 Nov 2026 (f1119, the one edit pop-up in three steps): the first step measured alone; the named
+     place walks to step two, where Who pays whom stands */
+  ['ask for a contract, first step', () => openIntakeForm(), () => !!document.querySelector('#ik-title')],
+  ['ask for a contract', () => openIntakeForm(), () => !!document.querySelector('#ik-title'),
+    () => { document.getElementById('ik-title').value = 'x'; document.getElementById('ik-need').value = 'y'; document.getElementById('ik-next').click(); },
+    () => { const w = document.querySelector('[data-pw-for="ik-e-side"]'); return !!w && !w.closest('[hidden]'); }],
+  ['new event', () => calEventDialog(), () => !!document.querySelector('#cal-ev-title')],
+  ['add approval rule', () => { setView('team'); openApprovalRuleEditor(); }, () => !!document.querySelector('#ar-cond')],
+  ['discover filters', () => setView('reads'), () => !!document.querySelector('#rd-page select')],
+  ['your account', () => openMyAccount(), () => !!document.querySelector('#acct-title')],
+  ['company and market', () => openSettingsAt('company', 'company'), () => !!document.querySelector('#st-co-name')],
 ];
 const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .nd-bar, .lin-wrap, .pd2-fm-mid';
 
