@@ -394,6 +394,20 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** no money in the panel; nothing past its edge.
   - **Logged, not part of this pick:** the map's overlapping and smeared labels, the legend covering the drawing, money in the Grid's cell headings, the 13-button bar (BUGLOG, 20 Nov 2026) — each needs its own yes.
 
+### P-41 · Read down, the Legora + Stripe way, with no money as a big part of the sheet
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for the Board's "Read down" sheet (`ovSheetPaint` / THE OVERVIEW — READ DOWN): the Legora + Stripe way. Owner's words: "L+S and merge it."
+- **Where it came from:** the page clean-up. The drawing: https://claude.ai/artifact/K4sJi4PUcrYgYbBTo6VAdC (choose "The Legora + Stripe way"; "▶ Replay the arrival" plays the motion). Photographed from the running app.
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** "‹ Board", "FRIDAY, 20 NOVEMBER · COUNTED FROM THE RECORDS", "Print this view" at the right; "Your book, read down." in the serif.
+  - **The five sentences, COUNTED, NOT MONEY:** (1) "13 agreements are on paper: 10 signed, 3 in review or in negotiation." (today it opens with KES 91M and KES 64.70M); (2) what ends within a year and the first to end; (3) the streams by how many agreements, the party with the most; (4) negotiations; (5) duties late and due. Each sentence a calm row: a SMALL GRAPHIC on the left (a ring of signed against in review · the year's ends as dots, the first red · the streams as two bars in their colours · an empty dashed circle for none · a red count for late), the sentence, and where a sentence comes from a clause THE CLAUSE'S OWN WORDS with § and the contract under it; on the right where it was read ("Read from each § Term") and its link ("Calendar · the notice days ›").
+  - **Ending, by quarter · AGREEMENTS** (today "value on paper"): one bar per quarter, the count at its end, the nearest quarter red.
+  - **Foot:** Needs you N · Contracts N · Calendar · Explorer · Negotiations · Activity.
+  - **The side panel (no cards), NO MONEY:** "Board · read down", "Your book, in five sentences", "Each counted from the records just now, at <time>. No AI."; "The first decision": a red "in N days" badge, what it is, the clause quoted with §, and the act (Decide on <contract>, black); "Look closer": drawn icons (calendar, people, warning — never emoji) with a line each and a › that nudges. No "91M" tile, no mixed tiles.
+  - **Money for those who may see it:** value can return only as a list column elsewhere, gone with no gap for a reader without money rights (`canViewValues`); never in a sentence's lead, the chart or the panel.
+  - **Motion:** the sentences rise in one after another, their graphics draw (the ring sweeps, the bars grow), the quarter bars grow; the panel arrives the same way; rarely (`jovArriveSweep`), still under reduced motion.
+  - **Check before building:** the fault logged on 20 Nov 2026 (money as a big part of the sheet) is fixed by this build.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
