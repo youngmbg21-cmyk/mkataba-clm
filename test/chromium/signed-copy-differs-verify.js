@@ -88,8 +88,9 @@ const signedOf = (cp, signer) => [
       await page.waitForTimeout(400);
       await page.setInputFiles('#up-file', file);
       await page.waitForFunction(() => { const s2 = document.getElementById('up-step-2'); return s2 && !s2.classList.contains('hidden'); }, null, { timeout: 20000 }).catch(() => {});
-      await press(page, '[data-up-route="outside"]');
       await page.fill('#up-cp', cp);
+      await press(page, '#up-next');   // the route is on the second step (f1114)
+      await press(page, '[data-up-route="outside"]');
       await page.click('#up-go');
       await page.waitForTimeout(2500);
       /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the

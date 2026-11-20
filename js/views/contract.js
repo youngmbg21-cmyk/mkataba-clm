@@ -1543,39 +1543,47 @@ let _up=null;   // pipeline result carried from the drop to the confirm
 function openUploadModal(){
   if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('ct_viewers_no_add'),'err'); return; }
   _up=null;
-  openModal(`
-    <div class="p-6">
-      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the title in the dialog's
-             bar (it names the second step when the file has been read), the
-             drop area with its sign and the words "or choose a file", and the
-             way to several files on the foot's left. */}
-      <h2 id="up-title">${i18t('ct_add_received')}</h2>
+  /* ---- THE ONE EDIT POP-UP, THE LEGORA WAY (f1114) ----
+     One sheet, three kinds of step: the file (the drop area with its sign and "or choose a file", the way to
+     several files on the foot's left), then what was read, shown a few lines at a time — who it is between, how it
+     is filed, and any more details HaTi read — each line the label beside the words, no boxes. More than about
+     seven lines is a NEXT STEP, never a scroll; every step is in the one form, so File contract reads every box
+     wherever the reader stands, and it is there on every step of what was read. The head names the step on screen.
+     Nothing is filed before File contract, exactly as before. */
+  openModal(`<form class="lgp" id="up-form" novalidate>
+      <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h" id="up-title">${i18t('ct_add_received')}</h3>
+        <p class="lgp-sub lgp-steps" id="up-stepline"><b>${esc(i18t('up_step_file'))}</b> · ${esc(i18t('up_step_who'))} · ${esc(i18t('up_step_filing'))}</p></div>
+        <button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${esc(i18t('lgp_close'))}">${icon('x','w-4 h-4')}</button></div>
+      <div class="lgp-bd">
       <div id="up-step-1">
-        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:1px dashed var(--accent-fill);border-radius:var(--radius);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
+        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:1px dashed var(--accent-fill);border-radius:var(--radius);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1);margin:6px 0 4px">
           <div style="color:var(--accent-ink);display:flex;justify-content:center;margin-bottom:10px">${icon('upload','w-5 h-5')}</div>
           <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_or')} <span style="color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px">${i18t('ct_choose_file')}</span></div>
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint2',{max:uploadMaxLabel()})}</div>
         </div>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:var(--s-3)"></div>
-        <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:14px">
-          ${''/* ---- UPLOAD SEVERAL IS THE WAY INTO THE IMPORTER (the process
-                 review, 4 Oct 2026) ----
-                 The importer had its own rail door as well as this link, so
-                 two doors reached one act. The rail door is gone; this is the
-                 one door, said plainly, and it carries the count the rail
-                 door used to carry — imported contracts still waiting for a
-                 person — only where there is one. */}
-          <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('ct_several_q')}</span>
-          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_import_contracts_link')}${
-            (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
-              return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
-          <span style="flex:1"></span>
-          <button data-dlg-cancel id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        </div>
       </div>
       <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
-    </div>`);
+      </div>
+      <div class="lgp-ft">
+        <button type="button" class="ui-btn lgp-back" id="up-back" hidden>‹ <span id="up-back-word">Another file</span></button>
+        ${''/* ---- UPLOAD SEVERAL IS THE WAY INTO THE IMPORTER (the process
+               review, 4 Oct 2026) ----
+               The importer had its own rail door as well as this link, so
+               two doors reached one act. The rail door is gone; this is the
+               one door, said plainly, and it carries the count the rail
+               door used to carry — imported contracts still waiting for a
+               person — only where there is one. */}
+        <span class="lgp-note" id="up-bulk-line">${i18t('ct_several_q')}
+          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_import_contracts_link')}${
+            (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
+              return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button></span>
+        <span class="lgp-sp"></span>
+        <button type="submit" id="up-go" class="ui-btn ui-btn-primary lgp-go" hidden><span id="up-go-word">${i18t('ct_file_contract')}</span></button>
+        <button type="button" id="up-next" class="ui-btn" hidden>${esc(i18t('of_next'))}</button>
+        <button type="button" data-dlg-cancel id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('ct_add_received') });
   const drop=document.getElementById('up-drop'), input=document.getElementById('up-file');
   drop.addEventListener('click',()=>input.click());
   drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); } });
@@ -1586,6 +1594,46 @@ function openUploadModal(){
   input.addEventListener('change',()=>{ const f=input.files&&input.files[0]; if(f) runUploadPipeline(f); });
   document.getElementById('up-cancel').addEventListener('click',closeModal);
   document.getElementById('up-bulk').addEventListener('click',()=>{ closeModal(); setView('migration'); });
+  /* THE FOOT IS WIRED ONCE, here, and never again when the card is redrawn: a second file read after "Another
+     file" draws a new card, and a press wired per drawing would file the contract twice */
+  document.getElementById('up-go').addEventListener('click',e=>{ e.preventDefault(); submitUpload(); });
+  document.getElementById('up-next').addEventListener('click',()=>uploadStepShow(uploadStepAt()+1));
+  document.getElementById('up-back').addEventListener('click',()=>{
+    if(uploadStepAt()>1){ uploadStepShow(uploadStepAt()-1); return; }
+    /* Another file: back to the drop, nothing filed and nothing kept */
+    _up=null;
+    const s2=document.getElementById('up-step-2'); if(s2) s2.innerHTML=uploadConfirmHtml(null,null);
+    const steps=document.getElementById('up-steps'); if(steps){ steps.classList.add('hidden'); steps.innerHTML=''; }
+    const d=document.getElementById('up-drop'); if(d){ d.style.pointerEvents=''; d.style.opacity=''; }
+    const inp=document.getElementById('up-file'); if(inp) inp.value='';
+    const t=document.getElementById('up-title'); if(t) t.textContent=i18t('ct_add_received');
+    uploadStepShow(0);
+  });
+}
+/* WHERE THE UPLOAD SHEET STANDS: step 0 is the file, 1… the panes of what was read (each carries its name). Read
+   off the page, so a redrawn card is read as it now stands; nothing is stored. */
+function uploadStepAt(){
+  const s2=document.getElementById('up-step-2');
+  if(!s2||s2.classList.contains('hidden')) return 0;
+  const panes=[...s2.querySelectorAll('[data-up-pane]')];
+  const i=panes.findIndex(p=>!p.hasAttribute('hidden'));
+  return i<0?1:i+1;
+}
+function uploadStepShow(k){
+  const s1=document.getElementById('up-step-1'), s2=document.getElementById('up-step-2');
+  if(!s1||!s2) return;
+  const panes=[...s2.querySelectorAll('[data-up-pane]')];
+  const at=Math.max(0, Math.min(panes.length, Number(k)||0));
+  s1.classList.toggle('hidden', at>0);
+  s2.classList.toggle('hidden', at===0);
+  panes.forEach((p,i)=>p.toggleAttribute('hidden', i!==at-1));
+  const set=(id,hide)=>document.getElementById(id)?.toggleAttribute('hidden', hide);
+  set('up-back', at===0); set('up-bulk-line', at>0); set('up-go', at===0); set('up-next', at===0||at>=panes.length);
+  const bw=document.getElementById('up-back-word'); if(bw) bw.textContent=at>1?i18t('lgp_back'):'Another file';
+  const names=[i18t('up_step_file'), ...(panes.length?panes.map(p=>p.getAttribute('data-up-name')||''):[i18t('up_step_who'), i18t('up_step_filing')])];
+  const line=document.getElementById('up-stepline');
+  if(line) line.innerHTML=names.map((s,i)=>i===at?`<b>${esc(s)}</b>`:esc(s)).join(' · ');
+  const bd=s2.closest('.lgp-bd'); if(bd) bd.scrollTop=0;
 }
 /* The confirm card — the old form's fields, handed back pre-answered. Called
    with (null, null) for the skeleton built into the dialog (so the fields
@@ -1613,30 +1661,20 @@ function uploadConfirmHtml(ext, meta){
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const attr=s=>esc2(s).replace(/"/g,'&quot;');
   const has=k=>meta!=null&&m[k]!=null&&m[k]!==''&&!(typeof m[k]==='number'&&!(m[k]>0));
-  const MARK=`<span style="font-family:var(--font-mono);font-size:var(--t-figure);color:var(--accent-ink-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
+  const MARK=`✦ ${i18t('ct_read_from_doc').toUpperCase()}`;
   const found=k=>{ const q=spans[k]; if(!q) return '';
-    return `<span style="display:block;margin-top:2px;font-size:var(--t-label);line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
-  /* ---- THREE CHILDREN, ALWAYS, AND THAT IS WHAT KEEPS THE BOXES LEVEL ----
-     (owner-reported 22 Aug 2026: "the right and left entry fields should never
-     be misaligned.")
-     Every cell here is label · control · hint, and the cells are laid out with
-     `grid-template-rows:subgrid` (see .up-grid in index.html) so the two cells
-     in a row share the parent's rows: labels line up with labels, boxes with
-     boxes, hints with hints, whatever any of them wraps to.
-     THE HINT IS EMITTED EVEN WHEN EMPTY. Subgrid places children by ROW, so a
-     cell with only two children puts its control in the label's row and the
-     whole column shifts — the very fault this is fixing, in a new costume. An
-     empty span costs nothing and keeps every cell the same shape.
-     WHY NOT A MIN-HEIGHT ON THE LABEL: it fixes the two-line case and breaks
-     again on three, and it reserves a blank line on every wide screen where
-     nothing wraps at all. This holds at every width by construction. */
-  const cell=(labelHtml, controlHtml, hintHtml)=>
-    `<label class="block up-f"><span class="up-l text-xs font-medium text-brand-800/70">${labelHtml}</span>${controlHtml}<span class="up-h">${hintHtml||''}</span></label>`;
+    return ` · found: <q>${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}</q>`; };
+  /* ---- ONE LINE A FACT, THE LEGORA WAY (f1114) ----
+     The label beside the words, no box; under the line, what HaTi read it from (✦, and the phrase quoted) or the
+     one hint the line needs. Was: a two-column grid of boxes held level by subgrid (22 Aug 2026) — one column now,
+     so nothing beside a box can sit out of line with it. */
+  const line=(labelHtml, controlHtml, underHtml)=>
+    `<label class="lgp-row"><span class="lgp-k">${labelHtml}</span><span class="lgp-v">${controlHtml}</span></label>${underHtml||''}`;
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
-    return cell(`${label}${read?MARK:''}`,
-      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--st-steel-bg)"':''}/>`,
-      `${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600)">${opts.sub}</span>`:''}`);
+    return line(label,
+      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="lgp-in" autocomplete="off"/>`,
+      `${read?`<p class="lgp-quote">${MARK}${found(opts.foundKey||'')}</p>`:''}${opts.sub?`<p class="lgp-small">${opts.sub}</p>`:''}`);
   };
   const fileBase=ext?_ctFileTitle(ext.file.name):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
@@ -1646,58 +1684,47 @@ function uploadConfirmHtml(ext, meta){
     ? `Everything marked <b style="color:var(--accent-ink-700)">✦</b> was read out of the document — confirm or correct it. What the machine could not find is left for you.`
     : `HaTi could not read text out of this file, so nothing could be pre-filled — add the details yourself. The file itself is attached either way.`;
   /* The details beyond the essentials — renewal, notice, governing law — ride
-     along folded: read from the same document, applied on filing, corrected
-     here if wrong, but never a wall the first-timer has to climb. */
+     along on their own steps: read from the same document, applied on filing,
+     corrected here if wrong, but never a wall the first-timer has to climb, and
+     never a step File contract waits for. */
   /* Guarded like every cross-module read: the node tests stage this file
      without js/metadata.js on the floor. */
   const extras=(typeof META_FIELDS!=='undefined'?META_FIELDS:[])
     .filter(f=>!['counterparty','value','expiryDate'].includes(f.k)&&has(f.k));
   const extraFld=f=>{
     const v=m[f.k];
-    if(f.type==='select') return cell(`${f.label}${MARK}`,
-      `<select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">
-        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>`, found(f.k));
-    return cell(`${f.label}${MARK}`,
-      `<input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"/>`, found(f.k));
+    const under=`<p class="lgp-quote">${MARK}${found(f.k)}</p>`;
+    if(f.type==='select') return line(f.label,
+      `<select data-umf="${f.k}" class="lgp-in">
+        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>`, under);
+    return line(f.label,
+      `<input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="lgp-in"/>`, under);
   };
-  return `
-      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h2 class="font-display font-700 text-brand-900">${i18t('ct_check_what_read')}</h2></div>
-      ${intro?`<p class="text-xs text-brand-800/70 mb-3" style="line-height:1.55">${intro}</p>`:''}
-      ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin:0 0 var(--s-3)">
-        <span style="flex:none;margin-top:1px">${icon('readpaper','w-3.5 h-3.5')}</span>
-        <span>${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</span></div>`:''}
-      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
-        ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
-        ${fld('up-party',i18t('tf_our_party'),{value:(typeof window!=='undefined'&&window.FIRST_PARTY)||'', ph:i18t('tf_our_party_ph'), list:'up-party-list', sub:i18t('tf_our_party_hint')})}
-        <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
-        ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
-        ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
-      </div>
-      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
-        ${cell(i18t('ct_file_under'),
-          `<select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select>`)}
-        ${cell(i18t('ct_value_type'),
-          `<select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">
+  /* the same groups, in the same order, as the review of what was read (metaStepGroups, js/metadata.js); six at most */
+  const extraSteps=!extras.length?[]:(typeof metaStepGroups==='function')?metaStepGroups(extras)
+    :extras.reduce((a,f,i)=>{ if(i%6===0) a.push({ name:'me_step_more', fields:[] }); a[a.length-1].fields.push(f); return a; },[]);
+  const pane=(i,name,body)=>`<div data-up-pane="${i}" data-up-name="${attr(name)}"${i?' hidden':''}>${body}</div>`;
+  return pane(0, i18t('up_step_who'), `
+      ${intro?`<p class="lgp-small" style="margin:6px 0 4px">${intro}</p>`:''}
+      ${ext&&isOcrText(ext.textSource)?`<p class="lgp-small" style="color:var(--st-amber-fg)">${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</p>`:''}
+      ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
+      ${fld('up-party',i18t('tf_our_party'),{value:(typeof window!=='undefined'&&window.FIRST_PARTY)||'', ph:i18t('tf_our_party_ph'), list:'up-party-list', sub:i18t('tf_our_party_hint')})}
+      <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
+      ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
+      ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}`)
+    + pane(1, i18t('up_step_filing'), `
+      ${line(i18t('ct_file_under'),
+          `<select id="up-folder" class="lgp-in">${folderOptionsHtml(null, false)}</select>`)}
+      ${line(i18t('ct_value_type'),
+          `<select id="up-vtype" class="lgp-in">
             <option value="estimated">${i18t('ct_estimated_value')}</option><option value="fixed">${i18t('ct_fixed_value')}</option><option value="none">Non-monetary</option></select>`)}
-      </div>
-      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
-        ${fld('up-value',`Contract value (${jxCurrency()})`,{value:has('value')?m.value:'', ph:'e.g. 2500000', type:'number', read:has('value'), foundKey:'value'})}
-        ${fld('up-expiry','Expiry date (optional)',{value:has('expiryDate')?m.expiryDate:'', type:'date', read:has('expiryDate'), foundKey:'expiryDate'})}
-      </div>
-      ${extras.length?`<details style="margin:0 0 var(--s-3);border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) var(--s-3)">
-        <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
-        <div class="grid sm:grid-cols-2 gap-2 up-grid" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
-      </details>`:''}
-      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:var(--t-label);color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Jambo':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
+      ${fld('up-value',`Contract value (${jxCurrency()})`,{value:has('value')?m.value:'', ph:'e.g. 2500000', type:'number', read:has('value'), foundKey:'value'})}
+      ${fld('up-expiry','Expiry date (optional)',{value:has('expiryDate')?m.expiryDate:'', type:'date', read:has('expiryDate'), foundKey:'expiryDate'})}
+      ${ext&&readCount?`<p class="lgp-small">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Jambo':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
       ${uploadRouteHtml(ext)}
-      ${triageOptInHtml(ext)}
-      <div class="flex items-center gap-2">
-        <button id="up-back" class="ui-btn">${icon('arrowLeft')}Another file</button>
-        <span style="flex:1"></span>
-        <button data-dlg-cancel id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} <span id="up-go-word">${i18t(ext&&uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span></button>
-      </div>`;
+      ${triageOptInHtml(ext)}`)
+    + extraSteps.map((g,i)=>pane(i+2, i18t(g.name),
+      `${i===0?`<p class="lgp-small" style="margin:6px 0 4px">More details HaTi read (${extras.length}) — renewal, notice, governing law…</p>`:''}${g.fields.map(extraFld).join('')}`)).join('');
 }
 /* ============================================================
    WHO RUNS THE SIGNING — the upload's one new question
@@ -1937,23 +1964,15 @@ async function runUploadPipeline(file, pre){
   s2.innerHTML=(window.outsideUploadOfferHtml?outsideUploadOfferHtml(hoMatch):'')+uploadConfirmHtml(_up, meta);
   if(window.wireOutsideUploadOffer) wireOutsideUploadOffer(s2, { file, name:file.name, size:file.size, mime,
     dataUrl:upload.dataUrl, fileHash:upload.fileHash, text:extractedText, textSource, word });
-  s1.classList.add('hidden');
-  s2.classList.remove('hidden');
-  /* The dialog's bar names the step now on screen; the step's own heading
-     steps aside so there is one title. */
-  { const t=document.getElementById('up-title'), h=s2.querySelector('h2');
-    if(t&&h){ t.textContent=h.textContent; (h.parentElement||h).hidden=true; } }
+  /* The sheet's head names the step now on screen, and its first pane of what was read is shown. The foot (File
+     contract, Next, Back / Another file, Cancel) was wired once when the sheet opened — never here, where a second
+     file read would wire it twice. */
+  uploadStepShow(1);
+  { const t=document.getElementById('up-title'); if(t) t.textContent=i18t('ct_check_what_read'); }
+  { const go=document.getElementById('up-go');
+    if(go){ go.disabled=false; go.innerHTML=`<span id="up-go-word">${i18t(uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span>`; } }
   bindFolderSelect(document.getElementById('up-folder'));
   wireUploadRoute();
-  document.getElementById('up-go').addEventListener('click',submitUpload);
-  document.getElementById('up-cancel-2').addEventListener('click',closeModal);
-  document.getElementById('up-back').addEventListener('click',()=>{
-    _up=null;
-    s2.classList.add('hidden'); s2.innerHTML=uploadConfirmHtml(null,null);
-    s1.classList.remove('hidden');
-    const steps=document.getElementById('up-steps'); if(steps){ steps.classList.add('hidden'); steps.innerHTML=''; }
-    revive();
-  });
 }
 /* "File contract" — the one moment anything is created. Same validation, same
    record shape, same destination as the old form's Add button; the metadata
@@ -17758,20 +17777,16 @@ async function signCheckEscalate(c,i,after){
   if(!people.length){ toast(i18t('sc_esc_nobody'),'warn'); return false; }
   const me=(window.currentUser&&currentUser())||null;
   const cat=v.category||i18t('sc_a_standard');
-  const head=window.reviewDialogHeadHtml?reviewDialogHeadHtml('&#9650;',i18t('sc_ask_title'),cat):`<h2 style="margin:0 0 10px">${esc(i18t('sc_ask_title'))}</h2>`;
-  const fld=window.HATI_FLD||'', lbl=window.HATI_LBL||'';
   const prev=v.escalation&&v.escalation.to?String(v.escalation.to.id):'';
   return new Promise(resolve=>{
-    openModal(`<div style="padding:22px var(--s-6)">
-      ${head}
-      <label style="display:block;margin:var(--s-3) 0 10px"><span style="${lbl}">${esc(i18t('sc_esc_who'))}</span>
-        <select id="sc-esc-who" style="${fld}">${people.map(u=>`<option value="${esc(u.id)}"${String(u.id)===prev?' selected':''}>${esc(u.name||u.email||u.id)}${u.email?` — ${esc(u.email)}`:''}</option>`).join('')}</select></label>
-      <label style="display:block"><span style="${lbl}">${esc(i18t('sc_esc_note'))}</span>
-        <textarea id="sc-esc-note" rows="3" style="${fld}resize:vertical" placeholder="${esc(i18t('sc_esc_note_ph'))}"></textarea></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button data-dlg-cancel id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
-        <button id="sc-esc-go" class="ui-btn ui-btn-primary">${esc(i18t('sc_esc_go'))}</button>
-      </div></div>`);
+    /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1114): who and a note, two lines with the label beside the words; the
+       ask, its stamp and its mail are the ones this dialog always had */
+    lgpOpen({ id:'sc-esc-form', title:i18t('sc_ask_title'), sub:cat,
+      rows:[ { k:i18t('sc_esc_who'), id:'sc-esc-who', type:'select', value:prev,
+               opts:people.map(u=>({ v:String(u.id), t:`${u.name||u.email||u.id}${u.email?` — ${u.email}`:''}` })) },
+             { k:i18t('sc_esc_note'), id:'sc-esc-note', type:'area', ph:i18t('sc_esc_note_ph') } ],
+      primary:{ label:i18t('sc_esc_go'), attr:'id="sc-esc-go"' },
+      cancelAttr:'data-dlg-cancel id="sc-esc-cancel"', cancelLabel:i18t('act_cancel') });
     document.getElementById('sc-esc-cancel').addEventListener('click',()=>{ closeModal(); resolve(false); });
     document.getElementById('sc-esc-go').addEventListener('click',async e=>{
       const sel=document.getElementById('sc-esc-who'); const id=sel?String(sel.value):'';
@@ -19390,7 +19405,7 @@ Object.assign(window,{histWordingShown,histNlFold,signApprovalRowWhy,docReadLong
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,docPaperAnswersHtml,docAnswersWire,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,copiesNotOut,COPY_NOT_OUT,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,ktFolderMove,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,copiesNotOut,COPY_NOT_OUT,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,uploadStepShow,uploadStepAt,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,ktFolderMove,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

@@ -116,7 +116,9 @@ describe('N2 (2) — the confirm card is pre-answered, and says by whom', () => 
 
   test('the extra details fold instead of walling', () => {
     const html = stage().sb.uploadConfirmHtml(ext(), meta());
-    assert.match(html, /<details/);
+    /* RE-POINTED (f1114, the one edit pop-up, the Legora way): more than fits is a NEXT STEP, never a scroll, so
+       the extra details are their own step after the two that file it, not a fold inside one */
+    assert.match(html, /<div data-up-pane="2" data-up-name="[^"]+" hidden>/, 'a step of its own, waiting its turn');
     assert.match(html, /More details HaTi read \(3\)/, 'contractType, governingLaw, renewalType');
     assert.match(html, /data-umf="governingLaw"/);
   });
@@ -140,9 +142,13 @@ describe('N2 (3) — when the machine could not help', () => {
 
   test('the skeleton (before any file) renders every field id and no claims', () => {
     const html = stage().sb.uploadConfirmHtml(null, null);
-    for (const id of ['up-name', 'up-cp', 'up-cpemail', 'up-folder', 'up-vtype', 'up-value', 'up-expiry', 'up-go'])
+    for (const id of ['up-name', 'up-cp', 'up-cpemail', 'up-folder', 'up-vtype', 'up-value', 'up-expiry'])
       assert.match(html, new RegExp(`id="${id}"`), id);
     assert.ok(!/READ FROM THE DOCUMENT/.test(html));
+    /* RE-POINTED (f1114): File contract lives in the sheet's one foot, drawn once with the sheet, not in the card */
+    const { sb, modals } = stage();
+    sb.openUploadModal();
+    assert.match(modals[0], /<div class="lgp-ft">[\s\S]*id="up-go"/, 'File contract is in the foot');
   });
 });
 

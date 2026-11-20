@@ -281,29 +281,21 @@ const check = (name, pass, detail) => {
           { maxWidth: w });
       }, mw);
       await page.waitForTimeout(400);
-      const rows = await page.evaluate(() => {
-        const pairs = [['up-name', 'up-party'], ['up-cp', 'up-cpemail'], ['up-value', 'up-expiry']];
-        return pairs.map(([a, b]) => {
-          /* A DATE WEARS HaTi'S FACE IN A POP-UP (SAP pop-ups, 10 Oct 2026):
-             the real box is kept, hidden, as the value; the box a reader sees
-             is the face beside it, so that is the one measured. */
-          const vis = el => el && el.dataset && el.dataset.dp === '1' && el.nextElementSibling ? el.nextElementSibling : el;
-          const A = vis(document.getElementById(a)), B = vis(document.getElementById(b));
-          if (!A || !B) return { pair: a + '/' + b, missing: true };
-          const lab = (el, id) => { const real = document.getElementById(id); return (real && real.dataset.dp === '1' ? real : el).previousElementSibling; };
-          const la = lab(A, a), lb = lab(B, b);
-          return { pair: a.replace('up-', '') + '/' + b.replace('up-', ''),
-            off: Math.round(A.getBoundingClientRect().top - B.getBoundingClientRect().top),
-            labels: [Math.round(la.getBoundingClientRect().height),
-                     Math.round(lb.getBoundingClientRect().height)] };
+      /* RE-POINTED (f1114, the one edit pop-up, the Legora way): one column of lines, each label BESIDE its words, so
+         no box can sit out of line with a neighbour. Asked now: every box starts at one left edge, and each sits
+         inside its own line (beside its label, whatever the label wraps to). Every step is shown for the measure. */
+      const lines = await page.evaluate(() => {
+        document.querySelectorAll('[data-up-pane]').forEach(p => { p.hidden = false; });
+        const vis = el => el && el.dataset && el.dataset.dp === '1' && el.nextElementSibling ? el.nextElementSibling : el;
+        return ['up-name', 'up-party', 'up-cp', 'up-cpemail', 'up-value', 'up-expiry'].map(id => {
+          const real = document.getElementById(id), box = vis(real), row = real && real.closest('.lgp-row');
+          if (!box || !row) return { id, missing: true };
+          const b = box.getBoundingClientRect(), r = row.getBoundingClientRect(), k = row.querySelector('.lgp-k').getBoundingClientRect();
+          return { id, left: Math.round(b.left), inRow: b.top >= r.top - 1 && b.bottom <= r.bottom + 1, beside: k.right <= b.left + 1 };
         });
       });
-      check(`upload confirm at ${mw}: every pair of boxes is level`,
-        rows.every(r => !r.missing && r.off === 0), JSON.stringify(rows));
-      /* The narrow widths must actually PRODUCE the wrap, or this proves
-         nothing: a row whose labels are both one line was never at risk. */
-      if (mw !== '720px') check(`upload confirm at ${mw}: and a label really did wrap`,
-        rows.some(r => r.labels && r.labels[0] !== r.labels[1]), JSON.stringify(rows.map(r => r.labels)));
+      check(`upload confirm at ${mw}: every box starts at one edge, beside its own label, inside its own line`,
+        lines.every(l => !l.missing && l.inRow && l.beside) && new Set(lines.map(l => l.left)).size === 1, JSON.stringify(lines));
       await page.evaluate(() => closeModal());
       await page.waitForTimeout(150);
     }
