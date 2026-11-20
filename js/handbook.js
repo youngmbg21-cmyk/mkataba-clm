@@ -679,7 +679,9 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['parties', 'party', 'customers', 'suppliers', 'counterparty', 'contacts', 'add a contact', 'phone', 'job title'], sv: ['parter', 'part', 'kunder', 'leverantörer', 'motpart', 'kontakter', 'lägg till kontakt', 'telefon', 'titel'] },
     shots: [
       { go: [{ place: 'parties' }, { fn: 'cuSelectParty', args: ['siginon group'] }, { waitFor: '#ins-panel [data-cun-cts]' }], boxes: [{ sel: '#ins-panel [data-cu-pr-edit="siginon group"]', step: 2 }, { sel: '#ins-panel [data-cun-add-ct]', step: 3 }, { sel: '#ins-panel [data-cun-cts]', step: 3 }], cap: { en: 'A party pressed: its facts and Edit (2), its contacts with + Add, and all its agreements on Contracts (3).', sv: 'En part vald: dess fakta och Ändra (2), dess kontakter med + Lägg till, och alla dess avtal i Avtal (3).' } },
-      { go: [{ place: 'parties' }, { waitFor: '#cu-tbody [data-cu-cust]' }], boxes: [{ sel: '.cun-page .cun-table', step: 1 }], cap: { en: 'The list, a row for each party (1).', sv: 'Listan, en rad för varje part (1).' } }] },
+      /* RE-POINTED 20 Nov 2026 (PR #822 took the sentence away): the box is the list's first row, a place to look — the
+         whole table is past a third of the window, which handbook-verify refuses as a whole panel */
+      { go: [{ place: 'parties' }, { waitFor: '#cu-tbody [data-cu-cust]' }], boxes: [{ sel: '.cun-page #cu-tbody tr[data-cu-cust]', step: 1 }], cap: { en: 'The list, a row for each party (1).', sv: 'Listan, en rad för varje part (1).' } }] },
 
   { k: '5.5', part: 'keep', round: 1,
     title: { en: 'Discover: one question asked of many contracts', sv: 'Discover: en fråga ställd till många avtal' },

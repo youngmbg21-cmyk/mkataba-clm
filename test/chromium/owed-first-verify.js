@@ -152,6 +152,10 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
       owed: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.key === 'up_notice_period').map(x => ({ open: !!x.open, kind: x.kind })),
       left: (detailsOf(pdContract()) || {}).left,
       openNow: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.open).map(x => x.key),
+      /* WHICH BOX THE LETTERS WENT TO (20 Nov 2026: once on GitHub the value was paid and the notice stayed owed with the
+         caret proved in the notice box before typing): the boxes holding "6", so a stolen caret names its thief */
+      typedIn: [...document.querySelectorAll('#pd-og [data-blankf], #pd-og input, #pd-og textarea')].filter(b => /6/.test(String(b.value || b.textContent || ''))).map(b => b.getAttribute('data-blankf') || b.name || b.id || b.tagName),
+      value: (pdContract() || {}).value,
       field: JSON.stringify(((pdContract() || {}).fields || {}).up_notice_period === undefined ? null : pdContract().fields.up_notice_period).slice(0, 60) }));
     check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again, seen2b);
 
