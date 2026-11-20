@@ -26,7 +26,12 @@ const PLACES = [
   ['new agreement', () => openNewAgreement({}), () => !!document.querySelector('#na-root'),
     () => { const b = document.querySelector('.na-ask textarea, .na-ask input'); if (!b) return; b.value = 'Two-year equipment lease of a filling line with Foretag AB'; b.dispatchEvent(new Event('input', { bubbles: true })); b.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); },
     () => !!document.querySelector('.na-kt-grid .na-kt-r')],
-  ['ask for a contract', () => openIntakeForm(), () => !!document.querySelector('#ik-title')],
+  /* RE-POINTED 19 Nov 2026 (f1119, the one edit pop-up in three steps): the first step measured alone; the named
+     place walks to step two, where Who pays whom stands */
+  ['ask for a contract, first step', () => openIntakeForm(), () => !!document.querySelector('#ik-title')],
+  ['ask for a contract', () => openIntakeForm(), () => !!document.querySelector('#ik-title'),
+    () => { document.getElementById('ik-title').value = 'x'; document.getElementById('ik-need').value = 'y'; document.getElementById('ik-next').click(); },
+    () => { const w = document.querySelector('[data-pw-for="ik-e-side"]'); return !!w && !w.closest('[hidden]'); }],
   ['new event', () => calEventDialog(), () => !!document.querySelector('#cal-ev-title')],
   ['add approval rule', () => { setView('team'); openApprovalRuleEditor(); }, () => !!document.querySelector('#ar-cond')],
   ['discover filters', () => setView('reads'), () => !!document.querySelector('#rd-page select')],
@@ -80,7 +85,10 @@ const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-ch
           const pw = [...document.querySelectorAll('.pw .na-seg-b')].filter(b => b.getBoundingClientRect().width > 0);
           const pwPill = pw.length ? pw.every(b => parseFloat(getComputedStyle(b).borderTopLeftRadius) >= 12) : null;
           const side = document.querySelector('#ik-e-side');
-          const sapRow = document.querySelector('.modal-in .sap-f > label, .modal-in .sap-f > .sap-lbl');
+          /* the first label SHOWN (a sheet in steps keeps its other steps in the form, hidden); the one edit pop-up's
+             lines (.lgp-row > .lgp-k) are such rows too (f1119) */
+          const sapRow = [...document.querySelectorAll('.modal-in .sap-f > label, .modal-in .sap-f > .sap-lbl, .modal-in .lgp-row > .lgp-k')]
+            .find(l => l.getClientRects().length && l.parentElement.querySelector('input:not([type=hidden]), select, textarea, .dp-face, .pw')) || null;
           let beside = null;
           if (sapRow){ const f = sapRow.parentElement.querySelector('input:not([type=hidden]), select, textarea, .dp-face, .pw'); if (f){ const a = sapRow.getBoundingClientRect(), c = f.getBoundingClientRect(); beside = c.left > a.right - 1 && Math.abs((a.top + a.bottom) / 2 - (c.top + c.bottom) / 2) < 30; } }
           let sendLines = null;

@@ -5945,18 +5945,15 @@ async function stTwoStepToggle(){
   let start;
   try{ start=await api('me/totp/start','POST',{}); }
   catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); return; }
-  openModal(`<div style="padding:24px">
-    <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
-    <p class="st-note" style="margin:0 0 var(--s-1)">${esc(i18t('ts_enrol_msg'))}</p>
-    <div style="font-family:var(--font-mono);font-size:var(--t-card);letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px var(--s-3);margin:var(--s-2) 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
-    <p class="st-note" style="margin:var(--s-2) 0 var(--s-1)">${esc(i18t('ts_enrol_code_msg'))}</p>
-    <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
-    <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
-    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
-      <button data-dlg-cancel id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
-      <button id="ts-confirm" class="ui-btn ui-btn-primary">${i18t('ts_confirm')}</button>
-    </div>
-  </div>`,{ maxWidth: DLG_W.m });
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): the key on its own line, the code typed beside
+     its label; every id, the call and its refusal exactly as they were — only the look moved onto the one sheet. */
+  lgpOpen({ id:'ts-form', title:i18t('ts_enrol_title'), sub:i18t('ts_enrol_msg'), focus:'#ts-code',
+    html:`<div class="lgp-row"><span class="lgp-k">${esc(i18t('ts_key_k'))}</span><span class="lgp-v"><span class="lgp-in is-read" style="font-family:var(--font-mono);letter-spacing:.14em;word-break:break-all;user-select:all">${esc(start.secret)}</span></span></div>
+      <p class="lgp-small">${esc(i18t('ts_enrol_code_msg'))}</p>
+      <label class="lgp-row"><span class="lgp-k">${esc(i18t('ts_code_k'))}</span><span class="lgp-v"><input id="ts-code" class="lgp-in" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"/></span></label>
+      <p id="ts-err" class="lgp-err" role="alert"></p>`,
+    primary:{ label:i18t('ts_confirm'), attr:'id="ts-confirm"' },
+    cancelAttr:'data-dlg-cancel id="ts-cancel"', cancelLabel:i18t('act_cancel') });
   document.getElementById('ts-cancel')?.addEventListener('click',()=>closeModal());
   document.getElementById('ts-confirm')?.addEventListener('click',async()=>{
     const code=(document.getElementById('ts-code')?.value||'').trim();
@@ -5966,16 +5963,14 @@ async function stTwoStepToggle(){
       const u2=currentUser(); if(u2) u2.twoStep=true;
       closeModal();
       // the ten one-time codes, shown exactly ONCE — the server keeps hashes
-      openModal(`<div style="padding:24px">
-        <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
-        <p class="st-note" style="margin:0 0 10px">${esc(i18t('ts_recovery_msg'))}</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:var(--t-body);letter-spacing:.08em;user-select:all">
-          ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:14px">
-          <button id="ts-done" class="ui-btn ui-btn-primary">${i18t('ts_done')}</button>
-        </div>
-      </div>`,{ maxWidth: DLG_W.m });
+      /* the ten codes as quiet lines, two across; I have saved them the one black button (its ✕ the same press) */
+      lgpOpen({ id:'ts-codes', title:i18t('ts_recovery_title'), sub:i18t('ts_recovery_msg'), focus:false,
+        html:`<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s-4);font-family:var(--font-mono);font-size:var(--t-body);letter-spacing:.08em;user-select:all">
+          ${(r.recovery||[]).map(cd=>`<span style="border-bottom:1px solid var(--color-divider);padding:10px 0">${esc(cd)}</span>`).join('')}
+        </div>`,
+        primary:{ label:i18t('ts_done'), attr:'id="ts-done"' }, noCancel:true });
+      const tsX=document.querySelector('#ts-codes .lgp-x');
+      if(tsX){ tsX.removeAttribute('data-lgp-close'); tsX.addEventListener('click',()=>document.getElementById('ts-done')?.click()); }
       document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); stAfterTwoStep(); });
     }catch(e){ if(errEl) errEl.textContent=(e&&e.message)||i18t('ts_failed'); }
   });
@@ -9725,47 +9720,57 @@ function openPlaybookEditor(key, opts={}){
   const e=pb[key]; e.positions=e.positions||[]; e.ranges=e.ranges||[]; e.match=e.match||[];
   const inherited=(!isBase)?resolvePlaybook('_default'):null;
   const POS=[['required',i18t('set_pos_required')],['preferred',i18t('set_pos_preferred')],['forbidden',i18t('set_pos_forbidden')]];
-  const inp='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:6px var(--s-2);font:inherit;font-size:var(--t-body);color:inherit;outline:none';
-  openModal(`<div style="padding:20px 22px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;margin:0 0 var(--s-3)">${isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:PB_ESC(e.label||key)})}</h3>
-    <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:3px">${isBase?i18t('set_name'):i18t('set_type_name')}</span>
-      <input id="pb-f-label" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?esc(i18t('set_ph_baseline')):esc(i18t('set_ph_eg_distribution'))}" style="${inp}"></label>
-    ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:3px">${i18t('set_applies_matching')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('set_comma_keywords')}</span></span>
-      <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
-    <div style="font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;margin-bottom:var(--s-3)">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:var(--s-1);vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
-
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_position')):i18t('set_add_position'))}</button></div>
-    <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
-
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_limit')):i18t('set_add_limit'))}</button></div>
-    <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
-
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button data-dlg-cancel id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="pb-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
+  /* THE ONE EDIT POP-UP IN THREE STEPS (lgp; owner, 19 Nov 2026: "Fix all batches"): 1 the name (and, for a type,
+     the words it matches and what it inherits), 2 its positions, 3 its numeric limits — each a list of quiet lines, no
+     boxes. All three stay in the one form, so Save reads every field wherever the reader stands; every id and data-
+     attribute below is the one this editor always had. */
+  const PB_STEPS=[i18t('set_name'), i18t('set_positions'), i18t('set_numeric_limits')];
+  const pbHead=(label, id, add)=>`<div class="lgp-lfoot"><span style="color:var(--color-text)">${label}</span><button type="button" id="${id}" class="ui-link">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(add):add)}</button></div>`;
+  lgpOpen({ stepped:true, id:'pb-form', focus:String(opts.focus||'').trim()?false:'#pb-f-label',
+    title:isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:e.label||key}),
+    steps:{ at:1, names:PB_STEPS },
+    html:`<div data-lgp-step="1">
+      <label class="lgp-row"><span class="lgp-k">${isBase?i18t('set_name'):i18t('set_type_name')}</span><span class="lgp-v"><input id="pb-f-label" class="lgp-in" autocomplete="off" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?esc(i18t('set_ph_baseline')):esc(i18t('set_ph_eg_distribution'))}"></span></label>
+      ${!isBase?`<label class="lgp-row"><span class="lgp-k">${i18t('set_applies_matching')}</span><span class="lgp-v"><input id="pb-f-match" class="lgp-in" autocomplete="off" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}"></span></label>
+      <p class="lgp-small">${i18t('set_comma_keywords')}</p>
+      <p class="lgp-small">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:var(--s-1);vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></p>`:''}
     </div>
-  </div>`, {maxWidth:'34rem'});
+    <div data-lgp-step="2" hidden>${pbHead(isBase?i18t('set_positions'):i18t('set_positions_for_type'),'pb-add-pos',i18t('set_add_position'))}<div id="pb-pos-list" class="lgp-list"></div></div>
+    <div data-lgp-step="3" hidden>${pbHead(i18t('set_numeric_limits'),'pb-add-rng',i18t('set_add_limit'))}<div id="pb-rng-list" class="lgp-list"></div></div>`,
+    nextAttr:'id="pb-next"', backAttr:'id="pb-back"',
+    primary:{ label:i18t('act_save'), attr:'id="pb-save"' },
+    cancelAttr:'data-dlg-cancel id="pb-cancel"', cancelLabel:i18t('act_cancel') });
+  const pbForm=()=>document.getElementById('pb-form');
+  const pbGo=n=>lgpStepGo(pbForm(), n, PB_STEPS);
+  document.getElementById('pb-next')?.addEventListener('click',()=>pbGo(Number(pbForm()?.getAttribute('data-lgp-at')||1)+1));
+  document.getElementById('pb-back')?.addEventListener('click',()=>pbGo(Number(pbForm()?.getAttribute('data-lgp-at')||1)-1));
+  pbGo(1);
 
-  const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
-    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:var(--t-label);font-weight:var(--w-strong);border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--accent-ink)'):'var(--color-neutral-600)'};padding:var(--s-1) 9px;border-radius:var(--radius);cursor:pointer">${l}</button>`; }).join('');
+  /* the three positions are grey pills, the chosen one in ink (a choice of a few) */
+  const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v;
+    return `<button type="button" class="lgp-chip${on?' is-on':''}" aria-pressed="${on?'true':'false'}" data-pb-pos="${i}" data-v="${v}">${l}</button>`; }).join('');
+  const line='display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;border-bottom:1px solid var(--color-divider);padding:var(--s-2) 0';
+  const tick=(attr,i,on)=>`<label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;cursor:pointer"><input type="checkbox" ${attr}="${i}" ${on?'checked':''} style="accent-color:var(--color-text)">${i18t('set_flag_legal')}</label>`;
+  const rm=(attr,i)=>`<button type="button" ${attr}="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>`;
+  const none=t=>`<p class="lgp-none">${t}</p>`;
   const paint=()=>{
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-        <span style="display:inline-flex;gap:3px">${seg(i)}</span>
-        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
-      </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits')}</p>`;
+      <div style="${line}">
+        <input data-pb-cat="${i}" class="lgp-in" autocomplete="off" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="min-width:150px">
+        <span style="display:inline-flex;gap:var(--s-1)">${seg(i)}</span>
+        ${tick('data-pb-esc',i,p.escalate)}
+        ${rm('data-pb-rmpos',i)}
+      </div>`).join(''):none(isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits'));
     const rl=document.getElementById('pb-rng-list');
     rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-        <select data-pb-rop="${i}" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;cursor:pointer;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
-        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
-      </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
+      <div style="${line}">
+        <input data-pb-rlabel="${i}" class="lgp-in" autocomplete="off" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="min-width:120px">
+        <select data-pb-rop="${i}" class="lgp-in" style="flex:none;width:44px"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
+        <input data-pb-rval="${i}" class="lgp-in" type="number" value="${r.value}" style="flex:none;width:74px">
+        ${tick('data-pb-resc',i,r.escalate)}
+        ${rm('data-pb-rmrng',i)}
+      </div>`).join(''):none(i18t('set_no_numeric_limits'));
     // wire row inputs → live working copy
     pl.querySelectorAll('[data-pb-cat]').forEach(el=>el.addEventListener('input',()=>{ e.positions[+el.dataset.pbCat].category=el.value; }));
     pl.querySelectorAll('[data-pb-esc]').forEach(el=>el.addEventListener('change',()=>{ e.positions[+el.dataset.pbEsc].escalate=el.checked; }));
@@ -9788,7 +9793,8 @@ function openPlaybookEditor(key, opts={}){
     else { e.positions.push({ category:focus, pos:'preferred', escalate:false }); at=`[data-pb-cat="${e.positions.length-1}"]`; }
   }
   paint();
-  if(at){ const row=()=>{ const el=document.querySelector('#pb-pos-list '+at+', #pb-rng-list '+at); return el?el.parentElement:null; };
+  if(at){ pbGo(/data-pb-rlabel/.test(at)?3:2);
+    const row=()=>{ const el=document.querySelector('#pb-pos-list '+at+', #pb-rng-list '+at); return el?el.parentElement:null; };
     if(typeof landOn==='function') landOn(row, { block:'center' }); else { const r=row(); if(r) r.scrollIntoView({ block:'center' }); } }
   document.getElementById('pb-add-pos').addEventListener('click',()=>{ e.positions.push({category:'',pos:'preferred',escalate:false}); paint(); });
   document.getElementById('pb-add-rng').addEventListener('click',()=>{ e.ranges.push({key:'',label:'',op:'<=',value:30,escalate:true}); paint(); });
@@ -9796,7 +9802,7 @@ function openPlaybookEditor(key, opts={}){
   document.getElementById('pb-save').addEventListener('click',()=>{
     e.label=document.getElementById('pb-f-label').value.trim();
     if(!isBase){ const mv=document.getElementById('pb-f-match'); e.match=(mv?mv.value:'').split(',').map(s=>s.trim()).filter(Boolean); }
-    if(!e.label){ toast(i18t('set_t_give_name'),'err'); return; }
+    if(!e.label){ toast(i18t('set_t_give_name'),'err'); pbGo(1); return; }
     e.positions=e.positions.filter(p=>p.category&&p.category.trim());
     e.ranges=e.ranges.filter(r=>r.label&&r.label.trim());
     // help the review engine enforce the common numeric limits
@@ -9808,15 +9814,13 @@ function openPlaybookEditor(key, opts={}){
 function openClauseEditor(idx){
   const lib=clauseLibrary().slice();
   const cl=idx>=0?{...lib[idx]}:{ id:'cl_'+Math.random().toString(36).slice(2,7), category:'', name:'', preferred:'', fallback:'', guidance:'' };
-  const fld=(k,label,ta)=>ta
-    ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><textarea id="ce-${k}" rows="2" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(cl[k]||'').replace(/</g,'&lt;')}</textarea></label>`
-    : `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><input id="ce-${k}" value="${(cl[k]||'').replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>`;
-  openModal(`<div class="p-6">
-    <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
-    ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
-    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ce-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button></div>
-  </div>`);
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): five lines, the label beside the words, the
+     three wordings as text areas; every id and the save exactly as they were. */
+  const fld=(k,label,ta)=>({ k:label, id:'ce-'+k, value:cl[k]||'', type:ta?'area':'text' });
+  lgpOpen({ id:'ce-form', title:`${idx>=0?'Edit':'Add'} clause`,
+    rows:[fld('category','Category'), fld('name','Name'), fld('preferred','Preferred wording',true), fld('fallback','Fallback wording',true), fld('guidance','Guidance',true)],
+    primary:{ label:i18t('act_save'), attr:'id="ce-save"' },
+    cancelAttr:'data-dlg-cancel id="ce-cancel"', cancelLabel:i18t('act_cancel') });
   document.getElementById('ce-cancel').addEventListener('click',closeModal);
   document.getElementById('ce-save').addEventListener('click',()=>{
     ['category','name','preferred','fallback','guidance'].forEach(k=>cl[k]=document.getElementById('ce-'+k).value.trim());
@@ -9874,34 +9878,27 @@ function openApprovalRuleEditor(idx){
      WHICH STEP (a list of steps, not a number box), then the rule read back
      in one line. Every id is kept: ar-order is now the step list. */
   const steps=Math.max(rules.length+(idx>=0?0:1), Number(r.order)||1, 1);
-  const selCls='style="'+HATI_FLD+'"';
-  openModal(`<div class="p-6">
-    <h3>${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
-    <div class="sap-body">
-      <div class="sap-f"><span class="sap-lbl">${esc(i18t('ar_when'))}</span>
-        <div class="sap-row">
-          <select id="ar-cond" ${selCls} aria-label="${esc(i18t('set_condition'))}">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select>
-          <div id="ar-condval"></div>
-        </div></div>
-      <div class="sap-row">
-        <div class="sap-f"><label for="ar-approver">${esc(i18t('ar_who'))}</label>
-          <select id="ar-approver" ${selCls}>
-            <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
-            <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
-            ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
-            ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
-          </select></div>
-        <div class="sap-f"><label for="ar-order">${esc(i18t('ar_step'))}</label>
-          <select id="ar-order" ${selCls}>${Array.from({length:steps},(_,i)=>`<option value="${i+1}"${Number(r.order||1)===i+1?' selected':''}>${esc(i18t('ar_step_n',{n:i+1}))}</option>`).join('')}</select></div>
-      </div>
-      ${orphan?`<span style="display:block;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px;border-radius:var(--radius)">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): When, its value, Who approves and in which step
+     as quiet lines with the label beside the words, the rule read back under them. Every id is the one it had. */
+  const selCls='class="lgp-in"';
+  const apM0=members.find(isAp);
+  const apVal=orphan?'orphan':(r.approver.kind==='member'?(apM0?'member:'+apM0.id:''):'role:'+(r.approver.role||'admin'));
+  lgpOpen({ id:'ar-form', focus:false, title:idx>=0?i18t('set_edit_rule'):i18t('set_add_rule'),
+    html:`<label class="lgp-row"><span class="lgp-k">${esc(i18t('ar_when'))}</span><span class="lgp-v">
+        <select id="ar-cond" ${selCls} aria-label="${esc(i18t('set_condition'))}">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${esc(l)}</option>`).join('')}</select></span></label>
+      <label class="lgp-row" id="ar-condrow"><span class="lgp-k" id="ar-condk"></span><span class="lgp-v" id="ar-condval"></span></label>
+      ${lgpRowHtml({ k:i18t('ar_who'), id:'ar-approver', type:'select', value:apVal, opts:[
+        { v:'role:admin', t:i18t('set_any_admin') }, { v:'role:legal', t:i18t('set_any_legal') },
+        ...(orphan?[{ v:'orphan', t:`${orphan} — ${i18t('set_approver_gone')}` }]:[]),
+        ...members.map(m=>({ v:'member:'+m.id, t:`${m.name} (${roleName(m.role)})` })) ] })}
+      ${lgpRowHtml({ k:i18t('ar_step'), id:'ar-order', type:'select', value:String(Number(r.order||1)),
+        opts:Array.from({length:steps},(_,i)=>({ v:String(i+1), t:i18t('ar_step_n',{n:i+1}) })) })}
+      ${orphan?`<p class="lgp-small" style="color:var(--st-amber-fg)">${i18t('set_approver_gone_note',{name:esc(orphan)})}</p>`:''}
       ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
              2026): painted on every change by arSays below. */}
-      <div id="ar-says" role="status" style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:var(--radius);border:1px solid color-mix(in srgb, var(--accent-fill) 25%, transparent);background:color-mix(in srgb, var(--accent-fill) 8%, var(--color-surface));color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
-    </div>
-    <div class="flex justify-end gap-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t(idx>=0?'set_save_rule':'ar_add_go')}</button></div>
-  </div>`,{maxWidth:'560px'});
+      <div id="ar-says" class="lgp-small" role="status" style="display:flex;gap:var(--s-2);align-items:flex-start;color:var(--color-text);line-height:1.45"></div>`,
+    primary:{ label:i18t(idx>=0?'set_save_rule':'ar_add_go'), attr:'id="ar-save"' },
+    cancelAttr:'data-dlg-cancel id="ar-cancel"', cancelLabel:i18t('act_cancel') });
   const arSays=()=>{
     const host=document.getElementById('ar-says'); if(!host) return;
     const t=document.getElementById('ar-cond').value, cv=document.getElementById('ar-cv');
@@ -9910,11 +9907,15 @@ function openApprovalRuleEditor(idx){
     const who=(apSel && apSel.selectedOptions[0]) ? apSel.selectedOptions[0].textContent.trim() : '';
     host.innerHTML=`${icon('info','w-4 h-4')}<span>${esc(i18t('ar_reads_k'))} <b>${esc(i18t('ar_reads_s',{ who, n:Math.max(1,Number(document.getElementById('ar-order').value||1)), cond:condLabel(cond) }))}</b></span>`;
   };
+  /* the condition's value on its own line, labelled with the words that name it; a condition that needs no value
+     says so on that line */
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
-    if(t==='value') h.innerHTML=`<span class="of-amt"><i>${esc(jxCurrency())}</i><input id="ar-cv" type="number" aria-label="${esc(i18t('set_threshold',{cur:jxCurrency()}))}" value="${r.cond.type==='value'?r.cond.value:5000000}"/></span>`;
+    const k=document.getElementById('ar-condk');
+    if(k) k.textContent=t==='value'?i18t('set_threshold',{cur:jxCurrency()}):t==='folder'?i18t('set_value_stream'):t==='kind'?i18t('set_type_contains'):'';
+    if(t==='value') h.innerHTML=`<span class="of-amt"><i>${esc(jxCurrency())}</i><input id="ar-cv" class="lgp-in" type="number" aria-label="${esc(i18t('set_threshold',{cur:jxCurrency()}))}" value="${r.cond.type==='value'?r.cond.value:5000000}"/></span>`;
     else if(t==='folder') h.innerHTML=`<select id="ar-cv" ${selCls} aria-label="${esc(i18t('set_value_stream'))}">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`;
-    else if(t==='kind') h.innerHTML=`<input id="ar-cv" ${selCls} aria-label="${esc(i18t('set_type_contains'))}" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}"/>`;
-    else h.innerHTML=`<p class="sap-help" style="padding-top:7px">${i18t('set_no_extra_value')}</p>`; };
+    else if(t==='kind') h.innerHTML=`<input id="ar-cv" ${selCls} autocomplete="off" aria-label="${esc(i18t('set_type_contains'))}" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}"/>`;
+    else h.innerHTML=`<span class="lgp-in is-read" style="color:var(--color-quiet)">${i18t('set_no_extra_value')}</span>`; };
   document.getElementById('ar-cond').addEventListener('change',()=>{ renderCondVal(); arSays(); }); renderCondVal();
   document.querySelector('#modal-root [role="dialog"]').addEventListener('input',arSays);
   document.querySelector('#modal-root [role="dialog"]').addEventListener('change',arSays);

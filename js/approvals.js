@@ -908,43 +908,38 @@ function openSignApprovalDialog(c){
   const shows=saShows(c, signApprovalRound(c));
   const users=(typeof getUsers==='function'?getUsers():[])||[];
   const titleOf=id=>{ const u=users.find(x=>String(x.id)===String(id)); return (u&&u.title)||''; };
-  const person=(name,sub)=>`<div class="sa-who"><span class="sa-av" aria-hidden="true">${e(String(name||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</span><span><span class="sa-who-t">${e(name)}</span>${sub?`<span class="sa-who-s">${e(sub)}</span>`:''}</span></div>`;
+  const person=(name,sub)=>`<span class="sa-who"><span class="sa-av" aria-hidden="true">${e(String(name||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</span><span><span class="sa-who-t">${e(name)}</span>${sub?`<span class="sa-who-s">${e(sub)}</span>`:''}</span></span>`;
   const first=can.rows[0].need;
   const apName=first.approverName||i18t('sa_admins');
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): the same request on the one sheet (lgpOpen) — each line a label beside
+     its words, no boxes; who approves (their backup said under them), exactly what they approve, the note, and the one
+     black button. Every id, word and act below is the one this window always had. */
+  const read=(k,vHtml)=>lgpRowHtml({ k, type:'html', valueHtml:vHtml });
   const needs=can.rows.map(r=>{ const n=r.need;
-    return `<div class="sa-pair">
-      <div><span class="sa-lbl">${e(i18t('sa_dlg_approver'))}</span>${n.approverId?person(n.approverName,titleOf(n.approverId)):`<div class="sa-who-s">${e(i18t('sa_dlg_admins'))}</div>`}</div>
-      <div><span class="sa-lbl">${e(i18t('sa_dlg_backup'))}</span>${n.backupId?person(n.backupName,titleOf(n.backupId)):`<div class="sa-who-s">${e(i18t('sa_dlg_no_backup'))}</div>`}</div>
-    </div>`; }).join('');
-  const kv=(k,v)=>`<span class="sa-k">${e(k)}</span><span class="sa-v">${e(v)}</span>`;
+    const ap=n.approverId?person(n.approverName,titleOf(n.approverId)):`<span class="sa-who-s">${e(i18t('sa_dlg_admins'))}</span>`;
+    const bk=`<span class="sa-who-s">${e(i18t('sa_dlg_backup'))}: ${e(n.backupId?n.backupName:i18t('sa_dlg_no_backup'))}</span>`;
+    return read(i18t('sa_dlg_approver'), `<span>${ap}${bk}</span>`); }).join('');
+  const kv=(k,v)=>read(k, e(v));
   const cp=(typeof signerPlan==='function'?signerPlan(c):[]).filter(s=>s&&s.party==='counterparty'&&!s.signed)[0];
   /* Our own side is named from the workspace where the record names no
      entity of ours — the paper does the same (contractParty). */
   const partiesShown=(shows.parties||[]).slice();
   try{ const ours=(typeof contractParty==='function')?contractParty(c):''; if(ours && !partiesShown.includes(ours)) partiesShown.unshift(ours); }catch(_){}
-  openModal(`<div class="sa-dlg">
-    <h3 class="sa-h">${e(i18t('sa_dlg_title'))}</h3>
-    <div class="sa-sub">${[window.refHtml?refHtml(c):e(c.id), e(c.name||''), e(c.counterparty||'')].filter(Boolean).join(' · ')}</div>
-    ${needs}
-    <div class="sa-box">
-      <div class="sa-boxh">${e(i18t('sa_dlg_exactly',{who:apName}))}</div>
-      <div class="sa-kv">
-        ${kv(i18t('sa_dlg_version'), shows.round?i18t('sa_v_round_today',{n:shows.round}):i18t('sa_v_now_today'))}
-        ${kv(i18t('sa_dlg_value'), shows.value==null?i18t('sa_no_money'):saMoney(c,shows.value))}
-        ${(shows.start||shows.end)?kv(i18t('sa_dlg_dates'), [saFmtDay(shows.start),saFmtDay(shows.end)].filter(Boolean).join(' – ')):''}
-        ${partiesShown.length?kv(i18t('sa_dlg_parties'), partiesShown.join(' · ')):''}
-        ${shows.signers.length?kv(i18t('sa_dlg_signers'), shows.signers.join(i18t('sa_then'))):''}
-      </div>
-      <div class="sa-note">${e(i18t('sa_dlg_also'))}</div>
-    </div>
-    <label class="sa-lbl" for="sa-ask-note">${e(i18t('sa_dlg_note',{who:apName}))}</label>
-    <textarea id="sa-ask-note" class="sa-inp" maxlength="${SA_NOTE_MAX}" rows="3"></textarea>
-    <div class="sa-foot">
-      <span class="sa-foot-note">${e(cp?i18t('sa_dlg_foot_cp',{who:cp.name}):i18t('sa_dlg_foot'))}</span>
-      <button data-dlg-cancel type="button" class="ui-btn" id="sa-ask-cancel">${e(i18t('act_cancel'))}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="sa-ask-go">${e(i18t('sa_dlg_go'))}</button>
-    </div>
-  </div>`, { maxWidth: DLG_W.m });
+  if(typeof lgpOpen!=='function') return false;
+  lgpOpen({ id:'sa-dlg', title:i18t('sa_dlg_title'),
+    subHtml:[window.refHtml?refHtml(c):e(c.id), e(c.name||''), e(c.counterparty||'')].filter(Boolean).join(' · '),
+    html:`${needs}
+      <p class="lgp-small">${e(i18t('sa_dlg_exactly',{who:apName}))}</p>
+      ${kv(i18t('sa_dlg_version'), shows.round?i18t('sa_v_round_today',{n:shows.round}):i18t('sa_v_now_today'))}
+      ${kv(i18t('sa_dlg_value'), shows.value==null?i18t('sa_no_money'):saMoney(c,shows.value))}
+      ${(shows.start||shows.end)?kv(i18t('sa_dlg_dates'), [saFmtDay(shows.start),saFmtDay(shows.end)].filter(Boolean).join(' – ')):''}
+      ${partiesShown.length?kv(i18t('sa_dlg_parties'), partiesShown.join(' · ')):''}
+      ${shows.signers.length?kv(i18t('sa_dlg_signers'), shows.signers.join(i18t('sa_then'))):''}
+      <p class="lgp-small">${e(i18t('sa_dlg_also'))}</p>
+      ${lgpRowHtml({ k:i18t('sa_dlg_note',{who:apName}), id:'sa-ask-note', type:'area', max:SA_NOTE_MAX })}`,
+    note:cp?i18t('sa_dlg_foot_cp',{who:cp.name}):i18t('sa_dlg_foot'),
+    primary:{ label:i18t('sa_dlg_go'), attr:'id="sa-ask-go"' },
+    cancelAttr:'data-dlg-cancel id="sa-ask-cancel"', cancelLabel:i18t('act_cancel') });
   document.getElementById('sa-ask-cancel')?.addEventListener('click',()=>closeModal());
   document.getElementById('sa-ask-go')?.addEventListener('click',async ev=>{
     const b=ev.currentTarget; b.disabled=true;

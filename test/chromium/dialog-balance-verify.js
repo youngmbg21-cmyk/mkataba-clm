@@ -43,9 +43,10 @@ const MEASURE = () => {
     frame: R(dlg), box: R(box), pad: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft],
     vw: document.documentElement.clientWidth,
     tiles: [...dlg.querySelectorAll('.ns-tile')].map(R),
-    rows: [...dlg.querySelectorAll('.sap-li')].map(R),
-    rowWords: [...dlg.querySelectorAll('.sap-li')].map(l => { const t = l.querySelector('span > span'), m = l.querySelector('.sap-m'); return [t ? t.textContent.trim() : '', m ? m.textContent.trim() : '']; }),
-    starts: [...dlg.querySelectorAll('.sap-li input[type="radio"]')].map(i => i.getAttribute('data-ns-start') || i.id),
+    /* RE-POINTED 19 Nov 2026 (f1118): the starts are quiet choice lines on the one edit sheet (.lgp-tick.is-radio) */
+    rows: [...dlg.querySelectorAll('.sap-li, .lgp-tick.is-radio')].map(R),
+    rowWords: [...dlg.querySelectorAll('.sap-li, .lgp-tick.is-radio')].map(l => { const m = l.querySelector('.sap-m, .lgp-tsub'), t = l.querySelector('.lgp-tl') || l.querySelector('span > span'); const tt = t ? t.textContent.trim() : ''; return [m && t && t.contains(m) ? tt.slice(0, tt.length - m.textContent.trim().length).trim() : tt, m ? m.textContent.trim() : '']; }),
+    starts: [...dlg.querySelectorAll('.sap-li input[type="radio"], .lgp-tick.is-radio input[type="radio"]')].map(i => i.getAttribute('data-ns-start') || i.id),
     list: dlg.querySelector('.sap-list') ? R(dlg.querySelector('.sap-list')) : null,
     cont: dlg.querySelector('#ns-continue') ? R(dlg.querySelector('#ns-continue')) : null,
     lastBtn: (() => { const bs = [...dlg.querySelectorAll('button')].filter(b => b.offsetParent); const b = bs[bs.length - 1]; return b ? b.id : null; })(),
@@ -60,6 +61,7 @@ const MEASURE = () => {
     firstOpt: (dlg.querySelector('#tpllib-m-cat option') || {}).value,
     selected: (dlg.querySelector('#tpllib-m-cat') || {}).value,
     h3: (dlg.querySelector('h3') || {}).textContent,
+    sheet: !!(box && box.matches && box.matches('form.lgp')),
   };
 };
 
@@ -139,15 +141,18 @@ const MEASURE = () => {
     await page.screenshot({ path: path.join(OUT, '02-template-details.png') });
     check('2a · the Category chip opens the Template details box', !!f && (f.h3 || '').trim() === detTitle, f && f.h3);
     check('2b · its box fills its frame too', !!f && Math.abs(f.frame.w - f.box.w) <= 2, f && { frame: f.frame.w, box: f.box.w });
-    check('2c · Category and Value stream share one row',
-      !!f && !!f.cat && !!f.stream && f.cat.y === f.stream.y && f.stream.x > f.cat.r, f && { cat: f.cat, stream: f.stream });
-    check('2d · the two answers split the row evenly', !!f && !!f.cat && !!f.stream && Math.abs(f.cat.w - f.stream.w) <= 1,
+    /* RE-POINTED 19 Nov 2026 (f1118, the one edit sheet): Category and Value stream are two LINES, the label beside
+       the words, one under the other — the two answers start at one edge and are one width */
+    check('2c · Category then Value stream, one line under the other',
+      !!f && !!f.cat && !!f.stream && f.stream.y > f.cat.y && f.stream.x === f.cat.x, f && { cat: f.cat, stream: f.stream });
+    check('2d · the two answers are one width', !!f && !!f.cat && !!f.stream && Math.abs(f.cat.w - f.stream.w) <= 1,
       f && { cat: f.cat && f.cat.w, stream: f.stream && f.stream.w });
     check('2e · “Other” is listed once, leads, and is what this template is filed as',
       !!f && f.others === 1 && f.firstOpt === 'other' && f.selected === 'other', f && { others: f.others, first: f.firstOpt, selected: f.selected });
-    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the frame's padding is 16/18 now */
-    check('2f · one filled verb in the foot, 16/18 on the sides',
-      !!f && f.primaries === 1 && f.pad.join(' ') === '16px 18px 16px 18px', f && { primaries: f.primaries, pad: f.pad });
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the frame's padding is 16/18 now
+       RE-POINTED 19 Nov 2026 (f1118): the box is the one edit sheet, whose head, lines and foot carry their own 24 in */
+    check('2f · one filled verb in the foot, on the one sheet',
+      !!f && f.primaries === 1 && f.sheet, f && { primaries: f.primaries, sheet: f.sheet });
     check('2g · the frame is centred', !!f && Math.abs((f.frame.x + f.frame.w / 2) - f.vw / 2) <= 2);
 
     /* ================= 3 · NARROW: the starts stay inside the box ================ */

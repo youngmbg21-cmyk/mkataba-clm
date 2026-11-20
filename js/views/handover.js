@@ -336,92 +336,118 @@ async function openHandoverWindow(c){
   const roundOpen = prog.total > 0;
   const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
   const vN = (Array.isArray(c.versions) ? c.versions.length : 0) + (roundOpen ? 2 : 1);
-  const FLD = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
-  const L = t => `<div class="ho-l">${_hoEsc(t)}</div>`;
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): the window is the one sheet — seven lines, each a label beside its
+     words (no boxes): the agreed wording, how they agreed, who signs for us, how the Word file leaves, their name, their
+     address and the message — then the lock said once, one black button, Cancel last. Built by hand on the sheet's parts
+     so its buttons stay type="button": Enter in a box hands nothing over. Every id, rule and act is the one it had. */
+  const row = (k, ctl, tall) => `<div class="lgp-row${tall ? ' is-tall' : ''}"><span class="lgp-k">${_hoEsc(k)}</span><span class="lgp-v">${ctl}</span></div>`;
+  const inRow = (k, ctl, tall) => `<label class="lgp-row${tall ? ' is-tall' : ''}"><span class="lgp-k">${_hoEsc(k)}</span><span class="lgp-v">${ctl}</span></label>`;
   /* MORE THAN ONE PARTY NEGOTIATED (Phase 2): each one's agreement is said by
      name and day — one Ready to sign from one link cannot speak for the
      others — and the Word file goes to each of them. */
   const multi = typeof partiesNegotiating === 'function' ? partiesNegotiating(c) : [];
   const many = multi.length > 1;
   const howHtml = many
-    ? `<div class="ho-how">${multi.map(p => `<label class="ho-radio"><span>${_hoEsc(i18t('ho_how_party', { who: p.name }))}</span>
-        <input type="date" max="${today}" value="${today}" data-ho-party-day="${_hoEsc(p.id)}" style="${FLD};width:auto;height:28px;margin-left:6px"></label>`).join('')}
-        <div class="ho-sub">${_hoEsc(i18t('ho_how_each'))}</div></div>`
+    ? `<span class="ho-how">${multi.map(p => `<label class="ho-radio"><span>${_hoEsc(i18t('ho_how_party', { who: p.name }))}</span>
+        <input type="date" class="lgp-in" max="${today}" value="${today}" data-ho-party-day="${_hoEsc(p.id)}" style="flex:none;width:auto"></label>`).join('')}
+        <span class="ho-sub">${_hoEsc(i18t('ho_how_each'))}</span></span>`
     : '';
   const toRows = many
-    ? multi.map((p, i) => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" data-ho-to-party="${_hoEsc(p.id)}">
-        <input type="text" data-ho-to-name placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(i ? '' : (pre.name || ''))}" style="${FLD}" aria-label="${_hoEsc(p.name)}">
-        <input type="email" data-ho-to-email placeholder="${_hoEsc(i18t('ho_to_email_ph_for', { who: p.name }))}" value="${_hoEsc(_hoBookEmail(c, p.id) || p.email || (i ? '' : (pre.email || '')))}" style="${FLD}" aria-label="${_hoEsc(p.name)}">
-      </div>`).join('')
+    ? multi.map((p, i) => `<div class="lgp-row" data-ho-to-party="${_hoEsc(p.id)}"><span class="lgp-k">${_hoEsc(p.name)}</span><span class="lgp-v">
+        <input type="text" class="lgp-in" data-ho-to-name placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(i ? '' : (pre.name || ''))}" aria-label="${_hoEsc(p.name)}">
+        <input type="email" class="lgp-in" data-ho-to-email placeholder="${_hoEsc(i18t('ho_to_email_ph_for', { who: p.name }))}" value="${_hoEsc(_hoBookEmail(c, p.id) || p.email || (i ? '' : (pre.email || '')))}" aria-label="${_hoEsc(p.name)}">
+      </span></div>`).join('')
     : '';
-  openModal(`<div class="ho-win" style="padding:22px var(--s-6)">
-    <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-3)">${_hoEsc(i18t('ho_win_title'))}</h2>
-    <div class="ho-grid">
-      ${L(i18t('ho_win_agreed'))}
-      <div>${_hoEsc(roundOpen ? i18t('ho_win_agreed_open', { round: round || 1, n: prog.total }) : i18t('ho_win_agreed_v', { v: vN, round: Math.max(1, (round || 1) - 1) }))}</div>
-      ${L(i18t('ho_win_how'))}
-      ${many ? howHtml : `<div class="ho-how">
+  openModal(`<form class="lgp ho-win" id="ho-win" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${_hoEsc(i18t('ho_win_title'))}</h3>
+      <p class="lgp-sub">${_hoEsc([c.name || '', typeof contractRef === 'function' ? contractRef(c) : c.id].filter(Boolean).join(' · '))}</p>
+      <p class="lgp-sub lgp-steps" id="ho-steps"></p></div>
+      <button type="button" class="lgp-x" id="ho-x" tabindex="-1" aria-label="${_hoEsc(i18t('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>
+    <div class="lgp-bd">
+      <div id="ho-s1">
+      ${row(i18t('ho_win_agreed'), `<span class="lgp-in is-read">${_hoEsc(roundOpen ? i18t('ho_win_agreed_open', { round: round || 1, n: prog.total }) : i18t('ho_win_agreed_v', { v: vN, round: Math.max(1, (round || 1) - 1) }))}</span>`, true)}
+      ${row(i18t('ho_win_how'), many ? howHtml : `<span class="ho-how">
         ${signal ? `<label class="ho-radio"><input type="radio" name="ho-how" value="signal" checked> <span>${_hoEsc(i18t('ho_how_signal', { who: signal.name || c.counterparty || '', when: typeof fmtDT === 'function' ? fmtDT(signal.at) : _hoDay(signal.at) }))}</span></label>` : ''}
         <label class="ho-radio"><input type="radio" name="ho-how" value="email"${signal ? '' : ' checked'}> <span>${_hoEsc(i18t('ho_how_email'))}</span>
-          <input id="ho-how-day" type="date" max="${today}" value="${signal ? '' : today}" style="${FLD};width:auto;height:28px;margin-left:6px"></label>
-      </div>`}
-      ${L(i18t('ho_win_signs'))}
-      <div>${who
+          <input id="ho-how-day" type="date" class="lgp-in" max="${today}" value="${signal ? '' : today}" style="flex:none;width:auto"></label>
+      </span>`, true)}
+      ${row(i18t('ho_win_signs'), `<span class="lgp-in is-read">${who
         ? `<span>${_hoEsc(who.name)}${who.role ? ' · ' + _hoEsc(who.role) : ''} · ${_hoEsc(i18t('ho_from_order'))}</span> <button type="button" class="ui-link" id="ho-sig-change">${_hoEsc(i18t('ho_change'))}</button>`
         : `<span style="color:var(--st-amber-fg)">${_hoEsc(i18t('ho_sig_row_none'))}</span> <button type="button" class="ui-link" id="ho-sig-change">${_hoEsc(i18t('ho_name_signatory'))}</button>
-           <div class="ho-sub">${_hoEsc(i18t('ho_sig_cost'))}</div>`}
-        <div class="ho-sub">${_hoEsc(i18t('ho_sig_internal'))}</div></div>
-      ${L(i18t('ho_win_file'))}
-      <div>
-        <div class="doc-read-seg" role="group" aria-label="${_hoEsc(i18t('ho_win_file'))}" id="ho-ch">
-          <button type="button" data-ho-ch="email" aria-pressed="true">${_hoEsc(i18t('ho_ch_email'))}</button>
-          <button type="button" data-ho-ch="download" aria-pressed="false">${_hoEsc(i18t('ho_ch_download'))}</button>
-        </div>
-        <div id="ho-email-box" style="margin-top:8px;display:grid;gap:6px">
-          ${many ? toRows : `<input id="ho-to-name" type="text" placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(pre.name || '')}" style="${FLD}">
-          <input id="ho-to-email" type="email" placeholder="${_hoEsc(i18t('ho_to_email_ph'))}" value="${_hoEsc(pre.email || _hoBookEmail(c) || '')}" style="${FLD}">`}
-          <textarea id="ho-note" rows="3" style="${FLD};height:auto;padding:6px var(--field-pad-x);resize:vertical">${_hoEsc(i18t('ho_note_default'))}</textarea>
-        </div>
+           <span class="ho-sub" style="display:block">${_hoEsc(i18t('ho_sig_cost'))}</span>`}
+        <span class="ho-sub" style="display:block">${_hoEsc(i18t('ho_sig_internal'))}</span></span>`, true)}
+      ${row(i18t('ho_win_file'), `<span class="lgp-chips" role="group" aria-label="${_hoEsc(i18t('ho_win_file'))}" id="ho-ch">
+          <button type="button" class="lgp-chip is-on" data-ho-ch="email" aria-pressed="true">${_hoEsc(i18t('ho_ch_email'))}</button>
+          <button type="button" class="lgp-chip" data-ho-ch="download" aria-pressed="false">${_hoEsc(i18t('ho_ch_download'))}</button>
+        </span>`)}
       </div>
+      <div id="ho-s2" hidden>
+      <div id="ho-email-box">
+        ${many ? toRows : `${inRow(i18t('ho_to_name_ph'), `<input id="ho-to-name" type="text" class="lgp-in" autocomplete="off" value="${_hoEsc(pre.name || '')}">`)}
+        ${inRow(i18t('ho_to_email_ph'), `<input id="ho-to-email" type="email" class="lgp-in" autocomplete="off" value="${_hoEsc(pre.email || _hoBookEmail(c) || '')}">`)}`}
+        ${inRow(i18t('ho_note_k'), `<textarea id="ho-note" rows="3" class="lgp-in is-area">${_hoEsc(i18t('ho_note_default'))}</textarea>`, true)}
+      </div>
+      </div>
+      <p class="lgp-small ho-lock-say">${_hoEsc(i18t('ho_win_lock'))}</p>
+      <p id="ho-err" class="lgp-err" role="alert" hidden></p>
     </div>
-    <p class="ho-lock">${_hoEsc(i18t('ho_win_lock'))}</p>
-    <div id="ho-err" class="ho-err" hidden></div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
+    <div class="lgp-ft"><button id="ho-back" type="button" class="ui-btn lgp-back" hidden>‹ ${_hoEsc(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+      <button id="ho-go" type="button" class="ui-btn ui-btn-primary lgp-go">${_hoEsc(i18t('ho_go'))}</button>
+      <button id="ho-next" type="button" class="ui-btn">${_hoEsc(i18t('of_next'))}</button>
       <button data-dlg-cancel id="ho-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
-      <button id="ho-go" type="button" class="ui-btn ui-btn-primary">${_hoEsc(i18t('ho_go'))}</button>
-    </div>
-  </div>`, { maxWidth: (window.DLG_W && DLG_W.l) || '640px', label: i18t('ho_win_title') });
+    </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('ho_win_title') });
   const root = document.getElementById('modal-root');
   let channel = 'email';
+  /* MORE THAN SEVEN LINES IS A NEXT STEP, NEVER A SCROLL (20 Nov 2026, the photos at the owner's screens): the
+     agreement first (wording, how they agreed, who signs, how the file leaves), then sending it (to whom, the message).
+     The black button stands on both steps, so a download still hands over in one press; a missing address brings
+     step 2 back, a missing day step 1. */
+  let step = 1;
+  const stepGo = n => {
+    step = n;
+    const s1 = document.getElementById('ho-s1'), s2 = document.getElementById('ho-s2');
+    if (s1) s1.hidden = n !== 1; if (s2) s2.hidden = n !== 2;
+    const sendStep = channel === 'email';
+    const back = document.getElementById('ho-back'), next = document.getElementById('ho-next');
+    if (back) back.hidden = n !== 2; if (next) next.hidden = n !== 1 || !sendStep;
+    const st = document.getElementById('ho-steps');
+    if (st) st.innerHTML = sendStep ? [i18t('ho_step_agreed'), i18t('ho_step_send')].map((w, i) => i + 1 === n ? `<b>${_hoEsc(w)}</b>` : _hoEsc(w)).join(' · ') : '';
+  };
+  stepGo(1);
+  document.getElementById('ho-next')?.addEventListener('click', () => stepGo(2));
+  document.getElementById('ho-back')?.addEventListener('click', () => stepGo(1));
+  { const f = root.querySelector('#ho-s1 input'); if (f){ try { (typeof fieldFocus === 'function') ? fieldFocus(f, { focusVisible: false }) : f.focus({ preventScroll: true, focusVisible: false }); } catch (_) {} } }
   root.querySelectorAll('[data-ho-ch]').forEach(b => b.addEventListener('click', () => {
     channel = b.getAttribute('data-ho-ch') === 'download' ? 'download' : 'email';
-    root.querySelectorAll('[data-ho-ch]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    const box = document.getElementById('ho-email-box'); if (box) box.style.display = channel === 'email' ? 'grid' : 'none';
+    root.querySelectorAll('[data-ho-ch]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.classList.toggle('is-on', x === b); });
+    const box = document.getElementById('ho-email-box'); if (box) box.style.display = channel === 'email' ? '' : 'none';
+    stepGo(1);
   }));
   document.getElementById('ho-cancel')?.addEventListener('click', closeModal);
+  document.getElementById('ho-x')?.addEventListener('click', closeModal);
   document.getElementById('ho-sig-change')?.addEventListener('click', () => {
     closeModal(); if (typeof openSignerPlanEditor === 'function') openSignerPlanEditor(c);
   });
   document.getElementById('ho-go')?.addEventListener('click', async e => {
     const btn = e.currentTarget;
-    const err = m => { const el = document.getElementById('ho-err'); if (el){ el.textContent = m; el.hidden = false; } };
+    const err = (m, at) => { if (at) stepGo(at); const el = document.getElementById('ho-err'); if (el){ el.textContent = m; el.hidden = false; } };
     let how, to, also = [];
     if (many){
       const parties = [...root.querySelectorAll('[data-ho-party-day]')].map(i => ({ id: i.getAttribute('data-ho-party-day'), at: i.value || '' }));
-      if (parties.some(p => !/^\d{4}-\d{2}-\d{2}$/.test(p.at) || p.at > today)) return err(i18t('ho_how_need_each'));
+      if (parties.some(p => !/^\d{4}-\d{2}-\d{2}$/.test(p.at) || p.at > today)) return err(i18t('ho_how_need_each'), 1);
       how = { kind: 'email', parties };
       const rows = [...root.querySelectorAll('[data-ho-to-party]')].map(r => ({ partyId: r.getAttribute('data-ho-to-party'),
         name: ((r.querySelector('[data-ho-to-name]') || {}).value || '').trim(), email: ((r.querySelector('[data-ho-to-email]') || {}).value || '').trim() }));
-      if (channel === 'email' && rows.some(r => !/.+@.+\..+/.test(r.email))) return err(i18t('ho_need_email_each'));
+      if (channel === 'email' && rows.some(r => !/.+@.+\..+/.test(r.email))) return err(i18t('ho_need_email_each'), 2);
       to = rows[0] || { name: '', email: '' }; also = rows.slice(1);
     } else {
       const howKind = (root.querySelector('input[name="ho-how"]:checked') || {}).value || 'email';
       const day = (document.getElementById('ho-how-day') || {}).value || '';
-      if (howKind === 'email' && (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > today)) return err(i18t('ho_how_need_day'));
+      if (howKind === 'email' && (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > today)) return err(i18t('ho_how_need_day'), 1);
       how = howKind === 'signal' ? { kind: 'signal' } : { kind: 'email', at: day };
       to = { name: ((document.getElementById('ho-to-name') || {}).value || '').trim(),
         email: ((document.getElementById('ho-to-email') || {}).value || '').trim() };
-      if (channel === 'email' && !/.+@.+\..+/.test(to.email)) return err(i18t('ho_need_email'));
+      if (channel === 'email' && !/.+@.+\..+/.test(to.email)) return err(i18t('ho_need_email'), 2);
     }
     /* WHOEVER THE FILE GOES TO IS IN THE ADDRESS BOOK (4 Oct 2026) — the
        send screen's own memory, so this box never holds an address the
@@ -608,19 +634,14 @@ async function outsideChase(c){
 }
 function openOutsideSendAgain(c){
   const ho = handoverOf(c); if (!ho) return;
-  const FLD = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
-  openModal(`<div style="padding:22px var(--s-6)">
-    <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-2)">${_hoEsc(i18t('ho_send_again_title'))}</h2>
-    <p style="margin:0 0 var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700)">${_hoEsc(i18t('ho_send_again_msg'))}</p>
-    <div style="display:grid;gap:6px">
-      <input id="ho-sa-name" type="text" placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc((ho.to && ho.to.name) || '')}" style="${FLD}">
-      <input id="ho-sa-email" type="email" placeholder="${_hoEsc(i18t('ho_to_email_ph'))}" value="${_hoEsc((ho.to && ho.to.email) || '')}" style="${FLD}">
-    </div>
-    <div id="ho-sa-err" class="ho-err" hidden></div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-      <button data-dlg-cancel id="ho-sa-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
-      <button id="ho-sa-go" type="button" class="ui-btn ui-btn-primary">${_hoEsc(i18t('ho_send_again'))}</button>
-    </div></div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('ho_send_again_title') });
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): two lines, their name and their address, on the one sheet (lgpOpen);
+     same ids, same refusal, same act. Enter in a line presses Send again, as the button does. */
+  lgpOpen({ id: 'ho-sa-form', title: i18t('ho_send_again_title'), sub: i18t('ho_send_again_msg'),
+    rows: [{ k: i18t('ho_to_name_ph'), id: 'ho-sa-name', value: (ho.to && ho.to.name) || '' },
+      { k: i18t('ho_to_email_ph'), id: 'ho-sa-email', type: 'email', value: (ho.to && ho.to.email) || '' }],
+    html: '<p id="ho-sa-err" class="lgp-err" role="alert" hidden></p>',
+    primary: { label: i18t('ho_send_again'), attr: 'id="ho-sa-go"' },
+    cancelAttr: 'data-dlg-cancel id="ho-sa-cancel"', cancelLabel: i18t('act_cancel') });
   document.getElementById('ho-sa-cancel')?.addEventListener('click', closeModal);
   document.getElementById('ho-sa-go')?.addEventListener('click', async e => {
     const to = { name: (document.getElementById('ho-sa-name').value || '').trim(), email: (document.getElementById('ho-sa-email').value || '').trim() };
@@ -781,16 +802,13 @@ function openOutsideCheck(c){
 /* A file dialog that reads, compares and shows — the one shape the check
    and the first step of the filing share. */
 function _hoFileDialog(c, o){
-  openModal(`<div style="padding:22px var(--s-6)">
-    <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-2)">${_hoEsc(o.title)}</h2>
-    <p style="margin:0 0 var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55">${_hoEsc(o.lead)}</p>
-    <input id="ho-fd-file" type="file" accept="${HO_FILE_ACCEPT}" style="width:100%;font-size:var(--t-body)">
-    <div id="ho-fd-step" class="ho-sub" hidden></div>
-    <div id="ho-fd-out"></div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-      <button id="ho-fd-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_close'))}</button>
-      <button id="ho-fd-go" type="button" class="ui-btn ui-btn-primary">${_hoEsc(o.go)}</button>
-    </div></div>`, { maxWidth: (window.DLG_W && DLG_W.xl) || '760px', label: o.title });
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): the copy is one line on the one sheet (lgpOpen), what HaTi reads said
+     under it; same ids, same reader, same act. */
+  lgpOpen({ id: 'ho-fd-form', title: o.title, sub: o.lead, focus: false,
+    rows: [{ k: i18t('ho_copy_k'), type: 'html', valueHtml: `<input id="ho-fd-file" type="file" accept="${HO_FILE_ACCEPT}" style="width:100%;font-size:var(--t-body)">` }],
+    html: '<div id="ho-fd-step" class="lgp-small" hidden></div><div id="ho-fd-out"></div>',
+    primary: { label: o.go, attr: 'id="ho-fd-go"' },
+    cancelAttr: 'id="ho-fd-cancel"', cancelLabel: i18t('act_close') });
   const step = t => { const el = document.getElementById('ho-fd-step'); if (el){ el.textContent = t; el.hidden = !t; } };
   const ui = {
     result(r, read){
@@ -894,21 +912,31 @@ function _hoFilingScreen(c, read){
   /* Every expected signature found — each party's, and ours. */
   const theirsFound = said.signers.some(s => s.side === 'theirs') && said.signers.filter(s => s.side === 'theirs').every(s => s.found);
   const oursFound = said.signers.some(s => s.side === 'ours') ? said.signers.filter(s => s.side === 'ours').every(s => s.found) : false;
-  const FLD = 'border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)';
   const nextNo = (typeof contractIsWorkingFile === 'function' && contractIsWorkingFile(c)) ? i18t('ho_gets_number') : '';
   const approvals = Array.isArray(ho.approvals) ? ho.approvals : [];
   const preview = /pdf|image/.test(read.mime)
     ? `<iframe title="${_hoEsc(read.name)}" src="${read.dataUrl}" style="width:100%;height:100%;border:0;background:#fff"></iframe>`
     : `<div class="ho-copytext">${_hoEsc(read.text).replace(/\n/g, '<br>')}</div>`;
   const tick = ok => ok ? '<span class="ho-tick">&#10003;</span>' : '<span class="ho-tick is-warn">!</span>';
-  const signerRows = said.signers.map((s, i) => `<label class="ho-signer">
+  const signerRows = said.signers.map((s, i) => `<label class="lgp-tick ho-signer">
       <input type="checkbox" data-ho-signed="${i}"${s.found ? ' checked' : ''}>
-      <span>${_hoEsc(s.name)} <span class="ho-sub">${_hoEsc(i18t(s.side === 'ours' ? 'ho_side_ours' : 'ho_side_theirs'))}${s.on ? ' · ' + _hoEsc(_hoDay(s.on)) : ''}${s.unsure ? ' · ' + _hoEsc(i18t('ho_unsure')) : ''}</span></span></label>`).join('');
+      <span class="lgp-tl">${_hoEsc(s.name)} <span class="ho-sub">${_hoEsc(i18t(s.side === 'ours' ? 'ho_side_ours' : 'ho_side_theirs'))}${s.on ? ' · ' + _hoEsc(_hoDay(s.on)) : ''}${s.unsure ? ' · ' + _hoEsc(i18t('ho_unsure')) : ''}</span></span></label>`).join('');
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): the copy stays on the left; the right is the one sheet in TWO STEPS
+     (more than seven lines is a next step, never a scroll): 1 The copy — the words, who signed, filed before, the
+     approval; 2 Filing it — the four dates, how it was signed, the certificate and what it amends, each a label beside
+     its words, then the acts that follow who has signed. Both steps stay in the form, the second hidden, so every act
+     reads every field wherever the reader stands. Every id, check, refusal and act is the one this screen had. */
+  const fRow = (k, ctl) => `<label class="lgp-row"><span class="lgp-k">${_hoEsc(k)}</span><span class="lgp-v">${ctl}</span></label>`;
+  const stepsSay = n => [i18t('ho_step_copy'), i18t('ho_step_filing')].map((t, i) => i + 1 === n ? `<b>${_hoEsc(t)}</b>` : _hoEsc(t)).join(' · ');
   openModal(`<div class="ho-file">
     <div class="ho-file-l">${preview}</div>
-    <div class="ho-file-r">
-      <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:17px;margin:0 0 4px">${_hoEsc(i18t('ho_check_copy'))}</h2>
-      <div class="ho-sub" style="margin-bottom:10px">${_hoEsc(read.name)}</div>
+    <form class="lgp ho-file-r" id="ho-f-form" novalidate style="max-height:none;height:100%;min-height:0;padding:0;gap:0">
+      <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${_hoEsc(i18t('ho_check_copy'))}</h3>
+        <p class="lgp-sub lgp-steps" id="ho-f-steps">${stepsSay(1)}</p>
+        <p class="lgp-sub">${_hoEsc(read.name)}</p></div>
+        <button type="button" class="lgp-x" id="ho-f-x" tabindex="-1" aria-label="${_hoEsc(i18t('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>
+      <div class="lgp-bd">
+      <div id="ho-f-step-1">
       <div class="ho-chk ${r.same ? '' : 'is-warn'}">${tick(r.same)}<div><b>${_hoEsc(outsideCheckLine(r))}</b>
         ${r.same ? `<div class="ho-sub">${_hoEsc(i18t('ho_design_fine'))}</div>` : ''}
         ${r.ocr ? `<div class="ho-sub">${_hoEsc(i18t('ho_cmp_ocr'))}</div>` : ''}
@@ -916,34 +944,46 @@ function _hoFilingScreen(c, read){
         ${(r.around || []).length ? `<div class="ho-sub">${_hoEsc(i18tn('ho_around_words', r.aroundWords, { n: r.aroundWords }))}</div>` : ''}</div></div>
       ${r.same ? '' : `<div class="ho-diffs">${outsideDiffHtml(r)}</div>`}
       <div class="ho-chk">${tick(theirsFound && oursFound)}<div><b>${_hoEsc(i18t('ho_who_signed'))}</b>
-        <div class="ho-signers">${signerRows || `<div class="ho-sub">${_hoEsc(i18t('ho_no_names'))}</div>`}</div>
-        <label class="ho-signer"><input type="checkbox" id="ho-both" ${theirsFound && oursFound ? 'checked' : ''}> <span>${_hoEsc(i18t('ho_both_signed'))}</span></label></div></div>
-      <div class="ho-chk">${tick(!!signedOn)}<div><b>${_hoEsc(i18t('ho_dates'))}</b>
-        <div class="ho-dates">
-          <label><span>${_hoEsc(i18t('ho_d_signed'))}</span><input id="ho-d-signed" type="date" value="${_hoEsc(signedOn)}" style="${FLD}"></label>
-          <label><span>${_hoEsc(i18t('ho_d_starts'))}</span><input id="ho-d-start" type="date" value="${_hoEsc(String(start).slice(0, 10))}" style="${FLD}"></label>
-          <label><span>${_hoEsc(i18t('ho_d_ends'))}</span><input id="ho-d-ends" type="date" value="${_hoEsc(String(ends).slice(0, 10))}" style="${FLD}"></label>
-          <label><span>${_hoEsc(i18t('ho_d_notice'))}</span><input id="ho-d-notice" type="number" min="0" value="${_hoEsc(notice)}" style="${FLD}"></label>
-        </div>
-        ${startsOnSig ? `<div class="ho-sub">${_hoEsc(i18t('ho_starts_on_sig'))}</div>` : ''}</div></div>
+        <div class="ho-signers lgp-list">${signerRows || `<div class="ho-sub">${_hoEsc(i18t('ho_no_names'))}</div>`}
+        <label class="lgp-tick ho-signer"><input type="checkbox" id="ho-both" ${theirsFound && oursFound ? 'checked' : ''}> <span class="lgp-tl">${_hoEsc(i18t('ho_both_signed'))}</span></label></div></div></div>
       <div class="ho-chk">${tick(!dup)}<div><b>${_hoEsc(i18t(dup ? 'ho_filed_before' : 'ho_not_filed_before', { ref: dup ? contractRef(dup) : '' }))}</b></div></div>
       <div class="ho-chk">${tick(!!approvals.length)}<div><b>${_hoEsc(i18t(approvals.length ? 'ho_approval_stands' : 'ho_approval_none'))}</b>
         ${approvals.length ? `<div class="ho-sub">${_hoEsc(i18t('ho_used_at', { when: _hoDay(ho.at) }))}</div>` : ''}</div></div>
-      <label class="ho-via"><span>${_hoEsc(i18t('ho_how_signed'))}</span>
-        <select id="ho-via" style="${FLD}">
+      </div>
+      <div id="ho-f-step-2" hidden>
+        <p class="lgp-small">${tick(!!signedOn)} ${_hoEsc(i18t('ho_dates'))}</p>
+        ${fRow(i18t('ho_d_signed'), `<input id="ho-d-signed" type="date" class="lgp-in" value="${_hoEsc(signedOn)}">`)}
+        ${fRow(i18t('ho_d_starts'), `<input id="ho-d-start" type="date" class="lgp-in" value="${_hoEsc(String(start).slice(0, 10))}">`)}
+        ${fRow(i18t('ho_d_ends'), `<input id="ho-d-ends" type="date" class="lgp-in" value="${_hoEsc(String(ends).slice(0, 10))}">`)}
+        ${fRow(i18t('ho_d_notice'), `<input id="ho-d-notice" type="number" min="0" class="lgp-in" value="${_hoEsc(notice)}">`)}
+        ${startsOnSig ? `<p class="lgp-small">${_hoEsc(i18t('ho_starts_on_sig'))}</p>` : ''}
+        ${fRow(i18t('ho_how_signed'), `<select id="ho-via" class="lgp-in">
           <option value="">${_hoEsc(i18t('ho_via_pick'))}</option>
           ${Object.keys(HO_VIA_KEYS).map(k => `<option value="${k}"${said.via === k ? ' selected' : ''}>${_hoEsc(i18t(HO_VIA_KEYS[k]))}</option>`).join('')}
-        </select></label>
-      <label class="ho-via"><span>${_hoEsc(i18t('ho_cert'))}</span><input id="ho-cert" type="file" accept="${HO_FILE_ACCEPT}" style="font-size:var(--t-label)"></label>
-      ${_hoParentPicker(c)}
-      <div id="ho-f-err" class="ho-err" hidden></div>
-      <div class="ho-file-foot">
-        <button data-dlg-cancel id="ho-f-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
-        <span style="flex:1"></span>
-        <span id="ho-f-acts"></span>
+        </select>`)}
+        ${fRow(i18t('ho_cert'), `<input id="ho-cert" type="file" accept="${HO_FILE_ACCEPT}" style="font-size:var(--t-label);min-width:0">`)}
+        ${_hoParentPicker(c)}
       </div>
-    </div>
-  </div>`, { maxWidth: '1100px', height: '88vh', label: i18t('ho_check_copy') });
+      <p id="ho-f-err" class="lgp-err" role="alert" hidden></p>
+      </div>
+      <div class="lgp-ft">
+        <button type="button" class="ui-btn lgp-back" id="ho-f-back" hidden>‹ ${_hoEsc(i18t('lgp_back'))}</button>
+        <span class="lgp-sp"></span>
+        <button type="button" id="ho-f-next" class="ui-btn ui-btn-primary lgp-go">${_hoEsc(i18t('lgp_next_step'))}</button>
+        <span id="ho-f-acts" hidden></span>
+        <button data-dlg-cancel id="ho-f-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
+      </div>
+    </form>
+  </div>`, { maxWidth: '1100px', height: '88vh', ownFrame: true, label: i18t('ho_check_copy') });
+  /* the two steps: Next shows Filing it and the acts; ‹ Back returns to the copy */
+  const fStep = n => { const one = n === 1;
+    document.getElementById('ho-f-step-1')?.toggleAttribute('hidden', !one); document.getElementById('ho-f-step-2')?.toggleAttribute('hidden', one);
+    document.getElementById('ho-f-back')?.toggleAttribute('hidden', one); document.getElementById('ho-f-next')?.toggleAttribute('hidden', !one);
+    document.getElementById('ho-f-acts')?.toggleAttribute('hidden', one);
+    const st = document.getElementById('ho-f-steps'); if (st) st.innerHTML = stepsSay(n); };
+  document.getElementById('ho-f-next')?.addEventListener('click', () => fStep(2));
+  document.getElementById('ho-f-back')?.addEventListener('click', () => fStep(1));
+  document.getElementById('ho-f-x')?.addEventListener('click', closeModal);
   const acts = document.getElementById('ho-f-acts');
   const both = () => !!(document.getElementById('ho-both') || {}).checked;
   /* THE BUTTONS FOLLOW WHO HAS SIGNED. Same words: File as signed, or — not
@@ -1033,11 +1073,11 @@ function _hoParentPicker(c){
   const cands = ((typeof state !== 'undefined' && state && state.contracts) || []).filter(x => x && x.id !== c.id && !x.parentId
     && String(x.counterparty || '').trim().toLowerCase() === cp && (x.status === 'Signed' || (x.execution && x.execution.at)));
   if (!cands.length) return '';
-  return `<label class="ho-via"><span>${_hoEsc(i18t('ho_amends'))}</span>
-    <select id="ho-parent" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+  return `<label class="lgp-row"><span class="lgp-k">${_hoEsc(i18t('ho_amends'))}</span><span class="lgp-v">
+    <select id="ho-parent" class="lgp-in">
       <option value="">${_hoEsc(i18t('ho_amends_none'))}</option>
       ${cands.slice(0, 30).map(x => `<option value="${_hoEsc(x.id)}">${_hoEsc(contractRef(x))} · ${_hoEsc(x.name || '')}</option>`).join('')}
-    </select></label>`;
+    </select></span></label>`;
 }
 async function _hoUploadFile(read){
   if (typeof API_MODE === 'function' && !API_MODE()) return { fileId: null, dataUrl: read.dataUrl };

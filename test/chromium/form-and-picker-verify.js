@@ -49,12 +49,28 @@ const WIDE = '#ce-cols > div:first-child input[type=date],'
    inside it, whichever reaches further) against the grid and against the
    contract beside it. */
 const MEASURE = () => {
-  const g = document.querySelector('#ce-cols > div:first-child, #wz-cols > div:first-child');
+  /* RE-POINTED (f1120, the one edit pop-up): the essentials door's form is the one sheet — a line a question, every
+     step shown for the measure — so its "grid" is the sheet's body and its cells are the lines */
+  const sheet = document.querySelector('#ce-cols > form.lgp .lgp-bd');
+  if (sheet) sheet.querySelectorAll('[data-ce-pane]').forEach(p => { p.hidden = false; });
+  const g = sheet || document.querySelector('#ce-cols > div:first-child, #wz-cols > div:first-child');
   if (!g) return { err: 'no field grid on screen' };
   const gr = g.getBoundingClientRect();
   const pane = document.querySelector('#ce-cols > :nth-child(2), #wz-cols > :nth-child(2)');
   const px = pane ? pane.getBoundingClientRect().x : null;
   let pastGrid = 0, overPane = 0, widest = '';
+  const cellsOf = sheet ? [...sheet.querySelectorAll('.lgp-row')] : [...g.children];
+  if (sheet) {
+    for (const c of cellsOf) {
+      const r = c.getBoundingClientRect();
+      const paint = Math.max(r.right, ...[...c.querySelectorAll('input,select')].map(e => e.getBoundingClientRect().right));
+      if (Math.round(paint - gr.right) > pastGrid) { pastGrid = Math.round(paint - gr.right); widest = ((c.querySelector('span') || {}).textContent || '').trim().slice(0, 22); }
+      if (px != null) overPane = Math.max(overPane, Math.round(paint - px));
+    }
+    /* a line's two tracks: the label's, then the words' — both inside the sheet's own half */
+    return { cols: getComputedStyle(cellsOf[0]).gridTemplateColumns, pastGrid, overPane, widest, sheet: true,
+      sheetW: Math.round(gr.width), hasPane: px != null, cells: cellsOf.length };
+  }
   for (const c of g.children) {
     const r = c.getBoundingClientRect();
     const paint = Math.max(r.right, ...[...c.querySelectorAll('input,select')]
@@ -108,7 +124,8 @@ const MEASURE = () => {
         !m.err && m.overPane <= 0, m.err || `${m.overPane}px over the preview`);
       check(`${n}d the columns keep their share whatever the control wants — ${name}`,
         !m.err && /^\d+(\.\d+)?px \d+(\.\d+)?px$/.test(String(m.cols || ''))
-          && Math.max(...String(m.cols).split(' ').map(parseFloat)) < 300,
+          && (m.sheet ? String(m.cols).split(' ').map(parseFloat).reduce((a, b) => a + b, 0) <= m.sheetW
+            : Math.max(...String(m.cols).split(' ').map(parseFloat)) < 300),
         m.err || String(m.cols));
     }
 

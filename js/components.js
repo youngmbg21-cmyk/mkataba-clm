@@ -2058,7 +2058,7 @@ function lgpHtml(o){
 }
 function lgpOpen(o){
   if (typeof openModal !== 'function') return null;
-  openModal(lgpHtml(o), { maxWidth: LGP_W, ownFrame: true, label: o.title || '', onClose: o.onClose, onBeforeClose: o.onBeforeClose });
+  openModal(o.stepped ? lgpStepsHtml(o) : lgpHtml(o), { maxWidth: LGP_W, ownFrame: true, label: o.title || '', onClose: o.onClose, onBeforeClose: o.onBeforeClose });
   const root = document.getElementById('modal-root');
   /* the cursor lands on the first line, after the dialog's own focus trap has run, with no ring (NO RING AFTER A PRESS) */
   const land = () => { const f = root && root.querySelector(o.focus || '.lgp .lgp-in:not([disabled])'); if (!f || o.focus === false) return;
@@ -2074,12 +2074,41 @@ function lgpRepaint(o){
   const next = box.firstElementChild; cur.replaceWith(next);
   return next;
 }
+/* A SHEET IN STEPS (openObligationForm's way, made one builder for the pop-ups moved later, 19 Nov 2026): every step's
+   part is in o.html as <div data-lgp-step="n">, ALL inside the one form so the black act reads every field wherever the
+   reader stands. The foot: ‹ Back (hidden on the first), o.leftHtml, then Next › (o.nextAttr) until the last step, where
+   the black act (o.primary, type=button) takes its place, then Cancel. lgpOpen({ stepped:true, … }) opens it;
+   lgpStepGo(form, n, names) shows step n. */
+function lgpStepsHtml(o){
+  const E = esc;
+  const foot = `<div class="lgp-ft"><button type="button" class="ui-btn lgp-back" data-lgp-back ${o.backAttr || ''} hidden>‹ ${E(_lgpT('lgp_back'))}</button>${o.leftHtml || ''}<span class="lgp-sp"></span>`
+    + `<button type="button" class="ui-btn ui-btn-primary lgp-go" data-lgp-next ${o.nextAttr || ''}>${E(o.nextLabel || _lgpT('of_next'))}</button>`
+    + (o.primary ? `<button type="button" class="ui-btn ui-btn-primary lgp-go" data-lgp-act ${o.primary.attr || ''} hidden>${E(o.primary.label)}</button>` : '')
+    + (o.noCancel ? '' : `<button type="button" class="ui-btn" ${o.cancelAttr || 'data-lgp-close'}>${E(o.cancelLabel || _lgpT('lgp_cancel'))}</button>`) + '</div></form>';
+  return lgpHtml(Object.assign({}, o, { primary: null, back: null, left: null, note: '', attr: `data-lgp-steps ${o.attr || ''}` })).replace(/<div class="lgp-ft">[\s\S]*$/, () => foot);
+}
+function lgpStepGo(form, n, names){
+  if (!form) return 0;
+  const parts = Array.from(form.querySelectorAll('[data-lgp-step]')), last = parts.reduce((m, p) => Math.max(m, Number(p.getAttribute('data-lgp-step')) || 1), 1);
+  n = Math.min(Math.max(1, Number(n) || 1), last);
+  parts.forEach(p => { p.hidden = Number(p.getAttribute('data-lgp-step')) !== n; });
+  const q = s => form.querySelector('.lgp-ft ' + s);
+  if (q('[data-lgp-back]')) q('[data-lgp-back]').hidden = n <= 1;
+  if (q('[data-lgp-next]')) q('[data-lgp-next]').hidden = n >= last;
+  if (q('[data-lgp-act]')) q('[data-lgp-act]').hidden = n < last;
+  const st = form.querySelector('.lgp-steps');
+  if (st && names) st.innerHTML = names.map((s, i) => i + 1 === n ? `<b>${esc(s)}</b>` : esc(s)).join(' · ');
+  form.setAttribute('data-lgp-at', String(n));
+  return n;
+}
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._lgpWired){ document._lgpWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target.closest('.lgp [data-lgp-close]') : null;
     if (!t) return; e.preventDefault(); if (typeof closeModalGuarded === 'function') closeModalGuarded(); else if (typeof closeModal === 'function') closeModal();
   });
   /* a sheet's form never leaves the page: its own handlers act on the press (submit) or on its button (click) */
-  document.addEventListener('submit', e => { if (e.target && e.target.classList && e.target.classList.contains('lgp')) e.preventDefault(); }, true);
+  document.addEventListener('submit', e => { if (e.target && e.target.classList && e.target.classList.contains('lgp')){ e.preventDefault();
+    /* a sheet in steps: Enter presses what the foot shows (Next ›, or the black act on the last step) */
+    if (e.target.hasAttribute('data-lgp-steps')){ const go = e.target.querySelector('.lgp-ft .lgp-go:not([hidden])'); if (go) go.click(); } } }, true);
 }
-Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint });
+Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint, lgpStepsHtml, lgpStepGo });

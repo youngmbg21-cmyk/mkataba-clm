@@ -45,6 +45,7 @@ const ok = (n, g, d) => { g ? pass++ : fail++; console.log(`${g ? 'PASS' : 'FAIL
     await (await page.$('#up-file')).setInputFiles(file);
     await until(() => !!document.querySelector('#up-go'), null, 15000);
     await page.fill('#up-cp', 'Shamba Fresh Ltd').catch(() => {});
+    await page.click('#up-next').catch(() => {});   // the reading's tick is on the second step (f1120)
     const t = await page.$('#up-triage'); if (t && await t.isChecked()) await t.uncheck();
     await page.click('#up-go');
     const id = await until(() => state.contracts.some(x => x.source === 'upload'
