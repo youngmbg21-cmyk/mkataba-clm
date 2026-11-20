@@ -326,6 +326,20 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** no figure cards, no zero tiles, no money; nothing pushed behind the side panel; Jambo's box at the foot of every panel.
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — boxed entry fields; "New position" over an existing one; the panel stale on Departures and History; zero tiles and the repeated owner line.
 
+### P-36 · New agreement, the Legora + Stripe way, on all four views
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for New agreement: the Legora + Stripe way on Our paper, a paper chosen, Their paper and From scratch. Owner's words: "L+S and park it."
+- **Where it came from:** the page clean-up, day 13. The drawings: https://claude.ai/artifact/2J2y3nRPB8GJk9EL1t4KS9 (choose "The Legora + Stripe way" on each view). Photographed from the running app that day; in the "a paper chosen" drawings a sample sentence was typed ("Two-year supply agreement with Nandi Dairy, 45-day payment").
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** "New agreement · not created yet", Cancel and Create draft (black; grey with "Pick a paper first" / "Add their file first" until it can); the three starts Our paper · Their paper · From scratch as underlined tabs.
+  - **Our paper:** the sentence box (green edge, send button); "Most used on our paper" with Search all our paper (N) · none fits? Ask Legal; the papers as calm cards: a soft shelf badge, the name, "Use when …", how the paper opens in the paper's type on one line ending in "…", a small used-bar and "used N times" (no filled lavender/mint cards); the stream as chips with "Filed in · needed" in amber.
+  - **A paper chosen:** the card outlined in ink; "<shelf badge> <paper> · change paper · N details · N not said yet"; each detail on one open line (label · value · where it came from): grey "The paper's own", YOUR WORDS QUOTED AND LIT ("“Nandi Dairy” your words"), amber "Not said yet", grey "can wait until Fill in". An empty value says "not said yet", never "0".
+  - **Their paper:** a calm drop area (upload mark, "Drop their file here, or choose a file", Word or PDF · one at a time) and the stream chips.
+  - **From scratch:** the four starts (From nothing · From a template you have · From one of our contracts · The other side's paper) as calm cards in a 2×2 grid, each with a coloured mark, the chosen one outlined; Continue in the head.
+  - **THE PANEL FOLLOWS THE SCREEN (no cards), the same on every tab:** a badge ("N of M ready", green "Ready to create"); a headline ("Raw Material Supply, for Nandi Dairy"); "Needed before Create" as a small bar of segments and a dot list (green done with its value, amber still needed); on a chosen paper "Your sentence" quoted with the words read lit; then "After Create" as a timeline (Create · nothing is made until you press it → It lands with its Dossier beside it → Jambo reads it once). Jambo's box at the foot.
+  - **Rules it must keep:** no figure cards; money only in the value box; open fields; nothing pushed behind the side panel.
+  - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the panel not changing when a paper is chosen; an empty value shown as "0"; From scratch's different plain panel; the sentence box left on Their paper (it may stay only if it reads their file's words).
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
