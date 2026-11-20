@@ -22666,3 +22666,11 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Approvals › Waiting on others and Done: the line under the list says "1 for you" on both tabs, where nothing is for the reader.
 - Approvals › Mine: the panel's first tile is the deal's money ("900K KES value") and Done's panel lists money twice (Money, Value) — against the rule that money is never in a side panel.
 - Approvals › Mine: the panel tile "0 off our standard" reads as good news while the playbook has not been checked yet.
+
+## Noticed, not fixed — Contracts page clean-up photos (20 Nov 2026)
+- Contracts › Folders: the "Ended & archived" tile says "1 · KES 4.80M · 2025", but pressing it opens an EMPTY list ("No contracts match the current filters") — the number on the door does not match the list behind it.
+- Contracts › Ended & archived: the tabs count every contract (All 13 · Needs you 6 · Signed 10) and the panel talks about all 13, not this folder.
+- Contracts › a folder: the filter chip says "Stream Distribution" while the title says "Warehousing & Distribution" — two names for one folder; "Needs you 5" is underlined on arrival while the list shows All.
+- Contracts › Wall: the panel's tab says "Overview 13" inside a folder of 5.
+- Contracts: money is a big part of the page (title facts "KES 91M on paper", panel tiles "91M"/"64.70M", "Where the money is" bars, an "Above KES 10M" view card, money on every Wall card) — against the rule that money is never a big part of a page.
+- Contracts › Needs you: a signed contract that owes details wears the green tick, which reads as "all good".
