@@ -22674,3 +22674,10 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Contracts › Wall: the panel's tab says "Overview 13" inside a folder of 5.
 - Contracts: money is a big part of the page (title facts "KES 91M on paper", panel tiles "91M"/"64.70M", "Where the money is" bars, an "Above KES 10M" view card, money on every Wall card) — against the rule that money is never a big part of a page.
 - Contracts › Needs you: a signed contract that owes details wears the green tick, which reads as "all good".
+
+## Noticed, not fixed — Requests page clean-up photos (20 Nov 2026)
+- Requests: the Stream column reads "—" on every row (requests carry no stream) — a column that says the same on every row, against "same-every-row column out".
+- Requests › Open: "Start the draft" is on every row (black on the chosen one) AND in the panel — the act drawn twice.
+- Requests › Mine: a request the reader holds says "With Amina" (their own name) instead of "with you".
+- Requests › Drafted: the panel still says "no NDA with them today · NDA to do" and "Nobody holds it" on a request that has become a contract.
+- Requests › Advice: the panel line runs two sentences together ("Advice · Submitted Sales C. asked today."); the row's title is the service name ("Contract Advice Session"), not the person's question; a "0 files" tile states a zero as a fact.
