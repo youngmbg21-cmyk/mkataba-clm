@@ -288,7 +288,8 @@ describe('f458 (9) — the two pale accent rungs owe no dark answer: dark mode i
       ['js/views/contract.js', "b.style.color=on?'var(--accent-ink)'"],
       /* the Activity & comments card's avatar (color:${internal?…}) left the
          Document tab with the card, 5 Oct 2026 (the Thread) */
-      ['js/views/settings.js', "'var(--accent-ink)'"],
+      /* the playbook editor's position buttons (settings.js) left the wash with the one edit pop-up, 19 Nov 2026
+         (f1119): a chosen position is a pill in ink now, so settings.js has no wash to pair an ink with */
       ['js/wizard.js', "color:${r.std?'#fff':'var(--accent-ink)'}"]])
       assert.ok(read(file).includes(mark), file + ' still pairs a dark ink with the wash');
   });

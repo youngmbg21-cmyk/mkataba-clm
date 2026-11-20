@@ -190,67 +190,58 @@ function openAdviceModal(id){
   const r=getAdviceRequest(id); if(!r) return;
   const svc=ADVICE_SERVICES[r.service]||{name:r.service,ic:'msg'};
   const q=r.quote||{};
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:var(--t-meta)"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:var(--w-body);text-align:right;min-width:0">${v}</span></div>`;
+  /* THE ONE EDIT POP-UP IN STEPS (lgp; owner, 19 Nov 2026: "Fix all batches"): 1 the request read as lines, 2 its
+     history and notes, 3 (an editor's) who has it, its stage and a note. All in the one form, so Save reads every
+     field wherever the reader stands; every id and act is the one this window always had. */
+  const row=(k,v)=>`<div class="lgp-row"><span class="lgp-k">${k}</span><span class="lgp-v"><span class="lgp-in is-read">${v}</span></span></div>`;
+  const line='display:flex;gap:var(--s-2);padding:var(--s-2) 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-meta)';
   const hist=(r.history||[]).slice().reverse().map(h=>`
-    <div style="display:flex;gap:var(--s-2);padding:var(--s-1) 0;font-size:var(--t-label);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-      <span style="width:8px;height:8px;border-radius:50%;background:${adviceStage(h.to).color};flex:none;margin-top:3px"></span>
-      <span style="min-width:0;flex:1"><strong>${adviceStage(h.to).label}</strong>${h.by?` <span style="color:var(--color-neutral-600)">— ${esc(h.by)}</span>`:''}
-        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${fmtDT(h.at)}</span></span>
+    <div style="${line}">
+      <span style="width:8px;height:8px;border-radius:50%;background:${adviceStage(h.to).color};flex:none;margin-top:5px"></span>
+      <span style="min-width:0;flex:1"><strong>${adviceStage(h.to).label}</strong>${h.by?` <span style="color:var(--color-quiet)">— ${esc(h.by)}</span>`:''}
+        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-400)">${fmtDT(h.at)}</span></span>
     </div>`).join('');
   const notes=(r.notes||[]).slice().reverse().map(n=>`
-    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-bg);padding:var(--s-2) 10px;margin-bottom:6px">
-      <div style="font-size:var(--t-meta);line-height:1.5">${esc(n.text)}</div>
-      <div style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
-    </div>`).join('')||`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
+    <div style="${line};display:block">
+      <div style="line-height:1.5">${esc(n.text)}</div>
+      <div style="font-size:var(--t-label);color:var(--color-neutral-400);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
+    </div>`).join('')||`<p class="lgp-none">${i18t('adv_no_notes')}</p>`;
   const members=getUsers().filter(u=>u.role!=='viewer');
-  const selStyle='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
-  openModal(`
-    <div style="padding:22px var(--s-6)">
-      <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px">
-        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon(svc.ic,'w-4 h-4')}</span>
-        <div style="min-width:0">
-          <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.25">${esc(svc.name)}</h2>
-          <div style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600)">${r.id} · submitted ${fmtDT(r.submittedAt)}</div>
-        </div>
-        <span style="margin-left:auto;flex:none">${adviceStageChip(r.status)}</span>
-      </div>
-      <div style="margin-top:var(--s-3)">
+  const ADV_STEPS=[i18t('adv_step_request'), i18t('adv_step_trail'), ...(canEdit()?[i18t('adv_step_update')]:[])];
+  lgpOpen({ stepped:true, id:'adv-form', focus:false, title:svc.name,
+    steps:{ at:1, names:ADV_STEPS },
+    subHtml:`${r.id} · submitted ${fmtDT(r.submittedAt)} · ${adviceStageChip(r.status)}`,
+    html:`<div data-lgp-step="1">
         ${row('Customer', esc(r.name)+(r.company?' · '+esc(r.company):''))}
         ${row('Email', esc(r.email||'—'))}
         ${r.contractName?row('Contract', esc(r.contractName)):''}
         ${row('Urgency', r.urgency==='priority'?'Priority (+25% rate, half turnaround)':'Standard')}
         ${row('Rate', q.rate?fmtMoney(q.rate)+' / hr':'—')}
         ${row('Estimate', q.rate?`${q.hoursMin}–${q.hoursMax} hrs ≈ ${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—')}
-        ${row('Feedback due', `<span style="font-family:var(--font-mono)">${fmtDay(r.eta)}</span>`)}
+        ${row('Feedback due', fmtDay(r.eta))}
+        ${r.description&&r.description!=='Seeded as sample data'?`<p class="lgp-quote" style="white-space:pre-wrap;color:var(--color-text)">${esc(r.description)}</p>`:''}
       </div>
-      ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-bg);padding:9px 11px;font-size:var(--t-meta);line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
-        <div>
-          <h6 style="margin:0 0 6px;font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('adv_pipeline_history')}</h6>
-          <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${hist}</div>
-        </div>
-        <div>
-          <h6 style="margin:0 0 6px;font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('adv_internal_notes')}</h6>
-          <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${notes}</div>
-        </div>
+      <div data-lgp-step="2" hidden>
+        <p class="lgp-small">${i18t('adv_pipeline_history')}</p>
+        <div class="lgp-list">${hist}</div>
+        <p class="lgp-small">${i18t('adv_internal_notes')}</p>
+        <div class="lgp-list">${notes}</div>
       </div>
-      ${canEdit()?`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
-        <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('adv_assigned_counsel')}</span>
-          <select id="adv-assignee" style="${selStyle}"><option value="">${i18t('adv_unassigned')}</option>
-            ${members.map(u=>`<option value="${esc(u.name)}" ${r.assignee===u.name?'selected':''}>${esc(u.name)} (${roleName(u.role)})</option>`).join('')}</select></label>
-        <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('adv_stage')}</span>
-          <select id="adv-status" style="${selStyle}">${ADVICE_STAGES.map(s=>`<option value="${s.k}" ${r.status===s.k?'selected':''}>${s.label}</option>`).join('')}</select></label>
-      </div>
-      <label style="display:block;margin-top:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('adv_add_note')}</span>
-        <textarea id="adv-note" rows="2" placeholder="Scope confirmed with customer…" style="${selStyle};height:auto;padding:var(--field-pad-y) var(--field-pad-x)"></textarea></label>`:''}
-      <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2)">
-        <button id="adv-copy-track" class="ui-btn">${icon('copy','w-3.5 h-3.5')} Customer tracking link</button>
-        <span style="flex:1"></span>
-        <button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button>
-        ${canEdit()?`<button id="adv-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>`:''}
-      </div>
-    </div>`,{maxWidth:'40rem'});
+      ${canEdit()?`<div data-lgp-step="3" hidden>
+        ${lgpRowHtml({ k:i18t('adv_assigned_counsel'), id:'adv-assignee', type:'select', value:r.assignee||'',
+          opts:[{ v:'', t:i18t('adv_unassigned') }, ...members.map(u=>({ v:u.name, t:`${u.name} (${roleName(u.role)})` }))] })}
+        ${lgpRowHtml({ k:i18t('adv_stage'), id:'adv-status', type:'select', value:r.status, opts:ADVICE_STAGES.map(st=>({ v:st.k, t:st.label })) })}
+        ${lgpRowHtml({ k:i18t('adv_add_note'), id:'adv-note', type:'area', ph:'Scope confirmed with customer…' })}
+      </div>`:''}`,
+    leftHtml:`<button type="button" id="adv-copy-track" class="lgp-left">Customer tracking link</button>`,
+    nextAttr:'id="adv-next"', backAttr:'id="adv-back"',
+    primary:canEdit()?{ label:i18t('act_save'), attr:'id="adv-save"' }:null,
+    cancelLabel:i18t('act_close') });
+  const advForm=()=>document.getElementById('adv-form');
+  const advGo=n=>lgpStepGo(advForm(), n, ADV_STEPS);
+  document.getElementById('adv-next')?.addEventListener('click',()=>advGo(Number(advForm()?.getAttribute('data-lgp-at')||1)+1));
+  document.getElementById('adv-back')?.addEventListener('click',()=>advGo(Number(advForm()?.getAttribute('data-lgp-at')||1)-1));
+  advGo(1);
   document.getElementById('adv-copy-track').addEventListener('click',async()=>{
     try{ await navigator.clipboard.writeText(adviceTrackLink(r)); toast(i18t('adv_track_copied',{who:r.name}),'ok'); }catch(e){ toast(i18t('adv_could_not_copy'),'err'); }
   });
@@ -273,34 +264,23 @@ function openAdviceModal(id){
 /* ---------- rate card (published fees; admin edits, everyone reads) ---------- */
 function openRateCardModal(){
   const editable=isAdmin();
-  const inp=(id,v)=>`<input id="${id}" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-mono);color:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`;
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): a service a line, its name beside its four
+     numbers, the columns named once above them; every id and the publish exactly as they were. */
+  const inp=(id,v)=>`<input id="${id}" class="lgp-in" type="number" min="1" value="${v}" ${editable?'':'disabled'} style="flex:1;min-width:0;font-family:var(--font-mono)"/>`;
+  const cols='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-2);flex:1;min-width:0';
   const rows=Object.values(ADVICE_SERVICES).map(s=>{
     const r=adviceRateFor(s.id);
-    return `<tr style="border-bottom:1px solid var(--color-divider)">
-      <td style="padding:var(--s-2) 10px var(--s-2) 0;min-width:0"><span style="display:flex;align-items:center;gap:7px"><span style="display:inline-flex;color:var(--accent-ink-700)">${icon(s.ic,'w-3.5 h-3.5')}</span><span style="font-size:var(--t-meta);font-weight:var(--w-body)">${s.name}</span></span></td>
-      <td style="padding:var(--s-2) 6px;width:92px">${inp('rt-rate-'+s.id,r.rate)}</td>
-      <td style="padding:var(--s-2) 6px;width:64px">${inp('rt-min-'+s.id,r.hoursMin)}</td>
-      <td style="padding:var(--s-2) 6px;width:64px">${inp('rt-max-'+s.id,r.hoursMax)}</td>
-      <td style="padding:var(--s-2) 0 var(--s-2) 6px;width:64px">${inp('rt-days-'+s.id,r.days)}</td>
-    </tr>`;
+    return `<div class="lgp-row"><span class="lgp-k" style="color:var(--color-text)">${s.name}</span><span class="lgp-v"><span style="${cols}">
+      ${inp('rt-rate-'+s.id,r.rate)}${inp('rt-min-'+s.id,r.hoursMin)}${inp('rt-max-'+s.id,r.hoursMax)}${inp('rt-days-'+s.id,r.days)}</span></span></div>`;
   }).join('');
-  openModal(`
-    <div style="padding:22px var(--s-6)">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="display:inline-flex;color:var(--color-accent)">${icon('coins')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('adv_published_rates')}</h2></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
-      <div class="table-scroll"><table style="width:100%;border-collapse:collapse">
-        <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:var(--t-micro);">
-          <th style="padding:6px 10px 6px 0;font-weight:var(--w-strong)">${i18t('adv_service')}</th><th style="padding:6px;font-weight:var(--w-strong)">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:var(--w-strong)">${i18t('adv_hrs_min')}</th><th style="padding:6px;font-weight:var(--w-strong)">${i18t('adv_hrs_max')}</th><th style="padding:6px 0 6px 6px;font-weight:var(--w-strong)">${i18t('adv_days')}</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-      <p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:10px 0 0;line-height:1.5">${i18t('adv_rate_note')}</p>
-      <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button class="ui-btn" onclick="closeModal()">${editable?'Cancel':'Close'}</button>
-        ${editable?`<button id="rt-save" class="ui-btn ui-btn-primary">${i18t('adv_publish_rates')}</button>`:''}
-      </div>
-    </div>`,{maxWidth:'36rem'});
+  lgpOpen({ id:'rt-form', focus:false, title:i18t('adv_published_rates'),
+    sub:`These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}`,
+    html:`<div class="lgp-row" style="min-height:34px"><span class="lgp-k">${i18t('adv_service')}</span><span class="lgp-v"><span style="${cols};font-size:var(--t-label);color:var(--color-quiet)">
+        <span>${jxCurrency()} / hr</span><span>${i18t('adv_hrs_min')}</span><span>${i18t('adv_hrs_max')}</span><span>${i18t('adv_days')}</span></span></span></div>
+      ${rows}
+      <p class="lgp-small">${i18t('adv_rate_note')}</p>`,
+    primary:editable?{ label:i18t('adv_publish_rates'), attr:'id="rt-save"' }:null,
+    cancelLabel:editable?i18t('act_cancel'):i18t('act_close') });
   document.getElementById('rt-save')?.addEventListener('click',async()=>{
     const out={};
     for(const s of Object.values(ADVICE_SERVICES)){
@@ -319,30 +299,19 @@ function openRateCardModal(){
 
 /* ---------- internal intake (log a request on a customer's behalf) ---------- */
 function openAdviceIntakeModal(){
-  const inputStyle='width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:7px 10px;font:inherit;font-size:var(--t-body);color:inherit;outline:none';
-  const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
-  openModal(`
-    <div style="padding:22px var(--s-6)">
-      <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('adv_log_request')}</h2>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">${i18t('adv_log_sub')}</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('adv_service')}</span>
-        <select id="ai-service" style="${inputStyle}">${Object.values(ADVICE_SERVICES).map(s=>{const r=adviceRateFor(s.id);return `<option value="${s.id}">${s.name} — ${fmtMoney(r.rate)}/hr</option>`;}).join('')}</select></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        ${field('ai-name','Customer name *','e.g. Grace Njeri')}
-        ${field('ai-email','Customer email *','grace@company.co.ke','email')}
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        ${field('ai-company','Company','e.g. Tamu Beverages Ltd')}
-        ${field('ai-contract','Contract concerned','e.g. Distribution Agreement')}
-      </div>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('adv_what_need')}</span>
-        <textarea id="ai-desc" rows="3" style="${inputStyle}"></textarea></label>
-      <label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-700);margin-bottom:var(--s-1)"><input id="ai-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent)"/> ${i18t('adv_priority_option')}</label>
-      <div style="margin-top:var(--s-3);display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
-        <button id="ai-go" class="ui-btn ui-btn-primary">${i18t('adv_create_request')}</button>
-      </div>
-    </div>`,{maxWidth:'34rem'});
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): seven lines, the label beside the words; every
+     id, the required three and the create exactly as they were. */
+  lgpOpen({ id:'ai-form', focus:'#ai-name', title:i18t('adv_log_request'), sub:i18t('adv_log_sub'),
+    rows:[
+      { k:i18t('adv_service'), id:'ai-service', type:'select', opts:Object.values(ADVICE_SERVICES).map(s=>{ const r=adviceRateFor(s.id); return { v:s.id, t:`${s.name} — ${fmtMoney(r.rate)}/hr` }; }) },
+      { k:'Customer name *', id:'ai-name', ph:'e.g. Grace Njeri' },
+      { k:'Customer email *', id:'ai-email', type:'email', ph:'grace@company.co.ke' },
+      { k:'Company', id:'ai-company', ph:'e.g. Tamu Beverages Ltd' },
+      { k:'Contract concerned', id:'ai-contract', ph:'e.g. Distribution Agreement' },
+      { k:i18t('adv_what_need'), id:'ai-desc', type:'area' } ],
+    html:`<label class="lgp-tick"><input id="ai-priority" type="checkbox"/><span class="lgp-tl">${i18t('adv_priority_option')}</span></label>`,
+    primary:{ label:i18t('adv_create_request'), attr:'id="ai-go"' },
+    cancelAttr:'data-lgp-close data-dlg-cancel', cancelLabel:i18t('act_cancel') });
   document.getElementById('ai-go').addEventListener('click',async()=>{
     const p={ service:document.getElementById('ai-service').value,
       urgency:document.getElementById('ai-priority').checked?'priority':'standard',
