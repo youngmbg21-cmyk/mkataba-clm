@@ -118,7 +118,7 @@ describe('f1093 (3) the pop-up is the Dossier\'s paper and notes', () => {
   test('Open the Dossier › closes and opens the contract THROUGH ITS COVER (18 Nov 2026, second round)', () => {
     const d = fnBody(V, 'apnPeekDossier');
     assert.match(d, /closeModal\(\)/);
-    assert.match(d, /roomHomeLand\(c\.id,\{ cover:true \}\)/);
+    assert.match(d, /roomHomeLand\(c\.id,\{ open:true \}\)/);
     assert.ok(!/cover:false|openRedlineWorkbench/.test(d), 'never past the Cover');
   });
   test('the paper is the Dossier\'s: its wrapper, cut into pages on the desk', () => {

@@ -32,10 +32,6 @@ function navWhereSrc(){
   const VIEW_PAGE = { obligations: 'obligations', approvals: 'approvals', intake: 'requests', templates: 'templates', playbook: 'standards',
     directory: 'people', customers: 'parties', mynotes: 'notes', migration: 'import', team: 'settings', agents: 'agents', jambo: 'agents',
     register: 'contracts', calendar: 'calendar', intel: 'insights' };
-  /* THE COVER IS A PAGE OF ITS OWN (f1099, owner 19 Nov 2026): a contract opened on purpose stands as its Cover over the
-     page it was opened from, its paper not opened under it — that contract is where the reader is */
-  const cvEl = document.querySelector('#modal-root .cv-page[data-cv]');
-  if (cvEl && typeof pdMidUp === 'function' && pdMidUp('cover:' + cvEl.getAttribute('data-cv'))){ W.page = 'paper'; W.cid = cvEl.getAttribute('data-cv'); W.pane = 'dossier'; W.mid = 'where'; return W; }
   /* THE PHONE draws its own screens: a contract open there is state.activeId on its 'contract' screen */
   const phone = typeof mPhone === 'function' && mPhone() && typeof mS === 'function';
   /* A CONTRACT BROUGHT UP ON THE BOARD (its History, its deal) is that contract, beside its own page */
@@ -129,8 +125,8 @@ function navWhereSrc(){
     /* RE-POINTED 17 Nov 2026 (#762): in the new look the risk list is the Redlines face's (#rl-risks), landed on there */
     if (!W.landedDs && document.querySelector('#ig-dock #rl-risks.is-landed')) W.landedDs = 'risks'; }
   /* what stands in the middle beside the paper (the strip is gone, owner, 9 Nov 2026): History or Where we are */
-  /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): 'where' is the Cover over the paper */
-  W.mid = document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.cv-page') ? 'where' : null;
+  /* the Cover (our Where we are, f1085) is deleted (owner, 20 Nov 2026): Where we are opens the Dossier */
+  W.mid = document.getElementById('pd2-hist') ? 'hist' : null;
   try { W.archived = typeof regState === 'function' && regState().view === 'archived'; } catch (_){ W.archived = false; }
   W.present = !!document.querySelector('.hb-presenting');
   { const r = document.getElementById('dk-recent'); W.recent = !!(r && r.getClientRects().length); }
