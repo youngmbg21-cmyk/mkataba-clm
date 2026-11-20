@@ -547,65 +547,53 @@ function openLinkModal(c, onDone, opts={}){
   // `mode` is 'child' (pick a parent for c) or 'parent' (pick a child to attach to c)
   const mode = opts.mode || (c.parentId ? 'child' : 'child');
   const suggested = (c.linkSuggestions||[]).map(s=>({ ...s, c:getContract(s.id) })).filter(x=>x.c);
-  const relSel = `<select id="lk-rel" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-      ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${(c.relationGuess||c.relation||'amendment')===r.k?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select>`;
   const candidates = state.contracts.filter(x=>x.id!==c.id && (mode==='child' ? !x.parentId : (!x.parentId||x.parentId===c.id)));
-  openModal(`
-    <div style="padding:20px 22px">
-      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record under the title, a
-             search box with its sign over a list of choices, then how it
-             relates and the note side by side. */}
-      <h3>${mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing')}</h3>
-      <p>${_famEsc((window.contractRef?contractRef(c):c.id)+' \u00b7 '+(c.name||''))}</p>
-      <div class="sap-body">
-      ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--color-accent-50);border-radius:var(--radius);padding:9px 11px">
-        <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
-        ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:var(--s-2);font-size:var(--t-meta);padding:3px 0;cursor:pointer">
-          <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
-          <span><b class="hati-ref">${_famEsc(window.contractRef?contractRef(x.c):x.id)}</b> ${_famEsc(x.c.name)}
-          <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
-      </div>`:''}
-      <div class="sap-f">
-        <div style="position:relative"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--color-neutral-600);display:flex">${icon('search','w-4 h-4')}</span>
-          <input id="lk-search" aria-label="${_famAttr(mode==='child'?i18t('fa_parent_agreement'):i18t('fa_doc_to_attach'))}" placeholder="${_famAttr(i18t('fa_search_register2'))}" style="${window.HATI_FLD||''};padding-left:32px"/></div>
-        <div id="lk-results" class="scroll-thin sap-list" style="max-height:240px;overflow-y:auto"></div></div>
-      <div class="sap-row">
-        <div class="sap-f"><label for="lk-rel">${i18t('fa_how_relates')}</label>${relSel}</div>
-        <div class="sap-f"><label for="lk-note">${i18t('fa_note_word')}</label>
-          <input id="lk-note" placeholder="${_famAttr(i18t('fa_optional'))}" style="${window.HATI_FLD||''}"/></div>
-      </div>
-      </div>
-      <div id="lk-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);margin:var(--s-2) 0 0"></div>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
-        <button data-dlg-cancel id="lk-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="lk-save" class="ui-btn ui-btn-primary">${mode==='child'?i18t('fa_link_go'):i18t('fa_attach_go')}</button>
-      </div>
-    </div>`, {maxWidth:'560px'});
+  /* ON THE ONE EDIT POP-UP, THE LEGORA WAY (f1116): HaTi's suggestion first, then the search as a line typed in place,
+     the matches as quiet choices paged by six (never a scroll), then how it relates and the note as two lines; the
+     same ids. Enter in a line never links: only the button does (as before). */
+  const relOpts = CONTRACT_RELATIONS.map(r=>({ v:r.k, t:`${r.label} — ${r.blurb}` }));
+  const sugHtml = suggested.length ? `<p class="lgp-small">${_famEsc(i18t('fa_hati_suggests'))}</p><div class="lgp-list">${
+    suggested.map(x=>`<label class="lgp-tick is-radio"><input type="radio" name="lk-sug" value="${_famAttr(x.id)}"/><span class="lgp-tl"><b class="hati-ref">${_famEsc(window.contractRef?contractRef(x.c):x.id)}</b> ${_famEsc(x.c.name)}${
+      x.why?`<span class="lgp-tsub">${_famEsc(x.why)}</span>`:''}</span></label>`).join('')}</div>` : '';
+  const form = lgpOpen({ id:'lk-form', title:mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing'),
+    sub:(window.contractRef?contractRef(c):c.id)+' \u00b7 '+(c.name||''),
+    html: sugHtml
+      + lgpRowHtml({ k:mode==='child'?i18t('fa_parent_agreement'):i18t('fa_doc_to_attach'), id:'lk-search', ph:i18t('fa_search_register2') })
+      + `<div id="lk-results"></div>`
+      + lgpRowHtml({ k:i18t('fa_how_relates'), id:'lk-rel', type:'select', value:c.relationGuess||c.relation||'amendment', opts:relOpts })
+      + lgpRowHtml({ k:i18t('fa_note_word'), id:'lk-note', ph:i18t('fa_optional') })
+      + `<p class="lgp-err" id="lk-err" role="alert" hidden></p>`,
+    primary:{ label:mode==='child'?i18t('fa_link_go'):i18t('fa_attach_go'), attr:'id="lk-save"' },
+    alt:(mode==='child'&&suggested.length)?{ label:i18t('fa_standalone'), attr:'id="lk-standalone"' }:null,
+    cancelAttr:'data-lgp-close id="lk-cancel"' });
+  form?.addEventListener('keydown', e => { if(e.key==='Enter' && e.target && e.target.tagName==='INPUT') e.preventDefault(); });
 
-  let picked=null;
+  let picked=null, page=1;
   const results=document.getElementById('lk-results');
   const draw=(q)=>{
     const t=String(q||'').toLowerCase();
     const list=candidates.filter(x=>!t || (x.name+' '+(x.counterparty||'')+' '+x.id+' '+(x.contractNo||'')).toLowerCase().includes(t)).slice(0,40);
-    results.innerHTML=list.length?list.map(x=>`<label class="sap-li" data-lk-pick="${_famAttr(x.id)}" style="margin:0">
-        <input type="radio" name="lk-pick" value="${_famAttr(x.id)}"${picked===x.id?' checked':''} style="flex:none;accent-color:var(--accent-fill)"/>
-        <span class="hati-ref" style="flex:none;width:64px">${_famEsc(window.contractRef?contractRef(x):x.id)}</span>
-        <span style="flex:1;min-width:0"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:var(--w-label)">${_famEsc(x.name)}</span>
-          <span class="sap-m" style="display:block">${_famEsc(x.counterparty||'')}</span></span></label>`).join('')
-      :`<div style="padding:var(--s-2) 9px;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('fa_no_matching')}</div>`;
+    const per=window.LGP_PAGE||6, pages=Math.max(1,Math.ceil(list.length/per)); page=Math.min(Math.max(1,page),pages);
+    const shown=list.slice((page-1)*per, page*per);
+    results.innerHTML=list.length?`<div class="lgp-list">${shown.map(x=>`<label class="lgp-tick is-radio" data-lk-pick="${_famAttr(x.id)}">
+        <input type="radio" name="lk-pick" value="${_famAttr(x.id)}"${picked===x.id?' checked':''}/>
+        <span class="lgp-tl"><span class="hati-ref">${_famEsc(window.contractRef?contractRef(x):x.id)}</span> ${_famEsc(x.name)}
+          ${x.counterparty?`<span class="lgp-tsub">${_famEsc(x.counterparty)}</span>`:''}</span></label>`).join('')}</div>${
+        pages>1?`<div class="lgp-lfoot"><span></span><span class="lgp-pager"><button type="button" class="lgp-pg" data-lk-page="${page-1}"${page<=1?' disabled':''} aria-label="${_famAttr(i18t('lgp_prev'))}">‹</button>${
+          _famEsc(i18t('lgp_of',{ a:(page-1)*per+1, b:Math.min(page*per,list.length), n:list.length }))}<button type="button" class="lgp-pg" data-lk-page="${page+1}"${page>=pages?' disabled':''} aria-label="${_famAttr(i18t('lgp_next'))}">›</button></span></div>`:''}`
+      :`<p class="lgp-none">${i18t('fa_no_matching')}</p>`;
     results.querySelectorAll('[data-lk-pick]').forEach(b=>b.addEventListener('click',()=>{ picked=b.getAttribute('data-lk-pick'); draw(document.getElementById('lk-search').value); }));
+    results.querySelectorAll('[data-lk-page]').forEach(b=>b.addEventListener('click',()=>{ page=Number(b.getAttribute('data-lk-page'))||1; draw(document.getElementById('lk-search').value); }));
   };
   draw('');
-  document.getElementById('lk-search').addEventListener('input',e=>draw(e.target.value));
+  document.getElementById('lk-search').addEventListener('input',e=>{ page=1; draw(e.target.value); });
   document.querySelectorAll('input[name="lk-sug"]').forEach(r=>r.addEventListener('change',()=>{ picked=r.value; draw(document.getElementById('lk-search').value); }));
-  document.getElementById('lk-cancel').addEventListener('click',closeModal);
   document.getElementById('lk-standalone')?.addEventListener('click',()=>{
     logLinkDecision(c, false); persist(c); closeModal();
     toast(`${(window.contractRef?contractRef(c):c.id)} confirmed as a standalone agreement`); if(onDone) onDone();
   });
   document.getElementById('lk-save').addEventListener('click',()=>{
-    const err=document.getElementById('lk-err');
+    const err=document.getElementById('lk-err'); if(err) err.hidden=false;
     if(!picked){ err.textContent='Pick a contract first.'; return; }
     const child = mode==='child' ? c : getContract(picked);
     const parentId = mode==='child' ? picked : c.id;
@@ -1207,53 +1195,51 @@ function openCreateAmendmentModal(parent, onDone, opts){
      dialog (`opts.relation`, `opts.note`). */
   const relOpen = (opts && isRelation(opts.relation)) ? opts.relation : 'amendment';
   const ref = window.contractRef ? contractRef(parent) : parent.id;
-  const FLD = window.HATI_FLD, LBL = window.HATI_LBL;
+  /* ON THE ONE EDIT POP-UP, THE LEGORA WAY (f1116): the same two steps — say the change, then the wording (Jambo's
+     items to check, or the clauses picked by hand) — on the shared sheet: a serif title with the two steps under it,
+     each line a label beside its words, nothing boxed, a long clause list paged by six (never a scroll), one black
+     button, ‹ Back on the left, Cancel last. Every id and data- mark the wiring reads is the one it always had; no
+     button submits the form (Enter in a line never spends a Jambo call or creates the draft). */
   const S = { rel: relOpen, name: amendmentDefaultName(parent, relOpen), nameTouched: false,
     note: String((opts && opts.note) || '').slice(0, 600), expiry: '', items: [], picks: new Set(), addNew: false,
-    skeleton: true, facts: null, mentions: [], aiNotice: '' };
+    skeleton: true, facts: null, mentions: [], aiNotice: '', pickPage: 1 };
   const aiOn = !!(window.API_MODE && API_MODE() && window.state && state.aiConfigured && window.api);
   const CHIPS = ['fa_chip_extend', 'fa_chip_price', 'fa_chip_pay', 'fa_chip_add', 'fa_chip_notice', 'fa_chip_else'];
-  const relSel = () => `<select id="am-rel" style="${FLD}">${
+  const relSel = () => `<select id="am-rel" class="lgp-in">${
     CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${r.k===S.rel?'selected':''} title="${_famAttr(r.blurb)}">${_famEsc(r.label)}</option>`).join('')}</select>`;
-  /* SAP's dialog (10 Oct 2026): a plain title, no sign beside it. */
-  const head = (t, sub) => `<h3>${t}</h3>${sub?`<p>${sub}</p>`:''}`;
-  const endField = () => `<label style="display:block;margin:var(--s-3) 0 0"><span style="${LBL}">${i18t('fa_end_q')}</span>
-      <input id="am-expiry" type="date" value="${_famAttr(S.expiry)}" style="${FLD};max-width:220px"/>
-      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:var(--s-1)">${i18t(TERM_CHANGING.has(S.rel)?'fa_end_hint':'fa_end_hint_kept')}</span></label>`;
-  const foot = inner => `<div id="am-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);margin:var(--s-2) 0 0"></div>
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:var(--s-2);flex-wrap:wrap">${inner}</div>`;
+  const line = (k, ctl, tall) => `<label class="lgp-row${tall?' is-tall':''}"><span class="lgp-k">${k}</span><span class="lgp-v">${ctl}</span></label>`;
+  /* the sheet: title, the two steps, the sub line; the body; the shelf (left act, a small note, the acts, Cancel last) */
+  const sheet = (o) => {
+    const names = [i18t('fa_step_change'), i18t('fa_step_wording')].map((n, i) => i + 1 === o.at ? `<b>${_famEsc(n)}</b>` : _famEsc(n)).join(' · ');
+    return `<div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${o.title}</h3><p class="lgp-sub lgp-steps">${names}</p>${o.sub?`<p class="lgp-sub">${o.sub}</p>`:''}</div>
+      <button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${_famAttr(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
+      <div class="lgp-bd">${o.body}<p class="lgp-err" id="am-err" role="alert" hidden></p></div>
+      <div class="lgp-ft">${o.left||''}${o.note?`<span class="lgp-note">${o.note}</span>`:''}<span class="lgp-sp"></span>${o.acts}
+        <button type="button" id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button></div>`;
+  };
+  const backBtn = () => `<button type="button" id="am-back" class="ui-btn lgp-back">‹ ${i18t('fa_back')}</button>`;
+  const goBtn = () => `<button type="button" id="am-go" class="ui-btn ui-btn-primary lgp-go">${i18t('fa_create_amendment_go')}</button>`;
+  const endField = () => line(i18t('fa_end_q'), `<input id="am-expiry" type="date" class="lgp-in" value="${_famAttr(S.expiry)}"/>`)
+    + `<p class="lgp-small">${i18t(TERM_CHANGING.has(S.rel)?'fa_end_hint':'fa_end_hint_kept')}</p>`;
   function askPane(){
-    /* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record and "same parties and
-       letterhead" under the title; WHAT SHOULD CHANGE as a row of choices;
-       the change in their own words; Type and Name side by side; Copilot's
-       read on the foot's left, then the acts. */
-    return `${head(i18t('fa_amend_title2',{ref:_famEsc(ref)}), i18t('fa_amend_sub2',{name:_famEsc(parent.name||'')}))}
-      <div class="sap-body">
-      <div class="sap-f"><span class="sap-lbl">${i18t('fa_what_change')}</span>
-        <div class="am-chips" style="display:flex;flex-wrap:wrap;gap:6px">${CHIPS.map(k=>
-        `<button type="button" data-am-chip="${k}" class="ui-btn am-chip" aria-pressed="false">${_famEsc(i18t(k))}</button>`).join('')}</div></div>
-      <div class="sap-f"><label for="am-note">${i18t('fa_own_words')}</label>
-        <textarea id="am-note" rows="3" placeholder="${_famAttr(i18t('fa_amend_ph'))}" style="${FLD};height:auto;min-height:64px;width:100%;resize:vertical;line-height:1.5">${_famEsc(S.note)}</textarea></div>
-      <div class="sap-row">
-        <div class="sap-f"><label for="am-rel">${i18t('fa_type')}</label>${relSel()}</div>
-        <div class="sap-f"><label for="am-name">${i18t('fa_name')}</label>
-          <input id="am-name" value="${_famAttr(S.name)}" style="${FLD}"/></div></div>
-      </div>
-      ${foot(`${aiOn?`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">✦ ${i18t('fa_ai_reads_finds',{ref:_famEsc(ref)})}</span>`:`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">${i18t('fa_ai_off')}</span>`}
-        <button id="am-ai" class="ui-btn ui-btn-primary"${aiOn?'':' disabled'} title="${_famAttr(aiOn?'':i18t('fa_ai_off'))}">${i18t('fa_draft_with_copilot')}</button>
-        <button id="am-blank" type="button" class="ui-btn">${i18t('fa_start_blank')}</button>
-        <button data-dlg-cancel id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>`)}`;
+    /* the record and "same parties and letterhead" under the title; WHAT SHOULD CHANGE as a row of choices; the change
+       in their own words; Type and Name; Jambo's read on the shelf's left, then the acts. */
+    return sheet({ at: 1, title: i18t('fa_amend_title2',{ref:_famEsc(ref)}), sub: i18t('fa_amend_sub2',{name:_famEsc(parent.name||'')}),
+      body: line(i18t('fa_what_change'), `<span class="lgp-chips am-chips">${CHIPS.map(k=>
+          `<button type="button" data-am-chip="${k}" class="lgp-chip am-chip" aria-pressed="false">${_famEsc(i18t(k))}</button>`).join('')}</span>`, true)
+        + line(i18t('fa_own_words'), `<textarea id="am-note" class="lgp-in is-area" rows="3" placeholder="${_famAttr(i18t('fa_amend_ph'))}">${_famEsc(S.note)}</textarea>`, true)
+        + line(i18t('fa_type'), relSel())
+        + line(i18t('fa_name'), `<input id="am-name" class="lgp-in" autocomplete="off" value="${_famAttr(S.name)}"/>`),
+      note: aiOn ? `✦ ${i18t('fa_ai_reads_finds',{ref:_famEsc(ref)})}` : i18t('fa_ai_off'),
+      acts: `<button type="button" id="am-ai" class="ui-btn ui-btn-primary lgp-go"${aiOn?'':' disabled'} title="${_famAttr(aiOn?'':i18t('fa_ai_off'))}">${i18t('fa_draft_with_copilot')}</button>
+        <button id="am-blank" type="button" class="ui-btn">${i18t('fa_start_blank')}</button>` });
   }
   function itemRowHtml(it, i){
     const del = it.op === 'insert' ? '' : _famEsc(it.signed || '');
-    return `<div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
-      <label style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--color-bg);font-size:var(--t-label);font-weight:var(--w-strong);cursor:pointer">
-        <input type="checkbox" data-am-item="${i}" ${it.on!==false?'checked':''} style="accent-color:var(--color-accent)"/>${_famEsc(it.clauseLabel||i18t('fa_new_clause'))}
-        <span style="font-weight:var(--w-body);color:var(--color-neutral-600)">· ${_famEsc(i18t('fa_op_'+(it.op||'replace')))}</span></label>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-        ${it.op==='insert'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);color:var(--color-neutral-600)">${i18t('fa_signed_wording')}</span><del style="color:var(--st-ruby-fg)">${del}</del></div>`}
-        ${it.op==='delete'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0;border-left:1px solid var(--color-divider)"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);color:var(--color-neutral-600)">${i18t('fa_amended_wording')}</span><ins style="color:var(--accent-ink);text-decoration-color:var(--color-accent)">${_famEsc(it.amended||'')}</ins></div>`}
-      </div></div>`;
+    return `<div class="am-item"><label class="lgp-tick"><input type="checkbox" data-am-item="${i}" ${it.on!==false?'checked':''}/><span class="lgp-tl">${_famEsc(it.clauseLabel||i18t('fa_new_clause'))}</span>
+        <span class="lgp-stg">${_famEsc(i18t('fa_op_'+(it.op||'replace')))}</span></label>
+      ${it.op==='insert'?'':`<p class="lgp-quote">${i18t('fa_signed_wording')}: <del style="font-family:var(--font-doc);color:var(--st-ruby-fg)">${del}</del></p>`}
+      ${it.op==='delete'?'':`<p class="lgp-quote">${i18t('fa_amended_wording')}: <ins style="font-family:var(--font-doc);color:var(--accent-ink);text-decoration-color:var(--color-accent)">${_famEsc(it.amended||'')}</ins></p>`}</div>`;
   }
   function reviewPane(){
     const F = S.facts || {};
@@ -1262,38 +1248,36 @@ function openCreateAmendmentModal(parent, onDone, opts){
     if(F.value && Number(F.value) !== Number(parent.value||0)) moves.push([i18t('fa_mv_value'), `${_famEsc(window.fmtMoneyOf?fmtMoneyOf(parent):String(parent.value||'—'))} → <b>${_famEsc(window.fmtMoneyOf?fmtMoneyOf({...parent,value:Number(F.value)}):String(F.value))}</b>`]);
     if(F.effectiveDate) moves.push([i18t('fa_mv_effective'), `<b>${_famEsc(F.effectiveDate)}</b>`]);
     (S.mentions||[]).forEach(m=>moves.push([i18t('fa_mv_mentions'), `${_famEsc(m.clause||'')} · <span style="color:var(--st-amber-fg)">${_famEsc(m.why||i18t('fa_check_it'))}</span>`]));
-    return `${head(i18tn('fa_found_n',S.items.length,{n:S.items.length}), i18t('fa_found_sub'))}
-      <div style="display:grid;gap:10px;max-height:46vh;overflow:auto;padding-right:2px" class="scroll-thin">${S.items.map(itemRowHtml).join('')}</div>
-      ${moves.length?`<div style="display:grid;gap:4px;margin-top:var(--s-3);font-size:var(--t-label)">${moves.map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--color-divider);padding-bottom:4px"><span>${_famEsc(k)}</span><span style="text-align:right">${v}</span></div>`).join('')}</div>`:''}
-      ${S.aiNotice?`<p style="font-size:var(--t-label);color:var(--st-amber-fg);margin:var(--s-2) 0 0">${_famEsc(S.aiNotice)}</p>`:''}
-      ${endField()}
-      ${foot(`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">✦ ${i18t('fa_check_before')}</span>
-        <button id="am-back" class="ui-btn">${i18t('fa_back')}</button>
-        <button id="am-go" class="ui-btn ui-btn-primary">${i18t('fa_create_amendment_go')}</button>`)}`;
+    return sheet({ at: 2, title: i18tn('fa_found_n',S.items.length,{n:S.items.length}), sub: i18t('fa_found_sub'),
+      body: `<div class="lgp-list">${S.items.map(itemRowHtml).join('')}</div>`
+        + moves.map(([k,v])=>`<div class="lgp-row"><span class="lgp-k">${_famEsc(k)}</span><span class="lgp-v"><span class="lgp-in is-read">${v}</span></span></div>`).join('')
+        + (S.aiNotice?`<p class="lgp-small" style="color:var(--st-amber-fg)">${_famEsc(S.aiNotice)}</p>`:'')
+        + endField(),
+      left: backBtn(), note: `✦ ${i18t('fa_check_before')}`, acts: goBtn() });
   }
   function pickPane(){
     const cls = amendParentClauses(parent);
-    return `${head(i18t('fa_pick_title'), i18t('fa_pick_sub'))}
-      <div style="display:grid;gap:2px;max-height:40vh;overflow:auto" class="scroll-thin">
-        ${cls.length?cls.map((x,i)=>`<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-bottom:1px dashed var(--color-divider);cursor:pointer;font-size:var(--t-meta)">
-          <input type="checkbox" data-am-pick="${i}" ${S.picks.has(i)?'checked':''} style="margin-top:3px;accent-color:var(--color-accent)"/>
-          <span style="min-width:0"><b style="font-weight:var(--w-strong)">${_famEsc(x.label||i18t('fa_clause_n',{n:i+1}))}</b>
-          <span style="display:block;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc((x.text||'').slice(0,140))}</span></span></label>`).join('')
-          :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('fa_pick_none')}</p>`}
-        <label style="display:flex;gap:8px;align-items:center;padding:6px 4px;cursor:pointer;font-size:var(--t-meta)"><input type="checkbox" id="am-pick-new" ${S.addNew?'checked':''} style="accent-color:var(--color-accent)"/>${i18t('fa_add_new_clause')}</label>
-      </div>
-      ${aiOn?'':`<p style="font-size:var(--t-label);color:var(--st-amber-fg);margin:var(--s-2) 0 0">${i18t('fa_ai_off_manual')}</p>`}
-      <label style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;margin-top:var(--s-3);cursor:pointer">
-        <input type="checkbox" id="am-skeleton" ${S.skeleton?'checked':''} style="margin-top:2px;flex:none;accent-color:var(--color-accent)"/>
-        <span style="font-size:var(--t-meta)"><b>${i18t('fa_skeleton')}</b>
-          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('fa_skeleton_hint')}</span></span></label>
-      ${endField()}
-      ${foot(`<button id="am-back" class="ui-btn">${i18t('fa_back')}</button>
-        <button id="am-go" class="ui-btn ui-btn-primary">${i18t('fa_create_amendment_go')}</button>`)}`;
+    const per = window.LGP_PAGE || 6, pages = Math.max(1, Math.ceil(cls.length / per));
+    S.pickPage = Math.min(Math.max(1, S.pickPage || 1), pages);
+    const from = (S.pickPage - 1) * per;
+    const pager = pages > 1 ? `<div class="lgp-lfoot"><span></span><span class="lgp-pager"><button type="button" class="lgp-pg" data-am-page="${S.pickPage-1}"${S.pickPage<=1?' disabled':''} aria-label="${_famAttr(i18t('lgp_prev'))}">‹</button>${
+      _famEsc(i18t('lgp_of',{ a:from+1, b:Math.min(from+per,cls.length), n:cls.length }))}<button type="button" class="lgp-pg" data-am-page="${S.pickPage+1}"${S.pickPage>=pages?' disabled':''} aria-label="${_famAttr(i18t('lgp_next'))}">›</button></span></div>` : '';
+    return sheet({ at: 2, title: i18t('fa_pick_title'), sub: i18t('fa_pick_sub'),
+      body: `<div class="lgp-list">${cls.length?cls.slice(from, from+per).map((x,j)=>{ const i=from+j;
+          return `<label class="lgp-tick is-radio"><input type="checkbox" data-am-pick="${i}" ${S.picks.has(i)?'checked':''}/>
+          <span class="lgp-tl"><b style="font-weight:var(--w-strong)">${_famEsc(x.label||i18t('fa_clause_n',{n:i+1}))}</b>
+          <span class="lgp-tsub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc((x.text||'').slice(0,140))}</span></span></label>`; }).join('')
+          :`<p class="lgp-none">${i18t('fa_pick_none')}</p>`}</div>${pager}
+        <label class="lgp-tick"><input type="checkbox" id="am-pick-new" ${S.addNew?'checked':''}/><span class="lgp-tl">${i18t('fa_add_new_clause')}</span></label>`
+        + (aiOn?'':`<p class="lgp-small" style="color:var(--st-amber-fg)">${i18t('fa_ai_off_manual')}</p>`)
+        + `<label class="lgp-tick is-radio"><input type="checkbox" id="am-skeleton" ${S.skeleton?'checked':''}/>
+          <span class="lgp-tl">${i18t('fa_skeleton')}<span class="lgp-tsub">${i18t('fa_skeleton_hint')}</span></span></label>`
+        + endField(),
+      left: backBtn(), acts: goBtn() });
   }
-  openModal(`<div style="padding:20px 22px" id="am-dlg"></div>`, {maxWidth:'680px'});
+  openModal(`<form class="lgp" id="am-dlg" novalidate></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('fa_amend_title2',{ref}) });
   const $ = id => document.getElementById(id);
-  const err = t => { const e=$('am-err'); if(e) e.textContent=t||''; };
+  const err = t => { const e=$('am-err'); if(e){ e.textContent=t||''; e.hidden=!t; } };
   function keep(){
     const n=$('am-note'); if(n) S.note=n.value;
     const r=$('am-rel'); if(r) S.rel=r.value;
@@ -1301,8 +1285,9 @@ function openCreateAmendmentModal(parent, onDone, opts){
     const x=$('am-expiry'); if(x) S.expiry=x.value;
     const sk=$('am-skeleton'); if(sk) S.skeleton=!!sk.checked;
     document.querySelectorAll('[data-am-item]').forEach(cb=>{ const it=S.items[Number(cb.getAttribute('data-am-item'))]; if(it) it.on=cb.checked; });
+    /* the clause list is paged: a tick on the page in front changes that clause only, the other pages keep theirs */
     if(document.querySelector('[data-am-pick]')||$('am-pick-new')){
-      S.picks=new Set([...document.querySelectorAll('[data-am-pick]')].filter(cb=>cb.checked).map(cb=>Number(cb.getAttribute('data-am-pick'))));
+      document.querySelectorAll('[data-am-pick]').forEach(cb=>{ const i=Number(cb.getAttribute('data-am-pick')); if(cb.checked) S.picks.add(i); else S.picks.delete(i); });
       S.addNew=!!($('am-pick-new')&&$('am-pick-new').checked);
     }
   }
@@ -1317,9 +1302,10 @@ function openCreateAmendmentModal(parent, onDone, opts){
     $('am-back')?.addEventListener('click',()=>{ keep(); show('ask'); });
     $('am-name')?.addEventListener('input',()=>{ S.nameTouched=true; });
     $('am-rel')?.addEventListener('change',()=>{ S.rel=$('am-rel').value; if(!S.nameTouched){ S.name=amendmentDefaultName(parent,S.rel); const nm=$('am-name'); if(nm) nm.value=S.name; } });
+    document.querySelectorAll('[data-am-page]').forEach(b=>b.addEventListener('click',()=>{ keep(); S.pickPage=Number(b.getAttribute('data-am-page'))||1; show('pick'); }));
     document.querySelectorAll('[data-am-chip]').forEach(b=>b.addEventListener('click',()=>{
       const t=$('am-note'); if(!t) return;
-      b.setAttribute('aria-pressed','true');
+      b.setAttribute('aria-pressed','true'); b.classList.add('is-on');
       const add=i18t(b.getAttribute('data-am-chip')+'_say');
       t.value=(t.value.trim()?t.value.trim()+' ':'')+add; t.focus();
       /* "Extend the term" makes this a renewal unless the reader chose otherwise. */

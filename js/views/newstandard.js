@@ -134,19 +134,14 @@ function openNewStandard(opts = {}) {
   const rows = NS_STARTS.map(sc => ({ k: sc.k, t: sc.t, d: sc.d, dead: off && NS_GATED.includes(sc.k) }))
     .concat([{ k: 'cp', t: i18t('ns_cp_t'), d: i18t('ns_cp_d'), dead: false }]);
   const first = (rows.find(r => !r.dead) || rows[0]).k;
-  const row = ({ k, t, d, dead }) => `<label class="sap-li" style="align-items:flex-start${dead ? ';opacity:.55;cursor:not-allowed' : ''}">
-      <input type="radio" name="ns-start" ${k === 'cp' ? 'id="ns-cp"' : `data-ns-start="${k}"`} value="${k}"${k === first ? ' checked' : ''}${dead ? ` disabled title="${nsEsc(why)}"` : ''} style="margin-top:3px;accent-color:var(--accent-fill)"/>
-      <span><span style="display:block;font-weight:var(--w-label)">${nsEsc(t)}</span><span class="sap-m">${nsEsc(dead ? why : d)}</span></span></label>`;
-  openModal(`<div style="padding:16px 18px">
-    <h3>${nsEsc(i18t('ns_title'))}</h3>
-    <div class="sap-body">
-      <div class="sap-f"><span class="sap-lbl">${nsEsc(i18t('ns_lead'))}</span>
-        <div class="sap-list">${rows.map(row).join('')}</div></div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button type="button" id="ns-continue" class="ui-btn ui-btn-primary">${nsEsc(i18t('act_continue'))}</button>
-      <button data-dlg-cancel type="button" id="ns-close" class="ui-btn">${nsEsc(i18t('act_cancel'))}</button></div>
-  </div>`, { maxWidth: nsW('m'), label: i18t('ns_title') });
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the four answers are quiet choice lines on the one sheet — a ring,
+     the name, its one line under it — the first chosen; Continue the one black button, Cancel last. */
+  const row = ({ k, t, d, dead }) => `<label class="lgp-tick is-radio${dead ? ' is-off' : ''}"${dead ? ' style="cursor:not-allowed"' : ''}>
+      <input type="radio" name="ns-start" ${k === 'cp' ? 'id="ns-cp"' : `data-ns-start="${k}"`} value="${k}"${k === first ? ' checked' : ''}${dead ? ` disabled title="${nsEsc(why)}"` : ''}/>
+      <span class="lgp-tl">${nsEsc(t)}<span class="lgp-tsub">${nsEsc(dead ? why : d)}</span></span></label>`;
+  lgpOpen({ id: 'ns-form', title: i18t('ns_title'), sub: i18t('ns_lead'),
+    html: `<div class="lgp-list">${rows.map(row).join('')}</div>`,
+    primary: { label: i18t('act_continue'), attr: 'id="ns-continue"' }, cancelAttr: 'data-dlg-cancel id="ns-close"', focus: false });
   /* opened from the New agreement page's From scratch tab, Cancel goes back to that page (opts.back) */
   document.getElementById('ns-close')?.addEventListener('click', () => { if (typeof opts.back === 'function') opts.back(); else closeModal(); });
   document.getElementById('ns-continue')?.addEventListener('click', () => {

@@ -127,10 +127,13 @@ const AGREED = [
         go: document.getElementById('up-go').textContent.trim() } : null; });
     check('1a the upload asks who runs the signing, and HaTi is the default until an admin says otherwise',
       q && q.route === 'inside' && q.segs.includes('outside:false') && q.segs.includes('inside:true'), JSON.stringify(q));
+    /* RE-POINTED (f1120, the one edit pop-up): who it is between is the first step of what was read, the route the
+       second (Next); File contract is in the one foot on both */
+    if (!(await page.evaluate(() => document.getElementById('up-cp').value))) await page.fill('#up-cp', 'Nordkust Industri AB');
+    await press('#up-next');
     await press('[data-up-route="outside"]');
     const goWord = await page.evaluate(() => document.getElementById('up-go').textContent.trim());
     check('1b answering "They do" changes what the button says it will do', /redlining/i.test(goWord), goWord);
-    if (!(await page.evaluate(() => document.getElementById('up-cp').value))) await page.fill('#up-cp', 'Nordkust Industri AB');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
     /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
@@ -289,6 +292,8 @@ const AGREED = [
     const screen = await page.evaluate(() => { const r = document.querySelector('.ho-file-r'); return r ? r.innerText : ''; });
     await page.screenshot({ path: path.join(OUT, '6-filing.png') });
     check('6b the filing screen reads the same words, ignoring their design, and who signed', /Same wording as agreed/.test(screen) && /Amina Otieno/.test(screen), screen.slice(0, 160).replace(/\s+/g, ' '));
+    /* f1117: the filing screen is the one sheet in two steps; the acts and the filing lines are on its second */
+    await page.click('#ho-f-next').catch(() => {});
     await page.selectOption('#ho-via', 'docusign').catch(() => {});
     const fileBtn = await page.$('[data-ho-f="file"]');
     check('6c with the same words and everyone signed, the press is File as signed', !!fileBtn);
@@ -375,8 +380,9 @@ const AGREED = [
     await page.waitForTimeout(400);
     await page.setInputFiles('#up-file', fb);
     await page.waitForFunction(() => { const s2 = document.getElementById('up-step-2'); return s2 && !s2.classList.contains('hidden'); }, null, { timeout: 20000 }).catch(() => {});
-    await press('[data-up-route="outside"]');
     await page.fill('#up-cp', 'Kijani Foods Ltd');
+    await press('#up-next');   // the route is on the second step (f1120)
+    await press('[data-up-route="outside"]');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
     /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
@@ -443,6 +449,7 @@ const AGREED = [
         && scr.rows.some(t => /Warehouse 4, Mombasa Road, Nairobi$/.test(t)), JSON.stringify(scr.rows));
     check('8c the press is File as signed — nobody is asked to accept a difference, and nothing is sent back',
       scr.file && !scr.accept && !scr.sendback && !scr.hold, JSON.stringify({ file: scr.file, accept: scr.accept, sendback: scr.sendback, hold: scr.hold }));
+    await page.click('#ho-f-next').catch(() => {});   // f1117: the second step holds the acts
     await page.selectOption('#ho-via', 'docusign').catch(() => {});
     if (scr.file){ await page.click('[data-ho-f="file"]'); await page.waitForTimeout(3000); }
     await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-root button')].find(x => /cancel/i.test(x.textContent)); if (b) b.click(); });

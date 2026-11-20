@@ -88,8 +88,9 @@ const signedOf = (cp, signer) => [
       await page.waitForTimeout(400);
       await page.setInputFiles('#up-file', file);
       await page.waitForFunction(() => { const s2 = document.getElementById('up-step-2'); return s2 && !s2.classList.contains('hidden'); }, null, { timeout: 20000 }).catch(() => {});
-      await press(page, '[data-up-route="outside"]');
       await page.fill('#up-cp', cp);
+      await press(page, '#up-next');   // the route is on the second step (f1120)
+      await press(page, '[data-up-route="outside"]');
       await page.click('#up-go');
       await page.waitForTimeout(2500);
       /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
@@ -176,6 +177,8 @@ const signedOf = (cp, signer) => [
       scr.head.some(t => /^3\.?/.test(t)) && !scr.head.some(t => /SERVICES AGREEMENT/.test(t)), JSON.stringify(scr.head));
 
     /* ===== 3. THE BUTTONS FOLLOW WHO HAS SIGNED ===== */
+    /* f1117: the filing screen is the one sheet in two steps; the acts and the filing lines are on its second */
+    await page.click('#ho-f-next').catch(() => {});
     const all = await acts(page);
     check('3a everybody signed and the words differ: no plain "File as signed" — an admin may file with the difference, or hold',
       !all.file && all.accept && all.hold && !all.sendback, JSON.stringify(all));
@@ -264,6 +267,7 @@ const signedOf = (cp, signer) => [
     ed.on('pageerror', e => errors.push('editor: ' + e.message));
     await login(ed, 'everything@example.co.ke', 'their-own-pass-9');
     const offeredB = await openFiling(ed, signedB);
+    await ed.click('#ho-f-next').catch(() => {});   // f1117: the second step holds the acts
     const edActs = await acts(ed);
     await ed.screenshot({ path: path.join(OUT, '6-editor.png') });
     check('6a an editor who did not approve it is not offered to accept the difference — only to hold it',
