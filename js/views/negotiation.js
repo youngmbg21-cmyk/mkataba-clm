@@ -8757,7 +8757,7 @@ function negoMayAnswer(c, u){
   if (typeof window !== 'undefined' && window.PORTAL_MODE) return true;
   const me = u || ((typeof currentUser === 'function') ? currentUser() : null);
   if (!me) return true;
-  if (me.role === 'viewer') return false;
+  if (typeof window.mayActOn === 'function' ? !window.mayActOn(c, me) : me.role === 'viewer') return false;
   if (me.role === 'admin') return true;
   try { return !(typeof window.deskMayRedline === 'function' && c && !window.deskMayRedline(c, me)); } catch (_){ return true; }
 }
@@ -9826,7 +9826,7 @@ function rlBenchCatchUp(c, again){
 function rlOnlyReads(){
   if (typeof window !== 'undefined' && window.PORTAL_MODE) return false;
   const me = (typeof currentUser === 'function') ? currentUser() : null;
-  return !!me && me.role === 'viewer';
+  return !!me && (typeof window.mayActOn === 'function' ? !window.mayActOn(null, me) : me.role === 'viewer');
 }
 function rlBenchOpts(c, o = {}){
   const side = o.side === 'counterparty' ? 'counterparty' : 'owner';

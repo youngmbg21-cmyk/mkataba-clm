@@ -1555,7 +1555,7 @@ function needsYouOf(c){
   /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026: "i am getting messages on rows on the board"): a company
      Viewer may do none of these acts — the server refuses every write they send — so nothing on any contract is
      theirs to do; what moved reaches them under the bell's News (ndAlerts) */
-  if(me.role==='viewer') return [];
+  if(window.mayActOn ? !mayActOn(c, me) : me.role==='viewer') return [];
   const one=[c];
   const out=[];
   const take=fn=>{ try{ fn(); }catch(_){ /* a missing source adds nothing */ } };

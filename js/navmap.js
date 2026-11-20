@@ -744,6 +744,7 @@ function navQuoteKey(s){
 }
 /* a contract and its face, each through its own door */
 const navC = id => (typeof getContract === 'function') ? getContract(id) : null;
+const NAV_ACTS_WRITE = ['fill', 'send', 'amend', 'value', 'counterparty', 'category', 'stream', 'rename', 'codename', 'nda', 'signers', 'renewal'];
 function navGoAct(n){
   const id = n.cid;
   const go = {
@@ -809,6 +810,13 @@ function navGoAct(n){
     opened: () => (typeof hbOpenView === 'function') ? hbOpenView(id, 'hist') : pdOpenOnHome(id, 'copilot'),
   }[n.act];
   if (typeof go !== 'function' || typeof pdOpenOnHome !== 'function') return false;
+  /* A VIEWER READS (Round A, owner 20 Nov 2026): an act that would change the contract opens it to read and says one
+     line why, never its form */
+  if (NAV_ACTS_WRITE.includes(n.act) && typeof window.mayActOn === 'function' && !window.mayActOn((typeof getContract === 'function') ? getContract(id) : null)){
+    pdOpenOnHome(id, 'copilot');
+    if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn');
+    return true;
+  }
   /* THE LETTER WAITS (as a clause asked for does, navGoClause): another part of a contract asked for while the
      letter is up steps the letter one tab away, kept; it never stands in front of what was asked */
   if (n.act !== 'send'){ try { if (typeof pdSendShows === 'function' && pdSendShows() && typeof pdSendAway === 'function') pdSendAway(); } catch (_){} }

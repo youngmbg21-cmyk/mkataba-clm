@@ -611,7 +611,7 @@ function ndPieces(){
   /* WORK GOES ONLY TO WHO CAN DO IT (negoMayAnswer's rule): every piece Jambo prepares asks for an act, and a
      company Viewer may do none — they hear what moved under the bell's News */
   const me = (typeof currentUser === 'function') ? currentUser() : null;
-  if (me && me.role === 'viewer') return [];
+  if (me && (typeof window.mayActOn === 'function' ? !window.mayActOn(null, me) : me.role === 'viewer')) return [];
   let D = null; try { D = (typeof agentsData === 'function') ? agentsData() : null; } catch (_){ D = null; }
   if (!D || !D.agents) return [];
   const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
@@ -643,11 +643,21 @@ function ndIsNews(a){ return !!a && (ND_NEWS.includes(a.kind) || (a.kind === 'wa
    as NEWS — under the bell's News tab, never counted — but their own note falling due and a watch of theirs that
    fired, which are theirs to act on */
 const ND_VIEWER_WORK = ['note-due', 'watch'];
+/* THE OWNER'S ALERTS (owner, 20 Nov 2026: "Owner and admins"): "they are ready to sign", a renewal to decide or an
+   ending, a certificate lapsed — work for the contract's owner and the admins (whom HaTi already mails), news for
+   every other member. A contract nobody owns is the admins'. */
+const ND_OWNER_WORK = ['cp-ready', 'cp-accepted', 'renewal', 'cert-lapsed'];
+function ndAlertIsMine(a, me){
+  if (!ND_OWNER_WORK.includes(a.kind) || !me) return true;
+  if (me.role === 'admin') return true;
+  const c = (a.id && typeof getContract === 'function') ? getContract(a.id) : null;
+  return !!(c && c.owner && typeof contractOwnedBy === 'function' && contractOwnedBy(c, me));
+}
 function ndAlerts(){
   let L = []; try { L = (typeof buildAlerts === 'function') ? (buildAlerts() || []) : []; } catch (_){ L = []; }
   const me = (typeof currentUser === 'function') ? currentUser() : null;
-  const reads = !!(me && me.role === 'viewer');
-  const work = a => a && !ndIsNews(a) && (!reads || ND_VIEWER_WORK.includes(a.kind));
+  const reads = !!me && (typeof window.mayActOn === 'function' ? !window.mayActOn(null, me) : me.role === 'viewer');
+  const work = a => a && !ndIsNews(a) && (!reads || ND_VIEWER_WORK.includes(a.kind)) && ndAlertIsMine(a, me);
   return { work: L.filter(work), news: L.filter(a => a && !work(a)) };
 }
 const _ndCid = it => (it && (it.cid || (it.c && it.c.id))) || '';
