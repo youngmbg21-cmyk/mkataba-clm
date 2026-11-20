@@ -2521,6 +2521,8 @@ const ALERT_KINDS = [
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
+  /* their changes, told to who may not answer them (negoMayAnswer): news, never work */
+  { k:'nego-news',   tone:'gray',  ic:'&#9998;' },
   { k:'renewal',     tone:'gray',  ic:'&#128197;'},
   /* ---- THE WORKSPACE'S OWN FAULTS SORT LAST (24 Aug 2026) ----
      "Email isn't set up" was a permanent amber strip across the top of the
@@ -2699,6 +2701,9 @@ function buildAlerts(){
       /* every negotiation row here opens Jambo's Redlines face beside Home's
          paper (the one-page Home plan, stage 3): the page's own door, its
          walls first; the phone carries on to its own page */
+      /* WORK GOES ONLY TO WHO CAN DO IT (negoMayAnswer): who may not answer is told what came, as news */
+      if(n && window.negoMayAnswer && !negoMayAnswer(c)){ push('nego-news',c,i18tn('al_nego_news',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); },
+        sub?{ sub }:null); return; }
       if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); },
         sub?{ sub }:null);
     });
