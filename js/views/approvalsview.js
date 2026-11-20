@@ -106,6 +106,8 @@ function apApprovalRows(){
   });
 }
 function apSignatureRows(){
+  /* a Viewer signs nothing and issues no signing link: no row is theirs (Round B, the one question) */
+  if(typeof window.mayActOn==='function' && !window.mayActOn(null)) return [];
   const cs=(state.contracts||[]).filter(c=>!c.archived);
   const mine=(typeof hmMySignings==='function')?hmMySignings(cs):[];
   const ready=(typeof readyToSignItems==='function')?readyToSignItems(cs):[];

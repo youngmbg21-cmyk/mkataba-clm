@@ -22653,3 +22653,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 20 Nov 2026 · Renumbered: "Discover is ready before it is opened" is f1127 (main took f1125 and f1126); the FIXED line above says f1125.
 - Noticed, not fixed (20 Nov 2026, Round A): `srvMayApproveHere` in server/server.js is no longer called (briefAsker now asks srvMayAct). Also js/ai.js's browser-direct prompt (static mode) is not told who is asking (whoAsksSays is server-side only).
 - Correction (20 Nov 2026): the Round A check is f1129, not f1128 (main's "Jambo holds still" took f1128).
+- Noticed, not fixed (20 Nov 2026, Round B): test/f520-see-it-while-you-type.test.js runs out of memory (node OOM) at the parent too. The jump window's "Waiting on us" tab is drawn for a Viewer with nothing under it.

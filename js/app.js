@@ -976,6 +976,8 @@ function navCounts(){
     }
     let negotiations = 0;
     try{ if(window.negoNeedsYouTotal) negotiations = negoNeedsYouTotal(); }catch(_){ negotiations = 0; }
+    /* A NUMBER MATCHES WHAT YOU CAN DO (Round B, owner 20 Nov 2026): who may not act is owed nothing, so no amber count */
+    if(!countsAreMine()) negotiations = 0;
     _navCounts = { pipeline, migration, negotiations };
   } finally { _navBusy = false; }
   try{ Promise.resolve().then(navCountsClear); }catch(_){ navCountsClear(); }
@@ -1007,6 +1009,11 @@ function navCounts(){
    still finishes and stores its own count. */
 let _doorCounts = null, _doorBusy = false;
 function doorCountsClear(){ _doorCounts = null; }
+/* THE COUNTS THAT SAY WORK WAITS (Round B of the ground rules, owner 20 Nov 2026: "a number labelled waiting on
+   you counts only what this person can act on"): one question, mayActOn — a Viewer is owed nothing. */
+const DOOR_WORK_COUNTS = ['intake', 'obligations', 'approvals', 'agents', 'calendar', 'negotiations'];
+const GUIDE_WORK_COUNTS = ['requests', 'negotiations', 'approvals', 'oblig', 'standards', 'house'];
+function countsAreMine(){ try{ return typeof window.mayActOn!=='function' || window.mayActOn(null); }catch(_){ return true; } }
 function doorCounts(nc){
   if(_doorCounts) return _doorCounts;
   if(_doorBusy) return { customers:0, pipeline:0, intake:0, obligations:0, approvals:0, agents:0,
@@ -1051,6 +1058,9 @@ function doorCounts(nc){
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
       + (window.tplLibCount?tplLibCount():0),
     };
+    /* A NUMBER MATCHES WHAT YOU CAN DO (Round B): every count that says work waits is nought for who may not act;
+       sizes (customers, templates) and their own notes stand */
+    if(!countsAreMine()) DOOR_WORK_COUNTS.forEach(k=>{ _doorCounts[k]=0; });
   } finally { _doorBusy = false; }
   try{ Promise.resolve().then(doorCountsClear); }catch(_){ doorCountsClear(); }
   return _doorCounts;
@@ -4071,6 +4081,7 @@ function guideCountOf(k){
     /* open departures from the standards (the Ladder, 17 Nov 2026), the number its head prints */
     standards:()=>typeof window.ldStandards==='function'?window.ldStandards().reduce((t,r)=>t+r.open.length,0):0 };
   if(!W[k]) return null;
+  if(GUIDE_WORK_COUNTS.includes(k) && !countsAreMine()) return null;   // Round B: nothing waits on who may not act
   const v=n(W[k]); return v>0?{ n:v, w:i18t('gd_n_'+k,{ n:v }) }:null;
 }
 /* the page in front, as a row's key */
