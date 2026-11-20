@@ -1714,26 +1714,45 @@ function agSendBackHtml(agent, key){
   return `<div class="ag-sb" data-ag-sb="${_agE(agent)}" data-ag-sb-key="${_agE(key || '')}">
       <button type="button" class="ui-link" data-ag-sb-open>${_agE(_agT('ag_sendback'))}</button>
       <div class="ag-sb-box" hidden>
-        <input type="text" class="ag-sb-note" maxlength="600" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}"
+        <input type="text" class="ag-sb-note" maxlength="600" enterkeyhint="send" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}"
           placeholder="${_agE(_agT('ag_sendback_ph'))}" aria-label="${_agE(_agT('ag_sendback_ph'))}">
         <div class="ag-sb-acts"><button type="button" class="ui-btn ui-btn-sm" data-ag-sb-go>${_agE(_agT('ag_sendback_go'))}</button>
           <span class="ag-sub">${_agE(_agT('ag_sendback_cost'))}</span>
           <button data-dlg-cancel type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button></div>
+        <p class="ag-sb-say" role="status" aria-live="polite" hidden></p>
       </div>
     </div>`;
 }
+/* WHAT HAPPENED IS SAID IN THE BOX (owner, 20 Nov 2026: "i cant send a note" — Redo was pressed and nothing seemed
+   to happen): an alert at the foot of the window can sit under an iPad's keyboard, so the box says it too, under its
+   buttons — the empty note, Jambo at work, done, or why not. The alert stays. */
+function agSendBackSay(box, text, kind){
+  const p = box && box.querySelector('.ag-sb-say'); if (!p) return;
+  p.textContent = text || ''; p.hidden = !text;
+  p.classList.toggle('is-err', kind === 'err'); p.classList.toggle('is-warn', kind === 'warn'); p.classList.toggle('is-ok', kind === 'ok');
+}
 async function agSendBackPress(key, box){
   const it = agFind(key);
-  if (!it || !box || typeof agentSendBack !== 'function') return;
+  if (!box) return;
+  if (!it || typeof agentSendBack !== 'function'){ agSendBackSay(box, _agT('ag_sendback_gone'), 'err'); return; }
   const agent = box.getAttribute('data-ag-sb');
-  const note = String((box.querySelector('.ag-sb-note') || {}).value || '').trim();
-  if (!note){ if (typeof toast === 'function') toast(_agT('ag_sendback_empty'), 'warn'); return; }
+  const field = box.querySelector('.ag-sb-note');
+  const note = String((field || {}).value || '').trim();
+  if (!note){
+    agSendBackSay(box, _agT('ag_sendback_empty'), 'warn');
+    if (field && typeof fieldFocus === 'function') try { fieldFocus(field); } catch (_){}
+    if (typeof toast === 'function') toast(_agT('ag_sendback_empty'), 'warn');
+    return;
+  }
   const go = box.querySelector('[data-ag-sb-go]');
   if (go){ go.disabled = true; go.textContent = _agT('ag_sendback_busy'); }
+  agSendBackSay(box, _agT('ag_sendback_busy'));
+  if (field && field.blur) try { field.blur(); } catch (_){}
   let r = null;
   try { r = await agentSendBack(agent, { contractId: it.cid, key: box.getAttribute('data-ag-sb-key') || '', note }); }
   catch (e){
     if (go){ go.disabled = false; go.textContent = _agT('ag_sendback_go'); }
+    agSendBackSay(box, (e && e.message) || String(e), 'err');
     if (typeof toast === 'function') toast((e && e.message) || String(e), 'err');
     return;
   }
@@ -1754,7 +1773,22 @@ async function agSendBackPress(key, box){
   agRepaint();
   agPanelRefresh(key);
   if (c && agent === 'round') agPrepRedraw(c.id);
+  if (go){ go.disabled = false; go.textContent = _agT('ag_sendback_go'); }
+  if (field) field.value = '';
+  agSendBackSay(box, _agT(landed ? 'ag_sendback_done' : 'ag_sendback_pending'), landed ? 'ok' : 'warn');
   if (typeof toast === 'function') toast(_agT(landed ? 'ag_sendback_done' : 'ag_sendback_pending'), landed ? 'ok' : 'warn');
+}
+/* ENTER SENDS THE NOTE (owner, 20 Nov 2026): the keyboard's Return or Go presses the box's own Redo, so every host's
+   one routing (the Board, Jambo's panel, the agents' page) sends it. Delegated once on the document. */
+if (typeof document !== 'undefined' && document.addEventListener && !document._agSbEnter){
+  document._agSbEnter = true;
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (e.key !== 'Enter' || e.isComposing || !t || !t.classList || !t.classList.contains('ag-sb-note')) return;
+    const go = t.closest('[data-ag-sb]') && t.closest('[data-ag-sb]').querySelector('[data-ag-sb-go]');
+    if (!go || go.disabled) return;
+    e.preventDefault(); go.click();
+  });
 }
 /* ONE ANSWER TAKEN INTO THE BOOK: the route's own record of the redone
    answer, under the key the two hosts share (js/roundprep.js). A missing
