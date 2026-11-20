@@ -22710,3 +22710,10 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - New agreement › a paper chosen: an empty contract value shows as "0" (amber), which reads as a value rather than "not said yet".
 - New agreement › From scratch: a different, plain panel ("I've opened New agreement beside me" and three loose lines), unlike Our paper and Their paper.
 - New agreement › Their paper: the sentence box stays, though there is nothing to say until their file is read.
+
+## Noticed, not fixed — alerts panel clean-up photos (20 Nov 2026)
+- Alerts panel › Alerts: money in the rows ("Cleaning Services · MK-515 · Saw Sawa LLC · KES 900K", "KES 3.40M") — against "no money in a side panel".
+- Alerts panel: the close ✕ wears a thick green ring when the panel opens (against "no ring after press"; f881).
+- Alerts panel › Alerts: every row ends in the same grey "Open" whatever the work is (decide, fill in, look).
+- Alerts panel › Notes: with a contract OPEN (Fuel Supply, MK-512), the Notes face still says "Open a contract to read its notes".
+- Alerts panel › Notes: no Jambo box at its foot, unlike the other faces (against "Jambo's box is always at the foot of the side panel").
