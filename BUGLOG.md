@@ -22653,3 +22653,5 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 20 Nov 2026 · Renumbered: "Discover is ready before it is opened" is f1127 (main took f1125 and f1126); the FIXED line above says f1125.
 - Noticed, not fixed (20 Nov 2026, Round A): `srvMayApproveHere` in server/server.js is no longer called (briefAsker now asks srvMayAct). Also js/ai.js's browser-direct prompt (static mode) is not told who is asking (whoAsksSays is server-side only).
 - Correction (20 Nov 2026): the Round A check is f1129, not f1128 (main's "Jambo holds still" took f1128).
+- 20 Nov 2026 · Noticed, not fixed: the jump window's search box points screen readers only at the page list (#cp-list), while the first highlighted row can sit in the "waiting on you" column (#lp-side) since #816.
+- 20 Nov 2026 · Noticed, not fixed: list-columns-verify once measured the Parties name column at 490px on 1536×730 (limit 480) on a branch that did not touch lists; passed before and after. Suspect: columns sized before the Parties scroller settles (scrollbar appearing later).
