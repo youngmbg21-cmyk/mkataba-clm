@@ -9,8 +9,8 @@
      2 "take me to our standards" opens Our standards; "take me to the
        templates" still opens the templates
      3 THE AI TAKES YOU THERE: a question no word reader places goes to the
-       AI with goto in its answer tool; the answer names Our standards and
-       the page opens, said in Jambo's conversation
+       AI with goto in its answer tool; the answer names Our standards, stays
+       put with a link (20 Nov 2026), and the link opens it, said in Jambo's conversation
      4 THE SWITCH: an admin turns it off in Settings → Jambo engine (on at
        first); off, the answer tool carries no goto, and a goto the model
        writes anyway is not run
@@ -122,10 +122,18 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
     await onPaper('MK-B2');
     const n0 = ai.calls.length;
     await panelAsk('the place where we decide how hard we push back on liability');
-    const s4 = await until(() => state.view === 'playbook' ? true : null, null, 12000);
+    /* RE-POINTED 20 Nov 2026 (PR #829, "Jambo holds still", owner: "stay on the answer"): an ANSWER that also names a place
+       no longer moves the page under the reader; it ends in one link ("Take me there ›", data-jb-go, jbGoPress) and the
+       place opens on that press. Still pinned: the AI's goto is run (the link is its own), and it lands on Our standards. */
+    const link = await until(() => { const b = [...document.querySelectorAll('[data-jb-go]')].filter(x => x.getClientRects().length).pop();
+      return b ? { id: b.getAttribute('data-jb-go'), view: state.view } : null; }, null, 12000);
     const sent = toolsOfLast(ai.calls.slice(n0));
     check('3a the question went to the AI with goto in its answer tool', hasGoto(sent), sent ? (sent.tools || []).map(t => t.name).join(',') : 'no call');
-    check('3b the answer\'s place opened: Our standards', !!s4, await page.evaluate(() => state.view));
+    check('3b0 the answer stays where it is read, ending in a link to its place', !!link && link.view === 'dashboard', JSON.stringify(link) + ' ' + (await page.evaluate(() => state.view)));
+    let s4 = null;
+    if (link){ await page.evaluate(k => { const b = [...document.querySelectorAll(`[data-jb-go="${k}"]`)].filter(x => x.getClientRects().length).pop(); if (b) b.click(); }, link.id);
+      s4 = await until(() => state.view === 'playbook' ? true : null, null, 8000); }
+    check('3b the link pressed, the answer\'s place opened: Our standards', !!s4, await page.evaluate(() => state.view));
     const said3 = await page.evaluate(() => intel.history.filter(m => m.role === 'assistant').slice(-2).map(m => m.text || '').join(' | '));
     check('3c Jambo says it in his conversation', /standards|playbook/i.test(said3), said3.slice(0, 160));
     await page.screenshot({ path: path.join(OUT, '3-ai-takes-you-there-1440x780.png') });

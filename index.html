@@ -21591,6 +21591,10 @@
      A long list scrolls inside its own box, the foot under it */
   html.lg-new .apn-card > .apn-foot, html.lg-new .ctf-foot{margin-top:0}
   html.lg-new :is(.cun-page, .dirn-page) .cu-scroll{flex:0 1 auto}
+  /* THE TABLE'S WIDTH DOES NOT MOVE WHEN ITS SCROLLBAR COMES OR GOES (20 Nov 2026, list-columns-verify WIDE at 1536×730:
+     the Parties name column measured 490 against its 480 ceiling): the room is kept for the bar, as #content-scroll keeps
+     its own, so the widths listCols measured are the widths the table gets */
+  html.lg-new :is(.cun-page, .dirn-page) .cu-scroll{scrollbar-gutter:stable}
   /* ONE THING WHEN EMPTY (owner's yes): an empty list hides its filter, tabs, column heads and foot; its one sentence
      stands in the middle of the sheet. Import with nothing brought in: no filter over nothing, the drop area is the page */
   html.lg-new .cun-page.is-empty :is(.apn-bar, thead, .apn-foot){display:none}

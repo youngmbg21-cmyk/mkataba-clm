@@ -35,7 +35,8 @@ test('f1095 (1b) read down and every contract panel read it, and no unwritten fi
   assert.match(hb, /const autoEnd = ending\.filter\(c => typeof contractRenewsItself === 'function' && contractRenewsItself\(c\)\)/);
   assert.doesNotMatch(hb, /c\.autoRenew\b/);
   const pd = strip(read('js/paperdesk.js'));
-  assert.equal((pd.match(/contractRenewsItself\(c\)/g) || []).length, 5, 'the four renewal lines and the Cover');
+  /* RE-POINTED 20 Nov 2026 (#819, the Cover page deleted: a contract opens on its paper with the Dossier) — the four lines remain */
+  assert.equal((pd.match(/contractRenewsItself\(c\)/g) || []).length, 4, 'the four renewal lines');
   assert.doesNotMatch(pd, /metadata \|\| \{\}\)\.autoRenew/, 'no panel reads the unwritten flag');
   assert.match(region(read('js/obligations.js'), 'function renewalWindow', 'A DEADLINE OLDER'), /const auto = contractRenewsItself\(c\);/, 'the renewal window too');
 });

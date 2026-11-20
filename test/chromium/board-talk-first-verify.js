@@ -5,10 +5,10 @@
    so what is sent and what lands are read where the reader looks. Waits ask for the state, bounded.
      A  Overview: "approvals" is a place word — it moves there, free, as before
      B  Jambo tab: the gate is on, and the line above the box promises no free move while a sentence is typed
-     K  Jambo tab: "approvals", a short command, goes to the AI too; its goto moves the reader there
-     L  Jambo tab: "where do i change the language…" — the AI lands on that spot in Settings
+     K  Jambo tab: "approvals", a short command, goes to the AI too; the answer stays, its link takes the reader there (f1128)
+     L  Jambo tab: "where do i change the language…" — the answer's link lands on that spot in Settings
      C  Jambo tab: a question goes to the chat once, the Board stays in front, the answer stands under his tab
-     D  Jambo tab: a long sentence asking the way — the AI's own door takes the reader there (goto)
+     D  Jambo tab: a long sentence asking the way — the AI's own door (goto), on the answer's link, takes the reader there
      E  Jambo tab: a follow-up carries the conversation (the earlier turns travel with it)
      G  "take me to contacts" is People on both tabs
      H  Jambo tab: "chart value by stream" — his answer's Board buttons draw the card, his words under the Board's line
@@ -51,6 +51,20 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
        are the brain's on the landing too (but a page's one name); "toTalk" asks only that the box stands */
     const toTalk = async () => until(() => !!document.getElementById('igd-input') && typeof igBoardTalkFirst === 'function' && igBoardTalkFirst());
     const ask = async q => { await page.fill('#igd-input', q); await page.click('#igd-go'); };
+    /* RE-POINTED 20 Nov 2026 (PR #829, f1128 "Jambo holds still", owner picked "Stay on the answer"): an ANSWER that also
+       names a place no longer moves the reader — the Board stays in front and the answer ends in one "Take me there ›"
+       link (m.goTo, data-jb-go) that goes there on a press. Still protected: the AI's door reaches the right place, and
+       it is ONE chat call. stayThenGo waits for the answer's link with the Board still in front, then presses it
+       (guarded: no link reports, never a click on nothing) and reads where the reader landed. */
+    const stayThenGo = async (read) => {
+      const link = await until(() => { const b = [...document.querySelectorAll('[data-jb-go]')].filter(x => x.getBoundingClientRect().width > 0).pop();
+        return (!intel.busy && b) ? { view: state.view, key: b.getAttribute('data-jb-go') } : null; }, null, 10000);
+      if (!link) return { stayed: false, link: false, moved: null };
+      const stayed = link.view === 'dashboard';
+      await page.evaluate(k => { const b = document.querySelector(`[data-jb-go="${k}"]`); if (b) b.click(); }, link.key);
+      const moved = await until(read, null, 10000);
+      return { stayed, link: true, moved };
+    };
 
     console.log('\nA · Overview keeps the free readers');
     check('A0 the Board is in front, Overview showing', !!(await toBoard()) && !(await page.evaluate(() => pdTalkShows())));
@@ -73,15 +87,15 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     console.log('\nK · a short command on the Jambo tab is the AI\'s too, and its goto moves the reader');
     ai.reset(); ai.script(deliver('Taking you to Approvals.', { task: 'approvals' }));
     await ask('approvals please');
-    const K = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
-    check('K1 one chat call, and the AI\'s door moved the reader to Approvals', chatCalls().length === 1 && !!K && /approv/i.test(K), `${K} · ${chatCalls().length}×`);
+    const KG = await stayThenGo(() => state.view !== 'dashboard' ? state.view : null), K = KG.moved;
+    check('K1 one chat call, the answer stays with its link, and the AI\'s door takes the reader to Approvals', chatCalls().length === 1 && KG.stayed && !!K && /approv/i.test(K), `${JSON.stringify(KG)} · ${chatCalls().length}×`);
     await toBoard(); await toTalk();
 
     console.log('\nL · the AI lands on one spot in Settings');
     ai.reset(); ai.script(deliver('Your language is in Settings, under You. Taking you there.', { task: 'lang', door: { kind: 'you', key: 'lang' } }));
     await ask('where do i change the language hati speaks to me in');
-    const L = await until(() => state.view !== 'dashboard' ? { view: state.view, lang: !!document.querySelector('[data-st-card="lang"], #st-lang, [data-st-row="lang"], select[name="lang"], #st-you-lang') } : null, null, 10000);
-    check('L1 one chat call, and the reader is in Settings', chatCalls().length === 1 && !!L && /team|settings/i.test(L.view), JSON.stringify(L));
+    const LG = await stayThenGo(() => state.view !== 'dashboard' ? { view: state.view, lang: !!document.querySelector('[data-st-card="lang"], #st-lang, [data-st-row="lang"], select[name="lang"], #st-you-lang') } : null), L = LG.moved;
+    check('L1 one chat call, the answer stays with its link, and the reader is taken to Settings', chatCalls().length === 1 && LG.stayed && !!L && /team|settings/i.test(L.view), JSON.stringify(LG));
     await toBoard(); await toTalk();
 
     console.log('\nC · a question on the Jambo tab is the chat\'s');
@@ -103,8 +117,8 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
     console.log('\nD · the AI takes the reader there');
     ai.reset(); ai.script(deliver('Our standards are on Our paper. Taking you there.', { task: 'standards' }));
     await ask('i need the page where we keep our standard clauses for suppliers');
-    const D = await until(() => state.view !== 'dashboard' ? state.view : null, null, 10000);
-    check('D1 one chat call, and the reader is moved by the AI\'s door', chatCalls().length === 1 && !!D, `${D} · ${chatCalls().length}×`);
+    const DG = await stayThenGo(() => state.view !== 'dashboard' ? state.view : null), D = DG.moved;
+    check('D1 one chat call, the answer stays with its link, and the reader is moved by the AI\'s door', chatCalls().length === 1 && DG.stayed && !!D, `${JSON.stringify(DG)} · ${chatCalls().length}×`);
 
     /* "CONTACTS" IS PEOPLE (owner, 27 Oct 2026: "when i type contacts in the jambo or take me to contacts, it instead
        takes me to contracts") — on both tabs */

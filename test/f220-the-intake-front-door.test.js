@@ -326,7 +326,9 @@ describe('F220 — the requester is told what happened', () => {
     mail.reset();
     await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: {
       status: 'declined', note: 'No.', email: 'attacker@example.com', to: 'attacker@example.com' } });
-    await settle(() => mail.sent.length >= 1);
+    /* RE-POINTED 20 Nov 2026 (#834): wait for THE REQUESTER's mail — a colleague's "New request" mail landing after
+       the reset ended the wait before the decision notice was sent (red on GitHub, green here) */
+    await settle(() => to(ASKER).length >= 1);
     assert.equal(to(ASKER).length, 1, 'the requester is told');
     assert.equal(mail.sent.filter(m => /attacker/.test(String(m.to))).length, 0,
       'and the route mails nowhere it was told to — that would be an open relay in this workspace\'s name');
