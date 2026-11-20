@@ -10299,7 +10299,10 @@ const SDD_EMOJI={ area:{ you:'👤', company:'🏢', rules:'⚖️', jambo:'✨'
     rules:'⚖️', approvals:'✅', signcheck:'🔍', signcap:'✍️', signfolder:'🖊️', signroute:'📝', hold:'⏹️', review:'👀', desk:'✏️', linkcode:'🔐',
     budget:'💵', questions:'💬', person:'⏱️', bigjobs:'⚠️', imports:'📦', agents:'✨', overnight:'🌙', navigate:'🧭', boardwords:'📖', lessons:'🎓', facts:'📌', boardaccuracy:'🎯', copilot:'🤖', engine:'⚙️',
     mail:'✉️', outbox:'📤', renewals:'🔁', remindtheirs:'📨', report:'📰', webhooks:'🔌', mailroom:'📥', lanes:'🛤️',
-    golive:'🚀', samples:'🧪', pilot:'👣', trail:'🧾', integrity:'🔏', env:'🖥️' } };
+    golive:'🚀', samples:'🧪', pilot:'👣', trail:'🧾', integrity:'🔏', env:'🖥️' },
+  /* THE PAGES' OWN (owner, 21 Nov 2026: "add the new emojis to the emoji rule book"): the seven the launchpad took from the old
+     panel's symbols because the book had none for them (LP_EMOJI, js/app.js). The book now holds every emoji HaTi draws. */
+  page:{ contracts:'📄', draft:'📝', negotiations:'🔁', oblig:'📃', calendar:'📅', reads:'🔍', pulse:'📈' } };
 function sddEmojiOf(id, area){ const R=SDD_EMOJI.row; return R[id]||R[String(id||'').replace(/\d+$/,'')]||SDD_EMOJI.area[area]||'•'; }
 function sddMkHtml(emo, area, need){ return `<span class="sdd-mk is-emo a-${SDD_TONE[area]||'you'}${need?' is-need':''}" aria-hidden="true">${emo}</span>`; }
 let _sddArea=null, _sddPick=null, _sddHome=null, _sddQ='';
