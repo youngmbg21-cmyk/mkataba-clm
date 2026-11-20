@@ -39546,3 +39546,10 @@ The owner signed in with a second email that had limited access and found, on a 
 Cause: `negoNeedsYouIds` asks only which side wrote a change and which clauses a reviewer was handed — never who the reader is. Every Needs you source that rides it (Jambo's round piece `agRoundItems`, the bell's 'negotiation' row) handed the work to anyone on our side. The server already refused a company Viewer's write (`editor` on POST /api/agents/:k/sendback), so nothing was harmed for a Viewer — but a desk Reader whose company role is an editor's had no such wall on that route.
 Built: `negoMayAnswer(c, u)` beside `negoNeedsYouIds` (not inside it: "whose move" — `negWhoseMove`, the Negotiations page's Your move, the round line — must stay true for everyone, and a Viewer reading "waiting on them" would be false). It gates `agRoundItems`, `agQuietItems` and the checklist's quiet row; `ndPieces` prepares a company Viewer nothing (every Jambo piece asks for an act); the bell says it as news (`nego-news`, grey, "The other side sent N changes", in `ND_NEWS`, never counted). Handbook 0.3 gained one "when" line (first wording pulled four exam questions to 0.3 — "other side", "changes" — reworded).
 Left alone, said to the owner: the Negotiations page's Your move count and the contract's "N waiting" on the round line still count for a Viewer (they describe the deal, they hand nothing); the Redlines face still draws Accept/Counter to a Viewer (BUGLOG).
+
+## SETTINGS & RULES — THE CONTROL ROOM — THE EMOJI BOOK HOLDS THE LAUNCHPAD'S SEVEN (owner, 21 Nov 2026)
+The owner, over the drawing's list "From the old panel's symbol" (Contracts, New agreement, Negotiations, Obligations, Calendar,
+Discover, Pulse board): "merge it and then add the new emojis to the emoji rule book". The book is SDD_EMOJI (js/views/settings.js,
+named in CLAUDE.md). ADDED: a third group `page` beside `area` and `row`, holding those seven (📄 📝 🔁 📃 📅 🔍 📈). Settings draws
+nothing new from it; the launchpad keeps its own list (LP_EMOJI) and f1097 (8) keeps the two the same and every launchpad emoji
+in the book. CLAUDE.md's line now calls it the emoji book and names the `page` group.
