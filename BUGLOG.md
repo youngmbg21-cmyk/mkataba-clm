@@ -22717,3 +22717,8 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Alerts panel › Alerts: every row ends in the same grey "Open" whatever the work is (decide, fill in, look).
 - Alerts panel › Notes: with a contract OPEN (Fuel Supply, MK-512), the Notes face still says "Open a contract to read its notes".
 - Alerts panel › Notes: no Jambo box at its foot, unlike the other faces (against "Jambo's box is always at the foot of the side panel").
+
+## Noticed, not fixed — Board clean-up photos (20 Nov 2026)
+- Board: "13 waiting on you" is said three times — the line under Needs you, a panel tile, and the panel's own Needs you list, which repeats the page's table.
+- Board › Your book: "Value under contract KES 91M" is a big row of the page's figures (money never a big part of a page; a reader without money rights is left a gap).
+- Board › Needs you: money in the rows ("Cleaning Services · Saw Sawa LLC · KES 900K", "KES 3.40M"); the Waited column is empty on most rows.
