@@ -957,3 +957,4 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - f1108 (5): Parties draws no On paper column for a no-values reader.
 - f1112-hidden-money-not-drawn: no Value column on any Contracts/Negotiations shape (`regColKeysSeat` → `regMoneyCols`, Columns `regCtShapeKeys`, positional widths `regMoneyW`), none in `contractRow`, `pipeCard`, the Calendar ladder, Details (`detailsOf`) or Key terms (`ktFieldCell`), none on the phone list.
 - f1114: contract details pop-ups on the one Legora sheet (openUploadModal, uploadConfirmHtml, openMetaReview via metaStepGroups, openContractEssentials, signCheckEscalate).
+- f1115: Group B (negotiation) pop-ups on the one Legora sheet (openImportModal, reshareNotSentModal, openNegoMemoShare, rlNpGivePick; reviewProposedRound stays a full-size page).

@@ -9486,33 +9486,16 @@ function openNegoMemoShare(c, m, o){
   if (!c || !m || (m.empty && !o.lines) || typeof window.openModal !== 'function') return null;
   const people = negoMemoRecipients();
   if (!people.length){ if (typeof toast === 'function') toast(i18t('ng_memo_send_nobody'), 'warn'); return null; }
-  const fld = 'width:100%;padding:var(--s-2) 10px;border:var(--fld-edge);border-bottom:var(--fld-under);'
-    + 'border-radius:var(--radius);font:inherit;font-size:var(--t-body);'
-    + 'background:var(--color-surface);color:var(--color-text)';
-  const lbl = 'display:block;font-size:var(--t-label);font-weight:var(--w-strong);'
-    + 'color:var(--color-neutral-600);margin-bottom:5px';
-  openModal(`
-    <div class="rvd-head"><div>
-      <div class="rvd-title">${_ne(i18t('ng_memo_send_h'))}</div>
-      <div class="rvd-sub"></div></div></div>
-    <div class="rvd-body">
-      <label class="rvd-opt" style="display:block">
-        <span style="${lbl}">${_ne(i18t('ng_memo_send_who'))}</span>
-        <select id="ng-memo-who" style="${fld}">
-          ${people.map(u => `<option value="${_ne(u.id)}">${_ne(u.name)} — ${_ne(u.email)}</option>`).join('')}
-        </select>
-      </label>
-      <label style="display:block;margin-top:var(--s-3)">
-        <span style="${lbl}">${_ne(i18t('ng_memo_send_note'))}</span>
-        <textarea id="ng-memo-note" rows="3" style="${fld};resize:vertical"></textarea>
-      </label>
-      <div class="rvd-note" style="margin-top:10px">${_ne(i18t('ng_memo_send_privacy'))}</div>
-      <div id="ng-memo-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
-    </div>
-    <div class="rvd-foot">
-      <button data-dlg-cancel class="ui-btn" data-close>${_ne(i18t('act_cancel'))}</button>
-      <button class="ui-btn ui-btn-primary" id="ng-memo-go">${_ne(i18t('ng_memo_send_go'))}</button>
-    </div>`, Object.assign({ maxWidth: '520px' }, typeof o.back === 'function' ? { onClose: () => setTimeout(() => { try { o.back(); } catch (_){} }, 0) } : {}));
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1115): who gets it and what to say with it as two lines, the privacy
+     sentence small under them, a refusal said in the sheet; Send it the one black button, Cancel last (lgpOpen) */
+  lgpOpen({ id: 'ng-memo-form', title: i18t('ng_memo_send_h'),
+    rows: [
+      { k: i18t('ng_memo_send_who'), id: 'ng-memo-who', type: 'select', opts: people.map(u => ({ v: u.id, t: u.name + ' — ' + u.email })) },
+      { k: i18t('ng_memo_send_note'), id: 'ng-memo-note', type: 'area' }],
+    html: `<p class="lgp-small">${_ne(i18t('ng_memo_send_privacy'))}</p><p class="lgp-err" id="ng-memo-err" role="alert" hidden></p>`,
+    primary: { label: i18t('ng_memo_send_go'), attr: 'id="ng-memo-go"' },
+    cancelAttr: 'data-dlg-cancel data-close',
+    onClose: typeof o.back === 'function' ? () => setTimeout(() => { try { o.back(); } catch (_){} }, 0) : undefined });
   document.querySelectorAll('#modal-root [data-close]').forEach(b => b.addEventListener('click', closeModal));
   document.getElementById('ng-memo-go')?.addEventListener('click', async () => {
     const btn = document.getElementById('ng-memo-go');
@@ -18315,23 +18298,16 @@ function rlNpGivePick(c, home, key, opts = {}, side = 'owner', again){
   if (!people.length){ if (window.toast) toast(i18t('ng_np_give_nobody'), 'warn'); return; }
   const now = (window.negoNoteGiven && negoNoteGiven(m)) || null;
   const today = (window.todayISO ? todayISO() : new Date().toISOString().slice(0, 10));
-  const sel = people.map(p => `<option value="${_nea(p.name)}"${
-    (now && now.name === p.name) ? ' selected' : ''}>${_ne(p.name)}</option>`).join('');
-  openModal(`
-    <div class="p-6">
-      <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ng_np_give_title')}</h3>
-      <p class="text-[12px] text-ink/60 mb-4">${_ne(String(m.text || '').slice(0, 140))}</p>
-      <label class="block mb-3"><span class="text-[11px] font-600 text-ink/70">${i18t('ng_np_give_who')}</span>
-        <select id="npg-who" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">${sel}</select></label>
-      <label class="block mb-4"><span class="text-[11px] font-600 text-ink/70">${i18t('ng_np_give_when')}</span>
-        <input id="npg-due" type="date" min="${today}" value="${_nea((now && now.due) || '')}"
-          class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
-      <div class="flex justify-end gap-2">
-        ${now ? `<button id="npg-off" class="ui-btn">${i18t('ng_np_give_off')}</button>` : ''}
-        <button data-dlg-cancel id="npg-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="npg-go" class="ui-btn ui-btn-primary">${i18t('ng_np_give_go')}</button>
-      </div>
-    </div>`, { maxWidth: DLG_W.s });
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1115): the note's words under the headline, who answers it and by when as
+     two lines; Give it the one black button, Take it back on the left when it is given, Cancel last (lgpOpen) */
+  lgpOpen({ id: 'npg-form', title: i18t('ng_np_give_title'), sub: String(m.text || '').slice(0, 140),
+    rows: [{ k: i18t('ng_np_give_who'), id: 'npg-who', type: 'select', value: (now && now.name) || '',
+      opts: people.map(p => ({ v: p.name, t: p.name })) }],
+    html: `<label class="lgp-row"><span class="lgp-k">${_ne(i18t('ng_np_give_when'))}</span><span class="lgp-v">`
+      + `<input class="lgp-in" id="npg-due" type="date" min="${_nea(today)}" value="${_nea((now && now.due) || '')}"/></span></label>`,
+    primary: { label: i18t('ng_np_give_go'), attr: 'id="npg-go"' },
+    left: now ? { label: i18t('ng_np_give_off'), attr: 'id="npg-off"' } : null,
+    cancelAttr: 'data-dlg-cancel id="npg-cancel"' });
   const shut = () => { closeModal(); if (typeof again === 'function') again(); };
   document.getElementById('npg-cancel')?.addEventListener('click', closeModal);
   document.getElementById('npg-off')?.addEventListener('click', async () => {
