@@ -286,6 +286,19 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** nothing pushed behind the side panel; no money; red only past a week waiting.
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — "With Amina" said to Amina (should be "with you"); a drafted request still says "no NDA · to do" and "Nobody holds it"; the Advice panel's run-together sentence and its "0 files" tile.
 
+### P-33 · Import page, the Legora + Stripe way, with the upgraded side panel
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for Import: the Legora + Stripe way on the page before any file, Need you, Read and All, with the side panel as upgraded on the owner's ask ("L&S side panel needs an upgrade"). Owner's words: "L+S and park it."
+- **Where it came from:** the page clean-up, day 10. The drawings: https://claude.ai/artifact/KeE9twrwU5ncNYAyWCS96A (choose "The Legora + Stripe way" on each view). Every view was photographed from the running app that day with a sample batch of 12 files. The one-at-a-time check ("Check all") is NOT part of this: it was redesigned the same day (the check, made like the Send screen) and stays as built.
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** the title; Review spreadsheet · Check all · N (grey) and Choose files (black); one ask box ("Ask about this batch: …"); chips Need you (amber dot) · Read · All with counts, + Stream.
+  - **ONE BATCH BAR replaces the five coloured tiles:** one thin bar of the whole batch (green filed, amber to check, violet "is it signed?", blue "a copy?", red no readable text) with its legend under it.
+  - **The table:** File (its name ending in "…", NEVER broken mid-word; under it why it waits in its colour, or the new reference once filed; then the words Jambo read it from, with §, on one line ending in "…") · Reading (soft badge: violet Is it signed?, amber To check, blue A copy?, red No readable text, green Filed) · What Jambo read (kind · party · dates) · How sure (three small bars and "N of 5") · Stream · Value right-aligned (the one place money shows; "KES 480K/yr" never wraps). NO BUTTONS ON THE ROWS (Fill in, Name it, Open go to the panel). The same words are never said twice in a row.
+  - **THE UPGRADED SIDE PANEL (no cards):** a small picture of the paper beside the file's badge, name and "N of 5 details sure"; the acts on one line (main black, second grey) with "Leave it out" / "Keep both" as a quiet link under them; "What it will be filed as · N of 5 sure": each fact with a dot (green sure, amber not sure, grey not found), and the one Jambo was not sure of OPENED IN PLACE: the file's own words with the found words lit, its § (or "its title"), and a "Use: …" chip that fills it in; then a RING of the batch (e.g. 7/12 filed) beside "This batch · N need you" and the next two files waiting with their reading in colour. Everything above Jambo's box and its links line, nothing past the panel's edge.
+  - **Before any file:** a calm drop area (upload mark, "Drop old contracts here, or a whole folder", the limits, Choose files), the three choices as set chips under it (Import as · File under · + a spreadsheet of what is in them), the ask box; the panel: a sentence, Choose files (black) and "Get the empty spreadsheet", and How it goes as a three-step timeline. The drop area is drawn ONCE (today it is in the page and the panel).
+  - **Rules it must keep:** nothing pushed behind the side panel; money only as the Value column; drawn icons, never emoji.
+  - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the side panel drawn without its styling when a row is chosen; the same words twice in a row; a file name broken mid-word; the drop area drawn twice.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
