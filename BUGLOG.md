@@ -22656,3 +22656,9 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 20 Nov 2026 · Noticed, not fixed: the jump window's search box points screen readers only at the page list (#cp-list), while the first highlighted row can sit in the "waiting on you" column (#lp-side) since #816.
 - 20 Nov 2026 · Noticed, not fixed: list-columns-verify once measured the Parties name column at 490px on 1536×730 (limit 480) on a branch that did not touch lists; passed before and after. Suspect: columns sized before the Parties scroller settles (scrollbar appearing later).
 - 20 Nov 2026 · Noticed: door-exam-verify missed "amend MK-B1" in the Board's box once (run 44756291044) with no code change behind it; its wait gave up after ~6 s while Jambo might still be busy. The wait now goes on while busy (bounded, 15 s) and says so if it runs out.
+- 20 Nov 2026 — Noticed, not fixed (My notes, while photographing for the clean-up): the new-look page never shows a note's own words — the list shows only its title, and the side panel (`mnnPanelFiveHtml`) shows the title, the passage it holds and the facts, but not `n.body` (the old panel `#mn-side` did). Also: every row says "written 20 Nov"; a reviewed note reads "reviewed 11 Nov · review again 10 Nov" (a past day); the heading repeats the tab counts ("Private · 7 notes · 2 due").
+- Noticed, not fixed (20 Nov 2026, Round B): test/f520-see-it-while-you-type.test.js runs out of memory (node OOM) at the parent too. The jump window's "Waiting on us" tab is drawn for a Viewer with nothing under it.
+
+### Noticed, not fixed — 20 Nov 2026 (Round C, viewers)
+- f1095 (1b) already red before Round C: it expects 5 `contractRenewsItself(c)` reads in js/paperdesk.js, the file has 4 (the Cover was deleted, f1122). The test needs re-pointing; left alone.
+- f1037's harness re-pointed: it now loads `pd2ActsFor` (Round C's note-button helper) beside the paper's other readers.

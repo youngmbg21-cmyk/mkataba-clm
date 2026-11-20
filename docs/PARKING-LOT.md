@@ -214,6 +214,18 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** nothing pushed behind the side panel; no money anywhere on the page; red only for late.
   - **Check before building:** where the signature-page words come from (the signature block of a signed paper; a person with none shows none, never an invented line); the timeline needs each person's recorded acts (link opened, round sent, signed, asked to approve).
 
+### P-27 · My notes page, the Legora + Stripe way, on all three tabs
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for My notes: the Legora + Stripe way on All, Due and Reviewed. Owner's words: "L+S and park it."
+- **Where it came from:** the page clean-up, day 5. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/A49R2yfsqxSvXJzhhk79qk (choose "The Legora + Stripe way" on each tab).
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** the title, a small lock and "Only you see these" beside it, New note (black); one ask box under it that also writes a note ("Write a note, or ask: …"); chips All 7 · Due 2 (amber dot) · Reviewed 2 · + Contract. NO figure cards; the heading's "Private · 7 notes · 2 due" goes (the chips and the lock say it).
+  - **The table:** Note (title, and under it the note's own words on one line ending in "…"; where the note was written on a passage, the paper's words with § on one more line) · Contract (name, reference under it) · Status (soft badge: red Overdue, amber Due today, grey Later, grey No day, green Reviewed) · Due or Reviewed (the day right-aligned, "2 days overdue / today / in 6 days" under it) · the act (Mark reviewed · Open · Review again) on the row you are on.
+  - **Gone:** "written 20 Nov" on every row; "review again <a past day>" on reviewed notes.
+  - **Side panel, NO cards and NO money:** status badge and "Only you"; title, contract; THE NOTE'S OWN WORDS IN FULL; Due (or Reviewed) day large and Written day; Mark reviewed (or Review again) and Snooze a week (or Delete note); "From the paper · §" with the passage and Open it on the paper; a timeline (written, your bell rang, marked reviewed). Jambo's box and its links line at the foot.
+  - **Rules it must keep:** nothing pushed behind the side panel; red only for overdue; the note never leaves its owner (no contract, share or history).
+  - **Check before building:** the note's own words are missing from today's page altogether (BUGLOG, 20 Nov 2026), so this build also fixes that; the timeline needs the day the bell first rang for a note (kept, or worked out from its review day).
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel

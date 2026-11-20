@@ -442,7 +442,7 @@ function calWkmFit(){
    id), Decide on a renewal decision, else the contract as before */
 function calChipAct(e,L){
   if(!e||!L) return '';
-  if(L.k==='decide') return 'decide';
+  if(L.k==='decide') return ((typeof window.mayActOn!=='function')||window.mayActOn(null)) ? 'decide' : '';
   if(e.type==='obligation'&&e.theirs&&e.obId&&!e.done&&!e.waiting&&((typeof canEdit!=='function')||canEdit())) return 'chase';
   return '';
 }
@@ -952,6 +952,8 @@ function calPanelHtml(evs){
    the tab and any other reader count the same way. obligationDue, never a
    ten-character slice of a typed date. */
 function calendarDoorCount(){
+  /* duties due are work; who may not act is owed none (Round B, the one question) */
+  if(typeof window.mayActOn==='function' && !window.mayActOn(null)) return 0;
   return window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
     const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0;
 }

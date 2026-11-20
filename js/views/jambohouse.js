@@ -1668,6 +1668,7 @@ function jhnWeekSaid(k){
 }
 /* MAY HE: the three, the one in force pressed; what this reader may not choose is grey with its reason */
 function jhnMayHtml(k){
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(null)) return '';   // a Viewer sets no agent levels (Round C)
   if (typeof AG_READINGS !== 'undefined' && Array.isArray(AG_READINGS) && AG_READINGS.includes(k)) return `<span class="jhn-reads">${_jhE(_jhT('jh_reads_only'))}</span>`;
   const now = (typeof agLevelOf === 'function') ? agLevelOf(k) : 'ask', co = (typeof agLevelCo === 'function') ? agLevelCo(k) : 'ask';
   const admin = typeof isAdmin === 'function' && isAdmin();
