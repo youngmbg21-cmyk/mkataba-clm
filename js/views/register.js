@@ -5125,35 +5125,28 @@ function renderRegister(opts){
     const chosen=regBarChosen();
     /* On the full Contracts table the stage is the tab row, not a box, so it
        is not offered there; on the place (and on Negotiations) it is a box. */
-    const rows=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations'&&!regHome())).map(f=>{
-      const on=chosen.includes(f.k);
-      /* A FIXED FILTER IS SHOWN TICKED AND DISABLED rather than hidden: a
-         chooser that silently omits two of the six leaves the reader counting
-         and wondering where they went. It says what it is instead. */
-      return `<label style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--color-divider);${f.fixed?'opacity:.6':'cursor:pointer'}">
-        <input type="checkbox" data-adapt="${f.k}" ${on?'checked':''} ${f.fixed?'disabled':''} style="width:15px;height:15px;flex:none;accent-color:var(--accent-solid)"/>
-        <span style="flex:1;font-size:var(--t-body)">${esc(f.label)}</span>
-        ${f.fixed?`<span style="font-size:var(--t-micro);color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
-      </label>`;
-    }).join('');
-    openModal(`
-      <div style="padding:var(--s-4) 18px 10px;border-bottom:1px solid var(--color-divider)">
-        <h3 style="margin:0;font-size:var(--t-section);font-weight:var(--w-title)">${esc(i18t('reg_adapt_title'))}</h3>
-        <p style="margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${esc(i18t('reg_adapt_sub'))}</p>
-      </div>
-      <div style="padding:var(--s-1) 18px var(--s-2)">${rows}</div>
-      <div style="padding:var(--s-3) 18px var(--s-4);display:flex;gap:var(--s-2);align-items:center">
-        <button id="reg-adapt-reset" class="ui-btn ui-btn-plain">${esc(i18t('reg_adapt_reset'))}</button>
-        <span style="flex:1"></span>
-        <button id="reg-adapt-done" class="ui-btn ui-btn-primary">${esc(i18t('act_done'))}</button>
-      </div>`,{label:i18t('reg_adapt_title'),maxWidth:'440px'});
-    const read=()=>[...document.querySelectorAll('[data-adapt]:checked')].map(b=>b.getAttribute('data-adapt'));
-    document.getElementById('reg-adapt-reset')?.addEventListener('click',()=>{
-      regBarSetChosen(REG_BAR_DEFAULT.slice()); closeModal(); regRepaint();
-    });
-    document.getElementById('reg-adapt-done')?.addEventListener('click',()=>{
-      regBarSetChosen(read()); closeModal(); regRepaint();
-    });
+    /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): the filters a paged tick list (lgpListHtml),
+       the ticks held across its pages; Reset on the left, Done the one black button. A FIXED FILTER IS SHOWN TICKED
+       AND DISABLED rather than hidden: a chooser that silently omits two of the six leaves the reader counting and
+       wondering where they went. It says what it is instead. */
+    const fl=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations'&&!regHome()));
+    const ticked=new Set(fl.filter(f=>chosen.includes(f.k)).map(f=>f.k));
+    let page=1;
+    const sheet=()=>({ id:'reg-adapt-form', focus:false, title:i18t('reg_adapt_title'), sub:i18t('reg_adapt_sub'),
+      html:lgpListHtml({ page, tickAttr:'data-adapt', pageAttr:'data-adapt-page',
+        items:fl.map(f=>({ id:f.k, on:ticked.has(f.k), disabled:!!f.fixed, off:!!f.fixed, label:f.label, stage:f.fixed?i18t('reg_adapt_always'):'' })) }),
+      left:{ label:i18t('reg_adapt_reset'), attr:'id="reg-adapt-reset"' },
+      primary:{ label:i18t('act_done'), attr:'id="reg-adapt-done"' } });
+    lgpOpen(sheet());
+    const read=()=>fl.filter(f=>ticked.has(f.k)).map(f=>f.k);
+    /* one listener on the dialog (it outlives a page's redraw of the sheet); the presses resolved where they land */
+    const dlg=document.querySelector('#modal-root [role="dialog"]');
+    dlg?.addEventListener('change',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-adapt]'):null; if(!b) return;
+      const k=b.getAttribute('data-adapt'); if(b.checked) ticked.add(k); else ticked.delete(k); });
+    dlg?.addEventListener('click',e=>{ const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+      const pg=t.closest('[data-adapt-page]'); if(pg){ e.preventDefault(); page=Number(pg.getAttribute('data-adapt-page'))||1; lgpRepaint(sheet()); return; }
+      if(t.closest('#reg-adapt-reset')){ regBarSetChosen(REG_BAR_DEFAULT.slice()); closeModal(); regRepaint(); return; }
+      if(t.closest('#reg-adapt-done')){ regBarSetChosen(read()); closeModal(); regRepaint(); } });
   });
 
   /* A DENSITY CHANGE IS A REPAINT, NOT A NAVIGATION: the page, the filters and

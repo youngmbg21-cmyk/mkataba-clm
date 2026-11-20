@@ -390,17 +390,18 @@ function ikFieldHtml(f, streams, FLD, LBL){
    (draft-from-a-sentence's "nothing fits"): its first line, cut at a word
    before 80 characters. The person can change it; the form no longer refuses
    them for a box they never saw empty. */
-/* One box the way the drawings lay it: label over field, nothing else. */
-function ikSapField(f, streams, FLD){
+/* One line the way the one edit pop-up lays it (lgp; owner, 19 Nov 2026: "Fix all batches"): the label beside the
+   words, no box, the line under the row. Every id is the field's own (ikFieldId). */
+function ikSapField(f, streams){
   const id=ikFieldId(f.key), v=String(f.def||'');
-  const lab=`<label for="${id}">${esc(String(f.type==='stream'?i18t('ik_f_stream'):(f.label||f.key)))}</label>`;
-  if(f.type==='stream') return `<div class="sap-f">${lab}<select id="${id}" style="${FLD}"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
-      ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></div>`;
-  if(f.key==='side' && typeof window.payWhoHtml==='function') return `<div class="sap-f"><span class="sap-lbl">${esc(String(f.label||f.key))}</span>${window.payWhoHtml(id, v)}</div>`;
-  if(f.type==='select') return `<div class="sap-f">${lab}<select id="${id}" style="${FLD}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
-      .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></div>`;
+  const row=(k,ctl,tag)=>`<${tag||'label'} class="lgp-row"><span class="lgp-k">${esc(String(k))}</span><span class="lgp-v">${ctl}</span></${tag||'label'}>`;
+  if(f.type==='stream') return row(i18t('ik_f_stream'), `<select id="${id}" class="lgp-in"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
+      ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select>`);
+  if(f.key==='side' && typeof window.payWhoHtml==='function') return row(f.label||f.key, window.payWhoHtml(id, v), 'div');
+  if(f.type==='select') return row(f.label||f.key, `<select id="${id}" class="lgp-in">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
+      .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select>`);
   const it=f.type==='date'?'date':(f.type==='num'?'number':(f.type==='email'?'email':'text'));
-  return `<div class="sap-f">${lab}<input id="${id}" type="${it}" value="${esc(v)}" placeholder="${esc(String(f.ph||''))}" style="${FLD}" maxlength="200"${it==='number'?' min="0"':''}/></div>`;
+  return row(f.label||f.key, `<input id="${id}" class="lgp-in" type="${it}" autocomplete="off" value="${esc(v)}" placeholder="${esc(String(f.ph||''))}" maxlength="200"${it==='number'?' min="0"':''}/>`);
 }
 function intakeTitleFrom(sentence){
   const line=String(sentence||'').split(/\r?\n/).map(x=>x.trim()).find(Boolean)||'';
@@ -410,55 +411,58 @@ function intakeTitleFrom(sentence){
 }
 function openIntakeForm(pre){
   const streams=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
-  /* READS THE ONE PAIR (25 Aug 2026). It was a local copy on its own
-     padding and type; seven such copies in three flavours is how a form ends
-     up two pixels off the form beside it. Through window because this is a
-     module and a bare cross-module read throws. */
-  const FLD=window.HATI_FLD;
-  const LBL=window.HATI_LBL;
-  /* AS DRAWN (SAP pop-ups, 10 Oct 2026 — the owner: "This is what i see for
-     ask for a contract"): the two questions first, then the optional facts
-     under their own group rule, laid two and three across — counterparty and
-     their address; value, start and end; then our side's facts and the
-     stream. Every box keeps its id, so the send below reads them as before. */
+  /* THE ONE EDIT POP-UP IN THREE STEPS (lgp; owner, 19 Nov 2026: "Fix all batches"; it was the SAP pop-up of 10 Oct
+     2026, "This is what i see for ask for a contract"): 1 the two questions and the attachments, 2 who it is with and
+     where it is filed, 3 its value and dates — the optional facts each a line with the label beside the words. All three
+     stay in the one form, so Send reads every box wherever the reader stands; every box keeps its id. */
   const fs=intakeFormFields(pre), byKey=k=>fs.find(f=>f.key===k);
-  const cell=f=>f?ikSapField(f, streams, FLD):'';
+  const cell=f=>f?ikSapField(f, streams):'';
   const used=new Set(['counterparty','cpemail','value','effDate','expiry','party','side','folder']);
   const rest=fs.filter(f=>!used.has(f.key));
-  const pair=(a,b)=>(a||b)?`<div class="sap-row">${cell(a)||'<span></span>'}${cell(b)||'<span></span>'}</div>`:'';
-  openModal(`<div style="padding:24px">
-    <h3>${i18t('ik_ask_title')}</h3>
-    <p id="ik-lead">${esc(i18t('ik_lead_asker'))}</p>
-    <div class="sap-body">
-      <div class="sap-f"><label for="ik-title">${i18t('ik_f_title')} <span class="sap-req">*</span></label>
-        <input id="ik-title" value="${esc(String((pre&&pre.title)||''))}" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></div>
-      <div class="sap-f"><label for="ik-need">${i18t('ik_f_need')} <span class="sap-req">*</span></label>
-        <textarea id="ik-need" rows="3" style="${FLD};height:auto;min-height:72px;resize:vertical" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></div>
-      ${''/* THE SAME ESSENTIALS CREATE ASKS (4 Oct 2026, the process review):
-            CONTRACT_ESSENTIALS through essentialFields, ALL OPTIONAL — they
-            ride the request (`answers`) into the drafting screen's boxes. */}
-      <p class="sap-grp">${esc(i18t('ik_f_essentials'))}</p>
-      ${pair(byKey('counterparty'), byKey('cpemail'))}
-      ${(byKey('value')||byKey('effDate')||byKey('expiry'))?`<div class="sap-row3">${cell(byKey('value'))}${cell(byKey('effDate'))}${cell(byKey('expiry'))}</div>`:''}
-      ${pair(byKey('party'), byKey('side'))}
-      ${pair(byKey('folder'), rest[0])}
-      ${rest.slice(1).map((f,i,a)=>i%2?'':pair(f,a[i+1])).join('')}
+  const IK_STEPS=[i18t('ik_step_ask'), i18t('ik_step_who'), i18t('ik_step_terms')];
+  lgpOpen({ stepped:true, id:'ik-form', focus:'#ik-title', title:i18t('ik_ask_title'),
+    steps:{ at:1, names:IK_STEPS },
+    subHtml:`<span id="ik-lead">${esc(i18t('ik_lead_asker'))}</span>`,
+    html:`<div data-lgp-step="1">
+      <label class="lgp-row"><span class="lgp-k">${i18t('ik_f_title')} *</span><span class="lgp-v">
+        <input id="ik-title" class="lgp-in" autocomplete="off" value="${esc(String((pre&&pre.title)||''))}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></span></label>
+      <label class="lgp-row is-tall"><span class="lgp-k">${i18t('ik_f_need')} *</span><span class="lgp-v">
+        <textarea id="ik-need" class="lgp-in is-area" rows="3" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></span></label>
       ${''/* ATTACHMENTS (SAP benchmark, batch 2): stored with the request on
             the server (IK_FILES_MAX of up to IK_FILE_MAX_MB each). The
             browser's own file button is hidden behind HaTi's. */}
-      <div class="sap-f"><span class="sap-lbl">${esc(i18t('ik_f_files'))}</span>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="lgp-row"><span class="lgp-k">${esc(i18t('ik_f_files'))}</span><span class="lgp-v" style="flex-wrap:wrap;padding:var(--s-2) 0">
           <button type="button" class="ui-btn" id="ik-files-go">${icon('upload','w-4 h-4')}${esc(i18t('ik_f_attach'))}</button>
-          <span id="ik-files-say" class="sap-help">${esc(i18t('ik_f_files_note',{ n:IK_FILES_MAX, mb:IK_FILE_MAX_MB }))}</span>
+          <span id="ik-files-say" class="lgp-note">${esc(i18t('ik_f_files_note',{ n:IK_FILES_MAX, mb:IK_FILE_MAX_MB }))}</span>
           <input id="ik-files" type="file" multiple accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.xlsx,.csv" hidden/>
-        </div></div>
-      <p id="ik-err" style="font-size:var(--t-meta);color:var(--st-ruby-fg);margin:0" hidden></p>
+        </span></div>
     </div>
-    <div style="display:flex;gap:var(--s-2);justify-content:flex-end">
-      <button data-dlg-cancel id="ik-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ik-send" class="ui-btn ui-btn-primary">${i18t('ik_send')}</button>
+    ${''/* THE SAME ESSENTIALS CREATE ASKS (4 Oct 2026, the process review):
+          CONTRACT_ESSENTIALS through essentialFields, ALL OPTIONAL — they
+          ride the request (`answers`) into the drafting screen's boxes. */}
+    <div data-lgp-step="2" hidden>
+      <p class="lgp-small">${esc(i18t('ik_f_essentials'))}</p>
+      ${cell(byKey('counterparty'))}${cell(byKey('cpemail'))}${cell(byKey('party'))}${cell(byKey('side'))}${cell(byKey('folder'))}
     </div>
-  </div>`,{maxWidth:'600px'});
+    <div data-lgp-step="3" hidden>
+      <p class="lgp-small">${esc(i18t('ik_f_essentials'))}</p>
+      ${cell(byKey('value'))}${cell(byKey('effDate'))}${cell(byKey('expiry'))}${rest.map(cell).join('')}
+    </div>
+    <p id="ik-err" class="lgp-err" role="alert" hidden></p>`,
+    nextAttr:'id="ik-next"', backAttr:'id="ik-back"',
+    primary:{ label:i18t('ik_send'), attr:'id="ik-send"' },
+    cancelAttr:'data-dlg-cancel id="ik-cancel"', cancelLabel:i18t('act_cancel') });
+  const ikForm=()=>document.getElementById('ik-form');
+  const ikGo=n=>lgpStepGo(ikForm(), n, IK_STEPS);
+  const ikAt=()=>Number(ikForm()?.getAttribute('data-lgp-at')||1);
+  /* Next asks only what the first step must have (the two questions), in the same words Send uses */
+  document.getElementById('ik-next')?.addEventListener('click',()=>{
+    const err=document.getElementById('ik-err'); if(err) err.hidden=true;
+    if(ikAt()===1 && (!(document.getElementById('ik-title')||{value:''}).value.trim()||!(document.getElementById('ik-need')||{value:''}).value.trim())){
+      if(err){ err.textContent=i18t('ik_need_both'); err.hidden=false; } return; }
+    ikGo(ikAt()+1); });
+  document.getElementById('ik-back')?.addEventListener('click',()=>ikGo(ikAt()-1));
+  ikGo(1);
   const filesIn=document.getElementById('ik-files');
   document.getElementById('ik-files-go')?.addEventListener('click',()=>filesIn&&filesIn.click());
   filesIn?.addEventListener('change',()=>{ const say=document.getElementById('ik-files-say'); const n=filesIn.files.length;
@@ -469,15 +473,15 @@ function openIntakeForm(pre){
     const err=document.getElementById('ik-err');
     if(err){ err.hidden=true; }
     const say=m=>{ if(err){ err.textContent=m; err.hidden=false; } };
-    if(!g('ik-title')||!g('ik-need')){ say(i18t('ik_need_both')); return; }
+    if(!g('ik-title')||!g('ik-need')){ ikGo(1); say(i18t('ik_need_both')); return; }
     const answers={};
     for(const f of intakeFormFields()){ if(f.key==='counterparty'||f.key==='folder') continue;
       const v=g(ikFieldId(f.key)); if(v) answers[f.key]=v; }
-    if(answers.cpemail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.cpemail)){ say(i18t('ik_bad_email')); return; }
-    if(answers.effDate && answers.expiry && answers.expiry<answers.effDate){ say(i18t('ik_bad_term')); return; }
+    if(answers.cpemail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.cpemail)){ ikGo(2); say(i18t('ik_bad_email')); return; }
+    if(answers.effDate && answers.expiry && answers.expiry<answers.effDate){ ikGo(3); say(i18t('ik_bad_term')); return; }
     const picked=[...((document.getElementById('ik-files')||{}).files||[])];
-    if(picked.length>IK_FILES_MAX){ say(i18t('ik_files_too_many',{ n:IK_FILES_MAX })); return; }
-    if(picked.some(fl=>fl.size>IK_FILE_MAX_MB*1024*1024)){ say(i18t('ik_file_too_big',{ mb:IK_FILE_MAX_MB })); return; }
+    if(picked.length>IK_FILES_MAX){ ikGo(1); say(i18t('ik_files_too_many',{ n:IK_FILES_MAX })); return; }
+    if(picked.some(fl=>fl.size>IK_FILE_MAX_MB*1024*1024)){ ikGo(1); say(i18t('ik_file_too_big',{ mb:IK_FILE_MAX_MB })); return; }
     const btn=document.getElementById('ik-send'); if(btn) btn.disabled=true;
     try{
       const files=await Promise.all(picked.map(fl=>new Promise((res,rej)=>{ const rd=new FileReader();
