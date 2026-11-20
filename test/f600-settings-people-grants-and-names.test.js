@@ -93,7 +93,8 @@ describe('f600 (D3) — a rename sticks and the approval rules follow', () => {
     assert.doesNotMatch(SETTINGS, /It does\s+NOT take a name today/);
   });
   test('a rule picks its approver by id, and both hosts match by id first', () => {
-    assert.match(SETTINGS, /option value="member:\$\{esc\(m\.id\)\}"/);
+    /* RE-POINTED 20 Nov 2026 (#814, the rule editor on the one edit pop-up): the choice is built by lgpRowHtml, still by id */
+    assert.match(SETTINGS, /v:'member:'\+m\.id/);
     assert.match(SETTINGS, /\{kind:'member',name:apM\.name,id:apM\.id\}/);
     assert.match(APPROVALS, /a\.kind==='member'\) return \(a\.id!=null&&a\.id!==''\) \? String\(a\.id\)===String\(u\.id\)/);
     const SERVER = fs.readFileSync(path.join(ROOT, 'server/server.js'), 'utf8');

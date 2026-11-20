@@ -441,7 +441,9 @@ describe('f335 (11) — one mark, one meaning', () => {
     assert.match(REG, /icon\('readpaper','w-2\.5 h-2\.5'\)/, 'the findings badge on a Contracts row');
     assert.match(read('js/playbook.js'), /icon\('readpaper'/, 'the playbook Run button');
     assert.match(read('js/ocr.js'), /icon\('readpaper'/, 'the machine-read line');
-    assert.match(read('js/metadata.js'), /icon\('readpaper'/, 'the extraction line');
+    /* RE-POINTED 20 Nov 2026 (#814, the extraction review on the one edit pop-up): its machine-read notice is a quiet
+       amber line with no mark at all — so no OTHER mark stands for reading there */
+    assert.match(read('js/metadata.js'), /opts\.ocrNotice\?`<p class="lgp-small"/, 'the extraction line');
     assert.match(read('js/ai.js'), /icon\('readpaper'/, "Copilot's own pulse");
   });
   test('`scan` keeps Focus mode and NOTHING ELSE', () => {
