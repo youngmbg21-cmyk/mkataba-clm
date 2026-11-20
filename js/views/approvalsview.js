@@ -1409,15 +1409,14 @@ function apnPeekNotes(c, r){
   if(el){ const y=(el.getBoundingClientRect().top-sc.getBoundingClientRect().top)/f+sc.scrollTop-APN_PK_LAND_TOP; sc.scrollTop=Math.max(0,y);
     if(typeof landOn==='function') landOn(el,{ block:'nearest', focus:false }); }
 }
-/* the pop-up's two presses: × closes back to the row; Open the Dossier › closes and opens the contract THROUGH ITS COVER
-   (owner, 18 Nov 2026: "Open in paper should also go through the image attached flow" — the Cover, "Your move", with
-   Open the dossier › on it), the one door a person presses to open a contract on purpose (pdOpenOnHome 'open') */
+/* the pop-up's two presses: × closes back to the row; Open the Dossier › closes and opens the contract on purpose, its
+   paper with the Dossier (the Cover it once went through is deleted, owner, 20 Nov 2026) (pdOpenOnHome 'open') */
 function apnPeekDossier(key){
   const k=String(key||''), m=/^dep:(.+):(\d+)$/.exec(k), id=m?m[1]:(k.startsWith('c:')?k.slice(2):'');
   if(!id) return;
   if(typeof closeModal==='function') closeModal();
   const c=typeof getContract==='function'?getContract(id):null; if(!c) return;
-  if(typeof roomHomeLand==='function'&&roomHomeLand(c.id,{ cover:true })) return;
+  if(typeof roomHomeLand==='function'&&roomHomeLand(c.id,{ open:true })) return;
   if(typeof pdOpenOnHome==='function') pdOpenOnHome(c.id,'open');
 }
 if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPeekWired){

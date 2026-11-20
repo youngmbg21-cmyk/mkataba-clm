@@ -768,7 +768,7 @@ function navGoAct(n){
     redlines: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
     brief: () => (typeof caBriefOpen === 'function' && typeof getContract === 'function') ? caBriefOpen(getContract(id)) : false,
     open: () => pdOpenOnHome(id, 'open'),
-    paper: () => pdOpenOnHome(id, 'open', { cover: false }),
+    paper: () => pdOpenOnHome(id, 'open'),
     /* Key terms in the middle, on the row asked for (pdKtFocus: a fact's row, Move, Category, Rename) */
     terms: () => (typeof pdKtOpen === 'function') ? pdKtOpen(id) : false,
     value: () => (typeof pdKtFocus === 'function') ? pdKtFocus(id, 'value') : false,

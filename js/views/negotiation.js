@@ -10852,7 +10852,7 @@ function renderRedline(){
       rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
       /* "Open workspace" opens Home, never the room (the overnight work order,
          step 2; roomHomeLand, the one landing every Workspace door shares) */
-      if (window.roomHomeLand && roomHomeLand(c.id, { cover: true })) return;
+      if (window.roomHomeLand && roomHomeLand(c.id, { open: true })) return;
       if (typeof openWorkspace === 'function') openWorkspace(c.id);
     }));
   host.querySelectorAll('[data-rl-open-doc]').forEach(el =>

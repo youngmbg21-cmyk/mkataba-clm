@@ -53,7 +53,8 @@ test('f1066 (3) Where we are and Clauses after a reading, by their own presses',
   /* RE-POINTED 16 Nov 2026 (owner: the owner-side "Where the deal stands" page is deleted; the Cover says where it stands,
      f1085): its face is gone and its door opens the Cover */
   assert.ok(!/function pd2StandsFaceHtml\(/.test(PD), 'the Where-we-are face is gone');
-  assert.match(PD, /function pd2StandsOpen\(id\)\{ return pdCoverOpen\(id\); \}/);
+  /* RE-POINTED 20 Nov 2026: the Cover is deleted ("open the Dossier instead"); Where we are opens the Dossier */
+  assert.match(PD, /function pd2StandsOpen\(id\)\{ return pdOpenOnHome\(id, 'copilot'\); \}/);
   /* the Deal's panel (dealPanelNewHtml) was removed with the close plan (owner, 16 Nov 2026, f1084) */
   assert.ok(!/function dealPanelNewHtml\(/.test(NEGO), 'the Deal panel is gone');
   const cl = region(read('js/views/breakdown.js'), 'function stkMarqueeHtml(c, all, busy){', 'THE SAME HEAD AS REDLINES');

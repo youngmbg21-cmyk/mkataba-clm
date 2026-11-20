@@ -57,7 +57,7 @@ test('the builder: three doors, the lead filled, Negotiation greyed with its rea
      one landing every Workspace door shares — Fill in while owed, else the
      paper on Jambo — and the room only where Home has no paper (the phone) */
   const ws = body.slice(body.indexOf("k: 'door-ws'"), body.indexOf('const all ='));
-  assert.match(ws, /run: \(\) => \{ if \(typeof roomHomeLand === 'function' && roomHomeLand\(c\.id, \{ cover: true \}\)\) return;\s*openWorkspace\(c\.id\);/, 'Home first, the room only as the fallback');
+  assert.match(ws, /run: \(\) => \{ if \(typeof roomHomeLand === 'function' && roomHomeLand\(c\.id, \{ open: true \}\)\) return;\s*openWorkspace\(c\.id\);/, 'Home first, the room only as the fallback');
   assert.match(body, /roomGoTab\(live, left \? 'details' : 'terms'\)/, 'the phone\'s fallback keeps Details while owed, else the Overview');
   assert.doesNotMatch(body, /x\.id/, 'a door never reads the id of what the panel hands it');
   assert.match(ins, /<div class="ins-acts ins-doors">\$\{doors\}\$\{more\}<\/div>/, 'the doors stand in a row of their own, the ⋯ at its end');

@@ -5066,14 +5066,10 @@ function roomHomeLand(id, opts){
      lands on the paper and its Dossier, whose Next card carries "Fill in the contract ›" while details are owed; the
      form is its own door's (pdFillOpen), never a Workspace door's */
   void owed; void may;
-  /* THE COVER (owner, 16 Nov 2026): a door that opens the contract itself says so (opts.cover); a door on its way to a
-     job inside it lands on the paper alone */
-  /* THE COVER IS A PAGE OF ITS OWN (owner, 19 Nov 2026): a door asking for it goes there alone, over the page it was
-     pressed on — the paper opens only when the Cover is left for it (pdCoverGo / pdCoverLeave) */
-  if(opts&&opts.cover&&typeof window.pdCoverGo==='function'&&window.pdCoverGo(c.id)) return true;
-  const ok=!!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open',{ cover:false });
-  if(ok&&opts&&opts.cover&&typeof window.pdCoverLand==='function') window.pdCoverLand(c.id);
-  return ok;
+  /* OPENED ON PURPOSE, THE DOSSIER (owner, 20 Nov 2026: "Delete it [the Cover], open the Dossier instead"): a door
+     that opens the contract itself says so (opts.open) and lands on the paper with the face this reader opens
+     contracts on — the Dossier unless they chose another; a door on its way to a job inside it keeps its own way */
+  return !!pdOpenOnHome(c.id,(opts&&opts.open)||mine!=='jambo'?'open':'plain');
 }
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5

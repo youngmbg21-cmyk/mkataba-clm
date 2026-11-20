@@ -24,8 +24,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 /* the page standing at a point, by name; anything else is 'other' (a page we do not name), 'veil' or 'blank' */
 const NAMER = `(() => {
   const nameOf = e => { if (!e || e === document.body || e === document.documentElement) return 'blank';
-    if (e.id === 'cv-veil') return 'veil';
-    if (e.closest('.cv-page')) return 'cover';
+    if (e.id === 'mid-veil') return 'veil';
     if (e.closest('#modal-root [data-dlg-page]')) return 'page-over';
     if (e.closest('#ct-place')) return 'contracts';
     if (e.closest('#hb-board, .hb-board')) return 'board';
@@ -40,7 +39,7 @@ const NAMER = `(() => {
     return nameOf(stack[0]); };
   return () => name(innerWidth * 0.3, innerHeight * 0.55) + '|' + name(innerWidth * 0.55, innerHeight * 0.5);
 })()`;
-const NAMED = ['cover', 'contracts', 'board', 'paper'];
+const NAMED = ['contracts', 'board', 'paper'];
 
 (async () => {
   const h = await startHati(); await seedWorkspace(h);
@@ -63,7 +62,6 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
     const S = {
       board: async () => { await clear(); await page.evaluate(() => setView('dashboard')); return until(page, () => !!document.querySelector('#hb-board, .hb-board'), null, 15000); },
       contracts: async () => { await clear(); await page.evaluate(() => setView('register')); return until(page, () => !!document.querySelector('#ct-place'), null, 15000); },
-      cover: async () => { if (!await S.contracts()) return false; await page.waitForTimeout(800); await page.evaluate(id => regOpenContract(id), ids[0]); return until(page, () => !!document.querySelector('.cv-page'), null, 20000); },
       /* the paper with its Dossier on its first tab: by its Cover when one stands, else already on the paper (a contract
          left on another face reopens there); the Dossier tab pressed so every move starts from the same face */
       paper: async () => {
@@ -81,15 +79,9 @@ const NAMED = ['cover', 'contracts', 'board', 'paper'];
       ['Board → Negotiations (symbol strip)', S.board, { strip: 'negotiations' }],
       ['Board → Obligations (symbol strip)', S.board, { strip: 'oblig' }],
       ['Board → Settings (symbol strip)', S.board, { strip: 'settings' }],
-      ['Contracts → a contract (lands on its Cover)', S.contracts, { js: `regOpenContract('${ids[0]}')` }],
+      /* RE-POINTED 20 Nov 2026: the Cover is deleted (owner: "open the Dossier instead"); its five moves are retired */
+      ['Contracts → a contract (lands on its paper and Dossier)', S.contracts, { js: `regOpenContract('${ids[0]}')` }],
       ['Contracts → another contract', S.contracts, { js: `regOpenContract('${ids[1]}')` }],
-      ['Cover → Contracts ›', S.cover, { click: '.cv-door' }],
-      ['Cover → The brief', S.cover, { click: '[data-cv-go="brief"]' }],
-      ['Cover → Open the dossier', S.cover, { click: '.cv-open' }],
-      /* f1099 (owner, 19 Nov 2026): the Cover is a page of its own over the page pressed from — ONE ‹ (or Esc) and
-         Contracts is there, never the contract's paper on the way */
-      ['Cover → the bar\'s ‹ back (one press to Contracts)', S.cover, { click: '#dk-back', lands: 'contracts' }],
-      ['Cover → Esc (one press to Contracts)', S.cover, { key: 'Escape', lands: 'contracts' }],
       ['Paper → Clauses tab', S.paper, { click: '[data-pd-tab="doc"]' }],
       ['Paper → Redlines tab', S.paper, { click: '[data-pd-tab="red"]' }],
       ['Paper → the bar\'s ‹ back', S.paper, { click: '#dk-back' }],
