@@ -22692,3 +22692,9 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Import: a file name breaks mid-word ("Supply_Riverside_2023_cop / y.txt") instead of two lines then "…"; "KES 480K a year" wraps in the Value column.
 - Import: five loud coloured tiles (12 · 7 · 3 · 1 · 1) repeat what the tabs and list say.
 - Import › before any file: the drop area is drawn twice (page and panel), with Choose files in both.
+
+## Noticed, not fixed — Our paper page clean-up photos (20 Nov 2026)
+- Our paper › Shelves: the same three numbers (12 templates · 13 drafted · 0 came back changed) are said THREE times — the facts line beside the title, four figure cards, and the panel's three tiles.
+- Our paper › Shelves: shelf and paper names cut short ("Procurement & Raw Mate…", "Raw Material Su…") where the card has room for two lines.
+- Our paper › a paper chosen: the panel's last button ("Open the paper") runs under Jambo's links line, cut off; the tile label "Came back ch…" is cut.
+- Our paper › the paper: the facts are said twice (a column beside the paper and the panel's tiles), and "Make our own version in New agreement ›" runs under Jambo's links line.
