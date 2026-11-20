@@ -67,13 +67,10 @@ const check = (name, pass, detail) => {
         pick: (document.querySelector('.cun-page .cun-say [data-cun-pick]') || { getAttribute: () => '' }).getAttribute('data-cun-pick') }));
       check('1a the tabs are All · Waiting on you at most; no Folders, no NDA missing', L.tabs[0] === 'all' && L.tabs.every(t => ['all', 'wait'].includes(t)), JSON.stringify(L.tabs));
       check('1b no NDA column', L.cols.length > 0 && !L.cols.includes('NDA'), JSON.stringify(L.cols));
-      check('1c a sentence over the list names the party holding the most money', /^You hold paper with \d+ parties\. Orbit Logistics Ltd holds the most money/.test(L.say) && L.pick === 'orbit logistics ltd', JSON.stringify(L));
+      /* RE-POINTED 20 Nov 2026 (owner: "delete the highlighted parts"): the sentence over the Parties list is gone; the
+         list starts straight under the tabs */
+      check('1c no sentence over the list', L.say === '', JSON.stringify(L));
       await shot('pc-1-parties-1440x780.png');
-      if (L.pick) {
-        await page.click('.cun-page .cun-say [data-cun-pick]');
-        const sel = await until(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="orbit logistics ltd"]'); return r && r.classList.contains('is-sel') && /Orbit/.test((document.querySelector('#ins-panel .jov5-title') || {}).textContent || '') ? 'chosen' : null; });
-        check('1d the party the sentence names is a press that chooses its row', sel === 'chosen', String(sel));
-      }
       await page.click('#cu-tbody [data-cu-cust="orbit logistics ltd"]');
       await page.waitForTimeout(400);
       const S = await page.evaluate(() => ({ view: state.view, list: !!document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody'), party: !!document.querySelector('.cun-page[data-cu-screen="party"]') }));
@@ -138,7 +135,8 @@ const check = (name, pass, detail) => {
         return { stack: !!st, over: !!(back && h && back.getBoundingClientRect().bottom <= h.getBoundingClientRect().top + 1), size: h ? getComputedStyle(h).fontSize : '',
           say: ((document.querySelector('#ct-place .ct-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(), rows }; });
       check('5a "‹ Folders" small over the title, the title at 26px', C.stack && C.over && C.size === '26px', JSON.stringify(C));
-      check('5b a sentence over the list: "You hold N contracts, M of them signed …"', /^You hold \d+ contracts, \d+ of them signed/.test(C.say), C.say);
+      /* RE-POINTED 20 Nov 2026 (owner: "delete the highlighted parts"): the sentence over the Contracts list is gone */
+      check('5b no sentence over the list', C.say === '' && !document.querySelector('#ct-place .ct-say'), C.say);
       check('5c rows about 66px tall', C.rows.length > 0 && C.rows.every(x => x >= 58 && x <= 76), JSON.stringify(C.rows));
       await shot('pc-5-contracts-1440x780.png');
     });

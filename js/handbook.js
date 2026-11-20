@@ -665,8 +665,8 @@ const HANDBOOK_CHAPTERS = [
   { k: '5.4', part: 'keep', round: 1,
     title: { en: 'Parties: one list, a party\'s facts, its contacts and agreements', sv: 'Parter: en lista, en parts fakta, dess kontakter och avtal' },
     eyebrow: { en: 'Parties page', sv: 'Parter' },
-    what: { en: 'One list of every party you hold paper with. A sentence over it counts them, names the party with the most money and counts the parties with work waiting on you; each row gives its streams, its agreements (signed and in progress), the money, which signed agreement ends next and, last, how much waits on you and on how many contracts. Press a party and the panel shows its facts, its contacts and two links: all its agreements, and those that need your attention.',
-      sv: 'En lista över varje part ni har avtal med. En mening ovanför säger hur många, vem som står för mest pengar och hur många som har något som väntar på dig; varje rad säger dess strömmar, dess avtal (signerade och pågående), pengarna, vilket signerat avtal som slutar härnäst och, sist, hur mycket som väntar på dig och på hur många avtal. Tryck på en part så visar panelen dess fakta, dess kontakter och två länkar: alla dess avtal, och de som behöver din uppmärksamhet.' },
+    what: { en: 'One list of every party you hold paper with; the tabs count them and the parties with work waiting on you. Each row gives its streams, its agreements (signed and in progress), the money, which signed agreement ends next and, last, how much waits on you and on how many contracts. Press a party and the panel shows its facts, its contacts and two links: all its agreements, and those that need your attention.',
+      sv: 'En lista över varje part ni har avtal med; flikarna räknar dem och de parter som har något som väntar på dig. Varje rad säger dess strömmar, dess avtal (signerade och pågående), pengarna, vilket signerat avtal som slutar härnäst och, sist, hur mycket som väntar på dig och på hur många avtal. Tryck på en part så visar panelen dess fakta, dess kontakter och två länkar: alla dess avtal, och de som behöver din uppmärksamhet.' },
     when: [{ en: 'Before a meeting, a call or a renewal talk with a customer or supplier.', sv: 'Före ett möte, ett samtal eller ett förnyelsesamtal med en kund eller leverantör.' },
       { en: '"Everything we have with Naivas": the party\'s agreements on Contracts.', sv: '"Allt vi har med Naivas": partens avtal i Avtal.' }],
     path: ['door:parties', { en: 'press a party', sv: 'tryck på en part' }],
@@ -678,7 +678,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['parties', 'party', 'customers', 'suppliers', 'counterparty', 'contacts', 'add a contact', 'phone', 'job title'], sv: ['parter', 'part', 'kunder', 'leverantörer', 'motpart', 'kontakter', 'lägg till kontakt', 'telefon', 'titel'] },
     shots: [
       { go: [{ place: 'parties' }, { fn: 'cuSelectParty', args: ['siginon group'] }, { waitFor: '#ins-panel [data-cun-cts]' }], boxes: [{ sel: '#ins-panel [data-cu-pr-edit="siginon group"]', step: 2 }, { sel: '#ins-panel [data-cun-add-ct]', step: 3 }, { sel: '#ins-panel [data-cun-cts]', step: 3 }], cap: { en: 'A party pressed: its facts and Edit (2), its contacts with + Add, and all its agreements on Contracts (3).', sv: 'En part vald: dess fakta och Ändra (2), dess kontakter med + Lägg till, och alla dess avtal i Avtal (3).' } },
-      { go: [{ place: 'parties' }, { waitFor: '.cun-say' }], boxes: [{ sel: '.cun-page .cun-say', step: 1 }], cap: { en: 'The list and its sentence (1).', sv: 'Listan och dess mening (1).' } }] },
+      { go: [{ place: 'parties' }, { waitFor: '#cu-tbody [data-cu-cust]' }], boxes: [{ sel: '.cun-page .cun-table', step: 1 }], cap: { en: 'The list, a row for each party (1).', sv: 'Listan, en rad för varje part (1).' } }] },
 
   { k: '5.5', part: 'keep', round: 1,
     title: { en: 'Discover: one question asked of many contracts', sv: 'Discover: en fråga ställd till många avtal' },

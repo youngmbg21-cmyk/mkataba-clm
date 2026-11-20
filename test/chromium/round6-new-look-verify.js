@@ -135,8 +135,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const panel = await until(page, () => !!document.querySelector('#ins-panel [data-jov5-sec="ags"] [data-cun-cts]'), null, 10000);
     const said = await txt(page, '#ins-panel');
     await shot('4b-party');
-    check('4 Parties: the list first, a sentence over it; a row\'s panel with its facts, contacts and agreements, all of them on Contracts',
-      up && /^You hold paper with \d+ part/.test(say) && panel && /own facts/i.test(said) && /Contacts/.test(said) && /on Contracts/.test(said), { say: say.slice(0, 160), said: said.slice(0, 200) });
+    check('4 Parties: the list first, no sentence over it (owner, 20 Nov 2026: "delete the highlighted parts"); a row\'s panel with its facts, contacts and agreements, all of them on Contracts',
+      up && say === '' && panel && /own facts/i.test(said) && /Contacts/.test(said) && /on Contracts/.test(said), { say: say.slice(0, 160), said: said.slice(0, 200) });
   } catch (e) { check('4 Parties', false, String(e).slice(0, 200)); }
 
   /* 5 · People */
