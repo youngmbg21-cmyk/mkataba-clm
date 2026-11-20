@@ -22681,3 +22681,10 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Requests › Mine: a request the reader holds says "With Amina" (their own name) instead of "with you".
 - Requests › Drafted: the panel still says "no NDA with them today · NDA to do" and "Nobody holds it" on a request that has become a contract.
 - Requests › Advice: the panel line runs two sentences together ("Advice · Submitted Sales C. asked today."); the row's title is the service name ("Contract Advice Session"), not the person's question; a "0 files" tile states a zero as a fact.
+
+## Noticed, not fixed — Import page clean-up photos (20 Nov 2026)
+- Import › Need you / Read / All: with a row chosen, the side panel is drawn WITHOUT its styling — raw text edge to edge, no spacing, buttons squeezed ("NDA_Acme_draft_v2.txt Is it signed? Its name or first lines…"); seen in the photo script's sitting (may need a check that it is not a load-order fault).
+- Import: the same words twice in one row — "not signed: import as a draft?" and "the same words as MK-203" on both the line and the sub-line.
+- Import: a file name breaks mid-word ("Supply_Riverside_2023_cop / y.txt") instead of two lines then "…"; "KES 480K a year" wraps in the Value column.
+- Import: five loud coloured tiles (12 · 7 · 3 · 1 · 1) repeat what the tabs and list say.
+- Import › before any file: the drop area is drawn twice (page and panel), with Choose files in both.
