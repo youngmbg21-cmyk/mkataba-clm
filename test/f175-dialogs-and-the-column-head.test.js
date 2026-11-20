@@ -74,12 +74,17 @@ async function stage(){
 
 /* Every dialog in the feature, and how to open it. A new one added without a
    head fails the sweep below rather than shipping bland. */
+/* RE-POINTED 20 Nov 2026 (f1117, the owner's "Fix all batches": every edit pop-up on the one Legora sheet): the review
+   ask and the reviewer note left the tinted head for the ONE edit pop-up's own parts — a serif headline, the body, the
+   foot — pinned below; the claim (every dialog wears one shared head, never a hand-rolled one) is unchanged. */
 const DIALOGS = [
   ['the desk sheet',          (w, c) => w.openDeskSheet(c)],
-  ['the review ask',          (w, c) => w.openReviewAskModal(c)],
   ['the entry chooser',       (w, c) => w.openReviewEntryChooser(c)],
   ['the hand-over',           (w, c) => w.openDeskHandover(c)],
   ['the join request',        (w, c) => w.openDeskJoinAsk(c)],
+];
+const LGP_DIALOGS = [
+  ['the review ask',          (w, c) => w.openReviewAskModal(c)],
   ['the reviewer note',       (w, c, ch) => w.openReviewNoteModal(c, ch.id)],
 ];
 
@@ -99,6 +104,21 @@ describe('f175 · every dialog in the feature wears the same head', () => {
       /* The old bare heading must be gone, or two dialogs disagree. */
       assert.equal(m.querySelector('h2[style*="font-heading"]'), null,
         'no dialog keeps a hand-rolled heading of its own');
+    });
+  }
+
+  for (const [name, open] of LGP_DIALOGS){
+    test(name + ' wears the one Legora sheet: a headline, a body and a foot (f1117)', async () => {
+      const p = await stage();
+      p.win.deskOpenFromChip(p.c);
+      open(p.win, p.c, p.mine);
+      const m = p.modal();
+      assert.ok(m.querySelector('form.lgp'), 'the one sheet is drawn');
+      const title = m.querySelector('.lgp-hd .lgp-h');
+      assert.ok(title && title.textContent.trim(), 'with a headline');
+      assert.ok(m.querySelector('.lgp-bd'), 'the body is its own block');
+      assert.ok(m.querySelector('.lgp-ft .ui-btn-primary'), 'and the one black button sits in the foot');
+      assert.equal(m.querySelector('h2[style*="font-heading"]'), null, 'no hand-rolled heading of its own');
     });
   }
 

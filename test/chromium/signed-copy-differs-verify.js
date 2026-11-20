@@ -176,6 +176,8 @@ const signedOf = (cp, signer) => [
       scr.head.some(t => /^3\.?/.test(t)) && !scr.head.some(t => /SERVICES AGREEMENT/.test(t)), JSON.stringify(scr.head));
 
     /* ===== 3. THE BUTTONS FOLLOW WHO HAS SIGNED ===== */
+    /* f1117: the filing screen is the one sheet in two steps; the acts and the filing lines are on its second */
+    await page.click('#ho-f-next').catch(() => {});
     const all = await acts(page);
     check('3a everybody signed and the words differ: no plain "File as signed" — an admin may file with the difference, or hold',
       !all.file && all.accept && all.hold && !all.sendback, JSON.stringify(all));
@@ -264,6 +266,7 @@ const signedOf = (cp, signer) => [
     ed.on('pageerror', e => errors.push('editor: ' + e.message));
     await login(ed, 'everything@example.co.ke', 'their-own-pass-9');
     const offeredB = await openFiling(ed, signedB);
+    await ed.click('#ho-f-next').catch(() => {});   // f1117: the second step holds the acts
     const edActs = await acts(ed);
     await ed.screenshot({ path: path.join(OUT, '6-editor.png') });
     check('6a an editor who did not approve it is not offered to accept the difference — only to hold it',
