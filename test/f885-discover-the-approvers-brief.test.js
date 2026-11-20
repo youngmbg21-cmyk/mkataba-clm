@@ -10,6 +10,10 @@
        from the standards check with their sentences, the settled asks
        counted, "not checked yet" where the standards were never asked.
    AT THE PARENT (stage 7) (1) fails: the brief route's gate is `editor`.
+   RE-POINTED 20 Nov 2026 (Round A of the owner's ground rules: "a Viewer acts on nothing", approvals included): a
+   Viewer is never an approver — Settings never offered one, srvUserCanApprove and the rule mail now refuse one, and a
+   rule naming a member made Viewer falls to the admins. So (1) and (2b) now say a Viewer approver is REFUSED the brief
+   (a brief is prepared work); any approver who may act (an Editor or admin) still asks, as the owner's 25 Oct pick.
    ═══════════════════════════════════════════════════════════════ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -39,11 +43,11 @@ before(async () => {
 after(async () => { if (h) await h.stop(); });
 
 describe('f885 (1) the approver may ask', () => {
-  test('1a the named approver, a viewer, gets the brief', async () => {
+  test('1a a Viewer named as approver is refused (a Viewer approves nothing), and nothing is spent', async () => {
     h.ai.reset();
     const r = await ann.c.raw('/api/ai/brief', { method: 'POST', body: { id: 'MK-AP1' } });
-    assert.equal(r.status, 200, r.text.slice(0, 200));
-    assert.equal(h.ai.calls.length, 1);
+    assert.equal(r.status, 403, r.text.slice(0, 200));
+    assert.equal(h.ai.calls.length, 0);
   });
 });
 
@@ -59,8 +63,7 @@ describe('f885 (2) nobody else who cannot edit', () => {
     const after = await W.admin.json('/api/contracts/MK-AP1');
     const decided = (after.approvalChain || []).some(x => x.ruleId === 'r1' && x.status === 'approved');
     const r = await ann.c.raw('/api/ai/brief', { method: 'POST', body: { id: 'MK-AP1' } });
-    if (decided) assert.equal(r.status, 403);
-    else assert.equal(r.status, 200, 'the chain could not be decided by this save: the step is still open, so she may ask');
+    assert.equal(r.status, 403, decided ? 'decided' : 'open — a Viewer is refused either way');
   });
   test('2c an editor asks as always', async () => {
     const r = await W.unrestricted.raw('/api/ai/brief', { method: 'POST', body: { id: 'MK-AP1' } });

@@ -1385,12 +1385,12 @@ function srvViewerNamedRefusal(prev, next) {
     const s = String(q || '').trim().toLowerCase(); if (!s) return null;
     let u = null;
     try { u = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(s) || db.prepare('SELECT * FROM users WHERE LOWER(name)=?').get(s); } catch (_) { u = null; }
-    return u && u.role === 'viewer' ? u : null;
+    return u && !srvMayAct(u) ? u : null;
   };
   const po = prev && prev.owner, no = next && next.owner;
   if (no && no.id != null && String(no.id) !== String((po && po.id) || '')) {
     let u = null; try { u = db.prepare('SELECT * FROM users WHERE id=?').get(String(no.id)); } catch (_) { u = null; }
-    if (u && u.role === 'viewer') return `${u.name || u.email} is a Viewer and cannot own a contract. Choose a member who edits.`;
+    if (u && !srvMayAct(u)) return `${u.name || u.email} is a Viewer and cannot own a contract. Choose a member who edits.`;
   }
   const was = new Map((Array.isArray(prev && prev.obligations) ? prev.obligations : []).filter(Boolean).map(o => [String(o.id), String(o.assignee || '')]));
   for (const o of (Array.isArray(next && next.obligations) ? next.obligations : [])) {
@@ -1399,7 +1399,57 @@ function srvViewerNamedRefusal(prev, next) {
     const u = viewerBy(o.assignee);
     if (u) return `${u.name || u.email} is a Viewer and cannot be given a duty. Choose a member who edits.`;
   }
+  /* Round A (owner, 20 Nov 2026): nor named to SIGN for us, nor seated on a negotiation's desk — each is work a Viewer
+     can do none of. Asked as a difference: a seat or a signer already there stands. */
+  const byId = id => { if (id == null || id === '') return null; try { return db.prepare('SELECT * FROM users WHERE id=?').get(String(id)); } catch (_) { return null; } };
+  const wasSign = new Set((Array.isArray(prev && prev.signerPlan) ? prev.signerPlan : []).filter(r => r && r.memberId != null).map(r => String(r.memberId)));
+  for (const r of (Array.isArray(next && next.signerPlan) ? next.signerPlan : [])) {
+    if (!r || r.memberId == null || wasSign.has(String(r.memberId))) continue;
+    const u = byId(r.memberId);
+    if (u && !srvMayAct(u)) return `${u.name || u.email} is a Viewer and cannot sign. Choose a member who edits.`;
+  }
+  const pd = (prev && prev.desk) || {}, nd = (next && next.desk) || {};
+  const wasSeat = new Set([pd.leadId, ...(Array.isArray(pd.contributors) ? pd.contributors.map(x => x && x.id) : [])].filter(x => x != null).map(String));
+  for (const id of [nd.leadId, ...(Array.isArray(nd.contributors) ? nd.contributors.map(x => x && x.id) : [])]) {
+    if (id == null || wasSeat.has(String(id))) continue;
+    const u = byId(id);
+    if (u && !srvMayAct(u)) return `${u.name || u.email} is a Viewer and cannot take a seat on this negotiation. Choose a member who edits.`;
+  }
   return '';
+}
+/* A MEMBER MADE VIEWER IS TAKEN OFF THE WORK THEY HELD (Round A, owner 20 Nov 2026: "changing someone to Viewer
+   removes them from approver, signer, lead and reviewer roles, and tells the admin"). Inside the role change's own
+   transaction: colleagues whose approver, backup or reviewer they were lose that link (the company's default
+   applies), and an approval rule naming them falls to the admins. Contracts are NOT rewritten (a signed record is
+   never touched): those where they still own, lead or are named to sign are COUNTED, and the sentence back to the
+   admin says so, so a person can hand them on. Returns that sentence. */
+function srvViewerHandOn(target, by) {
+  const id = String(target.id), who = target.name || target.email || 'They';
+  const people = db.prepare('SELECT name FROM users WHERE overseer_id=? OR overseer_backup_id=? OR reviewer_id=?').all(id, id, id).map(u => u.name).filter(Boolean);
+  db.prepare('UPDATE users SET overseer_id=NULL WHERE overseer_id=?').run(id);
+  db.prepare('UPDATE users SET overseer_backup_id=NULL WHERE overseer_backup_id=?').run(id);
+  db.prepare('UPDATE users SET reviewer_id=NULL WHERE reviewer_id=?').run(id);
+  let rules = 0;
+  const st = getSetting('appSettings');
+  if (st && Array.isArray(st.approvalRules)) {
+    st.approvalRules.forEach(r => { const a = r && r.approver;
+      if (a && a.kind === 'member' && (String(a.id || '') === id || (!a.id && String(a.name || '') === String(target.name || '')))) { r.approver = { role: 'admin' }; rules++; } });
+    if (rules) setSetting('appSettings', st);
+  }
+  let held = 0;
+  for (const r of db.prepare("SELECT json FROM contracts WHERE status!='Signed' AND status!='Declined'").all()) {
+    let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (!c || c.archived) continue;
+    const d = c.desk || {};
+    if ((c.owner && String(c.owner.id) === id) || (d.leadId && String(d.leadId) === id && !d.closedAt)
+      || (Array.isArray(c.signerPlan) && c.signerPlan.some(x => x && String(x.memberId) === id && !x.signed))) held++;
+  }
+  const parts = [];
+  if (people.length) parts.push(`no longer approves or reviews for ${people.join(', ')}`);
+  if (rules) parts.push(`${rules} approval rule${rules === 1 ? '' : 's'} naming them now go${rules === 1 ? 'es' : ''} to the admins`);
+  if (held) parts.push(`still owns, leads or is named to sign on ${held} open contract${held === 1 ? '' : 's'} — hand ${held === 1 ? 'it' : 'them'} on`);
+  try { acctRecord(by, target, 'viewer-hand-on', parts.join('; ') || 'nothing held'); } catch (_) {}
+  return parts.length ? `${who} is now a Viewer: ${parts.join('; ')}.` : '';
 }
 function ourChangesTouched(prev, next) {
   const ours = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
@@ -2326,7 +2376,7 @@ function srvApprovalChainRefusal(c, prev) {
    step by an admin, a legal step by legal or an admin, anything else by that
    role. */
 function srvUserCanApprove(a, u) {
-  if (!u || !a) return false;
+  if (!u || !a || !srvMayAct(u)) return false;   // a Viewer approves nothing (Round A)
   /* …or the member's stand-in while they are away (piece 9: awayCovers) */
   if (a.kind === 'member') return a.id ? String(a.id) === String(u.id || '') || awayCovers(u, a.id) : String(a.name || '') === String(u.name || '');
   if (a.role === 'admin') return u.role === 'admin';
@@ -2464,6 +2514,7 @@ function hoPeople(c, opts) {
     const u = byId.get(String(id || ''));
     if (!u || !/.+@.+\..+/.test(String(u.email || ''))) return;
     if (o.skipId && String(u.id) === String(o.skipId)) return;
+    if (!srvMayAct(u)) return;   // a Viewer is told no handover work (Round A)
     if (!inScope(folderScopeFor(u), c.folder)) return;
     const was = out.get(String(u.id));
     if (was) { if (!was.roles.includes(role)) was.roles.push(role); return; }
@@ -3862,6 +3913,10 @@ const passwordCurrent = (req, res, next) => {
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
   next();
 };
+/* THE ONE QUESTION, ON THE SERVER (owner, 20 Nov 2026; the browser's twin is mayActOn): may this member act — be
+   mailed work, be named to do it, have Jambo prepare for them? A Viewer never. Every mail, push and naming wall asks
+   this rather than role==='viewer' by hand. */
+const srvMayAct = u => !!u && u.role !== 'viewer';
 const editor = (req, res, next) => {
   if (req.user.role === 'viewer') return res.status(403).json({ error: 'Viewers have read-only access' });
   return passwordCurrent(req, res, next);
@@ -8704,7 +8759,7 @@ Rules — these are absolute:
 - If the page is blank or contains no text at all, return an empty transcription.
 - Return ONLY the transcription through the transcribe_page tool — no commentary about the image.`;
 
-app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (req, res) => {
+app.post('/api/ai/ocr', auth, editor, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { pages, first } = req.body || {};
@@ -8778,7 +8833,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
    value and text richness. Stage 2: Claude (FAST tier — this is a ranking
    task over a small shortlist) ranks the top 3 as templates for the new
    contract described. */
-app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
+app.post('/api/ai/template', auth, editor, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   /* LIBRARY TEMPLATES ARE NOT CONTRACTS (the owner's list, 27 Sep 2026): the
@@ -9234,7 +9289,7 @@ ${String(text)}`;
   delete out.sourceSpans;
   return { ok: true, resp, metadata: out, sourceSpans, tier };
 }
-app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/extract', auth, editor, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, thorough, part, parts } = req.body || {};
@@ -9321,7 +9376,7 @@ async function aiLabelCandidates(req, res, key) {
    Proposes fields plus a rewritten body with {{key}} placeholders inserted.
    The human reviews and edits every proposal in the template editor before
    anything is saved — nothing here is written on the model's say-so. */
-app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/blanks', auth, editor, rlAiLight, aiFeature('blanks'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   if (Array.isArray((req.body || {}).candidates)) return aiLabelCandidates(req, res, key);
@@ -9592,7 +9647,7 @@ function obSrvClean(o){
   if (o.why) out.why = String(o.why).slice(0, 240);
   return out;
 }
-app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/obligations', auth, editor, rlAiDeep, aiFeature('obligations'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, ours, theirs } = req.body || {};
@@ -9697,7 +9752,7 @@ const amendNorm = t => String(t || '').toLowerCase().replace(/[\u2018\u2019]/g, 
    is not in the wording is dropped and counted, never shown; a date that is
    not a real day is dropped. Nothing is guessed. */
 const WINDOW_KINDS = ['fixed', 'fee', 'lockin', 'probation', 'nohire', 'secrecy', 'other'];
-app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/windows', auth, editor, rlAiDeep, aiFeature('windows'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, start, end } = req.body || {};
@@ -9762,7 +9817,7 @@ function aiClip(v, n){
   const cut = t.slice(0, n - 1), sp = cut.lastIndexOf(' ');
   return (sp > n * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,;:–—-]+$/, '') + '…';
 }
-app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, side } = req.body || {};
@@ -9856,7 +9911,7 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
    reading so it is asked once. Small: the answer is only the dive's own
    sections, so it lands in seconds. Money only from figures the wording
    states; a figure it cannot work out is empty, never guessed. */
-app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/breakdown/point', auth, editor, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, side, point } = req.body || {};
@@ -9899,7 +9954,7 @@ app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBu
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
-app.post('/api/ai/amend', auth, rlAiDeep, aiFeature('amend'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/amend', auth, editor, rlAiDeep, aiFeature('amend'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, ask, facts } = req.body || {};
@@ -10001,13 +10056,13 @@ function srvMayApproveHere(full, u) {
   return (Array.isArray(full.signApprovals) ? full.signApprovals : []).some(r => r && !r.decidedAt
     && (String(r.approverId || '') === String(u.id) || String(r.backupId || '') === String(u.id)));
 }
+/* QUESTIONS YES, WORK NO (owner, 20 Nov 2026: "Jambo never prepares, drafts, checks or changes anything for them"):
+   the ten Jambo routes that PREPARE or CHECK work for a contract (read its clauses, its duties, its windows, its
+   blanks, its standards, an amendment, a template, a scan) take `editor`; asking questions (chat, search, graph,
+   plan, the Board's analyst) stays open to a Viewer. A brief is prepared work too: only who may act asks for one. */
 const briefAsker = (req, res, next) => {
-  if (req.user.role !== 'viewer') return passwordCurrent(req, res, next);
-  const id = String((req.body || {}).id || '');
-  const row = id ? db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(id) : null;
-  let full = null; try { full = row && inScope(folderScopeFor(req.user), row.folder) ? JSON.parse(row.json) : null; } catch (_) { full = null; }
-  if (!srvMayApproveHere(full, req.user)) return res.status(403).json({ error: 'Viewers have read-only access' });
-  return passwordCurrent(req, res, next);
+  if (srvMayAct(req.user)) return passwordCurrent(req, res, next);
+  return res.status(403).json({ error: 'Viewers have read-only access' });
 };
 app.post('/api/ai/brief', auth, briefAsker, rlAiDeep, aiFeature('brief'), aiBudgetGuard, capAiInput, async (req, res) => {
   const { id, text, force } = req.body || {};
@@ -12263,8 +12318,9 @@ app.patch('/api/intake/:id', auth, (req, res) => {
     const want = clean(b.assignee).slice(0, 60);
     if (!want) { asgId = null; asgName = null; }
     else {
-      const u = db.prepare('SELECT id,name FROM users WHERE id=?').get(want);
+      const u = db.prepare('SELECT id,name,role FROM users WHERE id=?').get(want);
       if (!u) return res.status(400).json({ error: 'No such member' });
+      if (!srvMayAct(u)) return res.status(400).json({ error: `${u.name} is a Viewer and cannot hold a request. Choose a member who edits.`, viewerNamed: true });
       asgId = u.id; asgName = u.name || '';
     }
   }
@@ -13118,7 +13174,7 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind, note, before }, m
   return { ok: true, resp, verdicts: (Array.isArray(block.input?.verdicts) ? block.input.verdicts : []).map(named) };
 }
 
-app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/playbook', auth, editor, rlAiDeep, aiFeature('playbook'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, playbook, kind } = req.body || {};
@@ -14372,6 +14428,25 @@ function openCardSays(card) {
   if (!was && !now) return '';
   return `A rewrite card is open in their Jambo window${clause ? ' for "' + clause + '"' : ''}.${was ? ' The passage it would replace: "' + was + '".' : ''}${now ? ' The wording it proposes: "' + now + '".' : ''} A question about "this", "it" or "the rewrite" means that card; answer it, and change nothing. `;
 }
+/* THE LEVELS IN PLAIN WORDS (owner, 20 Nov 2026: Jambo called an Editor "legal (viewer) permissions — cannot edit"):
+   the stored role code is never what Jambo, a mail or a person reads. One table, both what it is called and what it
+   allows; the browser's ROLE_LABEL says the same names. */
+const SRV_ROLE_PLAIN = { admin: 'Admin', legal: 'Editor', viewer: 'Viewer' };
+const SRV_ROLE_MAY = {
+  admin: 'may do everything, including the company\'s settings',
+  legal: 'may edit, negotiate, send, approve where named and sign within their limits, in the streams they can see',
+  viewer: 'may read and search what they can see and ask you questions, but may not act on any contract: no edits, answers, sends, approvals, signatures, duties or prepared work',
+};
+const srvRolePlain = r => SRV_ROLE_PLAIN[r] || 'Editor';
+/* WHO IS ASKING (the ground rules' "Jambo follows the same rules"): read off the signed-in person on THIS request, never
+   off what the browser sends. A Viewer is offered no act — only reading and answers. */
+function whoAsksSays(u) {
+  if (!u) return '';
+  const lvl = SRV_ROLE_PLAIN[u.role] ? u.role : 'legal';
+  return `The person asking is ${u.name || 'a member'}, an ${srvRolePlain(lvl)}: they ${SRV_ROLE_MAY[lvl]}. `
+    + (lvl === 'viewer' ? 'Never suggest or offer them an act (drafting, redlining, answering, sending, approving, signing, filling in, chasing, amending, adding duties or contacts); if they ask for one, say plainly that a Viewer reads only and that an admin can change their level. ' : '')
+    + 'When you describe anyone\'s access, use only the words Admin, Editor or Viewer. ';
+}
 function buildCopilotSystem(context, scopeCtx) {
   const ctx = context || {};
   // Live workspace facts so Copilot knows what exists without blind searching —
@@ -14394,6 +14469,7 @@ function buildCopilotSystem(context, scopeCtx) {
   if (ctx.activeContractId) view += `The contract open on screen is ${ctx.activeContractId}${ctx.activeContractName ? ' (' + ctx.activeContractName + ')' : ''} — assume an unqualified "this contract" means that one. `;
   if (ctx.clause) view += `They are looking at the "${ctx.clause}" area of the document. `;
   view += openCardSays(ctx.openCard);
+  view += whoAsksSays(scopeCtx && scopeCtx.user);
   view += cardReadsSays(ctx.cardReads);
   /* WHICH INSIGHTS TAB. "intel" is three different pages, and a reader looking
      at the Portfolio charts who asks "why is this so big" means the chart in
@@ -18379,6 +18455,7 @@ app.post('/api/contracts/:id/escalate', auth, editor, async (req, res) => {
   if (!u) return res.status(404).json({ error: 'That colleague is not on this workspace' });
   if (!inScope(folderScopeFor(u), row.folder))
     return res.status(403).json({ error: `${u.name} cannot open this contract` });
+  if (!srvMayAct(u)) return res.status(400).json({ error: `${u.name} is a Viewer and cannot accept or hold a signature. Choose a member who edits.`, viewerNamed: true });
   const to = String(u.email || '').trim();
   const category = clean(b.category).slice(0, 120) || 'a standard';
   const note = clean(b.note).slice(0, 600);
@@ -18427,6 +18504,8 @@ app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
   if (!u) return res.status(404).json({ error: 'That colleague is not on this workspace' });
   if (!inScope(folderScopeFor(u), row.folder))
     return res.status(403).json({ error: `${u.name} cannot open this contract`, why: 'no-access', name: u.name });
+  /* a pass asks for an answer ("mark it done"), which a Viewer cannot give (Round A, owner 20 Nov 2026) */
+  if (!srvMayAct(u)) return res.status(400).json({ error: `${u.name} is a Viewer and cannot answer a pass. Choose a member who edits.`, why: 'viewer', name: u.name, viewerNamed: true });
   const to = String(u.email || '').trim();
   /* THE NOTE MAY BE JAMBO'S SUMMARY (the send screen's "a colleague", 20 Oct
      2026), so it holds PASS_NOTE_MAX; a longer one is refused, never trimmed
@@ -18501,7 +18580,13 @@ function saMailFacts(c, u) {
   return bits.join(' · ');
 }
 function saMailTo(users, folder) {
-  return users.filter(u => u && /.+@.+\..+/.test(String(u.email || '')) && inScope(folderScopeFor(u), folder));
+  const reach = users.filter(u => u && /.+@.+\..+/.test(String(u.email || '')) && inScope(folderScopeFor(u), folder));
+  /* WORK GOES ONLY TO WHO CAN DO IT (Round A, owner 20 Nov 2026): a Viewer named to approve is never mailed the
+     decision; where only Viewers were named, the admins are told instead, so the ask still reaches somebody */
+  const may = reach.filter(srvMayAct);
+  if (may.length || !reach.length) return may;
+  return db.prepare("SELECT * FROM users WHERE role='admin'").all()
+    .filter(u => /.+@.+\..+/.test(String(u.email || '')) && inScope(folderScopeFor(u), folder));
 }
 async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
   const cName = c.name || c.id;
@@ -18770,6 +18855,7 @@ async function lookTell(req, c, a, kind) {
     const who = kind === 'done' ? a.by : a.to;
     const u = who && who.id ? db.prepare('SELECT * FROM users WHERE id=?').get(String(who.id)) : null;
     if (!u || !/.+@.+\..+/.test(String(u.email || '')) || !inScope(folderScopeFor(u), c.folder)) return { n: 0 };
+    if (kind !== 'done' && !srvMayAct(u)) return { n: 0 };   // "mark it done" is never asked of a Viewer (Round A)
     const L = langForEmail(u.email);
     const cName = c.name || c.id;
     const v = { who: kind === 'done' ? ((a.answeredBy && a.answeredBy.name) || (a.to && a.to.name) || '') : ((a.by && a.by.name) || ''),
@@ -18866,7 +18952,9 @@ async function runRuleStepReminders() {
 function hoLeadOf(c, users) {
   const d = deskOfRow(c);
   const id = (d && d.leadId && !d.closedAt) ? d.leadId : (c.owner && c.owner.id) || (c.handover && c.handover.by && c.handover.by.id);
-  return users.find(u => String(u.id) === String(id || '')) || null;
+  const u = users.find(x => String(x.id) === String(id || '')) || null;
+  /* a lead or owner who is now a Viewer chases nobody: the first admin is reminded instead (Round A) */
+  return u && !srvMayAct(u) ? (users.find(x => x.role === 'admin') || null) : u;
 }
 async function runHandoverReminders(nowMs) {
   const rows = db.prepare(`SELECT id, folder, json FROM contracts WHERE status!='Signed' AND status!='Declined' AND json LIKE '%"handover"%'`).all();
@@ -19113,7 +19201,7 @@ app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => 
    role including a Viewer, and mailing a colleague a list they could open for
    themselves grants nothing. */
 const CAL_SHARE_MAX_LINES = 60;
-app.post('/api/calendar/share', auth, async (req, res) => {
+app.post('/api/calendar/share', auth, editor, async (req, res) => {
   const b = req.body || {};
   const u = b.toId ? db.prepare('SELECT * FROM users WHERE id=?').get(String(b.toId)) : null;
   if (!u) return res.status(404).json({ error: 'That colleague is not a member of this workspace' });
@@ -19182,7 +19270,7 @@ app.post('/api/users', auth, admin, async (req, res) => {
 function welcomeMail(u, req, tag){
   const org = getSetting('org');
   return sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
-    `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${u.role}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
+    `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${srvRolePlain(u.role)}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
     `${tag}: ${u.email} (${u.role})`);
 }
 /* ---- SEND THE WELCOME AGAIN (16 Oct 2026, the Control Room built in full:
@@ -19452,7 +19540,7 @@ app.get('/api/findings', auth, (req, res) => {
     .filter(s => seen.has(s.finding_id)).map(fdSendRow);
   res.json({ findings, sends });
 });
-app.post('/api/findings', auth, rlIntake, (req, res) => {
+app.post('/api/findings', auth, editor, rlIntake, (req, res) => {
   const b = req.body || {};
   const title = myText(b.title, 160); if (!title) return res.status(400).json({ error: 'Give the finding a title' });
   const recipe = (b.recipe && typeof b.recipe === 'object' && !Array.isArray(b.recipe)) ? b.recipe : {};
@@ -19478,7 +19566,7 @@ app.delete('/api/findings/:id', auth, (req, res) => {
   res.json({ ok: true });
 });
 /* a reply; from a colleague a question was put to, it is their answer */
-app.post('/api/findings/:id/notes', auth, rlIntake, (req, res) => {
+app.post('/api/findings/:id/notes', auth, editor, rlIntake, (req, res) => {
   const r = db.prepare('SELECT * FROM map_findings WHERE id=? AND removed_at IS NULL').get(String(req.params.id || ''));
   if (!r || !fdServe(r, req.user)) return res.status(404).json({ error: 'Finding not found' });
   const text = myText((req.body || {}).text, 1200); if (!text) return res.status(400).json({ error: 'Write the reply first' });
@@ -19490,7 +19578,7 @@ app.post('/api/findings/:id/notes', auth, rlIntake, (req, res) => {
   }
   res.json({ ok: true, finding: fdServe(r, req.user), answered: open.length });
 });
-app.post('/api/findings/:id/send', auth, rlIntake, (req, res) => {
+app.post('/api/findings/:id/send', auth, editor, rlIntake, (req, res) => {
   const r = db.prepare('SELECT * FROM map_findings WHERE id=? AND removed_at IS NULL').get(String(req.params.id || ''));
   if (!r || !fdServe(r, req.user)) return res.status(404).json({ error: 'Finding not found' });
   const b = req.body || {};
@@ -19600,7 +19688,7 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* ONE CHANGE, ALL OR NOTHING (bug log, 27 Oct 2026): every part below is written in one transaction, so a
      refusal further down (a signing limit, a reviewer, an overseer, hold or re-file) undoes the name, role or
      two-step reset written before it — the admin's error is then the whole truth */
-  let refused = null;
+  let refused = null, handedOn = null;
   const no = (status, body) => { refused = { status, body }; throw new Error('refused'); };
   try {
     txn(() => {
@@ -19632,6 +19720,7 @@ app.patch('/api/users/:id', auth, (req, res) => {
     if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
     /* who set it, said on the person's own You (round 24: "— set by Sara") */
     if (hasRole && b.role !== target.role) db.prepare('UPDATE users SET role=?, role_by=? WHERE id=?').run(b.role, String(req.user.name || req.user.email || ''), req.params.id);
+    if (hasRole && b.role === 'viewer' && target.role !== 'viewer') handedOn = srvViewerHandOn(target, req.user);
     if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
     if (hasCap) {
       /* null clears the decision, 'none' IS a decision, a number is the ceiling.
@@ -19755,7 +19844,7 @@ app.patch('/api/users/:id', auth, (req, res) => {
     }
     });
   } catch (e) { if (refused) return res.status(refused.status).json(refused.body); throw e; }
-  res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)) });
+  res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)), ...(handedOn ? { handedOn } : {}) });
 });
 
 app.delete('/api/users/:id', auth, admin, (req, res) => {
@@ -19961,7 +20050,8 @@ function shareInfo(s) {
   };
 }
 function shareOwnerEmails(s) {   // the sender if known, else workspace admins
-  if (s.created_by) { const u = db.prepare('SELECT email FROM users WHERE id=?').get(s.created_by); if (u) return [u.email]; }
+  /* the sender, unless they are now a Viewer: "issue a signing link" is work, so the admins are told (Round A) */
+  if (s.created_by) { const u = db.prepare('SELECT email, role FROM users WHERE id=?').get(s.created_by); if (u && srvMayAct(u)) return [u.email]; }
   return db.prepare(`SELECT email FROM users WHERE role='admin'`).all().map(u => u.email);
 }
 
@@ -20360,6 +20450,7 @@ function internalSignerRecipient(row) {
     if (!u && row.email) u = db.prepare('SELECT * FROM users WHERE LOWER(email)=?')
       .get(String(row.email).trim().toLowerCase());
   } catch (_) { u = null; }
+  if (u && !srvMayAct(u)) return null;   // a Viewer signs nothing, so is never told it is their turn (Round A)
   if (u && /.+@.+\..+/.test(String(u.email || '')))
     return { email: u.email, name: row.name || u.name, lang: u.lang || null, from: 'member record' };
   if (/.+@.+\..+/.test(String(row.email || '')))
@@ -23535,7 +23626,7 @@ app.get('/api/home/gifts', auth, (req, res) => {
   const sent = db.prepare('SELECT * FROM home_gifts WHERE from_id=? ORDER BY created_at DESC LIMIT 100').all(req.user.id);
   res.json({ received: received.map(homeGiftShape), sent: sent.map(homeGiftShape) });
 });
-app.post('/api/home/gifts', auth, (req, res) => {
+app.post('/api/home/gifts', auth, editor, (req, res) => {
   const b = req.body || {};
   if (b.email || b.address) return res.status(400).json({ error: 'Send the colleague’s id, not an address.' });
   const to = clean(b.to);
@@ -23891,7 +23982,7 @@ function obligationRecipient(assignee, folder) {
   if (u && folder !== undefined && !inScope(folderScopeFor(u), folder)) return null;
   /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): a Viewer may do no duty, so no reminder names one —
      the caller's own fallback (the owner, else the admins) is told instead */
-  if (u && u.role === 'viewer') return null;
+  if (u && !srvMayAct(u)) return null;
   if (u && /.+@.+\..+/.test(String(u.email || '')))
     return { email: u.email, name: u.name || assignee, lang: u.lang || null };
   return null;
@@ -24054,7 +24145,7 @@ function contractOwnerRecipient(full, folder) {
   })();
   if (!fallback || !fallback.row) return null;
   /* an owner who is now a Viewer acts on nothing: the caller's fallback (the admins) is told instead */
-  if (fallback.row.role === 'viewer') return null;
+  if (!srvMayAct(fallback.row)) return null;
   return inScope(folderScopeFor(fallback.row), folder) ? fallback : null;
 }
 function runReminders() {
@@ -24451,6 +24542,7 @@ const pushUserByEmail = email => email ? db.prepare('SELECT * FROM users WHERE l
 /* the contract as an alert names it: its printed ref and its name, nothing of its wording */
 function pushAbout(c) { return `${String((c && c.name) || '').slice(0, 80)} (${contractRef(c || {})})`; }
 function pushUrgent(user, kind, c, url) {
+  if (!srvMayAct(user)) return Promise.resolve({ sent: 0 });   // an urgent alert is work; a Viewer gets none (Round A)
   return pushTell(user, L => ({ kind, urgent: true, cid: c && c.id, tag: `${kind}:${c && c.id}`, url,
     title: tFor(L, `push_${kind}_title`), body: pushAbout(c) }));
 }
@@ -24580,7 +24672,7 @@ function runDailyBriefs() {
   for (const u of members) {
     /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): every line of the brief is work owed, and a Viewer
        may do none of it — no mail, no phone summary */
-    if (u.role === 'viewer') continue;
+    if (!srvMayAct(u)) continue;
     const every = briefCadence(u);
     /* A PHONE WITH ALERTS ON gets the morning summary whatever the email is set to (round 4) */
     const phones = pushDevicesOf(u.id).length > 0;
@@ -24967,7 +25059,7 @@ async function runLinkWatch() {
   for (const [uid, rows] of byOwner) {
     const u = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
     if (!u || !/.+@.+\..+/.test(String(u.email || ''))) { bump('noAddress'); continue; }
-    if (u.role === 'viewer') { bump('viewer'); continue; }   /* work goes only to who can do it (owner, 20 Nov 2026) */
+    if (!srvMayAct(u)) { bump('viewer'); continue; }   /* work goes only to who can do it (owner, 20 Nov 2026) */
     const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
     const lines = rows.map(x => `  • ${linkStuckLine(L, x.c.name || x.c.id, x.it)}\n    ${contractUrl(null, x.c.id, x.it.kind.includes('sign') ? 'sign' : null)}`);
     const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n${tFor(L, 'mail_lw_lead')}\n\n${lines.join('\n')}\n\n`
@@ -25014,7 +25106,7 @@ async function runLateChases() {
     const oid = c && c.owner && c.owner.id;
     if (!oid) return null;
     const u = db.prepare('SELECT * FROM users WHERE id=?').get(String(oid));
-    if (u && u.role === 'viewer') return null;   /* work goes only to who can do it (owner, 20 Nov 2026) */
+    if (u && !srvMayAct(u)) return null;   /* work goes only to who can do it (owner, 20 Nov 2026) */
     return u && /.+@.+\..+/.test(String(u.email || '')) ? { email: u.email, name: u.name || '', lang: u.lang || null } : null;
   };
   for (const r of db.prepare("SELECT id,json FROM contracts WHERE status!='Declined'").all()) {
@@ -26388,7 +26480,7 @@ app.get('/api/agents/pieces', auth, (req, res) => {
 /* A PERSON'S PRESS ON JAMBO'S WORK — used, changed or thrown away. Any member
    may say what they did with work they could see; the contract must be in
    their streams. The name written is the caller's, looked up, never sent. */
-app.post('/api/agents/outcome', auth, (req, res) => {
+app.post('/api/agents/outcome', auth, editor, (req, res) => {
   const b = req.body || {};
   const k = String(b.agent || ''), outcome = String(b.outcome || '');
   if (!AGENT_POINT_KEYS.includes(k)) return res.status(404).json({ error: 'No such agent.' });
@@ -26411,7 +26503,7 @@ app.post('/api/agents/outcome', auth, (req, res) => {
    piece scores nothing until a person uses, changes or throws it away. */
 const AGENT_PREPARED_BY_PAGE = ['approve', 'request', 'week', 'quiet'];
 const AGENT_PREP_FRESH_DAYS = 7, AGENT_PREP_MAX = 50;
-app.post('/api/agents/prepared', auth, (req, res) => {
+app.post('/api/agents/prepared', auth, editor, (req, res) => {
   const list = Array.isArray(req.body && req.body.pieces) ? req.body.pieces.slice(0, AGENT_PREP_MAX) : [];
   const scope = folderScopeFor(req.user), since = new Date(Date.now() - AGENT_PREP_FRESH_DAYS * 86400000).toISOString();
   let added = 0, kept = 0, refused = 0;
@@ -27861,7 +27953,7 @@ function hsIndexKind(k) {
   } else if (k === 'person') {
     hsDrop("kind = 'person'");
     for (const u of db.prepare('SELECT * FROM users').all())
-      hsPut('person', u.id, null, null, u.name || '', [u.name, String(u.email || '').split('@')[0].replace(/[._-]+/g, ' '), u.title, u.role].filter(Boolean).join('  '));
+      hsPut('person', u.id, null, null, u.name || '', [u.name, String(u.email || '').split('@')[0].replace(/[._-]+/g, ' '), u.title, srvRolePlain(u.role)].filter(Boolean).join('  '));
   } else if (k === 'party') {
     /* a party's own facts ride on its rows: re-read every contract that names one */
     for (const r of db.prepare("SELECT DISTINCT cid FROM hs_docs WHERE kind = 'party'").all()) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('c:' + r.cid);

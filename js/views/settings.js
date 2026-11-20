@@ -4870,7 +4870,9 @@ async function stBzRoleSave(was){
   const failed=[];
   for(const p of plan){
     try{
-      if(p.keys.includes('sys')){ const r=await api('users/'+p.u.id,'PATCH',{ role:now.sys }); if(r&&r.user) Object.assign(p.u,r.user); else p.u.role=now.sys; }
+      if(p.keys.includes('sys')){ const r=await api('users/'+p.u.id,'PATCH',{ role:now.sys }); if(r&&r.user) Object.assign(p.u,r.user); else p.u.role=now.sys;
+        /* made a Viewer: what they held was handed on, said to the admin (Round A, srvViewerHandOn) */
+        if(r&&r.handedOn) toast(r.handedOn,'warn'); }
       const body={};
       for(const k of p.keys){
         if(k==='values') body.canViewValues=now.values;
@@ -5319,7 +5321,7 @@ async function settingsSavePerson(existing){
     for(const k of ['overseerId','overseerOn','overseerBackupId','overseerWhen'])
       if(patch[k]!==undefined) body[k]=patch[k];
     if(Object.keys(body).length){
-      try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
+      try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); if(r&&r.handedOn) toast(r.handedOn,'warn'); }
       catch(e){ stDrawerRefuse(e.message); return; }
     }
     repointRules(false);

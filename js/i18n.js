@@ -5073,6 +5073,7 @@ const STRINGS = {
     ng_readonly_comparison: "Read-only comparison — the round's own changes are not shown",
     rl_viewer_why: 'You can read this negotiation. Only editors can answer it — ask an admin if you need to.',
     ob_assign_viewer: '{who} is a Viewer and cannot be given a duty. Choose a member who edits.',
+    viewer_reads_only: 'You can read this. A Viewer cannot change it — ask an admin if you need to.',
     ng_you: 'You',
     ng_decline: 'Decline',
     ng_save_draft: 'Save Draft',
@@ -15523,6 +15524,7 @@ const STRINGS = {
     rk_src_odd: 'Brief · unusual term',
     rk_src_mine: 'Marked by a person',
     ca_intro_job: 'Here is what I found. Each step is yours to press.',
+    jb_go_there: 'Take me there ›',
     /* JAMBO'S WORDS (the one-page Home plan, stage 1, 14 Oct 2026). Every
        ca_w_ word must be a word copilotacts.js reads (CA_PLACES); f672 pins it. */
     ca_w_redline: 'redline',
@@ -30987,6 +30989,7 @@ const STRINGS = {
     ng_readonly_comparison: 'Skrivskyddad jämförelse — rundans egna ändringar visas inte',
     rl_viewer_why: 'Du kan läsa den här förhandlingen. Bara redaktörer kan svara på den — fråga en administratör om du behöver.',
     ob_assign_viewer: '{who} är läsare och kan inte få en uppgift. Välj en medlem som redigerar.',
+    viewer_reads_only: 'Du kan läsa detta. En läsare kan inte ändra det — fråga en administratör om du behöver.',
     ng_you: 'Du',
     ng_decline: 'Avböj',
     ng_save_draft: 'Spara utkast',
@@ -40789,6 +40792,7 @@ const STRINGS = {
     rk_src_odd: 'Sammanfattning · ovanligt villkor',
     rk_src_mine: 'Markerad av en person',
     ca_intro_job: 'Det här hittade jag. Varje steg är ditt att trycka på.',
+    jb_go_there: 'Ta mig dit ›',
     /* JAMBOS ORD (planen för en sida, steg 1, 14 okt 2026). Varje ca_w_-ord
        måste vara ett ord som copilotacts.js läser (CA_PLACES); f672 låser det. */
     ca_w_redline: 'förhandla',

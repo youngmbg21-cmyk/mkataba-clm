@@ -22,7 +22,9 @@
          and nothing is written; one already there, an outside name, and
          their side's duty pass; the duty form offers no Viewer and says why
    AT THE PARENT (ee7f1e1) every test here FAILS but 5c (it guards what must
-   still pass).
+   still pass). Round A (owner, 20 Nov 2026) moved every check onto the one
+   question — mayActOn in the browser, srvMayAct on the server — and these pins
+   follow it.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -54,13 +56,14 @@ describe('f1126 (1) nothing on any contract is a Viewer\'s to do', () => {
 describe('f1126 (2) Jambo prepares a Viewer nothing', () => {
   test('2a every agent\'s ready list is emptied for a Viewer, before it is reported', () => {
     const b = strip(fnBody(AG, 'agentsData'));
-    const i = b.indexOf("_agMe.role === 'viewer') AG_KEYS.forEach(k => { agents[k].ready = []; })"), j = b.indexOf('agReportPrepared(agents)');
+    const i = b.indexOf("!window.mayActOn(null, _agMe) : _agMe.role === 'viewer')) AG_KEYS.forEach(k => { agents[k].ready = []; })"), j = b.indexOf('agReportPrepared(agents)');
     assert.ok(i > 0 && j > i, 'emptied, then reported');
   });
 });
 
 describe('f1126 (3) the bell tells a Viewer, and asks nothing', () => {
-  const src = 'const ND_NEWS = [\'review-out\'];\n' + CN.match(/^const ND_VIEWER_WORK = [^\n]*$/m)[0] + '\n' + CN.match(/^function ndIsNews\(a\)[^\n]*$/m)[0] + '\n' + fnBody(CN, 'ndAlerts');
+  const src = 'const ND_NEWS = [\'review-out\'];\n' + CN.match(/^const ND_VIEWER_WORK = [^\n]*$/m)[0] + '\n' + CN.match(/^const ND_OWNER_WORK = [^\n]*$/m)[0] + '\n'
+    + CN.match(/^function ndIsNews\(a\)[^\n]*$/m)[0] + '\n' + fnBody(CN, 'ndAlertIsMine') + '\n' + fnBody(CN, 'ndAlerts');
   const L = [{ kind: 'cp-ready' }, { kind: 'renewal' }, { kind: 'cert-lapsed' }, { kind: 'note-due' }, { kind: 'watch', fired: true }, { kind: 'review-out' }];
   const read = role => run(src, { buildAlerts: () => L.slice(), currentUser: () => ({ id: 'x', role }) }).ndAlerts();
   test('3a a Viewer: their note and their watch are work, the rest is news', () => {
@@ -68,21 +71,21 @@ describe('f1126 (3) the bell tells a Viewer, and asks nothing', () => {
     assert.deepEqual(A.work.map(a => a.kind), ['note-due', 'watch']);
     assert.deepEqual(A.news.map(a => a.kind), ['cp-ready', 'renewal', 'cert-lapsed', 'review-out']);
   });
-  test('3b a member: unchanged', () => {
-    const A = read('legal');
+  test('3b an admin: unchanged', () => {
+    const A = read('admin');
     assert.deepEqual(A.work.map(a => a.kind), ['cp-ready', 'renewal', 'cert-lapsed', 'note-due', 'watch']);
   });
 });
 
 describe('f1126 (4) no agent mail and no morning summary to a Viewer', () => {
   test('4a a duty\'s person and an owner who is a Viewer are nobody to remind', () => {
-    assert.match(strip(fnBody(SRV, 'obligationRecipient')), /if \(u && u\.role === 'viewer'\) return null;/);
-    assert.match(strip(fnBody(SRV, 'contractOwnerRecipient')), /if \(fallback\.row\.role === 'viewer'\) return null;/);
+    assert.match(strip(fnBody(SRV, 'obligationRecipient')), /if \(u && !srvMayAct\(u\)\) return null;/);
+    assert.match(strip(fnBody(SRV, 'contractOwnerRecipient')), /if \(!srvMayAct\(fallback\.row\)\) return null;/);
   });
   test('4b No link to sign, Late promises and the morning summary skip a Viewer', () => {
-    assert.match(strip(fnBody(SRV, 'runLinkWatch')), /if \(u\.role === 'viewer'\) \{ bump\('viewer'\); continue; \}/);
-    assert.match(strip(fnBody(SRV, 'runLateChases')), /if \(u && u\.role === 'viewer'\) return null;/);
-    assert.match(strip(fnBody(SRV, 'runDailyBriefs')), /for \(const u of members\) \{\s*if \(u\.role === 'viewer'\) continue;/);
+    assert.match(strip(fnBody(SRV, 'runLinkWatch')), /if \(!srvMayAct\(u\)\) \{ bump\('viewer'\); continue; \}/);
+    assert.match(strip(fnBody(SRV, 'runLateChases')), /if \(u && !srvMayAct\(u\)\) return null;/);
+    assert.match(strip(fnBody(SRV, 'runDailyBriefs')), /for \(const u of members\) \{\s*if \(!srvMayAct\(u\)\) continue;/);
   });
 });
 

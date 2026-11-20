@@ -1235,6 +1235,9 @@ function caReadDoor(q){
   /* "where does the deal stand?" IS its door; any other question of where is not a press */
   if (hit[0] !== 'open' && (CA_WHERE_RE.test(q) || /^\s*where\b/i.test(q))) return null;
   const c = caFindContract(q); if (!c) return null;
+  /* a Viewer is offered no door that acts; "what is still open" is a reading. Jambo answers in words instead, and his
+     instructions tell him to say a Viewer reads only (whoAsksSays) */
+  if (hit[0] !== 'open' && typeof window.mayActOn === 'function' && !window.mayActOn(c)) return null;
   return { kind: 'door', door: hit[0], cid: c.id, state: 'ready' };
 }
 /* the Signing tab's own approval card (#sa-card): asked and reminded there */
@@ -1434,7 +1437,11 @@ function caChipLead(c){
    next useful word takes its place. Typed, the word still meets the door's
    own reason. */
 const CA_CHIPS_MORE = ['oblig', 'share'];
+/* THE CHIPS THAT ACT (Round A, owner 20 Nov 2026: Jambo offers a Viewer no work): reading chips (history, duties,
+   notes, the ladder, their view) stay */
+const CA_ACT_CHIPS = ['redline', 'answer', 'sign', 'amend', 'edit', 'fill', 'share', 'signer'];
 function caChipShut(c, k){
+  if (CA_ACT_CHIPS.includes(k) && typeof window.mayActOn === 'function' && !window.mayActOn(c)) return true;
   if (k === 'redline' || k === 'answer') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
   /* NO BUTTON THAT TAKES YOU NOWHERE (owner, 15 Oct 2026): nothing is left to
      sign on an executed or expired agreement; an amendment asks its own one

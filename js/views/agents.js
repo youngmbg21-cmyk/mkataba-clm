@@ -721,7 +721,7 @@ function agentsData(list){
   /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): every piece Jambo prepares asks for an act, and a company
      Viewer may do none — he prepares them nothing (his house, the Board, the Dossier and the bell all read this) */
   const _agMe = (typeof currentUser === 'function') ? currentUser() : null;
-  if (_agMe && _agMe.role === 'viewer') AG_KEYS.forEach(k => { agents[k].ready = []; });
+  if (_agMe && (typeof window.mayActOn === 'function' ? !window.mayActOn(null, _agMe) : _agMe.role === 'viewer')) AG_KEYS.forEach(k => { agents[k].ready = []; });
   agReportPrepared(agents);
   /* PUT AWAY BY THIS PERSON (round 23's gaps): gone from their list while it
      is still about the same thing — prepared all the same, so reported above */
