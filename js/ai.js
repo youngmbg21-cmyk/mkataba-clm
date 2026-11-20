@@ -2729,6 +2729,13 @@ function aiGotoNote(res){ _aiGoto=(res&&typeof res==='object'&&res.goto&&typeof 
 function aiGotoTake(since){ const g=_aiGoto; _aiGoto=null; return (g&&g.at>=(since||0))?g.g:null; }
 /* run it through the map's own door: a page opens, an act that waits for a
    press is Jambo's card; said in his conversation (jmGotoAct, js/jambomap.js) */
+/* the places an answer offered (STAY ON THE ANSWER): kept by key, gone to only on the reader's press */
+const _jbGoActs=new Map();
+function jbGoKeep(a){ const k='g'+(_jbGoActs.size+1)+'-'+Date.now().toString(36); _jbGoActs.set(k,a); return k; }
+function jbGoPress(k){ const a=_jbGoActs.get(String(k||'')); if(!a||typeof window.caGo!=='function') return false; try{ return !!caGo(a); }catch(_){ return false; } }
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function'&&!document._jbGoWired){ document._jbGoWired=true;
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-jb-go]'):null; if(!b) return;
+    e.preventDefault(); e.stopPropagation(); jbGoPress(b.getAttribute('data-jb-go')); }, true); }
 function aiGotoRun(g, q){
   if(!g) return false;
   if(typeof window.jamboMovedNow==='function') window.jamboMovedNow();
@@ -2751,6 +2758,26 @@ function aiGotoRun(g, q){
      own list, so on Home he said "I've opened New agreement beside me" and opened nothing (owner, 27 Oct 2026) —
      an editor's draft opens the sheet, a viewer's is the card with its refusal */
   const card=a.kind!=='go'||!!a.missing||(typeof window.caIsCardWord==='function'?caIsCardWord(a.place):(Array.isArray(window.JM_CARD_PLACES)&&JM_CARD_PLACES.includes(a.place)));
+  /* STAY ON THE ANSWER (owner, 20 Nov 2026: "when the results are about to come back it jumps to the overview tab";
+     picked "Stay on the answer"): when Jambo ANSWERED and also named a place, nothing moves — the conversation stays
+     where the reader is reading it, and the answer ends with one link that goes there on a press (jbGoPress). Only a
+     place named with no answer (a plain "take me to …") still moves at once, as before. A card that waits for a
+     press keeps its own turn. */
+  /* …but words that ASK to be taken somewhere ("take me to obligations", "open MK-12", "visa avtalen") are a go ask:
+     those still move at once (A GO TO ASK TAKES YOU THERE, 19 Oct 2026); the read is the typed number's own (JB_REF_OPEN_RE) */
+  const goAsk=!!(typeof window.JB_REF_OPEN_RE!=='undefined'&&window.JB_REF_OPEN_RE&&window.JB_REF_OPEN_RE.test(String(q||'')));
+  if(!card&&!goAsk){
+    const H=(typeof window.jamboConvo==='function')?jamboConvo():(typeof ai==='object'&&ai&&Array.isArray(ai.history)?ai.history:[]);
+    const last=H[H.length-1];
+    if(last&&last.role==='assistant'&&!last.err&&!last.act&&String(last.text||'').replace(/<[^>]*>/g,'').trim()){
+      /* the link is the message's own (m.goTo), drawn by the one turn builder every host uses (jamboTurnHtml):
+         an answer's words are sanitised, a button in them would not survive */
+      last.goTo=jbGoKeep(a);
+      if(typeof window.aiHostsRepaint==='function') try{ aiHostsRepaint(); }catch(_){}
+      if(typeof window.renderAIFeed==='function'&&ai.open) try{ renderAIFeed(!!ai.busy); }catch(_){}
+      return true;
+    }
+  }
   const onHome=typeof state!=='undefined'&&state&&state.view==='dashboard'&&typeof intel!=='undefined';
   if(onHome){
     const line=a.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(a):i18t('ca_intro_job');
@@ -6282,7 +6309,7 @@ async function aiFillSaid(c, said, blanks){
 }
 Object.assign(window,{ aiFillSaid });
 Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiSendNoteFrom,aiSendNoteAsksBack,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiStarPress,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ jbGoKeep,jbGoPress,aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiStarPress,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
