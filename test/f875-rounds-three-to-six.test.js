@@ -115,7 +115,7 @@ describe('f875 (5) the other side\'s page, and the old room', () => {
     assert.match(PO, /\$\{portalOtherHtml\('po_other_answers'\)\}/);
   });
   test('5c a door that opened the old room lands on the paper with its Dossier', () => {
-    assert.match(fnRegion(R('js/views/boardstrip.js'), 'roomRetiredLand'), /if \(page === 'ov' && typeof roomHomeLand === 'function'\)\{ const r = roomHomeLand\(id, \{ cover: true \}\); if \(r !== false\) return true; \}/);
+    assert.match(fnRegion(R('js/views/boardstrip.js'), 'roomRetiredLand'), /if \(page === 'ov' && typeof roomHomeLand === 'function'\)\{ const r = roomHomeLand\(id, \{ open: true \}\); if \(r !== false\) return true; \}/);
   });
 });
 

@@ -1365,6 +1365,16 @@ function srvDiscardRefusal(prev, next, user) {
    their own wall — so only owner-side records are compared. The hash is the
    change model's own fingerprint over its wording, so "reworded" is a string
    comparison rather than a judgement. */
+/* AND THEIR ASKS ANSWERED (owner, 20 Nov 2026: "fix the Redlines page for viewers too"): a Reader on a negotiation
+   could not file our changes, but a save accepting or rejecting THEIRS passed — answering them is reaching them, the
+   lead's act. Asked as a difference of status on the other side's changes, like ourChangesTouched. */
+function theirAnswersTouched(prev, next) {
+  const theirs = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && x.authorSide === 'counterparty').map(x => [String(x.id), String(x.status || '')]));
+  const a = theirs(prev), b = theirs(next);
+  for (const [id, st] of a) if (b.has(id) && b.get(id) !== st) return true;
+  return false;
+}
 function ourChangesTouched(prev, next) {
   const ours = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.authorSide !== 'counterparty')
@@ -6065,7 +6075,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       return res.status(403).json({
         error: `Only ${deskLeadName(prev)} — or an admin — can change who is on this negotiation.` });
     if (seat === 'reader') {
-      const touched = ourChangesTouched(prev, c);
+      const touched = ourChangesTouched(prev, c) || theirAnswersTouched(prev, c);
       if (touched)
         return res.status(403).json({
           error: `You are not on this negotiation. ${deskLeadName(prev)} leads it — ask them to add you.`,

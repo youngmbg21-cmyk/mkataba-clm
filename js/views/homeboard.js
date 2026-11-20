@@ -5912,7 +5912,7 @@ function hbSheetGo(id){
   /* the list is put away first: Home's paper is drawn on the same page, and a
      list left lying over it would cover the Dossier it just opened */
   if (_hbSheet) hbSheetClose();
-  if (window.roomHomeLand && roomHomeLand(id, { cover: true })) return true;
+  if (window.roomHomeLand && roomHomeLand(id, { open: true })) return true;
   if (typeof openWorkspace === 'function'){ openWorkspace(id); return true; }
   return false;
 }
@@ -7698,8 +7698,6 @@ function hbAskInPanel(q, id){
    then the turn goes on, as the bar already does (dkLeavePageThen). A Send screen waiting out of sight is kept. */
 function hbPageScreenUp(){
   if (typeof document === 'undefined') return false;
-  /* a Cover waiting for its own paper is not a screen in the way: the turn is its own (f1099) */
-  if (typeof window.pdCoverHeld === 'function' && window.pdCoverHeld()) return false;
   const waiting = typeof window.pdSendIsWaiting === 'function' && !!window.pdSendIsWaiting();
   return !!document.querySelector(waiting ? '#modal-root .modal-in[data-dlg-page]:not([data-sh-page])' : '#modal-root .modal-in[data-dlg-page], #modal-root .modal-in[data-sh-page]');
 }
@@ -10805,7 +10803,7 @@ function hbPlacePut(p){
         /* the face through its own door (pdOpenOnHome), which puts the
            contract on the paper the same way */
         /* the middle page comes back only while this contract is still the one in front: a reader who opened another in
-           the meantime is never pulled back to this one (since the Cover, f1085, every contract opened on purpose keeps 'where') */
+           the meantime is never pulled back to this one */
         /* filling in comes back through its one door, once the paper stands (#762) */
         const fillBack = () => { if (want.fill && typeof window.pdFillGo === 'function') setTimeout(() => { try {
           const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
@@ -10973,7 +10971,7 @@ function hbOnClick(e){
   /* "Workspace" opens Home, never the room (the overnight work order, step 2;
      roomHomeLand, the one landing every Workspace door shares) */
   if ((el = on('[data-hb-room]'))){ const id = el.getAttribute('data-hb-room');
-    if (!(window.roomHomeLand && roomHomeLand(id, { cover: true })) && typeof openWorkspace === 'function') openWorkspace(id); return; }
+    if (!(window.roomHomeLand && roomHomeLand(id, { open: true })) && typeof openWorkspace === 'function') openWorkspace(id); return; }
   if ((el = on('[data-hb-bs-x]'))){ hbBriefShut(); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
   /* the Pulse board, the head's last button (29 Oct 2026) */

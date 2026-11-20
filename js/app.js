@@ -1226,9 +1226,6 @@ let _leavingCe = false;
 function pageScreenStays(view){
   if(typeof document==='undefined') return false;
   if(view!=='dashboard' && document.querySelector('#modal-root .modal-in[data-sh-page], #modal-root .modal-in[data-dlg-home]')) return true;
-  /* A COVER WAITING FOR ITS OWN PAPER STAYS (f1099, 19 Nov 2026): its contract is being drawn under it (pdCoverHeld),
-     so the move to Home is its own, not a move away */
-  if(typeof window.pdCoverHeld==='function' && window.pdCoverHeld()) return false;
   return !!document.querySelector('#modal-root .modal-in[data-dlg-page]:not([data-dlg-home]):not([data-sh-page])');
 }
 function viewLayersClosed(view){
@@ -4169,7 +4166,8 @@ const LP_CHIPS=['all','need','arrive','negsign','live','book'];
 /* A MARK FOR EVERY PAGE (owner, 21 Nov 2026: "assign an emoji to each. use the emoji reference book ... if nothing there use the
    previous nav panel as a reference"): Settings' own emoji (SDD_EMOJI, js/views/settings.js) where it has the meaning — requests,
    import, ourpaper, standards, approvals, document, parties, people, mynotes, board, explorer, house, flowmap, handbook, settings —
-   else the emoji of the symbol the panel drew before (GUIDE_NL_ICON). A mark beside the name, never the name itself. */
+   else the emoji of the symbol the panel drew before (GUIDE_NL_ICON), since added to the book as SDD_EMOJI.page (f1097 (8) keeps
+   the two the same). A mark beside the name, never the name itself. */
 const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅',
   oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }

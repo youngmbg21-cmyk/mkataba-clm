@@ -52,17 +52,17 @@ function hbStripBring(id, page){
   if (bsPhone() || typeof roomHomeLand !== 'function') return false;
   /* THE CONTRACT IN HAND: the one brought up is the one every door names next (the room's door set it so) */
   if (window.state){ state.activeId = c.id; state.selId = c.id; }
-  const mid = page === 'where' ? 'pd2StandsOpen' : page === 'hist' ? 'pd2HistOpen' : null;
+  /* WHERE WE ARE IS THE DOSSIER (owner, 20 Nov 2026: the Cover is deleted, "open the Dossier instead") */
+  if (page === 'where') return roomHomeLand(c.id, { open: true }) !== false;
+  const mid = page === 'hist' ? 'pd2HistOpen' : null;
   const onIt = () => { try { const pc = (typeof pdContract === 'function') ? pdContract() : null;
     return !!(pc && String(pc.id) === String(c.id) && typeof pdOnPaper === 'function' && pdOnPaper()); } catch (_){ return false; } };
   /* A DOOR LANDS, IT NEVER SHUTS: History or Where we are already up for this contract stays up ("‹ Paper" is its
      way back; the Dossier's own line, pressed again, still closes it) */
-  const upFn = page === 'hist' ? window.pd2HistUp : page === 'where' ? window.pd2StandsUp : null;
+  const upFn = page === 'hist' ? window.pd2HistUp : null;
   const isUp = () => { try { return !!(typeof upFn === 'function' && upFn(c.id)); } catch (_){ return false; } };
   if (mid && onIt() && isUp()) return true;
   if (mid && typeof window[mid] === 'function' && onIt() && window[mid](c.id)) return true;
-  /* WHERE WE ARE IS THE COVER, A PAGE OF ITS OWN (f1099): drawn over the page pressed from, no paper under it */
-  if (page === 'where' && typeof window.pdCoverGo === 'function' && window.pdCoverGo(c.id)) return true;
   /* the page in the middle comes once the paper stands; the paper is never shown on the way (pdMidArriving, f1099) */
   if (mid && typeof window.pdMidArriving === 'function') window.pdMidArriving(c.id);
   if (roomHomeLand(c.id) === false){ if (typeof window.pdArriveEnd === 'function') window.pdArriveEnd(); return false; }
@@ -92,7 +92,7 @@ function roomRetiredLand(id, tab){
   const page = tab === 'stands' ? 'where' : tab === 'history' ? 'hist' : 'ov';
   /* RETIRE THE OLD ROOM (Round 5, owner's yes 24 Oct 2026): a door that opened the room lands on the paper with
      its Dossier (roomHomeLand, the one landing); Where we are and History keep their own pages */
-  if (page === 'ov' && typeof roomHomeLand === 'function'){ const r = roomHomeLand(id, { cover: true }); if (r !== false) return true; }
+  if (page === 'ov' && typeof roomHomeLand === 'function'){ const r = roomHomeLand(id, { open: true }); if (r !== false) return true; }
   return hbStripBring(id, page);
 }
 /* the Dossier beside the paper is drawn again when a reading here moved (the strip's repaint, before) */

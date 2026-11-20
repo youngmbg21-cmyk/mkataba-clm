@@ -2824,7 +2824,7 @@ function regRunRowAct(act, id){
   const c=getContract(id); if(!c) return;
   /* "Workspace" is the panel's third door's word, and its landing (step 2,
      14 Oct 2026): Home, never the room, where Home has its paper */
-  if(act==='open'){ if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }
+  if(act==='open'){ if(!(window.roomHomeLand&&roomHomeLand(id,{ open:true }))) openWorkspace(id); }
   else if(act==='share') openShareModal(c);
   else if(act==='scan') runScanFor(c);
   else if(act==='restore'){

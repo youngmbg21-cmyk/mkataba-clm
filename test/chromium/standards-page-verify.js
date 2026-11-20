@@ -126,8 +126,8 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       await until(() => !!document.querySelector('.apn-pk [data-apn-pk-go]'));
       await page.evaluate(() => document.querySelector('.apn-pk [data-apn-pk-go]').click());
       const dos = await until(k => !document.querySelector('.apn-pk') && typeof pdContract === 'function' && pdContract() && ('dep:' + pdContract().id) === k.split(':').slice(0, 2).join(':')
-        && document.querySelector('[data-cv-go]') ? pdContract().id : null, key);
-      check(`${tag} 2g Open the Dossier › closes it and opens that contract on its Cover (18 Nov 2026)`, !!dos, dos);
+        && typeof pdTab === 'function' && pdTab() === 'copilot' ? pdContract().id : null, key);
+      check(`${tag} 2g Open the Dossier › closes it and opens that contract on its Dossier (the Cover deleted, 20 Nov 2026)`, !!dos, dos);
       await page.evaluate(() => { setView('playbook'); });
       await until(() => !!document.querySelector('.ld-main .ld-rung'));
       await page.keyboard.press('Escape').catch(() => {});

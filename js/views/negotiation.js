@@ -9819,9 +9819,19 @@ function rlBenchCatchUp(c, again){
   }
   if (loads.length) Promise.all(loads).then(got => { if (got.some(Boolean)) redo(); });
 }
+/* A COMPANY VIEWER READS THE REDLINES AND ANSWERS NOTHING (owner, 20 Nov 2026: "fix the Redlines page for viewers
+   too"): the server refuses every write a Viewer sends — a save, a note, a mention — so the page shows them as it
+   shows a sealed contract, every verb gone and one line saying why (readonlyWhy). A desk Reader is narrower: their
+   hands close through the desk (rlMayRedline, rlActorHeld) and they keep their notes. Their own page never asks. */
+function rlOnlyReads(){
+  if (typeof window !== 'undefined' && window.PORTAL_MODE) return false;
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  return !!me && me.role === 'viewer';
+}
 function rlBenchOpts(c, o = {}){
   const side = o.side === 'counterparty' ? 'counterparty' : 'owner';
   const previewing = side === 'counterparty';
+  const onlyReads = !previewing && rlOnlyReads();
   const again0 = typeof o.again === 'function' ? o.again : () => renderRedline();
   const scope = o.scope || '#view-redline';
   /* ONE GLIDE FOR LISTS (22 Oct 2026): after a press the column is drawn
@@ -9846,7 +9856,7 @@ function rlBenchOpts(c, o = {}){
        refuses the write even if a caller reaches it another way; both ship,
        because a lock with no sign is a button that errors at a reader who
        should never have been offered it. */
-    readonly: previewing || ((typeof negoExecuted === 'function') ? negoExecuted(c) : false),
+    readonly: previewing || onlyReads || ((typeof negoExecuted === 'function') ? negoExecuted(c) : false),
     /* ---- READING IS NOT WORKING ----
        Somebody with stream access who is not on this desk keeps the whole
        document, every redline and the full history — locking the READ would
@@ -9875,7 +9885,7 @@ function rlBenchOpts(c, o = {}){
        view you just switched to" is neither. */
     readonlyWhy: ((typeof negoExecuted === 'function') && negoExecuted(c))
       ? 'This contract is executed — its wording is sealed. Record an amendment instead.'
-      : null,
+      : onlyReads ? i18t('rl_viewer_why') : null,
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
     /* ---- AN ANSWER HAS TO REACH THE PAGE IT IS AN ANSWER TO ----
@@ -10852,7 +10862,7 @@ function renderRedline(){
       rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
       /* "Open workspace" opens Home, never the room (the overnight work order,
          step 2; roomHomeLand, the one landing every Workspace door shares) */
-      if (window.roomHomeLand && roomHomeLand(c.id, { cover: true })) return;
+      if (window.roomHomeLand && roomHomeLand(c.id, { open: true })) return;
       if (typeof openWorkspace === 'function') openWorkspace(c.id);
     }));
   host.querySelectorAll('[data-rl-open-doc]').forEach(el =>
@@ -23284,7 +23294,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      so a top-level function in one is invisible to the next; see the note below
      about rlPaperFootHtml, which was declared, called, and silently absent for a
      year because nobody put it here. */
-  negoNeedsYouIds, negoMayAnswer, negoNeedsYouTotal, negoRoundRead, negoRoundLine, negoIsLive, negoLiveList,
+  negoNeedsYouIds, negoMayAnswer, rlOnlyReads, negoNeedsYouTotal, negoRoundRead, negoRoundLine, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations, rlPlace, rlPlacePut,
   renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,negoMemoWording,negoMemoRichHtml,MEMO_DOC,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----

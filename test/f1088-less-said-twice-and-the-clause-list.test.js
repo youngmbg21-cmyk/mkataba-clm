@@ -51,5 +51,5 @@ test('f1088 (3) the clause list: the paper\'s own numbers and titles', () => {
 });
 
 test('f1088 (4) a number typed alone opens the Cover', () => {
-  assert.match(fn(strip(read('js/copilotacts.js')), 'jamboRefGo'), /roomHomeLand\(R\.c\.id, R\.question \? undefined : \{ cover: true \}\)/);
+  assert.match(fn(strip(read('js/copilotacts.js')), 'jamboRefGo'), /roomHomeLand\(R\.c\.id, R\.question \? undefined : \{ open: true \}\)/);
 });

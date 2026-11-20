@@ -130,7 +130,7 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
 
     /* RETIRED 16 Nov 2026 (#762): 4a–4d (our Where we are sheet: open points as a table, cards, Share a status link on its
        title line) — in the new look the Cover REPLACES our Where we are (owner picked "Margin Notes", 16 Nov 2026, f1085;
-       pd2StandsOpen → the Cover); their status page stays. New-look coverage: the-cover-verify.js */
+       pd2StandsOpen → the Cover); their status page stays. The Cover was itself deleted (owner, 20 Nov 2026); Where we are opens the Dossier. */
     console.log('\n5 · Obligations');
     await tab('MK-R1', 'oblig');
     const ob = await page.evaluate(() => ({

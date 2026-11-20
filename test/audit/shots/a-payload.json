@@ -1,11 +1,11 @@
 {
-  "outsideLook": false,
+  "outsideLook": true,
   "payload": {
     "v": 1,
     "kind": "hati-share",
     "org": "Highland Corporate Ltd",
     "sharedBy": "Amina Otieno",
-    "at": "2026-11-13T21:51:55.085Z",
+    "at": "2026-11-20T10:06:10.240Z",
     "docHash": {
       "purpose": "negotiate"
     },
@@ -20,7 +20,7 @@
       "changes": [
         {
           "id": "CHG-001",
-          "clauseId": "cl_2glg77",
+          "clauseId": "cl_9948ui",
           "clauseLabel": "Clause 2 · Payment",
           "changeType": "modify",
           "afterClauseId": null,
@@ -50,7 +50,7 @@
           ],
           "oldText": "The Customer shall pay each invoice within sixty (60) days of receipt.",
           "newText": "2. Payment\nThe Customer shall pay each invoice within thirty (30) days of receipt.",
-          "hash": "0x93fe7a6992ba65877c44f46a47d677d9835a99dc8b26781b0c1a549afaf2d956",
+          "hash": "0x54be7f8fe0ecc046fb71637b035a0b05c4fc3c976d7a888ac1eb5047adc7b6df",
           "hashV": 5,
           "prevChangeHash": null,
           "seq": 1,
@@ -59,7 +59,7 @@
           "needsReviewWhy": null,
           "author": "Amina Otieno",
           "authorSide": "owner",
-          "createdAt": "2026-11-13T21:51:55.046Z",
+          "createdAt": "2026-11-20T10:06:10.189Z",
           "roundN": 1,
           "counterOf": null,
           "counteredBy": null,
@@ -77,12 +77,12 @@
         "turn": "owner",
         "turnAt": null,
         "roundAt": null,
-        "startedAt": "2026-11-13T21:51:55.045Z",
-        "chainHead": "0x93fe7a6992ba65877c44f46a47d677d9835a99dc8b26781b0c1a549afaf2d956",
+        "startedAt": "2026-11-20T10:06:10.188Z",
+        "chainHead": "0x54be7f8fe0ecc046fb71637b035a0b05c4fc3c976d7a888ac1eb5047adc7b6df",
         "chainSeq": 1,
         "seq": 1,
         "hashV": 2,
-        "baselineBody": "<h2 data-clause-id=\"cl_x3sxvv\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_2glg77\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_3v0ieu\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
+        "baselineBody": "<h2 data-clause-id=\"cl_v7w4nq\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_9948ui\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_b6d5t1\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
         "baselineText": "1. Scope\nThe Supplier shall provide refrigerated haulage between Nairobi and Mombasa.\n2. Payment\nThe Customer shall pay each invoice within sixty (60) days of receipt.\n3. Liability\nThe Supplier shall not be liable for any indirect or consequential loss."
       },
       "party": "Highland Corporate Ltd",
@@ -91,7 +91,7 @@
       "valueType": "standard",
       "fields": {},
       "docText": "1. Scope\nThe Supplier shall provide refrigerated haulage between Nairobi and Mombasa.\n2. Payment\nThe Customer shall pay each invoice within sixty (60) days of receipt.\n3. Liability\nThe Supplier shall not be liable for any indirect or consequential loss.",
-      "redlineText": "<h2 data-clause-id=\"cl_x3sxvv\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_2glg77\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_3v0ieu\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
+      "redlineText": "<h2 data-clause-id=\"cl_v7w4nq\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_9948ui\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_b6d5t1\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
       "format": "rich"
     }
   },
@@ -110,7 +110,7 @@
   "share": {
     "recipientName": "Juno Limited",
     "recipientEmail": "contracts@juno.co.ke",
-    "expiresAt": "2026-11-27T21:51:55.089Z",
+    "expiresAt": "2026-12-04T10:06:10.246Z",
     "channel": "link"
   }
 }

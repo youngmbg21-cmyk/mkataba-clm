@@ -200,3 +200,13 @@ test('f1097 (7) an emoji marks every page; one name for one stage (owner, 21 Nov
   const css = HTML.slice(HTML.indexOf('#cmd-palette .lp-sheet{'), HTML.indexOf('#cmd-palette .lp-foot kbd'));
   assert.match(css, /\.lp-em\{position:absolute;/, 'the emoji stands in its own gutter, the line under the name starts where the name starts');
 });
+
+test('f1097 (8) the emoji book holds every emoji the launchpad draws (owner, 21 Nov 2026)', () => {
+  const ST = R('js/views/settings.js'), i = ST.indexOf('const SDD_EMOJI='); assert.ok(i >= 0, 'the emoji book is there');
+  const book = new Function('return ' + ST.slice(i + 'const SDD_EMOJI='.length, ST.indexOf('};', i) + 1))();
+  const E = plain(world().__api.LP_EMOJI);
+  assert.deepEqual(Object.keys(book.page).sort(), ['calendar', 'contracts', 'draft', 'negotiations', 'oblig', 'pulse', 'reads'], 'the seven pages the book had nothing for');
+  for (const [k, e] of Object.entries(book.page)) assert.equal(E[k], e, k + ': the launchpad draws the book\'s emoji');
+  const all = new Set([...Object.values(book.area), ...Object.values(book.row), ...Object.values(book.page)]);
+  for (const [k, e] of Object.entries(E)) assert.ok(all.has(e), k + ' ' + e + ' is in the emoji book');
+});

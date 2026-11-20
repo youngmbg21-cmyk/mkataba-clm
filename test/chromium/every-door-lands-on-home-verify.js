@@ -194,8 +194,7 @@ const LAND = () => {
     /* RE-POINTED 9 Nov 2026 (the Lifeline strip is gone): a contract brought up is its paper on Home, and its page is
        what stands in the middle beside it — Where we are (.pd2-stands), History (#pd2-hist), or the paper itself */
     strip: (() => { try { const c = (window.intel && intel.paper) ? intel.paper : null; return c ? String(c.id) : null; } catch (_){ return null; } })(),
-    /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): 'where' is the Cover standing over the paper */
-    stripPage: document.getElementById('pd2-hist') ? 'hist' : document.querySelector('.cv-page') ? 'where' : 'ov',
+    stripPage: document.getElementById('pd2-hist') ? 'hist' : 'ov',
     /* Key terms standing in the middle (since the Details page retired, 22 Oct 2026), and its Move open */
     kt: !!document.querySelector('[data-pd-mid-kt]'),
     ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
@@ -262,14 +261,15 @@ const E = {
   /* RE-POINTED 24 Oct 2026 (Round 5, owner's yes, "retire the old room"): a door that opened the room lands on
      the paper with its Dossier (roomRetiredLand → roomHomeLand); Where we are, History and "bring up" keep the strip */
   dossier: id => L => E.copilot(id)(L),
-  strip: (id, page) => L => L.view === 'dashboard' && L.face === 'paper' && L.strip === id && L.stripPage === (page || 'ov'),
+  /* RE-POINTED 20 Nov 2026 (owner: the Cover is deleted, "open the Dossier instead"): Where we are is the paper with its Dossier */
+  strip: (id, page) => L => L.view === 'dashboard' && L.face === 'paper' && L.strip === id && L.stripPage === (page === 'where' ? 'ov' : (page || 'ov')),
   page: v => L => L.view === v && !L.room,
   ngList: L => L.view === 'redline' && L.rlList,
 };
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the form beside the paper (Fill in the contract), its first owed box in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
-  strip: 'its paper on Home (History or Where we are in the middle where named)', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its paper on Home, its Cover over it (Where we are is the Cover)', stripDetails: 'its paper on Home', kt: 'its paper on Home, Key terms in the middle' };
+  strip: 'its paper on Home (History or Where we are in the middle where named)', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its paper on Home, the Dossier beside it (Where we are opens the Dossier)', stripDetails: 'its paper on Home', kt: 'its paper on Home, Key terms in the middle' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });

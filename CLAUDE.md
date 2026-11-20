@@ -186,6 +186,7 @@ JAMBO READS THE BOOK (`AI_HANDBOOK_RULE`, both hosts); reader `hbkSearchDocs`; c
 ## THE ONE DESK — NEEDS YOU, ONE READING
 `ndRead` the ONE list: `ndPieces` + `cnRows`, wait + piece one row (`ND_MERGE`); `ndParts`; Board `ndBoardHtml`, bell `ndPanelHtml`, phone `cn2Rows`. ONE COUNT = Board rows (`counterNeedsCount`; not News; f999). Dossier: `pdNeedsRows`.
 WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): `negoMayAnswer(c)` (Viewer never, desk Reader not, admin always) gates their-round rows (`agRoundItems`, `agQuietItems`, checklist quiet); a Viewer gets no Jambo pieces (`ndPieces`); bell says it as NEWS (`nego-news`). `negoNeedsYouIds` unchanged. f1121.
+REDLINES READ-ONLY FOR A VIEWER: `rlOnlyReads()` in `rlBenchOpts` (page + face) → `readonly` + `rl_viewer_why`; desk Reader's hands already shut (`rlActorHeld`), keeps notes; server refuses a Reader answering THEIR asks (`theirAnswersTouched`). f1123.
 ROW GOES TO ITS WORK: `ndRowGo(key)` (contract, Calendar, else Board list; f1077). COMPANY ROW → THE JOB: `cnCompanyGo` → `stNeedGo`; admins (f1079).
 ## THE PULSE BOARD (js/views/pulse.js)
 Ranked live (`puRead`, `PU_TICK_MS`): `puNeedsMap` off `ndRead` · `fxRankValue` · `effectiveExpiry` · `puJamboWrote` (RAW). Strands `puEventsOf`; why `puSayOf`; existing doors. f963.
@@ -266,7 +267,7 @@ PRIVATE: `mineLoad`/`mineSave`/`mineDelete` over /api/me/items (`my_items`, ever
 ## SETTINGS & RULES — THE CONTROL ROOM
 - CONTRACT LOOK: ADMINS ONLY (PUT /api/org/branding); `clPageHtml`; by stream (`stream_looks`); `srvLookOf` paper → stream → company; follows stream until signed (`srvLookFollowStream`); their paper undressed. f1049.
 - DOOR TO DOOR (P-11): SIX AREAS (`SDD_AREAS`), a row each (`sddRows`, `sddState`); needs `sddNeedList`; press chooses, second opens; `#sdd-q`; old pages in areas (`SDD_PAGE_AREA`, `data-sdd-to`); panel `sddCardHtml`. f1091.
-- EMOJI per row/area: `SDD_EMOJI` (HaTi's own where they exist); needs-you amber dot. A MARK, never button words (f385). Black button spans card (`.jov5-act .jov5-go`). f1100.
+- EMOJI BOOK per row/area/page: `SDD_EMOJI` (HaTi's own where they exist; `page` = the launchpad's seven, every `LP_EMOJI` emoji is in the book, f1097 (8)); needs-you amber dot. A MARK, never button words (f385). Black button spans card (`.jov5-act .jov5-go`). f1100.
 - Company admin-only (`renderTeam()`): `stNeedsAll`, `ST_CARDS`, `openSettingsAt` lands, never presses; `stFind`; Ask an admin recorded (`settings_asks`). Trail in folderScopeFor (`trailRows`, `trailPdf`); `BZ_ALL`; access review needs everyone decided.
 - AWAY: stand-in answers approvals/reviews, never signing (`awayCovers`). HOLD `c.hold` (409). CODE NAMES: real name never leaves server for outsiders (`cnFrontDoor`, `cnMask`, `cnMailMask`; f1016); new non-JSON route with contract text MUST MASK.
 ## PARTY vs WORKSPACE, AND WHO THE AGREEMENT IS BETWEEN (js/parties.js)
@@ -280,10 +281,8 @@ FORM: owed first (`pd2FormRegroup`); one-sentence fill (`pd2FormAsk` → POST /a
 FILL ON PAPER: "Fill in the contract" (`pdFillGo` → `pd2FillStart`); in place (`PD2_BL_SEL`; not signing copy); unfilled AMBER (f1042). NEGOTIATED: outside argued clauses, files OUR change via `negoEditClause` (`pd2NegoFile`; f1033, f1036). Signature names (`saveSignerPlan`, `pd2FillSigNamed`, `pd2FillSigDrop`; f1012, f1017); `templateForm` joins (`pd2FillTplBlanks`, `tplFormCommit` then `tplFormApply`; f1029).
 THEN: filled, signer named, unsent → how it goes out (`pd2RoadOf`, `pd2RoadGo`; f1013). Their move (`negWhoseMove`): Remind `shareSendAgainRun`, yours meanwhile (`pd2WaitOf`; f1015).
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
-COVER FIRST: opened ON PURPOSE (`pdOpenOnHome(id,'open')`, `roomHomeLand(id,{cover:true})`) → Cover (`pdCoverOpen`, `pdCoverLand`); job doors `{cover:false}`. `pdCoverOf`, `pdCoverHtml` (≤`CV_NOTES_MAX`, ≤`CV_ROWS_MAX`, ONE count). REPLACES our Where we are (`pd2StandsOpen` → Cover); their status page stays. f1085.
-A4 SHEET FITS ANY SCREEN: words in `cqh`, `clamp` type; green Contracts door (`data-cv-go="contracts"` → `setView('register')`). f1090.
-COVER IS A PAGE: drawn FIRST over the origin (`pdCoverGo`, `pdCoverShow`), paper under it (`_cvHold`); ‹/Esc back (`_pdMid.from`, `deskCoverUp`); going in waits for the job (`pdCoverLeave`). ANY MIDDLE PAGE's way back = origin (`pdArriveNote` in `pdOpenOnHome`, `pdMidFrom` → `deskGoBack`); veil meanwhile (`pdMidArriving`). f1099.
-NO PAGE FLASHES: Cover closes and goes in ONE turn; Cover asked AT ONCE, bounded veil (`pdCoverVeil`, `CV_LAND_MS`). f1096. PAGE ARRIVES WHOLE: `[data-dlg-page]` never fades (`.modal-in[data-dlg-page]{animation:none}`); no-page-flashes-verify: first layer ≥90% solid.
+THE COVER IS DELETED (owner, 20 Nov 2026: "Delete it, open the Dossier instead"; reverses f1085/f1090/f1096/f1099): opened ON PURPOSE (`pdOpenOnHome(id,'open')`, `roomHomeLand(id,{open:true})`) = paper + the reader's face, Dossier by default (`pdOpenTabOf`); our Where we are → Dossier (`pd2StandsOpen`). f1122.
+ANY MIDDLE PAGE's way back = origin (`pdArriveNote` in `pdOpenOnHome`, `pdMidFrom` → `deskGoBack`); veil meanwhile (`pdMidArriving`, `pdMidVeil`, `CV_LAND_MS`). PAGE ARRIVES WHOLE: `[data-dlg-page]` never fades (`.modal-in[data-dlg-page]{animation:none}`); no-page-flashes-verify: first layer ≥90% solid.
 Jambo's work (`pdMidWork` → `agOpenItem(key,{mid})`), duties review, `pdKtMid` take the paper's place (`pdMidPage`); Dossier still; back `pdMidClose`.
 DEAL TAB AND DEAL BOARD REMOVED: deal → Redlines (`pdRedOpen`); memo own panel. f1084.
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
@@ -297,7 +296,7 @@ index.html block "THE NEW LOOK: HARMONY": ONE HEAD (`.ctf-h`); PILL TO ACT; same
 ON FOR EVERYONE, NO SWITCH: `newLookOn` = signed in; `outsideLookOn` true both hosts; no switch (f967). Old look's code: delete only when asked by name ("do not delete yet").
 GEIST (f377). NAME/FIGURE INK; DETAIL GREY (`--color-neutral-400`; f982, f984, f990). Row mark `listSapMarkHtml`/`listSapCellHtml` (f997); Jambo `mkSpark`. FOLDERS: tile number = list it opens (`regFolderViewsData`; f998). One colour a page, from a fact (`listStreamTone`; f986).
 ## ONE PAPER EVERYWHERE — THE HOME PAPER
-LESS SAID TWICE: headline only, no eyebrow/subline. Typed contract number opens Cover (`jamboRefGo`). f1088.
+LESS SAID TWICE: headline only, no eyebrow/subline. Typed contract number opens its Dossier (`jamboRefGo`). f1088.
 DOSSIER TOP ONE CARD (`pd2CardHtml`). Notes wait for clause (`pd2WalkNotesHold`); arrival plays (`pd2WalkArrive`); f1018. `pd2WalkClose` restores place (`W.back`, `backOk`), not on face change.
 ONE LOOK (720px, `--font-doc`; designed paper keeps type). ZOOM `rlSetDocZoom` 60–200.
 PAPER CENTRED, left only as notes need, ≥40 from edge (`pd2NotesPaint`). contract-new-look-verify 4, 4c.
@@ -365,7 +364,7 @@ LEGORA STEPS: four steps one line (`SH_LGX_HEAD`); label beside words, no box (t
 NOTES FOLLOW WORDING (lifts "spends only on a press"): wording-moving decision reads again once a run (`triageWordingMoved`, `triageMovedRun`); never unread, private stream, their page, viewer. f1008.
 SPEAKS FIRST ON UPLOAD once per reading (`firstReadDue`), no AI. WEB SEARCH `partyLookup`. PHONE ALERTS `pushTell` (no code-named deal, wording, figure).
 ## STANDARDS — THE LADDER (js/views/ladder.js, js/stdladder.js; owner's pick 17 Nov 2026)
-CALLED THE PLAYBOOK, entries POSITIONS, both books (code keeps `standards`/`ld_`; "standard" = company paper stays). Approvals rows: "See it in the paper ›" (`apnPeekLinkHtml`, `apnPeekRowOf`): pages on `--desk-ground` (`apnPeekPages` → `pagesWatch`), Dossier's notes painter (`pd2NotesPaint(c,{zoom,cv})` → `pd2SeatPaint`; `pd2NotesOnPaper`, `pd2SheetLay`; `:is(#pd2-notes, .pd2-notes.is-peek)`), read-only (`ownFrame`); Dossier via COVER (`apnPeekDossier` → `roomHomeLand(id,{cover:true})`). f1093.
+CALLED THE PLAYBOOK, entries POSITIONS, both books (code keeps `standards`/`ld_`; "standard" = company paper stays). Approvals rows: "See it in the paper ›" (`apnPeekLinkHtml`, `apnPeekRowOf`): pages on `--desk-ground` (`apnPeekPages` → `pagesWatch`), Dossier's notes painter (`pd2NotesPaint(c,{zoom,cv})` → `pd2SeatPaint`; `pd2NotesOnPaper`, `pd2SheetLay`; `:is(#pd2-notes, .pd2-notes.is-peek)`), read-only (`ownFrame`); Dossier (`apnPeekDossier` → `roomHomeLand(id,{open:true})`). f1093.
 Own page (view `playbook`, place `standards`; Our paper tab REMOVED). Standard = clause (`fallbacks` [{text,who}], `never`, `ver`, `reviewNext`) + book entries (`firm` must·push·nice·never; `pos`/`escalate` from it); both hosts `stdPlaceOf`, `stdLadderOf`, `stdChangeApply`. Counts holds/departs only.
 CHANGE WAITS FOR ANY ADMIN BUT ITS AUTHOR: POST /api/standards/changes (admin, Legal) → …/:id/decide → …/withdraw; governed (`stdGoverned`): PUT /api/settings can't change it. Must have follows `signCheckGate`; Allow once = `signCheckAccept`.
 JAMBO WRITES IT (POST /api/ai/standard, a press): a turn (`stdDraft`, host 'ai', `ldJbDraftHtml`), never auto-put; form reads boxes on input (`ldEditRead`). f1091.
