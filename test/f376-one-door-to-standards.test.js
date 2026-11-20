@@ -215,7 +215,7 @@ function page(files, globals = {}) {
     ...globals,
   });
   const ctx = dom.getInternalVMContext();
-  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/section.js'].concat(files)) runFileInContext(path.join(ROOT, f), ctx, f);
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/section.js', 'js/components.js'].concat(files))  /* components.js: the one edit sheet (lgpOpen, f1118) */ runFileInContext(path.join(ROOT, f), ctx, f);
   win.__log = log;
   win.__run = code => vm.runInContext(code, ctx);
   /* Deferred work runs when the test says so — the frame's own focus first,
