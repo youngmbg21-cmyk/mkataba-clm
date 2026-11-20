@@ -493,7 +493,13 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           const cut = el => !!el && el.scrollWidth > el.clientWidth + 1;
           const rows = [...p.querySelectorAll('.jov5-group .jov5-row')].filter(r => r.getClientRects().length).map(li => { const b = li.querySelector('.jov5-rt > b'), v = li.querySelector('.jov5-v');
             return { t: b ? b.textContent.trim().slice(0, 60) : '', cut: cut(b) || cut(v) || cut(li) }; });
-          return { rows, side: document.documentElement.scrollWidth <= innerWidth + 1 }; }) : null;
+          /* WHAT WAS ON SCREEN (20 Nov 2026): run 44643206611 found the rows in the panel yet none painted ({"rows":[]});
+             the detail now names the page, the panel's face and width, so a red says why (it asserts nothing more) */
+          const body = p.querySelector(':scope > .jl-body'), pr = p.getBoundingClientRect();
+          const seen = { view: (window.state || {}).view, inDom: p.querySelectorAll('.jov5-group .jov5-row').length,
+            talk: p.classList.contains('is-talk'), folded: p.classList.contains('is-folded'), bodyHidden: !!(body && body.hidden),
+            panelW: Math.round(pr.width), panelShown: p.getClientRects().length > 0, modal: !!document.querySelector('#modal-root > *') };
+          return { rows, side: document.documentElement.scrollWidth <= innerWidth + 1, seen }; }) : null;
         check(`9 Parties ${w}×${ht}: the party's panel reads whole — every row uncut, nothing sideways`,
           !!R && R.rows.length && R.rows.every(r => !r.cut) && R.side, JSON.stringify(R));
         await shot(`r19-party-panel-${w}x${ht}.png`);

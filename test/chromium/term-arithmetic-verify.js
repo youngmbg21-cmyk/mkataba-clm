@@ -125,7 +125,10 @@ const CASES = [
     await page.waitForTimeout(500);
     const card = await page.evaluate(() => {
       const btn = document.querySelector('[data-mf-use]');
-      const box = btn && btn.closest('span');
+      /* RE-POINTED 20 Nov 2026 (#814, f1120: the review is the one Legora edit sheet): the amber
+         disagreement is its own quiet line under the field, a <p data-mf-check>, no longer a boxed
+         <span>; the words and the one-press fix are asked of that line, as before */
+      const box = btn && (btn.closest('[data-mf-check]') || btn.closest('span'));
       return {
         warned: !!box, text: box ? box.textContent.replace(/\s+/g, ' ').trim() : '',
         offers: btn ? btn.getAttribute('data-mf-val') : null,

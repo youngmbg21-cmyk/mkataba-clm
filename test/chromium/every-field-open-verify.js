@@ -23,6 +23,23 @@ const check = (ok, what, detail) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + w
 const until = async (P, fn, arg, ms = 10000) => { try { await P.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
 
 const PLACES = [
+  ['send screen', () => {
+    /* a trail of what moves the page while the Send screen opens (a red run names WHO closed it) */
+    window.__sendTrail = [];
+    const at = () => (new Error().stack || '').split('\n').slice(2, 6).map(x => x.trim().replace(/\(?https?:\/\/[^/]+\//, '').replace(/\)$/, '')).join(' < ');
+    if (!window.__sendTrailOn){ window.__sendTrailOn = true;
+      for (const k of ['setView', 'closeModal', 'roomHomeLand', 'pdSendOpen', 'pdOpenOnHome']){ const f = window[k]; if (typeof f !== 'function') continue;
+        window[k] = function (...a){ if (window.__sendTrail) window.__sendTrail.push(k + '(' + (typeof a[0] === 'string' ? a[0] : '') + ') ' + at()); return f.apply(this, a); }; } }
+    /* RE-POINTED 20 Nov 2026: Send is pressed from a contract's paper (its line's Send, #ws-share), so the step lands
+       there and presses that button once the paper has settled, as a person does. Called the instant the paper appeared,
+       the screen opened beside Jambo and then shut — logged in BUGLOG, not this check's claim. */
+    const c = state.contracts.find(x => /draft|review/i.test(x.status)) || state.contracts[0];
+    if (typeof roomHomeLand === 'function') roomHomeLand(c.id);
+    return new Promise(res => { let n = 0; const go = () => { const dock = document.getElementById('ig-dock');
+      /* the paper's own Send (#ws-share), pressed once the paper has settled — as a person presses it */
+      const btn = document.getElementById('ws-share');
+      if ((state.view === 'dashboard' && dock && dock.getClientRects().length && btn && btn.getClientRects().length) || ++n > 80){
+        setTimeout(() => { const b = document.getElementById('ws-share'); if (b) b.click(); else openShareModal(c); res(); }, 800); } else setTimeout(go, 100); }; go(); }); }, () => !!document.querySelector('.sh-lt-who input')],
   ['new agreement', () => openNewAgreement({}), () => !!document.querySelector('#na-root'),
     () => { const b = document.querySelector('.na-ask textarea, .na-ask input'); if (!b) return; b.value = 'Two-year equipment lease of a filling line with Foretag AB'; b.dispatchEvent(new Event('input', { bubbles: true })); b.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); },
     () => !!document.querySelector('.na-kt-grid .na-kt-r')],
@@ -37,7 +54,6 @@ const PLACES = [
   ['discover filters', () => setView('reads'), () => !!document.querySelector('#rd-page select')],
   ['your account', () => openMyAccount(), () => !!document.querySelector('#acct-title')],
   ['company and market', () => openSettingsAt('company', 'company'), () => !!document.querySelector('#st-co-name')],
-  ['send screen', () => { const c = state.contracts.find(x => /draft|review/i.test(x.status)) || state.contracts[0]; openShareModal(c); }, () => !!document.querySelector('.sh-lt-who input')],
 ];
 const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .nd-bar, .lin-wrap, .pd2-fm-mid';
 
@@ -81,7 +97,10 @@ const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-ch
           let sendLines = null;
           const who = document.querySelector('.sh-lt-who input');
           if (who){ const row = who.closest('label'); sendLines = [parseFloat(getComputedStyle(who).borderBottomWidth) || 0, parseFloat(getComputedStyle(row).borderBottomWidth) || 0].filter(x => x > 0).length; }
-          return { boxed, pwPill, sideIsSelect: !!(side && side.tagName === 'SELECT'), beside, sendLines, sideways: document.documentElement.scrollWidth - innerWidth };
+          /* when the person's row is not there, say what IS on screen (a red run names its cause) */
+          const sendWhere = who ? null : { trail: (window.__sendTrail || []).slice(0, 12), view: (window.state || {}).view, modal: !!document.querySelector('#modal-root .modal-in'), sharePage: !!document.querySelector('#modal-root [data-sh-page]'),
+            dock: !!document.querySelector('#pd-sendface'), letter: !!document.getElementById('sh-letter'), whoEls: document.querySelectorAll('.sh-lt-who').length };
+          return { boxed, pwPill, sideIsSelect: !!(side && side.tagName === 'SELECT'), beside, sendLines, sendWhere, sideways: document.documentElement.scrollWidth - innerWidth };
         }, BOXES);
         check(r.boxed.length === 0, `1 ${w}×${hh} ${name}: no field wears a box`, r.boxed.slice(0, 6));
         if (name === 'new agreement') check(r.pwPill === true, `2 ${w}×${hh} ${name}: Who pays whom is pill buttons`, r.pwPill);
@@ -90,7 +109,7 @@ const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-ch
           check(r.beside === true, `3 ${w}×${hh} ${name}: the label stands beside the words`, r.beside);
         }
         if (name === 'add approval rule') check(r.beside === true, `3 ${w}×${hh} ${name}: the label stands beside the words`, r.beside);
-        if (name === 'send screen') check(r.sendLines === 1, `4 ${w}×${hh} ${name}: one line under a row, not two`, r.sendLines);
+        if (name === 'send screen') check(r.sendLines === 1, `4 ${w}×${hh} ${name}: one line under a row, not two`, r.sendLines != null ? r.sendLines : JSON.stringify(r.sendWhere));
         check(r.sideways <= 0, `5 ${w}×${hh} ${name}: nothing sideways`, r.sideways);
         await P.screenshot({ path: path.join(OUT, `${w}x${hh}-${name.replace(/\s+/g, '-')}.png`) });
       }

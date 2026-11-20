@@ -114,7 +114,13 @@ const untilServer = async (page, ok, ms = 8000) => {
     const listed = await until(P, () => [...document.querySelectorAll('tr')].some(r => /MK-E1/.test(r.innerText)), null, 10000);
     const row = await P.evaluate(() => { const r = [...document.querySelectorAll('tr')].find(x => /MK-E1/.test(x.innerText)); return r ? r.innerText : ''; });
     check(listed && !/420/.test(row) && /—/.test(row), '2c the Contracts list\'s value cell is a dash', row.replace(/\s+/g, ' ').slice(0, 160));
-    const placeHead = await P.evaluate(() => (document.querySelector('[data-reg-home]') || document.body).innerText.match(/KES [\d.,]+[KMB]? on paper/));
+    /* RE-POINTED 20 Nov 2026 (the owner, 19 Nov 2026: "delete the words beside the header name because they are
+       pushing the buttons to the right"): a folder's list head no longer carries the "N · KES … on paper" facts
+       line, so the money on paper is read where the place still says it — the Folders head the list's
+       "‹ Folders" goes back to (regFoldersHeadHtml off regFolderRead, which leaves pay out) */
+    await P.evaluate(() => { const b = document.querySelector('[data-ctf-back]'); if (b) b.click(); });
+    await until(P, () => !!document.querySelector('.ctf-hf'), null, 8000);
+    const placeHead = await P.evaluate(() => { const f = document.querySelector('.ctf-hf'); return f ? f.innerText.match(/KES [\d.,]+[KMB]? on paper/) : null; });
     check(!!placeHead && /247M/.test(placeHead[0]), '2d the place\'s head adds the deals alone', placeHead && placeHead[0]);
     await P.evaluate(() => { regPlaceSet({ show: 'wall' }); });
 

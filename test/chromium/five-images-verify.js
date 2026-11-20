@@ -273,18 +273,27 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
        stand: the frame is a ruled title bar over an untouched surface, and a
        dangerous question says so in the danger tone, never the accent — now
        as its warning sign and its red confirm button. */
+    /* RE-POINTED 20 Nov 2026 (#814, f1120 — the owner's pick of 19 Nov 2026, THE ONE EDIT POP-UP, THE
+       LEGORA WAY): Add a received contract is now the one quiet Legora sheet (form.lgp), whose head
+       (.lgp-hd) is a serif title with NO rule under it — nothing boxed, on purpose. A dialog still in
+       the SAP frame keeps its ruled .dlg-h bar and is held to the rule as before; on the Legora sheet
+       the claims that stand are the ones this step protects: no colour line at the frame's top, the
+       head is the frame's own at its top edge, and the surface is untouched. */
     const pop = await page.evaluate(() => {
       const m = document.querySelector('#modal-root [role="dialog"]');
       if (!m) return null;
-      const cs = getComputedStyle(m), bar = m.querySelector('.dlg-h'), bs = bar ? getComputedStyle(bar) : null;
+      const cs = getComputedStyle(m), bar = m.querySelector('.dlg-h, form.lgp > .lgp-hd'), bs = bar ? getComputedStyle(bar) : null;
       return { img: cs.backgroundImage, surface: cs.backgroundColor, radius: cs.borderRadius,
-        bar: !!bar, rule: bs ? bs.borderBottomStyle + ' ' + bs.borderBottomWidth : '' };
+        bar: !!bar, legora: !!(bar && bar.matches('.lgp-hd')),
+        rule: bs ? bs.borderBottomStyle + ' ' + bs.borderBottomWidth : '',
+        barImg: bs ? bs.backgroundImage : '' };
     });
-    ok('5 the dialog frame is a ruled title bar, with no colour line at its top',
-      !!pop && pop.bar && /^solid [1-9]/.test(pop.rule) && !/linear-gradient/.test(pop.img),
-      pop && JSON.stringify({ bar: pop.bar, rule: pop.rule, img: pop.img.slice(0, 40) }));
-    ok('5b the title bar is the frame\u2019s own: it sits at the dialog\u2019s top edge',
-      await page.evaluate(() => { const m = document.querySelector('#modal-root [role="dialog"]'), b = m && m.querySelector('.dlg-h');
+    ok('5 the dialog frame has its own head (a ruled title bar, or the Legora sheet\u2019s quiet head), with no colour line at its top',
+      !!pop && pop.bar && (pop.legora || /^solid [1-9]/.test(pop.rule)) && !/linear-gradient/.test(pop.img)
+        && !/linear-gradient/.test(pop.barImg),
+      pop && JSON.stringify({ bar: pop.bar, legora: pop.legora, rule: pop.rule, img: pop.img.slice(0, 40) }));
+    ok('5b the head is the frame\u2019s own: it sits at the dialog\u2019s top edge',
+      await page.evaluate(() => { const m = document.querySelector('#modal-root [role="dialog"]'), b = m && m.querySelector('.dlg-h, form.lgp > .lgp-hd');
         return !!b && Math.abs(b.getBoundingClientRect().top - m.getBoundingClientRect().top) <= 2; }));
     ok('5c the surface underneath is untouched',
       !!pop && pop.surface !== 'rgba(0, 0, 0, 0)', pop && pop.surface);
