@@ -2625,6 +2625,8 @@ function startApp(){
     if(window.stAsksLoad){ _asksAt=Date.now(); try{ stAsksLoad(); }catch(_){} }
     /* findings on the map sent to this reader, and replies to their questions (Explorer stage 4) */
     if(window.igFindingsLoad) try{ igFindingsLoad(); }catch(_){}
+    /* Discover's reads and answers, fetched quietly once the app is idle, so the page is ready when opened (owner, 20 Nov 2026) */
+    if(window.dsnWarm) try{ dsnWarm(); }catch(_){}
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
     if(!window._pollFocusBound){
