@@ -1644,22 +1644,8 @@ function cunCols(){
   const th = `<thead><tr>${cols.map(c => `<th>${T[c.k] ? esc(i18t(T[c.k])) : ''}${T[c.k] && typeof listGripHtml === 'function' ? listGripHtml('customers', c.k) : ''}</th>`).join('')}</tr></thead>`;
   return { keys, colg, th, n: cols.length };
 }
-/* THE SENTENCE OVER THE LIST (a touch of the Legora way): how many parties, who holds the most money (a press chooses
-   that row) and how many have something waiting (a press opens the Waiting tab). Read from the record, no Jambo call;
-   a part with nothing to say is left out. */
-function cunSayHtml(all){
-  if (!all.length) return '';
-  const E = esc, hole = (key, n, vars, html) => { const k = '\u0001'; const t = n == null ? i18t(key, Object.assign({}, vars, { x: k })) : i18tn(key, n, Object.assign({}, vars, { x: k })); return E(t).replace(k, html); };
-  const lead = E(i18tn('cun_say_lead', all.length, { n: all.length }));
-  const top = all.map(v => ({ v, m: cunMoney(v) })).filter(x => x.m > 0).sort((a, b) => b.m - a.m)[0];
-  const wait = all.filter(v => (v.needs || []).length).length;
-  const topH = top ? hole('cun_say_top', null, {}, `<button type="button" class="cun-say-a" data-cun-pick="${E(top.v.key)}">${E(top.v.name)}</button>`) : '';
-  const waitH = wait ? `<button type="button" class="cun-say-a" data-cun-say-tab="wait">${E(i18tn('cun_say_wait', wait, { n: wait }))}</button>` : '';
-  const rest = topH && waitH ? hole('cun_say_both', null, { b: '\u0002' }, topH).replace('\u0002', waitH) : (topH || waitH) ? (topH || waitH) + '.' : '';
-  return `<p class="cun-say">${lead}${rest ? ' ' + rest : ''}</p>`;
-}
 /* PARTIES' TABS ALL DRAW THE ONE TABLE (All · Waiting on you only pick which parties), so a tab press and a typed letter
-   redraw only the rows (listRowsSwapHtml); the sentence and the title's count ride as `also`. */
+   redraw only the rows (listRowsSwapHtml); the title's count stays as it was. */
 function cunRender(host, INS, o){
   if (!['all', 'wait'].includes(_cun)) _cun = 'all';
   const all = (typeof cuCustomers === 'function' ? cuCustomers() : []).map(r => cuView(r)).filter(Boolean);
@@ -1676,7 +1662,6 @@ function cunRender(host, INS, o){
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2><span class="ctf-hf">${esc(i18tn('cun_n', all.length, { n: all.length }))}</span></div>
       <div class="apn-bar" data-lh-seat="customers-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(q)}"></label><span class="apn-sp"></span>
         ${tabs.map(t => `<button type="button" class="apn-tab${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cun-say-host">${cunSayHtml(all)}</div>
       <div class="cu-scroll"><table class="apn-table cun-table" data-list-seat="customers">${C.colg}
         ${C.th}
         <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, C.keys)).join('') || `<tr><td colspan="${C.n}" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
@@ -1684,7 +1669,7 @@ function cunRender(host, INS, o){
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   if (o && o.rows && INS && typeof listRowsSwapHtml === 'function'
     && listRowsSwapHtml({ page: '.cun-page[data-ins-page="customers"][data-cu-screen="list"]', html: PAGE, table: '.apn-table.cun-table',
-      tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab', footSel: '.cun-page[data-cu-screen="list"] .apn-foot', also: '.cun-page[data-cu-screen="list"] .cun-say-host' })){
+      tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab', footSel: '.cun-page[data-cu-screen="list"] .apn-foot' })){
     const tb = host.querySelector('#cu-tbody');
     if (tb) cuPaintCustomerPanel(tb, { rows: true });
     return;
@@ -1702,8 +1687,6 @@ if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired 
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const tab = t.closest('[data-cun-tab]'); if (tab){ e.preventDefault(); _cun = tab.getAttribute('data-cun-tab'); renderCustomers({ rows: true }); if (typeof placeSave === 'function') placeSave(); return; }
     /* the sentence's party: that row chosen, its panel open, in view */
-    const st = t.closest('[data-cun-say-tab]'); if (st){ e.preventDefault(); _cun = st.getAttribute('data-cun-say-tab'); renderCustomers({ rows: true }); if (typeof placeSave === 'function') placeSave(); return; }
-    const pk = t.closest('[data-cun-pick]'); if (pk){ e.preventDefault(); cuSelectParty(pk.getAttribute('data-cun-pick')); return; }
   }, true);
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
   document.addEventListener('input', e => { if (e.target && e.target.id === 'cun-q'){ state.cu = state.cu || {}; state.cu.q = e.target.value; renderCustomers({ rows: true }); } });
@@ -1804,7 +1787,7 @@ function partyHistorySay(h){
   if (h.pushed) out.push(String(h.pushed));
   return out.join(' ');
 }
-Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunSayHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunKeys, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunKeys, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */

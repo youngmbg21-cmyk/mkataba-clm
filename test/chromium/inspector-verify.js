@@ -216,7 +216,8 @@ const ok = (name, good, detail) => {
        pushing the buttons to the right"): the head carries no facts line beside the name any more; the count of the
        book is said by the sentence over the list (regCtSayHtml, "You hold N contracts, M of them signed"), whose N is
        the list's own book at rest (regRestBase) */
-    ok('1k the head draws no facts line; the sentence over the list counts the book', !floor.factsSlot && floor.restBook > 0 && new RegExp('^You hold ' + floor.restBook + ' contracts?, ').test(floor.say),
+    /* RE-POINTED 20 Nov 2026 (owner: "delete the highlighted parts"): the sentence over the list is gone too */
+    ok('1k the head draws no facts line, and no sentence stands over the list', !floor.factsSlot && floor.restBook > 0 && floor.say === '',
       { facts: floor.factsSlot, say: floor.say, book: floor.restBook, live: floor.liveBook });
     ok('1l a stage with nothing in it is not offered, and no choice prints a zero', floor.stageOpts >= 2 && floor.zeroTabs === 0 && floor.zeroCounts === 0, `${floor.stageOpts} stage choices, ${floor.zeroTabs} empty offered, ${floor.zeroCounts} zeros printed`);
     ok('1m no idle sort arrows', !floor.idle);
