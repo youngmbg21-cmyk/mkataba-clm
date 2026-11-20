@@ -16962,7 +16962,8 @@
      the screen"; replaces the bento of 19 Nov): the bar's top-left symbol, ⌘K and "/" open the jump window in the middle
      (openCommandPalette, js/app.js). With nothing typed: the ask line in two tones, chips, every page by stage in plain
      columns (a thin line under each head, the name in the link ink, one quiet line saying what is behind it, its count),
-     and ONE tinted column at the right for what waits on you. No page symbols, no stage colours. */
+     and ONE tinted column at the right for what waits on you. No stage colours. AN EMOJI MARKS EACH PAGE (owner, 21 Nov
+     2026; LP_EMOJI), at the left of its name, the line under it starting where the name starts. */
   .dk-nav-b{width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;margin-left:-8px}
   .dk-nav-b:hover,.dk-nav-b.is-on{background:var(--bar-hover)}
   .dk-nav-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
@@ -16980,7 +16981,7 @@
   #cmd-palette .lp-chip{height:28px;padding:0 11px;border:0;border-radius:999px;background:none;color:var(--color-neutral-400);font:var(--w-label) var(--t-label)/1 var(--font-body);cursor:pointer;white-space:nowrap}
   #cmd-palette .lp-chip:hover{color:var(--color-text)}
   #cmd-palette .lp-chip[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
-  #cmd-palette .lp-list{grid-column:1;grid-row:3;min-height:0;overflow-y:auto;padding:var(--s-2) var(--s-6) var(--s-4)}
+  #cmd-palette .lp-list{grid-column:1;grid-row:3;min-height:0;overflow-y:auto;padding:var(--s-2) var(--s-6) var(--s-3)}
   #cmd-palette .lp-side{grid-column:2;grid-row:1 / 4;width:296px;min-height:0;overflow-y:auto;display:flex;flex-direction:column;background:var(--color-bg);padding:102px var(--s-6) var(--s-4)}
   #cmd-palette .lp-side[hidden]{display:none}
   #cmd-palette .lp-h{margin:0;padding:0 0 10px;border-bottom:1px solid var(--color-neutral-300);font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
@@ -16992,7 +16993,7 @@
   #cmd-palette .lp-n{display:flex;align-items:baseline;gap:var(--s-2)}
   #cmd-palette .lp-n b{font-family:var(--font-title);font-size:30px;line-height:1;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
   #cmd-palette .lp-n span{font-size:var(--t-body);font-weight:var(--w-label);color:var(--st-amber-fg);white-space:nowrap}
-  #cmd-palette .lp-pg{font-size:var(--t-card);font-weight:var(--w-strong);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #cmd-palette .lp-pg{font-size:var(--t-card);font-weight:var(--w-strong);min-width:0;overflow-wrap:anywhere}
   #cmd-palette .lp-w q{flex:0 0 100%;display:block;font-size:var(--t-label);line-height:1.35;color:var(--color-quiet);overflow-wrap:anywhere}
   #cmd-palette .lp-src{flex:0 0 100%;font-size:var(--t-micro);line-height:1.3;color:var(--color-neutral-400)}
   #cmd-palette .lp-act{flex:none;display:inline-flex;align-items:center;height:28px;padding:0 var(--s-3);border-radius:999px;border:1px solid var(--color-neutral-300);background:var(--color-surface);font-size:var(--t-body);font-weight:var(--w-strong);white-space:nowrap}
@@ -17003,12 +17004,14 @@
   #cmd-palette .lp-list .lp-work + .lp-pages{margin-top:var(--s-4)}
   #cmd-palette .lp-st{min-width:0}
   #cmd-palette .lp-st h5{margin:0 var(--s-2) var(--s-1);padding:0 0 10px;border-bottom:1px solid var(--color-neutral-200);font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
-  #cmd-palette .lp-p{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--s-2);width:100%;padding:5px var(--s-2);margin-top:2px;border:0;border-radius:var(--radius-sm);background:none;text-align:left;cursor:pointer;font:var(--w-body) var(--t-card)/1.35 var(--font-body);color:var(--color-text)}
+  #cmd-palette .lp-p{position:relative;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--s-2);width:100%;padding:var(--s-1) var(--s-2) var(--s-1) 34px;margin-top:1px;border:0;border-radius:var(--radius-sm);background:none;text-align:left;cursor:pointer;font:var(--w-body) var(--t-card)/1.35 var(--font-body);color:var(--color-text)}
   #cmd-palette .lp-p:hover,#cmd-palette .lp-p.is-sel{background:var(--color-neutral-100)}
   #cmd-palette .lp-nm{flex:1 1 0;min-width:0;font-weight:var(--w-label);color:var(--accent-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #cmd-palette .lp-p.is-here .lp-nm{color:var(--color-text);font-weight:var(--w-strong)}
   #cmd-palette .lp-ct{flex:none;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400);white-space:nowrap}
   #cmd-palette .lp-ct.is-owed{color:var(--st-amber-fg);font-weight:var(--w-strong)}
+  #cmd-palette .lp-em{position:absolute;left:var(--s-2);top:var(--s-1);font-size:16px;line-height:19px}
+  #cmd-palette .lp-pg .lp-em{position:static;margin-right:6px;font-size:15px}
   #cmd-palette .lp-wh{flex:0 0 100%;min-width:0;font-size:var(--t-label);line-height:1.35;color:var(--color-quiet)}
   #cmd-palette .lp-foot{grid-column:1 / -1;grid-row:4;display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-4);align-items:center;justify-content:space-between;padding:9px var(--s-8);border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-400);background:var(--color-surface)}
   #cmd-palette .lp-keys{display:flex;gap:var(--s-3);align-items:center}

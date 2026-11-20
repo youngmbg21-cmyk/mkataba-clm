@@ -62,14 +62,18 @@ const isShut = () => !document.getElementById('cmd-palette');
         /* THE STRIPE WAY (owner, 20 Nov 2026): a line under every page, no symbols, what waits in ONE column at the right */
         lines: rows.filter(b => { const x = b.querySelector('.lp-wh'); return x && x.textContent.trim().length > 8 && x.getBoundingClientRect().height > 0; }).length,
         marks: pal.querySelectorAll('.lp-list svg, .lp-side svg, .lp-dot, .lp-ic').length,
+        /* AN EMOJI MARKS EVERY PAGE, ONE NAME FOR ONE STAGE (owner, 21 Nov 2026) */
+        emo: rows.filter(b => { const e = b.querySelector('.lp-em'), n = b.querySelector('.lp-nm'), w2 = b.querySelector('.lp-wh'); if (!e || !n || !w2) return false; const a = e.getBoundingClientRect(), c = n.getBoundingClientRect(), d = w2.getBoundingClientRect(); return a.width > 8 && a.right <= c.left + 1 && Math.abs(c.left - d.left) <= 1; }).length,
+        chipNames: [...pal.querySelectorAll('.lp-chip')].slice(2).map(c => c.textContent.trim()), headNames: [...pal.querySelectorAll('.lp-st h5')].map(h => h.textContent.trim()),
         side: (() => { const sd = document.getElementById('lp-side'), ls = document.getElementById('cp-list'); if (!sd || sd.hidden) return null; const a = sd.getBoundingClientRect(), b = ls.getBoundingClientRect(), sh = pal.querySelector('.lp-sheet').getBoundingClientRect();
           const h1 = sd.querySelector('.lp-h').getBoundingClientRect(), h2 = ls.querySelector('.lp-st h5').getBoundingClientRect();
           return { right: a.left >= b.right - 1, top: Math.round(a.top - sh.top), tiles: sd.querySelectorAll('.lp-w').length, inList: ls.querySelectorAll('.lp-w').length, more: !!sd.querySelector('.lp-more'), level: Math.round(Math.abs(h1.bottom - h2.bottom)), two: !!pal.querySelector('#lp-ph b') }; })() };
     });
-    check(drawn.chips === 6, '2a six chips: All · Waiting on you · Arrive · Deal · Live · Book', drawn.chips);
+    check(drawn.chips === 6, '2a six chips: All · Waiting on you · Arrive · Negotiate · sign · Live · The book', drawn.chips);
     check(drawn.rows === drawn.guide, '2b every Guide page once in the quiet list', { rows: drawn.rows, guide: drawn.guide });
     check(drawn.tiles.length === Math.min(3, drawn.owed) && drawn.tiles.every(t => t.n > 0 && t.act), '2c what waits on you: at most three, a large number and its button each', drawn.tiles);
-    check(drawn.lines === drawn.rows && drawn.marks === 0, '2f every page says what is behind it in a line; no page symbols, no stage dots', { lines: drawn.lines, rows: drawn.rows, marks: drawn.marks });
+    check(drawn.lines === drawn.rows && drawn.marks === 0, '2f every page says what is behind it in a line; no drawn symbols, no stage dots', { lines: drawn.lines, rows: drawn.rows, marks: drawn.marks });
+    check(drawn.emo === drawn.rows && drawn.chipNames.join('|') === drawn.headNames.join('|'), '2h an emoji left of every page\'s name, its line starting where the name starts; each stage\'s chip says its column\'s head', { emo: drawn.emo, rows: drawn.rows, chips: drawn.chipNames, heads: drawn.headNames });
     check(!drawn.owed || (!!drawn.side && drawn.side.right && drawn.side.top <= 2 && drawn.side.tiles === drawn.tiles.length && drawn.side.inList === 0 && drawn.side.more && drawn.side.level <= 2 && drawn.side.two),
       '2g what waits stands in ONE column at the right, from the window\'s top, its head level with the stages\' heads; the ask line in two tones', drawn.side);
     check(drawn.here.length === 1, '2d the page you stand on is said once', drawn.here);
