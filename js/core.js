@@ -8582,6 +8582,8 @@ function shareFillModal(html){
 let _shNoteTyped=false;
 if(typeof document!=='undefined') document.addEventListener('input',e=>{ if(e.isTrusted&&e.target&&e.target.id==='sh-summary') _shNoteTyped=true; });
 async function openShareModal(c, opts={}){
+  /* the Send screen opens for who may act; a Viewer is told why at the door, never at the end of a form (Round C) */
+  if(typeof mayActOn==='function' && !mayActOn(c)){ toast(i18t('viewer_reads_only'),'warn'); return; }
   _shStepOpen=null;   /* Four steps: each opening decides afresh which step stands open */
   shareNotSentSet(null);
   _shNoteTyped=false;

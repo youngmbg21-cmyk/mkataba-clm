@@ -1612,7 +1612,9 @@ const CA_SEL_ACTIONS = () => [
   { id: 'note', label: _caT('ca_sel_note') },
   /* MY NOTES (Young, 10 Oct 2026): the words into the person's private ledger */
   { id: 'mine', label: _caT('mn_add_to') },
-];
+/* a Viewer may ask Jambo and keep a private note; the three that change the contract are not offered (Round C) */
+].filter(a => !CA_SEL_WRITES.includes(a.id) || !(typeof window.mayActOn === 'function' && !window.mayActOn(null)));
+const CA_SEL_WRITES = ['oblig', 'risk', 'note'];
 function caSelKill(){ document.querySelectorAll('.nego-selmenu').forEach(n => n.remove()); }
 function caSelClauseId(node){
   const el = node && (node.nodeType === 1 ? node : node.parentElement);

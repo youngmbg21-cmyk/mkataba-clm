@@ -85,7 +85,7 @@ function approvalAnswersFor(c, u){
 }
 Object.assign(window,{approvalAnswersFor});
 function userCanApprove(a, u){
-  if(!u) return false;
+  if(!u || (typeof window.mayActOn==='function' && !window.mayActOn(null, u))) return false;   // a Viewer approves nothing (Round C)
   /* …or the member's stand-in while they are away (piece 9, awayCovers) */
   if(a.kind==='member') return (a.id!=null&&a.id!=='') ? String(a.id)===String(u.id) || (typeof awayCovers==='function'&&awayCovers(u,a.id)) : a.name===u.name;
   if(a.role==='admin') return u.role==='admin';

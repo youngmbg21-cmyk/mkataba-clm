@@ -46,7 +46,7 @@ const RICH = '<h1>SERVICES</h1>'
   + '<h2>3. Liability</h2><p>Each party is liable for direct loss only, never for lost goods.</p>'
   + '<h2>4. Notices</h2><p>Notices are sent by post only, to the registered office.</p>';
 
-const NAMES = ['pdRedTheirs', 'pd2Find', 'pd2RedAnswers', 'pd2RedStdAnswers', 'pd2RedBlocks', 'pd2RedChipsHtml', 'pd2RedGroupHtml'];
+const NAMES = ['pd2ActsFor', 'pdRedTheirs', 'pd2Find', 'pd2RedAnswers', 'pd2RedStdAnswers', 'pd2RedBlocks', 'pd2RedChipsHtml', 'pd2RedGroupHtml'];
 
 async function stage(o = {}){
   const w = buildWorld({ negotiationView: true, playbook: true, risks: true });

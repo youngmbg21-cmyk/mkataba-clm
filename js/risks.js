@@ -468,6 +468,7 @@ function _rkEditorOpen(c, key, t){
 /* The first press: the window, on the clause the risk changes or holding the
    new clause it needs. */
 function riskEditStart(c, key){
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)){ if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn'); return false; }
   const it = riskItemsOf(c).find(x => x.key === key);
   if (!c || !it) return false;
   const t = riskEditTarget(c, it);
