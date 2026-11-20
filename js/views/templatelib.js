@@ -1008,19 +1008,15 @@ function tplDtStyle() {
    its head rather than being navigated away from the draft under the reader's
    hand. Without either, the box behaves exactly as it always did. */
 function tplLibMetaModal(t, opts = {}) {
-  openModal(`
-    <div style="padding:24px">
-      <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_template_details')}</h3>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_name')}</span>
-        <input id="tpllib-m-name" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)" maxlength="160" value="${esc(t.name)}"></label>
-      ${tplLibCatStreamRowHtml('tpllib-m-cat', 'tpllib-m-stream', t.category, t.folder)}
-      <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_description')}</span>
-        <textarea id="tpllib-m-desc" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000">${esc(t.description)}</textarea></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
-        <button id="tpllib-m-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): four lines — name, category, value stream, description — the label
+     beside the words, no boxes; the same ids, the same binders, the same save. Enter in the name presses Save. */
+  const line = (k, ctl) => `<label class="lgp-row"><span class="lgp-k">${esc(k)}</span><span class="lgp-v">${ctl}</span></label>`;
+  lgpOpen({ id: 'tpllib-m', title: i18t('tl_template_details'),
+    html: lgpRowHtml({ k: i18t('tl_name'), id: 'tpllib-m-name', value: t.name, max: 160 })
+      + line(i18t('tl_category'), `<select id="tpllib-m-cat" class="lgp-in">${tplLibCategoryOptions(t.category)}</select>`)
+      + line(i18t('tl_stream'), `<select id="tpllib-m-stream" class="lgp-in"><option value="">${i18t('tl_stream_none')}</option>${tplStreamOpts(t.folder || '')}</select>`)
+      + lgpRowHtml({ k: i18t('tl_description'), id: 'tpllib-m-desc', type: 'area', value: t.description, max: 2000 }),
+    primary: { label: i18t('act_save'), attr: 'id="tpllib-m-save"' }, cancelAttr: 'data-lgp-close data-dlg-cancel', focus: false });
   tplLibWireCatStream('tpllib-m-cat', 'tpllib-m-stream');
   /* AFTER THE FRAME'S OWN FOCUS, never before it: openModal hands focus to the
      box's first control on the next tick (trapFocus), and a caret placed now

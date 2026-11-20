@@ -111,6 +111,10 @@ const ID = 'MK-DBJ1';
     console.log('\n4 · Jambo\'s own two rows');
     const ask = async q => {
       await goPlace('contracts');
+      /* WAIT FOR THE MOVE, NOT ONLY FOR A BOX (20 Nov 2026): Settings has Jambo's box too, so the old wait could pass
+         while Settings still stood with the last answer's row lit, and the next answer was read off that stale light
+         (4b and 4c both read the 4a row, sdd-work). The page has left Settings before the next question is asked. */
+      await waitFor(page, () => state.view !== 'team' && !document.querySelector('.is-landed') ? true : null, 6000);
       await waitFor(page, () => !!document.querySelector('#ig-dock textarea'), 6000);
       /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): typed on
          Jambo's tab the words go to the AI; these are the free readers, so they type under Overview */

@@ -40,14 +40,21 @@ const waitFor = async (page, fn, ms = 8000) => { const end = Date.now() + ms;
   while (Date.now() < end) { if (await page.evaluate(fn).catch(() => false)) return true; await pause(100); } return false; };
 
 /* What a box looks like to the reader: its own ground, or its date face's. */
+/* RE-POINTED 20 Nov 2026 (#806, EVERY ENTRY FIELD IS OPEN, owner 19 Nov 2026): a field has no box and no fill any
+   more, so an owed field "loses its amber box (the amber hint and the 'Not said yet' tag carry it)" — the cost the
+   owner was shown before saying build. The claim stays "an owed, empty box is marked amber; typing takes it off":
+   an owed box is marked (need-empty, needMark) and a typed box's hint reads amber (--st-amber-fg); a date's face
+   carries the same mark (needMark puts it on the face). A box that is not owed carries neither. */
 const TONES = sels => {
-  const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
-  const amber = getComputedStyle(probe).backgroundColor; probe.remove();
+  const probe = document.createElement('div'); probe.style.color = 'var(--st-amber-fg)'; document.body.appendChild(probe);
+  const amber = getComputedStyle(probe).color; probe.remove();
   const out = { amber };
   for (const [k, s] of Object.entries(sels)) {
     let el = document.querySelector(s);
-    if (el && el.nextElementSibling && el.nextElementSibling.classList.contains('dp-face')) el = el.nextElementSibling;
-    out[k] = el ? getComputedStyle(el).backgroundColor === amber : null;
+    if (!el) { out[k] = null; continue; }
+    const face = el.nextElementSibling && el.nextElementSibling.classList.contains('dp-face') ? el.nextElementSibling : null;
+    if (face) { out[k] = face.classList.contains('need-empty'); continue; }
+    out[k] = el.classList.contains('need-empty') && getComputedStyle(el, '::placeholder').color === amber;
   }
   return out;
 };

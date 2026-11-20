@@ -95,7 +95,10 @@ const until = async (page, fn, arg, ms = 8000) => {
     ok('2b our party is filled with the workspace, for them to overtype', !!form.party, form.party);
     ok('2c nothing scrolls sideways', form.sideways <= 1, form.sideways);
     await page.screenshot({ path: path.join(OUT, '2-form.png') });
-    await page.fill('#ik-title', 'x'); await page.fill('#ik-need', 'y'); await page.fill('#ik-e-cpemail', 'not-an-address');
+    /* RE-POINTED 19 Nov 2026 (f1119): the form is the one edit pop-up in three steps — the email is on the second,
+       Send on the third; a refusal walks back to the step that holds the field */
+    await page.fill('#ik-title', 'x'); await page.fill('#ik-need', 'y'); await page.click('#ik-next');
+    await page.fill('#ik-e-cpemail', 'not-an-address'); await page.click('#ik-next');
     await page.click('#ik-send'); await page.waitForTimeout(300);
     const refused = await page.evaluate(() => (document.getElementById('ik-err') || {}).textContent || '');
     ok('2d a bad email is refused in words, on the form', /email/i.test(refused), refused);

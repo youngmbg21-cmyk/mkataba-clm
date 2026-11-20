@@ -2119,28 +2119,16 @@ function openCalendarShare(evs){
   const people=(window.getUsers?getUsers():[]).filter(u=>u&&u.email&&(!me||String(u.id)!==String(me.id)));
   if(!people.length) return toast(i18t('cal_share_nobody'),'warn');
   if(!lines.length) return toast(i18t('cal_share_nothing'),'warn');
-  openModal(`
-    <div class="rvd-head"><div class="rvd-ico">${icon('share','w-4 h-4')}</div>
-      <div><div class="rvd-title">${_esc(i18t('cal_share_title_h'))}</div>
-      <div class="rvd-sub">${_esc(i18tn('cal_share_sub',lines.length,{n:lines.length}))}</div></div></div>
-    <div class="rvd-body">
-      <label class="rvd-opt" style="display:block">
-        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_who'))}</span>
-        <select id="cal-share-who" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);font:inherit;background:var(--fld-bg);color:var(--color-text);height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-          ${people.map(u=>`<option value="${_esc(u.id)}">${_esc(u.name)} — ${_esc(u.email)}</option>`).join('')}
-        </select>
-      </label>
-      <label style="display:block;margin-top:var(--s-3)">
-        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:5px">${_esc(i18t('cal_share_note'))}</span>
-        <textarea id="cal-share-note" rows="3" style="width:100%;padding:var(--s-2) 10px;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);font:inherit;font-size:var(--t-body);resize:vertical;background:var(--fld-bg);color:var(--color-text)"></textarea>
-      </label>
-      <div class="rvd-note" style="margin-top:10px">${_esc(i18t('cal_share_privacy'))}</div>
-      <div id="cal-share-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
-    </div>
-    <div class="rvd-foot">
-      <button data-dlg-cancel class="ui-btn" data-close>${_esc(i18t('act_cancel'))}</button>
-      <button class="ui-btn ui-btn-primary" id="cal-share-go">${_esc(i18t('cal_share_send'))}</button>
-    </div>`, { maxWidth:'520px' });
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): who and a note as two lines, the privacy said
+     once under them; every id, the route and its three answers exactly as they were. */
+  lgpOpen({ id:'cal-share-form', focus:false, title:i18t('cal_share_title_h'), sub:i18tn('cal_share_sub',lines.length,{n:lines.length}),
+    rows:[
+      { k:i18t('cal_share_who'), id:'cal-share-who', type:'select', opts:people.map(u=>({ v:u.id, t:`${u.name} — ${u.email}` })) },
+      { k:i18t('cal_share_note'), id:'cal-share-note', type:'area' } ],
+    html:`<p class="lgp-small">${_esc(i18t('cal_share_privacy'))}</p>
+      <p id="cal-share-err" class="lgp-err" role="alert" hidden></p>`,
+    primary:{ label:i18t('cal_share_send'), attr:'id="cal-share-go"' },
+    cancelAttr:'data-dlg-cancel data-close', cancelLabel:i18t('act_cancel') });
   document.querySelectorAll('#modal-root [data-close]').forEach(b=>b.addEventListener('click',closeModal));
   document.getElementById('cal-share-go')?.addEventListener('click',async ()=>{
     const btn=document.getElementById('cal-share-go');
@@ -2621,23 +2609,23 @@ function calEventDialog(item, seed){
   const end=it.end!=null?it.end:(sd.start?String(Math.min(23,Number(sd.start.slice(0,2))+1)).padStart(2,'0')+':00':'10:00');
   const allDay=!!item&&!it.start;
   const opts=(state.contracts||[]).filter(c=>!c.archived).slice(0,400).map(c=>`<option value="${_esc(c.id)}"${String(it.contractId||'')===String(c.id)?' selected':''}>${_esc((c.contractNo||c.id)+' · '+(c.counterparty||c.name||''))}</option>`).join('');
-  openModal(`<div class="cal-evd">
-    <h3>${_esc(i18t(item?'cal_ev_title_edit':'cal_ev_title_new'))}</h3>
-    <label>${_esc(i18t('cal_ev_what'))}<input id="cal-ev-title" type="text" maxlength="120" value="${_esc(it.title||'')}"></label>
-    <div class="cal-evd-row"><label>${_esc(i18t('cal_ev_day'))}<input id="cal-ev-date" type="date" value="${_esc(date)}"></label>
-      <label class="cal-evd-all"><input id="cal-ev-all" type="checkbox"${allDay?' checked':''}> ${_esc(i18t('cal_ev_allday'))}</label></div>
-    <div class="cal-evd-row" id="cal-ev-times"${allDay?' hidden':''}><label>${_esc(i18t('cal_ev_from'))}<input id="cal-ev-start" type="time" value="${_esc(start)}"></label>
-      <label>${_esc(i18t('cal_ev_to'))}<input id="cal-ev-end" type="time" value="${_esc(end)}"></label></div>
-    <label>${_esc(i18t('cal_ev_contract'))}<select id="cal-ev-ct"><option value="">${_esc(i18t('cal_ev_none'))}</option>${opts}</select></label>
-    ${it.source==='copilot'&&it.why?`<p class="cal-evd-why">&#10022; ${_esc(it.why)}</p>`:''}
-    <p class="cal-evd-say" id="cal-ev-say" role="status"></p>
-    <div class="cal-evd-foot">${item?`<button type="button" class="ui-btn ui-btn-sm cal-evd-del" id="cal-ev-del">${_esc(i18t('cal_ev_delete'))}</button>`:''}<span class="g"></span>
-      <button type="button" class="ui-btn ui-btn-sm" id="cal-ev-cancel">${_esc(i18t('cal_ev_cancel'))}</button>
-      <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" id="cal-ev-save">${_esc(i18t('cal_ev_save'))}</button></div>
-    <p class="cal-evd-priv">${_esc(i18t('cal_ev_private'))}</p>
-  </div>`, { maxWidth: (window.DLG_W&&DLG_W.s)||'420px', label:i18t(item?'cal_ev_title_edit':'cal_ev_title_new') });
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): what, the day, all day, from and to, the
+     contract — each a line with the label beside the words; Delete on the left, Private said once at the foot. Every id,
+     the save, its refusals and the delete exactly as they were. */
+  lgpOpen({ id:'cal-ev-form', focus:'#cal-ev-title', title:i18t(item?'cal_ev_title_edit':'cal_ev_title_new'),
+    rows:[
+      { k:i18t('cal_ev_what'), id:'cal-ev-title', value:it.title||'', max:120 },
+      { k:i18t('cal_ev_day'), id:'cal-ev-date', type:'date', value:date } ],
+    html:`<label class="lgp-tick"><input id="cal-ev-all" type="checkbox"${allDay?' checked':''}><span class="lgp-tl">${_esc(i18t('cal_ev_allday'))}</span></label>
+      <div id="cal-ev-times"${allDay?' hidden':''}>${lgpRowHtml({ k:i18t('cal_ev_from'), id:'cal-ev-start', type:'time', value:start })}${lgpRowHtml({ k:i18t('cal_ev_to'), id:'cal-ev-end', type:'time', value:end })}</div>
+      <label class="lgp-row"><span class="lgp-k">${_esc(i18t('cal_ev_contract'))}</span><span class="lgp-v"><select id="cal-ev-ct" class="lgp-in"><option value="">${_esc(i18t('cal_ev_none'))}</option>${opts}</select></span></label>
+      ${it.source==='copilot'&&it.why?`<p class="lgp-small">&#10022; ${_esc(it.why)}</p>`:''}
+      <p class="lgp-err" id="cal-ev-say" role="status"></p>`,
+    note:i18t('cal_ev_private'),
+    left:item?{ label:i18t('cal_ev_delete'), attr:'id="cal-ev-del"', danger:true }:null,
+    primary:{ label:i18t('cal_ev_save'), attr:'id="cal-ev-save"' },
+    cancelAttr:'data-dlg-cancel id="cal-ev-cancel"', cancelLabel:i18t('cal_ev_cancel') });
   const $=id=>document.getElementById(id);
-  $('cal-ev-title')?.focus();
   $('cal-ev-all')?.addEventListener('change',e=>{ $('cal-ev-times').hidden=e.target.checked; });
   $('cal-ev-cancel')?.addEventListener('click',()=>closeModal());
   $('cal-ev-del')?.addEventListener('click',async()=>{ try{ await mineDelete(it.id); closeModal(); toast(i18t('cal_ev_deleted'),'ok'); }catch(e){ $('cal-ev-say').textContent=String((e&&(e.error||e.message))||''); } });

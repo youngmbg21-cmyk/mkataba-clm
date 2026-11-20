@@ -167,6 +167,10 @@ const ok = (name, good, detail) => {
       return {
         amp: /&amp;/.test(rowsText), nm: /\bn\/m\b/.test(rowsText),
         facts: (document.getElementById('reg-head-facts') || {}).textContent || '',
+        factsSlot: !!document.querySelector('[data-reg-home] .ct-head #reg-head-facts'),
+        say: ((document.querySelector('[data-reg-home] .ct-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        restBook: (() => { if (typeof regRestBase !== 'function') return null; const R = state.reg || {}; let b = regRestBase();
+          if (R.type && R.type !== 'all') b = b.filter(c => String(c.folder) === String(R.type)); return b.length; })(),
         /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box (owner:
            "take the status choices and put them in a dropdown"); a stage with
            nothing in it is not offered, and no choice prints "(0)" */
@@ -208,7 +212,12 @@ const ok = (name, good, detail) => {
     ok('1j "Non-monetary", never "n/m"', !floor.nm);
     /* RE-POINTED 16 Nov 2026 (#762): the new look's head says, as drawn, "N · money on paper · N signed" (regHeadFactsHtml
        over regFolderRead) — its first number is the live book; the word "live" went with the old head */
-    ok('1k the head counts the live book', new RegExp('^' + floor.liveBook + ' · ').test(floor.facts.trim()), floor.facts + ' · live ' + floor.liveBook);
+    /* RE-POINTED 20 Nov 2026 (#802, owner 19 Nov 2026: "delete the words beside the header name because they are
+       pushing the buttons to the right"): the head carries no facts line beside the name any more; the count of the
+       book is said by the sentence over the list (regCtSayHtml, "You hold N contracts, M of them signed"), whose N is
+       the list's own book at rest (regRestBase) */
+    ok('1k the head draws no facts line; the sentence over the list counts the book', !floor.factsSlot && floor.restBook > 0 && new RegExp('^You hold ' + floor.restBook + ' contracts?, ').test(floor.say),
+      { facts: floor.factsSlot, say: floor.say, book: floor.restBook, live: floor.liveBook });
     ok('1l a stage with nothing in it is not offered, and no choice prints a zero', floor.stageOpts >= 2 && floor.zeroTabs === 0 && floor.zeroCounts === 0, `${floor.stageOpts} stage choices, ${floor.zeroTabs} empty offered, ${floor.zeroCounts} zeros printed`);
     ok('1m no idle sort arrows', !floor.idle);
     /* (its "the selected one is" half retired with the selection, step 7) */

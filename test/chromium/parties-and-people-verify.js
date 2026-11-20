@@ -175,7 +175,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           cols: [...pg.querySelectorAll('.cun-table thead th')].map(t => t.textContent.trim()),
           rows: document.querySelectorAll('#cu-tbody [data-cu-cust]').length,
           foot: ((pg.querySelector('.apn-foot') || {}).textContent || '').trim(),
-          name: kf ? ((kf.querySelector('.cun-name') || {}).textContent || '').trim() : '', deals: kf ? ((kf.querySelector('td.cun-num') || {}).textContent || '').trim() : '',
+          name: kf ? ((kf.querySelector('.cun-name') || {}).textContent || '').trim() : '', deals: kf ? (() => { const td = kf.querySelector('td.cun-num'); return td ? [...td.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim() : ''; })() : '',
+          /* RE-POINTED 20 Nov 2026: since "the SAP way, revised" (19 Nov) the Agreements cell has a grey second line ("2 signed"),
+             so the count is the cell's own text, not the whole cell's (which read "22 signed") */
           chips: kf ? [...kf.querySelectorAll('td.cun-streams > *')].map(x => x.textContent.trim()).filter(Boolean) : [] };
       });
       /* RE-POINTED 17 Nov 2026 (#762): the count on the lit tab is the rows drawn, the head's N and the foot's N.
@@ -250,7 +252,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('4a the head: the party\'s name; no Open party, no Web search', !!P && P.title.trim() === 'Kenya Freight Ltd' && !secOf(P, /^More$/).rows.length
         && !(await page.evaluate(() => !!document.querySelector('#ins-panel [data-cun-open], #ins-panel [data-cun-web]'))), JSON.stringify(P && P.title));
       const fk = k => (facts.rows.find(r => r.k === k) || {}).t || '';
-      check('4b the facts: (City) · Org. no. · Signs for them · NDA; Edit beside them', JSON.stringify(facts.rows.map(r => r.k).filter(k => k !== 'City')) === JSON.stringify(['Org. no.', 'Signs for them', 'NDA'])
+      /* RE-POINTED 20 Nov 2026 (the SAP way, revised, 19 Nov: "Streams its own column (first + "+N", all on hover and in
+         the panel's facts)"): the facts end with the party's Streams */
+      check('4b the facts: (City) · Org. no. · Signs for them · NDA · Streams; Edit beside them', JSON.stringify(facts.rows.map(r => r.k).filter(k => k !== 'City')) === JSON.stringify(['Org. no.', 'Signs for them', 'NDA', 'Streams'])
+        && (facts.rows.find(r => r.k === 'Streams') || {}).t === 'Procurement'
         && links.some(l => /^data-cu-pr-edit\|Edit$/.test(l)), JSON.stringify({ rows: facts.rows, links }));
       check('4c Sofia Lunani signs for them; the NDA is in force, its row a door to it', fk('Signs for them') === 'Sofia Lunani' && /^In force/.test(fk('NDA'))
         && /data-cun-nda/.test((facts.rows.find(r => r.k === 'NDA') || {}).door || ''), JSON.stringify(facts.rows));
@@ -270,8 +275,11 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          its hover names each thing; rows carry no button */
       const HE = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"]'); if (!r) return null; const td = r.querySelector('td.cun-wait');
         return { wait: ((td || {}).textContent || '').replace(/\s+/g, ' ').trim(), title: td ? td.getAttribute('title') || '' : '', last: !!td && td === r.lastElementChild, btn: !!r.querySelector('button') }; });
-      check('4i an approval the reader answers for an away colleague: the last column counts it ("1 thing", "on 1 contract"), its hover names "Approve Power purchase agreement", no button', !!HE && /^1 thing/.test(HE.wait) && /on 1 contract/.test(HE.wait)
-        && /Approve Power purchase agreement/.test(HE.title) && HE.last && !HE.btn, JSON.stringify(HE));
+      /* RE-POINTED 20 Nov 2026: the column counts EVERY thing waiting on the party (cunWaitSay over the row's needs, the
+         same list its hover names, cuNeedTitle) — Helio's approval and its 2 details to fill on the same contract are
+         "2 things", "on 1 contract"; the hover names the approval as cuNeedTitle says it ("An approval, for Jonas") */
+      check('4i an approval the reader answers for an away colleague: the last column counts it with the rest ("2 things", "on 1 contract"), its hover names "An approval, for Jonas", no button', !!HE && /^2 things/.test(HE.wait) && /on 1 contract/.test(HE.wait)
+        && /An approval, for Jonas/.test(HE.title) && HE.last && !HE.btn, JSON.stringify(HE));
       const col = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="nandi dairy"]'); if (!r) return null; const td = r.querySelector('td.cun-wait');
         return { col: td ? (td.textContent + ' ' + (td.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : '', btn: !!r.querySelector('button') }; });
       /* RE-POINTED 19 Nov 2026: the row's ONE button opens its most urgent work — for Nandi Dairy the approval comes
@@ -339,11 +347,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       /* RETIRED 17 Nov 2026 (#762, owner's ruling): 8b "Open the NDA ›" — a party's NDA door stays gone. */
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
       await until(() => document.querySelector('#ins-panel .jov5-row[data-jov]'));
-      /* RE-POINTED 17 Nov 2026 (#762): an agreement in the panel is opened on purpose — it lands on that contract's Cover (MAP: THE COVER FIRST) */
-      const first = await page.evaluate(() => ((document.querySelector('#ins-panel .jov5-row[data-jov] .jov5-rt b') || {}).textContent || '').trim());
-      await page.click('#ins-panel .jov5-row[data-jov]');
-      const A = await until(n => { const c = typeof pdContract === 'function' && pdContract(); return c && c.name === n && document.querySelector('#modal-root [data-dlg-page].is-cover') ? 'cover' : null; }, first, 10000);
-      check('8c an agreement in the panel opens that contract on its Cover', A === 'cover', String(A) + ' · ' + first);
+      /* RE-POINTED 20 Nov 2026 ("Parties, the SAP way revised", owner's pick 19 Nov, #804, f1108): the panel no longer
+         lists three agreements to press one by one — its way to a party's agreements is the link to all of them on
+         Contracts (data-cun-cts → regShowOnly; where it lands is 9b/9d). So: no agreement rows, and that link is there. */
+      const P8 = await page.evaluate(() => { const p = document.getElementById('ins-panel');
+        return { rows: p ? p.querySelectorAll('.jov5-row[data-jov] .jov5-rt b').length : -1, all: !!(p && p.querySelector('[data-cun-cts]')) }; });
+      check('8c the panel reaches the party\'s agreements through one link to all of them on Contracts, not a list of three', P8.rows === 0 && P8.all, JSON.stringify(P8));
       await page.evaluate(() => { try { closeModal(); } catch (_){} });
       await page.evaluate(() => setView('directory'));
       await until(() => document.querySelector('#dir-tbody'));

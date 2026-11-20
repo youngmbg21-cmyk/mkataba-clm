@@ -227,18 +227,11 @@ function cohortAct(k){
    refused BY NAME in the report rather than skipped in silence. */
 function cohortAmendAsk(list){
   const n = list.length;
-  openModal(`<div class="p-6">
-      <h3 style="margin:0 0 var(--s-2);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section)">${_coEsc(i18tn('co_h_amend',n,{n}))}</h3>
-      <p style="margin:0 0 var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55">${_coEsc(i18tn('co_h_amend_sub',n,{n}))}</p>
-      <label class="block mb-3"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${_coEsc(i18t('co_h_amend_says'))}</span>
-        <textarea id="co-h-says" rows="4" placeholder="${_coEsc(i18t('co_h_amend_ph'))}"
-          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;font-size:var(--t-body);border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background:var(--fld-bg);color:inherit;padding:9px 11px;resize:vertical"></textarea></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button data-dlg-cancel id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
-        <button id="co-h-go" class="ui-btn ui-btn-primary">${_coEsc(i18tn('co_h_amend_go',n,{n}))}</button>
-      </div>
-    </div>`, { label:i18tn('co_h_amend',n,{n}), maxWidth:DLG_W.l });
-  document.getElementById('co-h-cancel')?.addEventListener('click',closeModal);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1116): the wording typed once, as one quiet line; the same ids */
+  lgpOpen({ id:'co-h-form', title:i18tn('co_h_amend',n,{n}), sub:i18tn('co_h_amend_sub',n,{n}),
+    rows:[{ k:i18t('co_h_amend_says'), id:'co-h-says', type:'area', ph:i18t('co_h_amend_ph') }],
+    primary:{ label:i18tn('co_h_amend_go',n,{n}), attr:'id="co-h-go"' },
+    cancelAttr:'data-lgp-close id="co-h-cancel"' });
   document.getElementById('co-h-go')?.addEventListener('click',async ()=>{
     const says=(document.getElementById('co-h-says')?.value||'').trim();
     if(!says){ toast(i18t('co_h_amend_need'),'err'); return; }
@@ -270,21 +263,14 @@ async function cohortAmendRun(list, says){
    delivery that is not true. */
 function cohortAskDocAsk(list){
   const n = list.length;
-  openModal(`<div class="p-6">
-      <h3 style="margin:0 0 var(--s-2);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section)">${_coEsc(i18tn('co_h_askdoc',n,{n}))}</h3>
-      <p style="margin:0 0 var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55">${_coEsc(i18tn('co_h_askdoc_sub',n,{n}))}</p>
-      <label class="block mb-3"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${_coEsc(i18t('co_h_askdoc_what'))}</span>
-        <input id="co-h-doc" type="text" placeholder="${_coEsc(i18t('co_h_askdoc_ph'))}"
-          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background:var(--fld-bg);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
-      <label class="block mb-3"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${_coEsc(i18t('co_h_askdoc_by'))}</span>
-        <input id="co-h-due" type="date"
-          style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);background:var(--fld-bg);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button data-dlg-cancel id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
-        <button id="co-h-go" class="ui-btn ui-btn-primary">${_coEsc(i18tn('co_h_askdoc_go',n,{n}))}</button>
-      </div>
-    </div>`, { label:i18tn('co_h_askdoc',n,{n}), maxWidth:DLG_W.l });
-  document.getElementById('co-h-cancel')?.addEventListener('click',closeModal);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1116): what document and by when, as two quiet lines; the same ids. Enter
+     in a line does not start the run: it asks every counterparty at once, so only the button does (as before). */
+  const form = lgpOpen({ id:'co-h-form', title:i18tn('co_h_askdoc',n,{n}), sub:i18tn('co_h_askdoc_sub',n,{n}),
+    rows:[{ k:i18t('co_h_askdoc_what'), id:'co-h-doc', ph:i18t('co_h_askdoc_ph') },
+      { k:i18t('co_h_askdoc_by'), id:'co-h-due', type:'date' }],
+    primary:{ label:i18tn('co_h_askdoc_go',n,{n}), attr:'id="co-h-go"' },
+    cancelAttr:'data-lgp-close id="co-h-cancel"' });
+  form?.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') e.preventDefault(); });
   document.getElementById('co-h-go')?.addEventListener('click',async ()=>{
     const desc=(document.getElementById('co-h-doc')?.value||'').trim();
     const due=(document.getElementById('co-h-due')?.value||'').trim();

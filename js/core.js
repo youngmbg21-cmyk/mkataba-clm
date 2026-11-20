@@ -3160,7 +3160,12 @@ function trapFocus(panel, opts={}){
      to a position it is about to leave. */
   if(opts.focus!==false) setTimeout(()=>{
     if(!panel.isConnected) return;
-    const f=focusables(); fieldFocus(f[0]||panel,{preventScroll:true});
+    /* THE ONE EDIT POP-UP ARRIVES WITH NO RING (20 Nov 2026, the photos of the Legora sweep): a sheet that already put
+       the cursor in its own first line keeps it; otherwise its first control is focused without the ring a press would
+       never show (NO RING AFTER A PRESS, f881). Tabbing still rings every stop. */
+    const lgp=!!panel.querySelector('.lgp');
+    if(lgp && panel.contains(document.activeElement) && document.activeElement!==panel) return;
+    const f=focusables(); fieldFocus(f[0]||panel, lgp ? {preventScroll:true, focusVisible:false} : {preventScroll:true});
   },0);
   let done=false;
   return function release(){
@@ -9972,19 +9977,13 @@ function reshareNotSentModal(c, out, who){
     : out.emailConfigured===false
       ? 'This workspace has no email provider set up, so HaTi could not send it.'
       : `The mail provider refused it${out.emailError?`: ${esc(out.emailError)}`:'.'}`;
-  openModal(`
-    <div style="padding:22px var(--s-6)">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--st-amber-dot);display:inline-flex">${icon('alert')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('co_link_updated_not_sent')}</h2></div>
-      <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">
-        ${esc(who)} is now looking at the current wording <b>${i18t('co_if_they_open')}</b> — but they have not been told.
-        ${reason} Send them this link yourself:</p>
-      <textarea id="rs-link" readonly rows="3" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
-      <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
-        <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
-        <button id="rs-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1115): the headline, what happened said under it, the link on one line
+     (read-only, to copy), Copy link the one black button, Close last (lgpOpen, js/components.js) */
+  lgpOpen({ id:'rs-form', title:i18t('co_link_updated_not_sent'),
+    subHtml:`${esc(who)} is now looking at the current wording <b>${i18t('co_if_they_open')}</b> — but they have not been told. ${reason} Send them this link yourself:`,
+    html:`<label class="lgp-row is-tall"><span class="lgp-k">${esc(i18t('co_link'))}</span><span class="lgp-v"><textarea id="rs-link" class="lgp-in is-area" readonly rows="3" style="font-family:var(--font-mono);font-size:var(--t-label);word-break:break-all">${esc(out.link||'')}</textarea></span></label>`,
+    primary:{ label:i18t('co_copy_link'), attr:'id="rs-copy"' },
+    cancelLabel:i18t('act_close'), cancelAttr:'id="rs-close"', focus:false });
   document.getElementById('rs-close').addEventListener('click',closeModal);
   document.getElementById('rs-copy').addEventListener('click',async()=>{
     const ta=document.getElementById('rs-link'); ta.select();
@@ -10303,38 +10302,23 @@ function openImportModal(c){
      sat below Cancel and Import. They are two tabs now (SAP's segmented
      button), the foot is the last thing in the dialog, and Import shows on
      the code's tab only — a Word file is read the moment it is chosen. */
-  const tabBtn=(k,t,on)=>`<button type="button" data-imp-tab="${k}" role="tab" aria-selected="${on}" class="imp-tab${on?' on':''}">${t}</button>`;
-  openModal(`
-    <div style="padding:16px 18px;">
-      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record under the title, the
-             two ways in as one switch, then the one box each way needs with
-             its label — the code, or HaTi's own file button. */}
-      <h2>${i18t('imp_title')}</h2>
-      ${c?`<p>${esc(((typeof contractRef==='function')?contractRef(c):c.id)+' \u00b7 '+(c.counterparty||c.name||''))}</p>`:''}
-      <div class="sap-body">
-      <div class="imp-tabs" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>
-      <div data-imp-pane="code" class="sap-f">
-        <label for="imp-code">${i18t('imp_tab_code')}</label>
-        <textarea id="imp-code" rows="3" placeholder="${i18t('imp_code_ph')}" style="width:100%;min-height:64px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:8px 10px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);resize:vertical;"></textarea>
-      </div>
-      <div data-imp-pane="word" class="sap-f" hidden>
-        <span class="sap-lbl">${i18t('imp_tab_word')}</span>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button type="button" class="ui-btn" id="imp-docx-go">${icon('upload','w-4 h-4')}${i18t('imp_word_pick')}</button>
-          <span class="sap-help">${i18t('imp_word_hint')}</span>
-          <input id="imp-docx" type="file" accept=".docx" hidden/>
-        </div>
-        <div id="imp-docx-note" style="font-size:var(--t-label);color:var(--color-neutral-600);"></div>
-      </div>
-      </div>
-      <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
-        <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
-        <button data-dlg-cancel id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1115): the record under the headline, the two ways in as two chips, then
+     the one line each way needs — the code typed in place, or HaTi's own file button; Import the one black button
+     (the code's way only), Cancel last (lgpOpen, js/components.js) */
+  const tabBtn=(k,t,on)=>`<button type="button" data-imp-tab="${k}" role="tab" aria-selected="${on}" class="lgp-chip${on?' is-on':''}">${esc(t)}</button>`;
+  lgpOpen({ id:'imp-form', title:i18t('imp_title'),
+    sub:c?(((typeof contractRef==='function')?contractRef(c):c.id)+' · '+(c.counterparty||c.name||'')):'',
+    html:`<div class="lgp-chips" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>`
+      +`<div data-imp-pane="code">${lgpRowHtml({ k:i18t('imp_tab_code'), id:'imp-code', type:'area', ph:i18t('imp_code_ph') })}</div>`
+      +`<div data-imp-pane="word" hidden><div class="lgp-row"><span class="lgp-k">${esc(i18t('imp_tab_word'))}</span><span class="lgp-v">`
+      +`<button type="button" class="ui-btn" id="imp-docx-go">${icon('upload','w-4 h-4')}${esc(i18t('imp_word_pick'))}</button>`
+      +`<input id="imp-docx" type="file" accept=".docx" hidden/></span></div>`
+      +`<p class="lgp-small">${esc(i18t('imp_word_hint'))}</p><p class="lgp-small" id="imp-docx-note"></p></div>`,
+    primary:{ label:i18t('co_import'), attr:'id="imp-go"' },
+    cancelAttr:'data-dlg-cancel id="imp-cancel"' });
   document.querySelectorAll('[data-imp-tab]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-imp-tab');
-    document.querySelectorAll('[data-imp-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-selected',String(on)); });
+    document.querySelectorAll('[data-imp-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('is-on',on); x.setAttribute('aria-selected',String(on)); });
     document.querySelectorAll('[data-imp-pane]').forEach(p=>{ p.hidden=p.getAttribute('data-imp-pane')!==k; });
     const go=document.getElementById('imp-go'); if(go) go.hidden=k!=='code';
   }));

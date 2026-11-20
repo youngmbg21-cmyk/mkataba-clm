@@ -184,7 +184,7 @@ let H;
     await askPress(L.page);
     await L.page.waitForTimeout(500);
     const dlg = await L.page.evaluate(() => {
-      const d = document.querySelector('.sa-dlg');
+      const d = document.querySelector('#sa-dlg');
       return { there: !!d, text: d ? d.textContent.replace(/\s+/g, ' ') : '' };
     });
     check('3a  the press opens the request: approver, backup and exactly what is approved',

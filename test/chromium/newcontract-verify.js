@@ -91,6 +91,8 @@ const pastFirstWords = async page => {
   const before = await page.evaluate(() => window.state.contracts.length);
   await page.fill('#ce-counterparty', 'Naivas Supermarkets Ltd');
   await page.fill('#ce-cpemail', 'legal@naivas.co.ke');
+  /* RE-POINTED (f1120, the one edit pop-up): the parties are the first step, term and money the second (Next) */
+  await page.click('#ce-form [data-ce-next]').catch(() => {});
   await page.fill('#ce-value', '2500000');
   /* A pop-up's date wears HaTi's face (SAP pop-ups, 10 Oct 2026): the real box
      is kept, not drawn, as the value — written as the calendar writes it. */
@@ -101,6 +103,7 @@ const pastFirstWords = async page => {
      to the workspace's own name. A subsidiary is typed over the prefill. */
   const askedParty = await page.evaluate(() => !!document.getElementById('ce-party') && !!document.getElementById('ce-side'));
   if (askedParty) {
+    await page.click('#ce-form [data-ce-back]').catch(() => {});   // back to the parties (f1120)
     await page.fill('#ce-party', 'Highland Logistics (K) Ltd');
     await page.selectOption('#ce-side', 'supplier');
   }
