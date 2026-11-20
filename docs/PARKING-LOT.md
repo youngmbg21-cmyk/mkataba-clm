@@ -340,6 +340,18 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** no figure cards; money only in the value box; open fields; nothing pushed behind the side panel.
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the panel not changing when a paper is chosen; an empty value shown as "0"; From scratch's different plain panel; the sentence box left on Their paper (it may stay only if it reads their file's words).
 
+### P-37 · The nav panel slides in from the left
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** the top-left nav button (`#dk-nav`, `lpWire` → `lpToggle`) opens the nav as a panel that slides in from the left over the page, and slides back after a press. Owner's words: "a nav panel coming from the left of the screen with the same style in the current nav panel but from the left it slides over the screen then goes back after the press"; then "park it".
+- **Where it came from:** drawn on today's photo of the Board: https://claude.ai/artifact/4Fcey7Vekvbd7YTkBkJyYk (press the nav button, or "Play"). The owner's answers (20 Nov 2026): draw it first; "Waiting on you" becomes each page's own count; only the nav button opens it.
+- **Notes:** what the drawing holds:
+  - **Opens and closes:** ONLY the nav button slides it in (⌘K and "/" keep today's typing window in the middle). The nav button again, Esc, or a press outside slides it back; pressing a page slides it back and opens that page through the SAME door today's window uses (`caGo` and the launchpad's own rows — no second way in).
+  - **Where:** 400 wide, from the left edge, under the black bar to the foot of the window, over the page (shadow on its right edge); the page behind dims a little and does not move or redraw. Motion is a transform slide, instant under reduced motion (HOW THINGS MOVE).
+  - **Same style as today's nav window (THE STRIPE WAY launchpad, f1097):** "Where to? Type a page…" at the top; the stage chips (All · Waiting on you · Arrive · Negotiate · sign · Live · The book); ONE list with the stages as headings; each page row = its emoji (`LP_EMOJI`), its name in link ink, one line of what it holds (`gd_w_*`, ending in "…"), and on the right its count; "You are here" on the page you are on; the keys line at the foot (↑ ↓ move · Enter go · Esc close). The list scrolls inside the panel.
+  - **"Waiting on you" column → each page's own amber count** (Approvals 2, Obligations 2, Jambo's agents 8, Settings 6 — the counts the jump window and Guide already read, `GUIDE_WORK_COUNTS`); the chip "Waiting on you" narrows the list to those pages.
+  - **Not a left rail:** nothing stays on screen; "NO HOME PAGE, NO LEFT RAIL" stands.
+  - **Before building:** the six questions (THE ONE DOOR: improve `#dk-nav`'s own door; nothing else opens it); the Handbook chapter for the nav, `FLOW_MAP`, and the phone (the phone keeps its own screens) checked in the same change.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
