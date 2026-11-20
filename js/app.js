@@ -2076,18 +2076,20 @@ function openCommandPalette(prefill){
   _lpChip='all';
   ov.innerHTML=`
     <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
-    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1010px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 2 * var(--s-4))">
+    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1264px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
       <div class="lp-top">
         <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
           aria-label="${esc(i18t('lp_where'))}"/>
+        <span id="lp-ph" class="lp-ph" aria-hidden="true">${lpWhereHtml()}</span>
       </div>
       <div id="lp-chips" class="lp-chips" role="group" aria-label="${esc(i18t('gds_label'))}"></div>
       <div id="cp-list" class="scroll-thin lp-list" role="listbox" aria-label="${esc(i18t('ap_results'))}"></div>
+      <div id="lp-side" class="scroll-thin lp-side" role="listbox" aria-label="${esc(i18t('lp_chip_need'))}" hidden></div>
       <div id="lp-foot" class="lp-foot"></div>
     </div>`;
   document.body.appendChild(ov);
-  const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list'), chips=ov.querySelector('#lp-chips'), foot=ov.querySelector('#lp-foot');
+  const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list'), chips=ov.querySelector('#lp-chips'), foot=ov.querySelector('#lp-foot'), side=ov.querySelector('#lp-side'), ph=ov.querySelector('#lp-ph');
   lpDoorSay(true);
   /* THE KEYBOARD STAYS IN THE PALETTE. focus:false because this overlay
      focuses its own box — Tab is what was walking out of it into the page,
@@ -2137,20 +2139,22 @@ function openCommandPalette(prefill){
     },250);
   };
   /* NOTHING TYPED: THE LAUNCHPAD, as drawn. A hover moves the selection without redrawing (no row jumps under the hand). */
-  const lpSel=i=>{ active=i; list.querySelectorAll('[data-cp-i]').forEach(b=>{ const on=+b.getAttribute('data-cp-i')===i; b.classList.toggle('is-sel',on); b.setAttribute('aria-selected',on?'true':'false'); });
-    const act=list.querySelector(`[data-cp-i="${i}"]`); if(act&&act.scrollIntoView) act.scrollIntoView({block:'nearest'}); input.setAttribute('aria-activedescendant',act?act.id:''); };
+  const lpSel=i=>{ active=i; ov.querySelectorAll('[data-cp-i]').forEach(b=>{ const on=+b.getAttribute('data-cp-i')===i; b.classList.toggle('is-sel',on); b.setAttribute('aria-selected',on?'true':'false'); });
+    const act=ov.querySelector(`[data-cp-i="${i}"]`); if(act&&act.scrollIntoView) act.scrollIntoView({block:'nearest'}); input.setAttribute('aria-activedescendant',act?act.id:''); };
   const lpPaint=()=>{
     results=lpItems(); if(active>=results.length) active=Math.max(0,results.length-1);
     chips.hidden=false; chips.innerHTML=lpChipsHtml();
-    list.innerHTML=lpBodyHtml(results,active); foot.innerHTML=lpFootHtml(false);
-    list.querySelectorAll('[data-cp-i]').forEach(b=>{ const i=+b.getAttribute('data-cp-i');
+    const sideOn=lpSideOn(results);
+    list.innerHTML=lpBodyHtml(results,active,{ side:sideOn }); side.hidden=!sideOn; side.innerHTML=sideOn?lpSideHtml(results,active):''; foot.innerHTML=lpFootHtml(false,sideOn);
+    ov.querySelectorAll('[data-cp-i]').forEach(b=>{ const i=+b.getAttribute('data-cp-i');
       b.addEventListener('click',()=>openItem(results[i])); b.addEventListener('mousemove',()=>{ if(active!==i) lpSel(i); }); });
     lpSel(active);
   };
   chips.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-lp-chip]'); if(!b) return; _lpChip=b.getAttribute('data-lp-chip'); active=0; paint(); input.focus(); });
   const paint=()=>{
+    if(ph) ph.hidden=!!input.value;
     if(!input.value.trim()){ lpPaint(); return; }
-    chips.hidden=true; foot.innerHTML=lpFootHtml(true);
+    chips.hidden=true; side.hidden=true; side.innerHTML=''; foot.innerHTML=lpFootHtml(true);
     results=commandPaletteResults(input.value);
     const q=input.value.trim();
     if(q){
@@ -4154,7 +4158,6 @@ function guidePanelNlHtml(){
    count, word and door is the Guide's own (GUIDE_NL, guideNlCount, guideHereKey, guideGo). Reads only. */
 const LP_WAIT_MAX=3;
 const LP_CHIPS=['all','need','arrive','negsign','live','book'];
-const LP_ICON={ parties:'building' };
 let _lpChip='all';
 /* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */
 function lpRows(){
@@ -4163,9 +4166,7 @@ function lpRows(){
   out.push({ k:'settings', tone:'violet' });
   return out.filter(r=>guideRowShown(r.k));
 }
-function lpIcon(k){ return LP_ICON[k]||GUIDE_NL_ICON[k]||'file'; }
 function lpStageOf(k){ return GUIDE_NL.find(st=>st.rows.flat().includes(k))||null; }
-function lpToneOf(k){ const st=lpStageOf(k); return st?st.tone:'violet'; }
 function lpOwed(k){ const c=guideNlCount(k); return c&&c.owed?c.n:0; }
 function lpSize(k){ const c=guideNlCount(k); return c&&!c.owed?c.n:0; }
 const lpPlain=h=>String(h==null?'':h).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
@@ -4198,38 +4199,57 @@ function lpItems(){
 }
 function lpWaitWord(k){ return i18t(({ approvals:'lp_w_approvals', house:'lp_w_house', settings:'lp_w_settings' })[k]||'lp_w_any'); }
 function lpActWord(k){ return i18t(({ approvals:'lp_act_approvals', house:'lp_act_house', settings:'lp_act_settings' })[k]||'lp_act_open'); }
-function lpMark(k,cls){ return `<span class="${cls} t-${lpToneOf(k)}" aria-hidden="true">${typeof icon==='function'?icon(lpIcon(k),'lp-svg',1.8):''}</span>`; }
-function lpBodyHtml(items,active){
-  const here=guideHereKey()||'board';
-  const opt=(it,cls,inner)=>{ const n=items.indexOf(it), on=it.id===here&&!it.wait;
-    return `<button type="button" class="${cls}${n===active?' is-sel':''}${on?' is-here':''}" data-cp-i="${n}" data-lp-go="${it.id}" id="cp-opt-${n}" role="option" aria-selected="${n===active}"${on?' aria-current="page"':''}>${inner}</button>`; };
+/* THE STRIPE WAY (owner, 20 Nov 2026: "Build the nav panel as drawn but it should be at the center of the screen"): no page
+   symbols, no stage colours. Every page says what is behind it in the Guide's own line (gd_w_*), its name in the link
+   ink; what waits on you stands in ONE tinted column at the right (lpSideHtml) as plain rows: the same large numbers,
+   the same quoted line, the same buttons. Under the Waiting chip the rows take the list's place (no column beside). */
+function lpOpt(items,active,it,cls,inner){
+  const here=guideHereKey()||'board', n=items.indexOf(it), on=it.id===here&&!it.wait;
+  return `<button type="button" class="${cls}${n===active?' is-sel':''}${on?' is-here':''}" data-cp-i="${n}" data-lp-go="${it.id}" id="cp-opt-${n}" role="option" aria-selected="${n===active}"${on?' aria-current="page"':''}>${inner}</button>`;
+}
+function lpWaitRowsHtml(items,active){
+  return `<div class="lp-work" role="group" aria-label="${esc(i18t('lp_chip_need'))}">`+items.filter(x=>x.wait).map(it=>{
+    const k=it.id, n=lpOwed(k), Q=lpQuoteOf(k);
+    return lpOpt(items,active,it,'lp-w',`<span class="lp-wt"><span class="lp-n"><b>${n}</b><span>${esc(lpWaitWord(k))}</span></span><span class="lp-pg">${esc(i18t('gd_p_'+k))}</span></span>`
+      +`<span class="lp-act">${esc(lpActWord(k))}</span>`
+      +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')); }).join('')+`</div>`;
+}
+/* the tinted column stands beside the pages under All, and only while something waits */
+function lpSideOn(items){ return _lpChip==='all'&&(items||[]).some(x=>x.wait); }
+/* how many more pages wait than the three drawn — a cap is said, never a silent trim */
+function lpMoreSay(){
+  const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', left=(ch==='all'||ch==='need')?lpWaits().length-LP_WAIT_MAX:0;
+  return left>0?i18tn('lp_more',left,{ n:left }):i18t('lp_foot');
+}
+function lpSideHtml(items,active){
+  return `<h5 class="lp-h">${esc(i18t('lp_chip_need'))}</h5>${lpWaitRowsHtml(items,active)}<p class="lp-more">${esc(lpMoreSay())}</p>`;
+}
+function lpBodyHtml(items,active,o){
+  const here=guideHereKey()||'board', side=!!(o&&o.side);
   const W=items.filter(x=>x.wait), P=items.filter(x=>!x.wait);
   let h='';
-  if(W.length){
-    h+=`<div class="lp-h">${esc(i18t('lp_chip_need'))}</div><div class="lp-work" role="group" aria-label="${esc(i18t('lp_chip_need'))}">`+W.map(it=>{
-      const k=it.id, n=lpOwed(k), Q=lpQuoteOf(k);
-      return opt(it,'lp-w t-'+lpToneOf(k),`<span class="lp-n"><b>${n}</b><span>${esc(lpWaitWord(k))}</span></span>`
-        +`<span class="lp-pg">${lpMark(k,'lp-ic')}${esc(i18t('gd_p_'+k))}</span>`
-        +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')
-        +`<span class="lp-act">${esc(lpActWord(k))}</span>`); }).join('')+`</div>`;
-  } else if(_lpChip==='need') h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
+  if(W.length&&!side) h+=`<h5 class="lp-h">${esc(i18t('lp_chip_need'))}</h5>`+lpWaitRowsHtml(items,active);
+  else if(!W.length&&_lpChip==='need') h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
   if(P.length){
     const groups=GUIDE_NL.map(st=>({ st, its:P.filter(x=>x.st===st.k) })).filter(g=>g.its.length);
-    h+=(W.length?'<div class="lp-rule" aria-hidden="true"></div>':'')+`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
-      `<div class="lp-st" role="group" aria-label="${esc(i18t('gdn_s_'+g.st.k))}"><h5><i class="lp-dot t-${g.st.tone}" aria-hidden="true"></i>${esc(i18t('gdn_s_'+g.st.k))}</h5>`+g.its.map(it=>{
-        const k=it.id, on=k===here, o=on?0:lpOwed(k), z=on?0:lpSize(k);
-        return opt(it,'lp-p',`${lpMark(k,'lp-ic'+(on?' is-ink':''))}<span class="lp-nm">${esc(i18t('gd_p_'+k))}</span>`
-          +(on?`<span class="lp-ct">${esc(i18t('gd_here'))}</span>`:o?`<span class="lp-ct is-owed">${o}</span>`:z?`<span class="lp-ct">${z}</span>`:''));
+    h+=`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
+      `<div class="lp-st" role="group" aria-label="${esc(i18t('gdn_s_'+g.st.k))}"><h5>${esc(i18t('gdn_s_'+g.st.k))}</h5>`+g.its.map(it=>{
+        const k=it.id, on=k===here, ow=on?0:lpOwed(k), z=on?0:lpSize(k);
+        return lpOpt(items,active,it,'lp-p',`<span class="lp-nm">${esc(i18t('gd_p_'+k))}</span>`
+          +(on?`<span class="lp-ct">${esc(i18t('gd_here'))}</span>`:ow?`<span class="lp-ct is-owed">${ow}</span>`:z?`<span class="lp-ct">${z}</span>`:'')
+          +`<span class="lp-wh">${esc(i18t('gd_w_'+k))}</span>`);
       }).join('')+`</div>`).join('')+`</div>`;
   }
   return h;
 }
+/* the ask line in two tones, as drawn: the question in ink, how to answer it in grey (the box's own words, lp_where) */
+function lpWhereHtml(){ const t=String(i18t('lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
 /* the foot: the keys, then what the panel holds — a cap is said, never a silent trim */
-function lpFootHtml(typed){
+function lpFootHtml(typed,side){
   const keys=`<span class="lp-keys"><span><kbd>↑</kbd> <kbd>↓</kbd> ${esc(i18t('lp_k_move'))}</span><span><kbd>Enter</kbd> ${esc(i18t('lp_k_go'))}</span><span><kbd>Esc</kbd> ${esc(i18t('lp_k_close'))}</span></span>`;
-  if(typed) return keys;
-  const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', left=(ch==='all'||ch==='need')?lpWaits().length-LP_WAIT_MAX:0;
-  return keys+`<span>${esc(left>0?i18tn('lp_more',left,{ n:left }):i18t('lp_foot'))}</span>`;
+  /* beside the pages, the tinted column says it at its own foot (lpSideHtml) */
+  if(typed||side) return keys;
+  return keys+`<span>${esc(lpMoreSay())}</span>`;
 }
 function lpChipsHtml(){
   const word=c=>c==='all'?i18t('lp_chip_all'):c==='need'?i18t('lp_chip_need'):c==='negsign'?i18t('lp_chip_deal'):i18t('gdn_s_'+c);
@@ -4950,6 +4970,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

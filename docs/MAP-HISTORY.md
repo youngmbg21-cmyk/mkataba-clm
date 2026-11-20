@@ -39503,3 +39503,23 @@ The owner, over an iPad photo of an arrival check on the Board with "Change the 
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS — SEND, AND THE WORDS THE PAGE DRAWS (owner, 20 Nov 2026)
 The owner, over the box's own new line "There is not enough wording on this contract for Jambo to check. Nothing was changed." on a Raw Material Supply Agreement whose card quoted its wording: "I don't understand what is happening"; told why: "yes fix it Plus the button should say send not redo. This is supposed to be a quick 'tell jambo to do x' then send and move on with your list." Cause: paperRedo read only stored wording (copilotContractWording: `redlineText`, an upload's text); a paper still in its template's own wording stores none (the page draws it), while the first check had run in the browser. Built the way Discover already does it (colWording): the page sends the words it draws (`askColTexts`, now published, for the one contract) as `drawn`; paperRedo reads them only where nothing is stored (≥ COPILOT_PB_TEXT_MIN) and never stores them. The button's word Redo → Send (sv Gör om → Skicka); the box already says Jambo is at work and the outcome, so the reader can send and move on. f413 4g; f1114 (5). Also re-pointed in passing: none (f1016 (2) pins the publish line's first name, so askColTexts went at its end).
+
+## THE SHELL — RAIL, BAR, PANELS — THE LAUNCHPAD, THE STRIPE WAY (owner, 20 Nov 2026)
+The owner had asked to see stripe.com ("It is beautiful and well designed"), then, over a photo of the launchpad: "design the nav
+panel the stripe way". ONE drawing was shown (their instruction named the option; no SAP or Legora option was drawn), modelled on
+the menu that drops from Stripe's "Products": plain column heads with a thin line, each entry's name in the link colour over one
+grey line saying what it is, one tinted column at the right. The owner: "Build the nav panel as drawn but it shoud be at the
+center of the screen" — so the drawing's one departure (dropping from the black bar) was NOT built; it stays centred (19 Nov ruling).
+BUILT (js/app.js, index.html "THE LAUNCHPAD, THE STRIPE WAY"): the sheet is 1264 wide, a grid; every page row is its name
+(`--accent-ink`), its count, and the Guide's own line under it (`gd_w_*`, both books, no new words); the page symbols (lpMark,
+lpIcon, LP_ICON) and the stage colours (lpToneOf, `.lp-dot`, the tinted cards) are GONE, as the drawing's "needs your yes" list
+said; what waits stands in ONE tinted column (`#lp-side`, `lpSideHtml`, shown by `lpSideOn`: under All, while something waits) as
+plain rows with the same number, quote and button (the chosen row's button fills black, as before); the "N more pages wait"
+sentence moved to that column's foot (`lpMoreSay`) and lost "below" / "nedan" in both books; under the Waiting chip the rows take
+the list's place and the sentence stays in the foot; the ask line is two tones (`lpWhereHtml`, an overlay over the box, hidden
+once anything is typed; the placeholder itself is transparent). The foot is white (it was the ground's grey).
+MEASURED at the three screens with the handbook's sample company: the sheet is 645 tall, centred, the list does not scroll,
+nothing spills, the column's head is level with the stages' heads (0px) at 1440x780, 1536x730 and 1366x950. FOUND ON THE WAY:
+with the chips hidden while typing, the grid's rows shifted and the foot floated mid-sheet — every part now names its own row.
+NOT BUILT / LEFT: the typed jump list is as it was (now in the wider sheet). Handbook 1.2 rewritten in both books; its pictures
+wait for the batch. Red at the parent: f1097 (6), and (1)–(3) which load the new builders by name.
