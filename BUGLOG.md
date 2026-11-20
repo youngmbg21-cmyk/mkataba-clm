@@ -22731,3 +22731,7 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 
 ## Noticed, not fixed — Read down clean-up photo (20 Nov 2026)
 - Board › Read down: money is a big part of the sheet — the first sentence ("KES 91M is on paper … KES 64.70M of it is signed"), the chart "Ending, by quarter · value on paper" with KES on every bar, and the panel's first tile "91M KES on paper" (against "money is never a big part of a page" and "no money in a side panel").
+
+## Noticed, not fixed — Discover clean-up photos (20 Nov 2026)
+- Discover › All reads: with no reads yet, the list stays on "Loading…" (13+ seconds in the photo script) instead of saying there are none.
+- Discover › New read: the panel's last line ("Does this contract renew automatically?") runs under Jambo's links line.
