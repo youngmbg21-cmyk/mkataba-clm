@@ -25540,7 +25540,7 @@ async function renewRedo(cid, note, who) {
   db.prepare('UPDATE contracts SET updated_at=? WHERE id=?').run(now(), String(cid));
   return { prepared: 1, advice: r.advice };
 }
-async function paperRedo(cid, note, who) {
+async function paperRedo(cid, note, who, drawn) {
   const key = aiKey(); if (!key) return { noKey: true };
   const stop = agentMaySpend('paper'); if (stop) return { [stop]: true };
   const pb = workspacePlaybook();
@@ -25551,7 +25551,11 @@ async function paperRedo(cid, note, who) {
   const pkey = pb ? copilotPlaybookKey(pb, c0) : null;
   const resolved = pb ? copilotResolvePlaybook(pb, pkey) : null;
   if (!resolved) return { noStandards: true };
-  const wording = copilotContractWording(c0);
+  /* A PAPER STILL IN ITS TEMPLATE'S OWN WORDING (owner, 20 Nov 2026): no wording is stored, so the page's drawn words
+     are read — only where nothing is stored (colWording's rule), never stored, the read capped as every read is */
+  const stored = copilotContractWording(c0);
+  const given = String(drawn || '').trim();
+  const wording = stored || (given.length >= COPILOT_PB_TEXT_MIN ? given : '');
   if (wording.length < COPILOT_PB_TEXT_MIN) return { noText: true };
   const before = (c0.playbook && Array.isArray(c0.playbook.verdicts))
     ? c0.playbook.verdicts.map(v => ({ category: v.category, status: v.status })) : null;
@@ -25582,7 +25586,7 @@ app.post('/api/agents/:k/sendback', auth, editor, async (req, res) => {
   if (!aiKey()) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const who = aiWho(req);
   const go = k === 'round' ? () => roundRedo(cid, String(b.key || ''), note, who)
-    : k === 'renew' ? () => renewRedo(cid, note, who) : () => paperRedo(cid, note, who);
+    : k === 'renew' ? () => renewRedo(cid, note, who) : () => paperRedo(cid, note, who, typeof b.drawn === 'string' ? b.drawn : '');
   const out = await runAgent(k, 'sendback', who, go, { subject: cid });
   /* SENT BACK WITH A NOTE: a person changed what Jambo had prepared. */
   if (out && out.prepared) try { agentPieceDecide(k, cid, 'changed', who, k === 'round' ? String(b.key || '') : ''); } catch (_) {}

@@ -54,3 +54,17 @@ test('f1114 (4) the new words in both books; the line wears the house tones', ()
   for (const [k, t] of [['is-warn', 'amber'], ['is-err', 'ruby'], ['is-ok', 'green']])
     assert.match(CSS, new RegExp('\\.ag-sb-say\\.' + k + '\\{color:var\\(--st-' + t + '-fg\\);\\}'));
 });
+
+/* (5) A QUICK NOTE, SENT (owner, 20 Nov 2026: "the button should say send not redo. This is supposed to be a quick
+   'tell jambo to do x' then send and move on with your list"): the button says Send in both books, and the note
+   carries the words the page draws (Discover's one gatherer) for a paper still in its template's own wording */
+test('f1114 (5) the button says Send; the note carries the drawn words', () => {
+  const I = read('js/i18n.js');
+  assert.match(I, /^    ag_sendback_go: "Send",$/m);
+  assert.match(I, /^    ag_sendback_go: "Skicka",$/m);
+  assert.doesNotMatch(I, /ag_sendback_go: "(Redo|Gör om)"/);
+  const p = fn('agSendBackPress');
+  assert.match(p, /window\.askColTexts\(\[String\(it\.cid\)\]\)\[String\(it\.cid\)\]/);
+  assert.match(p, /agentSendBack\(agent, \{ contractId: it\.cid, key: [^}]*note, \.\.\.\(drawn \? \{ drawn \} : \{\}\) \}\)/);
+  assert.match(read('js/views/askcolumn.js'), /Object\.assign\(window, \{ askColAskHere,[^}]*\baskColTexts\b/);
+});

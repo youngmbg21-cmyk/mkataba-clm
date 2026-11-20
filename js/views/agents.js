@@ -1749,7 +1749,11 @@ async function agSendBackPress(key, box){
   agSendBackSay(box, _agT('ag_sendback_busy'));
   if (field && field.blur) try { field.blur(); } catch (_){}
   let r = null;
-  try { r = await agentSendBack(agent, { contractId: it.cid, key: box.getAttribute('data-ag-sb-key') || '', note }); }
+  /* THE WORDS ON THE PAGE GO WITH IT (owner, 20 Nov 2026: "fix it"): a contract still in its template's own wording
+     has none stored for the server to read, so the page sends what it draws — Discover's one gatherer, askColTexts;
+     the server takes it only where it holds no wording of its own, and never stores it */
+  const drawn = (typeof window !== 'undefined' && typeof window.askColTexts === 'function') ? (window.askColTexts([String(it.cid)])[String(it.cid)] || '') : '';
+  try { r = await agentSendBack(agent, { contractId: it.cid, key: box.getAttribute('data-ag-sb-key') || '', note, ...(drawn ? { drawn } : {}) }); }
   catch (e){
     if (go){ go.disabled = false; go.textContent = _agT('ag_sendback_go'); }
     agSendBackSay(box, (e && e.message) || String(e), 'err');
