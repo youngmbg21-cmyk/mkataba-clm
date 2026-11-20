@@ -58,11 +58,11 @@ function world(opts = {}){
     var guideNlCount = k => window.__owed[k] ? { n: window.__owed[k], owed: true } : (k === 'contracts' ? { n: 4, owed: false } : null);
     var caMayAdd = () => true;
     var openCommandPalette = () => { window.__opened++; const d = document.createElement('div'); d.id = 'cmd-palette'; d._lpClose = () => d.remove(); document.body.appendChild(d); };
-    ${['GUIDE_NL', 'LP_WAIT_MAX', 'LP_CHIPS', 'lpPlain'].map(constSrc).join('\n')}
+    ${['GUIDE_NL', 'LP_WAIT_MAX', 'LP_CHIPS', 'LP_EMOJI', 'lpPlain'].map(constSrc).join('\n')}
     var _lpChip = 'all';
     ${['guideRowShown', 'lpRows', 'lpStageOf', 'lpOwed', 'lpSize', 'lpQuoteOf', 'lpWaits', 'lpItems', 'lpWaitWord', 'lpActWord',
-       'lpOpt', 'lpWaitRowsHtml', 'lpSideOn', 'lpMoreSay', 'lpSideHtml', 'lpBodyHtml', 'lpWhereHtml', 'lpFootHtml', 'lpChipsHtml', 'lpIsOpen', 'lpDoorSay', 'lpToggle', 'lpWire'].map(fnSrc).join('\n')}
-    window.__api = { lpRows, lpItems, lpQuoteOf, lpBodyHtml, lpSideHtml, lpSideOn, lpWhereHtml, lpFootHtml, lpChipsHtml, lpWire, GUIDE_NL, LP_WAIT_MAX, chip: c => { _lpChip = c; } };
+       'lpEmoHtml', 'lpOpt', 'lpWaitRowsHtml', 'lpSideOn', 'lpMoreSay', 'lpSideHtml', 'lpBodyHtml', 'lpWhereHtml', 'lpFootHtml', 'lpChipsHtml', 'lpIsOpen', 'lpDoorSay', 'lpToggle', 'lpWire'].map(fnSrc).join('\n')}
+    window.__api = { LP_EMOJI, lpRows, lpItems, lpQuoteOf, lpBodyHtml, lpSideHtml, lpSideOn, lpWhereHtml, lpFootHtml, lpChipsHtml, lpWire, GUIDE_NL, LP_WAIT_MAX, chip: c => { _lpChip = c; } };
   `);
   return w;
 }
@@ -99,7 +99,8 @@ test('f1097 (2) what waits comes first, capped and the cap said; chips narrow; n
   assert.deepEqual(ar, plain(A.GUIDE_NL.find(s => s.k === 'arrive').rows.flat()), 'Arrive: its pages alone, no waiting tiles');
   const none = world(); none.__api.chip('need');
   assert.match(draw(none).textContent, /lp_none/, 'nothing waiting is said, never an empty panel');
-  A.chip('all'); assert.match(A.lpChipsHtml(), /data-lp-chip="negsign"[^>]*>lp_chip_deal</, 'the stage chip for Negotiate · sign says Deal');
+  /* RE-POINTED 21 Nov 2026 (owner: "the names differ ... when they are supposed to be one and the same"; "use Negotiate · sign") */
+  A.chip('all'); assert.match(A.lpChipsHtml(), /data-lp-chip="negsign"[^>]*>gdn_s_negsign</, 'a stage\'s chip says its column\'s own head');
 });
 
 test('f1097 (3) each waiting line is quoted from where it was read, never guessed', () => {
@@ -140,7 +141,7 @@ test('f1097 (5) wired where the user looks; the strip is gone; both books and th
   assert.match(HTML, /id="dk-nav"[^>]*aria-controls="cmd-palette"/, 'the bar\'s door names the window it opens');
   assert.doesNotMatch(APP + HTML, /guideStrip|gd-strip|\.gds-/, 'the symbol strip is gone');
   const en = I18N.split('lp_where:'); assert.equal(en.length, 3, 'both books carry the launchpad\'s words');
-  for (const k of ['lp_chip_all', 'lp_chip_need', 'lp_chip_deal', 'lp_from', 'lp_none', 'lp_foot', 'lp_more_one', 'lp_more_other', 'lp_house_one', 'lp_house_other'])
+  for (const k of ['lp_chip_all', 'lp_chip_need', 'lp_from', 'lp_none', 'lp_foot', 'lp_more_one', 'lp_more_other', 'lp_house_one', 'lp_house_other'])
     assert.equal(I18N.split('    ' + k + ':').length, 3, k + ' in both books');
   assert.match(HBK, /opens the launchpad/); assert.match(HBK, /öppnar startplattan/);
 });
@@ -158,7 +159,7 @@ test('f1097 (6) the Stripe way: a line under every page, no symbols or stage col
   assert.match(A.lpFootHtml(false, false), /lp_more:1/, 'with no column beside, the foot still says it');
   const rows = [...list.querySelectorAll('.lp-p')];
   assert.ok(rows.length > 15 && rows.every(b => /^gd_w_/.test((b.querySelector('.lp-wh') || {}).textContent || '')), 'every page says what is behind it, in the Guide\'s own line');
-  assert.equal([...list.querySelectorAll('svg, .lp-ic, .lp-dot'), ...side.querySelectorAll('svg, .lp-ic')].length, 0, 'no page symbols, no stage dots');
+  assert.equal([...list.querySelectorAll('svg, .lp-ic, .lp-dot'), ...side.querySelectorAll('svg, .lp-ic')].length, 0, 'no drawn symbols, no stage dots');
   assert.doesNotMatch(list.innerHTML + side.innerHTML, /\bt-(green|amber|steel|violet)\b/, 'no stage colours');
   const idx = [...side.querySelectorAll('[data-cp-i]'), ...list.querySelectorAll('[data-cp-i]')].map(b => +b.getAttribute('data-cp-i'));
   assert.deepEqual(idx, plain(items).map((_, i) => i), 'the arrows still walk every row once: the waiting first, then the pages');
@@ -175,4 +176,27 @@ test('f1097 (6) the Stripe way: a line under every page, no symbols or stage col
   assert.doesNotMatch(css, /st-(violet|steel|green)-/, 'no stage tone left in the launchpad\'s sheet');
   for (const k of ['lp_more_one', 'lp_more_other']) assert.doesNotMatch(I18N.split('    ' + k + ':')[1].split('\n')[0] + I18N.split('    ' + k + ':')[2].split('\n')[0], /below|nedan/, k + ' no longer says "below"');
   assert.match(HBK, /a line saying what is behind it/); assert.match(HBK, /en rad som säger vad som finns bakom den/);
+});
+
+test('f1097 (7) an emoji marks every page; one name for one stage (owner, 21 Nov 2026)', () => {
+  const w = world({ here: 'contracts', owed: { approvals: 2, settings: 3, house: 2, oblig: 1 } }); const A = w.__api;
+  const items = A.lpItems();
+  const guide = plain([...new Set(A.GUIDE_NL.flatMap(st => st.rows.flat()))]);
+  const E = plain(A.LP_EMOJI);
+  assert.deepEqual(Object.keys(E).sort(), [...guide].sort(), 'exactly one emoji for each of the Guide\'s pages');
+  assert.equal(new Set(Object.values(E)).size, guide.length, 'no two pages share an emoji');
+  const list = w.document.createElement('div'); list.innerHTML = A.lpBodyHtml(items, 0, { side: true });
+  const side = w.document.createElement('div'); side.innerHTML = A.lpSideHtml(items, 0);
+  for (const b of list.querySelectorAll('.lp-p')) { const k = b.getAttribute('data-lp-go'), em = b.querySelector('.lp-em');
+    assert.ok(em && em.textContent === E[k] && em.getAttribute('aria-hidden') === 'true', k + ' carries its own emoji, a mark the reader is not read');
+    assert.equal(b.firstElementChild, em, 'at the left of the name'); assert.ok(!b.querySelector('.lp-nm').textContent.includes(E[k]), 'never inside the name'); }
+  for (const b of side.querySelectorAll('.lp-w')) assert.equal((b.querySelector('.lp-pg .lp-em') || {}).textContent, E[b.getAttribute('data-lp-go')], 'the same emoji beside it where it waits');
+  const chips = w.document.createElement('div'); chips.innerHTML = A.lpChipsHtml();
+  const heads = [...list.querySelectorAll('.lp-st h5')].map(h => h.textContent);
+  const stageChips = [...chips.querySelectorAll('[data-lp-chip]')].slice(2).map(c => c.textContent);
+  assert.deepEqual(stageChips, heads, 'each stage\'s chip says the same words as its column\'s head');
+  assert.doesNotMatch(APP + I18N, /lp_chip_deal/, 'the second name is retired from the code and both books');
+  assert.match(HBK, /Negotiate · sign · Live · The book\)/); assert.match(HBK, /Förhandla · signera · Gäller · Boken\)/);
+  const css = HTML.slice(HTML.indexOf('#cmd-palette .lp-sheet{'), HTML.indexOf('#cmd-palette .lp-foot kbd'));
+  assert.match(css, /\.lp-em\{position:absolute;/, 'the emoji stands in its own gutter, the line under the name starts where the name starts');
 });
