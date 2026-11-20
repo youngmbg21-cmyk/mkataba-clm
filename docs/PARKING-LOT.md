@@ -226,7 +226,13 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** nothing pushed behind the side panel; red only for overdue; the note never leaves its owner (no contract, share or history).
   - **Check before building:** the note's own words are missing from today's page altogether (BUGLOG, 20 Nov 2026), so this build also fixes that; the timeline needs the day the bell first rang for a note (kept, or worked out from its review day).
 
-### P-28 · Negotiations page, the Legora + Stripe way, on all four tabs
+### P-28 · Delete the Pulse board
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "add deleting the pulse board to the parking lot." The Pulse board (the live, ranked list of contracts: what needs you, money, days left, written by Jambo) is removed from HaTi.
+- **Where it came from:** the owner, 20 Nov 2026.
+- **Notes:** the page is reached from the Guide (its "see" stage, beside Explorer), from "/" and Jambo's box, and is named in the Handbook, the flow map, the brain map and Jambo's map. Removing it changes all of those in the same piece of work (CLAUDE.md rules 9, 9c, 9d, 9e), and its MAP section in CLAUDE.md goes. Ask before building: where a door that used to open Pulse should land instead (the Board is the likely answer). Its readings that other pages borrow (for example what needs you, `ndRead`) stay; only the Pulse page and what only it uses go.
+
+### P-29 · Negotiations page, the Legora + Stripe way, on all four tabs
 - **Added:** 20 Nov 2026 · **Status:** Waiting
 - **What:** build the owner's pick for Negotiations: the Legora + Stripe way on Live, Your move, Their move and Settled. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 6. The drawings: https://claude.ai/artifact/GEMo2rvCnuDANM7s35bWFf (choose "The Legora + Stripe way" on each tab). Live and Your move were drawn on photos of the page that day; Their move and Settled could not be photographed from the sample workspace (no live share link), so they were drawn on the Live photo with two deals marked "sample".
