@@ -22660,3 +22660,9 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - f1095 (1b) already red before Round C: it expects 5 `contractRenewsItself(c)` reads in js/paperdesk.js, the file has 4 (the Cover was deleted, f1122). The test needs re-pointing; left alone.
 - f1037's harness re-pointed: it now loads `pd2ActsFor` (Round C's note-button helper) beside the paper's other readers.
 - 20 Nov 2026 — Noticed, not fixed (Negotiations, while photographing for the clean-up): a deal whose only change was accepted reads "0 · your 0 answers are ready to send" in the row and "Your 0 answers are ready to send" in the panel, while Whose move says "Yours · today" (a zero said as work); a deal with only OUR unsent change shows that change under Open asks as "waiting on your answer" and Last says "Saw's round", as if it were the other side's ask; the panel's head carries the deal's money ("Safaricom PLC · MK-513 · KES 3.40M"), against the money-never-in-a-panel rule; Their move and Settled could not be reached from the sample workspace without a live share link, so they were not photographed.
+
+## Noticed, not fixed — Approvals page clean-up photos (20 Nov 2026)
+- Approvals › Waiting on others: the side panel says "<name> waits for your yes" and describes Approve/Decline, though the approval waits on a colleague, not the reader.
+- Approvals › Waiting on others and Done: the line under the list says "1 for you" on both tabs, where nothing is for the reader.
+- Approvals › Mine: the panel's first tile is the deal's money ("900K KES value") and Done's panel lists money twice (Money, Value) — against the rule that money is never in a side panel.
+- Approvals › Mine: the panel tile "0 off our standard" reads as good news while the playbook has not been checked yet.
