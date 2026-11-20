@@ -407,7 +407,10 @@ async function rdLoad(force){
   _rd.loading = true;
   try {
     /* every question, kept or not (the folded line's own query), read here and kept here: Discover's fold is the Contracts panel's */
-    const [sum] = await Promise.all([api('columns/summary?all=1'), typeof askColReads === 'function' ? askColReads(true) : null, typeof askColSummary === 'function' ? askColSummary() : null]);
+    /* the Contracts panel's own summary (and the packs behind it) is not what Discover draws: it is fetched beside, never
+       waited for, so the list is not held up by a second trip (owner, 20 Nov 2026: "discover is still slow to loading") */
+    if (typeof askColSummary === 'function') Promise.resolve(askColSummary()).catch(() => {});
+    const [sum] = await Promise.all([api('columns/summary?all=1'), typeof askColReads === 'function' ? askColReads(true) : null]);
     _rd.asks = (sum && sum.asks) || [];
     if (typeof AC !== 'undefined' && AC.asks) _rd.asks.forEach(a => { AC.asks[a.id] = Object.assign(AC.asks[a.id] || {}, a); });
   } catch (_){ _rd.asks = _rd.asks || []; }
@@ -416,7 +419,29 @@ async function rdLoad(force){
      second time ~55 ms after arriving, with the very rows it had drawn from what was already known) */
   const was = rdRowsKey(_rd.rows);
   _rd.rows = rdRows();
+  rdnAnswersAll();
   if (state.view === 'reads' && rdRowsKey(_rd.rows) !== was) renderReads();
+}
+/* THE FOUND COLUMN IS ASKED FOR AS SOON AS THE READS ARE KNOWN, every read's questions in the one load (rdnAnswers
+   gathers them), not after the list is drawn; a question already answered here asks for nothing */
+function rdnAnswersAll(){
+  const R = (typeof AC !== 'undefined' && AC.reads && Array.isArray(AC.reads.reads)) ? AC.reads.reads : [];
+  R.forEach(r => (r && Array.isArray(r.askIds) ? r.askIds : []).forEach(k => rdnAnswers(k)));
+}
+/* DISCOVER IS READY BEFORE IT IS OPENED (owner, 20 Nov 2026: "discover is still slow to loading" — "blank page first then
+   the columns fill in then the found column fills in last", 2–5 seconds on the live site). Each of those waits is a trip
+   to the server taken only once the page was opened. So, once a sitting, a few seconds after the app has drawn and when
+   the browser is idle, the reads, their counts and their answers are fetched quietly (free: no AI, nothing written; the
+   server's walls as ever). Opening Discover then draws what is already here, and refreshes it behind as before. Not on
+   a phone, and not while Discover is already in front (it loads itself). */
+let _dsnWarmed = false;
+function dsnWarm(){
+  if (_dsnWarmed) return;
+  if (typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches) return;
+  _dsnWarmed = true;
+  const go = () => { if (state.view !== 'reads') rdLoad(true); };
+  const idle = () => (typeof requestIdleCallback === 'function') ? requestIdleCallback(go, { timeout: 8000 }) : setTimeout(go, 400);
+  setTimeout(idle, 3000);
 }
 function rdRowsKey(rows){ try { return JSON.stringify(rows || null); } catch (_){ return String(Math.random()); } }
 /* A PRESS STAYS WHERE IT WAS PRESSED (owner, 9 Nov 2026), on the list of reads too: a row press draws the page again
@@ -984,7 +1009,12 @@ function dsnListHtml(){
     ${dsnSel('when', _rdT('dsn_f_when'), [['all', _rdT('dsn_f_any_time')], ['d7', _rdT('dsn_f_7')], ['d30', _rdT('dsn_f_30')], ['d90', _rdT('dsn_f_90')]], _dsn.f.when)}</div>`;
   const row = r => `<tr class="dsn-row${r.id === _dsn.sel ? ' is-sel' : ''}" data-dsn-run="${_rdE(r.id)}" tabindex="0"><td class="rdn-c">${_rdE(rdWhen(r.last || r.at))}</td><td><div class="cun-name">${_rdE(dsnRunName(r))}</div></td>
     <td class="rdn-c">${_rdE(dsnRunWhere(r))}</td><td class="rdn-c">${_rdE(_rdT('rdn_of', { k: r.n, n: dsnRunOf(r) }))}</td><td class="rdn-c">${dsnFound(dsnRunRows(r)) || '…'}</td><td class="rdn-c">${_rdE(r.by || '')}</td></tr>`;
-  const body = shown.length ? shown.map(row).join('') : `<tr><td colspan="6" class="apn-none">${_rdE(_rdT(runs.length ? 'dsn_none_here' : 'dsn_none'))}</td></tr>`;
+  /* WHEN SOMETHING LOADS, SOMETHING MOVES: before the reads have come back once, the list says it is loading, never "no
+     reads yet" */
+  const loading = !(typeof AC !== 'undefined' && AC.reads);
+  const body = shown.length ? shown.map(row).join('') : loading
+    ? `<tr><td colspan="6" class="apn-none">${typeof busyHtml === 'function' ? busyHtml(_rdT('loading')) : _rdE(_rdT('loading'))}</td></tr>`
+    : `<tr><td colspan="6" class="apn-none">${_rdE(_rdT(runs.length ? 'dsn_none_here' : 'dsn_none'))}</td></tr>`;
   return `<div class="cun-head rdn-head"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="ctf-hf">${_rdE(_rdTn('dsn_facts', runs.length, { q: qs.size }))}</span><span class="apn-sp"></span>
       <button type="button" class="ui-btn ui-btn-primary" id="dsn-new">${_rdE(_rdT('dsn_new'))}</button></div>${filters}
     <div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table"><colgroup><col style="width:14%" data-floor="100"><col style="width:24%" data-floor="150"><col style="width:18%" data-floor="120"><col style="width:12%" data-floor="70"><col style="width:16%" data-floor="110"><col style="width:16%" data-floor="100"></colgroup>
@@ -1838,4 +1868,4 @@ function readsCss(){ return `
   #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { dscLocate, dscPaperAllHtml, dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+Object.assign(window, { dsnWarm, rdnAnswersAll, dscLocate, dscPaperAllHtml, dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
