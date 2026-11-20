@@ -4163,7 +4163,8 @@ const LP_CHIPS=['all','need','arrive','negsign','live','book'];
 /* A MARK FOR EVERY PAGE (owner, 21 Nov 2026: "assign an emoji to each. use the emoji reference book ... if nothing there use the
    previous nav panel as a reference"): Settings' own emoji (SDD_EMOJI, js/views/settings.js) where it has the meaning — requests,
    import, ourpaper, standards, approvals, document, parties, people, mynotes, board, explorer, house, flowmap, handbook, settings —
-   else the emoji of the symbol the panel drew before (GUIDE_NL_ICON). A mark beside the name, never the name itself. */
+   else the emoji of the symbol the panel drew before (GUIDE_NL_ICON), since added to the book as SDD_EMOJI.page (f1097 (8) keeps
+   the two the same). A mark beside the name, never the name itself. */
 const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅', document:'✏️',
   oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }

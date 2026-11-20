@@ -91,6 +91,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- THE EMOJI BOOK HOLDS THE LAUNCHPAD'S SEVEN (owner, 21 Nov 2026): f1097 (8) (new; red at the parent: SDD_EMOJI has no `page`) — the seven in the book equal LP_EMOJI's, and every emoji the launchpad draws is in the book; f1100 still green.
 - AN EMOJI MARKS EVERY PAGE, ONE NAME FOR ONE STAGE (owner, 21 Nov 2026): f1097 (7) (new; red at the parent: LP_EMOJI does not exist there) — one emoji per Guide page, none shared, left of the name and never in it, the same beside it where it waits; each stage's chip says its column's head; lp_chip_deal retired from the code and both books. launchpad-verify 2h — GitHub.
 - THE LAUNCHPAD, THE STRIPE WAY (owner, 20 Nov 2026): f1097 (6) (new; red at the parent) — a line under every page, no symbols or stage colours, what waits in ONE column beside the pages with the cap said at its foot, the arrows still walk every row once, the ask line in two tones; f1097 (1)–(3) re-pointed to the new builders. launchpad-verify 2f (lines, no marks) and 2g (the column at the right, from the top, heads level) — GitHub.
 - THE LAUNCHPAD STANDS IN THE MIDDLE (owner, 19 Nov 2026): f1097 (5) pins align-items:center and the kept height; launchpad-verify 1b (up and down) and 4c (typing does not move it).

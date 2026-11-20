@@ -267,7 +267,7 @@ PRIVATE: `mineLoad`/`mineSave`/`mineDelete` over /api/me/items (`my_items`, ever
 ## SETTINGS & RULES — THE CONTROL ROOM
 - CONTRACT LOOK: ADMINS ONLY (PUT /api/org/branding); `clPageHtml`; by stream (`stream_looks`); `srvLookOf` paper → stream → company; follows stream until signed (`srvLookFollowStream`); their paper undressed. f1049.
 - DOOR TO DOOR (P-11): SIX AREAS (`SDD_AREAS`), a row each (`sddRows`, `sddState`); needs `sddNeedList`; press chooses, second opens; `#sdd-q`; old pages in areas (`SDD_PAGE_AREA`, `data-sdd-to`); panel `sddCardHtml`. f1091.
-- EMOJI per row/area: `SDD_EMOJI` (HaTi's own where they exist); needs-you amber dot. A MARK, never button words (f385). Black button spans card (`.jov5-act .jov5-go`). f1100.
+- EMOJI BOOK per row/area/page: `SDD_EMOJI` (HaTi's own where they exist; `page` = the launchpad's seven, every `LP_EMOJI` emoji is in the book, f1097 (8)); needs-you amber dot. A MARK, never button words (f385). Black button spans card (`.jov5-act .jov5-go`). f1100.
 - Company admin-only (`renderTeam()`): `stNeedsAll`, `ST_CARDS`, `openSettingsAt` lands, never presses; `stFind`; Ask an admin recorded (`settings_asks`). Trail in folderScopeFor (`trailRows`, `trailPdf`); `BZ_ALL`; access review needs everyone decided.
 - AWAY: stand-in answers approvals/reviews, never signing (`awayCovers`). HOLD `c.hold` (409). CODE NAMES: real name never leaves server for outsiders (`cnFrontDoor`, `cnMask`, `cnMailMask`; f1016); new non-JSON route with contract text MUST MASK.
 ## PARTY vs WORKSPACE, AND WHO THE AGREEMENT IS BETWEEN (js/parties.js)
