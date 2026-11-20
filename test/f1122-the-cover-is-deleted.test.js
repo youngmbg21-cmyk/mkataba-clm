@@ -1,5 +1,5 @@
 'use strict';
-/* f1121 — THE COVER IS DELETED; A CONTRACT OPENS ON ITS DOSSIER (owner, 20 Nov 2026: "i want to delete the cover page
+/* f1122 — THE COVER IS DELETED; A CONTRACT OPENS ON ITS DOSSIER (owner, 20 Nov 2026: "i want to delete the cover page
    from hati" … "Delete it, open the Dossier instead")
    (1) No Cover is built or opened anywhere: its builder, its page, its styles and its words are gone, in both books.
    (2) Every door that opened the contract on purpose (a list row, the Board, a typed number, Jambo's rows) lands on its
@@ -18,7 +18,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const PD = strip(read('js/paperdesk.js'));
 const fn = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = src.indexOf('\nfunction ', i + 9); return src.slice(i, j < 0 ? undefined : j); };
 
-test('f1121 (1) no Cover is built or opened anywhere', () => {
+test('f1122 (1) no Cover is built or opened anywhere', () => {
   for (const f of [...glob('js'), ...glob('js/views')]) {
     const s = strip(read(f));
     assert.doesNotMatch(s, /\bpdCover(Go|Land|Leave|Held|Open|Show|Up|Of|Html|SheetHtml|RightHtml)\b|\bdeskCoverUp\b|\bcover: ?true\b|'cover:'/, f + ' still reaches for the Cover');
@@ -28,7 +28,7 @@ test('f1121 (1) no Cover is built or opened anywhere', () => {
   assert.doesNotMatch(read('js/handbook.js'), /\bCover\b|omslag/, 'the Handbook no longer tells of it');
 });
 
-test('f1121 (2) a contract opened on purpose lands on its paper with the Dossier', () => {
+test('f1122 (2) a contract opened on purpose lands on its paper with the Dossier', () => {
   assert.match(fn(PD, 'pdOpenOnHome'), /if \(tab === 'open'\) tab = pdOpenTabOf\(c\);/);
   assert.match(fn(PD, 'pdOpenTabOf'), /return 'copilot';\s*\}?\s*$/, "the Dossier ('copilot') unless the reader chose another face");
   const land = fn(strip(read('js/views/contract.js')), 'roomHomeLand');
@@ -36,13 +36,13 @@ test('f1121 (2) a contract opened on purpose lands on its paper with the Dossier
   assert.match(strip(read('js/copilotacts.js')), /roomHomeLand\(R\.c\.id, R\.question \? undefined : \{ open: true \}\)/, 'a typed number alone opens it on purpose');
 });
 
-test('f1121 (3) "Where we are" opens the Dossier', () => {
+test('f1122 (3) "Where we are" opens the Dossier', () => {
   assert.match(PD, /function pd2StandsOpen\(id\)\{ return pdOpenOnHome\(id, 'copilot'\); \}/);
   assert.match(PD, /function pd2StandsUp\(\)\{ return false; \}/);
   assert.match(fn(strip(read('js/views/boardstrip.js')), 'hbStripBring'), /if \(page === 'where'\) return roomHomeLand\(c\.id, \{ open: true \}\) !== false;/);
 });
 
-test('f1121 (4) a page in the middle opened from another page goes back there in one press; a page arrives whole', () => {
+test('f1122 (4) a page in the middle opened from another page goes back there in one press; a page arrives whole', () => {
   const on = fn(PD, 'pdMidOn');
   assert.match(on, /if \(a\.from && a\.from !== at && pc && String\(pc\.id\) === a\.id\) _pdMid\.from = a\.from;/, 'the page keeps where it was pressed from');
   assert.match(fn(PD, 'pdOpenOnHome'), /pdArriveNote\(id\);/, 'every door into a contract notes where it came from');
