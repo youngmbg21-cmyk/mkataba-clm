@@ -1422,7 +1422,22 @@ function jamboTurnHtml(m, i, H, host){
   /* THE SAP WAY: the toolbar under an answer carries the source line inside its More menu (igSapHtml); a builder
      that has already said it is not given a second line here. */
   const read = (born !== 'ai' && m.read && m.read.text && !/data-ai-read/.test(inner)) ? `<div class="ai-read jb-read is-${born}" data-ai-read>${String(m.read.text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : '';
-  return `<div class="jb-turn" data-jb-turn="${i}" data-jb-born="${born}" data-jb-host="${host}">${inner}${read}</div>`;
+  /* A MESSAGE ARRIVES ONCE (owner, 20 Nov 2026: "when i type on it, the conversation history disappears then comes
+     back"): the hosts draw the conversation again on every turn, and every message replayed its arrival fade, so the
+     whole history blinked out and back. A message already drawn once is marked (data-jb-seen) and does not fade
+     again; only the newest one arrives. The mark rides the message object itself (one conversation, every host). */
+  const seen = jamboTurnSeen(m);
+  /* STAY ON THE ANSWER (owner, 20 Nov 2026): a place the answer named is a link under it, gone to on a press (jbGoPress) */
+  const go = (m && m.goTo) ? `<div class="ig-go-said jb-go-said"><button type="button" class="ui-link" data-jb-go="${String(m.goTo).replace(/[^\w-]/g, '')}">${(typeof window.i18t === 'function' ? window.i18t('jb_go_there') : 'Take me there ›').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</button></div>` : '';
+  return `<div class="jb-turn" data-jb-turn="${i}" data-jb-born="${born}" data-jb-host="${host}"${seen ? ' data-jb-seen' : ''}>${inner}${go}${read}</div>`;
+}
+/* true when this message has been drawn before; the first ask marks it */
+function jamboTurnSeen(m){
+  if (!m || typeof m !== 'object') return false;
+  const S = jamboTurnSeen._s || (jamboTurnSeen._s = (typeof WeakSet === 'function') ? new WeakSet() : null);
+  if (!S) return false;
+  if (S.has(m)) return true;
+  S.add(m); return false;
 }
 var JB_TURN_HOSTS = { ai: ['#ai-feed', '#jl-feed'], ig: ['#ig-dock [data-jb-turns]'], st: ['#st-jb-feed [data-st-jb-talk]'] };
 /* ONE PLACE AT A TIME: the host painting now keeps the turns; every other
@@ -1701,7 +1716,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain

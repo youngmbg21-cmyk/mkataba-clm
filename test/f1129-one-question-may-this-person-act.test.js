@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   f1128 — ONE QUESTION: MAY THIS PERSON ACT? (Round A of the owner's ground
+   f1129 — ONE QUESTION: MAY THIS PERSON ACT? (Round A of the owner's ground
    rules, 20 Nov 2026: "Approve, three rounds"; Viewer account-wide; the
    owner's alerts to the owner and admins; "Questions yes, work no")
 
@@ -40,7 +40,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '
 const constLine = (src, name) => { const m = src.match(new RegExp('^const ' + name + ' = [^\\n]*$', 'm')); return m ? m[0] : ''; };
 const run = (src, ctx) => { ctx.window = ctx; vm.createContext(ctx); vm.runInContext(src, ctx); return ctx; };
 
-describe('f1128 (1) the one question', () => {
+describe('f1129 (1) the one question', () => {
   test('1a mayActOn: a Viewer never, anyone else yes, nobody signed in and their page keep the old reading', () => {
     const i = CORE.indexOf('const mayActOn = ');
     const line = CORE.slice(i, CORE.indexOf('};', i) + 2) + '\nthis.mayActOn = mayActOn;';
@@ -60,7 +60,7 @@ describe('f1128 (1) the one question', () => {
   });
 });
 
-describe('f1128 (2) Jambo knows who is asking, in plain words', () => {
+describe('f1129 (2) Jambo knows who is asking, in plain words', () => {
   const src = [constLine(SRV, 'SRV_ROLE_PLAIN'), SRV.slice(SRV.indexOf('const SRV_ROLE_MAY = {'), SRV.indexOf('};', SRV.indexOf('const SRV_ROLE_MAY = {')) + 2),
     constLine(SRV, 'srvRolePlain'), fnBody(SRV, 'whoAsksSays')].join('\n');
   const ctx = run(src, {});
@@ -81,7 +81,7 @@ describe('f1128 (2) Jambo knows who is asking, in plain words', () => {
   });
 });
 
-describe('f1128 (4) Jambo offers a Viewer no act', () => {
+describe('f1129 (4) Jambo offers a Viewer no act', () => {
   test('4a no act chip, no door card that acts', () => {
     const ctx = run(constLine(CA, 'CA_ACT_CHIPS') + '\n' + fnBody(CA, 'caChipShut'), { mayActOn: () => false, negoMayStart: () => ({ ok: true }) });
     for (const k of ['redline', 'answer', 'sign', 'amend', 'share', 'fill', 'signer']) assert.equal(ctx.caChipShut({ id: 'MK-1' }, k), true, k);
@@ -99,7 +99,7 @@ describe('f1128 (4) Jambo offers a Viewer no act', () => {
   });
 });
 
-describe('f1128 (5) no work in a Viewer\'s mail', () => {
+describe('f1129 (5) no work in a Viewer\'s mail', () => {
   test('5a approval mail, approving, handover, signing turn, look ask, link reply, urgent alert', () => {
     assert.match(strip(fnBody(SRV, 'saMailTo')), /const may = reach\.filter\(srvMayAct\);/);
     assert.match(strip(fnBody(SRV, 'srvUserCanApprove')), /if \(!u \|\| !a \|\| !srvMayAct\(u\)\) return false;/);
@@ -112,7 +112,7 @@ describe('f1128 (5) no work in a Viewer\'s mail', () => {
   });
 });
 
-describe('f1128 (9) the owner\'s alerts', () => {
+describe('f1129 (9) the owner\'s alerts', () => {
   const src = 'const ND_NEWS = [];\n' + constLine(CN, 'ND_VIEWER_WORK') + '\n' + constLine(CN, 'ND_OWNER_WORK') + '\n'
     + CN.match(/^function ndIsNews\(a\)[^\n]*$/m)[0] + '\n' + fnBody(CN, 'ndAlertIsMine') + '\n' + fnBody(CN, 'ndAlerts');
   const BOOK = { 'MK-1': { id: 'MK-1', owner: { id: 'o1' } } };
@@ -127,7 +127,7 @@ describe('f1128 (9) the owner\'s alerts', () => {
   });
 });
 
-describe('f1128 (3)(6)(7)(8) on the server', () => {
+describe('f1129 (3)(6)(7)(8) on the server', () => {
   let h, W, viewer, mia;
   const mkViewer = async (name, email) => {
     const r = await W.admin.json('/api/users', { method: 'POST', body: { name, email, role: 'viewer', password: 'temporary-pass-1' } });

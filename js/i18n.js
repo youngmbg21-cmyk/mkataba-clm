@@ -15524,6 +15524,7 @@ const STRINGS = {
     rk_src_odd: 'Brief · unusual term',
     rk_src_mine: 'Marked by a person',
     ca_intro_job: 'Here is what I found. Each step is yours to press.',
+    jb_go_there: 'Take me there ›',
     /* JAMBO'S WORDS (the one-page Home plan, stage 1, 14 Oct 2026). Every
        ca_w_ word must be a word copilotacts.js reads (CA_PLACES); f672 pins it. */
     ca_w_redline: 'redline',
@@ -40791,6 +40792,7 @@ const STRINGS = {
     rk_src_odd: 'Sammanfattning · ovanligt villkor',
     rk_src_mine: 'Markerad av en person',
     ca_intro_job: 'Det här hittade jag. Varje steg är ditt att trycka på.',
+    jb_go_there: 'Ta mig dit ›',
     /* JAMBOS ORD (planen för en sida, steg 1, 14 okt 2026). Varje ca_w_-ord
        måste vara ett ord som copilotacts.js läser (CA_PLACES); f672 låser det. */
     ca_w_redline: 'förhandla',

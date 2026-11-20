@@ -13701,6 +13701,8 @@
   .jp-wlist .jp-row{margin-top:2px}
   #ai-suggest .jp-n{color:var(--color-neutral-600);font-weight:400}
   .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
+  /* a message drawn before does not arrive again (jamboTurnSeen): only the newest answer fades in */
+  .jb-turn[data-jb-seen] .ai-msg, .jb-turn[data-jb-seen].ai-msg{animation:none;}
   .typing span{display:inline-block;width:5px;height:5px;border-radius:var(--radius);background:var(--color-accent-400);margin-right:3px;animation:blink 1.2s infinite;}
   .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
   @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-2px);}}
