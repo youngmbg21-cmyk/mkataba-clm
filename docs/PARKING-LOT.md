@@ -272,6 +272,20 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** nothing pushed behind the side panel; money only as the list's Value column; red only for a contract ending very soon.
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — Ended & archived opens empty though its tile says 1; inside a folder the tabs and panel count every contract; "Stream Distribution" vs "Warehousing & Distribution" (two names for one folder); the Wall panel's "Overview 13" in a folder of 5; a signed contract owing details wears the green tick on Needs you.
 
+### P-32 · Requests page, the Legora + Stripe way, on all four tabs
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for Requests: the Legora + Stripe way on Open, Mine, Drafted and Advice. Owner's words: "L+S and park it."
+- **Where it came from:** the page clean-up, day 9. The drawings: https://claude.ai/artifact/9bvu98ikq9zuirYDDqqfKy (choose "The Legora + Stripe way" on each tab). All four tabs were photographed from the running app that day.
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** the title and Ask for a contract (black); one ask box under it ("Ask about requests: …"); chips Open (amber dot) · Mine · Drafted · Advice with their counts, + Asked by. The facts beside the title ("4 open · 3 need an editor") go (the chips and badges say it).
+  - **The table:** Request (title, the other side under it, and THE ASKER'S OWN WORDS on one line ending in "…") · Status (soft badge: amber Needs an editor, red "No one yet · N days" past `IKN_OLD_DAYS`, blue "With you"/"With <name>", green Drafted, violet "Advice · <stage>") · Steps (a small strip: asked → taken → drafted → sent; advice: submitted → scoping → in progress → delivered; done green, the one in play ringed in its colour) · Asked by (initials and first name; "You") · Paper that fits (Became <contract> on Drafted; About <contract> on Advice) · Waiting (red past a week).
+  - **NO BUTTONS ON THE ROWS** (as the owner asked on Approvals): Take it, Start the draft, Hand on, Open the contract, Open the request live once, in the side panel.
+  - **Gone:** the Stream column (it reads "—" on every row); the amber "!" on every row.
+  - **Side panel, NO cards:** status badge; title; the other side, who asked and when; the acts (Take it black + Start the draft; Start the draft black + Hand on when you hold it; Open the contract on Drafted; Open the request on Advice); Steps drawn larger with words under them; In their words (quoted); Read from the ask as plain label rows (Party · NDA, amber when none · Paper that fits / Became / About; Their paper when they sent their own terms) — drawn icons or none, never emoji; a timeline (who asked, who took it, how long it waited). Jambo's box and its links line at the foot.
+  - **Advice:** the row's title is the person's QUESTION, not the service name ("Contract Advice Session").
+  - **Rules it must keep:** nothing pushed behind the side panel; no money; red only past a week waiting.
+  - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — "With Amina" said to Amina (should be "with you"); a drafted request still says "no NDA · to do" and "Nobody holds it"; the Advice panel's run-together sentence and its "0 files" tile.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
