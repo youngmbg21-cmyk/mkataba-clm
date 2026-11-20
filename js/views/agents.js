@@ -185,6 +185,8 @@ function agRoundItems(cs){
   const nowIso = new Date().toISOString();
   for (const c of cs){
     if (!c || !Array.isArray(c.changes) || !c.changes.length) continue;
+    /* handed only to a reader who may answer them (negoMayAnswer): a Viewer is told, not asked */
+    if (typeof window.negoMayAnswer === 'function' && !window.negoMayAnswer(c)) continue;
     let ids = [];
     try { ids = negoNeedsYouIds(c) || []; } catch (_){ ids = []; }
     if (!ids.length) continue;
@@ -616,6 +618,7 @@ function agQuietItems(cs){
   const out = [];
   for (const c of cs){
     if (!c || (typeof negoExecuted === 'function' && negoExecuted(c))) continue;
+    if (typeof window.negoMayAnswer === 'function' && !window.negoMayAnswer(c)) continue;
     let worst = null;
     const look = (list, ch) => {
       const L = (Array.isArray(list) ? list : []).filter(m => m && m.at).slice().sort((a, b) => String(a.at).localeCompare(String(b.at)));
