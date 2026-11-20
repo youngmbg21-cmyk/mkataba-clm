@@ -608,6 +608,10 @@ let _ndMemo = null;
 let _nd = { tab: 'all', kind: 'any', q: '', more: 0 };
 
 function ndPieces(){
+  /* WORK GOES ONLY TO WHO CAN DO IT (negoMayAnswer's rule): every piece Jambo prepares asks for an act, and a
+     company Viewer may do none — they hear what moved under the bell's News */
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  if (me && me.role === 'viewer') return [];
   let D = null; try { D = (typeof agentsData === 'function') ? agentsData() : null; } catch (_){ D = null; }
   if (!D || !D.agents) return [];
   const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
@@ -626,7 +630,7 @@ function ndPieces(){
    or the piece Jambo prepared for it, ND_AL_PIECES), and the rest joins the
    one desk as a row of its own ('al'), so nothing the bell rang about is lost
    now that it counts what Home counts. */
-const ND_NEWS = ['review-out', 'ap-cleared', 'dep-allowed', 'std-approved', 'std-refused', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self'];
+const ND_NEWS = ['review-out', 'ap-cleared', 'dep-allowed', 'std-approved', 'std-refused', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self', 'nego-news'];
 const ND_AL_ROWS = { 'review-mine': ['review'], suggest: ['suggest'], look: ['look'], details: ['details'], 'note-mine': ['note'], approval: ['approval', 'refused'], 'ap-refused': ['refused'], 'desk-quiet': ['quiet'], 'desk-join': ['join'], negotiation: ['quiet'], renewal: ['renewal'], signature: ['sign'] };
 const ND_AL_PIECES = { negotiation: ['answer'], 'desk-quiet': ['answer'], renewal: ['renewal', 'notice'], details: ['read'] };
 /* the admin's own list (stNeedsAll) already holds these: the setup or company row stands for them, last of

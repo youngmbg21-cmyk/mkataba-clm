@@ -8746,6 +8746,21 @@ function negoNeedsYouIds(c, opts = {}){
     && x.authorSide !== side && !wall.has(x.id)
     && (!mine || mine.has(String(x.id)))).map(x => x.id);
 }
+/* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026: "shouldnt the updates only go to people who can change the
+   contract?" — a Viewer was handed "1 change is waiting on your answer" and Jambo's drafted answer with Accept,
+   Counter and Change the suggestion on the Board's Needs you). May this reader answer the other side's asks here?
+   A company Viewer never (the server refuses their writes); where the desk rule seats a negotiation, only a seat that
+   may redline (a Reader may not), and every admin, who can take the lead. Nobody signed in and their own page keep
+   the old reading. It decides who is HANDED the work (Needs you, the bell, Jambo's prepared answers); it never moves
+   negoNeedsYouIds, so "whose move" stays true for everyone — a Viewer still hears it, as news. */
+function negoMayAnswer(c, u){
+  if (typeof window !== 'undefined' && window.PORTAL_MODE) return true;
+  const me = u || ((typeof currentUser === 'function') ? currentUser() : null);
+  if (!me) return true;
+  if (me.role === 'viewer') return false;
+  if (me.role === 'admin') return true;
+  try { return !(typeof window.deskMayRedline === 'function' && c && !window.deskMayRedline(c, me)); } catch (_){ return true; }
+}
 /* ============================================================
    WHAT CAME BACK, IN ONE SENTENCE (owner-approved 13 Sep 2026, build plan 2.2)
    ============================================================
@@ -23269,7 +23284,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      so a top-level function in one is invisible to the next; see the note below
      about rlPaperFootHtml, which was declared, called, and silently absent for a
      year because nobody put it here. */
-  negoNeedsYouIds, negoNeedsYouTotal, negoRoundRead, negoRoundLine, negoIsLive, negoLiveList,
+  negoNeedsYouIds, negoMayAnswer, negoNeedsYouTotal, negoRoundRead, negoRoundLine, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations, rlPlace, rlPlacePut,
   renderNegotiationsList, negoListHeadHtml, negWhoseMove,NEGO_MEMO_MAX,NEGO_MEMO_SECTIONS,negoMemo,negoMemoHtml,negoMemoText,negoMemoWording,negoMemoRichHtml,MEMO_DOC,openNegoMemo,negoMemoRecipients,openNegoMemoShare,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----

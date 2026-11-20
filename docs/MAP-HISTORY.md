@@ -39510,3 +39510,45 @@ COVER FIRST: opened ON PURPOSE (`pdOpenOnHome(id,'open')`, `roomHomeLand(id,{cov
 A4 SHEET FITS ANY SCREEN: words in `cqh`, `clamp` type; green Contracts door (`data-cv-go="contracts"` → `setView('register')`). f1090.
 COVER IS A PAGE: drawn FIRST over the origin (`pdCoverGo`, `pdCoverShow`), paper under it (`_cvHold`); ‹/Esc back (`_pdMid.from`, `deskCoverUp`); going in waits for the job (`pdCoverLeave`). ANY MIDDLE PAGE's way back = origin (`pdArriveNote` in `pdOpenOnHome`, `pdMidFrom` → `deskGoBack`); veil meanwhile (`pdMidArriving`). f1099.
 NO PAGE FLASHES: Cover closes and goes in ONE turn; Cover asked AT ONCE, bounded veil (`pdCoverVeil`, `CV_LAND_MS`). f1096. PAGE ARRIVES WHOLE: `[data-dlg-page]` never fades (`.modal-in[data-dlg-page]{animation:none}`); no-page-flashes-verify: first layer ≥90% solid.
+## THE SHELL — RAIL, BAR, PANELS — THE LAUNCHPAD, THE STRIPE WAY (owner, 20 Nov 2026)
+The owner had asked to see stripe.com ("It is beautiful and well designed"), then, over a photo of the launchpad: "design the nav
+panel the stripe way". ONE drawing was shown (their instruction named the option; no SAP or Legora option was drawn), modelled on
+the menu that drops from Stripe's "Products": plain column heads with a thin line, each entry's name in the link colour over one
+grey line saying what it is, one tinted column at the right. The owner: "Build the nav panel as drawn but it shoud be at the
+center of the screen" — so the drawing's one departure (dropping from the black bar) was NOT built; it stays centred (19 Nov ruling).
+BUILT (js/app.js, index.html "THE LAUNCHPAD, THE STRIPE WAY"): the sheet is 1264 wide, a grid; every page row is its name
+(`--accent-ink`), its count, and the Guide's own line under it (`gd_w_*`, both books, no new words); the page symbols (lpMark,
+lpIcon, LP_ICON) and the stage colours (lpToneOf, `.lp-dot`, the tinted cards) are GONE, as the drawing's "needs your yes" list
+said; what waits stands in ONE tinted column (`#lp-side`, `lpSideHtml`, shown by `lpSideOn`: under All, while something waits) as
+plain rows with the same number, quote and button (the chosen row's button fills black, as before); the "N more pages wait"
+sentence moved to that column's foot (`lpMoreSay`) and lost "below" / "nedan" in both books; under the Waiting chip the rows take
+the list's place and the sentence stays in the foot; the ask line is two tones (`lpWhereHtml`, an overlay over the box, hidden
+once anything is typed; the placeholder itself is transparent). The foot is white (it was the ground's grey).
+MEASURED at the three screens with the handbook's sample company: the sheet is 645 tall, centred, the list does not scroll,
+nothing spills, the column's head is level with the stages' heads (0px) at 1440x780, 1536x730 and 1366x950. FOUND ON THE WAY:
+with the chips hidden while typing, the grid's rows shifted and the foot floated mid-sheet — every part now names its own row.
+NOT BUILT / LEFT: the typed jump list is as it was (now in the wider sheet). Handbook 1.2 rewritten in both books; its pictures
+wait for the batch. Red at the parent: f1097 (6), and (1)–(3) which load the new builders by name.
+
+## THE SHELL — RAIL, BAR, PANELS — AN EMOJI MARKS EVERY PAGE, ONE NAME FOR ONE STAGE (owner, 21 Nov 2026)
+The owner, over a photo of the merged launchpad with the chip "Deal" and the column head "Negotiate · sign" boxed in red: "the
+names differ in the highlighted areas when they are supposed to be one and the same. Also, draw the panel again but assign an
+emoji to each. use the emoji reference book in claude md and if nothing there use the previous nav panel as a refernce. Draw for
+now". ONE drawing was shown (the proposal placed on the live page in the browser, photographed), with a table of where each
+emoji came from. The owner: "build it, use Negotiate · sign".
+BUILT: LP_EMOJI (js/app.js) — Settings' book (SDD_EMOJI) where it has the meaning: requests 💬 (questions), import 📦 (imports),
+ourpaper 📋 (sheet), standards ⚖️ (rules), approvals ✅, document ✏️ (desk), parties 🏢 (company), people 👥, mynotes 📌 (facts),
+board 📊 (workshape), explorer 🧭 (navigate), house ✨ (agents), flowmap 🛤️ (lanes), handbook 📖 (boardwords), settings ⚙️ (engine);
+else the old panel's symbol as an emoji: contracts 📄, draft 📝, negotiations 🔁, oblig 📃, calendar 📅, reads 🔍, pulse 📈. The
+emoji stands in its own gutter left of the name (aria-hidden), the line under the name starting where the name starts, and
+beside the page's name in the waiting column. This PARTLY REVERSES the 20 Nov pick's "no page symbols" (said to the owner in
+the drawing); stage colours stay gone. The chip for the deal stage reads the stage's own head (gdn_s_negsign); lp_chip_deal is
+retired from the code and both books (reverses f1097 (2)'s "the stage chip says Deal").
+THE DRAWING'S COST, MET: with the emoji the drawing stood 710 tall and scrolled 12px at 1536x730. Built, the sheet is 1300
+wide (it was 1264) with tighter rows: 650 tall, centred, no scroll, nothing spills, heads level at all three screens.
+NOT DONE: the six chips and the four column heads carry no emoji (asked in the drawing; the owner did not ask for them).
+## THE ONE DESK — NEEDS YOU, ONE READING · WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026)
+The owner signed in with a second email that had limited access and found, on a contract where they were "only a viewer", a row in the Board's Needs you: the other side's changes waiting on their answer, with Jambo's drafted answer and the buttons Accept, Counter with this and "Change the suggestion". Asked what was wrong, then: "does this mean i only get needs you if i can actually impact a contract? shouldnt the updates only go to people who can change the contract?" — then "yes, make that change".
+Cause: `negoNeedsYouIds` asks only which side wrote a change and which clauses a reviewer was handed — never who the reader is. Every Needs you source that rides it (Jambo's round piece `agRoundItems`, the bell's 'negotiation' row) handed the work to anyone on our side. The server already refused a company Viewer's write (`editor` on POST /api/agents/:k/sendback), so nothing was harmed for a Viewer — but a desk Reader whose company role is an editor's had no such wall on that route.
+Built: `negoMayAnswer(c, u)` beside `negoNeedsYouIds` (not inside it: "whose move" — `negWhoseMove`, the Negotiations page's Your move, the round line — must stay true for everyone, and a Viewer reading "waiting on them" would be false). It gates `agRoundItems`, `agQuietItems` and the checklist's quiet row; `ndPieces` prepares a company Viewer nothing (every Jambo piece asks for an act); the bell says it as news (`nego-news`, grey, "The other side sent N changes", in `ND_NEWS`, never counted). Handbook 0.3 gained one "when" line (first wording pulled four exam questions to 0.3 — "other side", "changes" — reworded).
+Left alone, said to the owner: the Negotiations page's Your move count and the contract's "N waiting" on the round line still count for a Viewer (they describe the deal, they hand nothing); the Redlines face still draws Accept/Counter to a Viewer (BUGLOG).
