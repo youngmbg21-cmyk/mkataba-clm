@@ -58,11 +58,20 @@ const isShut = () => !document.getElementById('cmd-palette');
       const tiles = [...pal.querySelectorAll('.lp-w')].map(t => ({ n: Number((t.querySelector('.lp-n b') || {}).textContent || 0), act: !!t.querySelector('.lp-act'), q: !!t.querySelector('q'), text: t.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) }));
       const first = rows[0], r = first && first.getBoundingClientRect(), hit = r && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return { chips: pal.querySelectorAll('.lp-chip').length, rows: rows.length, guide: guide.length, owed: lpWaits().length, tiles,
-        here: [...pal.querySelectorAll('[aria-current="page"]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), painted: !!(hit && first.contains(hit)) };
+        here: [...pal.querySelectorAll('[aria-current="page"]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), painted: !!(hit && first.contains(hit)),
+        /* THE STRIPE WAY (owner, 20 Nov 2026): a line under every page, no symbols, what waits in ONE column at the right */
+        lines: rows.filter(b => { const x = b.querySelector('.lp-wh'); return x && x.textContent.trim().length > 8 && x.getBoundingClientRect().height > 0; }).length,
+        marks: pal.querySelectorAll('.lp-list svg, .lp-side svg, .lp-dot, .lp-ic').length,
+        side: (() => { const sd = document.getElementById('lp-side'), ls = document.getElementById('cp-list'); if (!sd || sd.hidden) return null; const a = sd.getBoundingClientRect(), b = ls.getBoundingClientRect(), sh = pal.querySelector('.lp-sheet').getBoundingClientRect();
+          const h1 = sd.querySelector('.lp-h').getBoundingClientRect(), h2 = ls.querySelector('.lp-st h5').getBoundingClientRect();
+          return { right: a.left >= b.right - 1, top: Math.round(a.top - sh.top), tiles: sd.querySelectorAll('.lp-w').length, inList: ls.querySelectorAll('.lp-w').length, more: !!sd.querySelector('.lp-more'), level: Math.round(Math.abs(h1.bottom - h2.bottom)), two: !!pal.querySelector('#lp-ph b') }; })() };
     });
     check(drawn.chips === 6, '2a six chips: All · Waiting on you · Arrive · Deal · Live · Book', drawn.chips);
     check(drawn.rows === drawn.guide, '2b every Guide page once in the quiet list', { rows: drawn.rows, guide: drawn.guide });
-    check(drawn.tiles.length === Math.min(3, drawn.owed) && drawn.tiles.every(t => t.n > 0 && t.act), '2c what waits on you on top: at most three, a large number and its button each', drawn.tiles);
+    check(drawn.tiles.length === Math.min(3, drawn.owed) && drawn.tiles.every(t => t.n > 0 && t.act), '2c what waits on you: at most three, a large number and its button each', drawn.tiles);
+    check(drawn.lines === drawn.rows && drawn.marks === 0, '2f every page says what is behind it in a line; no page symbols, no stage dots', { lines: drawn.lines, rows: drawn.rows, marks: drawn.marks });
+    check(!drawn.owed || (!!drawn.side && drawn.side.right && drawn.side.top <= 2 && drawn.side.tiles === drawn.tiles.length && drawn.side.inList === 0 && drawn.side.more && drawn.side.level <= 2 && drawn.side.two),
+      '2g what waits stands in ONE column at the right, from the window\'s top, its head level with the stages\' heads; the ask line in two tones', drawn.side);
     check(drawn.here.length === 1, '2d the page you stand on is said once', drawn.here);
     check(drawn.painted, '2e the rows are painted, not only present (elementFromPoint)');
     await P.screenshot({ path: path.join(OUT, 'open-1440x780.png') });
