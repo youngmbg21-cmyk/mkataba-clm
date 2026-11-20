@@ -1,4 +1,4 @@
-/* f1125 · DISCOVER IS READY BEFORE IT IS OPENED (owner, 20 Nov 2026: "discover is still slow to loading" — "blank page
+/* f1127 · DISCOVER IS READY BEFORE IT IS OPENED (owner, 20 Nov 2026: "discover is still slow to loading" — "blank page
    first then the columns fill in then the found column fills in last", 2–5 seconds on the live site, after f1124).
    Each wait was a trip to the server taken only once the page was opened: the reads (held up by the Contracts panel's
    own summary, then its packs, one after the other), then the answers once the list was drawn. Measured with 400 ms a
@@ -22,7 +22,7 @@ const RD = strip(read('js/views/reads.js')), CORE = strip(read('js/core.js'));
 const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?function ' + name + '\\(')); assert.ok(at >= 0, name + ' exists');
   const nx = src.slice(at + 10).search(/\n(?:async )?function |\n(?:const|let) [A-Za-z_$]/); return src.slice(at, nx < 0 ? undefined : at + 10 + nx); };
 
-test('f1125 (1) Discover is fetched quietly once a sitting, before it is opened', () => {
+test('f1127 (1) Discover is fetched quietly once a sitting, before it is opened', () => {
   const W = fnBody(RD, 'dsnWarm');
   assert.match(W, /if \(_dsnWarmed\) return;/, 'once a sitting');
   assert.match(W, /max-width: 767px/, 'not on a phone');
@@ -33,7 +33,7 @@ test('f1125 (1) Discover is fetched quietly once a sitting, before it is opened'
   assert.match(read('js/views/reads.js'), /Object\.assign\(window, \{[^}]*\bdsnWarm\b/, 'published');
 });
 
-test('f1125 (2) the list waits only for what it draws; the answers are asked for as soon as the reads are known', () => {
+test('f1127 (2) the list waits only for what it draws; the answers are asked for as soon as the reads are known', () => {
   const L = fnBody(RD, 'rdLoad');
   assert.match(L, /await Promise\.all\(\[api\('columns\/summary\?all=1'\), typeof askColReads === 'function' \? askColReads\(true\) : null\]\)/, 'the reads and their counts, together');
   assert.doesNotMatch(L, /Promise\.all\(\[[^\]]*askColSummary/, 'the Contracts panel\'s summary is never waited for');
@@ -43,7 +43,7 @@ test('f1125 (2) the list waits only for what it draws; the answers are asked for
   assert.match(A, /forEach\(k => rdnAnswers\(k\)\)/, 'every read\'s questions, through the one gathering load');
 });
 
-test('f1125 (3) before the reads come back, the list says it is loading', () => {
+test('f1127 (3) before the reads come back, the list says it is loading', () => {
   const D = fnBody(RD, 'dsnListHtml');
   assert.match(D, /const loading = !\(typeof AC !== 'undefined' && AC\.reads\);/);
   assert.match(D, /busyHtml\(_rdT\('loading'\)\)/, 'something moves, in the book\'s own word');
