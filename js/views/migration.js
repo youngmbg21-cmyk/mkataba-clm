@@ -2035,7 +2035,7 @@ function migFormRowHtml(c, r, n, o){
   } else if (r.ro){
     ctl = `<span class="mig-ff-ro" id="${id}">${esc(r.val) || '—'}</span>`;
   } else {
-    ctl = `<input id="${id}" class="mig-ff-in${r.need && !r.val ? ' need-empty' : ''}" type="text" autocomplete="off" data-mig-f="${r.k}" value="${esc(r.val)}" data-was="${esc(r.val)}"${r.iso ? ` data-iso="${esc(r.iso)}"` : ''}${r.k === 'value' ? ` data-num="${r.num}"` : ''}${r.need ? ` placeholder="${esc(r.word)}"` : ''}>`;
+    ctl = `<input id="${id}" class="mig-ff-in${r.need && !r.val ? ' need-empty' : ''}" type="text" autocomplete="off" data-mig-f="${r.k}" value="${esc(r.val)}" data-was="${esc(r.val)}"${r.iso ? ` data-iso="${esc(r.iso)}"` : ''}${r.k === 'value' ? ` data-num="${r.num}"` : ''}${r.need ? ` placeholder=" " title="${esc(r.word)}" aria-description="${esc(r.word)}"` : ''}>`;
   }
   const why = r.need
     ? `<div class="mig-ff-why">${r.val ? `<span>${esc(r.word)}</span>` : ''}${r.quote ? `<span>${r.where ? esc(r.where) + ': ' : ''}“${esc(r.quote.slice(0, 180))}”</span>` : ''}</div>`
@@ -2853,6 +2853,11 @@ function renderMigration(o){
       .mig-ff-in:focus{border-color:var(--accent-ink);outline:none;box-shadow:0 0 0 3px var(--color-accent-100)}
       .mig-ff.is-need .mig-ff-in{background:var(--need-bg,var(--st-amber-bg));border-color:var(--st-amber-line)}
       .mig-ff-in::placeholder{color:var(--st-amber-fg)}
+      /* AN OWED, EMPTY BOX IS SHADED, NOT WORDED (owner, 20 Nov 2026: "instead of words, keep the fields empty but
+         shade the field with the amberish color"; "shaded area should not be round in the ends"): the box carries no words (they are its hover and its spoken
+         description), only the amber shade, SQUARE as every open field is, through the open field's own fill token; the shade goes as soon as
+         something is typed */
+      .mig-ff-in.need-empty:placeholder-shown{--fld-bg:var(--st-amber-bg)}
       .mig-ff-ro{font-size:var(--t-body);padding-top:7px;color:var(--color-text)}
       .mig-ff-why{display:flex;flex-direction:column;gap:2px;font-size:var(--t-label);line-height:1.45;color:var(--st-amber-fg)}
       .mig-ff-sub{font-size:var(--t-label);color:var(--color-neutral-600)}
@@ -2912,7 +2917,7 @@ function renderMigration(o){
       .mig-ck-body .mig-ff:has(.mig-ff-in.need-empty:placeholder-shown) .mig-ff-l{color:var(--st-amber-fg);font-weight:var(--w-label)}
       .mig-ck-body .mig-ff-in{height:auto;min-height:22px;padding:0;font-size:15px;line-height:22px}
       .mig-ck-body .mig-ff.is-need .mig-ff-in{background:none}
-      .mig-ck-body .mig-ff-in.need-empty::placeholder{font-weight:var(--w-label)}
+      .mig-ck-body .mig-ff-in.need-empty{padding:4px 8px;margin-left:-8px;width:calc(100% + 8px)}
       .mig-ck-body .mig-ff-ro{font-size:15px;line-height:22px;padding-top:0}
       .mig-ck-body .mig-ff-use{border:0;background:none;padding:0;border-radius:0;font-size:var(--t-body);text-decoration:underline;text-underline-offset:3px;margin-top:4px}
       .mig-ck-body .mig-ff-use:hover{background:none;color:var(--color-text)}

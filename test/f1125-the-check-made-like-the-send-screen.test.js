@@ -4,7 +4,7 @@
    (1) the entry stands FIRST: what it will be filed as, then the file on one sheet with File and Read on top
    (2) Skip for now and File it stand in the page's head; New batch is a link in the check's bar
    (3) File it in the head still files the check's own form, and is greyed and lit as the boxes change
-   (4) an owed, empty box wears the open field's own owed hint (.need-empty): amber words, no box; the row draws the
+   (4) an owed, empty box (.need-empty) is shaded amber and carries no words (owner, 20 Nov 2026); the row draws the
        ONE line, so the field's own is switched off
    (5) Jambo's panel: a mark and one headline that counts what is owed, a card per missing fact, one for what he was
        not sure of, what is next, the small print — every sentence migWhyHtml's own, each kept with its fact
@@ -45,6 +45,10 @@ test('f1125 (3) the head\'s File it files the check\'s form and follows the boxe
 test('f1125 (4) an owed empty box: amber words, no box, one line under the row', () => {
   assert.match(fn('migFormRowHtml'), /class="mig-ff-in\$\{r\.need && !r\.val \? ' need-empty' : ''\}"/);
   assert.match(MIG, /\.mig-ck-body \.mig-ff\{--fld-under:var\(--fld-under-none\);/);
+  /* RE-POINTED 20 Nov 2026 (owner: "instead of words, keep the fields empty but shade the field with the amberish color") */
+  assert.match(fn('migFormRowHtml'), /r\.need \? ` placeholder=" " title="\$\{esc\(r\.word\)\}" aria-description=/, 'no words in the box; they are its hover and its description');
+  /* RE-POINTED 20 Nov 2026 (owner: "shaded area should not be round in the ends"): the shade is square, as every open field is */
+  assert.match(MIG, /\.mig-ff-in\.need-empty:placeholder-shown\{--fld-bg:var\(--st-amber-bg\)\}/, 'the empty owed box is shaded amber, with square ends');
   assert.match(MIG, /\.mig-ck-body \.mig-ff:has\(\.mig-ff-in\.need-empty:placeholder-shown\) \.mig-ff-l\{color:var\(--st-amber-fg\)/);
   assert.match(MIG, /\.mig-ck\{display:grid;grid-template-columns:minmax\(340px,4fr\) minmax\(0,6fr\)/);
 });
