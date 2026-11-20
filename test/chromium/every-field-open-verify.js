@@ -23,8 +23,6 @@ const check = (ok, what, detail) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + w
 const until = async (P, fn, arg, ms = 10000) => { try { await P.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
 
 const PLACES = [
-  /* FIRST (20 Nov 2026): the Send screen is measured before any step opens Settings' drawer (Your account, Company and
-     market) — opened after one, it shut by itself (BUGLOG 20 Nov 2026), which is not this check's claim. */
   ['send screen', () => {
     /* a trail of what moves the page while the Send screen opens (a red run names WHO closed it) */
     window.__sendTrail = [];
@@ -32,13 +30,16 @@ const PLACES = [
     if (!window.__sendTrailOn){ window.__sendTrailOn = true;
       for (const k of ['setView', 'closeModal', 'roomHomeLand', 'pdSendOpen', 'pdOpenOnHome']){ const f = window[k]; if (typeof f !== 'function') continue;
         window[k] = function (...a){ if (window.__sendTrail) window.__sendTrail.push(k + '(' + (typeof a[0] === 'string' ? a[0] : '') + ') ' + at()); return f.apply(this, a); }; } }
-    /* RE-POINTED 20 Nov 2026: Send is pressed from a contract's paper (its line's Send, #ws-share), so the step starts
-       there, with the paper and Jambo's panel standing, as a person does. Opened straight over Settings' docked drawer
-       (the step before) the screen landed on the paper and then shut — logged in BUGLOG, not this check's claim. */
+    /* RE-POINTED 20 Nov 2026: Send is pressed from a contract's paper (its line's Send, #ws-share), so the step lands
+       there and presses that button once the paper has settled, as a person does. Called the instant the paper appeared,
+       the screen opened beside Jambo and then shut — logged in BUGLOG, not this check's claim. */
     const c = state.contracts.find(x => /draft|review/i.test(x.status)) || state.contracts[0];
     if (typeof roomHomeLand === 'function') roomHomeLand(c.id);
     return new Promise(res => { let n = 0; const go = () => { const dock = document.getElementById('ig-dock');
-      if ((state.view === 'dashboard' && dock && dock.getClientRects().length) || ++n > 60){ openShareModal(c); res(); } else setTimeout(go, 100); }; go(); }); }, () => !!document.querySelector('.sh-lt-who input')],
+      /* the paper's own Send (#ws-share), pressed once the paper has settled — as a person presses it */
+      const btn = document.getElementById('ws-share');
+      if ((state.view === 'dashboard' && dock && dock.getClientRects().length && btn && btn.getClientRects().length) || ++n > 80){
+        setTimeout(() => { const b = document.getElementById('ws-share'); if (b) b.click(); else openShareModal(c); res(); }, 800); } else setTimeout(go, 100); }; go(); }); }, () => !!document.querySelector('.sh-lt-who input')],
   ['new agreement', () => openNewAgreement({}), () => !!document.querySelector('#na-root'),
     () => { const b = document.querySelector('.na-ask textarea, .na-ask input'); if (!b) return; b.value = 'Two-year equipment lease of a filling line with Foretag AB'; b.dispatchEvent(new Event('input', { bubbles: true })); b.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); },
     () => !!document.querySelector('.na-kt-grid .na-kt-r')],
