@@ -226,6 +226,18 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** nothing pushed behind the side panel; red only for overdue; the note never leaves its owner (no contract, share or history).
   - **Check before building:** the note's own words are missing from today's page altogether (BUGLOG, 20 Nov 2026), so this build also fixes that; the timeline needs the day the bell first rang for a note (kept, or worked out from its review day).
 
+### P-28 · Negotiations page, the Legora + Stripe way, on all four tabs
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for Negotiations: the Legora + Stripe way on Live, Your move, Their move and Settled. Owner's words: "L+S and park it."
+- **Where it came from:** the page clean-up, day 6. The drawings: https://claude.ai/artifact/GEMo2rvCnuDANM7s35bWFf (choose "The Legora + Stripe way" on each tab). Live and Your move were drawn on photos of the page that day; Their move and Settled could not be photographed from the sample workspace (no live share link), so they were drawn on the Live photo with two deals marked "sample".
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** the title and Start a negotiation; one ask box under it ("Ask about your deals: …"); chips Live · Your move (amber dot) · Their move · Settled with their counts, + Lead. NO figure cards; the heading's "3 live · 3 your move" goes (the chips say it).
+  - **The table:** Agreement (name, other side and reference under it, and the paper's words of its first open ask with § on one line ending in "…"; our own unsent change marked "yours, not sent") · Whose move (soft badge: amber Your move, blue Their move, green Settled) · Rounds (a small strip, one mark per round: green ours, blue theirs, the round in play ringed amber) · Open asks (their asks only, right-aligned) · Lead (initials and name) · Waiting (how long) · the act (Answer · Send · Remind · Before you sign) on the row you are on.
+  - **Gone:** the amber "!" on every row; the money in the rows and in the panel.
+  - **Side panel, NO cards and NO money:** whose-move badge; name, other side, reference; Round, Open asks and the rounds strip; the act (black) and Open the redlines; their asks (or what is still open) in the paper's words with §; a timeline (who sent which round and when; for Their move, the day they opened the link). Jambo's box and its links line at the foot.
+  - **Rules it must keep:** nothing pushed behind the side panel; no money anywhere on the page; red only if a deal goes late.
+  - **Check before building:** the faults logged on 20 Nov 2026 (a zero said as work: "your 0 answers are ready to send"; our own unsent change shown as their ask) are fixed in the same build, since the drawing's rows depend on telling ours from theirs; the timeline needs the day the other side opened the link (kept on the share).
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
