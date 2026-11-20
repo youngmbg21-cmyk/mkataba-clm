@@ -75,12 +75,18 @@ async function stage(){
 /* Every dialog in the feature, and how to open it. A new one added without a
    head fails the sweep below rather than shipping bland. */
 const DIALOGS = [
-  ['the desk sheet',          (w, c) => w.openDeskSheet(c)],
   ['the review ask',          (w, c) => w.openReviewAskModal(c)],
   ['the entry chooser',       (w, c) => w.openReviewEntryChooser(c)],
+  ['the reviewer note',       (w, c, ch) => w.openReviewNoteModal(c, ch.id)],
+];
+/* RE-POINTED 19 Nov 2026 (f1116, "Fix all batches": every edit pop-up on the one Legora sheet): the desk's three
+   dialogs left the tinted head for the one edit pop-up — a serif title, quiet lines, one black button, the closing
+   act last. The claim this sweep makes — every dialog has a real head and a shelf of acts, no hand-rolled heading —
+   is asserted on that sheet's own parts. */
+const DESK_DIALOGS = [
+  ['the desk sheet',          (w, c) => w.openDeskSheet(c)],
   ['the hand-over',           (w, c) => w.openDeskHandover(c)],
   ['the join request',        (w, c) => w.openDeskJoinAsk(c)],
-  ['the reviewer note',       (w, c, ch) => w.openReviewNoteModal(c, ch.id)],
 ];
 
 describe('f175 · every dialog in the feature wears the same head', () => {
@@ -102,24 +108,41 @@ describe('f175 · every dialog in the feature wears the same head', () => {
     });
   }
 
-  test('the head is built ONCE and desk.js calls it', () => {
+  for (const [name, open] of DESK_DIALOGS){
+    test(name + ' is the one edit pop-up: a title, quiet lines, a shelf of acts', async () => {
+      const p = await stage();
+      p.win.deskOpenFromChip(p.c);
+      open(p.win, p.c, p.mine);
+      const m = p.modal();
+      const title = m.querySelector('form.lgp .lgp-hd .lgp-h');
+      assert.ok(title && title.textContent.trim(), 'the sheet\'s title');
+      assert.ok(m.querySelector('form.lgp .lgp-bd'), 'the body is its own block');
+      assert.ok(m.querySelector('form.lgp .lgp-ft .lgp-go'), 'and the one black act sits on the shelf');
+      assert.equal(m.querySelector('.rvd-head'), null, 'no old tinted head beside it');
+      assert.equal(m.querySelector('h2[style*="font-heading"]'), null,
+        'no dialog keeps a hand-rolled heading of its own');
+    });
+  }
+
+  test('the head is built ONCE: review.js owns its builder, the desk draws the one edit pop-up', () => {
     const rv = fs.readFileSync(path.join(__dirname, '..', 'js', 'review.js'), 'utf8');
     const dk = fs.readFileSync(path.join(__dirname, '..', 'js', 'desk.js'), 'utf8');
     assert.match(rv, /function reviewDialogHeadHtml\(/, 'review.js owns the builder');
     assert.match(rv, /reviewDialogHeadHtml,/, 'and exports it');
-    assert.match(dk, /window\.reviewDialogHeadHtml/,
-      'desk.js borrows it rather than writing a second one');
-    /* AND FALLS BACK. The desk must not need the review loaded to draw. */
-    assert.match(dk, /if \(typeof window !== 'undefined' && window\.reviewDialogHeadHtml\)/,
-      'guarded, because a stage without js/review.js still opens the desk');
+    /* RE-POINTED 19 Nov 2026 (f1116): the desk no longer borrows the tinted head; it draws the shared sheet, so it
+       still writes no head of its own. */
+    assert.match(dk, /lgpHtml\(\{ id: 'dk-sheet'/, 'the desk sheet is the shared sheet');
+    assert.doesNotMatch(dk, /<h2/, 'and desk.js writes no heading of its own');
   });
 
   test('the desk sheet marks its lead as the subject, not one of a list', async () => {
     const p = await stage();
     p.win.deskOpenFromChip(p.c);
     p.win.openDeskSheet(p.c);
-    assert.ok(p.modal().querySelector('.dk-row-lead'), 'the lead row is tinted');
-    assert.ok(p.modal().querySelector('.rvd-note'),
+    /* RE-POINTED 19 Nov 2026 (f1116): no tinted box on the one sheet — the lead is the first line, its face ringed */
+    const first = p.modal().querySelector('.lgp-bd .dk-line');
+    assert.ok(first && first.querySelector('.dk-face-lead'), 'the lead is the first line, its face marked');
+    assert.ok(p.modal().querySelector('.dk-cp-knows'),
       'and what the counterparty is told reads as a fact, not a footnote');
   });
 
@@ -127,7 +150,7 @@ describe('f175 · every dialog in the feature wears the same head', () => {
     /* THE `ui-input` LESSON. A class the application does not define renders
        as nothing at all, and looks exactly like a class that does. */
     for (const cls of ['rvd-head', 'rvd-ico', 'rvd-title', 'rvd-sub', 'rvd-body',
-      'rvd-foot', 'rvd-note', 'rvd-opt', 'dk-row-lead']){
+      'rvd-foot', 'rvd-note', 'rvd-opt', 'dk-face-lead', 'lgp-small']){
       assert.ok(new RegExp('\\.' + cls + '[{,: ]').test(INDEX),
         cls + ' must be defined in index.html, or it dresses nothing');
     }

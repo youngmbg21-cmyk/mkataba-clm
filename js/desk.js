@@ -1161,32 +1161,36 @@ function deskOpenFromChip(c){
    room and takes no permanent space at all, which is the fourth of the seven
    density rules this feature was designed to.
 
-   RV_FLD / RV_LBL rather than a class: js/review.js explains why in its own
-   words — `class="ui-input"` is not a class this application defines anywhere,
-   and every field that used it rendered as stray text. Quoted from there
-   deliberately, so the two dialogs cannot drift apart in appearance. */
-const DK_FLD = (typeof window !== 'undefined' && window.RV_FLD) || '';
-const DK_LBL = (typeof window !== 'undefined' && window.RV_LBL) || '';
-/* And the head, for the same reason and from the same place: eight dialogs
-   across the two files, dressed once. Falls back to a bare heading on a stage
-   that has not loaded js/review.js — the desk must not need the review to
-   draw. */
-function _dkHead(glyph, title, sub){
-  if (typeof window !== 'undefined' && window.reviewDialogHeadHtml)
-    return window.reviewDialogHeadHtml(glyph, title, sub);
-  return `<div style="padding:18px 20px 0"><h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0 0 var(--s-1)">${_dkE(title)}</h2>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0;line-height:1.55">${_dkE(sub || '')}</p></div>`;
+   ON THE ONE EDIT POP-UP, THE LEGORA WAY (f1116): the sheet, the hand-over and the join request are the shared
+   sheet (lgpHtml, js/components.js) — the people as quiet lines with the label beside them, nothing boxed, one black
+   button, Cancel (or Done) last. Every id the wiring and the review's picker read is kept. */
+/* one person as a quiet line: the label (Lead, Contributors…) on the first line of its group, the face, the name and
+   its small line, then the line's own act */
+function _dkLine(k, p, right, lead){
+  return `<div class="lgp-row dk-line"><span class="lgp-k">${_dkE(k || '')}</span><span class="lgp-v">
+    <span class="dk-face${lead ? ' dk-face-lead' : ''}">${_dkE(deskInitials(p.name))}</span>
+    <span class="dk-row-id"><span class="dk-row-name">${_dkE(p.name)}</span>${p.sub ? `<span class="dk-row-sub"${p.title ? ` title="${_dkE(p.title)}"` : ''}>${_dkE(p.sub)}</span>` : ''}</span>
+    ${right || ''}</span></div>`;
 }
-
-function _dkPersonRow(p, right, cls){
-  return `<div class="dk-row${cls ? ' ' + cls : ''}">
-    <span class="dk-face${cls === 'dk-row-lead' ? ' dk-face-lead' : ''}">${_dkE(deskInitials(p.name))}</span>
-    <span class="dk-row-id">
-      <span class="dk-row-name">${_dkE(p.name)}</span>
-      <span class="dk-row-sub">${_dkE(p.sub || '')}</span>
-    </span>
-    ${right || ''}</div>`;
+/* the review's picker (reviewWirePicker, prefix dk) on one line: the box typed in place, its list under it */
+function _dkPickLine(k){
+  return `<div class="lgp-row"><span class="lgp-k">${_dkE(k)}</span><span class="lgp-v" style="position:relative">
+      <input id="dk-who" class="lgp-in" type="text" role="combobox" autocomplete="off" spellcheck="false"
+        aria-expanded="false" aria-controls="dk-who-list" aria-autocomplete="list" placeholder="${_dkE(i18t('dk_add_ph'))}"/>
+      <button type="button" id="dk-who-caret" class="lgp-x" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}">${(typeof window!=='undefined'&&window.icon)?window.icon('chevD','w-3.5 h-3.5'):'&#9662;'}</button>
+      <ul id="dk-who-list" role="listbox" hidden
+        style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
+        max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
+        border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul></span></div>
+    <p id="dk-who-say" class="lgp-small"></p>
+    <input type="hidden" id="dk-who-id" value=""/>`;
 }
+/* Enter in the picker's box takes a name (the picker's own keys), never the dialog's act: only the button acts */
+function _dkEnterStays(){
+  document.querySelector('#modal-root .lgp')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') e.preventDefault(); });
+}
+const _dkLgpW = () => (typeof window !== 'undefined' && window.LGP_W) || '480px';
 
 function deskSheetHtml(c){
   const me = _dkMe();
@@ -1196,67 +1200,26 @@ function deskSheetHtml(c){
   const others = deskContributors(c);
   const pending = may ? deskJoinPending(c) : [];
   const when = at => (window.fmtDT ? String(window.fmtDT(at)).slice(0, 24) : String(at || '').slice(0, 10));
-  return `
-  ${_dkHead('&#128101;', i18t('dk_sheet_title'), i18t('dk_sheet_sub'))}
-  <div class="rvd-body">
-    <div style="${DK_LBL}">${_dkE(i18t('dk_lead_label'))}</div>
-    ${''/* The lead is what this panel is ABOUT, so its row wears the accent
-           tint the share dialog gives the option you have chosen — one thing
-           on the panel reads as the subject and the rest as the list. */}
-    ${_dkPersonRow({ name: lead.name, sub: d.by ? i18t('dk_started_by', { who: d.by, when: when(d.openedAt) }) : '' },
-      may ? `<button type="button" class="ui-btn ui-btn-sm" data-dk-handover="1">${_dkE(i18t('dk_handover_btn'))}</button>` : '',
-      'dk-row-lead')}
-
-    <div style="${DK_LBL}margin-top:14px">${_dkE(i18tn('dk_contributors_n', others.length, { n: others.length }))}</div>
-    ${others.length ? others.map(p => _dkPersonRow(
-        { name: p.name, sub: i18t('dk_added_when', { when: when(p.at) }) },
+  const contribK = i18tn('dk_contributors_n', others.length, { n: others.length });
+  const body = ''
+    /* The lead is what this sheet is ABOUT: its line comes first, its face ringed in the accent */
+    + _dkLine(i18t('dk_lead_label'), { name: lead.name, sub: d.by ? i18t('dk_started_by', { who: d.by, when: when(d.openedAt) }) : '' },
+      may ? `<button type="button" class="ui-btn ui-btn-sm" data-dk-handover="1">${_dkE(i18t('dk_handover_btn'))}</button>` : '', true)
+    + (others.length ? others.map((p, i) => _dkLine(i ? '' : contribK, { name: p.name, sub: i18t('dk_added_when', { when: when(p.at) }) },
         may ? `<button type="button" class="ui-btn ui-btn-sm" data-dk-remove="${_dkE(p.id)}">${_dkE(i18t('dk_remove_btn'))}</button>` : '')).join('')
-      : `<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 6px">${_dkE(i18t('dk_no_contributors'))}</p>`}
-
-    ${may ? `
-    <div style="position:relative;margin-top:var(--s-2)">
-      <input id="dk-who" type="text" role="combobox" autocomplete="off" spellcheck="false"
-        aria-expanded="false" aria-controls="dk-who-list" aria-autocomplete="list"
-        placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
-      <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
-        style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-        cursor:pointer;color:var(--color-neutral-600);line-height:1;display:grid;place-items:center">${(typeof window!=='undefined'&&window.icon)?window.icon('chevD','w-3.5 h-3.5'):'&#9662;'}</button>
-      <ul id="dk-who-list" role="listbox" hidden
-        style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
-        max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
-        border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
-    </div>
-    <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)"></div>
-    <input type="hidden" id="dk-who-id" value=""/>
-    <div style="display:flex;justify-content:flex-end;margin-top:var(--s-2)">
-      <button id="dk-add" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_add_btn'))}</button>
-    </div>` : ''}
-
-    ${pending.length ? `
-    <div style="${DK_LBL}margin-top:var(--s-4)">${_dkE(i18tn('dk_requests_n', pending.length, { n: pending.length }))}</div>
-    ${pending.map(r => `<div class="dk-row dk-row-ask">
-      <span class="dk-face">${_dkE(deskInitials(r.name))}</span>
-      <span class="dk-row-id">
-        <span class="dk-row-name">${_dkE(r.name)}</span>
-        ${r.why ? `<span class="dk-row-sub" title="${_dkE(r.why)}">“${_dkE(_dkClamp(r.why, 120))}”</span>` : ''}
-      </span>
-      <span style="display:flex;gap:6px;flex:none">
-        <button type="button" class="ui-btn ui-btn-sm ui-btn-accent" data-dk-approve="${_dkE(r.id)}">${_dkE(i18t('dk_approve_btn'))}</button>
-        <button type="button" class="ui-btn ui-btn-sm" data-dk-decline="${_dkE(r.id)}">${_dkE(i18t('dk_decline_btn'))}</button>
-      </span></div>`).join('')}` : ''}
-
-    ${''/* ---- WHAT THE OTHER SIDE KNOWS, ON THE PANEL THAT CHANGES IT ----
-           Anybody rearranging a desk should be able to see, without leaving
-           the panel, exactly what the counterparty has been told. It is the
-           one line that stops somebody assuming the other side already knows
-           something they do not — which is how a handover becomes a surprise. */}
-    <div class="rvd-note" style="margin-top:var(--s-4)">
-      ${_dkE(i18t('dk_cp_knows', { cp: c.counterparty || i18t('dk_the_counterparty'), who: lead.name }))}
-    </div>
-  </div>
-  <div class="rvd-foot">
-    <button id="dk-close" class="ui-btn">${_dkE(i18t('dk_done_btn'))}</button>
-  </div>`;
+      : `<div class="lgp-row"><span class="lgp-k">${_dkE(contribK)}</span><span class="lgp-v lgp-in is-read">${_dkE(i18t('dk_no_contributors'))}</span></div>`)
+    + (may ? _dkPickLine(i18t('dk_add_label')) : '')
+    + (pending.length ? pending.map((r, i) => _dkLine(i ? '' : i18tn('dk_requests_n', pending.length, { n: pending.length }),
+        { name: r.name, sub: r.why ? `“${_dkClamp(r.why, 120)}”` : '', title: r.why || '' },
+        `<span style="display:flex;gap:6px;flex:none">
+          <button type="button" class="ui-btn ui-btn-sm" data-dk-approve="${_dkE(r.id)}">${_dkE(i18t('dk_approve_btn'))}</button>
+          <button type="button" class="ui-btn ui-btn-sm" data-dk-decline="${_dkE(r.id)}">${_dkE(i18t('dk_decline_btn'))}</button></span>`)).join('') : '')
+    /* ---- WHAT THE OTHER SIDE KNOWS, ON THE SHEET THAT CHANGES IT ---- the one line that stops somebody assuming the
+       other side already knows something they do not — which is how a handover becomes a surprise. */
+    + `<p class="lgp-small dk-cp-knows">${_dkE(i18t('dk_cp_knows', { cp: c.counterparty || i18t('dk_the_counterparty'), who: lead.name }))}</p>`;
+  return lgpHtml({ id: 'dk-sheet', title: i18t('dk_sheet_title'), sub: i18t('dk_sheet_sub'), html: body,
+    primary: may ? { label: i18t('dk_add_btn'), attr: 'id="dk-add"' } : null,
+    cancelLabel: i18t('dk_done_btn'), cancelAttr: 'data-lgp-close id="dk-close"' });
 }
 
 function openDeskSheet(c, opts = {}){
@@ -1267,8 +1230,8 @@ function openDeskSheet(c, opts = {}){
     else if (window.renderWorkspace) renderWorkspace();
   };
   const paint = () => {
-    window.openModal(deskSheetHtml(c), { maxWidth: '30rem' });
-    document.getElementById('dk-close')?.addEventListener('click', () => window.closeModal());
+    window.openModal(deskSheetHtml(c), { maxWidth: _dkLgpW(), ownFrame: true, label: i18t('dk_sheet_title') });
+    _dkEnterStays();
     /* The desk's own rules, the review's widget. See reviewWirePicker's note on
        why the policy is not shared even though the control is. */
     const picker = window.reviewWirePicker
@@ -1318,48 +1281,22 @@ function openDeskSheet(c, opts = {}){
 function openDeskHandover(c, opts = {}){
   if (!window.openModal || !c) return;
   const lead = deskLead(c) || { name: '' };
-  window.openModal(`
-    ${_dkHead('&#128260;', i18t('dk_ho_title'), i18t('dk_ho_sub', { who: lead.name }))}
-    <div class="rvd-body">
-      <label for="dk-who" style="${DK_LBL}">${_dkE(i18t('dk_ho_new_lead'))}</label>
-      <div style="position:relative">
-        <input id="dk-who" type="text" role="combobox" autocomplete="off" spellcheck="false"
-          aria-expanded="false" aria-controls="dk-who-list" aria-autocomplete="list"
-          placeholder="${_dkE(i18t('dk_add_ph'))}" style="${DK_FLD}padding-right:30px"/>
-        <button type="button" id="dk-who-caret" tabindex="-1" aria-label="${_dkE(i18t('dk_show_all'))}"
-          style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
-          cursor:pointer;color:var(--color-neutral-600);line-height:1;display:grid;place-items:center">${(typeof window!=='undefined'&&window.icon)?window.icon('chevD','w-3.5 h-3.5'):'&#9662;'}</button>
-        <ul id="dk-who-list" role="listbox" hidden
-          style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
-          max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
-          border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
-      </div>
-      <div id="dk-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)"></div>
-      <input type="hidden" id="dk-who-id" value=""/>
-      ${''/* ---- THE WHOLE "NO SURPRISES" QUESTION, IN ONE TICK BOX ----
-             Internally a handover is instant, logged and announced. Externally
-             it should produce one courteous sentence at the moment they would
-             notice anyway — not a silently different name at the top of their
-             page, which is exactly how a counterparty comes to feel handled.
-             Ticked by default, because the polite thing should be the quiet
-             path through the form. */}
-      <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;
-        cursor:pointer;margin-top:var(--s-3);border:1px solid var(--color-divider);border-radius:var(--radius);
-        padding:10px var(--s-3);background:var(--color-bg)">
-        <input id="dk-ho-tell" type="checkbox" checked style="margin-top:2px;flex:none"/>
-        <span><b style="color:var(--color-text)">${_dkE(i18t('dk_tell_them', { cp: c.counterparty || i18t('dk_the_counterparty') }))}</b>
-        <span style="display:block;color:var(--color-neutral-600);margin-top:2px">${_dkE(i18t('dk_tell_them_sub', { who: lead.name }))}</span>
-        <span style="display:block;font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
-      </label>
-    </div>
-    <div class="rvd-foot">
-      <button data-dlg-cancel id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
-      <button id="dk-hook" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_ho_btn'))}</button>
-    </div>`, { maxWidth: '29rem' });
+  const cp = c.counterparty || i18t('dk_the_counterparty');
+  window.openModal(lgpHtml({ id: 'dk-ho-form', title: i18t('dk_ho_title'), sub: i18t('dk_ho_sub', { who: lead.name }),
+    html: _dkPickLine(i18t('dk_ho_new_lead'))
+      /* ---- THE WHOLE "NO SURPRISES" QUESTION, IN ONE TICK ----
+         Internally a handover is instant, logged and announced. Externally it should produce one courteous sentence at
+         the moment they would notice anyway — not a silently different name at the top of their page. Ticked by
+         default, because the polite thing should be the quiet path through the form. */
+      + `<label class="lgp-tick is-radio"><input id="dk-ho-tell" type="checkbox" checked/><span class="lgp-tl">${_dkE(i18t('dk_tell_them', { cp }))}
+        <span class="lgp-tsub">${_dkE(i18t('dk_tell_them_sub', { who: lead.name }))}</span>
+        <span class="lgp-tsub">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span></label>`,
+    primary: { label: i18t('dk_ho_btn'), attr: 'id="dk-hook"' },
+    cancelAttr: 'data-lgp-close id="dk-hocancel"' }), { maxWidth: _dkLgpW(), ownFrame: true, label: i18t('dk_ho_title') });
+  _dkEnterStays();
   const picker = window.reviewWirePicker
     ? reviewWirePicker(c, { prefix: 'dk', search: deskSearchPeople, resolve: deskResolvePerson })
     : { get: () => null };
-  document.getElementById('dk-hocancel')?.addEventListener('click', () => window.closeModal());
   document.getElementById('dk-hook')?.addEventListener('click', () => {
     const box = document.getElementById('dk-who');
     const u = picker.get();
@@ -1383,18 +1320,10 @@ function openDeskHandover(c, opts = {}){
 function openDeskJoinAsk(c, opts = {}){
   if (!window.openModal || !c) return;
   const lead = deskLead(c) || { name: '' };
-  window.openModal(`
-    ${_dkHead('&#9995;', i18t('dk_join_title'), i18t('dk_join_sub', { who: lead.name }))}
-    <div class="rvd-body">
-      <label for="dk-why" style="${DK_LBL}">${_dkE(i18t('dk_join_why_label'))}</label>
-      <textarea id="dk-why" rows="3" maxlength="${DK_WHY_MAX}" style="${DK_FLD}height:auto;resize:vertical"
-        placeholder="${_dkE(i18t('dk_join_why_ph'))}"></textarea>
-    </div>
-    <div class="rvd-foot">
-      <button data-dlg-cancel id="dk-jcancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
-      <button id="dk-jok" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_join_btn'))}</button>
-    </div>`, { maxWidth: '28rem' });
-  document.getElementById('dk-jcancel')?.addEventListener('click', () => window.closeModal());
+  window.openModal(lgpHtml({ id: 'dk-join-form', title: i18t('dk_join_title'), sub: i18t('dk_join_sub', { who: lead.name }),
+    rows: [{ k: i18t('dk_join_why_label'), id: 'dk-why', type: 'area', max: DK_WHY_MAX, ph: i18t('dk_join_why_ph') }],
+    primary: { label: i18t('dk_join_btn'), attr: 'id="dk-jok"' },
+    cancelAttr: 'data-lgp-close id="dk-jcancel"' }), { maxWidth: _dkLgpW(), ownFrame: true, label: i18t('dk_join_title') });
   document.getElementById('dk-jok')?.addEventListener('click', () => {
     const why = (document.getElementById('dk-why') || {}).value || '';
     if (!deskRequestJoin(c, { why })) { window.closeModal(); return; }
