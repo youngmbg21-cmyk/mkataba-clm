@@ -98,6 +98,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the owner's reminder drawing (https://claude.ai/artifact/GtY6uPNQoUxroQCJtiywcF, the "Chase now: the reminder" moment). On 19 Nov 2026 the owner chose "Reply only, park upload" for round 3: the reminder asks them to reply by email for now.
 - **Notes:** HaTi has no place today for the other side to upload against an obligation; it needs a page of their own for one obligation (their link, no account), a server route that keeps the file on the obligation with who sent it and when, a line in the bell for us, and the obligation's panel showing the file.
 
+### P-13 · Obligations page, the Stripe way, on all four tabs
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the Stripe way the owner picked for Obligations: Next 30 days, Later, Done and Proposals. Owner's words: "Save the stripe way as what we will build in the end."
+- **Where it came from:** the page clean-up, day 1. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/BrLuytmoSEL4Da6fFnHDpP (choose "The Stripe way" on each tab).
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement): the four tabs become figure tiles, each with a small chart (Next 30 days: bars by week, late in red; Later: when they fall; Done: a line; Proposals: a violet ring); "+ Whose / + Agreement / + Status / + Reminded" chips; one table with soft badges for whose (amber we owe, blue they owe) and status (Late, Due soon, Scheduled, On time, To decide), the due date right-aligned; the head's "1 of ours late" words go (the tiles say it). The side panel has NO CARDS: plain sections with thin lines between them: the big due date with a 30-day line, the words from the paper with their §, a timeline of what happened. Done's panel reads like a receipt (green tick, done on and was due, who did it); Proposals' panel opens with a progress ring, then each duty with its quote and Undecided / Us / Theirs / Both, Add all decided at the foot. The tiles are a new strip: the owner's pick is the yes to it. Parts to check before building: the timeline's "read from § by Jambo on <day>" may be missing on old duties; the Done table needs the day a duty was done and by whom kept on it. Two faults seen while photographing are in BUGLOG (the panel keeping a duty from another tab; Done saying "done" twice).
+
 ## Done
 
 _(nothing yet)_
