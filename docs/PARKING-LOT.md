@@ -244,6 +244,21 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** nothing pushed behind the side panel; no money anywhere on the page; red only if a deal goes late.
   - **Check before building:** the faults logged on 20 Nov 2026 (a zero said as work: "your 0 answers are ready to send"; our own unsent change shown as their ask) are fixed in the same build, since the drawing's rows depend on telling ours from theirs; the timeline needs the day the other side opened the link (kept on the share).
 
+### P-30 · Approvals page, the Legora + Stripe way, on all three tabs
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for Approvals: the Legora + Stripe way on Mine, Waiting on others and Done. Owner's words: "L+S and park it."
+- **Where it came from:** the page clean-up, day 7. The drawings: https://claude.ai/artifact/BEG3Qak57mRFLGHDMCTghs (choose "The Legora + Stripe way" on each tab). All three tabs were photographed from the running app that day.
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** the title and Approval rules; one ask box under it ("Ask about your approvals: …"); chips Mine (amber dot) · Waiting on others · Done with their counts, + Rule. NO figure cards; the heading's "2 to decide" goes (the chips say it).
+  - **The table:** Agreement (name, other side and reference under it, and the paper's words the approval is about with § on one line ending in "…") · Status (soft badge: amber Waits for you, red Late · N days, blue With <colleague>, green Approved) · Approver (initials and name) · Steps (a small strip: asked → approver → signing; done steps green, the one in play ringed in its colour, grey to come) · Rule · Asked (or Decided on Done) · "See it in the paper ›".
+  - **The row keeps ONLY "See it in the paper ›"** (owner, 20 Nov 2026: Approve and Decline were there twice): Approve, Decline, Remind, Undo and Before you sign live in the side panel only. Pressing a row still opens its side panel.
+  - **"See it in the paper ›" opens the SAME paper window HaTi has today** (the Dossier's paper with its notes beside each clause) — unchanged; the drawing does not redraw it.
+  - **Gone:** the amber "!" on every row; the money in the rows and in the panel (today's "900K KES value" tile, Done's Money and Value lines).
+  - **Side panel, NO cards and NO money:** status badge; name, other side, reference, rule; the acts (Approve black + Decline on Mine; Remind <name> on Waiting on others; Undo + Before you sign on Done); Steps drawn larger with words under them; what you are approving (what you approved, on Done) in the paper's words with §; a timeline (who asked and when, where it waits and how long, signing next). Jambo's box and its links line at the foot.
+  - **Departure and standard-change rows** (the piles on Mine) keep their own panel as today ("Before you decide" with the ladder) — the owner asked only for the paper link to stay; they take the table's look and the row loses its Allow once · Refuse buttons the same way only if the owner says so.
+  - **Rules it must keep:** nothing pushed behind the side panel; no money anywhere on the page; red only when late.
+  - **Check before building:** the faults logged on 20 Nov 2026 (Waiting on others' panel says "waits for your yes" and offers Approve/Decline; "1 for you" under Waiting on others and Done; "0 off our standard" read as good news before the playbook is checked) are fixed in the same build.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
