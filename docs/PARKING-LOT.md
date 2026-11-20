@@ -352,6 +352,19 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Not a left rail:** nothing stays on screen; "NO HOME PAGE, NO LEFT RAIL" stands.
   - **Before building:** the six questions (THE ONE DOOR: improve `#dk-nav`'s own door; nothing else opens it); the Handbook chapter for the nav, `FLOW_MAP`, and the phone (the phone keeps its own screens) checked in the same change.
 
+### P-38 · The alerts panel, the Stripe way: Alerts, Notes (one screen with Redlines' notes) and Activity; the Guide tab goes
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for the panel the bell opens: THE STRIPE WAY on Alerts, Notes (and a discussion opened) and Activity; the Guide tab is deleted. Owner's words: "delete the guide since we have the nav panel but keep the side of the panel"; "this should also be the same screen design for when you entering your notes before filing a redline. They should be one and the same… i am choosing the stripe way. Park and merge."
+- **Where it came from:** the page clean-up. The drawings: https://claude.ai/artifact/T8iYJNDW2KLKtwKx1gup8S (choose "The Stripe way" on each face). Photographed from the running app; Activity and Notes are drawn with sample events and notes (marked "sample").
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **The panel's tabs: Alerts · Notes · Activity** (the Guide tab GOES — finding a page is the nav panel's job, P-37; build this AFTER P-37, and keep `GUIDE_STAGES` and the Guide rows: the nav panel reads them and rule 9c stands). The ✕ has no ring on arrival. Jambo's box at the foot of EVERY face (today Notes has none).
+  - **Alerts:** filter chips All · Late · Your move · Jambo with counts; ONE small bar of what waits (red late, amber your move, violet Jambo prepared) with its legend; grouped Late then Your move; each row: a dot, what waits, the contract and reference, when (red if late) and its OWN act as a small pill (Decide · Fill in · Open), never the same "Open" on every row. NO MONEY in the rows (today "KES 900K").
+  - **Notes (on a contract) — ONE AND THE SAME SCREEN AS REDLINES' NOTES** (the notes drawer you write in before filing a redline: `rlNpScopeHtml`, `rlNpRowsHtml`, `rlNpBoxHtml`; already one host, `rl-fn-same` → `rlChatPanelPaint`): chips Open · Asks you · Done with counts; the room switch (Internal · the other side, `negoNoteRoomKey`); the write box at the TOP ("Write a note on a clause · @ asks a colleague"); each note a row: a § badge, the clause, a soft state badge (amber "Asks you", green Done, grey Open), the last message with its writer's initials and when, "N earlier · show". With a contract open, Notes shows ITS notes (today it says "Open a contract to read its notes").
+  - **A discussion opened:** a press on a note opens it in the same panel: "‹ All notes", the § badge, the clause, "Open · N messages", who is in it (initials, "N people · last <time>"), every message down a thread line with replies stepped in under the one they answer and @names in green, a reply box (@ asks a colleague), Mark done and "Go to § N on the paper".
+  - **Activity:** "Live · whole workspace", chips by kind (All · Signed · Sent · Changed · Asked), a timeline grouped Today · Yesterday: a dot coloured by kind (green signed/approved, blue sent/opened, amber changed, violet asked, grey filed), who did what, the reference, the time, and a soft kind badge.
+  - **Rules it must keep:** no money in the panel; nothing pushed past its edge; the one notes screen for both the bell and Redlines.
+  - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — money in the alert rows; the ✕ ring; the same "Open" on every row; Notes saying "Open a contract…" with one open; Notes without Jambo's box.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
