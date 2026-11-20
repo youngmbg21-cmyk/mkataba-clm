@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   f1122 — A VIEWER READS THE REDLINES, AND ANSWERS NOTHING (owner, 20 Nov
+   f1123 — A VIEWER READS THE REDLINES, AND ANSWERS NOTHING (owner, 20 Nov
    2026: "fix the Redlines page for viewers too")
 
    After f1121 took the work off a Viewer's Needs you, the Redlines page itself
@@ -33,7 +33,7 @@ const I18N = R('js/i18n.js');
 const fnBody = (src, name) => { const i = src.search(new RegExp('(async )?function ' + name + '\\(')); if (i < 0) return ''; return src.slice(i, src.indexOf('\n}', i) + 2); };
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-describe('f1122 (1) who only reads', () => {
+describe('f1123 (1) who only reads', () => {
   const ask = (me, extra) => { const ctx = { currentUser: () => me, ...(extra || {}) }; ctx.window = ctx; vm.createContext(ctx);
     vm.runInContext(fnBody(NEGO, 'rlOnlyReads'), ctx); return ctx.rlOnlyReads(); };
   test('1a a company Viewer only reads; a member and an admin do not; their own page never', () => {
@@ -46,7 +46,7 @@ describe('f1122 (1) who only reads', () => {
   });
 });
 
-describe('f1122 (2) the Redlines page, and Jambo\'s face, are read-only for a Viewer', () => {
+describe('f1123 (2) the Redlines page, and Jambo\'s face, are read-only for a Viewer', () => {
   const b = strip(fnBody(NEGO, 'rlBenchOpts'));
   test('2a the one builder asks it, beside the seal', () => {
     assert.match(b, /const onlyReads = !previewing && rlOnlyReads\(\);/);
@@ -62,7 +62,7 @@ describe('f1122 (2) the Redlines page, and Jambo\'s face, are read-only for a Vi
   });
 });
 
-describe('f1122 (3) the server: a Reader answers none of their asks', () => {
+describe('f1123 (3) the server: a Reader answers none of their asks', () => {
   let h, W;
   before(async () => { h = await startHati(); W = await seedWorkspace(h); });
   after(async () => { await h.stop(); });

@@ -186,7 +186,7 @@ JAMBO READS THE BOOK (`AI_HANDBOOK_RULE`, both hosts); reader `hbkSearchDocs`; c
 ## THE ONE DESK — NEEDS YOU, ONE READING
 `ndRead` the ONE list: `ndPieces` + `cnRows`, wait + piece one row (`ND_MERGE`); `ndParts`; Board `ndBoardHtml`, bell `ndPanelHtml`, phone `cn2Rows`. ONE COUNT = Board rows (`counterNeedsCount`; not News; f999). Dossier: `pdNeedsRows`.
 WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): `negoMayAnswer(c)` (Viewer never, desk Reader not, admin always) gates their-round rows (`agRoundItems`, `agQuietItems`, checklist quiet); a Viewer gets no Jambo pieces (`ndPieces`); bell says it as NEWS (`nego-news`). `negoNeedsYouIds` unchanged. f1121.
-REDLINES READ-ONLY FOR A VIEWER: `rlOnlyReads()` in `rlBenchOpts` (page + face) → `readonly` + `rl_viewer_why`; desk Reader's hands already shut (`rlActorHeld`), keeps notes; server refuses a Reader answering THEIR asks (`theirAnswersTouched`). f1122.
+REDLINES READ-ONLY FOR A VIEWER: `rlOnlyReads()` in `rlBenchOpts` (page + face) → `readonly` + `rl_viewer_why`; desk Reader's hands already shut (`rlActorHeld`), keeps notes; server refuses a Reader answering THEIR asks (`theirAnswersTouched`). f1123.
 ROW GOES TO ITS WORK: `ndRowGo(key)` (contract, Calendar, else Board list; f1077). COMPANY ROW → THE JOB: `cnCompanyGo` → `stNeedGo`; admins (f1079).
 ## THE PULSE BOARD (js/views/pulse.js)
 Ranked live (`puRead`, `PU_TICK_MS`): `puNeedsMap` off `ndRead` · `fxRankValue` · `effectiveExpiry` · `puJamboWrote` (RAW). Strands `puEventsOf`; why `puSayOf`; existing doors. f963.
