@@ -47,7 +47,8 @@ test('f1125 (4) an owed empty box: amber words, no box, one line under the row',
   assert.match(MIG, /\.mig-ck-body \.mig-ff\{--fld-under:var\(--fld-under-none\);/);
   /* RE-POINTED 20 Nov 2026 (owner: "instead of words, keep the fields empty but shade the field with the amberish color") */
   assert.match(fn('migFormRowHtml'), /r\.need \? ` placeholder=" " title="\$\{esc\(r\.word\)\}" aria-description=/, 'no words in the box; they are its hover and its description');
-  assert.match(MIG, /\.mig-ff-in\.need-empty:placeholder-shown\{--fld-bg:var\(--st-amber-bg\);/, 'the empty owed box is shaded amber');
+  /* RE-POINTED 20 Nov 2026 (owner: "shaded area should not be round in the ends"): the shade is square, as every open field is */
+  assert.match(MIG, /\.mig-ff-in\.need-empty:placeholder-shown\{--fld-bg:var\(--st-amber-bg\)\}/, 'the empty owed box is shaded amber, with square ends');
   assert.match(MIG, /\.mig-ck-body \.mig-ff:has\(\.mig-ff-in\.need-empty:placeholder-shown\) \.mig-ff-l\{color:var\(--st-amber-fg\)/);
   assert.match(MIG, /\.mig-ck\{display:grid;grid-template-columns:minmax\(340px,4fr\) minmax\(0,6fr\)/);
 });

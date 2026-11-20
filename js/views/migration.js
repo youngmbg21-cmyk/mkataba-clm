@@ -2854,10 +2854,10 @@ function renderMigration(o){
       .mig-ff.is-need .mig-ff-in{background:var(--need-bg,var(--st-amber-bg));border-color:var(--st-amber-line)}
       .mig-ff-in::placeholder{color:var(--st-amber-fg)}
       /* AN OWED, EMPTY BOX IS SHADED, NOT WORDED (owner, 20 Nov 2026: "instead of words, keep the fields empty but
-         shade the field with the amberish color"): the box carries no words (they are its hover and its spoken
-         description), only the amber shade, through the open field's own fill token; the shade goes as soon as
+         shade the field with the amberish color"; "shaded area should not be round in the ends"): the box carries no words (they are its hover and its spoken
+         description), only the amber shade, SQUARE as every open field is, through the open field's own fill token; the shade goes as soon as
          something is typed */
-      .mig-ff-in.need-empty:placeholder-shown{--fld-bg:var(--st-amber-bg);--fld-r:var(--radius-sm)}
+      .mig-ff-in.need-empty:placeholder-shown{--fld-bg:var(--st-amber-bg)}
       .mig-ff-ro{font-size:var(--t-body);padding-top:7px;color:var(--color-text)}
       .mig-ff-why{display:flex;flex-direction:column;gap:2px;font-size:var(--t-label);line-height:1.45;color:var(--st-amber-fg)}
       .mig-ff-sub{font-size:var(--t-label);color:var(--color-neutral-600)}
