@@ -63,8 +63,15 @@ async function rowInk(P, clip){
           const bar = await P.evaluate(() => { const e = document.querySelector('.apn-bar'); if (!e) return null; const b = e.getBoundingClientRect(), s = getComputedStyle(e); return { x: b.left, y: b.bottom - 1, w: b.width, solid: s.borderBottomStyle === 'solid' && !/, 0\)$/.test(s.borderBottomColor) }; });
           if (!bar) check(false, `3 ${w}×${hh}: the list head is drawn`);
           else {
-            const li = await rowInk(P, { x: Math.round(bar.x), y: Math.floor(bar.y), width: Math.floor(bar.w) - 1, height: 1 });
-            const lo = Math.min(...li.slice(1, li.length - 1));
+            /* RE-POINTED 20 Nov 2026: the bar's bottom can sit on a fractional y (1440×780 lands whole, 1536×730 and
+               1366×950 do not), and Chromium snaps a 1px border to a whole device row that need not be floor(bottom - 1):
+               the one row read there was blank from end to end (lo 0) while the line was drawn one row lower. The line
+               is now looked for in the rows round its bottom edge, and the row that carries it must be solid end to end. */
+            let lo = -1;
+            for (let dy = -2; dy <= 1; dy++){
+              const li = await rowInk(P, { x: Math.round(bar.x), y: Math.floor(bar.y) + dy, width: Math.floor(bar.w) - 1, height: 1 });
+              lo = Math.max(lo, Math.min(...li.slice(1, li.length - 1)));
+            }
             check(bar.solid && lo >= 10, `3 ${w}×${hh}: the page's line under the filter box is still solid from end to end`, { solid: bar.solid, lo });
           }
         }
