@@ -110,9 +110,93 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the page clean-up, day 2. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/TfmEyNjytLjS7YxXLccQ1d (choose "The Legora + Stripe way" on each tab).
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement): the views Agenda · Month · Week · Horizon as one switch beside New event; one ask box under the title; chips (All 11, Late 2, + Kind, + Whose, + Agreement; on Horizon: All, Notice passed, Renews on its own, + Stream); NO figure cards on any tab. Agenda and Week: one calm table (Date · what, with the paper's words and § under it · a soft badge for the kind · when · the act at the row's end); Week shows this week's rows, then the coming weeks folded into one line. Month: a full seven-day month (weekends narrower and lightly shaded) in one soft frame, soft coloured chips, today a green circle; the chosen day's dates and quotes in the panel. Horizon: each agreement with its renewal words and §, a slim time-left bar, a decision badge with Decide under it, end day with the notice day under it. One colour key with Obligations: red late, amber we owe, blue they owe, violet contract dates. The side panel follows the tab (chosen date; chosen day; chosen agreement) with NO cards: plain sections with the big date, the paper's words, a small chart or a notice-day line, and a timeline. Parts to check before building: today a press on a Calendar date opens the contract at once, so the panel "following the chosen date" needs a choose-then-open step; the Horizon line drawing needs a notice day (agreements without one show the end only). Faults seen while photographing are in BUGLOG (20 Nov 2026, Calendar).
 
+### P-15 · The zoom on every paper stays put, as it does in the editor
+- **Added:** 16 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "the zoom on the papers should not scroll just like designed in the paper in editor page". The zoom control (the − 100% + box) on a contract's paper moves away when the paper is scrolled; it should stay in one place while the paper scrolls under it, the way it does on the paper in the editor page.
+- **Where it came from:** the owner's request in chat, 16 Nov 2026 · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-11, in the "Hati page flash bug" window).
+- **Notes:** HaTi has ONE zoom (`rlSetDocZoom`, 60–200), shown in several places (Home's paper, the Redlines face, the editor). The editor's version is the model to copy; every paper that shows the zoom should keep it fixed in the same way. Check with photos at the three screens, and that it never sits over the paper's words or Jambo's panel.
+
+### P-16 · Redlines switch: Notes and Ladder both lit at once
+- **Added:** 16 Nov 2026 · **Status:** Waiting
+- **What:** a fault the owner found: on a contract's Redlines face, the switch Changes · Notes · Ladder showed BOTH Notes and Ladder lit (black) at the same time. Only one should be lit: the one whose face is open in the side panel. In the owner's picture the Ladder was open, yet Notes was lit too (and the path above still read "Dossier / Redlines / Notes").
+- **Where it came from:** the owner's screenshot of 16 Nov 2026, Redlines face with the Ladder open for Article X (Confidentiality) · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-11, in the "PARKING LOT" window).
+- **Notes:** the lit choice and the "Dossier / Redlines / …" path should both follow the face actually open. Check every way the Ladder opens (the switch, a row's Ladder verb, the head's ladder door) and every way Notes opens, so no path leaves the old one lit.
+
+### P-17 · Old look, new look: features the new look dropped
+- **Added:** 17 Nov 2026 · **Status:** Waiting
+- **What:** the owner wants to come back to the "Old look, new look: your five questions" page (artifact https://claude.ai/artifact/Msi61FbByUo9x6WVCsFgxf) and deal with features the old look had that the new look is missing. The page puts real photos of the two looks side by side. Its open questions:
+  1. **Contracts list:** should + Filter, Sort, row height, Save this view, Ask a column and the ⋯ menu on each row come back? (The new look has only the filter box, the tabs and Columns.)
+  2. **Before you sign:** should the "places to sign" card, the signing check's own buttons, and the "waiting for their signed copy" card (Chase · Send again · Reopen) come back?
+  3. **Requests, the Open tab:** should Open list advice requests too (old), or only under the Advice tab (new)?
+  4. **Parties' side panel:** should the new panels name every party on an agreement (for example a guarantor), and bring back Open on Explorer, the owner, the NDA, "what waits on you" and the "Before the call" brief?
+  5. **The other side's page:** tabs on a grey track with buttons on the head (old), or underlined tabs with the buttons behind More (new)?
+  (A sixth question, about typing "/" in Jambo's box, was dropped: it already works.)
+- **Where it came from:** the owner, 17 Nov 2026: "I need to come back to it and address some missing features included in it from the old." · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-12, in the "PARKING LOT" window).
+- **Notes:** each question needs the owner's answer before anything is built. Its photos were taken from the running app on the night they were made, so retake them before deciding (CLAUDE.md: never build from a stale photo). Linked to P-5 (delete the old look) and P-24 (remove the old look's code): these features should be settled before the old look is removed.
+
+### P-18 · The links above Jambo's box sit on the same line as the "Jambo ›" button
+- **Added:** 17 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "all the link around the jambo entry field should be next to the jambo press like in image 2." On a contract's Dossier, the green links above Jambo's box (for example obligations · amend · history · share) sit on their own line, with the "Jambo ›" button on a second line under them. They should share ONE line with the button, the way Jambo's own panel already does it: "‹ Dossier" on the left, the links (brief · fill in · redline) and the bin on the right.
+- **Where it came from:** the owner's two screenshots of 17 Nov 2026 (contract MK-280): the Dossier face (links on their own line) and Jambo's talk face (one line, the look wanted) · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-13, in the "PARKING LOT" window).
+- **Notes:** "all the link around the jambo entry field" — so every panel whose box carries these links (the Dossier, the other faces of a contract, list pages, the Board), not only this one. Saves a line of height above the box. Check the three screens so a long set of links does not squeeze the button.
+
+### P-19 · Redraw the pages of a contract that has an amendment, using MK-280 as the example
+- **Added:** 17 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "we need to redraw the pages that have an ammendment so it looks right. we will use contract 280 as the example." When an amendment is being drafted, the contract's page shows the sealed paper and the new amendment side by side, and it does not look right.
+- **Where it came from:** the owner's three screenshots of 17 Nov 2026, contract MK-280 (Mutual NDA with Sofi, executed), on a wide screen and a laptop screen, with Amendment 1 in drafting and the Obligations panel open · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-14, in the "PARKING LOT" window).
+- **What the pictures show (for the redraw to look at, not a list of fixes):**
+  - The two papers sit side by side. On a wide screen the amendment is a short card with a big empty space under it. Once you scroll down, the space beside the sealed paper is just a grey gap.
+  - The amendment's subtitle reads "…Sofi Agreement of **Invalid Date**": the date of the agreement is not read properly.
+  - The sealed paper's signature page is squeezed. "Executed & Sealed" breaks over two lines, the signer cards are narrow, and an email address runs past the card's edge.
+  - The amendment uses a different look from the sealed paper (serif headings, different spacing).
+  - The orange marks 2 · 3 · 4 in the left margin have no clear meaning on this view.
+- **Notes:** this is a design question, so it follows the design rules: real photos of MK-280 first (new look, branch up to date), then the four named ways (SAP, Legora, Stripe, Legora + Stripe), and the owner picks one. The "Invalid Date" text and the overflowing email may be real faults; when the work starts, check them and log them in BUGLOG.md if they are.
+
+### P-21 · Upgrade the squeezed "More · N" buttons everywhere they appear
+- **Added:** 17 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "there are a number of places where i have seen this type of ugly button. Where it exists, it needs to be upgraded." The example is a grey "More · 6" pill whose down-arrow falls onto a second line under the words, so the pill is cramped and lopsided. Every button of this kind should be upgraded to a clean, one-line button.
+- **Where it came from:** the owner's screenshot of 17 Nov 2026, on Our paper (the templates list, beside "Shelves 11 · All 48") · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-16, in the "PARKING LOT" window).
+- **Notes:** first find every place this "More · N" (or similar words-plus-arrow) button is drawn, since the owner has seen it on several pages; fix them all in one change. The house rules already say words on a button never wrap and nothing spills or squeezes, so this is a fault against stated rules. How the upgraded button should look (arrow beside the words, or a different control) is a design question: show the options before building.
+
+### P-22 · "Your book, read down" is one whole white paper, not a card
+- **Added:** 18 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "The main page on read down should not be a card but a whole white paper." Today the Board's read-down page ("Your book, read down.": the five sentences, the "Ending, by quarter" chart and the links at the foot) sits in a white card with a grey edge round it. It should be one whole white page, edge to edge, like the other new-look pages.
+- **Where it came from:** the owner's iPad screenshot of 18 Nov 2026 (the live site, Board › read down) · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-17, in the "PARKING LOT" window).
+- **Notes:** only the page's frame changes; the sentences, chart, links and Jambo's panel beside it stay as they are. Check the iPad and the owner's three computer screens, and that the white still meets Jambo's panel cleanly (the ONE SHEET rule: one hairline, no gap).
+
+### P-23 · The chosen row is one even grey band on every list page
+- **Added:** 18 Nov 2026 · **Status:** Waiting
+- **What:** pressing a row on a list marks it chosen with a grey band, and on some pages that band is not one even grey. Seen in photos of the running app, 18 Nov 2026:
+  - **Approvals:** TWO greys (darker over the name cell, lighter over the rest) plus a green frame round part of the row; clearest at 150% screen scaling.
+  - **Parties and People:** one grey, but a green line above and below the chosen row.
+  - **My notes:** correct (one even grey, nothing else), the reference.
+- **What right looks like:** ONE even grey (the new look's `--surface-2`), the same in every cell, from the table's left edge to its right edge; no second grey, no frame, no line above or below; at 100%, 125% and 150% scaling. A row LANDED on (`landOn` / `.is-landed`) carries no light (LAND ON IT). Hover may use the same grey, never a second shade on top of the chosen one.
+- **The owner's work order, kept as given:**
+  1. Read CLAUDE.md, then the MAP-HISTORY sections for THE LIST INSPECTOR, THE LIST HEAD, JAMBO'S PANELS (Approvals' "chosen/hovered row one band") and LAND ON IT.
+  2. Find EVERY list that marks a chosen row: Contracts, Negotiations, Approvals, Requests, Import, Parties, People, Obligations, My notes, Reads/Discover, and any other table with `is-sel` / `is-picked` / `is-on` / `aria-selected` rows, tables inside pop-ups too. Check each; a fix in one does not fix the others.
+  3. For each, find why it shows more than one grey or a frame/line: two rules colouring the row (a first-cell rule plus an all-cells rule, hover plus chosen), a focus ring or landing outline left on a pressed row, or cell-by-cell painting that shows joins at 125%/150%. Fix by SCOPE in HaTi's own sheet: never `!important`, never in the generated Tailwind block.
+  4. Change nothing about what is chosen, what a press does, or any page's layout: only how the chosen row is painted.
+  5. Photograph the chosen row on every list at the three screens (about 1440×780, 1536×730, 1366×950) AND at 125% and 150% scaling, before and after; show the owner the pairs.
+  6. Anything else noticed: one line each in BUGLOG.md under "Noticed, not fixed"; do not fix it.
+  7. `npm run lint` and only the touched areas' tests. Commit locally; no push or pull request without the owner's yes.
+  8. End with a short plain-English summary: which lists had the fault, whether every one is fixed, anything left alone and why.
+- **Where it came from:** the owner, 18 Nov 2026 · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-18, in the "PARKING LOT" window).
+- **Notes:** the same rows as P-10 (room inside the grey before the first mark or letter); best built together with P-10 or straight after it.
+
+### P-24 · Remove the old look's code
+- **Added:** 19 Nov 2026 · **Status:** Waiting
+- **What:** the new look has been the only look for everyone since 16 Nov 2026, but the old look's code is still inside HaTi. Remove it, so there is one version of each page and fewer places for faults to hide. Nobody will see a difference.
+- **Where it came from:** the owner said "do not delete yet" when the new look was switched on for everyone (16 Nov 2026), then asked how long it would take and what best practice is, and said "park this" (19 Nov 2026) · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-12, in the "Hati UI inconsistencies and design review" window).
+- **Notes:** measured 19 Nov 2026: about 220 places in 35 files where the app asks "new look or old?", about 2,860 new-look style rules laid on top of the old look's styling, and about 115 checks that mention the old look. Best practice: wait a quiet week or two after the switch (so a rollback stays easy), then remove it in small pieces. Part 1, the app's logic and its checks: about one long session plus a few rounds of GitHub's checks; suggested around the end of November 2026. Part 2, the styling: two to four days of work in all, done page by page, ideally when that page is being worked on anyway, with photos at the three screens before each merge. Overlaps P-5 (delete the old versions of HaTi completely); settle P-17's questions first.
+
 ## Done
 
-_(nothing yet)_
+### P-20 · Remove "Workspace" from the navigation panel
+- **Added:** 17 Nov 2026 · **Status:** Done (20 Nov 2026, pull request #822: Workspace taken off the Guide and the jump window, in another window)
+- **What:** the owner's words: "need to delete workspace from the nav panel." The navigation panel should no longer list Workspace.
+- **Where it came from:** the owner, 17 Nov 2026; asked again on 18 Nov 2026: "delete workspace nav panel tab." · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-15, in the "PARKING LOT" window).
+- **Notes:** recorded here so nothing parked disappears silently; it was built before this entry reached GitHub.
+
 
 ## Dropped
 
