@@ -2076,7 +2076,7 @@ function openCommandPalette(prefill){
   _lpChip='all';
   ov.innerHTML=`
     <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
-    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1264px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
+    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
       <div class="lp-top">
         <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
@@ -4163,6 +4163,13 @@ function guidePanelNlHtml(){
    count, word and door is the Guide's own (GUIDE_NL, guideNlCount, guideHereKey, guideGo). Reads only. */
 const LP_WAIT_MAX=3;
 const LP_CHIPS=['all','need','arrive','negsign','live','book'];
+/* A MARK FOR EVERY PAGE (owner, 21 Nov 2026: "assign an emoji to each. use the emoji reference book ... if nothing there use the
+   previous nav panel as a reference"): Settings' own emoji (SDD_EMOJI, js/views/settings.js) where it has the meaning — requests,
+   import, ourpaper, standards, approvals, document, parties, people, mynotes, board, explorer, house, flowmap, handbook, settings —
+   else the emoji of the symbol the panel drew before (GUIDE_NL_ICON). A mark beside the name, never the name itself. */
+const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅', document:'✏️',
+  oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
+function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
 let _lpChip='all';
 /* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */
 function lpRows(){
@@ -4215,7 +4222,7 @@ function lpOpt(items,active,it,cls,inner){
 function lpWaitRowsHtml(items,active){
   return `<div class="lp-work" role="group" aria-label="${esc(i18t('lp_chip_need'))}">`+items.filter(x=>x.wait).map(it=>{
     const k=it.id, n=lpOwed(k), Q=lpQuoteOf(k);
-    return lpOpt(items,active,it,'lp-w',`<span class="lp-wt"><span class="lp-n"><b>${n}</b><span>${esc(lpWaitWord(k))}</span></span><span class="lp-pg">${esc(i18t('gd_p_'+k))}</span></span>`
+    return lpOpt(items,active,it,'lp-w',`<span class="lp-wt"><span class="lp-n"><b>${n}</b><span>${esc(lpWaitWord(k))}</span></span><span class="lp-pg">${lpEmoHtml(k)}${esc(i18t('gd_p_'+k))}</span></span>`
       +`<span class="lp-act">${esc(lpActWord(k))}</span>`
       +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')); }).join('')+`</div>`;
 }
@@ -4240,7 +4247,7 @@ function lpBodyHtml(items,active,o){
     h+=`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
       `<div class="lp-st" role="group" aria-label="${esc(i18t('gdn_s_'+g.st.k))}"><h5>${esc(i18t('gdn_s_'+g.st.k))}</h5>`+g.its.map(it=>{
         const k=it.id, on=k===here, ow=on?0:lpOwed(k), z=on?0:lpSize(k);
-        return lpOpt(items,active,it,'lp-p',`<span class="lp-nm">${esc(i18t('gd_p_'+k))}</span>`
+        return lpOpt(items,active,it,'lp-p',`${lpEmoHtml(k)}<span class="lp-nm">${esc(i18t('gd_p_'+k))}</span>`
           +(on?`<span class="lp-ct">${esc(i18t('gd_here'))}</span>`:ow?`<span class="lp-ct is-owed">${ow}</span>`:z?`<span class="lp-ct">${z}</span>`:'')
           +`<span class="lp-wh">${esc(i18t('gd_w_'+k))}</span>`);
       }).join('')+`</div>`).join('')+`</div>`;
@@ -4257,7 +4264,8 @@ function lpFootHtml(typed,side){
   return keys+`<span>${esc(lpMoreSay())}</span>`;
 }
 function lpChipsHtml(){
-  const word=c=>c==='all'?i18t('lp_chip_all'):c==='need'?i18t('lp_chip_need'):c==='negsign'?i18t('lp_chip_deal'):i18t('gdn_s_'+c);
+  /* ONE NAME FOR ONE STAGE (owner, 21 Nov 2026: the chip said Deal over a column headed Negotiate · sign): a stage's chip says its column's own head */
+  const word=c=>c==='all'?i18t('lp_chip_all'):c==='need'?i18t('lp_chip_need'):i18t('gdn_s_'+c);
   return LP_CHIPS.map(c=>`<button type="button" class="lp-chip" data-lp-chip="${c}" aria-pressed="${c===_lpChip}">${esc(word(c))}</button>`).join('');
 }
 /* the bar's top-left symbol: a press opens the launchpad, a second press (on the dimmed screen) closes it */
@@ -4975,6 +4983,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,LP_EMOJI,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

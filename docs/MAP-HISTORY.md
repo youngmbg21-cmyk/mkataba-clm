@@ -39524,6 +39524,23 @@ with the chips hidden while typing, the grid's rows shifted and the foot floated
 NOT BUILT / LEFT: the typed jump list is as it was (now in the wider sheet). Handbook 1.2 rewritten in both books; its pictures
 wait for the batch. Red at the parent: f1097 (6), and (1)–(3) which load the new builders by name.
 
+## THE SHELL — RAIL, BAR, PANELS — AN EMOJI MARKS EVERY PAGE, ONE NAME FOR ONE STAGE (owner, 21 Nov 2026)
+The owner, over a photo of the merged launchpad with the chip "Deal" and the column head "Negotiate · sign" boxed in red: "the
+names differ in the highlighted areas when they are supposed to be one and the same. Also, draw the panel again but assign an
+emoji to each. use the emoji reference book in claude md and if nothing there use the previous nav panel as a refernce. Draw for
+now". ONE drawing was shown (the proposal placed on the live page in the browser, photographed), with a table of where each
+emoji came from. The owner: "build it, use Negotiate · sign".
+BUILT: LP_EMOJI (js/app.js) — Settings' book (SDD_EMOJI) where it has the meaning: requests 💬 (questions), import 📦 (imports),
+ourpaper 📋 (sheet), standards ⚖️ (rules), approvals ✅, document ✏️ (desk), parties 🏢 (company), people 👥, mynotes 📌 (facts),
+board 📊 (workshape), explorer 🧭 (navigate), house ✨ (agents), flowmap 🛤️ (lanes), handbook 📖 (boardwords), settings ⚙️ (engine);
+else the old panel's symbol as an emoji: contracts 📄, draft 📝, negotiations 🔁, oblig 📃, calendar 📅, reads 🔍, pulse 📈. The
+emoji stands in its own gutter left of the name (aria-hidden), the line under the name starting where the name starts, and
+beside the page's name in the waiting column. This PARTLY REVERSES the 20 Nov pick's "no page symbols" (said to the owner in
+the drawing); stage colours stay gone. The chip for the deal stage reads the stage's own head (gdn_s_negsign); lp_chip_deal is
+retired from the code and both books (reverses f1097 (2)'s "the stage chip says Deal").
+THE DRAWING'S COST, MET: with the emoji the drawing stood 710 tall and scrolled 12px at 1536x730. Built, the sheet is 1300
+wide (it was 1264) with tighter rows: 650 tall, centred, no scroll, nothing spills, heads level at all three screens.
+NOT DONE: the six chips and the four column heads carry no emoji (asked in the drawing; the owner did not ask for them).
 ## THE ONE DESK — NEEDS YOU, ONE READING · WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026)
 The owner signed in with a second email that had limited access and found, on a contract where they were "only a viewer", a row in the Board's Needs you: the other side's changes waiting on their answer, with Jambo's drafted answer and the buttons Accept, Counter with this and "Change the suggestion". Asked what was wrong, then: "does this mean i only get needs you if i can actually impact a contract? shouldnt the updates only go to people who can change the contract?" — then "yes, make that change".
 Cause: `negoNeedsYouIds` asks only which side wrote a change and which clauses a reviewer was handed — never who the reader is. Every Needs you source that rides it (Jambo's round piece `agRoundItems`, the bell's 'negotiation' row) handed the work to anyone on our side. The server already refused a company Viewer's write (`editor` on POST /api/agents/:k/sendback), so nothing was harmed for a Viewer — but a desk Reader whose company role is an editor's had no such wall on that route.
