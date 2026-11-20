@@ -86,7 +86,6 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
          again — a quicker return was overtaken by the landing, which put the contract's Cover over the Calendar and 6b
          wheeled the Cover (traced: "under": "cv-notes") */
       await until(P, id => window.pdContract && pdContract() && pdContract().id === id && typeof hbFace === 'function' && hbFace() === 'paper', first, 10000);
-      await until(P, () => !!document.querySelector('.cv-page'), null, 5000);
       await P.evaluate(() => { setView('calendar'); });
       await until(P, () => !!document.querySelector('#cal-ag'), null, 8000);
     } else check(false, '3 a row with Open to press');

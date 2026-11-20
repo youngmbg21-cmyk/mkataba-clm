@@ -158,16 +158,11 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): the door opens the Cover over the
          paper and the panel: its headline, the Dossier's six stages, ONE count, and its way back (Open the dossier) */
       await page.evaluate(id => hbStripBring(id, 'where'), ID);
-      await until(page, () => !!document.querySelector('#modal-root .cv-page .cv-road'), null, 10000);
-      const w6 = await page.evaluate(() => ({
-        stages: [...document.querySelectorAll('#modal-root .cv-page .cv-road .cv-st b')].map(b => b.textContent.trim()).join(' · '),
-        head: ((document.querySelector('#modal-root .cv-page .cv-h') || {}).textContent || '').trim(),
-        counts: document.querySelectorAll('#modal-root .cv-page .cv-count').length,
-        old: document.querySelectorAll('.pd2-stands').length,
-        /* RE-POINTED 19 Nov 2026 (f1099): Open the dossier goes INTO the contract through pdCoverLeave (data-cv-open) */
-        back: !!document.querySelector('#modal-root .cv-page .cv-open[data-cv-open]') }));
-      check(`${nm} 6 Where we are is the Cover: its headline, the six stages, one count, Open the dossier the way back`,
-        w6.stages === 'Arrive · Read · Fill · Negotiate · Sign · Live' && !!w6.head && w6.counts === 1 && w6.old === 0 && w6.back, w6);
+      /* RE-POINTED 20 Nov 2026 (owner: the Cover is deleted, "open the Dossier instead"): Where we are opens the Dossier */
+      await until(page, id => typeof pdContract === 'function' && pdContract() && pdContract().id === id && typeof pdTab === 'function' && pdTab() === 'copilot', ID, 10000);
+      const w6 = await page.evaluate(() => ({ tab: typeof pdTab === 'function' ? pdTab() : null, cover: !!document.querySelector('.cv-page'),
+        old: document.querySelectorAll('.pd2-stands').length, card: !!document.querySelector('#ig-dock .pd2-card') }));
+      check(`${nm} 6 Where we are opens the Dossier: its card, no Cover`, w6.tab === 'copilot' && !w6.cover && w6.old === 0 && w6.card, w6);
       await page.screenshot({ path: path.join(OUT, `where-${nm}.png`) });
       await back(page);
       /* 7 · the clause editor's card */

@@ -1567,7 +1567,7 @@ function jov5Money(c){
   } catch (_){}
   return '';
 }
-function jov5Open(id){ if (typeof window.roomHomeLand === 'function') window.roomHomeLand(id, { cover: true }); else if (typeof window.regOpenContract === 'function') window.regOpenContract(id); }
+function jov5Open(id){ if (typeof window.roomHomeLand === 'function') window.roomHomeLand(id, { open: true }); else if (typeof window.regOpenContract === 'function') window.regOpenContract(id); }
 function jov5ShowList(ids, name){ if (typeof window.regShowOnly === 'function') window.regShowOnly(ids, name); }
 function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});

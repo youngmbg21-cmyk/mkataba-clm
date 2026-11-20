@@ -29,9 +29,9 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
   const errors = []; P.on('pageerror', e => errors.push(String(e && e.message || e)));
   /* every brain call the page makes is counted at the door */
   let brain = 0; P.on('request', r => { if (/\/api\/ai\/(chat|copilot|ask)/.test(r.url())) brain++; });
-  /* RE-POINTED 19 Nov 2026 (f1099): a number typed alone opens its COVER (f1088), a page of its own over the page typed on
-     — the paper is not opened under it; the Cover's Open the dossier is the step onto the paper */
-  const onPaper = id => until(P, id => !!document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) || (typeof deskKeyNow === 'function' && deskKeyNow() === 'c:' + id && !!(window.pdContract && pdContract() && pdContract().id === id)), id, 10000);
+  /* RE-POINTED 20 Nov 2026 (owner: the Cover is deleted, "open the Dossier instead"): a number typed alone opens its
+     paper with the Dossier */
+  const onPaper = id => until(P, id => typeof deskKeyNow === 'function' && deskKeyNow() === 'c:' + id && !!(window.pdContract && pdContract() && pdContract().id === id), id, 10000);
   try {
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
