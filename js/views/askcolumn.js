@@ -246,6 +246,34 @@ async function askColLoad(askId, ids){
     return false;
   }
 }
+/* MANY QUESTIONS, ONE LOOK (owner, 20 Nov 2026: "fix Discover"): Discover wanted every read's answers and sent one
+   request per question, each carrying the drawn wording of every contract (askColTexts: a paper drawn and read in this
+   browser, per contract, per question). Now one request asks for them all with NO wording; the server says which
+   contracts it cannot check without their drawing (`need`), and only those are drawn, once, and sent in a second
+   request. A question nobody keeps any more leaves quietly, as askColLoad's 404 does. */
+async function askColLoadMany(askIds, ids){
+  const ks = [...new Set((askIds || []).map(String))].filter(k => k && !AC.ans[k]);
+  if (!ks.length || !ids.length) return false;
+  const take = r => {
+    (r && r.missing || []).forEach(k => askColDrop(k));
+    Object.entries((r && r.byAsk) || {}).forEach(([k, v]) => {
+      if (v && v.ask) AC.asks[k] = v.ask;
+      Object.assign(AC.ans[k] || (AC.ans[k] = {}), (v && v.answers) || {});
+      const seen = AC.asked[k] || (AC.asked[k] = new Set()); ids.forEach(id => seen.add(id));
+    });
+  };
+  try {
+    const r = await api('columns/answers', 'POST', { askIds: ks, ids });
+    const need = ((r && r.need) || []).map(String);
+    /* a second look that fails leaves those few unshown, never the rest of what came back */
+    if (need.length) try {
+      const r2 = await api('columns/answers', 'POST', { askIds: ks, ids: need, texts: askColTexts(need) });
+      Object.entries((r2 && r2.byAsk) || {}).forEach(([k, v]) => { const into = (r && r.byAsk && r.byAsk[k]); if (into && v) Object.assign(into.answers || (into.answers = {}), v.answers || {}); });
+    } catch (_){ /* said by the cells still empty */ }
+    take(r);
+    return true;
+  } catch (_){ return false; }
+}
 async function askColTeam(){
   try { const r = await api('columns'); AC.team = (r && r.asks) || []; AC.packs = (r && r.packs) || []; (AC.team || []).forEach(a => { AC.asks[a.id] = AC.asks[a.id] || a; }); }
   catch (_){ AC.team = AC.team || []; }
@@ -2061,7 +2089,7 @@ function _acRegRepaint(){
 /* the Discover page is drawn again as answers land (it draws nothing unless it is the page in front) */
 function _acDiscoverLive(now){ if (typeof state !== 'undefined' && state.view === 'reads' && typeof window.discoverLive === 'function'){ try { discoverLive(now); } catch (_){} } }
 
-Object.assign(window, { askColAskHere, askColShown, askColTeam, askColDrop, askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColReword, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { askColAskHere, askColShown, askColTeam, askColDrop, askColLoad, askColLoadMany, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColReword, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
   askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose, askColTexts });

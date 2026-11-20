@@ -171,7 +171,8 @@ describe('f771 (5) the strip, the boxes, the head, the place', () => {
     const f = fnBody(MIG, 'migDropCardHtml');
     for (const k of ['mig_drop_h', 'mig_import_as', 'mig_file_under', 'mig_list_l', 'mig_list_load', 'mig_list_empty', 'mig_auto_jambo', 'mig_choose_files']) assert.ok(f.includes("'" + k + "'"), k);
     assert.match(f, /<span class="mig-opt-l">/);
-    assert.match(fnBody(MIG, 'migPaintHead'), /id="mig-choose"/);
+    /* RE-POINTED 20 Nov 2026 (the check made like the Send screen, owner: "build it as drawn"): New batch is a link in the check's bar */
+    assert.match(fnBody(MIG, 'migCheckBarHtml'), /id="mig-choose"/);
   });
   test('5b the head paints through PAGE_HEAD_PAINT; a refresh keeps the door, the words, the chosen file and the check view', () => {
     assert.match(APP, /PAGE_HEAD_PAINT = \{[^}]*migration:'migPaintHead'/);
