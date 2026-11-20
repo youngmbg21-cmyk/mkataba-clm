@@ -22728,3 +22728,6 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Explorer › Grid / Timeline: the open legend covers part of the drawing (the "In Review" row label in Grid sits under it).
 - Explorer › Grid: money in the cell headings ("8 · KES 79.20M", "1 KES 22M") — money as a big part of the page.
 - Explorer: the bottom bar holds 13 buttons in one row; the panel still shows "Back to the Board" and three mixed tiles (13 · 2 · 11).
+
+## Noticed, not fixed — Read down clean-up photo (20 Nov 2026)
+- Board › Read down: money is a big part of the sheet — the first sentence ("KES 91M is on paper … KES 64.70M of it is signed"), the chart "Ending, by quarter · value on paper" with KES on every bar, and the panel's first tile "91M KES on paper" (against "money is never a big part of a page" and "no money in a side panel").
