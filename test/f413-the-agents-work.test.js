@@ -480,6 +480,27 @@ describe('f413 (4) — their round came back: Copilot prepares the answers on ar
     assert.equal(r.status, 409, r.text);
     assert.match(r.text, /signed, so its standards check is not redone/);
   });
+  /* 4g ADDED 20 Nov 2026 (owner, over "There is not enough wording on this contract for Jambo to check" on a paper whose
+     wording the card itself quoted: "yes fix it"): a contract still in its template's own wording stores none, so the
+     page sends the words it draws; the server reads them only where nothing is stored, and never keeps them */
+  test('4g a paper in its template\'s own wording is checked again from the words the page draws (20 Nov 2026)', async () => {
+    const c = fixtureContract('MK-RD-4', 'Raw Material Supply Agreement', 'Juno LLC', FOLDER_A, 900000, 'Under Review');
+    c.owner = { id: owner.id, name: owner.name };
+    await W.admin.json('/api/contracts/MK-RD-4', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+    const bare = await W.admin.raw('/api/agents/paper/sendback', { method: 'POST', body: { contractId: 'MK-RD-4', note: 'A reasonable rejection window.' } });
+    assert.equal(bare.status, 409, bare.text);
+    assert.match(bare.text, /not enough wording/, 'with no words sent, still refused in words');
+    const p = await W.admin.json('/api/agents/paper/sendback', { method: 'POST', body: { contractId: 'MK-RD-4', note: 'A reasonable rejection window.', drawn: LONG } });
+    assert.equal(p.prepared, 1, JSON.stringify(p));
+    const last = JSON.stringify(ai.calls[ai.calls.length - 1].body);
+    assert.ok(last.includes(LONG.slice(0, 60)), 'the drawn words were read');
+    const full = await W.admin.json('/api/contracts/MK-RD-4');
+    assert.equal(full.playbook.sentBack.note, 'A reasonable rejection window.');
+    assert.ok(!JSON.stringify(full).includes(LONG.slice(0, 60)), 'the drawn words are never stored');
+    const st = await W.admin.json('/api/agents/paper/sendback', { method: 'POST', body: { contractId: 'MK-RD-2', note: 'Again.', drawn: 'IGNORED WORDS ' + 'x'.repeat(200) } });
+    assert.equal(st.prepared, 1, JSON.stringify(st));
+    assert.ok(!JSON.stringify(ai.calls[ai.calls.length - 1].body).includes('IGNORED WORDS'), 'stored wording wins over words sent');
+  });
 });
 
 /* ============================================================
