@@ -202,6 +202,18 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** where the "between … and …" words under each name come from (the paper's opening or parties clause; a party with no such words shows none, never an invented line); the timeline needs each agreement's signed and end days.
   - **Jambo's box is a must** (owner, 20 Nov 2026, after this was parked): the side panel ends, on both tabs, with Jambo's ask box at its foot and the line of links above it, as today; the panel's own content stops above it.
 
+### P-26 · People page, the Legora + Stripe way, on all four tabs
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for People: the Legora + Stripe way on All, Yours, Outside and Waiting on them. Owner's words: "L+S and park it."
+- **Where it came from:** the page clean-up, day 4. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/C9a6Tc93nKEN2SiqeDrWZi (choose "The Legora + Stripe way" on each tab).
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** the title and Add a person; one ask box under it ("Ask about people: …"); chips All 11 · Yours 4 · Outside 7 · Waiting on them 1 (amber dot) · + Party. NO figure cards; the heading's "11 · 4 of yours, 7 outside" goes (the chips say it).
+  - **The table:** Name (initials mark, green for our team, blue for the other side; the name; "you" or their party under it) · Role (soft badge, green ours, blue theirs) · Does for you (one line ending in "…"; for a signer, the words on the signature page that name them under it, one line, in the paper's type) · Agreements (right-aligned) · Waiting on them (an amber badge only where something waits, else empty). On All, our team first, then a quiet "Outside · 7" line, then the other side.
+  - **Gone:** the pink bar under "Does for you"; "Nothing" written on every row.
+  - **Side panel, NO cards and NO money:** large initials, name, role badge and (ours) a "Not away" / "Away" badge in place of the "In" tile; Agreements and Waiting on them as two numbers; Show their contracts and Email them; what waits on them, each with its kind badge (e.g. Approval) and Remind; for a signer, where the paper names them; a timeline of what they did; for the other side, their party with Open party. Jambo's box and its links line at the foot, as on every panel.
+  - **Rules it must keep:** nothing pushed behind the side panel; no money anywhere on the page; red only for late.
+  - **Check before building:** where the signature-page words come from (the signature block of a signed paper; a person with none shows none, never an invented line); the timeline needs each person's recorded acts (link opened, round sent, signed, asked to approve).
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
