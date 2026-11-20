@@ -22655,3 +22655,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Correction (20 Nov 2026): the Round A check is f1129, not f1128 (main's "Jambo holds still" took f1128).
 - 20 Nov 2026 · Noticed, not fixed: the jump window's search box points screen readers only at the page list (#cp-list), while the first highlighted row can sit in the "waiting on you" column (#lp-side) since #816.
 - 20 Nov 2026 · Noticed, not fixed: list-columns-verify once measured the Parties name column at 490px on 1536×730 (limit 480) on a branch that did not touch lists; passed before and after. Suspect: columns sized before the Parties scroller settles (scrollbar appearing later).
+- 20 Nov 2026 · Noticed: door-exam-verify missed "amend MK-B1" in the Board's box once (run 44756291044) with no code change behind it; its wait gave up after ~6 s while Jambo might still be busy. The wait now goes on while busy (bounded, 15 s) and says so if it runs out.
