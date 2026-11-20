@@ -716,7 +716,8 @@ describe('f331 (13) — the link, and the room to draw it', () => {
     assert.ok(fn, 'the door is still one function');
     assert.match(fn[0], /fillPreviewFits\(\)/, 'it asks the shared width reading');
     assert.match(fn[0], /fillPreviewPaneHtml\(/, 'and draws the shared pane');
-    assert.match(fn[0], /maxWidth:_pv\?'1040px':'620px'/, 'widening only where it fits');
+    /* RE-POINTED (f1114): under the width it is the one edit pop-up's own width (LGP_W), not a 620px card */
+    assert.match(fn[0], /maxWidth:_pv\?'1040px':\(window\.LGP_W\|\|'480px'\)/, 'widening only where it fits');
     assert.match(fn[0], /minmax\(0,1fr\) minmax\(0,1fr\)/, 'two columns, the other doors\' own shape');
     /* THE QUESTIONS ARE UNTOUCHED — the owner asked for the paper, not for
        more to answer. CONTRACT_ESSENTIALS is still the one list. */

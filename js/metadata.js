@@ -706,11 +706,35 @@ async function extractMetadata(text, seed, opts={}){
   return meta;
 }
 
+/* ---- THE STEPS A LONG READING IS SHOWN IN (f1114: the one edit pop-up, the Legora way) ----
+   More than about seven lines is a NEXT STEP, never a scroll, so the facts read off a document are shown a group at
+   a time: who, when, money, the trading terms, the risk. Each group is cut at six lines; a field no group names
+   (one added later) rides in the last. ONE reading of the groups, used by this review and the upload's own card,
+   so the two never order the same facts differently. Reading only: it returns the fields, it writes nothing. */
+const META_STEP_GROUPS = [
+  { name:'me_step_parties', keys:['counterparty','contractType','category','jobTitle','probationMonths','governingLaw'] },
+  { name:'me_step_dates',   keys:['effectiveDate','expiryDate','renewalType','renewalTermMonths','noticePeriodDays'] },
+  { name:'me_step_money',   keys:['value','currency','paymentTerms','priceReview','retentionPct','retentionReleaseDays'] },
+  { name:'me_step_trade',   keys:['volumeRebate','rebateTiers','rejectionWindowDays','exclusivity','warrantyMonths'] },
+  { name:'me_step_risk',    keys:['liabilityCapped','indemnityCapped','terminateForConvenience','confidentiality','disputes','assignment'] },
+];
+const META_STEP_MAX = 6;
+function metaStepGroups(fields){
+  const fs = (fields||[]).filter(Boolean), named = new Set(), out = [];
+  const push = (name, list) => { for(let i=0;i<list.length;i+=META_STEP_MAX) out.push({ name, fields:list.slice(i, i+META_STEP_MAX) }); };
+  META_STEP_GROUPS.forEach(g => { g.keys.forEach(k => named.add(k));
+    push(g.name, g.keys.map(k => fs.find(f => f.k===k)).filter(Boolean)); });
+  const rest = fs.filter(f => !named.has(f.k));
+  if(rest.length) push('me_step_more', rest);
+  return out;
+}
+
 /* ---- review-and-confirm panel: the human always confirms before save ---- */
 function openMetaReview(meta, onConfirm, opts={}){
   const c = meta.confidence||{};
-  const badge = lvl => lvl==='low' ? `<span class="ml-1.5 text-[9px] font-mono text-amber bg-gold-500/12 rounded px-1 py-0.5">low</span>`
-    : lvl==='medium' ? `<span class="ml-1.5 text-[9px] font-mono text-brand-600 bg-brand-50 rounded px-1 py-0.5">med</span>` : '';
+  /* low and medium say so beside the box, in words; nothing is a coloured box (the Legora way) */
+  const badge = lvl => lvl==='low' ? `<span class="lgp-from" style="color:var(--st-amber-fg)">low</span>`
+    : lvl==='medium' ? `<span class="lgp-from">med</span>` : '';
   const p = meta._payload;
   // Say how much of the document was actually read — "Copilot-extracted" over the
   // first eight pages is a materially different claim from over all of it.
@@ -727,7 +751,7 @@ function openMetaReview(meta, onConfirm, opts={}){
      offers Skip and Stop as separate buttons, and treats clicking away or
      pressing Escape as Stop — because that is what a person means by it. */
   const queued = typeof opts.onStop === 'function';
-  const pos = (queued && opts.queue) ? `<span style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);white-space:nowrap">${i18t('me_queue_pos',{i:opts.queue.i,n:opts.queue.n})}</span>` : '';
+  const pos = (queued && opts.queue) ? ` · <b>${i18t('me_queue_pos',{i:opts.queue.i,n:opts.queue.n})}</b>` : '';
   /* The phrase each value came from, shown under the field. This is what turns
      the confirm step from a leap of faith into a glance — the same
      verbatim-quoting pattern the clause review already uses. */
@@ -744,47 +768,63 @@ function openMetaReview(meta, onConfirm, opts={}){
       if(isNaN(t)) return String(iso);
       try{ return new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
       catch(e){ return String(iso); } };
-    return `<span style="display:block;margin-top:var(--s-1);padding:5px 7px;border-radius:var(--radius);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-label);line-height:1.5">
+    return `<p class="lgp-small" data-mf-check style="color:var(--st-amber-fg)">
       ${esc(i18t('me_term_mismatch',{n:ck.n, unit:i18t('me_unit_'+String(ck.unit).replace(/s$/,'')), from:pretty(meta.effectiveDate), to:pretty(ck.expected)}))}
-      <button type="button" data-mf-use="${k}" data-mf-val="${esc(ck.expected)}" style="border:0;background:none;padding:0;margin-left:var(--s-1);font:inherit;font-size:var(--t-label);font-weight:var(--w-title);color:inherit;text-decoration:underline;cursor:pointer">${esc(i18t('me_term_use',{d:pretty(ck.expected)}))}</button>
-      ${spans[k] ? '' : `<span style="display:block;margin-top:3px;opacity:.85"><i>“${esc(String(ck.quoted).slice(0,120))}”</i></span>`}</span>`; };
+      <button type="button" class="lgp-use" data-mf-use="${k}" data-mf-val="${esc(ck.expected)}">${esc(i18t('me_term_use',{d:pretty(ck.expected)}))}</button>
+      ${spans[k] ? '' : `<span style="display:block;margin-top:3px"><i>“${esc(String(ck.quoted).slice(0,120))}”</i></span>`}</p>`; };
   const spanLine = k => { const q=spans[k]; if(!q) return '';
     const t=String(q).replace(/\s+/g,' ').trim().slice(0,180);
     if(!t) return '';
-    return `<span style="display:block;margin-top:3px;font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600)">found: <i>“${esc(t)}”</i></span>`; };
+    return `<p class="lgp-quote">found: <q>${esc(t)}</q></p>`; };
+  /* one line: the label beside the words, what was found quoted under it (THE ONE EDIT POP-UP, f1114) */
+  const line = (f, ctl) => `<label class="lgp-row"><span class="lgp-k">${f.label}</span><span class="lgp-v">${ctl}${badge(c[f.k])}</span></label>${spanLine(f.k)}${checkLine(f.k)}`;
   const field = f => {
     const v = meta[f.k]!=null ? meta[f.k] : '';
-    const low = c[f.k]==='low' || !!checks[f.k];
-    const ring = low ? 'border-gold-400 bg-gold-500/5' : 'border-inputln bg-white';
     if(f.type==='select'){
-      return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
-        <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} ui-fld outline-none focus:border-brand-500">
+      return line(f, `<select data-mf="${f.k}" class="lgp-in">
           ${/* NOTHING READ IS NOT THE FIRST ANSWER (27 Sep 2026). With no empty
                choice, a term the reading could not find drew as the list's
                first option — "customer", "auto-renew", "capped" — and Confirm
                filed that as if a person had chosen it. Drawn only where
                nothing was read, so a reading that found an answer draws the
-               list it always drew. */ v===''?'<option value="" selected>—</option>':''}${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}${checkLine(f.k)}</label>`;
+               list it always drew. */ v===''?'<option value="" selected>—</option>':''}${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>`);
     }
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
-    return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
-      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} ui-fld outline-none focus:border-brand-500"/>${spanLine(f.k)}${checkLine(f.k)}</label>`;
+    return line(f, `<input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="lgp-in"/>`);
   };
-  openModal(`
-    <div class="p-6 max-w-lg">
-      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3>${pos}</div>
-      <p class="text-xs text-ink/60 mb-4">${src}. <span class="text-amber font-600">${i18t('me_low_confidence')}</span> ${i18t('me_fields_highlighted')}</p>
-      ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin:-8px 0 14px">
-        <span style="flex:none;margin-top:1px">${icon('readpaper','w-3.5 h-3.5')}</span>
-        <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
-      <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:var(--s-1)">${META_FIELDS.filter(f=>!f.when||f.when(meta)).map(field).join('')}</div>
-      <div class="flex justify-end gap-2 mt-5">
-        ${queued?`<button id="mr-stop" class="ui-btn" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
-        <button data-dlg-cancel id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
-        <button id="mr-save" class="ui-btn ui-btn-primary">${opts.saveLabel||'Confirm & save'}</button>
-      </div>
-    </div>`);
+  /* MORE THAN FITS IS A NEXT STEP, NEVER A SCROLL (the one edit pop-up, f1114): the groups are steps, all in the
+     one form so Confirm reads every field wherever the reader stands; Confirm is there on every step, as it was
+     at the foot of the old scroll, and Next shows the following group. */
+  const groups = metaStepGroups(META_FIELDS.filter(f=>!f.when||f.when(meta)));
+  const names = groups.map(g=>i18t(g.name));
+  const stepsAt = n => names.map((s,i)=>i===n?`<b>${esc(s)}</b>`:esc(s)).join(' · ');
+  openModal(`<form class="lgp" id="mr-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${i18t('me_review_extracted')}</h3>
+      ${groups.length>1?`<p class="lgp-sub lgp-steps" id="mr-steps">${stepsAt(0)}</p>`:''}
+      <p class="lgp-sub">${src}. <span style="color:var(--st-amber-fg)">${i18t('me_low_confidence')}</span> ${i18t('me_fields_highlighted')}${pos}</p></div>
+      <button type="button" class="lgp-x" id="mr-x" tabindex="-1" aria-label="${esc(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
+    <div class="lgp-bd">
+      ${opts.ocrNotice?`<p class="lgp-small" style="color:var(--st-amber-fg)">${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</p>`:''}
+      ${groups.map((g,i)=>`<div data-mr-pane="${i}"${i?' hidden':''}>${g.fields.map(field).join('')}</div>`).join('')}
+    </div>
+    <div class="lgp-ft">
+      <button type="button" class="ui-btn lgp-back" id="mr-back" hidden>‹ ${esc(i18t('lgp_back'))}</button>
+      ${queued?`<button type="button" id="mr-stop" class="ui-btn">${i18t('me_stop')}</button>`:''}
+      <span class="lgp-sp"></span>
+      <button type="submit" id="mr-save" class="ui-btn ui-btn-primary lgp-go">${opts.saveLabel||'Confirm & save'}</button>
+      ${groups.length>1?`<button type="button" id="mr-next" class="ui-btn">${esc(i18t('of_next'))}</button>`:''}
+      <button type="button" data-dlg-cancel id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
+    </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('me_review_extracted') });
+  let at = 0;
+  const goStep = n => { at = Math.max(0, Math.min(groups.length-1, n));
+    document.querySelectorAll('#mr-form [data-mr-pane]').forEach(el=>el.toggleAttribute('hidden', Number(el.getAttribute('data-mr-pane'))!==at));
+    document.getElementById('mr-back')?.toggleAttribute('hidden', at===0);
+    document.getElementById('mr-next')?.toggleAttribute('hidden', at===groups.length-1);
+    const st=document.getElementById('mr-steps'); if(st) st.innerHTML=stepsAt(at); };
+  document.getElementById('mr-next')?.addEventListener('click',()=>goStep(at+1));
+  document.getElementById('mr-back')?.addEventListener('click',()=>goStep(at-1));
+  /* the head's × is Cancel (Skip, in a queue): it tells the caller, as the scrim does */
+  document.getElementById('mr-x')?.addEventListener('click',()=>document.getElementById('mr-cancel')?.click());
   // A scrim click closes the modal (openModal wiring) without telling the
   // caller — for an upload that silently discarded the whole contract. Treat
   // it exactly like Cancel so the pending save still completes.
@@ -803,11 +843,12 @@ function openMetaReview(meta, onConfirm, opts={}){
     const k=b.getAttribute('data-mf-use'), el=document.querySelector(`[data-mf="${k}"]`);
     if(el){ el.value=b.getAttribute('data-mf-val'); el.dispatchEvent(new Event('change',{bubbles:true})); }
     /* the warning has been answered; leaving it up would read as unresolved */
-    b.closest('span[style*="st-amber-bg"]')?.remove();
+    b.closest('[data-mf-check]')?.remove();
   }));
   document.getElementById('mr-stop')?.addEventListener('click',()=>{ settled=true; closeModal(); opts.onStop(); });
   document.getElementById('mr-cancel').addEventListener('click',()=>{ settled=true; closeModal(); if(opts.onCancel) opts.onCancel(); });
-  document.getElementById('mr-save').addEventListener('click',()=>{
+  document.getElementById('mr-save').addEventListener('click',e=>{
+    e.preventDefault();
     settled=true;
     const out={ confidence:{} };
     document.querySelectorAll('[data-mf]').forEach(el=>{ const k=el.getAttribute('data-mf'); let v=el.value;
@@ -890,4 +931,4 @@ function contractGoverningLaw(c){
   return String((c&&c.metadata&&c.metadata.governingLaw)||'').replace(/\s+/g,' ').trim();
 }
 
-Object.assign(window,{contractGoverningLaw,META_FIELDS,metaRenewalTermRead,renewalTermText,META_NUM_WORDS,metaMergeReviewed,metaIsBlankAnswer,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{contractGoverningLaw,META_FIELDS,metaRenewalTermRead,renewalTermText,META_NUM_WORDS,metaMergeReviewed,metaIsBlankAnswer,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill,META_STEP_GROUPS,META_STEP_MAX,metaStepGroups});

@@ -454,9 +454,12 @@ const SEED = async () => {
       if (!window.openContractEssentials) return { open: false };
       openContractEssentials({ title: 'Stage', createLabel: 'Create draft', onCreate: () => {} });
       await new Promise(r => setTimeout(r, 700));
-      const grid = document.querySelector('.field-grid');
+      /* RE-POINTED (f1114, the one edit pop-up): the dialog is the one sheet, a line a question; every step shown
+         for the measure */
+      const grid = document.querySelector('#ce-form .lgp-bd');
       if (!grid) return { open: false };
-      const cells = [...grid.children].map(l => Math.round(l.getBoundingClientRect().width));
+      grid.querySelectorAll('[data-ce-pane]').forEach(p => { p.hidden = false; });
+      const cells = [...grid.querySelectorAll('.lgp-row')].map(l => Math.round(l.getBoundingClientRect().width));
       const box = sel => { const el = grid.querySelector(sel); if (!el) return null;
         const r = el.getBoundingClientRect(); return { w: Math.round(r.width), x: Math.round(r.x) }; };
       /* a date box wears HaTi's own picker face (datePickDress, SAP pop-ups
@@ -470,7 +473,7 @@ const SEED = async () => {
         spread: cells.length ? Math.max(...cells) - Math.min(...cells) : -1 };
     }, undefined, { open: false });
 
-    check('7a the essentials form opens with its two-column grid', !!dates.open,
+    check('7a the essentials form opens on the one sheet, a line a question', !!dates.open,
       dates.open ? `${dates.cells.length} cells` : 'not drawn');
     check('7b no control paints past the grid’s own right edge (CONTROL in Chromium)',
       dates.open && dates.over === 0, `${dates.over} overflowing`);
