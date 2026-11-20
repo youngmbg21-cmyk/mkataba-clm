@@ -32,7 +32,14 @@ const PLACES = [
   ['discover filters', () => setView('reads'), () => !!document.querySelector('#rd-page select')],
   ['your account', () => openMyAccount(), () => !!document.querySelector('#acct-title')],
   ['company and market', () => openSettingsAt('company', 'company'), () => !!document.querySelector('#st-co-name')],
-  ['send screen', () => { const c = state.contracts.find(x => /draft|review/i.test(x.status)) || state.contracts[0]; openShareModal(c); }, () => !!document.querySelector('.sh-lt-who input')],
+  ['send screen', () => {
+    /* a trail of what moves the page while the Send screen opens (a red run names WHO closed it) */
+    window.__sendTrail = [];
+    const at = () => (new Error().stack || '').split('\n').slice(2, 6).map(x => x.trim().replace(/\(?https?:\/\/[^/]+\//, '').replace(/\)$/, '')).join(' < ');
+    if (!window.__sendTrailOn){ window.__sendTrailOn = true;
+      for (const k of ['setView', 'closeModal', 'roomHomeLand', 'pdSendOpen', 'pdOpenOnHome']){ const f = window[k]; if (typeof f !== 'function') continue;
+        window[k] = function (...a){ if (window.__sendTrail) window.__sendTrail.push(k + '(' + (typeof a[0] === 'string' ? a[0] : '') + ') ' + at()); return f.apply(this, a); }; } }
+    const c = state.contracts.find(x => /draft|review/i.test(x.status)) || state.contracts[0]; openShareModal(c); }, () => !!document.querySelector('.sh-lt-who input')],
 ];
 const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .nd-bar, .lin-wrap, .pd2-fm-mid';
 
@@ -74,7 +81,7 @@ const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-ch
           const who = document.querySelector('.sh-lt-who input');
           if (who){ const row = who.closest('label'); sendLines = [parseFloat(getComputedStyle(who).borderBottomWidth) || 0, parseFloat(getComputedStyle(row).borderBottomWidth) || 0].filter(x => x > 0).length; }
           /* when the person's row is not there, say what IS on screen (a red run names its cause) */
-          const sendWhere = who ? null : { view: (window.state || {}).view, modal: !!document.querySelector('#modal-root .modal-in'), sharePage: !!document.querySelector('#modal-root [data-sh-page]'),
+          const sendWhere = who ? null : { trail: (window.__sendTrail || []).slice(0, 12), view: (window.state || {}).view, modal: !!document.querySelector('#modal-root .modal-in'), sharePage: !!document.querySelector('#modal-root [data-sh-page]'),
             dock: !!document.querySelector('#pd-sendface'), letter: !!document.getElementById('sh-letter'), whoEls: document.querySelectorAll('.sh-lt-who').length };
           return { boxed, pwPill, sideIsSelect: !!(side && side.tagName === 'SELECT'), beside, sendLines, sendWhere, sideways: document.documentElement.scrollWidth - innerWidth };
         }, BOXES);
