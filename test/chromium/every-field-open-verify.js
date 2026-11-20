@@ -73,7 +73,10 @@ const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-ch
           let sendLines = null;
           const who = document.querySelector('.sh-lt-who input');
           if (who){ const row = who.closest('label'); sendLines = [parseFloat(getComputedStyle(who).borderBottomWidth) || 0, parseFloat(getComputedStyle(row).borderBottomWidth) || 0].filter(x => x > 0).length; }
-          return { boxed, pwPill, sideIsSelect: !!(side && side.tagName === 'SELECT'), beside, sendLines, sideways: document.documentElement.scrollWidth - innerWidth };
+          /* when the person's row is not there, say what IS on screen (a red run names its cause) */
+          const sendWhere = who ? null : { view: (window.state || {}).view, modal: !!document.querySelector('#modal-root .modal-in'), sharePage: !!document.querySelector('#modal-root [data-sh-page]'),
+            dock: !!document.querySelector('#pd-sendface'), letter: !!document.getElementById('sh-letter'), whoEls: document.querySelectorAll('.sh-lt-who').length };
+          return { boxed, pwPill, sideIsSelect: !!(side && side.tagName === 'SELECT'), beside, sendLines, sendWhere, sideways: document.documentElement.scrollWidth - innerWidth };
         }, BOXES);
         check(r.boxed.length === 0, `1 ${w}×${hh} ${name}: no field wears a box`, r.boxed.slice(0, 6));
         if (name === 'new agreement') check(r.pwPill === true, `2 ${w}×${hh} ${name}: Who pays whom is pill buttons`, r.pwPill);
@@ -82,7 +85,7 @@ const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-ch
           check(r.beside === true, `3 ${w}×${hh} ${name}: the label stands beside the words`, r.beside);
         }
         if (name === 'add approval rule') check(r.beside === true, `3 ${w}×${hh} ${name}: the label stands beside the words`, r.beside);
-        if (name === 'send screen') check(r.sendLines === 1, `4 ${w}×${hh} ${name}: one line under a row, not two`, r.sendLines);
+        if (name === 'send screen') check(r.sendLines === 1, `4 ${w}×${hh} ${name}: one line under a row, not two`, r.sendLines != null ? r.sendLines : JSON.stringify(r.sendWhere));
         check(r.sideways <= 0, `5 ${w}×${hh} ${name}: nothing sideways`, r.sideways);
         await P.screenshot({ path: path.join(OUT, `${w}x${hh}-${name.replace(/\s+/g, '-')}.png`) });
       }

@@ -6193,7 +6193,11 @@ const SET_PANELS={
                other currencies", answered with this workspace's own facts. */}
         <button id="st-fx-add" style="${ST_BTN2}">&#43; ${i18t('st_fx_add')}</button>
         <div id="st-fx-row" hidden style="display:flex;gap:var(--s-2);align-items:flex-end;flex-wrap:wrap;margin-top:9px">
-          <label style="flex:1 1 210px;min-width:180px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
+          ${''/* EACH BOX ITS OWN ROW (20 Nov 2026). Since "every entry field is open" (19 Nov) a Settings label
+                 holding a field is a grid row, its words in a 150px column beside the box. Two such rows
+                 side by side squeezed the rate's box to 0px wide — nothing to type in. Each takes the
+                 whole line, as the pop-ups' side-by-side rows stack. */}
+          <label style="flex:1 1 100%;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
             ${''/* THE VALUE IS UPPERCASED, THE PROMPT IS NOT. text-transform
                    catches the placeholder too, so the search hint rendered as
                    "SEARCH — USD, EURO, RAND…" — a shout where a prompt was
@@ -6203,7 +6207,7 @@ const SET_PANELS={
             <input id="st-fx-code" type="text" list="st-fx-codes" autocomplete="off"
               placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}"/></label>
           <datalist id="st-fx-codes"></datalist>
-          <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
+          <label style="flex:1 1 100%;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
           <button id="st-fx-save" style="${ST_BTN_SM};flex:none">${i18t('act_save')}</button>
         </div>
