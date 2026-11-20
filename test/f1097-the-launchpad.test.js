@@ -34,7 +34,7 @@ function constSrc(name){
   const end = APP.indexOf(';\n', at); return APP.slice(at, end + 1);
 }
 const NAMES = { board:'Board', contracts:'Contracts', requests:'Requests', import:'Import', ourpaper:'Our paper', standards:'Playbook', draft:'New agreement',
-  negotiations:'Negotiations', approvals:'Approvals & signing', document:'Workspace', oblig:'Obligations', calendar:'Calendar', parties:'Parties',
+  negotiations:'Negotiations', approvals:'Approvals & signing', oblig:'Obligations', calendar:'Calendar', parties:'Parties',
   people:'People', mynotes:'My notes', explorer:'Explorer', reads:'Discover', pulse:'Pulse board', house:'Jambo’s agents', flowmap:'Flow map',
   handbook:'Handbook', settings:'Settings & rules' };
 function world(opts = {}){

@@ -4048,10 +4048,13 @@ function renderContextPanel(){
    prints (the door's reading), shown only while something waits; "You are
    here" is read off the page in front (deskKeyNow). Reads only — no AI, no
    writes beyond the reader's own "seen" mark for the tab's "new". */
+/* WORKSPACE IS NOT A ROW (owner, 20 Nov 2026: "Workspace takes you to the contracts page so why don't we leave contracts
+   and delete workspace from both the guide and nav panel"): one contract's paper is reached by opening a contract, so the
+   Guide and the jump window list Contracts alone, and a contract's paper counts as standing on Contracts */
 const GUIDE_STAGES = [
   { k: 'ask', rows: ['requests', 'import'] },
   { k: 'draft', rows: ['ourpaper', 'standards', 'draft'] },
-  { k: 'agree', rows: ['document', 'negotiations', 'parties', 'people'] },
+  { k: 'agree', rows: ['negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
   { k: 'keep', rows: ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'] },
   { k: 'see', rows: ['pulse', 'explorer', 'house'] },
@@ -4078,11 +4081,11 @@ function guideHereKey(){
   try{
     const v=state&&state.view; if(!v) return 'board';
     if(v==='dashboard'){ const f=(typeof hbFace==='function')?hbFace():'board';
-      if(f==='paper'){ const c=(typeof pdOnPaper==='function'&&pdOnPaper()&&typeof pdContract==='function')?pdContract():null; return c?'document':'contracts'; }
+      if(f==='paper') return 'contracts';
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
     return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'standards', redline:'negotiations', customers:'parties',
       directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:'reads', pulse:'pulse', jambo:'house',
-      team:'settings', workspace:'document', doc:'document', handbook:'handbook', flowmap:'flowmap' })[v]||null;
+      team:'settings', workspace:'contracts', doc:'contracts', handbook:'handbook', flowmap:'flowmap' })[v]||null;
   }catch(_){ return null; }
 }
 /* a page this reader cannot use is not listed (Import needs the right to add) */
@@ -4109,7 +4112,7 @@ function guideRowHtml(k, here, cls){
    (rule 9c): the drawing's rows, and the pages it did not draw in the stage they belong to. */
 const GUIDE_NL=[
   { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['standards'],['draft']] },
-  { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals'],['document']] },
+  { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals']] },
   { k:'live', tone:'steel', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
   { k:'book', tone:'violet', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
 ];
@@ -4167,7 +4170,7 @@ const LP_CHIPS=['all','need','arrive','negsign','live','book'];
    previous nav panel as a reference"): Settings' own emoji (SDD_EMOJI, js/views/settings.js) where it has the meaning — requests,
    import, ourpaper, standards, approvals, document, parties, people, mynotes, board, explorer, house, flowmap, handbook, settings —
    else the emoji of the symbol the panel drew before (GUIDE_NL_ICON). A mark beside the name, never the name itself. */
-const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅', document:'✏️',
+const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅',
   oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
 let _lpChip='all';

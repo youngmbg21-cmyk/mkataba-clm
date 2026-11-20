@@ -40,6 +40,7 @@ const NOT_A_PAGE = {
   guide: 'a tab of the side panel',
   alerts: 'a tab of the side panel',
   activity: 'a tab of the side panel',
+  document: 'one contract\'s paper, reached by opening a contract (owner, 20 Nov 2026: off the Guide and the jump window)',
 };
 /* the 20 Oct 2026 debt — only shrinks */
 const PAGES_NOT_ON_THE_GUIDE = {

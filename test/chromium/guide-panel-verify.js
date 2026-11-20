@@ -136,8 +136,10 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.evaluate(() => openPanel('guide'));
     await until(page, () => !!document.querySelector('.gdn .gdn-g'));
     const R5 = await page.evaluate(READ);
-    check('5a with a contract in front the tabs are Guide · Alerts · Notes · Activity, and Workspace is "You are here"',
-      R5.tabs.map(t => t.k).join() === 'guide,alerts,notes,activity' && R5.here.join() === 'document', JSON.stringify({ tabs: R5.tabs.map(t => t.k), here: R5.here }));
+    /* RE-POINTED 20 Nov 2026 (owner: "leave contracts and delete workspace from both the guide and nav panel"): with a
+       contract in front, Contracts is "You are here" */
+    check('5a with a contract in front the tabs are Guide · Alerts · Notes · Activity, and Contracts is "You are here"',
+      R5.tabs.map(t => t.k).join() === 'guide,alerts,notes,activity' && R5.here.join() === 'contracts', JSON.stringify({ tabs: R5.tabs.map(t => t.k), here: R5.here }));
     await page.click('#panel-tabs [data-pt-face="notes"]');
     const nf = await until(page, () => document.getElementById('context-panel').dataset.face === 'notes' ? true : null);
     check('5b its Notes tab opens that contract\'s notes in the same panel', !!nf);
