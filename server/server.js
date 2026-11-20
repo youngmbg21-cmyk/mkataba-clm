@@ -1375,6 +1375,32 @@ function theirAnswersTouched(prev, next) {
   for (const [id, st] of a) if (b.has(id) && b.get(id) !== st) return true;
   return false;
 }
+/* NOBODY NAMES A VIEWER TO DO THE WORK (owner, 20 Nov 2026): a save that makes a Viewer the contract's owner, or
+   newly puts a Viewer on one of our duties, is refused — every reminder about it would reach somebody who can act on
+   none of it. Asked as a DIFFERENCE against the stored record: an owner or a duty's person that was already so
+   stands untouched (a member made Viewer later is the admin's to hand on), and a name that is nobody's account (an
+   outside person) passes. Returns the sentence, or ''. */
+function srvViewerNamedRefusal(prev, next) {
+  const viewerBy = q => {
+    const s = String(q || '').trim().toLowerCase(); if (!s) return null;
+    let u = null;
+    try { u = db.prepare('SELECT * FROM users WHERE LOWER(email)=?').get(s) || db.prepare('SELECT * FROM users WHERE LOWER(name)=?').get(s); } catch (_) { u = null; }
+    return u && u.role === 'viewer' ? u : null;
+  };
+  const po = prev && prev.owner, no = next && next.owner;
+  if (no && no.id != null && String(no.id) !== String((po && po.id) || '')) {
+    let u = null; try { u = db.prepare('SELECT * FROM users WHERE id=?').get(String(no.id)); } catch (_) { u = null; }
+    if (u && u.role === 'viewer') return `${u.name || u.email} is a Viewer and cannot own a contract. Choose a member who edits.`;
+  }
+  const was = new Map((Array.isArray(prev && prev.obligations) ? prev.obligations : []).filter(Boolean).map(o => [String(o.id), String(o.assignee || '')]));
+  for (const o of (Array.isArray(next && next.obligations) ? next.obligations : [])) {
+    if (!o || String(o.party) === 'theirs' || !String(o.assignee || '').trim()) continue;
+    if (was.has(String(o.id)) && was.get(String(o.id)) === String(o.assignee || '')) continue;
+    const u = viewerBy(o.assignee);
+    if (u) return `${u.name || u.email} is a Viewer and cannot be given a duty. Choose a member who edits.`;
+  }
+  return '';
+}
 function ourChangesTouched(prev, next) {
   const ours = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.authorSide !== 'counterparty')
@@ -6087,6 +6113,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      roster above and the review verdicts below: every save that moves no stamp
      passes untouched, so this costs nothing on the ordinary write. Without it
      the whole feature is one request wide — delete the stamp, then send. */
+  const vnWhy = srvViewerNamedRefusal(prev, c);
+  if (vnWhy) return res.status(400).json({ error: vnWhy, viewerNamed: true });
   const sgWhy = dkSuggestionRefusal(prev, c, req.user);
   if (sgWhy) return res.status(403).json({ error: sgWhy, desk: 'suggestion' });
   /* ---- AND A COLLEAGUE'S UNSENT DRAFT IS NOT YOURS TO DISCARD (D3, 9 Oct 2026) ---- */
@@ -23861,6 +23889,9 @@ function obligationRecipient(assignee, folder) {
     if (!u) u = db.prepare('SELECT * FROM users WHERE LOWER(name)=?').get(q);
   } catch (_) { u = null; }
   if (u && folder !== undefined && !inScope(folderScopeFor(u), folder)) return null;
+  /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): a Viewer may do no duty, so no reminder names one —
+     the caller's own fallback (the owner, else the admins) is told instead */
+  if (u && u.role === 'viewer') return null;
   if (u && /.+@.+\..+/.test(String(u.email || '')))
     return { email: u.email, name: u.name || assignee, lang: u.lang || null };
   return null;
@@ -24022,6 +24053,8 @@ function contractOwnerRecipient(full, folder) {
     return row ? { ...r, row } : null;
   })();
   if (!fallback || !fallback.row) return null;
+  /* an owner who is now a Viewer acts on nothing: the caller's fallback (the admins) is told instead */
+  if (fallback.row.role === 'viewer') return null;
   return inScope(folderScopeFor(fallback.row), folder) ? fallback : null;
 }
 function runReminders() {
@@ -24545,6 +24578,9 @@ function runDailyBriefs() {
   } catch (_) {}
   let sent = 0;
   for (const u of members) {
+    /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): every line of the brief is work owed, and a Viewer
+       may do none of it — no mail, no phone summary */
+    if (u.role === 'viewer') continue;
     const every = briefCadence(u);
     /* A PHONE WITH ALERTS ON gets the morning summary whatever the email is set to (round 4) */
     const phones = pushDevicesOf(u.id).length > 0;
@@ -24931,6 +24967,7 @@ async function runLinkWatch() {
   for (const [uid, rows] of byOwner) {
     const u = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
     if (!u || !/.+@.+\..+/.test(String(u.email || ''))) { bump('noAddress'); continue; }
+    if (u.role === 'viewer') { bump('viewer'); continue; }   /* work goes only to who can do it (owner, 20 Nov 2026) */
     const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
     const lines = rows.map(x => `  • ${linkStuckLine(L, x.c.name || x.c.id, x.it)}\n    ${contractUrl(null, x.c.id, x.it.kind.includes('sign') ? 'sign' : null)}`);
     const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n${tFor(L, 'mail_lw_lead')}\n\n${lines.join('\n')}\n\n`
@@ -24977,6 +25014,7 @@ async function runLateChases() {
     const oid = c && c.owner && c.owner.id;
     if (!oid) return null;
     const u = db.prepare('SELECT * FROM users WHERE id=?').get(String(oid));
+    if (u && u.role === 'viewer') return null;   /* work goes only to who can do it (owner, 20 Nov 2026) */
     return u && /.+@.+\..+/.test(String(u.email || '')) ? { email: u.email, name: u.name || '', lang: u.lang || null } : null;
   };
   for (const r of db.prepare("SELECT id,json FROM contracts WHERE status!='Declined'").all()) {

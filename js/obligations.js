@@ -819,7 +819,9 @@ function openObligationForm(c, seed, opts){
   /* THE DESK'S "Edit before adding" (O-33) passes its own two words and its
      way back; every other caller passes nothing and gets the form it knew */
   opts=opts||{};
-  const members=(getUsers()||[]).map(u=>u.name);
+  /* NOBODY NAMES A VIEWER TO DO THE WORK (owner, 20 Nov 2026): a Viewer may do no duty, so the list offers members who
+     edit; the server refuses one typed in all the same (srvViewerNamedRefusal) */
+  const members=(getUsers()||[]).filter(u=>u&&u.role!=='viewer').map(u=>u.name);
   /* ---- THE ONE EDIT POP-UP, IN TWO SHORT STEPS (owner, 19 Nov 2026: "Build 1", as drawn) ----
      1 The duty: whose, what, due, repeats, what it comes after, who on our side. 2 Money and proof: the amount and
      whether it is a document they must hold. Every field, id and rule below is the one this dialog always had; only
@@ -922,6 +924,12 @@ function openObligationForm(c, seed, opts){
          stale colleague's name on it would put their job in our queue. */
       assignee: party==='theirs' ? '' : document.getElementById('of-assignee').value.trim(),
       status:seed.status||'open', quote:seed.quote||'' };
+    /* a Viewer typed in by name or address is refused here, with the same words the server says (srvViewerNamedRefusal) */
+    if(o.assignee && o.assignee!==String(seed.assignee||'')){
+      const q=o.assignee.toLowerCase();
+      const v=(getUsers()||[]).find(u=>u&&u.role==='viewer'&&(String(u.name||'').toLowerCase()===q||String(u.email||'').toLowerCase()===q));
+      if(v){ toast(i18t('ob_assign_viewer',{ who:v.name||v.email }),'err'); return; }
+    }
     /* THE ORDER. Absent means no chain, which is what every obligation on file
        carries — so the key is only ever written when a step is actually chosen,
        and a record that never had one is byte-identical to what it was. */

@@ -639,9 +639,16 @@ const ND_AL_ADMIN = ['settings-ask', 'access-review', 'email-off'];
 const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'dep-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
 const ND_AL_BTN = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'desk-quiet': 'review', 'review-mine': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', signature: 'sign', approval: 'decide', 'ap-refused': 'decide', renewal: 'decide', mailroom: 'look', details: 'fill', 'finding-ask': 'answer', 'settings-ask': 'answer', 'desk-join': 'answer' };
 function ndIsNews(a){ return !!a && (ND_NEWS.includes(a.kind) || (a.kind === 'watch' && !a.fired)); }
+/* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): for a company Viewer every alert that asks for an act is told
+   as NEWS — under the bell's News tab, never counted — but their own note falling due and a watch of theirs that
+   fired, which are theirs to act on */
+const ND_VIEWER_WORK = ['note-due', 'watch'];
 function ndAlerts(){
   let L = []; try { L = (typeof buildAlerts === 'function') ? (buildAlerts() || []) : []; } catch (_){ L = []; }
-  return { work: L.filter(a => a && !ndIsNews(a)), news: L.filter(ndIsNews) };
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const reads = !!(me && me.role === 'viewer');
+  const work = a => a && !ndIsNews(a) && (!reads || ND_VIEWER_WORK.includes(a.kind));
+  return { work: L.filter(work), news: L.filter(a => a && !work(a)) };
 }
 const _ndCid = it => (it && (it.cid || (it.c && it.c.id))) || '';
 function ndAlCovered(a, rows, P, admin){
