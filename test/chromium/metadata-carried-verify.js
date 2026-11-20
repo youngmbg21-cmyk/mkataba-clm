@@ -66,7 +66,7 @@ Agreement shall not exceed the Contract Sum.
 /* What the review card is showing, read the way a person reads it. */
 const CARD = () => {
   const fields = [...document.querySelectorAll('[data-mf]')].map(el => el.getAttribute('data-mf'));
-  /* RE-POINTED (f1114, the one edit pop-up, the Legora way): each field is a line (.lgp-row) and the phrase it was
+  /* RE-POINTED (f1120, the one edit pop-up, the Legora way): each field is a line (.lgp-row) and the phrase it was
      read from is quoted on the line under it; more than fits is a NEXT STEP (the panes), never a scroll */
   const panes = document.querySelectorAll('#mr-form [data-mr-pane]').length;
   const quoted = [...document.querySelectorAll('[data-mf]')]

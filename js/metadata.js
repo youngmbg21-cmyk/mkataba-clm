@@ -706,7 +706,7 @@ async function extractMetadata(text, seed, opts={}){
   return meta;
 }
 
-/* ---- THE STEPS A LONG READING IS SHOWN IN (f1114: the one edit pop-up, the Legora way) ----
+/* ---- THE STEPS A LONG READING IS SHOWN IN (f1120: the one edit pop-up, the Legora way) ----
    More than about seven lines is a NEXT STEP, never a scroll, so the facts read off a document are shown a group at
    a time: who, when, money, the trading terms, the risk. Each group is cut at six lines; a field no group names
    (one added later) rides in the last. ONE reading of the groups, used by this review and the upload's own card,
@@ -776,7 +776,7 @@ function openMetaReview(meta, onConfirm, opts={}){
     const t=String(q).replace(/\s+/g,' ').trim().slice(0,180);
     if(!t) return '';
     return `<p class="lgp-quote">found: <q>${esc(t)}</q></p>`; };
-  /* one line: the label beside the words, what was found quoted under it (THE ONE EDIT POP-UP, f1114) */
+  /* one line: the label beside the words, what was found quoted under it (THE ONE EDIT POP-UP, f1120) */
   const line = (f, ctl) => `<label class="lgp-row"><span class="lgp-k">${f.label}</span><span class="lgp-v">${ctl}${badge(c[f.k])}</span></label>${spanLine(f.k)}${checkLine(f.k)}`;
   const field = f => {
     const v = meta[f.k]!=null ? meta[f.k] : '';
@@ -792,7 +792,7 @@ function openMetaReview(meta, onConfirm, opts={}){
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
     return line(f, `<input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="lgp-in"/>`);
   };
-  /* MORE THAN FITS IS A NEXT STEP, NEVER A SCROLL (the one edit pop-up, f1114): the groups are steps, all in the
+  /* MORE THAN FITS IS A NEXT STEP, NEVER A SCROLL (the one edit pop-up, f1120): the groups are steps, all in the
      one form so Confirm reads every field wherever the reader stands; Confirm is there on every step, as it was
      at the foot of the old scroll, and Next shows the following group. */
   const groups = metaStepGroups(META_FIELDS.filter(f=>!f.when||f.when(meta)));

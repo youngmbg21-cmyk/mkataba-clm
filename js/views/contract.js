@@ -1543,7 +1543,7 @@ let _up=null;   // pipeline result carried from the drop to the confirm
 function openUploadModal(){
   if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('ct_viewers_no_add'),'err'); return; }
   _up=null;
-  /* ---- THE ONE EDIT POP-UP, THE LEGORA WAY (f1114) ----
+  /* ---- THE ONE EDIT POP-UP, THE LEGORA WAY (f1120) ----
      One sheet, three kinds of step: the file (the drop area with its sign and "or choose a file", the way to
      several files on the foot's left), then what was read, shown a few lines at a time — who it is between, how it
      is filed, and any more details HaTi read — each line the label beside the words, no boxes. More than about
@@ -1664,7 +1664,7 @@ function uploadConfirmHtml(ext, meta){
   const MARK=`✦ ${i18t('ct_read_from_doc').toUpperCase()}`;
   const found=k=>{ const q=spans[k]; if(!q) return '';
     return ` · found: <q>${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}</q>`; };
-  /* ---- ONE LINE A FACT, THE LEGORA WAY (f1114) ----
+  /* ---- ONE LINE A FACT, THE LEGORA WAY (f1120) ----
      The label beside the words, no box; under the line, what HaTi read it from (✦, and the phrase quoted) or the
      one hint the line needs. Was: a two-column grid of boxes held level by subgrid (22 Aug 2026) — one column now,
      so nothing beside a box can sit out of line with it. */
@@ -17779,7 +17779,7 @@ async function signCheckEscalate(c,i,after){
   const cat=v.category||i18t('sc_a_standard');
   const prev=v.escalation&&v.escalation.to?String(v.escalation.to.id):'';
   return new Promise(resolve=>{
-    /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1114): who and a note, two lines with the label beside the words; the
+    /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1120): who and a note, two lines with the label beside the words; the
        ask, its stamp and its mail are the ones this dialog always had */
     lgpOpen({ id:'sc-esc-form', title:i18t('sc_ask_title'), sub:cat,
       rows:[ { k:i18t('sc_esc_who'), id:'sc-esc-who', type:'select', value:prev,

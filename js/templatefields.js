@@ -624,7 +624,7 @@ function openContractEssentials(opts){
     }
     return { create, skip, count: fs.length };
   }
-  /* ---- ITS OWN DIALOG IS THE ONE EDIT POP-UP, THE LEGORA WAY (f1114) ----
+  /* ---- ITS OWN DIALOG IS THE ONE EDIT POP-UP, THE LEGORA WAY (f1120) ----
      Each question a line, the label beside the words, no boxes; more than about seven lines is a NEXT STEP, never
      a scroll, so the eight questions are two steps — who the agreement is between, then its term, money and
      stream — both in the one form, so Create reads every box wherever the reader stands. Create, Skip and Cancel

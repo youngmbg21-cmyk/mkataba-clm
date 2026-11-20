@@ -122,7 +122,7 @@ const SEED = t => {
       mimeType: 'text/plain', buffer: buf });
     await pause(2600);
     await page.screenshot({ path: path.join(OUT, '01-confirm.png'), fullPage: true });
-    /* RE-POINTED (f1114, the one edit pop-up): the tick is on the confirm's second step, Filing — Next shows it */
+    /* RE-POINTED (f1120, the one edit pop-up): the tick is on the confirm's second step, Filing — Next shows it */
     await page.click('#up-next').catch(() => {});
     const box = await page.evaluate(() => {
       const el = document.getElementById('up-triage');

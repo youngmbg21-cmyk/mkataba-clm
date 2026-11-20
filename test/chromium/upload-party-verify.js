@@ -281,7 +281,7 @@ const check = (name, pass, detail) => {
           { maxWidth: w });
       }, mw);
       await page.waitForTimeout(400);
-      /* RE-POINTED (f1114, the one edit pop-up, the Legora way): one column of lines, each label BESIDE its words, so
+      /* RE-POINTED (f1120, the one edit pop-up, the Legora way): one column of lines, each label BESIDE its words, so
          no box can sit out of line with a neighbour. Asked now: every box starts at one left edge, and each sits
          inside its own line (beside its label, whatever the label wraps to). Every step is shown for the measure. */
       const lines = await page.evaluate(() => {

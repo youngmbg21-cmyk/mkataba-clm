@@ -127,7 +127,7 @@ const AGREED = [
         go: document.getElementById('up-go').textContent.trim() } : null; });
     check('1a the upload asks who runs the signing, and HaTi is the default until an admin says otherwise',
       q && q.route === 'inside' && q.segs.includes('outside:false') && q.segs.includes('inside:true'), JSON.stringify(q));
-    /* RE-POINTED (f1114, the one edit pop-up): who it is between is the first step of what was read, the route the
+    /* RE-POINTED (f1120, the one edit pop-up): who it is between is the first step of what was read, the route the
        second (Next); File contract is in the one foot on both */
     if (!(await page.evaluate(() => document.getElementById('up-cp').value))) await page.fill('#up-cp', 'Nordkust Industri AB');
     await press('#up-next');
@@ -381,7 +381,7 @@ const AGREED = [
     await page.setInputFiles('#up-file', fb);
     await page.waitForFunction(() => { const s2 = document.getElementById('up-step-2'); return s2 && !s2.classList.contains('hidden'); }, null, { timeout: 20000 }).catch(() => {});
     await page.fill('#up-cp', 'Kijani Foods Ltd');
-    await press('#up-next');   // the route is on the second step (f1114)
+    await press('#up-next');   // the route is on the second step (f1120)
     await press('[data-up-route="outside"]');
     await page.click('#up-go');
     await page.waitForTimeout(2500);

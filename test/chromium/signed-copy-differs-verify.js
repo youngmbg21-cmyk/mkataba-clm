@@ -89,7 +89,7 @@ const signedOf = (cp, signer) => [
       await page.setInputFiles('#up-file', file);
       await page.waitForFunction(() => { const s2 = document.getElementById('up-step-2'); return s2 && !s2.classList.contains('hidden'); }, null, { timeout: 20000 }).catch(() => {});
       await page.fill('#up-cp', cp);
-      await press(page, '#up-next');   // the route is on the second step (f1114)
+      await press(page, '#up-next');   // the route is on the second step (f1120)
       await press(page, '[data-up-route="outside"]');
       await page.click('#up-go');
       await page.waitForTimeout(2500);

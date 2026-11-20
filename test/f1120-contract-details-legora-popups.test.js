@@ -1,5 +1,5 @@
 'use strict';
-/* f1114 — THE CONTRACT DETAILS POP-UPS ON THE ONE EDIT POP-UP (owner, "Fix all batches": every old edit pop-up moves
+/* f1120 — THE CONTRACT DETAILS POP-UPS ON THE ONE EDIT POP-UP (owner, "Fix all batches": every old edit pop-up moves
    onto the one Legora sheet, lgpOpen / lgpHtml / class="lgp" in js/components.js)
    1 · Ask a colleague about a sign-check finding (signCheckEscalate): who and a note, two lines, through lgpOpen.
    2 · Check the details read from a document (openMetaReview): the sheet, the facts shown a group at a time —
@@ -22,7 +22,7 @@ const fnBody = (src, name) => { const i = src.search(new RegExp('(?:async )?func
 const OLD = /class="p-6|class="field[ "]|rounded-lg border/;
 const CT = read('js/views/contract.js');
 
-test('f1114 (1) asking a colleague about a finding is the one sheet: who, a note', () => {
+test('f1120 (1) asking a colleague about a finding is the one sheet: who, a note', () => {
   const f = strip(fnBody(CT, 'signCheckEscalate'));
   assert.match(f, /lgpOpen\(\{ id:'sc-esc-form'/);
   assert.match(f, /id:'sc-esc-who', type:'select'/);
@@ -32,7 +32,7 @@ test('f1114 (1) asking a colleague about a finding is the one sheet: who, a note
   assert.doesNotMatch(f, OLD); assert.doesNotMatch(f, /HATI_FLD|openModal\(/);
 });
 
-test('f1114 (2) the review of what was read is the sheet, a group of at most six a step', () => {
+test('f1120 (2) the review of what was read is the sheet, a group of at most six a step', () => {
   const ME = read('js/metadata.js');
   const f = strip(fnBody(ME, 'openMetaReview'));
   assert.match(f, /<form class="lgp" id="mr-form" novalidate>/);
@@ -48,7 +48,7 @@ test('f1114 (2) the review of what was read is the sheet, a group of at most six
   assert.match(ME, /const META_STEP_MAX = 6;/);
 });
 
-test('f1114 (3) the essentials of a new draft open the sheet in two steps; a host keeps the grid', () => {
+test('f1120 (3) the essentials of a new draft open the sheet in two steps; a host keeps the grid', () => {
   const TF = read('js/templatefields.js');
   const f = strip(fnBody(TF, 'openContractEssentials'));
   assert.match(f, /<form class="lgp" id="ce-form" novalidate>/);
@@ -62,7 +62,7 @@ test('f1114 (3) the essentials of a new draft open the sheet in two steps; a hos
   assert.doesNotMatch(dlg, /\$\{gridHtml\}|style="\$\{ST\}"/, 'the dialog draws no boxes');
 });
 
-test('f1114 (4) the upload is the sheet: the file, then what was read, a step at a time, one foot wired once', () => {
+test('f1120 (4) the upload is the sheet: the file, then what was read, a step at a time, one foot wired once', () => {
   const o = strip(fnBody(CT, 'openUploadModal'));
   assert.match(o, /<form class="lgp" id="up-form" novalidate>/);
   assert.match(o, /<div class="lgp-ft">[\s\S]*id="up-back"[\s\S]*id="up-go"[\s\S]*id="up-next"[\s\S]*id="up-cancel"/, 'File contract, Next, then Cancel last');

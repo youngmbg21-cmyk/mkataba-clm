@@ -49,7 +49,7 @@ const WIDE = '#ce-cols > div:first-child input[type=date],'
    inside it, whichever reaches further) against the grid and against the
    contract beside it. */
 const MEASURE = () => {
-  /* RE-POINTED (f1114, the one edit pop-up): the essentials door's form is the one sheet — a line a question, every
+  /* RE-POINTED (f1120, the one edit pop-up): the essentials door's form is the one sheet — a line a question, every
      step shown for the measure — so its "grid" is the sheet's body and its cells are the lines */
   const sheet = document.querySelector('#ce-cols > form.lgp .lgp-bd');
   if (sheet) sheet.querySelectorAll('[data-ce-pane]').forEach(p => { p.hidden = false; });

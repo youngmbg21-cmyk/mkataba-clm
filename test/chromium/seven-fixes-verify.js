@@ -454,7 +454,7 @@ const SEED = async () => {
       if (!window.openContractEssentials) return { open: false };
       openContractEssentials({ title: 'Stage', createLabel: 'Create draft', onCreate: () => {} });
       await new Promise(r => setTimeout(r, 700));
-      /* RE-POINTED (f1114, the one edit pop-up): the dialog is the one sheet, a line a question; every step shown
+      /* RE-POINTED (f1120, the one edit pop-up): the dialog is the one sheet, a line a question; every step shown
          for the measure */
       const grid = document.querySelector('#ce-form .lgp-bd');
       if (!grid) return { open: false };
