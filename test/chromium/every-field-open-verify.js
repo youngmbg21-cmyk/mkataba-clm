@@ -39,7 +39,13 @@ const PLACES = [
     if (!window.__sendTrailOn){ window.__sendTrailOn = true;
       for (const k of ['setView', 'closeModal', 'roomHomeLand', 'pdSendOpen', 'pdOpenOnHome']){ const f = window[k]; if (typeof f !== 'function') continue;
         window[k] = function (...a){ if (window.__sendTrail) window.__sendTrail.push(k + '(' + (typeof a[0] === 'string' ? a[0] : '') + ') ' + at()); return f.apply(this, a); }; } }
-    const c = state.contracts.find(x => /draft|review/i.test(x.status)) || state.contracts[0]; openShareModal(c); }, () => !!document.querySelector('.sh-lt-who input')],
+    /* RE-POINTED 20 Nov 2026: Send is pressed from a contract's paper (its line's Send, #ws-share), so the step starts
+       there, with the paper and Jambo's panel standing, as a person does. Opened straight over Settings' docked drawer
+       (the step before) the screen landed on the paper and then shut — logged in BUGLOG, not this check's claim. */
+    const c = state.contracts.find(x => /draft|review/i.test(x.status)) || state.contracts[0];
+    if (typeof roomHomeLand === 'function') roomHomeLand(c.id);
+    return new Promise(res => { let n = 0; const go = () => { const dock = document.getElementById('ig-dock');
+      if ((state.view === 'dashboard' && dock && dock.getClientRects().length) || ++n > 60){ openShareModal(c); res(); } else setTimeout(go, 100); }; go(); }); }, () => !!document.querySelector('.sh-lt-who input')],
 ];
 const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .nd-bar, .lin-wrap, .pd2-fm-mid';
 
