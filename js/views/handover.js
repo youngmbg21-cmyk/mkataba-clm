@@ -360,9 +360,11 @@ async function openHandoverWindow(c){
     : '';
   openModal(`<form class="lgp ho-win" id="ho-win" novalidate>
     <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${_hoEsc(i18t('ho_win_title'))}</h3>
-      <p class="lgp-sub">${_hoEsc([c.name || '', typeof contractRef === 'function' ? contractRef(c) : c.id].filter(Boolean).join(' · '))}</p></div>
+      <p class="lgp-sub">${_hoEsc([c.name || '', typeof contractRef === 'function' ? contractRef(c) : c.id].filter(Boolean).join(' · '))}</p>
+      <p class="lgp-sub lgp-steps" id="ho-steps"></p></div>
       <button type="button" class="lgp-x" id="ho-x" tabindex="-1" aria-label="${_hoEsc(i18t('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>
     <div class="lgp-bd">
+      <div id="ho-s1">
       ${row(i18t('ho_win_agreed'), `<span class="lgp-in is-read">${_hoEsc(roundOpen ? i18t('ho_win_agreed_open', { round: round || 1, n: prog.total }) : i18t('ho_win_agreed_v', { v: vN, round: Math.max(1, (round || 1) - 1) }))}</span>`, true)}
       ${row(i18t('ho_win_how'), many ? howHtml : `<span class="ho-how">
         ${signal ? `<label class="ho-radio"><input type="radio" name="ho-how" value="signal" checked> <span>${_hoEsc(i18t('ho_how_signal', { who: signal.name || c.counterparty || '', when: typeof fmtDT === 'function' ? fmtDT(signal.at) : _hoDay(signal.at) }))}</span></label>` : ''}
@@ -378,24 +380,48 @@ async function openHandoverWindow(c){
           <button type="button" class="lgp-chip is-on" data-ho-ch="email" aria-pressed="true">${_hoEsc(i18t('ho_ch_email'))}</button>
           <button type="button" class="lgp-chip" data-ho-ch="download" aria-pressed="false">${_hoEsc(i18t('ho_ch_download'))}</button>
         </span>`)}
+      </div>
+      <div id="ho-s2" hidden>
       <div id="ho-email-box">
         ${many ? toRows : `${inRow(i18t('ho_to_name_ph'), `<input id="ho-to-name" type="text" class="lgp-in" autocomplete="off" value="${_hoEsc(pre.name || '')}">`)}
         ${inRow(i18t('ho_to_email_ph'), `<input id="ho-to-email" type="email" class="lgp-in" autocomplete="off" value="${_hoEsc(pre.email || _hoBookEmail(c) || '')}">`)}`}
         ${inRow(i18t('ho_note_k'), `<textarea id="ho-note" rows="3" class="lgp-in is-area">${_hoEsc(i18t('ho_note_default'))}</textarea>`, true)}
       </div>
+      </div>
       <p class="lgp-small ho-lock-say">${_hoEsc(i18t('ho_win_lock'))}</p>
       <p id="ho-err" class="lgp-err" role="alert" hidden></p>
     </div>
-    <div class="lgp-ft"><span class="lgp-sp"></span>
+    <div class="lgp-ft"><button id="ho-back" type="button" class="ui-btn lgp-back" hidden>‹ ${_hoEsc(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
       <button id="ho-go" type="button" class="ui-btn ui-btn-primary lgp-go">${_hoEsc(i18t('ho_go'))}</button>
+      <button id="ho-next" type="button" class="ui-btn">${_hoEsc(i18t('of_next'))}</button>
       <button data-dlg-cancel id="ho-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
     </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('ho_win_title') });
   const root = document.getElementById('modal-root');
   let channel = 'email';
+  /* MORE THAN SEVEN LINES IS A NEXT STEP, NEVER A SCROLL (20 Nov 2026, the photos at the owner's screens): the
+     agreement first (wording, how they agreed, who signs, how the file leaves), then sending it (to whom, the message).
+     The black button stands on both steps, so a download still hands over in one press; a missing address brings
+     step 2 back, a missing day step 1. */
+  let step = 1;
+  const stepGo = n => {
+    step = n;
+    const s1 = document.getElementById('ho-s1'), s2 = document.getElementById('ho-s2');
+    if (s1) s1.hidden = n !== 1; if (s2) s2.hidden = n !== 2;
+    const sendStep = channel === 'email';
+    const back = document.getElementById('ho-back'), next = document.getElementById('ho-next');
+    if (back) back.hidden = n !== 2; if (next) next.hidden = n !== 1 || !sendStep;
+    const st = document.getElementById('ho-steps');
+    if (st) st.innerHTML = sendStep ? [i18t('ho_step_agreed'), i18t('ho_step_send')].map((w, i) => i + 1 === n ? `<b>${_hoEsc(w)}</b>` : _hoEsc(w)).join(' · ') : '';
+  };
+  stepGo(1);
+  document.getElementById('ho-next')?.addEventListener('click', () => stepGo(2));
+  document.getElementById('ho-back')?.addEventListener('click', () => stepGo(1));
+  { const f = root.querySelector('#ho-s1 input'); if (f){ try { (typeof fieldFocus === 'function') ? fieldFocus(f, { focusVisible: false }) : f.focus({ preventScroll: true, focusVisible: false }); } catch (_) {} } }
   root.querySelectorAll('[data-ho-ch]').forEach(b => b.addEventListener('click', () => {
     channel = b.getAttribute('data-ho-ch') === 'download' ? 'download' : 'email';
     root.querySelectorAll('[data-ho-ch]').forEach(x => { x.setAttribute('aria-pressed', String(x === b)); x.classList.toggle('is-on', x === b); });
     const box = document.getElementById('ho-email-box'); if (box) box.style.display = channel === 'email' ? '' : 'none';
+    stepGo(1);
   }));
   document.getElementById('ho-cancel')?.addEventListener('click', closeModal);
   document.getElementById('ho-x')?.addEventListener('click', closeModal);
@@ -404,24 +430,24 @@ async function openHandoverWindow(c){
   });
   document.getElementById('ho-go')?.addEventListener('click', async e => {
     const btn = e.currentTarget;
-    const err = m => { const el = document.getElementById('ho-err'); if (el){ el.textContent = m; el.hidden = false; } };
+    const err = (m, at) => { if (at) stepGo(at); const el = document.getElementById('ho-err'); if (el){ el.textContent = m; el.hidden = false; } };
     let how, to, also = [];
     if (many){
       const parties = [...root.querySelectorAll('[data-ho-party-day]')].map(i => ({ id: i.getAttribute('data-ho-party-day'), at: i.value || '' }));
-      if (parties.some(p => !/^\d{4}-\d{2}-\d{2}$/.test(p.at) || p.at > today)) return err(i18t('ho_how_need_each'));
+      if (parties.some(p => !/^\d{4}-\d{2}-\d{2}$/.test(p.at) || p.at > today)) return err(i18t('ho_how_need_each'), 1);
       how = { kind: 'email', parties };
       const rows = [...root.querySelectorAll('[data-ho-to-party]')].map(r => ({ partyId: r.getAttribute('data-ho-to-party'),
         name: ((r.querySelector('[data-ho-to-name]') || {}).value || '').trim(), email: ((r.querySelector('[data-ho-to-email]') || {}).value || '').trim() }));
-      if (channel === 'email' && rows.some(r => !/.+@.+\..+/.test(r.email))) return err(i18t('ho_need_email_each'));
+      if (channel === 'email' && rows.some(r => !/.+@.+\..+/.test(r.email))) return err(i18t('ho_need_email_each'), 2);
       to = rows[0] || { name: '', email: '' }; also = rows.slice(1);
     } else {
       const howKind = (root.querySelector('input[name="ho-how"]:checked') || {}).value || 'email';
       const day = (document.getElementById('ho-how-day') || {}).value || '';
-      if (howKind === 'email' && (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > today)) return err(i18t('ho_how_need_day'));
+      if (howKind === 'email' && (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > today)) return err(i18t('ho_how_need_day'), 1);
       how = howKind === 'signal' ? { kind: 'signal' } : { kind: 'email', at: day };
       to = { name: ((document.getElementById('ho-to-name') || {}).value || '').trim(),
         email: ((document.getElementById('ho-to-email') || {}).value || '').trim() };
-      if (channel === 'email' && !/.+@.+\..+/.test(to.email)) return err(i18t('ho_need_email'));
+      if (channel === 'email' && !/.+@.+\..+/.test(to.email)) return err(i18t('ho_need_email'), 2);
     }
     /* WHOEVER THE FILE GOES TO IS IN THE ADDRESS BOOK (4 Oct 2026) — the
        send screen's own memory, so this box never holds an address the

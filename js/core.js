@@ -3160,7 +3160,12 @@ function trapFocus(panel, opts={}){
      to a position it is about to leave. */
   if(opts.focus!==false) setTimeout(()=>{
     if(!panel.isConnected) return;
-    const f=focusables(); fieldFocus(f[0]||panel,{preventScroll:true});
+    /* THE ONE EDIT POP-UP ARRIVES WITH NO RING (20 Nov 2026, the photos of the Legora sweep): a sheet that already put
+       the cursor in its own first line keeps it; otherwise its first control is focused without the ring a press would
+       never show (NO RING AFTER A PRESS, f881). Tabbing still rings every stop. */
+    const lgp=!!panel.querySelector('.lgp');
+    if(lgp && panel.contains(document.activeElement) && document.activeElement!==panel) return;
+    const f=focusables(); fieldFocus(f[0]||panel, lgp ? {preventScroll:true, focusVisible:false} : {preventScroll:true});
   },0);
   let done=false;
   return function release(){

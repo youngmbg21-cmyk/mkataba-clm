@@ -89,3 +89,12 @@ test('f1117 (5) every new word is in both books', () => {
   for (const k of ['rv_changes_k', 'rv_pick_of', 'rv_pick_open', 'ho_note_k', 'ho_copy_k', 'ho_step_copy', 'ho_step_filing'])
     assert.equal((I.match(new RegExp('^    ' + k + ': ', 'gm')) || []).length, 2, k);
 });
+
+test('f1117 (6) the hand-over is two steps, never a scroll: the agreement, then sending it; the black button on both', () => {
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'handover.js'), 'utf8');
+  const i = src.indexOf('async function openHandoverWindow('), w = src.slice(i, src.indexOf('\n}', i));
+  assert.ok(w.indexOf('<div id="ho-s1">') > 0 && w.indexOf('<div id="ho-s2" hidden>') > w.indexOf('<div id="ho-s1">'));
+  assert.ok(w.indexOf('id="ho-email-box"') > w.indexOf('<div id="ho-s2" hidden>'), 'to whom and the message are step 2');
+  assert.match(w, /return err\(i18t\('ho_need_email'\), 2\);/, 'a missing address brings step 2 back');
+  assert.match(w, /return err\(i18t\('ho_how_need_day'\), 1\);/, 'a missing day brings step 1 back');
+});
