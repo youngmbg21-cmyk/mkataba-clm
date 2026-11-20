@@ -22704,3 +22704,9 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Playbook › editing an existing position (Quality & rejection) is headed "New position · Draft".
 - Playbook › Departures and History: they are buttons in the head, not tabs, and the side panel keeps talking about the position chosen before (Quality & rejection) instead of what is on screen.
 - Playbook › a position: the panel's three tiles read "0 held · 0 allowed · 0 to decide" (zeros as figures), and its "Who looks after it" repeats the line under the ladder.
+
+## Noticed, not fixed — New agreement clean-up photos (20 Nov 2026)
+- New agreement › a paper chosen: the side panel does not change — it still says "Say what you need in one sentence" after Raw Material Supply is chosen.
+- New agreement › a paper chosen: an empty contract value shows as "0" (amber), which reads as a value rather than "not said yet".
+- New agreement › From scratch: a different, plain panel ("I've opened New agreement beside me" and three loose lines), unlike Our paper and Their paper.
+- New agreement › Their paper: the sentence box stays, though there is nothing to say until their file is read.
