@@ -189,6 +189,18 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the owner said "do not delete yet" when the new look was switched on for everyone (16 Nov 2026), then asked how long it would take and what best practice is, and said "park this" (19 Nov 2026) · Saved in another window but never pushed; recovered on 20 Nov 2026 (first numbered there as P-12, in the "Hati UI inconsistencies and design review" window).
 - **Notes:** measured 19 Nov 2026: about 220 places in 35 files where the app asks "new look or old?", about 2,860 new-look style rules laid on top of the old look's styling, and about 115 checks that mention the old look. Best practice: wait a quiet week or two after the switch (so a rollback stays easy), then remove it in small pieces. Part 1, the app's logic and its checks: about one long session plus a few rounds of GitHub's checks; suggested around the end of November 2026. Part 2, the styling: two to four days of work in all, done page by page, ideally when that page is being worked on anyway, with photos at the three screens before each merge. Overlaps P-5 (delete the old versions of HaTi completely); settle P-17's questions first.
 
+### P-25 · Parties page, the Legora + Stripe way, with the ring, on both tabs
+- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's pick for Parties: the Legora + Stripe way on All and on Waiting on you, with the Ring as the agreements graphic. Owner's words: "L+S and ring. Park it."
+- **Where it came from:** the page clean-up, day 3. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/D4MwQEurNNotwb8Tdc8zYt (choose "The Legora + Stripe way" and the graphic "Ring").
+- **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
+  - **Head:** the title and Add a party; one ask box under it ("Ask about a party: …"); chips All 10 · Waiting on you 6 · + Stream · + Status. NO figure cards (a list page).
+  - **All:** one calm table: Party (initials mark, name, and under it the words that name the party on the paper, one line ending in "…") · Streams (soft coloured badge, first one + N) · Agreements (a small ring filled by how much is signed, green on a visible light-grey track, the count inside, "N signed" beside it, never squeezed) · On paper (dropped entirely for a reader without money rights) · Ends next (date, agreement under it) · Waiting on you (soft badge "1 thing", red "· late" when late).
+  - **Waiting on you:** a worklist, one row per waiting item: party · what waits (for Jambo's finds, the paper's words under it) · a soft badge for the kind (Late, Renewal, Details, Jambo's finds) · the agreement · the act at the row's end (Decide · Fill in).
+  - **Side panel, NO cards and NO money:** initials, name, streams; Agreements count and Ends next; the ring with "1 of 2 signed · 1 in progress"; Open on Contracts and Edit; the party's own facts (Org. no., Streams); on Waiting on you, what waits with its act; a timeline of the party's agreements; contacts with + Add a contact.
+  - **Rules it must keep:** nothing pushed behind the side panel (long words wrap or end in "…"); money never in the panel; colours: amber Distribution, violet Procurement, green signed, red only late, violet Jambo's finds.
+  - **Check before building:** where the "between … and …" words under each name come from (the paper's opening or parties clause; a party with no such words shows none, never an invented line); the timeline needs each agreement's signed and end days.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
