@@ -213,7 +213,8 @@ describe('f772 (5) check all, one at a time', () => {
     assert.equal(ctx.toasts.pop()[1], 'ok');
   });
   test('5b the view as drawn: the file\'s own words beside the facts, numbered; File it with its reason; Skip for now; next and previous', () => {
-    const f = fnBody(MIG, 'migCheckHtml') + fnBody(MIG, 'migCheckBarHtml');
+    /* RE-POINTED 20 Nov 2026 (the check made like the Send screen, owner: "build it as drawn"): File it and Skip for now stand in the page's head (migCheckActsHtml) */
+    const f = fnBody(MIG, 'migCheckHtml') + fnBody(MIG, 'migCheckBarHtml') + fnBody(MIG, 'migCheckActsHtml');
     for (const k of ['mig_ck_doc_sub', 'mig_ck_facts_h', 'mig_ck_facts_sub', 'mig_file_it', 'mig_ck_skip', 'mig_ck_pos', 'mig_ck_prev', 'mig_ck_next', 'mig_ck_back']) assert.ok(f.includes("'" + k + "'"), k);
     assert.match(fnBody(MIG, 'migCheckHtml'), /migFormHtml\(c, \{ marks:true, asRow:true/);
     assert.match(fnBody(MIG, 'migDocHtml'), /<sup class="mig-ck-sup">/);

@@ -274,6 +274,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A LANE'S LIMIT, READ BACK (the owner's yes, 27 Oct 2026): test/chromium/lane-limit-verify.js (new) — Settings › Request lanes says "Value limit · KES 5M" on a lane with one, nothing on one without, inside its row at the three screens; a save keeps it.
 - IMPORT STORES A SIGNING DAY ONLY WHERE ONE WAS READ (bug log batch 5, 27 Oct 2026): f946 (4) (new; red at the parent) — migBuildAndSave's signedAt is the manifest's signed day or null, never the start date.
 - A LANE KEEPS ITS CEILING (bug log batch 2, 26 Oct 2026): test/chromium/lane-ceiling-kept-verify.js (new; red at the parent) — Settings › Requests' lanes Save keeps a lane's maxValue; a lane without one gains none.
+- THE CHECK, MADE LIKE THE SEND SCREEN (20 Nov 2026): f1125 (new; numbered f1124 until main took it; 6 of 6 red at the parent 430dbe0); re-pointed f771 5a, f772 5b, f773 (5a), f874 5b and import-as-drawn-verify 5e, 6c, 6d, 11b, 12h.
 - f193, f244 (7), f336, f495, f652, f721, f723, f728, f770–f773, f797, f799, sap-lists, advice-is-a-request, four-inspectors, requests-sap-way, requests-and-notes-as-drawn, import-sap-way, import-as-drawn, import-jambo-panel, calendar-* verify.
 
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (9 Oct)
