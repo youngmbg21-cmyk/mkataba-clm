@@ -98,10 +98,13 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     /* RE-POINTED 16 Nov 2026 (#762): each stage holds the pages its own list names (GUIDE_NL), and every page the old
        Journey held is still on the Guide (none lost, rule 9c) */
     const want = await page.evaluate(() => (window.GUIDE_NL || []).map(st => st.rows.flat()));
-    const had = ['requests', 'import', 'ourpaper', 'draft', 'document', 'negotiations', 'parties', 'people', 'approvals', 'contracts', 'reads', 'oblig', 'calendar', 'mynotes', 'pulse', 'explorer', 'house'];
+    /* RE-POINTED 20 Nov 2026 (#822, owner: "leave contracts and delete workspace from both the guide and nav panel"):
+       Workspace ('document') left the Guide on purpose — one contract's paper is reached by opening a contract — so it is
+       no longer among the pages that must stay, and the check now also asserts it is NOT drawn */
+    const had = ['requests', 'import', 'ourpaper', 'draft', 'negotiations', 'parties', 'people', 'approvals', 'contracts', 'reads', 'oblig', 'calendar', 'mynotes', 'pulse', 'explorer', 'house'];
     const drawnAll = R2.stages.flatMap(st => st.rows);
-    check('2d each stage holds its pages as drawn, and none the Guide had is lost', JSON.stringify(R2.stages.map(st => st.rows)) === JSON.stringify(want) && had.every(k => drawnAll.includes(k)),
-      JSON.stringify({ drawn: R2.stages.map(st => st.rows), lost: had.filter(k => !drawnAll.includes(k)) }));
+    check('2d each stage holds its pages as drawn, none the Guide had is lost, and Workspace is gone', JSON.stringify(R2.stages.map(st => st.rows)) === JSON.stringify(want) && had.every(k => drawnAll.includes(k)) && !drawnAll.includes('document'),
+      JSON.stringify({ drawn: R2.stages.map(st => st.rows), lost: had.filter(k => !drawnAll.includes(k)), workspace: drawnAll.includes('document') }));
     check('2e the Board is the page in front: "You are here"', R2.here.join() === 'board', JSON.stringify(R2.here));
     const nums = await page.evaluate(() => ({ approvals: approvalsDoorCount(), oblig: obligationsDoorCount(), requests: requestsDoorCount() }));
     const numOk = ['approvals', 'oblig', 'requests'].every(k => nums[k] > 0 ? (R2.pills[k] || '') === String(nums[k]) : !R2.pills[k]);

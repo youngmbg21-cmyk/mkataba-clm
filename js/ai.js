@@ -2769,7 +2769,12 @@ function aiGotoRun(g, q){
   if(!card&&!goAsk){
     const H=(typeof window.jamboConvo==='function')?jamboConvo():(typeof ai==='object'&&ai&&Array.isArray(ai.history)?ai.history:[]);
     const last=H[H.length-1];
-    if(last&&last.role==='assistant'&&!last.err&&!last.act&&String(last.text||'').replace(/<[^>]*>/g,'').trim()){
+    /* THE ANSWER MUST BE THIS ASK'S (20 Nov 2026, jambo-doors-verify 22): the turn before it is the person's own words
+       for this ask. An earlier answer still standing at the foot (no question now, or an ask that drew no answer) is
+       not an answer to this goto: the place is gone to at once, as before */
+    const asked=String(q||'').trim(), prevU=H[H.length-2];
+    const thisAsk=!!(asked&&prevU&&prevU.role==='user'&&String(typeof prevU.raw==='string'?prevU.raw:(prevU.text||'')).replace(/<[^>]*>/g,'').trim()===asked);
+    if(thisAsk&&last&&last.role==='assistant'&&!last.err&&!last.act&&String(last.text||'').replace(/<[^>]*>/g,'').trim()){
       /* the link is the message's own (m.goTo), drawn by the one turn builder every host uses (jamboTurnHtml):
          an answer's words are sanitised, a button in them would not survive */
       last.goTo=jbGoKeep(a);

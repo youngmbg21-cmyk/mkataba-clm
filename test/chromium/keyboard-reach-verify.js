@@ -201,7 +201,10 @@ async function tabAround(page, sel, n = 25) {
     check('and it is the door the reader is standing in', cur.key === 'contracts' && /Contracts|Avtal/.test(String(cur.text)), JSON.stringify(cur));
     /* RE-POINTED 19 Nov 2026: the move is the launchpad's own Board row, and the launchpad opened again says Board */
     await openPad();
-    await page.evaluate(() => { const b = [...document.querySelectorAll('#cmd-palette .lp-p')].find(x => /^(Board|Tavla)/.test(x.textContent.trim())); if (b) b.click(); }); await pause(700);
+    /* RE-POINTED 20 Nov 2026 (#818, owner: "assign an emoji to each"): a row's text now starts with its emoji mark, so the
+       Board row is found by its NAME (.lp-nm); a row not found is reported, not timed out */
+    const boardFound = await page.evaluate(() => { const b = [...document.querySelectorAll('#cmd-palette .lp-p')].find(x => /^(Board|Tavla)/.test(((x.querySelector('.lp-nm') || x).textContent || '').trim())); if (b) b.click(); return !!b; }); await pause(700);
+    if (!boardFound) check('the launchpad holds a Board row to press', false, 'no .lp-p row named Board');
     await openPad();
     const moved = await page.evaluate(() => {
       const on = [...document.querySelectorAll('#cmd-palette .lp-p[aria-current="page"]')].filter(e => e.getClientRects().length);

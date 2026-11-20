@@ -93,12 +93,15 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.keyboard.press('/');
   await page.waitForTimeout(500);
   ok('it opened', await page.evaluate(() => !!document.getElementById('cmd-palette')));
+  /* RE-POINTED 20 Nov 2026 (PR #816, the launchpad the Stripe way, owner: "Build the nav panel as drawn"): what waits on
+     you stands in its own column (#lp-side, a second listbox) beside the page list (#cp-list), and the first row can be
+     one of those. The arrows walk both as one list, so "exactly one selected" is counted over the whole window. */
   const sem = await page.evaluate(() => {
     const i = document.getElementById('cp-input'), l = document.getElementById('cp-list');
     return { role: i.getAttribute('role'), controls: i.getAttribute('aria-controls'),
              listRole: l.getAttribute('role'),
              opts: document.querySelectorAll('#cp-list [role="option"]').length,
-             sel: document.querySelectorAll('#cp-list [aria-selected="true"]').length,
+             sel: document.querySelectorAll('#cmd-palette [role="option"][aria-selected="true"]').length,
              active: i.getAttribute('aria-activedescendant') };
   });
   ok('the input is a combobox pointing at the list', sem.role === 'combobox' && sem.controls === 'cp-list');
@@ -113,7 +116,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   const moved = await page.evaluate(() => document.getElementById('cp-input').getAttribute('aria-activedescendant'));
   ok('ArrowDown moves it', moved === 'cp-opt-1', moved);
   ok('and still exactly one is selected',
-     (await page.evaluate(() => document.querySelectorAll('#cp-list [aria-selected="true"]').length)) === 1);
+     (await page.evaluate(() => document.querySelectorAll('#cmd-palette [role="option"][aria-selected="true"]').length)) === 1);
   await page.keyboard.press('ArrowUp');
   await page.waitForTimeout(250);
   ok('ArrowUp moves it back',

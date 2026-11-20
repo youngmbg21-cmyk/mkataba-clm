@@ -57,7 +57,10 @@ const check = (name, pass, detail) => {
       return { today: ikDay(at(0)) };
     });
     await until(() => { if (document.querySelectorAll('.ikn-table [data-ikn-row]').length >= 3) return true;
-      if (window.__ikList && !_intakeState.list.some(r => r.id === 'REQ-1042')){ _intakeState.list = window.__ikList; renderIntake(); } return null; }, null, 8000);
+      if (window.__ikList && !_intakeState.list.some(r => r.id === 'REQ-1042')){ _intakeState.list = window.__ikList; renderIntake(); } return null; }, null, 20000);
+    /* BOUNDED, AND SAID (20 Nov 2026): on a slow runner the page's own load can land over the three sample requests after
+       the wait; the wait is 20 s, and if the rows are still not there the check says so rather than timing out on a press */
+    const rowsIn = await page.evaluate(() => !!document.querySelector('.ikn-table [data-ikn-row="REQ-1042"]'));
     /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; the owner's ruling 3, 17 Nov 2026: Requests as round
        6 drew it): ONE table (.ikn-table, rows tr[data-ikn-row]) — Request · Stream · Where it stands · Asked by, and the
        row's Start the draft. Who holds a request is said in Where it stands ("With <first name>", or "Needs an editor"
@@ -80,6 +83,7 @@ const check = (name, pass, detail) => {
     const a = T.rows['REQ-1042'] || {}, b = T.rows['REQ-1039'] || {}, c = T.rows['REQ-1037'] || {};
     check('2a With: "You" with the lane that sent it; a colleague by name; "Nobody yet" in amber',
       new RegExp('^With ' + me).test(a.with) && /^With Erik/.test(c.with) && /^Needs an editor/.test(b.with) && b.amber, JSON.stringify({ a, b, c, me }));
+    if (!rowsIn) throw new Error('the three sample requests never stood on the list within 20 s (the page\'s own load came over them)');
     await page.click('.ikn-table [data-ikn-row="REQ-1042"]');
     const P = await until(() => { const p = document.getElementById('ins-panel'); return p && /Kettle/.test(p.textContent) ? p.innerText.replace(/\s+/g, ' ').trim() : null; });
     /* RE-POINTED 17 Nov 2026 (#762; the owner's picks on the drawings, 17 Nov 2026, "2 Bring it back"): the panel says
