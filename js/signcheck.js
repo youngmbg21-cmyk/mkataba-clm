@@ -383,7 +383,9 @@ function briefMarkRead(c, user){
 }
 
 /* "I HAVE READ IT", PRESSED: the one writer, its line in the trail, saved — one act for every card that offers it */
+/* nothing pretends to save (Round C): a Viewer's record would be dropped, so it is never made, and they are told */
 function briefReadSave(c){
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)){ toast(i18t('viewer_reads_only'), 'warn'); return null; }
   const r = briefMarkRead(c); if (!r) return null;
   if (typeof logAudit === 'function') logAudit(c, 'Record', 'Read the brief before signing');
   if (typeof persist === 'function') persist(c);

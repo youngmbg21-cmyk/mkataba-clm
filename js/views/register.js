@@ -5445,7 +5445,8 @@ function ngnPanelHtml(r, rows){
 }
 function ngnPanelFiveHtml(r, rows){
   const E = esc, live = rows.filter(x => x.b !== 'settled'), you = rows.filter(x => x.b === 'you'), them = rows.filter(x => x.b === 'them');
-  const may = typeof canEdit !== 'function' || canEdit();
+  /* Send and Chase reach the other side: the negotiation's lead's act (deskMaySend), never a Viewer's (Round C) */
+  const may = (typeof canEdit !== 'function' || canEdit()) && !(r && r.c && typeof window.deskMaySend === 'function' && !window.deskMaySend(r.c));
   /* THE PANEL IS THE ROW YOU PRESSED (owner, 16 Nov 2026: "the side panel information should reflect the contract you
      have pressed"; the page's totals stood on top and the pressed round's facts under them, so a press seemed to do
      nothing): its name the headline, its three numbers, its facts, its one black button. The page's own overview is

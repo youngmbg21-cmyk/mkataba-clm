@@ -1789,6 +1789,8 @@ function ceTypingRefusal(){
    no reason is what makes a reader blame themselves. */
 function clauseEditorRefusal(c, opts = {}){
   if (!c) return _cet('ce_no_contract');
+  /* a Viewer edits no clause (Round C): the editor never opens for them, whichever door they came by */
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)) return i18t('viewer_reads_only');
   /* ---- THE COUNTERPARTY IS LET IN (Young picked Mirror, 28 Sep 2026) ----
      It refused them outright, because this page was built around Copilot and
      their page has none. It opens for them now with the Copilot half not

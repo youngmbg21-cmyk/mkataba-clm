@@ -2863,6 +2863,7 @@ function pdAmendMay(c){ return !!(c && typeof amendmentShutWhy === 'function' &&
 /* the one door: false where Home has no paper (the phone) or the agreement is
    not signed — the caller keeps the dialog */
 function pdAmendOpen(id){
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(null)){ if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn'); return false; }
   const c = (typeof getContract === 'function') ? getContract(id) : null;
   if (!pdAmendMay(c)) return false;
   if (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768) return false;
@@ -4306,6 +4307,8 @@ function dossierRead(c){
    counts (Jambo's prepared work, looks, approvals, notes …) — said once each */
 function dossierOwed(c){
   const out = []; if (!c) return out;
+  /* nothing on the Dossier is owed by who may not act (Round C): no black button, no Reply · Send · Fill in · Name rows */
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)) return out;
   let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
   const open = (d && d.live) ? d.items.filter(x => x && x.open) : [];
   open.slice(0, DOSSIER_FILL_MAX).forEach(x => out.push({ k: 'fill:' + x.key, kind: 'fill', key: x.key, label: x.label, fk: x.kind }));
@@ -7772,7 +7775,7 @@ function pd2Facts(c, D){
      #762: the new Dossier had lost it) — its press the one pop-up (pdPeopleOpen) */
   if (typeof participantsDirHtml === 'function'){ const n = pdPeopleItems(c).length;
     out.push({ k: 'people', l: _pdT('ppl_title'), v: n ? E(pdPeopleSay(c)) : `<span class="pd2-q">${E(_pdT('ppl_none'))}</span>`, s: '',
-      go: `data-pd-people="${E(c.id)}" data-pd-people-from="dossier"` }); }
+      go: (typeof window.mayActOn === 'function' && !window.mayActOn(c)) ? '' : `data-pd-people="${E(c.id)}" data-pd-people-from="dossier"` }); }
   if (R.stream) out.push({ k: 'stream', l: _pdT('pd2_f_stream'), v: R.stream, s: _pdT('pd2_src_filed') });
   /* A PRIVATE CONTRACT SAYS WHO MAY OPEN IT, beside the paper too (MAP: private streams; #762: the new Dossier had lost it) */
   let P = null; try { P = (typeof window.bsPrivateOf === 'function') ? window.bsPrivateOf(c) : null; } catch (_){ P = null; }
@@ -7799,7 +7802,7 @@ function pd2Facts(c, D){
   else {
     /* CHECKED ON ITS FIRST OPEN (pbCheckOnOpen): while it runs the fact says so; a refusal is said here, Check its way forward */
     let os = null; try { os = (typeof window.pbOpenCheckState === 'function') ? window.pbOpenCheckState(c) : null; } catch (_){ os = null; }
-    const chk = `<button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button>`;
+    const chk = (typeof window.mayActOn === 'function' && !window.mayActOn(c)) ? '' : `<button type="button" class="ui-link" data-pd-ds-std>${E(_pdT('pd2_check'))}</button>`;
     if (os && os.run) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-q">${(typeof busyHtml === 'function') ? busyHtml(_pdT('pd2_std_checking')) : E(_pdT('pd2_std_checking'))}</span>`, s: '' });
     else if (os && os.why) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-amb">${E(_pdT('pd2_std_failed', { why: os.why }))}</span> · ${chk}`, s: '' });
     else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · ${chk} <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
@@ -8140,6 +8143,9 @@ function pd2EndHit(cv){
    the paper's own dot, by that dot: what they ask, what your standard and your past say (the row's own reading, no AI),
    and the one-press answers — Counter at your figure (the one funnel), Reject · hold yours (the row's own verb, pressed);
    last, in grey, the clauses they left untouched this round. Our seat only. */
+/* NO BUTTON YOU CANNOT USE (Round C of the ground rules, owner 20 Nov 2026): a note on the paper keeps its reading and
+   loses its buttons (Fill in, Start redlining, Deep dive, Counter, Reject, Approve) for who may not act */
+function pd2ActsFor(acts){ return (acts && !(typeof window.mayActOn === 'function' && !window.mayActOn(null))) ? acts : ''; }
 function pd2RedNotes(c, cv){
   if (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return [];
   /* the other side by its first word, as the drawing names them ("Parcelway") */
@@ -8295,7 +8301,7 @@ function pd2RedChipsHtml(nOpen, nDone){
 /* their ask, drawn as it always was */
 function pd2RedAskHtml(n, i){
   const E = _pdE;
-  return `<div class="pd2-mn is-${n.tone}" data-pd2-note="${i}"><i class="pd2-mn-dot" aria-hidden="true"></i><div class="pd2-mn-k">${n.n ? `<span class="pd2-mn-n">${E(n.n)}</span>` : ''}${E(n.k)}</div>${n.w ? `<div class="pd2-mn-w">${E(n.w)}</div>` : ''}${n.acts ? `<div class="pd2-mn-a">${n.acts}</div>` : ''}</div>`;
+  return `<div class="pd2-mn is-${n.tone}" data-pd2-note="${i}"><i class="pd2-mn-dot" aria-hidden="true"></i><div class="pd2-mn-k">${n.n ? `<span class="pd2-mn-n">${E(n.n)}</span>` : ''}${E(n.k)}</div>${n.w ? `<div class="pd2-mn-w">${E(n.w)}</div>` : ''}${pd2ActsFor(n.acts) ? `<div class="pd2-mn-a">${pd2ActsFor(n.acts)}</div>` : ''}</div>`;
 }
 /* the notes start under the chips */
 /* the chips stand clear of the paper's zoom (− 100% +, top right above the sheet), the notes start under them */
@@ -8316,7 +8322,7 @@ function pd2RedGroupHtml(g, i){
   const tick = `<i class="pd2-rn-tick" aria-hidden="true"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" focusable="false"><use href="#i-check"/></svg></i>`;
   const line = (x, k) => `<div class="pd2-mg-i is-${x.tone}${k ? ' is-more' : ''}"><div class="pd2-mg-l">${x.tone === 'done' ? tick : '<i class="pd2-mn-dot" aria-hidden="true"></i>'}${E(x.k)}</div>`
     + `<div class="pd2-mn-w">${x.tone === 'done' ? `<b class="pd2-rn-ans">${E(_pdT('pd2_rn_answered'))}</b> · ` : ''}${E(x.state)}</div>`
-    + (x.quote ? `<div class="pd2-mg-q">“${E(x.quote)}”</div>` : '') + (x.acts ? `<div class="pd2-mn-a">${x.acts}</div>` : '') + `</div>`;
+    + (x.quote ? `<div class="pd2-mg-q">“${E(x.quote)}”</div>` : '') + (pd2ActsFor(x.acts) ? `<div class="pd2-mn-a">${pd2ActsFor(x.acts)}</div>` : '') + `</div>`;
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
   const less = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-less" data-pd2-fold>${E(_pdT('pd2_g_less'))}</button>` : '';
   const kept = (_pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '') + (_pd2Shut.has(String(g.cid) + '|' + g.at) ? ' data-pd2-shut="1"' : '');
@@ -8681,7 +8687,7 @@ function pd2GroupHtml(g, i){
   const tone = g.items.some(x => x.tone === 'miss') ? 'miss' : g.items.some(x => x.tone === 'owe') ? 'owe' : g.items.some(x => x.tone === 'risk') ? 'risk' : g.items.some(x => x.tone === 'ask') ? 'ask' : 'fact';
   let quoted = false;
   const line = (x, k) => { const q = x.clause && x.quote && !quoted ? (quoted = true, `<div class="pd2-mg-q">“${E(x.quote)}”</div>`) : '';
-    return `<div class="pd2-mg-i is-${x.tone}${k ? ' is-more' : ''}${x.std ? ' is-std' : ''}"><div class="pd2-mg-l"><i class="pd2-mn-dot" aria-hidden="true"></i>${x.word ? `<b>${E(x.word)}</b> · ` : ''}${E(x.k)}</div>${q}${!x.clause && x.w ? `<div class="pd2-mn-w">${E(x.w)}</div>` : ''}${x.acts ? `<div class="pd2-mn-a">${x.acts}</div>` : ''}</div>`; };
+    return `<div class="pd2-mg-i is-${x.tone}${k ? ' is-more' : ''}${x.std ? ' is-std' : ''}"><div class="pd2-mg-l"><i class="pd2-mn-dot" aria-hidden="true"></i>${x.word ? `<b>${E(x.word)}</b> · ` : ''}${E(x.k)}</div>${q}${!x.clause && x.w ? `<div class="pd2-mn-w">${E(x.w)}</div>` : ''}${pd2ActsFor(x.acts) ? `<div class="pd2-mn-a">${pd2ActsFor(x.acts)}</div>` : ''}</div>`; };
   /* on Clauses the clause is already shown there: the same door, said as what it does there (lands on its row) */
   const open = g.items.some(x => x.clause) && g.at >= 0 ? `<div class="pd2-mn-a"><button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${g.at}">${E(_pdT(_pdTab === 'doc' ? 'pd2_g_shown' : 'pd2_g_open'))}</button></div>` : '';
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
@@ -9057,7 +9063,8 @@ function pd2BriefFaceHtml(c, D){
       title: _pdT(me ? 'jov5_bf_t_done' : 'jov5_bf_t'), sub: me ? say : _pdT('jov5_bf_sub'),
       mid: pd2StepsHtml(D, dossierFocusOf(D), D.stages.map(x => _pdT('dos_st_' + x.k)).join(' \u00b7 ')),
       groups: [{ label: _pdT('jov5_bf_stands'), rows }],
-      act: me ? { say: _pdT('jov5_bf_kept'), link: top } : { label: _pdT('br_mark_read'), attr: `data-pd2-br-read="${E(c.id)}"`, link: top },
+      /* a Viewer reads the brief but records nothing (Round C): no "I have read this", only the way to the top */
+      act: me ? { say: _pdT('jov5_bf_kept'), link: top } : (typeof window.mayActOn === 'function' && !window.mayActOn(c)) ? { link: top } : { label: _pdT('br_mark_read'), attr: `data-pd2-br-read="${E(c.id)}"`, link: top },
       after: restHtml }, 'pd2bf');
   }
   return `${pd2SpineHtml(D)}<p class="pd2-next" data-pd2-next>${E(say)}</p>${groups.map(([h, body]) => `<div class="pd2-eye">${E(_pdT(h))}</div><div class="pd2-facts">${body}</div>`).join('')}`;
