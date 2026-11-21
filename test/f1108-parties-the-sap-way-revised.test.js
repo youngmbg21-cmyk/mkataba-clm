@@ -64,7 +64,11 @@ test('f1108 (4) the panel: streams in the facts; two links under facts and conta
   const p = strip(fnBody(CU, 'cunPanelFiveHtml'));
   assert.match(p, /facts\.push\(\{ k: i18t\('cun_c_streams'\)/);
   assert.match(p, /data-cun-cts=/); assert.match(p, /data-cun-attn=/);
-  assert.ok(p.indexOf("key: 'facts'") < p.indexOf("key: 'contacts'") && p.indexOf("key: 'contacts'") < p.indexOf("key: 'ags'"), 'facts, contacts, then the links');
+  /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): all the agreements on Contracts is the
+     panel's black button (act, data-cun-cts) and what needs attention its own group above the facts; facts, a timeline of
+     the agreements, then contacts */
+  assert.match(p, /const act = \{ label: i18t\('cun_p_open_cts'\), attr: `data-cun-cts=/);
+  assert.ok(p.indexOf("key: 'attn'") < p.indexOf("key: 'facts'") && p.indexOf("key: 'facts'") < p.indexOf("key: 'timeline'") && p.indexOf("key: 'timeline'") < p.indexOf("key: 'contacts'"), 'attention, facts, timeline, then contacts');
   assert.doesNotMatch(p, /CUN_PANEL_AGS/, 'no list of three agreements');
   assert.match(CU, /closest\('\[data-cun-attn\]'\)[\s\S]{0,400}regShowOnly\(ws\.ids/, 'the attention link shows only the contracts waiting on you');
 });

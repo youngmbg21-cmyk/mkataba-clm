@@ -54,7 +54,10 @@ test('f977 (4) say it once', () => {
      name on its own row, and a column that steps aside does so by the one column rule (listCols) */
   assert.doesNotMatch(ap, /apn_col_rests/);
   assert.match(ap, /const cut=h=>Object\.keys\(CELL\)\.filter\(k=>!on\.has\(k\)\)/);
-  assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnRender')), /const reachAny = list\.some/);
+  /* RETIRED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the Phone column is gone from the table —
+     the phone is the panel's "Phone them" (data-dirn-call) — so there is no column left to step out when no row has one */
+  assert.doesNotMatch(strip(fnBody(read('js/views/directory.js'), 'dirnRowHtml')), /reach:/);
+  assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnPanelFive')), /data-dirn-call=/);
   assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
 });
 

@@ -20045,6 +20045,51 @@
   html.lg-new .apn-sd.is-on.is-violet{box-shadow:0 0 0 2px var(--st-violet-dot)}
   html.lg-new .apn-sd.is-on.is-green{box-shadow:0 0 0 2px var(--st-green-dot)}
   @container (max-width:520px){ html.lg-new .ctf-ftable :is(th,td):nth-child(n+4){display:none} }
+  /* PARTIES, THE LEGORA + STRIPE WAY (P-25, "L+S and ring"): a small ring per party filled green by the share signed, the
+     count inside; On paper right-aligned; Waiting on you a soft badge; the Waiting tab a worklist with its act at the end */
+  html.lg-new .cun-ring{flex:none;display:block}
+  html.lg-new .cun-ring .rb{fill:none;stroke:var(--color-neutral-200);stroke-width:3.5}
+  html.lg-new .cun-ring .rf{fill:none;stroke:var(--st-green-dot);stroke-width:3.5;stroke-linecap:round}
+  html.lg-new .cun-ring text{font-family:var(--font-sans);font-size:10px;font-weight:var(--w-label);fill:var(--color-text)}
+  html.lg-new .cun-ring.is-big text{font-size:14px}
+  html.lg-new .cun-ags{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%;white-space:nowrap}
+  html.lg-new .cun-ags-s{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-label);font-weight:400;color:var(--color-quiet)}
+  html.lg-new .cun-table :is(td,th).cun-money{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  html.lg-new .cun-table td.cun-ends .cun-sub,html.lg-new .cun-table .cun-who-t .cun-name,html.lg-new .cun-table.is-wait :is(.cun-what .cun-name,td.cun-ag span){display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cun-table.is-wait td.cun-ag{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .cun-table.is-wait td.cun-do{text-align:right;white-space:nowrap}
+  html.lg-new .cun-table.is-wait tr.cun-wrow:not(.is-first) td:first-child{border-top-color:transparent}
+  html.lg-new .cun-page[data-ins-page="customers"] .cun-table td{vertical-align:middle}
+  html.lg-new .cun-pring{display:flex;align-items:center;gap:12px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .cun-amber{color:var(--st-amber-fg)}
+  /* PEOPLE, THE LEGORA + STRIPE WAY (P-26): initials green for our team, steel for the other side; the role a soft badge;
+     Does for you one line; Agreements right-aligned; Waiting on them an amber badge only where something waits */
+  html.lg-new .cun-av.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .dirn-page .apn-card .dirn-table td{vertical-align:middle}
+  html.lg-new .dirn-table .dirn-who{align-items:center;min-width:0}
+  html.lg-new .dirn-table .dirn-who-t{min-width:0;flex:1}
+  html.lg-new .dirn-table :is(.cun-name,.cun-sub,td.dirn-does>span){display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .dirn-table td.dirn-does{font-size:var(--t-body)}
+  html.lg-new .dirn-table :is(td,th).dirn-n{text-align:right;font-variant-numeric:tabular-nums}
+  html.lg-new .dirn-badges{display:inline-flex;flex-wrap:wrap;gap:6px}
+  /* MY NOTES, THE LEGORA + STRIPE WAY (P-27): a lock and "Only you see these" by the title; the note's own words on one
+     line, a passage note's paper words with its § under; a soft status badge; the day right-aligned; the act on the chosen row */
+  html.lg-new .apn-st.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .mnn-only{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new .mnn-only svg{flex:none;width:12px;height:12px}
+  html.lg-new .mnn-page .apn-card .mnn-table td{vertical-align:middle}
+  html.lg-new .mnn-table :is(.cun-name,.mnn-words,.mnn-ct){display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mnn-table .mnn-words{margin-top:3px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .mnn-table .mnn-ql{display:flex;gap:4px;min-width:0;margin-top:3px;font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  html.lg-new .mnn-table .mnn-ql i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mnn-table .mnn-ql span{flex:none}
+  html.lg-new .mnn-table :is(td,th).mnn-dd{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  html.lg-new .mnn-table td.mnn-dd .cun-sub.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .mnn-table td.mnn-act{text-align:right;white-space:nowrap}
+  html.lg-new .mnn5-top{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+  html.lg-new .mnn5-words{margin:0 0 14px;font-size:var(--t-body);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+  html.lg-new .mnn5-figs b.is-amber{color:var(--st-amber-fg)}
+  html.lg-new .mnn5-figs b.is-ruby{color:var(--st-ruby-fg)}
   @container (max-width:760px){ html.lg-new .ctf-figs{grid-template-columns:repeat(2,minmax(0,1fr))} html.lg-new .ctf-two{grid-template-columns:minmax(0,1fr)} }
   html.lg-new .apn-tab{white-space:nowrap}
   html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
@@ -21819,7 +21864,6 @@
   html.lg-new .cun-av.is-pink{background:var(--st-pink-bg);color:var(--st-pink-fg)}
   html.lg-new .cun-sub .ls-chip{margin-top:3px}
   html.lg-new td.cun-wait.is-owed{color:var(--st-amber-fg)}
-  html.lg-new .dirn-load{display:inline-block;height:6px;border-radius:3px;margin-left:8px;vertical-align:middle;background:var(--st-pink-dot);opacity:.75}
   html.lg-new .rdn-prog{display:block;width:90px;height:5px;border-radius:3px;margin-top:6px;background:var(--surface-2);overflow:hidden}
   html.lg-new .rdn-prog i{display:block;height:100%;background:var(--st-green-dot)}
   html.lg-new .rdn-c .ls-chip{margin:0 4px 4px 0}

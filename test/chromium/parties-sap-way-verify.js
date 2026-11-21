@@ -59,8 +59,13 @@ const check = (name, pass, detail) => {
     let S1 = null;
     if (S0.opts.includes('wait')){
       await page.click(TAB + '[data-cun-tab="wait"]');
-      S1 = await until(n => { const on = document.querySelector('.cun-page [data-cun-tab="wait"].is-on'); const rows = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')];
-        return on && rows.length && rows.length < n && rows.every(r => { const w = (r.querySelector('td.cun-wait') || {}).textContent || ''; return w && w.trim() !== '—'; }) ? rows.map(r => r.getAttribute('data-cu-cust')) : null; }, S0.n);
+      /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): Waiting on you is a WORKLIST — one row per thing that waits (tr.cun-wrow), what waits in words, its
+         kind a soft badge, its act at the row's end; the parties it names are fewer than All's, and the chip counts its rows */
+      S1 = await until(n => { const on = document.querySelector('.cun-page [data-cun-tab="wait"].is-on'); const rows = [...document.querySelectorAll('#cu-tbody tr.cun-wrow[data-cu-cust]')];
+        const parties = [...new Set(rows.map(r => r.getAttribute('data-cu-cust')))];
+        const chipN = Number(((on && on.querySelector('span')) || {}).textContent || NaN);
+        return on && document.querySelector('.cun-table.is-wait') && rows.length && parties.length < n && chipN === rows.length
+          && rows.every(r => /[a-z]/i.test(((r.querySelector('td.cun-what') || {}).textContent || '')) && !!r.querySelector('.apn-st')) ? parties : null; }, S0.n);
     }
     /* RE-POINTED 19 Nov 2026 (owner's yes on the Parties drawings): the Folders tab and "NDA missing" are gone — the tabs
        are All · Waiting on you, the page opening on All. RETIRED: Folders first, List second, No NDA */
@@ -82,15 +87,17 @@ const check = (name, pass, detail) => {
        first item" and 3b "a waiting row's door lands on its work" — the drawn panel carries no Waiting section (what
        waits is said on the row) */
     /* RE-POINTED 19 Nov 2026: the party's facts come first now; the agreements are their own section (data-jov5-sec="ags") */
-    const P = await until(() => { const p = document.getElementById('ins-panel'); const g = p && p.querySelector('.jov5 [data-jov5-sec="ags"]'); if (!g) return null;
-      return { label: ((g.querySelector('.jov5-label') || {}).textContent || '').trim(), ags: g.querySelectorAll('.jov5-row.is-door').length }; });
-    /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the agreements are links, each opening Contracts showing only those */
+    /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the agreements' group is gone — all of them on Contracts is the black button (.jov5-go[data-cun-cts]);
+       what waits is the panel's first group, its row opening Contracts showing only those ([data-cun-attn]) */
+    const P = await until(() => { const p = document.getElementById('ins-panel'); const g = p && p.querySelector('.jov5 .jov5-go[data-cun-cts]'); if (!g) return null;
+      return { label: g.textContent.trim(), ags: 1, attn: p.querySelectorAll('.jov5-row.is-door[data-cun-attn]').length }; });
     check('3a the panel links to the party\'s agreements', !!P && P.ags > 0, JSON.stringify(P));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'parties-sap-way-1440x780.png') });
 
     /* ---- 3 the doors ---- */
-    const agName = await page.evaluate(() => { const r = document.querySelector('#ins-panel .jov5 [data-jov5-sec="ags"] .jov5-row.is-door'); return r ? ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim() : null; });
-    if (agName) await page.click('#ins-panel .jov5 [data-jov5-sec="ags"] .jov5-row.is-door');
+    /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the door is the black button Open on Contracts */
+    const agName = await page.evaluate(() => { const r = document.querySelector('#ins-panel .jov5 .jov5-go[data-cun-cts]'); return r ? r.textContent.trim() : null; });
+    if (agName) await page.click('#ins-panel .jov5 .jov5-go[data-cun-cts]');
     const opened = agName ? await until(() => document.querySelectorAll('#ct-place #reg-tbody tr[data-row]').length || null, null, 12000) : null;
     check('3c "All N agreements" in the panel opens Contracts showing that party\'s agreements', !!opened, String(opened));
 
