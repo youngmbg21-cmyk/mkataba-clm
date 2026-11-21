@@ -185,6 +185,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const box = await page.$('.rl-np textarea, [data-rl-np-input], .rl-np-input');
     if (box){ await box.fill('A note on these words'); await page.locator('button', { hasText: 'Add note' }).last().click(); }
     await page.waitForTimeout(1500);
+    /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row per discussion; opened, the note carries its words */
+    await page.evaluate(() => { const r = [...document.querySelectorAll('.rl-np-crow')].find(b => /A note on these words/.test(b.textContent)); if (r) r.click(); });
+    await page.waitForTimeout(500);
     const kept = await page.evaluate(w => { const t = [...document.querySelectorAll('.rl-np *')].map(e => e.textContent).join(' ');
       return t.includes('A note on these words') && t.includes(w.slice(0, 15)); }, words);
     ok('4 the saved note carries the highlighted words', kept, words);

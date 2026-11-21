@@ -9,7 +9,7 @@
      the box at the panel's foot, in view, at the owner's three screens
    2 words asked from Clauses turn the panel to the conversation; its back
      returns to Clauses as it was left
-   3 the slide-out panel: Guide, Alerts and Activity draw the box at their
+   3 the slide-out panel: Alerts and Activity (and Notes, P-38) draw the box at their
      foot; Notes keeps its own note box and draws no second one
    4 words asked from the slide-out panel put it away and are asked in the ✦'s
      window (the one conversation)
@@ -122,14 +122,17 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
           atFoot: !!(r && pr && pr.bottom - r.bottom < 40) };
       });
     };
-    for (const [f, name] of [['guide', 'Guide'], ['alerts', 'Alerts'], ['activity', 'Activity']]) {
+    /* RE-POINTED 21 Nov 2026 (P-38): the panel's faces are Alerts · Notes · Activity; the Guide is the nav panel's */
+    for (const [f, name] of [['alerts', 'Alerts'], ['activity', 'Activity']]) {
       const r = await face(f);
       ok(`3 the slide-out panel's ${name} draws Jambo's box at its foot`, r.box && r.card && r.inView && r.atFoot, JSON.stringify(r));
       if (OUT) await page.screenshot({ path: `${OUT}/drawer-${f}.png` });
     }
     const notes = await page.evaluate(() => { state.notesFor = { contractId: (state.contracts[0] || {}).id }; openPanel('notes');
       const f = document.getElementById('panel-ask'); return { hidden: !f || f.hidden }; });
-    ok('3b Notes keeps its own box and draws no second one', notes.hidden, JSON.stringify(notes));
+    /* RE-POINTED 21 Nov 2026 (P-38, owner: "Jambo's box at the foot of EVERY face (today Notes has none)"): the note's own
+       box stands at the top of the list, Jambo's at the panel's foot */
+    ok('3b Notes draws Jambo\'s box at its foot too, beside its own note box', !notes.hidden, JSON.stringify(notes));
 
     /* 4 — asked from Alerts: the panel goes, the ✦'s window asks */
     await face('alerts');
